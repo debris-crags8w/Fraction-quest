@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Fraction Quest"
+description = "A playful, mobile-friendly fraction learning game for ages 8–10. Students complete short visual missions to build equal parts, place fractions on a number line, and discover equivalent fractions, with encouraging hints and saved progress."
+version = "1.0.0"
+id = "artifacts/fraction-quest"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24179
+
+[services.development]
+run = "pnpm --filter @workspace/fraction-quest run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/fraction-quest", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/fraction-quest/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24179"
+BASE_PATH = "/"
