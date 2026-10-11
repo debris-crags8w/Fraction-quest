@@ -183,6 +183,10 @@ function assertModel(model: ModelSpec, location: string): void {
     case 'decimal':
       assert.ok(Number.isInteger(model.tenths) && model.tenths >= 0 && model.tenths <= 9, `${location} has an invalid tenths value`);
       return;
+    case 'area':
+      assert.ok(model.cut in AREA_CUTS, `${location} has an unknown area cut`);
+      assert.ok(model.shaded.every((piece) => Number.isInteger(piece) && piece >= 0 && piece < AREA_CUTS[model.cut].length), `${location} shades a missing piece`);
+      return;
     default: {
       const unreachable: never = model;
       assert.fail(`${location} has an unsupported visual model: ${JSON.stringify(unreachable)}`);
@@ -875,10 +879,10 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.match(markup, /Show it both ways/);
   });
 
-  it('labels the whole and a part inside the bar model rather than showing a fraction hint beside it', () => {
+  it('labels the whole with a bracket under the bar rather than showing a fraction hint beside it', () => {
     const markup = renderToStaticMarkup(createElement(BarSvg, { n: 2, d: 5 }));
-    assert.match(markup, />WHOLE 1</);
-    assert.match(markup, />PART<\/text>/);
+    assert.match(markup, /fq-svg-whole-bracket/);
+    assert.match(markup, />1 whole<\/text>/);
     assert.match(markup, /each whole is split into 5 equal parts/);
     assert.match(markup, /2 parts are shaded/);
   });
@@ -1168,8 +1172,8 @@ describe('entered-answer worksheets and evidence gates', () => {
     }));
     assert.match(markup, /class="fq-ll-copy-part/);
     assert.match(markup, /aria-pressed="false"/);
-    assert.match(markup, /WHOLE 1/);
-    assert.match(markup, /PART · one equal piece/);
+    assert.match(markup, /fq-whole-bracket/);
+    assert.match(markup, /<b>1 whole<\/b>/);
 
     const target = problem.model!;
     assert.equal(worksheetBarMatches(target, Array(target.d).fill(false)), false);
@@ -2250,25 +2254,32 @@ describe('course counts', () => {
   });
 });
 
-describe('pictures do not give the answer away', () => {
-  it('compare and same-amount lesson questions show unshaded parts; the shaded bars are the simpler help', () => {
-    const compare = MISSIONS.flatMap((mission) => mission.questions).filter((q) => /bigger|smaller|sign|same as|fill the blank/i.test(q.prompt) && q.simplerModel.kind === 'bars' && q.simplerModel.bars.length >= 2);
-    assert.ok(compare.length > 15);
-    for (const q of compare) {
-      assert.equal(q.model.kind, 'bars', q.prompt);
-      if (q.model.kind === 'bars') assert.ok(q.model.bars.every((bar) => bar.numerator === 0), q.prompt);
-    }
-  });
-  it('practice compare questions name the fractions in either order and keep the shading for help', () => {
+describe('every question has a picture', () => {
+  it('compare questions show both amounts as models, so the child can see why', () => {
+    const q = MISSIONS.find((m) => m.id === 'compare-same-numerator')!.questions.find((item) => /2\/3 or 2\/7/.test(item.prompt))!;
+    assert.equal(q.model.kind, 'bars');
+    if (q.model.kind === 'bars') assert.deepEqual(q.model.bars.map((b) => `${b.numerator}/${b.denominator}`), ['2/3', '2/7']);
     for (const id of ['unit-size', 'compare-same-denominator', 'compare-same-numerator', 'compare-unlike-fractions']) {
-      const qs = Array.from({ length: 40 }, (_, seed) => generateQuestions(id, ['x'], seed + 1, 6)).flat().filter((q) => /^Which is (bigger|smaller), /.test(q.prompt));
+      const qs = Array.from({ length: 40 }, (_, seed) => generateQuestions(id, ['x'], seed + 1, 6)).flat().filter((item) => /^Which is (bigger|smaller), /.test(item.prompt));
       assert.ok(qs.length > 30, id);
-      const firstIsAnswer = qs.filter((q) => q.prompt.replace(/^Which is \w+, /, '').startsWith(q.choices[q.correctChoice] + ' ')).length;
+      const firstIsAnswer = qs.filter((item) => item.prompt.replace(/^Which is \w+, /, '').startsWith(item.choices[item.correctChoice] + ' ')).length;
       assert.ok(firstIsAnswer > qs.length * 0.2 && firstIsAnswer < qs.length * 0.8, `${id}: first-named is the answer ${firstIsAnswer}/${qs.length}`);
-      assert.ok(qs.every((q) => q.model.kind !== 'bars' || q.model.bars.every((bar) => bar.numerator === 0)), id);
+      assert.ok(qs.every((item) => item.model.kind === 'bars' && item.model.bars.length === 2 && item.model.bars.some((b) => b.numerator > 0)), id);
     }
     const unlike = Array.from({ length: 60 }, (_, seed) => generateQuestions('compare-unlike-fractions', ['x'], seed + 1, 6)).flat();
-    assert.ok(unlike.some((q) => { const m = /(\d+)\/(\d+) or (\d+)\/(\d+)/.exec(q.prompt); return !!m && m[1] === m[3]; }), 'some same-numerator pairs');
+    assert.ok(unlike.some((item) => { const m = /(\d+)\/(\d+) or (\d+)\/(\d+)/.exec(item.prompt); return !!m && m[1] === m[3]; }), 'some same-numerator pairs');
+  });
+  it('every lesson, practice and worksheet question shows a model', () => {
+    for (const mission of MISSIONS) {
+      for (const q of mission.questions) assert.notEqual(q.model.kind, 'equation', `${mission.id}: ${q.prompt}`);
+      for (const q of generateQuestions(mission.id, ['x'], 5, 12)) assert.notEqual(q.model.kind, 'equation', `${mission.id}: ${q.prompt}`);
+      for (const p of getWorksheet(mission.id)) {
+        const hasVisual = !!(p.model || p.area || p.rulerTask || p.linePlotTask || p.scaleTask || p.picture);
+        assert.ok(hasVisual, `${mission.id}: ${p.prompt}`);
+      }
+    }
+    const row = getWorksheet('unit-size').find((p) => p.picture)!;
+    assert.equal(row.picture!.kind, 'bars');
   });
 });
 

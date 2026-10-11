@@ -858,6 +858,12 @@
 .fq-svg-bar rect.frame { stroke: hsl(var(--foreground)); stroke-width: 3; }
 .fq-svg-bar .fq-svg-model-label { fill: hsl(var(--foreground)); font: 900 9px var(--app-font-display); letter-spacing: 0.05em; }
 .fq-svg-bar .fq-svg-model-label.part { fill: var(--fq-grape); font-size: 8px; }
+/* "1 whole" bracket under every whole: from one end of the whole to the other. */
+.fq-whole-bracket { position: relative; display: block; height: 9px; margin: 5px 1px 20px; border: 2px solid hsl(var(--foreground) / 0.7); border-top: 0; border-radius: 0 0 3px 3px; }
+.fq-whole-bracket b { position: absolute; top: 100%; left: 50%; transform: translate(-50%, 3px); color: hsl(var(--foreground) / 0.8); font: 900 0.74rem var(--app-font-display); letter-spacing: 0.02em; white-space: nowrap; }
+.fq-svg-whole-bracket path { stroke: hsl(var(--foreground) / 0.7); stroke-width: 1.6; }
+.fq-race-model .fq-whole-bracket { display: none; }
+@media print { .fq-whole-bracket { border-color: #000; } .fq-whole-bracket b { color: #000; } .fq-svg-whole-bracket path { stroke: #000; } }
 .fq-svg-bar .fq-svg-part-guide-line { stroke: var(--fq-grape); stroke-dasharray: 2 2; stroke-width: 1.5; }
 .fq-svg-line .axis, .fq-svg-line .tick { stroke: hsl(var(--foreground)); stroke-width: 2.5; stroke-linecap: round; }
 .fq-svg-line .tick.whole { stroke-width: 3.5; }

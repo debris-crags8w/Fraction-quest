@@ -51,6 +51,18 @@ export function ModelTag({ kind, children }: { kind: ModelKind; children?: React
   return <span className={`fq-model-tag kind-${kind}`}><Icon size={16} />{children ?? MODEL_NAMES[kind]}</span>;
 }
 
+/** The label under every whole: a bracket from one end of the whole to the other, marked "1 whole". */
+export function WholeBracket({ label = '1 whole' }: { label?: string }) {
+  return <span className="fq-whole-bracket" aria-hidden="true"><b>{label}</b></span>;
+}
+/** The same bracket drawn in an SVG, under a whole from x to x + width. */
+export function SvgWholeBracket({ x, width, y = 54, label = '1 whole' }: { x: number; width: number; y?: number; label?: string }) {
+  return <g className="fq-svg-whole-bracket" aria-hidden="true">
+    <path d={`M${x} ${y} V${y + 6} H${x + width} V${y}`} fill="none" />
+    <text className="fq-svg-model-label" x={x + width / 2} y={y + 17} textAnchor="middle">{label}</text>
+  </g>;
+}
+
 const W = 320; // drawing width for 0 → wholes
 const PAD = 22;
 
@@ -63,12 +75,12 @@ export function BarSvg({ n = 0, d, wholes = 1, sizes, label }: { n?: number; d?:
     let x = PAD;
     return (
       <svg className="fq-svg-bar" viewBox={`0 0 ${W + PAD * 2} 74`} role="img" aria-label={label ?? `A bar cut into ${sizes.length} pieces`}>
-        <text className="fq-svg-model-label" x={PAD + W / 2} y={11} textAnchor="middle">WHOLE</text>
         {sizes.map((size, i) => {
           const width = (size / sum) * W; const at = x; x += width;
           return <rect key={i} className={i < n ? 'shaded' : 'empty'} style={{ '--i': i } as CSSProperties} x={at} y={17} width={width} height={32} />;
         })}
         <rect className="frame" x={PAD} y={17} width={W} height={32} fill="none" />
+        <SvgWholeBracket x={PAD} width={W} />
       </svg>
     );
   }
@@ -80,17 +92,13 @@ export function BarSvg({ n = 0, d, wholes = 1, sizes, label }: { n?: number; d?:
         const partCenter = x0 + width / (d ? d * 2 : 2);
         return (
           <g key={w}>
-            <text className="fq-svg-model-label" x={x0 + width / 2} y={11} textAnchor="middle">WHOLE {w + 1}</text>
             {d && Array.from({ length: d }, (_, p) => {
               const i = w * d + p;
               return <rect key={p} className={i < n ? 'shaded' : 'empty'} style={{ '--i': i } as CSSProperties} x={x0 + (p * width) / d} y={17} width={width / d} height={32} />;
             })}
             {!d && <rect className="empty" x={x0} y={17} width={width} height={32} />}
             <rect className="frame" x={x0} y={17} width={width} height={32} fill="none" />
-            {w === 0 && d !== undefined && <>
-              <line className="fq-svg-part-guide-line" x1={partCenter} y1={50} x2={partCenter} y2={57} />
-              <text className="fq-svg-model-label part" x={partCenter} y={69} textAnchor="middle">PART</text>
-            </>}
+            <SvgWholeBracket x={x0} width={width} />
           </g>
         );
       })}

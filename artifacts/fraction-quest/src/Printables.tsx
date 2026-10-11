@@ -4,7 +4,7 @@ import { MathText } from './MathText';
 import { getMission, MISSIONS, type Mission, type ModelSpec } from './game';
 import { answerMatches, getBuildChecks, getWorksheet, paperPrompt, type WorksheetProblem } from './learning-content';
 import { learningSummary, worksheetCount, type LearningRecord } from './learning';
-import { BarSvg, ChallengeFigureView, LineSvg, MODEL_CONCEPTS, ModelPair, ModelTag, SetSvg } from './models';
+import { BarSvg, ChallengeFigureView, LineSvg, MODEL_CONCEPTS, ModelPair, ModelTag, SetSvg, SvgWholeBracket } from './models';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { AreaSvg, ColorTwoWays, SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
 import { areaWhole } from './area-shapes';
@@ -37,7 +37,7 @@ const ANSWER_FORMAT: Record<NonNullable<WorksheetProblem['form']>, string> = {
 function ProblemModel({ problem }: { problem: WorksheetProblem }) {
   const m = problem.model;
   if (problem.area) return <div className="fq-print-model"><span className="fq-model-tag kind-area">{areaWhole(problem.area.cut)[0].toUpperCase() + areaWhole(problem.area.cut).slice(1)} model</span><AreaSvg figure={problem.area} /></div>;
-  if (!m) return null;
+  if (!m) return problem.picture ? <PrintModel model={problem.picture} labels={false} /> : null;
   return (
     <div className="fq-print-model">
       <ModelTag kind={m.kind} />
@@ -140,7 +140,7 @@ function WorksheetPage({ missionId, record, mode }: { missionId: string; record:
 /* ---------- other printable pages ---------- */
 
 /** A lesson model drawn in black and white for paper. */
-function PrintModel({ model, labels = true }: { model: ModelSpec; labels?: boolean }) {
+export function PrintModel({ model, labels = true }: { model: ModelSpec; labels?: boolean }) {
   return (
     <div className="fq-print-model">
       {(model.kind === 'bars' || model.kind === 'decimal') && <ModelTag kind="bar" />}
@@ -160,15 +160,13 @@ function PrintModel({ model, labels = true }: { model: ModelSpec; labels?: boole
       )}
       {model.kind === 'partition' && (
         <svg className="fq-svg-bar" viewBox="0 0 364 74" role="img" aria-label={`One whole split into ${model.parts.length} pieces; the first piece is one part`}>
-          <text className="fq-svg-model-label" x="182" y="11" textAnchor="middle">WHOLE</text>
           {model.parts.reduce<{ x: number; els: ReactElement[] }>((acc, size, i) => {
             const w = (size / 100) * 320;
             acc.els.push(<rect key={i} className={`empty ${i === 0 ? 'part-sample' : ''}`} x={22 + acc.x} y={17} width={w} height={32} />);
             acc.x += w; return acc;
           }, { x: 0, els: [] }).els}
           <rect className="frame" x={22} y={17} width={320} height={32} fill="none" />
-          <line className="fq-svg-part-guide-line" x1="22" y1="50" x2="22" y2="57" />
-          <text className="fq-svg-model-label part" x="22" y="69" textAnchor="middle">PART</text>
+          <SvgWholeBracket x={22} width={320} />
         </svg>
       )}
       {model.kind === 'area' && <AreaSvg figure={{ cut: model.cut, shaded: model.shaded }} />}

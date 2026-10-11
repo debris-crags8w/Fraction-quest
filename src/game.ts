@@ -1,5 +1,6 @@
 import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
 import type { AreaCut } from './area-shapes';
+import { autoPicture } from './auto-picture';
 import { asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 import { FRACTION_STANDARDS, standardsForMission } from './standard-catalog';
 import { scopedStorageKey } from './storage-scope';
@@ -168,14 +169,10 @@ function practice(
   retryFeedback: string,
   simplerModel: ModelSpec,
 ): PracticeSeed {
-  // Compare and "same amount" questions: shaded bars side by side would show the answer, so the picture shows each
-  // whole cut into its parts, unshaded. The shaded bars become the "make it simpler" help.
-  if (model.kind === 'bars' && model.bars.length >= 2 && SHOWS_ANSWER.test(prompt)) {
-    return { prompt, choices, correctChoice, model: { ...model, bars: model.bars.map((bar) => ({ ...bar, numerator: 0 })) }, hint, retryFeedback, simplerModel: model };
-  }
+  // Every question shows a model: a typed-out equation ("1/6 + 4/6 = ?") also gets bars for its amounts.
+  if (model.kind === 'equation') model = autoPicture(model.text, model.text) ?? model;
   return { prompt, choices, correctChoice, model, hint, retryFeedback, simplerModel };
 }
-const SHOWS_ANSWER = /bigger|smaller|closest|closer|more or less|less than|more than|order|between|same as|same amount|covers|sign|fill the blank|what do you get/i;
 
 /** Authored questions mostly listed the right answer first. Put it at a spot picked from the question id
     instead, so A, B and C are each right about as often, and it is the same spot on every visit and on paper. */
@@ -694,9 +691,11 @@ export function problemPicture(problem: WorksheetProblem): ModelSpec {
   if (m) return picture(m.n, m.d);
   const fraction = /(\d+)\/(\d+)/.exec(problem.prompt);
   if (fraction && Number(fraction[1]) <= Number(fraction[2]) * 3) return picture(Number(fraction[1]), Number(fraction[2]));
-  const percent = /(\d+)%/.exec(problem.prompt);
-  if (percent) return picture(Number(percent[1]), 100);
-  return equation(problem.prompt.replace(/\?.*$/, '?'));
+  // Ruler questions: a number line marked like the ruler, with the end point (no labels).
+  if (problem.rulerTask) return { kind: 'line', numerator: problem.rulerTask.end, denominator: problem.rulerTask.denominator, wholes: problem.rulerTask.wholes, hideLabels: true };
+  if (problem.picture) return problem.picture;
+  if (problem.area) return { kind: 'area', cut: problem.area.cut, shaded: problem.area.shaded ?? [] };
+  return autoPicture(problem.prompt) ?? equation(problem.prompt.replace(/\?.*$/, '?'));
 }
 
 /** A tap question made from a worksheet problem, with the right answer at `position`. */

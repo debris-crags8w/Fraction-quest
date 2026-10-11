@@ -42,7 +42,7 @@ import { trackEvent } from './lib/analytics';
 import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, recordRace, recordSprint, resetFun, setBreakPreferences, setDisplayPreferences, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
-import { ModelTag } from './models';
+import { ModelTag, WholeBracket } from './models';
 import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
 import PaperCheck from './PaperCheck';
 import Challenge from './Challenge';
@@ -135,14 +135,12 @@ function FractionBar({ numerator, denominator, quiet = false }: { numerator: num
     <div className="fq-bar-model" style={{ '--pieces': denominator, '--piece': denomColor(denominator) } as CSSProperties} role="img" aria-label={quiet ? 'A bar model. Count the equal parts and the shaded parts.' : `${numerator}/${denominator}: each whole is split into ${denominator} equal parts, with ${numerator} parts shaded`}>
       {Array.from({ length: Math.max(1, Math.ceil(numerator / denominator)) }, (_, whole) => (
         <div className="fq-bar-whole" key={whole}>
-          <span className="fq-bar-whole-label">Whole {whole + 1}</span>
           <div className="fq-bar">
             {Array.from({ length: denominator }, (_, index) => <span className={whole * denominator + index < numerator ? '' : 'empty'} style={{ '--i': whole * denominator + index } as CSSProperties} key={index} />)}
           </div>
-          {whole === 0 && <span className="fq-bar-part-marker" style={{ gridTemplateColumns: `repeat(${denominator}, minmax(0, 1fr))` }}><b>PART</b></span>}
+          <WholeBracket />
         </div>
       ))}
-      <span className="fq-bar-part-guide"><i aria-hidden="true" /> Part · one section is one equal part</span>
     </div>
   );
 }
@@ -198,11 +196,10 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
       })()}
       {model.kind === 'partition' && (
         <div className="fq-partition-model" role="img" aria-label={`One whole split into ${model.parts.length} pieces; the first piece is one part`}>
-          <span className="fq-partition-whole-label">Whole</span>
           <div className="fq-partition-whole">
             {model.parts.map((size, index) => <span className={index === 0 ? 'part-sample' : ''} style={{ flexBasis: `${size}%`, '--i': index } as CSSProperties} key={`${size}-${index}`} />)}
           </div>
-          <span className="fq-partition-part-label"><i aria-hidden="true" /> Part · one section</span>
+          <WholeBracket />
         </div>
       )}
       {model.kind === 'area' && <div className="fq-area-model"><AreaSvg figure={{ cut: model.cut, shaded: model.shaded }} /></div>}

@@ -1,5 +1,7 @@
 import { circleCut, type AreaFigure, type AreaTask } from './area-shapes';
 import { standardsForMission } from './standard-catalog';
+import { autoPicture } from './auto-picture';
+import type { ModelSpec } from './game';
 export type Rational = { n: number; d: number };
 /** `sizes` (bars only) draws pieces of different widths, for "Is this cut into equal parts?" pictures. */
 export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number; wholes: number; total?: number; sizes?: number[] };
@@ -16,6 +18,8 @@ export type WorksheetProblem = {
   /** Interactive line plot: place one X for each observation before answering. Values are tick indices. */
   linePlotTask?: { denominator: number; wholes: number; values: number[] };
   scaleTask?: { whole: number; numerator: number; denominator: number };
+  /** A picture of the amounts in the prompt, for rows with no model of their own (every row shows a model). */
+  picture?: ModelSpec;
 };
 export type BuildCheck = {
   id: string; prompt: string; target: LearningModel; reasons: string[];
@@ -348,7 +352,11 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
 /** The lesson's 12 worksheet problems. `variant` 0 is the lesson's own sheet; 1, 2, … give the same kinds of
     questions with new numbers (used when a child redoes a finished worksheet). */
 export function getWorksheet(id: string, variant = 0): WorksheetProblem[] {
-  const tag = (rows: WorksheetProblem[]) => rows.map(row => ({ ...row, standards: [...standardsForMission(id)] }));
+  const tag = (rows: WorksheetProblem[]) => rows.map(row => {
+    const bare = !row.model && !row.area && !row.rulerTask && !row.linePlotTask && !row.scaleTask;
+    const picture = bare ? autoPicture(row.prompt) : null;
+    return { ...row, standards: [...standardsForMission(id)], ...(picture ? { picture } : {}) };
+  });
   if (!variant) return tag(buildWorksheet(id, 0));
   const key = `${id}:${variant}`;
   const cached = VARIANT_CACHE.get(key);

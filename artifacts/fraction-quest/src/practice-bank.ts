@@ -39,10 +39,9 @@ const bars2 = (a: [number, number], b: [number, number]): ModelSpec => ({ kind: 
 const line = (n: number, d: number, wholes = Math.max(1, Math.ceil(n / d))): ModelSpec => ({ kind: 'line', numerator: n, denominator: d, wholes, hideLabels: true });
 const set = (selected: number, total: number): ModelSpec => ({ kind: 'set', selected, total });
 const half = bar(1, 2);
-/** Compare pictures: both wholes cut into their parts but not shaded, so the picture shows piece sizes without
-    showing which amount is bigger. The shaded version is the "make it simpler" help. */
+/** Compare pictures: both amounts as same-size wholes, so the child sees why 3/4 is more than 3/8. */
 const compareBars = (a: [number, number], b: [number, number]): Pick<Item, 'model' | 'simpler'> =>
-  ({ model: bars2([0, a[1]], [0, b[1]]), simpler: withLabels(bars2(a, b)) });
+  ({ model: bars2(a, b), simpler: withLabels(bars2(a, b)) });
 /** Name two fractions in either order, so "the first one" is not always the answer. */
 const either = (r: Rng, x: string, y: string) => (r.chance() ? `${x} or ${y}` : `${y} or ${x}`);
 const area = (cut: AreaCut, shaded: number[] = []): ModelSpec => ({ kind: 'area', cut, shaded });
@@ -182,7 +181,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     const up = r.chance();
     const small = `${f(a, d)}, ${f(b, d)}, ${f(c, d)}`; const big = `${f(c, d)}, ${f(b, d)}, ${f(a, d)}`; const mixed = `${f(b, d)}, ${f(a, d)}, ${f(c, d)}`;
     return { prompt: `Put ${mixed} in order, ${up ? 'smallest' : 'biggest'} first.`, right: up ? small : big, wrong: [up ? big : small, mixed],
-      hint: 'Same size pieces. Order the numerators.', retry: up ? `${a}, then ${b}, then ${c}.` : `${c}, then ${b}, then ${a}.`, model: bar(0, d), simpler: withLabels(bars2([a, d], [c, d])) };
+      hint: 'Same size pieces. Order the numerators.', retry: up ? `${a}, then ${b}, then ${c}.` : `${c}, then ${b}, then ${a}.`, model: bars2([a, d], [c, d]) };
   },
   'equivalent-models': (r) => {
     const d = r.int(2, 6); const n = r.int(1, d - 1); const k = d === 5 ? r.pick([2, 4]) : r.int(2, 4); // no fifteenths

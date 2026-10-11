@@ -8,10 +8,10 @@ import {
   redoWorksheetCount, startRedo, targetedPracticeCount, targetedPracticePlans, updateLearning, worksheetCount, type LearningRecord, type RedoAttempt, type RedoPart,
 } from './learning';
 import { denomColor } from './fun-ui';
-import { BarSvg, MODEL_CONCEPTS, ModelPair, ModelTag } from './models';
+import { BarSvg, MODEL_CONCEPTS, ModelPair, ModelTag, WholeBracket } from './models';
 import { canEnterWorksheetAnswer, WorksheetBarCopy } from './WorksheetBarCopy';
 import { AreaShade, AreaSvg } from './AreaModel';
-import { PrintMenu } from './Printables';
+import { PrintMenu, PrintModel } from './Printables';
 import { FractionEntry, usesFractionEntry } from './FractionEntry';
 import { LessonTeachingSupport } from './LessonTeachingSupport';
 import './learning-lab.css';
@@ -73,13 +73,12 @@ function Preview({ m }: { m: LearningModel }) {
         <div className="fq-ll-preview-bars">
           {Array.from({ length: m.wholes }, (_, w) => (
             <div className="fq-ll-preview-whole" key={w}>
-              <span>Whole {w + 1}</span>
               <div className="fq-ll-pcells" style={{ gridTemplateColumns: `repeat(${gridColumns(m.d)}, minmax(0,1fr))` }}>
                 {Array.from({ length: m.d }, (_, i) => <i key={i} className={w * m.d + i < m.n ? 'on' : ''} />)}
               </div>
+              <WholeBracket />
             </div>
           ))}
-          <span className="fq-ll-part-guide"><i aria-hidden="true" /> Part · one cell is one equal part</span>
         </div>
       )}
     </div>}
@@ -225,17 +224,15 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
             <div className="fq-ll-bar-models">
               {Array.from({ length: st.wholes }, (_, w) => (
                 <div className="fq-ll-whole-wrap" key={w}>
-                  <span className="fq-ll-whole-label">Whole {w + 1}</span>
                   <div className={'fq-ll-bar ' + (wrap ? 'wrap' : '')} style={{ gridTemplateColumns: 'repeat(' + gridColumns(st.d) + ', minmax(0,1fr))' }} role="group" aria-label={'Whole ' + (w + 1) + ', split into ' + st.d + ' equal parts'}>
                     {Array.from({ length: st.d }, (_, p) => {
                       const i = w * st.d + p;
                       return <button key={p} type="button" className={'fq-ll-piece ' + (i < st.count ? 'on' : '')} aria-pressed={i < st.count} aria-label={'Part ' + (p + 1) + ' of ' + st.d + ' equal parts' + (i < st.count ? ', shaded' : ', not shaded')} onClick={() => toggle(i)} data-testid={'piece-' + id + '-' + i} />;
                     })}
                   </div>
-                  {w === 0 && <span className="fq-ll-part-marker" style={{ gridTemplateColumns: `repeat(${gridColumns(st.d)}, minmax(0,1fr))` }}><b>PART</b></span>}
+                  <WholeBracket />
                 </div>
               ))}
-              <span className="fq-ll-part-guide"><i aria-hidden="true" /> Part · tap a section to shade that many equal parts</span>
             </div>
           ) : kind === 'set' ? (
             <div className="fq-ll-groups">
@@ -408,6 +405,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
         </div>
         {/* For counting and shading, the tappable bar is the picture, so it is not drawn twice. */}
         {p.model && (!p.task || p.task.kind === 'copy') && <Preview m={p.model} />}
+        {!p.model && p.picture && <div className="fq-ll-preview-wrap fq-ll-auto-picture"><PrintModel model={p.picture} labels={false} /></div>}
         {p.area && (p.areaTask
           ? <AreaShade figure={p.area} task={p.areaTask} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />
           : <div className="fq-ll-preview fq-area-preview"><AreaSvg figure={p.area} /></div>)}

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check, Sparkles } from 'lucide-react';
 import type { DailyPracticeAttempt, DailyPracticeSession, ModelSpec } from './game';
 import { dailyBuildCorrect, dailyChoiceQuestion } from './daily-practice';
 import { MathText } from './MathText';
+import { WholeBracket } from './models';
 import './daily-practice.css';
 
 const emptyAttempt = (): DailyPracticeAttempt => ({
@@ -139,7 +140,6 @@ export default function DailyPractice({
     </div>
     {!parts ? <p className="fq-daily-count">Choose the {bar ? 'equal parts' : 'equal spaces'} to see your {bar ? 'bar' : 'line'}.</p> : bar ? (
       <>
-        <div className="fq-daily-whole-label"><span>WHOLE</span><span>{parts} equal parts</span></div>
         <div className="fq-daily-model" style={{ gridTemplateColumns: `repeat(${parts}, minmax(0, 1fr))` }} role="group" aria-label={`One whole split into ${parts} equal parts.`}>
           {Array.from({ length: parts }, (_, index) => {
             const shaded = attempt.shaded.includes(index);
@@ -153,11 +153,10 @@ export default function DailyPractice({
             );
           })}
         </div>
-        <div className="fq-daily-part-label"><span aria-hidden="true">↳</span> PART · one equal piece of the whole</div>
+        <WholeBracket />
       </>
     ) : (
       <>
-        <div className="fq-daily-whole-label"><span>ONE WHOLE</span><span>From 0 to 1</span></div>
         <div className="fq-daily-line-endpoints" aria-hidden="true"><span>0</span><span>1</span></div>
         <div className="fq-daily-line-track" style={{ gridTemplateColumns: `repeat(${parts}, minmax(0, 1fr))` }} role="group" aria-label={`Number line from 0 to 1, split into ${parts} equal spaces.`}>
           {Array.from({ length: parts }, (_, index) => {
@@ -173,7 +172,7 @@ export default function DailyPractice({
             );
           })}
         </div>
-        <div className="fq-daily-part-label"><span aria-hidden="true">↳</span> JUMP · one equal space from 0</div>
+        <WholeBracket label="1 whole: from 0 to 1" />
       </>
     )}
     {attempt.modelChecked && !done && <p className="fq-daily-feedback retry" role="status">Not quite. {wrongFeedback} Change your model, then check again.</p>}

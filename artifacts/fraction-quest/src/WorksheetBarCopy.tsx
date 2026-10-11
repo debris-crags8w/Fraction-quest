@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { BarTask, LearningModel } from './learning-content';
+import { WholeBracket } from './models';
 
 export function worksheetBarMatches(target: LearningModel, shaded: boolean[]): boolean {
   if (target.kind !== 'bar' || shaded.length !== target.d * target.wholes) return false;
@@ -48,7 +49,6 @@ export function WorksheetBarCopy({ target, task = { kind: 'copy', n: target.n },
       <div className="fq-ll-copy-wholes">
         {Array.from({ length: target.wholes }, (_, whole) => (
           <div className="fq-ll-copy-whole" key={whole}>
-            <strong>WHOLE {whole + 1}</strong>
             <div
               className="fq-ll-copy-parts"
               role="group"
@@ -75,10 +75,10 @@ export function WorksheetBarCopy({ target, task = { kind: 'copy', n: target.n },
                 );
               })}
             </div>
+            <WholeBracket />
           </div>
         ))}
       </div>
-      <p className="fq-ll-copy-part-label"><span aria-hidden="true" /> PART · one equal piece</p>
       <p id={statusId} className={`fq-ll-copy-status ${matches ? 'matched' : ''}`} role="status" aria-live="polite" data-testid="status-copy-model">
         {task.kind === 'count' && !matches && order.length ? `Counted ${order.length}. ` : ''}{STATUS[task.kind][matches ? 1 : 0]}
       </p>

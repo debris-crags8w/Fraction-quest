@@ -4,7 +4,7 @@ import { LearningText } from './LearningText';
 import { Check, Gift, LockKeyhole, Sparkles, Star } from 'lucide-react';
 import type { ModelSpec } from './game';
 import { DAILY_GOAL, type FunState } from './lib/fun';
-import { MODEL_NAMES, ModelTag } from './models';
+import { MODEL_NAMES, ModelTag, WholeBracket } from './models';
 
 /* ---------- shared fun state ---------- */
 
@@ -150,17 +150,15 @@ export function TapModel({ model }: { model: ModelSpec }) {
         <div className="fq-tap-bars" style={{ '--piece': denomColor(target.d) } as CSSProperties}>
           {Array.from({ length: target.wholes }, (_, w) => (
             <div className="fq-tap-whole" key={w}>
-              <span className="fq-tap-whole-label">Whole {w + 1}</span>
               <div className="fq-tap-bar" role="group" aria-label={`Whole ${w + 1}, split into ${target.d} equal parts`}>
                 {Array.from({ length: target.d }, (_, p) => {
                   const i = w * target.d + p;
                   return <button type="button" key={p} className={i < count ? 'on' : ''} aria-pressed={i < count} aria-label={`Part ${p + 1} of ${target.d} equal parts`} onClick={() => toggle(i)} data-testid={`button-tap-piece-${i}`} />;
                 })}
               </div>
-              {w === 0 && <span className="fq-tap-part-marker" style={{ gridTemplateColumns: `repeat(${target.d}, minmax(0,1fr))` }}><b>PART</b></span>}
+              <WholeBracket />
             </div>
           ))}
-          <span className="fq-tap-part-label"><i aria-hidden="true" /> Part · each section is one equal part</span>
         </div>
       )}
       {target.kind === 'line' && (
