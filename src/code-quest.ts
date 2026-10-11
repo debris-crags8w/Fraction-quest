@@ -93,6 +93,54 @@ export function describe(result: RunResult): string {
   return `It shaded ${s.marked.length} pieces, ${s.parts} in each bar: ${s.marked.length}/${s.parts}.`;
 }
 
+/** A single next-step hint based on the model the learner actually built. Never returns a solution. */
+export function getRunHint(result: RunResult, target: Target, program: Block[], requiresLoop = false): string {
+  const state = result.final;
+  if (result.error) {
+    if (result.error.includes('missing a number')) return 'One number block is blank. Fill it in, then run the robot again.';
+    if (/split .* first|make the groups first/i.test(result.error)) return 'The robot tried to mark the model before it was split. Move the split block before the action.';
+    if (result.error.includes("can't make") && state.kind === 'set') return 'Those groups are not equal yet. Change the split block so every dot fits evenly.';
+    if (result.error.includes('end of the line')) return 'The robot reached the end of the line. Check the split and jump blocks.';
+    if (result.error.includes('end of the bar')) return 'The robot reached the end of the bar. Check the split and movement inside the loop.';
+    if (result.error.includes('no more groups')) return 'The robot ran out of groups to pick. Check the split and repeat blocks.';
+    return 'Look at the block where the robot stopped, then change one number or instruction.';
+  }
+
+  if (!state.parts) {
+    return target.kind === 'line' ? 'Your number line is still one whole. Add a split block before the jumps.'
+      : target.kind === 'set' ? 'Your dots are still ungrouped. Add a split block before picking groups.'
+        : 'Your bar is still one whole. Add a split block before shading.';
+  }
+  if (state.parts !== target.d) {
+    return `Your ${state.kind === 'line' ? 'line' : state.kind === 'set' ? 'dots' : 'bar'} is split into ${state.parts} equal parts. Check the split block.`;
+  }
+
+  if (state.kind === 'bar') {
+    if (state.wholes !== target.wholes) return `Your model has ${state.wholes} whole bar${state.wholes === 1 ? '' : 's'}. Check the bars block.`;
+    if (state.marked.length !== target.n) {
+      const repeatSkipsMovement = (blocks: Block[]): boolean => blocks.some((block) => {
+        if (block.op !== 'repeat') return false;
+        const shadesWithoutMoving = block.n !== null && block.n > 1
+          && block.body.some((child) => child.op === 'shade')
+          && !block.body.some((child) => child.op === 'move');
+        return shadesWithoutMoving || repeatSkipsMovement(block.body);
+      });
+      if (state.marked.length < target.n && repeatSkipsMovement(program)) {
+        return 'The loop shades the same piece each time. Put a move block inside the loop too.';
+      }
+      return `Your bar has ${state.marked.length} shaded pieces. Check the repeat count or shade blocks.`;
+    }
+  } else if (state.kind === 'line' && state.cursor !== target.n) {
+    return `The robot lands after ${state.cursor} ${state.cursor === 1 ? 'jump' : 'jumps'}. Check the repeat count or jump blocks.`;
+  } else if (state.kind === 'set' && state.marked.length !== target.n) {
+    return `Your model has ${state.marked.length} picked groups. Check the repeat count or pick blocks.`;
+  }
+  if (requiresLoop && matchesTarget(result, target) && !usesEffectiveLoop(program)) {
+    return 'The model matches. Put the repeated actions in a repeat block.';
+  }
+  return 'Compare the blocks with the model, then change one instruction and try again.';
+}
+
 export const countBlocks = (program: Block[]): number => program.reduce((sum, b) => sum + 1 + (b.op === 'repeat' ? countBlocks(b.body) : 0), 0);
 export const usesLoop = (program: Block[]) => program.some((b) => b.op === 'repeat');
 

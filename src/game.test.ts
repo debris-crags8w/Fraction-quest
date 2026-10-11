@@ -11,7 +11,7 @@ import { buildParentReport } from './parent-report';
 import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
 import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './FractionRace';
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
-import { CODE_LEVEL_COUNT, describe as describeRun, getCodeLevels, makeMultiBug, matchesTarget, passesCodeLevel, predictionMatchesTarget, runProgram, solution, toText, usesEffectiveLoop, usesLoop, type Block } from './code-quest';
+import { CODE_LEVEL_COUNT, describe as describeRun, getCodeLevels, getRunHint, makeMultiBug, matchesTarget, passesCodeLevel, predictionMatchesTarget, runProgram, solution, toText, usesEffectiveLoop, usesLoop, type Block } from './code-quest';
 import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
 import { loadFun, recordCodeLevel, recordCorrect, recordMinute } from './lib/fun';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
@@ -1428,6 +1428,37 @@ describe('code challenge', () => {
     assert.equal(matchesTarget(longhand, t), true); assert.equal(usesLoop([{ op: 'shade' }]), false);
     assert.match(runProgram([{ op: 'split', n: 5 }], { kind: 'set', n: 1, d: 3, wholes: 1, total: 12 }).error ?? '', /12 dots can't make 5 equal groups/);
     assert.equal(toText(solution(t), 'bar'), 'bar.split(4)\nfor i in range(3):\n    robot.shade()\n    robot.move()');
+  });
+  it('gives one model-specific next-step hint for bar, number-line, and set mistakes without passing them', () => {
+    const barTarget = { kind: 'bar' as const, n: 3, d: 4, wholes: 1 };
+    const wrongBarSplit: Block[] = [{ op: 'split', n: 3 }, { op: 'repeat', n: 3, body: [{ op: 'shade' }, { op: 'move' }] }];
+    const wrongBar = runProgram(wrongBarSplit, barTarget);
+    const splitHint = getRunHint(wrongBar, barTarget, wrongBarSplit);
+    assert.match(splitHint, /bar is split into 3 equal parts/);
+    const debugLevel = { ...getCodeLevels(MISSIONS[0].id)[2], target: barTarget };
+    assert.equal(passesCodeLevel(debugLevel, wrongBar, wrongBarSplit), false, 'a hint does not turn an incorrect run into evidence');
+
+    const stuckBarProgram: Block[] = [{ op: 'split', n: 4 }, { op: 'repeat', n: 3, body: [{ op: 'shade' }] }];
+    const stuckBar = runProgram(stuckBarProgram, barTarget);
+    assert.equal(stuckBar.final.marked.length, 1);
+    assert.match(getRunHint(stuckBar, barTarget, stuckBarProgram), /same piece.*move block inside the loop/);
+
+    const lineTarget = { kind: 'line' as const, n: 2, d: 5, wholes: 1 };
+    const shortLineProgram: Block[] = [{ op: 'split', n: 5 }, { op: 'repeat', n: 1, body: [{ op: 'jump' }] }];
+    const shortLine = runProgram(shortLineProgram, lineTarget);
+    assert.match(getRunHint(shortLine, lineTarget, shortLineProgram), /lands after 1 jump.*repeat count or jump blocks/);
+
+    const setTarget = { kind: 'set' as const, n: 3, d: 3, wholes: 1, total: 12 };
+    const shortSetProgram: Block[] = [{ op: 'split', n: 3 }, { op: 'repeat', n: 2, body: [{ op: 'pick' }] }];
+    const shortSet = runProgram(shortSetProgram, setTarget);
+    assert.match(getRunHint(shortSet, setTarget, shortSetProgram), /2 picked groups.*repeat count or pick blocks/);
+    assert.notEqual(getRunHint(shortSet, setTarget, shortSetProgram), getRunHint(runProgram([{ op: 'split', n: 4 }], setTarget), setTarget, [{ op: 'split', n: 4 }]), 'editing the model changes its hint');
+
+    const manualLineProgram: Block[] = [{ op: 'split', n: 5 }, { op: 'jump' }, { op: 'jump' }];
+    const manualLine = runProgram(manualLineProgram, lineTarget);
+    const loopLevel = { ...getCodeLevels(MISSIONS[0].id)[5], target: lineTarget, requiresLoop: true };
+    assert.equal(passesCodeLevel(loopLevel, manualLine, manualLineProgram), false, 'matching the model without a required loop is not independent success');
+    assert.match(getRunHint(manualLine, lineTarget, manualLineProgram, true), /model matches.*repeat block/);
   });
 });
 
