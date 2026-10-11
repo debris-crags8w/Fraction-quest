@@ -5,6 +5,7 @@ import type { FunState } from './lib/fun';
 import { buildParentReport, type LessonRow } from './parent-report';
 import { AnswerKey } from './Printables';
 import { LearningVoicePicker } from './LearningText';
+import { FamilyGuide } from './FamilyGuide';
 
 const STATUS: Record<LessonRow['status'], string> = { done: 'Done', started: 'In progress', skipped: 'Skipped by quiz', open: 'Open', locked: 'Locked' };
 
@@ -38,6 +39,7 @@ function GrownUpGate({ onPass, onBack }: { onPass: () => void; onBack: () => voi
 }
 
 const percent = (value: number | null) => (value === null ? '—' : `${value}%`);
+const MASTERY_LABEL = { mastered: 'Mastered', developing: 'Developing', 'not-yet': 'Not yet assessed' } as const;
 
 export default function ParentView({ progress, fun, unitTitles, childName, onBack }: {
   progress: Progress; fun: FunState; unitTitles: string[]; childName: string | null; onBack: () => void;
@@ -112,6 +114,38 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
                 {report.codeMissionRows.map((row) => <li key={row.id} data-testid={`parent-code-${row.id}`}><span>{row.title}</span><strong>{row.levelsPassed} / 3 levels passed</strong></li>)}
               </ul>
             ) : <p className="fq-parent-code-empty">No coding levels passed yet. Each mission has three: fill in numbers, build blocks, and fix a bug.</p>}
+          </section>
+
+          <section className="fq-parent-section fq-parent-standard-mastery" data-testid="parent-standard-mastery">
+            <h2>Fraction standards</h2>
+            <p className="fq-parent-note">
+              {report.assessmentChecksCompleted} non-diagnostic check-ins completed. Mastery requires at least 80% accuracy,
+              three correct model-and-answer items, and evidence from two different checks at least a day apart. Before-you-start checks are diagnostic only.
+            </p>
+            {([3, 4, 5] as const).map(grade => {
+              const rows = report.standardMastery.filter(row => row.grade === grade);
+              if (!rows.length) return null;
+              return (
+                <div key={grade} className="fq-parent-mastery-grade">
+                  <h3>Grade {grade}</h3>
+                  <div className="fq-parent-table-wrap">
+                    <table className="fq-parent-table">
+                      <thead><tr><th>Standard</th><th>Evidence</th><th>Status</th></tr></thead>
+                      <tbody>
+                        {rows.map(row => (
+                          <tr key={row.standard} data-testid={`parent-standard-${row.standard}`}>
+                            <td><b>{row.standard}</b> · {row.title}</td>
+                            <td>{row.attempted ? `${row.correct}/${row.attempted} correct · ${row.assessmentCount} checks` : 'No eligible check-in yet'}</td>
+                            <td><span className={`fq-mastery-status status-${row.status}`}>{MASTERY_LABEL[row.status]}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })}
+            <p className="fq-parent-note">Only the latest result for each check-in counts. Lesson completion, placement results, and game scores do not establish standard mastery.</p>
           </section>
 
           <section className="fq-parent-section">
@@ -194,6 +228,8 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
               </button>
             </div>
           </section>
+
+          <FamilyGuide unitTitles={unitTitles} />
 
           <footer className="fq-parent-foot">
             <p><b>How to read this.</b> "First try" counts worksheet answers that were right the first time they were checked. "Builds" are the bar and number-line tasks: "On their own" means no hints and no wrong tries. "Remembered" means your child rebuilt it correctly on a later day without help.</p>

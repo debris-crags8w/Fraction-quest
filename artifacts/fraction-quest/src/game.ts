@@ -1,5 +1,6 @@
-import { hasLearningGate, type LearningRecord } from './learning';
+import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
 import { asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
+import { FRACTION_STANDARDS, standardsForMission } from './standard-catalog';
 
 export type FractionValue = { numerator: number; denominator: number };
 
@@ -26,6 +27,7 @@ export type PracticeQuestion = {
   reviewMissionId?: string;
   reviewQuestionId?: string;
   reviewTopicTitle?: string;
+  standards?: string[];
 };
 
 export type WorkedExample = {
@@ -42,6 +44,9 @@ export type Mission = {
   description: string;
   skill: string;
   unit: number;
+  gradeBand?: 3 | 4 | 5;
+  standards?: string[];
+  enrichment?: boolean;
   example: WorkedExample;
   questions: PracticeQuestion[];
 };
@@ -55,6 +60,23 @@ export type Progress = {
   dailyPractice?: DailyPracticeSession;
   /** Placement quiz result: lessons in units before `unit` are open (not marked done). */
   placement?: { unit: number; at: number };
+  /** Completed checks are saved with the rest of progress and never change lesson unlocks. */
+  assessments?: AssessmentAttempt[];
+};
+
+export type AssessmentResponse = {
+  itemId: string;
+  standards: string[];
+  modelBuilt: boolean;
+  correct: boolean;
+};
+
+export type AssessmentAttempt = {
+  assessmentId: string;
+  seed: number;
+  startedAt: number;
+  completedAt: number;
+  responses: AssessmentResponse[];
 };
 
 export type DailyPracticeQuestion = {
@@ -148,12 +170,19 @@ function spreadAnswer<T extends { choices: string[]; correctChoice: number }>(qu
 }
 
 function mission(seed: MissionSeed): Mission {
+  const standards = standardsForMission(seed.id);
   const questions = seed.questions.map((question, index) => spreadAnswer({
     ...question,
     id: `${seed.id}-q${index + 1}`,
     isMastery: index === seed.questions.length - 1,
+    standards: [...standards],
   }, `${seed.id}-q${index + 1}`));
-  return { ...seed, questions };
+  return {
+    ...seed,
+    ...(standards.length && !seed.gradeBand ? { gradeBand: Number(standards[0][0]) as 3 | 4 | 5 } : {}),
+    standards,
+    questions,
+  };
 }
 
 const curriculum: MissionSeed[] = [
@@ -584,36 +613,55 @@ type ExtensionMode =
   | 'mixed-add' | 'mixed-subtract' | 'quantity' | 'multiply-whole' | 'multiply'
   | 'sets' | 'divide' | 'measure' | 'measure-add' | 'share' | 'quotient'
   | 'probability' | 'area' | 'line' | 'recipe' | 'percent' | 'percent-inverse'
-  | 'decimal-equivalent' | 'story';
+  | 'decimal-equivalent' | 'story' | 'whole-fraction' | 'decimal-compare' | 'unit-multiples' | 'ruler'
+  | 'line-plot' | 'line-plot-read' | 'line-plot-level' | 'measure-context' | 'add-unlike' | 'mixed-unlike'
+  | 'estimate' | 'fractional-area' | 'scaling' | 'mixed-multiply' | 'unit-divided-whole' | 'unit-conversion';
 type ExtensionTopic = {
   id: string; unit: number; title: string; shortTitle: string; description: string; skill: string;
   mode: ExtensionMode; n: number; d: number; context: string;
+  gradeBand?: 3 | 4 | 5; standards?: string[]; enrichment?: boolean;
 };
 
 const extensionTopics: ExtensionTopic[] = [
   { id: 'simplify-fractions', unit: 9, title: 'Simplest form', shortTitle: 'Simplest form', description: 'Use bigger pieces. Same amount.', skill: 'Divide the top and bottom by the same number.', mode: 'simplify', n: 3, d: 4, context: 'paper strip' },
   { id: 'equivalent-missing-both', unit: 9, title: 'Find the missing number', shortTitle: 'Equivalent fractions', description: 'Fill a blank on the top or bottom.', skill: 'Do the same thing to the top and the bottom.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
+  { id: 'whole-numbers-as-fractions', unit: 9, title: 'Wholes as fractions', shortTitle: 'Whole numbers as fractions', description: 'Build one or more wholes from unit fractions.', skill: 'The numerator counts pieces. A whole is made from as many pieces as the denominator.', mode: 'whole-fraction', n: 6, d: 3, context: 'fraction bars', gradeBand: 3, standards: ['3.NF.3c'] },
   { id: 'compare-unlike-fractions', unit: 9, title: 'Compare different pieces', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the bottoms differ?', skill: 'Give both fractions the same bottom number. Then compare.', mode: 'compare', n: 2, d: 3, context: 'race track' },
   { id: 'order-unlike-fractions', unit: 9, title: 'Order different pieces', shortTitle: 'Order unlike parts', description: 'Put 3 fractions in order.', skill: 'Compare to 1/2, or use the same bottom number.', mode: 'order', n: 1, d: 5, context: 'hiking trail' },
   { id: 'subtract-unlike-fractions', unit: 10, title: 'Take away different pieces', shortTitle: 'Subtract unlike parts', description: 'Rename, then take away.', skill: 'Make the pieces the same size. Then take away.', mode: 'subtract-unlike', n: 3, d: 4, context: 'water bottle' },
+  { id: 'add-unlike-fractions', unit: 10, title: 'Add unlike fractions', shortTitle: 'Add unlike parts', description: 'Make different-sized pieces the same size before adding.', skill: 'Rename each fraction with a common denominator, then add.', mode: 'add-unlike', n: 7, d: 12, context: 'ribbons', gradeBand: 5, standards: ['5.NF.1'] },
   { id: 'add-mixed-numbers', unit: 10, title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Add wholes and pieces.', skill: 'Add the pieces. A full set of pieces makes a new whole.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route' },
   { id: 'subtract-mixed-numbers', unit: 10, title: 'Subtract mixed numbers', shortTitle: 'Subtract mixed numbers', description: 'Trade a whole when you need more pieces.', skill: 'Not enough pieces? Trade 1 whole for more pieces.', mode: 'mixed-subtract', n: 1, d: 3, context: 'fabric roll' },
   { id: 'fraction-of-quantity', unit: 10, title: 'A fraction of a number', shortTitle: 'Fractions of amounts', description: 'Find 3/5 of 20.', skill: 'Make equal groups. Count the groups you need.', mode: 'quantity', n: 3, d: 5, context: 'classroom supplies' },
+  { id: 'mixed-unlike-operations', unit: 10, title: 'Mixed numbers with unlike parts', shortTitle: 'Mixed number operations', description: 'Add or subtract mixed numbers with different denominators.', skill: 'Rename fractional parts with a common denominator. Regroup when needed.', mode: 'mixed-unlike', n: 25, d: 12, context: 'walking route', gradeBand: 5, standards: ['5.NF.1'] },
+  { id: 'estimate-fraction-operations', unit: 10, title: 'Estimate to check', shortTitle: 'Estimate fraction sums', description: 'Use 0, 1/2 and 1 to check whether an answer makes sense.', skill: 'Compare each fraction to a benchmark before calculating.', mode: 'estimate', n: 9, d: 10, context: 'trail lengths', gradeBand: 5, standards: ['5.NF.2'] },
   { id: 'multiply-whole-by-fraction', unit: 11, title: 'Groups of a fraction', shortTitle: 'Whole × fraction', description: '3 groups of 1/2.', skill: 'Multiply the top. The bottom stays.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles' },
   { id: 'multiply-fractions', unit: 11, title: 'A part of a part', shortTitle: 'Fraction × fraction', description: 'Find 1/2 of 3/4.', skill: 'Multiply the tops. Multiply the bottoms.', mode: 'multiply', n: 2, d: 3, context: 'garden plot' },
   { id: 'fraction-of-collection', unit: 11, title: 'A fraction of a group', shortTitle: 'Groups of objects', description: 'Find 3/4 of 16 cards.', skill: 'Make equal groups. Count the groups you need.', mode: 'sets', n: 3, d: 4, context: 'sports cards' },
   { id: 'divide-whole-by-unit-fraction', unit: 11, title: 'How many pieces fit?', shortTitle: 'Divide by a fraction', description: 'How many 1/4 cups fill 2 cups?', skill: '1 whole holds as many pieces as the bottom number.', mode: 'divide', n: 1, d: 4, context: 'measuring cup' },
+  { id: 'unit-fraction-multiples', unit: 11, title: 'Make groups of a unit fraction', shortTitle: 'Unit fraction multiples', description: 'Build several copies of one unit fraction.', skill: 'Repeated addition of a unit fraction makes a multiple.', mode: 'unit-multiples', n: 5, d: 4, context: 'paper strips', gradeBand: 4, standards: ['4.NF.4a'] },
+  { id: 'multiplication-scaling', unit: 11, title: 'Scaling with fractions', shortTitle: 'Scale an amount', description: 'See how a factor below or above one changes an amount.', skill: 'A factor below 1 makes less; a factor above 1 makes more.', mode: 'scaling', n: 3, d: 4, context: 'collections', gradeBand: 5, standards: ['5.NF.5'] },
+  { id: 'multiply-mixed-numbers', unit: 11, title: 'Multiply mixed numbers', shortTitle: 'Mixed number multiplication', description: 'Use a rectangle to find the area of a mixed-number garden.', skill: 'Rename mixed numbers as fractions, then multiply.', mode: 'mixed-multiply', n: 2, d: 1, context: 'garden plot', gradeBand: 5, standards: ['5.NF.6'] },
+  { id: 'unit-fraction-divided-whole', unit: 11, title: 'Share a unit fraction', shortTitle: 'Divide a unit fraction', description: 'Split one unit fraction into equal shares.', skill: 'Divide the unit fraction into more equal pieces.', mode: 'unit-divided-whole', n: 1, d: 12, context: 'pan of brownies', gradeBand: 5, standards: ['5.NF.7a'] },
   { id: 'fraction-of-length', unit: 12, title: 'A fraction of a length', shortTitle: 'Fractional lengths', description: 'Find 3/8 of a ribbon.', skill: 'Cut the length into equal parts. Count the parts.', mode: 'measure', n: 3, d: 8, context: 'ribbon' },
   { id: 'fractional-measure-addition', unit: 12, title: 'Add lengths', shortTitle: 'Measure together', description: 'Add 1/2 meter and 1/4 meter.', skill: 'Make the pieces the same size. Then add.', mode: 'measure-add', n: 1, d: 2, context: 'wooden boards' },
+  { id: 'ruler-measurement', unit: 12, title: 'Measure with fractional inches', shortTitle: 'Read a ruler', description: 'Use equal ruler marks to name a length.', skill: 'Each ruler interval is one equal fraction of an inch.', mode: 'ruler', n: 5, d: 4, context: 'ruler', gradeBand: 3, standards: ['3.MD.4'] },
+  { id: 'build-line-plots', unit: 12, title: 'Build a fraction line plot', shortTitle: 'Build line plots', description: 'Place one X for each measurement.', skill: 'Measurements with the same value stack above one tick.', mode: 'line-plot', n: 3, d: 4, context: 'ribbon lengths', gradeBand: 3, standards: ['3.MD.4'] },
+  { id: 'read-line-plots', unit: 12, title: 'Read a fraction line plot', shortTitle: 'Read line plots', description: 'Use line-plot marks to compare measurements.', skill: 'Read the tick labels, then compare or find the difference.', mode: 'line-plot-read', n: 5, d: 8, context: 'pencil lengths', gradeBand: 4, standards: ['4.MD.4'] },
+  { id: 'line-plot-leveling', unit: 12, title: 'Use line plots to share amounts', shortTitle: 'Reason with line plots', description: 'Use data to find a total and make equal shares.', skill: 'Add the measurements, then divide the total into equal shares.', mode: 'line-plot-level', n: 3, d: 4, context: 'beaker amounts', gradeBand: 5, standards: ['5.MD.2'] },
+  { id: 'measurement-word-problems', unit: 12, title: 'Fractions in measurement stories', shortTitle: 'Measurement stories', description: 'Use fractions with length, time, money, mass and volume.', skill: 'Keep the unit with the amount and use the whole-unit conversion.', mode: 'measure-context', n: 3, d: 4, context: 'measurement stories', gradeBand: 4, standards: ['4.MD.2'] },
+  { id: 'fractional-unit-conversions', unit: 12, title: 'Convert fraction units', shortTitle: 'Fraction unit conversions', description: 'Find a fractional amount in a smaller unit.', skill: 'Convert the whole unit first, then find the fraction.', mode: 'unit-conversion', n: 3, d: 4, context: 'measuring tools', gradeBand: 5, standards: ['5.MD.1'] },
   { id: 'fractional-sharing', unit: 12, title: 'Fair shares', shortTitle: 'Fair sharing', description: 'Share 3 loaves with 4 friends.', skill: 'Each friend gets loaves ÷ friends.', mode: 'share', n: 3, d: 4, context: 'loaf of bread' },
   { id: 'fraction-as-division', unit: 12, title: 'Division is a fraction', shortTitle: 'Fraction quotient', description: '5 ÷ 4 = 5/4.', skill: 'a ÷ b is the fraction a/b.', mode: 'quotient', n: 5, d: 4, context: 'pizzas' },
-  { id: 'fraction-probability', unit: 13, title: 'Chance as a fraction', shortTitle: 'Fraction probability', description: 'What is the chance of blue?', skill: 'Ways to win on top. All the ways on the bottom.', mode: 'probability', n: 2, d: 8, context: 'color spinner' },
-  { id: 'fraction-of-area', unit: 13, title: 'A fraction of a shape', shortTitle: 'Fractional area', description: 'Shade equal parts of a tile.', skill: 'Equal parts on the bottom. Shaded parts on top.', mode: 'area', n: 3, d: 8, context: 'mosaic' },
+  { id: 'fraction-probability', unit: 13, title: 'Bonus: Chance as a fraction', shortTitle: 'Bonus probability', description: 'What is the chance of blue?', skill: 'Ways to win on top. All the ways on the bottom.', mode: 'probability', n: 2, d: 8, context: 'color spinner', enrichment: true },
+  { id: 'fraction-of-area', unit: 13, title: 'Fractions in shapes', shortTitle: 'Equal-area partitions', description: 'Explore equal-area parts in squares, rectangles, circles and hexagons.', skill: 'Fraction parts must have equal areas, even when their shapes look different.', mode: 'area', n: 3, d: 8, context: 'shape tiles', gradeBand: 3, standards: ['3.G.2'] },
+  { id: 'fractional-side-area', unit: 13, title: 'Area with fractional sides', shortTitle: 'Fractional side area', description: 'Use a grid to find the area when both side lengths are fractions.', skill: 'Multiply the fractional side lengths to find square units.', mode: 'fractional-area', n: 1, d: 2, context: 'rectangle grid', gradeBand: 5, standards: ['5.NF.4b'] },
   { id: 'equivalent-number-line', unit: 13, title: 'Same spot, new name', shortTitle: 'Line equivalence', description: '2/3 and 4/6 land on the same spot.', skill: 'Cut every space in half: twice the spaces, twice the jumps.', mode: 'line', n: 2, d: 3, context: 'number line' },
   { id: 'fraction-recipes', unit: 13, title: 'Recipe fractions', shortTitle: 'Recipe fractions', description: 'Double a recipe.', skill: 'Add the amount again, or multiply the top.', mode: 'recipe', n: 3, d: 4, context: 'pancake recipe' },
-  { id: 'fractions-to-percent', unit: 14, title: 'Fractions to percent', shortTitle: 'Fractions to percent', description: 'Write 3/4 as 75%.', skill: 'Percent means out of 100.', mode: 'percent', n: 3, d: 4, context: 'school survey' },
-  { id: 'percent-to-fraction', unit: 14, title: 'Percent to fractions', shortTitle: 'Percent as a fraction', description: 'Write 60% as 60/100.', skill: 'Percent means out of 100.', mode: 'percent-inverse', n: 3, d: 5, context: 'game score' },
+  { id: 'fractions-to-percent', unit: 14, title: 'Bonus: Fractions to percent', shortTitle: 'Bonus percent', description: 'Write 3/4 as 75%.', skill: 'Percent means out of 100.', mode: 'percent', n: 3, d: 4, context: 'school survey', enrichment: true },
+  { id: 'percent-to-fraction', unit: 14, title: 'Bonus: Percent to fractions', shortTitle: 'Bonus percent as fraction', description: 'Write 60% as 60/100.', skill: 'Percent means out of 100.', mode: 'percent-inverse', n: 3, d: 5, context: 'game score', enrichment: true },
   { id: 'decimal-fraction-equivalence', unit: 14, title: 'Fractions to decimals', shortTitle: 'Three forms', description: 'Write 1/4 as 0.25.', skill: 'Change to tenths or hundredths. Then write the decimal.', mode: 'decimal-equivalent', n: 7, d: 10, context: 'battery meter' },
+  { id: 'compare-decimals', unit: 14, title: 'Compare decimals', shortTitle: 'Compare decimal sizes', description: 'Compare decimals using tenths and hundredths.', skill: 'Rename both decimals with the same number of decimal places, then compare.', mode: 'decimal-compare', n: 3, d: 10, context: 'hundredths grid', gradeBand: 4, standards: ['4.NF.7'] },
   { id: 'multi-step-fraction-stories', unit: 14, title: 'Two-step stories', shortTitle: 'Fraction stories', description: 'Solve a story in 2 steps.', skill: 'Do one step at a time.', mode: 'story', n: 2, d: 5, context: 'community garden' },
 ];
 
@@ -648,6 +696,7 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
   const t = build.target;
   return {
     id: topic.id, unit: topic.unit, title: topic.title, shortTitle: topic.shortTitle, description: topic.description, skill: topic.skill,
+    gradeBand: topic.gradeBand, standards: topic.standards, enrichment: topic.enrichment,
     example: {
       prompt: build.prompt,
       answer: t.kind === 'set' && t.total ? `${(t.total / t.d) * t.n} of ${t.total}` : `${t.n}/${t.d}`,
@@ -686,7 +735,7 @@ export const MISSIONS: Mission[] = curriculum.map((seed, index) => {
   return { ...current, questions: [...current.questions.slice(0, -1), review, mastery] };
 });
 
-export const EMPTY_PROGRESS: Progress = { completedMissionIds: [], starsByMission: {}, reviewQueue: [] };
+export const EMPTY_PROGRESS: Progress = { completedMissionIds: [], starsByMission: {}, reviewQueue: [], assessments: [] };
 const STORAGE_KEY = 'fraction-quest-progress-v1';
 export const SKILL_REVIEW_DELAY_MS = 24 * 60 * 60 * 1000;
 const MAX_DELAYED_REVIEW_QUESTIONS = 2;
@@ -979,6 +1028,16 @@ export function loadProgress(): Progress {
         if (raw.misconceptions && typeof raw.misconceptions === 'object') for (const [key, count] of Object.entries(raw.misconceptions)) {
           if (key.length <= 300 && safeCount(count) > 0) misconceptions[key] = safeCount(count);
         }
+        const baseRecord: LearningRecord = {
+          practiceDone: raw.practiceDone === true, checks, worksheet, misconceptions, helpUses: safeCount(raw.helpUses),
+        };
+        for (const plan of targetedPracticePlans(id, baseRecord)) for (const problem of plan.problems) {
+          const entry = raw.worksheet?.[problem.id];
+          if (entry && typeof entry.draft === 'string' && !staleDraft(problem, entry.draft)) worksheet[problem.id] = {
+            draft: entry.draft.slice(0, 200), checkedValue: typeof entry.checkedValue === 'string' ? entry.checkedValue.slice(0, 200) : undefined,
+            attempts: safeCount(entry.attempts), supported: entry.supported !== false,
+          };
+        }
         learning[id] = {
           practiceDone: raw.practiceDone === true, checks, worksheet, misconceptions,
           helpUses: safeCount(raw.helpUses),
@@ -993,6 +1052,36 @@ export function loadProgress(): Progress {
       }
     }
     const dailyPractice = readDailyPractice(value.dailyPractice, validIds);
+    const knownStandards = new Set<string>(FRACTION_STANDARDS.map(item => item.id));
+    const assessments: AssessmentAttempt[] = [];
+    if (Array.isArray(value.assessments)) for (const rawAttempt of value.assessments.slice(-90)) {
+      if (!rawAttempt || typeof rawAttempt !== 'object') continue;
+      const attempt = rawAttempt as Partial<AssessmentAttempt>;
+      if (
+        typeof attempt.assessmentId !== 'string'
+        || !/^(unit-(?:[1-9]|1[0-4])-(?:pre|mid|end)|grade-[3-5]-(?:beginning|middle|end))$/.test(attempt.assessmentId)
+        || typeof attempt.seed !== 'number' || !Number.isSafeInteger(attempt.seed)
+        || typeof attempt.startedAt !== 'number' || !Number.isFinite(attempt.startedAt)
+        || typeof attempt.completedAt !== 'number' || !Number.isFinite(attempt.completedAt)
+        || !Array.isArray(attempt.responses) || attempt.responses.length < 10 || attempt.responses.length > 15
+      ) continue;
+      const responses: AssessmentResponse[] = [];
+      for (const rawResponse of attempt.responses) {
+        if (!rawResponse || typeof rawResponse !== 'object') continue;
+        const response = rawResponse as Partial<AssessmentResponse>;
+        if (typeof response.itemId !== 'string' || response.itemId.length > 180
+          || typeof response.modelBuilt !== 'boolean' || typeof response.correct !== 'boolean'
+          || !Array.isArray(response.standards)) continue;
+        const standards = [...new Set(response.standards.filter((standard): standard is string =>
+          typeof standard === 'string' && knownStandards.has(standard)))];
+        if (!standards.length) continue;
+        responses.push({ itemId: response.itemId, standards, modelBuilt: response.modelBuilt, correct: response.correct && response.modelBuilt });
+      }
+      if (responses.length >= 10) assessments.push({
+        assessmentId: attempt.assessmentId, seed: attempt.seed, startedAt: attempt.startedAt,
+        completedAt: attempt.completedAt, responses,
+      });
+    }
     return {
       completedMissionIds: [...completed],
       starsByMission,
@@ -1000,6 +1089,7 @@ export function loadProgress(): Progress {
       ...(Object.keys(learning).length ? { learning } : {}),
       ...(Object.keys(challengeBest).length ? { challengeBest } : {}),
       ...(dailyPractice ? { dailyPractice } : {}),
+      assessments,
       ...(value.placement && typeof value.placement === 'object' && Number.isInteger(value.placement.unit) && value.placement.unit >= 2 && value.placement.unit <= 9
         && typeof value.placement.at === 'number' && Number.isFinite(value.placement.at) ? { placement: { unit: value.placement.unit, at: value.placement.at } } : {}),
     };

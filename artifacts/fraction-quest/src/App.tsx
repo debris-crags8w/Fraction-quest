@@ -29,6 +29,8 @@ import {
   type PracticeQuestion,
   type Progress,
 } from './game';
+import { saveAssessmentAttempt } from './assessments';
+import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
 import { LearningText } from './LearningText';
@@ -59,6 +61,7 @@ import LoginPage from './LoginPage';
 import DailyPractice from './DailyPractice';
 import { createDailyPractice, dailyPracticeDay } from './daily-practice';
 import PartFinder from './PartFinder';
+import { AssessmentHub, AssessmentRunner } from './Assessment';
 import { PART_FINDER_LESSONS } from './part-finder';
 const queryClient = new QueryClient();
 
@@ -68,6 +71,8 @@ type View =
   | { type: 'review'; questionIndex: number; reviewQuestions: PracticeQuestion[] }
   | { type: 'review-complete'; reviewedCount: number }
   | { type: 'daily' }
+  | { type: 'assessments' }
+  | { type: 'assessment'; definition: AssessmentDefinition; seed: number }
   | { type: 'reward'; missionId: string; stars: number };
 type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string };
@@ -94,12 +99,12 @@ const UNIT_INFO: UnitInfo[] = [
   { title: 'Equivalent fractions', subtitle: 'Rename an amount without changing its size' },
   { title: 'Put fractions together', subtitle: 'Compose, decompose, and go beyond one' },
   { title: 'Operations and decimals', subtitle: 'Add, subtract, and connect fractions to decimals' },
-  { title: 'Rename and compare', subtitle: 'Grade 5 · Simplify, compare and order' },
-  { title: 'Mixed numbers and amounts', subtitle: 'Grade 5 · Mixed numbers and parts of amounts' },
-  { title: 'Multiply and divide', subtitle: 'Grade 5 · Groups, parts of parts, and scoops' },
-  { title: 'Fractions in measurement', subtitle: 'Grade 5 · Lengths and fair shares' },
-  { title: 'Fraction models in context', subtitle: 'Grade 5 · Chance, area, lines and recipes' },
-  { title: 'Fractions, decimals, and percent', subtitle: 'Grade 5 · Percent, decimals and 2-step stories' },
+  { title: 'Rename and compare', subtitle: 'Grades 3–5 · Whole numbers as fractions and equivalent names' },
+  { title: 'Mixed numbers and amounts', subtitle: 'Grades 4–5 · Unlike denominators, mixed numbers, and estimates' },
+  { title: 'Multiply and divide', subtitle: 'Grades 4–5 · Unit fractions, scaling, multiplication, and sharing' },
+  { title: 'Fractions in measurement', subtitle: 'Grades 3–5 · Rulers, line plots, conversions, and stories' },
+  { title: 'Fraction models in context', subtitle: 'Grade 3 and 5 · Equal-area shapes and fractional-side area; chance is bonus' },
+  { title: 'Fractions and decimals', subtitle: 'Grades 4–5 · Decimal comparison; percent is bonus' },
 ];
 
 // Lessons where kids make fractions by folding a paper strip (1 → 1/2 → 1/4 → 1/8).
@@ -252,7 +257,7 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
   );
 }
 
-function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
+function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
   const { user } = useAccount();
   const { fun } = useFun();
   const codeSummary = summarizeCodeProgress(fun.codeLevels, MISSIONS.map((mission) => mission.id));
@@ -347,6 +352,12 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
             );
           })()}
 
+          <button className="fq-assessment-entry" onClick={onAssessments} data-testid="button-open-assessments">
+            <span className="fq-assessment-entry-icon" aria-hidden="true"><ClipboardCheck size={20} /></span>
+            <span><strong>Check what you know</strong><small>Build a model, enter answers, and see which ideas to practice next.</small></span>
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
+
           <QuickReviewEntry progress={progress} onStart={onStartReview} />
 
           <div className="fq-unit-list">
@@ -386,6 +397,10 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
                             <span className="fq-node-kicker">Lesson {String(missionNumber).padStart(2, '0')}</span>
                             <h4>{mission.title}</h4>
                             <p>{mission.description}</p>
+                            {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
+                              {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
+                              {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
+                            </p>}
                             <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
                               Worksheet {worksheetCount(learning, mission.id)}/12 · Builds on my own {summary.independentChecks}/2
                               <br />Remembered: {summary.retention}
@@ -602,6 +617,10 @@ function PlayView({
                 ? `Lesson ${lessonNumber} · See it first`
                 : `Lesson ${lessonNumber} · ${mission.shortTitle} · ${questionIndex + 1} of ${mission.questions.length}`}
           </p>
+          {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
+            {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
+            {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
+          </p>}
           {isExample ? <h1 id="lesson-title">{mission.title}</h1> : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
           {isExample ? (
             <div className="fq-example">
@@ -895,8 +914,11 @@ function Game() {
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onAssessments={() => setView({ type: 'assessments' })} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
       {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} />}
+      {view.type === 'assessments' && <AssessmentHub attempts={progress.assessments ?? []} onStart={definition => setView({ type: 'assessment', definition, seed: freshSeed() })} onBack={returnToMap} />}
+      {view.type === 'assessment' && <AssessmentRunner key={`${view.definition.id}:${view.seed}`} definition={view.definition} seed={view.seed}
+        onComplete={attempt => persistProgress(saveAssessmentAttempt(progress, attempt))} onExit={() => setView({ type: 'assessments' })} />}
       {view.type === 'placement' && <PlacementQuiz unitTitles={UNIT_TITLES} onExit={returnToMap} onDone={(passed) => { persistProgress(applyPlacement(progress, passed)); returnToMap(); }} />}
       {view.type === 'race' && (
         <FractionRace key={view.missionId} mission={getMission(view.missionId)} best={fun.raceBest?.[view.missionId] ?? null} robotBeaten={fun.robotBeaten?.[view.missionId] ?? 0} sprintBest={fun.sprintBest?.[view.missionId] ?? null}

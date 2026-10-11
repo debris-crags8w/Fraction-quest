@@ -1,5 +1,6 @@
 import { MISSIONS, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { asChoicePrompt, choiceDistractors, getWorksheet, parseAnswer } from './learning-content';
+import { standardsForMission } from './standard-catalog';
 
 /* Question generator: every lesson has a recipe that picks numbers within safe limits.
    - "Practice more" uses 12 questions from fixed seeds, so practice repeats.
@@ -413,6 +414,7 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
       model: item.model,
       // Help shows the same picture, now with its labels, so it is about this question.
       simplerModel: item.simpler ?? withLabels(item.model),
+      standards: [...standardsForMission(missionId)],
       reviewQuestionId: baseQuestionIds[out.length % baseQuestionIds.length],
     });
   }
