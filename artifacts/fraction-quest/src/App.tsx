@@ -1,7 +1,6 @@
 import { type CSSProperties, useEffect, useState } from 'react';
-import { MathText } from './MathText';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, ClipboardCheck, Compass, Dumbbell, Flame, Lightbulb, LogIn, LogOut, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Compass, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -35,16 +34,7 @@ import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { loadFun, playCue, recordCorrect, resetFun, setSound, type FunState } from './lib/fun';
 import { ModelTag } from './models';
-import { AccountGate, useAccount, useAccountSync } from './account';
-import LoginPage from './LoginPage';
-import PaperCheck from './PaperCheck';
-import Challenge from './Challenge';
-import { freshSeed, generateQuestions, getExtraPractice } from './practice-bank';
-import { challengeMaxPoints } from './challenges';
-import { PrintMenu } from './Printables';
-import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
-import { PaperFold } from './PaperFold';
-
+import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
 const queryClient = new QueryClient();
 
 type View =
@@ -54,14 +44,6 @@ type View =
   | { type: 'review-complete'; reviewedCount: number }
   | { type: 'reward'; missionId: string; stars: number };
 type LabView = { type: 'lab'; missionId: string; stars: number };
-type PaperView = { type: 'paper'; missionId: string };
-type ChallengeView = { type: 'challenge'; unit: number };
-// seed 0 = the fixed 12 "Practice more" questions; any other seed = freshly generated questions.
-type ExtraView = { type: 'extra'; missionId: string; seed: number; questionIndex: number; firstTry: number } | { type: 'extra-done'; missionId: string; seed: number; firstTry: number; total: number };
-const FRESH_ROUND = 10;
-
-/** Extra bank questions mixed into a lesson's own practice (the full bank is in "Practice more"). */
-const EXTRA_IN_LESSON = 4;
 type RetentionView = { type: 'retention'; missionId: string; startedAt: number; nextView: View };
 
 type UnitInfo = { title: string; subtitle: string };
@@ -74,15 +56,13 @@ const UNIT_INFO: UnitInfo[] = [
   { title: 'Equivalent fractions', subtitle: 'Rename an amount without changing its size' },
   { title: 'Put fractions together', subtitle: 'Compose, decompose, and go beyond one' },
   { title: 'Operations and decimals', subtitle: 'Add, subtract, and connect fractions to decimals' },
+  { title: 'Rename and compare', subtitle: 'Simplify, compare, and order unlike fractions' },
+  { title: 'Mixed numbers and amounts', subtitle: 'Combine mixed numbers and find fractions of quantities' },
+  { title: 'Multiply and divide', subtitle: 'Use fractions as factors, measures, and shares' },
+  { title: 'Fractions in measurement', subtitle: 'Measure, share, and describe real quantities' },
+  { title: 'Fraction models in context', subtitle: 'Explore probability, area, number lines, and recipes' },
+  { title: 'Fractions, decimals, and percent', subtitle: 'Connect representations and solve multi-step stories' },
 ];
-
-// Lessons where kids make fractions by folding a paper strip (1 → 1/2 → 1/4 → 1/8).
-const FOLD_LESSONS: Record<string, { intro: string; allowThirds?: boolean; shadeHalf?: boolean }> = {
-  'equal-parts': { intro: 'Fold the paper. Every fold makes equal pieces.' },
-  'unit-fractions': { intro: 'Fold, then unfold. Each piece is a unit fraction.' },
-  'unit-size': { intro: 'Fold in half again and again: 1/2, 1/4, 1/8. Watch the pieces get smaller.', allowThirds: false },
-  'equivalent-models': { intro: 'Half the paper is shaded. Fold it again and unfold: 1/2 = 2/4 = 4/8.', allowThirds: false, shadeHalf: true },
-};
 
 function Fraction({ numerator, denominator }: { numerator: number; denominator: number }) {
   return (
@@ -94,10 +74,10 @@ function Fraction({ numerator, denominator }: { numerator: number; denominator: 
 
 function FractionBar({ numerator, denominator }: { numerator: number; denominator: number }) {
   return (
-    <div style={{ display: 'grid', gap: 8, flex: 1 }} role="img" aria-label={`${denominator} equal parts per whole, ${numerator} shaded`}>
+    <div style={{ display: 'grid', gap: 8, flex: 1 }} role="img" aria-label={`${numerator}/${denominator}, with ${denominator} equal parts per whole`}>
       {Array.from({ length: Math.max(1, Math.ceil(numerator / denominator)) }, (_, whole) => (
         <div className="fq-bar" style={{ '--pieces': denominator, '--piece': denomColor(denominator) } as CSSProperties} key={whole}>
-          {Array.from({ length: denominator }, (_, index) => <span className={whole * denominator + index < numerator ? '' : 'empty'} style={{ '--i': whole * denominator + index } as CSSProperties} key={index} />)}
+          {Array.from({ length: denominator }, (_, index) => <span className={whole * denominator + index < numerator ? '' : 'empty'} key={index} />)}
         </div>
       ))}
     </div>
@@ -115,7 +95,7 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
           {model.bars.map((item, index) => (
             <div className="fq-visual-bar-row" key={`${item.numerator}-${item.denominator}-${index}`}>
               <FractionBar numerator={item.numerator} denominator={item.denominator} />
-              {!model.hideLabels && <Fraction numerator={item.numerator} denominator={item.denominator} />}
+              <Fraction numerator={item.numerator} denominator={item.denominator} />
             </div>
           ))}
         </div>
@@ -123,7 +103,7 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
       {model.kind === 'set' && (
         <div className="fq-set-wrap">
           <div className="fq-counter-set" role="img" aria-label={`${model.selected} of ${model.total} counters highlighted`}>
-            {Array.from({ length: model.total }, (_, index) => <span className={`fq-counter ${index < model.selected ? 'selected' : ''}`} style={{ '--i': index } as CSSProperties} key={index} />)}
+            {Array.from({ length: model.total }, (_, index) => <span className={`fq-counter ${index < model.selected ? 'selected' : ''}`} key={index} />)}
           </div>
         </div>
       )}
@@ -131,38 +111,33 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
         const wholes = model.wholes ?? numberLineWholeCount(model.numerator, model.denominator);
         const divisions = model.denominator * wholes;
         const value = model.numerator / divisions;
+        const range = Array.from({ length: wholes + 1 }, (_, index) => index).join(' to ');
         return (
           <div className="fq-numberline-wrap">
-            <div className="fq-visual-numberline" role="img" aria-label={model.hideLabels ? `Number line from 0 to ${wholes} with ${divisions} equal spaces and a dot` : 'Number line from 0 to ' + wholes + ', marked at ' + model.numerator + '/' + model.denominator}>
+            <div className="fq-visual-numberline" role="img" aria-label={'Number line from 0 to ' + wholes + ', marked at ' + model.numerator + '/' + model.denominator}>
               <div className="fq-numberline-track" />
-              {/* Hop arcs: one per jump from 0, drawn one after another, then the dot lands. */}
-              <svg className="fq-numberline-hops" viewBox={`0 0 ${divisions} 1`} preserveAspectRatio="none" aria-hidden="true">
-                {Array.from({ length: model.numerator }, (_, j) => (
-                  <path key={j} d={`M${j + 0.06} 1 Q${j + 0.5} -0.6 ${j + 0.94} 1`} style={{ '--i': j } as CSSProperties} pathLength={1} vectorEffect="non-scaling-stroke" />
-                ))}
-              </svg>
-              <span className="fq-numberline-marker" style={{ left: (value * 100) + '%', '--jumps': model.numerator } as CSSProperties} />
+              <span className="fq-numberline-marker" style={{ left: (value * 100) + '%' }} />
               {Array.from({ length: divisions + 1 }, (_, tick) => (
-                <span className={`fq-numberline-tick ${tick % model.denominator === 0 ? 'whole' : ''}`} style={{ left: ((tick / divisions) * 100) + '%' }} key={tick}>
+                <span className="fq-numberline-tick" style={{ left: ((tick / divisions) * 100) + '%' }} key={tick}>
                   {tick === 0 ? '0' : tick === divisions ? String(wholes) : tick % model.denominator === 0 ? String(tick / model.denominator) : ''}
                 </span>
               ))}
             </div>
-            <p className="fq-numberline-range" data-testid="text-model-numberline-range">{wholes === 1 ? 'The line goes from 0 to 1.' : `The line goes from 0 to ${wholes}. Each whole has the same spaces.`}</p>
-            {!model.hideLabels && <div className="fq-line-readout"><Fraction numerator={model.numerator} denominator={model.denominator} /></div>}
+            <p className="fq-numberline-range" data-testid="text-model-numberline-range">{wholes === 1 ? 'The whole interval runs from 0 to 1.' : 'Each whole is one interval: ' + range + '.'}</p>
+            <div className="fq-line-readout"><Fraction numerator={model.numerator} denominator={model.denominator} /></div>
           </div>
         );
       })()}
       {model.kind === 'partition' && (
         <div className="fq-partition-whole" role="img" aria-label={`A whole split into ${model.parts.length} pieces`}>
-          {model.parts.map((size, index) => <span style={{ flexBasis: `${size}%`, '--i': index } as CSSProperties} key={`${size}-${index}`} />)}
+          {model.parts.map((size, index) => <span style={{ flexBasis: `${size}%` }} key={`${size}-${index}`} />)}
         </div>
       )}
-      {model.kind === 'equation' && <div className="fq-model-equation" role="img" aria-label={`Visual equation ${model.text}`}><MathText text={model.text} /></div>}
+      {model.kind === 'equation' && <div className="fq-model-equation" role="img" aria-label={`Visual equation ${model.text}`}>{model.text}</div>}
       {model.kind === 'decimal' && (
         <div className="fq-decimal-model">
           <FractionBar numerator={model.tenths} denominator={10} />
-          {!model.hideLabels && <span>{(model.tenths / 10).toFixed(1)}</span>}
+          <span>{(model.tenths / 10).toFixed(1)}</span>
         </div>
       )}
       {model.caption && <p className="fq-model-caption">{model.caption}</p>}
@@ -190,7 +165,6 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
           <span><strong>{stars}</strong> stars</span><span aria-hidden="true">·</span>
            <span><strong>{MISSIONS.filter(item => hasLearningGate(progress, item.id)).length}</strong>/{MISSIONS.length} lessons</span>
         </div>
-        <AccountChip />
         <button className="fq-icon-button" onClick={() => setFun(setSound(fun, !fun.sound))} aria-label={fun.sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={fun.sound} data-testid="button-toggle-sound">{fun.sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
         <button className="fq-icon-button" onClick={onReset} aria-label="Reset progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>
       </div>
@@ -198,28 +172,12 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
   );
 }
 
-function AccountChip() {
-  const { user, syncStatus, signOut, goToSignIn } = useAccount();
-  if (!user) {
-    return <button className="fq-button ghost fq-account-signin" onClick={goToSignIn} data-testid="button-go-sign-in"><LogIn size={16} /> Sign in</button>;
-  }
-  return (
-    <div className="fq-account" data-testid="status-account">
-      <span className="fq-account-avatar" aria-hidden="true">{user.displayName.slice(0, 1).toUpperCase()}</span>
-      <span className="fq-account-name">
-        <strong>{user.displayName}</strong>
-        <small className={`sync-${syncStatus}`} data-testid="status-sync">{syncStatus === 'saving' ? 'Saving…' : syncStatus === 'offline' ? 'Not saved yet' : 'Saved'}</small>
-      </span>
-      <button className="fq-icon-button" onClick={() => { void signOut(); }} aria-label={`Sign out ${user.displayName}`} data-testid="button-sign-out"><LogOut size={18} /></button>
-    </div>
-  );
-}
-
-function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChallenge, onExtra }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void }) {
+function MissionMap({ progress, onStart, onStartReview, onReset }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void }) {
   const totalStars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
   const nextMission = getNextMission(progress);
+  const firstPendingMission = MISSIONS.find(item => !hasLearningGate(progress, item.id));
+  const evidenceRecommendation = !!nextMission && nextMission.id !== firstPendingMission?.id;
   const [selectedId, setSelectedId] = useState<string | null>(() => nextMission?.id ?? null);
-  const { user } = useAccount();
   const units = UNIT_INFO.map((unit, index) => ({
     ...unit,
     number: index + 1,
@@ -260,7 +218,10 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
           {nextMission ? (
             <button className="fq-continue-card" onClick={() => onStart(nextMission.id)} data-testid="button-continue-course">
               <span className="fq-continue-icon"><ArrowRight size={21} /></span>
-              <span className="fq-continue-copy"><strong>{progress.completedMissionIds.length ? 'Keep exploring' : 'Start your first lesson'}</strong><span>Lesson {String(MISSIONS.indexOf(nextMission) + 1).padStart(2, '0')} · {nextMission.title}</span></span>
+              <span className="fq-continue-copy">
+                <strong>{evidenceRecommendation ? 'Recommended from your answers' : progress.completedMissionIds.length ? 'Keep exploring' : 'Start your first lesson'}</strong>
+                <span>Lesson {String(MISSIONS.indexOf(nextMission) + 1).padStart(2, '0')} · {nextMission.title}{evidenceRecommendation ? ' · Revisit the skill that needs another try' : ''}</span>
+              </span>
               <ArrowRight className="fq-continue-arrow" size={20} />
             </button>
           ) : (
@@ -288,7 +249,6 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
                     selectedId={selectedId}
                     onSelect={(id) => setSelectedId((current) => (current === id ? null : id))}
                     allDone={completedInUnit === unit.missions.length}
-                    challenge={{ best: progress.challengeBest?.[String(unit.number)] ?? null, max: challengeMaxPoints(unit.number), onStart: () => onChallenge(unit.number) }}
                     nodes={unit.missions.map((mission): PathNode => {
                       const unlocked = isMissionUnlocked(progress, mission.id);
                       const completed = hasLearningGate(progress, mission.id);
@@ -307,10 +267,10 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
                             <h4>{mission.title}</h4>
                             <p>{mission.description}</p>
                             <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
-                              Worksheet {worksheetCount(learning, mission.id)}/12 · Builds on my own {summary.independentChecks}/2
-                              <br />Remembered: {summary.retention}
-                              {!completed && unlocked && <><br />Finish the builds and the worksheet to open the next lesson.</>}
-                              {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Your old progress is saved. A few new steps are needed.</>}
+                              Worksheet {worksheetCount(learning, mission.id)}/12 · {summary.independentChecks}/2 independent model checks
+                              <br />{summary.transfer} · {summary.retention}
+                              {!completed && unlocked && <><br />Finish the models, your reasoning and all worksheet answers to unlock the next lesson.</>}
+                              {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Earlier progress saved; new checks still needed.</>}
                             </p>
                             <button
                               className={`fq-button ${completed ? 'ghost' : ''}`}
@@ -321,13 +281,6 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
                               {completed ? 'Practice again' : unlocked ? learning.practiceDone ? 'Resume worksheet & models' : 'Start lesson' : 'Finish earlier lessons first'}
                               {unlocked && <ArrowRight size={16} />}
                             </button>
-                            {unlocked && (
-                              <div className="fq-node-tools">
-                                <button className="fq-button ghost" onClick={() => onExtra(mission.id)} data-testid={`button-practice-more-${mission.id}`}><Dumbbell size={17} /> Practice more</button>
-                                <PrintMenu missionId={mission.id} record={learning} />
-                                <button className="fq-button ghost" onClick={() => onPaper(mission.id)} data-testid={`button-check-paper-${mission.id}`}><ClipboardCheck size={17} /> Check my paper</button>
-                              </div>
-                            )}
                           </>
                         ),
                       };
@@ -347,7 +300,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
             This is not a complete or standards-aligned course.
           </p>
         </aside>
-        <footer className="fq-footer"><span>Made for curious minds, ages 8–10. {user ? `Progress is saved to ${user.displayName}'s account.` : 'Progress stays on this device.'}</span><button onClick={onReset} data-testid="button-reset-progress-footer">{user ? 'Reset my progress' : "Reset this device's progress"}</button></footer>
+        <footer className="fq-footer"><span>Made for curious minds, ages 8–10. Progress stays on this device.</span><button onClick={onReset} data-testid="button-reset-progress-footer">Reset this device's progress</button></footer>
       </main>
     </div>
   );
@@ -368,7 +321,6 @@ function PlayView({
   onCorrect,
   onWrong,
   isQuickReview = false,
-  isExtraPractice = false,
   onFinishReview,
 }: {
   mission: Mission;
@@ -377,7 +329,7 @@ function PlayView({
   combo: number;
   onBack: () => void;
   onNext: (firstTryAnswers: number) => void;
-  onFinish: (stars: number, firstTryAnswers: number) => void;
+  onFinish: (stars: number) => void;
   onMissed: (missionId: string, questionId: string) => void;
   onReviewCompleted: (missionId: string) => void;
   onReviewDeferred: (missionId: string) => void;
@@ -385,7 +337,6 @@ function PlayView({
   onCorrect: (firstTry: boolean) => void;
   onWrong: () => void;
   isQuickReview?: boolean;
-  isExtraPractice?: boolean;
   onFinishReview?: () => void;
 }) {
   const [selection, setSelection] = useState<Answer | null>(null);
@@ -446,7 +397,7 @@ function PlayView({
       }
       const totalQuestions = mission.questions.filter((item) => !item.isOptionalReview).length;
       const stars = updatedFirstTryAnswers === totalQuestions ? 3 : updatedFirstTryAnswers >= totalQuestions - 1 ? 2 : 1;
-      onFinish(stars, updatedFirstTryAnswers);
+      onFinish(stars);
       return;
     }
     onNext(updatedFirstTryAnswers);
@@ -470,9 +421,8 @@ function PlayView({
   };
   // `mission` can be a copy with review questions mixed in, so look it up by id.
   const lessonNumber = String(MISSIONS.findIndex((item) => item.id === mission.id) + 1).padStart(2, '0');
-  const noExample = isQuickReview || isExtraPractice;
-  const steps = mission.questions.length + (noExample ? 0 : 1);
-  const doneSteps = (noExample ? 0 : 1) + Math.max(0, questionIndex) + (feedback === 'correct' ? 1 : 0) - (isExample ? 1 : 0);
+  const steps = mission.questions.length + (isQuickReview ? 0 : 1);
+  const doneSteps = (isQuickReview ? 0 : 1) + Math.max(0, questionIndex) + (feedback === 'correct' ? 1 : 0) - (isExample ? 1 : 0);
   const mood: MascotMood = feedback === 'correct' ? 'cheer' : feedback === 'retry' ? 'oops' : 'thinking';
   const cheer = combo >= 3 ? `${combo} in a row! You're on fire.` : question?.isMastery ? 'Practice checkpoint passed!' : ['Nice work!', 'You found it!', 'Great thinking!', 'Yes, that\'s it!'][(questionIndex + 4) % 4];
 
@@ -497,27 +447,24 @@ function PlayView({
           <p className="fq-play-kicker">
             {isQuickReview
               ? `Quick skill review · ${question?.reviewTopicTitle ?? mission.shortTitle}`
-              : isExtraPractice
-                ? `Practice more · Lesson ${lessonNumber} · ${questionIndex + 1} of ${mission.questions.length}`
               : isExample
                 ? `Lesson ${lessonNumber} · See it first`
                 : `Lesson ${lessonNumber} · ${mission.shortTitle} · ${questionIndex + 1} of ${mission.questions.length}`}
           </p>
-          {isExample ? <h1 id="lesson-title">{mission.title}</h1> : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
+          <h1 id="lesson-title">{isExample ? mission.title : question?.prompt}</h1>
           {isExample ? (
             <div className="fq-example">
               <div className="fq-mascot-say">
                 <Mascot mood="happy" size={64} />
-                <p className="fq-skill-statement"><MathText text={mission.skill} /></p>
+                <p className="fq-skill-statement">{mission.skill}</p>
               </div>
               <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
               <div className="fq-example-answer">
                 <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
-                <p><strong><MathText text={mission.example.prompt} /></strong></p>
-                <p className="fq-example-result"><MathText text={mission.example.answer} /></p>
-                <p><MathText text={mission.example.explanation} /></p>
+                <p><strong>{mission.example.prompt}</strong></p>
+                <p className="fq-example-result">{mission.example.answer}</p>
+                <p>{mission.example.explanation}</p>
               </div>
-              {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
               <TapModel model={mission.example.model} />
             </div>
           ) : question && (
@@ -527,11 +474,11 @@ function PlayView({
               <div className="fq-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} />
               </div>
-              {hintOpen && <div className="fq-hint" data-testid="text-question-hint"><Lightbulb size={18} /> <span><strong>Try this idea:</strong> <MathText text={question.hint} /></span></div>}
+              {hintOpen && <div className="fq-hint" data-testid="text-question-hint"><Lightbulb size={18} /> <span><strong>Try this idea:</strong> {question.hint}</span></div>}
               {attempts >= 2 && (
                 <div className="fq-remediation" role="note" data-testid="status-remediation">
                   <strong>Let's make it simpler.</strong>
-                  <span><MathText text={question.hint} /></span>
+                  <span>{question.hint}</span>
                   <ModelView model={question.simplerModel} compact />
                 </div>
               )}
@@ -548,8 +495,8 @@ function PlayView({
                     aria-pressed={selection === index}
                     data-testid={`button-answer-${question.id}-${index}`}
                   >
-                    <span className="fq-choice-marker" aria-hidden="true">{String.fromCharCode(65 + index)}</span>
-                    <span><MathText text={choice} /><span className="fq-sr">{selection === index ? ` (${feedback === 'correct' ? 'correct' : feedback === 'retry' ? 'try again' : 'selected, not checked yet'})` : ''}</span></span>
+                    <span className="fq-choice-marker" aria-hidden="true">{index + 1}</span>
+                    <span>{choice}<span className="fq-sr">{selection === index ? ` (${feedback === 'correct' ? 'correct' : feedback === 'retry' ? 'try again' : 'selected, not checked yet'})` : ''}</span></span>
                   </button>
                 ))}
               </div>
@@ -565,12 +512,12 @@ function PlayView({
               <Mascot mood={mood} size={64} />
               <div className="fq-sheet-copy">
                 {feedback === 'correct'
-                  ? <><strong>{cheer}</strong><span><MathText text={question.hint} /></span></>
-                  : <><strong>Not quite!</strong><span><MathText text={question.retryFeedback} /></span></>}
+                  ? <><strong>{cheer}</strong><span>{question.hint}</span></>
+                  : <><strong>Not quite yet. Let's look at the pieces.</strong><span>{question.retryFeedback}</span></>}
               </div>
               {feedback === 'correct' ? (
                 <button className="fq-button fq-sheet-button" onClick={moveOn} data-testid={isLastQuestion ? 'button-finish-mission' : 'button-next-question'}>
-                  {isLastQuestion ? isQuickReview ? 'Finish review' : isExtraPractice ? 'Finish practice' : 'Build & explain next' : 'Continue'} <ArrowRight size={17} />
+                  {isLastQuestion ? isQuickReview ? 'Finish review' : 'Build & explain next' : 'Continue'} <ArrowRight size={17} />
                 </button>
               ) : (
                 <button className="fq-button fq-sheet-button" onClick={() => { setFeedback(null); setSelection(null); }} data-testid="button-try-again">
@@ -617,35 +564,11 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset }: { miss
           <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
           <h1>{mission.title}<br />is on your map.</h1>
-           <p>You built it two ways, explained it, and got all 12 worksheet answers. The next lesson is open!</p>
+           <p>You built models, explained your thinking and corrected all 12 worksheet answers. The next lesson is unlocked. A later independent review will check what you remember.</p>
           <div className="fq-reward-stars" data-testid="status-mission-stars" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}
             <button className="fq-button ghost" onClick={onMap} data-testid="button-return-map"><MapIcon size={17} /> Learning map</button>
-          </div>
-        </section>
-      </main>
-    </div>
-  );
-}
-
-function ExtraDoneView({ mission, firstTry, total, fresh, progress, onMap, onAgain, onNew, onReset }: { mission: Mission; firstTry: number; total: number; fresh: boolean; progress: Progress; onMap: () => void; onAgain: () => void; onNew: () => void; onReset: () => void }) {
-  const { fun } = useFun();
-  useEffect(() => { playCue('complete', fun.sound); }, []); // once, when the round ends
-  return (
-    <div className="fq-app">
-      <Confetti burst={firstTry >= total - 2 ? 1 : 0} />
-      <Topbar progress={progress} onReset={onReset} onHome={onMap} />
-      <main className="fq-shell">
-        <section className="fq-reward fq-appear" data-testid="status-extra-complete">
-          <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={110} /></div>
-          <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Dumbbell size={14} /> {fresh ? 'New questions' : 'Practice more'} · {mission.shortTitle}</div>
-          <h1>Practice round done!</h1>
-          <p data-testid="text-extra-score"><strong>{firstTry}</strong> of {total} right on the first try. {fresh ? 'Want more? Every round of new questions is different.' : 'Practice again any time; it gets easier every round.'}</p>
-          <div className="fq-reward-actions">
-            <button className="fq-button" onClick={onNew} data-testid="button-extra-new"><Sparkles size={17} /> New questions</button>
-            <button className="fq-button secondary" onClick={onAgain} data-testid="button-extra-again"><RotateCcw size={17} /> {fresh ? 'Same questions again' : 'Practice again'}</button>
-            <button className="fq-button ghost" onClick={onMap} data-testid="button-extra-map"><MapIcon size={17} /> Learning map</button>
           </div>
         </section>
       </main>
@@ -662,7 +585,7 @@ function ReviewCompleteView({ reviewedCount, progress, onMap, onReset }: { revie
           <div className="fq-reward-badge" aria-hidden="true"><Check size={49} strokeWidth={2.8} /></div>
           <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><RotateCcw size={14} /> Quick skill review</div>
           <h1>Quick round complete.</h1>
-          <p>You finished {reviewedCount} quick {reviewedCount === 1 ? 'question' : 'questions'}. Anything you missed will come back another day.</p>
+          <p>You reached the end of {reviewedCount} quick {reviewedCount === 1 ? 'question' : 'questions'}. Your progress is saved on this device. Correct answers clear a skill; skipped or missed skills can return tomorrow.</p>
           <div className="fq-reward-actions">
             <button className="fq-button secondary" onClick={onMap} data-testid="button-review-return-map"><MapIcon size={17} /> Learning map</button>
           </div>
@@ -674,20 +597,17 @@ function ReviewCompleteView({ reviewedCount, progress, onMap, onReset }: { revie
 
 function Game() {
   const [progress, setProgress] = useState<Progress>(() => loadProgress());
-  const [view, setView] = useState<View | LabView | RetentionView | PaperView | ChallengeView | ExtraView>({ type: 'map' });
+  const [view, setView] = useState<View | LabView | RetentionView>({ type: 'map' });
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [fun, setFun] = useState<FunState>(() => loadFun());
   const [combo, setCombo] = useState(0);
-  const { user } = useAccount();
-  useAccountSync(progress, fun);
 
   const startMission = (missionId: string) => {
     if (!isMissionUnlocked(progress, missionId)) return;
-    const record = getLearningRecord(progress, missionId);
-    if (record.practiceDone && !hasLearningGate(progress, missionId)) {
-      setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? record.practiceStars ?? 1 });
+    if (getLearningRecord(progress, missionId).practiceDone && !hasLearningGate(progress, missionId)) {
+      setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 });
       return;
     }
     setView({
@@ -737,7 +657,6 @@ function Game() {
         ...baseMission,
         questions: [
           ...baseMission.questions.slice(0, -1),
-          ...getExtraPractice(baseMission.id, baseMission.questions.map((q) => q.id)).slice(0, EXTRA_IN_LESSON),
           ...view.reviewQuestions,
           baseMission.questions[baseMission.questions.length - 1],
         ],
@@ -759,49 +678,7 @@ function Game() {
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} />}
-      {view.type === 'extra' && (() => {
-        const base = getMission(view.missionId);
-        const baseIds = base.questions.map((q) => q.id);
-        const practiceMission = { ...base, questions: view.seed ? generateQuestions(base.id, baseIds, view.seed, FRESH_ROUND) : getExtraPractice(base.id, baseIds) };
-        return (
-          <PlayView
-            key={`extra-${view.missionId}-${view.seed}-${view.questionIndex}`}
-            mission={practiceMission}
-            questionIndex={view.questionIndex}
-            firstTryAnswers={view.firstTry}
-            combo={combo}
-            onBack={returnToMap}
-            onCorrect={(firstTry) => { setFun((current) => recordCorrect(current)); setCombo((current) => (firstTry ? current + 1 : 0)); }}
-            onWrong={() => setCombo(0)}
-            onNext={(firstTry) => setView({ type: 'extra', missionId: view.missionId, seed: view.seed, questionIndex: view.questionIndex + 1, firstTry })}
-            onFinish={(_stars, firstTry) => setView({ type: 'extra-done', missionId: view.missionId, seed: view.seed, firstTry, total: practiceMission.questions.length })}
-            onMissed={(missionId, questionId) => persistProgress(recordMissedSkill(progress, missionId, questionId))}
-            onReviewCompleted={() => {}}
-            onReviewDeferred={() => {}}
-            onPracticeSignal={() => {}}
-            isExtraPractice
-          />
-        );
-      })()}
-      {view.type === 'extra-done' && (
-        <ExtraDoneView mission={getMission(view.missionId)} firstTry={view.firstTry} total={view.total} progress={progress} onMap={returnToMap} onReset={() => setResetOpen(true)}
-          fresh={view.seed !== 0}
-          onAgain={() => setView({ type: 'extra', missionId: view.missionId, seed: view.seed, questionIndex: 0, firstTry: 0 })}
-          onNew={() => setView({ type: 'extra', missionId: view.missionId, seed: freshSeed(), questionIndex: 0, firstTry: 0 })} />
-      )}
-      {view.type === 'challenge' && (
-        <Challenge key={view.unit} unit={view.unit} unitTitle={UNIT_INFO[view.unit - 1].title} best={progress.challengeBest?.[String(view.unit)] ?? 0}
-          onExit={returnToMap}
-          onDone={(score) => {
-            const key = String(view.unit);
-            if (score > (progress.challengeBest?.[key] ?? -1)) persistProgress({ ...progress, challengeBest: { ...progress.challengeBest, [key]: score } });
-          }} />
-      )}
-      {view.type === 'paper' && (
-        <PaperCheck missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap}
-          onLab={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? getLearningRecord(progress, view.missionId).practiceStars ?? 1 })} />
-      )}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} />}
       {(view.type === 'play' || view.type === 'review') && activeMission && (
         <PlayView
           key={`${activeMission.id}-${view.questionIndex}`}
@@ -828,7 +705,7 @@ function Game() {
           }}
           onFinish={(stars) => {
             const record = getLearningRecord(progress, activeMission.id);
-            persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceDone: true, practiceStars: Math.max(stars, record.practiceStars ?? 0) }));
+            persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceDone: true }));
             setView({ type: 'lab', missionId: activeMission.id, stars });
           }}
           onFinishReview={view.type === 'review' ? () => nextReviewView({ type: 'review-complete', reviewedCount: view.reviewQuestions.length }) : undefined}
@@ -847,7 +724,7 @@ function Game() {
           }}
         />
       )}
-      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId })} />}
+      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} />}
       {view.type === 'retention' && <LearningLab key={`retention-${view.startedAt}`} review missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap} onFinish={(updated) => {
         const latest = updated ?? progress;
         const record = getLearningRecord(latest, view.missionId);
@@ -866,7 +743,7 @@ function Game() {
           <div className="fq-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description">
             <button className="fq-icon-button fq-modal-close" onClick={() => setResetOpen(false)} aria-label="Close reset dialog" data-testid="button-close-reset"><X size={18} /></button>
             <h2 id="reset-title">Start the map over?</h2>
-            <p id="reset-description">{user ? `This clears ${user.displayName}'s lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
+            <p id="reset-description">This clears lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews on this device. This cannot be undone.</p>
             <div className="fq-modal-actions">
               <button className="fq-button ghost" onClick={() => setResetOpen(false)} data-testid="button-cancel-reset">Keep exploring</button>
               <button className="fq-button" onClick={resetProgress} data-testid="button-confirm-reset">Reset progress</button>
@@ -878,27 +755,12 @@ function Game() {
   );
 }
 
-function Root() {
-  return (
-    <AccountGate
-      renderLoading={() => (
-        <div className="fq-app fq-login-app" role="status" aria-live="polite">
-          <div className="fq-loading"><Mascot mood="thinking" size={90} /><p>Getting your map ready…</p></div>
-        </div>
-      )}
-      renderLogin={(props) => <LoginPage {...props} />}
-    >
-      {(key) => <Game key={key} />}
-    </AccountGate>
-  );
-}
-
 function AppRouter() {
   const [location] = useLocation();
   return (
     <ErrorBoundary resetKey={location}>
       <Switch>
-        <Route path="/" component={Root} />
+        <Route path="/" component={Game} />
         <Route component={NotFound} />
       </Switch>
     </ErrorBoundary>
