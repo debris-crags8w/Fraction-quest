@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Bot, Car, Flag, RotateCcw, Timer, Trophy, Users, Zap } from 'lucide-react';
+import { ArrowLeft, Bot, Car, Code2, Flag, Lock, RotateCcw, Star, Timer, Trophy, Users, Zap } from 'lucide-react';
+import CodeSprint from './CodeSprint';
 import type { Mission, ModelSpec, PracticeQuestion } from './game';
 import { freshSeed, generateQuestions } from './practice-bank';
 import { MathText } from './MathText';
@@ -9,11 +10,15 @@ import { playCue } from './lib/fun';
 /* Fraction Race: a short competition built from the lesson's own question generator.
    - Race the robot: get 10 right before the robot crosses the line (3 speeds).
    - 2 players: two racers share one screen, each with their own questions.
-   A wrong answer stalls your car AND rolls it back one space. Guessing (about 1 in 3 right) loses
+   A wrong answer stalls your car AND rolls it back one space (and shows the right answer, so the stall
+   teaches). 3 right in a row = turbo shield: the next mistake won't roll you back. (A free space would let
+   lucky guessers win; tested.) Guessing (about 1 in 3 right) still loses
    more ground than it gains, so only real thinking can win. */
 
 export const RACE_GOAL = 10;
 export const STALL_MS = 2000;
+/** Right answers in a row for a turbo shield (the next mistake doesn't roll you back). */
+export const TURBO_STREAK = 3;
 /** Seconds the robot needs to finish, by level. */
 export const ROBOT_LEVELS = [
   { level: 1, name: 'Slow robot', seconds: 120 },
@@ -21,17 +26,25 @@ export const ROBOT_LEVELS = [
   { level: 3, name: 'Turbo robot', seconds: 45 },
 ] as const;
 
-type Mode = { kind: 'robot'; level: 1 | 2 | 3 } | { kind: 'duo' };
-export type Racer = { score: number; index: number; stallUntil: number; right: number; wrong: number; pick: number | null };
-export const newRacer = (): Racer => ({ score: 0, index: 0, stallUntil: 0, right: 0, wrong: 0, pick: null });
+type Mode = { kind: 'robot'; level: 1 | 2 | 3 } | { kind: 'duo' } | { kind: 'sprint' };
+export type Racer = { score: number; index: number; stallUntil: number; right: number; wrong: number; pick: number | null; streak: number; boostAt: number; shield: boolean; savedAt: number; missed: number[] };
+export const newRacer = (): Racer => ({ score: 0, index: 0, stallUntil: 0, right: 0, wrong: 0, pick: null, streak: 0, boostAt: 0, shield: false, savedAt: 0, missed: [] });
 
-/** The race rule for one answer at time `t` (ms). Right: +1 space. Wrong: back 1 space and stall. */
+/** The race rule for one answer at time `t` (ms). Right: +1 space; 3 in a row earns a turbo shield.
+    Wrong: stall and back 1 space (the shield, if you have one, stops the roll-back once). */
 export function applyAnswer(racer: Racer, correct: boolean, t: number, choice = 0): Racer {
   if (t < racer.stallUntil) return racer;
-  return correct
-    ? { ...racer, score: racer.score + 1, right: racer.right + 1, index: racer.index + 1, pick: null }
-    : { ...racer, score: Math.max(0, racer.score - 1), stallUntil: t + STALL_MS, wrong: racer.wrong + 1, index: racer.index + 1, pick: choice };
+  if (correct) {
+    const turbo = !racer.shield && racer.streak + 1 >= TURBO_STREAK;
+    return { ...racer, score: racer.score + 1, right: racer.right + 1, index: racer.index + 1, pick: null,
+      streak: turbo ? 0 : racer.streak + 1, boostAt: turbo ? t : racer.boostAt, shield: racer.shield || turbo };
+  }
+  return { ...racer, score: racer.shield ? racer.score : Math.max(0, racer.score - 1), stallUntil: t + STALL_MS, wrong: racer.wrong + 1, index: racer.index + 1, pick: choice,
+    streak: 0, shield: false, savedAt: racer.shield ? t : racer.savedAt, missed: [...racer.missed, racer.index] };
 }
+
+/** Stars for a win against the robot: by how many answers were right. */
+export const raceStars = (right: number, wrong: number) => { const share = right / Math.max(1, right + wrong); return share >= 0.9 ? 3 : share >= 0.7 ? 2 : 1; };
 const letter = (i: number) => String.fromCharCode(65 + i);
 
 /** One racer's question panel. */
@@ -39,22 +52,25 @@ function Lane({ name, questions, racer, now, onAnswer, renderModel, color, flipp
   name: string; questions: PracticeQuestion[]; racer: Racer; now: number; onAnswer: (choice: number) => void;
   renderModel: (model: ModelSpec) => ReactNode; color: string; flipped?: boolean;
 }) {
-  const q = questions[racer.index % questions.length];
   const stalled = now < racer.stallUntil;
+  // While stalled, keep the missed question on screen with the right answer: the stall becomes a mini lesson.
+  const q = questions[(stalled ? racer.index - 1 : racer.index) % questions.length];
+  const turbo = now - racer.boostAt < 1200 && racer.boostAt > 0;
   return (
     <section className={`fq-race-lane ${flipped ? 'flipped' : ''} ${stalled ? 'stalled' : ''}`} style={{ '--lane': color } as CSSProperties} aria-label={`${name}'s questions`}>
-      <p className="fq-race-lane-name"><b>{name}</b> · {racer.score}/{RACE_GOAL}</p>
+      <p className="fq-race-lane-name"><b>{name}</b> · {racer.score}/{RACE_GOAL}{racer.shield ? <span className="fq-race-streak"> · 🛡️ shield on</span> : racer.streak > 0 && !stalled ? <span className="fq-race-streak"> · {'🔥'.repeat(Math.min(racer.streak, TURBO_STREAK))} {TURBO_STREAK - racer.streak} more for a shield</span> : null}</p>
+      {turbo && <p className="fq-race-turbo" role="status">TURBO SHIELD! Your next mistake won't roll you back.</p>}
       <h2 className="fq-race-q"><MathText text={q.prompt} /></h2>
       {(q.model.kind !== 'equation') && <div className="fq-race-model">{renderModel(q.model)}</div>}
       <div className="fq-race-choices" role="group" aria-label="Choose an answer">
         {q.choices.map((choice, i) => (
           <button key={`${racer.index}-${i}`} type="button" disabled={stalled} onClick={() => onAnswer(i)}
-            className={racer.pick === i && stalled ? 'wrong' : ''} data-testid={`race-${name.replace(/\s/g, '').toLowerCase()}-choice-${i}`}>
+            className={stalled ? (i === q.correctChoice ? 'right' : racer.pick === i ? 'wrong' : '') : ''} data-testid={`race-${name.replace(/\s/g, '').toLowerCase()}-choice-${i}`}>
             <span aria-hidden="true">{letter(i)}</span><MathText text={choice} />
           </button>
         ))}
       </div>
-      {stalled && <p className="fq-race-stall" role="status">Oops! Stalled, and back one space…</p>}
+      {stalled && <p className="fq-race-stall" role="status">The answer is {letter(q.correctChoice)}. <MathText text={q.retryFeedback} /> {racer.savedAt === racer.stallUntil - STALL_MS ? 'Your shield saved you: no roll-back!' : 'Back one space…'}</p>}
     </section>
   );
 }
@@ -75,9 +91,9 @@ function Track({ lanes }: { lanes: { name: string; progress: number; icon: React
   );
 }
 
-export default function FractionRace({ mission, best, robotBeaten, onExit, onFinish, renderModel }: {
-  mission: Mission; best: number | null; robotBeaten: number;
-  onExit: () => void; onFinish: (seconds: number, robotLevel: number) => void; renderModel: (model: ModelSpec) => ReactNode;
+export default function FractionRace({ mission, best, robotBeaten, sprintBest, onExit, onFinish, onSprintFinish, renderModel }: {
+  mission: Mission; best: number | null; robotBeaten: number; sprintBest: number | null;
+  onExit: () => void; onFinish: (seconds: number, robotLevel: number) => void; onSprintFinish: (seconds: number) => void; renderModel: (model: ModelSpec) => ReactNode;
 }) {
   const { fun } = useFun();
   const baseIds = useMemo(() => mission.questions.map((q) => q.id), [mission]);
@@ -102,6 +118,7 @@ export default function FractionRace({ mission, best, robotBeaten, onExit, onFin
   const robotProgress = robot ? Math.min(1, elapsed / robot.seconds) : 0;
 
   const start = (next: Mode) => {
+    if (next.kind === 'sprint') { setMode(next); setPhase('race'); return; }
     setMode(next); setSeeds([freshSeed(), freshSeed()]); setRacers([newRacer(), newRacer()]);
     setWinner(null); finished.current = false; setCount(3); setPhase('countdown');
   };
@@ -166,15 +183,28 @@ export default function FractionRace({ mission, best, robotBeaten, onExit, onFin
             <p>Get {RACE_GOAL} answers right to cross the line. A wrong answer stalls your car and rolls it back one space, so be quick <i>and</i> careful!</p>
             {best !== null && <p className="fq-race-best" data-testid="text-race-best"><Timer size={16} /> Your best: {best.toFixed(1)} s{robotBeaten ? ` · beat the ${ROBOT_LEVELS[robotBeaten - 1].name.toLowerCase()}` : ''}</p>}
           </header>
+          <ul className="fq-race-howto" aria-label="How to play">
+            <li><span>✅</span> Right answer: your car moves 1 space.</li>
+            <li><span>🔥</span> 3 right in a row: a turbo shield. Your next mistake won't roll you back.</li>
+            <li><span>🛑</span> Wrong answer: stall, back 1 space, and see the right answer.</li>
+          </ul>
           <section className="fq-race-modes">
             <h2><Bot size={20} /> Race the robot</h2>
             <div className="fq-race-mode-buttons">
-              {ROBOT_LEVELS.map((r) => (
-                <button key={r.level} type="button" className={`fq-race-mode level-${r.level}`} onClick={() => start({ kind: 'robot', level: r.level })} data-testid={`button-race-robot-${r.level}`}>
-                  <b>{r.name}</b><small>finishes in {r.seconds} s</small>{robotBeaten >= r.level && <Trophy size={16} aria-label="beaten" />}
-                </button>
-              ))}
+              {ROBOT_LEVELS.map((r) => {
+                // Faster robots unlock one at a time.
+                const locked = r.level > 1 && robotBeaten < r.level - 1;
+                return (
+                  <button key={r.level} type="button" className={`fq-race-mode level-${r.level} ${locked ? 'locked' : ''}`} disabled={locked} onClick={() => start({ kind: 'robot', level: r.level })} data-testid={`button-race-robot-${r.level}`}>
+                    <b>{r.name}</b><small>{locked ? `Beat the ${ROBOT_LEVELS[r.level - 2].name.toLowerCase()} first` : `finishes in ${r.seconds} s`}</small>
+                    {locked ? <Lock size={16} aria-label="locked" /> : robotBeaten >= r.level && <Trophy size={16} aria-label="beaten" />}
+                  </button>
+                );
+              })}
             </div>
+            <h2><Code2 size={20} /> Code sprint</h2>
+            <p className="fq-race-note">A coding race: program the robot 5 times before the robot coder finishes.{sprintBest !== null ? ` Your best: ${sprintBest.toFixed(1)} s.` : ''}</p>
+            <button type="button" className="fq-button secondary" onClick={() => start({ kind: 'sprint' })} data-testid="button-race-sprint"><Code2 size={17} /> Start a code sprint</button>
             <h2><Users size={20} /> 2 players</h2>
             <p className="fq-race-note">Race a friend on this device. Each player gets their own questions.</p>
             <label className="fq-race-flip"><input type="checkbox" checked={flip} onChange={(e) => setFlip(e.target.checked)} /> Sitting across from each other? Turn Player 1's side around.</label>
@@ -184,6 +214,8 @@ export default function FractionRace({ mission, best, robotBeaten, onExit, onFin
       </div>
     );
   }
+
+  if (mode?.kind === 'sprint') return <CodeSprint mission={mission} best={sprintBest} onExit={() => setPhase('pick')} onFinish={onSprintFinish} />;
 
   const duo = mode?.kind === 'duo';
   const lanes = duo
@@ -204,6 +236,20 @@ export default function FractionRace({ mission, best, robotBeaten, onExit, onFin
             <Track lanes={lanes} />
             {!duo && <p data-testid="text-race-result">{playerWon ? `You crossed the line in ${finishTime.toFixed(1)} seconds.` : (racers[0].score >= RACE_GOAL - 3 ? `You got ${racers[0].score} of ${RACE_GOAL}. So close!` : `You got ${racers[0].score} of ${RACE_GOAL}. Slow down and think about each one: wrong answers roll you back.`)} {tries ? `${racers[0].right} of ${tries} answers were right.` : ''}{newBest ? ' New best time!' : ''}</p>}
             {duo && <p>Player 1: {racers[0].right} right, {racers[0].wrong} wrong · Player 2: {racers[1].right} right, {racers[1].wrong} wrong</p>}
+            {!duo && playerWon && (
+              <div className="fq-race-stars" aria-label={`${raceStars(racers[0].right, racers[0].wrong)} of 3 stars`} data-testid="race-stars">
+                {[1, 2, 3].map((n) => <Star key={n} size={34} className={n <= raceStars(racers[0].right, racers[0].wrong) ? 'filled' : ''} />)}
+                <small>3 stars: 9 out of 10 answers right</small>
+              </div>
+            )}
+            {!duo && racers[0].missed.length > 0 && (
+              <section className="fq-race-missed" data-testid="race-missed">
+                <h2>Look at these again</h2>
+                <ul>
+                  {racers[0].missed.slice(-4).map((i) => { const q = questions[0][i % questions[0].length]; return <li key={i}><MathText text={q.prompt} /> <b>→ <MathText text={q.choices[q.correctChoice]} /></b></li>; })}
+                </ul>
+              </section>
+            )}
             <div className="fq-reward-actions">
               <button className="fq-button" onClick={() => mode && start(mode)} data-testid="button-race-again"><RotateCcw size={17} /> Race again</button>
               <button className="fq-button secondary" onClick={() => setPhase('pick')} data-testid="button-race-modes">Change race</button>

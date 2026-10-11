@@ -6,7 +6,8 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { splitStory } from './fun-ui';
 import { buildParentReport } from './parent-report';
 import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
-import { applyAnswer, newRacer, RACE_GOAL, ROBOT_LEVELS } from './FractionRace';
+import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './FractionRace';
+import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
 import { describe as describeRun, getCodeLevels, matchesTarget, runProgram, solution, toText, usesLoop } from './code-quest';
 import { loadFun, recordCorrect, recordMinute } from './lib/fun';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
@@ -1193,11 +1194,16 @@ describe('Fraction Race rules', () => {
     }
     return Infinity;
   };
-  it('random guessing (1 in 3) almost never beats even the slow robot, even with very fast taps', () => {
+  it('random guessing (1 in 3) rarely wins, even with impossibly fast taps, while a trying child usually does', () => {
+    // Even tapping every 0.3 s for 2 minutes (faster than any child), guessing wins under 5% of slow-robot races.
+    // (The turbo shield adds a little here, but it lifts a 70%-right child from ~51% to ~65% wins: worth it.)
     const wins = Array.from({ length: 1000 }, (_, i) => simulate(1 / 3, 300, i + 1)).filter((s) => s <= ROBOT_LEVELS[0].seconds).length;
-    assert.ok(wins < 10, `guessing won ${wins} of 1000 races`);
-    // Against the robots a guesser could otherwise beat, it never wins at all.
-    for (let seed = 1; seed <= 200; seed++) assert.ok(simulate(1 / 3, 300, seed) > ROBOT_LEVELS[2].seconds, `turbo, seed ${seed}`);
+    assert.ok(wins < 50, `guessing won ${wins} of 1000 races`);
+    const careful = Array.from({ length: 200 }, (_, i) => simulate(0.7, 6000, i + 1)).filter((s) => s <= ROBOT_LEVELS[0].seconds).length;
+    assert.ok(careful > 100, `a 70%-right child won only ${careful} of 200`);
+    // Against the turbo robot, a guesser wins only by rare luck (about 1 in 100).
+    const turboWins = Array.from({ length: 2000 }, (_, i) => simulate(1 / 3, 300, i + 1)).filter((s) => s <= ROBOT_LEVELS[2].seconds).length;
+    assert.ok(turboWins < 40, `guessing beat the turbo robot ${turboWins} of 2000 times`);
   });
   it('a careful child (85% right, 5 s per question) beats the slow robot; a quick accurate one beats turbo', () => {
     const careful = Array.from({ length: 50 }, (_, i) => simulate(0.85, 5000, i + 1)).sort((a, b) => a - b)[25];
@@ -1306,6 +1312,35 @@ describe('pictures never give the answer away', () => {
       const parts = q.model.parts; const equal = parts.every((p) => Math.abs(p - parts[0]) < 1e-6);
       const truth = parts.length !== d ? `No: there are ${d + 1} pieces` : equal ? `Yes: ${d} equal pieces` : 'No: the pieces are not equal';
       assert.equal(q.choices[q.correctChoice], truth, `${q.prompt} with ${parts.length} parts, equal=${equal}`);
+    }
+  });
+});
+
+describe('game improvements', () => {
+  it('3 right in a row earns a shield that stops one roll-back; misses are remembered for review', () => {
+    let r = newRacer();
+    r = applyAnswer(r, true, 0); r = applyAnswer(r, true, 1); r = applyAnswer(r, true, 2);
+    assert.equal(r.score, 3); assert.equal(r.shield, true);
+    r = applyAnswer(r, false, 3); assert.equal(r.score, 3, 'the shield stops the roll-back'); assert.equal(r.shield, false); assert.deepEqual(r.missed, [3]);
+    r = applyAnswer(r, false, 5000); assert.equal(r.score, 2, 'no shield: back one space'); assert.equal(r.streak, 0);
+    assert.equal(raceStars(9, 1), 3); assert.equal(raceStars(7, 3), 2); assert.equal(raceStars(5, 5), 1);
+  });
+  it('every lesson can make a Code Sprint: 5 solvable rounds, real bugs, and code-reading choices with one right answer', () => {
+    for (const mission of MISSIONS) {
+      let x = 7; const random = () => ((x = (x * 9301 + 49297) % 233280) / 233280);
+      const rounds = makeSprint(mission.id, random);
+      assert.deepEqual(rounds.map((r) => r.kind), [...SPRINT_ROUNDS]);
+      for (const round of rounds) {
+        assert.ok(matchesTarget(runProgram(solution(round.target), round.target), round.target), `${mission.id}: unsolvable`);
+        if (round.kind === 'debug') assert.ok(!matchesTarget(runProgram(round.start, round.target), round.target), `${mission.id}: bug already works`);
+        if (round.kind === 'fill') assert.ok(runProgram(round.start, round.target).error, `${mission.id}: fill round starts solved`);
+        if (round.kind === 'read') {
+          assert.equal(round.choices!.length, 3, `${mission.id}: needs 3 programs`);
+          const works = round.choices!.map((prog) => matchesTarget(runProgram(prog, round.target), round.target));
+          assert.deepEqual(works, [true, false, false], `${mission.id}: exactly the first program works`);
+          assert.equal(new Set(round.choices!.map((prog) => toText(prog, round.target.kind))).size, 3);
+        }
+      }
     }
   });
 });

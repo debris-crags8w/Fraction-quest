@@ -26,7 +26,7 @@ function NumberSlot({ value, onChange, label, disabled }: { value: number | null
   );
 }
 
-function World({ state, target }: { state: RobotState | null; target: CodeLevel['target'] }) {
+export function World({ state, target }: { state: RobotState | null; target: CodeLevel['target'] }) {
   const s = state ?? { kind: target.kind, parts: 0, wholes: target.kind === 'line' ? Math.max(1, Math.ceil(target.n / target.d)) : 1, cursor: 0, marked: [], total: target.total };
   if (s.kind === 'line') {
     const spaces = s.parts * s.wholes;
@@ -69,7 +69,7 @@ function World({ state, target }: { state: RobotState | null; target: CodeLevel[
   );
 }
 
-function Program({ blocks, kind, editable, reorder, active, onChange, prefix = [] }: {
+export function Program({ blocks, kind, editable, reorder, active, onChange, prefix = [] }: {
   blocks: Block[]; kind: RobotState['kind']; editable: boolean; reorder: boolean; active: number[] | null; onChange: (blocks: Block[]) => void; prefix?: number[];
 }) {
   const update = (i: number, next: Block | null) => { const copy = [...blocks]; if (next) copy[i] = next; else copy.splice(i, 1); onChange(copy); };

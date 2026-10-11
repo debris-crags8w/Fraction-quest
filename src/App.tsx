@@ -35,7 +35,7 @@ import QuickReviewEntry from './QuickReviewEntry';
 import { getLearningRecord, hasLearningGate, learningSummary, updateLearning, worksheetCount } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, resetFun, setSound, type FunState } from './lib/fun';
+import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, setSound, type FunState } from './lib/fun';
 import { ModelTag } from './models';
 import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
 import PaperCheck from './PaperCheck';
@@ -651,7 +651,7 @@ function PlayView({
   );
 }
 
-function RewardView({ mission, stars, progress, onMap, onNext, onReset }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void }) {
+function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code') => void }) {
   const nextMission = getNextMission(progress);
   const { fun } = useFun();
   useEffect(() => {
@@ -674,6 +674,11 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset }: { miss
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}
             <button className="fq-button ghost" onClick={onMap} data-testid="button-return-map"><MapIcon size={17} /> Learning map</button>
+          </div>
+          <div className="fq-reward-play">
+            <span>Play with this lesson:</span>
+            <button className="fq-button ghost" onClick={() => onGame('race')} data-testid="button-reward-race"><Zap size={17} /> Race</button>
+            <button className="fq-button ghost" onClick={() => onGame('code')} data-testid="button-reward-code"><Code2 size={17} /> Code</button>
           </div>
         </section>
       </main>
@@ -830,7 +835,8 @@ function Game() {
       {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
       {view.type === 'placement' && <PlacementQuiz unitTitles={UNIT_TITLES} onExit={returnToMap} onDone={(passed) => { persistProgress(applyPlacement(progress, passed)); returnToMap(); }} />}
       {view.type === 'race' && (
-        <FractionRace key={view.missionId} mission={getMission(view.missionId)} best={fun.raceBest?.[view.missionId] ?? null} robotBeaten={fun.robotBeaten?.[view.missionId] ?? 0}
+        <FractionRace key={view.missionId} mission={getMission(view.missionId)} best={fun.raceBest?.[view.missionId] ?? null} robotBeaten={fun.robotBeaten?.[view.missionId] ?? 0} sprintBest={fun.sprintBest?.[view.missionId] ?? null}
+          onSprintFinish={(seconds) => setFun((current) => recordSprint(current, view.missionId, seconds))}
           onExit={returnToMap} onFinish={(seconds, level) => setFun((current) => recordRace(current, view.missionId, seconds, level))}
           renderModel={(model) => <ModelView model={model} compact />} />
       )}
@@ -935,7 +941,7 @@ function Game() {
         setView(view.nextView);
       }} />}
       {view.type === 'reward' && activeMission && (
-        <RewardView mission={activeMission} stars={view.stars} progress={progress} onMap={returnToMap} onNext={startMission} onReset={() => setResetOpen(true)} />
+        <RewardView mission={activeMission} stars={view.stars} progress={progress} onMap={returnToMap} onNext={startMission} onReset={() => setResetOpen(true)} onGame={(type) => setView({ type, missionId: activeMission.id })} />
       )}
       {view.type === 'review-complete' && (
         <ReviewCompleteView reviewedCount={view.reviewedCount} progress={progress} onMap={returnToMap} onReset={() => setResetOpen(true)} />

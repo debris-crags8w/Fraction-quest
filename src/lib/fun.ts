@@ -18,6 +18,8 @@ export type FunState = {
   robotBeaten?: Record<string, number>;
   /** Code challenge: how many levels (0–3) are solved, per lesson. */
   codeLevels?: Record<string, number>;
+  /** Code Sprint: best time (seconds) per lesson. */
+  sprintBest?: Record<string, number>;
 };
 export type DayActivity = { minutes: number; answered: number };
 const KEEP_DAYS = 35;
@@ -54,7 +56,7 @@ function cleanScores(value: unknown, max: number): Record<string, number> {
   }
   return out;
 }
-const cleanGames = (saved: Partial<FunState>) => ({ raceBest: cleanScores(saved.raceBest, 3600), robotBeaten: cleanScores(saved.robotBeaten, 3), codeLevels: cleanScores(saved.codeLevels, 3) });
+const cleanGames = (saved: Partial<FunState>) => ({ raceBest: cleanScores(saved.raceBest, 3600), robotBeaten: cleanScores(saved.robotBeaten, 3), codeLevels: cleanScores(saved.codeLevels, 3), sprintBest: cleanScores(saved.sprintBest, 3600) });
 
 /** Record a finished race: keeps the best time and the fastest robot beaten (0 = no robot / lost). */
 export function recordRace(state: FunState, missionId: string, seconds: number, robotLevel: number): FunState {
@@ -62,6 +64,12 @@ export function recordRace(state: FunState, missionId: string, seconds: number, 
   if (!(raceBest[missionId] <= seconds)) raceBest[missionId] = Math.round(seconds * 10) / 10;
   if (robotLevel > (robotBeaten[missionId] ?? 0)) robotBeaten[missionId] = robotLevel;
   return saveFun({ ...state, raceBest, robotBeaten });
+}
+
+/** Record a finished Code Sprint (keeps the best time). */
+export function recordSprint(state: FunState, missionId: string, seconds: number): FunState {
+  if (state.sprintBest?.[missionId] !== undefined && state.sprintBest[missionId] <= seconds) return state;
+  return saveFun({ ...state, sprintBest: { ...state.sprintBest, [missionId]: Math.round(seconds * 10) / 10 } });
 }
 
 /** Record a solved code level (levels count up: solving level 2 means 2 levels done). */

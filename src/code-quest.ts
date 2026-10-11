@@ -87,7 +87,7 @@ export function matchesTarget(result: RunResult, target: Target): boolean {
 export function describe(result: RunResult): string {
   const s = result.final;
   if (!s.parts) return 'Nothing yet.';
-  if (s.kind === 'line') return `It jumped ${s.cursor} of ${s.parts} spaces: ${s.cursor}/${s.parts}.`;
+  if (s.kind === 'line') return `It made ${s.cursor} ${s.cursor === 1 ? 'jump' : 'jumps'} of 1/${s.parts}: ${s.cursor}/${s.parts}.`;
   if (s.kind === 'set') return `It picked ${s.marked.length} of ${s.parts} groups: ${s.marked.length}/${s.parts}.`;
   return `It shaded ${s.marked.length} pieces, ${s.parts} in each bar: ${s.marked.length}/${s.parts}.`;
 }
@@ -137,13 +137,7 @@ export function getCodeLevels(missionId: string): CodeLevel[] {
   let t3 = toTarget(getReviewCheck(missionId, 1).target);
   if (t3.n === t2.n && t3.d === t2.d) t3 = toTarget(getReviewCheck(missionId, 2).target);
   const palette = (t: Target): Block['op'][] => ['split', ...(t.kind === 'bar' && t.wholes > 1 ? ['bars' as const] : []), 'repeat', ...action(t.kind).map((b) => b.op)];
-  // The bug: the loop runs the bottom number of times instead of the top (a classic fraction mix-up),
-  // or for a unit fraction, the bar is split into the wrong number of pieces.
-  const bug = solution(t3).map((b): Block => {
-    if (b.op === 'repeat' && t3.n !== t3.d && t3.n > 1) return { ...b, n: Math.min(t3.d, LIMIT) };
-    if (b.op === 'split' && (t3.n === 1 || t3.n === t3.d)) return { ...b, n: t3.d + 1 };
-    return b;
-  });
+  const bug = makeBug(t3);
   return [
     { level: 1, mode: 'fill', title: 'Fill in the numbers', goal: goalText(t1), target: t1, start: solution(t1, true), palette: [],
       tip: t1.kind === 'line' ? 'Split: spaces in 1 whole (the bottom number). Repeat: how many jumps (the top number).' : t1.kind === 'set' ? 'Split: how many equal groups (the bottom number). Repeat: how many to pick (the top number).' : 'Split: pieces in 1 bar (the bottom number). Repeat: how many to shade (the top number).' },
@@ -152,4 +146,36 @@ export function getCodeLevels(missionId: string): CodeLevel[] {
     { level: 3, mode: 'debug', title: 'Fix the bug', goal: goalText(t3), target: t3, start: bug, palette: palette(t3),
       tip: 'Run it and watch what goes wrong. Then change one number.' },
   ];
+}
+
+/** A believable bug for a target: the loop runs the bottom number of times instead of the top
+    (a classic fraction mix-up), or for a unit or whole fraction, the bar is split into the wrong number of pieces. */
+export function makeBug(t: Target): Block[] {
+  return solution(t).map((b): Block => {
+    if (b.op === 'repeat' && t.n !== t.d && t.n > 1) return { ...b, n: Math.min(t.d, LIMIT) };
+    if (b.op === 'split' && (t.n === 1 || t.n === t.d)) return { ...b, n: t.d + 1 };
+    return b;
+  });
+}
+
+const sameTarget = (a: Target, b: Target) => a.kind === b.kind && a.n === b.n && a.d === b.d && a.wholes === b.wholes && a.total === b.total;
+/** Every different fraction the lesson builds (its two checks and its review rounds), for Code Sprint. */
+export function sprintTargets(missionId: string): Target[] {
+  const all = [...getBuildChecks(missionId).map((c) => toTarget(c.target)), ...[0, 1, 2, 3, 4, 5].map((r) => toTarget(getReviewCheck(missionId, r).target))];
+  return all.filter((t, i) => all.findIndex((u) => sameTarget(t, u)) === i && t.n <= 60);
+}
+
+/** Three programs for "Which program works?": the right one and two that look close but build something else. */
+export function readChoices(t: Target): Block[][] {
+  const right = solution(t);
+  const withNumbers = (split: number, times: number): Block[] => solution({ ...t, d: split, n: times });
+  const candidates = [
+    t.n !== t.d && t.n >= 1 ? withNumbers(t.n, t.d) : withNumbers(t.d + 1, t.n),   // top and bottom swapped
+    withNumbers(t.d, t.n + 1),                                                       // one too many
+    withNumbers(t.d, Math.max(1, t.n - 1)),                                          // one too few
+  ];
+  const wrong = candidates.filter((prog) => !matchesTarget(runProgram(prog, t), t))
+    .filter((prog, i, list) => list.findIndex((other) => JSON.stringify(other) === JSON.stringify(prog)) === i)
+    .slice(0, 2);
+  return [right, ...wrong];
 }

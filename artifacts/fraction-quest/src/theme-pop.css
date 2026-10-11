@@ -1466,3 +1466,35 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 @media (max-width: 420px) { .fq-grownups-buttons { width: 100%; } .fq-grownups-buttons .fq-button { flex: 1; } }
 /* In a race the "Part" label is hidden, so the sample-part outline would just look like a glitch. */
 .fq-race-model .fq-partition-whole span.part-sample { outline: none; }
+
+/* ---------- race improvements + Code Sprint ---------- */
+.fq-race-howto { display: grid; gap: 6px; margin: 0; padding: 12px 14px; border-radius: 18px; list-style: none; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); font-weight: 800; font-size: 0.95rem; }
+.fq-race-howto li { display: flex; gap: 10px; align-items: center; }
+.fq-race-howto span { font-size: 1.15rem; }
+.fq-race-mode.locked { background: hsl(var(--muted-foreground) / 0.55); cursor: not-allowed; box-shadow: none; }
+.fq-race-streak { color: #E07000; font-size: 0.85rem; }
+.fq-race-turbo { margin: 0; padding: 6px 10px; border-radius: 12px; color: #fff; background: linear-gradient(90deg, #E07000, #F59F00); font-weight: 900; text-align: center; letter-spacing: 0.04em; animation: fq-pop 0.6s ease-out; }
+.fq-race-choices button.right { box-shadow: 0 0 0 3px var(--fq-good-fg); background: hsl(100 70% 92%); }
+.fq-race-choices button:disabled { cursor: default; }
+.fq-race-stall { line-height: 1.4; }
+.fq-race-stars { display: grid; justify-items: center; gap: 4px; }
+.fq-race-stars > svg { display: inline-block; color: hsl(var(--muted-foreground) / 0.4); }
+.fq-race-stars > svg.filled { color: var(--fq-sun); fill: var(--fq-sun); }
+.fq-race-stars { grid-template-columns: repeat(3, auto); justify-content: center; }
+.fq-race-stars small { grid-column: 1 / -1; color: hsl(var(--muted-foreground)); font-weight: 700; }
+.fq-race-missed { width: 100%; padding: 12px 14px; border-radius: 16px; text-align: left; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); }
+.fq-race-missed h2 { margin: 0 0 6px; font-size: 1.05rem; }
+.fq-race-missed ul { display: grid; gap: 6px; margin: 0; padding-left: 18px; }
+.fq-race-missed b { color: var(--fq-good-fg); }
+.fq-reward-play { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; font-weight: 800; color: hsl(var(--muted-foreground)); }
+.fq-sprint-steps { display: grid; gap: 6px; margin: 0; padding: 12px 14px 12px 34px; border-radius: 18px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); line-height: 1.4; }
+.fq-sprint-read { display: grid; gap: 10px; }
+.fq-sprint-code { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 0; border-radius: 16px; background: #1E1B2E; color: #E9ECEF; text-align: left; cursor: pointer; box-shadow: 0 4px 0 #0f0d18; font: inherit; }
+.fq-sprint-code pre { margin: 0; overflow-x: auto; font: 600 0.9rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.fq-sprint-code-letter { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 8px; color: #fff; background: #1C7ED6; font-weight: 900; }
+.fq-sprint-code.wrong { box-shadow: 0 0 0 3px var(--fq-bad-fg); opacity: 0.7; }
+.fq-sprint-code.right { box-shadow: 0 0 0 3px #69DB7C; }
+.fq-sprint-code:disabled { cursor: default; }
+.fq-sprint-msg { margin: 0; padding: 10px 12px; border-radius: 14px; font-weight: 800; }
+.fq-sprint-msg.ok { background: hsl(100 70% 92%); color: var(--fq-good-fg); }
+.fq-sprint-msg.bad { background: var(--fq-bad-bg); color: var(--fq-bad-fg); }
