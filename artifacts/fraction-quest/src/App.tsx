@@ -17,6 +17,7 @@ import {
   isMissionUnlocked,
   loadProgress,
   MISSIONS,
+  numberLineWholeCount,
   recordMissedSkill,
   resetProgress as resetSavedProgress,
   saveProgress,
@@ -98,20 +99,22 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
         </div>
       )}
       {model.kind === 'line' && (() => {
-        const wholes = model.wholes ?? 1;
+        const wholes = model.wholes ?? numberLineWholeCount(model.numerator, model.denominator);
         const divisions = model.denominator * wholes;
-        const value = Math.min(model.numerator / divisions, 1);
+        const value = model.numerator / divisions;
+        const range = Array.from({ length: wholes + 1 }, (_, index) => index).join(' to ');
         return (
           <div className="fq-numberline-wrap">
-            <div className="fq-visual-numberline" role="img" aria-label={`Number line from 0 to ${wholes}, marked at ${model.numerator}/${model.denominator}`}>
+            <div className="fq-visual-numberline" role="img" aria-label={'Number line from 0 to ' + wholes + ', marked at ' + model.numerator + '/' + model.denominator}>
               <div className="fq-numberline-track" />
-              <span className="fq-numberline-marker" style={{ left: `${value * 100}%` }} />
+              <span className="fq-numberline-marker" style={{ left: (value * 100) + '%' }} />
               {Array.from({ length: divisions + 1 }, (_, tick) => (
-                <span className="fq-numberline-tick" style={{ left: `${(tick / divisions) * 100}%` }} key={tick}>
+                <span className="fq-numberline-tick" style={{ left: ((tick / divisions) * 100) + '%' }} key={tick}>
                   {tick === 0 ? '0' : tick === divisions ? String(wholes) : tick % model.denominator === 0 ? String(tick / model.denominator) : ''}
                 </span>
               ))}
             </div>
+            <p className="fq-numberline-range" data-testid="text-model-numberline-range">{wholes === 1 ? 'The whole interval runs from 0 to 1.' : 'Each whole is one interval: ' + range + '.'}</p>
             <div className="fq-line-readout"><Fraction numerator={model.numerator} denominator={model.denominator} /></div>
           </div>
         );
