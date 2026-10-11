@@ -1,5 +1,5 @@
 import { MISSIONS, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
-import { asChoicePrompt, choiceDistractors, getWorksheet } from './learning-content';
+import { asChoicePrompt, choiceDistractors, getWorksheet, parseAnswer } from './learning-content';
 
 /* Question generator: every lesson has a recipe that picks numbers within safe limits.
    - "Practice more" uses 12 questions from fixed seeds, so practice repeats.
@@ -199,7 +199,172 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
 };
 
-// Later lessons: extra practice comes from their worksheet problems, asked as tap questions.
+
+/* ---------- later lessons (units 9–14): fresh numbers every round ---------- */
+
+const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+const mixedName = (top: number, bottom: number) => {
+  const whole = Math.floor(top / bottom); const part = top % bottom;
+  return whole && part ? `${whole} ${part}/${bottom}` : whole ? String(whole) : f(part, bottom);
+};
+/** Value of a choice like "3/4", "1 1/2", "0.25", "75%" or "6 m" (null if it is not a number). */
+const valueOf = (choice: string): number | null => {
+  const v = parseAnswer(choice.replace(/%$/, '').replace(/ (m|cups?|liters?)$/, ''));
+  return v ? (v.n / v.d) * (choice.endsWith('%') ? 0.01 : 1) : null;
+};
+/** Keep only wrong answers that really are wrong (never equal in value), topped up if needed. */
+function safeWrong(right: string, candidates: string[]): [string, string] {
+  const target = valueOf(right);
+  const ok = candidates.filter((c, i) => c !== right && candidates.indexOf(c) === i && (target === null || valueOf(c) === null || Math.abs((valueOf(c) as number) - target) > 1e-9));
+  for (const extra of choiceDistractors(right)) if (ok.length < 2 && !ok.includes(extra)) ok.push(extra);
+  return [ok[0], ok[1]];
+}
+const POOL: [number, number][] = [[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [4, 5], [1, 6], [5, 6], [3, 8], [5, 8], [7, 8], [3, 10], [7, 10], [5, 12], [7, 12]];
+const SMALL_POOL = POOL.filter(([, d]) => d <= 6);
+const EXACT_PERCENT: [number, number][] = [[1, 2], [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [4, 5], [1, 10], [3, 10], [7, 10], [9, 10], [1, 20], [3, 20], [1, 25]];
+const later = (prompt: string, right: string, wrong: string[], hint: string, retry: string, model: ModelSpec): Item =>
+  ({ prompt, right, wrong: safeWrong(right, wrong), hint, retry, model });
+
+const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
+  'simplify-fractions': (r) => {
+    const [n, d] = r.pick(POOL); const k = r.int(2, d <= 6 ? 4 : 3);
+    return later(`Write ${f(n * k, d * k)} in simplest form.`, f(n, d), [f(n, d * k), f(n * k, d), f(n + 1, d)],
+      'Divide the top and bottom by the same number.', `Divide both by ${k}: ${f(n, d)}.`, bar(n * k, d * k));
+  },
+  'equivalent-missing-both': (r) => {
+    const [n, d] = r.pick(SMALL_POOL); const k = r.int(2, 4);
+    return r.chance()
+      ? later(`Fill the blank: ${f(n, d)} = ?/${d * k}`, String(n * k), [String(n + k), String(n * k + 1), String(n * k - 1)],
+        `The bottom was multiplied by ${k}.`, `${n} × ${k} = ${n * k}.`, bar(n, d))
+      : later(`Fill the blank: ${f(n, d)} = ${n * k}/?`, String(d * k), [String(d + k), String(d * k + 1), String(d * k - 1)],
+        `The top was multiplied by ${k}.`, `${d} × ${k} = ${d * k}.`, bar(n, d));
+  },
+  'compare-unlike-fractions': (r) => {
+    const a = r.pick(POOL); let b = r.pick(POOL);
+    while (b[1] === a[1] || a[0] * b[1] === b[0] * a[1]) b = r.pick(POOL);
+    const bigger = a[0] * b[1] > b[0] * a[1] ? a : b; const smaller = bigger === a ? b : a; const m = (a[1] * b[1]) / gcd(a[1], b[1]);
+    return later(`Which is bigger, ${f(a[0], a[1])} or ${f(b[0], b[1])}?`, f(bigger[0], bigger[1]), [f(smaller[0], smaller[1]), 'They are equal'],
+      'Give both the same bottom number. Then compare the tops.', `${f(a[0], a[1])} = ${f(a[0] * (m / a[1]), m)} and ${f(b[0], b[1])} = ${f(b[0] * (m / b[1]), m)}.`, bars2(a, b));
+  },
+  'order-unlike-fractions': (r) => {
+    const picked: [number, number][] = [];
+    while (picked.length < 3) { const c = r.pick(POOL); if (!picked.some(([t, b]) => t * c[1] === c[0] * b)) picked.push(c); }
+    const up = r.chance(); const sorted = picked.slice().sort((x, y) => (x[0] * y[1] - y[0] * x[1]) * (up ? 1 : -1));
+    const name = (list: [number, number][]) => list.map(([t, b]) => f(t, b)).join(', ');
+    const shown = name(picked) === name(sorted) || name(picked) === name(sorted.slice().reverse()) ? [sorted[1], sorted[0], sorted[2]] : picked;
+    return later(`Put ${name(shown)} in order, ${up ? 'smallest' : 'biggest'} first.`, name(sorted), [name(sorted.slice().reverse()), name(shown)],
+      'Compare each one to 1/2, or give them all the same bottom number.', `${up ? 'Smallest' : 'Biggest'} first: ${name(sorted)}.`, bar(sorted[0][0], sorted[0][1]));
+  },
+  'subtract-unlike-fractions': (r) => {
+    const big = r.pick([4, 6, 8, 10, 12]); const small = r.pick([2, 3, 4, 5, 6].filter((e) => e < big && big % e === 0)); const k = big / small;
+    const c = r.int(1, small - 1); const a = r.int(c * k + 1, big - 1);
+    return later(`${f(a, big)} − ${f(c, small)} = ?`, f(a - c * k, big), [f(Math.max(1, a - c), big - small), f(a - c, big), f(a - c * k + 1, big)],
+      `Change ${f(c, small)} into ${name(big)} first.`, `${f(c, small)} = ${f(c * k, big)}. ${a} − ${c * k} = ${a - c * k}.`, bar(a, big));
+  },
+  'add-mixed-numbers': (r) => {
+    const d = r.pick([3, 4, 5, 6, 8]); const w = r.int(1, 3); const a = r.int(1, d - 1); const b = r.int(1, d - 1);
+    return later(`${w} ${f(a, d)} + ${f(b, d)} = ?`, mixedName(w * d + a + b, d), [mixedName(w * d + a + b + d, d), `${w} ${a + b}/${d * 2}`, mixedName(w * d + a + b - 1, d)],
+      `Add the pieces: ${a} + ${b}. ${d} pieces make a new whole.`, `${a} + ${b} = ${a + b} pieces. So ${mixedName(w * d + a + b, d)}.`, bar(a, d));
+  },
+  'subtract-mixed-numbers': (r) => {
+    const d = r.pick([3, 4, 5, 6, 8]); const w = r.int(2, 4); const b = r.int(2, d - 1); const a = r.int(1, b - 1);
+    const top = w * d + a - (d + b);
+    return later(`${w} ${f(a, d)} − 1 ${f(b, d)} = ?`, mixedName(top, d), [`${w - 1} ${b - a}/${d}`, mixedName(top + d, d), mixedName(top + 1, d)],
+      `${a} pieces are not enough to take away ${b}. Trade 1 whole for ${f(d, d)}.`, `${w} ${f(a, d)} = ${w - 1} ${f(d + a, d)}. Take away 1 ${f(b, d)}: ${mixedName(top, d)}.`, bar(a, d));
+  },
+  'fraction-of-quantity': (r) => {
+    const d = r.pick([2, 3, 4, 5, 6, 8, 10]); const n = r.int(1, d - 1); const per = r.int(2, 9); const t = d * per;
+    return later(`What is ${f(n, d)} of ${t}?`, String(n * per), [String(per), String(t - n * per), String(n * per + per)],
+      `Make ${d} equal groups. Count ${n} of them.`, `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, bar(n, d));
+  },
+  'fraction-of-collection': (r) => {
+    const d = r.pick([2, 3, 4, 5, 6]); const n = r.int(1, d - 1); const per = r.int(2, 5); const t = d * per;
+    return later(`What is ${f(n, d)} of ${t} cards?`, String(n * per), [String(per), String(t - n * per), String(n * per + 1)],
+      `Make ${d} equal groups. Count ${n} of them.`, `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, set(n * per, t));
+  },
+  'multiply-whole-by-fraction': (r) => {
+    const [n, d] = r.pick(POOL); const m = r.int(2, 6);
+    return later(`${m} × ${f(n, d)} = ?`, f(m * n, d), [f(m * n, m * d), f(n, m * d), f(m + n, d)],
+      'Multiply the top. The bottom stays.', `${m} groups of ${f(n, d)} is ${f(m * n, d)}.`, bar(n, d));
+  },
+  'multiply-fractions': (r) => {
+    const [a, b] = r.pick(SMALL_POOL); const [n, d] = r.pick(SMALL_POOL);
+    return later(`What is ${f(a, b)} of ${f(n, d)}?`, f(a * n, b * d), [f(a + n, b + d), f(a * n, b + d), f(a * d, b * n)],
+      'Multiply the tops. Multiply the bottoms.', `${a} × ${n} = ${a * n} and ${b} × ${d} = ${b * d}.`, bar(n, d));
+  },
+  'divide-whole-by-unit-fraction': (r) => {
+    const d = r.int(2, 10); const c = r.int(1, 5);
+    return later(`How many 1/${d} cup scoops fill ${c} ${c === 1 ? 'cup' : 'cups'}?`, String(c * d), [String(c + d), String(d), String(c * d + d)],
+      `${d} scoops of 1/${d} fill 1 cup.`, `${c} × ${d} = ${c * d} scoops.`, bar(1, d));
+  },
+  'fraction-of-length': (r) => {
+    const d = r.pick([2, 3, 4, 5, 8, 10]); const n = r.int(1, d - 1); const m = r.int(2, 6); const len = d * m;
+    return later(`A ribbon is ${len} m long. How long is ${f(n, d)} of it?`, `${n * m} m`, [`${m} m`, `${len - n * m} m`, `${n * m + m} m`],
+      `Cut ${len} m into ${d} equal parts. Count ${n}.`, `Each part is ${m} m. ${n} parts is ${n * m} m.`, line(n, d));
+  },
+  'fractional-measure-addition': (r) => {
+    const b = r.pick([2, 3, 4, 5, 6]); const k = r.pick([2, 3, 4].filter((x) => b * x <= 12)); const e = b * k;
+    const a = r.int(1, b - 1); const c = r.int(1, e - 1);
+    return later(`A board is ${f(a, b)} m. Another is ${f(c, e)} m. How long are they together?`, f(a * k + c, e), [f(a + c, b + e), f(a + c, e), f(a * k + c + 1, e)],
+      `Change ${f(a, b)} into ${name(e)} first.`, `${f(a, b)} = ${f(a * k, e)}. ${a * k} + ${c} = ${a * k + c}.`, bars2([a, b], [c, e]));
+  },
+  'fractional-sharing': (r) => {
+    const people = r.int(2, 8); let loaves = r.int(1, 5); if (loaves === people) loaves += 1;
+    return later(`${loaves} ${loaves === 1 ? 'loaf is' : 'loaves are'} shared fairly by ${people} friends. How much does each friend get?`, f(loaves, people), [f(people, loaves), f(1, people), f(loaves, people + loaves)],
+      `Cut each loaf into ${people} pieces. Each friend gets 1 piece of every loaf.`, `${loaves} ÷ ${people} = ${f(loaves, people)}.`, { kind: 'bars', bars: Array.from({ length: Math.min(loaves, 3) }, () => ({ numerator: 0, denominator: people })), hideLabels: true });
+  },
+  'fraction-as-division': (r) => {
+    const b = r.int(2, 8); let a = r.int(1, 9); if (a % b === 0) a += 1;
+    return later(r.chance() ? `${a} ÷ ${b} = ?` : `${a} pizzas are shared fairly by ${b} friends. How much does each friend get?`, f(a, b), [f(b, a), f(1, b), f(a, a + b)],
+      `${a} ÷ ${b} is the fraction ${f(a, b)}.`, `Each friend gets ${f(a, b)}${a > b ? `, or ${mixedName(a, b)}` : ''}.`, bar(1, b));
+  },
+  'fraction-probability': (r) => {
+    const t = r.pick([4, 5, 6, 8, 10, 12]); const g = r.int(1, t - 1);
+    return later(`A bag has ${t} marbles. ${g} ${g === 1 ? 'is' : 'are'} green. What is the chance of picking green?`, f(g, t), [f(g, t - g), f(t - g, t), f(t, g)],
+      'Green marbles on top. All the marbles on the bottom.', `${g} green out of ${t}: ${f(g, t)}.`, set(g, t));
+  },
+  'fraction-of-area': (r) => {
+    const d = r.pick([3, 4, 5, 6, 8, 10, 12]); const n = r.int(1, d - 1);
+    return later('What fraction of the tile is shaded?', f(n, d), [f(d - n, d), f(n, d + 1), f(d, n)],
+      'Count all the equal parts for the bottom. Count the shaded parts for the top.', `${n} of ${d} equal parts: ${f(n, d)}.`, bar(n, d));
+  },
+  'equivalent-number-line': (r) => {
+    const [n, d] = r.pick(SMALL_POOL); const k = r.int(2, 3);
+    return later(`${f(n, d)} is marked on a line. Which fraction with ${d * k} on the bottom is at the same spot?`, f(n * k, d * k), [f(n, d * k), f(n + k, d * k), f(n * k + 1, d * k)],
+      `Cut every space into ${k}. There are ${k} times as many spaces and jumps.`, `${n} × ${k} = ${n * k}. So ${f(n * k, d * k)}.`, line(n, d));
+  },
+  'fraction-recipes': (r) => {
+    const [n, d] = r.pick(POOL); const batches = r.int(2, 4);
+    return later(`A recipe uses ${f(n, d)} cup of flour. How much flour do ${batches} batches need?`, f(n * batches, d), [f(n * batches, d * batches), f(n + batches, d), f(n, d * batches)],
+      `Multiply the top by ${batches}. The bottom stays.`, `${batches} × ${f(n, d)} = ${f(n * batches, d)}.`, bar(n, d));
+  },
+  'fractions-to-percent': (r) => {
+    const [t, b] = r.pick(EXACT_PERCENT); const p = (t * 100) / b;
+    return later(`Write ${f(t, b)} as a percent.`, `${p}%`, [`${t}%`, `${b}%`, `${p + 10}%`],
+      `Percent means out of 100. Change ${f(t, b)} to hundredths.`, `${f(t, b)} = ${f(p, 100)} = ${p}%.`, bar(t, b));
+  },
+  'percent-to-fraction': (r) => {
+    const p = 5 * r.int(1, 19);
+    return later(`Write ${p}% as a fraction.`, f(p, 100), [f(p, 10), f(100, p), f(p, 1000)],
+      'Percent means out of 100.', `${p}% means ${p} out of 100: ${f(p, 100)}.`, bar(p, 100));
+  },
+  'decimal-fraction-equivalence': (r) => {
+    const [t, b] = r.pick(EXACT_PERCENT); const dec = String(t / b);
+    return later(`Write ${f(t, b)} as a decimal.`, dec, [...choiceDistractors(dec), `0.${t}${b}`],
+      'Change it to tenths or hundredths first.', `${f(t, b)} = ${f((t * 100) / b, 100)} = ${dec}.`, bar(t, b));
+  },
+  'multi-step-fraction-stories': (r) => {
+    const d = r.pick([4, 5, 6, 8, 10, 12]); const a = r.int(1, d - 2); const b = r.int(1, d - 1 - a);
+    const story = r.chance()
+      ? `${f(a, d)} of a garden is planted. Then ${f(b, d)} more is planted. How much is still empty?`
+      : `Mia reads ${f(a, d)} of a book on Monday and ${f(b, d)} on Tuesday. How much is left to read?`;
+    return later(story, f(d - a - b, d), [f(a + b, d), f(d - a, d), f(d - b, d)],
+      `First add the two parts. Then take that away from ${f(d, d)}.`, `${f(a, d)} + ${f(b, d)} = ${f(a + b, d)}. ${f(d, d)} − ${f(a + b, d)} = ${f(d - a - b, d)}.`, bar(a + b, d));
+  },
+};
+Object.assign(RECIPES, LATER_RECIPES);
+
+// Any lesson still without its own recipe practices its worksheet problems as tap questions.
 for (const topic of MISSIONS.filter((item) => !(item.id in RECIPES))) {
   const worksheet = getWorksheet(topic.id);
   RECIPES[topic.id] = (r) => {

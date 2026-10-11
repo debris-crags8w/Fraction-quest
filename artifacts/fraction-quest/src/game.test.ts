@@ -746,10 +746,25 @@ describe('unit challenges', () => {
     'u6-c1': '3/6', 'u6-c2': '8', 'u6-c3': '5/14', 'u6-c4': '2', 'u6-c5': '20',
     'u7-c1': '1', 'u7-c2': '2 and 1/4', 'u7-c3': '12', 'u7-c4': '3/8 + 4/8', 'u7-c5': '3',
     'u8-c1': '7/8', 'u8-c2': '0.3', 'u8-c3': '0.5', 'u8-c4': '2/10 m', 'u8-c5': '7/8',
+    // Units 9–14: worked out here, not copied from the challenge text.
+    'u9-p1': '2/3', 'u9-c1': ['2/4', '3/6', '4/9', '5/10', '6/12'].find((f) => { const [t, b] = f.split('/').map(Number); return t * 2 !== b; })!,
+    'u9-c2': String((3 * 20) / 4),
+    'u9-c3': ['2/5', '3/7', '4/9', '5/8', '1/3'].find((f) => { const [t, b] = f.split('/').map(Number); return t / b > 0.5 && t / b < 1; })!,
+    'u9-c4': ['Ana', 'Ben', 'Cal'][[2 / 3, 3 / 4, 5 / 6].indexOf(Math.max(2 / 3, 3 / 4, 5 / 6))],
+    'u9-c5': ['7/8', '5/6', '9/10', '3/4', '11/12'].sort((a, b) => { const [an, ad] = a.split('/').map(Number); const [bn, bd] = b.split('/').map(Number); return (1 - an / ad) - (1 - bn / bd); })[0],
+    'u10-p1': '1/4', 'u10-c1': String(1.5 + 2.5), 'u10-c2': String((15 / 3) * 2), 'u10-c3': '1 1/2', 'u10-c4': String(24 - (24 / 8) * 3), 'u10-c5': '1/4 liter',
+    'u11-p1': '6/12', 'u11-c1': '8/5', 'u11-c2': String(4 * 3), 'u11-c3': '6/12', 'u11-c4': String(30 - 30 / 5 - 30 / 3), 'u11-c5': String(3 * 4 - 5),
+    'u12-p1': `${(3 / 4) * 100} cm`, 'u12-c1': '3/4', 'u12-c2': `${(100 / 5) * 3} cm`, 'u12-c3': '1 1/8 m',
+    'u12-c4': ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'][[2 / 5, 3 / 8, 1 / 3, 3 / 10, 1 / 4].indexOf(Math.max(2 / 5, 3 / 8, 1 / 3, 3 / 10, 1 / 4))],
+    'u12-c5': `${(200 / 8) * 5} cm`,
+    'u13-p1': '3/10', 'u13-c1': '3/6', 'u13-c2': `${(3 * 2) / 3} cups`,
+    'u13-c3': ['6/8', '9/12', '12/16', '15/20', '8/10'].find((f) => { const [t, b] = f.split('/').map(Number); return t * 4 !== b * 3; })!,
+    'u13-c4': `${12 - 3 - 4}/12`, 'u13-c5': '1 1/8 cups',
+    'u14-p1': '40%', 'u14-c1': `${(3 / 4) * 100}%`, 'u14-c2': '1/2, 55%, 0.6', 'u14-c3': `${(17 / 20) * 100}%`, 'u14-c4': `${100 - 40 - 30}%`, 'u14-c5': String(24 - 24 / 4 - (24 - 24 / 4) / 3),
   };
 
   it('has a picture puzzle plus five questions worth 3, 3, 3, 4, 4 and 5 points in every unit', () => {
-    for (let unit = 1; unit <= 8; unit++) {
+    for (let unit = 1; unit <= 14; unit++) {
       assert.deepEqual(CHALLENGES[unit].map((item) => item.points), [3, 3, 3, 4, 4, 5]);
       assert.ok(CHALLENGES[unit][0].figure, `unit ${unit} starts with a picture puzzle`);
       assert.equal(challengeMaxPoints(unit), 22);
@@ -784,6 +799,12 @@ describe('long problems', () => {
       'u2-c5': ['12', '4', '8'], 'u4-c5': ['6/8 m', '9/8 m', 'Yes'],
       'u5-c4': ['1/4', '1/6', '1/6'], 'u6-c4': ['1/4', '2'],
       'u7-c5': ['6/3', '8/3', '3'], 'u8-c4': ['5/10 m', '2/10 m'],
+      'u9-c4': ['8/12', '9/12', '10/12'],
+      'u10-c3': ['2 5/4', '1 2/4', '1 1/2'], 'u10-c4': ['3', '9', '15'], 'u10-c5': ['10/12', '4/12 and 3/12', '3/12'],
+      'u11-c4': ['6', '10', '14'], 'u11-c5': ['4', '12', '7'],
+      'u12-c3': ['4/8', '2/8', '9/8'], 'u12-c4': ['2/5', '3/8', '2/5'], 'u12-c5': ['200', '25 cm', '125 cm'],
+      'u13-c4': ['7', '5', '5/12'], 'u13-c5': ['3/8 cup', '3/4 + 3/8', '9/8'],
+      'u14-c3': ['85/100', '85%'], 'u14-c4': ['40%', '30%', '30%'], 'u14-c5': ['6', '18', '12'],
     };
     for (const items of Object.values(CHALLENGES)) {
       for (const item of items) {
@@ -802,6 +823,50 @@ describe('question generator', () => {
     return n / d;
   };
   const ids = (id: string) => getMission(id).questions.map((question) => question.id);
+  // Units 9–14: every generated question type is re-solved here from its own numbers.
+  const num = (text: string): number => {
+    const t = text.replace(/ (m|cups?|liters?)$/, '');
+    if (t.endsWith('%')) return Number(t.slice(0, -1)) / 100;
+    const mixed = /^(\d+) (\d+)\/(\d+)$/.exec(t); if (mixed) return Number(mixed[1]) + Number(mixed[2]) / Number(mixed[3]);
+    const frac = /^(\d+)\/(\d+)$/.exec(t); if (frac) return Number(frac[1]) / Number(frac[2]);
+    return Number(t);
+  };
+  const near = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+  const verifyLater = (question: PracticeQuestion): boolean => {
+    const answer = question.choices[question.correctChoice]; const p = question.prompt; const N = (x: string) => Number(x);
+    let expected: number | string | null = null; let m: RegExpExecArray | null;
+    if ((m = /^Write (\d+)\/(\d+) in simplest form\.$/.exec(p))) {
+      const [t, b] = answer.split('/').map(Number); const g = (x: number, y: number): number => (y ? g(y, x % y) : x);
+      assert.equal(g(t, b), 1, `${p} → ${answer} is not simplest`); expected = N(m[1]) / N(m[2]);
+    } else if ((m = /^Fill the blank: (\d+)\/(\d+) = (\d+)\/\?$/.exec(p))) expected = (N(m[2]) * N(m[3])) / N(m[1]);
+    else if ((m = /^Put (.+) in order, (smallest|biggest) first\.$/.exec(p))) {
+      const items = m[1].split(', ').sort((x, y) => (num(x) - num(y)) * (m![2] === 'smallest' ? 1 : -1));
+      expected = items.join(', ');
+    } else if ((m = /^(\d+) (\d+)\/(\d+) \+ (\d+)\/(\d+) = \?$/.exec(p))) expected = N(m[1]) + N(m[2]) / N(m[3]) + N(m[4]) / N(m[5]);
+    else if ((m = /^(\d+) (\d+)\/(\d+) − 1 (\d+)\/(\d+) = \?$/.exec(p))) expected = N(m[1]) + N(m[2]) / N(m[3]) - 1 - N(m[4]) / N(m[5]);
+    else if ((m = /^What is (\d+)\/(\d+) of (\d+) cards\?$/.exec(p))) expected = (N(m[3]) / N(m[2])) * N(m[1]);
+    else if ((m = /^(\d+) × (\d+)\/(\d+) = \?$/.exec(p))) expected = (N(m[1]) * N(m[2])) / N(m[3]);
+    else if ((m = /^What is (\d+)\/(\d+) of (\d+)\/(\d+)\?$/.exec(p))) expected = (N(m[1]) / N(m[2])) * (N(m[3]) / N(m[4]));
+    else if ((m = /^How many 1\/(\d+) cup scoops fill (\d+) cups?\?$/.exec(p))) expected = N(m[1]) * N(m[2]);
+    else if ((m = /^A ribbon is (\d+) m long\. How long is (\d+)\/(\d+) of it\?$/.exec(p))) expected = (N(m[1]) / N(m[3])) * N(m[2]);
+    else if ((m = /^A board is (\d+)\/(\d+) m\. Another is (\d+)\/(\d+) m\./.exec(p))) expected = N(m[1]) / N(m[2]) + N(m[3]) / N(m[4]);
+    else if ((m = /^(\d+) (?:loaf is|loaves are|pizzas are) shared fairly by (\d+) friends/.exec(p)) || (m = /^(\d+) ÷ (\d+) = \?$/.exec(p))) expected = N(m[1]) / N(m[2]);
+    else if ((m = /^A bag has (\d+) marbles\. (\d+) (?:is|are) green/.exec(p))) expected = N(m[2]) / N(m[1]);
+    else if (p === 'What fraction of the tile is shaded?' && question.model.kind === 'bars') expected = question.model.bars[0].numerator / question.model.bars[0].denominator;
+    else if ((m = /^(\d+)\/(\d+) is marked on a line\. Which fraction with (\d+) on the bottom/.exec(p))) {
+      assert.equal(N(answer.split('/')[1]), N(m[3]), p); expected = N(m[1]) / N(m[2]);
+    } else if ((m = /^A recipe uses (\d+)\/(\d+) cup of flour\. How much flour do (\d+) batches need\?$/.exec(p))) expected = (N(m[1]) * N(m[3])) / N(m[2]);
+    else if ((m = /^Write (\d+)\/(\d+) as a percent\.$/.exec(p))) { assert.ok(answer.endsWith('%'), p); expected = N(m[1]) / N(m[2]); }
+    else if ((m = /^Write (\d+)% as a fraction\.$/.exec(p))) expected = N(m[1]) / 100;
+    else if ((m = /^Write (\d+)\/(\d+) as a decimal\.$/.exec(p))) { assert.match(answer, /^\d+\.\d+$/, p); expected = N(m[1]) / N(m[2]); }
+    else if ((m = /^(\d+)\/(\d+) of a garden is planted\. Then (\d+)\/(\d+) more/.exec(p)) || (m = /^Mia reads (\d+)\/(\d+) of a book on Monday and (\d+)\/(\d+) on Tuesday/.exec(p))) expected = 1 - N(m[1]) / N(m[2]) - N(m[3]) / N(m[4]);
+    if (expected === null) return false;
+    if (typeof expected === 'string') assert.equal(answer.replace(/\s/g, ''), expected.replace(/\s/g, ''), p);
+    else assert.ok(near(num(answer), expected), `${p} → ${answer}, expected ${expected}`);
+    // Wrong choices must really be wrong.
+    question.choices.forEach((c, i) => { if (i !== question.correctChoice && typeof expected === 'number' && !Number.isNaN(num(c))) assert.ok(!near(num(c), expected), `${p}: "${c}" is also right`); });
+    return true;
+  };
   const verify = (question: PracticeQuestion): boolean => {
     const answer = question.choices[question.correctChoice];
     assert.equal(question.choices.length, 3, question.id);
@@ -900,9 +965,7 @@ describe('question generator', () => {
       for (const question of bank) {
         const independentlyVerified = verify(question);
         if (mission.unit >= 9 && !independentlyVerified) {
-          const source = getWorksheet(mission.id).find((problem) => asChoicePrompt(problem.prompt) === question.prompt);
-          assert.ok(source, `${question.id} should use an authored worksheet problem`);
-          assert.equal(question.choices[question.correctChoice], source.answer, `${question.id} answer should match its worksheet`);
+          assert.ok(verifyLater(question), `${question.id}: no independent check for "${question.prompt}"`);
         }
         positions.add(question.correctChoice);
         assert.ok(mission.questions.some((base) => base.id === question.reviewQuestionId), question.id);
@@ -925,9 +988,7 @@ describe('question generator', () => {
           if (independentlyVerified) {
             checked++;
           } else if (mission.unit >= 9) {
-            const source = getWorksheet(mission.id).find((problem) => asChoicePrompt(problem.prompt) === question.prompt);
-            assert.ok(source, `${question.id} should use an authored worksheet problem`);
-            assert.equal(question.choices[question.correctChoice], source.answer, `${question.id} answer should match its worksheet`);
+            assert.ok(verifyLater(question), `${question.id}: no independent check for "${question.prompt}"`);
             checked++;
           }
         }

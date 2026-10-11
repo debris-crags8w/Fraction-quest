@@ -75,12 +75,12 @@ const UNIT_INFO: UnitInfo[] = [
   { title: 'Equivalent fractions', subtitle: 'Rename an amount without changing its size' },
   { title: 'Put fractions together', subtitle: 'Compose, decompose, and go beyond one' },
   { title: 'Operations and decimals', subtitle: 'Add, subtract, and connect fractions to decimals' },
-  { title: 'Rename and compare', subtitle: 'Simplify, compare and order' },
-  { title: 'Mixed numbers and amounts', subtitle: 'Mixed numbers and parts of amounts' },
-  { title: 'Multiply and divide', subtitle: 'Groups, parts of parts, and scoops' },
-  { title: 'Fractions in measurement', subtitle: 'Lengths and fair shares' },
-  { title: 'Fraction models in context', subtitle: 'Chance, area, lines and recipes' },
-  { title: 'Fractions, decimals, and percent', subtitle: 'Percent, decimals and 2-step stories' },
+  { title: 'Rename and compare', subtitle: 'Grade 5 · Simplify, compare and order' },
+  { title: 'Mixed numbers and amounts', subtitle: 'Grade 5 · Mixed numbers and parts of amounts' },
+  { title: 'Multiply and divide', subtitle: 'Grade 5 · Groups, parts of parts, and scoops' },
+  { title: 'Fractions in measurement', subtitle: 'Grade 5 · Lengths and fair shares' },
+  { title: 'Fraction models in context', subtitle: 'Grade 5 · Chance, area, lines and recipes' },
+  { title: 'Fractions, decimals, and percent', subtitle: 'Grade 5 · Percent, decimals and 2-step stories' },
 ];
 
 // Lessons where kids make fractions by folding a paper strip (1 → 1/2 → 1/4 → 1/8).
