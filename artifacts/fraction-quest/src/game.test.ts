@@ -22,6 +22,7 @@ import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getM
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
 import {
   createLearningSpeechController,
+  LearningVoicePicker,
   LearningText,
   selectLearningVoice,
   spokenLearningText,
@@ -630,7 +631,14 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.match(markup, /Audio unavailable/, 'browsers without speech support explain that audio is unavailable');
   });
 
-  it('prefers a feminine-sounding voice in the requested language and falls back to the best local voice', () => {
+  it('shows the family voice-selection section and explains when local speech is unsupported', () => {
+    const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
+    assert.match(markup, /Read-aloud voice/);
+    assert.match(markup, /Preview voices available on this device/);
+    assert.match(markup, /Read-aloud voices are not available in this browser/);
+  });
+
+  it('prefers a feminine-sounding voice in the requested language unless a saved choice is available', () => {
     const voices = [
       { name: 'Alex', lang: 'en-US', default: true },
       { name: 'Daniel', lang: 'en-GB', default: false },
@@ -638,10 +646,40 @@ describe('entered-answer worksheets and evidence gates', () => {
       { name: 'Samantha', lang: 'fr-FR', default: true },
     ];
     assert.equal(selectLearningVoice(voices, 'en-US')?.name, 'Samantha');
+    assert.equal(selectLearningVoice(voices, 'en-US', 'Alex|en-US')?.name, 'Alex', 'an available saved choice is reused');
     assert.equal(selectLearningVoice(voices.slice(0, 2), 'en-US')?.name, 'Alex', 'without a feminine-sounding voice, use the best language match');
     assert.equal(selectLearningVoice([], 'en-US'), null);
-    assert.equal(selectLearningVoice([voices[3], { name: 'Luca', lang: 'it-IT', default: false }], 'en-US')?.lang, 'fr-FR', 'when no requested-language voice exists, use the browser default');
+    assert.equal(selectLearningVoice([voices[3], { name: 'Luca', lang: 'it-IT', default: false }], 'en-US'), null, 'never select a voice in another language');
+    assert.equal(selectLearningVoice(voices, 'en-US', 'missing|en-US')?.name, 'Samantha', 'an unavailable saved choice falls back to a suitable local voice');
     assert.equal(spokenLearningText('Compare 1/2 with 3/4.'), 'Compare 1 over 2 with 3 over 4.');
+  });
+
+  it('reuses the saved language-matched voice for lesson explanations', () => {
+    const utterances: SpeechSynthesisUtterance[] = [];
+    const voiceList = [
+      { name: 'Alex', lang: 'en-US', default: true },
+      { name: 'Samantha', lang: 'en-US', default: false },
+      { name: 'Samantha', lang: 'fr-FR', default: false },
+    ] as SpeechSynthesisVoice[];
+    const fakeSynthesis = {
+      getVoices: () => voiceList,
+      speak(utterance: SpeechSynthesisUtterance) { utterances.push(utterance); },
+      cancel() {},
+      addEventListener() {},
+      removeEventListener() {},
+    } as unknown as SpeechSynthesis;
+    const controller = createLearningSpeechController(
+      fakeSynthesis,
+      () => undefined,
+      makeTestSpeechUtterance,
+      undefined,
+      () => 'Alex|en-US',
+    );
+    controller.speak('An explanation.', 'en-US');
+
+    assert.equal(utterances[0].voice?.name, 'Alex');
+    assert.equal(utterances[0].lang, 'en-US');
+    controller.dispose();
   });
 
   it('waits for delayed voices and applies calm speech settings and fraction pronunciation', () => {
