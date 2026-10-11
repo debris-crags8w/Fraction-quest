@@ -4,14 +4,15 @@ description: Current state of Fraction Quest work — how to build/verify, featu
 ---
 
 Fraction Quest: fractions app for ages 8–10 (units 1–8 grade 3–4, units 9–14 grade 5). The user wants short kid-friendly
-wording, repetition, printables, model-centred learning, and everything pushed to `main`. Latest commit: a80450c.
+wording, repetition, printables, model-centred learning, and everything pushed to `main`. The latest upstream state includes
+the square area model and the Part Finder proposal; local review changes should be merged only after checking current `main`.
 
 ## How to work
 - pnpm monorepo. App: `artifacts/fraction-quest`. A root `src/` mirror must be kept identical: copy every changed/new file
   from `artifacts/fraction-quest/src/` to `src/` before committing (`diff -rq artifacts/fraction-quest/src src`; only the
   app-only folders components/, hooks/, pages/, main.tsx, lib/utils.ts should differ).
-- Typecheck: `pnpm run typecheck`. Tests (79 passing): `npm exec --yes --package=tsx@4.19.2 -- tsx --test src/game.test.ts src/account-flow.test.ts`.
-- Build: `PORT=5173 BASE_PATH=/ pnpm run build`. Preview: `PORT=5173 BASE_PATH=/ npx vite preview --config vite.config.ts --port 5173 --strictPort`.
+- Typecheck: `pnpm run typecheck`. Tests (82 passing): `cd artifacts/fraction-quest && npm exec --yes --package=tsx@4.19.2 -- tsx --test src/game.test.ts src/account-flow.test.ts`.
+- Build: from `artifacts/fraction-quest`, run `PORT=5173 BASE_PATH=/ pnpm run build`. Preview: `PORT=5173 BASE_PATH=/ npx vite preview --config vite.config.ts --port 5173 --strictPort`.
   Stop it with `pkill -f "[v]ite preview"` in its own Bash call (the command text kills its own shell otherwise).
 - Browser checks: Playwright via `require('/opt/node22/lib/node_modules/playwright')`, Chromium preinstalled. localStorage keys:
   `fraction-quest-guest`='1', `fraction-quest-progress-v1` (progress JSON), `fraction-quest-fun-v1`. Map lessons open with
@@ -57,7 +58,7 @@ wording, repetition, printables, model-centred learning, and everything pushed t
   challenges and recipes; full QA audit fixes (number-line cap, review prompts, guessable reasons, degenerate items,
   out-of-range denominators, duplicate family worksheets) with regression tests under "quality audit fixes" in game.test.ts.
 
-## Next step (proposed, user asked for a handoff before deciding)
+## Part Finder (proposed and queued)
 User asked: "Do you have a lesson showing students how to FIND the parts? Might be a useful game to add early in
 introducing equivalent fractions." Answer given: no — kids make parts (fold, split, shade) and judge them, but never find the
 equal parts hidden in a messy shape. Proposed **Part Finder** game (game card on equal-parts, unit-fractions,
@@ -67,12 +68,19 @@ equivalent-models; stars/best score like the other games), suggested build order
 3. Cut it: draw dot-to-dot lines to make equal parts; several correct answers (hardest on touch screens).
 4. Same whole, new parts: find fourths, then eighths in the same square → 1/4 = 2/8.
 Can reuse area-shapes.ts (pieceArea, AREA_CUTS) and AreaSvg/AreaShade patterns; group validation = each group's area = 1/k.
-Waiting for the user's go-ahead.
+The user approved the idea. It is queued but not assigned; wait for task assignment before implementing it.
 
-## Still open (not requested yet)
-- Parent audit leftovers: parent password reset; privacy/consent page and COPPA review (user's decision); circle models;
-  grade-4 multiply-fraction-by-whole content.
+## Still open
+- Parent password reset is not applicable yet: there is no parent account. Student account recovery is tracked separately.
+  Privacy/consent and COPPA still need a careful data-handling review; the current username/display-name signup diverges
+  from the user's chosen educator-report setup: class codes, no student names, progress saved online. Do not claim legal
+  compliance based on code review alone.
+- Circle models are not implemented; current model kinds are bars, number lines and sets, with square area models added
+  for worksheets and print.
+- Whole-number times a fraction exists in the Unit 11 grade-5 extension, but not in the grade-4 path.
 - Square model is only on worksheets/prints, not in practice questions or Fraction Race.
-- Small: stray dotted part-marker beside the printed example bar; 3-star threshold counts extra bank questions; challenge
-  walk-throughs not printed; printed lesson sheet for lessons 1–2 is now 2 pages; screen readers hear yes/no bars only as
-  "a bar cut into N pieces" (deliberately neutral).
+- The printed lesson sheet for lessons 1–2 is now 2 pages after adding shape-comparison activities. Keep the models
+  readable rather than shrinking them without a specific one-page requirement.
+- Screen readers hear yes/no bars as “a bar cut into N pieces” (deliberately neutral so the description does not give
+  away whether the parts are equal).
+- The Part Finder proposal is queued; wait for task assignment before implementing it.

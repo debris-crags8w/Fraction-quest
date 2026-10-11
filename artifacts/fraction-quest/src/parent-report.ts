@@ -3,6 +3,7 @@ import { isMissionUnlocked, MISSIONS, type Progress } from './game';
 import { getLearningRecord, hasLearningGate, worksheetCount } from './learning';
 import { answerMatches, getWorksheet } from './learning-content';
 import { today, type FunState } from './lib/fun';
+import { summarizeCodeProgress } from './code-progress';
 
 /* The grown-ups' report: everything here is read from progress the app already saves.
    Nothing in it changes progress or lesson gating. */
@@ -18,6 +19,8 @@ export type DayRow = { day: string; label: string; minutes: number; answered: nu
 export type PracticeTip = { idea: string; lessons: string[]; count: number };
 export type ParentReport = {
   lessonsDone: number; lessonsTotal: number; stars: number; xp: number; streak: number;
+  codeLevelsPassed: number; codeLevelsTotal: number; codeMissionsStarted: number; codeMissionsComplete: number;
+  codeMissionRows: { id: string; title: string; levelsPassed: number }[];
   week: DayRow[]; minutesWeek: number; answeredWeek: number;
   /** Share of worksheet answers right on the first try (null before any are checked). */
   firstTryRate: number | null;
@@ -101,10 +104,17 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
   const strengths = rows.filter((row) => row.status === 'done' && row.builds === 'On their own' && (row.firstTry ?? 0) >= 80)
     .map((row) => row.title).slice(-5);
   const next = rows.find((row) => row.status === 'started') ?? rows.find((row) => row.status === 'open');
+  const codeProgress = summarizeCodeProgress(fun.codeLevels, MISSIONS.map((mission) => mission.id));
+  const codeMissionRows = MISSIONS.flatMap((mission) => {
+    const levelsPassed = Math.max(0, Math.min(3, Math.floor(fun.codeLevels?.[mission.id] ?? 0)));
+    return levelsPassed > 0 ? [{ id: mission.id, title: mission.title, levelsPassed }] : [];
+  });
 
   return {
     lessonsDone: rows.filter((row) => row.status === 'done').length, lessonsTotal: rows.length,
     stars: Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0), xp: fun.xp, streak: fun.dayStreak,
+    codeLevelsPassed: codeProgress.levelsPassed, codeLevelsTotal: codeProgress.levelsTotal,
+    codeMissionsStarted: codeProgress.missionsStarted, codeMissionsComplete: codeProgress.missionsComplete, codeMissionRows,
     week, minutesWeek: week.reduce((sum, day) => sum + day.minutes, 0), answeredWeek: week.reduce((sum, day) => sum + day.answered, 0),
     firstTryRate: pct(firstTry, tried), onOwnRate: pct(onOwn, builds),
     nextLesson: next ? `Lesson ${next.number}: ${next.title}` : null, toPractice, dueReviews, strengths, units,

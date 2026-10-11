@@ -74,6 +74,24 @@ export function numberLineWholeCount(numerator: number, denominator: number): nu
   return Math.max(1, Math.ceil(numerator / denominator));
 }
 
+/** Extra practice-bank questions can appear in a lesson round, but only authored lesson questions earn lesson stars. */
+export function countsTowardLessonStars(
+  question: Pick<PracticeQuestion, 'id' | 'isOptionalReview'>,
+  eligibleQuestionIds: ReadonlySet<string>,
+): boolean {
+  return !question.isOptionalReview && eligibleQuestionIds.has(question.id);
+}
+
+export function starsFromFirstTryAnswers(firstTryAnswers: number, requiredQuestionCount: number): 1 | 2 | 3 {
+  const total = Number.isFinite(requiredQuestionCount) ? Math.floor(requiredQuestionCount) : 0;
+  if (total <= 0) return 1;
+  const correct = Number.isFinite(firstTryAnswers)
+    ? Math.max(0, Math.min(total, Math.floor(firstTryAnswers)))
+    : 0;
+  if (correct === total) return 3;
+  return correct >= total - 1 ? 2 : 1;
+}
+
 const bars = (...fractions: FractionValue[]): ModelSpec => ({ kind: 'bars', bars: fractions });
 const setModel = (selected: number, total: number, caption?: string): ModelSpec => ({ kind: 'set', selected, total, caption });
 const line = (numerator: number, denominator: number, wholes = numberLineWholeCount(numerator, denominator)): ModelSpec => ({ kind: 'line', numerator, denominator, wholes });
