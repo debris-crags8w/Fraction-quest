@@ -73,13 +73,26 @@ npx cap open ios          # opens Xcode
 - **Same Apple ID only:** profiles sync between devices on the same Apple ID (one iCloud). Children on different Apple IDs, such as their own iPads under Family Sharing, don't share data. Use **Save a backup** / **Restore a backup** to move a child between them.
 
 ## Pricing plan (decided, not built yet)
-- **Model:** free download as a trial. **Unit 1 is free** (Same whole, fair pieces · Read a fraction · One piece at a time). Units 2–14 unlock with a **monthly auto-renewable subscription**. No lifetime option for now.
-- **To build later on this branch:**
+- **Free:** **Unit 1** (Same whole, fair pieces · Read a fraction · One piece at a time), with all its parts: lessons, games, printables, challenge and daily practice.
+- **Locked:** **every element of units 2–14** stays locked without a subscription:
+  - lessons, practice, lab and worksheets
+  - redo, review and daily-practice items from those units
+  - Fraction Race, Code, Code Sprint and Part Finder for those lessons
+  - printables, answer keys and unit challenges
+  - the level quiz's placement into later units
+- **Price:** **$2.99 per month**, auto-renewable. One subscription group, one monthly product. No lifetime option.
+- **Free trial:** **7 days**, set up as an introductory offer in App Store Connect. Apple allows one trial per Apple ID per subscription group.
+- **Website:** for **testing only**. The app itself shouldn't be publicly available on the web. A small public **company page** could carry what Apple needs a public URL for:
+  - the privacy policy (required)
+  - a support / contact page (required)
+  - Terms of Use (EULA), required for subscriptions; Apple's standard EULA can be linked instead
+  - optionally, an App Store badge and screenshots
+- **To build on this branch:**
   - StoreKit 2 directly (no third-party SDK, so the privacy label stays "Data Not Collected")
-  - a subscription group with one monthly product, and optionally an introductory free trial
-  - a lock screen on units 2–14 ("Ask a grown-up to unlock")
-  - the purchase screen behind the grown-up maths gate
+  - an entitlement check on launch and when the app returns to the foreground
+  - one place in the code that decides whether a unit is open, used by the map, lessons, games, printables, daily practice, reviews and the level quiz
+  - a lock screen ("Ask a grown-up to unlock") that opens the purchase screen behind the grown-up maths gate
   - Restore Purchases and a Manage subscription link
-  - Terms of Use (EULA) and privacy links on the purchase screen
-  - lapsed subscriptions keep all saved progress viewable and pause only locked units
-- **Open questions for then:** whether games and printables for locked units are also locked; the price; whether to offer a free trial period; and whether the website stays fully free.
+  - trial and price wording that matches Apple's rules (price and renewal terms shown before purchase)
+  - a lapsed subscription keeps all saved progress; only units 2–14 pause again
+- **Website follow-up:** put the test web app behind a simple access check (or a non-public URL) and add the public company page with privacy, support and terms.
