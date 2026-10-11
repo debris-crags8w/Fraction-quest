@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useState, type ReactNode } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { MathText } from './MathText';
-import { speak, stopSpeaking } from './lib/voice';
+import { selectLearningVoice, speak, stopSpeaking } from './lib/voice';
 
 type VocabularyEntry = { pattern: string; definition: string };
 
@@ -41,6 +41,8 @@ function VocabularyTerm({ text, definition, interactive }: { text: string; defin
     </span>
   );
 }
+
+export { selectLearningVoice };
 
 function ListenButton({ text }: { text: string }) {
   const [speaking, setSpeaking] = useState(false);

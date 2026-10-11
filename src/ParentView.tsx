@@ -1,8 +1,9 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { ArrowLeft, Lock, Printer } from 'lucide-react';
-import type { Progress } from './game';
+import { getMission, MISSIONS, type Progress } from './game';
 import type { FunState } from './lib/fun';
 import { buildParentReport, type LessonRow } from './parent-report';
+import { AnswerKey } from './Printables';
 
 const STATUS: Record<LessonRow['status'], string> = { done: 'Done', started: 'In progress', skipped: 'Skipped by quiz', open: 'Open', locked: 'Locked' };
 
@@ -41,8 +42,32 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
   progress: Progress; fun: FunState; unitTitles: string[]; childName: string | null; onBack: () => void;
 }) {
   const [unlocked, setUnlocked] = useState(false);
+  const [answerKeyLessonId, setAnswerKeyLessonId] = useState(MISSIONS[0].id);
+  const [printKeyLessonId, setPrintKeyLessonId] = useState<string | null>(null);
   const report = useMemo(() => buildParentReport(progress, fun, unitTitles), [progress, fun, unitTitles]);
+  useEffect(() => {
+    if (!printKeyLessonId) return;
+    const returnToReport = () => setPrintKeyLessonId(null);
+    window.addEventListener('afterprint', returnToReport, { once: true });
+    const frame = window.requestAnimationFrame(() => window.print());
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('afterprint', returnToReport);
+    };
+  }, [printKeyLessonId]);
   if (!unlocked) return <div className="fq-app"><GrownUpGate onPass={() => setUnlocked(true)} onBack={onBack} /></div>;
+  if (printKeyLessonId) {
+    return (
+      <div className="fq-app">
+        <main className="fq-shell fq-parent fq-parent-key-print">
+          <button className="fq-back fq-parent-key-back" onClick={() => setPrintKeyLessonId(null)} data-testid="button-parent-key-return">
+            <ArrowLeft size={17} /> Back to the report
+          </button>
+          <AnswerKey mission={getMission(printKeyLessonId)} />
+        </main>
+      </div>
+    );
+  }
 
   const maxMinutes = Math.max(10, ...report.week.map((day) => day.minutes));
   const printedOn = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
@@ -70,6 +95,20 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
             <div data-testid="stat-on-own"><strong>{percent(report.onOwnRate)}</strong><span>Builds done without help</span></div>
             <div><strong>{report.streak}</strong><span>Day streak</span></div>
             <div><strong>{report.stars}</strong><span>Stars</span></div>
+          </section>
+
+          <section className="fq-parent-section fq-parent-code-progress" data-testid="parent-code-progress">
+            <h2>Coding levels passed</h2>
+            <p className="fq-parent-note">Coding progress is separate from fraction lesson mastery. A level counts when its robot program reaches the mission target.</p>
+            <div className="fq-parent-code-summary">
+              <strong>{report.codeLevelsPassed}<small> / {report.codeLevelsTotal}</small></strong>
+              <span>levels passed across {report.codeMissionsStarted} missions · {report.codeMissionsComplete} missions with all 3 levels passed</span>
+            </div>
+            {report.codeMissionRows.length > 0 ? (
+              <ul className="fq-parent-code-list">
+                {report.codeMissionRows.map((row) => <li key={row.id} data-testid={`parent-code-${row.id}`}><span>{row.title}</span><strong>{row.levelsPassed} / 3 levels passed</strong></li>)}
+              </ul>
+            ) : <p className="fq-parent-code-empty">No coding levels passed yet. Each mission has three: fill in numbers, build blocks, and fix a bug.</p>}
           </section>
 
           <section className="fq-parent-section">
@@ -132,9 +171,30 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
             {laterUnits.length > 0 && <p className="fq-parent-note">Not started yet: {laterUnits.map((unit) => `Unit ${unit.number} (${unit.title})`).join(', ')}.</p>}
           </section>
 
+          <section className="fq-parent-section fq-parent-answer-keys" data-testid="parent-answer-keys">
+            <h2>Answer keys for grown-ups</h2>
+            <p>Choose a lesson to print its solutions. Answer keys are not included in student printouts.</p>
+            <div className="fq-parent-answer-key-controls">
+              <label htmlFor="parent-answer-key-lesson">Lesson</label>
+              <select
+                id="parent-answer-key-lesson"
+                value={answerKeyLessonId}
+                onChange={(event) => setAnswerKeyLessonId(event.target.value)}
+                data-testid="select-parent-answer-key-lesson"
+              >
+                {MISSIONS.map((mission, index) => (
+                  <option key={mission.id} value={mission.id}>Lesson {index + 1}: {mission.title}</option>
+                ))}
+              </select>
+              <button type="button" className="fq-button" onClick={() => setPrintKeyLessonId(answerKeyLessonId)} data-testid="button-parent-print-answer-key">
+                <Printer size={17} /> Print answer key
+              </button>
+            </div>
+          </section>
+
           <footer className="fq-parent-foot">
             <p><b>How to read this.</b> "First try" counts worksheet answers that were right the first time they were checked. "Builds" are the bar and number-line tasks: "On their own" means no hints and no wrong tries. "Remembered" means your child rebuilt it correctly on a later day without help.</p>
-            <p><b>Helping at home.</b> Ask your child to show you a fraction with paper strips or on a drawn line, and to explain why. The Print menu on each lesson has worksheets and an answer key.</p>
+            <p><b>Helping at home.</b> Ask your child to show you a fraction with paper strips or on a drawn line, and to explain why. Use the answer-key section above when you need lesson solutions.</p>
           </footer>
         </article>
       </main>

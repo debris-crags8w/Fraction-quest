@@ -1,7 +1,7 @@
 /* Read-aloud voice: a gentle, natural-sounding woman's voice when the device has one, kid-friendly wording
    ("three fourths", not "3 over 4"), a calm pace, and a short pause between sentences. Pure helpers are tested. */
 
-type VoiceLike = Pick<SpeechSynthesisVoice, 'name' | 'lang' | 'localService'>;
+type VoiceLike = Pick<SpeechSynthesisVoice, 'name' | 'lang'> & { default?: boolean };
 
 // Warm female voices found on common devices (Apple, Microsoft Edge "Natural", Google, Android network voices).
 const GENTLE = [
@@ -13,21 +13,35 @@ const GENTLE = [
 const AVOID = /\b(Alex|Daniel|David|Mark|Fred|Guy|Ryan|Christopher|Eric|Roger|Steffan|Thomas|Aaron|Arthur|Gordon|Oliver|Reed|Rocko|Grandpa|Grandma|Eddy|Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Junior|Ralph|Kathy|Princess|Deranged|Hysterical|male)\b|x-(tpd|iol|iom|gbd|gbb|auc|aud)/i;
 const NATURAL = /natural|neural|enhanced|premium|online|network/i;
 
-/** Score a voice: English first, then gentle female names, then natural-sounding quality. Lower than 0 = avoid. */
-export function voiceScore(voice: VoiceLike): number {
-  if (!/^en\b|^en[-_]/i.test(voice.lang)) return -100;
+const norm = (lang: string) => lang.toLowerCase().replace(/_/g, '-');
+/** Score a voice: the wanted language first, then gentle female names, then natural-sounding quality. Lower than 0 = avoid. */
+export function voiceScore(voice: VoiceLike, language = 'en-US'): number {
+  if (norm(voice.lang).split('-')[0] !== norm(language).split('-')[0]) return -100;
   if (AVOID.test(voice.name)) return -10;
-  let score = /en[-_]US/i.test(voice.lang) ? 3 : 2;
+  let score = norm(voice.lang) === norm(language) ? 3 : 2;
   const gentle = GENTLE.findIndex((pattern) => pattern.test(voice.name) || pattern.test(voice.lang));
   if (gentle >= 0) score += 30 - gentle; // earlier in the list = warmer
   if (NATURAL.test(voice.name)) score += 12;
   return score;
 }
 
-export function pickVoice<V extends VoiceLike>(voices: V[]): V | null {
+/** The best gentle voice in the language, or null if every voice there is a man's or novelty voice. */
+export function pickVoice<V extends VoiceLike>(voices: readonly V[], language = 'en-US'): V | null {
   let best: V | null = null; let bestScore = -1;
-  for (const voice of voices) { const s = voiceScore(voice); if (s > bestScore) { best = voice; bestScore = s; } }
+  for (const voice of voices) { const s = voiceScore(voice, language); if (s > bestScore) { best = voice; bestScore = s; } }
   return best;
+}
+
+/** The voice to read with: the gentlest one in the language; otherwise any voice in that language (exact match, then the
+    device default), so the reading still matches the page's language. */
+export function selectLearningVoice<V extends VoiceLike>(voices: readonly V[], language: string): V | null {
+  const gentle = pickVoice(voices, language);
+  if (gentle) return gentle;
+  const primary = norm(language).split('-')[0];
+  const same = voices.filter((v) => norm(v.lang).split('-')[0] === primary);
+  const pool = same.length ? same : voices;
+  return [...pool].sort((a, b) => Number(norm(b.lang) === norm(language)) - Number(norm(a.lang) === norm(language))
+    || Number(!!b.default) - Number(!!a.default) || a.name.localeCompare(b.name))[0] ?? null;
 }
 
 const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
@@ -64,7 +78,8 @@ export function sentences(text: string): string[] {
 let chosen: SpeechSynthesisVoice | null = null;
 function currentVoice(): SpeechSynthesisVoice | null {
   if (chosen) return chosen;
-  chosen = pickVoice(window.speechSynthesis.getVoices());
+  const language = document.documentElement.lang || navigator.language || 'en-US';
+  chosen = selectLearningVoice(window.speechSynthesis.getVoices(), language);
   return chosen;
 }
 // Voices load after the page in Chrome; pick again when they arrive.

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react';
+import React, { useEffect, useState, type ReactElement } from 'react';
 import { Printer } from 'lucide-react';
 import { MathText } from './MathText';
 import { getMission, MISSIONS, type Mission, type ModelSpec } from './game';
@@ -9,7 +9,7 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { AreaSvg, ColorTwoWays, SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
 import { freshSeed, generateQuestions } from './practice-bank';
 
-export type PrintMode = 'lesson' | 'practice' | 'generated' | 'blank' | 'answers' | 'challenge' | 'key';
+export type PrintMode = 'lesson' | 'practice' | 'generated' | 'blank' | 'answers' | 'challenge';
 
 export const lessonCode = (missionId: string) => `FQ-${String(MISSIONS.findIndex((item) => item.id === missionId) + 1).padStart(2, '0')}`;
 const letter = (index: number) => String.fromCharCode(65 + index);
@@ -238,7 +238,7 @@ function PracticeSheet({ mission }: { mission: Mission }) {
   );
 }
 
-function AnswerKey({ mission }: { mission: Mission }) {
+export function AnswerKey({ mission }: { mission: Mission }) {
   const checks = getBuildChecks(mission.id);
   return (
     <article className="fq-print" aria-hidden="true" data-testid="print-answer-key">
@@ -258,7 +258,20 @@ function AnswerKey({ mission }: { mission: Mission }) {
       {CHALLENGES[mission.unit] && <section className="fq-print-key">
         <h2>Unit {mission.unit} challenge</h2>
         <ol className="fq-print-key-list">
-          {CHALLENGES[mission.unit].map((item) => <li key={item.id}><b>{letter(item.correct)}</b> · <MathText text={item.choices[item.correct]} /> <small>({item.points} points) <MathText text={item.explanation} /></small></li>)}
+          {CHALLENGES[mission.unit].map((item) => (
+            <li key={item.id}>
+              <b>{letter(item.correct)}</b> · <MathText text={item.choices[item.correct]} /> <small>({item.points} points) <MathText text={item.explanation} /></small>
+              {item.steps && item.steps.length > 0 && (
+                <ol className="fq-print-challenge-steps">
+                  {item.steps.map((step, index) => (
+                    <li key={`${item.id}-step-${index}`}>
+                      <MathText text={step.prompt} /> <b>Answer:</b> <MathText text={step.choices[step.correct]} />
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </li>
+          ))}
         </ol>
       </section>}
       <section className="fq-print-key">
@@ -299,7 +312,7 @@ function ChallengeSheet({ mission }: { mission: Mission }) {
   );
 }
 
-/** A brand-new practice sheet from the question generator, with its own answer key on the last page. */
+/** A brand-new student practice sheet from the question generator. */
 function GeneratedSheet({ mission, seed }: { mission: Mission; seed: number }) {
   const questions = generateQuestions(mission.id, mission.questions.map((q) => q.id), seed, 12);
   const sheetCode = `${lessonCode(mission.id)}-${String(seed).slice(-4)}`;
@@ -319,13 +332,6 @@ function GeneratedSheet({ mission, seed }: { mission: Mission; seed: number }) {
           </li>
         ))}
       </ol>
-      <section className="fq-print-key fq-print-break">
-        <h2>Answer key · sheet {sheetCode}</h2>
-        <p>For grown-ups. Cut this part off before handing out the sheet.</p>
-        <ol className="fq-print-key-list two-col">
-          {questions.map((question) => <li key={question.id}><b>{letter(question.correctChoice)}</b> · <MathText text={question.choices[question.correctChoice]} /></li>)}
-        </ol>
-      </section>
     </article>
   );
 }
@@ -336,19 +342,17 @@ export default function Printable({ missionId, record, mode, seed = 1 }: { missi
   if (mode === 'generated') return <GeneratedSheet mission={mission} seed={seed} />;
   if (mode === 'lesson') return <LessonSheet mission={mission} />;
   if (mode === 'practice') return <PracticeSheet mission={mission} />;
-  if (mode === 'key') return <AnswerKey mission={mission} />;
   if (mode === 'challenge' && CHALLENGES[mission.unit]) return <ChallengeSheet mission={mission} />;
   return <WorksheetPage missionId={missionId} record={record} mode={mode} />;
 }
 
-const PRINT_OPTIONS: { mode: PrintMode; label: string }[] = [
+export const STUDENT_PRINT_OPTIONS: { mode: PrintMode; label: string }[] = [
   { mode: 'lesson', label: 'Lesson' },
   { mode: 'practice', label: 'Practice questions' },
-  { mode: 'generated', label: 'New practice sheet (with answer key)' },
+  { mode: 'generated', label: 'New practice sheet' },
   { mode: 'blank', label: 'Worksheet' },
   { mode: 'answers', label: 'My answers' },
   { mode: 'challenge', label: 'Unit challenge' },
-  { mode: 'key', label: 'Answer key (grown-ups)' },
 ];
 
 /** "Print" button that opens a short list of printable pages for one lesson. */
@@ -371,7 +375,7 @@ export function PrintMenu({ missionId, record, className = '' }: { missionId: st
       {open && (
         <div className="fq-print-options" role="group" aria-label="Choose what to print">
           {/* Units 9+ have no Unit challenge (yet), so there is nothing to print for it. */}
-          {PRINT_OPTIONS.filter((option) => option.mode !== 'challenge' || CHALLENGES[getMission(missionId).unit]).map((option) => (
+          {STUDENT_PRINT_OPTIONS.filter((option) => option.mode !== 'challenge' || CHALLENGES[getMission(missionId).unit]).map((option) => (
             <button type="button" key={option.mode} onClick={() => { if (option.mode === 'generated') setSeed(freshSeed()); setMode(option.mode); setRequest((n) => n + 1); }} data-testid={`button-print-${option.mode}`}>
               {option.label}
             </button>
