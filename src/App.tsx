@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useLayoutEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, BarChart3, Check, ClipboardCheck, Code2, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BarChart3, Check, Lock, ClipboardCheck, Code2, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { MathText } from './MathText';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -61,6 +61,9 @@ import { createDailyPractice, dailyPracticeDay } from './daily-practice';
 import PartFinder from './PartFinder';
 import { PART_FINDER_LESSONS } from './part-finder';
 import { ProfileChip } from './Family';
+import { LockedSheet, UnlockView, useEntitlement } from './Paywall';
+import { levelQuizOpen, missionOpen, openProgress, paywallActive, unitOpen, type Access } from './lib/access';
+import { isActive } from './lib/subscription';
 import { isNativeApp } from './lib/native';
 import { getProfiles } from './lib/profiles';
 const queryClient = new QueryClient();
@@ -75,6 +78,7 @@ type View =
 type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string };
 type RedoView = { type: 'redo'; missionId: string };
+type UnlockPage = { type: 'unlock' };
 type ChallengeView = { type: 'challenge'; unit: number };
 type ParentPage = { type: 'parent' };
 type GameView = { type: 'race' | 'code' | 'part-finder'; missionId: string };
@@ -256,11 +260,11 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
   );
 }
 
-function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
+function MissionMap({ progress, access, onLocked, onStart, onOpenLab, onStartReview, onStartDaily, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; access: Access; onLocked: () => void; onStart: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
   const { user } = useAccount();
   const { fun } = useFun();
   const codeSummary = summarizeCodeProgress(fun.codeLevels, MISSIONS.map((mission) => mission.id));
-  const nextCodeMission = MISSIONS.find((mission) => isMissionUnlocked(progress, mission.id) && (fun.codeLevels?.[mission.id] ?? 0) < CODE_LEVEL_COUNT);
+  const nextCodeMission = MISSIONS.find((mission) => isMissionUnlocked(progress, mission.id) && missionOpen(mission.id, access) && (fun.codeLevels?.[mission.id] ?? 0) < CODE_LEVEL_COUNT);
   const totalStars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
   const nextMission = getNextMission(progress);
   // Lessons skipped by the level quiz don't count as "pending" for the recommendation message.
@@ -351,7 +355,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
             );
           })()}
 
-          <QuickReviewEntry progress={progress} onStart={onStartReview} />
+          <QuickReviewEntry progress={openProgress(progress, access)} onStart={onStartReview} />
 
           <div className="fq-unit-list">
             {units.map((unit) => {
@@ -364,7 +368,9 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
                       <h3 id={`unit-${unit.number}`}>{unit.title}</h3>
                       <p>{unit.subtitle}</p>
                     </div>
-                    <span className="fq-unit-count" aria-label={`${completedInUnit} of ${unit.missions.length} lessons mastered`}>{completedInUnit}/{unit.missions.length}</span>
+                    {unitOpen(unit.number, access)
+                      ? <span className="fq-unit-count" aria-label={`${completedInUnit} of ${unit.missions.length} lessons mastered`}>{completedInUnit}/{unit.missions.length}</span>
+                      : <button type="button" className="fq-unit-lock" onClick={onLocked} data-testid={`button-unit-locked-${unit.number}`}><Lock size={15} /> Locked</button>}
                   </div>
                   <LessonPath
                     unit={unit.number}
@@ -372,9 +378,10 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
                     selectedId={selectedId}
                     onSelect={(id) => setSelectedId((current) => (current === id ? null : id))}
                     allDone={completedInUnit === unit.missions.length}
-                    challenge={CHALLENGES[unit.number] ? { best: progress.challengeBest?.[String(unit.number)] ?? null, max: challengeMaxPoints(unit.number), onStart: () => onChallenge(unit.number) } : undefined}
+                    challenge={CHALLENGES[unit.number] && unitOpen(unit.number, access) ? { best: progress.challengeBest?.[String(unit.number)] ?? null, max: challengeMaxPoints(unit.number), onStart: () => onChallenge(unit.number) } : undefined}
                     nodes={unit.missions.map((mission): PathNode => {
-                      const unlocked = isMissionUnlocked(progress, mission.id);
+                      const paidLock = !missionOpen(mission.id, access);
+                      const unlocked = isMissionUnlocked(progress, mission.id) && !paidLock;
                       const completed = hasLearningGate(progress, mission.id);
                       const learning = getLearningRecord(progress, mission.id);
                       const summary = learningSummary(learning);
@@ -397,7 +404,11 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
                               {!completed && unlocked && <><br />Finish the builds and the worksheet to open the next lesson.</>}
                               {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Your old progress is saved. A few new steps are needed.</>}
                             </p>
-                            <button
+                            {paidLock ? (
+                              <button className="fq-button fq-button-locked" onClick={onLocked} data-testid={`button-locked-${mission.id}`}>
+                                <Lock size={16} /> Part of the full course
+                              </button>
+                            ) : <button
                               className={`fq-button ${completed ? 'ghost' : ''}`}
                               onClick={() => onStart(mission.id)}
                               disabled={!unlocked}
@@ -405,8 +416,8 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
                             >
                               {completed ? 'Practice again' : unlocked ? learning.practiceDone ? 'Resume worksheet & models' : 'Start lesson' : 'Finish earlier lessons first'}
                               {unlocked && <ArrowRight size={16} />}
-                            </button>
-                            {completed && (
+                            </button>}
+                            {completed && !paidLock && (
                               <button className="fq-button ghost" onClick={() => onOpenLab(mission.id)} data-testid={`button-redo-${mission.id}`}>
                                 <RotateCcw size={16} /> Redo a part
                               </button>
@@ -785,9 +796,14 @@ function ReviewCompleteView({ reviewedCount, progress, onMap, onReset }: { revie
 function Game() {
   const account = useAccount();
   const [progress, setProgress] = useState<Progress>(() => account.initialProgress ?? loadProgress());
-  const [view, setView] = useState<View | LabView | RetentionView | PaperView | RedoView | ChallengeView | ExtraView | ParentPage | GameView | PlacementView>({ type: 'map' });
+  const [view, setView] = useState<View | LabView | RetentionView | PaperView | RedoView | UnlockPage | ChallengeView | ExtraView | ParentPage | GameView | PlacementView>({ type: 'map' });
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
+  // Unit 1 is free; units 2–14 need the subscription in the iOS app (the website stays open for testing).
+  const entitlement = useEntitlement();
+  const access: Access = { paywall: paywallActive(isNativeApp(), window.location.search), subscribed: isActive(entitlement) };
+  const [lockedOpen, setLockedOpen] = useState(false);
+  const canOpen = (missionId: string) => { if (missionOpen(missionId, access)) return true; setLockedOpen(true); return false; };
   const [saveError, setSaveError] = useState(false);
   const [fun, setFun] = useState<FunState>(() => account.initialFun ?? loadFun());
   const [combo, setCombo] = useState(0);
@@ -810,7 +826,7 @@ function Game() {
   }, []);
 
   const startMission = (missionId: string) => {
-    if (!isMissionUnlocked(progress, missionId)) return;
+    if (!isMissionUnlocked(progress, missionId) || !canOpen(missionId)) return;
     const record = getLearningRecord(progress, missionId);
     if (record.practiceDone && !hasLearningGate(progress, missionId)) {
       setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? record.practiceStars ?? 1 });
@@ -827,7 +843,7 @@ function Game() {
 
   const startReview = () => {
     setPendingRetention(null);
-    const reviewQuestions = getDueSkillReviewQuestions(progress);
+    const reviewQuestions = getDueSkillReviewQuestions(openProgress(progress, access));
     if (reviewQuestions.length === 0) return;
     trackEvent('quick_review_started');
     setView({ type: 'review', questionIndex: 0, reviewQuestions });
@@ -835,7 +851,10 @@ function Game() {
 
   const startDailyPractice = () => {
     const saved = progress.dailyPractice;
-    const session = saved?.day === dailyPracticeDay() ? saved : createDailyPractice(progress);
+    const isOpen = (missionId: string) => missionOpen(missionId, access);
+    // A saved session with a now-locked lesson (subscription ended) is replaced by one from open lessons.
+    const usable = saved?.day === dailyPracticeDay() && saved.questions.every((q) => isOpen(q.missionId));
+    const session = usable ? saved! : createDailyPractice(progress, Date.now(), isOpen);
     if (session !== saved) persistProgress({ ...progress, dailyPractice: session });
     setView({ type: 'daily' });
   };
@@ -880,7 +899,7 @@ function Game() {
       : baseMission;
   /** Practice a finished lesson's builds or worksheet again (keeps an unfinished redo of the same part). */
   const startRedoPart = (missionId: string, part: RedoPart) => {
-    if (!hasLearningGate(progress, missionId)) return;
+    if (!hasLearningGate(progress, missionId) || !canOpen(missionId)) return;
     const record = getLearningRecord(progress, missionId);
     if (!(record.redo?.part === part && !record.redo.finishedAt)) persistProgress(updateLearning(progress, missionId, startRedo(record, part)));
     setView({ type: 'redo', missionId });
@@ -899,7 +918,7 @@ function Game() {
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'map' && <MissionMap progress={progress} access={access} onLocked={() => setLockedOpen(true)} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId) && canOpen(missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId) && canOpen(missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => { if (unitOpen(unit, access)) setView({ type: 'challenge', unit }); else setLockedOpen(true); }} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId) && canOpen(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId) && canOpen(missionId)) setView({ type, missionId }); }} onPlacement={() => { if (levelQuizOpen(access)) setView({ type: 'placement' }); else setLockedOpen(true); }} />}
       {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} />}
       {view.type === 'placement' && <PlacementQuiz unitTitles={UNIT_TITLES} onExit={returnToMap} onDone={(passed) => { persistProgress(applyPlacement(progress, passed)); returnToMap(); }} />}
       {view.type === 'race' && (
@@ -913,7 +932,9 @@ function Game() {
           onExit={returnToMap} onSolved={(level) => setFun((current) => recordCodeLevel(current, view.missionId, level))} />
       )}
       {view.type === 'part-finder' && <PartFinder best={fun.partFinderBest ?? null} onExit={returnToMap} onFinish={(score) => setFun((current) => recordPartFinder(current, score))} />}
-      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.user?.displayName ?? (() => { const list = getProfiles(window.localStorage); return list.profiles.length > 1 ? list.profiles.find((p) => p.id === list.active)?.name ?? null : null; })()} showFamily={!account.user} onBack={returnToMap} />}
+      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.user?.displayName ?? (() => { const list = getProfiles(window.localStorage); return list.profiles.length > 1 ? list.profiles.find((p) => p.id === list.active)?.name ?? null : null; })()} showFamily={!account.user} access={access} onUnlock={() => setView({ type: 'unlock' })} onBack={returnToMap} />}
+      {view.type === 'unlock' && <UnlockView onBack={returnToMap} onUnlocked={returnToMap} />}
+      {lockedOpen && <LockedSheet onClose={() => setLockedOpen(false)} onUnlock={() => { setLockedOpen(false); setView({ type: 'unlock' }); }} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);
         const baseIds = base.questions.map((q) => q.id);
@@ -1012,7 +1033,7 @@ function Game() {
         setView(view.nextView);
       }} />}
       {view.type === 'reward' && activeMission && (
-        <RewardView mission={activeMission} stars={view.stars} progress={progress} onMap={returnToMap} onNext={startMission} onReset={() => setResetOpen(true)} onGame={(type) => setView({ type, missionId: activeMission.id })} />
+        <RewardView mission={activeMission} stars={view.stars} progress={progress} onMap={returnToMap} onNext={startMission} onReset={() => setResetOpen(true)} onGame={(type) => { if (canOpen(activeMission.id)) setView({ type, missionId: activeMission.id }); }} />
       )}
       {view.type === 'review-complete' && (
         <ReviewCompleteView reviewedCount={view.reviewedCount} progress={progress} onMap={returnToMap} onReset={() => setResetOpen(true)} />

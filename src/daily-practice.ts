@@ -49,7 +49,8 @@ function targetFor(missionId: string, day: string, round = 0): Pick<DailyPractic
 const BEGINNER_FRACTIONS: [number, number][] = [2, 3, 4, 5, 6, 8].flatMap((d) => Array.from({ length: d - 1 }, (_, i): [number, number] => [i + 1, d]));
 
 /** Deterministic for the day so returning learners resume the same five topics and values. */
-export function createDailyPractice(progress: Progress, now = Date.now()): DailyPracticeSession {
+/** `isOpen` leaves out lessons the child can't open right now (units that need a subscription). */
+export function createDailyPractice(progress: Progress, now = Date.now(), isOpen: (missionId: string) => boolean = () => true): DailyPracticeSession {
   const day = dailyPracticeDay(now);
   const due = progress.reviewQueue
     .filter((item) => item.dueAt <= now)
@@ -98,7 +99,7 @@ export function createDailyPractice(progress: Progress, now = Date.now()): Daily
     ...learnerEvidence,
     ...completed.map((mission) => mission.id),
     ...MISSIONS.filter((mission) => isMissionUnlocked(progress, mission.id)).map((mission) => mission.id),
-  ])].filter((missionId) => MISSIONS.some((mission) => mission.id === missionId));
+  ])].filter((missionId) => MISSIONS.some((mission) => mission.id === missionId) && isOpen(missionId));
   const pool = orderedIds.length ? orderedIds : [MISSIONS[0].id];
   const picks = Array.from({ length: DAILY_PRACTICE_LENGTH }, (_, index) => pool[index % pool.length]);
   const seen: string[] = [];

@@ -72,27 +72,49 @@ npx cap open ios          # opens Xcode
 - **Simultaneous saves:** if two devices save at the same moment, iCloud keeps the later copy. Each save merges iCloud first, and every device re-saves on its next change, so nothing is lost for long.
 - **Same Apple ID only:** profiles sync between devices on the same Apple ID (one iCloud). Children on different Apple IDs, such as their own iPads under Family Sharing, don't share data. Use **Save a backup** / **Restore a backup** to move a child between them.
 
-## Pricing plan (decided, not built yet)
-- **Free:** **Unit 1** (Same whole, fair pieces · Read a fraction · One piece at a time), with all its parts: lessons, games, printables, challenge and daily practice.
-- **Locked:** **every element of units 2–14** stays locked without a subscription:
-  - lessons, practice, lab and worksheets
-  - redo, review and daily-practice items from those units
-  - Fraction Race, Code, Code Sprint and Part Finder for those lessons
-  - printables, answer keys and unit challenges
-  - the level quiz's placement into later units
-- **Price:** **$2.99 per month**, auto-renewable. One subscription group, one monthly product. No lifetime option.
-- **Free trial:** **7 days**, set up as an introductory offer in App Store Connect. Apple allows one trial per Apple ID per subscription group.
-- **Website:** for **testing only**. The app itself shouldn't be publicly available on the web. A small public **company page** could carry what Apple needs a public URL for:
-  - the privacy policy (required)
-  - a support / contact page (required)
-  - Terms of Use (EULA), required for subscriptions; Apple's standard EULA can be linked instead
-  - optionally, an App Store badge and screenshots
-- **To build on this branch:**
-  - StoreKit 2 directly (no third-party SDK, so the privacy label stays "Data Not Collected")
-  - an entitlement check on launch and when the app returns to the foreground
-  - one place in the code that decides whether a unit is open, used by the map, lessons, games, printables, daily practice, reviews and the level quiz
-  - a lock screen ("Ask a grown-up to unlock") that opens the purchase screen behind the grown-up maths gate
-  - Restore Purchases and a Manage subscription link
-  - trial and price wording that matches Apple's rules (price and renewal terms shown before purchase)
-  - a lapsed subscription keeps all saved progress; only units 2–14 pause again
-- **Website follow-up:** put the test web app behind a simple access check (or a non-public URL) and add the public company page with privacy, support and terms.
+## Subscription (built on this branch)
+**The plan:** unit 1 is free. Every part of units 2–14 needs the monthly subscription: **$2.99/month** with a **7-day free trial**. The website stays fully open for testing.
+
+| Piece | Where | What it does |
+|---|---|---|
+| Access rules | `src/lib/access.ts` | **The one place** that decides what's open: `missionOpen`, `unitOpen`, `levelQuizOpen`, `openProgress` (drops reviews and today's practice from locked units). Constants: `SUBSCRIPTION_PRODUCT_ID` (`com.fractionquest.app.monthly`), `TERMS_URL` (Apple's standard EULA), `PRIVACY_POLICY_URL` (**empty, must be set before submission**) |
+| Where it's enforced | `src/App.tsx`, `src/ParentView.tsx` | Map (locked units and lessons show 🔒), lessons, lab, redo, worksheets on paper, extra practice, all four games, unit challenges, daily practice, quick review, level quiz, and grown-up answer keys |
+| StoreKit 2 plugin | `ios/App/App/Subscriptions.swift` | `getProduct` (localized price, trial eligibility), `purchase` (handles Ask to Buy "pending"), `getEntitlement`, `restore` (`AppStore.sync`), `manage` (Apple's manage sheet), plus an `entitlementChanged` event from `Transaction.updates`. No third-party SDK |
+| Subscription state | `src/lib/subscription.ts` | Keeps the last App Store answer on the device (valid only until its period ends), asks again at launch and when the app returns to the foreground |
+| Screens | `src/Paywall.tsx` | Kids see "This part is locked, ask a grown-up." Grown-ups pass the maths gate, then see the offer (price from StoreKit, trial only if eligible), Subscribe / Start free trial, Restore purchases, the renewal terms and the Terms of Use link. **For grown-ups** has a Subscription section (status, Manage subscription, Restore) |
+| Website preview | `?paywall=1` | Shows the locks in a browser, with a "Pretend to subscribe (testing)" switch. Never in the iOS app |
+
+**Progress is never lost:** if a subscription ends, everything stays saved and unit 1 stays playable. Units 2–14 lock again until it's renewed.
+
+### App Store Connect setup (once)
+1. **Agreements:** sign the Paid Apps agreement and add banking and tax details. Purchases don't work without it, even in testing.
+2. **Create the subscription:** in **Subscriptions**, create a subscription group (for example "Fraction Quest"), then an auto-renewable subscription:
+   - Product ID: `com.fractionquest.app.monthly` (or your own, and update `SUBSCRIPTION_PRODUCT_ID` to match)
+   - Duration: 1 month
+   - Price: $2.99 (Apple sets equivalents for other countries)
+   - Display name and description, and a review screenshot of the subscription screen
+3. **Free trial:** on that subscription, add an **introductory offer**: Free, 1 week, for new subscribers.
+4. **Small Business Program:** enroll so Apple's commission is 15%.
+5. **Privacy policy:** add the URL in App Information and set `PRIVACY_POLICY_URL` so the link shows on the subscription screen. Apple requires both the Terms of Use and Privacy Policy links in the app for subscriptions.
+6. **App Review notes:** "Unit 1 is free. The subscription unlocks units 2–14. Purchase screens are behind a grown-up gate (multiply two numbers)."
+
+### Testing purchases on a Mac
+- **Quickest:** in Xcode, choose File › New › File › **StoreKit Configuration File** (synced to App Store Connect, or local). Add the monthly subscription with a 1-week free trial, then pick that file under **Product › Scheme › Edit Scheme › Run › Options › StoreKit Configuration**. Purchases, renewals, expiry, Ask to Buy and refunds can be simulated in Xcode's **Debug › StoreKit › Manage Transactions**.
+- **On a real device:** use a **Sandbox** tester (App Store Connect › Users and Access › Sandbox). A sandbox month renews every few minutes, so expiry is easy to test.
+- **Check that:**
+  - units 2–14 are locked on a fresh install
+  - the trial starts and everything unlocks
+  - Restore purchases works on a second device with the same Apple ID
+  - cancelling, then letting the period end, locks units 2–14 again with progress kept
+  - an Ask to Buy request shows "Waiting for approval," and unlocks once approved
+
+### Not verified here
+The Swift code (`Subscriptions.swift`, `ICloudSync.swift`) hasn't been compiled; it needs a Mac. The web side was tested with a stand-in StoreKit through Capacitor's real iOS bridge:
+- the offer text
+- the trial button
+- unlocking after purchase and after a reload
+- locks returning when the subscription lapses
+- the grown-ups status
+
+### Website follow-up
+Put the test website behind a simple access check (or a non-public address), and publish a small public company page with the privacy policy, support/contact page and terms.

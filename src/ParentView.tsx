@@ -6,11 +6,13 @@ import { buildParentReport, type LessonRow } from './parent-report';
 import { AnswerKey } from './Printables';
 import { LearningVoicePicker } from './LearningText';
 import { BackupPanel, ChildrenManager } from './Family';
+import { SubscriptionSection } from './Paywall';
+import { missionOpen, OPEN_ACCESS, type Access } from './lib/access';
 
 const STATUS: Record<LessonRow['status'], string> = { done: 'Done', started: 'In progress', skipped: 'Skipped by quiz', open: 'Open', locked: 'Locked' };
 
 /** A light check that a grown-up is here (not security; just keeps young kids on their own screens). */
-function GrownUpGate({ onPass, onBack }: { onPass: () => void; onBack: () => void }) {
+export function GrownUpGate({ onPass, onBack, reason = "This page shows your child's progress." }: { onPass: () => void; onBack: () => void; reason?: string }) {
   const ask = () => ({ a: 6 + Math.floor(Math.random() * 4), b: 6 + Math.floor(Math.random() * 4) });
   const [q, setQ] = useState(ask);
   const [value, setValue] = useState('');
@@ -26,7 +28,7 @@ function GrownUpGate({ onPass, onBack }: { onPass: () => void; onBack: () => voi
       <section className="fq-parent-card">
         <span className="fq-parent-lock" aria-hidden="true"><Lock size={26} /></span>
         <h1>For grown-ups</h1>
-        <p>This page shows your child's progress. Please answer to continue.</p>
+        <p>{reason} Please answer to continue.</p>
         <form onSubmit={submit} className="fq-parent-gate-form">
           <label htmlFor="parent-gate-answer">{q.a} × {q.b} =</label>
           <input id="parent-gate-answer" inputMode="numeric" autoComplete="off" value={value} onChange={(e) => { setValue(e.target.value.replace(/\D/g, '').slice(0, 3)); setWrong(false); }} data-testid="input-parent-gate" />
@@ -40,10 +42,12 @@ function GrownUpGate({ onPass, onBack }: { onPass: () => void; onBack: () => voi
 
 const percent = (value: number | null) => (value === null ? '—' : `${value}%`);
 
-export default function ParentView({ progress, fun, unitTitles, childName, onBack, showFamily = false }: {
+export default function ParentView({ progress, fun, unitTitles, childName, onBack, showFamily = false, access = OPEN_ACCESS, onUnlock }: {
   progress: Progress; fun: FunState; unitTitles: string[]; childName: string | null; onBack: () => void;
   /** Child profiles and backups (when not signed in to an account). Not printed. */
   showFamily?: boolean;
+  /** Subscription state: answer keys only for open units, plus the subscription section in the iOS app. */
+  access?: Access; onUnlock?: () => void;
 }) {
   const [unlocked, setUnlocked] = useState(false);
   const [answerKeyLessonId, setAnswerKeyLessonId] = useState(MISSIONS[0].id);
@@ -188,7 +192,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
                 onChange={(event) => setAnswerKeyLessonId(event.target.value)}
                 data-testid="select-parent-answer-key-lesson"
               >
-                {MISSIONS.map((mission, index) => (
+                {MISSIONS.map((mission, index) => missionOpen(mission.id, access) && (
                   <option key={mission.id} value={mission.id}>Lesson {index + 1}: {mission.title}</option>
                 ))}
               </select>
@@ -204,7 +208,10 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
           </footer>
         </article>
 
-        {showFamily && <div className="fq-parent-family"><ChildrenManager /><BackupPanel /></div>}
+        {(showFamily || access.paywall) && <div className="fq-parent-family">
+          {access.paywall && onUnlock && <SubscriptionSection onUnlock={onUnlock} />}
+          {showFamily && <><ChildrenManager /><BackupPanel /></>}
+        </div>}
       </main>
     </div>
   );

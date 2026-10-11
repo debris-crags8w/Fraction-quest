@@ -41,7 +41,13 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
-- **Pricing decided (on hold, not built):** iOS = unit 1 free (all its parts); every element of units 2–14 locked; $2.99/month auto-renewable with a 7-day free trial (introductory offer); StoreKit 2, no third-party SDK, no lifetime option. Website = testing only, plus a possible public company page (privacy, support, terms). Details in docs/ios-app.md on branch ios-local-icloud. Wait for the user's go-ahead.
+- **Subscription built (branch ios-local-icloud, not merged):** unit 1 free; every part of units 2–14 locked in the iOS app
+  without an active subscription ($2.99/month, 7-day trial). lib/access.ts is the single check (missionOpen, unitOpen,
+  levelQuizOpen, openProgress); enforced in App.tsx handlers + map, daily practice (createDailyPractice isOpen param), quick
+  review, level quiz, parent answer keys. StoreKit 2 plugin ios/App/App/Subscriptions.swift; lib/subscription.ts caches the
+  entitlement until its expiry and re-checks on launch/foreground. Paywall.tsx: kid LockedSheet → GrownUpGate → PaywallPanel;
+  SubscriptionSection in grown-ups. Website stays open; ?paywall=1 previews locks with a test "pretend to subscribe".
+  PRIVACY_POLICY_URL is empty (set before submission). Swift not compiled here. Setup steps in docs/ios-app.md.
 - **iOS app with on-device saving + iCloud (branch `ios-local-icloud`, NOT merged; see docs/ios-app.md).** User chose no
   accounts for now. Capacitor 8.5.2 iOS project (SPM) in artifacts/fraction-quest/ios; ICloudSync.swift plugin
   (NSUbiquitousKeyValueStore) + App.entitlements; src/lib/native.ts restores Preferences → localStorage and merges iCloud

@@ -74,9 +74,10 @@ public class ICloudSyncPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 }
 
-/// The app's web view controller, with the in-app iCloud plugin registered.
+/// The app's web view controller, with the in-app plugins (iCloud sync, subscriptions) registered.
 class AppViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(ICloudSyncPlugin())
+        bridge?.registerPluginInstance(SubscriptionsPlugin())
     }
 }

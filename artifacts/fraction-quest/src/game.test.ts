@@ -1,3 +1,5 @@
+import { FREE_UNITS, levelQuizOpen, missionOpen, openProgress, paywallActive, unitOpen } from './lib/access';
+import { isActive, toEntitlement } from './lib/subscription';
 import { addProfile, FIRST_PROFILE_ID, getProfiles, makeBackup, makeSyncRecord, mergeSyncRecord, profileData, PROFILES_KEY, readSyncRecord, removeProfile, renameProfile, restoreBackup, switchProfile, type Store } from './lib/profiles';
 import { mergeFun, mergeProgress } from './lib/merge';
 import { pickVoice, sayFraction, sentences, spokenText } from './lib/voice';
@@ -1366,6 +1368,46 @@ describe('device saving, child profiles and iCloud merge', () => {
     for (let i = 1; i < 6; i++) { const p = addProfile(store, `Kid ${i}`, '🐢', 100 + i, () => i / 10)!; store.setItem(`fraction-quest-profile-${p.id}`, JSON.stringify({ progress: data, fun: null })); }
     const size = new TextEncoder().encode(JSON.stringify(makeSyncRecord(store))).length;
     assert.ok(size < 1_000_000, `six children with every lesson done is ${size} bytes`);
+  });
+});
+
+describe('subscription: unit 1 free, units 2-14 need a subscription in the iOS app', () => {
+  const locked = { paywall: true, subscribed: false };
+  const subscriber = { paywall: true, subscribed: true };
+  const website = { paywall: false, subscribed: false };
+  it('only unit 1 is open without a subscription; the website stays open for testing', () => {
+    assert.deepEqual([...FREE_UNITS], [1]);
+    for (const mission of MISSIONS) {
+      assert.equal(missionOpen(mission.id, locked), mission.unit === 1, mission.id);
+      assert.equal(missionOpen(mission.id, subscriber), true);
+      assert.equal(missionOpen(mission.id, website), true);
+    }
+    assert.equal(unitOpen(2, locked), false); assert.equal(unitOpen(14, locked), false); assert.equal(unitOpen(1, locked), true);
+    assert.equal(missionOpen('not-a-lesson', subscriber), false);
+    assert.equal(levelQuizOpen(locked), false, 'the level quiz places children into later units');
+    assert.equal(levelQuizOpen(subscriber), true);
+    assert.equal(paywallActive(false, ''), false); assert.equal(paywallActive(false, '?paywall=1'), true); assert.equal(paywallActive(true, ''), true);
+  });
+  it('reviews and daily practice never bring in locked units', () => {
+    const late = MISSIONS.find((m) => m.unit === 5)!; const early = MISSIONS[0];
+    const progress: Progress = { ...EMPTY_PROGRESS, placement: { unit: 6, at: 1 },
+      reviewQueue: [early, late].map((m) => ({ missionId: m.id, missedQuestionId: m.questions[0].id, dueAt: 0, reviewCount: 0 })),
+      dailyPractice: createDailyPractice({ ...EMPTY_PROGRESS, placement: { unit: 6, at: 1 } }, Date.now()) };
+    const usable = openProgress(progress, locked);
+    assert.deepEqual(usable.reviewQueue.map((r) => r.missionId), [early.id]);
+    assert.equal(usable.dailyPractice, undefined, "today's session with a locked lesson is replaced");
+    assert.equal(openProgress(progress, subscriber), progress);
+    const session = createDailyPractice(progress, Date.now(), (id) => missionOpen(id, locked));
+    assert.ok(session.questions.every((q) => getMission(q.missionId).unit === 1));
+    assert.equal(session.questions.length, DAILY_PRACTICE_LENGTH);
+  });
+  it('a saved subscription copy only counts until the period it covers ends', () => {
+    const now = 1_800_000_000_000;
+    assert.equal(isActive(toEntitlement({ active: true, expiresAt: now + 1000 }, now), now), true);
+    assert.equal(isActive(toEntitlement({ active: true, expiresAt: now - 1 }, now), now), false, 'expired');
+    assert.equal(isActive(toEntitlement({ active: false }, now), now), false);
+    assert.equal(isActive(toEntitlement('junk', now), now), false);
+    assert.equal(toEntitlement({ active: true, expiresAt: 'soon', inTrial: 1 }, now).expiresAt, null);
   });
 });
 
