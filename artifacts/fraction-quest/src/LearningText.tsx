@@ -45,17 +45,46 @@ function spokenText(text: string) {
   return text.replace(/(\d+)\s*\/\s*(\d+)/g, '$1 over $2');
 }
 
+type VoiceCandidate = Pick<SpeechSynthesisVoice, 'name' | 'lang' | 'default'>;
+const FEMININE_VOICE_HINTS = /\b(female|woman|samantha|victoria|karen|moira|tessa|susan|zira|jenny|aria|joanna|ava|allison|serena|sara|hazel)\b/i;
+
+/** Prefer a feminine-sounding voice within the requested language; browsers expose no reliable gender field. */
+export function selectLearningVoice<T extends VoiceCandidate>(voices: readonly T[], preferredLanguage: string): T | null {
+  if (voices.length === 0) return null;
+  const normalize = (language: string) => language.toLowerCase().replace(/_/g, '-');
+  const wanted = normalize(preferredLanguage);
+  const primaryLanguage = wanted.split('-')[0];
+  const languageMatches = voices.filter((voice) => normalize(voice.lang).split('-')[0] === primaryLanguage);
+  const candidates = languageMatches.length > 0 ? languageMatches : voices;
+  const feminineMatches = candidates.filter((voice) => FEMININE_VOICE_HINTS.test(voice.name));
+  const preferred = feminineMatches.length > 0 ? feminineMatches : candidates;
+
+  return [...preferred].sort((a, b) => {
+    const exactLanguage = (voice: T) => Number(normalize(voice.lang) === wanted);
+    return exactLanguage(b) - exactLanguage(a)
+      || Number(b.default) - Number(a.default)
+      || a.name.localeCompare(b.name);
+  })[0] ?? null;
+}
+
 function ListenButton({ text }: { text: string }) {
   const [speaking, setSpeaking] = useState(false);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const supported = typeof window !== 'undefined'
     && 'speechSynthesis' in window
     && typeof SpeechSynthesisUtterance !== 'undefined';
 
-  useEffect(() => () => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-  }, []);
+  useEffect(() => {
+    if (!supported) return;
+    const synthesis = window.speechSynthesis;
+    const refreshVoices = () => setVoices(synthesis.getVoices());
+    refreshVoices();
+    synthesis.addEventListener('voiceschanged', refreshVoices);
+    return () => {
+      synthesis.removeEventListener('voiceschanged', refreshVoices);
+      synthesis.cancel();
+    };
+  }, [supported]);
 
   const toggleSpeech = () => {
     if (!supported) return;
@@ -66,8 +95,14 @@ function ListenButton({ text }: { text: string }) {
     }
 
     window.speechSynthesis.cancel();
+    const language = document.documentElement.lang || navigator.language || 'en-US';
+    const availableVoices = window.speechSynthesis.getVoices();
+    const voice = selectLearningVoice(availableVoices.length > 0 ? availableVoices : voices, language);
     const utterance = new SpeechSynthesisUtterance(spokenText(text));
-    utterance.rate = 0.9;
+    if (voice) utterance.voice = voice;
+    utterance.lang = voice?.lang || language;
+    utterance.rate = 0.88;
+    utterance.pitch = 1.02;
     utterance.onend = () => setSpeaking(false);
     utterance.onerror = () => setSpeaking(false);
     try {

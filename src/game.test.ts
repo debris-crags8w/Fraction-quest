@@ -10,19 +10,22 @@ import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
 import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './FractionRace';
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
 import { describe as describeRun, getCodeLevels, matchesTarget, runProgram, solution, toText, usesLoop } from './code-quest';
+import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
 import { loadFun, recordCorrect, recordMinute } from './lib/fun';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
 import type { PracticeQuestion } from './game';
 import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, paperPrompt, parseAnswer } from './learning-content';
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
-import { LearningText } from './LearningText';
+import { LearningText, selectLearningVoice } from './LearningText';
 import { BarSvg } from './models';
+import Printable, { AnswerKey, STUDENT_PRINT_OPTIONS } from './Printables';
 import { barTaskDone, canEnterWorksheetAnswer, WorksheetBarCopy, worksheetBarMatches } from './WorksheetBarCopy';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
 import QuickReviewEntry from './QuickReviewEntry';
 import {
   completeMission,
   completeSkillReview,
+  countsTowardLessonStars,
   deferSkillReview,
   EMPTY_PROGRESS,
   getMission,
@@ -40,9 +43,34 @@ import {
   resetProgress,
   saveProgress,
   SKILL_REVIEW_DELAY_MS,
+  starsFromFirstTryAnswers,
   type ModelSpec,
   type Progress,
 } from './game';
+
+describe('lesson star scoring', () => {
+  it('counts authored lesson questions but excludes extra-bank and optional-review questions', () => {
+    const eligibleIds = new Set(['lesson-q1', 'lesson-q2', 'lesson-q3']);
+    const answered = [
+      { id: 'lesson-q1', isOptionalReview: false },
+      { id: 'bank-q1', isOptionalReview: false },
+      { id: 'review-q1', isOptionalReview: true },
+      { id: 'lesson-q2', isOptionalReview: false },
+      { id: 'lesson-q3', isOptionalReview: false },
+    ];
+    const firstTryCount = answered.filter((question) => countsTowardLessonStars(question, eligibleIds)).length;
+
+    assert.equal(firstTryCount, 3);
+    assert.equal(starsFromFirstTryAnswers(firstTryCount, eligibleIds.size), 3);
+  });
+
+  it('keeps the 1/2/3-star cutoffs tied to the required lesson questions', () => {
+    assert.equal(starsFromFirstTryAnswers(2, 5), 1);
+    assert.equal(starsFromFirstTryAnswers(4, 5), 2);
+    assert.equal(starsFromFirstTryAnswers(5, 5), 3);
+    assert.equal(starsFromFirstTryAnswers(9, 5), 3);
+  });
+});
 const EXPECTED_MISSION_IDS = [
   'equal-parts',
   'fraction-names',
@@ -487,6 +515,30 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.match(markup, /class="fq-learning-listen"/);
   });
 
+  it('prefers a feminine-sounding voice in the requested language, then falls back to a local voice', () => {
+    const voices = [
+      { name: 'Alex', lang: 'en-US', default: true },
+      { name: 'Samantha', lang: 'en-US', default: false },
+      { name: 'Samantha', lang: 'fr-FR', default: true },
+    ];
+    assert.equal(selectLearningVoice(voices, 'en-US')?.name, 'Samantha');
+    assert.equal(selectLearningVoice(voices.slice(0, 1), 'en-US')?.name, 'Alex');
+    assert.equal(selectLearningVoice([], 'en-US'), null);
+  });
+
+  it('keeps answer keys out of student print choices and generated practice sheets', () => {
+    assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.label.toLowerCase().includes('answer key')), false);
+    assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.mode === 'answers'), true);
+    const markup = renderToStaticMarkup(createElement(Printable, {
+      missionId: 'equal-parts',
+      record: emptyLearningRecord(),
+      mode: 'generated',
+      seed: 1,
+    }));
+    assert.match(markup, /data-testid="print-generated"/);
+    assert.doesNotMatch(markup, /Answer key|Cut this part off/i);
+  });
+
   it('labels the whole and a part inside the bar model rather than showing a fraction hint beside it', () => {
     const markup = renderToStaticMarkup(createElement(BarSvg, { n: 2, d: 5 }));
     assert.match(markup, />WHOLE 1</);
@@ -867,6 +919,16 @@ describe('unit challenges', () => {
   });
 });
 
+describe('printed challenge answer keys', () => {
+  it('includes the guided steps and their answers', () => {
+    const markup = renderToStaticMarkup(createElement(AnswerKey, { mission: getMission('equal-parts') }));
+
+    assert.match(markup, /Sam folds the strip in half once/);
+    assert.match(markup, /He folds it in half again/);
+    assert.match(markup, /The strip opens into 4 equal pieces/);
+  });
+});
+
 describe('long problems', () => {
   it('splits stories without breaking decimals or fractions', () => {
     assert.deepEqual(
@@ -1197,6 +1259,8 @@ describe('grown-ups report', () => {
   it('starts empty and points to lesson 1', () => {
     const report = buildParentReport(EMPTY_PROGRESS, fun0, titles, new Date(2026, 9, 11));
     assert.equal(report.lessonsDone, 0); assert.equal(report.lessonsTotal, MISSIONS.length);
+    assert.equal(report.codeLevelsPassed, 0); assert.equal(report.codeLevelsTotal, MISSIONS.length * 3);
+    assert.equal(report.codeMissionsStarted, 0); assert.deepEqual(report.codeMissionRows, []);
     assert.equal(report.firstTryRate, null); assert.equal(report.onOwnRate, null);
     assert.equal(report.nextLesson, `Lesson 1: ${MISSIONS[0].title}`);
     assert.equal(report.week.length, 7); assert.equal(report.minutesWeek, 0);
@@ -1223,6 +1287,15 @@ describe('grown-ups report', () => {
     assert.deepEqual(report.toPractice[0].lessons, [MISSIONS[0].title]);
     assert.equal(report.nextLesson, `Lesson 2: ${MISSIONS[1].title}`);
   });
+  it('reports only saved coding levels and keeps them separate from lesson completion', () => {
+    const fun = { ...fun0, codeLevels: { [MISSIONS[0].id]: 2, [MISSIONS[1].id]: 3 } };
+    const report = buildParentReport(EMPTY_PROGRESS, fun, titles, new Date(2026, 9, 11));
+    assert.equal(report.lessonsDone, 0);
+    assert.equal(report.codeLevelsPassed, 5);
+    assert.equal(report.codeMissionsStarted, 2);
+    assert.equal(report.codeMissionsComplete, 1);
+    assert.deepEqual(report.codeMissionRows.map((row) => [row.id, row.levelsPassed]), [[MISSIONS[0].id, 2], [MISSIONS[1].id, 3]]);
+  });
   it('tracks minutes and correct answers per day without touching lessons', () => {
     let fun = recordMinute(recordMinute(loadFun()));
     fun = recordCorrect(fun);
@@ -1232,6 +1305,35 @@ describe('grown-ups report', () => {
 });
 
 describe('code challenge', () => {
+  it('shows correct bar, number-line, and grouped-set examples with real repeat blocks', () => {
+    assert.deepEqual(CODE_EXAMPLES.map((example) => example.target.kind), ['bar', 'line', 'set']);
+    for (const example of CODE_EXAMPLES) {
+      const result = runProgram(example.program, example.target);
+      assert.equal(matchesTarget(result, example.target), true, example.title);
+      const repeatIndex = example.program.findIndex((block) => block.op === 'repeat');
+      assert.ok(repeatIndex >= 0, `${example.title} demonstrates repeat`);
+      assert.ok(result.steps.length > 1, `${example.title} can be stepped through`);
+      assert.match(exampleStepInstruction(example, 0, result.steps), /First, split|First, build/);
+      const loopActions = result.steps.map((step, index) => ({ step, index })).filter(({ step }) => step.path[0] === repeatIndex);
+      const loopStep = loopActions[0]?.index ?? -1;
+      assert.ok(loopStep > 0, `${example.title} has a visible loop-body step`);
+      assert.match(exampleStepInstruction(example, loopStep, result.steps), /Loop pass 1 of/);
+      const repeat = example.program[repeatIndex];
+      if (repeat.op === 'repeat' && (repeat.n ?? 0) > 1) {
+        const secondPass = loopActions[repeat.body.length]?.index;
+        assert.notEqual(secondPass, undefined);
+        assert.match(exampleStepInstruction(example, secondPass!, result.steps), /Loop pass 2 of/);
+      }
+    }
+  });
+  it('summarizes passed coding levels independently and only from saved mission values', () => {
+    assert.deepEqual(summarizeCodeProgress(undefined, ['equal-parts', 'fraction-names']), {
+      levelsPassed: 0, levelsTotal: 6, missionsStarted: 0, missionsComplete: 0,
+    });
+    assert.deepEqual(summarizeCodeProgress({ 'equal-parts': 1, 'fraction-names': 3, ignored: 2 }, ['equal-parts', 'fraction-names']), {
+      levelsPassed: 4, levelsTotal: 6, missionsStarted: 2, missionsComplete: 1,
+    });
+  });
   it('every lesson has 3 solvable levels: blanks fail, the right numbers pass, and the bug really is a bug', () => {
     for (const mission of MISSIONS) {
       const levels = getCodeLevels(mission.id);

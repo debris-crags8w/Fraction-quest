@@ -8,6 +8,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import {
   completeMission,
   completeSkillReview,
+  countsTowardLessonStars,
   deferSkillReview,
   getDelayedReviewQuestions,
   getDueSkillReviewQuestions,
@@ -21,6 +22,7 @@ import {
   recordMissedSkill,
   resetProgress as resetSavedProgress,
   saveProgress,
+  starsFromFirstTryAnswers,
   type Answer,
   type Mission,
   type ModelSpec,
@@ -36,6 +38,7 @@ import { getLearningRecord, hasLearningGate, learningSummary, updateLearning, wo
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, setSound, type FunState } from './lib/fun';
+import { summarizeCodeProgress } from './code-progress';
 import { ModelTag } from './models';
 import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
 import PaperCheck from './PaperCheck';
@@ -244,6 +247,9 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
 
 function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
   const { user } = useAccount();
+  const { fun } = useFun();
+  const codeSummary = summarizeCodeProgress(fun.codeLevels, MISSIONS.map((mission) => mission.id));
+  const nextCodeMission = MISSIONS.find((mission) => isMissionUnlocked(progress, mission.id) && (fun.codeLevels?.[mission.id] ?? 0) < 3);
   const totalStars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
   const nextMission = getNextMission(progress);
   // Lessons skipped by the level quiz don't count as "pending" for the recommendation message.
@@ -286,6 +292,12 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
               </p>
             </div>
             <MapIcon size={27} color="hsl(var(--secondary))" aria-hidden="true" />
+          </div>
+          <div className="fq-map-code-summary" data-testid="status-map-code-progress">
+            <Code2 size={19} aria-hidden="true" />
+            <span><strong>{codeSummary.levelsPassed} of {codeSummary.levelsTotal} coding levels passed</strong><small>{codeSummary.missionsStarted} missions started · {codeSummary.missionsComplete} missions with all 3 levels passed</small></span>
+            <span className="fq-map-code-separate">Separate from lesson progress</span>
+            {nextCodeMission && <button className="fq-button ghost" onClick={() => onGame('code', nextCodeMission.id)} data-testid="button-continue-coding">{codeSummary.missionsStarted ? 'Continue coding' : 'Try coding'} <ArrowRight size={16} /></button>}
           </div>
 
           {nextMission ? (
@@ -352,6 +364,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
                             <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
                               Worksheet {worksheetCount(learning, mission.id)}/12 · Builds on my own {summary.independentChecks}/2
                               <br />Remembered: {summary.retention}
+                              <br />Code levels passed: {Math.min(3, Math.floor(fun.codeLevels?.[mission.id] ?? 0))}/3
                               {!completed && unlocked && <><br />Finish the builds and the worksheet to open the next lesson.</>}
                               {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Your old progress is saved. A few new steps are needed.</>}
                             </p>
@@ -422,6 +435,7 @@ function PlayView({
   onWrong,
   isQuickReview = false,
   isExtraPractice = false,
+  starEligibleQuestionIds,
   onFinishReview,
 }: {
   mission: Mission;
@@ -439,6 +453,7 @@ function PlayView({
   onWrong: () => void;
   isQuickReview?: boolean;
   isExtraPractice?: boolean;
+  starEligibleQuestionIds?: string[];
   onFinishReview?: () => void;
 }) {
   const [selection, setSelection] = useState<Answer | null>(null);
@@ -452,6 +467,7 @@ function PlayView({
   const isExample = questionIndex < 0;
   const question: PracticeQuestion | null = isExample ? null : mission.questions[questionIndex];
   const isLastQuestion = question ? questionIndex === mission.questions.length - 1 : false;
+  const lessonStarIds = new Set(starEligibleQuestionIds ?? mission.questions.filter((item) => !item.isOptionalReview).map((item) => item.id));
 
   const checkAnswer = () => {
     if (selection === null || !question) return;
@@ -490,15 +506,14 @@ function PlayView({
       onNext(firstTryAnswers);
       return;
     }
-    const correctOnFirstTry = !question.isOptionalReview && feedback === 'correct' && attempts === 0 ? 1 : 0;
+    const correctOnFirstTry = countsTowardLessonStars(question, lessonStarIds) && feedback === 'correct' && attempts === 0 ? 1 : 0;
     const updatedFirstTryAnswers = firstTryAnswers + correctOnFirstTry;
     if (isLastQuestion) {
       if (isQuickReview) {
         onFinishReview?.();
         return;
       }
-      const totalQuestions = mission.questions.filter((item) => !item.isOptionalReview).length;
-      const stars = updatedFirstTryAnswers === totalQuestions ? 3 : updatedFirstTryAnswers >= totalQuestions - 1 ? 2 : 1;
+      const stars = starsFromFirstTryAnswers(updatedFirstTryAnswers, lessonStarIds.size);
       onFinish(stars, updatedFirstTryAnswers);
       return;
     }
@@ -893,6 +908,7 @@ function Game() {
         <PlayView
           key={`${activeMission.id}-${view.questionIndex}`}
           mission={activeMission}
+          starEligibleQuestionIds={view.type === 'play' && baseMission ? baseMission.questions.map((question) => question.id) : undefined}
           questionIndex={view.questionIndex}
           firstTryAnswers={view.type === 'play' ? view.firstTryAnswers : 0}
           isQuickReview={view.type === 'review'}

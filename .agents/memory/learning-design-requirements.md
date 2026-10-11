@@ -26,3 +26,15 @@ Fraction bar models should clearly label the whole and identify a representative
 **Why:** The user explicitly requested whole/part labels, removal of the right-side fraction hint, highlighted vocabulary tooltips, and audio explanations.
 
 **How to apply:** Carry these conventions across lesson diagrams, interactive builders, tap models, worksheet previews, and printables; keep the parts manipulable wherever the learner is building a model.
+
+Solution keys belong in the grown-up area, not student print menus or practice sheets. Keep “My answers” available to students because it contains their own work. Prefer a gentle feminine-sounding speech voice when the device offers one, while keeping explanations matched to the requested language.
+
+**Why:** The user chose adult-only answer-key access and asked for a gentler, smoother female voice.
+
+**How to apply:** Keep answer keys out of student-facing print options and generated sheets; preserve student answer records. Browser voice catalogs differ, so voice selection is best-effort and should fall back to a language-matched system voice.
+
+Coding missions should teach with multiple fraction models and a step-by-step explanation of how loops change the model. Track coding levels separately from fraction lesson mastery, and introduce Python as an optional next layer after block coding.
+
+**Why:** The user asked for more coding examples, a loop walkthrough, separate coding progress that reflects passed challenges, and a gentler Python introduction for young learners.
+
+**How to apply:** Use correct, model-linked examples; name each loop pass while learners step through it; report saved coding levels independently from worksheet, lesson, and star progress.

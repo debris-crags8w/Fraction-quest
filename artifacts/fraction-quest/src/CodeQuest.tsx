@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowUp, Bot, Check, Code2, Play, Plus, RotateCcw, Star, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bot, Check, Code2, Play, Plus, RotateCcw, Star, Trash2, X } from 'lucide-react';
 import type { Mission } from './game';
 import { MathText } from './MathText';
 import { Confetti, Mascot, useFun } from './fun-ui';
 import { playCue } from './lib/fun';
 import { countBlocks, describe, getCodeLevels, matchesTarget, runProgram, toText, usesLoop, type Block, type CodeLevel, type RobotState, type RunResult } from './code-quest';
+import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
 
 /* Code challenge: program a robot to build the lesson's fraction with blocks (or read it as Python). */
 
@@ -109,14 +110,19 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
   const [at, setAt] = useState(() => Math.min(solved, 2));
   const level = levels[at];
   const [program, setProgram] = useState<Block[]>(level.start);
-  const [view, setView] = useState<'blocks' | 'text'>('blocks');
   const [result, setResult] = useState<RunResult | null>(null);
   const [frame, setFrame] = useState(-1);
   const [outcome, setOutcome] = useState<'win' | 'miss' | null>(null);
   const [burst, setBurst] = useState(0);
   const timer = useRef<number | null>(null);
   const [running, setRunning] = useState(false);
+  const [exampleAt, setExampleAt] = useState(0);
+  const [exampleStep, setExampleStep] = useState(0);
   const kind = level.target.kind;
+  const codeSummary = summarizeCodeProgress(fun.codeLevels, [mission.id]);
+  const example = CODE_EXAMPLES[exampleAt];
+  const exampleRun = useMemo(() => runProgram(example.program, example.target), [example]);
+  const exampleShown = exampleStep > 0 ? exampleRun.steps[exampleStep - 1] : null;
 
   useEffect(() => () => { if (timer.current) window.clearInterval(timer.current); }, []);
   const stop = () => { if (timer.current) { window.clearInterval(timer.current); timer.current = null; } setRunning(false); };
@@ -168,6 +174,14 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
           <p className="fq-code-level-title">Level {level.level} · {level.title}</p>
           <h2><MathText text={level.goal} /></h2>
           <p className="fq-code-tip"><MathText text={level.tip} /></p>
+          <div className="fq-code-mission-progress" data-testid="status-code-mission-progress">
+            <span>Code levels passed</span>
+            <strong>{codeSummary.levelsPassed} of 3</strong>
+            <div aria-label={`${codeSummary.levelsPassed} of 3 coding levels passed`} className="fq-code-progress-dots">
+              {[1, 2, 3].map((n) => <i className={solved >= n ? 'passed' : ''} key={n} />)}
+            </div>
+            <small>Separate from fraction lesson progress</small>
+          </div>
         </section>
 
         <section className="fq-code-stage" aria-live="polite">
@@ -178,15 +192,10 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
         <section className="fq-code-editor">
           <div className="fq-code-editor-head">
             <strong>Program</strong>
-            <span className="fq-code-view" role="group" aria-label="How to show the program">
-              <button type="button" className={view === 'blocks' ? 'on' : ''} onClick={() => setView('blocks')}>Blocks</button>
-              <button type="button" className={view === 'text' ? 'on' : ''} onClick={() => setView('text')} data-testid="button-code-text">Python</button>
-            </span>
+            <span className="fq-code-blocks-label">Blocks</span>
           </div>
-          {view === 'blocks' ? (
-            program.length ? <Program blocks={program} kind={kind} editable reorder={level.mode !== 'fill'} active={shown?.path ?? null} onChange={edit} />
-              : <p className="fq-code-empty">Tap the blocks below to build your program.</p>
-          ) : <pre className="fq-code-text" data-testid="code-text">{toText(program, kind) || '# empty program'}</pre>}
+          {program.length ? <Program blocks={program} kind={kind} editable reorder={level.mode !== 'fill'} active={shown?.path ?? null} onChange={edit} />
+            : <p className="fq-code-empty">Tap the blocks below to build your program.</p>}
           {level.palette.length > 0 && (
             <div className="fq-code-palette" aria-label="Blocks you can add">
               {level.palette.map((op) => (
@@ -201,6 +210,41 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
             <button type="button" className="fq-button" onClick={run} disabled={!program.length || running} data-testid="button-code-run"><Play size={17} /> Run</button>
             <button type="button" className="fq-button ghost" onClick={() => { stop(); setResult(null); setFrame(-1); setOutcome(null); }}><RotateCcw size={16} /> Reset robot</button>
           </div>
+          <details className="fq-code-python-peek" data-testid="details-code-python">
+            <summary>Curious about Python? Peek at the text version</summary>
+            <p>Blocks are the main way to code here. Python is another way to write the same instructions.</p>
+            <pre className="fq-code-text" data-testid="code-text">{toText(program, kind) || '# empty program'}</pre>
+          </details>
+        </section>
+
+        <section className="fq-code-walkthrough" aria-labelledby="code-walk-title" data-testid="code-walkthrough">
+          <div className="fq-code-walk-head">
+            <div><span className="fq-code-level-title">Watch a loop work</span><h2 id="code-walk-title">One instruction, one model change</h2></div>
+            <span className="fq-code-walk-counter" data-testid="text-walkthrough-step">{exampleStep} / {exampleRun.steps.length}</span>
+          </div>
+          <p className="fq-code-tip">Choose an example, then step through what the robot does. The highlighted block matches the changing picture.</p>
+          <div className="fq-code-example-tabs" role="group" aria-label="Choose a worked example">
+            {CODE_EXAMPLES.map((item, index) => <button type="button" className={index === exampleAt ? 'on' : ''} onClick={() => { setExampleAt(index); setExampleStep(0); }} key={item.title} data-testid={`button-example-${index}`}>{item.title}</button>)}
+          </div>
+          <div className="fq-code-walk-grid">
+            <div className="fq-code-walk-model">
+              <span className="fq-code-walk-label">Robot's model</span>
+              <World state={exampleShown?.state ?? null} target={example.target} />
+              <p className="fq-code-walk-caption" aria-live="polite">{exampleShown
+                ? `${exampleStepInstruction(example, exampleStep - 1, exampleRun.steps)} ${describe({ ...exampleRun, final: exampleShown.state })}`
+                : 'Start with one whole and the robot at the beginning.'}</p>
+            </div>
+            <div className="fq-code-walk-program">
+              <span className="fq-code-walk-label">Blocks being run</span>
+              <Program blocks={example.program} kind={example.target.kind} editable={false} reorder={false} active={exampleShown?.path ?? null} onChange={() => {}} />
+              <p className="fq-code-example-note">{example.note}</p>
+            </div>
+          </div>
+          <div className="fq-code-walk-controls">
+            <button type="button" className="fq-button ghost" onClick={() => setExampleStep(0)} disabled={exampleStep === 0} data-testid="button-walk-reset"><RotateCcw size={16} /> Start over</button>
+            <button type="button" className="fq-button ghost" onClick={() => setExampleStep((step) => Math.max(0, step - 1))} disabled={exampleStep === 0} data-testid="button-walk-back"><ArrowLeft size={16} /> Back one</button>
+            <button type="button" className="fq-button secondary" onClick={() => setExampleStep((step) => Math.min(exampleRun.steps.length, step + 1))} disabled={exampleStep >= exampleRun.steps.length} data-testid="button-walk-next">Next instruction <ArrowRight size={16} /></button>
+          </div>
         </section>
 
         {outcome && result && (
@@ -212,7 +256,7 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
               {loopStar && <p className="fq-code-star"><Star size={15} fill="currentColor" /> Bonus star: you used a loop!</p>}
               {outcome === 'win' && level.mode === 'build' && !usesLoop(program) && <p className="fq-code-note">Try again with a repeat loop: it's how coders avoid writing the same block again and again.</p>}
               {outcome === 'win' && at < 2 && <button type="button" className="fq-button" onClick={() => goTo(at + 1)} data-testid="button-code-next">Next level</button>}
-              {outcome === 'win' && at === 2 && <p className="fq-code-note">All 3 levels done. You're a fraction coder!</p>}
+              {outcome === 'win' && at === 2 && <p className="fq-code-note">All 3 coding levels passed for this mission. Nice debugging and building!</p>}
             </div>
           </section>
         )}
