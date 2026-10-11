@@ -923,8 +923,21 @@ export function passedLesson(progress: Progress, missionId: string): boolean {
   return hasLearningGate(progress, missionId)
     || (progress.completedMissionIds.includes(missionId) && typeof progress.learning?.[missionId]?.completedAt === 'number');
 }
-/** Lessons added to units 1–8 after units 9–14 existed. */
-const LATE_ADDED_LESSONS = new Set(['add-tenths-hundredths']);
+/**
+ * Lessons added after learners could already be past them. For a learner who has started units 9–14 they never block
+ * later units (they stay open to do any time, and "Continue" still suggests them). New learners take them in order.
+ * Add every lesson inserted into an existing unit here.
+ */
+export const LATE_ADDED_LESSONS: ReadonlySet<string> = new Set([
+  'add-tenths-hundredths',
+  // Standards-coverage lessons (grades 3–5), added to units 9–14.
+  'whole-numbers-as-fractions',
+  'add-unlike-fractions', 'mixed-unlike-operations', 'estimate-fraction-operations',
+  'unit-fraction-multiples', 'multiplication-scaling', 'multiply-mixed-numbers', 'unit-fraction-divided-whole',
+  'ruler-measurement', 'build-line-plots', 'read-line-plots', 'line-plot-leveling', 'measurement-word-problems', 'fractional-unit-conversions',
+  'fractional-side-area',
+  'compare-decimals',
+]);
 
 export function completeMission(progress: Progress, missionId: string, stars: number): Progress {
   if (!isMissionUnlocked(progress, missionId) || !hasLearningGate(progress, missionId)) return progress;

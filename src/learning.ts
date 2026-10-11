@@ -32,6 +32,41 @@ export function getLearningRecord(progress: Progress, id: string): LearningRecor
 export function updateLearning(progress: Progress, id: string, record: LearningRecord): Progress {
   return { ...progress, learning: { ...progress.learning, [id]: record } };
 }
+export type TargetedPracticePlan = { signal: string; problems: WorksheetProblem[] };
+const stableHash = (value: string) => {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
+  return hash >>> 0;
+};
+/** Repeated errors add three fresh, lesson-aligned problems to the existing worksheet record. */
+export function targetedPracticePlans(id: string, record: LearningRecord): TargetedPracticePlan[] {
+  return Object.entries(record.misconceptions)
+    .filter(([, count]) => count >= 2)
+    .sort(([a, aCount], [b, bCount]) => bCount - aCount || a.localeCompare(b))
+    .map(([signal]) => {
+      const hash = stableHash(`${id}:${signal}`);
+      const sheet = getWorksheet(id, 1 + (hash % 997));
+      const terms = signal.toLowerCase().split(/\W+/).filter((word) => word.length > 3);
+      const related = sheet
+        .map((problem) => ({
+          problem,
+          score: terms.reduce((total, term) => total + Number(`${problem.prompt} ${problem.hint}`.toLowerCase().includes(term)), 0),
+        }))
+        .filter((row) => row.score > 0)
+        .sort((a, b) => b.score - a.score);
+      const picked = (related.length >= 3 ? related.map((row) => row.problem) : sheet).slice(0, 3);
+      const key = hash.toString(36);
+      return {
+        signal,
+        problems: picked.map((problem, index) => ({ ...problem, id: `rt-${key}-${index + 1}` })),
+      };
+    });
+}
+export function targetedPracticeCount(id: string, record: LearningRecord) {
+  const plans = targetedPracticePlans(id, record);
+  const problems = plans.flatMap((plan) => plan.problems);
+  return { done: problems.filter((problem) => rowCorrect(problem, record.worksheet[problem.id])).length, total: problems.length };
+}
 export function worksheetCount(record: LearningRecord, id: string): number {
   return getWorksheet(id).filter(problem => {
     const entry = record.worksheet[problem.id];
@@ -40,17 +75,19 @@ export function worksheetCount(record: LearningRecord, id: string): number {
 }
 export function hasLearningGate(progress: Progress, id: string): boolean {
   const record = getLearningRecord(progress, id);
-  return !!record.practiceDone && getBuildChecks(id).every(check => record.checks[check.id]?.passed) && worksheetCount(record, id) === 12;
+  const reteach = targetedPracticeCount(id, record);
+  return !!record.practiceDone && getBuildChecks(id).every(check => record.checks[check.id]?.passed)
+    && worksheetCount(record, id) === 12 && reteach.done === reteach.total;
 }
 export function editWorksheet(record: LearningRecord, problemId: string, draft: string): LearningRecord {
   const old = record.worksheet[problemId] ?? { draft: '', attempts: 0, supported: false };
   return { ...record, worksheet: { ...record.worksheet, [problemId]: { ...old, draft, checkedValue: undefined } }, confirmedAt: undefined };
 }
-export function checkWorksheet(record: LearningRecord, problem: WorksheetProblem): LearningRecord {
+export function checkWorksheet(record: LearningRecord, problem: WorksheetProblem, trackMisconception = true): LearningRecord {
   const old = record.worksheet[problem.id] ?? { draft: '', attempts: 0, supported: false };
   const correct = answerMatches(problem, old.draft);
   return { ...record,
-    misconceptions: correct ? record.misconceptions : { ...record.misconceptions, [problem.hint]: (record.misconceptions[problem.hint] ?? 0) + 1 },
+    misconceptions: correct || !trackMisconception ? record.misconceptions : { ...record.misconceptions, [problem.hint]: (record.misconceptions[problem.hint] ?? 0) + 1 },
     worksheet: { ...record.worksheet, [problem.id]: { ...old, attempts: old.attempts + 1, supported: old.supported || !correct,
       checkedValue: correct ? old.draft : undefined } } };
 }

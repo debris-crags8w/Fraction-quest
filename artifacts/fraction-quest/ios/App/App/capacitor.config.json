@@ -1,0 +1,14 @@
+{
+	"appId": "com.fractionquest.app",
+	"appName": "Fraction Quest",
+	"webDir": "dist/public",
+	"ios": {
+		"contentInset": "always",
+		"allowsLinkPreview": false
+	},
+	"packageClassList": [
+		"FilesystemPlugin",
+		"PreferencesPlugin",
+		"SharePlugin"
+	]
+}

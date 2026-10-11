@@ -1,4 +1,5 @@
 import type { AreaFigure, AreaTask } from './area-shapes';
+import { standardsForMission } from './standard-catalog';
 export type Rational = { n: number; d: number };
 /** `sizes` (bars only) draws pieces of different widths, for "Is this cut into equal parts?" pictures. */
 export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number; wholes: number; total?: number; sizes?: number[] };
@@ -6,9 +7,15 @@ export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number
 export type BarTask = { kind: 'copy' | 'count' | 'shade'; n: number };
 export type WorksheetProblem = {
   id: string; prompt: string; answer: string; hint: string; model?: LearningModel; modelRequired?: boolean; task?: BarTask;
+  standards?: string[];
   form?: 'decimal' | 'mixed' | 'ordered' | 'symbol' | 'word'; denominator?: number;
   /** A square cut into pieces that may have different shapes; with `areaTask` the child colors it before answering. */
   area?: AreaFigure; areaTask?: AreaTask;
+  /** Interactive measurement model: move to the unlabelled endpoint, then name the length. */
+  rulerTask?: { denominator: number; wholes: number; end: number };
+  /** Interactive line plot: place one X for each observation before answering. Values are tick indices. */
+  linePlotTask?: { denominator: number; wholes: number; values: number[] };
+  scaleTask?: { whole: number; numerator: number; denominator: number };
 };
 export type BuildCheck = {
   id: string; prompt: string; target: LearningModel; reasons: string[];
@@ -156,12 +163,17 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'decompose-fractions': [4, 6, 'bar', 'Make 4/6 with four 1/6 pieces.', 'Four 1/6 pieces make 4/6.'],
   'improper-fractions': [7, 4, 'bar', 'Make 7/4.', '4/4 fills 1 bar. 3/4 more is left over.'],
   'mixed-improper': [8, 5, 'bar', 'Make 1 and 3/5 using fifths.', '1 whole is 5/5. Add 3 more to get 8/5.'],
+  'whole-numbers-as-fractions': [6, 3, 'bar', 'Build 6/3 using thirds.', 'Three thirds make 1 whole. Six thirds make 2 wholes.'],
   'add-like-denominators': [5, 8, 'bar', 'Make 2/8 + 3/8.', 'Add the pieces: 2 + 3 = 5. So 5/8.'],
   'subtract-like-denominators': [3, 7, 'bar', 'Make 5/7 − 2/7.', 'Take away 2 pieces: 5 − 2 = 3. So 3/7.'],
   'add-related-fractions': [5, 6, 'bar', 'Make 1/2 + 1/3 using sixths.', '1/2 = 3/6 and 1/3 = 2/6. 3 + 2 = 5, so 5/6.'],
+  'add-unlike-fractions': [7, 12, 'bar', 'Build 1/3 + 1/4 using twelfths.', '1/3 is 4/12 and 1/4 is 3/12. Together they are 7/12.'],
+  'mixed-unlike-operations': [25, 12, 'bar', 'Build 1 1/3 + 3/4 using twelfths.', '1 1/3 is 16/12 and 3/4 is 9/12. Together they are 25/12, or 2 1/12.'],
+  'estimate-fraction-operations': [9, 10, 'line', 'Build 2/5 + 1/2. Is the sum less than 1?', '2/5 is a little less than 1/2. Two halves make 1, so the sum is a little less than 1.'],
   'tenths-decimals': [4, 10, 'bar', 'Make 0.4 as a fraction.', '0.4 means 4 tenths.'],
   'hundredths-decimals': [25, 100, 'bar', 'Make 0.25 as a fraction.', '0.25 means 25 hundredths.'],
   'add-tenths-hundredths': [34, 100, 'bar', 'Make 3/10 + 4/100 using hundredths.', '3/10 = 30/100. 30 + 4 = 34, so 34/100.'],
+  'compare-decimals': [3, 10, 'bar', 'Build 0.3 with tenths. Then compare it to 0.25.', '0.30 is 30 hundredths. 30 hundredths is more than 25 hundredths.'],
   'simplify-fractions': [3, 4, 'bar', 'Make 6/8 in simplest form.', 'Divide the top and bottom by 2. 6/8 = 3/4.'],
   'equivalent-missing-both': [4, 10, 'bar', 'Show 2/5 using tenths.', 'Times the top and bottom by 2. 2/5 = 4/10.'],
   'compare-unlike-fractions': [2, 3, 'bar', 'Which is bigger, 2/3 or 3/5? Make it.', 'Use fifteenths: 2/3 = 10/15 and 3/5 = 9/15.'],
@@ -171,11 +183,22 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'subtract-mixed-numbers': [2, 3, 'bar', 'Make 2 1/3 − 1 2/3.', '2 1/3 = 7/3 and 1 2/3 = 5/3. 7 − 5 = 2, so 2/3.'],
   'fraction-of-quantity': [3, 5, 'set', 'Put 20 dots in 5 equal groups. Pick 3 groups.', '20 in 5 groups is 4 each. 3 groups is 12.', 20],
   'multiply-whole-by-fraction': [3, 2, 'bar', 'Make 3 × 1/2.', '3 groups of 1/2 is 3/2, or 1 1/2.'],
+  'unit-fraction-multiples': [5, 4, 'bar', 'Build 5 groups of 1/4.', 'Five copies of 1/4 are 5/4, or 1 1/4.'],
   'multiply-fractions': [3, 8, 'bar', 'Make 1/2 of 3/4.', 'Cut each fourth in half. Half of 3/4 is 3/8.'],
+  'fractional-side-area': [1, 2, 'bar', 'Build the area of a rectangle that is 2/3 unit by 3/4 unit.', 'Two columns by three rows cover 6 of 12 equal squares. 6/12 is 1/2 square unit.'],
+  'multiplication-scaling': [3, 4, 'set', 'Build 3/4 of 12. Is the answer less or more than 12?', 'Three of four equal groups is 9. Multiplying 12 by 3/4 makes a smaller amount. ', 12],
+  'multiply-mixed-numbers': [12, 6, 'bar', 'Build 1 1/2 × 1 1/3 square units.', 'The rectangle has 3 half-unit rows and 4 third-unit columns: 12 sixths, or 2 square units.'],
   'fraction-of-collection': [3, 4, 'set', 'Put 16 cards in 4 equal groups. Pick 3 groups.', '16 in 4 groups is 4 each. 3 groups is 12.', 16],
   'divide-whole-by-unit-fraction': [4, 4, 'bar', 'How many 1/4 cups fill 1 cup? Make it.', '4 fourths make 1 whole. So 4 cups of 1/4.'],
+  'unit-fraction-divided-whole': [1, 12, 'bar', 'Share 1/3 of a pan equally among 4 children. Build one share.', 'Split each third into 4 equal parts. One share is 1/12 of the whole pan.'],
   'fraction-of-length': [3, 8, 'line', 'Mark 3/8 of a meter on the line.', 'Each space is 1/8 meter. Count 3 spaces.'],
+  'ruler-measurement': [5, 4, 'line', 'Mark a length of 1 1/4 inches on a ruler.', 'Each small space is 1/4 inch. Five quarter-inch spaces make 1 1/4 inches.'],
+  'build-line-plots': [3, 4, 'line', 'Build a line plot for measurements in fourths.', 'Put one X above the tick for each measurement. The marks show how many measurements share a length.'],
+  'read-line-plots': [5, 8, 'line', 'Use eighth-inch measurements to find the difference between the longest and shortest.', 'Read the two endpoints on the plot and subtract their lengths.'],
+  'line-plot-leveling': [3, 4, 'line', 'Show how to share 3/4 liter equally among 3 cups.', 'Each cup gets 1/4 liter. Equal groups keep the total amount the same.'],
+  'measurement-word-problems': [3, 4, 'bar', 'Model 1/2 liter plus 1/4 liter.', '1/2 liter is 2/4 liter. Add 1/4 liter to get 3/4 liter.'],
   'fractional-measure-addition': [3, 4, 'bar', 'Make 1/2 meter + 1/4 meter.', '1/2 = 2/4. 2/4 + 1/4 = 3/4.'],
+  'fractional-unit-conversions': [3, 4, 'line', 'Show why 3/4 hour is 45 minutes.', 'One hour is 60 minutes. Three of four equal parts is 45 minutes.'],
   'fractional-sharing': [3, 4, 'bar', '3 loaves are shared by 4 friends. Make 1 share.', 'Each friend gets 3/4 of a loaf.'],
   'fraction-as-division': [5, 4, 'bar', '5 pizzas are shared by 4 friends. Make 1 share.', '5 ÷ 4 = 5/4. That is 1 1/4 each.'],
   'fraction-probability': [2, 8, 'bar', 'A spinner has 8 equal parts. 2 are blue. Make the chance of blue.', '2 blue parts out of 8 is 2/8.'],
@@ -189,6 +212,22 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
 };
 
 const EXTENSION_TRANSFERS: Record<string, { n: number; d: number; prompt: string; reason: string; kind?: LearningModel['kind']; total?: number }> = {
+  'whole-numbers-as-fractions': { n: 8, d: 4, prompt: 'Build 8/4. How many whole bars does it fill?', reason: 'Four fourths fill each whole. Eight fourths fill 2 wholes.' },
+  'compare-decimals': { n: 25, d: 100, prompt: 'Build 0.25 with hundredths. Compare it to 0.3.', reason: '0.25 is 25 hundredths. 0.3 is 30 hundredths, so 0.25 is smaller.' },
+  'unit-fraction-multiples': { n: 7, d: 5, prompt: 'Build 7 groups of 1/5.', reason: 'Seven fifths are 7/5, or 1 and 2/5.' },
+  'ruler-measurement': { n: 7, d: 4, kind: 'line', prompt: 'A craft stick is 1 3/4 inches long. Mark it on the ruler.', reason: 'Seven quarter-inch spaces make 1 and 3/4 inches.' },
+  'build-line-plots': { n: 4, d: 8, kind: 'line', prompt: 'Plot the measurements 1/8, 4/8, 4/8 and 7/8 inch.', reason: 'Each X is one measured object. Stack Xs when measurements match.' },
+  'read-line-plots': { n: 6, d: 8, kind: 'line', prompt: 'The shortest mark is 1/8 inch and the longest is 7/8 inch. Find their difference.', reason: '7/8 − 1/8 = 6/8 inch.' },
+  'line-plot-leveling': { n: 1, d: 4, kind: 'line', prompt: 'Three beakers hold 1/2, 1/4 and 0 liters. Share the total equally.', reason: 'The total is 3/4 liter. Split it among 3 beakers: 1/4 liter each.' },
+  'measurement-word-problems': { n: 5, d: 6, prompt: 'A bottle holds 1/2 liter of water. Add 1/3 liter. How much is there now?', reason: 'Rename 1/2 as 3/6 and 1/3 as 2/6. Together they make 5/6 liter.' },
+  'add-unlike-fractions': { n: 5, d: 6, prompt: 'Build 1/2 + 1/3 using sixths.', reason: '1/2 is 3/6 and 1/3 is 2/6. The sum is 5/6.' },
+  'mixed-unlike-operations': { n: 11, d: 6, prompt: 'Build 2 1/2 − 2/3 using sixths.', reason: '2 1/2 is 15/6 and 2/3 is 4/6. The difference is 11/6, or 1 5/6.' },
+  'estimate-fraction-operations': { n: 11, d: 12, kind: 'line', prompt: 'Estimate 3/4 + 1/6. Is it more or less than 1?', reason: '3/4 is 9/12 and 1/6 is 2/12. The sum is 11/12, just less than 1.' },
+  'fractional-side-area': { n: 3, d: 8, prompt: 'A rectangle is 3/4 unit by 1/2 unit. Find its area.', reason: 'Three fourths times one half is 3/8 square unit.' },
+  'multiplication-scaling': { n: 2, d: 3, kind: 'set', total: 18, prompt: 'Build 2/3 of 18. Is it less than or more than 18?', reason: 'Two of three equal groups is 12, less than 18.' },
+  'multiply-mixed-numbers': { n: 15, d: 6, prompt: 'Build 1 1/2 × 1 2/3 square units.', reason: '3/2 × 5/3 = 15/6, or 2 1/2 square units.' },
+  'unit-fraction-divided-whole': { n: 1, d: 15, prompt: 'Share 1/5 of a tray among 3 children. Build one share.', reason: 'Split each fifth into 3 equal pieces. One share is 1/15 of the tray.' },
+  'fractional-unit-conversions': { n: 1, d: 2, kind: 'line', prompt: 'Show why 1/2 foot is 6 inches.', reason: 'One foot is 12 inches. Half of 12 inches is 6 inches.' },
   'simplify-fractions': { n: 2, d: 3, prompt: 'A strip is 10/15 colored. Make it in simplest form.', reason: 'Divide the top and bottom by 5. 10/15 = 2/3.' },
   'equivalent-missing-both': { n: 9, d: 15, prompt: 'Show 3/5 using fifteenths.', reason: 'Each fifth is 3 fifteenths. 3/5 = 9/15.' },
   'compare-unlike-fractions': { n: 3, d: 5, prompt: 'Which is longer, 3/5 or 1/2 of a race? Make it.', reason: 'Use tenths: 3/5 = 6/10 and 1/2 = 5/10.' },
@@ -217,7 +256,10 @@ const EXTENSION_TRANSFERS: Record<string, { n: number; d: number; prompt: string
 
 type ExtensionWorksheetMode = 'simplify' | 'equivalent' | 'compare' | 'order' | 'subtract-unlike' | 'mixed-add' | 'mixed-subtract'
   | 'quantity' | 'multiply-whole' | 'multiply' | 'sets' | 'divide' | 'measure' | 'measure-add' | 'share'
-  | 'quotient' | 'probability' | 'area' | 'line' | 'recipe' | 'percent' | 'percent-inverse' | 'decimal-equivalent' | 'story';
+  | 'quotient' | 'probability' | 'area' | 'line' | 'recipe' | 'percent' | 'percent-inverse' | 'decimal-equivalent' | 'story'
+  | 'whole-fraction' | 'decimal-compare' | 'unit-multiples' | 'ruler' | 'line-plot' | 'line-plot-read' | 'line-plot-level'
+  | 'measure-context' | 'add-unlike' | 'mixed-unlike' | 'estimate' | 'fractional-area' | 'scaling' | 'mixed-multiply'
+  | 'unit-divided-whole' | 'unit-conversion';
 const EXTENSION_WORKSHEETS: Record<string, { mode: ExtensionWorksheetMode; context: string; n: number; d: number }> = {
   'simplify-fractions': { mode: 'simplify', context: 'paper strip', n: 3, d: 4 },
   'equivalent-missing-both': { mode: 'equivalent', context: 'recipe card', n: 2, d: 5 },
@@ -243,6 +285,22 @@ const EXTENSION_WORKSHEETS: Record<string, { mode: ExtensionWorksheetMode; conte
   'percent-to-fraction': { mode: 'percent-inverse', context: 'game score', n: 3, d: 5 },
   'decimal-fraction-equivalence': { mode: 'decimal-equivalent', context: 'battery meter', n: 7, d: 10 },
   'multi-step-fraction-stories': { mode: 'story', context: 'community garden', n: 2, d: 5 },
+  'whole-numbers-as-fractions': { mode: 'whole-fraction', context: 'fraction bars', n: 6, d: 3 },
+  'compare-decimals': { mode: 'decimal-compare', context: 'hundredths grid', n: 3, d: 10 },
+  'unit-fraction-multiples': { mode: 'unit-multiples', context: 'paper strips', n: 5, d: 4 },
+  'ruler-measurement': { mode: 'ruler', context: 'ruler', n: 5, d: 4 },
+  'build-line-plots': { mode: 'line-plot', context: 'ribbon lengths', n: 3, d: 4 },
+  'read-line-plots': { mode: 'line-plot-read', context: 'pencil lengths', n: 5, d: 8 },
+  'line-plot-leveling': { mode: 'line-plot-level', context: 'beaker amounts', n: 3, d: 4 },
+  'measurement-word-problems': { mode: 'measure-context', context: 'measurement stories', n: 3, d: 4 },
+  'add-unlike-fractions': { mode: 'add-unlike', context: 'ribbons', n: 7, d: 12 },
+  'mixed-unlike-operations': { mode: 'mixed-unlike', context: 'walking route', n: 25, d: 12 },
+  'estimate-fraction-operations': { mode: 'estimate', context: 'trail lengths', n: 9, d: 10 },
+  'fractional-side-area': { mode: 'fractional-area', context: 'rectangle grid', n: 1, d: 2 },
+  'multiplication-scaling': { mode: 'scaling', context: 'collections', n: 3, d: 4 },
+  'multiply-mixed-numbers': { mode: 'mixed-multiply', context: 'garden plot', n: 2, d: 1 },
+  'unit-fraction-divided-whole': { mode: 'unit-divided-whole', context: 'pan of brownies', n: 1, d: 12 },
+  'fractional-unit-conversions': { mode: 'unit-conversion', context: 'measuring tools', n: 3, d: 4 },
 };
 /** Put the right reason at a spot that changes from lesson to lesson (but is the same every visit). */
 function arrangeReasons(key: string, right: string, wrong: [string, string]): { reasons: string[]; correctReason: number } {
@@ -289,10 +347,11 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
 /** The lesson's 12 worksheet problems. `variant` 0 is the lesson's own sheet; 1, 2, … give the same kinds of
     questions with new numbers (used when a child redoes a finished worksheet). */
 export function getWorksheet(id: string, variant = 0): WorksheetProblem[] {
-  if (!variant) return buildWorksheet(id, 0);
+  const tag = (rows: WorksheetProblem[]) => rows.map(row => ({ ...row, standards: [...standardsForMission(id)] }));
+  if (!variant) return tag(buildWorksheet(id, 0));
   const key = `${id}:${variant}`;
   const cached = VARIANT_CACHE.get(key);
-  if (cached) return cached;
+  if (cached) return tag(cached);
   // Keep each new row inside the lesson's own number range, and make it differ from the lesson's row when possible.
   const base = buildWorksheet(id, 0);
   const limit = Math.max(...base.map(largestBottom));
@@ -305,7 +364,7 @@ export function getWorksheet(id: string, variant = 0): WorksheetProblem[] {
     return base[i];
   });
   VARIANT_CACHE.set(key, sheet);
-  return sheet;
+  return tag(sheet);
 }
 const VARIANT_CACHE = new Map<string, WorksheetProblem[]>();
 const largestBottom = (p: WorksheetProblem) => Math.max(0, ...[...`${p.prompt} ${p.answer}`.matchAll(/\d+\/(\d+)/g)].map((m) => Number(m[1])));
@@ -579,6 +638,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
     const [n, d] = SIMPLE[tr]; const k = 2 + (i + variant) % 3;
     let prompt = ''; let answer = f(n, d); let hint = '';
     let form: WorksheetProblem['form']; let visual: LearningModel | undefined; let denominator: number | undefined;
+    let area: AreaFigure | undefined; let areaTask: AreaTask | undefined;
+    let rulerTask: WorksheetProblem['rulerTask']; let linePlotTask: WorksheetProblem['linePlotTask'];
+    let scaleTask: WorksheetProblem['scaleTask']; let modelRequired = false; let task: BarTask | undefined;
     switch (spec.mode) {
       case 'simplify':
         prompt = `Write ${f(n * k, d * k)} in simplest form.`; denominator = d; visual = model(n * k, d * k);
@@ -679,9 +741,29 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         answer = f(green, total); visual = model(green, total, 'set', total);
         hint = 'Green marbles on top. All the marbles on the bottom.'; break;
       }
-      case 'area':
-        prompt = `This tile has ${d} equal parts. ${n} ${n === 1 ? 'is' : 'are'} shaded. What fraction is shaded?`; visual = model(n, d);
-        hint = 'Count the equal parts for the bottom. Count the shaded parts for the top.'; break;
+      case 'area': {
+        const cuts = [
+          { cut: 'fourths-squares' as const, whole: 'square', parts: 4 },
+          { cut: 'circle-fourths' as const, whole: 'circle', parts: 4 },
+          { cut: 'hexagon-sixths' as const, whole: 'hexagon', parts: 6 },
+          { cut: 'rect-thirds' as const, whole: 'rectangle', parts: 3 },
+          { cut: 'fourths-triangles' as const, whole: 'square', parts: 4 },
+        ];
+        if (i % 6 === 5) {
+          const setting = ['tile pattern', 'shape puzzle'][Math.floor(i / 6)];
+          prompt = `On this ${setting}, are the 4 parts of the rectangle equal in area? Answer yes or no.`;
+          answer = 'no'; form = 'word'; area = { cut: 'fourths-unequal' };
+          hint = 'Count the pieces, then compare their areas. Four pieces are not always fourths.';
+        } else {
+          const shape = cuts[tr % cuts.length]; const shaded = 1 + (i % (shape.parts - 1));
+          const partition = shape.cut === 'fourths-squares' ? 'small squares' : shape.cut === 'circle-fourths' ? 'circle wedges' : shape.cut === 'hexagon-sixths' ? 'triangles' : shape.cut === 'rect-thirds' ? 'strips' : 'triangles';
+          const setting = ['paper design', 'classroom poster', 'garden map', 'window panel', 'quilt square', 'tile pattern', 'greeting card', 'floor plan', 'art print', 'flag design', 'mosaic panel', 'shape puzzle'][i];
+          prompt = `On the ${setting}, this ${shape.whole} is split into ${shape.parts} equal-area ${partition}. Color ${shaded}. What fraction of the whole is colored?`;
+          answer = f(shaded, shape.parts); area = { cut: shape.cut }; areaTask = { n: shaded, d: shape.parts };
+          hint = 'The bottom number counts all equal-area parts. The top counts the parts you colored.';
+        }
+        break;
+      }
       case 'line':
         prompt = `${f(n, d)} is marked on a line. Which fraction with ${d * 2} on the bottom is at the same spot?`;
         answer = f(n * 2, d * 2); denominator = d * 2; visual = model(n, d, 'line');
@@ -706,6 +788,195 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         prompt = `Write ${f(t, b)} as a decimal.`; answer = String(t / b); form = 'decimal';
         hint = 'Change it to tenths or hundredths first. 1/2 = 5/10 = 0.5.'; break;
       }
+      case 'whole-fraction': {
+        const examples: { kind: 'write' | 'count' | 'one'; numerator: number; denominator: number }[] = [
+          { kind: 'write', numerator: 2, denominator: 1 }, { kind: 'count', numerator: 4, denominator: 2 }, { kind: 'one', numerator: 3, denominator: 3 },
+          { kind: 'write', numerator: 3, denominator: 1 }, { kind: 'count', numerator: 9, denominator: 3 }, { kind: 'one', numerator: 4, denominator: 4 },
+          { kind: 'write', numerator: 4, denominator: 1 }, { kind: 'count', numerator: 16, denominator: 4 }, { kind: 'one', numerator: 6, denominator: 6 },
+          { kind: 'write', numerator: 5, denominator: 1 }, { kind: 'count', numerator: 25, denominator: 5 }, { kind: 'one', numerator: 8, denominator: 8 },
+        ];
+        const item = examples[tr];
+        if (item.kind === 'write') {
+          prompt = `Write ${item.numerator} whole bars as a fraction with 1 on the bottom.`; answer = `${item.numerator}/1`; visual = model(item.numerator, 1);
+          hint = 'The bottom 1 means each piece is one whole.';
+        } else if (item.kind === 'count') {
+          prompt = `How many wholes are ${item.numerator}/${item.denominator}?`; answer = String(item.numerator / item.denominator); visual = model(item.numerator, item.denominator);
+          hint = `${item.denominator}/${item.denominator} makes 1 whole. Count groups of ${item.denominator}/${item.denominator}.`;
+        } else {
+          prompt = `Write ${item.numerator}/${item.denominator} as a whole number.`; answer = '1'; visual = model(item.numerator, item.denominator);
+          hint = 'The top and bottom match, so every equal part is included.';
+        }
+        modelRequired = true; break;
+      }
+      case 'decimal-compare': {
+        const hundredths: [number, number][] = [[30, 25], [40, 35], [8, 12], [55, 5], [23, 32], [70, 7], [45, 50], [3, 25], [99, 90], [60, 6], [11, 10], [35, 5]];
+        const [a, b] = hundredths[tr];
+        const left = (a / 100).toFixed(2); const right = (b / 100).toFixed(2);
+        prompt = `Compare hundredths: ${left} (${a}/100) __ ${right} (${b}/100).`; answer = a > b ? '>' : a < b ? '<' : '='; form = 'symbol';
+        visual = model(a, 100); modelRequired = true;
+        hint = 'Write each decimal in hundredths. Compare the hundredths digits, not how long the number looks.'; break;
+      }
+      case 'unit-multiples': {
+        const bottom = [2, 3, 4, 5, 6, 8, 4, 5, 6, 8, 5, 6][tr]; const groups = 3 + (i % 5);
+        prompt = `Write ${groups} × 1/${bottom} as one fraction.`; answer = f(groups, bottom); visual = model(groups, bottom); modelRequired = true;
+        hint = `Count ${groups} copies of 1/${bottom}. The bottom stays ${bottom}; add the tops.`; break;
+      }
+      case 'ruler': {
+        const end = 1 + ((tr * 3 + i) % 7);
+        const object = ['ribbon', 'paper strip', 'craft stick', 'bookmark', 'leaf stem', 'paintbrush', 'shoelace', 'pencil', 'card strip', 'yarn piece', 'straw', 'wooden slat'][i];
+        rulerTask = { denominator: 4, wholes: 2, end };
+        answer = mixedName(end, 4); form = answer.includes(' ') ? 'mixed' : undefined;
+        prompt = `The blue ${object} starts at zero and ends at an unlabelled tick. Use the ruler. How long is it in inches?`;
+        hint = 'Each short space is 1/4 inch. Count the spaces from zero to the strip end.'; break;
+      }
+      case 'line-plot': {
+        const dataSets = [
+          [1, 2, 2, 4], [0, 1, 3, 4, 4], [1, 1, 2, 3, 4], [0, 2, 2, 3, 4], [1, 2, 3, 3, 4], [0, 1, 1, 4],
+          [1, 1, 3, 4], [0, 2, 4, 4], [2, 2, 3, 4], [0, 1, 2, 4, 4], [0, 0, 2, 3, 4], [1, 2, 4, 4],
+        ];
+        const values = dataSets[tr % dataSets.length]; const target = [1, 2, 3, 4][i % 4];
+        linePlotTask = { denominator: 4, wholes: 1, values };
+        const observations = values.map(value => f(value, 4)).join(', ');
+        prompt = `Plot these ribbon lengths: ${observations} inch. How many ribbons are ${f(target, 4)} inch long?`;
+        answer = String(values.filter(value => value === target).length);
+        hint = 'Place one X for each measurement. Count the Xs above the length asked for.'; break;
+      }
+      case 'line-plot-read': {
+        const dataSets = [
+          [1, 2, 5, 7], [0, 3, 4, 6], [2, 2, 5, 8], [1, 4, 6, 7], [0, 2, 3, 8], [2, 4, 5, 7],
+          [1, 3, 5, 8], [0, 4, 4, 7], [2, 3, 6, 8], [1, 2, 4, 6], [0, 5, 6, 8], [3, 4, 5, 7],
+        ];
+        const values = dataSets[tr % dataSets.length]; const difference = Math.max(...values) - Math.min(...values);
+        const object = ['pencils', 'chalk pieces', 'twigs', 'ribbons', 'craft sticks', 'seedlings', 'shells', 'buttons', 'paper clips', 'leaves', 'beads', 'tiles'][i];
+        linePlotTask = { denominator: 8, wholes: 1, values };
+        prompt = `Plot these ${object} lengths in eighths: ${values.map(value => f(value, 8)).join(', ')} inch. What is the difference between the longest and shortest?`;
+        answer = f(difference, 8); denominator = 8;
+        hint = 'Find the farthest-right and farthest-left Xs. Subtract their lengths.'; break;
+      }
+      case 'line-plot-level': {
+        const dataSets = [
+          [1, 2, 3], [2, 2, 2], [0, 2, 4], [1, 3, 5], [2, 4, 6], [0, 3, 6],
+          [1, 1, 4], [0, 4, 5], [3, 3, 3], [0, 1, 6], [2, 3, 5], [1, 4, 6],
+        ];
+        const values = dataSets[tr % dataSets.length]; const total = values.reduce((sum, value) => sum + value, 0);
+        const divisor = values.length; const factor = gcd(total, divisor * 4);
+        const context = ['small cups', 'jars', 'beakers', 'bottles', 'pitchers', 'tubs', 'bowls', 'flasks', 'cans', 'pots', 'glasses', 'pails'][i];
+        linePlotTask = { denominator: 4, wholes: 2, values };
+        prompt = `Three ${context} hold ${values.map(value => f(value, 4)).join(', ')} liter. Plot them, then share the total equally. How many liters go in each?`;
+        answer = f(total / factor, (divisor * 4) / factor);
+        hint = 'Add the beaker amounts, then split that total into 3 equal shares.'; break;
+      }
+      case 'measure-context': {
+        const stories: { prompt: string; answer: string; hint: string; numerator: number; denominator: number; form?: WorksheetProblem['form'] }[] = [
+          { prompt: 'A ribbon is 1/4 meter and another is 1/2 meter. How many meters long together?', answer: '3/4', hint: 'Rename 1/2 as 2/4, then add.', numerator: 3, denominator: 4 },
+          { prompt: 'How many minutes are in 1/4 hour?', answer: '15', hint: 'An hour is 60 minutes. Split 60 into 4 equal groups.', numerator: 1, denominator: 4 },
+          { prompt: 'A jug has 1/2 liter. You add 1/4 liter. How many liters now?', answer: '3/4', hint: 'Rename 1/2 as 2/4, then add.', numerator: 3, denominator: 4 },
+          { prompt: 'A 1-kilogram bag is 3/4 full. How many grams are in it?', answer: '750', hint: '1 kilogram is 1000 grams. Find 3/4 of 1000.', numerator: 3, denominator: 4 },
+          { prompt: 'How many cents are in 1/4 dollar?', answer: '25', hint: 'A dollar is 100 cents. Split 100 into 4 equal groups.', numerator: 1, denominator: 4 },
+          { prompt: 'How many minutes are in 3/4 hour?', answer: '45', hint: 'An hour is 60 minutes. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
+          { prompt: 'A bottle has 1/2 liter. How many milliliters is that?', answer: '500', hint: 'A liter is 1000 milliliters. Half of 1000 is 500.', numerator: 1, denominator: 2 },
+          { prompt: 'A bag weighs 1/4 kilogram. How many grams is that?', answer: '250', hint: 'A kilogram is 1000 grams. Find one fourth of 1000.', numerator: 1, denominator: 4 },
+          { prompt: 'A board is 3/4 meter. Another is 1/4 meter. How many meters in all?', answer: '1', hint: 'Four fourths make one whole meter.', numerator: 4, denominator: 4 },
+          { prompt: 'How many cents are in 3/4 dollar?', answer: '75', hint: 'A dollar is 100 cents. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
+          { prompt: 'A 2-liter jug is 1/4 full. How many milliliters are inside?', answer: '500', hint: 'One fourth of 2 liters is 1/2 liter. A half liter is 500 milliliters.', numerator: 1, denominator: 4 },
+          { prompt: 'How many hours are in 1/2 day?', answer: '12', hint: 'A day is 24 hours. Half of 24 is 12.', numerator: 1, denominator: 2 },
+        ];
+        const story = stories[tr]; prompt = story.prompt; answer = story.answer; form = story.form; hint = story.hint;
+        visual = model(story.numerator, story.denominator); modelRequired = true; break;
+      }
+      case 'add-unlike': {
+        const examples: [number, number, number, number, '+' | '−'][] = [
+          [1, 3, 1, 4, '+'], [1, 2, 1, 3, '+'], [3, 4, 1, 3, '−'], [2, 3, 1, 4, '+'],
+          [5, 6, 1, 4, '−'], [1, 5, 1, 2, '+'], [7, 8, 1, 4, '−'], [2, 5, 1, 3, '+'],
+          [3, 4, 1, 6, '+'], [5, 6, 1, 3, '−'], [1, 8, 1, 2, '+'], [4, 5, 1, 2, '−'],
+        ];
+        const [a, b, c, e, op] = examples[tr]; const common = lcm(b, e);
+        const top = a * (common / b) + (op === '+' ? 1 : -1) * c * (common / e);
+        prompt = `Rename ${f(a, b)} as ${f(a * (common / b), common)}. Then ${f(a * (common / b), common)} ${op} ${f(c, e)} = ?`;
+        answer = mixedName(top, common); form = answer.includes(' ') ? 'mixed' : undefined;
+        visual = model(a * (common / b), common); modelRequired = true;
+        hint = `Make both fractions ${unitName(common)} first. Then ${op === '+' ? 'add' : 'subtract'} the top numbers.`; break;
+      }
+      case 'mixed-unlike': {
+        const examples: [number, number, number, number, number, number, '+' | '−'][] = [
+          [1, 1, 2, 1, 1, 3, '+'], [2, 1, 3, 0, 3, 4, '+'], [1, 3, 4, 1, 1, 2, '+'],
+          [2, 1, 2, 0, 1, 3, '−'], [3, 1, 4, 1, 1, 2, '−'], [2, 2, 3, 1, 1, 4, '−'],
+          [1, 2, 5, 1, 1, 2, '+'], [2, 1, 6, 0, 1, 3, '+'], [3, 1, 3, 1, 3, 4, '−'],
+          [1, 1, 4, 1, 1, 6, '+'], [2, 3, 5, 1, 1, 2, '−'], [1, 2, 3, 1, 1, 4, '+'],
+        ];
+        const [wholeA, topA, bottomA, wholeB, topB, bottomB, op] = examples[tr];
+        const a = wholeA * bottomA + topA; const b = bottomA; const c = wholeB * bottomB + topB; const e = bottomB;
+        const common = lcm(b, e); const result = a * (common / b) + (op === '+' ? 1 : -1) * c * (common / e);
+        prompt = `Rename ${wholeA} ${f(topA, bottomA)} as ${f(a * (common / b), common)}. Then ${wholeA} ${f(topA, bottomA)} ${op} ${wholeB ? `${wholeB} ` : ''}${f(topB, bottomB)} = ?`;
+        answer = mixedName(result, common); form = answer.includes(' ') ? 'mixed' : undefined;
+        visual = model(a * (common / b), common); modelRequired = true;
+        hint = `${op === '+' ? 'Rename both fractional parts' : 'Rename both numbers'} with the same denominator, then ${op === '+' ? 'add' : 'subtract'}.`; break;
+      }
+      case 'estimate': {
+        const examples: [number, number, number, number, '+' | '−'][] = [
+          [2, 5, 1, 2, '+'], [3, 4, 1, 2, '−'], [1, 3, 1, 4, '+'], [5, 6, 1, 4, '+'],
+          [3, 8, 1, 2, '+'], [4, 5, 1, 3, '−'], [2, 3, 1, 4, '+'], [3, 5, 1, 2, '−'],
+          [5, 8, 1, 4, '+'], [7, 10, 1, 3, '−'], [1, 4, 1, 2, '+'], [3, 4, 1, 3, '+'],
+        ];
+        const [a, b, c, e, op] = examples[tr]; const common = lcm(b, e);
+        const total = a * (common / b) + (op === '+' ? 1 : -1) * c * (common / e);
+        const operation = op === '+' ? 'sum' : 'difference';
+        prompt = `Without finding the exact ${operation}, compare ${f(a, b)} ${op} ${f(c, e)} with 1: __ 1.`;
+        answer = total < common ? '<' : '>'; form = 'symbol'; visual = model(a, b); modelRequired = true;
+        hint = 'Estimate using familiar amounts such as one-half and one whole. Decide whether the result is below or above 1.'; break;
+      }
+      case 'fractional-area': {
+        const examples: [number, number][] = [[1, 1], [1, 2], [2, 1], [2, 3], [3, 2], [1, 3], [2, 2], [3, 1], [1, 2], [2, 1], [3, 3], [2, 3]];
+        const [a, c] = examples[tr]; const product = a * c;
+        const surface = ['garden bed', 'quilt patch', 'poster', 'table top', 'rug', 'wall panel', 'mosaic', 'sandbox', 'floor tile', 'window panel', 'stage', 'notice board'][i];
+        prompt = `A rectangular ${surface} is ${a}/3 unit by ${c}/4 unit. Color the overlapping area on the 3-by-4 grid. What is its area in square units?`;
+        answer = f(product, 12); area = { cut: 'grid-3x4' }; areaTask = { n: product, d: 12 };
+        hint = `The grid has 12 equal small rectangles. The overlap covers ${product} of them.`; break;
+      }
+      case 'scaling': {
+        const examples: [number, number, number][] = [[3, 4, 12], [1, 2, 8], [5, 4, 8], [3, 2, 10], [1, 4, 20], [3, 4, 16], [5, 4, 12], [1, 2, 14], [3, 2, 8], [1, 4, 12], [3, 4, 20], [5, 4, 16]];
+        const [top, bottom, whole] = examples[tr];
+        scaleTask = { whole, numerator: top, denominator: bottom };
+        prompt = `Move the scale slider to ${top}/${bottom}. Without multiplying, compare ${top}/${bottom} × ${whole} with ${whole}: __ ${whole}.`;
+        answer = top < bottom ? '<' : top === bottom ? '=' : '>'; form = 'symbol';
+        hint = 'A factor below 1 shrinks the amount. A factor of 1 keeps it the same. A factor above 1 grows it.'; break;
+      }
+      case 'mixed-multiply': {
+        const examples: [number, number, number, number, number, number][] = [
+          [1, 1, 2, 1, 1, 3], [1, 1, 2, 2, 1, 2], [2, 1, 2, 1, 1, 3], [1, 1, 3, 1, 1, 2],
+          [1, 1, 4, 2, 1, 2], [2, 1, 3, 1, 1, 2], [1, 1, 2, 1, 1, 4], [1, 1, 3, 2, 1, 2],
+          [2, 1, 4, 1, 1, 2], [1, 1, 5, 1, 1, 2], [1, 1, 2, 2, 1, 3], [2, 1, 5, 1, 1, 2],
+        ];
+        const [wa, na, da, wb, nb, db] = examples[tr]; const top = (wa * da + na) * (wb * db + nb); const bottom = da * db;
+        prompt = `A rectangular garden is ${wa} ${f(na, da)} meters (${wa * da + na}/${da}) by ${wb} ${f(nb, db)} meters. What is its area?`;
+        answer = mixedName(top, bottom); form = answer.includes(' ') ? 'mixed' : undefined;
+        visual = model(wa * da + na, da); modelRequired = true;
+        hint = 'Change each mixed number to an improper fraction. Multiply the numerators and multiply the denominators.'; break;
+      }
+      case 'unit-divided-whole': {
+        const unitDenominator = [2, 3, 4, 5, 6, 8, 3, 4, 5, 6, 8, 2][tr]; const people = 2 + (i % 4); const resultDenominator = unitDenominator * people;
+        prompt = `${people} children share 1/${unitDenominator} of a pan equally. What fraction of the whole pan does each child get?`;
+        answer = f(1, resultDenominator); denominator = resultDenominator; visual = model(1, unitDenominator); modelRequired = true;
+        hint = `Split the 1/${unitDenominator} piece into ${people} equal parts. Each new part is 1/${resultDenominator} of the whole.`; break;
+      }
+      case 'unit-conversion': {
+        const conversions: { prompt: string; answer: string; numerator: number; denominator: number; hint: string }[] = [
+          { prompt: 'How many inches are in 1/2 foot?', answer: '6', numerator: 1, denominator: 2, hint: '1 foot is 12 inches. Find half of 12.' },
+          { prompt: 'How many inches are in 1/4 foot?', answer: '3', numerator: 1, denominator: 4, hint: '1 foot is 12 inches. Find one fourth of 12.' },
+          { prompt: 'How many minutes are in 3/4 hour?', answer: '45', numerator: 3, denominator: 4, hint: '1 hour is 60 minutes. Find 3 of 4 equal groups.' },
+          { prompt: 'How many minutes are in 1/2 hour?', answer: '30', numerator: 1, denominator: 2, hint: '1 hour is 60 minutes. Find half of 60.' },
+          { prompt: 'How many milliliters are in 1/2 liter?', answer: '500', numerator: 1, denominator: 2, hint: '1 liter is 1000 milliliters. Find half of 1000.' },
+          { prompt: 'How many milliliters are in 1/4 liter?', answer: '250', numerator: 1, denominator: 4, hint: '1 liter is 1000 milliliters. Find one fourth of 1000.' },
+          { prompt: 'How many grams are in 3/4 kilogram?', answer: '750', numerator: 3, denominator: 4, hint: '1 kilogram is 1000 grams. Find 3 of 4 equal groups.' },
+          { prompt: 'How many grams are in 1/2 kilogram?', answer: '500', numerator: 1, denominator: 2, hint: '1 kilogram is 1000 grams. Find half of 1000.' },
+          { prompt: 'How many centimeters are in 1/2 meter?', answer: '50', numerator: 1, denominator: 2, hint: '1 meter is 100 centimeters. Find half of 100.' },
+          { prompt: 'How many centimeters are in 1/4 meter?', answer: '25', numerator: 1, denominator: 4, hint: '1 meter is 100 centimeters. Find one fourth of 100.' },
+          { prompt: 'How many ounces are in 1/2 pound?', answer: '8', numerator: 1, denominator: 2, hint: '1 pound is 16 ounces. Find half of 16.' },
+          { prompt: 'How many hours are in 1/4 day?', answer: '6', numerator: 1, denominator: 4, hint: '1 day is 24 hours. Find one fourth of 24.' },
+        ];
+        const item = conversions[tr]; prompt = item.prompt; answer = item.answer; hint = item.hint;
+        visual = model(item.numerator, item.denominator); modelRequired = true; break;
+      }
       case 'story': {
         const [bottom, a, b] = ([[4, 1, 1], [5, 2, 1], [6, 3, 1], [8, 4, 2], [10, 5, 1], [5, 1, 2], [6, 1, 2], [8, 3, 2], [10, 2, 3], [4, 1, 2], [6, 2, 3], [12, 3, 2]] as const)[tr];
         prompt = i % 2
@@ -714,7 +985,13 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         answer = f(bottom - a - b, bottom); hint = `First add the two parts. Then take that away from ${bottom}/${bottom}.`; break;
       }
     }
-    return { id: `w${i + 1}`, prompt, answer, hint, model: visual, form, denominator };
+    if (modelRequired && !task && visual?.kind === 'bar') task = { kind: 'copy', n: visual.n };
+    return {
+      id: `w${i + 1}`, prompt, answer, hint, model: visual, form, denominator, modelRequired, task,
+      ...(area ? { area } : {}), ...(areaTask ? { areaTask } : {}),
+      ...(rulerTask ? { rulerTask } : {}), ...(linePlotTask ? { linePlotTask } : {}),
+      ...(scaleTask ? { scaleTask } : {}),
+    };
   });
 }
 

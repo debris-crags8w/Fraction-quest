@@ -41,6 +41,15 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Merged review/fraction-standard-mastery into main** (user's branch: 68 lessons covering all 36 grade 3–5 standards,
+  standard catalog + assessments, teaching guides/pacing, concept games, brain breaks, display options, family privacy/
+  classrooms). Fix before merging: the 16 new lessons are in LATE_ADDED_LESSONS (game.ts, now exported) so learners who had
+  already started units 9–14 aren't re-locked (a 51-lesson saved learner had 20 finished lessons locked); test in
+  game.test.ts "new tenths + hundredths lesson". Root src/ mirror re-synced. Typecheck tip: run `pnpm run typecheck` at the
+  repo root (it builds lib/ first); inside the app folder it fails in a fresh checkout. e2e: `CHROMIUM_PATH=/opt/pw-browsers/
+  chromium-1194/chrome-linux/chrome CI=1 npx playwright test` in artifacts/fraction-quest. iOS work stays on ios-local-icloud
+  (not merged; conflicts with this in App.tsx/ParentView/game.ts/fun.ts; two profile systems to reconcile; paywall says 49
+  lessons, should be 65).
 - **Curriculum gap analysis → `docs/curriculum-gap-analysis.md`.** Standards coverage (CCSS 3–5 incl. 3.MD.4, 3.G.2,
   4.MD.2/4, 5.MD.1/2), comparison with Big Ideas MRL / Eureka / Illustrative Math, every recommended change (P0–P2),
   games catalog, brain breaks spec, 5-phase roadmap. Biggest P0 gaps: line plots + rulers, circle/area models, compare

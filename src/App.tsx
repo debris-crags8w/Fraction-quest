@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useLayoutEffect, useState } from 'react';
+import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, BarChart3, Check, ClipboardCheck, Code2, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { MathText } from './MathText';
@@ -29,6 +29,8 @@ import {
   type PracticeQuestion,
   type Progress,
 } from './game';
+import { saveAssessmentAttempt } from './assessments';
+import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
 import { LearningText } from './LearningText';
@@ -37,7 +39,7 @@ import QuickReviewEntry from './QuickReviewEntry';
 import { getLearningRecord, hasLearningGate, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, recordRace, recordSprint, resetFun, setSound, type FunState } from './lib/fun';
+import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, recordRace, recordSprint, resetFun, setBreakPreferences, setDisplayPreferences, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag } from './models';
@@ -59,7 +61,10 @@ import LoginPage from './LoginPage';
 import DailyPractice from './DailyPractice';
 import { createDailyPractice, dailyPracticeDay } from './daily-practice';
 import PartFinder from './PartFinder';
+import { AssessmentHub, AssessmentRunner } from './Assessment';
 import { PART_FINDER_LESSONS } from './part-finder';
+import ConceptGames from './ConceptGames';
+import { BrainBreakOffer } from './BrainBreakOffer';
 const queryClient = new QueryClient();
 
 type View =
@@ -68,6 +73,9 @@ type View =
   | { type: 'review'; questionIndex: number; reviewQuestions: PracticeQuestion[] }
   | { type: 'review-complete'; reviewedCount: number }
   | { type: 'daily' }
+  | { type: 'concept-games' }
+  | { type: 'assessments' }
+  | { type: 'assessment'; definition: AssessmentDefinition; seed: number }
   | { type: 'reward'; missionId: string; stars: number };
 type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string };
@@ -94,12 +102,12 @@ const UNIT_INFO: UnitInfo[] = [
   { title: 'Equivalent fractions', subtitle: 'Rename an amount without changing its size' },
   { title: 'Put fractions together', subtitle: 'Compose, decompose, and go beyond one' },
   { title: 'Operations and decimals', subtitle: 'Add, subtract, and connect fractions to decimals' },
-  { title: 'Rename and compare', subtitle: 'Grade 5 · Simplify, compare and order' },
-  { title: 'Mixed numbers and amounts', subtitle: 'Grade 5 · Mixed numbers and parts of amounts' },
-  { title: 'Multiply and divide', subtitle: 'Grade 5 · Groups, parts of parts, and scoops' },
-  { title: 'Fractions in measurement', subtitle: 'Grade 5 · Lengths and fair shares' },
-  { title: 'Fraction models in context', subtitle: 'Grade 5 · Chance, area, lines and recipes' },
-  { title: 'Fractions, decimals, and percent', subtitle: 'Grade 5 · Percent, decimals and 2-step stories' },
+  { title: 'Rename and compare', subtitle: 'Grades 3–5 · Whole numbers as fractions and equivalent names' },
+  { title: 'Mixed numbers and amounts', subtitle: 'Grades 4–5 · Unlike denominators, mixed numbers, and estimates' },
+  { title: 'Multiply and divide', subtitle: 'Grades 4–5 · Unit fractions, scaling, multiplication, and sharing' },
+  { title: 'Fractions in measurement', subtitle: 'Grades 3–5 · Rulers, line plots, conversions, and stories' },
+  { title: 'Fraction models in context', subtitle: 'Grade 3 and 5 · Equal-area shapes and fractional-side area; chance is bonus' },
+  { title: 'Fractions and decimals', subtitle: 'Grades 4–5 · Decimal comparison; percent is bonus' },
 ];
 
 // Lessons where kids make fractions by folding a paper strip (1 → 1/2 → 1/4 → 1/8).
@@ -236,9 +244,9 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
           <button className="fq-icon-button" onClick={() => setFun(setSound(fun, !fun.sound))} aria-label={fun.sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={fun.sound} data-testid="button-toggle-sound">{fun.sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
           <button className="fq-icon-button" onClick={onReset} aria-label="Reset progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>
           <div className="fq-account">
-            <span className="fq-account-avatar" aria-hidden="true">{account.user?.displayName.trim().charAt(0).toUpperCase() ?? 'G'}</span>
+            <span className="fq-account-avatar" aria-hidden="true">{account.activeProfile?.displayName.trim().charAt(0).toUpperCase() ?? 'G'}</span>
             <span className="fq-account-name">
-              <strong>{account.user?.displayName ?? 'Guest'}</strong>
+              <strong>{account.activeProfile?.displayName ?? 'Guest learner'}</strong>
               <small className={account.syncStatus === 'saving' ? 'sync-saving' : account.syncStatus === 'offline' ? 'sync-offline' : ''} aria-live="polite">{syncLabel}</small>
             </span>
             {account.user
@@ -252,8 +260,9 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
   );
 }
 
-function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
-  const { user } = useAccount();
+function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
+  const account = useAccount();
+  const { user } = account;
   const { fun } = useFun();
   const codeSummary = summarizeCodeProgress(fun.codeLevels, MISSIONS.map((mission) => mission.id));
   const nextCodeMission = MISSIONS.find((mission) => isMissionUnlocked(progress, mission.id) && (fun.codeLevels?.[mission.id] ?? 0) < CODE_LEVEL_COUNT);
@@ -269,6 +278,9 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
     number: index + 1,
     missions: MISSIONS.filter((item) => item.unit === index + 1),
   }));
+  const assignedUnits = (account.activeProfile?.assignedUnitIds ?? [])
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id >= 1 && id <= UNIT_TITLES.length);
 
   return (
     <div className="fq-app">
@@ -300,6 +312,10 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
             </div>
             <MapIcon size={27} color="hsl(var(--secondary))" aria-hidden="true" />
           </div>
+          {assignedUnits.length > 0 && <p className="fq-assigned-units" role="note" data-testid="text-assigned-units">
+            Your teacher suggested: {assignedUnits.map((unit) => `Unit ${unit}: ${UNIT_TITLES[unit - 1]}`).join(' · ')}.
+            These suggestions do not change which lessons are unlocked.
+          </p>}
           <div className="fq-map-code-summary" data-testid="status-map-code-progress">
             <Code2 size={19} aria-hidden="true" />
             <span><strong>{codeSummary.levelsPassed} of {codeSummary.levelsTotal} coding levels passed</strong><small>{codeSummary.missionsStarted} missions started · {codeSummary.missionsComplete} missions with all 3 levels passed</small></span>
@@ -347,6 +363,18 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
             );
           })()}
 
+          <button className="fq-assessment-entry fq-concept-games-entry" onClick={onConceptGames} data-testid="button-open-concept-games">
+            <span className="fq-assessment-entry-icon" aria-hidden="true"><Dumbbell size={20} /></span>
+            <span><strong>Play the fraction games</strong><small>Build bars, match equal amounts, and place fractions on a number line. Games never change lesson progress.</small></span>
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
+
+          <button className="fq-assessment-entry" onClick={onAssessments} data-testid="button-open-assessments">
+            <span className="fq-assessment-entry-icon" aria-hidden="true"><ClipboardCheck size={20} /></span>
+            <span><strong>Check what you know</strong><small>Build a model, enter answers, and see which ideas to practice next.</small></span>
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
+
           <QuickReviewEntry progress={progress} onStart={onStartReview} />
 
           <div className="fq-unit-list">
@@ -386,6 +414,10 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
                             <span className="fq-node-kicker">Lesson {String(missionNumber).padStart(2, '0')}</span>
                             <h4>{mission.title}</h4>
                             <p>{mission.description}</p>
+                            {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
+                              {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
+                              {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
+                            </p>}
                             <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
                               Worksheet {worksheetCount(learning, mission.id)}/12 · Builds on my own {summary.independentChecks}/2
                               <br />Remembered: {summary.retention}
@@ -444,7 +476,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
             This is not a complete or standards-aligned course.
           </p>
         </aside>
-        <footer className="fq-footer"><span>Made for curious minds, ages 8–10. {user ? `Progress is saved to ${user.displayName}'s account.` : 'Progress stays on this device.'}</span><button onClick={onReset} data-testid="button-reset-progress-footer">{user ? 'Reset my progress' : "Reset this device's progress"}</button></footer>
+        <footer className="fq-footer"><span>Made for curious minds, ages 8–10. {user ? 'Progress is saved to this family account.' : 'Progress stays on this device.'}</span><button onClick={onReset} data-testid="button-reset-progress-footer">{user ? 'Reset this learner’s progress' : "Reset this device's progress"}</button></footer>
       </main>
     </div>
   );
@@ -602,6 +634,10 @@ function PlayView({
                 ? `Lesson ${lessonNumber} · See it first`
                 : `Lesson ${lessonNumber} · ${mission.shortTitle} · ${questionIndex + 1} of ${mission.questions.length}`}
           </p>
+          {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
+            {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
+            {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
+          </p>}
           {isExample ? <h1 id="lesson-title">{mission.title}</h1> : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
           {isExample ? (
             <div className="fq-example">
@@ -612,8 +648,8 @@ function PlayView({
               <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
               <div className="fq-example-answer">
                 <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
-                <p><strong><LearningText text={mission.example.prompt} /></strong></p>
-                <p className="fq-example-result"><LearningText text={mission.example.answer} /></p>
+                  <p><strong><LearningText text={mission.example.prompt} speak /></strong></p>
+                  <p className="fq-example-result"><LearningText text={mission.example.answer} speak /></p>
                 <p><LearningText text={mission.example.explanation} speak /></p>
               </div>
               {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
@@ -665,7 +701,7 @@ function PlayView({
               <Mascot mood={mood} size={64} />
               <div className="fq-sheet-copy">
                 {feedback === 'correct'
-                  ? <><strong>{cheer}</strong><span><LearningText text={question.hint} /></span></>
+                  ? <><strong>{cheer}</strong><span><LearningText text={question.hint} speak /></span></>
                    : <><strong>Not quite!</strong><span><LearningText text={question.retryFeedback} speak /></span></>}
               </div>
               {feedback === 'correct' ? (
@@ -787,23 +823,58 @@ function Game() {
   const [saveError, setSaveError] = useState(false);
   const [fun, setFun] = useState<FunState>(() => account.initialFun ?? loadFun());
   const [combo, setCombo] = useState(0);
+  const [breakReason, setBreakReason] = useState<'interval' | 'mistakes' | 'lesson-part' | null>(null);
+  const activeStudyMilliseconds = useRef(0);
+  const consecutiveWrongAnswers = useRef(0);
+  const breakIntervalMinutes = fun.breakPreferences?.intervalMinutes ?? 15;
+  const quietBreaks = fun.breakPreferences?.quietMode ?? false;
+  const activeStudyView = ['play', 'review', 'daily', 'lab', 'redo', 'extra', 'retention'].includes(view.type);
   useAccountSync(progress, fun);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const preferences = fun.displayPreferences ?? { textSize: 'standard', highContrast: false, reducedMotion: false };
+    root.dataset.fqTextSize = preferences.textSize;
+    root.classList.toggle('fq-high-contrast', preferences.highContrast);
+    root.classList.toggle('fq-reduced-motion', preferences.reducedMotion);
+    return () => {
+      delete root.dataset.fqTextSize;
+      root.classList.remove('fq-high-contrast', 'fq-reduced-motion');
+    };
+  }, [fun.displayPreferences]);
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, [view]);
 
-  // Time for the grown-ups' report: count a minute only while the tab is visible and the child
-  // has tapped or typed in the last 2 minutes (an open, idle tab doesn't count).
+  // Count report time only while the tab is visible and recently used. On lesson screens,
+  // accumulate active time toward an optional break reminder; the break itself never counts.
   useEffect(() => {
     let lastInput = Date.now();
+    let lastTick = Date.now();
     const touch = () => { lastInput = Date.now(); };
     window.addEventListener('pointerdown', touch); window.addEventListener('keydown', touch);
     const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible' && Date.now() - lastInput < 120_000) setFun((current) => recordMinute(current));
+      const now = Date.now();
+      const elapsed = now - lastTick;
+      lastTick = now;
+      if (document.visibilityState !== 'visible' || now - lastInput >= 120_000) return;
+      if (!breakReason) setFun((current) => recordMinute(current));
+      if (activeStudyView && breakIntervalMinutes > 0 && !breakReason) {
+        activeStudyMilliseconds.current += elapsed;
+        if (activeStudyMilliseconds.current >= breakIntervalMinutes * 60_000) {
+          consecutiveWrongAnswers.current = 0;
+          setBreakReason('interval');
+        }
+      }
     }, 60_000);
     return () => { window.clearInterval(timer); window.removeEventListener('pointerdown', touch); window.removeEventListener('keydown', touch); };
-  }, []);
+  }, [view.type, activeStudyView, breakIntervalMinutes, breakReason]);
+
+  useEffect(() => {
+    activeStudyMilliseconds.current = 0;
+    consecutiveWrongAnswers.current = 0;
+  }, [breakIntervalMinutes]);
 
   const startMission = (missionId: string) => {
     if (!isMissionUnlocked(progress, missionId)) return;
@@ -846,6 +917,7 @@ function Game() {
     if (!hasLearningGate(nextProgress, missionId)) return;
     persistProgress(nextProgress);
     setView({ type: 'reward', missionId, stars: nextProgress.starsByMission[missionId] ?? stars });
+    if (breakIntervalMinutes > 0) setBreakReason('lesson-part');
   };
 
   const resetProgress = () => {
@@ -881,7 +953,7 @@ function Game() {
     if (!(record.redo?.part === part && !record.redo.finishedAt)) persistProgress(updateLearning(progress, missionId, startRedo(record, part)));
     setView({ type: 'redo', missionId });
   };
-  const returnToMap = () => { setPendingRetention(null); setCombo(0); setView({ type: 'map' }); };
+  const returnToMap = () => { setPendingRetention(null); setCombo(0); consecutiveWrongAnswers.current = 0; setView({ type: 'map' }); };
   const nextReviewView = (nextView: View) => {
     if (pendingRetention) {
       setView({ type: 'retention', missionId: pendingRetention, startedAt: Date.now(), nextView });
@@ -891,12 +963,35 @@ function Game() {
       setView(nextView);
     }
   };
+  const closeBreak = () => {
+    activeStudyMilliseconds.current = 0;
+    consecutiveWrongAnswers.current = 0;
+    setBreakReason(null);
+  };
+  const onPracticeCorrect = (firstTry: boolean) => {
+    consecutiveWrongAnswers.current = 0;
+    setFun((current) => recordCorrect(current));
+    setCombo((current) => (firstTry ? current + 1 : 0));
+  };
+  const onPracticeSuccess = () => { consecutiveWrongAnswers.current = 0; };
+  const onPracticeWrong = () => {
+    setCombo(0);
+    consecutiveWrongAnswers.current += 1;
+    if (breakIntervalMinutes > 0 && activeStudyView && consecutiveWrongAnswers.current >= 3 && !breakReason) {
+      consecutiveWrongAnswers.current = 0;
+      setBreakReason('mistakes');
+    }
+  };
 
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
-      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
+      {view.type === 'concept-games' && <ConceptGames onExit={returnToMap} />}
+      {view.type === 'assessments' && <AssessmentHub attempts={progress.assessments ?? []} onStart={definition => setView({ type: 'assessment', definition, seed: freshSeed() })} onBack={returnToMap} />}
+      {view.type === 'assessment' && <AssessmentRunner key={`${view.definition.id}:${view.seed}`} definition={view.definition} seed={view.seed}
+        onComplete={attempt => persistProgress(saveAssessmentAttempt(progress, attempt))} onExit={() => setView({ type: 'assessments' })} />}
       {view.type === 'placement' && <PlacementQuiz unitTitles={UNIT_TITLES} onExit={returnToMap} onDone={(passed) => { persistProgress(applyPlacement(progress, passed)); returnToMap(); }} />}
       {view.type === 'race' && (
         <FractionRace key={view.missionId} mission={getMission(view.missionId)} best={fun.raceBest?.[view.missionId] ?? null} robotBeaten={fun.robotBeaten?.[view.missionId] ?? 0} sprintBest={fun.sprintBest?.[view.missionId] ?? null}
@@ -909,7 +1004,7 @@ function Game() {
           onExit={returnToMap} onSolved={(level) => setFun((current) => recordCodeLevel(current, view.missionId, level))} />
       )}
       {view.type === 'part-finder' && <PartFinder best={fun.partFinderBest ?? null} onExit={returnToMap} onFinish={(score) => setFun((current) => recordPartFinder(current, score))} />}
-      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.user?.displayName ?? null} onBack={returnToMap} />}
+      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);
         const baseIds = base.questions.map((q) => q.id);
@@ -922,8 +1017,8 @@ function Game() {
             firstTryAnswers={view.firstTry}
             combo={combo}
             onBack={returnToMap}
-            onCorrect={(firstTry) => { setFun((current) => recordCorrect(current)); setCombo((current) => (firstTry ? current + 1 : 0)); }}
-            onWrong={() => setCombo(0)}
+            onCorrect={onPracticeCorrect}
+            onWrong={onPracticeWrong}
             onNext={(firstTry) => setView({ type: 'extra', missionId: view.missionId, seed: view.seed, questionIndex: view.questionIndex + 1, firstTry })}
             onFinish={(_stars, firstTry) => setView({ type: 'extra-done', missionId: view.missionId, seed: view.seed, firstTry, total: practiceMission.questions.length })}
             onMissed={(missionId, questionId) => persistProgress(recordMissedSkill(progress, missionId, questionId))}
@@ -962,8 +1057,8 @@ function Game() {
           isQuickReview={view.type === 'review'}
           combo={combo}
           onBack={returnToMap}
-          onCorrect={(firstTry) => { setFun((current) => recordCorrect(current)); setCombo((current) => (firstTry ? current + 1 : 0)); }}
-          onWrong={() => setCombo(0)}
+          onCorrect={onPracticeCorrect}
+          onWrong={onPracticeWrong}
           onNext={(firstTryAnswers) => {
             if (view.type === 'review') {
               nextReviewView({ type: 'review', questionIndex: view.questionIndex + 1, reviewQuestions: view.reviewQuestions });
@@ -981,6 +1076,7 @@ function Game() {
             const record = getLearningRecord(progress, activeMission.id);
             persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceDone: true, practiceStars: Math.max(stars, record.practiceStars ?? 0) }));
             setView({ type: 'lab', missionId: activeMission.id, stars });
+            if (breakIntervalMinutes > 0) setBreakReason('lesson-part');
           }}
           onFinishReview={view.type === 'review' ? () => nextReviewView({ type: 'review-complete', reviewedCount: view.reviewQuestions.length }) : undefined}
           onMissed={(missionId, questionId) => persistProgress(recordMissedSkill(progress, missionId, questionId))}
@@ -998,9 +1094,9 @@ function Game() {
           }}
         />
       )}
-      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId })} onRedo={(part) => startRedoPart(view.missionId, part)} />}
-      {view.type === 'redo' && <RedoLab missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? 1 })} />}
-      {view.type === 'retention' && <LearningLab key={`retention-${view.startedAt}`} review missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap} onFinish={(updated) => {
+      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId })} onRedo={(part) => startRedoPart(view.missionId, part)} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
+      {view.type === 'redo' && <RedoLab missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? 1 })} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
+      {view.type === 'retention' && <LearningLab key={`retention-${view.startedAt}`} review missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onFinish={(updated) => {
         const latest = updated ?? progress;
         const record = getLearningRecord(latest, view.missionId);
         persistProgress(record.confirmedAt && record.confirmedAt >= view.startedAt ? completeSkillReview(latest, view.missionId) : deferSkillReview(latest, view.missionId));
@@ -1013,12 +1109,13 @@ function Game() {
       {view.type === 'review-complete' && (
         <ReviewCompleteView reviewedCount={view.reviewedCount} progress={progress} onMap={returnToMap} onReset={() => setResetOpen(true)} />
       )}
+      {breakReason && <BrainBreakOffer reason={breakReason} quietMode={quietBreaks} onSkip={closeBreak} onFinish={closeBreak} />}
       {resetOpen && (
         <div className="fq-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setResetOpen(false); }}>
           <div className="fq-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description">
             <button className="fq-icon-button fq-modal-close" onClick={() => setResetOpen(false)} aria-label="Close reset dialog" data-testid="button-close-reset"><X size={18} /></button>
             <h2 id="reset-title">Start the map over?</h2>
-            <p id="reset-description">{account.user ? `This clears ${account.user.displayName}'s lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
+            <p id="reset-description">{account.user ? `This clears ${account.activeProfile?.displayName ?? 'this learner'}’s lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
             <div className="fq-modal-actions">
               <button className="fq-button ghost" onClick={() => setResetOpen(false)} data-testid="button-cancel-reset">Keep exploring</button>
               <button className="fq-button" onClick={resetProgress} data-testid="button-confirm-reset">Reset progress</button>

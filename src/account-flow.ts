@@ -14,10 +14,10 @@ export type AccountDeviceStore = {
 };
 
 export type AuthMode = 'sign-in' | 'create';
-export type AuthCredentials = { username: string; displayName?: string; password: string };
+export type AuthCredentials = { username: string; displayName?: string; password: string; parentConsent?: boolean };
 export type AccountAuthApi<User> = {
   login: (credentials: { username: string; password: string }) => Promise<User>;
-  signup: (credentials: { username: string; displayName: string; password: string }) => Promise<User>;
+  signup: (credentials: { username: string; displayName: string; password: string; parentConsent: boolean }) => Promise<User>;
 };
 
 export function authenticateAccount<User>(
@@ -30,6 +30,7 @@ export function authenticateAccount<User>(
       username: credentials.username,
       displayName: credentials.displayName || credentials.username,
       password: credentials.password,
+      parentConsent: credentials.parentConsent === true,
     });
   }
   return api.login({ username: credentials.username, password: credentials.password });
@@ -83,8 +84,9 @@ export type SaveStatus = 'saved' | 'saving' | 'offline';
 export function createProgressSaveQueue<T>(
   save: (value: T) => Promise<unknown>,
   reportStatus: (status: SaveStatus) => void = () => {},
+  persistence?: { load: () => T | null; store: (value: T | null) => void },
 ) {
-  let pending: T | null = null;
+  let pending: T | null = persistence?.load() ?? null;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let inFlight: Promise<boolean> | null = null;
 
@@ -109,11 +111,15 @@ export function createProgressSaveQueue<T>(
         .then(() => save(next))
         .then(
           () => {
+            if (pending === null) persistence?.store(null);
             reportStatus(pending ? 'saving' : 'saved');
             return true;
           },
           () => {
-            pending ??= next;
+            if (pending === null) {
+              pending = next;
+              persistence?.store(next);
+            }
             reportStatus('offline');
             return false;
           },
@@ -129,6 +135,7 @@ export function createProgressSaveQueue<T>(
   return {
     enqueue(value: T, delayMs = 800) {
       pending = value;
+      persistence?.store(value);
       reportStatus('saving');
       if (timer !== null) clearTimeout(timer);
       timer = setTimeout(() => {
@@ -141,6 +148,7 @@ export function createProgressSaveQueue<T>(
     acknowledge(value: T) {
       if (pending === value) {
         pending = null;
+        persistence?.store(null);
         if (timer !== null) {
           clearTimeout(timer);
           timer = null;

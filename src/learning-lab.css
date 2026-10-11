@@ -15,6 +15,33 @@
 .fq-ll-translate { margin: 4px 0 -4px; font-weight: 900; color: hsl(var(--secondary)); }
 .fq-ll-builder { padding: 16px; border: 2px dashed hsl(var(--secondary) / .4); border-radius: 18px; background: hsl(var(--muted) / .35); display: grid; gap: 12px; }
 .fq-ll-builder h4 { font-size: 1rem; }
+.fq-ll-custom-model { display: grid; gap: 10px; width: min(100%, 680px); margin: 10px 0 14px; padding: 14px; border: 2px solid hsl(var(--primary) / .28); border-radius: 16px; background: hsl(var(--primary) / .045); }
+.fq-ll-custom-model > p { margin: 0; line-height: 1.4; }
+.fq-ll-custom-status { color: hsl(var(--muted-foreground)); font-size: .85rem; font-weight: 800; }
+.fq-ll-custom-status[role="status"] { min-height: 1.2em; }
+.fq-ruler-track { position: relative; height: 98px; margin: 8px 14px 20px; border-bottom: 4px solid hsl(var(--foreground)); background: repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), hsl(var(--foreground) / .18) calc(25% - 1px) 25%); }
+.fq-ruler-strip { position: absolute; bottom: 3px; left: 0; height: 18px; border-radius: 5px 0 0 5px; background: var(--fq-sky, #28a7db); box-shadow: inset 0 -3px 0 hsl(var(--foreground) / .18); pointer-events: none; }
+.fq-ruler-tick { position: absolute; inset-block: 0 -23px; width: 34px; padding: 0; border: 0; transform: translateX(-50%); background: transparent; color: hsl(var(--foreground)); cursor: pointer; touch-action: manipulation; }
+.fq-ruler-tick i { position: absolute; bottom: -1px; left: 50%; width: 2px; height: 14px; background: hsl(var(--foreground) / .65); transform: translateX(-50%); }
+.fq-ruler-tick.inch i { height: 25px; width: 3px; background: hsl(var(--foreground)); }
+.fq-ruler-tick span { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); font-size: .75rem; font-weight: 900; }
+.fq-ruler-tick.selected i { background: var(--fq-grape); width: 4px; }
+.fq-ruler-tick:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: -2px; border-radius: 8px; }
+.fq-lineplot { overflow-x: auto; }
+.fq-lineplot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(48px, 1fr)); min-width: min(100%, 520px); border-bottom: 3px solid hsl(var(--foreground)); }
+.fq-lineplot-tick { display: grid; grid-template-rows: 80px 14px 22px; justify-items: center; align-items: end; min-width: 42px; padding: 0 2px; border: 0; border-right: 1px solid hsl(var(--foreground) / .14); background: transparent; color: hsl(var(--foreground)); cursor: pointer; touch-action: manipulation; }
+.fq-lineplot-tick i { width: 3px; height: 14px; background: hsl(var(--foreground)); }
+.fq-lineplot-tick small { font-size: .72rem; font-weight: 800; white-space: nowrap; }
+.fq-lineplot-xs { display: flex; flex-direction: column-reverse; align-items: center; gap: 1px; min-height: 10px; color: var(--fq-grape); font-size: 1.05rem; line-height: .9; }
+.fq-lineplot-tick:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: -3px; border-radius: 8px; }
+.fq-scale-model input[type="range"] { width: 100%; accent-color: var(--fq-grape); min-height: 36px; }
+.fq-scale-compare { display: grid; gap: 8px; }
+.fq-scale-compare > div { display: grid; gap: 5px; }
+.fq-scale-compare b { font-size: .8rem; }
+.fq-scale-whole, .fq-scale-track { display: block; width: 100%; height: 22px; border-radius: 7px; background: hsl(var(--muted)); overflow: hidden; }
+.fq-scale-whole { width: 50%; background: var(--fq-sky, #28a7db); }
+.fq-scale-track i { display: block; height: 100%; border-radius: inherit; background: var(--fq-grape); transition: width 140ms ease; }
+.fq-scale-compare small { color: hsl(var(--muted-foreground)); line-height: 1.4; }
 .fq-ll-controls { display: flex; flex-wrap: wrap; gap: 14px; }
 .fq-ll-stepper { display: grid; gap: 4px; }
 .fq-ll-stepper label { font-size: .78rem; font-weight: 800; color: hsl(var(--muted-foreground)); }

@@ -46,6 +46,7 @@ import {
   getNextMission,
   isCorrectAnswer,
   isMissionUnlocked,
+  LATE_ADDED_LESSONS,
   staleDraft,
   loadProgress,
   MISSIONS,
@@ -2056,6 +2057,21 @@ describe('new tenths + hundredths lesson', () => {
     const before = withAll(core.map((m) => m.id));
     const started = updateLearning(before, 'simplify-fractions', { ...emptyLearningRecord(), practiceDone: true });
     assert.equal(isMissionUnlocked(started, 'simplify-fractions'), true);
+  });
+  it('lessons added to units 9-14 never re-lock lessons a learner had already finished', () => {
+    const added = MISSIONS.filter((m) => LATE_ADDED_LESSONS.has(m.id)).map((m) => m.id);
+    assert.equal(added.length, LATE_ADDED_LESSONS.size, 'every late-added id is a real lesson');
+    // A learner who finished every original lesson before the new ones existed.
+    const original = MISSIONS.filter((m) => !LATE_ADDED_LESSONS.has(m.id)).map((m) => m.id);
+    const veteran = withAll(original);
+    const relocked = original.filter((id) => !isMissionUnlocked(veteran, id));
+    assert.deepEqual(relocked, [], `finished lessons locked again: ${relocked.join(', ')}`);
+    assert.ok(added.every((id) => isMissionUnlocked(veteran, id)), 'the new lessons are open to do any time');
+    assert.ok(added.includes(getNextMission(veteran)?.id ?? ''), 'Continue suggests a new lesson');
+    // A brand-new learner still meets each new lesson in order before the next unit opens.
+    const newcomer = withAll(MISSIONS.filter((m) => m.unit <= 8).map((m) => m.id));
+    const nextUnitTen = MISSIONS.find((m) => m.unit === 10 && !LATE_ADDED_LESSONS.has(m.id))!;
+    assert.equal(isMissionUnlocked(newcomer, nextUnitTen.id), false);
   });
   it('spreads the right answer across A, B and C', () => {
     const pos = [0, 0, 0]; for (const m of MISSIONS) for (const q of m.questions) pos[q.correctChoice]++;
