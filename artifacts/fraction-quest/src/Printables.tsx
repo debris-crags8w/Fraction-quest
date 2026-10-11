@@ -250,12 +250,12 @@ function AnswerKey({ mission }: { mission: Mission }) {
           {getWorksheet(mission.id).map((problem) => <li key={problem.id}><b><MathText text={problem.answer} /></b> <small><MathText text={problem.prompt} /></small></li>)}
         </ol>
       </section>
-      <section className="fq-print-key">
+      {CHALLENGES[mission.unit] && <section className="fq-print-key">
         <h2>Unit {mission.unit} challenge</h2>
         <ol className="fq-print-key-list">
           {CHALLENGES[mission.unit].map((item) => <li key={item.id}><b>{letter(item.correct)}</b> · <MathText text={item.choices[item.correct]} /> <small>({item.points} points) <MathText text={item.explanation} /></small></li>)}
         </ol>
-      </section>
+      </section>}
       <section className="fq-print-key">
         <h2>Show it both ways</h2>
         <p><MathText text={checks[0].prompt} /> <b>Answer: <MathText text={`${checks[0].target.n}/${checks[0].target.d}`} /></b>. Why: <MathText text={checks[0].explanation} /></p>
@@ -332,7 +332,7 @@ export default function Printable({ missionId, record, mode, seed = 1 }: { missi
   if (mode === 'lesson') return <LessonSheet mission={mission} />;
   if (mode === 'practice') return <PracticeSheet mission={mission} />;
   if (mode === 'key') return <AnswerKey mission={mission} />;
-  if (mode === 'challenge') return <ChallengeSheet mission={mission} />;
+  if (mode === 'challenge' && CHALLENGES[mission.unit]) return <ChallengeSheet mission={mission} />;
   return <WorksheetPage missionId={missionId} record={record} mode={mode} />;
 }
 
@@ -365,7 +365,8 @@ export function PrintMenu({ missionId, record, className = '' }: { missionId: st
       </button>
       {open && (
         <div className="fq-print-options" role="group" aria-label="Choose what to print">
-          {PRINT_OPTIONS.map((option) => (
+          {/* Units 9+ have no Unit challenge (yet), so there is nothing to print for it. */}
+          {PRINT_OPTIONS.filter((option) => option.mode !== 'challenge' || CHALLENGES[getMission(missionId).unit]).map((option) => (
             <button type="button" key={option.mode} onClick={() => { if (option.mode === 'generated') setSeed(freshSeed()); setMode(option.mode); setRequest((n) => n + 1); }} data-testid={`button-print-${option.mode}`}>
               {option.label}
             </button>

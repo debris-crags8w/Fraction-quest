@@ -7,15 +7,15 @@ type VocabularyEntry = { pattern: string; definition: string };
 const VOCABULARY: VocabularyEntry[] = [
   { pattern: 'equal\\s+shares?', definition: 'Equal shares are parts that are the same size.' },
   { pattern: 'equal\\s+parts?', definition: 'Equal parts are pieces that are the same size.' },
-  { pattern: 'equivalent\\s+fractions?', definition: 'Equivalent fractions look different but name the same amount.' },
-  { pattern: 'improper\\s+fractions?', definition: 'An improper fraction has a numerator that is as large as, or larger than, its denominator.' },
+  { pattern: 'equivalent\\s+fractions?', definition: 'Equivalent fractions look different but are the same amount.' },
+  { pattern: 'improper\\s+fractions?', definition: 'An improper fraction has a top number as big as, or bigger than, the bottom number.' },
   { pattern: 'mixed\\s+numbers?', definition: 'A mixed number has a whole number and a fraction together, like 1 and 2/3.' },
   { pattern: 'unit\\s+fractions?', definition: 'A unit fraction has 1 as its numerator, like 1/4.' },
   { pattern: 'number\\s+lines?', definition: 'A number line shows numbers in order, using equal spaces.' },
-  { pattern: 'denominators?', definition: 'The denominator is the bottom number. It counts how many equal parts make one whole.' },
-  { pattern: 'numerators?', definition: 'The numerator is the top number. It counts how many equal parts are selected.' },
-  { pattern: 'benchmarks?', definition: 'A benchmark is a familiar amount, like 0, 1/2, or 1, that helps compare fractions.' },
-  { pattern: 'wholes?', definition: 'A whole is the complete shape or amount being talked about.' },
+  { pattern: 'denominators?', definition: 'The denominator is the bottom number: how many equal parts make 1 whole.' },
+  { pattern: 'numerators?', definition: 'The numerator is the top number: how many parts you count.' },
+  { pattern: 'benchmarks?', definition: 'A benchmark is an easy number like 0, 1/2 or 1 that helps you compare.' },
+  { pattern: 'wholes?', definition: 'A whole is the full shape or amount.' },
 ];
 
 const VOCABULARY_PATTERN = new RegExp(

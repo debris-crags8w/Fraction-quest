@@ -1,5 +1,5 @@
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
-import { MathText } from './MathText';
+import { type CSSProperties, type RefObject, useEffect, useRef, useState } from 'react';
+import { LearningText } from './LearningText';
 import { ArrowLeft, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
 import { numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, type BuildCheck, type LearningModel, type WorksheetProblem } from './learning-content';
@@ -8,8 +8,10 @@ import {
   type LearningRecord,
 } from './learning';
 import { denomColor } from './fun-ui';
-import { MODEL_CONCEPTS, ModelPair, ModelTag } from './models';
+import { BarSvg, MODEL_CONCEPTS, ModelPair, ModelTag } from './models';
+import { canEnterWorksheetAnswer, WorksheetBarCopy } from './WorksheetBarCopy';
 import { PrintMenu } from './Printables';
+import { FractionEntry, usesFractionEntry } from './FractionEntry';
 import './learning-lab.css';
 
 type Kind = LearningModel['kind'];
@@ -49,18 +51,31 @@ function Frac({ n, d }: { n: number; d: number }) { return <span className="fq-l
 function Preview({ m }: { m: LearningModel }) {
   return (
     <div className="fq-ll-preview-wrap"><ModelTag kind={m.kind} />
-    <div className="fq-ll-preview" style={{ '--piece': denomColor(m.d) } as CSSProperties} role="img" aria-label={m.kind === 'set' ? `${m.n} of ${m.d} groups selected from ${m.total} objects` : `${m.d} equal parts per whole, marked after ${m.n} parts`}>
+    {m.kind === 'bar' ? (
+      <div className="fq-ll-preview-svg">
+        <BarSvg n={m.n} d={m.d} wholes={m.wholes} label={`${m.d} equal parts per whole, ${m.n} parts shaded`} />
+      </div>
+    ) : <div className="fq-ll-preview" style={{ '--piece': denomColor(m.d) } as CSSProperties} role="img" aria-label={m.kind === 'set' ? `${m.n} of ${m.d} groups selected from ${m.total} objects` : `${m.d} equal parts per whole, marked after ${m.n} parts`}>
       {m.kind === 'line' ? (
         <div className="fq-ll-pline">{Array.from({ length: m.d * m.wholes + 1 }, (_, i) => <i key={i} className={i === m.n ? 'on' : ''} style={{ left: `${(i / (m.d * m.wholes)) * 100}%` }}>{i % m.d === 0 && <span>{i / m.d}</span>}</i>)}</div>
       ) : (
         m.kind === 'set' ? <div className="fq-ll-groups">{Array.from({ length: m.d }, (_, g) => <div className={`fq-ll-group ${g < m.n ? 'on' : ''}`} key={g}>
           {Array.from({ length: (m.total ?? 0) / m.d }, (_, i) => <i key={i} />)}
         </div>)}</div> :
-        Array.from({ length: m.wholes }, (_, w) => <div className="fq-ll-pcells" style={{ gridTemplateColumns: `repeat(${gridColumns(m.d)}, minmax(0,1fr))` }} key={w} aria-label={`Whole ${w + 1}`}>
-          {Array.from({ length: m.d }, (_, i) => <i key={i} className={w * m.d + i < m.n ? 'on' : ''} />)}
-        </div>)
+        <div className="fq-ll-preview-bars">
+          {Array.from({ length: m.wholes }, (_, w) => (
+            <div className="fq-ll-preview-whole" key={w}>
+              <span>Whole {w + 1}</span>
+              <div className="fq-ll-pcells" style={{ gridTemplateColumns: `repeat(${gridColumns(m.d)}, minmax(0,1fr))` }}>
+                {Array.from({ length: m.d }, (_, i) => <i key={i} className={w * m.d + i < m.n ? 'on' : ''} />)}
+              </div>
+            </div>
+          ))}
+          <span className="fq-ll-part-guide"><i aria-hidden="true" /> Part · one cell is one equal part</span>
+        </div>
       )}
-    </div></div>
+    </div>}
+    </div>
   );
 }
 function gridColumns(d: number): number {
@@ -91,8 +106,9 @@ function Stepper({ label, value, min, max, onSet, id, hint }: { label: string; v
   );
 }
 
-function Builder({ kind, total, st, set, id, title, lineWholes = 1 }: { kind: Kind; total?: number; st: St; set: (s: St) => void; id: string; title: string; lineWholes?: number }) {
-  const maxD = kind === 'line' ? 12 : kind === 'set' ? Math.min(total ?? 24, 24) : 100;
+function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: { kind: Kind; total?: number; st: St; set: (s: St) => void; id: string; title: string; lineWholes?: number; need?: number }) {
+  // Lines usually stop at 12 spaces, but a hundredths target (like 25/100) must still be possible.
+  const maxD = kind === 'line' ? Math.max(12, need) : kind === 'set' ? Math.min(total ?? 24, 24) : 100;
   const wholes = kind === 'line' ? lineWholes : st.wholes;
   const pieces = kind === 'set' ? st.d : st.d * wholes;
   const setCount = (c: number) => set({ ...st, count: clamp(c, 0, pieces) });
@@ -117,14 +133,23 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1 }: { kind: Ki
       <div className="fq-ll-stage" style={{ '--piece': denomColor(st.d) } as CSSProperties}>
         {kind === 'line' && <p className="fq-ll-line-guide" data-testid={'text-line-guide-' + id}>{wholes === 1 ? 'The line goes from 0 to 1. Each space is one jump.' : `The line goes from 0 to ${wholes}. Each whole gets the same spaces.`}</p>}
         {st.d === 0 ? <p className="fq-ll-empty">Pick how many equal parts to start.</p> :
-          kind === 'bar' ? Array.from({ length: st.wholes }, (_, w) => (
-            <div key={w} className={'fq-ll-bar ' + (wrap ? 'wrap' : '')} style={{ gridTemplateColumns: 'repeat(' + gridColumns(st.d) + ', minmax(0,1fr))' }} role="group" aria-label={'Whole ' + (w + 1)}>
-              {Array.from({ length: st.d }, (_, p) => {
-                const i = w * st.d + p;
-                return <button key={p} type="button" className={'fq-ll-piece ' + (i < st.count ? 'on' : '')} aria-pressed={i < st.count} aria-label={'Piece ' + (i + 1) + ' of ' + pieces} onClick={() => toggle(i)} data-testid={'piece-' + id + '-' + i} />;
-              })}
+          kind === 'bar' ? (
+            <div className="fq-ll-bar-models">
+              {Array.from({ length: st.wholes }, (_, w) => (
+                <div className="fq-ll-whole-wrap" key={w}>
+                  <span className="fq-ll-whole-label">Whole {w + 1}</span>
+                  <div className={'fq-ll-bar ' + (wrap ? 'wrap' : '')} style={{ gridTemplateColumns: 'repeat(' + gridColumns(st.d) + ', minmax(0,1fr))' }} role="group" aria-label={'Whole ' + (w + 1) + ', split into ' + st.d + ' equal parts'}>
+                    {Array.from({ length: st.d }, (_, p) => {
+                      const i = w * st.d + p;
+                      return <button key={p} type="button" className={'fq-ll-piece ' + (i < st.count ? 'on' : '')} aria-pressed={i < st.count} aria-label={'Part ' + (p + 1) + ' of ' + st.d + ' equal parts' + (i < st.count ? ', shaded' : ', not shaded')} onClick={() => toggle(i)} data-testid={'piece-' + id + '-' + i} />;
+                    })}
+                  </div>
+                  {w === 0 && <span className="fq-ll-part-marker" style={{ gridTemplateColumns: `repeat(${gridColumns(st.d)}, minmax(0,1fr))` }}><b>PART</b></span>}
+                </div>
+              ))}
+              <span className="fq-ll-part-guide"><i aria-hidden="true" /> Part · tap a section to shade that many equal parts</span>
             </div>
-          )) : kind === 'set' ? (
+          ) : kind === 'set' ? (
             <div className="fq-ll-groups">
               {Array.from({ length: st.d }, (_, g) => (
                 <button key={g} type="button" className={'fq-ll-group ' + (g < st.count ? 'on' : '')} aria-pressed={g < st.count} aria-label={'Group ' + (g + 1) + ' of ' + st.d} onClick={() => toggle(g)} data-testid={'group-' + id + '-' + g}>
@@ -152,9 +177,10 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1 }: { kind: Ki
 }
 
 type Outcome = { supported: boolean; attempts: number };
-function CheckRunner({ check, onHelp, onPass, review }: {
+function CheckRunner({ check, onHelp, onPass, review, headingRef }: {
   check: BuildCheck; review: boolean;
   onHelp: (kind: 'hint' | 'error', keys: string[]) => void; onPass: (o: Outcome) => void;
+  headingRef?: RefObject<HTMLHeadingElement | null>;
 }) {
   const t = check.target; const k = t.kind; const lineWholes = numberLineWholeCount(t.n, t.d);
   const tk: Kind = k === 'line' ? 'bar' : 'line';
@@ -189,33 +215,33 @@ function CheckRunner({ check, onHelp, onPass, review }: {
   return (
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
       <p className="fq-ll-kicker">{check.transfer ? (review ? 'Review' : 'Step 2 · On your own') : 'Step 1 · Build it'}</p>
-      <h3><MathText text={check.prompt} /></h3>
-      <Builder kind={k} total={t.total} st={a} set={setA} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} />
+       <h3 ref={headingRef} tabIndex={-1}><LearningText text={check.prompt} speak /></h3>
+      <Builder kind={k} total={t.total} st={a} set={setA} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
       <div className="fq-ll-translate">
         <strong>{transLabel}</strong>
         <span>Same fraction, new model. Make them match!</span>
       </div>
-      <Builder kind={tk} st={b} set={setB} id={`${check.id}-b`} title={`Show the same fraction ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} />
+      <Builder kind={tk} st={b} set={setB} id={`${check.id}-b`} title={`Show the same fraction ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
       <fieldset className="fq-ll-reasons" data-testid={`reasons-${check.id}`}>
         <legend>Why does it work? Pick one.</legend>
         {check.reasons.map((r, i) => (
           <label key={i} className={reason === i ? 'on' : ''}>
             <input type="radio" name={`reason-${check.id}`} checked={reason === i} onChange={() => setReason(i)} data-testid={`radio-reason-${check.id}-${i}`} />
-            <span><MathText text={r} /></span>
+             <span><LearningText text={r} interactiveTerms={false} /></span>
           </label>
         ))}
       </fieldset>
-      {hints > 0 && <div className="fq-ll-hint" data-testid={`text-hint-${check.id}`}><strong>Hint:</strong> <MathText text={hintTexts[Math.min(hints, 2) - 1]} /></div>}
+       {hints > 0 && <div className="fq-ll-hint" data-testid={`text-hint-${check.id}`}><strong>Hint:</strong> <LearningText text={hintTexts[Math.min(hints, 2) - 1]} speak /></div>}
       {errs.length > 0 && (
         <div className="fq-ll-feedback retry" role="alert" data-testid={`status-errors-${check.id}`}>
           <CircleHelp size={20} />
           <div>
             <strong>{locked ? 'Not yet! Fix these, then check again.' : 'Changed something? Check again.'}</strong>
-            <ul>{errs.map((e, i) => <li key={i}><MathText text={e} /></li>)}</ul>
+             <ul>{errs.map((e, i) => <li key={i}><LearningText text={e} speak /></li>)}</ul>
           </div>
         </div>
       )}
-      {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>You did it! Both models match.</strong> <MathText text={check.explanation} /></div></div>}
+       {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>You did it! Both models match.</strong> <LearningText text={check.explanation} speak /></div></div>}
       {done && <ModelPair n={t.n} d={t.d} />}
       <div className="fq-ll-actions">
         <button type="button" className="fq-hint-button" onClick={hint} disabled={done} data-testid={`button-hint-${check.id}`}><Lightbulb size={17} /> {hints ? 'Another hint' : 'Hint'}</button>
@@ -234,22 +260,48 @@ export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; 
   const [open, setOpen] = useState(false);
   const [wrong, setWrong] = useState<string | null>(null);
   const ph = p.form === 'symbol' ? '< = >' : p.form === 'mixed' ? '1 2/3' : p.form === 'decimal' ? '0.4' : p.form === 'ordered' ? '1/4, 2/4, 3/4' : 'Your answer';
-  const submit = (event: { preventDefault: () => void }) => { event.preventDefault(); if (!draft.trim()) return; setWrong(answerMatches(p, draft) ? null : draft); onCheck(); };
+  const fractionInput = usesFractionEntry(p);
+  const promptId = `ws-prompt-${p.id}`;
+  const targetBar = p.modelRequired && p.model?.kind === 'bar' ? p.model : null;
+  const [modelReady, setModelReady] = useState(!targetBar);
+  const answerEnabled = canEnterWorksheetAnswer(!!targetBar, modelReady);
+  const modelStatusId = `ws-model-status-${p.id}`;
+  const inputDescription = [promptId, `ws-fb-${p.id}`, ...(targetBar ? [modelStatusId] : [])].join(' ');
+  const submit = (event: { preventDefault: () => void }) => {
+    event.preventDefault();
+    if (!draft.trim() || !answerEnabled) return;
+    setWrong(answerMatches(p, draft) ? null : draft);
+    onCheck();
+  };
   return (
     <li className={'fq-ll-row ' + (ok ? 'ok' : '')} data-testid={'row-worksheet-' + p.id}>
       <form onSubmit={submit}>
-        <label htmlFor={'ws-' + p.id}><span className="fq-ll-num">{p.id.slice(1)}</span><span><MathText text={p.prompt} /></span></label>
+        <div className="fq-ll-row-question">
+          <span className="fq-ll-num" aria-hidden="true">{p.id.slice(1)}</span>
+          <span id={promptId}><LearningText text={p.prompt} speak /></span>
+        </div>
         {p.model && <Preview m={p.model} />}
-        <div className="fq-ll-answer">
-          <input id={'ws-' + p.id} type="text" value={draft} placeholder={ph} autoComplete="off" maxLength={200} onChange={ev => { setWrong(null); onEdit(ev.target.value); }} data-testid={'input-worksheet-' + p.id} aria-describedby={'ws-fb-' + p.id} />
-          <button type="submit" className="fq-button" disabled={!draft.trim() || ok} data-testid={'button-check-worksheet-' + p.id}>{ok ? 'Correct' : 'Check'}</button>
+        {targetBar && <WorksheetBarCopy target={targetBar} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />}
+        <div className="fq-ll-answer" aria-busy={!answerEnabled}>
+          {fractionInput ? (
+            <FractionEntry
+              id={`ws-${p.id}`}
+              value={draft}
+              onChange={value => { setWrong(null); onEdit(value); }}
+              describedBy={inputDescription}
+              disabled={!answerEnabled}
+            />
+          ) : (
+            <input id={'ws-' + p.id} type="text" value={draft} placeholder={ph} autoComplete="off" maxLength={200} disabled={!answerEnabled} onChange={ev => { setWrong(null); onEdit(ev.target.value); }} data-testid={'input-worksheet-' + p.id} aria-labelledby={promptId} aria-describedby={inputDescription} />
+          )}
+          <button type="submit" className="fq-button" disabled={!draft.trim() || ok || !answerEnabled} data-testid={'button-check-worksheet-' + p.id}>{ok ? 'Correct' : 'Check'}</button>
           <button type="button" className="fq-ll-hintbtn" aria-expanded={open} onClick={() => { if (!open) onHint(); setOpen(o => !o); }} data-testid={'button-hint-worksheet-' + p.id}><Lightbulb size={16} /> Hint</button>
         </div>
         <div id={'ws-fb-' + p.id} aria-live="polite">
           {ok && <p className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Correct!</p>}
-          {!ok && wrong === draft && <p className="fq-ll-ws bad" data-testid={'status-worksheet-' + p.id}>Not yet. <MathText text={p.hint} /></p>}
+          {!ok && wrong === draft && <p className="fq-ll-ws bad" data-testid={'status-worksheet-' + p.id}>Not yet. <LearningText text={p.hint} speak /></p>}
           {!ok && e && e.attempts > 0 && e.checkedValue === undefined && wrong !== draft && draft.trim() && <p className="fq-ll-ws" data-testid={'status-worksheet-' + p.id}>Changed. Press Check.</p>}
-          {open && <p className="fq-ll-ws hint" data-testid={'text-hint-worksheet-' + p.id}><MathText text={p.hint} /></p>}
+          {open && <p className="fq-ll-ws hint" data-testid={'text-hint-worksheet-' + p.id}><LearningText text={p.hint} speak /></p>}
         </div>
       </form>
     </li>
@@ -266,12 +318,32 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const [reviewPassed, setReviewPassed] = useState(false);
   const [reviewSupported, setReviewSupported] = useState(() => (getLearningRecord(progress, missionId).reviewSupportedUntil ?? 0) > Date.now());
   const rec = getLearningRecord(progress, missionId);
+  const activeCheckIndex = checks.findIndex(c => !rec.checks[c.id]?.passed);
+  const activeCheckId = !review && activeCheckIndex !== -1 ? checks[activeCheckIndex].id : null;
+  const activeCheckHeading = useRef<HTMLHeadingElement | null>(null);
+  const previousActiveCheckId = useRef<string | null>(null);
   const save = (r: LearningRecord) => { const p = updateLearning(ref.current, missionId, r); ref.current = p; onChange(p); };
   const cur = () => getLearningRecord(ref.current, missionId);
   const bump = (r: LearningRecord, keys: string[]): LearningRecord => ({
     ...r, helpUses: r.helpUses + (keys.length === 0 ? 1 : 1),
     misconceptions: keys.reduce((m, k) => ({ ...m, [k]: (m[k] ?? 0) + 1 }), r.misconceptions),
   });
+
+  useEffect(() => {
+    const previousId = previousActiveCheckId.current;
+    previousActiveCheckId.current = activeCheckId;
+    if (!previousId || !activeCheckId || previousId === activeCheckId) return;
+
+    requestAnimationFrame(() => {
+      const heading = activeCheckHeading.current;
+      if (!heading) return;
+      heading.focus({ preventScroll: true });
+      heading.scrollIntoView({
+        block: 'start',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    });
+  }, [activeCheckId]);
 
   if (review) {
     const check = getReviewCheck(missionId, progress.reviewQueue.find(item => item.missionId === missionId)?.reviewCount ?? 0);
@@ -296,7 +368,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
     );
   }
 
-  const idx = checks.findIndex(c => !rec.checks[c.id]?.passed);
+  const idx = activeCheckIndex;
   const count = worksheetCount(rec, missionId);
   const sum = learningSummary(rec);
   const gate = hasLearningGate(progress, missionId);
@@ -338,6 +410,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
       {idx !== -1 && (
         <CheckRunner key={checks[idx].id} review={false} check={checks[idx]}
+          headingRef={activeCheckHeading}
           onHelp={(kind, keys) => {
             const r = bump(cur(), keys); const id = checks[idx].id; const old = r.checks[id];
             save({ ...r, checks: { ...r.checks, [id]: { passed: false, supported: true, attempts: (old?.attempts ?? 0) + (kind === 'error' ? 1 : 0) } } });

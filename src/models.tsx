@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import React, { type CSSProperties, type ReactNode } from 'react';
 import type { ChallengeFigure } from './challenges';
 import { FoldIllustration } from './PaperFold';
 
@@ -58,18 +58,24 @@ const PAD = 22;
 export function BarSvg({ n = 0, d, wholes = 1, label }: { n?: number; d?: number; wholes?: number; label?: string }) {
   const unit = W / wholes;
   return (
-    <svg className="fq-svg-bar" viewBox={`0 0 ${W + PAD * 2} 46`} role="img" aria-label={label ?? (d ? `Bar model: ${n}/${d}, each whole split into ${d} equal pieces` : 'Empty bar model to split into equal pieces')}>
+    <svg className="fq-svg-bar" viewBox={`0 0 ${W + PAD * 2} 74`} role="img" aria-label={label ?? (d ? `Bar model: ${n}/${d}; each whole is split into ${d} equal parts, and ${n} parts are shaded` : 'Whole bar ready to split into equal parts')}>
       {Array.from({ length: wholes }, (_, w) => {
         const x0 = PAD + w * unit + (w ? 3 : 0);
         const width = unit - (wholes > 1 ? 3 : 0);
+        const partCenter = x0 + width / (d ? d * 2 : 2);
         return (
           <g key={w}>
+            <text className="fq-svg-model-label" x={x0 + width / 2} y={11} textAnchor="middle">WHOLE {w + 1}</text>
             {d && Array.from({ length: d }, (_, p) => {
               const i = w * d + p;
-              return <rect key={p} className={i < n ? 'shaded' : 'empty'} style={{ '--i': i } as CSSProperties} x={x0 + (p * width) / d} y={6} width={width / d} height={32} />;
+              return <rect key={p} className={i < n ? 'shaded' : 'empty'} style={{ '--i': i } as CSSProperties} x={x0 + (p * width) / d} y={17} width={width / d} height={32} />;
             })}
-            {!d && <rect className="empty" x={x0} y={6} width={width} height={32} />}
-            <rect className="frame" x={x0} y={6} width={width} height={32} fill="none" />
+            {!d && <rect className="empty" x={x0} y={17} width={width} height={32} />}
+            <rect className="frame" x={x0} y={17} width={width} height={32} fill="none" />
+            {w === 0 && d !== undefined && <>
+              <line className="fq-svg-part-guide-line" x1={partCenter} y1={50} x2={partCenter} y2={57} />
+              <text className="fq-svg-model-label part" x={partCenter} y={69} textAnchor="middle">PART</text>
+            </>}
           </g>
         );
       })}

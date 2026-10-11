@@ -6,7 +6,7 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { splitStory } from './fun-ui';
 import { generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
 import type { PracticeQuestion } from './game';
-import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
+import { answerMatches, asChoicePrompt, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
 import { LearningText } from './LearningText';
 import { BarSvg } from './models';
@@ -206,7 +206,7 @@ describe('lesson catalog', () => {
     }
   });
   it('checks the first answer key for every added mission independently', () => {
-    const expected = ['1/4', '6/10', '>', '1/6, 1/2, 4/5', '2/8', '3', '1 2/3', '16', '2/3', '1/6', '4', '4', '8', '2/2', '1/4', '3/4', '3/8', '4/8', '2/6', '2/4', '25%', '80/100', '8/10', '1/5'];
+    const expected = ['1/3', '3/9', '<', '3/4, 1/2, 1/3', '2/6', '3', '1 5/6', '6', '3/3', '1/9', '6', '6', '3', '3/6', '2/3', '2/3', '2/6', '1/3', '2/6', '3/3', '25%', '25/100', '0.25', '2/5'];
     MISSIONS.slice(27).forEach((mission, index) => {
       const question = mission.questions[0];
       assert.equal(question.choices[question.correctChoice], expected[index], mission.id);
@@ -473,7 +473,7 @@ describe('entered-answer worksheets and evidence gates', () => {
     }));
     assert.match(markup, /class="fq-vocab-trigger" role="term" tabindex="0" aria-describedby=/);
     assert.match(markup, /role="tooltip"/);
-    assert.match(markup, /A whole is the complete shape or amount/);
+    assert.match(markup, /A whole is the full shape or amount/);
     assert.match(markup, /class="fq-mfrac" role="math" aria-label="1 over 4"/);
     assert.match(markup, /class="fq-learning-listen"/);
   });
@@ -890,7 +890,7 @@ describe('question generator', () => {
       for (const question of bank) {
         const independentlyVerified = verify(question);
         if (mission.unit >= 9 && !independentlyVerified) {
-          const source = getWorksheet(mission.id).find((problem) => problem.prompt === question.prompt);
+          const source = getWorksheet(mission.id).find((problem) => asChoicePrompt(problem.prompt) === question.prompt);
           assert.ok(source, `${question.id} should use an authored worksheet problem`);
           assert.equal(question.choices[question.correctChoice], source.answer, `${question.id} answer should match its worksheet`);
         }
@@ -915,7 +915,7 @@ describe('question generator', () => {
           if (independentlyVerified) {
             checked++;
           } else if (mission.unit >= 9) {
-            const source = getWorksheet(mission.id).find((problem) => problem.prompt === question.prompt);
+            const source = getWorksheet(mission.id).find((problem) => asChoicePrompt(problem.prompt) === question.prompt);
             assert.ok(source, `${question.id} should use an authored worksheet problem`);
             assert.equal(question.choices[question.correctChoice], source.answer, `${question.id} answer should match its worksheet`);
             checked++;
@@ -931,5 +931,106 @@ describe('question generator', () => {
     const first = generateQuestions('add-like-denominators', ids('add-like-denominators'), 11, 10).map((question) => question.prompt).join();
     const second = generateQuestions('add-like-denominators', ids('add-like-denominators'), 12, 10).map((question) => question.prompt).join();
     assert.notEqual(first, second);
+  });
+});
+
+describe('quality audit fixes', () => {
+  const GRADE_DENOMINATORS = new Set([2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 100]);
+  it('every build and review target can be built (lines grow to fit hundredths, at most 3 wholes)', () => {
+    for (const mission of MISSIONS) {
+      const targets = [...getBuildChecks(mission.id), ...[0, 1, 2, 3, 4, 5].map((r) => getReviewCheck(mission.id, r))];
+      for (const check of targets) {
+        assert.ok(check.target.wholes <= 3, `${mission.id}: ${check.prompt} needs ${check.target.wholes} bars`);
+        assert.ok(check.target.d <= 100, `${mission.id}: ${check.prompt}`);
+        if (check.target.total) assert.ok(check.target.d <= 24 && check.target.total % check.target.d === 0);
+      }
+    }
+  });
+  it('review prompts ask to build, never to type, and never need a missing picture', () => {
+    for (const mission of MISSIONS) for (let round = 0; round < 6; round++) {
+      const { prompt } = getReviewCheck(mission.id, round);
+      assert.doesNotMatch(prompt, /Type|Enter|Show your answer|this bar|this line|at the dot|is shaded/i, `${mission.id} review ${round}: ${prompt}`);
+    }
+  });
+  it('puts the right reason in different spots, not always the same one', () => {
+    const spots = new Set(MISSIONS.flatMap((mission) => getBuildChecks(mission.id).map((check) => check.correctReason)));
+    assert.equal(spots.size, 3);
+    for (const mission of MISSIONS) for (const check of getBuildChecks(mission.id)) assert.equal(check.reasons[check.correctReason], check.explanation);
+  });
+  it('worksheets use grade-friendly denominators, real hints, and no zero, trivial or repeated questions', () => {
+    for (const mission of MISSIONS) {
+      const problems = getWorksheet(mission.id);
+      assert.equal(new Set(problems.map((p) => p.prompt + JSON.stringify(p.model ?? null))).size, 12, `${mission.id} repeats a question`);
+      for (const p of problems) {
+        for (const m of p.prompt.matchAll(/(\d+)\/(\d+)/g)) {
+          const bottom = Number(m[2]);
+          assert.ok(GRADE_DENOMINATORS.has(bottom) || (bottom % 2 === 0 && bottom <= 48) || bottom % 5 === 0, `${mission.id}/${p.id}: odd denominator ${m[0]}`);
+        }
+        const value = parseAnswer(p.answer.replace(/%$/, ''));
+        if (value && p.answer !== '0') assert.ok(value.n > 0, `${mission.id}/${p.id}: zero answer ${p.answer}`);
+        assert.doesNotMatch(p.answer, /^0 /, `${mission.id}/${p.id}: "0 and a fraction"`);
+        assert.doesNotMatch(p.hint, /idea and|Use the [a-z -]+ idea/, `${mission.id}/${p.id}: template hint`);
+        assert.doesNotMatch(p.prompt, /How many (copies|1\/\d+ pieces) of (\d+\/\d+) make \2/);
+      }
+    }
+  });
+  it('lessons in the same family print different worksheets', () => {
+    const families = [['equal-parts', 'unit-fractions'], ['benchmark-half', 'fraction-magnitude'], ['equivalent-models', 'build-equivalents', 'missing-equivalent'], ['improper-fractions', 'mixed-improper'], ['unit-size', 'compare-same-numerator']];
+    for (const family of families) {
+      const sheets = family.map((id) => getWorksheet(id).map((p) => p.prompt).join('|'));
+      assert.equal(new Set(sheets).size, family.length, family.join(' / '));
+    }
+  });
+  it('ordering questions never show the fractions already in the asked order', () => {
+    for (const id of ['order-fractions', 'order-unlike-fractions']) for (const p of getWorksheet(id)) {
+      const shown = /Put (.+) in order/.exec(p.prompt)![1];
+      assert.notEqual(shown.replace(/\s/g, ''), p.answer.replace(/\s/g, ''), p.prompt);
+    }
+  });
+  it('a worksheet picture always matches its question', () => {
+    for (const mission of MISSIONS) for (const p of getWorksheet(mission.id)) {
+      if (!p.model || p.model.n === 0) continue; // empty helper picture (wholes cut up, nothing shaded)
+      const shown = `${p.model.n}/${p.model.d}`;
+      const answer = parseAnswer(p.answer);
+      const sameValue = !!answer && answer.n * p.model.d === p.model.n * answer.d;
+      const mentioned = p.prompt.includes(shown) || sameValue || /this|dot|shaded|of \d+/i.test(p.prompt) || p.model.kind === 'set';
+      assert.ok(mentioned, `${mission.id}/${p.id}: picture ${shown} does not match "${p.prompt}"`);
+    }
+  });
+  it('percent and decimal answers are exact (no rounding)', () => {
+    for (const id of ['fractions-to-percent', 'percent-to-fraction', 'decimal-fraction-equivalence']) for (const p of getWorksheet(id)) {
+      const [, t, b] = /(\d+)\/(\d+)|(\d+)%/.exec(p.prompt) ?? [];
+      if (t && b && p.answer.endsWith('%')) assert.equal(Number(p.answer.slice(0, -1)), (Number(t) * 100) / Number(b), p.prompt);
+      if (t && b && p.form === 'decimal') assert.equal(Number(p.answer), Number(t) / Number(b), p.prompt);
+    }
+  });
+  it('generated help pictures belong to the question (not a stock 1/2 bar)', () => {
+    for (const mission of MISSIONS.slice(0, 27)) for (const q of getExtraPractice(mission.id, mission.questions.map((item) => item.id))) {
+      assert.equal(q.simplerModel.kind, q.model.kind, `${mission.id}/${q.id}`);
+    }
+  });
+  it('tap questions never say "Type" and wrong choices never equal the answer in value', () => {
+    for (const mission of MISSIONS) for (const q of [...mission.questions, ...getExtraPractice(mission.id, mission.questions.map((item) => item.id))]) {
+      assert.doesNotMatch(q.prompt, /\bType\b|\bEnter\b/, `${q.id}: ${q.prompt}`);
+      const right = parseAnswer(q.choices[q.correctChoice].replace(/%$/, '').replace(/ and /, ' '));
+      if (!right) continue;
+      q.choices.forEach((c, i) => {
+        if (i === q.correctChoice) return;
+        const v = parseAnswer(c.replace(/%$/, '').replace(/ and /, ' '));
+        if (v) assert.notEqual(v.n * right.d, right.n * v.d, `${q.id}: "${c}" equals the answer`);
+      });
+    }
+  });
+  it('generator keeps to grade-friendly denominators', () => {
+    for (const mission of MISSIONS.slice(0, 27)) for (let seed = 1; seed <= 40; seed++) {
+      for (const q of generateQuestions(mission.id, mission.questions.map((item) => item.id), seed, 10)) {
+        // Wrong choices may show a deliberate mistake (1/3 + 1/12 → 2/15), so check the question, answer and hint.
+        for (const m of `${q.prompt} ${q.choices[q.correctChoice]} ${q.hint}`.matchAll(/(\d+)\/(\d+)/g)) {
+          const bottom = Number(m[2]);
+          assert.ok(bottom <= 12 || bottom === 100 || bottom === 24 || bottom === 16 || bottom === 18 || bottom === 20, `${q.id}: ${m[0]} in "${q.prompt}"`);
+        }
+        assert.doesNotMatch(q.hint, /\d\.5/, `${q.id}: decimal hint for 3rd graders`);
+      }
+    }
   });
 });

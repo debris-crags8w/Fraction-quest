@@ -106,8 +106,9 @@ function Stepper({ label, value, min, max, onSet, id, hint }: { label: string; v
   );
 }
 
-function Builder({ kind, total, st, set, id, title, lineWholes = 1 }: { kind: Kind; total?: number; st: St; set: (s: St) => void; id: string; title: string; lineWholes?: number }) {
-  const maxD = kind === 'line' ? 12 : kind === 'set' ? Math.min(total ?? 24, 24) : 100;
+function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: { kind: Kind; total?: number; st: St; set: (s: St) => void; id: string; title: string; lineWholes?: number; need?: number }) {
+  // Lines usually stop at 12 spaces, but a hundredths target (like 25/100) must still be possible.
+  const maxD = kind === 'line' ? Math.max(12, need) : kind === 'set' ? Math.min(total ?? 24, 24) : 100;
   const wholes = kind === 'line' ? lineWholes : st.wholes;
   const pieces = kind === 'set' ? st.d : st.d * wholes;
   const setCount = (c: number) => set({ ...st, count: clamp(c, 0, pieces) });
@@ -215,12 +216,12 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef }: {
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
       <p className="fq-ll-kicker">{check.transfer ? (review ? 'Review' : 'Step 2 · On your own') : 'Step 1 · Build it'}</p>
        <h3 ref={headingRef} tabIndex={-1}><LearningText text={check.prompt} speak /></h3>
-      <Builder kind={k} total={t.total} st={a} set={setA} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} />
+      <Builder kind={k} total={t.total} st={a} set={setA} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
       <div className="fq-ll-translate">
         <strong>{transLabel}</strong>
         <span>Same fraction, new model. Make them match!</span>
       </div>
-      <Builder kind={tk} st={b} set={setB} id={`${check.id}-b`} title={`Show the same fraction ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} />
+      <Builder kind={tk} st={b} set={setB} id={`${check.id}-b`} title={`Show the same fraction ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
       <fieldset className="fq-ll-reasons" data-testid={`reasons-${check.id}`}>
         <legend>Why does it work? Pick one.</legend>
         {check.reasons.map((r, i) => (

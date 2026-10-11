@@ -1,5 +1,5 @@
 import { hasLearningGate, type LearningRecord } from './learning';
-import { getBuildChecks, getWorksheet } from './learning-content';
+import { asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 
 export type FractionValue = { numerator: number; denominator: number };
 
@@ -519,152 +519,73 @@ type ExtensionTopic = {
 };
 
 const extensionTopics: ExtensionTopic[] = [
-  { id: 'simplify-fractions', unit: 9, title: 'Find a fraction’s simplest name', shortTitle: 'Simplest form', description: 'Group equal-sized pieces without changing the amount.', skill: 'Divide the numerator and denominator by the same common factor to simplify a fraction.', mode: 'simplify', n: 3, d: 4, context: 'paper strip' },
-  { id: 'equivalent-missing-both', unit: 9, title: 'Complete an equivalent fraction', shortTitle: 'Equivalent fractions', description: 'Find a missing numerator or denominator by keeping the amount fixed.', skill: 'Equivalent fractions preserve the same ratio between numerator and denominator.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
-  { id: 'compare-unlike-fractions', unit: 9, title: 'Compare fractions with different pieces', shortTitle: 'Compare unlike parts', description: 'Rename fractions or use a shared whole to compare their sizes.', skill: 'Compare unlike denominators by reasoning about equal-sized parts of the same whole.', mode: 'compare', n: 2, d: 3, context: 'race track' },
-  { id: 'order-unlike-fractions', unit: 9, title: 'Put unlike fractions in order', shortTitle: 'Order unlike parts', description: 'Order amounts with different denominators from least to greatest.', skill: 'Use benchmarks and equivalent fractions to order unlike fractions.', mode: 'order', n: 1, d: 5, context: 'hiking trail' },
-  { id: 'subtract-unlike-fractions', unit: 10, title: 'Subtract fractions with different names', shortTitle: 'Subtract unlike parts', description: 'Rename fractions so their piece sizes match before subtracting.', skill: 'Subtract unlike fractions by making equivalent fractions with a common denominator.', mode: 'subtract-unlike', n: 3, d: 4, context: 'water bottle' },
-  { id: 'add-mixed-numbers', unit: 10, title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Combine whole units and fractional parts without losing track of the whole.', skill: 'Add mixed numbers by combining whole units and compatible fractional parts.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route' },
-  { id: 'subtract-mixed-numbers', unit: 10, title: 'Subtract mixed numbers', shortTitle: 'Subtract mixed numbers', description: 'Find the difference between measurements written with whole and fractional parts.', skill: 'Subtract mixed numbers by regrouping one whole when the fractional part is too small.', mode: 'mixed-subtract', n: 1, d: 3, context: 'fabric roll' },
-  { id: 'fraction-of-quantity', unit: 10, title: 'Find a fraction of a quantity', shortTitle: 'Fractions of amounts', description: 'Share a count into equal groups, then count the requested groups.', skill: 'Find a fraction of a whole-number quantity by dividing and then multiplying.', mode: 'quantity', n: 3, d: 5, context: 'classroom supplies' },
-  { id: 'multiply-whole-by-fraction', unit: 11, title: 'Multiply a whole number by a fraction', shortTitle: 'Whole × fraction', description: 'Use repeated equal fractional groups to find a total amount.', skill: 'Interpret a whole-number times a fraction as repeated fractional groups.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles' },
-  { id: 'multiply-fractions', unit: 11, title: 'Multiply two fractions', shortTitle: 'Fraction × fraction', description: 'Find a part of a part by multiplying numerators and denominators.', skill: 'Multiply fractions by finding the fractional part of another fractional amount.', mode: 'multiply', n: 2, d: 3, context: 'garden plot' },
-  { id: 'fraction-of-collection', unit: 11, title: 'Find a fraction of a collection', shortTitle: 'Groups of objects', description: 'Make equal groups in a collection and select the fraction requested.', skill: 'Represent fractions of collections as equal groups of objects.', mode: 'sets', n: 3, d: 4, context: 'sports cards' },
-  { id: 'divide-whole-by-unit-fraction', unit: 11, title: 'How many unit fractions fit?', shortTitle: 'Divide by a fraction', description: 'Count how many fractional-size measures fit inside a whole amount.', skill: 'Interpret division by a unit fraction as the number of equal-size parts in a whole.', mode: 'divide', n: 1, d: 4, context: 'measuring cup' },
-  { id: 'fraction-of-length', unit: 12, title: 'Measure a fraction of a length', shortTitle: 'Fractional lengths', description: 'Use a unit fraction as a ruler step to measure a distance.', skill: 'Use repeated unit-fraction lengths to describe and find distances.', mode: 'measure', n: 3, d: 8, context: 'ribbon' },
-  { id: 'fractional-measure-addition', unit: 12, title: 'Add fractional measurements', shortTitle: 'Measure together', description: 'Combine fractional lengths that use different units of measurement.', skill: 'Add fractional measurements by converting to a shared unit and denominator.', mode: 'measure-add', n: 1, d: 2, context: 'wooden boards' },
-  { id: 'fractional-sharing', unit: 12, title: 'Share a quantity fractionally', shortTitle: 'Fair sharing', description: 'Split a measured amount equally, including when each share is fractional.', skill: 'Model fair sharing with fractions and explain the size of each share.', mode: 'share', n: 3, d: 4, context: 'loaf of bread' },
-  { id: 'fraction-as-division', unit: 12, title: 'Write division as a fraction', shortTitle: 'Fraction quotient', description: 'Connect a numerator divided by a denominator to a fraction amount.', skill: 'Represent a division quotient as a fraction and interpret its value.', mode: 'quotient', n: 5, d: 4, context: 'pizzas' },
-  { id: 'fraction-probability', unit: 13, title: 'Describe chance with a fraction', shortTitle: 'Fraction probability', description: 'Compare favorable outcomes with all equally likely outcomes.', skill: 'Express the probability of an event as favorable outcomes over possible outcomes.', mode: 'probability', n: 2, d: 8, context: 'color spinner' },
-  { id: 'fraction-of-area', unit: 13, title: 'Find a fraction of an area', shortTitle: 'Fractional area', description: 'Partition a shape into equal areas and count selected regions.', skill: 'Use equal-area partitions to model fractions of a shape.', mode: 'area', n: 3, d: 8, context: 'mosaic' },
-  { id: 'equivalent-number-line', unit: 13, title: 'Show equivalent fractions on a number line', shortTitle: 'Line equivalence', description: 'Mark the same location using different equal interval sizes.', skill: 'Use a shared number-line location to explain fraction equivalence.', mode: 'line', n: 2, d: 3, context: 'number line' },
-  { id: 'fraction-recipes', unit: 13, title: 'Scale a recipe with fractions', shortTitle: 'Recipe fractions', description: 'Scale ingredient amounts while keeping every ingredient in proportion.', skill: 'Scale fractional ingredient amounts using multiplication and equivalent fractions.', mode: 'recipe', n: 3, d: 4, context: 'pancake recipe' },
-  { id: 'fractions-to-percent', unit: 14, title: 'Connect fractions to percent', shortTitle: 'Fractions to percent', description: 'Rename fractions as hundredths and describe them out of one hundred.', skill: 'Convert fractions with denominator 100 to percentages.', mode: 'percent', n: 3, d: 4, context: 'school survey' },
-  { id: 'percent-to-fraction', unit: 14, title: 'Write percent as a fraction', shortTitle: 'Percent as a fraction', description: 'Interpret percent as a number of parts out of one hundred.', skill: 'Represent a percent as a fraction over 100 and simplify when useful.', mode: 'percent-inverse', n: 3, d: 5, context: 'game score' },
-  { id: 'decimal-fraction-equivalence', unit: 14, title: 'Connect fractions, decimals, and percent', shortTitle: 'Three forms', description: 'Translate a familiar amount between fraction, decimal, and percent forms.', skill: 'Use place value to connect tenths and hundredths to decimals and percentages.', mode: 'decimal-equivalent', n: 7, d: 10, context: 'battery meter' },
-  { id: 'multi-step-fraction-stories', unit: 14, title: 'Solve a fraction story in steps', shortTitle: 'Fraction stories', description: 'Choose useful fraction operations to solve a multi-step situation.', skill: 'Use models and operations to solve a multi-step fraction problem.', mode: 'story', n: 2, d: 5, context: 'community garden' },
+  { id: 'simplify-fractions', unit: 9, title: 'Simplest form', shortTitle: 'Simplest form', description: 'Use bigger pieces. Same amount.', skill: 'Divide the top and bottom by the same number.', mode: 'simplify', n: 3, d: 4, context: 'paper strip' },
+  { id: 'equivalent-missing-both', unit: 9, title: 'Find the missing number', shortTitle: 'Equivalent fractions', description: 'Fill a blank on the top or bottom.', skill: 'Do the same thing to the top and the bottom.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
+  { id: 'compare-unlike-fractions', unit: 9, title: 'Compare different pieces', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the bottoms differ?', skill: 'Give both fractions the same bottom number. Then compare.', mode: 'compare', n: 2, d: 3, context: 'race track' },
+  { id: 'order-unlike-fractions', unit: 9, title: 'Order different pieces', shortTitle: 'Order unlike parts', description: 'Put 3 fractions in order.', skill: 'Compare to 1/2, or use the same bottom number.', mode: 'order', n: 1, d: 5, context: 'hiking trail' },
+  { id: 'subtract-unlike-fractions', unit: 10, title: 'Take away different pieces', shortTitle: 'Subtract unlike parts', description: 'Rename, then take away.', skill: 'Make the pieces the same size. Then take away.', mode: 'subtract-unlike', n: 3, d: 4, context: 'water bottle' },
+  { id: 'add-mixed-numbers', unit: 10, title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Add wholes and pieces.', skill: 'Add the pieces. A full set of pieces makes a new whole.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route' },
+  { id: 'subtract-mixed-numbers', unit: 10, title: 'Subtract mixed numbers', shortTitle: 'Subtract mixed numbers', description: 'Trade a whole when you need more pieces.', skill: 'Not enough pieces? Trade 1 whole for more pieces.', mode: 'mixed-subtract', n: 1, d: 3, context: 'fabric roll' },
+  { id: 'fraction-of-quantity', unit: 10, title: 'A fraction of a number', shortTitle: 'Fractions of amounts', description: 'Find 3/5 of 20.', skill: 'Make equal groups. Count the groups you need.', mode: 'quantity', n: 3, d: 5, context: 'classroom supplies' },
+  { id: 'multiply-whole-by-fraction', unit: 11, title: 'Groups of a fraction', shortTitle: 'Whole × fraction', description: '3 groups of 1/2.', skill: 'Multiply the top. The bottom stays.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles' },
+  { id: 'multiply-fractions', unit: 11, title: 'A part of a part', shortTitle: 'Fraction × fraction', description: 'Find 1/2 of 3/4.', skill: 'Multiply the tops. Multiply the bottoms.', mode: 'multiply', n: 2, d: 3, context: 'garden plot' },
+  { id: 'fraction-of-collection', unit: 11, title: 'A fraction of a group', shortTitle: 'Groups of objects', description: 'Find 3/4 of 16 cards.', skill: 'Make equal groups. Count the groups you need.', mode: 'sets', n: 3, d: 4, context: 'sports cards' },
+  { id: 'divide-whole-by-unit-fraction', unit: 11, title: 'How many pieces fit?', shortTitle: 'Divide by a fraction', description: 'How many 1/4 cups fill 2 cups?', skill: '1 whole holds as many pieces as the bottom number.', mode: 'divide', n: 1, d: 4, context: 'measuring cup' },
+  { id: 'fraction-of-length', unit: 12, title: 'A fraction of a length', shortTitle: 'Fractional lengths', description: 'Find 3/8 of a ribbon.', skill: 'Cut the length into equal parts. Count the parts.', mode: 'measure', n: 3, d: 8, context: 'ribbon' },
+  { id: 'fractional-measure-addition', unit: 12, title: 'Add lengths', shortTitle: 'Measure together', description: 'Add 1/2 meter and 1/4 meter.', skill: 'Make the pieces the same size. Then add.', mode: 'measure-add', n: 1, d: 2, context: 'wooden boards' },
+  { id: 'fractional-sharing', unit: 12, title: 'Fair shares', shortTitle: 'Fair sharing', description: 'Share 3 loaves with 4 friends.', skill: 'Each friend gets loaves ÷ friends.', mode: 'share', n: 3, d: 4, context: 'loaf of bread' },
+  { id: 'fraction-as-division', unit: 12, title: 'Division is a fraction', shortTitle: 'Fraction quotient', description: '5 ÷ 4 = 5/4.', skill: 'a ÷ b is the fraction a/b.', mode: 'quotient', n: 5, d: 4, context: 'pizzas' },
+  { id: 'fraction-probability', unit: 13, title: 'Chance as a fraction', shortTitle: 'Fraction probability', description: 'What is the chance of blue?', skill: 'Ways to win on top. All the ways on the bottom.', mode: 'probability', n: 2, d: 8, context: 'color spinner' },
+  { id: 'fraction-of-area', unit: 13, title: 'A fraction of a shape', shortTitle: 'Fractional area', description: 'Shade equal parts of a tile.', skill: 'Equal parts on the bottom. Shaded parts on top.', mode: 'area', n: 3, d: 8, context: 'mosaic' },
+  { id: 'equivalent-number-line', unit: 13, title: 'Same spot, new name', shortTitle: 'Line equivalence', description: '2/3 and 4/6 land on the same spot.', skill: 'Cut every space in half: twice the spaces, twice the jumps.', mode: 'line', n: 2, d: 3, context: 'number line' },
+  { id: 'fraction-recipes', unit: 13, title: 'Recipe fractions', shortTitle: 'Recipe fractions', description: 'Double a recipe.', skill: 'Add the amount again, or multiply the top.', mode: 'recipe', n: 3, d: 4, context: 'pancake recipe' },
+  { id: 'fractions-to-percent', unit: 14, title: 'Fractions to percent', shortTitle: 'Fractions to percent', description: 'Write 3/4 as 75%.', skill: 'Percent means out of 100.', mode: 'percent', n: 3, d: 4, context: 'school survey' },
+  { id: 'percent-to-fraction', unit: 14, title: 'Percent to fractions', shortTitle: 'Percent as a fraction', description: 'Write 60% as 60/100.', skill: 'Percent means out of 100.', mode: 'percent-inverse', n: 3, d: 5, context: 'game score' },
+  { id: 'decimal-fraction-equivalence', unit: 14, title: 'Fractions to decimals', shortTitle: 'Three forms', description: 'Write 1/4 as 0.25.', skill: 'Change to tenths or hundredths. Then write the decimal.', mode: 'decimal-equivalent', n: 7, d: 10, context: 'battery meter' },
+  { id: 'multi-step-fraction-stories', unit: 14, title: 'Two-step stories', shortTitle: 'Fraction stories', description: 'Solve a story in 2 steps.', skill: 'Do one step at a time.', mode: 'story', n: 2, d: 5, context: 'community garden' },
 ];
 
-function extensionMission(topic: ExtensionTopic): MissionSeed {
-  const { n, d, context, mode } = topic;
-  const gcd = (a: number, b: number): number => b ? gcd(b, a % b) : a;
-  const modelFor = (top: number, bottom: number): ModelSpec => mode === 'sets'
-    ? setModel(top * 4, bottom * 4, `Equal groups in a ${context}`)
-    : mode === 'line' || mode === 'measure' ? line(top, bottom) : bars({ numerator: top, denominator: bottom });
-  const values = [1, 2, 3, 4].map((offset) => ({ n: Math.min(d - 1, Math.max(1, (n + offset - 1) % (d - 1) + 1)), d }));
-  const questions: PracticeSeed[] = values.map(({ n: top, d: bottom }, index) => {
-    const denominator2 = bottom === 2 ? 4 : bottom + 2;
-    let prompt = `A ${context} is divided into ${bottom} equal parts. What fraction names ${top} parts?`;
-    let answer = `${top}/${bottom}`;
-    let choices = [answer, `${Math.min(bottom, top + 1)}/${bottom}`, `${top}/${denominator2}`];
-    if (mode === 'simplify') {
-      const factor = 2 + index % 2;
-      const common = gcd(top, bottom);
-      prompt = `A ${context} shows ${top * factor}/${bottom * factor}. Enter the same amount in simplest form.`;
-      answer = `${top / common}/${bottom / common}`; choices = [answer, `${top * factor}/${bottom}`, `${top}/${bottom * factor}`];
-    } else if (mode === 'equivalent') {
-      const factor = 2 + index % 2;
-      prompt = `A ${context} shows ${top}/${bottom}. Rename it with denominator ${bottom * factor}.`;
-      answer = `${top * factor}/${bottom * factor}`; choices = [answer, `${top}/${bottom * factor}`, `${top * factor}/${bottom}`];
-    } else if (mode === 'compare') {
-      prompt = `Type <, = or >: ${top}/${bottom} __ ${top}/${denominator2}. The ${context} wholes match.`;
-      answer = '>'; choices = ['<', '=', '>'];
-    } else if (mode === 'order') {
-      prompt = `Order ${(bottom - 1)}/${bottom}, 1/2, and 1/${bottom + 1} from least to greatest on the ${context}.`;
-      const fractions = [{ n: 1, d: bottom + 1 }, { n: 1, d: 2 }, { n: bottom - 1, d: bottom }];
-      const order = fractions.slice().sort((a, b) => a.n * b.d - b.n * a.d).map(value => `${value.n}/${value.d}`);
-      answer = order.join(', '); choices = [answer, order.slice().reverse().join(', '), `${order[1]}, ${order[0]}, ${order[2]}`];
-    } else if (mode === 'quantity' || mode === 'sets') {
-      const total = bottom * (4 + index);
-      prompt = `${total} ${context} are shared into ${bottom} equal groups. How many are ${top}/${bottom} of the whole collection?`;
-      answer = String(total / bottom * top); choices = [answer, String(total / bottom), String(total - total / bottom * top)];
-    } else if (mode === 'share') {
-      prompt = `Share ${top} ${top === 1 ? 'loaf' : 'loaves'} equally among ${bottom} friends. How much of a loaf does each friend receive?`;
-      answer = `${top}/${bottom}`; choices = [answer, `${bottom}/${top}`, `${top}/${bottom + 1}`];
-    } else if (mode === 'percent' || mode === 'percent-inverse') {
-      const percent = Math.round(top * (100 / bottom));
-      prompt = mode === 'percent' ? `A ${context} result is ${top}/${bottom}. What percent is that?` : `${percent}% of the ${context} is complete. Enter it as a fraction out of 100.`;
-      answer = mode === 'percent' ? `${percent}%` : `${percent}/100`; choices = [answer, `${percent - 10}%`, `${percent + 5}/100`];
-    } else if (mode === 'multiply' || mode === 'multiply-whole') {
-      prompt = mode === 'multiply' ? `A ${context} is ${top}/${bottom} shaded. What is 1/2 of the shaded amount?` : `Two bottles each hold ${top}/${bottom} of a liter of juice. How much juice is there altogether?`;
-      answer = mode === 'multiply' ? `${top}/${bottom * 2}` : `${top * 2}/${bottom}`;
-      choices = [answer, `${top * 2}/${bottom}`, `${top}/${bottom}`];
-    } else if (mode === 'divide') {
-      prompt = `How many 1/${bottom}-cup measures fill ${index + 1} ${context}?`;
-      answer = String((index + 1) * bottom); choices = [answer, String((index + 1) * top), String((index + 1) * bottom + 1)];
-    } else if (mode === 'subtract-unlike') {
-      const start = bottom - 1;
-      prompt = `A ${context} is ${start}/${bottom} full. You use 1/2. What fraction remains?`;
-      answer = `${2 * start - bottom}/${2 * bottom}`;
-      choices = [answer, `${start - 1}/${bottom}`, `${2 * start + bottom}/${2 * bottom}`];
-    } else if (mode === 'mixed-add') {
-      const whole = 1 + index % 2;
-      prompt = `Add ${whole} ${top}/${bottom} and 1 ${top}/${bottom} in the ${context}.`;
-      const addedParts = 2 * top;
-      const mixedWhole = whole + 1 + Math.floor(addedParts / bottom);
-      const mixedRemainder = addedParts % bottom;
-      answer = mixedRemainder ? `${mixedWhole} ${mixedRemainder}/${bottom}` : String(mixedWhole);
-      choices = [answer, `${whole + 1} ${top}/${bottom * 2}`, `${whole} ${addedParts}/${bottom}`];
-    } else if (mode === 'mixed-subtract') {
-      prompt = `Calculate 3 1/${bottom} − 1 ${bottom - 1}/${bottom} for the ${context}.`;
-      answer = `1 2/${bottom}`;
-      choices = [answer, `1 1/${bottom}`, `2 2/${bottom}`];
-    } else if (mode === 'measure-add') {
-      prompt = `Join ${top}/${bottom} meter and 1/${bottom} meter of ${context}. How long is the combined length?`;
-      answer = `${top + 1}/${bottom}`;
-      choices = [answer, `${top + 1}/${bottom * 2}`, `${top}/${bottom}`];
-    } else if (mode === 'probability') {
-      prompt = `A ${context} has ${bottom} equal sections and ${top} are blue. What is the chance of blue?`;
-      answer = `${top}/${bottom}`;
-      choices = [answer, `${bottom}/${top}`, `${top}/${bottom + 1}`];
-    } else if (mode === 'area') {
-      prompt = `A ${context} is split into ${bottom} equal-area tiles. ${top} tiles are shaded. What fraction is shaded?`;
-      answer = `${top}/${bottom}`;
-      choices = [answer, `${top}/${bottom + 1}`, `${bottom - top}/${bottom}`];
-    } else if (mode === 'line') {
-      prompt = `The ${context} marks ${top}/${bottom}. Which fraction lands at the same point with twice as many intervals?`;
-      answer = `${top * 2}/${bottom * 2}`;
-      choices = [answer, `${top}/${bottom * 2}`, `${top * 2}/${bottom}`];
-    } else if (mode === 'recipe') {
-      prompt = `Double ${top}/${bottom} cup of flour in a ${context}. How much flour is needed?`;
-      answer = `${top * 2}/${bottom}`;
-      choices = [answer, `${top}/${bottom * 2}`, `${top + 1}/${bottom}`];
-    } else if (mode === 'quotient') {
-      prompt = `${top} ${context} are shared equally among ${bottom} people. What fraction of a pizza does each person get?`;
-      answer = `${top}/${bottom}`; choices = [answer, `${bottom}/${top}`, `${top}/${bottom + 1}`];
-    } else if (mode === 'decimal-equivalent') {
-      const decimalValue = (top / bottom).toFixed(1);
-      prompt = `The ${context} reads ${decimalValue}. Enter its fraction in tenths.`;
-      answer = `${Math.round(top / bottom * 10)}/10`; choices = [answer, `${Math.round(top / bottom * 100)}/100`, `${Math.round(top / bottom * 10 - 1)}/10`];
-    } else if (mode === 'story') {
-      prompt = `A ${context} has ${top}/${bottom} of its beds planted. Then 1/${bottom} more is planted. What fraction is still empty?`;
-      answer = `${bottom - top - 1}/${bottom}`; choices = [answer, `${top + 1}/${bottom}`, `${bottom - top}/${bottom}`];
-    } else if (mode === 'measure') {
-      const length = bottom * 2;
-      prompt = `A ${context} is ${length} meters long. What is ${top}/${bottom} of its length?`;
-      answer = String(top * 2); choices = [answer, String(top), String(length - top * 2)];
-    } else {
-      prompt = `A ${context} shows ${top}/${bottom}. What amount does that represent?`;
-      answer = `${top}/${bottom}`; choices = [answer, `${bottom}/${top}`, `${top + 1}/${bottom}`];
-    }
-    if (new Set(choices).size < 3) {
-      const alternatives = mode === 'quantity' || mode === 'sets'
-        ? [String((bottom * (4 + index)) / bottom), String(Number(answer) + 1), String(Math.max(0, Number(answer) - 1)), String(bottom * (4 + index) - Number(answer))]
-        : [`${top + 1}/${bottom}`, `${top}/${bottom + 1}`, `${top + 2}/${bottom + 3}`, `${top + 1}/${bottom + 2}`, `${top}/${bottom + 2}`, '0', '1/2', '1'];
-      choices = [answer, ...Array.from(new Set(alternatives)).filter(value => value !== answer)].slice(0, 3);
-    }
-    return practice(prompt, choices, choices.indexOf(answer), modelFor(top, bottom),
-      `Use the ${topic.skill.toLowerCase()} idea and keep the whole fixed.`, `Check how ${topic.skill.toLowerCase()} applies to this new ${context} situation.`,
-      modelFor(1, Math.max(2, bottom - 1)));
-  });
-  return {
-    id: topic.id, unit: topic.unit, title: topic.title, shortTitle: topic.shortTitle, description: topic.description, skill: topic.skill,
-    example: { prompt: `How can a ${context} show ${n}/${d}?`, answer: `${n}/${d} of the same whole.`, explanation: topic.skill, model: modelFor(n, d) },
-    questions,
-  };
+const picture = (top: number, bottom: number): ModelSpec => ({ kind: 'bars', bars: [{ numerator: top, denominator: bottom }], hideLabels: true });
+/** A picture for a worksheet problem: its own model, else the first amount in the question. Never the answer. */
+export function problemPicture(problem: WorksheetProblem): ModelSpec {
+  const m = problem.model;
+  // An empty picture: the wholes cut into equal pieces, nothing shaded yet (sharing questions).
+  if (m && m.n === 0) return { kind: 'bars', bars: Array.from({ length: m.wholes }, () => ({ numerator: 0, denominator: m.d })), hideLabels: true };
+  if (m?.kind === 'set' && m.total) return setModel((m.total / m.d) * m.n, m.total);
+  if (m?.kind === 'line') return { kind: 'line', numerator: m.n, denominator: m.d, wholes: numberLineWholeCount(m.n, m.d), hideLabels: true };
+  if (m) return picture(m.n, m.d);
+  const fraction = /(\d+)\/(\d+)/.exec(problem.prompt);
+  if (fraction && Number(fraction[1]) <= Number(fraction[2]) * 3) return picture(Number(fraction[1]), Number(fraction[2]));
+  const percent = /(\d+)%/.exec(problem.prompt);
+  if (percent) return picture(Number(percent[1]), 100);
+  return equation(problem.prompt.replace(/\?.*$/, '?'));
 }
 
-const extensionSeeds = extensionTopics.map(extensionMission);
+/** A tap question made from a worksheet problem, with the right answer at `position`. */
+export function problemQuestion(problem: WorksheetProblem, position: number): PracticeSeed {
+  const choices = [...choiceDistractors(problem.answer)];
+  choices.splice(position % 3, 0, problem.answer);
+  const model = problemPicture(problem);
+  const simpler = 'hideLabels' in model ? { ...model, hideLabels: false } : model;
+  return practice(asChoicePrompt(problem.prompt), choices, position % 3, model, problem.hint, problem.hint, simpler);
+}
+
+function extensionMission(topic: ExtensionTopic): MissionSeed {
+  const sheet = getWorksheet(topic.id);
+  const [build] = getBuildChecks(topic.id);
+  const t = build.target;
+  return {
+    id: topic.id, unit: topic.unit, title: topic.title, shortTitle: topic.shortTitle, description: topic.description, skill: topic.skill,
+    example: {
+      prompt: build.prompt,
+      answer: t.kind === 'set' && t.total ? `${(t.total / t.d) * t.n} of ${t.total}` : `${t.n}/${t.d}`,
+      explanation: build.explanation,
+      model: t.kind === 'set' && t.total ? setModel((t.total / t.d) * t.n, t.total) : t.kind === 'line' ? line(t.n, t.d) : bars({ numerator: t.n, denominator: t.d }),
+    },
+    // Practice uses different worksheet rows than the first ones, so the sheet still has fresh numbers.
+    questions: [1, 4, 7, 10].map((row, i) => problemQuestion(sheet[row], i + row)),
+  };
+}
 
 curriculum.push(...extensionTopics.map(extensionMission));
 

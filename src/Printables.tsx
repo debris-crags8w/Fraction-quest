@@ -143,10 +143,9 @@ function PrintModel({ model, labels = true }: { model: ModelSpec; labels?: boole
       {model.kind === 'bars' && model.bars.map((bar, index) => (
         <div className="fq-print-bar-row" key={index}>
           <BarSvg n={bar.numerator} d={bar.denominator} wholes={Math.max(1, Math.ceil(bar.numerator / bar.denominator))} />
-          {labels && <b>{bar.numerator}/{bar.denominator}</b>}
         </div>
       ))}
-      {model.kind === 'decimal' && <div className="fq-print-bar-row"><BarSvg n={model.tenths} d={10} />{labels && <b>{(model.tenths / 10).toFixed(1)}</b>}</div>}
+      {model.kind === 'decimal' && <div className="fq-print-bar-row"><BarSvg n={model.tenths} d={10} />{labels && <b className="fq-print-decimal-value">{(model.tenths / 10).toFixed(1)}</b>}</div>}
       {model.kind === 'line' && <LineSvg n={model.numerator} d={model.denominator} wholes={model.wholes ?? Math.max(1, Math.ceil(model.numerator / model.denominator))} />}
       {model.kind === 'set' && (
         <svg className="fq-svg-set" viewBox={`0 0 ${Math.min(model.total, 10) * 26 + 4} ${Math.ceil(model.total / 10) * 26 + 4}`} role="img" aria-label={`${model.selected} of ${model.total} counters shaded`}>
@@ -154,13 +153,16 @@ function PrintModel({ model, labels = true }: { model: ModelSpec; labels?: boole
         </svg>
       )}
       {model.kind === 'partition' && (
-        <svg className="fq-svg-bar" viewBox="0 0 364 46" role="img" aria-label={`A whole split into ${model.parts.length} pieces`}>
+        <svg className="fq-svg-bar" viewBox="0 0 364 74" role="img" aria-label={`One whole split into ${model.parts.length} pieces; the first piece is one part`}>
+          <text className="fq-svg-model-label" x="182" y="11" textAnchor="middle">WHOLE</text>
           {model.parts.reduce<{ x: number; els: ReactElement[] }>((acc, size, i) => {
             const w = (size / 100) * 320;
-            acc.els.push(<rect key={i} className="empty" x={22 + acc.x} y={6} width={w} height={32} />);
+            acc.els.push(<rect key={i} className={`empty ${i === 0 ? 'part-sample' : ''}`} x={22 + acc.x} y={17} width={w} height={32} />);
             acc.x += w; return acc;
           }, { x: 0, els: [] }).els}
-          <rect className="frame" x={22} y={6} width={320} height={32} fill="none" />
+          <rect className="frame" x={22} y={17} width={320} height={32} fill="none" />
+          <line className="fq-svg-part-guide-line" x1="22" y1="50" x2="22" y2="57" />
+          <text className="fq-svg-model-label part" x="22" y="69" textAnchor="middle">PART</text>
         </svg>
       )}
       {model.kind === 'equation' && <p className="fq-print-equation"><MathText text={model.text} /></p>}
@@ -248,12 +250,12 @@ function AnswerKey({ mission }: { mission: Mission }) {
           {getWorksheet(mission.id).map((problem) => <li key={problem.id}><b><MathText text={problem.answer} /></b> <small><MathText text={problem.prompt} /></small></li>)}
         </ol>
       </section>
-      <section className="fq-print-key">
+      {CHALLENGES[mission.unit] && <section className="fq-print-key">
         <h2>Unit {mission.unit} challenge</h2>
         <ol className="fq-print-key-list">
           {CHALLENGES[mission.unit].map((item) => <li key={item.id}><b>{letter(item.correct)}</b> · <MathText text={item.choices[item.correct]} /> <small>({item.points} points) <MathText text={item.explanation} /></small></li>)}
         </ol>
-      </section>
+      </section>}
       <section className="fq-print-key">
         <h2>Show it both ways</h2>
         <p><MathText text={checks[0].prompt} /> <b>Answer: <MathText text={`${checks[0].target.n}/${checks[0].target.d}`} /></b>. Why: <MathText text={checks[0].explanation} /></p>
@@ -330,7 +332,7 @@ export default function Printable({ missionId, record, mode, seed = 1 }: { missi
   if (mode === 'lesson') return <LessonSheet mission={mission} />;
   if (mode === 'practice') return <PracticeSheet mission={mission} />;
   if (mode === 'key') return <AnswerKey mission={mission} />;
-  if (mode === 'challenge') return <ChallengeSheet mission={mission} />;
+  if (mode === 'challenge' && CHALLENGES[mission.unit]) return <ChallengeSheet mission={mission} />;
   return <WorksheetPage missionId={missionId} record={record} mode={mode} />;
 }
 
@@ -363,7 +365,8 @@ export function PrintMenu({ missionId, record, className = '' }: { missionId: st
       </button>
       {open && (
         <div className="fq-print-options" role="group" aria-label="Choose what to print">
-          {PRINT_OPTIONS.map((option) => (
+          {/* Units 9+ have no Unit challenge (yet), so there is nothing to print for it. */}
+          {PRINT_OPTIONS.filter((option) => option.mode !== 'challenge' || CHALLENGES[getMission(missionId).unit]).map((option) => (
             <button type="button" key={option.mode} onClick={() => { if (option.mode === 'generated') setSeed(freshSeed()); setMode(option.mode); setRequest((n) => n + 1); }} data-testid={`button-print-${option.mode}`}>
               {option.label}
             </button>

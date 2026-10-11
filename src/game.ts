@@ -1,5 +1,5 @@
 import { hasLearningGate, type LearningRecord } from './learning';
-import { getBuildChecks, getWorksheet } from './learning-content';
+import { asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 
 export type FractionValue = { numerator: number; denominator: number };
 
@@ -51,7 +51,6 @@ export type Progress = {
   starsByMission: Record<string, number>;
   reviewQueue: SkillReview[];
   learning?: Record<string, LearningRecord>;
-  /** Best Unit challenge score, keyed by unit number. */
   challengeBest?: Record<string, number>;
 };
 
@@ -113,7 +112,7 @@ const curriculum: MissionSeed[] = [
       practice('Which strip shows thirds?', ['3 equal pieces', '3 pieces, one much bigger', '2 equal pieces'], 0, { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }, 'Thirds are 3 equal pieces.', 'Thirds need 3 pieces, and they must be the same size.', { kind: 'partition', parts: [50, 50] }),
       practice('A sandwich is cut into 4 equal pieces. What is 1 piece?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), '1 piece out of 4 equal pieces is 1/4.', 'The bottom number is all 4 pieces. You have 1.', bars({ numerator: 1, denominator: 2 })),
       practice('Which ribbon is cut into fair halves?', ['Both pieces are the same size', 'One piece is twice as long', 'The ribbon with 3 pieces'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 2 }), 'Halves are 2 equal pieces.', '2 pieces are only halves if they are the same size.', bars({ numerator: 1, denominator: 2 })),
-      practice('A pizza has 5 equal slices. What is 1 slice?', ['one fifth', 'one fourth', 'five wholes'], 0, bars({ numerator: 1, denominator: 5 }), '1 slice out of 5 equal slices.', '1 of 5 equal pieces is one fifth, or 1/5.', bars({ numerator: 1, denominator: 2 })),
+      practice('A strip has 5 equal pieces. What is 1 piece?', ['one fifth', 'one fourth', 'five wholes'], 0, bars({ numerator: 1, denominator: 5 }), '1 piece out of 5 equal pieces.', '1 of 5 equal pieces is one fifth, or 1/5.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
@@ -508,6 +507,88 @@ const curriculum: MissionSeed[] = [
   },
 ];
 
+type ExtensionMode =
+  | 'simplify' | 'equivalent' | 'compare' | 'order' | 'subtract-unlike'
+  | 'mixed-add' | 'mixed-subtract' | 'quantity' | 'multiply-whole' | 'multiply'
+  | 'sets' | 'divide' | 'measure' | 'measure-add' | 'share' | 'quotient'
+  | 'probability' | 'area' | 'line' | 'recipe' | 'percent' | 'percent-inverse'
+  | 'decimal-equivalent' | 'story';
+type ExtensionTopic = {
+  id: string; unit: number; title: string; shortTitle: string; description: string; skill: string;
+  mode: ExtensionMode; n: number; d: number; context: string;
+};
+
+const extensionTopics: ExtensionTopic[] = [
+  { id: 'simplify-fractions', unit: 9, title: 'Simplest form', shortTitle: 'Simplest form', description: 'Use bigger pieces. Same amount.', skill: 'Divide the top and bottom by the same number.', mode: 'simplify', n: 3, d: 4, context: 'paper strip' },
+  { id: 'equivalent-missing-both', unit: 9, title: 'Find the missing number', shortTitle: 'Equivalent fractions', description: 'Fill a blank on the top or bottom.', skill: 'Do the same thing to the top and the bottom.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
+  { id: 'compare-unlike-fractions', unit: 9, title: 'Compare different pieces', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the bottoms differ?', skill: 'Give both fractions the same bottom number. Then compare.', mode: 'compare', n: 2, d: 3, context: 'race track' },
+  { id: 'order-unlike-fractions', unit: 9, title: 'Order different pieces', shortTitle: 'Order unlike parts', description: 'Put 3 fractions in order.', skill: 'Compare to 1/2, or use the same bottom number.', mode: 'order', n: 1, d: 5, context: 'hiking trail' },
+  { id: 'subtract-unlike-fractions', unit: 10, title: 'Take away different pieces', shortTitle: 'Subtract unlike parts', description: 'Rename, then take away.', skill: 'Make the pieces the same size. Then take away.', mode: 'subtract-unlike', n: 3, d: 4, context: 'water bottle' },
+  { id: 'add-mixed-numbers', unit: 10, title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Add wholes and pieces.', skill: 'Add the pieces. A full set of pieces makes a new whole.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route' },
+  { id: 'subtract-mixed-numbers', unit: 10, title: 'Subtract mixed numbers', shortTitle: 'Subtract mixed numbers', description: 'Trade a whole when you need more pieces.', skill: 'Not enough pieces? Trade 1 whole for more pieces.', mode: 'mixed-subtract', n: 1, d: 3, context: 'fabric roll' },
+  { id: 'fraction-of-quantity', unit: 10, title: 'A fraction of a number', shortTitle: 'Fractions of amounts', description: 'Find 3/5 of 20.', skill: 'Make equal groups. Count the groups you need.', mode: 'quantity', n: 3, d: 5, context: 'classroom supplies' },
+  { id: 'multiply-whole-by-fraction', unit: 11, title: 'Groups of a fraction', shortTitle: 'Whole × fraction', description: '3 groups of 1/2.', skill: 'Multiply the top. The bottom stays.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles' },
+  { id: 'multiply-fractions', unit: 11, title: 'A part of a part', shortTitle: 'Fraction × fraction', description: 'Find 1/2 of 3/4.', skill: 'Multiply the tops. Multiply the bottoms.', mode: 'multiply', n: 2, d: 3, context: 'garden plot' },
+  { id: 'fraction-of-collection', unit: 11, title: 'A fraction of a group', shortTitle: 'Groups of objects', description: 'Find 3/4 of 16 cards.', skill: 'Make equal groups. Count the groups you need.', mode: 'sets', n: 3, d: 4, context: 'sports cards' },
+  { id: 'divide-whole-by-unit-fraction', unit: 11, title: 'How many pieces fit?', shortTitle: 'Divide by a fraction', description: 'How many 1/4 cups fill 2 cups?', skill: '1 whole holds as many pieces as the bottom number.', mode: 'divide', n: 1, d: 4, context: 'measuring cup' },
+  { id: 'fraction-of-length', unit: 12, title: 'A fraction of a length', shortTitle: 'Fractional lengths', description: 'Find 3/8 of a ribbon.', skill: 'Cut the length into equal parts. Count the parts.', mode: 'measure', n: 3, d: 8, context: 'ribbon' },
+  { id: 'fractional-measure-addition', unit: 12, title: 'Add lengths', shortTitle: 'Measure together', description: 'Add 1/2 meter and 1/4 meter.', skill: 'Make the pieces the same size. Then add.', mode: 'measure-add', n: 1, d: 2, context: 'wooden boards' },
+  { id: 'fractional-sharing', unit: 12, title: 'Fair shares', shortTitle: 'Fair sharing', description: 'Share 3 loaves with 4 friends.', skill: 'Each friend gets loaves ÷ friends.', mode: 'share', n: 3, d: 4, context: 'loaf of bread' },
+  { id: 'fraction-as-division', unit: 12, title: 'Division is a fraction', shortTitle: 'Fraction quotient', description: '5 ÷ 4 = 5/4.', skill: 'a ÷ b is the fraction a/b.', mode: 'quotient', n: 5, d: 4, context: 'pizzas' },
+  { id: 'fraction-probability', unit: 13, title: 'Chance as a fraction', shortTitle: 'Fraction probability', description: 'What is the chance of blue?', skill: 'Ways to win on top. All the ways on the bottom.', mode: 'probability', n: 2, d: 8, context: 'color spinner' },
+  { id: 'fraction-of-area', unit: 13, title: 'A fraction of a shape', shortTitle: 'Fractional area', description: 'Shade equal parts of a tile.', skill: 'Equal parts on the bottom. Shaded parts on top.', mode: 'area', n: 3, d: 8, context: 'mosaic' },
+  { id: 'equivalent-number-line', unit: 13, title: 'Same spot, new name', shortTitle: 'Line equivalence', description: '2/3 and 4/6 land on the same spot.', skill: 'Cut every space in half: twice the spaces, twice the jumps.', mode: 'line', n: 2, d: 3, context: 'number line' },
+  { id: 'fraction-recipes', unit: 13, title: 'Recipe fractions', shortTitle: 'Recipe fractions', description: 'Double a recipe.', skill: 'Add the amount again, or multiply the top.', mode: 'recipe', n: 3, d: 4, context: 'pancake recipe' },
+  { id: 'fractions-to-percent', unit: 14, title: 'Fractions to percent', shortTitle: 'Fractions to percent', description: 'Write 3/4 as 75%.', skill: 'Percent means out of 100.', mode: 'percent', n: 3, d: 4, context: 'school survey' },
+  { id: 'percent-to-fraction', unit: 14, title: 'Percent to fractions', shortTitle: 'Percent as a fraction', description: 'Write 60% as 60/100.', skill: 'Percent means out of 100.', mode: 'percent-inverse', n: 3, d: 5, context: 'game score' },
+  { id: 'decimal-fraction-equivalence', unit: 14, title: 'Fractions to decimals', shortTitle: 'Three forms', description: 'Write 1/4 as 0.25.', skill: 'Change to tenths or hundredths. Then write the decimal.', mode: 'decimal-equivalent', n: 7, d: 10, context: 'battery meter' },
+  { id: 'multi-step-fraction-stories', unit: 14, title: 'Two-step stories', shortTitle: 'Fraction stories', description: 'Solve a story in 2 steps.', skill: 'Do one step at a time.', mode: 'story', n: 2, d: 5, context: 'community garden' },
+];
+
+const picture = (top: number, bottom: number): ModelSpec => ({ kind: 'bars', bars: [{ numerator: top, denominator: bottom }], hideLabels: true });
+/** A picture for a worksheet problem: its own model, else the first amount in the question. Never the answer. */
+export function problemPicture(problem: WorksheetProblem): ModelSpec {
+  const m = problem.model;
+  // An empty picture: the wholes cut into equal pieces, nothing shaded yet (sharing questions).
+  if (m && m.n === 0) return { kind: 'bars', bars: Array.from({ length: m.wholes }, () => ({ numerator: 0, denominator: m.d })), hideLabels: true };
+  if (m?.kind === 'set' && m.total) return setModel((m.total / m.d) * m.n, m.total);
+  if (m?.kind === 'line') return { kind: 'line', numerator: m.n, denominator: m.d, wholes: numberLineWholeCount(m.n, m.d), hideLabels: true };
+  if (m) return picture(m.n, m.d);
+  const fraction = /(\d+)\/(\d+)/.exec(problem.prompt);
+  if (fraction && Number(fraction[1]) <= Number(fraction[2]) * 3) return picture(Number(fraction[1]), Number(fraction[2]));
+  const percent = /(\d+)%/.exec(problem.prompt);
+  if (percent) return picture(Number(percent[1]), 100);
+  return equation(problem.prompt.replace(/\?.*$/, '?'));
+}
+
+/** A tap question made from a worksheet problem, with the right answer at `position`. */
+export function problemQuestion(problem: WorksheetProblem, position: number): PracticeSeed {
+  const choices = [...choiceDistractors(problem.answer)];
+  choices.splice(position % 3, 0, problem.answer);
+  const model = problemPicture(problem);
+  const simpler = 'hideLabels' in model ? { ...model, hideLabels: false } : model;
+  return practice(asChoicePrompt(problem.prompt), choices, position % 3, model, problem.hint, problem.hint, simpler);
+}
+
+function extensionMission(topic: ExtensionTopic): MissionSeed {
+  const sheet = getWorksheet(topic.id);
+  const [build] = getBuildChecks(topic.id);
+  const t = build.target;
+  return {
+    id: topic.id, unit: topic.unit, title: topic.title, shortTitle: topic.shortTitle, description: topic.description, skill: topic.skill,
+    example: {
+      prompt: build.prompt,
+      answer: t.kind === 'set' && t.total ? `${(t.total / t.d) * t.n} of ${t.total}` : `${t.n}/${t.d}`,
+      explanation: build.explanation,
+      model: t.kind === 'set' && t.total ? setModel((t.total / t.d) * t.n, t.total) : t.kind === 'line' ? line(t.n, t.d) : bars({ numerator: t.n, denominator: t.d }),
+    },
+    // Practice uses different worksheet rows than the first ones, so the sheet still has fresh numbers.
+    questions: [1, 4, 7, 10].map((row, i) => problemQuestion(sheet[row], i + row)),
+  };
+}
+
+curriculum.push(...extensionTopics.map(extensionMission));
+
 export const MISSIONS: Mission[] = curriculum.map((seed, index) => {
   const current = mission(seed);
   if (index === 0) return current;
@@ -636,7 +717,32 @@ export function getDelayedReviewQuestions(
 }
 
 export function getNextMission(progress: Progress): Mission | null {
-  return MISSIONS.find((item) => !hasLearningGate(progress, item.id)) ?? null;
+  const unfinished = MISSIONS.filter((item) =>
+    !hasLearningGate(progress, item.id) && isMissionUnlocked(progress, item.id),
+  );
+  if (!unfinished.length) return null;
+  const activeUnit = unfinished[0].unit;
+  const candidates = unfinished.filter((item) => item.unit === activeUnit);
+  const ranked = candidates.map((item, index) => {
+    const record = progress.learning?.[item.id];
+    const worksheetAnswers = Object.values(record?.worksheet ?? {}).filter((entry) => entry.checkedValue !== undefined).length;
+    const checkEvidence = Object.values(record?.checks ?? {});
+    const passedChecks = checkEvidence.filter((check) => check.passed).length;
+    const misses = Object.values(record?.misconceptions ?? {}).reduce((sum, count) => sum + count, 0);
+    const supportedWork = Object.values(record?.worksheet ?? {}).filter((entry) => entry.supported).length
+      + checkEvidence.filter((check) => check.supported).length;
+    const started = !!record && (!!record.practiceDone || worksheetAnswers > 0 || checkEvidence.length > 0);
+    const evidenceScore = (worksheetAnswers + passedChecks * 6) / 24;
+    return { item, index, started, misses, supportedWork, evidenceScore };
+  });
+  const activeWork = ranked.filter((entry) => entry.started);
+  if (!activeWork.length) return candidates[0];
+  activeWork.sort((a, b) =>
+    b.misses + b.supportedWork - (a.misses + a.supportedWork)
+    || a.evidenceScore - b.evidenceScore
+    || a.index - b.index,
+  );
+  return activeWork[0].item;
 }
 
 export function isCorrectAnswer(question: PracticeQuestion, answer: Answer): boolean {
@@ -646,7 +752,9 @@ export function isCorrectAnswer(question: PracticeQuestion, answer: Answer): boo
 export function isMissionUnlocked(progress: Progress, missionId: string): boolean {
   const targetIndex = MISSIONS.findIndex((item) => item.id === missionId);
   if (targetIndex < 0) return false;
-  return MISSIONS.slice(0, targetIndex).every(item => hasLearningGate(progress, item.id));
+  const target = MISSIONS[targetIndex];
+  if (target.unit < 9) return MISSIONS.slice(0, targetIndex).every(item => hasLearningGate(progress, item.id));
+  return MISSIONS.filter(item => item.unit < target.unit).every(item => hasLearningGate(progress, item.id));
 }
 
 export function completeMission(progress: Progress, missionId: string, stars: number): Progress {
@@ -692,6 +800,14 @@ export function loadProgress(): Progress {
         const id = validIds.has(rawId) ? rawId : LEGACY_MISSION_IDS[rawId];
         if (!id || typeof rawStars !== 'number' || !Number.isFinite(rawStars)) continue;
         starsByMission[id] = Math.max(0, Math.min(3, Math.floor(rawStars)));
+      }
+    }
+    const challengeBest: Record<string, number> = {};
+    if (value.challengeBest && typeof value.challengeBest === 'object') {
+      for (const [rawUnit, rawScore] of Object.entries(value.challengeBest)) {
+        const unit = Number(rawUnit);
+        if (!Number.isInteger(unit) || unit < 1 || unit > 8 || typeof rawScore !== 'number' || !Number.isFinite(rawScore)) continue;
+        challengeBest[String(unit)] = Math.max(0, Math.min(22, Math.floor(rawScore)));
       }
     }
     const reviewQueue: SkillReview[] = [];
@@ -747,21 +863,19 @@ export function loadProgress(): Progress {
         learning[id] = {
           practiceDone: raw.practiceDone === true, checks, worksheet, misconceptions,
           helpUses: safeCount(raw.helpUses),
+          practiceStars: typeof raw.practiceStars === 'number' && Number.isFinite(raw.practiceStars)
+            ? Math.max(0, Math.min(3, Math.floor(raw.practiceStars)))
+            : undefined,
           completedAt: typeof raw.completedAt === 'number' && Number.isFinite(raw.completedAt) ? raw.completedAt : undefined,
           confirmedAt: typeof raw.confirmedAt === 'number' && Number.isFinite(raw.confirmedAt) ? raw.confirmedAt : undefined,
           reviewSupportedUntil: typeof raw.reviewSupportedUntil === 'number' && Number.isFinite(raw.reviewSupportedUntil) ? raw.reviewSupportedUntil : undefined,
-          practiceStars: typeof raw.practiceStars === 'number' && raw.practiceStars >= 1 && raw.practiceStars <= 3 ? Math.floor(raw.practiceStars) : undefined,
         };
       }
     }
-    const challengeBest: Record<string, number> = {};
-    if (value.challengeBest && typeof value.challengeBest === 'object') {
-      for (const [unit, score] of Object.entries(value.challengeBest)) {
-        if (/^[1-8]$/.test(unit) && typeof score === 'number' && Number.isFinite(score)) challengeBest[unit] = Math.max(0, Math.min(100, Math.floor(score)));
-      }
-    }
     return {
-      completedMissionIds: [...completed], starsByMission, reviewQueue,
+      completedMissionIds: [...completed],
+      starsByMission,
+      reviewQueue,
       ...(Object.keys(learning).length ? { learning } : {}),
       ...(Object.keys(challengeBest).length ? { challengeBest } : {}),
     };

@@ -1,7 +1,7 @@
-import { type CSSProperties, useEffect, useState } from 'react';
-import { MathText } from './MathText';
+import { type CSSProperties, useEffect, useLayoutEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, ClipboardCheck, Compass, Dumbbell, Flame, Lightbulb, LogIn, LogOut, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ClipboardCheck, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
+import { MathText } from './MathText';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -10,7 +10,6 @@ import {
   completeSkillReview,
   deferSkillReview,
   getDelayedReviewQuestions,
-  getDueSkillReviewCount,
   getDueSkillReviewQuestions,
   getMission,
   getNextMission,
@@ -30,21 +29,23 @@ import {
 } from './game';
 import NotFound from '@/pages/not-found';
 import LearningLab from './LearningLab';
+import { LearningText } from './LearningText';
+import './learning-text.css';
+import QuickReviewEntry from './QuickReviewEntry';
 import { getLearningRecord, hasLearningGate, learningSummary, updateLearning, worksheetCount } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { loadFun, playCue, recordCorrect, resetFun, setSound, type FunState } from './lib/fun';
 import { ModelTag } from './models';
-import { AccountGate, useAccount, useAccountSync } from './account';
-import LoginPage from './LoginPage';
+import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
 import PaperCheck from './PaperCheck';
 import Challenge from './Challenge';
-import { freshSeed, generateQuestions, getExtraPractice } from './practice-bank';
-import { challengeMaxPoints } from './challenges';
+import { freshSeed, generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
+import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { PrintMenu } from './Printables';
-import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
 import { PaperFold } from './PaperFold';
-
+import { AccountGate, useAccount, useAccountSync } from './account';
+import LoginPage from './LoginPage';
 const queryClient = new QueryClient();
 
 type View =
@@ -74,6 +75,12 @@ const UNIT_INFO: UnitInfo[] = [
   { title: 'Equivalent fractions', subtitle: 'Rename an amount without changing its size' },
   { title: 'Put fractions together', subtitle: 'Compose, decompose, and go beyond one' },
   { title: 'Operations and decimals', subtitle: 'Add, subtract, and connect fractions to decimals' },
+  { title: 'Rename and compare', subtitle: 'Simplify, compare and order' },
+  { title: 'Mixed numbers and amounts', subtitle: 'Mixed numbers and parts of amounts' },
+  { title: 'Multiply and divide', subtitle: 'Groups, parts of parts, and scoops' },
+  { title: 'Fractions in measurement', subtitle: 'Lengths and fair shares' },
+  { title: 'Fraction models in context', subtitle: 'Chance, area, lines and recipes' },
+  { title: 'Fractions, decimals, and percent', subtitle: 'Percent, decimals and 2-step stories' },
 ];
 
 // Lessons where kids make fractions by folding a paper strip (1 → 1/2 → 1/4 → 1/8).
@@ -94,12 +101,17 @@ function Fraction({ numerator, denominator }: { numerator: number; denominator: 
 
 function FractionBar({ numerator, denominator }: { numerator: number; denominator: number }) {
   return (
-    <div style={{ display: 'grid', gap: 8, flex: 1 }} role="img" aria-label={`${denominator} equal parts per whole, ${numerator} shaded`}>
+    <div className="fq-bar-model" style={{ '--pieces': denominator, '--piece': denomColor(denominator) } as CSSProperties} role="img" aria-label={`${numerator}/${denominator}: each whole is split into ${denominator} equal parts, with ${numerator} parts shaded`}>
       {Array.from({ length: Math.max(1, Math.ceil(numerator / denominator)) }, (_, whole) => (
-        <div className="fq-bar" style={{ '--pieces': denominator, '--piece': denomColor(denominator) } as CSSProperties} key={whole}>
-          {Array.from({ length: denominator }, (_, index) => <span className={whole * denominator + index < numerator ? '' : 'empty'} style={{ '--i': whole * denominator + index } as CSSProperties} key={index} />)}
+        <div className="fq-bar-whole" key={whole}>
+          <span className="fq-bar-whole-label">Whole {whole + 1}</span>
+          <div className="fq-bar">
+            {Array.from({ length: denominator }, (_, index) => <span className={whole * denominator + index < numerator ? '' : 'empty'} style={{ '--i': whole * denominator + index } as CSSProperties} key={index} />)}
+          </div>
+          {whole === 0 && <span className="fq-bar-part-marker" style={{ gridTemplateColumns: `repeat(${denominator}, minmax(0, 1fr))` }}><b>PART</b></span>}
         </div>
       ))}
+      <span className="fq-bar-part-guide"><i aria-hidden="true" /> Part · one section is one equal part</span>
     </div>
   );
 }
@@ -115,7 +127,6 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
           {model.bars.map((item, index) => (
             <div className="fq-visual-bar-row" key={`${item.numerator}-${item.denominator}-${index}`}>
               <FractionBar numerator={item.numerator} denominator={item.denominator} />
-              {!model.hideLabels && <Fraction numerator={item.numerator} denominator={item.denominator} />}
             </div>
           ))}
         </div>
@@ -149,13 +160,18 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
               ))}
             </div>
             <p className="fq-numberline-range" data-testid="text-model-numberline-range">{wholes === 1 ? 'The line goes from 0 to 1.' : `The line goes from 0 to ${wholes}. Each whole has the same spaces.`}</p>
+            {/* Practice pictures hide the readout so the picture doesn't give the answer away. */}
             {!model.hideLabels && <div className="fq-line-readout"><Fraction numerator={model.numerator} denominator={model.denominator} /></div>}
           </div>
         );
       })()}
       {model.kind === 'partition' && (
-        <div className="fq-partition-whole" role="img" aria-label={`A whole split into ${model.parts.length} pieces`}>
-          {model.parts.map((size, index) => <span style={{ flexBasis: `${size}%`, '--i': index } as CSSProperties} key={`${size}-${index}`} />)}
+        <div className="fq-partition-model" role="img" aria-label={`One whole split into ${model.parts.length} pieces; the first piece is one part`}>
+          <span className="fq-partition-whole-label">Whole</span>
+          <div className="fq-partition-whole">
+            {model.parts.map((size, index) => <span className={index === 0 ? 'part-sample' : ''} style={{ flexBasis: `${size}%`, '--i': index } as CSSProperties} key={`${size}-${index}`} />)}
+          </div>
+          <span className="fq-partition-part-label"><i aria-hidden="true" /> Part · one section</span>
         </div>
       )}
       {model.kind === 'equation' && <div className="fq-model-equation" role="img" aria-label={`Visual equation ${model.text}`}><MathText text={model.text} /></div>}
@@ -173,54 +189,55 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
 function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: () => void; onHome: () => void }) {
   const stars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
   const { fun, setFun } = useFun();
+  const account = useAccount();
+  const [signingOut, setSigningOut] = useState(false);
+  const syncLabel = account.user
+    ? account.syncStatus === 'saving' ? 'Saving…' : account.syncStatus === 'offline' ? 'Not synced' : 'Saved'
+    : 'On this device';
   return (
-    <header className="fq-shell fq-topbar">
-      <button className="fq-brand" onClick={onHome} data-testid="button-home">
-        <span className="fq-brand-mark" aria-hidden="true"><Compass size={22} strokeWidth={3} /></span>
-        <span>Fraction Quest</span>
-      </button>
-      <div className="fq-topbar-actions">
-        <div className="fq-fun-stats">
-          <span className="fq-stat fq-stat-streak" title="Day streak" data-testid="status-day-streak"><Flame size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{fun.dayStreak}</strong><span className="fq-sr">day streak</span></span>
-          <span className="fq-stat fq-stat-xp" title="XP earned" data-testid="status-xp"><Zap size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{fun.xp}</strong><span className="fq-stat-unit">XP</span></span>
-          <DailyRing answered={fun.answeredToday} />
+    <>
+      <header className="fq-shell fq-topbar">
+        <button className="fq-brand" onClick={onHome} data-testid="button-home">
+          <span className="fq-brand-mark" aria-hidden="true"><Compass size={22} strokeWidth={3} /></span>
+          <span>Fraction Quest</span>
+        </button>
+        <div className="fq-topbar-actions">
+          <div className="fq-fun-stats">
+            <span className="fq-stat fq-stat-streak" title="Day streak" data-testid="status-day-streak"><Flame size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{fun.dayStreak}</strong><span className="fq-sr">day streak</span></span>
+            <span className="fq-stat fq-stat-xp" title="XP earned" data-testid="status-xp"><Zap size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{fun.xp}</strong><span className="fq-stat-unit">XP</span></span>
+            <DailyRing answered={fun.answeredToday} />
+          </div>
+          <div className="fq-progress-pill" data-testid="status-overall-progress" aria-live="polite">
+            <Star size={15} className="filled" aria-hidden="true" />
+            <span><strong>{stars}</strong> stars</span><span aria-hidden="true">·</span>
+            <span><strong>{MISSIONS.filter(item => hasLearningGate(progress, item.id)).length}</strong>/{MISSIONS.length} lessons</span>
+          </div>
+          <button className="fq-icon-button" onClick={() => setFun(setSound(fun, !fun.sound))} aria-label={fun.sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={fun.sound} data-testid="button-toggle-sound">{fun.sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
+          <button className="fq-icon-button" onClick={onReset} aria-label="Reset progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>
+          <div className="fq-account">
+            <span className="fq-account-avatar" aria-hidden="true">{account.user?.displayName.trim().charAt(0).toUpperCase() ?? 'G'}</span>
+            <span className="fq-account-name">
+              <strong>{account.user?.displayName ?? 'Guest'}</strong>
+              <small className={account.syncStatus === 'saving' ? 'sync-saving' : account.syncStatus === 'offline' ? 'sync-offline' : ''} aria-live="polite">{syncLabel}</small>
+            </span>
+            {account.user
+              ? <button className="fq-hint-button fq-account-signin" disabled={signingOut} onClick={async () => { setSigningOut(true); await account.signOut(); setSigningOut(false); }} data-testid="button-sign-out">{signingOut ? 'Saving…' : 'Sign out'}</button>
+              : <button className="fq-hint-button fq-account-signin" onClick={account.goToSignIn} data-testid="button-sign-in">Sign in</button>}
+          </div>
         </div>
-        <div className="fq-progress-pill" data-testid="status-overall-progress" aria-live="polite">
-          <Star size={15} className="filled" aria-hidden="true" />
-          <span><strong>{stars}</strong> stars</span><span aria-hidden="true">·</span>
-           <span><strong>{MISSIONS.filter(item => hasLearningGate(progress, item.id)).length}</strong>/{MISSIONS.length} lessons</span>
-        </div>
-        <AccountChip />
-        <button className="fq-icon-button" onClick={() => setFun(setSound(fun, !fun.sound))} aria-label={fun.sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={fun.sound} data-testid="button-toggle-sound">{fun.sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
-        <button className="fq-icon-button" onClick={onReset} aria-label="Reset progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>
-      </div>
-    </header>
-  );
-}
-
-function AccountChip() {
-  const { user, syncStatus, signOut, goToSignIn } = useAccount();
-  if (!user) {
-    return <button className="fq-button ghost fq-account-signin" onClick={goToSignIn} data-testid="button-go-sign-in"><LogIn size={16} /> Sign in</button>;
-  }
-  return (
-    <div className="fq-account" data-testid="status-account">
-      <span className="fq-account-avatar" aria-hidden="true">{user.displayName.slice(0, 1).toUpperCase()}</span>
-      <span className="fq-account-name">
-        <strong>{user.displayName}</strong>
-        <small className={`sync-${syncStatus}`} data-testid="status-sync">{syncStatus === 'saving' ? 'Saving…' : syncStatus === 'offline' ? 'Not saved yet' : 'Saved'}</small>
-      </span>
-      <button className="fq-icon-button" onClick={() => { void signOut(); }} aria-label={`Sign out ${user.displayName}`} data-testid="button-sign-out"><LogOut size={18} /></button>
-    </div>
+      </header>
+      {account.accountError && <p className="fq-account-error fq-shell" role="alert" data-testid="status-account-error">{account.accountError}</p>}
+    </>
   );
 }
 
 function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChallenge, onExtra }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void }) {
+  const { user } = useAccount();
   const totalStars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
   const nextMission = getNextMission(progress);
-  const dueReviewCount = getDueSkillReviewCount(progress);
+  const firstPendingMission = MISSIONS.find(item => !hasLearningGate(progress, item.id));
+  const evidenceRecommendation = !!nextMission && nextMission.id !== firstPendingMission?.id;
   const [selectedId, setSelectedId] = useState<string | null>(() => nextMission?.id ?? null);
-  const { user } = useAccount();
   const units = UNIT_INFO.map((unit, index) => ({
     ...unit,
     number: index + 1,
@@ -261,23 +278,17 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
           {nextMission ? (
             <button className="fq-continue-card" onClick={() => onStart(nextMission.id)} data-testid="button-continue-course">
               <span className="fq-continue-icon"><ArrowRight size={21} /></span>
-              <span className="fq-continue-copy"><strong>{progress.completedMissionIds.length ? 'Keep exploring' : 'Start your first lesson'}</strong><span>Lesson {String(MISSIONS.indexOf(nextMission) + 1).padStart(2, '0')} · {nextMission.title}</span></span>
+              <span className="fq-continue-copy">
+                <strong>{evidenceRecommendation ? 'Try this one next' : progress.completedMissionIds.length ? 'Keep exploring' : 'Start your first lesson'}</strong>
+                <span>Lesson {String(MISSIONS.indexOf(nextMission) + 1).padStart(2, '0')} · {nextMission.title}{evidenceRecommendation ? ' · Practice what was tricky' : ''}</span>
+              </span>
               <ArrowRight className="fq-continue-arrow" size={20} />
             </button>
           ) : (
             <div className="fq-course-finished" data-testid="status-course-complete"><Trophy size={24} /> You explored every lesson. Replay any one to practice again.</div>
           )}
 
-          {dueReviewCount > 0 && (
-            <button className="fq-continue-card fq-review-continue-card" onClick={onStartReview} data-testid="button-start-due-review">
-              <span className="fq-continue-icon"><RotateCcw size={20} /></span>
-              <span className="fq-continue-copy">
-                <strong>Quick skill review</strong>
-                <span>{dueReviewCount} due {dueReviewCount === 1 ? 'skill' : 'skills'} ready for a short retry round</span>
-              </span>
-              <ArrowRight className="fq-continue-arrow" size={20} />
-            </button>
-          )}
+          <QuickReviewEntry progress={progress} onStart={onStartReview} />
 
           <div className="fq-unit-list">
             {units.map((unit) => {
@@ -298,7 +309,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
                     selectedId={selectedId}
                     onSelect={(id) => setSelectedId((current) => (current === id ? null : id))}
                     allDone={completedInUnit === unit.missions.length}
-                    challenge={{ best: progress.challengeBest?.[String(unit.number)] ?? null, max: challengeMaxPoints(unit.number), onStart: () => onChallenge(unit.number) }}
+                    challenge={CHALLENGES[unit.number] ? { best: progress.challengeBest?.[String(unit.number)] ?? null, max: challengeMaxPoints(unit.number), onStart: () => onChallenge(unit.number) } : undefined}
                     nodes={unit.missions.map((mission): PathNode => {
                       const unlocked = isMissionUnlocked(progress, mission.id);
                       const completed = hasLearningGate(progress, mission.id);
@@ -333,7 +344,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
                             </button>
                             {unlocked && (
                               <div className="fq-node-tools">
-                                <button className="fq-button ghost" onClick={() => onExtra(mission.id)} data-testid={`button-practice-more-${mission.id}`}><Dumbbell size={17} /> Practice more</button>
+                                {hasGenerator(mission.id) && <button className="fq-button ghost" onClick={() => onExtra(mission.id)} data-testid={`button-practice-more-${mission.id}`}><Dumbbell size={17} /> Practice more</button>}
                                 <PrintMenu missionId={mission.id} record={learning} />
                                 <button className="fq-button ghost" onClick={() => onPaper(mission.id)} data-testid={`button-check-paper-${mission.id}`}><ClipboardCheck size={17} /> Check my paper</button>
                               </div>
@@ -518,14 +529,14 @@ function PlayView({
             <div className="fq-example">
               <div className="fq-mascot-say">
                 <Mascot mood="happy" size={64} />
-                <p className="fq-skill-statement"><MathText text={mission.skill} /></p>
+                <p className="fq-skill-statement"><LearningText text={mission.skill} speak /></p>
               </div>
               <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
               <div className="fq-example-answer">
                 <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
-                <p><strong><MathText text={mission.example.prompt} /></strong></p>
-                <p className="fq-example-result"><MathText text={mission.example.answer} /></p>
-                <p><MathText text={mission.example.explanation} /></p>
+                <p><strong><LearningText text={mission.example.prompt} /></strong></p>
+                <p className="fq-example-result"><LearningText text={mission.example.answer} /></p>
+                <p><LearningText text={mission.example.explanation} speak /></p>
               </div>
               {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
               <TapModel model={mission.example.model} />
@@ -537,11 +548,11 @@ function PlayView({
               <div className="fq-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} />
               </div>
-              {hintOpen && <div className="fq-hint" data-testid="text-question-hint"><Lightbulb size={18} /> <span><strong>Try this idea:</strong> <MathText text={question.hint} /></span></div>}
+              {hintOpen && <div className="fq-hint" data-testid="text-question-hint"><Lightbulb size={18} /> <span><strong>Try this idea:</strong> <LearningText text={question.hint} speak /></span></div>}
               {attempts >= 2 && (
                 <div className="fq-remediation" role="note" data-testid="status-remediation">
                   <strong>Let's make it simpler.</strong>
-                  <span><MathText text={question.hint} /></span>
+                  <span><LearningText text={question.hint} speak /></span>
                   <ModelView model={question.simplerModel} compact />
                 </div>
               )}
@@ -575,8 +586,8 @@ function PlayView({
               <Mascot mood={mood} size={64} />
               <div className="fq-sheet-copy">
                 {feedback === 'correct'
-                  ? <><strong>{cheer}</strong><span><MathText text={question.hint} /></span></>
-                  : <><strong>Not quite!</strong><span><MathText text={question.retryFeedback} /></span></>}
+                  ? <><strong>{cheer}</strong><span><LearningText text={question.hint} /></span></>
+                   : <><strong>Not quite!</strong><span><LearningText text={question.retryFeedback} speak /></span></>}
               </div>
               {feedback === 'correct' ? (
                 <button className="fq-button fq-sheet-button" onClick={moveOn} data-testid={isLastQuestion ? 'button-finish-mission' : 'button-next-question'}>
@@ -683,15 +694,19 @@ function ReviewCompleteView({ reviewedCount, progress, onMap, onReset }: { revie
 }
 
 function Game() {
-  const [progress, setProgress] = useState<Progress>(() => loadProgress());
+  const account = useAccount();
+  const [progress, setProgress] = useState<Progress>(() => account.initialProgress ?? loadProgress());
   const [view, setView] = useState<View | LabView | RetentionView | PaperView | ChallengeView | ExtraView>({ type: 'map' });
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [saveError, setSaveError] = useState(false);
-  const [fun, setFun] = useState<FunState>(() => loadFun());
+  const [fun, setFun] = useState<FunState>(() => account.initialFun ?? loadFun());
   const [combo, setCombo] = useState(0);
-  const { user } = useAccount();
   useAccountSync(progress, fun);
+
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view]);
 
   const startMission = (missionId: string) => {
     if (!isMissionUnlocked(progress, missionId)) return;
@@ -747,7 +762,7 @@ function Game() {
         ...baseMission,
         questions: [
           ...baseMission.questions.slice(0, -1),
-          ...getExtraPractice(baseMission.id, baseMission.questions.map((q) => q.id)).slice(0, EXTRA_IN_LESSON),
+          ...(hasGenerator(baseMission.id) ? getExtraPractice(baseMission.id, baseMission.questions.map((q) => q.id)).slice(0, EXTRA_IN_LESSON) : []),
           ...view.reviewQuestions,
           baseMission.questions[baseMission.questions.length - 1],
         ],
@@ -769,7 +784,7 @@ function Game() {
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);
         const baseIds = base.questions.map((q) => q.id);
@@ -876,7 +891,7 @@ function Game() {
           <div className="fq-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description">
             <button className="fq-icon-button fq-modal-close" onClick={() => setResetOpen(false)} aria-label="Close reset dialog" data-testid="button-close-reset"><X size={18} /></button>
             <h2 id="reset-title">Start the map over?</h2>
-            <p id="reset-description">{user ? `This clears ${user.displayName}'s lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
+            <p id="reset-description">{account.user ? `This clears ${account.user.displayName}'s lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
             <div className="fq-modal-actions">
               <button className="fq-button ghost" onClick={() => setResetOpen(false)} data-testid="button-cancel-reset">Keep exploring</button>
               <button className="fq-button" onClick={resetProgress} data-testid="button-confirm-reset">Reset progress</button>
@@ -888,27 +903,12 @@ function Game() {
   );
 }
 
-function Root() {
-  return (
-    <AccountGate
-      renderLoading={() => (
-        <div className="fq-app fq-login-app" role="status" aria-live="polite">
-          <div className="fq-loading"><Mascot mood="thinking" size={90} /><p>Getting your map ready…</p></div>
-        </div>
-      )}
-      renderLogin={(props) => <LoginPage {...props} />}
-    >
-      {(key) => <Game key={key} />}
-    </AccountGate>
-  );
-}
-
 function AppRouter() {
   const [location] = useLocation();
   return (
     <ErrorBoundary resetKey={location}>
       <Switch>
-        <Route path="/" component={Root} />
+        <Route path="/" component={Game} />
         <Route component={NotFound} />
       </Switch>
     </ErrorBoundary>
@@ -918,12 +918,19 @@ function AppRouter() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <AppRouter />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <AccountGate
+        renderLogin={(props) => <LoginPage {...props} />}
+        renderLoading={() => <main className="fq-login-app" role="status" aria-live="polite">Loading your explorer account…</main>}
+      >
+        {(accountKey) => (
+          <TooltipProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+              <AppRouter key={accountKey} />
+            </WouterRouter>
+            <Toaster />
+          </TooltipProvider>
+        )}
+      </AccountGate>
     </QueryClientProvider>
   );
 }

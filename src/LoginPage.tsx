@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { ArrowRight, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
 import { login, signup, type User } from '@workspace/api-client-react';
 import { errorMessage } from './account';
+import { authenticateAccount } from './account-flow';
 import { Mascot } from './fun-ui';
 
 type Mode = 'sign-in' | 'create';
@@ -26,12 +27,16 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
     if (creating && password.length < 8) { setError('Passwords need at least 8 characters.'); return; }
     setBusy(true);
     try {
-      const user = creating
-        ? await signup({ username: username.trim(), displayName: (displayName.trim() || username.trim()).slice(0, 30), password })
-        : await login({ username: username.trim(), password });
+      const normalizedUsername = username.trim();
+      const user = await authenticateAccount(creating ? 'create' : 'sign-in', {
+        username: normalizedUsername,
+        displayName: (displayName.trim() || normalizedUsername).slice(0, 30),
+        password,
+      }, { login, signup });
       await onSignedIn(user);
     } catch (err) {
-      setError(errorMessage(err, creating ? "Couldn't create the account. Check your connection and try again." : "Couldn't sign in. Check your connection and try again."));
+      const fallback = creating ? "Couldn't create the account. Check your connection and try again." : "Couldn't sign in. Check your connection and try again.";
+      setError(errorMessage(err, '') || (err instanceof Error && err.message ? err.message : fallback));
       setBusy(false);
     }
   };

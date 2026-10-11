@@ -158,12 +158,12 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
         <button type="button" className="fq-button secondary" onClick={checkAll} data-testid="button-paper-check-all">Check all <Check size={17} /></button>
       </section>
 
-      <ChallengePaper unit={mission.unit} best={progress.challengeBest?.[String(mission.unit)] ?? null}
+      {CHALLENGES[mission.unit] && <ChallengePaper unit={mission.unit} best={progress.challengeBest?.[String(mission.unit)] ?? null}
         onScore={(score) => {
           const key = String(mission.unit);
           const old = ref.current.challengeBest?.[key];
           if (old == null || score > old) { const next = { ...ref.current, challengeBest: { ...ref.current.challengeBest, [key]: score } }; ref.current = next; onChange(next); }
-        }} />
+        }} />}
 
       <div className="fq-paper-foot">
         <button type="button" className="fq-button" onClick={onLab} disabled={!rec.practiceDone} data-testid="button-paper-to-lab">

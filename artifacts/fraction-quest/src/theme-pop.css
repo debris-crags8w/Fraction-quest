@@ -1138,7 +1138,7 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 
 .fq-story { display: grid; gap: 6px; margin: 4px 0 10px; padding: 0; list-style: none; }
 .fq-story li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border-radius: 14px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); font-weight: 800; font-size: 1.02rem; line-height: 1.35; }
-.fq-story li span { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #fff; background: var(--unit, var(--fq-grape)); font-size: 0.8rem; font-weight: 900; }
+.fq-story li > span:first-child { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #fff; background: var(--unit, var(--fq-grape)); font-size: 0.8rem; font-weight: 900; }
 .fq-walk-open { margin-top: 14px; }
 .fq-walk-open small { color: hsl(var(--muted-foreground)); font-weight: 700; }
 .fq-walk { display: grid; gap: 10px; margin-top: 16px; padding: 16px; border-radius: 20px; background: #FFF6D6; box-shadow: 0 0 0 2px var(--fq-sun); }

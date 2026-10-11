@@ -1318,17 +1318,9 @@
 
 .fq-visual-bar-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 58px;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
-}
-
-.fq-visual-bar-row .fq-bar {
-  height: 37px;
-}
-
-.fq-visual-bar-row .fq-fraction {
-  font-size: 0.82rem;
+  gap: 8px;
 }
 
 .fq-model-caption {

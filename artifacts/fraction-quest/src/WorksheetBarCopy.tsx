@@ -26,7 +26,7 @@ export function WorksheetBarCopy({ target, disabled, statusId, onMatchChange }: 
 
   return (
     <section className="fq-ll-copy-model" aria-label="Interactive bar model">
-      <p className="fq-ll-copy-instruction">Copy the shaded bar above. Tap each equal part to color or uncolor it.</p>
+      <p className="fq-ll-copy-instruction">Copy the bar above. Tap a part to color it. Tap again to clear it.</p>
       <div className="fq-ll-copy-wholes">
         {Array.from({ length: target.wholes }, (_, whole) => (
           <div className="fq-ll-copy-whole" key={whole}>
@@ -61,7 +61,7 @@ export function WorksheetBarCopy({ target, disabled, statusId, onMatchChange }: 
       </div>
       <p className="fq-ll-copy-part-label"><span aria-hidden="true" /> PART · one equal piece</p>
       <p id={statusId} className={`fq-ll-copy-status ${matches ? 'matched' : ''}`} role="status" aria-live="polite" data-testid="status-copy-model">
-        {matches ? 'Your bar matches. The answer is unlocked.' : 'Match the shading to unlock answer entry.'}
+        {matches ? 'Your bar matches! Now type the answer.' : 'Copy the bar to open the answer box.'}
       </p>
     </section>
   );
