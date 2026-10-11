@@ -41,6 +41,17 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Merged `review/coding-challenge-progression` into main (359a5c7).** Brought in Part Finder (PartFinder.tsx,
+  part-finder.ts; lessons equal-parts/unit-fractions/equivalent-models; best score in fun.partFinderBest), daily practice
+  (DailyPractice.tsx, daily-practice.ts, progress.dailyPractice), 6 coding levels + robot hints (getRunHint), and the
+  grown-ups voice chooser (LearningVoicePicker in ParentView; fun.preferredLearningVoiceId syncs). Read-aloud =
+  LearningText's createLearningSpeechController (waits for voices) + lib/voice.ts helpers (gentle scoring, "three fourths",
+  one utterance per sentence, VOICE_RATE 0.88 / VOICE_PITCH 1.1). A saved voice choice always wins.
+  Fix after merge: daily practice never picks locked lessons (worked-on lessons first, filler only from unlocked ones;
+  a new learner repeats lesson 1 with different fractions via BEGINNER_FRACTIONS); "1 part is shaded" grammar.
+  Part Finder teaching notes not yet acted on: "Tile the whole" uses an all-equal square (just counting) and shows the
+  answer picture; round 1 duplicates a lesson-2 worksheet task; wrong answers show a generic message although
+  partFinderFeedback has better hints.
 - **Read-aloud voice (lib/voice.ts).** User found the voice robotic and asked for a gentle woman's voice. `pickVoice` scores
   English voices: warm female names (Ava, Samantha, Allison, Edge Natural Jenny/Aria/Ana, Google US English, Android sfg/tpf…)
   plus natural/neural/enhanced quality; avoids men's and novelty voices. Rate 0.88, pitch 1.1, one utterance per sentence

@@ -524,6 +524,7 @@ describe('daily fraction practice', () => {
     const trickyMission = MISSIONS[12];
     const progress: Progress = {
       ...EMPTY_PROGRESS,
+      placement: { unit: 4, at: now }, // units 1–3 open, so five different lessons are available
       reviewQueue: [{
         missionId: dueMission.id,
         missedQuestionId: dueMission.questions[0].id,
@@ -550,6 +551,17 @@ describe('daily fraction practice', () => {
     ));
     assert.deepEqual(createDailyPractice(progress, now), session, 'returning on the same day gets the same question set');
     assert.equal(progress.reviewQueue.length, 1, 'starting daily practice does not clear a due review');
+  });
+
+  it('never picks a locked lesson: a new learner practices their open lesson with different fractions', () => {
+    const session = createDailyPractice(EMPTY_PROGRESS, now);
+    assert.equal(session.questions.length, DAILY_PRACTICE_LENGTH);
+    assert.ok(session.questions.every((question) => question.missionId === MISSIONS[0].id));
+    assert.equal(new Set(session.questions.map((question) => question.id)).size, DAILY_PRACTICE_LENGTH);
+    assert.equal(new Set(session.questions.map((question) => `${question.numerator}/${question.denominator}`)).size, DAILY_PRACTICE_LENGTH);
+    const opened = { ...EMPTY_PROGRESS, placement: { unit: 2, at: now } };
+    assert.ok(createDailyPractice(opened, now).questions.every((question) => isMissionUnlocked(opened, question.missionId)));
+    assert.ok(session.questions.every((question) => !/1 parts? are shaded/.test(question.explanation)));
   });
 
   it('saves model work and typed drafts so the routine can resume after reload', () => {
