@@ -10,6 +10,7 @@ import { BreakSettings } from './BreakSettings';
 import type { BreakPreferences } from './lib/fun';
 import type { DisplayPreferences } from './lib/fun';
 import FamilyControls from './FamilyControls';
+import { printPage } from './lib/print';
 
 const STATUS: Record<LessonRow['status'], string> = { done: 'Done', started: 'In progress', skipped: 'Skipped by quiz', open: 'Open', locked: 'Locked' };
 
@@ -81,7 +82,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
     if (!printKeyLessonId) return;
     const returnToReport = () => setPrintKeyLessonId(null);
     window.addEventListener('afterprint', returnToReport, { once: true });
-    const frame = window.requestAnimationFrame(() => window.print());
+    const frame = window.requestAnimationFrame(() => { void printPage('Fraction Quest answer key'); });
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener('afterprint', returnToReport);
@@ -111,7 +112,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
       <main className="fq-shell fq-parent fq-appear">
         <div className="fq-parent-actions">
           <button className="fq-back" onClick={onBack} data-testid="button-parent-back"><ArrowLeft size={17} /> Back to the map</button>
-          <button className="fq-button secondary" onClick={() => window.print()} data-testid="button-parent-print"><Printer size={17} /> Print report</button>
+          <button className="fq-button secondary" onClick={() => { void printPage('Fraction Quest progress report'); }} data-testid="button-parent-print"><Printer size={17} /> Print report</button>
         </div>
 
         <article className="fq-parent-report fq-print fq-print-live" data-testid="parent-report">

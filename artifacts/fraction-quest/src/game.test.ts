@@ -49,6 +49,7 @@ import {
   LATE_ADDED_LESSONS,
   staleDraft,
   loadProgress,
+  courseCounts,
   MISSIONS,
   numberLineWholeCount,
   recordMissedSkill,
@@ -2236,5 +2237,15 @@ describe('game improvements', () => {
         }
       }
     }
+  });
+});
+
+describe('course counts', () => {
+  it('counts lessons and units from the course, leaving out free units', () => {
+    const all = courseCounts();
+    assert.equal(all.lessons, MISSIONS.length); assert.equal(all.units, 14);
+    const trial = courseCounts([1]);
+    assert.equal(trial.lockedUnits, 13);
+    assert.equal(trial.lockedLessons, MISSIONS.filter((mission) => mission.unit !== 1).length);
   });
 });

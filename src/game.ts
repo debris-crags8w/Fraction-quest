@@ -1198,3 +1198,14 @@ export function resetProgress(): Progress {
   saveProgress(EMPTY_PROGRESS);
   return EMPTY_PROGRESS;
 }
+
+/** Course size counted from MISSIONS, so text like "13 more units: 65 more lessons" never goes stale.
+    `freeUnits` are left out of the "locked" numbers (for a trial that opens unit 1). */
+export function courseCounts(freeUnits: Iterable<number> = []) {
+  const free = new Set(freeUnits);
+  const locked = MISSIONS.filter((mission) => !free.has(mission.unit));
+  return {
+    lessons: MISSIONS.length, units: new Set(MISSIONS.map((mission) => mission.unit)).size,
+    lockedLessons: locked.length, lockedUnits: new Set(locked.map((mission) => mission.unit)).size,
+  };
+}

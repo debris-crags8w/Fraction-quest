@@ -41,6 +41,11 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Native printing + lesson count on main (iOS conversion itself postponed; user may redo it):** all printing goes through
+  `printPage()` (src/lib/print.ts; uses `@capacitor/core` 8.5.2, the only Capacitor package on main). Web = window.print();
+  in a Capacitor app it calls the `Printing` plugin, then fires 'afterprint'. The Swift plugin and wiring steps are in
+  artifacts/fraction-quest/native/ios/ (no ios/ project on main). `courseCounts(freeUnits)` in game.ts gives lesson/unit
+  counts (68 lessons; 65 locked over 13 units with unit 1 free). ios-local-icloud still has its own copies.
 - **"1-5 + lesson count + native printing" batch (main unless noted):**
   - Account deletion: DELETE /api/privacy/account (password required; all tables cascade), OpenAPI + codegen, grown-ups
     danger card in FamilyControls (`button-delete-account`). Verified end to end against a temp Postgres.

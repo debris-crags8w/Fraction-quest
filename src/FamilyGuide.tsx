@@ -4,6 +4,7 @@ import { MISSIONS } from './game';
 import { FRACTION_STANDARDS, standardsForMission } from './standard-catalog';
 import { GRADE_PACING, UNIT_TEACHING_GUIDES, pacingSessionTotal } from './teaching-guide-data';
 import './family-guide.css';
+import { printPage } from './lib/print';
 
 type FamilyGuideProps = { unitTitles: string[] };
 type PrintMode = 'unit' | 'pacing' | null;
@@ -28,7 +29,7 @@ export function FamilyGuide({ unitTitles }: FamilyGuideProps) {
       setPrintMode(null);
     };
     window.addEventListener('afterprint', finish, { once: true });
-    const frame = window.requestAnimationFrame(() => window.print());
+    const frame = window.requestAnimationFrame(() => { void printPage('Fraction Quest family guide'); });
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener('afterprint', finish);

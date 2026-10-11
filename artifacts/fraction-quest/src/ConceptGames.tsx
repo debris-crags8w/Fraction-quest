@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { ArrowLeft, Printer, RotateCcw, Scale, Shuffle, Waypoints } from 'lucide-react';
 import './concept-games.css';
 import { areEquivalent, compareFractions, targetTick, validLinePartitions } from './concept-games';
+import { printPage } from './lib/print';
 
 type Fraction = { n: number; d: number };
 type Model = { d: number; n: number };
@@ -157,7 +158,7 @@ function CenterPack() {
       <article><b>Walk the number line</b><p>Choose a fraction. Split 0 to 1 into equal jumps and mark where your fraction lands.</p><div className="cg-print-line"><i>0</i><i>1</i></div><p>My fraction: __________ &nbsp; How I know: ____________________________</p></article>
       <article><b>Fraction cards to cut</b><p>Write a fraction name on each card. Draw its bar model on another card. Mix the cards and match equal amounts.</p><div className="cg-cut-cards"><span>Fraction name</span><span>Draw a bar</span><span>Fraction name</span><span>Draw a bar</span></div></article>
     </div>
-    <button className="cg-secondary cg-print-button" type="button" onClick={() => window.print()} data-testid="button-print-center-pack"><Printer size={17} /> Print center pack</button>
+    <button className="cg-secondary cg-print-button" type="button" onClick={() => { void printPage('Fraction Quest center pack'); }} data-testid="button-print-center-pack"><Printer size={17} /> Print center pack</button>
   </section>;
 }
 
