@@ -18,6 +18,7 @@
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		A1F0C0DE0000000000000002 /* ICloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0C0DE0000000000000001 /* ICloudSync.swift */; };
 		A1F0C0DE0000000000000005 /* Subscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0C0DE0000000000000004 /* Subscriptions.swift */; };
+		A1F0C0DE0000000000000007 /* Printing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0C0DE0000000000000006 /* Printing.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,7 @@
 		A1F0C0DE0000000000000001 /* ICloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudSync.swift; sourceTree = "<group>"; };
 		A1F0C0DE0000000000000003 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		A1F0C0DE0000000000000004 /* Subscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subscriptions.swift; sourceTree = "<group>"; };
+		A1F0C0DE0000000000000006 /* Printing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Printing.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +74,7 @@
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
 				A1F0C0DE0000000000000001 /* ICloudSync.swift */,
 				A1F0C0DE0000000000000004 /* Subscriptions.swift */,
+				A1F0C0DE0000000000000006 /* Printing.swift */,
 				A1F0C0DE0000000000000003 /* App.entitlements */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
@@ -170,6 +173,7 @@
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				A1F0C0DE0000000000000002 /* ICloudSync.swift in Sources */,
 				A1F0C0DE0000000000000005 /* Subscriptions.swift in Sources */,
+				A1F0C0DE0000000000000007 /* Printing.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -8,6 +8,7 @@ import { BarSvg, ChallengeFigureView, LineSvg, MODEL_CONCEPTS, ModelPair, ModelT
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { AreaSvg, ColorTwoWays, SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
 import { freshSeed, generateQuestions } from './practice-bank';
+import { printPage } from './lib/print';
 
 export type PrintMode = 'lesson' | 'practice' | 'generated' | 'blank' | 'answers' | 'challenge';
 
@@ -364,7 +365,7 @@ export function PrintMenu({ missionId, record, className = '' }: { missionId: st
   useEffect(() => {
     if (!request) return;
     // Wait one frame so the chosen page is rendered before the print dialog opens.
-    const frame = window.requestAnimationFrame(() => window.print());
+    const frame = window.requestAnimationFrame(() => { void printPage('Fraction Quest worksheet'); });
     return () => window.cancelAnimationFrame(frame);
   }, [request]);
   return (

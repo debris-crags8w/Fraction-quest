@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Check, Lock, RotateCcw, Sparkles, X } from 'lucide-react';
 import { GrownUpGate } from './ParentView';
-import { FALLBACK_PRICE, PRIVACY_POLICY_URL, TERMS_URL } from './lib/access';
+import { FALLBACK_PRICE, FREE_UNITS, PRIVACY_POLICY_URL, TERMS_URL } from './lib/access';
+import { MISSIONS } from './game';
 import { isNativeApp } from './lib/native';
 import {
   getEntitlement, isActive, loadProduct, manageSubscription, onEntitlement, purchase, restorePurchases, setPreviewSubscribed,
@@ -50,8 +51,11 @@ export function UnlockView({ onBack, onUnlocked }: { onBack: () => void; onUnloc
   );
 }
 
+// Counted from the course itself, so the promise stays right when lessons are added.
+const lockedLessons = MISSIONS.filter((mission) => !FREE_UNITS.has(mission.unit));
+const lockedUnits = new Set(lockedLessons.map((mission) => mission.unit)).size;
 const fullCourse = [
-  '13 more units: 49 more lessons, from comparing and equivalent fractions to multiplying and percents',
+  `${lockedUnits} more units: ${lockedLessons.length} more lessons, from comparing and equivalent fractions to multiplying and percents`,
   'Every game: Fraction Race, coding levels, Code Sprint and Part Finder',
   'Printable worksheets, answer keys and unit challenges',
   'Daily practice and reviews across the whole course',

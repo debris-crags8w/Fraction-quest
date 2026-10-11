@@ -54,7 +54,7 @@ npx cap open ios          # opens Xcode
 
 ## Still needed before App Store submission
 1. **App icon and launch screen:** `ios/App/App/Assets.xcassets` still has Capacitor's defaults. A 1024×1024 icon is required. `npx @capacitor/assets generate` can make every size from one image.
-2. **Printing:** the printables call `window.print()`, which does nothing in an iOS web view. Add a native print step (for example, the `@capgo/capacitor-printer` plugin or a small `UIPrintInteractionController` plugin), or share the page as a PDF.
+2. **Printing (done):** `window.print()` does nothing in an iOS web view, so worksheets, answer keys and the report call `printPage()` (`src/lib/print.ts`). In the app it uses the `Printing` plugin (`ios/App/App/Printing.swift`), which prints the web view with its print CSS through Apple's print sheet (that sheet also has "Save to Files" for a PDF). On the web it still calls `window.print()`. Test on a device: print a worksheet, an answer key from the grown-ups' page, and the report.
 3. **Parental gate on outside links:** the map footer links to Zearn and DreamBox. Kids apps must put a parental gate before any link that leaves the app (guidelines 1.3 / 5.1.4), or remove the links in the iOS build.
 4. **Privacy policy page:** required even with no data collected. Say that progress stays on the device and in the family's iCloud, that names are optional nicknames, and that there are no ads, analytics or accounts. Link it in App Store Connect and in the grown-ups page.
 5. **App Store Connect:**
