@@ -49,6 +49,7 @@ export type Mission = {
 export type Progress = {
   completedMissionIds: string[];
   starsByMission: Record<string, number>;
+  challengeBest?: Record<string, number>;
   reviewQueue: SkillReview[];
   learning?: Record<string, LearningRecord>;
 };

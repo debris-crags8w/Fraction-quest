@@ -10,6 +10,7 @@ import {
 import { denomColor } from './fun-ui';
 import { MODEL_CONCEPTS, ModelPair, ModelTag } from './models';
 import { PrintMenu } from './Printables';
+import { FractionEntry, usesFractionEntry } from './FractionEntry';
 import './learning-lab.css';
 
 type Kind = LearningModel['kind'];
@@ -234,6 +235,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; 
   const [open, setOpen] = useState(false);
   const [wrong, setWrong] = useState<string | null>(null);
   const ph = p.form === 'symbol' ? '< = >' : p.form === 'mixed' ? '1 2/3' : p.form === 'decimal' ? '0.4' : p.form === 'ordered' ? '1/4, 2/4, 3/4' : 'Your answer';
+  const fractionInput = usesFractionEntry(p);
   const submit = (event: { preventDefault: () => void }) => { event.preventDefault(); if (!draft.trim()) return; setWrong(answerMatches(p, draft) ? null : draft); onCheck(); };
   return (
     <li className={'fq-ll-row ' + (ok ? 'ok' : '')} data-testid={'row-worksheet-' + p.id}>
@@ -241,7 +243,16 @@ export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; 
         <label htmlFor={'ws-' + p.id}><span className="fq-ll-num">{p.id.slice(1)}</span><span><MathText text={p.prompt} /></span></label>
         {p.model && <Preview m={p.model} />}
         <div className="fq-ll-answer">
-          <input id={'ws-' + p.id} type="text" value={draft} placeholder={ph} autoComplete="off" maxLength={200} onChange={ev => { setWrong(null); onEdit(ev.target.value); }} data-testid={'input-worksheet-' + p.id} aria-describedby={'ws-fb-' + p.id} />
+          {fractionInput ? (
+            <FractionEntry
+              id={`ws-${p.id}`}
+              value={draft}
+              onChange={value => { setWrong(null); onEdit(value); }}
+              describedBy={`ws-fb-${p.id}`}
+            />
+          ) : (
+            <input id={'ws-' + p.id} type="text" value={draft} placeholder={ph} autoComplete="off" maxLength={200} onChange={ev => { setWrong(null); onEdit(ev.target.value); }} data-testid={'input-worksheet-' + p.id} aria-describedby={'ws-fb-' + p.id} />
+          )}
           <button type="submit" className="fq-button" disabled={!draft.trim() || ok} data-testid={'button-check-worksheet-' + p.id}>{ok ? 'Correct' : 'Check'}</button>
           <button type="button" className="fq-ll-hintbtn" aria-expanded={open} onClick={() => { if (!open) onHint(); setOpen(o => !o); }} data-testid={'button-hint-worksheet-' + p.id}><Lightbulb size={16} /> Hint</button>
         </div>

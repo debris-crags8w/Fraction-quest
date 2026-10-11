@@ -3,6 +3,7 @@ import { beforeEach, describe, it } from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
+import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
 import QuickReviewEntry from './QuickReviewEntry';
 import {
@@ -454,6 +455,44 @@ function withLearning(progress: Progress, id: string): Progress {
 }
 
 describe('entered-answer worksheets and evidence gates', () => {
+  it('provides a labeled stacked fraction field and keeps slash entry available', () => {
+    const markup = renderToStaticMarkup(createElement(FractionEntry, {
+      id: 'ws-w1',
+      value: '1/3',
+      onChange: () => undefined,
+      describedBy: 'ws-fb-w1',
+    }));
+    assert.match(markup, /aria-label="Numerator \(top number\)"/);
+    assert.match(markup, /aria-label="Denominator \(bottom number\)"/);
+    assert.match(markup, /class="fq-ll-fraction-bar" aria-hidden="true"/);
+    assert.match(markup, /inputmode="numeric"/i);
+    assert.match(markup, /Type a fraction with \//);
+    assert.match(markup, /aria-label="Insert fraction slash"/);
+    assert.match(markup, /value="1"/);
+    assert.match(markup, /value="3"/);
+  });
+
+  it('keeps fraction drafts editable, including partially entered answers', () => {
+    assert.deepEqual(fractionParts('1/3'), { numerator: '1', denominator: '3' });
+    assert.deepEqual(fractionParts('2/'), { numerator: '2', denominator: '' });
+    assert.deepEqual(fractionParts('/4'), { numerator: '', denominator: '4' });
+    assert.equal(fractionDraftFromParts('', ''), '');
+    assert.equal(fractionDraftFromParts('2', '5'), '2/5');
+    assert.equal(updateFractionPart('1/3', 'numerator', '2'), '2/3');
+    assert.equal(updateFractionPart('1/3', 'denominator', '4'), '1/4');
+    assert.equal(updateFractionPart('1/3', 'numerator', '1/5'), '1/5');
+    assert.equal(updateFractionPart('1/3', 'numerator', ''), '/3');
+  });
+
+  it('uses the fraction control only for single-fraction worksheet answers', () => {
+    const problems = getWorksheet('equal-parts');
+    assert.equal(usesFractionEntry(problems[0]), true);
+    assert.equal(usesFractionEntry(problems[1]), false);
+    assert.equal(usesFractionEntry({ ...problems[0], form: 'mixed' }), false);
+    assert.equal(usesFractionEntry({ ...problems[0], form: 'ordered' }), false);
+    assert.equal(usesFractionEntry({ ...problems[0], form: 'decimal' }), false);
+  });
+
   it('separates reasoning feedback from model errors across every lesson', () => {
     for (const mission of MISSIONS) {
       for (const check of getBuildChecks(mission.id)) {

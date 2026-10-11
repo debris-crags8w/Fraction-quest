@@ -31,9 +31,9 @@ const NAMES: Record<number, string> = { 2: 'halves', 3: 'thirds', 4: 'fourths', 
 const name = (d: number) => NAMES[d] ?? `${d}ths`;
 const Name = (d: number) => name(d)[0].toUpperCase() + name(d).slice(1);
 const f = (n: number, d: number) => `${n}/${d}`;
-const bar = (n: number, d: number): ModelSpec => ({ kind: 'bars', bars: [{ numerator: n, denominator: d }], hideLabels: true });
-const bars2 = (a: [number, number], b: [number, number]): ModelSpec => ({ kind: 'bars', bars: [{ numerator: a[0], denominator: a[1] }, { numerator: b[0], denominator: b[1] }], hideLabels: true });
-const line = (n: number, d: number, wholes = Math.max(1, Math.ceil(n / d))): ModelSpec => ({ kind: 'line', numerator: n, denominator: d, wholes, hideLabels: true });
+const bar = (n: number, d: number): ModelSpec => ({ kind: 'bars', bars: [{ numerator: n, denominator: d }] });
+const bars2 = (a: [number, number], b: [number, number]): ModelSpec => ({ kind: 'bars', bars: [{ numerator: a[0], denominator: a[1] }, { numerator: b[0], denominator: b[1] }] });
+const line = (n: number, d: number, wholes = Math.max(1, Math.ceil(n / d))): ModelSpec => ({ kind: 'line', numerator: n, denominator: d, wholes });
 const set = (selected: number, total: number): ModelSpec => ({ kind: 'set', selected, total });
 const eq = (text: string): ModelSpec => ({ kind: 'equation', text });
 const half = bar(1, 2);

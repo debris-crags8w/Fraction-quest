@@ -1,0 +1,1 @@
+- [Learning design requirements](learning-design-requirements.md) — preserve hands-on models, answer-entry worksheets, mastery gates, and adaptive mission choice.

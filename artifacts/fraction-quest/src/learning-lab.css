@@ -68,6 +68,16 @@
 .fq-ll-num { flex: 0 0 28px; height: 28px; display: grid; place-items: center; border-radius: 9px; background: hsl(var(--accent)); font: 900 .8rem var(--app-font-mono); }
 .fq-ll-answer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .fq-ll-answer input { width: min(100%, 220px); text-align: left; padding: 0 12px; }
+.fq-ll-fraction-entry { display: grid; justify-items: start; gap: 3px; }
+.fq-ll-fraction-fieldset { display: grid; gap: 2px; min-width: 118px; margin: 0; padding: 0; border: 0; }
+.fq-ll-fraction-part { display: grid !important; gap: 2px !important; width: 100%; text-align: center; color: hsl(var(--muted-foreground)); font-size: .7rem; font-weight: 800; }
+.fq-ll-answer .fq-ll-fraction-part input { width: 100%; min-height: 42px; padding: 0 8px; text-align: center; }
+.fq-ll-fraction-bar { display: block; width: 100%; height: 3px; border-radius: 99px; background: hsl(var(--foreground)); }
+.fq-ll-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.fq-ll-fraction-typed summary { min-height: 44px; display: inline-flex; align-items: center; color: hsl(var(--secondary)); font-size: .78rem; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.fq-ll-fraction-typed-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 0; }
+.fq-ll-fraction-typed-controls input { min-height: 44px; }
+.fq-ll-fraction-slash { min-width: 44px; min-height: 44px; border: 2px solid hsl(var(--foreground) / .5); border-radius: 11px; background: hsl(var(--card)); color: hsl(var(--foreground)); font: 900 1.2rem var(--app-font-mono); cursor: pointer; }
 .fq-ll-hintbtn { display: inline-flex; gap: 5px; align-items: center; min-height: 44px; padding: 0 8px; border: 0; background: none; color: hsl(var(--secondary)); font-weight: 900; cursor: pointer; }
 .fq-ll-ws { display: flex; gap: 6px; margin: 4px 0 0; font-size: .86rem; line-height: 1.4; color: hsl(var(--muted-foreground)); }
 .fq-ll-ws.ok { color: hsl(173 45% 24%); } .fq-ll-ws.bad { color: hsl(29 62% 28%); font-weight: 700; } .fq-ll-ws.hint { color: hsl(var(--foreground)); }
