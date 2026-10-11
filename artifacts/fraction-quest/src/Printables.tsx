@@ -7,6 +7,7 @@ import { learningSummary, worksheetCount, type LearningRecord } from './learning
 import { BarSvg, ChallengeFigureView, LineSvg, MODEL_CONCEPTS, ModelPair, ModelTag, SetSvg } from './models';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { AreaSvg, ColorTwoWays, SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
+import { areaWhole } from './area-shapes';
 import { freshSeed, generateQuestions } from './practice-bank';
 
 export type PrintMode = 'lesson' | 'practice' | 'generated' | 'blank' | 'answers' | 'challenge';
@@ -34,7 +35,7 @@ const ANSWER_FORMAT: Record<NonNullable<WorksheetProblem['form']>, string> = {
 
 function ProblemModel({ problem }: { problem: WorksheetProblem }) {
   const m = problem.model;
-  if (problem.area) return <div className="fq-print-model"><span className="fq-model-tag kind-area">Square model</span><AreaSvg figure={problem.area} /></div>;
+  if (problem.area) return <div className="fq-print-model"><span className="fq-model-tag kind-area">{areaWhole(problem.area.cut)[0].toUpperCase() + areaWhole(problem.area.cut).slice(1)} model</span><AreaSvg figure={problem.area} /></div>;
   if (!m) return null;
   return (
     <div className="fq-print-model">

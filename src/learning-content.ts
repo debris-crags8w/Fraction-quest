@@ -1,4 +1,4 @@
-import type { AreaFigure, AreaTask } from './area-shapes';
+import { circleCut, type AreaFigure, type AreaTask } from './area-shapes';
 import { standardsForMission } from './standard-catalog';
 export type Rational = { n: number; d: number };
 /** `sizes` (bars only) draws pieces of different widths, for "Is this cut into equal parts?" pictures. */
@@ -410,6 +410,13 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           answer = f(1, d); visual = model(0, d); task = { kind: 'shade', n: 1 };
           hint = `The bar has ${d} equal parts. You shaded 1 of them.`;
         }
+        // A pizza whose slices are not fair: 4 slices, but not fourths.
+        if (i === 7) {
+          // Redos sometimes show a fair pizza, so "no" is not always the answer.
+          const fair = variant % 2 === 1 ? circleCut(d) : undefined;
+          prompt = `Is this pizza cut into ${fair ? d : 4} fair slices? Type yes or no.`; answer = fair ? 'yes' : 'no'; form = 'word'; visual = undefined; task = undefined;
+          area = { cut: fair ?? 'circle-unequal' }; hint = 'Fair slices are all the same size. Is one slice bigger than the others?';
+        }
         // Last four: a square whose equal parts have different shapes (same size, not always same shape).
         if (i === 8) {
           prompt = 'Are all 4 parts of this square the same size? Type yes or no.'; answer = 'yes'; form = 'word'; visual = undefined; task = undefined;
@@ -434,6 +441,12 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         visual = model(i % 3 === 2 ? 1 : 0, d); task = i % 3 === 0 ? { kind: 'count', n: d } : i % 3 === 1 ? { kind: 'shade', n: 1 } : { kind: 'copy', n: 1 };
         modelRequired = true;
         hint = 'A unit fraction is 1 equal piece. The bottom number is how many pieces make 1 whole.';
+        // A circle too: one slice of a fairly cut pizza is a unit fraction.
+        if (i === 8 && circleCut(d)) {
+          prompt = 'One slice of this pizza is shaded. All the slices are the same size. What unit fraction is it?'; answer = f(1, d);
+          area = { cut: circleCut(d)!, shaded: [0] }; visual = undefined; task = undefined; modelRequired = false;
+          hint = `Count all the slices. ${d} same-size slices make the whole pizza.`;
+        }
         // Last three: one fourth of a square can look different (1 small square, or 2 triangles).
         if (i === 9) {
           prompt = 'Color 1/4 of the square. Any way that works is fine. What fraction did you color?'; answer = '1/4';
@@ -454,7 +467,14 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           i % 3 === 1 ? `In ${value}, how many equal pieces make 1 whole? Type a number.` :
           'What fraction of this bar model is shaded?';
         answer = i % 3 === 0 ? String(n) : i % 3 === 1 ? String(d) : value;
-        visual = model(n, d); modelRequired = true; break;
+        visual = model(n, d); modelRequired = true;
+        // The last one uses a circle: fractions name parts of any whole, not only bars.
+        if (i === 11 && circleCut(d) && n < d) {
+          prompt = 'What fraction of this circle is shaded?'; visual = undefined; modelRequired = false;
+          area = { cut: circleCut(d)!, shaded: Array.from({ length: n }, (_, k) => k) };
+          hint = 'Bottom: all the same-size slices. Top: the shaded slices.';
+        }
+        break;
       case 'unit-size':
       case 'compare-same-numerator': {
         // Pairs use the usual grade 3–4 denominators (2, 3, 4, 5, 6, 8, 10, 12).
@@ -748,15 +768,17 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           { cut: 'hexagon-sixths' as const, whole: 'hexagon', parts: 6 },
           { cut: 'rect-thirds' as const, whole: 'rectangle', parts: 3 },
           { cut: 'fourths-triangles' as const, whole: 'square', parts: 4 },
-        ];
+          { cut: 'circle-thirds' as const, whole: 'circle', parts: 3 },
+          { cut: 'circle-halves' as const, whole: 'circle', parts: 2 },
+        ]; // 7 shapes: a count that doesn't divide 12, so each redo round shows new shapes
         if (i % 6 === 5) {
-          const setting = ['tile pattern', 'shape puzzle'][Math.floor(i / 6)];
-          prompt = `On this ${setting}, are the 4 parts of the rectangle equal in area? Answer yes or no.`;
-          answer = 'no'; form = 'word'; area = { cut: 'fourths-unequal' };
+          const pizza = i === 11;
+          prompt = pizza ? 'This pizza is cut into 4 slices. Are the slices equal in area? Answer yes or no.' : 'On this tile pattern, are the 4 parts of the square equal in area? Answer yes or no.';
+          answer = 'no'; form = 'word'; area = { cut: pizza ? 'circle-unequal' : 'fourths-unequal' };
           hint = 'Count the pieces, then compare their areas. Four pieces are not always fourths.';
         } else {
           const shape = cuts[tr % cuts.length]; const shaded = 1 + (i % (shape.parts - 1));
-          const partition = shape.cut === 'fourths-squares' ? 'small squares' : shape.cut === 'circle-fourths' ? 'circle wedges' : shape.cut === 'hexagon-sixths' ? 'triangles' : shape.cut === 'rect-thirds' ? 'strips' : 'triangles';
+          const partition = shape.cut === 'fourths-squares' ? 'small squares' : shape.whole === 'circle' ? 'circle wedges' : shape.cut === 'hexagon-sixths' ? 'triangles' : shape.cut === 'rect-thirds' ? 'strips' : 'triangles';
           const setting = ['paper design', 'classroom poster', 'garden map', 'window panel', 'quilt square', 'tile pattern', 'greeting card', 'floor plan', 'art print', 'flag design', 'mosaic panel', 'shape puzzle'][i];
           prompt = `On the ${setting}, this ${shape.whole} is split into ${shape.parts} equal-area ${partition}. Color ${shaded}. What fraction of the whole is colored?`;
           answer = f(shaded, shape.parts); area = { cut: shape.cut }; areaTask = { n: shaded, d: shape.parts };

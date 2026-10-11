@@ -1,4 +1,4 @@
-/* Square "area" models: one whole square cut into pieces that may have different shapes.
+/* "Area" models: one whole (square, circle, hexagon, rectangle) cut into pieces that may have different shapes.
    Kids learn that equal parts are the same SIZE, not always the same SHAPE, and that a fraction
    can be colored in more than one way (1 small square, or 2 triangles). Pure data, so it can be tested. */
 
@@ -8,7 +8,8 @@ export type Piece = { points: Point[]; shape: 'square' | 'rect' | 'triangle' | '
 export type AreaCut =
   | 'fourths-squares' | 'fourths-strips' | 'fourths-triangles' | 'fourths-mixed'
   | 'fourths-unequal' | 'strips-unequal' | 'quarter-and-triangles' | 'eighths-triangles' | 'halves-triangles'
-  | 'rect-halves' | 'rect-thirds' | 'rect-fourths' | 'circle-halves' | 'circle-fourths' | 'hexagon-sixths' | 'grid-3x4';
+  | 'rect-halves' | 'rect-thirds' | 'rect-fourths' | 'hexagon-sixths' | 'grid-3x4'
+  | 'circle-halves' | 'circle-thirds' | 'circle-fourths' | 'circle-sixths' | 'circle-eighths' | 'circle-unequal';
 export type AreaFigure = { cut: AreaCut; shaded?: number[] };
 /** Color pieces that add up to n/d of the square. `avoid` pieces can't be used ("color it a different way"). */
 export type AreaTask = { n: number; d: number; avoid?: number[] };
@@ -16,14 +17,21 @@ export type AreaTask = { n: number; d: number; avoid?: number[] };
 const sq = (x: number, y: number, w: number, h: number, shape: Piece['shape'] = w === h ? 'square' : 'rect'): Piece =>
   ({ points: [[x, y], [x + w, y], [x + w, y + h], [x, y + h]], shape });
 const tri = (...points: Point[]): Piece => ({ points, shape: 'triangle' });
-const fan = (parts: number, vertices = 48): Piece[] => Array.from({ length: parts }, (_, part) => {
-  const points: Point[] = [[.5, .5]];
-  for (let step = 0; step <= vertices / parts; step++) {
-    const angle = -Math.PI / 2 + ((part * (vertices / parts) + step) / vertices) * Math.PI * 2;
-    points.push([.5 + .48 * Math.cos(angle), .5 + .48 * Math.sin(angle)]);
-  }
-  return { points, shape: 'sector' as const, normalizedArea: 1 / parts };
-});
+/** Circle wedges; `sizes` are shares of the whole (equal wedges by default). */
+const wedges = (sizes: number[], vertices = 48): Piece[] => {
+  let start = 0;
+  return sizes.map((size) => {
+    const points: Point[] = [[.5, .5]];
+    const steps = Math.max(2, Math.round(vertices * size));
+    for (let step = 0; step <= steps; step++) {
+      const angle = -Math.PI / 2 + (start + (step / steps) * size) * Math.PI * 2;
+      points.push([.5 + .48 * Math.cos(angle), .5 + .48 * Math.sin(angle)]);
+    }
+    start += size;
+    return { points, shape: 'sector' as const, normalizedArea: size };
+  });
+};
+const fan = (parts: number) => wedges(Array.from({ length: parts }, () => 1 / parts));
 const hexagonVertices: Point[] = Array.from({ length: 6 }, (_, i) => {
   const angle = -Math.PI / 6 + i * Math.PI / 3;
   return [.5 + .48 * Math.cos(angle), .5 + .48 * Math.sin(angle)];
@@ -59,7 +67,12 @@ export const AREA_CUTS: Record<AreaCut, Piece[]> = {
   'rect-thirds': [sq(0, 0, 1 / 3, 1, 'rect'), sq(1 / 3, 0, 1 / 3, 1, 'rect'), sq(2 / 3, 0, 1 / 3, 1, 'rect')],
   'rect-fourths': [sq(0, 0, .25, 1, 'rect'), sq(.25, 0, .25, 1, 'rect'), sq(.5, 0, .25, 1, 'rect'), sq(.75, 0, .25, 1, 'rect')],
   'circle-halves': fan(2),
+  'circle-thirds': fan(3),
   'circle-fourths': fan(4),
+  'circle-sixths': fan(6),
+  'circle-eighths': fan(8),
+  // A "pizza" with 4 slices that are not fair: one slice is much bigger.
+  'circle-unequal': wedges([.4, .2, .2, .2]),
   'hexagon-sixths': hexagonSixths,
   'grid-3x4': Array.from({ length: 12 }, (_, i) => sq((i % 3) / 3, Math.floor(i / 3) / 4, 1 / 3, 1 / 4, 'rect')),
 };
@@ -74,6 +87,13 @@ export function areaOutline(cut: AreaCut): Point[] {
   if (cut === 'hexagon-sixths') return hexagonVertices;
   return [[0, 0], [1, 0], [1, 1], [0, 1]];
 }
+
+/** What the whole is: square, circle, hexagon or rectangle. */
+export const areaWhole = (cut: AreaCut) =>
+  cut.startsWith('circle-') ? 'circle' : cut === 'hexagon-sixths' ? 'hexagon' : cut.startsWith('rect-') ? 'rectangle' : 'square';
+/** Equal circle wedges for a denominator, when we have that circle. */
+export const circleCut = (d: number): AreaCut | undefined =>
+  ({ 2: 'circle-halves', 3: 'circle-thirds', 4: 'circle-fourths', 6: 'circle-sixths', 8: 'circle-eighths' } as const)[d];
 
 /** Piece size as a share of the whole (shoelace formula for square-based models). */
 export function pieceArea(piece: Piece): number {
@@ -94,8 +114,8 @@ export function areaTaskDone(cut: AreaCut, task: AreaTask, shaded: number[]): bo
 
 /** Short feedback while coloring: how much is colored so far, in eighths or the task's own pieces. */
 export function areaFeedback(cut: AreaCut, task: AreaTask, shaded: number[]): string {
-  if (shaded.some((i) => task.avoid?.includes(i))) return 'Try a different way: leave the small square white.';
-  if (!shaded.length) return `Color pieces that make ${task.n}/${task.d} of the square.`;
+  if (shaded.some((i) => task.avoid?.includes(i))) return `Try a different way: leave the ${AREA_CUTS[cut][task.avoid![0]].shape === 'square' ? 'small square' : 'marked piece'} white.`;
+  if (!shaded.length) return `Color pieces that make ${task.n}/${task.d} of the ${areaWhole(cut)}.`;
   if (areaTaskDone(cut, task, shaded)) return `You colored ${task.n}/${task.d}! Now type the answer.`;
   const eighths = Math.round(shadedArea(cut, shaded) * 8);
   const goal = (task.n / task.d) * 8;
@@ -103,7 +123,7 @@ export function areaFeedback(cut: AreaCut, task: AreaTask, shaded: number[]): st
 }
 
 export const areaLabel = (cut: AreaCut, shaded: number[] = []) =>
-  `A ${cut.startsWith('circle-') ? 'circle' : cut === 'hexagon-sixths' ? 'hexagon' : cut.startsWith('rect-') ? 'rectangle' : 'square'} cut into ${AREA_CUTS[cut].length} pieces: ${describeShapes(cut)}${shaded.length ? `, ${shaded.length} shaded` : ''}`;
+  `A ${areaWhole(cut)} cut into ${AREA_CUTS[cut].length} pieces: ${describeShapes(cut)}${shaded.length ? `, ${shaded.length} shaded` : ''}`;
 function describeShapes(cut: AreaCut): string {
   const count = (shape: Piece['shape']) => AREA_CUTS[cut].filter((p) => p.shape === shape).length;
   return [['square', count('square')], ['rectangle', count('rect')], ['triangle', count('triangle')], ['circle sector', count('sector')]]

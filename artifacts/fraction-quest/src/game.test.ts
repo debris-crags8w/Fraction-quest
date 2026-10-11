@@ -1,5 +1,5 @@
 import { pickVoice, sayFraction, sentences, spokenText } from './lib/voice';
-import { AREA_CUTS, allEqual, areaTaskDone, cutTotal, pieceArea, shadedArea } from './area-shapes';
+import { AREA_CUTS, allEqual, areaFeedback, areaTaskDone, areaWhole, circleCut, cutTotal, pieceArea, shadedArea } from './area-shapes';
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 import * as React from 'react';
@@ -1147,7 +1147,13 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.ok(unitFractions.every(problem => !/jump|number line/i.test(problem.prompt)));
 
     const fractionNames = getWorksheet('fraction-names');
-    assert.ok(fractionNames.every(problem => problem.modelRequired && problem.model?.kind === 'bar'));
+    assert.ok(fractionNames.every(problem => (problem.modelRequired && problem.model?.kind === 'bar') || problem.area?.cut.startsWith('circle-')));
+    // Circles show up too: a pizza that is not fair, a unit fraction slice, and a shaded circle to name.
+    assert.ok(equalParts.some(problem => problem.area?.cut === 'circle-unequal' && problem.answer === 'no'));
+    const slice = unitFractions.find(problem => problem.area?.cut.startsWith('circle-'))!;
+    assert.equal(slice.answer, `1/${AREA_CUTS[slice.area!.cut].length}`);
+    const circle = fractionNames.find(problem => problem.area)!;
+    assert.equal(circle.answer, `${circle.area!.shaded!.length}/${AREA_CUTS[circle.area!.cut].length}`);
     assert.ok(fractionNames.some(problem => problem.prompt.includes('bar model')));
     assert.ok(fractionNames.every(problem => !/garden bed|paper strip/i.test(problem.prompt)));
   });
@@ -1246,7 +1252,7 @@ describe('redo a finished part', () => {
           assert.doesNotMatch(p.prompt + p.answer, /undefined|NaN|Infinity/);
           assert.ok(largest(`${p.prompt} ${p.answer}`) <= limit, `${mission.id} v${variant} ${p.id} goes past the lesson's numbers: ${p.prompt}`);
         });
-        const changed = sheet.filter((p, i) => p.prompt !== base[i].prompt || p.answer !== base[i].answer || JSON.stringify(p.model) !== JSON.stringify(base[i].model)).length;
+        const changed = sheet.filter((p, i) => p.prompt !== base[i].prompt || p.answer !== base[i].answer || JSON.stringify(p.model) !== JSON.stringify(base[i].model) || JSON.stringify(p.area) !== JSON.stringify(base[i].area)).length;
         assert.ok(changed >= 8, `${mission.id} v${variant}: only ${changed} new questions`);
       }
     }
@@ -1325,6 +1331,10 @@ describe('square (area) models', () => {
       assert.equal(AREA_CUTS[cut].length, 4); assert.ok(allEqual(cut), cut);
     }
     assert.equal(allEqual('fourths-unequal'), false); assert.equal(allEqual('strips-unequal'), false);
+    for (const cut of ['circle-halves', 'circle-thirds', 'circle-fourths', 'circle-sixths', 'circle-eighths'] as const) assert.ok(allEqual(cut), cut);
+    assert.equal(allEqual('circle-unequal'), false);
+    assert.equal(areaWhole('circle-sixths'), 'circle'); assert.equal(circleCut(8), 'circle-eighths'); assert.equal(circleCut(5), undefined);
+    assert.equal(areaFeedback('circle-fourths', { n: 1, d: 4 }, []), 'Color pieces that make 1/4 of the circle.');
     assert.ok(Math.abs(pieceArea(AREA_CUTS['quarter-and-triangles'][1]) - 1 / 8) < 1e-9);
     assert.ok(Math.abs(shadedArea('eighths-triangles', [0, 1, 2, 3]) - 1 / 2) < 1e-9);
   });
