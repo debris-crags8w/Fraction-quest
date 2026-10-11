@@ -22,6 +22,7 @@ export type Target = { kind: ModelKind; n: number; d: number; wholes: number; to
 
 const MAX_STEPS = 400;
 const LIMIT = 100;
+export const CODE_LEVEL_COUNT = 6;
 
 /** Run a program. `path` is the block's position (e.g. [2, 0] = first block inside the third block). */
 export function runProgram(program: Block[], target: Target): RunResult {
@@ -112,7 +113,18 @@ export function toText(program: Block[], kind: ModelKind, indent = ''): string {
   }).join('\n');
 }
 
-export type CodeLevel = { level: 1 | 2 | 3; title: string; goal: string; target: Target; start: Block[]; palette: Block['op'][]; mode: 'fill' | 'build' | 'debug'; tip: string };
+export type CodeLevel = {
+  level: 1 | 2 | 3 | 4 | 5 | 6;
+  title: string;
+  goal: string;
+  target: Target;
+  start: Block[];
+  palette: Block['op'][];
+  mode: 'fill' | 'build' | 'debug' | 'predict';
+  tip: string;
+  requiresLoop?: boolean;
+  transferFrom?: Target;
+};
 
 const action = (kind: ModelKind): Block[] => (kind === 'line' ? [{ op: 'jump' }] : kind === 'set' ? [{ op: 'pick' }] : [{ op: 'shade' }, { op: 'move' }]);
 /** A correct program for a target (used for the starting templates and in tests). */
@@ -130,12 +142,24 @@ const goalText = (t: Target) => t.kind === 'line'
   ? `Make the robot land on ${fractionName(t)} on the number line.`
   : t.kind === 'set' ? `Make the robot pick ${fractionName(t)} of the ${t.total} dots.` : `Make the robot shade ${fractionName(t)}${t.wholes > 1 ? ' (more than 1 whole bar)' : ''}.`;
 
-/** Three levels per lesson, built from the lesson's own fractions. */
+/** Six levels per lesson, built from the lesson's own fractions and current block vocabulary. */
 export function getCodeLevels(missionId: string): CodeLevel[] {
   const [build, transfer] = getBuildChecks(missionId);
   const t1 = toTarget(build.target); const t2 = toTarget(transfer.target);
   let t3 = toTarget(getReviewCheck(missionId, 1).target);
   if (t3.n === t2.n && t3.d === t2.d) t3 = toTarget(getReviewCheck(missionId, 2).target);
+  const targets = sprintTargets(missionId);
+  const foundation = [t1, t2, t3];
+  const newTargets = targets.filter((target) => !foundation.some((used) => sameTarget(target, used)));
+  const t4 = newTargets[0] ?? t2;
+  const t5 = newTargets[1] ?? t3;
+  const loopSeed = targets.find((target) => target.n >= 1 && target.n <= target.d && target.d <= 50)
+    ?? targets.find((target) => target.n >= 1 && target.n <= target.d)
+    ?? t2;
+  const transferFrom = loopSeed.n === 1 && loopSeed.d <= 50
+    ? { ...loopSeed, n: 2, d: loopSeed.d * 2 }
+    : loopSeed;
+  const t6 = transferToDifferentModel(transferFrom);
   const palette = (t: Target): Block['op'][] => ['split', ...(t.kind === 'bar' && t.wholes > 1 ? ['bars' as const] : []), 'repeat', ...action(t.kind).map((b) => b.op)];
   const bug = makeBug(t3);
   return [
@@ -145,7 +169,52 @@ export function getCodeLevels(missionId: string): CodeLevel[] {
       tip: 'Tap blocks to add them. Split first. A repeat loop saves lots of blocks!' },
     { level: 3, mode: 'debug', title: 'Fix the bug', goal: goalText(t3), target: t3, start: bug, palette: palette(t3),
       tip: 'Run it and watch what goes wrong. Then change one number.' },
+    { level: 4, mode: 'predict', title: 'Predict before you run', goal: 'Read the blocks. What fraction will the robot make?', target: t4, start: solution(t4), palette: [],
+      tip: 'The split number tells how many equal parts make one whole. Count the loop passes to find how many parts the robot marks.' },
+    { level: 5, mode: 'debug', title: 'Find two mistakes', goal: goalText(t5), target: t5, start: makeMultiBug(t5), palette: palette(t5),
+      tip: 'Two numbers are wrong. Check how the whole is split and how many times the robot repeats.' },
+    { level: 6, mode: 'build', title: 'Transfer to a new model', goal: goalText(t6), target: t6, start: [], palette: palette(t6), requiresLoop: t6.n > 1, transferFrom,
+      tip: t6.n > 1 ? 'Make the same fraction in this new model. Use repeat to combine the actions that happen again and again.' : 'Make the same fraction in this new model. Build the program, then try a repeat block where it helps.' },
   ];
+}
+
+function transferToDifferentModel(source: Target): Target {
+  if (source.kind === 'set') {
+    return { ...source, kind: 'line', wholes: numberLineWholeCount(source.n, source.d), total: undefined };
+  }
+  if (source.n <= source.d) {
+    return { ...source, kind: 'set', wholes: 1, total: source.d };
+  }
+  if (source.kind === 'bar') {
+    return { ...source, kind: 'line', wholes: numberLineWholeCount(source.n, source.d), total: undefined };
+  }
+  return { ...source, kind: 'bar', wholes: numberLineWholeCount(source.n, source.d), total: undefined };
+}
+
+/** A two-number debugging challenge: the partition and repeat count are both wrong. */
+export function makeMultiBug(t: Target): Block[] {
+  const change = (n: number) => n < LIMIT ? n + 1 : Math.max(1, n - 1);
+  return solution(t).map((block): Block => {
+    if (block.op === 'split') return { ...block, n: change(block.n ?? t.d) };
+    if (block.op === 'repeat') return { ...block, n: change(block.n ?? t.n) };
+    return block;
+  });
+}
+
+/** Exact fraction-entry check used by the prediction level. */
+export function predictionMatchesTarget(target: Target, numerator: string, denominator: string): boolean {
+  if (!/^\d+$/.test(numerator) || !/^\d+$/.test(denominator)) return false;
+  return Number(numerator) === target.n && Number(denominator) === target.d;
+}
+
+export function usesEffectiveLoop(program: Block[]): boolean {
+  return program.some((block) => block.op === 'repeat'
+    ? ((block.n ?? 0) > 1 && block.body.length > 0) || usesEffectiveLoop(block.body)
+    : false);
+}
+
+export function passesCodeLevel(level: CodeLevel, result: RunResult, program: Block[]): boolean {
+  return matchesTarget(result, level.target) && (!level.requiresLoop || usesEffectiveLoop(program));
 }
 
 /** A believable bug for a target: the loop runs the bottom number of times instead of the top

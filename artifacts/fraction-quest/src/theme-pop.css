@@ -1404,6 +1404,17 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-code-level-title { margin: 0; color: #1C7ED6; font-size: 0.8rem; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; }
 .fq-code-goal h2 { margin: 4px 0 6px; font-family: var(--app-font-display); font-size: 1.25rem; line-height: 1.35; }
 .fq-code-tip { margin: 0; color: hsl(var(--muted-foreground)); font-size: 0.92rem; line-height: 1.4; }
+.fq-code-tutorial { display: grid; border: 2px solid color-mix(in srgb, var(--fq-sky) 28%, var(--fq-edge)); border-radius: 22px; background: color-mix(in srgb, var(--fq-sky) 5%, hsl(var(--card))); }
+.fq-code-tutorial > summary { padding: 14px 16px; color: #126F9D; font-weight: 900; cursor: pointer; list-style: none; }
+.fq-code-tutorial > summary::-webkit-details-marker { display: none; }
+.fq-code-tutorial > summary::before { content: '＋'; display: inline-grid; place-items: center; width: 24px; height: 24px; margin-right: 8px; border-radius: 50%; background: hsl(var(--card)); }
+.fq-code-tutorial[open] > summary::before { content: '−'; }
+.fq-code-tutorial > .fq-code-walkthrough { border: 0; border-top: 1px solid color-mix(in srgb, var(--fq-sky) 24%, var(--fq-edge)); border-radius: 0 0 20px 20px; background: transparent; }
+.fq-code-prediction { display: grid; gap: 5px; width: min(100%, 330px); margin: 14px 0; }
+.fq-code-prediction label { display: grid; gap: 4px; color: hsl(var(--muted-foreground)); font-size: 0.8rem; font-weight: 850; }
+.fq-code-prediction input { min-height: 46px; padding: 8px 12px; border: 2px solid var(--fq-edge); border-radius: 12px; color: hsl(var(--foreground)); background: hsl(var(--background)); font: inherit; font-size: 1.1rem; font-weight: 900; text-align: center; }
+.fq-code-prediction input:focus-visible { outline: 3px solid var(--fq-sky); outline-offset: 2px; }
+.fq-code-prediction-line { width: 100%; height: 3px; border-radius: 2px; background: var(--fq-edge); }
 .fq-code-world { display: grid; gap: 8px; min-height: 64px; align-content: center; }
 .fq-code-bar { display: grid; gap: 3px; height: 48px; }
 .fq-code-bar span { display: grid; place-items: center; border-radius: 6px; background: hsl(var(--muted)); box-shadow: inset 0 0 0 2px var(--fq-edge); color: #1C7ED6; transition: background 0.15s; }

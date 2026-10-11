@@ -4,6 +4,7 @@ import { getLearningRecord, hasLearningGate, worksheetCount } from './learning';
 import { answerMatches, getWorksheet } from './learning-content';
 import { today, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
+import { CODE_LEVEL_COUNT } from './code-quest';
 
 /* The grown-ups' report: everything here is read from progress the app already saves.
    Nothing in it changes progress or lesson gating. */
@@ -106,7 +107,7 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
   const next = rows.find((row) => row.status === 'started') ?? rows.find((row) => row.status === 'open');
   const codeProgress = summarizeCodeProgress(fun.codeLevels, MISSIONS.map((mission) => mission.id));
   const codeMissionRows = MISSIONS.flatMap((mission) => {
-    const levelsPassed = Math.max(0, Math.min(3, Math.floor(fun.codeLevels?.[mission.id] ?? 0)));
+    const levelsPassed = Math.max(0, Math.min(CODE_LEVEL_COUNT, Math.floor(fun.codeLevels?.[mission.id] ?? 0)));
     return levelsPassed > 0 ? [{ id: mission.id, title: mission.title, levelsPassed }] : [];
   });
 

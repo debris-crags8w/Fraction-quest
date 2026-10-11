@@ -1,5 +1,5 @@
 import type { Block, Target } from './code-quest';
-import { getCodeLevels, runProgram, solution } from './code-quest';
+import { CODE_LEVEL_COUNT, getCodeLevels, runProgram, solution } from './code-quest';
 import { MISSIONS } from './game';
 
 export type CodeExample = { title: string; target: Target; program: Block[]; note: string };
@@ -66,11 +66,11 @@ export type CodeProgressSummary = {
 
 /** Coding levels are counted separately from fraction lesson mastery. */
 export function summarizeCodeProgress(codeLevels: Record<string, number> | undefined, missionIds: string[]): CodeProgressSummary {
-  const scores = missionIds.map((id) => Math.max(0, Math.min(3, Math.floor(codeLevels?.[id] ?? 0))));
+  const scores = missionIds.map((id) => Math.max(0, Math.min(CODE_LEVEL_COUNT, Math.floor(codeLevels?.[id] ?? 0))));
   return {
     levelsPassed: scores.reduce((sum, score) => sum + score, 0),
-    levelsTotal: missionIds.length * 3,
+    levelsTotal: missionIds.length * CODE_LEVEL_COUNT,
     missionsStarted: scores.filter((score) => score > 0).length,
-    missionsComplete: scores.filter((score) => score === 3).length,
+    missionsComplete: scores.filter((score) => score === CODE_LEVEL_COUNT).length,
   };
 }
