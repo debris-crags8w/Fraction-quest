@@ -1,12 +1,14 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { ArrowLeft, Printer, RotateCcw, Scale, Shuffle, Waypoints } from 'lucide-react';
 import './concept-games.css';
-import { areEquivalent, compareFractions, targetTick, validLinePartitions } from './concept-games';
+import { areEquivalent, compareFractions, targetTick, WAR_PARTS, WAR_ROUNDS, warHint } from './concept-games';
 import { printPage } from './lib/print';
 
 type Fraction = { n: number; d: number };
 type Model = { d: number; n: number };
-const rounds: [Fraction, Fraction][] = [[{ n: 3, d: 5 }, { n: 2, d: 5 }], [{ n: 1, d: 2 }, { n: 3, d: 8 }], [{ n: 2, d: 3 }, { n: 3, d: 4 }]];
+const rounds: [Fraction, Fraction][] = WAR_ROUNDS;
+/** d = 0: the child hasn't chosen how many equal parts yet (never pre-set to the answer). */
+const unbuilt = (): [Model, Model] => [{ d: 0, n: 0 }, { d: 0, n: 0 }];
 const matches: Fraction[] = [{ n: 1, d: 2 }, { n: 2, d: 3 }, { n: 3, d: 4 }, { n: 2, d: 4 }, { n: 4, d: 6 }, { n: 6, d: 8 }];
 const shuffleCards = () => {
   const indices = matches.map((_, index) => index);
@@ -22,6 +24,7 @@ function FractionLabel({ n, d }: Fraction) {
 }
 
 function Bar({ model, onToggle, label, disabled = false }: { model: Model; onToggle?: (index: number) => void; label: string; disabled?: boolean }) {
+  if (!model.d) return <div className="cg-bar-wrap" aria-label={label}><div className="cg-bar cg-bar-unsplit" role="img" aria-label={`${label}: one whole, not split yet`}><span className="cg-cell" /></div></div>;
   return <div className="cg-bar-wrap" aria-label={label}>
     <div className="cg-bar" style={{ '--parts': model.d } as CSSProperties} role="group" aria-label={`${label}: ${model.n} of ${model.d} parts shaded`}>
       {Array.from({ length: model.d }, (_, i) => onToggle
@@ -33,7 +36,7 @@ function Bar({ model, onToggle, label, disabled = false }: { model: Model; onTog
 
 function FractionWar() {
   const [round, setRound] = useState(0);
-  const [models, setModels] = useState<[Model, Model]>([{ d: 5, n: 0 }, { d: 5, n: 0 }]);
+  const [models, setModels] = useState<[Model, Model]>(unbuilt);
   const [choice, setChoice] = useState<'left' | 'right' | 'same' | null>(null);
   const [feedback, setFeedback] = useState('');
   const [score, setScore] = useState(0);
@@ -46,17 +49,17 @@ function FractionWar() {
   };
   const choose = () => {
     if (!modelsBuilt || roundSolved) {
-      setFeedback('Build both bars first. Set the number of parts, then shade the amount shown above each bar.');
+      setFeedback('Build both bars first. Choose how many equal parts, then shade the parts selected.');
       return;
     }
     if (!choice) { setFeedback('Look at both shaded amounts, then choose the larger one or same amount.'); return; }
     const comparison = compareFractions(target[0], target[1]);
     const expected = comparison > 0 ? 'left' : comparison < 0 ? 'right' : 'same';
     if (choice === expected) { setScore(s => s + 1); setRoundSolved(true); setFeedback('That is it. Equal-size wholes make the shaded amounts easy to compare.'); }
-    else setFeedback('Not yet. Compare how far each bar is shaded. You can change your choice or rebuild either bar.');
+    else setFeedback(`Not yet. ${warHint(target[0], target[1])}`);
   };
-  const next = () => { setRound(r => r + 1); setModels([{ d: rounds[(round + 1) % rounds.length][0].d, n: 0 }, { d: rounds[(round + 1) % rounds.length][1].d, n: 0 }]); setChoice(null); setRoundSolved(false); setFeedback(''); };
-  const replay = () => { setRound(0); setScore(0); setModels([{ d: rounds[0][0].d, n: 0 }, { d: rounds[0][1].d, n: 0 }]); setChoice(null); setRoundSolved(false); setFeedback(''); };
+  const next = () => { setRound(r => r + 1); setModels(unbuilt()); setChoice(null); setRoundSolved(false); setFeedback(''); };
+  const replay = () => { setRound(0); setScore(0); setModels(unbuilt()); setChoice(null); setRoundSolved(false); setFeedback(''); };
   return <section className="cg-game" aria-labelledby="war-title">
     <div className="cg-game-heading"><span className="cg-index">01 / BUILD & COMPARE</span><span className="cg-score" data-testid="status-war-score">Local round score · {score}</span></div>
     <h2 id="war-title">Fraction War</h2><p className="cg-instruction">Build each fraction before deciding which amount is greater. Each bar is one same-size whole.</p>
@@ -66,10 +69,11 @@ function FractionWar() {
         <div className="cg-model-label"><span>Whole {side ? 'B' : 'A'}</span><strong>Build <FractionLabel {...fraction} /></strong></div>
         <label className="cg-control-label" htmlFor={`war-denom-${side}`}>Equal parts in this whole</label>
         <select id={`war-denom-${side}`} value={model.d} disabled={roundSolved} onChange={e => changeModel(side as 0 | 1, { d: Number(e.target.value), n: 0 })} data-testid={`select-war-denominator-${side}`}>
-          {[2, 3, 4, 5, 6, 8].map(n => <option value={n} key={n}>{n} equal parts</option>)}
+          <option value={0} disabled>Choose…</option>
+          {WAR_PARTS.map(n => <option value={n} key={n}>{n} equal parts</option>)}
         </select>
         <Bar model={model} label={`whole-${side ? 'b' : 'a'}`} disabled={roundSolved} onToggle={i => changeModel(side as 0 | 1, { n: i < model.n ? i : i + 1 })} />
-        <div className="cg-model-readout"><span>Whole = {model.d} equal parts</span><span>Shaded = {model.n} parts</span></div>
+        <div className="cg-model-readout"><span>{model.d ? `Denominator: ${model.d} equal parts` : 'Choose the equal parts'}</span><span>Numerator: {model.n} selected</span></div>
       </article>;
     })}</div>
     <fieldset className="cg-compare"><legend>Which amount is larger?</legend>{(['left', 'right', 'same'] as const).map((v, i) => <button type="button" key={v} className={`cg-choice ${choice === v ? 'selected' : ''}`} aria-pressed={choice === v} disabled={!modelsBuilt || roundSolved} onClick={() => { setChoice(v); setFeedback(''); }} data-testid={`button-war-choice-${v}`}>{i === 0 ? 'Whole A' : i === 1 ? 'Whole B' : 'Same amount'}</button>)}</fieldset>
@@ -117,32 +121,37 @@ function EquivalenceMatch() {
 
 function NumberLineTarget() {
   const targets: Fraction[] = [{ n: 3, d: 4 }, { n: 2, d: 3 }, { n: 3, d: 5 }, { n: 1, d: 2 }];
-  const [denominator, setDenominator] = useState(4);
+  // 0 = not chosen yet. Every split is offered, not just the ones that work, so the child decides.
+  const [denominator, setDenominator] = useState(0);
   const [mark, setMark] = useState<number | null>(null);
   const [feedback, setFeedback] = useState('');
   const [round, setRound] = useState(0);
   const target = targets[round % targets.length];
-  const partitions = validLinePartitions(target, [2, 3, 4, 5, 6, 8, 10, 12]);
+  const partitions = [2, 3, 4, 5, 6, 8, 10, 12];
   const answerTick = targetTick(target, denominator);
   const next = () => {
     const nextRound = round + 1;
     setRound(nextRound);
-    setDenominator(targets[nextRound % targets.length].d);
+    setDenominator(0);
     setMark(null);
     setFeedback('');
   };
-  const replay = () => { setRound(0); setDenominator(targets[0].d); setMark(null); setFeedback(''); };
+  const replay = () => { setRound(0); setDenominator(0); setMark(null); setFeedback(''); };
   return <section className="cg-game" aria-labelledby="line-title">
     <div className="cg-game-heading"><span className="cg-index">03 / PLACE A FRACTION</span><span className="cg-score" data-testid="status-line-round">Target {round + 1}</span></div>
     <h2 id="line-title">Number Line Target</h2><p className="cg-instruction">Choose equal spaces from 0 to 1, then tap the tick that lands on the target fraction.</p>
     <div className="cg-target"><span>Target point</span><strong><FractionLabel {...target} /></strong></div>
     <label className="cg-control-label" htmlFor="line-spaces">Split the whole into equal spaces</label>
-    <select id="line-spaces" value={denominator} onChange={e => { setDenominator(Number(e.target.value)); setMark(null); setFeedback(''); }} data-testid="select-line-spaces">{partitions.map(n => <option key={n} value={n}>{n} equal spaces</option>)}</select>
+    <select id="line-spaces" value={denominator} onChange={e => { setDenominator(Number(e.target.value)); setMark(null); setFeedback(''); }} data-testid="select-line-spaces"><option value={0} disabled>Choose…</option>{partitions.map(n => <option key={n} value={n}>{n} equal spaces</option>)}</select>
+    {!denominator ? <p className="cg-feedback" data-testid="status-line-choose">Choose how many equal spaces to split 0 to 1 into.</p> : <>
     <div className="cg-line-area" role="group" aria-label={`Number line from zero to one divided into ${denominator} equal spaces`}>
       <div className="cg-line-track" aria-hidden="true" />
-      {Array.from({ length: denominator + 1 }, (_, i) => <button type="button" className={`cg-line-tick ${mark === i ? 'marked' : ''} ${i === 0 || i === denominator ? 'endpoint' : ''}`} style={{ left: `${i / denominator * 100}%` }} key={i} onClick={() => { setMark(i); setFeedback(i === answerTick ? 'You found it. Count equal jumps from 0: the numerator tells how many jumps.' : 'That tick is not the target yet. Count equal jumps from 0, then try again.'); }} aria-label={i === 0 ? 'Zero, start of the whole' : i === denominator ? 'One whole, end of the line' : `Tick ${i} of ${denominator}`} aria-pressed={mark === i} data-testid={`button-line-tick-${i}`}><span>{i === 0 ? '0' : i === denominator ? '1' : ''}</span></button>)}
+      {Array.from({ length: denominator + 1 }, (_, i) => <button type="button" className={`cg-line-tick ${mark === i ? 'marked' : ''} ${i === 0 || i === denominator ? 'endpoint' : ''}`} style={{ left: `${i / denominator * 100}%` }} key={i} onClick={() => { setMark(i); setFeedback(i === answerTick ? 'You found it. Count equal jumps from 0: the numerator tells how many jumps.'
+        : answerTick === null ? `With ${denominator} equal spaces, no tick lands exactly on ${target.n}/${target.d}. Try a different number of spaces.`
+        : 'That tick is not the target yet. Count equal jumps from 0, then try again.'); }} aria-label={i === 0 ? 'Zero, start of the whole' : i === denominator ? 'One whole, end of the line' : `Tick ${i} of ${denominator}`} aria-pressed={mark === i} data-testid={`button-line-tick-${i}`}><span>{i === 0 ? '0' : i === denominator ? '1' : ''}</span></button>)}
     </div>
     <p className="cg-endpoint-hint"><span>0</span><span>One whole</span><span>1</span></p>
+    </>}
     <div className="cg-actions"><button type="button" className="cg-secondary" onClick={next} data-testid="button-line-next">New target</button><button type="button" className="cg-text-button" onClick={replay} data-testid="button-line-replay"><RotateCcw size={16} /> Replay</button></div>
     {feedback && <p className={`cg-feedback ${mark === answerTick ? 'success' : ''}`} role="status" aria-live="polite" data-testid="status-line-feedback">{feedback}</p>}
   </section>;

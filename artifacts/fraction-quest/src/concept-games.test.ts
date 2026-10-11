@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { areEquivalent, compareFractions, targetTick, validLinePartitions } from './concept-games';
+import { areEquivalent, compareFractions, targetTick, validLinePartitions, WAR_PARTS, WAR_ROUNDS, warHint } from './concept-games';
 
 test('fraction comparison uses equal-sized whole amounts exactly', () => {
   assert.equal(compareFractions({ n: 3, d: 5 }, { n: 2, d: 5 }), 1);
@@ -20,4 +20,15 @@ test('number-line target stays the same while a compatible partition changes', (
   assert.deepEqual(partitions, [4, 8, 12]);
   assert.deepEqual(partitions.map(parts => targetTick(target, parts)), [3, 6, 9]);
   assert.equal(targetTick(target, 5), null);
+});
+
+test('Fraction War mixes same-numerator, same-denominator and equal pairs the bars can build', () => {
+  const sameTop = WAR_ROUNDS.filter(([a, b]) => a.n === b.n && a.d !== b.d);
+  assert.ok(sameTop.length >= 3);
+  // Same numerator: the smaller denominator (bigger parts) wins, on both sides.
+  assert.ok(sameTop.some(([a, b]) => compareFractions(a, b) > 0) && sameTop.some(([a, b]) => compareFractions(a, b) < 0));
+  assert.ok(WAR_ROUNDS.some(([a, b]) => a.d === b.d && a.n !== b.n));
+  assert.ok(WAR_ROUNDS.some(([a, b]) => compareFractions(a, b) === 0));
+  assert.ok(WAR_ROUNDS.flat().every(f => WAR_PARTS.includes(f.d)));
+  assert.match(warHint({ n: 3, d: 4 }, { n: 3, d: 8 }), /bigger/);
 });

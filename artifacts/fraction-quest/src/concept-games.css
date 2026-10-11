@@ -43,6 +43,7 @@
 .cg-control-label { color:var(--cg-muted); font-size:.81rem; font-weight:850; }
 .cg-model-card select,.cg-game>select { width:100%; max-width:260px; min-height:43px; padding:7px 12px; border:2px solid var(--cg-edge); border-radius:12px; color:var(--cg-ink); background:hsl(var(--card)); font:inherit; font-weight:750; }
 .cg-bar-wrap { width:100%; padding:8px 0 4px; }
+.cg-bar-unsplit { grid-template-columns:1fr !important; }
 .cg-bar { display:grid; grid-template-columns:repeat(var(--parts),minmax(0,1fr)); gap:4px; width:100%; }
 .cg-cell { min-width:0; height:48px; padding:0; border:2px solid color-mix(in srgb,var(--fq-sky,#1cb0f6) 50%,var(--cg-edge)); border-radius:9px; background:hsl(var(--card)); }
 button.cg-cell { cursor:pointer; }
