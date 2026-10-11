@@ -1,17 +1,19 @@
 import { AREA_CUTS, allEqual, areaTaskDone, cutTotal, pieceArea, shadedArea } from './area-shapes';
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
+import * as React from 'react';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
-import { splitStory } from './fun-ui';
+import { FunContext, splitStory } from './fun-ui';
+import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
 import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
 import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './FractionRace';
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
-import { describe as describeRun, getCodeLevels, matchesTarget, runProgram, solution, toText, usesLoop } from './code-quest';
+import { CODE_LEVEL_COUNT, describe as describeRun, getCodeLevels, makeMultiBug, matchesTarget, passesCodeLevel, predictionMatchesTarget, runProgram, solution, toText, usesEffectiveLoop, usesLoop, type Block } from './code-quest';
 import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
-import { loadFun, recordCorrect, recordMinute } from './lib/fun';
+import { loadFun, recordCodeLevel, recordCorrect, recordMinute } from './lib/fun';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
 import type { PracticeQuestion } from './game';
 import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, paperPrompt, parseAnswer } from './learning-content';
@@ -1259,7 +1261,7 @@ describe('grown-ups report', () => {
   it('starts empty and points to lesson 1', () => {
     const report = buildParentReport(EMPTY_PROGRESS, fun0, titles, new Date(2026, 9, 11));
     assert.equal(report.lessonsDone, 0); assert.equal(report.lessonsTotal, MISSIONS.length);
-    assert.equal(report.codeLevelsPassed, 0); assert.equal(report.codeLevelsTotal, MISSIONS.length * 3);
+    assert.equal(report.codeLevelsPassed, 0); assert.equal(report.codeLevelsTotal, MISSIONS.length * CODE_LEVEL_COUNT);
     assert.equal(report.codeMissionsStarted, 0); assert.deepEqual(report.codeMissionRows, []);
     assert.equal(report.firstTryRate, null); assert.equal(report.onOwnRate, null);
     assert.equal(report.nextLesson, `Lesson 1: ${MISSIONS[0].title}`);
@@ -1293,8 +1295,12 @@ describe('grown-ups report', () => {
     assert.equal(report.lessonsDone, 0);
     assert.equal(report.codeLevelsPassed, 5);
     assert.equal(report.codeMissionsStarted, 2);
-    assert.equal(report.codeMissionsComplete, 1);
+    assert.equal(report.codeMissionsComplete, 0);
     assert.deepEqual(report.codeMissionRows.map((row) => [row.id, row.levelsPassed]), [[MISSIONS[0].id, 2], [MISSIONS[1].id, 3]]);
+    const sixLevelReport = buildParentReport(EMPTY_PROGRESS, { ...fun0, codeLevels: { [MISSIONS[0].id]: CODE_LEVEL_COUNT, [MISSIONS[1].id]: 5 } }, titles, new Date(2026, 9, 11));
+    assert.equal(sixLevelReport.codeMissionsComplete, 1);
+    assert.equal(sixLevelReport.codeLevelsPassed, 11);
+    assert.deepEqual(sixLevelReport.codeMissionRows.map((row) => row.levelsPassed), [6, 5]);
   });
   it('tracks minutes and correct answers per day without touching lessons', () => {
     let fun = recordMinute(recordMinute(loadFun()));
@@ -1328,16 +1334,17 @@ describe('code challenge', () => {
   });
   it('summarizes passed coding levels independently and only from saved mission values', () => {
     assert.deepEqual(summarizeCodeProgress(undefined, ['equal-parts', 'fraction-names']), {
-      levelsPassed: 0, levelsTotal: 6, missionsStarted: 0, missionsComplete: 0,
+      levelsPassed: 0, levelsTotal: 2 * CODE_LEVEL_COUNT, missionsStarted: 0, missionsComplete: 0,
     });
     assert.deepEqual(summarizeCodeProgress({ 'equal-parts': 1, 'fraction-names': 3, ignored: 2 }, ['equal-parts', 'fraction-names']), {
-      levelsPassed: 4, levelsTotal: 6, missionsStarted: 2, missionsComplete: 1,
+      levelsPassed: 4, levelsTotal: 2 * CODE_LEVEL_COUNT, missionsStarted: 2, missionsComplete: 0,
     });
+    assert.equal(summarizeCodeProgress({ 'equal-parts': 6 }, ['equal-parts']).missionsComplete, 1);
   });
-  it('every lesson has 3 solvable levels: blanks fail, the right numbers pass, and the bug really is a bug', () => {
+  it('every lesson has six solvable levels, including prediction, two-bug debugging, and model transfer', () => {
     for (const mission of MISSIONS) {
       const levels = getCodeLevels(mission.id);
-      assert.equal(levels.length, 3, mission.id);
+      assert.equal(levels.length, CODE_LEVEL_COUNT, mission.id);
       for (const level of levels) {
         const answer = runProgram(solution(level.target), level.target);
         assert.ok(matchesTarget(answer, level.target), `${mission.id} L${level.level}: the model answer fails (${answer.error ?? describeRun(answer)})`);
@@ -1346,7 +1353,68 @@ describe('code challenge', () => {
       assert.equal(runProgram(levels[0].start, levels[0].target).error, 'A block is missing a number.');
       assert.equal(levels[1].start.length, 0);
       assert.ok(!matchesTarget(runProgram(levels[2].start, levels[2].target), levels[2].target), `${mission.id}: the bug program already works`);
+      assert.equal(levels[3].mode, 'predict');
+      assert.equal(predictionMatchesTarget(levels[3].target, String(levels[3].target.n), String(levels[3].target.d)), true);
+      assert.equal(predictionMatchesTarget(levels[3].target, String(levels[3].target.n + 1), String(levels[3].target.d)), false);
+      assert.equal(levels[4].mode, 'debug');
+      const twoBugs = makeMultiBug(levels[4].target);
+      const correctProgram = solution(levels[4].target);
+      const badSplit = twoBugs.find((block) => block.op === 'split');
+      const goodSplit = correctProgram.find((block) => block.op === 'split');
+      const badRepeat = twoBugs.find((block) => block.op === 'repeat');
+      const goodRepeat = correctProgram.find((block) => block.op === 'repeat');
+      assert.ok(badSplit?.op === 'split' && goodSplit?.op === 'split');
+      assert.ok(badRepeat?.op === 'repeat' && goodRepeat?.op === 'repeat');
+      assert.notEqual(badSplit.n, goodSplit.n, `${mission.id}: the partition is wrong`);
+      assert.notEqual(badRepeat.n, goodRepeat.n, `${mission.id}: the repeat count is wrong`);
+      assert.ok(!matchesTarget(runProgram(twoBugs, levels[4].target), levels[4].target), `${mission.id}: the two-bug program already works`);
+      const transfer = levels[5];
+      assert.equal(transfer.mode, 'build');
+      assert.ok(transfer.transferFrom, `${mission.id}: transfer has a source fraction`);
+      assert.notEqual(transfer.target.kind, transfer.transferFrom?.kind, `${mission.id}: transfer changes model`);
+      assert.equal(transfer.target.n * (transfer.transferFrom?.d ?? 0), (transfer.transferFrom?.n ?? 0) * transfer.target.d, `${mission.id}: transfer keeps the same value`);
+      assert.equal(transfer.requiresLoop, true, `${mission.id}: transfer requires a real repeat loop`);
+      const loopSolution = solution(transfer.target);
+      const manualProgram: Block[] = loopSolution.flatMap((block): Block[] => block.op === 'repeat'
+        ? Array.from({ length: block.n ?? 0 }, () => block.body).flat()
+        : [block]);
+      const manualResult = runProgram(manualProgram, transfer.target);
+      assert.ok(matchesTarget(manualResult, transfer.target), `${mission.id}: longhand model answer should still be correct`);
+      assert.equal(usesEffectiveLoop(manualProgram), false);
+      assert.equal(passesCodeLevel(transfer, manualResult, manualProgram), false, `${mission.id}: level 6 requires a loop`);
+      assert.equal(passesCodeLevel(transfer, runProgram(loopSolution, transfer.target), loopSolution), true);
     }
+  });
+  it('puts the loop walkthrough before the challenge and keeps it available on later levels', () => {
+    const globalWithReact = globalThis as typeof globalThis & { React?: typeof React };
+    const previousReact = globalWithReact.React;
+    globalWithReact.React = React;
+    try {
+      const render = (solved: number) => renderToStaticMarkup(createElement(
+        FunContext.Provider,
+        { value: { fun: { xp: 0, day: '2026-10-11', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: true }, setFun: () => {} } },
+        createElement(CodeQuest, { mission: MISSIONS[0], solved, onExit: () => {}, onSolved: () => {} }),
+      ));
+      for (const solved of [0, 1]) {
+        const html = render(solved);
+        assert.ok(html.includes('data-testid="code-walkthrough"'));
+        assert.ok(html.indexOf('data-testid="code-walkthrough"') < html.indexOf('class="fq-code-goal"'));
+        assert.ok(html.includes('Watch a loop work: one instruction, one model change'));
+      }
+    } finally {
+      if (previousReact) globalWithReact.React = previousReact;
+      else delete globalWithReact.React;
+    }
+  });
+  it('saves all six coding levels while leaving older progress values unchanged', () => {
+    const [first, second] = MISSIONS;
+    let fun = recordCodeLevel(loadFun(), first.id, 3);
+    fun = recordCodeLevel(fun, second.id, CODE_LEVEL_COUNT);
+    const loaded = loadFun();
+    assert.equal(loaded.codeLevels?.[first.id], 3, 'old three-level progress stays at three, not marked complete');
+    assert.equal(loaded.codeLevels?.[second.id], CODE_LEVEL_COUNT);
+    window.localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ codeLevels: { [first.id]: 99 } }));
+    assert.equal(loadFun().codeLevels?.[first.id], CODE_LEVEL_COUNT, 'saved values are bounded to the six available levels');
   });
   it('catches common robot mistakes with friendly messages', () => {
     const t = { kind: 'bar' as const, n: 3, d: 4, wholes: 1 };

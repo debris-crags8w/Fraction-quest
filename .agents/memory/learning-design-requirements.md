@@ -38,3 +38,9 @@ Coding missions should teach with multiple fraction models and a step-by-step ex
 **Why:** The user asked for more coding examples, a loop walkthrough, separate coding progress that reflects passed challenges, and a gentler Python introduction for young learners.
 
 **How to apply:** Use correct, model-linked examples; name each loop pass while learners step through it; report saved coding levels independently from worksheet, lesson, and star progress.
+
+Coding challenge difficulty should grow by combining the existing blocks into more levels, not by adding new block types.
+
+**Why:** The user chose a longer progression using the current blocks when asked how to make the coding challenges more advanced.
+
+**How to apply:** Increase prediction, debugging, loop use, and transfer between fraction models while keeping the block vocabulary familiar.

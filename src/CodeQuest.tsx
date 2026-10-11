@@ -4,7 +4,7 @@ import type { Mission } from './game';
 import { MathText } from './MathText';
 import { Confetti, Mascot, useFun } from './fun-ui';
 import { playCue } from './lib/fun';
-import { countBlocks, describe, getCodeLevels, matchesTarget, runProgram, toText, usesLoop, type Block, type CodeLevel, type RobotState, type RunResult } from './code-quest';
+import { CODE_LEVEL_COUNT, countBlocks, describe, getCodeLevels, passesCodeLevel, predictionMatchesTarget, runProgram, toText, usesEffectiveLoop, usesLoop, type Block, type CodeLevel, type RobotState, type RunResult } from './code-quest';
 import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
 
 /* Code challenge: program a robot to build the lesson's fraction with blocks (or read it as Python). */
@@ -107,17 +107,22 @@ export function Program({ blocks, kind, editable, reorder, active, onChange, pre
 export default function CodeQuest({ mission, solved, onExit, onSolved }: { mission: Mission; solved: number; onExit: () => void; onSolved: (level: number) => void }) {
   const { fun } = useFun();
   const levels = useMemo(() => getCodeLevels(mission.id), [mission.id]);
-  const [at, setAt] = useState(() => Math.min(solved, 2));
+  const [at, setAt] = useState(() => Math.min(Math.floor(solved), levels.length - 1));
   const level = levels[at];
   const [program, setProgram] = useState<Block[]>(level.start);
   const [result, setResult] = useState<RunResult | null>(null);
   const [frame, setFrame] = useState(-1);
   const [outcome, setOutcome] = useState<'win' | 'miss' | null>(null);
   const [burst, setBurst] = useState(0);
+  const goalRef = useRef<HTMLElement | null>(null);
+  const previousLevel = useRef(at);
   const timer = useRef<number | null>(null);
   const [running, setRunning] = useState(false);
   const [exampleAt, setExampleAt] = useState(0);
   const [exampleStep, setExampleStep] = useState(0);
+  const [tutorialOpen, setTutorialOpen] = useState(() => solved === 0);
+  const [prediction, setPrediction] = useState({ numerator: '', denominator: '' });
+  const [predictionFeedback, setPredictionFeedback] = useState<string | null>(null);
   const kind = level.target.kind;
   const codeSummary = summarizeCodeProgress(fun.codeLevels, [mission.id]);
   const example = CODE_EXAMPLES[exampleAt];
@@ -125,21 +130,37 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
   const exampleShown = exampleStep > 0 ? exampleRun.steps[exampleStep - 1] : null;
 
   useEffect(() => () => { if (timer.current) window.clearInterval(timer.current); }, []);
+  useEffect(() => {
+    if (previousLevel.current === at) return;
+    previousLevel.current = at;
+    goalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [at]);
   const stop = () => { if (timer.current) { window.clearInterval(timer.current); timer.current = null; } setRunning(false); };
-  const goTo = (i: number) => { stop(); setAt(i); setProgram(levels[i].start); setResult(null); setFrame(-1); setOutcome(null); };
-  const edit = (next: Block[]) => { stop(); setProgram(next); setResult(null); setFrame(-1); setOutcome(null); };
+  const goTo = (i: number) => {
+    stop(); setAt(i); setProgram(levels[i].start); setResult(null); setFrame(-1); setOutcome(null);
+    setPrediction({ numerator: '', denominator: '' }); setPredictionFeedback(null);
+  };
+  const edit = (next: Block[]) => { stop(); setProgram(next); setResult(null); setFrame(-1); setOutcome(null); setPredictionFeedback(null); };
 
   const run = () => {
     stop();
+    if (level.mode === 'predict' && !predictionMatchesTarget(level.target, prediction.numerator, prediction.denominator)) {
+      setResult(null); setFrame(-1); setOutcome('miss');
+      setPredictionFeedback(prediction.numerator === '' || prediction.denominator === ''
+        ? 'Enter both numbers in your prediction, then check again.'
+        : 'Not yet. Read the split number and count how many times the loop runs, then try again.');
+      return;
+    }
+    setPredictionFeedback(null);
     const r = runProgram(program, level.target);
     setResult(r); setOutcome(null); setFrame(0);
     const total = r.steps.length;
     const ms = Math.max(60, Math.min(320, 6000 / Math.max(1, total)));
     let k = 0;
     const finish = () => {
-      const win = matchesTarget(r, level.target);
-      setOutcome(win ? 'win' : 'miss'); playCue(win ? 'complete' : 'retry', fun.sound);
-      if (win) { setBurst((b) => b + 1); if (level.level > solved) onSolved(level.level); }
+      const passed = passesCodeLevel(level, r, program);
+      setOutcome(passed ? 'win' : 'miss'); playCue(passed ? 'complete' : 'retry', fun.sound);
+      if (passed) { setBurst((b) => b + 1); if (level.level > solved) onSolved(level.level); }
     };
     if (!total) { finish(); return; }
     setRunning(true);
@@ -151,7 +172,7 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
   };
 
   const shown = result && frame >= 0 ? result.steps[Math.min(frame, result.steps.length - 1)] : null;
-  const loopStar = level.mode === 'build' && outcome === 'win' && usesLoop(program);
+  const loopStar = level.mode === 'build' && !level.requiresLoop && outcome === 'win' && usesLoop(program);
 
   return (
     <div className="fq-app">
@@ -170,15 +191,48 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
           </div>
         </header>
 
-        <section className="fq-code-goal">
+        <details className="fq-code-tutorial" open={tutorialOpen} onToggle={(event) => setTutorialOpen(event.currentTarget.open)} data-testid="details-code-tutorial">
+          <summary>Watch a loop work: one instruction, one model change</summary>
+          <section className="fq-code-walkthrough" aria-labelledby="code-walk-title" data-testid="code-walkthrough">
+            <div className="fq-code-walk-head">
+              <div><span className="fq-code-level-title">Loop walkthrough</span><h2 id="code-walk-title">One instruction, one model change</h2></div>
+              <span className="fq-code-walk-counter" data-testid="text-walkthrough-step">{exampleStep} / {exampleRun.steps.length}</span>
+            </div>
+            <p className="fq-code-tip">Choose an example, then step through what the robot does. The highlighted block matches the changing picture.</p>
+            <div className="fq-code-example-tabs" role="group" aria-label="Choose a worked example">
+              {CODE_EXAMPLES.map((item, index) => <button type="button" className={index === exampleAt ? 'on' : ''} onClick={() => { setExampleAt(index); setExampleStep(0); }} key={item.title} data-testid={`button-example-${index}`}>{item.title}</button>)}
+            </div>
+            <div className="fq-code-walk-grid">
+              <div className="fq-code-walk-model">
+                <span className="fq-code-walk-label">Robot's model</span>
+                <World state={exampleShown?.state ?? null} target={example.target} />
+                <p className="fq-code-walk-caption" aria-live="polite">{exampleShown
+                  ? `${exampleStepInstruction(example, exampleStep - 1, exampleRun.steps)} ${describe({ ...exampleRun, final: exampleShown.state })}`
+                  : 'Start with one whole and the robot at the beginning.'}</p>
+              </div>
+              <div className="fq-code-walk-program">
+                <span className="fq-code-walk-label">Blocks being run</span>
+                <Program blocks={example.program} kind={example.target.kind} editable={false} reorder={false} active={exampleShown?.path ?? null} onChange={() => {}} />
+                <p className="fq-code-example-note">{example.note}</p>
+              </div>
+            </div>
+            <div className="fq-code-walk-controls">
+              <button type="button" className="fq-button ghost" onClick={() => setExampleStep(0)} disabled={exampleStep === 0} data-testid="button-walk-reset"><RotateCcw size={16} /> Start over</button>
+              <button type="button" className="fq-button ghost" onClick={() => setExampleStep((step) => Math.max(0, step - 1))} disabled={exampleStep === 0} data-testid="button-walk-back"><ArrowLeft size={16} /> Back one</button>
+              <button type="button" className="fq-button secondary" onClick={() => setExampleStep((step) => Math.min(exampleRun.steps.length, step + 1))} disabled={exampleStep >= exampleRun.steps.length} data-testid="button-walk-next">Next instruction <ArrowRight size={16} /></button>
+            </div>
+          </section>
+        </details>
+
+        <section className="fq-code-goal" ref={goalRef} tabIndex={-1}>
           <p className="fq-code-level-title">Level {level.level} · {level.title}</p>
           <h2><MathText text={level.goal} /></h2>
           <p className="fq-code-tip"><MathText text={level.tip} /></p>
           <div className="fq-code-mission-progress" data-testid="status-code-mission-progress">
             <span>Code levels passed</span>
-            <strong>{codeSummary.levelsPassed} of 3</strong>
-            <div aria-label={`${codeSummary.levelsPassed} of 3 coding levels passed`} className="fq-code-progress-dots">
-              {[1, 2, 3].map((n) => <i className={solved >= n ? 'passed' : ''} key={n} />)}
+            <strong>{codeSummary.levelsPassed} of {CODE_LEVEL_COUNT}</strong>
+            <div aria-label={`${codeSummary.levelsPassed} of ${CODE_LEVEL_COUNT} coding levels passed`} className="fq-code-progress-dots">
+              {Array.from({ length: CODE_LEVEL_COUNT }, (_, index) => index + 1).map((n) => <i className={solved >= n ? 'passed' : ''} key={n} />)}
             </div>
             <small>Separate from fraction lesson progress</small>
           </div>
@@ -194,7 +248,7 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
             <strong>Program</strong>
             <span className="fq-code-blocks-label">Blocks</span>
           </div>
-          {program.length ? <Program blocks={program} kind={kind} editable reorder={level.mode !== 'fill'} active={shown?.path ?? null} onChange={edit} />
+          {program.length ? <Program blocks={program} kind={kind} editable={level.mode !== 'predict'} reorder={level.mode === 'build' || level.mode === 'debug'} active={shown?.path ?? null} onChange={edit} />
             : <p className="fq-code-empty">Tap the blocks below to build your program.</p>}
           {level.palette.length > 0 && (
             <div className="fq-code-palette" aria-label="Blocks you can add">
@@ -206,8 +260,27 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
               {program.length > 0 && <button type="button" className="fq-code-chip clear" onClick={() => edit(level.mode === 'debug' ? level.start : [])}><X size={14} /> {level.mode === 'debug' ? 'Undo my changes' : 'Clear'}</button>}
             </div>
           )}
+          {level.mode === 'predict' && (
+            <div className="fq-code-prediction" role="group" aria-label="Enter your predicted fraction">
+              <label>
+                <span>Numerator — how many parts?</span>
+                <input aria-label="Predicted numerator" inputMode="numeric" value={prediction.numerator} onChange={(event) => {
+                  const numerator = event.target.value.replace(/\D/g, '').slice(0, 3);
+                  setPrediction((current) => ({ ...current, numerator })); setPredictionFeedback(null); setOutcome(null); setResult(null);
+                }} />
+              </label>
+              <span className="fq-code-prediction-line" aria-hidden="true" />
+              <label>
+                <span>Denominator — how many equal parts in one whole?</span>
+                <input aria-label="Predicted denominator" inputMode="numeric" value={prediction.denominator} onChange={(event) => {
+                  const denominator = event.target.value.replace(/\D/g, '').slice(0, 3);
+                  setPrediction((current) => ({ ...current, denominator })); setPredictionFeedback(null); setOutcome(null); setResult(null);
+                }} />
+              </label>
+            </div>
+          )}
           <div className="fq-code-run">
-            <button type="button" className="fq-button" onClick={run} disabled={!program.length || running} data-testid="button-code-run"><Play size={17} /> Run</button>
+            <button type="button" className="fq-button" onClick={run} disabled={!program.length || running} data-testid="button-code-run"><Play size={17} /> {level.mode === 'predict' ? 'Check prediction & run' : 'Run'}</button>
             <button type="button" className="fq-button ghost" onClick={() => { stop(); setResult(null); setFrame(-1); setOutcome(null); }}><RotateCcw size={16} /> Reset robot</button>
           </div>
           <details className="fq-code-python-peek" data-testid="details-code-python">
@@ -217,46 +290,20 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
           </details>
         </section>
 
-        <section className="fq-code-walkthrough" aria-labelledby="code-walk-title" data-testid="code-walkthrough">
-          <div className="fq-code-walk-head">
-            <div><span className="fq-code-level-title">Watch a loop work</span><h2 id="code-walk-title">One instruction, one model change</h2></div>
-            <span className="fq-code-walk-counter" data-testid="text-walkthrough-step">{exampleStep} / {exampleRun.steps.length}</span>
-          </div>
-          <p className="fq-code-tip">Choose an example, then step through what the robot does. The highlighted block matches the changing picture.</p>
-          <div className="fq-code-example-tabs" role="group" aria-label="Choose a worked example">
-            {CODE_EXAMPLES.map((item, index) => <button type="button" className={index === exampleAt ? 'on' : ''} onClick={() => { setExampleAt(index); setExampleStep(0); }} key={item.title} data-testid={`button-example-${index}`}>{item.title}</button>)}
-          </div>
-          <div className="fq-code-walk-grid">
-            <div className="fq-code-walk-model">
-              <span className="fq-code-walk-label">Robot's model</span>
-              <World state={exampleShown?.state ?? null} target={example.target} />
-              <p className="fq-code-walk-caption" aria-live="polite">{exampleShown
-                ? `${exampleStepInstruction(example, exampleStep - 1, exampleRun.steps)} ${describe({ ...exampleRun, final: exampleShown.state })}`
-                : 'Start with one whole and the robot at the beginning.'}</p>
-            </div>
-            <div className="fq-code-walk-program">
-              <span className="fq-code-walk-label">Blocks being run</span>
-              <Program blocks={example.program} kind={example.target.kind} editable={false} reorder={false} active={exampleShown?.path ?? null} onChange={() => {}} />
-              <p className="fq-code-example-note">{example.note}</p>
-            </div>
-          </div>
-          <div className="fq-code-walk-controls">
-            <button type="button" className="fq-button ghost" onClick={() => setExampleStep(0)} disabled={exampleStep === 0} data-testid="button-walk-reset"><RotateCcw size={16} /> Start over</button>
-            <button type="button" className="fq-button ghost" onClick={() => setExampleStep((step) => Math.max(0, step - 1))} disabled={exampleStep === 0} data-testid="button-walk-back"><ArrowLeft size={16} /> Back one</button>
-            <button type="button" className="fq-button secondary" onClick={() => setExampleStep((step) => Math.min(exampleRun.steps.length, step + 1))} disabled={exampleStep >= exampleRun.steps.length} data-testid="button-walk-next">Next instruction <ArrowRight size={16} /></button>
-          </div>
-        </section>
-
-        {outcome && result && (
+        {outcome && (result || predictionFeedback) && (
           <section className={`fq-code-result ${outcome}`} role="status" data-testid="code-result">
             <Mascot mood={outcome === 'win' ? 'cheer' : 'oops'} size={56} />
             <div>
-              <strong>{outcome === 'win' ? 'It works!' : result.error ? 'Bug found!' : 'Not quite.'}</strong>
-              <p><MathText text={result.error ?? describe(result)} /> {outcome === 'miss' && !result.error && <MathText text={`The goal is ${level.target.n}/${level.target.d}.`} />}</p>
+              <strong>{outcome === 'win' ? 'It works!' : predictionFeedback ? 'Try again.' : result?.error ? 'Bug found!' : 'Not quite.'}</strong>
+              <p>
+                <MathText text={predictionFeedback ?? result?.error ?? (result ? describe(result) : '')} />
+                {outcome === 'miss' && result && !result.error && !level.requiresLoop && <MathText text={` The goal is ${level.target.n}/${level.target.d}.`} />}
+                {outcome === 'miss' && result && level.requiresLoop && !usesEffectiveLoop(program) && <MathText text=" This model is right; now put the repeated actions in a repeat block." />}
+              </p>
               {loopStar && <p className="fq-code-star"><Star size={15} fill="currentColor" /> Bonus star: you used a loop!</p>}
               {outcome === 'win' && level.mode === 'build' && !usesLoop(program) && <p className="fq-code-note">Try again with a repeat loop: it's how coders avoid writing the same block again and again.</p>}
-              {outcome === 'win' && at < 2 && <button type="button" className="fq-button" onClick={() => goTo(at + 1)} data-testid="button-code-next">Next level</button>}
-              {outcome === 'win' && at === 2 && <p className="fq-code-note">All 3 coding levels passed for this mission. Nice debugging and building!</p>}
+              {outcome === 'win' && at < levels.length - 1 && <button type="button" className="fq-button" onClick={() => goTo(at + 1)} data-testid="button-code-next">Next level</button>}
+              {outcome === 'win' && at === levels.length - 1 && <p className="fq-code-note">All {CODE_LEVEL_COUNT} coding levels passed for this mission. Great predicting, debugging, and building!</p>}
             </div>
           </section>
         )}

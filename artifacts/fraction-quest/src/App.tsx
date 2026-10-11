@@ -39,6 +39,7 @@ import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
+import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag } from './models';
 import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
 import PaperCheck from './PaperCheck';
@@ -249,7 +250,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
   const { user } = useAccount();
   const { fun } = useFun();
   const codeSummary = summarizeCodeProgress(fun.codeLevels, MISSIONS.map((mission) => mission.id));
-  const nextCodeMission = MISSIONS.find((mission) => isMissionUnlocked(progress, mission.id) && (fun.codeLevels?.[mission.id] ?? 0) < 3);
+  const nextCodeMission = MISSIONS.find((mission) => isMissionUnlocked(progress, mission.id) && (fun.codeLevels?.[mission.id] ?? 0) < CODE_LEVEL_COUNT);
   const totalStars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
   const nextMission = getNextMission(progress);
   // Lessons skipped by the level quiz don't count as "pending" for the recommendation message.
@@ -364,7 +365,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
                             <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
                               Worksheet {worksheetCount(learning, mission.id)}/12 · Builds on my own {summary.independentChecks}/2
                               <br />Remembered: {summary.retention}
-                              <br />Code levels passed: {Math.min(3, Math.floor(fun.codeLevels?.[mission.id] ?? 0))}/3
+                              <br />Code levels passed: {Math.min(CODE_LEVEL_COUNT, Math.floor(fun.codeLevels?.[mission.id] ?? 0))}/{CODE_LEVEL_COUNT}
                               {!completed && unlocked && <><br />Finish the builds and the worksheet to open the next lesson.</>}
                               {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Your old progress is saved. A few new steps are needed.</>}
                             </p>

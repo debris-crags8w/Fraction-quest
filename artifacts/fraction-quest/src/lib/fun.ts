@@ -1,6 +1,8 @@
 // Small, device-only "fun" state: XP, daily goal, day streak and the sound setting.
 // Kept separate from learning progress so it can never block or alter lesson gating.
 
+import { CODE_LEVEL_COUNT } from '../code-quest';
+
 const FUN_KEY = 'fraction-quest-fun-v1';
 export const DAILY_GOAL = 10;
 
@@ -16,7 +18,7 @@ export type FunState = {
   /** Fraction Race: best time (seconds) to 10 right answers, and the fastest robot beaten (1–3), per lesson. */
   raceBest?: Record<string, number>;
   robotBeaten?: Record<string, number>;
-  /** Code challenge: how many levels (0–3) are solved, per lesson. */
+  /** Code challenge: how many of the six independent coding levels are solved, per lesson. */
   codeLevels?: Record<string, number>;
   /** Code Sprint: best time (seconds) per lesson. */
   sprintBest?: Record<string, number>;
@@ -56,7 +58,7 @@ function cleanScores(value: unknown, max: number): Record<string, number> {
   }
   return out;
 }
-const cleanGames = (saved: Partial<FunState>) => ({ raceBest: cleanScores(saved.raceBest, 3600), robotBeaten: cleanScores(saved.robotBeaten, 3), codeLevels: cleanScores(saved.codeLevels, 3), sprintBest: cleanScores(saved.sprintBest, 3600) });
+const cleanGames = (saved: Partial<FunState>) => ({ raceBest: cleanScores(saved.raceBest, 3600), robotBeaten: cleanScores(saved.robotBeaten, 3), codeLevels: cleanScores(saved.codeLevels, CODE_LEVEL_COUNT), sprintBest: cleanScores(saved.sprintBest, 3600) });
 
 /** Record a finished race: keeps the best time and the fastest robot beaten (0 = no robot / lost). */
 export function recordRace(state: FunState, missionId: string, seconds: number, robotLevel: number): FunState {
@@ -74,8 +76,9 @@ export function recordSprint(state: FunState, missionId: string, seconds: number
 
 /** Record a solved code level (levels count up: solving level 2 means 2 levels done). */
 export function recordCodeLevel(state: FunState, missionId: string, level: number): FunState {
-  if ((state.codeLevels?.[missionId] ?? 0) >= level) return state;
-  return saveFun({ ...state, codeLevels: { ...state.codeLevels, [missionId]: level } });
+  const completed = Math.max(0, Math.min(CODE_LEVEL_COUNT, Math.floor(level)));
+  if ((state.codeLevels?.[missionId] ?? 0) >= completed) return state;
+  return saveFun({ ...state, codeLevels: { ...state.codeLevels, [missionId]: completed } });
 }
 
 export function loadFun(): FunState {
