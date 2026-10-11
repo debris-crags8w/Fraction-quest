@@ -22,7 +22,7 @@ import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getM
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
 import { LearningText, selectLearningVoice } from './LearningText';
 import { BarSvg } from './models';
-import Printable, { AnswerKey, STUDENT_PRINT_OPTIONS } from './Printables';
+import Printable, { AnswerKey, PrintMenu, STUDENT_PRINT_OPTIONS } from './Printables';
 import { barTaskDone, canEnterWorksheetAnswer, WorksheetBarCopy, worksheetBarMatches } from './WorksheetBarCopy';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
 import QuickReviewEntry from './QuickReviewEntry';
@@ -623,17 +623,58 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(selectLearningVoice([], 'en-US'), null);
   });
 
-  it('keeps answer keys out of student print choices and generated practice sheets', () => {
+  it('keeps answer keys out of every student printable and student print choices', () => {
     assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.label.toLowerCase().includes('answer key')), false);
     assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.mode === 'answers'), true);
-    const markup = renderToStaticMarkup(createElement(Printable, {
-      missionId: 'equal-parts',
-      record: emptyLearningRecord(),
+    const record = emptyLearningRecord();
+    const menu = renderToStaticMarkup(createElement(PrintMenu, { missionId: 'number-line-basics', record }));
+    assert.doesNotMatch(menu, /answer key/i);
+
+    for (const { mode } of STUDENT_PRINT_OPTIONS) {
+      const markup = renderToStaticMarkup(createElement(Printable, {
+        missionId: 'number-line-basics',
+        record,
+        mode,
+        seed: 1,
+      }));
+      assert.doesNotMatch(markup, /fq-print-key-list|data-testid="print-answer-key"/, `${mode} must not render an answer key`);
+    }
+
+    const generated = renderToStaticMarkup(createElement(Printable, {
+      missionId: 'number-line-basics',
+      record,
       mode: 'generated',
       seed: 1,
     }));
-    assert.match(markup, /data-testid="print-generated"/);
-    assert.doesNotMatch(markup, /Answer key|Cut this part off/i);
+    assert.match(generated, /data-testid="print-generated"/);
+    assert.doesNotMatch(generated, /Cut this part off/i);
+  });
+
+  it('keeps the student’s own checked responses on the My answers sheet', () => {
+    const problem = getWorksheet('number-line-basics')[0];
+    const record = checkWorksheet(editWorksheet(emptyLearningRecord(), problem.id, problem.answer), problem);
+    const markup = renderToStaticMarkup(createElement(Printable, {
+      missionId: 'number-line-basics',
+      record,
+      mode: 'answers',
+    }));
+
+    assert.match(markup, /My answers/);
+    assert.match(markup, new RegExp(`<b>${problem.answer}<\\/b>`));
+    assert.match(markup, /✓ Correct/);
+  });
+
+  it('keeps the grown-up answer key printable with practice, worksheet, and model solutions', () => {
+    const mission = getMission('equal-parts');
+    const markup = renderToStaticMarkup(createElement(AnswerKey, { mission }));
+    const firstWorksheetAnswer = getWorksheet(mission.id)[0].answer;
+    const firstPracticeAnswer = mission.questions[0].choices[mission.questions[0].correctChoice];
+
+    assert.match(markup, /Answer key for grown-ups/);
+    assert.match(markup, /data-testid="print-answer-key"/);
+    assert.ok(markup.includes(firstPracticeAnswer), 'includes the authored practice answer');
+    assert.ok(markup.includes(firstWorksheetAnswer), 'includes the worksheet answer');
+    assert.match(markup, /Show it both ways/);
   });
 
   it('labels the whole and a part inside the bar model rather than showing a fraction hint beside it', () => {

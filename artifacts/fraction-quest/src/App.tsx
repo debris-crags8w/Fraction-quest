@@ -424,7 +424,7 @@ function MissionMap({ progress, onStart, onStartReview, onStartDaily, onReset, o
         </section>
         <section className="fq-grownups" data-testid="section-grownups">
           <span className="fq-grownups-icon" aria-hidden="true"><BarChart3 size={22} /></span>
-          <span><strong>For grown-ups</strong><small>Progress, time this week, and what to practice. Printable.</small></span>
+          <span><strong>For grown-ups</strong><small>Progress, time this week, what to practice, and lesson answer keys. Printable.</small></span>
           <span className="fq-grownups-buttons">
             <button className="fq-button ghost" onClick={onParent} data-testid="button-open-parent">Open report</button>
             <button className="fq-button ghost" onClick={onPlacement} data-testid="button-open-placement">Level quiz</button>
