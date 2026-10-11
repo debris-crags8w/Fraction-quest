@@ -68,10 +68,17 @@ function place(item: Item, pos: number): Pick<PracticeQuestion, 'choices' | 'cor
 
 const RECIPES: Record<string, (r: Rng) => Item> = {
   'equal-parts': (r) => {
-    const d = r.pick([2, 3, 4, 5, 6, 8, 10, 12]);
-    return { prompt: `Which strip shows fair ${name(d)}?`, right: `${d} equal pieces`, wrong: [`${d} pieces, not equal`, `${d + 1} equal pieces`],
-      hint: `${Name(d)} are ${d} equal pieces.`, retry: `You need ${d} pieces, and they must be the same size.`,
-      model: { kind: 'partition', parts: Array.from({ length: d }, () => 100 / d) }, simpler: { kind: 'partition', parts: [50, 50] } };
+    // The picture is the puzzle: the strip may be fair, have unequal pieces, or have the wrong number of pieces.
+    const d = r.pick([2, 3, 4, 5, 6, 8]); const kind = r.int(0, 2);
+    const count = kind === 2 ? d + 1 : d;
+    const sizes = Array.from({ length: count }, () => 1);
+    if (kind === 1) sizes[r.int(0, count - 1)] = 2.5; // one piece clearly bigger
+    const total = sizes.reduce((a, b) => a + b, 0);
+    const yes = `Yes: ${d} equal pieces`; const unequal = 'No: the pieces are not equal'; const tooMany = `No: there are ${d + 1} pieces`;
+    return { prompt: `Is this strip cut into fair ${name(d)}?`, right: [yes, unequal, tooMany][kind], wrong: [yes, unequal, tooMany].filter((_, i) => i !== kind) as [string, string],
+      hint: `Fair ${name(d)}: exactly ${d} pieces, all the same size. Count them, then compare them.`,
+      retry: kind === 0 ? `There are ${d} pieces and they are all the same size, so they are fair ${name(d)}.` : kind === 1 ? 'One piece is bigger than the others, so the pieces are not fair.' : `Count again: there are ${d + 1} pieces, not ${d}.`,
+      model: { kind: 'partition', parts: sizes.map((size) => (size / total) * 100) }, simpler: { kind: 'partition', parts: Array.from({ length: d }, () => 100 / d) } };
   },
   'fraction-names': (r) => {
     const d = r.pick(DENS); const n = r.int(1, d - 1);
@@ -90,11 +97,11 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'sets-unit-fractions': (r) => {
     const d = r.int(2, 6); let per = r.int(2, 7); if (per === d) per += 1; const t = d * per;
-    return { prompt: `What is ${f(1, d)} of ${t}?`, right: String(per), wrong: [String(d), String(t)], hint: `Make ${d} equal groups. Count 1 group.`, retry: `${t} in ${d} groups is ${per} each.`, model: set(per, t) };
+    return { prompt: `What is ${f(1, d)} of ${t}?`, right: String(per), wrong: [String(d), String(t)], hint: `Make ${d} equal groups. Count 1 group.`, retry: `${t} in ${d} groups is ${per} each.`, model: set(0, t) }; // plain dots: the child does the grouping
   },
   'sets-nonunit': (r) => {
     const d = r.int(3, 6); const n = r.int(2, d - 1); const per = r.int(2, 6); const t = d * per;
-    return { prompt: `What is ${f(n, d)} of ${t}?`, right: String(n * per), wrong: [String(per), String(t)], hint: `Make ${d} equal groups. Count ${n} of them.`, retry: `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, model: set(n * per, t) };
+    return { prompt: `What is ${f(n, d)} of ${t}?`, right: String(n * per), wrong: [String(per), String(t)], hint: `Make ${d} equal groups. Count ${n} of them.`, retry: `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, model: set(0, t) };
   },
   'benchmark-half': (r) => {
     const d = r.pick([4, 6, 8, 10, 12]); let n = r.int(1, d - 1); if (n * 2 === d) n += n > 1 && r.chance() ? -1 : 1;
@@ -117,7 +124,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'number-line-basics': (r) => {
     const d = r.int(3, 10);
     return r.chance()
-      ? { prompt: `How many equal spaces do you need for ${name(d)}?`, right: String(d), wrong: [String(d - 1), String(d + 1)], hint: `${Name(d)} means ${d} equal spaces from 0 to 1.`, retry: `${d} spaces from 0 to 1.`, model: line(0, d) }
+      ? { prompt: `How many equal spaces do you need for ${name(d)}?`, right: String(d), wrong: [String(d - 1), String(d + 1)], hint: `${Name(d)} means ${d} equal spaces from 0 to 1.`, retry: `${d} spaces from 0 to 1.`, model: line(0, 1) } // a plain 0–1 line: the picture must not show the answer
       : { prompt: `0 to 1 has ${d} equal spaces. What is 1 jump?`, right: f(1, d), wrong: [f(d, 1), f(1, d - 1)], hint: 'Count the spaces from 0 to 1.', retry: `${d} jumps make 1 whole. So 1 jump is 1/${d}.`, model: line(1, d) };
   },
   'number-line-points': (r) => {
@@ -286,7 +293,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'fraction-of-collection': (r) => {
     const d = r.pick([2, 3, 4, 5, 6]); const n = r.int(1, d - 1); const per = r.int(2, 5); const t = d * per;
     return later(`What is ${f(n, d)} of ${t} cards?`, String(n * per), [String(per), String(t - n * per), String(n * per + 1)],
-      `Make ${d} equal groups. Count ${n} of them.`, `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, set(n * per, t));
+      `Make ${d} equal groups. Count ${n} of them.`, `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, set(0, t));
   },
   'multiply-whole-by-fraction': (r) => {
     const [n, d] = r.pick(POOL); const m = r.int(2, 6);

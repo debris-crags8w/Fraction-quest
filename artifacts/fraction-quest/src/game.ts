@@ -121,9 +121,9 @@ const curriculum: MissionSeed[] = [
       model: { kind: 'partition', parts: [25, 25, 25, 25], caption: '1 whole cut into equal pieces' },
     },
     questions: [
-      practice('Which strip shows thirds?', ['3 equal pieces', '3 pieces, one much bigger', '2 equal pieces'], 0, { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }, 'Thirds are 3 equal pieces.', 'Thirds need 3 pieces, and they must be the same size.', { kind: 'partition', parts: [50, 50] }),
+      practice('Is this strip cut into thirds?', ['Yes: 3 equal pieces', 'No: the pieces are not equal', 'No: there are 2 pieces'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Thirds are 3 pieces, all the same size. Compare the pieces.', 'One piece is twice as big as the others, so these are not thirds.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
       practice('A sandwich is cut into 4 equal pieces. What is 1 piece?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), '1 piece out of 4 equal pieces is 1/4.', 'The bottom number is all 4 pieces. You have 1.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which ribbon is cut into fair halves?', ['Both pieces are the same size', 'One piece is twice as long', 'The ribbon with 3 pieces'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 2 }), 'Halves are 2 equal pieces.', '2 pieces are only halves if they are the same size.', bars({ numerator: 1, denominator: 2 })),
+      practice('This ribbon is cut into 2 pieces. Are they fair halves?', ['Yes: both pieces are the same size', 'No: one piece is bigger', 'No: halves need 3 pieces'], 0, { kind: 'partition', parts: [50, 50] }, 'Halves are 2 pieces of the same size.', '2 pieces are halves only if they are the same size. These are.', { kind: 'partition', parts: [50, 50] }),
       practice('A strip has 5 equal pieces. What is 1 piece?', ['one fifth', 'one fourth', 'five wholes'], 0, bars({ numerator: 1, denominator: 5 }), '1 piece out of 5 equal pieces.', '1 of 5 equal pieces is one fifth, or 1/5.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
@@ -153,7 +153,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Which is a unit fraction?', ['3/8', '1/8', '8/1'], 1, bars({ numerator: 1, denominator: 8 }), 'A unit fraction has 1 on top.', 'Look for the one with 1 on top.', bars({ numerator: 1, denominator: 4 })),
       practice('A whole is cut into 10 equal pieces. What is 1 piece?', ['1/10', '10/1', '1/9'], 0, bars({ numerator: 1, denominator: 10 }), '10 pieces in all. You have 1.', '1 of 10 equal pieces is 1/10.', bars({ numerator: 1, denominator: 5 })),
-      practice('Which one shows 1/3?', ['1 of 3 equal parts', '3 of 3 equal parts', '1 of 4 unequal parts'], 0, bars({ numerator: 1, denominator: 3 }), '1/3 is 1 of 3 equal parts.', 'You need 3 equal pieces. Count 1.', bars({ numerator: 1, denominator: 2 })),
+      practice('Does this bar show 1/3?', ['Yes: 1 of 3 equal parts is shaded', 'No: 3 parts are shaded', 'No: the parts are not equal'], 0, bars({ numerator: 1, denominator: 3 }), '1/3 is 1 of 3 equal parts.', 'The bar has 3 equal parts and 1 is shaded. That is 1/3.', bars({ numerator: 1, denominator: 2 })),
       practice('What fraction is 1 of 12 equal tiles?', ['12/1', '1/12', '1/11'], 1, bars({ numerator: 1, denominator: 12 }), '1 tile out of 12.', '1 out of 12 equal parts is 1/12.', bars({ numerator: 1, denominator: 6 })),
     ],
   },
@@ -181,10 +181,10 @@ const curriculum: MissionSeed[] = [
       model: setModel(4, 12, '1 of 3 equal groups'),
     },
     questions: [
-      practice('What is 1/4 of 12 toy cars?', ['3 cars', '4 cars', '8 cars'], 0, setModel(3, 12), 'Make 4 equal groups. Count 1 group.', '12 in 4 groups is 3 each. 1 group is 3.', setModel(2, 8)),
-      practice('What is 1/3 of 15 beads?', ['3 beads', '5 beads', '12 beads'], 1, setModel(5, 15), 'Make 3 equal groups.', '15 in 3 groups is 5 each.', setModel(3, 9)),
-      practice('What is 1/2 of 10 shells?', ['5 shells', '2 shells', '8 shells'], 0, setModel(5, 10), 'Make 2 equal groups.', '10 in 2 groups is 5 each.', setModel(4, 8)),
-      practice('A class has 20 pencils. What is 1/5 of the pencils?', ['4', '5', '15'], 0, setModel(4, 20), 'Make 5 equal groups. Count 1 group.', '20 in 5 groups is 4 each.', setModel(2, 10)),
+      practice('What is 1/4 of 12 toy cars?', ['3 cars', '4 cars', '8 cars'], 0, setModel(0, 12), 'Make 4 equal groups. Count 1 group.', '12 in 4 groups is 3 each. 1 group is 3.', setModel(2, 8)),
+      practice('What is 1/3 of 15 beads?', ['3 beads', '5 beads', '12 beads'], 1, setModel(0, 15), 'Make 3 equal groups.', '15 in 3 groups is 5 each.', setModel(3, 9)),
+      practice('What is 1/2 of 10 shells?', ['5 shells', '2 shells', '8 shells'], 0, setModel(0, 10), 'Make 2 equal groups.', '10 in 2 groups is 5 each.', setModel(4, 8)),
+      practice('A class has 20 pencils. What is 1/5 of the pencils?', ['4', '5', '15'], 0, setModel(0, 20), 'Make 5 equal groups. Count 1 group.', '20 in 5 groups is 4 each.', setModel(2, 10)),
     ],
   },
   {
@@ -196,10 +196,10 @@ const curriculum: MissionSeed[] = [
       model: setModel(6, 15, '2 of 5 equal groups'),
     },
     questions: [
-      practice('What is 2/3 of 12?', ['8', '4', '9'], 0, setModel(8, 12), 'Make 3 equal groups. Count 2.', '12 in 3 groups is 4 each. 2 groups is 8.', setModel(4, 12)),
-      practice('What is 3/4 of 8 stickers?', ['2 stickers', '6 stickers', '7 stickers'], 1, setModel(6, 8), 'Make 4 equal groups. Count 3.', '8 in 4 groups is 2 each. 3 groups is 6.', setModel(4, 8)),
-      practice('What is 2/5 of 20 cubes?', ['8 cubes', '5 cubes', '10 cubes'], 0, setModel(8, 20), 'Make 5 equal groups. Count 2.', '20 in 5 groups is 4 each. 2 groups is 8.', setModel(4, 20)),
-      practice('What is 3/6 of 18 buttons?', ['9 buttons', '6 buttons', '15 buttons'], 0, setModel(9, 18), 'Make 6 equal groups. Count 3.', '18 in 6 groups is 3 each. 3 groups is 9.', setModel(6, 18)),
+      practice('What is 2/3 of 12?', ['8', '4', '9'], 0, setModel(0, 12), 'Make 3 equal groups. Count 2.', '12 in 3 groups is 4 each. 2 groups is 8.', setModel(4, 12)),
+      practice('What is 3/4 of 8 stickers?', ['2 stickers', '6 stickers', '7 stickers'], 1, setModel(0, 8), 'Make 4 equal groups. Count 3.', '8 in 4 groups is 2 each. 3 groups is 6.', setModel(4, 8)),
+      practice('What is 2/5 of 20 cubes?', ['8 cubes', '5 cubes', '10 cubes'], 0, setModel(0, 20), 'Make 5 equal groups. Count 2.', '20 in 5 groups is 4 each. 2 groups is 8.', setModel(4, 20)),
+      practice('What is 3/6 of 18 buttons?', ['9 buttons', '6 buttons', '15 buttons'], 0, setModel(0, 18), 'Make 6 equal groups. Count 3.', '18 in 6 groups is 3 each. 3 groups is 9.', setModel(6, 18)),
     ],
   },
   {

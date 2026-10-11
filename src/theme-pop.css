@@ -1464,3 +1464,5 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-place-note { margin: 0; padding: 8px 12px; border-radius: 12px; color: hsl(var(--muted-foreground)); background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); font-size: 0.9rem; font-weight: 700; }
 .fq-grownups-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 420px) { .fq-grownups-buttons { width: 100%; } .fq-grownups-buttons .fq-button { flex: 1; } }
+/* In a race the "Part" label is hidden, so the sample-part outline would just look like a glitch. */
+.fq-race-model .fq-partition-whole span.part-sample { outline: none; }

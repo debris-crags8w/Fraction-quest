@@ -1273,3 +1273,39 @@ describe('saved challenge scores', () => {
     assert.deepEqual(loadProgress().challengeBest, { 1: 20, 12: 17, 14: 22 });
   });
 });
+
+describe('pictures never give the answer away', () => {
+  const partsShown = (m: ModelSpec): number[] => {
+    if (m.kind === 'set') return [m.selected];
+    if (m.kind === 'partition') return [m.parts.length];
+    if (m.kind === 'line') return [m.denominator * (m.wholes ?? 1)];
+    if (m.kind === 'bars') return m.bars.flatMap((b) => [b.denominator, b.numerator]);
+    return [];
+  };
+  it('no "which picture" prompts with word answers, and no picture that shows a whole-number answer the question does not', () => {
+    for (const mission of MISSIONS) {
+      const ids = mission.questions.map((q) => q.id);
+      const questions = [...mission.questions, ...getExtraPractice(mission.id, ids), ...[1, 2, 3, 4, 5, 6, 7, 8].flatMap((seed) => generateQuestions(mission.id, ids, seed, 10))];
+      for (const q of questions) {
+        assert.doesNotMatch(q.prompt, /^Which (strip|ribbon|one|picture|bar) (shows|is cut)/, `${q.id}: "${q.prompt}" asks to pick a picture but the choices are words`);
+        const answer = q.choices[q.correctChoice];
+        if (!/^\d+$/.test(answer)) continue;
+        const inPrompt = (q.prompt.match(/\d+/g) ?? []).includes(answer);
+        if (!inPrompt && /How many|What is \d+\/\d+ of/.test(q.prompt)) {
+          assert.ok(!(q.model.kind === 'set' && q.model.selected === Number(answer)), `${q.id}: the picture highlights the answer (${answer}) for "${q.prompt}"`);
+          assert.ok(!(/equal spaces/.test(q.prompt) && partsShown(q.model).includes(Number(answer))), `${q.id}: the line already shows ${answer} spaces for "${q.prompt}"`);
+        }
+      }
+    }
+  });
+  it('the equal-parts strip question matches its picture', () => {
+    for (let seed = 1; seed <= 60; seed++) for (const q of generateQuestions('equal-parts', ['x'], seed, 6)) {
+      assert.equal(q.model.kind, 'partition');
+      if (q.model.kind !== 'partition') continue;
+      const d = Number(/fair (\w+)/.exec(q.prompt) && { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8 }[/fair (\w+)\?/.exec(q.prompt)![1] as 'halves']);
+      const parts = q.model.parts; const equal = parts.every((p) => Math.abs(p - parts[0]) < 1e-6);
+      const truth = parts.length !== d ? `No: there are ${d + 1} pieces` : equal ? `Yes: ${d} equal pieces` : 'No: the pieces are not equal';
+      assert.equal(q.choices[q.correctChoice], truth, `${q.prompt} with ${parts.length} parts, equal=${equal}`);
+    }
+  });
+});
