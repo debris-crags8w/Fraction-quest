@@ -8,7 +8,8 @@ import {
   type LearningRecord,
 } from './learning';
 import { denomColor } from './fun-ui';
-import { MODEL_CONCEPTS, ModelPair, ModelTag } from './models';
+import { BarSvg, MODEL_CONCEPTS, ModelPair, ModelTag } from './models';
+import { canEnterWorksheetAnswer, WorksheetBarCopy } from './WorksheetBarCopy';
 import { PrintMenu } from './Printables';
 import { FractionEntry, usesFractionEntry } from './FractionEntry';
 import './learning-lab.css';
@@ -50,7 +51,11 @@ function Frac({ n, d }: { n: number; d: number }) { return <span className="fq-l
 function Preview({ m }: { m: LearningModel }) {
   return (
     <div className="fq-ll-preview-wrap"><ModelTag kind={m.kind} />
-    <div className="fq-ll-preview" style={{ '--piece': denomColor(m.d) } as CSSProperties} role="img" aria-label={m.kind === 'set' ? `${m.n} of ${m.d} groups selected from ${m.total} objects` : `${m.d} equal parts per whole, marked after ${m.n} parts`}>
+    {m.kind === 'bar' ? (
+      <div className="fq-ll-preview-svg">
+        <BarSvg n={m.n} d={m.d} wholes={m.wholes} label={`${m.d} equal parts per whole, ${m.n} parts shaded`} />
+      </div>
+    ) : <div className="fq-ll-preview" style={{ '--piece': denomColor(m.d) } as CSSProperties} role="img" aria-label={m.kind === 'set' ? `${m.n} of ${m.d} groups selected from ${m.total} objects` : `${m.d} equal parts per whole, marked after ${m.n} parts`}>
       {m.kind === 'line' ? (
         <div className="fq-ll-pline">{Array.from({ length: m.d * m.wholes + 1 }, (_, i) => <i key={i} className={i === m.n ? 'on' : ''} style={{ left: `${(i / (m.d * m.wholes)) * 100}%` }}>{i % m.d === 0 && <span>{i / m.d}</span>}</i>)}</div>
       ) : (
@@ -69,7 +74,8 @@ function Preview({ m }: { m: LearningModel }) {
           <span className="fq-ll-part-guide"><i aria-hidden="true" /> Part · one cell is one equal part</span>
         </div>
       )}
-    </div></div>
+    </div>}
+    </div>
   );
 }
 function gridColumns(d: number): number {
@@ -255,7 +261,17 @@ export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; 
   const ph = p.form === 'symbol' ? '< = >' : p.form === 'mixed' ? '1 2/3' : p.form === 'decimal' ? '0.4' : p.form === 'ordered' ? '1/4, 2/4, 3/4' : 'Your answer';
   const fractionInput = usesFractionEntry(p);
   const promptId = `ws-prompt-${p.id}`;
-  const submit = (event: { preventDefault: () => void }) => { event.preventDefault(); if (!draft.trim()) return; setWrong(answerMatches(p, draft) ? null : draft); onCheck(); };
+  const targetBar = p.modelRequired && p.model?.kind === 'bar' ? p.model : null;
+  const [modelReady, setModelReady] = useState(!targetBar);
+  const answerEnabled = canEnterWorksheetAnswer(!!targetBar, modelReady);
+  const modelStatusId = `ws-model-status-${p.id}`;
+  const inputDescription = [promptId, `ws-fb-${p.id}`, ...(targetBar ? [modelStatusId] : [])].join(' ');
+  const submit = (event: { preventDefault: () => void }) => {
+    event.preventDefault();
+    if (!draft.trim() || !answerEnabled) return;
+    setWrong(answerMatches(p, draft) ? null : draft);
+    onCheck();
+  };
   return (
     <li className={'fq-ll-row ' + (ok ? 'ok' : '')} data-testid={'row-worksheet-' + p.id}>
       <form onSubmit={submit}>
@@ -264,18 +280,20 @@ export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; 
           <span id={promptId}><LearningText text={p.prompt} speak /></span>
         </div>
         {p.model && <Preview m={p.model} />}
-        <div className="fq-ll-answer">
+        {targetBar && <WorksheetBarCopy target={targetBar} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />}
+        <div className="fq-ll-answer" aria-busy={!answerEnabled}>
           {fractionInput ? (
             <FractionEntry
               id={`ws-${p.id}`}
               value={draft}
               onChange={value => { setWrong(null); onEdit(value); }}
-              describedBy={`${promptId} ws-fb-${p.id}`}
+              describedBy={inputDescription}
+              disabled={!answerEnabled}
             />
           ) : (
-            <input id={'ws-' + p.id} type="text" value={draft} placeholder={ph} autoComplete="off" maxLength={200} onChange={ev => { setWrong(null); onEdit(ev.target.value); }} data-testid={'input-worksheet-' + p.id} aria-labelledby={promptId} aria-describedby={'ws-fb-' + p.id} />
+            <input id={'ws-' + p.id} type="text" value={draft} placeholder={ph} autoComplete="off" maxLength={200} disabled={!answerEnabled} onChange={ev => { setWrong(null); onEdit(ev.target.value); }} data-testid={'input-worksheet-' + p.id} aria-labelledby={promptId} aria-describedby={inputDescription} />
           )}
-          <button type="submit" className="fq-button" disabled={!draft.trim() || ok} data-testid={'button-check-worksheet-' + p.id}>{ok ? 'Correct' : 'Check'}</button>
+          <button type="submit" className="fq-button" disabled={!draft.trim() || ok || !answerEnabled} data-testid={'button-check-worksheet-' + p.id}>{ok ? 'Correct' : 'Check'}</button>
           <button type="button" className="fq-ll-hintbtn" aria-expanded={open} onClick={() => { if (!open) onHint(); setOpen(o => !o); }} data-testid={'button-hint-worksheet-' + p.id}><Lightbulb size={16} /> Hint</button>
         </div>
         <div id={'ws-fb-' + p.id} aria-live="polite">

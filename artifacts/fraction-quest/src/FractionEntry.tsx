@@ -35,11 +35,13 @@ export function FractionEntry({
   value,
   onChange,
   describedBy,
+  disabled = false,
 }: {
   id: string;
   value: string;
   onChange: (value: string) => void;
   describedBy: string;
+  disabled?: boolean;
 }) {
   const typedInput = useRef<HTMLInputElement>(null);
   const denominatorInput = useRef<HTMLInputElement>(null);
@@ -66,7 +68,7 @@ export function FractionEntry({
 
   return (
     <div className="fq-ll-fraction-entry" data-testid={`fraction-entry-${id}`}>
-      <fieldset className="fq-ll-fraction-fieldset" aria-describedby={`${id}-instructions ${describedBy}`}>
+      <fieldset className="fq-ll-fraction-fieldset" aria-describedby={`${id}-instructions ${describedBy}`} disabled={disabled}>
         <legend className="fq-ll-sr-only">Enter a fraction</legend>
         <p id={`${id}-instructions`} className="fq-ll-sr-only">
           Put the numerator in the top box and the denominator in the bottom box.
@@ -81,6 +83,7 @@ export function FractionEntry({
             autoComplete="off"
             maxLength={6}
             value={numerator}
+            disabled={disabled}
             onChange={event => updatePart('numerator', event.target.value)}
             aria-label="Numerator (top number)"
             aria-describedby={`${id}-instructions ${describedBy}`}
@@ -99,6 +102,7 @@ export function FractionEntry({
             autoComplete="off"
             maxLength={6}
             value={denominator}
+            disabled={disabled}
             onChange={event => updatePart('denominator', event.target.value)}
             aria-label="Denominator (bottom number)"
             aria-describedby={`${id}-instructions ${describedBy}`}
@@ -120,11 +124,12 @@ export function FractionEntry({
             autoComplete="off"
             maxLength={200}
             value={value}
+            disabled={disabled}
             onChange={event => onChange(event.target.value)}
             aria-describedby={`${id}-instructions ${describedBy}`}
             data-testid={`input-${id}-typed`}
           />
-          <button type="button" className="fq-ll-fraction-slash" onClick={insertSlash} aria-label="Insert fraction slash">
+          <button type="button" className="fq-ll-fraction-slash" onClick={insertSlash} aria-label="Insert fraction slash" disabled={disabled}>
             /
           </button>
         </div>

@@ -10,6 +10,7 @@ import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWo
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
 import { LearningText } from './LearningText';
 import { BarSvg } from './models';
+import { canEnterWorksheetAnswer, WorksheetBarCopy, worksheetBarMatches } from './WorksheetBarCopy';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
 import QuickReviewEntry from './QuickReviewEntry';
 import {
@@ -480,7 +481,7 @@ describe('entered-answer worksheets and evidence gates', () => {
   it('labels the whole and a part inside the bar model rather than showing a fraction hint beside it', () => {
     const markup = renderToStaticMarkup(createElement(BarSvg, { n: 2, d: 5 }));
     assert.match(markup, />WHOLE 1</);
-    assert.match(markup, />PART</);
+    assert.match(markup, />PART<\/text>/);
     assert.match(markup, /each whole is split into 5 equal parts/);
     assert.match(markup, /2 parts are shaded/);
   });
@@ -677,6 +678,42 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(getLearningRecord(progress, MISSIONS[0].id).helpUses, 0);
   });
 });
+  it('keeps the first fraction lesson focused on equal parts, then layers in unit fractions', () => {
+    const equalParts = getWorksheet('equal-parts');
+    assert.ok(equalParts.every(problem => problem.modelRequired && problem.model?.kind === 'bar'));
+    assert.ok(equalParts.every(problem => !/jump|number line|shares make the whole/i.test(problem.prompt)));
+    assert.ok(equalParts.every(problem => (problem.model?.d ?? 99) <= 6));
+
+    const unitFractions = getWorksheet('unit-fractions');
+    assert.ok(unitFractions.every(problem => problem.modelRequired && problem.model?.kind === 'bar'));
+    assert.ok(unitFractions.every(problem => !/jump|number line/i.test(problem.prompt)));
+
+    const fractionNames = getWorksheet('fraction-names');
+    assert.ok(fractionNames.every(problem => problem.modelRequired && problem.model?.kind === 'bar'));
+    assert.ok(fractionNames.some(problem => problem.prompt.includes('bar model')));
+    assert.ok(fractionNames.every(problem => !/garden bed|paper strip/i.test(problem.prompt)));
+  });
+  it('requires a student to copy the bar model before worksheet answers unlock', () => {
+    const problem = getWorksheet('equal-parts')[0];
+    const markup = renderToStaticMarkup(createElement(WorksheetBarCopy, {
+      target: problem.model!,
+      disabled: false,
+      statusId: 'worksheet-model-status',
+      onMatchChange: () => {},
+    }));
+    assert.match(markup, /class="fq-ll-copy-part/);
+    assert.match(markup, /aria-pressed="false"/);
+    assert.match(markup, /WHOLE 1/);
+    assert.match(markup, /PART · one equal piece/);
+
+    const target = problem.model!;
+    assert.equal(worksheetBarMatches(target, Array(target.d).fill(false)), false);
+    assert.equal(worksheetBarMatches(target, [true, ...Array(target.d - 1).fill(false)]), true);
+    assert.equal(worksheetBarMatches(target, [true, true, ...Array(target.d - 2).fill(false)]), false);
+    assert.equal(canEnterWorksheetAnswer(true, false), false);
+    assert.equal(canEnterWorksheetAnswer(true, true), true);
+    assert.equal(canEnterWorksheetAnswer(false, false), true);
+  });
 
 describe('unit challenges', () => {
   const value = (n: number, d: number) => n / d;

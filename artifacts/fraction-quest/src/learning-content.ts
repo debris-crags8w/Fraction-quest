@@ -1,7 +1,7 @@
 export type Rational = { n: number; d: number };
 export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number; wholes: number; total?: number };
 export type WorksheetProblem = {
-  id: string; prompt: string; answer: string; hint: string; model?: LearningModel;
+  id: string; prompt: string; answer: string; hint: string; model?: LearningModel; modelRequired?: boolean;
   form?: 'decimal' | 'mixed' | 'ordered' | 'symbol'; denominator?: number;
 };
 export type BuildCheck = {
@@ -205,24 +205,41 @@ export function getWorksheet(id: string): WorksheetProblem[] {
   const extension = EXTENSION_WORKSHEETS[id];
   if (extension) return getExtensionWorksheet(extension);
   return Array.from({ length: 12 }, (_, i) => {
-    const d = [3, 4, 5, 6, 8, 10, 7, 9, 12, 4, 6, 8][i]; const n = 1 + i % (d - 1);
+    const introDenominators = [3, 4, 5, 6, 2, 3, 4, 5, 6, 2, 3, 4];
+    const isIntroTopic = ['equal-parts', 'fraction-names', 'unit-fractions'].includes(id);
+    const d = isIntroTopic ? introDenominators[i] : [3, 4, 5, 6, 8, 10, 7, 9, 12, 4, 6, 8][i];
+    const n = 1 + i % (d - 1);
     const value = f(n, d);
     let prompt = ''; let answer = value; let hint = 'Count selected parts on top and all equal parts in one whole on the bottom.';
     let visual: LearningModel | undefined; let form: WorksheetProblem['form']; let denominator: number | undefined;
-    const context = ['ribbon', 'garden bed', 'paper strip', 'tile row'][i % 4];
+    let modelRequired = false;
+    const context = ['ribbon', 'strip', 'tile row'][i % 3];
     switch (id) {
       case 'equal-parts':
+        prompt = i % 3 === 0 ? `The bar shows one whole split into ${d} equal parts. What fraction is one part?` :
+          i % 3 === 1 ? `A whole bar has ${d} equal parts. How many parts are in the whole?` :
+          `One part is shaded in a bar split into ${d} equal parts. What fraction is shaded?`;
+        answer = i % 3 === 1 ? String(d) : f(1, d);
+        visual = model(1, d); modelRequired = true;
+        hint = i % 3 === 1
+          ? 'The number of equal parts in the whole is the total number of pieces.'
+          : 'A single equal part is one selected piece out of all the equal pieces.';
+        break;
       case 'unit-fractions':
-        prompt = i % 3 === 0 ? `A ${context} is split into ${d} equal shares. Name one share as a fraction.` :
-          i % 3 === 1 ? `Each equal share is 1/${d} of a whole. How many shares make the whole?` :
-          `One whole needs ${d} equal jumps from 0 to 1. Enter the fraction for one jump.`;
-        answer = i % 3 === 1 ? String(d) : f(1, d); hint = 'The denominator counts equal shares; a single share has numerator one.'; break;
+        prompt = i % 3 === 0 ? `A whole is split into ${d} equal parts. Write the fraction for one part.` :
+          i % 3 === 1 ? `One share is 1/${d} of a whole. How many equal shares make the whole?` :
+          `The bar has ${d} equal parts and one is shaded. What fraction is shaded?`;
+        answer = i % 3 === 1 ? String(d) : f(1, d);
+        visual = model(1, d); modelRequired = true;
+        hint = 'A unit fraction names one equal part; the denominator tells how many equal parts make the whole.';
+        break;
       case 'fraction-names':
         prompt = i % 3 === 0 ? `In ${value}, how many pieces are counted? Enter a whole number.` :
           i % 3 === 1 ? `In ${value}, how many equal pieces form one whole? Enter a whole number.` :
-          `Name the shaded fraction of this ${context}.`;
+          'Name the shaded fraction in the bar model.';
         answer = i % 3 === 0 ? String(n) : i % 3 === 1 ? String(d) : value;
-        if (i % 3 === 2) visual = model(n, d); break;
+        visual = model(n, d); modelRequired = true;
+        break;
       case 'unit-size':
       case 'compare-same-numerator': {
         const top = id === 'unit-size' ? 1 : Math.min(2, d - 1);
@@ -318,7 +335,7 @@ export function getWorksheet(id: string): WorksheetProblem[] {
       }
       default: throw new Error(`No authored worksheet for ${id}`);
     }
-    return { id: `w${i + 1}`, prompt, answer, hint, model: visual, form, denominator };
+    return { id: `w${i + 1}`, prompt, answer, hint, model: visual, modelRequired, form, denominator };
   });
 }
 
