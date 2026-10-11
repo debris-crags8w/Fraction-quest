@@ -897,7 +897,7 @@
 
 @media print {
   @page { margin: 14mm; }
-  html, body { background: #fff !important; }
+  html, body { background: #fff !important; min-width: 0 !important; }
   /* Only the worksheet prints: hide everything around it so no blank pages follow. */
   #root *:not(:has(.fq-print)):not(.fq-print):not(.fq-print *) { display: none !important; }
   #root :has(.fq-print) { display: block !important; position: static !important; width: auto !important; max-width: none !important; margin: 0 !important; padding: 0 !important; transform: none !important; animation: none !important; border: 0 !important; background: none !important; box-shadow: none !important; outline: 0 !important; }
@@ -911,9 +911,9 @@
   .fq-print h1 { font-size: 20pt; line-height: 1.1; }
   .fq-print h2 { font-size: 13pt; margin-bottom: 6px; }
   .fq-print p { margin: 0; }
-  .fq-print-head { display: flex; justify-content: space-between; gap: 18px; padding-bottom: 8px; border-bottom: 2px solid #000; }
+  .fq-print-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px; padding-bottom: 8px; border-bottom: 2px solid #000; }
   .fq-print-kicker { font-size: 9pt; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
-  .fq-print-fields { display: grid; gap: 10px; align-content: start; min-width: 200px; font-weight: 800; }
+  .fq-print-fields { display: grid; gap: 10px; align-content: start; min-width: min(200px, 100%); font-weight: 800; }
   .fq-print-fields span { display: flex; gap: 6px; align-items: flex-end; }
   .fq-print-fields i { flex: 1; min-height: 16px; border-bottom: 1.5px solid #000; font-style: normal; font-weight: 600; }
 
@@ -942,9 +942,13 @@
   .fq-print-summary { display: grid; gap: 2px; margin-top: 10px; padding: 8px 12px; border: 1.5px solid #000; border-radius: 10px; font-size: 10pt; break-inside: avoid; }
   .fq-print-summary strong { font-size: 12pt; }
 
-  .fq-print-problems { margin: 12px 0 0; padding: 0; list-style: none; counter-reset: problem; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
-  .fq-print-problems li { counter-increment: problem; position: relative; display: grid; gap: 6px; align-content: start; padding: 8px 10px 8px 34px; border: 1px solid #999; border-radius: 8px; break-inside: avoid; }
-  .fq-print-problems li::before { content: counter(problem); position: absolute; left: 8px; top: 8px; width: 19px; height: 19px; border: 1.5px solid #000; border-radius: 50%; display: grid; place-items: center; font-size: 9pt; font-weight: 900; }
+  /* Cards are inline blocks, not grid items: a browser never slices an inline block across pages
+     (grid items can be cut off at the page edge, as in Safari). Two per row; one on small paper. */
+  .fq-print-problems { margin: 12px 0 0; padding: 0; list-style: none; counter-reset: problem; display: block; }
+  .fq-print-problems > li { counter-increment: problem; position: relative; display: inline-grid; vertical-align: top; width: calc(50% - 8.5px); min-width: 0; margin: 0 0 10px; gap: 6px; align-content: start; padding: 8px 10px 8px 34px; border: 1px solid #999; border-radius: 8px; break-inside: avoid; overflow-wrap: anywhere; box-sizing: border-box; }
+  .fq-print-problems > li:nth-child(odd) { margin-right: 16px; }
+  .fq-print svg { max-width: 100%; }
+  .fq-print-problems > li::before { content: counter(problem); position: absolute; left: 8px; top: 8px; width: 19px; height: 19px; border: 1.5px solid #000; border-radius: 50%; display: grid; place-items: center; font-size: 9pt; font-weight: 900; }
   .fq-print-prompt { font-weight: 700; }
   .fq-print-model { display: grid; gap: 4px; justify-items: start; }
   .fq-print-model svg { max-width: 70mm; }
@@ -1092,7 +1096,7 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 .fq-figure-bar svg { flex: 1; min-width: 0; }
 
 @media print {
-  .fq-print .fq-svg-figure { width: 60mm; margin: 0; }
+  .fq-print .fq-svg-figure { width: min(60mm, 100%); margin: 0; }
   .fq-print .fq-svg-figure .cell, .fq-print .fq-svg-figure .dot { fill: #fff; stroke: #000; }
   .fq-print .fq-svg-figure .cell.on { fill: #9a9a9a; }
   .fq-print .fq-svg-figure .dot.on { fill: #666; }
@@ -1157,7 +1161,7 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 @media (max-width: 720px) { .fq-sheet-buttons { flex: 1 1 100%; } .fq-sheet-buttons .fq-button { flex: 1 1 140px; } }
 
 @media print {
-  .fq-print .fq-svg-fold { width: 90mm; margin: 0; }
+  .fq-print .fq-svg-fold { width: min(90mm, 100%); margin: 0; }
   .fq-print .fq-svg-fold .fold-layer { fill: #fff; stroke: #000; }
   .fq-print .fq-svg-fold text { fill: #000; }
   .fq-print .fq-svg-fold .fold-arrow { stroke: #000; }
@@ -1498,3 +1502,10 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-sprint-msg { margin: 0; padding: 10px 12px; border-radius: 14px; font-weight: 800; }
 .fq-sprint-msg.ok { background: hsl(100 70% 92%); color: var(--fq-good-fg); }
 .fq-sprint-msg.bad { background: var(--fq-bad-bg); color: var(--fq-bad-fg); }
+
+/* Small paper (A5, phone "print to PDF"): one question per row so nothing runs off the page. */
+@media print and (max-width: 150mm) {
+  .fq-print-problems > li { width: 100%; }
+  .fq-print-problems > li:nth-child(odd) { margin-right: 0; }
+  .fq-print-draw-grid, .fq-print-key-list.two-col { grid-template-columns: 1fr; }
+}
