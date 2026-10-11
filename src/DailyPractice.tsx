@@ -198,7 +198,7 @@ export default function DailyPractice({
                   {showHelp ? 'Hide hint' : 'Hint'}
                 </button>
               </div>
-              {showHelp && <p className="fq-daily-hint" role="note">The bottom number tells how many equal parts make the whole. The top number tells how many parts to shade.</p>}
+              {showHelp && <p className="fq-daily-hint" role="note">The denominator tells how many equal parts make the whole. The numerator tells how many parts to shade.</p>}
             </>
           ) : (
             <div className="fq-daily-answer-step">
@@ -211,7 +211,7 @@ export default function DailyPractice({
                 describedBy="daily-answer-help"
                 disabled={attempt.answerChecked && attempt.answerCorrect}
               />
-              <p id="daily-answer-help" className="fq-daily-answer-help">Top number = shaded parts. Bottom number = all equal parts.</p>
+              <p id="daily-answer-help" className="fq-daily-answer-help">Numerator = shaded parts. Denominator = all equal parts.</p>
               {attempt.answerChecked && !attempt.answerCorrect && (
                 <p className="fq-daily-feedback retry" role="status">Not quite. You can edit either number and check again.</p>
               )}

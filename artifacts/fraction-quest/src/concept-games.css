@@ -25,6 +25,9 @@
 .cg-menu-card span:last-child { color:var(--cg-muted); line-height:1.45; }
 .cg-menu-icon { display:grid; place-items:center; width:48px; height:48px; margin-bottom:6px; border-radius:14px; color:#fff; background:var(--fq-grape,#5b3bd5); }
 .cg-menu-card.is-print .cg-menu-icon { background:#409dd2; }
+.cg-menu-card.is-lesson .cg-menu-icon { background:#e07000; }
+.cg-menu-group h2 { margin:0 0 4px; font-size:clamp(1.35rem,3.4vw,1.8rem); letter-spacing:-.03em; }
+.cg-menu-group > p { margin:0 0 14px; color:var(--cg-muted); line-height:1.5; }
 .cg-game,.cg-print-pack { padding:clamp(20px,4vw,34px); border:2px solid var(--cg-edge); border-radius:26px; background:hsl(var(--card)); box-shadow:0 5px 0 var(--cg-edge); scroll-margin-top:95px; }
 .cg-game-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .cg-score { padding:7px 10px; border-radius:99px; color:var(--cg-muted); background:hsl(var(--muted)); font-size:.78rem; font-weight:850; }

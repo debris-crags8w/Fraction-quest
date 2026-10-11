@@ -99,22 +99,22 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'fraction-names': (r) => {
     const d = r.pick(DENS); const n = r.int(1, d - 1);
     return r.chance()
-      ? { prompt: `In ${f(n, d)}, what does the ${d} mean?`, right: `${d} equal parts in the whole`, wrong: [`${d} parts are shaded`, `${d} wholes`], hint: 'Look at the bottom number.', retry: 'The bottom number is how many equal parts in all.', model: bar(n, d) }
-      : { prompt: 'What fraction is shaded?', right: f(n, d), wrong: [f(d, n), f(d - n, d)], hint: 'Top: shaded parts. Bottom: all the parts.', retry: `Count all ${d} parts for the bottom. Count the ${n} shaded for the top.`, model: bar(n, d) };
+      ? { prompt: `In ${f(n, d)}, what does the ${d} mean?`, right: `${d} equal parts in the whole`, wrong: [`${d} parts are shaded`, `${d} wholes`], hint: 'Look at the denominator.', retry: 'The denominator is how many equal parts in all.', model: bar(n, d) }
+      : { prompt: 'What fraction is shaded?', right: f(n, d), wrong: [f(d, n), f(d - n, d)], hint: 'Numerator: parts shaded. Denominator: all the parts.', retry: `Count all ${d} parts for the denominator. Count the ${n} shaded for the numerator.`, model: bar(n, d) };
   },
   'unit-fractions': (r) => {
     if (r.int(0, 2) === 0) {
       if (r.chance()) {
         const d = r.pick([2, 3, 4, 6, 8] as const);
         return { prompt: 'All the slices are the same size. What fraction of the pizza is the shaded slice?', right: f(1, d), wrong: [f(d, 1), f(1, d + 1)],
-          hint: 'Count every slice for the bottom number.', retry: `${d} same-size slices make the pizza, so 1 slice is 1/${d}.`, model: area(circleCut(d)!, [0]) };
+          hint: 'Count every slice for the denominator.', retry: `${d} same-size slices make the pizza, so 1 slice is 1/${d}.`, model: area(circleCut(d)!, [0]) };
       }
       // Counting pieces is not enough: 2 small triangles make one fourth, not 2/7.
       return { prompt: 'What fraction of the square is shaded?', right: '1/4', wrong: ['2/7', '1/7'],
         hint: 'The pieces are not all the same size. Each triangle is half of the small square.', retry: 'The 2 shaded triangles cover the same space as the small square: 1/4 of the square.', model: area('quarter-and-triangles', [1, 2]) };
     }
     const d = r.pick(DENS);
-    return { prompt: `A whole is cut into ${d} equal pieces. What is 1 piece?`, right: f(1, d), wrong: [f(d, 1), f(1, d - 1)], hint: 'A unit fraction has 1 on top.', retry: `1 of ${d} equal pieces is 1/${d}.`, model: bar(1, d) };
+    return { prompt: `A whole is cut into ${d} equal pieces. What is 1 piece?`, right: f(1, d), wrong: [f(d, 1), f(1, d - 1)], hint: 'A unit fraction has a numerator of 1.', retry: `1 of ${d} equal pieces is 1/${d}.`, model: bar(1, d) };
   },
   'unit-size': (r) => {
     const [a, b] = r.pick([[2, 4], [2, 3], [3, 6], [4, 8], [3, 4], [5, 10], [6, 12], [4, 6], [2, 8], [3, 8], [5, 8], [6, 10]] as const); const bigger = r.chance();
@@ -164,31 +164,31 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'compare-same-denominator': (r) => {
     const d = r.pick(DENS); const a = r.int(1, d - 2); const b = r.int(a + 1, d - 1); const bigger = r.chance();
     return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${f(a, d)} or ${f(b, d)}?`, right: bigger ? f(b, d) : f(a, d), wrong: [bigger ? f(a, d) : f(b, d), 'They are equal'],
-      hint: 'Same size pieces. Compare the top numbers.', retry: `${b} pieces is more than ${a}.`, model: bars2([a, d], [b, d]) };
+      hint: 'Same size pieces. Compare the numerators.', retry: `${b} pieces is more than ${a}.`, model: bars2([a, d], [b, d]) };
   },
   'compare-same-numerator': (r) => {
     const [a, b] = r.pick([[3, 6], [4, 8], [3, 4], [4, 6], [5, 10], [6, 12], [3, 8], [4, 10], [5, 8], [3, 5], [6, 8], [4, 5]] as const); const n = r.int(1, Math.min(4, a - 1)); const bigger = r.chance();
     return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${f(n, a)} or ${f(n, b)}?`, right: bigger ? f(n, a) : f(n, b), wrong: [bigger ? f(n, b) : f(n, a), 'They are equal'],
-      hint: 'Same top number. Which pieces are bigger?', retry: `${Name(a)} are bigger pieces than ${name(b)}.`, model: bars2([n, a], [n, b]) };
+      hint: 'Same numerator. Which pieces are bigger?', retry: `${Name(a)} are bigger pieces than ${name(b)}.`, model: bars2([n, a], [n, b]) };
   },
   'order-fractions': (r) => {
     const d = r.pick([5, 6, 8, 10, 12]); const a = r.int(1, d - 3); const b = r.int(a + 1, d - 2); const c = r.int(b + 1, d - 1);
     const up = r.chance();
     const small = `${f(a, d)}, ${f(b, d)}, ${f(c, d)}`; const big = `${f(c, d)}, ${f(b, d)}, ${f(a, d)}`; const mixed = `${f(b, d)}, ${f(a, d)}, ${f(c, d)}`;
     return { prompt: `Put ${mixed} in order, ${up ? 'smallest' : 'biggest'} first.`, right: up ? small : big, wrong: [up ? big : small, mixed],
-      hint: 'Same size pieces. Order the top numbers.', retry: up ? `${a}, then ${b}, then ${c}.` : `${c}, then ${b}, then ${a}.`, model: bars2([a, d], [c, d]) };
+      hint: 'Same size pieces. Order the numerators.', retry: up ? `${a}, then ${b}, then ${c}.` : `${c}, then ${b}, then ${a}.`, model: bars2([a, d], [c, d]) };
   },
   'equivalent-models': (r) => {
     const d = r.int(2, 6); const n = r.int(1, d - 1); const k = d === 5 ? r.pick([2, 4]) : r.int(2, 4); // no fifteenths
-    return { prompt: `Which is the same as ${f(n, d)}?`, right: f(n * k, d * k), wrong: [f(n, d * k), f(n * k, d)], hint: `Split every piece into ${k}.`, retry: `Multiply the top and bottom by ${k}: ${f(n * k, d * k)}.`, model: bars2([n, d], [n * k, d * k]) };
+    return { prompt: `Which is the same as ${f(n, d)}?`, right: f(n * k, d * k), wrong: [f(n, d * k), f(n * k, d)], hint: `Split every piece into ${k}.`, retry: `Multiply the numerator and denominator by ${k}: ${f(n * k, d * k)}.`, model: bars2([n, d], [n * k, d * k]) };
   },
   'build-equivalents': (r) => {
     const d = r.int(2, 6); const n = r.int(1, d - 1); const k = d === 5 ? r.pick([2, 4]) : r.int(2, 4); // no fifteenths
-    return { prompt: `Multiply the top and bottom of ${f(n, d)} by ${k}. What do you get?`, right: f(n * k, d * k), wrong: [f(n + k, d + k), f(n * k, d)], hint: 'Do the same thing to the top and bottom.', retry: `${n} × ${k} = ${n * k} and ${d} × ${k} = ${d * k}.`, model: bar(n, d) };
+    return { prompt: `Multiply the numerator and denominator of ${f(n, d)} by ${k}. What do you get?`, right: f(n * k, d * k), wrong: [f(n + k, d + k), f(n * k, d)], hint: 'Do the same thing to the numerator and denominator.', retry: `${n} × ${k} = ${n * k} and ${d} × ${k} = ${d * k}.`, model: bar(n, d) };
   },
   'missing-equivalent': (r) => {
     const d = r.int(2, 6); const n = r.int(1, d - 1); const k = d === 5 ? r.pick([2, 4]) : r.int(2, 4); // no fifteenths
-    return { prompt: `Fill the blank: ${f(n, d)} = ?/${d * k}`, right: String(n * k), wrong: [String(n + k), String(n * k + 1)], hint: `What times ${d} makes ${d * k}?`, retry: `The bottom was times ${k}. So the top is ${n} × ${k} = ${n * k}.`, model: bar(n, d) };
+    return { prompt: `Fill the blank: ${f(n, d)} = ?/${d * k}`, right: String(n * k), wrong: [String(n + k), String(n * k + 1)], hint: `What times ${d} makes ${d * k}?`, retry: `The denominator was times ${k}. So the numerator is ${n} × ${k} = ${n * k}.`, model: bar(n, d) };
   },
   'compose-to-one': (r) => {
     const d = r.pick(DENS); const n = r.int(1, d - 1);
@@ -196,7 +196,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'decompose-fractions': (r) => {
     const d = r.pick([5, 6, 8, 10, 12]); const n = r.int(3, d - 1); const first = r.int(1, n - 2);
-    return { prompt: `Which adds up to ${f(n, d)}?`, right: `${f(first, d)} + ${f(n - first, d)}`, wrong: [`${f(first, d)} + ${f(n - first - 1, d)}`, `${f(n, d)} + ${f(n, d)}`], hint: 'Add the top numbers. The bottom stays.', retry: `${first} + ${n - first} = ${n}. So ${f(n, d)}.`, model: bar(n, d) };
+    return { prompt: `Which adds up to ${f(n, d)}?`, right: `${f(first, d)} + ${f(n - first, d)}`, wrong: [`${f(first, d)} + ${f(n - first - 1, d)}`, `${f(n, d)} + ${f(n, d)}`], hint: 'Add the numerators. The denominator stays.', retry: `${first} + ${n - first} = ${n}. So ${f(n, d)}.`, model: bar(n, d) };
   },
   'improper-fractions': (r) => {
     const d = r.int(2, 8); const left = r.int(1, d - 1);
@@ -208,11 +208,11 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'add-like-denominators': (r) => {
     const d = r.pick([5, 6, 8, 10, 12]); const a = r.int(1, d - 2); const b = r.int(1, d - 1 - a);
-    return { prompt: `${f(a, d)} + ${f(b, d)} = ?`, right: f(a + b, d), wrong: [f(a + b, d * 2), f(a + b + 1, d)], hint: 'Add the top numbers. The bottom stays.', retry: `${a} + ${b} = ${a + b}. So ${f(a + b, d)}.`, model: bars2([a, d], [b, d]) };
+    return { prompt: `${f(a, d)} + ${f(b, d)} = ?`, right: f(a + b, d), wrong: [f(a + b, d * 2), f(a + b + 1, d)], hint: 'Add the numerators. The denominator stays.', retry: `${a} + ${b} = ${a + b}. So ${f(a + b, d)}.`, model: bars2([a, d], [b, d]) };
   },
   'subtract-like-denominators': (r) => {
     const d = r.pick([5, 6, 8, 10, 12]); const a = r.int(2, d - 1); const b = r.int(1, a - 1);
-    return { prompt: `${f(a, d)} − ${f(b, d)} = ?`, right: f(a - b, d), wrong: [f(a + b, d), f(a - b, d * 2)], hint: 'Take away the top numbers. The bottom stays.', retry: `${a} − ${b} = ${a - b}. So ${f(a - b, d)}.`, model: bar(a, d) };
+    return { prompt: `${f(a, d)} − ${f(b, d)} = ?`, right: f(a - b, d), wrong: [f(a + b, d), f(a - b, d * 2)], hint: 'Take away the numerators. The denominator stays.', retry: `${a} − ${b} = ${a - b}. So ${f(a - b, d)}.`, model: bar(a, d) };
   },
   'add-related-fractions': (r) => {
     const [a, big] = r.pick([[2, 4], [2, 6], [2, 8], [2, 10], [2, 12], [3, 6], [3, 9], [3, 12], [4, 8], [4, 12], [5, 10], [6, 12]] as const); const k = big / a;
@@ -268,7 +268,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'simplify-fractions': (r) => {
     const [n, d] = r.pick(POOL); const k = r.int(2, d <= 6 ? 4 : 3);
     return later(`Write ${f(n * k, d * k)} in simplest form.`, f(n, d), [f(n, d * k), f(n * k, d), f(n + 1, d)],
-      'Divide the top and bottom by the same number.', `Divide both by ${k}: ${f(n, d)}.`, bar(n * k, d * k));
+      'Divide the numerator and denominator by the same number.', `Divide both by ${k}: ${f(n, d)}.`, bar(n * k, d * k));
   },
   'equivalent-missing-both': (r) => {
     const [n, d] = r.pick(SMALL_POOL); const k = r.int(2, 4);
@@ -283,7 +283,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
     while (b[1] === a[1] || a[0] * b[1] === b[0] * a[1]) b = r.pick(POOL);
     const bigger = a[0] * b[1] > b[0] * a[1] ? a : b; const smaller = bigger === a ? b : a; const m = (a[1] * b[1]) / gcd(a[1], b[1]);
     return later(`Which is bigger, ${f(a[0], a[1])} or ${f(b[0], b[1])}?`, f(bigger[0], bigger[1]), [f(smaller[0], smaller[1]), 'They are equal'],
-      'Give both the same bottom number. Then compare the tops.', `${f(a[0], a[1])} = ${f(a[0] * (m / a[1]), m)} and ${f(b[0], b[1])} = ${f(b[0] * (m / b[1]), m)}.`, bars2(a, b));
+      'Give both the same denominator. Then compare the numerators.', `${f(a[0], a[1])} = ${f(a[0] * (m / a[1]), m)} and ${f(b[0], b[1])} = ${f(b[0] * (m / b[1]), m)}.`, bars2(a, b));
   },
   'order-unlike-fractions': (r) => {
     const picked: [number, number][] = [];
@@ -292,7 +292,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
     const name = (list: [number, number][]) => list.map(([t, b]) => f(t, b)).join(', ');
     const shown = name(picked) === name(sorted) || name(picked) === name(sorted.slice().reverse()) ? [sorted[1], sorted[0], sorted[2]] : picked;
     return later(`Put ${name(shown)} in order, ${up ? 'smallest' : 'biggest'} first.`, name(sorted), [name(sorted.slice().reverse()), name(shown)],
-      'Compare each one to 1/2, or give them all the same bottom number.', `${up ? 'Smallest' : 'Biggest'} first: ${name(sorted)}.`, bar(sorted[0][0], sorted[0][1]));
+      'Compare each one to 1/2, or give them all the same denominator.', `${up ? 'Smallest' : 'Biggest'} first: ${name(sorted)}.`, bar(sorted[0][0], sorted[0][1]));
   },
   'subtract-unlike-fractions': (r) => {
     const big = r.pick([4, 6, 8, 10, 12]); const small = r.pick([2, 3, 4, 5, 6].filter((e) => e < big && big % e === 0)); const k = big / small;
@@ -324,12 +324,12 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'multiply-whole-by-fraction': (r) => {
     const [n, d] = r.pick(POOL); const m = r.int(2, 6);
     return later(`${m} × ${f(n, d)} = ?`, f(m * n, d), [f(m * n, m * d), f(n, m * d), f(m + n, d)],
-      'Multiply the top. The bottom stays.', `${m} groups of ${f(n, d)} is ${f(m * n, d)}.`, bar(n, d));
+      'Multiply the numerator. The denominator stays.', `${m} groups of ${f(n, d)} is ${f(m * n, d)}.`, bar(n, d));
   },
   'multiply-fractions': (r) => {
     const [a, b] = r.pick(SMALL_POOL); const [n, d] = r.pick(SMALL_POOL);
     return later(`What is ${f(a, b)} of ${f(n, d)}?`, f(a * n, b * d), [f(a + n, b + d), f(a * n, b + d), f(a * d, b * n)],
-      'Multiply the tops. Multiply the bottoms.', `${a} × ${n} = ${a * n} and ${b} × ${d} = ${b * d}.`, bar(n, d));
+      'Multiply the numerators. Multiply the denominators.', `${a} × ${n} = ${a * n} and ${b} × ${d} = ${b * d}.`, bar(n, d));
   },
   'divide-whole-by-unit-fraction': (r) => {
     const d = r.int(2, 10); const c = r.int(1, 5);
@@ -360,7 +360,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'fraction-probability': (r) => {
     const t = r.pick([4, 5, 6, 8, 10, 12]); const g = r.int(1, t - 1);
     return later(`A bag has ${t} marbles. ${g} ${g === 1 ? 'is' : 'are'} green. What is the chance of picking green?`, f(g, t), [f(g, t - g), f(t - g, t), f(t, g)],
-      'Green marbles on top. All the marbles on the bottom.', `${g} green out of ${t}: ${f(g, t)}.`, set(g, t));
+      'Numerator: green marbles. Denominator: all the marbles.', `${g} green out of ${t}: ${f(g, t)}.`, set(g, t));
   },
   'fraction-of-area': (r) => {
     const d = r.pick([3, 4, 5, 6, 8, 10, 12]); const n = r.int(1, d - 1);
@@ -368,17 +368,17 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
     const cut = circleCut(d) ?? (d === 12 ? 'grid-3x4' : undefined);
     const shape = !cut ? 'tile' : cut === 'grid-3x4' ? 'grid' : 'circle';
     return later(`What fraction of the ${shape} is shaded?`, f(n, d), [f(d - n, d), f(n, d + 1), f(d, n)],
-      'Count all the equal parts for the bottom. Count the shaded parts for the top.', `${n} of ${d} equal parts: ${f(n, d)}.`, cut ? area(cut, shadedFirst(n)) : bar(n, d));
+      'Count all the equal parts for the denominator. Count the shaded parts for the numerator.', `${n} of ${d} equal parts: ${f(n, d)}.`, cut ? area(cut, shadedFirst(n)) : bar(n, d));
   },
   'equivalent-number-line': (r) => {
     const [n, d] = r.pick(SMALL_POOL); const k = r.int(2, 3);
-    return later(`${f(n, d)} is marked on a line. Which fraction with ${d * k} on the bottom is at the same spot?`, f(n * k, d * k), [f(n, d * k), f(n + k, d * k), f(n * k + 1, d * k)],
+    return later(`${f(n, d)} is marked on a line. Which fraction with a denominator of ${d * k} is at the same spot?`, f(n * k, d * k), [f(n, d * k), f(n + k, d * k), f(n * k + 1, d * k)],
       `Cut every space into ${k}. There are ${k} times as many spaces and jumps.`, `${n} × ${k} = ${n * k}. So ${f(n * k, d * k)}.`, line(n, d));
   },
   'fraction-recipes': (r) => {
     const [n, d] = r.pick(POOL); const batches = r.int(2, 4);
     return later(`A recipe uses ${f(n, d)} cup of flour. How much flour do ${batches} batches need?`, f(n * batches, d), [f(n * batches, d * batches), f(n + batches, d), f(n, d * batches)],
-      `Multiply the top by ${batches}. The bottom stays.`, `${batches} × ${f(n, d)} = ${f(n * batches, d)}.`, bar(n, d));
+      `Multiply the numerator by ${batches}. The denominator stays.`, `${batches} × ${f(n, d)} = ${f(n * batches, d)}.`, bar(n, d));
   },
   'fractions-to-percent': (r) => {
     const [t, b] = r.pick(EXACT_PERCENT); const p = (t * 100) / b;

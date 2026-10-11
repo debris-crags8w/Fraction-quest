@@ -161,7 +161,7 @@ function FractionStripsBuilder({ fractions, onReady }: {
           </div>
         ))}
       </div>
-      <p className="fq-assessment-model-status" role="status">{ready ? 'All the fraction strips are built. Now enter your answer.' : 'Color the number of parts named by each top number.'}</p>
+      <p className="fq-assessment-model-status" role="status">{ready ? 'All the fraction strips are built. Now enter your answer.' : 'Color the number of parts named by each numerator.'}</p>
     </section>
   );
 }

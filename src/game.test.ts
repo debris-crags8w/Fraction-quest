@@ -890,8 +890,8 @@ describe('entered-answer worksheets and evidence gates', () => {
       onChange: () => undefined,
       describedBy: 'ws-fb-w1',
     }));
-    assert.match(markup, /aria-label="Numerator \(top number\)"/);
-    assert.match(markup, /aria-label="Denominator \(bottom number\)"/);
+    assert.match(markup, /aria-label="Numerator: parts selected"/);
+    assert.match(markup, /aria-label="Denominator: total equal parts in 1 whole"/);
     assert.match(markup, /class="fq-ll-fraction-bar" aria-hidden="true"/);
     assert.match(markup, /inputmode="numeric"/i);
     assert.match(markup, /Type a fraction with \//);
@@ -1572,7 +1572,7 @@ describe('question generator', () => {
     else if ((m = /^A bag has (\d+) marbles\. (\d+) (?:is|are) green/.exec(p))) expected = N(m[2]) / N(m[1]);
     else if (p === 'What fraction of the tile is shaded?' && question.model.kind === 'bars') expected = question.model.bars[0].numerator / question.model.bars[0].denominator;
     else if (/^What fraction of the (circle|grid) is shaded\?$/.test(p) && question.model.kind === 'area') expected = shadedArea(question.model.cut, question.model.shaded);
-    else if ((m = /^(\d+)\/(\d+) is marked on a line\. Which fraction with (\d+) on the bottom/.exec(p))) {
+    else if ((m = /^(\d+)\/(\d+) is marked on a line\. Which fraction with a denominator of (\d+)/.exec(p))) {
       assert.equal(N(answer.split('/')[1]), N(m[3]), p); expected = N(m[1]) / N(m[2]);
     } else if ((m = /^A recipe uses (\d+)\/(\d+) cup of flour\. How much flour do (\d+) batches need\?$/.exec(p))) expected = (N(m[1]) * N(m[3])) / N(m[2]);
     else if ((m = /^Write (\d+)\/(\d+) as a percent\.$/.exec(p))) { assert.ok(answer.endsWith('%'), p); expected = N(m[1]) / N(m[2]); }

@@ -63,7 +63,7 @@ import { createDailyPractice, dailyPracticeDay } from './daily-practice';
 import PartFinder from './PartFinder';
 import { AssessmentHub, AssessmentRunner } from './Assessment';
 import { PART_FINDER_LESSONS } from './part-finder';
-import ConceptGames from './ConceptGames';
+import ConceptGames, { type LessonGame } from './ConceptGames';
 import { BrainBreakOffer } from './BrainBreakOffer';
 const queryClient = new QueryClient();
 
@@ -82,7 +82,7 @@ type PaperView = { type: 'paper'; missionId: string };
 type RedoView = { type: 'redo'; missionId: string };
 type ChallengeView = { type: 'challenge'; unit: number };
 type ParentPage = { type: 'parent' };
-type GameView = { type: 'race' | 'code' | 'part-finder'; missionId: string };
+type GameView = { type: 'race' | 'code' | 'part-finder'; missionId: string; /** Opened from the Games menu: go back there. */ fromGames?: boolean };
 type PlacementView = { type: 'placement' };
 // seed 0 = the fixed 12 "Practice more" questions; any other seed = freshly generated questions.
 type ExtraView = { type: 'extra'; missionId: string; seed: number; questionIndex: number; firstTry: number } | { type: 'extra-done'; missionId: string; seed: number; firstTry: number; total: number };
@@ -366,7 +366,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
 
           <button className="fq-assessment-entry fq-concept-games-entry" onClick={onConceptGames} data-testid="button-open-concept-games">
             <span className="fq-assessment-entry-icon" aria-hidden="true"><Dumbbell size={20} /></span>
-            <span><strong>Play the fraction games</strong><small>Build bars, match equal amounts, and place fractions on a number line. Games never change lesson progress.</small></span>
+            <span><strong>Games</strong><small>Fraction Race, coding, Part Finder and the fraction workshop. Games never change lesson progress.</small></span>
             <ArrowRight size={18} aria-hidden="true" />
           </button>
 
@@ -954,6 +954,7 @@ function Game() {
     if (!(record.redo?.part === part && !record.redo.finishedAt)) persistProgress(updateLearning(progress, missionId, startRedo(record, part)));
     setView({ type: 'redo', missionId });
   };
+  const exitGame = () => { if ((view.type === 'race' || view.type === 'code' || view.type === 'part-finder') && view.fromGames) setView({ type: 'concept-games' }); else returnToMap(); };
   const returnToMap = () => { setPendingRetention(null); setCombo(0); consecutiveWrongAnswers.current = 0; setView({ type: 'map' }); };
   const nextReviewView = (nextView: View) => {
     if (pendingRetention) {
@@ -989,7 +990,19 @@ function Game() {
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
       {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
       {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
-      {view.type === 'concept-games' && <ConceptGames onExit={returnToMap} />}
+      {view.type === 'concept-games' && (() => {
+        // The lesson games use the lesson the child is on (or the last open one); Part Finder uses the latest lesson it belongs to.
+        const open = MISSIONS.filter((mission) => isMissionUnlocked(progress, mission.id));
+        const lesson = getNextMission(progress) ?? open[open.length - 1] ?? MISSIONS[0];
+        const finder = [...open].reverse().find((mission) => PART_FINDER_LESSONS.has(mission.id));
+        const name = (mission: Mission) => `Lesson ${MISSIONS.indexOf(mission) + 1}: ${mission.shortTitle}`;
+        const games: LessonGame[] = [
+          { id: 'race', title: 'Fraction Race', blurb: 'Race a robot or a friend with quick questions.', icon: Zap, lessonTitle: name(lesson), onOpen: () => setView({ type: 'race', missionId: lesson.id, fromGames: true }) },
+          { id: 'code', title: 'Coding', blurb: 'Write a little program that builds the fraction.', icon: Code2, lessonTitle: name(lesson), onOpen: () => setView({ type: 'code', missionId: lesson.id, fromGames: true }) },
+          ...(finder ? [{ id: 'part-finder' as const, title: 'Part Finder', blurb: 'Find fair shares hidden in a square.', icon: Compass, lessonTitle: name(finder), onOpen: () => setView({ type: 'part-finder', missionId: finder.id, fromGames: true }) }] : []),
+        ];
+        return <ConceptGames onExit={returnToMap} lessonGames={games} />;
+      })()}
       {view.type === 'assessments' && <AssessmentHub attempts={progress.assessments ?? []} onStart={definition => setView({ type: 'assessment', definition, seed: freshSeed() })} onBack={returnToMap} />}
       {view.type === 'assessment' && <AssessmentRunner key={`${view.definition.id}:${view.seed}`} definition={view.definition} seed={view.seed}
         onComplete={attempt => persistProgress(saveAssessmentAttempt(progress, attempt))} onExit={() => setView({ type: 'assessments' })} />}
@@ -997,14 +1010,14 @@ function Game() {
       {view.type === 'race' && (
         <FractionRace key={view.missionId} mission={getMission(view.missionId)} best={fun.raceBest?.[view.missionId] ?? null} robotBeaten={fun.robotBeaten?.[view.missionId] ?? 0} sprintBest={fun.sprintBest?.[view.missionId] ?? null}
           onSprintFinish={(seconds) => setFun((current) => recordSprint(current, view.missionId, seconds))}
-          onExit={returnToMap} onFinish={(seconds, level) => setFun((current) => recordRace(current, view.missionId, seconds, level))}
+          onExit={exitGame} onFinish={(seconds, level) => setFun((current) => recordRace(current, view.missionId, seconds, level))}
           renderModel={(model) => <ModelView model={model} compact />} />
       )}
       {view.type === 'code' && (
         <CodeQuest key={view.missionId} mission={getMission(view.missionId)} solved={fun.codeLevels?.[view.missionId] ?? 0}
-          onExit={returnToMap} onSolved={(level) => setFun((current) => recordCodeLevel(current, view.missionId, level))} />
+          onExit={exitGame} onSolved={(level) => setFun((current) => recordCodeLevel(current, view.missionId, level))} />
       )}
-      {view.type === 'part-finder' && <PartFinder best={fun.partFinderBest ?? null} onExit={returnToMap} onFinish={(score) => setFun((current) => recordPartFinder(current, score))} />}
+      {view.type === 'part-finder' && <PartFinder best={fun.partFinderBest ?? null} onExit={exitGame} onFinish={(score) => setFun((current) => recordPartFinder(current, score))} />}
       {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);

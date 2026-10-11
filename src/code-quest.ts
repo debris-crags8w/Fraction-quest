@@ -212,7 +212,7 @@ export function getCodeLevels(missionId: string): CodeLevel[] {
   const bug = makeBug(t3);
   return [
     { level: 1, mode: 'fill', title: 'Fill in the numbers', goal: goalText(t1), target: t1, start: solution(t1, true), palette: [],
-      tip: t1.kind === 'line' ? 'Split: spaces in 1 whole (the bottom number). Repeat: how many jumps (the top number).' : t1.kind === 'set' ? 'Split: how many equal groups (the bottom number). Repeat: how many to pick (the top number).' : 'Split: pieces in 1 bar (the bottom number). Repeat: how many to shade (the top number).' },
+      tip: t1.kind === 'line' ? 'Split: spaces in 1 whole (the denominator). Repeat: how many jumps (the numerator).' : t1.kind === 'set' ? 'Split: how many equal groups (the denominator). Repeat: how many to pick (the numerator).' : 'Split: pieces in 1 bar (the denominator). Repeat: how many to shade (the numerator).' },
     { level: 2, mode: 'build', title: 'Build the program', goal: goalText(t2), target: t2, start: [], palette: palette(t2),
       tip: 'Tap blocks to add them. Split first. A repeat loop saves lots of blocks!' },
     { level: 3, mode: 'debug', title: 'Fix the bug', goal: goalText(t3), target: t3, start: bug, palette: palette(t3),
@@ -265,7 +265,7 @@ export function passesCodeLevel(level: CodeLevel, result: RunResult, program: Bl
   return matchesTarget(result, level.target) && (!level.requiresLoop || usesEffectiveLoop(program));
 }
 
-/** A believable bug for a target: the loop runs the bottom number of times instead of the top
+/** A believable bug for a target: the loop runs the denominator of times instead of the numerator
     (a classic fraction mix-up), or for a unit or whole fraction, the bar is split into the wrong number of pieces. */
 export function makeBug(t: Target): Block[] {
   return solution(t).map((b): Block => {

@@ -140,7 +140,7 @@ function NumberLineTarget() {
     <select id="line-spaces" value={denominator} onChange={e => { setDenominator(Number(e.target.value)); setMark(null); setFeedback(''); }} data-testid="select-line-spaces">{partitions.map(n => <option key={n} value={n}>{n} equal spaces</option>)}</select>
     <div className="cg-line-area" role="group" aria-label={`Number line from zero to one divided into ${denominator} equal spaces`}>
       <div className="cg-line-track" aria-hidden="true" />
-      {Array.from({ length: denominator + 1 }, (_, i) => <button type="button" className={`cg-line-tick ${mark === i ? 'marked' : ''} ${i === 0 || i === denominator ? 'endpoint' : ''}`} style={{ left: `${i / denominator * 100}%` }} key={i} onClick={() => { setMark(i); setFeedback(i === answerTick ? 'You found it. Count equal jumps from 0: the top number tells how many jumps.' : 'That tick is not the target yet. Count equal jumps from 0, then try again.'); }} aria-label={i === 0 ? 'Zero, start of the whole' : i === denominator ? 'One whole, end of the line' : `Tick ${i} of ${denominator}`} aria-pressed={mark === i} data-testid={`button-line-tick-${i}`}><span>{i === 0 ? '0' : i === denominator ? '1' : ''}</span></button>)}
+      {Array.from({ length: denominator + 1 }, (_, i) => <button type="button" className={`cg-line-tick ${mark === i ? 'marked' : ''} ${i === 0 || i === denominator ? 'endpoint' : ''}`} style={{ left: `${i / denominator * 100}%` }} key={i} onClick={() => { setMark(i); setFeedback(i === answerTick ? 'You found it. Count equal jumps from 0: the numerator tells how many jumps.' : 'That tick is not the target yet. Count equal jumps from 0, then try again.'); }} aria-label={i === 0 ? 'Zero, start of the whole' : i === denominator ? 'One whole, end of the line' : `Tick ${i} of ${denominator}`} aria-pressed={mark === i} data-testid={`button-line-tick-${i}`}><span>{i === 0 ? '0' : i === denominator ? '1' : ''}</span></button>)}
     </div>
     <p className="cg-endpoint-hint"><span>0</span><span>One whole</span><span>1</span></p>
     <div className="cg-actions"><button type="button" className="cg-secondary" onClick={next} data-testid="button-line-next">New target</button><button type="button" className="cg-text-button" onClick={replay} data-testid="button-line-replay"><RotateCcw size={16} /> Replay</button></div>
@@ -163,21 +163,37 @@ function CenterPack() {
 }
 
 type Section = 'war' | 'match' | 'line' | 'pack';
-const SECTIONS: { id: Section; title: string; blurb: string; icon: typeof Scale; testId: string }[] = [
+type Card = { id: string; title: string; blurb: string; icon: typeof Scale; testId: string; kicker: string; onOpen: () => void; tone?: string };
+/** Lesson games (Fraction Race, coding, Part Finder) open with the child's current lesson; they also stay on each lesson. */
+export type LessonGame = { id: 'race' | 'code' | 'part-finder'; title: string; blurb: string; icon: typeof Scale; lessonTitle: string; onOpen: () => void };
+const WORKSHOP: { id: Section; title: string; blurb: string; icon: typeof Scale; testId: string }[] = [
   { id: 'war', title: 'Fraction War', blurb: 'Build two fractions and see which is bigger.', icon: Scale, testId: 'link-game-war' },
   { id: 'match', title: 'Equivalence Match', blurb: 'Find pairs that show the same amount.', icon: Shuffle, testId: 'link-game-match' },
   { id: 'line', title: 'Number Line Target', blurb: 'Split the line and land on the fraction.', icon: Waypoints, testId: 'link-game-number-line' },
   { id: 'pack', title: 'Print center pack', blurb: 'Hands-on activities to do on paper.', icon: Printer, testId: 'link-game-print-pack' },
 ];
 
-/** The Fraction Workshop: a menu of games, each opening on its own screen. */
-export default function ConceptGames({ onExit }: { onExit: () => void }) {
+function CardGrid({ label, cards }: { label: string; cards: Card[] }) {
+  return <nav className="cg-menu" aria-label={label}>
+    {cards.map((item) => (
+      <button key={item.id} type="button" className={`cg-menu-card ${item.tone ?? ''}`} onClick={item.onOpen} data-testid={item.testId}>
+        <span className="cg-menu-icon" aria-hidden="true"><item.icon size={26} /></span>
+        <span className="cg-index">{item.kicker}</span>
+        <b>{item.title}</b>
+        <span>{item.blurb}</span>
+      </button>
+    ))}
+  </nav>;
+}
+
+/** The games menu: lesson games first, then the fraction workshop. Every game opens on its own screen. */
+export default function ConceptGames({ onExit, lessonGames = [] }: { onExit: () => void; lessonGames?: LessonGame[] }) {
   const [section, setSection] = useState<Section | null>(null);
   useEffect(() => { window.scrollTo?.({ top: 0 }); }, [section]);
-  const open = SECTIONS.find((item) => item.id === section);
+  const open = WORKSHOP.find((item) => item.id === section);
   if (open) {
     return <main className="cg-page fq-app fq-shell fq-appear" data-testid={`concept-game-${open.id}`}>
-      <header className="cg-top"><button type="button" className="cg-back" onClick={() => setSection(null)} data-testid="button-concept-games-menu"><ArrowLeft size={18} /> All workshop games</button><span className="cg-brand-mark" aria-hidden="true"><open.icon size={22} /></span></header>
+      <header className="cg-top"><button type="button" className="cg-back" onClick={() => setSection(null)} data-testid="button-concept-games-menu"><ArrowLeft size={18} /> All games</button><span className="cg-brand-mark" aria-hidden="true"><open.icon size={22} /></span></header>
       <div className="cg-games">
         {open.id === 'war' && <FractionWar />}
         {open.id === 'match' && <EquivalenceMatch />}
@@ -187,18 +203,18 @@ export default function ConceptGames({ onExit }: { onExit: () => void }) {
       {open.id === 'pack' && <style>{`@media print { body * { visibility: hidden !important; } #fraction-center-pack, #fraction-center-pack * { visibility: visible !important; } #fraction-center-pack { position: absolute; inset: 0 auto auto 0; width: 100%; } }`}</style>}
     </main>;
   }
-  return <main className="cg-page fq-app fq-shell fq-appear">
+  return <main className="cg-page fq-app fq-shell fq-appear" data-testid="games-menu">
     <header className="cg-top"><button type="button" className="cg-back" onClick={onExit} data-testid="button-concept-games-exit"><ArrowLeft size={18} /> Back to Fraction Quest</button><span className="cg-brand-mark" aria-hidden="true"><Scale size={22} /></span></header>
-    <section className="cg-hero"><span className="cg-index">THE FRACTION WORKSHOP</span><h1>Make it. See it.<br /><em>Then name it.</em></h1><p>Fractions make more sense when your hands and eyes get there first. Pick a game.</p></section>
-    <nav className="cg-menu" aria-label="Workshop games">
-      {SECTIONS.map((item, index) => (
-        <button key={item.id} type="button" className={`cg-menu-card ${item.id === 'pack' ? 'is-print' : ''}`} onClick={() => setSection(item.id)} data-testid={item.testId}>
-          <span className="cg-menu-icon" aria-hidden="true"><item.icon size={26} /></span>
-          <span className="cg-index">{item.id === 'pack' ? 'OFF SCREEN' : `GAME ${index + 1}`}</span>
-          <b>{item.title}</b>
-          <span>{item.blurb}</span>
-        </button>
-      ))}
-    </nav>
+    <section className="cg-hero"><span className="cg-index">GAMES</span><h1>Make it. See it.<br /><em>Then name it.</em></h1><p>Pick a game. Games are for fun and practice: they never change lesson progress.</p></section>
+    {lessonGames.length > 0 && <section className="cg-menu-group" aria-labelledby="cg-lesson-games">
+      <h2 id="cg-lesson-games">With your lesson</h2>
+      <p>These use <b>{lessonGames[0].lessonTitle}</b>. Each lesson also has its own.</p>
+      <CardGrid label="Lesson games" cards={lessonGames.map((game) => ({ id: game.id, title: game.title, blurb: game.blurb, icon: game.icon, testId: `link-game-${game.id}`, kicker: game.lessonTitle === lessonGames[0].lessonTitle ? 'LESSON GAME' : game.lessonTitle.toUpperCase(), onOpen: game.onOpen, tone: 'is-lesson' }))} />
+    </section>}
+    <section className="cg-menu-group" aria-labelledby="cg-workshop">
+      <h2 id="cg-workshop">Fraction workshop</h2>
+      <p>Build, compare, and try again with your hands and eyes.</p>
+      <CardGrid label="Workshop games" cards={WORKSHOP.map((item, index) => ({ ...item, kicker: item.id === 'pack' ? 'OFF SCREEN' : `WORKSHOP ${index + 1}`, onOpen: () => setSection(item.id), tone: item.id === 'pack' ? 'is-print' : '' }))} />
+    </section>
   </main>;
 }

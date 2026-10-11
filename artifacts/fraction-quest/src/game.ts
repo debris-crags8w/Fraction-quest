@@ -200,28 +200,28 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('Is this strip cut into thirds?', ['Yes: 3 equal pieces', 'No: the pieces are not equal', 'No: there are 2 pieces'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Thirds are 3 pieces, all the same size. Compare the pieces.', 'One piece is twice as big as the others, so these are not thirds.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
-      practice('A sandwich is cut into 4 equal pieces. What is 1 piece?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), '1 piece out of 4 equal pieces is 1/4.', 'The bottom number is all 4 pieces. You have 1.', bars({ numerator: 1, denominator: 2 })),
+      practice('A sandwich is cut into 4 equal pieces. What is 1 piece?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), '1 piece out of 4 equal pieces is 1/4.', 'The denominator is all 4 pieces. You have 1.', bars({ numerator: 1, denominator: 2 })),
       practice('This ribbon is cut into 2 pieces. Are they fair halves?', ['Yes: both pieces are the same size', 'No: one piece is bigger', 'No: halves need 3 pieces'], 0, { kind: 'partition', parts: [50, 50] }, 'Halves are 2 pieces of the same size.', '2 pieces are halves only if they are the same size. These are.', { kind: 'partition', parts: [50, 50] }),
       practice('A strip has 5 equal pieces. What is 1 piece?', ['one fifth', 'one fourth', 'five wholes'], 0, bars({ numerator: 1, denominator: 5 }), '1 piece out of 5 equal pieces.', '1 of 5 equal pieces is one fifth, or 1/5.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
-    id: 'fraction-names', unit: 1, title: 'Read a fraction', shortTitle: 'Fraction names', skill: 'Bottom number: equal parts. Top number: parts you count.',
-    description: 'Learn what the top and bottom numbers mean.', example: {
+    id: 'fraction-names', unit: 1, title: 'Read a fraction', shortTitle: 'Fraction names', skill: 'Denominator: equal parts. Numerator: parts you count.',
+    description: 'Learn what the numerator and denominator mean.', example: {
       prompt: 'In 3/5, what does each number tell you?',
       answer: '5 equal parts in all. 3 are counted.',
       explanation: 'Bottom (5): equal pieces in all. Top (3): pieces you count.',
       model: bars({ numerator: 3, denominator: 5 }),
     },
     questions: [
-      practice('In 2/7, what does the 7 mean?', ['7 equal parts in the whole', '7 parts are shaded', '7 wholes'], 0, bars({ numerator: 2, denominator: 7 }), 'Look at the bottom number.', 'The bottom number is how many equal parts in all.', bars({ numerator: 1, denominator: 3 })),
-      practice('A tray has 6 spaces. 4 have a snack. What fraction have a snack?', ['6/4', '4/6', '4/4'], 1, bars({ numerator: 4, denominator: 6 }), 'Top: spaces with a snack. Bottom: all the spaces.', 'Top: 4 with a snack. Bottom: 6 in all.', bars({ numerator: 1, denominator: 2 })),
-      practice('In 5/8, how many pieces are counted?', ['8', '5', '13'], 1, bars({ numerator: 5, denominator: 8 }), 'Look at the top number.', 'The top number is 5. So 5 pieces are counted.', bars({ numerator: 2, denominator: 4 })),
-      practice('A shape has 9 equal parts. 1 is colored. What fraction is colored?', ['1/9', '9/1', '1/8'], 0, bars({ numerator: 1, denominator: 9 }), '1 colored part out of 9.', 'Put all 9 parts on the bottom. Put the 1 colored part on top.', bars({ numerator: 1, denominator: 4 })),
+      practice('In 2/7, what does the 7 mean?', ['7 equal parts in the whole', '7 parts are shaded', '7 wholes'], 0, bars({ numerator: 2, denominator: 7 }), 'Look at the denominator.', 'The denominator is how many equal parts in all.', bars({ numerator: 1, denominator: 3 })),
+      practice('A tray has 6 spaces. 4 have a snack. What fraction have a snack?', ['6/4', '4/6', '4/4'], 1, bars({ numerator: 4, denominator: 6 }), 'Numerator: spaces with a snack. Denominator: all the spaces.', 'Numerator: 4 with a snack. Denominator: 6 in all.', bars({ numerator: 1, denominator: 2 })),
+      practice('In 5/8, how many pieces are counted?', ['8', '5', '13'], 1, bars({ numerator: 5, denominator: 8 }), 'Look at the numerator.', 'The numerator is 5. So 5 pieces are counted.', bars({ numerator: 2, denominator: 4 })),
+      practice('A shape has 9 equal parts. 1 is colored. What fraction is colored?', ['1/9', '9/1', '1/8'], 0, bars({ numerator: 1, denominator: 9 }), '1 colored part out of 9.', 'Denominator: all 9 parts. Numerator: the 1 colored part.', bars({ numerator: 1, denominator: 4 })),
     ],
   },
   {
-    id: 'unit-fractions', unit: 1, title: 'One piece at a time', shortTitle: 'Unit fractions', skill: 'A unit fraction has 1 on top.',
+    id: 'unit-fractions', unit: 1, title: 'One piece at a time', shortTitle: 'Unit fractions', skill: 'A unit fraction has a numerator of 1.',
     description: 'Find just 1 equal piece.', example: {
       prompt: 'What fraction is 1 of 6 equal pieces?',
       answer: '1/6',
@@ -229,7 +229,7 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 1, denominator: 6 }),
     },
     questions: [
-      practice('Which is a unit fraction?', ['3/8', '1/8', '8/1'], 1, bars({ numerator: 1, denominator: 8 }), 'A unit fraction has 1 on top.', 'Look for the one with 1 on top.', bars({ numerator: 1, denominator: 4 })),
+      practice('Which is a unit fraction?', ['3/8', '1/8', '8/1'], 1, bars({ numerator: 1, denominator: 8 }), 'A unit fraction has a numerator of 1.', 'Look for the one with a numerator of 1.', bars({ numerator: 1, denominator: 4 })),
       practice('A whole is cut into 10 equal pieces. What is 1 piece?', ['1/10', '10/1', '1/9'], 0, bars({ numerator: 1, denominator: 10 }), '10 pieces in all. You have 1.', '1 of 10 equal pieces is 1/10.', bars({ numerator: 1, denominator: 5 })),
       practice('Does this bar show 1/3?', ['Yes: 1 of 3 equal parts is shaded', 'No: 3 parts are shaded', 'No: the parts are not equal'], 0, bars({ numerator: 1, denominator: 3 }), '1/3 is 1 of 3 equal parts.', 'The bar has 3 equal parts and 1 is shaded. That is 1/3.', bars({ numerator: 1, denominator: 2 })),
       practice('What fraction is 1 of 12 equal tiles?', ['12/1', '1/12', '1/11'], 1, bars({ numerator: 1, denominator: 12 }), '1 tile out of 12.', '1 out of 12 equal parts is 1/12.', bars({ numerator: 1, denominator: 6 })),
@@ -321,7 +321,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Which is just a little less than 1/2?', ['4/9', '1/8', '8/9'], 0, bars({ numerator: 4, denominator: 9 }, { numerator: 1, denominator: 2 }), 'Half of 9 is 4 and a half. 4 is close.', '4/9 is just under half.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fraction is a little more than 1/2?', ['3/8', '5/9', '1/6'], 1, bars({ numerator: 5, denominator: 9 }, { numerator: 1, denominator: 2 }), 'Half of 9 is 4 and a half. Which is a bit more?', '5/9 is just over half. The others are under.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which fraction is closest to 1?', ['6/7', '2/7', '3/7'], 0, bars({ numerator: 6, denominator: 7 }, { numerator: 2, denominator: 7 }, { numerator: 3, denominator: 7 }), 'Which top number is closest to 7?', '6/7 is just 1 piece away from 1 whole.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which fraction is closest to 1?', ['6/7', '2/7', '3/7'], 0, bars({ numerator: 6, denominator: 7 }, { numerator: 2, denominator: 7 }, { numerator: 3, denominator: 7 }), 'Which numerator is closest to 7?', '6/7 is just 1 piece away from 1 whole.', bars({ numerator: 1, denominator: 2 })),
       practice('About how much is 1/10 + 1/10 + 1/10 + 1/10 + 1/10?', ['About 1/2', 'About 1/5', 'About 1 whole'], 0, bars({ numerator: 5, denominator: 10 }), '5 tenths is halfway.', '5/10 is the same as 1/2.', bars({ numerator: 2, denominator: 4 })),
     ],
   },
@@ -330,13 +330,13 @@ const curriculum: MissionSeed[] = [
     description: 'Every jump is the same size.', example: {
       prompt: 'How many spaces do you need for thirds?',
       answer: '3 equal spaces.',
-      explanation: 'The bottom number is how many spaces from 0 to 1.',
+      explanation: 'The denominator is how many spaces from 0 to 1.',
       model: line(1, 3),
     },
     questions: [
       practice('0 to 1 has 5 equal spaces. What is 1 jump?', ['1/5', '1/4', '5/1'], 0, line(1, 5), 'Count the spaces from 0 to 1.', '5 jumps make 1 whole. So 1 jump is 1/5.', line(1, 2)),
       practice('How many spaces do you need for fourths?', ['4 spaces', '3 spaces', '5 spaces'], 0, line(2, 4), 'Fourths means 4 equal pieces.', 'Fourths need 4 spaces from 0 to 1.', line(1, 2)),
-      practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps past 1'], 0, line(3, 8), 'Start at 0. Count 3 jumps.', 'The top number 3 means 3 jumps.', line(1, 4)),
+      practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps past 1'], 0, line(3, 8), 'Start at 0. Count 3 jumps.', 'The numerator 3 means 3 jumps.', line(1, 4)),
       practice('0 to 1 has 6 equal spaces. What is 5 jumps?', ['5/6', '6/5', '1/5'], 0, line(5, 6), 'Count 5 jumps from 0.', '5 jumps of 1/6 is 5/6.', line(2, 4)),
     ],
   },
@@ -371,7 +371,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'compare-same-denominator', unit: 5, title: 'Same pieces, different counts', shortTitle: 'Compare like pieces', skill: 'Same bottom number? The bigger top number wins.',
+    id: 'compare-same-denominator', unit: 5, title: 'Same pieces, different counts', shortTitle: 'Compare like pieces', skill: 'Same denominator? The bigger numerator wins.',
     description: 'Compare fractions with same-size pieces.', example: {
       prompt: 'Which is bigger, 3/8 or 5/8?',
       answer: '5/8.',
@@ -381,13 +381,13 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Which is bigger, 4/7 or 2/7?', ['2/7', '4/7', 'They are equal'], 1, bars({ numerator: 4, denominator: 7 }, { numerator: 2, denominator: 7 }), 'Same size pieces. Which has more?', '4 pieces is more than 2 pieces.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is smaller, 3/10 or 8/10?', ['3/10', '8/10', 'They match'], 0, bars({ numerator: 3, denominator: 10 }, { numerator: 8, denominator: 10 }), 'Both are tenths. Which has fewer?', '3 tenths is less than 8 tenths.', bars({ numerator: 1, denominator: 2 })),
-      practice('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 1, bars({ numerator: 6, denominator: 9 }, { numerator: 7, denominator: 9 }), 'Same bottom number. Compare 6 and 7.', '6 is less than 7. So 6/9 < 7/9.', bars({ numerator: 1, denominator: 3 })),
+      practice('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 1, bars({ numerator: 6, denominator: 9 }, { numerator: 7, denominator: 9 }), 'Same denominator. Compare 6 and 7.', '6 is less than 7. So 6/9 < 7/9.', bars({ numerator: 1, denominator: 3 })),
       practice('Which is bigger, 5/12 or 9/12?', ['5/12', '9/12', 'They are equal'], 1, bars({ numerator: 5, denominator: 12 }, { numerator: 9, denominator: 12 }), 'Same size pieces. Count them.', '9 pieces is more than 5.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
-    id: 'compare-same-numerator', unit: 5, title: 'Same count, different sizes', shortTitle: 'Compare same tops', skill: 'Same top number? The smaller bottom number wins.',
-    description: 'Compare fractions with the same top number.', example: {
+    id: 'compare-same-numerator', unit: 5, title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'Same numerator? The smaller denominator wins.',
+    description: 'Compare fractions with the same numerator.', example: {
       prompt: 'Which is bigger, 3/5 or 3/8?',
       answer: '3/5.',
       explanation: 'Both have 3 pieces. Fifths are bigger than eighths.',
@@ -411,7 +411,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Which order goes smallest to biggest?', ['1/3, 2/3, 3/3', '3/3, 2/3, 1/3', '2/3, 1/3, 3/3'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 3 }, { numerator: 3, denominator: 3 }), 'All thirds. Count the pieces.', '1/3 is smallest. 3/3 is 1 whole.', bars({ numerator: 1, denominator: 2 })),
       practice('Which order goes biggest to smallest?', ['1/2, 1/4, 1/5', '1/5, 1/4, 1/2', '1/4, 1/2, 1/5'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 4 }, { numerator: 1, denominator: 5 }), 'Fewer pieces means bigger pieces.', '1/2 is biggest, then 1/4, then 1/5.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which fits between 2/8 and 6/8?', ['1/8', '4/8', '7/8'], 1, bars({ numerator: 2, denominator: 8 }, { numerator: 4, denominator: 8 }, { numerator: 6, denominator: 8 }), 'All eighths. Which top number is between 2 and 6?', '4 is between 2 and 6.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which fits between 2/8 and 6/8?', ['1/8', '4/8', '7/8'], 1, bars({ numerator: 2, denominator: 8 }, { numerator: 4, denominator: 8 }, { numerator: 6, denominator: 8 }), 'All eighths. Which numerator is between 2 and 6?', '4 is between 2 and 6.', bars({ numerator: 1, denominator: 2 })),
       practice('Put 1/2, 3/10 and 8/10 in order, smallest first.', ['3/10, 1/2, 8/10', '8/10, 1/2, 3/10', '1/2, 3/10, 8/10'], 0, bars({ numerator: 3, denominator: 10 }, { numerator: 1, denominator: 2 }, { numerator: 8, denominator: 10 }), '1/2 is the same as 5/10. Compare to that.', '3/10 is less than half. 8/10 is more.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
@@ -425,23 +425,23 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('Which fraction covers the same amount as 1/2?', ['2/4', '1/4', '3/4'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Which bar is shaded just as far?', '2/4 covers the same as 1/2.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which is the same as 2/3?', ['4/6', '3/6', '2/6'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }), 'Cut each third into 2 pieces.', 'Double the top and bottom: 2/3 = 4/6.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is the same as 2/3?', ['4/6', '3/6', '2/6'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }), 'Cut each third into 2 pieces.', 'Double the numerator and denominator: 2/3 = 4/6.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 3/4?', ['6/8', '3/8', '4/8'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'Cut each fourth into 2 pieces.', '3/4 and 6/8 are the same amount.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which is the same as 2/5?', ['4/10', '2/10', '5/2'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'Multiply the top and bottom by the same number.', 'Double both: 2/5 = 4/10.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is the same as 2/5?', ['4/10', '2/10', '5/2'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'Multiply the numerator and denominator by the same number.', 'Double both: 2/5 = 4/10.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
-    id: 'build-equivalents', unit: 6, title: 'Make a matching fraction', shortTitle: 'Make a match', skill: 'Multiply the top and bottom by the same number.',
+    id: 'build-equivalents', unit: 6, title: 'Make a matching fraction', shortTitle: 'Make a match', skill: 'Multiply the numerator and denominator by the same number.',
     description: 'New name, same amount.', example: {
-      prompt: 'Double the top and bottom of 2/3. What do you get?',
+      prompt: 'Double the numerator and denominator of 2/3. What do you get?',
       answer: '4/6',
       explanation: 'Cut each third in half. 2/3 becomes 4/6.',
       model: bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }),
     },
     questions: [
-      practice('Times the top and bottom of 1/4 by 3. What do you get?', ['3/12', '1/12', '4/3'], 0, bars({ numerator: 1, denominator: 4 }, { numerator: 3, denominator: 12 }), 'Do the same thing to the top and bottom.', '1 × 3 = 3 and 4 × 3 = 12. So 3/12.', bars({ numerator: 1, denominator: 2 })),
-      practice('Double the top and bottom of 3/5. What do you get?', ['6/10', '3/10', '5/6'], 0, bars({ numerator: 3, denominator: 5 }, { numerator: 6, denominator: 10 }), 'Double the top and the bottom.', '3 × 2 = 6 and 5 × 2 = 10. So 6/10.', bars({ numerator: 1, denominator: 2 })),
-      practice('Divide the top and bottom of 4/8 by 4. What do you get?', ['1/2', '1/8', '4/4'], 0, bars({ numerator: 4, denominator: 8 }, { numerator: 1, denominator: 2 }), 'Divide both by 4.', '4 ÷ 4 = 1 and 8 ÷ 4 = 2. So 1/2.', bars({ numerator: 1, denominator: 2 })),
+      practice('Times the numerator and denominator of 1/4 by 3. What do you get?', ['3/12', '1/12', '4/3'], 0, bars({ numerator: 1, denominator: 4 }, { numerator: 3, denominator: 12 }), 'Do the same thing to the numerator and denominator.', '1 × 3 = 3 and 4 × 3 = 12. So 3/12.', bars({ numerator: 1, denominator: 2 })),
+      practice('Double the numerator and denominator of 3/5. What do you get?', ['6/10', '3/10', '5/6'], 0, bars({ numerator: 3, denominator: 5 }, { numerator: 6, denominator: 10 }), 'Double the numerator and denominator.', '3 × 2 = 6 and 5 × 2 = 10. So 6/10.', bars({ numerator: 1, denominator: 2 })),
+      practice('Divide the numerator and denominator of 4/8 by 4. What do you get?', ['1/2', '1/8', '4/4'], 0, bars({ numerator: 4, denominator: 8 }, { numerator: 1, denominator: 2 }), 'Divide both by 4.', '4 ÷ 4 = 1 and 8 ÷ 4 = 2. So 1/2.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 5/10?', ['1/2', '1/5', '5/5'], 0, bars({ numerator: 5, denominator: 10 }, { numerator: 1, denominator: 2 }), 'Can you divide both by the same number?', 'Divide both by 5. You get 1/2.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
@@ -450,13 +450,13 @@ const curriculum: MissionSeed[] = [
     description: 'Fill the blank. Keep it the same amount.', example: {
       prompt: 'Fill the blank: 2/3 = ?/6',
       answer: '4/6',
-      explanation: 'The bottom doubled, 3 to 6. Double the top too: 2 to 4.',
+      explanation: 'The denominator doubled, 3 to 6. Double the numerator too: 2 to 4.',
       model: bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }),
     },
     questions: [
-      practice('Fill the blank: 1/2 = ?/8', ['4/8', '2/8', '1/8'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 4, denominator: 8 }), 'What times 2 makes 8?', 'The bottom was times 4. Do the same to the top.', bars({ numerator: 1, denominator: 2 })),
-      practice('Fill the blank: 3/4 = 6/?', ['8', '12', '10'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'The top was doubled.', 'Double the bottom too: 4 × 2 = 8.', bars({ numerator: 1, denominator: 2 })),
-      practice('Fill the blank: ?/10 = 2/5', ['4', '2', '5'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'The bottom doubled, 5 to 10.', 'Double the top too: 2 to 4.', bars({ numerator: 1, denominator: 2 })),
+      practice('Fill the blank: 1/2 = ?/8', ['4/8', '2/8', '1/8'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 4, denominator: 8 }), 'What times 2 makes 8?', 'The denominator was times 4. Do the same to the numerator.', bars({ numerator: 1, denominator: 2 })),
+      practice('Fill the blank: 3/4 = 6/?', ['8', '12', '10'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'The numerator was doubled.', 'Double the denominator too: 4 × 2 = 8.', bars({ numerator: 1, denominator: 2 })),
+      practice('Fill the blank: ?/10 = 2/5', ['4', '2', '5'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'The denominator doubled, 5 to 10.', 'Double the numerator too: 2 to 4.', bars({ numerator: 1, denominator: 2 })),
       practice('Fill the blank: 4/6 = 2/?', ['3', '6', '4'], 0, bars({ numerator: 4, denominator: 6 }, { numerator: 2, denominator: 3 }), 'The top was cut in half.', 'Halve the bottom too: 6 ÷ 2 = 3.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
@@ -469,10 +469,10 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 4, denominator: 4 }),
     },
     questions: [
-      practice('How many 1/5 pieces make 1 whole?', ['5 pieces', '4 pieces', '10 pieces'], 0, bars({ numerator: 5, denominator: 5 }), 'The bottom number is how many pieces make 1 whole.', '5 fifths make 1 whole: 5/5 = 1.', bars({ numerator: 2, denominator: 4 })),
-      practice('Which sum makes 1 whole?', ['1/3 + 2/3', '1/4 + 1/4', '2/5 + 1/5'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 3 }), 'Look for top numbers that add up to the bottom number.', '1/3 + 2/3 = 3/3. That is 1 whole.', bars({ numerator: 1, denominator: 2 })),
-      practice('What is 2/8 + 6/8?', ['8/8 = 1', '8/16', '4/8'], 0, bars({ numerator: 2, denominator: 8 }, { numerator: 6, denominator: 8 }), 'Add the top numbers. Keep eighths.', '2 + 6 = 8. 8/8 is 1 whole.', bars({ numerator: 1, denominator: 2 })),
-      practice('A recipe uses 3/6 cup, then 3/6 cup more. How much in all?', ['6/6 = 1 cup', '6/12 cup', '3/6 cup'], 0, bars({ numerator: 3, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Add the tops. How many sixths fill 1 cup?', '3 + 3 = 6. 6/6 is 1 cup.', bars({ numerator: 1, denominator: 2 })),
+      practice('How many 1/5 pieces make 1 whole?', ['5 pieces', '4 pieces', '10 pieces'], 0, bars({ numerator: 5, denominator: 5 }), 'The denominator is how many pieces make 1 whole.', '5 fifths make 1 whole: 5/5 = 1.', bars({ numerator: 2, denominator: 4 })),
+      practice('Which sum makes 1 whole?', ['1/3 + 2/3', '1/4 + 1/4', '2/5 + 1/5'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 3 }), 'Look for numerators that add up to the denominator.', '1/3 + 2/3 = 3/3. That is 1 whole.', bars({ numerator: 1, denominator: 2 })),
+      practice('What is 2/8 + 6/8?', ['8/8 = 1', '8/16', '4/8'], 0, bars({ numerator: 2, denominator: 8 }, { numerator: 6, denominator: 8 }), 'Add the numerators. Keep eighths.', '2 + 6 = 8. 8/8 is 1 whole.', bars({ numerator: 1, denominator: 2 })),
+      practice('A recipe uses 3/6 cup, then 3/6 cup more. How much in all?', ['6/6 = 1 cup', '6/12 cup', '3/6 cup'], 0, bars({ numerator: 3, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Add the numerators. How many sixths fill 1 cup?', '3 + 3 = 6. 6/6 is 1 cup.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
@@ -484,9 +484,9 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 2, denominator: 6 }, { numerator: 3, denominator: 6 }, { numerator: 5, denominator: 6 }),
     },
     questions: [
-      practice('Which sum equals 4/7?', ['1/7 + 3/7', '1/7 + 2/7', '4/7 + 4/7'], 0, bars({ numerator: 1, denominator: 7 }, { numerator: 3, denominator: 7 }), 'Add the tops. Keep sevenths.', '1 + 3 = 4. So 4/7.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which sum equals 4/7?', ['1/7 + 3/7', '1/7 + 2/7', '4/7 + 4/7'], 0, bars({ numerator: 1, denominator: 7 }, { numerator: 3, denominator: 7 }), 'Add the numerators. Keep sevenths.', '1 + 3 = 4. So 4/7.', bars({ numerator: 1, denominator: 2 })),
       practice('Fill the blank: 6/8 = 2/8 + ?/8', ['4/8', '3/8', '8/8'], 0, bars({ numerator: 2, denominator: 8 }, { numerator: 4, denominator: 8 }, { numerator: 6, denominator: 8 }), '6 take away 2 is what?', '6 − 2 = 4. So 4/8.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which adds up to 3/5?', ['1/5 + 2/5', '1/5 + 1/5', '3/5 + 2/5'], 0, bars({ numerator: 1, denominator: 5 }, { numerator: 2, denominator: 5 }), 'Add the top numbers.', '1 + 2 = 3. So 3/5.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which adds up to 3/5?', ['1/5 + 2/5', '1/5 + 1/5', '3/5 + 2/5'], 0, bars({ numerator: 1, denominator: 5 }, { numerator: 2, denominator: 5 }), 'Add the numerators.', '1 + 2 = 3. So 3/5.', bars({ numerator: 1, denominator: 2 })),
       practice('7/10 = 5/10 + what?', ['2/10', '3/10', '5/10'], 0, bars({ numerator: 5, denominator: 10 }, { numerator: 2, denominator: 10 }), '7 take away 5 is what?', '7 − 5 = 2. So 2/10.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
@@ -521,7 +521,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'add-like-denominators', unit: 8, title: 'Add same-size pieces', shortTitle: 'Add fractions', skill: 'Add the top numbers. The bottom number stays the same.',
+    id: 'add-like-denominators', unit: 8, title: 'Add same-size pieces', shortTitle: 'Add fractions', skill: 'Add the numerators. The denominator stays the same.',
     description: 'Add pieces that are the same size.', example: {
       prompt: 'What is 2/7 + 3/7?',
       answer: '5/7.',
@@ -529,14 +529,14 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 2, denominator: 7 }, { numerator: 3, denominator: 7 }, { numerator: 5, denominator: 7 }),
     },
     questions: [
-      practice('What is 1/6 + 4/6?', ['5/6', '5/12', '1/6'], 0, equation('1/6 + 4/6 = ?'), 'Add the top numbers. Keep sixths.', '1 + 4 = 5. The bottom stays 6.', bars({ numerator: 1, denominator: 6 })),
-      practice('What is 3/8 + 2/8?', ['5/8', '5/16', '6/8'], 0, equation('3/8 + 2/8 = ?'), 'Add the top numbers. Keep eighths.', '3 + 2 = 5. The bottom stays 8.', bars({ numerator: 2, denominator: 8 })),
-      practice('Maya walked 2/10 mile, then 5/10 mile. How far in all?', ['7/10 mile', '7/20 mile', '3/10 mile'], 0, bars({ numerator: 2, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Add the top numbers. Keep tenths.', '2 + 5 = 7. So 7/10 mile.', bars({ numerator: 2, denominator: 10 })),
-      practice('What is 4/9 + 3/9?', ['7/9', '7/18', '1/9'], 0, equation('4/9 + 3/9 = ?'), 'Add the top numbers. Keep ninths.', '4 + 3 = 7. So 7/9.', bars({ numerator: 3, denominator: 9 })),
+      practice('What is 1/6 + 4/6?', ['5/6', '5/12', '1/6'], 0, equation('1/6 + 4/6 = ?'), 'Add the numerators. Keep sixths.', '1 + 4 = 5. The denominator stays 6.', bars({ numerator: 1, denominator: 6 })),
+      practice('What is 3/8 + 2/8?', ['5/8', '5/16', '6/8'], 0, equation('3/8 + 2/8 = ?'), 'Add the numerators. Keep eighths.', '3 + 2 = 5. The denominator stays 8.', bars({ numerator: 2, denominator: 8 })),
+      practice('Maya walked 2/10 mile, then 5/10 mile. How far in all?', ['7/10 mile', '7/20 mile', '3/10 mile'], 0, bars({ numerator: 2, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Add the numerators. Keep tenths.', '2 + 5 = 7. So 7/10 mile.', bars({ numerator: 2, denominator: 10 })),
+      practice('What is 4/9 + 3/9?', ['7/9', '7/18', '1/9'], 0, equation('4/9 + 3/9 = ?'), 'Add the numerators. Keep ninths.', '4 + 3 = 7. So 7/9.', bars({ numerator: 3, denominator: 9 })),
     ],
   },
   {
-    id: 'subtract-like-denominators', unit: 8, title: 'Take pieces away', shortTitle: 'Subtract fractions', skill: 'Take away the top numbers. The bottom stays the same.',
+    id: 'subtract-like-denominators', unit: 8, title: 'Take pieces away', shortTitle: 'Subtract fractions', skill: 'Take away the numerators. The denominator stays the same.',
     description: 'Take away same-size pieces.', example: {
       prompt: 'What is 6/8 − 2/8?',
       answer: '4/8.',
@@ -544,9 +544,9 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 6, denominator: 8 }, { numerator: 4, denominator: 8 }),
     },
     questions: [
-      practice('What is 5/7 − 2/7?', ['3/7', '3/14', '7/7'], 0, equation('5/7 − 2/7 = ?'), 'Take away 2 pieces. Keep sevenths.', '5 − 2 = 3. The bottom stays 7.', bars({ numerator: 5, denominator: 7 })),
-      practice('A jug is 9/10 full. You pour out 4/10. How much is left?', ['5/10', '5/20', '13/10'], 0, bars({ numerator: 9, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Take away the top numbers. Keep tenths.', '9 − 4 = 5. So 5/10.', bars({ numerator: 4, denominator: 10 })),
-      practice('What is 7/8 − 3/8?', ['4/8', '4/16', '10/8'], 0, equation('7/8 − 3/8 = ?'), 'Take away the top numbers. Keep eighths.', '7 − 3 = 4. So 4/8.', bars({ numerator: 6, denominator: 8 })),
+      practice('What is 5/7 − 2/7?', ['3/7', '3/14', '7/7'], 0, equation('5/7 − 2/7 = ?'), 'Take away 2 pieces. Keep sevenths.', '5 − 2 = 3. The denominator stays 7.', bars({ numerator: 5, denominator: 7 })),
+      practice('A jug is 9/10 full. You pour out 4/10. How much is left?', ['5/10', '5/20', '13/10'], 0, bars({ numerator: 9, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Take away the numerators. Keep tenths.', '9 − 4 = 5. So 5/10.', bars({ numerator: 4, denominator: 10 })),
+      practice('What is 7/8 − 3/8?', ['4/8', '4/16', '10/8'], 0, equation('7/8 − 3/8 = ?'), 'Take away the numerators. Keep eighths.', '7 − 3 = 4. So 4/8.', bars({ numerator: 6, denominator: 8 })),
       practice('What is 6/9 − 1/9?', ['5/9', '5/18', '7/9'], 0, equation('6/9 − 1/9 = ?'), 'Take away 1 piece. Keep ninths.', '6 − 1 = 5. So 5/9.', bars({ numerator: 6, denominator: 9 })),
     ],
   },
@@ -627,11 +627,11 @@ type ExtensionTopic = {
 };
 
 const extensionTopics: ExtensionTopic[] = [
-  { id: 'simplify-fractions', unit: 9, title: 'Simplest form', shortTitle: 'Simplest form', description: 'Use bigger pieces. Same amount.', skill: 'Divide the top and bottom by the same number.', mode: 'simplify', n: 3, d: 4, context: 'paper strip' },
-  { id: 'equivalent-missing-both', unit: 9, title: 'Find the missing number', shortTitle: 'Equivalent fractions', description: 'Fill a blank on the top or bottom.', skill: 'Do the same thing to the top and the bottom.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
+  { id: 'simplify-fractions', unit: 9, title: 'Simplest form', shortTitle: 'Simplest form', description: 'Use bigger pieces. Same amount.', skill: 'Divide the numerator and denominator by the same number.', mode: 'simplify', n: 3, d: 4, context: 'paper strip' },
+  { id: 'equivalent-missing-both', unit: 9, title: 'Find the missing number', shortTitle: 'Equivalent fractions', description: 'Fill a blank on the top or bottom.', skill: 'Do the same thing to the numerator and denominator.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
   { id: 'whole-numbers-as-fractions', unit: 9, title: 'Wholes as fractions', shortTitle: 'Whole numbers as fractions', description: 'Build one or more wholes from unit fractions.', skill: 'The numerator counts pieces. A whole is made from as many pieces as the denominator.', mode: 'whole-fraction', n: 6, d: 3, context: 'fraction bars', gradeBand: 3, standards: ['3.NF.3c'] },
-  { id: 'compare-unlike-fractions', unit: 9, title: 'Compare different pieces', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the bottoms differ?', skill: 'Give both fractions the same bottom number. Then compare.', mode: 'compare', n: 2, d: 3, context: 'race track' },
-  { id: 'order-unlike-fractions', unit: 9, title: 'Order different pieces', shortTitle: 'Order unlike parts', description: 'Put 3 fractions in order.', skill: 'Compare to 1/2, or use the same bottom number.', mode: 'order', n: 1, d: 5, context: 'hiking trail' },
+  { id: 'compare-unlike-fractions', unit: 9, title: 'Compare different pieces', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the denominators differ?', skill: 'Give both fractions the same denominator. Then compare.', mode: 'compare', n: 2, d: 3, context: 'race track' },
+  { id: 'order-unlike-fractions', unit: 9, title: 'Order different pieces', shortTitle: 'Order unlike parts', description: 'Put 3 fractions in order.', skill: 'Compare to 1/2, or use the same denominator.', mode: 'order', n: 1, d: 5, context: 'hiking trail' },
   { id: 'subtract-unlike-fractions', unit: 10, title: 'Take away different pieces', shortTitle: 'Subtract unlike parts', description: 'Rename, then take away.', skill: 'Make the pieces the same size. Then take away.', mode: 'subtract-unlike', n: 3, d: 4, context: 'water bottle' },
   { id: 'add-unlike-fractions', unit: 10, title: 'Add unlike fractions', shortTitle: 'Add unlike parts', description: 'Make different-sized pieces the same size before adding.', skill: 'Rename each fraction with a common denominator, then add.', mode: 'add-unlike', n: 7, d: 12, context: 'ribbons', gradeBand: 5, standards: ['5.NF.1'] },
   { id: 'add-mixed-numbers', unit: 10, title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Add wholes and pieces.', skill: 'Add the pieces. A full set of pieces makes a new whole.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route' },
@@ -639,10 +639,10 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'fraction-of-quantity', unit: 10, title: 'A fraction of a number', shortTitle: 'Fractions of amounts', description: 'Find 3/5 of 20.', skill: 'Make equal groups. Count the groups you need.', mode: 'quantity', n: 3, d: 5, context: 'classroom supplies' },
   { id: 'mixed-unlike-operations', unit: 10, title: 'Mixed numbers with unlike parts', shortTitle: 'Mixed number operations', description: 'Add or subtract mixed numbers with different denominators.', skill: 'Rename fractional parts with a common denominator. Regroup when needed.', mode: 'mixed-unlike', n: 25, d: 12, context: 'walking route', gradeBand: 5, standards: ['5.NF.1'] },
   { id: 'estimate-fraction-operations', unit: 10, title: 'Estimate to check', shortTitle: 'Estimate fraction sums', description: 'Use 0, 1/2 and 1 to check whether an answer makes sense.', skill: 'Compare each fraction to a benchmark before calculating.', mode: 'estimate', n: 9, d: 10, context: 'trail lengths', gradeBand: 5, standards: ['5.NF.2'] },
-  { id: 'multiply-whole-by-fraction', unit: 11, title: 'Groups of a fraction', shortTitle: 'Whole × fraction', description: '3 groups of 1/2.', skill: 'Multiply the top. The bottom stays.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles' },
-  { id: 'multiply-fractions', unit: 11, title: 'A part of a part', shortTitle: 'Fraction × fraction', description: 'Find 1/2 of 3/4.', skill: 'Multiply the tops. Multiply the bottoms.', mode: 'multiply', n: 2, d: 3, context: 'garden plot' },
+  { id: 'multiply-whole-by-fraction', unit: 11, title: 'Groups of a fraction', shortTitle: 'Whole × fraction', description: '3 groups of 1/2.', skill: 'Multiply the numerator. The denominator stays.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles' },
+  { id: 'multiply-fractions', unit: 11, title: 'A part of a part', shortTitle: 'Fraction × fraction', description: 'Find 1/2 of 3/4.', skill: 'Multiply the numerators. Multiply the denominators.', mode: 'multiply', n: 2, d: 3, context: 'garden plot' },
   { id: 'fraction-of-collection', unit: 11, title: 'A fraction of a group', shortTitle: 'Groups of objects', description: 'Find 3/4 of 16 cards.', skill: 'Make equal groups. Count the groups you need.', mode: 'sets', n: 3, d: 4, context: 'sports cards' },
-  { id: 'divide-whole-by-unit-fraction', unit: 11, title: 'How many pieces fit?', shortTitle: 'Divide by a fraction', description: 'How many 1/4 cups fill 2 cups?', skill: '1 whole holds as many pieces as the bottom number.', mode: 'divide', n: 1, d: 4, context: 'measuring cup' },
+  { id: 'divide-whole-by-unit-fraction', unit: 11, title: 'How many pieces fit?', shortTitle: 'Divide by a fraction', description: 'How many 1/4 cups fill 2 cups?', skill: '1 whole holds as many pieces as the denominator.', mode: 'divide', n: 1, d: 4, context: 'measuring cup' },
   { id: 'unit-fraction-multiples', unit: 11, title: 'Make groups of a unit fraction', shortTitle: 'Unit fraction multiples', description: 'Build several copies of one unit fraction.', skill: 'Repeated addition of a unit fraction makes a multiple.', mode: 'unit-multiples', n: 5, d: 4, context: 'paper strips', gradeBand: 4, standards: ['4.NF.4a'] },
   { id: 'multiplication-scaling', unit: 11, title: 'Scaling with fractions', shortTitle: 'Scale an amount', description: 'See how a factor below or above one changes an amount.', skill: 'A factor below 1 makes less; a factor above 1 makes more.', mode: 'scaling', n: 3, d: 4, context: 'collections', gradeBand: 5, standards: ['5.NF.5'] },
   { id: 'multiply-mixed-numbers', unit: 11, title: 'Multiply mixed numbers', shortTitle: 'Mixed number multiplication', description: 'Use a rectangle to find the area of a mixed-number garden.', skill: 'Rename mixed numbers as fractions, then multiply.', mode: 'mixed-multiply', n: 2, d: 1, context: 'garden plot', gradeBand: 5, standards: ['5.NF.6'] },
@@ -661,7 +661,7 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'fraction-of-area', unit: 13, title: 'Fractions in shapes', shortTitle: 'Equal-area partitions', description: 'Explore equal-area parts in squares, rectangles, circles and hexagons.', skill: 'Fraction parts must have equal areas, even when their shapes look different.', mode: 'area', n: 3, d: 8, context: 'shape tiles', gradeBand: 3, standards: ['3.G.2'] },
   { id: 'fractional-side-area', unit: 13, title: 'Area with fractional sides', shortTitle: 'Fractional side area', description: 'Use a grid to find the area when both side lengths are fractions.', skill: 'Multiply the fractional side lengths to find square units.', mode: 'fractional-area', n: 1, d: 2, context: 'rectangle grid', gradeBand: 5, standards: ['5.NF.4b'] },
   { id: 'equivalent-number-line', unit: 13, title: 'Same spot, new name', shortTitle: 'Line equivalence', description: '2/3 and 4/6 land on the same spot.', skill: 'Cut every space in half: twice the spaces, twice the jumps.', mode: 'line', n: 2, d: 3, context: 'number line' },
-  { id: 'fraction-recipes', unit: 13, title: 'Recipe fractions', shortTitle: 'Recipe fractions', description: 'Double a recipe.', skill: 'Add the amount again, or multiply the top.', mode: 'recipe', n: 3, d: 4, context: 'pancake recipe' },
+  { id: 'fraction-recipes', unit: 13, title: 'Recipe fractions', shortTitle: 'Recipe fractions', description: 'Double a recipe.', skill: 'Add the amount again, or multiply the numerator.', mode: 'recipe', n: 3, d: 4, context: 'pancake recipe' },
   { id: 'fractions-to-percent', unit: 14, title: 'Bonus: Fractions to percent', shortTitle: 'Bonus percent', description: 'Write 3/4 as 75%.', skill: 'Percent means out of 100.', mode: 'percent', n: 3, d: 4, context: 'school survey', enrichment: true },
   { id: 'percent-to-fraction', unit: 14, title: 'Bonus: Percent to fractions', shortTitle: 'Bonus percent as fraction', description: 'Write 60% as 60/100.', skill: 'Percent means out of 100.', mode: 'percent-inverse', n: 3, d: 5, context: 'game score', enrichment: true },
   { id: 'decimal-fraction-equivalence', unit: 14, title: 'Fractions to decimals', shortTitle: 'Three forms', description: 'Write 1/4 as 0.25.', skill: 'Change to tenths or hundredths. Then write the decimal.', mode: 'decimal-equivalent', n: 7, d: 10, context: 'battery meter' },

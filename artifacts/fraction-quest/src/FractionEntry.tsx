@@ -71,10 +71,10 @@ export function FractionEntry({
       <fieldset className="fq-ll-fraction-fieldset" aria-describedby={`${id}-instructions ${describedBy}`} disabled={disabled}>
         <legend className="fq-ll-sr-only">Enter a fraction</legend>
         <p id={`${id}-instructions`} className="fq-ll-sr-only">
-          Put the numerator in the top box and the denominator in the bottom box.
+          Put the numerator (parts selected) in the top box and the denominator (total equal parts) in the bottom box.
         </p>
         <label className="fq-ll-fraction-part" htmlFor={`${id}-numerator`}>
-          <span>Top number</span>
+          <span className="fq-ll-fraction-name"><b>Numerator</b><small>parts selected</small></span>
           <input
             id={`${id}-numerator`}
             type="text"
@@ -85,14 +85,14 @@ export function FractionEntry({
             value={numerator}
             disabled={disabled}
             onChange={event => updatePart('numerator', event.target.value)}
-            aria-label="Numerator (top number)"
+            aria-label="Numerator: parts selected"
             aria-describedby={`${id}-instructions ${describedBy}`}
             data-testid={`input-${id}-numerator`}
           />
         </label>
         <span className="fq-ll-fraction-bar" aria-hidden="true" />
         <label className="fq-ll-fraction-part" htmlFor={`${id}-denominator`}>
-          <span>Bottom number</span>
+          <span className="fq-ll-fraction-name"><b>Denominator</b><small>total equal parts</small></span>
           <input
             ref={denominatorInput}
             id={`${id}-denominator`}
@@ -104,7 +104,7 @@ export function FractionEntry({
             value={denominator}
             disabled={disabled}
             onChange={event => updatePart('denominator', event.target.value)}
-            aria-label="Denominator (bottom number)"
+            aria-label="Denominator: total equal parts in 1 whole"
             aria-describedby={`${id}-instructions ${describedBy}`}
             data-testid={`input-${id}-denominator`}
           />

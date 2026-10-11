@@ -94,7 +94,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
       step('Cara ran 5/6 km. How much is she short of 1 km?', ['5/6', '1/6', '1/2'], 1),
       step('Ben is 1/3 short and Dev is 1/2 short. Which is the smallest gap?', ['1/4', '1/2', '1/6'], 2),
     ]),
-    q('u5-c5', 5, 'How many fractions with 6 on the bottom are more than 1/2 but less than 1?', ['0', '1', '2', '3', '4'], 2, '3/6 is exactly half. 4/6 and 5/6 fit. That is 2.'),
+    q('u5-c5', 5, 'How many fractions with a denominator of 6 are more than 1/2 but less than 1?', ['0', '1', '2', '3', '4'], 2, '3/6 is exactly half. 4/6 and 5/6 fit. That is 2.'),
   ],
   6: [
     q('u6-p1', 3, 'The top bar shows 1/2. How many pieces of the bottom bar must you shade to show the same amount?', ['1', '2', '3', '4', '8'], 3, 'The bottom bar has 8 pieces. Half of 8 is 4.', { kind: 'bars', bars: [{ n: 1, d: 2 }, { n: 0, d: 8 }] }),
@@ -121,7 +121,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   ],
   8: [
     q('u8-p1', 3, 'The big square is 1 whole. What decimal shows the shaded part?', ['0.035', '0.35', '3.5', '0.53', '35'], 1, '35 of 100 small squares are shaded. That is 0.35.', { kind: 'grid', rows: 10, cols: 10, shaded: Array.from({ length: 35 }, (_, i) => i) }),
-    q('u8-c1', 3, '3/8 + 4/8 = ?', ['7/16', '7/8', '1/8', '12/8', '7'], 1, '3 + 4 = 7. The bottom stays 8.'),
+    q('u8-c1', 3, '3/8 + 4/8 = ?', ['7/16', '7/8', '1/8', '12/8', '7'], 1, '3 + 4 = 7. The denominator stays 8.'),
     q('u8-c2', 3, 'Which decimal is the same as 3/10?', ['3.0', '0.03', '0.13', '0.3', '3.10'], 3, '3 tenths is 0.3.'),
     q('u8-c3', 4, 'Which number is the biggest?', ['0.5', '0.45', '0.09', '0.4', '0.38'], 0, '0.5 is 0.50. 50 hundredths is the most.'),
     q('u8-c4', 4, 'A ribbon is 9/10 m long. You cut off 4/10 m. Then you cut off 3/10 m. How much is left?', ['1/10 m', '2/10 m', '3/10 m', '5/10 m', '6/10 m'], 1, '9 − 4 − 3 = 2. So 2/10 m.', undefined, [
@@ -131,9 +131,9 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u8-c5', 5, '1/2 + 1/4 + 1/8 = ?', ['3/14', '3/8', '5/8', '6/8', '7/8'], 4, '4/8 + 2/8 + 1/8 = 7/8.'),
   ],
   9: [
-    q('u9-p1', 3, 'What fraction of the rectangle is shaded? Give it in simplest form.', ['1/2', '3/5', '2/3', '3/4', '4/5'], 2, '8 of 12 squares are shaded. Divide the top and bottom by 4: 8/12 = 2/3.', { kind: 'grid', rows: 3, cols: 4, shaded: [0, 1, 2, 4, 5, 6, 8, 9] }),
-    q('u9-c1', 3, 'Which fraction is NOT the same as 1/2?', ['2/4', '3/6', '4/9', '5/10', '6/12'], 2, 'Double the top should give the bottom. Double 4 is 8, not 9.'),
-    q('u9-c2', 3, '3/4 = ?/20. What is the missing number?', ['12', '15', '16', '17', '5'], 1, '4 × 5 = 20. So multiply the top by 5 too: 3 × 5 = 15.'),
+    q('u9-p1', 3, 'What fraction of the rectangle is shaded? Give it in simplest form.', ['1/2', '3/5', '2/3', '3/4', '4/5'], 2, '8 of 12 squares are shaded. Divide the numerator and denominator by 4: 8/12 = 2/3.', { kind: 'grid', rows: 3, cols: 4, shaded: [0, 1, 2, 4, 5, 6, 8, 9] }),
+    q('u9-c1', 3, 'Which fraction is NOT the same as 1/2?', ['2/4', '3/6', '4/9', '5/10', '6/12'], 2, 'Doubling the numerator should give the denominator. Double 4 is 8, not 9.'),
+    q('u9-c2', 3, '3/4 = ?/20. What is the missing number?', ['12', '15', '16', '17', '5'], 1, '4 × 5 = 20. So multiply the numerator by 5 too: 3 × 5 = 15.'),
     q('u9-c3', 4, 'Which fraction is between 1/2 and 1?', ['2/5', '3/7', '4/9', '5/8', '1/3'], 3, 'Half of 8 is 4. 5 is more than 4, so 5/8 is more than 1/2. The others are less than half.'),
     q('u9-c4', 4, 'Ana ate 2/3 of a pizza. Ben ate 3/4 of a pizza. Cal ate 5/6 of a pizza. The pizzas are the same size. Who ate the most?', ['Ana', 'Ben', 'Cal', 'Ana and Ben', 'They ate the same'], 2, 'Use twelfths: 2/3 = 8/12, 3/4 = 9/12, 5/6 = 10/12. Cal ate the most.', undefined, [
       step('Change 2/3 to twelfths.', ['8/12', '6/12', '2/12'], 0),
@@ -164,9 +164,9 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   ],
   11: [
     q('u11-p1', 3, 'The square is 1 whole. The shaded part is 2/3 of 3/4 of it. What fraction of the whole square is shaded?', ['5/12', '6/12', '5/7', '2/7', '8/12'], 1, '12 equal parts. 6 are shaded: 2/3 × 3/4 = 6/12.', { kind: 'grid', rows: 3, cols: 4, shaded: [0, 1, 2, 4, 5, 6] }),
-    q('u11-c1', 3, '4 × 2/5 = ?', ['8/20', '6/5', '8/5', '2/20', '4/5'], 2, '4 groups of 2/5: multiply the top. 4 × 2 = 8, so 8/5.'),
+    q('u11-c1', 3, '4 × 2/5 = ?', ['8/20', '6/5', '8/5', '2/20', '4/5'], 2, '4 groups of 2/5: multiply the numerator. 4 × 2 = 8, so 8/5.'),
     q('u11-c2', 3, 'How many 1/3 cups of rice fill 4 cups?', ['3', '7', '4', '12', '16'], 3, '3 thirds fill 1 cup. 4 cups need 4 × 3 = 12.'),
-    q('u11-c3', 4, 'What is 3/4 of 2/3?', ['5/7', '6/7', '6/12', '1/12', '5/12'], 2, 'Multiply the tops: 3 × 2 = 6. Multiply the bottoms: 4 × 3 = 12. So 6/12 (that is 1/2).'),
+    q('u11-c3', 4, 'What is 3/4 of 2/3?', ['5/7', '6/7', '6/12', '1/12', '5/12'], 2, 'Multiply the numerators: 3 × 2 = 6. Multiply the denominators: 4 × 3 = 12. So 6/12 (that is 1/2).'),
     q('u11-c4', 4, 'Leo has 30 cards. He gives 1/5 of them to Ana and 1/3 of them to Ben. How many cards does Leo keep?', ['14', '16', '8', '20', '24'], 0, '1/5 of 30 is 6. 1/3 of 30 is 10. 30 − 6 − 10 = 14.', undefined, [
       step('What is 1/5 of 30?', ['5', '6', '10'], 1),
       step('What is 1/3 of 30?', ['10', '3', '15'], 0),
@@ -219,7 +219,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u14-c1', 3, 'Which is the same as 3/4?', ['34%', '0.34', '75%', '0.43', '3.4'], 2, '3/4 = 75/100 = 75%.'),
     q('u14-c2', 3, 'Put these in order, smallest first: 0.6, 1/2, 55%', ['1/2, 55%, 0.6', '0.6, 55%, 1/2', '55%, 1/2, 0.6', '1/2, 0.6, 55%', '0.6, 1/2, 55%'], 0, 'Change them all to percent: 0.6 = 60%, 1/2 = 50%. So 50%, 55%, 60%.'),
     q('u14-c3', 4, 'A quiz has 20 questions. Zoe gets 17 right. What percent did she get right?', ['17%', '80%', '85%', '90%', '83%'], 2, '17/20 = 85/100 = 85%.', undefined, [
-      step('Multiply the top and bottom by 5. 17/20 = ?', ['85/100', '17/100', '34/100'], 0),
+      step('Multiply the numerator and denominator by 5. 17/20 = ?', ['85/100', '17/100', '34/100'], 0),
       step('85/100 is what percent?', ['8.5%', '85%', '0.85%'], 1),
     ]),
     q('u14-c4', 4, 'A garden is 2/5 flowers and 0.3 vegetables. The rest is grass. What percent is grass?', ['70%', '20%', '30%', '35%', '3%'], 2, '2/5 = 40% and 0.3 = 30%. 100% − 40% − 30% = 30%.', undefined, [
