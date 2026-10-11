@@ -5,6 +5,7 @@ import { answerMatches, getWorksheet } from './learning-content';
 import { today, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
+import { summarizeStandardMastery, type StandardMastery } from './assessments';
 
 /* The grown-ups' report: everything here is read from progress the app already saves.
    Nothing in it changes progress or lesson gating. */
@@ -29,6 +30,8 @@ export type ParentReport = {
   onOwnRate: number | null;
   nextLesson: string | null; toPractice: PracticeTip[]; dueReviews: string[]; strengths: string[]; units: UnitRow[];
   placement: { unit: number; date: string } | null;
+  assessmentChecksCompleted: number;
+  standardMastery: StandardMastery[];
 };
 
 const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) * 100) : null);
@@ -120,5 +123,7 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
     firstTryRate: pct(firstTry, tried), onOwnRate: pct(onOwn, builds),
     nextLesson: next ? `Lesson ${next.number}: ${next.title}` : null, toPractice, dueReviews, strengths, units,
     placement: progress.placement ? { unit: progress.placement.unit, date: new Date(progress.placement.at).toLocaleDateString() } : null,
+    assessmentChecksCompleted: (progress.assessments ?? []).filter(attempt => !attempt.assessmentId.endsWith('-pre')).length,
+    standardMastery: summarizeStandardMastery(progress.assessments),
   };
 }

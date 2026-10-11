@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { MathText } from './MathText';
+import { LearningText } from './LearningText';
 import { Check, Gift, LockKeyhole, Sparkles, Star } from 'lucide-react';
 import type { ModelSpec } from './game';
 import { DAILY_GOAL, type FunState } from './lib/fun';
@@ -264,10 +265,10 @@ export function StoryPrompt({ prompt, id }: { prompt: string; id: string }) {
     <>
       {lines.length > 0 && (
         <ol className="fq-story" aria-label="The story, one line at a time">
-          {lines.map((line, i) => <li key={i}><span>{i + 1}</span><span><MathText text={line} /></span></li>)}
+          {lines.map((line, i) => <li key={i}><span aria-hidden="true">{i + 1}</span><span><LearningText text={line} speak /></span></li>)}
         </ol>
       )}
-      <h1 id={id}><MathText text={question} /></h1>
+      <h1 id={id}><LearningText text={question} speak /></h1>
     </>
   );
 }

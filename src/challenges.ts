@@ -1,5 +1,6 @@
 /* Kangaroo-style Unit challenges: short puzzles with five choices (A–E), worth 3, 4 or 5 points.
    Points count only on the first try. Each unit's challenge unlocks when all its lessons are done. All 14 units have one. */
+import { standardsForChallenge } from './standard-catalog';
 
 /** Pictures for puzzles. None of them print the answer: the picture is the puzzle. */
 export type ChallengeFigure =
@@ -10,7 +11,7 @@ export type ChallengeFigure =
   | { kind: 'fold'; folds: number[] };
 
 /** One small step of a guided walk-through for a long word problem. */
-export type ChallengeStep = { prompt: string; choices: [string, string, string]; correct: number };
+export type ChallengeStep = { prompt: string; choices: [string, string, string]; correct: number; standards?: string[] };
 
 export type ChallengeQuestion = {
   id: string;
@@ -21,6 +22,7 @@ export type ChallengeQuestion = {
   explanation: string;
   figure?: ChallengeFigure;
   steps?: ChallengeStep[];
+  standards?: string[];
 };
 
 const q = (id: string, points: 3 | 4 | 5, prompt: string, choices: ChallengeQuestion['choices'], correct: number, explanation: string, figure?: ChallengeFigure, steps?: ChallengeStep[]): ChallengeQuestion =>
@@ -232,6 +234,13 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     ]),
   ],
 };
+
+for (const questions of Object.values(CHALLENGES)) {
+  for (const question of questions) {
+    question.standards = standardsForChallenge(question.id);
+    question.steps = question.steps?.map(step => ({ ...step, standards: [...question.standards!] }));
+  }
+}
 
 export const challengeMaxPoints = (unit: number) => (CHALLENGES[unit] ?? []).reduce((sum, item) => sum + item.points, 0);
 

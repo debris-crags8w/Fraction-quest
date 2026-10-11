@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { LoginBody, SignupBody } from "@workspace/api-zod";
-import { endSession, getDummyHash, getSessionUser, hashPassword, normalizeUsername, publicUser, startSession, verifyPassword } from "../lib/auth";
+import { endSession, getDummyHash, getSessionUser, hashPassword, normalizeUsername, PRIVACY_NOTICE_VERSION, publicUser, startSession, verifyPassword } from "../lib/auth";
 import { createRateLimiter } from "../lib/rate-limit";
 
 const router: IRouter = Router();
@@ -18,7 +18,11 @@ router.post("/auth/signup", async (req, res) => {
   }
   const parsed = SignupBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Usernames are 3–20 letters, numbers or _. Passwords need at least 8 characters." });
+    res.status(400).json({ error: "Usernames are 3–20 letters, numbers or _. Passwords need at least 8 characters, and a parent or caregiver must accept the privacy notice." });
+    return;
+  }
+  if (!parsed.data.parentConsent) {
+    res.status(400).json({ error: "A parent or caregiver must review and accept the privacy notice before an account can save learning progress." });
     return;
   }
   const username = normalizeUsername(parsed.data.username);
@@ -33,7 +37,13 @@ router.post("/auth/signup", async (req, res) => {
     return;
   }
   const passwordHash = await hashPassword(parsed.data.password);
-  const inserted = await db.insert(usersTable).values({ username, displayName, passwordHash }).onConflictDoNothing().returning();
+  const inserted = await db.insert(usersTable).values({
+    username,
+    displayName,
+    passwordHash,
+    parentConsentAt: new Date(),
+    privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
+  }).onConflictDoNothing().returning();
   if (!inserted[0]) {
     res.status(409).json({ error: "That username is taken. Try adding a number." });
     return;

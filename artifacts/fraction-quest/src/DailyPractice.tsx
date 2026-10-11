@@ -18,10 +18,14 @@ export default function DailyPractice({
   session,
   onChange,
   onBack,
+  onWrong,
+  onSuccess,
 }: {
   session: DailyPracticeSession;
   onChange: (next: DailyPracticeSession) => void;
   onBack: () => void;
+  onWrong?: () => void;
+  onSuccess?: () => void;
 }) {
   const [showHelp, setShowHelp] = useState(false);
   const questionHeading = useRef<HTMLHeadingElement>(null);
@@ -51,10 +55,13 @@ export default function DailyPractice({
     attempts: { ...session.attempts, [question.id]: next },
   });
   const checkModel = () => {
+    const correct = attempt.shaded.length === question.numerator;
+    if (correct) onSuccess?.();
+    else onWrong?.();
     setAttempt({
       ...attempt,
       modelChecked: true,
-      modelCorrect: attempt.shaded.length === question.numerator,
+      modelCorrect: correct,
       answerChecked: false,
       answerCorrect: false,
     });
@@ -64,6 +71,8 @@ export default function DailyPractice({
     const isCorrect = !!parsed
       && Number.isSafeInteger(parsed.n * question.denominator)
       && parsed.n * question.denominator === question.numerator * parsed.d;
+    if (isCorrect) onSuccess?.();
+    else onWrong?.();
     setAttempt({ ...attempt, answerChecked: true, answerCorrect: isCorrect });
   };
   const continueSession = () => {

@@ -1,9 +1,10 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import { MathText } from './MathText';
-import { AREA_CUTS, areaFeedback, areaLabel, areaTaskDone, type AreaFigure, type AreaTask } from './area-shapes';
+import { AREA_CUTS, areaFeedback, areaLabel, areaOutline, areaTaskDone, type AreaFigure, type AreaTask } from './area-shapes';
 
 const SIZE = 160; const PAD = 4;
 const pts = (points: [number, number][]) => points.map(([x, y]) => `${PAD + x * SIZE},${PAD + y * SIZE}`).join(' ');
+const outline = (figure: AreaFigure) => pts(areaOutline(figure.cut));
 
 /** A square whole cut into pieces (read-only picture). */
 export function AreaSvg({ figure, label }: { figure: AreaFigure; label?: string }) {
@@ -11,7 +12,7 @@ export function AreaSvg({ figure, label }: { figure: AreaFigure; label?: string 
   return (
     <svg className="fq-svg-area" viewBox={`0 0 ${SIZE + PAD * 2} ${SIZE + PAD * 2}`} role="img" aria-label={label ?? areaLabel(figure.cut, shaded)}>
       {AREA_CUTS[figure.cut].map((piece, i) => <polygon key={i} className={shaded.includes(i) ? 'shaded' : 'empty'} points={pts(piece.points)} />)}
-      <rect className="frame" x={PAD} y={PAD} width={SIZE} height={SIZE} fill="none" />
+       <polygon className="frame" points={outline(figure)} fill="none" />
     </svg>
   );
 }
@@ -52,7 +53,7 @@ export function AreaShade({ figure, task, disabled, statusId, onMatchChange }: {
             onClick={() => toggle(i)} onKeyDown={(e) => onKey(e, i)} data-testid={`button-area-piece-${i + 1}`}
           />
         ))}
-        <rect className="frame" x={PAD} y={PAD} width={SIZE} height={SIZE} fill="none" pointerEvents="none" />
+         <polygon className="frame" points={outline(figure)} fill="none" pointerEvents="none" />
       </svg>
       <p id={statusId} className={`fq-ll-copy-status ${done ? 'matched' : ''}`} role="status" aria-live="polite" data-testid="status-area">
         {areaFeedback(figure.cut, task, shaded)}

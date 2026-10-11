@@ -14,6 +14,10 @@ tags:
     description: Student accounts and sign-in
   - name: progress
     description: Saved course progress for the signed-in student
+  - name: privacy
+    description: Parent consent and learner-data controls
+  - name: family
+    description: Family learner profiles and educator classrooms
 paths:
   /healthz:
     get:
@@ -121,6 +125,376 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /privacy/consent:
+    patch:
+      operationId: acceptPrivacyConsent
+      tags: [privacy]
+      summary: Record adult caregiver consent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsentInput"
+      responses:
+        "200":
+          description: Consent recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Consent was not accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /privacy/export:
+    get:
+      operationId: exportPrivacyData
+      tags: [privacy]
+      summary: Export the signed-in account's saved learning data
+      responses:
+        "200":
+          description: Account and learner data, excluding password hashes and session credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyExport"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /family/profiles:
+    get:
+      operationId: listLearnerProfiles
+      tags: [family]
+      summary: List learner profiles owned by the signed-in account
+      responses:
+        "200":
+          description: Learner profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LearnerProfile"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createLearnerProfile
+      tags: [family]
+      summary: Add a learner profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LearnerProfileInput"
+      responses:
+        "201":
+          description: Learner profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearnerProfile"
+        "400":
+          description: Invalid learner name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /family/profiles/{profileId}:
+    patch:
+      operationId: updateLearnerProfile
+      tags: [family]
+      summary: Change a learner nickname with adult approval
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LearnerProfileUpdate"
+      responses:
+        "200":
+          description: Updated learner profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearnerProfile"
+        "400":
+          description: Invalid profile name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found for this account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteLearnerProfile
+      tags: [family]
+      summary: Delete a learner profile and its saved data
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Profile and saved data deleted
+        "404":
+          description: Profile not found for this account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /family/profiles/{profileId}/progress:
+    get:
+      operationId: getLearnerProgress
+      tags: [family, progress]
+      summary: Load saved learning data for one profile
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Saved profile progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedProgress"
+        "404":
+          description: Profile not found for this account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: saveLearnerProgress
+      tags: [family, progress]
+      summary: Save learning data for one profile
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgressPayload"
+      responses:
+        "200":
+          description: Saved profile progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedProgress"
+        "400":
+          description: Invalid progress data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found for this account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteLearnerProgress
+      tags: [family, privacy]
+      summary: Delete only one learner's saved progress and preferences
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Saved profile progress deleted
+        "404":
+          description: Profile not found for this account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /classrooms:
+    get:
+      operationId: listClassrooms
+      tags: [family]
+      summary: List classrooms owned by the signed-in educator
+      responses:
+        "200":
+          description: Owned classrooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Classroom"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createClassroom
+      tags: [family]
+      summary: Create a class with a shareable code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassroomInput"
+      responses:
+        "201":
+          description: Classroom created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Classroom"
+        "400":
+          description: Invalid classroom label
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /classrooms/join:
+    post:
+      operationId: joinClassroom
+      tags: [family]
+      summary: Link one learner profile to a classroom using its code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassroomJoinInput"
+      responses:
+        "200":
+          description: Profile linked to the classroom
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomMembership"
+        "400":
+          description: Invalid or unknown classroom code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Learner profile not found for this account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /classrooms/{classroomId}/roster:
+    get:
+      operationId: getClassroomRoster
+      tags: [family]
+      summary: Review progress using anonymous learner codes
+      parameters:
+        - name: classroomId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Anonymous progress rows for the educator's classroom
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClassroomLearner"
+        "404":
+          description: Classroom not found for this educator
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /classrooms/{classroomId}/learners/{memberCode}/assignment:
+    put:
+      operationId: assignClassroomUnits
+      tags: [family]
+      summary: Assign units to one anonymous learner
+      parameters:
+        - name: classroomId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: memberCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UnitAssignmentInput"
+      responses:
+        "200":
+          description: Assignment saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnitAssignment"
+        "400":
+          description: Invalid unit assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom or learner not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /progress:
     get:
       operationId: getProgress
@@ -193,10 +567,17 @@ components:
           type: string
         displayName:
           type: string
+        parentConsentAt:
+          type: ["string", "null"]
+          format: date-time
+        privacyNoticeVersion:
+          type: ["string", "null"]
       required:
         - id
         - username
         - displayName
+        - parentConsentAt
+        - privacyNoticeVersion
     SignupRequest:
       type: object
       properties:
@@ -213,10 +594,147 @@ components:
           type: string
           minLength: 8
           maxLength: 72
+        parentConsent:
+          type: boolean
       required:
         - username
         - displayName
         - password
+        - parentConsent
+    ConsentInput:
+      type: object
+      properties:
+        accepted:
+          type: boolean
+      required: [accepted]
+    LearnerProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        displayName:
+          type: string
+        classroomId:
+          type: ["integer", "null"]
+        memberCode:
+          type: ["string", "null"]
+        assignedUnitIds:
+          type: array
+          items: { type: string }
+      required: [id, displayName, classroomId, memberCode, assignedUnitIds]
+    LearnerProfileInput:
+      type: object
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 30
+      required: [displayName]
+    LearnerProfileUpdate:
+      type: object
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 30
+      required: [displayName]
+    Classroom:
+      type: object
+      properties:
+        id: { type: integer }
+        label: { type: string }
+        joinCode: { type: string }
+        learnerCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+      required: [id, label, joinCode, learnerCount, createdAt]
+    ClassroomInput:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 60
+      required: [label]
+    ClassroomJoinInput:
+      type: object
+      properties:
+        profileId: { type: integer }
+        joinCode:
+          type: string
+          minLength: 6
+          maxLength: 16
+      required: [profileId, joinCode]
+    ClassroomMembership:
+      type: object
+      properties:
+        classroomLabel: { type: string }
+        memberCode: { type: string }
+        assignedUnitIds:
+          type: array
+          items: { type: string }
+      required: [classroomLabel, memberCode, assignedUnitIds]
+    ClassroomLearner:
+      type: object
+      properties:
+        memberCode: { type: string }
+        assignedUnitIds:
+          type: array
+          items: { type: string }
+        completedMissionIds:
+          type: array
+          items: { type: string }
+        updatedAt: { type: string, format: date-time }
+      required: [memberCode, assignedUnitIds, completedMissionIds, updatedAt]
+    UnitAssignmentInput:
+      type: object
+      properties:
+        unitIds:
+          type: array
+          maxItems: 20
+          items: { type: string, minLength: 1, maxLength: 100 }
+      required: [unitIds]
+    UnitAssignment:
+      type: object
+      properties:
+        memberCode: { type: string }
+        unitIds:
+          type: array
+          items: { type: string }
+      required: [memberCode, unitIds]
+    LearnerExport:
+      type: object
+      properties:
+        id: { type: integer }
+        displayName: { type: string }
+        classroomLabel: { type: ["string", "null"] }
+        memberCode: { type: ["string", "null"] }
+        assignedUnitIds:
+          type: array
+          items: { type: string }
+        progress: { type: object, additionalProperties: true }
+        fun: { type: object, additionalProperties: true }
+        updatedAt: { type: string, format: date-time }
+      required: [id, displayName, classroomLabel, memberCode, assignedUnitIds, progress, fun, updatedAt]
+    PrivacyExport:
+      type: object
+      properties:
+        exportedAt: { type: string, format: date-time }
+        account:
+          type: object
+          properties:
+            username: { type: string }
+            displayName: { type: string }
+            createdAt: { type: string, format: date-time }
+            parentConsentAt: { type: ["string", "null"], format: date-time }
+            privacyNoticeVersion: { type: ["string", "null"] }
+          required: [username, displayName, createdAt, parentConsentAt, privacyNoticeVersion]
+        learners:
+          type: array
+          items: { $ref: "#/components/schemas/LearnerExport" }
+        classrooms:
+          type: array
+          items: { $ref: "#/components/schemas/Classroom" }
+      required: [exportedAt, account, learners, classrooms]
     LoginRequest:
       type: object
       properties:

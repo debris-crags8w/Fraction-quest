@@ -17,6 +17,10 @@ export interface User {
   id: number;
   username: string;
   displayName: string;
+  /** @nullable */
+  parentConsentAt: string | null;
+  /** @nullable */
+  privacyNoticeVersion: string | null;
 }
 
 export interface SignupRequest {
@@ -36,6 +40,123 @@ export interface SignupRequest {
      * @maxLength 72
      */
   password: string;
+  parentConsent: boolean;
+}
+
+export interface ConsentInput {
+  accepted: boolean;
+}
+
+export interface LearnerProfile {
+  id: number;
+  displayName: string;
+  /** @nullable */
+  classroomId: number | null;
+  /** @nullable */
+  memberCode: string | null;
+  assignedUnitIds: string[];
+}
+
+export interface LearnerProfileInput {
+  /**
+     * @minLength 1
+     * @maxLength 30
+     */
+  displayName: string;
+}
+
+export interface LearnerProfileUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 30
+     */
+  displayName: string;
+}
+
+export interface Classroom {
+  id: number;
+  label: string;
+  joinCode: string;
+  learnerCount: number;
+  createdAt: string;
+}
+
+export interface ClassroomInput {
+  /**
+     * @minLength 1
+     * @maxLength 60
+     */
+  label: string;
+}
+
+export interface ClassroomJoinInput {
+  profileId: number;
+  /**
+     * @minLength 6
+     * @maxLength 16
+     */
+  joinCode: string;
+}
+
+export interface ClassroomMembership {
+  classroomLabel: string;
+  memberCode: string;
+  assignedUnitIds: string[];
+}
+
+export interface ClassroomLearner {
+  memberCode: string;
+  assignedUnitIds: string[];
+  completedMissionIds: string[];
+  updatedAt: string;
+}
+
+export interface UnitAssignmentInput {
+  /**
+     * @maxItems 20
+     * @items.minLength 1
+     * @items.maxLength 100
+     */
+  unitIds: string[];
+}
+
+export interface UnitAssignment {
+  memberCode: string;
+  unitIds: string[];
+}
+
+export type LearnerExportProgress = { [key: string]: unknown };
+
+export type LearnerExportFun = { [key: string]: unknown };
+
+export interface LearnerExport {
+  id: number;
+  displayName: string;
+  /** @nullable */
+  classroomLabel: string | null;
+  /** @nullable */
+  memberCode: string | null;
+  assignedUnitIds: string[];
+  progress: LearnerExportProgress;
+  fun: LearnerExportFun;
+  updatedAt: string;
+}
+
+export type PrivacyExportAccount = {
+  username: string;
+  displayName: string;
+  createdAt: string;
+  /** @nullable */
+  parentConsentAt: string | null;
+  /** @nullable */
+  privacyNoticeVersion: string | null;
+};
+
+export interface PrivacyExport {
+  exportedAt: string;
+  account: PrivacyExportAccount;
+  learners: LearnerExport[];
+  classrooms: Classroom[];
 }
 
 export interface LoginRequest {
@@ -78,3 +199,4 @@ export interface SavedProgress {
   /** @nullable */
   updatedAt: string | null;
 }
+

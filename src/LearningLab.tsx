@@ -5,7 +5,7 @@ import { numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, type BuildCheck, type LearningModel, type WorksheetProblem } from './learning-content';
 import {
   checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, learningSummary, redoChecks, redoDone, redoWorksheet,
-  redoWorksheetCount, startRedo, updateLearning, worksheetCount, type LearningRecord, type RedoAttempt, type RedoPart,
+  redoWorksheetCount, startRedo, targetedPracticeCount, targetedPracticePlans, updateLearning, worksheetCount, type LearningRecord, type RedoAttempt, type RedoPart,
 } from './learning';
 import { denomColor } from './fun-ui';
 import { BarSvg, MODEL_CONCEPTS, ModelPair, ModelTag } from './models';
@@ -13,6 +13,7 @@ import { canEnterWorksheetAnswer, WorksheetBarCopy } from './WorksheetBarCopy';
 import { AreaShade, AreaSvg } from './AreaModel';
 import { PrintMenu } from './Printables';
 import { FractionEntry, usesFractionEntry } from './FractionEntry';
+import { LessonTeachingSupport } from './LessonTeachingSupport';
 import './learning-lab.css';
 
 type Kind = LearningModel['kind'];
@@ -88,6 +89,86 @@ function gridColumns(d: number): number {
   if (d <= 12) return d;
   for (let columns = 10; columns >= 2; columns--) if (d % columns === 0) return columns;
   return d;
+}
+
+function rulerLabel(tick: number, denominator: number): string {
+  const whole = Math.floor(tick / denominator); const part = tick % denominator;
+  return whole && part ? `${whole} ${part}/${denominator}` : whole ? String(whole) : part ? `${part}/${denominator}` : '0';
+}
+
+export function RulerInteraction({ task, onReady, disabled }: {
+  task: NonNullable<WorksheetProblem['rulerTask']>; onReady: (ready: boolean) => void; disabled: boolean;
+}) {
+  const [selected, setSelected] = useState<number | null>(null);
+  const ticks = task.denominator * task.wholes;
+  useEffect(() => { onReady(selected === task.end); }, [onReady, selected, task.end]);
+  return (
+    <div className="fq-ll-custom-model" data-testid="ruler-model">
+      <p>Line up the blue strip with zero. Tap the tick at its end.</p>
+      <div className="fq-ruler-track" role="group" aria-label={`Ruler divided into ${task.denominator} equal spaces per inch`}>
+        <span className="fq-ruler-strip" style={{ width: `${(task.end / ticks) * 100}%` }} />
+        {Array.from({ length: ticks + 1 }, (_, i) => (
+          <button type="button" key={i} className={`fq-ruler-tick ${selected === i ? 'selected' : ''} ${i % task.denominator === 0 ? 'inch' : ''}`}
+            style={{ left: `${(i / ticks) * 100}%` }} aria-pressed={selected === i} disabled={disabled}
+            aria-label={`Mark ${rulerLabel(i, task.denominator)} inches`} onClick={() => setSelected(i)}>
+            <i />{i % task.denominator === 0 && <span>{i / task.denominator}</span>}
+          </button>
+        ))}
+      </div>
+      <p className="fq-ll-custom-status" role="status" aria-live="polite">
+        {selected === task.end ? 'Right at the endpoint. Now enter the length.' : selected === null ? 'Use the tick marks to measure the strip.' : 'That tick does not match the strip end. Try another.'}
+      </p>
+    </div>
+  );
+}
+
+export function LinePlotInteraction({ task, onReady, disabled }: {
+  task: NonNullable<WorksheetProblem['linePlotTask']>; onReady: (ready: boolean) => void; disabled: boolean;
+}) {
+  const tickCount = task.denominator * task.wholes;
+  const expected = Array.from({ length: tickCount + 1 }, (_, tick) => task.values.filter(value => value === tick).length);
+  const [marks, setMarks] = useState<number[]>(() => Array(tickCount + 1).fill(0));
+  const complete = marks.every((count, i) => count === expected[i]);
+  useEffect(() => { onReady(complete); }, [complete, onReady]);
+  return (
+    <div className="fq-ll-custom-model fq-lineplot" data-testid="line-plot-model">
+      <p>Tap the tick for each measurement to stack its X. Tap again to remove an X.</p>
+      <div className="fq-lineplot-grid" role="group" aria-label={`Line plot with ${task.denominator} equal spaces per whole`}>
+        {Array.from({ length: tickCount + 1 }, (_, i) => (
+          <button type="button" key={i} className="fq-lineplot-tick" aria-label={`${rulerLabel(i, task.denominator)}, ${marks[i]} X marks. Add or remove one.`}
+            aria-pressed={marks[i] === expected[i]} disabled={disabled}
+            onClick={() => setMarks(current => current.map((count, index) => index === i ? (count >= expected[i] ? 0 : count + 1) : count))}>
+            <span className="fq-lineplot-xs" aria-hidden="true">{Array.from({ length: marks[i] }, (_, j) => <b key={j}>×</b>)}</span>
+            <i />
+            <small>{rulerLabel(i, task.denominator)}</small>
+          </button>
+        ))}
+      </div>
+      <p className="fq-ll-custom-status" role="status" aria-live="polite">{complete ? 'Your plot matches the measurements. Now answer.' : 'Keep adding X marks until every measurement is plotted.'}</p>
+    </div>
+  );
+}
+
+export function ScaleInteraction({ task, onReady, disabled, id }: {
+  task: NonNullable<WorksheetProblem['scaleTask']>; onReady: (ready: boolean) => void; disabled: boolean; id: string;
+}) {
+  const targetPercent = (task.numerator / task.denominator) * 100;
+  const [percent, setPercent] = useState(100);
+  const complete = Math.abs(percent - targetPercent) < .01;
+  useEffect(() => { onReady(complete); }, [complete, onReady]);
+  return (
+    <div className="fq-ll-custom-model fq-scale-model" data-testid="scale-model">
+      <label htmlFor={`scale-factor-slider-${id}`}>Move the slider to <strong>{task.numerator}/{task.denominator}</strong> of the whole.</label>
+      <input id={`scale-factor-slider-${id}`} type="range" min="0" max="200" step="1" value={percent} disabled={disabled}
+        aria-valuetext={`${percent}% of ${task.whole}`} onChange={event => setPercent(Number(event.target.value))} />
+      <div className="fq-scale-compare" aria-label={`Original whole ${task.whole}; scaled amount ${((task.whole * percent) / 100).toFixed(1)}`}>
+        <div><b>Whole: {task.whole}</b><span className="fq-scale-whole" /></div>
+        <div><b>{percent}% of {task.whole}</b><span className="fq-scale-track"><i style={{ width: `${percent / 2}%` }} /></span></div>
+        <small>100% keeps the same amount. Less than 100% makes less; more than 100% makes more.</small>
+      </div>
+      <p className="fq-ll-custom-status" role="status" aria-live="polite">{complete ? 'The slider shows the factor. Now compare the product with the whole.' : 'Move the slider to the fraction named above.'}</p>
+    </div>
+  );
 }
 
 function Stepper({ label, value, min, max, onSet, id, hint }: { label: string; value: number; min: number; max: number; onSet: (v: number) => void; id: string; hint?: string }) {
@@ -183,10 +264,11 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
 }
 
 type Outcome = { supported: boolean; attempts: number };
-function CheckRunner({ check, onHelp, onPass, review, headingRef }: {
+function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuccess }: {
   check: BuildCheck; review: boolean;
   onHelp: (kind: 'hint' | 'error', keys: string[]) => void; onPass: (o: Outcome) => void;
   headingRef?: RefObject<HTMLHeadingElement | null>;
+  onWrong?: () => void; onSuccess?: () => void;
 }) {
   const t = check.target; const k = t.kind; const lineWholes = numberLineWholeCount(t.n, t.d);
   const tk: Kind = k === 'line' ? 'bar' : 'line';
@@ -231,8 +313,8 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef }: {
       if (!reasonFeedback.correct) keys.push(M.reason);
     }
     if (msgs.length) {
-      setErrs(msgs); setFailedSig(sig); setSupported(true); setAttempts(n => n + 1); onHelp('error', Array.from(new Set(keys)));
-    } else { setErrs([]); setDone(true); onPass({ supported, attempts: attempts + 1 }); }
+      setErrs(msgs); setFailedSig(sig); setSupported(true); setAttempts(n => n + 1); onHelp('error', Array.from(new Set(keys))); onWrong?.();
+    } else { setErrs([]); setDone(true); onSuccess?.(); onPass({ supported, attempts: attempts + 1 }); }
   };
   const hint = () => { setHints(h => h + 1); setSupported(true); onHelp('hint', []); };
 
@@ -284,7 +366,10 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef }: {
   );
 }
 
-export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion }: { p: WorksheetProblem; rec: LearningRecord; onEdit: (v: string) => void; onCheck: () => void; onHint: () => void; onNewQuestion?: () => void }) {
+export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabel, onWrong, onSuccess }: {
+  p: WorksheetProblem; rec: LearningRecord; onEdit: (v: string) => void; onCheck: () => void; onHint: () => void;
+  onNewQuestion?: () => void; numberLabel?: string; onWrong?: () => void; onSuccess?: () => void;
+}) {
   const e = rec.worksheet[p.id]; const draft = e?.draft ?? '';
   const ok = !!e && e.checkedValue === e.draft && answerMatches(p, draft);
   const [open, setOpen] = useState(false);
@@ -293,22 +378,31 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion }: { p: Wor
   const fractionInput = usesFractionEntry(p);
   const promptId = `ws-prompt-${p.id}`;
   const targetBar = p.modelRequired && p.model?.kind === 'bar' ? p.model : null;
-  const gated = !!targetBar || !!(p.area && p.areaTask);
+  const gated = !!targetBar || !!(p.area && p.areaTask) || !!p.rulerTask || !!p.linePlotTask || !!p.scaleTask;
   const [modelReady, setModelReady] = useState(!gated);
   const answerEnabled = canEnterWorksheetAnswer(gated, modelReady);
   const modelStatusId = `ws-model-status-${p.id}`;
   const inputDescription = [promptId, `ws-fb-${p.id}`, ...(gated ? [modelStatusId] : [])].join(' ');
+  const modelKey = JSON.stringify([p.rulerTask, p.linePlotTask, p.scaleTask, p.areaTask]);
+  useEffect(() => {
+    setModelReady(!gated);
+    setWrong(null);
+    setOpen(false);
+  }, [gated, modelKey, p.answer, p.prompt]);
   const submit = (event: { preventDefault: () => void }) => {
     event.preventDefault();
     if (!draft.trim() || !answerEnabled) return;
-    setWrong(answerMatches(p, draft) ? null : draft);
+    const correct = answerMatches(p, draft);
+    setWrong(correct ? null : draft);
+    if (correct) onSuccess?.();
+    else onWrong?.();
     onCheck();
   };
   return (
     <li className={'fq-ll-row ' + (ok ? 'ok' : '')} data-testid={'row-worksheet-' + p.id}>
       <form onSubmit={submit}>
         <div className="fq-ll-row-question">
-          <span className="fq-ll-num" aria-hidden="true">{p.id.slice(1)}</span>
+          <span className="fq-ll-num" aria-hidden="true">{numberLabel ?? p.id.slice(1)}</span>
           <span id={promptId}><LearningText text={p.prompt} speak /></span>
         </div>
         {/* For counting and shading, the tappable bar is the picture, so it is not drawn twice. */}
@@ -316,6 +410,9 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion }: { p: Wor
         {p.area && (p.areaTask
           ? <AreaShade figure={p.area} task={p.areaTask} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />
           : <div className="fq-ll-preview fq-area-preview"><AreaSvg figure={p.area} /></div>)}
+        {p.rulerTask && <RulerInteraction key={modelKey} task={p.rulerTask} disabled={ok} onReady={setModelReady} />}
+        {p.linePlotTask && <LinePlotInteraction key={modelKey} task={p.linePlotTask} disabled={ok} onReady={setModelReady} />}
+        {p.scaleTask && <ScaleInteraction key={modelKey} id={p.id} task={p.scaleTask} disabled={ok} onReady={setModelReady} />}
         {targetBar && <WorksheetBarCopy target={targetBar} task={p.task} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />}
         <div className="fq-ll-answer" aria-busy={!answerEnabled}>
           {fractionInput ? (
@@ -344,10 +441,10 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion }: { p: Wor
   );
 }
 
-export default function LearningLab({ missionId, progress, onChange, onFinish, onBack, onPaper, onRedo, review = false }: {
+export default function LearningLab({ missionId, progress, onChange, onFinish, onBack, onPaper, onRedo, review = false, onWrong, onSuccess }: {
   missionId: string; progress: Progress; onChange: (progress: Progress) => void; onFinish: (nextProgress?: Progress) => void; onBack: () => void; onPaper?: () => void;
   /** Offered once the lesson is finished: practice a part again with new numbers. */
-  onRedo?: (part: RedoPart) => void; review?: boolean;
+  onRedo?: (part: RedoPart) => void; review?: boolean; onWrong?: () => void; onSuccess?: () => void;
 }) {
   const ref = useRef(progress); ref.current = progress;
   const checks = getBuildChecks(missionId);
@@ -391,6 +488,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         <header className="fq-ll-head"><span className="fq-ll-badge"><RotateCcw size={16} /> Later review</span><h2>Show it again</h2>
           <p>Build this one from scratch.</p></header>
         <CheckRunner key={`review-${missionId}`} review check={check}
+          onWrong={onWrong}
+          onSuccess={onSuccess}
           onHelp={(kind, keys) => { if (kind === 'hint' || keys.length) save({ ...bump(cur(), keys), reviewSupportedUntil: Date.now() + 24 * 3600 * 1000, confirmedAt: undefined }); setReviewSupported(true); }}
           onPass={o => {
             if (o.attempts === -1) {
@@ -409,12 +508,15 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const idx = activeCheckIndex;
   const count = worksheetCount(rec, missionId);
   const sum = learningSummary(rec);
+  const reteachPlans = targetedPracticePlans(missionId, rec);
+  const reteachProgress = targetedPracticeCount(missionId, rec);
   const gate = hasLearningGate(progress, missionId);
   const reqs = [
     { label: 'Practice', done: !!rec.practiceDone },
     { label: 'Build it', done: !!rec.checks.build?.passed },
     { label: 'On your own', done: !!rec.checks.transfer?.passed },
     { label: `Worksheet ${count}/12`, done: count === 12 },
+    ...(reteachProgress.total ? [{ label: `Extra practice ${reteachProgress.done}/${reteachProgress.total}`, done: reteachProgress.done === reteachProgress.total }] : []),
   ];
   const next = reqs.find(r => !r.done);
 
@@ -431,6 +533,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         </div>
       </header>
 
+      <LessonTeachingSupport missionId={missionId} />
+
       <ol className="fq-ll-steps" aria-label="Lab progress" data-testid="list-lab-steps">
         {checks.map((c, i) => {
           const e = rec.checks[c.id];
@@ -438,6 +542,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
             {e?.passed ? <Check size={15} /> : i + 1}<span>{i === 0 ? 'Build it' : 'On your own'}{e?.passed ? (e.supported ? ' · with help' : ' · solo') : ''}</span></li>;
         })}
         <li className={idx === -1 ? (count === 12 ? 'done' : 'now') : ''}>3<span>Worksheet {count}/12</span></li>
+        {reteachProgress.total > 0 && <li className={reteachProgress.done === reteachProgress.total ? 'done' : ''}>4<span>Extra practice {reteachProgress.done}/{reteachProgress.total}</span></li>}
       </ol>
 
       {gate && onRedo && (
@@ -461,6 +566,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
       {idx !== -1 && (
         <CheckRunner key={checks[idx].id} review={false} check={checks[idx]}
           headingRef={activeCheckHeading}
+          onWrong={onWrong}
+          onSuccess={onSuccess}
           onHelp={(kind, keys) => {
             const r = bump(cur(), keys); const id = checks[idx].id; const old = r.checks[id];
             save({ ...r, checks: { ...r.checks, [id]: { passed: false, supported: true, attempts: (old?.attempts ?? 0) + (kind === 'error' ? 1 : 0) } } });
@@ -485,10 +592,38 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
               <Row key={p.id} p={p} rec={rec}
                 onEdit={v => save(editWorksheet(cur(), p.id, v))}
                 onCheck={() => save(checkWorksheet(cur(), p))}
+                onWrong={onWrong}
+                onSuccess={onSuccess}
                 onHint={() => { const r = cur(); const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };
                   save({ ...r, helpUses: r.helpUses + 1, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }); }} />
             ))}
           </ol>
+        </section>
+      )}
+
+      {reteachPlans.length > 0 && (
+        <section className="fq-ll-reteach" aria-labelledby="reteach-title" data-testid="section-targeted-reteach">
+          <h3 id="reteach-title">Make this idea clearer</h3>
+          <p>One idea has been tricky more than once: use each new model, then enter the answer. These extra checks help make the idea stick.</p>
+          {reteachPlans.map((plan, planIndex) => (
+            <div className="fq-ll-reteach-plan" key={plan.signal} data-testid={`targeted-reteach-${planIndex + 1}`}>
+              <h4>{plan.signal.length > 110 ? `${plan.signal.slice(0, 107).trimEnd()}…` : plan.signal}</h4>
+              <ol className="fq-ll-rows">
+                {plan.problems.map((problem, problemIndex) => (
+                  <Row key={problem.id} p={problem} rec={rec} numberLabel={`R${problemIndex + 1}`}
+                    onEdit={value => save(editWorksheet(cur(), problem.id, value))}
+                    onCheck={() => save(checkWorksheet(cur(), problem, false))}
+                    onWrong={onWrong}
+                    onSuccess={onSuccess}
+                    onHint={() => {
+                      const record = cur();
+                      const entry = record.worksheet[problem.id] ?? { draft: '', attempts: 0, supported: false };
+                      save({ ...record, helpUses: record.helpUses + 1, worksheet: { ...record.worksheet, [problem.id]: { ...entry, supported: true } } });
+                    }} />
+                ))}
+              </ol>
+            </div>
+          ))}
         </section>
       )}
 
@@ -516,8 +651,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
 /** A second try at a finished lesson's builds or worksheet, with new numbers. Practice only: it is saved apart
     from the lesson's own answers, so completion, unlocks and first-try results never change. */
-export function RedoLab({ missionId, progress, onChange, onBack }: {
-  missionId: string; progress: Progress; onChange: (progress: Progress) => void; onBack: () => void;
+export function RedoLab({ missionId, progress, onChange, onBack, onWrong, onSuccess }: {
+  missionId: string; progress: Progress; onChange: (progress: Progress) => void; onBack: () => void; onWrong?: () => void; onSuccess?: () => void;
 }) {
   const ref = useRef(progress); ref.current = progress;
   const redo = getLearningRecord(progress, missionId).redo;
@@ -554,6 +689,8 @@ export function RedoLab({ missionId, progress, onChange, onBack }: {
           </ol>
           {idx !== -1 && (
             <CheckRunner key={`${redo.round}-${checks[idx].id}`} review={false} check={checks[idx]}
+              onWrong={onWrong}
+              onSuccess={onSuccess}
               onHelp={(kind) => change(r => { const id = checks[idx].id; const old = r.checks[id];
                 return { ...r, checks: { ...r.checks, [id]: { passed: false, supported: true, attempts: (old?.attempts ?? 0) + (kind === 'error' ? 1 : 0) } } }; })}
               onPass={o => change(r => { const id = checks[idx].id; const old = r.checks[id];
@@ -575,6 +712,8 @@ export function RedoLab({ missionId, progress, onChange, onBack }: {
               <Row key={`${p.id}-${redo.round}-${redo.rowRounds[p.id] ?? 0}`} p={p} rec={asRecord(redo.worksheet)}
                 onEdit={v => change(r => ({ ...r, worksheet: editWorksheet(asRecord(r.worksheet), p.id, v).worksheet }))}
                 onCheck={() => change(r => ({ ...r, worksheet: checkWorksheet(asRecord(r.worksheet), p).worksheet }))}
+                onWrong={onWrong}
+                onSuccess={onSuccess}
                 onHint={() => change(r => { const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };
                   return { ...r, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }; })}
                 onNewQuestion={() => change(r => { const { [p.id]: _old, ...worksheet } = r.worksheet;

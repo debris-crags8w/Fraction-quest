@@ -1,0 +1,426 @@
+.fq-assessment-hub,
+.fq-assessment-runner {
+  display: grid;
+  gap: 1.25rem;
+  padding-top: 1.5rem;
+  padding-bottom: 4rem;
+}
+
+.fq-assessment-header {
+  padding: clamp(1.2rem, 4vw, 2rem);
+  border: 1px solid hsl(var(--border));
+  border-radius: 1.4rem;
+  background: linear-gradient(135deg, hsl(var(--card)), hsl(var(--secondary) / .08));
+}
+
+.fq-assessment-header h1 {
+  margin: .45rem 0;
+  font-size: clamp(1.8rem, 4vw, 2.7rem);
+  line-height: 1.1;
+}
+
+.fq-assessment-header > p {
+  max-width: 48rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.6;
+}
+
+.fq-assessment-hub > section > h2 {
+  margin: 1.2rem 0 .8rem;
+  font-size: 1.35rem;
+}
+
+.fq-assessment-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr));
+  gap: .8rem;
+}
+
+.fq-assessment-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  background: hsl(var(--card));
+  box-shadow: 0 3px 0 hsl(var(--border) / .65);
+}
+
+.fq-assessment-card-copy {
+  min-width: 0;
+}
+
+.fq-assessment-card h3 {
+  margin: .3rem 0;
+  font-size: 1rem;
+}
+
+.fq-assessment-card p,
+.fq-assessment-card small {
+  display: block;
+  margin: .25rem 0;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.4;
+}
+
+.fq-assessment-card .fq-assessment-last {
+  color: hsl(var(--foreground));
+  font-weight: 650;
+}
+
+.fq-assessment-kind {
+  display: inline-block;
+  padding: .2rem .5rem;
+  border-radius: 999px;
+  background: hsl(var(--secondary) / .14);
+  color: hsl(var(--secondary));
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.fq-assessment-kind.kind-pre {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.fq-assessment-card .fq-button {
+  flex: 0 0 auto;
+}
+
+.fq-assessment-entry {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  width: 100%;
+  padding: 1rem 1.15rem;
+  border: 2px solid hsl(var(--secondary) / .45);
+  border-radius: 1rem;
+  background: hsl(var(--secondary) / .07);
+  color: hsl(var(--foreground));
+  text-align: left;
+  cursor: pointer;
+}
+
+.fq-assessment-entry:hover,
+.fq-assessment-entry:focus-visible {
+  border-color: hsl(var(--secondary));
+  background: hsl(var(--secondary) / .12);
+}
+
+.fq-assessment-entry-icon {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: .8rem;
+  background: hsl(var(--secondary));
+  color: white;
+}
+
+.fq-assessment-entry > span:nth-child(2) {
+  display: grid;
+  gap: .2rem;
+  flex: 1;
+}
+
+.fq-assessment-entry small {
+  color: hsl(var(--muted-foreground));
+  line-height: 1.4;
+}
+
+.fq-assessment-progress {
+  height: .7rem;
+  margin-top: 1rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: hsl(var(--muted));
+}
+
+.fq-assessment-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: hsl(var(--secondary));
+  transition: width .2s ease;
+}
+
+.fq-assessment-question {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 4vw, 1.7rem);
+  border: 1px solid hsl(var(--border));
+  border-radius: 1.25rem;
+  background: hsl(var(--card));
+}
+
+.fq-assessment-question h2 {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+  line-height: 1.55;
+}
+
+.fq-assessment-model {
+  padding: 1rem;
+  border: 1px dashed hsl(var(--secondary) / .6);
+  border-radius: 1rem;
+  background: hsl(var(--secondary) / .045);
+}
+
+.fq-assessment-model > p:first-child {
+  margin: 0 0 1rem;
+  color: hsl(var(--muted-foreground));
+  font-weight: 650;
+}
+
+.fq-assessment-model-status,
+.fq-assessment-model-gate {
+  margin: .75rem 0 0;
+  color: hsl(var(--muted-foreground));
+  font-weight: 650;
+}
+
+.fq-assessment-model-gate {
+  padding: .75rem;
+  border-radius: .75rem;
+  background: hsl(var(--muted) / .7);
+}
+
+.fq-assessment-line {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0;
+  margin: 1.6rem .25rem .7rem;
+  border-top: 4px solid hsl(var(--secondary));
+}
+
+.fq-assessment-line button {
+  position: relative;
+  display: grid;
+  gap: .45rem;
+  justify-items: center;
+  min-width: 2.5rem;
+  margin-top: -.7rem;
+  border: 0;
+  background: transparent;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+}
+
+.fq-assessment-line button i {
+  width: 1rem;
+  height: 1rem;
+  border: 3px solid hsl(var(--secondary));
+  border-radius: 50%;
+  background: hsl(var(--card));
+}
+
+.fq-assessment-line button[aria-pressed="true"] i {
+  background: hsl(var(--secondary));
+  box-shadow: 0 0 0 3px hsl(var(--secondary) / .16);
+}
+
+.fq-assessment-line button span {
+  min-height: 1.15rem;
+  font-size: .8rem;
+}
+
+.fq-assessment-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+}
+
+.fq-assessment-groups button {
+  display: grid;
+  min-width: 5rem;
+  gap: .35rem;
+  justify-items: center;
+  padding: .6rem;
+  border: 2px solid hsl(var(--border));
+  border-radius: .8rem;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+}
+
+.fq-assessment-groups button[aria-pressed="true"] {
+  border-color: hsl(var(--secondary));
+  background: hsl(var(--secondary) / .12);
+}
+
+.fq-assessment-groups button > span {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .2rem;
+  min-height: 1rem;
+}
+
+.fq-assessment-groups button i {
+  display: block;
+  width: .65rem;
+  height: .65rem;
+  border-radius: 50%;
+  background: hsl(var(--secondary));
+}
+
+.fq-assessment-groups small {
+  font-size: .72rem;
+}
+
+.fq-assessment-strips {
+  display: grid;
+  gap: .8rem;
+}
+
+.fq-assessment-strip-row {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  align-items: center;
+  gap: .75rem;
+}
+
+.fq-assessment-strip-row > span {
+  font-weight: 750;
+  text-align: center;
+}
+
+.fq-assessment-strip-row > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .2rem;
+}
+
+.fq-assessment-strip-row button {
+  width: min(1.3rem, 6vw);
+  height: 2rem;
+  padding: 0;
+  border: 2px solid hsl(var(--secondary));
+  border-radius: .25rem;
+  background: hsl(var(--card));
+  cursor: pointer;
+}
+
+.fq-assessment-strip-row button.selected {
+  background: hsl(var(--secondary));
+}
+
+.fq-assessment-answer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+}
+
+.fq-assessment-answer > input {
+  min-width: min(100%, 16rem);
+  min-height: 3rem;
+  padding: .7rem .9rem;
+  border: 2px solid hsl(var(--border));
+  border-radius: .8rem;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font: inherit;
+}
+
+.fq-assessment-answer > input:disabled {
+  opacity: .65;
+}
+
+.fq-assessment-result {
+  display: grid;
+  justify-items: center;
+  gap: .7rem;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 1px solid hsl(var(--border));
+  border-radius: 1.4rem;
+  background: hsl(var(--card));
+  text-align: center;
+}
+
+.fq-assessment-result h1 {
+  margin: .25rem 0;
+}
+
+.fq-assessment-result p {
+  max-width: 38rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.6;
+}
+
+.fq-parent-mastery-grade + .fq-parent-mastery-grade {
+  margin-top: 1rem;
+}
+
+.fq-parent-mastery-grade h3 {
+  margin: .9rem 0 .35rem;
+}
+
+.fq-mastery-status {
+  display: inline-block;
+  padding: .2rem .55rem;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.fq-mastery-status.status-mastered {
+  background: #d8f4cc;
+  color: #245a13;
+}
+
+.fq-mastery-status.status-developing {
+  background: #fff0c2;
+  color: #704400;
+}
+
+.fq-mastery-status.status-not-yet {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.fq-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 600px) {
+  .fq-assessment-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .fq-assessment-card .fq-button {
+    width: 100%;
+  }
+
+  .fq-assessment-entry {
+    align-items: flex-start;
+  }
+
+  .fq-assessment-answer > input,
+  .fq-assessment-answer > .fq-ll-fraction-entry,
+  .fq-assessment-answer > .fq-button {
+    width: 100%;
+  }
+}
+
+@media print {
+  .fq-assessment-entry,
+  .fq-assessment-hub,
+  .fq-assessment-runner {
+    display: none !important;
+  }
+}

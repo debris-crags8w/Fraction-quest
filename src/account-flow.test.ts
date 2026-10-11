@@ -15,8 +15,9 @@ test('guest work reloads into guest mode only when a guest marker was saved', ()
 test('sign-up and sign-in call their matching account endpoint', async () => {
   const calls: string[] = [];
   const api = {
-    signup: async (body: { username: string; displayName: string; password: string }) => {
+    signup: async (body: { username: string; displayName: string; password: string; parentConsent: boolean }) => {
       calls.push(`signup:${body.username}:${body.displayName}`);
+      assert.equal(body.parentConsent, true);
       return { id: 7 };
     },
     login: async (body: { username: string; password: string }) => {
@@ -24,7 +25,7 @@ test('sign-up and sign-in call their matching account endpoint', async () => {
       return { id: 7 };
     },
   };
-  assert.deepEqual(await authenticateAccount('create', { username: 'star_fox', password: 'abcdefgh' }, api), { id: 7 });
+  assert.deepEqual(await authenticateAccount('create', { username: 'star_fox', password: 'abcdefgh', parentConsent: true }, api), { id: 7 });
   assert.deepEqual(await authenticateAccount('sign-in', { username: 'star_fox', password: 'abcdefgh' }, api), { id: 7 });
   assert.deepEqual(calls, ['signup:star_fox:star_fox', 'login:star_fox']);
 });
@@ -131,6 +132,26 @@ test('failed progress saves remain pending and can be retried without replacing 
   assert.deepEqual(calls, [1, 2]);
   assert.equal(queue.peekPending(), null);
   assert.equal(statuses.at(-1), 'saved');
+});
+
+test('offline learner progress survives a page reload and clears after a successful retry', async () => {
+  let persisted: number | null = null;
+  let online = false;
+  const makeQueue = () => createProgressSaveQueue<number>(
+    async () => { if (!online) throw new Error('offline'); },
+    () => {},
+    { load: () => persisted, store: (value) => { persisted = value; } },
+  );
+  const beforeReload = makeQueue();
+  beforeReload.enqueue(42, 60_000);
+  assert.equal(await beforeReload.flush(), false);
+  assert.equal(persisted, 42);
+
+  online = true;
+  const afterReload = makeQueue();
+  assert.equal(afterReload.peekPending(), 42);
+  assert.equal(await afterReload.flush(), true);
+  assert.equal(persisted, null);
 });
 
 test('student sign-up, saved-progress return visit, sign-out, and sign-in complete without mixing devices', async () => {

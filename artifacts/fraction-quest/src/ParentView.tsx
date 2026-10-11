@@ -5,6 +5,11 @@ import type { FunState } from './lib/fun';
 import { buildParentReport, type LessonRow } from './parent-report';
 import { AnswerKey } from './Printables';
 import { LearningVoicePicker } from './LearningText';
+import { FamilyGuide } from './FamilyGuide';
+import { BreakSettings } from './BreakSettings';
+import type { BreakPreferences } from './lib/fun';
+import type { DisplayPreferences } from './lib/fun';
+import FamilyControls from './FamilyControls';
 
 const STATUS: Record<LessonRow['status'], string> = { done: 'Done', started: 'In progress', skipped: 'Skipped by quiz', open: 'Open', locked: 'Locked' };
 
@@ -38,9 +43,35 @@ function GrownUpGate({ onPass, onBack }: { onPass: () => void; onBack: () => voi
 }
 
 const percent = (value: number | null) => (value === null ? '—' : `${value}%`);
+const MASTERY_LABEL = { mastered: 'Mastered', developing: 'Developing', 'not-yet': 'Not yet assessed' } as const;
 
-export default function ParentView({ progress, fun, unitTitles, childName, onBack }: {
+function DisplaySettings({ preferences, onChange }: { preferences: DisplayPreferences; onChange: (next: DisplayPreferences) => void }) {
+  return (
+    <section className="fq-parent-section fq-display-settings" aria-labelledby="display-settings-title" data-testid="section-display-settings">
+      <h2 id="display-settings-title">Reading and display</h2>
+      <p className="fq-parent-note">These choices apply to the active learner profile and sync with its saved preferences.</p>
+      <label className="fq-display-setting">
+        <span><strong>Text size</strong><small>Increase the whole app’s text for easier reading.</small></span>
+        <select aria-label="Text size" value={preferences.textSize} onChange={(event) => onChange({ ...preferences, textSize: event.target.value === 'large' ? 'large' : 'standard' })}>
+          <option value="standard">Standard</option><option value="large">Larger text</option>
+        </select>
+      </label>
+      <label className="fq-display-setting">
+        <span><strong>High contrast</strong><small>Strengthen text, borders, and focus indicators.</small></span>
+        <input type="checkbox" checked={preferences.highContrast} onChange={(event) => onChange({ ...preferences, highContrast: event.target.checked })} />
+      </label>
+      <label className="fq-display-setting">
+        <span><strong>Reduce motion</strong><small>Use fewer animations and transitions.</small></span>
+        <input type="checkbox" checked={preferences.reducedMotion} onChange={(event) => onChange({ ...preferences, reducedMotion: event.target.checked })} />
+      </label>
+    </section>
+  );
+}
+
+export default function ParentView({ progress, fun, unitTitles, childName, onBack, onBreakPreferencesChange, onDisplayPreferencesChange }: {
   progress: Progress; fun: FunState; unitTitles: string[]; childName: string | null; onBack: () => void;
+  onBreakPreferencesChange: (preferences: BreakPreferences) => void;
+  onDisplayPreferencesChange: (preferences: DisplayPreferences) => void;
 }) {
   const [unlocked, setUnlocked] = useState(false);
   const [answerKeyLessonId, setAnswerKeyLessonId] = useState(MISSIONS[0].id);
@@ -100,6 +131,17 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
 
           <LearningVoicePicker />
 
+          <BreakSettings
+            intervalMinutes={fun.breakPreferences?.intervalMinutes ?? 15}
+            quietMode={fun.breakPreferences?.quietMode ?? false}
+            onChange={onBreakPreferencesChange}
+          />
+          <DisplaySettings
+            preferences={fun.displayPreferences ?? { textSize: 'standard', highContrast: false, reducedMotion: false }}
+            onChange={onDisplayPreferencesChange}
+          />
+          <FamilyControls unitTitles={unitTitles} />
+
           <section className="fq-parent-section fq-parent-code-progress" data-testid="parent-code-progress">
             <h2>Coding levels passed</h2>
             <p className="fq-parent-note">Coding progress is separate from fraction lesson mastery. A level counts when its robot program reaches the mission target.</p>
@@ -112,6 +154,38 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
                 {report.codeMissionRows.map((row) => <li key={row.id} data-testid={`parent-code-${row.id}`}><span>{row.title}</span><strong>{row.levelsPassed} / 3 levels passed</strong></li>)}
               </ul>
             ) : <p className="fq-parent-code-empty">No coding levels passed yet. Each mission has three: fill in numbers, build blocks, and fix a bug.</p>}
+          </section>
+
+          <section className="fq-parent-section fq-parent-standard-mastery" data-testid="parent-standard-mastery">
+            <h2>Fraction standards</h2>
+            <p className="fq-parent-note">
+              {report.assessmentChecksCompleted} non-diagnostic check-ins completed. Mastery requires at least 80% accuracy,
+              three correct model-and-answer items, and evidence from two different checks at least a day apart. Before-you-start checks are diagnostic only.
+            </p>
+            {([3, 4, 5] as const).map(grade => {
+              const rows = report.standardMastery.filter(row => row.grade === grade);
+              if (!rows.length) return null;
+              return (
+                <div key={grade} className="fq-parent-mastery-grade">
+                  <h3>Grade {grade}</h3>
+                  <div className="fq-parent-table-wrap">
+                    <table className="fq-parent-table">
+                      <thead><tr><th>Standard</th><th>Evidence</th><th>Status</th></tr></thead>
+                      <tbody>
+                        {rows.map(row => (
+                          <tr key={row.standard} data-testid={`parent-standard-${row.standard}`}>
+                            <td><b>{row.standard}</b> · {row.title}</td>
+                            <td>{row.attempted ? `${row.correct}/${row.attempted} correct · ${row.assessmentCount} checks` : 'No eligible check-in yet'}</td>
+                            <td><span className={`fq-mastery-status status-${row.status}`}>{MASTERY_LABEL[row.status]}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })}
+            <p className="fq-parent-note">Only the latest result for each check-in counts. Lesson completion, placement results, and game scores do not establish standard mastery.</p>
           </section>
 
           <section className="fq-parent-section">
@@ -194,6 +268,8 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
               </button>
             </div>
           </section>
+
+          <FamilyGuide unitTitles={unitTitles} />
 
           <footer className="fq-parent-foot">
             <p><b>How to read this.</b> "First try" counts worksheet answers that were right the first time they were checked. "Builds" are the bar and number-line tasks: "On their own" means no hints and no wrong tries. "Remembered" means your child rebuilt it correctly on a later day without help.</p>

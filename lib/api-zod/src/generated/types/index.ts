@@ -6,9 +6,23 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './classroom';
+export * from './classroomInput';
+export * from './classroomJoinInput';
+export * from './classroomLearner';
+export * from './classroomMembership';
+export * from './consentInput';
 export * from './errorResponse';
 export * from './healthStatus';
+export * from './learnerExport';
+export * from './learnerExportFun';
+export * from './learnerExportProgress';
+export * from './learnerProfile';
+export * from './learnerProfileInput';
+export * from './learnerProfileUpdate';
 export * from './loginRequest';
+export * from './privacyExport';
+export * from './privacyExportAccount';
 export * from './progressPayload';
 export * from './progressPayloadFun';
 export * from './progressPayloadProgress';
@@ -16,4 +30,6 @@ export * from './savedProgress';
 export * from './savedProgressFun';
 export * from './savedProgressProgress';
 export * from './signupRequest';
+export * from './unitAssignment';
+export * from './unitAssignmentInput';
 export * from './user';

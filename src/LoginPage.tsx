@@ -12,6 +12,7 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
+  const [parentConsent, setParentConsent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -25,6 +26,7 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
     setError('');
     if (creating && !/^[A-Za-z0-9_]{3,20}$/.test(username.trim())) { setError('Usernames are 3–20 letters, numbers or _ (no spaces).'); return; }
     if (creating && password.length < 8) { setError('Passwords need at least 8 characters.'); return; }
+    if (creating && !parentConsent) { setError('A parent or caregiver must review and accept the privacy notice.'); return; }
     setBusy(true);
     try {
       const normalizedUsername = username.trim();
@@ -32,6 +34,7 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
         username: normalizedUsername,
         displayName: (displayName.trim() || normalizedUsername).slice(0, 30),
         password,
+        parentConsent,
       }, { login, signup });
       await onSignedIn(user);
     } catch (err) {
@@ -68,9 +71,10 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
 
           {creating && (
             <>
-              <label htmlFor="login-display-name">Name to show in the app</label>
+              <label htmlFor="login-display-name">First learner’s nickname</label>
               <input id="login-display-name" name="nickname" autoComplete="nickname" maxLength={30}
-                value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your first name or nickname" data-testid="input-display-name" />
+                value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="A nickname for the learner" data-testid="input-display-name" />
+              <small>This becomes the first learner profile. Use a nickname; classroom reports show only a code.</small>
             </>
           )}
 
@@ -83,15 +87,27 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
             </button>
           </div>
 
+          {creating && (
+            <fieldset className="fq-privacy-consent">
+              <legend>For a parent or caregiver</legend>
+              <p>Fraction Quest saves the account username and display name, learner nicknames, lesson answers and progress, and app preferences so learning can continue on another device. Class reports use a learner code, not the learner’s nickname. We do not ask for email or record audio.</p>
+              <label className="fq-privacy-consent-check">
+                <input type="checkbox" checked={parentConsent} onChange={(event) => setParentConsent(event.target.checked)} />
+                <span>I am a parent or caregiver. I reviewed this notice and agree to save this account’s learning data online.</span>
+              </label>
+              <small>This check is an adult reminder, not identity verification. Guest play stays on this device.</small>
+            </fieldset>
+          )}
+
           {error && <p className="fq-login-error" role="alert" data-testid="text-login-error">{error}</p>}
 
-          <button type="submit" className="fq-button fq-login-submit" disabled={busy || !username.trim() || !password} data-testid="button-login-submit">
+          <button type="submit" className="fq-button fq-login-submit" disabled={busy || !username.trim() || !password || (creating && !parentConsent)} data-testid="button-login-submit">
             {busy ? 'One moment…' : creating ? 'Create my account' : 'Sign in'} {!busy && <ArrowRight size={17} />}
           </button>
         </form>
 
         {creating
-          ? <p className="fq-login-help">Ask a grown-up before making an account. We only save your username, the name you choose and your progress. No email needed.</p>
+          ? <p className="fq-login-help">A parent or caregiver must create the online account. You can also play as a guest without saving data online.</p>
           : <p className="fq-login-help">Forgot your password? Ask your teacher or a grown-up for help. Passwords can't be reset by email yet.</p>}
 
         <div className="fq-login-guest">
