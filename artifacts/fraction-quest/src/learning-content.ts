@@ -8,6 +8,16 @@ export type BuildCheck = {
   id: string; prompt: string; target: LearningModel; reasons: string[];
   correctReason: number; explanation: string; transfer: boolean;
 };
+export type ReasonFeedback = { message: string; correct: boolean };
+
+/** Keep reasoning feedback separate from model errors so a correct explanation is not blamed for a bad build. */
+export function getReasonFeedback(check: BuildCheck, selected: number | null, modelsCorrect: boolean): ReasonFeedback | null {
+  if (selected === null) return { message: 'Reason: Choose the explanation that best matches the fraction idea.', correct: false };
+  if (selected !== check.correctReason) return { message: `Reason: That explanation is not correct. ${check.explanation}`, correct: false };
+  if (!modelsCorrect) return { message: 'Reason: Your explanation is correct; fix the model issue above.', correct: true };
+  return null;
+}
+
 const model = (n: number, d: number, kind: LearningModel['kind'] = 'bar', total?: number): LearningModel =>
   ({ n, d, kind, total, wholes: Math.max(1, Math.ceil(n / d)) });
 const f = (n: number, d: number) => `${n}/${d}`;
