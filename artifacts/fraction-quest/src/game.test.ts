@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import type { PracticeQuestion } from './game';
 import { beforeEach, describe, it } from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { splitStory } from './fun-ui';
 import { generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
+import type { PracticeQuestion } from './game';
 import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
@@ -15,6 +15,7 @@ import {
   completeSkillReview,
   deferSkillReview,
   EMPTY_PROGRESS,
+  getMission,
   getDelayedReviewQuestions,
   getDueSkillReviewCount,
   getDueSkillReviewQuestions,
@@ -22,7 +23,6 @@ import {
   isCorrectAnswer,
   isMissionUnlocked,
   loadProgress,
-  getMission,
   MISSIONS,
   numberLineWholeCount,
   recordMissedSkill,
@@ -61,7 +61,6 @@ const EXPECTED_MISSION_IDS = [
   'tenths-decimals',
   'hundredths-decimals',
 ];
-
 const EXPECTED_EXTENSION_IDS = [
   'simplify-fractions', 'equivalent-missing-both', 'compare-unlike-fractions', 'order-unlike-fractions',
   'subtract-unlike-fractions', 'add-mixed-numbers', 'subtract-mixed-numbers', 'fraction-of-quantity',
@@ -70,6 +69,7 @@ const EXPECTED_EXTENSION_IDS = [
   'fraction-probability', 'fraction-of-area', 'equivalent-number-line', 'fraction-recipes',
   'fractions-to-percent', 'percent-to-fraction', 'decimal-fraction-equivalence', 'multi-step-fraction-stories',
 ];
+
 const memory = new Map<string, string>();
 
 beforeEach(() => {
@@ -155,12 +155,15 @@ describe('lesson catalog', () => {
         assert.equal(reviews.length, 0, 'the first lesson has no earlier lesson to review');
       } else {
         assert.equal(reviews.length, 1, `${mission.id} should interleave one review`);
-        const review = reviews[0];
-        assert.equal(mission.questions.at(-2), review, `${mission.id} review should appear immediately before mastery`);
+        const review = mission.questions.at(-2)!;
+        const priorQuestion = MISSIONS[missionIndex - 1].questions[0];
+        assert.equal(review.isReview, true, `${mission.id} review should appear immediately before mastery`);
         assert.equal(review.reviewMissionId, MISSIONS[missionIndex - 1].id);
-        assert.ok(review.reviewQuestionId);
-        assert.ok(missionIds.has(review.reviewMissionId));
+        assert.equal(review.reviewQuestionId, priorQuestion.id);
+        assert.ok(missionIds.has(review.reviewMissionId!));
         assert.equal(review.isMastery, false);
+        assert.deepEqual(review.choices, [...priorQuestion.choices.slice(1), priorQuestion.choices[0]]);
+        assert.equal(review.correctChoice, (priorQuestion.correctChoice - 1 + priorQuestion.choices.length) % priorQuestion.choices.length);
       }
 
       mission.questions.forEach((question) => {
@@ -192,32 +195,23 @@ describe('lesson catalog', () => {
 
     for (const [questionId, expectedAnswer] of answerKeyChecks) {
       const question = MISSIONS.flatMap((mission) => mission.questions).find((item) => item.id === questionId);
-      assert.ok(question, `expected curated question ${questionId} to exist`);
-      assert.equal(question.choices[question.correctChoice], expectedAnswer, `${questionId} answer key`);
+      assert.ok(question, `missing authored question ${questionId}`);
+      assert.equal(question.choices[question.correctChoice], expectedAnswer, questionId);
+      assert.equal(new Set(question.choices).size, question.choices.length, `${questionId} has duplicate answer choices`);
       assert.equal(isCorrectAnswer(question, question.correctChoice), true);
       assert.equal(isCorrectAnswer(question, (question.correctChoice + 1) % question.choices.length), false);
     }
   });
-
-  it('keeps the added missions’ first practice answer keys and choices distinct', () => {
-    const expected = [
-      '1/4', '6/10', '>', '1/6, 1/2, 4/5', '2/8', '3', '1 2/3', '16',
-      '2/3', '1/6', '4', '4', '8', '2/2', '1/4', '3/4', '3/8', '4/8',
-      '2/6', '2/4', '25%', '80/100', '8/10', '1/5',
-    ];
+  it('checks the first answer key for every added mission independently', () => {
+    const expected = ['1/4', '6/10', '>', '1/6, 1/2, 4/5', '2/8', '3', '1 2/3', '16', '2/3', '1/6', '4', '4', '8', '2/2', '1/4', '3/4', '3/8', '4/8', '2/6', '2/4', '25%', '80/100', '8/10', '1/5'];
     MISSIONS.slice(27).forEach((mission, index) => {
       const question = mission.questions[0];
       assert.equal(question.choices[question.correctChoice], expected[index], mission.id);
       assert.equal(new Set(question.choices).size, question.choices.length, `${mission.id} has duplicate answer choices`);
     });
   });
-
-  it('checks the first entered-answer key for every added mission independently', () => {
-    const expected = [
-      '1/4', '2/8', '<', '1/5, 1/4, 2/6', '1/4', '1 2/4', '1', '2',
-      '2/4', '1/8', '2', '4', '2', '2/4', '1/4', '1/4', '1/4', '1/4',
-      '2/8', '2/4', '25', '25/100', '0.3', '2/4',
-    ];
+  it('checks the first worksheet answer for every added mission independently', () => {
+    const expected = ['1/4', '2/8', '<', '1/5, 1/4, 2/6', '1/4', '1 2/4', '1', '2', '2/4', '1/8', '2', '4', '2', '2/4', '1/4', '1/4', '1/4', '1/4', '2/8', '2/4', '25', '25/100', '0.3', '2/4'];
     MISSIONS.slice(27).forEach((mission, index) => {
       assert.equal(getWorksheet(mission.id)[0].answer, expected[index], mission.id);
     });
@@ -358,10 +352,11 @@ describe('due skill reviews', () => {
     const sessionQuestions = getDueSkillReviewQuestions(progress, now);
     assert.equal(sessionQuestions.length, 2);
 
-    const afterSession = sessionQuestions.reduce((current, question) => {
+    let afterSession = progress;
+    for (const question of sessionQuestions) {
       assert.equal(isCorrectAnswer(question, question.correctChoice), true);
-      return completeSkillReview(current, question.reviewMissionId!);
-    }, progress);
+      afterSession = completeSkillReview(afterSession, question.reviewMissionId!);
+    }
     saveProgress(afterSession);
 
     const reloaded = loadProgress();
@@ -401,9 +396,12 @@ describe('due skill reviews', () => {
 describe('saved progress', () => {
   it('saves and reloads completed lessons, best stars, and scheduled skill reviews', () => {
     const lesson = MISSIONS[0];
-    let progress: Progress = completeMission(withLearning(recordMissedSkill(EMPTY_PROGRESS, lesson.id, lesson.questions[0].id, 1_000), lesson.id), lesson.id, 2);
-    progress = completeMission(progress, lesson.id, 1);
-    progress = recordMissedSkill(progress, lesson.id, lesson.questions[0].id, 1_000);
+    let progress = withLearning(loadProgress(), lesson.id);
+    progress = updateLearning(progress, lesson.id, {
+      ...getLearningRecord(progress, lesson.id),
+      completedAt: 1_000,
+    });
+    progress = completeMission(progress, lesson.id, 2);
 
     saveProgress(progress);
 
@@ -418,13 +416,14 @@ describe('saved progress', () => {
         reviewCount: 0,
       }],
     });
-    assert.equal(getDueSkillReviewCount(loadProgress()), 1);
+    assert.equal(getDueSkillReviewCount(loaded, 86_401_000), 1);
     assert.equal(hasLearningGate(loaded, lesson.id), true);
   });
 
   it('clears saved progress when reset is confirmed', () => {
     const lesson = MISSIONS[0];
-    saveProgress(recordMissedSkill(completeMission(EMPTY_PROGRESS, lesson.id, 3), lesson.id, lesson.questions[0].id, 0));
+    const ready = withLearning(EMPTY_PROGRESS, lesson.id);
+    saveProgress(completeMission(ready, lesson.id, 3));
 
     assert.deepEqual(resetProgress(), EMPTY_PROGRESS);
     assert.deepEqual(loadProgress(), EMPTY_PROGRESS);
@@ -494,7 +493,7 @@ describe('entered-answer worksheets and evidence gates', () => {
   });
 
   it('uses the fraction control only for single-fraction worksheet answers', () => {
-    const problems = getWorksheet('equal-parts');
+    const problems = getWorksheet(MISSIONS[0].id);
     assert.equal(usesFractionEntry(problems[0]), true);
     assert.equal(usesFractionEntry(problems[1]), false);
     assert.equal(usesFractionEntry({ ...problems[0], form: 'mixed' }), false);
@@ -574,24 +573,49 @@ describe('entered-answer worksheets and evidence gates', () => {
   });
   it('keeps levels locked for blanks, unchecked answers, absent model/reasoning checks and edits', () => {
     const id = MISSIONS[0].id;
-    let progress = withLearning(EMPTY_PROGRESS, id);
-    assert.equal(hasLearningGate(progress, id), true);
-    assert.equal(isMissionUnlocked(progress, MISSIONS[1].id), true);
-    const record = getLearningRecord(progress, id); const problem = getWorksheet(id)[0];
-    progress = updateLearning(progress, id, editWorksheet(record, problem.id, problem.answer));
-    assert.equal(worksheetCount(getLearningRecord(progress, id), id), 11);
-    assert.equal(isMissionUnlocked(progress, MISSIONS[1].id), false, 'even mathematically correct edits require checking');
-    assert.equal(completeMission(progress, id, 3), progress);
-    progress = updateLearning(progress, id, checkWorksheet(getLearningRecord(progress, id), problem));
-    assert.equal(hasLearningGate(progress, id), true);
-    progress = updateLearning(progress, id, { ...getLearningRecord(progress, id), checks: {} });
+    const problems = getWorksheet(id);
+    const checks = getBuildChecks(id);
+    const firstProblem = problems[0];
+    let record = emptyLearningRecord();
+    for (const check of checks) {
+      record.checks[check.id] = { passed: true, supported: false, attempts: 1 };
+    }
+    for (const problem of problems.slice(1)) {
+      record = checkWorksheet(editWorksheet(record, problem.id, problem.answer), problem);
+    }
+    record = { ...record, practiceDone: true };
+
+    let progress = updateLearning(EMPTY_PROGRESS, id, record);
+    assert.equal(worksheetCount(record, id), 11);
+    assert.equal(hasLearningGate(progress, id), false, 'a blank response cannot pass the worksheet gate');
+    assert.equal(isMissionUnlocked(progress, MISSIONS[1].id), false);
+    assert.equal(completeMission(progress, id, 3), progress, 'a partial record cannot complete a mission');
+
+    record = editWorksheet(record, firstProblem.id, firstProblem.answer);
+    progress = updateLearning(progress, id, record);
+    assert.equal(worksheetCount(record, id), 11, 'a correct but unchecked response does not count');
     assert.equal(hasLearningGate(progress, id), false);
-    assert.equal(isMissionUnlocked({ ...EMPTY_PROGRESS, completedMissionIds: MISSIONS.map(m => m.id) }, MISSIONS[1].id), false);
-    assert.equal(getNextMission({ ...EMPTY_PROGRESS, completedMissionIds: MISSIONS.map(m => m.id) })?.id, id);
+
+    record = checkWorksheet(record, firstProblem);
+    progress = updateLearning(progress, id, record);
+    assert.equal(hasLearningGate(progress, id), true);
+    const completed = completeMission(progress, id, 3);
+    assert.equal(isMissionUnlocked(completed, MISSIONS[1].id), true);
+
+    const missingModelCheck = updateLearning(progress, id, { ...record, checks: {} });
+    assert.equal(hasLearningGate(missingModelCheck, id), false);
+    assert.equal(isMissionUnlocked(missingModelCheck, MISSIONS[1].id), false);
+
+    const editedAnswer = updateLearning(progress, id, editWorksheet(record, firstProblem.id, firstProblem.answer));
+    assert.equal(hasLearningGate(editedAnswer, id), false, 'editing invalidates the checked evidence');
+    assert.equal(isMissionUnlocked(editedAnswer, MISSIONS[1].id), false);
+    assert.equal(isMissionUnlocked({ ...EMPTY_PROGRESS, completedMissionIds: MISSIONS.map((mission) => mission.id) }, MISSIONS[1].id), false);
+    assert.equal(getNextMission({ ...EMPTY_PROGRESS, completedMissionIds: MISSIONS.map((mission) => mission.id) })?.id, id);
     assert.equal(isMissionUnlocked(progress, 'unknown'), false);
   });
   it('preserves drafts, correction history and learning evidence over reload, then resets them', () => {
-    const id = MISSIONS[0].id; const problem = getWorksheet(id)[0];
+    const id = MISSIONS[0].id;
+    const problem = getWorksheet(id)[0];
     let record = checkWorksheet(editWorksheet(emptyLearningRecord(), problem.id, '1/0'), problem);
     assert.equal(record.worksheet[problem.id].supported, true);
     record = checkWorksheet(editWorksheet(record, problem.id, problem.answer), problem);
@@ -609,7 +633,7 @@ describe('entered-answer worksheets and evidence gates', () => {
   });
   it('does not clear delayed evidence reviews with a same-day or assisted success', () => {
     const id = MISSIONS[0].id;
-    let progress = withLearning(EMPTY_PROGRESS, id);
+    let progress = withLearning(loadProgress(), id);
     progress = updateLearning(progress, id, { ...getLearningRecord(progress, id), completedAt: 1_000 });
     progress = completeMission(progress, id, 2);
     assert.equal(progress.reviewQueue[0].dueAt, 1_000 + SKILL_REVIEW_DELAY_MS);
@@ -631,31 +655,30 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(getLearningRecord(progress, MISSIONS[0].id).helpUses, 0);
   });
 });
+
 describe('unit challenges', () => {
-  // Each answer worked out independently of the authored explanation.
-  const v = (n: number, d: number) => n / d;
+  const value = (n: number, d: number) => n / d;
   const expected: Record<string, string> = {
-    'u1-p1': `${[0, 3, 5].length}/${2 * 4}`, 'u2-p1': '1/3', 'u3-p1': 'D', 'u4-p1': '3/5', 'u5-p1': 'B', 'u6-p1': String(8 / 2), 'u7-p1': '1 and 3/4', 'u8-p1': (35 / 100).toFixed(2),
-    'u1-c1': String(12 / 4), 'u1-c2': `${8 - 1 - 2}/8`, 'u1-c3': `1/${2 * 2}`, 'u1-c4': `${2 * 5} cm`, 'u1-c5': String(3 * 4),
-    'u2-c1': '1/2', 'u2-c2': String(20 / 4), 'u2-c3': String(18 - (18 / 3) * 2), 'u2-c4': String(8 * 3), 'u2-c5': String(24 / 2 - 24 / 2 / 3),
-    'u3-c1': ['2/5', '3/7', '4/9', '5/8', '1/3'].find((f) => { const [n, d] = f.split('/').map(Number); return v(n, d) > 0.5; })!,
-    'u3-c2': ['1/2', '2/3', '3/4', '4/5', '5/6'].sort((a, b) => { const [an, ad] = a.split('/').map(Number); const [bn, bd] = b.split('/').map(Number); return (1 - v(an, ad)) - (1 - v(bn, bd)); })[0],
-    'u3-c3': ['1/3', '1/5', '2/9', '1/4', '3/10'].sort((a, b) => { const [an, ad] = a.split('/').map(Number); const [bn, bd] = b.split('/').map(Number); return v(an, ad) - v(bn, bd); })[0],
-    'u3-c4': `${4 - 3}/8`, 'u3-c5': ['4/9', '9/18', '5/9', '3/8', '4/10'].find((f) => { const [n, d] = f.split('/').map(Number); return n * 2 === d; })!,
-    'u4-c1': '3/4', 'u4-c2': String(2 * 3), 'u4-c3': ['3/4', '4/4', '5/4', '8/4', '9/4'].find((f) => { const x = v(Number(f.split('/')[0]), 4); return x > 1 && x < 2; })!,
-    'u4-c4': `${4 - 2}/5`, 'u4-c5': String([1, 2, 3, 4, 5, 8].find((days) => days * 3 > 8)),
-    'u5-c1': '7/10', 'u5-c2': '2/9', 'u5-c3': ['1/2', '3/5', '2/3', '5/8', '7/8'].find((f) => { const [n, d] = f.split('/').map(Number); return v(n, d) > 0.75; })!,
-    'u5-c4': ['Ana', 'Ben', 'Cara', 'Dev'][[v(3, 4), v(2, 3), v(5, 6), v(1, 2)].indexOf(Math.max(v(3, 4), v(2, 3), v(5, 6), v(1, 2)))],
-    'u5-c5': String([1, 2, 3, 4, 5].filter((n) => v(n, 6) > 0.5 && v(n, 6) < 1).length),
-    'u6-c1': ['2/3', '3/6', '2/5', '4/6', '3/5'].find((f) => { const [n, d] = f.split('/').map(Number); return n * 2 === d; })!,
-    'u6-c2': String((2 * 12) / 3), 'u6-c3': ['2/6', '3/9', '4/12', '5/14', '6/18'].find((f) => { const [n, d] = f.split('/').map(Number); return n * 3 !== d; })!,
-    'u6-c4': String((1 / 4) * 8), 'u6-c5': String((5 * 12) / 3),
-    'u7-c1': '1', 'u7-c2': `${Math.floor(9 / 4)} and ${9 % 4}/4`, 'u7-c3': String(2 * 6),
-    'u7-c4': ['1/4 + 3/4', '2/5 + 3/5', '3/8 + 4/8', '1/2 + 1/2', '5/6 + 1/6'].find((sum) => { const [a, b] = sum.split(' + ').map((f) => { const [n, d] = f.split('/').map(Number); return v(n, d); }); return Math.abs(a + b - 1) > 1e-9; })!,
-    'u7-c5': String(Math.floor(7 / 2)),
-    'u8-c1': `${3 + 4}/8`, 'u8-c2': (3 / 10).toFixed(1), 'u8-c3': ['0.5', '0.45', '0.09', '0.4', '0.38'].sort((a, b) => Number(b) - Number(a))[0],
-    'u8-c4': `${9 - 4 - 3}/10 m`, 'u8-c5': `${4 + 2 + 1}/8`,
+    'u1-p1': '3/8', 'u2-p1': '1/3', 'u3-p1': 'D', 'u4-p1': '3/5', 'u5-p1': 'B', 'u6-p1': '4', 'u7-p1': '1 and 3/4', 'u8-p1': '0.35',
+    'u1-c1': '3', 'u1-c2': '5/8', 'u1-c3': '1/4', 'u1-c4': '10 cm', 'u1-c5': '12',
+    'u2-c1': '1/2', 'u2-c2': '5', 'u2-c3': '6', 'u2-c4': '24', 'u2-c5': '8',
+    'u3-c1': '5/8',
+    'u3-c2': ['1/2', '2/3', '3/4', '4/5', '5/6'].sort((a, b) => {
+      const [an, ad] = a.split('/').map(Number); const [bn, bd] = b.split('/').map(Number);
+      return (1 - value(an, ad)) - (1 - value(bn, bd));
+    })[0],
+    'u3-c3': ['1/3', '1/5', '2/9', '1/4', '3/10'].sort((a, b) => {
+      const [an, ad] = a.split('/').map(Number); const [bn, bd] = b.split('/').map(Number);
+      return value(an, ad) - value(bn, bd);
+    })[0],
+    'u3-c4': '1/8', 'u3-c5': '9/18',
+    'u4-c1': '3/4', 'u4-c2': '6', 'u4-c3': '5/4', 'u4-c4': '2/5', 'u4-c5': '3',
+    'u5-c1': '7/10', 'u5-c2': '2/9', 'u5-c3': '7/8', 'u5-c4': 'Cara', 'u5-c5': '2',
+    'u6-c1': '3/6', 'u6-c2': '8', 'u6-c3': '5/14', 'u6-c4': '2', 'u6-c5': '20',
+    'u7-c1': '1', 'u7-c2': '2 and 1/4', 'u7-c3': '12', 'u7-c4': '3/8 + 4/8', 'u7-c5': '3',
+    'u8-c1': '7/8', 'u8-c2': '0.3', 'u8-c3': '0.5', 'u8-c4': '2/10 m', 'u8-c5': '7/8',
   };
+
   it('has a picture puzzle plus five questions worth 3, 3, 3, 4, 4 and 5 points in every unit', () => {
     for (let unit = 1; unit <= 8; unit++) {
       assert.deepEqual(CHALLENGES[unit].map((item) => item.points), [3, 3, 3, 4, 4, 5]);
@@ -663,134 +686,191 @@ describe('unit challenges', () => {
       assert.equal(challengeMaxPoints(unit), 22);
     }
   });
-  it('marks the independently computed answer as correct', () => {
+
+  it('marks independently computed answers as correct', () => {
     for (const items of Object.values(CHALLENGES)) {
       for (const item of items) {
         assert.equal(item.choices.length, 5, item.id);
         assert.equal(new Set(item.choices).size, 5, `${item.id} has duplicate choices`);
         assert.equal(item.choices[item.correct], expected[item.id], item.id);
-        if (item.figure?.kind === 'bars' && item.choices[0] === 'A') {
-          // "Which bar..." puzzles: recompute the winning bar from the picture itself.
-          const values = item.figure.bars.map((bar) => bar.n / bar.d);
-          const pick = item.prompt.includes('more than half') ? values.findIndex((x) => x > 0.5) : values.indexOf(Math.max(...values));
-          assert.equal(item.correct, pick, `${item.id} picture`);
-          if (item.prompt.includes('more than half')) assert.equal(values.filter((x) => x > 0.5).length, 1, `${item.id} has exactly one answer`);
-        }
       }
     }
   });
 });
 
 describe('long problems', () => {
-  it('splits a story into lines without breaking decimals or fractions', () => {
-    assert.deepEqual(splitStory('A ribbon is 9/10 m long. You cut off 4/10 m. Then you cut off 3/10 m. How much is left?'),
-      { lines: ['A ribbon is 9/10 m long.', 'You cut off 4/10 m.', 'Then you cut off 3/10 m.'], question: 'How much is left?' });
+  it('splits stories without breaking decimals or fractions', () => {
+    assert.deepEqual(
+      splitStory('A ribbon is 9/10 m long. You cut off 4/10 m. Then you cut off 3/10 m. How much is left?'),
+      { lines: ['A ribbon is 9/10 m long.', 'You cut off 4/10 m.', 'Then you cut off 3/10 m.'], question: 'How much is left?' },
+    );
     assert.deepEqual(splitStory('Which is bigger, 0.4 or 0.35?'), { lines: [], question: 'Which is bigger, 0.4 or 0.35?' });
     assert.equal(splitStory('3/5 = 12/?. What is the missing number?').lines.length, 0);
   });
-  it('gives every walk-through step three different choices and a valid answer', () => {
-    const steps: Record<string, string[]> = {
-      'u1-c3': ['2', '4', '1/4'], 'u1-c5': ['4', '12'], 'u2-c3': [String(18 / 3), '1/3', String(18 / 3)], 'u2-c4': ['3', String(3 * 8)],
-      'u2-c5': [String(24 / 2), String(12 / 3), String(12 - 4)], 'u4-c5': ['6/8 m', '9/8 m', 'Yes'], 'u5-c4': ['1/4', '1/6', '1/6'],
-      'u6-c4': ['1/4', '2'], 'u7-c5': [`${3 * 2}/3`, `${4 * 2}/3`, String(Math.floor(7 / 2))], 'u8-c4': [`${9 - 4}/10 m`, `${9 - 4 - 3}/10 m`],
+
+  it('gives each walk-through step three distinct choices and the authored answer', () => {
+    const expectedSteps: Record<string, string[]> = {
+      'u1-c3': ['2', '4', '1/4'], 'u1-c5': ['4', '12'],
+      'u2-c3': ['6', '1/3', '6'], 'u2-c4': ['3', '24'],
+      'u2-c5': ['12', '4', '8'], 'u4-c5': ['6/8 m', '9/8 m', 'Yes'],
+      'u5-c4': ['1/4', '1/6', '1/6'], 'u6-c4': ['1/4', '2'],
+      'u7-c5': ['6/3', '8/3', '3'], 'u8-c4': ['5/10 m', '2/10 m'],
     };
     for (const items of Object.values(CHALLENGES)) {
       for (const item of items) {
         if (!item.steps) continue;
-        assert.deepEqual(item.steps.map((st) => st.choices[st.correct]), steps[item.id], `${item.id} steps`);
-        for (const st of item.steps) assert.equal(new Set(st.choices).size, 3, `${item.id}: ${st.prompt}`);
+        assert.deepEqual(item.steps.map((step) => step.choices[step.correct]), expectedSteps[item.id], `${item.id} steps`);
+        for (const step of item.steps) assert.equal(new Set(step.choices).size, 3, `${item.id}: ${step.prompt}`);
       }
     }
-    assert.equal(Object.values(CHALLENGES).flat().filter((item) => item.steps).length, Object.keys(steps).length);
+    assert.equal(Object.values(CHALLENGES).flat().filter((item) => item.steps).length, Object.keys(expectedSteps).length);
   });
 });
 
 describe('question generator', () => {
-  const frac = (t: string) => { const [n, d] = t.split('/').map(Number); return n / d; };
-  const ids = (id: string) => getMission(id).questions.map((q) => q.id);
-  /** Independently re-checks a generated question. Returns true if a math check applied. */
-  const verify = (q: PracticeQuestion): boolean => {
-    const right = q.choices[q.correctChoice];
-    assert.equal(q.choices.length, 3, q.id);
-    assert.equal(new Set(q.choices.map((c) => c.trim())).size, 3, `${q.id} has duplicate choices: ${q.choices.join(' | ')} (${q.prompt})`);
-    let m = /^(\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \?$/.exec(q.prompt);
-    if (m) { const v = Number(m[1]) / Number(m[2]) + (m[3] === '+' ? 1 : -1) * Number(m[4]) / Number(m[5]); assert.ok(Math.abs(frac(right) - v) < 1e-9, `${q.prompt} → ${right}`); return true; }
-    m = /^What is (\d+)\/(\d+) of (\d+)\?$/.exec(q.prompt);
-    if (m) { assert.equal(Number(right), (Number(m[3]) / Number(m[2])) * Number(m[1]), q.prompt); return true; }
-    m = /^Is (\d+)\/(\d+) more or less than 1\/2\?$/.exec(q.prompt);
-    if (m) { assert.equal(right, Number(m[1]) / Number(m[2]) > 0.5 ? 'More than 1/2' : 'Less than 1/2', q.prompt); return true; }
-    m = /^Is (\d+)\/(\d+) closest to 0, 1\/2 or 1\?$/.exec(q.prompt);
-    if (m) { const v = Number(m[1]) / Number(m[2]); const best = ['0', '1/2', '1'].sort((a, b) => Math.abs((a === '1/2' ? 0.5 : Number(a)) - v) - Math.abs((b === '1/2' ? 0.5 : Number(b)) - v))[0]; assert.equal(right, best, q.prompt); return true; }
-    m = /^Fill the blank: (\d+)\/(\d+) = \?\/(\d+)$/.exec(q.prompt);
-    if (m) { assert.equal(Number(right), (Number(m[1]) * Number(m[3])) / Number(m[2]), q.prompt); return true; }
-    m = /^Fill the blank: (\d+)\/(\d+) \+ \? = 1$/.exec(q.prompt);
-    if (m) { assert.ok(Math.abs(frac(right) + Number(m[1]) / Number(m[2]) - 1) < 1e-9, q.prompt); return true; }
-    if (q.prompt === 'Which is closest to 1/2?') { const best = [...q.choices].sort((x, y) => Math.abs(frac(x) - 0.5) - Math.abs(frac(y) - 0.5))[0]; assert.equal(right, best, q.prompt); return true; }
-    m = /^Which is (bigger|smaller), (\d+\/\d+) or (\d+\/\d+)\?$/.exec(q.prompt);
-    if (m) { const [x, y] = [frac(m[2]), frac(m[3])]; assert.equal(right, (m[1] === 'bigger') === (x > y) ? m[2] : m[3], q.prompt); return true; }
-    m = /^Which is the same as (\d+\/\d+)\?$/.exec(q.prompt);
-    if (m) { assert.ok(Math.abs(frac(right) - frac(m[1])) < 1e-9, q.prompt); assert.ok(q.choices.filter((c) => c.includes('/') && Math.abs(frac(c) - frac(m![1])) < 1e-9).length === 1, `${q.prompt}: one equal choice`); return true; }
-    m = /^Write (\d+)\/(10|100) as a decimal\.$/.exec(q.prompt);
-    if (m) { assert.equal(Number(right), Number(m[1]) / Number(m[2]), q.prompt); return true; }
-    m = /^What fraction is (0\.\d+)\?$/.exec(q.prompt);
-    if (m) { assert.ok(Math.abs(frac(right) - Number(m[1])) < 1e-9, q.prompt); return true; }
-    m = /^Each jump is 1\/(\d+)\. What is (\d+) jumps from 0\?$/.exec(q.prompt);
-    if (m) { assert.equal(right, `${m[2]}/${m[1]}`, q.prompt); return true; }
-    m = /^What is (\d+)\/(\d+) as wholes and a fraction\?$/.exec(q.prompt);
-    if (m) { const [n, d] = [Number(m[1]), Number(m[2])]; assert.equal(right, `${Math.floor(n / d)} and ${n % d}/${d}`, q.prompt); return true; }
-    m = /^Which adds up to (\d+)\/(\d+)\?$/.exec(q.prompt);
-    if (m) { const sum = right.split(' + ').reduce((acc, part) => acc + frac(part), 0); assert.ok(Math.abs(sum - frac(`${m[1]}/${m[2]}`)) < 1e-9, q.prompt); return true; }
+  const fractionValue = (text: string) => {
+    const [n, d] = text.split('/').map(Number);
+    return n / d;
+  };
+  const ids = (id: string) => getMission(id).questions.map((question) => question.id);
+  const verify = (question: PracticeQuestion): boolean => {
+    const answer = question.choices[question.correctChoice];
+    assert.equal(question.choices.length, 3, question.id);
+    assert.equal(new Set(question.choices.map((choice) => choice.trim())).size, 3, question.id);
+    let match = /^(\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \?$/.exec(question.prompt);
+    if (match) {
+      const result = Number(match[1]) / Number(match[2]) + (match[3] === '+' ? 1 : -1) * Number(match[4]) / Number(match[5]);
+      assert.ok(Math.abs(fractionValue(answer) - result) < 1e-9, question.prompt);
+      return true;
+    }
+    match = /^What is (\d+)\/(\d+) of (\d+)\?$/.exec(question.prompt);
+    if (match) {
+      assert.equal(Number(answer), (Number(match[3]) / Number(match[2])) * Number(match[1]), question.prompt);
+      return true;
+    }
+    match = /^Is (\d+)\/(\d+) more or less than 1\/2\?$/.exec(question.prompt);
+    if (match) {
+      assert.equal(answer, Number(match[1]) / Number(match[2]) > 0.5 ? 'More than 1/2' : 'Less than 1/2', question.prompt);
+      return true;
+    }
+    match = /^Is (\d+)\/(\d+) closest to 0, 1\/2 or 1\?$/.exec(question.prompt);
+    if (match) {
+      const value = Number(match[1]) / Number(match[2]);
+      const nearest = ['0', '1/2', '1'].sort((a, b) =>
+        Math.abs((a === '1/2' ? 0.5 : Number(a)) - value) - Math.abs((b === '1/2' ? 0.5 : Number(b)) - value),
+      )[0];
+      assert.equal(answer, nearest, question.prompt);
+      return true;
+    }
+    match = /^Fill the blank: (\d+)\/(\d+) = \?\/(\d+)$/.exec(question.prompt);
+    if (match) {
+      assert.equal(Number(answer), (Number(match[1]) * Number(match[3])) / Number(match[2]), question.prompt);
+      return true;
+    }
+    match = /^Fill the blank: (\d+)\/(\d+) \+ \? = 1$/.exec(question.prompt);
+    if (match) {
+      assert.ok(Math.abs(fractionValue(answer) + Number(match[1]) / Number(match[2]) - 1) < 1e-9, question.prompt);
+      return true;
+    }
+    if (question.prompt === 'Which is closest to 1/2?') {
+      const nearest = [...question.choices].sort((a, b) => Math.abs(fractionValue(a) - 0.5) - Math.abs(fractionValue(b) - 0.5))[0];
+      assert.equal(answer, nearest, question.prompt);
+      return true;
+    }
+    match = /^Which is (bigger|smaller), (\d+\/\d+) or (\d+\/\d+)\?$/.exec(question.prompt);
+    if (match) {
+      const [first, second] = [fractionValue(match[2]), fractionValue(match[3])];
+      assert.equal(answer, (match[1] === 'bigger') === (first > second) ? match[2] : match[3], question.prompt);
+      return true;
+    }
+    match = /^Which is the same as (\d+\/\d+)\?$/.exec(question.prompt);
+    if (match) {
+      assert.ok(Math.abs(fractionValue(answer) - fractionValue(match[1])) < 1e-9, question.prompt);
+      return true;
+    }
+    match = /^Write (\d+)\/(10|100) as a decimal\.$/.exec(question.prompt);
+    if (match) {
+      assert.equal(Number(answer), Number(match[1]) / Number(match[2]), question.prompt);
+      return true;
+    }
+    match = /^What fraction is (0\.\d+)\?$/.exec(question.prompt);
+    if (match) {
+      assert.ok(Math.abs(fractionValue(answer) - Number(match[1])) < 1e-9, question.prompt);
+      return true;
+    }
+    match = /^Each jump is 1\/(\d+)\. What is (\d+) jumps from 0\?$/.exec(question.prompt);
+    if (match) {
+      assert.equal(answer, `${match[2]}/${match[1]}`, question.prompt);
+      return true;
+    }
+    match = /^What is (\d+)\/(\d+) as wholes and a fraction\?$/.exec(question.prompt);
+    if (match) {
+      const [n, d] = [Number(match[1]), Number(match[2])];
+      assert.equal(answer, `${Math.floor(n / d)} and ${n % d}/${d}`, question.prompt);
+      return true;
+    }
+    match = /^Which adds up to (\d+)\/(\d+)\?$/.exec(question.prompt);
+    if (match) {
+      const sum = answer.split(' + ').reduce((total, part) => total + fractionValue(part), 0);
+      assert.ok(Math.abs(sum - fractionValue(`${match[1]}/${match[2]}`)) < 1e-9, question.prompt);
+      return true;
+    }
     return false;
   };
 
-  it('keeps the 12 "Practice more" questions fixed for every lesson, with the answer spread across A, B and C', () => {
+  it('keeps the 12 "Practice more" questions fixed for every lesson', () => {
     const positions = new Set<number>();
     for (const mission of MISSIONS) {
       const bank = getExtraPractice(mission.id, ids(mission.id));
       assert.equal(bank.length, 12, mission.id);
-      assert.deepEqual(getExtraPractice(mission.id, ids(mission.id)).map((q) => q.prompt), bank.map((q) => q.prompt), `${mission.id} is the same every time`);
-      for (const q of bank) {
-        const independentlyVerified = verify(q);
+      assert.deepEqual(
+        getExtraPractice(mission.id, ids(mission.id)).map((question) => question.prompt),
+        bank.map((question) => question.prompt),
+        `${mission.id} is stable across visits`,
+      );
+      for (const question of bank) {
+        const independentlyVerified = verify(question);
         if (mission.unit >= 9 && !independentlyVerified) {
-          const source = getWorksheet(mission.id).find((problem) => problem.prompt === q.prompt);
-          assert.ok(source, `${q.id} should use an authored worksheet problem`);
-          assert.equal(q.choices[q.correctChoice], source.answer, `${q.id} answer should match its worksheet`);
+          const source = getWorksheet(mission.id).find((problem) => problem.prompt === question.prompt);
+          assert.ok(source, `${question.id} should use an authored worksheet problem`);
+          assert.equal(question.choices[question.correctChoice], source.answer, `${question.id} answer should match its worksheet`);
         }
-        positions.add(q.correctChoice);
-        assert.ok(mission.questions.some((b) => b.id === q.reviewQuestionId), q.id);
+        positions.add(question.correctChoice);
+        assert.ok(mission.questions.some((base) => base.id === question.reviewQuestionId), question.id);
       }
     }
     assert.deepEqual([...positions].sort(), [0, 1, 2]);
   });
 
-  it('generates thousands of fresh questions with correct answers and no duplicate choices', () => {
-    let total = 0; let checked = 0;
+  it('generates thousands of fresh questions with valid answers and no duplicate choices', () => {
+    let total = 0;
+    let checked = 0;
     for (const mission of MISSIONS) {
       assert.ok(hasGenerator(mission.id), mission.id);
       for (let seed = 1; seed <= 150; seed++) {
         const round = generateQuestions(mission.id, ids(mission.id), seed, 10);
         assert.equal(round.length, 10, `${mission.id} seed ${seed}`);
-        for (const q of round) {
+        for (const question of round) {
           total++;
-          const independentlyVerified = verify(q);
+          const independentlyVerified = verify(question);
           if (independentlyVerified) {
             checked++;
           } else if (mission.unit >= 9) {
-            const source = getWorksheet(mission.id).find((problem) => problem.prompt === q.prompt);
-            assert.ok(source, `${q.id} should use an authored worksheet problem`);
-            assert.equal(q.choices[q.correctChoice], source.answer, `${q.id} answer should match its worksheet`);
+            const source = getWorksheet(mission.id).find((problem) => problem.prompt === question.prompt);
+            assert.ok(source, `${question.id} should use an authored worksheet problem`);
+            assert.equal(question.choices[question.correctChoice], source.answer, `${question.id} answer should match its worksheet`);
             checked++;
           }
         }
       }
     }
-    assert.ok(total >= 40000, `generated ${total}`);
+    assert.ok(total >= 40_000, `generated ${total}`);
     assert.ok(checked / total > 0.7, `independently checked ${checked} of ${total}`);
   });
 
-  it('gives different questions for different seeds', () => {
-    const a = generateQuestions('add-like-denominators', ids('add-like-denominators'), 11, 10).map((q) => q.prompt).join();
-    const b = generateQuestions('add-like-denominators', ids('add-like-denominators'), 12, 10).map((q) => q.prompt).join();
-    assert.notEqual(a, b);
+  it('varies generated questions for different seeds', () => {
+    const first = generateQuestions('add-like-denominators', ids('add-like-denominators'), 11, 10).map((question) => question.prompt).join();
+    const second = generateQuestions('add-like-denominators', ids('add-like-denominators'), 12, 10).map((question) => question.prompt).join();
+    assert.notEqual(first, second);
   });
 });
