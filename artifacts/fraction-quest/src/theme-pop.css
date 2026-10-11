@@ -1127,3 +1127,6 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
   .fq-print .fq-svg-fold text { fill: #000; }
   .fq-print .fq-svg-fold .fold-arrow { stroke: #000; }
 }
+.fq-paper-prompt .fq-points { margin-left: 4px; font-size: 0.7rem; vertical-align: middle; }
+.fq-paper-letters button:disabled { cursor: default; }
+.fq-paper-list .fq-ll-num { width: 28px; align-self: start; }

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ClipboardCheck, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ClipboardCheck, RotateCcw, Trophy, X } from 'lucide-react';
+import { CHALLENGES, challengeMaxPoints, challengeTrophy } from './challenges';
 import { getMission, type Progress } from './game';
 import { getWorksheet } from './learning-content';
 import { checkWorksheet, editWorksheet, getLearningRecord, updateLearning, worksheetCount, type LearningRecord } from './learning';
@@ -9,6 +10,57 @@ import { Mascot } from './fun-ui';
 import './learning-lab.css';
 
 const letter = (index: number) => String.fromCharCode(65 + index);
+const TROPHY = { gold: 'Gold trophy!', silver: 'Silver trophy!', bronze: 'Bronze trophy!' };
+
+/** Printed Unit challenge: tap the letters you circled, then check them all at once (like handing in the paper). */
+function ChallengePaper({ unit, best, onScore }: { unit: number; best: number | null; onScore: (score: number) => void }) {
+  const items = CHALLENGES[unit];
+  const max = challengeMaxPoints(unit);
+  const [picked, setPicked] = useState<Record<string, number>>({});
+  const [checked, setChecked] = useState(false);
+  const allPicked = items.every((item) => item.id in picked);
+  const score = items.reduce((sum, item) => sum + (picked[item.id] === item.correct ? item.points : 0), 0);
+  const check = () => { setChecked(true); onScore(score); };
+  return (
+    <section className="fq-ll-check" aria-labelledby="paper-challenge" data-testid="paper-challenge">
+      <h3 id="paper-challenge">Unit {unit} challenge</h3>
+      <p className="fq-ll-note">Tap the letter you circled for each puzzle. Then press Check. {best != null && `Your best: ${best}/${max}.`}</p>
+      <ol className="fq-paper-list">
+        {items.map((item, i) => {
+          const choice = picked[item.id];
+          const right = choice === item.correct;
+          return (
+            <li key={item.id} className={!checked || choice === undefined ? '' : right ? 'ok' : 'bad'} data-testid={`paper-challenge-${i + 1}`}>
+              <span className="fq-ll-num">{i + 1}</span>
+              <span className="fq-paper-prompt">{item.prompt} <small className={`fq-points p${item.points}`}>{item.points} pts</small></span>
+              <span className="fq-paper-letters" role="group" aria-label={`Puzzle ${i + 1} answer`}>
+                {item.choices.map((c, k) => (
+                  <button type="button" key={k} className={choice === k ? 'on' : ''} aria-pressed={choice === k} aria-label={`${letter(k)}: ${c}`} disabled={checked}
+                    onClick={() => setPicked({ ...picked, [item.id]: k })} data-testid={`paper-challenge-${i + 1}-${letter(k)}`}>{letter(k)}</button>
+                ))}
+              </span>
+              {checked && (
+                <span className="fq-paper-mark">
+                  {right ? <><Check size={16} strokeWidth={3} /> +{item.points} points</> : <><X size={16} strokeWidth={3} /> The answer is {letter(item.correct)}. {item.explanation}</>}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      {!checked
+        ? <button type="button" className="fq-button secondary" onClick={check} disabled={!allPicked} data-testid="button-paper-challenge-check">{allPicked ? 'Check my challenge' : 'Tap a letter for every puzzle'} <Check size={17} /></button>
+        : (
+          <div className="fq-ll-feedback ok" role="status" data-testid="status-paper-challenge">
+            <Trophy size={20} />
+            <div><strong>{TROPHY[challengeTrophy(score, unit)]} {score} of {max} points.</strong> {best == null || score > best ? 'Saved as your best score.' : `Your best is still ${best}.`}
+              <br /><button type="button" className="fq-hint-button" onClick={() => { setPicked({}); setChecked(false); }} data-testid="button-paper-challenge-again"><RotateCcw size={15} /> Enter another paper</button>
+            </div>
+          </div>
+        )}
+    </section>
+  );
+}
 
 /** Check printed sheets: tap the circled letters from the practice sheet and type the worksheet answers. */
 export default function PaperCheck({ missionId, progress, onChange, onBack, onLab }: {
@@ -56,7 +108,7 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
         <div>
           <span className="fq-ll-badge"><ClipboardCheck size={15} /> Check my paper · {lessonCode(missionId)}</span>
           <h2>{mission.title}</h2>
-          <p>Did it on paper? Put in your answers here. They count just like answers in the app.</p>
+          <p>Did it on paper? Put in your answers here: practice, worksheet and the Unit challenge. They count just like answers in the app.</p>
         </div>
       </header>
       <div className="fq-ll-print"><PrintMenu missionId={missionId} record={rec} /></div>
@@ -104,6 +156,13 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
         </ol>
         <button type="button" className="fq-button secondary" onClick={checkAll} data-testid="button-paper-check-all">Check all <Check size={17} /></button>
       </section>
+
+      <ChallengePaper unit={mission.unit} best={progress.challengeBest?.[String(mission.unit)] ?? null}
+        onScore={(score) => {
+          const key = String(mission.unit);
+          const old = ref.current.challengeBest?.[key];
+          if (old == null || score > old) { const next = { ...ref.current, challengeBest: { ...ref.current.challengeBest, [key]: score } }; ref.current = next; onChange(next); }
+        }} />
 
       <div className="fq-paper-foot">
         <button type="button" className="fq-button" onClick={onLab} disabled={!rec.practiceDone} data-testid="button-paper-to-lab">
