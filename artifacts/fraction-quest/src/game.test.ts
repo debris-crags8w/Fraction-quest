@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
+import { splitStory } from './fun-ui';
 import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
 import {
@@ -495,5 +496,29 @@ describe('unit challenges', () => {
         }
       }
     }
+  });
+});
+
+describe('long problems', () => {
+  it('splits a story into lines without breaking decimals or fractions', () => {
+    assert.deepEqual(splitStory('A ribbon is 9/10 m long. You cut off 4/10 m. Then you cut off 3/10 m. How much is left?'),
+      { lines: ['A ribbon is 9/10 m long.', 'You cut off 4/10 m.', 'Then you cut off 3/10 m.'], question: 'How much is left?' });
+    assert.deepEqual(splitStory('Which is bigger, 0.4 or 0.35?'), { lines: [], question: 'Which is bigger, 0.4 or 0.35?' });
+    assert.equal(splitStory('3/5 = 12/?. What is the missing number?').lines.length, 0);
+  });
+  it('gives every walk-through step three different choices and a valid answer', () => {
+    const steps: Record<string, string[]> = {
+      'u1-c3': ['2', '4', '1/4'], 'u1-c5': ['4', '12'], 'u2-c3': [String(18 / 3), '1/3', String(18 / 3)], 'u2-c4': ['3', String(3 * 8)],
+      'u2-c5': [String(24 / 2), String(12 / 3), String(12 - 4)], 'u4-c5': ['6/8 m', '9/8 m', 'Yes'], 'u5-c4': ['1/4', '1/6', '1/6'],
+      'u6-c4': ['1/4', '2'], 'u7-c5': [`${3 * 2}/3`, `${4 * 2}/3`, String(Math.floor(7 / 2))], 'u8-c4': [`${9 - 4}/10 m`, `${9 - 4 - 3}/10 m`],
+    };
+    for (const items of Object.values(CHALLENGES)) {
+      for (const item of items) {
+        if (!item.steps) continue;
+        assert.deepEqual(item.steps.map((st) => st.choices[st.correct]), steps[item.id], `${item.id} steps`);
+        for (const st of item.steps) assert.equal(new Set(st.choices).size, 3, `${item.id}: ${st.prompt}`);
+      }
+    }
+    assert.equal(Object.values(CHALLENGES).flat().filter((item) => item.steps).length, Object.keys(steps).length);
   });
 });

@@ -238,3 +238,27 @@ export function LessonPath({ unit, color, nodes, selectedId, onSelect, allDone, 
     </ol>
   );
 }
+
+/* ---------- long problems, one line at a time ---------- */
+
+/** Splits a word problem into its story lines and the final question (only when it has 3+ sentences). */
+export function splitStory(prompt: string): { lines: string[]; question: string } {
+  const sentences = prompt.split(/(?<=[.?!])\s+(?=[A-Z0-9])/).map((s) => s.trim()).filter(Boolean);
+  if (sentences.length < 3) return { lines: [], question: prompt };
+  return { lines: sentences.slice(0, -1), question: sentences[sentences.length - 1] };
+}
+
+/** Shows a long problem as numbered story lines with the question underneath. */
+export function StoryPrompt({ prompt, id }: { prompt: string; id: string }) {
+  const { lines, question } = splitStory(prompt);
+  return (
+    <>
+      {lines.length > 0 && (
+        <ol className="fq-story" aria-label="The story, one line at a time">
+          {lines.map((line, i) => <li key={i}><span>{i + 1}</span>{line}</li>)}
+        </ol>
+      )}
+      <h1 id={id}>{question}</h1>
+    </>
+  );
+}

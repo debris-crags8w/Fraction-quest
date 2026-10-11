@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ChallengeFigure } from './challenges';
+import { FoldIllustration } from './PaperFold';
 
 /* Shared drawings for the two core fraction models (plus sets), used on screen and on paper.
    Bars and number lines use the same x-scale, so a bar drawn above a line lines up exactly. */
@@ -164,6 +165,7 @@ export function ChallengeFigureView({ figure }: { figure: ChallengeFigure }) {
     );
   }
   if (figure.kind === 'line') return <LineSvg n={figure.n} d={figure.d} jumps={false} label="Number line from 0 to 1 with a dot" />;
+  if (figure.kind === 'fold') return <FoldIllustration folds={figure.folds} />;
   return (
     <div className="fq-figure-bars">
       {figure.bars.map((bar, i) => (

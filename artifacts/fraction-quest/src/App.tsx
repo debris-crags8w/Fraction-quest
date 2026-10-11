@@ -40,7 +40,8 @@ import PaperCheck from './PaperCheck';
 import Challenge from './Challenge';
 import { challengeMaxPoints } from './challenges';
 import { PrintMenu } from './Printables';
-import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
+import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
+import { PaperFold } from './PaperFold';
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,14 @@ const UNIT_INFO: UnitInfo[] = [
   { title: 'Put fractions together', subtitle: 'Compose, decompose, and go beyond one' },
   { title: 'Operations and decimals', subtitle: 'Add, subtract, and connect fractions to decimals' },
 ];
+
+// Lessons where kids make fractions by folding a paper strip (1 → 1/2 → 1/4 → 1/8).
+const FOLD_LESSONS: Record<string, { intro: string; allowThirds?: boolean; shadeHalf?: boolean }> = {
+  'equal-parts': { intro: 'Fold the paper. Every fold makes equal pieces.' },
+  'unit-fractions': { intro: 'Fold, then unfold. Each piece is a unit fraction.' },
+  'unit-size': { intro: 'Fold in half again and again: 1/2, 1/4, 1/8. Watch the pieces get smaller.', allowThirds: false },
+  'equivalent-models': { intro: 'Half the paper is shaded. Fold it again and unfold: 1/2 = 2/4 = 4/8.', allowThirds: false, shadeHalf: true },
+};
 
 function Fraction({ numerator, denominator }: { numerator: number; denominator: number }) {
   return (
@@ -485,7 +494,7 @@ function PlayView({
                 ? `Lesson ${lessonNumber} · See it first`
                 : `Lesson ${lessonNumber} · ${mission.shortTitle} · ${questionIndex + 1} of ${mission.questions.length}`}
           </p>
-          <h1 id="lesson-title">{isExample ? mission.title : question?.prompt}</h1>
+          {isExample ? <h1 id="lesson-title">{mission.title}</h1> : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
           {isExample ? (
             <div className="fq-example">
               <div className="fq-mascot-say">
@@ -499,6 +508,7 @@ function PlayView({
                 <p className="fq-example-result">{mission.example.answer}</p>
                 <p>{mission.example.explanation}</p>
               </div>
+              {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
               <TapModel model={mission.example.model} />
             </div>
           ) : question && (

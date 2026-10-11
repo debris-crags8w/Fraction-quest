@@ -1072,3 +1072,58 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
   .fq-print .fq-figure-bar svg { max-width: 60mm; }
   .fq-print-points { display: inline-block; padding: 0 6px; border: 1.5px solid #000; border-radius: 8px; font-size: 8.5pt; font-weight: 900; }
 }
+
+/* ---------- paper folding ---------- */
+
+.fq-fold { --fq-fold-edge: color-mix(in srgb, var(--fq-sky) 55%, #0b4f73); display: grid; gap: 12px; margin-top: 18px; padding: 18px; border: 3px dashed color-mix(in srgb, var(--fq-sky) 45%, transparent); border-radius: 22px; background: color-mix(in srgb, var(--fq-sky) 6%, hsl(var(--card))); }
+.fq-fold-intro { margin: 0; font-weight: 900; }
+.fq-fold-stage { padding: 8px 18px 22px 4px; }
+.fq-fold-paper { display: flex; height: 64px; border: 2px solid #0b4f73; border-radius: 4px; background: #E8F7FF; transition: width 450ms cubic-bezier(.4, .1, .2, 1), box-shadow 450ms ease; overflow: hidden; }
+.fq-fold.shade-half .fq-fold-paper { background: linear-gradient(to right, color-mix(in srgb, var(--fq-grape) 55%, #fff) 50%, #E8F7FF 50%); }
+.fq-fold.shade-half .fq-fold-paper.folded { background: color-mix(in srgb, var(--fq-grape) 55%, #fff); }
+.fq-fold-paper.folded { background: #CDEFFF; }
+.fq-fold-piece { flex: 1; display: grid; place-items: center; border-right: 2px dashed #0b4f73; animation: fq-pop 300ms ease-out; }
+.fq-fold-piece:last-child { border-right: 0; }
+.fq-fold-piece small { font: 900 0.85rem var(--app-font-display); color: #0b4f73; }
+.fq-fold-message { margin: 0; font-weight: 800; }
+.fq-fold-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fq-fold-trail span { padding: 2px 10px; border-radius: 99px; background: var(--fq-track); font-weight: 900; font-size: 0.9rem; }
+.fq-fold-trail span + span::before { content: '→ '; color: hsl(var(--muted-foreground)); }
+.fq-fold-trail span.now { color: #fff; background: var(--fq-sky); }
+.fq-fold-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.fq-fold-buttons .fq-button { min-height: 44px; padding: 0 14px; font-size: 0.8rem; }
+
+.fq-svg-fold { display: block; width: 100%; height: auto; margin: 0 auto; }
+.fq-svg-fold .fold-layer { fill: #E8F7FF; stroke: #0b4f73; stroke-width: 1.5; }
+.fq-svg-fold .fold-arrow { fill: none; stroke: hsl(var(--foreground)); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fq-svg-fold text { fill: hsl(var(--foreground)); font: 900 11px var(--app-font-sans); }
+.fq-svg-fold .fold-question { font: 900 14px var(--app-font-display); }
+
+/* ---------- long problems: story lines and walk-through ---------- */
+
+.fq-story { display: grid; gap: 6px; margin: 4px 0 10px; padding: 0; list-style: none; }
+.fq-story li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border-radius: 14px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); font-weight: 800; font-size: 1.02rem; line-height: 1.35; }
+.fq-story li span { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #fff; background: var(--unit, var(--fq-grape)); font-size: 0.8rem; font-weight: 900; }
+.fq-walk-open { margin-top: 14px; }
+.fq-walk-open small { color: hsl(var(--muted-foreground)); font-weight: 700; }
+.fq-walk { display: grid; gap: 10px; margin-top: 16px; padding: 16px; border-radius: 20px; background: #FFF6D6; box-shadow: 0 0 0 2px var(--fq-sun); }
+.fq-walk-title { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: #8A6400; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.fq-walk-done { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.fq-walk-done li { display: flex; gap: 6px; align-items: baseline; color: var(--fq-good-fg); font-weight: 700; font-size: 0.9rem; }
+.fq-walk-step { display: grid; gap: 10px; }
+.fq-walk-step p { margin: 0; font-weight: 900; color: #3d2f00; }
+.fq-walk-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.fq-walk-choices button { min-width: 64px; min-height: 46px; padding: 0 14px; border: 2px solid var(--fq-edge); border-bottom-width: 4px; border-radius: 14px; background: #fff; color: #2B2D42; font-weight: 900; font-size: 1rem; cursor: pointer; }
+.fq-walk-choices button.ok { border-color: var(--fq-lime); background: #D7FFB8; color: #2F7300; }
+.fq-walk-choices button.bad { border-color: var(--fq-red); background: #FFDFE0; color: #B42323; }
+.fq-walk-retry { color: #B42323 !important; }
+.fq-walk .fq-button { justify-self: start; }
+.fq-sheet-buttons { display: flex; flex-wrap: wrap; gap: 8px; flex: none; }
+@media (max-width: 720px) { .fq-sheet-buttons { flex: 1 1 100%; } .fq-sheet-buttons .fq-button { flex: 1 1 140px; } }
+
+@media print {
+  .fq-print .fq-svg-fold { width: 90mm; margin: 0; }
+  .fq-print .fq-svg-fold .fold-layer { fill: #fff; stroke: #000; }
+  .fq-print .fq-svg-fold text { fill: #000; }
+  .fq-print .fq-svg-fold .fold-arrow { stroke: #000; }
+}
