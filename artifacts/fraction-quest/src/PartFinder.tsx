@@ -8,10 +8,14 @@ type CheckState = 'idle' | 'right' | 'try-again';
 const svgPoints = (piece: Piece) =>
   piece.points.map(([x, y]) => `${x * 168},${y * 168}`).join(' ');
 
-function CutPicture({ cut, label, selected = [], interactive = false, disabled = false, onToggle }: {
+const SHARE_NAMES = ['Share 1', 'Share 2', 'Share 3', 'Share 4'];
+
+function CutPicture({ cut, label, selected = [], groups, interactive = false, disabled = false, onToggle }: {
   cut: AreaCut;
   label: string;
   selected?: number[];
+  /** Sort rounds: the share each piece is in (-1 = none), shown as a color. */
+  groups?: number[];
   interactive?: boolean;
   disabled?: boolean;
   onToggle?: (index: number) => void;
@@ -21,13 +25,15 @@ function CutPicture({ cut, label, selected = [], interactive = false, disabled =
     <svg className={`fq-pf-square${interactive ? ' interactive' : ''}`} viewBox="0 0 168 168" role={interactive ? undefined : 'img'} aria-label={interactive ? undefined : label}>
       {interactive && <title>{label}</title>}
       {pieces.map((piece, index) => {
-        const pressed = selected.includes(index);
-        const name = `${piece.shape === 'rect' ? 'rectangle' : piece.shape} piece ${index + 1}${pressed ? ', selected' : ''}`;
+        const group = groups?.[index] ?? -1;
+        const pressed = groups ? group >= 0 : selected.includes(index);
+        const name = `${piece.shape === 'rect' ? 'rectangle' : piece.shape} piece ${index + 1}${groups ? (group >= 0 ? `, in ${SHARE_NAMES[group]}` : ', not in a share') : pressed ? ', selected' : ''}`;
+        const look = groups ? (group >= 0 ? ` share-${group}` : '') : pressed ? ' selected' : '';
         return interactive ? (
           <polygon
             key={index}
             points={svgPoints(piece)}
-            className={`fq-pf-piece${pressed ? ' selected' : ''}`}
+            className={`fq-pf-piece${look}`}
             role="button"
             tabIndex={disabled ? -1 : 0}
             aria-pressed={pressed}
@@ -51,26 +57,27 @@ function CutPicture({ cut, label, selected = [], interactive = false, disabled =
   );
 }
 
-function TileFill({ cut, selection }: { cut: AreaCut; selection: number[] }) {
+/** Tile rounds: no answer picture until the count is right; then show the copies filling the whole. */
+function TileFill({ cut, selection, solved }: { cut: AreaCut; selection: number[]; solved: boolean }) {
   if (selection.length !== 1) {
-    return <div className="fq-pf-tile-empty" aria-live="polite">Choose one piece to see how many copies fill the whole.</div>;
+    return <div className="fq-pf-tile-empty" aria-live="polite">Choose one piece. Then picture copies of it covering the whole square.</div>;
   }
   const area = pieceArea(AREA_CUTS[cut][selection[0]]);
   const copies = Math.max(1, Math.round(1 / area));
+  if (!solved) {
+    return <div className="fq-pf-tile-empty" aria-live="polite">Imagine copies of the piece you chose covering the square, with no gaps and no overlaps.</div>;
+  }
+  const filled: AreaCut = copies === 4 ? 'fourths-squares' : 'eighths-triangles';
   return (
-    <div className="fq-pf-fill">
+    <div className="fq-pf-fill" data-testid="part-finder-tile-filled">
       <div className="fq-pf-fill-head">
         <span>One whole</span>
-        <strong>Count the copies</strong>
+        <strong>{copies} copies</strong>
       </div>
-      <div className="fq-pf-fill-grid" role="group" aria-label="Repeated pieces filling one whole">
-        <CutPicture
-          cut={cut}
-          label="A whole filled with repeated copies of the selected piece"
-          selected={AREA_CUTS[cut].map((_, index) => index)}
-        />
+      <div className="fq-pf-fill-grid" role="group" aria-label={`${copies} copies of the piece filling one whole`}>
+        <CutPicture cut={filled} label={`A whole filled with ${copies} copies of the selected piece`} selected={AREA_CUTS[filled].map((_, index) => index)} />
       </div>
-      <p>Count each copy, then enter how many fill the whole.</p>
+      <p>{copies} copies fill the whole, so each copy is 1/{copies}.</p>
     </div>
   );
 }
@@ -88,12 +95,23 @@ export default function PartFinder({ best, onExit, onFinish }: {
   const [finished, setFinished] = useState(false);
   const [tileCount, setTileCount] = useState('');
   const round = PART_FINDER_ROUNDS[roundIndex];
+  const emptyShares = () => AREA_CUTS[round.cut].map(() => -1);
+  const [assignment, setAssignment] = useState<number[]>(() => AREA_CUTS[PART_FINDER_ROUNDS[0].cut].map(() => -1));
+  const [activeShare, setActiveShare] = useState(0);
+  const sorting = round.mode === 'sort';
+  // Sort rounds check the share of every piece; the other rounds check the chosen pieces.
+  const answerPieces = sorting ? assignment : selected;
+  const placed = assignment.filter((share) => share >= 0).length;
   const correct = checked === 'right';
   const tileAnswer = tileCount.trim() ? Number(tileCount) : undefined;
 
   const togglePiece = (index: number) => {
     if (correct) return;
     setChecked('idle');
+    if (sorting) {
+      setAssignment((current) => current.map((share, i) => (i !== index ? share : share === activeShare ? -1 : activeShare)));
+      return;
+    }
     if (round.mode === 'tile') setTileCount('');
     setSelected((current) => {
       if (round.mode === 'tile') return current.includes(index) ? [] : [index];
@@ -102,7 +120,7 @@ export default function PartFinder({ best, onExit, onFinish }: {
   };
 
   const checkAnswer = () => {
-    const isCorrect = isPartFinderAnswer(round, selected, tileAnswer);
+    const isCorrect = isPartFinderAnswer(round, answerPieces, tileAnswer);
     setChecked(isCorrect ? 'right' : 'try-again');
     if (isCorrect) setScore((current) => scorePartFinderRound(current, !roundHadMiss));
     if (!isCorrect) setRoundHadMiss(true);
@@ -111,6 +129,7 @@ export default function PartFinder({ best, onExit, onFinish }: {
   const clearSelection = () => {
     if (correct) return;
     setSelected([]);
+    setAssignment(emptyShares());
     setChecked('idle');
     setTileCount('');
   };
@@ -122,6 +141,7 @@ export default function PartFinder({ best, onExit, onFinish }: {
       return;
     }
     setRoundIndex((index) => index + 1);
+    setAssignment(AREA_CUTS[PART_FINDER_ROUNDS[roundIndex + 1].cut].map(() => -1));
     setSelected([]);
     setChecked('idle');
     setRoundHadMiss(false);
@@ -130,6 +150,8 @@ export default function PartFinder({ best, onExit, onFinish }: {
 
   const replay = () => {
     setRoundIndex(0);
+    setAssignment(AREA_CUTS[PART_FINDER_ROUNDS[0].cut].map(() => -1));
+    setActiveShare(0);
     setSelected([]);
     setChecked('idle');
     setScore(0);
@@ -198,23 +220,36 @@ export default function PartFinder({ best, onExit, onFinish }: {
             )}
             <figure className="fq-pf-interactive">
               <figcaption>
-                <span>{round.id === 'match' ? 'Find the same amount' : 'Choose the pieces'}</span>
+                <span>{round.id === 'match' ? 'Find the same amount' : sorting ? 'Sort the pieces' : 'Choose the pieces'}</span>
                 <strong>{round.targetLabel}</strong>
               </figcaption>
               <CutPicture
                 cut={round.cut}
                 label={`${round.title}: choose pieces`}
                 selected={selected}
+                groups={sorting ? assignment : undefined}
                 interactive
                 disabled={correct}
                 onToggle={togglePiece}
               />
-              <p className="fq-pf-instruction">Tap or click pieces to select them. Use Tab, then Enter or Space.</p>
+              <p className="fq-pf-instruction">{sorting ? 'Pick a share, then tap pieces to put them in it. Tap again to take one out.' : 'Tap or click pieces to select them. Use Tab, then Enter or Space.'}</p>
             </figure>
           </div>
 
+          {sorting && (
+            <div className="fq-pf-shares" role="radiogroup" aria-label="Choose a share to fill">
+              {SHARE_NAMES.slice(0, round.shares).map((name, share) => (
+                <button key={name} type="button" role="radio" aria-checked={activeShare === share} disabled={correct}
+                  className={`fq-pf-share share-${share}${activeShare === share ? ' active' : ''}`}
+                  onClick={() => setActiveShare(share)} data-testid={`button-part-finder-share-${share + 1}`}>
+                  <i aria-hidden="true" />{name}
+                </button>
+              ))}
+            </div>
+          )}
+
           {round.mode === 'tile' && <>
-            <TileFill cut={round.cut} selection={selected} />
+            <TileFill cut={round.cut} selection={selected} solved={correct} />
             <label className="fq-pf-count-entry">
               <span>How many copies fill one whole?</span>
               <input type="number" min="1" max="16" step="1" inputMode="numeric" value={tileCount} disabled={correct}
@@ -225,23 +260,23 @@ export default function PartFinder({ best, onExit, onFinish }: {
 
           <div className="fq-pf-control-row">
             <p className="fq-pf-selection" aria-live="polite" data-testid="part-finder-selection">
-              {selected.length === 0 ? 'No pieces selected yet.' : `${selected.length} ${selected.length === 1 ? 'piece' : 'pieces'} selected.`}
+              {sorting ? `${placed} of ${assignment.length} pieces are in a share.` : selected.length === 0 ? 'No pieces selected yet.' : `${selected.length} ${selected.length === 1 ? 'piece' : 'pieces'} selected.`}
             </p>
             <div className="fq-pf-actions">
-              <button type="button" className="fq-button ghost" onClick={clearSelection} disabled={selected.length === 0 || correct} data-testid="button-part-finder-clear">Clear</button>
+              <button type="button" className="fq-button ghost" onClick={clearSelection} disabled={(sorting ? placed === 0 : selected.length === 0) || correct} data-testid="button-part-finder-clear">Clear</button>
               {correct ? (
                 <button type="button" className="fq-button" onClick={advance} data-testid="button-part-finder-next">
                   {roundIndex === PART_FINDER_ROUNDS.length - 1 ? 'See result' : 'Next round'}
                 </button>
               ) : (
-                <button type="button" className="fq-button" onClick={checkAnswer} disabled={selected.length === 0 || (round.mode === 'tile' && tileAnswer === undefined)} data-testid="button-part-finder-check">Check pieces</button>
+                <button type="button" className="fq-button" onClick={checkAnswer} disabled={(sorting ? placed === 0 : selected.length === 0) || (round.mode === 'tile' && tileAnswer === undefined)} data-testid="button-part-finder-check">Check pieces</button>
               )}
             </div>
           </div>
           {checked !== 'idle' && (
             <div className={`fq-pf-feedback ${correct ? 'right' : 'retry'}`} role="status" aria-live="polite" data-testid="part-finder-feedback">
               <strong>{correct ? 'That fits!' : 'Not quite yet.'}</strong>
-              <span>{correct ? partFinderFeedback(round, selected, tileAnswer) : round.mode === 'tile' ? partFinderFeedback(round, selected, tileAnswer) : 'Try another combination. You can change or clear your pieces.'}</span>
+              <span>{partFinderFeedback(round, answerPieces, tileAnswer)}</span>
             </div>
           )}
           <p className="fq-pf-separation">Just for fun — this game does not affect lessons, worksheet evidence, or unlocks.</p>

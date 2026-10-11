@@ -72,10 +72,19 @@
 .fq-pf-piece { fill: color-mix(in srgb, var(--fq-sun) 28%, hsl(var(--card))); stroke: color-mix(in srgb, var(--fq-grape) 66%, hsl(var(--foreground))); stroke-width: 1.8; stroke-linejoin: round; }
 .fq-pf-piece.selected { fill: var(--fq-sun); stroke: #9a6900; stroke-width: 3; }
 .fq-pf-static-piece { fill: color-mix(in srgb, var(--fq-sky) 18%, hsl(var(--card))); stroke: color-mix(in srgb, var(--fq-grape) 55%, hsl(var(--foreground))); stroke-width: 1.7; }
+.fq-pf-piece.share-0, .fq-pf-share.share-0 i { fill: #ffd166; background: #ffd166; }
+.fq-pf-piece.share-1, .fq-pf-share.share-1 i { fill: #8ecae6; background: #8ecae6; }
+.fq-pf-piece.share-2, .fq-pf-share.share-2 i { fill: #b8e994; background: #b8e994; }
+.fq-pf-piece.share-3, .fq-pf-share.share-3 i { fill: #f4a6c1; background: #f4a6c1; }
+.fq-pf-piece[class*="share-"] { stroke: hsl(var(--foreground)); stroke-width: 2.4; }
+.fq-pf-shares { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 4px 0 14px; }
+.fq-pf-share { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; border: 2px solid var(--fq-edge); border-radius: 999px; background: hsl(var(--card)); color: hsl(var(--foreground)); font-weight: 850; cursor: pointer; }
+.fq-pf-share i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid hsl(var(--foreground)); }
+.fq-pf-share.active { border-color: var(--fq-grape); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fq-grape) 30%, transparent); }
 .fq-pf-static-piece.selected { fill: var(--fq-sun); stroke: #9a6900; stroke-width: 3; }
 .fq-pf-frame { stroke: hsl(var(--foreground)); stroke-width: 3; pointer-events: none; }
 .fq-pf-square.interactive .fq-pf-piece { cursor: pointer; transition: fill 120ms ease, stroke-width 120ms ease; }
-.fq-pf-square.interactive .fq-pf-piece:hover { fill: color-mix(in srgb, var(--fq-sun) 76%, hsl(var(--card))); }
+.fq-pf-square.interactive .fq-pf-piece:not([class*="share-"]):hover { fill: color-mix(in srgb, var(--fq-sun) 76%, hsl(var(--card))); }
 .fq-pf-square.interactive .fq-pf-piece:focus { outline: none; filter: drop-shadow(0 0 3px var(--fq-sky)); stroke: var(--fq-sky); stroke-width: 4; }
 .fq-pf-instruction { margin: 0; color: hsl(var(--muted-foreground)); font-size: .83rem; font-weight: 700; text-align: center; }
 

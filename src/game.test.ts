@@ -1345,31 +1345,37 @@ describe('square (area) models', () => {
 });
 
 describe('Part Finder rounds', () => {
-  const share = PART_FINDER_ROUNDS.find((round) => round.id === 'share')!;
+  const sort = PART_FINDER_ROUNDS.find((round) => round.id === 'sort')!;
   const tile = PART_FINDER_ROUNDS.find((round) => round.id === 'tile')!;
   const match = PART_FINDER_ROUNDS.find((round) => round.id === 'match')!;
 
-  it('accepts different shape combinations that make the same-sized fair share', () => {
-    assert.equal(isPartFinderAnswer(share, [0]), true, 'one square is one fourth');
-    assert.equal(isPartFinderAnswer(share, [1, 2]), true, 'two triangles together are also one fourth');
-    assert.equal(isPartFinderAnswer(share, [5, 6]), true, 'a different pair of triangles is also accepted');
-    assert.equal(partFinderSelectionArea(share, [1, 2]), 1 / 4);
+  it('sorts every piece into 4 fair shares, whatever the shapes', () => {
+    // quarter-and-triangles: piece 0 is the small square, pieces 1–6 are triangles (1/8 each).
+    assert.equal(isPartFinderAnswer(sort, [0, 1, 1, 2, 2, 3, 3]), true);
+    assert.equal(isPartFinderAnswer(sort, [3, 0, 1, 2, 0, 1, 2]), true, 'any pairing of triangles works');
+    assert.equal(isPartFinderAnswer(sort, [0, 0, 1, 2, 2, 3, 3]), false, 'square + triangle is too big');
+    assert.equal(isPartFinderAnswer(sort, [0, 1, 1, 2, 2, 3, -1]), false, 'every piece needs a share');
+    assert.equal(isPartFinderAnswer(sort, [0, 1, 1, 2, 2, 3]), false);
+    assert.equal(isPartFinderAnswer(sort, [0, 1, 1, 2, 2, 3, 4]), false);
+    assert.match(partFinderFeedback(sort, [0, 1, 1, 2, 2, 3, -1]), /1 piece is not in a share/);
+    assert.match(partFinderFeedback(sort, [0, 0, 1, 2, 2, 3, 3]), /Share 1 is too big/);
+    assert.match(partFinderFeedback(sort, [0, 1, 1, 2, 2, 3, 3]), /same size/);
   });
 
-  it('rejects empty, incomplete, oversized, duplicate, and invalid groupings', () => {
-    assert.equal(isPartFinderAnswer(share, []), false);
-    assert.equal(isPartFinderAnswer(share, [1]), false);
-    assert.equal(isPartFinderAnswer(share, [0, 1]), false);
-    assert.equal(isPartFinderAnswer(share, [1, 1]), false);
-    assert.equal(isPartFinderAnswer(share, [99]), false);
-    assert.match(partFinderFeedback(share, [1]), /Not enough/);
-    assert.match(partFinderFeedback(share, [0, 1]), /Too much/);
+  it('gives a hint instead of a bare "try again" when a match is off', () => {
+    assert.equal(partFinderSelectionArea(match, [0, 1]), 1 / 4);
+    assert.equal(isPartFinderAnswer(match, [1, 1]), false);
+    assert.equal(isPartFinderAnswer(match, [99]), false);
+    assert.match(partFinderFeedback(match, [0]), /1 more triangle needed/);
+    assert.match(partFinderFeedback(match, [0, 1, 2, 3]), /2 triangles too big/);
   });
 
-  it('counts one eighth piece across the whole and matches any two eighths to a fourth', () => {
+  it('counts copies of a square or a triangle in a mixed whole, and matches any two eighths to a fourth', () => {
     assert.equal(isPartFinderAnswer(tile, [0]), false, 'a tile needs a copy-count answer');
-    assert.equal(isPartFinderAnswer(tile, [0], 8), true);
-    assert.equal(isPartFinderAnswer(tile, [0], 7), false);
+    assert.equal(isPartFinderAnswer(tile, [0], 4), true, 'the small square: 4 copies');
+    assert.equal(isPartFinderAnswer(tile, [1], 8), true, 'a triangle: 8 copies');
+    assert.equal(isPartFinderAnswer(tile, [1], 4), false);
+    assert.match(partFinderFeedback(tile, [1], 4), /More copies.*2 triangles fit in the small square/);
     assert.equal(isPartFinderAnswer(tile, [0, 1], 4), false, 'the tiling round asks for one piece');
     assert.equal(isPartFinderAnswer(match, [0, 1]), true);
     assert.equal(isPartFinderAnswer(match, [4, 7]), true);
