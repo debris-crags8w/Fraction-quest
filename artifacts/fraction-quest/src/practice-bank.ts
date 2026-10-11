@@ -1,4 +1,5 @@
-import type { ModelSpec, PracticeQuestion } from './game';
+import { getMission, MISSIONS, type ModelSpec, type PracticeQuestion } from './game';
+import { getWorksheet } from './learning-content';
 
 /* Question generator: every lesson has a recipe that picks numbers within safe limits.
    - "Practice more" uses 12 questions from fixed seeds, so practice repeats.
@@ -31,9 +32,9 @@ const NAMES: Record<number, string> = { 2: 'halves', 3: 'thirds', 4: 'fourths', 
 const name = (d: number) => NAMES[d] ?? `${d}ths`;
 const Name = (d: number) => name(d)[0].toUpperCase() + name(d).slice(1);
 const f = (n: number, d: number) => `${n}/${d}`;
-const bar = (n: number, d: number): ModelSpec => ({ kind: 'bars', bars: [{ numerator: n, denominator: d }] });
-const bars2 = (a: [number, number], b: [number, number]): ModelSpec => ({ kind: 'bars', bars: [{ numerator: a[0], denominator: a[1] }, { numerator: b[0], denominator: b[1] }] });
-const line = (n: number, d: number, wholes = Math.max(1, Math.ceil(n / d))): ModelSpec => ({ kind: 'line', numerator: n, denominator: d, wholes });
+const bar = (n: number, d: number): ModelSpec => ({ kind: 'bars', bars: [{ numerator: n, denominator: d }], hideLabels: true });
+const bars2 = (a: [number, number], b: [number, number]): ModelSpec => ({ kind: 'bars', bars: [{ numerator: a[0], denominator: a[1] }, { numerator: b[0], denominator: b[1] }], hideLabels: true });
+const line = (n: number, d: number, wholes = Math.max(1, Math.ceil(n / d))): ModelSpec => ({ kind: 'line', numerator: n, denominator: d, wholes, hideLabels: true });
 const set = (selected: number, total: number): ModelSpec => ({ kind: 'set', selected, total });
 const eq = (text: string): ModelSpec => ({ kind: 'equation', text });
 const half = bar(1, 2);
@@ -47,6 +48,51 @@ function nudge(choice: string): string {
   if (/^\d+$/.test(choice)) return String(Number(choice) + 1);
   // Text with a number in it ("1 and 1/2"): bump the first number so the choice really changes.
   return /\d+/.test(choice) ? choice.replace(/\d+/, (m) => String(Number(m) + 1)) : `${choice} (other)`;
+}
+
+function extensionDistractors(answer: string): [string, string] {
+  let candidates: string[] = [];
+  if (/^[<=>]$/.test(answer)) {
+    candidates = ['<', '=', '>'].filter((choice) => choice !== answer);
+  } else if (answer.includes(',')) {
+    const items = answer.split(',').map((item) => item.trim());
+    candidates = [
+      [...items].reverse().join(', '),
+      [...items.slice(1), items[0]].join(', '),
+    ];
+  } else {
+    const mixed = /^(\d+)\s+(\d+)\/(\d+)$/.exec(answer);
+    const fraction = /^(\d+)\/(\d+)$/.exec(answer);
+    const percent = /^(-?\d+(?:\.\d+)?)%$/.exec(answer);
+    const numberAndUnit = /^(-?\d+(?:\.\d+)?)(.*)$/.exec(answer);
+    if (mixed) {
+      const [, whole, numerator, denominator] = mixed;
+      candidates = [`${whole} ${Number(numerator) + 1}/${denominator}`, `${Number(whole) + 1} ${numerator}/${denominator}`];
+    } else if (fraction) {
+      const [, numerator, denominator] = fraction;
+      candidates = [`${Number(numerator) + 1}/${denominator}`, `${numerator}/${Number(denominator) + 1}`];
+    } else if (percent) {
+      const value = Number(percent[1]);
+      candidates = [`${value + 5}%`, `${Math.max(0, value - 5)}%`];
+    } else if (numberAndUnit) {
+      const value = Number(numberAndUnit[1]);
+      const precision = numberAndUnit[1].split('.')[1]?.length ?? 0;
+      const step = precision ? 1 / 10 ** precision : 1;
+      candidates = [
+        `${(value + step).toFixed(precision)}${numberAndUnit[2]}`,
+        `${(value - step).toFixed(precision)}${numberAndUnit[2]}`,
+      ];
+    }
+  }
+
+  const unique = [...new Set(candidates.filter((choice) => choice !== answer))];
+  while (unique.length < 2) {
+    const next = nudge(unique.at(-1) ?? answer);
+    if (next === answer || unique.includes(next)) break;
+    unique.push(next);
+  }
+  if (unique.length < 2) unique.push(nudge(nudge(answer)));
+  return [unique[0], unique[1]];
 }
 
 function place(item: Item, pos: number): Pick<PracticeQuestion, 'choices' | 'correctChoice'> {
@@ -195,6 +241,24 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       : { prompt: `Write ${f(n, 100)} as a decimal.`, right: dec, wrong: [(n / 10).toFixed(1), `${n}.0`], hint: 'Hundredths need 2 places after the dot.', retry: `${n} hundredths is ${dec}.`, model: eq(`${f(n, 100)} = ?`) };
   },
 };
+
+for (const topic of MISSIONS.filter((item) => !(item.id in RECIPES))) {
+  const sourceQuestions = getMission(topic.id).questions.filter((question) => !question.isReview && !question.isMastery);
+  const worksheet = getWorksheet(topic.id);
+  RECIPES[topic.id] = (r) => {
+    const problem = r.pick(worksheet);
+    const source = sourceQuestions[worksheet.indexOf(problem) % sourceQuestions.length];
+    return {
+      prompt: problem.prompt,
+      right: problem.answer,
+      wrong: extensionDistractors(problem.answer),
+      hint: problem.hint,
+      retry: source.retryFeedback,
+      model: source.model,
+      simpler: source.simplerModel,
+    };
+  };
+}
 
 export const EXTRA_PER_LESSON = 12;
 export const hasGenerator = (missionId: string) => missionId in RECIPES;
