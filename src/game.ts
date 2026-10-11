@@ -1,4 +1,5 @@
 import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
+import type { AreaCut } from './area-shapes';
 import { asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 import { FRACTION_STANDARDS, standardsForMission } from './standard-catalog';
 import { scopedStorageKey } from './storage-scope';
@@ -11,7 +12,9 @@ export type ModelSpec =
   | { kind: 'line'; numerator: number; denominator: number; wholes?: number; caption?: string; hideLabels?: boolean }
   | { kind: 'partition'; parts: number[]; caption?: string }
   | { kind: 'equation'; text: string; caption?: string }
-  | { kind: 'decimal'; tenths: number; caption?: string; hideLabels?: boolean };
+  | { kind: 'decimal'; tenths: number; caption?: string; hideLabels?: boolean }
+  /** A square, circle or hexagon cut into pieces (see area-shapes.ts); `shaded` lists piece numbers. */
+  | { kind: 'area'; cut: AreaCut; shaded: number[]; caption?: string };
 
 export type PracticeQuestion = {
   id: string;
@@ -874,8 +877,11 @@ export function isCorrectAnswer(question: PracticeQuestion, answer: Answer): boo
 }
 
 /** A redo of a finished part (practice only); anything malformed is dropped. */
-function readRedo(raw: Partial<LearningRecord>): Pick<LearningRecord, 'redo' | 'redoRounds' | 'redosFinished'> {
-  const out: Pick<LearningRecord, 'redo' | 'redoRounds' | 'redosFinished'> = {};
+function readRedo(raw: Partial<LearningRecord>): Pick<LearningRecord, 'redo' | 'redoRounds' | 'redosFinished' | 'redoMisconceptions'> {
+  const out: Pick<LearningRecord, 'redo' | 'redoRounds' | 'redosFinished' | 'redoMisconceptions'> = {};
+  if (raw.redoMisconceptions && typeof raw.redoMisconceptions === 'object') for (const [key, count] of Object.entries(raw.redoMisconceptions)) {
+    if (key.length <= 300 && safeCount(count) > 0) (out.redoMisconceptions ??= {})[key] = safeCount(count);
+  }
   if (safeCount(raw.redoRounds) > 0) out.redoRounds = safeCount(raw.redoRounds);
   if (safeCount(raw.redosFinished) > 0) out.redosFinished = safeCount(raw.redosFinished);
   const redo = raw.redo;

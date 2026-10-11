@@ -1,6 +1,7 @@
 import { MISSIONS, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { asChoicePrompt, choiceDistractors, getWorksheet, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
+import { circleCut, type AreaCut } from './area-shapes';
 
 /* Question generator: every lesson has a recipe that picks numbers within safe limits.
    - "Practice more" uses 12 questions from fixed seeds, so practice repeats.
@@ -38,6 +39,8 @@ const bars2 = (a: [number, number], b: [number, number]): ModelSpec => ({ kind: 
 const line = (n: number, d: number, wholes = Math.max(1, Math.ceil(n / d))): ModelSpec => ({ kind: 'line', numerator: n, denominator: d, wholes, hideLabels: true });
 const set = (selected: number, total: number): ModelSpec => ({ kind: 'set', selected, total });
 const half = bar(1, 2);
+const area = (cut: AreaCut, shaded: number[] = []): ModelSpec => ({ kind: 'area', cut, shaded });
+const shadedFirst = (n: number) => Array.from({ length: n }, (_, k) => k);
 /** Grade 3–4 denominators (no elevenths, thirteenths, fifteenths…). */
 const DENS = [3, 4, 5, 6, 8, 10, 12] as const;
 const withLabels = (model: ModelSpec): ModelSpec => ('hideLabels' in model ? { ...model, hideLabels: false } : model);
@@ -69,6 +72,18 @@ function place(item: Item, pos: number): Pick<PracticeQuestion, 'choices' | 'cor
 
 const RECIPES: Record<string, (r: Rng) => Item> = {
   'equal-parts': (r) => {
+    // Sometimes a square or circle: equal parts are the same size, not always the same shape.
+    if (r.int(0, 2) === 0) {
+      const [cut, fair, whole] = r.pick([
+        ['fourths-mixed', true, 'square'], ['quarter-and-triangles', false, 'square'], ['fourths-triangles', true, 'square'],
+        ['circle-sixths', true, 'pizza'], ['circle-unequal', false, 'pizza'], ['fourths-unequal', false, 'square'], ['hexagon-sixths', true, 'hexagon'],
+      ] as const);
+      const yes = 'Yes: all the parts are the same size'; const bigger = 'No: some parts are bigger'; const shapes = 'No: the parts are different shapes';
+      return { prompt: `Is this ${whole} cut into equal parts?`, right: fair ? yes : bigger, wrong: fair ? [bigger, shapes] : [yes, shapes],
+        hint: 'Equal parts are the same size. They do not have to be the same shape.',
+        retry: fair ? 'Every part takes up the same amount of space, so the parts are equal, even if their shapes are different.' : 'Compare the sizes: one part is bigger than another, so the parts are not equal.',
+        model: area(cut) };
+    }
     // The picture is the puzzle: the strip may be fair, have unequal pieces, or have the wrong number of pieces.
     const d = r.pick([2, 3, 4, 5, 6, 8]); const kind = r.int(0, 2);
     const count = kind === 2 ? d + 1 : d;
@@ -88,6 +103,16 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       : { prompt: 'What fraction is shaded?', right: f(n, d), wrong: [f(d, n), f(d - n, d)], hint: 'Top: shaded parts. Bottom: all the parts.', retry: `Count all ${d} parts for the bottom. Count the ${n} shaded for the top.`, model: bar(n, d) };
   },
   'unit-fractions': (r) => {
+    if (r.int(0, 2) === 0) {
+      if (r.chance()) {
+        const d = r.pick([2, 3, 4, 6, 8] as const);
+        return { prompt: 'All the slices are the same size. What fraction of the pizza is the shaded slice?', right: f(1, d), wrong: [f(d, 1), f(1, d + 1)],
+          hint: 'Count every slice for the bottom number.', retry: `${d} same-size slices make the pizza, so 1 slice is 1/${d}.`, model: area(circleCut(d)!, [0]) };
+      }
+      // Counting pieces is not enough: 2 small triangles make one fourth, not 2/7.
+      return { prompt: 'What fraction of the square is shaded?', right: '1/4', wrong: ['2/7', '1/7'],
+        hint: 'The pieces are not all the same size. Each triangle is half of the small square.', retry: 'The 2 shaded triangles cover the same space as the small square: 1/4 of the square.', model: area('quarter-and-triangles', [1, 2]) };
+    }
     const d = r.pick(DENS);
     return { prompt: `A whole is cut into ${d} equal pieces. What is 1 piece?`, right: f(1, d), wrong: [f(d, 1), f(1, d - 1)], hint: 'A unit fraction has 1 on top.', retry: `1 of ${d} equal pieces is 1/${d}.`, model: bar(1, d) };
   },
@@ -339,8 +364,11 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'fraction-of-area': (r) => {
     const d = r.pick([3, 4, 5, 6, 8, 10, 12]); const n = r.int(1, d - 1);
-    return later('What fraction of the tile is shaded?', f(n, d), [f(d - n, d), f(n, d + 1), f(d, n)],
-      'Count all the equal parts for the bottom. Count the shaded parts for the top.', `${n} of ${d} equal parts: ${f(n, d)}.`, bar(n, d));
+    // Circles and the 3-by-4 grid when there's one with that many parts; bars otherwise.
+    const cut = circleCut(d) ?? (d === 12 ? 'grid-3x4' : undefined);
+    const shape = !cut ? 'tile' : cut === 'grid-3x4' ? 'grid' : 'circle';
+    return later(`What fraction of the ${shape} is shaded?`, f(n, d), [f(d - n, d), f(n, d + 1), f(d, n)],
+      'Count all the equal parts for the bottom. Count the shaded parts for the top.', `${n} of ${d} equal parts: ${f(n, d)}.`, cut ? area(cut, shadedFirst(n)) : bar(n, d));
   },
   'equivalent-number-line': (r) => {
     const [n, d] = r.pick(SMALL_POOL); const k = r.int(2, 3);

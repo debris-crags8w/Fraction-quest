@@ -170,6 +170,7 @@ function PrintModel({ model, labels = true }: { model: ModelSpec; labels?: boole
           <text className="fq-svg-model-label part" x="22" y="69" textAnchor="middle">PART</text>
         </svg>
       )}
+      {model.kind === 'area' && <AreaSvg figure={{ cut: model.cut, shaded: model.shaded }} />}
       {model.kind === 'equation' && <p className="fq-print-equation"><MathText text={model.text} /></p>}
       {labels && model.caption && <small>{model.caption}</small>}
     </div>

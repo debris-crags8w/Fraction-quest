@@ -14,6 +14,8 @@ export type LearningRecord = {
   /** How many redos were started (each gets new numbers) and finished. */
   redoRounds?: number;
   redosFinished?: number;
+  /** Mistakes made during redos (same keys as `misconceptions`). Kept apart so first-try results never change. */
+  redoMisconceptions?: Record<string, number>;
 };
 export type RedoPart = 'worksheet' | 'builds';
 /** A second try at a finished lesson's worksheet or builds, with new numbers. It is kept apart from the lesson's own
@@ -134,6 +136,15 @@ export function redoDone(id: string, redo: RedoAttempt): boolean {
   return redo.part === 'worksheet'
     ? redoWorksheetCount(id, redo) === 12
     : redoChecks(id, redo.round).every(c => redo.checks[c.id]?.passed);
+}
+/** Check one redo worksheet row. A wrong answer is also remembered for the grown-ups' "Worth practicing" list. */
+export function checkRedoRow(record: LearningRecord, problem: WorksheetProblem): LearningRecord {
+  if (!record.redo) return record;
+  const checked = checkWorksheet({ ...emptyLearningRecord(), worksheet: record.redo.worksheet }, problem);
+  const wrong = !answerMatches(problem, record.redo.worksheet[problem.id]?.draft ?? '');
+  const misses = record.redoMisconceptions ?? {};
+  return { ...record, redo: { ...record.redo, worksheet: checked.worksheet },
+    redoMisconceptions: wrong ? { ...misses, [problem.hint]: (misses[problem.hint] ?? 0) + 1 } : record.redoMisconceptions };
 }
 /** Mark the redo finished (counted once). */
 export function finishRedo(record: LearningRecord, now = Date.now()): LearningRecord {

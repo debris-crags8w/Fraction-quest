@@ -213,7 +213,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
               <h2>Worth practicing</h2>
               {report.toPractice.length ? (
                 <ul className="fq-parent-list">
-                  {report.toPractice.map((tip) => <li key={tip.idea}><b>{tip.idea}</b><span>{tip.count}× · {tip.lessons.join(', ')}</span></li>)}
+                  {report.toPractice.map((tip) => <li key={tip.idea}><b>{tip.idea}</b><span>{tip.count}×{tip.inRedos ? ` (${tip.inRedos} in redos)` : ''} · {tip.lessons.join(', ')}</span></li>)}
                 </ul>
               ) : <p>Nothing stands out yet.</p>}
             </section>

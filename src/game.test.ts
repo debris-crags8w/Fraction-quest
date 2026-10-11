@@ -31,7 +31,7 @@ import {
 import { BarSvg } from './models';
 import Printable, { AnswerKey, PrintMenu, STUDENT_PRINT_OPTIONS } from './Printables';
 import { barTaskDone, canEnterWorksheetAnswer, WorksheetBarCopy, worksheetBarMatches } from './WorksheetBarCopy';
-import { checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, redoChecks, redoDone, redoWorksheet, redoWorksheetCount, startRedo, targetedPracticePlans, updateLearning, worksheetCount, type LearningRecord } from './learning';
+import { checkRedoRow, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, redoChecks, redoDone, redoWorksheet, redoWorksheetCount, startRedo, targetedPracticePlans, updateLearning, worksheetCount, type LearningRecord } from './learning';
 import QuickReviewEntry from './QuickReviewEntry';
 import {
   completeMission,
@@ -1231,6 +1231,23 @@ describe('read-aloud voice', () => {
 });
 
 describe('redo a finished part', () => {
+  it('remembers redo mistakes for the grown-ups, without touching first-try results', () => {
+    const id = MISSIONS[0].id;
+    const done = completeMission(updateLearning(EMPTY_PROGRESS, id, finished(id)), id, 3);
+    let record = startRedo(getLearningRecord(done, id), 'worksheet', 5);
+    const row = redoWorksheet(id, record.redo!)[0];
+    record = { ...record, redo: { ...record.redo!, worksheet: editWorksheet({ ...emptyLearningRecord(), worksheet: record.redo!.worksheet }, row.id, 'nope').worksheet } };
+    record = checkRedoRow(record, row);
+    assert.deepEqual(record.redoMisconceptions, { [row.hint]: 1 });
+    assert.deepEqual(record.misconceptions, getLearningRecord(done, id).misconceptions, 'lesson mistakes stay as they were');
+    const progress = updateLearning(done, id, record);
+    const tip = buildParentReport(progress, { xp: 0, day: '2026-10-11', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: true }, Array.from({ length: 14 }, (_, i) => `Unit ${i + 1}`), new Date(2026, 9, 11))
+      .toPractice.find((t) => t.idea === row.hint)!;
+    assert.equal(tip.inRedos, 1);
+    saveProgress(progress);
+    assert.deepEqual(getLearningRecord(loadProgress(), id).redoMisconceptions, { [row.hint]: 1 }, 'kept after reload');
+  });
+
   const finished = (id: string): LearningRecord => {
     let record: LearningRecord = { ...emptyLearningRecord(), practiceDone: true, completedAt: 1_700_000_000_000 };
     for (const check of getBuildChecks(id)) record.checks[check.id] = { passed: true, supported: false, attempts: 1 };
@@ -1553,6 +1570,7 @@ describe('question generator', () => {
     else if ((m = /^(\d+) (?:loaf is|loaves are|pizzas are) shared fairly by (\d+) friends/.exec(p)) || (m = /^(\d+) ÷ (\d+) = \?$/.exec(p))) expected = N(m[1]) / N(m[2]);
     else if ((m = /^A bag has (\d+) marbles\. (\d+) (?:is|are) green/.exec(p))) expected = N(m[2]) / N(m[1]);
     else if (p === 'What fraction of the tile is shaded?' && question.model.kind === 'bars') expected = question.model.bars[0].numerator / question.model.bars[0].denominator;
+    else if (/^What fraction of the (circle|grid) is shaded\?$/.test(p) && question.model.kind === 'area') expected = shadedArea(question.model.cut, question.model.shaded);
     else if ((m = /^(\d+)\/(\d+) is marked on a line\. Which fraction with (\d+) on the bottom/.exec(p))) {
       assert.equal(N(answer.split('/')[1]), N(m[3]), p); expected = N(m[1]) / N(m[2]);
     } else if ((m = /^A recipe uses (\d+)\/(\d+) cup of flour\. How much flour do (\d+) batches need\?$/.exec(p))) expected = (N(m[1]) * N(m[3])) / N(m[2]);
@@ -2163,7 +2181,14 @@ describe('pictures never give the answer away', () => {
     }
   });
   it('the equal-parts strip question matches its picture', () => {
+    let shapes = 0;
     for (let seed = 1; seed <= 60; seed++) for (const q of generateQuestions('equal-parts', ['x'], seed, 6)) {
+      if (q.model.kind === 'area') {
+        // Squares, pizzas and hexagons: the answer follows the piece sizes, never the shapes.
+        shapes++;
+        assert.equal(q.choices[q.correctChoice], allEqual(q.model.cut) ? 'Yes: all the parts are the same size' : 'No: some parts are bigger', q.model.cut);
+        continue;
+      }
       assert.equal(q.model.kind, 'partition');
       if (q.model.kind !== 'partition') continue;
       const d = Number(/fair (\w+)/.exec(q.prompt) && { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8 }[/fair (\w+)\?/.exec(q.prompt)![1] as 'halves']);
@@ -2171,6 +2196,17 @@ describe('pictures never give the answer away', () => {
       const truth = parts.length !== d ? `No: there are ${d + 1} pieces` : equal ? `Yes: ${d} equal pieces` : 'No: the pieces are not equal';
       assert.equal(q.choices[q.correctChoice], truth, `${q.prompt} with ${parts.length} parts, equal=${equal}`);
     }
+    assert.ok(shapes > 20, 'some practice questions use squares and circles');
+  });
+
+  it('unit fraction practice can show a pizza slice, or 2 triangles that make 1/4 (not 2/7)', () => {
+    const qs = Array.from({ length: 60 }, (_, seed) => generateQuestions('unit-fractions', ['x'], seed + 1, 6)).flat().filter((q) => q.model.kind === 'area');
+    assert.ok(qs.length > 20);
+    for (const q of qs) if (q.model.kind === 'area') {
+      const [n, d] = q.choices[q.correctChoice].split('/').map(Number);
+      assert.ok(Math.abs(shadedArea(q.model.cut, q.model.shaded) - n / d) < 1e-9, q.prompt);
+    }
+    assert.ok(qs.some((q) => q.choices.includes('2/7')));
   });
 });
 

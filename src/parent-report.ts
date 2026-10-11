@@ -18,7 +18,7 @@ export type LessonRow = {
 };
 export type UnitRow = { number: number; title: string; done: number; total: number; challengeBest: number | null; challengeMax: number; lessons: LessonRow[] };
 export type DayRow = { day: string; label: string; minutes: number; answered: number };
-export type PracticeTip = { idea: string; lessons: string[]; count: number };
+export type PracticeTip = { idea: string; lessons: string[]; count: number; /** How many of the misses happened in redos. */ inRedos?: number };
 export type ParentReport = {
   lessonsDone: number; lessonsTotal: number; stars: number; xp: number; streak: number;
   codeLevelsPassed: number; codeLevelsTotal: number; codeMissionsStarted: number; codeMissionsComplete: number;
@@ -95,10 +95,15 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
   // What tripped them up most: the same idea across lessons is one line, with the lessons it came up in.
   const tips = new Map<string, PracticeTip>();
   for (const mission of MISSIONS) {
-    for (const [idea, count] of Object.entries(getLearningRecord(progress, mission.id).misconceptions)) {
-      const tip = tips.get(idea) ?? { idea, lessons: [], count: 0 };
-      tip.count += count; if (!tip.lessons.includes(mission.title)) tip.lessons.push(mission.title);
-      tips.set(idea, tip);
+    const record = getLearningRecord(progress, mission.id);
+    // Mistakes in redos count too, so a skill that still trips them up after the lesson shows here.
+    for (const [misses, redo] of [[record.misconceptions, false], [record.redoMisconceptions ?? {}, true]] as const) {
+      for (const [idea, count] of Object.entries(misses)) {
+        const tip = tips.get(idea) ?? { idea, lessons: [], count: 0 };
+        tip.count += count; if (redo) tip.inRedos = (tip.inRedos ?? 0) + count;
+        if (!tip.lessons.includes(mission.title)) tip.lessons.push(mission.title);
+        tips.set(idea, tip);
+      }
     }
   }
   const toPractice = [...tips.values()].sort((a, b) => b.count - a.count).slice(0, 5);

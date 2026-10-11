@@ -50,7 +50,7 @@ import { freshSeed, generateQuestions, getExtraPractice, hasGenerator } from './
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { PrintMenu } from './Printables';
 import { PaperFold } from './PaperFold';
-import { SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
+import { AreaSvg, SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
 import ParentView from './ParentView';
 import FractionRace from './FractionRace';
 import CodeQuest from './CodeQuest';
@@ -203,6 +203,7 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
           <span className="fq-partition-part-label"><i aria-hidden="true" /> Part · one section</span>
         </div>
       )}
+      {model.kind === 'area' && <div className="fq-area-model"><AreaSvg figure={{ cut: model.cut, shaded: model.shaded }} /></div>}
       {model.kind === 'equation' && <div className="fq-model-equation" role="img" aria-label={`Visual equation ${model.text}`}><MathText text={model.text} /></div>}
       {model.kind === 'decimal' && (
         <div className="fq-decimal-model">

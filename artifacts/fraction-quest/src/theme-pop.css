@@ -937,7 +937,7 @@
   .fq-print-key-grid p { display: grid; gap: 4px; }
   .fq-print-key-example { margin-top: 8px !important; font-weight: 900; }
   .fq-print .fq-model-pair { max-width: 110mm; padding: 6px 0 0; background: none; box-shadow: none; }
-  .fq-print .fq-model-pair-guide line { stroke: #000; }
+  .fq-print .fq-model-pair-guide { display: none; } /* bar and line print at different widths, so the guide would point at nothing */
   .fq-print .fq-model-pair figcaption { color: #000; font-size: 9.5pt; }
 
   .fq-print-summary { display: grid; gap: 2px; margin-top: 10px; padding: 8px 12px; border: 1.5px solid #000; border-radius: 10px; font-size: 10pt; break-inside: avoid; }
@@ -1596,6 +1596,9 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 
 /* ---------- square (area) model: equal parts with different shapes ---------- */
 .fq-svg-area { display: block; width: min(100%, 190px); height: auto; overflow: visible; }
+.fq-area-model { display: flex; justify-content: center; }
+.fq-area-model .fq-svg-area { width: min(100%, 170px); }
+.fq-race-model .fq-area-model .fq-svg-area { width: min(100%, 120px); }
 .fq-svg-area polygon { stroke: hsl(var(--foreground)); stroke-width: 1.5; stroke-linejoin: round; }
 .fq-svg-area polygon.empty { fill: hsl(var(--card)); }
 .fq-svg-area polygon.shaded { fill: var(--fq-grape); }
