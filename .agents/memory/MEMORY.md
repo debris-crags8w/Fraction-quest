@@ -1,1 +1,2 @@
 - [Learning design requirements](learning-design-requirements.md) — require model interaction and 10–15 entered answers before unlock; adapt recommendations without bypassing evidence gates.
+- [GitHub push fallback](github-push.md) — when CLI authentication fails, use the connected GitHub App Git Data API and verify the remote tree.
