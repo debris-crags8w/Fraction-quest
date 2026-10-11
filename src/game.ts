@@ -90,12 +90,22 @@ function practice(
   return { prompt, choices, correctChoice, model, hint, retryFeedback, simplerModel };
 }
 
+/** Authored questions mostly listed the right answer first. Put it at a spot picked from the question id
+    instead, so A, B and C are each right about as often, and it is the same spot on every visit and on paper. */
+function spreadAnswer<T extends { choices: string[]; correctChoice: number }>(question: T, id: string): T {
+  const spot = [...id].reduce((h, c) => (h * 33 + c.charCodeAt(0)) >>> 0, 5381) % question.choices.length;
+  const right = question.choices[question.correctChoice];
+  const others = question.choices.filter((_, i) => i !== question.correctChoice);
+  others.splice(spot, 0, right);
+  return { ...question, choices: others, correctChoice: spot };
+}
+
 function mission(seed: MissionSeed): Mission {
-  const questions = seed.questions.map((question, index) => ({
+  const questions = seed.questions.map((question, index) => spreadAnswer({
     ...question,
     id: `${seed.id}-q${index + 1}`,
     isMastery: index === seed.questions.length - 1,
-  }));
+  }, `${seed.id}-q${index + 1}`));
   return { ...seed, questions };
 }
 
@@ -505,6 +515,21 @@ const curriculum: MissionSeed[] = [
       practice('Which decimal equals 9/10?', ['0.9', '0.09', '9.10'], 0, decimal(9), 'Tenths have 1 place after the dot.', '9 tenths is 0.9. 0.09 is 9 hundredths.', decimal(5)),
     ],
   },
+  {
+    id: 'add-tenths-hundredths', unit: 8, title: 'Add tenths and hundredths', shortTitle: 'Tenths + hundredths', skill: 'Change tenths to hundredths. Then add.',
+    description: 'Add 3/10 + 4/100.', example: {
+      prompt: 'What is 3/10 + 4/100?',
+      answer: '34/100, or 0.34.',
+      explanation: 'Each tenth is 10 hundredths, so 3/10 = 30/100. 30/100 + 4/100 = 34/100.',
+      model: bars({ numerator: 3, denominator: 10 }, { numerator: 4, denominator: 100 }),
+    },
+    questions: [
+      practice('Change 6/10 into hundredths.', ['6/100', '60/100', '16/100'], 1, bars({ numerator: 6, denominator: 10 }), 'Each tenth is 10 hundredths.', '6 × 10 = 60. So 6/10 = 60/100.', bars({ numerator: 1, denominator: 10 })),
+      practice('What is 3/10 + 4/100?', ['34/100', '7/110', '7/100'], 0, bars({ numerator: 3, denominator: 10 }, { numerator: 4, denominator: 100 }), 'Change 3/10 into hundredths first.', '3/10 = 30/100. 30 + 4 = 34. So 34/100.', bars({ numerator: 1, denominator: 10 })),
+      practice('What is 2/10 + 15/100?', ['17/100', '35/100', '17/110'], 1, bars({ numerator: 2, denominator: 10 }, { numerator: 15, denominator: 100 }), 'Change 2/10 into hundredths first.', '2/10 = 20/100. 20 + 15 = 35. So 35/100.', bars({ numerator: 1, denominator: 10 })),
+      practice('A ribbon is 4/10 m. Another is 25/100 m. How long are they together?', ['29/100 m', '65/100 m', '29/110 m'], 1, bars({ numerator: 4, denominator: 10 }, { numerator: 25, denominator: 100 }), 'Change 4/10 into hundredths.', '4/10 = 40/100. 40 + 25 = 65. So 65/100 m, or 0.65 m.', bars({ numerator: 1, denominator: 10 })),
+    ],
+  },
 ];
 
 type ExtensionMode =
@@ -754,8 +779,13 @@ export function isMissionUnlocked(progress: Progress, missionId: string): boolea
   if (targetIndex < 0) return false;
   const target = MISSIONS[targetIndex];
   if (target.unit < 9) return MISSIONS.slice(0, targetIndex).every(item => hasLearningGate(progress, item.id));
-  return MISSIONS.filter(item => item.unit < target.unit).every(item => hasLearningGate(progress, item.id));
+  // A lesson added later must not re-lock units a learner had already opened (they can still do it any time).
+  const alreadyInLaterUnits = MISSIONS.some((item) => item.unit >= 9 && (!!progress.learning?.[item.id] || progress.completedMissionIds.includes(item.id)));
+  return MISSIONS.filter(item => item.unit < target.unit && !(alreadyInLaterUnits && LATE_ADDED_LESSONS.has(item.id)))
+    .every(item => hasLearningGate(progress, item.id));
 }
+/** Lessons added to units 1–8 after units 9–14 existed. */
+const LATE_ADDED_LESSONS = new Set(['add-tenths-hundredths']);
 
 export function completeMission(progress: Progress, missionId: string, stars: number): Progress {
   if (!isMissionUnlocked(progress, missionId) || !hasLearningGate(progress, missionId)) return progress;

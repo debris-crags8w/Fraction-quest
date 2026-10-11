@@ -67,6 +67,7 @@ const EXPECTED_MISSION_IDS = [
   'add-related-fractions',
   'tenths-decimals',
   'hundredths-decimals',
+  'add-tenths-hundredths',
 ];
 const EXPECTED_EXTENSION_IDS = [
   'simplify-fractions', 'equivalent-missing-both', 'compare-unlike-fractions', 'order-unlike-fractions',
@@ -130,16 +131,16 @@ function assertModel(model: ModelSpec, location: string): void {
 }
 
 describe('lesson catalog', () => {
-  it('covers 51 sequenced lessons in the expected sequence and unit groups', () => {
-    assert.equal(MISSIONS.length, 51);
-    assert.deepEqual(MISSIONS.slice(0, 27).map((mission) => mission.id), EXPECTED_MISSION_IDS);
-    assert.deepEqual(MISSIONS.slice(27).map((mission) => mission.id), EXPECTED_EXTENSION_IDS);
+  it('covers 52 sequenced lessons in the expected sequence and unit groups', () => {
+    assert.equal(MISSIONS.length, 52);
+    assert.deepEqual(MISSIONS.slice(0, 28).map((mission) => mission.id), EXPECTED_MISSION_IDS);
+    assert.deepEqual(MISSIONS.slice(28).map((mission) => mission.id), EXPECTED_EXTENSION_IDS);
     assert.deepEqual(
       Object.fromEntries(
         [...new Set(MISSIONS.map((mission) => mission.unit))]
           .map((unit) => [unit, MISSIONS.filter((mission) => mission.unit === unit).length]),
       ),
-      { 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 4, 8: 5, 9: 4, 10: 4, 11: 4, 12: 4, 13: 4, 14: 4 },
+      { 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 4, 8: 6, 9: 4, 10: 4, 11: 4, 12: 4, 13: 4, 14: 4 },
     );
   });
 
@@ -211,7 +212,7 @@ describe('lesson catalog', () => {
   });
   it('checks the first answer key for every added mission independently', () => {
     const expected = ['1/3', '3/9', '<', '3/4, 1/2, 1/3', '2/6', '3', '1 5/6', '6', '3/3', '1/9', '6', '6', '3', '3/6', '2/3', '2/3', '2/6', '1/3', '2/6', '3/3', '25%', '25/100', '0.25', '2/5'];
-    MISSIONS.slice(27).forEach((mission, index) => {
+    MISSIONS.slice(28).forEach((mission, index) => {
       const question = mission.questions[0];
       assert.equal(question.choices[question.correctChoice], expected[index], mission.id);
       assert.equal(new Set(question.choices).size, question.choices.length, `${mission.id} has duplicate answer choices`);
@@ -219,7 +220,7 @@ describe('lesson catalog', () => {
   });
   it('checks the first worksheet answer for every added mission independently', () => {
     const expected = ['1/2', '2', '>', '1/4, 1/2, 2/3', '1/4', '2', '3/4', '2', '2/2', '1/4', '2', '2', '2', '3/4', '1/2', '1/2', '1/4', '1/2', '2/4', '2/2', '50%', '50/100', '0.5', '2/4'];
-    MISSIONS.slice(27).forEach((mission, index) => {
+    MISSIONS.slice(28).forEach((mission, index) => {
       assert.equal(getWorksheet(mission.id)[0].answer, expected[index], mission.id);
     });
   });
@@ -250,16 +251,16 @@ describe('lesson progression', () => {
   });
 
   it('opens the next unit only after every model and worksheet gate, then adapts within that unit', () => {
-    const legacyLessonsMastered = MISSIONS.slice(0, 27).reduce(
+    const legacyLessonsMastered = MISSIONS.slice(0, 28).reduce(
       (progress, mission) => withLearning(progress, mission.id),
       EMPTY_PROGRESS,
     );
-    const firstExtension = MISSIONS[27];
-    const thirdExtension = MISSIONS[29];
+    const firstExtension = MISSIONS[28];
+    const thirdExtension = MISSIONS[30];
     assert.equal(getNextMission(legacyLessonsMastered)?.id, firstExtension.id);
     assert.equal(isMissionUnlocked(legacyLessonsMastered, firstExtension.id), true);
     assert.equal(isMissionUnlocked(legacyLessonsMastered, thirdExtension.id), true, 'new same-level missions are available together');
-    assert.equal(isMissionUnlocked(legacyLessonsMastered, MISSIONS[31].id), false, 'the next level remains locked');
+    assert.equal(isMissionUnlocked(legacyLessonsMastered, MISSIONS[32].id), false, 'the next level remains locked');
 
     const weakEvidence = {
       ...emptyLearningRecord(),
@@ -270,11 +271,11 @@ describe('lesson progression', () => {
     const adapted = updateLearning(legacyLessonsMastered, thirdExtension.id, weakEvidence);
     assert.equal(getNextMission(adapted)?.id, thirdExtension.id, 'evidence of difficulty reorders the recommendation within the unlocked unit');
 
-    const completedUnit = MISSIONS.slice(27, 31).reduce(
+    const completedUnit = MISSIONS.slice(28, 32).reduce(
       (progress, mission) => withLearning(progress, mission.id),
       legacyLessonsMastered,
     );
-    assert.equal(isMissionUnlocked(completedUnit, MISSIONS[31].id), true);
+    assert.equal(isMissionUnlocked(completedUnit, MISSIONS[32].id), true);
   });
 });
 
@@ -566,7 +567,7 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.throws(() => numberLineWholeCount(1, 0), RangeError);
   });
   it('checks independently calculated keys across every curriculum topic', () => {
-    const expected = ['1/3', '1', '3', '1/2', '2', '4', '1/4', '1/3', '3/4', '3', '1/3', '4/3', '2/3', '2/3', '1/3, 2/3, 3/3', '2', '2/6', '2', '2/3', '2', '>', '4/3', '2/3', '1/3', '3/4', '0.1', '0.08'];
+    const expected = ['1/3', '1', '3', '1/2', '2', '4', '1/4', '1/3', '3/4', '3', '1/3', '4/3', '2/3', '2/3', '1/3, 2/3, 3/3', '2', '2/6', '2', '2/3', '2', '>', '4/3', '2/3', '1/3', '3/4', '0.1', '0.08', '34/100'];
     MISSIONS.slice(0, expected.length).forEach((mission, index) => assert.equal(getWorksheet(mission.id)[0].answer, expected[index], mission.id));
   });
   it('authors twelve valid problems and two skill checks for every topic', () => {
@@ -1080,7 +1081,7 @@ describe('quality audit fixes', () => {
     }
   });
   it('generated help pictures belong to the question (not a stock 1/2 bar)', () => {
-    for (const mission of MISSIONS.slice(0, 27)) for (const q of getExtraPractice(mission.id, mission.questions.map((item) => item.id))) {
+    for (const mission of MISSIONS.slice(0, 28)) for (const q of getExtraPractice(mission.id, mission.questions.map((item) => item.id))) {
       assert.equal(q.simplerModel.kind, q.model.kind, `${mission.id}/${q.id}`);
     }
   });
@@ -1097,7 +1098,7 @@ describe('quality audit fixes', () => {
     }
   });
   it('generator keeps to grade-friendly denominators', () => {
-    for (const mission of MISSIONS.slice(0, 27)) for (let seed = 1; seed <= 40; seed++) {
+    for (const mission of MISSIONS.slice(0, 28)) for (let seed = 1; seed <= 40; seed++) {
       for (const q of generateQuestions(mission.id, mission.questions.map((item) => item.id), seed, 10)) {
         // Wrong choices may show a deliberate mistake (1/3 + 1/12 → 2/15), so check the question, answer and hint.
         for (const m of `${q.prompt} ${q.choices[q.correctChoice]} ${q.hint}`.matchAll(/(\d+)\/(\d+)/g)) {
@@ -1202,5 +1203,30 @@ describe('Fraction Race rules', () => {
     assert.ok(careful < ROBOT_LEVELS[0].seconds, `median ${careful}s`);
     const quick = Array.from({ length: 50 }, (_, i) => simulate(0.95, 3500, i + 1)).sort((a, b) => a - b)[25];
     assert.ok(quick < ROBOT_LEVELS[2].seconds, `median ${quick}s`);
+  });
+});
+
+describe('new tenths + hundredths lesson', () => {
+  const core = MISSIONS.filter((m) => m.unit <= 8 && m.id !== 'add-tenths-hundredths');
+  const withAll = (ids: string[]) => ids.reduce((progress, id) => {
+    let record = { ...emptyLearningRecord(), practiceDone: true, checks: { build: { passed: true, supported: false, attempts: 1 }, transfer: { passed: true, supported: false, attempts: 1 } } };
+    for (const p of getWorksheet(id)) { record = editWorksheet(record, p.id, p.answer); record = checkWorksheet(record, p); }
+    return updateLearning({ ...progress, completedMissionIds: [...progress.completedMissionIds, id] }, id, record);
+  }, EMPTY_PROGRESS);
+  it('is required to open unit 9 for new learners', () => {
+    const progress = withAll(core.map((m) => m.id));
+    assert.equal(isMissionUnlocked(progress, 'add-tenths-hundredths'), true);
+    assert.equal(isMissionUnlocked(progress, 'simplify-fractions'), false);
+    assert.equal(isMissionUnlocked(withAll([...core.map((m) => m.id), 'add-tenths-hundredths']), 'simplify-fractions'), true);
+  });
+  it('does not re-lock units 9–14 for a learner who had already started them', () => {
+    const before = withAll(core.map((m) => m.id));
+    const started = updateLearning(before, 'simplify-fractions', { ...emptyLearningRecord(), practiceDone: true });
+    assert.equal(isMissionUnlocked(started, 'simplify-fractions'), true);
+  });
+  it('spreads the right answer across A, B and C', () => {
+    const pos = [0, 0, 0]; for (const m of MISSIONS) for (const q of m.questions) pos[q.correctChoice]++;
+    const total = pos.reduce((a, b) => a + b, 0);
+    for (const n of pos) assert.ok(n / total > 0.25 && n / total < 0.42, `positions ${pos}`);
   });
 });
