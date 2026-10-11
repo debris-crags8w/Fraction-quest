@@ -41,6 +41,26 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **"1-5 + lesson count + native printing" batch (main unless noted):**
+  - Account deletion: DELETE /api/privacy/account (password required; all tables cascade), OpenAPI + codegen, grown-ups
+    danger card in FamilyControls (`button-delete-account`). Verified end to end against a temp Postgres.
+  - Circle models: area-shapes.ts has circle halves/thirds/fourths/sixths/eighths + `circle-unequal` (wedges()),
+    `areaWhole(cut)`, `circleCut(d)`. Used in equal-parts row 8 (unfair pizza; fair on odd redos), unit-fractions row 9
+    (one slice), fraction-names row 12 (shaded circle), the area lesson (7 shapes so redo rounds differ). Print tag names
+    the whole ("Circle model").
+  - Part Finder: round 1 is now "Make 4 fair shares" (mode 'sort': every piece goes in one of 4 colored shares; answer is
+    an assignment array), tiling uses the mixed quarter-and-triangles square (4 or 8 copies) and only shows the filled
+    picture after the right count; all wrong answers use partFinderFeedback hints.
+  - New ModelSpec kind 'area' {cut, shaded}: practice-bank equal-parts / unit-fractions / fraction-of-area questions show
+    squares, pizzas, hexagons, grids, so Fraction Race shows them too. Tests check answers from shadedArea/allEqual.
+  - Redo mistakes: `checkRedoRow` stores misses in `LearningRecord.redoMisconceptions` (kept apart from first-try
+    results); parent report's Worth practicing adds them and shows "(n in redos)". Sanitized in readRedo.
+  - Printed lesson page: hid `.fq-model-pair-guide` in print (it was the stray mark under the example bar).
+  - Already fixed by the user before this batch: 3-star threshold (countsTowardLessonStars) and challenge walk-throughs in
+    the answer key.
+  - **ios-local-icloud only (not merged):** Printing plugin (ios/App/App/Printing.swift, pbxproj ids …06/…07, registered
+    in AppViewController) + `printPage()` in src/lib/print.ts (fires 'afterprint' after the native sheet); the paywall's
+    unit/lesson counts are computed from MISSIONS (49 on the branch, 65 once main's 68 lessons arrive).
 - **Merged review/fraction-standard-mastery into main** (user's branch: 68 lessons covering all 36 grade 3–5 standards,
   standard catalog + assessments, teaching guides/pacing, concept games, brain breaks, display options, family privacy/
   classrooms). Fix before merging: the 16 new lessons are in LATE_ADDED_LESSONS (game.ts, now exported) so learners who had
@@ -99,29 +119,14 @@ the square area model and the Part Finder proposal; local review changes should 
   challenges and recipes; full QA audit fixes (number-line cap, review prompts, guessable reasons, degenerate items,
   out-of-range denominators, duplicate family worksheets) with regression tests under "quality audit fixes" in game.test.ts.
 
-## Part Finder (proposed and queued)
-User asked: "Do you have a lesson showing students how to FIND the parts? Might be a useful game to add early in
-introducing equivalent fractions." Answer given: no — kids make parts (fold, split, shade) and judge them, but never find the
-equal parts hidden in a messy shape. Proposed **Part Finder** game (game card on equal-parts, unit-fractions,
-equivalent-models; stars/best score like the other games), suggested build order rounds 1, 2, 4 first:
-1. Group them: uneven pieces (like the 7-piece square); tap pieces into 4 colored groups that are each 1/4 (any valid grouping).
-2. How many fit? One piece highlighted; tile copies across the whole and count (→ it is 1/8).
-3. Cut it: draw dot-to-dot lines to make equal parts; several correct answers (hardest on touch screens).
-4. Same whole, new parts: find fourths, then eighths in the same square → 1/4 = 2/8.
-Can reuse area-shapes.ts (pieceArea, AREA_CUTS) and AreaSvg/AreaShade patterns; group validation = each group's area = 1/k.
-The user approved the idea. It is queued but not assigned; wait for task assignment before implementing it.
-
 ## Still open
-- Parent password reset is not applicable yet: there is no parent account. Student account recovery is tracked separately.
-  Privacy/consent and COPPA still need a careful data-handling review; the current username/display-name signup diverges
-  from the user's chosen educator-report setup: class codes, no student names, progress saved online. Do not claim legal
-  compliance based on code review alone.
-- Circle models are not implemented; current model kinds are bars, number lines and sets, with square area models added
-  for worksheets and print.
+- **Password reset:** waiting on the user's choice: (a) parent email link, (b) printed recovery code, (c) parent/teacher
+  resets from their page. Nothing built yet.
+- **Privacy policy page:** needs company name, contact email and country/state from the user. PRIVACY_POLICY_URL is ''
+  on the iOS branch. COPPA still needs a careful data-handling review; don't claim legal compliance from code review alone.
 - Whole-number times a fraction exists in the Unit 11 grade-5 extension, but not in the grade-4 path.
-- Square model is only on worksheets/prints, not in practice questions or Fraction Race.
-- The printed lesson sheet for lessons 1–2 is now 2 pages after adding shape-comparison activities. Keep the models
-  readable rather than shrinking them without a specific one-page requirement.
-- Screen readers hear yes/no bars as “a bar cut into N pieces” (deliberately neutral so the description does not give
-  away whether the parts are equal).
-- The Part Finder proposal is queued; wait for task assignment before implementing it.
+- The printed lesson sheet for lessons 1–2 is 2 pages (shape activities). Keep models readable over a one-page squeeze.
+- Screen readers hear yes/no bars as "a bar cut into N pieces" (neutral on purpose so it doesn't give the answer away).
+- iOS branch: two profile systems (main's server learner profiles vs the branch's local profiles) need reconciling before
+  any merge; the branch conflicts with main in App.tsx, ParentView.tsx, game.ts, lib/fun.ts, package.json and the lockfile.
+  The branch's merge.ts/native sanitizers don't know `redoMisconceptions` (new on main) yet; carry it through when merging.
