@@ -64,7 +64,7 @@
 .fq-ll-row { padding: 14px 16px; border: 2px solid hsl(var(--border)); border-radius: 16px; }
 .fq-ll-row.ok { border-color: hsl(var(--secondary)); background: hsl(var(--secondary) / .07); }
 .fq-ll-row form { display: grid; gap: 10px; }
-.fq-ll-row label { display: flex; gap: 10px; font-weight: 700; line-height: 1.4; }
+.fq-ll-row-question { display: flex; gap: 10px; align-items: flex-start; font-weight: 700; line-height: 1.4; }
 .fq-ll-num { flex: 0 0 28px; height: 28px; display: grid; place-items: center; border-radius: 9px; background: hsl(var(--accent)); font: 900 .8rem var(--app-font-mono); }
 .fq-ll-answer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .fq-ll-answer input { width: min(100%, 220px); text-align: left; padding: 0 12px; }

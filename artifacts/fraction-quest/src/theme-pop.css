@@ -966,6 +966,7 @@
 .fq-login-guest { display: grid; justify-items: center; gap: 2px; color: hsl(var(--muted-foreground)); font-weight: 700; }
 .fq-login-guest > span { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; }
 .fq-login-guest small { font-size: 0.8rem; }
+.fq-account-error { margin: 0; padding: 9px 12px; border-radius: 12px; color: var(--fq-bad-fg); background: var(--fq-bad-bg); font-size: 0.88rem; font-weight: 800; line-height: 1.35; }
 
 .fq-loading { display: grid; justify-items: center; gap: 10px; margin-top: 18vh; color: hsl(var(--muted-foreground)); font-weight: 800; }
 .fq-loading .fq-mascot { animation: fq-bob 1.4s ease-in-out infinite; }

@@ -78,4 +78,3 @@ export interface SavedProgress {
   /** @nullable */
   updatedAt: string | null;
 }
-

@@ -1,1 +1,1 @@
-- [Learning design requirements](learning-design-requirements.md) — preserve hands-on models, answer-entry worksheets, mastery gates, and adaptive mission choice.
+- [Learning design requirements](learning-design-requirements.md) — require model interaction and 10–15 entered answers before unlock; adapt recommendations without bypassing evidence gates.
