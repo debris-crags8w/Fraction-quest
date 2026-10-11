@@ -32,6 +32,7 @@ import { getLearningRecord, hasLearningGate, learningSummary, updateLearning, wo
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { loadFun, playCue, recordCorrect, resetFun, setSound, type FunState } from './lib/fun';
+import { ModelTag } from './models';
 import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
 
 const queryClient = new QueryClient();
@@ -80,6 +81,9 @@ function FractionBar({ numerator, denominator }: { numerator: number; denominato
 function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boolean }) {
   return (
     <div className={`fq-visual-model ${compact ? 'compact' : ''}`} data-testid="visual-fraction-model">
+      {!compact && (model.kind === 'bars' || model.kind === 'decimal') && <ModelTag kind="bar" />}
+      {!compact && model.kind === 'line' && <ModelTag kind="line" />}
+      {!compact && model.kind === 'set' && <ModelTag kind="set" />}
       {model.kind === 'bars' && (
         <div className="fq-visual-bars">
           {model.bars.map((item, index) => (

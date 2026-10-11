@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState, type CSSProperties, type 
 import { Check, Gift, LockKeyhole, Sparkles, Star } from 'lucide-react';
 import type { ModelSpec } from './game';
 import { DAILY_GOAL, type FunState } from './lib/fun';
+import { MODEL_NAMES, ModelTag } from './models';
 
 /* ---------- shared fun state ---------- */
 
@@ -137,7 +138,7 @@ export function TapModel({ model }: { model: ModelSpec }) {
   return (
     <section className={`fq-tap ${matched ? 'matched' : ''}`} aria-label="Your turn: build it" data-testid="section-tap-model">
       <div className="fq-tap-head">
-        <span className="fq-tap-kicker"><Sparkles size={14} /> Your turn</span>
+        <span className="fq-tap-kicker"><Sparkles size={14} /> Your turn · <ModelTag kind={target.kind}>{MODEL_NAMES[target.kind]}</ModelTag></span>
         <strong>{target.kind === 'line' ? `Tap the number line to land on ${goal}.` : target.kind === 'set' ? `Tap counters to light up ${goal}.` : `Tap pieces to shade ${goal}.`}</strong>
       </div>
       {target.kind === 'bar' && (

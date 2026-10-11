@@ -11,6 +11,9 @@ export type BuildCheck = {
 const model = (n: number, d: number, kind: LearningModel['kind'] = 'bar', total?: number): LearningModel =>
   ({ n, d, kind, total, wholes: Math.max(1, Math.ceil(n / d)) });
 const f = (n: number, d: number) => `${n}/${d}`;
+const UNIT_NAMES: Record<number, string> = { 2: 'halves', 3: 'thirds', 4: 'fourths', 5: 'fifths', 6: 'sixths', 7: 'sevenths', 8: 'eighths', 9: 'ninths', 10: 'tenths', 12: 'twelfths', 15: 'fifteenths', 16: 'sixteenths' };
+/** Plural name for pieces of size 1/d, e.g. 3 → "thirds". */
+const unitName = (d: number) => UNIT_NAMES[d] ?? `${d}ths`;
 
 /** Exact decimal/fraction arithmetic: never silently round a student's answer. */
 export function parseAnswer(raw: string): Rational | null {
@@ -156,8 +159,8 @@ export function getWorksheet(id: string): WorksheetProblem[] {
       case 'number-line-points':
       case 'number-line-beyond-one': {
         const top = id === 'number-line-beyond-one' ? d + n : n;
-        prompt = i % 3 === 0 && id === 'number-line-basics' ? `How many equal spaces make ${d}ths between 0 and 1?` :
-          i % 3 === 1 ? `A walk takes ${top} jumps, each 1/${d} meter. Enter the total distance.` : `This line uses ${d} equal spaces per whole. Name the marked point as a fraction of one whole.`;
+        prompt = i % 3 === 0 && id === 'number-line-basics' ? `How many equal spaces make ${unitName(d)} between 0 and 1?` :
+          i % 3 === 1 ? `A walk takes ${top} ${top === 1 ? 'jump' : 'jumps'}, each 1/${d} meter. Enter the total distance.` : `This line uses ${d} equal spaces per whole. Name the marked point as a fraction of one whole.`;
         answer = i % 3 === 0 && id === 'number-line-basics' ? String(d) : f(top, d);
         if (!(i % 3 === 0 && id === 'number-line-basics') && i % 3 !== 1) visual = model(top, d, 'line');
         hint = 'Count equal spaces in each whole for the denominator, then jumps from zero for the numerator.'; break;
@@ -204,7 +207,7 @@ export function getWorksheet(id: string): WorksheetProblem[] {
       case 'add-related-fractions': {
         const small = [2, 3, 4][i % 3]; const large = small * (2 + Math.floor(i / 3));
         prompt = `A recipe uses 1/${small} cup and another 1/${large} cup. Enter the total.`;
-        answer = f(large / small + 1, large); hint = `Rename both amounts using ${large}ths before combining counts.`; break;
+        answer = f(large / small + 1, large); hint = `Rename both amounts using ${unitName(large)} before combining counts.`; break;
       }
       case 'tenths-decimals':
       case 'hundredths-decimals': {

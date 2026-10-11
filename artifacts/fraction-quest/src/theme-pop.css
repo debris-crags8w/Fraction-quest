@@ -805,3 +805,131 @@
 @media (max-width: 420px) {
   .fq-brand > span:last-child { display: none; }
 }
+
+/* ---------- model labels & shared drawings (bar model, number line, set) ---------- */
+
+.fq-model-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 11px 4px 9px;
+  border-radius: 99px;
+  color: #fff;
+  font-family: var(--app-font-sans);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  vertical-align: middle;
+}
+.fq-model-tag.kind-bar { background: var(--fq-grape); }
+.fq-model-tag.kind-line { background: #E07000; }
+.fq-model-tag.kind-set { background: #D93374; }
+.fq-visual-model > .fq-model-tag { justify-self: start; }
+.fq-tap-kicker .fq-model-tag { font-size: 0.72rem; padding: 2px 9px 2px 7px; letter-spacing: 0; text-transform: none; }
+
+.fq-svg-bar, .fq-svg-line, .fq-svg-set { display: block; width: 100%; height: auto; overflow: visible; }
+.fq-svg-bar rect.shaded { fill: var(--fq-grape); }
+.fq-svg-bar rect.empty { fill: hsl(var(--card)); }
+.fq-svg-bar rect.shaded, .fq-svg-bar rect.empty { stroke: hsl(var(--foreground)); stroke-width: 1.5; }
+.fq-svg-bar rect.frame { stroke: hsl(var(--foreground)); stroke-width: 3; }
+.fq-svg-line .axis, .fq-svg-line .tick { stroke: hsl(var(--foreground)); stroke-width: 2.5; stroke-linecap: round; }
+.fq-svg-line .tick.whole { stroke-width: 3.5; }
+.fq-svg-line .axis-arrow { fill: hsl(var(--foreground)); }
+.fq-svg-line text { fill: hsl(var(--foreground)); font: 900 15px var(--app-font-sans); }
+.fq-svg-line .jump { fill: none; stroke: #E07000; stroke-width: 2.5; stroke-linecap: round; }
+.fq-svg-line .point { fill: #FF9600; stroke: hsl(var(--foreground)); stroke-width: 2.5; }
+.fq-svg-set .group { fill: hsl(var(--card)); stroke: hsl(var(--foreground)); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.fq-svg-set .group.on { fill: color-mix(in srgb, var(--fq-bubblegum) 18%, hsl(var(--card))); stroke-dasharray: none; }
+.fq-svg-set .dot { fill: hsl(var(--card)); stroke: hsl(var(--foreground)); stroke-width: 1.5; }
+.fq-svg-set .dot.on { fill: var(--fq-bubblegum); }
+
+.fq-model-pair { display: grid; gap: 0; margin: 0; padding: 16px; border-radius: 20px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); }
+.fq-model-pair-row { display: grid; gap: 6px; }
+.fq-model-pair-guide svg { display: block; width: 100%; height: 14px; }
+.fq-model-pair-guide line { stroke: #E07000; stroke-width: 2.5; stroke-dasharray: 4 4; }
+.fq-model-pair figcaption { margin-top: 10px; font-weight: 800; font-size: 0.9rem; color: hsl(var(--muted-foreground)); }
+
+/* Learning Lab: name and explain each model */
+.fq-ll-models-intro { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-top: 12px; }
+.fq-ll-models-intro p { display: grid; gap: 6px; margin: 0; padding: 12px 14px; border-radius: 16px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); color: hsl(var(--foreground)); font-size: 0.9rem; font-weight: 700; line-height: 1.4; }
+.fq-ll-print { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.fq-ll-print .fq-button { min-height: 44px; font-size: 0.82rem; }
+
+.fq-ll-model-head { display: grid; gap: 5px; }
+.fq-ll-model-head h4 { font-size: 1.1rem; }
+.fq-ll-model-head p { margin: 0; color: hsl(var(--muted-foreground)); font-size: 0.86rem; font-weight: 700; line-height: 1.4; }
+.fq-ll-builder.kind-bar { border-color: color-mix(in srgb, var(--fq-grape) 40%, transparent); background: color-mix(in srgb, var(--fq-grape) 5%, hsl(var(--card))); }
+.fq-ll-builder.kind-line { border-color: color-mix(in srgb, #E07000 45%, transparent); background: color-mix(in srgb, var(--fq-tangerine) 6%, hsl(var(--card))); }
+.fq-ll-builder.kind-set { border-color: color-mix(in srgb, var(--fq-bubblegum) 40%, transparent); background: color-mix(in srgb, var(--fq-bubblegum) 5%, hsl(var(--card))); }
+.fq-ll-translate { display: grid; gap: 2px; margin: 0; padding: 10px 14px; border-left: 5px solid #E07000; border-radius: 0 14px 14px 0; background: color-mix(in srgb, var(--fq-tangerine) 10%, hsl(var(--card))); color: hsl(var(--foreground)); }
+.fq-ll-translate span { font-size: 0.88rem; font-weight: 700; color: hsl(var(--muted-foreground)); }
+.fq-ll-preview-wrap { display: grid; gap: 6px; justify-items: start; }
+
+/* ---------- printable worksheet (paper only) ---------- */
+
+.fq-print { display: none; }
+
+@media print {
+  @page { margin: 14mm; }
+  html, body { background: #fff !important; }
+  /* Only the worksheet prints: hide everything around it so no blank pages follow. */
+  #root *:not(:has(.fq-print)):not(.fq-print):not(.fq-print *) { display: none !important; }
+  #root :has(.fq-print) { display: block !important; width: auto !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
+  .fq-print { display: block; width: 100%; color: #000; font-family: var(--app-font-sans); font-size: 11.5pt; line-height: 1.35; }
+  .fq-app, .fq-ll { background: #fff !important; }
+  .fq-lesson-footer, .fq-confetti { display: none !important; }
+
+  .fq-print h1, .fq-print h2 { margin: 0; font-family: var(--app-font-display); color: #000; }
+  .fq-print h1 { font-size: 20pt; line-height: 1.1; }
+  .fq-print h2 { font-size: 13pt; margin-bottom: 6px; }
+  .fq-print p { margin: 0; }
+  .fq-print-head { display: flex; justify-content: space-between; gap: 18px; padding-bottom: 8px; border-bottom: 2px solid #000; }
+  .fq-print-kicker { font-size: 9pt; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
+  .fq-print-fields { display: grid; gap: 10px; align-content: start; min-width: 200px; font-weight: 800; }
+  .fq-print-fields span { display: flex; gap: 6px; align-items: flex-end; }
+  .fq-print-fields i { flex: 1; min-height: 16px; border-bottom: 1.5px solid #000; font-style: normal; font-weight: 600; }
+
+  .fq-print .fq-model-tag { padding: 2px 8px 2px 6px; border: 1.5px solid #000; color: #000; background: #fff; font-size: 8.5pt; }
+  .fq-print .fq-model-tag svg { color: #000; }
+  .fq-print .fq-svg-bar rect.shaded { fill: #9a9a9a; }
+  .fq-print .fq-svg-bar rect.empty, .fq-print .fq-svg-set .group, .fq-print .fq-svg-set .dot { fill: #fff; }
+  .fq-print .fq-svg-bar rect.shaded, .fq-print .fq-svg-bar rect.empty, .fq-print .fq-svg-bar rect.frame, .fq-print .fq-svg-set .group, .fq-print .fq-svg-set .dot { stroke: #000; }
+  .fq-print .fq-svg-set .group.on { fill: #e3e3e3; }
+  .fq-print .fq-svg-set .dot.on { fill: #777; }
+  .fq-print .fq-svg-line .axis, .fq-print .fq-svg-line .tick { stroke: #000; }
+  .fq-print .fq-svg-line .axis-arrow, .fq-print .fq-svg-line text { fill: #000; }
+  .fq-print .fq-svg-line .jump { stroke: #555; }
+  .fq-print .fq-svg-line .point { fill: #000; stroke: #000; }
+
+  .fq-print-key { margin-top: 10px; padding: 10px 12px; border: 1.5px solid #000; border-radius: 10px; break-inside: avoid; }
+  .fq-print-key-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 10pt; }
+  .fq-print-key-grid p { display: grid; gap: 4px; }
+  .fq-print-key-example { margin-top: 8px !important; font-weight: 900; }
+  .fq-print .fq-model-pair { max-width: 110mm; padding: 6px 0 0; background: none; box-shadow: none; }
+  .fq-print .fq-model-pair-guide line { stroke: #000; }
+  .fq-print .fq-model-pair figcaption { color: #000; font-size: 9.5pt; }
+
+  .fq-print-summary { display: grid; gap: 2px; margin-top: 10px; padding: 8px 12px; border: 1.5px solid #000; border-radius: 10px; font-size: 10pt; break-inside: avoid; }
+  .fq-print-summary strong { font-size: 12pt; }
+
+  .fq-print-problems { margin: 12px 0 0; padding: 0; list-style: none; counter-reset: problem; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .fq-print-problems li { counter-increment: problem; position: relative; display: grid; gap: 6px; align-content: start; padding: 8px 10px 8px 34px; border: 1px solid #999; border-radius: 8px; break-inside: avoid; }
+  .fq-print-problems li::before { content: counter(problem); position: absolute; left: 8px; top: 8px; width: 19px; height: 19px; border: 1.5px solid #000; border-radius: 50%; display: grid; place-items: center; font-size: 9pt; font-weight: 900; }
+  .fq-print-prompt { font-weight: 700; }
+  .fq-print-model { display: grid; gap: 4px; justify-items: start; }
+  .fq-print-model svg { max-width: 70mm; }
+  .fq-print-answer { display: flex; align-items: flex-end; gap: 6px; flex-wrap: wrap; font-weight: 800; }
+  .fq-print-answer b { flex: 1; min-width: 30mm; min-height: 18px; border-bottom: 1.5px solid #000; font-weight: 700; }
+  .fq-print-answer em { font-style: normal; font-size: 9.5pt; font-weight: 900; }
+  .fq-print-problems small { font-size: 8.5pt; color: #333; }
+
+  .fq-print-draw { margin-top: 12px; padding: 10px 12px; border: 1.5px solid #000; border-radius: 10px; break-inside: avoid; }
+  .fq-print-draw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 8px; }
+  .fq-print-draw-grid > div { display: grid; gap: 6px; align-content: start; }
+  .fq-print-why { display: grid; gap: 14px; margin-top: 12px !important; font-weight: 800; }
+  .fq-print-why i { display: block; border-bottom: 1.5px solid #000; height: 10px; }
+
+  .fq-print-foot { margin-top: 12px; padding-top: 6px; border-top: 1px solid #999; font-size: 8.5pt; color: #333; }
+}

@@ -1,7 +1,7 @@
-import { type CSSProperties, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Form } from '@/components/ui/form';
-import { ArrowLeft, Check, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Check, CircleHelp, Lightbulb, Minus, Plus, Printer, RotateCcw } from 'lucide-react';
 import type { Progress } from './game';
 import { answerMatches, getBuildChecks, getReviewCheck, getWorksheet, type BuildCheck, type LearningModel, type WorksheetProblem } from './learning-content';
 import {
@@ -9,6 +9,8 @@ import {
   type LearningRecord,
 } from './learning';
 import { denomColor } from './fun-ui';
+import { MODEL_CONCEPTS, ModelPair, ModelTag } from './models';
+import PrintWorksheet, { type PrintMode } from './PrintWorksheet';
 import './learning-lab.css';
 
 type Kind = LearningModel['kind'];
@@ -43,6 +45,7 @@ function Frac({ n, d }: { n: number; d: number }) { return <span className="fq-l
 /* Read-only preview for worksheet visuals */
 function Preview({ m }: { m: LearningModel }) {
   return (
+    <div className="fq-ll-preview-wrap"><ModelTag kind={m.kind} />
     <div className="fq-ll-preview" style={{ '--piece': denomColor(m.d) } as CSSProperties} role="img" aria-label={m.kind === 'set' ? `${m.n} of ${m.d} groups selected from ${m.total} objects` : `${m.d} equal parts per whole, marked after ${m.n} parts`}>
       {m.kind === 'line' ? (
         <div className="fq-ll-pline">{Array.from({ length: m.d * m.wholes + 1 }, (_, i) => <i key={i} className={i === m.n ? 'on' : ''} style={{ left: `${(i / (m.d * m.wholes)) * 100}%` }}>{i % m.d === 0 && <span>{i / m.d}</span>}</i>)}</div>
@@ -54,7 +57,7 @@ function Preview({ m }: { m: LearningModel }) {
           {Array.from({ length: m.d }, (_, i) => <i key={i} className={w * m.d + i < m.n ? 'on' : ''} />)}
         </div>)
       )}
-    </div>
+    </div></div>
   );
 }
 function gridColumns(d: number): number {
@@ -87,8 +90,12 @@ function Builder({ kind, total, st, set, id, title }: { kind: Kind; total?: numb
   const unit = kind === 'line' ? 'jumps from zero' : kind === 'set' ? 'groups selected' : 'pieces shaded';
   const wrap = st.d > 12;
   return (
-    <section className="fq-ll-builder" aria-label={title} data-testid={`model-${id}`}>
-      <h4>{title}</h4>
+    <section className={`fq-ll-builder kind-${kind}`} aria-label={title} data-testid={`model-${id}`}>
+      <header className="fq-ll-model-head">
+        <ModelTag kind={kind === 'bar' ? 'bar' : kind} />
+        <h4>{title}</h4>
+        <p>{MODEL_CONCEPTS[kind === 'bar' ? 'bar' : kind]}</p>
+      </header>
       <div className="fq-ll-controls">
         <Stepper id={`${id}-d`} label={kind === 'set' ? 'Equal groups' : kind === 'line' ? 'Spaces in each whole' : 'Equal pieces in each whole'} value={st.d} min={0} max={maxD}
           onSet={v => set({ ...st, d: v, count: Math.min(st.count, kind === 'set' ? v : v * st.wholes) })} hint={kind === 'set' ? `${total} objects in all` : 'You choose the partition'} />
@@ -168,9 +175,14 @@ function CheckRunner({ check, onHelp, onPass, review }: {
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
       <p className="fq-ll-kicker">{check.transfer ? (review ? 'Fresh review round' : 'Check 2 · independent transfer') : 'Check 1 · guided build'}</p>
       <h3>{check.prompt}</h3>
-      <Builder kind={k} total={t.total} st={a} set={setA} id={`${check.id}-a`} title={`Build it as a ${k === 'set' ? 'set of groups' : k === 'line' ? 'number line' : 'bar'}`} />
-      <p className="fq-ll-translate">{transLabel}</p>
-      <Builder kind={tk} st={b} set={setB} id={`${check.id}-b`} title={`Translate to a ${tk === 'line' ? 'number line' : 'bar'}`} />
+      <Builder kind={k} total={t.total} st={a} set={setA} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} />
+      <div className="fq-ll-translate">
+        <strong>{transLabel}</strong>
+        <span>{tk === 'line'
+          ? `Same fraction, second model: the ${k === 'set' ? 'groups you picked' : 'shaded part of the bar'} should match the distance from 0 on the number line.`
+          : 'Same fraction, second model: the distance from 0 on the number line should match the shaded part of the bar.'}</span>
+      </div>
+      <Builder kind={tk} st={b} set={setB} id={`${check.id}-b`} title={`Show the same fraction ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} />
       <fieldset className="fq-ll-reasons" data-testid={`reasons-${check.id}`}>
         <legend>Which reason explains your model?</legend>
         {check.reasons.map((r, i) => (
@@ -189,6 +201,7 @@ function CheckRunner({ check, onHelp, onPass, review }: {
         </div>
       )}
       {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>Model, translation and reason all agree.</strong> {check.explanation}</div></div>}
+      {done && <ModelPair n={t.n} d={t.d} />}
       <div className="fq-ll-actions">
         <button type="button" className="fq-hint-button" onClick={hint} disabled={done} data-testid={`button-hint-${check.id}`}><Lightbulb size={17} /> {hints ? 'Another hint' : 'Need a hint?'}</button>
         <button type="button" className="fq-button" onClick={submit} disabled={locked || done} data-testid={`button-check-${check.id}`}>Check my model <Check size={17} /></button>
@@ -238,6 +251,15 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const [notice, setNotice] = useState('');
   const [reviewPassed, setReviewPassed] = useState(false);
   const [reviewSupported, setReviewSupported] = useState(() => (getLearningRecord(progress, missionId).reviewSupportedUntil ?? 0) > Date.now());
+  const [printMode, setPrintMode] = useState<PrintMode>('blank');
+  const [printRequest, setPrintRequest] = useState(0);
+  useEffect(() => {
+    if (!printRequest) return;
+    // Wait one frame so the chosen print layout is in the page before the print dialog opens.
+    const frame = window.requestAnimationFrame(() => window.print());
+    return () => window.cancelAnimationFrame(frame);
+  }, [printRequest]);
+  const print = (mode: PrintMode) => { setPrintMode(mode); setPrintRequest((n) => n + 1); };
   const rec = getLearningRecord(progress, missionId);
   const save = (r: LearningRecord) => { const p = updateLearning(ref.current, missionId, r); ref.current = p; onChange(p); };
   const cur = () => getLearningRecord(ref.current, missionId);
@@ -288,6 +310,14 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         <span className="fq-ll-badge">Learning lab</span>
         <h2>Build it with your hands, then prove it</h2>
         <p>You choose the equal parts. Nothing is preset, and every model has to agree with your reason.</p>
+        <div className="fq-ll-models-intro" aria-label="The two models in this lab">
+          <p><ModelTag kind="bar" /> {MODEL_CONCEPTS.bar}</p>
+          <p><ModelTag kind="line" /> {MODEL_CONCEPTS.line}</p>
+        </div>
+        <div className="fq-ll-print" role="group" aria-label="Print">
+          <button type="button" className="fq-button ghost" onClick={() => print('blank')} data-testid="button-print-worksheet"><Printer size={17} /> Print worksheet</button>
+          <button type="button" className="fq-button ghost" onClick={() => print('answers')} data-testid="button-print-answers"><Printer size={17} /> Print my answers</button>
+        </div>
       </header>
 
       <ol className="fq-ll-steps" aria-label="Lab progress" data-testid="list-lab-steps">
@@ -352,6 +382,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         ) : <p className="fq-ll-note" data-testid="text-no-misconceptions">No stumbles recorded yet.</p>}
         <button className="fq-button secondary" disabled={!gate} onClick={() => gate && onFinish()} data-testid="button-lab-finish">Finish lesson</button>
       </section>
+      <PrintWorksheet missionId={missionId} record={rec} mode={printMode} />
     </div>
   );
 }
