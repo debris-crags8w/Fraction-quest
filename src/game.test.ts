@@ -332,7 +332,7 @@ describe('entered-answer worksheets and evidence gates', () => {
 
         const correctButModelsWrong = getReasonFeedback(check, check.correctReason, false);
         assert.equal(correctButModelsWrong?.correct, true, `${mission.id}/${check.id} should preserve a correct reason`);
-        assert.match(correctButModelsWrong?.message ?? '', /explanation is correct/);
+        assert.match(correctButModelsWrong?.message ?? '', /reason is right/);
         assert.equal(getReasonFeedback(check, check.correctReason, true), null);
       }
     }

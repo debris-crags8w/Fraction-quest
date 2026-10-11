@@ -80,7 +80,7 @@ export default function PrintWorksheet({ missionId, record, mode }: { missionId:
       {answers && (
         <section className="fq-print-summary">
           <strong>Worksheet: {worksheetCount(record, missionId)} of 12 correct</strong>
-          <span>Model checks: {checks.map((check) => `${check.transfer ? 'Independent' : 'Guided'} ${record.checks[check.id]?.passed ? (record.checks[check.id].supported ? 'passed with help' : 'passed on my own') : 'not done yet'}`).join(' · ')}</span>
+          <span>Builds: {checks.map((check) => `${check.transfer ? 'On your own' : 'Build it'}: ${record.checks[check.id]?.passed ? (record.checks[check.id].supported ? 'done with help' : 'done solo') : 'not yet'}`).join(' · ')}</span>
           <span>Hints and help used: {summary.helpUses}</span>
         </section>
       )}
@@ -114,7 +114,7 @@ export default function PrintWorksheet({ missionId, record, mode }: { missionId:
               : <div><ModelTag kind="bar">Bar model: split the bar into equal pieces and shade</ModelTag><BarSvg /></div>}
             <div><ModelTag kind="line">Number line: add equal spaces, then mark your point</ModelTag><LineSvg /></div>
           </div>
-          <p className="fq-print-why">Explain: why do both models show the same fraction? <i /><i /></p>
+          <p className="fq-print-why">Why do both show the same fraction? <i /><i /></p>
         </section>
       )}
 

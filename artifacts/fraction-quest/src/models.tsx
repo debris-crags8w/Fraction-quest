@@ -8,9 +8,9 @@ export type ModelKind = 'bar' | 'line' | 'set';
 export const MODEL_NAMES: Record<ModelKind, string> = { bar: 'Bar model', line: 'Number line', set: 'Set model' };
 
 export const MODEL_CONCEPTS: Record<ModelKind, string> = {
-  bar: 'The whole bar is 1. Split it into equal pieces. The bottom number counts all the pieces; the top number counts the shaded ones.',
-  line: 'The distance from 0 to 1 is one whole. Split it into equal spaces and jump from 0. The fraction is the point where you land.',
-  set: 'The whole collection is 1. Share it into equal groups. The bottom number counts the groups; the top number counts the ones you pick.',
+  bar: 'The whole bar is 1. Cut it into equal pieces. Shade the ones you count.',
+  line: '0 to 1 is one whole. Cut it into equal spaces. Jump from 0.',
+  set: 'All the dots make 1 whole. Make equal groups. Pick the ones you count.',
 };
 
 export function BarIcon({ size = 18 }: { size?: number }) {
@@ -138,7 +138,7 @@ export function ModelPair({ n, d, wholes = Math.max(1, Math.ceil(n / d)) }: { n:
         <svg viewBox={`0 0 ${W + PAD * 2} 14`}><line x1={reach} y1={0} x2={reach} y2={14} /></svg>
       </div>
       <div className="fq-model-pair-row"><ModelTag kind="line" /><LineSvg n={n} d={d} wholes={wholes} /></div>
-      <figcaption>Same fraction, two models: the shaded part of the bar reaches exactly as far as the point on the number line.</figcaption>
+      <figcaption>Same fraction, two models. The shading stops right where the jumps land.</figcaption>
     </figure>
   );
 }

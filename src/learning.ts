@@ -40,9 +40,9 @@ export function checkWorksheet(record: LearningRecord, problem: WorksheetProblem
 export function learningSummary(record: LearningRecord) {
   return {
     independentChecks: Object.values(record.checks).filter(check => check.passed && !check.supported).length,
-    transfer: record.checks.transfer?.passed ? record.checks.transfer.supported ? 'Passed with support' : 'Passed independently' : 'Not yet checked',
+    transfer: record.checks.transfer?.passed ? record.checks.transfer.supported ? 'Done with help' : 'Done on my own' : 'Not yet',
     helpUses: record.helpUses,
     misconceptions: Object.entries(record.misconceptions).sort((a, b) => b[1] - a[1]),
-    retention: record.confirmedAt ? 'Confirmed on a later day' : record.completedAt ? 'Later independent review needed' : 'Finish the lesson first',
+    retention: record.confirmedAt ? 'Remembered on a later day' : record.completedAt ? 'Check again another day' : 'Finish the lesson first',
   };
 }

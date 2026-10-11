@@ -288,10 +288,10 @@ function MissionMap({ progress, onStart, onStartReview, onReset }: { progress: P
                             <h4>{mission.title}</h4>
                             <p>{mission.description}</p>
                             <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
-                              Worksheet {worksheetCount(learning, mission.id)}/12 · {summary.independentChecks}/2 independent model checks
-                              <br />{summary.transfer} · {summary.retention}
-                              {!completed && unlocked && <><br />Finish the models, your reasoning and all worksheet answers to unlock the next lesson.</>}
-                              {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Earlier progress saved; new checks still needed.</>}
+                              Worksheet {worksheetCount(learning, mission.id)}/12 · Builds on my own {summary.independentChecks}/2
+                              <br />Remembered: {summary.retention}
+                              {!completed && unlocked && <><br />Finish the builds and the worksheet to open the next lesson.</>}
+                              {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Your old progress is saved. A few new steps are needed.</>}
                             </p>
                             <button
                               className={`fq-button ${completed ? 'ghost' : ''}`}
@@ -534,7 +534,7 @@ function PlayView({
               <div className="fq-sheet-copy">
                 {feedback === 'correct'
                   ? <><strong>{cheer}</strong><span>{question.hint}</span></>
-                  : <><strong>Not quite yet. Let's look at the pieces.</strong><span>{question.retryFeedback}</span></>}
+                  : <><strong>Not quite!</strong><span>{question.retryFeedback}</span></>}
               </div>
               {feedback === 'correct' ? (
                 <button className="fq-button fq-sheet-button" onClick={moveOn} data-testid={isLastQuestion ? 'button-finish-mission' : 'button-next-question'}>
@@ -585,7 +585,7 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset }: { miss
           <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
           <h1>{mission.title}<br />is on your map.</h1>
-           <p>You built models, explained your thinking and corrected all 12 worksheet answers. The next lesson is unlocked. A later independent review will check what you remember.</p>
+           <p>You built it two ways, explained it, and got all 12 worksheet answers. The next lesson is open!</p>
           <div className="fq-reward-stars" data-testid="status-mission-stars" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}
@@ -606,7 +606,7 @@ function ReviewCompleteView({ reviewedCount, progress, onMap, onReset }: { revie
           <div className="fq-reward-badge" aria-hidden="true"><Check size={49} strokeWidth={2.8} /></div>
           <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><RotateCcw size={14} /> Quick skill review</div>
           <h1>Quick round complete.</h1>
-          <p>You reached the end of {reviewedCount} quick {reviewedCount === 1 ? 'question' : 'questions'}. Your progress is saved on this device. Correct answers clear a skill; skipped or missed skills can return tomorrow.</p>
+          <p>You finished {reviewedCount} quick {reviewedCount === 1 ? 'question' : 'questions'}. Anything you missed will come back another day.</p>
           <div className="fq-reward-actions">
             <button className="fq-button secondary" onClick={onMap} data-testid="button-review-return-map"><MapIcon size={17} /> Learning map</button>
           </div>

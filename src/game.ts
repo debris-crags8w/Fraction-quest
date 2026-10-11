@@ -104,11 +104,11 @@ const curriculum: MissionSeed[] = [
     description: 'Spot when a whole is split into fair, equal pieces.', example: {
       prompt: 'A paper strip is cut into 4 pieces. What makes those pieces fourths?',
       answer: 'All 4 pieces are the same size.',
-      explanation: 'A fraction names equal parts. Four unequal pieces are not fourths, even if there are four of them.',
+      explanation: 'Fourths must be equal. 4 unequal pieces are not fourths.',
       model: { kind: 'partition', parts: [25, 25, 25, 25], caption: 'One whole divided into equal shares' },
     },
     questions: [
-      practice('Which strip is split into thirds?', ['3 equal pieces', '3 pieces, one much larger', '2 equal pieces'], 0, { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }, 'Thirds must be 3 equal shares of the same whole.', 'Count the pieces and compare their sizes. A different number of pieces, or unequal pieces, does not make thirds.', { kind: 'partition', parts: [50, 50] }),
+      practice('Which strip is split into thirds?', ['3 equal pieces', '3 pieces, one much larger', '2 equal pieces'], 0, { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }, 'Thirds must be 3 equal shares of the same whole.', 'Thirds need 3 pieces, and they must be the same size.', { kind: 'partition', parts: [50, 50] }),
       practice('A sandwich is cut into 4 equal pieces. What fraction is one piece?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), 'The whole has 4 equal pieces. One piece is one of those four.', 'The bottom number counts all equal pieces; one piece is 1 out of 4.', bars({ numerator: 1, denominator: 2 })),
       practice('Two same-size ribbons are each split into halves. Which ribbon shows a fair split?', ['Both pieces match in size', 'One half is twice as long', 'The ribbon with 3 pieces'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 2 }), 'Halves are equal shares of one whole.', 'A half is not just one of two pieces; the two pieces must be equal.', bars({ numerator: 1, denominator: 2 })),
       practice('A circle has 5 equal slices. What is one slice called?', ['one fifth', 'one fourth', 'five wholes'], 0, bars({ numerator: 1, denominator: 5 }), 'The whole is split into 5 equal slices, and you have 1 slice.', 'One of 5 equal pieces is one fifth, written 1/5.', bars({ numerator: 1, denominator: 2 })),
@@ -119,7 +119,7 @@ const curriculum: MissionSeed[] = [
     description: 'Read the top and bottom numbers as a team.', example: {
       prompt: 'In 3/5, what does each number tell you?',
       answer: '5 equal parts altogether; 3 parts are counted.',
-      explanation: 'The denominator (5) names the size of the pieces. The numerator (3) counts how many of those pieces.',
+      explanation: 'The bottom number (5) is how many equal pieces. The top number (3) is how many you count.',
       model: bars({ numerator: 3, denominator: 5 }),
     },
     questions: [
@@ -134,7 +134,7 @@ const curriculum: MissionSeed[] = [
     description: 'Recognize one equal share, whatever its size.', example: {
       prompt: 'One of 6 equal pieces is a unit fraction. What is it?',
       answer: '1/6',
-      explanation: 'A unit fraction counts exactly one equal piece. Its denominator still tells how many equal pieces form the whole.',
+      explanation: 'A unit fraction is just 1 piece. The bottom number says how many pieces make the whole.',
       model: bars({ numerator: 1, denominator: 6 }),
     },
     questions: [
@@ -175,7 +175,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'sets-nonunit', unit: 2, title: 'More than one group', shortTitle: 'Count groups in a set', skill: 'To find a non-unit fraction of a set, find one equal group and count that many groups.',
+    id: 'sets-nonunit', unit: 2, title: 'More than one group', shortTitle: 'Count groups in a set', skill: 'Make the equal groups first. Then count the groups you need.',
     description: 'Find two or three equal groups in a collection.', example: {
       prompt: 'What is 2/5 of 15 counters?',
       answer: '6 counters.',
@@ -209,7 +209,7 @@ const curriculum: MissionSeed[] = [
     description: 'Use familiar landmarks before calculating.', example: {
       prompt: 'Where would 7/8 fit: near 0, near 1/2, or near 1?',
       answer: 'Near 1.',
-      explanation: 'Seven of the eight equal pieces are counted. Only one small piece is missing from the whole.',
+      explanation: '7 of 8 pieces are counted. Just 1 piece is missing.',
       model: bars({ numerator: 7, denominator: 8 }),
     },
     questions: [
@@ -340,7 +340,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'build-equivalents', unit: 6, title: 'Build an equivalent fraction', shortTitle: 'Make equivalents', skill: 'Multiply or divide the numerator and denominator by the same number to find an equivalent fraction.',
+    id: 'build-equivalents', unit: 6, title: 'Build an equivalent fraction', shortTitle: 'Make equivalents', skill: 'Multiply the top and bottom by the same number.',
     description: 'Rename a fraction without changing its size.', example: {
       prompt: 'Make an equivalent fraction for 2/3 by doubling both numbers.',
       answer: '4/6',
@@ -355,7 +355,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'missing-equivalent', unit: 6, title: 'Find the missing number', shortTitle: 'Missing parts', skill: 'Use equivalent fraction patterns and visual models to find a missing numerator or denominator.',
+    id: 'missing-equivalent', unit: 6, title: 'Find the missing number', shortTitle: 'Missing parts', skill: 'Find the pattern. Top and bottom change by the same number.',
     description: 'Keep the fraction’s value the same while filling a blank.', example: {
       prompt: 'Complete 2/3 = ?/6.',
       answer: '4/6',
@@ -374,7 +374,7 @@ const curriculum: MissionSeed[] = [
     description: 'Collect equal-size pieces until they make a whole.', example: {
       prompt: 'How many one-fourth pieces make one whole?',
       answer: 'Four fourths: 4/4 = 1.',
-      explanation: 'When the number of fourth-size pieces reaches four, you have all the pieces in one whole.',
+      explanation: '4 fourths make 1 whole.',
       model: bars({ numerator: 4, denominator: 4 }),
     },
     questions: [
@@ -389,7 +389,7 @@ const curriculum: MissionSeed[] = [
     description: 'Describe one amount in more than one way.', example: {
       prompt: 'Break 5/6 into two fractions with denominator 6.',
       answer: '2/6 + 3/6 = 5/6.',
-      explanation: 'The sixth-size pieces stay the same. Split the five pieces into groups of two and three.',
+      explanation: 'Keep the sixths. Split 5 pieces into 2 and 3.',
       model: bars({ numerator: 2, denominator: 6 }, { numerator: 3, denominator: 6 }, { numerator: 5, denominator: 6 }),
     },
     questions: [
@@ -430,7 +430,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'add-like-denominators', unit: 8, title: 'Add same-size fraction pieces', shortTitle: 'Add fractions', skill: 'Add fractions with like denominators by combining numerators and keeping the same unit.',
+    id: 'add-like-denominators', unit: 8, title: 'Add same-size fraction pieces', shortTitle: 'Add fractions', skill: 'Add the top numbers. The bottom number stays the same.',
     description: 'Combine same-size pieces without changing their size.', example: {
       prompt: 'What is 2/7 + 3/7?',
       answer: '5/7.',
@@ -479,7 +479,7 @@ const curriculum: MissionSeed[] = [
     description: 'Connect tenths on a fraction bar to the first decimal place.', example: {
       prompt: 'How can you write 7/10 as a decimal?',
       answer: '0.7',
-      explanation: 'Seven tenths means 7 in the tenths place: 0.7. The amount is still less than one whole.',
+      explanation: '7 tenths is 0.7. It is less than 1 whole.',
       model: decimal(7),
     },
     questions: [

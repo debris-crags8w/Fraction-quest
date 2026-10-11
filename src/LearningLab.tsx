@@ -16,25 +16,29 @@ type St = { d: number; wholes: number; count: number };
 const blank = (): St => ({ d: 0, wholes: 1, count: 0 });
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(Number.isFinite(v) ? v : lo)));
 
+// Also shown to kids under "Things to practice", so keep these short and friendly.
 const M = {
-  parts: 'Chose a different number of equal parts than the target',
-  count: 'Selected the wrong number of pieces, groups or jumps',
-  wholes: 'Used the wrong number of wholes',
-  trans: 'Second representation did not keep the same fraction',
-  reason: 'Reasoning did not match the model',
+  parts: 'Picking the number of equal parts',
+  count: 'Counting pieces, groups or jumps',
+  wholes: 'Using the right number of wholes',
+  trans: 'Showing it the second way',
+  reason: 'Picking the reason',
 };
+const MODEL_LABEL: Record<Kind, string> = { bar: 'Bar', line: 'Number line', set: 'Groups' };
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-function validate(kind: Kind, t: LearningModel, s: St, label: string): { msgs: string[]; keys: string[] } {
+function validate(kind: Kind, t: LearningModel, s: St): { msgs: string[]; keys: string[] } {
   const msgs: string[] = []; const keys: string[] = [];
+  const label = MODEL_LABEL[kind];
   const unit = kind === 'line' ? 'spaces' : kind === 'set' ? 'groups' : 'pieces';
-  if (s.d === 0) return { msgs: [`${label}: choose how many equal ${unit} to make first.`], keys: [M.parts] };
+  if (s.d === 0) return { msgs: [`${label}: pick how many equal ${unit}.`], keys: [M.parts] };
   if (kind === 'set') {
     const total = t.total ?? 0;
-    if (total % s.d !== 0) { msgs.push(`${label}: ${total} objects cannot be shared into ${s.d} equal groups. Try a group count that leaves none over.`); keys.push(M.parts); }
+    if (total % s.d !== 0) { msgs.push(`${label}: ${total} can't split into ${s.d} equal groups. Try another number.`); keys.push(M.parts); }
   }
-  if (s.d !== t.d && !msgs.length) { msgs.push(`${label}: ${s.d > t.d ? 'too many' : 'too few'} equal ${unit}. Reread the prompt, then change the partition.`); keys.push(M.parts); }
-  if (kind !== 'set' && s.wholes !== t.wholes) { msgs.push(`${label}: ${s.wholes > t.wholes ? 'fewer wholes are needed' : 'more whole bars or line lengths are needed'} to hold this amount.`); keys.push(M.wholes); }
-  if (s.count !== t.n && s.d === t.d) { msgs.push(`${label}: you have ${s.count > t.n ? 'more' : 'fewer'} than the target. Count ${kind === 'line' ? 'jumps from zero' : kind === 'set' ? 'selected groups' : 'shaded pieces'} again.`); keys.push(M.count); }
+  if (s.d !== t.d && !msgs.length) { msgs.push(`${label}: ${s.d > t.d ? 'too many' : 'too few'} ${unit}.`); keys.push(M.parts); }
+  if (kind === 'bar' && s.wholes !== t.wholes) { msgs.push(`${label}: ${s.wholes > t.wholes ? 'use fewer bars' : 'you need more bars'}.`); keys.push(M.wholes); }
+  if (s.count !== t.n && s.d === t.d) { msgs.push(`${label}: too ${s.count > t.n ? 'many' : 'few'} ${kind === 'line' ? 'jumps' : kind === 'set' ? 'groups picked' : 'pieces shaded'}. Count again.`); keys.push(M.count); }
   return { msgs, keys };
 }
 
@@ -103,15 +107,15 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1 }: { kind: Ki
       </header>
       <div className="fq-ll-controls">
         <Stepper id={id + '-d'} label={kind === 'set' ? 'Equal groups' : kind === 'line' ? 'Spaces in each whole' : 'Equal pieces in each whole'} value={st.d} min={0} max={maxD}
-          onSet={v => set({ ...st, d: v, count: Math.min(st.count, kind === 'set' ? v : v * wholes) })} hint={kind === 'set' ? total + ' objects in all' : 'You choose the partition'} />
+          onSet={v => set({ ...st, d: v, count: Math.min(st.count, kind === 'set' ? v : v * wholes) })} hint={kind === 'set' ? total + ' dots in all' : 'You pick'} />
         {/* Extra whole bars are only offered when the target is bigger than 1 (e.g. 7/4); otherwise one bar is always right. */}
         {kind === 'bar' && lineWholes > 1 && <Stepper id={id + '-wholes'} label="Whole bars" value={st.wholes} min={1} max={3}
           onSet={v => set({ ...st, wholes: v, count: Math.min(st.count, st.d * v) })} />}
         <Stepper id={id + '-count'} label={kind === 'line' ? 'Jumps from 0' : kind === 'set' ? 'Groups selected' : 'Pieces shaded'} value={st.count} min={0} max={Math.max(pieces, 0)} onSet={setCount} />
       </div>
       <div className="fq-ll-stage" style={{ '--piece': denomColor(st.d) } as CSSProperties}>
-        {kind === 'line' && <p className="fq-ll-line-guide" data-testid={'text-line-guide-' + id}>{wholes === 1 ? 'The whole interval runs from 0 to 1. Each equal space is one jump.' : 'Each whole is one interval: ' + Array.from({ length: wholes + 1 }, (_, i) => i).join(' to ') + '.'}</p>}
-        {st.d === 0 ? <p className="fq-ll-empty">Nothing here yet. Choose how many equal parts, and the model appears.</p> :
+        {kind === 'line' && <p className="fq-ll-line-guide" data-testid={'text-line-guide-' + id}>{wholes === 1 ? 'The line goes from 0 to 1. Each space is one jump.' : `The line goes from 0 to ${wholes}. Each whole gets the same spaces.`}</p>}
+        {st.d === 0 ? <p className="fq-ll-empty">Pick how many equal parts to start.</p> :
           kind === 'bar' ? Array.from({ length: st.wholes }, (_, w) => (
             <div key={w} className={'fq-ll-bar ' + (wrap ? 'wrap' : '')} style={{ gridTemplateColumns: 'repeat(' + gridColumns(st.d) + ', minmax(0,1fr))' }} role="group" aria-label={'Whole ' + (w + 1)}>
               {Array.from({ length: st.d }, (_, p) => {
@@ -140,7 +144,7 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1 }: { kind: Ki
           )}
       </div>
       <p className="fq-ll-readout" aria-live="polite" data-testid={'text-' + id + '-readout'}>
-        {st.d ? <>Your model: <Frac n={st.count} d={st.d} /> · {st.count} {kind === 'line' ? 'jumps from zero' : kind === 'set' ? 'groups selected' : 'pieces shaded'}</> : 'Your model: not built'}
+        {st.d ? <>You made <Frac n={st.count} d={st.d} /> · {kind === 'line' ? plural(st.count, 'jump', 'jumps') : kind === 'set' ? plural(st.count, 'group picked', 'groups picked') : plural(st.count, 'piece shaded', 'pieces shaded')}</> : 'Nothing built yet'}
       </p>
     </section>
   );
@@ -161,13 +165,13 @@ function CheckRunner({ check, onHelp, onPass, review }: {
   const [done, setDone] = useState(false);
   const sig = JSON.stringify([a, b, reason]);
   const locked = failedSig === sig;
-  const transLabel = k === 'bar' ? 'Now show the same fraction on a number line' : k === 'line' ? 'Now show the same fraction as a bar' : 'Now show the same fraction on a number line';
-  const hintTexts = ['Decide the unit first: how many equal parts make one whole? Then count the selected parts.', check.explanation];
+  const transLabel = tk === 'line' ? 'Now show it on a number line' : 'Now show it with a bar';
+  const hintTexts = ['How many equal parts make 1 whole? Start there.', check.explanation];
 
   const submit = () => {
     if (locked || done) return;
-    const r1 = validate(k, t, a, 'Model');
-    const r2 = validate(tk, { ...t, kind: tk, total: undefined, wholes: Math.max(1, Math.ceil(t.n / t.d)) }, b, 'Second representation');
+    const r1 = validate(k, t, a);
+    const r2 = validate(tk, { ...t, kind: tk, total: undefined, wholes: Math.max(1, Math.ceil(t.n / t.d)) }, b);
     const keys = [...r1.keys, ...r2.keys.map(() => M.trans)];
     const msgs = [...r1.msgs, ...r2.msgs];
     const reasonFeedback = getReasonFeedback(check, reason, msgs.length === 0);
@@ -183,18 +187,16 @@ function CheckRunner({ check, onHelp, onPass, review }: {
 
   return (
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
-      <p className="fq-ll-kicker">{check.transfer ? (review ? 'Fresh review round' : 'Check 2 · independent transfer') : 'Check 1 · guided build'}</p>
+      <p className="fq-ll-kicker">{check.transfer ? (review ? 'Review' : 'Step 2 · On your own') : 'Step 1 · Build it'}</p>
       <h3>{check.prompt}</h3>
       <Builder kind={k} total={t.total} st={a} set={setA} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} />
       <div className="fq-ll-translate">
         <strong>{transLabel}</strong>
-        <span>{tk === 'line'
-          ? `Same fraction, second model: the ${k === 'set' ? 'groups you picked' : 'shaded part of the bar'} should match the distance from 0 on the number line.`
-          : 'Same fraction, second model: the distance from 0 on the number line should match the shaded part of the bar.'}</span>
+        <span>Same fraction, new model. Make them match!</span>
       </div>
       <Builder kind={tk} st={b} set={setB} id={`${check.id}-b`} title={`Show the same fraction ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} />
       <fieldset className="fq-ll-reasons" data-testid={`reasons-${check.id}`}>
-        <legend>Which reason explains your model?</legend>
+        <legend>Why does it work? Pick one.</legend>
         {check.reasons.map((r, i) => (
           <label key={i} className={reason === i ? 'on' : ''}>
             <input type="radio" name={`reason-${check.id}`} checked={reason === i} onChange={() => setReason(i)} data-testid={`radio-reason-${check.id}-${i}`} />
@@ -207,16 +209,16 @@ function CheckRunner({ check, onHelp, onPass, review }: {
         <div className="fq-ll-feedback retry" role="alert" data-testid={`status-errors-${check.id}`}>
           <CircleHelp size={20} />
           <div>
-            <strong>{locked ? 'Not yet. Change a model or your reason to try again.' : 'Changes made. Check again to see if your model and reason now agree.'}</strong>
+            <strong>{locked ? 'Not yet! Fix these, then check again.' : 'Changed something? Check again.'}</strong>
             <ul>{errs.map((e, i) => <li key={i}>{e}</li>)}</ul>
           </div>
         </div>
       )}
-      {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>Model, translation and reason all agree.</strong> {check.explanation}</div></div>}
+      {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>You did it! Both models match.</strong> {check.explanation}</div></div>}
       {done && <ModelPair n={t.n} d={t.d} />}
       <div className="fq-ll-actions">
-        <button type="button" className="fq-hint-button" onClick={hint} disabled={done} data-testid={`button-hint-${check.id}`}><Lightbulb size={17} /> {hints ? 'Another hint' : 'Need a hint?'}</button>
-        <button type="button" className="fq-button" onClick={submit} disabled={locked || done} data-testid={`button-check-${check.id}`}>Check my model <Check size={17} /></button>
+        <button type="button" className="fq-hint-button" onClick={hint} disabled={done} data-testid={`button-hint-${check.id}`}><Lightbulb size={17} /> {hints ? 'Another hint' : 'Hint'}</button>
+        <button type="button" className="fq-button" onClick={submit} disabled={locked || done} data-testid={`button-check-${check.id}`}>Check <Check size={17} /></button>
       </div>
       {done && review && (
         <button type="button" className="fq-button secondary fq-ll-finish" data-testid="button-review-finish" onClick={() => onPass({ supported, attempts: -1 })}>Finish review</button>
@@ -243,9 +245,9 @@ function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; rec: Le
           <button type="button" className="fq-ll-hintbtn" aria-expanded={open} onClick={() => { if (!open) onHint(); setOpen(o => !o); }} data-testid={'button-hint-worksheet-' + p.id}><Lightbulb size={16} /> Hint</button>
         </div>
         <div id={'ws-fb-' + p.id} aria-live="polite">
-          {ok && <p className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Checked. You can still edit it; a change needs a new check.</p>}
-          {!ok && wrong === draft && <p className="fq-ll-ws bad" data-testid={'status-worksheet-' + p.id}>Not yet. Edit your answer and check again. {p.hint}</p>}
-          {!ok && e && e.attempts > 0 && e.checkedValue === undefined && wrong !== draft && draft.trim() && <p className="fq-ll-ws" data-testid={'status-worksheet-' + p.id}>Edited. Press Check to confirm.</p>}
+          {ok && <p className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Correct!</p>}
+          {!ok && wrong === draft && <p className="fq-ll-ws bad" data-testid={'status-worksheet-' + p.id}>Not yet. {p.hint}</p>}
+          {!ok && e && e.attempts > 0 && e.checkedValue === undefined && wrong !== draft && draft.trim() && <p className="fq-ll-ws" data-testid={'status-worksheet-' + p.id}>Changed. Press Check.</p>}
           {open && <p className="fq-ll-ws hint" data-testid={'text-hint-worksheet-' + p.id}>{p.hint}</p>}
         </div>
       </form>
@@ -284,8 +286,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
     return (
       <div className="fq-ll" data-testid="learning-lab-review">
         <button className="fq-back" onClick={onBack} data-testid="button-lab-back"><ArrowLeft size={17} /> Back</button>
-        <header className="fq-ll-head"><span className="fq-ll-badge"><RotateCcw size={16} /> Later review</span><h2>Show it again, from a blank start</h2>
-          <p>Build the new target with fresh pieces. Earlier passes do not carry over.</p></header>
+        <header className="fq-ll-head"><span className="fq-ll-badge"><RotateCcw size={16} /> Later review</span><h2>Show it again</h2>
+          <p>Build this one from scratch.</p></header>
         <CheckRunner key={`review-${missionId}`} review check={check}
           onHelp={(kind, keys) => { if (kind === 'hint' || keys.length) save({ ...bump(cur(), keys), reviewSupportedUntil: Date.now() + 24 * 3600 * 1000, confirmedAt: undefined }); setReviewSupported(true); }}
           onPass={o => {
@@ -297,7 +299,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
               onFinish(next);
             } else { setReviewPassed(true); if (o.supported) setReviewSupported(true); }
           }} />
-        {reviewPassed && <p className="fq-ll-note" data-testid="status-review-passed">{reviewSupported ? 'Passed with support. Retention is confirmed only after an independent pass.' : 'Passed independently.'}</p>}
+        {reviewPassed && <p className="fq-ll-note" data-testid="status-review-passed">{reviewSupported ? 'You did it with help! Try once more on your own another day.' : 'You did it on your own!'}</p>}
       </div>
     );
   }
@@ -307,9 +309,9 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const sum = learningSummary(rec);
   const gate = hasLearningGate(progress, missionId);
   const reqs = [
-    { label: 'Lesson practice', done: !!rec.practiceDone },
-    { label: 'Guided build', done: !!rec.checks.build?.passed },
-    { label: 'Independent transfer', done: !!rec.checks.transfer?.passed },
+    { label: 'Practice', done: !!rec.practiceDone },
+    { label: 'Build it', done: !!rec.checks.build?.passed },
+    { label: 'On your own', done: !!rec.checks.transfer?.passed },
     { label: `Worksheet ${count}/12`, done: count === 12 },
   ];
   const next = reqs.find(r => !r.done);
@@ -319,8 +321,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
       <button className="fq-back" onClick={onBack} data-testid="button-lab-back"><ArrowLeft size={17} /> Back</button>
       <header className="fq-ll-head">
         <span className="fq-ll-badge">Learning lab</span>
-        <h2>Build it with your hands, then prove it</h2>
-        <p>You choose the equal parts. Nothing is preset, and every model has to agree with your reason.</p>
+        <h2>Build it, then explain it</h2>
+        <p>Make the fraction two ways. Then pick why it works.</p>
         <div className="fq-ll-models-intro" aria-label="The two models in this lab">
           <p><ModelTag kind="bar" /> {MODEL_CONCEPTS.bar}</p>
           <p><ModelTag kind="line" /> {MODEL_CONCEPTS.line}</p>
@@ -335,7 +337,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         {checks.map((c, i) => {
           const e = rec.checks[c.id];
           return <li key={c.id} className={e?.passed ? 'done' : i === idx ? 'now' : ''} data-testid={`step-${c.id}`}>
-            {e?.passed ? <Check size={15} /> : i + 1}<span>{i === 0 ? 'Guided build' : 'Independent transfer'}{e?.passed ? (e.supported ? ' · with support' : ' · independent') : ''}</span></li>;
+            {e?.passed ? <Check size={15} /> : i + 1}<span>{i === 0 ? 'Build it' : 'On your own'}{e?.passed ? (e.supported ? ' · with help' : ' · solo') : ''}</span></li>;
         })}
         <li className={idx === -1 ? (count === 12 ? 'done' : 'now') : ''}>3<span>Worksheet {count}/12</span></li>
       </ol>
@@ -351,14 +353,14 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           onPass={o => {
             const r = cur(); const id = checks[idx].id; const old = r.checks[id];
             save({ ...r, checks: { ...r.checks, [id]: { passed: true, supported: !!old?.supported || o.supported, attempts: (old?.attempts ?? 0) + 1 } } });
-            setNotice(id === 'build' ? 'Guided build saved. Next is a new target you build on your own.' : 'Transfer check saved. Your worksheet is ready.');
+            setNotice(id === 'build' ? 'Great! Next, try a new one on your own.' : 'Great! Your worksheet is ready.');
           }} />
       )}
 
       {idx === -1 && (
         <section className="fq-ll-sheet" aria-labelledby="ws-title" data-testid="section-worksheet">
           <div className="fq-ll-sheet-head">
-            <h3 id="ws-title">Worksheet: type your answers</h3>
+            <h3 id="ws-title">Worksheet</h3>
             <div className="fq-ll-meter" role="progressbar" aria-valuemin={0} aria-valuemax={12} aria-valuenow={count} aria-label="Worksheet problems correct" data-testid="progress-worksheet">
               <b style={{ width: `${(count / 12) * 100}%` }} /><span>{count} of 12 checked</span>
             </div>
@@ -376,21 +378,21 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
       )}
 
       <section className="fq-ll-summary" aria-labelledby="sum-title" data-testid="section-learning-summary">
-        <h3 id="sum-title">Your learning evidence</h3>
+        <h3 id="sum-title">How you're doing</h3>
         <ul className="fq-ll-reqs" data-testid="list-requirements">
           {reqs.map(r => <li key={r.label} className={r.done ? 'done' : ''}>{r.done ? <Check size={14} /> : <span className="dot" />}{r.label}</li>)}
         </ul>
-        <p data-testid="text-next-level">{gate ? 'Everything needed to unlock the next level is done.' : `To unlock the next level: ${next ? next.label : 'finish remaining items'}.`}</p>
+        <p data-testid="text-next-level">{gate ? 'All done! The next lesson is open.' : `Next up: ${next ? next.label : 'finish the last steps'}.`}</p>
         <dl>
-          <div><dt>Independent checks</dt><dd data-testid="text-independent-checks">{sum.independentChecks}</dd></div>
-          <div><dt>Transfer</dt><dd data-testid="text-transfer">{sum.transfer}</dd></div>
-          <div><dt>Hints and help</dt><dd data-testid="text-help-uses">{sum.helpUses}</dd></div>
-          <div><dt>Retention</dt><dd data-testid="text-retention">{sum.retention}</dd></div>
+          <div><dt>Done on my own</dt><dd data-testid="text-independent-checks">{sum.independentChecks}</dd></div>
+          <div><dt>On your own</dt><dd data-testid="text-transfer">{sum.transfer}</dd></div>
+          <div><dt>Hints used</dt><dd data-testid="text-help-uses">{sum.helpUses}</dd></div>
+          <div><dt>Remembered later</dt><dd data-testid="text-retention">{sum.retention}</dd></div>
         </dl>
-        <h4>Patterns we are working on</h4>
+        <h4>Things to practice</h4>
         {sum.misconceptions.length ? (
           <ul className="fq-ll-patterns" data-testid="list-misconceptions">{sum.misconceptions.map(([k, v]) => <li key={k}><span>{k}</span><b>{v}</b></li>)}</ul>
-        ) : <p className="fq-ll-note" data-testid="text-no-misconceptions">No stumbles recorded yet.</p>}
+        ) : <p className="fq-ll-note" data-testid="text-no-misconceptions">Nothing yet. Nice!</p>}
         <button className="fq-button secondary" disabled={!gate} onClick={() => gate && onFinish()} data-testid="button-lab-finish">Finish lesson</button>
       </section>
       <PrintWorksheet missionId={missionId} record={rec} mode={printMode} />
