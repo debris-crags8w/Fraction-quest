@@ -23,6 +23,8 @@ Fixes were first written against commit c9a121c, then re-applied on top of the u
 - Units 9–14 have no Unit challenge: Check my paper / answer key / print menu crashed for them; now guarded.
 - Story lines CSS squashed text (.fq-story li span → li > span:first-child).
 
-**Still open / to discuss:** no Unit challenges for units 9–14 yet; tiny stray dotted part-marker beside the printed example bar; 3-star threshold now counts extra bank questions; challenge walk-throughs not printed; no password reset; COPPA review; grade-4 multiply-fraction-by-whole content; parent view.
+**Later (799c9fa, ff2a75b):** units 9–14 got Unit challenges and real random-number practice recipes; units 9–14 labeled grade 5. Parent view added (ParentView.tsx + parent-report.ts; minutes/answers per day in fun.activity).
+
+**Still open / to discuss (parent audit):** tenths + hundredths addition lesson; placement quiz; parent password reset; privacy/consent page; circle models; tiny stray dotted part-marker beside the printed example bar; 3-star threshold now counts extra bank questions; challenge walk-throughs not printed; no password reset; COPPA review; grade-4 multiply-fraction-by-whole content; parent view.
 
 **How to apply:** regression tests live in game.test.ts under "quality audit fixes". Patch of the original fixes: see git history of this file's commit.
