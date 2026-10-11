@@ -1,7 +1,6 @@
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import React, { useEffect, useId, useState, type ReactNode } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { MathText } from './MathText';
-import './learning-text.css';
 
 type VocabularyEntry = { pattern: string; definition: string };
 
@@ -71,8 +70,12 @@ function ListenButton({ text }: { text: string }) {
     utterance.rate = 0.9;
     utterance.onend = () => setSpeaking(false);
     utterance.onerror = () => setSpeaking(false);
-    setSpeaking(true);
-    window.speechSynthesis.speak(utterance);
+    try {
+      window.speechSynthesis.speak(utterance);
+      setSpeaking(true);
+    } catch {
+      setSpeaking(false);
+    }
   };
 
   return (
@@ -81,13 +84,13 @@ function ListenButton({ text }: { text: string }) {
       className="fq-learning-listen"
       onClick={toggleSpeech}
       disabled={!supported}
-      aria-label={speaking ? 'Stop reading' : 'Listen to this explanation'}
+      aria-label={!supported ? 'Audio unavailable' : speaking ? 'Stop reading' : 'Listen to this explanation'}
       aria-pressed={speaking}
       title={supported ? undefined : 'Audio is not available in this browser.'}
       data-testid="button-listen-learning-text"
     >
       {speaking ? <VolumeX size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
-      {speaking ? 'Stop' : 'Listen'}
+      {supported ? (speaking ? 'Stop' : 'Listen') : 'Audio unavailable'}
     </button>
   );
 }

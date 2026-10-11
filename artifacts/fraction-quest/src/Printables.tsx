@@ -143,10 +143,9 @@ function PrintModel({ model, labels = true }: { model: ModelSpec; labels?: boole
       {model.kind === 'bars' && model.bars.map((bar, index) => (
         <div className="fq-print-bar-row" key={index}>
           <BarSvg n={bar.numerator} d={bar.denominator} wholes={Math.max(1, Math.ceil(bar.numerator / bar.denominator))} />
-          {labels && <b>{bar.numerator}/{bar.denominator}</b>}
         </div>
       ))}
-      {model.kind === 'decimal' && <div className="fq-print-bar-row"><BarSvg n={model.tenths} d={10} />{labels && <b>{(model.tenths / 10).toFixed(1)}</b>}</div>}
+      {model.kind === 'decimal' && <div className="fq-print-bar-row"><BarSvg n={model.tenths} d={10} />{labels && <b className="fq-print-decimal-value">{(model.tenths / 10).toFixed(1)}</b>}</div>}
       {model.kind === 'line' && <LineSvg n={model.numerator} d={model.denominator} wholes={model.wholes ?? Math.max(1, Math.ceil(model.numerator / model.denominator))} />}
       {model.kind === 'set' && (
         <svg className="fq-svg-set" viewBox={`0 0 ${Math.min(model.total, 10) * 26 + 4} ${Math.ceil(model.total / 10) * 26 + 4}`} role="img" aria-label={`${model.selected} of ${model.total} counters shaded`}>
@@ -154,13 +153,16 @@ function PrintModel({ model, labels = true }: { model: ModelSpec; labels?: boole
         </svg>
       )}
       {model.kind === 'partition' && (
-        <svg className="fq-svg-bar" viewBox="0 0 364 46" role="img" aria-label={`A whole split into ${model.parts.length} pieces`}>
+        <svg className="fq-svg-bar" viewBox="0 0 364 74" role="img" aria-label={`One whole split into ${model.parts.length} pieces; the first piece is one part`}>
+          <text className="fq-svg-model-label" x="182" y="11" textAnchor="middle">WHOLE</text>
           {model.parts.reduce<{ x: number; els: ReactElement[] }>((acc, size, i) => {
             const w = (size / 100) * 320;
-            acc.els.push(<rect key={i} className="empty" x={22 + acc.x} y={6} width={w} height={32} />);
+            acc.els.push(<rect key={i} className={`empty ${i === 0 ? 'part-sample' : ''}`} x={22 + acc.x} y={17} width={w} height={32} />);
             acc.x += w; return acc;
           }, { x: 0, els: [] }).els}
-          <rect className="frame" x={22} y={6} width={320} height={32} fill="none" />
+          <rect className="frame" x={22} y={17} width={320} height={32} fill="none" />
+          <line className="fq-svg-part-guide-line" x1="22" y1="50" x2="22" y2="57" />
+          <text className="fq-svg-model-label part" x="22" y="69" textAnchor="middle">PART</text>
         </svg>
       )}
       {model.kind === 'equation' && <p className="fq-print-equation"><MathText text={model.text} /></p>}

@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type RefObject, useEffect, useRef, useState } from 'react';
 import { LearningText } from './LearningText';
 import { ArrowLeft, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
 import { numberLineWholeCount, type Progress } from './game';
@@ -57,9 +57,17 @@ function Preview({ m }: { m: LearningModel }) {
         m.kind === 'set' ? <div className="fq-ll-groups">{Array.from({ length: m.d }, (_, g) => <div className={`fq-ll-group ${g < m.n ? 'on' : ''}`} key={g}>
           {Array.from({ length: (m.total ?? 0) / m.d }, (_, i) => <i key={i} />)}
         </div>)}</div> :
-        Array.from({ length: m.wholes }, (_, w) => <div className="fq-ll-pcells" style={{ gridTemplateColumns: `repeat(${gridColumns(m.d)}, minmax(0,1fr))` }} key={w} aria-label={`Whole ${w + 1}`}>
-          {Array.from({ length: m.d }, (_, i) => <i key={i} className={w * m.d + i < m.n ? 'on' : ''} />)}
-        </div>)
+        <div className="fq-ll-preview-bars">
+          {Array.from({ length: m.wholes }, (_, w) => (
+            <div className="fq-ll-preview-whole" key={w}>
+              <span>Whole {w + 1}</span>
+              <div className="fq-ll-pcells" style={{ gridTemplateColumns: `repeat(${gridColumns(m.d)}, minmax(0,1fr))` }}>
+                {Array.from({ length: m.d }, (_, i) => <i key={i} className={w * m.d + i < m.n ? 'on' : ''} />)}
+              </div>
+            </div>
+          ))}
+          <span className="fq-ll-part-guide"><i aria-hidden="true" /> Part · one cell is one equal part</span>
+        </div>
       )}
     </div></div>
   );
@@ -118,14 +126,23 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1 }: { kind: Ki
       <div className="fq-ll-stage" style={{ '--piece': denomColor(st.d) } as CSSProperties}>
         {kind === 'line' && <p className="fq-ll-line-guide" data-testid={'text-line-guide-' + id}>{wholes === 1 ? 'The line goes from 0 to 1. Each space is one jump.' : `The line goes from 0 to ${wholes}. Each whole gets the same spaces.`}</p>}
         {st.d === 0 ? <p className="fq-ll-empty">Pick how many equal parts to start.</p> :
-          kind === 'bar' ? Array.from({ length: st.wholes }, (_, w) => (
-            <div key={w} className={'fq-ll-bar ' + (wrap ? 'wrap' : '')} style={{ gridTemplateColumns: 'repeat(' + gridColumns(st.d) + ', minmax(0,1fr))' }} role="group" aria-label={'Whole ' + (w + 1)}>
-              {Array.from({ length: st.d }, (_, p) => {
-                const i = w * st.d + p;
-                return <button key={p} type="button" className={'fq-ll-piece ' + (i < st.count ? 'on' : '')} aria-pressed={i < st.count} aria-label={'Piece ' + (i + 1) + ' of ' + pieces} onClick={() => toggle(i)} data-testid={'piece-' + id + '-' + i} />;
-              })}
+          kind === 'bar' ? (
+            <div className="fq-ll-bar-models">
+              {Array.from({ length: st.wholes }, (_, w) => (
+                <div className="fq-ll-whole-wrap" key={w}>
+                  <span className="fq-ll-whole-label">Whole {w + 1}</span>
+                  <div className={'fq-ll-bar ' + (wrap ? 'wrap' : '')} style={{ gridTemplateColumns: 'repeat(' + gridColumns(st.d) + ', minmax(0,1fr))' }} role="group" aria-label={'Whole ' + (w + 1) + ', split into ' + st.d + ' equal parts'}>
+                    {Array.from({ length: st.d }, (_, p) => {
+                      const i = w * st.d + p;
+                      return <button key={p} type="button" className={'fq-ll-piece ' + (i < st.count ? 'on' : '')} aria-pressed={i < st.count} aria-label={'Part ' + (p + 1) + ' of ' + st.d + ' equal parts' + (i < st.count ? ', shaded' : ', not shaded')} onClick={() => toggle(i)} data-testid={'piece-' + id + '-' + i} />;
+                    })}
+                  </div>
+                  {w === 0 && <span className="fq-ll-part-marker" style={{ gridTemplateColumns: `repeat(${gridColumns(st.d)}, minmax(0,1fr))` }}><b>PART</b></span>}
+                </div>
+              ))}
+              <span className="fq-ll-part-guide"><i aria-hidden="true" /> Part · tap a section to shade that many equal parts</span>
             </div>
-          )) : kind === 'set' ? (
+          ) : kind === 'set' ? (
             <div className="fq-ll-groups">
               {Array.from({ length: st.d }, (_, g) => (
                 <button key={g} type="button" className={'fq-ll-group ' + (g < st.count ? 'on' : '')} aria-pressed={g < st.count} aria-label={'Group ' + (g + 1) + ' of ' + st.d} onClick={() => toggle(g)} data-testid={'group-' + id + '-' + g}>
@@ -153,9 +170,10 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1 }: { kind: Ki
 }
 
 type Outcome = { supported: boolean; attempts: number };
-function CheckRunner({ check, onHelp, onPass, review }: {
+function CheckRunner({ check, onHelp, onPass, review, headingRef }: {
   check: BuildCheck; review: boolean;
   onHelp: (kind: 'hint' | 'error', keys: string[]) => void; onPass: (o: Outcome) => void;
+  headingRef?: RefObject<HTMLHeadingElement | null>;
 }) {
   const t = check.target; const k = t.kind; const lineWholes = numberLineWholeCount(t.n, t.d);
   const tk: Kind = k === 'line' ? 'bar' : 'line';
@@ -190,7 +208,7 @@ function CheckRunner({ check, onHelp, onPass, review }: {
   return (
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
       <p className="fq-ll-kicker">{check.transfer ? (review ? 'Review' : 'Step 2 · On your own') : 'Step 1 · Build it'}</p>
-       <h3><LearningText text={check.prompt} speak /></h3>
+       <h3 ref={headingRef} tabIndex={-1}><LearningText text={check.prompt} speak /></h3>
       <Builder kind={k} total={t.total} st={a} set={setA} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} />
       <div className="fq-ll-translate">
         <strong>{transLabel}</strong>
@@ -281,12 +299,32 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const [reviewPassed, setReviewPassed] = useState(false);
   const [reviewSupported, setReviewSupported] = useState(() => (getLearningRecord(progress, missionId).reviewSupportedUntil ?? 0) > Date.now());
   const rec = getLearningRecord(progress, missionId);
+  const activeCheckIndex = checks.findIndex(c => !rec.checks[c.id]?.passed);
+  const activeCheckId = !review && activeCheckIndex !== -1 ? checks[activeCheckIndex].id : null;
+  const activeCheckHeading = useRef<HTMLHeadingElement | null>(null);
+  const previousActiveCheckId = useRef<string | null>(null);
   const save = (r: LearningRecord) => { const p = updateLearning(ref.current, missionId, r); ref.current = p; onChange(p); };
   const cur = () => getLearningRecord(ref.current, missionId);
   const bump = (r: LearningRecord, keys: string[]): LearningRecord => ({
     ...r, helpUses: r.helpUses + (keys.length === 0 ? 1 : 1),
     misconceptions: keys.reduce((m, k) => ({ ...m, [k]: (m[k] ?? 0) + 1 }), r.misconceptions),
   });
+
+  useEffect(() => {
+    const previousId = previousActiveCheckId.current;
+    previousActiveCheckId.current = activeCheckId;
+    if (!previousId || !activeCheckId || previousId === activeCheckId) return;
+
+    requestAnimationFrame(() => {
+      const heading = activeCheckHeading.current;
+      if (!heading) return;
+      heading.focus({ preventScroll: true });
+      heading.scrollIntoView({
+        block: 'start',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    });
+  }, [activeCheckId]);
 
   if (review) {
     const check = getReviewCheck(missionId, progress.reviewQueue.find(item => item.missionId === missionId)?.reviewCount ?? 0);
@@ -311,7 +349,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
     );
   }
 
-  const idx = checks.findIndex(c => !rec.checks[c.id]?.passed);
+  const idx = activeCheckIndex;
   const count = worksheetCount(rec, missionId);
   const sum = learningSummary(rec);
   const gate = hasLearningGate(progress, missionId);
@@ -353,6 +391,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
       {idx !== -1 && (
         <CheckRunner key={checks[idx].id} review={false} check={checks[idx]}
+          headingRef={activeCheckHeading}
           onHelp={(kind, keys) => {
             const r = bump(cur(), keys); const id = checks[idx].id; const old = r.checks[id];
             save({ ...r, checks: { ...r.checks, [id]: { passed: false, supported: true, attempts: (old?.attempts ?? 0) + (kind === 'error' ? 1 : 0) } } });

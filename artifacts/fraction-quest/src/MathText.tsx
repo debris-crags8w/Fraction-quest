@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 
 /* Shows fractions in text the way math books (and LaTeX's \frac) do: the top number over a bar
    over the bottom number. "3/4" → ³⁄₄ stacked, "1 and 3/4" → 1 ³⁄₄, "?/12" → a blank over 12. */

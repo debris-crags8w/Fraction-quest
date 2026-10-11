@@ -20,3 +20,9 @@ Within an unlocked unit, learners may choose among its unfinished missions. The 
 **Why:** More choice lets the path respond to demonstrated needs while keeping each new level grounded in completed understanding checks.
 
 **How to apply:** Keep recommendation ranking limited to unfinished missions in the earliest incomplete unit; require every worksheet and model/transfer check before advancing to the next unit.
+
+Fraction bar models should clearly label the whole and identify a representative part. Do not add a redundant fraction symbol beside a bar that already shows the partition. Explanations should emphasize key fraction vocabulary with accessible definitions and optional speech.
+
+**Why:** The user explicitly requested whole/part labels, removal of the right-side fraction hint, highlighted vocabulary tooltips, and audio explanations.
+
+**How to apply:** Carry these conventions across lesson diagrams, interactive builders, tap models, worksheet previews, and printables; keep the parts manipulable wherever the learner is building a model.

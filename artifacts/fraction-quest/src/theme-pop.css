@@ -1,93 +1,4 @@
-/* Fraction Quest "pop" theme: bright unit colors, chunky pressable buttons, a winding lesson path,
-   a one-step-at-a-time lesson flow with a bottom feedback sheet, a mascot, and hands-on models.
-   Loaded after index.css so it can override the original look. */
-
-:root {
-  --background: 250 100% 98%;
-  --foreground: 235 22% 21%;
-  --border: 250 25% 88%;
-  --input: 250 25% 88%;
-  --ring: 199 92% 54%;
-  --card: 0 0% 100%;
-  --card-foreground: 235 22% 21%;
-  --primary: 256 100% 65%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 97 88% 33%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 250 40% 95%;
-  --muted-foreground: 245 12% 44%;
-  --accent: 47 100% 50%;
-  --accent-foreground: 235 22% 21%;
-  --destructive: 0 100% 65%;
-  --app-font-sans: "Atkinson Hyperlegible", "Verdana", system-ui, sans-serif;
-  --app-font-display: "Baloo 2", "Atkinson Hyperlegible", "Trebuchet MS", system-ui, sans-serif;
-  --app-font-mono: "Atkinson Hyperlegible", "Verdana", system-ui, sans-serif;
-  --radius: 1.1rem;
-  --shadow-card: 0 2px 0 hsl(250 25% 88%);
-
-  --fq-grape: #7C4DFF;
-  --fq-sky: #1CB0F6;
-  --fq-lime: #58CC02;
-  --fq-lime-dark: #46A302;
-  --fq-tangerine: #FF9600;
-  --fq-bubblegum: #FF4B91;
-  --fq-sun: #FFC800;
-  --fq-sun-dark: #E0A800;
-  --fq-red: #FF4B4B;
-  --fq-red-dark: #D93636;
-  --fq-good-bg: #D7FFB8;
-  --fq-good-fg: #2F7300;
-  --fq-bad-bg: #FFDFE0;
-  --fq-bad-fg: #B42323;
-  --fq-track: hsl(250 30% 91%);
-  --fq-edge: hsl(250 22% 84%);
-  --unit: var(--fq-grape);
-  --unit-dark: color-mix(in srgb, var(--unit) 72%, black);
-  --piece: var(--fq-sun);
-}
-
-.dark {
-  --background: 248 26% 10%;
-  --foreground: 250 60% 96%;
-  --border: 248 18% 24%;
-  --input: 248 18% 24%;
-  --card: 248 24% 15%;
-  --card-foreground: 250 60% 96%;
-  --muted: 248 20% 20%;
-  --muted-foreground: 248 16% 72%;
-  --secondary: 97 75% 45%;
-  --fq-good-bg: #1F3A10;
-  --fq-good-fg: #A6F07A;
-  --fq-bad-bg: #401A1E;
-  --fq-bad-fg: #FFB3B5;
-  --fq-track: hsl(248 18% 26%);
-  --fq-edge: hsl(248 18% 28%);
-}
-
-.fq-sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-/* ---------- base surfaces & type ---------- */
-
-.fq-app {
-  background:
-    radial-gradient(circle at 6% 4%, rgb(124 77 255 / 0.10), transparent 24rem),
-    radial-gradient(circle at 96% 60%, rgb(28 176 246 / 0.10), transparent 26rem),
-    radial-gradient(circle at 30% 100%, rgb(255 200 0 / 0.10), transparent 22rem),
-    hsl(var(--background));
-}
-
-.fq-app h1,
-.fq-app h2,
-.fq-app h3,
-.fq-app h4,
-.fq-ll h2,
+fq-ll h2,
 .fq-ll h3 {
   font-family: var(--app-font-display);
   letter-spacing: -0.01em;
@@ -585,6 +496,20 @@
 
 /* ---------- fraction tiles: one color per denominator ---------- */
 
+.fq-bar-model { display: grid; flex: 1; min-width: 0; gap: 8px; }
+.fq-bar-whole { display: grid; gap: 4px; }
+.fq-bar-whole-label { color: hsl(var(--muted-foreground)); font-size: 0.76rem; font-weight: 900; letter-spacing: 0.05em; text-align: center; text-transform: uppercase; }
+.fq-bar-part-marker { display: grid; margin-top: -3px; color: var(--fq-grape); font-size: 0.62rem; font-weight: 950; line-height: 1; }
+.fq-bar-part-marker b { position: relative; grid-column: 1; justify-self: center; }
+.fq-bar-part-marker b::before { position: absolute; bottom: calc(100% + 2px); left: 50%; height: 5px; border-left: 2px dotted var(--fq-grape); content: ""; }
+.fq-bar-part-guide { display: inline-flex; align-items: center; gap: 7px; color: hsl(var(--muted-foreground)); font-size: 0.76rem; font-weight: 800; }
+.fq-bar-part-guide i { width: 13px; height: 13px; flex: none; border: 1px solid hsl(var(--foreground) / 0.4); border-radius: 4px; background: var(--piece); }
+.fq-partition-model { display: grid; width: min(100%, 470px); gap: 6px; }
+.fq-partition-whole-label { color: hsl(var(--muted-foreground)); font-size: 0.76rem; font-weight: 900; letter-spacing: 0.05em; text-align: center; text-transform: uppercase; }
+.fq-partition-part-label { display: inline-flex; align-items: center; gap: 7px; color: hsl(var(--muted-foreground)); font-size: 0.76rem; font-weight: 800; }
+.fq-partition-part-label i { width: 13px; height: 13px; flex: none; border: 2px solid var(--fq-grape); border-radius: 4px; background: hsl(var(--accent) / 0.45); }
+.fq-partition-whole span.part-sample { outline: 3px solid var(--fq-grape); outline-offset: 2px; z-index: 1; }
+
 .fq-bar {
   gap: 3px;
   overflow: visible;
@@ -631,6 +556,13 @@
 .fq-tap-head strong { font-size: 1.08rem; }
 
 .fq-tap-bars { display: grid; gap: 8px; }
+.fq-tap-whole { display: grid; gap: 4px; }
+.fq-tap-whole-label { color: hsl(var(--muted-foreground)); font-size: 0.72rem; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; }
+.fq-tap-part-marker { display: grid; margin-top: -3px; color: var(--fq-grape); font-size: 0.62rem; font-weight: 950; line-height: 1; }
+.fq-tap-part-marker b { position: relative; grid-column: 1; justify-self: center; }
+.fq-tap-part-marker b::before { position: absolute; bottom: calc(100% + 2px); left: 50%; height: 5px; border-left: 2px dotted var(--fq-grape); content: ""; }
+.fq-tap-part-label { display: inline-flex; align-items: center; gap: 7px; color: hsl(var(--muted-foreground)); font-size: 0.76rem; font-weight: 800; }
+.fq-tap-part-label i { width: 13px; height: 13px; flex: none; border: 1px solid hsl(var(--foreground) / 0.4); border-radius: 4px; background: var(--piece); }
 .fq-tap-bar { display: flex; gap: 5px; height: 60px; }
 .fq-tap-bar button {
   flex: 1;
@@ -834,6 +766,9 @@
 .fq-svg-bar rect.empty { fill: hsl(var(--card)); }
 .fq-svg-bar rect.shaded, .fq-svg-bar rect.empty { stroke: hsl(var(--foreground)); stroke-width: 1.5; }
 .fq-svg-bar rect.frame { stroke: hsl(var(--foreground)); stroke-width: 3; }
+.fq-svg-bar .fq-svg-model-label { fill: hsl(var(--foreground)); font: 900 9px var(--app-font-display); letter-spacing: 0.05em; }
+.fq-svg-bar .fq-svg-model-label.part { fill: var(--fq-grape); font-size: 8px; }
+.fq-svg-bar .fq-svg-part-guide-line { stroke: var(--fq-grape); stroke-dasharray: 2 2; stroke-width: 1.5; }
 .fq-svg-line .axis, .fq-svg-line .tick { stroke: hsl(var(--foreground)); stroke-width: 2.5; stroke-linecap: round; }
 .fq-svg-line .tick.whole { stroke-width: 3.5; }
 .fq-svg-line .axis-arrow { fill: hsl(var(--foreground)); }
@@ -898,6 +833,8 @@
   .fq-print .fq-svg-bar rect.shaded { fill: #9a9a9a; }
   .fq-print .fq-svg-bar rect.empty, .fq-print .fq-svg-set .group, .fq-print .fq-svg-set .dot { fill: #fff; }
   .fq-print .fq-svg-bar rect.shaded, .fq-print .fq-svg-bar rect.empty, .fq-print .fq-svg-bar rect.frame, .fq-print .fq-svg-set .group, .fq-print .fq-svg-set .dot { stroke: #000; }
+  .fq-print .fq-svg-bar .fq-svg-model-label { fill: #000; }
+  .fq-print .fq-svg-bar .fq-svg-part-guide-line { stroke: #000; }
   .fq-print .fq-svg-set .group.on { fill: #e3e3e3; }
   .fq-print .fq-svg-set .dot.on { fill: #777; }
   .fq-print .fq-svg-line .axis, .fq-print .fq-svg-line .tick { stroke: #000; }
@@ -1022,7 +959,7 @@
   .fq-print-instructions { margin: 10px 0 0 !important; font-weight: 800; }
   .fq-print-bar-row { display: flex; align-items: center; gap: 8px; width: 100%; }
   .fq-print-bar-row svg { max-width: 70mm; }
-  .fq-print-bar-row b { font-size: 11pt; }
+  .fq-print-decimal-value { font-size: 11pt; }
   .fq-print-model small { font-size: 9pt; color: #333; }
   .fq-print-equation { font-size: 16pt !important; font-weight: 900; }
   .fq-print-choices { display: grid; gap: 5px; margin: 2px 0 0; padding: 0; list-style: none; }

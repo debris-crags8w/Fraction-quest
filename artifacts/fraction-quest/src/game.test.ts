@@ -8,6 +8,8 @@ import { generateQuestions, getExtraPractice, hasGenerator } from './practice-ba
 import type { PracticeQuestion } from './game';
 import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
+import { LearningText } from './LearningText';
+import { BarSvg } from './models';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
 import QuickReviewEntry from './QuickReviewEntry';
 import {
@@ -463,6 +465,26 @@ function withLearning(progress: Progress, id: string): Progress {
 }
 
 describe('entered-answer worksheets and evidence gates', () => {
+  it('highlights fraction vocabulary, explains terms, keeps fractions stacked, and offers audio', () => {
+    const markup = renderToStaticMarkup(createElement(LearningText, {
+      text: 'Each equal share is 1/4 of a whole.',
+      speak: true,
+    }));
+    assert.match(markup, /class="fq-vocab-trigger" role="term" tabindex="0" aria-describedby=/);
+    assert.match(markup, /role="tooltip"/);
+    assert.match(markup, /A whole is the complete shape or amount/);
+    assert.match(markup, /class="fq-mfrac" role="math" aria-label="1 over 4"/);
+    assert.match(markup, /class="fq-learning-listen"/);
+  });
+
+  it('labels the whole and a part inside the bar model rather than showing a fraction hint beside it', () => {
+    const markup = renderToStaticMarkup(createElement(BarSvg, { n: 2, d: 5 }));
+    assert.match(markup, />WHOLE 1</);
+    assert.match(markup, />PART</);
+    assert.match(markup, /each whole is split into 5 equal parts/);
+    assert.match(markup, /2 parts are shaded/);
+  });
+
   it('provides a labeled stacked fraction field and keeps slash entry available', () => {
     const markup = renderToStaticMarkup(createElement(FractionEntry, {
       id: 'ws-w1',

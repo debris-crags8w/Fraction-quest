@@ -29,6 +29,7 @@ import {
 import NotFound from '@/pages/not-found';
 import LearningLab from './LearningLab';
 import { LearningText } from './LearningText';
+import './learning-text.css';
 import QuickReviewEntry from './QuickReviewEntry';
 import { getLearningRecord, hasLearningGate, learningSummary, updateLearning, worksheetCount } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
@@ -77,12 +78,17 @@ function Fraction({ numerator, denominator }: { numerator: number; denominator: 
 
 function FractionBar({ numerator, denominator }: { numerator: number; denominator: number }) {
   return (
-    <div style={{ display: 'grid', gap: 8, flex: 1 }} role="img" aria-label={`${numerator}/${denominator}, with ${denominator} equal parts per whole`}>
+    <div className="fq-bar-model" style={{ '--pieces': denominator, '--piece': denomColor(denominator) } as CSSProperties} role="img" aria-label={`${numerator}/${denominator}: each whole is split into ${denominator} equal parts, with ${numerator} parts shaded`}>
       {Array.from({ length: Math.max(1, Math.ceil(numerator / denominator)) }, (_, whole) => (
-        <div className="fq-bar" style={{ '--pieces': denominator, '--piece': denomColor(denominator) } as CSSProperties} key={whole}>
-          {Array.from({ length: denominator }, (_, index) => <span className={whole * denominator + index < numerator ? '' : 'empty'} key={index} />)}
+        <div className="fq-bar-whole" key={whole}>
+          <span className="fq-bar-whole-label">Whole {whole + 1}</span>
+          <div className="fq-bar">
+            {Array.from({ length: denominator }, (_, index) => <span className={whole * denominator + index < numerator ? '' : 'empty'} key={index} />)}
+          </div>
+          {whole === 0 && <span className="fq-bar-part-marker" style={{ gridTemplateColumns: `repeat(${denominator}, minmax(0, 1fr))` }}><b>PART</b></span>}
         </div>
       ))}
+      <span className="fq-bar-part-guide"><i aria-hidden="true" /> Part · one section is one equal part</span>
     </div>
   );
 }
@@ -98,7 +104,6 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
           {model.bars.map((item, index) => (
             <div className="fq-visual-bar-row" key={`${item.numerator}-${item.denominator}-${index}`}>
               <FractionBar numerator={item.numerator} denominator={item.denominator} />
-              <Fraction numerator={item.numerator} denominator={item.denominator} />
             </div>
           ))}
         </div>
@@ -132,8 +137,12 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
         );
       })()}
       {model.kind === 'partition' && (
-        <div className="fq-partition-whole" role="img" aria-label={`A whole split into ${model.parts.length} pieces`}>
-          {model.parts.map((size, index) => <span style={{ flexBasis: `${size}%` }} key={`${size}-${index}`} />)}
+        <div className="fq-partition-model" role="img" aria-label={`One whole split into ${model.parts.length} pieces; the first piece is one part`}>
+          <span className="fq-partition-whole-label">Whole</span>
+          <div className="fq-partition-whole">
+            {model.parts.map((size, index) => <span className={index === 0 ? 'part-sample' : ''} style={{ flexBasis: `${size}%` }} key={`${size}-${index}`} />)}
+          </div>
+          <span className="fq-partition-part-label"><i aria-hidden="true" /> Part · one section</span>
         </div>
       )}
       {model.kind === 'equation' && <div className="fq-model-equation" role="img" aria-label={`Visual equation ${model.text}`}>{model.text}</div>}
@@ -626,6 +635,10 @@ function Game() {
   const [fun, setFun] = useState<FunState>(() => account.initialFun ?? loadFun());
   const [combo, setCombo] = useState(0);
   useAccountSync(progress, fun);
+
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view]);
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
