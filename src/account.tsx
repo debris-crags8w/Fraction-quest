@@ -61,7 +61,11 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
   useEffect(() => {
     let cancelled = false;
     getCurrentUser()
-      .then((user) => (cancelled ? undefined : enter(user)))
+      .then((user) => {
+        // Anything but a real user (e.g. an HTML page from a misrouted /api) counts as signed out.
+        if (!user || typeof user !== 'object' || typeof user.id !== 'number') throw new Error('Not a user');
+        return cancelled ? undefined : enter(user);
+      })
       .catch((error) => {
         if (cancelled) return;
         if (isGuest()) setState({ kind: 'guest' });

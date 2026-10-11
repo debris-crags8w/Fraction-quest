@@ -51,6 +51,8 @@ export type Progress = {
   starsByMission: Record<string, number>;
   reviewQueue: SkillReview[];
   learning?: Record<string, LearningRecord>;
+  /** Best Unit challenge score, keyed by unit number. */
+  challengeBest?: Record<string, number>;
 };
 
 export type SkillReview = {
@@ -748,10 +750,21 @@ export function loadProgress(): Progress {
           completedAt: typeof raw.completedAt === 'number' && Number.isFinite(raw.completedAt) ? raw.completedAt : undefined,
           confirmedAt: typeof raw.confirmedAt === 'number' && Number.isFinite(raw.confirmedAt) ? raw.confirmedAt : undefined,
           reviewSupportedUntil: typeof raw.reviewSupportedUntil === 'number' && Number.isFinite(raw.reviewSupportedUntil) ? raw.reviewSupportedUntil : undefined,
+          practiceStars: typeof raw.practiceStars === 'number' && raw.practiceStars >= 1 && raw.practiceStars <= 3 ? Math.floor(raw.practiceStars) : undefined,
         };
       }
     }
-    return { completedMissionIds: [...completed], starsByMission, reviewQueue, ...(Object.keys(learning).length ? { learning } : {}) };
+    const challengeBest: Record<string, number> = {};
+    if (value.challengeBest && typeof value.challengeBest === 'object') {
+      for (const [unit, score] of Object.entries(value.challengeBest)) {
+        if (/^[1-8]$/.test(unit) && typeof score === 'number' && Number.isFinite(score)) challengeBest[unit] = Math.max(0, Math.min(100, Math.floor(score)));
+      }
+    }
+    return {
+      completedMissionIds: [...completed], starsByMission, reviewQueue,
+      ...(Object.keys(learning).length ? { learning } : {}),
+      ...(Object.keys(challengeBest).length ? { challengeBest } : {}),
+    };
   } catch {
     return EMPTY_PROGRESS;
   }

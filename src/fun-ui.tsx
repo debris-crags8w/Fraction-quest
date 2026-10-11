@@ -191,8 +191,10 @@ export type PathNode = {
 
 const OFFSETS = [0, -1, -1.4, -0.6, 0.6, 1.4, 1, 0.3];
 
-export function LessonPath({ unit, color, nodes, selectedId, onSelect, allDone }: {
-  unit: number; color: string; nodes: PathNode[]; selectedId: string | null; onSelect: (id: string) => void; allDone: boolean;
+export type ChallengeInfo = { best: number | null; max: number; onStart: () => void };
+
+export function LessonPath({ unit, color, nodes, selectedId, onSelect, allDone, challenge }: {
+  unit: number; color: string; nodes: PathNode[]; selectedId: string | null; onSelect: (id: string) => void; allDone: boolean; challenge?: ChallengeInfo;
 }) {
   return (
     <ol className="fq-path" style={{ '--unit': color } as CSSProperties} aria-label={`Unit ${unit} lessons`}>
@@ -222,8 +224,15 @@ export function LessonPath({ unit, color, nodes, selectedId, onSelect, allDone }
         );
       })}
       <li className="fq-path-step fq-path-chest" style={{ '--offset': 0 } as CSSProperties}>
-        <span className={`fq-chest ${allDone ? 'open' : ''}`} aria-label={allDone ? 'Unit treasure unlocked' : 'Finish the unit to open this chest'} role="img">
-          <Gift size={30} strokeWidth={2.5} />
+        {allDone && challenge ? (
+          <button type="button" className="fq-chest open" onClick={challenge.onStart} aria-label={`Unit ${unit} challenge`} data-testid={`button-challenge-unit-${unit}`}>
+            <Gift size={30} strokeWidth={2.5} />
+          </button>
+        ) : (
+          <span className="fq-chest" aria-label="Finish the unit to open this challenge" role="img"><Gift size={30} strokeWidth={2.5} /></span>
+        )}
+        <span className="fq-chest-label" data-testid={`text-challenge-unit-${unit}`}>
+          {allDone ? <>Unit challenge{challenge?.best != null ? ` · best ${challenge.best}/${challenge.max}` : ''}</> : 'Challenge: finish the unit'}
         </span>
       </li>
     </ol>

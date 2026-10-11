@@ -1033,3 +1033,18 @@
   .fq-print-key-list.two-col { grid-template-columns: 1fr 1fr; column-gap: 18px; }
   .fq-print-key-list small { color: #444; font-size: 8.5pt; }
 }
+
+/* ---------- unit challenge ---------- */
+
+button.fq-chest { border: 0; cursor: pointer; }
+button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374; }
+.fq-chest-label { font-size: 0.82rem; font-weight: 900; color: hsl(var(--muted-foreground)); text-align: center; }
+.fq-challenge-score { flex: none; padding: 4px 10px; border-radius: 99px; color: #fff; background: var(--fq-bubblegum); font-weight: 900; font-size: 0.9rem; }
+.fq-points { display: inline-block; padding: 1px 8px; border-radius: 99px; color: #fff; letter-spacing: 0.04em; }
+.fq-points.p3 { background: var(--fq-sky); }
+.fq-points.p4 { background: var(--fq-grape); }
+.fq-points.p5 { background: var(--fq-bubblegum); }
+.fq-challenge-note { color: hsl(var(--muted-foreground)); font-weight: 800; font-size: 0.9rem; }
+.fq-reward-trophy.trophy-silver { background: #A8B3C4; box-shadow: 0 4px 0 #7E8899; }
+.fq-reward-trophy.trophy-bronze { background: #D08A4E; box-shadow: 0 4px 0 #A5652F; }
+@media (max-width: 720px) { .fq-challenge-note { display: none; } }

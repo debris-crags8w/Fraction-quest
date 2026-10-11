@@ -37,6 +37,8 @@ import { ModelTag } from './models';
 import { AccountGate, useAccount, useAccountSync } from './account';
 import LoginPage from './LoginPage';
 import PaperCheck from './PaperCheck';
+import Challenge from './Challenge';
+import { challengeMaxPoints } from './challenges';
 import { PrintMenu } from './Printables';
 import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
 
@@ -50,6 +52,7 @@ type View =
   | { type: 'reward'; missionId: string; stars: number };
 type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string };
+type ChallengeView = { type: 'challenge'; unit: number };
 type RetentionView = { type: 'retention'; missionId: string; startedAt: number; nextView: View };
 
 type UnitInfo = { title: string; subtitle: string };
@@ -190,7 +193,7 @@ function AccountChip() {
   );
 }
 
-function MissionMap({ progress, onStart, onStartReview, onReset, onPaper }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void }) {
+function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChallenge }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void }) {
   const totalStars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
   const nextMission = getNextMission(progress);
   const dueReviewCount = getDueSkillReviewCount(progress);
@@ -273,6 +276,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper }: { pr
                     selectedId={selectedId}
                     onSelect={(id) => setSelectedId((current) => (current === id ? null : id))}
                     allDone={completedInUnit === unit.missions.length}
+                    challenge={{ best: progress.challengeBest?.[String(unit.number)] ?? null, max: challengeMaxPoints(unit.number), onStart: () => onChallenge(unit.number) }}
                     nodes={unit.missions.map((mission): PathNode => {
                       const unlocked = isMissionUnlocked(progress, mission.id);
                       const completed = hasLearningGate(progress, mission.id);
@@ -627,7 +631,7 @@ function ReviewCompleteView({ reviewedCount, progress, onMap, onReset }: { revie
 
 function Game() {
   const [progress, setProgress] = useState<Progress>(() => loadProgress());
-  const [view, setView] = useState<View | LabView | RetentionView | PaperView>({ type: 'map' });
+  const [view, setView] = useState<View | LabView | RetentionView | PaperView | ChallengeView>({ type: 'map' });
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [saveError, setSaveError] = useState(false);
@@ -711,7 +715,15 @@ function Game() {
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} />}
+      {view.type === 'challenge' && (
+        <Challenge key={view.unit} unit={view.unit} unitTitle={UNIT_INFO[view.unit - 1].title} best={progress.challengeBest?.[String(view.unit)] ?? 0}
+          onExit={returnToMap}
+          onDone={(score) => {
+            const key = String(view.unit);
+            if (score > (progress.challengeBest?.[key] ?? -1)) persistProgress({ ...progress, challengeBest: { ...progress.challengeBest, [key]: score } });
+          }} />
+      )}
       {view.type === 'paper' && (
         <PaperCheck missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap}
           onLab={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? getLearningRecord(progress, view.missionId).practiceStars ?? 1 })} />

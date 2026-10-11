@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
+import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
 import {
@@ -445,5 +446,45 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(hasLearningGate(progress, MISSIONS[0].id), false);
     assert.equal(isMissionUnlocked(progress, MISSIONS[1].id), false);
     assert.equal(getLearningRecord(progress, MISSIONS[0].id).helpUses, 0);
+  });
+});
+describe('unit challenges', () => {
+  // Each answer worked out independently of the authored explanation.
+  const v = (n: number, d: number) => n / d;
+  const expected: Record<string, string> = {
+    'u1-c1': String(12 / 4), 'u1-c2': `${8 - 1 - 2}/8`, 'u1-c3': `1/${2 * 2}`, 'u1-c4': `${2 * 5} cm`, 'u1-c5': String(3 * 4),
+    'u2-c1': '1/2', 'u2-c2': String(20 / 4), 'u2-c3': String(18 - (18 / 3) * 2), 'u2-c4': String(8 * 3), 'u2-c5': String(24 / 2 - 24 / 2 / 3),
+    'u3-c1': ['2/5', '3/7', '4/9', '5/8', '1/3'].find((f) => { const [n, d] = f.split('/').map(Number); return v(n, d) > 0.5; })!,
+    'u3-c2': ['1/2', '2/3', '3/4', '4/5', '5/6'].sort((a, b) => { const [an, ad] = a.split('/').map(Number); const [bn, bd] = b.split('/').map(Number); return (1 - v(an, ad)) - (1 - v(bn, bd)); })[0],
+    'u3-c3': ['1/3', '1/5', '2/9', '1/4', '3/10'].sort((a, b) => { const [an, ad] = a.split('/').map(Number); const [bn, bd] = b.split('/').map(Number); return v(an, ad) - v(bn, bd); })[0],
+    'u3-c4': `${4 - 3}/8`, 'u3-c5': ['4/9', '9/18', '5/9', '3/8', '4/10'].find((f) => { const [n, d] = f.split('/').map(Number); return n * 2 === d; })!,
+    'u4-c1': '3/4', 'u4-c2': String(2 * 3), 'u4-c3': ['3/4', '4/4', '5/4', '8/4', '9/4'].find((f) => { const x = v(Number(f.split('/')[0]), 4); return x > 1 && x < 2; })!,
+    'u4-c4': `${4 - 2}/5`, 'u4-c5': String([1, 2, 3, 4, 5, 8].find((days) => days * 3 > 8)),
+    'u5-c1': '7/10', 'u5-c2': '2/9', 'u5-c3': ['1/2', '3/5', '2/3', '5/8', '7/8'].find((f) => { const [n, d] = f.split('/').map(Number); return v(n, d) > 0.75; })!,
+    'u5-c4': ['Ana', 'Ben', 'Cara', 'Dev'][[v(3, 4), v(2, 3), v(5, 6), v(1, 2)].indexOf(Math.max(v(3, 4), v(2, 3), v(5, 6), v(1, 2)))],
+    'u5-c5': String([1, 2, 3, 4, 5].filter((n) => v(n, 6) > 0.5 && v(n, 6) < 1).length),
+    'u6-c1': ['2/3', '3/6', '2/5', '4/6', '3/5'].find((f) => { const [n, d] = f.split('/').map(Number); return n * 2 === d; })!,
+    'u6-c2': String((2 * 12) / 3), 'u6-c3': ['2/6', '3/9', '4/12', '5/14', '6/18'].find((f) => { const [n, d] = f.split('/').map(Number); return n * 3 !== d; })!,
+    'u6-c4': String((1 / 4) * 8), 'u6-c5': String((5 * 12) / 3),
+    'u7-c1': '1', 'u7-c2': `${Math.floor(9 / 4)} and ${9 % 4}/4`, 'u7-c3': String(2 * 6),
+    'u7-c4': ['1/4 + 3/4', '2/5 + 3/5', '3/8 + 4/8', '1/2 + 1/2', '5/6 + 1/6'].find((sum) => { const [a, b] = sum.split(' + ').map((f) => { const [n, d] = f.split('/').map(Number); return v(n, d); }); return Math.abs(a + b - 1) > 1e-9; })!,
+    'u7-c5': String(Math.floor(7 / 2)),
+    'u8-c1': `${3 + 4}/8`, 'u8-c2': (3 / 10).toFixed(1), 'u8-c3': ['0.5', '0.45', '0.09', '0.4', '0.38'].sort((a, b) => Number(b) - Number(a))[0],
+    'u8-c4': `${9 - 4 - 3}/10 m`, 'u8-c5': `${4 + 2 + 1}/8`,
+  };
+  it('has five questions worth 3, 3, 4, 4 and 5 points in every unit', () => {
+    for (let unit = 1; unit <= 8; unit++) {
+      assert.deepEqual(CHALLENGES[unit].map((item) => item.points), [3, 3, 4, 4, 5]);
+      assert.equal(challengeMaxPoints(unit), 19);
+    }
+  });
+  it('marks the independently computed answer as correct', () => {
+    for (const items of Object.values(CHALLENGES)) {
+      for (const item of items) {
+        assert.equal(item.choices.length, 5, item.id);
+        assert.equal(new Set(item.choices).size, 5, `${item.id} has duplicate choices`);
+        assert.equal(item.choices[item.correct], expected[item.id], item.id);
+      }
+    }
   });
 });
