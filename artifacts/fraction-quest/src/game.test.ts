@@ -16,6 +16,7 @@ import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './
 import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder } from './lib/fun';
 import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
+import { createDailyPractice, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
 import type { PracticeQuestion } from './game';
 import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, paperPrompt, parseAnswer } from './learning-content';
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
@@ -493,6 +494,99 @@ describe('saved progress', () => {
       'fraction-names': 2,
     });
     assert.deepEqual(migrated.reviewQueue, []);
+  });
+});
+
+describe('daily fraction practice', () => {
+  const now = new Date(2026, 9, 11, 12).getTime();
+
+  it('creates a short deterministic session and prioritizes due and struggling skills', () => {
+    const dueMission = MISSIONS[8];
+    const trickyMission = MISSIONS[12];
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      reviewQueue: [{
+        missionId: dueMission.id,
+        missedQuestionId: dueMission.questions[0].id,
+        dueAt: now - 1,
+        reviewCount: 0,
+      }],
+      learning: {
+        [trickyMission.id]: {
+          ...emptyLearningRecord(),
+          misconceptions: { 'compare fractions': 3 },
+        },
+      },
+    };
+    const session = createDailyPractice(progress, now);
+
+    assert.equal(session.questions.length, DAILY_PRACTICE_LENGTH);
+    assert.equal(session.day, dailyPracticeDay(now));
+    assert.equal(session.questions[0].missionId, dueMission.id);
+    assert.equal(session.questions[1].missionId, trickyMission.id);
+    assert.equal(new Set(session.questions.map((question) => question.missionId)).size, DAILY_PRACTICE_LENGTH);
+    assert.deepEqual(new Set(session.questions.map((question) => question.modelKind)), new Set(['bar', 'number-line']));
+    assert.ok(session.questions.every((question) =>
+      question.denominator >= question.numerator && question.numerator >= 1 && question.denominator <= 12,
+    ));
+    assert.deepEqual(createDailyPractice(progress, now), session, 'returning on the same day gets the same question set');
+    assert.equal(progress.reviewQueue.length, 1, 'starting daily practice does not clear a due review');
+  });
+
+  it('saves model work and typed drafts so the routine can resume after reload', () => {
+    const session = createDailyPractice(EMPTY_PROGRESS, now);
+    const question = session.questions[0];
+    const inProgress: Progress = {
+      ...EMPTY_PROGRESS,
+      dailyPractice: {
+        ...session,
+        index: 2,
+        attempts: {
+          [question.id]: {
+            shaded: [0, 2],
+            draft: '2/4',
+            modelChecked: true,
+            modelCorrect: false,
+            answerChecked: true,
+            answerCorrect: false,
+          },
+        },
+      },
+    };
+
+    saveProgress(inProgress);
+
+    const resumed = loadProgress();
+    assert.equal(resumed.dailyPractice?.day, session.day);
+    assert.equal(resumed.dailyPractice?.index, 2);
+    assert.deepEqual(resumed.dailyPractice?.attempts[question.id], inProgress.dailyPractice?.attempts[question.id]);
+    assert.deepEqual(resumed.completedMissionIds, []);
+    assert.deepEqual(resumed.starsByMission, {});
+  });
+
+  it('records completion separately without changing lesson gates, mastery, stars, or review queues', () => {
+    const mission = MISSIONS[0];
+    const dueReview = {
+      missionId: mission.id,
+      missedQuestionId: mission.questions[0].id,
+      dueAt: now - 1,
+      reviewCount: 0,
+    };
+    const session = createDailyPractice({ ...EMPTY_PROGRESS, reviewQueue: [dueReview] }, now);
+    const completed: Progress = {
+      ...EMPTY_PROGRESS,
+      reviewQueue: [dueReview],
+      dailyPractice: { ...session, completedAt: now },
+    };
+
+    saveProgress(completed);
+    const loaded = loadProgress();
+
+    assert.equal(loaded.dailyPractice?.completedAt, now);
+    assert.deepEqual(loaded.reviewQueue, [dueReview]);
+    assert.deepEqual(loaded.completedMissionIds, []);
+    assert.deepEqual(loaded.starsByMission, {});
+    assert.equal(hasLearningGate(loaded, mission.id), false);
   });
 });
 

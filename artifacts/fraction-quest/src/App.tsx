@@ -52,12 +52,14 @@ import { SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
 import ParentView from './ParentView';
 import FractionRace from './FractionRace';
 import CodeQuest from './CodeQuest';
-import PartFinder from './PartFinder';
-import { PART_FINDER_LESSONS } from './part-finder';
 import PlacementQuiz from './PlacementQuiz';
 import { applyPlacement } from './placement';
 import { AccountGate, useAccount, useAccountSync } from './account';
 import LoginPage from './LoginPage';
+import DailyPractice from './DailyPractice';
+import { createDailyPractice, dailyPracticeDay } from './daily-practice';
+import PartFinder from './PartFinder';
+import { PART_FINDER_LESSONS } from './part-finder';
 const queryClient = new QueryClient();
 
 type View =
@@ -65,6 +67,7 @@ type View =
   | { type: 'play'; missionId: string; questionIndex: number; firstTryAnswers: number; reviewQuestions: PracticeQuestion[] }
   | { type: 'review'; questionIndex: number; reviewQuestions: PracticeQuestion[] }
   | { type: 'review-complete'; reviewedCount: number }
+  | { type: 'daily' }
   | { type: 'reward'; missionId: string; stars: number };
 type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string };
@@ -248,7 +251,7 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
   );
 }
 
-function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
+function MissionMap({ progress, onStart, onStartReview, onStartDaily, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
   const { user } = useAccount();
   const { fun } = useFun();
   const codeSummary = summarizeCodeProgress(fun.codeLevels, MISSIONS.map((mission) => mission.id));
@@ -324,6 +327,24 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
             </button>
           )}
           {progress.placement && <p className="fq-place-note" data-testid="text-placement-note">Started at unit {progress.placement.unit} after the level quiz. Earlier lessons are still open.</p>}
+
+          {(() => {
+            const today = progress.dailyPractice?.day === dailyPracticeDay() ? progress.dailyPractice : null;
+            const done = !!today?.completedAt;
+            const current = today && !done;
+            return (
+              <section className="fq-daily-map-card" data-testid="section-daily-practice">
+                <div className="fq-daily-map-icon" aria-hidden="true"><Sparkles size={21} /></div>
+                <div className="fq-daily-map-copy">
+                  <strong>{done ? 'Today’s practice is complete' : current ? 'Pick up today’s practice' : 'A little fraction practice each day'}</strong>
+                  <span>{done ? 'Five models built and named. Your lesson progress is separate.' : current ? `${today.index + 1} of ${today.questions.length} models · Your work is saved` : 'Five quick model-and-answer questions, about 5 minutes, chosen from your learning.'}</span>
+                </div>
+                <button className="fq-button" onClick={onStartDaily} data-testid="button-start-daily-practice">
+                  {done ? 'Review' : current ? 'Continue' : 'Start'} <ArrowRight size={16} />
+                </button>
+              </section>
+            );
+          })()}
 
           <QuickReviewEntry progress={progress} onStart={onStartReview} />
 
@@ -802,6 +823,13 @@ function Game() {
     setView({ type: 'review', questionIndex: 0, reviewQuestions });
   };
 
+  const startDailyPractice = () => {
+    const saved = progress.dailyPractice;
+    const session = saved?.day === dailyPracticeDay() ? saved : createDailyPractice(progress);
+    if (session !== saved) persistProgress({ ...progress, dailyPractice: session });
+    setView({ type: 'daily' });
+  };
+
   const persistProgress = (nextProgress: Progress) => {
     setSaveError(!saveProgress(nextProgress));
     setProgress(nextProgress);
@@ -854,7 +882,8 @@ function Game() {
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onStartDaily={startDailyPractice} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} />}
       {view.type === 'placement' && <PlacementQuiz unitTitles={UNIT_TITLES} onExit={returnToMap} onDone={(passed) => { persistProgress(applyPlacement(progress, passed)); returnToMap(); }} />}
       {view.type === 'race' && (
         <FractionRace key={view.missionId} mission={getMission(view.missionId)} best={fun.raceBest?.[view.missionId] ?? null} robotBeaten={fun.robotBeaten?.[view.missionId] ?? 0} sprintBest={fun.sprintBest?.[view.missionId] ?? null}
@@ -975,7 +1004,7 @@ function Game() {
           <div className="fq-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description">
             <button className="fq-icon-button fq-modal-close" onClick={() => setResetOpen(false)} aria-label="Close reset dialog" data-testid="button-close-reset"><X size={18} /></button>
             <h2 id="reset-title">Start the map over?</h2>
-            <p id="reset-description">{account.user ? `This clears ${account.user.displayName}'s lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
+            <p id="reset-description">{account.user ? `This clears ${account.user.displayName}'s lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
             <div className="fq-modal-actions">
               <button className="fq-button ghost" onClick={() => setResetOpen(false)} data-testid="button-cancel-reset">Keep exploring</button>
               <button className="fq-button" onClick={resetProgress} data-testid="button-confirm-reset">Reset progress</button>
