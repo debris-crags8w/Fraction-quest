@@ -115,11 +115,12 @@ const EXPECTED_MISSION_IDS = [
   'add-tenths-hundredths',
 ];
 const EXPECTED_EXTENSION_IDS = [
+  'unit-fraction-multiples', 'multiply-whole-by-fraction',
   'simplify-fractions', 'equivalent-missing-both', 'whole-numbers-as-fractions', 'compare-unlike-fractions', 'order-unlike-fractions',
   'subtract-unlike-fractions', 'add-unlike-fractions', 'add-mixed-numbers', 'subtract-mixed-numbers', 'fraction-of-quantity',
   'mixed-unlike-operations', 'estimate-fraction-operations',
-  'multiply-whole-by-fraction', 'multiply-fractions', 'fraction-of-collection', 'divide-whole-by-unit-fraction',
-  'unit-fraction-multiples', 'multiplication-scaling', 'multiply-mixed-numbers', 'unit-fraction-divided-whole',
+  'multiply-fractions', 'fraction-of-collection', 'divide-whole-by-unit-fraction',
+  'multiplication-scaling', 'multiply-mixed-numbers', 'unit-fraction-divided-whole',
   'fraction-of-length', 'fractional-measure-addition', 'ruler-measurement', 'build-line-plots', 'read-line-plots',
   'line-plot-leveling', 'measurement-word-problems', 'fractional-unit-conversions', 'fractional-sharing', 'fraction-as-division',
   'fraction-probability', 'fraction-of-area', 'fractional-side-area', 'equivalent-number-line', 'fraction-recipes',
@@ -204,7 +205,7 @@ describe('lesson catalog', () => {
         [...new Set(MISSIONS.map((mission) => mission.unit))]
           .map((unit) => [unit, MISSIONS.filter((mission) => mission.unit === unit).length]),
       ),
-      { 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 4, 8: 6, 9: 5, 10: 7, 11: 8, 12: 10, 13: 5, 14: 5 },
+      { 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 4, 8: 8, 9: 5, 10: 7, 11: 6, 12: 10, 13: 5, 14: 5 },
     );
   });
 
@@ -349,7 +350,7 @@ describe('lesson progression', () => {
   });
 
   it('opens the next unit only after every model and worksheet gate, then adapts within that unit', () => {
-    const legacyLessonsMastered = MISSIONS.slice(0, 28).reduce(
+    const legacyLessonsMastered = MISSIONS.filter((mission) => mission.unit <= 8).reduce(
       (progress, mission) => withLearning(progress, mission.id),
       EMPTY_PROGRESS,
     );
@@ -370,11 +371,11 @@ describe('lesson progression', () => {
     const adapted = updateLearning(legacyLessonsMastered, thirdExtension.id, weakEvidence);
     assert.equal(getNextMission(adapted)?.id, thirdExtension.id, 'evidence of difficulty reorders the recommendation within the unlocked unit');
 
-    const completedUnit = MISSIONS.slice(28, 32).reduce(
+    const completedUnit = MISSIONS.filter((mission) => mission.unit === 9).reduce(
       (progress, mission) => withLearning(progress, mission.id),
       legacyLessonsMastered,
     );
-    assert.equal(isMissionUnlocked(completedUnit, MISSIONS[32].id), true);
+    assert.equal(isMissionUnlocked(completedUnit, firstNextUnit.id), true);
   });
 });
 
@@ -2317,5 +2318,16 @@ describe('same numerator, different denominators', () => {
     assert.match(transfer.prompt, /2\/3 or 2\/5/);
     const unlike = getWorksheet('compare-unlike-fractions');
     assert.ok(unlike.some((p) => { const m = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(p.prompt); return !!m && m[1] === m[2]; }));
+  });
+});
+
+describe('whole number × fraction is in the grade-4 path', () => {
+  it('ends unit 8 (4.NF.4a, then 4.NF.4b), so the level quiz reaches it', () => {
+    const unit8 = MISSIONS.filter((m) => m.unit === 8).map((m) => m.id);
+    assert.deepEqual(unit8.slice(-2), ['unit-fraction-multiples', 'multiply-whole-by-fraction']);
+    assert.ok(placementItems(8, 3).some((item) => item.missionId === 'multiply-whole-by-fraction'));
+    // Moving lessons into unit 8 doesn't let a newcomer skip unit 8.
+    const ahead = updateLearning(EMPTY_PROGRESS, 'simplify-fractions', { ...emptyLearningRecord(), practiceDone: true });
+    assert.equal(isMissionUnlocked(ahead, 'simplify-fractions'), false, 'without unit 8 a newcomer is still locked');
   });
 });

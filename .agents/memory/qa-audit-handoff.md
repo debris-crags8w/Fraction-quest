@@ -41,6 +41,14 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Models everywhere + whole bracket + grade-4 multiply (main):** user wants a visual on EVERY question/answer and
+  shaded compare models (reverted last round's unshaded compare pictures). src/auto-picture.ts (amountsIn/autoPicture +
+  story pictures) feeds worksheet `picture` (getWorksheet tag), practice() equation → bars, problemPicture fallback (also
+  area rows, ruler → line). Test "every question has a picture". Bars use WholeBracket / SvgWholeBracket (models.tsx)
+  labelled "1 whole" instead of WHOLE/PART tags. unit-fraction-multiples + multiply-whole-by-fraction moved to the end of
+  unit 8 (LATE_ADDED; isMissionUnlocked now also skips LATE_ADDED inside units 1–8 for learners already in unit 9+).
+  Check-in AreaShade/Ruler/LinePlot take `checkIn` (neutral status, ready on any input, correctness reported separately).
+  Voice: user asked for a more natural voice; options offered, nothing built yet.
 - **Give-away audit + same-numerator coverage (main):** ConceptGames War/NumberLine start unchosen (d=0) and offer every
   split; WAR_ROUNDS/warHint in concept-games.ts. practice-bank: `either()` random naming order, `compareBars()` unshaded
   compare pictures (shaded = simpler help), compare-unlike ~1/4 same-numerator pairs. game.ts `practice()` turns shaded

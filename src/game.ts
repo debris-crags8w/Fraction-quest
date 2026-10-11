@@ -638,6 +638,9 @@ type ExtensionTopic = {
 };
 
 const extensionTopics: ExtensionTopic[] = [
+  // Grade 4 (4.NF.4a, 4.NF.4b): ends unit 8, so grade-4 learners (and the level quiz) reach it before grade 5.
+  { id: 'unit-fraction-multiples', unit: 8, title: 'Make groups of a unit fraction', shortTitle: 'Unit fraction multiples', description: 'Build several copies of one unit fraction.', skill: 'Repeated addition of a unit fraction makes a multiple.', mode: 'unit-multiples', n: 5, d: 4, context: 'paper strips', gradeBand: 4, standards: ['4.NF.4a'] },
+  { id: 'multiply-whole-by-fraction', unit: 8, title: 'Groups of a fraction', shortTitle: 'Whole × fraction', description: '3 groups of 1/2.', skill: 'Multiply the numerator. The denominator stays.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles' },
   { id: 'simplify-fractions', unit: 9, title: 'Simplest form', shortTitle: 'Simplest form', description: 'Use bigger pieces. Same amount.', skill: 'Divide the numerator and denominator by the same number.', mode: 'simplify', n: 3, d: 4, context: 'paper strip' },
   { id: 'equivalent-missing-both', unit: 9, title: 'Find the missing number', shortTitle: 'Equivalent fractions', description: 'Fill a blank on the top or bottom.', skill: 'Do the same thing to the numerator and denominator.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
   { id: 'whole-numbers-as-fractions', unit: 9, title: 'Wholes as fractions', shortTitle: 'Whole numbers as fractions', description: 'Build one or more wholes from unit fractions.', skill: 'The numerator counts pieces. A whole is made from as many pieces as the denominator.', mode: 'whole-fraction', n: 6, d: 3, context: 'fraction bars', gradeBand: 3, standards: ['3.NF.3c'] },
@@ -650,11 +653,9 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'fraction-of-quantity', unit: 10, title: 'A fraction of a number', shortTitle: 'Fractions of amounts', description: 'Find 3/5 of 20.', skill: 'Make equal groups. Count the groups you need.', mode: 'quantity', n: 3, d: 5, context: 'classroom supplies' },
   { id: 'mixed-unlike-operations', unit: 10, title: 'Mixed numbers with unlike parts', shortTitle: 'Mixed number operations', description: 'Add or subtract mixed numbers with different denominators.', skill: 'Rename fractional parts with a common denominator. Regroup when needed.', mode: 'mixed-unlike', n: 25, d: 12, context: 'walking route', gradeBand: 5, standards: ['5.NF.1'] },
   { id: 'estimate-fraction-operations', unit: 10, title: 'Estimate to check', shortTitle: 'Estimate fraction sums', description: 'Use 0, 1/2 and 1 to check whether an answer makes sense.', skill: 'Compare each fraction to a benchmark before calculating.', mode: 'estimate', n: 9, d: 10, context: 'trail lengths', gradeBand: 5, standards: ['5.NF.2'] },
-  { id: 'multiply-whole-by-fraction', unit: 11, title: 'Groups of a fraction', shortTitle: 'Whole × fraction', description: '3 groups of 1/2.', skill: 'Multiply the numerator. The denominator stays.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles' },
   { id: 'multiply-fractions', unit: 11, title: 'A part of a part', shortTitle: 'Fraction × fraction', description: 'Find 1/2 of 3/4.', skill: 'Multiply the numerators. Multiply the denominators.', mode: 'multiply', n: 2, d: 3, context: 'garden plot' },
   { id: 'fraction-of-collection', unit: 11, title: 'A fraction of a group', shortTitle: 'Groups of objects', description: 'Find 3/4 of 16 cards.', skill: 'Make equal groups. Count the groups you need.', mode: 'sets', n: 3, d: 4, context: 'sports cards' },
   { id: 'divide-whole-by-unit-fraction', unit: 11, title: 'How many pieces fit?', shortTitle: 'Divide by a fraction', description: 'How many 1/4 cups fill 2 cups?', skill: '1 whole holds as many pieces as the denominator.', mode: 'divide', n: 1, d: 4, context: 'measuring cup' },
-  { id: 'unit-fraction-multiples', unit: 11, title: 'Make groups of a unit fraction', shortTitle: 'Unit fraction multiples', description: 'Build several copies of one unit fraction.', skill: 'Repeated addition of a unit fraction makes a multiple.', mode: 'unit-multiples', n: 5, d: 4, context: 'paper strips', gradeBand: 4, standards: ['4.NF.4a'] },
   { id: 'multiplication-scaling', unit: 11, title: 'Scaling with fractions', shortTitle: 'Scale an amount', description: 'See how a factor below or above one changes an amount.', skill: 'A factor below 1 makes less; a factor above 1 makes more.', mode: 'scaling', n: 3, d: 4, context: 'collections', gradeBand: 5, standards: ['5.NF.5'] },
   { id: 'multiply-mixed-numbers', unit: 11, title: 'Multiply mixed numbers', shortTitle: 'Mixed number multiplication', description: 'Use a rectangle to find the area of a mixed-number garden.', skill: 'Rename mixed numbers as fractions, then multiply.', mode: 'mixed-multiply', n: 2, d: 1, context: 'garden plot', gradeBand: 5, standards: ['5.NF.6'] },
   { id: 'unit-fraction-divided-whole', unit: 11, title: 'Share a unit fraction', shortTitle: 'Divide a unit fraction', description: 'Split one unit fraction into equal shares.', skill: 'Divide the unit fraction into more equal pieces.', mode: 'unit-divided-whole', n: 1, d: 12, context: 'pan of brownies', gradeBand: 5, standards: ['5.NF.7a'] },
@@ -930,9 +931,9 @@ export function isMissionUnlocked(progress: Progress, missionId: string): boolea
   const target = MISSIONS[targetIndex];
   // Units the placement quiz showed are already known don't block the ones after them.
   const placedOut = (item: Mission) => !!progress.placement && item.unit < progress.placement.unit;
-  if (target.unit < 9) return MISSIONS.slice(0, targetIndex).every(item => placedOut(item) || passedLesson(progress, item.id));
-  // A lesson added later must not re-lock units a learner had already opened (they can still do it any time).
+  // A lesson added (or moved) later must not re-lock lessons a learner had already reached (they can still do it any time).
   const alreadyInLaterUnits = MISSIONS.some((item) => item.unit >= 9 && (!!progress.learning?.[item.id] || progress.completedMissionIds.includes(item.id)));
+  if (target.unit < 9) return MISSIONS.slice(0, targetIndex).every(item => placedOut(item) || passedLesson(progress, item.id) || (alreadyInLaterUnits && LATE_ADDED_LESSONS.has(item.id)));
   return MISSIONS.filter(item => item.unit < target.unit && !placedOut(item) && !(alreadyInLaterUnits && LATE_ADDED_LESSONS.has(item.id)))
     .every(item => passedLesson(progress, item.id));
 }
@@ -949,6 +950,8 @@ export function passedLesson(progress: Progress, missionId: string): boolean {
  */
 export const LATE_ADDED_LESSONS: ReadonlySet<string> = new Set([
   'add-tenths-hundredths',
+  // Moved from unit 11 to the end of unit 8 (grade 4).
+  'multiply-whole-by-fraction',
   // Standards-coverage lessons (grades 3–5), added to units 9–14.
   'whole-numbers-as-fractions',
   'add-unlike-fractions', 'mixed-unlike-operations', 'estimate-fraction-operations',

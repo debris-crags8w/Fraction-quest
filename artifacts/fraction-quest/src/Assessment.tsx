@@ -132,10 +132,10 @@ function AssessmentModelBuilder({ item, onReady }: { item: AssessmentItem; onRea
   const handleReady = useCallback((ready: boolean, correct?: boolean) => onReady(ready, correct), [onReady]);
   const statusId = `assessment-model-status-${item.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
   if (problem.area && problem.areaTask) {
-    return <AreaShade figure={problem.area} task={problem.areaTask} disabled={false} statusId={statusId} onMatchChange={handleReady} />;
+    return <AreaShade figure={problem.area} task={problem.areaTask} disabled={false} statusId={statusId} onMatchChange={handleReady} checkIn />;
   }
-  if (problem.rulerTask) return <RulerInteraction key={item.id} task={problem.rulerTask} disabled={false} onReady={handleReady} />;
-  if (problem.linePlotTask) return <LinePlotInteraction key={item.id} task={problem.linePlotTask} disabled={false} onReady={handleReady} />;
+  if (problem.rulerTask) return <RulerInteraction key={item.id} task={problem.rulerTask} disabled={false} onReady={handleReady} checkIn />;
+  if (problem.linePlotTask) return <LinePlotInteraction key={item.id} task={problem.linePlotTask} disabled={false} onReady={handleReady} checkIn />;
   if (problem.scaleTask) return <ScaleInteraction key={item.id} id={statusId} task={problem.scaleTask} disabled={false} onReady={handleReady} />;
   if (problem.area) return <ReadOnlyArea key={item.id} figure={problem.area} onReady={handleReady} />;
   if (!problem.model) return item.visualFractions ? <FractionStripsBuilder key={item.id} fractions={item.visualFractions} onReady={handleReady} /> : null;

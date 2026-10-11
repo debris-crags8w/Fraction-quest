@@ -96,12 +96,13 @@ function rulerLabel(tick: number, denominator: number): string {
   return whole && part ? `${whole} ${part}/${denominator}` : whole ? String(whole) : part ? `${part}/${denominator}` : '0';
 }
 
-export function RulerInteraction({ task, onReady, disabled }: {
-  task: NonNullable<WorksheetProblem['rulerTask']>; onReady: (ready: boolean) => void; disabled: boolean;
+/** `checkIn` (no hints): any tick opens the answer box and the status stays neutral; correctness is reported separately. */
+export function RulerInteraction({ task, onReady, disabled, checkIn = false }: {
+  task: NonNullable<WorksheetProblem['rulerTask']>; onReady: (ready: boolean, correct?: boolean) => void; disabled: boolean; checkIn?: boolean;
 }) {
   const [selected, setSelected] = useState<number | null>(null);
   const ticks = task.denominator * task.wholes;
-  useEffect(() => { onReady(selected === task.end); }, [onReady, selected, task.end]);
+  useEffect(() => { onReady(checkIn ? selected !== null : selected === task.end, selected === task.end); }, [onReady, selected, task.end, checkIn]);
   return (
     <div className="fq-ll-custom-model" data-testid="ruler-model">
       <p>Line up the blue strip with zero. Tap the tick at its end.</p>
@@ -116,35 +117,37 @@ export function RulerInteraction({ task, onReady, disabled }: {
         ))}
       </div>
       <p className="fq-ll-custom-status" role="status" aria-live="polite">
-        {selected === task.end ? 'Right at the endpoint. Now enter the length.' : selected === null ? 'Use the tick marks to measure the strip.' : 'That tick does not match the strip end. Try another.'}
+        {checkIn ? (selected === null ? 'Use the tick marks to measure the strip.' : 'Tick marked. Now enter the length.')
+          : selected === task.end ? 'Right at the endpoint. Now enter the length.' : selected === null ? 'Use the tick marks to measure the strip.' : 'That tick does not match the strip end. Try another.'}
       </p>
     </div>
   );
 }
 
-export function LinePlotInteraction({ task, onReady, disabled }: {
-  task: NonNullable<WorksheetProblem['linePlotTask']>; onReady: (ready: boolean) => void; disabled: boolean;
+export function LinePlotInteraction({ task, onReady, disabled, checkIn = false }: {
+  task: NonNullable<WorksheetProblem['linePlotTask']>; onReady: (ready: boolean, correct?: boolean) => void; disabled: boolean; checkIn?: boolean;
 }) {
   const tickCount = task.denominator * task.wholes;
   const expected = Array.from({ length: tickCount + 1 }, (_, tick) => task.values.filter(value => value === tick).length);
   const [marks, setMarks] = useState<number[]>(() => Array(tickCount + 1).fill(0));
   const complete = marks.every((count, i) => count === expected[i]);
-  useEffect(() => { onReady(complete); }, [complete, onReady]);
+  const placed = marks.reduce((sum, count) => sum + count, 0);
+  useEffect(() => { onReady(checkIn ? placed > 0 : complete, complete); }, [complete, placed, checkIn, onReady]);
   return (
     <div className="fq-ll-custom-model fq-lineplot" data-testid="line-plot-model">
       <p>Tap the tick for each measurement to stack its X. Tap again to remove an X.</p>
       <div className="fq-lineplot-grid" role="group" aria-label={`Line plot with ${task.denominator} equal spaces per whole`}>
         {Array.from({ length: tickCount + 1 }, (_, i) => (
           <button type="button" key={i} className="fq-lineplot-tick" aria-label={`${rulerLabel(i, task.denominator)}, ${marks[i]} X marks. Add or remove one.`}
-            aria-pressed={marks[i] === expected[i]} disabled={disabled}
-            onClick={() => setMarks(current => current.map((count, index) => index === i ? (count >= expected[i] ? 0 : count + 1) : count))}>
+            aria-pressed={checkIn ? marks[i] > 0 : marks[i] === expected[i]} disabled={disabled}
+            onClick={() => setMarks(current => current.map((count, index) => index === i ? (count >= (checkIn ? task.values.length : expected[i]) ? 0 : count + 1) : count))}>
             <span className="fq-lineplot-xs" aria-hidden="true">{Array.from({ length: marks[i] }, (_, j) => <b key={j}>×</b>)}</span>
             <i />
             <small>{rulerLabel(i, task.denominator)}</small>
           </button>
         ))}
       </div>
-      <p className="fq-ll-custom-status" role="status" aria-live="polite">{complete ? 'Your plot matches the measurements. Now answer.' : 'Keep adding X marks until every measurement is plotted.'}</p>
+      <p className="fq-ll-custom-status" role="status" aria-live="polite">{checkIn ? `${placed} X ${placed === 1 ? 'mark' : 'marks'} placed.` : complete ? 'Your plot matches the measurements. Now answer.' : 'Keep adding X marks until every measurement is plotted.'}</p>
     </div>
   );
 }

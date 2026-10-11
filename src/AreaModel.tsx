@@ -33,12 +33,15 @@ export function ColorTwoWays() {
 }
 
 /** Tap pieces to color n/d of the square. Any correct way counts (1 small square, or 2 triangles...). */
-export function AreaShade({ figure, task, disabled, statusId, onMatchChange }: {
-  figure: AreaFigure; task: AreaTask; disabled: boolean; statusId: string; onMatchChange: (done: boolean) => void;
+/** `checkIn`: no feedback while coloring (a check-in has no hints). It reports "colored something" and
+    "colored it right" separately, so the answer box opens without telling the child whether they're right. */
+export function AreaShade({ figure, task, disabled, statusId, onMatchChange, checkIn = false }: {
+  figure: AreaFigure; task: AreaTask; disabled: boolean; statusId: string; onMatchChange: (ready: boolean, correct?: boolean) => void; checkIn?: boolean;
 }) {
   const [shaded, setShaded] = useState<number[]>([]);
   const done = areaTaskDone(figure.cut, task, shaded);
-  useEffect(() => { onMatchChange(done); }, [done, onMatchChange]);
+  const ready = checkIn ? shaded.length > 0 : done;
+  useEffect(() => { onMatchChange(ready, done); }, [ready, done, onMatchChange]);
   const toggle = (i: number) => { if (!disabled) setShaded((s) => (s.includes(i) ? s.filter((k) => k !== i) : [...s, i])); };
   const onKey = (event: KeyboardEvent, i: number) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(i); } };
   return (
@@ -55,8 +58,8 @@ export function AreaShade({ figure, task, disabled, statusId, onMatchChange }: {
         ))}
          <polygon className="frame" points={outline(figure)} fill="none" pointerEvents="none" />
       </svg>
-      <p id={statusId} className={`fq-ll-copy-status ${done ? 'matched' : ''}`} role="status" aria-live="polite" data-testid="status-area">
-        {areaFeedback(figure.cut, task, shaded)}
+      <p id={statusId} className={`fq-ll-copy-status ${done && !checkIn ? 'matched' : ''}`} role="status" aria-live="polite" data-testid="status-area">
+        {checkIn ? `${shaded.length} ${shaded.length === 1 ? 'piece' : 'pieces'} colored.` : areaFeedback(figure.cut, task, shaded)}
       </p>
     </div>
   );

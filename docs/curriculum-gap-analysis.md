@@ -32,13 +32,17 @@ Daily Practice is now a mixed review (lesson questions plus builds where the chi
 different denominator comparisons now appear in the lesson (more numerators, `<`/`>` items, own transfer), Fraction War,
 the unlike-fractions worksheet and practice, and Race.
 
+**Since then:** every question shows a model (compare questions show both amounts shaded as same-size wholes; questions
+with no picture get one from the amounts they name); bars carry a "1 whole" bracket; whole number × fraction (4.NF.4a/b)
+ends Unit 8, inside the grade-4 path and the level quiz; check-in coloring, ruler and line-plot items no longer hint or
+gate on the right answer.
+
 **Still open:**
 - Password reset (owner to choose: parent email link, printed recovery code, or parent/teacher reset).
 - Privacy policy page and a COPPA data-handling review (needs company name, contact email, country/state).
-- Whole number × fraction lives only in the grade-5 Unit 11; the placement quiz stops at Unit 8.
 - Spanish (deferred by the owner).
+- A more natural read-aloud voice (options given to the owner: in-browser open-source neural voice, or a cloud TTS free tier).
 - The iOS app (kept on the `ios-local-icloud` branch; the owner may redo the conversion).
-- Check-in area items still open the answer box only once the coloring is right (the same as in the lesson).
 
 ---
 
