@@ -55,8 +55,23 @@ const W = 320; // drawing width for 0 → wholes
 const PAD = 22;
 
 /** Bar model: each whole is one bar split into d equal pieces; the first n pieces are shaded. Omit d for an empty bar to partition by hand. */
-export function BarSvg({ n = 0, d, wholes = 1, label }: { n?: number; d?: number; wholes?: number; label?: string }) {
+/** `sizes` draws one whole cut into pieces of these relative sizes (they may be unequal), for "Is this cut into equal parts?". */
+export function BarSvg({ n = 0, d, wholes = 1, sizes, label }: { n?: number; d?: number; wholes?: number; sizes?: number[]; label?: string }) {
   const unit = W / wholes;
+  if (sizes?.length) {
+    const sum = sizes.reduce((a, b) => a + b, 0);
+    let x = PAD;
+    return (
+      <svg className="fq-svg-bar" viewBox={`0 0 ${W + PAD * 2} 74`} role="img" aria-label={label ?? `A bar cut into ${sizes.length} pieces`}>
+        <text className="fq-svg-model-label" x={PAD + W / 2} y={11} textAnchor="middle">WHOLE</text>
+        {sizes.map((size, i) => {
+          const width = (size / sum) * W; const at = x; x += width;
+          return <rect key={i} className={i < n ? 'shaded' : 'empty'} style={{ '--i': i } as CSSProperties} x={at} y={17} width={width} height={32} />;
+        })}
+        <rect className="frame" x={PAD} y={17} width={W} height={32} fill="none" />
+      </svg>
+    );
+  }
   return (
     <svg className="fq-svg-bar" viewBox={`0 0 ${W + PAD * 2} 74`} role="img" aria-label={label ?? (d ? `Bar model: each whole is split into ${d} equal parts, and ${n} ${n === 1 ? 'part is' : 'parts are'} shaded` : 'Whole bar ready to split into equal parts')}>
       {Array.from({ length: wholes }, (_, w) => {

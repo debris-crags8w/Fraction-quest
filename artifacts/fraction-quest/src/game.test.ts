@@ -12,11 +12,11 @@ import { describe as describeRun, getCodeLevels, matchesTarget, runProgram, solu
 import { loadFun, recordCorrect, recordMinute } from './lib/fun';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
 import type { PracticeQuestion } from './game';
-import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
+import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, paperPrompt, parseAnswer } from './learning-content';
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
 import { LearningText } from './LearningText';
 import { BarSvg } from './models';
-import { canEnterWorksheetAnswer, WorksheetBarCopy, worksheetBarMatches } from './WorksheetBarCopy';
+import { barTaskDone, canEnterWorksheetAnswer, WorksheetBarCopy, worksheetBarMatches } from './WorksheetBarCopy';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
 import QuickReviewEntry from './QuickReviewEntry';
 import {
@@ -524,10 +524,10 @@ describe('entered-answer worksheets and evidence gates', () => {
 
   it('uses the fraction control only for single-fraction worksheet answers', () => {
     const problems = getWorksheet(MISSIONS[0].id);
-    assert.equal(usesFractionEntry(problems[0]), true);
-    assert.equal(usesFractionEntry(problems[1]), false);
-    assert.equal(usesFractionEntry({ ...problems[0], form: 'mixed' }), false);
-    assert.equal(usesFractionEntry({ ...problems[0], form: 'ordered' }), false);
+    assert.equal(usesFractionEntry(problems[2]), true);
+    assert.equal(usesFractionEntry(problems[0]), false);
+    assert.equal(usesFractionEntry({ ...problems[2], form: 'mixed' }), false);
+    assert.equal(usesFractionEntry({ ...problems[2], form: 'ordered' }), false);
     assert.equal(usesFractionEntry({ ...problems[0], form: 'decimal' }), false);
   });
 
@@ -569,7 +569,7 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.throws(() => numberLineWholeCount(1, 0), RangeError);
   });
   it('checks independently calculated keys across every curriculum topic', () => {
-    const expected = ['1/3', '1', '3', '1/2', '2', '4', '1/4', '1/3', '3/4', '3', '1/3', '4/3', '2/3', '2/3', '1/3, 2/3, 3/3', '2', '2/6', '2', '2/3', '2', '>', '4/3', '2/3', '1/3', '3/4', '0.1', '0.08', '34/100'];
+    const expected = ['3', '1', '3', '1/2', '2', '4', '1/4', '1/3', '3/4', '3', '1/3', '4/3', '2/3', '2/3', '1/3, 2/3, 3/3', '2', '2/6', '2', '2/3', '2', '>', '4/3', '2/3', '1/3', '3/4', '0.1', '0.08', '34/100'];
     MISSIONS.slice(0, expected.length).forEach((mission, index) => assert.equal(getWorksheet(mission.id)[0].answer, expected[index], mission.id));
   });
   it('authors twelve valid problems and two skill checks for every topic', () => {
@@ -697,7 +697,20 @@ describe('entered-answer worksheets and evidence gates', () => {
 });
   it('keeps the first fraction lesson focused on equal parts, then layers in unit fractions', () => {
     const equalParts = getWorksheet('equal-parts');
-    assert.ok(equalParts.every(problem => problem.modelRequired && problem.model?.kind === 'bar'));
+    assert.ok(equalParts.every(problem => problem.model?.kind === 'bar'));
+    // Shading is shown only when it marks the part being named; otherwise the child counts, shades, or judges fairness.
+    assert.ok(equalParts.every(problem => (problem.model!.n > 0) === (problem.task?.kind === 'copy')));
+    assert.ok(equalParts.filter(problem => problem.task?.kind === 'count').every(problem => problem.task!.n === problem.model!.d && problem.answer === String(problem.model!.d)));
+    const fairness = equalParts.filter(problem => problem.form === 'word');
+    assert.ok(fairness.length >= 2 && fairness.some(problem => problem.answer === 'no') && fairness.some(problem => problem.answer === 'yes'));
+    fairness.forEach(problem => {
+      const sizes = problem.model!.sizes;
+      assert.equal(problem.answer === 'no', !!sizes && new Set(sizes).size > 1, problem.id);
+      assert.ok(!problem.modelRequired);
+      assert.ok(answerMatches(problem, problem.answer.toUpperCase()) && answerMatches(problem, problem.answer[0]));
+      assert.equal(answerMatches(problem, problem.answer === 'yes' ? 'no' : 'yes'), false);
+    });
+    assert.ok(equalParts.every(problem => problem.modelRequired === !!problem.task));
     assert.ok(equalParts.every(problem => !/jump|number line|shares make the whole/i.test(problem.prompt)));
     assert.ok(equalParts.every(problem => (problem.model?.d ?? 99) <= 6));
 
@@ -711,7 +724,7 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.ok(fractionNames.every(problem => !/garden bed|paper strip/i.test(problem.prompt)));
   });
   it('requires a student to copy the bar model before worksheet answers unlock', () => {
-    const problem = getWorksheet('equal-parts')[0];
+    const problem = getWorksheet('equal-parts').find(item => item.task?.kind === 'copy')!;
     const markup = renderToStaticMarkup(createElement(WorksheetBarCopy, {
       target: problem.model!,
       disabled: false,
@@ -727,6 +740,14 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(worksheetBarMatches(target, Array(target.d).fill(false)), false);
     assert.equal(worksheetBarMatches(target, [true, ...Array(target.d - 1).fill(false)]), true);
     assert.equal(worksheetBarMatches(target, [true, true, ...Array(target.d - 2).fill(false)]), false);
+    // Counting needs every part tapped; shading needs exactly n parts, anywhere.
+    const blank = { ...target, n: 0 };
+    assert.equal(barTaskDone({ kind: 'count', n: target.d }, blank, Array(target.d).fill(true)), true);
+    assert.equal(barTaskDone({ kind: 'count', n: target.d }, blank, [true, ...Array(target.d - 1).fill(false)]), false);
+    assert.equal(barTaskDone({ kind: 'shade', n: 1 }, blank, [...Array(target.d - 1).fill(false), true]), true);
+    assert.equal(barTaskDone({ kind: 'shade', n: 1 }, blank, [true, true, ...Array(target.d - 2).fill(false)]), false);
+    assert.match(renderToStaticMarkup(createElement(WorksheetBarCopy, { target: blank, task: { kind: 'count', n: target.d }, disabled: false, statusId: 's', onMatchChange: () => {} })), /Tap each part as you count it/);
+    assert.equal(paperPrompt(getWorksheet('equal-parts')[0]).startsWith('Count each part.'), true);
     assert.equal(canEnterWorksheetAnswer(true, false), false);
     assert.equal(canEnterWorksheetAnswer(true, true), true);
     assert.equal(canEnterWorksheetAnswer(false, false), true);

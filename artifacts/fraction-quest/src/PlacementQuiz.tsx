@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { ArrowLeft, ArrowRight, Compass, Map as MapIcon } from 'lucide-react';
-import { answerMatches } from './learning-content';
+import { answerMatches, paperPrompt } from './learning-content';
 import { MathText } from './MathText';
 import { Mascot } from './fun-ui';
 import { BarSvg, LineSvg, SetSvg } from './models';
@@ -74,11 +74,11 @@ export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
       </div>
       <section className="fq-place-card question" key={`${unit}-${index}`}>
         <p className="fq-place-small">{unitTitles[unit - 1]}</p>
-        <h2 data-testid="text-placement-question"><MathText text={item.problem.prompt} /></h2>
-        {m && <div className="fq-place-model">{m.kind === 'line' ? <LineSvg n={m.n} d={m.d} wholes={m.wholes} jumps={false} /> : m.kind === 'set' ? <SetSvg n={m.n} d={m.d} total={m.total ?? m.d} /> : <BarSvg n={m.n} d={m.d} wholes={m.wholes} />}</div>}
+        <h2 data-testid="text-placement-question"><MathText text={paperPrompt(item.problem, true)} /></h2>
+        {m && <div className="fq-place-model">{m.kind === 'line' ? <LineSvg n={m.n} d={m.d} wholes={m.wholes} jumps={false} /> : m.kind === 'set' ? <SetSvg n={m.n} d={m.d} total={m.total ?? m.d} /> : <BarSvg n={m.n} d={m.d} wholes={m.wholes} sizes={m.sizes} />}</div>}
         <form onSubmit={submit} className="fq-place-form">
           <input value={draft} onChange={(e) => setDraft(e.target.value)} autoComplete="off" aria-label="Your answer" autoFocus
-            placeholder={item.problem.form === 'symbol' ? '< = >' : item.problem.form === 'decimal' ? '0.4' : item.problem.form === 'mixed' ? '1 2/3' : item.problem.form === 'ordered' ? '1/4, 2/4, 3/4' : 'like 3/4 or 6'} data-testid="input-placement" />
+            placeholder={item.problem.form === 'word' ? 'yes or no' : item.problem.form === 'symbol' ? '< = >' : item.problem.form === 'decimal' ? '0.4' : item.problem.form === 'mixed' ? '1 2/3' : item.problem.form === 'ordered' ? '1/4, 2/4, 3/4' : 'like 3/4 or 6'} data-testid="input-placement" />
           <button type="submit" className="fq-button" disabled={!draft.trim()} data-testid="button-placement-next">Next <ArrowRight size={17} /></button>
         </form>
         <button type="button" className="fq-button ghost fq-place-skip" onClick={() => record(false)} data-testid="button-placement-unknown">I haven't learned this yet</button>

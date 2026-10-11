@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { Printer } from 'lucide-react';
 import { MathText } from './MathText';
 import { getMission, MISSIONS, type Mission, type ModelSpec } from './game';
-import { answerMatches, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
+import { answerMatches, getBuildChecks, getWorksheet, paperPrompt, type WorksheetProblem } from './learning-content';
 import { learningSummary, worksheetCount, type LearningRecord } from './learning';
 import { BarSvg, ChallengeFigureView, LineSvg, MODEL_CONCEPTS, ModelPair, ModelTag, SetSvg } from './models';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
@@ -25,6 +25,7 @@ const STATUS_TEXT: Record<Status, string> = { correct: '✓ Correct', 'not-yet':
 
 const ANSWER_FORMAT: Record<NonNullable<WorksheetProblem['form']>, string> = {
   symbol: 'Write <, = or >',
+  word: 'Write yes or no',
   mixed: 'Write a mixed number, like 1 2/3',
   decimal: 'Write a decimal, like 0.4',
   ordered: 'List them smallest to largest',
@@ -36,7 +37,7 @@ function ProblemModel({ problem }: { problem: WorksheetProblem }) {
   return (
     <div className="fq-print-model">
       <ModelTag kind={m.kind} />
-      {m.kind === 'bar' && <BarSvg n={m.n} d={m.d} wholes={m.wholes} />}
+      {m.kind === 'bar' && <BarSvg n={m.n} d={m.d} wholes={m.wholes} sizes={m.sizes} />}
       {m.kind === 'line' && <LineSvg n={m.n} d={m.d} wholes={m.wholes} />}
       {m.kind === 'set' && <SetSvg n={m.n} d={m.d} total={m.total ?? m.d} />}
     </div>
@@ -99,7 +100,7 @@ function WorksheetPage({ missionId, record, mode }: { missionId: string; record:
           const draft = record.worksheet[problem.id]?.draft.trim();
           return (
             <li key={problem.id}>
-              <p className="fq-print-prompt"><MathText text={problem.prompt} /></p>
+              <p className="fq-print-prompt"><MathText text={paperPrompt(problem)} /></p>
               <ProblemModel problem={problem} />
               <div className="fq-print-answer">
                 <span>Answer:</span>
@@ -247,7 +248,7 @@ function AnswerKey({ mission }: { mission: Mission }) {
       <section className="fq-print-key">
         <h2>Worksheet</h2>
         <ol className="fq-print-key-list two-col">
-          {getWorksheet(mission.id).map((problem) => <li key={problem.id}><b><MathText text={problem.answer} /></b> <small><MathText text={problem.prompt} /></small></li>)}
+          {getWorksheet(mission.id).map((problem) => <li key={problem.id}><b><MathText text={problem.answer} /></b> <small><MathText text={paperPrompt(problem)} /></small></li>)}
         </ol>
       </section>
       {CHALLENGES[mission.unit] && <section className="fq-print-key">

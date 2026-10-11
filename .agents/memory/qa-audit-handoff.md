@@ -30,3 +30,10 @@ Fixes were first written against commit c9a121c, then re-applied on top of the u
 **Still open / to discuss (parent audit):** parent password reset; privacy/consent page; circle models; tiny stray dotted part-marker beside the printed example bar; 3-star threshold now counts extra bank questions; challenge walk-throughs not printed; no password reset; COPPA review; grade-4 multiply-fraction-by-whole content; parent view.
 
 **How to apply:** regression tests live in game.test.ts under "quality audit fixes". Patch of the original fixes: see git history of this file's commit.
+
+## Equal-parts questioning redesign (after 6c4e6a6)
+- User asked: "When talking about equal parts, why should it be shaded?" Shading now appears only when it marks the part being named.
+- WorksheetProblem has `task?: BarTask` ({kind:'copy'|'count'|'shade', n}); WorksheetBarCopy shows mode-specific instructions; `barTaskDone` checks count (all parts tapped, numbered 1..d) / shade (exactly n, any position) / copy (exact).
+- equal-parts: count parts, "Is this cut into equal parts? yes/no" (form 'word', unequal `sizes` bars), name the shaded part (copy), shade 1 part then name it. unit-fractions: count 1/d pieces, shade one share, name.
+- BarSvg takes `sizes` (unequal pieces, neutral aria label). Count/shade rows hide the duplicate Preview picture.
+- `paperPrompt(problem, typed?)`: "Tap each part to count it." → "Count each part."; on paper "Type" → "Write".

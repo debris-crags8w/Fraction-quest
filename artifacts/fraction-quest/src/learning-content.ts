@@ -1,8 +1,11 @@
 export type Rational = { n: number; d: number };
-export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number; wholes: number; total?: number };
+/** `sizes` (bars only) draws pieces of different widths, for "Is this cut into equal parts?" pictures. */
+export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number; wholes: number; total?: number; sizes?: number[] };
+/** What the child does on the bar before typing: copy the shaded bar, tap each part to count it, or shade `n` parts. */
+export type BarTask = { kind: 'copy' | 'count' | 'shade'; n: number };
 export type WorksheetProblem = {
-  id: string; prompt: string; answer: string; hint: string; model?: LearningModel; modelRequired?: boolean;
-  form?: 'decimal' | 'mixed' | 'ordered' | 'symbol'; denominator?: number;
+  id: string; prompt: string; answer: string; hint: string; model?: LearningModel; modelRequired?: boolean; task?: BarTask;
+  form?: 'decimal' | 'mixed' | 'ordered' | 'symbol' | 'word'; denominator?: number;
 };
 export type BuildCheck = {
   id: string; prompt: string; target: LearningModel; reasons: string[];
@@ -62,11 +65,18 @@ export function parseAnswer(raw: string): Rational | null {
   const n = Number(s.replace('.', ''));
   return Number.isSafeInteger(n) ? { n, d } : null;
 }
+/** The prompt where there is no tappable bar (paper, or the typed level quiz with `typed`): "Tap each part to count it." becomes "Count each part.", "Type" becomes "Write". */
+export function paperPrompt(problem: WorksheetProblem, typed = false): string {
+  const counted = problem.prompt.replace(/^Tap each (.+?) to count it\. /, 'Count each $1. ');
+  return typed ? counted : counted.replace(/\bType\b/g, 'Write');
+}
+
 export function answerMatches(problem: WorksheetProblem, rawInput: string): boolean {
   // "25%" and "25" both match a percent answer.
   const raw = rawInput.replace(/\s*%\s*$/, '');
   if (/%$/.test(problem.answer)) return answerMatches({ ...problem, answer: problem.answer.slice(0, -1) }, raw);
   if (problem.form === 'symbol') return raw.trim() === problem.answer;
+  if (problem.form === 'word') { const said = raw.trim().toLowerCase(); return said === problem.answer || said === problem.answer[0]; }
   if (problem.form === 'ordered') {
     const answers = raw.split(','); const expected = problem.answer.split(',');
     return answers.length === expected.length && expected.every((value, i) => answerMatches({ ...problem, form: undefined, answer: value }, answers[i]));
@@ -285,21 +295,41 @@ export function getWorksheet(id: string): WorksheetProblem[] {
     const value = f(n, d);
     let prompt = ''; let answer = value; let hint = 'Top: the parts you count. Bottom: equal parts in 1 whole.';
     let visual: LearningModel | undefined; let form: WorksheetProblem['form']; let denominator: number | undefined;
-    let modelRequired = false;
+    let modelRequired = false; let task: BarTask | undefined;
     const context = ['ribbon', 'paper strip', 'rope', 'piece of tape'][i % 4];
     switch (id) {
-      case 'equal-parts':
-        prompt = i % 3 === 0 ? `This bar is 1 whole cut into ${d} equal pieces. What fraction is one piece?` :
-          i % 3 === 1 ? 'How many equal pieces make this whole bar?' : 'One piece is shaded. What fraction is shaded?';
-        answer = i % 3 === 1 ? String(d) : f(1, d);
-        visual = model(1, d); modelRequired = true;
-        hint = i % 3 === 1 ? 'Count all the equal pieces in the whole.' : 'The bottom number is how many equal pieces. One piece has 1 on top.'; break;
+      case 'equal-parts': {
+        // Shading only appears when it means something (the part being named, or parts the child marks).
+        const kind = i % 4; const later = i >= 6; // second half: same ideas, new words
+        if (kind === 0) {
+          prompt = later ? 'Tap each part to count it. How many equal parts make the whole bar?' : 'Tap each part to count it. How many equal parts is this bar cut into?';
+          answer = String(d); visual = model(0, d); task = { kind: 'count', n: d };
+          hint = 'Count every part, one at a time.';
+        } else if (kind === 1) {
+          // Sometimes fair, sometimes one piece is clearly bigger.
+          const fair = i % 8 === 5;
+          prompt = later ? 'Are all the parts of this bar the same size? Type yes or no.' : 'Is this bar cut into equal parts? Type yes or no.';
+          answer = fair ? 'yes' : 'no'; form = 'word';
+          visual = { ...model(0, d), sizes: fair ? undefined : Array.from({ length: d }, (_, k) => (k === (i % d) ? 2 : 1)) };
+          hint = 'Equal parts are all the same size. Compare the pieces.';
+        } else if (kind === 2) {
+          prompt = later ? 'The shaded part is 1 of the equal parts. What fraction of the bar is shaded?' : 'One part is shaded. What fraction of the whole bar is it?';
+          answer = f(1, d); visual = model(1, d); task = { kind: 'copy', n: 1 };
+          hint = 'The bottom number is how many equal parts. The shaded part is 1 of them.';
+        } else {
+          prompt = later ? 'Color 1 equal part of this bar. What fraction did you color?' : 'Shade 1 part of this bar. What fraction of the bar did you shade?';
+          answer = f(1, d); visual = model(0, d); task = { kind: 'shade', n: 1 };
+          hint = `The bar has ${d} equal parts. You shaded 1 of them.`;
+        }
+        modelRequired = !!task; break;
+      }
       case 'unit-fractions':
-        prompt = i % 3 === 0 ? `How many 1/${d} pieces make 1 whole?` :
-          i % 3 === 1 ? `${d} friends share this bar fairly. What fraction does each friend get?` :
-          'One piece of this bar is shaded. What fraction is it?';
+        prompt = i % 3 === 0 ? `Tap each 1/${d} piece to count it. How many 1/${d} pieces make 1 whole?` :
+          i % 3 === 1 ? (i < 6 ? `${d} friends share this bar fairly. Shade one friend's share. What fraction is it?` : `Shade 1 piece. ${d} pieces make the whole bar. What fraction did you shade?`) :
+          i < 6 ? 'One piece of this bar is shaded. What fraction is it?' : 'What unit fraction of this bar is shaded?';
         answer = i % 3 === 0 ? String(d) : f(1, d);
-        visual = model(1, d); modelRequired = true;
+        visual = model(i % 3 === 2 ? 1 : 0, d); task = i % 3 === 0 ? { kind: 'count', n: d } : i % 3 === 1 ? { kind: 'shade', n: 1 } : { kind: 'copy', n: 1 };
+        modelRequired = true;
         hint = 'A unit fraction is 1 equal piece. The bottom number is how many pieces make 1 whole.'; break;
       case 'fraction-names':
         prompt = i % 3 === 0 ? `In ${value}, how many pieces are shaded? Type a number.` :
@@ -457,7 +487,9 @@ export function getWorksheet(id: string): WorksheetProblem[] {
       }
       default: throw new Error(`No authored worksheet for ${id}`);
     }
-    return { id: `w${i + 1}`, prompt, answer, hint, model: visual, modelRequired, form, denominator };
+    // Older bar worksheets: "copy the shaded bar".
+    if (modelRequired && !task && visual?.kind === 'bar') task = { kind: 'copy', n: visual.n };
+    return { id: `w${i + 1}`, prompt, answer, hint, model: visual, modelRequired, task, form, denominator };
   });
 }
 

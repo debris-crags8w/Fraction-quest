@@ -58,7 +58,7 @@ function Preview({ m }: { m: LearningModel }) {
     <div className="fq-ll-preview-wrap"><ModelTag kind={m.kind} />
     {m.kind === 'bar' ? (
       <div className="fq-ll-preview-svg">
-        <BarSvg n={m.n} d={m.d} wholes={m.wholes} label={`${m.d} equal parts per whole, ${m.n} parts shaded`} />
+        <BarSvg n={m.n} d={m.d} wholes={m.wholes} sizes={m.sizes} label={m.sizes ? `A bar cut into ${m.sizes.length} pieces` : m.n ? `${m.d} equal parts per whole, ${m.n} ${m.n === 1 ? 'part' : 'parts'} shaded` : `A bar cut into ${m.d} parts`} />
       </div>
     ) : <div className="fq-ll-preview" style={{ '--piece': denomColor(m.d) } as CSSProperties} role="img" aria-label={m.kind === 'set' ? `${m.n} of ${m.d} groups selected from ${m.total} objects` : `${m.d} equal parts per whole, marked after ${m.n} parts`}>
       {m.kind === 'line' ? (
@@ -288,7 +288,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; 
   const ok = !!e && e.checkedValue === e.draft && answerMatches(p, draft);
   const [open, setOpen] = useState(false);
   const [wrong, setWrong] = useState<string | null>(null);
-  const ph = p.form === 'symbol' ? '< = >' : p.form === 'mixed' ? '1 2/3' : p.form === 'decimal' ? '0.4' : p.form === 'ordered' ? '1/4, 2/4, 3/4' : 'Your answer';
+  const ph = p.form === 'word' ? 'yes or no' : p.form === 'symbol' ? '< = >' : p.form === 'mixed' ? '1 2/3' : p.form === 'decimal' ? '0.4' : p.form === 'ordered' ? '1/4, 2/4, 3/4' : 'Your answer';
   const fractionInput = usesFractionEntry(p);
   const promptId = `ws-prompt-${p.id}`;
   const targetBar = p.modelRequired && p.model?.kind === 'bar' ? p.model : null;
@@ -309,8 +309,9 @@ export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; 
           <span className="fq-ll-num" aria-hidden="true">{p.id.slice(1)}</span>
           <span id={promptId}><LearningText text={p.prompt} speak /></span>
         </div>
-        {p.model && <Preview m={p.model} />}
-        {targetBar && <WorksheetBarCopy target={targetBar} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />}
+        {/* For counting and shading, the tappable bar is the picture, so it is not drawn twice. */}
+        {p.model && (!p.task || p.task.kind === 'copy') && <Preview m={p.model} />}
+        {targetBar && <WorksheetBarCopy target={targetBar} task={p.task} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />}
         <div className="fq-ll-answer" aria-busy={!answerEnabled}>
           {fractionInput ? (
             <FractionEntry
