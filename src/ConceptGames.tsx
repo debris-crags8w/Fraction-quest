@@ -162,15 +162,43 @@ function CenterPack() {
   </section>;
 }
 
+type Section = 'war' | 'match' | 'line' | 'pack';
+const SECTIONS: { id: Section; title: string; blurb: string; icon: typeof Scale; testId: string }[] = [
+  { id: 'war', title: 'Fraction War', blurb: 'Build two fractions and see which is bigger.', icon: Scale, testId: 'link-game-war' },
+  { id: 'match', title: 'Equivalence Match', blurb: 'Find pairs that show the same amount.', icon: Shuffle, testId: 'link-game-match' },
+  { id: 'line', title: 'Number Line Target', blurb: 'Split the line and land on the fraction.', icon: Waypoints, testId: 'link-game-number-line' },
+  { id: 'pack', title: 'Print center pack', blurb: 'Hands-on activities to do on paper.', icon: Printer, testId: 'link-game-print-pack' },
+];
+
+/** The Fraction Workshop: a menu of games, each opening on its own screen. */
 export default function ConceptGames({ onExit }: { onExit: () => void }) {
+  const [section, setSection] = useState<Section | null>(null);
+  useEffect(() => { window.scrollTo?.({ top: 0 }); }, [section]);
+  const open = SECTIONS.find((item) => item.id === section);
+  if (open) {
+    return <main className="cg-page fq-app fq-shell fq-appear" data-testid={`concept-game-${open.id}`}>
+      <header className="cg-top"><button type="button" className="cg-back" onClick={() => setSection(null)} data-testid="button-concept-games-menu"><ArrowLeft size={18} /> All workshop games</button><span className="cg-brand-mark" aria-hidden="true"><open.icon size={22} /></span></header>
+      <div className="cg-games">
+        {open.id === 'war' && <FractionWar />}
+        {open.id === 'match' && <EquivalenceMatch />}
+        {open.id === 'line' && <NumberLineTarget />}
+        {open.id === 'pack' && <CenterPack />}
+      </div>
+      {open.id === 'pack' && <style>{`@media print { body * { visibility: hidden !important; } #fraction-center-pack, #fraction-center-pack * { visibility: visible !important; } #fraction-center-pack { position: absolute; inset: 0 auto auto 0; width: 100%; } }`}</style>}
+    </main>;
+  }
   return <main className="cg-page fq-app fq-shell fq-appear">
     <header className="cg-top"><button type="button" className="cg-back" onClick={onExit} data-testid="button-concept-games-exit"><ArrowLeft size={18} /> Back to Fraction Quest</button><span className="cg-brand-mark" aria-hidden="true"><Scale size={22} /></span></header>
-    <section className="cg-hero"><span className="cg-index">THE FRACTION WORKSHOP</span><h1>Make it. See it.<br /><em>Then name it.</em></h1><p>Fractions make more sense when your hands and eyes get there first. Build, compare, and try again.</p></section>
-    <nav className="cg-nav" aria-label="Games"><a href="#fraction-war" data-testid="link-game-war"><Scale size={17} /> Fraction War</a><a href="#equivalence-match" data-testid="link-game-match"><Shuffle size={17} /> Equivalence Match</a><a href="#number-line-target" data-testid="link-game-number-line"><Waypoints size={17} /> Number Line Target</a><a href="#fraction-center-pack" data-testid="link-game-print-pack"><Printer size={17} /> Print center pack</a></nav>
-    <div className="cg-games">
-      <div id="fraction-war"><FractionWar /></div><div id="equivalence-match"><EquivalenceMatch /></div><div id="number-line-target"><NumberLineTarget /></div>
-    </div>
-    <CenterPack />
-    <style>{`@media print { body * { visibility: hidden !important; } #fraction-center-pack, #fraction-center-pack * { visibility: visible !important; } #fraction-center-pack { position: absolute; inset: 0 auto auto 0; width: 100%; } }`}</style>
+    <section className="cg-hero"><span className="cg-index">THE FRACTION WORKSHOP</span><h1>Make it. See it.<br /><em>Then name it.</em></h1><p>Fractions make more sense when your hands and eyes get there first. Pick a game.</p></section>
+    <nav className="cg-menu" aria-label="Workshop games">
+      {SECTIONS.map((item, index) => (
+        <button key={item.id} type="button" className={`cg-menu-card ${item.id === 'pack' ? 'is-print' : ''}`} onClick={() => setSection(item.id)} data-testid={item.testId}>
+          <span className="cg-menu-icon" aria-hidden="true"><item.icon size={26} /></span>
+          <span className="cg-index">{item.id === 'pack' ? 'OFF SCREEN' : `GAME ${index + 1}`}</span>
+          <b>{item.title}</b>
+          <span>{item.blurb}</span>
+        </button>
+      ))}
+    </nav>
   </main>;
 }
