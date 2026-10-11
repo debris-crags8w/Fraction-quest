@@ -4,7 +4,7 @@
 
 import { CODE_LEVEL_COUNT } from '../code-quest';
 
-const FUN_KEY = 'fraction-quest-fun-v1';
+export const FUN_KEY = 'fraction-quest-fun-v1';
 export const DAILY_GOAL = 10;
 
 export type FunState = {
@@ -104,8 +104,14 @@ export function recordPartFinder(state: FunState, score: number): FunState {
 }
 
 export function loadFun(): FunState {
+  let raw: string | null = null;
+  try { raw = window.localStorage.getItem(FUN_KEY); } catch { return fresh(); }
+  return parseFun(raw);
+}
+
+/** Read saved game/settings text, dropping anything malformed. */
+export function parseFun(raw: string | null): FunState {
   try {
-    const raw = window.localStorage.getItem(FUN_KEY);
     const parsed = raw ? (JSON.parse(raw) as Partial<FunState>) : {};
     const saved = {
       ...fresh(),

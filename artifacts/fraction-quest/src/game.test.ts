@@ -1,3 +1,5 @@
+import { addProfile, FIRST_PROFILE_ID, getProfiles, makeBackup, makeSyncRecord, mergeSyncRecord, profileData, PROFILES_KEY, readSyncRecord, removeProfile, renameProfile, restoreBackup, switchProfile, type Store } from './lib/profiles';
+import { mergeFun, mergeProgress } from './lib/merge';
 import { pickVoice, sayFraction, sentences, spokenText } from './lib/voice';
 import { AREA_CUTS, allEqual, areaTaskDone, cutTotal, pieceArea, shadedArea } from './area-shapes';
 import assert from 'node:assert/strict';
@@ -39,6 +41,7 @@ import {
   countsTowardLessonStars,
   deferSkillReview,
   EMPTY_PROGRESS,
+  parseProgress,
   getMission,
   getDelayedReviewQuestions,
   getDueSkillReviewCount,
@@ -1254,6 +1257,115 @@ describe('redo a finished part', () => {
     memory.set('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: [], starsByMission: {}, reviewQueue: [],
       learning: { [id]: { ...emptyLearningRecord(), redo: { part: 'everything', round: 1, worksheet: {}, checks: {}, rowRounds: {} } } } }));
     assert.equal(getLearningRecord(loadProgress(), id).redo, undefined);
+  });
+});
+
+describe('device saving, child profiles and iCloud merge', () => {
+  const makeStore = (): Store & { map: Map<string, string> } => {
+    const map = new Map<string, string>();
+    return { map, getItem: (k) => map.get(k) ?? null, setItem: (k, v) => { map.set(k, v); }, removeItem: (k) => { map.delete(k); } };
+  };
+  const PROGRESS = 'fraction-quest-progress-v1'; const FUN = 'fraction-quest-fun-v1';
+  const lesson = (id: string, done: boolean): Progress => {
+    let record: LearningRecord = { ...emptyLearningRecord(), practiceDone: true, ...(done ? { completedAt: 1_700_000_000_000 } : {}) };
+    for (const check of getBuildChecks(id)) record.checks[check.id] = { passed: true, supported: false, attempts: 1 };
+    for (const problem of getWorksheet(id).slice(0, done ? 12 : 5)) record = checkWorksheet(editWorksheet(record, problem.id, problem.answer), problem);
+    return { ...EMPTY_PROGRESS, reviewQueue: [], completedMissionIds: done ? [id] : [], starsByMission: done ? { [id]: 2 } : {}, learning: { [id]: record } };
+  };
+
+  it('the first child keeps the progress already on the device and has the same id everywhere', () => {
+    const store = makeStore(); store.setItem(PROGRESS, JSON.stringify(lesson(MISSIONS[0].id, true)));
+    const list = getProfiles(store, 1);
+    assert.equal(list.active, FIRST_PROFILE_ID);
+    assert.equal(list.profiles[0].name, 'Player 1');
+    assert.equal(profileData(store, FIRST_PROFILE_ID).progress, store.getItem(PROGRESS));
+  });
+
+  it('switching child swaps progress and games, and switching back restores them', () => {
+    const store = makeStore();
+    store.setItem(PROGRESS, JSON.stringify(lesson(MISSIONS[0].id, true))); store.setItem(FUN, JSON.stringify({ xp: 40 }));
+    const sam = addProfile(store, '  Sam  ', '🐼', 2, () => 0.5)!;
+    assert.equal(sam.name, 'Sam');
+    assert.equal(switchProfile(store, sam.id), true);
+    assert.equal(store.getItem(PROGRESS), null, 'a new child starts fresh');
+    assert.equal(store.getItem(FUN), null);
+    store.setItem(PROGRESS, JSON.stringify(lesson(MISSIONS[1].id, false)));
+    switchProfile(store, FIRST_PROFILE_ID);
+    assert.deepEqual(parseProgress(store.getItem(PROGRESS)).completedMissionIds, [MISSIONS[0].id]);
+    assert.equal(JSON.parse(store.getItem(FUN)!).xp, 40);
+    assert.ok(profileData(store, sam.id).progress?.includes(MISSIONS[1].id));
+    assert.equal(removeProfile(store, FIRST_PROFILE_ID), false, 'the playing child cannot be removed');
+    assert.equal(renameProfile(store, sam.id, 'Sammy', '🦉'), true);
+    assert.equal(getProfiles(store).profiles[1].avatar, '🦉');
+  });
+
+  it('merging never loses progress: each lesson keeps the copy with more done, scores keep the best', () => {
+    const a = lesson(MISSIONS[0].id, true); const b = { ...lesson(MISSIONS[0].id, false), ...{ completedMissionIds: [] } };
+    const later = lesson(MISSIONS[1].id, false);
+    const merged = mergeProgress(b, { ...a, learning: { ...a.learning, ...later.learning }, challengeBest: { '1': 4 }, placement: { unit: 3, at: 5 } });
+    assert.deepEqual(merged.completedMissionIds, [MISSIONS[0].id]);
+    assert.equal(merged.learning![MISSIONS[0].id].completedAt, 1_700_000_000_000);
+    assert.ok(merged.learning![MISSIONS[1].id]);
+    assert.equal(merged.challengeBest?.['1'], 4);
+    assert.equal(merged.placement?.unit, 3);
+    assert.equal(merged.starsByMission[MISSIONS[0].id], 2);
+
+    const fun = mergeFun(
+      { xp: 10, day: '2026-10-11', answeredToday: 3, dayStreak: 2, lastActiveDay: '2026-10-11', sound: false, raceBest: { x: 40 }, codeLevels: { x: 2 }, activity: { '2026-10-11': { minutes: 5, answered: 3 } } },
+      { xp: 30, day: '2026-10-11', answeredToday: 7, dayStreak: 1, lastActiveDay: '2026-10-10', sound: true, raceBest: { x: 30 }, codeLevels: { x: 1 }, activity: { '2026-10-11': { minutes: 2, answered: 9 } }, partFinderBest: 2 },
+    );
+    assert.equal(fun.xp, 30); assert.equal(fun.answeredToday, 7); assert.equal(fun.dayStreak, 2); assert.equal(fun.sound, false, 'settings stay as on this device');
+    assert.equal(fun.raceBest?.x, 30); assert.equal(fun.codeLevels?.x, 2); assert.equal(fun.partFinderBest, 2);
+    assert.deepEqual(fun.activity?.['2026-10-11'], { minutes: 5, answered: 9 });
+  });
+
+  it('merges another device\'s family record: same first child, new children arrive, removed ones stay removed', () => {
+    const ipad = makeStore(); const phone = makeStore();
+    ipad.setItem(PROGRESS, JSON.stringify(lesson(MISSIONS[0].id, true)));
+    phone.setItem(PROGRESS, JSON.stringify(lesson(MISSIONS[1].id, false)));
+    const sam = addProfile(ipad, 'Sam', '🐼', 10, () => 0.1)!;
+    const lee = addProfile(phone, 'Lee', '🐙', 11, () => 0.2)!;
+    assert.equal(mergeSyncRecord(phone, makeSyncRecord(ipad, 20), 21), true);
+    const ids = getProfiles(phone).profiles.map((p) => p.id);
+    assert.deepEqual(ids.sort(), [FIRST_PROFILE_ID, lee.id, sam.id].sort());
+    const first = parseProgress(phone.getItem(PROGRESS));
+    assert.ok(first.completedMissionIds.includes(MISSIONS[0].id), 'the iPad\'s finished lesson reached the phone');
+    assert.ok(first.learning?.[MISSIONS[1].id], 'the phone\'s own work is kept');
+    assert.equal(mergeSyncRecord(phone, makeSyncRecord(ipad, 30), 31), false, 'merging the same thing again changes nothing');
+    let writes = 0; const counting: Store = { getItem: phone.getItem, setItem: (k, v) => { writes++; phone.setItem(k, v); }, removeItem: (k) => { writes++; phone.removeItem(k); } };
+    mergeSyncRecord(counting, makeSyncRecord(phone, 32), 33);
+    assert.equal(writes, 0, 'an unchanged merge writes nothing (so it can never start a save loop)');
+
+    removeProfile(ipad, sam.id, 40);
+    mergeSyncRecord(phone, makeSyncRecord(ipad, 41), 42);
+    assert.ok(!getProfiles(phone).profiles.some((p) => p.id === sam.id), 'a child removed on one device is removed on the other');
+    mergeSyncRecord(ipad, makeSyncRecord(phone, 43), 44);
+    assert.ok(!getProfiles(ipad).profiles.some((p) => p.id === sam.id), 'and does not come back');
+    assert.ok(getProfiles(ipad).profiles.some((p) => p.id === lee.id));
+  });
+
+  it('backups restore by merging and reject other files', () => {
+    const store = makeStore(); store.setItem(PROGRESS, JSON.stringify(lesson(MISSIONS[0].id, true)));
+    const backup = makeBackup(store, 5);
+    const fresh = makeStore();
+    assert.deepEqual(restoreBackup(fresh, backup, 6), { ok: true, children: 1 });
+    assert.deepEqual(parseProgress(fresh.getItem(PROGRESS)).completedMissionIds, [MISSIONS[0].id]);
+    assert.equal(restoreBackup(fresh, 'not json', 7).ok, false);
+    assert.equal(restoreBackup(fresh, JSON.stringify({ app: 'other', v: 1 }), 7).ok, false);
+    assert.equal(readSyncRecord({ app: 'fraction-quest', v: 1, profiles: [{ id: 'BAD ID', name: 'x' }] }), null);
+    fresh.setItem(PROFILES_KEY, 'garbage');
+    assert.equal(getProfiles(fresh).profiles[0].id, FIRST_PROFILE_ID, 'a broken profile list starts over safely');
+  });
+
+  it('a whole family fits in iCloud key-value storage (1 MB)', () => {
+    const store = makeStore();
+    let progress: Progress = { ...EMPTY_PROGRESS, reviewQueue: [] };
+    for (const mission of MISSIONS) progress = mergeProgress(progress, lesson(mission.id, true));
+    const data = JSON.stringify(progress);
+    store.setItem(PROGRESS, data);
+    for (let i = 1; i < 6; i++) { const p = addProfile(store, `Kid ${i}`, '🐢', 100 + i, () => i / 10)!; store.setItem(`fraction-quest-profile-${p.id}`, JSON.stringify({ progress: data, fun: null })); }
+    const size = new TextEncoder().encode(JSON.stringify(makeSyncRecord(store))).length;
+    assert.ok(size < 1_000_000, `six children with every lesson done is ${size} bytes`);
   });
 });
 

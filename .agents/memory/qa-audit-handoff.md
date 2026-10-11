@@ -41,6 +41,14 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **iOS app with on-device saving + iCloud (branch `ios-local-icloud`, NOT merged; see docs/ios-app.md).** User chose no
+  accounts for now. Capacitor 8.5.2 iOS project (SPM) in artifacts/fraction-quest/ios; ICloudSync.swift plugin
+  (NSUbiquitousKeyValueStore) + App.entitlements; src/lib/native.ts restores Preferences → localStorage and merges iCloud
+  before render, mirrors every fraction-quest-* write (patched Storage.setItem), pushes to iCloud after merging. Child
+  profiles (lib/profiles.ts, Family.tsx; first child id 'main' on every device; tombstones for removed children), merge
+  rules (lib/merge.ts), backup/restore in the grown-ups page. iOS never shows sign-in. parseProgress/parseFun split out of
+  loadProgress/loadFun. Swift/Xcode NOT compiled here — first step on a Mac. Still needed: icon, native print, parental
+  gate on footer links, privacy policy, App Store Connect.
 - **Curriculum gap analysis → `docs/curriculum-gap-analysis.md`.** Standards coverage (CCSS 3–5 incl. 3.MD.4, 3.G.2,
   4.MD.2/4, 5.MD.1/2), comparison with Big Ideas MRL / Eureka / Illustrative Math, every recommended change (P0–P2),
   games catalog, brain breaks spec, 5-phase roadmap. Biggest P0 gaps: line plots + rulers, circle/area models, compare

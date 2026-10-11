@@ -60,6 +60,9 @@ import DailyPractice from './DailyPractice';
 import { createDailyPractice, dailyPracticeDay } from './daily-practice';
 import PartFinder from './PartFinder';
 import { PART_FINDER_LESSONS } from './part-finder';
+import { ProfileChip } from './Family';
+import { isNativeApp } from './lib/native';
+import { getProfiles } from './lib/profiles';
 const queryClient = new QueryClient();
 
 type View =
@@ -235,16 +238,17 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
           </div>
           <button className="fq-icon-button" onClick={() => setFun(setSound(fun, !fun.sound))} aria-label={fun.sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={fun.sound} data-testid="button-toggle-sound">{fun.sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
           <button className="fq-icon-button" onClick={onReset} aria-label="Reset progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>
-          <div className="fq-account">
+          {/* No account (guest, or always in the iOS app): show who is playing, with child profiles. */}
+          {!account.user && <ProfileChip />}
+          {!account.user && !isNativeApp() && <button className="fq-hint-button fq-account-signin" onClick={account.goToSignIn} data-testid="button-sign-in">Sign in</button>}
+          {account.user && <div className="fq-account">
             <span className="fq-account-avatar" aria-hidden="true">{account.user?.displayName.trim().charAt(0).toUpperCase() ?? 'G'}</span>
             <span className="fq-account-name">
               <strong>{account.user?.displayName ?? 'Guest'}</strong>
               <small className={account.syncStatus === 'saving' ? 'sync-saving' : account.syncStatus === 'offline' ? 'sync-offline' : ''} aria-live="polite">{syncLabel}</small>
             </span>
-            {account.user
-              ? <button className="fq-hint-button fq-account-signin" disabled={signingOut} onClick={async () => { setSigningOut(true); await account.signOut(); setSigningOut(false); }} data-testid="button-sign-out">{signingOut ? 'Saving…' : 'Sign out'}</button>
-              : <button className="fq-hint-button fq-account-signin" onClick={account.goToSignIn} data-testid="button-sign-in">Sign in</button>}
-          </div>
+            <button className="fq-hint-button fq-account-signin" disabled={signingOut} onClick={async () => { setSigningOut(true); await account.signOut(); setSigningOut(false); }} data-testid="button-sign-out">{signingOut ? 'Saving…' : 'Sign out'}</button>
+          </div>}
         </div>
       </header>
       {account.accountError && <p className="fq-account-error fq-shell" role="alert" data-testid="status-account-error">{account.accountError}</p>}
@@ -909,7 +913,7 @@ function Game() {
           onExit={returnToMap} onSolved={(level) => setFun((current) => recordCodeLevel(current, view.missionId, level))} />
       )}
       {view.type === 'part-finder' && <PartFinder best={fun.partFinderBest ?? null} onExit={returnToMap} onFinish={(score) => setFun((current) => recordPartFinder(current, score))} />}
-      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.user?.displayName ?? null} onBack={returnToMap} />}
+      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.user?.displayName ?? (() => { const list = getProfiles(window.localStorage); return list.profiles.length > 1 ? list.profiles.find((p) => p.id === list.active)?.name ?? null : null; })()} showFamily={!account.user} onBack={returnToMap} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);
         const baseIds = base.questions.map((q) => q.id);

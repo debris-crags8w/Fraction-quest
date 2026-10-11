@@ -1,3 +1,4 @@
+import { isNativeApp } from './lib/native';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { getCurrentUser, getProgress, logout as apiLogout, saveProgress as apiSaveProgress, type User } from '@workspace/api-client-react';
 import { loadProgress, resetProgress, saveProgress, type Progress } from './game';
@@ -74,6 +75,8 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
   }, []);
 
   useEffect(() => {
+    // The iOS app has no accounts: play on this device, with optional iCloud sync (lib/native.ts).
+    if (isNativeApp()) { setGuest(true); setState({ kind: 'guest' }); return; }
     let cancelled = false;
     getCurrentUser()
       .then((user) => {

@@ -687,7 +687,7 @@ export const MISSIONS: Mission[] = curriculum.map((seed, index) => {
 });
 
 export const EMPTY_PROGRESS: Progress = { completedMissionIds: [], starsByMission: {}, reviewQueue: [] };
-const STORAGE_KEY = 'fraction-quest-progress-v1';
+export const STORAGE_KEY = 'fraction-quest-progress-v1';
 export const SKILL_REVIEW_DELAY_MS = 24 * 60 * 60 * 1000;
 const MAX_DELAYED_REVIEW_QUESTIONS = 2;
 const LEGACY_MISSION_IDS: Record<string, string> = {
@@ -898,8 +898,14 @@ export function completeMission(progress: Progress, missionId: string, stars: nu
 }
 
 export function loadProgress(): Progress {
+  let stored: string | null = null;
+  try { stored = window.localStorage.getItem(STORAGE_KEY); } catch { return EMPTY_PROGRESS; }
+  return parseProgress(stored);
+}
+
+/** Read saved progress text, dropping anything malformed (used for this device, iCloud copies and backups). */
+export function parseProgress(stored: string | null): Progress {
   try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
     if (!stored) return EMPTY_PROGRESS;
     const parsed: unknown = JSON.parse(stored);
     if (!parsed || typeof parsed !== 'object') return EMPTY_PROGRESS;

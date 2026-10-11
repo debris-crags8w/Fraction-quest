@@ -5,6 +5,7 @@ import type { FunState } from './lib/fun';
 import { buildParentReport, type LessonRow } from './parent-report';
 import { AnswerKey } from './Printables';
 import { LearningVoicePicker } from './LearningText';
+import { BackupPanel, ChildrenManager } from './Family';
 
 const STATUS: Record<LessonRow['status'], string> = { done: 'Done', started: 'In progress', skipped: 'Skipped by quiz', open: 'Open', locked: 'Locked' };
 
@@ -39,8 +40,10 @@ function GrownUpGate({ onPass, onBack }: { onPass: () => void; onBack: () => voi
 
 const percent = (value: number | null) => (value === null ? '—' : `${value}%`);
 
-export default function ParentView({ progress, fun, unitTitles, childName, onBack }: {
+export default function ParentView({ progress, fun, unitTitles, childName, onBack, showFamily = false }: {
   progress: Progress; fun: FunState; unitTitles: string[]; childName: string | null; onBack: () => void;
+  /** Child profiles and backups (when not signed in to an account). Not printed. */
+  showFamily?: boolean;
 }) {
   const [unlocked, setUnlocked] = useState(false);
   const [answerKeyLessonId, setAnswerKeyLessonId] = useState(MISSIONS[0].id);
@@ -200,6 +203,8 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
             <p><b>Helping at home.</b> Ask your child to show you a fraction with paper strips or on a drawn line, and to explain why. Use the answer-key section above when you need lesson solutions.</p>
           </footer>
         </article>
+
+        {showFamily && <div className="fq-parent-family"><ChildrenManager /><BackupPanel /></div>}
       </main>
     </div>
   );
