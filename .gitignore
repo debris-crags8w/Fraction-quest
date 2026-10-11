@@ -47,3 +47,99 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# ---------------------------------------------------------------------------
+# Secrets and private data: never commit these.
+# (Replit "Secrets" are stored outside the repo; keep it that way.)
+# ---------------------------------------------------------------------------
+
+# Environment files (keep a safe template as .env.example)
+.env
+.env.*
+*.env
+!.env.example
+!.env.sample
+
+# Keys, certificates and credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+*.ppk
+credentials.json
+*credentials*.json
+service-account*.json
+*-service-account.json
+client_secret*.json
+secrets.json
+secrets.*.json
+.secrets/
+secrets/
+*.secret
+.npmrc.local
+.netrc
+.pgpass
+.htpasswd
+auth.json
+token.json
+*.token
+
+# Cloud and deploy tool config with credentials
+.aws/
+.gcloud/
+.azure/
+.vercel/
+.netlify/
+.firebase/
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Databases, dumps and exported learner data (may contain children's progress)
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.dump
+*.sql.gz
+*.bak
+dumps/
+backups/
+exports/
+student-data/
+
+# Logs and crash reports (can contain tokens, emails or request bodies)
+*.log
+logs/
+pnpm-debug.log*
+lerna-debug.log*
+report.*.json
+
+# Test and browser artifacts (screenshots can show account names)
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+coverage/
+.nyc_output/
+
+# Local tool and agent settings
+.claude/settings.local.json
+.vscode/*.local.json
+*.local
+*.local.*
+!*.local.example
+
+# Editor swap and scratch files
+*.swp
+*.swo
+*~
+.history/

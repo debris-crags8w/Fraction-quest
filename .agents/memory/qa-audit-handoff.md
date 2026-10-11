@@ -41,6 +41,13 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Curriculum gap analysis → `docs/curriculum-gap-analysis.md`.** Standards coverage (CCSS 3–5 incl. 3.MD.4, 3.G.2,
+  4.MD.2/4, 5.MD.1/2), comparison with Big Ideas MRL / Eureka / Illustrative Math, every recommended change (P0–P2),
+  games catalog, brain breaks spec, 5-phase roadmap. Biggest P0 gaps: line plots + rulers, circle/area models, compare
+  decimals, whole numbers as fractions, general add-unlike + unlike mixed numbers, scaling, mixed-number ×, unit
+  fraction ÷ whole, unit tests/benchmarks reported by standard, exit tickets, explain/error-analysis tasks, parent/teacher
+  lesson guide, brain breaks, privacy/consent + password reset. `.gitignore` now blocks env files, keys, credentials,
+  DB dumps, logs and test artifacts (attached_assets/ is NOT ignored: vite.config uses it).
 - **Redo a finished part.** Map node of a finished lesson → "Redo a part" (opens the lab); the lab shows "Do it again"
   with Redo builds / Redo worksheet → RedoLab (LearningLab.tsx). Data: LearningRecord.redo (RedoAttempt: part, round,
   worksheet, checks, rowRounds, finishedAt) + redoRounds/redosFinished, sanitized by readRedo in game.ts. Kept apart from
