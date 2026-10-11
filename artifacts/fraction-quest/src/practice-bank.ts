@@ -38,6 +38,7 @@ const line = (n: number, d: number, wholes = Math.max(1, Math.ceil(n / d))): Mod
 const set = (selected: number, total: number): ModelSpec => ({ kind: 'set', selected, total });
 const eq = (text: string): ModelSpec => ({ kind: 'equation', text });
 const half = bar(1, 2);
+const withLabels = (model: ModelSpec): ModelSpec => ('hideLabels' in model ? { ...model, hideLabels: false } : model);
 
 type Item = { prompt: string; right: string; wrong: [string, string]; hint: string; retry: string; model: ModelSpec; simpler?: ModelSpec };
 
@@ -282,7 +283,8 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
       hint: item.hint,
       retryFeedback: item.retry,
       model: item.model,
-      simplerModel: item.simpler ?? half,
+      // Help shows the same picture, now with its labels, so it is about this question.
+      simplerModel: item.simpler ?? withLabels(item.model),
       reviewQuestionId: baseQuestionIds[out.length % baseQuestionIds.length],
     });
   }

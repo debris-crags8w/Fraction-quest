@@ -214,7 +214,7 @@ describe('lesson catalog', () => {
     });
   });
   it('checks the first worksheet answer for every added mission independently', () => {
-    const expected = ['1/4', '2/8', '<', '1/5, 1/4, 2/6', '1/4', '1 2/4', '1', '2', '2/4', '1/8', '2', '4', '2', '2/4', '1/4', '1/4', '1/4', '1/4', '2/8', '2/4', '25', '25/100', '0.3', '2/4'];
+    const expected = ['1/2', '2', '>', '1/4, 1/2, 2/3', '1/4', '2', '3/4', '2', '2/2', '1/4', '2', '2', '2', '3/4', '1/2', '1/2', '1/4', '1/2', '2/4', '2/2', '50%', '50/100', '0.5', '2/4'];
     MISSIONS.slice(27).forEach((mission, index) => {
       assert.equal(getWorksheet(mission.id)[0].answer, expected[index], mission.id);
     });
@@ -538,7 +538,7 @@ describe('entered-answer worksheets and evidence gates', () => {
 
         const correctButModelsWrong = getReasonFeedback(check, check.correctReason, false);
         assert.equal(correctButModelsWrong?.correct, true, `${mission.id}/${check.id} should preserve a correct reason`);
-        assert.match(correctButModelsWrong?.message ?? '', /explanation is correct/);
+        assert.match(correctButModelsWrong?.message ?? '', /reason is right/);
         assert.equal(getReasonFeedback(check, check.correctReason, true), null);
       }
     }
@@ -552,7 +552,7 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.throws(() => numberLineWholeCount(1, 0), RangeError);
   });
   it('checks independently calculated keys across every curriculum topic', () => {
-    const expected = ['1/3', '1', '1/3', '1/3', '2', '4', '1/4', '1/3', '1/4', '3', '1/3', '4/3', '2/3', '2/3', '1/3, 2/3, 3/3', '2', '2', '2', '2/3', '1', '4/3', '4/3', '2/3', '1/3', '3/4', '0.1', '0.08'];
+    const expected = ['1/3', '1', '3', '1/2', '2', '4', '1/4', '1/3', '3/4', '3', '1/3', '4/3', '2/3', '2/3', '1/3, 2/3, 3/3', '2', '2/6', '2', '2/3', '2', '>', '4/3', '2/3', '1/3', '3/4', '0.1', '0.08'];
     MISSIONS.slice(0, expected.length).forEach((mission, index) => assert.equal(getWorksheet(mission.id)[0].answer, expected[index], mission.id));
   });
   it('authors twelve valid problems and two skill checks for every topic', () => {
