@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import type { PracticeQuestion } from './game';
 import { beforeEach, describe, it } from 'node:test';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { splitStory } from './fun-ui';
 import { generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
 import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
+import QuickReviewEntry from './QuickReviewEntry';
 import {
   completeMission,
   completeSkillReview,
@@ -210,7 +213,7 @@ describe('lesson progression', () => {
 });
 
 describe('due skill reviews', () => {
-  const now = 100_000;
+  const now = Date.now();
 
   function queuedProgress(): Progress {
     return {
@@ -223,7 +226,7 @@ describe('due skill reviews', () => {
       })).concat([{
         missionId: MISSIONS[3].id,
         missedQuestionId: MISSIONS[3].questions[0].id,
-        dueAt: now + 1,
+        dueAt: now + SKILL_REVIEW_DELAY_MS,
         reviewCount: 0,
       }]),
     };
@@ -254,6 +257,79 @@ describe('due skill reviews', () => {
     const deferredSkill = deferred.reviewQueue.find((item) => item.missionId === firstMissionId);
     assert.equal(deferredSkill?.dueAt, now + SKILL_REVIEW_DELAY_MS);
     assert.equal(deferredSkill?.reviewCount, 1);
+  });
+
+  it('shows the map entry for due reviews before and after the course is complete', () => {
+    const dueReview = {
+      missionId: MISSIONS[0].id,
+      missedQuestionId: MISSIONS[0].questions[0].id,
+      dueAt: now - 1,
+      reviewCount: 0,
+    };
+    const renderEntry = (progress: Progress) => renderToStaticMarkup(
+      createElement(QuickReviewEntry, { progress, onStart: () => undefined }),
+    );
+
+    const inProgressMarkup = renderEntry({ ...EMPTY_PROGRESS, reviewQueue: [dueReview] });
+    assert.match(inProgressMarkup, /data-testid="button-start-due-review"/);
+    assert.match(inProgressMarkup, /Quick skill review/);
+    assert.match(inProgressMarkup, /1 due skill ready/);
+
+    const completedCourse = MISSIONS.reduce(
+      (progress, mission) => withLearning(progress, mission.id),
+      EMPTY_PROGRESS,
+    );
+    const completedMarkup = renderEntry({
+      ...completedCourse,
+      completedMissionIds: MISSIONS.map((mission) => mission.id),
+      reviewQueue: [dueReview],
+    });
+    assert.ok(!getNextMission(completedCourse), 'the fixture represents a fully completed course');
+    assert.match(completedMarkup, /data-testid="button-start-due-review"/);
+  });
+
+  it('clears a correctly answered due skill while preserving and showing remaining skills after reload', () => {
+    const progress = queuedProgress();
+    const sessionQuestions = getDueSkillReviewQuestions(progress, now);
+    assert.equal(sessionQuestions.length, 2);
+
+    const afterSession = sessionQuestions.reduce((current, question) => {
+      assert.equal(isCorrectAnswer(question, question.correctChoice), true);
+      return completeSkillReview(current, question.reviewMissionId!);
+    }, progress);
+    saveProgress(afterSession);
+
+    const reloaded = loadProgress();
+    assert.equal(getDueSkillReviewCount(reloaded, now), 1);
+    assert.ok(sessionQuestions.every((question) =>
+      !reloaded.reviewQueue.some((item) => item.missionId === question.reviewMissionId),
+    ));
+    const mapEntry = renderToStaticMarkup(
+      createElement(QuickReviewEntry, { progress: reloaded, onStart: () => undefined }),
+    );
+    assert.match(mapEntry, /1 due skill ready/);
+  });
+
+  it('defers a skipped skill and keeps other due skills reachable after reload', () => {
+    const progress = queuedProgress();
+    const [skippedQuestion, answeredQuestion] = getDueSkillReviewQuestions(progress, now);
+    assert.ok(skippedQuestion && answeredQuestion);
+
+    const afterSkip = deferSkillReview(progress, skippedQuestion.reviewMissionId!, now);
+    assert.equal(isCorrectAnswer(answeredQuestion, answeredQuestion.correctChoice), true);
+    const afterSession = completeSkillReview(afterSkip, answeredQuestion.reviewMissionId!);
+    saveProgress(afterSession);
+
+    const reloaded = loadProgress();
+    const skippedSkill = reloaded.reviewQueue.find((item) => item.missionId === skippedQuestion.reviewMissionId);
+    assert.equal(skippedSkill?.dueAt, now + SKILL_REVIEW_DELAY_MS);
+    assert.equal(skippedSkill?.reviewCount, 1);
+    assert.equal(getDueSkillReviewCount(reloaded, now), 1);
+    assert.equal(getDueSkillReviewCount(reloaded, now + SKILL_REVIEW_DELAY_MS), 3);
+    const mapEntry = renderToStaticMarkup(
+      createElement(QuickReviewEntry, { progress: reloaded, onStart: () => undefined }),
+    );
+    assert.match(mapEntry, /1 due skill ready/);
   });
 });
 

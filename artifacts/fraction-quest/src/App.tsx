@@ -10,7 +10,6 @@ import {
   completeSkillReview,
   deferSkillReview,
   getDelayedReviewQuestions,
-  getDueSkillReviewCount,
   getDueSkillReviewQuestions,
   getMission,
   getNextMission,
@@ -30,6 +29,7 @@ import {
 } from './game';
 import NotFound from '@/pages/not-found';
 import LearningLab from './LearningLab';
+import QuickReviewEntry from './QuickReviewEntry';
 import { getLearningRecord, hasLearningGate, learningSummary, updateLearning, worksheetCount } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
@@ -218,7 +218,6 @@ function AccountChip() {
 function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChallenge, onExtra }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void }) {
   const totalStars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
   const nextMission = getNextMission(progress);
-  const dueReviewCount = getDueSkillReviewCount(progress);
   const [selectedId, setSelectedId] = useState<string | null>(() => nextMission?.id ?? null);
   const { user } = useAccount();
   const units = UNIT_INFO.map((unit, index) => ({
@@ -268,16 +267,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
             <div className="fq-course-finished" data-testid="status-course-complete"><Trophy size={24} /> You explored every lesson. Replay any one to practice again.</div>
           )}
 
-          {dueReviewCount > 0 && (
-            <button className="fq-continue-card fq-review-continue-card" onClick={onStartReview} data-testid="button-start-due-review">
-              <span className="fq-continue-icon"><RotateCcw size={20} /></span>
-              <span className="fq-continue-copy">
-                <strong>Quick skill review</strong>
-                <span>{dueReviewCount} due {dueReviewCount === 1 ? 'skill' : 'skills'} ready for a short retry round</span>
-              </span>
-              <ArrowRight className="fq-continue-arrow" size={20} />
-            </button>
-          )}
+          <QuickReviewEntry progress={progress} onStart={onStartReview} />
 
           <div className="fq-unit-list">
             {units.map((unit) => {
