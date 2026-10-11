@@ -4,8 +4,8 @@ import { ArrowLeft, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, R
 import { numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, type BuildCheck, type LearningModel, type WorksheetProblem } from './learning-content';
 import {
-  checkWorksheet, editWorksheet, getLearningRecord, hasLearningGate, learningSummary, updateLearning, worksheetCount,
-  type LearningRecord,
+  checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, learningSummary, redoChecks, redoDone, redoWorksheet,
+  redoWorksheetCount, startRedo, updateLearning, worksheetCount, type LearningRecord, type RedoAttempt, type RedoPart,
 } from './learning';
 import { denomColor } from './fun-ui';
 import { BarSvg, MODEL_CONCEPTS, ModelPair, ModelTag } from './models';
@@ -284,7 +284,7 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef }: {
   );
 }
 
-export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; rec: LearningRecord; onEdit: (v: string) => void; onCheck: () => void; onHint: () => void }) {
+export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion }: { p: WorksheetProblem; rec: LearningRecord; onEdit: (v: string) => void; onCheck: () => void; onHint: () => void; onNewQuestion?: () => void }) {
   const e = rec.worksheet[p.id]; const draft = e?.draft ?? '';
   const ok = !!e && e.checkedValue === e.draft && answerMatches(p, draft);
   const [open, setOpen] = useState(false);
@@ -333,7 +333,8 @@ export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; 
           <button type="button" className="fq-ll-hintbtn" aria-expanded={open} onClick={() => { if (!open) onHint(); setOpen(o => !o); }} data-testid={'button-hint-worksheet-' + p.id}><Lightbulb size={16} /> Hint</button>
         </div>
         <div id={'ws-fb-' + p.id} aria-live="polite">
-          {ok && <p className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Correct!</p>}
+          {ok && <p className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Correct!
+            {onNewQuestion && <button type="button" className="fq-ll-hintbtn fq-ll-newq" onClick={onNewQuestion} data-testid={'button-new-question-' + p.id}><RotateCcw size={15} /> New question</button>}</p>}
           {!ok && wrong === draft && <p className="fq-ll-ws bad" data-testid={'status-worksheet-' + p.id}>Not yet. <LearningText text={p.hint} speak /></p>}
           {!ok && e && e.attempts > 0 && e.checkedValue === undefined && wrong !== draft && draft.trim() && <p className="fq-ll-ws" data-testid={'status-worksheet-' + p.id}>Changed. Press Check.</p>}
           {open && <p className="fq-ll-ws hint" data-testid={'text-hint-worksheet-' + p.id}><LearningText text={p.hint} speak /></p>}
@@ -343,8 +344,10 @@ export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; 
   );
 }
 
-export default function LearningLab({ missionId, progress, onChange, onFinish, onBack, onPaper, review = false }: {
-  missionId: string; progress: Progress; onChange: (progress: Progress) => void; onFinish: (nextProgress?: Progress) => void; onBack: () => void; onPaper?: () => void; review?: boolean;
+export default function LearningLab({ missionId, progress, onChange, onFinish, onBack, onPaper, onRedo, review = false }: {
+  missionId: string; progress: Progress; onChange: (progress: Progress) => void; onFinish: (nextProgress?: Progress) => void; onBack: () => void; onPaper?: () => void;
+  /** Offered once the lesson is finished: practice a part again with new numbers. */
+  onRedo?: (part: RedoPart) => void; review?: boolean;
 }) {
   const ref = useRef(progress); ref.current = progress;
   const checks = getBuildChecks(missionId);
@@ -437,6 +440,22 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         <li className={idx === -1 ? (count === 12 ? 'done' : 'now') : ''}>3<span>Worksheet {count}/12</span></li>
       </ol>
 
+      {gate && onRedo && (
+        <section className="fq-ll-redo" aria-labelledby="redo-title" data-testid="section-redo">
+          <h3 id="redo-title"><RotateCcw size={18} /> Do it again</h3>
+          <p>Want more practice? Try a part again with new numbers. Your lesson stays finished.</p>
+          <div className="fq-ll-redo-buttons">
+            <button type="button" className="fq-button secondary" onClick={() => onRedo('builds')} data-testid="button-redo-builds">
+              {rec.redo?.part === 'builds' && !rec.redo.finishedAt ? 'Keep going: builds' : 'Redo builds'}
+            </button>
+            <button type="button" className="fq-button secondary" onClick={() => onRedo('worksheet')} data-testid="button-redo-worksheet">
+              {rec.redo?.part === 'worksheet' && !rec.redo.finishedAt ? 'Keep going: worksheet' : 'Redo worksheet'}
+            </button>
+          </div>
+          {!!rec.redosFinished && <p className="fq-ll-note" data-testid="text-redos-finished">Done again {rec.redosFinished} {rec.redosFinished === 1 ? 'time' : 'times'}. Nice practice!</p>}
+        </section>
+      )}
+
       {notice && idx !== -1 && <div className="fq-ll-feedback ok" role="status" data-testid="status-check-saved"><Check size={20} /><div>{notice}</div></div>}
 
       {idx !== -1 && (
@@ -491,6 +510,93 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         ) : <p className="fq-ll-note" data-testid="text-no-misconceptions">Nothing yet. Nice!</p>}
         <button className="fq-button secondary" disabled={!gate} onClick={() => gate && onFinish()} data-testid="button-lab-finish">Finish lesson</button>
       </section>
+    </div>
+  );
+}
+
+/** A second try at a finished lesson's builds or worksheet, with new numbers. Practice only: it is saved apart
+    from the lesson's own answers, so completion, unlocks and first-try results never change. */
+export function RedoLab({ missionId, progress, onChange, onBack }: {
+  missionId: string; progress: Progress; onChange: (progress: Progress) => void; onBack: () => void;
+}) {
+  const ref = useRef(progress); ref.current = progress;
+  const redo = getLearningRecord(progress, missionId).redo;
+  const cur = () => getLearningRecord(ref.current, missionId);
+  const save = (r: LearningRecord) => { const p = updateLearning(ref.current, missionId, r); ref.current = p; onChange(p); };
+  const change = (edit: (r: RedoAttempt) => RedoAttempt) => {
+    const r = cur(); if (!r.redo) return;
+    const next = { ...r, redo: edit(r.redo) };
+    save(redoDone(missionId, next.redo) ? finishRedo(next) : next);
+  };
+  if (!redo) return null;
+  const done = !!redo.finishedAt;
+  const again = () => save(startRedo(cur(), redo.part));
+  const asRecord = (worksheet: RedoAttempt['worksheet']): LearningRecord => ({ ...emptyLearningRecord(), worksheet });
+
+  const checks = redo.part === 'builds' ? redoChecks(missionId, redo.round) : [];
+  const idx = checks.findIndex(c => !redo.checks[c.id]?.passed);
+  const rows = redo.part === 'worksheet' ? redoWorksheet(missionId, redo) : [];
+  const count = redo.part === 'worksheet' ? redoWorksheetCount(missionId, redo) : 0;
+
+  return (
+    <div className="fq-ll fq-ll-redo-page" data-testid="redo-lab">
+      <button className="fq-back" onClick={onBack} data-testid="button-redo-back"><ArrowLeft size={17} /> Back to the lesson</button>
+      <header className="fq-ll-head">
+        <span className="fq-ll-badge"><RotateCcw size={16} /> Do it again</span>
+        <h2>{redo.part === 'worksheet' ? 'Worksheet with new numbers' : 'New builds'}</h2>
+        <p>Practice only. Your lesson stays finished, whatever happens here.</p>
+      </header>
+
+      {redo.part === 'builds' && (
+        <>
+          <ol className="fq-ll-steps" aria-label="Redo progress">
+            {checks.map((c, i) => <li key={c.id} className={redo.checks[c.id]?.passed ? 'done' : i === idx ? 'now' : ''}>{redo.checks[c.id]?.passed ? <Check size={15} /> : i + 1}<span>Build {i + 1}</span></li>)}
+          </ol>
+          {idx !== -1 && (
+            <CheckRunner key={`${redo.round}-${checks[idx].id}`} review={false} check={checks[idx]}
+              onHelp={(kind) => change(r => { const id = checks[idx].id; const old = r.checks[id];
+                return { ...r, checks: { ...r.checks, [id]: { passed: false, supported: true, attempts: (old?.attempts ?? 0) + (kind === 'error' ? 1 : 0) } } }; })}
+              onPass={o => change(r => { const id = checks[idx].id; const old = r.checks[id];
+                return { ...r, checks: { ...r.checks, [id]: { passed: true, supported: !!old?.supported || o.supported, attempts: (old?.attempts ?? 0) + 1 } } }; })} />
+          )}
+        </>
+      )}
+
+      {redo.part === 'worksheet' && (
+        <section className="fq-ll-sheet" aria-labelledby="redo-ws-title" data-testid="section-redo-worksheet">
+          <div className="fq-ll-sheet-head">
+            <h3 id="redo-ws-title">Worksheet</h3>
+            <div className="fq-ll-meter" role="progressbar" aria-valuemin={0} aria-valuemax={12} aria-valuenow={count} aria-label="Redo worksheet problems correct" data-testid="progress-redo-worksheet">
+              <b style={{ width: `${(count / 12) * 100}%` }} /><span>{count} of 12 checked</span>
+            </div>
+          </div>
+          <ol className="fq-ll-rows">
+            {rows.map(p => (
+              <Row key={`${p.id}-${redo.round}-${redo.rowRounds[p.id] ?? 0}`} p={p} rec={asRecord(redo.worksheet)}
+                onEdit={v => change(r => ({ ...r, worksheet: editWorksheet(asRecord(r.worksheet), p.id, v).worksheet }))}
+                onCheck={() => change(r => ({ ...r, worksheet: checkWorksheet(asRecord(r.worksheet), p).worksheet }))}
+                onHint={() => change(r => { const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };
+                  return { ...r, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }; })}
+                onNewQuestion={() => change(r => { const { [p.id]: _old, ...worksheet } = r.worksheet;
+                  return { ...r, worksheet, rowRounds: { ...r.rowRounds, [p.id]: (r.rowRounds[p.id] ?? 0) + 1 } }; })} />
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {done && (
+        <section className="fq-ll-feedback ok fq-ll-redo-done" role="status" data-testid="status-redo-done">
+          <Check size={22} />
+          <div>
+            <strong>You did it again!</strong>
+            <p>{redo.part === 'worksheet' ? 'All 12 new questions are correct.' : 'Both new builds are done.'} Want another round?</p>
+            <div className="fq-ll-redo-buttons">
+              <button type="button" className="fq-button" onClick={again} data-testid="button-redo-again"><RotateCcw size={17} /> Again with new numbers</button>
+              <button type="button" className="fq-button ghost" onClick={onBack} data-testid="button-redo-finish">Back to the lesson</button>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

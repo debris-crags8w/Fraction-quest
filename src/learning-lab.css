@@ -157,3 +157,13 @@
 }
 
 .fq-ll-line-guide { margin: 0 0 14px; color: hsl(var(--muted-foreground)); font-size: .88rem; font-weight: 700; text-align: center; }
+
+/* Do it again: practice a finished part with new numbers */
+.fq-ll-redo { display: grid; gap: 8px; margin: 14px 0; padding: 14px 16px; border: 2px dashed var(--fq-grape); border-radius: 18px; background: color-mix(in srgb, var(--fq-grape) 6%, hsl(var(--card))); }
+.fq-ll-redo h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--app-font-display); }
+.fq-ll-redo p { margin: 0; }
+.fq-ll-redo-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.fq-ll-redo-buttons .fq-button { flex: 1 1 160px; width: auto; }
+.fq-ll-redo-done { align-items: flex-start; }
+.fq-ll-redo-done p { margin: 4px 0 10px; }
+.fq-ll-newq { margin-left: 10px; vertical-align: middle; }

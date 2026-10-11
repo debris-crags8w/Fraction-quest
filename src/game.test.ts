@@ -31,7 +31,7 @@ import {
 import { BarSvg } from './models';
 import Printable, { AnswerKey, PrintMenu, STUDENT_PRINT_OPTIONS } from './Printables';
 import { barTaskDone, canEnterWorksheetAnswer, WorksheetBarCopy, worksheetBarMatches } from './WorksheetBarCopy';
-import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
+import { checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, redoChecks, redoDone, redoWorksheet, redoWorksheetCount, startRedo, updateLearning, worksheetCount, type LearningRecord } from './learning';
 import QuickReviewEntry from './QuickReviewEntry';
 import {
   completeMission,
@@ -1160,6 +1160,100 @@ describe('read-aloud voice', () => {
     assert.equal(spokenText('3/8 < 1/2'), 'three eighths is less than one half');
     assert.equal(spokenText('25% of 8'), '25 percent of 8');
     assert.deepEqual(sentences('One part. Two parts! Ready?'), ['One part.', 'Two parts!', 'Ready?']);
+  });
+});
+
+describe('redo a finished part', () => {
+  const finished = (id: string): LearningRecord => {
+    let record: LearningRecord = { ...emptyLearningRecord(), practiceDone: true, completedAt: 1_700_000_000_000 };
+    for (const check of getBuildChecks(id)) record.checks[check.id] = { passed: true, supported: false, attempts: 1 };
+    for (const problem of getWorksheet(id)) record = checkWorksheet(editWorksheet(record, problem.id, problem.answer), problem);
+    return record;
+  };
+  const largest = (text: string) => Math.max(0, ...[...text.matchAll(/\d+\/(\d+)/g)].map((m) => Number(m[1])));
+
+  it('gives every lesson valid new numbers that stay in the lesson\'s range', () => {
+    for (const mission of MISSIONS) {
+      const base = getWorksheet(mission.id);
+      const limit = Math.max(...base.map((p) => largest(`${p.prompt} ${p.answer}`)));
+      for (let variant = 1; variant <= 4; variant++) {
+        const sheet = getWorksheet(mission.id, variant);
+        assert.equal(sheet.length, 12);
+        assert.deepEqual(sheet.map((p) => p.id), base.map((p) => p.id));
+        sheet.forEach((p) => {
+          assert.ok(answerMatches(p, p.answer), `${mission.id} v${variant} ${p.id}: ${p.answer}`);
+          assert.doesNotMatch(p.prompt + p.answer, /undefined|NaN|Infinity/);
+          assert.ok(largest(`${p.prompt} ${p.answer}`) <= limit, `${mission.id} v${variant} ${p.id} goes past the lesson's numbers: ${p.prompt}`);
+        });
+        const changed = sheet.filter((p, i) => p.prompt !== base[i].prompt || p.answer !== base[i].answer || JSON.stringify(p.model) !== JSON.stringify(base[i].model)).length;
+        assert.ok(changed >= 8, `${mission.id} v${variant}: only ${changed} new questions`);
+      }
+    }
+    assert.deepEqual(getWorksheet('equal-parts', 0), getWorksheet('equal-parts'), 'variant 0 is the lesson\'s own sheet');
+    const sig = (id: string, v: number) => getWorksheet(id, v).map((p) => p.prompt + p.answer + JSON.stringify(p.model));
+    for (const mission of MISSIONS) for (let v = 1; v <= 6; v++) {
+      const a = sig(mission.id, v), b = sig(mission.id, v + 1);
+      assert.ok(a.filter((x, i) => x !== b[i]).length >= 3, `${mission.id}: redo ${v} and ${v + 1} are nearly the same`);
+    }
+  });
+
+  it('keeps a redo apart from the lesson: completion, unlocks and first-try answers never change', () => {
+    const id = MISSIONS[0].id;
+    const done = completeMission(updateLearning(EMPTY_PROGRESS, id, finished(id)), id, 3);
+    assert.equal(hasLearningGate(done, id), true);
+    let record = startRedo(getLearningRecord(done, id), 'worksheet', 5);
+    assert.equal(record.redo?.round, 1);
+    const sheet = redoWorksheet(id, record.redo!);
+    const first = sheet.find((p) => p.answer !== '2')!;
+    record = { ...record, redo: { ...record.redo!, worksheet: { [first.id]: { draft: 'wrong', attempts: 3, supported: true } } } };
+    const progress = updateLearning(done, id, record);
+    assert.equal(hasLearningGate(progress, id), true, 'a wrong redo answer does not undo the lesson');
+    assert.equal(worksheetCount(getLearningRecord(progress, id), id), 12);
+    assert.equal(isMissionUnlocked(progress, MISSIONS[1].id), true);
+    assert.deepEqual(getLearningRecord(progress, id).worksheet, getLearningRecord(done, id).worksheet, 'first-try answers are untouched');
+
+    // Finishing every redo row counts once; a new round has new numbers.
+    let worksheet = {};
+    for (const p of sheet) worksheet = checkWorksheet(editWorksheet({ ...emptyLearningRecord(), worksheet }, p.id, p.answer), p).worksheet;
+    record = { ...record, redo: { ...record.redo!, worksheet } };
+    assert.equal(redoWorksheetCount(id, record.redo!), 12);
+    assert.equal(redoDone(id, record.redo!), true);
+    record = finishRedo(finishRedo(record, 9));
+    assert.equal(record.redosFinished, 1);
+    const next = startRedo(record, 'worksheet');
+    assert.equal(next.redo?.round, 2);
+    assert.notDeepEqual(redoWorksheet(id, next.redo!).map((p) => p.answer + p.prompt + JSON.stringify(p.model)), sheet.map((p) => p.answer + p.prompt + JSON.stringify(p.model)));
+
+    // "New question" swaps one row for a different one.
+    const swapped = redoWorksheet(id, { ...next.redo!, rowRounds: { w1: 1 } });
+    const plain = redoWorksheet(id, next.redo!);
+    assert.notDeepEqual(swapped[0], plain[0]);
+    assert.deepEqual(swapped.slice(1), plain.slice(1));
+  });
+
+  it('redo builds are new targets, not the builds already done', () => {
+    for (const id of ['equal-parts', 'equivalent-models', 'compare-same-denominator', 'add-tenths-hundredths', 'simplify-fractions']) {
+      const own = getBuildChecks(id).map((c) => JSON.stringify(c.target));
+      const redo = redoChecks(id, 1);
+      assert.deepEqual(redo.map((c) => c.id), ['redo-1', 'redo-2']);
+      assert.notEqual(JSON.stringify(redo[0].target), JSON.stringify(redo[1].target), id);
+      if (!['add-tenths-hundredths', 'simplify-fractions'].includes(id)) assert.ok(redo.every((c) => !own.includes(JSON.stringify(c.target))), id);
+    }
+  });
+
+  it('saves a redo across reloads and drops malformed redo data', () => {
+    const id = MISSIONS[0].id;
+    let record = startRedo(finished(id), 'builds', 7);
+    record = { ...record, redo: { ...record.redo!, checks: { 'redo-1': { passed: true, supported: false, attempts: 1 } } } };
+    saveProgress(completeMission(updateLearning(EMPTY_PROGRESS, id, record), id, 3));
+    const loaded = getLearningRecord(loadProgress(), id);
+    assert.equal(loaded.redo?.part, 'builds');
+    assert.equal(loaded.redo?.checks['redo-1']?.passed, true);
+    assert.equal(loaded.redoRounds, 1);
+
+    memory.set('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: [], starsByMission: {}, reviewQueue: [],
+      learning: { [id]: { ...emptyLearningRecord(), redo: { part: 'everything', round: 1, worksheet: {}, checks: {}, rowRounds: {} } } } }));
+    assert.equal(getLearningRecord(loadProgress(), id).redo, undefined);
   });
 });
 

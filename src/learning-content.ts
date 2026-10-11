@@ -286,15 +286,42 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
 
 /** Skill-specific authored templates and varied numbers, not recycled answer choices.
     Lessons that share a skill family still get their own sheet (different question types). */
-export function getWorksheet(id: string): WorksheetProblem[] {
+/** The lesson's 12 worksheet problems. `variant` 0 is the lesson's own sheet; 1, 2, … give the same kinds of
+    questions with new numbers (used when a child redoes a finished worksheet). */
+export function getWorksheet(id: string, variant = 0): WorksheetProblem[] {
+  if (!variant) return buildWorksheet(id, 0);
+  const key = `${id}:${variant}`;
+  const cached = VARIANT_CACHE.get(key);
+  if (cached) return cached;
+  // Keep each new row inside the lesson's own number range, and make it differ from the lesson's row when possible.
+  const base = buildWorksheet(id, 0);
+  const limit = Math.max(...base.map(largestBottom));
+  const same = (a: WorksheetProblem, b: WorksheetProblem) => a.prompt === b.prompt && a.answer === b.answer && JSON.stringify(a.model) === JSON.stringify(b.model);
+  const fits = (row: WorksheetProblem, i: number) => largestBottom(row) <= limit && !same(row, base[i]);
+  const first = buildWorksheet(id, variant);
+  const sheet = first.map((row, i) => {
+    if (fits(row, i)) return row;
+    for (let k = 1; k < 12; k++) { const alt = buildWorksheet(id, variant + k)[i]; if (fits(alt, i)) return alt; }
+    return base[i];
+  });
+  VARIANT_CACHE.set(key, sheet);
+  return sheet;
+}
+const VARIANT_CACHE = new Map<string, WorksheetProblem[]>();
+const largestBottom = (p: WorksheetProblem) => Math.max(0, ...[...`${p.prompt} ${p.answer}`.matchAll(/\d+\/(\d+)/g)].map((m) => Number(m[1])));
+
+function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
   if (!CHECKS[id]) throw new Error(`Missing worksheet: ${id}`);
   const extension = EXTENSION_WORKSHEETS[id];
-  if (extension) return getExtensionWorksheet(extension);
+  if (extension) return getExtensionWorksheet(extension, variant);
+  const shift = variant % 12; // one step per redo round, so back-to-back redos never repeat a row's numbers
   // The first lessons use small denominators and an interactive bar the child copies before answering.
   const isIntroTopic = ['equal-parts', 'fraction-names', 'unit-fractions'].includes(id);
   return Array.from({ length: 12 }, (_, i) => {
-    const d = isIntroTopic ? [3, 4, 5, 6, 2, 3, 4, 5, 6, 2, 3, 4][i] : [3, 4, 5, 6, 8, 10, 7, 9, 12, 4, 6, 8][i];
-    const n = 1 + i % (d - 1);
+    const t = (i + shift) % 12; // row in the number tables (the question type still follows i)
+    // The intro list repeats every 5, so its shift cycles 1–4 (never a multiple of 5) and back-to-back redos differ.
+    const d = isIntroTopic ? [3, 4, 5, 6, 2, 3, 4, 5, 6, 2, 3, 4][(i + (variant ? (variant - 1) % 4 + 1 : 0)) % 12] : [3, 4, 5, 6, 8, 10, 7, 9, 12, 4, 6, 8][t];
+    const n = 1 + (i + variant) % (d - 1);
     const value = f(n, d);
     let prompt = ''; let answer = value; let hint = 'Top: the parts you count. Bottom: equal parts in 1 whole.';
     let visual: LearningModel | undefined; let form: WorksheetProblem['form']; let denominator: number | undefined;
@@ -375,7 +402,7 @@ export function getWorksheet(id: string): WorksheetProblem[] {
         const pairs: [number, number][] = id === 'unit-size'
           ? [[2, 4], [3, 6], [4, 8], [2, 3], [3, 4], [6, 8], [5, 10], [4, 6], [2, 8], [6, 12], [3, 8], [5, 6]]
           : [[3, 6], [4, 8], [3, 4], [4, 6], [6, 8], [5, 10], [3, 8], [4, 10], [6, 12], [3, 5], [5, 8], [4, 5]];
-        const [small, big] = pairs[i]; const top = id === 'unit-size' ? 1 : i % 3 === 2 && small > 3 ? 3 : 2;
+        const [small, big] = pairs[t]; const top = id === 'unit-size' ? 1 : i % 3 === 2 && small > 3 ? 3 : 2;
         const [first, second] = i % 4 < 2 ? [small, big] : [big, small];
         prompt = `Which is ${i % 2 ? 'smaller' : 'bigger'}, ${f(top, first)} or ${f(top, second)}? Type it.`;
         answer = f(top, i % 2 ? big : small); hint = 'More pieces in the same whole means smaller pieces.'; break;
@@ -389,7 +416,7 @@ export function getWorksheet(id: string): WorksheetProblem[] {
         if (i % 3 === 2) visual = model(count, d, 'set', total); break;
       }
       case 'benchmark-half': {
-        const even = 4 + 2 * (i % 5); const top = even / 2 + (i % 2 ? 1 : -1);
+        const even = 4 + 2 * ((i + variant) % 5); const top = even / 2 + ((i + variant) % 2 ? 1 : -1);
         prompt = i % 3 === 0 ? `What fraction is 1/${even} less than half?` :
           i % 3 === 1 ? `Type <, = or >: ${f(top, even)} __ 1/2.` : `How much more does ${f(even / 2 - 1, even)} need to reach half?`;
         answer = i % 3 === 0 ? f(even / 2 - 1, even) : i % 3 === 1 ? (top > even / 2 ? '>' : '<') : f(1, even);
@@ -397,7 +424,7 @@ export function getWorksheet(id: string): WorksheetProblem[] {
         if (i % 3 === 1) visual = model(top, even); break;
       }
       case 'fraction-magnitude': {
-        const even = [4, 6, 8, 10, 12, 6, 8, 10, 12, 6, 10, 10][i]; const h = even / 2;
+        const even = [4, 6, 8, 10, 12, 6, 8, 10, 12, 6, 10, 10][t]; const h = even / 2;
         const top = [h + 1, h, h - 1, h][i % 4];
         prompt = i % 3 === 0 ? `What fraction is 1/${even} more than half?` :
           i % 3 === 1 ? `Type <, = or >: ${f(top, even)} __ 1/2.` : `Which is closer to 1/2: ${f(h - 1, even)} or ${f(1, even)}? Type it.`;
@@ -406,7 +433,7 @@ export function getWorksheet(id: string): WorksheetProblem[] {
         if (i % 3 === 1) visual = model(top, even); break;
       }
       case 'benchmarks-zero-one': {
-        const e = [6, 8, 10, 12][i % 4];
+        const e = [6, 8, 10, 12][(i + variant) % 4];
         prompt = i % 3 === 0 ? `How much is missing from ${f(d - 1, d)} to make 1 whole?` :
           i % 3 === 1 ? `Is ${f(1, e)} closest to 0, 1/2 or 1? Type it.` :
           `Is ${f(e - 1, e)} closest to 0, 1/2 or 1? Type it.`;
@@ -504,12 +531,12 @@ export function getWorksheet(id: string): WorksheetProblem[] {
         if (i % 3 === 1) visual = model(a, d); break;
       }
       case 'add-related-fractions': {
-        const [small, large] = ([[2, 4], [3, 6], [4, 8], [2, 6], [2, 8], [3, 12], [2, 10], [4, 12], [5, 10], [2, 12], [6, 12], [3, 9]] as const)[i];
+        const [small, large] = ([[2, 4], [3, 6], [4, 8], [2, 6], [2, 8], [3, 12], [2, 10], [4, 12], [5, 10], [2, 12], [6, 12], [3, 9]] as const)[t];
         prompt = i % 2 ? `Sam walks 1/${small} mile, then 1/${large} mile more. How far in all?` : `A recipe uses 1/${small} cup and another 1/${large} cup. How much in all?`;
         answer = f(large / small + 1, large); hint = `Change 1/${small} into ${unitName(large)} first.`; break;
       }
       case 'add-tenths-hundredths': {
-        const a = [3, 6, 2, 5, 4, 7, 1, 8, 4, 2, 3, 5][i]; const b = [4, 0, 15, 7, 0, 25, 6, 0, 35, 9, 0, 45][i];
+        const a = [3, 6, 2, 5, 4, 7, 1, 8, 4, 2, 3, 5][t]; const b = [4, 0, 15, 7, 0, 25, 6, 0, 35, 9, 0, 45][t];
         prompt = i % 3 === 0 ? `${f(a, 10)} + ${f(b, 100)} = ?` : i % 3 === 1 ? `Change ${f(a, 10)} into hundredths.` : `Write ${f(a, 10)} + ${f(b, 100)} as a decimal.`;
         answer = i % 3 === 0 ? f(10 * a + b, 100) : i % 3 === 1 ? f(10 * a, 100) : ((10 * a + b) / 100).toFixed(2);
         denominator = i % 3 === 1 ? 100 : undefined; form = i % 3 === 2 ? 'decimal' : undefined;
@@ -517,7 +544,7 @@ export function getWorksheet(id: string): WorksheetProblem[] {
       }
       case 'tenths-decimals':
       case 'hundredths-decimals': {
-        const base = id.startsWith('tenths') ? 10 : 100; const top = id.startsWith('tenths') ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 3, 6, 8][i] : [8, 12, 25, 40, 63, 75, 9, 30, 50, 81, 90, 99][i];
+        const base = id.startsWith('tenths') ? 10 : 100; const top = id.startsWith('tenths') ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 3, 6, 8][t] : [8, 12, 25, 40, 63, 75, 9, 30, 50, 81, 90, 99][t];
         const dec = (top / base).toFixed(base === 10 ? 1 : 2);
         prompt = i % 3 === 0 ? `Write ${f(top, base)} as a decimal.` : i % 3 === 1 ? `Write ${dec} as a fraction.` :
           `A meter strip has ${base} equal parts. ${top} are colored. Write the colored part as a decimal.`;
@@ -545,9 +572,11 @@ const EXACT: [number, number][] = [[1, 2], [1, 4], [3, 4], [1, 5], [2, 5], [3, 1
 const SIMPLE: [number, number][] = [[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [2, 5], [1, 6], [5, 6], [3, 8], [3, 10], [5, 12], [7, 10]];
 
 /** Worksheets for the later (extension) lessons: exact math, grade-friendly numbers, a hint for each skill. */
-function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: string; n: number; d: number }): WorksheetProblem[] {
+function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: string; n: number; d: number }, variant = 0): WorksheetProblem[] {
+  const shift = variant % 12;
   return Array.from({ length: 12 }, (_, i) => {
-    const [n, d] = SIMPLE[i]; const k = 2 + i % 3;
+    const tr = (i + shift) % 12; // row in the number tables (the question type still follows i)
+    const [n, d] = SIMPLE[tr]; const k = 2 + (i + variant) % 3;
     let prompt = ''; let answer = f(n, d); let hint = '';
     let form: WorksheetProblem['form']; let visual: LearningModel | undefined; let denominator: number | undefined;
     switch (spec.mode) {
@@ -559,7 +588,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         answer = i % 2 ? f(n * k, d * k) : String(n * k); denominator = i % 2 ? d * k : undefined;
         hint = `The bottom was multiplied by ${k}. Multiply the top by ${k} too.`; break;
       case 'compare': {
-        const [a, b, c, e] = ([[1, 2, 2, 5], [2, 3, 3, 4], [3, 4, 2, 3], [1, 3, 2, 6], [3, 5, 1, 2], [5, 6, 3, 4], [2, 5, 1, 3], [3, 8, 1, 2], [4, 6, 2, 3], [7, 10, 3, 5], [1, 4, 2, 10], [5, 8, 3, 4]] as const)[i];
+        const [a, b, c, e] = ([[1, 2, 2, 5], [2, 3, 3, 4], [3, 4, 2, 3], [1, 3, 2, 6], [3, 5, 1, 2], [5, 6, 3, 4], [2, 5, 1, 3], [3, 8, 1, 2], [4, 6, 2, 3], [7, 10, 3, 5], [1, 4, 2, 10], [5, 8, 3, 4]] as const)[tr];
         prompt = `Type <, = or >: ${f(a, b)} __ ${f(c, e)}.`;
         answer = a * e > c * b ? '>' : a * e < c * b ? '<' : '='; form = 'symbol';
         hint = 'Give both fractions the same bottom number. Then compare the tops.'; break;
@@ -570,28 +599,28 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           [[3, 8], [3, 4], [1, 2]], [[1, 3], [5, 6], [1, 2]], [[7, 10], [2, 5], [1, 2]], [[1, 6], [1, 2], [1, 3]],
           [[3, 5], [3, 10], [9, 10]], [[1, 4], [5, 8], [3, 8]], [[2, 3], [1, 6], [5, 12]], [[4, 5], [1, 2], [3, 10]]];
         const up = i % 2 === 0;
-        const sorted = triples[i].slice().sort((x, y) => (x[0] * y[1] - y[0] * x[1]) * (up ? 1 : -1));
+        const sorted = triples[tr].slice().sort((x, y) => (x[0] * y[1] - y[0] * x[1]) * (up ? 1 : -1));
         // Never show them already in the asked order.
-        const shown = triples[i].every((x, j) => x === sorted[j]) ? [triples[i][1], triples[i][2], triples[i][0]] : triples[i];
+        const shown = triples[tr].every((x, j) => x === sorted[j]) ? [triples[tr][1], triples[tr][2], triples[tr][0]] : triples[tr];
         prompt = `Put ${shown.map(([t, b]) => f(t, b)).join(', ')} in order, ${up ? 'smallest' : 'biggest'} first. Use commas.`;
         answer = sorted.map(([t, b]) => f(t, b)).join(', '); form = 'ordered';
         hint = 'Compare each one to 1/2 first. Or give them all the same bottom number.'; break;
       }
       case 'subtract-unlike': {
-        const [a, b, c, e] = ([[3, 4, 1, 2], [5, 6, 1, 2], [7, 8, 1, 2], [5, 8, 1, 4], [5, 6, 1, 3], [9, 10, 1, 2], [7, 12, 1, 3], [3, 4, 1, 8], [2, 3, 1, 6], [7, 10, 1, 5], [11, 12, 1, 4], [5, 6, 2, 3]] as const)[i];
+        const [a, b, c, e] = ([[3, 4, 1, 2], [5, 6, 1, 2], [7, 8, 1, 2], [5, 8, 1, 4], [5, 6, 1, 3], [9, 10, 1, 2], [7, 12, 1, 3], [3, 4, 1, 8], [2, 3, 1, 6], [7, 10, 1, 5], [11, 12, 1, 4], [5, 6, 2, 3]] as const)[tr];
         const m = lcm(b, e);
         prompt = `${f(a, b)} − ${f(c, e)} = ?`; answer = f(a * (m / b) - c * (m / e), m);
         hint = `Change both to ${unitName(m)} first. Then take away the tops.`; break;
       }
       case 'mixed-add': {
-        const bottom = [4, 6, 8, 3, 5, 10, 6, 8, 4, 5, 3, 10][i]; const whole = 1 + i % 2;
+        const bottom = [4, 6, 8, 3, 5, 10, 6, 8, 4, 5, 3, 10][tr]; const whole = 1 + i % 2;
         const a = 1 + i % (bottom - 1); const b = 1 + (i + 2) % (bottom - 1);
         prompt = `${whole} ${f(a, bottom)} + ${f(b, bottom)} = ?`;
         answer = mixedName(whole * bottom + a + b, bottom); form = (a + b) % bottom ? 'mixed' : undefined;
         hint = `Add the pieces: ${a} + ${b}. If you get ${bottom} or more, make a new whole.`; break;
       }
       case 'mixed-subtract': {
-        const bottom = [4, 6, 8, 3, 5, 10, 6, 8, 4, 5, 3, 10][i]; const whole = 2 + i % 2;
+        const bottom = [4, 6, 8, 3, 5, 10, 6, 8, 4, 5, 3, 10][tr]; const whole = 2 + i % 2;
         const a = 1 + i % (bottom - 1); const b = 1 + (i + 1) % (bottom - 1);
         const top = whole * bottom + a - (bottom + b);
         prompt = `${whole} ${f(a, bottom)} − 1 ${f(b, bottom)} = ?`;
@@ -600,13 +629,13 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       }
       case 'quantity':
       case 'sets': {
-        const bottom = [2, 3, 4, 5, 6, 8, 3, 4, 5, 6, 10, 4][i]; const total = bottom * (2 + i % 4); const groups = 1 + i % (bottom - 1 || 1);
+        const bottom = [2, 3, 4, 5, 6, 8, 3, 4, 5, 6, 10, 4][tr]; const total = bottom * (2 + i % 4); const groups = 1 + i % (bottom - 1 || 1);
         prompt = `What is ${f(groups, bottom)} of ${total} ${spec.mode === 'sets' ? 'cards' : 'pencils'}?`;
         answer = String(total / bottom * groups); visual = i % 3 === 2 ? model(groups, bottom, 'set', total) : undefined;
         hint = `Make ${bottom} equal groups. Count ${groups} of them.`; break;
       }
       case 'share': {
-        const [loaves, people] = ([[1, 2], [2, 3], [3, 4], [1, 3], [3, 5], [2, 4], [2, 5], [3, 8], [3, 2], [1, 6], [1, 4], [3, 6]] as const)[i];
+        const [loaves, people] = ([[1, 2], [2, 3], [3, 4], [1, 3], [3, 5], [2, 4], [2, 5], [3, 8], [3, 2], [1, 6], [1, 4], [3, 6]] as const)[tr];
         prompt = `${loaves} ${loaves === 1 ? 'loaf is' : 'loaves are'} shared fairly by ${people} friends. How much does each friend get?`;
         // Picture: each loaf cut into one piece per friend, nothing shaded (it must not suggest 1/people).
         answer = f(loaves, people); visual = { kind: 'bar', n: 0, d: people, wholes: loaves };
@@ -623,7 +652,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         hint = `Cut every piece into ${part}. Multiply the tops and multiply the bottoms.`; break;
       }
       case 'divide': {
-        const cups = 1 + i % 4; const bottom = [2, 3, 4, 5, 6, 8, 3, 4, 5, 6, 8, 10][i];
+        const cups = 1 + i % 4; const bottom = [2, 3, 4, 5, 6, 8, 3, 4, 5, 6, 8, 10][tr];
         prompt = `How many 1/${bottom} cup scoops fill ${cups} ${cups === 1 ? 'cup' : 'cups'}?`; answer = String(cups * bottom);
         hint = `${bottom} scoops of 1/${bottom} fill 1 cup.`; break;
       }
@@ -633,19 +662,19 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         visual = model(n, d, 'line'); hint = `Cut ${length} meters into ${d} equal parts. Count ${n} ${n === 1 ? 'part' : 'parts'}.`; break;
       }
       case 'measure-add': {
-        const [a, b, c, e] = ([[1, 2, 1, 4], [1, 3, 1, 6], [1, 4, 1, 8], [1, 2, 1, 8], [2, 3, 1, 6], [1, 5, 1, 10], [1, 2, 1, 6], [3, 4, 1, 8], [1, 3, 1, 12], [2, 5, 1, 10], [1, 2, 3, 8], [1, 4, 1, 12]] as const)[i];
+        const [a, b, c, e] = ([[1, 2, 1, 4], [1, 3, 1, 6], [1, 4, 1, 8], [1, 2, 1, 8], [2, 3, 1, 6], [1, 5, 1, 10], [1, 2, 1, 6], [3, 4, 1, 8], [1, 3, 1, 12], [2, 5, 1, 10], [1, 2, 3, 8], [1, 4, 1, 12]] as const)[tr];
         const m = lcm(b, e);
         prompt = `A board is ${f(a, b)} meter. Another is ${f(c, e)} meter. How long are they together?`; answer = f(a * (m / b) + c * (m / e), m);
         hint = `Change ${f(a, b)} into ${unitName(m)} first.`; break;
       }
       case 'quotient': {
-        const pizzas = [1, 2, 3, 5, 4, 7, 2, 3, 5, 6, 1, 3][i]; const friends = [2, 3, 4, 4, 3, 2, 5, 2, 3, 4, 4, 8][i];
+        const pizzas = [1, 2, 3, 5, 4, 7, 2, 3, 5, 6, 1, 3][tr]; const friends = [2, 3, 4, 4, 3, 2, 5, 2, 3, 4, 4, 8][tr];
         prompt = `${pizzas} ${pizzas === 1 ? 'pizza is' : 'pizzas are'} shared fairly by ${friends} friends. How much pizza does each friend get?`;
         answer = f(pizzas, friends); visual = pizzas <= 3 ? { kind: 'bar', n: 0, d: friends, wholes: pizzas } : undefined;
         hint = `${pizzas} ÷ ${friends} is the fraction ${pizzas}/${friends}.`; break;
       }
       case 'probability': {
-        const [green, total] = ([[1, 4], [2, 6], [3, 8], [3, 10], [2, 5], [5, 12], [1, 6], [5, 8], [7, 10], [3, 4], [7, 12], [4, 5]] as const)[i];
+        const [green, total] = ([[1, 4], [2, 6], [3, 8], [3, 10], [2, 5], [5, 12], [1, 6], [5, 8], [7, 10], [3, 4], [7, 12], [4, 5]] as const)[tr];
         prompt = `A bag has ${total} marbles. ${green} ${green === 1 ? 'is' : 'are'} green. What is the chance of picking green?`;
         answer = f(green, total); visual = model(green, total, 'set', total);
         hint = 'Green marbles on top. All the marbles on the bottom.'; break;
@@ -663,22 +692,22 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         answer = f(n * batches, d); hint = `${batches} batches: ${Array(batches).fill(f(n, d)).join(' + ')}. Or multiply the top by ${batches}.`; break;
       }
       case 'percent': {
-        const [t, b] = EXACT[i];
+        const [t, b] = EXACT[tr];
         prompt = `Write ${f(t, b)} as a percent.`; answer = `${(t * 100) / b}%`;
         hint = `Percent means out of 100. Change ${f(t, b)} to hundredths.`; break;
       }
       case 'percent-inverse': {
-        const [t, b] = EXACT[i]; const percent = (t * 100) / b;
+        const [t, b] = EXACT[tr]; const percent = (t * 100) / b;
         prompt = `Write ${percent}% as a fraction with 100 on the bottom.`; answer = f(percent, 100); denominator = 100;
         hint = `${percent}% means ${percent} out of 100.`; break;
       }
       case 'decimal-equivalent': {
-        const [t, b] = EXACT[i];
+        const [t, b] = EXACT[tr];
         prompt = `Write ${f(t, b)} as a decimal.`; answer = String(t / b); form = 'decimal';
         hint = 'Change it to tenths or hundredths first. 1/2 = 5/10 = 0.5.'; break;
       }
       case 'story': {
-        const [bottom, a, b] = ([[4, 1, 1], [5, 2, 1], [6, 3, 1], [8, 4, 2], [10, 5, 1], [5, 1, 2], [6, 1, 2], [8, 3, 2], [10, 2, 3], [4, 1, 2], [6, 2, 3], [12, 3, 2]] as const)[i];
+        const [bottom, a, b] = ([[4, 1, 1], [5, 2, 1], [6, 3, 1], [8, 4, 2], [10, 5, 1], [5, 1, 2], [6, 1, 2], [8, 3, 2], [10, 2, 3], [4, 1, 2], [6, 2, 3], [12, 3, 2]] as const)[tr];
         prompt = i % 2
           ? `Mia reads ${f(a, bottom)} of a book on Monday and ${f(b, bottom)} on Tuesday. How much is left to read?`
           : `${f(a, bottom)} of a garden is planted. Then ${f(b, bottom)} more is planted. How much is still empty?`;

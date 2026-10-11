@@ -823,6 +823,30 @@ export function isCorrectAnswer(question: PracticeQuestion, answer: Answer): boo
   return Number.isInteger(answer) && answer === question.correctChoice;
 }
 
+/** A redo of a finished part (practice only); anything malformed is dropped. */
+function readRedo(raw: Partial<LearningRecord>): Pick<LearningRecord, 'redo' | 'redoRounds' | 'redosFinished'> {
+  const out: Pick<LearningRecord, 'redo' | 'redoRounds' | 'redosFinished'> = {};
+  if (safeCount(raw.redoRounds) > 0) out.redoRounds = safeCount(raw.redoRounds);
+  if (safeCount(raw.redosFinished) > 0) out.redosFinished = safeCount(raw.redosFinished);
+  const redo = raw.redo;
+  if (!redo || typeof redo !== 'object' || (redo.part !== 'worksheet' && redo.part !== 'builds') || safeCount(redo.round) < 1) return out;
+  const worksheet: Record<string, { draft: string; checkedValue?: string; attempts: number; supported: boolean }> = {};
+  for (const [key, entry] of Object.entries(redo.worksheet ?? {})) {
+    if (/^w([1-9]|1[0-2])$/.test(key) && entry && typeof entry.draft === 'string') worksheet[key] = {
+      draft: entry.draft.slice(0, 200), checkedValue: typeof entry.checkedValue === 'string' ? entry.checkedValue.slice(0, 200) : undefined,
+      attempts: safeCount(entry.attempts), supported: entry.supported !== false };
+  }
+  const checks: Record<string, { passed: boolean; supported: boolean; attempts: number }> = {};
+  for (const [key, c] of Object.entries(redo.checks ?? {})) {
+    if (/^redo-[12]$/.test(key) && c && typeof c.passed === 'boolean') checks[key] = { passed: c.passed, supported: c.supported !== false, attempts: safeCount(c.attempts) };
+  }
+  const rowRounds: Record<string, number> = {};
+  for (const [key, n] of Object.entries(redo.rowRounds ?? {})) if (/^w([1-9]|1[0-2])$/.test(key) && safeCount(n) > 0) rowRounds[key] = Math.min(50, safeCount(n));
+  out.redo = { part: redo.part, round: Math.min(10_000, safeCount(redo.round)), startedAt: typeof redo.startedAt === 'number' && Number.isFinite(redo.startedAt) ? redo.startedAt : 0,
+    worksheet, checks, rowRounds, ...(typeof redo.finishedAt === 'number' && Number.isFinite(redo.finishedAt) ? { finishedAt: redo.finishedAt } : {}) };
+  return out;
+}
+
 /** A saved answer left from an older version of the question: a fraction where the question now wants yes/no
     or a whole number. It is dropped so the child sees an empty box, not an old answer marked wrong. */
 export function staleDraft(problem: WorksheetProblem, draft: string): boolean {
@@ -964,6 +988,7 @@ export function loadProgress(): Progress {
           completedAt: typeof raw.completedAt === 'number' && Number.isFinite(raw.completedAt) ? raw.completedAt : undefined,
           confirmedAt: typeof raw.confirmedAt === 'number' && Number.isFinite(raw.confirmedAt) ? raw.confirmedAt : undefined,
           reviewSupportedUntil: typeof raw.reviewSupportedUntil === 'number' && Number.isFinite(raw.reviewSupportedUntil) ? raw.reviewSupportedUntil : undefined,
+          ...readRedo(raw),
         };
       }
     }

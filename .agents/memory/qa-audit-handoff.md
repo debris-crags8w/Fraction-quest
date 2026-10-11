@@ -41,6 +41,14 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Redo a finished part.** Map node of a finished lesson → "Redo a part" (opens the lab); the lab shows "Do it again"
+  with Redo builds / Redo worksheet → RedoLab (LearningLab.tsx). Data: LearningRecord.redo (RedoAttempt: part, round,
+  worksheet, checks, rowRounds, finishedAt) + redoRounds/redosFinished, sanitized by readRedo in game.ts. Kept apart from
+  the lesson's own answers: completion, unlocks, stars, misconceptions and parent-report first-try results never change.
+  New numbers: getWorksheet(id, variant) — variant 0 = the lesson sheet; variants shift the number tables (intro lessons'
+  period-5 list uses shift 1–4), and rows that exceed the lesson's largest denominator or match the original fall back to
+  other variants. Redo builds use getReviewCheck targets not already built (redoChecks). "New question" on a correct redo
+  row swaps it (rowRounds). Tests: "redo a finished part" in game.test.ts.
 - **Merged `review/coding-challenge-progression` into main (359a5c7).** Brought in Part Finder (PartFinder.tsx,
   part-finder.ts; lessons equal-parts/unit-fractions/equivalent-models; best score in fun.partFinderBest), daily practice
   (DailyPractice.tsx, daily-practice.ts, progress.dailyPractice), 6 coding levels + robot hints (getRunHint), and the
