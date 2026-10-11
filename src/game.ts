@@ -64,9 +64,16 @@ export type Answer = number;
 type PracticeSeed = Omit<PracticeQuestion, 'id' | 'isMastery' | 'isReview'>;
 type MissionSeed = Omit<Mission, 'questions'> & { questions: PracticeSeed[] };
 
+export function numberLineWholeCount(numerator: number, denominator: number): number {
+  if (!Number.isSafeInteger(numerator) || numerator < 0 || !Number.isSafeInteger(denominator) || denominator <= 0) {
+    throw new RangeError('A number-line fraction needs a non-negative integer numerator and positive integer denominator.');
+  }
+  return Math.max(1, Math.ceil(numerator / denominator));
+}
+
 const bars = (...fractions: FractionValue[]): ModelSpec => ({ kind: 'bars', bars: fractions });
 const setModel = (selected: number, total: number, caption?: string): ModelSpec => ({ kind: 'set', selected, total, caption });
-const line = (numerator: number, denominator: number, wholes = 1): ModelSpec => ({ kind: 'line', numerator, denominator, wholes });
+const line = (numerator: number, denominator: number, wholes = numberLineWholeCount(numerator, denominator)): ModelSpec => ({ kind: 'line', numerator, denominator, wholes });
 const equation = (text: string): ModelSpec => ({ kind: 'equation', text });
 const decimal = (tenths: number): ModelSpec => ({ kind: 'decimal', tenths });
 

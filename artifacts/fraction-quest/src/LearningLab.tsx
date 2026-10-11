@@ -1,8 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { Form } from '@/components/ui/form';
 import { ArrowLeft, Check, CircleHelp, Lightbulb, Minus, Plus, Printer, RotateCcw } from 'lucide-react';
-import type { Progress } from './game';
+import { numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildChecks, getReviewCheck, getWorksheet, type BuildCheck, type LearningModel, type WorksheetProblem } from './learning-content';
 import {
   checkWorksheet, editWorksheet, getLearningRecord, hasLearningGate, learningSummary, updateLearning, worksheetCount,
@@ -67,13 +65,20 @@ function gridColumns(d: number): number {
 }
 
 function Stepper({ label, value, min, max, onSet, id, hint }: { label: string; value: number; min: number; max: number; onSet: (v: number) => void; id: string; hint?: string }) {
+  const [draft, setDraft] = useState(value === 0 && min === 0 ? '' : String(value));
+  useEffect(() => setDraft(value === 0 && min === 0 ? '' : String(value)), [value, min, max]);
+  const commit = () => {
+    const parsed = draft.trim() ? Number(draft) : min;
+    const next = clamp(Number.isFinite(parsed) ? Math.trunc(parsed) : min, min, max);
+    setDraft(String(next));
+    onSet(next);
+  };
   return (
     <div className="fq-ll-stepper">
       <label htmlFor={`${id}-input`}>{label}</label>
       <div>
         <button type="button" className="fq-ll-step" aria-label={`Decrease ${label}`} onClick={() => onSet(clamp(value - 1, min, max))} disabled={value <= min} data-testid={`button-${id}-minus`}><Minus size={16} /></button>
-        <input id={`${id}-input`} type="number" inputMode="numeric" min={min} max={max} value={value === 0 && min === 0 ? '' : value} placeholder="?"
-          onChange={e => onSet(clamp(e.target.value === '' ? min : Number(e.target.value), min, max))} data-testid={`input-${id}`} />
+        <input id={id + '-input'} type="number" inputMode="numeric" min={min} max={max} value={draft} placeholder="?" onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }} data-testid={'input-' + id} />
         <button type="button" className="fq-ll-step" aria-label={`Increase ${label}`} onClick={() => onSet(clamp(value + 1, min, max))} disabled={value >= max} data-testid={`button-${id}-plus`}><Plus size={16} /></button>
       </div>
       {hint && <small>{hint}</small>}
@@ -81,59 +86,60 @@ function Stepper({ label, value, min, max, onSet, id, hint }: { label: string; v
   );
 }
 
-function Builder({ kind, total, st, set, id, title }: { kind: Kind; total?: number; st: St; set: (s: St) => void; id: string; title: string }) {
-  const maxD = kind === 'set' ? Math.min(total ?? 24, 24) : 100;
-  const pieces = kind === 'set' ? st.d : st.d * st.wholes;
+function Builder({ kind, total, st, set, id, title, lineWholes = 1 }: { kind: Kind; total?: number; st: St; set: (s: St) => void; id: string; title: string; lineWholes?: number }) {
+  const maxD = kind === 'line' ? 12 : kind === 'set' ? Math.min(total ?? 24, 24) : 100;
+  const wholes = kind === 'line' ? lineWholes : st.wholes;
+  const pieces = kind === 'set' ? st.d : st.d * wholes;
   const setCount = (c: number) => set({ ...st, count: clamp(c, 0, pieces) });
   const toggle = (i: number) => setCount(st.count === i + 1 ? i : i + 1);
   const per = kind === 'set' && st.d && total ? total / st.d : 0;
-  const unit = kind === 'line' ? 'jumps from zero' : kind === 'set' ? 'groups selected' : 'pieces shaded';
   const wrap = st.d > 12;
   return (
-    <section className={`fq-ll-builder kind-${kind}`} aria-label={title} data-testid={`model-${id}`}>
+    <section className={`fq-ll-builder kind-${kind}`} aria-label={title} data-testid={'model-' + id}>
       <header className="fq-ll-model-head">
-        <ModelTag kind={kind === 'bar' ? 'bar' : kind} />
+        <ModelTag kind={kind} />
         <h4>{title}</h4>
-        <p>{MODEL_CONCEPTS[kind === 'bar' ? 'bar' : kind]}</p>
+        <p>{MODEL_CONCEPTS[kind]}</p>
       </header>
       <div className="fq-ll-controls">
-        <Stepper id={`${id}-d`} label={kind === 'set' ? 'Equal groups' : kind === 'line' ? 'Spaces in each whole' : 'Equal pieces in each whole'} value={st.d} min={0} max={maxD}
-          onSet={v => set({ ...st, d: v, count: Math.min(st.count, kind === 'set' ? v : v * st.wholes) })} hint={kind === 'set' ? `${total} objects in all` : 'You choose the partition'} />
-        {kind !== 'set' && <Stepper id={`${id}-wholes`} label={kind === 'line' ? 'Wholes on line' : 'Whole bars'} value={st.wholes} min={1} max={3}
+        <Stepper id={id + '-d'} label={kind === 'set' ? 'Equal groups' : kind === 'line' ? 'Spaces in each whole' : 'Equal pieces in each whole'} value={st.d} min={0} max={maxD}
+          onSet={v => set({ ...st, d: v, count: Math.min(st.count, kind === 'set' ? v : v * wholes) })} hint={kind === 'set' ? total + ' objects in all' : 'You choose the partition'} />
+        {kind === 'bar' && <Stepper id={id + '-wholes'} label="Whole bars" value={st.wholes} min={1} max={3}
           onSet={v => set({ ...st, wholes: v, count: Math.min(st.count, st.d * v) })} />}
-        <Stepper id={`${id}-count`} label={kind === 'line' ? 'Jumps from 0' : kind === 'set' ? 'Groups selected' : 'Pieces shaded'} value={st.count} min={0} max={Math.max(pieces, 0)} onSet={setCount} />
+        <Stepper id={id + '-count'} label={kind === 'line' ? 'Jumps from 0' : kind === 'set' ? 'Groups selected' : 'Pieces shaded'} value={st.count} min={0} max={Math.max(pieces, 0)} onSet={setCount} />
       </div>
       <div className="fq-ll-stage" style={{ '--piece': denomColor(st.d) } as CSSProperties}>
+        {kind === 'line' && <p className="fq-ll-line-guide" data-testid={'text-line-guide-' + id}>{wholes === 1 ? 'The whole interval runs from 0 to 1. Each equal space is one jump.' : 'Each whole is one interval: ' + Array.from({ length: wholes + 1 }, (_, i) => i).join(' to ') + '.'}</p>}
         {st.d === 0 ? <p className="fq-ll-empty">Nothing here yet. Choose how many equal parts, and the model appears.</p> :
           kind === 'bar' ? Array.from({ length: st.wholes }, (_, w) => (
-            <div key={w} className={`fq-ll-bar ${wrap ? 'wrap' : ''}`} style={{ gridTemplateColumns: `repeat(${gridColumns(st.d)}, minmax(0,1fr))` }} role="group" aria-label={`Whole ${w + 1}`}>
+            <div key={w} className={'fq-ll-bar ' + (wrap ? 'wrap' : '')} style={{ gridTemplateColumns: 'repeat(' + gridColumns(st.d) + ', minmax(0,1fr))' }} role="group" aria-label={'Whole ' + (w + 1)}>
               {Array.from({ length: st.d }, (_, p) => {
                 const i = w * st.d + p;
-                return <button key={p} type="button" className={`fq-ll-piece ${i < st.count ? 'on' : ''}`} aria-pressed={i < st.count} aria-label={`Piece ${i + 1} of ${pieces}`} onClick={() => toggle(i)} data-testid={`piece-${id}-${i}`} />;
+                return <button key={p} type="button" className={'fq-ll-piece ' + (i < st.count ? 'on' : '')} aria-pressed={i < st.count} aria-label={'Piece ' + (i + 1) + ' of ' + pieces} onClick={() => toggle(i)} data-testid={'piece-' + id + '-' + i} />;
               })}
             </div>
           )) : kind === 'set' ? (
             <div className="fq-ll-groups">
               {Array.from({ length: st.d }, (_, g) => (
-                <button key={g} type="button" className={`fq-ll-group ${g < st.count ? 'on' : ''}`} aria-pressed={g < st.count} aria-label={`Group ${g + 1} of ${st.d}`} onClick={() => toggle(g)} data-testid={`group-${id}-${g}`}>
+                <button key={g} type="button" className={'fq-ll-group ' + (g < st.count ? 'on' : '')} aria-pressed={g < st.count} aria-label={'Group ' + (g + 1) + ' of ' + st.d} onClick={() => toggle(g)} data-testid={'group-' + id + '-' + g}>
                   {per > 0 && Number.isInteger(per) ? Array.from({ length: per }, (_, k) => <i key={k} />) : <span>Unequal grouping</span>}
                 </button>
               ))}
             </div>
           ) : (
-            <div className="fq-ll-line" style={{ minWidth: Math.min(st.d * st.wholes * 30, 900) }}>
-              <div className="fq-ll-track"><b style={{ width: `${(st.count / (st.d * st.wholes)) * 100}%` }} /></div>
-              {Array.from({ length: st.d * st.wholes + 1 }, (_, i) => (
-                <button key={i} type="button" className={`fq-ll-tick ${i === st.count ? 'on' : ''} ${i % st.d === 0 ? 'whole' : ''}`} style={{ left: `${(i / (st.d * st.wholes)) * 100}%` }}
-                  aria-label={`Mark after ${i} jumps`} aria-pressed={i === st.count} onClick={() => setCount(i)} data-testid={`tick-${id}-${i}`}>
+            <div className="fq-ll-line" style={{ minWidth: Math.min(st.d * wholes * 30, 900) }} role="group" aria-label={'Number line from 0 to ' + wholes}>
+              <div className="fq-ll-track"><b style={{ width: ((st.count / (st.d * wholes)) * 100) + '%' }} /></div>
+              {Array.from({ length: st.d * wholes + 1 }, (_, i) => (
+                <button key={i} type="button" className={'fq-ll-tick ' + (i === st.count ? 'on ' : '') + (i % st.d === 0 ? 'whole' : '')} style={{ left: ((i / (st.d * wholes)) * 100) + '%' }}
+                  aria-label={'Tick ' + i + ' of ' + (st.d * wholes) + ' equal spaces'} aria-pressed={i === st.count} onClick={() => setCount(i)} data-testid={'tick-' + id + '-' + i}>
                   <span>{i % st.d === 0 ? i / st.d : ''}</span>
                 </button>
               ))}
             </div>
           )}
       </div>
-      <p className="fq-ll-readout" aria-live="polite" data-testid={`text-${id}-readout`}>
-        {st.d ? <>Your model: <Frac n={st.count} d={st.d} /> · {st.count} {unit}</> : 'Your model: not built'}
+      <p className="fq-ll-readout" aria-live="polite" data-testid={'text-' + id + '-readout'}>
+        {st.d ? <>Your model: <Frac n={st.count} d={st.d} /> · {st.count} {kind === 'line' ? 'jumps from zero' : kind === 'set' ? 'groups selected' : 'pieces shaded'}</> : 'Your model: not built'}
       </p>
     </section>
   );
@@ -144,7 +150,7 @@ function CheckRunner({ check, onHelp, onPass, review }: {
   check: BuildCheck; review: boolean;
   onHelp: (kind: 'hint' | 'error', keys: string[]) => void; onPass: (o: Outcome) => void;
 }) {
-  const t = check.target; const k = t.kind;
+  const t = check.target; const k = t.kind; const lineWholes = numberLineWholeCount(t.n, t.d);
   const tk: Kind = k === 'line' ? 'bar' : 'line';
   const [a, setA] = useState<St>(blank()); const [b, setB] = useState<St>(blank());
   const [reason, setReason] = useState<number | null>(null);
@@ -152,7 +158,7 @@ function CheckRunner({ check, onHelp, onPass, review }: {
   const [failedSig, setFailedSig] = useState<string | null>(null);
   const [hints, setHints] = useState(0); const [supported, setSupported] = useState(false); const [attempts, setAttempts] = useState(0);
   const [done, setDone] = useState(false);
-  const sig = JSON.stringify([a, b]);
+  const sig = JSON.stringify([a, b, reason]);
   const locked = failedSig === sig;
   const transLabel = k === 'bar' ? 'Now show the same fraction on a number line' : k === 'line' ? 'Now show the same fraction as a bar' : 'Now show the same fraction on a number line';
   const hintTexts = ['Decide the unit first: how many equal parts make one whole? Then count the selected parts.', check.explanation];
@@ -164,7 +170,7 @@ function CheckRunner({ check, onHelp, onPass, review }: {
     const keys = [...r1.keys, ...r2.keys.map(() => M.trans)];
     const msgs = [...r1.msgs, ...r2.msgs];
     if (reason === null) { msgs.push('Choose the reason that explains your model.'); keys.push(M.reason); }
-    else if (reason !== check.correctReason) { msgs.push('That reason does not match your build. Test each reason against the pieces, then move something in the model before you check again.'); keys.push(M.reason); }
+    else if (reason !== check.correctReason) { msgs.push('That reason does not match your build. Change your reason or model, then check again.'); keys.push(M.reason); }
     if (msgs.length) {
       setErrs(msgs); setFailedSig(sig); setSupported(true); setAttempts(n => n + 1); onHelp('error', Array.from(new Set(keys)));
     } else { setErrs([]); setDone(true); onPass({ supported, attempts: attempts + 1 }); }
@@ -175,14 +181,14 @@ function CheckRunner({ check, onHelp, onPass, review }: {
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
       <p className="fq-ll-kicker">{check.transfer ? (review ? 'Fresh review round' : 'Check 2 · independent transfer') : 'Check 1 · guided build'}</p>
       <h3>{check.prompt}</h3>
-      <Builder kind={k} total={t.total} st={a} set={setA} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} />
+      <Builder kind={k} total={t.total} st={a} set={setA} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} />
       <div className="fq-ll-translate">
         <strong>{transLabel}</strong>
         <span>{tk === 'line'
           ? `Same fraction, second model: the ${k === 'set' ? 'groups you picked' : 'shaded part of the bar'} should match the distance from 0 on the number line.`
           : 'Same fraction, second model: the distance from 0 on the number line should match the shaded part of the bar.'}</span>
       </div>
-      <Builder kind={tk} st={b} set={setB} id={`${check.id}-b`} title={`Show the same fraction ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} />
+      <Builder kind={tk} st={b} set={setB} id={`${check.id}-b`} title={`Show the same fraction ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} />
       <fieldset className="fq-ll-reasons" data-testid={`reasons-${check.id}`}>
         <legend>Which reason explains your model?</legend>
         {check.reasons.map((r, i) => (
@@ -196,8 +202,8 @@ function CheckRunner({ check, onHelp, onPass, review }: {
       {errs.length > 0 && (
         <div className="fq-ll-feedback retry" role="alert" data-testid={`status-errors-${check.id}`}>
           <CircleHelp size={20} />
-          <div><strong>Not yet. Here is what to adjust:</strong><ul>{errs.map((e, i) => <li key={i}>{e}</li>)}</ul>
-            {locked && <p>Move or change something in a model, then check again.</p>}</div>
+          <div><strong>Not yet. Edit your answer and check again.</strong><ul>{errs.map((e, i) => <li key={i}>{e}</li>)}</ul>
+            {locked && <p>Edit your model or reason to check again.</p>}</div>
         </div>
       )}
       {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>Model, translation and reason all agree.</strong> {check.explanation}</div></div>}
@@ -218,26 +224,25 @@ function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; rec: Le
   const ok = !!e && e.checkedValue === e.draft && answerMatches(p, draft);
   const [open, setOpen] = useState(false);
   const [wrong, setWrong] = useState<string | null>(null);
-  const form = useForm<{ answer: string }>({ defaultValues: { answer: draft } });
   const ph = p.form === 'symbol' ? '< = >' : p.form === 'mixed' ? '1 2/3' : p.form === 'decimal' ? '0.4' : p.form === 'ordered' ? '1/4, 2/4, 3/4' : 'Your answer';
-  const submit = () => { if (!draft.trim()) return; setWrong(answerMatches(p, draft) ? null : draft); onCheck(); };
+  const submit = (event: { preventDefault: () => void }) => { event.preventDefault(); if (!draft.trim()) return; setWrong(answerMatches(p, draft) ? null : draft); onCheck(); };
   return (
-    <li className={`fq-ll-row ${ok ? 'ok' : ''}`} data-testid={`row-worksheet-${p.id}`}>
-      <Form {...form}><form onSubmit={form.handleSubmit(submit)}>
-        <label htmlFor={`ws-${p.id}`}><span className="fq-ll-num">{p.id.slice(1)}</span>{p.prompt}</label>
+    <li className={'fq-ll-row ' + (ok ? 'ok' : '')} data-testid={'row-worksheet-' + p.id}>
+      <form onSubmit={submit}>
+        <label htmlFor={'ws-' + p.id}><span className="fq-ll-num">{p.id.slice(1)}</span>{p.prompt}</label>
         {p.model && <Preview m={p.model} />}
         <div className="fq-ll-answer">
-          <input {...form.register('answer')} id={`ws-${p.id}`} value={draft} placeholder={ph} autoComplete="off" maxLength={200} onChange={ev => { form.setValue('answer', ev.target.value); setWrong(null); onEdit(ev.target.value); }} data-testid={`input-worksheet-${p.id}`} aria-describedby={`ws-fb-${p.id}`} />
-          <button type="submit" className="fq-button" disabled={!draft.trim() || ok} data-testid={`button-check-worksheet-${p.id}`}>{ok ? 'Correct' : 'Check'}</button>
-          <button type="button" className="fq-ll-hintbtn" aria-expanded={open} onClick={() => { if (!open) onHint(); setOpen(o => !o); }} data-testid={`button-hint-worksheet-${p.id}`}><Lightbulb size={16} /> Hint</button>
+          <input id={'ws-' + p.id} type="text" value={draft} placeholder={ph} autoComplete="off" maxLength={200} onChange={ev => { setWrong(null); onEdit(ev.target.value); }} data-testid={'input-worksheet-' + p.id} aria-describedby={'ws-fb-' + p.id} />
+          <button type="submit" className="fq-button" disabled={!draft.trim() || ok} data-testid={'button-check-worksheet-' + p.id}>{ok ? 'Correct' : 'Check'}</button>
+          <button type="button" className="fq-ll-hintbtn" aria-expanded={open} onClick={() => { if (!open) onHint(); setOpen(o => !o); }} data-testid={'button-hint-worksheet-' + p.id}><Lightbulb size={16} /> Hint</button>
         </div>
-        <div id={`ws-fb-${p.id}`} aria-live="polite">
-          {ok && <p className="fq-ll-ws ok" data-testid={`status-worksheet-${p.id}`}><Check size={15} /> Checked. You can still edit it; a change needs a new check.</p>}
-          {!ok && wrong === draft && <p className="fq-ll-ws bad" data-testid={`status-worksheet-${p.id}`}>Not yet. {p.hint}</p>}
-          {!ok && e && e.attempts > 0 && e.checkedValue === undefined && wrong !== draft && draft.trim() && <p className="fq-ll-ws" data-testid={`status-worksheet-${p.id}`}>Edited. Press Check to confirm.</p>}
-          {open && <p className="fq-ll-ws hint" data-testid={`text-hint-worksheet-${p.id}`}>{p.hint}</p>}
+        <div id={'ws-fb-' + p.id} aria-live="polite">
+          {ok && <p className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Checked. You can still edit it; a change needs a new check.</p>}
+          {!ok && wrong === draft && <p className="fq-ll-ws bad" data-testid={'status-worksheet-' + p.id}>Not yet. Edit your answer and check again. {p.hint}</p>}
+          {!ok && e && e.attempts > 0 && e.checkedValue === undefined && wrong !== draft && draft.trim() && <p className="fq-ll-ws" data-testid={'status-worksheet-' + p.id}>Edited. Press Check to confirm.</p>}
+          {open && <p className="fq-ll-ws hint" data-testid={'text-hint-worksheet-' + p.id}>{p.hint}</p>}
         </div>
-      </form></Form>
+      </form>
     </li>
   );
 }

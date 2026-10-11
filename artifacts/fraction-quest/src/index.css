@@ -1413,6 +1413,14 @@
   text-align: center;
 }
 
+.fq-numberline-range {
+  margin: 22px 0 0;
+  color: hsl(var(--muted-foreground));
+  font-size: .9rem;
+  font-weight: 700;
+  text-align: center;
+}
+
 .fq-partition-whole {
   display: flex;
   width: min(100%, 390px);

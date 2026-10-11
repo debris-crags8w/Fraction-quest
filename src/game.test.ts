@@ -15,6 +15,7 @@ import {
   isMissionUnlocked,
   loadProgress,
   MISSIONS,
+  numberLineWholeCount,
   recordMissedSkill,
   resetProgress,
   saveProgress,
@@ -317,6 +318,13 @@ function withLearning(progress: Progress, id: string): Progress {
 }
 
 describe('entered-answer worksheets and evidence gates', () => {
+  it('keeps proper-fraction number lines from 0 to 1 and extends only for improper fractions', () => {
+    assert.equal(numberLineWholeCount(1, 3), 1);
+    assert.equal(numberLineWholeCount(5, 5), 1);
+    assert.equal(numberLineWholeCount(7, 5), 2);
+    assert.equal(numberLineWholeCount(11, 5), 3);
+    assert.throws(() => numberLineWholeCount(1, 0), RangeError);
+  });
   it('checks independently calculated keys across every curriculum topic', () => {
     const expected = ['1/3', '1', '1/3', '1/3', '2', '4', '1/4', '1/3', '1/4', '3', '1/3', '4/3', '2/3', '2/3', '1/3, 2/3, 3/3', '2', '2', '2', '2/3', '1', '4/3', '4/3', '2/3', '1/3', '3/4', '0.1', '0.08'];
     MISSIONS.forEach((mission, index) => assert.equal(getWorksheet(mission.id)[0].answer, expected[index], mission.id));

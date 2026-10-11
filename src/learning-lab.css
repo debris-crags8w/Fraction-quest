@@ -100,3 +100,5 @@
   .fq-ll-actions .fq-button { width: 100%; }
   .fq-ll-controls { gap: 10px; }
 }
+
+.fq-ll-line-guide { margin: 0 0 14px; color: hsl(var(--muted-foreground)); font-size: .88rem; font-weight: 700; text-align: center; }
