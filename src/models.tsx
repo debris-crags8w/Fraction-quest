@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { ChallengeFigure } from './challenges';
 
 /* Shared drawings for the two core fraction models (plus sets), used on screen and on paper.
    Bars and number lines use the same x-scale, so a bar drawn above a line lines up exactly. */
@@ -76,7 +77,7 @@ export function BarSvg({ n = 0, d, wholes = 1, label }: { n?: number; d?: number
 }
 
 /** Number line: 0 → wholes, each whole split into d equal spaces, with jump arcs from 0 to the point n/d. Omit d for a bare 0-to-1 line. */
-export function LineSvg({ n = 0, d, wholes = 1, showPoint = true, label }: { n?: number; d?: number; wholes?: number; showPoint?: boolean; label?: string }) {
+export function LineSvg({ n = 0, d, wholes = 1, showPoint = true, jumps = true, label }: { n?: number; d?: number; wholes?: number; showPoint?: boolean; jumps?: boolean; label?: string }) {
   const spaces = d ? d * wholes : wholes;
   const step = W / spaces;
   const y = 40;
@@ -94,7 +95,7 @@ export function LineSvg({ n = 0, d, wholes = 1, showPoint = true, label }: { n?:
           </g>
         );
       })}
-      {d && showPoint && n > 0 && Array.from({ length: n }, (_, j) => {
+      {d && showPoint && jumps && n > 0 && Array.from({ length: n }, (_, j) => {
         const x1 = PAD + j * step; const x2 = PAD + (j + 1) * step;
         return <path key={j} className="jump" d={`M${x1 + 2} ${y - 4} Q${(x1 + x2) / 2} ${y - 26} ${x2 - 2} ${y - 4}`} />;
       })}
@@ -140,5 +141,37 @@ export function ModelPair({ n, d, wholes = Math.max(1, Math.ceil(n / d)) }: { n:
       <div className="fq-model-pair-row"><ModelTag kind="line" /><LineSvg n={n} d={d} wholes={wholes} /></div>
       <figcaption>Same fraction, two models. The shading stops right where the jumps land.</figcaption>
     </figure>
+  );
+}
+
+/** Pictures for Unit challenge puzzles. They never print a fraction, so the picture stays the puzzle. */
+export function ChallengeFigureView({ figure }: { figure: ChallengeFigure }) {
+  if (figure.kind === 'grid' || figure.kind === 'dots') {
+    const size = figure.kind === 'grid' ? Math.min(44, Math.floor(260 / Math.max(figure.rows, figure.cols))) : 40;
+    const shaded = new Set(figure.shaded);
+    const total = figure.rows * figure.cols;
+    return (
+      <svg className={`fq-svg-figure ${figure.kind}`} viewBox={`0 0 ${figure.cols * size + 4} ${figure.rows * size + 4}`} role="img"
+        aria-label={`${figure.kind === 'grid' ? 'A rectangle' : 'Dots'} in ${figure.rows} rows of ${figure.cols}, ${shaded.size} of ${total} shaded`}>
+        {Array.from({ length: total }, (_, i) => {
+          const x = 2 + (i % figure.cols) * size; const y = 2 + Math.floor(i / figure.cols) * size;
+          return figure.kind === 'grid'
+            ? <rect key={i} className={shaded.has(i) ? 'cell on' : 'cell'} x={x} y={y} width={size} height={size} />
+            : <circle key={i} className={shaded.has(i) ? 'dot on' : 'dot'} cx={x + size / 2} cy={y + size / 2} r={size * 0.32} />;
+        })}
+        {figure.kind === 'grid' && <rect className="frame" x={2} y={2} width={figure.cols * size} height={figure.rows * size} fill="none" />}
+      </svg>
+    );
+  }
+  if (figure.kind === 'line') return <LineSvg n={figure.n} d={figure.d} jumps={false} label="Number line from 0 to 1 with a dot" />;
+  return (
+    <div className="fq-figure-bars">
+      {figure.bars.map((bar, i) => (
+        <div className="fq-figure-bar" key={i}>
+          {bar.label && <b>{bar.label}</b>}
+          <BarSvg n={bar.n} d={bar.d} label={`${bar.label ? `Bar ${bar.label}: ` : ''}a bar split into ${bar.d} equal pieces, ${bar.n} shaded`} />
+        </div>
+      ))}
+    </div>
   );
 }

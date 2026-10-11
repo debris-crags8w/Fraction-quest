@@ -3,6 +3,7 @@ import { ArrowRight, Check, Map as MapIcon, RotateCcw, Trophy, X } from 'lucide-
 import { CHALLENGES, challengeMaxPoints, challengeTrophy } from './challenges';
 import { Confetti, Mascot, unitColor, useFun, type MascotMood } from './fun-ui';
 import { playCue } from './lib/fun';
+import { ChallengeFigureView } from './models';
 
 const letter = (index: number) => String.fromCharCode(65 + index);
 const TROPHY_TEXT = { gold: 'Gold trophy!', silver: 'Silver trophy!', bronze: 'Bronze trophy!' };
@@ -85,6 +86,7 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
         <section className="fq-play-card" aria-labelledby="challenge-title">
           <p className="fq-play-kicker">Unit {unit} challenge · {unitTitle} · <span className={`fq-points p${question.points}`}>{question.points} points</span></p>
           <h1 id="challenge-title">{question.prompt}</h1>
+          {question.figure && <div className="fq-model-area"><div className="fq-visual-model fq-challenge-figure"><ChallengeFigureView figure={question.figure} /></div></div>}
           <div className="fq-answer-choices fq-challenge-choices" role="group" aria-label="Choose an answer">
             {question.choices.map((choice, i) => (
               <button key={`${question.id}-${i}`}

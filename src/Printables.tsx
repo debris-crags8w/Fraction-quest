@@ -3,9 +3,10 @@ import { Printer } from 'lucide-react';
 import { getMission, MISSIONS, type Mission, type ModelSpec } from './game';
 import { answerMatches, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 import { learningSummary, worksheetCount, type LearningRecord } from './learning';
-import { BarSvg, LineSvg, MODEL_CONCEPTS, ModelPair, ModelTag, SetSvg } from './models';
+import { BarSvg, ChallengeFigureView, LineSvg, MODEL_CONCEPTS, ModelPair, ModelTag, SetSvg } from './models';
+import { CHALLENGES, challengeMaxPoints } from './challenges';
 
-export type PrintMode = 'lesson' | 'practice' | 'blank' | 'answers' | 'key';
+export type PrintMode = 'lesson' | 'practice' | 'blank' | 'answers' | 'challenge' | 'key';
 
 export const lessonCode = (missionId: string) => `FQ-${String(MISSIONS.findIndex((item) => item.id === missionId) + 1).padStart(2, '0')}`;
 const letter = (index: number) => String.fromCharCode(65 + index);
@@ -246,11 +247,45 @@ function AnswerKey({ mission }: { mission: Mission }) {
         </ol>
       </section>
       <section className="fq-print-key">
+        <h2>Unit {mission.unit} challenge</h2>
+        <ol className="fq-print-key-list">
+          {CHALLENGES[mission.unit].map((item) => <li key={item.id}><b>{letter(item.correct)}</b> · {item.choices[item.correct]} <small>({item.points} points) {item.explanation}</small></li>)}
+        </ol>
+      </section>
+      <section className="fq-print-key">
         <h2>Show it both ways</h2>
         <p>{checks[0].prompt} <b>Answer: {checks[0].target.n}/{checks[0].target.d}</b>. Why: {checks[0].explanation}</p>
         <ModelPair n={checks[0].target.n} d={checks[0].target.d} />
       </section>
       <footer className="fq-print-foot">Keep this page with a grown-up. Code {lessonCode(mission.id)}.</footer>
+    </article>
+  );
+}
+
+function ChallengeSheet({ mission }: { mission: Mission }) {
+  const items = CHALLENGES[mission.unit];
+  return (
+    <article className="fq-print" aria-hidden="true" data-testid="print-challenge">
+      <header className="fq-print-head">
+        <div>
+          <p className="fq-print-kicker">Fraction Quest · Unit {mission.unit} challenge · Code {lessonCode(mission.id)}</p>
+          <h1>Unit {mission.unit} challenge</h1>
+          <p>Puzzle time! Circle one letter for each question.</p>
+        </div>
+        <div className="fq-print-fields"><span>Name <i /></span><span>Score <i /> / {challengeMaxPoints(mission.unit)}</span></div>
+      </header>
+      <ol className="fq-print-problems">
+        {items.map((item) => (
+          <li key={item.id}>
+            <p className="fq-print-prompt"><span className="fq-print-points">{item.points} pts</span> {item.prompt}</p>
+            {item.figure && <div className="fq-print-model"><ChallengeFigureView figure={item.figure} /></div>}
+            <ul className="fq-print-choices">
+              {item.choices.map((choice, index) => <li key={index}><span className="fq-print-circle">{letter(index)}</span> {choice}</li>)}
+            </ul>
+          </li>
+        ))}
+      </ol>
+      <footer className="fq-print-foot">Fraction Quest · Unit {mission.unit} challenge · Answers are in the answer key for grown-ups.</footer>
     </article>
   );
 }
@@ -261,6 +296,7 @@ export default function Printable({ missionId, record, mode }: { missionId: stri
   if (mode === 'lesson') return <LessonSheet mission={mission} />;
   if (mode === 'practice') return <PracticeSheet mission={mission} />;
   if (mode === 'key') return <AnswerKey mission={mission} />;
+  if (mode === 'challenge') return <ChallengeSheet mission={mission} />;
   return <WorksheetPage missionId={missionId} record={record} mode={mode} />;
 }
 
@@ -269,6 +305,7 @@ const PRINT_OPTIONS: { mode: PrintMode; label: string }[] = [
   { mode: 'practice', label: 'Practice questions' },
   { mode: 'blank', label: 'Worksheet' },
   { mode: 'answers', label: 'My answers' },
+  { mode: 'challenge', label: 'Unit challenge' },
   { mode: 'key', label: 'Answer key (grown-ups)' },
 ];
 

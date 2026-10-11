@@ -1048,3 +1048,27 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 .fq-reward-trophy.trophy-silver { background: #A8B3C4; box-shadow: 0 4px 0 #7E8899; }
 .fq-reward-trophy.trophy-bronze { background: #D08A4E; box-shadow: 0 4px 0 #A5652F; }
 @media (max-width: 720px) { .fq-challenge-note { display: none; } }
+
+/* ---------- challenge pictures ---------- */
+
+.fq-challenge-figure { min-height: 0; }
+.fq-svg-figure { display: block; width: min(100%, 300px); height: auto; margin: 0 auto; }
+.fq-svg-figure.grid { width: min(100%, 260px); }
+.fq-svg-figure .cell { fill: hsl(var(--card)); stroke: hsl(var(--foreground)); stroke-width: 1.5; }
+.fq-svg-figure .cell.on { fill: var(--unit, var(--fq-grape)); }
+.fq-svg-figure .dot { fill: hsl(var(--card)); stroke: hsl(var(--foreground)); stroke-width: 2; }
+.fq-svg-figure .dot.on { fill: var(--fq-bubblegum); }
+.fq-svg-figure .frame { stroke: hsl(var(--foreground)); stroke-width: 3; }
+.fq-figure-bars { display: grid; gap: 8px; width: 100%; }
+.fq-figure-bar { display: flex; align-items: center; gap: 8px; }
+.fq-figure-bar b { width: 22px; font-family: var(--app-font-display); font-size: 1.1rem; }
+.fq-figure-bar svg { flex: 1; min-width: 0; }
+
+@media print {
+  .fq-print .fq-svg-figure { width: 60mm; margin: 0; }
+  .fq-print .fq-svg-figure .cell, .fq-print .fq-svg-figure .dot { fill: #fff; stroke: #000; }
+  .fq-print .fq-svg-figure .cell.on { fill: #9a9a9a; }
+  .fq-print .fq-svg-figure .dot.on { fill: #666; }
+  .fq-print .fq-figure-bar svg { max-width: 60mm; }
+  .fq-print-points { display: inline-block; padding: 0 6px; border: 1.5px solid #000; border-radius: 8px; font-size: 8.5pt; font-weight: 900; }
+}

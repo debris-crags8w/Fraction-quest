@@ -452,6 +452,7 @@ describe('unit challenges', () => {
   // Each answer worked out independently of the authored explanation.
   const v = (n: number, d: number) => n / d;
   const expected: Record<string, string> = {
+    'u1-p1': `${[0, 3, 5].length}/${2 * 4}`, 'u2-p1': '1/3', 'u3-p1': 'D', 'u4-p1': '3/5', 'u5-p1': 'B', 'u6-p1': String(8 / 2), 'u7-p1': '1 and 3/4', 'u8-p1': (35 / 100).toFixed(2),
     'u1-c1': String(12 / 4), 'u1-c2': `${8 - 1 - 2}/8`, 'u1-c3': `1/${2 * 2}`, 'u1-c4': `${2 * 5} cm`, 'u1-c5': String(3 * 4),
     'u2-c1': '1/2', 'u2-c2': String(20 / 4), 'u2-c3': String(18 - (18 / 3) * 2), 'u2-c4': String(8 * 3), 'u2-c5': String(24 / 2 - 24 / 2 / 3),
     'u3-c1': ['2/5', '3/7', '4/9', '5/8', '1/3'].find((f) => { const [n, d] = f.split('/').map(Number); return v(n, d) > 0.5; })!,
@@ -472,10 +473,11 @@ describe('unit challenges', () => {
     'u8-c1': `${3 + 4}/8`, 'u8-c2': (3 / 10).toFixed(1), 'u8-c3': ['0.5', '0.45', '0.09', '0.4', '0.38'].sort((a, b) => Number(b) - Number(a))[0],
     'u8-c4': `${9 - 4 - 3}/10 m`, 'u8-c5': `${4 + 2 + 1}/8`,
   };
-  it('has five questions worth 3, 3, 4, 4 and 5 points in every unit', () => {
+  it('has a picture puzzle plus five questions worth 3, 3, 3, 4, 4 and 5 points in every unit', () => {
     for (let unit = 1; unit <= 8; unit++) {
-      assert.deepEqual(CHALLENGES[unit].map((item) => item.points), [3, 3, 4, 4, 5]);
-      assert.equal(challengeMaxPoints(unit), 19);
+      assert.deepEqual(CHALLENGES[unit].map((item) => item.points), [3, 3, 3, 4, 4, 5]);
+      assert.ok(CHALLENGES[unit][0].figure, `unit ${unit} starts with a picture puzzle`);
+      assert.equal(challengeMaxPoints(unit), 22);
     }
   });
   it('marks the independently computed answer as correct', () => {
@@ -484,6 +486,13 @@ describe('unit challenges', () => {
         assert.equal(item.choices.length, 5, item.id);
         assert.equal(new Set(item.choices).size, 5, `${item.id} has duplicate choices`);
         assert.equal(item.choices[item.correct], expected[item.id], item.id);
+        if (item.figure?.kind === 'bars' && item.choices[0] === 'A') {
+          // "Which bar..." puzzles: recompute the winning bar from the picture itself.
+          const values = item.figure.bars.map((bar) => bar.n / bar.d);
+          const pick = item.prompt.includes('more than half') ? values.findIndex((x) => x > 0.5) : values.indexOf(Math.max(...values));
+          assert.equal(item.correct, pick, `${item.id} picture`);
+          if (item.prompt.includes('more than half')) assert.equal(values.filter((x) => x > 0.5).length, 1, `${item.id} has exactly one answer`);
+        }
       }
     }
   });
