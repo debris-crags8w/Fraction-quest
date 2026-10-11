@@ -40,6 +40,12 @@ wording, repetition, printables, model-centred learning, and everything pushed t
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Read-aloud voice (lib/voice.ts).** User found the voice robotic and asked for a gentle woman's voice. `pickVoice` scores
+  English voices: warm female names (Ava, Samantha, Allison, Edge Natural Jenny/Aria/Ana, Google US English, Android sfg/tpf…)
+  plus natural/neural/enhanced quality; avoids men's and novelty voices. Rate 0.88, pitch 1.1, one utterance per sentence
+  (pauses; avoids Chrome's long-utterance cut-off). `spokenText`: "3/4" → "three fourths", "1 2/3" → "1 and two thirds",
+  "?/4" → "how many fourths", < = > in words, % → percent. LearningText's Listen button uses `speak`/`stopSpeaking`.
+  Actual voice depends on the device; no voice picker yet.
 - **a80450c Square model: equal parts can have different shapes.** area-shapes.ts (AREA_CUTS incl. the user's
   quarter-and-triangles square, pieceArea, areaTaskDone — any correct coloring counts, `avoid` forbids pieces). Rows:
   equal-parts w9–w12 (are these fourths? yes/no with mixed shapes and an off-centre cut; triangles per small square),

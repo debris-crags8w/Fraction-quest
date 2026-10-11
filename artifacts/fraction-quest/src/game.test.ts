@@ -1,3 +1,4 @@
+import { pickVoice, sayFraction, sentences, spokenText } from './lib/voice';
 import { AREA_CUTS, allEqual, areaTaskDone, cutTotal, pieceArea, shadedArea } from './area-shapes';
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
@@ -791,6 +792,27 @@ describe('stale answers', () => {
     assert.equal(staleDraft(word, '1/3'), true); assert.equal(staleDraft(word, 'No'), false);
     assert.equal(staleDraft(count, '1/3'), true); assert.equal(staleDraft(count, '4'), false);
     assert.equal(staleDraft(sheet.find(p => p.answer.includes('/'))!, '2'), false);
+  });
+});
+
+describe('read-aloud voice', () => {
+  const v = (name: string, lang = 'en-US', localService = true) => ({ name, lang, localService });
+  it('picks a gentle natural woman\'s voice over men\'s, novelty and non-English voices', () => {
+    assert.equal(pickVoice([v('Alex'), v('Fred'), v('Samantha'), v('Thomas', 'fr-FR')])?.name, 'Samantha');
+    assert.equal(pickVoice([v('Microsoft David - English (United States)'), v('Microsoft Zira - English (United States)'), v('Microsoft Jenny Online (Natural) - English (United States)')])?.name, 'Microsoft Jenny Online (Natural) - English (United States)');
+    assert.equal(pickVoice([v('Google UK English Male', 'en-GB'), v('Google US English')])?.name, 'Google US English');
+    assert.equal(pickVoice([v('Zarvox'), v('Bad News'), v('Kathy')]), null);
+    assert.equal(pickVoice([v('Daniel', 'en-GB'), v('Some Voice', 'en-AU')])?.name, 'Some Voice');
+    assert.equal(pickVoice([v('Google français', 'fr-FR')]), null);
+  });
+  it('says fractions the way a teacher would', () => {
+    assert.equal(sayFraction(1, 2), 'one half'); assert.equal(sayFraction(3, 4), 'three fourths'); assert.equal(sayFraction(7, 25), '7 over 25');
+    assert.equal(spokenText('Color 1/4 of the square.'), 'Color one fourth of the square.');
+    assert.equal(spokenText('Write 1 2/3 as a fraction.'), 'Write 1 and two thirds as a fraction.');
+    assert.equal(spokenText('2/8 = ?/4'), 'two eighths equals how many fourths');
+    assert.equal(spokenText('3/8 < 1/2'), 'three eighths is less than one half');
+    assert.equal(spokenText('25% of 8'), '25 percent of 8');
+    assert.deepEqual(sentences('One part. Two parts! Ready?'), ['One part.', 'Two parts!', 'Ready?']);
   });
 });
 

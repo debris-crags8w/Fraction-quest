@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useState, type ReactNode } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { MathText } from './MathText';
+import { speak, stopSpeaking } from './lib/voice';
 
 type VocabularyEntry = { pattern: string; definition: string };
 
@@ -41,38 +42,23 @@ function VocabularyTerm({ text, definition, interactive }: { text: string; defin
   );
 }
 
-function spokenText(text: string) {
-  return text.replace(/(\d+)\s*\/\s*(\d+)/g, '$1 over $2');
-}
-
 function ListenButton({ text }: { text: string }) {
   const [speaking, setSpeaking] = useState(false);
   const supported = typeof window !== 'undefined'
     && 'speechSynthesis' in window
     && typeof SpeechSynthesisUtterance !== 'undefined';
 
-  useEffect(() => () => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-  }, []);
+  useEffect(() => () => stopSpeaking(), []);
 
   const toggleSpeech = () => {
     if (!supported) return;
     if (speaking) {
-      window.speechSynthesis.cancel();
+      stopSpeaking();
       setSpeaking(false);
       return;
     }
-
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(spokenText(text));
-    utterance.rate = 0.9;
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
     try {
-      window.speechSynthesis.speak(utterance);
-      setSpeaking(true);
+      setSpeaking(speak(text, () => setSpeaking(false)));
     } catch {
       setSpeaking(false);
     }
