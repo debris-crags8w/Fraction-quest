@@ -10,11 +10,31 @@ export type BuildCheck = {
 };
 export type ReasonFeedback = { message: string; correct: boolean };
 
+export type BuildCheckStage = 'primary' | 'secondary' | 'reason';
+
+/** Reveal each learning step only after the learner has built the prior model. */
+export function getBuildCheckStage(primaryCorrect: boolean, secondaryCorrect: boolean): BuildCheckStage {
+  if (!primaryCorrect) return 'primary';
+  return secondaryCorrect ? 'reason' : 'secondary';
+}
+
+/** A short, concrete explanation that describes what the visible model represents. */
+export function getModelFeedback(target: LearningModel, kind: LearningModel['kind'] = target.kind): string {
+  const count = (n: number, singular: string, plural: string) => `${n} ${n === 1 ? singular : plural}`;
+  if (kind === 'set') {
+    return `${target.total ?? target.d} objects are split into ${target.d} equal groups. ${count(target.n, 'group is', 'groups are')} selected.`;
+  }
+  if (kind === 'line') {
+    return `Each whole has ${target.d} equal spaces. ${count(target.n, 'jump shows', 'jumps show')} the amount.`;
+  }
+  return `Each whole is split into ${target.d} equal parts. ${count(target.n, 'part is', 'parts are')} shaded.`;
+}
+
 /** Keep reasoning feedback separate from model errors so a correct explanation is not blamed for a bad build. */
 export function getReasonFeedback(check: BuildCheck, selected: number | null, modelsCorrect: boolean): ReasonFeedback | null {
-  if (selected === null) return { message: 'Reason: pick one.', correct: false };
-  if (selected !== check.correctReason) return { message: `Reason: not quite. ${check.explanation}`, correct: false };
-  if (!modelsCorrect) return { message: 'Reason: ✓ Your reason is right! Now fix the model.', correct: true };
+  if (selected === null) return { message: 'Reason: Pick the statement that matches your model.', correct: false };
+  if (selected !== check.correctReason) return { message: 'Reason: Not quite. Look at the models and choose again.', correct: false };
+  if (!modelsCorrect) return { message: 'Reason: Your choice is right; fix the model above.', correct: true };
   return null;
 }
 

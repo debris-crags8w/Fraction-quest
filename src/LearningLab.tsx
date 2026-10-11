@@ -2,7 +2,7 @@ import { type CSSProperties, type RefObject, useEffect, useRef, useState } from 
 import { LearningText } from './LearningText';
 import { ArrowLeft, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
 import { numberLineWholeCount, type Progress } from './game';
-import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, type BuildCheck, type LearningModel, type WorksheetProblem } from './learning-content';
+import { answerMatches, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, type BuildCheck, type LearningModel, type WorksheetProblem } from './learning-content';
 import {
   checkWorksheet, editWorksheet, getLearningRecord, hasLearningGate, learningSummary, updateLearning, worksheetCount,
   type LearningRecord,
@@ -34,14 +34,19 @@ function validate(kind: Kind, t: LearningModel, s: St): { msgs: string[]; keys: 
   const msgs: string[] = []; const keys: string[] = [];
   const label = MODEL_LABEL[kind];
   const unit = kind === 'line' ? 'spaces' : kind === 'set' ? 'groups' : 'pieces';
-  if (s.d === 0) return { msgs: [`${label}: pick how many equal ${unit}.`], keys: [M.parts] };
+  if (s.d === 0) return { msgs: [`${label}: choose how many equal ${unit} make one whole.`], keys: [M.parts] };
   if (kind === 'set') {
     const total = t.total ?? 0;
     if (total % s.d !== 0) { msgs.push(`${label}: ${total} can't split into ${s.d} equal groups. Try another number.`); keys.push(M.parts); }
   }
-  if (s.d !== t.d && !msgs.length) { msgs.push(`${label}: ${s.d > t.d ? 'too many' : 'too few'} ${unit}.`); keys.push(M.parts); }
-  if (kind === 'bar' && s.wholes !== t.wholes) { msgs.push(`${label}: ${s.wholes > t.wholes ? 'use fewer bars' : 'you need more bars'}.`); keys.push(M.wholes); }
-  if (s.count !== t.n && s.d === t.d) { msgs.push(`${label}: too ${s.count > t.n ? 'many' : 'few'} ${kind === 'line' ? 'jumps' : kind === 'set' ? 'groups picked' : 'pieces shaded'}. Count again.`); keys.push(M.count); }
+  if (s.d !== t.d && !msgs.length) { msgs.push(`${label}: use ${t.d} equal ${unit} in each whole.`); keys.push(M.parts); }
+  if (kind === 'bar' && s.wholes !== t.wholes) { msgs.push(`${label}: use ${t.wholes} whole ${t.wholes === 1 ? 'bar' : 'bars'}.`); keys.push(M.wholes); }
+  if (s.count !== t.n && s.d === t.d) {
+    const action = kind === 'line' ? 'mark' : kind === 'set' ? 'select' : 'shade';
+    const counted = kind === 'line' ? 'jump' : kind === 'set' ? 'group' : 'piece';
+    msgs.push(`${label}: ${action} ${plural(t.n, counted, `${counted}s`)}.`);
+    keys.push(M.count);
+  }
   return { msgs, keys };
 }
 
@@ -190,15 +195,33 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef }: {
   const [failedSig, setFailedSig] = useState<string | null>(null);
   const [hints, setHints] = useState(0); const [supported, setSupported] = useState(false); const [attempts, setAttempts] = useState(0);
   const [done, setDone] = useState(false);
+  const secondTarget: LearningModel = { ...t, kind: tk, total: undefined, wholes: Math.max(1, Math.ceil(t.n / t.d)) };
+  const primaryValidation = validate(k, t, a);
+  const secondaryValidation = validate(tk, secondTarget, b);
+  const primaryReady = primaryValidation.msgs.length === 0;
+  const secondaryReady = primaryReady && secondaryValidation.msgs.length === 0;
+  const stage = getBuildCheckStage(primaryReady, secondaryReady);
   const sig = JSON.stringify([a, b, reason]);
   const locked = failedSig === sig;
   const transLabel = tk === 'line' ? 'Now show it on a number line' : 'Now show it with a bar';
-  const hintTexts = ['How many equal parts make 1 whole? Start there.', check.explanation];
+  const modelUnit = k === 'line' ? 'spaces' : k === 'set' ? 'groups' : 'parts';
+  const hintTexts = [
+    k === 'set' ? `Share ${t.total ?? t.d} objects into ${t.d} equal groups.` : `Split each whole into ${t.d} equal ${modelUnit}.`,
+    `${k === 'line' ? 'Mark' : k === 'set' ? 'Select' : 'Shade'} ${plural(t.n, k === 'line' ? 'jump' : k === 'set' ? 'group' : 'part', `${k === 'line' ? 'jump' : k === 'set' ? 'group' : 'part'}s`)}.`,
+  ];
+
+  const updatePrimary = (next: St) => {
+    if (JSON.stringify(next) === JSON.stringify(a)) return;
+    setA(next); setB(blank()); setReason(null); setErrs([]); setFailedSig(null); setDone(false);
+  };
+  const updateSecondary = (next: St) => {
+    setB(next); setReason(null); setErrs([]); setFailedSig(null); setDone(false);
+  };
 
   const submit = () => {
-    if (locked || done) return;
+    if (locked || done || stage !== 'reason' || reason === null) return;
     const r1 = validate(k, t, a);
-    const r2 = validate(tk, { ...t, kind: tk, total: undefined, wholes: Math.max(1, Math.ceil(t.n / t.d)) }, b);
+    const r2 = validate(tk, secondTarget, b);
     const keys = [...r1.keys, ...r2.keys.map(() => M.trans)];
     const msgs = [...r1.msgs, ...r2.msgs];
     const reasonFeedback = getReasonFeedback(check, reason, msgs.length === 0);
@@ -216,21 +239,27 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef }: {
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
       <p className="fq-ll-kicker">{check.transfer ? (review ? 'Review' : 'Step 2 · On your own') : 'Step 1 · Build it'}</p>
        <h3 ref={headingRef} tabIndex={-1}><LearningText text={check.prompt} speak /></h3>
-      <Builder kind={k} total={t.total} st={a} set={setA} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
-      <div className="fq-ll-translate">
-        <strong>{transLabel}</strong>
-        <span>Same fraction, new model. Make them match!</span>
-      </div>
-      <Builder kind={tk} st={b} set={setB} id={`${check.id}-b`} title={`Show the same fraction ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
-      <fieldset className="fq-ll-reasons" data-testid={`reasons-${check.id}`}>
-        <legend>Why does it work? Pick one.</legend>
-        {check.reasons.map((r, i) => (
-          <label key={i} className={reason === i ? 'on' : ''}>
-            <input type="radio" name={`reason-${check.id}`} checked={reason === i} onChange={() => setReason(i)} data-testid={`radio-reason-${check.id}-${i}`} />
+       <Builder kind={k} total={t.total} st={a} set={updatePrimary} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
+       {!primaryReady && a.d > 0 && primaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-primary-${check.id}`}>{primaryValidation.msgs[0]}</p>}
+       {primaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-primary-${check.id}`}><Check size={18} /><LearningText text={getModelFeedback(t, k)} speak /></div>}
+       {stage !== 'primary' && <>
+         <div className="fq-ll-translate">
+           <strong>{transLabel}</strong>
+           <span>Show the same amount with a new model.</span>
+         </div>
+         <Builder kind={tk} st={b} set={updateSecondary} id={`${check.id}-b`} title={`Show the same amount ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
+         {!secondaryReady && b.d > 0 && secondaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-secondary-${check.id}`}>{secondaryValidation.msgs[0]}</p>}
+         {secondaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-secondary-${check.id}`}><Check size={18} /><LearningText text={getModelFeedback(t, tk)} speak /></div>}
+       </>}
+       {stage === 'reason' && <fieldset className="fq-ll-reasons" data-testid={`reasons-${check.id}`}>
+         <legend>Both models match. Which idea explains why?</legend>
+         {check.reasons.map((r, i) => (
+           <label key={i} className={reason === i ? 'on' : ''}>
+             <input type="radio" name={`reason-${check.id}`} checked={reason === i} onChange={() => { setReason(i); setErrs([]); setFailedSig(null); }} data-testid={`radio-reason-${check.id}-${i}`} />
              <span><LearningText text={r} interactiveTerms={false} /></span>
-          </label>
-        ))}
-      </fieldset>
+           </label>
+         ))}
+       </fieldset>}
        {hints > 0 && <div className="fq-ll-hint" data-testid={`text-hint-${check.id}`}><strong>Hint:</strong> <LearningText text={hintTexts[Math.min(hints, 2) - 1]} speak /></div>}
       {errs.length > 0 && (
         <div className="fq-ll-feedback retry" role="alert" data-testid={`status-errors-${check.id}`}>
@@ -241,11 +270,11 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef }: {
           </div>
         </div>
       )}
-       {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>You did it! Both models match.</strong> <LearningText text={check.explanation} speak /></div></div>}
+       {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>Both models show the same amount.</strong><details className="fq-ll-full-explanation"><summary>Read the full explanation</summary><LearningText text={check.explanation} speak /></details></div></div>}
       {done && <ModelPair n={t.n} d={t.d} />}
       <div className="fq-ll-actions">
         <button type="button" className="fq-hint-button" onClick={hint} disabled={done} data-testid={`button-hint-${check.id}`}><Lightbulb size={17} /> {hints ? 'Another hint' : 'Hint'}</button>
-        <button type="button" className="fq-button" onClick={submit} disabled={locked || done} data-testid={`button-check-${check.id}`}>Check <Check size={17} /></button>
+         {stage === 'reason' && <button type="button" className="fq-button" onClick={submit} disabled={locked || done || reason === null} data-testid={`button-check-${check.id}`}>Check <Check size={17} /></button>}
       </div>
       {done && review && (
         <button type="button" className="fq-button secondary fq-ll-finish" data-testid="button-review-finish" onClick={() => onPass({ supported, attempts: -1 })}>Finish review</button>
@@ -385,12 +414,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
       <button className="fq-back" onClick={onBack} data-testid="button-lab-back"><ArrowLeft size={17} /> Back</button>
       <header className="fq-ll-head">
         <span className="fq-ll-badge">Learning lab</span>
-        <h2>Build it, then explain it</h2>
-        <p>Make the fraction two ways. Then pick why it works.</p>
-        <div className="fq-ll-models-intro" aria-label="The two models in this lab">
-          <p><ModelTag kind="bar" /> {MODEL_CONCEPTS.bar}</p>
-          <p><ModelTag kind="line" /> {MODEL_CONCEPTS.line}</p>
-        </div>
+         <h2>Build it, then see it another way</h2>
+         <p>Make one model first. When it matches, show the same amount another way.</p>
         <div className="fq-ll-print" role="group" aria-label="Print">
           <PrintMenu missionId={missionId} record={rec} />
           {onPaper && <button type="button" className="fq-button ghost" onClick={onPaper} data-testid="button-check-paper"><ClipboardCheck size={17} /> Check my paper</button>}

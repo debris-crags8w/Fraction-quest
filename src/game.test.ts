@@ -6,7 +6,7 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { splitStory } from './fun-ui';
 import { generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
 import type { PracticeQuestion } from './game';
-import { answerMatches, asChoicePrompt, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
+import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
 import { LearningText } from './LearningText';
 import { BarSvg } from './models';
@@ -534,14 +534,24 @@ describe('entered-answer worksheets and evidence gates', () => {
         const incorrectIndex = (check.correctReason + 1) % check.reasons.length;
         const incorrect = getReasonFeedback(check, incorrectIndex, false);
         assert.equal(incorrect?.correct, false, `${mission.id}/${check.id} should reject a wrong reason`);
-        assert.ok(incorrect?.message.includes(check.explanation), `${mission.id}/${check.id} should explain the correct idea`);
+        assert.match(incorrect?.message ?? '', /Look at the models and choose again/);
 
         const correctButModelsWrong = getReasonFeedback(check, check.correctReason, false);
         assert.equal(correctButModelsWrong?.correct, true, `${mission.id}/${check.id} should preserve a correct reason`);
-        assert.match(correctButModelsWrong?.message ?? '', /reason is right/);
+        assert.match(correctButModelsWrong?.message ?? '', /choice is right/);
         assert.equal(getReasonFeedback(check, check.correctReason, true), null);
       }
     }
+  });
+
+  it('reveals the model-building steps in order and keeps model explanations concrete', () => {
+    assert.equal(getBuildCheckStage(false, false), 'primary');
+    assert.equal(getBuildCheckStage(false, true), 'primary');
+    assert.equal(getBuildCheckStage(true, false), 'secondary');
+    assert.equal(getBuildCheckStage(true, true), 'reason');
+    assert.equal(getModelFeedback({ kind: 'bar', n: 2, d: 5, wholes: 1 }), 'Each whole is split into 5 equal parts. 2 parts are shaded.');
+    assert.equal(getModelFeedback({ kind: 'line', n: 1, d: 4, wholes: 1 }), 'Each whole has 4 equal spaces. 1 jump shows the amount.');
+    assert.equal(getModelFeedback({ kind: 'set', n: 1, d: 3, wholes: 1, total: 12 }), '12 objects are split into 3 equal groups. 1 group is selected.');
   });
 
   it('keeps proper-fraction number lines from 0 to 1 and extends only for improper fractions', () => {
