@@ -17,6 +17,12 @@ Fixes were first written against commit c9a121c, then re-applied on top of the u
 - Medium: ordering items sometimes shown already in the asked order.
 - Low: generator "simpler" help picture was always a 1/2 bar; equation pictures just repeat the question; awkward wording ("Join another 1/5 meter", "garden bed has 6/10 of a meter", "Times the top and bottom").
 
-**Still open / to discuss:** 3-star threshold now counts extra bank questions; challenge walk-throughs not printed; no password reset; COPPA review; grade-4 multiply-fraction-by-whole content; parent view.
+**Done (commits 9c0e023, e9189bc, 9117712):** all findings above fixed, plus:
+- Commit 4d365aa (51 missions) had been built on an older App.tsx and unhooked Unit challenges, paper folding, Practice more/New questions, Print + Check my paper, story walk-throughs, stacked fractions and the sign-out chip, and brought back the long wording. User chose "Restore all": all wired back in, user's new work kept (LearningText read-aloud + vocab, QuickReviewEntry, whole/part bar labels, bar-copy worksheets, FractionEntry, staged checks).
+- The 24 later lessons (units 9–14): template hints ("Use the … idea"), a wrong build target (1 1/4 + 2 1/2 → 5/4), rounded percents/decimals, "0 7/10" answers, 0/4 story answers, duplicate questions. Their practice and worksheets now come from one corrected generator (getExtensionWorksheet + problemQuestion).
+- Units 9–14 have no Unit challenge: Check my paper / answer key / print menu crashed for them; now guarded.
+- Story lines CSS squashed text (.fq-story li span → li > span:first-child).
+
+**Still open / to discuss:** no Unit challenges for units 9–14 yet; tiny stray dotted part-marker beside the printed example bar; 3-star threshold now counts extra bank questions; challenge walk-throughs not printed; no password reset; COPPA review; grade-4 multiply-fraction-by-whole content; parent view.
 
 **How to apply:** regression tests live in game.test.ts under "quality audit fixes". Patch of the original fixes: see git history of this file's commit.
