@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { ChallengeFigure } from './challenges';
 import { FoldIllustration } from './PaperFold';
 
@@ -66,7 +66,7 @@ export function BarSvg({ n = 0, d, wholes = 1, label }: { n?: number; d?: number
           <g key={w}>
             {d && Array.from({ length: d }, (_, p) => {
               const i = w * d + p;
-              return <rect key={p} className={i < n ? 'shaded' : 'empty'} x={x0 + (p * width) / d} y={6} width={width / d} height={32} />;
+              return <rect key={p} className={i < n ? 'shaded' : 'empty'} style={{ '--i': i } as CSSProperties} x={x0 + (p * width) / d} y={6} width={width / d} height={32} />;
             })}
             {!d && <rect className="empty" x={x0} y={6} width={width} height={32} />}
             <rect className="frame" x={x0} y={6} width={width} height={32} fill="none" />
@@ -98,9 +98,9 @@ export function LineSvg({ n = 0, d, wholes = 1, showPoint = true, jumps = true, 
       })}
       {d && showPoint && jumps && n > 0 && Array.from({ length: n }, (_, j) => {
         const x1 = PAD + j * step; const x2 = PAD + (j + 1) * step;
-        return <path key={j} className="jump" d={`M${x1 + 2} ${y - 4} Q${(x1 + x2) / 2} ${y - 26} ${x2 - 2} ${y - 4}`} />;
+        return <path key={j} className="jump" pathLength={1} style={{ '--i': j } as CSSProperties} d={`M${x1 + 2} ${y - 4} Q${(x1 + x2) / 2} ${y - 26} ${x2 - 2} ${y - 4}`} />;
       })}
-      {d && showPoint && <circle className="point" cx={PAD + n * step} cy={y} r={7} />}
+      {d && showPoint && <circle className="point" style={{ '--jumps': jumps ? n : 0 } as CSSProperties} cx={PAD + n * step} cy={y} r={7} />}
     </svg>
   );
 }

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { splitStory } from './fun-ui';
+import { getExtraPractice } from './practice-bank';
 import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
 import {
@@ -520,5 +521,52 @@ describe('long problems', () => {
       }
     }
     assert.equal(Object.values(CHALLENGES).flat().filter((item) => item.steps).length, Object.keys(steps).length);
+  });
+});
+
+describe('extra practice bank', () => {
+  const frac = (t: string) => { const [n, d] = t.split('/').map(Number); return n / d; };
+  it('has 12 well-formed questions for every lesson, with the answer spread across A, B and C', () => {
+    const positions = new Set<number>();
+    for (const mission of MISSIONS) {
+      const bank = getExtraPractice(mission.id, mission.questions.map((q) => q.id));
+      assert.equal(bank.length, 12, mission.id);
+      assert.equal(new Set(bank.map((q) => q.id)).size, 12, `${mission.id} ids`);
+      for (const q of bank) {
+        assert.equal(q.choices.length, 3, q.id);
+        assert.equal(new Set(q.choices).size, 3, `${q.id} has duplicate choices: ${q.choices.join(' | ')}`);
+        assert.ok(mission.questions.some((base) => base.id === q.reviewQuestionId), `${q.id} links to a lesson question for review`);
+        positions.add(q.correctChoice);
+      }
+    }
+    assert.deepEqual([...positions].sort(), [0, 1, 2]);
+  });
+  it('marks the right answer, checked independently for arithmetic and "of a set" questions', () => {
+    let checked = 0;
+    for (const mission of MISSIONS) {
+      for (const q of getExtraPractice(mission.id, mission.questions.map((x) => x.id))) {
+        const right = q.choices[q.correctChoice];
+        let m = /^(\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \?$/.exec(q.prompt);
+        if (m) {
+          const [, a, d1, op, b, d2] = m;
+          const value = Number(a) / Number(d1) + (op === '+' ? 1 : -1) * Number(b) / Number(d2);
+          assert.ok(Math.abs(frac(right) - value) < 1e-9, `${q.id}: ${q.prompt} → ${right}`);
+          checked++;
+        }
+        m = /^What is (\d+)\/(\d+) of (\d+)\?$/.exec(q.prompt);
+        if (m) { assert.equal(Number(right), (Number(m[3]) / Number(m[2])) * Number(m[1]), q.id); checked++; }
+        m = /^Is (\d+)\/(\d+) more or less than 1\/2\?$/.exec(q.prompt);
+        if (m) { assert.equal(right, Number(m[1]) / Number(m[2]) > 0.5 ? 'More than 1/2' : 'Less than 1/2', q.id); checked++; }
+        m = /^Fill the blank: (\d+)\/(\d+) = \?\/(\d+)$/.exec(q.prompt);
+        if (m) { assert.equal(Number(right), (Number(m[1]) * Number(m[3])) / Number(m[2]), q.id); checked++; }
+        m = /^Which is closest to 1\/2\?$/.exec(q.prompt);
+        if (m) { const best = [...q.choices].sort((x, y) => Math.abs(frac(x) - 0.5) - Math.abs(frac(y) - 0.5))[0]; assert.equal(right, best, q.id); checked++; }
+        m = /^Which is (bigger|smaller), (\d+\/\d+) or (\d+\/\d+)\?$/.exec(q.prompt);
+        if (m) { const [x, y] = [frac(m[2]), frac(m[3])]; assert.equal(right, (m[1] === 'bigger') === (x > y) ? m[2] : m[3], q.id); checked++; }
+        m = /^Write (\d+)\/(10|100) as a decimal\.$/.exec(q.prompt);
+        if (m) { assert.equal(Number(right), Number(m[1]) / Number(m[2]), q.id); checked++; }
+      }
+    }
+    assert.ok(checked >= 120, `checked ${checked} questions`);
   });
 });

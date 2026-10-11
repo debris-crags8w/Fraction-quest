@@ -1078,13 +1078,21 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 .fq-fold { --fq-fold-edge: color-mix(in srgb, var(--fq-sky) 55%, #0b4f73); display: grid; gap: 12px; margin-top: 18px; padding: 18px; border: 3px dashed color-mix(in srgb, var(--fq-sky) 45%, transparent); border-radius: 22px; background: color-mix(in srgb, var(--fq-sky) 6%, hsl(var(--card))); }
 .fq-fold-intro { margin: 0; font-weight: 900; }
 .fq-fold-stage { padding: 8px 18px 22px 4px; }
-.fq-fold-paper { display: flex; height: 64px; border: 2px solid #0b4f73; border-radius: 4px; background: #E8F7FF; transition: width 450ms cubic-bezier(.4, .1, .2, 1), box-shadow 450ms ease; overflow: hidden; }
-.fq-fold.shade-half .fq-fold-paper { background: linear-gradient(to right, color-mix(in srgb, var(--fq-grape) 55%, #fff) 50%, #E8F7FF 50%); }
-.fq-fold.shade-half .fq-fold-paper.folded { background: color-mix(in srgb, var(--fq-grape) 55%, #fff); }
-.fq-fold-paper.folded { background: #CDEFFF; }
-.fq-fold-piece { flex: 1; display: grid; place-items: center; border-right: 2px dashed #0b4f73; animation: fq-pop 300ms ease-out; }
+.fq-fold-stage { perspective: 900px; }
+.fq-fold-paper { position: relative; height: 64px; transition: width 450ms cubic-bezier(.4, .1, .2, 1); }
+.fq-fold-sheet, .fq-fold-rest, .fq-fold-flap { position: absolute; top: 0; bottom: 0; border: 2px solid #0b4f73; border-radius: 4px; background: #E8F7FF; }
+.fq-fold-sheet { left: 0; right: 0; display: flex; overflow: hidden; transition: box-shadow 300ms ease; }
+.fq-fold-paper.folded .fq-fold-sheet, .fq-fold-rest { background: #CDEFFF; }
+.fq-fold.shade-half .fq-fold-paper.open .fq-fold-sheet { background: linear-gradient(to right, color-mix(in srgb, var(--fq-grape) 55%, #fff) 50%, #E8F7FF 50%); }
+.fq-fold-flap { z-index: 2; backface-visibility: visible; transform-style: preserve-3d; animation: fq-flap-right 620ms cubic-bezier(.45, .05, .3, 1) forwards; box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+.fq-fold-flap.left { animation-name: fq-flap-left; animation-delay: 80ms; }
+.fq-fold-piece { flex: 1; display: grid; place-items: center; border-right: 2px dashed #0b4f73; transform-origin: left center; animation: fq-unfold-piece 380ms cubic-bezier(.3, .8, .4, 1) both; animation-delay: calc(var(--i, 0) * 70ms); }
 .fq-fold-piece:last-child { border-right: 0; }
 .fq-fold-piece small { font: 900 0.85rem var(--app-font-display); color: #0b4f73; }
+@keyframes fq-flap-right { 0% { transform: rotateY(0); background: #E8F7FF; } 49% { background: #E8F7FF; } 50% { background: #B9E6FF; box-shadow: -8px 4px 14px rgba(11, 79, 115, .25); } 100% { transform: rotateY(-180deg); background: #B9E6FF; } }
+@keyframes fq-flap-left { 0% { transform: rotateY(0); background: #E8F7FF; } 49% { background: #E8F7FF; } 50% { background: #B9E6FF; box-shadow: 8px 4px 14px rgba(11, 79, 115, .25); } 100% { transform: rotateY(180deg); background: #B9E6FF; } }
+@keyframes fq-unfold-piece { from { transform: rotateY(85deg); opacity: .2; } to { transform: none; opacity: 1; } }
+
 .fq-fold-message { margin: 0; font-weight: 800; }
 .fq-fold-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .fq-fold-trail span { padding: 2px 10px; border-radius: 99px; background: var(--fq-track); font-weight: 900; font-size: 0.9rem; }
@@ -1130,3 +1138,43 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 .fq-paper-prompt .fq-points { margin-left: 4px; font-size: 0.7rem; vertical-align: middle; }
 .fq-paper-letters button:disabled { cursor: default; }
 .fq-paper-list .fq-ll-num { width: 28px; align-self: start; }
+
+/* ---------- picture animations (lessons, models, puzzles) ---------- */
+
+/* Bars shade piece by piece. */
+.fq-bar span:not(.empty) { animation: fq-shade-in 260ms ease-out both; animation-delay: calc(var(--i, 0) * 70ms); }
+.fq-svg-bar rect.shaded { animation: fq-shade-in 260ms ease-out both; animation-delay: calc(var(--i, 0) * 70ms); transform-box: fill-box; transform-origin: left center; }
+@keyframes fq-shade-in { from { opacity: 0; transform: scaleX(.2); } to { opacity: 1; transform: none; } }
+
+/* Counters pop in one by one. */
+.fq-counter { animation: fq-pop-in 220ms ease-out both; animation-delay: calc(var(--i, 0) * 35ms); }
+@keyframes fq-pop-in { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: none; } }
+
+/* Strips split into their pieces. */
+.fq-partition-whole span { animation: fq-pop-in 260ms ease-out both; animation-delay: calc(var(--i, 0) * 90ms); }
+
+/* Number lines: hop arc by arc from 0, then the dot lands. */
+.fq-numberline-hops { position: absolute; left: 0; right: 0; top: -14px; width: 100%; height: 30px; overflow: visible; pointer-events: none; }
+.fq-numberline-hops path { fill: none; stroke: #E07000; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: fq-draw 200ms ease-out forwards; animation-delay: calc(var(--i, 0) * 200ms); }
+.fq-numberline-marker { animation: fq-land 320ms cubic-bezier(.3, 1.6, .5, 1) both; animation-delay: calc(var(--jumps, 0) * 200ms); }
+.fq-svg-line .jump { stroke-dasharray: 1; stroke-dashoffset: 1; animation: fq-draw 200ms ease-out forwards; animation-delay: calc(var(--i, 0) * 200ms); }
+.fq-svg-line .point { transform-box: fill-box; transform-origin: center; animation: fq-land 320ms cubic-bezier(.3, 1.6, .5, 1) both; animation-delay: calc(var(--jumps, 0) * 200ms); }
+@keyframes fq-draw { to { stroke-dashoffset: 0; } }
+@keyframes fq-land { from { opacity: 0; transform: translateX(-50%) translateY(-14px) scale(.4); } to { opacity: 1; transform: translateX(-50%); } }
+.fq-svg-line .point { animation-name: fq-land-svg; }
+@keyframes fq-land-svg { from { opacity: 0; transform: translateY(-14px) scale(.4); } to { opacity: 1; transform: none; } }
+
+/* Folding puzzle picture: steps appear one after another. */
+.fq-svg-fold .fold-step { animation: fq-pop-in 300ms ease-out both; animation-delay: calc(var(--i, 0) * 260ms); transform-box: fill-box; transform-origin: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fq-bar span, .fq-svg-bar rect.shaded, .fq-counter, .fq-partition-whole span, .fq-numberline-hops path, .fq-numberline-marker,
+  .fq-svg-line .jump, .fq-svg-line .point, .fq-svg-fold .fold-step, .fq-fold-piece, .fq-fold-flap { animation: none !important; stroke-dashoffset: 0 !important; opacity: 1 !important; }
+}
+@media print {
+  .fq-print *, .fq-print *::before { animation: none !important; transition: none !important; stroke-dashoffset: 0 !important; opacity: 1 !important; }
+}
+
+/* Tick marks on lesson number lines, so kids can count the equal spaces. */
+.fq-numberline-tick::before { content: ""; position: absolute; left: 50%; top: -15px; width: 2.5px; height: 14px; border-radius: 2px; background: hsl(var(--foreground)); transform: translateX(-50%); }
+.fq-numberline-tick.whole::before { top: -18px; height: 20px; width: 3px; }

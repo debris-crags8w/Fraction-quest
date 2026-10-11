@@ -4,12 +4,12 @@ import { getBuildChecks, getWorksheet } from './learning-content';
 export type FractionValue = { numerator: number; denominator: number };
 
 export type ModelSpec =
-  | { kind: 'bars'; bars: FractionValue[]; caption?: string }
+  | { kind: 'bars'; bars: FractionValue[]; caption?: string; hideLabels?: boolean }
   | { kind: 'set'; selected: number; total: number; caption?: string }
-  | { kind: 'line'; numerator: number; denominator: number; wholes?: number; caption?: string }
+  | { kind: 'line'; numerator: number; denominator: number; wholes?: number; caption?: string; hideLabels?: boolean }
   | { kind: 'partition'; parts: number[]; caption?: string }
   | { kind: 'equation'; text: string; caption?: string }
-  | { kind: 'decimal'; tenths: number; caption?: string };
+  | { kind: 'decimal'; tenths: number; caption?: string; hideLabels?: boolean };
 
 export type PracticeQuestion = {
   id: string;
