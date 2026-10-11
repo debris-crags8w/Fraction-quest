@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, Compass, Flame, Lightbulb, LogIn, LogOut, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ClipboardCheck, Compass, Flame, Lightbulb, LogIn, LogOut, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -36,6 +36,8 @@ import { loadFun, playCue, recordCorrect, resetFun, setSound, type FunState } fr
 import { ModelTag } from './models';
 import { AccountGate, useAccount, useAccountSync } from './account';
 import LoginPage from './LoginPage';
+import PaperCheck from './PaperCheck';
+import { PrintMenu } from './Printables';
 import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
 
 const queryClient = new QueryClient();
@@ -47,6 +49,7 @@ type View =
   | { type: 'review-complete'; reviewedCount: number }
   | { type: 'reward'; missionId: string; stars: number };
 type LabView = { type: 'lab'; missionId: string; stars: number };
+type PaperView = { type: 'paper'; missionId: string };
 type RetentionView = { type: 'retention'; missionId: string; startedAt: number; nextView: View };
 
 type UnitInfo = { title: string; subtitle: string };
@@ -187,7 +190,7 @@ function AccountChip() {
   );
 }
 
-function MissionMap({ progress, onStart, onStartReview, onReset }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void }) {
+function MissionMap({ progress, onStart, onStartReview, onReset, onPaper }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void }) {
   const totalStars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
   const nextMission = getNextMission(progress);
   const dueReviewCount = getDueSkillReviewCount(progress);
@@ -302,6 +305,12 @@ function MissionMap({ progress, onStart, onStartReview, onReset }: { progress: P
                               {completed ? 'Practice again' : unlocked ? learning.practiceDone ? 'Resume worksheet & models' : 'Start lesson' : 'Finish earlier lessons first'}
                               {unlocked && <ArrowRight size={16} />}
                             </button>
+                            {unlocked && (
+                              <div className="fq-node-tools">
+                                <PrintMenu missionId={mission.id} record={learning} />
+                                <button className="fq-button ghost" onClick={() => onPaper(mission.id)} data-testid={`button-check-paper-${mission.id}`}><ClipboardCheck size={17} /> Check my paper</button>
+                              </div>
+                            )}
                           </>
                         ),
                       };
@@ -516,7 +525,7 @@ function PlayView({
                     aria-pressed={selection === index}
                     data-testid={`button-answer-${question.id}-${index}`}
                   >
-                    <span className="fq-choice-marker" aria-hidden="true">{index + 1}</span>
+                    <span className="fq-choice-marker" aria-hidden="true">{String.fromCharCode(65 + index)}</span>
                     <span>{choice}<span className="fq-sr">{selection === index ? ` (${feedback === 'correct' ? 'correct' : feedback === 'retry' ? 'try again' : 'selected, not checked yet'})` : ''}</span></span>
                   </button>
                 ))}
@@ -618,7 +627,7 @@ function ReviewCompleteView({ reviewedCount, progress, onMap, onReset }: { revie
 
 function Game() {
   const [progress, setProgress] = useState<Progress>(() => loadProgress());
-  const [view, setView] = useState<View | LabView | RetentionView>({ type: 'map' });
+  const [view, setView] = useState<View | LabView | RetentionView | PaperView>({ type: 'map' });
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [saveError, setSaveError] = useState(false);
@@ -629,8 +638,9 @@ function Game() {
 
   const startMission = (missionId: string) => {
     if (!isMissionUnlocked(progress, missionId)) return;
-    if (getLearningRecord(progress, missionId).practiceDone && !hasLearningGate(progress, missionId)) {
-      setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 });
+    const record = getLearningRecord(progress, missionId);
+    if (record.practiceDone && !hasLearningGate(progress, missionId)) {
+      setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? record.practiceStars ?? 1 });
       return;
     }
     setView({
@@ -701,7 +711,11 @@ function Game() {
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} />}
+      {view.type === 'paper' && (
+        <PaperCheck missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap}
+          onLab={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? getLearningRecord(progress, view.missionId).practiceStars ?? 1 })} />
+      )}
       {(view.type === 'play' || view.type === 'review') && activeMission && (
         <PlayView
           key={`${activeMission.id}-${view.questionIndex}`}
@@ -728,7 +742,7 @@ function Game() {
           }}
           onFinish={(stars) => {
             const record = getLearningRecord(progress, activeMission.id);
-            persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceDone: true }));
+            persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceDone: true, practiceStars: Math.max(stars, record.practiceStars ?? 0) }));
             setView({ type: 'lab', missionId: activeMission.id, stars });
           }}
           onFinishReview={view.type === 'review' ? () => nextReviewView({ type: 'review-complete', reviewedCount: view.reviewQuestions.length }) : undefined}
@@ -747,7 +761,7 @@ function Game() {
           }}
         />
       )}
-      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} />}
+      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId })} />}
       {view.type === 'retention' && <LearningLab key={`retention-${view.startedAt}`} review missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap} onFinish={(updated) => {
         const latest = updated ?? progress;
         const record = getLearningRecord(latest, view.missionId);

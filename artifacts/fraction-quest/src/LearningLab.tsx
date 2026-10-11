@@ -1,5 +1,5 @@
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Check, CircleHelp, Lightbulb, Minus, Plus, Printer, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
 import { numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, type BuildCheck, type LearningModel, type WorksheetProblem } from './learning-content';
 import {
@@ -8,7 +8,7 @@ import {
 } from './learning';
 import { denomColor } from './fun-ui';
 import { MODEL_CONCEPTS, ModelPair, ModelTag } from './models';
-import PrintWorksheet, { type PrintMode } from './PrintWorksheet';
+import { PrintMenu } from './Printables';
 import './learning-lab.css';
 
 type Kind = LearningModel['kind'];
@@ -227,7 +227,7 @@ function CheckRunner({ check, onHelp, onPass, review }: {
   );
 }
 
-function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; rec: LearningRecord; onEdit: (v: string) => void; onCheck: () => void; onHint: () => void }) {
+export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; rec: LearningRecord; onEdit: (v: string) => void; onCheck: () => void; onHint: () => void }) {
   const e = rec.worksheet[p.id]; const draft = e?.draft ?? '';
   const ok = !!e && e.checkedValue === e.draft && answerMatches(p, draft);
   const [open, setOpen] = useState(false);
@@ -255,8 +255,8 @@ function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; rec: Le
   );
 }
 
-export default function LearningLab({ missionId, progress, onChange, onFinish, onBack, review = false }: {
-  missionId: string; progress: Progress; onChange: (progress: Progress) => void; onFinish: (nextProgress?: Progress) => void; onBack: () => void; review?: boolean;
+export default function LearningLab({ missionId, progress, onChange, onFinish, onBack, onPaper, review = false }: {
+  missionId: string; progress: Progress; onChange: (progress: Progress) => void; onFinish: (nextProgress?: Progress) => void; onBack: () => void; onPaper?: () => void; review?: boolean;
 }) {
   const ref = useRef(progress); ref.current = progress;
   const checks = getBuildChecks(missionId);
@@ -264,15 +264,6 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const [notice, setNotice] = useState('');
   const [reviewPassed, setReviewPassed] = useState(false);
   const [reviewSupported, setReviewSupported] = useState(() => (getLearningRecord(progress, missionId).reviewSupportedUntil ?? 0) > Date.now());
-  const [printMode, setPrintMode] = useState<PrintMode>('blank');
-  const [printRequest, setPrintRequest] = useState(0);
-  useEffect(() => {
-    if (!printRequest) return;
-    // Wait one frame so the chosen print layout is in the page before the print dialog opens.
-    const frame = window.requestAnimationFrame(() => window.print());
-    return () => window.cancelAnimationFrame(frame);
-  }, [printRequest]);
-  const print = (mode: PrintMode) => { setPrintMode(mode); setPrintRequest((n) => n + 1); };
   const rec = getLearningRecord(progress, missionId);
   const save = (r: LearningRecord) => { const p = updateLearning(ref.current, missionId, r); ref.current = p; onChange(p); };
   const cur = () => getLearningRecord(ref.current, missionId);
@@ -328,8 +319,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           <p><ModelTag kind="line" /> {MODEL_CONCEPTS.line}</p>
         </div>
         <div className="fq-ll-print" role="group" aria-label="Print">
-          <button type="button" className="fq-button ghost" onClick={() => print('blank')} data-testid="button-print-worksheet"><Printer size={17} /> Print worksheet</button>
-          <button type="button" className="fq-button ghost" onClick={() => print('answers')} data-testid="button-print-answers"><Printer size={17} /> Print my answers</button>
+          <PrintMenu missionId={missionId} record={rec} />
+          {onPaper && <button type="button" className="fq-button ghost" onClick={onPaper} data-testid="button-check-paper"><ClipboardCheck size={17} /> Check my paper</button>}
         </div>
       </header>
 
@@ -395,7 +386,6 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         ) : <p className="fq-ll-note" data-testid="text-no-misconceptions">Nothing yet. Nice!</p>}
         <button className="fq-button secondary" disabled={!gate} onClick={() => gate && onFinish()} data-testid="button-lab-finish">Finish lesson</button>
       </section>
-      <PrintWorksheet missionId={missionId} record={rec} mode={printMode} />
     </div>
   );
 }

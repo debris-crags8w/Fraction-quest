@@ -7,6 +7,8 @@ export type LearningRecord = {
   practiceDone?: boolean; checks: Record<string, CheckEvidence>; worksheet: Record<string, WorksheetEntry>;
   completedAt?: number; confirmedAt?: number; helpUses: number; misconceptions: Record<string, number>;
   reviewSupportedUntil?: number;
+  /** Stars earned in practice (on screen or on paper), used when the lesson is finished. */
+  practiceStars?: number;
 };
 export const emptyLearningRecord = (): LearningRecord => ({ checks: {}, worksheet: {}, helpUses: 0, misconceptions: {} });
 export function getLearningRecord(progress: Progress, id: string): LearningRecord {

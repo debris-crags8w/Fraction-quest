@@ -876,7 +876,9 @@
   html, body { background: #fff !important; }
   /* Only the worksheet prints: hide everything around it so no blank pages follow. */
   #root *:not(:has(.fq-print)):not(.fq-print):not(.fq-print *) { display: none !important; }
-  #root :has(.fq-print) { display: block !important; width: auto !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
+  #root :has(.fq-print) { display: block !important; position: static !important; width: auto !important; max-width: none !important; margin: 0 !important; padding: 0 !important; transform: none !important; animation: none !important; border: 0 !important; background: none !important; box-shadow: none !important; outline: 0 !important; }
+  /* Printed from inside a colored card (e.g. the map): don't inherit its white text. */
+  .fq-print, .fq-print p, .fq-print li, .fq-print span, .fq-print b, .fq-print h1, .fq-print h2, .fq-print strong, .fq-print figcaption { color: #000 !important; text-align: left; }
   .fq-print { display: block; width: 100%; color: #000; font-family: var(--app-font-sans); font-size: 11.5pt; line-height: 1.35; }
   .fq-app, .fq-ll { background: #fff !important; }
   .fq-lesson-footer, .fq-confetti { display: none !important; }
@@ -980,4 +982,54 @@
 @media (max-width: 720px) {
   .fq-account-name { display: none; }
   .fq-account-signin { padding: 0 10px; }
+}
+
+/* ---------- print menu & paper check (screen) ---------- */
+
+.fq-print-menu { position: relative; display: inline-grid; gap: 8px; }
+.fq-print-options { display: grid; gap: 6px; padding: 8px; border-radius: 16px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge), 0 5px 0 var(--fq-edge); }
+.fq-print-options button { min-height: 42px; padding: 0 14px; border: 0; border-radius: 12px; background: transparent; color: hsl(var(--foreground)); font-weight: 800; text-align: left; cursor: pointer; }
+.fq-print-options button:hover, .fq-print-options button:focus-visible { background: hsl(var(--muted)); }
+.fq-node-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.fq-node-card .fq-node-tools .fq-button { width: auto; flex: 1 1 140px; min-height: 44px; font-size: 0.78rem; color: var(--unit); }
+.fq-node-card .fq-print-menu { flex: 1 1 140px; }
+.fq-node-card .fq-print-menu > .fq-button { width: 100%; }
+.fq-node-card .fq-print-options button { color: hsl(var(--foreground)); }
+
+.fq-paper-head { display: flex; gap: 14px; align-items: center; }
+.fq-paper-head .fq-mascot { flex: none; }
+.fq-paper-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.fq-paper-list li { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; padding: 12px 14px; border: 2px solid var(--fq-edge); border-bottom-width: 4px; border-radius: 16px; }
+.fq-paper-list li.ok { border-color: var(--fq-lime); background: var(--fq-good-bg); }
+.fq-paper-list li.bad { border-color: var(--fq-red); background: var(--fq-bad-bg); }
+.fq-paper-prompt { font-weight: 800; line-height: 1.35; }
+.fq-paper-letters { grid-column: 2; display: flex; gap: 8px; }
+.fq-paper-letters button { width: 48px; height: 48px; border: 2px solid var(--fq-edge); border-bottom-width: 4px; border-radius: 50%; background: hsl(var(--card)); color: hsl(var(--foreground)); font: 900 1.1rem var(--app-font-display); cursor: pointer; }
+.fq-paper-letters button.on { border-color: var(--fq-sky); color: #0E7FB6; background: color-mix(in srgb, var(--fq-sky) 14%, hsl(var(--card))); }
+.fq-paper-list li.ok .fq-paper-letters button.on { border-color: var(--fq-lime); color: var(--fq-good-fg); }
+.fq-paper-list li.bad .fq-paper-letters button.on { border-color: var(--fq-red); color: var(--fq-bad-fg); }
+.fq-paper-mark { grid-column: 2; display: inline-flex; align-items: center; gap: 4px; font-weight: 900; }
+.fq-paper-list li.ok .fq-paper-mark { color: var(--fq-good-fg); }
+.fq-paper-list li.bad .fq-paper-mark { color: var(--fq-bad-fg); }
+.fq-paper .fq-ll-sheet > .fq-button { justify-self: start; }
+.fq-paper-foot { display: flex; justify-content: flex-end; }
+
+/* ---------- extra printable pages (paper) ---------- */
+
+@media print {
+  .fq-print-menu > .fq-button, .fq-print-options { display: none !important; }
+  .fq-print-instructions { margin: 10px 0 0 !important; font-weight: 800; }
+  .fq-print-bar-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+  .fq-print-bar-row svg { max-width: 70mm; }
+  .fq-print-bar-row b { font-size: 11pt; }
+  .fq-print-model small { font-size: 9pt; color: #333; }
+  .fq-print-equation { font-size: 16pt !important; font-weight: 900; }
+  .fq-print-choices { display: grid; gap: 5px; margin: 2px 0 0; padding: 0; list-style: none; }
+  .fq-print-choices li { counter-increment: none !important; display: flex; align-items: center; gap: 8px; padding: 0 !important; border: 0 !important; font-weight: 700; }
+  .fq-print-choices li::before { content: none !important; }
+  .fq-print-circle { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 1.5px solid #000; border-radius: 50%; font-weight: 900; font-size: 10pt; }
+  .fq-print-key { margin-top: 10px; }
+  .fq-print-key-list { margin: 4px 0 0; padding-left: 22px; display: grid; gap: 3px; }
+  .fq-print-key-list.two-col { grid-template-columns: 1fr 1fr; column-gap: 18px; }
+  .fq-print-key-list small { color: #444; font-size: 8.5pt; }
 }
