@@ -4,7 +4,7 @@ import type { Mission } from './game';
 import { MathText } from './MathText';
 import { Confetti, Mascot, useFun } from './fun-ui';
 import { playCue } from './lib/fun';
-import { CODE_LEVEL_COUNT, countBlocks, describe, getCodeLevels, passesCodeLevel, predictionMatchesTarget, runProgram, toText, usesEffectiveLoop, usesLoop, type Block, type CodeLevel, type RobotState, type RunResult } from './code-quest';
+import { CODE_LEVEL_COUNT, countBlocks, describe, getCodeLevels, getRunHint, passesCodeLevel, predictionMatchesTarget, runProgram, toText, usesEffectiveLoop, usesLoop, type Block, type CodeLevel, type RobotState, type RunResult } from './code-quest';
 import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
 
 /* Code challenge: program a robot to build the lesson's fraction with blocks (or read it as Python). */
@@ -298,8 +298,8 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
               <p>
                 <MathText text={predictionFeedback ?? result?.error ?? (result ? describe(result) : '')} />
                 {outcome === 'miss' && result && !result.error && !level.requiresLoop && <MathText text={` The goal is ${level.target.n}/${level.target.d}.`} />}
-                {outcome === 'miss' && result && level.requiresLoop && !usesEffectiveLoop(program) && <MathText text=" This model is right; now put the repeated actions in a repeat block." />}
               </p>
+              {outcome === 'miss' && result && <p className="fq-code-hint" data-testid="text-code-hint"><strong>Hint:</strong> <MathText text={getRunHint(result, level.target, program, level.requiresLoop)} /></p>}
               {loopStar && <p className="fq-code-star"><Star size={15} fill="currentColor" /> Bonus star: you used a loop!</p>}
               {outcome === 'win' && level.mode === 'build' && !usesLoop(program) && <p className="fq-code-note">Try again with a repeat loop: it's how coders avoid writing the same block again and again.</p>}
               {outcome === 'win' && at < levels.length - 1 && <button type="button" className="fq-button" onClick={() => goTo(at + 1)} data-testid="button-code-next">Next level</button>}

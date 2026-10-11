@@ -1,5 +1,5 @@
-/* Read-aloud voice: a gentle, natural-sounding woman's voice when the device has one, kid-friendly wording
-   ("three fourths", not "3 over 4"), a calm pace, and a short pause between sentences. Pure helpers are tested. */
+/* Read-aloud helpers: choose a gentle, natural-sounding woman's voice when the device has one, kid-friendly wording
+   ("three fourths", not "3 over 4"), a calm pace, and sentence splitting for pauses. LearningText does the speaking. */
 
 type VoiceLike = Pick<SpeechSynthesisVoice, 'name' | 'lang'> & { default?: boolean };
 
@@ -75,37 +75,6 @@ export function sentences(text: string): string[] {
   return (text.match(/[^.!?]+[.!?]*/g) ?? [text]).map((s) => s.trim()).filter(Boolean);
 }
 
-let chosen: SpeechSynthesisVoice | null = null;
-function currentVoice(): SpeechSynthesisVoice | null {
-  if (chosen) return chosen;
-  const language = document.documentElement.lang || navigator.language || 'en-US';
-  chosen = selectLearningVoice(window.speechSynthesis.getVoices(), language);
-  return chosen;
-}
-// Voices load after the page in Chrome; pick again when they arrive.
-if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-  window.speechSynthesis.addEventListener?.('voiceschanged', () => { chosen = null; });
-}
-
-/** Speak text in the gentle voice. Calls onDone when finished, stopped or failed. Returns false if speech is unavailable. */
-export function speak(text: string, onDone: () => void): boolean {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return false;
-  const synth = window.speechSynthesis;
-  synth.cancel();
-  const parts = sentences(spokenText(text));
-  const voice = currentVoice();
-  parts.forEach((part, i) => {
-    const u = new SpeechSynthesisUtterance(part);
-    if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = 'en-US';
-    u.rate = 0.88;   // calm, easy to follow
-    u.pitch = 1.1;   // a little brighter and friendlier
-    if (i === parts.length - 1) { u.onend = onDone; }
-    u.onerror = onDone;
-    synth.speak(u);
-  });
-  return true;
-}
-
-export function stopSpeaking() {
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
-}
+/** Calm, easy to follow, a little brighter and friendlier than the default. */
+export const VOICE_RATE = 0.88;
+export const VOICE_PITCH = 1.1;

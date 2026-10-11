@@ -9,8 +9,11 @@ import { MODEL_NAMES, ModelTag } from './models';
 
 type FunContextValue = { fun: FunState; setFun: (next: FunState) => void };
 export const FunContext = createContext<FunContextValue | null>(null);
+export function useOptionalFun(): FunContextValue | null {
+  return useContext(FunContext);
+}
 export function useFun(): FunContextValue {
-  const value = useContext(FunContext);
+  const value = useOptionalFun();
   if (!value) throw new Error('useFun must be used inside FunContext');
   return value;
 }

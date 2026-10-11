@@ -37,7 +37,7 @@ import QuickReviewEntry from './QuickReviewEntry';
 import { getLearningRecord, hasLearningGate, learningSummary, updateLearning, worksheetCount } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, setSound, type FunState } from './lib/fun';
+import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, recordRace, recordSprint, resetFun, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag } from './models';
@@ -56,6 +56,10 @@ import PlacementQuiz from './PlacementQuiz';
 import { applyPlacement } from './placement';
 import { AccountGate, useAccount, useAccountSync } from './account';
 import LoginPage from './LoginPage';
+import DailyPractice from './DailyPractice';
+import { createDailyPractice, dailyPracticeDay } from './daily-practice';
+import PartFinder from './PartFinder';
+import { PART_FINDER_LESSONS } from './part-finder';
 const queryClient = new QueryClient();
 
 type View =
@@ -63,12 +67,13 @@ type View =
   | { type: 'play'; missionId: string; questionIndex: number; firstTryAnswers: number; reviewQuestions: PracticeQuestion[] }
   | { type: 'review'; questionIndex: number; reviewQuestions: PracticeQuestion[] }
   | { type: 'review-complete'; reviewedCount: number }
+  | { type: 'daily' }
   | { type: 'reward'; missionId: string; stars: number };
 type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string };
 type ChallengeView = { type: 'challenge'; unit: number };
 type ParentPage = { type: 'parent' };
-type GameView = { type: 'race' | 'code'; missionId: string };
+type GameView = { type: 'race' | 'code' | 'part-finder'; missionId: string };
 type PlacementView = { type: 'placement' };
 // seed 0 = the fixed 12 "Practice more" questions; any other seed = freshly generated questions.
 type ExtraView = { type: 'extra'; missionId: string; seed: number; questionIndex: number; firstTry: number } | { type: 'extra-done'; missionId: string; seed: number; firstTry: number; total: number };
@@ -246,7 +251,7 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
   );
 }
 
-function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
+function MissionMap({ progress, onStart, onStartReview, onStartDaily, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
   const { user } = useAccount();
   const { fun } = useFun();
   const codeSummary = summarizeCodeProgress(fun.codeLevels, MISSIONS.map((mission) => mission.id));
@@ -323,6 +328,24 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
           )}
           {progress.placement && <p className="fq-place-note" data-testid="text-placement-note">Started at unit {progress.placement.unit} after the level quiz. Earlier lessons are still open.</p>}
 
+          {(() => {
+            const today = progress.dailyPractice?.day === dailyPracticeDay() ? progress.dailyPractice : null;
+            const done = !!today?.completedAt;
+            const current = today && !done;
+            return (
+              <section className="fq-daily-map-card" data-testid="section-daily-practice">
+                <div className="fq-daily-map-icon" aria-hidden="true"><Sparkles size={21} /></div>
+                <div className="fq-daily-map-copy">
+                  <strong>{done ? 'Today’s practice is complete' : current ? 'Pick up today’s practice' : 'A little fraction practice each day'}</strong>
+                  <span>{done ? 'Five models built and named. Your lesson progress is separate.' : current ? `${today.index + 1} of ${today.questions.length} models · Your work is saved` : 'Five quick model-and-answer questions, about 5 minutes, chosen from your learning.'}</span>
+                </div>
+                <button className="fq-button" onClick={onStartDaily} data-testid="button-start-daily-practice">
+                  {done ? 'Review' : current ? 'Continue' : 'Start'} <ArrowRight size={16} />
+                </button>
+              </section>
+            );
+          })()}
+
           <QuickReviewEntry progress={progress} onStart={onStartReview} />
 
           <div className="fq-unit-list">
@@ -385,6 +408,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
                                 <button className="fq-button ghost" onClick={() => onPaper(mission.id)} data-testid={`button-check-paper-${mission.id}`}><ClipboardCheck size={17} /> Check my paper</button>
                                 <button className="fq-button ghost" onClick={() => onGame('race', mission.id)} data-testid={`button-race-${mission.id}`}><Zap size={17} /> Race</button>
                                 <button className="fq-button ghost" onClick={() => onGame('code', mission.id)} data-testid={`button-code-${mission.id}`}><Code2 size={17} /> Code</button>
+                                {PART_FINDER_LESSONS.has(mission.id) && <button className="fq-button ghost" onClick={() => onGame('part-finder', mission.id)} data-testid={`button-part-finder-${mission.id}`}><Compass size={17} /> Part Finder{fun.partFinderBest !== undefined ? ` · Best ${fun.partFinderBest}/3` : ''}</button>}
                               </div>
                             )}
                           </>
@@ -400,7 +424,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
         </section>
         <section className="fq-grownups" data-testid="section-grownups">
           <span className="fq-grownups-icon" aria-hidden="true"><BarChart3 size={22} /></span>
-          <span><strong>For grown-ups</strong><small>Progress, time this week, and what to practice. Printable.</small></span>
+          <span><strong>For grown-ups</strong><small>Progress, time this week, what to practice, and lesson answer keys. Printable.</small></span>
           <span className="fq-grownups-buttons">
             <button className="fq-button ghost" onClick={onParent} data-testid="button-open-parent">Open report</button>
             <button className="fq-button ghost" onClick={onPlacement} data-testid="button-open-placement">Level quiz</button>
@@ -669,7 +693,7 @@ function PlayView({
   );
 }
 
-function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code') => void }) {
+function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code' | 'part-finder') => void }) {
   const nextMission = getNextMission(progress);
   const { fun } = useFun();
   useEffect(() => {
@@ -697,6 +721,7 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
             <span>Play with this lesson:</span>
             <button className="fq-button ghost" onClick={() => onGame('race')} data-testid="button-reward-race"><Zap size={17} /> Race</button>
             <button className="fq-button ghost" onClick={() => onGame('code')} data-testid="button-reward-code"><Code2 size={17} /> Code</button>
+            {PART_FINDER_LESSONS.has(mission.id) && <button className="fq-button ghost" onClick={() => onGame('part-finder')} data-testid="button-reward-part-finder"><Compass size={17} /> Part Finder</button>}
           </div>
         </section>
       </main>
@@ -798,6 +823,13 @@ function Game() {
     setView({ type: 'review', questionIndex: 0, reviewQuestions });
   };
 
+  const startDailyPractice = () => {
+    const saved = progress.dailyPractice;
+    const session = saved?.day === dailyPracticeDay() ? saved : createDailyPractice(progress);
+    if (session !== saved) persistProgress({ ...progress, dailyPractice: session });
+    setView({ type: 'daily' });
+  };
+
   const persistProgress = (nextProgress: Progress) => {
     setSaveError(!saveProgress(nextProgress));
     setProgress(nextProgress);
@@ -850,7 +882,8 @@ function Game() {
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onStartDaily={startDailyPractice} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} />}
       {view.type === 'placement' && <PlacementQuiz unitTitles={UNIT_TITLES} onExit={returnToMap} onDone={(passed) => { persistProgress(applyPlacement(progress, passed)); returnToMap(); }} />}
       {view.type === 'race' && (
         <FractionRace key={view.missionId} mission={getMission(view.missionId)} best={fun.raceBest?.[view.missionId] ?? null} robotBeaten={fun.robotBeaten?.[view.missionId] ?? 0} sprintBest={fun.sprintBest?.[view.missionId] ?? null}
@@ -862,6 +895,7 @@ function Game() {
         <CodeQuest key={view.missionId} mission={getMission(view.missionId)} solved={fun.codeLevels?.[view.missionId] ?? 0}
           onExit={returnToMap} onSolved={(level) => setFun((current) => recordCodeLevel(current, view.missionId, level))} />
       )}
+      {view.type === 'part-finder' && <PartFinder best={fun.partFinderBest ?? null} onExit={returnToMap} onFinish={(score) => setFun((current) => recordPartFinder(current, score))} />}
       {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.user?.displayName ?? null} onBack={returnToMap} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);
@@ -970,7 +1004,7 @@ function Game() {
           <div className="fq-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description">
             <button className="fq-icon-button fq-modal-close" onClick={() => setResetOpen(false)} aria-label="Close reset dialog" data-testid="button-close-reset"><X size={18} /></button>
             <h2 id="reset-title">Start the map over?</h2>
-            <p id="reset-description">{account.user ? `This clears ${account.user.displayName}'s lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
+            <p id="reset-description">{account.user ? `This clears ${account.user.displayName}'s lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
             <div className="fq-modal-actions">
               <button className="fq-button ghost" onClick={() => setResetOpen(false)} data-testid="button-cancel-reset">Keep exploring</button>
               <button className="fq-button" onClick={resetProgress} data-testid="button-confirm-reset">Reset progress</button>

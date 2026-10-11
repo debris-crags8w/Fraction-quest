@@ -44,3 +44,9 @@ Coding challenge difficulty should grow by combining the existing blocks into mo
 **Why:** The user chose a longer progression using the current blocks when asked how to make the coding challenges more advanced.
 
 **How to apply:** Increase prediction, debugging, loop use, and transfer between fraction models while keeping the block vocabulary familiar.
+
+In coding challenges, hints are diagnostic support, not evidence of independent success. Count and save progress only when the learner's run satisfies the full level requirements.
+
+**Why:** The user explicitly required robot hints to support retries without awarding success or revealing a complete solution.
+
+**How to apply:** Keep hint rendering separate from level-passing and progress-saving logic; a hint may guide one next step, but only a qualifying run can pass the challenge.

@@ -49,6 +49,27 @@ test('account hydration loads the account snapshot without mixing in this device
   assert.equal(savedToAccount, 0);
 });
 
+test('account hydration carries a saved voice preference to another device', async () => {
+  const accountVoice = 'desktop-voice|en-US';
+  let device: AccountBundle = {
+    ...guest,
+    fun: { ...guest.fun, preferredLearningVoiceId: 'phone-voice|en-US' },
+  };
+  const restored = await hydrateAccountProgress({
+    getProgress: async () => ({
+      progress: guest.progress,
+      fun: { ...guest.fun, preferredLearningVoiceId: accountVoice },
+    }),
+    saveProgress: async () => {},
+  }, {
+    read: () => device,
+    write: (bundle) => { device = bundle; },
+  });
+
+  assert.equal(restored.fun.preferredLearningVoiceId, accountVoice);
+  assert.equal(device.fun.preferredLearningVoiceId, accountVoice);
+});
+
 test('a new account receives guest work, and a failed upload leaves the device copy unchanged', async () => {
   let device = guest;
   let received: unknown;

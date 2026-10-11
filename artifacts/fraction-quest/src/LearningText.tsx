@@ -1,7 +1,9 @@
-import React, { useEffect, useId, useState, type ReactNode } from 'react';
+import React, { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
+import { useOptionalFun } from './fun-ui';
+import { setLearningVoicePreference } from './lib/fun';
 import { MathText } from './MathText';
-import { selectLearningVoice, speak, stopSpeaking } from './lib/voice';
+import { selectLearningVoice as selectGentleVoice, sentences, spokenText, VOICE_PITCH, VOICE_RATE } from './lib/voice';
 
 type VocabularyEntry = { pattern: string; definition: string };
 
@@ -42,28 +44,350 @@ function VocabularyTerm({ text, definition, interactive }: { text: string; defin
   );
 }
 
-export { selectLearningVoice };
+/** Read text the way a teacher would: "3/4" → "three fourths", "1 2/3" → "1 and two thirds". */
+export function spokenLearningText(text: string) {
+  return spokenText(text);
+}
+
+type VoiceCandidate = Pick<SpeechSynthesisVoice, 'name' | 'lang' | 'default'>
+  & Partial<Pick<SpeechSynthesisVoice, 'voiceURI'>>;
+const FEMININE_VOICE_HINTS = /\b(female|woman|samantha|victoria|karen|moira|tessa|susan|zira|jenny|aria|joanna|ava|allison|serena|sara|hazel)\b/i;
+const LEARNING_VOICE_STORAGE_KEY = 'fraction-quest-learning-voice';
+
+export function learningVoiceId(voice: VoiceCandidate) {
+  return voice.voiceURI || `${voice.name}|${voice.lang}`;
+}
+
+export function getLearningLanguage() {
+  if (typeof document !== 'undefined' && document.documentElement.lang) return document.documentElement.lang;
+  if (typeof navigator !== 'undefined' && navigator.language) return navigator.language;
+  return 'en-US';
+}
+
+function getSavedLearningVoiceId() {
+  try {
+    return typeof window === 'undefined' ? null : window.localStorage.getItem(LEARNING_VOICE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveLearningVoiceId(id: string) {
+  try {
+    window.localStorage.setItem(LEARNING_VOICE_STORAGE_KEY, id);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** A saved, available voice in the requested language wins. Otherwise pick the gentlest natural-sounding woman's
+    voice in that language (skipping men's and novelty voices), then any voice in the language, then the browser default. */
+export function selectLearningVoice<T extends VoiceCandidate>(
+  voices: readonly T[],
+  preferredLanguage: string,
+  preferredVoiceId: string | null = null,
+): T | null {
+  if (voices.length === 0) return null;
+  if (preferredVoiceId) {
+    const primary = (language: string) => language.toLowerCase().replace(/_/g, '-').split('-')[0];
+    const savedVoice = voices.find((voice) => learningVoiceId(voice) === preferredVoiceId && primary(voice.lang) === primary(preferredLanguage));
+    if (savedVoice) return savedVoice;
+  }
+  return selectGentleVoice(voices, preferredLanguage);
+}
+
+const VOICE_LIST_WAIT_MS = 500;
+
+/**
+ * Owns a single read-aloud session. The short voice-list wait lets browsers
+ * that populate voices asynchronously use the preferred voice on first play.
+ */
+export function createLearningSpeechController(
+  synthesis: SpeechSynthesis,
+  onSpeakingChange: (speaking: boolean) => void,
+  makeUtterance: (text: string) => SpeechSynthesisUtterance = (text) => new SpeechSynthesisUtterance(text),
+  voiceWaitMs = VOICE_LIST_WAIT_MS,
+  getPreferredVoiceId: () => string | null = getSavedLearningVoiceId,
+) {
+  let generation = 0;
+  let waitTimer: ReturnType<typeof setTimeout> | undefined;
+  let waitingForVoices = false;
+  let speaking = false;
+  let disposed = false;
+  let waitingListener: (() => void) | undefined;
+
+  const clearVoiceWait = () => {
+    if (waitTimer !== undefined) clearTimeout(waitTimer);
+    waitTimer = undefined;
+    if (waitingListener) synthesis.removeEventListener('voiceschanged', waitingListener);
+    waitingListener = undefined;
+    waitingForVoices = false;
+  };
+
+  const setSpeaking = (next: boolean) => {
+    if (speaking === next) return;
+    speaking = next;
+    onSpeakingChange(next);
+  };
+
+  const stop = () => {
+    generation += 1;
+    clearVoiceWait();
+    try {
+      synthesis.cancel();
+    } finally {
+      setSpeaking(false);
+    }
+  };
+
+  const startUtterance = (text: string, language: string, playback: number, voices: readonly SpeechSynthesisVoice[]) => {
+    if (disposed || playback !== generation) return;
+    clearVoiceWait();
+    const voice = selectLearningVoice(voices, language, getPreferredVoiceId());
+    const finish = () => {
+      if (playback === generation) setSpeaking(false);
+    };
+    // One utterance per sentence: the voice pauses between them, and Chrome doesn't cut off long readings.
+    const parts = sentences(spokenLearningText(text));
+    try {
+      setSpeaking(true);
+      parts.forEach((part, index) => {
+        const utterance = makeUtterance(part);
+        if (voice) utterance.voice = voice;
+        utterance.lang = voice?.lang || language;
+        utterance.rate = VOICE_RATE;
+        utterance.pitch = VOICE_PITCH;
+        if (index === parts.length - 1) utterance.onend = finish;
+        utterance.onerror = finish;
+        synthesis.speak(utterance);
+      });
+      if (!parts.length) finish();
+    } catch {
+      finish();
+    }
+  };
+
+  return {
+    speak(text: string, language: string) {
+      if (disposed) return;
+      stop();
+      const playback = generation;
+      let voices: SpeechSynthesisVoice[] = [];
+      try {
+        voices = synthesis.getVoices();
+      } catch {
+        startUtterance(text, language, playback, []);
+        return;
+      }
+
+      if (voices.length > 0) {
+        startUtterance(text, language, playback, voices);
+        return;
+      }
+
+      waitingForVoices = true;
+      setSpeaking(true);
+      const startWithCurrentVoices = () => {
+        if (!waitingForVoices || playback !== generation || disposed) return;
+        let latestVoices: SpeechSynthesisVoice[] = [];
+        try {
+          latestVoices = synthesis.getVoices();
+        } catch {
+          // The native default voice remains available when voice enumeration fails.
+        }
+        if (latestVoices.length === 0 && waitTimer !== undefined) return;
+        startUtterance(text, language, playback, latestVoices);
+      };
+      waitingListener = startWithCurrentVoices;
+      synthesis.addEventListener('voiceschanged', startWithCurrentVoices);
+      waitTimer = setTimeout(() => {
+        waitTimer = undefined;
+        startWithCurrentVoices();
+      }, voiceWaitMs);
+    },
+    stop,
+    dispose() {
+      disposed = true;
+      stop();
+    },
+  };
+}
+
+const VOICE_PREVIEW = 'Hi there! I can read your fraction lessons to you.';
+
+/** A local voice chooser for families. Browser speech synthesis keeps all audio on-device. */
+export function LearningVoicePicker() {
+  const funContext = useOptionalFun();
+  const savedPreference = funContext
+    ? funContext.fun.preferredLearningVoiceId ?? null
+    : getSavedLearningVoiceId();
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [supported, setSupported] = useState(false);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(savedPreference);
+  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const language = getLearningLanguage();
+  const primaryLanguage = language.toLowerCase().replace(/_/g, '-').split('-')[0];
+
+  useEffect(() => {
+    setSelectedVoiceId(savedPreference);
+  }, [savedPreference]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)
+      || typeof SpeechSynthesisUtterance === 'undefined') return;
+
+    const synthesis = window.speechSynthesis;
+    setSupported(true);
+    const updateVoices = () => {
+      try {
+        setVoices(synthesis.getVoices());
+      } catch {
+        setVoices([]);
+      }
+    };
+    updateVoices();
+    synthesis.addEventListener('voiceschanged', updateVoices);
+    return () => {
+      synthesis.removeEventListener('voiceschanged', updateVoices);
+      synthesis.cancel();
+    };
+  }, []);
+
+  const matchingVoices = voices
+    .filter((voice) => voice.lang.toLowerCase().replace(/_/g, '-').split('-')[0] === primaryLanguage)
+    .sort((a, b) => a.name.localeCompare(b.name) || a.lang.localeCompare(b.lang));
+  const savedVoiceAvailable = matchingVoices.some((voice) => learningVoiceId(voice) === selectedVoiceId);
+  const fallbackVoice = selectLearningVoice(matchingVoices, language);
+  const currentVoice = savedVoiceAvailable
+    ? matchingVoices.find((voice) => learningVoiceId(voice) === selectedVoiceId)
+    : fallbackVoice;
+  const effectiveVoiceId = savedVoiceAvailable
+    ? selectedVoiceId
+    : currentVoice ? learningVoiceId(currentVoice) : null;
+
+  const previewVoice = (voice: SpeechSynthesisVoice) => {
+    if (!supported) return;
+    const synthesis = window.speechSynthesis;
+    synthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(VOICE_PREVIEW);
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+    utterance.rate = VOICE_RATE;
+    utterance.pitch = VOICE_PITCH;
+    const id = learningVoiceId(voice);
+    setPreviewingVoiceId(id);
+    const finish = () => setPreviewingVoiceId((active) => active === id ? null : active);
+    utterance.onend = finish;
+    utterance.onerror = finish;
+    try {
+      synthesis.speak(utterance);
+    } catch {
+      finish();
+    }
+  };
+
+  const chooseVoice = (id: string) => {
+    setSelectedVoiceId(id);
+    const savedLocally = saveLearningVoiceId(id);
+    if (funContext) funContext.setFun(setLearningVoicePreference(funContext.fun, id));
+    setSaveFailed(!savedLocally && !funContext);
+  };
+
+  return (
+    <section className="fq-parent-section fq-learning-voice-settings" data-testid="learning-voice-settings" aria-labelledby="learning-voice-heading">
+      <h2 id="learning-voice-heading">Read-aloud voice</h2>
+      <p>Preview voices available on this device, then choose one for lesson explanations. Signed-in choices follow your account, but each device uses its own local voice. Audio stays on this device.</p>
+      {!supported ? (
+        <p className="fq-parent-note" role="status">Read-aloud voices are not available in this browser.</p>
+      ) : matchingVoices.length > 0 ? (
+        <ul className="fq-learning-voice-list">
+          {matchingVoices.map((voice) => {
+            const id = learningVoiceId(voice);
+            return (
+              <li key={id} className="fq-learning-voice-option">
+                <label>
+                  <input
+                    type="radio"
+                    name="learning-voice"
+                    value={id}
+                    checked={effectiveVoiceId === id}
+                    onChange={() => chooseVoice(id)}
+                    data-testid={`radio-learning-voice-${matchingVoices.indexOf(voice)}`}
+                  />
+                  <span><strong>{voice.name || 'Local voice'}</strong><small>{voice.lang}</small></span>
+                </label>
+                <button
+                  type="button"
+                  className="fq-learning-voice-preview"
+                  onClick={() => previewVoice(voice)}
+                  aria-label={`${previewingVoiceId === id ? 'Previewing' : 'Preview'} ${voice.name || 'local voice'}`}
+                  data-testid={`button-preview-learning-voice-${matchingVoices.indexOf(voice)}`}
+                >
+                  {previewingVoiceId === id ? <VolumeX size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
+                  {previewingVoiceId === id ? 'Playing' : 'Preview'}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="fq-parent-note" role="status">No local voices for {language} are listed by this browser. Explanations will ask the browser for a voice in that language.</p>
+      )}
+      {supported && selectedVoiceId && !savedVoiceAvailable && (
+        <p className="fq-learning-voice-fallback" role="status" data-testid="status-learning-voice-fallback">
+          The saved voice is not available on this device. Explanations are using {currentVoice?.name
+            ? `${currentVoice.name} (${currentVoice.lang})`
+            : `the browser's ${language} voice if available`}.
+        </p>
+      )}
+      {supported && !selectedVoiceId && (
+        <p className="fq-parent-note" role="status">Using {currentVoice?.name
+          ? `${currentVoice.name} (${currentVoice.lang})`
+          : `the browser's ${language} voice if available`} by default.</p>
+      )}
+      {saveFailed && <p className="fq-learning-voice-fallback" role="alert">This browser could not save the voice choice. It will reset if you reload.</p>}
+    </section>
+  );
+}
 
 function ListenButton({ text }: { text: string }) {
   const [speaking, setSpeaking] = useState(false);
+  const funContext = useOptionalFun();
+  const preferredVoiceId = funContext
+    ? funContext.fun.preferredLearningVoiceId ?? null
+    : getSavedLearningVoiceId();
+  const controllerRef = useRef<ReturnType<typeof createLearningSpeechController> | null>(null);
   const supported = typeof window !== 'undefined'
     && 'speechSynthesis' in window
     && typeof SpeechSynthesisUtterance !== 'undefined';
 
-  useEffect(() => () => stopSpeaking(), []);
+  useEffect(() => {
+    if (!supported) return;
+    const controller = createLearningSpeechController(
+      window.speechSynthesis,
+      setSpeaking,
+      undefined,
+      undefined,
+      () => preferredVoiceId,
+    );
+    controllerRef.current = controller;
+    return () => {
+      controller.dispose();
+      controllerRef.current = null;
+    };
+  }, [preferredVoiceId, supported]);
 
   const toggleSpeech = () => {
     if (!supported) return;
     if (speaking) {
-      stopSpeaking();
-      setSpeaking(false);
+      controllerRef.current?.stop();
       return;
     }
-    try {
-      setSpeaking(speak(text, () => setSpeaking(false)));
-    } catch {
-      setSpeaking(false);
-    }
+
+    const language = getLearningLanguage();
+    controllerRef.current?.speak(text, language);
   };
 
   return (

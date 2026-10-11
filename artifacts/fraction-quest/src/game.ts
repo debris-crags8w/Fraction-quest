@@ -52,8 +52,35 @@ export type Progress = {
   reviewQueue: SkillReview[];
   learning?: Record<string, LearningRecord>;
   challengeBest?: Record<string, number>;
+  dailyPractice?: DailyPracticeSession;
   /** Placement quiz result: lessons in units before `unit` are open (not marked done). */
   placement?: { unit: number; at: number };
+};
+
+export type DailyPracticeQuestion = {
+  id: string;
+  missionId: string;
+  topicTitle: string;
+  modelKind: 'bar' | 'number-line';
+  numerator: number;
+  denominator: number;
+  explanation: string;
+};
+export type DailyPracticeAttempt = {
+  shaded: number[];
+  draft: string;
+  modelChecked: boolean;
+  modelCorrect: boolean;
+  answerChecked: boolean;
+  answerCorrect: boolean;
+};
+export type DailyPracticeSession = {
+  day: string;
+  startedAt: number;
+  questions: DailyPracticeQuestion[];
+  index: number;
+  attempts: Record<string, DailyPracticeAttempt>;
+  completedAt?: number;
 };
 
 export type SkillReview = {
@@ -940,12 +967,14 @@ export function loadProgress(): Progress {
         };
       }
     }
+    const dailyPractice = readDailyPractice(value.dailyPractice, validIds);
     return {
       completedMissionIds: [...completed],
       starsByMission,
       reviewQueue,
       ...(Object.keys(learning).length ? { learning } : {}),
       ...(Object.keys(challengeBest).length ? { challengeBest } : {}),
+      ...(dailyPractice ? { dailyPractice } : {}),
       ...(value.placement && typeof value.placement === 'object' && Number.isInteger(value.placement.unit) && value.placement.unit >= 2 && value.placement.unit <= 9
         && typeof value.placement.at === 'number' && Number.isFinite(value.placement.at) ? { placement: { unit: value.placement.unit, at: value.placement.at } } : {}),
     };
@@ -956,6 +985,69 @@ export function loadProgress(): Progress {
 
 function safeCount(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.min(10000, Math.floor(value))) : 0;
+}
+
+function readDailyPractice(value: unknown, validMissionIds: Set<string>): DailyPracticeSession | null {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Partial<DailyPracticeSession>;
+  if (
+    typeof raw.day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw.day)
+    || typeof raw.startedAt !== 'number' || !Number.isFinite(raw.startedAt)
+    || !Array.isArray(raw.questions) || raw.questions.length < 1 || raw.questions.length > 10
+  ) return null;
+  const questions: DailyPracticeQuestion[] = [];
+  for (const item of raw.questions) {
+    if (!item || typeof item !== 'object') return null;
+    const question = item as Partial<DailyPracticeQuestion>;
+    if (
+      typeof question.id !== 'string' || question.id.length > 120
+      || typeof question.missionId !== 'string' || !validMissionIds.has(question.missionId)
+      || typeof question.topicTitle !== 'string' || question.topicTitle.length > 160
+      || (question.modelKind !== 'bar' && question.modelKind !== 'number-line')
+      || !Number.isInteger(question.numerator) || !Number.isInteger(question.denominator)
+      || question.numerator! < 1 || question.denominator! < question.numerator!
+      || question.denominator! > 12
+      || typeof question.explanation !== 'string' || question.explanation.length > 300
+    ) return null;
+    questions.push({
+      id: question.id,
+      missionId: question.missionId,
+      topicTitle: question.topicTitle,
+      modelKind: question.modelKind,
+      numerator: question.numerator!,
+      denominator: question.denominator!,
+      explanation: question.explanation,
+    });
+  }
+  const attempts: Record<string, DailyPracticeAttempt> = {};
+  if (raw.attempts && typeof raw.attempts === 'object') {
+    for (const question of questions) {
+      const attempt = (raw.attempts as Record<string, unknown>)[question.id];
+      if (!attempt || typeof attempt !== 'object') continue;
+      const entry = attempt as Partial<DailyPracticeAttempt>;
+      attempts[question.id] = {
+        shaded: Array.isArray(entry.shaded)
+          ? [...new Set(entry.shaded.filter((index): index is number => Number.isInteger(index) && index >= 0 && index < question.denominator))].slice(0, 12)
+          : [],
+        draft: typeof entry.draft === 'string' ? entry.draft.slice(0, 200) : '',
+        modelChecked: entry.modelChecked === true,
+        modelCorrect: entry.modelCorrect === true,
+        answerChecked: entry.answerChecked === true,
+        answerCorrect: entry.answerCorrect === true,
+      };
+    }
+  }
+  const maximumIndex = questions.length - 1;
+  return {
+    day: raw.day,
+    startedAt: raw.startedAt,
+    questions,
+    index: typeof raw.index === 'number' && Number.isFinite(raw.index)
+      ? Math.max(0, Math.min(maximumIndex, Math.floor(raw.index)))
+      : 0,
+    attempts,
+    ...(typeof raw.completedAt === 'number' && Number.isFinite(raw.completedAt) ? { completedAt: raw.completedAt } : {}),
+  };
 }
 
 export function saveProgress(progress: Progress): boolean {

@@ -4,6 +4,7 @@ import { getMission, MISSIONS, type Progress } from './game';
 import type { FunState } from './lib/fun';
 import { buildParentReport, type LessonRow } from './parent-report';
 import { AnswerKey } from './Printables';
+import { LearningVoicePicker } from './LearningText';
 
 const STATUS: Record<LessonRow['status'], string> = { done: 'Done', started: 'In progress', skipped: 'Skipped by quiz', open: 'Open', locked: 'Locked' };
 
@@ -96,6 +97,8 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
             <div><strong>{report.streak}</strong><span>Day streak</span></div>
             <div><strong>{report.stars}</strong><span>Stars</span></div>
           </section>
+
+          <LearningVoicePicker />
 
           <section className="fq-parent-section fq-parent-code-progress" data-testid="parent-code-progress">
             <h2>Coding levels passed</h2>

@@ -1,5 +1,6 @@
-// Small, device-only "fun" state: XP, daily goal, day streak and the sound setting.
-// Kept separate from learning progress so it can never block or alter lesson gating.
+// Optional state: XP, daily goal, day streak, sound and presentation preferences.
+// Guests keep it on this device; signed-in accounts sync it with their saved snapshot.
+// It stays separate from learning progress so it cannot alter lesson gating.
 
 import { CODE_LEVEL_COUNT } from '../code-quest';
 
@@ -22,6 +23,10 @@ export type FunState = {
   codeLevels?: Record<string, number>;
   /** Code Sprint: best time (seconds) per lesson. */
   sprintBest?: Record<string, number>;
+  /** Part Finder: best score out of three rounds. Kept separate from lesson mastery. */
+  partFinderBest?: number;
+  /** Preferred local read-aloud voice ID; another device may need to use a local fallback. */
+  preferredLearningVoiceId?: string;
 };
 export type DayActivity = { minutes: number; answered: number };
 const KEEP_DAYS = 35;
@@ -58,7 +63,17 @@ function cleanScores(value: unknown, max: number): Record<string, number> {
   }
   return out;
 }
-const cleanGames = (saved: Partial<FunState>) => ({ raceBest: cleanScores(saved.raceBest, 3600), robotBeaten: cleanScores(saved.robotBeaten, 3), codeLevels: cleanScores(saved.codeLevels, CODE_LEVEL_COUNT), sprintBest: cleanScores(saved.sprintBest, 3600) });
+const cleanGames = (saved: Partial<FunState>) => ({
+  raceBest: cleanScores(saved.raceBest, 3600),
+  robotBeaten: cleanScores(saved.robotBeaten, 3),
+  codeLevels: cleanScores(saved.codeLevels, CODE_LEVEL_COUNT),
+  sprintBest: cleanScores(saved.sprintBest, 3600),
+  partFinderBest: typeof saved.partFinderBest === 'number' && Number.isFinite(saved.partFinderBest)
+    ? Math.max(0, Math.min(3, Math.floor(saved.partFinderBest)))
+    : undefined,
+});
+const cleanLearningVoicePreference = (value: unknown): string | undefined =>
+  typeof value === 'string' && value.length > 0 && value.length <= 512 ? value : undefined;
 
 /** Record a finished race: keeps the best time and the fastest robot beaten (0 = no robot / lost). */
 export function recordRace(state: FunState, missionId: string, seconds: number, robotLevel: number): FunState {
@@ -81,11 +96,24 @@ export function recordCodeLevel(state: FunState, missionId: string, level: numbe
   return saveFun({ ...state, codeLevels: { ...state.codeLevels, [missionId]: completed } });
 }
 
+/** Keep the highest completed Part Finder score (0–3) in optional game state only. */
+export function recordPartFinder(state: FunState, score: number): FunState {
+  const completed = Math.max(0, Math.min(3, Math.floor(Number.isFinite(score) ? score : 0)));
+  if (state.partFinderBest !== undefined && state.partFinderBest >= completed) return state;
+  return saveFun({ ...state, partFinderBest: completed });
+}
+
 export function loadFun(): FunState {
   try {
     const raw = window.localStorage.getItem(FUN_KEY);
     const parsed = raw ? (JSON.parse(raw) as Partial<FunState>) : {};
-    const saved = { ...fresh(), ...parsed, activity: cleanActivity(parsed.activity), ...cleanGames(parsed) };
+    const saved = {
+      ...fresh(),
+      ...parsed,
+      preferredLearningVoiceId: cleanLearningVoicePreference(parsed.preferredLearningVoiceId),
+      activity: cleanActivity(parsed.activity),
+      ...cleanGames(parsed),
+    };
     return saved.day === today() ? saved : { ...saved, day: today(), answeredToday: 0 };
   } catch {
     return fresh();
@@ -122,6 +150,12 @@ export function recordMinute(state: FunState): FunState {
 
 export function setSound(state: FunState, sound: boolean): FunState {
   return saveFun({ ...state, sound });
+}
+
+/** Save a local read-aloud voice preference; signed-in app state also syncs through the account snapshot. */
+export function setLearningVoicePreference(state: FunState, preferredLearningVoiceId: string): FunState {
+  const preference = cleanLearningVoicePreference(preferredLearningVoiceId);
+  return preference ? saveFun({ ...state, preferredLearningVoiceId: preference }) : state;
 }
 
 export function resetFun(): FunState {
@@ -165,6 +199,13 @@ export function playCue(cue: Cue, enabled: boolean) {
 
 /** Replace this device's fun state with one loaded from the student's account. */
 export function replaceFun(saved: Partial<FunState>): FunState {
-  const merged = { ...fresh(), ...saved, sound: loadFun().sound, activity: cleanActivity(saved.activity), ...cleanGames(saved) };
+  const merged = {
+    ...fresh(),
+    ...saved,
+    preferredLearningVoiceId: cleanLearningVoicePreference(saved.preferredLearningVoiceId),
+    sound: loadFun().sound,
+    activity: cleanActivity(saved.activity),
+    ...cleanGames(saved),
+  };
   return saveFun(merged.day === today() ? merged : { ...merged, day: today(), answeredToday: 0 });
 }
