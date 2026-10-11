@@ -104,7 +104,8 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1 }: { kind: Ki
       <div className="fq-ll-controls">
         <Stepper id={id + '-d'} label={kind === 'set' ? 'Equal groups' : kind === 'line' ? 'Spaces in each whole' : 'Equal pieces in each whole'} value={st.d} min={0} max={maxD}
           onSet={v => set({ ...st, d: v, count: Math.min(st.count, kind === 'set' ? v : v * wholes) })} hint={kind === 'set' ? total + ' objects in all' : 'You choose the partition'} />
-        {kind === 'bar' && <Stepper id={id + '-wholes'} label="Whole bars" value={st.wholes} min={1} max={3}
+        {/* Extra whole bars are only offered when the target is bigger than 1 (e.g. 7/4); otherwise one bar is always right. */}
+        {kind === 'bar' && lineWholes > 1 && <Stepper id={id + '-wholes'} label="Whole bars" value={st.wholes} min={1} max={3}
           onSet={v => set({ ...st, wholes: v, count: Math.min(st.count, st.d * v) })} />}
         <Stepper id={id + '-count'} label={kind === 'line' ? 'Jumps from 0' : kind === 'set' ? 'Groups selected' : 'Pieces shaded'} value={st.count} min={0} max={Math.max(pieces, 0)} onSet={setCount} />
       </div>

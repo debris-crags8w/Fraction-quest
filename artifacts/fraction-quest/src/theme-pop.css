@@ -933,3 +933,51 @@
 
   .fq-print-foot { margin-top: 12px; padding-top: 6px; border-top: 1px solid #999; font-size: 8.5pt; color: #333; }
 }
+
+/* ---------- login & account ---------- */
+
+.fq-login-app { display: grid; place-items: start center; padding: 32px 16px 48px; }
+.fq-login { display: grid; gap: 18px; width: min(100%, 440px); }
+.fq-login-hero { display: flex; align-items: center; gap: 14px; }
+.fq-login-hero .fq-mascot { flex: none; }
+.fq-login-brand { margin: 0; color: var(--fq-grape); font-family: var(--app-font-display); font-weight: 800; font-size: 1.05rem; }
+.fq-login-hero h1 { margin: 0; font-size: clamp(1.6rem, 6vw, 2.1rem); line-height: 1.05; text-wrap: balance; }
+.fq-login-hero p { margin: 6px 0 0; color: hsl(var(--muted-foreground)); font-weight: 700; line-height: 1.4; }
+.fq-login-notice { margin: 0; padding: 12px 14px; border-radius: 16px; color: #6B4E00; background: #FFF6D6; font-weight: 800; }
+
+.fq-login-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 5px; border-radius: 18px; background: var(--fq-track); }
+.fq-login-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 46px; border: 0; border-radius: 14px; background: transparent; color: hsl(var(--muted-foreground)); font-weight: 900; cursor: pointer; }
+.fq-login-tabs button.on { color: var(--fq-grape); background: hsl(var(--card)); box-shadow: 0 3px 0 var(--fq-edge); }
+
+.fq-login-form { display: grid; gap: 6px; padding: 20px; border-radius: 24px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge), 0 5px 0 var(--fq-edge); }
+.fq-login-form label { margin-top: 8px; font-weight: 900; }
+.fq-login-form label:first-child { margin-top: 0; }
+.fq-login-form input { width: 100%; min-height: 52px; padding: 0 14px; border: 2px solid var(--fq-edge); border-bottom-width: 4px; border-radius: 14px; background: hsl(var(--card)); color: hsl(var(--foreground)); font: 800 1.05rem var(--app-font-sans); }
+.fq-login-form input:focus-visible { outline: 3px solid var(--fq-sky); outline-offset: 1px; border-color: var(--fq-sky); }
+.fq-login-form small { color: hsl(var(--muted-foreground)); font-weight: 700; font-size: 0.82rem; }
+.fq-login-password { position: relative; }
+.fq-login-password input { padding-right: 52px; }
+.fq-login-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-55%); display: grid; place-items: center; width: 42px; height: 42px; border: 0; border-radius: 10px; background: none; color: hsl(var(--muted-foreground)); cursor: pointer; }
+.fq-login-error { margin: 8px 0 0; padding: 10px 12px; border-radius: 12px; color: var(--fq-bad-fg); background: var(--fq-bad-bg); font-weight: 800; }
+.fq-login-submit { width: 100%; margin-top: 14px; }
+.fq-login-help { margin: 0; color: hsl(var(--muted-foreground)); font-size: 0.88rem; font-weight: 700; line-height: 1.45; text-align: center; }
+.fq-login-guest { display: grid; justify-items: center; gap: 2px; color: hsl(var(--muted-foreground)); font-weight: 700; }
+.fq-login-guest > span { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; }
+.fq-login-guest small { font-size: 0.8rem; }
+
+.fq-loading { display: grid; justify-items: center; gap: 10px; margin-top: 18vh; color: hsl(var(--muted-foreground)); font-weight: 800; }
+.fq-loading .fq-mascot { animation: fq-bob 1.4s ease-in-out infinite; }
+
+.fq-account { display: flex; align-items: center; gap: 8px; }
+.fq-account-avatar { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; color: #fff; background: var(--fq-grape); box-shadow: 0 3px 0 #5B2EE0; font-family: var(--app-font-display); font-weight: 800; font-size: 1.1rem; }
+.fq-account-name { display: grid; line-height: 1.1; }
+.fq-account-name strong { font-weight: 900; max-width: 12ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fq-account-name small { font-size: 0.72rem; font-weight: 800; color: var(--fq-good-fg); }
+.fq-account-name small.sync-saving { color: hsl(var(--muted-foreground)); }
+.fq-account-name small.sync-offline { color: var(--fq-bad-fg); }
+.fq-account-signin { min-height: 42px; padding: 0 14px; font-size: 0.8rem; }
+
+@media (max-width: 720px) {
+  .fq-account-name { display: none; }
+  .fq-account-signin { padding: 0 10px; }
+}

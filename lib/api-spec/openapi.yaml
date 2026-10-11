@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Student accounts and sign-in
+  - name: progress
+    description: Saved course progress for the signed-in student
 paths:
   /healthz:
     get:
@@ -24,6 +28,146 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/signup:
+    post:
+      operationId: signup
+      tags: [auth]
+      summary: Create an account
+      description: Creates a student account and signs it in with a session cookie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+      responses:
+        "201":
+          description: Account created and signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid username, name or password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Username already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Sign in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Missing username or password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Wrong username or password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Sign out
+      responses:
+        "204":
+          description: Signed out
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: The signed-in student
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /progress:
+    get:
+      operationId: getProgress
+      tags: [progress]
+      summary: Load saved progress
+      responses:
+        "200":
+          description: Saved progress (empty fields if nothing saved yet)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedProgress"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: saveProgress
+      tags: [progress]
+      summary: Save progress
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgressPayload"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedProgress"
+        "400":
+          description: Invalid progress data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +177,85 @@ components:
           type: string
       required:
         - status
-
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        displayName:
+          type: string
+      required:
+        - id
+        - username
+        - displayName
+    SignupRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 20
+          pattern: "^[A-Za-z0-9_]+$"
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 30
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+      required:
+        - username
+        - displayName
+        - password
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 20
+        password:
+          type: string
+          minLength: 1
+          maxLength: 72
+      required:
+        - username
+        - password
+    ProgressPayload:
+      type: object
+      properties:
+        progress:
+          type: object
+          additionalProperties: true
+        fun:
+          type: object
+          additionalProperties: true
+      required:
+        - progress
+        - fun
+    SavedProgress:
+      type: object
+      properties:
+        progress:
+          type: ["object", "null"]
+          additionalProperties: true
+        fun:
+          type: ["object", "null"]
+          additionalProperties: true
+        updatedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - progress
+        - fun
+        - updatedAt

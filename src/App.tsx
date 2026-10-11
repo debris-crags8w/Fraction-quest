@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, Compass, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Compass, Flame, Lightbulb, LogIn, LogOut, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -34,6 +34,8 @@ import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { loadFun, playCue, recordCorrect, resetFun, setSound, type FunState } from './lib/fun';
 import { ModelTag } from './models';
+import { AccountGate, useAccount, useAccountSync } from './account';
+import LoginPage from './LoginPage';
 import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
 
 const queryClient = new QueryClient();
@@ -160,10 +162,28 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
           <span><strong>{stars}</strong> stars</span><span aria-hidden="true">·</span>
            <span><strong>{MISSIONS.filter(item => hasLearningGate(progress, item.id)).length}</strong>/{MISSIONS.length} lessons</span>
         </div>
+        <AccountChip />
         <button className="fq-icon-button" onClick={() => setFun(setSound(fun, !fun.sound))} aria-label={fun.sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={fun.sound} data-testid="button-toggle-sound">{fun.sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
         <button className="fq-icon-button" onClick={onReset} aria-label="Reset progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>
       </div>
     </header>
+  );
+}
+
+function AccountChip() {
+  const { user, syncStatus, signOut, goToSignIn } = useAccount();
+  if (!user) {
+    return <button className="fq-button ghost fq-account-signin" onClick={goToSignIn} data-testid="button-go-sign-in"><LogIn size={16} /> Sign in</button>;
+  }
+  return (
+    <div className="fq-account" data-testid="status-account">
+      <span className="fq-account-avatar" aria-hidden="true">{user.displayName.slice(0, 1).toUpperCase()}</span>
+      <span className="fq-account-name">
+        <strong>{user.displayName}</strong>
+        <small className={`sync-${syncStatus}`} data-testid="status-sync">{syncStatus === 'saving' ? 'Saving…' : syncStatus === 'offline' ? 'Not saved yet' : 'Saved'}</small>
+      </span>
+      <button className="fq-icon-button" onClick={() => { void signOut(); }} aria-label={`Sign out ${user.displayName}`} data-testid="button-sign-out"><LogOut size={18} /></button>
+    </div>
   );
 }
 
@@ -172,6 +192,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset }: { progress: P
   const nextMission = getNextMission(progress);
   const dueReviewCount = getDueSkillReviewCount(progress);
   const [selectedId, setSelectedId] = useState<string | null>(() => nextMission?.id ?? null);
+  const { user } = useAccount();
   const units = UNIT_INFO.map((unit, index) => ({
     ...unit,
     number: index + 1,
@@ -300,7 +321,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset }: { progress: P
             This is not a complete or standards-aligned course.
           </p>
         </aside>
-        <footer className="fq-footer"><span>Made for curious minds, ages 8–10. Progress stays on this device.</span><button onClick={onReset} data-testid="button-reset-progress-footer">Reset this device's progress</button></footer>
+        <footer className="fq-footer"><span>Made for curious minds, ages 8–10. {user ? `Progress is saved to ${user.displayName}'s account.` : 'Progress stays on this device.'}</span><button onClick={onReset} data-testid="button-reset-progress-footer">{user ? 'Reset my progress' : "Reset this device's progress"}</button></footer>
       </main>
     </div>
   );
@@ -603,6 +624,8 @@ function Game() {
   const [saveError, setSaveError] = useState(false);
   const [fun, setFun] = useState<FunState>(() => loadFun());
   const [combo, setCombo] = useState(0);
+  const { user } = useAccount();
+  useAccountSync(progress, fun);
 
   const startMission = (missionId: string) => {
     if (!isMissionUnlocked(progress, missionId)) return;
@@ -743,7 +766,7 @@ function Game() {
           <div className="fq-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description">
             <button className="fq-icon-button fq-modal-close" onClick={() => setResetOpen(false)} aria-label="Close reset dialog" data-testid="button-close-reset"><X size={18} /></button>
             <h2 id="reset-title">Start the map over?</h2>
-            <p id="reset-description">This clears lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews on this device. This cannot be undone.</p>
+            <p id="reset-description">{user ? `This clears ${user.displayName}'s lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
             <div className="fq-modal-actions">
               <button className="fq-button ghost" onClick={() => setResetOpen(false)} data-testid="button-cancel-reset">Keep exploring</button>
               <button className="fq-button" onClick={resetProgress} data-testid="button-confirm-reset">Reset progress</button>
@@ -755,12 +778,27 @@ function Game() {
   );
 }
 
+function Root() {
+  return (
+    <AccountGate
+      renderLoading={() => (
+        <div className="fq-app fq-login-app" role="status" aria-live="polite">
+          <div className="fq-loading"><Mascot mood="thinking" size={90} /><p>Getting your map ready…</p></div>
+        </div>
+      )}
+      renderLogin={(props) => <LoginPage {...props} />}
+    >
+      {(key) => <Game key={key} />}
+    </AccountGate>
+  );
+}
+
 function AppRouter() {
   const [location] = useLocation();
   return (
     <ErrorBoundary resetKey={location}>
       <Switch>
-        <Route path="/" component={Game} />
+        <Route path="/" component={Root} />
         <Route component={NotFound} />
       </Switch>
     </ErrorBoundary>

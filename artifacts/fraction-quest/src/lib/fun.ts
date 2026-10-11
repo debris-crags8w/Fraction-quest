@@ -92,3 +92,9 @@ export function playCue(cue: Cue, enabled: boolean) {
     // Audio is a bonus; ignore failures.
   }
 }
+
+/** Replace this device's fun state with one loaded from the student's account. */
+export function replaceFun(saved: Partial<FunState>): FunState {
+  const merged = { ...fresh(), ...saved, sound: loadFun().sound };
+  return saveFun(merged.day === today() ? merged : { ...merged, day: today(), answeredToday: 0 });
+}
