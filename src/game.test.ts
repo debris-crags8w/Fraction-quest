@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
-import { answerMatches, getBuildChecks, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
+import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
 import {
   completeMission,
@@ -318,6 +318,26 @@ function withLearning(progress: Progress, id: string): Progress {
 }
 
 describe('entered-answer worksheets and evidence gates', () => {
+  it('separates reasoning feedback from model errors across every lesson', () => {
+    for (const mission of MISSIONS) {
+      for (const check of getBuildChecks(mission.id)) {
+        const missing = getReasonFeedback(check, null, false);
+        assert.equal(missing?.correct, false, `${mission.id}/${check.id} should ask for a reason`);
+        assert.match(missing?.message ?? '', /^Reason:/);
+
+        const incorrectIndex = (check.correctReason + 1) % check.reasons.length;
+        const incorrect = getReasonFeedback(check, incorrectIndex, false);
+        assert.equal(incorrect?.correct, false, `${mission.id}/${check.id} should reject a wrong reason`);
+        assert.ok(incorrect?.message.includes(check.explanation), `${mission.id}/${check.id} should explain the correct idea`);
+
+        const correctButModelsWrong = getReasonFeedback(check, check.correctReason, false);
+        assert.equal(correctButModelsWrong?.correct, true, `${mission.id}/${check.id} should preserve a correct reason`);
+        assert.match(correctButModelsWrong?.message ?? '', /explanation is correct/);
+        assert.equal(getReasonFeedback(check, check.correctReason, true), null);
+      }
+    }
+  });
+
   it('keeps proper-fraction number lines from 0 to 1 and extends only for improper fractions', () => {
     assert.equal(numberLineWholeCount(1, 3), 1);
     assert.equal(numberLineWholeCount(5, 5), 1);

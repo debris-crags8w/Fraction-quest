@@ -1,7 +1,7 @@
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Check, CircleHelp, Lightbulb, Minus, Plus, Printer, RotateCcw } from 'lucide-react';
 import { numberLineWholeCount, type Progress } from './game';
-import { answerMatches, getBuildChecks, getReviewCheck, getWorksheet, type BuildCheck, type LearningModel, type WorksheetProblem } from './learning-content';
+import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, type BuildCheck, type LearningModel, type WorksheetProblem } from './learning-content';
 import {
   checkWorksheet, editWorksheet, getLearningRecord, hasLearningGate, learningSummary, updateLearning, worksheetCount,
   type LearningRecord,
@@ -170,8 +170,11 @@ function CheckRunner({ check, onHelp, onPass, review }: {
     const r2 = validate(tk, { ...t, kind: tk, total: undefined, wholes: Math.max(1, Math.ceil(t.n / t.d)) }, b, 'Second representation');
     const keys = [...r1.keys, ...r2.keys.map(() => M.trans)];
     const msgs = [...r1.msgs, ...r2.msgs];
-    if (reason === null) { msgs.push('Choose the reason that explains your model.'); keys.push(M.reason); }
-    else if (reason !== check.correctReason) { msgs.push('That reason does not match your build. Change your reason or model, then check again.'); keys.push(M.reason); }
+    const reasonFeedback = getReasonFeedback(check, reason, msgs.length === 0);
+    if (reasonFeedback) {
+      msgs.push(reasonFeedback.message);
+      if (!reasonFeedback.correct) keys.push(M.reason);
+    }
     if (msgs.length) {
       setErrs(msgs); setFailedSig(sig); setSupported(true); setAttempts(n => n + 1); onHelp('error', Array.from(new Set(keys)));
     } else { setErrs([]); setDone(true); onPass({ supported, attempts: attempts + 1 }); }
@@ -203,8 +206,10 @@ function CheckRunner({ check, onHelp, onPass, review }: {
       {errs.length > 0 && (
         <div className="fq-ll-feedback retry" role="alert" data-testid={`status-errors-${check.id}`}>
           <CircleHelp size={20} />
-          <div><strong>Not yet. Edit your answer and check again.</strong><ul>{errs.map((e, i) => <li key={i}>{e}</li>)}</ul>
-            {locked && <p>Edit your model or reason to check again.</p>}</div>
+          <div>
+            <strong>{locked ? 'Not yet. Change a model or your reason to try again.' : 'Changes made. Check again to see if your model and reason now agree.'}</strong>
+            <ul>{errs.map((e, i) => <li key={i}>{e}</li>)}</ul>
+          </div>
         </div>
       )}
       {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>Model, translation and reason all agree.</strong> {check.explanation}</div></div>}
