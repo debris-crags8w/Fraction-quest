@@ -13,4 +13,4 @@ When Git CLI pushes fail with authentication errors despite the GitHub integrati
 
 **Why:** the source-control connection was reported as active but `git push` rejected the workspace credentials; the GitHub App API connection had repository write access.
 
-**How to apply:** check integration status and repository write access, confirm the branch has not changed since choosing the base commit, and compare every uploaded Git blob SHA with the corresponding local Git blob SHA before creating a tree. Content can be truncated or altered during transfer; abort on any mismatch. Then verify the updated ref and compare its tree SHA with the intended local tree. Never force-update the branch as a workaround.
+**How to apply:** check integration status and repository write access, and compare every uploaded Git blob SHA with its local Git blob SHA before creating a tree. Re-read the branch ref immediately before updating it; if it moved, fetch and merge the new commit, then rebuild on that base. Verify the final ref and tree, and never force-update the branch as a workaround.
