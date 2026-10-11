@@ -20,7 +20,12 @@ import { createDailyPractice, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './
 import type { PracticeQuestion } from './game';
 import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, paperPrompt, parseAnswer } from './learning-content';
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
-import { LearningText, selectLearningVoice } from './LearningText';
+import {
+  createLearningSpeechController,
+  LearningText,
+  selectLearningVoice,
+  spokenLearningText,
+} from './LearningText';
 import { BarSvg } from './models';
 import Printable, { AnswerKey, PrintMenu, STUDENT_PRINT_OPTIONS } from './Printables';
 import { barTaskDone, canEnterWorksheetAnswer, WorksheetBarCopy, worksheetBarMatches } from './WorksheetBarCopy';
@@ -115,6 +120,18 @@ const EXPECTED_EXTENSION_IDS = [
 ];
 
 const memory = new Map<string, string>();
+
+function makeTestSpeechUtterance(text: string): SpeechSynthesisUtterance {
+  return Object.assign(new EventTarget(), {
+    text,
+    voice: null,
+    lang: '',
+    rate: 1,
+    pitch: 1,
+    onend: null,
+    onerror: null,
+  }) as unknown as SpeechSynthesisUtterance;
+}
 
 beforeEach(() => {
   memory.clear();
@@ -610,17 +627,107 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.match(markup, /A whole is the full shape or amount/);
     assert.match(markup, /class="fq-mfrac" role="math" aria-label="1 over 4"/);
     assert.match(markup, /class="fq-learning-listen"/);
+    assert.match(markup, /Audio unavailable/, 'browsers without speech support explain that audio is unavailable');
   });
 
-  it('prefers a feminine-sounding voice in the requested language, then falls back to a local voice', () => {
+  it('prefers a feminine-sounding voice in the requested language and falls back to the best local voice', () => {
     const voices = [
       { name: 'Alex', lang: 'en-US', default: true },
-      { name: 'Samantha', lang: 'en-US', default: false },
+      { name: 'Daniel', lang: 'en-GB', default: false },
+      { name: 'Samantha', lang: 'en-AU', default: false },
       { name: 'Samantha', lang: 'fr-FR', default: true },
     ];
     assert.equal(selectLearningVoice(voices, 'en-US')?.name, 'Samantha');
-    assert.equal(selectLearningVoice(voices.slice(0, 1), 'en-US')?.name, 'Alex');
+    assert.equal(selectLearningVoice(voices.slice(0, 2), 'en-US')?.name, 'Alex', 'without a feminine-sounding voice, use the best language match');
     assert.equal(selectLearningVoice([], 'en-US'), null);
+    assert.equal(selectLearningVoice([voices[3], { name: 'Luca', lang: 'it-IT', default: false }], 'en-US')?.lang, 'fr-FR', 'when no requested-language voice exists, use the browser default');
+    assert.equal(spokenLearningText('Compare 1/2 with 3/4.'), 'Compare 1 over 2 with 3 over 4.');
+  });
+
+  it('waits for delayed voices and applies calm speech settings and fraction pronunciation', () => {
+    const utterances: SpeechSynthesisUtterance[] = [];
+    const listeners = new Set<() => void>();
+    const fakeSynthesis = {
+      voices: [] as SpeechSynthesisVoice[],
+      getVoices() { return this.voices; },
+      speak(utterance: SpeechSynthesisUtterance) { utterances.push(utterance); },
+      cancel() {},
+      addEventListener(_event: string, listener: () => void) { listeners.add(listener); },
+      removeEventListener(_event: string, listener: () => void) { listeners.delete(listener); },
+    } as unknown as SpeechSynthesis;
+    const controller = createLearningSpeechController(fakeSynthesis, () => undefined, makeTestSpeechUtterance);
+    controller.speak('1/2 is one half.', 'en-US');
+    assert.equal(utterances.length, 0, 'do not speak with the browser default before asynchronous voices load');
+
+    fakeSynthesis.voices = [
+      { name: 'Alex', lang: 'en-US', default: true },
+      { name: 'Samantha', lang: 'en-US', default: false },
+    ] as SpeechSynthesisVoice[];
+    for (const listener of listeners) listener();
+
+    assert.equal(utterances.length, 1);
+    assert.equal(utterances[0].voice?.name, 'Samantha');
+    assert.equal(utterances[0].text, '1 over 2 is one half.');
+    assert.equal(utterances[0].lang, 'en-US');
+    assert.equal(utterances[0].rate, 0.88);
+    assert.equal(utterances[0].pitch, 1.02);
+    controller.dispose();
+  });
+
+  it('cancels before restart and prevents stale speech callbacks from changing current playback state', () => {
+    const utterances: SpeechSynthesisUtterance[] = [];
+    let cancelCount = 0;
+    const fakeSynthesis = {
+      getVoices: () => [{ name: 'Samantha', lang: 'en-US', default: true }] as SpeechSynthesisVoice[],
+      speak(utterance: SpeechSynthesisUtterance) { utterances.push(utterance); },
+      cancel() { cancelCount += 1; },
+      addEventListener() {},
+      removeEventListener() {},
+    } as unknown as SpeechSynthesis;
+    const states: boolean[] = [];
+    const controller = createLearningSpeechController(fakeSynthesis, (value) => states.push(value), makeTestSpeechUtterance);
+    controller.speak('First explanation.', 'en-US');
+    const firstFinish = utterances[0].onend!;
+    controller.speak('Second explanation.', 'en-US');
+
+    assert.equal(cancelCount, 2, 'each playback starts by canceling anything already queued');
+    assert.equal(utterances.length, 2);
+    firstFinish(new Event('end') as SpeechSynthesisEvent);
+    assert.equal(states.at(-1), true, 'an old utterance cannot mark the newer one stopped');
+
+    controller.stop();
+    assert.equal(cancelCount, 3);
+    assert.equal(states.at(-1), false);
+    controller.dispose();
+    assert.equal(cancelCount, 4, 'component cleanup cancels browser speech');
+  });
+
+  it('cancels a pending voice lookup and falls back to the browser default after the wait expires', async () => {
+    const utterances: SpeechSynthesisUtterance[] = [];
+    const listeners = new Set<() => void>();
+    const fakeSynthesis = {
+      voices: [] as SpeechSynthesisVoice[],
+      getVoices() { return this.voices; },
+      speak(utterance: SpeechSynthesisUtterance) { utterances.push(utterance); },
+      cancel() {},
+      addEventListener(_event: string, listener: () => void) { listeners.add(listener); },
+      removeEventListener(_event: string, listener: () => void) { listeners.delete(listener); },
+    } as unknown as SpeechSynthesis;
+    const states: boolean[] = [];
+    const controller = createLearningSpeechController(fakeSynthesis, (value) => states.push(value), makeTestSpeechUtterance, 5);
+    controller.speak('This should not start.', 'en-US');
+    assert.equal(states.at(-1), true, 'the stop control is available while waiting for voices');
+    controller.stop();
+    assert.equal(states.at(-1), false);
+    for (const listener of listeners) listener();
+    assert.equal(utterances.length, 0, 'stop cancels the waiting voice lookup');
+
+    controller.speak('Use the browser default.', 'en-US');
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    assert.equal(utterances.length, 1);
+    assert.equal(utterances[0].voice, null);
+    assert.equal(utterances[0].lang, 'en-US');
+    controller.dispose();
   });
 
   it('keeps answer keys out of every student printable and student print choices', () => {

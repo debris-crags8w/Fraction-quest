@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState, type ReactNode } from 'react';
+import React, { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { MathText } from './MathText';
 
@@ -41,7 +41,7 @@ function VocabularyTerm({ text, definition, interactive }: { text: string; defin
   );
 }
 
-function spokenText(text: string) {
+export function spokenLearningText(text: string) {
   return text.replace(/(\d+)\s*\/\s*(\d+)/g, '$1 over $2');
 }
 
@@ -55,9 +55,12 @@ export function selectLearningVoice<T extends VoiceCandidate>(voices: readonly T
   const wanted = normalize(preferredLanguage);
   const primaryLanguage = wanted.split('-')[0];
   const languageMatches = voices.filter((voice) => normalize(voice.lang).split('-')[0] === primaryLanguage);
-  const candidates = languageMatches.length > 0 ? languageMatches : voices;
-  const feminineMatches = candidates.filter((voice) => FEMININE_VOICE_HINTS.test(voice.name));
-  const preferred = feminineMatches.length > 0 ? feminineMatches : candidates;
+  const feminineMatches = languageMatches.filter((voice) => FEMININE_VOICE_HINTS.test(voice.name));
+  const preferred = feminineMatches.length > 0
+    ? feminineMatches
+    : languageMatches.length > 0
+      ? languageMatches
+      : voices;
 
   return [...preferred].sort((a, b) => {
     const exactLanguage = (voice: T) => Number(normalize(voice.lang) === wanted);
@@ -67,50 +70,144 @@ export function selectLearningVoice<T extends VoiceCandidate>(voices: readonly T
   })[0] ?? null;
 }
 
+const VOICE_LIST_WAIT_MS = 500;
+
+/**
+ * Owns a single read-aloud session. The short voice-list wait lets browsers
+ * that populate voices asynchronously use the preferred voice on first play.
+ */
+export function createLearningSpeechController(
+  synthesis: SpeechSynthesis,
+  onSpeakingChange: (speaking: boolean) => void,
+  makeUtterance: (text: string) => SpeechSynthesisUtterance = (text) => new SpeechSynthesisUtterance(text),
+  voiceWaitMs = VOICE_LIST_WAIT_MS,
+) {
+  let generation = 0;
+  let waitTimer: ReturnType<typeof setTimeout> | undefined;
+  let waitingForVoices = false;
+  let speaking = false;
+  let disposed = false;
+  let waitingListener: (() => void) | undefined;
+
+  const clearVoiceWait = () => {
+    if (waitTimer !== undefined) clearTimeout(waitTimer);
+    waitTimer = undefined;
+    if (waitingListener) synthesis.removeEventListener('voiceschanged', waitingListener);
+    waitingListener = undefined;
+    waitingForVoices = false;
+  };
+
+  const setSpeaking = (next: boolean) => {
+    if (speaking === next) return;
+    speaking = next;
+    onSpeakingChange(next);
+  };
+
+  const stop = () => {
+    generation += 1;
+    clearVoiceWait();
+    try {
+      synthesis.cancel();
+    } finally {
+      setSpeaking(false);
+    }
+  };
+
+  const startUtterance = (text: string, language: string, playback: number, voices: readonly SpeechSynthesisVoice[]) => {
+    if (disposed || playback !== generation) return;
+    clearVoiceWait();
+    const voice = selectLearningVoice(voices, language);
+    const utterance = makeUtterance(spokenLearningText(text));
+    if (voice) utterance.voice = voice;
+    utterance.lang = voice?.lang || language;
+    utterance.rate = 0.88;
+    utterance.pitch = 1.02;
+    const finish = () => {
+      if (playback === generation) setSpeaking(false);
+    };
+    utterance.onend = finish;
+    utterance.onerror = finish;
+
+    try {
+      setSpeaking(true);
+      synthesis.speak(utterance);
+    } catch {
+      finish();
+    }
+  };
+
+  return {
+    speak(text: string, language: string) {
+      if (disposed) return;
+      stop();
+      const playback = generation;
+      let voices: SpeechSynthesisVoice[] = [];
+      try {
+        voices = synthesis.getVoices();
+      } catch {
+        startUtterance(text, language, playback, []);
+        return;
+      }
+
+      if (voices.length > 0) {
+        startUtterance(text, language, playback, voices);
+        return;
+      }
+
+      waitingForVoices = true;
+      setSpeaking(true);
+      const startWithCurrentVoices = () => {
+        if (!waitingForVoices || playback !== generation || disposed) return;
+        let latestVoices: SpeechSynthesisVoice[] = [];
+        try {
+          latestVoices = synthesis.getVoices();
+        } catch {
+          // The native default voice remains available when voice enumeration fails.
+        }
+        if (latestVoices.length === 0 && waitTimer !== undefined) return;
+        startUtterance(text, language, playback, latestVoices);
+      };
+      waitingListener = startWithCurrentVoices;
+      synthesis.addEventListener('voiceschanged', startWithCurrentVoices);
+      waitTimer = setTimeout(() => {
+        waitTimer = undefined;
+        startWithCurrentVoices();
+      }, voiceWaitMs);
+    },
+    stop,
+    dispose() {
+      disposed = true;
+      stop();
+    },
+  };
+}
+
 function ListenButton({ text }: { text: string }) {
   const [speaking, setSpeaking] = useState(false);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const controllerRef = useRef<ReturnType<typeof createLearningSpeechController> | null>(null);
   const supported = typeof window !== 'undefined'
     && 'speechSynthesis' in window
     && typeof SpeechSynthesisUtterance !== 'undefined';
 
   useEffect(() => {
     if (!supported) return;
-    const synthesis = window.speechSynthesis;
-    const refreshVoices = () => setVoices(synthesis.getVoices());
-    refreshVoices();
-    synthesis.addEventListener('voiceschanged', refreshVoices);
+    const controller = createLearningSpeechController(window.speechSynthesis, setSpeaking);
+    controllerRef.current = controller;
     return () => {
-      synthesis.removeEventListener('voiceschanged', refreshVoices);
-      synthesis.cancel();
+      controller.dispose();
+      controllerRef.current = null;
     };
   }, [supported]);
 
   const toggleSpeech = () => {
     if (!supported) return;
     if (speaking) {
-      window.speechSynthesis.cancel();
-      setSpeaking(false);
+      controllerRef.current?.stop();
       return;
     }
 
-    window.speechSynthesis.cancel();
     const language = document.documentElement.lang || navigator.language || 'en-US';
-    const availableVoices = window.speechSynthesis.getVoices();
-    const voice = selectLearningVoice(availableVoices.length > 0 ? availableVoices : voices, language);
-    const utterance = new SpeechSynthesisUtterance(spokenText(text));
-    if (voice) utterance.voice = voice;
-    utterance.lang = voice?.lang || language;
-    utterance.rate = 0.88;
-    utterance.pitch = 1.02;
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-    try {
-      window.speechSynthesis.speak(utterance);
-      setSpeaking(true);
-    } catch {
-      setSpeaking(false);
-    }
+    controllerRef.current?.speak(text, language);
   };
 
   return (

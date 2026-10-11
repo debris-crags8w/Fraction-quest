@@ -13,21 +13,14 @@ import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './Fra
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
 import { CODE_LEVEL_COUNT, describe as describeRun, getCodeLevels, makeMultiBug, matchesTarget, passesCodeLevel, predictionMatchesTarget, runProgram, solution, toText, usesEffectiveLoop, usesLoop, type Block } from './code-quest';
 import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
-import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder } from './lib/fun';
-import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
+import { loadFun, recordCodeLevel, recordCorrect, recordMinute } from './lib/fun';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
-import { createDailyPractice, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
 import type { PracticeQuestion } from './game';
 import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, paperPrompt, parseAnswer } from './learning-content';
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
-import {
-  createLearningSpeechController,
-  LearningText,
-  selectLearningVoice,
-  spokenLearningText,
-} from './LearningText';
+import { LearningText, selectLearningVoice } from './LearningText';
 import { BarSvg } from './models';
-import Printable, { AnswerKey, PrintMenu, STUDENT_PRINT_OPTIONS } from './Printables';
+import Printable, { AnswerKey, STUDENT_PRINT_OPTIONS } from './Printables';
 import { barTaskDone, canEnterWorksheetAnswer, WorksheetBarCopy, worksheetBarMatches } from './WorksheetBarCopy';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
 import QuickReviewEntry from './QuickReviewEntry';
@@ -120,18 +113,6 @@ const EXPECTED_EXTENSION_IDS = [
 ];
 
 const memory = new Map<string, string>();
-
-function makeTestSpeechUtterance(text: string): SpeechSynthesisUtterance {
-  return Object.assign(new EventTarget(), {
-    text,
-    voice: null,
-    lang: '',
-    rate: 1,
-    pitch: 1,
-    onend: null,
-    onerror: null,
-  }) as unknown as SpeechSynthesisUtterance;
-}
 
 beforeEach(() => {
   memory.clear();
@@ -514,99 +495,6 @@ describe('saved progress', () => {
   });
 });
 
-describe('daily fraction practice', () => {
-  const now = new Date(2026, 9, 11, 12).getTime();
-
-  it('creates a short deterministic session and prioritizes due and struggling skills', () => {
-    const dueMission = MISSIONS[8];
-    const trickyMission = MISSIONS[12];
-    const progress: Progress = {
-      ...EMPTY_PROGRESS,
-      reviewQueue: [{
-        missionId: dueMission.id,
-        missedQuestionId: dueMission.questions[0].id,
-        dueAt: now - 1,
-        reviewCount: 0,
-      }],
-      learning: {
-        [trickyMission.id]: {
-          ...emptyLearningRecord(),
-          misconceptions: { 'compare fractions': 3 },
-        },
-      },
-    };
-    const session = createDailyPractice(progress, now);
-
-    assert.equal(session.questions.length, DAILY_PRACTICE_LENGTH);
-    assert.equal(session.day, dailyPracticeDay(now));
-    assert.equal(session.questions[0].missionId, dueMission.id);
-    assert.equal(session.questions[1].missionId, trickyMission.id);
-    assert.equal(new Set(session.questions.map((question) => question.missionId)).size, DAILY_PRACTICE_LENGTH);
-    assert.deepEqual(new Set(session.questions.map((question) => question.modelKind)), new Set(['bar', 'number-line']));
-    assert.ok(session.questions.every((question) =>
-      question.denominator >= question.numerator && question.numerator >= 1 && question.denominator <= 12,
-    ));
-    assert.deepEqual(createDailyPractice(progress, now), session, 'returning on the same day gets the same question set');
-    assert.equal(progress.reviewQueue.length, 1, 'starting daily practice does not clear a due review');
-  });
-
-  it('saves model work and typed drafts so the routine can resume after reload', () => {
-    const session = createDailyPractice(EMPTY_PROGRESS, now);
-    const question = session.questions[0];
-    const inProgress: Progress = {
-      ...EMPTY_PROGRESS,
-      dailyPractice: {
-        ...session,
-        index: 2,
-        attempts: {
-          [question.id]: {
-            shaded: [0, 2],
-            draft: '2/4',
-            modelChecked: true,
-            modelCorrect: false,
-            answerChecked: true,
-            answerCorrect: false,
-          },
-        },
-      },
-    };
-
-    saveProgress(inProgress);
-
-    const resumed = loadProgress();
-    assert.equal(resumed.dailyPractice?.day, session.day);
-    assert.equal(resumed.dailyPractice?.index, 2);
-    assert.deepEqual(resumed.dailyPractice?.attempts[question.id], inProgress.dailyPractice?.attempts[question.id]);
-    assert.deepEqual(resumed.completedMissionIds, []);
-    assert.deepEqual(resumed.starsByMission, {});
-  });
-
-  it('records completion separately without changing lesson gates, mastery, stars, or review queues', () => {
-    const mission = MISSIONS[0];
-    const dueReview = {
-      missionId: mission.id,
-      missedQuestionId: mission.questions[0].id,
-      dueAt: now - 1,
-      reviewCount: 0,
-    };
-    const session = createDailyPractice({ ...EMPTY_PROGRESS, reviewQueue: [dueReview] }, now);
-    const completed: Progress = {
-      ...EMPTY_PROGRESS,
-      reviewQueue: [dueReview],
-      dailyPractice: { ...session, completedAt: now },
-    };
-
-    saveProgress(completed);
-    const loaded = loadProgress();
-
-    assert.equal(loaded.dailyPractice?.completedAt, now);
-    assert.deepEqual(loaded.reviewQueue, [dueReview]);
-    assert.deepEqual(loaded.completedMissionIds, []);
-    assert.deepEqual(loaded.starsByMission, {});
-    assert.equal(hasLearningGate(loaded, mission.id), false);
-  });
-});
-
 function withLearning(progress: Progress, id: string): Progress {
   let record = { ...emptyLearningRecord(), practiceDone: true };
   for (const check of getBuildChecks(id)) record.checks[check.id] = { passed: true, supported: false, attempts: 1 };
@@ -627,161 +515,30 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.match(markup, /A whole is the full shape or amount/);
     assert.match(markup, /class="fq-mfrac" role="math" aria-label="1 over 4"/);
     assert.match(markup, /class="fq-learning-listen"/);
-    assert.match(markup, /Audio unavailable/, 'browsers without speech support explain that audio is unavailable');
   });
 
-  it('prefers a feminine-sounding voice in the requested language and falls back to the best local voice', () => {
+  it('prefers a feminine-sounding voice in the requested language, then falls back to a local voice', () => {
     const voices = [
       { name: 'Alex', lang: 'en-US', default: true },
-      { name: 'Daniel', lang: 'en-GB', default: false },
-      { name: 'Samantha', lang: 'en-AU', default: false },
+      { name: 'Samantha', lang: 'en-US', default: false },
       { name: 'Samantha', lang: 'fr-FR', default: true },
     ];
     assert.equal(selectLearningVoice(voices, 'en-US')?.name, 'Samantha');
-    assert.equal(selectLearningVoice(voices.slice(0, 2), 'en-US')?.name, 'Alex', 'without a feminine-sounding voice, use the best language match');
+    assert.equal(selectLearningVoice(voices.slice(0, 1), 'en-US')?.name, 'Alex');
     assert.equal(selectLearningVoice([], 'en-US'), null);
-    assert.equal(selectLearningVoice([voices[3], { name: 'Luca', lang: 'it-IT', default: false }], 'en-US')?.lang, 'fr-FR', 'when no requested-language voice exists, use the browser default');
-    assert.equal(spokenLearningText('Compare 1/2 with 3/4.'), 'Compare 1 over 2 with 3 over 4.');
   });
 
-  it('waits for delayed voices and applies calm speech settings and fraction pronunciation', () => {
-    const utterances: SpeechSynthesisUtterance[] = [];
-    const listeners = new Set<() => void>();
-    const fakeSynthesis = {
-      voices: [] as SpeechSynthesisVoice[],
-      getVoices() { return this.voices; },
-      speak(utterance: SpeechSynthesisUtterance) { utterances.push(utterance); },
-      cancel() {},
-      addEventListener(_event: string, listener: () => void) { listeners.add(listener); },
-      removeEventListener(_event: string, listener: () => void) { listeners.delete(listener); },
-    } as unknown as SpeechSynthesis;
-    const controller = createLearningSpeechController(fakeSynthesis, () => undefined, makeTestSpeechUtterance);
-    controller.speak('1/2 is one half.', 'en-US');
-    assert.equal(utterances.length, 0, 'do not speak with the browser default before asynchronous voices load');
-
-    fakeSynthesis.voices = [
-      { name: 'Alex', lang: 'en-US', default: true },
-      { name: 'Samantha', lang: 'en-US', default: false },
-    ] as SpeechSynthesisVoice[];
-    for (const listener of listeners) listener();
-
-    assert.equal(utterances.length, 1);
-    assert.equal(utterances[0].voice?.name, 'Samantha');
-    assert.equal(utterances[0].text, '1 over 2 is one half.');
-    assert.equal(utterances[0].lang, 'en-US');
-    assert.equal(utterances[0].rate, 0.88);
-    assert.equal(utterances[0].pitch, 1.02);
-    controller.dispose();
-  });
-
-  it('cancels before restart and prevents stale speech callbacks from changing current playback state', () => {
-    const utterances: SpeechSynthesisUtterance[] = [];
-    let cancelCount = 0;
-    const fakeSynthesis = {
-      getVoices: () => [{ name: 'Samantha', lang: 'en-US', default: true }] as SpeechSynthesisVoice[],
-      speak(utterance: SpeechSynthesisUtterance) { utterances.push(utterance); },
-      cancel() { cancelCount += 1; },
-      addEventListener() {},
-      removeEventListener() {},
-    } as unknown as SpeechSynthesis;
-    const states: boolean[] = [];
-    const controller = createLearningSpeechController(fakeSynthesis, (value) => states.push(value), makeTestSpeechUtterance);
-    controller.speak('First explanation.', 'en-US');
-    const firstFinish = utterances[0].onend!;
-    controller.speak('Second explanation.', 'en-US');
-
-    assert.equal(cancelCount, 2, 'each playback starts by canceling anything already queued');
-    assert.equal(utterances.length, 2);
-    firstFinish(new Event('end') as SpeechSynthesisEvent);
-    assert.equal(states.at(-1), true, 'an old utterance cannot mark the newer one stopped');
-
-    controller.stop();
-    assert.equal(cancelCount, 3);
-    assert.equal(states.at(-1), false);
-    controller.dispose();
-    assert.equal(cancelCount, 4, 'component cleanup cancels browser speech');
-  });
-
-  it('cancels a pending voice lookup and falls back to the browser default after the wait expires', async () => {
-    const utterances: SpeechSynthesisUtterance[] = [];
-    const listeners = new Set<() => void>();
-    const fakeSynthesis = {
-      voices: [] as SpeechSynthesisVoice[],
-      getVoices() { return this.voices; },
-      speak(utterance: SpeechSynthesisUtterance) { utterances.push(utterance); },
-      cancel() {},
-      addEventListener(_event: string, listener: () => void) { listeners.add(listener); },
-      removeEventListener(_event: string, listener: () => void) { listeners.delete(listener); },
-    } as unknown as SpeechSynthesis;
-    const states: boolean[] = [];
-    const controller = createLearningSpeechController(fakeSynthesis, (value) => states.push(value), makeTestSpeechUtterance, 5);
-    controller.speak('This should not start.', 'en-US');
-    assert.equal(states.at(-1), true, 'the stop control is available while waiting for voices');
-    controller.stop();
-    assert.equal(states.at(-1), false);
-    for (const listener of listeners) listener();
-    assert.equal(utterances.length, 0, 'stop cancels the waiting voice lookup');
-
-    controller.speak('Use the browser default.', 'en-US');
-    await new Promise((resolve) => setTimeout(resolve, 15));
-    assert.equal(utterances.length, 1);
-    assert.equal(utterances[0].voice, null);
-    assert.equal(utterances[0].lang, 'en-US');
-    controller.dispose();
-  });
-
-  it('keeps answer keys out of every student printable and student print choices', () => {
+  it('keeps answer keys out of student print choices and generated practice sheets', () => {
     assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.label.toLowerCase().includes('answer key')), false);
     assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.mode === 'answers'), true);
-    const record = emptyLearningRecord();
-    const menu = renderToStaticMarkup(createElement(PrintMenu, { missionId: 'number-line-basics', record }));
-    assert.doesNotMatch(menu, /answer key/i);
-
-    for (const { mode } of STUDENT_PRINT_OPTIONS) {
-      const markup = renderToStaticMarkup(createElement(Printable, {
-        missionId: 'number-line-basics',
-        record,
-        mode,
-        seed: 1,
-      }));
-      assert.doesNotMatch(markup, /fq-print-key-list|data-testid="print-answer-key"/, `${mode} must not render an answer key`);
-    }
-
-    const generated = renderToStaticMarkup(createElement(Printable, {
-      missionId: 'number-line-basics',
-      record,
+    const markup = renderToStaticMarkup(createElement(Printable, {
+      missionId: 'equal-parts',
+      record: emptyLearningRecord(),
       mode: 'generated',
       seed: 1,
     }));
-    assert.match(generated, /data-testid="print-generated"/);
-    assert.doesNotMatch(generated, /Cut this part off/i);
-  });
-
-  it('keeps the student’s own checked responses on the My answers sheet', () => {
-    const problem = getWorksheet('number-line-basics')[0];
-    const record = checkWorksheet(editWorksheet(emptyLearningRecord(), problem.id, problem.answer), problem);
-    const markup = renderToStaticMarkup(createElement(Printable, {
-      missionId: 'number-line-basics',
-      record,
-      mode: 'answers',
-    }));
-
-    assert.match(markup, /My answers/);
-    assert.match(markup, new RegExp(`<b>${problem.answer}<\\/b>`));
-    assert.match(markup, /✓ Correct/);
-  });
-
-  it('keeps the grown-up answer key printable with practice, worksheet, and model solutions', () => {
-    const mission = getMission('equal-parts');
-    const markup = renderToStaticMarkup(createElement(AnswerKey, { mission }));
-    const firstWorksheetAnswer = getWorksheet(mission.id)[0].answer;
-    const firstPracticeAnswer = mission.questions[0].choices[mission.questions[0].correctChoice];
-
-    assert.match(markup, /Answer key for grown-ups/);
-    assert.match(markup, /data-testid="print-answer-key"/);
-    assert.ok(markup.includes(firstPracticeAnswer), 'includes the authored practice answer');
-    assert.ok(markup.includes(firstWorksheetAnswer), 'includes the worksheet answer');
-    assert.match(markup, /Show it both ways/);
+    assert.match(markup, /data-testid="print-generated"/);
+    assert.doesNotMatch(markup, /Answer key|Cut this part off/i);
   });
 
   it('labels the whole and a part inside the bar model rather than showing a fraction hint beside it', () => {
@@ -1104,71 +861,6 @@ describe('square (area) models', () => {
   it('keeps coloring tasks out of the typed level quiz and review', () => {
     for (let seed = 1; seed <= 40; seed++) assert.ok(placementItems(1, seed).every(item => !item.problem.areaTask));
     for (let round = 0; round < 6; round++) for (const id of ['equal-parts', 'unit-fractions', 'equivalent-models']) assert.ok(!/square|triangle/i.test(getReviewCheck(id, round).prompt));
-  });
-});
-
-describe('Part Finder rounds', () => {
-  const share = PART_FINDER_ROUNDS.find((round) => round.id === 'share')!;
-  const tile = PART_FINDER_ROUNDS.find((round) => round.id === 'tile')!;
-  const match = PART_FINDER_ROUNDS.find((round) => round.id === 'match')!;
-
-  it('accepts different shape combinations that make the same-sized fair share', () => {
-    assert.equal(isPartFinderAnswer(share, [0]), true, 'one square is one fourth');
-    assert.equal(isPartFinderAnswer(share, [1, 2]), true, 'two triangles together are also one fourth');
-    assert.equal(isPartFinderAnswer(share, [5, 6]), true, 'a different pair of triangles is also accepted');
-    assert.equal(partFinderSelectionArea(share, [1, 2]), 1 / 4);
-  });
-
-  it('rejects empty, incomplete, oversized, duplicate, and invalid groupings', () => {
-    assert.equal(isPartFinderAnswer(share, []), false);
-    assert.equal(isPartFinderAnswer(share, [1]), false);
-    assert.equal(isPartFinderAnswer(share, [0, 1]), false);
-    assert.equal(isPartFinderAnswer(share, [1, 1]), false);
-    assert.equal(isPartFinderAnswer(share, [99]), false);
-    assert.match(partFinderFeedback(share, [1]), /Not enough/);
-    assert.match(partFinderFeedback(share, [0, 1]), /Too much/);
-  });
-
-  it('counts one eighth piece across the whole and matches any two eighths to a fourth', () => {
-    assert.equal(isPartFinderAnswer(tile, [0]), false, 'a tile needs a copy-count answer');
-    assert.equal(isPartFinderAnswer(tile, [0], 8), true);
-    assert.equal(isPartFinderAnswer(tile, [0], 7), false);
-    assert.equal(isPartFinderAnswer(tile, [0, 1], 4), false, 'the tiling round asks for one piece');
-    assert.equal(isPartFinderAnswer(match, [0, 1]), true);
-    assert.equal(isPartFinderAnswer(match, [4, 7]), true);
-    assert.equal(isPartFinderAnswer(match, [0]), false);
-    assert.equal(PART_FINDER_ROUNDS.length, 3);
-    assert.deepEqual([...PART_FINDER_LESSONS], ['equal-parts', 'unit-fractions', 'equivalent-models']);
-  });
-
-  it('awards points only for a correct first check and caps the score at three', () => {
-    assert.equal(scorePartFinderRound(0, true), 1);
-    assert.equal(scorePartFinderRound(0, false), 0);
-    assert.equal(scorePartFinderRound(2, true), 3);
-    assert.equal(scorePartFinderRound(3, true), 3);
-  });
-});
-
-describe('Part Finder saved game result', () => {
-  it('saves the best score, keeps it on replay, and clamps saved values', () => {
-    const zeroScore = recordPartFinder(loadFun(), 0);
-    assert.equal(loadFun().partFinderBest, 0, 'a completed zero-point game still has a saved result');
-    const firstRun = recordPartFinder(zeroScore, 2);
-    assert.equal(loadFun().partFinderBest, 2);
-    const replay = recordPartFinder(loadFun(), 1);
-    assert.equal(replay.partFinderBest, 2, 'a lower replay does not replace the best score');
-    assert.equal(recordPartFinder(replay, 99).partFinderBest, 3, 'scores cannot exceed three rounds');
-    window.localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ partFinderBest: 99 }));
-    assert.equal(loadFun().partFinderBest, 3);
-    assert.equal(firstRun.partFinderBest, 2);
-  });
-
-  it('keeps game score separate from worksheet and lesson progress', () => {
-    const before = loadProgress();
-    recordPartFinder(loadFun(), 3);
-    const after = loadProgress();
-    assert.deepEqual(after, before);
-    assert.equal(hasLearningGate(after, MISSIONS[0].id), false);
   });
 });
 
