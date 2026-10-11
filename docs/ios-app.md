@@ -71,3 +71,15 @@ npx cap open ios          # opens Xcode
 - **iCloud limit:** iCloud key-value storage allows 1 MB per app; a family of six with every lesson done is well under that (checked by a test). If it's ever full, the grown-ups page says so and suggests a backup.
 - **Simultaneous saves:** if two devices save at the same moment, iCloud keeps the later copy. Each save merges iCloud first, and every device re-saves on its next change, so nothing is lost for long.
 - **Same Apple ID only:** profiles sync between devices on the same Apple ID (one iCloud). Children on different Apple IDs, such as their own iPads under Family Sharing, don't share data. Use **Save a backup** / **Restore a backup** to move a child between them.
+
+## Pricing plan (decided, not built yet)
+- **Model:** free download as a trial. **Unit 1 is free** (Same whole, fair pieces · Read a fraction · One piece at a time). Units 2–14 unlock with a **monthly auto-renewable subscription**. No lifetime option for now.
+- **To build later on this branch:**
+  - StoreKit 2 directly (no third-party SDK, so the privacy label stays "Data Not Collected")
+  - a subscription group with one monthly product, and optionally an introductory free trial
+  - a lock screen on units 2–14 ("Ask a grown-up to unlock")
+  - the purchase screen behind the grown-up maths gate
+  - Restore Purchases and a Manage subscription link
+  - Terms of Use (EULA) and privacy links on the purchase screen
+  - lapsed subscriptions keep all saved progress viewable and pause only locked units
+- **Open questions for then:** whether games and printables for locked units are also locked; the price; whether to offer a free trial period; and whether the website stays fully free.
