@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useLayoutEffect, useState } from 'react';
+import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, BarChart3, Check, ClipboardCheck, Code2, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { MathText } from './MathText';
@@ -39,7 +39,7 @@ import QuickReviewEntry from './QuickReviewEntry';
 import { getLearningRecord, hasLearningGate, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, recordRace, recordSprint, resetFun, setSound, type FunState } from './lib/fun';
+import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, recordRace, recordSprint, resetFun, setBreakPreferences, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag } from './models';
@@ -63,6 +63,8 @@ import { createDailyPractice, dailyPracticeDay } from './daily-practice';
 import PartFinder from './PartFinder';
 import { AssessmentHub, AssessmentRunner } from './Assessment';
 import { PART_FINDER_LESSONS } from './part-finder';
+import ConceptGames from './ConceptGames';
+import { BrainBreakOffer } from './BrainBreakOffer';
 const queryClient = new QueryClient();
 
 type View =
@@ -71,6 +73,7 @@ type View =
   | { type: 'review'; questionIndex: number; reviewQuestions: PracticeQuestion[] }
   | { type: 'review-complete'; reviewedCount: number }
   | { type: 'daily' }
+  | { type: 'concept-games' }
   | { type: 'assessments' }
   | { type: 'assessment'; definition: AssessmentDefinition; seed: number }
   | { type: 'reward'; missionId: string; stars: number };
@@ -257,7 +260,7 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
   );
 }
 
-function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
+function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
   const { user } = useAccount();
   const { fun } = useFun();
   const codeSummary = summarizeCodeProgress(fun.codeLevels, MISSIONS.map((mission) => mission.id));
@@ -351,6 +354,12 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
               </section>
             );
           })()}
+
+          <button className="fq-assessment-entry fq-concept-games-entry" onClick={onConceptGames} data-testid="button-open-concept-games">
+            <span className="fq-assessment-entry-icon" aria-hidden="true"><Dumbbell size={20} /></span>
+            <span><strong>Play the fraction games</strong><small>Build bars, match equal amounts, and place fractions on a number line. Games never change lesson progress.</small></span>
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
 
           <button className="fq-assessment-entry" onClick={onAssessments} data-testid="button-open-assessments">
             <span className="fq-assessment-entry-icon" aria-hidden="true"><ClipboardCheck size={20} /></span>
@@ -806,23 +815,46 @@ function Game() {
   const [saveError, setSaveError] = useState(false);
   const [fun, setFun] = useState<FunState>(() => account.initialFun ?? loadFun());
   const [combo, setCombo] = useState(0);
+  const [breakReason, setBreakReason] = useState<'interval' | 'mistakes' | 'lesson-part' | null>(null);
+  const activeStudyMilliseconds = useRef(0);
+  const consecutiveWrongAnswers = useRef(0);
+  const breakIntervalMinutes = fun.breakPreferences?.intervalMinutes ?? 15;
+  const quietBreaks = fun.breakPreferences?.quietMode ?? false;
+  const activeStudyView = ['play', 'review', 'daily', 'lab', 'redo', 'extra', 'retention'].includes(view.type);
   useAccountSync(progress, fun);
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, [view]);
 
-  // Time for the grown-ups' report: count a minute only while the tab is visible and the child
-  // has tapped or typed in the last 2 minutes (an open, idle tab doesn't count).
+  // Count report time only while the tab is visible and recently used. On lesson screens,
+  // accumulate active time toward an optional break reminder; the break itself never counts.
   useEffect(() => {
     let lastInput = Date.now();
+    let lastTick = Date.now();
     const touch = () => { lastInput = Date.now(); };
     window.addEventListener('pointerdown', touch); window.addEventListener('keydown', touch);
     const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible' && Date.now() - lastInput < 120_000) setFun((current) => recordMinute(current));
+      const now = Date.now();
+      const elapsed = now - lastTick;
+      lastTick = now;
+      if (document.visibilityState !== 'visible' || now - lastInput >= 120_000) return;
+      if (!breakReason) setFun((current) => recordMinute(current));
+      if (activeStudyView && breakIntervalMinutes > 0 && !breakReason) {
+        activeStudyMilliseconds.current += elapsed;
+        if (activeStudyMilliseconds.current >= breakIntervalMinutes * 60_000) {
+          consecutiveWrongAnswers.current = 0;
+          setBreakReason('interval');
+        }
+      }
     }, 60_000);
     return () => { window.clearInterval(timer); window.removeEventListener('pointerdown', touch); window.removeEventListener('keydown', touch); };
-  }, []);
+  }, [view.type, activeStudyView, breakIntervalMinutes, breakReason]);
+
+  useEffect(() => {
+    activeStudyMilliseconds.current = 0;
+    consecutiveWrongAnswers.current = 0;
+  }, [breakIntervalMinutes]);
 
   const startMission = (missionId: string) => {
     if (!isMissionUnlocked(progress, missionId)) return;
@@ -865,6 +897,7 @@ function Game() {
     if (!hasLearningGate(nextProgress, missionId)) return;
     persistProgress(nextProgress);
     setView({ type: 'reward', missionId, stars: nextProgress.starsByMission[missionId] ?? stars });
+    if (breakIntervalMinutes > 0) setBreakReason('lesson-part');
   };
 
   const resetProgress = () => {
@@ -900,7 +933,7 @@ function Game() {
     if (!(record.redo?.part === part && !record.redo.finishedAt)) persistProgress(updateLearning(progress, missionId, startRedo(record, part)));
     setView({ type: 'redo', missionId });
   };
-  const returnToMap = () => { setPendingRetention(null); setCombo(0); setView({ type: 'map' }); };
+  const returnToMap = () => { setPendingRetention(null); setCombo(0); consecutiveWrongAnswers.current = 0; setView({ type: 'map' }); };
   const nextReviewView = (nextView: View) => {
     if (pendingRetention) {
       setView({ type: 'retention', missionId: pendingRetention, startedAt: Date.now(), nextView });
@@ -910,12 +943,32 @@ function Game() {
       setView(nextView);
     }
   };
+  const closeBreak = () => {
+    activeStudyMilliseconds.current = 0;
+    consecutiveWrongAnswers.current = 0;
+    setBreakReason(null);
+  };
+  const onPracticeCorrect = (firstTry: boolean) => {
+    consecutiveWrongAnswers.current = 0;
+    setFun((current) => recordCorrect(current));
+    setCombo((current) => (firstTry ? current + 1 : 0));
+  };
+  const onPracticeSuccess = () => { consecutiveWrongAnswers.current = 0; };
+  const onPracticeWrong = () => {
+    setCombo(0);
+    consecutiveWrongAnswers.current += 1;
+    if (breakIntervalMinutes > 0 && activeStudyView && consecutiveWrongAnswers.current >= 3 && !breakReason) {
+      consecutiveWrongAnswers.current = 0;
+      setBreakReason('mistakes');
+    }
+  };
 
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onAssessments={() => setView({ type: 'assessments' })} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
-      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
+      {view.type === 'concept-games' && <ConceptGames onExit={returnToMap} />}
       {view.type === 'assessments' && <AssessmentHub attempts={progress.assessments ?? []} onStart={definition => setView({ type: 'assessment', definition, seed: freshSeed() })} onBack={returnToMap} />}
       {view.type === 'assessment' && <AssessmentRunner key={`${view.definition.id}:${view.seed}`} definition={view.definition} seed={view.seed}
         onComplete={attempt => persistProgress(saveAssessmentAttempt(progress, attempt))} onExit={() => setView({ type: 'assessments' })} />}
@@ -931,7 +984,7 @@ function Game() {
           onExit={returnToMap} onSolved={(level) => setFun((current) => recordCodeLevel(current, view.missionId, level))} />
       )}
       {view.type === 'part-finder' && <PartFinder best={fun.partFinderBest ?? null} onExit={returnToMap} onFinish={(score) => setFun((current) => recordPartFinder(current, score))} />}
-      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.user?.displayName ?? null} onBack={returnToMap} />}
+      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.user?.displayName ?? null} onBack={returnToMap} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);
         const baseIds = base.questions.map((q) => q.id);
@@ -944,8 +997,8 @@ function Game() {
             firstTryAnswers={view.firstTry}
             combo={combo}
             onBack={returnToMap}
-            onCorrect={(firstTry) => { setFun((current) => recordCorrect(current)); setCombo((current) => (firstTry ? current + 1 : 0)); }}
-            onWrong={() => setCombo(0)}
+            onCorrect={onPracticeCorrect}
+            onWrong={onPracticeWrong}
             onNext={(firstTry) => setView({ type: 'extra', missionId: view.missionId, seed: view.seed, questionIndex: view.questionIndex + 1, firstTry })}
             onFinish={(_stars, firstTry) => setView({ type: 'extra-done', missionId: view.missionId, seed: view.seed, firstTry, total: practiceMission.questions.length })}
             onMissed={(missionId, questionId) => persistProgress(recordMissedSkill(progress, missionId, questionId))}
@@ -984,8 +1037,8 @@ function Game() {
           isQuickReview={view.type === 'review'}
           combo={combo}
           onBack={returnToMap}
-          onCorrect={(firstTry) => { setFun((current) => recordCorrect(current)); setCombo((current) => (firstTry ? current + 1 : 0)); }}
-          onWrong={() => setCombo(0)}
+          onCorrect={onPracticeCorrect}
+          onWrong={onPracticeWrong}
           onNext={(firstTryAnswers) => {
             if (view.type === 'review') {
               nextReviewView({ type: 'review', questionIndex: view.questionIndex + 1, reviewQuestions: view.reviewQuestions });
@@ -1003,6 +1056,7 @@ function Game() {
             const record = getLearningRecord(progress, activeMission.id);
             persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceDone: true, practiceStars: Math.max(stars, record.practiceStars ?? 0) }));
             setView({ type: 'lab', missionId: activeMission.id, stars });
+            if (breakIntervalMinutes > 0) setBreakReason('lesson-part');
           }}
           onFinishReview={view.type === 'review' ? () => nextReviewView({ type: 'review-complete', reviewedCount: view.reviewQuestions.length }) : undefined}
           onMissed={(missionId, questionId) => persistProgress(recordMissedSkill(progress, missionId, questionId))}
@@ -1020,9 +1074,9 @@ function Game() {
           }}
         />
       )}
-      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId })} onRedo={(part) => startRedoPart(view.missionId, part)} />}
-      {view.type === 'redo' && <RedoLab missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? 1 })} />}
-      {view.type === 'retention' && <LearningLab key={`retention-${view.startedAt}`} review missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap} onFinish={(updated) => {
+      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId })} onRedo={(part) => startRedoPart(view.missionId, part)} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
+      {view.type === 'redo' && <RedoLab missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? 1 })} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
+      {view.type === 'retention' && <LearningLab key={`retention-${view.startedAt}`} review missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onFinish={(updated) => {
         const latest = updated ?? progress;
         const record = getLearningRecord(latest, view.missionId);
         persistProgress(record.confirmedAt && record.confirmedAt >= view.startedAt ? completeSkillReview(latest, view.missionId) : deferSkillReview(latest, view.missionId));
@@ -1035,6 +1089,7 @@ function Game() {
       {view.type === 'review-complete' && (
         <ReviewCompleteView reviewedCount={view.reviewedCount} progress={progress} onMap={returnToMap} onReset={() => setResetOpen(true)} />
       )}
+      {breakReason && <BrainBreakOffer reason={breakReason} quietMode={quietBreaks} onSkip={closeBreak} onFinish={closeBreak} />}
       {resetOpen && (
         <div className="fq-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setResetOpen(false); }}>
           <div className="fq-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description">

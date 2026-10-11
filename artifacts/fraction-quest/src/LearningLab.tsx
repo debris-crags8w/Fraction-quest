@@ -264,10 +264,11 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
 }
 
 type Outcome = { supported: boolean; attempts: number };
-function CheckRunner({ check, onHelp, onPass, review, headingRef }: {
+function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuccess }: {
   check: BuildCheck; review: boolean;
   onHelp: (kind: 'hint' | 'error', keys: string[]) => void; onPass: (o: Outcome) => void;
   headingRef?: RefObject<HTMLHeadingElement | null>;
+  onWrong?: () => void; onSuccess?: () => void;
 }) {
   const t = check.target; const k = t.kind; const lineWholes = numberLineWholeCount(t.n, t.d);
   const tk: Kind = k === 'line' ? 'bar' : 'line';
@@ -312,8 +313,8 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef }: {
       if (!reasonFeedback.correct) keys.push(M.reason);
     }
     if (msgs.length) {
-      setErrs(msgs); setFailedSig(sig); setSupported(true); setAttempts(n => n + 1); onHelp('error', Array.from(new Set(keys)));
-    } else { setErrs([]); setDone(true); onPass({ supported, attempts: attempts + 1 }); }
+      setErrs(msgs); setFailedSig(sig); setSupported(true); setAttempts(n => n + 1); onHelp('error', Array.from(new Set(keys))); onWrong?.();
+    } else { setErrs([]); setDone(true); onSuccess?.(); onPass({ supported, attempts: attempts + 1 }); }
   };
   const hint = () => { setHints(h => h + 1); setSupported(true); onHelp('hint', []); };
 
@@ -365,7 +366,10 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef }: {
   );
 }
 
-export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabel }: { p: WorksheetProblem; rec: LearningRecord; onEdit: (v: string) => void; onCheck: () => void; onHint: () => void; onNewQuestion?: () => void; numberLabel?: string }) {
+export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabel, onWrong, onSuccess }: {
+  p: WorksheetProblem; rec: LearningRecord; onEdit: (v: string) => void; onCheck: () => void; onHint: () => void;
+  onNewQuestion?: () => void; numberLabel?: string; onWrong?: () => void; onSuccess?: () => void;
+}) {
   const e = rec.worksheet[p.id]; const draft = e?.draft ?? '';
   const ok = !!e && e.checkedValue === e.draft && answerMatches(p, draft);
   const [open, setOpen] = useState(false);
@@ -388,7 +392,10 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
   const submit = (event: { preventDefault: () => void }) => {
     event.preventDefault();
     if (!draft.trim() || !answerEnabled) return;
-    setWrong(answerMatches(p, draft) ? null : draft);
+    const correct = answerMatches(p, draft);
+    setWrong(correct ? null : draft);
+    if (correct) onSuccess?.();
+    else onWrong?.();
     onCheck();
   };
   return (
@@ -434,10 +441,10 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
   );
 }
 
-export default function LearningLab({ missionId, progress, onChange, onFinish, onBack, onPaper, onRedo, review = false }: {
+export default function LearningLab({ missionId, progress, onChange, onFinish, onBack, onPaper, onRedo, review = false, onWrong, onSuccess }: {
   missionId: string; progress: Progress; onChange: (progress: Progress) => void; onFinish: (nextProgress?: Progress) => void; onBack: () => void; onPaper?: () => void;
   /** Offered once the lesson is finished: practice a part again with new numbers. */
-  onRedo?: (part: RedoPart) => void; review?: boolean;
+  onRedo?: (part: RedoPart) => void; review?: boolean; onWrong?: () => void; onSuccess?: () => void;
 }) {
   const ref = useRef(progress); ref.current = progress;
   const checks = getBuildChecks(missionId);
@@ -481,6 +488,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         <header className="fq-ll-head"><span className="fq-ll-badge"><RotateCcw size={16} /> Later review</span><h2>Show it again</h2>
           <p>Build this one from scratch.</p></header>
         <CheckRunner key={`review-${missionId}`} review check={check}
+          onWrong={onWrong}
+          onSuccess={onSuccess}
           onHelp={(kind, keys) => { if (kind === 'hint' || keys.length) save({ ...bump(cur(), keys), reviewSupportedUntil: Date.now() + 24 * 3600 * 1000, confirmedAt: undefined }); setReviewSupported(true); }}
           onPass={o => {
             if (o.attempts === -1) {
@@ -557,6 +566,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
       {idx !== -1 && (
         <CheckRunner key={checks[idx].id} review={false} check={checks[idx]}
           headingRef={activeCheckHeading}
+          onWrong={onWrong}
+          onSuccess={onSuccess}
           onHelp={(kind, keys) => {
             const r = bump(cur(), keys); const id = checks[idx].id; const old = r.checks[id];
             save({ ...r, checks: { ...r.checks, [id]: { passed: false, supported: true, attempts: (old?.attempts ?? 0) + (kind === 'error' ? 1 : 0) } } });
@@ -581,6 +592,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
               <Row key={p.id} p={p} rec={rec}
                 onEdit={v => save(editWorksheet(cur(), p.id, v))}
                 onCheck={() => save(checkWorksheet(cur(), p))}
+                onWrong={onWrong}
+                onSuccess={onSuccess}
                 onHint={() => { const r = cur(); const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };
                   save({ ...r, helpUses: r.helpUses + 1, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }); }} />
             ))}
@@ -600,6 +613,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
                   <Row key={problem.id} p={problem} rec={rec} numberLabel={`R${problemIndex + 1}`}
                     onEdit={value => save(editWorksheet(cur(), problem.id, value))}
                     onCheck={() => save(checkWorksheet(cur(), problem, false))}
+                    onWrong={onWrong}
+                    onSuccess={onSuccess}
                     onHint={() => {
                       const record = cur();
                       const entry = record.worksheet[problem.id] ?? { draft: '', attempts: 0, supported: false };
@@ -636,8 +651,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
 /** A second try at a finished lesson's builds or worksheet, with new numbers. Practice only: it is saved apart
     from the lesson's own answers, so completion, unlocks and first-try results never change. */
-export function RedoLab({ missionId, progress, onChange, onBack }: {
-  missionId: string; progress: Progress; onChange: (progress: Progress) => void; onBack: () => void;
+export function RedoLab({ missionId, progress, onChange, onBack, onWrong, onSuccess }: {
+  missionId: string; progress: Progress; onChange: (progress: Progress) => void; onBack: () => void; onWrong?: () => void; onSuccess?: () => void;
 }) {
   const ref = useRef(progress); ref.current = progress;
   const redo = getLearningRecord(progress, missionId).redo;
@@ -674,6 +689,8 @@ export function RedoLab({ missionId, progress, onChange, onBack }: {
           </ol>
           {idx !== -1 && (
             <CheckRunner key={`${redo.round}-${checks[idx].id}`} review={false} check={checks[idx]}
+              onWrong={onWrong}
+              onSuccess={onSuccess}
               onHelp={(kind) => change(r => { const id = checks[idx].id; const old = r.checks[id];
                 return { ...r, checks: { ...r.checks, [id]: { passed: false, supported: true, attempts: (old?.attempts ?? 0) + (kind === 'error' ? 1 : 0) } } }; })}
               onPass={o => change(r => { const id = checks[idx].id; const old = r.checks[id];
@@ -695,6 +712,8 @@ export function RedoLab({ missionId, progress, onChange, onBack }: {
               <Row key={`${p.id}-${redo.round}-${redo.rowRounds[p.id] ?? 0}`} p={p} rec={asRecord(redo.worksheet)}
                 onEdit={v => change(r => ({ ...r, worksheet: editWorksheet(asRecord(r.worksheet), p.id, v).worksheet }))}
                 onCheck={() => change(r => ({ ...r, worksheet: checkWorksheet(asRecord(r.worksheet), p).worksheet }))}
+                onWrong={onWrong}
+                onSuccess={onSuccess}
                 onHint={() => change(r => { const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };
                   return { ...r, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }; })}
                 onNewQuestion={() => change(r => { const { [p.id]: _old, ...worksheet } = r.worksheet;

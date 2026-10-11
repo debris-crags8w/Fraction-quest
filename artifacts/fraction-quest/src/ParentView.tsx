@@ -6,6 +6,8 @@ import { buildParentReport, type LessonRow } from './parent-report';
 import { AnswerKey } from './Printables';
 import { LearningVoicePicker } from './LearningText';
 import { FamilyGuide } from './FamilyGuide';
+import { BreakSettings } from './BreakSettings';
+import type { BreakPreferences } from './lib/fun';
 
 const STATUS: Record<LessonRow['status'], string> = { done: 'Done', started: 'In progress', skipped: 'Skipped by quiz', open: 'Open', locked: 'Locked' };
 
@@ -41,8 +43,9 @@ function GrownUpGate({ onPass, onBack }: { onPass: () => void; onBack: () => voi
 const percent = (value: number | null) => (value === null ? '—' : `${value}%`);
 const MASTERY_LABEL = { mastered: 'Mastered', developing: 'Developing', 'not-yet': 'Not yet assessed' } as const;
 
-export default function ParentView({ progress, fun, unitTitles, childName, onBack }: {
+export default function ParentView({ progress, fun, unitTitles, childName, onBack, onBreakPreferencesChange }: {
   progress: Progress; fun: FunState; unitTitles: string[]; childName: string | null; onBack: () => void;
+  onBreakPreferencesChange: (preferences: BreakPreferences) => void;
 }) {
   const [unlocked, setUnlocked] = useState(false);
   const [answerKeyLessonId, setAnswerKeyLessonId] = useState(MISSIONS[0].id);
@@ -101,6 +104,12 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
           </section>
 
           <LearningVoicePicker />
+
+          <BreakSettings
+            intervalMinutes={fun.breakPreferences?.intervalMinutes ?? 15}
+            quietMode={fun.breakPreferences?.quietMode ?? false}
+            onChange={onBreakPreferencesChange}
+          />
 
           <section className="fq-parent-section fq-parent-code-progress" data-testid="parent-code-progress">
             <h2>Coding levels passed</h2>

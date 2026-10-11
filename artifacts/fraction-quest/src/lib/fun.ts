@@ -7,6 +7,10 @@ import { CODE_LEVEL_COUNT } from '../code-quest';
 const FUN_KEY = 'fraction-quest-fun-v1';
 export const DAILY_GOAL = 10;
 
+export type BreakIntervalMinutes = 0 | 10 | 15 | 20;
+export type BreakPreferences = { intervalMinutes: BreakIntervalMinutes; quietMode: boolean };
+const DEFAULT_BREAK_PREFERENCES: BreakPreferences = { intervalMinutes: 15, quietMode: false };
+
 export type FunState = {
   xp: number;
   day: string;
@@ -27,13 +31,32 @@ export type FunState = {
   partFinderBest?: number;
   /** Preferred local read-aloud voice ID; another device may need to use a local fallback. */
   preferredLearningVoiceId?: string;
+  /** Optional break reminders; kept with preferences, separate from all lesson evidence. */
+  breakPreferences?: BreakPreferences;
 };
 export type DayActivity = { minutes: number; answered: number };
 const KEEP_DAYS = 35;
 
+function cleanBreakPreferences(value: unknown): BreakPreferences {
+  if (!value || typeof value !== 'object') return { ...DEFAULT_BREAK_PREFERENCES };
+  const preferences = value as Partial<BreakPreferences>;
+  const intervalMinutes = [0, 10, 15, 20].includes(preferences.intervalMinutes as number)
+    ? preferences.intervalMinutes as BreakIntervalMinutes
+    : DEFAULT_BREAK_PREFERENCES.intervalMinutes;
+  return { intervalMinutes, quietMode: typeof preferences.quietMode === 'boolean' ? preferences.quietMode : DEFAULT_BREAK_PREFERENCES.quietMode };
+}
+
 export const today = (now = new Date()) => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-const fresh = (): FunState => ({ xp: 0, day: today(), answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: true });
+const fresh = (): FunState => ({
+  xp: 0,
+  day: today(),
+  answeredToday: 0,
+  dayStreak: 0,
+  lastActiveDay: null,
+  sound: true,
+  breakPreferences: { ...DEFAULT_BREAK_PREFERENCES },
+});
 
 /** Keep only well-formed recent days, so a bad or huge saved value can't break the report. */
 function cleanActivity(value: unknown, now = new Date()): Record<string, DayActivity> {
@@ -111,6 +134,7 @@ export function loadFun(): FunState {
       ...fresh(),
       ...parsed,
       preferredLearningVoiceId: cleanLearningVoicePreference(parsed.preferredLearningVoiceId),
+      breakPreferences: cleanBreakPreferences(parsed.breakPreferences),
       activity: cleanActivity(parsed.activity),
       ...cleanGames(parsed),
     };
@@ -150,6 +174,11 @@ export function recordMinute(state: FunState): FunState {
 
 export function setSound(state: FunState, sound: boolean): FunState {
   return saveFun({ ...state, sound });
+}
+
+/** Save adult-configured reminders without touching lesson, reward, or game progress. */
+export function setBreakPreferences(state: FunState, preferences: BreakPreferences): FunState {
+  return saveFun({ ...state, breakPreferences: cleanBreakPreferences(preferences) });
 }
 
 /** Save a local read-aloud voice preference; signed-in app state also syncs through the account snapshot. */
@@ -203,6 +232,7 @@ export function replaceFun(saved: Partial<FunState>): FunState {
     ...fresh(),
     ...saved,
     preferredLearningVoiceId: cleanLearningVoicePreference(saved.preferredLearningVoiceId),
+    breakPreferences: cleanBreakPreferences(saved.breakPreferences),
     sound: loadFun().sound,
     activity: cleanActivity(saved.activity),
     ...cleanGames(saved),
