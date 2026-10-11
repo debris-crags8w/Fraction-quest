@@ -289,15 +289,27 @@
   text-align: center;
 }
 
+.fq-assessment-strip-row > select {
+  justify-self: start;
+  min-height: 2.5rem;
+  padding: 0 .6rem;
+  border: 2px solid hsl(var(--border));
+  border-radius: .6rem;
+  background: hsl(var(--card));
+  font-weight: 750;
+}
+
+/* Each strip is one same-size whole: the parts share its full width, like a bar. */
 .fq-assessment-strip-row > div {
+  grid-column: 1 / -1;
   display: flex;
-  flex-wrap: wrap;
   gap: .2rem;
 }
 
 .fq-assessment-strip-row button {
-  width: min(1.3rem, 6vw);
-  height: 2rem;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 2.4rem;
   padding: 0;
   border: 2px solid hsl(var(--secondary));
   border-radius: .25rem;

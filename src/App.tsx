@@ -128,9 +128,11 @@ function Fraction({ numerator, denominator }: { numerator: number; denominator: 
   );
 }
 
-function FractionBar({ numerator, denominator }: { numerator: number; denominator: number }) {
+/** `quiet`: practice pictures where the fraction is the answer. Screen readers then hear only "a bar model",
+    not the fraction (sighted children count the parts themselves). */
+function FractionBar({ numerator, denominator, quiet = false }: { numerator: number; denominator: number; quiet?: boolean }) {
   return (
-    <div className="fq-bar-model" style={{ '--pieces': denominator, '--piece': denomColor(denominator) } as CSSProperties} role="img" aria-label={`${numerator}/${denominator}: each whole is split into ${denominator} equal parts, with ${numerator} parts shaded`}>
+    <div className="fq-bar-model" style={{ '--pieces': denominator, '--piece': denomColor(denominator) } as CSSProperties} role="img" aria-label={quiet ? 'A bar model. Count the equal parts and the shaded parts.' : `${numerator}/${denominator}: each whole is split into ${denominator} equal parts, with ${numerator} parts shaded`}>
       {Array.from({ length: Math.max(1, Math.ceil(numerator / denominator)) }, (_, whole) => (
         <div className="fq-bar-whole" key={whole}>
           <span className="fq-bar-whole-label">Whole {whole + 1}</span>
@@ -155,7 +157,7 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
         <div className="fq-visual-bars">
           {model.bars.map((item, index) => (
             <div className="fq-visual-bar-row" key={`${item.numerator}-${item.denominator}-${index}`}>
-              <FractionBar numerator={item.numerator} denominator={item.denominator} />
+              <FractionBar numerator={item.numerator} denominator={item.denominator} quiet={model.hideLabels} />
             </div>
           ))}
         </div>
@@ -207,7 +209,7 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
       {model.kind === 'equation' && <div className="fq-model-equation" role="img" aria-label={`Visual equation ${model.text}`}><MathText text={model.text} /></div>}
       {model.kind === 'decimal' && (
         <div className="fq-decimal-model">
-          <FractionBar numerator={model.tenths} denominator={10} />
+          <FractionBar numerator={model.tenths} denominator={10} quiet={model.hideLabels} />
           {!model.hideLabels && <span>{(model.tenths / 10).toFixed(1)}</span>}
         </div>
       )}
@@ -989,7 +991,7 @@ function Game() {
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
       {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
-      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
+      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} renderModel={(model) => <ModelView model={model} />} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
       {view.type === 'concept-games' && (() => {
         // The lesson games use the lesson the child is on (or the last open one); Part Finder uses the latest lesson it belongs to.
         const open = MISSIONS.filter((mission) => isMissionUnlocked(progress, mission.id));

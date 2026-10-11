@@ -333,7 +333,8 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
   if (id === 'compose-to-one') return { prompt: 'A recipe uses 2/5 of a bag. Make what is left.', target: model(3, 5), reason: '5/5 is a full bag. 5 − 2 = 3, so 3/5.' };
   if (id === 'subtract-like-denominators') return { prompt: 'A ribbon is 7/10 long. Cut off 3/10. Make what is left.', target: model(4, 10), reason: '7 − 3 = 4, so 4/10.' };
   if (id === 'add-like-denominators') return { prompt: 'Make 1/5 + 2/5.', target: model(3, 5), reason: '1 + 2 = 3, so 3/5.' };
-  if (id === 'unit-size' || id === 'compare-same-numerator') return { prompt: 'Which is bigger, 1/3 or 1/6? Make it.', target: model(1, 3), reason: 'Fewer pieces means bigger pieces.' };
+  if (id === 'unit-size') return { prompt: 'Which is bigger, 1/3 or 1/6? Make it.', target: model(1, 3), reason: 'Fewer pieces means bigger pieces.' };
+  if (id === 'compare-same-numerator') return { prompt: 'Which is bigger, 2/3 or 2/5? Make it.', target: model(2, 3), reason: 'Both have 2 parts. Thirds are bigger than fifths, so 2/3 is bigger.' };
   if (id === 'benchmark-half' || id === 'fraction-magnitude') return { prompt: 'Use tenths. Make 1/10 less than half.', target: model(4, 10), reason: 'Half is 5/10. One less is 4/10.' };
   if (id === 'benchmarks-zero-one') return { prompt: 'A jug is 1/6 away from full. Make it.', target: model(5, 6), reason: '6/6 is full. One less is 5/6.' };
   if (id === 'compare-same-denominator' || id === 'order-fractions') return { prompt: 'Which is longer, 2/5 or 4/5 of a meter? Make it.', target: model(4, 5), reason: 'Same size pieces. 4 is more than 2.' };
@@ -481,10 +482,18 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         const pairs: [number, number][] = id === 'unit-size'
           ? [[2, 4], [3, 6], [4, 8], [2, 3], [3, 4], [6, 8], [5, 10], [4, 6], [2, 8], [6, 12], [3, 8], [5, 6]]
           : [[3, 6], [4, 8], [3, 4], [4, 6], [6, 8], [5, 10], [3, 8], [4, 10], [6, 12], [3, 5], [5, 8], [4, 5]];
-        const [small, big] = pairs[t]; const top = id === 'unit-size' ? 1 : i % 3 === 2 && small > 3 ? 3 : 2;
+        // Same numerator: numerators from 2 up to one less than the smaller denominator (2/3 … 5/6), not just 2 and 3.
+        const [small, big] = pairs[t]; const top = id === 'unit-size' ? 1 : 2 + (i % Math.max(1, small - 2));
         const [first, second] = i % 4 < 2 ? [small, big] : [big, small];
-        prompt = `Which is ${i % 2 ? 'smaller' : 'bigger'}, ${f(top, first)} or ${f(top, second)}? Type it.`;
-        answer = f(top, i % 2 ? big : small); hint = 'More pieces in the same whole means smaller pieces.'; break;
+        if (id === 'compare-same-numerator' && i % 3 === 1) {
+          prompt = `Type <, = or >: ${f(top, first)} __ ${f(top, second)}.`; form = 'symbol';
+          answer = first < second ? '>' : '<';
+        } else {
+          prompt = `Which is ${i % 2 ? 'smaller' : 'bigger'}, ${f(top, first)} or ${f(top, second)}? Type it.`;
+          answer = f(top, i % 2 ? big : small);
+        }
+        hint = id === 'unit-size' ? 'More pieces in the same whole means smaller pieces.'
+          : `Same numerator: ${top} parts each. More parts in the whole means smaller parts, so fewer parts means bigger parts.`; break;
       }
       case 'sets-unit-fractions':
       case 'sets-nonunit': {
@@ -670,10 +679,10 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         answer = i % 2 ? f(n * k, d * k) : String(n * k); denominator = i % 2 ? d * k : undefined;
         hint = `The bottom was multiplied by ${k}. Multiply the numerator by ${k} too.`; break;
       case 'compare': {
-        const [a, b, c, e] = ([[1, 2, 2, 5], [2, 3, 3, 4], [3, 4, 2, 3], [1, 3, 2, 6], [3, 5, 1, 2], [5, 6, 3, 4], [2, 5, 1, 3], [3, 8, 1, 2], [4, 6, 2, 3], [7, 10, 3, 5], [1, 4, 2, 10], [5, 8, 3, 4]] as const)[tr];
+        const [a, b, c, e] = ([[1, 2, 2, 5], [2, 3, 3, 4], [3, 4, 2, 3], [1, 3, 2, 6], [3, 5, 3, 4], [5, 6, 5, 8], [2, 5, 1, 3], [3, 8, 1, 2], [4, 6, 2, 3], [7, 10, 3, 5], [2, 5, 2, 3], [5, 8, 3, 4]] as const)[tr];
         prompt = `Type <, = or >: ${f(a, b)} __ ${f(c, e)}.`;
         answer = a * e > c * b ? '>' : a * e < c * b ? '<' : '='; form = 'symbol';
-        hint = 'Give both fractions the same denominator. Then compare the numerators.'; break;
+        hint = a === c ? `Same numerator: ${a} parts each. Fewer parts in the whole means bigger parts.` : 'Give both fractions the same denominator. Then compare the numerators.'; break;
       }
       case 'order': {
         const triples: [number, number][][] = [

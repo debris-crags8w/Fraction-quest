@@ -1,4 +1,5 @@
-import { isMissionUnlocked, MISSIONS, type DailyPracticeQuestion, type DailyPracticeSession, type Progress } from './game';
+import { isMissionUnlocked, MISSIONS, type DailyPracticeQuestion, type DailyPracticeSession, type PracticeQuestion, type Progress } from './game';
+import { generateQuestions, hasGenerator } from './practice-bank';
 
 export const DAILY_PRACTICE_LENGTH = 5;
 
@@ -116,7 +117,11 @@ export function createDailyPractice(progress: Progress, now = Date.now()): Daily
     seen.push(`${target.numerator}/${target.denominator}`);
     const { numerator, denominator } = target;
     const modelKind = (index + hash(day)) % 2 === 0 ? 'bar' as const : 'number-line' as const;
+    // Questions 1, 3 and 5 review the topic the way the lesson taught it; 2 and 4 are "build this fraction".
+    const choice = index % 2 === 0 && hasGenerator(missionId);
     return {
+      kind: choice ? 'choice' as const : 'build' as const,
+      ...(choice ? { seed: hash(`${day}:${missionId}:${index}`) } : {}),
       id: round ? `daily-${day}-${missionId}-${round + 1}` : `daily-${day}-${missionId}`,
       missionId,
       topicTitle: mission.shortTitle,
@@ -131,3 +136,13 @@ export function createDailyPractice(progress: Progress, now = Date.now()): Daily
 
   return { day, startedAt: now, questions, index: 0, attempts: {} };
 }
+
+/** The practice question behind a 'choice' item (the same seed always gives the same question). */
+export function dailyChoiceQuestion(question: DailyPracticeQuestion): PracticeQuestion | null {
+  if (question.kind !== 'choice' || question.seed === undefined || !hasGenerator(question.missionId)) return null;
+  return generateQuestions(question.missionId, [], question.seed, 1)[0] ?? null;
+}
+
+/** A build is right when the shaded share of the chosen parts equals the target (3 of 5, or 6 of 10, for 3/5). */
+export const dailyBuildCorrect = (question: DailyPracticeQuestion, parts: number | undefined, shaded: number) =>
+  !!parts && shaded > 0 && shaded * question.denominator === question.numerator * parts;

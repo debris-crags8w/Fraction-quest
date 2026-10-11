@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ArrowLeft, ArrowRight, Check, Sparkles } from 'lucide-react';
-import { FractionEntry } from './FractionEntry';
-import { parseAnswer } from './learning-content';
-import type { DailyPracticeAttempt, DailyPracticeSession } from './game';
+import type { DailyPracticeAttempt, DailyPracticeSession, ModelSpec } from './game';
+import { dailyBuildCorrect, dailyChoiceQuestion } from './daily-practice';
+import { MathText } from './MathText';
 import './daily-practice.css';
 
 const emptyAttempt = (): DailyPracticeAttempt => ({
@@ -20,16 +20,20 @@ export default function DailyPractice({
   onBack,
   onWrong,
   onSuccess,
+  renderModel,
 }: {
   session: DailyPracticeSession;
   onChange: (next: DailyPracticeSession) => void;
   onBack: () => void;
   onWrong?: () => void;
   onSuccess?: () => void;
+  /** Draws a practice picture (the app's ModelView), for topic questions. */
+  renderModel?: (model: ModelSpec) => ReactNode;
 }) {
   const [showHelp, setShowHelp] = useState(false);
   const questionHeading = useRef<HTMLHeadingElement>(null);
   const question = session.questions[session.index];
+  const topicQuestion = useMemo(() => (question ? dailyChoiceQuestion(question) : null), [question]);
   useEffect(() => {
     questionHeading.current?.focus({ preventScroll: true });
   }, [session.index]);
@@ -41,7 +45,7 @@ export default function DailyPractice({
             <div className="fq-daily-spark"><Check size={30} aria-hidden="true" /></div>
             <p className="fq-eyebrow">Today’s fraction practice</p>
             <h1 id="daily-done-title">You made it through today’s practice!</h1>
-            <p>You built five fraction models and entered each answer. Your lesson progress stays just as it was.</p>
+            <p>You finished today’s five practice questions. Your lesson progress stays just as it was.</p>
             <button className="fq-button" onClick={onBack} data-testid="button-daily-done-map">Back to the learning map</button>
           </section>
         </main>
@@ -54,27 +58,7 @@ export default function DailyPractice({
     ...session,
     attempts: { ...session.attempts, [question.id]: next },
   });
-  const checkModel = () => {
-    const correct = attempt.shaded.length === question.numerator;
-    if (correct) onSuccess?.();
-    else onWrong?.();
-    setAttempt({
-      ...attempt,
-      modelChecked: true,
-      modelCorrect: correct,
-      answerChecked: false,
-      answerCorrect: false,
-    });
-  };
-  const checkAnswer = () => {
-    const parsed = parseAnswer(attempt.draft);
-    const isCorrect = !!parsed
-      && Number.isSafeInteger(parsed.n * question.denominator)
-      && parsed.n * question.denominator === question.numerator * parsed.d;
-    if (isCorrect) onSuccess?.();
-    else onWrong?.();
-    setAttempt({ ...attempt, answerChecked: true, answerCorrect: isCorrect });
-  };
+  const done = attempt.answerCorrect;
   const continueSession = () => {
     if (session.index >= session.questions.length - 1) {
       onChange({ ...session, completedAt: Date.now() });
@@ -83,159 +67,151 @@ export default function DailyPractice({
       setShowHelp(false);
     }
   };
-
-  return (
-    <div className="fq-app">
-      <main className="fq-shell fq-daily-shell">
-        <button className="fq-button ghost fq-daily-back" onClick={onBack} data-testid="button-daily-back">
-          <ArrowLeft size={17} /> Learning map
-        </button>
-        <header className="fq-daily-heading">
-          <div className="fq-eyebrow"><Sparkles size={15} aria-hidden="true" /> A short daily routine</div>
-          <h1>Build it. Name it. Remember it.</h1>
-          <p>Build a fraction on a bar or number line, then enter the fraction you made. You can change your work before checking again.</p>
-        </header>
-
-        <div className="fq-daily-progress" aria-label={`Question ${session.index + 1} of ${session.questions.length}`}>
-          <div className="fq-daily-progress-copy"><strong>Today’s practice</strong><span>{session.index + 1} of {session.questions.length}</span></div>
-          <div className="fq-daily-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={session.questions.length} aria-valuenow={session.index}>
-            <span style={{ width: `${(session.index / session.questions.length) * 100}%` }} />
-          </div>
-        </div>
-
-        <section className="fq-daily-card" aria-labelledby="daily-question-title">
-          <div className="fq-daily-topic">A little review · {question.topicTitle}</div>
-          <h2 id="daily-question-title" ref={questionHeading} tabIndex={-1}>
-            {question.modelKind === 'bar' ? 'Build the bar model.' : 'Build the number-line model.'}
-          </h2>
-          <p className="fq-daily-instruction">
-            {question.modelKind === 'bar'
-              ? <>The whole is one bar. Tap {question.numerator === 1 ? 'one' : question.numerator} of its {question.denominator} equal parts to shade them.</>
-              : <>The line goes from 0 to 1 whole. Tap {question.numerator === 1 ? 'one' : question.numerator} of its {question.denominator} equal spaces to show the jumps.</>}
-          </p>
-
-          {question.modelKind === 'bar' ? (
-            <>
-              <div className="fq-daily-whole-label"><span>WHOLE</span><span>All {question.denominator} equal parts</span></div>
-              <div className="fq-daily-model" style={{ gridTemplateColumns: `repeat(${question.denominator}, minmax(0, 1fr))` }} role="group" aria-label={`One whole split into ${question.denominator} equal parts. Shade ${question.numerator} parts.`}>
-                {Array.from({ length: question.denominator }, (_, index) => {
-                  const shaded = attempt.shaded.includes(index);
-                  return (
-                    <button
-                      type="button"
-                      className={`fq-daily-part ${shaded ? 'shaded' : ''}`}
-                      key={index}
-                      aria-pressed={shaded}
-                      aria-label={`Part ${index + 1} of ${question.denominator}, ${shaded ? 'shaded' : 'not shaded'}`}
-                      disabled={attempt.modelChecked && attempt.modelCorrect}
-                      onClick={() => setAttempt({
-                        ...attempt,
-                        shaded: shaded ? attempt.shaded.filter((part) => part !== index) : [...attempt.shaded, index].sort((a, b) => a - b),
-                        modelChecked: false,
-                        modelCorrect: false,
-                        answerChecked: false,
-                        answerCorrect: false,
-                      })}
-                      data-testid={`button-daily-part-${index + 1}`}
-                    >
-                      {shaded && <span aria-hidden="true">●</span>}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="fq-daily-part-label"><span aria-hidden="true">↳</span> PART · one equal piece of the whole</div>
-            </>
-          ) : (
-            <>
-              <div className="fq-daily-whole-label"><span>ONE WHOLE</span><span>From 0 to 1</span></div>
-              <div className="fq-daily-line-endpoints" aria-hidden="true"><span>0</span><span>1</span></div>
-              <div className="fq-daily-line-track" style={{ gridTemplateColumns: `repeat(${question.denominator}, minmax(0, 1fr))` }} role="group" aria-label={`Number line from 0 to 1, split into ${question.denominator} equal spaces. Select ${question.numerator} jumps from 0.`}>
-                {Array.from({ length: question.denominator }, (_, index) => {
-                  const shaded = attempt.shaded.includes(index);
-                  return (
-                    <button
-                      type="button"
-                      className={`fq-daily-jump ${shaded ? 'selected' : ''}`}
-                      key={index}
-                      aria-pressed={shaded}
-                      aria-label={`Point ${index + 1} of ${question.denominator}, ${shaded ? 'selected' : 'not selected'}; choose this to show ${index + 1} jump${index === 0 ? '' : 's'} from 0`}
-                      disabled={attempt.modelChecked && attempt.modelCorrect}
-                      onClick={() => setAttempt({
-                        ...attempt,
-                        shaded: Array.from({ length: index + 1 }, (_, part) => part),
-                        modelChecked: false,
-                        modelCorrect: false,
-                        answerChecked: false,
-                        answerCorrect: false,
-                      })}
-                      data-testid={`button-daily-jump-${index + 1}`}
-                    >
-                      <span className="fq-daily-jump-fill" aria-hidden="true" />
-                      <i aria-hidden="true" />
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="fq-daily-part-label"><span aria-hidden="true">↳</span> JUMP · one equal space from 0</div>
-            </>
-          )}
-          <p className="fq-daily-count" aria-live="polite">
-            {attempt.shaded.length} of {question.denominator} {question.modelKind === 'bar' ? 'parts shaded' : 'jumps selected'}
-          </p>
-
-          {!attempt.modelChecked || !attempt.modelCorrect ? (
-            <>
-              {attempt.modelChecked && !attempt.modelCorrect && (
-                <p className="fq-daily-feedback retry" role="status">
-                  {question.modelKind === 'bar' ? 'Count the shaded parts.' : 'Count the jumps from 0.'} Tap to change your model, then check it again.
-                </p>
-              )}
-              <div className="fq-daily-actions">
-                <button className="fq-button" onClick={checkModel} disabled={attempt.shaded.length === 0} data-testid="button-daily-check-model">
-                  Check my model <Check size={17} />
-                </button>
-                <button className="fq-button ghost" onClick={() => setShowHelp((shown) => !shown)} aria-expanded={showHelp} data-testid="button-daily-hint">
-                  {showHelp ? 'Hide hint' : 'Hint'}
-                </button>
-              </div>
-              {showHelp && <p className="fq-daily-hint" role="note">The denominator tells how many equal parts make the whole. The numerator tells how many parts to shade.</p>}
-            </>
-          ) : (
-            <div className="fq-daily-answer-step">
-              <p className="fq-daily-feedback success" role="status">Your model shows {question.numerator} of {question.denominator} equal parts. Now name it as a fraction.</p>
-              <label className="fq-daily-answer-label" htmlFor="daily-answer-numerator">What fraction did you build?</label>
-              <FractionEntry
-                id="daily-answer"
-                value={attempt.draft}
-                onChange={(draft) => setAttempt({ ...attempt, draft, answerChecked: false, answerCorrect: false })}
-                describedBy="daily-answer-help"
-                disabled={attempt.answerChecked && attempt.answerCorrect}
-              />
-              <p id="daily-answer-help" className="fq-daily-answer-help">Numerator = shaded parts. Denominator = all equal parts.</p>
-              {attempt.answerChecked && !attempt.answerCorrect && (
-                <p className="fq-daily-feedback retry" role="status">Not quite. You can edit either number and check again.</p>
-              )}
-              {attempt.answerChecked && attempt.answerCorrect && (
-                <div className="fq-daily-feedback success" role="status">
-                  <strong>That’s it!</strong> {question.explanation}
-                </div>
-              )}
-              <div className="fq-daily-actions">
-                {attempt.answerChecked && attempt.answerCorrect ? (
-                  <button className="fq-button" onClick={continueSession} data-testid="button-daily-next">
-                    {session.index === session.questions.length - 1 ? 'Finish today’s practice' : 'Next model'} <ArrowRight size={17} />
-                  </button>
-                ) : (
-                  <button className="fq-button" onClick={checkAnswer} disabled={!attempt.draft.trim()} data-testid="button-daily-check-answer">
-                    Check my fraction <Check size={17} />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </section>
-        <p className="fq-daily-note">This short practice is separate from lesson mastery. Your lesson checklist and skill reviews do not change here.</p>
-      </main>
+  const nextButton = (
+    <div className="fq-daily-actions">
+      <button className="fq-button" onClick={continueSession} data-testid="button-daily-next">
+        {session.index === session.questions.length - 1 ? 'Finish today’s practice' : 'Next question'} <ArrowRight size={17} />
+      </button>
     </div>
   );
+  const hintButton = (
+    <button className="fq-button ghost" onClick={() => setShowHelp((shown) => !shown)} aria-expanded={showHelp} data-testid="button-daily-hint">
+      {showHelp ? 'Hide hint' : 'Hint'}
+    </button>
+  );
+
+  /* ---- Topic question: the lesson's own kind of question (compare, add, decimals…). ---- */
+  if (topicQuestion) {
+    const check = () => {
+      const correct = attempt.choice === topicQuestion.correctChoice;
+      if (correct) onSuccess?.(); else onWrong?.();
+      setAttempt({ ...attempt, answerChecked: true, answerCorrect: correct });
+    };
+    return shell(<>
+      <h2 id="daily-question-title" ref={questionHeading} tabIndex={-1}><MathText text={topicQuestion.prompt} /></h2>
+      {renderModel && <div className="fq-daily-picture">{renderModel(topicQuestion.model)}</div>}
+      <div className="fq-daily-choices" role="radiogroup" aria-label="Answer choices">
+        {topicQuestion.choices.map((choice, index) => (
+          <button key={index} type="button" role="radio" aria-checked={attempt.choice === index} disabled={done}
+            className={`fq-daily-choice ${attempt.choice === index ? 'selected' : ''} ${done && index === topicQuestion.correctChoice ? 'right' : ''}`}
+            onClick={() => setAttempt({ ...attempt, choice: index, answerChecked: false, answerCorrect: false })} data-testid={`button-daily-choice-${index}`}>
+            <MathText text={choice} />
+          </button>
+        ))}
+      </div>
+      {attempt.answerChecked && !done && <p className="fq-daily-feedback retry" role="status">Not quite. {topicQuestion.hint}</p>}
+      {done && <div className="fq-daily-feedback success" role="status"><strong>That’s it!</strong> <MathText text={topicQuestion.retryFeedback} /></div>}
+      {done ? nextButton : (
+        <div className="fq-daily-actions">
+          <button className="fq-button" onClick={check} disabled={attempt.choice === undefined} data-testid="button-daily-check-answer">Check my answer <Check size={17} /></button>
+          {hintButton}
+        </div>
+      )}
+      {showHelp && !done && <p className="fq-daily-hint" role="note"><MathText text={topicQuestion.hint} /></p>}
+    </>);
+  }
+
+  /* ---- Build question: the child chooses the equal parts, then shades or jumps. ---- */
+  const parts = attempt.parts;
+  const bar = question.modelKind === 'bar';
+  const checkModel = () => {
+    const correct = dailyBuildCorrect(question, parts, attempt.shaded.length);
+    if (correct) onSuccess?.(); else onWrong?.();
+    setAttempt({ ...attempt, modelChecked: true, modelCorrect: correct, answerChecked: correct, answerCorrect: correct });
+  };
+  const change = (patch: Partial<DailyPracticeAttempt>) => setAttempt({ ...attempt, ...patch, modelChecked: false, modelCorrect: false, answerChecked: false, answerCorrect: false });
+  const wrongFeedback = !parts ? '' : question.denominator % parts !== 0 && parts % question.denominator !== 0
+    ? `Look at the denominator: how many equal ${bar ? 'parts' : 'spaces'} make one whole?`
+    : `Look at the numerator: how many ${bar ? 'parts should be shaded' : 'jumps from 0'}?`;
+  return shell(<>
+    <h2 id="daily-question-title" ref={questionHeading} tabIndex={-1}>
+      Build <MathText text={`${question.numerator}/${question.denominator}`} /> {bar ? 'with a bar.' : 'on a number line.'}
+    </h2>
+    <p className="fq-daily-instruction">
+      {bar ? 'First choose how many equal parts make the whole bar. Then shade the parts selected.' : 'First choose how many equal spaces go from 0 to 1. Then tap where the jumps from 0 land.'}
+    </p>
+    <div className="fq-daily-parts" role="radiogroup" aria-label={bar ? 'How many equal parts?' : 'How many equal spaces?'}>
+      {Array.from({ length: 11 }, (_, k) => k + 2).map((n) => (
+        <button key={n} type="button" role="radio" aria-checked={parts === n} disabled={done}
+          className={`fq-daily-parts-choice ${parts === n ? 'selected' : ''}`}
+          onClick={() => change({ parts: n, shaded: [] })} data-testid={`button-daily-parts-${n}`}>{n}</button>
+      ))}
+    </div>
+    {!parts ? <p className="fq-daily-count">Choose the {bar ? 'equal parts' : 'equal spaces'} to see your {bar ? 'bar' : 'line'}.</p> : bar ? (
+      <>
+        <div className="fq-daily-whole-label"><span>WHOLE</span><span>{parts} equal parts</span></div>
+        <div className="fq-daily-model" style={{ gridTemplateColumns: `repeat(${parts}, minmax(0, 1fr))` }} role="group" aria-label={`One whole split into ${parts} equal parts.`}>
+          {Array.from({ length: parts }, (_, index) => {
+            const shaded = attempt.shaded.includes(index);
+            return (
+              <button type="button" className={`fq-daily-part ${shaded ? 'shaded' : ''}`} key={index} aria-pressed={shaded}
+                aria-label={`Part ${index + 1} of ${parts}, ${shaded ? 'shaded' : 'not shaded'}`} disabled={done}
+                onClick={() => change({ shaded: shaded ? attempt.shaded.filter((part) => part !== index) : [...attempt.shaded, index].sort((a, b) => a - b) })}
+                data-testid={`button-daily-part-${index + 1}`}>
+                {shaded && <span aria-hidden="true">●</span>}
+              </button>
+            );
+          })}
+        </div>
+        <div className="fq-daily-part-label"><span aria-hidden="true">↳</span> PART · one equal piece of the whole</div>
+      </>
+    ) : (
+      <>
+        <div className="fq-daily-whole-label"><span>ONE WHOLE</span><span>From 0 to 1</span></div>
+        <div className="fq-daily-line-endpoints" aria-hidden="true"><span>0</span><span>1</span></div>
+        <div className="fq-daily-line-track" style={{ gridTemplateColumns: `repeat(${parts}, minmax(0, 1fr))` }} role="group" aria-label={`Number line from 0 to 1, split into ${parts} equal spaces.`}>
+          {Array.from({ length: parts }, (_, index) => {
+            const shaded = attempt.shaded.includes(index);
+            return (
+              <button type="button" className={`fq-daily-jump ${shaded ? 'selected' : ''}`} key={index} aria-pressed={shaded}
+                aria-label={`Point ${index + 1} of ${parts}, ${shaded ? 'selected' : 'not selected'}; choose this to show ${index + 1} jump${index === 0 ? '' : 's'} from 0`}
+                disabled={done} onClick={() => change({ shaded: Array.from({ length: index + 1 }, (_, part) => part) })}
+                data-testid={`button-daily-jump-${index + 1}`}>
+                <span className="fq-daily-jump-fill" aria-hidden="true" />
+                <i aria-hidden="true" />
+              </button>
+            );
+          })}
+        </div>
+        <div className="fq-daily-part-label"><span aria-hidden="true">↳</span> JUMP · one equal space from 0</div>
+      </>
+    )}
+    {attempt.modelChecked && !done && <p className="fq-daily-feedback retry" role="status">Not quite. {wrongFeedback} Change your model, then check again.</p>}
+    {done && <div className="fq-daily-feedback success" role="status"><strong>That’s it!</strong> {parts === question.denominator ? question.explanation : `${attempt.shaded.length}/${parts} is the same amount as ${question.numerator}/${question.denominator}.`}</div>}
+    {done ? nextButton : (
+      <div className="fq-daily-actions">
+        <button className="fq-button" onClick={checkModel} disabled={!parts || attempt.shaded.length === 0} data-testid="button-daily-check-model">Check my model <Check size={17} /></button>
+        {hintButton}
+      </div>
+    )}
+    {showHelp && !done && <p className="fq-daily-hint" role="note">The denominator tells how many equal parts make the whole. The numerator tells how many of them to {bar ? 'shade' : 'jump'}.</p>}
+  </>);
+
+  function shell(card: ReactNode) {
+    return (
+      <div className="fq-app">
+        <main className="fq-shell fq-daily-shell">
+          <button className="fq-button ghost fq-daily-back" onClick={onBack} data-testid="button-daily-back">
+            <ArrowLeft size={17} /> Learning map
+          </button>
+          <header className="fq-daily-heading">
+            <div className="fq-eyebrow"><Sparkles size={15} aria-hidden="true" /> A short daily routine</div>
+            <h1>Build it. Name it. Remember it.</h1>
+            <p>A mix of five: build a fraction yourself, and answer questions from lessons you have worked on.</p>
+          </header>
+          <div className="fq-daily-progress" aria-label={`Question ${session.index + 1} of ${session.questions.length}`}>
+            <div className="fq-daily-progress-copy"><strong>Today’s practice</strong><span>{session.index + 1} of {session.questions.length}</span></div>
+            <div className="fq-daily-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={session.questions.length} aria-valuenow={session.index}>
+              <span style={{ width: `${(session.index / session.questions.length) * 100}%` }} />
+            </div>
+          </div>
+          <section className="fq-daily-card" aria-labelledby="daily-question-title">
+            <div className="fq-daily-topic">A little review · {question!.topicTitle}</div>
+            {card}
+          </section>
+          <p className="fq-daily-note">This short practice is separate from lesson mastery. Your lesson checklist and skill reviews do not change here.</p>
+        </main>
+      </div>
+    );
+  }
 }

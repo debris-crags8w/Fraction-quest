@@ -39,6 +39,12 @@ const bars2 = (a: [number, number], b: [number, number]): ModelSpec => ({ kind: 
 const line = (n: number, d: number, wholes = Math.max(1, Math.ceil(n / d))): ModelSpec => ({ kind: 'line', numerator: n, denominator: d, wholes, hideLabels: true });
 const set = (selected: number, total: number): ModelSpec => ({ kind: 'set', selected, total });
 const half = bar(1, 2);
+/** Compare pictures: both wholes cut into their parts but not shaded, so the picture shows piece sizes without
+    showing which amount is bigger. The shaded version is the "make it simpler" help. */
+const compareBars = (a: [number, number], b: [number, number]): Pick<Item, 'model' | 'simpler'> =>
+  ({ model: bars2([0, a[1]], [0, b[1]]), simpler: withLabels(bars2(a, b)) });
+/** Name two fractions in either order, so "the first one" is not always the answer. */
+const either = (r: Rng, x: string, y: string) => (r.chance() ? `${x} or ${y}` : `${y} or ${x}`);
 const area = (cut: AreaCut, shaded: number[] = []): ModelSpec => ({ kind: 'area', cut, shaded });
 const shadedFirst = (n: number) => Array.from({ length: n }, (_, k) => k);
 /** Grade 3–4 denominators (no elevenths, thirteenths, fifteenths…). */
@@ -118,8 +124,8 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'unit-size': (r) => {
     const [a, b] = r.pick([[2, 4], [2, 3], [3, 6], [4, 8], [3, 4], [5, 10], [6, 12], [4, 6], [2, 8], [3, 8], [5, 8], [6, 10]] as const); const bigger = r.chance();
-    return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${f(1, a)} or ${f(1, b)}?`, right: bigger ? f(1, a) : f(1, b), wrong: [bigger ? f(1, b) : f(1, a), 'They are the same'],
-      hint: 'More pieces means smaller pieces.', retry: `${Name(a)} are bigger than ${name(b)}.`, model: bars2([1, a], [1, b]) };
+    return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${either(r, f(1, a), f(1, b))}?`, right: bigger ? f(1, a) : f(1, b), wrong: [bigger ? f(1, b) : f(1, a), 'They are the same'],
+      hint: 'More pieces means smaller pieces.', retry: `${Name(a)} are bigger than ${name(b)}.`, ...compareBars([1, a], [1, b]) };
   },
   'sets-unit-fractions': (r) => {
     const d = r.int(2, 6); let per = r.int(2, 7); if (per === d) per += 1; const t = d * per;
@@ -163,20 +169,20 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'compare-same-denominator': (r) => {
     const d = r.pick(DENS); const a = r.int(1, d - 2); const b = r.int(a + 1, d - 1); const bigger = r.chance();
-    return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${f(a, d)} or ${f(b, d)}?`, right: bigger ? f(b, d) : f(a, d), wrong: [bigger ? f(a, d) : f(b, d), 'They are equal'],
-      hint: 'Same size pieces. Compare the numerators.', retry: `${b} pieces is more than ${a}.`, model: bars2([a, d], [b, d]) };
+    return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${either(r, f(a, d), f(b, d))}?`, right: bigger ? f(b, d) : f(a, d), wrong: [bigger ? f(a, d) : f(b, d), 'They are equal'],
+      hint: 'Same size pieces. Compare the numerators.', retry: `${b} pieces is more than ${a}.`, ...compareBars([a, d], [b, d]) };
   },
   'compare-same-numerator': (r) => {
     const [a, b] = r.pick([[3, 6], [4, 8], [3, 4], [4, 6], [5, 10], [6, 12], [3, 8], [4, 10], [5, 8], [3, 5], [6, 8], [4, 5]] as const); const n = r.int(1, Math.min(4, a - 1)); const bigger = r.chance();
-    return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${f(n, a)} or ${f(n, b)}?`, right: bigger ? f(n, a) : f(n, b), wrong: [bigger ? f(n, b) : f(n, a), 'They are equal'],
-      hint: 'Same numerator. Which pieces are bigger?', retry: `${Name(a)} are bigger pieces than ${name(b)}.`, model: bars2([n, a], [n, b]) };
+    return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${either(r, f(n, a), f(n, b))}?`, right: bigger ? f(n, a) : f(n, b), wrong: [bigger ? f(n, b) : f(n, a), 'They are equal'],
+      hint: `Same numerator: ${n} part${n === 1 ? '' : 's'} each. Which parts are bigger?`, retry: `${Name(a)} are bigger pieces than ${name(b)}, so ${n} ${name(a)} is more than ${n} ${name(b)}.`, ...compareBars([n, a], [n, b]) };
   },
   'order-fractions': (r) => {
     const d = r.pick([5, 6, 8, 10, 12]); const a = r.int(1, d - 3); const b = r.int(a + 1, d - 2); const c = r.int(b + 1, d - 1);
     const up = r.chance();
     const small = `${f(a, d)}, ${f(b, d)}, ${f(c, d)}`; const big = `${f(c, d)}, ${f(b, d)}, ${f(a, d)}`; const mixed = `${f(b, d)}, ${f(a, d)}, ${f(c, d)}`;
     return { prompt: `Put ${mixed} in order, ${up ? 'smallest' : 'biggest'} first.`, right: up ? small : big, wrong: [up ? big : small, mixed],
-      hint: 'Same size pieces. Order the numerators.', retry: up ? `${a}, then ${b}, then ${c}.` : `${c}, then ${b}, then ${a}.`, model: bars2([a, d], [c, d]) };
+      hint: 'Same size pieces. Order the numerators.', retry: up ? `${a}, then ${b}, then ${c}.` : `${c}, then ${b}, then ${a}.`, model: bar(0, d), simpler: withLabels(bars2([a, d], [c, d])) };
   },
   'equivalent-models': (r) => {
     const d = r.int(2, 6); const n = r.int(1, d - 1); const k = d === 5 ? r.pick([2, 4]) : r.int(2, 4); // no fifteenths
@@ -261,8 +267,8 @@ function safeWrong(right: string, candidates: string[]): [string, string] {
 const POOL: [number, number][] = [[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [4, 5], [1, 6], [5, 6], [3, 8], [5, 8], [7, 8], [3, 10], [7, 10], [5, 12], [7, 12]];
 const SMALL_POOL = POOL.filter(([, d]) => d <= 6);
 const EXACT_PERCENT: [number, number][] = [[1, 2], [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [4, 5], [1, 10], [3, 10], [7, 10], [9, 10], [1, 20], [3, 20], [1, 25]];
-const later = (prompt: string, right: string, wrong: string[], hint: string, retry: string, model: ModelSpec): Item =>
-  ({ prompt, right, wrong: safeWrong(right, wrong), hint, retry, model });
+const later = (prompt: string, right: string, wrong: string[], hint: string, retry: string, model: ModelSpec, simpler?: ModelSpec): Item =>
+  ({ prompt, right, wrong: safeWrong(right, wrong), hint, retry, model, simpler });
 
 const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'simplify-fractions': (r) => {
@@ -279,11 +285,18 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
         `The top was multiplied by ${k}.`, `${d} × ${k} = ${d * k}.`, bar(n, d));
   },
   'compare-unlike-fractions': (r) => {
+    // About 1 in 4 pairs share a numerator (3/4 vs 3/8), so that strategy keeps coming back.
+    if (r.int(0, 3) === 0) {
+      const [d1, d2] = r.pick([[3, 5], [4, 6], [4, 10], [5, 8], [3, 8], [6, 10], [5, 12], [8, 12]] as const); const n = r.int(2, d1 - 1);
+      const big: [number, number] = [n, d1]; const small: [number, number] = [n, d2]; const [x, y] = r.chance() ? [big, small] : [small, big];
+      return later(`Which is bigger, ${f(x[0], x[1])} or ${f(y[0], y[1])}?`, f(n, d1), [f(n, d2), 'They are equal'],
+        `Same numerator: ${n} parts each. Fewer equal parts in the whole means bigger parts.`, `${Name(d1)} are bigger than ${name(d2)}, so ${f(n, d1)} is bigger.`, compareBars(x, y).model, compareBars(x, y).simpler);
+    }
     const a = r.pick(POOL); let b = r.pick(POOL);
     while (b[1] === a[1] || a[0] * b[1] === b[0] * a[1]) b = r.pick(POOL);
     const bigger = a[0] * b[1] > b[0] * a[1] ? a : b; const smaller = bigger === a ? b : a; const m = (a[1] * b[1]) / gcd(a[1], b[1]);
     return later(`Which is bigger, ${f(a[0], a[1])} or ${f(b[0], b[1])}?`, f(bigger[0], bigger[1]), [f(smaller[0], smaller[1]), 'They are equal'],
-      'Give both the same denominator. Then compare the numerators.', `${f(a[0], a[1])} = ${f(a[0] * (m / a[1]), m)} and ${f(b[0], b[1])} = ${f(b[0] * (m / b[1]), m)}.`, bars2(a, b));
+      'Give both the same denominator. Then compare the numerators.', `${f(a[0], a[1])} = ${f(a[0] * (m / a[1]), m)} and ${f(b[0], b[1])} = ${f(b[0] * (m / b[1]), m)}.`, compareBars(a, b).model, compareBars(a, b).simpler);
   },
   'order-unlike-fractions': (r) => {
     const picked: [number, number][] = [];

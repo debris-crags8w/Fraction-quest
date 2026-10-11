@@ -17,7 +17,7 @@ import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './
 import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder } from './lib/fun';
 import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
-import { createDailyPractice, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
+import { createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
 import type { PracticeQuestion } from './game';
 import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, paperPrompt, parseAnswer } from './learning-content';
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
@@ -2247,5 +2247,64 @@ describe('course counts', () => {
     const trial = courseCounts([1]);
     assert.equal(trial.lockedUnits, 13);
     assert.equal(trial.lockedLessons, MISSIONS.filter((mission) => mission.unit !== 1).length);
+  });
+});
+
+describe('pictures do not give the answer away', () => {
+  it('compare and same-amount lesson questions show unshaded parts; the shaded bars are the simpler help', () => {
+    const compare = MISSIONS.flatMap((mission) => mission.questions).filter((q) => /bigger|smaller|sign|same as|fill the blank/i.test(q.prompt) && q.simplerModel.kind === 'bars' && q.simplerModel.bars.length >= 2);
+    assert.ok(compare.length > 15);
+    for (const q of compare) {
+      assert.equal(q.model.kind, 'bars', q.prompt);
+      if (q.model.kind === 'bars') assert.ok(q.model.bars.every((bar) => bar.numerator === 0), q.prompt);
+    }
+  });
+  it('practice compare questions name the fractions in either order and keep the shading for help', () => {
+    for (const id of ['unit-size', 'compare-same-denominator', 'compare-same-numerator', 'compare-unlike-fractions']) {
+      const qs = Array.from({ length: 40 }, (_, seed) => generateQuestions(id, ['x'], seed + 1, 6)).flat().filter((q) => /^Which is (bigger|smaller), /.test(q.prompt));
+      assert.ok(qs.length > 30, id);
+      const firstIsAnswer = qs.filter((q) => q.prompt.replace(/^Which is \w+, /, '').startsWith(q.choices[q.correctChoice] + ' ')).length;
+      assert.ok(firstIsAnswer > qs.length * 0.2 && firstIsAnswer < qs.length * 0.8, `${id}: first-named is the answer ${firstIsAnswer}/${qs.length}`);
+      assert.ok(qs.every((q) => q.model.kind !== 'bars' || q.model.bars.every((bar) => bar.numerator === 0)), id);
+    }
+    const unlike = Array.from({ length: 60 }, (_, seed) => generateQuestions('compare-unlike-fractions', ['x'], seed + 1, 6)).flat();
+    assert.ok(unlike.some((q) => { const m = /(\d+)\/(\d+) or (\d+)\/(\d+)/.exec(q.prompt); return !!m && m[1] === m[3]; }), 'some same-numerator pairs');
+  });
+});
+
+describe('daily practice is a real review', () => {
+  it('mixes topic questions with builds, and a build never comes pre-split', () => {
+    const progress = { ...EMPTY_PROGRESS, completedMissionIds: MISSIONS.slice(0, 20).map((m) => m.id) };
+    const session = createDailyPractice(progress, new Date(2026, 9, 11).getTime());
+    const kinds = session.questions.map((q) => q.kind);
+    assert.ok(kinds.includes('choice') && kinds.includes('build'));
+    for (const q of session.questions.filter((item) => item.kind === 'choice')) {
+      const topic = dailyChoiceQuestion(q)!;
+      assert.ok(topic && topic.choices.length >= 2, q.missionId);
+      assert.deepEqual(dailyChoiceQuestion(q), topic, 'same question every time it is drawn');
+    }
+    const build = session.questions.find((q) => q.kind === 'build')!;
+    assert.equal(dailyBuildCorrect(build, undefined, build.numerator), false, 'the parts must be chosen');
+    assert.equal(dailyBuildCorrect(build, build.denominator, build.numerator), true);
+    assert.equal(dailyBuildCorrect(build, build.denominator * 2, build.numerator * 2), true, 'an equivalent build counts');
+    assert.equal(dailyBuildCorrect(build, build.denominator + 1, build.numerator), false);
+  });
+});
+
+describe('same numerator, different denominators', () => {
+  it('the lesson uses several numerators, both question forms, and its own transfer pair', () => {
+    const sheet = getWorksheet('compare-same-numerator');
+    const tops = new Set(sheet.map((p) => Number(/(\d+)\/\d+/.exec(p.prompt)![1])));
+    assert.ok(tops.size >= 3, `numerators used: ${[...tops]}`);
+    assert.ok(sheet.some((p) => p.form === 'symbol') && sheet.some((p) => p.form !== 'symbol'));
+    for (const p of sheet) {
+      const [, n1, d1, n2, d2] = /(\d+)\/(\d+)\D+(\d+)\/(\d+)/.exec(p.prompt)!.map(Number);
+      assert.equal(n1, n2, p.prompt); assert.notEqual(d1, d2, p.prompt);
+      if (p.form === 'symbol') assert.equal(p.answer, d1 < d2 ? '>' : '<', p.prompt);
+    }
+    const transfer = getBuildChecks('compare-same-numerator').find((c) => c.transfer)!;
+    assert.match(transfer.prompt, /2\/3 or 2\/5/);
+    const unlike = getWorksheet('compare-unlike-fractions');
+    assert.ok(unlike.some((p) => { const m = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(p.prompt); return !!m && m[1] === m[2]; }));
   });
 });

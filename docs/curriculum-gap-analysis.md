@@ -13,6 +13,33 @@
 6. **More games:** concept games beyond the race and coding.
 7. **Basics a children's product must have:** privacy/consent, password reset, accessibility and Spanish support.
 
+
+## Status update (later on 2026-10-11)
+
+Much of the list below has since been built. Read this first; the sections after it are the original analysis.
+
+**Done since this was written:** 68 lessons covering all 36 grade 3–5 fraction standards (line plots, rulers, area and
+circle models, scaling, mixed-number multiplication, unit fraction ÷ whole number, decimal comparison, unit
+conversions); unit and grade check-ins reported by standard; teaching guides and pacing; reasoning prompts; brain breaks;
+concept games (Fraction War, Equivalence Match, Number Line Target) gathered with Race, Coding and Part Finder in one
+Games menu; family privacy controls, classrooms and whole-account deletion; stars from authored questions only; redo
+mistakes in the parent report; numerator/denominator wording everywhere.
+
+**Give-away audit (fixed):** games, Daily Practice, check-ins, lesson build checks and practice pictures no longer reveal
+the answer (no pre-split bars or lines for "build n/d", no shaded side-by-side bars on compare questions, no live
+"use 5 pieces" status, compare choices named in either order, practice pictures announce no fraction to screen readers).
+Daily Practice is now a mixed review (lesson questions plus builds where the child chooses the parts). Same numerator /
+different denominator comparisons now appear in the lesson (more numerators, `<`/`>` items, own transfer), Fraction War,
+the unlike-fractions worksheet and practice, and Race.
+
+**Still open:**
+- Password reset (owner to choose: parent email link, printed recovery code, or parent/teacher reset).
+- Privacy policy page and a COPPA data-handling review (needs company name, contact email, country/state).
+- Whole number × fraction lives only in the grade-5 Unit 11; the placement quiz stops at Unit 8.
+- Spanish (deferred by the owner).
+- The iOS app (kept on the `ios-local-icloud` branch; the owner may redo the conversion).
+- Check-in area items still open the answer box only once the coloring is right (the same as in the lesson).
+
 ---
 
 ## 1. Where the app is today

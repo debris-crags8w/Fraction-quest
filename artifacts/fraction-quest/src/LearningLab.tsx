@@ -41,12 +41,13 @@ function validate(kind: Kind, t: LearningModel, s: St): { msgs: string[]; keys: 
     const total = t.total ?? 0;
     if (total % s.d !== 0) { msgs.push(`${label}: ${total} can't split into ${s.d} equal groups. Try another number.`); keys.push(M.parts); }
   }
-  if (s.d !== t.d && !msgs.length) { msgs.push(`${label}: use ${t.d} equal ${unit} in each whole.`); keys.push(M.parts); }
+  // Point at the part of the fraction to check, without saying the number (that would build it for the child).
+  if (s.d !== t.d && !msgs.length) { msgs.push(`${label}: not yet. Look at the denominator: how many equal ${unit} make one whole?`); keys.push(M.parts); }
   if (kind === 'bar' && s.wholes !== t.wholes) { msgs.push(`${label}: use ${t.wholes} whole ${t.wholes === 1 ? 'bar' : 'bars'}.`); keys.push(M.wholes); }
   if (s.count !== t.n && s.d === t.d) {
     const action = kind === 'line' ? 'mark' : kind === 'set' ? 'select' : 'shade';
     const counted = kind === 'line' ? 'jump' : kind === 'set' ? 'group' : 'piece';
-    msgs.push(`${label}: ${action} ${plural(t.n, counted, `${counted}s`)}.`);
+    msgs.push(`${label}: not yet. Look at the numerator: how many ${counted}s should you ${action}?`);
     keys.push(M.count);
   }
   return { msgs, keys };

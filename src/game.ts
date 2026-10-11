@@ -91,6 +91,10 @@ export type DailyPracticeQuestion = {
   numerator: number;
   denominator: number;
   explanation: string;
+  /** 'build': make numerator/denominator, choosing the equal parts yourself (older saves have no kind).
+      'choice': a question from the lesson's own practice set (`seed` picks it), so every topic is reviewed its own way. */
+  kind?: 'build' | 'choice';
+  seed?: number;
 };
 export type DailyPracticeAttempt = {
   shaded: number[];
@@ -99,6 +103,10 @@ export type DailyPracticeAttempt = {
   modelCorrect: boolean;
   answerChecked: boolean;
   answerCorrect: boolean;
+  /** Build items: how many equal parts the child chose (none until they choose). */
+  parts?: number;
+  /** Choice items: the choice picked. */
+  choice?: number;
 };
 export type DailyPracticeSession = {
   day: string;
@@ -160,8 +168,14 @@ function practice(
   retryFeedback: string,
   simplerModel: ModelSpec,
 ): PracticeSeed {
+  // Compare and "same amount" questions: shaded bars side by side would show the answer, so the picture shows each
+  // whole cut into its parts, unshaded. The shaded bars become the "make it simpler" help.
+  if (model.kind === 'bars' && model.bars.length >= 2 && SHOWS_ANSWER.test(prompt)) {
+    return { prompt, choices, correctChoice, model: { ...model, bars: model.bars.map((bar) => ({ ...bar, numerator: 0 })) }, hint, retryFeedback, simplerModel: model };
+  }
   return { prompt, choices, correctChoice, model, hint, retryFeedback, simplerModel };
 }
+const SHOWS_ANSWER = /bigger|smaller|closest|closer|more or less|less than|more than|order|between|same as|same amount|covers|sign|fill the blank|what do you get/i;
 
 /** Authored questions mostly listed the right answer first. Put it at a spot picked from the question id
     instead, so A, B and C are each right about as often, and it is the same spot on every visit and on paper. */
@@ -1152,6 +1166,7 @@ function readDailyPractice(value: unknown, validMissionIds: Set<string>): DailyP
       numerator: question.numerator!,
       denominator: question.denominator!,
       explanation: question.explanation,
+      ...(question.kind === 'choice' && Number.isSafeInteger(question.seed) ? { kind: 'choice' as const, seed: question.seed } : { kind: 'build' as const }),
     });
   }
   const attempts: Record<string, DailyPracticeAttempt> = {};
@@ -1162,8 +1177,10 @@ function readDailyPractice(value: unknown, validMissionIds: Set<string>): DailyP
       const entry = attempt as Partial<DailyPracticeAttempt>;
       attempts[question.id] = {
         shaded: Array.isArray(entry.shaded)
-          ? [...new Set(entry.shaded.filter((index): index is number => Number.isInteger(index) && index >= 0 && index < question.denominator))].slice(0, 12)
+          ? [...new Set(entry.shaded.filter((index): index is number => Number.isInteger(index) && index >= 0 && index < 12))].slice(0, 12)
           : [],
+        ...(Number.isInteger(entry.parts) && entry.parts! >= 2 && entry.parts! <= 12 ? { parts: entry.parts } : {}),
+        ...(Number.isInteger(entry.choice) && entry.choice! >= 0 && entry.choice! < 6 ? { choice: entry.choice } : {}),
         draft: typeof entry.draft === 'string' ? entry.draft.slice(0, 200) : '',
         modelChecked: entry.modelChecked === true,
         modelCorrect: entry.modelCorrect === true,

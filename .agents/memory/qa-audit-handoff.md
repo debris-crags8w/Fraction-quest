@@ -41,6 +41,16 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Give-away audit + same-numerator coverage (main):** ConceptGames War/NumberLine start unchosen (d=0) and offer every
+  split; WAR_ROUNDS/warHint in concept-games.ts. practice-bank: `either()` random naming order, `compareBars()` unshaded
+  compare pictures (shaded = simpler help), compare-unlike ~1/4 same-numerator pairs. game.ts `practice()` turns shaded
+  multi-bar compare/equivalence pictures into unshaded ones (SHOWS_ANSWER regex). FractionBar `quiet` aria for hideLabels.
+  LearningLab validate() live status no longer states target numbers. DailyPractice: items have kind 'choice' (lesson's
+  practice-bank question via seed, `dailyChoiceQuestion`) or 'build' (child picks parts 2–12, `dailyBuildCorrect` accepts
+  equivalents); old saves load as builds. Assessment: read-only pictures (ReadOnlyPicture/ReadOnlyArea), worksheet bar
+  tasks as in the lesson, strips start uncut; onReady(ready, correct) records correctness separately from opening the box.
+  compare-same-numerator worksheet uses numerators 2..(small−1) with symbol rows and its own transfer (2/3 vs 2/5).
+  docs/curriculum-gap-analysis.md has a status update at the top.
 - **Native printing + lesson count on main (iOS conversion itself postponed; user may redo it):** all printing goes through
   `printPage()` (src/lib/print.ts; uses `@capacitor/core` 8.5.2, the only Capacitor package on main). Web = window.print();
   in a Capacitor app it calls the `Printing` plugin, then fires 'afterprint'. The Swift plugin and wiring steps are in

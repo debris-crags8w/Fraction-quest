@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { ArrowLeft, ArrowRight, BarChart3, Check, RotateCcw } from 'lucide-react';
 import { MathText } from './MathText';
 import { FractionEntry, usesFractionEntry } from './FractionEntry';
-import { AreaShade } from './AreaModel';
+import { AreaShade, AreaSvg } from './AreaModel';
+import { BarSvg, LineSvg, SetSvg } from './models';
 import './assessment.css';
 import { RulerInteraction, LinePlotInteraction, ScaleInteraction } from './LearningLab';
 import { WorksheetBarCopy } from './WorksheetBarCopy';
@@ -66,109 +67,69 @@ export function AssessmentHub({ attempts, onStart, onBack }: {
   );
 }
 
-function SequentialLineBuilder({ model, onReady }: {
-  model: NonNullable<AssessmentItem['problem']['model']>;
-  onReady: (ready: boolean) => void;
-}) {
-  const [path, setPath] = useState<number[]>([]);
-  const goal = Math.max(0, model.n);
-  const complete = path.length === goal + 1 && path[0] === 0 && path[path.length - 1] === goal;
-  useEffect(() => { onReady(complete); }, [complete, onReady]);
-  const tap = (point: number) => {
-    setPath(current => {
-      if (point === 0) return [0];
-      if (point === current.length) return [...current, point];
-      if (point === current.length - 1 && point > 0) return current.slice(0, -1);
-      return current;
-    });
-  };
-  const max = model.d * model.wholes;
+/** Ready = the child has built something (opens the answer box). Correct = it matches the question (recorded, never shown). */
+type ReadyFn = (ready: boolean, correct?: boolean) => void;
+
+/** The question's own picture, read-only: the child reads it, so nothing to build. */
+function ReadOnlyPicture({ model, onReady }: { model: NonNullable<AssessmentItem['problem']['model']>; onReady: ReadyFn }) {
+  useEffect(() => { onReady(true, true); }, [onReady]);
   return (
-    <section className="fq-assessment-model">
-      <p>Build the number line from zero. Tap zero, then add one jump at a time.</p>
-      <div className="fq-assessment-line" role="group" aria-label={`Number line with ${model.d} equal spaces in each whole`}>
-        {Array.from({ length: max + 1 }, (_, point) => (
-          <button type="button" key={point} aria-label={point === 0 ? 'Zero' : `Point after ${point} equal jumps`}
-            aria-pressed={path.includes(point)} onClick={() => tap(point)}>
-            <i />
-            <span>{point === 0 ? '0' : point === max ? String(model.wholes) : ''}</span>
-          </button>
-        ))}
-      </div>
-      <p className="fq-assessment-model-status" role="status">{complete ? 'Model built. Now enter your answer.' : `Jumps built: ${Math.max(0, path.length - 1)}.`}</p>
+    <section className="fq-assessment-model fq-assessment-picture" data-testid="assessment-picture">
+      {model.kind === 'bar' && <BarSvg n={model.n} d={model.d} wholes={model.wholes} sizes={model.sizes} label={model.sizes ? `A bar cut into ${model.sizes.length} pieces` : 'A bar model'} />}
+      {model.kind === 'line' && <LineSvg n={model.n} d={model.d} wholes={model.wholes} jumps={false} label="A number line with a point" />}
+      {model.kind === 'set' && <SetSvg n={model.n} d={model.d} total={model.total ?? model.d} />}
     </section>
   );
 }
 
-function SetModelBuilder({ model, onReady }: {
-  model: NonNullable<AssessmentItem['problem']['model']>;
-  onReady: (ready: boolean) => void;
-}) {
-  const [selected, setSelected] = useState<number[]>([]);
-  const complete = model.n === 0 ? selected.length === 0 && selected.includes(-1) : selected.length === model.n;
-  useEffect(() => { onReady(complete); }, [complete, onReady]);
-  const toggle = (group: number) => setSelected(current => current.includes(group) ? current.filter(value => value !== group) : [...current, group]);
-  return (
-    <section className="fq-assessment-model">
-      <p>Choose the equal groups that show the amount in the question.</p>
-      <div className="fq-assessment-groups" role="group" aria-label={`${model.d} equal groups`}>
-        {Array.from({ length: model.d }, (_, group) => (
-          <button type="button" key={group} aria-pressed={selected.includes(group)} onClick={() => toggle(group)}>
-            <span aria-hidden="true">{Array.from({ length: Math.max(1, Math.ceil((model.total ?? model.d) / model.d)) }, (_, i) => <i key={i} />)}</span>
-            <small>Group {group + 1} · {selected.includes(group) ? 'chosen' : 'not chosen'}</small>
-          </button>
-        ))}
-      </div>
-      {model.n === 0 && <button type="button" className="fq-hint-button" aria-pressed={selected.includes(-1)} onClick={() => setSelected(selected.includes(-1) ? [] : [-1])}>No groups are selected</button>}
-      <p className="fq-assessment-model-status" role="status">{complete ? 'Model built. Now enter your answer.' : 'Keep choosing groups to build the model.'}</p>
-    </section>
-  );
-}
+const STRIP_PARTS = Array.from({ length: 11 }, (_, k) => k + 2);
 
+/** Compare and order items: one strip per fraction in the question. Each strip starts as one uncut whole;
+    the child chooses its equal parts, then colors. Nothing is pre-cut, so the strips never show the answer. */
 function FractionStripsBuilder({ fractions, onReady }: {
   fractions: NonNullable<AssessmentItem['visualFractions']>;
-  onReady: (ready: boolean) => void;
+  onReady: ReadyFn;
 }) {
-  const [shaded, setShaded] = useState<boolean[][]>(() => fractions.map(() => []));
-  const [visited, setVisited] = useState<boolean[]>(() => fractions.map(() => false));
-  const ready = fractions.every((fraction, index) => visited[index] && shaded[index]?.filter(Boolean).length === fraction.n);
-  useEffect(() => { onReady(ready); }, [onReady, ready]);
-  const toggle = (fractionIndex: number, partIndex: number) => setShaded(current => {
-    const next = current.map(parts => [...parts]);
-    const parts = next[fractionIndex] ?? [];
-    parts[partIndex] = !parts[partIndex];
-    next[fractionIndex] = parts;
-    return next;
-  });
-  const visit = (fractionIndex: number) => setVisited(current => current.map((value, index) => index === fractionIndex ? true : value));
+  const [parts, setParts] = useState<number[]>(() => fractions.map(() => 0));
+  const [shaded, setShaded] = useState<number[][]>(() => fractions.map(() => []));
+  const ready = fractions.every((_, index) => parts[index] > 0 && shaded[index].length > 0);
+  const correct = fractions.every((fraction, index) => parts[index] === fraction.d && shaded[index].length === fraction.n);
+  useEffect(() => { onReady(ready, correct); }, [onReady, ready, correct]);
+  const toggle = (fractionIndex: number, partIndex: number) => setShaded(current => current.map((list, index) =>
+    index !== fractionIndex ? list : list.includes(partIndex) ? list.filter(value => value !== partIndex) : [...list, partIndex]));
   return (
     <section className="fq-assessment-model">
-      <p>Build each fraction from equal parts. Tap parts to color them, then type the answer.</p>
+      <p>Build each fraction: choose how many equal parts, then color the parts selected.</p>
       <div className="fq-assessment-strips">
         {fractions.map((fraction, fractionIndex) => (
           <div className="fq-assessment-strip-row" key={`${fraction.n}/${fraction.d}-${fractionIndex}`}>
             <span><MathText text={`${fraction.n}/${fraction.d}`} /></span>
-            <div role="group" aria-label={`Build ${fraction.n} over ${fraction.d}`}>
-              {Array.from({ length: fraction.d * fraction.wholes }, (_, partIndex) => {
-                const selected = !!shaded[fractionIndex]?.[partIndex];
+            <select value={parts[fractionIndex]} aria-label={`Equal parts for fraction ${fractionIndex + 1}`} data-testid={`select-assessment-parts-${fractionIndex}`}
+              onChange={event => { const value = Number(event.target.value); setParts(current => current.map((p, i) => i === fractionIndex ? value : p)); setShaded(current => current.map((list, i) => i === fractionIndex ? [] : list)); }}>
+              <option value={0} disabled>Parts…</option>
+              {STRIP_PARTS.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <div role="group" aria-label={`Strip for fraction ${fractionIndex + 1}`}>
+              {Array.from({ length: Math.max(1, parts[fractionIndex] * fraction.wholes) }, (_, partIndex) => {
+                const selected = shaded[fractionIndex].includes(partIndex);
                 return (
-                  <button type="button" key={partIndex} className={selected ? 'selected' : ''}
-                    aria-label={`Fraction ${fractionIndex + 1}, part ${partIndex + 1} of ${fraction.d * fraction.wholes}, ${selected ? 'colored' : 'not colored'}`}
-                    aria-pressed={selected} onClick={() => { visit(fractionIndex); toggle(fractionIndex, partIndex); }} />
+                  <button type="button" key={partIndex} className={selected ? 'selected' : ''} disabled={!parts[fractionIndex]}
+                    aria-label={parts[fractionIndex] ? `Fraction ${fractionIndex + 1}, part ${partIndex + 1} of ${parts[fractionIndex] * fraction.wholes}, ${selected ? 'colored' : 'not colored'}` : 'One whole, choose the parts first'}
+                    aria-pressed={selected} onClick={() => toggle(fractionIndex, partIndex)} />
                 );
               })}
             </div>
           </div>
         ))}
       </div>
-      <p className="fq-assessment-model-status" role="status">{ready ? 'All the fraction strips are built. Now enter your answer.' : 'Color the number of parts named by each numerator.'}</p>
+      <p className="fq-assessment-model-status" role="status">{ready ? 'Strips built. Now enter your answer.' : 'Build every strip to open the answer box.'}</p>
     </section>
   );
 }
 
-function AssessmentModelBuilder({ item, onReady }: { item: AssessmentItem; onReady: (ready: boolean) => void }) {
+function AssessmentModelBuilder({ item, onReady }: { item: AssessmentItem; onReady: ReadyFn }) {
   const problem = item.problem;
-  const handleReady = useCallback((ready: boolean) => onReady(ready), [onReady]);
+  const handleReady = useCallback((ready: boolean, correct?: boolean) => onReady(ready, correct), [onReady]);
   const statusId = `assessment-model-status-${item.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
   if (problem.area && problem.areaTask) {
     return <AreaShade figure={problem.area} task={problem.areaTask} disabled={false} statusId={statusId} onMatchChange={handleReady} />;
@@ -176,16 +137,18 @@ function AssessmentModelBuilder({ item, onReady }: { item: AssessmentItem; onRea
   if (problem.rulerTask) return <RulerInteraction key={item.id} task={problem.rulerTask} disabled={false} onReady={handleReady} />;
   if (problem.linePlotTask) return <LinePlotInteraction key={item.id} task={problem.linePlotTask} disabled={false} onReady={handleReady} />;
   if (problem.scaleTask) return <ScaleInteraction key={item.id} id={statusId} task={problem.scaleTask} disabled={false} onReady={handleReady} />;
+  if (problem.area) return <ReadOnlyArea key={item.id} figure={problem.area} onReady={handleReady} />;
   if (!problem.model) return item.visualFractions ? <FractionStripsBuilder key={item.id} fractions={item.visualFractions} onReady={handleReady} /> : null;
-  if (problem.model.kind === 'bar') {
-    const target = problem.model;
-    const task = target.n > 0
-      ? { kind: 'shade' as const, n: target.n }
-      : { kind: 'count' as const, n: target.d * target.wholes };
-    return <WorksheetBarCopy key={item.id} target={target} task={task} disabled={false} statusId={statusId} onMatchChange={handleReady} />;
+  // The worksheet's own task ("Shade 1 part", "Tap each part to count it"), exactly as in the lesson.
+  if (problem.model.kind === 'bar' && problem.task) {
+    return <WorksheetBarCopy key={item.id} target={problem.model} task={problem.task} disabled={false} statusId={statusId} onMatchChange={handleReady} />;
   }
-  if (problem.model.kind === 'line') return <SequentialLineBuilder key={item.id} model={problem.model} onReady={handleReady} />;
-  return <SetModelBuilder key={item.id} model={problem.model} onReady={handleReady} />;
+  return <ReadOnlyPicture key={item.id} model={problem.model} onReady={handleReady} />;
+}
+
+function ReadOnlyArea({ figure, onReady }: { figure: NonNullable<AssessmentItem['problem']['area']>; onReady: ReadyFn }) {
+  useEffect(() => { onReady(true, true); }, [onReady]);
+  return <section className="fq-assessment-model fq-assessment-picture"><AreaSvg figure={figure} /></section>;
 }
 
 export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
@@ -195,11 +158,12 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState('');
   const [modelBuilt, setModelBuilt] = useState(false);
+  const [modelCorrect, setModelCorrect] = useState(false);
   const [responses, setResponses] = useState<AssessmentAttempt['responses']>([]);
   const [result, setResult] = useState<AssessmentAttempt | null>(null);
   const [startedAt] = useState(() => Date.now());
   const item = items[index];
-  const modelReady = useCallback((ready: boolean) => setModelBuilt(ready), []);
+  const modelReady = useCallback((ready: boolean, correct = ready) => { setModelBuilt(ready); setModelCorrect(correct); }, []);
   if (result) {
     const correct = result.responses.filter(response => response.correct).length;
     return (
@@ -220,7 +184,7 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!item || !answer.trim() || !modelBuilt) return;
-    const response = assessmentResponse(item, modelBuilt, answer);
+    const response = assessmentResponse(item, modelCorrect, answer);
     const nextResponses = [...responses, response];
     if (index === items.length - 1) {
       const attempt: AssessmentAttempt = {
@@ -235,6 +199,7 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
     setIndex(current => current + 1);
     setAnswer('');
     setModelBuilt(false);
+    setModelCorrect(false);
   };
 
   const fractionInput = usesFractionEntry(item.problem);
@@ -256,7 +221,7 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
           <h2 id={promptId}><MathText text={item.prompt} /></h2>
           <AssessmentModelBuilder key={item.id} item={item} onReady={modelReady} />
           <p className="fq-assessment-model-gate" role="status" aria-live="polite">
-            {modelBuilt ? 'Model built. Now enter your answer.' : 'Finish building the model to open the answer box.'}
+            {modelBuilt ? 'Now enter your answer.' : 'Finish building the model to open the answer box.'}
           </p>
           <div className="fq-assessment-answer">
             {fractionInput ? (
