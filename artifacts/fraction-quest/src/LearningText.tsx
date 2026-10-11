@@ -1,5 +1,7 @@
 import React, { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
+import { useOptionalFun } from './fun-ui';
+import { setLearningVoicePreference } from './lib/fun';
 import { MathText } from './MathText';
 
 type VocabularyEntry = { pattern: string; definition: string };
@@ -219,15 +221,23 @@ export function createLearningSpeechController(
 
 const VOICE_PREVIEW = 'Hello! This is how I will read fraction explanations.';
 
-/** A device-local voice chooser for families. Browser speech synthesis keeps all audio on-device. */
+/** A local voice chooser for families. Browser speech synthesis keeps all audio on-device. */
 export function LearningVoicePicker() {
+  const funContext = useOptionalFun();
+  const savedPreference = funContext
+    ? funContext.fun.preferredLearningVoiceId ?? null
+    : getSavedLearningVoiceId();
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [supported, setSupported] = useState(false);
-  const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(getSavedLearningVoiceId);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(savedPreference);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
   const language = getLearningLanguage();
   const primaryLanguage = language.toLowerCase().replace(/_/g, '-').split('-')[0];
+
+  useEffect(() => {
+    setSelectedVoiceId(savedPreference);
+  }, [savedPreference]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)
@@ -258,6 +268,9 @@ export function LearningVoicePicker() {
   const currentVoice = savedVoiceAvailable
     ? matchingVoices.find((voice) => learningVoiceId(voice) === selectedVoiceId)
     : fallbackVoice;
+  const effectiveVoiceId = savedVoiceAvailable
+    ? selectedVoiceId
+    : currentVoice ? learningVoiceId(currentVoice) : null;
 
   const previewVoice = (voice: SpeechSynthesisVoice) => {
     if (!supported) return;
@@ -282,13 +295,15 @@ export function LearningVoicePicker() {
 
   const chooseVoice = (id: string) => {
     setSelectedVoiceId(id);
-    setSaveFailed(!saveLearningVoiceId(id));
+    const savedLocally = saveLearningVoiceId(id);
+    if (funContext) funContext.setFun(setLearningVoicePreference(funContext.fun, id));
+    setSaveFailed(!savedLocally && !funContext);
   };
 
   return (
     <section className="fq-parent-section fq-learning-voice-settings" data-testid="learning-voice-settings" aria-labelledby="learning-voice-heading">
       <h2 id="learning-voice-heading">Read-aloud voice</h2>
-      <p>Preview voices available on this device, then choose one for lesson explanations. Audio stays on this device.</p>
+      <p>Preview voices available on this device, then choose one for lesson explanations. Signed-in choices follow your account, but each device uses its own local voice. Audio stays on this device.</p>
       {!supported ? (
         <p className="fq-parent-note" role="status">Read-aloud voices are not available in this browser.</p>
       ) : matchingVoices.length > 0 ? (
@@ -302,7 +317,7 @@ export function LearningVoicePicker() {
                     type="radio"
                     name="learning-voice"
                     value={id}
-                    checked={selectedVoiceId === id}
+                    checked={effectiveVoiceId === id}
                     onChange={() => chooseVoice(id)}
                     data-testid={`radio-learning-voice-${matchingVoices.indexOf(voice)}`}
                   />
@@ -344,6 +359,10 @@ export function LearningVoicePicker() {
 
 function ListenButton({ text }: { text: string }) {
   const [speaking, setSpeaking] = useState(false);
+  const funContext = useOptionalFun();
+  const preferredVoiceId = funContext
+    ? funContext.fun.preferredLearningVoiceId ?? null
+    : getSavedLearningVoiceId();
   const controllerRef = useRef<ReturnType<typeof createLearningSpeechController> | null>(null);
   const supported = typeof window !== 'undefined'
     && 'speechSynthesis' in window
@@ -351,13 +370,19 @@ function ListenButton({ text }: { text: string }) {
 
   useEffect(() => {
     if (!supported) return;
-    const controller = createLearningSpeechController(window.speechSynthesis, setSpeaking);
+    const controller = createLearningSpeechController(
+      window.speechSynthesis,
+      setSpeaking,
+      undefined,
+      undefined,
+      () => preferredVoiceId,
+    );
     controllerRef.current = controller;
     return () => {
       controller.dispose();
       controllerRef.current = null;
     };
-  }, [supported]);
+  }, [preferredVoiceId, supported]);
 
   const toggleSpeech = () => {
     if (!supported) return;
