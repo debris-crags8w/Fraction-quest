@@ -1,3 +1,4 @@
+import type { AreaFigure, AreaTask } from './area-shapes';
 export type Rational = { n: number; d: number };
 /** `sizes` (bars only) draws pieces of different widths, for "Is this cut into equal parts?" pictures. */
 export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number; wholes: number; total?: number; sizes?: number[] };
@@ -6,6 +7,8 @@ export type BarTask = { kind: 'copy' | 'count' | 'shade'; n: number };
 export type WorksheetProblem = {
   id: string; prompt: string; answer: string; hint: string; model?: LearningModel; modelRequired?: boolean; task?: BarTask;
   form?: 'decimal' | 'mixed' | 'ordered' | 'symbol' | 'word'; denominator?: number;
+  /** A square cut into pieces that may have different shapes; with `areaTask` the child colors it before answering. */
+  area?: AreaFigure; areaTask?: AreaTask;
 };
 export type BuildCheck = {
   id: string; prompt: string; target: LearningModel; reasons: string[];
@@ -295,7 +298,7 @@ export function getWorksheet(id: string): WorksheetProblem[] {
     const value = f(n, d);
     let prompt = ''; let answer = value; let hint = 'Top: the parts you count. Bottom: equal parts in 1 whole.';
     let visual: LearningModel | undefined; let form: WorksheetProblem['form']; let denominator: number | undefined;
-    let modelRequired = false; let task: BarTask | undefined;
+    let modelRequired = false; let task: BarTask | undefined; let area: AreaFigure | undefined; let areaTask: AreaTask | undefined;
     const context = ['ribbon', 'paper strip', 'rope', 'piece of tape'][i % 4];
     switch (id) {
       case 'equal-parts': {
@@ -321,6 +324,20 @@ export function getWorksheet(id: string): WorksheetProblem[] {
           answer = f(1, d); visual = model(0, d); task = { kind: 'shade', n: 1 };
           hint = `The bar has ${d} equal parts. You shaded 1 of them.`;
         }
+        // Last four: a square whose equal parts have different shapes (same size, not always same shape).
+        if (i === 8) {
+          prompt = 'Are all 4 parts of this square the same size? Type yes or no.'; answer = 'yes'; form = 'word'; visual = undefined; task = undefined;
+          area = { cut: 'fourths-mixed' }; hint = 'The line cuts the right half into 2 equal triangles. Each triangle is 1/4, just like each small square.';
+        } else if (i === 9) {
+          prompt = 'This square is cut into 4 parts. Are they fourths? Type yes or no.'; answer = 'no'; form = 'word'; visual = undefined; task = undefined;
+          area = { cut: 'fourths-unequal' }; hint = 'Fourths must all be the same size. Compare the biggest part and the smallest part.';
+        } else if (i === 10) {
+          prompt = 'These parts are triangles, not squares. Are they still fourths? Type yes or no.'; answer = 'yes'; form = 'word'; visual = undefined; task = undefined;
+          area = { cut: 'fourths-triangles' }; hint = '4 triangles of the same size fill the square. Same size means fourths, whatever the shape.';
+        } else if (i === 11) {
+          prompt = 'How many small triangles cover the same space as the small square?'; answer = '2'; form = undefined; visual = undefined; task = undefined;
+          area = { cut: 'quarter-and-triangles' }; hint = 'Each triangle is half of a small square.';
+        }
         modelRequired = !!task; break;
       }
       case 'unit-fractions':
@@ -330,7 +347,22 @@ export function getWorksheet(id: string): WorksheetProblem[] {
         answer = i % 3 === 0 ? String(d) : f(1, d);
         visual = model(i % 3 === 2 ? 1 : 0, d); task = i % 3 === 0 ? { kind: 'count', n: d } : i % 3 === 1 ? { kind: 'shade', n: 1 } : { kind: 'copy', n: 1 };
         modelRequired = true;
-        hint = 'A unit fraction is 1 equal piece. The bottom number is how many pieces make 1 whole.'; break;
+        hint = 'A unit fraction is 1 equal piece. The bottom number is how many pieces make 1 whole.';
+        // Last three: one fourth of a square can look different (1 small square, or 2 triangles).
+        if (i === 9) {
+          prompt = 'Color 1/4 of the square. Any way that works is fine. What fraction did you color?'; answer = '1/4';
+          area = { cut: 'quarter-and-triangles' }; areaTask = { n: 1, d: 4 }; visual = undefined; task = undefined; modelRequired = false;
+          hint = 'The small square is 1/4. Two triangles together are also 1/4.';
+        } else if (i === 10) {
+          prompt = 'Color 1/4 of the square using only triangles. How many triangles did you color?'; answer = '2';
+          area = { cut: 'quarter-and-triangles' }; areaTask = { n: 1, d: 4, avoid: [0] }; visual = undefined; task = undefined; modelRequired = false;
+          hint = 'Each triangle is half of a small square. How many halves make the same space?';
+        } else if (i === 11) {
+          prompt = 'What fraction of the square is the shaded triangle?'; answer = '1/4';
+          area = { cut: 'fourths-mixed', shaded: [2] }; visual = undefined; task = undefined; modelRequired = false;
+          hint = 'The 4 parts are the same size, even though 2 are squares and 2 are triangles.';
+        }
+        break;
       case 'fraction-names':
         prompt = i % 3 === 0 ? `In ${value}, how many pieces are shaded? Type a number.` :
           i % 3 === 1 ? `In ${value}, how many equal pieces make 1 whole? Type a number.` :
@@ -411,6 +443,14 @@ export function getWorksheet(id: string): WorksheetProblem[] {
             `This bar shows ${value}. Fill the missing top number: ${value} = ?/${d * factor}.`;
           answer = i % 2 ? big : String(n * factor); denominator = i % 2 ? d * factor : undefined;
           visual = model(n, d); hint = `Each piece becomes ${factor} pieces. Multiply the top and bottom by ${factor}.`;
+          // The same amount, cut a different way, in a square.
+          if (i === 10) {
+            prompt = 'Each triangle is 1/8 of the square. Two are shaded. Fill the missing top number: 2/8 = ?/4.'; answer = '1'; denominator = undefined;
+            visual = undefined; area = { cut: 'quarter-and-triangles', shaded: [1, 2] }; hint = 'The 2 shaded triangles fill the same space as 1 small square. The small square is 1/4.';
+          } else if (i === 11) {
+            prompt = 'Color 1/2 of the square. How many eighths did you color?'; answer = '4'; denominator = undefined;
+            visual = undefined; area = { cut: 'eighths-triangles' }; areaTask = { n: 1, d: 2 }; hint = '8 equal triangles make the square. Half of 8 is 4.';
+          }
         } else if (id === 'build-equivalents') {
           prompt = i % 3 === 0 ? `Multiply the top and bottom of ${value} by ${factor}. What do you get?` :
             i % 3 === 1 ? `Write ${value} with ${d * factor} on the bottom.` : `Divide the top and bottom of ${big} by ${factor}. What do you get?`;
@@ -489,7 +529,7 @@ export function getWorksheet(id: string): WorksheetProblem[] {
     }
     // Older bar worksheets: "copy the shaded bar".
     if (modelRequired && !task && visual?.kind === 'bar') task = { kind: 'copy', n: visual.n };
-    return { id: `w${i + 1}`, prompt, answer, hint, model: visual, modelRequired, task, form, denominator };
+    return { id: `w${i + 1}`, prompt, answer, hint, model: visual, modelRequired, task, form, denominator, ...(area ? { area } : {}), ...(areaTask ? { areaTask } : {}) };
   });
 }
 
@@ -681,7 +721,7 @@ export function getReviewCheck(id: string, round: number): BuildCheck {
     return !!value && value.d > 1 && value.n > 0 && value.n <= value.d * 3 && !p.form;
   });
   const asked = numeric.filter(p => {
-    if (p.model) return false;
+    if (p.model || p.area) return false;
     const value = parseAnswer(p.answer)!;
     const shown = [...p.prompt.matchAll(/(\d+)\/(\d+)/g)].map(m => Number(m[1]) / Number(m[2]));
     return p.prompt.startsWith('Which is') || !shown.includes(value.n / value.d);

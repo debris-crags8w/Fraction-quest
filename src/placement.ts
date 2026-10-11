@@ -19,8 +19,8 @@ export function placementItems(unit: number, seed: number): PlacementItem[] {
   return picks.map((mission) => {
     const sheet = getWorksheet(mission.id);
     // Prefer rows that need no picture; fall back to any row (the picture is shown, read-only).
-    const plain = sheet.filter((problem) => !problem.model);
-    const pool = plain.length >= 3 ? plain : sheet;
+    const plain = sheet.filter((problem) => !problem.model && !problem.area);
+    const pool = plain.length >= 3 ? plain : sheet.filter((problem) => !problem.areaTask); // no coloring tasks in a typed quiz
     return { unit, missionId: mission.id, problem: rng.pick(pool) };
   });
 }

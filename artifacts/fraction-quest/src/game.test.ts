@@ -1,3 +1,4 @@
+import { AREA_CUTS, allEqual, areaTaskDone, cutTotal, pieceArea, shadedArea } from './area-shapes';
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 import { createElement } from 'react';
@@ -31,6 +32,7 @@ import {
   getNextMission,
   isCorrectAnswer,
   isMissionUnlocked,
+  staleDraft,
   loadProgress,
   MISSIONS,
   numberLineWholeCount,
@@ -697,11 +699,17 @@ describe('entered-answer worksheets and evidence gates', () => {
 });
   it('keeps the first fraction lesson focused on equal parts, then layers in unit fractions', () => {
     const equalParts = getWorksheet('equal-parts');
-    assert.ok(equalParts.every(problem => problem.model?.kind === 'bar'));
+    assert.ok(equalParts.every(problem => problem.model?.kind === 'bar' || problem.area));
+    const bars = equalParts.filter(problem => problem.model);
     // Shading is shown only when it marks the part being named; otherwise the child counts, shades, or judges fairness.
-    assert.ok(equalParts.every(problem => (problem.model!.n > 0) === (problem.task?.kind === 'copy')));
+    assert.ok(bars.every(problem => (problem.model!.n > 0) === (problem.task?.kind === 'copy')));
+    // Equal parts are the same size, not always the same shape: squares whose fourths look different.
+    const squares = equalParts.filter(problem => problem.area);
+    assert.ok(squares.length >= 3);
+    squares.filter(problem => problem.form === 'word').forEach(problem => assert.equal(problem.answer === 'yes', allEqual(problem.area!.cut), problem.id));
+    assert.ok(squares.some(problem => problem.answer === 'yes' && new Set(AREA_CUTS[problem.area!.cut].map(piece => piece.shape)).size > 1));
     assert.ok(equalParts.filter(problem => problem.task?.kind === 'count').every(problem => problem.task!.n === problem.model!.d && problem.answer === String(problem.model!.d)));
-    const fairness = equalParts.filter(problem => problem.form === 'word');
+    const fairness = bars.filter(problem => problem.form === 'word');
     assert.ok(fairness.length >= 2 && fairness.some(problem => problem.answer === 'no') && fairness.some(problem => problem.answer === 'yes'));
     fairness.forEach(problem => {
       const sizes = problem.model!.sizes;
@@ -712,10 +720,21 @@ describe('entered-answer worksheets and evidence gates', () => {
     });
     assert.ok(equalParts.every(problem => problem.modelRequired === !!problem.task));
     assert.ok(equalParts.every(problem => !/jump|number line|shares make the whole/i.test(problem.prompt)));
-    assert.ok(equalParts.every(problem => (problem.model?.d ?? 99) <= 6));
+    assert.ok(bars.every(problem => problem.model!.d <= 6));
 
     const unitFractions = getWorksheet('unit-fractions');
-    assert.ok(unitFractions.every(problem => problem.modelRequired && problem.model?.kind === 'bar'));
+    assert.ok(unitFractions.every(problem => (problem.modelRequired && problem.model?.kind === 'bar') || problem.area));
+    // "Color 1/4 of the square": one small square or two triangles both count.
+    const colorQuarter = unitFractions.find(problem => problem.areaTask && !problem.areaTask.avoid)!;
+    assert.equal(areaTaskDone(colorQuarter.area!.cut, colorQuarter.areaTask!, [0]), true);
+    assert.equal(areaTaskDone(colorQuarter.area!.cut, colorQuarter.areaTask!, [1, 2]), true);
+    assert.equal(areaTaskDone(colorQuarter.area!.cut, colorQuarter.areaTask!, [1, 4]), true);
+    assert.equal(areaTaskDone(colorQuarter.area!.cut, colorQuarter.areaTask!, [1]), false);
+    assert.equal(areaTaskDone(colorQuarter.area!.cut, colorQuarter.areaTask!, [0, 1]), false);
+    const onlyTriangles = unitFractions.find(problem => problem.areaTask?.avoid)!;
+    assert.equal(areaTaskDone(onlyTriangles.area!.cut, onlyTriangles.areaTask!, [0]), false);
+    assert.equal(areaTaskDone(onlyTriangles.area!.cut, onlyTriangles.areaTask!, [5, 6]), true);
+    assert.equal(onlyTriangles.answer, '2');
     assert.ok(unitFractions.every(problem => !/jump|number line/i.test(problem.prompt)));
 
     const fractionNames = getWorksheet('fraction-names');
@@ -752,6 +771,44 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(canEnterWorksheetAnswer(true, true), true);
     assert.equal(canEnterWorksheetAnswer(false, false), true);
   });
+
+describe('revised lessons', () => {
+  it('a lesson finished before its questions changed does not re-lock later lessons', () => {
+    const id = MISSIONS[0].id;
+    const old = { ...EMPTY_PROGRESS, reviewQueue: [], completedMissionIds: [id], starsByMission: { [id]: 3 },
+      learning: { [id]: { ...emptyLearningRecord(), practiceDone: true, completedAt: 1_700_000_000_000, worksheet: { w1: { draft: '1/3', checkedValue: '1/3', attempts: 1, supported: false } } } } };
+    assert.equal(hasLearningGate(old, id), false);
+    assert.equal(isMissionUnlocked(old, MISSIONS[1].id), true);
+    // Without a real completion it stays locked.
+    assert.equal(isMissionUnlocked({ ...old, learning: { [id]: { ...old.learning![id], completedAt: undefined } } }, MISSIONS[1].id), false);
+  });
+});
+
+describe('stale answers', () => {
+  it('drops a saved answer that cannot fit the revised question', () => {
+    const sheet = getWorksheet('equal-parts');
+    const word = sheet.find(p => p.form === 'word')!; const count = sheet.find(p => p.answer === '3')!;
+    assert.equal(staleDraft(word, '1/3'), true); assert.equal(staleDraft(word, 'No'), false);
+    assert.equal(staleDraft(count, '1/3'), true); assert.equal(staleDraft(count, '4'), false);
+    assert.equal(staleDraft(sheet.find(p => p.answer.includes('/'))!, '2'), false);
+  });
+});
+
+describe('square (area) models', () => {
+  it('every cut fills the square exactly, and fourths really are fourths', () => {
+    for (const cut of Object.keys(AREA_CUTS) as (keyof typeof AREA_CUTS)[]) assert.ok(Math.abs(cutTotal(cut) - 1) < 1e-9, cut);
+    for (const cut of ['fourths-squares', 'fourths-strips', 'fourths-triangles', 'fourths-mixed'] as const) {
+      assert.equal(AREA_CUTS[cut].length, 4); assert.ok(allEqual(cut), cut);
+    }
+    assert.equal(allEqual('fourths-unequal'), false); assert.equal(allEqual('strips-unequal'), false);
+    assert.ok(Math.abs(pieceArea(AREA_CUTS['quarter-and-triangles'][1]) - 1 / 8) < 1e-9);
+    assert.ok(Math.abs(shadedArea('eighths-triangles', [0, 1, 2, 3]) - 1 / 2) < 1e-9);
+  });
+  it('keeps coloring tasks out of the typed level quiz and review', () => {
+    for (let seed = 1; seed <= 40; seed++) assert.ok(placementItems(1, seed).every(item => !item.problem.areaTask));
+    for (let round = 0; round < 6; round++) for (const id of ['equal-parts', 'unit-fractions', 'equivalent-models']) assert.ok(!/square|triangle/i.test(getReviewCheck(id, round).prompt));
+  });
+});
 
 describe('unit challenges', () => {
   const value = (n: number, d: number) => n / d;

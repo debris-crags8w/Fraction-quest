@@ -1509,3 +1509,34 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   .fq-print-problems > li:nth-child(odd) { margin-right: 0; }
   .fq-print-draw-grid, .fq-print-key-list.two-col { grid-template-columns: 1fr; }
 }
+
+/* ---------- square (area) model: equal parts with different shapes ---------- */
+.fq-svg-area { display: block; width: min(100%, 190px); height: auto; overflow: visible; }
+.fq-svg-area polygon { stroke: hsl(var(--foreground)); stroke-width: 1.5; stroke-linejoin: round; }
+.fq-svg-area polygon.empty { fill: hsl(var(--card)); }
+.fq-svg-area polygon.shaded { fill: var(--fq-grape); }
+.fq-svg-area rect.frame { stroke: hsl(var(--foreground)); stroke-width: 3.5; }
+.fq-svg-area.interactive { width: min(100%, 230px); margin: 4px auto; }
+.fq-svg-area.interactive polygon { cursor: pointer; transition: fill 120ms ease; }
+.fq-svg-area.interactive polygon.empty:hover { fill: color-mix(in srgb, var(--fq-grape) 18%, hsl(var(--card))); }
+.fq-svg-area.interactive polygon:focus-visible { outline: none; stroke: hsl(var(--ring)); stroke-width: 4; }
+.fq-area-preview { display: flex; justify-content: center; }
+.fq-area-idea { display: grid; gap: 10px; margin-top: 12px; padding: 14px 16px; border: 2px solid var(--fq-edge); border-radius: 18px; background: hsl(var(--card)); }
+.fq-area-idea h3 { margin: 0; font-family: var(--app-font-display); font-size: 1.1rem; }
+.fq-area-idea p { margin: 0; line-height: 1.45; }
+.fq-area-idea-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 12px; justify-items: center; }
+.fq-area-idea-row .fq-svg-area { width: 100%; max-width: 110px; }
+.fq-model-tag.kind-area { background: #FFF3D6; color: #8A5A00; }
+
+@media print {
+  .fq-print .fq-svg-area { width: min(32mm, 100%); }
+  .fq-print .fq-svg-area polygon, .fq-print .fq-svg-area rect.frame { stroke: #000; }
+  .fq-print .fq-svg-area polygon.empty { fill: #fff; }
+  .fq-print .fq-svg-area polygon.shaded { fill: #999; }
+  .fq-print .fq-area-idea { margin: 0; padding: 0; border: 0; gap: 6px; }
+  .fq-print .fq-area-idea-row { grid-template-columns: repeat(4, 1fr); justify-items: start; }
+  .fq-print .fq-area-idea-row .fq-svg-area { width: 26mm; }
+  .fq-print .fq-area-two-ways .fq-area-idea-row { grid-template-columns: repeat(2, 1fr); }
+  .fq-print .fq-area-two-ways .fq-svg-area { width: 45mm; }
+  .fq-print .fq-model-tag.kind-area { border: 1px solid #000; background: none; color: #000; }
+}

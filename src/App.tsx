@@ -44,6 +44,7 @@ import { freshSeed, generateQuestions, getExtraPractice, hasGenerator } from './
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { PrintMenu } from './Printables';
 import { PaperFold } from './PaperFold';
+import { SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
 import ParentView from './ParentView';
 import FractionRace from './FractionRace';
 import CodeQuest from './CodeQuest';
@@ -570,6 +571,7 @@ function PlayView({
                 <p><LearningText text={mission.example.explanation} speak /></p>
               </div>
               {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
+              {SHAPE_LESSONS.includes(mission.id) && <SameSizeIdea />}
               <TapModel model={mission.example.model} />
             </div>
           ) : question && (

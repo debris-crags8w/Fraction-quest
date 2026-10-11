@@ -10,6 +10,7 @@ import {
 import { denomColor } from './fun-ui';
 import { BarSvg, MODEL_CONCEPTS, ModelPair, ModelTag } from './models';
 import { canEnterWorksheetAnswer, WorksheetBarCopy } from './WorksheetBarCopy';
+import { AreaShade, AreaSvg } from './AreaModel';
 import { PrintMenu } from './Printables';
 import { FractionEntry, usesFractionEntry } from './FractionEntry';
 import './learning-lab.css';
@@ -292,10 +293,11 @@ export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; 
   const fractionInput = usesFractionEntry(p);
   const promptId = `ws-prompt-${p.id}`;
   const targetBar = p.modelRequired && p.model?.kind === 'bar' ? p.model : null;
-  const [modelReady, setModelReady] = useState(!targetBar);
-  const answerEnabled = canEnterWorksheetAnswer(!!targetBar, modelReady);
+  const gated = !!targetBar || !!(p.area && p.areaTask);
+  const [modelReady, setModelReady] = useState(!gated);
+  const answerEnabled = canEnterWorksheetAnswer(gated, modelReady);
   const modelStatusId = `ws-model-status-${p.id}`;
-  const inputDescription = [promptId, `ws-fb-${p.id}`, ...(targetBar ? [modelStatusId] : [])].join(' ');
+  const inputDescription = [promptId, `ws-fb-${p.id}`, ...(gated ? [modelStatusId] : [])].join(' ');
   const submit = (event: { preventDefault: () => void }) => {
     event.preventDefault();
     if (!draft.trim() || !answerEnabled) return;
@@ -311,6 +313,9 @@ export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; 
         </div>
         {/* For counting and shading, the tappable bar is the picture, so it is not drawn twice. */}
         {p.model && (!p.task || p.task.kind === 'copy') && <Preview m={p.model} />}
+        {p.area && (p.areaTask
+          ? <AreaShade figure={p.area} task={p.areaTask} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />
+          : <div className="fq-ll-preview fq-area-preview"><AreaSvg figure={p.area} /></div>)}
         {targetBar && <WorksheetBarCopy target={targetBar} task={p.task} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />}
         <div className="fq-ll-answer" aria-busy={!answerEnabled}>
           {fractionInput ? (

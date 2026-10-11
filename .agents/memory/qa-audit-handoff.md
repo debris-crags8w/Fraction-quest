@@ -38,3 +38,9 @@ Fixes were first written against commit c9a121c, then re-applied on top of the u
 - BarSvg takes `sizes` (unequal pieces, neutral aria label). Count/shade rows hide the duplicate Preview picture.
 - `paperPrompt(problem, typed?)`: "Tap each part to count it." → "Count each part."; on paper "Type" → "Write".
 - Print cut-off fix: print cards (.fq-print-problems > li) are inline-grid, 2 per row (1 per row under 150mm page width) so they never slice across pages; print svgs max-width 100%, figure/fold widths min(…,100%), header wraps, body min-width 0 in print. Checked Letter, A5, 3.5in pages for every print mode.
+
+## Square (area) model: same size, different shapes
+- area-shapes.ts: AREA_CUTS (fourths squares/strips/triangles/mixed, unequal cuts, quarter-and-triangles like the user's worksheet, eighths triangles), pieceArea, areaTaskDone (any correct coloring counts; `avoid` forbids pieces).
+- AreaModel.tsx: AreaSvg, AreaShade (tap pieces; gates answer), SameSizeIdea (lesson card for SHAPE_LESSONS equal-parts/unit-fractions, in app + printed lesson), ColorTwoWays (printed worksheet box).
+- Worksheet rows: equal-parts w9–w12, unit-fractions w10–w12, equivalent-models w11–w12 use `area`/`areaTask`. Placement skips areaTask rows; review skips area rows.
+- passedLesson(): a lesson completed before its questions were revised (completedAt set) no longer re-locks later lessons or pulls "Continue" back. staleDraft() drops saved answers that can't fit a revised question (digits in a yes/no box, a fraction where a whole number is expected).

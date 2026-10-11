@@ -6,6 +6,7 @@ import { answerMatches, getBuildChecks, getWorksheet, paperPrompt, type Workshee
 import { learningSummary, worksheetCount, type LearningRecord } from './learning';
 import { BarSvg, ChallengeFigureView, LineSvg, MODEL_CONCEPTS, ModelPair, ModelTag, SetSvg } from './models';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
+import { AreaSvg, ColorTwoWays, SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
 import { freshSeed, generateQuestions } from './practice-bank';
 
 export type PrintMode = 'lesson' | 'practice' | 'generated' | 'blank' | 'answers' | 'challenge' | 'key';
@@ -33,6 +34,7 @@ const ANSWER_FORMAT: Record<NonNullable<WorksheetProblem['form']>, string> = {
 
 function ProblemModel({ problem }: { problem: WorksheetProblem }) {
   const m = problem.model;
+  if (problem.area) return <div className="fq-print-model"><span className="fq-model-tag kind-area">Square model</span><AreaSvg figure={problem.area} /></div>;
   if (!m) return null;
   return (
     <div className="fq-print-model">
@@ -113,6 +115,7 @@ function WorksheetPage({ missionId, record, mode }: { missionId: string; record:
         })}
       </ol>
 
+      {!answers && SHAPE_LESSONS.includes(missionId) && <ColorTwoWays />}
       {!answers && (
         <section className="fq-print-draw">
           <h2>Show it both ways</h2>
@@ -198,6 +201,7 @@ function LessonSheet({ mission }: { mission: Mission }) {
         <p className="fq-print-key-example"><MathText text={mission.example.answer} /></p>
         <p><MathText text={mission.example.explanation} /></p>
       </section>
+      {SHAPE_LESSONS.includes(mission.id) && <div className="fq-print-key"><SameSizeIdea /></div>}
       <section className="fq-print-key">
         <h2>Two ways to see a fraction</h2>
         <div className="fq-print-key-grid">

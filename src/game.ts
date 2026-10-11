@@ -747,7 +747,7 @@ export function getNextMission(progress: Progress): Mission | null {
   // Lessons skipped by the placement quiz stay open but aren't suggested (unless the child started one).
   const skipped = (item: Mission) => !!progress.placement && item.unit < progress.placement.unit && !progress.learning?.[item.id];
   const unfinished = MISSIONS.filter((item) =>
-    !hasLearningGate(progress, item.id) && isMissionUnlocked(progress, item.id) && !skipped(item),
+    !passedLesson(progress, item.id) && isMissionUnlocked(progress, item.id) && !skipped(item),
   );
   if (!unfinished.length) return null;
   const activeUnit = unfinished[0].unit;
@@ -778,17 +778,31 @@ export function isCorrectAnswer(question: PracticeQuestion, answer: Answer): boo
   return Number.isInteger(answer) && answer === question.correctChoice;
 }
 
+/** A saved answer left from an older version of the question: a fraction where the question now wants yes/no
+    or a whole number. It is dropped so the child sees an empty box, not an old answer marked wrong. */
+export function staleDraft(problem: WorksheetProblem, draft: string): boolean {
+  const said = draft.trim().toLowerCase();
+  if (!said) return false;
+  if (problem.form === 'word') return /\d/.test(said);
+  return /^\d+$/.test(problem.answer) && !problem.form && said.includes('/');
+}
 export function isMissionUnlocked(progress: Progress, missionId: string): boolean {
   const targetIndex = MISSIONS.findIndex((item) => item.id === missionId);
   if (targetIndex < 0) return false;
   const target = MISSIONS[targetIndex];
   // Units the placement quiz showed are already known don't block the ones after them.
   const placedOut = (item: Mission) => !!progress.placement && item.unit < progress.placement.unit;
-  if (target.unit < 9) return MISSIONS.slice(0, targetIndex).every(item => placedOut(item) || hasLearningGate(progress, item.id));
+  if (target.unit < 9) return MISSIONS.slice(0, targetIndex).every(item => placedOut(item) || passedLesson(progress, item.id));
   // A lesson added later must not re-lock units a learner had already opened (they can still do it any time).
   const alreadyInLaterUnits = MISSIONS.some((item) => item.unit >= 9 && (!!progress.learning?.[item.id] || progress.completedMissionIds.includes(item.id)));
   return MISSIONS.filter(item => item.unit < target.unit && !placedOut(item) && !(alreadyInLaterUnits && LATE_ADDED_LESSONS.has(item.id)))
-    .every(item => hasLearningGate(progress, item.id));
+    .every(item => passedLesson(progress, item.id));
+}
+/** Passed the lesson's gate now, or passed it before its questions were revised (it then shows "a few new steps",
+    but never re-locks the lessons after it). completedAt is only ever set by completeMission. */
+export function passedLesson(progress: Progress, missionId: string): boolean {
+  return hasLearningGate(progress, missionId)
+    || (progress.completedMissionIds.includes(missionId) && typeof progress.learning?.[missionId]?.completedAt === 'number');
 }
 /** Lessons added to units 1–8 after units 9–14 existed. */
 const LATE_ADDED_LESSONS = new Set(['add-tenths-hundredths']);
@@ -887,7 +901,7 @@ export function loadProgress(): Progress {
         const worksheet: LearningRecord['worksheet'] = {};
         for (const problem of getWorksheet(id)) {
           const entry = raw.worksheet?.[problem.id];
-          if (entry && typeof entry.draft === 'string') worksheet[problem.id] = {
+          if (entry && typeof entry.draft === 'string' && !staleDraft(problem, entry.draft)) worksheet[problem.id] = {
             draft: entry.draft.slice(0, 200), checkedValue: typeof entry.checkedValue === 'string' ? entry.checkedValue.slice(0, 200) : undefined,
             attempts: safeCount(entry.attempts), supported: entry.supported !== false,
           };
