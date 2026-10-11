@@ -1445,3 +1445,22 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-code-star { color: #B07800; font-weight: 900; display: flex; align-items: center; gap: 4px; }
 .fq-code-note { color: hsl(var(--muted-foreground)); font-size: 0.9rem; }
 @media (prefers-reduced-motion: reduce) { .fq-race-countdown, .fq-race-lane.stalled { animation: none; } .fq-race-car, .fq-code-bot { transition: none; } }
+
+/* ---------- placement quiz ---------- */
+.fq-place { display: grid; gap: 14px; padding-top: 14px; padding-bottom: 32px; }
+.fq-place > * { min-width: 0; }
+.fq-place-card { display: grid; justify-items: center; gap: 10px; max-width: 560px; width: 100%; margin: 10px auto; padding: 24px 20px; border-radius: 24px; text-align: center; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge), 0 8px 0 var(--fq-edge); }
+.fq-place-card h1 { margin: 0; font-family: var(--app-font-display); font-size: 1.8rem; }
+.fq-place-card h2 { margin: 0; font-family: var(--app-font-display); font-size: 1.3rem; line-height: 1.4; }
+.fq-place-card p { margin: 0; line-height: 1.45; }
+.fq-place-card.question { justify-items: stretch; text-align: left; }
+.fq-place-small { color: hsl(var(--muted-foreground)); font-size: 0.9rem; }
+.fq-place-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.fq-place-progress { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); font-weight: 900; }
+.fq-place-model { max-width: 420px; }
+.fq-place-form { display: flex; flex-wrap: wrap; gap: 10px; }
+.fq-place-form input { flex: 1; min-width: 140px; padding: 12px 14px; border: 2px solid var(--fq-edge); border-radius: 14px; font: inherit; font-size: 1.15rem; font-weight: 800; background: hsl(var(--background)); }
+.fq-place-skip { justify-self: start; }
+.fq-place-note { margin: 0; padding: 8px 12px; border-radius: 12px; color: hsl(var(--muted-foreground)); background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); font-size: 0.9rem; font-weight: 700; }
+.fq-grownups-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 420px) { .fq-grownups-buttons { width: 100%; } .fq-grownups-buttons .fq-button { flex: 1; } }

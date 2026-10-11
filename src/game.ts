@@ -52,6 +52,8 @@ export type Progress = {
   reviewQueue: SkillReview[];
   learning?: Record<string, LearningRecord>;
   challengeBest?: Record<string, number>;
+  /** Placement quiz result: lessons in units before `unit` are open (not marked done). */
+  placement?: { unit: number; at: number };
 };
 
 export type SkillReview = {
@@ -742,8 +744,10 @@ export function getDelayedReviewQuestions(
 }
 
 export function getNextMission(progress: Progress): Mission | null {
+  // Lessons skipped by the placement quiz stay open but aren't suggested (unless the child started one).
+  const skipped = (item: Mission) => !!progress.placement && item.unit < progress.placement.unit && !progress.learning?.[item.id];
   const unfinished = MISSIONS.filter((item) =>
-    !hasLearningGate(progress, item.id) && isMissionUnlocked(progress, item.id),
+    !hasLearningGate(progress, item.id) && isMissionUnlocked(progress, item.id) && !skipped(item),
   );
   if (!unfinished.length) return null;
   const activeUnit = unfinished[0].unit;
@@ -778,10 +782,12 @@ export function isMissionUnlocked(progress: Progress, missionId: string): boolea
   const targetIndex = MISSIONS.findIndex((item) => item.id === missionId);
   if (targetIndex < 0) return false;
   const target = MISSIONS[targetIndex];
-  if (target.unit < 9) return MISSIONS.slice(0, targetIndex).every(item => hasLearningGate(progress, item.id));
+  // Units the placement quiz showed are already known don't block the ones after them.
+  const placedOut = (item: Mission) => !!progress.placement && item.unit < progress.placement.unit;
+  if (target.unit < 9) return MISSIONS.slice(0, targetIndex).every(item => placedOut(item) || hasLearningGate(progress, item.id));
   // A lesson added later must not re-lock units a learner had already opened (they can still do it any time).
   const alreadyInLaterUnits = MISSIONS.some((item) => item.unit >= 9 && (!!progress.learning?.[item.id] || progress.completedMissionIds.includes(item.id)));
-  return MISSIONS.filter(item => item.unit < target.unit && !(alreadyInLaterUnits && LATE_ADDED_LESSONS.has(item.id)))
+  return MISSIONS.filter(item => item.unit < target.unit && !placedOut(item) && !(alreadyInLaterUnits && LATE_ADDED_LESSONS.has(item.id)))
     .every(item => hasLearningGate(progress, item.id));
 }
 /** Lessons added to units 1–8 after units 9–14 existed. */
@@ -836,7 +842,7 @@ export function loadProgress(): Progress {
     if (value.challengeBest && typeof value.challengeBest === 'object') {
       for (const [rawUnit, rawScore] of Object.entries(value.challengeBest)) {
         const unit = Number(rawUnit);
-        if (!Number.isInteger(unit) || unit < 1 || unit > 8 || typeof rawScore !== 'number' || !Number.isFinite(rawScore)) continue;
+        if (!Number.isInteger(unit) || unit < 1 || unit > 14 || typeof rawScore !== 'number' || !Number.isFinite(rawScore)) continue;
         challengeBest[String(unit)] = Math.max(0, Math.min(22, Math.floor(rawScore)));
       }
     }
@@ -908,6 +914,8 @@ export function loadProgress(): Progress {
       reviewQueue,
       ...(Object.keys(learning).length ? { learning } : {}),
       ...(Object.keys(challengeBest).length ? { challengeBest } : {}),
+      ...(value.placement && typeof value.placement === 'object' && Number.isInteger(value.placement.unit) && value.placement.unit >= 2 && value.placement.unit <= 9
+        && typeof value.placement.at === 'number' && Number.isFinite(value.placement.at) ? { placement: { unit: value.placement.unit, at: value.placement.at } } : {}),
     };
   } catch {
     return EMPTY_PROGRESS;

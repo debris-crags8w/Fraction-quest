@@ -4,7 +4,7 @@ import type { Progress } from './game';
 import type { FunState } from './lib/fun';
 import { buildParentReport, type LessonRow } from './parent-report';
 
-const STATUS: Record<LessonRow['status'], string> = { done: 'Done', started: 'In progress', open: 'Open', locked: 'Locked' };
+const STATUS: Record<LessonRow['status'], string> = { done: 'Done', started: 'In progress', skipped: 'Skipped by quiz', open: 'Open', locked: 'Locked' };
 
 /** A light check that a grown-up is here (not security; just keeps young kids on their own screens). */
 function GrownUpGate({ onPass, onBack }: { onPass: () => void; onBack: () => void }) {
@@ -46,7 +46,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
 
   const maxMinutes = Math.max(10, ...report.week.map((day) => day.minutes));
   const printedOn = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-  const activeUnits = report.units.filter((unit) => unit.lessons.some((row) => row.status === 'done' || row.status === 'started'));
+  const activeUnits = report.units.filter((unit) => unit.lessons.some((row) => row.status === 'done' || row.status === 'started' || row.status === 'skipped'));
   const laterUnits = report.units.filter((unit) => !activeUnits.includes(unit));
 
   return (
@@ -91,6 +91,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
               <h2>Next up</h2>
               <p>{report.nextLesson ?? 'Every lesson is done. Replay any one, or try a Unit challenge.'}</p>
               {report.dueReviews.length > 0 && <p className="fq-parent-note">Ready for a quick review: {report.dueReviews.join(', ')}.</p>}
+              {report.placement && <p className="fq-parent-note" data-testid="parent-placement">Level quiz on {report.placement.date}: started at unit {report.placement.unit}. Earlier lessons are open but not counted as done.</p>}
             </section>
             <section className="fq-parent-section" data-testid="parent-practice">
               <h2>Worth practicing</h2>

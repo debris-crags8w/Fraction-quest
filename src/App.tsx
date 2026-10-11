@@ -47,6 +47,8 @@ import { PaperFold } from './PaperFold';
 import ParentView from './ParentView';
 import FractionRace from './FractionRace';
 import CodeQuest from './CodeQuest';
+import PlacementQuiz from './PlacementQuiz';
+import { applyPlacement } from './placement';
 import { AccountGate, useAccount, useAccountSync } from './account';
 import LoginPage from './LoginPage';
 const queryClient = new QueryClient();
@@ -62,6 +64,7 @@ type PaperView = { type: 'paper'; missionId: string };
 type ChallengeView = { type: 'challenge'; unit: number };
 type ParentPage = { type: 'parent' };
 type GameView = { type: 'race' | 'code'; missionId: string };
+type PlacementView = { type: 'placement' };
 // seed 0 = the fixed 12 "Practice more" questions; any other seed = freshly generated questions.
 type ExtraView = { type: 'extra'; missionId: string; seed: number; questionIndex: number; firstTry: number } | { type: 'extra-done'; missionId: string; seed: number; firstTry: number; total: number };
 const FRESH_ROUND = 10;
@@ -238,11 +241,13 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
   );
 }
 
-function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChallenge, onExtra, onParent, onGame }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void }) {
+function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
   const { user } = useAccount();
   const totalStars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
   const nextMission = getNextMission(progress);
-  const firstPendingMission = MISSIONS.find(item => !hasLearningGate(progress, item.id));
+  // Lessons skipped by the level quiz don't count as "pending" for the recommendation message.
+  const firstPendingMission = MISSIONS.find(item => !hasLearningGate(progress, item.id)
+    && !(progress.placement && item.unit < progress.placement.unit && !progress.learning?.[item.id]));
   const evidenceRecommendation = !!nextMission && nextMission.id !== firstPendingMission?.id;
   const [selectedId, setSelectedId] = useState<string | null>(() => nextMission?.id ?? null);
   const units = UNIT_INFO.map((unit, index) => ({
@@ -286,7 +291,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
             <button className="fq-continue-card" onClick={() => onStart(nextMission.id)} data-testid="button-continue-course">
               <span className="fq-continue-icon"><ArrowRight size={21} /></span>
               <span className="fq-continue-copy">
-                <strong>{evidenceRecommendation ? 'Try this one next' : progress.completedMissionIds.length ? 'Keep exploring' : 'Start your first lesson'}</strong>
+                <strong>{evidenceRecommendation ? 'Try this one next' : progress.completedMissionIds.length || progress.placement ? 'Keep exploring' : 'Start your first lesson'}</strong>
                 <span>Lesson {String(MISSIONS.indexOf(nextMission) + 1).padStart(2, '0')} · {nextMission.title}{evidenceRecommendation ? ' · Practice what was tricky' : ''}</span>
               </span>
               <ArrowRight className="fq-continue-arrow" size={20} />
@@ -294,6 +299,15 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
           ) : (
             <div className="fq-course-finished" data-testid="status-course-complete"><Trophy size={24} /> You explored every lesson. Replay any one to practice again.</div>
           )}
+
+          {!progress.completedMissionIds.length && !Object.keys(progress.learning ?? {}).length && !progress.placement && (
+            <button className="fq-continue-card fq-place-entry" onClick={onPlacement} data-testid="button-find-level">
+              <span className="fq-continue-icon"><Compass size={20} /></span>
+              <span className="fq-continue-copy"><strong>Know some fractions already?</strong><span>Take a quick quiz to find your level</span></span>
+              <ArrowRight className="fq-continue-arrow" size={20} />
+            </button>
+          )}
+          {progress.placement && <p className="fq-place-note" data-testid="text-placement-note">Started at unit {progress.placement.unit} after the level quiz. Earlier lessons are still open.</p>}
 
           <QuickReviewEntry progress={progress} onStart={onStartReview} />
 
@@ -372,7 +386,10 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
         <section className="fq-grownups" data-testid="section-grownups">
           <span className="fq-grownups-icon" aria-hidden="true"><BarChart3 size={22} /></span>
           <span><strong>For grown-ups</strong><small>Progress, time this week, and what to practice. Printable.</small></span>
-          <button className="fq-button ghost" onClick={onParent} data-testid="button-open-parent">Open report</button>
+          <span className="fq-grownups-buttons">
+            <button className="fq-button ghost" onClick={onParent} data-testid="button-open-parent">Open report</button>
+            <button className="fq-button ghost" onClick={onPlacement} data-testid="button-open-placement">Level quiz</button>
+          </span>
         </section>
         <aside className="fq-course-note">
           <strong>About this learning path</strong>
@@ -710,7 +727,7 @@ function ReviewCompleteView({ reviewedCount, progress, onMap, onReset }: { revie
 function Game() {
   const account = useAccount();
   const [progress, setProgress] = useState<Progress>(() => account.initialProgress ?? loadProgress());
-  const [view, setView] = useState<View | LabView | RetentionView | PaperView | ChallengeView | ExtraView | ParentPage | GameView>({ type: 'map' });
+  const [view, setView] = useState<View | LabView | RetentionView | PaperView | ChallengeView | ExtraView | ParentPage | GameView | PlacementView>({ type: 'map' });
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [saveError, setSaveError] = useState(false);
@@ -810,7 +827,8 @@ function Game() {
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'placement' && <PlacementQuiz unitTitles={UNIT_TITLES} onExit={returnToMap} onDone={(passed) => { persistProgress(applyPlacement(progress, passed)); returnToMap(); }} />}
       {view.type === 'race' && (
         <FractionRace key={view.missionId} mission={getMission(view.missionId)} best={fun.raceBest?.[view.missionId] ?? null} robotBeaten={fun.robotBeaten?.[view.missionId] ?? 0}
           onExit={returnToMap} onFinish={(seconds, level) => setFun((current) => recordRace(current, view.missionId, seconds, level))}

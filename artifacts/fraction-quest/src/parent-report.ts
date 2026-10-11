@@ -7,7 +7,7 @@ import { today, type FunState } from './lib/fun';
 /* The grown-ups' report: everything here is read from progress the app already saves.
    Nothing in it changes progress or lesson gating. */
 
-export type LessonStatus = 'done' | 'started' | 'open' | 'locked';
+export type LessonStatus = 'done' | 'started' | 'skipped' | 'open' | 'locked';
 export type LessonRow = {
   id: string; number: number; title: string; status: LessonStatus; stars: number;
   worksheet: number; firstTry: number | null; builds: 'On their own' | 'With help' | 'Not yet';
@@ -24,6 +24,7 @@ export type ParentReport = {
   /** Share of finished builds done with no hints or wrong tries. */
   onOwnRate: number | null;
   nextLesson: string | null; toPractice: PracticeTip[]; dueReviews: string[]; strengths: string[]; units: UnitRow[];
+  placement: { unit: number; date: string } | null;
 };
 
 const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) * 100) : null);
@@ -42,7 +43,7 @@ function lessonRow(progress: Progress, index: number): LessonRow {
   const started = record.practiceDone || tried.length > 0 || checks.length > 0;
   return {
     id: mission.id, number: index + 1, title: mission.title,
-    status: done ? 'done' : started ? 'started' : isMissionUnlocked(progress, mission.id) ? 'open' : 'locked',
+    status: done ? 'done' : started ? 'started' : progress.placement && mission.unit < progress.placement.unit ? 'skipped' : isMissionUnlocked(progress, mission.id) ? 'open' : 'locked',
     stars: progress.starsByMission[mission.id] ?? 0,
     worksheet: worksheetCount(record, mission.id),
     firstTry: pct(firstTry, tried.length),
@@ -107,5 +108,6 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
     week, minutesWeek: week.reduce((sum, day) => sum + day.minutes, 0), answeredWeek: week.reduce((sum, day) => sum + day.answered, 0),
     firstTryRate: pct(firstTry, tried), onOwnRate: pct(onOwn, builds),
     nextLesson: next ? `Lesson ${next.number}: ${next.title}` : null, toPractice, dueReviews, strengths, units,
+    placement: progress.placement ? { unit: progress.placement.unit, date: new Date(progress.placement.at).toLocaleDateString() } : null,
   };
 }

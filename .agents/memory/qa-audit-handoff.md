@@ -25,6 +25,8 @@ Fixes were first written against commit c9a121c, then re-applied on top of the u
 
 **Later (799c9fa, ff2a75b):** units 9–14 got Unit challenges and real random-number practice recipes; units 9–14 labeled grade 5. Parent view added (ParentView.tsx + parent-report.ts; minutes/answers per day in fun.activity).
 
-**Still open / to discuss (parent audit):** tenths + hundredths addition lesson; placement quiz; parent password reset; privacy/consent page; circle models; tiny stray dotted part-marker beside the printed example bar; 3-star threshold now counts extra bank questions; challenge walk-throughs not printed; no password reset; COPPA review; grade-4 multiply-fraction-by-whole content; parent view.
+**Games + audit items (8870c40 → latest):** Fraction Race (robot/2-player; wrong answer = stall + back one space so guessing can't win) and a 3-level code challenge (blocks + Python view) on every lesson; new lesson add-tenths-hundredths (unit 8, LATE_ADDED_LESSONS so it doesn't re-lock units 9–14); right answers spread across A/B/C; typed-answer level quiz (progress.placement opens units without marking lessons done); unit 9–14 challenge scores now survive reload.
+
+**Still open / to discuss (parent audit):** parent password reset; privacy/consent page; circle models; tiny stray dotted part-marker beside the printed example bar; 3-star threshold now counts extra bank questions; challenge walk-throughs not printed; no password reset; COPPA review; grade-4 multiply-fraction-by-whole content; parent view.
 
 **How to apply:** regression tests live in game.test.ts under "quality audit fixes". Patch of the original fixes: see git history of this file's commit.

@@ -58,7 +58,7 @@ const PAD = 22;
 export function BarSvg({ n = 0, d, wholes = 1, label }: { n?: number; d?: number; wholes?: number; label?: string }) {
   const unit = W / wholes;
   return (
-    <svg className="fq-svg-bar" viewBox={`0 0 ${W + PAD * 2} 74`} role="img" aria-label={label ?? (d ? `Bar model: ${n}/${d}; each whole is split into ${d} equal parts, and ${n} parts are shaded` : 'Whole bar ready to split into equal parts')}>
+    <svg className="fq-svg-bar" viewBox={`0 0 ${W + PAD * 2} 74`} role="img" aria-label={label ?? (d ? `Bar model: each whole is split into ${d} equal parts, and ${n} ${n === 1 ? 'part is' : 'parts are'} shaded` : 'Whole bar ready to split into equal parts')}>
       {Array.from({ length: wholes }, (_, w) => {
         const x0 = PAD + w * unit + (w ? 3 : 0);
         const width = unit - (wholes > 1 ? 3 : 0);

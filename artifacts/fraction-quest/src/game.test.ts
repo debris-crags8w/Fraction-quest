@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { splitStory } from './fun-ui';
 import { buildParentReport } from './parent-report';
+import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
 import { applyAnswer, newRacer, RACE_GOAL, ROBOT_LEVELS } from './FractionRace';
 import { describe as describeRun, getCodeLevels, matchesTarget, runProgram, solution, toText, usesLoop } from './code-quest';
 import { loadFun, recordCorrect, recordMinute } from './lib/fun';
@@ -1228,5 +1229,47 @@ describe('new tenths + hundredths lesson', () => {
     const pos = [0, 0, 0]; for (const m of MISSIONS) for (const q of m.questions) pos[q.correctChoice]++;
     const total = pos.reduce((a, b) => a + b, 0);
     for (const n of pos) assert.ok(n / total > 0.25 && n / total < 0.42, `positions ${pos}`);
+  });
+});
+
+describe('placement quiz', () => {
+  it('asks 3 answerable typed questions for each of units 1–8', () => {
+    for (let unit = 1; unit <= PLACEMENT_UNITS; unit++) for (const seed of [1, 2, 3]) {
+      const items = placementItems(unit, seed);
+      assert.equal(items.length, 3);
+      for (const item of items) {
+        assert.equal(getMission(item.missionId).unit, unit);
+        assert.ok(answerMatches(item.problem, item.problem.answer), `${item.missionId}: ${item.problem.prompt}`);
+      }
+    }
+  });
+  it('opens the start unit without marking anything done, and a retake never locks things again', () => {
+    const placed = applyPlacement(EMPTY_PROGRESS, 3, 1000); // passed units 1–3 → start at unit 4
+    assert.deepEqual(placed.placement, { unit: 4, at: 1000 });
+    assert.equal(placed.completedMissionIds.length, 0);
+    const firstOfUnit4 = MISSIONS.find((m) => m.unit === 4)!; const secondOfUnit4 = MISSIONS.filter((m) => m.unit === 4)[1];
+    assert.equal(isMissionUnlocked(placed, firstOfUnit4.id), true);
+    assert.equal(isMissionUnlocked(placed, secondOfUnit4.id), false, 'inside the unit, lessons still go in order');
+    assert.equal(isMissionUnlocked(placed, MISSIONS[0].id), true, 'skipped lessons stay open');
+    assert.equal(getNextMission(placed)?.id, firstOfUnit4.id, 'suggests the first lesson of the start unit');
+    assert.equal(hasLearningGate(placed, MISSIONS[0].id), false);
+    assert.equal(applyPlacement(placed, 1).placement?.unit, 4, 'a lower retake keeps the later start');
+    assert.equal(applyPlacement(EMPTY_PROGRESS, 0), EMPTY_PROGRESS, 'starting at unit 1 changes nothing');
+    assert.equal(applyPlacement(EMPTY_PROGRESS, 8).placement?.unit, 9);
+    assert.equal(isMissionUnlocked(applyPlacement(EMPTY_PROGRESS, 8), 'simplify-fractions'), true);
+  });
+  it('survives a reload and shows as "skipped" in the grown-ups report', () => {
+    const placed = applyPlacement(EMPTY_PROGRESS, 2, 5000);
+    saveProgress(placed); // the test window's memory storage
+    assert.deepEqual(loadProgress().placement, { unit: 3, at: 5000 });
+    const report = buildParentReport(placed, { xp: 0, day: '2026-10-11', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: true }, Array.from({ length: 14 }, (_, i) => `U${i + 1}`));
+    assert.equal(report.units[0].lessons[0].status, 'skipped');
+    assert.equal(report.placement?.unit, 3);
+  });
+});
+describe('saved challenge scores', () => {
+  it('keeps unit 9–14 challenge bests after a reload', () => {
+    saveProgress({ ...EMPTY_PROGRESS, challengeBest: { 1: 20, 12: 17, 14: 22 } });
+    assert.deepEqual(loadProgress().challengeBest, { 1: 20, 12: 17, 14: 22 });
   });
 });
