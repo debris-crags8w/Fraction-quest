@@ -1,2 +1,3 @@
 - [Learning design requirements](learning-design-requirements.md) — require model interaction and 10–15 entered answers before unlock; adapt recommendations without bypassing evidence gates.
 - [GitHub push fallback](github-push.md) — when CLI authentication fails, use the connected GitHub App Git Data API and verify the remote tree.
+- [Development database bootstrap](development-database-bootstrap.md) — the development database can be provisioned without app tables; apply the existing schema before DB-backed account tests.
