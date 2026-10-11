@@ -8,6 +8,8 @@ import { LearningVoicePicker } from './LearningText';
 import { FamilyGuide } from './FamilyGuide';
 import { BreakSettings } from './BreakSettings';
 import type { BreakPreferences } from './lib/fun';
+import type { DisplayPreferences } from './lib/fun';
+import FamilyControls from './FamilyControls';
 
 const STATUS: Record<LessonRow['status'], string> = { done: 'Done', started: 'In progress', skipped: 'Skipped by quiz', open: 'Open', locked: 'Locked' };
 
@@ -43,9 +45,33 @@ function GrownUpGate({ onPass, onBack }: { onPass: () => void; onBack: () => voi
 const percent = (value: number | null) => (value === null ? '—' : `${value}%`);
 const MASTERY_LABEL = { mastered: 'Mastered', developing: 'Developing', 'not-yet': 'Not yet assessed' } as const;
 
-export default function ParentView({ progress, fun, unitTitles, childName, onBack, onBreakPreferencesChange }: {
+function DisplaySettings({ preferences, onChange }: { preferences: DisplayPreferences; onChange: (next: DisplayPreferences) => void }) {
+  return (
+    <section className="fq-parent-section fq-display-settings" aria-labelledby="display-settings-title" data-testid="section-display-settings">
+      <h2 id="display-settings-title">Reading and display</h2>
+      <p className="fq-parent-note">These choices apply to the active learner profile and sync with its saved preferences.</p>
+      <label className="fq-display-setting">
+        <span><strong>Text size</strong><small>Increase the whole app’s text for easier reading.</small></span>
+        <select aria-label="Text size" value={preferences.textSize} onChange={(event) => onChange({ ...preferences, textSize: event.target.value === 'large' ? 'large' : 'standard' })}>
+          <option value="standard">Standard</option><option value="large">Larger text</option>
+        </select>
+      </label>
+      <label className="fq-display-setting">
+        <span><strong>High contrast</strong><small>Strengthen text, borders, and focus indicators.</small></span>
+        <input type="checkbox" checked={preferences.highContrast} onChange={(event) => onChange({ ...preferences, highContrast: event.target.checked })} />
+      </label>
+      <label className="fq-display-setting">
+        <span><strong>Reduce motion</strong><small>Use fewer animations and transitions.</small></span>
+        <input type="checkbox" checked={preferences.reducedMotion} onChange={(event) => onChange({ ...preferences, reducedMotion: event.target.checked })} />
+      </label>
+    </section>
+  );
+}
+
+export default function ParentView({ progress, fun, unitTitles, childName, onBack, onBreakPreferencesChange, onDisplayPreferencesChange }: {
   progress: Progress; fun: FunState; unitTitles: string[]; childName: string | null; onBack: () => void;
   onBreakPreferencesChange: (preferences: BreakPreferences) => void;
+  onDisplayPreferencesChange: (preferences: DisplayPreferences) => void;
 }) {
   const [unlocked, setUnlocked] = useState(false);
   const [answerKeyLessonId, setAnswerKeyLessonId] = useState(MISSIONS[0].id);
@@ -110,6 +136,11 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
             quietMode={fun.breakPreferences?.quietMode ?? false}
             onChange={onBreakPreferencesChange}
           />
+          <DisplaySettings
+            preferences={fun.displayPreferences ?? { textSize: 'standard', highContrast: false, reducedMotion: false }}
+            onChange={onDisplayPreferencesChange}
+          />
+          <FamilyControls unitTitles={unitTitles} />
 
           <section className="fq-parent-section fq-parent-code-progress" data-testid="parent-code-progress">
             <h2>Coding levels passed</h2>

@@ -10,4 +10,8 @@ export interface User {
   id: number;
   username: string;
   displayName: string;
+  /** @nullable */
+  parentConsentAt: Date | null;
+  /** @nullable */
+  privacyNoticeVersion: string | null;
 }

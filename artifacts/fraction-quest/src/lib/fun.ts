@@ -3,13 +3,16 @@
 // It stays separate from learning progress so it cannot alter lesson gating.
 
 import { CODE_LEVEL_COUNT } from '../code-quest';
+import { scopedStorageKey } from '../storage-scope';
 
 const FUN_KEY = 'fraction-quest-fun-v1';
 export const DAILY_GOAL = 10;
 
 export type BreakIntervalMinutes = 0 | 10 | 15 | 20;
 export type BreakPreferences = { intervalMinutes: BreakIntervalMinutes; quietMode: boolean };
+export type DisplayPreferences = { textSize: 'standard' | 'large'; highContrast: boolean; reducedMotion: boolean };
 const DEFAULT_BREAK_PREFERENCES: BreakPreferences = { intervalMinutes: 15, quietMode: false };
+const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = { textSize: 'standard', highContrast: false, reducedMotion: false };
 
 export type FunState = {
   xp: number;
@@ -33,6 +36,8 @@ export type FunState = {
   preferredLearningVoiceId?: string;
   /** Optional break reminders; kept with preferences, separate from all lesson evidence. */
   breakPreferences?: BreakPreferences;
+  /** Adult-configured display and motion preferences, synced with this learner profile. */
+  displayPreferences?: DisplayPreferences;
 };
 export type DayActivity = { minutes: number; answered: number };
 const KEEP_DAYS = 35;
@@ -45,6 +50,15 @@ function cleanBreakPreferences(value: unknown): BreakPreferences {
     : DEFAULT_BREAK_PREFERENCES.intervalMinutes;
   return { intervalMinutes, quietMode: typeof preferences.quietMode === 'boolean' ? preferences.quietMode : DEFAULT_BREAK_PREFERENCES.quietMode };
 }
+function cleanDisplayPreferences(value: unknown): DisplayPreferences {
+  if (!value || typeof value !== 'object') return { ...DEFAULT_DISPLAY_PREFERENCES };
+  const preferences = value as Partial<DisplayPreferences>;
+  return {
+    textSize: preferences.textSize === 'large' ? 'large' : 'standard',
+    highContrast: preferences.highContrast === true,
+    reducedMotion: preferences.reducedMotion === true,
+  };
+}
 
 export const today = (now = new Date()) => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
@@ -56,6 +70,7 @@ const fresh = (): FunState => ({
   lastActiveDay: null,
   sound: true,
   breakPreferences: { ...DEFAULT_BREAK_PREFERENCES },
+  displayPreferences: { ...DEFAULT_DISPLAY_PREFERENCES },
 });
 
 /** Keep only well-formed recent days, so a bad or huge saved value can't break the report. */
@@ -128,13 +143,14 @@ export function recordPartFinder(state: FunState, score: number): FunState {
 
 export function loadFun(): FunState {
   try {
-    const raw = window.localStorage.getItem(FUN_KEY);
+    const raw = window.localStorage.getItem(scopedStorageKey(FUN_KEY));
     const parsed = raw ? (JSON.parse(raw) as Partial<FunState>) : {};
     const saved = {
       ...fresh(),
       ...parsed,
       preferredLearningVoiceId: cleanLearningVoicePreference(parsed.preferredLearningVoiceId),
       breakPreferences: cleanBreakPreferences(parsed.breakPreferences),
+      displayPreferences: cleanDisplayPreferences(parsed.displayPreferences),
       activity: cleanActivity(parsed.activity),
       ...cleanGames(parsed),
     };
@@ -146,7 +162,7 @@ export function loadFun(): FunState {
 
 function saveFun(state: FunState): FunState {
   try {
-    window.localStorage.setItem(FUN_KEY, JSON.stringify(state));
+    window.localStorage.setItem(scopedStorageKey(FUN_KEY), JSON.stringify(state));
   } catch {
     // Storage blocked: fun state just lasts for this tab.
   }
@@ -179,6 +195,10 @@ export function setSound(state: FunState, sound: boolean): FunState {
 /** Save adult-configured reminders without touching lesson, reward, or game progress. */
 export function setBreakPreferences(state: FunState, preferences: BreakPreferences): FunState {
   return saveFun({ ...state, breakPreferences: cleanBreakPreferences(preferences) });
+}
+
+export function setDisplayPreferences(state: FunState, preferences: DisplayPreferences): FunState {
+  return saveFun({ ...state, displayPreferences: cleanDisplayPreferences(preferences) });
 }
 
 /** Save a local read-aloud voice preference; signed-in app state also syncs through the account snapshot. */
@@ -233,6 +253,7 @@ export function replaceFun(saved: Partial<FunState>): FunState {
     ...saved,
     preferredLearningVoiceId: cleanLearningVoicePreference(saved.preferredLearningVoiceId),
     breakPreferences: cleanBreakPreferences(saved.breakPreferences),
+    displayPreferences: cleanDisplayPreferences(saved.displayPreferences),
     sound: loadFun().sound,
     activity: cleanActivity(saved.activity),
     ...cleanGames(saved),

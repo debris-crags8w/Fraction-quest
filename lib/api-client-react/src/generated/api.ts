@@ -20,12 +20,24 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  Classroom,
+  ClassroomInput,
+  ClassroomJoinInput,
+  ClassroomLearner,
+  ClassroomMembership,
+  ConsentInput,
   ErrorResponse,
   HealthStatus,
+  LearnerProfile,
+  LearnerProfileInput,
+  LearnerProfileUpdate,
   LoginRequest,
+  PrivacyExport,
   ProgressPayload,
   SavedProgress,
   SignupRequest,
+  UnitAssignment,
+  UnitAssignmentInput,
   User
 } from './api.schemas';
 
@@ -461,6 +473,1160 @@ export function useGetCurrentUser<TData = Awaited<ReturnType<typeof getCurrentUs
 
 
 
+
+export const getAcceptPrivacyConsentUrl = () => {
+
+
+
+
+  return `/api/privacy/consent`
+}
+
+/**
+ * @summary Record adult caregiver consent
+ */
+export const acceptPrivacyConsent = async (consentInput: ConsentInput, options?: Parameters<typeof customFetch>[1]): Promise<User> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<User>(getAcceptPrivacyConsentUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(consentInput)
+  }
+);}
+
+
+
+
+
+export const getAcceptPrivacyConsentMutationKey = () => ['acceptPrivacyConsent'] as const;
+
+export const getAcceptPrivacyConsentMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptPrivacyConsent>>, TError,AcceptPrivacyConsentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptPrivacyConsent>>, TError,AcceptPrivacyConsentMutationVariables, TContext> => {
+
+const mutationKey = getAcceptPrivacyConsentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptPrivacyConsent>>, AcceptPrivacyConsentMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  acceptPrivacyConsent(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptPrivacyConsentMutationResult = NonNullable<Awaited<ReturnType<typeof acceptPrivacyConsent>>>
+    export type AcceptPrivacyConsentMutationBody = BodyType<ConsentInput>
+    export type AcceptPrivacyConsentMutationError = ErrorType<ErrorResponse>
+    export type AcceptPrivacyConsentMutationVariables = {data: BodyType<ConsentInput>}
+
+    /**
+ * @summary Record adult caregiver consent
+ */
+export const useAcceptPrivacyConsent = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptPrivacyConsent>>, TError,AcceptPrivacyConsentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof acceptPrivacyConsent>>,
+        TError,
+        AcceptPrivacyConsentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAcceptPrivacyConsentMutationOptions(options));
+    }
+
+export const getExportPrivacyDataUrl = () => {
+
+
+
+
+  return `/api/privacy/export`
+}
+
+/**
+ * @summary Export the signed-in account's saved learning data
+ */
+export const exportPrivacyData = async ( options?: Parameters<typeof customFetch>[1]): Promise<PrivacyExport> => {
+
+  return customFetch<PrivacyExport>(getExportPrivacyDataUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getExportPrivacyDataQueryKey = () => {
+    return [
+    `/api/privacy/export`
+    ] as const;
+    }
+
+
+export const getExportPrivacyDataQueryOptions = <TData = Awaited<ReturnType<typeof exportPrivacyData>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportPrivacyData>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExportPrivacyDataQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportPrivacyData>>> = ({ signal }) => exportPrivacyData({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof exportPrivacyData>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ExportPrivacyDataQueryResult = NonNullable<Awaited<ReturnType<typeof exportPrivacyData>>>
+export type ExportPrivacyDataQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Export the signed-in account's saved learning data
+ */
+
+export function useExportPrivacyData<TData = Awaited<ReturnType<typeof exportPrivacyData>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportPrivacyData>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getExportPrivacyDataQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListLearnerProfilesUrl = () => {
+
+
+
+
+  return `/api/family/profiles`
+}
+
+/**
+ * @summary List learner profiles owned by the signed-in account
+ */
+export const listLearnerProfiles = async ( options?: Parameters<typeof customFetch>[1]): Promise<LearnerProfile[]> => {
+
+  return customFetch<LearnerProfile[]>(getListLearnerProfilesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListLearnerProfilesQueryKey = () => {
+    return [
+    `/api/family/profiles`
+    ] as const;
+    }
+
+
+export const getListLearnerProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listLearnerProfiles>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLearnerProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListLearnerProfilesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLearnerProfiles>>> = ({ signal }) => listLearnerProfiles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listLearnerProfiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListLearnerProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof listLearnerProfiles>>>
+export type ListLearnerProfilesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List learner profiles owned by the signed-in account
+ */
+
+export function useListLearnerProfiles<TData = Awaited<ReturnType<typeof listLearnerProfiles>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLearnerProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListLearnerProfilesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateLearnerProfileUrl = () => {
+
+
+
+
+  return `/api/family/profiles`
+}
+
+/**
+ * @summary Add a learner profile
+ */
+export const createLearnerProfile = async (learnerProfileInput: LearnerProfileInput, options?: Parameters<typeof customFetch>[1]): Promise<LearnerProfile> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<LearnerProfile>(getCreateLearnerProfileUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(learnerProfileInput)
+  }
+);}
+
+
+
+
+
+export const getCreateLearnerProfileMutationKey = () => ['createLearnerProfile'] as const;
+
+export const getCreateLearnerProfileMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLearnerProfile>>, TError,CreateLearnerProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLearnerProfile>>, TError,CreateLearnerProfileMutationVariables, TContext> => {
+
+const mutationKey = getCreateLearnerProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLearnerProfile>>, CreateLearnerProfileMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createLearnerProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLearnerProfileMutationResult = NonNullable<Awaited<ReturnType<typeof createLearnerProfile>>>
+    export type CreateLearnerProfileMutationBody = BodyType<LearnerProfileInput>
+    export type CreateLearnerProfileMutationError = ErrorType<ErrorResponse>
+    export type CreateLearnerProfileMutationVariables = {data: BodyType<LearnerProfileInput>}
+
+    /**
+ * @summary Add a learner profile
+ */
+export const useCreateLearnerProfile = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLearnerProfile>>, TError,CreateLearnerProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLearnerProfile>>,
+        TError,
+        CreateLearnerProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateLearnerProfileMutationOptions(options));
+    }
+
+export const getUpdateLearnerProfileUrl = (profileId: number,) => {
+
+
+
+
+  return `/api/family/profiles/${profileId}`
+}
+
+/**
+ * @summary Change a learner nickname with adult approval
+ */
+export const updateLearnerProfile = async (profileId: number,
+    learnerProfileUpdate: LearnerProfileUpdate, options?: Parameters<typeof customFetch>[1]): Promise<LearnerProfile> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<LearnerProfile>(getUpdateLearnerProfileUrl(profileId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(learnerProfileUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateLearnerProfileMutationKey = () => ['updateLearnerProfile'] as const;
+
+export const getUpdateLearnerProfileMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLearnerProfile>>, TError,UpdateLearnerProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateLearnerProfile>>, TError,UpdateLearnerProfileMutationVariables, TContext> => {
+
+const mutationKey = getUpdateLearnerProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateLearnerProfile>>, UpdateLearnerProfileMutationVariables> = (props) => {
+          const {profileId,data} = props ?? {};
+
+          return  updateLearnerProfile(profileId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateLearnerProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateLearnerProfile>>>
+    export type UpdateLearnerProfileMutationBody = BodyType<LearnerProfileUpdate>
+    export type UpdateLearnerProfileMutationError = ErrorType<ErrorResponse>
+    export type UpdateLearnerProfileMutationVariables = {profileId: number;data: BodyType<LearnerProfileUpdate>}
+
+    /**
+ * @summary Change a learner nickname with adult approval
+ */
+export const useUpdateLearnerProfile = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLearnerProfile>>, TError,UpdateLearnerProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateLearnerProfile>>,
+        TError,
+        UpdateLearnerProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateLearnerProfileMutationOptions(options));
+    }
+
+export const getDeleteLearnerProfileUrl = (profileId: number,) => {
+
+
+
+
+  return `/api/family/profiles/${profileId}`
+}
+
+/**
+ * @summary Delete a learner profile and its saved data
+ */
+export const deleteLearnerProfile = async (profileId: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteLearnerProfileUrl(profileId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteLearnerProfileMutationKey = () => ['deleteLearnerProfile'] as const;
+
+export const getDeleteLearnerProfileMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLearnerProfile>>, TError,DeleteLearnerProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteLearnerProfile>>, TError,DeleteLearnerProfileMutationVariables, TContext> => {
+
+const mutationKey = getDeleteLearnerProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteLearnerProfile>>, DeleteLearnerProfileMutationVariables> = (props) => {
+          const {profileId} = props ?? {};
+
+          return  deleteLearnerProfile(profileId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteLearnerProfileMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLearnerProfile>>>
+
+    export type DeleteLearnerProfileMutationError = ErrorType<ErrorResponse>
+    export type DeleteLearnerProfileMutationVariables = {profileId: number}
+
+    /**
+ * @summary Delete a learner profile and its saved data
+ */
+export const useDeleteLearnerProfile = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLearnerProfile>>, TError,DeleteLearnerProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteLearnerProfile>>,
+        TError,
+        DeleteLearnerProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteLearnerProfileMutationOptions(options));
+    }
+
+export const getGetLearnerProgressUrl = (profileId: number,) => {
+
+
+
+
+  return `/api/family/profiles/${profileId}/progress`
+}
+
+/**
+ * @summary Load saved learning data for one profile
+ */
+export const getLearnerProgress = async (profileId: number, options?: Parameters<typeof customFetch>[1]): Promise<SavedProgress> => {
+
+  return customFetch<SavedProgress>(getGetLearnerProgressUrl(profileId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLearnerProgressQueryKey = (profileId: number,) => {
+    return [
+    `/api/family/profiles/${profileId}/progress`
+    ] as const;
+    }
+
+
+export const getGetLearnerProgressQueryOptions = <TData = Awaited<ReturnType<typeof getLearnerProgress>>, TError = ErrorType<ErrorResponse>>(profileId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLearnerProgress>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLearnerProgressQueryKey(profileId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLearnerProgress>>> = ({ signal }) => getLearnerProgress(profileId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: profileId !== null && profileId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLearnerProgress>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLearnerProgressQueryResult = NonNullable<Awaited<ReturnType<typeof getLearnerProgress>>>
+export type GetLearnerProgressQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Load saved learning data for one profile
+ */
+
+export function useGetLearnerProgress<TData = Awaited<ReturnType<typeof getLearnerProgress>>, TError = ErrorType<ErrorResponse>>(
+ profileId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLearnerProgress>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLearnerProgressQueryOptions(profileId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSaveLearnerProgressUrl = (profileId: number,) => {
+
+
+
+
+  return `/api/family/profiles/${profileId}/progress`
+}
+
+/**
+ * @summary Save learning data for one profile
+ */
+export const saveLearnerProgress = async (profileId: number,
+    progressPayload: ProgressPayload, options?: Parameters<typeof customFetch>[1]): Promise<SavedProgress> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<SavedProgress>(getSaveLearnerProgressUrl(profileId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(progressPayload)
+  }
+);}
+
+
+
+
+
+export const getSaveLearnerProgressMutationKey = () => ['saveLearnerProgress'] as const;
+
+export const getSaveLearnerProgressMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveLearnerProgress>>, TError,SaveLearnerProgressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveLearnerProgress>>, TError,SaveLearnerProgressMutationVariables, TContext> => {
+
+const mutationKey = getSaveLearnerProgressMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveLearnerProgress>>, SaveLearnerProgressMutationVariables> = (props) => {
+          const {profileId,data} = props ?? {};
+
+          return  saveLearnerProgress(profileId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveLearnerProgressMutationResult = NonNullable<Awaited<ReturnType<typeof saveLearnerProgress>>>
+    export type SaveLearnerProgressMutationBody = BodyType<ProgressPayload>
+    export type SaveLearnerProgressMutationError = ErrorType<ErrorResponse>
+    export type SaveLearnerProgressMutationVariables = {profileId: number;data: BodyType<ProgressPayload>}
+
+    /**
+ * @summary Save learning data for one profile
+ */
+export const useSaveLearnerProgress = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveLearnerProgress>>, TError,SaveLearnerProgressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveLearnerProgress>>,
+        TError,
+        SaveLearnerProgressMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSaveLearnerProgressMutationOptions(options));
+    }
+
+export const getDeleteLearnerProgressUrl = (profileId: number,) => {
+
+
+
+
+  return `/api/family/profiles/${profileId}/progress`
+}
+
+/**
+ * @summary Delete only one learner's saved progress and preferences
+ */
+export const deleteLearnerProgress = async (profileId: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteLearnerProgressUrl(profileId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteLearnerProgressMutationKey = () => ['deleteLearnerProgress'] as const;
+
+export const getDeleteLearnerProgressMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLearnerProgress>>, TError,DeleteLearnerProgressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteLearnerProgress>>, TError,DeleteLearnerProgressMutationVariables, TContext> => {
+
+const mutationKey = getDeleteLearnerProgressMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteLearnerProgress>>, DeleteLearnerProgressMutationVariables> = (props) => {
+          const {profileId} = props ?? {};
+
+          return  deleteLearnerProgress(profileId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteLearnerProgressMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLearnerProgress>>>
+
+    export type DeleteLearnerProgressMutationError = ErrorType<ErrorResponse>
+    export type DeleteLearnerProgressMutationVariables = {profileId: number}
+
+    /**
+ * @summary Delete only one learner's saved progress and preferences
+ */
+export const useDeleteLearnerProgress = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLearnerProgress>>, TError,DeleteLearnerProgressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteLearnerProgress>>,
+        TError,
+        DeleteLearnerProgressMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteLearnerProgressMutationOptions(options));
+    }
+
+export const getListClassroomsUrl = () => {
+
+
+
+
+  return `/api/classrooms`
+}
+
+/**
+ * @summary List classrooms owned by the signed-in educator
+ */
+export const listClassrooms = async ( options?: Parameters<typeof customFetch>[1]): Promise<Classroom[]> => {
+
+  return customFetch<Classroom[]>(getListClassroomsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListClassroomsQueryKey = () => {
+    return [
+    `/api/classrooms`
+    ] as const;
+    }
+
+
+export const getListClassroomsQueryOptions = <TData = Awaited<ReturnType<typeof listClassrooms>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClassrooms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListClassroomsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listClassrooms>>> = ({ signal }) => listClassrooms({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listClassrooms>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListClassroomsQueryResult = NonNullable<Awaited<ReturnType<typeof listClassrooms>>>
+export type ListClassroomsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List classrooms owned by the signed-in educator
+ */
+
+export function useListClassrooms<TData = Awaited<ReturnType<typeof listClassrooms>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClassrooms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListClassroomsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateClassroomUrl = () => {
+
+
+
+
+  return `/api/classrooms`
+}
+
+/**
+ * @summary Create a class with a shareable code
+ */
+export const createClassroom = async (classroomInput: ClassroomInput, options?: Parameters<typeof customFetch>[1]): Promise<Classroom> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Classroom>(getCreateClassroomUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(classroomInput)
+  }
+);}
+
+
+
+
+
+export const getCreateClassroomMutationKey = () => ['createClassroom'] as const;
+
+export const getCreateClassroomMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createClassroom>>, TError,CreateClassroomMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createClassroom>>, TError,CreateClassroomMutationVariables, TContext> => {
+
+const mutationKey = getCreateClassroomMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createClassroom>>, CreateClassroomMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createClassroom(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateClassroomMutationResult = NonNullable<Awaited<ReturnType<typeof createClassroom>>>
+    export type CreateClassroomMutationBody = BodyType<ClassroomInput>
+    export type CreateClassroomMutationError = ErrorType<ErrorResponse>
+    export type CreateClassroomMutationVariables = {data: BodyType<ClassroomInput>}
+
+    /**
+ * @summary Create a class with a shareable code
+ */
+export const useCreateClassroom = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createClassroom>>, TError,CreateClassroomMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createClassroom>>,
+        TError,
+        CreateClassroomMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateClassroomMutationOptions(options));
+    }
+
+export const getJoinClassroomUrl = () => {
+
+
+
+
+  return `/api/classrooms/join`
+}
+
+/**
+ * @summary Link one learner profile to a classroom using its code
+ */
+export const joinClassroom = async (classroomJoinInput: ClassroomJoinInput, options?: Parameters<typeof customFetch>[1]): Promise<ClassroomMembership> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ClassroomMembership>(getJoinClassroomUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(classroomJoinInput)
+  }
+);}
+
+
+
+
+
+export const getJoinClassroomMutationKey = () => ['joinClassroom'] as const;
+
+export const getJoinClassroomMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof joinClassroom>>, TError,JoinClassroomMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof joinClassroom>>, TError,JoinClassroomMutationVariables, TContext> => {
+
+const mutationKey = getJoinClassroomMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof joinClassroom>>, JoinClassroomMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  joinClassroom(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type JoinClassroomMutationResult = NonNullable<Awaited<ReturnType<typeof joinClassroom>>>
+    export type JoinClassroomMutationBody = BodyType<ClassroomJoinInput>
+    export type JoinClassroomMutationError = ErrorType<ErrorResponse>
+    export type JoinClassroomMutationVariables = {data: BodyType<ClassroomJoinInput>}
+
+    /**
+ * @summary Link one learner profile to a classroom using its code
+ */
+export const useJoinClassroom = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof joinClassroom>>, TError,JoinClassroomMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof joinClassroom>>,
+        TError,
+        JoinClassroomMutationVariables,
+        TContext
+      > => {
+      return useMutation(getJoinClassroomMutationOptions(options));
+    }
+
+export const getGetClassroomRosterUrl = (classroomId: number,) => {
+
+
+
+
+  return `/api/classrooms/${classroomId}/roster`
+}
+
+/**
+ * @summary Review progress using anonymous learner codes
+ */
+export const getClassroomRoster = async (classroomId: number, options?: Parameters<typeof customFetch>[1]): Promise<ClassroomLearner[]> => {
+
+  return customFetch<ClassroomLearner[]>(getGetClassroomRosterUrl(classroomId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetClassroomRosterQueryKey = (classroomId: number,) => {
+    return [
+    `/api/classrooms/${classroomId}/roster`
+    ] as const;
+    }
+
+
+export const getGetClassroomRosterQueryOptions = <TData = Awaited<ReturnType<typeof getClassroomRoster>>, TError = ErrorType<ErrorResponse>>(classroomId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClassroomRoster>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetClassroomRosterQueryKey(classroomId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getClassroomRoster>>> = ({ signal }) => getClassroomRoster(classroomId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: classroomId !== null && classroomId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getClassroomRoster>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetClassroomRosterQueryResult = NonNullable<Awaited<ReturnType<typeof getClassroomRoster>>>
+export type GetClassroomRosterQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Review progress using anonymous learner codes
+ */
+
+export function useGetClassroomRoster<TData = Awaited<ReturnType<typeof getClassroomRoster>>, TError = ErrorType<ErrorResponse>>(
+ classroomId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClassroomRoster>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetClassroomRosterQueryOptions(classroomId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAssignClassroomUnitsUrl = (classroomId: number,
+    memberCode: string,) => {
+
+
+
+
+  return `/api/classrooms/${classroomId}/learners/${memberCode}/assignment`
+}
+
+/**
+ * @summary Assign units to one anonymous learner
+ */
+export const assignClassroomUnits = async (classroomId: number,
+    memberCode: string,
+    unitAssignmentInput: UnitAssignmentInput, options?: Parameters<typeof customFetch>[1]): Promise<UnitAssignment> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<UnitAssignment>(getAssignClassroomUnitsUrl(classroomId,memberCode),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(unitAssignmentInput)
+  }
+);}
+
+
+
+
+
+export const getAssignClassroomUnitsMutationKey = () => ['assignClassroomUnits'] as const;
+
+export const getAssignClassroomUnitsMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignClassroomUnits>>, TError,AssignClassroomUnitsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof assignClassroomUnits>>, TError,AssignClassroomUnitsMutationVariables, TContext> => {
+
+const mutationKey = getAssignClassroomUnitsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assignClassroomUnits>>, AssignClassroomUnitsMutationVariables> = (props) => {
+          const {classroomId,memberCode,data} = props ?? {};
+
+          return  assignClassroomUnits(classroomId,memberCode,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssignClassroomUnitsMutationResult = NonNullable<Awaited<ReturnType<typeof assignClassroomUnits>>>
+    export type AssignClassroomUnitsMutationBody = BodyType<UnitAssignmentInput>
+    export type AssignClassroomUnitsMutationError = ErrorType<ErrorResponse>
+    export type AssignClassroomUnitsMutationVariables = {classroomId: number;memberCode: string;data: BodyType<UnitAssignmentInput>}
+
+    /**
+ * @summary Assign units to one anonymous learner
+ */
+export const useAssignClassroomUnits = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignClassroomUnits>>, TError,AssignClassroomUnitsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof assignClassroomUnits>>,
+        TError,
+        AssignClassroomUnitsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssignClassroomUnitsMutationOptions(options));
+    }
 
 export const getGetProgressUrl = () => {
 

@@ -10,6 +10,7 @@ const SCRYPT = { N: 16384, r: 8, p: 1 };
 const KEY_LENGTH = 64;
 
 export const SESSION_COOKIE = "fq_session";
+export const PRIVACY_NOTICE_VERSION = "privacy-v1";
 const SESSION_DAYS = 30;
 const SESSION_MS = SESSION_DAYS * 24 * 60 * 60 * 1000;
 
@@ -42,7 +43,13 @@ export function normalizeUsername(username: string): string {
 }
 
 export function publicUser(user: User) {
-  return { id: user.id, username: user.username, displayName: user.displayName };
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    parentConsentAt: user.parentConsentAt?.toISOString() ?? null,
+    privacyNoticeVersion: user.privacyNoticeVersion ?? null,
+  };
 }
 
 /** Start a session for the user and set the httpOnly session cookie. */

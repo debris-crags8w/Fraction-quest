@@ -23,4 +23,5 @@ export interface SignupRequest {
      * @maxLength 72
      */
   password: string;
+  parentConsent: boolean;
 }

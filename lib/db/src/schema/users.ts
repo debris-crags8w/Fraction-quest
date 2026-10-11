@@ -8,6 +8,8 @@ export const usersTable = pgTable("users", {
   username: text("username").notNull().unique(),
   displayName: text("display_name").notNull(),
   passwordHash: text("password_hash").notNull(),
+  parentConsentAt: timestamp("parent_consent_at", { withTimezone: true }),
+  privacyNoticeVersion: text("privacy_notice_version"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

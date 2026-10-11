@@ -36,13 +36,16 @@ export const signupBodyPasswordMax = 72;
 export const SignupBody = zod.object({
   "username": zod.string().min(signupBodyUsernameMin).max(signupBodyUsernameMax).regex(signupBodyUsernameRegExp),
   "displayName": zod.string().min(1).max(signupBodyDisplayNameMax),
-  "password": zod.string().min(signupBodyPasswordMin).max(signupBodyPasswordMax)
+  "password": zod.string().min(signupBodyPasswordMin).max(signupBodyPasswordMax),
+  "parentConsent": zod.boolean()
 })
 
 export const SignupResponse = zod.object({
   "id": zod.number().int(),
   "username": zod.string(),
-  "displayName": zod.string()
+  "displayName": zod.string(),
+  "parentConsentAt": zod.coerce.date().nullable(),
+  "privacyNoticeVersion": zod.string().nullable()
 })
 
 
@@ -63,7 +66,9 @@ export const LoginBody = zod.object({
 export const LoginResponse = zod.object({
   "id": zod.number().int(),
   "username": zod.string(),
-  "displayName": zod.string()
+  "displayName": zod.string(),
+  "parentConsentAt": zod.coerce.date().nullable(),
+  "privacyNoticeVersion": zod.string().nullable()
 })
 
 
@@ -79,7 +84,260 @@ export const LogoutResponse = zod.void()
 export const GetCurrentUserResponse = zod.object({
   "id": zod.number().int(),
   "username": zod.string(),
-  "displayName": zod.string()
+  "displayName": zod.string(),
+  "parentConsentAt": zod.coerce.date().nullable(),
+  "privacyNoticeVersion": zod.string().nullable()
+})
+
+
+/**
+ * @summary Record adult caregiver consent
+ */
+export const AcceptPrivacyConsentBody = zod.object({
+  "accepted": zod.boolean()
+})
+
+export const AcceptPrivacyConsentResponse = zod.object({
+  "id": zod.number().int(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "parentConsentAt": zod.coerce.date().nullable(),
+  "privacyNoticeVersion": zod.string().nullable()
+})
+
+
+/**
+ * @summary Export the signed-in account's saved learning data
+ */
+export const ExportPrivacyDataResponse = zod.object({
+  "exportedAt": zod.coerce.date(),
+  "account": zod.object({
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "parentConsentAt": zod.coerce.date().nullable(),
+  "privacyNoticeVersion": zod.string().nullable()
+}),
+  "learners": zod.array(zod.object({
+  "id": zod.number().int(),
+  "displayName": zod.string(),
+  "classroomLabel": zod.string().nullable(),
+  "memberCode": zod.string().nullable(),
+  "assignedUnitIds": zod.array(zod.string()),
+  "progress": zod.record(zod.string(), zod.unknown()),
+  "fun": zod.record(zod.string(), zod.unknown()),
+  "updatedAt": zod.coerce.date()
+})),
+  "classrooms": zod.array(zod.object({
+  "id": zod.number().int(),
+  "label": zod.string(),
+  "joinCode": zod.string(),
+  "learnerCount": zod.number().int(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary List learner profiles owned by the signed-in account
+ */
+export const ListLearnerProfilesResponseItem = zod.object({
+  "id": zod.number().int(),
+  "displayName": zod.string(),
+  "classroomId": zod.number().int().nullable(),
+  "memberCode": zod.string().nullable(),
+  "assignedUnitIds": zod.array(zod.string())
+})
+export const ListLearnerProfilesResponse = zod.array(ListLearnerProfilesResponseItem)
+
+
+/**
+ * @summary Add a learner profile
+ */
+export const createLearnerProfileBodyDisplayNameMax = 30;
+
+
+
+export const CreateLearnerProfileBody = zod.object({
+  "displayName": zod.string().min(1).max(createLearnerProfileBodyDisplayNameMax)
+})
+
+export const CreateLearnerProfileResponse = zod.object({
+  "id": zod.number().int(),
+  "displayName": zod.string(),
+  "classroomId": zod.number().int().nullable(),
+  "memberCode": zod.string().nullable(),
+  "assignedUnitIds": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Change a learner nickname with adult approval
+ */
+export const UpdateLearnerProfileParams = zod.object({
+  "profileId": zod.coerce.number().int()
+})
+
+export const updateLearnerProfileBodyDisplayNameMax = 30;
+
+
+
+export const UpdateLearnerProfileBody = zod.object({
+  "displayName": zod.string().min(1).max(updateLearnerProfileBodyDisplayNameMax)
+})
+
+export const UpdateLearnerProfileResponse = zod.object({
+  "id": zod.number().int(),
+  "displayName": zod.string(),
+  "classroomId": zod.number().int().nullable(),
+  "memberCode": zod.string().nullable(),
+  "assignedUnitIds": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Delete a learner profile and its saved data
+ */
+export const DeleteLearnerProfileParams = zod.object({
+  "profileId": zod.coerce.number().int()
+})
+
+export const DeleteLearnerProfileResponse = zod.void()
+
+
+/**
+ * @summary Load saved learning data for one profile
+ */
+export const GetLearnerProgressParams = zod.object({
+  "profileId": zod.coerce.number().int()
+})
+
+export const GetLearnerProgressResponse = zod.object({
+  "progress": zod.record(zod.string(), zod.unknown()).nullable(),
+  "fun": zod.record(zod.string(), zod.unknown()).nullable(),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Save learning data for one profile
+ */
+export const SaveLearnerProgressParams = zod.object({
+  "profileId": zod.coerce.number().int()
+})
+
+export const SaveLearnerProgressBody = zod.object({
+  "progress": zod.record(zod.string(), zod.unknown()),
+  "fun": zod.record(zod.string(), zod.unknown())
+})
+
+export const SaveLearnerProgressResponse = zod.object({
+  "progress": zod.record(zod.string(), zod.unknown()).nullable(),
+  "fun": zod.record(zod.string(), zod.unknown()).nullable(),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Delete only one learner's saved progress and preferences
+ */
+export const DeleteLearnerProgressParams = zod.object({
+  "profileId": zod.coerce.number().int()
+})
+
+export const DeleteLearnerProgressResponse = zod.void()
+
+
+/**
+ * @summary List classrooms owned by the signed-in educator
+ */
+export const ListClassroomsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "label": zod.string(),
+  "joinCode": zod.string(),
+  "learnerCount": zod.number().int(),
+  "createdAt": zod.coerce.date()
+})
+export const ListClassroomsResponse = zod.array(ListClassroomsResponseItem)
+
+
+/**
+ * @summary Create a class with a shareable code
+ */
+export const createClassroomBodyLabelMax = 60;
+
+
+
+export const CreateClassroomBody = zod.object({
+  "label": zod.string().min(1).max(createClassroomBodyLabelMax)
+})
+
+export const CreateClassroomResponse = zod.object({
+  "id": zod.number().int(),
+  "label": zod.string(),
+  "joinCode": zod.string(),
+  "learnerCount": zod.number().int(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Link one learner profile to a classroom using its code
+ */
+export const joinClassroomBodyJoinCodeMin = 6;
+export const joinClassroomBodyJoinCodeMax = 16;
+
+
+
+export const JoinClassroomBody = zod.object({
+  "profileId": zod.number().int(),
+  "joinCode": zod.string().min(joinClassroomBodyJoinCodeMin).max(joinClassroomBodyJoinCodeMax)
+})
+
+export const JoinClassroomResponse = zod.object({
+  "classroomLabel": zod.string(),
+  "memberCode": zod.string(),
+  "assignedUnitIds": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Review progress using anonymous learner codes
+ */
+export const GetClassroomRosterParams = zod.object({
+  "classroomId": zod.coerce.number().int()
+})
+
+export const GetClassroomRosterResponseItem = zod.object({
+  "memberCode": zod.string(),
+  "assignedUnitIds": zod.array(zod.string()),
+  "completedMissionIds": zod.array(zod.string()),
+  "updatedAt": zod.coerce.date()
+})
+export const GetClassroomRosterResponse = zod.array(GetClassroomRosterResponseItem)
+
+
+/**
+ * @summary Assign units to one anonymous learner
+ */
+export const AssignClassroomUnitsParams = zod.object({
+  "classroomId": zod.coerce.number().int(),
+  "memberCode": zod.coerce.string()
+})
+
+export const assignClassroomUnitsBodyUnitIdsItemMax = 100;
+
+export const assignClassroomUnitsBodyUnitIdsMax = 20;
+
+
+
+export const AssignClassroomUnitsBody = zod.object({
+  "unitIds": zod.array(zod.string().min(1).max(assignClassroomUnitsBodyUnitIdsItemMax)).max(assignClassroomUnitsBodyUnitIdsMax)
+})
+
+export const AssignClassroomUnitsResponse = zod.object({
+  "memberCode": zod.string(),
+  "unitIds": zod.array(zod.string())
 })
 
 

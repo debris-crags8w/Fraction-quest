@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, progressTable } from "@workspace/db";
 import { SaveProgressBody } from "@workspace/api-zod";
-import { requireUser, type AuthedRequest } from "../middlewares/require-user";
+import { requireParentConsent, requireUser, type AuthedRequest } from "../middlewares/require-user";
 
 const router: IRouter = Router();
 
@@ -12,13 +12,13 @@ const MAX_PROGRESS_BYTES = 200_000;
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
 
-router.get("/progress", requireUser, async (req, res) => {
+router.get("/progress", requireUser, requireParentConsent, async (req, res) => {
   const { user } = req as AuthedRequest;
   const [row] = await db.select().from(progressTable).where(eq(progressTable.userId, user.id)).limit(1);
   res.json({ progress: row?.progress ?? null, fun: row?.fun ?? null, updatedAt: row?.updatedAt ?? null });
 });
 
-router.put("/progress", requireUser, async (req, res) => {
+router.put("/progress", requireUser, requireParentConsent, async (req, res) => {
   const { user } = req as AuthedRequest;
   const parsed = SaveProgressBody.safeParse(req.body);
   if (!parsed.success || !isPlainObject(parsed.data.progress) || !isPlainObject(parsed.data.fun)) {

@@ -1,6 +1,7 @@
 import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
 import { asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 import { FRACTION_STANDARDS, standardsForMission } from './standard-catalog';
+import { scopedStorageKey } from './storage-scope';
 
 export type FractionValue = { numerator: number; denominator: number };
 
@@ -948,7 +949,7 @@ export function completeMission(progress: Progress, missionId: string, stars: nu
 
 export function loadProgress(): Progress {
   try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
+    const stored = window.localStorage.getItem(scopedStorageKey(STORAGE_KEY));
     if (!stored) return EMPTY_PROGRESS;
     const parsed: unknown = JSON.parse(stored);
     if (!parsed || typeof parsed !== 'object') return EMPTY_PROGRESS;
@@ -1167,7 +1168,7 @@ function readDailyPractice(value: unknown, validMissionIds: Set<string>): DailyP
 
 export function saveProgress(progress: Progress): boolean {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    window.localStorage.setItem(scopedStorageKey(STORAGE_KEY), JSON.stringify(progress));
     return true;
   } catch {
     return false;

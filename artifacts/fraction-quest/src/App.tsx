@@ -39,7 +39,7 @@ import QuickReviewEntry from './QuickReviewEntry';
 import { getLearningRecord, hasLearningGate, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, recordRace, recordSprint, resetFun, setBreakPreferences, setSound, type FunState } from './lib/fun';
+import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, recordRace, recordSprint, resetFun, setBreakPreferences, setDisplayPreferences, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag } from './models';
@@ -244,9 +244,9 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
           <button className="fq-icon-button" onClick={() => setFun(setSound(fun, !fun.sound))} aria-label={fun.sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={fun.sound} data-testid="button-toggle-sound">{fun.sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
           <button className="fq-icon-button" onClick={onReset} aria-label="Reset progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>
           <div className="fq-account">
-            <span className="fq-account-avatar" aria-hidden="true">{account.user?.displayName.trim().charAt(0).toUpperCase() ?? 'G'}</span>
+            <span className="fq-account-avatar" aria-hidden="true">{account.activeProfile?.displayName.trim().charAt(0).toUpperCase() ?? 'G'}</span>
             <span className="fq-account-name">
-              <strong>{account.user?.displayName ?? 'Guest'}</strong>
+              <strong>{account.activeProfile?.displayName ?? 'Guest learner'}</strong>
               <small className={account.syncStatus === 'saving' ? 'sync-saving' : account.syncStatus === 'offline' ? 'sync-offline' : ''} aria-live="polite">{syncLabel}</small>
             </span>
             {account.user
@@ -261,7 +261,8 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
 }
 
 function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
-  const { user } = useAccount();
+  const account = useAccount();
+  const { user } = account;
   const { fun } = useFun();
   const codeSummary = summarizeCodeProgress(fun.codeLevels, MISSIONS.map((mission) => mission.id));
   const nextCodeMission = MISSIONS.find((mission) => isMissionUnlocked(progress, mission.id) && (fun.codeLevels?.[mission.id] ?? 0) < CODE_LEVEL_COUNT);
@@ -277,6 +278,9 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
     number: index + 1,
     missions: MISSIONS.filter((item) => item.unit === index + 1),
   }));
+  const assignedUnits = (account.activeProfile?.assignedUnitIds ?? [])
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id >= 1 && id <= UNIT_TITLES.length);
 
   return (
     <div className="fq-app">
@@ -308,6 +312,10 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
             </div>
             <MapIcon size={27} color="hsl(var(--secondary))" aria-hidden="true" />
           </div>
+          {assignedUnits.length > 0 && <p className="fq-assigned-units" role="note" data-testid="text-assigned-units">
+            Your teacher suggested: {assignedUnits.map((unit) => `Unit ${unit}: ${UNIT_TITLES[unit - 1]}`).join(' · ')}.
+            These suggestions do not change which lessons are unlocked.
+          </p>}
           <div className="fq-map-code-summary" data-testid="status-map-code-progress">
             <Code2 size={19} aria-hidden="true" />
             <span><strong>{codeSummary.levelsPassed} of {codeSummary.levelsTotal} coding levels passed</strong><small>{codeSummary.missionsStarted} missions started · {codeSummary.missionsComplete} missions with all 3 levels passed</small></span>
@@ -468,7 +476,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
             This is not a complete or standards-aligned course.
           </p>
         </aside>
-        <footer className="fq-footer"><span>Made for curious minds, ages 8–10. {user ? `Progress is saved to ${user.displayName}'s account.` : 'Progress stays on this device.'}</span><button onClick={onReset} data-testid="button-reset-progress-footer">{user ? 'Reset my progress' : "Reset this device's progress"}</button></footer>
+        <footer className="fq-footer"><span>Made for curious minds, ages 8–10. {user ? 'Progress is saved to this family account.' : 'Progress stays on this device.'}</span><button onClick={onReset} data-testid="button-reset-progress-footer">{user ? 'Reset this learner’s progress' : "Reset this device's progress"}</button></footer>
       </main>
     </div>
   );
@@ -640,8 +648,8 @@ function PlayView({
               <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
               <div className="fq-example-answer">
                 <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
-                <p><strong><LearningText text={mission.example.prompt} /></strong></p>
-                <p className="fq-example-result"><LearningText text={mission.example.answer} /></p>
+                  <p><strong><LearningText text={mission.example.prompt} speak /></strong></p>
+                  <p className="fq-example-result"><LearningText text={mission.example.answer} speak /></p>
                 <p><LearningText text={mission.example.explanation} speak /></p>
               </div>
               {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
@@ -693,7 +701,7 @@ function PlayView({
               <Mascot mood={mood} size={64} />
               <div className="fq-sheet-copy">
                 {feedback === 'correct'
-                  ? <><strong>{cheer}</strong><span><LearningText text={question.hint} /></span></>
+                  ? <><strong>{cheer}</strong><span><LearningText text={question.hint} speak /></span></>
                    : <><strong>Not quite!</strong><span><LearningText text={question.retryFeedback} speak /></span></>}
               </div>
               {feedback === 'correct' ? (
@@ -822,6 +830,18 @@ function Game() {
   const quietBreaks = fun.breakPreferences?.quietMode ?? false;
   const activeStudyView = ['play', 'review', 'daily', 'lab', 'redo', 'extra', 'retention'].includes(view.type);
   useAccountSync(progress, fun);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const preferences = fun.displayPreferences ?? { textSize: 'standard', highContrast: false, reducedMotion: false };
+    root.dataset.fqTextSize = preferences.textSize;
+    root.classList.toggle('fq-high-contrast', preferences.highContrast);
+    root.classList.toggle('fq-reduced-motion', preferences.reducedMotion);
+    return () => {
+      delete root.dataset.fqTextSize;
+      root.classList.remove('fq-high-contrast', 'fq-reduced-motion');
+    };
+  }, [fun.displayPreferences]);
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -984,7 +1004,7 @@ function Game() {
           onExit={returnToMap} onSolved={(level) => setFun((current) => recordCodeLevel(current, view.missionId, level))} />
       )}
       {view.type === 'part-finder' && <PartFinder best={fun.partFinderBest ?? null} onExit={returnToMap} onFinish={(score) => setFun((current) => recordPartFinder(current, score))} />}
-      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.user?.displayName ?? null} onBack={returnToMap} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} />}
+      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);
         const baseIds = base.questions.map((q) => q.id);
@@ -1095,7 +1115,7 @@ function Game() {
           <div className="fq-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description">
             <button className="fq-icon-button fq-modal-close" onClick={() => setResetOpen(false)} aria-label="Close reset dialog" data-testid="button-close-reset"><X size={18} /></button>
             <h2 id="reset-title">Start the map over?</h2>
-            <p id="reset-description">{account.user ? `This clears ${account.user.displayName}'s lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
+            <p id="reset-description">{account.user ? `This clears ${account.activeProfile?.displayName ?? 'this learner'}’s lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
             <div className="fq-modal-actions">
               <button className="fq-button ghost" onClick={() => setResetOpen(false)} data-testid="button-cancel-reset">Keep exploring</button>
               <button className="fq-button" onClick={resetProgress} data-testid="button-confirm-reset">Reset progress</button>
