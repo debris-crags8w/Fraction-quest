@@ -4,6 +4,8 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { splitStory } from './fun-ui';
+import { buildParentReport } from './parent-report';
+import { loadFun, recordCorrect, recordMinute } from './lib/fun';
 import { generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
 import type { PracticeQuestion } from './game';
 import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
@@ -1103,5 +1105,45 @@ describe('quality audit fixes', () => {
         assert.doesNotMatch(q.hint, /\d\.5/, `${q.id}: decimal hint for 3rd graders`);
       }
     }
+  });
+});
+
+describe('grown-ups report', () => {
+  const titles = Array.from({ length: 14 }, (_, i) => `Unit ${i + 1}`);
+  const fun0 = { xp: 0, day: '2026-10-11', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: true };
+  it('starts empty and points to lesson 1', () => {
+    const report = buildParentReport(EMPTY_PROGRESS, fun0, titles, new Date(2026, 9, 11));
+    assert.equal(report.lessonsDone, 0); assert.equal(report.lessonsTotal, MISSIONS.length);
+    assert.equal(report.firstTryRate, null); assert.equal(report.onOwnRate, null);
+    assert.equal(report.nextLesson, `Lesson 1: ${MISSIONS[0].title}`);
+    assert.equal(report.week.length, 7); assert.equal(report.minutesWeek, 0);
+    assert.equal(report.units.length, 14);
+    assert.equal(report.units[0].lessons[0].status, 'open'); assert.equal(report.units[0].lessons[1].status, 'locked');
+  });
+  it('counts first-try answers, independent builds, tricky ideas and this week\'s activity', () => {
+    const id = MISSIONS[0].id; const sheet = getWorksheet(id);
+    let record = emptyLearningRecord();
+    // 12 answers: 10 right first time, 2 needed a second try.
+    sheet.forEach((p, i) => { record = editWorksheet(record, p.id, i < 10 ? p.answer : 'oops'); record = checkWorksheet(record, p); });
+    sheet.slice(10).forEach((p) => { record = editWorksheet(record, p.id, p.answer); record = checkWorksheet(record, p); });
+    record = { ...record, practiceDone: true, checks: { build: { passed: true, supported: false, attempts: 1 }, transfer: { passed: true, supported: true, attempts: 2 } }, misconceptions: { ...record.misconceptions, 'Counting pieces, groups or jumps': 3 } };
+    const progress = updateLearning({ ...EMPTY_PROGRESS, completedMissionIds: [id], starsByMission: { [id]: 2 } }, id, record);
+    const now = new Date(2026, 9, 11);
+    const fun = { ...fun0, xp: 120, dayStreak: 3, activity: { '2026-10-11': { minutes: 12, answered: 9 }, '2026-10-09': { minutes: 5, answered: 2 }, '2026-09-01': { minutes: 99, answered: 99 } } };
+    const report = buildParentReport(progress, fun, titles, now);
+    assert.equal(report.lessonsDone, 1); assert.equal(report.stars, 2);
+    assert.equal(report.firstTryRate, Math.round((10 / 12) * 100));
+    assert.equal(report.onOwnRate, 50);
+    assert.equal(report.units[0].lessons[0].builds, 'With help');
+    assert.equal(report.minutesWeek, 17, 'only the last 7 days count'); assert.equal(report.answeredWeek, 11);
+    assert.equal(report.toPractice[0].idea, 'Counting pieces, groups or jumps'); assert.equal(report.toPractice[0].count, 3);
+    assert.deepEqual(report.toPractice[0].lessons, [MISSIONS[0].title]);
+    assert.equal(report.nextLesson, `Lesson 2: ${MISSIONS[1].title}`);
+  });
+  it('tracks minutes and correct answers per day without touching lessons', () => {
+    let fun = recordMinute(recordMinute(loadFun()));
+    fun = recordCorrect(fun);
+    const day = Object.keys(fun.activity ?? {})[0];
+    assert.deepEqual(fun.activity?.[day], { minutes: 2, answered: 1 });
   });
 });

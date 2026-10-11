@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useLayoutEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, ClipboardCheck, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BarChart3, Check, ClipboardCheck, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { MathText } from './MathText';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -35,7 +35,7 @@ import QuickReviewEntry from './QuickReviewEntry';
 import { getLearningRecord, hasLearningGate, learningSummary, updateLearning, worksheetCount } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { loadFun, playCue, recordCorrect, resetFun, setSound, type FunState } from './lib/fun';
+import { loadFun, playCue, recordCorrect, recordMinute, resetFun, setSound, type FunState } from './lib/fun';
 import { ModelTag } from './models';
 import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
 import PaperCheck from './PaperCheck';
@@ -44,6 +44,7 @@ import { freshSeed, generateQuestions, getExtraPractice, hasGenerator } from './
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { PrintMenu } from './Printables';
 import { PaperFold } from './PaperFold';
+import ParentView from './ParentView';
 import { AccountGate, useAccount, useAccountSync } from './account';
 import LoginPage from './LoginPage';
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ type View =
 type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string };
 type ChallengeView = { type: 'challenge'; unit: number };
+type ParentPage = { type: 'parent' };
 // seed 0 = the fixed 12 "Practice more" questions; any other seed = freshly generated questions.
 type ExtraView = { type: 'extra'; missionId: string; seed: number; questionIndex: number; firstTry: number } | { type: 'extra-done'; missionId: string; seed: number; firstTry: number; total: number };
 const FRESH_ROUND = 10;
@@ -90,6 +92,8 @@ const FOLD_LESSONS: Record<string, { intro: string; allowThirds?: boolean; shade
   'unit-size': { intro: 'Fold in half again and again: 1/2, 1/4, 1/8. Watch the pieces get smaller.', allowThirds: false },
   'equivalent-models': { intro: 'Half the paper is shaded. Fold it again and unfold: 1/2 = 2/4 = 4/8.', allowThirds: false, shadeHalf: true },
 };
+
+const UNIT_TITLES = UNIT_INFO.map((unit) => unit.title);
 
 function Fraction({ numerator, denominator }: { numerator: number; denominator: number }) {
   return (
@@ -231,7 +235,7 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
   );
 }
 
-function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChallenge, onExtra }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void }) {
+function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChallenge, onExtra, onParent }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void }) {
   const { user } = useAccount();
   const totalStars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
   const nextMission = getNextMission(progress);
@@ -359,6 +363,11 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
             })}
           </div>
           <div className="fq-trail-note"><Lightbulb size={17} color="hsl(var(--accent-foreground))" /><span>No timer, no traps. Use a hint, try a simpler model, and keep going.</span></div>
+        </section>
+        <section className="fq-grownups" data-testid="section-grownups">
+          <span className="fq-grownups-icon" aria-hidden="true"><BarChart3 size={22} /></span>
+          <span><strong>For grown-ups</strong><small>Progress, time this week, and what to practice. Printable.</small></span>
+          <button className="fq-button ghost" onClick={onParent} data-testid="button-open-parent">Open report</button>
         </section>
         <aside className="fq-course-note">
           <strong>About this learning path</strong>
@@ -696,7 +705,7 @@ function ReviewCompleteView({ reviewedCount, progress, onMap, onReset }: { revie
 function Game() {
   const account = useAccount();
   const [progress, setProgress] = useState<Progress>(() => account.initialProgress ?? loadProgress());
-  const [view, setView] = useState<View | LabView | RetentionView | PaperView | ChallengeView | ExtraView>({ type: 'map' });
+  const [view, setView] = useState<View | LabView | RetentionView | PaperView | ChallengeView | ExtraView | ParentPage>({ type: 'map' });
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [saveError, setSaveError] = useState(false);
@@ -707,6 +716,18 @@ function Game() {
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, [view]);
+
+  // Time for the grown-ups' report: count a minute only while the tab is visible and the child
+  // has tapped or typed in the last 2 minutes (an open, idle tab doesn't count).
+  useEffect(() => {
+    let lastInput = Date.now();
+    const touch = () => { lastInput = Date.now(); };
+    window.addEventListener('pointerdown', touch); window.addEventListener('keydown', touch);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible' && Date.now() - lastInput < 120_000) setFun((current) => recordMinute(current));
+    }, 60_000);
+    return () => { window.clearInterval(timer); window.removeEventListener('pointerdown', touch); window.removeEventListener('keydown', touch); };
+  }, []);
 
   const startMission = (missionId: string) => {
     if (!isMissionUnlocked(progress, missionId)) return;
@@ -784,7 +805,8 @@ function Game() {
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} />}
+      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.user?.displayName ?? null} onBack={returnToMap} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);
         const baseIds = base.questions.map((q) => q.id);

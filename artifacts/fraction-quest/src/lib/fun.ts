@@ -11,16 +11,40 @@ export type FunState = {
   dayStreak: number;
   lastActiveDay: string | null;
   sound: boolean;
+  /** Per-day activity for the grown-ups' report: minutes active and correct answers (last 35 days). */
+  activity?: Record<string, DayActivity>;
 };
+export type DayActivity = { minutes: number; answered: number };
+const KEEP_DAYS = 35;
 
-const today = (now = new Date()) => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+export const today = (now = new Date()) => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
 const fresh = (): FunState => ({ xp: 0, day: today(), answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: true });
+
+/** Keep only well-formed recent days, so a bad or huge saved value can't break the report. */
+function cleanActivity(value: unknown, now = new Date()): Record<string, DayActivity> {
+  if (!value || typeof value !== 'object') return {};
+  const oldest = new Date(now); oldest.setDate(now.getDate() - KEEP_DAYS);
+  const out: Record<string, DayActivity> = {};
+  for (const [day, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day < today(oldest) || !raw || typeof raw !== 'object') continue;
+    const { minutes, answered } = raw as Partial<DayActivity>;
+    const count = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.min(1440, Math.floor(n))) : 0);
+    out[day] = { minutes: count(minutes), answered: count(answered) };
+  }
+  return out;
+}
+const bump = (state: FunState, key: keyof DayActivity): Record<string, DayActivity> => {
+  const activity = cleanActivity(state.activity); const day = today();
+  const current = activity[day] ?? { minutes: 0, answered: 0 };
+  return { ...activity, [day]: { ...current, [key]: current[key] + 1 } };
+};
 
 export function loadFun(): FunState {
   try {
     const raw = window.localStorage.getItem(FUN_KEY);
-    const saved = raw ? { ...fresh(), ...(JSON.parse(raw) as Partial<FunState>) } : fresh();
+    const parsed = raw ? (JSON.parse(raw) as Partial<FunState>) : {};
+    const saved = { ...fresh(), ...parsed, activity: cleanActivity(parsed.activity) };
     return saved.day === today() ? saved : { ...saved, day: today(), answeredToday: 0 };
   } catch {
     return fresh();
@@ -47,7 +71,12 @@ function isYesterday(day: string | null, now = new Date()): boolean {
 export function recordCorrect(state: FunState): FunState {
   const current = state.day === today() ? state : { ...state, day: today(), answeredToday: 0 };
   const dayStreak = current.lastActiveDay === today() ? current.dayStreak : isYesterday(current.lastActiveDay) ? current.dayStreak + 1 : 1;
-  return saveFun({ ...current, xp: current.xp + 10, answeredToday: current.answeredToday + 1, dayStreak, lastActiveDay: today() });
+  return saveFun({ ...current, xp: current.xp + 10, answeredToday: current.answeredToday + 1, dayStreak, lastActiveDay: today(), activity: bump(current, 'answered') });
+}
+
+/** One more active minute today (called while the child is using the app). */
+export function recordMinute(state: FunState): FunState {
+  return saveFun({ ...state, activity: bump(state, 'minutes') });
 }
 
 export function setSound(state: FunState, sound: boolean): FunState {
@@ -95,6 +124,6 @@ export function playCue(cue: Cue, enabled: boolean) {
 
 /** Replace this device's fun state with one loaded from the student's account. */
 export function replaceFun(saved: Partial<FunState>): FunState {
-  const merged = { ...fresh(), ...saved, sound: loadFun().sound };
+  const merged = { ...fresh(), ...saved, sound: loadFun().sound, activity: cleanActivity(saved.activity) };
   return saveFun(merged.day === today() ? merged : { ...merged, day: today(), answeredToday: 0 });
 }
