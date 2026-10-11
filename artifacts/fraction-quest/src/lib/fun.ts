@@ -13,6 +13,11 @@ export type FunState = {
   sound: boolean;
   /** Per-day activity for the grown-ups' report: minutes active and correct answers (last 35 days). */
   activity?: Record<string, DayActivity>;
+  /** Fraction Race: best time (seconds) to 10 right answers, and the fastest robot beaten (1–3), per lesson. */
+  raceBest?: Record<string, number>;
+  robotBeaten?: Record<string, number>;
+  /** Code challenge: how many levels (0–3) are solved, per lesson. */
+  codeLevels?: Record<string, number>;
 };
 export type DayActivity = { minutes: number; answered: number };
 const KEEP_DAYS = 35;
@@ -40,11 +45,36 @@ const bump = (state: FunState, key: keyof DayActivity): Record<string, DayActivi
   return { ...activity, [day]: { ...current, [key]: current[key] + 1 } };
 };
 
+/** A small lesson-id → number map, clamped (anything odd is dropped). */
+function cleanScores(value: unknown, max: number): Record<string, number> {
+  if (!value || typeof value !== 'object') return {};
+  const out: Record<string, number> = {};
+  for (const [id, n] of Object.entries(value as Record<string, unknown>)) {
+    if (/^[a-z0-9-]{1,60}$/.test(id) && typeof n === 'number' && Number.isFinite(n) && n > 0) out[id] = Math.min(max, Math.round(n * 10) / 10);
+  }
+  return out;
+}
+const cleanGames = (saved: Partial<FunState>) => ({ raceBest: cleanScores(saved.raceBest, 3600), robotBeaten: cleanScores(saved.robotBeaten, 3), codeLevels: cleanScores(saved.codeLevels, 3) });
+
+/** Record a finished race: keeps the best time and the fastest robot beaten (0 = no robot / lost). */
+export function recordRace(state: FunState, missionId: string, seconds: number, robotLevel: number): FunState {
+  const raceBest = { ...state.raceBest }; const robotBeaten = { ...state.robotBeaten };
+  if (!(raceBest[missionId] <= seconds)) raceBest[missionId] = Math.round(seconds * 10) / 10;
+  if (robotLevel > (robotBeaten[missionId] ?? 0)) robotBeaten[missionId] = robotLevel;
+  return saveFun({ ...state, raceBest, robotBeaten });
+}
+
+/** Record a solved code level (levels count up: solving level 2 means 2 levels done). */
+export function recordCodeLevel(state: FunState, missionId: string, level: number): FunState {
+  if ((state.codeLevels?.[missionId] ?? 0) >= level) return state;
+  return saveFun({ ...state, codeLevels: { ...state.codeLevels, [missionId]: level } });
+}
+
 export function loadFun(): FunState {
   try {
     const raw = window.localStorage.getItem(FUN_KEY);
     const parsed = raw ? (JSON.parse(raw) as Partial<FunState>) : {};
-    const saved = { ...fresh(), ...parsed, activity: cleanActivity(parsed.activity) };
+    const saved = { ...fresh(), ...parsed, activity: cleanActivity(parsed.activity), ...cleanGames(parsed) };
     return saved.day === today() ? saved : { ...saved, day: today(), answeredToday: 0 };
   } catch {
     return fresh();
@@ -124,6 +154,6 @@ export function playCue(cue: Cue, enabled: boolean) {
 
 /** Replace this device's fun state with one loaded from the student's account. */
 export function replaceFun(saved: Partial<FunState>): FunState {
-  const merged = { ...fresh(), ...saved, sound: loadFun().sound, activity: cleanActivity(saved.activity) };
+  const merged = { ...fresh(), ...saved, sound: loadFun().sound, activity: cleanActivity(saved.activity), ...cleanGames(saved) };
   return saveFun(merged.day === today() ? merged : { ...merged, day: today(), answeredToday: 0 });
 }

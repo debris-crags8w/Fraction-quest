@@ -5,8 +5,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { splitStory } from './fun-ui';
 import { buildParentReport } from './parent-report';
+import { applyAnswer, newRacer, RACE_GOAL, ROBOT_LEVELS } from './FractionRace';
+import { describe as describeRun, getCodeLevels, matchesTarget, runProgram, solution, toText, usesLoop } from './code-quest';
 import { loadFun, recordCorrect, recordMinute } from './lib/fun';
-import { generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
+import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
 import type { PracticeQuestion } from './game';
 import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
@@ -1145,5 +1147,60 @@ describe('grown-ups report', () => {
     fun = recordCorrect(fun);
     const day = Object.keys(fun.activity ?? {})[0];
     assert.deepEqual(fun.activity?.[day], { minutes: 2, answered: 1 });
+  });
+});
+
+describe('code challenge', () => {
+  it('every lesson has 3 solvable levels: blanks fail, the right numbers pass, and the bug really is a bug', () => {
+    for (const mission of MISSIONS) {
+      const levels = getCodeLevels(mission.id);
+      assert.equal(levels.length, 3, mission.id);
+      for (const level of levels) {
+        const answer = runProgram(solution(level.target), level.target);
+        assert.ok(matchesTarget(answer, level.target), `${mission.id} L${level.level}: the model answer fails (${answer.error ?? describeRun(answer)})`);
+        assert.ok(answer.steps.length < 400, `${mission.id} L${level.level} is too long to animate`);
+      }
+      assert.equal(runProgram(levels[0].start, levels[0].target).error, 'A block is missing a number.');
+      assert.equal(levels[1].start.length, 0);
+      assert.ok(!matchesTarget(runProgram(levels[2].start, levels[2].target), levels[2].target), `${mission.id}: the bug program already works`);
+    }
+  });
+  it('catches common robot mistakes with friendly messages', () => {
+    const t = { kind: 'bar' as const, n: 3, d: 4, wholes: 1 };
+    assert.equal(runProgram([{ op: 'shade' }], t).error, 'Split the bar first!');
+    assert.match(runProgram([{ op: 'split', n: 2 }, { op: 'repeat', n: 3, body: [{ op: 'shade' }, { op: 'move' }] }], t).error ?? '', /ran off the end/);
+    // Forgetting to move shades the same piece again and again: 1 piece, not 3.
+    const noMove = runProgram([{ op: 'split', n: 4 }, { op: 'repeat', n: 3, body: [{ op: 'shade' }] }], t);
+    assert.equal(noMove.final.marked.length, 1); assert.equal(matchesTarget(noMove, t), false);
+    // Writing it out without a loop still works.
+    const longhand = runProgram([{ op: 'split', n: 4 }, { op: 'shade' }, { op: 'move' }, { op: 'shade' }, { op: 'move' }, { op: 'shade' }], t);
+    assert.equal(matchesTarget(longhand, t), true); assert.equal(usesLoop([{ op: 'shade' }]), false);
+    assert.match(runProgram([{ op: 'split', n: 5 }], { kind: 'set', n: 1, d: 3, wholes: 1, total: 12 }).error ?? '', /12 dots can't make 5 equal groups/);
+    assert.equal(toText(solution(t), 'bar'), 'bar.split(4)\nfor i in range(3):\n    robot.shade()\n    robot.move()');
+  });
+});
+
+describe('Fraction Race rules', () => {
+  // Simulate a racer: `accuracy` chance to be right, `think` ms per answer. Returns seconds to finish (or Infinity).
+  const simulate = (accuracy: number, think: number, seed: number, limit = 600) => {
+    const rng = makeRng(seed); let racer = newRacer(); let t = 0;
+    while (t < limit * 1000) {
+      t = Math.max(t + think, racer.stallUntil);
+      racer = applyAnswer(racer, rng.int(1, 1000) <= accuracy * 1000, t);
+      if (racer.score >= RACE_GOAL) return t / 1000;
+    }
+    return Infinity;
+  };
+  it('random guessing (1 in 3) almost never beats even the slow robot, even with very fast taps', () => {
+    const wins = Array.from({ length: 1000 }, (_, i) => simulate(1 / 3, 300, i + 1)).filter((s) => s <= ROBOT_LEVELS[0].seconds).length;
+    assert.ok(wins < 10, `guessing won ${wins} of 1000 races`);
+    // Against the robots a guesser could otherwise beat, it never wins at all.
+    for (let seed = 1; seed <= 200; seed++) assert.ok(simulate(1 / 3, 300, seed) > ROBOT_LEVELS[2].seconds, `turbo, seed ${seed}`);
+  });
+  it('a careful child (85% right, 5 s per question) beats the slow robot; a quick accurate one beats turbo', () => {
+    const careful = Array.from({ length: 50 }, (_, i) => simulate(0.85, 5000, i + 1)).sort((a, b) => a - b)[25];
+    assert.ok(careful < ROBOT_LEVELS[0].seconds, `median ${careful}s`);
+    const quick = Array.from({ length: 50 }, (_, i) => simulate(0.95, 3500, i + 1)).sort((a, b) => a - b)[25];
+    assert.ok(quick < ROBOT_LEVELS[2].seconds, `median ${quick}s`);
   });
 });
