@@ -22,6 +22,8 @@ export type FunState = {
   codeLevels?: Record<string, number>;
   /** Code Sprint: best time (seconds) per lesson. */
   sprintBest?: Record<string, number>;
+  /** Part Finder: best score out of three rounds. Kept separate from lesson mastery. */
+  partFinderBest?: number;
 };
 export type DayActivity = { minutes: number; answered: number };
 const KEEP_DAYS = 35;
@@ -58,7 +60,15 @@ function cleanScores(value: unknown, max: number): Record<string, number> {
   }
   return out;
 }
-const cleanGames = (saved: Partial<FunState>) => ({ raceBest: cleanScores(saved.raceBest, 3600), robotBeaten: cleanScores(saved.robotBeaten, 3), codeLevels: cleanScores(saved.codeLevels, CODE_LEVEL_COUNT), sprintBest: cleanScores(saved.sprintBest, 3600) });
+const cleanGames = (saved: Partial<FunState>) => ({
+  raceBest: cleanScores(saved.raceBest, 3600),
+  robotBeaten: cleanScores(saved.robotBeaten, 3),
+  codeLevels: cleanScores(saved.codeLevels, CODE_LEVEL_COUNT),
+  sprintBest: cleanScores(saved.sprintBest, 3600),
+  partFinderBest: typeof saved.partFinderBest === 'number' && Number.isFinite(saved.partFinderBest)
+    ? Math.max(0, Math.min(3, Math.floor(saved.partFinderBest)))
+    : undefined,
+});
 
 /** Record a finished race: keeps the best time and the fastest robot beaten (0 = no robot / lost). */
 export function recordRace(state: FunState, missionId: string, seconds: number, robotLevel: number): FunState {
@@ -79,6 +89,13 @@ export function recordCodeLevel(state: FunState, missionId: string, level: numbe
   const completed = Math.max(0, Math.min(CODE_LEVEL_COUNT, Math.floor(level)));
   if ((state.codeLevels?.[missionId] ?? 0) >= completed) return state;
   return saveFun({ ...state, codeLevels: { ...state.codeLevels, [missionId]: completed } });
+}
+
+/** Keep the highest completed Part Finder score (0–3) in optional game state only. */
+export function recordPartFinder(state: FunState, score: number): FunState {
+  const completed = Math.max(0, Math.min(3, Math.floor(Number.isFinite(score) ? score : 0)));
+  if (state.partFinderBest !== undefined && state.partFinderBest >= completed) return state;
+  return saveFun({ ...state, partFinderBest: completed });
 }
 
 export function loadFun(): FunState {

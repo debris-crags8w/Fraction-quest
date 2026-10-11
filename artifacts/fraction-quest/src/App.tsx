@@ -37,7 +37,7 @@ import QuickReviewEntry from './QuickReviewEntry';
 import { getLearningRecord, hasLearningGate, learningSummary, updateLearning, worksheetCount } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, setSound, type FunState } from './lib/fun';
+import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, recordRace, recordSprint, resetFun, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag } from './models';
@@ -52,6 +52,8 @@ import { SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
 import ParentView from './ParentView';
 import FractionRace from './FractionRace';
 import CodeQuest from './CodeQuest';
+import PartFinder from './PartFinder';
+import { PART_FINDER_LESSONS } from './part-finder';
 import PlacementQuiz from './PlacementQuiz';
 import { applyPlacement } from './placement';
 import { AccountGate, useAccount, useAccountSync } from './account';
@@ -68,7 +70,7 @@ type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string };
 type ChallengeView = { type: 'challenge'; unit: number };
 type ParentPage = { type: 'parent' };
-type GameView = { type: 'race' | 'code'; missionId: string };
+type GameView = { type: 'race' | 'code' | 'part-finder'; missionId: string };
 type PlacementView = { type: 'placement' };
 // seed 0 = the fixed 12 "Practice more" questions; any other seed = freshly generated questions.
 type ExtraView = { type: 'extra'; missionId: string; seed: number; questionIndex: number; firstTry: number } | { type: 'extra-done'; missionId: string; seed: number; firstTry: number; total: number };
@@ -246,7 +248,7 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
   );
 }
 
-function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
+function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onStartReview: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
   const { user } = useAccount();
   const { fun } = useFun();
   const codeSummary = summarizeCodeProgress(fun.codeLevels, MISSIONS.map((mission) => mission.id));
@@ -385,6 +387,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset, onPaper, onChal
                                 <button className="fq-button ghost" onClick={() => onPaper(mission.id)} data-testid={`button-check-paper-${mission.id}`}><ClipboardCheck size={17} /> Check my paper</button>
                                 <button className="fq-button ghost" onClick={() => onGame('race', mission.id)} data-testid={`button-race-${mission.id}`}><Zap size={17} /> Race</button>
                                 <button className="fq-button ghost" onClick={() => onGame('code', mission.id)} data-testid={`button-code-${mission.id}`}><Code2 size={17} /> Code</button>
+                                {PART_FINDER_LESSONS.has(mission.id) && <button className="fq-button ghost" onClick={() => onGame('part-finder', mission.id)} data-testid={`button-part-finder-${mission.id}`}><Compass size={17} /> Part Finder{fun.partFinderBest !== undefined ? ` · Best ${fun.partFinderBest}/3` : ''}</button>}
                               </div>
                             )}
                           </>
@@ -669,7 +672,7 @@ function PlayView({
   );
 }
 
-function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code') => void }) {
+function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code' | 'part-finder') => void }) {
   const nextMission = getNextMission(progress);
   const { fun } = useFun();
   useEffect(() => {
@@ -697,6 +700,7 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
             <span>Play with this lesson:</span>
             <button className="fq-button ghost" onClick={() => onGame('race')} data-testid="button-reward-race"><Zap size={17} /> Race</button>
             <button className="fq-button ghost" onClick={() => onGame('code')} data-testid="button-reward-code"><Code2 size={17} /> Code</button>
+            {PART_FINDER_LESSONS.has(mission.id) && <button className="fq-button ghost" onClick={() => onGame('part-finder')} data-testid="button-reward-part-finder"><Compass size={17} /> Part Finder</button>}
           </div>
         </section>
       </main>
@@ -862,6 +866,7 @@ function Game() {
         <CodeQuest key={view.missionId} mission={getMission(view.missionId)} solved={fun.codeLevels?.[view.missionId] ?? 0}
           onExit={returnToMap} onSolved={(level) => setFun((current) => recordCodeLevel(current, view.missionId, level))} />
       )}
+      {view.type === 'part-finder' && <PartFinder best={fun.partFinderBest ?? null} onExit={returnToMap} onFinish={(score) => setFun((current) => recordPartFinder(current, score))} />}
       {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.user?.displayName ?? null} onBack={returnToMap} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);

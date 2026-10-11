@@ -13,7 +13,8 @@ import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './Fra
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
 import { CODE_LEVEL_COUNT, describe as describeRun, getCodeLevels, makeMultiBug, matchesTarget, passesCodeLevel, predictionMatchesTarget, runProgram, solution, toText, usesEffectiveLoop, usesLoop, type Block } from './code-quest';
 import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
-import { loadFun, recordCodeLevel, recordCorrect, recordMinute } from './lib/fun';
+import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder } from './lib/fun';
+import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
 import type { PracticeQuestion } from './game';
 import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, paperPrompt, parseAnswer } from './learning-content';
@@ -861,6 +862,71 @@ describe('square (area) models', () => {
   it('keeps coloring tasks out of the typed level quiz and review', () => {
     for (let seed = 1; seed <= 40; seed++) assert.ok(placementItems(1, seed).every(item => !item.problem.areaTask));
     for (let round = 0; round < 6; round++) for (const id of ['equal-parts', 'unit-fractions', 'equivalent-models']) assert.ok(!/square|triangle/i.test(getReviewCheck(id, round).prompt));
+  });
+});
+
+describe('Part Finder rounds', () => {
+  const share = PART_FINDER_ROUNDS.find((round) => round.id === 'share')!;
+  const tile = PART_FINDER_ROUNDS.find((round) => round.id === 'tile')!;
+  const match = PART_FINDER_ROUNDS.find((round) => round.id === 'match')!;
+
+  it('accepts different shape combinations that make the same-sized fair share', () => {
+    assert.equal(isPartFinderAnswer(share, [0]), true, 'one square is one fourth');
+    assert.equal(isPartFinderAnswer(share, [1, 2]), true, 'two triangles together are also one fourth');
+    assert.equal(isPartFinderAnswer(share, [5, 6]), true, 'a different pair of triangles is also accepted');
+    assert.equal(partFinderSelectionArea(share, [1, 2]), 1 / 4);
+  });
+
+  it('rejects empty, incomplete, oversized, duplicate, and invalid groupings', () => {
+    assert.equal(isPartFinderAnswer(share, []), false);
+    assert.equal(isPartFinderAnswer(share, [1]), false);
+    assert.equal(isPartFinderAnswer(share, [0, 1]), false);
+    assert.equal(isPartFinderAnswer(share, [1, 1]), false);
+    assert.equal(isPartFinderAnswer(share, [99]), false);
+    assert.match(partFinderFeedback(share, [1]), /Not enough/);
+    assert.match(partFinderFeedback(share, [0, 1]), /Too much/);
+  });
+
+  it('counts one eighth piece across the whole and matches any two eighths to a fourth', () => {
+    assert.equal(isPartFinderAnswer(tile, [0]), false, 'a tile needs a copy-count answer');
+    assert.equal(isPartFinderAnswer(tile, [0], 8), true);
+    assert.equal(isPartFinderAnswer(tile, [0], 7), false);
+    assert.equal(isPartFinderAnswer(tile, [0, 1], 4), false, 'the tiling round asks for one piece');
+    assert.equal(isPartFinderAnswer(match, [0, 1]), true);
+    assert.equal(isPartFinderAnswer(match, [4, 7]), true);
+    assert.equal(isPartFinderAnswer(match, [0]), false);
+    assert.equal(PART_FINDER_ROUNDS.length, 3);
+    assert.deepEqual([...PART_FINDER_LESSONS], ['equal-parts', 'unit-fractions', 'equivalent-models']);
+  });
+
+  it('awards points only for a correct first check and caps the score at three', () => {
+    assert.equal(scorePartFinderRound(0, true), 1);
+    assert.equal(scorePartFinderRound(0, false), 0);
+    assert.equal(scorePartFinderRound(2, true), 3);
+    assert.equal(scorePartFinderRound(3, true), 3);
+  });
+});
+
+describe('Part Finder saved game result', () => {
+  it('saves the best score, keeps it on replay, and clamps saved values', () => {
+    const zeroScore = recordPartFinder(loadFun(), 0);
+    assert.equal(loadFun().partFinderBest, 0, 'a completed zero-point game still has a saved result');
+    const firstRun = recordPartFinder(zeroScore, 2);
+    assert.equal(loadFun().partFinderBest, 2);
+    const replay = recordPartFinder(loadFun(), 1);
+    assert.equal(replay.partFinderBest, 2, 'a lower replay does not replace the best score');
+    assert.equal(recordPartFinder(replay, 99).partFinderBest, 3, 'scores cannot exceed three rounds');
+    window.localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ partFinderBest: 99 }));
+    assert.equal(loadFun().partFinderBest, 3);
+    assert.equal(firstRun.partFinderBest, 2);
+  });
+
+  it('keeps game score separate from worksheet and lesson progress', () => {
+    const before = loadProgress();
+    recordPartFinder(loadFun(), 3);
+    const after = loadProgress();
+    assert.deepEqual(after, before);
+    assert.equal(hasLearningGate(after, MISSIONS[0].id), false);
   });
 });
 

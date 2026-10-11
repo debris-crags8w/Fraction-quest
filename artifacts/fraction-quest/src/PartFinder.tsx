@@ -1,0 +1,252 @@
+import { useState } from 'react';
+import { AREA_CUTS, pieceArea, type AreaCut, type Piece } from './area-shapes';
+import { PART_FINDER_ROUNDS, isPartFinderAnswer, partFinderFeedback, scorePartFinderRound } from './part-finder';
+import './part-finder.css';
+
+type CheckState = 'idle' | 'right' | 'try-again';
+
+const svgPoints = (piece: Piece) =>
+  piece.points.map(([x, y]) => `${x * 168},${y * 168}`).join(' ');
+
+function CutPicture({ cut, label, selected = [], interactive = false, disabled = false, onToggle }: {
+  cut: AreaCut;
+  label: string;
+  selected?: number[];
+  interactive?: boolean;
+  disabled?: boolean;
+  onToggle?: (index: number) => void;
+}) {
+  const pieces = AREA_CUTS[cut];
+  return (
+    <svg className={`fq-pf-square${interactive ? ' interactive' : ''}`} viewBox="0 0 168 168" role={interactive ? undefined : 'img'} aria-label={interactive ? undefined : label}>
+      {interactive && <title>{label}</title>}
+      {pieces.map((piece, index) => {
+        const pressed = selected.includes(index);
+        const name = `${piece.shape === 'rect' ? 'rectangle' : piece.shape} piece ${index + 1}${pressed ? ', selected' : ''}`;
+        return interactive ? (
+          <polygon
+            key={index}
+            points={svgPoints(piece)}
+            className={`fq-pf-piece${pressed ? ' selected' : ''}`}
+            role="button"
+            tabIndex={disabled ? -1 : 0}
+            aria-pressed={pressed}
+            aria-label={name}
+            aria-disabled={disabled}
+            onClick={() => !disabled && onToggle?.(index)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                if (!disabled) onToggle?.(index);
+              }
+            }}
+            data-testid={`button-part-finder-piece-${index + 1}`}
+          />
+        ) : (
+          <polygon key={index} points={svgPoints(piece)} className={`fq-pf-piece fq-pf-static-piece${pressed ? ' selected' : ''}`} aria-hidden="true" />
+        );
+      })}
+      <rect className="fq-pf-frame" x="1.5" y="1.5" width="165" height="165" fill="none" aria-hidden="true" />
+    </svg>
+  );
+}
+
+function TileFill({ cut, selection }: { cut: AreaCut; selection: number[] }) {
+  if (selection.length !== 1) {
+    return <div className="fq-pf-tile-empty" aria-live="polite">Choose one piece to see how many copies fill the whole.</div>;
+  }
+  const area = pieceArea(AREA_CUTS[cut][selection[0]]);
+  const copies = Math.max(1, Math.round(1 / area));
+  return (
+    <div className="fq-pf-fill">
+      <div className="fq-pf-fill-head">
+        <span>One whole</span>
+        <strong>Count the copies</strong>
+      </div>
+      <div className="fq-pf-fill-grid" role="group" aria-label="Repeated pieces filling one whole">
+        <CutPicture
+          cut={cut}
+          label="A whole filled with repeated copies of the selected piece"
+          selected={AREA_CUTS[cut].map((_, index) => index)}
+        />
+      </div>
+      <p>Count each copy, then enter how many fill the whole.</p>
+    </div>
+  );
+}
+
+export default function PartFinder({ best, onExit, onFinish }: {
+  best: number | null;
+  onExit: () => void;
+  onFinish: (score: number) => void;
+}) {
+  const [roundIndex, setRoundIndex] = useState(0);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [checked, setChecked] = useState<CheckState>('idle');
+  const [score, setScore] = useState(0);
+  const [roundHadMiss, setRoundHadMiss] = useState(false);
+  const [finished, setFinished] = useState(false);
+  const [tileCount, setTileCount] = useState('');
+  const round = PART_FINDER_ROUNDS[roundIndex];
+  const correct = checked === 'right';
+  const tileAnswer = tileCount.trim() ? Number(tileCount) : undefined;
+
+  const togglePiece = (index: number) => {
+    if (correct) return;
+    setChecked('idle');
+    if (round.mode === 'tile') setTileCount('');
+    setSelected((current) => {
+      if (round.mode === 'tile') return current.includes(index) ? [] : [index];
+      return current.includes(index) ? current.filter((item) => item !== index) : [...current, index].sort((a, b) => a - b);
+    });
+  };
+
+  const checkAnswer = () => {
+    const isCorrect = isPartFinderAnswer(round, selected, tileAnswer);
+    setChecked(isCorrect ? 'right' : 'try-again');
+    if (isCorrect) setScore((current) => scorePartFinderRound(current, !roundHadMiss));
+    if (!isCorrect) setRoundHadMiss(true);
+  };
+
+  const clearSelection = () => {
+    if (correct) return;
+    setSelected([]);
+    setChecked('idle');
+    setTileCount('');
+  };
+
+  const advance = () => {
+    if (roundIndex === PART_FINDER_ROUNDS.length - 1) {
+      setFinished(true);
+      onFinish(score);
+      return;
+    }
+    setRoundIndex((index) => index + 1);
+    setSelected([]);
+    setChecked('idle');
+    setRoundHadMiss(false);
+    setTileCount('');
+  };
+
+  const replay = () => {
+    setRoundIndex(0);
+    setSelected([]);
+    setChecked('idle');
+    setScore(0);
+    setRoundHadMiss(false);
+    setFinished(false);
+    setTileCount('');
+  };
+
+  if (finished) {
+    const shownBest = Math.max(best ?? 0, score);
+    return (
+      <main className="fq-app fq-pf" data-testid="part-finder-screen">
+        <div className="fq-pf-shell">
+          <header className="fq-pf-top">
+            <button className="fq-pf-back" type="button" onClick={onExit} data-testid="button-part-finder-exit">Back to lessons</button>
+            <span className="fq-pf-badge">Optional side game</span>
+          </header>
+          <section className="fq-pf-result" aria-labelledby="pf-result-title">
+            <div className="fq-pf-result-mark" aria-hidden="true"><span /></div>
+            <p className="fq-pf-kicker">Part Finder complete</p>
+            <h1 id="pf-result-title">Nice fraction finding!</h1>
+            <p className="fq-pf-score" data-testid="part-finder-final-score"><strong>{score}</strong><span>out of 3</span></p>
+            <p className="fq-pf-best" data-testid="part-finder-best-score">Best result: {best === null && score === 0 ? 'Not set' : `${shownBest} out of 3`}</p>
+            <p className="fq-pf-separation">This side game is just for fun. It does not change lesson progress or unlocks.</p>
+            <div className="fq-pf-actions">
+              <button type="button" className="fq-button" onClick={replay} data-testid="button-part-finder-replay">Play again</button>
+              <button type="button" className="fq-button ghost" onClick={onExit} data-testid="button-part-finder-result-exit">Back to lessons</button>
+            </div>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="fq-app fq-pf" data-testid="part-finder-screen">
+      <div className="fq-pf-shell">
+        <header className="fq-pf-top">
+          <button className="fq-pf-back" type="button" onClick={onExit} data-testid="button-part-finder-exit">Back to lessons</button>
+          <span className="fq-pf-badge">Optional side game</span>
+          <div className="fq-pf-best" data-testid="part-finder-best-score">Best: {best === null ? '—' : `${best} / 3`}</div>
+        </header>
+
+        <section className="fq-pf-card" aria-labelledby="pf-title">
+          <div className="fq-pf-heading">
+            <div>
+              <p className="fq-pf-kicker">Part Finder</p>
+              <h1 id="pf-title">{round.title}</h1>
+              <p className="fq-pf-prompt">{round.prompt}</p>
+            </div>
+            <div className="fq-pf-round-meter" aria-label={`Round ${roundIndex + 1} of ${PART_FINDER_ROUNDS.length}`}>
+              <span>Round {roundIndex + 1} of {PART_FINDER_ROUNDS.length}</span>
+              <div className="fq-pf-progress" aria-hidden="true">
+                {PART_FINDER_ROUNDS.map((item, index) => <i key={item.id} className={index < roundIndex ? 'done' : index === roundIndex ? 'current' : ''} />)}
+              </div>
+            </div>
+          </div>
+          <p className="fq-pf-score-guide">Solve each round on your first check to earn a point.</p>
+
+          <div className={`fq-pf-workspace ${round.id === 'match' ? 'match' : ''}`}>
+            {round.id === 'match' && round.comparisonCut && (
+              <figure className="fq-pf-comparison" data-testid="part-finder-comparison">
+                <figcaption><span>Compare</span><strong>A fourth</strong></figcaption>
+                <CutPicture cut={round.comparisonCut} label="Comparison square with one fourth highlighted" selected={[0]} />
+              </figure>
+            )}
+            <figure className="fq-pf-interactive">
+              <figcaption>
+                <span>{round.id === 'match' ? 'Find the same amount' : 'Choose the pieces'}</span>
+                <strong>{round.targetLabel}</strong>
+              </figcaption>
+              <CutPicture
+                cut={round.cut}
+                label={`${round.title}: choose pieces`}
+                selected={selected}
+                interactive
+                disabled={correct}
+                onToggle={togglePiece}
+              />
+              <p className="fq-pf-instruction">Tap or click pieces to select them. Use Tab, then Enter or Space.</p>
+            </figure>
+          </div>
+
+          {round.mode === 'tile' && <>
+            <TileFill cut={round.cut} selection={selected} />
+            <label className="fq-pf-count-entry">
+              <span>How many copies fill one whole?</span>
+              <input type="number" min="1" max="16" step="1" inputMode="numeric" value={tileCount} disabled={correct}
+                onChange={(event) => { setTileCount(event.target.value); setChecked('idle'); }}
+                aria-label="Number of copies that fill one whole" data-testid="input-part-finder-tile-count" />
+            </label>
+          </>}
+
+          <div className="fq-pf-control-row">
+            <p className="fq-pf-selection" aria-live="polite" data-testid="part-finder-selection">
+              {selected.length === 0 ? 'No pieces selected yet.' : `${selected.length} ${selected.length === 1 ? 'piece' : 'pieces'} selected.`}
+            </p>
+            <div className="fq-pf-actions">
+              <button type="button" className="fq-button ghost" onClick={clearSelection} disabled={selected.length === 0 || correct} data-testid="button-part-finder-clear">Clear</button>
+              {correct ? (
+                <button type="button" className="fq-button" onClick={advance} data-testid="button-part-finder-next">
+                  {roundIndex === PART_FINDER_ROUNDS.length - 1 ? 'See result' : 'Next round'}
+                </button>
+              ) : (
+                <button type="button" className="fq-button" onClick={checkAnswer} disabled={selected.length === 0 || (round.mode === 'tile' && tileAnswer === undefined)} data-testid="button-part-finder-check">Check pieces</button>
+              )}
+            </div>
+          </div>
+          {checked !== 'idle' && (
+            <div className={`fq-pf-feedback ${correct ? 'right' : 'retry'}`} role="status" aria-live="polite" data-testid="part-finder-feedback">
+              <strong>{correct ? 'That fits!' : 'Not quite yet.'}</strong>
+              <span>{correct ? partFinderFeedback(round, selected, tileAnswer) : round.mode === 'tile' ? partFinderFeedback(round, selected, tileAnswer) : 'Try another combination. You can change or clear your pieces.'}</span>
+            </div>
+          )}
+          <p className="fq-pf-separation">Just for fun — this game does not affect lessons, worksheet evidence, or unlocks.</p>
+        </section>
+      </div>
+    </main>
+  );
+}
