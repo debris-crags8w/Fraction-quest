@@ -649,7 +649,7 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(selectLearningVoice(voices, 'en-US', 'Alex|en-US')?.name, 'Alex', 'an available saved choice is reused');
     assert.equal(selectLearningVoice(voices.slice(0, 2), 'en-US')?.name, 'Alex', 'without a feminine-sounding voice, use the best language match');
     assert.equal(selectLearningVoice([], 'en-US'), null);
-    assert.equal(selectLearningVoice([voices[3], { name: 'Luca', lang: 'it-IT', default: false }], 'en-US'), null, 'never select a voice in another language');
+    assert.equal(selectLearningVoice([voices[3], { name: 'Luca', lang: 'it-IT', default: false }], 'en-US')?.lang, 'fr-FR', 'when no requested-language voice exists, use the browser default');
     assert.equal(selectLearningVoice(voices, 'en-US', 'missing|en-US')?.name, 'Samantha', 'an unavailable saved choice falls back to a suitable local voice');
     assert.equal(spokenLearningText('Compare 1/2 with 3/4.'), 'Compare 1 over 2 with 3 over 4.');
   });

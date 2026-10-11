@@ -90,13 +90,13 @@ export function selectLearningVoice<T extends VoiceCandidate>(
   const wanted = normalize(preferredLanguage);
   const primaryLanguage = wanted.split('-')[0];
   const languageMatches = voices.filter((voice) => normalize(voice.lang).split('-')[0] === primaryLanguage);
+  const candidates = languageMatches.length > 0 ? languageMatches : voices;
   if (preferredVoiceId) {
     const savedVoice = languageMatches.find((voice) => learningVoiceId(voice) === preferredVoiceId);
     if (savedVoice) return savedVoice;
   }
-  if (languageMatches.length === 0) return null;
-  const feminineMatches = languageMatches.filter((voice) => FEMININE_VOICE_HINTS.test(voice.name));
-  const preferred = feminineMatches.length > 0 ? feminineMatches : languageMatches;
+  const feminineMatches = candidates.filter((voice) => FEMININE_VOICE_HINTS.test(voice.name));
+  const preferred = feminineMatches.length > 0 ? feminineMatches : candidates;
 
   return [...preferred].sort((a, b) => {
     const exactLanguage = (voice: T) => Number(normalize(voice.lang) === wanted);
