@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { type CSSProperties, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Form } from '@/components/ui/form';
 import { ArrowLeft, Check, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
@@ -8,6 +8,7 @@ import {
   checkWorksheet, editWorksheet, getLearningRecord, hasLearningGate, learningSummary, updateLearning, worksheetCount,
   type LearningRecord,
 } from './learning';
+import { denomColor } from './fun-ui';
 import './learning-lab.css';
 
 type Kind = LearningModel['kind'];
@@ -42,7 +43,7 @@ function Frac({ n, d }: { n: number; d: number }) { return <span className="fq-l
 /* Read-only preview for worksheet visuals */
 function Preview({ m }: { m: LearningModel }) {
   return (
-    <div className="fq-ll-preview" role="img" aria-label={m.kind === 'set' ? `${m.n} of ${m.d} groups selected from ${m.total} objects` : `${m.d} equal parts per whole, marked after ${m.n} parts`}>
+    <div className="fq-ll-preview" style={{ '--piece': denomColor(m.d) } as CSSProperties} role="img" aria-label={m.kind === 'set' ? `${m.n} of ${m.d} groups selected from ${m.total} objects` : `${m.d} equal parts per whole, marked after ${m.n} parts`}>
       {m.kind === 'line' ? (
         <div className="fq-ll-pline">{Array.from({ length: m.d * m.wholes + 1 }, (_, i) => <i key={i} className={i === m.n ? 'on' : ''} style={{ left: `${(i / (m.d * m.wholes)) * 100}%` }}>{i % m.d === 0 && <span>{i / m.d}</span>}</i>)}</div>
       ) : (
@@ -95,7 +96,7 @@ function Builder({ kind, total, st, set, id, title }: { kind: Kind; total?: numb
           onSet={v => set({ ...st, wholes: v, count: Math.min(st.count, st.d * v) })} />}
         <Stepper id={`${id}-count`} label={kind === 'line' ? 'Jumps from 0' : kind === 'set' ? 'Groups selected' : 'Pieces shaded'} value={st.count} min={0} max={Math.max(pieces, 0)} onSet={setCount} />
       </div>
-      <div className="fq-ll-stage">
+      <div className="fq-ll-stage" style={{ '--piece': denomColor(st.d) } as CSSProperties}>
         {st.d === 0 ? <p className="fq-ll-empty">Nothing here yet. Choose how many equal parts, and the model appears.</p> :
           kind === 'bar' ? Array.from({ length: st.wholes }, (_, w) => (
             <div key={w} className={`fq-ll-bar ${wrap ? 'wrap' : ''}`} style={{ gridTemplateColumns: `repeat(${gridColumns(st.d)}, minmax(0,1fr))` }} role="group" aria-label={`Whole ${w + 1}`}>

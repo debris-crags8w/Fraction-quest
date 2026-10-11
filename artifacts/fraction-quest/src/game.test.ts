@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
+import { answerMatches, getBuildChecks, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
+import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
 import {
   completeMission,
   completeSkillReview,
@@ -87,8 +89,8 @@ function assertModel(model: ModelSpec, location: string): void {
       return;
     case 'partition':
       assert.ok(model.parts.length > 1, `${location} needs multiple partition pieces`);
-      assert.ok(model.parts.every((part) => Number.isInteger(part) && part > 0), `${location} has an invalid partition piece`);
-      assert.equal(model.parts.reduce((sum, part) => sum + part, 0), 100, `${location} partition should fill one whole`);
+      assert.ok(model.parts.every((part) => Number.isFinite(part) && part > 0), `${location} has an invalid partition piece`);
+      assert.ok(Math.abs(model.parts.reduce((sum, part) => sum + part, 0) - 100) < 1e-9, `${location} partition should fill one whole`);
       return;
     case 'equation':
       assert.ok(model.text.trim().length > 0, `${location} equation cannot be blank`);
@@ -192,7 +194,8 @@ describe('lesson progression', () => {
     assert.equal(isMissionUnlocked(newLearner, second.id), false);
     assert.equal(isMissionUnlocked(newLearner, third.id), false);
 
-    const afterMastery = completeMission(newLearner, first.id, 2);
+    assert.equal(completeMission(newLearner, first.id, 2), newLearner, 'multiple-choice practice cannot complete a lesson');
+    const afterMastery = completeMission(withLearning(newLearner, first.id), first.id, 2);
     assert.equal(getNextMission(afterMastery)?.id, second.id);
     assert.equal(isMissionUnlocked(afterMastery, first.id), true, 'completed lessons remain available for practice');
     assert.equal(isMissionUnlocked(afterMastery, second.id), true, 'mastering a lesson opens the next lesson');
@@ -251,13 +254,14 @@ describe('due skill reviews', () => {
 describe('saved progress', () => {
   it('saves and reloads completed lessons, best stars, and scheduled skill reviews', () => {
     const lesson = MISSIONS[0];
-    let progress: Progress = completeMission(EMPTY_PROGRESS, lesson.id, 2);
+    let progress: Progress = completeMission(withLearning(recordMissedSkill(EMPTY_PROGRESS, lesson.id, lesson.questions[0].id, 1_000), lesson.id), lesson.id, 2);
     progress = completeMission(progress, lesson.id, 1);
     progress = recordMissedSkill(progress, lesson.id, lesson.questions[0].id, 1_000);
 
     saveProgress(progress);
 
-    assert.deepEqual(loadProgress(), {
+    const loaded = loadProgress();
+    assert.deepEqual({ completedMissionIds: loaded.completedMissionIds, starsByMission: loaded.starsByMission, reviewQueue: loaded.reviewQueue }, {
       completedMissionIds: [lesson.id],
       starsByMission: { [lesson.id]: 2 },
       reviewQueue: [{
@@ -268,6 +272,7 @@ describe('saved progress', () => {
       }],
     });
     assert.equal(getDueSkillReviewCount(loadProgress()), 1);
+    assert.equal(hasLearningGate(loaded, lesson.id), true);
   });
 
   it('clears saved progress when reset is confirmed', () => {
@@ -299,5 +304,118 @@ describe('saved progress', () => {
       'fraction-names': 2,
     });
     assert.deepEqual(migrated.reviewQueue, []);
+  });
+});
+
+function withLearning(progress: Progress, id: string): Progress {
+  let record = { ...emptyLearningRecord(), practiceDone: true };
+  for (const check of getBuildChecks(id)) record.checks[check.id] = { passed: true, supported: false, attempts: 1 };
+  for (const problem of getWorksheet(id)) {
+    record = checkWorksheet(editWorksheet(record, problem.id, problem.answer), problem);
+  }
+  return updateLearning(progress, id, record);
+}
+
+describe('entered-answer worksheets and evidence gates', () => {
+  it('checks independently calculated keys across every curriculum topic', () => {
+    const expected = ['1/3', '1', '1/3', '1/3', '2', '4', '1/4', '1/3', '1/4', '3', '1/3', '4/3', '2/3', '2/3', '1/3, 2/3, 3/3', '2', '2', '2', '2/3', '1', '4/3', '4/3', '2/3', '1/3', '3/4', '0.1', '0.08'];
+    MISSIONS.forEach((mission, index) => assert.equal(getWorksheet(mission.id)[0].answer, expected[index], mission.id));
+  });
+  it('authors twelve valid problems and two skill checks for every topic', () => {
+    for (const mission of MISSIONS) {
+      const problems = getWorksheet(mission.id); const checks = getBuildChecks(mission.id);
+      assert.equal(problems.length, 12, mission.id);
+      assert.equal(new Set(problems.map(p => p.id)).size, 12);
+      assert.ok(new Set(problems.map(p => p.prompt)).size >= 6, `${mission.id} needs varied prompts`);
+      problems.forEach(p => {
+        assert.ok(answerMatches(p, p.answer), `${mission.id}/${p.id}: invalid authored key ${p.answer}`);
+        assert.equal(answerMatches(p, ''), false); assert.equal(answerMatches(p, '1/0'), false);
+        assert.ok(p.hint.length > 10);
+      });
+      assert.equal(checks.length, 2);
+      assert.equal(checks[1].transfer, true);
+      assert.notDeepEqual(checks[0].target, checks[1].target, `${mission.id}: transfer must use new numbers`);
+      checks.forEach(c => {
+        assert.ok(c.correctReason >= 0 && c.correctReason < c.reasons.length);
+        assert.ok(c.target.n > 0 && c.target.d > 0 && c.target.n <= c.target.d * c.target.wholes);
+        if (c.target.total) assert.equal(c.target.total % c.target.d, 0);
+      });
+      for (let round = 0; round < 4; round++) {
+        const review = getReviewCheck(mission.id, round);
+        assert.ok(review.target.n > 0 && review.target.d > 1, `${mission.id} review ${round}`);
+        assert.ok(review.target.n <= review.target.d * review.target.wholes);
+        assert.ok(review.reasons[review.correctReason]);
+      }
+    }
+  });
+  it('accepts equivalent values without rounding and respects requested forms', () => {
+    const base = { id: 'test', prompt: '', hint: '', answer: '1/2' };
+    for (const answer of ['2/4', '0.5', '5/10']) assert.equal(answerMatches(base, answer), true);
+    for (const answer of ['.5oops', '1/0', '1/-2', '', ' ', '0.500001', '1/2/3']) assert.equal(answerMatches(base, answer), false);
+    assert.equal(answerMatches({ ...base, denominator: 4 }, '1/2'), false);
+    assert.equal(answerMatches({ ...base, denominator: 4 }, '2/4'), true);
+    assert.equal(answerMatches({ ...base, form: 'decimal' }, '2/4'), false);
+    assert.equal(answerMatches({ ...base, answer: '7/4' }, '1 and 3/4'), true);
+    assert.equal(answerMatches({ ...base, form: 'ordered', answer: '1/4,1/2,3/4' }, '2/8, 0.5, 6/8'), true);
+    assert.equal(parseAnswer('1 4/3'), null);
+    assert.equal(answerMatches({ ...base, answer: '0.08' }, '0.8'), false);
+  });
+  it('keeps levels locked for blanks, unchecked answers, absent model/reasoning checks and edits', () => {
+    const id = MISSIONS[0].id;
+    let progress = withLearning(EMPTY_PROGRESS, id);
+    assert.equal(hasLearningGate(progress, id), true);
+    assert.equal(isMissionUnlocked(progress, MISSIONS[1].id), true);
+    const record = getLearningRecord(progress, id); const problem = getWorksheet(id)[0];
+    progress = updateLearning(progress, id, editWorksheet(record, problem.id, problem.answer));
+    assert.equal(worksheetCount(getLearningRecord(progress, id), id), 11);
+    assert.equal(isMissionUnlocked(progress, MISSIONS[1].id), false, 'even mathematically correct edits require checking');
+    assert.equal(completeMission(progress, id, 3), progress);
+    progress = updateLearning(progress, id, checkWorksheet(getLearningRecord(progress, id), problem));
+    assert.equal(hasLearningGate(progress, id), true);
+    progress = updateLearning(progress, id, { ...getLearningRecord(progress, id), checks: {} });
+    assert.equal(hasLearningGate(progress, id), false);
+    assert.equal(isMissionUnlocked({ ...EMPTY_PROGRESS, completedMissionIds: MISSIONS.map(m => m.id) }, MISSIONS[1].id), false);
+    assert.equal(getNextMission({ ...EMPTY_PROGRESS, completedMissionIds: MISSIONS.map(m => m.id) })?.id, id);
+    assert.equal(isMissionUnlocked(progress, 'unknown'), false);
+  });
+  it('preserves drafts, correction history and learning evidence over reload, then resets them', () => {
+    const id = MISSIONS[0].id; const problem = getWorksheet(id)[0];
+    let record = checkWorksheet(editWorksheet(emptyLearningRecord(), problem.id, '1/0'), problem);
+    assert.equal(record.worksheet[problem.id].supported, true);
+    record = checkWorksheet(editWorksheet(record, problem.id, problem.answer), problem);
+    assert.equal(record.worksheet[problem.id].supported, true);
+    assert.equal(record.worksheet[problem.id].attempts, 2);
+    record = { ...editWorksheet(record, 'w2', 'unfinished'), reviewSupportedUntil: 123456 };
+    saveProgress(updateLearning(EMPTY_PROGRESS, id, record));
+    const loaded = getLearningRecord(loadProgress(), id);
+    assert.equal(loaded.worksheet.w2.draft, 'unfinished');
+    assert.equal(loaded.worksheet.w1.checkedValue, problem.answer);
+    assert.equal(loaded.misconceptions[problem.hint], 1);
+    assert.equal(loaded.reviewSupportedUntil, 123456, 'reloading must not erase review support');
+    assert.equal(hasLearningGate(loadProgress(), id), false);
+    resetProgress(); assert.deepEqual(loadProgress(), EMPTY_PROGRESS);
+  });
+  it('does not clear delayed evidence reviews with a same-day or assisted success', () => {
+    const id = MISSIONS[0].id;
+    let progress = withLearning(EMPTY_PROGRESS, id);
+    progress = updateLearning(progress, id, { ...getLearningRecord(progress, id), completedAt: 1_000 });
+    progress = completeMission(progress, id, 2);
+    assert.equal(progress.reviewQueue[0].dueAt, 1_000 + SKILL_REVIEW_DELAY_MS);
+    assert.equal(completeSkillReview(progress, id).reviewQueue.length, 1);
+    progress = updateLearning(progress, id, { ...getLearningRecord(progress, id), confirmedAt: 2_000 });
+    assert.equal(completeSkillReview(progress, id).reviewQueue.length, 1);
+    progress = updateLearning(progress, id, { ...getLearningRecord(progress, id), confirmedAt: 1_000 + SKILL_REVIEW_DELAY_MS });
+    assert.equal(completeSkillReview(progress, id).reviewQueue.length, 0);
+  });
+  it('migrates legacy history without inventing understanding and rejects malformed evidence', () => {
+    memory.set('fraction-quest-progress-v1', JSON.stringify({
+      completedMissionIds: [MISSIONS[0].id], starsByMission: { [MISSIONS[0].id]: 3 }, reviewQueue: [],
+      learning: { [MISSIONS[0].id]: { practiceDone: true, checks: { build: { passed: true, supported: 'bad', attempts: -4 } }, worksheet: { w1: { draft: '1/0', checkedValue: '1/0' } }, helpUses: -2 } },
+    }));
+    const progress = loadProgress();
+    assert.deepEqual(progress.completedMissionIds, [MISSIONS[0].id]);
+    assert.equal(hasLearningGate(progress, MISSIONS[0].id), false);
+    assert.equal(isMissionUnlocked(progress, MISSIONS[1].id), false);
+    assert.equal(getLearningRecord(progress, MISSIONS[0].id).helpUses, 0);
   });
 });

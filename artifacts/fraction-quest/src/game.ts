@@ -1,3 +1,6 @@
+import { hasLearningGate, type LearningRecord } from './learning';
+import { getBuildChecks, getWorksheet } from './learning-content';
+
 export type FractionValue = { numerator: number; denominator: number };
 
 export type ModelSpec =
@@ -47,6 +50,7 @@ export type Progress = {
   completedMissionIds: string[];
   starsByMission: Record<string, number>;
   reviewQueue: SkillReview[];
+  learning?: Record<string, LearningRecord>;
 };
 
 export type SkillReview = {
@@ -97,7 +101,7 @@ const curriculum: MissionSeed[] = [
       model: { kind: 'partition', parts: [25, 25, 25, 25], caption: 'One whole divided into equal shares' },
     },
     questions: [
-      practice('Which strip is split into thirds?', ['3 equal pieces', '3 pieces, one much larger', '2 equal pieces'], 0, { kind: 'partition', parts: [33, 34, 33] }, 'Thirds must be 3 equal shares of the same whole.', 'Count the pieces and compare their sizes. A different number of pieces, or unequal pieces, does not make thirds.', { kind: 'partition', parts: [50, 50] }),
+      practice('Which strip is split into thirds?', ['3 equal pieces', '3 pieces, one much larger', '2 equal pieces'], 0, { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }, 'Thirds must be 3 equal shares of the same whole.', 'Count the pieces and compare their sizes. A different number of pieces, or unequal pieces, does not make thirds.', { kind: 'partition', parts: [50, 50] }),
       practice('A sandwich is cut into 4 equal pieces. What fraction is one piece?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), 'The whole has 4 equal pieces. One piece is one of those four.', 'The bottom number counts all equal pieces; one piece is 1 out of 4.', bars({ numerator: 1, denominator: 2 })),
       practice('Two same-size ribbons are each split into halves. Which ribbon shows a fair split?', ['Both pieces match in size', 'One half is twice as long', 'The ribbon with 3 pieces'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 2 }), 'Halves are equal shares of one whole.', 'A half is not just one of two pieces; the two pieces must be equal.', bars({ numerator: 1, denominator: 2 })),
       practice('A circle has 5 equal slices. What is one slice called?', ['one fifth', 'one fourth', 'five wholes'], 0, bars({ numerator: 1, denominator: 5 }), 'The whole is split into 5 equal slices, and you have 1 slice.', 'One of 5 equal pieces is one fifth, written 1/5.', bars({ numerator: 1, denominator: 2 })),
@@ -135,7 +139,7 @@ const curriculum: MissionSeed[] = [
   },
   {
     id: 'unit-size', unit: 2, title: 'Bigger denominator, smaller piece', shortTitle: 'Unit fraction size', skill: 'For unit fractions, more equal parts make each part smaller.',
-    description: 'Compare one piece of different-sized wholes.', example: {
+    description: 'Compare one piece from differently partitioned, same-size wholes.', example: {
       prompt: 'Which is larger: 1/3 or 1/8, when the wholes match?',
       answer: '1/3 is larger.',
       explanation: 'Thirds split the same whole into fewer pieces than eighths, so each third is larger.',
@@ -189,7 +193,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Which fraction is greater than 1/2?', ['2/6', '5/8', '3/10'], 1, bars({ numerator: 5, denominator: 8 }), 'Half of 8 is 4. Compare the numerator 5 to 4.', '5/8 is past halfway. The other numerators are below half of their denominators.', bars({ numerator: 1, denominator: 2 })),
       practice('Is 2/5 less than, equal to, or greater than 1/2?', ['Less than 1/2', 'Equal to 1/2', 'Greater than 1/2'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 1, denominator: 2 }), 'Half of 5 is 2 and a half pieces.', 'Two fifths is less than two and a half fifths, which is one half.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which is closest to 1/2?', ['4/9', '1/5', '7/8'], 0, bars({ numerator: 4, denominator: 9 }, { numerator: 1, denominator: 5 }, { numerator: 7, denominator: 8 }), 'Compare how far each amount is from the halfway point.', 'Four ninths is just one ninth below half; the others are farther away.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is closest to 1/2?', ['4/9', '1/5', '7/8'], 0, bars({ numerator: 4, denominator: 9 }, { numerator: 1, denominator: 5 }, { numerator: 7, denominator: 8 }), 'Compare how far each amount is from the halfway point.', 'Four ninths is half of one ninth (1/18) below half; the others are farther away.', bars({ numerator: 1, denominator: 2 })),
       practice('A jug is 6/10 full. Is that more or less than half?', ['More than half', 'Less than half', 'Exactly half'], 0, bars({ numerator: 6, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Half of 10 equal parts is 5 parts.', 'Six tenths is one tenth past 5/10, which is one half.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
@@ -265,7 +269,7 @@ const curriculum: MissionSeed[] = [
       practice('On a line with fourth-size jumps, what is 5 jumps from 0?', ['5/4', '4/5', '1/4'], 0, line(5, 4, 2), 'Four fourths reach 1. Count one more fourth.', 'Five jumps are 5/4, or 1 and 1/4.', line(3, 4)),
       practice('Which point is just past 1 on a line marked in thirds?', ['2/3', '4/3', '1/3'], 1, line(4, 3, 2), 'Three thirds reach 1; one more third is 4/3.', '4/3 is 1 and 1/3, just past one.', line(2, 3)),
       practice('How many sixths make 1 and 2/6?', ['8/6', '6/8', '2/6'], 0, line(8, 6, 2), 'One whole is 6/6. Add 2/6 more.', '6/6 + 2/6 = 8/6.', line(6, 6)),
-      practice('A runner goes 9 fifth-size steps. How far is that?', ['1 and 4/5', '9/5 = 1 and 4/5', '4/5'], 1, line(9, 5, 2), 'Five fifths make a whole. Group the 9 steps into a whole and leftovers.', '9/5 is 5/5 + 4/5, which is 1 and 4/5.', line(5, 5)),
+      practice('A runner goes 9 fifth-size steps. How far is that?', ['1 and 3/5', '9/5 = 1 and 4/5', '4/5'], 1, line(9, 5, 2), 'Five fifths make a whole. Group the 9 steps into a whole and leftovers.', '9/5 is 5/5 + 4/5, which is 1 and 4/5.', line(5, 5)),
     ],
   },
   {
@@ -557,6 +561,8 @@ export function recordMissedSkill(
 }
 
 export function completeSkillReview(progress: Progress, missionId: string): Progress {
+  const evidence = progress.learning?.[missionId];
+  if (evidence && (!evidence.completedAt || !evidence.confirmedAt || evidence.confirmedAt < evidence.completedAt + SKILL_REVIEW_DELAY_MS)) return progress;
   const reviewQueue = progress.reviewQueue.filter((item) => item.missionId !== missionId);
   return reviewQueue.length === progress.reviewQueue.length ? progress : { ...progress, reviewQueue };
 }
@@ -621,7 +627,7 @@ export function getDelayedReviewQuestions(
 }
 
 export function getNextMission(progress: Progress): Mission | null {
-  return MISSIONS.find((item) => !progress.completedMissionIds.includes(item.id)) ?? null;
+  return MISSIONS.find((item) => !hasLearningGate(progress, item.id)) ?? null;
 }
 
 export function isCorrectAnswer(question: PracticeQuestion, answer: Answer): boolean {
@@ -629,16 +635,18 @@ export function isCorrectAnswer(question: PracticeQuestion, answer: Answer): boo
 }
 
 export function isMissionUnlocked(progress: Progress, missionId: string): boolean {
-  if (progress.completedMissionIds.includes(missionId)) return true;
   const targetIndex = MISSIONS.findIndex((item) => item.id === missionId);
   if (targetIndex < 0) return false;
-  const nextIndex = MISSIONS.findIndex((item) => !progress.completedMissionIds.includes(item.id));
-  return nextIndex < 0 || targetIndex <= nextIndex;
+  return MISSIONS.slice(0, targetIndex).every(item => hasLearningGate(progress, item.id));
 }
 
 export function completeMission(progress: Progress, missionId: string, stars: number): Progress {
+  if (!isMissionUnlocked(progress, missionId) || !hasLearningGate(progress, missionId)) return progress;
   const safeStars = Math.max(1, Math.min(3, Math.floor(stars)));
+  const record = progress.learning![missionId];
+  const completedAt = record.completedAt ?? Date.now();
   return {
+    ...progress,
     completedMissionIds: progress.completedMissionIds.includes(missionId)
       ? progress.completedMissionIds
       : [...progress.completedMissionIds, missionId],
@@ -646,7 +654,10 @@ export function completeMission(progress: Progress, missionId: string, stars: nu
       ...progress.starsByMission,
       [missionId]: Math.max(progress.starsByMission[missionId] ?? 0, safeStars),
     },
-    reviewQueue: progress.reviewQueue,
+    learning: { ...progress.learning, [missionId]: { ...record, completedAt } },
+    reviewQueue: progress.reviewQueue.some(item => item.missionId === missionId) ? progress.reviewQueue : [
+      ...progress.reviewQueue, { missionId, missedQuestionId: getMission(missionId).questions[0].id, dueAt: completedAt + SKILL_REVIEW_DELAY_MS, reviewCount: 0 },
+    ],
   };
 }
 
@@ -700,17 +711,55 @@ export function loadProgress(): Progress {
         });
       }
     }
-    return { completedMissionIds: [...completed], starsByMission, reviewQueue };
+    const learning: Record<string, LearningRecord> = {};
+    if (value.learning && typeof value.learning === 'object') {
+      for (const id of validIds) {
+        const raw = value.learning[id];
+        if (!raw || typeof raw !== 'object') continue;
+        const checks: LearningRecord['checks'] = {};
+        for (const spec of getBuildChecks(id)) {
+          const c = raw.checks?.[spec.id];
+          if (c && typeof c.passed === 'boolean') checks[spec.id] = {
+            passed: c.passed, supported: c.supported !== false, attempts: safeCount(c.attempts),
+          };
+        }
+        const worksheet: LearningRecord['worksheet'] = {};
+        for (const problem of getWorksheet(id)) {
+          const entry = raw.worksheet?.[problem.id];
+          if (entry && typeof entry.draft === 'string') worksheet[problem.id] = {
+            draft: entry.draft.slice(0, 200), checkedValue: typeof entry.checkedValue === 'string' ? entry.checkedValue.slice(0, 200) : undefined,
+            attempts: safeCount(entry.attempts), supported: entry.supported !== false,
+          };
+        }
+        const misconceptions: Record<string, number> = {};
+        if (raw.misconceptions && typeof raw.misconceptions === 'object') for (const [key, count] of Object.entries(raw.misconceptions)) {
+          if (key.length <= 300 && safeCount(count) > 0) misconceptions[key] = safeCount(count);
+        }
+        learning[id] = {
+          practiceDone: raw.practiceDone === true, checks, worksheet, misconceptions,
+          helpUses: safeCount(raw.helpUses),
+          completedAt: typeof raw.completedAt === 'number' && Number.isFinite(raw.completedAt) ? raw.completedAt : undefined,
+          confirmedAt: typeof raw.confirmedAt === 'number' && Number.isFinite(raw.confirmedAt) ? raw.confirmedAt : undefined,
+          reviewSupportedUntil: typeof raw.reviewSupportedUntil === 'number' && Number.isFinite(raw.reviewSupportedUntil) ? raw.reviewSupportedUntil : undefined,
+        };
+      }
+    }
+    return { completedMissionIds: [...completed], starsByMission, reviewQueue, ...(Object.keys(learning).length ? { learning } : {}) };
   } catch {
     return EMPTY_PROGRESS;
   }
 }
 
-export function saveProgress(progress: Progress): void {
+function safeCount(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.min(10000, Math.floor(value))) : 0;
+}
+
+export function saveProgress(progress: Progress): boolean {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    return true;
   } catch {
-    // The course still works when a browser blocks local storage.
+    return false;
   }
 }
 

@@ -1,6 +1,6 @@
-import { type CSSProperties, useState } from 'react';
+import { type CSSProperties, useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, CircleHelp, Compass, Lightbulb, LockKeyhole, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Compass, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -31,6 +31,8 @@ import LearningLab from './LearningLab';
 import { getLearningRecord, hasLearningGate, learningSummary, updateLearning, worksheetCount } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
+import { loadFun, playCue, recordCorrect, resetFun, setSound, type FunState } from './lib/fun';
+import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
 
 const queryClient = new QueryClient();
 
@@ -67,7 +69,7 @@ function FractionBar({ numerator, denominator }: { numerator: number; denominato
   return (
     <div style={{ display: 'grid', gap: 8, flex: 1 }} role="img" aria-label={`${numerator}/${denominator}, with ${denominator} equal parts per whole`}>
       {Array.from({ length: Math.max(1, Math.ceil(numerator / denominator)) }, (_, whole) => (
-        <div className="fq-bar" style={{ '--pieces': denominator } as CSSProperties} key={whole}>
+        <div className="fq-bar" style={{ '--pieces': denominator, '--piece': denomColor(denominator) } as CSSProperties} key={whole}>
           {Array.from({ length: denominator }, (_, index) => <span className={whole * denominator + index < numerator ? '' : 'empty'} key={index} />)}
         </div>
       ))}
@@ -131,16 +133,9 @@ function ModelView({ model, compact = false }: { model: ModelSpec; compact?: boo
   );
 }
 
-function Stars({ count, size = 17 }: { count: number; size?: number }) {
-  return (
-    <span className="fq-stars" aria-label={`${count} of 3 stars`}>
-      {[0, 1, 2].map((star) => <Star className={star < count ? 'filled' : ''} key={star} size={size} strokeWidth={2.5} />)}
-    </span>
-  );
-}
-
 function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: () => void; onHome: () => void }) {
   const stars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
+  const { fun, setFun } = useFun();
   return (
     <header className="fq-shell fq-topbar">
       <button className="fq-brand" onClick={onHome} data-testid="button-home">
@@ -148,11 +143,17 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
         <span>Fraction Quest</span>
       </button>
       <div className="fq-topbar-actions">
+        <div className="fq-fun-stats">
+          <span className="fq-stat fq-stat-streak" title="Day streak" data-testid="status-day-streak"><Flame size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{fun.dayStreak}</strong><span className="fq-sr">day streak</span></span>
+          <span className="fq-stat fq-stat-xp" title="XP earned" data-testid="status-xp"><Zap size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{fun.xp}</strong><span className="fq-stat-unit">XP</span></span>
+          <DailyRing answered={fun.answeredToday} />
+        </div>
         <div className="fq-progress-pill" data-testid="status-overall-progress" aria-live="polite">
           <Star size={15} className="filled" aria-hidden="true" />
           <span><strong>{stars}</strong> stars</span><span aria-hidden="true">·</span>
            <span><strong>{MISSIONS.filter(item => hasLearningGate(progress, item.id)).length}</strong>/{MISSIONS.length} lessons</span>
         </div>
+        <button className="fq-icon-button" onClick={() => setFun(setSound(fun, !fun.sound))} aria-label={fun.sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={fun.sound} data-testid="button-toggle-sound">{fun.sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
         <button className="fq-icon-button" onClick={onReset} aria-label="Reset progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>
       </div>
     </header>
@@ -163,6 +164,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset }: { progress: P
   const totalStars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
   const nextMission = getNextMission(progress);
   const dueReviewCount = getDueSkillReviewCount(progress);
+  const [selectedId, setSelectedId] = useState<string | null>(() => nextMission?.id ?? null);
   const units = UNIT_INFO.map((unit, index) => ({
     ...unit,
     number: index + 1,
@@ -180,7 +182,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset }: { progress: P
             <p>Build, spot, compare, and combine fractions, one small discovery at a time.</p>
           </div>
           <div className="fq-compass" aria-hidden="true">
-            <div className="fq-compass-disc"><div className="fq-compass-needle" /></div>
+            <div className="fq-hero-mascot"><Mascot mood="happy" size={150} /></div>
             <div className="fq-compass-fraction one"><Fraction numerator={1} denominator={2} /></div>
             <div className="fq-compass-fraction two"><Fraction numerator={3} denominator={4} /></div>
             <div className="fq-compass-fraction three"><Fraction numerator={2} denominator={3} /></div>
@@ -225,7 +227,7 @@ function MissionMap({ progress, onStart, onStartReview, onReset }: { progress: P
             {units.map((unit) => {
                const completedInUnit = unit.missions.filter((item) => hasLearningGate(progress, item.id)).length;
               return (
-                <section className="fq-unit" key={unit.number} aria-labelledby={`unit-${unit.number}`}>
+                <section className="fq-unit" key={unit.number} aria-labelledby={`unit-${unit.number}`} style={{ '--unit': unitColor(unit.number) } as CSSProperties}>
                   <div className="fq-unit-heading">
                     <div>
                       <span className="fq-unit-kicker">Unit {unit.number}</span>
@@ -234,44 +236,49 @@ function MissionMap({ progress, onStart, onStartReview, onReset }: { progress: P
                     </div>
                     <span className="fq-unit-count" aria-label={`${completedInUnit} of ${unit.missions.length} lessons mastered`}>{completedInUnit}/{unit.missions.length}</span>
                   </div>
-                  <div className="fq-mission-grid">
-                    {unit.missions.map((mission) => {
+                  <LessonPath
+                    unit={unit.number}
+                    color={unitColor(unit.number)}
+                    selectedId={selectedId}
+                    onSelect={(id) => setSelectedId((current) => (current === id ? null : id))}
+                    allDone={completedInUnit === unit.missions.length}
+                    nodes={unit.missions.map((mission): PathNode => {
                       const unlocked = isMissionUnlocked(progress, mission.id);
-                       const completed = hasLearningGate(progress, mission.id);
-                       const learning = getLearningRecord(progress, mission.id);
-                       const summary = learningSummary(learning);
+                      const completed = hasLearningGate(progress, mission.id);
+                      const learning = getLearningRecord(progress, mission.id);
+                      const summary = learningSummary(learning);
                       const missionNumber = MISSIONS.indexOf(mission) + 1;
-                      return (
-                        <article className={`fq-mission-card ${unlocked ? '' : 'locked'} ${completed ? 'complete' : ''}`} key={mission.id} data-testid={`card-mission-${mission.id}`}>
-                          <div className="fq-mission-number">
-                            <span>Lesson {String(missionNumber).padStart(2, '0')}</span>
-                             {completed ? <Check size={18} color="hsl(var(--secondary))" strokeWidth={3} aria-label="Lesson completed" /> : !unlocked ? <LockKeyhole size={17} aria-label="Locked" /> : null}
-                          </div>
-                          <div className="fq-mission-symbol" aria-hidden="true">{completed ? <Check size={26} /> : <Compass size={27} />}</div>
-                          <h4>{mission.title}</h4>
-                          <p>{mission.description}</p>
-                           <p data-testid={`status-learning-${mission.id}`}>
-                             Worksheet {worksheetCount(learning, mission.id)}/12 · {summary.independentChecks}/2 independent model checks
-                             <br />{summary.transfer} · {summary.retention}
-                             {!completed && <><br />Complete models, reasoning and all worksheet answers to unlock the next lesson.</>}
-                             {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Earlier progress saved; new checks still needed.</>}
-                           </p>
-                          <div className="fq-mission-footer">
-                            <Stars count={progress.starsByMission[mission.id] ?? 0} />
+                      return {
+                        id: mission.id,
+                        number: missionNumber,
+                        title: mission.title,
+                        stars: progress.starsByMission[mission.id] ?? 0,
+                        state: completed ? 'done' : !unlocked ? 'lock' : mission.id === nextMission?.id ? 'now' : 'open',
+                        detail: (
+                          <>
+                            <span className="fq-node-kicker">Lesson {String(missionNumber).padStart(2, '0')}</span>
+                            <h4>{mission.title}</h4>
+                            <p>{mission.description}</p>
+                            <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
+                              Worksheet {worksheetCount(learning, mission.id)}/12 · {summary.independentChecks}/2 independent model checks
+                              <br />{summary.transfer} · {summary.retention}
+                              {!completed && unlocked && <><br />Finish the models, your reasoning and all worksheet answers to unlock the next lesson.</>}
+                              {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Earlier progress saved; new checks still needed.</>}
+                            </p>
                             <button
                               className={`fq-button ${completed ? 'ghost' : ''}`}
                               onClick={() => onStart(mission.id)}
                               disabled={!unlocked}
                               data-testid={`button-start-mission-${mission.id}`}
                             >
-                               {completed ? 'Practice again' : unlocked ? learning.practiceDone ? 'Resume worksheet & models' : 'Start lesson' : 'Locked'}
+                              {completed ? 'Practice again' : unlocked ? learning.practiceDone ? 'Resume worksheet & models' : 'Start lesson' : 'Finish earlier lessons first'}
                               {unlocked && <ArrowRight size={16} />}
                             </button>
-                          </div>
-                        </article>
-                      );
+                          </>
+                        ),
+                      };
                     })}
-                  </div>
+                  />
                 </section>
               );
             })}
@@ -296,28 +303,32 @@ function PlayView({
   mission,
   questionIndex,
   firstTryAnswers,
+  combo,
   onBack,
-  onReset,
   onNext,
   onFinish,
   onMissed,
   onReviewCompleted,
   onReviewDeferred,
   onPracticeSignal,
+  onCorrect,
+  onWrong,
   isQuickReview = false,
   onFinishReview,
 }: {
   mission: Mission;
   questionIndex: number;
   firstTryAnswers: number;
+  combo: number;
   onBack: () => void;
-  onReset: () => void;
   onNext: (firstTryAnswers: number) => void;
   onFinish: (stars: number) => void;
   onMissed: (missionId: string, questionId: string) => void;
   onReviewCompleted: (missionId: string) => void;
   onReviewDeferred: (missionId: string) => void;
   onPracticeSignal: (missionId: string, misconception?: string) => void;
+  onCorrect: (firstTry: boolean) => void;
+  onWrong: () => void;
   isQuickReview?: boolean;
   onFinishReview?: () => void;
 }) {
@@ -326,6 +337,9 @@ function PlayView({
   const [hintOpen, setHintOpen] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [useSimplerModel, setUseSimplerModel] = useState(false);
+  const [burst, setBurst] = useState(0);
+  const [shake, setShake] = useState(0);
+  const { fun } = useFun();
   const isExample = questionIndex < 0;
   const question: PracticeQuestion | null = isExample ? null : mission.questions[questionIndex];
   const isLastQuestion = question ? questionIndex === mission.questions.length - 1 : false;
@@ -338,6 +352,9 @@ function PlayView({
         else onReviewDeferred(question.reviewMissionId);
       }
       setFeedback('correct');
+      setBurst((n) => n + 1);
+      playCue('correct', fun.sound);
+      onCorrect(attempts === 0 && !hintOpen);
     } else {
       if (attempts === 0) {
         if (question.isOptionalReview && question.reviewMissionId) {
@@ -352,6 +369,9 @@ function PlayView({
       setAttempts((current) => current + 1);
       if (!isQuickReview && !question.isOptionalReview) onPracticeSignal(question.reviewMissionId ?? mission.id, question.retryFeedback);
       setFeedback('retry');
+      setShake((n) => n + 1);
+      playCue('retry', fun.sound);
+      onWrong();
       if (attempts + 1 >= 2) setUseSimplerModel(true);
     }
   };
@@ -387,26 +407,50 @@ function PlayView({
     onNext(firstTryAnswers);
   };
 
+  const toggleHint = () => {
+    if (!question) return;
+    if (!hintOpen) { onPracticeSignal(question.reviewMissionId ?? mission.id); setAttempts(current => Math.max(1, current)); }
+    setHintOpen((open) => !open);
+  };
+  // `mission` can be a copy with review questions mixed in, so look it up by id.
+  const lessonNumber = String(MISSIONS.findIndex((item) => item.id === mission.id) + 1).padStart(2, '0');
+  const steps = mission.questions.length + (isQuickReview ? 0 : 1);
+  const doneSteps = (isQuickReview ? 0 : 1) + Math.max(0, questionIndex) + (feedback === 'correct' ? 1 : 0) - (isExample ? 1 : 0);
+  const mood: MascotMood = feedback === 'correct' ? 'cheer' : feedback === 'retry' ? 'oops' : 'thinking';
+  const cheer = combo >= 3 ? `${combo} in a row! You're on fire.` : question?.isMastery ? 'Practice checkpoint passed!' : ['Nice work!', 'You found it!', 'Great thinking!', 'Yes, that\'s it!'][(questionIndex + 4) % 4];
+
   return (
-    <div className="fq-app">
-      <Topbar progress={loadProgress()} onReset={onReset} onHome={onBack} />
+    <div className="fq-app fq-lesson-app" style={{ '--unit': unitColor(mission.unit) } as CSSProperties}>
+      <Confetti burst={burst} />
       <main className="fq-shell fq-play-shell fq-appear">
-        <div className="fq-play-top">
-          <button className="fq-back" onClick={onBack} data-testid="button-back-map"><ArrowLeft size={17} /> Learning map</button>
-          <div className="fq-play-count">
-            {isExample ? 'Guided example' : isQuickReview ? `Quick review · Question ${questionIndex + 1} of ${mission.questions.length}` : `Question ${questionIndex + 1} of ${mission.questions.length}`}
+        <div className="fq-lesson-top">
+          <button className="fq-icon-button fq-lesson-close" onClick={onBack} aria-label="Back to learning map" data-testid="button-back-map"><X size={22} strokeWidth={3} /></button>
+          <div className="fq-segments" role="progressbar" aria-valuemin={0} aria-valuemax={steps} aria-valuenow={doneSteps} aria-label={isExample ? 'Guided example' : `${isQuickReview ? 'Quick review · ' : ''}Question ${questionIndex + 1} of ${mission.questions.length}`} data-testid="status-lesson-progress">
+            {Array.from({ length: steps }, (_, index) => <i key={index} className={index < doneSteps ? 'on' : index === doneSteps ? 'now' : ''} />)}
           </div>
+          {combo >= 2 && <span className="fq-combo" data-testid="status-combo"><Flame size={16} fill="currentColor" /> {combo}</span>}
+          {question && (
+            <button className={`fq-bulb ${hintOpen ? 'open' : ''}`} onClick={toggleHint} aria-expanded={hintOpen} aria-label={hintOpen ? 'Hide hint' : 'Show a hint'} data-testid="button-show-hint">
+              <Lightbulb size={20} strokeWidth={2.75} />
+            </button>
+          )}
         </div>
+
         <section className="fq-play-card" aria-labelledby="lesson-title">
           <p className="fq-play-kicker">
             {isQuickReview
               ? `Quick skill review · ${question?.reviewTopicTitle ?? mission.shortTitle}`
-              : `Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')} · ${mission.shortTitle}`}
+              : isExample
+                ? `Lesson ${lessonNumber} · See it first`
+                : `Lesson ${lessonNumber} · ${mission.shortTitle} · ${questionIndex + 1} of ${mission.questions.length}`}
           </p>
           <h1 id="lesson-title">{isExample ? mission.title : question?.prompt}</h1>
           {isExample ? (
             <div className="fq-example">
-              <p className="fq-skill-statement">{mission.skill}</p>
+              <div className="fq-mascot-say">
+                <Mascot mood="happy" size={64} />
+                <p className="fq-skill-statement">{mission.skill}</p>
+              </div>
               <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
               <div className="fq-example-answer">
                 <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
@@ -414,26 +458,16 @@ function PlayView({
                 <p className="fq-example-result">{mission.example.answer}</p>
                 <p>{mission.example.explanation}</p>
               </div>
+              <TapModel model={mission.example.model} />
             </div>
           ) : question && (
             <>
               {question.isReview && <div className="fq-review-label"><RotateCcw size={15} />{question.isOptionalReview ? `${isQuickReview ? 'Due skill' : 'Optional review'} · ${question.reviewTopicTitle}` : ' A quick revisit to help it stick'}</div>}
-               {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint · models and worksheet come next</div>}
+              {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint · models and worksheet come next</div>}
               <div className="fq-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} />
               </div>
-              {feedback === 'retry' && (
-                <div className="fq-feedback retry" role="status" data-testid="status-feedback">
-                  <CircleHelp size={20} />
-                  <div><strong>Not quite yet. Let's look at the pieces.</strong><br />{question.retryFeedback}</div>
-                </div>
-              )}
-              {feedback === 'correct' && (
-                <div className="fq-feedback success" role="status" data-testid="status-feedback">
-                  <Check size={20} strokeWidth={3} />
-                   <div><strong>{question.isMastery ? 'Practice checkpoint passed!' : 'You found it.'}</strong> {question.hint}</div>
-                </div>
-              )}
+              {hintOpen && <div className="fq-hint" data-testid="text-question-hint"><Lightbulb size={18} /> <span><strong>Try this idea:</strong> {question.hint}</span></div>}
               {attempts >= 2 && (
                 <div className="fq-remediation" role="note" data-testid="status-remediation">
                   <strong>Let's make it simpler.</strong>
@@ -441,12 +475,11 @@ function PlayView({
                   <ModelView model={question.simplerModel} compact />
                 </div>
               )}
-              {hintOpen && <div className="fq-hint" data-testid="text-question-hint"><strong>Try this idea:</strong> {question.hint}</div>}
               <div className="fq-answer-choices" role="group" aria-label="Choose an answer">
                 {question.choices.map((choice, index) => (
                   <button
-                    key={`${question.id}-${index}`}
-                     className={`fq-answer-choice ${selection === index ? `selected ${feedback ?? ''}` : ''}`}
+                    key={`${question.id}-${index}${selection === index && feedback === 'retry' ? `-shake-${shake}` : ''}`}
+                    className={`fq-answer-choice ${selection === index ? `selected ${feedback ?? ''}` : ''} ${selection === index && feedback === 'retry' ? 'fq-shake' : ''}`}
                     onClick={() => {
                       if (feedback === 'correct') return;
                       setSelection(index);
@@ -455,56 +488,77 @@ function PlayView({
                     aria-pressed={selection === index}
                     data-testid={`button-answer-${question.id}-${index}`}
                   >
-                    <span className="fq-choice-marker" aria-hidden="true">{String.fromCharCode(65 + index)}</span>
-                     <span>{choice}{selection === index && <small> — {feedback === 'correct' ? 'Correct' : feedback === 'retry' ? 'Try again' : 'Selected (not checked)'}</small>}</span>
+                    <span className="fq-choice-marker" aria-hidden="true">{index + 1}</span>
+                    <span>{choice}<span className="fq-sr">{selection === index ? ` (${feedback === 'correct' ? 'correct' : feedback === 'retry' ? 'try again' : 'selected, not checked yet'})` : ''}</span></span>
                   </button>
                 ))}
               </div>
-              <div className="fq-question-bottom">
-                 <button className="fq-hint-button" onClick={() => { if (!hintOpen) { onPracticeSignal(question.reviewMissionId ?? mission.id); setAttempts(current => Math.max(1, current)); } setHintOpen((open) => !open); }} aria-expanded={hintOpen} data-testid="button-show-hint">
-                  <Lightbulb size={17} /> {hintOpen ? 'Hide hint' : 'Need a hint?'}
-                </button>
-                {question.isOptionalReview && (
-                  <button className="fq-hint-button" onClick={skipOptionalReview} data-testid="button-skip-review">
-                    Skip this review
-                  </button>
-                )}
-                {feedback === 'correct' ? (
-                  <button className="fq-button secondary" onClick={moveOn} data-testid={isLastQuestion ? 'button-finish-mission' : 'button-next-question'}>
-                     {isLastQuestion ? isQuickReview ? 'Finish review' : 'Build & explain next' : 'Next question'} <ArrowRight size={17} />
-                  </button>
-                ) : (
-                  <button className="fq-button" onClick={checkAnswer} disabled={selection === null} data-testid="button-check-answer">
-                    Check my answer <Check size={17} />
-                  </button>
-                )}
-              </div>
             </>
-          )}
-          {isExample && (
-            <div className="fq-question-bottom fq-example-bottom">
-              <button className="fq-hint-button" onClick={onBack} data-testid="button-back-example">Back to map</button>
-               <button className="fq-button secondary" onClick={moveOn} data-testid="button-start-practice">Let me try it <ArrowRight size={17} /></button>
-            </div>
           )}
         </section>
       </main>
+
+      <div className={`fq-lesson-footer ${feedback ? `show ${feedback}` : ''}`}>
+        <div className="fq-shell fq-lesson-footer-inner">
+          {feedback && question ? (
+            <div className="fq-sheet" role="status" data-testid="status-feedback">
+              <Mascot mood={mood} size={64} />
+              <div className="fq-sheet-copy">
+                {feedback === 'correct'
+                  ? <><strong>{cheer}</strong><span>{question.hint}</span></>
+                  : <><strong>Not quite yet. Let's look at the pieces.</strong><span>{question.retryFeedback}</span></>}
+              </div>
+              {feedback === 'correct' ? (
+                <button className="fq-button fq-sheet-button" onClick={moveOn} data-testid={isLastQuestion ? 'button-finish-mission' : 'button-next-question'}>
+                  {isLastQuestion ? isQuickReview ? 'Finish review' : 'Build & explain next' : 'Continue'} <ArrowRight size={17} />
+                </button>
+              ) : (
+                <button className="fq-button fq-sheet-button" onClick={() => { setFeedback(null); setSelection(null); }} data-testid="button-try-again">
+                  Got it, try again
+                </button>
+              )}
+            </div>
+          ) : isExample ? (
+            <div className="fq-footer-actions">
+              <button className="fq-hint-button" onClick={onBack} data-testid="button-back-example"><ArrowLeft size={17} /> Back to map</button>
+              <button className="fq-button" onClick={moveOn} data-testid="button-start-practice">Let me try it <ArrowRight size={17} /></button>
+            </div>
+          ) : question && (
+            <div className="fq-footer-actions">
+              {question.isOptionalReview ? (
+                <button className="fq-hint-button" onClick={skipOptionalReview} data-testid="button-skip-review">Skip this review</button>
+              ) : <span />}
+              <button className="fq-button" onClick={checkAnswer} disabled={selection === null} data-testid="button-check-answer">
+                Check <Check size={17} strokeWidth={3} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
 function RewardView({ mission, stars, progress, onMap, onNext, onReset }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void }) {
   const nextMission = getNextMission(progress);
+  const { fun } = useFun();
+  useEffect(() => {
+    playCue('complete', fun.sound);
+    const timers = Array.from({ length: stars }, (_, index) => window.setTimeout(() => playCue('star', fun.sound), 700 + index * 380));
+    return () => timers.forEach(window.clearTimeout);
+    // Play once when the reward screen opens.
+  }, []);
   return (
     <div className="fq-app">
+      <Confetti burst={1} />
       <Topbar progress={progress} onReset={onReset} onHome={onMap} />
       <main className="fq-shell">
         <section className="fq-reward fq-appear" data-testid="status-mission-complete">
-          <div className="fq-reward-badge" aria-hidden="true"><Trophy size={49} strokeWidth={2.2} /></div>
+          <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
           <h1>{mission.title}<br />is on your map.</h1>
            <p>You built models, explained your thinking and corrected all 12 worksheet answers. The next lesson is unlocked. A later independent review will check what you remember.</p>
-          <div className="fq-reward-stars" data-testid="status-mission-stars">{[0, 1, 2].map((star) => <Star key={star} size={34} className={star < stars ? 'filled' : ''} />)}</div>
+          <div className="fq-reward-stars" data-testid="status-mission-stars" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}
             <button className="fq-button ghost" onClick={onMap} data-testid="button-return-map"><MapIcon size={17} /> Learning map</button>
@@ -540,6 +594,8 @@ function Game() {
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const [fun, setFun] = useState<FunState>(() => loadFun());
+  const [combo, setCombo] = useState(0);
 
   const startMission = (missionId: string) => {
     if (!isMissionUnlocked(progress, missionId)) return;
@@ -578,6 +634,8 @@ function Game() {
 
   const resetProgress = () => {
     persistProgress(resetSavedProgress());
+    setFun(resetFun());
+    setCombo(0);
     setView({ type: 'map' });
     setResetOpen(false);
   };
@@ -599,7 +657,7 @@ function Game() {
     : view.type === 'review' && baseMission
       ? { ...baseMission, questions: view.reviewQuestions }
       : baseMission;
-  const returnToMap = () => { setPendingRetention(null); setView({ type: 'map' }); };
+  const returnToMap = () => { setPendingRetention(null); setCombo(0); setView({ type: 'map' }); };
   const nextReviewView = (nextView: View) => {
     if (pendingRetention) {
       setView({ type: 'retention', missionId: pendingRetention, startedAt: Date.now(), nextView });
@@ -611,7 +669,7 @@ function Game() {
   };
 
   return (
-    <>
+    <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
       {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onStartReview={startReview} onReset={() => setResetOpen(true)} />}
       {(view.type === 'play' || view.type === 'review') && activeMission && (
@@ -621,8 +679,10 @@ function Game() {
           questionIndex={view.questionIndex}
           firstTryAnswers={view.type === 'play' ? view.firstTryAnswers : 0}
           isQuickReview={view.type === 'review'}
+          combo={combo}
           onBack={returnToMap}
-          onReset={() => setResetOpen(true)}
+          onCorrect={(firstTry) => { setFun((current) => recordCorrect(current)); setCombo((current) => (firstTry ? current + 1 : 0)); }}
+          onWrong={() => setCombo(0)}
           onNext={(firstTryAnswers) => {
             if (view.type === 'review') {
               nextReviewView({ type: 'review', questionIndex: view.questionIndex + 1, reviewQuestions: view.reviewQuestions });
@@ -676,7 +736,7 @@ function Game() {
           <div className="fq-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description">
             <button className="fq-icon-button fq-modal-close" onClick={() => setResetOpen(false)} aria-label="Close reset dialog" data-testid="button-close-reset"><X size={18} /></button>
             <h2 id="reset-title">Start the map over?</h2>
-            <p id="reset-description">This clears lesson progress, worksheet answers, learning evidence, stars, and saved skill reviews on this device. This cannot be undone.</p>
+            <p id="reset-description">This clears lesson progress, worksheet answers, learning evidence, stars, XP, streaks and saved skill reviews on this device. This cannot be undone.</p>
             <div className="fq-modal-actions">
               <button className="fq-button ghost" onClick={() => setResetOpen(false)} data-testid="button-cancel-reset">Keep exploring</button>
               <button className="fq-button" onClick={resetProgress} data-testid="button-confirm-reset">Reset progress</button>
@@ -684,7 +744,7 @@ function Game() {
           </div>
         </div>
       )}
-    </>
+    </FunContext.Provider>
   );
 }
 
