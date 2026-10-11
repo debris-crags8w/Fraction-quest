@@ -279,3 +279,6 @@
 }
 .fq-family-guest h2 { margin: 0 0 8px; font-size: clamp(1.35rem, 3vw, 1.8rem); }
 .fq-family-guest p { max-width: 650px; color: var(--family-muted); line-height: 1.55; }
+
+.fq-family-delete-password { display: grid; gap: 6px; margin-top: 10px; font-weight: 700; }
+.fq-family-delete-password input { padding: 10px 12px; border: 2px solid var(--fq-edge, #d8d4e8); border-radius: 12px; font: inherit; }

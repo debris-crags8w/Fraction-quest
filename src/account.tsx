@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   acceptPrivacyConsent,
+  deleteAccount as apiDeleteAccount,
   deleteLearnerProgress,
   getCurrentUser,
   getLearnerProgress,
@@ -32,6 +33,8 @@ type AccountValue = {
   selectProfile: (profileId: number) => Promise<void>;
   refreshProfiles: (preferProfileId?: number) => Promise<void>;
   clearActiveProfileProgress: () => Promise<void>;
+  /** Permanently delete the account and everything saved with it (asks for the password again). */
+  deleteAccount: (password: string) => Promise<void>;
   signOut: () => Promise<void>;
   goToSignIn: () => void;
 };
@@ -39,7 +42,7 @@ type AccountValue = {
 export const AccountContext = createContext<AccountValue>({
   user: null, profiles: [], activeProfile: null, activeProfileId: null,
   syncStatus: 'saved', accountError: null, initialProgress: null, initialFun: null,
-  selectProfile: async () => {}, refreshProfiles: async () => {}, clearActiveProfileProgress: async () => {},
+  selectProfile: async () => {}, refreshProfiles: async () => {}, clearActiveProfileProgress: async () => {}, deleteAccount: async () => {},
   signOut: async () => {}, goToSignIn: () => {},
 });
 export const useAccount = () => useContext(AccountContext);
@@ -245,6 +248,24 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
     }
   }, [state]);
 
+  const deleteAccount = useCallback(async (password: string) => {
+    if (state.kind !== 'ready' && state.kind !== 'consent' && state.kind !== 'profile-error') return;
+    const profileScopes = state.kind === 'ready'
+      ? state.profiles.map((profile) => accountScope(state.user.id, profile.id))
+      : activeScope ? [activeScope] : [];
+    // Throws on a wrong password (403); nothing is deleted then.
+    await apiDeleteAccount({ password });
+    for (const profileScope of profileScopes) {
+      clearScopedLearnerStorage(profileScope);
+      queues.delete(profileScope);
+    }
+    activeScope = null;
+    activeQueue = null;
+    setGuest(false);
+    setAccountError(null);
+    setState({ kind: 'signed-out', notice: 'The account and everything saved with it were deleted.' });
+  }, [state]);
+
   const goToSignIn = useCallback(() => { setGuest(false); setAccountError(null); setState({ kind: 'signed-out' }); }, []);
 
   const selectProfile = useCallback(async (profileId: number) => {
@@ -323,7 +344,7 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
       syncStatus, accountError,
       initialProgress: bundle?.progress ?? null,
       initialFun: bundle?.fun ?? null,
-      selectProfile, refreshProfiles, clearActiveProfileProgress, signOut, goToSignIn,
+      selectProfile, refreshProfiles, clearActiveProfileProgress, deleteAccount, signOut, goToSignIn,
     }}>
       <SyncStatusBridge onStatus={setSyncStatus} />
       {children(user && ready ? `user-${user.id}-profile-${ready.profileId}-view-${activeViewRevision}` : 'guest')}

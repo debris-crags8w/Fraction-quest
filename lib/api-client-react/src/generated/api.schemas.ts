@@ -43,6 +43,14 @@ export interface SignupRequest {
   parentConsent: boolean;
 }
 
+export interface DeleteAccountInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  password: string;
+}
+
 export interface ConsentInput {
   accepted: boolean;
 }

@@ -12,6 +12,7 @@ export * from './classroomJoinInput';
 export * from './classroomLearner';
 export * from './classroomMembership';
 export * from './consentInput';
+export * from './deleteAccountInput';
 export * from './errorResponse';
 export * from './healthStatus';
 export * from './learnerExport';

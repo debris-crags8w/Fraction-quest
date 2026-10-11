@@ -22,7 +22,7 @@ import { AlertTriangle, Check, ChevronDown, Clipboard, Download, LoaderCircle, L
 import './FamilyControls.css';
 
 type FamilyControlsProps = { unitTitles?: string[] };
-type ConfirmAction = { kind: 'delete-profile'; profile: LearnerProfile } | { kind: 'clear-progress' } | null;
+type ConfirmAction = { kind: 'delete-profile'; profile: LearnerProfile } | { kind: 'clear-progress' } | { kind: 'delete-account' } | null;
 
 const UNIT_IDS = Array.from({ length: 14 }, (_, index) => String(index + 1));
 const titleFor = (unitId: string, titles?: string[]) => {
@@ -58,6 +58,7 @@ export default function FamilyControls({ unitTitles }: FamilyControlsProps) {
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [draftUnits, setDraftUnits] = useState<Record<string, string[]>>({});
   const [confirm, setConfirm] = useState<ConfirmAction>(null);
+  const [deletePassword, setDeletePassword] = useState('');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -206,6 +207,16 @@ export default function FamilyControls({ unitTitles }: FamilyControlsProps) {
       URL.revokeObjectURL(url);
       setNotice('Your account export has been downloaded as JSON.');
     } catch (err) { setError(errorText(err, 'The privacy export could not be created.')); }
+    finally { finish(); }
+  };
+
+  const removeAccount = async () => {
+    begin('delete-account');
+    try {
+      await account.deleteAccount(deletePassword);
+      setDeletePassword('');
+      setConfirm(null);
+    } catch (err) { setError(errorText(err, 'The account could not be deleted. Nothing was removed.')); }
     finally { finish(); }
   };
 
@@ -406,6 +417,12 @@ export default function FamilyControls({ unitTitles }: FamilyControlsProps) {
             <p>Remove online and on-device progress for the active learner. Their profile remains available.</p>
             <button type="button" className="fq-family-button clear" onClick={() => setConfirm({ kind: 'clear-progress' })} disabled={!account.activeProfileId}>Clear active learner’s progress</button>
           </section>
+          <section className="fq-family-side-card fq-family-danger-card" data-testid="delete-account-card">
+            <p className="fq-family-overline">Leave Fraction Quest</p>
+            <h3>Delete this account</h3>
+            <p>Permanently delete the account, every learner profile, classroom and saved progress. This cannot be undone. Export your data first if you want a copy.</p>
+            <button type="button" className="fq-family-button clear" onClick={() => { setDeletePassword(''); setConfirm({ kind: 'delete-account' }); }} data-testid="button-delete-account">Delete account and all data</button>
+          </section>
           <p className="fq-family-privacy-note"><Shield size={15} /> Learner nicknames are for your household. Classroom rosters display anonymous member codes only.</p>
         </aside>
       </div>
@@ -413,14 +430,22 @@ export default function FamilyControls({ unitTitles }: FamilyControlsProps) {
       {confirm && <div className="fq-family-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setConfirm(null); }}>
         <section ref={dialogRef} className="fq-family-dialog" role="alertdialog" aria-modal="true" aria-labelledby="fq-confirm-title" aria-describedby="fq-confirm-description">
           <span className="fq-family-dialog-icon"><AlertTriangle size={22} /></span>
-          <h3 id="fq-confirm-title">{confirm.kind === 'delete-profile' ? `Remove ${confirm.profile.displayName}?` : 'Clear saved progress?'}</h3>
+          <h3 id="fq-confirm-title">{confirm.kind === 'delete-profile' ? `Remove ${confirm.profile.displayName}?` : confirm.kind === 'delete-account' ? 'Delete the whole account?' : 'Clear saved progress?'}</h3>
           <p id="fq-confirm-description">{confirm.kind === 'delete-profile'
             ? 'This permanently removes the learner profile and its saved data. The last learner profile cannot be deleted; clear progress instead if you want a fresh start.'
-            : `This permanently clears saved lesson progress and preferences for ${account.activeProfile?.displayName ?? 'the active learner'}. Their profile will remain.`}</p>
+            : confirm.kind === 'delete-account'
+              ? 'This permanently deletes the account, all learner profiles, classrooms and saved progress, and signs you out. It cannot be undone.'
+              : `This permanently clears saved lesson progress and preferences for ${account.activeProfile?.displayName ?? 'the active learner'}. Their profile will remain.`}</p>
+          {confirm.kind === 'delete-account' && (
+            <label className="fq-family-delete-password">
+              <span>Type the account password to confirm</span>
+              <input type="password" autoComplete="current-password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} data-testid="input-delete-account-password" />
+            </label>
+          )}
           <div className="fq-family-dialog-actions">
             <button ref={dialogCancelRef} type="button" className="fq-family-button outline" onClick={() => setConfirm(null)} disabled={Boolean(busy)}>Keep it</button>
-            <button type="button" className="fq-family-button destructive" onClick={() => confirm.kind === 'delete-profile' ? void removeProfile(confirm.profile) : void clearProgress()} disabled={Boolean(busy)}>
-              {busy ? <LoaderCircle className="fq-spin" size={16} /> : <Trash2 size={16} />}{confirm.kind === 'delete-profile' ? 'Remove profile' : 'Clear progress'}
+            <button type="button" className="fq-family-button destructive" onClick={() => confirm.kind === 'delete-profile' ? void removeProfile(confirm.profile) : confirm.kind === 'delete-account' ? void removeAccount() : void clearProgress()} disabled={Boolean(busy) || (confirm.kind === 'delete-account' && !deletePassword)} data-testid="button-confirm-family-action">
+              {busy ? <LoaderCircle className="fq-spin" size={16} /> : <Trash2 size={16} />}{confirm.kind === 'delete-profile' ? 'Remove profile' : confirm.kind === 'delete-account' ? 'Delete everything' : 'Clear progress'}
             </button>
           </div>
         </section>

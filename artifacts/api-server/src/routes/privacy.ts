@@ -1,10 +1,10 @@
 import { and, eq } from "drizzle-orm";
 import { Router, type IRouter } from "express";
-import { AcceptPrivacyConsentBody } from "@workspace/api-zod";
+import { AcceptPrivacyConsentBody, DeleteAccountBody } from "@workspace/api-zod";
 import { db, classroomsTable, learnerProfilesTable, usersTable } from "@workspace/db";
 import { requireParentConsent, requireUser, type AuthedRequest } from "../middlewares/require-user";
 import { ensureDefaultLearnerProfile } from "../lib/family";
-import { PRIVACY_NOTICE_VERSION, publicUser } from "../lib/auth";
+import { endSession, PRIVACY_NOTICE_VERSION, publicUser, verifyPassword } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -55,6 +55,27 @@ router.get("/privacy/export", requireUser, requireParentConsent, async (req, res
     learners,
     classrooms,
   });
+});
+
+/**
+ * Permanently delete the account. Every learner profile, classroom, saved progress document and session
+ * references the user with ON DELETE CASCADE, so removing the user row removes all of it.
+ * The password is asked again so a child who finds a signed-in device can't delete the family's data.
+ */
+router.delete("/privacy/account", requireUser, async (req, res): Promise<void> => {
+  const { user } = req as AuthedRequest;
+  const parsed = DeleteAccountBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Enter the account password to delete the account." });
+    return;
+  }
+  if (!(await verifyPassword(parsed.data.password, user.passwordHash))) {
+    res.status(403).json({ error: "That password is not right, so nothing was deleted." });
+    return;
+  }
+  await endSession(req, res);
+  await db.delete(usersTable).where(eq(usersTable.id, user.id));
+  res.status(204).end();
 });
 
 export default router;

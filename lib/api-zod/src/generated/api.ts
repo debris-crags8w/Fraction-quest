@@ -139,6 +139,20 @@ export const ExportPrivacyDataResponse = zod.object({
 
 
 /**
+ * @summary Permanently delete the signed-in account and all of its learners, classrooms and progress
+ */
+export const deleteAccountBodyPasswordMax = 200;
+
+
+
+export const DeleteAccountBody = zod.object({
+  "password": zod.string().min(1).max(deleteAccountBodyPasswordMax)
+})
+
+export const DeleteAccountResponse = zod.void()
+
+
+/**
  * @summary List learner profiles owned by the signed-in account
  */
 export const ListLearnerProfilesResponseItem = zod.object({

@@ -173,6 +173,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /privacy/account:
+    delete:
+      operationId: deleteAccount
+      tags: [privacy]
+      summary: Permanently delete the signed-in account and all of its learners, classrooms and progress
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteAccountInput"
+      responses:
+        "204":
+          description: The account and all of its data were deleted, and the session ended
+        "400":
+          description: Missing password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Wrong password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /family/profiles:
     get:
       operationId: listLearnerProfiles
@@ -601,6 +633,14 @@ components:
         - displayName
         - password
         - parentConsent
+    DeleteAccountInput:
+      type: object
+      properties:
+        password:
+          type: string
+          minLength: 1
+          maxLength: 200
+      required: [password]
     ConsentInput:
       type: object
       properties:
