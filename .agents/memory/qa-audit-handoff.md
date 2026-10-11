@@ -1,46 +1,78 @@
 ---
 name: QA audit handoff
-description: State of the arithmetic/design/pedagogy QA audit — findings, fixes made, and what is still open.
+description: Current state of Fraction Quest work — how to build/verify, feature map, recent changes, open items, and the next proposed step (Part Finder game).
 ---
 
-The user asked for an unbiased QA pass ("arithmetic, design, pedagogy; be thorough; iterate").
-Fixes were first written against commit c9a121c, then re-applied on top of the user's 51-mission work (7bde269).
+Fraction Quest: fractions app for ages 8–10 (units 1–8 grade 3–4, units 9–14 grade 5). The user wants short kid-friendly
+wording, repetition, printables, model-centred learning, and everything pushed to `main`. Latest commit: a80450c.
 
-**Findings (severity → issue):**
-- Critical: number-line builder capped at 12 spaces, so any target with a bigger bottom number (hundredths build/review: 25/100, 8/100) can never be built → the lesson gate can't be passed. Fix: line max = max(12, target denominator).
-- High: review ("Show it again") prompts reused worksheet text, giving "Type it. Show your answer two ways." / "Enter the total distance…" for a build task, and reused picture questions ("What fraction is at the dot?") with no picture. Fix: skip picture/symbol/decimal/order items, strip "Type it", end with "Build the answer two ways."; fall back to "Make X two ways."
-- High: correct reason was always option 2 (build) / option 3 (transfer) → guessable. Fix: deterministic per-lesson position (arrangeReasons).
-- High: degenerate worksheet items ("How many copies of 1/3 make 1/3?", "1/6 + ? = 1/6 → 0/6").
-- Medium: misleading worksheet pictures (picture of the wrong fraction in compare questions; 6/10 shown for "1/10 below half").
-- Medium: out-of-range denominators (1/11, 1/13, 1/14, 1/15 "15ths", 1/16, ?/30) in worksheets and the generator; "Half of 11 is 5.5" hint.
-- Medium: lessons in one family printed identical worksheets (equal-parts=unit-fractions, the three equivalence lessons, improper=mixed, benchmark-half=fraction-magnitude, unit-size=compare-same-numerator).
-- Medium: ordering items sometimes shown already in the asked order.
-- Low: generator "simpler" help picture was always a 1/2 bar; equation pictures just repeat the question; awkward wording ("Join another 1/5 meter", "garden bed has 6/10 of a meter", "Times the top and bottom").
+## How to work
+- pnpm monorepo. App: `artifacts/fraction-quest`. A root `src/` mirror must be kept identical: copy every changed/new file
+  from `artifacts/fraction-quest/src/` to `src/` before committing (`diff -rq artifacts/fraction-quest/src src`; only the
+  app-only folders components/, hooks/, pages/, main.tsx, lib/utils.ts should differ).
+- Typecheck: `pnpm run typecheck`. Tests (79 passing): `npm exec --yes --package=tsx@4.19.2 -- tsx --test src/game.test.ts src/account-flow.test.ts`.
+- Build: `PORT=5173 BASE_PATH=/ pnpm run build`. Preview: `PORT=5173 BASE_PATH=/ npx vite preview --config vite.config.ts --port 5173 --strictPort`.
+  Stop it with `pkill -f "[v]ite preview"` in its own Bash call (the command text kills its own shell otherwise).
+- Browser checks: Playwright via `require('/opt/node22/lib/node_modules/playwright')`, Chromium preinstalled. localStorage keys:
+  `fraction-quest-guest`='1', `fraction-quest-progress-v1` (progress JSON), `fraction-quest-fun-v1`. Map lessons open with
+  `button-node-<id>` (check `aria-expanded`, click with force: the "now" node animates); then `button-check-paper-<id>`,
+  `button-print-menu-<id>` → `button-print-<lesson|practice|generated|blank|answers|challenge|key>`; worksheet rows are
+  `row-worksheet-wN`. Tap triangle pieces at their centroid (bounding-box centre can hit a neighbour). PDFs: `page.pdf`, then `pdftoppm`.
+- Before pushing: `git fetch origin main` and check `git log HEAD..origin/main`; merge the user's commits and keep their features.
+- Commit trailers: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` and `Claude-Session: https://claude.ai/code/session_01GDdvRh7YMa3ShSaQPV4zPS`.
+- Design rules from the user: see [learning design requirements](learning-design-requirements.md) (entered answers as evidence
+  gates, model interaction central, no faked completions, bar models with WHOLE/PART labels, LearningText vocab + read-aloud).
 
-**Done (commits 9c0e023, e9189bc, 9117712):** all findings above fixed, plus:
-- Commit 4d365aa (51 missions) had been built on an older App.tsx and unhooked Unit challenges, paper folding, Practice more/New questions, Print + Check my paper, story walk-throughs, stacked fractions and the sign-out chip, and brought back the long wording. User chose "Restore all": all wired back in, user's new work kept (LearningText read-aloud + vocab, QuickReviewEntry, whole/part bar labels, bar-copy worksheets, FractionEntry, staged checks).
-- The 24 later lessons (units 9–14): template hints ("Use the … idea"), a wrong build target (1 1/4 + 2 1/2 → 5/4), rounded percents/decimals, "0 7/10" answers, 0/4 story answers, duplicate questions. Their practice and worksheets now come from one corrected generator (getExtensionWorksheet + problemQuestion).
-- Units 9–14 have no Unit challenge: Check my paper / answer key / print menu crashed for them; now guarded.
-- Story lines CSS squashed text (.fq-story li span → li > span:first-child).
+## Feature map (where things live)
+- 52 lessons (`MISSIONS` in game.ts): units 1–8 have 28 (unit 8 has 6 incl. add-tenths-hundredths), units 9–14 have 4 each.
+- Worksheets: `getWorksheet` in learning-content.ts (12 rows per lesson; extension units use `getExtensionWorksheet`).
+  Rows can carry `model` (bar/set/line, bar `sizes` for unequal pieces), `task` (bar copy/count/shade), `area`/`areaTask`
+  (square model), `form` (decimal/mixed/ordered/symbol/word=yes-no). `paperPrompt()` rewrites Tap/Type for paper.
+- Interactive worksheet pieces: WorksheetBarCopy.tsx (`barTaskDone`), AreaModel.tsx (`AreaShade`), LearningLab.tsx `Row`.
+- Practice question generator: practice-bank.ts (RECIPES + LATER_RECIPES; `spreadAnswer` keeps A/B/C balanced).
+- Printables.tsx: lesson, practice, new practice, worksheet (+ "Color it two ways" on lessons 1–2), answers, unit challenge, key.
+  (PrintWorksheet.tsx is not imported anywhere; it's kept only in sync for types.)
+- Games: FractionRace.tsx (robot/2-player; wrong answer stalls and moves back, shield on streak), CodeQuest.tsx + code-quest.ts
+  (3 block-coding levels per lesson, Python view), CodeSprint.tsx (5-round coding race). Unit challenges: challenges.ts.
+- Parent view: ParentView.tsx + parent-report.ts (grown-up gate, minutes/answers per day from lib/fun.ts activity).
+- Level quiz: PlacementQuiz.tsx + placement.ts (`progress.placement` opens units without marking lessons done).
+- Unlocking: `isMissionUnlocked` / `passedLesson` / `getNextMission` in game.ts. `LATE_ADDED_LESSONS` stops a newly inserted
+  unit 1–8 lesson from re-locking units 9–14.
 
-**Later (799c9fa, ff2a75b):** units 9–14 got Unit challenges and real random-number practice recipes; units 9–14 labeled grade 5. Parent view added (ParentView.tsx + parent-report.ts; minutes/answers per day in fun.activity).
+## Recent work (this session, newest first)
+- **a80450c Square model: equal parts can have different shapes.** area-shapes.ts (AREA_CUTS incl. the user's
+  quarter-and-triangles square, pieceArea, areaTaskDone — any correct coloring counts, `avoid` forbids pieces). Rows:
+  equal-parts w9–w12 (are these fourths? yes/no with mixed shapes and an off-centre cut; triangles per small square),
+  unit-fractions w10–w12 (color 1/4 any way; only triangles → 2; shaded triangle is 1/4), equivalent-models w11–w12
+  (2/8 = ?/4; color 1/2 → 4 eighths). "Same size, different shapes" card in lessons 1–2 (app + printed lesson).
+  Placement skips areaTask rows; review skips area rows.
+  Also: `passedLesson` — a lesson completed before its questions were revised (completedAt set) no longer re-locks later
+  lessons or pulls Continue back; `staleDraft` clears saved answers that can't fit a revised question.
+- **fc6c26c Print cut-off fix.** Print cards are inline-grid (never sliced across pages), 2 per row, 1 per row under 150mm;
+  svgs max-width 100%; header wraps; body min-width 0 in print. Checked Letter, A5, 3.5in for every print mode.
+- **5eaab65 Equal-parts questioning.** User: "When talking about equal parts, why should it be shaded?" Shading only marks a part
+  being named; otherwise kids tap-count parts (numbered), judge equal/unequal bars (yes/no), or shade parts themselves.
+- **6c4e6a6 and before:** Code Sprint; race rebalance (guessing can't win); pictures never show the answer; level quiz;
+  add-tenths-hundredths lesson; A/B/C balance; Fraction Race + code challenge per lesson; parent view; units 9–14
+  challenges and recipes; full QA audit fixes (number-line cap, review prompts, guessable reasons, degenerate items,
+  out-of-range denominators, duplicate family worksheets) with regression tests under "quality audit fixes" in game.test.ts.
 
-**Games + audit items (8870c40 → latest):** Fraction Race (robot/2-player; wrong answer = stall + back one space so guessing can't win) and a 3-level code challenge (blocks + Python view) on every lesson; new lesson add-tenths-hundredths (unit 8, LATE_ADDED_LESSONS so it doesn't re-lock units 9–14); right answers spread across A/B/C; typed-answer level quiz (progress.placement opens units without marking lessons done); unit 9–14 challenge scores now survive reload.
+## Next step (proposed, user asked for a handoff before deciding)
+User asked: "Do you have a lesson showing students how to FIND the parts? Might be a useful game to add early in
+introducing equivalent fractions." Answer given: no — kids make parts (fold, split, shade) and judge them, but never find the
+equal parts hidden in a messy shape. Proposed **Part Finder** game (game card on equal-parts, unit-fractions,
+equivalent-models; stars/best score like the other games), suggested build order rounds 1, 2, 4 first:
+1. Group them: uneven pieces (like the 7-piece square); tap pieces into 4 colored groups that are each 1/4 (any valid grouping).
+2. How many fit? One piece highlighted; tile copies across the whole and count (→ it is 1/8).
+3. Cut it: draw dot-to-dot lines to make equal parts; several correct answers (hardest on touch screens).
+4. Same whole, new parts: find fourths, then eighths in the same square → 1/4 = 2/8.
+Can reuse area-shapes.ts (pieceArea, AREA_CUTS) and AreaSvg/AreaShade patterns; group validation = each group's area = 1/k.
+Waiting for the user's go-ahead.
 
-**Still open / to discuss (parent audit):** parent password reset; privacy/consent page; circle models; tiny stray dotted part-marker beside the printed example bar; 3-star threshold now counts extra bank questions; challenge walk-throughs not printed; no password reset; COPPA review; grade-4 multiply-fraction-by-whole content; parent view.
-
-**How to apply:** regression tests live in game.test.ts under "quality audit fixes". Patch of the original fixes: see git history of this file's commit.
-
-## Equal-parts questioning redesign (after 6c4e6a6)
-- User asked: "When talking about equal parts, why should it be shaded?" Shading now appears only when it marks the part being named.
-- WorksheetProblem has `task?: BarTask` ({kind:'copy'|'count'|'shade', n}); WorksheetBarCopy shows mode-specific instructions; `barTaskDone` checks count (all parts tapped, numbered 1..d) / shade (exactly n, any position) / copy (exact).
-- equal-parts: count parts, "Is this cut into equal parts? yes/no" (form 'word', unequal `sizes` bars), name the shaded part (copy), shade 1 part then name it. unit-fractions: count 1/d pieces, shade one share, name.
-- BarSvg takes `sizes` (unequal pieces, neutral aria label). Count/shade rows hide the duplicate Preview picture.
-- `paperPrompt(problem, typed?)`: "Tap each part to count it." → "Count each part."; on paper "Type" → "Write".
-- Print cut-off fix: print cards (.fq-print-problems > li) are inline-grid, 2 per row (1 per row under 150mm page width) so they never slice across pages; print svgs max-width 100%, figure/fold widths min(…,100%), header wraps, body min-width 0 in print. Checked Letter, A5, 3.5in pages for every print mode.
-
-## Square (area) model: same size, different shapes
-- area-shapes.ts: AREA_CUTS (fourths squares/strips/triangles/mixed, unequal cuts, quarter-and-triangles like the user's worksheet, eighths triangles), pieceArea, areaTaskDone (any correct coloring counts; `avoid` forbids pieces).
-- AreaModel.tsx: AreaSvg, AreaShade (tap pieces; gates answer), SameSizeIdea (lesson card for SHAPE_LESSONS equal-parts/unit-fractions, in app + printed lesson), ColorTwoWays (printed worksheet box).
-- Worksheet rows: equal-parts w9–w12, unit-fractions w10–w12, equivalent-models w11–w12 use `area`/`areaTask`. Placement skips areaTask rows; review skips area rows.
-- passedLesson(): a lesson completed before its questions were revised (completedAt set) no longer re-locks later lessons or pulls "Continue" back. staleDraft() drops saved answers that can't fit a revised question (digits in a yes/no box, a fraction where a whole number is expected).
+## Still open (not requested yet)
+- Parent audit leftovers: parent password reset; privacy/consent page and COPPA review (user's decision); circle models;
+  grade-4 multiply-fraction-by-whole content.
+- Square model is only on worksheets/prints, not in practice questions or Fraction Race.
+- Small: stray dotted part-marker beside the printed example bar; 3-star threshold counts extra bank questions; challenge
+  walk-throughs not printed; printed lesson sheet for lessons 1–2 is now 2 pages; screen readers hear yes/no bars only as
+  "a bar cut into N pieces" (deliberately neutral).
