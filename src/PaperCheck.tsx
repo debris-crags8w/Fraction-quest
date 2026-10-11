@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { MathText } from './MathText';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, RotateCcw, Trophy, X } from 'lucide-react';
 import { CHALLENGES, challengeMaxPoints, challengeTrophy } from './challenges';
 import { getMission, type Progress } from './game';
@@ -32,7 +33,7 @@ function ChallengePaper({ unit, best, onScore }: { unit: number; best: number | 
           return (
             <li key={item.id} className={!checked || choice === undefined ? '' : right ? 'ok' : 'bad'} data-testid={`paper-challenge-${i + 1}`}>
               <span className="fq-ll-num">{i + 1}</span>
-              <span className="fq-paper-prompt">{item.prompt} <small className={`fq-points p${item.points}`}>{item.points} pts</small></span>
+              <span className="fq-paper-prompt"><MathText text={item.prompt} /> <small className={`fq-points p${item.points}`}>{item.points} pts</small></span>
               <span className="fq-paper-letters" role="group" aria-label={`Puzzle ${i + 1} answer`}>
                 {item.choices.map((c, k) => (
                   <button type="button" key={k} className={choice === k ? 'on' : ''} aria-pressed={choice === k} aria-label={`${letter(k)}: ${c}`} disabled={checked}
@@ -41,7 +42,7 @@ function ChallengePaper({ unit, best, onScore }: { unit: number; best: number | 
               </span>
               {checked && (
                 <span className="fq-paper-mark">
-                  {right ? <><Check size={16} strokeWidth={3} /> +{item.points} points</> : <><X size={16} strokeWidth={3} /> The answer is {letter(item.correct)}. {item.explanation}</>}
+                  {right ? <><Check size={16} strokeWidth={3} /> +{item.points} points</> : <><X size={16} strokeWidth={3} /> The answer is {letter(item.correct)}. <MathText text={item.explanation} /></>}
                 </span>
               )}
             </li>
@@ -123,7 +124,7 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
             return (
               <li key={q.id} className={choice === undefined ? '' : right ? 'ok' : 'bad'} data-testid={`paper-practice-${i + 1}`}>
                 <span className="fq-ll-num">{i + 1}</span>
-                <span className="fq-paper-prompt">{q.prompt}</span>
+                <span className="fq-paper-prompt"><MathText text={q.prompt} /></span>
                 <span className="fq-paper-letters" role="group" aria-label={`Question ${i + 1} answer`}>
                   {q.choices.map((c, k) => (
                     <button type="button" key={k} className={choice === k ? 'on' : ''} aria-pressed={choice === k} aria-label={`${letter(k)}: ${c}`} onClick={() => pick(q.id, k, q.correctChoice)} data-testid={`paper-practice-${i + 1}-${letter(k)}`}>{letter(k)}</button>

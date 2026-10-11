@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { MathText } from './MathText';
 import { Check, Gift, LockKeyhole, Sparkles, Star } from 'lucide-react';
 import type { ModelSpec } from './game';
 import { DAILY_GOAL, type FunState } from './lib/fun';
@@ -139,7 +140,7 @@ export function TapModel({ model }: { model: ModelSpec }) {
     <section className={`fq-tap ${matched ? 'matched' : ''}`} aria-label="Your turn: build it" data-testid="section-tap-model">
       <div className="fq-tap-head">
         <span className="fq-tap-kicker"><Sparkles size={14} /> Your turn · <ModelTag kind={target.kind}>{MODEL_NAMES[target.kind]}</ModelTag></span>
-        <strong>{target.kind === 'line' ? `Tap the number line to land on ${goal}.` : target.kind === 'set' ? `Tap counters to light up ${goal}.` : `Tap pieces to shade ${goal}.`}</strong>
+        <strong><MathText text={target.kind === 'line' ? `Tap the number line to land on ${goal}.` : target.kind === 'set' ? `Tap counters to light up ${goal}.` : `Tap pieces to shade ${goal}.`} /></strong>
       </div>
       {target.kind === 'bar' && (
         <div className="fq-tap-bars" style={{ '--piece': denomColor(target.d) } as CSSProperties}>
@@ -172,7 +173,7 @@ export function TapModel({ model }: { model: ModelSpec }) {
         </div>
       )}
       <p className="fq-tap-readout" aria-live="polite">
-        {matched ? <><Check size={16} strokeWidth={3} /> You built {goal}!</> : <>You have <b>{label}</b></>}
+        {matched ? <><Check size={16} strokeWidth={3} /> You built <MathText text={goal} />!</> : <>You have <b><MathText text={label} /></b></>}
       </p>
     </section>
   );
@@ -255,10 +256,10 @@ export function StoryPrompt({ prompt, id }: { prompt: string; id: string }) {
     <>
       {lines.length > 0 && (
         <ol className="fq-story" aria-label="The story, one line at a time">
-          {lines.map((line, i) => <li key={i}><span>{i + 1}</span>{line}</li>)}
+          {lines.map((line, i) => <li key={i}><span>{i + 1}</span><span><MathText text={line} /></span></li>)}
         </ol>
       )}
-      <h1 id={id}>{question}</h1>
+      <h1 id={id}><MathText text={question} /></h1>
     </>
   );
 }

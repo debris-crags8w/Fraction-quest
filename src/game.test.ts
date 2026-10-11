@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
+import type { PracticeQuestion } from './game';
 import { beforeEach, describe, it } from 'node:test';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { splitStory } from './fun-ui';
-import { getExtraPractice } from './practice-bank';
+import { generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
 import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, parseAnswer } from './learning-content';
 import { checkWorksheet, editWorksheet, emptyLearningRecord, getLearningRecord, hasLearningGate, updateLearning, worksheetCount } from './learning';
 import {
@@ -17,6 +18,7 @@ import {
   isCorrectAnswer,
   isMissionUnlocked,
   loadProgress,
+  getMission,
   MISSIONS,
   numberLineWholeCount,
   recordMissedSkill,
@@ -524,49 +526,72 @@ describe('long problems', () => {
   });
 });
 
-describe('extra practice bank', () => {
+describe('question generator', () => {
   const frac = (t: string) => { const [n, d] = t.split('/').map(Number); return n / d; };
-  it('has 12 well-formed questions for every lesson, with the answer spread across A, B and C', () => {
+  const ids = (id: string) => getMission(id).questions.map((q) => q.id);
+  /** Independently re-checks a generated question. Returns true if a math check applied. */
+  const verify = (q: PracticeQuestion): boolean => {
+    const right = q.choices[q.correctChoice];
+    assert.equal(q.choices.length, 3, q.id);
+    assert.equal(new Set(q.choices.map((c) => c.trim())).size, 3, `${q.id} has duplicate choices: ${q.choices.join(' | ')} (${q.prompt})`);
+    let m = /^(\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \?$/.exec(q.prompt);
+    if (m) { const v = Number(m[1]) / Number(m[2]) + (m[3] === '+' ? 1 : -1) * Number(m[4]) / Number(m[5]); assert.ok(Math.abs(frac(right) - v) < 1e-9, `${q.prompt} → ${right}`); return true; }
+    m = /^What is (\d+)\/(\d+) of (\d+)\?$/.exec(q.prompt);
+    if (m) { assert.equal(Number(right), (Number(m[3]) / Number(m[2])) * Number(m[1]), q.prompt); return true; }
+    m = /^Is (\d+)\/(\d+) more or less than 1\/2\?$/.exec(q.prompt);
+    if (m) { assert.equal(right, Number(m[1]) / Number(m[2]) > 0.5 ? 'More than 1/2' : 'Less than 1/2', q.prompt); return true; }
+    m = /^Is (\d+)\/(\d+) closest to 0, 1\/2 or 1\?$/.exec(q.prompt);
+    if (m) { const v = Number(m[1]) / Number(m[2]); const best = ['0', '1/2', '1'].sort((a, b) => Math.abs((a === '1/2' ? 0.5 : Number(a)) - v) - Math.abs((b === '1/2' ? 0.5 : Number(b)) - v))[0]; assert.equal(right, best, q.prompt); return true; }
+    m = /^Fill the blank: (\d+)\/(\d+) = \?\/(\d+)$/.exec(q.prompt);
+    if (m) { assert.equal(Number(right), (Number(m[1]) * Number(m[3])) / Number(m[2]), q.prompt); return true; }
+    m = /^Fill the blank: (\d+)\/(\d+) \+ \? = 1$/.exec(q.prompt);
+    if (m) { assert.ok(Math.abs(frac(right) + Number(m[1]) / Number(m[2]) - 1) < 1e-9, q.prompt); return true; }
+    if (q.prompt === 'Which is closest to 1/2?') { const best = [...q.choices].sort((x, y) => Math.abs(frac(x) - 0.5) - Math.abs(frac(y) - 0.5))[0]; assert.equal(right, best, q.prompt); return true; }
+    m = /^Which is (bigger|smaller), (\d+\/\d+) or (\d+\/\d+)\?$/.exec(q.prompt);
+    if (m) { const [x, y] = [frac(m[2]), frac(m[3])]; assert.equal(right, (m[1] === 'bigger') === (x > y) ? m[2] : m[3], q.prompt); return true; }
+    m = /^Which is the same as (\d+\/\d+)\?$/.exec(q.prompt);
+    if (m) { assert.ok(Math.abs(frac(right) - frac(m[1])) < 1e-9, q.prompt); assert.ok(q.choices.filter((c) => c.includes('/') && Math.abs(frac(c) - frac(m![1])) < 1e-9).length === 1, `${q.prompt}: one equal choice`); return true; }
+    m = /^Write (\d+)\/(10|100) as a decimal\.$/.exec(q.prompt);
+    if (m) { assert.equal(Number(right), Number(m[1]) / Number(m[2]), q.prompt); return true; }
+    m = /^What fraction is (0\.\d+)\?$/.exec(q.prompt);
+    if (m) { assert.ok(Math.abs(frac(right) - Number(m[1])) < 1e-9, q.prompt); return true; }
+    m = /^Each jump is 1\/(\d+)\. What is (\d+) jumps from 0\?$/.exec(q.prompt);
+    if (m) { assert.equal(right, `${m[2]}/${m[1]}`, q.prompt); return true; }
+    m = /^What is (\d+)\/(\d+) as wholes and a fraction\?$/.exec(q.prompt);
+    if (m) { const [n, d] = [Number(m[1]), Number(m[2])]; assert.equal(right, `${Math.floor(n / d)} and ${n % d}/${d}`, q.prompt); return true; }
+    m = /^Which adds up to (\d+)\/(\d+)\?$/.exec(q.prompt);
+    if (m) { const sum = right.split(' + ').reduce((acc, part) => acc + frac(part), 0); assert.ok(Math.abs(sum - frac(`${m[1]}/${m[2]}`)) < 1e-9, q.prompt); return true; }
+    return false;
+  };
+
+  it('keeps the 12 "Practice more" questions fixed for every lesson, with the answer spread across A, B and C', () => {
     const positions = new Set<number>();
     for (const mission of MISSIONS) {
-      const bank = getExtraPractice(mission.id, mission.questions.map((q) => q.id));
+      const bank = getExtraPractice(mission.id, ids(mission.id));
       assert.equal(bank.length, 12, mission.id);
-      assert.equal(new Set(bank.map((q) => q.id)).size, 12, `${mission.id} ids`);
-      for (const q of bank) {
-        assert.equal(q.choices.length, 3, q.id);
-        assert.equal(new Set(q.choices).size, 3, `${q.id} has duplicate choices: ${q.choices.join(' | ')}`);
-        assert.ok(mission.questions.some((base) => base.id === q.reviewQuestionId), `${q.id} links to a lesson question for review`);
-        positions.add(q.correctChoice);
-      }
+      assert.deepEqual(getExtraPractice(mission.id, ids(mission.id)).map((q) => q.prompt), bank.map((q) => q.prompt), `${mission.id} is the same every time`);
+      for (const q of bank) { verify(q); positions.add(q.correctChoice); assert.ok(mission.questions.some((b) => b.id === q.reviewQuestionId), q.id); }
     }
     assert.deepEqual([...positions].sort(), [0, 1, 2]);
   });
-  it('marks the right answer, checked independently for arithmetic and "of a set" questions', () => {
-    let checked = 0;
+
+  it('generates thousands of fresh questions with correct answers and no duplicate choices', () => {
+    let total = 0; let checked = 0;
     for (const mission of MISSIONS) {
-      for (const q of getExtraPractice(mission.id, mission.questions.map((x) => x.id))) {
-        const right = q.choices[q.correctChoice];
-        let m = /^(\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \?$/.exec(q.prompt);
-        if (m) {
-          const [, a, d1, op, b, d2] = m;
-          const value = Number(a) / Number(d1) + (op === '+' ? 1 : -1) * Number(b) / Number(d2);
-          assert.ok(Math.abs(frac(right) - value) < 1e-9, `${q.id}: ${q.prompt} → ${right}`);
-          checked++;
-        }
-        m = /^What is (\d+)\/(\d+) of (\d+)\?$/.exec(q.prompt);
-        if (m) { assert.equal(Number(right), (Number(m[3]) / Number(m[2])) * Number(m[1]), q.id); checked++; }
-        m = /^Is (\d+)\/(\d+) more or less than 1\/2\?$/.exec(q.prompt);
-        if (m) { assert.equal(right, Number(m[1]) / Number(m[2]) > 0.5 ? 'More than 1/2' : 'Less than 1/2', q.id); checked++; }
-        m = /^Fill the blank: (\d+)\/(\d+) = \?\/(\d+)$/.exec(q.prompt);
-        if (m) { assert.equal(Number(right), (Number(m[1]) * Number(m[3])) / Number(m[2]), q.id); checked++; }
-        m = /^Which is closest to 1\/2\?$/.exec(q.prompt);
-        if (m) { const best = [...q.choices].sort((x, y) => Math.abs(frac(x) - 0.5) - Math.abs(frac(y) - 0.5))[0]; assert.equal(right, best, q.id); checked++; }
-        m = /^Which is (bigger|smaller), (\d+\/\d+) or (\d+\/\d+)\?$/.exec(q.prompt);
-        if (m) { const [x, y] = [frac(m[2]), frac(m[3])]; assert.equal(right, (m[1] === 'bigger') === (x > y) ? m[2] : m[3], q.id); checked++; }
-        m = /^Write (\d+)\/(10|100) as a decimal\.$/.exec(q.prompt);
-        if (m) { assert.equal(Number(right), Number(m[1]) / Number(m[2]), q.id); checked++; }
+      assert.ok(hasGenerator(mission.id), mission.id);
+      for (let seed = 1; seed <= 150; seed++) {
+        const round = generateQuestions(mission.id, ids(mission.id), seed, 10);
+        assert.equal(round.length, 10, `${mission.id} seed ${seed}`);
+        for (const q of round) { total++; if (verify(q)) checked++; }
       }
     }
-    assert.ok(checked >= 120, `checked ${checked} questions`);
+    assert.ok(total >= 40000, `generated ${total}`);
+    assert.ok(checked / total > 0.7, `independently checked ${checked} of ${total}`);
+  });
+
+  it('gives different questions for different seeds', () => {
+    const a = generateQuestions('add-like-denominators', ids('add-like-denominators'), 11, 10).map((q) => q.prompt).join();
+    const b = generateQuestions('add-like-denominators', ids('add-like-denominators'), 12, 10).map((q) => q.prompt).join();
+    assert.notEqual(a, b);
   });
 });

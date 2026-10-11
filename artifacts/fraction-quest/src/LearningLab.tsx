@@ -1,4 +1,5 @@
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { MathText } from './MathText';
 import { ArrowLeft, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
 import { numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildChecks, getReasonFeedback, getReviewCheck, getWorksheet, type BuildCheck, type LearningModel, type WorksheetProblem } from './learning-content';
@@ -188,7 +189,7 @@ function CheckRunner({ check, onHelp, onPass, review }: {
   return (
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
       <p className="fq-ll-kicker">{check.transfer ? (review ? 'Review' : 'Step 2 · On your own') : 'Step 1 · Build it'}</p>
-      <h3>{check.prompt}</h3>
+      <h3><MathText text={check.prompt} /></h3>
       <Builder kind={k} total={t.total} st={a} set={setA} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} />
       <div className="fq-ll-translate">
         <strong>{transLabel}</strong>
@@ -200,21 +201,21 @@ function CheckRunner({ check, onHelp, onPass, review }: {
         {check.reasons.map((r, i) => (
           <label key={i} className={reason === i ? 'on' : ''}>
             <input type="radio" name={`reason-${check.id}`} checked={reason === i} onChange={() => setReason(i)} data-testid={`radio-reason-${check.id}-${i}`} />
-            <span>{r}</span>
+            <span><MathText text={r} /></span>
           </label>
         ))}
       </fieldset>
-      {hints > 0 && <div className="fq-ll-hint" data-testid={`text-hint-${check.id}`}><strong>Hint:</strong> {hintTexts[Math.min(hints, 2) - 1]}</div>}
+      {hints > 0 && <div className="fq-ll-hint" data-testid={`text-hint-${check.id}`}><strong>Hint:</strong> <MathText text={hintTexts[Math.min(hints, 2) - 1]} /></div>}
       {errs.length > 0 && (
         <div className="fq-ll-feedback retry" role="alert" data-testid={`status-errors-${check.id}`}>
           <CircleHelp size={20} />
           <div>
             <strong>{locked ? 'Not yet! Fix these, then check again.' : 'Changed something? Check again.'}</strong>
-            <ul>{errs.map((e, i) => <li key={i}>{e}</li>)}</ul>
+            <ul>{errs.map((e, i) => <li key={i}><MathText text={e} /></li>)}</ul>
           </div>
         </div>
       )}
-      {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>You did it! Both models match.</strong> {check.explanation}</div></div>}
+      {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>You did it! Both models match.</strong> <MathText text={check.explanation} /></div></div>}
       {done && <ModelPair n={t.n} d={t.d} />}
       <div className="fq-ll-actions">
         <button type="button" className="fq-hint-button" onClick={hint} disabled={done} data-testid={`button-hint-${check.id}`}><Lightbulb size={17} /> {hints ? 'Another hint' : 'Hint'}</button>
@@ -237,7 +238,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; 
   return (
     <li className={'fq-ll-row ' + (ok ? 'ok' : '')} data-testid={'row-worksheet-' + p.id}>
       <form onSubmit={submit}>
-        <label htmlFor={'ws-' + p.id}><span className="fq-ll-num">{p.id.slice(1)}</span>{p.prompt}</label>
+        <label htmlFor={'ws-' + p.id}><span className="fq-ll-num">{p.id.slice(1)}</span><span><MathText text={p.prompt} /></span></label>
         {p.model && <Preview m={p.model} />}
         <div className="fq-ll-answer">
           <input id={'ws-' + p.id} type="text" value={draft} placeholder={ph} autoComplete="off" maxLength={200} onChange={ev => { setWrong(null); onEdit(ev.target.value); }} data-testid={'input-worksheet-' + p.id} aria-describedby={'ws-fb-' + p.id} />
@@ -246,9 +247,9 @@ export function Row({ p, rec, onEdit, onCheck, onHint }: { p: WorksheetProblem; 
         </div>
         <div id={'ws-fb-' + p.id} aria-live="polite">
           {ok && <p className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Correct!</p>}
-          {!ok && wrong === draft && <p className="fq-ll-ws bad" data-testid={'status-worksheet-' + p.id}>Not yet. {p.hint}</p>}
+          {!ok && wrong === draft && <p className="fq-ll-ws bad" data-testid={'status-worksheet-' + p.id}>Not yet. <MathText text={p.hint} /></p>}
           {!ok && e && e.attempts > 0 && e.checkedValue === undefined && wrong !== draft && draft.trim() && <p className="fq-ll-ws" data-testid={'status-worksheet-' + p.id}>Changed. Press Check.</p>}
-          {open && <p className="fq-ll-ws hint" data-testid={'text-hint-worksheet-' + p.id}>{p.hint}</p>}
+          {open && <p className="fq-ll-ws hint" data-testid={'text-hint-worksheet-' + p.id}><MathText text={p.hint} /></p>}
         </div>
       </form>
     </li>

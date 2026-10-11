@@ -139,7 +139,7 @@ export function getWorksheet(id: string): WorksheetProblem[] {
       case 'unit-size':
       case 'compare-same-numerator': {
         const top = id === 'unit-size' ? 1 : Math.min(2, d - 1);
-        prompt = `The wholes match. Enter the ${i % 2 ? 'smaller' : 'larger'} fraction: ${f(top, d)} or ${f(top, d + 2)}.`;
+        prompt = `Which is ${i % 2 ? 'smaller' : 'bigger'}, ${f(top, d)} or ${f(top, d + 2)}? Type it.`;
         answer = f(top, i % 2 ? d + 2 : d); hint = 'More pieces in the same whole means smaller pieces.';
         if (i < 4) visual = model(top, d); break;
       }
@@ -162,8 +162,8 @@ export function getWorksheet(id: string): WorksheetProblem[] {
       }
       case 'benchmarks-zero-one':
         prompt = i % 3 === 0 ? `How much is missing from ${f(d - 1, d)} to make one whole?` :
-          i % 3 === 1 ? `Enter the closest benchmark (0, 1/2 or 1) for ${f(1, d + 3)}.` :
-          `Enter the closest benchmark (0, 1/2 or 1) for ${f(d + 2, d + 3)}.`;
+          i % 3 === 1 ? `Is ${f(1, d + 3)} closest to 0, 1/2 or 1? Type it.` :
+          `Is ${f(d + 2, d + 3)} closest to 0, 1/2 or 1? Type it.`;
         answer = i % 3 === 0 ? f(1, d) : i % 3 === 1 ? '0' : '1'; hint = 'Compare it to 0, 1/2 and 1. Pick the closest.'; break;
       case 'number-line-basics':
       case 'number-line-points':
@@ -176,18 +176,18 @@ export function getWorksheet(id: string): WorksheetProblem[] {
         hint = 'Bottom: spaces in 1 whole. Top: jumps from 0.'; break;
       }
       case 'compare-same-denominator':
-        prompt = i % 2 ? `Type <, = or >: ${f(n, d)} __ ${f(n + 1, d)}.` : `Which covers more of a matching whole: ${f(n, d)} or ${f(n + 1, d)}? Enter that fraction.`;
+        prompt = i % 2 ? `Type <, = or >: ${f(n, d)} __ ${f(n + 1, d)}.` : `Which is bigger, ${f(n, d)} or ${f(n + 1, d)}? Type it.`;
         answer = i % 2 ? '<' : f(n + 1, d); form = i % 2 ? 'symbol' : undefined; hint = 'Same bottom number means same size pieces. Compare the tops.'; break;
       case 'order-fractions':
-        prompt = `Order ${f(3, d)}, ${f(1, d)}, ${f(2, d)} from ${i % 2 ? 'greatest to least' : 'least to greatest'}. Separate answers with commas.`;
+        prompt = `Put ${f(3, d)}, ${f(1, d)}, ${f(2, d)} in order, ${i % 2 ? 'biggest' : 'smallest'} first. Use commas.`;
         answer = (i % 2 ? [3, 2, 1] : [1, 2, 3]).map(top => f(top, d)).join(', '); form = 'ordered'; hint = 'Same size pieces. Compare the top numbers.'; break;
       case 'equivalent-models':
       case 'build-equivalents':
       case 'missing-equivalent': {
         const factor = 2 + i % 3;
-        prompt = i % 3 === 0 ? `Fill the missing numerator: ${value} = ?/${d * factor}.` :
-          i % 3 === 1 ? `Rename ${value} using denominator ${d * factor}. Enter a fraction.` :
-          `This model shows ${value}. Every piece is split into ${factor} equal pieces. Enter the new fraction with denominator ${d * factor}.`;
+        prompt = i % 3 === 0 ? `Fill the missing top number: ${value} = ?/${d * factor}.` :
+          i % 3 === 1 ? `Write ${value} with ${d * factor} on the bottom.` :
+          `This bar shows ${value}. Every piece is cut into ${factor}. What is the new fraction? (${d * factor} on the bottom)`;
         answer = i % 3 === 0 ? String(n * factor) : f(n * factor, d * factor);
         denominator = i % 3 === 0 ? undefined : d * factor;
         if (i % 3 === 2) visual = model(n, d);
@@ -202,15 +202,15 @@ export function getWorksheet(id: string): WorksheetProblem[] {
         answer = i % 3 === 0 ? String(n) : i % 3 === 1 ? f(n - 1, d) : value; hint = 'Count how many small pieces make it.'; break;
       case 'improper-fractions':
       case 'mixed-improper':
-        prompt = i % 2 ? `Write ${f(d + n, d)} as a mixed number (for example, 1 2/3).` :
+        prompt = i % 2 ? `Write ${f(d + n, d)} as wholes and a fraction, like 1 2/3.` :
           `Write 1 ${value} as a single fraction.`;
         answer = i % 2 ? `1 ${value}` : f(d + n, d); form = i % 2 ? 'mixed' : undefined;
         hint = `${d} pieces make 1 whole. Count what is left over.`; if (i < 4) visual = model(d + n, d); break;
       case 'add-like-denominators':
       case 'subtract-like-denominators': {
         const add = id.startsWith('add'); const a = add ? n : n + 1; const b = 1;
-        prompt = i % 3 === 2 ? `A ${context} has ${f(a, d)} of a meter. ${add ? 'Join' : 'Remove'} another ${f(b, d)} meter. Enter the ${add ? 'total' : 'remainder'}.` :
-          `Calculate ${f(a, d)} ${add ? '+' : '−'} ${f(b, d)}.`;
+        prompt = i % 3 === 2 ? `A ${context} has ${f(a, d)} of a meter. ${add ? 'Join' : 'Remove'} another ${f(b, d)} meter. How much is there ${add ? 'in all' : 'left'}?` :
+          `${f(a, d)} ${add ? '+' : '−'} ${f(b, d)} = ?`;
         answer = f(add ? a + b : a - b, d); hint = 'Same size pieces. Add or take away the tops. The bottom stays.';
         if (i % 3 === 1) visual = model(a, d); break;
       }

@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react';
+import { MathText } from './MathText';
 import { ArrowRight, Check, Footprints, Map as MapIcon, RotateCcw, Trophy, X } from 'lucide-react';
 import { CHALLENGES, challengeMaxPoints, challengeTrophy, type ChallengeQuestion } from './challenges';
 import { Confetti, Mascot, StoryPrompt, unitColor, useFun, type MascotMood } from './fun-ui';
@@ -22,14 +23,14 @@ function WalkThrough({ question, onClose }: { question: ChallengeQuestion; onClo
       <p className="fq-walk-title"><Footprints size={16} /> Step by step {done ? '· all done!' : `· step ${at + 1} of ${steps.length}`}</p>
       {question.figure?.kind === 'fold' && <PaperFold allowThirds={false} intro="Try it: fold the paper like Sam. Then unfold it." />}
       <ol className="fq-walk-done">
-        {steps.slice(0, at).map((s, i) => <li key={i}><Check size={14} strokeWidth={3} /> {s.prompt} <b>{s.choices[s.correct]}</b></li>)}
+        {steps.slice(0, at).map((s, i) => <li key={i}><Check size={14} strokeWidth={3} /> <span><MathText text={s.prompt} /> <b><MathText text={s.choices[s.correct]} /></b></span></li>)}
       </ol>
       {!done && current && (
         <div className="fq-walk-step">
-          <p>{current.prompt}</p>
+          <p><MathText text={current.prompt} /></p>
           <div className="fq-walk-choices" role="group" aria-label={`Step ${at + 1} answer`}>
             {current.choices.map((c, i) => (
-              <button type="button" key={i} className={pick === i ? (i === current.correct ? 'ok' : 'bad') : ''} onClick={() => setPick(i)} data-testid={`button-step-${at + 1}-${i}`}>{c}</button>
+              <button type="button" key={i} className={pick === i ? (i === current.correct ? 'ok' : 'bad') : ''} onClick={() => setPick(i)} data-testid={`button-step-${at + 1}-${i}`}><MathText text={c} /></button>
             ))}
           </div>
           {pick !== null && (right
@@ -142,7 +143,7 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
                 className={`fq-answer-choice ${selection === i ? `selected ${state === 'right' ? 'correct' : state === 'wrong' || state === 'reveal' ? 'retry' : ''}` : ''} ${state === 'reveal' && i === question.correct ? 'selected correct' : ''}`}
                 onClick={() => { if (answered) return; setSelection(i); if (state === 'wrong') setState('asking'); }}
                 aria-pressed={selection === i} data-testid={`button-challenge-${question.id}-${letter(i)}`}>
-                <span className="fq-choice-marker" aria-hidden="true">{letter(i)}</span><span>{choice}</span>
+                <span className="fq-choice-marker" aria-hidden="true">{letter(i)}</span><span><MathText text={choice} /></span>
               </button>
             ))}
           </div>
@@ -160,9 +161,9 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
             <div className="fq-sheet" role="status" data-testid="status-challenge-feedback">
               <Mascot mood={mood} size={64} />
               <div className="fq-sheet-copy">
-                {state === 'right' && <><strong>{tries === 0 && !helped ? `+${question.points} points!` : 'You got it!'}</strong><span>{question.explanation}</span></>}
+                {state === 'right' && <><strong>{tries === 0 && !helped ? `+${question.points} points!` : 'You got it!'}</strong><span><MathText text={question.explanation} /></span></>}
                 {state === 'wrong' && <><strong>Not quite!</strong><span>{question.steps ? 'Think again, or walk through it step by step.' : 'Think again. You get one more try.'}</span></>}
-                {state === 'reveal' && <><strong>The answer is {letter(question.correct)}.</strong><span>{question.explanation}</span></>}
+                {state === 'reveal' && <><strong>The answer is {letter(question.correct)}.</strong><span><MathText text={question.explanation} /></span></>}
               </div>
               {state === 'wrong'
                 ? <div className="fq-sheet-buttons">

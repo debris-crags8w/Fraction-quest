@@ -1,12 +1,14 @@
 import { useEffect, useState, type ReactElement } from 'react';
 import { Printer } from 'lucide-react';
+import { MathText } from './MathText';
 import { getMission, MISSIONS, type Mission, type ModelSpec } from './game';
 import { answerMatches, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 import { learningSummary, worksheetCount, type LearningRecord } from './learning';
 import { BarSvg, ChallengeFigureView, LineSvg, MODEL_CONCEPTS, ModelPair, ModelTag, SetSvg } from './models';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
+import { freshSeed, generateQuestions } from './practice-bank';
 
-export type PrintMode = 'lesson' | 'practice' | 'blank' | 'answers' | 'challenge' | 'key';
+export type PrintMode = 'lesson' | 'practice' | 'generated' | 'blank' | 'answers' | 'challenge' | 'key';
 
 export const lessonCode = (missionId: string) => `FQ-${String(MISSIONS.findIndex((item) => item.id === missionId) + 1).padStart(2, '0')}`;
 const letter = (index: number) => String.fromCharCode(65 + index);
@@ -97,7 +99,7 @@ function WorksheetPage({ missionId, record, mode }: { missionId: string; record:
           const draft = record.worksheet[problem.id]?.draft.trim();
           return (
             <li key={problem.id}>
-              <p className="fq-print-prompt">{problem.prompt}</p>
+              <p className="fq-print-prompt"><MathText text={problem.prompt} /></p>
               <ProblemModel problem={problem} />
               <div className="fq-print-answer">
                 <span>Answer:</span>
@@ -161,7 +163,7 @@ function PrintModel({ model, labels = true }: { model: ModelSpec; labels?: boole
           <rect className="frame" x={22} y={6} width={320} height={32} fill="none" />
         </svg>
       )}
-      {model.kind === 'equation' && <p className="fq-print-equation">{model.text}</p>}
+      {model.kind === 'equation' && <p className="fq-print-equation"><MathText text={model.text} /></p>}
       {labels && model.caption && <small>{model.caption}</small>}
     </div>
   );
@@ -188,10 +190,10 @@ function LessonSheet({ mission }: { mission: Mission }) {
       <PrintHead missionId={mission.id} kind="Lesson" showName={false} />
       <section className="fq-print-key">
         <h2>Let&apos;s think it through</h2>
-        <p className="fq-print-prompt">{mission.example.prompt}</p>
+        <p className="fq-print-prompt"><MathText text={mission.example.prompt} /></p>
         <PrintModel model={mission.example.model} />
-        <p className="fq-print-key-example">{mission.example.answer}</p>
-        <p>{mission.example.explanation}</p>
+        <p className="fq-print-key-example"><MathText text={mission.example.answer} /></p>
+        <p><MathText text={mission.example.explanation} /></p>
       </section>
       <section className="fq-print-key">
         <h2>Two ways to see a fraction</h2>
@@ -215,11 +217,11 @@ function PracticeSheet({ mission }: { mission: Mission }) {
       <ol className="fq-print-problems">
         {mission.questions.map((question) => (
           <li key={question.id}>
-            <p className="fq-print-prompt">{question.prompt}</p>
+            <p className="fq-print-prompt"><MathText text={question.prompt} /></p>
             {/* No number labels: on paper they would give the answer away. */}
             <PrintModel model={question.model} labels={false} />
             <ul className="fq-print-choices">
-              {question.choices.map((choice, index) => <li key={index}><span className="fq-print-circle">{letter(index)}</span> {choice}</li>)}
+              {question.choices.map((choice, index) => <li key={index}><span className="fq-print-circle">{letter(index)}</span> <MathText text={choice} /></li>)}
             </ul>
           </li>
         ))}
@@ -237,24 +239,24 @@ function AnswerKey({ mission }: { mission: Mission }) {
       <section className="fq-print-key">
         <h2>Practice sheet</h2>
         <ol className="fq-print-key-list">
-          {mission.questions.map((question) => <li key={question.id}><b>{letter(question.correctChoice)}</b> · {question.choices[question.correctChoice]}</li>)}
+          {mission.questions.map((question) => <li key={question.id}><b>{letter(question.correctChoice)}</b> · <MathText text={question.choices[question.correctChoice]} /></li>)}
         </ol>
       </section>
       <section className="fq-print-key">
         <h2>Worksheet</h2>
         <ol className="fq-print-key-list two-col">
-          {getWorksheet(mission.id).map((problem) => <li key={problem.id}><b>{problem.answer}</b> <small>{problem.prompt}</small></li>)}
+          {getWorksheet(mission.id).map((problem) => <li key={problem.id}><b><MathText text={problem.answer} /></b> <small><MathText text={problem.prompt} /></small></li>)}
         </ol>
       </section>
       <section className="fq-print-key">
         <h2>Unit {mission.unit} challenge</h2>
         <ol className="fq-print-key-list">
-          {CHALLENGES[mission.unit].map((item) => <li key={item.id}><b>{letter(item.correct)}</b> · {item.choices[item.correct]} <small>({item.points} points) {item.explanation}</small></li>)}
+          {CHALLENGES[mission.unit].map((item) => <li key={item.id}><b>{letter(item.correct)}</b> · <MathText text={item.choices[item.correct]} /> <small>({item.points} points) <MathText text={item.explanation} /></small></li>)}
         </ol>
       </section>
       <section className="fq-print-key">
         <h2>Show it both ways</h2>
-        <p>{checks[0].prompt} <b>Answer: {checks[0].target.n}/{checks[0].target.d}</b>. Why: {checks[0].explanation}</p>
+        <p><MathText text={checks[0].prompt} /> <b>Answer: <MathText text={`${checks[0].target.n}/${checks[0].target.d}`} /></b>. Why: <MathText text={checks[0].explanation} /></p>
         <ModelPair n={checks[0].target.n} d={checks[0].target.d} />
       </section>
       <footer className="fq-print-foot">Keep this page with a grown-up. Code {lessonCode(mission.id)}.</footer>
@@ -277,10 +279,10 @@ function ChallengeSheet({ mission }: { mission: Mission }) {
       <ol className="fq-print-problems">
         {items.map((item) => (
           <li key={item.id}>
-            <p className="fq-print-prompt"><span className="fq-print-points">{item.points} pts</span> {item.prompt}</p>
+            <p className="fq-print-prompt"><span className="fq-print-points">{item.points} pts</span> <MathText text={item.prompt} /></p>
             {item.figure && <div className="fq-print-model"><ChallengeFigureView figure={item.figure} /></div>}
             <ul className="fq-print-choices">
-              {item.choices.map((choice, index) => <li key={index}><span className="fq-print-circle">{letter(index)}</span> {choice}</li>)}
+              {item.choices.map((choice, index) => <li key={index}><span className="fq-print-circle">{letter(index)}</span> <MathText text={choice} /></li>)}
             </ul>
           </li>
         ))}
@@ -290,9 +292,41 @@ function ChallengeSheet({ mission }: { mission: Mission }) {
   );
 }
 
+/** A brand-new practice sheet from the question generator, with its own answer key on the last page. */
+function GeneratedSheet({ mission, seed }: { mission: Mission; seed: number }) {
+  const questions = generateQuestions(mission.id, mission.questions.map((q) => q.id), seed, 12);
+  const sheetCode = `${lessonCode(mission.id)}-${String(seed).slice(-4)}`;
+  return (
+    <article className="fq-print" aria-hidden="true" data-testid="print-generated">
+      <PrintHead missionId={mission.id} kind={`New practice sheet ${sheetCode}`} />
+      <p className="fq-print-instructions">Circle one letter for each question.</p>
+      <ol className="fq-print-problems">
+        {questions.map((question) => (
+          <li key={question.id}>
+            <p className="fq-print-prompt"><MathText text={question.prompt} /></p>
+            {/* An equation picture would only repeat the question on paper. */}
+            {question.model.kind !== 'equation' && <PrintModel model={question.model} labels={false} />}
+            <ul className="fq-print-choices">
+              {question.choices.map((choice, index) => <li key={index}><span className="fq-print-circle">{letter(index)}</span> <MathText text={choice} /></li>)}
+            </ul>
+          </li>
+        ))}
+      </ol>
+      <section className="fq-print-key fq-print-break">
+        <h2>Answer key · sheet {sheetCode}</h2>
+        <p>For grown-ups. Cut this part off before handing out the sheet.</p>
+        <ol className="fq-print-key-list two-col">
+          {questions.map((question) => <li key={question.id}><b>{letter(question.correctChoice)}</b> · <MathText text={question.choices[question.correctChoice]} /></li>)}
+        </ol>
+      </section>
+    </article>
+  );
+}
+
 /** A print-only page. Hidden on screen; while printing it replaces everything else. */
-export default function Printable({ missionId, record, mode }: { missionId: string; record: LearningRecord; mode: PrintMode }) {
+export default function Printable({ missionId, record, mode, seed = 1 }: { missionId: string; record: LearningRecord; mode: PrintMode; seed?: number }) {
   const mission = getMission(missionId);
+  if (mode === 'generated') return <GeneratedSheet mission={mission} seed={seed} />;
   if (mode === 'lesson') return <LessonSheet mission={mission} />;
   if (mode === 'practice') return <PracticeSheet mission={mission} />;
   if (mode === 'key') return <AnswerKey mission={mission} />;
@@ -303,6 +337,7 @@ export default function Printable({ missionId, record, mode }: { missionId: stri
 const PRINT_OPTIONS: { mode: PrintMode; label: string }[] = [
   { mode: 'lesson', label: 'Lesson' },
   { mode: 'practice', label: 'Practice questions' },
+  { mode: 'generated', label: 'New practice sheet (with answer key)' },
   { mode: 'blank', label: 'Worksheet' },
   { mode: 'answers', label: 'My answers' },
   { mode: 'challenge', label: 'Unit challenge' },
@@ -314,6 +349,7 @@ export function PrintMenu({ missionId, record, className = '' }: { missionId: st
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<PrintMode>('blank');
   const [request, setRequest] = useState(0);
+  const [seed, setSeed] = useState(1);
   useEffect(() => {
     if (!request) return;
     // Wait one frame so the chosen page is rendered before the print dialog opens.
@@ -328,13 +364,13 @@ export function PrintMenu({ missionId, record, className = '' }: { missionId: st
       {open && (
         <div className="fq-print-options" role="group" aria-label="Choose what to print">
           {PRINT_OPTIONS.map((option) => (
-            <button type="button" key={option.mode} onClick={() => { setMode(option.mode); setRequest((n) => n + 1); }} data-testid={`button-print-${option.mode}`}>
+            <button type="button" key={option.mode} onClick={() => { if (option.mode === 'generated') setSeed(freshSeed()); setMode(option.mode); setRequest((n) => n + 1); }} data-testid={`button-print-${option.mode}`}>
               {option.label}
             </button>
           ))}
         </div>
       )}
-      <Printable missionId={missionId} record={record} mode={mode} />
+      <Printable missionId={missionId} record={record} mode={mode} seed={seed} />
     </div>
   );
 }

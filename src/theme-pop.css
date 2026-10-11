@@ -19,9 +19,9 @@
   --accent: 47 100% 50%;
   --accent-foreground: 235 22% 21%;
   --destructive: 0 100% 65%;
-  --app-font-sans: "Nunito", "Trebuchet MS", system-ui, sans-serif;
-  --app-font-display: "Baloo 2", "Nunito", "Trebuchet MS", system-ui, sans-serif;
-  --app-font-mono: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+  --app-font-sans: "Atkinson Hyperlegible", "Verdana", system-ui, sans-serif;
+  --app-font-display: "Baloo 2", "Atkinson Hyperlegible", "Trebuchet MS", system-ui, sans-serif;
+  --app-font-mono: "Atkinson Hyperlegible", "Verdana", system-ui, sans-serif;
   --radius: 1.1rem;
   --shadow-card: 0 2px 0 hsl(250 25% 88%);
 
@@ -1178,3 +1178,62 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 /* Tick marks on lesson number lines, so kids can count the equal spaces. */
 .fq-numberline-tick::before { content: ""; position: absolute; left: 50%; top: -15px; width: 2.5px; height: 14px; border-radius: 2px; background: hsl(var(--foreground)); transform: translateX(-50%); }
 .fq-numberline-tick.whole::before { top: -18px; height: 20px; width: 3px; }
+@media print { .fq-print-break { break-before: page; } }
+
+/* ---------- crisp type and LaTeX-style stacked fractions ---------- */
+
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+body { font-family: var(--app-font-sans); font-feature-settings: "kern" 1; }
+/* Atkinson Hyperlegible has regular and bold; map extra-bold UI weights to its bold so nothing gets faux-bolded. */
+.fq-app, .fq-ll, .fq-login-app { font-synthesis: none; }
+
+.fq-mfrac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  vertical-align: middle;
+  margin: 0 0.12em;
+  font-family: var(--app-font-sans);
+  font-size: 0.8em;
+  font-weight: 700;
+  line-height: 1.02;
+  font-variant-numeric: lining-nums tabular-nums;
+  text-align: center;
+  white-space: nowrap;
+}
+.fq-mfrac .n { padding: 0 0.2em 0.08em; border-bottom: max(1.5px, 0.085em) solid currentColor; }
+.fq-mfrac .d { padding: 0.08em 0.2em 0; }
+.fq-mixed { display: inline-flex; align-items: center; gap: 0.08em; white-space: nowrap; font-variant-numeric: lining-nums; }
+h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
+.fq-answer-choice .fq-mfrac { font-size: 0.85em; }
+.fq-model-equation .fq-mfrac { font-size: 0.75em; margin: 0 0.18em; }
+.fq-story .fq-mfrac, .fq-sheet-copy .fq-mfrac, .fq-hint .fq-mfrac { font-size: 0.82em; }
+/* Keep lines with stacked fractions from crowding each other. */
+.fq-play-card h1, .fq-ll-check h3, .fq-story li, .fq-sheet-copy span, .fq-paper-prompt, .fq-ll-row label, .fq-walk-step p { line-height: 1.5; }
+@media print { .fq-print .fq-mfrac .n { border-bottom-color: #000; } }
+
+/* ---------- polish ---------- */
+
+/* Keep short buttons on one line. */
+.fq-button, .fq-account-signin, .fq-hint-button { white-space: nowrap; }
+.fq-node-tools .fq-button, .fq-node-card .fq-print-menu > .fq-button { text-transform: none; letter-spacing: 0; font-size: 0.9rem; padding: 0 12px; }
+.fq-node-tools { display: grid; grid-template-columns: 1fr 1fr; }
+.fq-node-tools > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+.fq-node-card .fq-print-menu { display: grid; }
+@media (max-width: 420px) {
+  .fq-account-signin { padding: 0 10px; font-size: 0; gap: 0; width: 42px; }
+  .fq-account-signin svg { width: 18px; height: 18px; }
+  .fq-topbar-actions { gap: 6px; }
+  .fq-fun-stats { gap: 8px; }
+}
+/* Calm, consistent focus ring everywhere. */
+.fq-app :focus-visible, .fq-ll :focus-visible, .fq-login-app :focus-visible { outline: 3px solid var(--fq-sky); outline-offset: 3px; }
+/* Smooth page entrance. */
+.fq-appear { animation: fq-rise-in 260ms ease-out both; }
+@keyframes fq-rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .fq-appear { animation: none; } }
+@media print {
+  .fq-print-key-list { list-style: none; padding-left: 0 !important; counter-reset: key; }
+  .fq-print-key-list > li { counter-increment: key; }
+  .fq-print-key-list > li::before { content: counter(key) ". "; font-weight: 900; }
+}
