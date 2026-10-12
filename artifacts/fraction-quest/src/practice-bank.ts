@@ -96,9 +96,9 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     if (kind === 1) sizes[r.int(0, count - 1)] = 2.5; // one piece clearly bigger
     const total = sizes.reduce((a, b) => a + b, 0);
     const yes = `Yes: ${d} equal pieces`; const unequal = 'No: the pieces are not equal'; const tooMany = `No: there are ${d + 1} pieces`;
-    return { prompt: `Is this strip cut into fair ${name(d)}?`, right: [yes, unequal, tooMany][kind], wrong: [yes, unequal, tooMany].filter((_, i) => i !== kind) as [string, string],
-      hint: `Fair ${name(d)}: exactly ${d} pieces, all the same size. Count them, then compare them.`,
-      retry: kind === 0 ? `There are ${d} pieces and they are all the same size, so they are fair ${name(d)}.` : kind === 1 ? 'One piece is bigger than the others, so the pieces are not fair.' : `Count again: there are ${d + 1} pieces, not ${d}.`,
+    return { prompt: `Is this strip cut into equal ${name(d)}?`, right: [yes, unequal, tooMany][kind], wrong: [yes, unequal, tooMany].filter((_, i) => i !== kind) as [string, string],
+      hint: `Equal ${name(d)}: exactly ${d} pieces, all the same size. Count them, then compare them.`,
+      retry: kind === 0 ? `There are ${d} pieces and they are all the same size, so they are equal ${name(d)}.` : kind === 1 ? 'One piece is bigger than the others, so the pieces are not equal.' : `Count again: there are ${d + 1} pieces, not ${d}.`,
       model: { kind: 'partition', parts: sizes.map((size) => (size / total) * 100) }, simpler: { kind: 'partition', parts: Array.from({ length: d }, () => 100 / d) } };
   },
   'fraction-names': (r) => {

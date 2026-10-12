@@ -352,7 +352,7 @@ export default function FamilyControls({ unitTitles }: FamilyControlsProps) {
                     const selected = draftUnits[learner.memberCode] ?? learner.assignedUnitIds;
                     const changed = Boolean(draftUnits[learner.memberCode]);
                     return <article key={learner.memberCode} className="fq-family-roster-card">
-                      <div className="fq-family-roster-top"><span className="fq-family-code-label">LEARNER CODE</span><strong>{learner.memberCode}</strong><span className="fq-family-mission-count">{learner.completedMissionIds.length} missions complete</span></div>
+                      <div className="fq-family-roster-top"><span className="fq-family-code-label">Learner code</span><strong>{learner.memberCode}</strong><span className="fq-family-mission-count">{learner.completedMissionIds.length} missions complete</span></div>
                       <fieldset className="fq-family-unit-fieldset">
                         <legend>Assigned units</legend>
                         <div className="fq-family-unit-grid">

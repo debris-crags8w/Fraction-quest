@@ -10,7 +10,7 @@
 .cg-brand-mark { display:grid; place-items:center; width:44px; height:44px; border-radius:15px; color:white; background:var(--fq-grape, hsl(var(--primary))); box-shadow:0 4px 0 #5b2ee0; }
 .cg-hero { position:relative; overflow:hidden; margin:12px 0 25px; padding:clamp(28px,6vw,60px); border-radius:30px; color:#fff; background:linear-gradient(112deg,#5b3bd5 0%,#7555e7 55%,#409dd2 100%); }
 .cg-hero::after { position:absolute; right:7%; bottom:-75px; width:235px; height:235px; border:2px dashed rgb(255 255 255 / .33); border-radius:50%; content:""; }
-.cg-index { display:block; color:var(--fq-grape, hsl(var(--primary))); font-size:.72rem; font-weight:950; letter-spacing:.13em; }
+.cg-index { display:block; color:var(--fq-grape, hsl(var(--primary))); font-size:.72rem; font-weight:950; letter-spacing: 0.01em; }
 .cg-hero .cg-index { color:#f7df79; }
 .cg-hero h1 { position:relative; z-index:1; margin:12px 0; font-size:clamp(2.7rem,8vw,5.4rem); line-height:.94; letter-spacing:-.06em; }
 .cg-hero h1 em { color:#ffe17d; font-style:normal; }
@@ -36,7 +36,7 @@
 .cg-war-models { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:24px 0; }
 .cg-model-card { display:grid; align-content:start; gap:11px; min-width:0; padding:18px; border:2px solid var(--cg-edge); border-radius:19px; background:hsl(var(--background)); }
 .cg-model-label { display:grid; gap:7px; }
-.cg-model-label>span,.cg-target>span { color:var(--cg-muted); font-size:.73rem; font-weight:900; letter-spacing:.09em; text-transform:uppercase; }
+.cg-model-label>span,.cg-target>span { color:var(--cg-muted); font-size:.73rem; font-weight:900; letter-spacing: 0.01em; }
 .cg-model-label strong { display:flex; align-items:center; gap:9px; font-size:1rem; }
 .cg-fraction { display:inline-flex; flex-direction:column; align-items:center; min-width:25px; font-family:var(--app-font-display,var(--app-font-sans)); font-size:1.05rem; font-weight:950; line-height:1; }
 .cg-fraction i { width:1.35em; height:2px; margin:3px 0; background:currentColor; }

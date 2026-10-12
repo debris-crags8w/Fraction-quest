@@ -12,6 +12,7 @@ import {
   type AssessmentDefinition, type AssessmentItem,
 } from './assessments';
 import type { AssessmentAttempt } from './game';
+import { LearningText } from './LearningText';
 
 export function AssessmentHub({ attempts, onStart, onBack }: {
   attempts: AssessmentAttempt[];
@@ -218,7 +219,7 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
           </div>
         </header>
         <form className="fq-assessment-question" onSubmit={submit}>
-          <h2 id={promptId}><MathText text={item.prompt} /></h2>
+          <h2 id={promptId} className="fq-question-text"><LearningText text={item.prompt} emphasize /></h2>
           <AssessmentModelBuilder key={item.id} item={item} onReady={modelReady} />
           <p className="fq-assessment-model-gate" role="status" aria-live="polite">
             {modelBuilt ? 'Now enter your answer.' : 'Finish building the model to open the answer box.'}

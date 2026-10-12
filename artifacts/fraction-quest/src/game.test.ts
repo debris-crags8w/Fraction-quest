@@ -2201,7 +2201,7 @@ describe('pictures never give the answer away', () => {
       }
       assert.equal(q.model.kind, 'partition');
       if (q.model.kind !== 'partition') continue;
-      const d = Number(/fair (\w+)/.exec(q.prompt) && { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8 }[/fair (\w+)\?/.exec(q.prompt)![1] as 'halves']);
+      const d = Number(/equal (\w+)/.exec(q.prompt) && { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8 }[/equal (\w+)\?/.exec(q.prompt)![1] as 'halves']);
       const parts = q.model.parts; const equal = parts.every((p) => Math.abs(p - parts[0]) < 1e-6);
       const truth = parts.length !== d ? `No: there are ${d + 1} pieces` : equal ? `Yes: ${d} equal pieces` : 'No: the pieces are not equal';
       assert.equal(q.choices[q.correctChoice], truth, `${q.prompt} with ${parts.length} parts, equal=${equal}`);

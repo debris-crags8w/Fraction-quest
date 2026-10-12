@@ -263,10 +263,10 @@ export function StoryPrompt({ prompt, id }: { prompt: string; id: string }) {
     <>
       {lines.length > 0 && (
         <ol className="fq-story" aria-label="The story, one line at a time">
-          {lines.map((line, i) => <li key={i}><span aria-hidden="true">{i + 1}</span><span><LearningText text={line} speak /></span></li>)}
+          {lines.map((line, i) => <li key={i}><span aria-hidden="true">{i + 1}</span><span><LearningText text={line} speak emphasize /></span></li>)}
         </ol>
       )}
-      <h1 id={id}><LearningText text={question} speak /></h1>
+      <h1 id={id} className="fq-question-text"><LearningText text={question} speak emphasize /></h1>
     </>
   );
 }

@@ -1,11 +1,11 @@
 .fq-recovery-card { display: grid; gap: 10px; padding: 18px; border: 2px solid var(--fq-grape, #6d4ae0); border-radius: 18px; background: hsl(var(--card)); }
 .fq-recovery-card h2 { margin: 0; font-size: 1.35rem; }
 .fq-recovery-card p { margin: 0; line-height: 1.5; }
-.fq-recovery-overline { display: inline-flex; align-items: center; gap: 6px; color: var(--fq-grape, #6d4ae0); font-size: .78rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.fq-recovery-overline { display: inline-flex; align-items: center; gap: 6px; color: var(--fq-grape, #6d4ae0); font-size: .78rem; font-weight: 900; letter-spacing: 0.01em; }
 .fq-recovery-code { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 4px 0; padding: 12px 14px; border: 2px dashed hsl(var(--border)); border-radius: 12px; background: hsl(var(--muted)); }
 .fq-recovery-code dt { color: hsl(var(--muted-foreground)); font-weight: 800; }
 .fq-recovery-code dd { margin: 0; font-weight: 900; word-break: break-all; }
-.fq-recovery-code dd[data-testid="text-recovery-code"] { font: 900 1.35rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+.fq-recovery-code dd[data-testid="text-recovery-code"] { font: 900 1.35rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.01em; }
 .fq-recovery-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .fq-recovery-saved { display: flex; align-items: flex-start; gap: 8px; font-weight: 700; }
 .fq-link-button { padding: 0; border: 0; background: none; color: var(--fq-grape, #6d4ae0); font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }

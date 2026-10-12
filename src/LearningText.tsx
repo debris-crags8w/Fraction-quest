@@ -476,16 +476,42 @@ function ListenButton({ text }: { text: string }) {
 }
 
 /** Keeps fractions stacked while making core vocabulary explorable and optionally audible. */
+/* Key points in a question get a solid underline: amounts ("2 pieces", "4 friends"), fraction names (halves, eighths)
+   and the words that decide the answer (equal, same, not, bigger, smaller…). Glossary words keep their dotted underline. */
+const KEY_PATTERN = new RegExp([
+  String.raw`\b\d+ (?:equal |same-size |fair )?(?:pieces?|parts?|slices?|spaces?|jumps?|groups?|friends?|kids?|wholes?|bars?|strips?|triangles?|squares?|loaves|pizzas?|cups?|beads?|marbles?|counters?)\b`,
+  String.raw`\b(?:halves|thirds|fourths|fifths|sixths|sevenths|eighths|ninths|tenths|elevenths|twelfths|hundredths)\b`,
+  String.raw`\b(?:equal|same|not|bigger|biggest|smaller|smallest|greater|more|less|closest|closer|fair|left)\b`,
+].join('|'), 'gi');
+
+/** Plain text with its key points underlined (fractions inside still render as math). */
+function EmphasizedText({ text }: { text: string }) {
+  const parts: ReactNode[] = [];
+  let last = 0;
+  for (const match of text.matchAll(KEY_PATTERN)) {
+    const at = match.index ?? 0;
+    if (at > last) parts.push(<MathText key={`t-${last}`} text={text.slice(last, at)} />);
+    parts.push(<span key={`k-${at}`} className="fq-key">{match[0]}</span>);
+    last = at + match[0].length;
+  }
+  if (last < text.length) parts.push(<MathText key={`t-${last}`} text={text.slice(last)} />);
+  return <>{parts}</>;
+}
+
 export function LearningText({
   text,
   speak = false,
   interactiveTerms = true,
+  emphasize = false,
 }: {
   text: string | undefined | null;
   speak?: boolean;
   interactiveTerms?: boolean;
+  /** Questions: underline the key points. */
+  emphasize?: boolean;
 }) {
   if (!text) return null;
+  const plain = (value: string, key: string) => (emphasize ? <EmphasizedText key={key} text={value} /> : <MathText key={key} text={value} />);
 
   const parts: ReactNode[] = [];
   let last = 0;
@@ -494,14 +520,14 @@ export function LearningText({
     const word = match[0];
     const entry = entryFor(word);
     if (!entry) continue;
-    if (at > last) parts.push(<MathText key={`text-${last}`} text={text.slice(last, at)} />);
+    if (at > last) parts.push(plain(text.slice(last, at), `text-${last}`));
     parts.push(
       <VocabularyTerm key={`term-${at}`} text={word} definition={entry.definition} interactive={interactiveTerms} />,
     );
     last = at + word.length;
   }
   if (last < text.length || parts.length === 0) {
-    parts.push(<MathText key={`text-${last}`} text={text.slice(last)} />);
+    parts.push(plain(text.slice(last), `text-${last}`));
   }
 
   return (

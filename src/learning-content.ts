@@ -423,8 +423,8 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         if (i === 7) {
           // Redos sometimes show a fair pizza, so "no" is not always the answer.
           const fair = variant % 2 === 1 ? circleCut(d) : undefined;
-          prompt = `Is this pizza cut into ${fair ? d : 4} fair slices? Type yes or no.`; answer = fair ? 'yes' : 'no'; form = 'word'; visual = undefined; task = undefined;
-          area = { cut: fair ?? 'circle-unequal' }; hint = 'Fair slices are all the same size. Is one slice bigger than the others?';
+          prompt = `Is this pizza cut into ${fair ? d : 4} equal slices? Type yes or no.`; answer = fair ? 'yes' : 'no'; form = 'word'; visual = undefined; task = undefined;
+          area = { cut: fair ?? 'circle-unequal' }; hint = 'Equal slices are all the same size. Is one slice bigger than the others?';
         }
         // Last four: a square whose equal parts have different shapes (same size, not always same shape).
         if (i === 8) {
