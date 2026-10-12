@@ -405,7 +405,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
       <form onSubmit={submit}>
         <div className="fq-ll-row-question">
           <span className="fq-ll-num" aria-hidden="true">{numberLabel ?? p.id.slice(1)}</span>
-          <span id={promptId}><LearningText text={p.prompt} speak /></span>
+          <span id={promptId} className="fq-question-text"><LearningText text={p.prompt} speak emphasize /></span>
         </div>
         {/* For counting and shading, the tappable bar is the picture, so it is not drawn twice. */}
         {p.model && (!p.task || p.task.kind === 'copy') && <Preview m={p.model} named={amountsIn(p.prompt).some((a) => a.numerator === p.model!.n && a.denominator === p.model!.d) || ok} />}

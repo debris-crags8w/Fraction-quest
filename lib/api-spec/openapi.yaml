@@ -37,7 +37,7 @@ paths:
       operationId: signup
       tags: [auth]
       summary: Create an account
-      description: Creates a student account and signs it in with a session cookie.
+      description: Creates a student account and signs it in with a session cookie. The response includes a one-time recovery code to keep on paper.
       requestBody:
         required: true
         content:
@@ -50,7 +50,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: "#/components/schemas/UserWithRecoveryCode"
         "400":
           description: Invalid username, name or password
           content:
@@ -95,6 +95,88 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "429":
           description: Too many attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/recover:
+    post:
+      operationId: recoverAccount
+      tags: [auth]
+      summary: Reset a forgotten password with the recovery code
+      description: Sets a new password, signs out every other device, signs in here, and replaces the used recovery code with a new one.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecoverAccountInput"
+      responses:
+        "200":
+          description: Password reset and signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserWithRecoveryCode"
+        "400":
+          description: Missing fields or password too short
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Username and recovery code don't match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/recovery-code:
+    post:
+      operationId: newRecoveryCode
+      tags: [auth]
+      summary: Make a new recovery code (the old one stops working)
+      responses:
+        "200":
+          description: The new code, shown once
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecoveryCode"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/password:
+    post:
+      operationId: setPassword
+      tags: [auth]
+      summary: Set a new password from a signed-in device (a grown-up's reset)
+      description: Signs out every other device.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetPasswordInput"
+      responses:
+        "204":
+          description: Password changed
+        "400":
+          description: Password too short or too long
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not signed in
           content:
             application/json:
               schema:
@@ -604,12 +686,71 @@ components:
           format: date-time
         privacyNoticeVersion:
           type: ["string", "null"]
+        hasRecoveryCode:
+          type: boolean
       required:
         - id
         - username
         - displayName
         - parentConsentAt
         - privacyNoticeVersion
+        - hasRecoveryCode
+    UserWithRecoveryCode:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        displayName:
+          type: string
+        parentConsentAt:
+          type: ["string", "null"]
+          format: date-time
+        privacyNoticeVersion:
+          type: ["string", "null"]
+        hasRecoveryCode:
+          type: boolean
+        recoveryCode:
+          type: string
+      required:
+        - id
+        - username
+        - displayName
+        - parentConsentAt
+        - privacyNoticeVersion
+        - hasRecoveryCode
+        - recoveryCode
+    RecoveryCode:
+      type: object
+      properties:
+        recoveryCode:
+          type: string
+      required: [recoveryCode]
+    RecoverAccountInput:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 40
+        recoveryCode:
+          type: string
+          minLength: 1
+          maxLength: 40
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 72
+      required: [username, recoveryCode, newPassword]
+    SetPasswordInput:
+      type: object
+      properties:
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 72
+      required: [newPassword]
     SignupRequest:
       type: object
       properties:

@@ -31,8 +31,8 @@
   background: color-mix(in srgb, var(--fq-grape) 12%, hsl(var(--card)));
   font-size: .78rem;
   font-weight: 900;
-  letter-spacing: .04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+
 }
 .fq-pf-top .fq-pf-best { margin-left: auto; }
 .fq-pf-best { color: hsl(var(--muted-foreground)); font-size: .9rem; font-weight: 850; }
@@ -46,7 +46,7 @@
   box-shadow: 0 7px 0 var(--fq-edge);
 }
 .fq-pf-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
-.fq-pf-kicker { margin: 0 0 5px; color: var(--fq-grape); font-size: .82rem; font-weight: 950; letter-spacing: .09em; text-transform: uppercase; }
+.fq-pf-kicker { margin: 0 0 5px; color: var(--fq-grape); font-size: .82rem; font-weight: 950; letter-spacing: 0.01em; }
 .fq-pf h1 { margin: 0; font-family: var(--app-font-display); font-size: clamp(1.8rem, 4vw, 2.65rem); line-height: 1.04; }
 .fq-pf-prompt { max-width: 590px; margin: 10px 0 0; color: hsl(var(--muted-foreground)); font-size: 1.08rem; font-weight: 650; line-height: 1.45; }
 .fq-pf-round-meter { display: grid; gap: 8px; flex: 0 0 auto; color: hsl(var(--muted-foreground)); font-size: .82rem; font-weight: 850; text-align: right; }
@@ -64,7 +64,7 @@
 .fq-pf-interactive figcaption,
 .fq-pf-comparison figcaption { display: grid; gap: 1px; width: 100%; text-align: center; }
 .fq-pf-interactive figcaption span,
-.fq-pf-comparison figcaption span { color: hsl(var(--muted-foreground)); font-size: .76rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.fq-pf-comparison figcaption span { color: hsl(var(--muted-foreground)); font-size: .76rem; font-weight: 900; letter-spacing: 0.01em; }
 .fq-pf-interactive figcaption strong,
 .fq-pf-comparison figcaption strong { color: var(--fq-grape); font-family: var(--app-font-display); font-size: 1.22rem; }
 .fq-pf-square { display: block; width: min(100%, 350px); height: auto; overflow: visible; border-radius: 14px; background: color-mix(in srgb, var(--fq-sky) 7%, hsl(var(--card))); }
@@ -90,7 +90,7 @@
 
 .fq-pf-tile-empty { width: min(100%, 550px); margin: 10px auto 20px; padding: 18px; border: 2px dashed var(--fq-edge); border-radius: 16px; color: hsl(var(--muted-foreground)); background: hsl(var(--muted)); text-align: center; font-weight: 750; }
 .fq-pf-fill { width: min(100%, 560px); margin: 10px auto 20px; padding: 16px 18px; border: 2px solid color-mix(in srgb, var(--fq-sky) 38%, var(--fq-edge)); border-radius: 18px; background: color-mix(in srgb, var(--fq-sky) 7%, hsl(var(--card))); }
-.fq-pf-fill-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; color: hsl(var(--muted-foreground)); font-size: .78rem; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
+.fq-pf-fill-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; color: hsl(var(--muted-foreground)); font-size: .78rem; font-weight: 900; letter-spacing: 0.01em; }
 .fq-pf-fill-head strong { color: var(--fq-grape); }
 .fq-pf-fill-grid { display: grid; grid-template-columns: repeat(var(--pf-columns), minmax(0, 1fr)); gap: 4px; min-height: 48px; padding: 4px; border: 3px solid hsl(var(--foreground)); border-radius: 12px; background: hsl(var(--card)); }
 .fq-pf-fill-grid { grid-template-columns: 1fr; justify-items: center; }
@@ -142,3 +142,11 @@
 @media (prefers-reduced-motion: reduce) {
   .fq-pf *, .fq-pf *::before, .fq-pf *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+.fq-pf-friends { display: grid; gap: 6px; justify-items: center; margin: 4px 0 14px; }
+.fq-pf-friends-label { margin: 0; font-weight: 900; }
+.fq-pf-friends .fq-pf-shares { margin: 0; }
+.fq-pf-share span { display: grid; text-align: left; line-height: 1.15; }
+.fq-pf-share small { color: hsl(var(--muted-foreground)); font-size: .75rem; font-weight: 750; }
+.fq-pf-piece.unassigned { fill: hsl(var(--card)); }
+.fq-pf-square.interactive .fq-pf-piece.unassigned:hover { fill: color-mix(in srgb, var(--fq-grape) 10%, hsl(var(--card))); }

@@ -49,7 +49,7 @@ export function BrainBreakOffer({ reason, quietMode, onSkip, onFinish }: {
   const minutes = `0:${String(seconds).padStart(2, '0')}`;
   return <div className="fq-break-backdrop" data-testid="brain-break-overlay">
     <section className="fq-break-card" role="dialog" aria-modal="true" aria-labelledby="break-title">
-      <header className="fq-break-top"><span className="fq-break-kicker">A SMALL PAUSE</span><button type="button" className="fq-break-close" onClick={onSkip} aria-label="Skip break and return to lesson" data-testid="button-break-skip-top"><X size={19} /></button></header>
+      <header className="fq-break-top"><span className="fq-break-kicker">A small pause</span><button type="button" className="fq-break-close" onClick={onSkip} aria-label="Skip break and return to lesson" data-testid="button-break-skip-top"><X size={19} /></button></header>
       <h2 id="break-title">Pause, if you’d like.</h2><p className="fq-break-reason">{REASONS[reason]}</p>
       {quietMode && <p className="fq-break-quiet" role="status" data-testid="status-break-quiet">Quiet mode is on. These choices are calm and low-noise.</p>}
       {!started ? <>

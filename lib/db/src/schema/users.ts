@@ -8,6 +8,9 @@ export const usersTable = pgTable("users", {
   username: text("username").notNull().unique(),
   displayName: text("display_name").notNull(),
   passwordHash: text("password_hash").notNull(),
+  // A one-time recovery code (shown once at sign-up) for resetting a forgotten password without an email.
+  // Only a scrypt hash is stored; using it replaces it with a new code.
+  recoveryCodeHash: text("recovery_code_hash"),
   parentConsentAt: timestamp("parent_consent_at", { withTimezone: true }),
   privacyNoticeVersion: text("privacy_notice_version"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

@@ -6,6 +6,7 @@ import { freshSeed, generateQuestions } from './practice-bank';
 import { MathText } from './MathText';
 import { Confetti, Mascot, useFun } from './fun-ui';
 import { playCue } from './lib/fun';
+import { LearningText } from './LearningText';
 
 /* Fraction Race: a short competition built from the lesson's own question generator.
    - Race the robot: get 10 right before the robot crosses the line (3 speeds).
@@ -60,7 +61,7 @@ function Lane({ name, questions, racer, now, onAnswer, renderModel, color, flipp
     <section className={`fq-race-lane ${flipped ? 'flipped' : ''} ${stalled ? 'stalled' : ''}`} style={{ '--lane': color } as CSSProperties} aria-label={`${name}'s questions`}>
       <p className="fq-race-lane-name"><b>{name}</b> · {racer.score}/{RACE_GOAL}{racer.shield ? <span className="fq-race-streak"> · 🛡️ shield on</span> : racer.streak > 0 && !stalled ? <span className="fq-race-streak"> · {'🔥'.repeat(Math.min(racer.streak, TURBO_STREAK))} {TURBO_STREAK - racer.streak} more for a shield</span> : null}</p>
       {turbo && <p className="fq-race-turbo" role="status">TURBO SHIELD! Your next mistake won't roll you back.</p>}
-      <h2 className="fq-race-q"><MathText text={q.prompt} /></h2>
+      <h2 className="fq-race-q fq-question-text"><LearningText text={q.prompt} emphasize interactiveTerms={false} /></h2>
       {(q.model.kind !== 'equation') && <div className="fq-race-model">{renderModel(q.model)}</div>}
       <div className="fq-race-choices" role="group" aria-label="Choose an answer">
         {q.choices.map((choice, i) => (

@@ -16,24 +16,27 @@ export type PartFinderRound = {
 /** Sort rounds: assignment[piece] is the share (0, 1, 2…) it was put in, or -1 when not placed yet. */
 export type ShareAssignment = number[];
 
+/** The friends sharing the cake in round 1 (one color each). */
+export const FRIENDS = ['Ava', 'Ben', 'Cam', 'Dee'];
+
 export const PART_FINDER_LESSONS: ReadonlySet<string> = new Set(['equal-parts', 'unit-fractions', 'equivalent-models']);
 
 /** Three short challenges built from the same square-piece geometry as the learning lab. */
 export const PART_FINDER_ROUNDS: PartFinderRound[] = [
   {
     id: 'sort',
-    title: 'Make 4 fair shares',
-    prompt: 'Put every piece into one of 4 shares. Each share must be the same size.',
+    title: 'Share the cake fairly',
+    prompt: '4 friends share this square cake. Give every piece to a friend, so each friend gets the same amount of cake.',
     cut: 'quarter-and-triangles',
     targetArea: 1 / 4,
-    targetLabel: '4 fair shares',
+    targetLabel: '4 friends, 1 cake',
     mode: 'sort',
     shares: 4,
   },
   {
     id: 'tile',
-    title: 'Tile the whole',
-    prompt: 'Pick any piece. How many copies of it would cover the whole square?',
+    title: 'How many pieces make the cake?',
+    prompt: 'Pick one piece of cake. How many pieces that size would cover the whole cake?',
     cut: 'quarter-and-triangles',
     targetArea: 1 / 8,
     targetLabel: 'copies of one piece',
@@ -41,8 +44,8 @@ export const PART_FINDER_ROUNDS: PartFinderRound[] = [
   },
   {
     id: 'match',
-    title: 'Match a fourth',
-    prompt: 'Choose eighths that cover the same area as one fourth.',
+    title: 'Same amount of cake',
+    prompt: 'The cake on the left has 1/4 shaded. Pick small triangles that make the same amount of cake as that 1/4.',
     cut: 'eighths-triangles',
     targetArea: 1 / 4,
     targetLabel: 'one fourth',
@@ -96,15 +99,15 @@ const inSmallest = (round: PartFinderRound, area: number) => {
 export function partFinderFeedback(round: PartFinderRound, selected: number[], answer?: number): string {
   if (round.mode === 'sort') {
     const left = selected.filter((share) => share < 0).length + Math.max(0, AREA_CUTS[round.cut].length - selected.length);
-    if (left === AREA_CUTS[round.cut].length) return 'Choose a share color, then tap pieces to put them in it.';
-    if (left) return `${left} ${left === 1 ? 'piece is' : 'pieces are'} not in a share yet. Every piece needs a share.`;
+    if (left === AREA_CUTS[round.cut].length) return 'Tap a friend’s name, then tap the pieces that friend gets.';
+    if (left) return `${left} ${left === 1 ? 'piece has' : 'pieces have'} no friend yet. Give every piece to someone.`;
     const fair = 1 / (round.shares ?? 1);
     const areas = shareAreas(round, selected);
     const big = areas.findIndex((area) => area > fair + EPSILON);
-    if (big >= 0) return `Share ${big + 1} is too big. Move a piece to a share that is too small.`;
+    if (big >= 0) return `${FRIENDS[big]} gets too much cake. Give one of ${FRIENDS[big]}’s pieces to a friend who has less.`;
     const small = areas.findIndex((area) => area < fair - EPSILON);
-    if (small >= 0) return `Share ${small + 1} is too small.`;
-    return 'All 4 shares are the same size! One share is a square, the others are 2 triangles. Same size, different shapes.';
+    if (small >= 0) return `${FRIENDS[small]} doesn’t get enough cake.`;
+    return 'Fair! Every friend gets 1/4 of the cake. One friend has a small square, the others have 2 triangles: the same amount, in different shapes.';
   }
   if (!selected.length) return 'Tap a piece to start.';
   if (round.mode === 'tile' && selected.length > 1) return 'Choose just one piece to copy.';

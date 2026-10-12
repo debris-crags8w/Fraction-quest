@@ -14,4 +14,5 @@ export interface User {
   parentConsentAt: Date | null;
   /** @nullable */
   privacyNoticeVersion: string | null;
+  hasRecoveryCode: boolean;
 }

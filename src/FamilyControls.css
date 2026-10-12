@@ -55,7 +55,7 @@
 .fq-family-kicker, .fq-family-overline {
   display: flex; align-items: center; gap: 8px; margin: 0;
   color: var(--family-teal); font-size: .72rem; font-weight: 900;
-  letter-spacing: .13em; text-transform: uppercase;
+  letter-spacing: 0.01em;
 }
 .fq-family-intro h2 {
   margin: 14px 0 12px; font-size: clamp(2.2rem, 5vw, 4.2rem);
@@ -153,7 +153,7 @@
 .fq-family-code-card { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 20px; padding: 13px 38px 13px 15px; border: 1px dashed #bd9961; border-radius: 14px; background: #fff7df; }
 .fq-family-code-card > div { display: grid; gap: 3px; }
 .fq-family-code-card small { color: #78694a; font-size: .71rem; }
-.fq-family-code-card strong { color: #483e2d; font: 900 1.25rem var(--app-font-mono, monospace); letter-spacing: .12em; }
+.fq-family-code-card strong { color: #483e2d; font: 900 1.25rem var(--app-font-mono, monospace); letter-spacing: 0.01em; }
 .fq-family-copy-button { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 10px; border: 1px solid #d8c698; border-radius: 9px; color: #5d5036; background: #fffdf5; cursor: pointer; font-size: .73rem; font-weight: 850; }
 .fq-family-code-dismiss { position: absolute; top: 5px; right: 5px; display: grid; place-items: center; width: 27px; height: 27px; border: 0; color: #78694a; background: transparent; cursor: pointer; }
 .fq-family-roster-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 10px 0 11px; }
@@ -163,8 +163,8 @@
 .fq-family-roster { display: grid; gap: 10px; }
 .fq-family-roster-card { overflow: hidden; border: 1px solid #e1e4d8; border-radius: 14px; background: #fffefa; }
 .fq-family-roster-top { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 10px 13px; border-bottom: 1px solid #efeee5; }
-.fq-family-code-label { color: var(--family-muted); font-size: .64rem; font-weight: 900; letter-spacing: .1em; }
-.fq-family-roster-top strong { font: 900 .93rem var(--app-font-mono, monospace); letter-spacing: .09em; }
+.fq-family-code-label { color: var(--family-muted); font-size: .64rem; font-weight: 900; letter-spacing: 0.01em; }
+.fq-family-roster-top strong { font: 900 .93rem var(--app-font-mono, monospace); letter-spacing: 0.01em; }
 .fq-family-mission-count { margin-left: auto; color: var(--family-muted); font-size: .7rem; }
 .fq-family-unit-fieldset { margin: 0; padding: 12px 13px 10px; border: 0; }
 .fq-family-unit-fieldset legend { padding: 0; color: var(--family-muted); font-size: .73rem; font-weight: 800; }

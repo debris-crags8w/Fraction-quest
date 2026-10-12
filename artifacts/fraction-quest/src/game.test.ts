@@ -9,6 +9,7 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { FunContext, splitStory } from './fun-ui';
 import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
+import { naturalVoicePreference, naturalVoiceStatus, setNaturalVoicePreference } from './lib/natural-voice';
 import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
 import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './FractionRace';
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
@@ -693,7 +694,9 @@ describe('entered-answer worksheets and evidence gates', () => {
   it('shows the family voice-selection section and explains when local speech is unsupported', () => {
     const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
     assert.match(markup, /Read-aloud voice/);
-    assert.match(markup, /Preview voices available on this device/);
+    assert.match(markup, /Natural voice/);
+    assert.match(markup, /Device voices/);
+    assert.match(markup, /can’t run the natural voice/, 'without browser support the natural voice explains the fallback');
     assert.match(markup, /Read-aloud voices are not available in this browser/);
   });
 
@@ -1384,6 +1387,7 @@ describe('square (area) models', () => {
 
 describe('Part Finder rounds', () => {
   const sort = PART_FINDER_ROUNDS.find((round) => round.id === 'sort')!;
+  const cakeSort = PART_FINDER_ROUNDS.find((round) => round.id === 'sort-cake')!;
   const tile = PART_FINDER_ROUNDS.find((round) => round.id === 'tile')!;
   const match = PART_FINDER_ROUNDS.find((round) => round.id === 'match')!;
 
@@ -1401,6 +1405,20 @@ describe('Part Finder rounds', () => {
     assert.match(partFinderFeedback(sort, [0, 0, 1, 1, 2, 2, 3, -1]), /1 piece is not in a share/);
     assert.match(partFinderFeedback(sort, [0, 0, 0, 1, 1, 2, 2, 3]), /Share 1 is too big/);
     assert.match(partFinderFeedback(sort, [0, 0, 1, 1, 2, 2, 3, 3]), /same size/);
+  });
+
+  it('sorts the cake pieces into 4 fair shares even when their shapes differ', () => {
+    // quarter-and-triangles: piece 0 is the small square, pieces 1–6 are triangles (1/8 each).
+    assert.equal(AREA_CUTS[cakeSort.cut].length, 7);
+    assert.equal(isPartFinderAnswer(cakeSort, [0, 1, 1, 2, 2, 3, 3]), true);
+    assert.equal(isPartFinderAnswer(cakeSort, [3, 0, 1, 2, 0, 1, 2]), true, 'any pairing of triangles works');
+    assert.equal(isPartFinderAnswer(cakeSort, [0, 0, 1, 2, 2, 3, 3]), false, 'square + triangle is too big');
+    assert.equal(isPartFinderAnswer(cakeSort, [0, 1, 1, 2, 2, 3, -1]), false, 'every piece needs a share');
+    assert.equal(isPartFinderAnswer(cakeSort, [0, 1, 1, 2, 2, 3]), false);
+    assert.equal(isPartFinderAnswer(cakeSort, [0, 1, 1, 2, 2, 3, 4]), false);
+    assert.match(partFinderFeedback(cakeSort, [0, 1, 1, 2, 2, 3, -1]), /1 piece has no friend yet/);
+    assert.match(partFinderFeedback(cakeSort, [0, 0, 1, 2, 2, 3, 3]), /Ava gets too much cake/);
+    assert.match(partFinderFeedback(cakeSort, [0, 1, 1, 2, 2, 3, 3]), /Fair! Every friend gets 1\/4/);
   });
 
   it('gives a hint instead of a bare "try again" when a match is off', () => {
@@ -1421,15 +1439,16 @@ describe('Part Finder rounds', () => {
     assert.equal(isPartFinderAnswer(match, [0, 1]), true);
     assert.equal(isPartFinderAnswer(match, [4, 7]), true);
     assert.equal(isPartFinderAnswer(match, [0]), false);
-    assert.equal(PART_FINDER_ROUNDS.length, 3);
+    assert.equal(PART_FINDER_ROUNDS.length, 4);
     assert.deepEqual([...PART_FINDER_LESSONS], ['equal-parts', 'unit-fractions', 'equivalent-models']);
   });
 
-  it('awards points only for a correct first check and caps the score at three', () => {
+  it('awards points only for a correct first check and caps the score at four', () => {
     assert.equal(scorePartFinderRound(0, true), 1);
     assert.equal(scorePartFinderRound(0, false), 0);
     assert.equal(scorePartFinderRound(2, true), 3);
-    assert.equal(scorePartFinderRound(3, true), 3);
+    assert.equal(scorePartFinderRound(3, true), 4);
+    assert.equal(scorePartFinderRound(4, true), 4);
   });
 });
 
@@ -1441,9 +1460,9 @@ describe('Part Finder saved game result', () => {
     assert.equal(loadFun().partFinderBest, 2);
     const replay = recordPartFinder(loadFun(), 1);
     assert.equal(replay.partFinderBest, 2, 'a lower replay does not replace the best score');
-    assert.equal(recordPartFinder(replay, 99).partFinderBest, 3, 'scores cannot exceed three rounds');
+    assert.equal(recordPartFinder(replay, 99).partFinderBest, 4, 'scores cannot exceed four rounds');
     window.localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ partFinderBest: 99 }));
-    assert.equal(loadFun().partFinderBest, 3);
+    assert.equal(loadFun().partFinderBest, 4);
     assert.equal(firstRun.partFinderBest, 2);
   });
 
@@ -2215,7 +2234,7 @@ describe('pictures never give the answer away', () => {
       }
       assert.equal(q.model.kind, 'partition');
       if (q.model.kind !== 'partition') continue;
-      const d = Number(/fair (\w+)/.exec(q.prompt) && { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8 }[/fair (\w+)\?/.exec(q.prompt)![1] as 'halves']);
+      const d = Number(/equal (\w+)/.exec(q.prompt) && { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8 }[/equal (\w+)\?/.exec(q.prompt)![1] as 'halves']);
       const parts = q.model.parts; const equal = parts.every((p) => Math.abs(p - parts[0]) < 1e-6);
       const truth = parts.length !== d ? `No: there are ${d + 1} pieces` : equal ? `Yes: ${d} equal pieces` : 'No: the pieces are not equal';
       assert.equal(q.choices[q.correctChoice], truth, `${q.prompt} with ${parts.length} parts, equal=${equal}`);
@@ -2362,5 +2381,75 @@ describe('fraction labels on bar models', () => {
     assert.deepEqual(labels(compare.model), [true, true]);
     const practice = generateQuestions('compare-same-numerator', ['x'], 2, 6);
     assert.ok(practice.every((q) => labels(q.model).every(Boolean)));
+  });
+});
+
+describe('natural read-aloud voice', () => {
+  const device = () => {
+    const utterances: SpeechSynthesisUtterance[] = [];
+    const synthesis = {
+      getVoices: () => [{ name: 'Samantha', lang: 'en-US', default: true }] as SpeechSynthesisVoice[],
+      speak(utterance: SpeechSynthesisUtterance) { utterances.push(utterance); },
+      cancel() {}, addEventListener() {}, removeEventListener() {},
+    } as unknown as SpeechSynthesis;
+    return { utterances, synthesis };
+  };
+  const reader = (ready: boolean, ok = true) => {
+    const calls = { spoken: [] as string[][], warmUps: 0, stops: 0 };
+    return { calls, natural: {
+      ready: () => ready,
+      speak(parts: string[], done: (ok: boolean) => void) { calls.spoken.push(parts); done(ok); },
+      stop() { calls.stops++; },
+      warmUp() { calls.warmUps++; },
+    } };
+  };
+  it('reads with the natural voice once it is ready, in sentences, with fractions said aloud', () => {
+    const { utterances, synthesis } = device(); const { calls, natural } = reader(true);
+    const states: boolean[] = [];
+    const controller = createLearningSpeechController(synthesis, (s) => states.push(s), makeTestSpeechUtterance, 0, () => null, natural);
+    controller.speak('Compare 3/4 with 3/8. Fourths are bigger.', 'en-US');
+    assert.deepEqual(calls.spoken, [['Compare three fourths with three eighths.', 'Fourths are bigger.']]);
+    assert.equal(utterances.length, 0, 'the device voice is not used');
+    assert.deepEqual(states, [true, false]);
+    controller.dispose();
+  });
+  it('uses the device voice while the natural voice downloads, and falls back if it fails', () => {
+    const first = device(); const loading = reader(false);
+    const c1 = createLearningSpeechController(first.synthesis, () => undefined, makeTestSpeechUtterance, 0, () => null, loading.natural);
+    c1.speak('One half.', 'en-US');
+    assert.equal(loading.calls.warmUps, 1, 'starts the one-time download');
+    assert.equal(first.utterances.length, 1);
+    c1.dispose();
+    const second = device(); const broken = reader(true, false);
+    const c2 = createLearningSpeechController(second.synthesis, () => undefined, makeTestSpeechUtterance, 0, () => null, broken.natural);
+    c2.speak('One half.', 'en-US');
+    assert.equal(second.utterances.length, 1, 'a failed natural reading falls back to the device voice');
+    c2.dispose();
+  });
+  it('is on by default and remembers a grown-up turning it off', () => {
+    const store = new Map<string, string>();
+    (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v); } };
+    assert.equal(naturalVoicePreference(), 'af_heart');
+    setNaturalVoicePreference('off');
+    assert.equal(naturalVoicePreference(), 'off');
+    assert.equal(naturalVoiceStatus().state, 'off');
+    setNaturalVoicePreference('af_bella');
+    assert.equal(naturalVoicePreference(), 'af_bella');
+    delete (globalThis as { localStorage?: unknown }).localStorage;
+  });
+});
+
+describe('the simpler help stays about the question', () => {
+  it('shows the fractions the question names, not an unrelated 1/2 bar', () => {
+    const q = MISSIONS.find((m) => m.id === 'compare-same-numerator')!.questions.find((item) => /4\/5 or 4\/9/.test(item.prompt))!;
+    assert.equal(q.simplerModel.kind, 'bars');
+    if (q.simplerModel.kind === 'bars') assert.deepEqual(q.simplerModel.bars.map((b) => `${b.numerator}/${b.denominator}`), ['4/5', '4/9']);
+    let unrelated = 0;
+    for (const m of MISSIONS) for (const item of m.questions) {
+      const namesOwn = item.model.kind === 'bars' && item.model.bars.some((b) => b.named);
+      const helpNames = item.simplerModel.kind === 'bars' && item.simplerModel.bars.some((b) => b.named);
+      if (namesOwn && !helpNames) unrelated++;
+    }
+    assert.equal(unrelated, 0);
   });
 });

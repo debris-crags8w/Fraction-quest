@@ -41,6 +41,24 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Password reset (owner chose b + c) + branch review (main):** users.recovery_code_hash (scrypt) — run
+  `pnpm --filter ./lib/db run push` on the real DB before deploying. Routes: signup returns `recoveryCode` once;
+  POST /auth/recover {username, recoveryCode, newPassword} (rate-limited 10/15 min per ip+user, 30/h per ip; code is
+  single-use, rotated, all sessions ended, signs in); POST /auth/recovery-code (signed in, new code); POST /auth/password
+  (signed in, grown-up reset, ends other sessions). publicUser has hasRecoveryCode. UI: RecoveryCode.tsx card (copy,
+  print-only-the-card), LoginPage "Forgot your password?" mode, FamilyControls AccountSecurityCard. Teachers can't reset
+  family passwords (they only see member codes). Verified with curl + Playwright against a temp Postgres.
+  Branch review: claude/fun-colorful-redesign has 0 commits not in main; replit/quick-review-flow-coverage's component
+  and 3 tests are already in main (7e34658). Walking the quick-review flow found the "make it simpler" help swapping in an
+  unrelated 1/2 bar; practice() now keeps help on the question's own named bars.
+- **Natural voice (Kokoro, option A) + bar labels (main):** src/lib/natural-voice.ts loads kokoro-js lazily (q8, wasm,
+  model from huggingface.co, ~90 MB once; ort wasm is bundled into dist). Default voice af_heart; 'off' or another voice
+  saved in localStorage 'fraction-quest-natural-voice'; grown-ups' NaturalVoiceSettings in LearningText.tsx.
+  createLearningSpeechController takes a NaturalReader: uses it when ready (English), else warmUp() + device voice; falls
+  back to the device voice if a natural reading fails. Could NOT test real audio here (huggingface.co blocked by the
+  sandbox proxy); needs a listen on a real device. Bar labels: FractionValue.named via nameBars(model, prompt) (exact
+  n/d match); ModelView `reveal` after a correct answer; BarSvg `fraction` prop. Daily Practice number line: ticks +
+  one landing dot (was a circle mid-space with a stray tick).
 - **Models everywhere + whole bracket + grade-4 multiply (main):** user wants a visual on EVERY question/answer and
   shaded compare models (reverted last round's unshaded compare pictures). src/auto-picture.ts (amountsIn/autoPicture +
   story pictures) feeds worksheet `picture` (getWorksheet tag), practice() equation → bars, problemPicture fallback (also
@@ -143,8 +161,6 @@ the square area model and the Part Finder proposal; local review changes should 
   out-of-range denominators, duplicate family worksheets) with regression tests under "quality audit fixes" in game.test.ts.
 
 ## Still open
-- **Password reset:** waiting on the user's choice: (a) parent email link, (b) printed recovery code, (c) parent/teacher
-  resets from their page. Nothing built yet.
 - **Privacy policy page:** needs company name, contact email and country/state from the user. PRIVACY_POLICY_URL is ''
   on the iOS branch. COPPA still needs a careful data-handling review; don't claim legal compliance from code review alone.
 - Whole-number times a fraction exists in the Unit 11 grade-5 extension, but not in the grade-4 path.

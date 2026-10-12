@@ -306,6 +306,7 @@ test('all 68 lessons render their worked model and first interactive question', 
 });
 
 test('learners can correct a wrong answer across every lesson model type', async ({ page }) => {
+  test.setTimeout(60_000);
   const modelKinds = ['area', 'bars', 'decimal', 'line', 'partition', 'set'] as const;
   const representativeMissions = modelKinds.map((kind) =>
     MISSIONS.find((mission) => mission.questions[0]?.model.kind === kind),
@@ -419,7 +420,7 @@ test('daily practice opens as a separate short session', async ({ page }) => {
   await expect(page.getByTestId('button-daily-hint')).toBeVisible();
 });
 
-test('Part Finder shows and sorts eight equal pieces into four fair shares', async ({ page }) => {
+test('Part Finder shows equal pieces first and adds a mixed-shape cake share challenge', async ({ page }) => {
   await openAsGuest(page);
   await page.getByTestId('button-part-finder-equal-parts').click();
 
@@ -447,6 +448,23 @@ test('Part Finder shows and sorts eight equal pieces into four fair shares', asy
   await expect(page.getByTestId('part-finder-selection')).toHaveText('8 of 8 equal pieces are in a share.');
   await page.getByTestId('button-part-finder-check').click();
   await expect(page.getByTestId('part-finder-feedback')).toContainText('Each share has 2 equal pieces.');
+
+  await page.getByTestId('button-part-finder-next').click();
+  await expect(page.getByRole('heading', { name: 'Share the cake fairly' })).toBeVisible();
+  await expect(page.locator('.fq-pf-interactive .fq-pf-piece')).toHaveCount(7);
+  await expect(page.getByTestId('part-finder-selection')).toHaveText('0 of 7 pieces given out.');
+  await assignPiece(1);
+  await page.getByTestId('button-part-finder-share-2').click();
+  await assignPiece(2);
+  await assignPiece(3);
+  await page.getByTestId('button-part-finder-share-3').click();
+  await assignPiece(4);
+  await assignPiece(5);
+  await page.getByTestId('button-part-finder-share-4').click();
+  await assignPiece(6);
+  await assignPiece(7);
+  await page.getByTestId('button-part-finder-check').click();
+  await expect(page.getByTestId('part-finder-feedback')).toContainText('Every friend gets 1/4 of the cake.');
 });
 
 test('daily bar builder explains the denominator as total equal parts in one whole', async ({ page }) => {

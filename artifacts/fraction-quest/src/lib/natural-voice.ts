@@ -1,0 +1,137 @@
+/* A natural read-aloud voice: Kokoro, an open-source neural voice that runs inside the browser.
+   Free, no account, and no text leaves the device. The model (about 90 MB) downloads once, the first
+   time a child presses Listen, and the browser keeps it. Until it is ready, or on a device that can't
+   run it, the app keeps using the device's own voice, so Listen always works. */
+
+export type NaturalVoiceId = 'af_heart' | 'af_bella' | 'af_nicole' | 'bf_emma';
+export const NATURAL_VOICES: { id: NaturalVoiceId; name: string; note: string }[] = [
+  { id: 'af_heart', name: 'Heart', note: 'warm and gentle' },
+  { id: 'af_bella', name: 'Bella', note: 'bright and friendly' },
+  { id: 'af_nicole', name: 'Nicole', note: 'soft and calm' },
+  { id: 'bf_emma', name: 'Emma', note: 'British, clear' },
+];
+export const NATURAL_VOICE_SPEED = 0.92;
+const MODEL_ID = 'onnx-community/Kokoro-82M-v1.0-ONNX';
+const STORAGE_KEY = 'fraction-quest-natural-voice';
+
+export type NaturalVoiceState = 'off' | 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
+export type NaturalVoiceStatus = { state: NaturalVoiceState; progress?: number };
+type Clip = { toBlob(): Blob };
+export type NaturalEngine = { generate(text: string, options: { voice: string; speed: number }): Promise<Clip> };
+
+/** The chosen natural voice, or 'off'. On by default (Heart): grown-ups can turn it off. */
+export function naturalVoicePreference(): NaturalVoiceId | 'off' {
+  try {
+    const saved = globalThis.localStorage?.getItem(STORAGE_KEY);
+    if (saved === 'off' || NATURAL_VOICES.some((voice) => voice.id === saved)) return saved as NaturalVoiceId | 'off';
+  } catch { /* storage blocked: use the default */ }
+  return 'af_heart';
+}
+export function setNaturalVoicePreference(choice: NaturalVoiceId | 'off'): void {
+  try { globalThis.localStorage?.setItem(STORAGE_KEY, choice); } catch { /* not saved; still used this session */ }
+  sessionChoice = choice;
+  publish();
+}
+let sessionChoice: NaturalVoiceId | 'off' | null = null;
+const currentChoice = () => sessionChoice ?? naturalVoicePreference();
+
+/** Can this browser run the model? (WebAssembly and audio playback.) */
+export function naturalVoiceSupported(): boolean {
+  return typeof window !== 'undefined' && typeof WebAssembly === 'object' && typeof Audio !== 'undefined'
+    && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function';
+}
+
+let engine: NaturalEngine | null = null;
+let loading: Promise<NaturalEngine | null> | null = null;
+let failed = false;
+let progress = 0;
+const listeners = new Set<(status: NaturalVoiceStatus) => void>();
+
+export function naturalVoiceStatus(): NaturalVoiceStatus {
+  if (currentChoice() === 'off') return { state: 'off' };
+  if (!engine && !naturalVoiceSupported()) return { state: 'unsupported' };
+  if (engine) return { state: 'ready' };
+  if (failed) return { state: 'error' };
+  if (loading) return { state: 'loading', progress };
+  return { state: 'idle' };
+}
+function publish() { const status = naturalVoiceStatus(); listeners.forEach((listener) => listener(status)); }
+export function onNaturalVoiceStatus(listener: (status: NaturalVoiceStatus) => void): () => void {
+  listeners.add(listener); listener(naturalVoiceStatus());
+  return () => { listeners.delete(listener); };
+}
+
+/** Start the one-time download (does nothing if it's off, unsupported, loading or loaded). */
+export function warmUpNaturalVoice(): Promise<NaturalEngine | null> {
+  if (engine) return Promise.resolve(engine);
+  if (currentChoice() === 'off' || !naturalVoiceSupported()) return Promise.resolve(null);
+  if (loading) return loading;
+  failed = false; progress = 0;
+  loading = (async () => {
+    try {
+      const { KokoroTTS } = await import('kokoro-js');
+      const tts = await KokoroTTS.from_pretrained(MODEL_ID, {
+        dtype: 'q8', device: 'wasm',
+        progress_callback: (event: { status?: string; progress?: number }) => {
+          if (event.status === 'progress' && typeof event.progress === 'number') { progress = Math.round(event.progress); publish(); }
+        },
+      });
+      engine = tts as unknown as NaturalEngine;
+      return engine;
+    } catch {
+      failed = true;
+      return null;
+    } finally {
+      loading = null;
+      publish();
+    }
+  })();
+  publish();
+  return loading;
+}
+
+export const naturalVoiceReady = () => !!engine && currentChoice() !== 'off';
+export const naturalVoiceId = (): NaturalVoiceId | null => { const choice = currentChoice(); return choice === 'off' ? null : choice; };
+
+/** Reads sentences one after another: the next sentence is made while the current one plays. */
+export function createNaturalSpeaker(makeAudio: (url: string) => HTMLAudioElement = (url) => new Audio(url)) {
+  let playback = 0;
+  let current: HTMLAudioElement | null = null;
+  const urls: string[] = [];
+  const cleanUp = () => { current?.pause(); current = null; while (urls.length) URL.revokeObjectURL(urls.pop()!); };
+  return {
+    /** Speak `parts`; `onDone` runs once at the end (or on failure: then the caller can fall back). */
+    speak(parts: string[], onDone: (ok: boolean) => void) {
+      const mine = ++playback; cleanUp();
+      const voice = naturalVoiceId();
+      if (!engine || !voice || !parts.length) { onDone(!parts.length); return; }
+      const ready = engine;
+      const make = (text: string) => ready.generate(text, { voice, speed: NATURAL_VOICE_SPEED });
+      (async () => {
+        try {
+          let next = make(parts[0]);
+          for (let i = 0; i < parts.length; i++) {
+            const clip = await next;
+            if (mine !== playback) return;
+            if (i + 1 < parts.length) next = make(parts[i + 1]);
+            const url = URL.createObjectURL(clip.toBlob()); urls.push(url);
+            await new Promise<void>((resolve, reject) => {
+              const audio = makeAudio(url); current = audio;
+              audio.onended = () => resolve();
+              audio.onerror = () => reject(new Error('playback failed'));
+              audio.play().catch(reject);
+            });
+            if (mine !== playback) return;
+          }
+          if (mine === playback) { cleanUp(); onDone(true); }
+        } catch {
+          if (mine === playback) { cleanUp(); onDone(false); }
+        }
+      })();
+    },
+    stop() { playback += 1; cleanUp(); },
+  };
+}
+
+/** Tests only: pretend the model is loaded (or unload it). */
+export function setNaturalEngineForTests(next: NaturalEngine | null) { engine = next; failed = false; loading = null; }

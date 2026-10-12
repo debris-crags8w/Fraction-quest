@@ -5,6 +5,7 @@ import { dailyBuildCorrect, dailyChoiceQuestion } from './daily-practice';
 import { MathText } from './MathText';
 import { WholeBracket } from './models';
 import './daily-practice.css';
+import { LearningText } from './LearningText';
 
 const emptyAttempt = (): DailyPracticeAttempt => ({
   shaded: [],
@@ -89,7 +90,7 @@ export default function DailyPractice({
       setAttempt({ ...attempt, answerChecked: true, answerCorrect: correct });
     };
     return shell(<>
-      <h2 id="daily-question-title" ref={questionHeading} tabIndex={-1}><MathText text={topicQuestion.prompt} /></h2>
+      <h2 id="daily-question-title" ref={questionHeading} tabIndex={-1} className="fq-question-text"><LearningText text={topicQuestion.prompt} speak emphasize /></h2>
       {renderModel && <div className="fq-daily-picture">{renderModel(topicQuestion.model, done)}</div>}
       <div className="fq-daily-choices" role="radiogroup" aria-label="Answer choices">
         {topicQuestion.choices.map((choice, index) => (
@@ -125,7 +126,7 @@ export default function DailyPractice({
     ? `Look at the denominator: how many equal ${bar ? 'parts' : 'spaces'} make one whole?`
     : `Look at the numerator: how many ${bar ? 'parts should be shaded' : 'jumps from 0'}?`;
   return shell(<>
-    <h2 id="daily-question-title" ref={questionHeading} tabIndex={-1}>
+    <h2 id="daily-question-title" ref={questionHeading} tabIndex={-1} className="fq-question-text">
       Build <MathText text={`${question.numerator}/${question.denominator}`} /> {bar ? 'with a bar.' : 'on a number line.'}
     </h2>
     <p className="fq-daily-instruction">

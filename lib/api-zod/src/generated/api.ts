@@ -18,7 +18,7 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * Creates a student account and signs it in with a session cookie.
+ * Creates a student account and signs it in with a session cookie. The response includes a one-time recovery code to keep on paper.
  * @summary Create an account
  */
 export const signupBodyUsernameMin = 3;
@@ -45,7 +45,9 @@ export const SignupResponse = zod.object({
   "username": zod.string(),
   "displayName": zod.string(),
   "parentConsentAt": zod.coerce.date().nullable(),
-  "privacyNoticeVersion": zod.string().nullable()
+  "privacyNoticeVersion": zod.string().nullable(),
+  "hasRecoveryCode": zod.boolean(),
+  "recoveryCode": zod.string()
 })
 
 
@@ -68,8 +70,63 @@ export const LoginResponse = zod.object({
   "username": zod.string(),
   "displayName": zod.string(),
   "parentConsentAt": zod.coerce.date().nullable(),
-  "privacyNoticeVersion": zod.string().nullable()
+  "privacyNoticeVersion": zod.string().nullable(),
+  "hasRecoveryCode": zod.boolean()
 })
+
+
+/**
+ * Sets a new password, signs out every other device, signs in here, and replaces the used recovery code with a new one.
+ * @summary Reset a forgotten password with the recovery code
+ */
+export const recoverAccountBodyUsernameMax = 40;
+
+export const recoverAccountBodyRecoveryCodeMax = 40;
+
+export const recoverAccountBodyNewPasswordMin = 8;
+export const recoverAccountBodyNewPasswordMax = 72;
+
+
+
+export const RecoverAccountBody = zod.object({
+  "username": zod.string().min(1).max(recoverAccountBodyUsernameMax),
+  "recoveryCode": zod.string().min(1).max(recoverAccountBodyRecoveryCodeMax),
+  "newPassword": zod.string().min(recoverAccountBodyNewPasswordMin).max(recoverAccountBodyNewPasswordMax)
+})
+
+export const RecoverAccountResponse = zod.object({
+  "id": zod.number().int(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "parentConsentAt": zod.coerce.date().nullable(),
+  "privacyNoticeVersion": zod.string().nullable(),
+  "hasRecoveryCode": zod.boolean(),
+  "recoveryCode": zod.string()
+})
+
+
+/**
+ * @summary Make a new recovery code (the old one stops working)
+ */
+export const NewRecoveryCodeResponse = zod.object({
+  "recoveryCode": zod.string()
+})
+
+
+/**
+ * Signs out every other device.
+ * @summary Set a new password from a signed-in device (a grown-up's reset)
+ */
+export const setPasswordBodyNewPasswordMin = 8;
+export const setPasswordBodyNewPasswordMax = 72;
+
+
+
+export const SetPasswordBody = zod.object({
+  "newPassword": zod.string().min(setPasswordBodyNewPasswordMin).max(setPasswordBodyNewPasswordMax)
+})
+
+export const SetPasswordResponse = zod.void()
 
 
 /**
@@ -86,7 +143,8 @@ export const GetCurrentUserResponse = zod.object({
   "username": zod.string(),
   "displayName": zod.string(),
   "parentConsentAt": zod.coerce.date().nullable(),
-  "privacyNoticeVersion": zod.string().nullable()
+  "privacyNoticeVersion": zod.string().nullable(),
+  "hasRecoveryCode": zod.boolean()
 })
 
 
@@ -102,7 +160,8 @@ export const AcceptPrivacyConsentResponse = zod.object({
   "username": zod.string(),
   "displayName": zod.string(),
   "parentConsentAt": zod.coerce.date().nullable(),
-  "privacyNoticeVersion": zod.string().nullable()
+  "privacyNoticeVersion": zod.string().nullable(),
+  "hasRecoveryCode": zod.boolean()
 })
 
 

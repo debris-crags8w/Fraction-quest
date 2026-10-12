@@ -46,7 +46,7 @@ export function FamilyGuide({ unitTitles }: FamilyGuideProps) {
           <h2 id="family-guide-title">Help fractions make sense.</h2>
           <p>Small prompts, simple materials, and clear next steps for learning together.</p>
         </div>
-        <div className="fq-family-seal" aria-hidden="true"><Ruler size={25} /><span>MODEL<br />TOGETHER</span></div>
+        <div className="fq-family-seal" aria-hidden="true"><Ruler size={25} /><span>Model<br />together</span></div>
       </header>
 
       <div className="fq-family-toolbar">
@@ -132,7 +132,7 @@ export function FamilyGuide({ unitTitles }: FamilyGuideProps) {
         <section className="fq-family-task">
           <div className="fq-family-task-heading">
             <div><span className="fq-family-label">Put learning to work</span><h4>{guide.performanceTask.title}</h4></div>
-            <span className="fq-family-task-mark" aria-hidden="true">MAKE<br />& SHOW</span>
+            <span className="fq-family-task-mark" aria-hidden="true">Make<br />& show</span>
           </div>
           <p>{guide.performanceTask.prompt}</p>
           <div className="fq-family-evidence"><b>Evidence to notice</b><span>{guide.performanceTask.evidence}</span></div>

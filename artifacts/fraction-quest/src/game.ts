@@ -172,7 +172,13 @@ function practice(
 ): PracticeSeed {
   // Every question shows a model: a typed-out equation ("1/6 + 4/6 = ?") also gets bars for its amounts.
   if (model.kind === 'equation') model = autoPicture(model.text, model.text) ?? model;
-  return { prompt, choices, correctChoice, model: nameBars(model, prompt), hint, retryFeedback, simplerModel: nameBars(simplerModel, prompt) };
+  const named = nameBars(model, prompt);
+  let simpler = nameBars(simplerModel, prompt);
+  // "Let's make it simpler" must stay about this question: if the question's own picture shows the fractions it names
+  // and the authored help picture doesn't (a generic 1/2 bar), the help shows the question's bars, labelled.
+  const aboutQuestion = (m: ModelSpec) => m.kind === 'bars' && m.bars.some((bar) => bar.named);
+  if (aboutQuestion(named) && !aboutQuestion(simpler)) simpler = named;
+  return { prompt, choices, correctChoice, model: named, hint, retryFeedback, simplerModel: simpler };
 }
 
 /** Authored questions mostly listed the right answer first. Put it at a spot picked from the question id
@@ -213,7 +219,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Is this strip cut into thirds?', ['Yes: 3 equal pieces', 'No: the pieces are not equal', 'No: there are 2 pieces'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Thirds are 3 pieces, all the same size. Compare the pieces.', 'One piece is twice as big as the others, so these are not thirds.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
       practice('A sandwich is cut into 4 equal pieces. What is 1 piece?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), '1 piece out of 4 equal pieces is 1/4.', 'The denominator is all 4 pieces. You have 1.', bars({ numerator: 1, denominator: 2 })),
-      practice('This ribbon is cut into 2 pieces. Are they fair halves?', ['Yes: both pieces are the same size', 'No: one piece is bigger', 'No: halves need 3 pieces'], 0, { kind: 'partition', parts: [50, 50] }, 'Halves are 2 pieces of the same size.', '2 pieces are halves only if they are the same size. These are.', { kind: 'partition', parts: [50, 50] }),
+      practice('This ribbon is cut into 2 pieces. Are the pieces equal halves?', ['Yes: both pieces are the same size', 'No: one piece is bigger', 'No: halves need 3 pieces'], 0, { kind: 'partition', parts: [50, 50] }, 'Halves are 2 pieces of the same size.', '2 pieces are halves only if they are the same size. These are.', { kind: 'partition', parts: [50, 50] }),
       practice('A strip has 5 equal pieces. What is 1 piece?', ['one fifth', 'one fourth', 'five wholes'], 0, bars({ numerator: 1, denominator: 5 }), '1 piece out of 5 equal pieces.', '1 of 5 equal pieces is one fifth, or 1/5.', bars({ numerator: 1, denominator: 2 })),
     ],
   },

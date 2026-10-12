@@ -35,11 +35,15 @@ import type {
   LoginRequest,
   PrivacyExport,
   ProgressPayload,
+  RecoverAccountInput,
+  RecoveryCode,
   SavedProgress,
+  SetPasswordInput,
   SignupRequest,
   UnitAssignment,
   UnitAssignmentInput,
-  User
+  User,
+  UserWithRecoveryCode
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -156,10 +160,10 @@ export const getSignupUrl = () => {
 }
 
 /**
- * Creates a student account and signs it in with a session cookie.
+ * Creates a student account and signs it in with a session cookie. The response includes a one-time recovery code to keep on paper.
  * @summary Create an account
  */
-export const signup = async (signupRequest: SignupRequest, options?: Parameters<typeof customFetch>[1]): Promise<User> => {
+export const signup = async (signupRequest: SignupRequest, options?: Parameters<typeof customFetch>[1]): Promise<UserWithRecoveryCode> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -175,7 +179,7 @@ export const signup = async (signupRequest: SignupRequest, options?: Parameters<
     }
     return headers;
   };
-return customFetch<User>(getSignupUrl(),
+return customFetch<UserWithRecoveryCode>(getSignupUrl(),
   {
     ...options,
     method: 'POST',
@@ -322,6 +326,258 @@ export const useLogin = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getLoginMutationOptions(options));
+    }
+
+export const getRecoverAccountUrl = () => {
+
+
+
+
+  return `/api/auth/recover`
+}
+
+/**
+ * Sets a new password, signs out every other device, signs in here, and replaces the used recovery code with a new one.
+ * @summary Reset a forgotten password with the recovery code
+ */
+export const recoverAccount = async (recoverAccountInput: RecoverAccountInput, options?: Parameters<typeof customFetch>[1]): Promise<UserWithRecoveryCode> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<UserWithRecoveryCode>(getRecoverAccountUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(recoverAccountInput)
+  }
+);}
+
+
+
+
+
+export const getRecoverAccountMutationKey = () => ['recoverAccount'] as const;
+
+export const getRecoverAccountMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recoverAccount>>, TError,RecoverAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recoverAccount>>, TError,RecoverAccountMutationVariables, TContext> => {
+
+const mutationKey = getRecoverAccountMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recoverAccount>>, RecoverAccountMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  recoverAccount(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecoverAccountMutationResult = NonNullable<Awaited<ReturnType<typeof recoverAccount>>>
+    export type RecoverAccountMutationBody = BodyType<RecoverAccountInput>
+    export type RecoverAccountMutationError = ErrorType<ErrorResponse>
+    export type RecoverAccountMutationVariables = {data: BodyType<RecoverAccountInput>}
+
+    /**
+ * @summary Reset a forgotten password with the recovery code
+ */
+export const useRecoverAccount = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recoverAccount>>, TError,RecoverAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recoverAccount>>,
+        TError,
+        RecoverAccountMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRecoverAccountMutationOptions(options));
+    }
+
+export const getNewRecoveryCodeUrl = () => {
+
+
+
+
+  return `/api/auth/recovery-code`
+}
+
+/**
+ * @summary Make a new recovery code (the old one stops working)
+ */
+export const newRecoveryCode = async ( options?: Parameters<typeof customFetch>[1]): Promise<RecoveryCode> => {
+
+  return customFetch<RecoveryCode>(getNewRecoveryCodeUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getNewRecoveryCodeMutationKey = () => ['newRecoveryCode'] as const;
+
+export const getNewRecoveryCodeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof newRecoveryCode>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof newRecoveryCode>>, TError,void, TContext> => {
+
+const mutationKey = getNewRecoveryCodeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof newRecoveryCode>>, void> = () => {
+
+
+          return  newRecoveryCode(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type NewRecoveryCodeMutationResult = NonNullable<Awaited<ReturnType<typeof newRecoveryCode>>>
+
+    export type NewRecoveryCodeMutationError = ErrorType<ErrorResponse>
+
+
+    /**
+ * @summary Make a new recovery code (the old one stops working)
+ */
+export const useNewRecoveryCode = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof newRecoveryCode>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof newRecoveryCode>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getNewRecoveryCodeMutationOptions(options));
+    }
+
+export const getSetPasswordUrl = () => {
+
+
+
+
+  return `/api/auth/password`
+}
+
+/**
+ * Signs out every other device.
+ * @summary Set a new password from a signed-in device (a grown-up's reset)
+ */
+export const setPassword = async (setPasswordInput: SetPasswordInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<void>(getSetPasswordUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(setPasswordInput)
+  }
+);}
+
+
+
+
+
+export const getSetPasswordMutationKey = () => ['setPassword'] as const;
+
+export const getSetPasswordMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setPassword>>, TError,SetPasswordMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setPassword>>, TError,SetPasswordMutationVariables, TContext> => {
+
+const mutationKey = getSetPasswordMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setPassword>>, SetPasswordMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  setPassword(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof setPassword>>>
+    export type SetPasswordMutationBody = BodyType<SetPasswordInput>
+    export type SetPasswordMutationError = ErrorType<ErrorResponse>
+    export type SetPasswordMutationVariables = {data: BodyType<SetPasswordInput>}
+
+    /**
+ * @summary Set a new password from a signed-in device (a grown-up's reset)
+ */
+export const useSetPassword = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setPassword>>, TError,SetPasswordMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setPassword>>,
+        TError,
+        SetPasswordMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetPasswordMutationOptions(options));
     }
 
 export const getLogoutUrl = () => {

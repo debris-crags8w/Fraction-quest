@@ -226,8 +226,8 @@
     color: hsl(var(--secondary));
     font-size: 0.75rem;
     font-weight: 900;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
+
   }
 
   .fq-eyebrow::before {
@@ -425,8 +425,8 @@
     font-family: var(--app-font-mono);
     font-size: 0.72rem;
     font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
+
   }
 
   .fq-mission-symbol {
@@ -643,8 +643,8 @@
     font-family: var(--app-font-mono);
     font-size: 0.74rem;
     font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
+
   }
 
   .fq-play-card h1 {
@@ -1136,8 +1136,8 @@
   color: hsl(var(--secondary));
   font-size: 0.72rem;
   font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+
 }
 
 .fq-unit-heading h3 {

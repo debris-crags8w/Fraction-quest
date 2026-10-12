@@ -4,6 +4,7 @@ import { useOptionalFun } from './fun-ui';
 import { setLearningVoicePreference } from './lib/fun';
 import { MathText } from './MathText';
 import { selectLearningVoice as selectGentleVoice, sentences, spokenText, VOICE_PITCH, VOICE_RATE } from './lib/voice';
+import { createNaturalSpeaker, NATURAL_VOICES, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, setNaturalVoicePreference, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoiceStatus } from './lib/natural-voice';
 
 type VocabularyEntry = { pattern: string; definition: string };
 
@@ -109,6 +110,7 @@ export function createLearningSpeechController(
   makeUtterance: (text: string) => SpeechSynthesisUtterance = (text) => new SpeechSynthesisUtterance(text),
   voiceWaitMs = VOICE_LIST_WAIT_MS,
   getPreferredVoiceId: () => string | null = getSavedLearningVoiceId,
+  natural: NaturalReader = defaultNaturalReader(),
 ) {
   let generation = 0;
   let waitTimer: ReturnType<typeof setTimeout> | undefined;
@@ -134,6 +136,7 @@ export function createLearningSpeechController(
   const stop = () => {
     generation += 1;
     clearVoiceWait();
+    natural.stop();
     try {
       synthesis.cancel();
     } finally {
@@ -173,38 +176,53 @@ export function createLearningSpeechController(
       if (disposed) return;
       stop();
       const playback = generation;
-      let voices: SpeechSynthesisVoice[] = [];
-      try {
-        voices = synthesis.getVoices();
-      } catch {
-        startUtterance(text, language, playback, []);
+      // The natural voice reads English when it's ready; otherwise this playback uses the device voice
+      // while the natural voice downloads in the background for next time.
+      if (natural.ready() && /^en\b/i.test(language)) {
+        setSpeaking(true);
+        natural.speak(sentences(spokenLearningText(text)), (ok) => {
+          if (playback !== generation || disposed) return;
+          if (ok) setSpeaking(false);
+          else startDevice();
+        });
         return;
       }
-
-      if (voices.length > 0) {
-        startUtterance(text, language, playback, voices);
-        return;
-      }
-
-      waitingForVoices = true;
-      setSpeaking(true);
-      const startWithCurrentVoices = () => {
-        if (!waitingForVoices || playback !== generation || disposed) return;
-        let latestVoices: SpeechSynthesisVoice[] = [];
+      natural.warmUp();
+      startDevice();
+      function startDevice() {
+        let voices: SpeechSynthesisVoice[] = [];
         try {
-          latestVoices = synthesis.getVoices();
+          voices = synthesis.getVoices();
         } catch {
-          // The native default voice remains available when voice enumeration fails.
+          startUtterance(text, language, playback, []);
+          return;
         }
-        if (latestVoices.length === 0 && waitTimer !== undefined) return;
-        startUtterance(text, language, playback, latestVoices);
-      };
-      waitingListener = startWithCurrentVoices;
-      synthesis.addEventListener('voiceschanged', startWithCurrentVoices);
-      waitTimer = setTimeout(() => {
-        waitTimer = undefined;
-        startWithCurrentVoices();
-      }, voiceWaitMs);
+
+        if (voices.length > 0) {
+          startUtterance(text, language, playback, voices);
+          return;
+        }
+
+        waitingForVoices = true;
+        setSpeaking(true);
+        const startWithCurrentVoices = () => {
+          if (!waitingForVoices || playback !== generation || disposed) return;
+          let latestVoices: SpeechSynthesisVoice[] = [];
+          try {
+            latestVoices = synthesis.getVoices();
+          } catch {
+            // The native default voice remains available when voice enumeration fails.
+          }
+          if (latestVoices.length === 0 && waitTimer !== undefined) return;
+          startUtterance(text, language, playback, latestVoices);
+        };
+        waitingListener = startWithCurrentVoices;
+        synthesis.addEventListener('voiceschanged', startWithCurrentVoices);
+        waitTimer = setTimeout(() => {
+          waitTimer = undefined;
+          startWithCurrentVoices();
+        }, voiceWaitMs);
+      }
     },
     stop,
     dispose() {
@@ -214,7 +232,55 @@ export function createLearningSpeechController(
   };
 }
 
+/** What the controller needs from the natural voice (injectable for tests). */
+export type NaturalReader = { ready(): boolean; speak(parts: string[], onDone: (ok: boolean) => void): void; stop(): void; warmUp(): void };
+function defaultNaturalReader(): NaturalReader {
+  const speaker = createNaturalSpeaker();
+  return { ready: naturalVoiceReady, speak: speaker.speak, stop: speaker.stop, warmUp: () => { void warmUpNaturalVoice(); } };
+}
+
 const VOICE_PREVIEW = 'Hi there! I can read your fraction lessons to you.';
+
+/** Grown-ups' choice of natural voice (or off), with the download status. */
+function NaturalVoiceSettings() {
+  const [status, setStatus] = useState<NaturalVoiceStatus>(() => naturalVoiceStatus());
+  const [choice, setChoice] = useState(naturalVoicePreference);
+  const [previewing, setPreviewing] = useState(false);
+  const speaker = useRef<ReturnType<typeof createNaturalSpeaker> | null>(null);
+  useEffect(() => onNaturalVoiceStatus(setStatus), []);
+  useEffect(() => () => speaker.current?.stop(), []);
+  const choose = (next: NaturalVoiceId | 'off') => { setChoice(next); setNaturalVoicePreference(next); speaker.current?.stop(); setPreviewing(false); };
+  const preview = () => {
+    speaker.current ??= createNaturalSpeaker();
+    setPreviewing(true);
+    speaker.current.speak([VOICE_PREVIEW], () => setPreviewing(false));
+  };
+  const statusText = status.state === 'off' ? 'Off: lessons use the device voice.'
+    : status.state === 'unsupported' ? 'This browser can’t run the natural voice, so lessons use the device voice.'
+    : status.state === 'ready' ? 'Ready on this device.'
+    : status.state === 'loading' ? `Downloading… ${status.progress ?? 0}%`
+    : status.state === 'error' ? 'The download didn’t finish. Lessons use the device voice; try again on Wi-Fi.'
+    : 'Downloads once (about 90 MB) the first time a child presses Listen. Wi-Fi is best.';
+  return (
+    <div className="fq-natural-voice" data-testid="natural-voice-settings">
+      <h3 className="fq-learning-voice-subhead">Natural voice</h3>
+      <p>A free, open-source voice that sounds like a real person. It runs on this device: no account, and nothing you read is sent anywhere.</p>
+      <div className="fq-natural-voice-options" role="radiogroup" aria-label="Natural voice">
+        {[...NATURAL_VOICES.map((voice) => ({ id: voice.id as NaturalVoiceId | 'off', label: voice.name, note: voice.note })), { id: 'off' as const, label: 'Off', note: 'use the device voice' }].map((option) => (
+          <label key={option.id} className={choice === option.id ? 'on' : ''}>
+            <input type="radio" name="natural-voice" value={option.id} checked={choice === option.id} onChange={() => choose(option.id)} data-testid={`radio-natural-voice-${option.id}`} />
+            <span><strong>{option.label}</strong><small>{option.note}</small></span>
+          </label>
+        ))}
+      </div>
+      <p className="fq-parent-note" role="status" data-testid="status-natural-voice">{statusText}</p>
+      <div className="fq-natural-voice-actions">
+        {(status.state === 'idle' || status.state === 'error') && <button type="button" className="fq-button ghost" onClick={() => { void warmUpNaturalVoice(); }} data-testid="button-download-natural-voice">Download now</button>}
+        {status.state === 'ready' && <button type="button" className="fq-button ghost" onClick={preview} disabled={previewing} data-testid="button-preview-natural-voice"><Volume2 size={16} aria-hidden="true" /> {previewing ? 'Playing' : 'Preview'}</button>}
+      </div>
+    </div>
+  );
+}
 
 /** A local voice chooser for families. Browser speech synthesis keeps all audio on-device. */
 export function LearningVoicePicker() {
@@ -298,7 +364,9 @@ export function LearningVoicePicker() {
   return (
     <section className="fq-parent-section fq-learning-voice-settings" data-testid="learning-voice-settings" aria-labelledby="learning-voice-heading">
       <h2 id="learning-voice-heading">Read-aloud voice</h2>
-      <p>Preview voices available on this device, then choose one for lesson explanations. Signed-in choices follow your account, but each device uses its own local voice. Audio stays on this device.</p>
+      <NaturalVoiceSettings />
+      <h3 className="fq-learning-voice-subhead">Device voices</h3>
+      <p>Used while the natural voice downloads, when it is off, or on devices that can't run it. Signed-in choices follow your account, but each device uses its own local voice. Audio stays on this device.</p>
       {!supported ? (
         <p className="fq-parent-note" role="status">Read-aloud voices are not available in this browser.</p>
       ) : matchingVoices.length > 0 ? (
@@ -408,16 +476,42 @@ function ListenButton({ text }: { text: string }) {
 }
 
 /** Keeps fractions stacked while making core vocabulary explorable and optionally audible. */
+/* Key points in a question get a solid underline: amounts ("2 pieces", "4 friends"), fraction names (halves, eighths)
+   and the words that decide the answer (equal, same, not, bigger, smaller…). Glossary words keep their dotted underline. */
+const KEY_PATTERN = new RegExp([
+  String.raw`\b\d+ (?:equal |same-size |fair )?(?:pieces?|parts?|slices?|spaces?|jumps?|groups?|friends?|kids?|wholes?|bars?|strips?|triangles?|squares?|loaves|pizzas?|cups?|beads?|marbles?|counters?)\b`,
+  String.raw`\b(?:halves|thirds|fourths|fifths|sixths|sevenths|eighths|ninths|tenths|elevenths|twelfths|hundredths)\b`,
+  String.raw`\b(?:equal|same|not|bigger|biggest|smaller|smallest|greater|more|less|closest|closer|fair|left)\b`,
+].join('|'), 'gi');
+
+/** Plain text with its key points underlined (fractions inside still render as math). */
+function EmphasizedText({ text }: { text: string }) {
+  const parts: ReactNode[] = [];
+  let last = 0;
+  for (const match of text.matchAll(KEY_PATTERN)) {
+    const at = match.index ?? 0;
+    if (at > last) parts.push(<MathText key={`t-${last}`} text={text.slice(last, at)} />);
+    parts.push(<span key={`k-${at}`} className="fq-key">{match[0]}</span>);
+    last = at + match[0].length;
+  }
+  if (last < text.length) parts.push(<MathText key={`t-${last}`} text={text.slice(last)} />);
+  return <>{parts}</>;
+}
+
 export function LearningText({
   text,
   speak = false,
   interactiveTerms = true,
+  emphasize = false,
 }: {
   text: string | undefined | null;
   speak?: boolean;
   interactiveTerms?: boolean;
+  /** Questions: underline the key points. */
+  emphasize?: boolean;
 }) {
   if (!text) return null;
+  const plain = (value: string, key: string) => (emphasize ? <EmphasizedText key={key} text={value} /> : <MathText key={key} text={value} />);
 
   const parts: ReactNode[] = [];
   let last = 0;
@@ -426,14 +520,14 @@ export function LearningText({
     const word = match[0];
     const entry = entryFor(word);
     if (!entry) continue;
-    if (at > last) parts.push(<MathText key={`text-${last}`} text={text.slice(last, at)} />);
+    if (at > last) parts.push(plain(text.slice(last, at), `text-${last}`));
     parts.push(
       <VocabularyTerm key={`term-${at}`} text={word} definition={entry.definition} interactive={interactiveTerms} />,
     );
     last = at + word.length;
   }
   if (last < text.length || parts.length === 0) {
-    parts.push(<MathText key={`text-${last}`} text={text.slice(last)} />);
+    parts.push(plain(text.slice(last), `text-${last}`));
   }
 
   return (

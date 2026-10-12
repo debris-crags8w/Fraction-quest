@@ -61,7 +61,7 @@ function FractionWar() {
   const next = () => { setRound(r => r + 1); setModels(unbuilt()); setChoice(null); setRoundSolved(false); setFeedback(''); };
   const replay = () => { setRound(0); setScore(0); setModels(unbuilt()); setChoice(null); setRoundSolved(false); setFeedback(''); };
   return <section className="cg-game" aria-labelledby="war-title">
-    <div className="cg-game-heading"><span className="cg-index">01 / BUILD & COMPARE</span><span className="cg-score" data-testid="status-war-score">Local round score · {score}</span></div>
+    <div className="cg-game-heading"><span className="cg-index">Game 1 · Build and compare</span><span className="cg-score" data-testid="status-war-score">Local round score · {score}</span></div>
     <h2 id="war-title">Fraction War</h2><p className="cg-instruction">Build each fraction before deciding which amount is greater. Each bar is one same-size whole.</p>
     <div className="cg-war-models">{target.map((fraction, side) => {
       const model = models[side as 0 | 1];
@@ -105,7 +105,7 @@ function EquivalenceMatch() {
   };
   const cards = cardOrder.map(index => ({ fraction: matches[index], index }));
   return <section className="cg-game" aria-labelledby="match-title">
-    <div className="cg-game-heading"><span className="cg-index">02 / FIND SAME AMOUNTS</span><span className="cg-score" data-testid="status-match-score">Pairs found · {score}/3</span></div>
+    <div className="cg-game-heading"><span className="cg-index">Game 2 · Find same amounts</span><span className="cg-score" data-testid="status-match-score">Pairs found · {score}/3</span></div>
     <h2 id="match-title">Equivalence Match</h2><p className="cg-instruction">Every symbol card has a bar card partner. Match by the amount shaded, not by the printed numbers.</p>
     <div className="cg-memory-grid" role="group" aria-label="Fraction matching cards">{cards.map(({ fraction, index }) => {
       const visible = selected.includes(index) || found.includes(index);
@@ -138,7 +138,7 @@ function NumberLineTarget() {
   };
   const replay = () => { setRound(0); setDenominator(0); setMark(null); setFeedback(''); };
   return <section className="cg-game" aria-labelledby="line-title">
-    <div className="cg-game-heading"><span className="cg-index">03 / PLACE A FRACTION</span><span className="cg-score" data-testid="status-line-round">Target {round + 1}</span></div>
+    <div className="cg-game-heading"><span className="cg-index">Game 3 · Place a fraction</span><span className="cg-score" data-testid="status-line-round">Target {round + 1}</span></div>
     <h2 id="line-title">Number Line Target</h2><p className="cg-instruction">Choose equal spaces from 0 to 1, then tap the tick that lands on the target fraction.</p>
     <div className="cg-target"><span>Target point</span><strong><FractionLabel {...target} /></strong></div>
     <label className="cg-control-label" htmlFor="line-spaces">Split the whole into equal spaces</label>
@@ -159,7 +159,7 @@ function NumberLineTarget() {
 
 function CenterPack() {
   return <section className="cg-print-pack" id="fraction-center-pack" aria-labelledby="cg-pack-title">
-    <p className="cg-index">TAKE IT OFF SCREEN</p><h2 id="cg-pack-title">Fraction center pack</h2>
+    <p className="cg-index">Take it off screen</p><h2 id="cg-pack-title">Fraction center pack</h2>
     <p>Print these hands-on prompts for a family table or classroom center. Draw, fold, and explain; no solutions are included.</p>
     <div className="cg-pack-activities">
       <article><b>Build and compare</b><p>Draw two same-size wholes. Split each into equal parts, shade an amount, and explain which is larger.</p><div className="cg-blank-bar" /><div className="cg-blank-bar" /></article>
@@ -214,16 +214,16 @@ export default function ConceptGames({ onExit, lessonGames = [] }: { onExit: () 
   }
   return <main className="cg-page fq-app fq-shell fq-appear" data-testid="games-menu">
     <header className="cg-top"><button type="button" className="cg-back" onClick={onExit} data-testid="button-concept-games-exit"><ArrowLeft size={18} /> Back to Fraction Quest</button><span className="cg-brand-mark" aria-hidden="true"><Scale size={22} /></span></header>
-    <section className="cg-hero"><span className="cg-index">GAMES</span><h1>Make it. See it.<br /><em>Then name it.</em></h1><p>Pick a game. Games are for fun and practice: they never change lesson progress.</p></section>
+    <section className="cg-hero"><span className="cg-index">Games</span><h1>Make it. See it.<br /><em>Then name it.</em></h1><p>Pick a game. Games are for fun and practice: they never change lesson progress.</p></section>
     {lessonGames.length > 0 && <section className="cg-menu-group" aria-labelledby="cg-lesson-games">
       <h2 id="cg-lesson-games">With your lesson</h2>
       <p>These use <b>{lessonGames[0].lessonTitle}</b>. Each lesson also has its own.</p>
-      <CardGrid label="Lesson games" cards={lessonGames.map((game) => ({ id: game.id, title: game.title, blurb: game.blurb, icon: game.icon, testId: `link-game-${game.id}`, kicker: game.lessonTitle === lessonGames[0].lessonTitle ? 'LESSON GAME' : game.lessonTitle.toUpperCase(), onOpen: game.onOpen, tone: 'is-lesson' }))} />
+      <CardGrid label="Lesson games" cards={lessonGames.map((game) => ({ id: game.id, title: game.title, blurb: game.blurb, icon: game.icon, testId: `link-game-${game.id}`, kicker: game.lessonTitle === lessonGames[0].lessonTitle ? 'Lesson game' : game.lessonTitle, onOpen: game.onOpen, tone: 'is-lesson' }))} />
     </section>}
     <section className="cg-menu-group" aria-labelledby="cg-workshop">
       <h2 id="cg-workshop">Fraction workshop</h2>
       <p>Build, compare, and try again with your hands and eyes.</p>
-      <CardGrid label="Workshop games" cards={WORKSHOP.map((item, index) => ({ ...item, kicker: item.id === 'pack' ? 'OFF SCREEN' : `WORKSHOP ${index + 1}`, onOpen: () => setSection(item.id), tone: item.id === 'pack' ? 'is-print' : '' }))} />
+      <CardGrid label="Workshop games" cards={WORKSHOP.map((item, index) => ({ ...item, kicker: item.id === 'pack' ? 'Off screen' : `Workshop ${index + 1}`, onOpen: () => setSection(item.id), tone: item.id === 'pack' ? 'is-print' : '' }))} />
     </section>
   </main>;
 }

@@ -1,7 +1,7 @@
 .fq-break-backdrop { position:fixed; z-index:80; inset:0; display:grid; place-items:center; overflow:auto; padding:18px; background:rgb(28 31 54 / .55); }
 .fq-break-card { width:min(100%,600px); max-height:min(92dvh,850px); overflow:auto; padding:clamp(20px,5vw,36px); border:2px solid var(--fq-edge,hsl(var(--border))); border-radius:27px; color:hsl(var(--foreground)); background:hsl(var(--card)); box-shadow:0 24px 75px rgb(20 20 35 / .28); animation:fq-break-in 220ms ease-out both; }
 .fq-break-top { display:flex; align-items:center; justify-content:space-between; }
-.fq-break-kicker { color:var(--fq-grape,#7049e8); font-size:.72rem; font-weight:950; letter-spacing:.14em; }
+.fq-break-kicker { color:var(--fq-grape,#7049e8); font-size:.72rem; font-weight:950; letter-spacing: 0.01em; }
 .fq-break-close { display:grid; place-items:center; width:40px; height:40px; border:2px solid var(--fq-edge,hsl(var(--border))); border-radius:13px; color:hsl(var(--foreground)); background:hsl(var(--background)); cursor:pointer; }
 .fq-break-card h2 { margin:12px 0 3px; font-family:var(--app-font-display,var(--app-font-sans)); font-size:clamp(1.8rem,6vw,2.6rem); letter-spacing:-.04em; }
 .fq-break-reason { margin:4px 0 0; color:hsl(var(--muted-foreground)); line-height:1.5; }

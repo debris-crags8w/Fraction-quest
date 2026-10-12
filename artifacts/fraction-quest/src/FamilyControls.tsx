@@ -14,10 +14,13 @@ import {
   getGetClassroomRosterQueryKey,
   exportPrivacyData,
   deleteLearnerProfile,
+  newRecoveryCode as apiNewRecoveryCode,
+  setPassword as apiSetPassword,
   type ClassroomLearner,
   type LearnerProfile,
 } from '@workspace/api-client-react';
-import { useAccount } from './account';
+import { errorMessage, useAccount } from './account';
+import { RecoveryCodeCard } from './RecoveryCode';
 import { AlertTriangle, Check, ChevronDown, Clipboard, Download, LoaderCircle, LockKeyhole, Plus, RefreshCw, Shield, Trash2, Users, X } from 'lucide-react';
 import './FamilyControls.css';
 
@@ -349,7 +352,7 @@ export default function FamilyControls({ unitTitles }: FamilyControlsProps) {
                     const selected = draftUnits[learner.memberCode] ?? learner.assignedUnitIds;
                     const changed = Boolean(draftUnits[learner.memberCode]);
                     return <article key={learner.memberCode} className="fq-family-roster-card">
-                      <div className="fq-family-roster-top"><span className="fq-family-code-label">LEARNER CODE</span><strong>{learner.memberCode}</strong><span className="fq-family-mission-count">{learner.completedMissionIds.length} missions complete</span></div>
+                      <div className="fq-family-roster-top"><span className="fq-family-code-label">Learner code</span><strong>{learner.memberCode}</strong><span className="fq-family-mission-count">{learner.completedMissionIds.length} missions complete</span></div>
                       <fieldset className="fq-family-unit-fieldset">
                         <legend>Assigned units</legend>
                         <div className="fq-family-unit-grid">
@@ -417,6 +420,7 @@ export default function FamilyControls({ unitTitles }: FamilyControlsProps) {
             <p>Remove online and on-device progress for the active learner. Their profile remains available.</p>
             <button type="button" className="fq-family-button clear" onClick={() => setConfirm({ kind: 'clear-progress' })} disabled={!account.activeProfileId}>Clear active learner’s progress</button>
           </section>
+          <AccountSecurityCard />
           <section className="fq-family-side-card fq-family-danger-card" data-testid="delete-account-card">
             <p className="fq-family-overline">Leave Fraction Quest</p>
             <h3>Delete this account</h3>
@@ -450,6 +454,54 @@ export default function FamilyControls({ unitTitles }: FamilyControlsProps) {
           </div>
         </section>
       </div>}
+    </section>
+  );
+}
+
+/** A grown-up's reset (option c) and the recovery code (option b): set a new password from this signed-in device,
+    or make a new recovery code. Changing the password signs out every other device. */
+function AccountSecurityCard() {
+  const account = useAccount();
+  const [password, setPasswordDraft] = useState('');
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [newCode, setNewCode] = useState<string | null>(null);
+  if (!account.user) return null;
+  const changePassword = async (event: FormEvent) => {
+    event.preventDefault();
+    if (password.length < 8) { setMessage({ ok: false, text: 'Passwords need at least 8 characters.' }); return; }
+    setBusy(true); setMessage(null);
+    try {
+      await apiSetPassword({ newPassword: password });
+      setPasswordDraft('');
+      setMessage({ ok: true, text: 'Password changed. Other devices were signed out; sign in there with the new password.' });
+    } catch (error) {
+      setMessage({ ok: false, text: errorMessage(error, "Couldn't change the password. Check your connection and try again.") });
+    }
+    setBusy(false);
+  };
+  const makeCode = async () => {
+    setBusy(true); setMessage(null);
+    try { setNewCode((await apiNewRecoveryCode()).recoveryCode); }
+    catch (error) { setMessage({ ok: false, text: errorMessage(error, "Couldn't make a new code. Check your connection and try again.") }); }
+    setBusy(false);
+  };
+  return (
+    <section className="fq-family-side-card" data-testid="account-security-card">
+      <p className="fq-family-overline">Password help</p>
+      <h3>Password and recovery code</h3>
+      {!account.user.hasRecoveryCode && !newCode && <p className="fq-family-warning" data-testid="text-no-recovery-code">This account has no recovery code yet. Make one so a forgotten password can be reset.</p>}
+      <form className="fq-family-password-form" onSubmit={changePassword}>
+        <label htmlFor="fq-new-password">Set a new password</label>
+        <input id="fq-new-password" type="password" autoComplete="new-password" maxLength={72} value={password}
+          onChange={(event) => setPasswordDraft(event.target.value)} placeholder="At least 8 characters" data-testid="input-new-password" />
+        <button type="submit" className="fq-family-button" disabled={busy || !password} data-testid="button-set-password">Change password</button>
+      </form>
+      {newCode
+        ? <RecoveryCodeCard code={newCode} username={account.user.username} />
+        : <button type="button" className="fq-family-button" onClick={() => void makeCode()} disabled={busy} data-testid="button-new-recovery-code">Make a new recovery code</button>}
+      <p className="fq-family-hint">A new code replaces the old one. Keep it at home, away from the child’s device.</p>
+      {message && <p className={message.ok ? 'fq-family-success' : 'fq-family-error'} role="status" data-testid="status-account-security">{message.text}</p>}
     </section>
   );
 }
