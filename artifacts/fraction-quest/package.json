@@ -78,6 +78,7 @@
   },
   "dependencies": {
     "@capacitor/core": "8.5.2",
-    "kokoro-js": "1.2.1"
+    "kokoro-js": "1.2.1",
+    "onnxruntime-web": "1.22.0-dev.20250409-89f8206ba4"
   }
 }

@@ -36,7 +36,10 @@ function getStepStatus(state: TestState, step: TestStep): { text: string; state:
   if (state.status === 'failed' && state.step === step) return { text: 'Failed', state: 'failed' };
   if (state.status === 'running' && state.step === step) {
     if (step === 'load' && typeof state.progress === 'number') {
-      return { text: `Loading ${state.progress}%`, state: 'active' };
+      return {
+        text: state.progress >= 100 ? 'Files downloaded; preparing the model…' : `Loading ${state.progress}%`,
+        state: 'active',
+      };
     }
     return { text: 'In progress', state: 'active' };
   }
@@ -67,8 +70,10 @@ export function KokoroDiagnostic() {
     const activeStep = { current: 'load' as TestStep };
     let failure: { step: TestStep; message: string } | null = null;
     const fail = (step: TestStep, message: string) => {
-      if (runId.current !== id) return;
+      if (runId.current !== id || failure) return;
       failure = { step, message };
+      try { activeSpeaker.current?.stop(); } catch { /* partial mobile audio implementations */ }
+      activeSpeaker.current = null;
       setState({ status: 'failed', step, completed: step === 'load' ? [] : step === 'generate' ? ['load'] : ['load', 'generate'], message });
     };
     const onWindowError = (event: Event) => {
@@ -76,7 +81,8 @@ export function KokoroDiagnostic() {
       const location = errorEvent.filename
         ? ` (${errorEvent.filename}:${errorEvent.lineno ?? 0}:${errorEvent.colno ?? 0})`
         : '';
-      fail(activeStep.current, `${errorEvent.message || 'Browser runtime error'}${location}`);
+      const stack = errorEvent.error instanceof Error ? `\n${errorEvent.error.stack || ''}` : '';
+      fail(activeStep.current, `${errorEvent.message || 'Browser runtime error'}${location}${stack}`);
     };
     const onUnhandledRejection = (event: Event) => {
       fail(activeStep.current, errorMessage((event as PromiseRejectionEvent).reason));
@@ -84,10 +90,10 @@ export function KokoroDiagnostic() {
 
     setState({ status: 'running', step: 'load', completed: [], progress: 0 });
     if (typeof window !== 'undefined') {
-      window.addEventListener('error', onWindowError);
+      window.addEventListener('error', onWindowError, true);
       window.addEventListener('unhandledrejection', onUnhandledRejection);
       removeErrorListeners.current = () => {
-        window.removeEventListener('error', onWindowError);
+        window.removeEventListener('error', onWindowError, true);
         window.removeEventListener('unhandledrejection', onUnhandledRejection);
       };
     }
@@ -108,6 +114,9 @@ export function KokoroDiagnostic() {
 
       setState({ status: 'running', step: 'generate', completed: ['load'], progress: 100 });
       activeStep.current = 'generate';
+      // Let mobile Safari paint the new phase before the expensive inference call.
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
+      if (runId.current !== id || failure) return;
       const speaker = createNaturalSpeaker(undefined, 'af_heart');
       activeSpeaker.current = speaker;
 
