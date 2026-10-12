@@ -77,8 +77,6 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "@capacitor/core": "8.5.2",
-    "kokoro-js": "1.2.1",
-    "onnxruntime-web": "1.30.0"
+    "@capacitor/core": "8.5.2"
   }
 }

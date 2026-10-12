@@ -1,7 +1,7 @@
-/* A natural read-aloud voice: Kokoro, an open-source neural voice that runs inside the browser.
-   Free, no account, and no text leaves the device. The model (about 90 MB) downloads once, the first
-   time a child presses Listen, and the browser keeps it. Until it is ready, or on a device that can't
-   run it, the app keeps using the device's own voice, so Listen always works. */
+/* A natural read-aloud voice: Kokoro, an open-source neural voice. It runs on the app's server, and the device
+   only plays a short audio file per sentence. (Running the model in the browser crashed iPhone Safari.) Only the
+   lesson sentence is sent, never a child's name or answers; the server keeps each sentence it has made, so
+   repeats are instant. When the server can't be reached, Listen uses the device's own voice. */
 
 export type NaturalVoiceId = 'af_heart' | 'af_bella' | 'af_nicole' | 'bf_emma';
 export const NATURAL_VOICES: { id: NaturalVoiceId; name: string; note: string }[] = [
@@ -10,9 +10,11 @@ export const NATURAL_VOICES: { id: NaturalVoiceId; name: string; note: string }[
   { id: 'af_nicole', name: 'Nicole', note: 'soft and calm' },
   { id: 'bf_emma', name: 'Emma', note: 'British, clear' },
 ];
-export const NATURAL_VOICE_SPEED = 0.92;
-const MODEL_ID = 'onnx-community/Kokoro-82M-v1.0-ONNX';
+export const NATURAL_VOICE_SPEED = 0.92; // the server reads at this speed
 const STORAGE_KEY = 'fraction-quest-natural-voice';
+const STATUS_URL = '/api/voice/status';
+export const speechUrl = (voice: NaturalVoiceId, text: string) =>
+  `/api/voice/speech?voice=${encodeURIComponent(voice)}&text=${encodeURIComponent(text)}`;
 
 export type NaturalVoiceState = 'off' | 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
 export type NaturalVoiceStatus = { state: NaturalVoiceState; progress?: number };
@@ -22,11 +24,6 @@ export type NaturalEngine = { generate(text: string, options: { voice: string; s
 export function isIOSVoiceDevice(userAgent: string, platform: string, maxTouchPoints: number): boolean {
   return /\b(?:iPhone|iPad|iPod)\b/i.test(userAgent)
     || (platform === 'MacIntel' && maxTouchPoints > 1);
-}
-
-export function naturalVoiceDisabledOnIOS(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return isIOSVoiceDevice(navigator.userAgent ?? '', navigator.platform ?? '', navigator.maxTouchPoints ?? 0);
 }
 
 /** The chosen natural voice, or 'off'. On by default (Heart): grown-ups can turn it off. */
@@ -45,28 +42,23 @@ export function setNaturalVoicePreference(choice: NaturalVoiceId | 'off'): void 
 let sessionChoice: NaturalVoiceId | 'off' | null = null;
 const currentChoice = () => sessionChoice ?? naturalVoicePreference();
 
-/** Can this browser run the model? (WebAssembly and audio playback.) */
-function naturalVoiceRuntimeSupported(): boolean {
-  return typeof window !== 'undefined' && typeof WebAssembly === 'object' && typeof Audio !== 'undefined'
-    && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function';
-}
+/** Can this browser fetch and play the server's audio? (Every current browser, iPhone Safari included.) */
 export function naturalVoiceSupported(): boolean {
-  return !naturalVoiceDisabledOnIOS() && naturalVoiceRuntimeSupported();
+  return typeof window !== 'undefined' && typeof Audio !== 'undefined' && typeof fetch === 'function'
+    && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function';
 }
 
 let engine: NaturalEngine | null = null;
 let loading: Promise<NaturalEngine | null> | null = null;
 let failed = false;
-let progress = 0;
 const listeners = new Set<(status: NaturalVoiceStatus) => void>();
 
 export function naturalVoiceStatus(): NaturalVoiceStatus {
   if (currentChoice() === 'off') return { state: 'off' };
-  if (naturalVoiceDisabledOnIOS()) return { state: 'unsupported' };
-  if (!engine && !naturalVoiceSupported()) return { state: 'unsupported' };
   if (engine) return { state: 'ready' };
+  if (!naturalVoiceSupported()) return { state: 'unsupported' };
   if (failed) return { state: 'error' };
-  if (loading) return { state: 'loading', progress };
+  if (loading) return { state: 'loading' };
   return { state: 'idle' };
 }
 function publish() { const status = naturalVoiceStatus(); listeners.forEach((listener) => listener(status)); }
@@ -75,37 +67,48 @@ export function onNaturalVoiceStatus(listener: (status: NaturalVoiceStatus) => v
   return () => { listeners.delete(listener); };
 }
 
+/** Fetches one sentence's audio from the server. */
+export const serverEngine: NaturalEngine = {
+  async generate(text, { voice }) {
+    const response = await fetch(speechUrl(voice as NaturalVoiceId, text));
+    if (!response.ok) throw new Error(`The voice server answered ${response.status}`);
+    const blob = await response.blob();
+    return { toBlob: () => blob };
+  },
+};
+
 export type NaturalVoiceLoadOptions = {
-  /** Explicit adult diagnostic only; normal iOS lessons still use the device voice. */
+  /** The grown-ups' self-test: check the server even when the voice is switched off. */
   diagnostic?: boolean;
   onProgress?: (progress: number) => void;
   onError?: (error: unknown) => void;
 };
 
-/** Start the one-time download. The diagnostic flag is only for the explicit Kokoro test. */
+const READY_WAIT_MS = 120_000; // the server's first model load can take a minute
+const POLL_MS = 2_000;
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Ask the server whether the voice is ready, waiting while it loads the model the first time. */
 export function warmUpNaturalVoice(options: NaturalVoiceLoadOptions = {}): Promise<NaturalEngine | null> {
-  const canRun = options.diagnostic ? naturalVoiceRuntimeSupported() : naturalVoiceSupported();
-  if ((!options.diagnostic && currentChoice() === 'off') || !canRun) return Promise.resolve(null);
+  if ((!options.diagnostic && currentChoice() === 'off') || !naturalVoiceSupported()) return Promise.resolve(null);
   if (engine) return Promise.resolve(engine);
   if (loading) return loading;
-  failed = false; progress = 0;
+  failed = false;
   loading = (async () => {
     try {
-      // Plain-WASM ONNX Runtime from the app's own files (not the WebGPU build that crashes iOS Safari 26).
-      const { configureOnnxRuntime } = await import('./onnx-runtime');
-      configureOnnxRuntime();
-      const { KokoroTTS } = await import('kokoro-js');
-      const tts = await KokoroTTS.from_pretrained(MODEL_ID, {
-        dtype: 'q8', device: 'wasm',
-        progress_callback: (event: { status?: string; progress?: number }) => {
-          if (event.status === 'progress' && typeof event.progress === 'number') {
-            progress = Math.max(0, Math.min(100, Math.round(event.progress)));
-            try { options.onProgress?.(progress); } catch { /* diagnostics must not interrupt model loading */ }
-            publish();
-          }
-        },
-      });
-      engine = tts as unknown as NaturalEngine;
+      const started = Date.now();
+      for (;;) {
+        const response = await fetch(STATUS_URL, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`The voice server answered ${response.status}`);
+        const { state, error } = await response.json() as { state?: string; error?: string };
+        if (state === 'ready') break;
+        if (state === 'error') throw new Error(error || 'The voice model could not load on the server.');
+        if (Date.now() - started > READY_WAIT_MS) throw new Error('The voice server is still loading. Try again in a minute.');
+        try { options.onProgress?.(Math.min(95, Math.round(((Date.now() - started) / READY_WAIT_MS) * 100))); } catch { /* diagnostics only */ }
+        await pause(POLL_MS);
+      }
+      try { options.onProgress?.(100); } catch { /* diagnostics only */ }
+      engine = serverEngine;
       return engine;
     } catch (error) {
       failed = true;
@@ -120,7 +123,27 @@ export function warmUpNaturalVoice(options: NaturalVoiceLoadOptions = {}): Promi
   return loading;
 }
 
-export const naturalVoiceReady = () => !!engine && currentChoice() !== 'off' && naturalVoiceSupported();
+/* iPhone Safari only lets audio start from a tap. One shared player is "unlocked" during the Listen tap (a tiny
+   silent clip), and every sentence then plays through that same player, even after the network wait. */
+const SILENT_WAV = 'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YSADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=='; // 50 ms of silence
+let sharedPlayer: HTMLAudioElement | null = null;
+export function unlockAudioPlayback(): void {
+  if (typeof Audio === 'undefined') return;
+  try {
+    sharedPlayer ??= new Audio();
+    if (sharedPlayer.src && !sharedPlayer.paused) return;
+    sharedPlayer.src = SILENT_WAV;
+    const result = sharedPlayer.play() as unknown;
+    if (result && typeof (result as { catch?: unknown }).catch === 'function') (result as Promise<void>).catch(() => undefined);
+  } catch { /* the device voice still works */ }
+}
+function sharedAudio(url: string): HTMLAudioElement {
+  sharedPlayer ??= new Audio();
+  sharedPlayer.src = url;
+  return sharedPlayer;
+}
+
+export const naturalVoiceReady = () => !!engine && currentChoice() !== 'off';
 export const naturalVoiceId = (): NaturalVoiceId | null => { const choice = currentChoice(); return choice === 'off' ? null : choice; };
 export type NaturalVoicePhase = 'preparing' | 'generating' | 'playing';
 export type NaturalVoiceFailureStage = 'generating' | 'playing';
@@ -145,7 +168,7 @@ function withTimeout<T>(operation: Promise<T>, timeoutMs: number, message: strin
 
 /** Reads sentences one after another: the next sentence is made while the current one plays. */
 export function createNaturalSpeaker(
-  makeAudio: (url: string) => HTMLAudioElement = (url) => new Audio(url),
+  makeAudio: (url: string) => HTMLAudioElement = sharedAudio,
   voiceOverride?: NaturalVoiceId,
 ) {
   let playback = 0;
@@ -160,7 +183,7 @@ export function createNaturalSpeaker(
       try { if (typeof URL?.revokeObjectURL === 'function') URL.revokeObjectURL(url); } catch { /* cleanup must not mask playback errors */ }
     }
   };
-  const GENERATION_TIMEOUT_MS = 30_000;
+  const GENERATION_TIMEOUT_MS = 30_000; // a new sentence on a busy server; cached ones are instant
   const PLAYBACK_TIMEOUT_MS = 45_000;
   const waitForPlayback = (audio: HTMLAudioElement, onPlaying?: () => void) => new Promise<void>((resolve, reject) => {
     let settled = false;
@@ -193,7 +216,9 @@ export function createNaturalSpeaker(
     };
     audio.onended = () => finish();
     audio.onerror = () => finish(new Error('Audio playback failed'));
-    audio.onabort = () => finish(new Error('Audio playback was interrupted'));
+    // One player is reused for every clip, so an "abort" for the clip before this one can still arrive. Only an
+    // abort after this clip has started counts (a real stop goes through stop(), which ends the run anyway).
+    audio.onabort = () => { if (started) finish(new Error('Audio playback was interrupted')); };
     audio.onplaying = markStarted;
     audio.onloadedmetadata = setWatchdog;
     setWatchdog();
@@ -218,6 +243,7 @@ export function createNaturalSpeaker(
       onFailure?: (stage: NaturalVoiceFailureStage, error: unknown) => void,
     ) {
       const mine = ++playback; cleanUp();
+      if (makeAudio === sharedAudio) unlockAudioPlayback(); // still inside the tap that asked to listen
       const voice = voiceOverride ?? naturalVoiceId();
       if (!engine || !voice || !parts.length) { onDone(!parts.length); return; }
       onPhase?.('preparing');

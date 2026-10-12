@@ -66,6 +66,7 @@ import { AssessmentHub, AssessmentRunner } from './Assessment';
 import { PART_FINDER_LESSONS, PART_FINDER_ROUNDS } from './part-finder';
 import ConceptGames, { type LessonGame } from './ConceptGames';
 import { BrainBreakOffer } from './BrainBreakOffer';
+import { warmUpNaturalVoice } from './lib/natural-voice';
 const queryClient = new QueryClient();
 
 type View =
@@ -846,6 +847,13 @@ function Game() {
   const quietBreaks = fun.breakPreferences?.quietMode ?? false;
   const activeStudyView = ['play', 'review', 'daily', 'lab', 'redo', 'extra', 'retention'].includes(view.type);
   useAccountSync(progress, fun);
+
+  // Check the natural voice soon after opening (a tiny request; it also wakes the server's voice), so the very
+  // first Listen already uses it instead of the device voice.
+  useEffect(() => {
+    const timer = setTimeout(() => { void warmUpNaturalVoice(); }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;

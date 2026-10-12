@@ -55,6 +55,10 @@ async function buildAll() {
       "typeorm",
       "protobufjs",
       "onnxruntime-node",
+      // The natural voice (Kokoro) loads its model libraries from node_modules at run time.
+      "kokoro-js",
+      "@huggingface/transformers",
+      "phonemizer",
       "@tensorflow/*",
       "@prisma/client",
       "@mikro-orm/*",

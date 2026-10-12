@@ -49,9 +49,6 @@ export default defineConfig({
   ],
   resolve: {
     alias: [
-      // Kokoro (via Transformers.js) imports 'onnxruntime-web'. Use the plain WebAssembly build: the default
-      // WebGPU-enabled (JSEP) build crashes Safari 26 on iPhone, and the app never uses WebGPU.
-      { find: /^onnxruntime-web$/, replacement: 'onnxruntime-web/wasm' },
       { find: '@', replacement: path.resolve(import.meta.dirname, 'src') },
       { find: '@assets', replacement: path.resolve(import.meta.dirname, '..', '..', 'attached_assets') },
     ],

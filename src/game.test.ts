@@ -718,11 +718,11 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.match(markup, /Read-aloud voice/);
     assert.match(markup, /Natural voice/);
     assert.match(markup, /Kokoro self-test/);
-    assert.match(markup, /Load the Kokoro model/);
+    assert.match(markup, /Reach the Kokoro voice server/);
     assert.match(markup, /Generate a short sample/);
     assert.match(markup, /Play the sample/);
     assert.match(markup, /Device voices/);
-    assert.match(markup, /can’t run the natural voice/, 'without browser support the natural voice explains the fallback');
+    assert.match(markup, /can’t play the natural voice/, 'without browser support the natural voice explains the fallback');
     assert.match(markup, /Read-aloud voices are not available in this browser/);
   });
 
@@ -2423,7 +2423,7 @@ describe('natural read-aloud voice', () => {
     assert.equal(isIOSVoiceDevice('Mozilla/5.0 (Macintosh; Intel Mac OS X)', 'MacIntel', 1), false);
     assert.equal(isIOSVoiceDevice('Mozilla/5.0 (Linux; Android 15)', 'Linux armv8l', 5), false);
   });
-  it('explains the iOS device-voice fallback instead of offering broken natural playback', () => {
+  it('offers the natural voice on iPhone and iPad too (the server makes the audio)', () => {
     const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
     Object.defineProperty(globalThis, 'navigator', {
       configurable: true,
@@ -2435,9 +2435,9 @@ describe('natural read-aloud voice', () => {
     });
     try {
       const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
-      assert.match(markup, /Natural voice is paused on iPhone and iPad/);
-      assert.match(markup, /Lessons use the device voice selected below/);
-      assert.doesNotMatch(markup, /radio-natural-voice-af_heart|button-preview-natural-voice/);
+      assert.match(markup, /works on every device, iPhone and iPad included/);
+      assert.match(markup, /radio-natural-voice-af_heart/);
+      assert.doesNotMatch(markup, /paused on iPhone/);
     } finally {
       if (original) Object.defineProperty(globalThis, 'navigator', original);
       else Reflect.deleteProperty(globalThis, 'navigator');
@@ -2576,15 +2576,40 @@ describe('lesson steps for the map pies', () => {
   });
 });
 
-describe('Kokoro on iPhone: plain WASM runtime and crash breadcrumbs', () => {
-  it('builds ONNX Runtime from its plain WebAssembly entry, never the WebGPU (JSEP) build', () => {
-    const config = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
-    assert.match(config, /find: \/\^onnxruntime-web\$\/, replacement: 'onnxruntime-web\/wasm'/);
-    const runtime = readFileSync(new URL('./lib/onnx-runtime.ts', import.meta.url), 'utf8');
-    assert.match(runtime, /onnxruntime-web\/ort-wasm-simd-threaded\.wasm\?url/);
-    assert.doesNotMatch(runtime.replace(/\/\*[\s\S]*?\*\//g, ''), /jsep/i, 'no JSEP files outside the explanatory comment');
-    const voice = readFileSync(new URL('./lib/natural-voice.ts', import.meta.url), 'utf8');
-    assert.ok(voice.indexOf("import('./onnx-runtime')") < voice.indexOf("import('kokoro-js')"), 'the runtime is configured before Transformers.js loads');
+describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
+  it('no longer ships the voice model to the browser', () => {
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { dependencies?: Record<string, string> };
+    assert.equal(pkg.dependencies?.['kokoro-js'], undefined);
+    assert.equal(pkg.dependencies?.['onnxruntime-web'], undefined);
+    assert.doesNotMatch(readFileSync(new URL('./lib/natural-voice.ts', import.meta.url), 'utf8'), /import\('kokoro-js'\)/);
+  });
+
+  it('asks the server for each sentence and waits while the server loads the voice', async () => {
+    const { serverEngine, speechUrl, warmUpNaturalVoice, setNaturalEngineForTests, setNaturalVoicePreference } = await import('./lib/natural-voice');
+    assert.equal(speechUrl('af_heart', '3/4 & more'), '/api/voice/speech?voice=af_heart&text=3%2F4%20%26%20more');
+    const originalFetch = globalThis.fetch; const hadWindow = typeof (globalThis as { window?: unknown }).window !== 'undefined';
+    const originalAudio = (globalThis as { Audio?: unknown }).Audio;
+    const asked: string[] = []; let statusCalls = 0;
+    globalThis.fetch = (async (url: string) => {
+      asked.push(url);
+      if (url.startsWith('/api/voice/status')) { statusCalls++; return new Response(JSON.stringify({ state: statusCalls < 2 ? 'loading' : 'ready' })); }
+      return new Response(new Blob([new Uint8Array([82, 73, 70, 70])], { type: 'audio/wav' }));
+    }) as typeof fetch;
+    if (!hadWindow) Object.defineProperty(globalThis, 'window', { configurable: true, value: globalThis });
+    (globalThis as { Audio?: unknown }).Audio = class {};
+    try {
+      setNaturalEngineForTests(null); setNaturalVoicePreference('af_heart');
+      const engine = await warmUpNaturalVoice();
+      assert.equal(engine, serverEngine);
+      assert.equal(statusCalls, 2, 'it kept asking until the server said ready');
+      const clip = await serverEngine.generate('One half.', { voice: 'af_bella', speed: 1 });
+      assert.equal(clip.toBlob().type, 'audio/wav');
+      assert.ok(asked.includes('/api/voice/speech?voice=af_bella&text=One%20half.'));
+    } finally {
+      globalThis.fetch = originalFetch; (globalThis as { Audio?: unknown }).Audio = originalAudio;
+      if (!hadWindow) Reflect.deleteProperty(globalThis, 'window');
+      setNaturalEngineForTests(null);
+    }
   });
 
   it('remembers the step a crashed test reached and reports it after the reload', async () => {
@@ -2594,10 +2619,10 @@ describe('Kokoro on iPhone: plain WASM runtime and crash breadcrumbs', () => {
     };
     try {
       const { KokoroDiagnostic, readBreadcrumb, saveBreadcrumb, clearBreadcrumb } = await import('./KokoroDiagnostic');
-      saveBreadcrumb('load', 'files downloaded; preparing the model');
+      saveBreadcrumb('load', 'connected to the voice server');
       assert.equal(readBreadcrumb()?.step, 'load');
       const markup = renderToStaticMarkup(createElement(KokoroDiagnostic));
-      assert.match(markup, /The last test stopped the page during: Load the Kokoro model \(files downloaded; preparing the model\)/);
+      assert.match(markup, /The last test stopped the page during: Reach the Kokoro voice server \(connected to the voice server\)/);
       assert.match(markup, /Safari ran out of memory/);
       clearBreadcrumb();
       assert.equal(readBreadcrumb(), null);

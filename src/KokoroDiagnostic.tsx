@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   createNaturalSpeaker,
-  naturalVoiceDisabledOnIOS,
   warmUpNaturalVoice,
   type NaturalVoiceFailureStage,
 } from './lib/natural-voice';
@@ -36,7 +35,7 @@ export function readBreadcrumb(): Breadcrumb | null {
   } catch { return null; }
 }
 const STEP_NAMES: Record<TestStep, string> = {
-  load: 'Load the Kokoro model',
+  load: 'Reach the Kokoro voice server',
   generate: 'Generate a short sample',
   play: 'Play the sample',
 };
@@ -56,7 +55,7 @@ function getStepStatus(state: TestState, step: TestStep): { text: string; state:
   if (state.status === 'running' && state.step === step) {
     if (step === 'load' && typeof state.progress === 'number') {
       return {
-        text: state.progress >= 100 ? 'Files downloaded; preparing the model…' : `Loading ${state.progress}%`,
+        text: state.progress >= 100 ? 'Connected' : state.progress > 0 ? 'The server is loading the voice (first time only)…' : 'Connecting…',
         state: 'active',
       };
     }
@@ -113,7 +112,7 @@ export function KokoroDiagnostic() {
     };
 
     setState({ status: 'running', step: 'load', completed: [], progress: 0 });
-    saveBreadcrumb('load', 'downloading the model');
+    saveBreadcrumb('load', 'connecting to the voice server');
     if (typeof window !== 'undefined') {
       window.addEventListener('error', onWindowError, true);
       window.addEventListener('unhandledrejection', onUnhandledRejection);
@@ -131,13 +130,13 @@ export function KokoroDiagnostic() {
         onProgress: (progress) => {
           if (runId.current !== id) return;
           setState({ status: 'running', step: 'load', completed: [], progress });
-          if (progress >= 100) saveBreadcrumb('load', 'files downloaded; preparing the model');
+          if (progress >= 100) saveBreadcrumb('load', 'connected to the voice server');
         },
         onError: (error) => { loadError = error; },
       });
       if (runId.current !== id) return;
       if (failure) return;
-      if (!engine) throw loadError ?? new Error('The model could not load in this browser. Check the connection, then try again.');
+      if (!engine) throw loadError ?? new Error('The voice server could not be reached. Check the connection, then try again.');
 
       setState({ status: 'running', step: 'generate', completed: ['load'], progress: 100 });
       activeStep.current = 'generate';
@@ -186,7 +185,6 @@ export function KokoroDiagnostic() {
   };
 
   const running = state.status === 'running';
-  const isIOS = naturalVoiceDisabledOnIOS();
 
   return (
     <section className="fq-kokoro-diagnostic" data-testid="kokoro-diagnostic" aria-labelledby="kokoro-diagnostic-title">
@@ -194,7 +192,6 @@ export function KokoroDiagnostic() {
         <div>
           <h4 id="kokoro-diagnostic-title">Kokoro self-test</h4>
           <p>Runs a short, fixed phrase through the model and audio player. It won’t change the lesson voice or send student work anywhere.</p>
-          {isIOS && <p className="fq-kokoro-diagnostic-ios-note">This test runs Kokoro directly on iPhone or iPad. Regular lessons keep using the device voice.</p>}
         </div>
         <button
           type="button"
@@ -225,7 +222,7 @@ export function KokoroDiagnostic() {
           <p>The page reloaded instead of showing an error. On iPhone and iPad this usually means Safari ran out of memory.</p>
         </div>
       )}
-      {running && state.step === 'load' && <p className="fq-kokoro-test-note" role="status">The first model download is large; keep this page open while it loads.</p>}
+      {running && state.step === 'load' && <p className="fq-kokoro-test-note" role="status">The first time, the server loads the voice (up to a minute). Keep this page open.</p>}
       {state.status === 'passed' && <p className="fq-kokoro-test-success" role="status">All three steps passed. The Kokoro sample played on this device.</p>}
       {state.status === 'failed' && (
         <div className="fq-kokoro-test-error" role="alert" data-testid="kokoro-test-error">

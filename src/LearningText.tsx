@@ -6,7 +6,7 @@ import { KokoroDiagnostic } from './KokoroDiagnostic';
 import { MathText } from './MathText';
 import { execAll } from './lib/regexp';
 import { selectLearningVoice as selectGentleVoice, sentences, spokenText, VOICE_PITCH, VOICE_RATE } from './lib/voice';
-import { createNaturalSpeaker, NATURAL_VOICES, naturalVoiceDisabledOnIOS, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, setNaturalVoicePreference, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoicePhase, type NaturalVoiceStatus } from './lib/natural-voice';
+import { createNaturalSpeaker, NATURAL_VOICES, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, setNaturalVoicePreference, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoicePhase, type NaturalVoiceStatus } from './lib/natural-voice';
 
 type VocabularyEntry = { pattern: string; definition: string };
 
@@ -223,7 +223,7 @@ export function createLearningSpeechController(
       stop();
       const playback = generation;
       // The natural voice reads English when it's ready; otherwise this playback uses the device voice
-      // while the natural voice downloads in the background for next time.
+      // while the natural voice connects in the background for next time.
       if (natural.ready() && /^en\b/i.test(language)) {
         setSpeaking(true);
         natural.speak(sentences(spokenLearningText(text)), (ok) => {
@@ -292,7 +292,7 @@ function defaultNaturalReader(): NaturalReader {
 
 const VOICE_PREVIEW = 'Hi there! I can read your fraction lessons to you.';
 
-/** Grown-ups' choice of natural voice (or off), with the download status. */
+/** Grown-ups' choice of natural voice (or off), with its connection status. */
 function NaturalVoiceSettings() {
   const [status, setStatus] = useState<NaturalVoiceStatus>(() => naturalVoiceStatus());
   const [choice, setChoice] = useState(naturalVoicePreference);
@@ -301,7 +301,6 @@ function NaturalVoiceSettings() {
   const [previewMessage, setPreviewMessage] = useState('');
   const speaker = useRef<ReturnType<typeof createNaturalSpeaker> | null>(null);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const iosFallback = naturalVoiceDisabledOnIOS();
   useEffect(() => onNaturalVoiceStatus(setStatus), []);
   useEffect(() => () => {
     if (previewTimer.current !== null) clearTimeout(previewTimer.current);
@@ -338,20 +337,18 @@ function NaturalVoiceSettings() {
       setPreviewMessage(ok ? '' : 'This natural voice could not finish its preview here. Try a device voice below.');
     }, setPreviewPhase);
   };
-  const statusText = iosFallback ? 'Lessons use the device voice selected below.'
-    : status.state === 'off' ? 'Off: lessons use the device voice.'
-    : status.state === 'unsupported' ? 'This browser can’t run the natural voice, so lessons use the device voice.'
-    : status.state === 'ready' ? 'Ready on this device.'
-    : status.state === 'loading' ? `Downloading… ${status.progress ?? 0}%`
-    : status.state === 'error' ? 'The download didn’t finish. Lessons use the device voice; try again on Wi-Fi.'
-    : 'Downloads once (about 90 MB) the first time a child presses Listen. Wi-Fi is best.';
+  const statusText = status.state === 'off' ? 'Off: lessons use the device voice.'
+    : status.state === 'unsupported' ? 'This browser can’t play the natural voice, so lessons use the device voice.'
+    : status.state === 'ready' ? 'Ready.'
+    : status.state === 'loading' ? 'Connecting to the voice…'
+    : status.state === 'error' ? 'The natural voice isn’t reachable right now, so lessons use the device voice. Try again later.'
+    : 'Connects the first time a child presses Listen. Nothing to download.';
   return (
     <div className="fq-natural-voice" data-testid="natural-voice-settings">
       <h3 className="fq-learning-voice-subhead">Natural voice</h3>
-      <p>{iosFallback
-        ? 'Natural voice is paused on iPhone and iPad to prevent playback errors. Lessons use the device voice you select below.'
-        : 'A free, open-source voice that sounds like a real person. It runs on this device: no account, and nothing you read is sent anywhere.'}</p>
-      {!iosFallback && (
+      <p>A free, open-source voice that sounds like a real person. Our server makes the audio from the lesson sentence
+        only (never a child’s name or answers), so it works on every device, iPhone and iPad included.</p>
+      {(
         <div className="fq-natural-voice-options" role="radiogroup" aria-label="Natural voice">
           {[...NATURAL_VOICES.map((voice) => ({ id: voice.id as NaturalVoiceId | 'off', label: voice.name, note: voice.note })), { id: 'off' as const, label: 'Off', note: 'use the device voice' }].map((option) => (
             <label key={option.id} className={choice === option.id ? 'on' : ''}>
@@ -363,16 +360,16 @@ function NaturalVoiceSettings() {
       )}
       <p className="fq-parent-note" role="status" data-testid="status-natural-voice">{statusText}</p>
       <KokoroDiagnostic />
-      {!iosFallback && (
+      {(
         <div className="fq-natural-voice-actions">
-          {(status.state === 'idle' || status.state === 'error') && <button type="button" className="fq-button ghost" onClick={() => { void warmUpNaturalVoice(); }} data-testid="button-download-natural-voice">Download now</button>}
+          {(status.state === 'idle' || status.state === 'error') && <button type="button" className="fq-button ghost" onClick={() => { void warmUpNaturalVoice(); }} data-testid="button-download-natural-voice">Connect now</button>}
           {status.state === 'ready' && <button type="button" className="fq-button ghost" onClick={preview} data-testid="button-preview-natural-voice"><Volume2 size={16} aria-hidden="true" /> {previewing ? 'Stop preview' : 'Preview voice'}</button>}
         </div>
       )}
       {previewing && <p className="fq-parent-note" role="status" data-testid="status-natural-voice-preview-phase">
         {previewPhase === 'playing' ? 'The voice preview is playing. Tap Stop preview to stop it.'
-          : previewPhase === 'generating' ? 'Making your voice preview on this device…'
-          : 'Preparing your voice preview on this device…'}
+          : previewPhase === 'generating' ? 'Making your voice preview…'
+          : 'Preparing your voice preview…'}
       </p>}
       {previewMessage && <p className="fq-learning-voice-fallback" role="alert" data-testid="status-natural-voice-preview">{previewMessage}</p>}
     </div>
@@ -472,7 +469,7 @@ export function LearningVoicePicker() {
       <h2 id="learning-voice-heading">Read-aloud voice</h2>
       <NaturalVoiceSettings />
       <h3 className="fq-learning-voice-subhead">Device voices</h3>
-      <p>Used while the natural voice downloads, when it is off, or on devices that can't run it. Signed-in choices follow your account, but each device uses its own local voice. Audio stays on this device.</p>
+      <p>Used while the natural voice connects, when it is off, or when it can't be reached. Signed-in choices follow your account, but each device uses its own local voice. Device-voice audio stays on this device.</p>
       {!supported ? (
         <p className="fq-parent-note" role="status">Read-aloud voices are not available in this browser.</p>
       ) : matchingVoices.length > 0 ? (
