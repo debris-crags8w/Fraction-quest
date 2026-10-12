@@ -92,11 +92,10 @@ export function warmUpNaturalVoice(options: NaturalVoiceLoadOptions = {}): Promi
   loading = (async () => {
     try {
       if (options.diagnostic && naturalVoiceDisabledOnIOS()) {
-        // iOS WebKit has known ONNX WASM failures with SIMD and threaded workers.
-        // Keep the one-off diagnostic on the portable single-threaded WASM path.
+        // Use a single-threaded WASM session for the explicit iOS test.
+        // Leave SIMD detection enabled so unsupported runtimes fail clearly.
         const { env } = await import('onnxruntime-web');
         env.wasm.numThreads = 1;
-        env.wasm.simd = false;
         env.wasm.proxy = false;
       }
       const { KokoroTTS } = await import('kokoro-js');
