@@ -1,5 +1,6 @@
 import { pickVoice, sayFraction, sentences, spokenText } from './lib/voice';
 import { AREA_CUTS, allEqual, areaFeedback, areaTaskDone, areaWhole, circleCut, cutTotal, pieceArea, shadedArea } from './area-shapes';
+import { amountsIn } from './auto-picture';
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 import * as React from 'react';
@@ -679,6 +680,25 @@ function withLearning(progress: Progress, id: string): Progress {
 }
 
 describe('entered-answer worksheets and evidence gates', () => {
+  it('builds lesson models and math text without String.matchAll in older webviews', () => {
+    const original = Object.getOwnPropertyDescriptor(String.prototype, 'matchAll');
+    try {
+      Object.defineProperty(String.prototype, 'matchAll', { configurable: true, writable: true, value: undefined });
+      assert.deepEqual(amountsIn('Compare 3/4 or 1/2.'), [
+        { numerator: 3, denominator: 4 },
+        { numerator: 1, denominator: 2 },
+      ]);
+      const markup = renderToStaticMarkup(createElement(LearningText, {
+        text: 'Each equal share is 1/4 of a whole.',
+      }));
+      assert.match(markup, /class="fq-mfrac" role="math" aria-label="1 over 4"/);
+      assert.match(markup, /class="fq-vocab-trigger"/);
+    } finally {
+      if (original) Object.defineProperty(String.prototype, 'matchAll', original);
+      else delete (String.prototype as { matchAll?: unknown }).matchAll;
+    }
+  });
+
   it('highlights fraction vocabulary, explains terms, keeps fractions stacked, and offers audio', () => {
     const markup = renderToStaticMarkup(createElement(LearningText, {
       text: 'Each equal share is 1/4 of a whole.',

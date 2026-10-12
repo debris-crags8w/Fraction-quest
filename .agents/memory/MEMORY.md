@@ -2,4 +2,4 @@
 - [GitHub sync and push](github-push.md) — merge newer GitHub changes before edits; use the connected GitHub App if CLI pushes fail.
 - [Development database bootstrap](development-database-bootstrap.md) — the development database can be provisioned without app tables; apply the existing schema before DB-backed account tests.
 - [Student progress privacy](student-progress-privacy.md) — educator-linked progress uses class codes, no student names, and is saved online.
-- [Mobile voice API compatibility](mobile-voice-compatibility.md) — handle partial iOS speech events and audio.play() results, with bounded completion and fallback.
+- [Mobile WebView compatibility](mobile-voice-compatibility.md) — avoid unsupported text APIs in lessons; guard partial iOS speech events and audio.play() results.

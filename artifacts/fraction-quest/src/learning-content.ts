@@ -1,6 +1,7 @@
 import { circleCut, type AreaFigure, type AreaTask } from './area-shapes';
 import { standardsForMission } from './standard-catalog';
 import { autoPicture } from './auto-picture';
+import { execAll } from './lib/regexp';
 import type { ModelSpec } from './game';
 export type Rational = { n: number; d: number };
 /** `sizes` (bars only) draws pieces of different widths, for "Is this cut into equal parts?" pictures. */
@@ -409,7 +410,7 @@ export function getWorksheet(id: string, variant = 0): WorksheetProblem[] {
   return tag(sheet);
 }
 const VARIANT_CACHE = new Map<string, WorksheetProblem[]>();
-const largestBottom = (p: WorksheetProblem) => Math.max(0, ...[...`${p.prompt} ${p.answer}`.matchAll(/\d+\/(\d+)/g)].map((m) => Number(m[1])));
+const largestBottom = (p: WorksheetProblem) => Math.max(0, ...execAll(`${p.prompt} ${p.answer}`, /\d+\/(\d+)/g).map((m) => Number(m[1])));
 
 function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
   if (!CHECKS[id]) throw new Error(`Missing worksheet: ${id}`);
@@ -1110,7 +1111,7 @@ export function getReviewCheck(id: string, round: number): BuildCheck {
   const asked = numeric.filter(p => {
     if (p.model || p.area) return false;
     const value = parseAnswer(p.answer)!;
-    const shown = [...p.prompt.matchAll(/(\d+)\/(\d+)/g)].map(m => Number(m[1]) / Number(m[2]));
+    const shown = execAll(p.prompt, /(\d+)\/(\d+)/g).map(m => Number(m[1]) / Number(m[2]));
     return p.prompt.startsWith('Which is') || !shown.includes(value.n / value.d);
   });
   // Lessons whose questions all need a picture ("What fraction is shaded?") just ask to make the fraction.

@@ -3,6 +3,7 @@ import { Volume2, VolumeX } from 'lucide-react';
 import { useOptionalFun } from './fun-ui';
 import { setLearningVoicePreference } from './lib/fun';
 import { MathText } from './MathText';
+import { execAll } from './lib/regexp';
 import { selectLearningVoice as selectGentleVoice, sentences, spokenText, VOICE_PITCH, VOICE_RATE } from './lib/voice';
 import { createNaturalSpeaker, NATURAL_VOICES, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, setNaturalVoicePreference, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoicePhase, type NaturalVoiceStatus } from './lib/natural-voice';
 
@@ -582,7 +583,7 @@ const KEY_PATTERN = new RegExp([
 function EmphasizedText({ text }: { text: string }) {
   const parts: ReactNode[] = [];
   let last = 0;
-  for (const match of text.matchAll(KEY_PATTERN)) {
+  for (const match of execAll(text, KEY_PATTERN)) {
     const at = match.index ?? 0;
     if (at > last) parts.push(<MathText key={`t-${last}`} text={text.slice(last, at)} />);
     parts.push(<span key={`k-${at}`} className="fq-key">{match[0]}</span>);
@@ -609,7 +610,7 @@ export function LearningText({
 
   const parts: ReactNode[] = [];
   let last = 0;
-  for (const match of text.matchAll(VOCABULARY_PATTERN)) {
+  for (const match of execAll(text, VOCABULARY_PATTERN)) {
     const at = match.index ?? 0;
     const word = match[0];
     const entry = entryFor(word);

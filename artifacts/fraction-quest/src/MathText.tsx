@@ -1,4 +1,5 @@
 import React, { type ReactNode } from 'react';
+import { execAll } from './lib/regexp';
 
 /* Shows fractions in text the way math books (and LaTeX's \frac) do: the top number over a bar
    over the bottom number. "3/4" → ³⁄₄ stacked, "1 and 3/4" → 1 ³⁄₄, "?/12" → a blank over 12. */
@@ -30,7 +31,7 @@ export function MathText({ text }: { text: string | undefined | null }) {
   if (!text) return null;
   const out: ReactNode[] = [];
   let last = 0;
-  for (const m of text.matchAll(TOKEN)) {
+  for (const m of execAll(text, TOKEN)) {
     const at = m.index ?? 0;
     if (at > last) out.push(text.slice(last, at));
     if (m[1]) out.push(<Mixed key={at} whole={m[1]} top={m[2]} bottom={m[3]} />);
