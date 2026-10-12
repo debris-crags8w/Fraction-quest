@@ -3,6 +3,7 @@ import { ArrowLeft, Printer, RotateCcw, Scale, Shuffle, Waypoints } from 'lucide
 import './concept-games.css';
 import { areEquivalent, compareFractions, targetTick, WAR_PARTS, WAR_ROUNDS, warHint } from './concept-games';
 import { printPage } from './lib/print';
+import { TaskBar } from './TaskBar';
 
 type Fraction = { n: number; d: number };
 type Model = { d: number; n: number };
@@ -67,13 +68,13 @@ function FractionWar() {
       const model = models[side as 0 | 1];
       return <article className="cg-model-card" key={side}>
         <div className="cg-model-label"><span>Whole {side ? 'B' : 'A'}</span><strong>Build <FractionLabel {...fraction} /></strong></div>
-        <label className="cg-control-label" htmlFor={`war-denom-${side}`}>Equal parts in this whole</label>
+        <label className="cg-control-label" htmlFor={`war-denom-${side}`}>Equal parts<span className="cg-hide-narrow"> in this whole</span></label>
         <select id={`war-denom-${side}`} value={model.d} disabled={roundSolved} onChange={e => changeModel(side as 0 | 1, { d: Number(e.target.value), n: 0 })} data-testid={`select-war-denominator-${side}`}>
           <option value={0} disabled>Choose…</option>
           {WAR_PARTS.map(n => <option value={n} key={n}>{n} equal parts</option>)}
         </select>
         <Bar model={model} label={`whole-${side ? 'b' : 'a'}`} disabled={roundSolved} onToggle={i => changeModel(side as 0 | 1, { n: i < model.n ? i : i + 1 })} />
-        <div className="cg-model-readout"><span>{model.d ? `Denominator: ${model.d} equal parts` : 'Choose the equal parts'}</span><span>Numerator: {model.n} selected</span></div>
+        <div className="cg-model-readout"><span>{model.d ? <>Denominator: {model.d}<span className="cg-hide-narrow"> equal parts</span></> : 'Choose the equal parts'}</span><span>Numerator: {model.n}<span className="cg-hide-narrow"> selected</span></span></div>
       </article>;
     })}</div>
     <fieldset className="cg-compare"><legend>Which amount is larger?</legend>{(['left', 'right', 'same'] as const).map((v, i) => <button type="button" key={v} className={`cg-choice ${choice === v ? 'selected' : ''}`} aria-pressed={choice === v} disabled={!modelsBuilt || roundSolved} onClick={() => { setChoice(v); setFeedback(''); }} data-testid={`button-war-choice-${v}`}>{i === 0 ? 'Whole A' : i === 1 ? 'Whole B' : 'Same amount'}</button>)}</fieldset>
@@ -202,7 +203,7 @@ export default function ConceptGames({ onExit, lessonGames = [] }: { onExit: () 
   const open = WORKSHOP.find((item) => item.id === section);
   if (open) {
     return <main className="cg-page fq-app fq-shell fq-appear" data-testid={`concept-game-${open.id}`}>
-      <header className="cg-top"><button type="button" className="cg-back" onClick={() => setSection(null)} data-testid="button-concept-games-menu"><ArrowLeft size={18} /> All games</button><span className="cg-brand-mark" aria-hidden="true"><open.icon size={22} /></span></header>
+      <TaskBar onBack={() => setSection(null)} backLabel="All games" testId="button-concept-games-menu" title={<><open.icon size={16} aria-hidden="true" /> {open.title}</>} />
       <div className="cg-games">
         {open.id === 'war' && <FractionWar />}
         {open.id === 'match' && <EquivalenceMatch />}

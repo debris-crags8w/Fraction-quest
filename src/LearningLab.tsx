@@ -1,7 +1,7 @@
 import { type CSSProperties, type RefObject, useEffect, useRef, useState } from 'react';
 import { LearningText } from './LearningText';
 import { ArrowLeft, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
-import { numberLineWholeCount, type Progress } from './game';
+import { getMission, numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
 import {
   checkRedoRow, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, learningSummary, redoChecks, redoDone, redoWorksheet,
@@ -17,6 +17,7 @@ import { FractionEntry, usesFractionEntry } from './FractionEntry';
 import { YesNoCards } from './YesNoCards';
 import { LessonTeachingSupport } from './LessonTeachingSupport';
 import './learning-lab.css';
+import { TaskBar } from './TaskBar';
 
 type Kind = LearningModel['kind'];
 type St = { d: number; wholes: number; count: number };
@@ -533,16 +534,11 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
   return (
     <div className="fq-ll" data-testid="learning-lab">
-      <button className="fq-back" onClick={onBack} data-testid="button-lab-back"><ArrowLeft size={17} /> Back</button>
-      <header className="fq-ll-head">
-        <span className="fq-ll-badge">Learning lab</span>
-         <h2>Build it, then see it another way</h2>
-         <p>Make one model first. When it matches, show the same amount another way.</p>
-        <div className="fq-ll-print" role="group" aria-label="Print">
+      <TaskBar onBack={onBack} testId="button-lab-back" title={getMission(missionId).shortTitle}
+        actions={<div className="fq-ll-print" role="group" aria-label="Print">
           <PrintMenu missionId={missionId} record={rec} />
-          {onPaper && <button type="button" className="fq-button ghost" onClick={onPaper} data-testid="button-check-paper"><ClipboardCheck size={17} /> Check my paper</button>}
-        </div>
-      </header>
+          {onPaper && <button type="button" className="fq-button ghost" onClick={onPaper} data-testid="button-check-paper" aria-label="Check my paper"><ClipboardCheck size={17} /><span className="fq-hide-narrow"> Check my paper</span></button>}
+        </div>} />
 
       <LessonTeachingSupport missionId={missionId} />
 

@@ -279,9 +279,9 @@
 
 .fq-assessment-strip-row {
   display: grid;
-  grid-template-columns: 3rem minmax(0, 1fr);
+  grid-template-columns: 2.4rem auto minmax(0, 1fr);
   align-items: center;
-  gap: .75rem;
+  gap: .6rem;
 }
 
 .fq-assessment-strip-row > span {
@@ -301,7 +301,6 @@
 
 /* Each strip is one same-size whole: the parts share its full width, like a bar. */
 .fq-assessment-strip-row > div {
-  grid-column: 1 / -1;
   display: flex;
   gap: .2rem;
 }
@@ -409,6 +408,12 @@
 }
 
 @media (max-width: 600px) {
+  .fq-assessment-question { gap: .7rem; }
+  .fq-assessment-model { padding: .7rem; }
+  .fq-assessment-model > p:first-child { margin-bottom: .6rem; font-size: .88rem; }
+  .fq-assessment-strips { gap: .5rem; }
+  .fq-assessment-model-gate { margin-top: .5rem; padding: .5rem .7rem; font-size: .88rem; }
+
   .fq-assessment-card {
     align-items: flex-start;
     flex-direction: column;

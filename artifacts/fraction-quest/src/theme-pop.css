@@ -1661,3 +1661,18 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   text-decoration-skip-ink: none;
 }
 @media print { .fq-key { text-decoration-color: #000; } }
+
+/* Compact task header (TaskBar): one row, so the question starts near the top of a phone or tablet. */
+.fq-taskbar { display: grid; gap: 6px; margin: 0 0 10px; }
+.fq-taskbar-row { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.fq-taskbar-back { display: inline-flex; flex: none; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 2px solid var(--fq-edge); border-radius: 14px; background: hsl(var(--card)); color: var(--fq-grape); font: 800 0.95rem var(--app-font-sans); cursor: pointer; }
+.fq-taskbar-title { display: flex; flex: 1 1 auto; align-items: baseline; gap: 8px; min-width: 0; overflow: hidden; color: hsl(var(--foreground)); font: 800 1rem var(--app-font-sans); white-space: nowrap; text-overflow: ellipsis; }
+.fq-taskbar-count { flex: none; color: hsl(var(--muted-foreground)); font-size: 0.9rem; font-weight: 800; }
+.fq-taskbar-actions { display: flex; flex: none; gap: 6px; }
+.fq-taskbar-actions .fq-button { min-height: 40px; padding: 0 12px; font-size: 0.9rem; }
+.fq-taskbar-track { height: 8px; overflow: hidden; border-radius: 999px; background: var(--fq-track); }
+.fq-taskbar-track span { display: block; height: 100%; border-radius: inherit; background: var(--fq-lime); transition: width 180ms ease; }
+@media (max-width: 480px) { .fq-taskbar-back span { display: none; } .fq-taskbar-back { padding: 0 10px; } }
+.fq-assessment-note { margin: 10px 0 0; color: hsl(var(--muted-foreground)); font-size: 0.85rem; text-align: center; }
+@media (max-width: 480px) { .fq-hide-narrow { display: none; } }
+.fq-taskbar .fq-ll-print { display: flex; gap: 6px; margin: 0; }

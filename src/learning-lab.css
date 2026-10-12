@@ -197,3 +197,14 @@
 .fq-ll-redo-done { align-items: flex-start; }
 .fq-ll-redo-done p { margin: 4px 0 10px; }
 .fq-ll-newq { margin-left: 10px; vertical-align: middle; }
+
+/* Phones: one row of lesson steps, so the question starts higher on the screen. */
+@media (max-width: 620px) {
+  .fq-ll-steps { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 6px; padding-bottom: 4px; }
+  .fq-ll-steps li { flex: none; gap: 5px; padding: 5px 10px; font-size: .75rem; white-space: nowrap; }
+}
+@media (max-width: 620px) {
+  .fq-ll { width: calc(100% - 24px); padding-top: 12px; gap: 12px; }
+  .fq-ll .fq-lesson-support { margin: 0; }
+  .fq-ll .fq-lesson-support > details > summary { padding: .6rem .8rem; font-size: .9rem; }
+}

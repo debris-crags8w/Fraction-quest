@@ -13,6 +13,7 @@ import {
 } from './assessments';
 import type { AssessmentAttempt } from './game';
 import { LearningText } from './LearningText';
+import { TaskBar } from './TaskBar';
 
 export function AssessmentHub({ attempts, onStart, onBack }: {
   attempts: AssessmentAttempt[];
@@ -123,7 +124,6 @@ function FractionStripsBuilder({ fractions, onReady }: {
           </div>
         ))}
       </div>
-      <p className="fq-assessment-model-status" role="status">{ready ? 'Strips built. Now enter your answer.' : 'Build every strip to open the answer box.'}</p>
     </section>
   );
 }
@@ -209,15 +209,7 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
   return (
     <div className="fq-app">
       <main className="fq-shell fq-assessment-runner fq-appear" data-testid="assessment-runner">
-        <button className="fq-back" type="button" onClick={onExit} data-testid="button-assessment-exit"><ArrowLeft size={17} /> Leave check-in</button>
-        <header className="fq-assessment-header">
-          <span className="fq-eyebrow">{definition.title}</span>
-          <h1>Build it, then answer.</h1>
-          <p>Question {index + 1} of {items.length}. There are no hints during a check-in.</p>
-          <div className="fq-assessment-progress" role="progressbar" aria-label="Check-in progress" aria-valuenow={index + 1} aria-valuemin={1} aria-valuemax={items.length}>
-            <i style={{ width: `${((index + 1) / items.length) * 100}%` }} />
-          </div>
-        </header>
+        <TaskBar onBack={onExit} backLabel="Leave" testId="button-assessment-exit" title={definition.title} step={index + 1} total={items.length} />
         <form className="fq-assessment-question" onSubmit={submit}>
           <h2 id={promptId} className="fq-question-text"><LearningText text={item.prompt} emphasize /></h2>
           <AssessmentModelBuilder key={item.id} item={item} onReady={modelReady} />
@@ -236,6 +228,7 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
             </button>
           </div>
           <span id={statusIdFor(index)} className="fq-sr-only">Answer privately. Results are shown after all questions.</span>
+          <p className="fq-assessment-note">No hints during a check-in. Results come at the end.</p>
         </form>
       </main>
     </div>

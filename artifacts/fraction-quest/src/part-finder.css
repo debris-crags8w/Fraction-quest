@@ -126,8 +126,11 @@
   .fq-pf { padding: 12px; }
   .fq-pf-top { flex-wrap: wrap; gap: 9px; margin-bottom: 13px; }
   .fq-pf-top .fq-pf-best { width: 100%; margin-left: 0; }
-  .fq-pf-card, .fq-pf-result { padding: 20px 15px; border-radius: 22px; }
-  .fq-pf-heading { display: grid; gap: 14px; }
+  .fq-pf-card, .fq-pf-result { padding: 14px 12px; border-radius: 20px; }
+  .fq-pf-heading { display: grid; gap: 6px; }
+  .fq-pf-heading h1 { font-size: 1.3rem; line-height: 1.15; margin: 0; }
+  .fq-pf-heading p { font-size: .9rem; line-height: 1.4; margin: 0; }
+  .fq-pf-square { width: min(100%, 250px); }
   .fq-pf-round-meter { display: flex; align-items: center; justify-content: space-between; text-align: left; }
   .fq-pf-workspace.match { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 8px; }
   .fq-pf-workspace.match .fq-pf-interactive, .fq-pf-workspace.match .fq-pf-comparison { width: 100%; }
@@ -150,3 +153,14 @@
 .fq-pf-share small { color: hsl(var(--muted-foreground)); font-size: .75rem; font-weight: 750; }
 .fq-pf-piece.unassigned { fill: hsl(var(--card)); }
 .fq-pf-square.interactive .fq-pf-piece.unassigned:hover { fill: color-mix(in srgb, var(--fq-grape) 10%, hsl(var(--card))); }
+
+/* Phones: the whole round (story, cake, friends, buttons) fits on one screen. */
+@media (max-width: 620px) {
+  .fq-pf-square { width: min(100%, 220px); }
+  .fq-pf-interactive figcaption span { display: none; }
+  .fq-pf-friends { margin: 2px 0 8px; gap: 4px; }
+  .fq-pf-friends .fq-pf-shares { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; width: 100%; }
+  .fq-pf-share { justify-content: center; gap: 5px; min-height: 44px; padding: 5px 4px; }
+  .fq-pf-share i { width: 14px; height: 14px; flex: none; }
+  .fq-pf-share small { font-size: .68rem; }
+}

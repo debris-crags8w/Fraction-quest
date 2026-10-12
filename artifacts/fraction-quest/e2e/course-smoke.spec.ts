@@ -416,7 +416,8 @@ test('a completed learner can open a redo section without changing the lesson ro
 test('daily practice opens as a separate short session', async ({ page }) => {
   await openAsGuest(page);
   await page.getByTestId('button-start-daily-practice').click();
-  await expect(page.getByRole('heading', { name: /build it\. name it\. remember it\./i })).toBeVisible();
+  await expect(page.locator('.fq-taskbar-title')).toContainText('Daily practice');
+  await expect(page.locator('#daily-question-title')).toBeVisible();
   await expect(page.getByTestId('button-daily-hint')).toBeVisible();
 });
 

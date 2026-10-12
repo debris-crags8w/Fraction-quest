@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, Check, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, Sparkles } from 'lucide-react';
 import type { DailyPracticeAttempt, DailyPracticeSession, ModelSpec } from './game';
 import { dailyBuildCorrect, dailyChoiceQuestion } from './daily-practice';
 import { MathText } from './MathText';
 import { WholeBracket } from './models';
 import './daily-practice.css';
 import { LearningText } from './LearningText';
+import { TaskBar } from './TaskBar';
 
 const emptyAttempt = (): DailyPracticeAttempt => ({
   shaded: [],
@@ -207,20 +208,7 @@ export default function DailyPractice({
     return (
       <div className="fq-app">
         <main className="fq-shell fq-daily-shell">
-          <button className="fq-button ghost fq-daily-back" onClick={onBack} data-testid="button-daily-back">
-            <ArrowLeft size={17} /> Learning map
-          </button>
-          <header className="fq-daily-heading">
-            <div className="fq-eyebrow"><Sparkles size={15} aria-hidden="true" /> A short daily routine</div>
-            <h1>Build it. Name it. Remember it.</h1>
-            <p>A mix of five: build a fraction yourself, and answer questions from lessons you have worked on.</p>
-          </header>
-          <div className="fq-daily-progress" aria-label={`Question ${session.index + 1} of ${session.questions.length}`}>
-            <div className="fq-daily-progress-copy"><strong>Today’s practice</strong><span>{session.index + 1} of {session.questions.length}</span></div>
-            <div className="fq-daily-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={session.questions.length} aria-valuenow={session.index}>
-              <span style={{ width: `${(session.index / session.questions.length) * 100}%` }} />
-            </div>
-          </div>
+          <TaskBar onBack={onBack} backLabel="Map" testId="button-daily-back" title={<><Sparkles size={16} aria-hidden="true" /> Daily practice</>} step={session.index + 1} total={session.questions.length} />
           <section className="fq-daily-card" aria-labelledby="daily-question-title">
             <div className="fq-daily-topic">A little review · {question!.topicTitle}</div>
             {card}

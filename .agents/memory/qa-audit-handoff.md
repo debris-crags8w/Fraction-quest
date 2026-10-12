@@ -41,6 +41,14 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Screens fit a phone without scrolling.** New `src/TaskBar.tsx`: one slim bar (back, title, "n of N", thin progress
+  track, optional actions) replaces the tall headers on Daily practice, check-ins, the Learning Lab, Part Finder and the
+  workshop games. Phone layouts (≤620px): check-in strips are one row each (label, parts, strip); Part Finder's cake is
+  220px and the four friends sit in one row; Fraction War's two wholes sit side by side; lesson steps are one scrolling
+  row. Measured at 390×844 and 820×1180: Daily, check-in, Part Finder and War all fit with no scroll. The Lab worksheet
+  is a list on purpose (the active question card fits). Remaining branches to delete by hand on GitHub (the session
+  proxy blocks branch deletion): claude/fun-colorful-redesign, review/coding-challenge-progression,
+  review/fraction-quest-coding-learning, replit/quick-review-flow-coverage.
 - **Merged review/fraction-standard-mastery (user's 10 commits, fast-forward) into main**, then fixed two regressions it
   brought back: Daily Practice build instruction named the answer ("Choose 7 below… shade 3") — now explains
   numerator/denominator without numbers; new Part Finder round 'sort' (8 equal triangles) used Share 1–4 and "Each share

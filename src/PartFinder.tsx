@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AREA_CUTS, pieceArea, type AreaCut, type Piece } from './area-shapes';
 import { FRIENDS, PART_FINDER_ROUNDS, isPartFinderAnswer, partFinderFeedback, scorePartFinderRound } from './part-finder';
 import './part-finder.css';
+import { TaskBar } from './TaskBar';
 
 type CheckState = 'idle' | 'right' | 'try-again';
 
@@ -190,27 +191,14 @@ export default function PartFinder({ best, onExit, onFinish }: {
   return (
     <main className="fq-app fq-pf" data-testid="part-finder-screen">
       <div className="fq-pf-shell">
-        <header className="fq-pf-top">
-          <button className="fq-pf-back" type="button" onClick={onExit} data-testid="button-part-finder-exit">Back to lessons</button>
-          <span className="fq-pf-badge">Optional side game</span>
-          <div className="fq-pf-best" data-testid="part-finder-best-score">Best: {best === null ? '—' : `${best} / ${PART_FINDER_ROUNDS.length}`}</div>
-        </header>
+        <TaskBar onBack={onExit} backLabel="Lessons" testId="button-part-finder-exit" title="Part Finder" step={roundIndex + 1} total={PART_FINDER_ROUNDS.length}
+          actions={<span className="fq-pf-best" data-testid="part-finder-best-score">Best: {best === null ? '—' : `${best} / ${PART_FINDER_ROUNDS.length}`}</span>} />
 
         <section className="fq-pf-card" aria-labelledby="pf-title">
           <div className="fq-pf-heading">
-            <div>
-              <p className="fq-pf-kicker">Part Finder</p>
-              <h1 id="pf-title">{round.title}</h1>
-              <p className="fq-pf-prompt">{round.prompt}</p>
-            </div>
-            <div className="fq-pf-round-meter" aria-label={`Round ${roundIndex + 1} of ${PART_FINDER_ROUNDS.length}`}>
-              <span>Round {roundIndex + 1} of {PART_FINDER_ROUNDS.length}</span>
-              <div className="fq-pf-progress" aria-hidden="true">
-                {PART_FINDER_ROUNDS.map((item, index) => <i key={item.id} className={index < roundIndex ? 'done' : index === roundIndex ? 'current' : ''} />)}
-              </div>
-            </div>
+            <h1 id="pf-title">{round.title}</h1>
+            <p className="fq-pf-prompt">{round.prompt}</p>
           </div>
-          <p className="fq-pf-score-guide">Solve each round on your first check to earn a point.</p>
 
           <div className={`fq-pf-workspace ${round.id === 'match' ? 'match' : ''}`}>
             {round.id === 'match' && round.comparisonCut && (
