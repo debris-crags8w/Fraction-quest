@@ -172,7 +172,13 @@ function practice(
 ): PracticeSeed {
   // Every question shows a model: a typed-out equation ("1/6 + 4/6 = ?") also gets bars for its amounts.
   if (model.kind === 'equation') model = autoPicture(model.text, model.text) ?? model;
-  return { prompt, choices, correctChoice, model: nameBars(model, prompt), hint, retryFeedback, simplerModel: nameBars(simplerModel, prompt) };
+  const named = nameBars(model, prompt);
+  let simpler = nameBars(simplerModel, prompt);
+  // "Let's make it simpler" must stay about this question: if the question's own picture shows the fractions it names
+  // and the authored help picture doesn't (a generic 1/2 bar), the help shows the question's bars, labelled.
+  const aboutQuestion = (m: ModelSpec) => m.kind === 'bars' && m.bars.some((bar) => bar.named);
+  if (aboutQuestion(named) && !aboutQuestion(simpler)) simpler = named;
+  return { prompt, choices, correctChoice, model: named, hint, retryFeedback, simplerModel: simpler };
 }
 
 /** Authored questions mostly listed the right answer first. Put it at a spot picked from the question id

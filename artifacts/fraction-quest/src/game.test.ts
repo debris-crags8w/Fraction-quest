@@ -2405,3 +2405,18 @@ describe('natural read-aloud voice', () => {
     delete (globalThis as { localStorage?: unknown }).localStorage;
   });
 });
+
+describe('the simpler help stays about the question', () => {
+  it('shows the fractions the question names, not an unrelated 1/2 bar', () => {
+    const q = MISSIONS.find((m) => m.id === 'compare-same-numerator')!.questions.find((item) => /4\/5 or 4\/9/.test(item.prompt))!;
+    assert.equal(q.simplerModel.kind, 'bars');
+    if (q.simplerModel.kind === 'bars') assert.deepEqual(q.simplerModel.bars.map((b) => `${b.numerator}/${b.denominator}`), ['4/5', '4/9']);
+    let unrelated = 0;
+    for (const m of MISSIONS) for (const item of m.questions) {
+      const namesOwn = item.model.kind === 'bars' && item.model.bars.some((b) => b.named);
+      const helpNames = item.simplerModel.kind === 'bars' && item.simplerModel.bars.some((b) => b.named);
+      if (namesOwn && !helpNames) unrelated++;
+    }
+    assert.equal(unrelated, 0);
+  });
+});
