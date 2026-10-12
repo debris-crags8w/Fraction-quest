@@ -98,6 +98,49 @@ export function selectLearningVoice<T extends VoiceCandidate>(
   return selectGentleVoice(voices, preferredLanguage);
 }
 
+/** Handles browsers whose speechSynthesis only partially implements voice-list events. */
+export function subscribeToSpeechVoices(
+  synthesis: SpeechSynthesis,
+  onVoicesChanged: (voices: SpeechSynthesisVoice[]) => void,
+) {
+  let lastSignature: string | undefined;
+  let listening = false;
+  let pollTimer: ReturnType<typeof setInterval> | undefined;
+  const refresh = () => {
+    let voices: SpeechSynthesisVoice[] = [];
+    try { voices = synthesis.getVoices(); } catch { /* keep the browser's default voice available */ }
+    const signature = voices.map((voice) => `${voice.voiceURI}\u0000${voice.name}\u0000${voice.lang}`).join('\u0001');
+    if (signature !== lastSignature) {
+      lastSignature = signature;
+      onVoicesChanged(voices);
+    }
+    return voices.length > 0;
+  };
+  const handleChange = () => { refresh(); };
+  if (typeof synthesis.addEventListener === 'function' && typeof synthesis.removeEventListener === 'function') {
+    try {
+      synthesis.addEventListener('voiceschanged', handleChange);
+      listening = true;
+    } catch { /* use the bounded polling fallback below */ }
+  }
+  const hasVoices = refresh();
+  if (!hasVoices) {
+    let attempts = 20;
+    pollTimer = setInterval(() => {
+      if (refresh() || --attempts <= 0) {
+        if (pollTimer !== undefined) clearInterval(pollTimer);
+        pollTimer = undefined;
+      }
+    }, 500);
+  }
+  return () => {
+    if (pollTimer !== undefined) clearInterval(pollTimer);
+    if (listening && typeof synthesis.removeEventListener === 'function') {
+      try { synthesis.removeEventListener('voiceschanged', handleChange); } catch { /* partial mobile implementations */ }
+    }
+  };
+}
+
 const VOICE_LIST_WAIT_MS = 500;
 
 /**
@@ -252,14 +295,43 @@ function NaturalVoiceSettings() {
   const [status, setStatus] = useState<NaturalVoiceStatus>(() => naturalVoiceStatus());
   const [choice, setChoice] = useState(naturalVoicePreference);
   const [previewing, setPreviewing] = useState(false);
+  const [previewMessage, setPreviewMessage] = useState('');
   const speaker = useRef<ReturnType<typeof createNaturalSpeaker> | null>(null);
+  const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => onNaturalVoiceStatus(setStatus), []);
-  useEffect(() => () => speaker.current?.stop(), []);
-  const choose = (next: NaturalVoiceId | 'off') => { setChoice(next); setNaturalVoicePreference(next); speaker.current?.stop(); setPreviewing(false); };
+  useEffect(() => () => {
+    if (previewTimer.current !== null) clearTimeout(previewTimer.current);
+    speaker.current?.stop();
+  }, []);
+  const choose = (next: NaturalVoiceId | 'off') => {
+    if (previewTimer.current !== null) clearTimeout(previewTimer.current);
+    previewTimer.current = null;
+    setChoice(next); setNaturalVoicePreference(next); speaker.current?.stop(); setPreviewing(false); setPreviewMessage('');
+  };
   const preview = () => {
     speaker.current ??= createNaturalSpeaker();
+    if (previewing) {
+      if (previewTimer.current !== null) clearTimeout(previewTimer.current);
+      previewTimer.current = null;
+      speaker.current.stop();
+      setPreviewing(false);
+      setPreviewMessage('');
+      return;
+    }
+    setPreviewMessage('');
     setPreviewing(true);
-    speaker.current.speak([VOICE_PREVIEW], () => setPreviewing(false));
+    previewTimer.current = setTimeout(() => {
+      previewTimer.current = null;
+      speaker.current?.stop();
+      setPreviewing(false);
+      setPreviewMessage('This natural voice is taking too long to preview here. Try a device voice below.');
+    }, 20_000);
+    speaker.current.speak([VOICE_PREVIEW], (ok) => {
+      if (previewTimer.current !== null) clearTimeout(previewTimer.current);
+      previewTimer.current = null;
+      setPreviewing(false);
+      setPreviewMessage(ok ? '' : 'This natural voice could not finish its preview here. Try a device voice below.');
+    });
   };
   const statusText = status.state === 'off' ? 'Off: lessons use the device voice.'
     : status.state === 'unsupported' ? 'This browser can’t run the natural voice, so lessons use the device voice.'
@@ -282,8 +354,9 @@ function NaturalVoiceSettings() {
       <p className="fq-parent-note" role="status" data-testid="status-natural-voice">{statusText}</p>
       <div className="fq-natural-voice-actions">
         {(status.state === 'idle' || status.state === 'error') && <button type="button" className="fq-button ghost" onClick={() => { void warmUpNaturalVoice(); }} data-testid="button-download-natural-voice">Download now</button>}
-        {status.state === 'ready' && <button type="button" className="fq-button ghost" onClick={preview} disabled={previewing} data-testid="button-preview-natural-voice"><Volume2 size={16} aria-hidden="true" /> {previewing ? 'Playing' : 'Preview'}</button>}
+        {status.state === 'ready' && <button type="button" className="fq-button ghost" onClick={preview} data-testid="button-preview-natural-voice"><Volume2 size={16} aria-hidden="true" /> {previewing ? 'Stop preview' : 'Preview voice'}</button>}
       </div>
+      {previewMessage && <p className="fq-learning-voice-fallback" role="alert" data-testid="status-natural-voice-preview">{previewMessage}</p>}
     </div>
   );
 }
@@ -298,7 +371,9 @@ export function LearningVoicePicker() {
   const [supported, setSupported] = useState(false);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(savedPreference);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState('');
   const [saveFailed, setSaveFailed] = useState(false);
+  const voicePreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const language = getLearningLanguage();
   const primaryLanguage = language.toLowerCase().replace(/_/g, '-').split('-')[0];
 
@@ -312,18 +387,12 @@ export function LearningVoicePicker() {
 
     const synthesis = window.speechSynthesis;
     setSupported(true);
-    const updateVoices = () => {
-      try {
-        setVoices(synthesis.getVoices());
-      } catch {
-        setVoices([]);
-      }
-    };
-    updateVoices();
-    synthesis.addEventListener('voiceschanged', updateVoices);
+    const unsubscribe = subscribeToSpeechVoices(synthesis, setVoices);
     return () => {
-      synthesis.removeEventListener('voiceschanged', updateVoices);
-      synthesis.cancel();
+      unsubscribe();
+      if (voicePreviewTimer.current !== null) clearTimeout(voicePreviewTimer.current);
+      voicePreviewTimer.current = null;
+      try { if (typeof synthesis.cancel === 'function') synthesis.cancel(); } catch { /* partial mobile implementations */ }
     };
   }, []);
 
@@ -342,21 +411,34 @@ export function LearningVoicePicker() {
   const previewVoice = (voice: SpeechSynthesisVoice) => {
     if (!supported) return;
     const synthesis = window.speechSynthesis;
-    synthesis.cancel();
+    if (voicePreviewTimer.current !== null) clearTimeout(voicePreviewTimer.current);
+    voicePreviewTimer.current = null;
+    try { if (typeof synthesis.cancel === 'function') synthesis.cancel(); } catch { /* partial mobile implementations */ }
     const utterance = new SpeechSynthesisUtterance(VOICE_PREVIEW);
     utterance.voice = voice;
     utterance.lang = voice.lang;
     utterance.rate = VOICE_RATE;
     utterance.pitch = VOICE_PITCH;
     const id = learningVoiceId(voice);
+    setPreviewError('');
     setPreviewingVoiceId(id);
-    const finish = () => setPreviewingVoiceId((active) => active === id ? null : active);
-    utterance.onend = finish;
-    utterance.onerror = finish;
+    let timer: ReturnType<typeof setTimeout>;
+    const finish = (message = '') => {
+      if (voicePreviewTimer.current !== timer) return;
+      clearTimeout(timer);
+      voicePreviewTimer.current = null;
+      setPreviewingVoiceId((active) => active === id ? null : active);
+      setPreviewError(message);
+    };
+    timer = setTimeout(() => finish('This voice did not finish its preview. Try another voice.'), 15_000);
+    voicePreviewTimer.current = timer;
+    utterance.onend = () => finish();
+    utterance.onerror = () => finish('This voice could not play here. Try another voice.');
     try {
+      if (typeof synthesis.speak !== 'function') throw new Error('Speech is unavailable');
       synthesis.speak(utterance);
     } catch {
-      finish();
+      finish('This voice could not play here. Try another voice.');
     }
   };
 
@@ -409,6 +491,7 @@ export function LearningVoicePicker() {
       ) : (
         <p className="fq-parent-note" role="status">No local voices for {language} are listed by this browser. Explanations will ask the browser for a voice in that language.</p>
       )}
+      {previewError && <p className="fq-learning-voice-fallback" role="alert" data-testid="status-learning-voice-preview">{previewError}</p>}
       {supported && selectedVoiceId && !savedVoiceAvailable && (
         <p className="fq-learning-voice-fallback" role="status" data-testid="status-learning-voice-fallback">
           The saved voice is not available on this device. Explanations are using {currentVoice?.name

@@ -93,12 +93,63 @@ export function warmUpNaturalVoice(): Promise<NaturalEngine | null> {
 export const naturalVoiceReady = () => !!engine && currentChoice() !== 'off';
 export const naturalVoiceId = (): NaturalVoiceId | null => { const choice = currentChoice(); return choice === 'off' ? null : choice; };
 
+function withTimeout<T>(operation: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+    operation.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
+
 /** Reads sentences one after another: the next sentence is made while the current one plays. */
 export function createNaturalSpeaker(makeAudio: (url: string) => HTMLAudioElement = (url) => new Audio(url)) {
   let playback = 0;
   let current: HTMLAudioElement | null = null;
   const urls: string[] = [];
   const cleanUp = () => { current?.pause(); current = null; while (urls.length) URL.revokeObjectURL(urls.pop()!); };
+  const GENERATION_TIMEOUT_MS = 30_000;
+  const PLAYBACK_TIMEOUT_MS = 45_000;
+  const waitForPlayback = (audio: HTMLAudioElement) => new Promise<void>((resolve, reject) => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const finish = (error?: unknown) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      audio.onended = null;
+      audio.onerror = null;
+      audio.onabort = null;
+      audio.onloadedmetadata = null;
+      if (error) reject(error);
+      else resolve();
+    };
+    const setWatchdog = () => {
+      clearTimeout(timer);
+      const duration = audio.duration;
+      const timeout = Number.isFinite(duration) && duration > 0
+        ? Math.min(Math.max(duration * 1000 + 10_000, 15_000), 120_000)
+        : PLAYBACK_TIMEOUT_MS;
+      timer = setTimeout(() => finish(new Error('Audio playback did not finish')), timeout);
+    };
+    audio.onended = () => finish();
+    audio.onerror = () => finish(new Error('Audio playback failed'));
+    audio.onabort = () => finish(new Error('Audio playback was interrupted'));
+    audio.onloadedmetadata = setWatchdog;
+    setWatchdog();
+    try {
+      // Some embedded and older mobile browsers start playback but return no
+      // promise from play(). Only attach a rejection handler when one exists.
+      const result = audio.play() as unknown;
+      if (result && (typeof result === 'object' || typeof result === 'function')
+        && typeof (result as { then?: unknown }).then === 'function') {
+        (result as Promise<void>).then(undefined, finish);
+      }
+    } catch (error) {
+      finish(error);
+    }
+  });
   return {
     /** Speak `parts`; `onDone` runs once at the end (or on failure: then the caller can fall back). */
     speak(parts: string[], onDone: (ok: boolean) => void) {
@@ -106,7 +157,11 @@ export function createNaturalSpeaker(makeAudio: (url: string) => HTMLAudioElemen
       const voice = naturalVoiceId();
       if (!engine || !voice || !parts.length) { onDone(!parts.length); return; }
       const ready = engine;
-      const make = (text: string) => ready.generate(text, { voice, speed: NATURAL_VOICE_SPEED });
+      const make = (text: string) => withTimeout(
+        ready.generate(text, { voice, speed: NATURAL_VOICE_SPEED }),
+        GENERATION_TIMEOUT_MS,
+        'Voice generation timed out',
+      );
       (async () => {
         try {
           let next = make(parts[0]);
@@ -117,9 +172,7 @@ export function createNaturalSpeaker(makeAudio: (url: string) => HTMLAudioElemen
             const url = URL.createObjectURL(clip.toBlob()); urls.push(url);
             await new Promise<void>((resolve, reject) => {
               const audio = makeAudio(url); current = audio;
-              audio.onended = () => resolve();
-              audio.onerror = () => reject(new Error('playback failed'));
-              audio.play().catch(reject);
+              waitForPlayback(audio).then(resolve, reject);
             });
             if (mine !== playback) return;
           }

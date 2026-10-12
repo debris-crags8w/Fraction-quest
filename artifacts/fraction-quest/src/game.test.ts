@@ -9,7 +9,7 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { FunContext, splitStory } from './fun-ui';
 import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
-import { naturalVoicePreference, naturalVoiceStatus, setNaturalVoicePreference } from './lib/natural-voice';
+import { createNaturalSpeaker, naturalVoicePreference, naturalVoiceStatus, setNaturalEngineForTests, setNaturalVoicePreference } from './lib/natural-voice';
 import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
 import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './FractionRace';
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
@@ -27,6 +27,7 @@ import {
   LearningVoicePicker,
   LearningText,
   selectLearningVoice,
+  subscribeToSpeechVoices,
   spokenLearningText,
 } from './LearningText';
 import { BarSvg } from './models';
@@ -2431,6 +2432,29 @@ describe('natural read-aloud voice', () => {
     assert.equal(second.utterances.length, 1, 'a failed natural reading falls back to the device voice');
     c2.dispose();
   });
+  it('plays natural audio when a mobile browser returns no promise from audio.play()', async () => {
+    setNaturalVoicePreference('af_heart');
+    setNaturalEngineForTests({
+      async generate() { return { toBlob: () => new Blob(['sample audio'], { type: 'audio/wav' }) }; },
+    });
+    let audio!: HTMLAudioElement;
+    audio = {
+      duration: Number.NaN,
+      pause() {},
+      play() {
+        queueMicrotask(() => audio.onended?.(new Event('ended')));
+        return undefined;
+      },
+    } as unknown as HTMLAudioElement;
+    const speaker = createNaturalSpeaker(() => audio);
+    try {
+      const result = new Promise<boolean>((resolve) => speaker.speak(['Hello there.'], resolve));
+      assert.equal(await result, true);
+    } finally {
+      speaker.stop();
+      setNaturalEngineForTests(null);
+    }
+  });
   it('is on by default and remembers a grown-up turning it off', () => {
     const store = new Map<string, string>();
     (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v); } };
@@ -2441,6 +2465,31 @@ describe('natural read-aloud voice', () => {
     setNaturalVoicePreference('af_bella');
     assert.equal(naturalVoicePreference(), 'af_bella');
     delete (globalThis as { localStorage?: unknown }).localStorage;
+  });
+});
+
+describe('mobile device voice previews', () => {
+  it('reads the available device voices when speechSynthesis has no event-listener methods', () => {
+    const voice = { name: 'Samantha', lang: 'en-US', voiceURI: 'samantha', default: true } as SpeechSynthesisVoice;
+    let received: SpeechSynthesisVoice[] = [];
+    const synthesis = { getVoices: () => [voice] } as unknown as SpeechSynthesis;
+    const unsubscribe = subscribeToSpeechVoices(synthesis, (voices) => { received = voices; });
+    assert.deepEqual(received, [voice]);
+    assert.doesNotThrow(unsubscribe);
+  });
+  it('polls briefly for device voices when the browser cannot notify that they loaded', async () => {
+    const voice = { name: 'Samantha', lang: 'en-US', voiceURI: 'samantha', default: true } as SpeechSynthesisVoice;
+    let voices: SpeechSynthesisVoice[] = [];
+    let received: SpeechSynthesisVoice[] = [];
+    const synthesis = { getVoices: () => voices } as unknown as SpeechSynthesis;
+    const unsubscribe = subscribeToSpeechVoices(synthesis, (next) => { received = next; });
+    voices = [voice];
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 550));
+      assert.deepEqual(received, [voice]);
+    } finally {
+      unsubscribe();
+    }
   });
 });
 
