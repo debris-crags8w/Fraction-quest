@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { pickVoice, sayFraction, sentences, spokenText } from './lib/voice';
 import { AREA_CUTS, allEqual, areaFeedback, areaTaskDone, areaWhole, circleCut, cutTotal, pieceArea, shadedArea } from './area-shapes';
 import { amountsIn } from './auto-picture';
@@ -2572,5 +2573,37 @@ describe('lesson steps for the map pies', () => {
     const record = emptyLearningRecord();
     record.checks[checks[0].id] = { passed: true, supported: false, attempts: 1 };
     assert.deepEqual(lessonSteps(updateLearning(EMPTY_PROGRESS, id, record), id), { done: 1, total: checks.length + 1 });
+  });
+});
+
+describe('Kokoro on iPhone: plain WASM runtime and crash breadcrumbs', () => {
+  it('builds ONNX Runtime from its plain WebAssembly entry, never the WebGPU (JSEP) build', () => {
+    const config = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
+    assert.match(config, /find: \/\^onnxruntime-web\$\/, replacement: 'onnxruntime-web\/wasm'/);
+    const runtime = readFileSync(new URL('./lib/onnx-runtime.ts', import.meta.url), 'utf8');
+    assert.match(runtime, /onnxruntime-web\/ort-wasm-simd-threaded\.wasm\?url/);
+    assert.doesNotMatch(runtime.replace(/\/\*[\s\S]*?\*\//g, ''), /jsep/i, 'no JSEP files outside the explanatory comment');
+    const voice = readFileSync(new URL('./lib/natural-voice.ts', import.meta.url), 'utf8');
+    assert.ok(voice.indexOf("import('./onnx-runtime')") < voice.indexOf("import('kokoro-js')"), 'the runtime is configured before Transformers.js loads');
+  });
+
+  it('remembers the step a crashed test reached and reports it after the reload', async () => {
+    const store = new Map<string, string>();
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v); }, removeItem: (k: string) => { store.delete(k); },
+    };
+    try {
+      const { KokoroDiagnostic, readBreadcrumb, saveBreadcrumb, clearBreadcrumb } = await import('./KokoroDiagnostic');
+      saveBreadcrumb('load', 'files downloaded; preparing the model');
+      assert.equal(readBreadcrumb()?.step, 'load');
+      const markup = renderToStaticMarkup(createElement(KokoroDiagnostic));
+      assert.match(markup, /The last test stopped the page during: Load the Kokoro model \(files downloaded; preparing the model\)/);
+      assert.match(markup, /Safari ran out of memory/);
+      clearBreadcrumb();
+      assert.equal(readBreadcrumb(), null);
+      assert.doesNotMatch(renderToStaticMarkup(createElement(KokoroDiagnostic)), /The last test stopped the page/);
+    } finally {
+      delete (globalThis as { localStorage?: unknown }).localStorage;
+    }
   });
 });

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   createNaturalSpeaker,
   naturalVoiceDisabledOnIOS,
@@ -16,6 +16,25 @@ type TestState = {
 };
 
 const TEST_PHRASE = 'Hello! This is a short Kokoro voice test.';
+/* If Safari runs out of memory it reloads the page and every error handler is lost. Each step is saved here
+   first, so after a reload the test can say where it stopped. */
+const BREADCRUMB_KEY = 'fraction-quest-kokoro-test-step';
+type Breadcrumb = { step: TestStep; detail: string; at: number };
+export function saveBreadcrumb(step: TestStep, detail: string) {
+  try { globalThis.localStorage?.setItem(BREADCRUMB_KEY, JSON.stringify({ step, detail, at: Date.now() } satisfies Breadcrumb)); } catch { /* storage blocked */ }
+}
+export function clearBreadcrumb() {
+  try { globalThis.localStorage?.removeItem(BREADCRUMB_KEY); } catch { /* storage blocked */ }
+}
+/** A test that was still running when the page went away (a crash or reload), if any. */
+export function readBreadcrumb(): Breadcrumb | null {
+  try {
+    const raw = globalThis.localStorage?.getItem(BREADCRUMB_KEY);
+    if (!raw) return null;
+    const crumb = JSON.parse(raw) as Breadcrumb;
+    return crumb && (crumb.step === 'load' || crumb.step === 'generate' || crumb.step === 'play') ? crumb : null;
+  } catch { return null; }
+}
 const STEP_NAMES: Record<TestStep, string> = {
   load: 'Load the Kokoro model',
   generate: 'Generate a short sample',
@@ -48,12 +67,16 @@ function getStepStatus(state: TestState, step: TestStep): { text: string; state:
 
 export function KokoroDiagnostic() {
   const [state, setState] = useState<TestState>({ status: 'idle', completed: [] });
+  // A breadcrumb left by the last run means the page crashed or reloaded mid-test (often Safari memory limits).
+  const [crashed] = useState<Breadcrumb | null>(() => readBreadcrumb());
+  useEffect(() => { if (crashed) clearBreadcrumb(); }, [crashed]);
   const runId = useRef(0);
   const activeSpeaker = useRef<ReturnType<typeof createNaturalSpeaker> | null>(null);
   const removeErrorListeners = useRef<(() => void) | null>(null);
 
   const cancel = () => {
     runId.current += 1;
+    clearBreadcrumb();
     removeErrorListeners.current?.();
     removeErrorListeners.current = null;
     try { activeSpeaker.current?.stop(); } catch { /* partial mobile audio implementations */ }
@@ -72,6 +95,7 @@ export function KokoroDiagnostic() {
     const fail = (step: TestStep, message: string) => {
       if (runId.current !== id || failure) return;
       failure = { step, message };
+      clearBreadcrumb();
       try { activeSpeaker.current?.stop(); } catch { /* partial mobile audio implementations */ }
       activeSpeaker.current = null;
       setState({ status: 'failed', step, completed: step === 'load' ? [] : step === 'generate' ? ['load'] : ['load', 'generate'], message });
@@ -89,6 +113,7 @@ export function KokoroDiagnostic() {
     };
 
     setState({ status: 'running', step: 'load', completed: [], progress: 0 });
+    saveBreadcrumb('load', 'downloading the model');
     if (typeof window !== 'undefined') {
       window.addEventListener('error', onWindowError, true);
       window.addEventListener('unhandledrejection', onUnhandledRejection);
@@ -104,7 +129,9 @@ export function KokoroDiagnostic() {
       const engine = await warmUpNaturalVoice({
         diagnostic: true,
         onProgress: (progress) => {
-          if (runId.current === id) setState({ status: 'running', step: 'load', completed: [], progress });
+          if (runId.current !== id) return;
+          setState({ status: 'running', step: 'load', completed: [], progress });
+          if (progress >= 100) saveBreadcrumb('load', 'files downloaded; preparing the model');
         },
         onError: (error) => { loadError = error; },
       });
@@ -114,6 +141,7 @@ export function KokoroDiagnostic() {
 
       setState({ status: 'running', step: 'generate', completed: ['load'], progress: 100 });
       activeStep.current = 'generate';
+      saveBreadcrumb('generate', 'making the voice sample');
       // Let mobile Safari paint the new phase before the expensive inference call.
       await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
       if (runId.current !== id || failure) return;
@@ -128,6 +156,7 @@ export function KokoroDiagnostic() {
             if (runId.current !== id || failure) return;
             if (phase === 'playing') {
               activeStep.current = 'play';
+              saveBreadcrumb('play', 'playing the sample');
               setState({ status: 'running', step: 'play', completed: ['load', 'generate'] });
             } else if (phase === 'generating') {
               activeStep.current = 'generate';
@@ -145,6 +174,7 @@ export function KokoroDiagnostic() {
         fail(activeStep.current, 'Kokoro stopped before the sample finished. Check the browser error details and try again.');
         return;
       }
+      clearBreadcrumb();
       setState({ status: 'passed', completed: ['load', 'generate', 'play'] });
     } catch (error) {
       fail(activeStep.current, errorMessage(error));
@@ -189,6 +219,12 @@ export function KokoroDiagnostic() {
         })}
       </ol>
 
+      {crashed && state.status === 'idle' && (
+        <div className="fq-kokoro-test-error" role="alert" data-testid="kokoro-test-crashed">
+          <strong>The last test stopped the page during: {STEP_NAMES[crashed.step]} ({crashed.detail}).</strong>
+          <p>The page reloaded instead of showing an error. On iPhone and iPad this usually means Safari ran out of memory.</p>
+        </div>
+      )}
       {running && state.step === 'load' && <p className="fq-kokoro-test-note" role="status">The first model download is large; keep this page open while it loads.</p>}
       {state.status === 'passed' && <p className="fq-kokoro-test-success" role="status">All three steps passed. The Kokoro sample played on this device.</p>}
       {state.status === 'failed' && (

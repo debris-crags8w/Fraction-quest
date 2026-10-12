@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { pickVoice, sayFraction, sentences, spokenText } from './lib/voice';
 import { AREA_CUTS, allEqual, areaFeedback, areaTaskDone, areaWhole, circleCut, cutTotal, pieceArea, shadedArea } from './area-shapes';
+import { amountsIn } from './auto-picture';
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 import * as React from 'react';
@@ -9,7 +11,7 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { FunContext, splitStory } from './fun-ui';
 import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
-import { naturalVoicePreference, naturalVoiceStatus, setNaturalVoicePreference } from './lib/natural-voice';
+import { createNaturalSpeaker, isIOSVoiceDevice, naturalVoicePreference, naturalVoiceStatus, setNaturalEngineForTests, setNaturalVoicePreference } from './lib/natural-voice';
 import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
 import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './FractionRace';
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
@@ -27,6 +29,7 @@ import {
   LearningVoicePicker,
   LearningText,
   selectLearningVoice,
+  subscribeToSpeechVoices,
   spokenLearningText,
 } from './LearningText';
 import { BarSvg } from './models';
@@ -678,6 +681,25 @@ function withLearning(progress: Progress, id: string): Progress {
 }
 
 describe('entered-answer worksheets and evidence gates', () => {
+  it('builds lesson models and math text without String.matchAll in older webviews', () => {
+    const original = Object.getOwnPropertyDescriptor(String.prototype, 'matchAll');
+    try {
+      Object.defineProperty(String.prototype, 'matchAll', { configurable: true, writable: true, value: undefined });
+      assert.deepEqual(amountsIn('Compare 3/4 or 1/2.'), [
+        { numerator: 3, denominator: 4 },
+        { numerator: 1, denominator: 2 },
+      ]);
+      const markup = renderToStaticMarkup(createElement(LearningText, {
+        text: 'Each equal share is 1/4 of a whole.',
+      }));
+      assert.match(markup, /class="fq-mfrac" role="math" aria-label="1 over 4"/);
+      assert.match(markup, /class="fq-vocab-trigger"/);
+    } finally {
+      if (original) Object.defineProperty(String.prototype, 'matchAll', original);
+      else delete (String.prototype as { matchAll?: unknown }).matchAll;
+    }
+  });
+
   it('highlights fraction vocabulary, explains terms, keeps fractions stacked, and offers audio', () => {
     const markup = renderToStaticMarkup(createElement(LearningText, {
       text: 'Each equal share is 1/4 of a whole.',
@@ -695,6 +717,10 @@ describe('entered-answer worksheets and evidence gates', () => {
     const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
     assert.match(markup, /Read-aloud voice/);
     assert.match(markup, /Natural voice/);
+    assert.match(markup, /Kokoro self-test/);
+    assert.match(markup, /Load the Kokoro model/);
+    assert.match(markup, /Generate a short sample/);
+    assert.match(markup, /Play the sample/);
     assert.match(markup, /Device voices/);
     assert.match(markup, /can’t run the natural voice/, 'without browser support the natural voice explains the fallback');
     assert.match(markup, /Read-aloud voices are not available in this browser/);
@@ -2390,6 +2416,33 @@ describe('fraction labels on bar models', () => {
 });
 
 describe('natural read-aloud voice', () => {
+  it('recognizes iPhone and touch-enabled iPad devices for the safe device-voice fallback', () => {
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)', 'iPhone', 5), true);
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)', 'iPad', 5), true);
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (Macintosh; Intel Mac OS X)', 'MacIntel', 5), true);
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (Macintosh; Intel Mac OS X)', 'MacIntel', 1), false);
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (Linux; Android 15)', 'Linux armv8l', 5), false);
+  });
+  it('explains the iOS device-voice fallback instead of offering broken natural playback', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: {
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
+        platform: 'iPhone',
+        maxTouchPoints: 5,
+      },
+    });
+    try {
+      const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
+      assert.match(markup, /Natural voice is paused on iPhone and iPad/);
+      assert.match(markup, /Lessons use the device voice selected below/);
+      assert.doesNotMatch(markup, /radio-natural-voice-af_heart|button-preview-natural-voice/);
+    } finally {
+      if (original) Object.defineProperty(globalThis, 'navigator', original);
+      else Reflect.deleteProperty(globalThis, 'navigator');
+    }
+  });
   const device = () => {
     const utterances: SpeechSynthesisUtterance[] = [];
     const synthesis = {
@@ -2431,6 +2484,34 @@ describe('natural read-aloud voice', () => {
     assert.equal(second.utterances.length, 1, 'a failed natural reading falls back to the device voice');
     c2.dispose();
   });
+  it('plays natural audio when a mobile browser returns no promise from audio.play()', async () => {
+    setNaturalVoicePreference('af_heart');
+    setNaturalEngineForTests({
+      async generate() { return { toBlob: () => new Blob(['sample audio'], { type: 'audio/wav' }) }; },
+    });
+    let audio!: HTMLAudioElement;
+    audio = {
+      duration: Number.NaN,
+      pause() {},
+      play() {
+        queueMicrotask(() => {
+          audio.onplaying?.(new Event('playing'));
+          audio.onended?.(new Event('ended'));
+        });
+        return undefined;
+      },
+    } as unknown as HTMLAudioElement;
+    const speaker = createNaturalSpeaker(() => audio);
+    try {
+      const phases: string[] = [];
+      const result = new Promise<boolean>((resolve) => speaker.speak(['Hello there.'], resolve, (phase) => phases.push(phase)));
+      assert.equal(await result, true);
+      assert.deepEqual(phases, ['preparing', 'generating', 'playing']);
+    } finally {
+      speaker.stop();
+      setNaturalEngineForTests(null);
+    }
+  });
   it('is on by default and remembers a grown-up turning it off', () => {
     const store = new Map<string, string>();
     (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v); } };
@@ -2441,6 +2522,31 @@ describe('natural read-aloud voice', () => {
     setNaturalVoicePreference('af_bella');
     assert.equal(naturalVoicePreference(), 'af_bella');
     delete (globalThis as { localStorage?: unknown }).localStorage;
+  });
+});
+
+describe('mobile device voice previews', () => {
+  it('reads the available device voices when speechSynthesis has no event-listener methods', () => {
+    const voice = { name: 'Samantha', lang: 'en-US', voiceURI: 'samantha', default: true } as SpeechSynthesisVoice;
+    let received: SpeechSynthesisVoice[] = [];
+    const synthesis = { getVoices: () => [voice] } as unknown as SpeechSynthesis;
+    const unsubscribe = subscribeToSpeechVoices(synthesis, (voices) => { received = voices; });
+    assert.deepEqual(received, [voice]);
+    assert.doesNotThrow(unsubscribe);
+  });
+  it('polls briefly for device voices when the browser cannot notify that they loaded', async () => {
+    const voice = { name: 'Samantha', lang: 'en-US', voiceURI: 'samantha', default: true } as SpeechSynthesisVoice;
+    let voices: SpeechSynthesisVoice[] = [];
+    let received: SpeechSynthesisVoice[] = [];
+    const synthesis = { getVoices: () => voices } as unknown as SpeechSynthesis;
+    const unsubscribe = subscribeToSpeechVoices(synthesis, (next) => { received = next; });
+    voices = [voice];
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 550));
+      assert.deepEqual(received, [voice]);
+    } finally {
+      unsubscribe();
+    }
   });
 });
 
@@ -2467,5 +2573,37 @@ describe('lesson steps for the map pies', () => {
     const record = emptyLearningRecord();
     record.checks[checks[0].id] = { passed: true, supported: false, attempts: 1 };
     assert.deepEqual(lessonSteps(updateLearning(EMPTY_PROGRESS, id, record), id), { done: 1, total: checks.length + 1 });
+  });
+});
+
+describe('Kokoro on iPhone: plain WASM runtime and crash breadcrumbs', () => {
+  it('builds ONNX Runtime from its plain WebAssembly entry, never the WebGPU (JSEP) build', () => {
+    const config = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
+    assert.match(config, /find: \/\^onnxruntime-web\$\/, replacement: 'onnxruntime-web\/wasm'/);
+    const runtime = readFileSync(new URL('./lib/onnx-runtime.ts', import.meta.url), 'utf8');
+    assert.match(runtime, /onnxruntime-web\/ort-wasm-simd-threaded\.wasm\?url/);
+    assert.doesNotMatch(runtime.replace(/\/\*[\s\S]*?\*\//g, ''), /jsep/i, 'no JSEP files outside the explanatory comment');
+    const voice = readFileSync(new URL('./lib/natural-voice.ts', import.meta.url), 'utf8');
+    assert.ok(voice.indexOf("import('./onnx-runtime')") < voice.indexOf("import('kokoro-js')"), 'the runtime is configured before Transformers.js loads');
+  });
+
+  it('remembers the step a crashed test reached and reports it after the reload', async () => {
+    const store = new Map<string, string>();
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v); }, removeItem: (k: string) => { store.delete(k); },
+    };
+    try {
+      const { KokoroDiagnostic, readBreadcrumb, saveBreadcrumb, clearBreadcrumb } = await import('./KokoroDiagnostic');
+      saveBreadcrumb('load', 'files downloaded; preparing the model');
+      assert.equal(readBreadcrumb()?.step, 'load');
+      const markup = renderToStaticMarkup(createElement(KokoroDiagnostic));
+      assert.match(markup, /The last test stopped the page during: Load the Kokoro model \(files downloaded; preparing the model\)/);
+      assert.match(markup, /Safari ran out of memory/);
+      clearBreadcrumb();
+      assert.equal(readBreadcrumb(), null);
+      assert.doesNotMatch(renderToStaticMarkup(createElement(KokoroDiagnostic)), /The last test stopped the page/);
+    } finally {
+      delete (globalThis as { localStorage?: unknown }).localStorage;
+    }
   });
 });

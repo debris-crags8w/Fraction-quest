@@ -91,13 +91,9 @@ export function warmUpNaturalVoice(options: NaturalVoiceLoadOptions = {}): Promi
   failed = false; progress = 0;
   loading = (async () => {
     try {
-      if (options.diagnostic && naturalVoiceDisabledOnIOS()) {
-        // Use a single-threaded WASM session for the explicit iOS test.
-        // Leave SIMD detection enabled so unsupported runtimes fail clearly.
-        const { env } = await import('onnxruntime-web');
-        env.wasm.numThreads = 1;
-        env.wasm.proxy = false;
-      }
+      // Plain-WASM ONNX Runtime from the app's own files (not the WebGPU build that crashes iOS Safari 26).
+      const { configureOnnxRuntime } = await import('./onnx-runtime');
+      configureOnnxRuntime();
       const { KokoroTTS } = await import('kokoro-js');
       const tts = await KokoroTTS.from_pretrained(MODEL_ID, {
         dtype: 'q8', device: 'wasm',
