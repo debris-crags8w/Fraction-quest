@@ -103,6 +103,46 @@ test('daily practice opens as a separate short session', async ({ page }) => {
   await expect(page.getByTestId('button-daily-hint')).toBeVisible();
 });
 
+test('daily bar builder explains the denominator as total equal parts in one whole', async ({ page }) => {
+  await page.addInitScript(() => {
+    const now = new Date();
+    const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({
+      completedMissionIds: [],
+      starsByMission: {},
+      reviewQueue: [],
+      dailyPractice: {
+        day,
+        startedAt: now.getTime(),
+        questions: [{
+          id: 'daily-bar-one-fourth',
+          missionId: 'equal-parts',
+          topicTitle: 'Equal parts',
+          modelKind: 'bar',
+          numerator: 1,
+          denominator: 4,
+          explanation: 'One of four equal parts is one fourth.',
+          kind: 'build',
+        }],
+        index: 0,
+        attempts: {},
+      },
+    }));
+  });
+  await openAsGuest(page);
+  await page.getByTestId('button-start-daily-practice').click();
+
+  await expect(page.getByTestId('text-daily-parts-instruction')).toHaveText(
+    'The bottom number, 4, tells how many equal parts make the whole. Choose 4 below. The top number, 1, tells how many parts to shade.',
+  );
+  await expect(page.getByText('Total equal parts in one whole', { exact: true })).toBeVisible();
+  const fourParts = page.getByRole('radio', { name: '4 equal parts in one whole' });
+  await expect(fourParts).toHaveAttribute('aria-checked', 'false');
+  await page.getByTestId('button-daily-parts-4').click();
+  await expect(fourParts).toHaveAttribute('aria-checked', 'true');
+  await expect(page.locator('.fq-whole-bracket')).toHaveText('1 whole: 4 equal parts');
+});
+
 test('daily number-line model lets a learner choose the 1/3 landing point after 2/3', async ({ page }) => {
   await page.addInitScript(() => {
     const now = new Date();

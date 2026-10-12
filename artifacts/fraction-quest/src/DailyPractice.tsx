@@ -128,17 +128,25 @@ export default function DailyPractice({
     <h2 id="daily-question-title" ref={questionHeading} tabIndex={-1}>
       Build <MathText text={`${question.numerator}/${question.denominator}`} /> {bar ? 'with a bar.' : 'on a number line.'}
     </h2>
-    <p className="fq-daily-instruction">
-      {bar ? 'First choose how many equal parts make the whole bar. Then shade the parts selected.' : 'First choose how many equal spaces go from 0 to 1. Then tap where the jumps from 0 land.'}
+    <p className="fq-daily-instruction" id="daily-parts-instruction" data-testid="text-daily-parts-instruction">
+      {bar ? (
+        <>The bottom number, <strong>{question.denominator}</strong>, tells how many equal parts make the whole. Choose <strong>{question.denominator}</strong> below. The top number, <strong>{question.numerator}</strong>, tells how many parts to shade.</>
+      ) : (
+        <>The bottom number, <strong>{question.denominator}</strong>, tells how many equal spaces go from 0 to 1. Choose <strong>{question.denominator}</strong> below. The top number, <strong>{question.numerator}</strong>, tells how many jumps to make from 0.</>
+      )}
     </p>
-    <div className="fq-daily-parts" role="radiogroup" aria-label={bar ? 'How many equal parts?' : 'How many equal spaces?'}>
+    <p className="fq-daily-choice-label" id="daily-parts-label">
+      {bar ? 'Total equal parts in one whole' : 'Equal spaces from 0 to 1'}
+    </p>
+    <div className="fq-daily-parts" role="radiogroup" aria-labelledby="daily-parts-label" aria-describedby="daily-parts-instruction">
       {Array.from({ length: 11 }, (_, k) => k + 2).map((n) => (
         <button key={n} type="button" role="radio" aria-checked={parts === n} disabled={done}
           className={`fq-daily-parts-choice ${parts === n ? 'selected' : ''}`}
+          aria-label={bar ? `${n} equal parts in one whole` : `${n} equal spaces from 0 to 1`}
           onClick={() => change({ parts: n, shaded: [] })} data-testid={`button-daily-parts-${n}`}>{n}</button>
       ))}
     </div>
-    {!parts ? <p className="fq-daily-count">Choose the {bar ? 'equal parts' : 'equal spaces'} to see your {bar ? 'bar' : 'line'}.</p> : bar ? (
+    {!parts ? <p className="fq-daily-count">{bar ? 'Choose the total equal parts in one whole to build your bar.' : 'Choose the total equal spaces from 0 to 1.'}</p> : bar ? (
       <>
         <div className="fq-daily-model" style={{ gridTemplateColumns: `repeat(${parts}, minmax(0, 1fr))` }} role="group" aria-label={`One whole split into ${parts} equal parts.`}>
           {Array.from({ length: parts }, (_, index) => {
@@ -153,7 +161,7 @@ export default function DailyPractice({
             );
           })}
         </div>
-        <WholeBracket />
+        <WholeBracket label={`1 whole: ${parts} equal parts`} />
       </>
     ) : (
       <>

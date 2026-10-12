@@ -214,8 +214,8 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
         <p>{MODEL_CONCEPTS[kind]}</p>
       </header>
       <div className="fq-ll-controls">
-        <Stepper id={id + '-d'} label={kind === 'set' ? 'Equal groups' : kind === 'line' ? 'Spaces in each whole' : 'Equal pieces in each whole'} value={st.d} min={0} max={maxD}
-          onSet={v => set({ ...st, d: v, count: Math.min(st.count, kind === 'set' ? v : v * wholes) })} hint={kind === 'set' ? total + ' dots in all' : 'You pick'} />
+        <Stepper id={id + '-d'} label={kind === 'set' ? 'Equal groups' : kind === 'line' ? 'Total equal spaces in one whole' : 'Total equal parts in one whole'} value={st.d} min={0} max={maxD}
+          onSet={v => set({ ...st, d: v, count: Math.min(st.count, kind === 'set' ? v : v * wholes) })} hint={kind === 'set' ? total + ' dots in all' : undefined} />
         {/* Extra whole bars are only offered when the target is bigger than 1 (e.g. 7/4); otherwise one bar is always right. */}
         {kind === 'bar' && lineWholes > 1 && <Stepper id={id + '-wholes'} label="Whole bars" value={st.wholes} min={1} max={3}
           onSet={v => set({ ...st, wholes: v, count: Math.min(st.count, st.d * v) })} />}

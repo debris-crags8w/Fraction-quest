@@ -14,6 +14,8 @@
 .fq-daily-card h2 { margin: 18px 0 6px; font-size: clamp(1.5rem, 4vw, 2rem); }
 .fq-daily-fraction { display: inline-block; padding: 0 7px; border-radius: 8px; background: hsl(var(--accent) / .35); font-variant-numeric: tabular-nums; }
 .fq-daily-instruction { margin: 0 0 22px; color: hsl(var(--muted-foreground)); font-size: 1.02rem; line-height: 1.5; }
+.fq-daily-instruction strong { color: hsl(var(--foreground)); }
+.fq-daily-choice-label { max-width: 640px; margin: 0 auto 8px; color: hsl(var(--foreground)); font-weight: 900; }
 .fq-daily-whole-label { display: flex; justify-content: space-between; gap: 12px; margin: 0 auto 7px; max-width: 640px; font-size: .82rem; font-weight: 900; color: hsl(var(--muted-foreground)); }
 .fq-daily-whole-label span:first-child { color: var(--fq-grape); letter-spacing: .08em; }
 .fq-daily-model { display: grid; grid-template-columns: repeat(var(--daily-denominator, 1), minmax(0, 1fr)); gap: clamp(4px, 1vw, 9px); max-width: 640px; margin: 0 auto; }
