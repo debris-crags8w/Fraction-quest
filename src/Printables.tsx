@@ -148,7 +148,7 @@ export function PrintModel({ model, labels = true }: { model: ModelSpec; labels?
       {model.kind === 'set' && <ModelTag kind="set" />}
       {model.kind === 'bars' && model.bars.map((bar, index) => (
         <div className="fq-print-bar-row" key={index}>
-          <BarSvg n={bar.numerator} d={bar.denominator} wholes={Math.max(1, Math.ceil(bar.numerator / bar.denominator))} />
+          <BarSvg n={bar.numerator} d={bar.denominator} wholes={Math.max(1, Math.ceil(bar.numerator / bar.denominator))} fraction={!!bar.named || (labels && model.bars.length > 1)} />
         </div>
       ))}
       {model.kind === 'decimal' && <div className="fq-print-bar-row"><BarSvg n={model.tenths} d={10} />{labels && <b className="fq-print-decimal-value">{(model.tenths / 10).toFixed(1)}</b>}</div>}

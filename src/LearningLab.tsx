@@ -12,6 +12,7 @@ import { BarSvg, MODEL_CONCEPTS, ModelPair, ModelTag, WholeBracket } from './mod
 import { canEnterWorksheetAnswer, WorksheetBarCopy } from './WorksheetBarCopy';
 import { AreaShade, AreaSvg } from './AreaModel';
 import { PrintMenu, PrintModel } from './Printables';
+import { amountsIn } from './auto-picture';
 import { FractionEntry, usesFractionEntry } from './FractionEntry';
 import { LessonTeachingSupport } from './LessonTeachingSupport';
 import './learning-lab.css';
@@ -56,12 +57,12 @@ function validate(kind: Kind, t: LearningModel, s: St): { msgs: string[]; keys: 
 function Frac({ n, d }: { n: number; d: number }) { return <span className="fq-ll-frac" aria-label={`${n} over ${d}`}>{n}/{d}</span>; }
 
 /* Read-only preview for worksheet visuals */
-function Preview({ m }: { m: LearningModel }) {
+function Preview({ m, named = false }: { m: LearningModel; named?: boolean }) {
   return (
     <div className="fq-ll-preview-wrap"><ModelTag kind={m.kind} />
     {m.kind === 'bar' ? (
       <div className="fq-ll-preview-svg">
-        <BarSvg n={m.n} d={m.d} wholes={m.wholes} sizes={m.sizes} label={m.sizes ? `A bar cut into ${m.sizes.length} pieces` : m.n ? `${m.d} equal parts per whole, ${m.n} ${m.n === 1 ? 'part' : 'parts'} shaded` : `A bar cut into ${m.d} parts`} />
+        <BarSvg n={m.n} d={m.d} wholes={m.wholes} sizes={m.sizes} fraction={named && m.n > 0} label={m.sizes ? `A bar cut into ${m.sizes.length} pieces` : m.n ? `${m.d} equal parts per whole, ${m.n} ${m.n === 1 ? 'part' : 'parts'} shaded` : `A bar cut into ${m.d} parts`} />
       </div>
     ) : <div className="fq-ll-preview" style={{ '--piece': denomColor(m.d) } as CSSProperties} role="img" aria-label={m.kind === 'set' ? `${m.n} of ${m.d} groups selected from ${m.total} objects` : `${m.d} equal parts per whole, marked after ${m.n} parts`}>
       {m.kind === 'line' ? (
@@ -407,7 +408,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
           <span id={promptId}><LearningText text={p.prompt} speak /></span>
         </div>
         {/* For counting and shading, the tappable bar is the picture, so it is not drawn twice. */}
-        {p.model && (!p.task || p.task.kind === 'copy') && <Preview m={p.model} />}
+        {p.model && (!p.task || p.task.kind === 'copy') && <Preview m={p.model} named={amountsIn(p.prompt).some((a) => a.numerator === p.model!.n && a.denominator === p.model!.d) || ok} />}
         {!p.model && p.picture && <div className="fq-ll-preview-wrap fq-ll-auto-picture"><PrintModel model={p.picture} labels={false} /></div>}
         {p.area && (p.areaTask
           ? <AreaShade figure={p.area} task={p.areaTask} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />

@@ -1,11 +1,12 @@
 import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
 import type { AreaCut } from './area-shapes';
-import { autoPicture } from './auto-picture';
+import { amountsIn, autoPicture } from './auto-picture';
 import { asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 import { FRACTION_STANDARDS, standardsForMission } from './standard-catalog';
 import { scopedStorageKey } from './storage-scope';
 
-export type FractionValue = { numerator: number; denominator: number };
+/** `named`: the question states this fraction, so the bar shows its label (other bars are labelled once answered). */
+export type FractionValue = { numerator: number; denominator: number; named?: boolean };
 
 export type ModelSpec =
   | { kind: 'bars'; bars: FractionValue[]; caption?: string; hideLabels?: boolean }
@@ -171,7 +172,7 @@ function practice(
 ): PracticeSeed {
   // Every question shows a model: a typed-out equation ("1/6 + 4/6 = ?") also gets bars for its amounts.
   if (model.kind === 'equation') model = autoPicture(model.text, model.text) ?? model;
-  return { prompt, choices, correctChoice, model, hint, retryFeedback, simplerModel };
+  return { prompt, choices, correctChoice, model: nameBars(model, prompt), hint, retryFeedback, simplerModel: nameBars(simplerModel, prompt) };
 }
 
 /** Authored questions mostly listed the right answer first. Put it at a spot picked from the question id
@@ -697,6 +698,15 @@ export function problemPicture(problem: WorksheetProblem): ModelSpec {
   if (problem.picture) return problem.picture;
   if (problem.area) return { kind: 'area', cut: problem.area.cut, shaded: problem.area.shaded ?? [] };
   return autoPicture(problem.prompt) ?? equation(problem.prompt.replace(/\?.*$/, '?'));
+}
+
+/** Mark the bars whose fraction the question names ("Which is bigger, 3/4 or 3/8?"), so they show their labels.
+    A bar whose fraction is the answer stays unlabelled until the child answers. */
+export function nameBars(model: ModelSpec, prompt: string): ModelSpec {
+  if (model.kind !== 'bars') return model;
+  // Exact match: "Which is the same as 2/3?" labels the 2/3 bar, never the 4/6 answer bar.
+  const named = new Set(amountsIn(prompt).map((amount) => `${amount.numerator}/${amount.denominator}`));
+  return { ...model, bars: model.bars.map((bar) => (named.has(`${bar.numerator}/${bar.denominator}`) && bar.numerator > 0 ? { ...bar, named: true } : bar)) };
 }
 
 /** A tap question made from a worksheet problem, with the right answer at `position`. */

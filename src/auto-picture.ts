@@ -58,5 +58,5 @@ function storyPicture(text: string): ModelSpec | null {
 export function autoPicture(text: string, caption?: string): ModelSpec | null {
   const bars = amountsIn(text).slice(0, MAX_BARS);
   if (!bars.length) return storyPicture(text);
-  return { kind: 'bars', bars, ...(caption ? { caption } : {}) };
+  return { kind: 'bars', bars: bars.map((bar) => ({ ...bar, named: true })), ...(caption ? { caption } : {}) };
 }

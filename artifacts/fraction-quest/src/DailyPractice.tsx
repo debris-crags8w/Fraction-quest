@@ -29,7 +29,7 @@ export default function DailyPractice({
   onWrong?: () => void;
   onSuccess?: () => void;
   /** Draws a practice picture (the app's ModelView), for topic questions. */
-  renderModel?: (model: ModelSpec) => ReactNode;
+  renderModel?: (model: ModelSpec, reveal?: boolean) => ReactNode;
 }) {
   const [showHelp, setShowHelp] = useState(false);
   const questionHeading = useRef<HTMLHeadingElement>(null);
@@ -90,7 +90,7 @@ export default function DailyPractice({
     };
     return shell(<>
       <h2 id="daily-question-title" ref={questionHeading} tabIndex={-1}><MathText text={topicQuestion.prompt} /></h2>
-      {renderModel && <div className="fq-daily-picture">{renderModel(topicQuestion.model)}</div>}
+      {renderModel && <div className="fq-daily-picture">{renderModel(topicQuestion.model, done)}</div>}
       <div className="fq-daily-choices" role="radiogroup" aria-label="Answer choices">
         {topicQuestion.choices.map((choice, index) => (
           <button key={index} type="button" role="radio" aria-checked={attempt.choice === index} disabled={done}
@@ -162,7 +162,7 @@ export default function DailyPractice({
           {Array.from({ length: parts }, (_, index) => {
             const shaded = attempt.shaded.includes(index);
             return (
-              <button type="button" className={`fq-daily-jump ${shaded ? 'selected' : ''}`} key={index} aria-pressed={shaded}
+              <button type="button" className={`fq-daily-jump ${shaded ? 'selected' : ''} ${index === attempt.shaded.length - 1 ? 'landing' : ''}`} key={index} aria-pressed={shaded}
                 aria-label={`Point ${index + 1} of ${parts}, ${shaded ? 'selected' : 'not selected'}; choose this to show ${index + 1} jump${index === 0 ? '' : 's'} from 0`}
                 disabled={done} onClick={() => change({ shaded: Array.from({ length: index + 1 }, (_, part) => part) })}
                 data-testid={`button-daily-jump-${index + 1}`}>

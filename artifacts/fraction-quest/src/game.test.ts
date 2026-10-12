@@ -49,6 +49,7 @@ import {
   LATE_ADDED_LESSONS,
   staleDraft,
   loadProgress,
+  nameBars,
   courseCounts,
   MISSIONS,
   numberLineWholeCount,
@@ -2329,5 +2330,20 @@ describe('whole number × fraction is in the grade-4 path', () => {
     // Moving lessons into unit 8 doesn't let a newcomer skip unit 8.
     const ahead = updateLearning(EMPTY_PROGRESS, 'simplify-fractions', { ...emptyLearningRecord(), practiceDone: true });
     assert.equal(isMissionUnlocked(ahead, 'simplify-fractions'), false, 'without unit 8 a newcomer is still locked');
+  });
+});
+
+describe('fraction labels on bar models', () => {
+  it('labels the fractions a question names, never the one that is the answer', () => {
+    const bars = (...f: [number, number][]) => ({ kind: 'bars' as const, bars: f.map(([numerator, denominator]) => ({ numerator, denominator })) });
+    const labels = (m: ReturnType<typeof nameBars>) => (m.kind === 'bars' ? m.bars.map((b) => !!b.named) : []);
+    assert.deepEqual(labels(nameBars(bars([3, 4], [3, 8]), 'Which is bigger, 3/4 or 3/8?')), [true, true]);
+    assert.deepEqual(labels(nameBars(bars([2, 3], [4, 6]), 'Which is the same as 2/3?')), [true, false]);
+    assert.deepEqual(labels(nameBars(bars([3, 5]), 'What fraction is shaded?')), [false]);
+    assert.deepEqual(labels(nameBars(bars([4, 10], [35, 100]), 'Which is bigger, 0.4 or 0.35?')), [true, true]);
+    const compare = MISSIONS.find((m) => m.id === 'compare-same-numerator')!.questions.find((q) => /2\/3 or 2\/7/.test(q.prompt))!;
+    assert.deepEqual(labels(compare.model), [true, true]);
+    const practice = generateQuestions('compare-same-numerator', ['x'], 2, 6);
+    assert.ok(practice.every((q) => labels(q.model).every(Boolean)));
   });
 });

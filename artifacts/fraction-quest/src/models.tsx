@@ -68,7 +68,8 @@ const PAD = 22;
 
 /** Bar model: each whole is one bar split into d equal pieces; the first n pieces are shaded. Omit d for an empty bar to partition by hand. */
 /** `sizes` draws one whole cut into pieces of these relative sizes (they may be unequal), for "Is this cut into equal parts?". */
-export function BarSvg({ n = 0, d, wholes = 1, sizes, label }: { n?: number; d?: number; wholes?: number; sizes?: number[]; label?: string }) {
+/** `fraction`: show the bar's fraction above its left end (when the question names it, or once it's answered). */
+export function BarSvg({ n = 0, d, wholes = 1, sizes, label, fraction = false }: { n?: number; d?: number; wholes?: number; sizes?: number[]; label?: string; fraction?: boolean }) {
   const unit = W / wholes;
   if (sizes?.length) {
     const sum = sizes.reduce((a, b) => a + b, 0);
@@ -86,6 +87,7 @@ export function BarSvg({ n = 0, d, wholes = 1, sizes, label }: { n?: number; d?:
   }
   return (
     <svg className="fq-svg-bar" viewBox={`0 0 ${W + PAD * 2} 74`} role="img" aria-label={label ?? (d ? `Bar model: each whole is split into ${d} equal parts, and ${n} ${n === 1 ? 'part is' : 'parts are'} shaded` : 'Whole bar ready to split into equal parts')}>
+      {fraction && d && <text className="fq-svg-fraction-label" x={PAD} y={14}>{n}/{d}</text>}
       {Array.from({ length: wholes }, (_, w) => {
         const x0 = PAD + w * unit + (w ? 3 : 0);
         const width = unit - (wholes > 1 ? 3 : 0);

@@ -1,4 +1,4 @@
-import { MISSIONS, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
+import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { asChoicePrompt, choiceDistractors, getWorksheet, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
 import { circleCut, type AreaCut } from './area-shapes';
@@ -451,9 +451,9 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
       ...place(item, rng.int(0, 2)),
       hint: item.hint,
       retryFeedback: item.retry,
-      model: item.model,
+      model: nameBars(item.model, item.prompt),
       // Help shows the same picture, now with its labels, so it is about this question.
-      simplerModel: item.simpler ?? withLabels(item.model),
+      simplerModel: nameBars(item.simpler ?? withLabels(item.model), item.prompt),
       standards: [...standardsForMission(missionId)],
       reviewQuestionId: baseQuestionIds[out.length % baseQuestionIds.length],
     });
