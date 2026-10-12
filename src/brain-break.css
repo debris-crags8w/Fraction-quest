@@ -17,7 +17,7 @@
 .fq-break-option-copy small { color:hsl(var(--muted-foreground)); font-size:.76rem; }
 .fq-break-detail { margin:14px 0 0; padding:14px 15px; border-left:4px solid var(--fq-sun,#ffc800); border-radius:0 12px 12px 0; color:hsl(var(--foreground)); background:color-mix(in srgb,var(--fq-sun,#ffc800) 17%,hsl(var(--card))); line-height:1.5; }
 .fq-break-actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:21px; }
-.fq-break-start,.fq-break-reset,.fq-break-skip { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:46px; padding:0 15px; border:0; border-radius:13px; color:#fff; background:var(--fq-lime,#58cc02); box-shadow:0 4px 0 var(--fq-lime-dark,#46a302); cursor:pointer; font-weight:950; }
+.fq-break-start,.fq-break-reset,.fq-break-skip { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:46px; padding:0 15px; border:0; border-radius:13px; color:#fff; background:var(--fq-go,#358000); box-shadow:0 4px 0 var(--fq-go-dark,#245800); cursor:pointer; font-weight:950; }
 .fq-break-reset { border:2px solid var(--fq-edge,hsl(var(--border))); color:hsl(var(--foreground)); background:hsl(var(--card)); box-shadow:0 3px 0 var(--fq-edge,hsl(var(--border))); }
 .fq-break-skip { margin-left:auto; padding:0 8px; color:hsl(var(--muted-foreground)); background:transparent; box-shadow:none; text-decoration:underline; text-underline-offset:3px; }
 .fq-break-live { display:grid; justify-items:center; gap:9px; margin:20px auto 0; padding:24px; border-radius:20px; background:color-mix(in srgb,var(--fq-sky,#1cb0f6) 10%,hsl(var(--card))); }

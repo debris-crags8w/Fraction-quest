@@ -29,6 +29,9 @@
   --fq-sky: #1CB0F6;
   --fq-lime: #58CC02;
   --fq-lime-dark: #46A302;
+  /* Button fills behind white text: a deeper lime that reads at 4.5:1 or better. */
+  --fq-go: #358000;
+  --fq-go-dark: #245800;
   --fq-tangerine: #FF9600;
   --fq-bubblegum: #FF4B91;
   --fq-sun: #FFC800;
@@ -119,8 +122,8 @@
   border: 0;
   border-radius: 16px;
   color: #fff;
-  background: var(--fq-lime);
-  box-shadow: 0 5px 0 var(--fq-lime-dark);
+  background: var(--fq-go);
+  box-shadow: 0 5px 0 var(--fq-go-dark);
   font-size: 0.95rem;
   font-weight: 900;
   letter-spacing: 0.01em;
@@ -128,8 +131,8 @@
   transition: transform 90ms ease, box-shadow 90ms ease, filter 120ms ease;
 }
 
-.fq-button:hover { transform: none; box-shadow: 0 5px 0 var(--fq-lime-dark); filter: brightness(1.05); }
-.fq-button:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 0 0 var(--fq-lime-dark); }
+.fq-button:hover { transform: none; box-shadow: 0 5px 0 var(--fq-go-dark); filter: brightness(1.08); }
+.fq-button:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 0 0 var(--fq-go-dark); }
 
 .fq-button.secondary { background: var(--fq-sky); box-shadow: 0 5px 0 #1294D0; }
 .fq-button.secondary:hover { box-shadow: 0 5px 0 #1294D0; }
@@ -259,9 +262,9 @@
   background: var(--unit);
   box-shadow: 0 5px 0 var(--unit-dark);
 }
-.fq-unit-kicker { color: rgb(255 255 255 / 0.85); font-family: var(--app-font-sans); font-weight: 900; }
+.fq-unit-kicker { color: #fff; font-family: var(--app-font-sans); font-size: 0.8rem; font-weight: 900; }
 .fq-unit-heading h3 { color: #fff; font-size: 1.45rem; }
-.fq-unit-heading p { color: rgb(255 255 255 / 0.9); }
+.fq-unit-heading p { color: #fff; }
 .fq-unit-count {
   color: var(--unit-dark);
   background: #fff;
@@ -362,8 +365,8 @@
 }
 .fq-node-card h4 { margin: 0; font-size: 1.35rem; line-height: 1.1; color: #fff; }
 .fq-node-card p { margin: 0; color: rgb(255 255 255 / 0.92); font-size: 0.92rem; line-height: 1.45; }
-.fq-node-card .fq-node-status { font-size: 0.8rem; color: rgb(255 255 255 / 0.85); }
-.fq-node-kicker { font-size: 0.75rem; font-weight: 900; letter-spacing: 0.01em; color: rgb(255 255 255 / 0.85); }
+.fq-node-card .fq-node-status { font-size: 0.8rem; color: #fff; }
+.fq-node-kicker { font-size: 0.78rem; font-weight: 900; letter-spacing: 0.01em; color: #fff; }
 .fq-node-standard { display: inline-block; width: fit-content; margin: 4px 0 8px; padding: 4px 9px; border: 1px solid hsl(var(--primary) / .24); border-radius: 999px; background: hsl(var(--primary) / .08); color: hsl(var(--primary)); font-size: .78rem; font-weight: 900; line-height: 1.35; }
 .fq-node-card .fq-button,
 .fq-course-map .fq-node-card .fq-button {
@@ -581,7 +584,7 @@
 .fq-lesson-footer.correct .fq-sheet-copy { color: var(--fq-good-fg); }
 .fq-lesson-footer.retry .fq-sheet-copy { color: var(--fq-bad-fg); }
 .fq-sheet-button { flex: none; min-width: 180px; }
-.fq-lesson-footer.retry .fq-sheet-button { background: var(--fq-red); box-shadow: 0 5px 0 var(--fq-red-dark); }
+.fq-lesson-footer.retry .fq-sheet-button { background: #c62828; box-shadow: 0 5px 0 #8e1b1b; }
 .fq-lesson-footer.retry .fq-sheet-button:active { box-shadow: 0 0 0 var(--fq-red-dark); }
 
 /* ---------- fraction tiles: one color per denominator ---------- */
@@ -1771,3 +1774,19 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 }
 /* Buttons scrolled into view stop above the browser toolbar. */
 .fq-button, .fq-reveal-target { scroll-margin-bottom: calc(16px + var(--fq-bottom-clear)); scroll-margin-top: 12px; }
+
+/* ---------- accessibility pass: tap areas, small text, contrast ---------- */
+.fq-taskbar-title { margin: 0; }
+.fq-brand { min-width: 44px; min-height: 44px; }
+.fq-icon-button { min-width: 44px; min-height: 44px; }
+.fq-back { min-height: 44px; }
+/* Small inline buttons keep their look but get a 44px tap area. */
+.fq-learning-listen { position: relative; color: #2f6f06; }
+.fq-learning-listen::after { content: ""; position: absolute; inset: -6px -2px; }
+.fq-daily-topic { color: #5a32d6; }
+.fq-taskbar-fraction small { font-size: 0.8rem; }
+.fq-live-fraction.compact .fq-live-legend { font-size: 0.78rem; }
+.fq-live-legend { font-size: 0.85rem; }
+.fq-svg-bar .fq-svg-model-label { font-size: 11px; }
+.fq-course-note a { display: inline-block; padding: 10px 0; }
+.fq-course-note button, [data-testid="button-reset-progress-footer"] { min-height: 44px; }

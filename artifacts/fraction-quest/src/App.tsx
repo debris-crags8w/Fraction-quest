@@ -241,7 +241,7 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
   return (
     <>
       <header className="fq-shell fq-topbar">
-        <button className="fq-brand" onClick={onHome} data-testid="button-home">
+        <button className="fq-brand" onClick={onHome} aria-label="Fraction Quest home" data-testid="button-home">
           <span className="fq-brand-mark" aria-hidden="true"><PieFraction n={3} d={4} size={30} fill="var(--fq-sun)" stroke="#4b23c9" /></span>
           <span>Fraction Quest</span>
         </button>
@@ -386,7 +386,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
 
           <button className="fq-assessment-entry" onClick={onAssessments} data-testid="button-open-assessments">
             <span className="fq-assessment-entry-icon" aria-hidden="true"><ClipboardCheck size={20} /></span>
-            <span><strong>Check what you know</strong><small>Build a model, enter answers, and see which ideas to practice next.</small></span>
+            <span><strong>Check what you know</strong><small>Build a model, make each answer with tiles, and see which ideas to practice next.</small></span>
             <ArrowRight size={18} aria-hidden="true" />
           </button>
 

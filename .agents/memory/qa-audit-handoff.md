@@ -41,6 +41,26 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Thorough test round (content audit + a11y sweep + touch play-through).** Fixed:
+  - Choice give-aways: `choiceDistractors` (learning-content) now picks real slips from `distractorCandidates` so the
+    answer is smallest/middle/largest about equally (was the middle value 59% of the time); `balanceChoices`
+    (practice-bank) does the same for hand-written wrong answers, but only for "work it out" questions (never
+    "which is closest/bigger", where a swapped slip could also be right). Measured: middle 35%, no lesson skewed.
+  - Pictures that showed the answer: sharing stories draw every whole uncut (auto-picture + generators; was cut for
+    the sharers and capped at 3 loaves); groups worksheets show the loose set; unit-multiples and adding stories
+    became shade tasks; equivalent-models practice draws only the named fraction; fixed items in game.ts (more than
+    1/2, a little less than 1/2, fits between, ×3, ?/8 blanks with number choices, jug, 9/4).
+  - Bugs: NaN choice (units like "6 m"), "1 and 5/4", "1 pizzas", sets-nonunit copied unit rows, line-plot zero
+    lengths, "pencils lengths", "Rename 7/8 as 7/8", "3/3 unit", "1/1" answer, worksheet/check-in repeats.
+  - Answer order: compare-same-denominator mixes bigger/smaller and order; "closer to 1/2" order; 1/2 can be the
+    closest benchmark; compare-unlike sometimes has an equal pair ("They are equal" right).
+  - Tiles: questions with mixed numbers (and rulers) use one flexible wholes+fraction layout, so the layout no longer
+    tells whether the answer is a mixed number.
+  - A11y (axe 37 issue nodes → 0): named icon buttons, TaskBar title is the h1, stars role=img, `--fq-go` #358000
+    for white-text buttons, darker UNIT_COLORS, 44px tap areas, ≥12px small text, Daily radios support arrow keys.
+  - Leftover typing copy ("type the answer", "answer box") removed.
+  Not done (suggested to the user): lesson-specific wrong reasons in build checks, more variety in ~20 lessons,
+  check-in strip `<select>` → tap chips, "Write…" → "Make…" wording.
 - **Mobile browser toolbars no longer cover buttons.** User saw Safari's floating address bar over Daily's Next button.
   `viewport-fit=cover`; on touch devices (`hover: none, pointer: coarse`) `--fq-bottom-clear` = safe-area + 64px pads
   the body and lifts the fixed lesson footer; buttons get a matching `scroll-margin-bottom`. `src/lib/reveal.ts`

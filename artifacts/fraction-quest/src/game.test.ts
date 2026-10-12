@@ -1592,7 +1592,7 @@ describe('question generator', () => {
     else if ((m = /^How many 1\/(\d+) cup scoops fill (\d+) cups?\?$/.exec(p))) expected = N(m[1]) * N(m[2]);
     else if ((m = /^A ribbon is (\d+) m long\. How long is (\d+)\/(\d+) of it\?$/.exec(p))) expected = (N(m[1]) / N(m[3])) * N(m[2]);
     else if ((m = /^A board is (\d+)\/(\d+) m\. Another is (\d+)\/(\d+) m\./.exec(p))) expected = N(m[1]) / N(m[2]) + N(m[3]) / N(m[4]);
-    else if ((m = /^(\d+) (?:loaf is|loaves are|pizzas are) shared fairly by (\d+) friends/.exec(p)) || (m = /^(\d+) ÷ (\d+) = \?$/.exec(p))) expected = N(m[1]) / N(m[2]);
+    else if ((m = /^(\d+) (?:loaf is|loaves are|pizza is|pizzas are) shared fairly by (\d+) friends/.exec(p)) || (m = /^(\d+) ÷ (\d+) = \?$/.exec(p))) expected = N(m[1]) / N(m[2]);
     else if ((m = /^A bag has (\d+) marbles\. (\d+) (?:is|are) green/.exec(p))) expected = N(m[2]) / N(m[1]);
     else if (p === 'What fraction of the tile is shaded?' && question.model.kind === 'bars') expected = question.model.bars[0].numerator / question.model.bars[0].denominator;
     else if (/^What fraction of the (circle|grid) is shaded\?$/.test(p) && question.model.kind === 'area') expected = shadedArea(question.model.cut, question.model.shaded);
@@ -1657,7 +1657,8 @@ describe('question generator', () => {
     match = /^Which is (bigger|smaller), (\d+\/\d+) or (\d+\/\d+)\?$/.exec(question.prompt);
     if (match) {
       const [first, second] = [fractionValue(match[2]), fractionValue(match[3])];
-      assert.equal(answer, (match[1] === 'bigger') === (first > second) ? match[2] : match[3], question.prompt);
+      if (Math.abs(first - second) < 1e-9) assert.equal(answer, 'They are equal', question.prompt);
+      else assert.equal(answer, (match[1] === 'bigger') === (first > second) ? match[2] : match[3], question.prompt);
       return true;
     }
     match = /^Which is the same as (\d+\/\d+)\?$/.exec(question.prompt);
@@ -1816,7 +1817,9 @@ describe('quality audit fixes', () => {
       const shown = `${p.model.n}/${p.model.d}`;
       const answer = parseAnswer(p.answer);
       const sameValue = !!answer && answer.n * p.model.d === p.model.n * answer.d;
-      const mentioned = p.prompt.includes(shown) || sameValue || /this|dot|shaded|of \d+/i.test(p.prompt) || p.model.kind === 'set';
+      // A mixed number in the question drawn in its pieces (1 1/2 shown as 9/6) also matches.
+      const mixedInPrompt = [...p.prompt.matchAll(/(\d+) (\d+)\/(\d+)/g)].some(([, w, t, b]) => (Number(w) * Number(b) + Number(t)) * p.model!.d === p.model!.n * Number(b));
+      const mentioned = p.prompt.includes(shown) || sameValue || mixedInPrompt || /this|dot|shaded|of \d+/i.test(p.prompt) || p.model.kind === 'set';
       assert.ok(mentioned, `${mission.id}/${p.id}: picture ${shown} does not match "${p.prompt}"`);
     }
   });

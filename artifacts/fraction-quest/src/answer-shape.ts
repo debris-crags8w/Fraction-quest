@@ -16,7 +16,9 @@ export type AnswerShape =
   | { kind: 'number'; suffix?: '%' }
   /** Numerator over denominator. `allowWhole`: a whole-number answer may leave the denominator empty. */
   | { kind: 'fraction'; allowWhole: boolean }
-  | { kind: 'mixed' }
+  /** Wholes and a fraction. `flexible`: the whole or the fraction may be left empty, so the same boxes fit a
+      whole-number, fraction or mixed answer and their layout says nothing about which it is. */
+  | { kind: 'mixed'; flexible?: boolean }
   | { kind: 'decimal' };
 
 /** Slots for number tiles, in reading order. */
@@ -57,6 +59,8 @@ export function answerShape(problem: WorksheetProblem): AnswerShape {
   const options = namedChoices(problem.prompt);
   if (options.length >= 2 && options.some((option) => same(option, answer))) return { kind: 'pick', options };
   if (/%$/.test(answer)) return { kind: 'number', suffix: '%' };
+  // Questions with mixed numbers in them, and ruler lengths: one layout whatever form the answer takes.
+  if (problem.rulerTask || (/\b\d+ \d+\/\d+\b/.test(problem.prompt) && !/wholes and a fraction/i.test(problem.prompt))) return { kind: 'mixed', flexible: true };
   if (problem.form === 'mixed') return { kind: 'mixed' };
   if (problem.form === 'decimal') return { kind: 'decimal' };
   if (/^\d+$/.test(answer)) {
@@ -76,7 +80,10 @@ export function slotAnswer(shape: AnswerShape, slots: Record<string, string>): s
     case 'fraction':
       if (v('num') && v('den')) return `${v('num')}/${v('den')}`;
       return shape.allowWhole && v('num') && !v('den') ? v('num') : '';
-    case 'mixed': return v('whole') && v('num') && v('den') ? `${v('whole')} ${v('num')}/${v('den')}` : '';
+    case 'mixed':
+      if (v('whole') && v('num') && v('den')) return `${v('whole')} ${v('num')}/${v('den')}`;
+      if (!shape.flexible) return '';
+      return v('num') && v('den') && !v('whole') ? `${v('num')}/${v('den')}` : v('whole') && !v('num') && !v('den') ? v('whole') : '';
     case 'decimal': return v('whole') && v('dec') ? `${v('whole')}.${v('dec')}` : '';
     default: return '';
   }
@@ -90,7 +97,11 @@ export function slotsFromAnswer(shape: AnswerShape, value: string): Record<strin
     const m = /^(\d+)\/(\d+)$/.exec(raw);
     return m ? { num: m[1], den: m[2] } : /^\d+$/.test(raw) ? { num: raw } : {};
   }
-  if (shape.kind === 'mixed') { const m = /^(\d+)\s+(\d+)\/(\d+)$/.exec(raw); return m ? { whole: m[1], num: m[2], den: m[3] } : {}; }
+  if (shape.kind === 'mixed') {
+    const m = /^(\d+)\s+(\d+)\/(\d+)$/.exec(raw); if (m) return { whole: m[1], num: m[2], den: m[3] };
+    const fraction = /^(\d+)\/(\d+)$/.exec(raw); if (shape.flexible && fraction) return { num: fraction[1], den: fraction[2] };
+    return shape.flexible && /^\d+$/.test(raw) ? { whole: raw } : {};
+  }
   if (shape.kind === 'decimal') { const m = /^(\d+)\.(\d+)$/.exec(raw); return m ? { whole: m[1], dec: m[2] } : {}; }
   return {};
 }

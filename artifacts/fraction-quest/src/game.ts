@@ -307,7 +307,7 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 3, denominator: 8 }, { numerator: 1, denominator: 2 }),
     },
     questions: [
-      practice('Which is more than 1/2?', ['2/6', '5/8', '3/10'], 1, bars({ numerator: 5, denominator: 8 }), 'Half of 8 is 4. Is 5 more than 4?', '5/8 is more than half. The others are less.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is more than 1/2?', ['2/6', '5/8', '3/10'], 1, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 2, denominator: 6, named: true }, { numerator: 5, denominator: 8, named: true }, { numerator: 3, denominator: 10, named: true }), 'Half of 8 is 4. Is 5 more than 4?', '5/8 is more than half. The others are less.', bars({ numerator: 1, denominator: 2 })),
       practice('Is 2/5 more or less than 1/2?', ['Less than 1/2', 'Equal to 1/2', 'More than 1/2'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 1, denominator: 2 }), 'Half of 5 is 2 and a half.', '2 is less than 2 and a half. So 2/5 is less than half.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is closest to 1/2?', ['4/9', '1/5', '7/8'], 0, bars({ numerator: 4, denominator: 9 }, { numerator: 1, denominator: 5 }, { numerator: 7, denominator: 8 }), 'Which one is nearest to half?', '4/9 is just under half. The others are far away.', bars({ numerator: 1, denominator: 2 })),
       practice('A jug is 6/10 full. Is that more or less than half?', ['More than half', 'Less than half', 'Exactly half'], 0, bars({ numerator: 6, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Half of 10 is 5.', '6 is more than 5. So 6/10 is more than half.', bars({ numerator: 1, denominator: 2 })),
@@ -337,7 +337,7 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 5, denominator: 12 }, { numerator: 1, denominator: 2 }),
     },
     questions: [
-      practice('Which is just a little less than 1/2?', ['4/9', '1/8', '8/9'], 0, bars({ numerator: 4, denominator: 9 }, { numerator: 1, denominator: 2 }), 'Half of 9 is 4 and a half. 4 is close.', '4/9 is just under half.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is just a little less than 1/2?', ['4/9', '1/8', '8/9'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 4, denominator: 9, named: true }, { numerator: 1, denominator: 8, named: true }, { numerator: 8, denominator: 9, named: true }), 'Half of 9 is 4 and a half. 4 is close.', '4/9 is just under half.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fraction is a little more than 1/2?', ['3/8', '5/9', '1/6'], 1, bars({ numerator: 5, denominator: 9 }, { numerator: 1, denominator: 2 }), 'Half of 9 is 4 and a half. Which is a bit more?', '5/9 is just over half. The others are under.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fraction is closest to 1?', ['6/7', '2/7', '3/7'], 0, bars({ numerator: 6, denominator: 7 }, { numerator: 2, denominator: 7 }, { numerator: 3, denominator: 7 }), 'Which numerator is closest to 7?', '6/7 is just 1 piece away from 1 whole.', bars({ numerator: 1, denominator: 2 })),
       practice('About how much is 1/10 + 1/10 + 1/10 + 1/10 + 1/10?', ['About 1/2', 'About 1/5', 'About 1 whole'], 0, bars({ numerator: 5, denominator: 10 }), '5 tenths is halfway.', '5/10 is the same as 1/2.', bars({ numerator: 2, denominator: 4 })),
@@ -429,7 +429,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Which order goes smallest to biggest?', ['1/3, 2/3, 3/3', '3/3, 2/3, 1/3', '2/3, 1/3, 3/3'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 3 }, { numerator: 3, denominator: 3 }), 'All thirds. Count the pieces.', '1/3 is smallest. 3/3 is 1 whole.', bars({ numerator: 1, denominator: 2 })),
       practice('Which order goes biggest to smallest?', ['1/2, 1/4, 1/5', '1/5, 1/4, 1/2', '1/4, 1/2, 1/5'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 4 }, { numerator: 1, denominator: 5 }), 'Fewer pieces means bigger pieces.', '1/2 is biggest, then 1/4, then 1/5.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which fits between 2/8 and 6/8?', ['1/8', '4/8', '7/8'], 1, bars({ numerator: 2, denominator: 8 }, { numerator: 4, denominator: 8 }, { numerator: 6, denominator: 8 }), 'All eighths. Which numerator is between 2 and 6?', '4 is between 2 and 6.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which fits between 2/8 and 6/8?', ['1/8', '4/8', '7/8'], 1, bars({ numerator: 2, denominator: 8 }, { numerator: 6, denominator: 8 }), 'All eighths. Which numerator is between 2 and 6?', '4 is between 2 and 6.', bars({ numerator: 1, denominator: 2 })),
       practice('Put 1/2, 3/10 and 8/10 in order, smallest first.', ['3/10, 1/2, 8/10', '8/10, 1/2, 3/10', '1/2, 3/10, 8/10'], 0, bars({ numerator: 3, denominator: 10 }, { numerator: 1, denominator: 2 }, { numerator: 8, denominator: 10 }), '1/2 is the same as 5/10. Compare to that.', '3/10 is less than half. 8/10 is more.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
@@ -457,7 +457,7 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }),
     },
     questions: [
-      practice('Times the numerator and denominator of 1/4 by 3. What do you get?', ['3/12', '1/12', '4/3'], 0, bars({ numerator: 1, denominator: 4 }, { numerator: 3, denominator: 12 }), 'Do the same thing to the numerator and denominator.', '1 × 3 = 3 and 4 × 3 = 12. So 3/12.', bars({ numerator: 1, denominator: 2 })),
+      practice('Multiply the numerator and denominator of 1/4 by 3. What do you get?', ['3/12', '1/12', '4/3'], 0, bars({ numerator: 1, denominator: 4 }), 'Do the same thing to the numerator and denominator.', '1 × 3 = 3 and 4 × 3 = 12. So 3/12.', bars({ numerator: 1, denominator: 2 })),
       practice('Double the numerator and denominator of 3/5. What do you get?', ['6/10', '3/10', '5/6'], 0, bars({ numerator: 3, denominator: 5 }, { numerator: 6, denominator: 10 }), 'Double the numerator and denominator.', '3 × 2 = 6 and 5 × 2 = 10. So 6/10.', bars({ numerator: 1, denominator: 2 })),
       practice('Divide the numerator and denominator of 4/8 by 4. What do you get?', ['1/2', '1/8', '4/4'], 0, bars({ numerator: 4, denominator: 8 }, { numerator: 1, denominator: 2 }), 'Divide both by 4.', '4 ÷ 4 = 1 and 8 ÷ 4 = 2. So 1/2.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 5/10?', ['1/2', '1/5', '5/5'], 0, bars({ numerator: 5, denominator: 10 }, { numerator: 1, denominator: 2 }), 'Can you divide both by the same number?', 'Divide both by 5. You get 1/2.', bars({ numerator: 1, denominator: 2 })),
@@ -472,7 +472,7 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }),
     },
     questions: [
-      practice('Fill the blank: 1/2 = ?/8', ['4/8', '2/8', '1/8'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 4, denominator: 8 }), 'What times 2 makes 8?', 'The denominator was times 4. Do the same to the numerator.', bars({ numerator: 1, denominator: 2 })),
+      practice('Fill the blank: 1/2 = ?/8', ['4', '2', '1'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 0, denominator: 8 }), 'What times 2 makes 8?', 'The denominator was times 4. Do the same to the numerator.', bars({ numerator: 1, denominator: 2 })),
       practice('Fill the blank: 3/4 = 6/?', ['8', '12', '10'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'The numerator was doubled.', 'Double the denominator too: 4 × 2 = 8.', bars({ numerator: 1, denominator: 2 })),
       practice('Fill the blank: ?/10 = 2/5', ['4', '2', '5'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'The denominator doubled, 5 to 10.', 'Double the numerator too: 2 to 4.', bars({ numerator: 1, denominator: 2 })),
       practice('Fill the blank: 4/6 = 2/?', ['3', '6', '4'], 0, bars({ numerator: 4, denominator: 6 }, { numerator: 2, denominator: 3 }), 'The top was cut in half.', 'Halve the bottom too: 6 ÷ 2 = 3.', bars({ numerator: 1, denominator: 2 })),
@@ -503,7 +503,7 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('Which sum equals 4/7?', ['1/7 + 3/7', '1/7 + 2/7', '4/7 + 4/7'], 0, bars({ numerator: 1, denominator: 7 }, { numerator: 3, denominator: 7 }), 'Add the numerators. Keep sevenths.', '1 + 3 = 4. So 4/7.', bars({ numerator: 1, denominator: 2 })),
-      practice('Fill the blank: 6/8 = 2/8 + ?/8', ['4/8', '3/8', '8/8'], 0, bars({ numerator: 2, denominator: 8 }, { numerator: 4, denominator: 8 }, { numerator: 6, denominator: 8 }), '6 take away 2 is what?', '6 − 2 = 4. So 4/8.', bars({ numerator: 1, denominator: 2 })),
+      practice('Fill the blank: 6/8 = 2/8 + ?/8', ['4', '3', '8'], 0, bars({ numerator: 6, denominator: 8 }, { numerator: 2, denominator: 8 }), '6 take away 2 is what?', '6 − 2 = 4. So 2/8 + 4/8 = 6/8.', bars({ numerator: 1, denominator: 2 })),
       practice('Which adds up to 3/5?', ['1/5 + 2/5', '1/5 + 1/5', '3/5 + 2/5'], 0, bars({ numerator: 1, denominator: 5 }, { numerator: 2, denominator: 5 }), 'Add the numerators.', '1 + 2 = 3. So 3/5.', bars({ numerator: 1, denominator: 2 })),
       practice('7/10 = 5/10 + what?', ['2/10', '3/10', '5/10'], 0, bars({ numerator: 5, denominator: 10 }, { numerator: 2, denominator: 10 }), '7 take away 5 is what?', '7 − 5 = 2. So 2/10.', bars({ numerator: 1, denominator: 2 })),
     ],
@@ -533,7 +533,7 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('What is 1 and 2/3 as thirds?', ['5/3', '3/5', '4/3'], 0, line(5, 3, 2), '1 whole is 3/3. Add 2 more.', '3/3 + 2/3 = 5/3.', line(3, 3, 2)),
-      practice('What is 9/4 as wholes and a fraction?', ['2 and 1/4', '1 and 5/4', '2 and 2/4'], 0, line(9, 4, 3), 'Every 4/4 is 1 whole. What is left?', '8/4 is 2 wholes. 1/4 is left.', line(8, 4, 2)),
+      practice('What is 9/4 as wholes and a fraction?', ['2 and 1/4', '3 and 1/4', '2 and 2/4'], 0, line(9, 4, 3), 'Every 4/4 is 1 whole. What is left?', '8/4 is 2 wholes. 1/4 is left.', line(8, 4, 2)),
       practice('What is 2 and 3/5 as fifths?', ['13/5', '10/5', '5/13'], 0, line(13, 5, 3), '2 wholes is 10/5. Add 3 more.', '10/5 + 3/5 = 13/5.', line(10, 5, 2)),
       practice('What is 10/6 as wholes and a fraction?', ['1 and 4/6', '1 and 2/6', '2 and 4/6'], 0, line(10, 6, 2), '6/6 is 1 whole. What is left?', '10/6 is 6/6 and 4/6. That is 1 and 4/6.', line(6, 6, 2)),
     ],
@@ -563,7 +563,7 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('What is 5/7 − 2/7?', ['3/7', '3/14', '7/7'], 0, equation('5/7 − 2/7 = ?'), 'Take away 2 pieces. Keep sevenths.', '5 − 2 = 3. The denominator stays 7.', bars({ numerator: 5, denominator: 7 })),
-      practice('A jug is 9/10 full. You pour out 4/10. How much is left?', ['5/10', '5/20', '13/10'], 0, bars({ numerator: 9, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Take away the numerators. Keep tenths.', '9 − 4 = 5. So 5/10.', bars({ numerator: 4, denominator: 10 })),
+      practice('A jug is 9/10 full. You pour out 4/10. How much is left?', ['5/10', '5/20', '13/10'], 0, bars({ numerator: 9, denominator: 10 }, { numerator: 4, denominator: 10 }), 'Take away the numerators. Keep tenths.', '9 − 4 = 5. So 5/10.', bars({ numerator: 4, denominator: 10 })),
       practice('What is 7/8 − 3/8?', ['4/8', '4/16', '10/8'], 0, equation('7/8 − 3/8 = ?'), 'Take away the numerators. Keep eighths.', '7 − 3 = 4. So 4/8.', bars({ numerator: 6, denominator: 8 })),
       practice('What is 6/9 − 1/9?', ['5/9', '5/18', '7/9'], 0, equation('6/9 − 1/9 = ?'), 'Take away 1 piece. Keep ninths.', '6 − 1 = 5. So 5/9.', bars({ numerator: 6, denominator: 9 })),
     ],

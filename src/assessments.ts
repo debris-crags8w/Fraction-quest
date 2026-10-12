@@ -75,7 +75,7 @@ export function getAssessmentDefinitions(): AssessmentDefinition[] {
     for (const stage of stages) definitions.push({
       id: `grade-${grade}-${stage.kind.slice('grade-'.length)}`,
       title: `Grade ${grade} · ${stage.label}`,
-      description: 'A mixed check with a model and a typed answer for every question. It does not change lesson access.',
+      description: 'A mixed check with a model and a tile answer for every question. It does not change lesson access.',
       kind: stage.kind, grade, standards: stage.standards,
     });
   }
@@ -138,20 +138,22 @@ export function buildAssessmentItems(definition: AssessmentDefinition, seed: num
 
   const selected: AssessmentItem[] = [];
   const selectedIds = new Set<string>();
+  const askedPrompts = new Set<string>(); // the same question twice in one check-in is wasted
+  const fresh = (candidate: AssessmentItem) => !selectedIds.has(candidate.id) && !askedPrompts.has(candidate.prompt);
   // Round-robin by standard so a check samples the whole scope instead of one lesson.
   for (let round = 0; selected.length < ASSESSMENT_ITEM_COUNT && round < candidates.length; round++) {
     for (const standard of definition.standards) {
       const candidate = byStandard.get(standard)?.[round];
-      if (!candidate || selectedIds.has(candidate.id)) continue;
-      selectedIds.add(candidate.id);
+      if (!candidate || !fresh(candidate)) continue;
+      selectedIds.add(candidate.id); askedPrompts.add(candidate.prompt);
       selected.push({ ...candidate, id: `${definition.id}:${seed}:${selected.length + 1}` });
       if (selected.length >= ASSESSMENT_ITEM_COUNT) break;
     }
   }
   if (selected.length < ASSESSMENT_ITEM_COUNT) {
     for (const candidate of [...candidates].sort((a, b) => mix(`${seed}:fill:${a.id}`) - mix(`${seed}:fill:${b.id}`))) {
-      if (selectedIds.has(candidate.id)) continue;
-      selectedIds.add(candidate.id);
+      if (!fresh(candidate)) continue;
+      selectedIds.add(candidate.id); askedPrompts.add(candidate.prompt);
       selected.push({ ...candidate, id: `${definition.id}:${seed}:${selected.length + 1}` });
       if (selected.length >= ASSESSMENT_ITEM_COUNT) break;
     }

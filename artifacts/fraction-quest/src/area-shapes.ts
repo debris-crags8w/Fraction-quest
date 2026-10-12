@@ -116,7 +116,7 @@ export function areaTaskDone(cut: AreaCut, task: AreaTask, shaded: number[]): bo
 export function areaFeedback(cut: AreaCut, task: AreaTask, shaded: number[]): string {
   if (shaded.some((i) => task.avoid?.includes(i))) return `Try a different way: leave the ${AREA_CUTS[cut][task.avoid![0]].shape === 'square' ? 'small square' : 'marked piece'} white.`;
   if (!shaded.length) return `Color pieces that make ${task.n}/${task.d} of the ${areaWhole(cut)}.`;
-  if (areaTaskDone(cut, task, shaded)) return `You colored ${task.n}/${task.d}! Now type the answer.`;
+  if (areaTaskDone(cut, task, shaded)) return `You colored ${task.n}/${task.d}! Now build your answer.`;
   const eighths = Math.round(shadedArea(cut, shaded) * 8);
   const goal = (task.n / task.d) * 8;
   return eighths > goal ? 'Too much. Tap a piece to take it away.' : 'Not enough yet. Compare the sizes of the pieces.';

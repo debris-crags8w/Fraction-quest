@@ -19,9 +19,9 @@ const INSTRUCTION: Record<BarTask['kind'], (n: number) => string> = {
   shade: (n) => `Shade ${n} ${n === 1 ? 'part' : 'parts'} of the bar. Tap again to clear.`,
 };
 const STATUS: Record<BarTask['kind'], [string, string]> = {
-  copy: ['Copy the bar to open the answer box.', 'Your bar matches! Now type the answer.'],
-  count: ['Count every part to open the answer box.', 'You counted every part! Now type the answer.'],
-  shade: ['Shade the parts to open the answer box.', 'Nice shading! Now type the answer.'],
+  copy: ['Copy the bar to open the answer tiles.', 'Your bar matches! Now build your answer.'],
+  count: ['Count every part to open the answer tiles.', 'You counted every part! Now build your answer.'],
+  shade: ['Shade the parts to open the answer tiles.', 'Nice shading! Now build your answer.'],
 };
 
 export function canEnterWorksheetAnswer(modelRequired: boolean, modelMatches: boolean): boolean {

@@ -41,10 +41,11 @@ export function amountsIn(text: string): Amount[] {
 
 /** Story questions with no fraction written in them still get the things in the story. */
 function storyPicture(text: string): ModelSpec | null {
-  // "4 pizzas are shared fairly by 3 friends": the wholes, each cut for the sharers, nothing shaded yet.
+  // "4 pizzas are shared fairly by 3 friends": the wholes, not cut yet. Cutting them for the sharers would
+  // show the denominator, which is what the child works out.
   const share = /(\d+) [a-z]+ (?:are|is) shared (?:fairly )?(?:by|among|between) (\d+)/i.exec(text);
-  if (share && Number(share[1]) <= 8 && Number(share[2]) <= 12) {
-    return { kind: 'bars', bars: Array.from({ length: Number(share[1]) }, () => ({ numerator: 0, denominator: Number(share[2]) })), hideLabels: true };
+  if (share && Number(share[1]) <= 10 && Number(share[2]) <= 12) {
+    return { kind: 'bars', bars: Array.from({ length: Number(share[1]) }, () => ({ numerator: 0, denominator: 1 })), hideLabels: true };
   }
   // "12 beads are shared into 4 equal groups": the beads, to group.
   const beads = /(\d+) [a-z]+ (?:are|is) (?:shared|split|put) into (\d+) equal groups/i.exec(text);

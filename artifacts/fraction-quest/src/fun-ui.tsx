@@ -31,7 +31,8 @@ export function denomColor(denominator: number): string {
   return DENOM_COLORS[denominator] ?? ['#1CB0F6', '#FF4B91', '#58CC02', '#FF9600'][denominator % 4];
 }
 
-export const UNIT_COLORS = ['#7C4DFF', '#1594D6', '#3E9F0A', '#F07C00', '#E8397E', '#0F9D8A', '#B13FD6', '#4A5BE8'];
+// Deep enough for white text at 4.5:1 or better (unit headers and map nodes).
+export const UNIT_COLORS = ['#6C3EE0', '#0F74AB', '#2F7D06', '#B35600', '#C41F5F', '#0B7A6B', '#9327B8', '#3B4BD6'];
 export const unitColor = (unit: number) => UNIT_COLORS[(unit - 1) % UNIT_COLORS.length];
 
 /* ---------- mascot ---------- */
@@ -232,7 +233,7 @@ export function LessonPath({ unit, color, nodes, selectedId, onSelect, allDone, 
               </span>
             )}
             {node.state === 'done' && (
-              <span className="fq-node-stars" aria-label={`${node.stars} of 3 stars`}>
+              <span className="fq-node-stars" role="img" aria-label={`${node.stars} of 3 stars`}>
                 {[0, 1, 2].map((s) => <Star key={s} size={13} strokeWidth={2.5} className={s < node.stars ? 'filled' : ''} />)}
               </span>
             )}

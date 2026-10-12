@@ -11,7 +11,7 @@ import { AnswerTiles } from './AnswerTiles';
 import { answerShape } from './answer-shape';
 import { useRevealWhen } from './lib/reveal';
 
-/* "Find my level": a short typed-answer quiz, unit by unit, that stops at the first unit not yet known. */
+/* "Find my level": a short quiz answered with tiles, unit by unit, that stops at the first unit not yet known. */
 
 export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
   unitTitles: string[]; onDone: (unitsPassed: number) => void; onExit: () => void;
@@ -77,6 +77,7 @@ export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
     <div className="fq-app"><main className="fq-shell fq-place fq-appear" data-testid="placement-quiz">
       <div className="fq-place-top">
         <button className="fq-icon-button" onClick={onExit} aria-label="Stop the quiz"><ArrowLeft size={20} /></button>
+        <h1 className="fq-sr-only">Level quiz</h1>
         <span className="fq-place-progress"><Compass size={16} /> Unit {unit} · question {index + 1} of {PER_UNIT}</span>
       </div>
       <section className="fq-place-card question" key={`${unit}-${index}`}>

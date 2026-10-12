@@ -1,5 +1,5 @@
 import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
-import { asChoicePrompt, choiceDistractors, getWorksheet, parseAnswer } from './learning-content';
+import { answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, getWorksheet, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
 import { circleCut, type AreaCut } from './area-shapes';
 
@@ -35,6 +35,8 @@ const name = (d: number) => NAMES[d] ?? `${d}ths`;
 const Name = (d: number) => name(d)[0].toUpperCase() + name(d).slice(1);
 const f = (n: number, d: number) => `${n}/${d}`;
 const bar = (n: number, d: number): ModelSpec => ({ kind: 'bars', bars: [{ numerator: n, denominator: d }], hideLabels: true });
+/** `count` whole bars, not cut yet: the child decides the cuts (sharing stories). */
+const wholes = (count: number): ModelSpec => ({ kind: 'bars', bars: Array.from({ length: count }, () => ({ numerator: 0, denominator: 1 })), hideLabels: true });
 const bars2 = (a: [number, number], b: [number, number]): ModelSpec => ({ kind: 'bars', bars: [{ numerator: a[0], denominator: a[1] }, { numerator: b[0], denominator: b[1] }], hideLabels: true });
 const line = (n: number, d: number, wholes = Math.max(1, Math.ceil(n / d))): ModelSpec => ({ kind: 'line', numerator: n, denominator: d, wholes, hideLabels: true });
 const set = (selected: number, total: number): ModelSpec => ({ kind: 'set', selected, total });
@@ -148,9 +150,13 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       hint: 'Is it tiny, about half, or almost full?', retry: `${f(n, d)} is closest to ${right}.`, model: bar(n, d) };
   },
   'fraction-magnitude': (r) => {
-    const d = r.pick([5, 6, 8, 10, 12]); const n = d % 2 ? (d - 1) / 2 + r.int(0, 1) : d / 2 - 1;
-    const small = f(1, r.pick([6, 8, 10])); const e = r.pick([6, 8, 10, 12]); const big = f(e - 1, e);
-    return { prompt: 'Which is closest to 1/2?', right: f(n, d), wrong: r.chance() ? [small, big] : [big, small], hint: 'Find the one about halfway.', retry: `${f(n, d)} is just around half.`, model: half };
+    const d = r.pick([5, 6, 7, 8, 9, 10, 12]); const n = d % 2 ? (d - 1) / 2 + r.int(0, 1) : d / 2 + (r.chance() ? 1 : -1);
+    // Far from half: tiny amounts and nearly-whole amounts. Both wrong ones can be on the same side, so the
+    // answer is not always the middle-sized choice.
+    const smalls = [f(1, 8), f(1, 10), f(1, 12), f(2, 12)]; const bigs = [f(7, 8), f(9, 10), f(11, 12), f(10, 12)];
+    const mode = r.int(0, 2); const lo = r.pick(smalls); const hi = r.pick(bigs);
+    const pair: [string, string] = mode === 0 ? [lo, r.pick(smalls.filter((x) => x !== lo))] : mode === 1 ? [hi, r.pick(bigs.filter((x) => x !== hi))] : [lo, hi];
+    return { prompt: 'Which is closest to 1/2?', right: f(n, d), wrong: pair, hint: 'Find the one about halfway.', retry: `${f(n, d)} is just around half.`, model: half };
   },
   'number-line-basics': (r) => {
     const d = r.int(3, 10);
@@ -185,7 +191,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'equivalent-models': (r) => {
     const d = r.int(2, 6); const n = r.int(1, d - 1); const k = d === 5 ? r.pick([2, 4]) : r.int(2, 4); // no fifteenths
-    return { prompt: `Which is the same as ${f(n, d)}?`, right: f(n * k, d * k), wrong: [f(n, d * k), f(n * k, d)], hint: `Split every piece into ${k}.`, retry: `Multiply the numerator and denominator by ${k}: ${f(n * k, d * k)}.`, model: bars2([n, d], [n * k, d * k]) };
+    return { prompt: `Which is the same as ${f(n, d)}?`, right: f(n * k, d * k), wrong: [f(n, d * k), f(n * k, d)], hint: `Split every piece into ${k}.`, retry: `Multiply the numerator and denominator by ${k}: ${f(n * k, d * k)}.`, model: bar(n, d) };
   },
   'build-equivalents': (r) => {
     const d = r.int(2, 6); const n = r.int(1, d - 1); const k = d === 5 ? r.pick([2, 4]) : r.int(2, 4); // no fifteenths
@@ -291,6 +297,12 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       return later(`Which is bigger, ${f(x[0], x[1])} or ${f(y[0], y[1])}?`, f(n, d1), [f(n, d2), 'They are equal'],
         `Same numerator: ${n} parts each. Fewer equal parts in the whole means bigger parts.`, `${Name(d1)} are bigger than ${name(d2)}, so ${f(n, d1)} is bigger.`, compareBars(x, y).model, compareBars(x, y).simpler);
     }
+    if (r.int(0, 5) === 0) {
+      const [n, d] = r.pick(POOL.filter(([, den]) => den <= 6)); const k = r.int(2, 3);
+      const [x, y]: [number, number][] = r.chance() ? [[n, d], [n * k, d * k]] : [[n * k, d * k], [n, d]];
+      return later(`Which is bigger, ${f(x[0], x[1])} or ${f(y[0], y[1])}?`, 'They are equal', [f(x[0], x[1]), f(y[0], y[1])],
+        'Give both the same denominator. Then compare the numerators.', `${f(n, d)} = ${f(n * k, d * k)}: the same amount.`, compareBars(x, y).model, compareBars(x, y).simpler);
+    }
     const a = r.pick(POOL); let b = r.pick(POOL);
     while (b[1] === a[1] || a[0] * b[1] === b[0] * a[1]) b = r.pick(POOL);
     const bigger = a[0] * b[1] > b[0] * a[1] ? a : b; const smaller = bigger === a ? b : a; const m = (a[1] * b[1]) / gcd(a[1], b[1]);
@@ -362,12 +374,12 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'fractional-sharing': (r) => {
     const people = r.int(2, 8); let loaves = r.int(1, 5); if (loaves === people) loaves += 1;
     return later(`${loaves} ${loaves === 1 ? 'loaf is' : 'loaves are'} shared fairly by ${people} friends. How much does each friend get?`, f(loaves, people), [f(people, loaves), f(1, people), f(loaves, people + loaves)],
-      `Cut each loaf into ${people} pieces. Each friend gets 1 piece of every loaf.`, `${loaves} ÷ ${people} = ${f(loaves, people)}.`, { kind: 'bars', bars: Array.from({ length: Math.min(loaves, 3) }, () => ({ numerator: 0, denominator: people })), hideLabels: true });
+      `Cut each loaf into ${people} pieces. Each friend gets 1 piece of every loaf.`, `${loaves} ÷ ${people} = ${f(loaves, people)}.`, wholes(loaves));
   },
   'fraction-as-division': (r) => {
     const b = r.int(2, 8); let a = r.int(1, 9); if (a % b === 0) a += 1;
-    return later(r.chance() ? `${a} ÷ ${b} = ?` : `${a} pizzas are shared fairly by ${b} friends. How much does each friend get?`, f(a, b), [f(b, a), f(1, b), f(a, a + b)],
-      `${a} ÷ ${b} is the fraction ${f(a, b)}.`, `Each friend gets ${f(a, b)}${a > b ? `, or ${mixedName(a, b)}` : ''}.`, bar(1, b));
+    return later(r.chance() ? `${a} ÷ ${b} = ?` : `${a} ${a === 1 ? 'pizza is' : 'pizzas are'} shared fairly by ${b} friends. How much does each friend get?`, f(a, b), [f(b, a), f(1, b), f(a, a + b)],
+      `${a} ÷ ${b} is the fraction ${f(a, b)}.`, `Each friend gets ${f(a, b)}${a > b ? `, or ${mixedName(a, b)}` : ''}.`, wholes(a));
   },
   'fraction-probability': (r) => {
     const t = r.pick([4, 5, 6, 8, 10, 12]); const g = r.int(1, t - 1);
@@ -434,6 +446,30 @@ export const EXTRA_PER_LESSON = 12;
 export const hasGenerator = (missionId: string) => missionId in RECIPES;
 
 /** Make `count` questions for a lesson from a seed. The same seed always gives the same questions. */
+/** Pick where the right answer sits among the three values (smallest, middle or largest) at random, and swap
+    a wrong answer for another real slip when needed, so the position never hints at the answer. */
+function balanceChoices(item: Item, rng: Rng): Item {
+  if (!item.right || item.wrong.some((w) => !w)) return item;
+  // Only for "work out the amount" questions: in "Which is closest / bigger…?" a swapped-in slip could also be right.
+  if (!/same as/i.test(item.prompt) && /\bwhich\b|closest|closer|bigger|smaller|more than|less than|between/i.test(item.prompt)) return item;
+  const target = answerValue(item.right);
+  if (!Number.isFinite(target) || !item.wrong.every((w) => Number.isFinite(answerValue(w)))) return item;
+  const wantBelow = rng.int(0, 2); // 0: answer smallest, 1: middle, 2: largest
+  const wrong = [...item.wrong];
+  const candidates = distractorCandidates(item.right).filter((c) => Number.isFinite(answerValue(c)) && answerValue(c) >= 0 && Math.abs(answerValue(c) - target) > 1e-9);
+  for (let guard = 0; guard < 2; guard++) {
+    const below = wrong.filter((w) => answerValue(w) < target).length;
+    if (below === wantBelow) break;
+    const needBelow = below < wantBelow;
+    const out = wrong.findIndex((w) => (answerValue(w) < target) !== needBelow);
+    const other = wrong[1 - out];
+    const swap = candidates.find((c) => (answerValue(c) < target) === needBelow && Math.abs(answerValue(c) - answerValue(other)) > 1e-9 && !wrong.includes(c));
+    if (!swap) return item;
+    wrong[out] = swap;
+  }
+  return { ...item, wrong: [wrong[0], wrong[1]] };
+}
+
 export function generateQuestions(missionId: string, baseQuestionIds: string[], seed: number, count: number): PracticeQuestion[] {
   const recipe = RECIPES[missionId];
   if (!recipe) throw new Error(`No question generator for ${missionId}`);
@@ -448,7 +484,7 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
     out.push({
       id: `${missionId}-g${seed}-${out.length + 1}`,
       prompt: item.prompt,
-      ...place(item, rng.int(0, 2)),
+      ...place(balanceChoices(item, rng), rng.int(0, 2)),
       hint: item.hint,
       retryFeedback: item.retry,
       model: nameBars(item.model, item.prompt),

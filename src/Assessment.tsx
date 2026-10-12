@@ -213,7 +213,7 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
   return (
     <div className="fq-app">
       <main className="fq-shell fq-assessment-runner fq-appear" data-testid="assessment-runner">
-        <TaskBar onBack={onExit} backLabel="Leave" testId="button-assessment-exit" title={definition.title} step={index + 1} total={items.length} />
+        <TaskBar onBack={onExit} backLabel="Leave" backAriaLabel="Leave the check-in" testId="button-assessment-exit" title={definition.title} step={index + 1} total={items.length} />
         <form className="fq-assessment-question" onSubmit={submit}>
           <h2 id={promptId} className="fq-question-text"><LearningText text={item.prompt} emphasize /></h2>
           <AssessmentModelBuilder key={item.id} item={item} onReady={modelReady} />

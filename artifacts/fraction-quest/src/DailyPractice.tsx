@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { ArrowRight, Check, Sparkles } from 'lucide-react';
 import type { DailyPracticeAttempt, DailyPracticeSession, ModelSpec } from './game';
 import { dailyBuildCorrect, dailyChoiceQuestion } from './daily-practice';
@@ -9,6 +9,20 @@ import { LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
 import { LiveFraction } from './fraction-ui';
 import { useRevealWhen } from './lib/reveal';
+
+/** Arrow keys move through a radio group and choose (the usual radio-button pattern). */
+function radioArrows(event: KeyboardEvent<HTMLDivElement>) {
+  const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0;
+  if (!step) return;
+  const options = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]:not(:disabled)')];
+  if (!options.length) return;
+  event.preventDefault();
+  const at = options.indexOf(document.activeElement as HTMLButtonElement);
+  const next = options[(at + step + options.length) % options.length];
+  next.focus(); next.click();
+}
+/** Only the chosen option (or the first) is a Tab stop. */
+const tabStop = (selected: boolean, index: number, anySelected: boolean) => (selected || (!anySelected && index === 0) ? 0 : -1);
 
 const emptyAttempt = (): DailyPracticeAttempt => ({
   shaded: [],
@@ -101,9 +115,9 @@ export default function DailyPractice({
     return shell(<>
       <h2 id="daily-question-title" ref={questionHeading} tabIndex={-1} className="fq-question-text"><LearningText text={topicQuestion.prompt} speak emphasize /></h2>
       {renderModel && <div className="fq-daily-picture">{renderModel(topicQuestion.model, done)}</div>}
-      <div className="fq-daily-choices" role="radiogroup" aria-label="Answer choices">
+      <div className="fq-daily-choices" role="radiogroup" aria-label="Answer choices" onKeyDown={radioArrows}>
         {topicQuestion.choices.map((choice, index) => (
-          <button key={index} type="button" role="radio" aria-checked={attempt.choice === index} disabled={done}
+          <button key={index} type="button" role="radio" aria-checked={attempt.choice === index} disabled={done} tabIndex={tabStop(attempt.choice === index, index, attempt.choice !== undefined)}
             className={`fq-daily-choice ${attempt.choice === index ? 'selected' : ''} ${done && index === topicQuestion.correctChoice ? 'right' : ''}`}
             onClick={() => setAttempt({ ...attempt, choice: index, answerChecked: false, answerCorrect: false })} data-testid={`button-daily-choice-${index}`}>
             <MathText text={choice} />
@@ -148,9 +162,9 @@ export default function DailyPractice({
     <p className="fq-daily-choice-label" id="daily-parts-label">
       {bar ? 'Total equal parts in one whole' : 'Equal spaces from 0 to 1'}
     </p>
-    <div className="fq-daily-parts" role="radiogroup" aria-labelledby="daily-parts-label" aria-describedby="daily-parts-instruction">
+    <div className="fq-daily-parts" role="radiogroup" aria-labelledby="daily-parts-label" aria-describedby="daily-parts-instruction" onKeyDown={radioArrows}>
       {Array.from({ length: 11 }, (_, k) => k + 2).map((n) => (
-        <button key={n} type="button" role="radio" aria-checked={parts === n} disabled={done}
+        <button key={n} type="button" role="radio" aria-checked={parts === n} disabled={done} tabIndex={tabStop(parts === n, n - 2, !!parts)}
           className={`fq-daily-parts-choice ${parts === n ? 'selected' : ''}`}
           aria-label={bar ? `${n} equal parts in one whole` : `${n} equal spaces from 0 to 1`}
           onClick={() => change({ parts: n, shaded: [] })} data-testid={`button-daily-parts-${n}`}>{n}</button>
@@ -176,7 +190,7 @@ export default function DailyPractice({
     ) : (
       <>
         <div className="fq-daily-line-endpoints" aria-hidden="true"><span>0</span><span>1</span></div>
-        <div className="fq-daily-line-track" role="radiogroup" aria-label={`Choose a landing point on the number line from 0 to 1, split into ${parts} equal spaces.`}>
+        <div className="fq-daily-line-track" role="radiogroup" aria-label={`Choose a landing point on the number line from 0 to 1, split into ${parts} equal spaces.`} onKeyDown={radioArrows}>
           <span
             className="fq-daily-line-progress"
             style={{ width: `${attempt.shaded.length / parts * 100}%` }}
@@ -186,7 +200,7 @@ export default function DailyPractice({
             const jumps = index + 1;
             const selected = attempt.shaded.length === jumps;
             return (
-              <button type="button" role="radio" aria-checked={selected}
+              <button type="button" role="radio" aria-checked={selected} tabIndex={tabStop(selected, index, attempt.shaded.length > 0)}
                 className={`fq-daily-jump ${jumps <= attempt.shaded.length ? 'passed' : ''} ${selected ? 'landing' : ''}`}
                 style={{ left: `${jumps / parts * 100}%`, width: `min(44px, ${100 / parts}%)` }}
                 key={index}

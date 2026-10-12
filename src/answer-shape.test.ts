@@ -44,3 +44,12 @@ describe('answers are built with tiles, never typed', () => {
     assert.equal(slotAnswer({ kind: 'number', suffix: '%' }, { n: '50' }), '50%');
   });
 });
+
+describe('check-ins', () => {
+  it('never ask the same question twice', () => {
+    for (const definition of getAssessmentDefinitions()) for (const seed of [1, 2, 5, 9]) {
+      const prompts = buildAssessmentItems(definition, seed).map((item) => item.prompt);
+      assert.equal(new Set(prompts).size, prompts.length, `${definition.id} seed ${seed}`);
+    }
+  });
+});

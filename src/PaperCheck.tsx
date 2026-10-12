@@ -63,7 +63,7 @@ function ChallengePaper({ unit, best, onScore }: { unit: number; best: number | 
   );
 }
 
-/** Check printed sheets: tap the circled letters from the practice sheet and type the worksheet answers. */
+/** Check printed sheets: tap the circled letters from the practice sheet and build the worksheet answers with tiles. */
 export default function PaperCheck({ missionId, progress, onChange, onBack, onLab }: {
   missionId: string; progress: Progress; onChange: (progress: Progress) => void; onBack: () => void; onLab: () => void;
 }) {

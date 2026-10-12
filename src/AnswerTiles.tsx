@@ -115,7 +115,7 @@ function NumberSlots({ shape, value, onChange, disabled, testIdPrefix, label }: 
             aria-label={`Put ${digit} in the ${SLOT_LABEL[active]}`} data-testid={`tile-${testIdPrefix}-digit-${digit}`}>{digit}</button>
         ))}
       </div>
-      {!disabled && <p className="fq-tile-help">Drag numbers into the boxes, or tap a box and then tap numbers.</p>}
+      {!disabled && <p className="fq-tile-help">Drag numbers into the boxes, or tap a box and then tap numbers.{shape.kind === 'mixed' && shape.flexible ? ' Leave a box empty if your answer doesn’t need it.' : ''}</p>}
     </div>
   );
 }
