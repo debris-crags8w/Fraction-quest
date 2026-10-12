@@ -122,7 +122,9 @@ export function createLearningSpeechController(
   const clearVoiceWait = () => {
     if (waitTimer !== undefined) clearTimeout(waitTimer);
     waitTimer = undefined;
-    if (waitingListener) synthesis.removeEventListener('voiceschanged', waitingListener);
+    if (waitingListener && typeof synthesis.removeEventListener === 'function') {
+      try { synthesis.removeEventListener('voiceschanged', waitingListener); } catch { /* older browsers may expose partial event support */ }
+    }
     waitingListener = undefined;
     waitingForVoices = false;
   };
@@ -136,12 +138,11 @@ export function createLearningSpeechController(
   const stop = () => {
     generation += 1;
     clearVoiceWait();
-    natural.stop();
+    try { natural.stop(); } catch { /* keep the device speech controls usable if the natural player fails */ }
     try {
-      synthesis.cancel();
-    } finally {
-      setSpeaking(false);
-    }
+      if (typeof synthesis.cancel === 'function') synthesis.cancel();
+    } catch { /* some mobile browsers expose speech synthesis without every control method */ }
+    setSpeaking(false);
   };
 
   const startUtterance = (text: string, language: string, playback: number, voices: readonly SpeechSynthesisVoice[]) => {
@@ -216,8 +217,13 @@ export function createLearningSpeechController(
           if (latestVoices.length === 0 && waitTimer !== undefined) return;
           startUtterance(text, language, playback, latestVoices);
         };
-        waitingListener = startWithCurrentVoices;
-        synthesis.addEventListener('voiceschanged', startWithCurrentVoices);
+        // Safari and embedded iOS browsers can expose speechSynthesis while missing
+        // one or both EventTarget methods. In that case, use the timed default-voice
+        // fallback below rather than throwing from the Listen button.
+        if (typeof synthesis.addEventListener === 'function' && typeof synthesis.removeEventListener === 'function') {
+          waitingListener = startWithCurrentVoices;
+          try { synthesis.addEventListener('voiceschanged', startWithCurrentVoices); } catch { waitingListener = undefined; }
+        }
         waitTimer = setTimeout(() => {
           waitTimer = undefined;
           startWithCurrentVoices();

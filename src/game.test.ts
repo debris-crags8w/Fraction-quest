@@ -830,6 +830,26 @@ describe('entered-answer worksheets and evidence gates', () => {
     controller.dispose();
   });
 
+  it('uses the device default when mobile speech synthesis has no voice-change event methods', async () => {
+    const utterances: SpeechSynthesisUtterance[] = [];
+    const fakeSynthesis = {
+      getVoices: () => [] as SpeechSynthesisVoice[],
+      speak(utterance: SpeechSynthesisUtterance) { utterances.push(utterance); },
+    } as unknown as SpeechSynthesis;
+    const states: boolean[] = [];
+    const natural = { ready: () => false, speak() {}, stop() {}, warmUp() {} };
+    const controller = createLearningSpeechController(fakeSynthesis, (value) => states.push(value), makeTestSpeechUtterance, 0, () => null, natural);
+
+    assert.doesNotThrow(() => controller.speak('Use the device voice.', 'en-US'));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(utterances.length, 1);
+    assert.equal(utterances[0].voice, null);
+    assert.equal(utterances[0].lang, 'en-US');
+    controller.stop();
+    assert.equal(states.at(-1), false);
+    controller.dispose();
+  });
+
   it('keeps answer keys out of every student printable and student print choices', () => {
     assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.label.toLowerCase().includes('answer key')), false);
     assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.mode === 'answers'), true);
