@@ -41,6 +41,12 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Mobile browser toolbars no longer cover buttons.** User saw Safari's floating address bar over Daily's Next button.
+  `viewport-fit=cover`; on touch devices (`hover: none, pointer: coarse`) `--fq-bottom-clear` = safe-area + 64px pads
+  the body and lifts the fixed lesson footer; buttons get a matching `scroll-margin-bottom`. `src/lib/reveal.ts`
+  `useRevealWhen` scrolls the next needed button into view when it appears (Daily check/next, worksheet Check,
+  check-in submit, level quiz Next); it only fires on a false→true change, never on first render. Not testable on a
+  real iPhone from the sandbox: confirm on device.
 - **No typed answers anywhere a child answers (user rule: no commas, no typing; prefer drag and drop).**
   `src/answer-shape.ts` picks a tile control from the question's wording/format (never its value): number, fraction
   (whole allowed when "= ?"), mixed, decimal, percent, pick (the question names its choices), symbol (<, =, > into the

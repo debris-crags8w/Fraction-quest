@@ -20,6 +20,7 @@ import { TaskBar } from './TaskBar';
 import { LiveFraction } from './fraction-ui';
 import { AnswerTiles } from './AnswerTiles';
 import { answerShape } from './answer-shape';
+import { useRevealWhen } from './lib/reveal';
 
 type Kind = LearningModel['kind'];
 type St = { d: number; wholes: number; count: number };
@@ -376,6 +377,8 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
   const [wrong, setWrong] = useState<string | null>(null);
   const yesNo = isYesNoProblem(p);
   const shape = answerShape(p);
+  const checkRef = useRef<HTMLButtonElement>(null);
+  useRevealWhen(checkRef, !!draft.trim() && !ok);
   const promptId = `ws-prompt-${p.id}`;
   const targetBar = p.modelRequired && p.model?.kind === 'bar' ? p.model : null;
   const gated = !!targetBar || !!(p.area && p.areaTask) || !!p.rulerTask || !!p.linePlotTask || !!p.scaleTask;
@@ -423,7 +426,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
         {!yesNo && <AnswerTiles key={p.id + p.prompt} shape={shape} value={draft} onChange={value => { setWrong(null); onEdit(value); }}
           disabled={!answerEnabled || ok} testIdPrefix={'ws-' + p.id} />}
         <div className="fq-ll-answer" aria-busy={!answerEnabled}>
-          <button type="submit" className="fq-button" disabled={!draft.trim() || ok || !answerEnabled} data-testid={'button-check-worksheet-' + p.id}>{ok ? 'Correct' : 'Check'}</button>
+          <button ref={checkRef} type="submit" className="fq-button" disabled={!draft.trim() || ok || !answerEnabled} data-testid={'button-check-worksheet-' + p.id}>{ok ? 'Correct' : 'Check'}</button>
           <button type="button" className="fq-ll-hintbtn" aria-expanded={open} onClick={() => { if (!open) onHint(); setOpen(o => !o); }} data-testid={'button-hint-worksheet-' + p.id}><Lightbulb size={16} /> Hint</button>
         </div>
         <div id={'ws-fb-' + p.id} aria-live="polite">

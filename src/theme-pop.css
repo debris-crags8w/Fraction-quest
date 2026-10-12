@@ -1755,3 +1755,19 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 /* Brand: the mark is a pie with 3 of 4 equal slices filled. */
 .fq-brand-mark::after { display: none; }
 .fq-login-brand { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Phones and tablets: browser toolbars (like Safari's floating address bar) sit on top of the page's bottom
+   edge. Keep a clear space there so the last button can always be scrolled above the toolbar, and lift the
+   lesson's fixed bottom bar above it. */
+:root { --fq-bottom-clear: env(safe-area-inset-bottom, 0px); }
+@media (hover: none) and (pointer: coarse) {
+  :root { --fq-bottom-clear: calc(env(safe-area-inset-bottom, 0px) + 64px); }
+  body { padding-bottom: var(--fq-bottom-clear); }
+  .fq-lesson-footer { padding-bottom: calc(16px + var(--fq-bottom-clear)); }
+  .fq-lesson-app { padding-bottom: calc(150px + var(--fq-bottom-clear)); }
+}
+@media (hover: none) and (pointer: coarse) {
+  .fq-app { min-height: calc(100dvh - var(--fq-bottom-clear)); }
+}
+/* Buttons scrolled into view stop above the browser toolbar. */
+.fq-button, .fq-reveal-target { scroll-margin-bottom: calc(16px + var(--fq-bottom-clear)); scroll-margin-top: 12px; }

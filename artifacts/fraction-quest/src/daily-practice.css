@@ -83,3 +83,7 @@
 @media (prefers-reduced-motion: reduce) {
   .fq-daily-progress-track span, .fq-daily-part { transition: none; }
 }
+@media (max-width: 480px) {
+  .fq-daily-instruction { margin-bottom: 12px; font-size: .92rem; line-height: 1.4; }
+  .fq-daily-feedback { padding: 10px 12px; font-size: .95rem; }
+}

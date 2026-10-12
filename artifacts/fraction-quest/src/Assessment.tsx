@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, ArrowRight, BarChart3, Check, RotateCcw } from 'lucide-react';
 import { MathText } from './MathText';
 import { AnswerTiles } from './AnswerTiles';
 import { answerShape } from './answer-shape';
+import { useRevealWhen } from './lib/reveal';
 import { YesNoCards } from './YesNoCards';
 import { isYesNoProblem } from './learning-content';
 import { AreaShade, AreaSvg } from './AreaModel';
@@ -161,6 +162,8 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
   const items = useMemo(() => buildAssessmentItems(definition, seed), [definition, seed]);
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState('');
+  const submitRef = useRef<HTMLButtonElement>(null);
+  useRevealWhen(submitRef, !!answer.trim());
   const [modelBuilt, setModelBuilt] = useState(false);
   const [modelCorrect, setModelCorrect] = useState(false);
   const [responses, setResponses] = useState<AssessmentAttempt['responses']>([]);
@@ -221,7 +224,7 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
             ? <YesNoCards value={answer} onChange={setAnswer} disabled={!modelBuilt} testIdPrefix={`assessment-${index + 1}`} />
             : <AnswerTiles key={item.id} shape={answerShape(item.problem)} value={answer} onChange={setAnswer} disabled={!modelBuilt} testIdPrefix={`assessment-${index + 1}`} label="Your answer" />}
           <div className="fq-assessment-answer">
-            <button type="submit" className="fq-button" disabled={!modelBuilt || !answer.trim()} data-testid="button-submit-assessment-answer">
+            <button ref={submitRef} type="submit" className="fq-button" disabled={!modelBuilt || !answer.trim()} data-testid="button-submit-assessment-answer">
               {index === items.length - 1 ? 'Finish check-in' : 'Next question'} <ArrowRight size={16} />
             </button>
           </div>

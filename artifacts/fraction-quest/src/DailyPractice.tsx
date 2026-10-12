@@ -8,6 +8,7 @@ import './daily-practice.css';
 import { LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
 import { LiveFraction } from './fraction-ui';
+import { useRevealWhen } from './lib/reveal';
 
 const emptyAttempt = (): DailyPracticeAttempt => ({
   shaded: [],
@@ -41,6 +42,12 @@ export default function DailyPractice({
   useEffect(() => {
     questionHeading.current?.focus({ preventScroll: true });
   }, [session.index]);
+  // Keep the button the child needs next above the browser's bottom toolbar.
+  const nextRef = useRef<HTMLButtonElement>(null);
+  const checkRef = useRef<HTMLButtonElement>(null);
+  const current = question ? session.attempts[question.id] : undefined;
+  useRevealWhen(nextRef, !!current?.answerCorrect);
+  useRevealWhen(checkRef, !current?.answerCorrect && (current?.choice !== undefined || (!!current?.parts && (current?.shaded.length ?? 0) > 0)));
   if (!question || session.completedAt) {
     return (
       <div className="fq-app">
@@ -73,7 +80,7 @@ export default function DailyPractice({
   };
   const nextButton = (
     <div className="fq-daily-actions">
-      <button className="fq-button" onClick={continueSession} data-testid="button-daily-next">
+      <button ref={nextRef} className="fq-button" onClick={continueSession} data-testid="button-daily-next">
         {session.index === session.questions.length - 1 ? 'Finish today’s practice' : 'Next question'} <ArrowRight size={17} />
       </button>
     </div>
@@ -107,7 +114,7 @@ export default function DailyPractice({
       {done && <div className="fq-daily-feedback success" role="status"><strong>That’s it!</strong> <MathText text={topicQuestion.retryFeedback} /></div>}
       {done ? nextButton : (
         <div className="fq-daily-actions">
-          <button className="fq-button" onClick={check} disabled={attempt.choice === undefined} data-testid="button-daily-check-answer">Check my answer <Check size={17} /></button>
+          <button ref={checkRef} className="fq-button" onClick={check} disabled={attempt.choice === undefined} data-testid="button-daily-check-answer">Check my answer <Check size={17} /></button>
           {hintButton}
         </div>
       )}
@@ -199,7 +206,7 @@ export default function DailyPractice({
     {done && <div className="fq-daily-feedback success" role="status"><strong>That’s it!</strong> {parts === question.denominator ? question.explanation : `${attempt.shaded.length}/${parts} is the same amount as ${question.numerator}/${question.denominator}.`}</div>}
     {done ? nextButton : (
       <div className="fq-daily-actions">
-        <button className="fq-button" onClick={checkModel} disabled={!parts || attempt.shaded.length === 0} data-testid="button-daily-check-model">Check my model <Check size={17} /></button>
+        <button ref={checkRef} className="fq-button" onClick={checkModel} disabled={!parts || attempt.shaded.length === 0} data-testid="button-daily-check-model">Check my model <Check size={17} /></button>
         {hintButton}
       </div>
     )}

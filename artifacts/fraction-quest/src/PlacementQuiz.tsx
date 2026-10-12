@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, ArrowRight, Compass, Map as MapIcon } from 'lucide-react';
 import { answerMatches, isYesNoProblem, paperPrompt, yesNoPrompt } from './learning-content';
 import { MathText } from './MathText';
@@ -9,6 +9,7 @@ import { PER_UNIT, PLACEMENT_UNITS, placementItems, startUnit } from './placemen
 import { YesNoCards } from './YesNoCards';
 import { AnswerTiles } from './AnswerTiles';
 import { answerShape } from './answer-shape';
+import { useRevealWhen } from './lib/reveal';
 
 /* "Find my level": a short typed-answer quiz, unit by unit, that stops at the first unit not yet known. */
 
@@ -22,6 +23,8 @@ export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
   const [rightInUnit, setRightInUnit] = useState(0);
   const [passed, setPassed] = useState(0);
   const [draft, setDraft] = useState('');
+  const nextRef = useRef<HTMLButtonElement>(null);
+  useRevealWhen(nextRef, !!draft.trim());
   const items = useMemo(() => placementItems(unit, seed), [unit, seed]);
   const item = items[index];
 
@@ -87,7 +90,7 @@ export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
           ) : (
             <AnswerTiles key={`${unit}-${index}`} shape={answerShape(item.problem)} value={draft} onChange={setDraft} testIdPrefix="placement" />
           )}
-          <button type="submit" className="fq-button" disabled={!draft.trim()} data-testid="button-placement-next">Next <ArrowRight size={17} /></button>
+          <button ref={nextRef} type="submit" className="fq-button" disabled={!draft.trim()} data-testid="button-placement-next">Next <ArrowRight size={17} /></button>
         </form>
         <button type="button" className="fq-button ghost fq-place-skip" onClick={() => record(false)} data-testid="button-placement-unknown">I haven't learned this yet</button>
       </section>
