@@ -9,6 +9,7 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { FunContext, splitStory } from './fun-ui';
 import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
+import { naturalVoicePreference, naturalVoiceStatus, setNaturalVoicePreference } from './lib/natural-voice';
 import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
 import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './FractionRace';
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
@@ -693,7 +694,9 @@ describe('entered-answer worksheets and evidence gates', () => {
   it('shows the family voice-selection section and explains when local speech is unsupported', () => {
     const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
     assert.match(markup, /Read-aloud voice/);
-    assert.match(markup, /Preview voices available on this device/);
+    assert.match(markup, /Natural voice/);
+    assert.match(markup, /Device voices/);
+    assert.match(markup, /can’t run the natural voice/, 'without browser support the natural voice explains the fallback');
     assert.match(markup, /Read-aloud voices are not available in this browser/);
   });
 
@@ -2345,5 +2348,60 @@ describe('fraction labels on bar models', () => {
     assert.deepEqual(labels(compare.model), [true, true]);
     const practice = generateQuestions('compare-same-numerator', ['x'], 2, 6);
     assert.ok(practice.every((q) => labels(q.model).every(Boolean)));
+  });
+});
+
+describe('natural read-aloud voice', () => {
+  const device = () => {
+    const utterances: SpeechSynthesisUtterance[] = [];
+    const synthesis = {
+      getVoices: () => [{ name: 'Samantha', lang: 'en-US', default: true }] as SpeechSynthesisVoice[],
+      speak(utterance: SpeechSynthesisUtterance) { utterances.push(utterance); },
+      cancel() {}, addEventListener() {}, removeEventListener() {},
+    } as unknown as SpeechSynthesis;
+    return { utterances, synthesis };
+  };
+  const reader = (ready: boolean, ok = true) => {
+    const calls = { spoken: [] as string[][], warmUps: 0, stops: 0 };
+    return { calls, natural: {
+      ready: () => ready,
+      speak(parts: string[], done: (ok: boolean) => void) { calls.spoken.push(parts); done(ok); },
+      stop() { calls.stops++; },
+      warmUp() { calls.warmUps++; },
+    } };
+  };
+  it('reads with the natural voice once it is ready, in sentences, with fractions said aloud', () => {
+    const { utterances, synthesis } = device(); const { calls, natural } = reader(true);
+    const states: boolean[] = [];
+    const controller = createLearningSpeechController(synthesis, (s) => states.push(s), makeTestSpeechUtterance, 0, () => null, natural);
+    controller.speak('Compare 3/4 with 3/8. Fourths are bigger.', 'en-US');
+    assert.deepEqual(calls.spoken, [['Compare three fourths with three eighths.', 'Fourths are bigger.']]);
+    assert.equal(utterances.length, 0, 'the device voice is not used');
+    assert.deepEqual(states, [true, false]);
+    controller.dispose();
+  });
+  it('uses the device voice while the natural voice downloads, and falls back if it fails', () => {
+    const first = device(); const loading = reader(false);
+    const c1 = createLearningSpeechController(first.synthesis, () => undefined, makeTestSpeechUtterance, 0, () => null, loading.natural);
+    c1.speak('One half.', 'en-US');
+    assert.equal(loading.calls.warmUps, 1, 'starts the one-time download');
+    assert.equal(first.utterances.length, 1);
+    c1.dispose();
+    const second = device(); const broken = reader(true, false);
+    const c2 = createLearningSpeechController(second.synthesis, () => undefined, makeTestSpeechUtterance, 0, () => null, broken.natural);
+    c2.speak('One half.', 'en-US');
+    assert.equal(second.utterances.length, 1, 'a failed natural reading falls back to the device voice');
+    c2.dispose();
+  });
+  it('is on by default and remembers a grown-up turning it off', () => {
+    const store = new Map<string, string>();
+    (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v); } };
+    assert.equal(naturalVoicePreference(), 'af_heart');
+    setNaturalVoicePreference('off');
+    assert.equal(naturalVoicePreference(), 'off');
+    assert.equal(naturalVoiceStatus().state, 'off');
+    setNaturalVoicePreference('af_bella');
+    assert.equal(naturalVoicePreference(), 'af_bella');
+    delete (globalThis as { localStorage?: unknown }).localStorage;
   });
 });

@@ -41,6 +41,14 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Natural voice (Kokoro, option A) + bar labels (main):** src/lib/natural-voice.ts loads kokoro-js lazily (q8, wasm,
+  model from huggingface.co, ~90 MB once; ort wasm is bundled into dist). Default voice af_heart; 'off' or another voice
+  saved in localStorage 'fraction-quest-natural-voice'; grown-ups' NaturalVoiceSettings in LearningText.tsx.
+  createLearningSpeechController takes a NaturalReader: uses it when ready (English), else warmUp() + device voice; falls
+  back to the device voice if a natural reading fails. Could NOT test real audio here (huggingface.co blocked by the
+  sandbox proxy); needs a listen on a real device. Bar labels: FractionValue.named via nameBars(model, prompt) (exact
+  n/d match); ModelView `reveal` after a correct answer; BarSvg `fraction` prop. Daily Practice number line: ticks +
+  one landing dot (was a circle mid-space with a stray tick).
 - **Models everywhere + whole bracket + grade-4 multiply (main):** user wants a visual on EVERY question/answer and
   shaded compare models (reverted last round's unshaded compare pictures). src/auto-picture.ts (amountsIn/autoPicture +
   story pictures) feeds worksheet `picture` (getWorksheet tag), practice() equation → bars, problemPicture fallback (also

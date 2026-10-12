@@ -41,7 +41,7 @@ gate on the right answer.
 - Password reset (owner to choose: parent email link, printed recovery code, or parent/teacher reset).
 - Privacy policy page and a COPPA data-handling review (needs company name, contact email, country/state).
 - Spanish (deferred by the owner).
-- A more natural read-aloud voice (options given to the owner: in-browser open-source neural voice, or a cloud TTS free tier).
+- Natural voice (Kokoro, in the browser) is built; it still needs a listen on a real device.
 - The iOS app (kept on the `ios-local-icloud` branch; the owner may redo the conversion).
 
 ---
