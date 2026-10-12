@@ -1,7 +1,7 @@
 import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import type { Request, Response } from "express";
-import { and, eq, gt, lt } from "drizzle-orm";
+import { and, eq, gt, lt, ne } from "drizzle-orm";
 import { db, sessionsTable, usersTable, type User } from "@workspace/db";
 
 const scrypt = promisify(scryptCb) as (password: string, salt: Buffer, keylen: number, options: { N: number; r: number; p: number }) => Promise<Buffer>;
@@ -42,11 +42,32 @@ export function normalizeUsername(username: string): string {
   return username.trim().toLowerCase();
 }
 
+/** A recovery code like "K7QM-2XTB-9HPA": 12 characters with no look-alikes (no 0/O, 1/I/L), about 60 bits. */
+const RECOVERY_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+export function makeRecoveryCode(): string {
+  const bytes = randomBytes(12);
+  const chars = Array.from(bytes, (byte) => RECOVERY_ALPHABET[byte % RECOVERY_ALPHABET.length]).join("");
+  return `${chars.slice(0, 4)}-${chars.slice(4, 8)}-${chars.slice(8, 12)}`;
+}
+/** How a typed code is compared: case and dashes/spaces don't matter. */
+export const normalizeRecoveryCode = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+/** End every session for this user except the one making the request (after a password change). */
+export async function endOtherSessions(req: Request, userId: number): Promise<void> {
+  const token = req.cookies?.[SESSION_COOKIE];
+  const keep = typeof token === "string" && token ? hashToken(token) : "";
+  await db.delete(sessionsTable).where(and(eq(sessionsTable.userId, userId), ne(sessionsTable.tokenHash, keep)));
+}
+export async function endAllSessions(userId: number): Promise<void> {
+  await db.delete(sessionsTable).where(eq(sessionsTable.userId, userId));
+}
+
 export function publicUser(user: User) {
   return {
     id: user.id,
     username: user.username,
     displayName: user.displayName,
+    hasRecoveryCode: !!user.recoveryCodeHash,
     parentConsentAt: user.parentConsentAt?.toISOString() ?? null,
     privacyNoticeVersion: user.privacyNoticeVersion ?? null,
   };

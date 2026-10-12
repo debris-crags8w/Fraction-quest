@@ -21,6 +21,49 @@ export interface User {
   parentConsentAt: string | null;
   /** @nullable */
   privacyNoticeVersion: string | null;
+  hasRecoveryCode: boolean;
+}
+
+export interface UserWithRecoveryCode {
+  id: number;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  parentConsentAt: string | null;
+  /** @nullable */
+  privacyNoticeVersion: string | null;
+  hasRecoveryCode: boolean;
+  recoveryCode: string;
+}
+
+export interface RecoveryCode {
+  recoveryCode: string;
+}
+
+export interface RecoverAccountInput {
+  /**
+     * @minLength 1
+     * @maxLength 40
+     */
+  username: string;
+  /**
+     * @minLength 1
+     * @maxLength 40
+     */
+  recoveryCode: string;
+  /**
+     * @minLength 8
+     * @maxLength 72
+     */
+  newPassword: string;
+}
+
+export interface SetPasswordInput {
+  /**
+     * @minLength 8
+     * @maxLength 72
+     */
+  newPassword: string;
 }
 
 export interface SignupRequest {
