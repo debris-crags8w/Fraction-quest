@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { MISSIONS } from '../src/game';
 import { getBuildChecks, getWorksheet } from '../src/learning-content';
 
 async function openAsGuest(page: import('@playwright/test').Page) {
@@ -9,7 +10,7 @@ async function openAsGuest(page: import('@playwright/test').Page) {
   }));
   await page.goto('/');
   await page.getByTestId('button-play-guest').click();
-  await expect(page.getByTestId('button-continue-course')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
 }
 
 test('a new learner can start a lesson from the top of the course', async ({ page }) => {
@@ -21,6 +22,44 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
   await expect(page.locator('#lesson-title')).toBeVisible();
   await expect(page.getByTestId('button-listen-learning-text').first()).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
+});
+
+test('all 68 lessons render their worked model and first interactive question', async ({ page }) => {
+  test.setTimeout(300_000);
+  const lessonIds = MISSIONS.map((mission) => mission.id);
+  await page.addInitScript((ids) => {
+    const completedAt = Date.now();
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({
+      completedMissionIds: ids,
+      starsByMission: {},
+      reviewQueue: [],
+      learning: Object.fromEntries(ids.map((id) => [id, { completedAt }])),
+      assessments: [],
+    }));
+  }, lessonIds);
+  await openAsGuest(page);
+
+  for (const mission of MISSIONS) {
+    await page.getByTestId(`button-node-${mission.id}`).click();
+    const startLesson = page.getByTestId(`button-start-mission-${mission.id}`);
+    await expect(startLesson).toBeEnabled();
+    await startLesson.click();
+
+    await expect(page.locator('#lesson-title')).toHaveText(mission.title);
+    await expect(page.locator('.fq-example .fq-model-area')).toBeVisible();
+    await page.getByTestId('button-start-practice').click();
+
+    const question = mission.questions[0];
+    await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
+    await expect(page.locator('.fq-model-area')).toBeVisible();
+    await expect(page.locator('.fq-answer-choices button')).toHaveCount(question.choices.length);
+    await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
+    await page.getByTestId('button-check-answer').click();
+    await expect(page.getByTestId('status-feedback')).toBeVisible();
+
+    await page.getByTestId('button-back-map').click();
+    await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+  }
 });
 
 test('a completed learner can open a redo section without changing the lesson route', async ({ page }) => {
