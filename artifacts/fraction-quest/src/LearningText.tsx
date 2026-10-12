@@ -4,7 +4,7 @@ import { useOptionalFun } from './fun-ui';
 import { setLearningVoicePreference } from './lib/fun';
 import { MathText } from './MathText';
 import { selectLearningVoice as selectGentleVoice, sentences, spokenText, VOICE_PITCH, VOICE_RATE } from './lib/voice';
-import { createNaturalSpeaker, NATURAL_VOICES, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, setNaturalVoicePreference, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoiceStatus } from './lib/natural-voice';
+import { createNaturalSpeaker, NATURAL_VOICES, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, setNaturalVoicePreference, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoicePhase, type NaturalVoiceStatus } from './lib/natural-voice';
 
 type VocabularyEntry = { pattern: string; definition: string };
 
@@ -282,7 +282,7 @@ export function createLearningSpeechController(
 }
 
 /** What the controller needs from the natural voice (injectable for tests). */
-export type NaturalReader = { ready(): boolean; speak(parts: string[], onDone: (ok: boolean) => void): void; stop(): void; warmUp(): void };
+export type NaturalReader = { ready(): boolean; speak(parts: string[], onDone: (ok: boolean) => void, onPhase?: (phase: NaturalVoicePhase) => void): void; stop(): void; warmUp(): void };
 function defaultNaturalReader(): NaturalReader {
   const speaker = createNaturalSpeaker();
   return { ready: naturalVoiceReady, speak: speaker.speak, stop: speaker.stop, warmUp: () => { void warmUpNaturalVoice(); } };
@@ -295,6 +295,7 @@ function NaturalVoiceSettings() {
   const [status, setStatus] = useState<NaturalVoiceStatus>(() => naturalVoiceStatus());
   const [choice, setChoice] = useState(naturalVoicePreference);
   const [previewing, setPreviewing] = useState(false);
+  const [previewPhase, setPreviewPhase] = useState<NaturalVoicePhase>('preparing');
   const [previewMessage, setPreviewMessage] = useState('');
   const speaker = useRef<ReturnType<typeof createNaturalSpeaker> | null>(null);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -320,18 +321,19 @@ function NaturalVoiceSettings() {
     }
     setPreviewMessage('');
     setPreviewing(true);
+    setPreviewPhase('preparing');
     previewTimer.current = setTimeout(() => {
       previewTimer.current = null;
       speaker.current?.stop();
       setPreviewing(false);
       setPreviewMessage('This natural voice is taking too long to preview here. Try a device voice below.');
-    }, 20_000);
+    }, 80_000);
     speaker.current.speak([VOICE_PREVIEW], (ok) => {
       if (previewTimer.current !== null) clearTimeout(previewTimer.current);
       previewTimer.current = null;
       setPreviewing(false);
       setPreviewMessage(ok ? '' : 'This natural voice could not finish its preview here. Try a device voice below.');
-    });
+    }, setPreviewPhase);
   };
   const statusText = status.state === 'off' ? 'Off: lessons use the device voice.'
     : status.state === 'unsupported' ? 'This browser can’t run the natural voice, so lessons use the device voice.'
@@ -356,6 +358,9 @@ function NaturalVoiceSettings() {
         {(status.state === 'idle' || status.state === 'error') && <button type="button" className="fq-button ghost" onClick={() => { void warmUpNaturalVoice(); }} data-testid="button-download-natural-voice">Download now</button>}
         {status.state === 'ready' && <button type="button" className="fq-button ghost" onClick={preview} data-testid="button-preview-natural-voice"><Volume2 size={16} aria-hidden="true" /> {previewing ? 'Stop preview' : 'Preview voice'}</button>}
       </div>
+      {previewing && <p className="fq-parent-note" role="status" data-testid="status-natural-voice-preview-phase">
+        {previewPhase === 'preparing' ? 'Preparing your voice preview on this device…' : 'The voice preview is playing. Tap Stop preview to stop it.'}
+      </p>}
       {previewMessage && <p className="fq-learning-voice-fallback" role="alert" data-testid="status-natural-voice-preview">{previewMessage}</p>}
     </div>
   );

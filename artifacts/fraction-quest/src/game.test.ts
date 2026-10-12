@@ -2442,14 +2442,19 @@ describe('natural read-aloud voice', () => {
       duration: Number.NaN,
       pause() {},
       play() {
-        queueMicrotask(() => audio.onended?.(new Event('ended')));
+        queueMicrotask(() => {
+          audio.onplaying?.(new Event('playing'));
+          audio.onended?.(new Event('ended'));
+        });
         return undefined;
       },
     } as unknown as HTMLAudioElement;
     const speaker = createNaturalSpeaker(() => audio);
     try {
-      const result = new Promise<boolean>((resolve) => speaker.speak(['Hello there.'], resolve));
+      const phases: string[] = [];
+      const result = new Promise<boolean>((resolve) => speaker.speak(['Hello there.'], resolve, (phase) => phases.push(phase)));
       assert.equal(await result, true);
+      assert.deepEqual(phases, ['preparing', 'playing']);
     } finally {
       speaker.stop();
       setNaturalEngineForTests(null);

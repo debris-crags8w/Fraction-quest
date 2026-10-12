@@ -92,6 +92,7 @@ export function warmUpNaturalVoice(): Promise<NaturalEngine | null> {
 
 export const naturalVoiceReady = () => !!engine && currentChoice() !== 'off';
 export const naturalVoiceId = (): NaturalVoiceId | null => { const choice = currentChoice(); return choice === 'off' ? null : choice; };
+export type NaturalVoicePhase = 'preparing' | 'playing';
 
 function withTimeout<T>(operation: Promise<T>, timeoutMs: number, message: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -111,9 +112,15 @@ export function createNaturalSpeaker(makeAudio: (url: string) => HTMLAudioElemen
   const cleanUp = () => { current?.pause(); current = null; while (urls.length) URL.revokeObjectURL(urls.pop()!); };
   const GENERATION_TIMEOUT_MS = 30_000;
   const PLAYBACK_TIMEOUT_MS = 45_000;
-  const waitForPlayback = (audio: HTMLAudioElement) => new Promise<void>((resolve, reject) => {
+  const waitForPlayback = (audio: HTMLAudioElement, onPlaying?: () => void) => new Promise<void>((resolve, reject) => {
     let settled = false;
+    let started = false;
     let timer: ReturnType<typeof setTimeout>;
+    const markStarted = () => {
+      if (started) return;
+      started = true;
+      onPlaying?.();
+    };
     const finish = (error?: unknown) => {
       if (settled) return;
       settled = true;
@@ -121,6 +128,7 @@ export function createNaturalSpeaker(makeAudio: (url: string) => HTMLAudioElemen
       audio.onended = null;
       audio.onerror = null;
       audio.onabort = null;
+      audio.onplaying = null;
       audio.onloadedmetadata = null;
       if (error) reject(error);
       else resolve();
@@ -136,6 +144,7 @@ export function createNaturalSpeaker(makeAudio: (url: string) => HTMLAudioElemen
     audio.onended = () => finish();
     audio.onerror = () => finish(new Error('Audio playback failed'));
     audio.onabort = () => finish(new Error('Audio playback was interrupted'));
+    audio.onplaying = markStarted;
     audio.onloadedmetadata = setWatchdog;
     setWatchdog();
     try {
@@ -152,10 +161,15 @@ export function createNaturalSpeaker(makeAudio: (url: string) => HTMLAudioElemen
   });
   return {
     /** Speak `parts`; `onDone` runs once at the end (or on failure: then the caller can fall back). */
-    speak(parts: string[], onDone: (ok: boolean) => void) {
+    speak(
+      parts: string[],
+      onDone: (ok: boolean) => void,
+      onPhase?: (phase: NaturalVoicePhase) => void,
+    ) {
       const mine = ++playback; cleanUp();
       const voice = naturalVoiceId();
       if (!engine || !voice || !parts.length) { onDone(!parts.length); return; }
+      onPhase?.('preparing');
       const ready = engine;
       const make = (text: string) => withTimeout(
         ready.generate(text, { voice, speed: NATURAL_VOICE_SPEED }),
@@ -172,7 +186,7 @@ export function createNaturalSpeaker(makeAudio: (url: string) => HTMLAudioElemen
             const url = URL.createObjectURL(clip.toBlob()); urls.push(url);
             await new Promise<void>((resolve, reject) => {
               const audio = makeAudio(url); current = audio;
-              waitForPlayback(audio).then(resolve, reject);
+              waitForPlayback(audio, () => onPhase?.('playing')).then(resolve, reject);
             });
             if (mine !== playback) return;
           }
