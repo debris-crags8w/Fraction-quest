@@ -40,6 +40,12 @@ packages:
   - lib/integrations/*
   - scripts
 
+# Transformers 3.8.1 imports this runtime package but omits it from its manifest.
+packageExtensions:
+  "@huggingface/transformers@3.8.1":
+    dependencies:
+      onnxruntime-common: 1.22.0-dev.20250409-89f8206ba4
+
 catalog:
   '@replit/vite-plugin-cartographer': ^0.5.21
   '@replit/vite-plugin-dev-banner': ^0.1.1

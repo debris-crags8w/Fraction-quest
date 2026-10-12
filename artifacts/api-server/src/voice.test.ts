@@ -7,7 +7,7 @@ import type { Server } from "node:http";
 
 process.env.VOICE_CACHE_DIR = mkdtempSync(path.join(os.tmpdir(), "fq-voice-test-"));
 const express = (await import("express")).default;
-const { default: voiceRouter } = await import("./routes/voice");
+const { default: apiRouter } = await import("./routes/index");
 const { encodeWav, setVoiceEngineForTests, cleanVoiceText } = await import("./lib/voice");
 
 let calls: string[] = [];
@@ -20,7 +20,7 @@ const fakeEngine = {
 
 let server: Server; let base = "";
 before(async () => {
-  const app = express(); app.use("/api", voiceRouter);
+  const app = express(); app.use("/api", apiRouter);
   server = await new Promise<Server>((resolve) => { const s = app.listen(0, () => resolve(s)); });
   const address = server.address(); base = `http://127.0.0.1:${typeof address === "object" && address ? address.port : 0}`;
 });

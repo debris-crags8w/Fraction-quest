@@ -3,12 +3,26 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm } from "node:fs/promises";
+import { copyFile, mkdir, rm } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
 
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
+const kokoroVoices = ["af_heart", "af_bella", "af_nicole", "bf_emma"];
+
+async function copyKokoroVoiceAssets() {
+  const requireFromArtifact = createRequire(import.meta.url);
+  const kokoroEntry = requireFromArtifact.resolve("kokoro-js");
+  const sourceDir = path.resolve(path.dirname(kokoroEntry), "../voices");
+  const targetDir = path.resolve(artifactDir, "voices");
+  await mkdir(targetDir, { recursive: true });
+  await Promise.all(
+    kokoroVoices.map((voice) =>
+      copyFile(path.join(sourceDir, `${voice}.bin`), path.join(targetDir, `${voice}.bin`)),
+    ),
+  );
+}
 
 async function buildAll() {
   const distDir = path.resolve(artifactDir, "dist");
@@ -122,6 +136,8 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     `,
     },
   });
+  // Kokoro's Node loader reads voice embeddings from the API artifact's ../voices folder.
+  await copyKokoroVoiceAssets();
 }
 
 buildAll().catch((err) => {

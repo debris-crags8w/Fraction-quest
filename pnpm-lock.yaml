@@ -154,6 +154,8 @@ overrides:
   esbuild: 0.28.2
   js-yaml: 4.3.2
 
+packageExtensionsChecksum: sha256-cJaACgkhhUtJz1d1bVdP3GFpauNSNvrt67th3f7Zj/g=
+
 importers:
 
   .:
@@ -3493,6 +3495,7 @@ snapshots:
   '@huggingface/transformers@3.8.1':
     dependencies:
       '@huggingface/jinja': 0.5.10
+      onnxruntime-common: 1.22.0-dev.20250409-89f8206ba4
       onnxruntime-node: 1.21.0
       onnxruntime-web: 1.22.0-dev.20250409-89f8206ba4
       sharp: 0.34.5
