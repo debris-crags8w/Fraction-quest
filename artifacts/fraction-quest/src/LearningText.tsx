@@ -5,7 +5,7 @@ import { setLearningVoicePreference } from './lib/fun';
 import { MathText } from './MathText';
 import { execAll } from './lib/regexp';
 import { selectLearningVoice as selectGentleVoice, sentences, spokenText, VOICE_PITCH, VOICE_RATE } from './lib/voice';
-import { createNaturalSpeaker, NATURAL_VOICES, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, setNaturalVoicePreference, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoicePhase, type NaturalVoiceStatus } from './lib/natural-voice';
+import { createNaturalSpeaker, NATURAL_VOICES, naturalVoiceDisabledOnIOS, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, setNaturalVoicePreference, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoicePhase, type NaturalVoiceStatus } from './lib/natural-voice';
 
 type VocabularyEntry = { pattern: string; definition: string };
 
@@ -300,6 +300,7 @@ function NaturalVoiceSettings() {
   const [previewMessage, setPreviewMessage] = useState('');
   const speaker = useRef<ReturnType<typeof createNaturalSpeaker> | null>(null);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const iosFallback = naturalVoiceDisabledOnIOS();
   useEffect(() => onNaturalVoiceStatus(setStatus), []);
   useEffect(() => () => {
     if (previewTimer.current !== null) clearTimeout(previewTimer.current);
@@ -336,7 +337,8 @@ function NaturalVoiceSettings() {
       setPreviewMessage(ok ? '' : 'This natural voice could not finish its preview here. Try a device voice below.');
     }, setPreviewPhase);
   };
-  const statusText = status.state === 'off' ? 'Off: lessons use the device voice.'
+  const statusText = iosFallback ? 'Lessons use the device voice selected below.'
+    : status.state === 'off' ? 'Off: lessons use the device voice.'
     : status.state === 'unsupported' ? 'This browser can’t run the natural voice, so lessons use the device voice.'
     : status.state === 'ready' ? 'Ready on this device.'
     : status.state === 'loading' ? `Downloading… ${status.progress ?? 0}%`
@@ -345,20 +347,26 @@ function NaturalVoiceSettings() {
   return (
     <div className="fq-natural-voice" data-testid="natural-voice-settings">
       <h3 className="fq-learning-voice-subhead">Natural voice</h3>
-      <p>A free, open-source voice that sounds like a real person. It runs on this device: no account, and nothing you read is sent anywhere.</p>
-      <div className="fq-natural-voice-options" role="radiogroup" aria-label="Natural voice">
-        {[...NATURAL_VOICES.map((voice) => ({ id: voice.id as NaturalVoiceId | 'off', label: voice.name, note: voice.note })), { id: 'off' as const, label: 'Off', note: 'use the device voice' }].map((option) => (
-          <label key={option.id} className={choice === option.id ? 'on' : ''}>
-            <input type="radio" name="natural-voice" value={option.id} checked={choice === option.id} onChange={() => choose(option.id)} data-testid={`radio-natural-voice-${option.id}`} />
-            <span><strong>{option.label}</strong><small>{option.note}</small></span>
-          </label>
-        ))}
-      </div>
+      <p>{iosFallback
+        ? 'Natural voice is paused on iPhone and iPad to prevent playback errors. Lessons use the device voice you select below.'
+        : 'A free, open-source voice that sounds like a real person. It runs on this device: no account, and nothing you read is sent anywhere.'}</p>
+      {!iosFallback && (
+        <div className="fq-natural-voice-options" role="radiogroup" aria-label="Natural voice">
+          {[...NATURAL_VOICES.map((voice) => ({ id: voice.id as NaturalVoiceId | 'off', label: voice.name, note: voice.note })), { id: 'off' as const, label: 'Off', note: 'use the device voice' }].map((option) => (
+            <label key={option.id} className={choice === option.id ? 'on' : ''}>
+              <input type="radio" name="natural-voice" value={option.id} checked={choice === option.id} onChange={() => choose(option.id)} data-testid={`radio-natural-voice-${option.id}`} />
+              <span><strong>{option.label}</strong><small>{option.note}</small></span>
+            </label>
+          ))}
+        </div>
+      )}
       <p className="fq-parent-note" role="status" data-testid="status-natural-voice">{statusText}</p>
-      <div className="fq-natural-voice-actions">
-        {(status.state === 'idle' || status.state === 'error') && <button type="button" className="fq-button ghost" onClick={() => { void warmUpNaturalVoice(); }} data-testid="button-download-natural-voice">Download now</button>}
-        {status.state === 'ready' && <button type="button" className="fq-button ghost" onClick={preview} data-testid="button-preview-natural-voice"><Volume2 size={16} aria-hidden="true" /> {previewing ? 'Stop preview' : 'Preview voice'}</button>}
-      </div>
+      {!iosFallback && (
+        <div className="fq-natural-voice-actions">
+          {(status.state === 'idle' || status.state === 'error') && <button type="button" className="fq-button ghost" onClick={() => { void warmUpNaturalVoice(); }} data-testid="button-download-natural-voice">Download now</button>}
+          {status.state === 'ready' && <button type="button" className="fq-button ghost" onClick={preview} data-testid="button-preview-natural-voice"><Volume2 size={16} aria-hidden="true" /> {previewing ? 'Stop preview' : 'Preview voice'}</button>}
+        </div>
+      )}
       {previewing && <p className="fq-parent-note" role="status" data-testid="status-natural-voice-preview-phase">
         {previewPhase === 'preparing' ? 'Preparing your voice preview on this device…' : 'The voice preview is playing. Tap Stop preview to stop it.'}
       </p>}

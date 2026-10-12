@@ -10,7 +10,7 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { FunContext, splitStory } from './fun-ui';
 import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
-import { createNaturalSpeaker, naturalVoicePreference, naturalVoiceStatus, setNaturalEngineForTests, setNaturalVoicePreference } from './lib/natural-voice';
+import { createNaturalSpeaker, isIOSVoiceDevice, naturalVoicePreference, naturalVoiceStatus, setNaturalEngineForTests, setNaturalVoicePreference } from './lib/natural-voice';
 import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
 import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './FractionRace';
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
@@ -2411,6 +2411,33 @@ describe('fraction labels on bar models', () => {
 });
 
 describe('natural read-aloud voice', () => {
+  it('recognizes iPhone and touch-enabled iPad devices for the safe device-voice fallback', () => {
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)', 'iPhone', 5), true);
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)', 'iPad', 5), true);
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (Macintosh; Intel Mac OS X)', 'MacIntel', 5), true);
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (Macintosh; Intel Mac OS X)', 'MacIntel', 1), false);
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (Linux; Android 15)', 'Linux armv8l', 5), false);
+  });
+  it('explains the iOS device-voice fallback instead of offering broken natural playback', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: {
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
+        platform: 'iPhone',
+        maxTouchPoints: 5,
+      },
+    });
+    try {
+      const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
+      assert.match(markup, /Natural voice is paused on iPhone and iPad/);
+      assert.match(markup, /Lessons use the device voice selected below/);
+      assert.doesNotMatch(markup, /radio-natural-voice-af_heart|button-preview-natural-voice/);
+    } finally {
+      if (original) Object.defineProperty(globalThis, 'navigator', original);
+      else Reflect.deleteProperty(globalThis, 'navigator');
+    }
+  });
   const device = () => {
     const utterances: SpeechSynthesisUtterance[] = [];
     const synthesis = {

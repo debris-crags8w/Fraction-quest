@@ -19,6 +19,16 @@ export type NaturalVoiceStatus = { state: NaturalVoiceState; progress?: number }
 type Clip = { toBlob(): Blob };
 export type NaturalEngine = { generate(text: string, options: { voice: string; speed: number }): Promise<Clip> };
 
+export function isIOSVoiceDevice(userAgent: string, platform: string, maxTouchPoints: number): boolean {
+  return /\b(?:iPhone|iPad|iPod)\b/i.test(userAgent)
+    || (platform === 'MacIntel' && maxTouchPoints > 1);
+}
+
+export function naturalVoiceDisabledOnIOS(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return isIOSVoiceDevice(navigator.userAgent ?? '', navigator.platform ?? '', navigator.maxTouchPoints ?? 0);
+}
+
 /** The chosen natural voice, or 'off'. On by default (Heart): grown-ups can turn it off. */
 export function naturalVoicePreference(): NaturalVoiceId | 'off' {
   try {
@@ -37,7 +47,8 @@ const currentChoice = () => sessionChoice ?? naturalVoicePreference();
 
 /** Can this browser run the model? (WebAssembly and audio playback.) */
 export function naturalVoiceSupported(): boolean {
-  return typeof window !== 'undefined' && typeof WebAssembly === 'object' && typeof Audio !== 'undefined'
+  return !naturalVoiceDisabledOnIOS()
+    && typeof window !== 'undefined' && typeof WebAssembly === 'object' && typeof Audio !== 'undefined'
     && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function';
 }
 
@@ -49,6 +60,7 @@ const listeners = new Set<(status: NaturalVoiceStatus) => void>();
 
 export function naturalVoiceStatus(): NaturalVoiceStatus {
   if (currentChoice() === 'off') return { state: 'off' };
+  if (naturalVoiceDisabledOnIOS()) return { state: 'unsupported' };
   if (!engine && !naturalVoiceSupported()) return { state: 'unsupported' };
   if (engine) return { state: 'ready' };
   if (failed) return { state: 'error' };
@@ -63,8 +75,8 @@ export function onNaturalVoiceStatus(listener: (status: NaturalVoiceStatus) => v
 
 /** Start the one-time download (does nothing if it's off, unsupported, loading or loaded). */
 export function warmUpNaturalVoice(): Promise<NaturalEngine | null> {
-  if (engine) return Promise.resolve(engine);
   if (currentChoice() === 'off' || !naturalVoiceSupported()) return Promise.resolve(null);
+  if (engine) return Promise.resolve(engine);
   if (loading) return loading;
   failed = false; progress = 0;
   loading = (async () => {
@@ -90,7 +102,7 @@ export function warmUpNaturalVoice(): Promise<NaturalEngine | null> {
   return loading;
 }
 
-export const naturalVoiceReady = () => !!engine && currentChoice() !== 'off';
+export const naturalVoiceReady = () => !!engine && currentChoice() !== 'off' && naturalVoiceSupported();
 export const naturalVoiceId = (): NaturalVoiceId | null => { const choice = currentChoice(); return choice === 'off' ? null : choice; };
 export type NaturalVoicePhase = 'preparing' | 'playing';
 
