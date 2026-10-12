@@ -237,3 +237,67 @@
 .fq-natural-voice-options span { display: grid; }
 .fq-natural-voice-options small { color: hsl(var(--muted-foreground)); }
 .fq-natural-voice-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.fq-kokoro-diagnostic {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  background: hsl(var(--card));
+}
+
+.fq-kokoro-diagnostic-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fq-kokoro-diagnostic-heading > div { display: grid; gap: 4px; }
+.fq-kokoro-diagnostic h4 { margin: 0; font-size: 0.96rem; }
+.fq-kokoro-diagnostic p { margin: 0; color: hsl(var(--muted-foreground)); font-size: 0.84rem; line-height: 1.45; }
+.fq-kokoro-diagnostic .fq-kokoro-diagnostic-ios-note { color: hsl(var(--foreground)); font-weight: 700; }
+.fq-kokoro-test-steps { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.fq-kokoro-test-step {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px 8px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 9px;
+  background: hsl(var(--background));
+  font-size: 0.82rem;
+}
+.fq-kokoro-test-number {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  border-radius: 50%;
+  background: hsl(var(--muted));
+  font-weight: 850;
+}
+.fq-kokoro-test-result { color: hsl(var(--muted-foreground)); font-size: 0.74rem; font-weight: 750; }
+.fq-kokoro-test-step.is-active { border-color: hsl(var(--secondary)); background: hsl(var(--secondary) / 0.06); }
+.fq-kokoro-test-step.is-active .fq-kokoro-test-result { color: hsl(var(--secondary)); }
+.fq-kokoro-test-step.is-passed { border-color: color-mix(in srgb, #38a169 42%, hsl(var(--border))); }
+.fq-kokoro-test-step.is-passed .fq-kokoro-test-number { color: #fff; background: #2f855a; }
+.fq-kokoro-test-step.is-passed .fq-kokoro-test-result,
+.fq-kokoro-test-success { color: #17623c !important; }
+.fq-kokoro-test-step.is-failed { border-color: #c84b3d; background: #fff6f4; }
+.fq-kokoro-test-step.is-failed .fq-kokoro-test-number,
+.fq-kokoro-test-step.is-failed .fq-kokoro-test-result { color: #a83227; }
+.fq-kokoro-test-error { display: grid; gap: 5px; padding: 9px; border-radius: 9px; color: #8f211c; background: #fff0ee; font-size: 0.82rem; }
+.fq-kokoro-test-error pre { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; font: inherit; }
+.fq-kokoro-test-note { font-weight: 650; }
+
+@media (max-width: 520px) {
+  .fq-kokoro-diagnostic-heading { flex-direction: column; }
+  .fq-kokoro-diagnostic-heading .fq-button { width: 100%; }
+  .fq-kokoro-test-step { grid-template-columns: 24px minmax(0, 1fr); }
+  .fq-kokoro-test-result { grid-column: 2; }
+}

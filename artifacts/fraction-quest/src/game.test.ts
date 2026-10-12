@@ -716,6 +716,10 @@ describe('entered-answer worksheets and evidence gates', () => {
     const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
     assert.match(markup, /Read-aloud voice/);
     assert.match(markup, /Natural voice/);
+    assert.match(markup, /Kokoro self-test/);
+    assert.match(markup, /Load the Kokoro model/);
+    assert.match(markup, /Generate a short sample/);
+    assert.match(markup, /Play the sample/);
     assert.match(markup, /Device voices/);
     assert.match(markup, /can’t run the natural voice/, 'without browser support the natural voice explains the fallback');
     assert.match(markup, /Read-aloud voices are not available in this browser/);
@@ -2501,7 +2505,7 @@ describe('natural read-aloud voice', () => {
       const phases: string[] = [];
       const result = new Promise<boolean>((resolve) => speaker.speak(['Hello there.'], resolve, (phase) => phases.push(phase)));
       assert.equal(await result, true);
-      assert.deepEqual(phases, ['preparing', 'playing']);
+      assert.deepEqual(phases, ['preparing', 'generating', 'playing']);
     } finally {
       speaker.stop();
       setNaturalEngineForTests(null);

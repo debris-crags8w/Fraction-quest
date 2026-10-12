@@ -2,6 +2,7 @@ import React, { useEffect, useId, useRef, useState, type ReactNode } from 'react
 import { Volume2, VolumeX } from 'lucide-react';
 import { useOptionalFun } from './fun-ui';
 import { setLearningVoicePreference } from './lib/fun';
+import { KokoroDiagnostic } from './KokoroDiagnostic';
 import { MathText } from './MathText';
 import { execAll } from './lib/regexp';
 import { selectLearningVoice as selectGentleVoice, sentences, spokenText, VOICE_PITCH, VOICE_RATE } from './lib/voice';
@@ -361,6 +362,7 @@ function NaturalVoiceSettings() {
         </div>
       )}
       <p className="fq-parent-note" role="status" data-testid="status-natural-voice">{statusText}</p>
+      <KokoroDiagnostic />
       {!iosFallback && (
         <div className="fq-natural-voice-actions">
           {(status.state === 'idle' || status.state === 'error') && <button type="button" className="fq-button ghost" onClick={() => { void warmUpNaturalVoice(); }} data-testid="button-download-natural-voice">Download now</button>}
@@ -368,7 +370,9 @@ function NaturalVoiceSettings() {
         </div>
       )}
       {previewing && <p className="fq-parent-note" role="status" data-testid="status-natural-voice-preview-phase">
-        {previewPhase === 'preparing' ? 'Preparing your voice preview on this device…' : 'The voice preview is playing. Tap Stop preview to stop it.'}
+        {previewPhase === 'playing' ? 'The voice preview is playing. Tap Stop preview to stop it.'
+          : previewPhase === 'generating' ? 'Making your voice preview on this device…'
+          : 'Preparing your voice preview on this device…'}
       </p>}
       {previewMessage && <p className="fq-learning-voice-fallback" role="alert" data-testid="status-natural-voice-preview">{previewMessage}</p>}
     </div>
