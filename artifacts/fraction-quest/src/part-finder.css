@@ -142,3 +142,11 @@
 @media (prefers-reduced-motion: reduce) {
   .fq-pf *, .fq-pf *::before, .fq-pf *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+.fq-pf-friends { display: grid; gap: 6px; justify-items: center; margin: 4px 0 14px; }
+.fq-pf-friends-label { margin: 0; font-weight: 900; }
+.fq-pf-friends .fq-pf-shares { margin: 0; }
+.fq-pf-share span { display: grid; text-align: left; line-height: 1.15; }
+.fq-pf-share small { color: hsl(var(--muted-foreground)); font-size: .75rem; font-weight: 750; }
+.fq-pf-piece.unassigned { fill: hsl(var(--card)); }
+.fq-pf-square.interactive .fq-pf-piece.unassigned:hover { fill: color-mix(in srgb, var(--fq-grape) 10%, hsl(var(--card))); }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AREA_CUTS, pieceArea, type AreaCut, type Piece } from './area-shapes';
-import { PART_FINDER_ROUNDS, isPartFinderAnswer, partFinderFeedback, scorePartFinderRound } from './part-finder';
+import { FRIENDS, PART_FINDER_ROUNDS, isPartFinderAnswer, partFinderFeedback, scorePartFinderRound } from './part-finder';
 import './part-finder.css';
 
 type CheckState = 'idle' | 'right' | 'try-again';
@@ -8,7 +8,7 @@ type CheckState = 'idle' | 'right' | 'try-again';
 const svgPoints = (piece: Piece) =>
   piece.points.map(([x, y]) => `${x * 168},${y * 168}`).join(' ');
 
-const SHARE_NAMES = ['Share 1', 'Share 2', 'Share 3', 'Share 4'];
+const SHARE_NAMES = FRIENDS;
 
 function CutPicture({ cut, label, selected = [], groups, interactive = false, disabled = false, onToggle }: {
   cut: AreaCut;
@@ -27,8 +27,8 @@ function CutPicture({ cut, label, selected = [], groups, interactive = false, di
       {pieces.map((piece, index) => {
         const group = groups?.[index] ?? -1;
         const pressed = groups ? group >= 0 : selected.includes(index);
-        const name = `${piece.shape === 'rect' ? 'rectangle' : piece.shape} piece ${index + 1}${groups ? (group >= 0 ? `, in ${SHARE_NAMES[group]}` : ', not in a share') : pressed ? ', selected' : ''}`;
-        const look = groups ? (group >= 0 ? ` share-${group}` : '') : pressed ? ' selected' : '';
+        const name = `${piece.shape === 'rect' ? 'rectangle' : piece.shape} piece ${index + 1}${groups ? (group >= 0 ? `, ${SHARE_NAMES[group]}’s` : ', nobody’s yet') : pressed ? ', selected' : ''}`;
+        const look = groups ? (group >= 0 ? ` share-${group}` : ' unassigned') : pressed ? ' selected' : '';
         return interactive ? (
           <polygon
             key={index}
@@ -214,13 +214,13 @@ export default function PartFinder({ best, onExit, onFinish }: {
           <div className={`fq-pf-workspace ${round.id === 'match' ? 'match' : ''}`}>
             {round.id === 'match' && round.comparisonCut && (
               <figure className="fq-pf-comparison" data-testid="part-finder-comparison">
-                <figcaption><span>Compare</span><strong>A fourth</strong></figcaption>
+                <figcaption><span>Compare</span><strong>1/4 of the cake</strong></figcaption>
                 <CutPicture cut={round.comparisonCut} label="Comparison square with one fourth highlighted" selected={[0]} />
               </figure>
             )}
             <figure className="fq-pf-interactive">
               <figcaption>
-                <span>{round.id === 'match' ? 'Find the same amount' : sorting ? 'Sort the pieces' : 'Choose the pieces'}</span>
+                <span>{round.id === 'match' ? 'Find the same amount' : sorting ? 'Share it out' : 'Choose a piece'}</span>
                 <strong>{round.targetLabel}</strong>
               </figcaption>
               <CutPicture
@@ -232,19 +232,25 @@ export default function PartFinder({ best, onExit, onFinish }: {
                 disabled={correct}
                 onToggle={togglePiece}
               />
-              <p className="fq-pf-instruction">{sorting ? 'Pick a share, then tap pieces to put them in it. Tap again to take one out.' : 'Tap or click pieces to select them. Use Tab, then Enter or Space.'}</p>
+              <p className="fq-pf-instruction">{sorting ? 'Tap a friend below, then tap the pieces that friend gets. Tap a piece again to take it back.' : 'Tap or click pieces to select them. Use Tab, then Enter or Space.'}</p>
             </figure>
           </div>
 
           {sorting && (
-            <div className="fq-pf-shares" role="radiogroup" aria-label="Choose a share to fill">
-              {SHARE_NAMES.slice(0, round.shares).map((name, share) => (
-                <button key={name} type="button" role="radio" aria-checked={activeShare === share} disabled={correct}
-                  className={`fq-pf-share share-${share}${activeShare === share ? ' active' : ''}`}
-                  onClick={() => setActiveShare(share)} data-testid={`button-part-finder-share-${share + 1}`}>
-                  <i aria-hidden="true" />{name}
-                </button>
-              ))}
+            <div className="fq-pf-friends">
+              <p className="fq-pf-friends-label" id="pf-friends-label">Who gets the next pieces you tap?</p>
+              <div className="fq-pf-shares" role="radiogroup" aria-labelledby="pf-friends-label">
+                {SHARE_NAMES.slice(0, round.shares).map((name, share) => {
+                  const count = assignment.filter((owner) => owner === share).length;
+                  return (
+                    <button key={name} type="button" role="radio" aria-checked={activeShare === share} disabled={correct}
+                      className={`fq-pf-share share-${share}${activeShare === share ? ' active' : ''}`}
+                      onClick={() => setActiveShare(share)} data-testid={`button-part-finder-share-${share + 1}`}>
+                      <i aria-hidden="true" /><span>{name}<small>{count} {count === 1 ? 'piece' : 'pieces'}</small></span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -260,7 +266,7 @@ export default function PartFinder({ best, onExit, onFinish }: {
 
           <div className="fq-pf-control-row">
             <p className="fq-pf-selection" aria-live="polite" data-testid="part-finder-selection">
-              {sorting ? `${placed} of ${assignment.length} pieces are in a share.` : selected.length === 0 ? 'No pieces selected yet.' : `${selected.length} ${selected.length === 1 ? 'piece' : 'pieces'} selected.`}
+              {sorting ? `${placed} of ${assignment.length} pieces given out.` : selected.length === 0 ? 'No pieces selected yet.' : `${selected.length} ${selected.length === 1 ? 'piece' : 'pieces'} selected.`}
             </p>
             <div className="fq-pf-actions">
               <button type="button" className="fq-button ghost" onClick={clearSelection} disabled={(sorting ? placed === 0 : selected.length === 0) || correct} data-testid="button-part-finder-clear">Clear</button>
@@ -269,7 +275,7 @@ export default function PartFinder({ best, onExit, onFinish }: {
                   {roundIndex === PART_FINDER_ROUNDS.length - 1 ? 'See result' : 'Next round'}
                 </button>
               ) : (
-                <button type="button" className="fq-button" onClick={checkAnswer} disabled={(sorting ? placed === 0 : selected.length === 0) || (round.mode === 'tile' && tileAnswer === undefined)} data-testid="button-part-finder-check">Check pieces</button>
+                <button type="button" className="fq-button" onClick={checkAnswer} disabled={(sorting ? placed === 0 : selected.length === 0) || (round.mode === 'tile' && tileAnswer === undefined)} data-testid="button-part-finder-check">{sorting ? 'Is it fair?' : 'Check pieces'}</button>
               )}
             </div>
           </div>

@@ -1384,9 +1384,9 @@ describe('Part Finder rounds', () => {
     assert.equal(isPartFinderAnswer(sort, [0, 1, 1, 2, 2, 3, -1]), false, 'every piece needs a share');
     assert.equal(isPartFinderAnswer(sort, [0, 1, 1, 2, 2, 3]), false);
     assert.equal(isPartFinderAnswer(sort, [0, 1, 1, 2, 2, 3, 4]), false);
-    assert.match(partFinderFeedback(sort, [0, 1, 1, 2, 2, 3, -1]), /1 piece is not in a share/);
-    assert.match(partFinderFeedback(sort, [0, 0, 1, 2, 2, 3, 3]), /Share 1 is too big/);
-    assert.match(partFinderFeedback(sort, [0, 1, 1, 2, 2, 3, 3]), /same size/);
+    assert.match(partFinderFeedback(sort, [0, 1, 1, 2, 2, 3, -1]), /1 piece has no friend yet/);
+    assert.match(partFinderFeedback(sort, [0, 0, 1, 2, 2, 3, 3]), /Ava gets too much cake/);
+    assert.match(partFinderFeedback(sort, [0, 1, 1, 2, 2, 3, 3]), /Fair! Every friend gets 1\/4/);
   });
 
   it('gives a hint instead of a bare "try again" when a match is off', () => {
