@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { MISSIONS } from '../src/game';
-import { getBuildChecks, getWorksheet, answerMatches } from '../src/learning-content';
+import { getBuildChecks, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
 import { usesFractionEntry } from '../src/FractionEntry';
 import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
 import type { Mission } from '../src/game';
@@ -129,7 +129,11 @@ async function buildWorksheetModel(page: import('@playwright/test').Page, proble
 
 async function enterWorksheetAnswer(page: import('@playwright/test').Page, problem: WorksheetProblem, answer: string) {
   const row = page.getByTestId(`row-worksheet-${problem.id}`);
-  if (usesFractionEntry(problem)) {
+  if (isYesNoProblem(problem)) {
+    const choice = answer.trim().toLowerCase();
+    if (choice !== 'yes' && choice !== 'no') throw new Error(`Expected a Yes/No answer for ${problem.id}`);
+    await row.getByTestId(`button-worksheet-${problem.id}-${choice}`).click();
+  } else if (usesFractionEntry(problem)) {
     const [numerator, denominator] = answer.trim().split('/');
     if (denominator === undefined) throw new Error(`Expected a fraction answer for ${problem.id}`);
     await row.getByTestId(`input-ws-${problem.id}-numerator`).fill(numerator.trim());
@@ -190,8 +194,10 @@ for (const missionId of unitRepresentativeIds) {
     const worksheet = getWorksheet(mission.id);
     if (mission.id === 'equal-parts') {
       const problem = worksheet.find((row) => !row.modelRequired && !row.areaTask)!;
-      const wrongAnswer = (usesFractionEntry(problem) ? ['0/0'] : ['not an answer', '999999', 'no', 'yes'])
-        .find((candidate) => !answerMatches(problem, candidate))!;
+      const wrongAnswer = isYesNoProblem(problem)
+        ? problem.answer === 'yes' ? 'no' : 'yes'
+        : (usesFractionEntry(problem) ? ['0/0'] : ['not an answer', '999999', 'no', 'yes'])
+          .find((candidate) => !answerMatches(problem, candidate))!;
       await enterWorksheetAnswer(page, problem, wrongAnswer);
       await expect(page.getByTestId(`status-worksheet-${problem.id}`)).toContainText('Not yet.');
       await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuenow', '0');
