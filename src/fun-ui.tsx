@@ -5,6 +5,7 @@ import { Check, Gift, LockKeyhole, Sparkles, Star } from 'lucide-react';
 import type { ModelSpec } from './game';
 import { DAILY_GOAL, type FunState } from './lib/fun';
 import { MODEL_NAMES, ModelTag, WholeBracket } from './models';
+import { LinkedFraction, PieFraction } from './fraction-ui';
 
 /* ---------- shared fun state ---------- */
 
@@ -98,18 +99,13 @@ export function Confetti({ burst }: { burst: number }) {
 
 /* ---------- daily goal ring ---------- */
 
+/** Today's goal as a pie cut into one slice per correct answer (tenths): a fraction model, not just a ring. */
 export function DailyRing({ answered }: { answered: number }) {
-  const pct = Math.min(1, answered / DAILY_GOAL);
-  const r = 13;
-  const c = 2 * Math.PI * r;
+  const got = Math.min(answered, DAILY_GOAL);
   return (
-    <span className="fq-daily" title={`Daily goal: ${Math.min(answered, DAILY_GOAL)} of ${DAILY_GOAL} correct answers`} aria-label={`Daily goal ${Math.min(answered, DAILY_GOAL)} of ${DAILY_GOAL}`} role="img">
-      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
-        <circle cx="17" cy="17" r={r} fill="none" stroke="var(--fq-track)" strokeWidth="5" />
-        <circle cx="17" cy="17" r={r} fill="none" stroke="var(--fq-tangerine)" strokeWidth="5" strokeLinecap="round"
-          strokeDasharray={c} strokeDashoffset={c * (1 - pct)} transform="rotate(-90 17 17)" style={{ transition: 'stroke-dashoffset .4s ease' }} />
-      </svg>
-      {pct >= 1 && <Check className="fq-daily-done" size={14} strokeWidth={4} />}
+    <span className="fq-daily" title={`Daily goal: ${got}/${DAILY_GOAL} of today's correct answers`} aria-label={`Daily goal ${got} of ${DAILY_GOAL}`} role="img">
+      <PieFraction n={got} d={DAILY_GOAL} size={34} fill="var(--fq-tangerine)" empty="color-mix(in srgb, var(--fq-tangerine) 10%, #fff)" stroke="color-mix(in srgb, var(--fq-tangerine) 70%, #000)" />
+      {got >= DAILY_GOAL && <Check className="fq-daily-done" size={14} strokeWidth={4} />}
     </span>
   );
 }
@@ -194,6 +190,8 @@ export type PathNode = {
   title: string;
   state: 'done' | 'now' | 'open' | 'lock';
   stars: number;
+  /** Lesson steps finished (build checks, then the worksheet): the badge is a pie cut into that many slices. */
+  steps?: { done: number; total: number };
   detail: ReactNode;
 };
 
@@ -217,11 +215,22 @@ export function LessonPath({ unit, color, nodes, selectedId, onSelect, allDone, 
               className={`fq-node ${node.state}`}
               onClick={() => onSelect(node.id)}
               aria-expanded={selected}
-              aria-label={`Lesson ${node.number}: ${node.title}${node.state === 'done' ? ', completed' : node.state === 'lock' ? ', locked' : ''}`}
+              aria-label={`Lesson ${node.number}: ${node.title}${node.state === 'done' ? ', completed' : node.state === 'lock' ? ', locked' : node.steps?.done ? `, ${node.steps.done} of ${node.steps.total} steps done` : ''}`}
               data-testid={`button-node-${node.id}`}
             >
-              {node.state === 'done' ? <Check size={30} strokeWidth={4} /> : node.state === 'lock' ? <LockKeyhole size={24} strokeWidth={3} /> : <Star size={28} strokeWidth={3} fill="currentColor" />}
+              {node.state !== 'lock' && node.steps && (
+                <PieFraction className="fq-node-pie" n={node.state === 'done' ? node.steps.total : node.steps.done} d={node.steps.total} size={52}
+                  fill="#fff" empty="rgb(255 255 255 / 0.25)" stroke="var(--unit-dark, #4b23c9)" />
+              )}
+              <span className="fq-node-icon">
+                {node.state === 'done' ? <Check size={30} strokeWidth={4} /> : node.state === 'lock' ? <LockKeyhole size={24} strokeWidth={3} /> : !node.steps?.done && <Star size={node.steps ? 22 : 28} strokeWidth={3} fill="currentColor" />}
+              </span>
             </button>
+            {node.state !== 'done' && node.state !== 'lock' && !!node.steps?.done && (
+              <span className="fq-node-steps" style={{ '--piece': color } as CSSProperties} data-testid={`text-node-steps-${node.id}`}>
+                <LinkedFraction n={node.steps.done} d={node.steps.total} label={`${node.steps.done} of ${node.steps.total} steps done`} /> <small aria-hidden="true">done</small>
+              </span>
+            )}
             {node.state === 'done' && (
               <span className="fq-node-stars" aria-label={`${node.stars} of 3 stars`}>
                 {[0, 1, 2].map((s) => <Star key={s} size={13} strokeWidth={2.5} className={s < node.stars ? 'filled' : ''} />)}

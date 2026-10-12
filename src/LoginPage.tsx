@@ -5,6 +5,7 @@ import { RecoveryCodeCard } from './RecoveryCode';
 import { errorMessage } from './account';
 import { authenticateAccount } from './account-flow';
 import { Mascot } from './fun-ui';
+import { PieFraction } from './fraction-ui';
 
 type Mode = 'sign-in' | 'create' | 'recover';
 
@@ -79,7 +80,7 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
         <div className="fq-login-hero">
           <Mascot mood={error ? 'oops' : creating ? 'cheer' : 'happy'} size={96} />
           <div>
-            <p className="fq-login-brand">Fraction Quest</p>
+            <p className="fq-login-brand"><PieFraction n={3} d={4} size={22} fill="var(--fq-sun)" stroke="var(--fq-grape)" /> Fraction Quest</p>
             <h1>{recovering ? 'Set a new password' : creating ? 'Make your explorer account' : 'Welcome back, explorer!'}</h1>
             <p>{recovering ? 'Use the recovery code a grown-up saved when the account was made.' : creating ? 'Your stars, streak and lessons will be saved, so you can keep going on any device.' : 'Sign in to pick up where you left off.'}</p>
           </div>

@@ -7,6 +7,7 @@ import { WholeBracket } from './models';
 import './daily-practice.css';
 import { LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
+import { LiveFraction } from './fraction-ui';
 
 const emptyAttempt = (): DailyPracticeAttempt => ({
   shaded: [],
@@ -193,6 +194,7 @@ export default function DailyPractice({
         <WholeBracket label="1 whole: from 0 to 1" />
       </>
     )}
+    <LiveFraction n={attempt.shaded.length} d={parts ?? 0} unit={bar ? 'bar' : 'line'} color={bar ? '#38bdb0' : undefined} testId="daily-live-fraction" />
     {attempt.modelChecked && !done && <p className="fq-daily-feedback retry" role="status">Not quite. {wrongFeedback} Change your model, then check again.</p>}
     {done && <div className="fq-daily-feedback success" role="status"><strong>That’s it!</strong> {parts === question.denominator ? question.explanation : `${attempt.shaded.length}/${parts} is the same amount as ${question.numerator}/${question.denominator}.`}</div>}
     {done ? nextButton : (
@@ -208,7 +210,7 @@ export default function DailyPractice({
     return (
       <div className="fq-app">
         <main className="fq-shell fq-daily-shell">
-          <TaskBar onBack={onBack} backLabel="Map" testId="button-daily-back" title={<><Sparkles size={16} aria-hidden="true" /> Daily practice</>} step={session.index + 1} total={session.questions.length} />
+          <TaskBar onBack={onBack} backLabel="Map" testId="button-daily-back" title={<><Sparkles size={16} aria-hidden="true" /> Daily practice</>} step={session.index + 1} total={session.questions.length} done={session.index + (session.attempts[question!.id]?.answerCorrect ? 1 : 0)} />
           <section className="fq-daily-card" aria-labelledby="daily-question-title">
             <div className="fq-daily-topic">A little review · {question!.topicTitle}</div>
             {card}

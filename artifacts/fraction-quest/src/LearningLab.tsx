@@ -18,6 +18,7 @@ import { YesNoCards } from './YesNoCards';
 import { LessonTeachingSupport } from './LessonTeachingSupport';
 import './learning-lab.css';
 import { TaskBar } from './TaskBar';
+import { LiveFraction } from './fraction-ui';
 
 type Kind = LearningModel['kind'];
 type St = { d: number; wholes: number; count: number };
@@ -56,7 +57,6 @@ function validate(kind: Kind, t: LearningModel, s: St): { msgs: string[]; keys: 
   return { msgs, keys };
 }
 
-function Frac({ n, d }: { n: number; d: number }) { return <span className="fq-ll-frac" aria-label={`${n} over ${d}`}>{n}/{d}</span>; }
 
 /* Read-only preview for worksheet visuals */
 function Preview({ m, named = false }: { m: LearningModel; named?: boolean }) {
@@ -260,9 +260,7 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
             </div>
           )}
       </div>
-      <p className="fq-ll-readout" aria-live="polite" data-testid={'text-' + id + '-readout'}>
-        {st.d ? <>You made <Frac n={st.count} d={st.d} /> · {kind === 'line' ? plural(st.count, 'jump', 'jumps') : kind === 'set' ? plural(st.count, 'group picked', 'groups picked') : plural(st.count, 'piece shaded', 'pieces shaded')}</> : 'Nothing built yet'}
-      </p>
+      <LiveFraction n={st.count} d={st.d} unit={kind} wholes={wholes} color={denomColor(st.d)} testId={'text-' + id + '-readout'} />
     </section>
   );
 }

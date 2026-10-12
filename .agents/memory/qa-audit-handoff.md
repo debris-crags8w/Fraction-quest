@@ -41,6 +41,14 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Fraction-centered design (ideas 1–6, mockup in docs/fraction-design-ideas.png).** New `src/fraction-ui.tsx`:
+  `LinkedFraction` (numerator in the shaded-part color via `--piece`, denominator purple `--fq-den`), `LiveFraction`
+  (live "?/4 → 2/4 → 4/4 = 1 whole" under the Lab builders, Daily build items and Fraction War; it only reads back the
+  child's own model, so it never gives an answer away; deliberately not in check-ins: "no hints"), `PieFraction`
+  (circle in d equal slices). Part outlines and SVG bar strokes are purple-tinted; SVG shading is sky. TaskBar progress is
+  a segmented bar with "3/8 done". Map nodes are pies by `lessonSteps()` (each build check + the worksheet) with a
+  "2/3 done" pill. The header daily goal is a tenths pie. Answered two-bar compare pictures draw a dashed guide line
+  where the larger amount ends (`compareGuide` in App.tsx). Brand mark, login and favicon are a 3/4 pie.
 - **Screens fit a phone without scrolling.** New `src/TaskBar.tsx`: one slim bar (back, title, "n of N", thin progress
   track, optional actions) replaces the tall headers on Daily practice, check-ins, the Learning Lab, Part Finder and the
   workshop games. Phone layouts (≤620px): check-in strips are one row each (label, parts, strip); Part Finder's cake is

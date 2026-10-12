@@ -32,7 +32,7 @@ import {
 import { BarSvg } from './models';
 import Printable, { AnswerKey, PrintMenu, STUDENT_PRINT_OPTIONS } from './Printables';
 import { barTaskDone, canEnterWorksheetAnswer, WorksheetBarCopy, worksheetBarMatches } from './WorksheetBarCopy';
-import { checkRedoRow, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, redoChecks, redoDone, redoWorksheet, redoWorksheetCount, startRedo, targetedPracticePlans, updateLearning, worksheetCount, type LearningRecord } from './learning';
+import { checkRedoRow, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, lessonSteps, redoChecks, redoDone, redoWorksheet, redoWorksheetCount, startRedo, targetedPracticePlans, updateLearning, worksheetCount, type LearningRecord } from './learning';
 import QuickReviewEntry from './QuickReviewEntry';
 import {
   completeMission,
@@ -2452,5 +2452,16 @@ describe('the simpler help stays about the question', () => {
       if (namesOwn && !helpNames) unrelated++;
     }
     assert.equal(unrelated, 0);
+  });
+});
+
+describe('lesson steps for the map pies', () => {
+  it('counts each build check and the finished worksheet as equal slices', () => {
+    const id = 'equal-parts';
+    const checks = getBuildChecks(id);
+    assert.deepEqual(lessonSteps(EMPTY_PROGRESS, id), { done: 0, total: checks.length + 1 });
+    const record = emptyLearningRecord();
+    record.checks[checks[0].id] = { passed: true, supported: false, attempts: 1 };
+    assert.deepEqual(lessonSteps(updateLearning(EMPTY_PROGRESS, id, record), id), { done: 1, total: checks.length + 1 });
   });
 });

@@ -36,7 +36,8 @@ import LearningLab, { RedoLab } from './LearningLab';
 import { LearningText } from './LearningText';
 import './learning-text.css';
 import QuickReviewEntry from './QuickReviewEntry';
-import { getLearningRecord, hasLearningGate, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
+import { PieFraction } from './fraction-ui';
+import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, recordRace, recordSprint, resetFun, setBreakPreferences, setDisplayPreferences, setSound, type FunState } from './lib/fun';
@@ -130,14 +131,17 @@ function Fraction({ numerator, denominator }: { numerator: number; denominator: 
 
 /** `quiet`: practice pictures where the fraction is the answer. Screen readers then hear only "a bar model",
     not the fraction (sighted children count the parts themselves). */
-function FractionBar({ numerator, denominator, quiet = false, label = false }: { numerator: number; denominator: number; quiet?: boolean; label?: boolean }) {
+/** `guide`: after a compare question, a dashed line at this point of the whole (0–1), drawn through every bar,
+    so kids see which amount reaches further. */
+function FractionBar({ numerator, denominator, quiet = false, label = false, guide }: { numerator: number; denominator: number; quiet?: boolean; label?: boolean; guide?: number }) {
   return (
-    <div className="fq-bar-model-labelled">
+    <div className="fq-bar-model-labelled" style={{ '--piece': denomColor(denominator) } as CSSProperties}>
     {label && <span className="fq-bar-label" data-testid="bar-fraction-label"><Fraction numerator={numerator} denominator={denominator} /></span>}
     <div className="fq-bar-model" style={{ '--pieces': denominator, '--piece': denomColor(denominator) } as CSSProperties} role="img" aria-label={quiet ? 'A bar model. Count the equal parts and the shaded parts.' : `${numerator}/${denominator}: each whole is split into ${denominator} equal parts, with ${numerator} parts shaded`}>
       {Array.from({ length: Math.max(1, Math.ceil(numerator / denominator)) }, (_, whole) => (
         <div className="fq-bar-whole" key={whole}>
           <div className="fq-bar">
+            {guide !== undefined && whole === 0 && <i className="fq-compare-guide" style={{ left: `${guide * 100}%` }} aria-hidden="true" data-testid="compare-guide" />}
             {Array.from({ length: denominator }, (_, index) => <span className={whole * denominator + index < numerator ? '' : 'empty'} style={{ '--i': whole * denominator + index } as CSSProperties} key={index} />)}
           </div>
           <WholeBracket />
@@ -146,6 +150,13 @@ function FractionBar({ numerator, denominator, quiet = false, label = false }: {
     </div>
     </div>
   );
+}
+
+/** Two bars of one whole each, once answered: where the larger amount ends. */
+function compareGuide(model: ModelSpec, reveal: boolean): number | undefined {
+  if (!reveal || model.kind !== 'bars' || model.bars.length !== 2) return undefined;
+  if (model.bars.some((bar) => bar.denominator < 1 || bar.numerator < 1 || bar.numerator > bar.denominator)) return undefined;
+  return Math.max(...model.bars.map((bar) => bar.numerator / bar.denominator));
 }
 
 /** `reveal`: the question is answered, so every bar shows its fraction label. */
@@ -159,7 +170,7 @@ function ModelView({ model, compact = false, reveal = false }: { model: ModelSpe
         <div className="fq-visual-bars">
           {model.bars.map((item, index) => (
             <div className="fq-visual-bar-row" key={`${item.numerator}-${item.denominator}-${index}`}>
-              <FractionBar numerator={item.numerator} denominator={item.denominator} quiet={model.hideLabels && !item.named && !reveal} label={!!item.named || reveal} />
+              <FractionBar numerator={item.numerator} denominator={item.denominator} quiet={model.hideLabels && !item.named && !reveal} label={!!item.named || reveal} guide={compareGuide(model, reveal)} />
             </div>
           ))}
         </div>
@@ -231,7 +242,7 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
     <>
       <header className="fq-shell fq-topbar">
         <button className="fq-brand" onClick={onHome} data-testid="button-home">
-          <span className="fq-brand-mark" aria-hidden="true"><Compass size={22} strokeWidth={3} /></span>
+          <span className="fq-brand-mark" aria-hidden="true"><PieFraction n={3} d={4} size={30} fill="var(--fq-sun)" stroke="#4b23c9" /></span>
           <span>Fraction Quest</span>
         </button>
         <div className="fq-topbar-actions">
@@ -412,6 +423,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
                         number: missionNumber,
                         title: mission.title,
                         stars: progress.starsByMission[mission.id] ?? 0,
+                        steps: lessonSteps(progress, mission.id),
                         state: completed ? 'done' : !unlocked ? 'lock' : mission.id === nextMission?.id ? 'now' : 'open',
                         detail: (
                           <>

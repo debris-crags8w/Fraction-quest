@@ -81,6 +81,15 @@ export function hasLearningGate(progress: Progress, id: string): boolean {
   return !!record.practiceDone && getBuildChecks(id).every(check => record.checks[check.id]?.passed)
     && worksheetCount(record, id) === 12 && reteach.done === reteach.total;
 }
+/** A lesson's steps as a fraction, for its badge on the map: each build check, then the worksheet. */
+export function lessonSteps(progress: Progress, id: string): { done: number; total: number } {
+  const checks = getBuildChecks(id);
+  const total = checks.length + 1;
+  if (hasLearningGate(progress, id)) return { done: total, total };
+  const record = getLearningRecord(progress, id);
+  const done = checks.filter(check => record.checks[check.id]?.passed).length + (worksheetCount(record, id) === 12 ? 1 : 0);
+  return { done: Math.min(done, total - 1), total };
+}
 export function editWorksheet(record: LearningRecord, problemId: string, draft: string): LearningRecord {
   const old = record.worksheet[problemId] ?? { draft: '', attempts: 0, supported: false };
   return { ...record, worksheet: { ...record.worksheet, [problemId]: { ...old, draft, checkedValue: undefined } }, confirmedAt: undefined };

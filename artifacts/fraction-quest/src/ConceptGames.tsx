@@ -4,6 +4,7 @@ import './concept-games.css';
 import { areEquivalent, compareFractions, targetTick, WAR_PARTS, WAR_ROUNDS, warHint } from './concept-games';
 import { printPage } from './lib/print';
 import { TaskBar } from './TaskBar';
+import { LiveFraction } from './fraction-ui';
 
 type Fraction = { n: number; d: number };
 type Model = { d: number; n: number };
@@ -74,7 +75,7 @@ function FractionWar() {
           {WAR_PARTS.map(n => <option value={n} key={n}>{n} equal parts</option>)}
         </select>
         <Bar model={model} label={`whole-${side ? 'b' : 'a'}`} disabled={roundSolved} onToggle={i => changeModel(side as 0 | 1, { n: i < model.n ? i : i + 1 })} />
-        <div className="cg-model-readout"><span>{model.d ? <>Denominator: {model.d}<span className="cg-hide-narrow"> equal parts</span></> : 'Choose the equal parts'}</span><span>Numerator: {model.n}<span className="cg-hide-narrow"> selected</span></span></div>
+        <LiveFraction n={model.n} d={model.d} compact color="var(--fq-sky)" testId={`war-live-fraction-${side}`} />
       </article>;
     })}</div>
     <fieldset className="cg-compare"><legend>Which amount is larger?</legend>{(['left', 'right', 'same'] as const).map((v, i) => <button type="button" key={v} className={`cg-choice ${choice === v ? 'selected' : ''}`} aria-pressed={choice === v} disabled={!modelsBuilt || roundSolved} onClick={() => { setChoice(v); setFeedback(''); }} data-testid={`button-war-choice-${v}`}>{i === 0 ? 'Whole A' : i === 1 ? 'Whole B' : 'Same amount'}</button>)}</fieldset>

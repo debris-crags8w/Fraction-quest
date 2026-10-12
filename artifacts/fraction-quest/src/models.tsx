@@ -87,7 +87,7 @@ export function BarSvg({ n = 0, d, wholes = 1, sizes, label, fraction = false }:
   }
   return (
     <svg className="fq-svg-bar" viewBox={`0 0 ${W + PAD * 2} 74`} role="img" aria-label={label ?? (d ? `Bar model: each whole is split into ${d} equal parts, and ${n} ${n === 1 ? 'part is' : 'parts are'} shaded` : 'Whole bar ready to split into equal parts')}>
-      {fraction && d && <text className="fq-svg-fraction-label" x={PAD} y={14}>{n}/{d}</text>}
+      {fraction && d && <text className="fq-svg-fraction-label" x={PAD} y={14}><tspan className="num">{n}</tspan><tspan className="bar">/</tspan><tspan className="den">{d}</tspan></text>}
       {Array.from({ length: wholes }, (_, w) => {
         const x0 = PAD + w * unit + (w ? 3 : 0);
         const width = unit - (wholes > 1 ? 3 : 0);

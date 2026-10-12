@@ -1676,3 +1676,82 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-assessment-note { margin: 10px 0 0; color: hsl(var(--muted-foreground)); font-size: 0.85rem; text-align: center; }
 @media (max-width: 480px) { .fq-hide-narrow { display: none; } }
 .fq-taskbar .fq-ll-print { display: flex; gap: 6px; margin: 0; }
+
+/* ---------- fraction color rule: numerator = color of the shaded parts, denominator = purple outlines ---------- */
+:root { --fq-num: #0a7fbd; --fq-den: #6a3df0; }
+.fq-linked-fraction { display: inline-grid; justify-items: center; font-family: var(--app-font-display); font-weight: 900; line-height: 1; }
+.fq-linked-fraction b { display: block; }
+.fq-linked-fraction i { display: block; width: 100%; min-width: 1.1em; height: 3px; margin: 3px 0; border-radius: 3px; background: hsl(var(--foreground)); }
+.fq-linked-fraction .fq-num { color: color-mix(in srgb, var(--piece, var(--fq-sky)) 70%, #000); }
+.fq-linked-fraction .fq-den { color: var(--fq-den); }
+.fq-linked-fraction .ghost { color: hsl(var(--muted-foreground) / 0.45); }
+.fq-linked-fraction .fq-num:not(.ghost) { animation: fq-num-pop 260ms ease-out; }
+@keyframes fq-num-pop { 0% { transform: scale(1.35); } 100% { transform: scale(1); } }
+
+.fq-live-fraction { display: flex; align-items: center; gap: 14px; width: fit-content; margin: 6px auto 0; padding: 8px 16px 8px 12px; border: 2px solid var(--fq-edge); border-radius: 16px; background: hsl(var(--card)); transition: box-shadow 200ms ease, border-color 200ms ease; }
+.fq-live-fraction .fq-linked-fraction { font-size: 2rem; }
+.fq-live-legend { display: grid; gap: 3px; font-size: 0.82rem; font-weight: 800; color: hsl(var(--muted-foreground)); }
+.fq-live-legend > span { display: flex; align-items: center; gap: 6px; }
+.fq-live-legend i { width: 12px; height: 12px; flex: none; border-radius: 3px; }
+.fq-live-num { color: color-mix(in srgb, var(--piece, var(--fq-sky)) 70%, #000); }
+.fq-live-num i { background: var(--piece, var(--fq-sky)); }
+.fq-live-den { color: var(--fq-den); }
+.fq-live-den i { border: 2px solid var(--fq-den); background: hsl(var(--card)); }
+.fq-live-whole { color: #9a6b00; font-size: 0.9rem; }
+.fq-live-fraction.is-whole { border-color: var(--fq-sun); box-shadow: 0 0 0 4px color-mix(in srgb, var(--fq-sun) 35%, transparent); }
+.fq-live-fraction.compact { gap: 8px; padding: 5px 8px; margin-top: 2px; border-radius: 12px; }
+.fq-live-fraction.compact .fq-linked-fraction { font-size: 1.35rem; }
+.fq-live-fraction.compact .fq-live-legend { font-size: 0.7rem; }
+@media (max-width: 480px) { .fq-live-fraction .fq-linked-fraction { font-size: 1.6rem; } .fq-live-legend { font-size: 0.75rem; } }
+@media (prefers-reduced-motion: reduce) { .fq-linked-fraction .fq-num:not(.ghost) { animation: none; } }
+
+/* Part outlines are purple-tinted, like the denominator. */
+.fq-ll-piece:not(.on) { border-color: color-mix(in srgb, var(--fq-den) 45%, var(--fq-edge)); }
+.fq-daily-part:not(.shaded) { border-color: color-mix(in srgb, var(--fq-den) 40%, var(--fq-edge)); }
+.fq-bar span.empty { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--fq-den) 40%, var(--fq-edge)); }
+
+/* Bar labels and drawn bars follow the same rule. */
+.fq-bar-label .fq-fraction > span:first-child { color: color-mix(in srgb, var(--piece, var(--fq-sky)) 70%, #000); }
+.fq-bar-label .fq-fraction > span:last-child { color: var(--fq-den); }
+.fq-svg-bar rect.shaded { fill: var(--fq-sky); }
+.fq-svg-bar rect.shaded, .fq-svg-bar rect.empty { stroke: color-mix(in srgb, var(--fq-den) 70%, hsl(var(--foreground))); }
+.fq-svg-bar .fq-svg-fraction-label .num { fill: var(--fq-num); }
+.fq-svg-bar .fq-svg-fraction-label .den { fill: var(--fq-den); }
+.fq-svg-bar .fq-svg-fraction-label .bar { fill: hsl(var(--foreground)); }
+@media print {
+  .fq-svg-bar rect.shaded { fill: #bbb; }
+  .fq-svg-bar rect.shaded, .fq-svg-bar rect.empty { stroke: #000; }
+  .fq-svg-bar .fq-svg-fraction-label .num, .fq-svg-bar .fq-svg-fraction-label .den { fill: #000; }
+}
+
+/* Task bar progress is a fraction bar: one equal part per question. */
+.fq-taskbar-fraction { display: inline-flex; flex: none; align-items: center; gap: 5px; --piece: var(--fq-lime); }
+.fq-taskbar-fraction .fq-linked-fraction { font-size: 0.95rem; }
+.fq-taskbar-fraction .fq-linked-fraction i { height: 2px; margin: 2px 0; }
+.fq-taskbar-fraction small { color: hsl(var(--muted-foreground)); font-size: 0.75rem; font-weight: 800; }
+.fq-taskbar-segments { display: grid; gap: 3px; }
+.fq-taskbar-segments span { height: 9px; border-radius: 4px; background: var(--fq-track); transition: background-color 180ms ease; }
+.fq-taskbar-segments span.on { background: var(--fq-lime); }
+.fq-taskbar-segments span.now { background: hsl(var(--card)); box-shadow: inset 0 0 0 2px var(--fq-lime); }
+
+/* Lesson badges on the map: a pie cut into one slice per lesson step. */
+.fq-node { position: relative; }
+.fq-node-pie { position: absolute; inset: 0; margin: auto; }
+.fq-node-icon { position: relative; display: grid; place-items: center; }
+.fq-node.done .fq-node-icon { color: var(--fq-sun-dark); }
+.fq-node-steps { display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; padding: 2px 8px; border: 2px solid var(--fq-edge); border-radius: 999px; background: hsl(var(--card)); }
+.fq-node-steps .fq-linked-fraction { font-size: 0.8rem; }
+.fq-node-steps .fq-linked-fraction i { height: 2px; margin: 1px 0; }
+.fq-node-steps small { color: hsl(var(--muted-foreground)); font-size: 0.68rem; font-weight: 800; }
+.fq-daily > .fq-daily-done { color: #fff; }
+
+/* Compare guide: a dashed line where the larger amount ends, drawn through both bars after answering. */
+.fq-bar { position: relative; }
+.fq-compare-guide { position: absolute; z-index: 1; top: -7px; bottom: -7px; width: 0; margin-left: -1.5px; border-left: 3px dashed #e0a800; pointer-events: none; animation: fq-guide-in 300ms ease-out both; }
+@keyframes fq-guide-in { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .fq-compare-guide { animation: none; } }
+@media print { .fq-compare-guide { border-left-color: #000; } }
+
+/* Brand: the mark is a pie with 3 of 4 equal slices filled. */
+.fq-brand-mark::after { display: none; }
+.fq-login-brand { display: inline-flex; align-items: center; gap: 6px; }
