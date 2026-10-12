@@ -130,9 +130,9 @@ export default function DailyPractice({
     </h2>
     <p className="fq-daily-instruction" id="daily-parts-instruction" data-testid="text-daily-parts-instruction">
       {bar ? (
-        <>The bottom number, <strong>{question.denominator}</strong>, tells how many equal parts make the whole. Choose <strong>{question.denominator}</strong> below. The top number, <strong>{question.numerator}</strong>, tells how many parts to shade.</>
+        <>The bottom number, <strong>{question.denominator}</strong>, tells how many equal parts make the whole. Choose <strong>{question.denominator}</strong> below. The top number, <strong>{question.numerator}</strong>, tells you to shade <strong>{question.numerator}</strong> part{question.numerator === 1 ? '' : 's'}.</>
       ) : (
-        <>The bottom number, <strong>{question.denominator}</strong>, tells how many equal spaces go from 0 to 1. Choose <strong>{question.denominator}</strong> below. The top number, <strong>{question.numerator}</strong>, tells how many jumps to make from 0.</>
+        <>The bottom number, <strong>{question.denominator}</strong>, tells how many equal spaces go from 0 to 1. Choose <strong>{question.denominator}</strong> below. The top number, <strong>{question.numerator}</strong>, tells you to make <strong>{question.numerator}</strong> jump{question.numerator === 1 ? '' : 's'} from 0.</>
       )}
     </p>
     <p className="fq-daily-choice-label" id="daily-parts-label">
