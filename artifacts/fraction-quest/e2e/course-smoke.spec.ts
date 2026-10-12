@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { MISSIONS } from '../src/game';
 import { getBuildChecks, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
-import { usesFractionEntry } from '../src/FractionEntry';
+import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
 import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
 import { getExtraPractice, hasGenerator } from '../src/practice-bank';
 import type { Mission } from '../src/game';
@@ -76,6 +76,55 @@ async function expectMissionStart(page: import('@playwright/test').Page, mission
   else await expect(start).toBeDisabled();
 }
 
+/** Steppers have no typing: press +10/−10 and +/− until the value matches. */
+async function setStepper(page: import('@playwright/test').Page, id: string, target: number) {
+  const read = async () => { const text = (await page.getByTestId(`value-${id}`).textContent())?.trim() ?? ''; return /^\d+$/.test(text) ? Number(text) : 0; };
+  for (let guard = 0; guard < 60; guard++) {
+    const value = await read();
+    if (value === target) return;
+    const diff = target - value;
+    const big = Math.abs(diff) >= 10 && await page.getByTestId(`button-${id}-${diff > 0 ? 'plus10' : 'minus10'}`).count();
+    await page.getByTestId(`button-${id}-${diff > 0 ? 'plus' : 'minus'}${big ? '10' : ''}`).click();
+  }
+  throw new Error(`Could not set ${id} to ${target}`);
+}
+
+/** Build an answer with tiles (tap a box, then tap tiles), clearing anything already there. */
+async function buildTileAnswer(scope: import('@playwright/test').Locator, prefix: string, problem: WorksheetProblem, answer: string) {
+  const shape = answerShape(problem);
+  const same = (a: string, b: string) => a.replace(/\s+/g, ' ').trim() === b.replace(/\s+/g, ' ').trim();
+  if (shape.kind === 'pick') {
+    await scope.getByTestId(`tile-${prefix}-option-${shape.options.findIndex((option) => same(option, answer))}`).click();
+  } else if (shape.kind === 'symbol') {
+    await scope.getByTestId(`tile-${prefix}-symbol-${({ '<': 'lt', '=': 'eq', '>': 'gt' } as Record<string, string>)[answer.trim()]}`).click();
+  } else if (shape.kind === 'ordered') {
+    for (let slot = 0; slot < shape.items.length; slot++) {
+      const box = scope.getByTestId(`slot-${prefix}-${slot}`);
+      if (((await box.getAttribute('class')) ?? '').includes('filled')) await box.click();
+    }
+    for (const item of answer.split(',').map((value) => value.trim())) await scope.getByTestId(`tile-${prefix}-card-${shape.items.indexOf(item)}`).click();
+  } else if (shape.kind !== 'yesno') {
+    const slots = slotsFromAnswer(shape, answer);
+    for (const name of SLOTS[shape.kind]) {
+      const box = scope.getByTestId(`slot-${prefix}-${name}`);
+      await box.click();
+      for (let k = 0; k < 4 && ((await box.textContent()) ?? '').trim(); k++) await scope.getByTestId(`button-${prefix}-erase`).click();
+      for (const digit of slots[name] ?? '') await scope.getByTestId(`tile-${prefix}-digit-${digit}`).click();
+    }
+  }
+}
+
+/** A wrong answer that can still be built with the question's tiles. */
+function wrongTileAnswer(problem: WorksheetProblem): string {
+  const shape = answerShape(problem);
+  const candidates = shape.kind === 'yesno' ? ['yes', 'no']
+    : shape.kind === 'pick' ? shape.options
+    : shape.kind === 'symbol' ? ['<', '=', '>']
+    : shape.kind === 'ordered' ? [[...shape.items].reverse().join(', '), shape.items.join(', ')]
+    : ['99', '98', '9/99', '99/1', '1 1/99', '9.9', '99%', '0'];
+  return candidates.find((candidate) => canBuild(shape, candidate) && !answerMatches(problem, candidate))!;
+}
+
 async function enterModel(
   page: import('@playwright/test').Page,
   checkId: string,
@@ -83,16 +132,10 @@ async function enterModel(
   target: ReturnType<typeof getBuildChecks>[number]['target'],
 ) {
   const builderId = `${checkId}-${builder}`;
-  const denominator = page.getByTestId(`input-${builderId}-d`);
-  await denominator.fill(String(target.d));
-  await denominator.press('Enter');
+  await setStepper(page, `${builderId}-d`, target.d);
 
   if (target.kind === 'bar') {
-    if (target.wholes > 1) {
-      const wholes = page.getByTestId(`input-${builderId}-wholes`);
-      await wholes.fill(String(target.wholes));
-      await wholes.press('Enter');
-    }
+    if (target.wholes > 1) await setStepper(page, `${builderId}-wholes`, target.wholes);
     for (let part = 0; part < target.n; part++) {
       await page.getByTestId(`piece-${builderId}-${part}`).click();
     }
@@ -155,13 +198,8 @@ async function enterWorksheetAnswer(page: import('@playwright/test').Page, probl
     const choice = answer.trim().toLowerCase();
     if (choice !== 'yes' && choice !== 'no') throw new Error(`Expected a Yes/No answer for ${problem.id}`);
     await row.getByTestId(`button-worksheet-${problem.id}-${choice}`).click();
-  } else if (usesFractionEntry(problem)) {
-    const [numerator, denominator] = answer.trim().split('/');
-    if (denominator === undefined) throw new Error(`Expected a fraction answer for ${problem.id}`);
-    await row.getByTestId(`input-ws-${problem.id}-numerator`).fill(numerator.trim());
-    await row.getByTestId(`input-ws-${problem.id}-denominator`).fill(denominator.trim());
   } else {
-    await row.getByTestId(`input-worksheet-${problem.id}`).fill(answer);
+    await buildTileAnswer(row, `ws-${problem.id}`, problem, answer);
   }
   await row.getByTestId(`button-check-worksheet-${problem.id}`).click();
 }
@@ -216,10 +254,7 @@ for (const missionId of unitRepresentativeIds) {
     const worksheet = getWorksheet(mission.id);
     if (mission.id === 'equal-parts') {
       const problem = worksheet.find((row) => !row.modelRequired && !row.areaTask)!;
-      const wrongAnswer = isYesNoProblem(problem)
-        ? problem.answer === 'yes' ? 'no' : 'yes'
-        : (usesFractionEntry(problem) ? ['0/0'] : ['not an answer', '999999', 'no', 'yes'])
-          .find((candidate) => !answerMatches(problem, candidate))!;
+      const wrongAnswer = wrongTileAnswer(problem);
       await enterWorksheetAnswer(page, problem, wrongAnswer);
       await expect(page.getByTestId(`status-worksheet-${problem.id}`)).toContainText('Not yet.');
       await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuenow', '0');

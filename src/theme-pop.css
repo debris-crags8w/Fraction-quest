@@ -1468,7 +1468,7 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-code-unit { opacity: 0.9; }
 .fq-code-num { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 10px; background: rgb(255 255 255 / 0.25); }
 .fq-code-num button { width: 28px; height: 28px; border: 0; border-radius: 8px; color: inherit; background: rgb(0 0 0 / 0.15); font: inherit; font-size: 1.1rem; cursor: pointer; }
-.fq-code-num input { width: 44px; height: 30px; border: 0; border-radius: 8px; color: hsl(var(--foreground)); background: #fff; font: inherit; text-align: center; }
+.fq-code-num output { display: grid; place-items: center; width: 44px; height: 30px; border: 0; border-radius: 8px; color: hsl(var(--foreground)); background: #fff; font: inherit; font-weight: 900; text-align: center; }
 .fq-code-tools { display: inline-flex; gap: 4px; margin-left: auto; }
 .fq-code-tools button { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 8px; color: inherit; background: rgb(0 0 0 / 0.18); cursor: pointer; }
 .fq-code-tools button:disabled { opacity: 0.35; }

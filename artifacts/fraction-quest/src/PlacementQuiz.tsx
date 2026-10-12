@@ -7,6 +7,8 @@ import { BarSvg, LineSvg, SetSvg } from './models';
 import { AreaSvg } from './AreaModel';
 import { PER_UNIT, PLACEMENT_UNITS, placementItems, startUnit } from './placement';
 import { YesNoCards } from './YesNoCards';
+import { AnswerTiles } from './AnswerTiles';
+import { answerShape } from './answer-shape';
 
 /* "Find my level": a short typed-answer quiz, unit by unit, that stops at the first unit not yet known. */
 
@@ -40,7 +42,7 @@ export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
         <section className="fq-place-card">
           <Mascot mood="happy" size={90} />
           <h1>Find your level</h1>
-          <p>A few questions show where to start. Type number answers or tap Yes/No. There's no timer.</p>
+          <p>A few questions show where to start. Drag tiles to make each answer, or tap Yes or No. There's no timer.</p>
           <p>It's fine to tap <b>"I haven't learned this yet"</b>. That just means we start there!</p>
           <p className="fq-place-small">Skipped lessons stay open, so you can go back to them any time.</p>
           <button className="fq-button" onClick={() => setPhase('quiz')} data-testid="button-placement-start">Start <ArrowRight size={17} /></button>
@@ -83,8 +85,7 @@ export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
           {isYesNoProblem(item.problem) ? (
             <YesNoCards value={draft} onChange={setDraft} testIdPrefix="placement" />
           ) : (
-            <input value={draft} onChange={(e) => setDraft(e.target.value)} autoComplete="off" aria-label="Your answer" autoFocus
-              placeholder={item.problem.form === 'symbol' ? '< = >' : item.problem.form === 'decimal' ? '0.4' : item.problem.form === 'mixed' ? '1 2/3' : item.problem.form === 'ordered' ? '1/4, 2/4, 3/4' : 'like 3/4 or 6'} data-testid="input-placement" />
+            <AnswerTiles key={`${unit}-${index}`} shape={answerShape(item.problem)} value={draft} onChange={setDraft} testIdPrefix="placement" />
           )}
           <button type="submit" className="fq-button" disabled={!draft.trim()} data-testid="button-placement-next">Next <ArrowRight size={17} /></button>
         </form>

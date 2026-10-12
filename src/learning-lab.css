@@ -208,3 +208,7 @@
   .fq-ll .fq-lesson-support { margin: 0; }
   .fq-ll .fq-lesson-support > details > summary { padding: .6rem .8rem; font-size: .9rem; }
 }
+.fq-ll-stepper-label { font-size: .78rem; font-weight: 800; color: hsl(var(--muted-foreground)); }
+.fq-ll-stepper > div { align-items: center; }
+.fq-ll-step.wide { width: auto; min-width: 48px; padding: 0 8px; font: 900 .9rem var(--app-font-display); }
+.fq-ll-step-value { display: grid; place-items: center; min-width: 56px; min-height: 44px; padding: 0 6px; border: 2px solid var(--fq-edge); border-radius: 12px; background: hsl(var(--card)); color: var(--fq-den); font: 900 1.15rem var(--app-font-display); }

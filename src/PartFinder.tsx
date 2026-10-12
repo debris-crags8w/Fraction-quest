@@ -3,6 +3,7 @@ import { AREA_CUTS, pieceArea, type AreaCut, type Piece } from './area-shapes';
 import { FRIENDS, PART_FINDER_ROUNDS, isPartFinderAnswer, partFinderFeedback, scorePartFinderRound } from './part-finder';
 import './part-finder.css';
 import { TaskBar } from './TaskBar';
+import { AnswerTiles } from './AnswerTiles';
 
 type CheckState = 'idle' | 'right' | 'try-again';
 
@@ -245,12 +246,11 @@ export default function PartFinder({ best, onExit, onFinish }: {
 
           {round.mode === 'tile' && <>
             <TileFill cut={round.cut} selection={selected} solved={correct} />
-            <label className="fq-pf-count-entry">
+            <div className="fq-pf-count-entry">
               <span>How many copies fill one whole?</span>
-              <input type="number" min="1" max="16" step="1" inputMode="numeric" value={tileCount} disabled={correct}
-                onChange={(event) => { setTileCount(event.target.value); setChecked('idle'); }}
-                aria-label="Number of copies that fill one whole" data-testid="input-part-finder-tile-count" />
-            </label>
+              <AnswerTiles key={round.id} shape={{ kind: 'number' }} value={tileCount} disabled={correct} testIdPrefix="part-finder-tile-count"
+                label="Number of copies that fill one whole" onChange={(value) => { setTileCount(value); setChecked('idle'); }} />
+            </div>
           </>}
 
           <div className="fq-pf-control-row">

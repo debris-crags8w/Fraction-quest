@@ -13,12 +13,13 @@ import { canEnterWorksheetAnswer, WorksheetBarCopy } from './WorksheetBarCopy';
 import { AreaShade, AreaSvg } from './AreaModel';
 import { PrintMenu, PrintModel } from './Printables';
 import { amountsIn } from './auto-picture';
-import { FractionEntry, usesFractionEntry } from './FractionEntry';
 import { YesNoCards } from './YesNoCards';
 import { LessonTeachingSupport } from './LessonTeachingSupport';
 import './learning-lab.css';
 import { TaskBar } from './TaskBar';
 import { LiveFraction } from './fraction-ui';
+import { AnswerTiles } from './AnswerTiles';
+import { answerShape } from './answer-shape';
 
 type Kind = LearningModel['kind'];
 type St = { d: number; wholes: number; count: number };
@@ -177,22 +178,19 @@ export function ScaleInteraction({ task, onReady, disabled, id }: {
   );
 }
 
+/** A number set with buttons only (no typing): − and +, plus −10 and +10 when the number can get big. */
 function Stepper({ label, value, min, max, onSet, id, hint }: { label: string; value: number; min: number; max: number; onSet: (v: number) => void; id: string; hint?: string }) {
-  const [draft, setDraft] = useState(value === 0 && min === 0 ? '' : String(value));
-  useEffect(() => setDraft(value === 0 && min === 0 ? '' : String(value)), [value, min, max]);
-  const commit = () => {
-    const parsed = draft.trim() ? Number(draft) : min;
-    const next = clamp(Number.isFinite(parsed) ? Math.trunc(parsed) : min, min, max);
-    setDraft(String(next));
-    onSet(next);
-  };
+  const big = max > 20;
+  const step = (by: number) => onSet(clamp(value + by, min, max));
   return (
-    <div className="fq-ll-stepper">
-      <label htmlFor={`${id}-input`}>{label}</label>
+    <div className="fq-ll-stepper" role="group" aria-labelledby={`${id}-label`}>
+      <span id={`${id}-label`} className="fq-ll-stepper-label">{label}</span>
       <div>
-        <button type="button" className="fq-ll-step" aria-label={`Decrease ${label}`} onClick={() => onSet(clamp(value - 1, min, max))} disabled={value <= min} data-testid={`button-${id}-minus`}><Minus size={16} /></button>
-        <input id={id + '-input'} type="number" inputMode="numeric" min={min} max={max} value={draft} placeholder="?" onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }} data-testid={'input-' + id} />
-        <button type="button" className="fq-ll-step" aria-label={`Increase ${label}`} onClick={() => onSet(clamp(value + 1, min, max))} disabled={value >= max} data-testid={`button-${id}-plus`}><Plus size={16} /></button>
+        {big && <button type="button" className="fq-ll-step wide" aria-label={`Take 10 from ${label}`} onClick={() => step(-10)} disabled={value <= min} data-testid={`button-${id}-minus10`}>−10</button>}
+        <button type="button" className="fq-ll-step" aria-label={`Decrease ${label}`} onClick={() => step(-1)} disabled={value <= min} data-testid={`button-${id}-minus`}><Minus size={16} /></button>
+        <output className="fq-ll-step-value" aria-live="polite" data-testid={'value-' + id}>{value === 0 && min === 0 ? '?' : value}</output>
+        <button type="button" className="fq-ll-step" aria-label={`Increase ${label}`} onClick={() => step(1)} disabled={value >= max} data-testid={`button-${id}-plus`}><Plus size={16} /></button>
+        {big && <button type="button" className="fq-ll-step wide" aria-label={`Add 10 to ${label}`} onClick={() => step(10)} disabled={value >= max} data-testid={`button-${id}-plus10`}>+10</button>}
       </div>
       {hint && <small>{hint}</small>}
     </div>
@@ -377,15 +375,13 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
   const [open, setOpen] = useState(false);
   const [wrong, setWrong] = useState<string | null>(null);
   const yesNo = isYesNoProblem(p);
-  const ph = p.form === 'word' ? 'yes or no' : p.form === 'symbol' ? '< = >' : p.form === 'mixed' ? '1 2/3' : p.form === 'decimal' ? '0.4' : p.form === 'ordered' ? '1/4, 2/4, 3/4' : 'Your answer';
-  const fractionInput = usesFractionEntry(p);
+  const shape = answerShape(p);
   const promptId = `ws-prompt-${p.id}`;
   const targetBar = p.modelRequired && p.model?.kind === 'bar' ? p.model : null;
   const gated = !!targetBar || !!(p.area && p.areaTask) || !!p.rulerTask || !!p.linePlotTask || !!p.scaleTask;
   const [modelReady, setModelReady] = useState(!gated);
   const answerEnabled = canEnterWorksheetAnswer(gated, modelReady);
   const modelStatusId = `ws-model-status-${p.id}`;
-  const inputDescription = [promptId, `ws-fb-${p.id}`, ...(gated ? [modelStatusId] : [])].join(' ');
   const modelKey = JSON.stringify([p.rulerTask, p.linePlotTask, p.scaleTask, p.areaTask]);
   useEffect(() => {
     setModelReady(!gated);
@@ -424,18 +420,9 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
           disabled={!answerEnabled}
           testIdPrefix={`worksheet-${p.id}`}
         />}
+        {!yesNo && <AnswerTiles key={p.id + p.prompt} shape={shape} value={draft} onChange={value => { setWrong(null); onEdit(value); }}
+          disabled={!answerEnabled || ok} testIdPrefix={'ws-' + p.id} />}
         <div className="fq-ll-answer" aria-busy={!answerEnabled}>
-          {yesNo ? null : fractionInput ? (
-            <FractionEntry
-              id={`ws-${p.id}`}
-              value={draft}
-              onChange={value => { setWrong(null); onEdit(value); }}
-              describedBy={inputDescription}
-              disabled={!answerEnabled}
-            />
-          ) : (
-            <input id={'ws-' + p.id} type="text" value={draft} placeholder={ph} autoComplete="off" maxLength={200} disabled={!answerEnabled} onChange={ev => { setWrong(null); onEdit(ev.target.value); }} data-testid={'input-worksheet-' + p.id} aria-labelledby={promptId} aria-describedby={inputDescription} />
-          )}
           <button type="submit" className="fq-button" disabled={!draft.trim() || ok || !answerEnabled} data-testid={'button-check-worksheet-' + p.id}>{ok ? 'Correct' : 'Check'}</button>
           <button type="button" className="fq-ll-hintbtn" aria-expanded={open} onClick={() => { if (!open) onHint(); setOpen(o => !o); }} data-testid={'button-hint-worksheet-' + p.id}><Lightbulb size={16} /> Hint</button>
         </div>

@@ -2,7 +2,7 @@ import { MISSIONS, type Progress } from './game';
 import { getWorksheet, type WorksheetProblem } from './learning-content';
 import { makeRng } from './practice-bank';
 
-/* Placement quiz: typed answers (from each unit's worksheets) to find where a child should start.
+/* Placement quiz: answers built with tiles (from each unit's worksheets) to find where a child should start.
    A unit is passed only when every question in it is right. Passing units opens the next unit's lessons;
    it never marks lessons done or gives stars, so the evidence gates stay honest. */
 
@@ -20,7 +20,7 @@ export function placementItems(unit: number, seed: number): PlacementItem[] {
     const sheet = getWorksheet(mission.id);
     // Prefer rows that need no picture; fall back to any row (the picture is shown, read-only).
     const plain = sheet.filter((problem) => !problem.model && !problem.area);
-    const pool = plain.length >= 3 ? plain : sheet.filter((problem) => !problem.areaTask); // no coloring tasks in a typed quiz
+    const pool = plain.length >= 3 ? plain : sheet.filter((problem) => !problem.areaTask); // no coloring tasks in the level quiz
     return { unit, missionId: mission.id, problem: rng.pick(pool) };
   });
 }

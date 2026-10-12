@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bot, Check, Code2, Play, Plus, RotateCcw, Star, Trash2, X } from 'lucide-react';
 import type { Mission } from './game';
 import { MathText } from './MathText';
+import { AnswerTiles } from './AnswerTiles';
 import { Confetti, Mascot, useFun } from './fun-ui';
 import { playCue } from './lib/fun';
 import { CODE_LEVEL_COUNT, countBlocks, describe, getCodeLevels, getRunHint, passesCodeLevel, predictionMatchesTarget, runProgram, toText, usesEffectiveLoop, usesLoop, type Block, type CodeLevel, type RobotState, type RunResult } from './code-quest';
@@ -20,8 +21,7 @@ function NumberSlot({ value, onChange, label, disabled }: { value: number | null
   return (
     <span className="fq-code-num">
       <button type="button" aria-label={`Less: ${label}`} disabled={disabled || !value} onClick={() => onChange(Math.max(0, (value ?? 1) - 1))}>−</button>
-      <input inputMode="numeric" aria-label={label} value={value ?? ''} placeholder="?" disabled={disabled}
-        onChange={(e) => { const digits = e.target.value.replace(/\D/g, '').slice(0, 3); onChange(digits === '' ? null : Number(digits)); }} data-testid={`code-input-${label.replace(/\W+/g, '-')}`} />
+      <output aria-label={label} aria-live="polite" data-testid={`code-input-${label.replace(/\W+/g, '-')}`}>{value ?? '?'}</output>
       <button type="button" aria-label={`More: ${label}`} disabled={disabled} onClick={() => onChange(Math.min(100, (value ?? 0) + 1))}>+</button>
     </span>
   );
@@ -261,22 +261,14 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
             </div>
           )}
           {level.mode === 'predict' && (
-            <div className="fq-code-prediction" role="group" aria-label="Enter your predicted fraction">
-              <label>
-                <span>Numerator — how many parts?</span>
-                <input aria-label="Predicted numerator" inputMode="numeric" value={prediction.numerator} onChange={(event) => {
-                  const numerator = event.target.value.replace(/\D/g, '').slice(0, 3);
-                  setPrediction((current) => ({ ...current, numerator })); setPredictionFeedback(null); setOutcome(null); setResult(null);
+            <div className="fq-code-prediction" role="group" aria-label="Build your predicted fraction">
+              <p>Predict the fraction: numerator (how many parts) over denominator (equal parts in one whole).</p>
+              <AnswerTiles key={`prediction-${at}`} shape={{ kind: 'fraction', allowWhole: false }} testIdPrefix="code-prediction" label="Your predicted fraction"
+                value={prediction.numerator && prediction.denominator ? `${prediction.numerator}/${prediction.denominator}` : ''}
+                onChange={(built) => {
+                  const [numerator = '', denominator = ''] = built.split('/');
+                  setPrediction({ numerator, denominator }); setPredictionFeedback(null); setOutcome(null); setResult(null);
                 }} />
-              </label>
-              <span className="fq-code-prediction-line" aria-hidden="true" />
-              <label>
-                <span>Denominator — how many equal parts in one whole?</span>
-                <input aria-label="Predicted denominator" inputMode="numeric" value={prediction.denominator} onChange={(event) => {
-                  const denominator = event.target.value.replace(/\D/g, '').slice(0, 3);
-                  setPrediction((current) => ({ ...current, denominator })); setPredictionFeedback(null); setOutcome(null); setResult(null);
-                }} />
-              </label>
             </div>
           )}
           <div className="fq-code-run">

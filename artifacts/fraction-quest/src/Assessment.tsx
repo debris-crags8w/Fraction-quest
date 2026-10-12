@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { ArrowLeft, ArrowRight, BarChart3, Check, RotateCcw } from 'lucide-react';
 import { MathText } from './MathText';
-import { FractionEntry, usesFractionEntry } from './FractionEntry';
+import { AnswerTiles } from './AnswerTiles';
+import { answerShape } from './answer-shape';
+import { YesNoCards } from './YesNoCards';
+import { isYesNoProblem } from './learning-content';
 import { AreaShade, AreaSvg } from './AreaModel';
 import { BarSvg, LineSvg, SetSvg } from './models';
 import './assessment.css';
@@ -54,7 +57,7 @@ export function AssessmentHub({ attempts, onStart, onBack }: {
         <header className="fq-assessment-header">
           <span className="fq-eyebrow"><BarChart3 size={15} /> Show what you know</span>
           <h1>Fraction check-ins</h1>
-          <p>Build a model, then type an answer for each question. These checks help you see what to practice; they never skip or unlock a lesson.</p>
+          <p>Build a model, then drag tiles to make each answer. These checks help you see what to practice; they never skip or unlock a lesson.</p>
         </header>
         <section aria-labelledby="unit-checks-title">
           <h2 id="unit-checks-title">Unit check-ins</h2>
@@ -203,9 +206,7 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
     setModelCorrect(false);
   };
 
-  const fractionInput = usesFractionEntry(item.problem);
   const promptId = `assessment-prompt-${index + 1}`;
-  const inputId = `assessment-answer-${index + 1}`;
   return (
     <div className="fq-app">
       <main className="fq-shell fq-assessment-runner fq-appear" data-testid="assessment-runner">
@@ -214,15 +215,12 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
           <h2 id={promptId} className="fq-question-text"><LearningText text={item.prompt} emphasize /></h2>
           <AssessmentModelBuilder key={item.id} item={item} onReady={modelReady} />
           <p className="fq-assessment-model-gate" role="status" aria-live="polite">
-            {modelBuilt ? 'Now enter your answer.' : 'Finish building the model to open the answer box.'}
+            {modelBuilt ? 'Now build your answer with the tiles.' : 'Finish building the model to open the answer tiles.'}
           </p>
+          {isYesNoProblem(item.problem)
+            ? <YesNoCards value={answer} onChange={setAnswer} disabled={!modelBuilt} testIdPrefix={`assessment-${index + 1}`} />
+            : <AnswerTiles key={item.id} shape={answerShape(item.problem)} value={answer} onChange={setAnswer} disabled={!modelBuilt} testIdPrefix={`assessment-${index + 1}`} label="Your answer" />}
           <div className="fq-assessment-answer">
-            {fractionInput ? (
-              <FractionEntry id={inputId} value={answer} onChange={setAnswer} describedBy={`${promptId} ${statusIdFor(index)}`} disabled={!modelBuilt} />
-            ) : (
-              <input id={inputId} type="text" value={answer} onChange={event => setAnswer(event.target.value)} placeholder="Your answer"
-                autoComplete="off" maxLength={100} disabled={!modelBuilt} aria-labelledby={promptId} aria-describedby={`${promptId} ${statusIdFor(index)}`} />
-            )}
             <button type="submit" className="fq-button" disabled={!modelBuilt || !answer.trim()} data-testid="button-submit-assessment-answer">
               {index === items.length - 1 ? 'Finish check-in' : 'Next question'} <ArrowRight size={16} />
             </button>

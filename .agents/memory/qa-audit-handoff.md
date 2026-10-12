@@ -41,6 +41,17 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **No typed answers anywhere a child answers (user rule: no commas, no typing; prefer drag and drop).**
+  `src/answer-shape.ts` picks a tile control from the question's wording/format (never its value): number, fraction
+  (whole allowed when "= ?"), mixed, decimal, percent, pick (the question names its choices), symbol (<, =, > into the
+  gap) and ordered (cards into numbered boxes; cards keep the question's order). `src/AnswerTiles.tsx` renders it:
+  pointer-event dragging (mouse/pen/touch, ghost tile, gold drop highlight) plus tap-a-box-then-tap-tiles for small
+  fingers, keyboards and screen readers. It emits the same answer strings `answerMatches` already checks. Used by
+  worksheet rows, check-ins, the level quiz, the code prediction and Part Finder's tile count. Lab steppers have no
+  number field (−/+ and −10/+10 when max > 20). FractionEntry.tsx was deleted. Prompts no longer say "Type …" or
+  "Use commas" ("Put <, = or > in the gap:", "Answer yes or no."). answer-shape.test.ts proves every worksheet and
+  check-in answer can be built from its tiles. e2e helpers: `setStepper`, `buildTileAnswer`, `wrongTileAnswer`.
+  Grown-up screens (login, family, parent gate) still use text fields on purpose.
 - **Fraction-centered design (ideas 1–6, mockup in docs/fraction-design-ideas.png).** New `src/fraction-ui.tsx`:
   `LinkedFraction` (numerator in the shaded-part color via `--piece`, denominator purple `--fq-den`), `LiveFraction`
   (live "?/4 → 2/4 → 4/4 = 1 whole" under the Lab builders, Daily build items and Fraction War; it only reads back the

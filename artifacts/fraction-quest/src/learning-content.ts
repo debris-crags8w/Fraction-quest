@@ -114,10 +114,10 @@ export function answerMatches(problem: WorksheetProblem, rawInput: string): bool
 
 /* ---------- worksheet problem → multiple-choice question (later lessons and their extra practice) ---------- */
 
-/** Worksheet wording is for typing; a tap question should not say "Type it". */
+/** A tap question names its own choices, so it drops worksheet instructions like "Put <, = or > in the gap". */
 export function asChoicePrompt(prompt: string): string {
   return prompt
-    .replace(/^Type <, = or >: /, 'Pick the sign: ')
+    .replace(/^(?:Type <, = or >|Put <, = or > in the gap): /, 'Pick the sign: ')
     .replace(/\s*(Type it|Type a number|Use commas)\.$/, '');
 }
 
@@ -415,7 +415,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         } else if (kind === 1) {
           // Sometimes fair, sometimes one piece is clearly bigger.
           const fair = i % 8 === 5;
-          prompt = later ? 'Are all the parts of this bar the same size? Type yes or no.' : 'Is this bar cut into equal parts? Type yes or no.';
+          prompt = later ? 'Are all the parts of this bar the same size? Answer yes or no.' : 'Is this bar cut into equal parts? Answer yes or no.';
           answer = fair ? 'yes' : 'no'; form = 'word';
           visual = { ...model(0, d), sizes: fair ? undefined : Array.from({ length: d }, (_, k) => (k === (i % d) ? 2 : 1)) };
           hint = 'Equal parts are all the same size. Compare the pieces.';
@@ -432,18 +432,18 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         if (i === 7) {
           // Redos sometimes show a fair pizza, so "no" is not always the answer.
           const fair = variant % 2 === 1 ? circleCut(d) : undefined;
-          prompt = `Is this pizza cut into ${fair ? d : 4} equal slices? Type yes or no.`; answer = fair ? 'yes' : 'no'; form = 'word'; visual = undefined; task = undefined;
+          prompt = `Is this pizza cut into ${fair ? d : 4} equal slices? Answer yes or no.`; answer = fair ? 'yes' : 'no'; form = 'word'; visual = undefined; task = undefined;
           area = { cut: fair ?? 'circle-unequal' }; hint = 'Equal slices are all the same size. Is one slice bigger than the others?';
         }
         // Last four: a square whose equal parts have different shapes (same size, not always same shape).
         if (i === 8) {
-          prompt = 'Are all 4 parts of this square the same size? Type yes or no.'; answer = 'yes'; form = 'word'; visual = undefined; task = undefined;
+          prompt = 'Are all 4 parts of this square the same size? Answer yes or no.'; answer = 'yes'; form = 'word'; visual = undefined; task = undefined;
           area = { cut: 'fourths-mixed' }; hint = 'The line cuts the right half into 2 equal triangles. Each triangle is 1/4, just like each small square.';
         } else if (i === 9) {
-          prompt = 'This square is cut into 4 parts. Are they fourths? Type yes or no.'; answer = 'no'; form = 'word'; visual = undefined; task = undefined;
+          prompt = 'This square is cut into 4 parts. Are they fourths? Answer yes or no.'; answer = 'no'; form = 'word'; visual = undefined; task = undefined;
           area = { cut: 'fourths-unequal' }; hint = 'Fourths must all be the same size. Compare the biggest part and the smallest part.';
         } else if (i === 10) {
-          prompt = 'These parts are triangles, not squares. Are they still fourths? Type yes or no.'; answer = 'yes'; form = 'word'; visual = undefined; task = undefined;
+          prompt = 'These parts are triangles, not squares. Are they still fourths? Answer yes or no.'; answer = 'yes'; form = 'word'; visual = undefined; task = undefined;
           area = { cut: 'fourths-triangles' }; hint = '4 triangles of the same size fill the square. Same size means fourths, whatever the shape.';
         } else if (i === 11) {
           prompt = 'How many small triangles cover the same space as the small square?'; answer = '2'; form = undefined; visual = undefined; task = undefined;
@@ -481,8 +481,8 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         }
         break;
       case 'fraction-names':
-        prompt = i % 3 === 0 ? `In ${value}, how many pieces are shaded? Type a number.` :
-          i % 3 === 1 ? `In ${value}, how many equal pieces make 1 whole? Type a number.` :
+        prompt = i % 3 === 0 ? `In ${value}, how many pieces are shaded?` :
+          i % 3 === 1 ? `In ${value}, how many equal pieces make 1 whole?` :
           'What fraction of this bar model is shaded?';
         answer = i % 3 === 0 ? String(n) : i % 3 === 1 ? String(d) : value;
         visual = model(n, d); modelRequired = true;
@@ -503,10 +503,10 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         const [small, big] = pairs[t]; const top = id === 'unit-size' ? 1 : 2 + (i % Math.max(1, small - 2));
         const [first, second] = i % 4 < 2 ? [small, big] : [big, small];
         if (id === 'compare-same-numerator' && i % 3 === 1) {
-          prompt = `Type <, = or >: ${f(top, first)} __ ${f(top, second)}.`; form = 'symbol';
+          prompt = `Put <, = or > in the gap: ${f(top, first)} __ ${f(top, second)}.`; form = 'symbol';
           answer = first < second ? '>' : '<';
         } else {
-          prompt = `Which is ${i % 2 ? 'smaller' : 'bigger'}, ${f(top, first)} or ${f(top, second)}? Type it.`;
+          prompt = `Which is ${i % 2 ? 'smaller' : 'bigger'}, ${f(top, first)} or ${f(top, second)}?`;
           answer = f(top, i % 2 ? big : small);
         }
         hint = id === 'unit-size' ? 'More pieces in the same whole means smaller pieces.'
@@ -523,7 +523,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
       case 'benchmark-half': {
         const even = 4 + 2 * ((i + variant) % 5); const top = even / 2 + ((i + variant) % 2 ? 1 : -1);
         prompt = i % 3 === 0 ? `What fraction is 1/${even} less than half?` :
-          i % 3 === 1 ? `Type <, = or >: ${f(top, even)} __ 1/2.` : `How much more does ${f(even / 2 - 1, even)} need to reach half?`;
+          i % 3 === 1 ? `Put <, = or > in the gap: ${f(top, even)} __ 1/2.` : `How much more does ${f(even / 2 - 1, even)} need to reach half?`;
         answer = i % 3 === 0 ? f(even / 2 - 1, even) : i % 3 === 1 ? (top > even / 2 ? '>' : '<') : f(1, even);
         form = i % 3 === 1 ? 'symbol' : undefined; hint = `Half of ${even} pieces is ${even / 2} pieces.`;
         if (i % 3 === 1) visual = model(top, even); break;
@@ -532,7 +532,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         const even = [4, 6, 8, 10, 12, 6, 8, 10, 12, 6, 10, 10][t]; const h = even / 2;
         const top = [h + 1, h, h - 1, h][i % 4];
         prompt = i % 3 === 0 ? `What fraction is 1/${even} more than half?` :
-          i % 3 === 1 ? `Type <, = or >: ${f(top, even)} __ 1/2.` : `Which is closer to 1/2: ${f(h - 1, even)} or ${f(1, even)}? Type it.`;
+          i % 3 === 1 ? `Put <, = or > in the gap: ${f(top, even)} __ 1/2.` : `Which is closer to 1/2: ${f(h - 1, even)} or ${f(1, even)}?`;
         answer = i % 3 === 0 ? f(h + 1, even) : i % 3 === 1 ? (top > h ? '>' : top < h ? '<' : '=') : f(h - 1, even);
         form = i % 3 === 1 ? 'symbol' : undefined; hint = `Half of ${even} pieces is ${h}/${even}. Compare to that.`;
         if (i % 3 === 1) visual = model(top, even); break;
@@ -540,8 +540,8 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
       case 'benchmarks-zero-one': {
         const e = [6, 8, 10, 12][(i + variant) % 4];
         prompt = i % 3 === 0 ? `How much is missing from ${f(d - 1, d)} to make 1 whole?` :
-          i % 3 === 1 ? `Is ${f(1, e)} closest to 0, 1/2 or 1? Type it.` :
-          `Is ${f(e - 1, e)} closest to 0, 1/2 or 1? Type it.`;
+          i % 3 === 1 ? `Is ${f(1, e)} closest to 0, 1/2 or 1?` :
+          `Is ${f(e - 1, e)} closest to 0, 1/2 or 1?`;
         answer = i % 3 === 0 ? f(1, d) : i % 3 === 1 ? '0' : '1'; hint = 'Compare it to 0, 1/2 and 1. Pick the closest.'; break;
       }
       case 'number-line-basics':
@@ -556,14 +556,14 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         hint = 'Denominator: spaces in 1 whole. Numerator: jumps from 0.'; break;
       }
       case 'compare-same-denominator':
-        prompt = i % 2 ? `Type <, = or >: ${f(n, d)} __ ${f(n + 1, d)}.` : `Which is bigger, ${f(n + 1, d)} or ${f(n, d)}? Type it.`;
-        if (i % 4 === 3) prompt = `Type <, = or >: ${f(n + 1, d)} __ ${f(n, d)}.`;
+        prompt = i % 2 ? `Put <, = or > in the gap: ${f(n, d)} __ ${f(n + 1, d)}.` : `Which is bigger, ${f(n + 1, d)} or ${f(n, d)}?`;
+        if (i % 4 === 3) prompt = `Put <, = or > in the gap: ${f(n + 1, d)} __ ${f(n, d)}.`;
         answer = i % 4 === 3 ? '>' : i % 2 ? '<' : f(n + 1, d); form = i % 2 ? 'symbol' : undefined; hint = 'Same denominator means same size pieces. Compare the numerators.'; break;
       case 'order-fractions': {
         const tops = d >= 5 ? [1, Math.floor(d / 2), d - 1] : [1, 2, 3];
         // Never shown already in the asked order; later rows shift so no question repeats.
         const shown = [[2, 0, 1], [1, 2, 0], [0, 2, 1], [1, 0, 2]][(i + (i >= 8 ? 2 : 0)) % 4].map(k => f(tops[k], d));
-        prompt = `Put ${shown.join(', ')} in order, ${i % 2 ? 'biggest' : 'smallest'} first. Use commas.`;
+        prompt = `Put ${shown.join(', ')} in order, ${i % 2 ? 'biggest' : 'smallest'} first.`;
         answer = (i % 2 ? [...tops].reverse() : tops).map(top => f(top, d)).join(', '); form = 'ordered'; hint = 'Same size pieces. Compare the numerators.'; break;
       }
       case 'equivalent-models':
@@ -610,7 +610,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
       case 'improper-fractions':
         if (i % 3 === 0) {
           const top = [d + 1, d - 1, d, d + 2][i / 3];
-          prompt = `Type <, = or >: ${f(top, d)} __ 1.`; answer = top > d ? '>' : top < d ? '<' : '='; form = 'symbol';
+          prompt = `Put <, = or > in the gap: ${f(top, d)} __ 1.`; answer = top > d ? '>' : top < d ? '<' : '='; form = 'symbol';
           hint = `${d}/${d} is exactly 1 whole.`;
         } else {
           prompt = i % 3 === 1 ? `Write ${f(d + n, d)} as wholes and a fraction, like 1 2/3.` : 'What fraction is shaded? Each bar is 1 whole.';
@@ -697,7 +697,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         hint = `The bottom was multiplied by ${k}. Multiply the numerator by ${k} too.`; break;
       case 'compare': {
         const [a, b, c, e] = ([[1, 2, 2, 5], [2, 3, 3, 4], [3, 4, 2, 3], [1, 3, 2, 6], [3, 5, 3, 4], [5, 6, 5, 8], [2, 5, 1, 3], [3, 8, 1, 2], [4, 6, 2, 3], [7, 10, 3, 5], [2, 5, 2, 3], [5, 8, 3, 4]] as const)[tr];
-        prompt = `Type <, = or >: ${f(a, b)} __ ${f(c, e)}.`;
+        prompt = `Put <, = or > in the gap: ${f(a, b)} __ ${f(c, e)}.`;
         answer = a * e > c * b ? '>' : a * e < c * b ? '<' : '='; form = 'symbol';
         hint = a === c ? `Same numerator: ${a} parts each. Fewer parts in the whole means bigger parts.` : 'Give both fractions the same denominator. Then compare the numerators.'; break;
       }
@@ -710,7 +710,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const sorted = triples[tr].slice().sort((x, y) => (x[0] * y[1] - y[0] * x[1]) * (up ? 1 : -1));
         // Never show them already in the asked order.
         const shown = triples[tr].every((x, j) => x === sorted[j]) ? [triples[tr][1], triples[tr][2], triples[tr][0]] : triples[tr];
-        prompt = `Put ${shown.map(([t, b]) => f(t, b)).join(', ')} in order, ${up ? 'smallest' : 'biggest'} first. Use commas.`;
+        prompt = `Put ${shown.map(([t, b]) => f(t, b)).join(', ')} in order, ${up ? 'smallest' : 'biggest'} first.`;
         answer = sorted.map(([t, b]) => f(t, b)).join(', '); form = 'ordered';
         hint = 'Compare each one to 1/2 first. Or give them all the same denominator.'; break;
       }

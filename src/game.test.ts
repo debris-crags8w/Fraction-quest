@@ -21,7 +21,7 @@ import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './pr
 import { createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
 import type { PracticeQuestion } from './game';
 import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
-import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
+import { AnswerTiles } from './AnswerTiles';
 import {
   createLearningSpeechController,
   LearningVoicePicker,
@@ -892,42 +892,23 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.match(markup, /2 parts are shaded/);
   });
 
-  it('provides a labeled stacked fraction field and keeps slash entry available', () => {
-    const markup = renderToStaticMarkup(createElement(FractionEntry, {
-      id: 'ws-w1',
-      value: '1/3',
-      onChange: () => undefined,
-      describedBy: 'ws-fb-w1',
+  it('builds a fraction answer from number tiles, with no box to type in', () => {
+    const markup = renderToStaticMarkup(createElement(AnswerTiles, {
+      shape: { kind: 'fraction', allowWhole: false }, value: '1/3', onChange: () => undefined, testIdPrefix: 'ws-w1',
     }));
-    assert.match(markup, /aria-label="Numerator: parts selected"/);
-    assert.match(markup, /aria-label="Denominator: total equal parts in 1 whole"/);
-    assert.match(markup, /class="fq-ll-fraction-bar" aria-hidden="true"/);
-    assert.match(markup, /inputmode="numeric"/i);
-    assert.match(markup, /Type a fraction with \//);
-    assert.match(markup, /aria-label="Insert fraction slash"/);
-    assert.match(markup, /value="1"/);
-    assert.match(markup, /value="3"/);
+    assert.match(markup, /aria-label="numerator: parts selected: 1[,"]/);
+    assert.match(markup, /aria-label="denominator: equal parts in 1 whole: 3"/);
+    assert.match(markup, /data-testid="tile-ws-w1-digit-9"/);
+    assert.doesNotMatch(markup, /<input|<textarea/);
   });
 
-  it('keeps fraction drafts editable, including partially entered answers', () => {
-    assert.deepEqual(fractionParts('1/3'), { numerator: '1', denominator: '3' });
-    assert.deepEqual(fractionParts('2/'), { numerator: '2', denominator: '' });
-    assert.deepEqual(fractionParts('/4'), { numerator: '', denominator: '4' });
-    assert.equal(fractionDraftFromParts('', ''), '');
-    assert.equal(fractionDraftFromParts('2', '5'), '2/5');
-    assert.equal(updateFractionPart('1/3', 'numerator', '2'), '2/3');
-    assert.equal(updateFractionPart('1/3', 'denominator', '4'), '1/4');
-    assert.equal(updateFractionPart('1/3', 'numerator', '1/5'), '1/5');
-    assert.equal(updateFractionPart('1/3', 'numerator', ''), '/3');
-  });
-
-  it('uses the fraction control only for single-fraction worksheet answers', () => {
-    const problems = getWorksheet(MISSIONS[0].id);
-    assert.equal(usesFractionEntry(problems[2]), true);
-    assert.equal(usesFractionEntry(problems[0]), false);
-    assert.equal(usesFractionEntry({ ...problems[2], form: 'mixed' }), false);
-    assert.equal(usesFractionEntry({ ...problems[2], form: 'ordered' }), false);
-    assert.equal(usesFractionEntry({ ...problems[0], form: 'decimal' }), false);
+  it('puts ordering answers in boxes instead of typing commas', () => {
+    const markup = renderToStaticMarkup(createElement(AnswerTiles, {
+      shape: { kind: 'ordered', items: ['3/4', '1/4', '2/4'], first: 'smallest' }, value: '', onChange: () => undefined, testIdPrefix: 'ws-w2',
+    }));
+    assert.match(markup, /data-testid="slot-ws-w2-2"/);
+    assert.match(markup, /data-testid="tile-ws-w2-card-0"/);
+    assert.doesNotMatch(markup, /<input|<textarea/);
   });
 
   it('separates reasoning feedback from model errors across every lesson', () => {
