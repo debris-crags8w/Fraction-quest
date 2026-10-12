@@ -3,6 +3,7 @@ import { MISSIONS } from '../src/game';
 import { getBuildChecks, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
 import { usesFractionEntry } from '../src/FractionEntry';
 import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
+import { getExtraPractice, hasGenerator } from '../src/practice-bank';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
 
@@ -15,6 +16,27 @@ async function openAsGuest(page: import('@playwright/test').Page) {
   await page.goto('/');
   await page.getByTestId('button-play-guest').click();
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+}
+
+async function retryLessonQuestion(
+  page: import('@playwright/test').Page,
+  question: Mission['questions'][number],
+) {
+  const wrongChoice = (question.correctChoice + 1) % question.choices.length;
+  await page.getByTestId(`button-answer-${question.id}-${wrongChoice}`).click();
+  await page.getByTestId('button-check-answer').click();
+  await expect(page.getByTestId('status-feedback')).toContainText('Not quite!');
+
+  await page.getByTestId('button-try-again').click();
+  await expect(page.getByTestId('button-check-answer')).toBeDisabled();
+  const correctAnswer = page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`);
+  await expect(correctAnswer).toHaveAttribute('aria-pressed', 'false');
+  await correctAnswer.click();
+  await expect(page.getByTestId('button-check-answer')).toBeEnabled();
+  await expect(correctAnswer).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('button-check-answer').click();
+  await expect(page.getByTestId('status-feedback')).not.toContainText('Not quite!');
+  await expect(page.getByTestId('button-next-question')).toBeVisible();
 }
 
 function masteredRecord(missionId: string) {
@@ -281,6 +303,67 @@ test('all 68 lessons render their worked model and first interactive question', 
     await page.getByTestId('button-back-map').click();
     await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
   }
+});
+
+test('learners can correct a wrong answer across every lesson model type', async ({ page }) => {
+  const modelKinds = ['area', 'bars', 'decimal', 'line', 'partition', 'set'] as const;
+  const representativeMissions = modelKinds.map((kind) =>
+    MISSIONS.find((mission) => mission.questions[0]?.model.kind === kind),
+  );
+  expect(representativeMissions.every(Boolean)).toBe(true);
+
+  await page.addInitScript((ids) => {
+    const completedAt = Date.now();
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({
+      completedMissionIds: ids,
+      starsByMission: {},
+      reviewQueue: [],
+      learning: Object.fromEntries(ids.map((id) => [id, { completedAt }])),
+      assessments: [],
+    }));
+  }, MISSIONS.map((item) => item.id));
+  await openAsGuest(page);
+
+  for (const mission of representativeMissions) {
+    if (!mission) throw new Error('Missing lesson for a question model type');
+    await page.getByTestId(`button-node-${mission.id}`).click();
+    await page.getByTestId(`button-start-mission-${mission.id}`).click();
+    await page.getByTestId('button-start-practice').click();
+
+    const question = mission.questions[0];
+    await expect(page.locator('.fq-model-area')).toBeVisible();
+    await retryLessonQuestion(page, question);
+    await page.getByTestId('button-next-question').click();
+    await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 2 of \d+$/);
+    await page.getByTestId('button-back-map').click();
+  }
+});
+
+test('a generated practice question can be corrected and continued', async ({ page }) => {
+  const mission = MISSIONS.find((item) => hasGenerator(item.id))!;
+  const generatedQuestion = getExtraPractice(mission.id, mission.questions.map((question) => question.id))[0];
+  expect(generatedQuestion).toBeDefined();
+  expect(generatedQuestion.id).not.toBe(mission.questions[0].id);
+
+  await page.addInitScript((ids) => {
+    const completedAt = Date.now();
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({
+      completedMissionIds: ids,
+      starsByMission: {},
+      reviewQueue: [],
+      learning: Object.fromEntries(ids.map((id) => [id, { completedAt }])),
+      assessments: [],
+    }));
+  }, MISSIONS.map((item) => item.id));
+  await openAsGuest(page);
+  await page.getByTestId(`button-node-${mission.id}`).click();
+  await page.getByTestId(`button-practice-more-${mission.id}`).click();
+
+  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
+  await expect(page.getByTestId(`button-answer-${generatedQuestion.id}-0`)).toBeVisible();
+  await retryLessonQuestion(page, generatedQuestion);
+  await page.getByTestId('button-next-question').click();
+  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 2 of \d+$/);
 });
 
 test('a completed learner can open a redo section without changing the lesson route', async ({ page }) => {
