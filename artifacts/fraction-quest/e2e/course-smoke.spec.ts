@@ -424,10 +424,11 @@ test('Part Finder shows equal pieces first and adds a mixed-shape cake share cha
   await openAsGuest(page);
   await page.getByTestId('button-part-finder-equal-parts').click();
 
-  await expect(page.getByRole('heading', { name: 'Make 4 fair shares' })).toBeVisible();
-  await expect(page.getByText('Put all 8 equal pieces into 4 shares. Each share gets 2 pieces.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Share a cake cut into equal pieces' })).toBeVisible();
+  await expect(page.getByText(/4 friends share this square cake\. It is cut into 8 equal pieces\./)).toBeVisible();
+  await expect(page.getByText(/each share gets 2/i)).toHaveCount(0);
   await expect(page.locator('.fq-pf-interactive .fq-pf-piece')).toHaveCount(8);
-  await expect(page.getByTestId('part-finder-selection')).toHaveText('0 of 8 equal pieces are in a share.');
+  await expect(page.getByTestId('part-finder-selection')).toHaveText('0 of 8 pieces given out.');
 
   const assignPiece = async (pieceNumber: number) => {
     const piece = page.getByTestId(`button-part-finder-piece-${pieceNumber}`);
@@ -445,12 +446,12 @@ test('Part Finder shows equal pieces first and adds a mixed-shape cake share cha
   await page.getByTestId('button-part-finder-share-4').click();
   await assignPiece(7);
   await assignPiece(8);
-  await expect(page.getByTestId('part-finder-selection')).toHaveText('8 of 8 equal pieces are in a share.');
+  await expect(page.getByTestId('part-finder-selection')).toHaveText('8 of 8 pieces given out.');
   await page.getByTestId('button-part-finder-check').click();
-  await expect(page.getByTestId('part-finder-feedback')).toContainText('Each share has 2 equal pieces.');
+  await expect(page.getByTestId('part-finder-feedback')).toContainText('Each friend gets 2 of the 8 equal pieces.');
 
   await page.getByTestId('button-part-finder-next').click();
-  await expect(page.getByRole('heading', { name: 'Share the cake fairly' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Now the pieces are different shapes' })).toBeVisible();
   await expect(page.locator('.fq-pf-interactive .fq-pf-piece')).toHaveCount(7);
   await expect(page.getByTestId('part-finder-selection')).toHaveText('0 of 7 pieces given out.');
   await assignPiece(1);
@@ -497,7 +498,7 @@ test('daily bar builder explains the denominator as total equal parts in one who
   await page.getByTestId('button-start-daily-practice').click();
 
   await expect(page.getByTestId('text-daily-parts-instruction')).toHaveText(
-    'The bottom number, 4, tells how many equal parts make the whole. Choose 4 below. The top number, 1, tells you to shade 1 part.',
+    'The denominator (bottom number) tells how many equal parts make one whole: choose that below. The numerator (top number) tells how many of those parts to shade.',
   );
   await expect(page.getByText('Total equal parts in one whole', { exact: true })).toBeVisible();
   const fourParts = page.getByRole('radio', { name: '4 equal parts in one whole' });

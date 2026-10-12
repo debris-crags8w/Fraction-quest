@@ -2,7 +2,7 @@ import { type CSSProperties, type RefObject, useEffect, useRef, useState } from 
 import { LearningText } from './LearningText';
 import { ArrowLeft, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
 import { numberLineWholeCount, type Progress } from './game';
-import { answerMatches, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, type BuildCheck, type LearningModel, type WorksheetProblem } from './learning-content';
+import { answerMatches, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
 import {
   checkRedoRow, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, learningSummary, redoChecks, redoDone, redoWorksheet,
   redoWorksheetCount, startRedo, targetedPracticeCount, targetedPracticePlans, updateLearning, worksheetCount, type LearningRecord, type RedoAttempt, type RedoPart,
@@ -14,6 +14,7 @@ import { AreaShade, AreaSvg } from './AreaModel';
 import { PrintMenu, PrintModel } from './Printables';
 import { amountsIn } from './auto-picture';
 import { FractionEntry, usesFractionEntry } from './FractionEntry';
+import { YesNoCards } from './YesNoCards';
 import { LessonTeachingSupport } from './LessonTeachingSupport';
 import './learning-lab.css';
 
@@ -214,8 +215,8 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
         <p>{MODEL_CONCEPTS[kind]}</p>
       </header>
       <div className="fq-ll-controls">
-        <Stepper id={id + '-d'} label={kind === 'set' ? 'Equal groups' : kind === 'line' ? 'Spaces in each whole' : 'Equal pieces in each whole'} value={st.d} min={0} max={maxD}
-          onSet={v => set({ ...st, d: v, count: Math.min(st.count, kind === 'set' ? v : v * wholes) })} hint={kind === 'set' ? total + ' dots in all' : 'You pick'} />
+        <Stepper id={id + '-d'} label={kind === 'set' ? 'Equal groups' : kind === 'line' ? 'Total equal spaces in one whole' : 'Total equal parts in one whole'} value={st.d} min={0} max={maxD}
+          onSet={v => set({ ...st, d: v, count: Math.min(st.count, kind === 'set' ? v : v * wholes) })} hint={kind === 'set' ? total + ' dots in all' : undefined} />
         {/* Extra whole bars are only offered when the target is bigger than 1 (e.g. 7/4); otherwise one bar is always right. */}
         {kind === 'bar' && lineWholes > 1 && <Stepper id={id + '-wholes'} label="Whole bars" value={st.wholes} min={1} max={3}
           onSet={v => set({ ...st, wholes: v, count: Math.min(st.count, st.d * v) })} />}
@@ -376,6 +377,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
   const ok = !!e && e.checkedValue === e.draft && answerMatches(p, draft);
   const [open, setOpen] = useState(false);
   const [wrong, setWrong] = useState<string | null>(null);
+  const yesNo = isYesNoProblem(p);
   const ph = p.form === 'word' ? 'yes or no' : p.form === 'symbol' ? '< = >' : p.form === 'mixed' ? '1 2/3' : p.form === 'decimal' ? '0.4' : p.form === 'ordered' ? '1/4, 2/4, 3/4' : 'Your answer';
   const fractionInput = usesFractionEntry(p);
   const promptId = `ws-prompt-${p.id}`;
@@ -405,7 +407,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
       <form onSubmit={submit}>
         <div className="fq-ll-row-question">
           <span className="fq-ll-num" aria-hidden="true">{numberLabel ?? p.id.slice(1)}</span>
-          <span id={promptId} className="fq-question-text"><LearningText text={p.prompt} speak emphasize /></span>
+          <span id={promptId} className="fq-question-text"><LearningText text={yesNo ? yesNoPrompt(p) : p.prompt} speak emphasize /></span>
         </div>
         {/* For counting and shading, the tappable bar is the picture, so it is not drawn twice. */}
         {p.model && (!p.task || p.task.kind === 'copy') && <Preview m={p.model} named={amountsIn(p.prompt).some((a) => a.numerator === p.model!.n && a.denominator === p.model!.d) || ok} />}
@@ -417,8 +419,14 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
         {p.linePlotTask && <LinePlotInteraction key={modelKey} task={p.linePlotTask} disabled={ok} onReady={setModelReady} />}
         {p.scaleTask && <ScaleInteraction key={modelKey} id={p.id} task={p.scaleTask} disabled={ok} onReady={setModelReady} />}
         {targetBar && <WorksheetBarCopy target={targetBar} task={p.task} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />}
+        {yesNo && <YesNoCards
+          value={draft}
+          onChange={value => { setWrong(null); onEdit(value); }}
+          disabled={!answerEnabled}
+          testIdPrefix={`worksheet-${p.id}`}
+        />}
         <div className="fq-ll-answer" aria-busy={!answerEnabled}>
-          {fractionInput ? (
+          {yesNo ? null : fractionInput ? (
             <FractionEntry
               id={`ws-${p.id}`}
               value={draft}

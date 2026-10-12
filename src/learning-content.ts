@@ -85,6 +85,15 @@ export function paperPrompt(problem: WorksheetProblem, typed = false): string {
   return typed ? counted : counted.replace(/\bType\b/g, 'Write');
 }
 
+export function isYesNoProblem(problem: Pick<WorksheetProblem, 'form' | 'answer'>): boolean {
+  return problem.form === 'word' && /^(?:yes|no)$/i.test(problem.answer.trim());
+}
+
+export function yesNoPrompt(problem: Pick<WorksheetProblem, 'form' | 'answer' | 'prompt'>): string {
+  if (!isYesNoProblem(problem)) return problem.prompt;
+  return problem.prompt.replace(/\b(?:Type|Answer)\s+yes\s+or\s+no\.?$/i, 'Choose yes or no.');
+}
+
 export function answerMatches(problem: WorksheetProblem, rawInput: string): boolean {
   // "25%" and "25" both match a percent answer.
   const raw = rawInput.replace(/\s*%\s*$/, '');

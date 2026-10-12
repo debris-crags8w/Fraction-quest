@@ -268,7 +268,7 @@ export default function PartFinder({ best, onExit, onFinish }: {
           <div className="fq-pf-control-row">
             <p className="fq-pf-selection" aria-live="polite" data-testid="part-finder-selection">
               {sorting
-                ? `${placed} of ${assignment.length} ${round.id === 'sort' ? `equal pieces ${placed === 1 ? 'is' : 'are'} in a share.` : 'pieces given out.'}`
+                ? `${placed} of ${assignment.length} pieces given out.`
                 : selected.length === 0 ? 'No pieces selected yet.' : `${selected.length} ${selected.length === 1 ? 'piece' : 'pieces'} selected.`}
             </p>
             <div className="fq-pf-actions">

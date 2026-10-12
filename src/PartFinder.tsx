@@ -146,6 +146,7 @@ export default function PartFinder({ best, onExit, onFinish }: {
     setChecked('idle');
     setRoundHadMiss(false);
     setTileCount('');
+    setActiveShare(0);
   };
 
   const replay = () => {
@@ -192,7 +193,7 @@ export default function PartFinder({ best, onExit, onFinish }: {
         <header className="fq-pf-top">
           <button className="fq-pf-back" type="button" onClick={onExit} data-testid="button-part-finder-exit">Back to lessons</button>
           <span className="fq-pf-badge">Optional side game</span>
-          <div className="fq-pf-best" data-testid="part-finder-best-score">Best: {best === null ? '—' : `${best} / 3`}</div>
+          <div className="fq-pf-best" data-testid="part-finder-best-score">Best: {best === null ? '—' : `${best} / ${PART_FINDER_ROUNDS.length}`}</div>
         </header>
 
         <section className="fq-pf-card" aria-labelledby="pf-title">
@@ -266,7 +267,9 @@ export default function PartFinder({ best, onExit, onFinish }: {
 
           <div className="fq-pf-control-row">
             <p className="fq-pf-selection" aria-live="polite" data-testid="part-finder-selection">
-              {sorting ? `${placed} of ${assignment.length} pieces given out.` : selected.length === 0 ? 'No pieces selected yet.' : `${selected.length} ${selected.length === 1 ? 'piece' : 'pieces'} selected.`}
+              {sorting
+                ? `${placed} of ${assignment.length} pieces given out.`
+                : selected.length === 0 ? 'No pieces selected yet.' : `${selected.length} ${selected.length === 1 ? 'piece' : 'pieces'} selected.`}
             </p>
             <div className="fq-pf-actions">
               <button type="button" className="fq-button ghost" onClick={clearSelection} disabled={(sorting ? placed === 0 : selected.length === 0) || correct} data-testid="button-part-finder-clear">Clear</button>

@@ -25,18 +25,18 @@ export const PART_FINDER_LESSONS: ReadonlySet<string> = new Set(['equal-parts', 
 export const PART_FINDER_ROUNDS: PartFinderRound[] = [
   {
     id: 'sort',
-    title: 'Make 4 fair shares',
-    prompt: 'Put all 8 equal pieces into 4 shares. Each share gets 2 pieces.',
+    title: 'Share a cake cut into equal pieces',
+    prompt: '4 friends share this square cake. It is cut into 8 equal pieces. Give every piece to a friend, so each friend gets the same amount.',
     cut: 'eighths-triangles',
     targetArea: 1 / 4,
-    targetLabel: '8 equal pieces',
+    targetLabel: '4 friends, 8 equal pieces',
     mode: 'sort',
     shares: 4,
   },
   {
     id: 'sort-cake',
-    title: 'Share the cake fairly',
-    prompt: '4 friends share this square cake. Give every piece to a friend, so each friend gets the same amount of cake.',
+    title: 'Now the pieces are different shapes',
+    prompt: 'Another cake for the same 4 friends. This time some pieces are squares and some are triangles. Give every piece to a friend, so each friend gets the same amount of cake.',
     cut: 'quarter-and-triangles',
     targetArea: 1 / 4,
     targetLabel: '4 friends, 1 cake',
@@ -109,28 +109,19 @@ const inSmallest = (round: PartFinderRound, area: number) => {
 
 export function partFinderFeedback(round: PartFinderRound, selected: number[], answer?: number): string {
   if (round.mode === 'sort') {
+    // Both sharing rounds are 4 friends sharing a cake; the hints name the friend.
     const left = selected.filter((share) => share < 0).length + Math.max(0, AREA_CUTS[round.cut].length - selected.length);
-    if (left === AREA_CUTS[round.cut].length) {
-      return round.id === 'sort-cake'
-        ? 'Tap a friend’s name, then tap the pieces that friend gets.'
-        : 'Choose a share, then tap the pieces that go in it.';
-    }
-    if (left) return round.id === 'sort-cake'
-      ? `${left} ${left === 1 ? 'piece has' : 'pieces have'} no friend yet. Give every piece to someone.`
-      : `${left} ${left === 1 ? 'piece is' : 'pieces are'} not in a share yet. Every piece needs a share.`;
+    if (left === AREA_CUTS[round.cut].length) return 'Tap a friend’s name, then tap the pieces that friend gets.';
+    if (left) return `${left} ${left === 1 ? 'piece has' : 'pieces have'} no friend yet. Give every piece to someone.`;
     const fair = 1 / (round.shares ?? 1);
     const areas = shareAreas(round, selected);
     const big = areas.findIndex((area) => area > fair + EPSILON);
-    if (big >= 0) return round.id === 'sort-cake'
-      ? `${FRIENDS[big]} gets too much cake. Give one of ${FRIENDS[big]}’s pieces to a friend who has less.`
-      : `Share ${big + 1} is too big. Move a piece to a share that is too small.`;
+    if (big >= 0) return `${FRIENDS[big]} gets too much cake. Give one of ${FRIENDS[big]}’s pieces to a friend who has less.`;
     const small = areas.findIndex((area) => area < fair - EPSILON);
-    if (small >= 0) return round.id === 'sort-cake'
-      ? `${FRIENDS[small]} doesn’t get enough cake.`
-      : `Share ${small + 1} is too small.`;
+    if (small >= 0) return `${FRIENDS[small]} doesn’t get enough cake.`;
     return round.id === 'sort-cake'
       ? 'Fair! Every friend gets 1/4 of the cake. One friend has a small square, the others have 2 triangles: the same amount, in different shapes.'
-      : 'All 8 equal pieces make four shares of the same size. Each share has 2 equal pieces.';
+      : 'Fair! Each friend gets 2 of the 8 equal pieces. 2/8 of the cake is the same amount as 1/4.';
   }
   if (!selected.length) return 'Tap a piece to start.';
   if (round.mode === 'tile' && selected.length > 1) return 'Choose just one piece to copy.';

@@ -1395,16 +1395,17 @@ describe('Part Finder rounds', () => {
     // All 8 triangles are equal eighths, so 2 pieces make each fourth.
     assert.equal(AREA_CUTS[sort.cut].length, 8);
     assert.ok(AREA_CUTS[sort.cut].every((piece) => Math.abs(pieceArea(piece) - 1 / 8) < 1e-9));
-    assert.equal(sort.prompt, 'Put all 8 equal pieces into 4 shares. Each share gets 2 pieces.');
+    assert.match(sort.prompt, /4 friends share this square cake\. It is cut into 8 equal pieces\./);
+    assert.doesNotMatch(sort.prompt, /each share gets|2 pieces each/i, 'the prompt must not give the answer');
     assert.equal(isPartFinderAnswer(sort, [0, 0, 1, 1, 2, 2, 3, 3]), true);
     assert.equal(isPartFinderAnswer(sort, [3, 0, 1, 2, 0, 1, 2, 3]), true, 'any pairing of two equal pieces works');
     assert.equal(isPartFinderAnswer(sort, [0, 0, 0, 1, 1, 2, 2, 3]), false, 'a share with 3 pieces is too big');
     assert.equal(isPartFinderAnswer(sort, [0, 0, 1, 1, 2, 2, 3, -1]), false, 'every piece needs a share');
     assert.equal(isPartFinderAnswer(sort, [0, 0, 1, 1, 2, 2, 3]), false);
     assert.equal(isPartFinderAnswer(sort, [0, 0, 1, 1, 2, 2, 3, 4]), false);
-    assert.match(partFinderFeedback(sort, [0, 0, 1, 1, 2, 2, 3, -1]), /1 piece is not in a share/);
-    assert.match(partFinderFeedback(sort, [0, 0, 0, 1, 1, 2, 2, 3]), /Share 1 is too big/);
-    assert.match(partFinderFeedback(sort, [0, 0, 1, 1, 2, 2, 3, 3]), /same size/);
+    assert.match(partFinderFeedback(sort, [0, 0, 1, 1, 2, 2, 3, -1]), /1 piece has no friend yet/);
+    assert.match(partFinderFeedback(sort, [0, 0, 0, 1, 1, 2, 2, 3]), /Ava gets too much cake/);
+    assert.match(partFinderFeedback(sort, [0, 0, 1, 1, 2, 2, 3, 3]), /2\/8 of the cake is the same amount as 1\/4/);
   });
 
   it('sorts the cake pieces into 4 fair shares even when their shapes differ', () => {

@@ -129,17 +129,25 @@ export default function DailyPractice({
     <h2 id="daily-question-title" ref={questionHeading} tabIndex={-1} className="fq-question-text">
       Build <MathText text={`${question.numerator}/${question.denominator}`} /> {bar ? 'with a bar.' : 'on a number line.'}
     </h2>
-    <p className="fq-daily-instruction">
-      {bar ? 'First choose how many equal parts make the whole bar. Then shade the parts selected.' : 'First choose how many equal spaces go from 0 to 1. Then tap where the jumps from 0 land.'}
+    <p className="fq-daily-instruction" id="daily-parts-instruction" data-testid="text-daily-parts-instruction">
+      {bar ? (
+        <>The <strong>denominator</strong> (bottom number) tells how many equal parts make one whole: choose that below. The <strong>numerator</strong> (top number) tells how many of those parts to shade.</>
+      ) : (
+        <>The <strong>denominator</strong> (bottom number) tells how many equal spaces go from 0 to 1: choose that below. The <strong>numerator</strong> (top number) tells how many jumps to make from 0.</>
+      )}
     </p>
-    <div className="fq-daily-parts" role="radiogroup" aria-label={bar ? 'How many equal parts?' : 'How many equal spaces?'}>
+    <p className="fq-daily-choice-label" id="daily-parts-label">
+      {bar ? 'Total equal parts in one whole' : 'Equal spaces from 0 to 1'}
+    </p>
+    <div className="fq-daily-parts" role="radiogroup" aria-labelledby="daily-parts-label" aria-describedby="daily-parts-instruction">
       {Array.from({ length: 11 }, (_, k) => k + 2).map((n) => (
         <button key={n} type="button" role="radio" aria-checked={parts === n} disabled={done}
           className={`fq-daily-parts-choice ${parts === n ? 'selected' : ''}`}
+          aria-label={bar ? `${n} equal parts in one whole` : `${n} equal spaces from 0 to 1`}
           onClick={() => change({ parts: n, shaded: [] })} data-testid={`button-daily-parts-${n}`}>{n}</button>
       ))}
     </div>
-    {!parts ? <p className="fq-daily-count">Choose the {bar ? 'equal parts' : 'equal spaces'} to see your {bar ? 'bar' : 'line'}.</p> : bar ? (
+    {!parts ? <p className="fq-daily-count">{bar ? 'Choose the total equal parts in one whole to build your bar.' : 'Choose the total equal spaces from 0 to 1.'}</p> : bar ? (
       <>
         <div className="fq-daily-model" style={{ gridTemplateColumns: `repeat(${parts}, minmax(0, 1fr))` }} role="group" aria-label={`One whole split into ${parts} equal parts.`}>
           {Array.from({ length: parts }, (_, index) => {
@@ -154,20 +162,28 @@ export default function DailyPractice({
             );
           })}
         </div>
-        <WholeBracket />
+        <WholeBracket label={`1 whole: ${parts} equal parts`} />
       </>
     ) : (
       <>
         <div className="fq-daily-line-endpoints" aria-hidden="true"><span>0</span><span>1</span></div>
-        <div className="fq-daily-line-track" style={{ gridTemplateColumns: `repeat(${parts}, minmax(0, 1fr))` }} role="group" aria-label={`Number line from 0 to 1, split into ${parts} equal spaces.`}>
+        <div className="fq-daily-line-track" role="radiogroup" aria-label={`Choose a landing point on the number line from 0 to 1, split into ${parts} equal spaces.`}>
+          <span
+            className="fq-daily-line-progress"
+            style={{ width: `${attempt.shaded.length / parts * 100}%` }}
+            aria-hidden="true"
+          />
           {Array.from({ length: parts }, (_, index) => {
-            const shaded = attempt.shaded.includes(index);
+            const jumps = index + 1;
+            const selected = attempt.shaded.length === jumps;
             return (
-              <button type="button" className={`fq-daily-jump ${shaded ? 'selected' : ''} ${index === attempt.shaded.length - 1 ? 'landing' : ''}`} key={index} aria-pressed={shaded}
-                aria-label={`Point ${index + 1} of ${parts}, ${shaded ? 'selected' : 'not selected'}; choose this to show ${index + 1} jump${index === 0 ? '' : 's'} from 0`}
-                disabled={done} onClick={() => change({ shaded: Array.from({ length: index + 1 }, (_, part) => part) })}
+              <button type="button" role="radio" aria-checked={selected}
+                className={`fq-daily-jump ${jumps <= attempt.shaded.length ? 'passed' : ''} ${selected ? 'landing' : ''}`}
+                style={{ left: `${jumps / parts * 100}%`, width: `min(44px, ${100 / parts}%)` }}
+                key={index}
+                aria-label={`${jumps}/${parts}, ${jumps} jump${jumps === 1 ? '' : 's'} from 0`}
+                disabled={done} onClick={() => change({ shaded: Array.from({ length: jumps }, (_, part) => part) })}
                 data-testid={`button-daily-jump-${index + 1}`}>
-                <span className="fq-daily-jump-fill" aria-hidden="true" />
                 <i aria-hidden="true" />
               </button>
             );

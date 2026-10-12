@@ -2,7 +2,7 @@ import { AREA_CUTS, pieceArea, type AreaCut } from './area-shapes';
 
 export type PartFinderMode = 'sort' | 'group' | 'tile' | 'match';
 export type PartFinderRound = {
-  id: 'sort' | 'tile' | 'match';
+  id: 'sort' | 'sort-cake' | 'tile' | 'match';
   title: string;
   prompt: string;
   cut: AreaCut;
@@ -16,17 +16,27 @@ export type PartFinderRound = {
 /** Sort rounds: assignment[piece] is the share (0, 1, 2…) it was put in, or -1 when not placed yet. */
 export type ShareAssignment = number[];
 
-/** The friends sharing the cake in round 1 (one color each). */
+/** The friends sharing the cake in the mixed-shape challenge (one color each). */
 export const FRIENDS = ['Ava', 'Ben', 'Cam', 'Dee'];
 
 export const PART_FINDER_LESSONS: ReadonlySet<string> = new Set(['equal-parts', 'unit-fractions', 'equivalent-models']);
 
-/** Three short challenges built from the same square-piece geometry as the learning lab. */
+/** Four short challenges: equal pieces first, then a fair-share cake with differently shaped pieces. */
 export const PART_FINDER_ROUNDS: PartFinderRound[] = [
   {
     id: 'sort',
-    title: 'Share the cake fairly',
-    prompt: '4 friends share this square cake. Give every piece to a friend, so each friend gets the same amount of cake.',
+    title: 'Share a cake cut into equal pieces',
+    prompt: '4 friends share this square cake. It is cut into 8 equal pieces. Give every piece to a friend, so each friend gets the same amount.',
+    cut: 'eighths-triangles',
+    targetArea: 1 / 4,
+    targetLabel: '4 friends, 8 equal pieces',
+    mode: 'sort',
+    shares: 4,
+  },
+  {
+    id: 'sort-cake',
+    title: 'Now the pieces are different shapes',
+    prompt: 'Another cake for the same 4 friends. This time some pieces are squares and some are triangles. Give every piece to a friend, so each friend gets the same amount of cake.',
     cut: 'quarter-and-triangles',
     targetArea: 1 / 4,
     targetLabel: '4 friends, 1 cake',
@@ -53,6 +63,7 @@ export const PART_FINDER_ROUNDS: PartFinderRound[] = [
     comparisonCut: 'fourths-squares',
   },
 ];
+export const PART_FINDER_SCORE_MAX = PART_FINDER_ROUNDS.length;
 
 const EPSILON = 1e-9;
 
@@ -98,6 +109,7 @@ const inSmallest = (round: PartFinderRound, area: number) => {
 
 export function partFinderFeedback(round: PartFinderRound, selected: number[], answer?: number): string {
   if (round.mode === 'sort') {
+    // Both sharing rounds are 4 friends sharing a cake; the hints name the friend.
     const left = selected.filter((share) => share < 0).length + Math.max(0, AREA_CUTS[round.cut].length - selected.length);
     if (left === AREA_CUTS[round.cut].length) return 'Tap a friend’s name, then tap the pieces that friend gets.';
     if (left) return `${left} ${left === 1 ? 'piece has' : 'pieces have'} no friend yet. Give every piece to someone.`;
@@ -107,7 +119,9 @@ export function partFinderFeedback(round: PartFinderRound, selected: number[], a
     if (big >= 0) return `${FRIENDS[big]} gets too much cake. Give one of ${FRIENDS[big]}’s pieces to a friend who has less.`;
     const small = areas.findIndex((area) => area < fair - EPSILON);
     if (small >= 0) return `${FRIENDS[small]} doesn’t get enough cake.`;
-    return 'Fair! Every friend gets 1/4 of the cake. One friend has a small square, the others have 2 triangles: the same amount, in different shapes.';
+    return round.id === 'sort-cake'
+      ? 'Fair! Every friend gets 1/4 of the cake. One friend has a small square, the others have 2 triangles: the same amount, in different shapes.'
+      : 'Fair! Each friend gets 2 of the 8 equal pieces. 2/8 of the cake is the same amount as 1/4.';
   }
   if (!selected.length) return 'Tap a piece to start.';
   if (round.mode === 'tile' && selected.length > 1) return 'Choose just one piece to copy.';
@@ -133,5 +147,5 @@ export function partFinderFeedback(round: PartFinderRound, selected: number[], a
 }
 
 export function scorePartFinderRound(score: number, solvedOnFirstCheck: boolean): number {
-  return Math.max(0, Math.min(3, Math.floor(score) + (solvedOnFirstCheck ? 1 : 0)));
+  return Math.max(0, Math.min(PART_FINDER_ROUNDS.length, Math.floor(score) + (solvedOnFirstCheck ? 1 : 0)));
 }

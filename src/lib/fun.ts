@@ -3,6 +3,7 @@
 // It stays separate from learning progress so it cannot alter lesson gating.
 
 import { CODE_LEVEL_COUNT } from '../code-quest';
+import { PART_FINDER_SCORE_MAX } from '../part-finder';
 import { scopedStorageKey } from '../storage-scope';
 
 const FUN_KEY = 'fraction-quest-fun-v1';
@@ -30,7 +31,7 @@ export type FunState = {
   codeLevels?: Record<string, number>;
   /** Code Sprint: best time (seconds) per lesson. */
   sprintBest?: Record<string, number>;
-  /** Part Finder: best score out of three rounds. Kept separate from lesson mastery. */
+  /** Part Finder: best score across all rounds. Kept separate from lesson mastery. */
   partFinderBest?: number;
   /** Preferred local read-aloud voice ID; another device may need to use a local fallback. */
   preferredLearningVoiceId?: string;
@@ -107,7 +108,7 @@ const cleanGames = (saved: Partial<FunState>) => ({
   codeLevels: cleanScores(saved.codeLevels, CODE_LEVEL_COUNT),
   sprintBest: cleanScores(saved.sprintBest, 3600),
   partFinderBest: typeof saved.partFinderBest === 'number' && Number.isFinite(saved.partFinderBest)
-    ? Math.max(0, Math.min(3, Math.floor(saved.partFinderBest)))
+    ? Math.max(0, Math.min(PART_FINDER_SCORE_MAX, Math.floor(saved.partFinderBest)))
     : undefined,
 });
 const cleanLearningVoicePreference = (value: unknown): string | undefined =>
@@ -134,9 +135,9 @@ export function recordCodeLevel(state: FunState, missionId: string, level: numbe
   return saveFun({ ...state, codeLevels: { ...state.codeLevels, [missionId]: completed } });
 }
 
-/** Keep the highest completed Part Finder score (0–3) in optional game state only. */
+/** Keep the highest completed Part Finder score in optional game state only. */
 export function recordPartFinder(state: FunState, score: number): FunState {
-  const completed = Math.max(0, Math.min(3, Math.floor(Number.isFinite(score) ? score : 0)));
+  const completed = Math.max(0, Math.min(PART_FINDER_SCORE_MAX, Math.floor(Number.isFinite(score) ? score : 0)));
   if (state.partFinderBest !== undefined && state.partFinderBest >= completed) return state;
   return saveFun({ ...state, partFinderBest: completed });
 }

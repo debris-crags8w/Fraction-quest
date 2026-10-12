@@ -20,7 +20,7 @@ import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinder
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
 import { createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
 import type { PracticeQuestion } from './game';
-import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, paperPrompt, parseAnswer } from './learning-content';
+import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
 import {
   createLearningSpeechController,
@@ -1167,6 +1167,20 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.ok(fractionNames.some(problem => problem.prompt.includes('bar model')));
     assert.ok(fractionNames.every(problem => !/garden bed|paper strip/i.test(problem.prompt)));
   });
+
+  it('offers Yes/No as choices in learning screens while keeping paper prompts writable', () => {
+    const yesNoProblems = MISSIONS.flatMap((mission) => getWorksheet(mission.id))
+      .filter((problem) => problem.form === 'word');
+    assert.ok(yesNoProblems.length > 0);
+    for (const problem of yesNoProblems) {
+      assert.ok(isYesNoProblem(problem), `${problem.id} should be a Yes/No question`);
+      assert.match(yesNoPrompt(problem), /Choose yes or no\.$/);
+      assert.match(paperPrompt(problem), /(?:Write|Answer) yes or no\.$/);
+      assert.equal(answerMatches(problem, 'Yes'), problem.answer === 'yes');
+      assert.equal(answerMatches(problem, 'No'), problem.answer === 'no');
+    }
+    assert.equal(isYesNoProblem({ form: 'word', answer: 'three' }), false);
+  });
   it('requires a student to copy the bar model before worksheet answers unlock', () => {
     const problem = getWorksheet('equal-parts').find(item => item.task?.kind === 'copy')!;
     const markup = renderToStaticMarkup(createElement(WorksheetBarCopy, {
@@ -1373,20 +1387,39 @@ describe('square (area) models', () => {
 
 describe('Part Finder rounds', () => {
   const sort = PART_FINDER_ROUNDS.find((round) => round.id === 'sort')!;
+  const cakeSort = PART_FINDER_ROUNDS.find((round) => round.id === 'sort-cake')!;
   const tile = PART_FINDER_ROUNDS.find((round) => round.id === 'tile')!;
   const match = PART_FINDER_ROUNDS.find((round) => round.id === 'match')!;
 
-  it('sorts every piece into 4 fair shares, whatever the shapes', () => {
+  it('sorts 8 equal pieces into 4 fair shares', () => {
+    // All 8 triangles are equal eighths, so 2 pieces make each fourth.
+    assert.equal(AREA_CUTS[sort.cut].length, 8);
+    assert.ok(AREA_CUTS[sort.cut].every((piece) => Math.abs(pieceArea(piece) - 1 / 8) < 1e-9));
+    assert.match(sort.prompt, /4 friends share this square cake\. It is cut into 8 equal pieces\./);
+    assert.doesNotMatch(sort.prompt, /each share gets|2 pieces each/i, 'the prompt must not give the answer');
+    assert.equal(isPartFinderAnswer(sort, [0, 0, 1, 1, 2, 2, 3, 3]), true);
+    assert.equal(isPartFinderAnswer(sort, [3, 0, 1, 2, 0, 1, 2, 3]), true, 'any pairing of two equal pieces works');
+    assert.equal(isPartFinderAnswer(sort, [0, 0, 0, 1, 1, 2, 2, 3]), false, 'a share with 3 pieces is too big');
+    assert.equal(isPartFinderAnswer(sort, [0, 0, 1, 1, 2, 2, 3, -1]), false, 'every piece needs a share');
+    assert.equal(isPartFinderAnswer(sort, [0, 0, 1, 1, 2, 2, 3]), false);
+    assert.equal(isPartFinderAnswer(sort, [0, 0, 1, 1, 2, 2, 3, 4]), false);
+    assert.match(partFinderFeedback(sort, [0, 0, 1, 1, 2, 2, 3, -1]), /1 piece has no friend yet/);
+    assert.match(partFinderFeedback(sort, [0, 0, 0, 1, 1, 2, 2, 3]), /Ava gets too much cake/);
+    assert.match(partFinderFeedback(sort, [0, 0, 1, 1, 2, 2, 3, 3]), /2\/8 of the cake is the same amount as 1\/4/);
+  });
+
+  it('sorts the cake pieces into 4 fair shares even when their shapes differ', () => {
     // quarter-and-triangles: piece 0 is the small square, pieces 1–6 are triangles (1/8 each).
-    assert.equal(isPartFinderAnswer(sort, [0, 1, 1, 2, 2, 3, 3]), true);
-    assert.equal(isPartFinderAnswer(sort, [3, 0, 1, 2, 0, 1, 2]), true, 'any pairing of triangles works');
-    assert.equal(isPartFinderAnswer(sort, [0, 0, 1, 2, 2, 3, 3]), false, 'square + triangle is too big');
-    assert.equal(isPartFinderAnswer(sort, [0, 1, 1, 2, 2, 3, -1]), false, 'every piece needs a share');
-    assert.equal(isPartFinderAnswer(sort, [0, 1, 1, 2, 2, 3]), false);
-    assert.equal(isPartFinderAnswer(sort, [0, 1, 1, 2, 2, 3, 4]), false);
-    assert.match(partFinderFeedback(sort, [0, 1, 1, 2, 2, 3, -1]), /1 piece has no friend yet/);
-    assert.match(partFinderFeedback(sort, [0, 0, 1, 2, 2, 3, 3]), /Ava gets too much cake/);
-    assert.match(partFinderFeedback(sort, [0, 1, 1, 2, 2, 3, 3]), /Fair! Every friend gets 1\/4/);
+    assert.equal(AREA_CUTS[cakeSort.cut].length, 7);
+    assert.equal(isPartFinderAnswer(cakeSort, [0, 1, 1, 2, 2, 3, 3]), true);
+    assert.equal(isPartFinderAnswer(cakeSort, [3, 0, 1, 2, 0, 1, 2]), true, 'any pairing of triangles works');
+    assert.equal(isPartFinderAnswer(cakeSort, [0, 0, 1, 2, 2, 3, 3]), false, 'square + triangle is too big');
+    assert.equal(isPartFinderAnswer(cakeSort, [0, 1, 1, 2, 2, 3, -1]), false, 'every piece needs a share');
+    assert.equal(isPartFinderAnswer(cakeSort, [0, 1, 1, 2, 2, 3]), false);
+    assert.equal(isPartFinderAnswer(cakeSort, [0, 1, 1, 2, 2, 3, 4]), false);
+    assert.match(partFinderFeedback(cakeSort, [0, 1, 1, 2, 2, 3, -1]), /1 piece has no friend yet/);
+    assert.match(partFinderFeedback(cakeSort, [0, 0, 1, 2, 2, 3, 3]), /Ava gets too much cake/);
+    assert.match(partFinderFeedback(cakeSort, [0, 1, 1, 2, 2, 3, 3]), /Fair! Every friend gets 1\/4/);
   });
 
   it('gives a hint instead of a bare "try again" when a match is off', () => {
@@ -1407,15 +1440,16 @@ describe('Part Finder rounds', () => {
     assert.equal(isPartFinderAnswer(match, [0, 1]), true);
     assert.equal(isPartFinderAnswer(match, [4, 7]), true);
     assert.equal(isPartFinderAnswer(match, [0]), false);
-    assert.equal(PART_FINDER_ROUNDS.length, 3);
+    assert.equal(PART_FINDER_ROUNDS.length, 4);
     assert.deepEqual([...PART_FINDER_LESSONS], ['equal-parts', 'unit-fractions', 'equivalent-models']);
   });
 
-  it('awards points only for a correct first check and caps the score at three', () => {
+  it('awards points only for a correct first check and caps the score at four', () => {
     assert.equal(scorePartFinderRound(0, true), 1);
     assert.equal(scorePartFinderRound(0, false), 0);
     assert.equal(scorePartFinderRound(2, true), 3);
-    assert.equal(scorePartFinderRound(3, true), 3);
+    assert.equal(scorePartFinderRound(3, true), 4);
+    assert.equal(scorePartFinderRound(4, true), 4);
   });
 });
 
@@ -1427,9 +1461,9 @@ describe('Part Finder saved game result', () => {
     assert.equal(loadFun().partFinderBest, 2);
     const replay = recordPartFinder(loadFun(), 1);
     assert.equal(replay.partFinderBest, 2, 'a lower replay does not replace the best score');
-    assert.equal(recordPartFinder(replay, 99).partFinderBest, 3, 'scores cannot exceed three rounds');
+    assert.equal(recordPartFinder(replay, 99).partFinderBest, 4, 'scores cannot exceed four rounds');
     window.localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ partFinderBest: 99 }));
-    assert.equal(loadFun().partFinderBest, 3);
+    assert.equal(loadFun().partFinderBest, 4);
     assert.equal(firstRun.partFinderBest, 2);
   });
 

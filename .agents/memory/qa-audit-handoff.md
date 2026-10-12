@@ -41,6 +41,13 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- **Merged review/fraction-standard-mastery (user's 10 commits, fast-forward) into main**, then fixed two regressions it
+  brought back: Daily Practice build instruction named the answer ("Choose 7 below… shade 3") — now explains
+  numerator/denominator without numbers; new Part Finder round 'sort' (8 equal triangles) used Share 1–4 and "Each share
+  gets 2 pieces" — now the friends-and-cake story (both sort rounds use FRIENDS hints), round 2 retitled "Now the pieces
+  are different shapes". Kept from the branch: YesNoCards (worksheet + level quiz), daily number-line landing fix,
+  "Total equal parts in one whole" builder labels, Part Finder score out of rounds, .replit postgresql-16, 24 e2e tests
+  (full suite ~4.5 min). Other non-iOS branches: nothing missing from main.
 - **Password reset (owner chose b + c) + branch review (main):** users.recovery_code_hash (scrypt) — run
   `pnpm --filter ./lib/db run push` on the real DB before deploying. Routes: signup returns `recoveryCode` once;
   POST /auth/recover {username, recoveryCode, newPassword} (rate-limited 10/15 min per ip+user, 30/h per ip; code is
