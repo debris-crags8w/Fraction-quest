@@ -1,0 +1,25 @@
+.fq-yes-no-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  gap: 10px;
+  width: min(100%, 450px);
+  margin: 0;
+}
+
+.fq-yes-no-cards .fq-yes-no-choice {
+  justify-content: center;
+  min-height: 64px;
+  text-align: center;
+  font-size: 1.08rem;
+}
+
+.fq-yes-no-cards .fq-yes-no-choice:focus-visible {
+  outline: 3px solid hsl(var(--ring));
+  outline-offset: 3px;
+}
+
+@media (max-width: 420px) {
+  .fq-yes-no-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

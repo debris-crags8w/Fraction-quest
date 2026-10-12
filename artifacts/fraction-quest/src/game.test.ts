@@ -19,7 +19,7 @@ import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinder
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
 import { createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
 import type { PracticeQuestion } from './game';
-import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, paperPrompt, parseAnswer } from './learning-content';
+import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
 import { FractionEntry, fractionDraftFromParts, fractionParts, updateFractionPart, usesFractionEntry } from './FractionEntry';
 import {
   createLearningSpeechController,
@@ -1163,6 +1163,20 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(circle.answer, `${circle.area!.shaded!.length}/${AREA_CUTS[circle.area!.cut].length}`);
     assert.ok(fractionNames.some(problem => problem.prompt.includes('bar model')));
     assert.ok(fractionNames.every(problem => !/garden bed|paper strip/i.test(problem.prompt)));
+  });
+
+  it('offers Yes/No as choices in learning screens while keeping paper prompts writable', () => {
+    const yesNoProblems = MISSIONS.flatMap((mission) => getWorksheet(mission.id))
+      .filter((problem) => problem.form === 'word');
+    assert.ok(yesNoProblems.length > 0);
+    for (const problem of yesNoProblems) {
+      assert.ok(isYesNoProblem(problem), `${problem.id} should be a Yes/No question`);
+      assert.match(yesNoPrompt(problem), /Choose yes or no\.$/);
+      assert.match(paperPrompt(problem), /(?:Write|Answer) yes or no\.$/);
+      assert.equal(answerMatches(problem, 'Yes'), problem.answer === 'yes');
+      assert.equal(answerMatches(problem, 'No'), problem.answer === 'no');
+    }
+    assert.equal(isYesNoProblem({ form: 'word', answer: 'three' }), false);
   });
   it('requires a student to copy the bar model before worksheet answers unlock', () => {
     const problem = getWorksheet('equal-parts').find(item => item.task?.kind === 'copy')!;

@@ -309,6 +309,18 @@ test('a completed learner can open a redo section without changing the lesson ro
   await expect(page.getByTestId('learning-lab')).toBeVisible();
   await expect(page.getByTestId('button-redo-builds')).toBeVisible();
   await expect(page.getByTestId('button-redo-worksheet')).toBeVisible();
+  await page.getByTestId('button-redo-worksheet').click();
+  await expect(page.getByTestId('section-redo-worksheet')).toBeVisible();
+  const yesNoCards = page.getByRole('group', { name: 'Choose yes or no' }).first();
+  const yes = yesNoCards.getByRole('button', { name: 'Yes' });
+  const no = yesNoCards.getByRole('button', { name: 'No' });
+  await expect(yes).toBeVisible();
+  await expect(no).toBeVisible();
+  await yes.click();
+  await expect(yes).toHaveAttribute('aria-pressed', 'true');
+  await no.click();
+  await expect(no).toHaveAttribute('aria-pressed', 'true');
+  await expect(yes).toHaveAttribute('aria-pressed', 'false');
 });
 
 test('daily practice opens as a separate short session', async ({ page }) => {
