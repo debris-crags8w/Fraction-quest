@@ -103,6 +103,36 @@ test('daily practice opens as a separate short session', async ({ page }) => {
   await expect(page.getByTestId('button-daily-hint')).toBeVisible();
 });
 
+test('Part Finder shows and sorts eight equal pieces into four fair shares', async ({ page }) => {
+  await openAsGuest(page);
+  await page.getByTestId('button-part-finder-equal-parts').click();
+
+  await expect(page.getByRole('heading', { name: 'Make 4 fair shares' })).toBeVisible();
+  await expect(page.getByText('Put all 8 equal pieces into 4 shares. Each share gets 2 pieces.')).toBeVisible();
+  await expect(page.locator('.fq-pf-interactive .fq-pf-piece')).toHaveCount(8);
+  await expect(page.getByTestId('part-finder-selection')).toHaveText('0 of 8 equal pieces are in a share.');
+
+  const assignPiece = async (pieceNumber: number) => {
+    const piece = page.getByTestId(`button-part-finder-piece-${pieceNumber}`);
+    await piece.focus();
+    await piece.press('Enter');
+  };
+  await assignPiece(1);
+  await assignPiece(2);
+  await page.getByTestId('button-part-finder-share-2').click();
+  await assignPiece(3);
+  await assignPiece(4);
+  await page.getByTestId('button-part-finder-share-3').click();
+  await assignPiece(5);
+  await assignPiece(6);
+  await page.getByTestId('button-part-finder-share-4').click();
+  await assignPiece(7);
+  await assignPiece(8);
+  await expect(page.getByTestId('part-finder-selection')).toHaveText('8 of 8 equal pieces are in a share.');
+  await page.getByTestId('button-part-finder-check').click();
+  await expect(page.getByTestId('part-finder-feedback')).toContainText('Each share has 2 equal pieces.');
+});
+
 test('daily bar builder explains the denominator as total equal parts in one whole', async ({ page }) => {
   await page.addInitScript(() => {
     const now = new Date();

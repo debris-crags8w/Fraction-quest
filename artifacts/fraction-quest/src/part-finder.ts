@@ -23,8 +23,8 @@ export const PART_FINDER_ROUNDS: PartFinderRound[] = [
   {
     id: 'sort',
     title: 'Make 4 fair shares',
-    prompt: 'Put every piece into one of 4 shares. Each share must be the same size.',
-    cut: 'quarter-and-triangles',
+    prompt: 'Put all 8 equal pieces into 4 shares. Each share gets 2 pieces.',
+    cut: 'eighths-triangles',
     targetArea: 1 / 4,
     targetLabel: '4 fair shares',
     mode: 'sort',
@@ -104,7 +104,7 @@ export function partFinderFeedback(round: PartFinderRound, selected: number[], a
     if (big >= 0) return `Share ${big + 1} is too big. Move a piece to a share that is too small.`;
     const small = areas.findIndex((area) => area < fair - EPSILON);
     if (small >= 0) return `Share ${small + 1} is too small.`;
-    return 'All 4 shares are the same size! One share is a square, the others are 2 triangles. Same size, different shapes.';
+    return 'All 4 shares are the same size! Each share has 2 equal pieces.';
   }
   if (!selected.length) return 'Tap a piece to start.';
   if (round.mode === 'tile' && selected.length > 1) return 'Choose just one piece to copy.';

@@ -260,7 +260,7 @@ export default function PartFinder({ best, onExit, onFinish }: {
 
           <div className="fq-pf-control-row">
             <p className="fq-pf-selection" aria-live="polite" data-testid="part-finder-selection">
-              {sorting ? `${placed} of ${assignment.length} pieces are in a share.` : selected.length === 0 ? 'No pieces selected yet.' : `${selected.length} ${selected.length === 1 ? 'piece' : 'pieces'} selected.`}
+              {sorting ? `${placed} of ${assignment.length} equal pieces ${placed === 1 ? 'is' : 'are'} in a share.` : selected.length === 0 ? 'No pieces selected yet.' : `${selected.length} ${selected.length === 1 ? 'piece' : 'pieces'} selected.`}
             </p>
             <div className="fq-pf-actions">
               <button type="button" className="fq-button ghost" onClick={clearSelection} disabled={(sorting ? placed === 0 : selected.length === 0) || correct} data-testid="button-part-finder-clear">Clear</button>
