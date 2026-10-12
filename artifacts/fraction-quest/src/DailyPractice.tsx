@@ -158,15 +158,23 @@ export default function DailyPractice({
     ) : (
       <>
         <div className="fq-daily-line-endpoints" aria-hidden="true"><span>0</span><span>1</span></div>
-        <div className="fq-daily-line-track" style={{ gridTemplateColumns: `repeat(${parts}, minmax(0, 1fr))` }} role="group" aria-label={`Number line from 0 to 1, split into ${parts} equal spaces.`}>
+        <div className="fq-daily-line-track" role="radiogroup" aria-label={`Choose a landing point on the number line from 0 to 1, split into ${parts} equal spaces.`}>
+          <span
+            className="fq-daily-line-progress"
+            style={{ width: `${attempt.shaded.length / parts * 100}%` }}
+            aria-hidden="true"
+          />
           {Array.from({ length: parts }, (_, index) => {
-            const shaded = attempt.shaded.includes(index);
+            const jumps = index + 1;
+            const selected = attempt.shaded.length === jumps;
             return (
-              <button type="button" className={`fq-daily-jump ${shaded ? 'selected' : ''} ${index === attempt.shaded.length - 1 ? 'landing' : ''}`} key={index} aria-pressed={shaded}
-                aria-label={`Point ${index + 1} of ${parts}, ${shaded ? 'selected' : 'not selected'}; choose this to show ${index + 1} jump${index === 0 ? '' : 's'} from 0`}
-                disabled={done} onClick={() => change({ shaded: Array.from({ length: index + 1 }, (_, part) => part) })}
+              <button type="button" role="radio" aria-checked={selected}
+                className={`fq-daily-jump ${jumps <= attempt.shaded.length ? 'passed' : ''} ${selected ? 'landing' : ''}`}
+                style={{ left: `${jumps / parts * 100}%`, width: `min(44px, ${100 / parts}%)` }}
+                key={index}
+                aria-label={`${jumps}/${parts}, ${jumps} jump${jumps === 1 ? '' : 's'} from 0`}
+                disabled={done} onClick={() => change({ shaded: Array.from({ length: jumps }, (_, part) => part) })}
                 data-testid={`button-daily-jump-${index + 1}`}>
-                <span className="fq-daily-jump-fill" aria-hidden="true" />
                 <i aria-hidden="true" />
               </button>
             );

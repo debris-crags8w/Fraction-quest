@@ -35,19 +35,16 @@
 .fq-daily-part-label span { color: var(--fq-sky); font-size: 1.1rem; }
 .fq-daily-count { max-width: 640px; min-height: 26px; margin: 13px auto 0; text-align: center; font-weight: 800; color: hsl(var(--muted-foreground)); }
 .fq-daily-line-endpoints { display: flex; justify-content: space-between; max-width: 640px; margin: 0 auto -4px; color: hsl(var(--foreground)); font-weight: 900; }
-.fq-daily-line-track { position: relative; display: grid; max-width: 640px; height: 58px; margin: 0 auto; isolation: isolate; }
-.fq-daily-line-track::before { position: absolute; z-index: -1; top: 50%; right: 0; left: 0; height: 8px; border-radius: 999px; background: var(--fq-track); content: ""; transform: translateY(-50%); }
-.fq-daily-jump { position: relative; min-width: 0; padding: 0; border: 0; background: transparent; cursor: pointer; touch-action: manipulation; }
-.fq-daily-jump::before, .fq-daily-jump::after { position: absolute; top: 50%; width: 3px; height: 19px; border-radius: 2px; background: hsl(var(--foreground)); content: ""; transform: translate(-50%, -50%); }
-.fq-daily-jump::before { left: 0; }
-/* Only the last space draws the tick at 1 (the others share the next space's tick). */
-.fq-daily-jump::after { display: none; }
-.fq-daily-jump:last-child::after { display: block; left: auto; right: -2px; transform: translateY(-50%); }
-.fq-daily-jump:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 2px; border-radius: 8px; }
-.fq-daily-jump-fill { position: absolute; top: 50%; left: 0; width: 100%; height: 8px; border-radius: 999px; background: transparent; transform: translateY(-50%); }
-.fq-daily-jump.selected .fq-daily-jump-fill { background: var(--fq-sky); }
-/* A jump lands on the tick at the END of its space: one dot there, on the last jump only. */
-.fq-daily-jump i { display: none; position: absolute; top: 50%; left: 100%; z-index: 1; width: 16px; height: 16px; border: 3px solid #147db0; border-radius: 50%; background: var(--fq-sky); transform: translate(-50%, -50%); }
+.fq-daily-line-track { position: relative; display: block; max-width: 640px; height: 58px; margin: 0 auto; isolation: isolate; }
+.fq-daily-line-track::before { position: absolute; z-index: 0; top: 50%; right: 0; left: 0; height: 8px; border-radius: 999px; background: var(--fq-track); content: ""; transform: translateY(-50%); }
+.fq-daily-line-track::after { position: absolute; z-index: 2; top: 50%; left: 0; width: 3px; height: 19px; border-radius: 2px; background: hsl(var(--foreground)); content: ""; transform: translateY(-50%); pointer-events: none; }
+.fq-daily-line-progress { position: absolute; z-index: 1; top: 50%; left: 0; height: 8px; border-radius: 999px; background: var(--fq-sky); transform: translateY(-50%); pointer-events: none; }
+.fq-daily-jump { position: absolute; z-index: 2; top: 50%; display: grid; min-width: 0; min-height: 44px; place-items: center; padding: 0; border: 0; background: transparent; cursor: pointer; touch-action: manipulation; transform: translate(-50%, -50%); }
+.fq-daily-jump::before { position: absolute; top: 50%; left: 50%; width: 3px; height: 19px; border-radius: 2px; background: hsl(var(--foreground)); content: ""; transform: translate(-50%, -50%); pointer-events: none; }
+.fq-daily-jump.passed::before { background: #147db0; }
+.fq-daily-jump:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: -2px; border-radius: 999px; }
+/* Each control is centered on its landing tick, so a tap chooses the point, not the space before it. */
+.fq-daily-jump i { display: none; position: absolute; top: 50%; left: 50%; z-index: 1; width: 16px; height: 16px; border: 3px solid #147db0; border-radius: 50%; background: var(--fq-sky); transform: translate(-50%, -50%); pointer-events: none; }
 .fq-daily-jump.landing i { display: block; }
 .fq-daily-jump:disabled { cursor: default; }
 .fq-daily-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 16px; }

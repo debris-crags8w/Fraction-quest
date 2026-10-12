@@ -64,6 +64,47 @@ test('daily practice opens as a separate short session', async ({ page }) => {
   await expect(page.getByTestId('button-daily-hint')).toBeVisible();
 });
 
+test('daily number-line model lets a learner choose the 1/3 landing point after 2/3', async ({ page }) => {
+  await page.addInitScript(() => {
+    const now = new Date();
+    const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({
+      completedMissionIds: [],
+      starsByMission: {},
+      reviewQueue: [],
+      dailyPractice: {
+        day,
+        startedAt: now.getTime(),
+        questions: [{
+          id: 'daily-line-one-third',
+          missionId: 'equal-parts',
+          topicTitle: 'Equal parts',
+          modelKind: 'number-line',
+          numerator: 1,
+          denominator: 3,
+          explanation: 'The line from 0 to 1 has 3 equal spaces. One jump lands at 1/3.',
+          kind: 'build',
+        }],
+        index: 0,
+        attempts: {},
+      },
+    }));
+  });
+  await openAsGuest(page);
+  await page.getByTestId('button-start-daily-practice').click();
+  await page.getByTestId('button-daily-parts-3').click();
+
+  const twoThirds = page.getByTestId('button-daily-jump-2');
+  const oneThird = page.getByTestId('button-daily-jump-1');
+  await twoThirds.click();
+  await expect(twoThirds).toHaveAttribute('aria-checked', 'true');
+  await oneThird.click();
+  await expect(oneThird).toHaveAttribute('aria-checked', 'true');
+  await expect(twoThirds).toHaveAttribute('aria-checked', 'false');
+  await page.getByTestId('button-daily-check-model').click();
+  await expect(page.getByRole('status')).toContainText('That’s it!');
+});
+
 test('an adult progress report can invoke browser printing', async ({ page }) => {
   await page.addInitScript(() => {
     (window as Window & { __printCalls?: number }).__printCalls = 0;
