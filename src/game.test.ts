@@ -2769,3 +2769,42 @@ describe('paper folding', () => {
     assert.equal(shadedName(0, [2]), '');
   });
 });
+
+describe('Expo iPhone shell', () => {
+  it('loads the web app from its own domain, keeps app pages inside, and reads its messages', async () => {
+    const { webAppUrl, isAppPage, parseShellMessage } = await import('../../fraction-quest-ios/lib/web-app');
+    const saved = { url: process.env.EXPO_PUBLIC_WEB_APP_URL, domain: process.env.EXPO_PUBLIC_DOMAIN };
+    try {
+      delete process.env.EXPO_PUBLIC_WEB_APP_URL;
+      process.env.EXPO_PUBLIC_DOMAIN = 'fraction-quest.example.replit.app';
+      assert.equal(webAppUrl(), 'https://fraction-quest.example.replit.app/');
+      process.env.EXPO_PUBLIC_WEB_APP_URL = 'https://fractionquest.app';
+      assert.equal(webAppUrl(), 'https://fractionquest.app/', 'an explicit address wins');
+      delete process.env.EXPO_PUBLIC_WEB_APP_URL; delete process.env.EXPO_PUBLIC_DOMAIN;
+      assert.equal(webAppUrl(), null);
+    } finally {
+      if (saved.url === undefined) delete process.env.EXPO_PUBLIC_WEB_APP_URL; else process.env.EXPO_PUBLIC_WEB_APP_URL = saved.url;
+      if (saved.domain === undefined) delete process.env.EXPO_PUBLIC_DOMAIN; else process.env.EXPO_PUBLIC_DOMAIN = saved.domain;
+    }
+    assert.equal(isAppPage('https://a.replit.app/lesson', 'https://a.replit.app/'), true);
+    assert.equal(isAppPage('https://webassets.zearn.org/guide.pdf', 'https://a.replit.app/'), false, 'other sites open in Safari');
+    assert.equal(isAppPage('about:blank', 'https://a.replit.app/'), true);
+    assert.deepEqual(parseShellMessage('{"type":"haptic","cue":"correct"}'), { type: 'haptic', cue: 'correct' });
+    assert.equal(parseShellMessage('{"type":"print","html":"<html></html>"}')?.type, 'print');
+    assert.equal(parseShellMessage('{"type":"other"}'), null);
+    assert.equal(parseShellMessage('not json'), null);
+  });
+
+  it('the web app talks to the shell only when it is inside it', async () => {
+    const { inExpoShell, postToShell } = await import('./lib/native-shell');
+    assert.equal(inExpoShell(), false);
+    assert.equal(postToShell({ type: 'haptic', cue: 'correct' }), false);
+    const sent: string[] = [];
+    (globalThis as { ReactNativeWebView?: unknown }).ReactNativeWebView = { postMessage: (m: string) => sent.push(m) };
+    try {
+      assert.equal(inExpoShell(), true);
+      assert.equal(postToShell({ type: 'haptic', cue: 'retry' }), true);
+      assert.deepEqual(JSON.parse(sent[0]), { type: 'haptic', cue: 'retry' });
+    } finally { delete (globalThis as { ReactNativeWebView?: unknown }).ReactNativeWebView; }
+  });
+});

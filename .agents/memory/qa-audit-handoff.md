@@ -41,6 +41,13 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Expo iPhone app (`artifacts/fraction-quest-ios`) is now a thin native shell around the live web app (react-native-webview
+  13.16.1, in Expo Go), so it always matches the web app. URL: EXPO_PUBLIC_WEB_APP_URL, else https://EXPO_PUBLIC_DOMAIN/
+  (the web app is served at "/" on the same Replit domain). Native extras: printing (web `printPage` posts the page HTML →
+  expo-print sheet), haptics (`playCue` posts {type:'haptic'}), outside links open in Safari, offline screen with Try again,
+  media autoplay allowed for read-aloud. Web side: `src/lib/native-shell.ts`. The old native lesson screens
+  (LearningActivity, AnswerTileBuilder, lib/curriculum) were removed (in git history). On the Expo web target it redirects
+  to the web app. The Capacitor app on `ios-local-icloud` is untouched (kept separate per the user).
 - "Count with me" after a miss: `ModelView walk={attempts}` (PlayView, on retry) pops numbers 1, 2, 3… onto each part
   of bar models (several bars count on from each other), partition strips and number-line spaces (≤24), 0.45 s apart,
   then the shaded parts glow (`.fq-count-badge`, `.fq-walking`). Runs alongside Hoot's spoken help; not word-synced

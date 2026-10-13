@@ -2,6 +2,7 @@
 // Guests keep it on this device; signed-in accounts sync it with their saved snapshot.
 // It stays separate from learning progress so it cannot alter lesson gating.
 
+import { postToShell } from './native-shell';
 import { CODE_LEVEL_COUNT } from '../code-quest';
 import { PART_FINDER_SCORE_MAX } from '../part-finder';
 import { scopedStorageKey } from '../storage-scope';
@@ -229,6 +230,8 @@ const CUES: Record<Cue, number[]> = {
 /** Short synth chimes. Silently does nothing if audio is unavailable or sound is off. */
 export function playCue(cue: Cue, enabled: boolean) {
   if (!enabled || typeof window === 'undefined') return;
+  // In the iPhone app, answers also get a gentle haptic tap.
+  postToShell({ type: 'haptic', cue });
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return;
