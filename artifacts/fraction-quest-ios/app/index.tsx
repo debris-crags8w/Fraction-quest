@@ -79,7 +79,8 @@ export default function FractionQuestShell() {
           bounces={false}
           contentInsetAdjustmentBehavior="never"
           setSupportMultipleWindows={false}
-          textInteractionEnabled={false}
+          // Keep login, signup, and other web form fields editable in the iOS WebView.
+          textInteractionEnabled
           decelerationRate="normal"
         />
       )}
