@@ -327,7 +327,7 @@ export function StoryPrompt({ prompt, id }: { prompt: string; id: string }) {
       )}
       <div className="fq-story-question-heading">
         <h1 id={id} className="fq-question-text"><LearningText text={question} emphasize /></h1>
-        <LearningListenButton text={prompt} label="Listen to the question" />
+        <LearningListenButton text={prompt} section="question" />
       </div>
     </div>
   );
