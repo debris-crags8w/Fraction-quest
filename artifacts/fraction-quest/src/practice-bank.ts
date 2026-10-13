@@ -431,6 +431,31 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
     return later(story, f(d - a - b, d), [f(a + b, d), f(d - a, d), f(d - b, d)],
       `First add the two parts. Then take that away from ${f(d, d)}.`, `${f(a, d)} + ${f(b, d)} = ${f(a + b, d)}. ${f(d, d)} − ${f(a + b, d)} = ${f(d - a - b, d)}.`, bar(a + b, d));
   },
+  'find-the-whole': (r) => {
+    const [n, d] = r.pick(SMALL_POOL); const per = r.int(2, 6); const part = n * per;
+    return later(`${part} stickers are ${f(n, d)} of a pack. How many stickers are in the pack?`, String(d * per), [String(part * d), String(part + d), String(per)],
+      n === 1 ? `1 part is ${part}. The pack has ${d} parts.` : `${n} parts are ${part}. Find 1 part first.`, `1 part is ${per}. ${d} parts make ${d * per}.`, bar(n, d));
+  },
+  'spot-the-mistake': (r) => {
+    const d = r.pick([5, 6, 7, 8, 9, 10]); const a = r.int(1, d - 2); const b = r.int(1, d - 1 - a);
+    return r.chance()
+      ? later(`Sam says ${f(a, d)} + ${f(b, d)} = ${f(a + b, d * 2)}. What is the right answer?`, f(a + b, d), [f(a + b, d * 2), f(a * b, d), f(a + b + 1, d)],
+        'Same-size pieces keep their name. Add only the numerators.', `${a} + ${b} = ${a + b}. So ${f(a + b, d)}.`, bar(a, d))
+      : later(`Kim says ${f(a + b, d)} − ${f(b, d)} = ${f(a, d * 2)}. What is the right answer?`, f(a, d), [f(a, d * 2), f(a + 1, d), f(b, d)],
+        'Same-size pieces keep their name. Take away only the numerators.', `${a + b} − ${b} = ${a}. So ${f(a, d)}.`, bar(a + b, d));
+  },
+  'fraction-of-remainder': (r) => {
+    const [a, b, c, e] = r.pick([[1, 4, 1, 3], [1, 3, 1, 2], [1, 5, 1, 4], [1, 4, 2, 3], [2, 5, 1, 2], [1, 3, 1, 3], [1, 2, 1, 4], [1, 6, 1, 5]] as const);
+    const total = b * e * r.int(1, 3); const rest = (total / b) * (b - a); const left = (rest / e) * (e - c);
+    return later(`Ana has ${total} stickers. She gives away ${f(a, b)} of them. Then she gives away ${f(c, e)} of the rest. How many are left?`,
+      String(left), [String(rest), String(total - (total / b) * a - (total / e) * c), String((rest / e) * c)],
+      'Find what is left after step 1. Then take a part of that.', `${rest} are left after step 1. ${f(c, e)} of ${rest} is ${(rest / e) * c}. ${rest} − ${(rest / e) * c} = ${left}.`, bar(a, b));
+  },
+  'divide-fractions': (r) => {
+    const [a, b] = r.pick([[1, 2], [3, 4], [2, 3], [1, 3], [3, 5], [5, 6], [1, 4], [2, 5]] as const); const k = r.int(2, 3); const e = b * k;
+    return later(`How many ${f(1, e)} cup scoops fill ${f(a, b)} cup?`, String(a * k), [String(e), String(a), String(a * k + 1)],
+      `Write ${f(a, b)} in pieces of ${f(1, e)}.`, `${f(a, b)} = ${f(a * k, e)}. So ${a * k} scoops fit.`, bar(a, b));
+  },
 };
 Object.assign(RECIPES, LATER_RECIPES);
 

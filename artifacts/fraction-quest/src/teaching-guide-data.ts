@@ -235,6 +235,21 @@ export const UNIT_TEACHING_GUIDES: UnitTeachingGuide[] = [
     performanceTask: { title: 'Plan a pretend school store', prompt: 'Choose three prices or scores written in tenths and hundredths. Compare them, make one total, and explain your estimate with a grid.', evidence: 'Three decimal amounts, a place-value model, and a reasonable comparison or total.', rubric: [{ criterion: 'Place value', ready: 'Digits are aligned by tenths and hundredths.', nextStep: 'Add a zero to write the same number of decimal places.' }, { criterion: 'Model', ready: 'The grid matches the decimal values.', nextStep: 'Shade tenths first, then subdivide into hundredths.' }, { criterion: 'Reasoning', ready: 'Comparison or total is supported by an estimate.', nextStep: 'Compare the values with one whole or a familiar benchmark.' }] },
     familyNote: 'We are connecting fraction models to tenths and hundredths decimals. Use a 10-by-10 grid or pretend prices to compare decimals; percent is an optional bonus topic.',
   },
+  {
+    unit: 15, objective: 'Solve non-routine fraction problems: find a whole from a part, critique a wrong method, and use bar models for a fraction of what is left.',
+    warmup: { prompt: '6 crayons are 1/3 of a box. Draw a bar for the box. How many crayons fill it?', reveal: 'One third is 6, so three thirds is 18.' },
+    vocabulary: [{ term: 'whole', meaning: 'All the equal parts together; the amount the fraction is of.' }, { term: 'remainder', meaning: 'The part that is left after some is used or given away.' }, { term: 'critique', meaning: 'Check someone’s method and explain what is right or wrong.' }],
+    explainFrame: 'I know ___ is right (or wrong) because the pieces are ___ and ___.',
+    errorAnalysis: { claim: '“1/2 + 1/3 = 2/5 because I added the tops and the bottoms.”', correction: 'The pieces are different sizes. Rename both as sixths: 3/6 + 2/6 = 5/6.' },
+    materials: ['Paper strips for bar models', 'Counters or stickers', 'Sticky notes for “Is it right?” cards'],
+    offlineLaunch: 'Give 12 counters. Say “these are 3/4 of my pile.” Ask the child to build the whole pile and explain how they found one fourth first.',
+    discussionQuestions: ['What is the whole in this story?', 'What is left after the first step?', 'Which rule did the mistake break?'],
+    misconceptions: [{ belief: 'A fraction of the rest is a fraction of the whole.', response: 'Draw the bar again for what is left. The second fraction cuts that new bar.' }, { belief: 'If the numbers look right, the method is right.', response: 'Check the piece size first. Only same-size pieces can be added by counting.' }],
+    mastery: ['Finds a whole from a unit or non-unit part with a bar model.', 'Explains why a claimed answer is wrong and gives the right one.', 'Solves a two-step “fraction of the rest” story with a labeled bar model.'],
+    enrichment: 'Divide by a fraction: how many 3/8 cup scoops fill 3/4 cup? Rename to eighths and count. Then invent a puzzle where the answer is 5.',
+    performanceTask: { title: 'Make a mistake detective card', prompt: 'Write a fraction claim with a common mistake. Trade with a partner, find the mistake, and fix it with a bar model.', evidence: 'A wrong claim, a bar model, and a corrected answer with a reason.', rubric: [{ criterion: 'Model', ready: 'The bar model shows the whole and equal parts.', nextStep: 'Draw one whole bar first. Then cut equal parts.' }, { criterion: 'Critique', ready: 'Names the rule the mistake broke.', nextStep: 'Ask: are the pieces the same size?' }, { criterion: 'Answer', ready: 'Gives the right amount with units.', nextStep: 'Check the answer against the model.' }] },
+    familyNote: 'We are solving puzzle-style fraction problems. Ask your child to “be the teacher” and check a wrong answer, or to find the whole when they know a part.',
+  },
 ];
 
 export type PacingRow = { unit?: number; label?: string; sessions: number; focus: string };
@@ -242,30 +257,33 @@ export type GradePacing = { grade: 3 | 4 | 5; totalSessions: number; minutesPerS
 
 export const GRADE_PACING: GradePacing[] = [
   { grade: 3, totalSessions: 35, minutesPerSession: '20–25 minutes, 4–5 days each week', rows: [
-    { unit: 1, sessions: 3, focus: 'Fair shares and fraction names' }, { unit: 2, sessions: 4, focus: 'Equal groups and collections' },
+    { unit: 1, sessions: 3, focus: 'Fair shares and fraction names' }, { unit: 2, sessions: 3, focus: 'Equal groups and collections' },
     { unit: 3, sessions: 4, focus: 'Benchmarks and fraction size' }, { unit: 4, sessions: 4, focus: 'Number-line jumps' },
     { unit: 5, sessions: 4, focus: 'Compare and order' }, { unit: 6, sessions: 4, focus: 'Equivalent fractions with models' },
-    { unit: 7, sessions: 4, focus: 'Compose and decompose' }, { unit: 8, sessions: 3, focus: 'Cumulative practice and unit check' },
+    { unit: 7, sessions: 3, focus: 'Compose and decompose' }, { unit: 8, sessions: 3, focus: 'Cumulative practice and unit check' },
     { unit: 12, sessions: 3, focus: 'Measure fractional lengths and plot data' }, { unit: 13, sessions: 2, focus: 'Equal-area partitions' },
+    { unit: 15, sessions: 2, focus: 'Find the whole from a part' },
   ] },
   { grade: 4, totalSessions: 45, minutesPerSession: '25–30 minutes, 4–5 days each week', rows: [
     { unit: 1, sessions: 2, focus: 'Quick prerequisite review' }, { unit: 2, sessions: 2, focus: 'Review fractions of collections' },
     { unit: 3, sessions: 2, focus: 'Benchmarks and estimates' }, { unit: 4, sessions: 2, focus: 'Number-line review' },
     { unit: 5, sessions: 3, focus: 'Compare and order' }, { unit: 6, sessions: 3, focus: 'Equivalent fractions' },
     { unit: 7, sessions: 3, focus: 'Add and subtract like units' }, { unit: 8, sessions: 3, focus: 'Fraction and decimal connections' },
-    { unit: 9, sessions: 5, focus: 'Rename, compare, and whole numbers as fractions' }, { unit: 10, sessions: 5, focus: 'Mixed numbers and unlike fractions' },
+    { unit: 9, sessions: 4, focus: 'Rename, compare, and whole numbers as fractions' }, { unit: 10, sessions: 4, focus: 'Mixed numbers and unlike fractions' },
     { unit: 11, sessions: 5, focus: 'Fraction of a quantity and scaling' }, { unit: 12, sessions: 4, focus: 'Measurement and line plots' },
-    { unit: 13, sessions: 2, focus: 'Shape models and equal area' }, { unit: 14, sessions: 4, focus: 'Decimals and cumulative review' },
+    { unit: 13, sessions: 2, focus: 'Shape models and equal area' }, { unit: 14, sessions: 3, focus: 'Decimals and cumulative review' },
+    { unit: 15, sessions: 3, focus: 'Find the whole and spot the mistake' },
   ] },
   { grade: 5, totalSessions: 45, minutesPerSession: '25–30 minutes, 4–5 days each week', rows: [
     { unit: 1, sessions: 1, focus: 'Fast prerequisite check' }, { unit: 2, sessions: 1, focus: 'Review equal groups' },
     { unit: 3, sessions: 1, focus: 'Review benchmarks' }, { unit: 4, sessions: 2, focus: 'Number lines beyond one' },
     { unit: 5, sessions: 2, focus: 'Compare and estimate' }, { unit: 6, sessions: 2, focus: 'Equivalent names' },
     { unit: 7, sessions: 2, focus: 'Compose and operate with fractions' }, { unit: 8, sessions: 2, focus: 'Review and fluency' },
-    { unit: 9, sessions: 4, focus: 'Rename, compare, and simplify' }, { unit: 10, sessions: 5, focus: 'Mixed numbers and estimates' },
-    { unit: 11, sessions: 6, focus: 'Multiply, scale, and divide fairly' }, { unit: 12, sessions: 4, focus: 'Measurement and conversions' },
+    { unit: 9, sessions: 4, focus: 'Rename, compare, and simplify' }, { unit: 10, sessions: 4, focus: 'Mixed numbers and estimates' },
+    { unit: 11, sessions: 5, focus: 'Multiply, scale, and divide fairly' }, { unit: 12, sessions: 4, focus: 'Measurement and conversions' },
     { unit: 13, sessions: 4, focus: 'Area and fraction models' }, { unit: 14, sessions: 5, focus: 'Decimals and cumulative review' },
-    { label: 'Review and benchmark sessions', sessions: 4, focus: 'Interleave earlier standards; reteach from evidence' },
+    { unit: 15, sessions: 4, focus: 'Bar models and fraction of the rest' },
+    { label: 'Review and benchmark sessions', sessions: 2, focus: 'Interleave earlier standards; reteach from evidence' },
   ] },
 ];
 

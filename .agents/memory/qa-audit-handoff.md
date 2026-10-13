@@ -40,6 +40,11 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Competitor curriculum review (docs/curriculum-gap-analysis.md, "Competitor review"). Added unit 15 "Problem solving"
+  (72 lessons): find-the-whole, spot-the-mistake (yes/no rows at i%3==0 so practice rows 1/4/7/10 are never yes/no),
+  fraction-of-remainder, bonus divide-fractions. New worksheet modes in getExtensionWorksheet; practice recipes in
+  practice-bank (verifyLater in game.test.ts re-solves them); unit 15 challenge, teaching guide and pacing (totals kept
+  35/45/45). `ExtensionTopic.example` overrides the worked example when the first build would not show the answer.
 - Removed the root `src/` mirror (user decision): unused by Replit, builds, typecheck and tests, and it had drifted.
 - "Count with me" after a miss: `ModelView walk={attempts}` (PlayView, on retry) pops numbers 1, 2, 3… onto each part
   of bar models (several bars count on from each other), partition strips and number-line spaces (≤24), 0.45 s apart,

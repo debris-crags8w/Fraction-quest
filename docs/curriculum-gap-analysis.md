@@ -18,7 +18,7 @@
 
 Much of the list below has since been built. Read this first; the sections after it are the original analysis.
 
-**Done since this was written:** 68 lessons covering all 36 grade 3–5 fraction standards (line plots, rulers, area and
+**Done since this was written:** 72 lessons (unit 15, Problem solving, added 2026-10-13; see below) covering all 36 grade 3–5 fraction standards (line plots, rulers, area and
 circle models, scaling, mixed-number multiplication, unit fraction ÷ whole number, decimal comparison, unit
 conversions); unit and grade check-ins reported by standard; teaching guides and pacing; reasoning prompts; brain breaks;
 concept games (Fraction War, Equivalence Match, Number Line Target) gathered with Race, Coding and Part Finder in one
@@ -44,6 +44,29 @@ gate on the right answer.
 - The iOS app (kept on the `ios-local-icloud` branch; the owner may redo the conversion).
 
 ---
+
+## Competitor review (2026-10-13)
+
+A rival's read of the app against Eureka Math², Illustrative Math, Singapore Math (Dimensions / Math in Focus), enVision,
+Beast Academy, RSM, Zearn, DreamBox, Khan Academy and IXL. Standards coverage was already complete; the holes were in
+**reasoning depth**, which is what school and accelerated programs sell on.
+
+| Hole a competitor would point to | Who does it well | Fix |
+|---|---|---|
+| Never goes from a part back to the whole ("3 is 1/4 of the bag; how many in the bag?") | Eureka G3 M5, Singapore, Beast Academy 3 | **Find the whole** lesson (unit and non-unit parts; stickers, ribbon, pages) |
+| No Singapore bar-model "fraction of the rest" stories; one challenge puzzle only | Singapore 4–5, Math in Focus, RSM | **Fraction of the rest** lesson (count and fraction answers) |
+| No error analysis: children never critique a wrong method | IM ("Is Sam right?"), Eureka, enVision | **Spot the mistake** lesson: yes/no "Is that right?" plus "What is the right answer?" on 8 classic slips |
+| Division stops at unit fractions | Beast Academy 5, RSM, AoPS Prealgebra | **Bonus: Divide by a fraction** (same-size pieces, count how many fit) |
+
+Each new lesson has the full lesson set: worked example, practice, generator, two builds, a 12-row worksheet, reasons,
+later review, and printables. Unit 15 also has a 6-puzzle unit challenge with walk-throughs, a family teaching guide and
+pacing rows.
+
+**Still open after this review** (bigger than one PR):
+- Adaptive mastery like DreamBox and IXL: difficulty that moves with each answer, not only spaced review.
+- Spanish and other languages: Zearn, Khan and IXL all have them.
+- Teacher dashboards with assignment by standard and class reports beyond the current classroom codes.
+- Open-response tasks a teacher can grade, and a video or animated "teach me" for each lesson, like Zearn and Khan.
 
 ## 1. Where the app is today
 

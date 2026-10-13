@@ -233,6 +233,7 @@ const unitRepresentativeIds = [
   'fraction-as-division',
   'fraction-recipes',
   'multi-step-fraction-stories',
+  'spot-the-mistake',
 ];
 
 for (const missionId of unitRepresentativeIds) {
@@ -317,7 +318,7 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
 });
 
-test('all 68 lessons render their worked model and first interactive question', async ({ page }) => {
+test('all 72 lessons render their worked model and first interactive question', async ({ page }) => {
   test.setTimeout(300_000);
   const lessonIds = MISSIONS.map((mission) => mission.id);
   await page.addInitScript((ids) => {

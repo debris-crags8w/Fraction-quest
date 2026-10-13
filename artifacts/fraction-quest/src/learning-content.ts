@@ -243,6 +243,10 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'percent-to-fraction': [60, 100, 'bar', 'Make 60% as a fraction.', '60% means 60 out of 100: 60/100.'],
   'decimal-fraction-equivalence': [7, 10, 'bar', 'Make 0.7 using tenths.', '0.7 means 7 tenths. That is also 70/100.'],
   'multi-step-fraction-stories': [2, 5, 'bar', 'A garden is 2/5 planted. Plant 1/5 more. Make the part still empty.', '2/5 + 1/5 = 3/5 planted. 5/5 − 3/5 = 2/5 empty.'],
+  'find-the-whole': [4, 4, 'bar', '3 stickers are 1/4 of a pack. Shade all the parts of the whole pack.', 'The whole is 4 fourths. 4 groups of 3 is 12 stickers.'],
+  'spot-the-mistake': [3, 4, 'bar', 'Sam says 1/4 + 2/4 = 3/8. Make the right answer.', 'Fourths plus fourths make fourths. 1/4 + 2/4 = 3/4.'],
+  'fraction-of-remainder': [1, 3, 'bar', 'Spend 1/3 of your money. Then spend 1/2 of the rest. Make what is left.', '2/3 is left after step 1. Half of 2/3 is 1/3.'],
+  'divide-fractions': [6, 8, 'bar', 'How many 1/8s fit in 3/4? Make 3/4 in eighths.', '3/4 = 6/8. So 6 pieces of 1/8 fit.'],
 };
 
 const EXTENSION_TRANSFERS: Record<string, { n: number; d: number; prompt: string; reason: string; kind?: LearningModel['kind']; total?: number }> = {
@@ -286,6 +290,10 @@ const EXTENSION_TRANSFERS: Record<string, { n: number; d: number; prompt: string
   'percent-to-fraction': { n: 45, d: 100, prompt: 'A score is 45%. Make it as a fraction.', reason: '45% means 45 out of 100: 45/100.' },
   'decimal-fraction-equivalence': { n: 45, d: 100, prompt: 'A battery shows 0.45. Make it in hundredths.', reason: '0.45 means 45 hundredths.' },
   'multi-step-fraction-stories': { n: 3, d: 8, prompt: 'A garden is 3/8 planted. Plant 2/8 more. Make the empty part.', reason: '3/8 + 2/8 = 5/8 planted. 3/8 is empty.' },
+  'find-the-whole': { n: 3, d: 3, kind: 'set', total: 12, prompt: '4 shells are 1/3 of a bag. Build the whole bag.', reason: '1 third is 4 shells. 3 thirds is 12 shells.' },
+  'spot-the-mistake': { n: 5, d: 6, prompt: 'Lee says 3/6 + 2/6 = 5/12. Make the right answer.', reason: '3 sixths and 2 sixths make 5 sixths.' },
+  'fraction-of-remainder': { n: 2, d: 4, prompt: 'Eat 1/4 of a pizza. Then eat 1/3 of the rest. Make what is left.', reason: '3/4 is left. 1/3 of 3/4 is 1/4. 3/4 − 1/4 = 2/4.' },
+  'divide-fractions': { n: 4, d: 6, prompt: 'How many 1/6s fit in 2/3? Make 2/3 in sixths.', reason: '2/3 = 4/6. So 4 pieces of 1/6 fit.' },
 };
 
 type ExtensionWorksheetMode = 'simplify' | 'equivalent' | 'compare' | 'order' | 'subtract-unlike' | 'mixed-add' | 'mixed-subtract'
@@ -293,7 +301,7 @@ type ExtensionWorksheetMode = 'simplify' | 'equivalent' | 'compare' | 'order' | 
   | 'quotient' | 'probability' | 'area' | 'line' | 'recipe' | 'percent' | 'percent-inverse' | 'decimal-equivalent' | 'story'
   | 'whole-fraction' | 'decimal-compare' | 'unit-multiples' | 'ruler' | 'line-plot' | 'line-plot-read' | 'line-plot-level'
   | 'measure-context' | 'add-unlike' | 'mixed-unlike' | 'estimate' | 'fractional-area' | 'scaling' | 'mixed-multiply'
-  | 'unit-divided-whole' | 'unit-conversion';
+  | 'unit-divided-whole' | 'unit-conversion' | 'whole-from-part' | 'mistake' | 'remainder' | 'divide-fractions';
 const EXTENSION_WORKSHEETS: Record<string, { mode: ExtensionWorksheetMode; context: string; n: number; d: number }> = {
   'simplify-fractions': { mode: 'simplify', context: 'paper strip', n: 3, d: 4 },
   'equivalent-missing-both': { mode: 'equivalent', context: 'recipe card', n: 2, d: 5 },
@@ -335,6 +343,10 @@ const EXTENSION_WORKSHEETS: Record<string, { mode: ExtensionWorksheetMode; conte
   'multiply-mixed-numbers': { mode: 'mixed-multiply', context: 'garden plot', n: 2, d: 1 },
   'unit-fraction-divided-whole': { mode: 'unit-divided-whole', context: 'pan of brownies', n: 1, d: 12 },
   'fractional-unit-conversions': { mode: 'unit-conversion', context: 'measuring tools', n: 3, d: 4 },
+  'find-the-whole': { mode: 'whole-from-part', context: 'sticker packs', n: 1, d: 4 },
+  'spot-the-mistake': { mode: 'mistake', context: 'homework check', n: 3, d: 4 },
+  'fraction-of-remainder': { mode: 'remainder', context: 'pocket money', n: 1, d: 3 },
+  'divide-fractions': { mode: 'divide-fractions', context: 'measuring scoops', n: 3, d: 4 },
 };
 /** The right answer to "Both models match. Which idea explains why?": the lesson's key idea in a few words, as short as
     the wrong choices so length gives nothing away. The full explanation shows after the build passes. */
@@ -407,6 +419,10 @@ export const REASON_IDEAS: Record<string, string> = {
   'decimal-fraction-equivalence': 'Decimals name tenths or hundredths',
   'compare-decimals': 'Compare using hundredths',
   'multi-step-fraction-stories': 'One step at a time',
+  'find-the-whole': 'All the parts make the whole',
+  'spot-the-mistake': 'Same-size pieces keep their name',
+  'fraction-of-remainder': 'Find the rest, then its part',
+  'divide-fractions': 'Count how many pieces fit',
 };
 const idea = (id: string, fallback: string) => REASON_IDEAS[id] ?? fallback;
 /** Put the right reason at a spot that changes from lesson to lesson (but is the same every visit). */
@@ -1131,6 +1147,70 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         ];
         const item = conversions[tr]; prompt = item.prompt; answer = item.answer; hint = item.hint;
         visual = model(item.numerator, item.denominator); modelRequired = true; break;
+      }
+      case 'whole-from-part': {
+        // "3 is 1/4 of it. What is the whole?" Find one part, then make all the parts.
+        const [top, bottom, per] = ([[1, 4, 3], [1, 3, 5], [2, 3, 4], [1, 5, 2], [3, 4, 2], [2, 5, 3], [1, 6, 4], [3, 8, 2], [1, 2, 7], [3, 5, 4], [5, 6, 2], [4, 5, 2]] as const)[tr];
+        const part = top * per;
+        prompt = [
+          `${part} stickers are ${f(top, bottom)} of Ana's stickers. How many stickers does Ana have?`,
+          `A piece of ribbon is ${part} meters long. It is ${f(top, bottom)} of the whole ribbon. How many meters long is the whole ribbon?`,
+          `Tom read ${part} pages. That is ${f(top, bottom)} of his book. How many pages are in the book?`,
+        ][(i + Math.floor(i / 3)) % 3]; // practice uses rows 1, 4, 7 and 10, so they get different stories
+        answer = String(bottom * per); visual = model(top, bottom);
+        hint = top === 1 ? `1 part is ${part}. The whole has ${bottom} parts.` : `${top} parts are ${part}. Find 1 part first. The whole has ${bottom} parts.`; break;
+      }
+      case 'mistake': {
+        // Error analysis: every third row asks "Is it right?"; the rest ask for the right answer.
+        const checks: [string, 'yes' | 'no', string][] = [
+          ['Sam says 2/5 + 1/5 = 3/10.', 'no', 'Fifths plus fifths make fifths. Add only the numerators.'],
+          ['Lee says 3/4 is bigger than 3/8.', 'yes', 'Both have 3 pieces. Fourths are bigger than eighths.'],
+          ['Mia says 1/8 is bigger than 1/4 because 8 is bigger than 4.', 'no', 'More pieces in the whole means smaller pieces.'],
+          ['Ana says 2/3 = 4/6.', 'yes', 'Cut each third into 2. Then 2 thirds is 4 sixths.'],
+        ];
+        const fixes: [string, string, string, number?, WorksheetProblem['form']?][] = [
+          ['Sam says 1/4 + 2/4 = 3/8.', '3/4', 'Fourths plus fourths make fourths. Add only the numerators.'],
+          ['Kim says 5/6 − 2/6 = 3/12.', '3/6', 'Sixths minus sixths leave sixths. Take away only the numerators.'],
+          ['Jo says 3 × 2/5 = 6/15.', '6/5', 'Multiply only the numerator. The pieces stay fifths.'],
+          ['Ben says 3/4 − 1/2 = 2/2.', '1/4', 'Change 1/2 to 2/4 first. Then take away.'],
+          ['Eva says 1/2 + 1/3 = 2/5.', '5/6', 'Change both to sixths first: 3/6 + 2/6.'],
+          ['Max says 7/4 = 1 1/3.', '1 3/4', '4 fourths make 1 whole. Count the fourths left over.', undefined, 'mixed'],
+          ['Zoe says 2/3 = 3/4 because she added 1 to the top and bottom.', '4/6', 'Multiply the top and bottom by the same number.', 6],
+          ['Tim says half of 3/4 is 3/2.', '3/8', 'Cut each fourth in half. Each half is an eighth.'],
+        ];
+        if (i % 3 === 0) {
+          const [claim, said, why] = checks[(i / 3 + variant) % checks.length];
+          prompt = `${claim} Is that right? Answer yes or no.`; answer = said; form = 'word'; hint = why;
+        } else {
+          const [claim, right, why, bottom, shape] = fixes[(i - 1 - Math.floor(i / 3) + variant) % fixes.length];
+          prompt = `${claim} What is the right answer?${bottom ? ` Use ${unitName(bottom)}.` : ''}`; answer = right; hint = why;
+          form = shape; denominator = bottom;
+        }
+        break;
+      }
+      case 'remainder': {
+        // Singapore-style bar model: take a part, then a part of what is left.
+        const [total, a, b, c, e] = ([[24, 1, 4, 1, 3], [30, 1, 3, 1, 2], [20, 1, 5, 1, 4], [36, 1, 4, 2, 3], [40, 2, 5, 1, 2], [18, 1, 3, 1, 3],
+          [60, 1, 6, 1, 5], [32, 1, 2, 1, 4], [45, 1, 3, 2, 5], [24, 3, 8, 1, 3], [50, 1, 5, 1, 2], [16, 1, 4, 1, 2]] as const)[tr];
+        const rest = (total / b) * (b - a); const left = (rest / e) * (e - c);
+        visual = model(a, b);
+        if (i % 2 === 0) {
+          prompt = `Ana has ${total} stickers. She gives ${f(a, b)} of them to Ben. Then she gives ${f(c, e)} of the rest to Cal. How many stickers does Ana have now?`;
+          answer = String(left); hint = `${f(a, b)} of ${total} is ${(total / b) * a}. ${rest} are left. Then find ${f(c, e)} of ${rest}.`;
+        } else {
+          const top = (b - a) * (e - c); const bottom = b * e; const g = gcd(top, bottom);
+          prompt = `Max eats ${f(a, b)} of a pizza. Then he eats ${f(c, e)} of what is left. What fraction of the pizza is left now?`;
+          answer = f(top / g, bottom / g); hint = `First ${f(b - a, b)} is left. Then ${f(e - c, e)} of that part is still left.`;
+        }
+        break;
+      }
+      case 'divide-fractions': {
+        // How many pieces of one size fit in an amount? Rename to the same pieces, then count.
+        const [a, b, c, e] = ([[3, 4, 1, 8], [2, 3, 1, 6], [1, 2, 1, 8], [3, 5, 1, 10], [5, 6, 1, 12], [1, 3, 1, 9],
+          [3, 4, 1, 12], [2, 5, 1, 10], [1, 2, 1, 6], [4, 5, 1, 10], [3, 4, 3, 8], [6, 10, 2, 10]] as const)[tr];
+        prompt = i % 2 ? `${f(a, b)} ÷ ${f(c, e)} = ?` : `How many ${f(c, e)} cup scoops fill ${f(a, b)} cup?`;
+        answer = String((a * e) / (b * c)); visual = model(a, b);
+        hint = `Write ${f(a, b)} in ${unitName(e)}. Count how many ${f(c, e)} pieces fit.`; break;
       }
       case 'story': {
         const [bottom, a, b] = ([[4, 1, 1], [5, 2, 1], [6, 3, 1], [8, 4, 2], [10, 5, 1], [5, 1, 2], [6, 1, 2], [8, 3, 2], [10, 2, 3], [4, 1, 2], [6, 2, 3], [12, 3, 2]] as const)[tr];
