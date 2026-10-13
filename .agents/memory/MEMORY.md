@@ -1,4 +1,4 @@
-- [Learning design requirements](learning-design-requirements.md) — require model interaction and 10–15 entered answers before unlock; adapt recommendations without bypassing evidence gates.
+- [Learning design requirements](learning-design-requirements.md) — keep worked examples inside lessons before hands-on practice and question one; retain interactive evidence gates.
 - [GitHub sync and push](github-push.md) — merge newer GitHub changes before edits; use the connected GitHub App if CLI pushes fail.
 - [Development database bootstrap](development-database-bootstrap.md) — the development database can be provisioned without app tables; apply the existing schema before DB-backed account tests.
 - [Student progress privacy](student-progress-privacy.md) — educator-linked progress uses class codes, no student names, and is saved online.

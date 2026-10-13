@@ -9,6 +9,12 @@ Fraction Quest must emphasize interactions: “this is fractions!” Each topic 
 
 **How to apply:** Keep actual model manipulation central to the learning design. Do not replace worksheets with multiple-choice quizzes, optional practice, or static pictures; worksheet completion must be part of the level-unlock rule.
 
+Worked examples belong inside each lesson, above the first question; Part Finder lessons show the example at the top of that same lesson flow before the hands-on rounds.
+
+**Why:** The user chose an embedded example after the standalone tablet screen made the lesson feel disconnected.
+
+**How to apply:** Show the worked model in context before question one without adding a separate “Let me try it” screen; preserve the hands-on-to-worksheet order and all existing progress gates.
+
 Saved completions from before evidence gates are historical progress, not proof of understanding. Keep them visible without treating them as newly demonstrated mastery; hints or corrections can support progress but must not count as independent delayed retention.
 
 **Why:** Preserving stars and completion history should not falsely report that a learner has demonstrated understanding. A student who needs hints should still make forward progress, while retention is checked independently later.

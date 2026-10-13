@@ -10,6 +10,8 @@
 .fq-pf *::after { box-sizing: border-box; }
 
 .fq-pf-shell { width: min(100%, 1000px); margin: 0 auto; }
+.fq-pf-lesson-example { margin: 0 0 18px; }
+.fq-pf-lesson-example .fq-example { margin-top: 0; }
 .fq-pf-top { display: flex; align-items: center; gap: 14px; margin: 0 0 20px; }
 .fq-pf-back {
   min-height: 44px;

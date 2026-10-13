@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useScrollTopOn } from './lib/reveal';
 import { AREA_CUTS, pieceArea, type AreaCut, type Piece } from './area-shapes';
 import { FRIENDS, isPartFinderAnswer, partFinderFeedback, type PartFinderRound } from './part-finder';
@@ -87,10 +87,12 @@ function TileFill({ cut, selection, solved }: { cut: AreaCut; selection: number[
 
 /** Hands-on cake rounds inside a lesson, between the worked example and the questions. Each round must fit
     before the child moves on; the feedback says why a try doesn't fit. */
-export default function PartFinder({ rounds, lessonLabel, onExit, onDone, onSkip }: {
+export default function PartFinder({ rounds, lessonLabel, intro, onExit, onDone, onSkip }: {
   rounds: PartFinderRound[];
   /** "Lesson 01 · Same whole, fair pieces": shown in the bar so the child knows this is part of the lesson. */
   lessonLabel: string;
+  /** A worked example shown as part of the lesson before its hands-on rounds. */
+  intro?: ReactNode;
   onExit: () => void;
   onDone: () => void;
   /** Replaying a finished lesson: the cake rounds can be skipped. */
@@ -152,6 +154,8 @@ export default function PartFinder({ rounds, lessonLabel, onExit, onDone, onSkip
       <div className="fq-pf-shell">
         <TaskBar onBack={onExit} backLabel="Map" testId="button-part-finder-exit" title="Try it with cake" backAriaLabel={`Back to the map (leaves ${lessonLabel})`} step={roundIndex + 1} total={rounds.length}
           actions={onSkip && <button type="button" className="fq-hint-button" onClick={onSkip} data-testid="button-hands-on-skip">Skip</button>} />
+
+        {intro && <section className="fq-pf-lesson-example" data-testid="part-finder-lesson-example">{intro}</section>}
 
         <section className="fq-pf-card" aria-labelledby="pf-title">
           <div className="fq-pf-heading">

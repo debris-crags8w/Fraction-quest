@@ -311,7 +311,8 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
 
   await page.getByTestId('button-continue-course').click();
-  await expect(page.locator('#lesson-title')).toBeVisible();
+  await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
+  await expect(page.locator('.fq-pf-lesson-example .fq-example-heading')).toHaveText(MISSIONS[0].title);
   await expect(page.getByTestId('button-listen-learning-text').first()).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
 });
@@ -337,14 +338,19 @@ test('all 68 lessons render their worked model and first interactive question', 
     await expect(startLesson).toBeEnabled();
     await startLesson.click();
 
-    await expect(page.locator('#lesson-title')).toHaveText(mission.title);
-    await expect(page.locator('.fq-example .fq-model-area')).toBeVisible();
-    await page.getByTestId('button-start-practice').click();
-    if (PART_FINDER_LESSONS.has(mission.id)) await page.getByTestId('button-hands-on-skip').click();
+    if (PART_FINDER_LESSONS.has(mission.id)) {
+      await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
+      await expect(page.locator('.fq-pf-lesson-example .fq-example-heading')).toHaveText(mission.title);
+      await page.getByTestId('button-hands-on-skip').click();
+    } else {
+      await expect(page.locator('#lesson-title')).toHaveText(mission.title);
+      await expect(page.getByTestId('lesson-example')).toBeVisible();
+      await expect(page.locator('.fq-example .fq-model-area')).toBeVisible();
+    }
 
     const question = mission.questions[0];
     await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
-    await expect(page.locator('.fq-model-area')).toBeVisible();
+    await expect(page.getByTestId('question-model-area')).toBeVisible();
     await expect(page.locator('.fq-answer-choices button')).toHaveCount(question.choices.length);
     await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
     await page.getByTestId('button-check-answer').click();
@@ -379,11 +385,11 @@ test('learners can correct a wrong answer across every lesson model type', async
     if (!mission) throw new Error('Missing lesson for a question model type');
     await page.getByTestId(`button-node-${mission.id}`).click();
     await page.getByTestId(`button-start-mission-${mission.id}`).click();
-    await page.getByTestId('button-start-practice').click();
     if (PART_FINDER_LESSONS.has(mission.id)) await page.getByTestId('button-hands-on-skip').click();
+    else await expect(page.getByTestId('lesson-example')).toBeVisible();
 
     const question = mission.questions[0];
-    await expect(page.locator('.fq-model-area')).toBeVisible();
+    await expect(page.getByTestId('question-model-area')).toBeVisible();
     await retryLessonQuestion(page, question);
     await page.getByTestId('button-next-question').click();
     await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 2 of \d+$/);
@@ -475,8 +481,9 @@ test('daily practice opens as a separate short session', async ({ page }) => {
 test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, then mixed shapes', async ({ page }) => {
   await openAsGuest(page);
   await page.getByTestId('button-continue-course').click();
-  await page.getByTestId('button-start-practice').click();
   await expect(page.getByTestId('button-hands-on-skip')).toHaveCount(0);
+  await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
+  await expect(page.locator('.fq-pf-lesson-example .fq-example-heading')).toHaveText(MISSIONS[0].title);
 
   await expect(page.getByRole('heading', { name: 'Share a cake cut into equal pieces' })).toBeVisible();
   await expect(page.getByText(/4 friends share this square cake\. It is cut into 8 equal pieces\./)).toBeVisible();
@@ -720,13 +727,13 @@ test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried 
   const question = mission.questions[0];
   await page.getByTestId('button-continue-course').or(page.getByTestId('button-jump-current')).first().click();
   if (await page.getByTestId(`button-start-mission-${mission.id}`).count()) await page.getByTestId(`button-start-mission-${mission.id}`).click();
-  await page.getByTestId('button-start-practice').click();
+  await expect(page.getByTestId('lesson-example')).toBeVisible();
   const wrong = (question.correctChoice + 1) % question.choices.length;
   await page.getByTestId(`button-answer-${question.id}-${wrong}`).click();
   await page.getByTestId('button-check-answer').click();
   await expect(page.locator('[data-testid="status-feedback"] .fq-hoot')).toBeVisible();
   // "Count with me": numbers pop onto the parts of the picture.
-  await expect(page.locator('.fq-model-area .fq-count-badge').first()).toBeAttached();
+  await expect(page.getByTestId('question-model-area').locator('.fq-count-badge').first()).toBeAttached();
   await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.join(' | '))).toMatch(/Almost|Good try|look again|Not quite|So close/);
   await page.getByTestId('button-try-again').click();
   await expect(page.getByTestId(`button-answer-${question.id}-${wrong}`)).toBeDisabled();

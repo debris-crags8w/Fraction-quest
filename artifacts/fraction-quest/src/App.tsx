@@ -75,7 +75,7 @@ const queryClient = new QueryClient();
 
 type View =
   | { type: 'map' }
-  | { type: 'play'; missionId: string; questionIndex: number; firstTryAnswers: number; reviewQuestions: PracticeQuestion[] }
+  | { type: 'play'; missionId: string; questionIndex: number; firstTryAnswers: number; reviewQuestions: PracticeQuestion[]; showExample?: boolean }
   | { type: 'review'; questionIndex: number; reviewQuestions: PracticeQuestion[] }
   | { type: 'review-complete'; reviewedCount: number }
   | { type: 'daily' }
@@ -532,9 +532,33 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
   );
 }
 
+function GuidedExample({ mission, title, lessonLabel }: { mission: Mission; title?: string; lessonLabel?: string }) {
+  return (
+    <div className="fq-example" data-testid="lesson-example">
+      {lessonLabel && <p className="fq-play-kicker">{lessonLabel} · See it first</p>}
+      {title && <h2 className="fq-example-heading">{title}</h2>}
+      <div className="fq-mascot-say">
+        <Mascot mood="happy" size={64} />
+        <p className="fq-skill-statement"><LearningText text={mission.skill} speak /></p>
+      </div>
+      <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
+      <div className="fq-example-answer">
+        <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
+        <p><strong><LearningText text={mission.example.prompt} speak /></strong></p>
+        <p className="fq-example-result"><LearningText text={mission.example.answer} speak /></p>
+        <p><LearningText text={mission.example.explanation} speak /></p>
+      </div>
+      {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
+      {SHAPE_LESSONS.includes(mission.id) && <SameSizeIdea />}
+      <TapModel model={mission.example.model} />
+    </div>
+  );
+}
+
 function PlayView({
   mission,
   questionIndex,
+  showExample = false,
   firstTryAnswers,
   combo,
   onBack,
@@ -553,6 +577,7 @@ function PlayView({
 }: {
   mission: Mission;
   questionIndex: number;
+  showExample?: boolean;
   firstTryAnswers: number;
   combo: number;
   onBack: () => void;
@@ -581,8 +606,7 @@ function PlayView({
   const [burst, setBurst] = useState(0);
   const [shake, setShake] = useState(0);
   const { fun } = useFun();
-  const isExample = questionIndex < 0;
-  const question: PracticeQuestion | null = isExample ? null : mission.questions[questionIndex];
+  const question: PracticeQuestion | null = mission.questions[questionIndex] ?? null;
   const isLastQuestion = question ? questionIndex === mission.questions.length - 1 : false;
   const lessonStarIds = new Set(starEligibleQuestionIds ?? mission.questions.filter((item) => !item.isOptionalReview).map((item) => item.id));
 
@@ -658,9 +682,8 @@ function PlayView({
   };
   // `mission` can be a copy with review questions mixed in, so look it up by id.
   const lessonNumber = String(MISSIONS.findIndex((item) => item.id === mission.id) + 1).padStart(2, '0');
-  const noExample = isQuickReview || isExtraPractice;
-  const steps = mission.questions.length + (noExample ? 0 : 1);
-  const doneSteps = (noExample ? 0 : 1) + Math.max(0, questionIndex) + (feedback === 'correct' ? 1 : 0) - (isExample ? 1 : 0);
+  const steps = mission.questions.length;
+  const doneSteps = questionIndex + (feedback === 'correct' ? 1 : 0);
   const opener = question ? retryOpener(`${question.id}:${attempts}`) : '';
   // After a miss, Hoot's help is read aloud (with sound on), so a child who can't read it all still hears why.
   useReadAloud(feedback === 'retry' && fun.sound ? `${opener} ${retryText}` : null, feedback === 'retry' ? `${question?.id}:${attempts}` : null);
@@ -674,7 +697,7 @@ function PlayView({
       <main className="fq-shell fq-play-shell fq-appear">
         <div className="fq-lesson-top">
           <button className="fq-icon-button fq-lesson-close" onClick={onBack} aria-label="Back to learning map" data-testid="button-back-map"><X size={22} strokeWidth={3} /></button>
-          <div className="fq-segments" role="progressbar" aria-valuemin={0} aria-valuemax={steps} aria-valuenow={doneSteps} aria-label={isExample ? 'Guided example' : `${isQuickReview ? 'Quick review · ' : ''}Question ${questionIndex + 1} of ${mission.questions.length}`} data-testid="status-lesson-progress">
+          <div className="fq-segments" role="progressbar" aria-valuemin={0} aria-valuemax={steps} aria-valuenow={doneSteps} aria-label={`${isQuickReview ? 'Quick review · ' : ''}Question ${questionIndex + 1} of ${mission.questions.length}`} data-testid="status-lesson-progress">
             {Array.from({ length: steps }, (_, index) => <i key={index} className={index < doneSteps ? 'on' : index === doneSteps ? 'now' : ''} />)}
           </div>
           {combo >= 2 && <span className="fq-combo" data-testid="status-combo"><Flame size={16} fill="currentColor" /> {combo}</span>}
@@ -691,37 +714,24 @@ function PlayView({
               ? `Quick skill review · ${question?.reviewTopicTitle ?? mission.shortTitle}`
               : isExtraPractice
                 ? `Practice more · Lesson ${lessonNumber} · ${questionIndex + 1} of ${mission.questions.length}`
-              : isExample
-                ? `Lesson ${lessonNumber} · See it first`
+              : showExample
+                ? `Lesson ${lessonNumber} · ${mission.shortTitle} · See it, then try it`
                 : `Lesson ${lessonNumber} · ${mission.shortTitle} · ${questionIndex + 1} of ${mission.questions.length}`}
           </p>
           {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
             {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
             {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
           </p>}
-          {isExample ? <h1 id="lesson-title">{mission.title}</h1> : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
-          {isExample ? (
-            <div className="fq-example">
-              <div className="fq-mascot-say">
-                <Mascot mood="happy" size={64} />
-                <p className="fq-skill-statement"><LearningText text={mission.skill} speak /></p>
-              </div>
-              <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
-              <div className="fq-example-answer">
-                <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
-                  <p><strong><LearningText text={mission.example.prompt} speak /></strong></p>
-                  <p className="fq-example-result"><LearningText text={mission.example.answer} speak /></p>
-                <p><LearningText text={mission.example.explanation} speak /></p>
-              </div>
-              {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
-              {SHAPE_LESSONS.includes(mission.id) && <SameSizeIdea />}
-              <TapModel model={mission.example.model} />
-            </div>
-          ) : question && (
+          {showExample
+            ? <h1 id="lesson-title">{mission.title}</h1>
+            : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
+          {showExample && <GuidedExample mission={mission} />}
+          {question && (
             <>
+              {showExample && <StoryPrompt prompt={question.prompt} id="lesson-question-title" />}
               {question.isReview && <div className="fq-review-label"><RotateCcw size={15} />{question.isOptionalReview ? `${isQuickReview ? 'Due skill' : 'Optional review'} · ${question.reviewTopicTitle}` : ' A quick revisit to help it stick'}</div>}
               {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint · models and worksheet come next</div>}
-              <div className="fq-model-area">
+              <div className="fq-model-area" data-testid="question-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} />
               </div>
               {hintOpen && <div className="fq-hint" data-testid="text-question-hint"><Lightbulb size={18} /> <span><strong>Try this idea:</strong> <LearningText text={question.hint} speak /></span></div>}
@@ -788,16 +798,6 @@ function PlayView({
         </section>
       </main>
 
-      {isExample && <div className="fq-lesson-footer">
-        <div className="fq-shell fq-lesson-footer-inner">
-          {(
-            <div className="fq-footer-actions">
-              <button className="fq-hint-button" onClick={onBack} data-testid="button-back-example"><ArrowLeft size={17} /> Back to map</button>
-              <button className="fq-button" onClick={moveOn} data-testid="button-start-practice">Let me try it <ArrowRight size={17} /></button>
-            </div>
-          )}
-        </div>
-      </div>}
     </div>
   );
 }
@@ -956,12 +956,18 @@ function Game() {
       setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? record.practiceStars ?? 1 });
       return;
     }
+    const reviewQuestions = getDelayedReviewQuestions(progress, missionId);
+    if (PART_FINDER_LESSONS.has(missionId)) {
+      setView({ type: 'hands-on', missionId, reviewQuestions });
+      return;
+    }
     setView({
       type: 'play',
       missionId,
-      questionIndex: -1,
+      questionIndex: 0,
       firstTryAnswers: 0,
-      reviewQuestions: getDelayedReviewQuestions(progress, missionId),
+      reviewQuestions,
+      showExample: true,
     });
   };
 
@@ -1091,6 +1097,7 @@ function Game() {
         const mission = getMission(view.missionId);
         const toQuestions = () => setView({ type: 'play', missionId: view.missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions: view.reviewQuestions });
         return <PartFinder key={view.missionId} rounds={partFinderRoundsFor(view.missionId)} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
+          intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} />}
           onExit={returnToMap} onDone={toQuestions} onSkip={progress.completedMissionIds.includes(view.missionId) || hasLearningGate(progress, view.missionId) ? toQuestions : undefined} />;
       })()}
       {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
@@ -1142,6 +1149,7 @@ function Game() {
           mission={activeMission}
           starEligibleQuestionIds={view.type === 'play' && baseMission ? baseMission.questions.map((question) => question.id) : undefined}
           questionIndex={view.questionIndex}
+          showExample={view.type === 'play' && view.showExample}
           firstTryAnswers={view.type === 'play' ? view.firstTryAnswers : 0}
           isQuickReview={view.type === 'review'}
           combo={combo}
@@ -1151,14 +1159,11 @@ function Game() {
           onNext={(firstTryAnswers) => {
             if (view.type === 'review') {
               nextReviewView({ type: 'review', questionIndex: view.questionIndex + 1, reviewQuestions: view.reviewQuestions });
-            } else if (view.questionIndex < 0 && PART_FINDER_LESSONS.has(activeMission.id)) {
-              // Hands-on cake rounds come right after the worked example, before the questions.
-              setView({ type: 'hands-on', missionId: activeMission.id, reviewQuestions: view.reviewQuestions });
             } else {
               setView({
                 type: 'play',
                 missionId: activeMission.id,
-                questionIndex: view.questionIndex < 0 ? 0 : view.questionIndex + 1,
+                questionIndex: view.questionIndex + 1,
                 firstTryAnswers,
                 reviewQuestions: view.reviewQuestions,
               });
