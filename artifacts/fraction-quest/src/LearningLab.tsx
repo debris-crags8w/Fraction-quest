@@ -17,7 +17,7 @@ import { YesNoCards } from './YesNoCards';
 import { LessonTeachingSupport } from './LessonTeachingSupport';
 import './learning-lab.css';
 import { TaskBar } from './TaskBar';
-import { LiveFraction } from './fraction-ui';
+import { LiveFraction, TickLabel } from './fraction-ui';
 import { AnswerTiles } from './AnswerTiles';
 import { answerShape } from './answer-shape';
 import { useRevealWhen } from './lib/reveal';
@@ -253,7 +253,7 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
               {Array.from({ length: st.d * wholes + 1 }, (_, i) => (
                 <button key={i} type="button" className={'fq-ll-tick ' + (i === st.count ? 'on ' : '') + (i % st.d === 0 ? 'whole' : '')} style={{ left: ((i / (st.d * wholes)) * 100) + '%' }}
                   aria-label={'Tick ' + i + ' of ' + (st.d * wholes) + ' equal spaces'} aria-pressed={i === st.count} onClick={() => setCount(i)} data-testid={'tick-' + id + '-' + i}>
-                  <span>{i % st.d === 0 ? i / st.d : ''}</span>
+                  <TickLabel i={i} d={st.d} />
                 </button>
               ))}
             </div>

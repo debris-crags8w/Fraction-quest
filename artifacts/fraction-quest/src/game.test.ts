@@ -2695,3 +2695,16 @@ describe('fourth answer choice', () => {
     assert.equal(fourthChoice('Is it equal?', ['Yes, 3 equal pieces', 'No, 2 pieces', 'No, not equal'], 0), null, 'worded reasons are written by hand');
   });
 });
+
+describe('number-line tick labels', () => {
+  it('reads 0, 1/5, 2/5 … 1 along the line', async () => {
+    const { TickLabel } = await import('./fraction-ui');
+    const html = (i: number, d: number) => renderToStaticMarkup(createElement(TickLabel, { i, d }));
+    assert.match(html(0, 5), />0</);
+    assert.match(html(2, 5), /aria-label="2 over 5"/);
+    assert.match(html(2, 5), /<b>2<\/b>.*<b>5<\/b>/);
+    assert.match(html(5, 5), />1</);
+    assert.match(html(7, 5), /aria-label="7 over 5"/, 'past 1 the labels keep counting fifths');
+    assert.match(html(10, 5), />2</);
+  });
+});

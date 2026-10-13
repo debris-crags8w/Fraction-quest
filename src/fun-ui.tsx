@@ -5,7 +5,7 @@ import { Check, Gift, LockKeyhole, Sparkles, Star } from 'lucide-react';
 import type { ModelSpec } from './game';
 import { DAILY_GOAL, type FunState } from './lib/fun';
 import { MODEL_NAMES, ModelTag, WholeBracket } from './models';
-import { LinkedFraction, PieFraction } from './fraction-ui';
+import { LinkedFraction, PieFraction, TickLabel } from './fraction-ui';
 
 /* ---------- shared fun state ---------- */
 
@@ -164,7 +164,7 @@ export function TapModel({ model }: { model: ModelSpec }) {
           {Array.from({ length: target.d * target.wholes + 1 }, (_, i) => (
             <button type="button" key={i} className={`${i === count ? 'on' : ''} ${i % target.d === 0 ? 'whole' : ''}`} style={{ left: `${(i / (target.d * target.wholes)) * 100}%` }}
               aria-label={`Land after ${i} jumps`} aria-pressed={i === count} onClick={() => setCount(i)} data-testid={`button-tap-tick-${i}`}>
-              <span>{i % target.d === 0 ? i / target.d : ''}</span>
+              <TickLabel i={i} d={target.d} />
             </button>
           ))}
         </div>

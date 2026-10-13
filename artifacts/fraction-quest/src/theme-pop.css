@@ -1854,3 +1854,15 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   .fq-lesson-app.has-inline-check .fq-node-standard { display: none; }
   .fq-lesson-app .fq-answer-choice { min-height: 50px; padding: 8px 14px; }
 }
+
+/* Number-line tick labels: 0, 1, 2… at the wholes and a small stacked fraction (1/5, 2/5…) at the other ticks. */
+.fq-nl-label { display: inline-grid; justify-items: center; line-height: 1; white-space: nowrap; font-family: var(--app-font-mono); font-weight: 900; color: hsl(var(--foreground)); }
+.fq-nl-label.whole { font-size: 0.9rem; }
+.fq-nl-frac { gap: 1px; font-size: 0.68rem; color: hsl(var(--muted-foreground)); }
+.fq-nl-frac > b:first-child { color: color-mix(in srgb, var(--fq-num, #0b6bcb) 85%, #000); }
+.fq-nl-frac > b:last-child { color: var(--fq-den, #5a32d6); }
+.fq-nl-frac > i { display: block; width: 100%; min-width: 10px; height: 1.5px; border-radius: 1px; background: currentColor; }
+.fq-ll-line { height: 104px; }
+.fq-tap-line { height: 92px; }
+.fq-visual-numberline { height: 60px; }
+.fq-numberline-tick .fq-nl-label { margin-top: 6px; }

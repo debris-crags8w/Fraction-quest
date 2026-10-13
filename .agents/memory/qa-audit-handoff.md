@@ -41,6 +41,12 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Number lines label every tick: 0, 1/5, 2/5 … 1 (whole numbers at wholes, small stacked fractions between; past 1 they
+  keep counting, e.g. 7/5). Shared `TickLabel` in `fraction-ui.tsx` (class `fq-nl-label`; `fq-tick-label` was already
+  taken by an old style). Used in the lab builder, the worked-example tap line and `ModelView`. Question pictures pass
+  `asked` (lesson/extra practice, daily practice, race): tick labels, the fraction readout and the "marked at" screen-reader
+  text stay hidden until the answer is right (this also fixed an older give-away: the readout showed the answer).
+  Lines with more than 16 spaces keep just the whole-number labels. Printed worksheets/check-ins (`LineSvg`) unchanged.
 - Four answer choices (A–D) on every tap question; pick-the-sign questions keep three (<, =, >). `src/fourth-choice.ts`
   adds a fourth wrong answer by question type (amount slips keeping the question's denominator; criterion-aware for
   "which is more than / closest to / between / same as / unit fraction"; another order for ordering; a different sum;

@@ -36,7 +36,7 @@ import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
 import { LearningText } from './LearningText';
 import './learning-text.css';
-import { PieFraction } from './fraction-ui';
+import { PieFraction, TickLabel } from './fraction-ui';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
@@ -164,7 +164,8 @@ function compareGuide(model: ModelSpec, reveal: boolean): number | undefined {
 }
 
 /** `reveal`: the question is answered, so every bar shows its fraction label. */
-function ModelView({ model, compact = false, reveal = false }: { model: ModelSpec; compact?: boolean; reveal?: boolean }) {
+/** `asked`: the picture belongs to a question, so number-line labels (1/5, 2/5…) and the readout stay hidden until it is answered. */
+function ModelView({ model, compact = false, reveal = false, asked = false }: { model: ModelSpec; compact?: boolean; reveal?: boolean; asked?: boolean }) {
   return (
     <div className={`fq-visual-model ${compact ? 'compact' : ''}`} data-testid="visual-fraction-model">
       {!compact && (model.kind === 'bars' || model.kind === 'decimal') && <ModelTag kind="bar" />}
@@ -187,12 +188,13 @@ function ModelView({ model, compact = false, reveal = false }: { model: ModelSpe
         </div>
       )}
       {model.kind === 'line' && (() => {
+        const labelled = (!model.hideLabels && !asked) || reveal;
         const wholes = model.wholes ?? numberLineWholeCount(model.numerator, model.denominator);
         const divisions = model.denominator * wholes;
         const value = model.numerator / divisions;
         return (
           <div className="fq-numberline-wrap">
-            <div className="fq-visual-numberline" role="img" aria-label={model.hideLabels ? `Number line from 0 to ${wholes} with ${divisions} equal spaces and a dot` : 'Number line from 0 to ' + wholes + ', marked at ' + model.numerator + '/' + model.denominator}>
+            <div className="fq-visual-numberline" role="img" aria-label={!labelled ? `Number line from 0 to ${wholes} with ${divisions} equal spaces and a dot` : 'Number line from 0 to ' + wholes + ', marked at ' + model.numerator + '/' + model.denominator}>
               <div className="fq-numberline-track" />
               {/* Hop arcs: one per jump from 0, drawn one after another, then the dot lands. */}
               <svg className="fq-numberline-hops" viewBox={`0 0 ${divisions} 1`} preserveAspectRatio="none" aria-hidden="true">
@@ -203,13 +205,16 @@ function ModelView({ model, compact = false, reveal = false }: { model: ModelSpe
               <span className="fq-numberline-marker" style={{ left: (value * 100) + '%', '--jumps': model.numerator } as CSSProperties} />
               {Array.from({ length: divisions + 1 }, (_, tick) => (
                 <span className={`fq-numberline-tick ${tick % model.denominator === 0 ? 'whole' : ''}`} style={{ left: ((tick / divisions) * 100) + '%' }} key={tick}>
-                  {tick === 0 ? '0' : tick === divisions ? String(wholes) : tick % model.denominator === 0 ? String(tick / model.denominator) : ''}
+                  {/* Every tick reads 1/5, 2/5… Practice pictures (hideLabels) show only the wholes until the child answers,
+                      so the labels can't give the answer away. Very crowded lines keep just the wholes. */}
+                  {tick % model.denominator === 0 || (labelled && divisions <= 16)
+                    ? <TickLabel i={tick} d={model.denominator} /> : null}
                 </span>
               ))}
             </div>
             <p className="fq-numberline-range" data-testid="text-model-numberline-range">{wholes === 1 ? 'The line goes from 0 to 1.' : `The line goes from 0 to ${wholes}. Each whole has the same spaces.`}</p>
             {/* Practice pictures hide the readout so the picture doesn't give the answer away. */}
-            {!model.hideLabels && <div className="fq-line-readout"><Fraction numerator={model.numerator} denominator={model.denominator} /></div>}
+            {labelled && <div className="fq-line-readout"><Fraction numerator={model.numerator} denominator={model.denominator} /></div>}
           </div>
         );
       })()}
@@ -658,7 +663,7 @@ function PlayView({
               {question.isReview && <div className="fq-review-label"><RotateCcw size={15} />{question.isOptionalReview ? `${isQuickReview ? 'Due skill' : 'Optional review'} · ${question.reviewTopicTitle}` : ' A quick revisit to help it stick'}</div>}
               {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint · models and worksheet come next</div>}
               <div className="fq-model-area">
-                <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} />
+                <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} />
               </div>
               {hintOpen && <div className="fq-hint" data-testid="text-question-hint"><Lightbulb size={18} /> <span><strong>Try this idea:</strong> <LearningText text={question.hint} speak /></span></div>}
               {attempts >= 2 && (
@@ -993,7 +998,7 @@ function Game() {
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
       {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
-      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} renderModel={(model, reveal) => <ModelView model={model} reveal={reveal} />} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
+      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} renderModel={(model, reveal) => <ModelView model={model} reveal={reveal} asked />} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
       {view.type === 'concept-games' && (() => {
         // The lesson games use the lesson the child is on (or the last open one).
         const open = MISSIONS.filter((mission) => isMissionUnlocked(progress, mission.id));
@@ -1013,7 +1018,7 @@ function Game() {
         <FractionRace key={view.missionId} mission={getMission(view.missionId)} best={fun.raceBest?.[view.missionId] ?? null} robotBeaten={fun.robotBeaten?.[view.missionId] ?? 0} sprintBest={fun.sprintBest?.[view.missionId] ?? null}
           onSprintFinish={(seconds) => setFun((current) => recordSprint(current, view.missionId, seconds))}
           onExit={exitGame} onFinish={(seconds, level) => setFun((current) => recordRace(current, view.missionId, seconds, level))}
-          renderModel={(model) => <ModelView model={model} compact />} />
+          renderModel={(model) => <ModelView model={model} compact asked />} />
       )}
       {view.type === 'code' && (
         <CodeQuest key={view.missionId} mission={getMission(view.missionId)} solved={fun.codeLevels?.[view.missionId] ?? 0}

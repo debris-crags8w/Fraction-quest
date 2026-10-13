@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import React, { type CSSProperties } from 'react';
 
 /* Fraction pieces shared by every screen. One color rule everywhere: the numerator is the color of the
    shaded parts (parts selected), and the denominator is purple, the color of the part outlines (equal parts
@@ -62,5 +62,17 @@ export function PieFraction({ n, d, size = 40, className = '', fill = 'var(--fq-
       {parts > 1 && Array.from({ length: parts }, (_, k) => <path key={`l${k}`} d={`M${c} ${c} L${at(k)}`} stroke={stroke} strokeWidth="1.6" strokeLinecap="round" />)}
       <circle cx={c} cy={c} r={r} fill="none" stroke={stroke} strokeWidth="2.4" />
     </svg>
+  );
+}
+
+/** The label under a number-line tick: whole numbers at 0, 1, 2…, and a small stacked fraction (1/5, 2/5…)
+    at every other tick, so a child can read each jump. */
+export function TickLabel({ i, d }: { i: number; d: number }) {
+  if (d <= 0) return null;
+  if (i % d === 0) return <span className="fq-nl-label whole">{i / d}</span>;
+  return (
+    <span className="fq-nl-label fq-nl-frac" aria-label={`${i} over ${d}`}>
+      <b>{i}</b><i aria-hidden="true" /><b>{d}</b>
+    </span>
   );
 }
