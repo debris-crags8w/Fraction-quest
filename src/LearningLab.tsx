@@ -437,7 +437,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
         <div id={'ws-fb-' + p.id} aria-live="polite">
           {ok && <p className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Correct!
             {onNewQuestion && <button type="button" className="fq-ll-hintbtn fq-ll-newq" onClick={onNewQuestion} data-testid={'button-new-question-' + p.id}><RotateCcw size={15} /> New question</button>}</p>}
-          {!ok && wrong === draft && <p className="fq-ll-ws bad" data-testid={'status-worksheet-' + p.id}>Not yet. <LearningText text={p.hint} speak /></p>}
+          {!ok && wrong === draft && <p className="fq-ll-ws bad" role="alert" data-testid={'status-worksheet-' + p.id}><strong>Not yet.</strong> <LearningText text={p.hint} speak /></p>}
           {!ok && e && e.attempts > 0 && e.checkedValue === undefined && wrong !== draft && draft.trim() && <p className="fq-ll-ws" data-testid={'status-worksheet-' + p.id}>Changed. Press Check.</p>}
           {open && <p className="fq-ll-ws hint" data-testid={'text-hint-worksheet-' + p.id}><LearningText text={p.hint} speak /></p>}
         </div>

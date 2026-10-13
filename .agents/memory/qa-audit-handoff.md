@@ -41,6 +41,8 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Worksheet "Not yet." feedback reads as one line (it was a flex row, so "Not yet." became its own column) and is bright
+  red (`--fq-alert` #D90429, #FF6B78 in dark mode); the builder's "not yet" model status uses the same red.
 - Top-bar symbols are tappable (`src/StatTip.tsx`): streak, points, today's goal pie, stars/lessons pill (desktop) and the
   avatar each open a one-line explanation (one open at a time; outside tap, Escape, scroll close). On phones (≤560px)
   Sign in/Sign out moved into the avatar tip, the More button is a 44px icon with a corner badge, and under 360px the

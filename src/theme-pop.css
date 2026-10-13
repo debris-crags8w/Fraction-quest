@@ -1894,3 +1894,13 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   .fq-topbar .fq-menu-badge { position: absolute; top: -6px; right: -6px; }
 }
 @media (max-width: 359px) { .fq-topbar .fq-brand { display: none; } }
+
+/* Wrong-answer messages in the lesson builder and worksheet: bright red, and laid out as one line of text
+   ("Not yet. Count every part…") rather than side-by-side columns. */
+:root { --fq-alert: #D90429; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --fq-alert: #FF6B78; } }
+:root[data-theme="dark"] { --fq-alert: #FF6B78; }
+.fq-ll-ws.bad { display: block; color: var(--fq-alert); font-weight: 700; }
+.fq-ll-ws.bad strong { font-weight: 900; }
+.fq-ll-ws.bad .fq-learning-listen { vertical-align: middle; margin-left: 6px; }
+.fq-ll-model-status.retry { color: var(--fq-alert); }
