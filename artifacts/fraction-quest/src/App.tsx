@@ -61,6 +61,7 @@ import PlacementQuiz from './PlacementQuiz';
 import { applyPlacement } from './placement';
 import { AccountGate, useAccount, useAccountSync } from './account';
 import LoginPage from './LoginPage';
+import { getRouterBasePath } from './app-routing';
 import DailyPractice from './DailyPractice';
 import { createDailyPractice, dailyPracticeDay } from './daily-practice';
 import PartFinder from './PartFinder';
@@ -1273,7 +1274,7 @@ function App() {
       >
         {(accountKey) => (
           <TooltipProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+            <WouterRouter base={getRouterBasePath(import.meta.env.BASE_URL, window.location.pathname)}>
               <AppRouter key={accountKey} />
             </WouterRouter>
             <Toaster />
