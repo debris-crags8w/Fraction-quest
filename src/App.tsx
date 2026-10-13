@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, BarChart3, Check, ClipboardCheck, Code2, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { MathText } from './MathText';
@@ -13,6 +13,7 @@ import {
   getDelayedReviewQuestions,
   getDueSkillReviewQuestions,
   getMission,
+  getDueSkillReviewCount,
   getNextMission,
   isCorrectAnswer,
   isMissionUnlocked,
@@ -35,7 +36,6 @@ import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
 import { LearningText } from './LearningText';
 import './learning-text.css';
-import QuickReviewEntry from './QuickReviewEntry';
 import { PieFraction } from './fraction-ui';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
@@ -67,6 +67,7 @@ import { PART_FINDER_LESSONS, PART_FINDER_ROUNDS } from './part-finder';
 import ConceptGames, { type LessonGame } from './ConceptGames';
 import { BrainBreakOffer } from './BrainBreakOffer';
 import { warmUpNaturalVoice } from './lib/natural-voice';
+import { AppMenu } from './AppMenu';
 const queryClient = new QueryClient();
 
 type View =
@@ -231,7 +232,7 @@ function ModelView({ model, compact = false, reveal = false }: { model: ModelSpe
   );
 }
 
-function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: () => void; onHome: () => void }) {
+function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onReset: () => void; onHome: () => void; menu?: ReactNode }) {
   const stars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
   const { fun, setFun } = useFun();
   const account = useAccount();
@@ -257,8 +258,10 @@ function Topbar({ progress, onReset, onHome }: { progress: Progress; onReset: ()
             <span><strong>{stars}</strong> stars</span><span aria-hidden="true">·</span>
             <span><strong>{MISSIONS.filter(item => hasLearningGate(progress, item.id)).length}</strong>/{MISSIONS.length} lessons</span>
           </div>
+          {menu}
           <button className="fq-icon-button" onClick={() => setFun(setSound(fun, !fun.sound))} aria-label={fun.sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={fun.sound} data-testid="button-toggle-sound">{fun.sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
-          <button className="fq-icon-button" onClick={onReset} aria-label="Reset progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>
+          {/* With a menu (the map), reset lives in it under Grown-ups so the bar fits a phone. */}
+          {!menu && <button className="fq-icon-button" onClick={onReset} aria-label="Reset progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>}
           <div className="fq-account">
             <span className="fq-account-avatar" aria-hidden="true">{account.activeProfile?.displayName.trim().charAt(0).toUpperCase() ?? 'G'}</span>
             <span className="fq-account-name">
@@ -298,100 +301,92 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
     .map((id) => Number(id))
     .filter((id) => Number.isInteger(id) && id >= 1 && id <= UNIT_TITLES.length);
 
+  // The current lesson's node: open it and bring it into view ("Jump to current section").
+  const jumpToCurrent = () => {
+    if (!nextMission) return;
+    setSelectedId(nextMission.id);
+    requestAnimationFrame(() => {
+      const node = document.querySelector<HTMLElement>(`[data-testid="card-mission-${nextMission.id}"]`);
+      node?.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      node?.querySelector<HTMLButtonElement>('.fq-node')?.focus({ preventScroll: true });
+    });
+  };
+  const firstLessonDone = progress.completedMissionIds.length > 0 || MISSIONS.some((item) => hasLearningGate(progress, item.id));
+  const today = progress.dailyPractice?.day === dailyPracticeDay() ? progress.dailyPractice : null;
+  const dailyDone = !!today?.completedAt;
+  const dueReviews = getDueSkillReviewCount(progress);
+  const menu = (
+    <AppMenu
+      sections={[
+        { title: 'Practice', items: [
+          { id: 'daily', icon: <Sparkles size={18} />, label: 'Daily practice', testId: 'button-start-daily-practice', onSelect: onStartDaily, waiting: !dailyDone,
+            note: dailyDone ? 'Done for today. Review it anytime.' : today ? `Pick up where you left off: ${today.index + 1} of ${today.questions.length}` : 'Five quick questions, about 5 minutes' },
+          ...(dueReviews > 0 ? [{ id: 'review', icon: <RotateCcw size={18} />, label: 'Quick skill review', testId: 'button-start-due-review', onSelect: onStartReview, waiting: true,
+            note: `${dueReviews} ${dueReviews === 1 ? 'skill is' : 'skills are'} ready for a short retry` }] : []),
+        ] },
+        { title: 'Games', items: [
+          { id: 'games', icon: <Dumbbell size={18} />, label: 'Games', testId: 'button-open-concept-games', onSelect: onConceptGames, note: 'Fraction Race, Part Finder and the fraction workshop' },
+          ...(nextCodeMission ? [{ id: 'code', icon: <Code2 size={18} />, label: codeSummary.missionsStarted ? 'Continue coding' : 'Try coding', testId: 'button-continue-coding',
+            onSelect: () => onGame('code', nextCodeMission.id), note: `${codeSummary.levelsPassed} of ${codeSummary.levelsTotal} coding levels passed` }] : []),
+        ] },
+        { title: 'Check what you know', items: [
+          { id: 'checkins', icon: <ClipboardCheck size={18} />, label: 'Check-ins', testId: 'button-open-assessments', onSelect: onAssessments, note: 'Build a model, answer, and see what to practice next' },
+          { id: 'level', icon: <Compass size={18} />, label: 'Find my level', testId: 'button-find-level', onSelect: onPlacement, note: 'A short quiz to find where to start' },
+        ] },
+        { title: 'Grown-ups', items: [
+          { id: 'parent', icon: <BarChart3 size={18} />, label: 'Progress report and settings', testId: 'button-open-parent', onSelect: onParent, note: 'Time this week, what to practice, voices, answer keys' },
+          { id: 'reset', icon: <RotateCcw size={18} />, label: 'Reset progress', testId: 'button-reset-progress', onSelect: onReset, note: 'Start the course over on this device' },
+        ] },
+      ]}
+      footer={<details className="fq-menu-about"><summary>About this learning path</summary><p>
+        A broad U.S. grades 3–5 bridge (roughly ages 8–10), from equal shares and number lines through operations and decimals.
+        Topic-scope references: <a href="https://webassets.zearn.org/resources/G03_Course_Guide_Z1.pdf" target="_blank" rel="noreferrer">Zearn Grade 3 Course Guide</a> and <a href="https://www.dreambox.com/math/skills/fractions" target="_blank" rel="noreferrer">DreamBox fractions overview</a>.
+        This is not a complete or standards-aligned course.</p></details>}
+    />
+  );
+
   return (
     <div className="fq-app">
-      <Topbar progress={progress} onReset={onReset} onHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
+      <Topbar progress={progress} onReset={onReset} onHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })} menu={menu} />
       <main className="fq-shell">
-        <section className="fq-hero fq-course-hero">
-          <div className="fq-hero-copy">
-            <div className="fq-eyebrow"><Sparkles size={14} fill="currentColor" /> Your fraction course</div>
-            <h1>Fractions are <span>places</span> to explore.</h1>
-            <p>Build, spot, compare, and combine fractions, one small discovery at a time.</p>
-          </div>
-          <div className="fq-compass" aria-hidden="true">
-            <div className="fq-hero-mascot"><Mascot mood="happy" size={150} /></div>
-            <div className="fq-compass-fraction one"><Fraction numerator={1} denominator={2} /></div>
-            <div className="fq-compass-fraction two"><Fraction numerator={3} denominator={4} /></div>
-            <div className="fq-compass-fraction three"><Fraction numerator={2} denominator={3} /></div>
-          </div>
-        </section>
-
         <section className="fq-map fq-course-map" aria-labelledby="course-title">
           <div className="fq-section-heading">
             <div>
-              <h2 id="course-title">Your learning map</h2>
+              <h1 id="course-title">Your learning map</h1>
               <p data-testid="text-map-subtitle">
                  {nextMission
                    ? `${MISSIONS.filter(item => hasLearningGate(progress, item.id)).length} of ${MISSIONS.length} lessons completed · ${totalStars} practice stars`
                   : `Course complete · ${totalStars} stars collected`}
               </p>
             </div>
-            <MapIcon size={27} color="hsl(var(--secondary))" aria-hidden="true" />
           </div>
           {assignedUnits.length > 0 && <p className="fq-assigned-units" role="note" data-testid="text-assigned-units">
             Your teacher suggested: {assignedUnits.map((unit) => `Unit ${unit}: ${UNIT_TITLES[unit - 1]}`).join(' · ')}.
             These suggestions do not change which lessons are unlocked.
           </p>}
-          <div className="fq-map-code-summary" data-testid="status-map-code-progress">
-            <Code2 size={19} aria-hidden="true" />
-            <span><strong>{codeSummary.levelsPassed} of {codeSummary.levelsTotal} coding levels passed</strong><small>{codeSummary.missionsStarted} missions started · {codeSummary.missionsComplete} missions with all 3 levels passed</small></span>
-            <span className="fq-map-code-separate">Separate from lesson progress</span>
-            {nextCodeMission && <button className="fq-button ghost" onClick={() => onGame('code', nextCodeMission.id)} data-testid="button-continue-coding">{codeSummary.missionsStarted ? 'Continue coding' : 'Try coding'} <ArrowRight size={16} /></button>}
-          </div>
 
-          {nextMission ? (
+          {!nextMission ? (
+            <div className="fq-course-finished" data-testid="status-course-complete"><Trophy size={24} /> You explored every lesson. Replay any one to practice again.</div>
+          ) : !firstLessonDone ? (
             <button className="fq-continue-card" onClick={() => onStart(nextMission.id)} data-testid="button-continue-course">
               <span className="fq-continue-icon"><ArrowRight size={21} /></span>
               <span className="fq-continue-copy">
-                <strong>{evidenceRecommendation ? 'Try this one next' : progress.completedMissionIds.length || progress.placement ? 'Keep exploring' : 'Start your first lesson'}</strong>
-                <span>Lesson {String(MISSIONS.indexOf(nextMission) + 1).padStart(2, '0')} · {nextMission.title}{evidenceRecommendation ? ' · Practice what was tricky' : ''}</span>
+                <strong>Start your first lesson</strong>
+                <span>Lesson {String(MISSIONS.indexOf(nextMission) + 1).padStart(2, '0')} · {nextMission.title}</span>
               </span>
               <ArrowRight className="fq-continue-arrow" size={20} />
             </button>
           ) : (
-            <div className="fq-course-finished" data-testid="status-course-complete"><Trophy size={24} /> You explored every lesson. Replay any one to practice again.</div>
-          )}
-
-          {!progress.completedMissionIds.length && !Object.keys(progress.learning ?? {}).length && !progress.placement && (
-            <button className="fq-continue-card fq-place-entry" onClick={onPlacement} data-testid="button-find-level">
-              <span className="fq-continue-icon"><Compass size={20} /></span>
-              <span className="fq-continue-copy"><strong>Know some fractions already?</strong><span>Take a quick quiz to find your level</span></span>
+            <button className="fq-continue-card fq-jump-card" onClick={jumpToCurrent} data-testid="button-jump-current">
+              <span className="fq-continue-icon"><MapIcon size={20} /></span>
+              <span className="fq-continue-copy">
+                <strong>Jump to current section</strong>
+                <span>Unit {nextMission.unit} · Lesson {String(MISSIONS.indexOf(nextMission) + 1).padStart(2, '0')} · {nextMission.title}{evidenceRecommendation ? ' · Practice what was tricky' : ''}</span>
+              </span>
               <ArrowRight className="fq-continue-arrow" size={20} />
             </button>
           )}
           {progress.placement && <p className="fq-place-note" data-testid="text-placement-note">Started at unit {progress.placement.unit} after the level quiz. Earlier lessons are still open.</p>}
-
-          {(() => {
-            const today = progress.dailyPractice?.day === dailyPracticeDay() ? progress.dailyPractice : null;
-            const done = !!today?.completedAt;
-            const current = today && !done;
-            return (
-              <section className="fq-daily-map-card" data-testid="section-daily-practice">
-                <div className="fq-daily-map-icon" aria-hidden="true"><Sparkles size={21} /></div>
-                <div className="fq-daily-map-copy">
-                  <strong>{done ? 'Today’s practice is complete' : current ? 'Pick up today’s practice' : 'A little fraction practice each day'}</strong>
-                  <span>{done ? 'Five models built and named. Your lesson progress is separate.' : current ? `${today.index + 1} of ${today.questions.length} models · Your work is saved` : 'Five quick model-and-answer questions, about 5 minutes, chosen from your learning.'}</span>
-                </div>
-                <button className="fq-button" onClick={onStartDaily} data-testid="button-start-daily-practice">
-                  {done ? 'Review' : current ? 'Continue' : 'Start'} <ArrowRight size={16} />
-                </button>
-              </section>
-            );
-          })()}
-
-          <button className="fq-assessment-entry fq-concept-games-entry" onClick={onConceptGames} data-testid="button-open-concept-games">
-            <span className="fq-assessment-entry-icon" aria-hidden="true"><Dumbbell size={20} /></span>
-            <span><strong>Games</strong><small>Fraction Race, coding, Part Finder and the fraction workshop. Games never change lesson progress.</small></span>
-            <ArrowRight size={18} aria-hidden="true" />
-          </button>
-
-          <button className="fq-assessment-entry" onClick={onAssessments} data-testid="button-open-assessments">
-            <span className="fq-assessment-entry-icon" aria-hidden="true"><ClipboardCheck size={20} /></span>
-            <span><strong>Check what you know</strong><small>Build a model, make each answer with tiles, and see which ideas to practice next.</small></span>
-            <ArrowRight size={18} aria-hidden="true" />
-          </button>
-
-          <QuickReviewEntry progress={progress} onStart={onStartReview} />
 
           <div className="fq-unit-list">
             {units.map((unit) => {
@@ -477,22 +472,6 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
           </div>
           <div className="fq-trail-note"><Lightbulb size={17} color="hsl(var(--accent-foreground))" /><span>No timer, no traps. Use a hint, try a simpler model, and keep going.</span></div>
         </section>
-        <section className="fq-grownups" data-testid="section-grownups">
-          <span className="fq-grownups-icon" aria-hidden="true"><BarChart3 size={22} /></span>
-          <span><strong>For grown-ups</strong><small>Progress, time this week, what to practice, and lesson answer keys. Printable.</small></span>
-          <span className="fq-grownups-buttons">
-            <button className="fq-button ghost" onClick={onParent} data-testid="button-open-parent">Open report</button>
-            <button className="fq-button ghost" onClick={onPlacement} data-testid="button-open-placement">Level quiz</button>
-          </span>
-        </section>
-        <aside className="fq-course-note">
-          <strong>About this learning path</strong>
-          <p>
-            Designed as a broad U.S. grades 3–5 bridge (roughly ages 8–10), from equal shares and number lines through operations and decimals.
-            Topic-scope references: <a href="https://webassets.zearn.org/resources/G03_Course_Guide_Z1.pdf" target="_blank" rel="noreferrer">Zearn Grade 3 Course Guide</a> and <a href="https://www.dreambox.com/math/skills/fractions" target="_blank" rel="noreferrer">DreamBox fractions overview</a>.
-            This is not a complete or standards-aligned course.
-          </p>
-        </aside>
         <footer className="fq-footer"><span>Made for curious minds, ages 8–10. {user ? 'Progress is saved to this family account.' : 'Progress stays on this device.'}</span><button onClick={onReset} data-testid="button-reset-progress-footer">{user ? 'Reset this learner’s progress' : "Reset this device's progress"}</button></footer>
       </main>
     </div>

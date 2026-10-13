@@ -41,6 +41,13 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Map reorganized (branch `review/fraction-standard-mastery`): the map shows only units and lessons. Everything else is in the
+  top-bar "More" dropdown (`src/AppMenu.tsx`, `button-app-menu`, panel `app-menu`): Practice (daily practice, quick skill review
+  when due), Games (games, coding), Check what you know (check-ins, find my level), Grown-ups (progress report and settings,
+  reset progress), plus an "About this learning path" footer. The badge counts waiting items. On the map the reset button moved
+  from the top bar into the menu (other screens still show it in the bar). The call to action reads "Start your first lesson"
+  (`button-continue-course`) until any lesson is done, then "Jump to current section" (`button-jump-current`), which scrolls to
+  and opens the current lesson. E2E helper `openMenuItem(page, testId)` in `e2e/course-smoke.spec.ts`.
 - **Thorough test round (content audit + a11y sweep + touch play-through).** Fixed:
   - Choice give-aways: `choiceDistractors` (learning-content) now picks real slips from `distractorCandidates` so the
     answer is smallest/middle/largest about equally (was the middle value 59% of the time); `balanceChoices`

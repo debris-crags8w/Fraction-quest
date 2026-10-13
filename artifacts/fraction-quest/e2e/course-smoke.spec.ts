@@ -7,6 +7,12 @@ import { getExtraPractice, hasGenerator } from '../src/practice-bank';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
 
+/** Practice, games, check-ins and grown-ups live in the top bar's "More" menu. */
+async function openMenuItem(page: import('@playwright/test').Page, testId: string) {
+  await page.getByTestId('button-app-menu').click();
+  await page.getByTestId(testId).click();
+}
+
 async function openAsGuest(page: import('@playwright/test').Page) {
   await page.route('**/api/**', (route) => route.fulfill({
     status: 401,
@@ -450,7 +456,7 @@ test('a completed learner can open a redo section without changing the lesson ro
 
 test('daily practice opens as a separate short session', async ({ page }) => {
   await openAsGuest(page);
-  await page.getByTestId('button-start-daily-practice').click();
+  await openMenuItem(page, 'button-start-daily-practice');
   await expect(page.locator('.fq-taskbar-title')).toContainText('Daily practice');
   await expect(page.locator('#daily-question-title')).toBeVisible();
   await expect(page.getByTestId('button-daily-hint')).toBeVisible();
@@ -531,7 +537,7 @@ test('daily bar builder explains the denominator as total equal parts in one who
     }));
   });
   await openAsGuest(page);
-  await page.getByTestId('button-start-daily-practice').click();
+  await openMenuItem(page, 'button-start-daily-practice');
 
   await expect(page.getByTestId('text-daily-parts-instruction')).toHaveText(
     'The denominator (bottom number) tells how many equal parts make one whole: choose that below. The numerator (top number) tells how many of those parts to shade.',
@@ -571,7 +577,7 @@ test('daily number-line model lets a learner choose the 1/3 landing point after 
     }));
   });
   await openAsGuest(page);
-  await page.getByTestId('button-start-daily-practice').click();
+  await openMenuItem(page, 'button-start-daily-practice');
   await page.getByTestId('button-daily-parts-3').click();
 
   const twoThirds = page.getByTestId('button-daily-jump-2');
@@ -591,7 +597,7 @@ test('an adult progress report can invoke browser printing', async ({ page }) =>
     window.print = () => { (window as Window & { __printCalls?: number }).__printCalls! += 1; };
   });
   await openAsGuest(page);
-  await page.getByTestId('button-open-parent').click();
+  await openMenuItem(page, 'button-open-parent');
   const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge?.match(/(\d+)\s×\s(\d+)/);
   expect(factors).not.toBeNull();
@@ -600,4 +606,33 @@ test('an adult progress report can invoke browser printing', async ({ page }) =>
   await expect(page.getByTestId('parent-report')).toBeVisible();
   await page.getByTestId('button-parent-print').click();
   await expect.poll(() => page.evaluate(() => (window as Window & { __printCalls?: number }).__printCalls)).toBe(1);
+});
+
+test('the map shows only lessons; extras live in the More menu; start becomes jump after the first lesson', async ({ page }) => {
+  await openAsGuest(page);
+  await expect(page.getByTestId('button-continue-course')).toContainText('Start your first lesson');
+  await expect(page.getByTestId('button-jump-current')).toHaveCount(0);
+  for (const id of ['button-start-daily-practice', 'button-open-concept-games', 'button-open-assessments', 'button-find-level', 'button-open-parent']) {
+    await expect(page.getByTestId(id)).toHaveCount(0); // not on the map itself
+  }
+  await page.getByTestId('button-app-menu').click();
+  await expect(page.getByTestId('app-menu')).toBeVisible();
+  for (const id of ['button-start-daily-practice', 'button-open-concept-games', 'button-open-assessments', 'button-find-level', 'button-open-parent']) {
+    await expect(page.getByTestId(id)).toBeVisible();
+  }
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('app-menu')).toHaveCount(0);
+
+  // After the first lesson is finished, the map offers "Jump to current section" instead.
+  const first = MISSIONS[0];
+  await page.evaluate((record) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: [], starsByMission: {}, reviewQueue: [], learning: { [record.id]: record.value }, assessments: [] }));
+  }, { id: first.id, value: masteredRecord(first.id) });
+  await page.reload();
+  await expect(page.getByTestId('button-continue-course')).toHaveCount(0);
+  const jump = page.getByTestId('button-jump-current');
+  await expect(jump).toContainText('Jump to current section');
+  await jump.click();
+  await expect(page.getByTestId(`button-node-${MISSIONS[1].id}`)).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByTestId(`button-start-mission-${MISSIONS[1].id}`)).toBeInViewport();
 });
