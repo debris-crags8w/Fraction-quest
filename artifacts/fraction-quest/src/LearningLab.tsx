@@ -2,9 +2,9 @@ import { type CSSProperties, type RefObject, useEffect, useRef, useState } from 
 import { LearningText } from './LearningText';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
 import { getMission, numberLineWholeCount, type Progress } from './game';
-import { answerMatches, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
+import { answerMatches, getBuildCheckStage, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
 import {
-  checkRedoRow, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, learningSummary, redoChecks, redoDone, redoWorksheet,
+  checkRedoRow, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, learningSummary, redoChecks, redoDone, redoWorksheet, requiredBuildChecks,
   redoWorksheetCount, startRedo, targetedPracticeCount, targetedPracticePlans, updateLearning, worksheetCount, type LearningRecord, type RedoAttempt, type RedoPart,
 } from './learning';
 import { denomColor } from './fun-ui';
@@ -37,6 +37,7 @@ const M = {
 };
 const MODEL_LABEL: Record<Kind, string> = { bar: 'Bar', line: 'Number line', set: 'Groups' };
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const buildStepName = (check: BuildCheck, index: number) => check.stepLabel?.replace(/^Step \d+ · /, '') ?? (index === 0 ? 'Build it' : 'On your own');
 
 function validate(kind: Kind, t: LearningModel, s: St): { msgs: string[]; keys: string[] } {
   const msgs: string[] = []; const keys: string[] = [];
@@ -323,7 +324,7 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
 
   return (
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
-      <p className="fq-ll-kicker">{check.transfer ? (review ? 'Review' : 'Step 2 · On your own') : 'Step 1 · Build it'}</p>
+      <p className="fq-ll-kicker">{review ? 'Review' : check.stepLabel ?? (check.transfer ? 'Step 2 · On your own' : 'Step 1 · Build it')}</p>
        <h3 ref={headingRef} tabIndex={-1}><LearningText text={check.prompt} speak /></h3>
        <Builder kind={k} total={t.total} st={a} set={updatePrimary} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
        {!primaryReady && a.d > 0 && primaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-primary-${check.id}`}>{primaryValidation.msgs[0]}</p>}
@@ -356,7 +357,7 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
           </div>
         </div>
       )}
-       {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>Both models show the same amount.</strong><details className="fq-ll-full-explanation"><summary>Read the full explanation</summary><LearningText text={check.explanation} speak /></details></div></div>}
+        {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>Both models use equal parts and show the same number of parts—shaded, marked, or selected.</strong><details className="fq-ll-full-explanation"><summary>Read the full explanation</summary><LearningText text={check.explanation} speak /></details></div></div>}
       {done && <ModelPair n={t.n} d={t.d} />}
       <div className="fq-ll-actions">
         <button type="button" className="fq-hint-button" onClick={hint} disabled={done} data-testid={`button-hint-${check.id}`}><Lightbulb size={17} /> {hints ? 'Another hint' : 'Hint'}</button>
@@ -452,12 +453,20 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   onRedo?: (part: RedoPart) => void; review?: boolean; onWrong?: () => void; onSuccess?: () => void;
 }) {
   const ref = useRef(progress); ref.current = progress;
-  const checks = getBuildChecks(missionId);
+  const checks = requiredBuildChecks(progress, missionId);
   const sheet = getWorksheet(missionId);
   const [notice, setNotice] = useState('');
   const [reviewPassed, setReviewPassed] = useState(false);
   const [reviewSupported, setReviewSupported] = useState(() => (getLearningRecord(progress, missionId).reviewSupportedUntil ?? 0) > Date.now());
+  const [buildPracticeBatch, setBuildPracticeBatch] = useState(0);
+  const [buildPracticeIndex, setBuildPracticeIndex] = useState(0);
+  const [buildPracticePassed, setBuildPracticePassed] = useState(0);
+  const [buildPracticeSetsDone, setBuildPracticeSetsDone] = useState(0);
+  const [buildPracticeActive, setBuildPracticeActive] = useState(false);
   const rec = getLearningRecord(progress, missionId);
+  const buildPracticeChecks = getBuildPracticeChecks(missionId, buildPracticeBatch);
+  const buildPracticeHeading = useRef<HTMLHeadingElement | null>(null);
+  const buildPracticeSectionHeading = useRef<HTMLHeadingElement | null>(null);
   // A check that just passed stays on screen (explanation + Next) until the child moves on.
   const [held, setHeld] = useState<string | null>(null);
   const firstOpen = checks.findIndex(c => !rec.checks[c.id]?.passed);
@@ -478,12 +487,23 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
     if (!scrollToNext.current) return;
     scrollToNext.current = false;
     requestAnimationFrame(() => {
-      const target = activeCheckHeading.current?.closest('.fq-ll-check') ?? document.querySelector('[data-testid="section-worksheet"]');
+      const target = activeCheckHeading.current?.closest('.fq-ll-check')
+        ?? document.querySelector('[data-testid="section-build-practice"]')
+        ?? document.querySelector('[data-testid="section-worksheet"]');
       if (!target) return;
-      activeCheckHeading.current?.focus({ preventScroll: true });
+      (activeCheckHeading.current ?? buildPracticeSectionHeading.current)?.focus({ preventScroll: true });
       target.scrollIntoView({ block: 'start', behavior: 'auto' });
     });
   }, [activeCheckId, held]);
+  useEffect(() => {
+    if (!buildPracticeActive) return;
+    requestAnimationFrame(() => {
+      const target = buildPracticeHeading.current?.closest('.fq-ll-check');
+      if (!target) return;
+      buildPracticeHeading.current?.focus({ preventScroll: true });
+      target.scrollIntoView({ block: 'start', behavior: 'auto' });
+    });
+  }, [buildPracticeActive, buildPracticeIndex, buildPracticeBatch]);
 
   if (review) {
     const check = getReviewCheck(missionId, progress.reviewQueue.find(item => item.missionId === missionId)?.reviewCount ?? 0);
@@ -518,8 +538,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const gate = hasLearningGate(progress, missionId);
   const reqs = [
     { label: 'Practice', done: !!rec.practiceDone },
-    { label: 'Build it', done: !!rec.checks.build?.passed },
-    { label: 'On your own', done: !!rec.checks.transfer?.passed },
+    ...checks.map((check, index) => ({ label: buildStepName(check, index), done: !!rec.checks[check.id]?.passed })),
     { label: `Worksheet ${count}/12`, done: count === 12 },
     ...(reteachProgress.total ? [{ label: `Extra practice ${reteachProgress.done}/${reteachProgress.total}`, done: reteachProgress.done === reteachProgress.total }] : []),
   ];
@@ -539,10 +558,10 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         {checks.map((c, i) => {
           const e = rec.checks[c.id];
           return <li key={c.id} className={e?.passed ? 'done' : i === idx ? 'now' : ''} data-testid={`step-${c.id}`}>
-            {e?.passed ? <Check size={15} /> : i + 1}<span>{i === 0 ? 'Build it' : 'On your own'}{e?.passed ? (e.supported ? ' · with help' : ' · solo') : ''}</span></li>;
+            {e?.passed ? <Check size={15} /> : i + 1}<span>{buildStepName(c, i)}{e?.passed ? (e.supported ? ' · with help' : ' · solo') : ''}</span></li>;
         })}
-        <li className={idx === -1 ? (count === 12 ? 'done' : 'now') : ''}>3<span>Worksheet {count}/12</span></li>
-        {reteachProgress.total > 0 && <li className={reteachProgress.done === reteachProgress.total ? 'done' : ''}>4<span>Extra practice {reteachProgress.done}/{reteachProgress.total}</span></li>}
+        <li className={idx === -1 ? (count === 12 ? 'done' : 'now') : ''}>{checks.length + 1}<span>Worksheet {count}/12</span></li>
+        {reteachProgress.total > 0 && <li className={reteachProgress.done === reteachProgress.total ? 'done' : ''}>{checks.length + 2}<span>Extra practice {reteachProgress.done}/{reteachProgress.total}</span></li>}
       </ol>
 
       {gate && onRedo && (
@@ -577,8 +596,58 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
             save({ ...r, checks: { ...r.checks, [id]: { passed: true, supported: !!old?.supported || o.supported, attempts: (old?.attempts ?? 0) + 1 } } });
             setHeld(id);
           }}
-          nextLabel={checks.slice(idx + 1).some(c => !rec.checks[c.id]?.passed) ? 'Next: on your own' : 'Next: worksheet'}
+          nextLabel={(() => {
+            const nextCheck = checks.slice(idx + 1).find(c => !rec.checks[c.id]?.passed);
+            return nextCheck ? `Next: ${buildStepName(nextCheck, checks.indexOf(nextCheck))}` : 'Next: extra practice';
+          })()}
           onNext={() => { setHeld(null); setNotice(''); scrollToNext.current = true; }} />
+      )}
+
+      {idx === -1 && (
+        <section className="fq-ll-build-practice" aria-labelledby="build-practice-title" data-testid="section-build-practice">
+          <h3 id="build-practice-title" ref={buildPracticeSectionHeading} tabIndex={-1}>More Build practice</h3>
+          {!buildPracticeActive ? (
+            <>
+              <p>Try 10 new, optional questions with this lesson’s ideas. Extra practice does not change lesson completion.</p>
+              <button type="button" className="fq-button secondary" onClick={() => {
+                setBuildPracticeIndex(0);
+                setBuildPracticePassed(0);
+                setBuildPracticeActive(true);
+              }} data-testid="button-start-build-practice">
+                {buildPracticeSetsDone ? 'Generate 10 more questions' : 'Try 10 extra builds'}
+              </button>
+              {!!buildPracticeSetsDone && <p className="fq-ll-note" data-testid="text-build-practice-sets">{buildPracticeSetsDone} optional {buildPracticeSetsDone === 1 ? 'set' : 'sets'} finished.</p>}
+            </>
+          ) : (
+            <>
+              <div className="fq-ll-practice-meter" role="progressbar" aria-valuemin={0} aria-valuemax={10} aria-valuenow={buildPracticePassed} aria-label="Optional Build questions completed" data-testid="progress-build-practice">
+                <b style={{ width: `${buildPracticePassed * 10}%` }} />
+                <span>{buildPracticePassed} of 10 extra builds done</span>
+              </div>
+              <CheckRunner key={`${buildPracticeBatch}-${buildPracticeIndex}`} check={buildPracticeChecks[buildPracticeIndex]} review={false}
+                headingRef={buildPracticeHeading}
+                onWrong={onWrong}
+                onSuccess={onSuccess}
+                onHelp={() => {}}
+                onPass={() => setBuildPracticePassed(buildPracticeIndex + 1)}
+                nextLabel={buildPracticeIndex === buildPracticeChecks.length - 1 ? 'Finish these 10 builds' : 'Next extra build'}
+                onNext={() => {
+                  if (buildPracticeIndex < buildPracticeChecks.length - 1) setBuildPracticeIndex(index => index + 1);
+                  else {
+                    setBuildPracticeActive(false);
+                    setBuildPracticePassed(0);
+                    setBuildPracticeIndex(0);
+                    setBuildPracticeBatch(batch => batch + 1);
+                    setBuildPracticeSetsDone(done => done + 1);
+                  }
+                }} />
+              <button type="button" className="fq-button ghost" onClick={() => {
+                setBuildPracticeActive(false);
+                requestAnimationFrame(() => document.querySelector('[data-testid="section-worksheet"]')?.scrollIntoView({ block: 'start', behavior: 'auto' }));
+              }} data-testid="button-skip-build-practice">Skip extra practice and go to worksheet</button>
+            </>
+          )}
+        </section>
       )}
 
       {idx === -1 && (

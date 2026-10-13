@@ -25,6 +25,8 @@ export type WorksheetProblem = {
 export type BuildCheck = {
   id: string; prompt: string; target: LearningModel; reasons: string[];
   correctReason: number; explanation: string; transfer: boolean;
+  /** Short stage name shown above the question and in the lesson progress list. */
+  stepLabel?: string;
 };
 export type ReasonFeedback = { message: string; correct: boolean };
 
@@ -175,7 +177,7 @@ export function choiceDistractors(answer: string): [string, string] {
 
 // Each skill has its own reasoning and model target; transfer uses new numbers.
 const CHECKS: Record<string, [number, number, LearningModel['kind'], string, string, number?]> = {
-  'equal-parts': [1, 3, 'bar', 'Cut a bar into 3 equal pieces. Shade 1.', 'All 3 pieces are the same size.'],
+  'equal-parts': [1, 3, 'bar', 'Cut a bar into 3 equal pieces. Shade 1.', 'Each whole has 3 equal parts. Shade 1 part in the bar and mark 1 of 3 equal jumps on the number line.'],
   'fraction-names': [3, 5, 'bar', 'Make 3/5.', 'The denominator is 5. That means 5 equal pieces in all. The numerator is 3. That means 3 pieces are shaded.'],
   'unit-fractions': [1, 6, 'bar', 'Make 1/6. Just one piece!', 'A unit fraction is just 1 equal piece.'],
   'unit-size': [1, 4, 'bar', 'Which is bigger, 1/4 or 1/8? Make the bigger one.', 'Fewer pieces means bigger pieces.'],
@@ -351,7 +353,7 @@ const EXTENSION_WORKSHEETS: Record<string, { mode: ExtensionWorksheetMode; conte
 /** The right answer to "Both models match. Which idea explains why?": the lesson's key idea in a few words, as short as
     the wrong choices so length gives nothing away. The full explanation shows after the build passes. */
 export const REASON_IDEAS: Record<string, string> = {
-  'equal-parts': 'All pieces are the same size',
+  'equal-parts': 'Equal parts and same number shaded',
   'fraction-names': 'Bottom: equal parts. Top: parts counted',
   'unit-fractions': 'A unit fraction is 1 piece',
   'unit-size': 'Fewer pieces means bigger pieces',
@@ -436,12 +438,108 @@ export function getBuildChecks(id: string): BuildCheck[] {
   const seed = CHECKS[id]; if (!seed) throw new Error(`Missing learning checks: ${id}`);
   const [n, d, kind, prompt, explanation, total] = seed;
   const transfer = transferTarget(id, n, d, kind);
+  const primary: BuildCheck = { id: 'build', prompt, target: model(n, d, kind, total), explanation, transfer: false, stepLabel: 'Step 1 · Build it',
+    ...arrangeReasons(`${id}:build`, idea(id, explanation), ['Bigger numbers mean a bigger fraction', 'Only shaded pieces must be equal']) };
+  const independent: BuildCheck = { id: 'transfer', prompt: transfer.prompt, target: transfer.target, explanation: transfer.reason, transfer: true, stepLabel: 'Step 2 · On your own',
+    ...arrangeReasons(`${id}:transfer`, idea(id, transfer.reason), ['Change only the bottom number', 'Count the tick marks, not spaces']) };
+  const used = new Set([primary, independent].map(check => JSON.stringify(check.target)));
+  let apply: BuildCheck | null = null;
+  for (let serial = 0; serial < 12 * 12 && !apply; serial++) {
+    const candidate = worksheetBuildCheck(id, serial, 'apply');
+    if (candidate && !used.has(JSON.stringify(candidate.target))) apply = candidate;
+  }
+  for (let serial = 0; serial < 12 * 12 && !apply; serial++) {
+    const candidate = seededBuildCheck(id, serial, 'apply');
+    if (!used.has(JSON.stringify(candidate.target))) apply = candidate;
+  }
+  if (!apply) throw new Error(`No fresh required Build check for ${id}`);
   return [
-    { id: 'build', prompt, target: model(n, d, kind, total), explanation, transfer: false,
-      ...arrangeReasons(`${id}:build`, idea(id, explanation), ['Bigger numbers mean a bigger fraction', 'Only shaded pieces must be equal']) },
-    { id: 'transfer', prompt: transfer.prompt, target: transfer.target, explanation: transfer.reason, transfer: true,
-      ...arrangeReasons(`${id}:transfer`, idea(id, transfer.reason), ['Change only the bottom number', 'Count the tick marks, not spaces']) },
+    primary,
+    independent,
+    { ...apply, id: 'apply', transfer: true, stepLabel: 'Step 3 · Apply it' },
   ];
+}
+
+const BUILD_PRACTICE_CACHE = new Map<string, BuildCheck[]>();
+const targetKey = (check: BuildCheck) => JSON.stringify(check.target);
+
+/** A new Build question made from a varied, lesson-aligned worksheet row. */
+function worksheetBuildCheck(id: string, serial: number, checkId: string): BuildCheck | null {
+  const sheet = getWorksheet(id, 1 + Math.floor(serial / 12));
+  const problem = sheet[serial % 12];
+  if (!problem || problem.form) return null;
+  const value = parseAnswer(problem.answer);
+  if (!value || value.d <= 1 || value.n <= 0 || value.n > value.d * 3) return null;
+
+  const visualNeeds = !!(problem.model || problem.area || problem.rulerTask || problem.linePlotTask || problem.scaleTask);
+  const shown = execAll(problem.prompt, /(\d+)\/(\d+)/g).map(match => Number(match[1]) / Number(match[2]));
+  const canUsePrompt = !visualNeeds && (problem.prompt.startsWith('Which is') || !shown.includes(value.n / value.d));
+  const ask = canUsePrompt ? problem.prompt.replace(/\s*(Type it|Type a number|Use commas)\.$/, '') : `Make ${problem.answer}.`;
+  const prompt = /^Make .+\.$/.test(ask) ? ask.replace(/\.$/, ' two ways.') : `${ask} Build the answer two ways.`;
+  const kind: LearningModel['kind'] = id.startsWith('number-line') ? 'line'
+    : id.startsWith('sets-') && value.d <= 12 && value.n <= value.d ? 'set' : 'bar';
+  const total = kind === 'set' ? value.d * 4 : undefined;
+  const explanation = problem.hint;
+  return {
+    id: checkId, prompt, target: model(value.n, value.d, kind, total), explanation, transfer: true,
+    ...arrangeReasons(`${id}:${checkId}:${serial}`, idea(id, problem.hint), ['Change only the bottom number', 'Count the tick marks, not spaces']),
+  };
+}
+
+const PRACTICE_DENOMINATORS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 16, 20];
+function seededBuildCheck(id: string, serial: number, checkId: string): BuildCheck {
+  const [baseN, baseD, baseKind] = CHECKS[id];
+  const d = PRACTICE_DENOMINATORS[serial % PRACTICE_DENOMINATORS.length];
+  const nudge = Math.floor(serial / PRACTICE_DENOMINATORS.length) % 5 - 2;
+  const n = Math.max(1, Math.min(d * 3, Math.round((baseN / baseD) * d) + nudge));
+  const kind: LearningModel['kind'] = id.startsWith('number-line') ? 'line'
+    : baseKind === 'set' && d <= 12 && n <= d ? 'set' : 'bar';
+  const target = model(n, d, kind, kind === 'set' ? d * 4 : undefined);
+  const explanation = `Split one whole into ${d} equal parts. Show ${n} of those parts.`;
+  return {
+    id: checkId, prompt: `Build ${n}/${d}. Show the same amount with a bar and a number line.`,
+    target, explanation, transfer: true,
+    ...arrangeReasons(`${id}:${checkId}:seed:${serial}`, idea(id, explanation), ['Change only the bottom number', 'Count the tick marks, not spaces']),
+  };
+}
+
+/** Ten optional, interactive Build questions, with a fresh deterministic set available on demand. */
+export function getBuildPracticeChecks(id: string, batch = 0, count = 10): BuildCheck[] {
+  if (!Number.isInteger(batch) || batch < 0 || !Number.isInteger(count) || count < 1 || count > 50) {
+    throw new Error('Build practice batch and question count must be non-negative whole numbers.');
+  }
+  const cacheKey = `${id}:${batch}:${count}`;
+  const cached = BUILD_PRACTICE_CACHE.get(cacheKey);
+  if (cached) return cached;
+
+  const required = getBuildChecks(id);
+  const excludedTargets = new Set(required.map(targetKey));
+  const all: BuildCheck[] = [];
+  const seenTargets = new Set<string>(excludedTargets);
+  // Worksheet variants provide new, curriculum-aligned numbers. Twelve variants × twelve rows
+  // is a generous unique pool; later sets can still be generated without breaking the lesson.
+  for (let serial = 0; serial < 12 * 12 && all.length < (batch + 1) * count; serial++) {
+    const check = worksheetBuildCheck(id, serial, `practice-${serial}`);
+    if (!check) continue;
+    const key = targetKey(check);
+    if (seenTargets.has(key)) continue;
+    seenTargets.add(key);
+    all.push(check);
+  }
+  for (let serial = 0; all.length < (batch + 1) * count && serial < (batch + 1) * count * 100; serial++) {
+    const check = seededBuildCheck(id, serial, `generated-${serial}`);
+    const key = targetKey(check);
+    if (seenTargets.has(key)) continue;
+    seenTargets.add(key);
+    all.push(check);
+  }
+  if (!all.length) throw new Error(`No optional Build practice questions available for ${id}`);
+  while (all.length < (batch + 1) * count) all.push(all[all.length % Math.max(1, all.length)]);
+  const selected = all.slice(batch * count, (batch + 1) * count).map((check, index) => ({
+    ...check, id: `practice-${batch + 1}-${index + 1}`, stepLabel: `Extra build ${index + 1} of ${count}`,
+  }));
+  BUILD_PRACTICE_CACHE.set(cacheKey, selected);
+  return selected;
 }
 function transferTarget(id: string, n: number, d: number, kind: LearningModel['kind']) {
   const authored = EXTENSION_TRANSFERS[id];
