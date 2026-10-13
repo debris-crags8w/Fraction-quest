@@ -319,16 +319,16 @@ export function splitStory(prompt: string): { lines: string[]; question: string 
 export function StoryPrompt({ prompt, id }: { prompt: string; id: string }) {
   const { lines, question } = splitStory(prompt);
   return (
-    <>
+    <div className="fq-story-prompt">
       {lines.length > 0 && (
         <ol className="fq-story" aria-label="The story, one line at a time">
           {lines.map((line, i) => <li key={i}><span aria-hidden="true">{i + 1}</span><span><LearningText text={line} emphasize /></span></li>)}
         </ol>
       )}
-      <div className="fq-question-heading">
+      <div className="fq-story-question-heading">
         <h1 id={id} className="fq-question-text"><LearningText text={question} emphasize /></h1>
-        <LearningListenButton text={prompt} section="question" />
+        <LearningListenButton text={prompt} label="Listen to the question" />
       </div>
-    </>
+    </div>
   );
 }
