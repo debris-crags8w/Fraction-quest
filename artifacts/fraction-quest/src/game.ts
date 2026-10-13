@@ -639,11 +639,14 @@ type ExtensionMode =
   | 'probability' | 'area' | 'line' | 'recipe' | 'percent' | 'percent-inverse'
   | 'decimal-equivalent' | 'story' | 'whole-fraction' | 'decimal-compare' | 'unit-multiples' | 'ruler'
   | 'line-plot' | 'line-plot-read' | 'line-plot-level' | 'measure-context' | 'add-unlike' | 'mixed-unlike'
-  | 'estimate' | 'fractional-area' | 'scaling' | 'mixed-multiply' | 'unit-divided-whole' | 'unit-conversion';
+  | 'estimate' | 'fractional-area' | 'scaling' | 'mixed-multiply' | 'unit-divided-whole' | 'unit-conversion'
+  | 'whole-from-part' | 'mistake' | 'remainder' | 'divide-fractions';
 type ExtensionTopic = {
   id: string; unit: number; title: string; shortTitle: string; description: string; skill: string;
   mode: ExtensionMode; n: number; d: number; context: string;
   gradeBand?: 3 | 4 | 5; standards?: string[]; enrichment?: boolean;
+  /** A worked example of its own, when the lesson's first build ("make the whole") would not show the answer. */
+  example?: Mission['example'];
 };
 
 const extensionTopics: ExtensionTopic[] = [
@@ -688,6 +691,12 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'decimal-fraction-equivalence', unit: 14, title: 'Fractions to decimals', shortTitle: 'Three forms', description: 'Write 1/4 as 0.25.', skill: 'Change to tenths or hundredths. Then write the decimal.', mode: 'decimal-equivalent', n: 7, d: 10, context: 'battery meter' },
   { id: 'compare-decimals', unit: 14, title: 'Compare decimals', shortTitle: 'Compare decimal sizes', description: 'Compare decimals using tenths and hundredths.', skill: 'Rename both decimals with the same number of decimal places, then compare.', mode: 'decimal-compare', n: 3, d: 10, context: 'hundredths grid', gradeBand: 4, standards: ['4.NF.7'] },
   { id: 'multi-step-fraction-stories', unit: 14, title: 'Two-step stories', shortTitle: 'Fraction stories', description: 'Solve a story in 2 steps.', skill: 'Do one step at a time.', mode: 'story', n: 2, d: 5, context: 'community garden' },
+  // Unit 15 · Problem solving: the reasoning that Singapore, Beast Academy and Eureka lean on and quizzes skip.
+  { id: 'find-the-whole', unit: 15, title: 'Find the whole', shortTitle: 'Find the whole', description: '3 is 1/4 of it. What is the whole?', skill: 'Find 1 part. Then make all the parts.', mode: 'whole-from-part', n: 1, d: 4, context: 'sticker packs', gradeBand: 4, standards: ['3.NF.1', '4.NF.4c'],
+    example: { prompt: '3 stickers are 1/4 of a pack. How many stickers are in the pack?', answer: '12 stickers', explanation: '1/4 is 1 of 4 equal parts. Each part is 3. 4 parts of 3 is 12.', model: setModel(3, 12) } },
+  { id: 'spot-the-mistake', unit: 15, title: 'Spot the mistake', shortTitle: 'Spot the mistake', description: 'Is Sam right? Fix it.', skill: 'Check the rule. Then fix the answer.', mode: 'mistake', n: 3, d: 4, context: 'homework check', gradeBand: 4, standards: ['4.NF.3a', '4.NF.2'] },
+  { id: 'fraction-of-remainder', unit: 15, title: 'Fraction of the rest', shortTitle: 'Fraction of the rest', description: 'Spend 1/3. Then spend 1/2 of the rest.', skill: 'Find what is left first. Then take a part of it.', mode: 'remainder', n: 1, d: 3, context: 'pocket money', gradeBand: 5, standards: ['5.NF.6', '5.NF.2'] },
+  { id: 'divide-fractions', unit: 15, title: 'Bonus: Divide by a fraction', shortTitle: 'Bonus fraction ÷ fraction', description: 'How many 1/8s fit in 3/4?', skill: 'Use the same pieces. Count how many fit.', mode: 'divide-fractions', n: 3, d: 4, context: 'measuring scoops', enrichment: true },
 ];
 
 const picture = (top: number, bottom: number): ModelSpec => ({ kind: 'bars', bars: [{ numerator: top, denominator: bottom }], hideLabels: true });
@@ -733,7 +742,7 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
   return {
     id: topic.id, unit: topic.unit, title: topic.title, shortTitle: topic.shortTitle, description: topic.description, skill: topic.skill,
     gradeBand: topic.gradeBand, standards: topic.standards, enrichment: topic.enrichment,
-    example: {
+    example: topic.example ?? {
       prompt: build.prompt,
       answer: t.kind === 'set' && t.total ? `${(t.total / t.d) * t.n} of ${t.total}` : `${t.n}/${t.d}`,
       explanation: build.explanation,

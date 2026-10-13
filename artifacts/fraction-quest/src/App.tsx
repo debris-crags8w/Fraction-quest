@@ -116,6 +116,7 @@ const UNIT_INFO: UnitInfo[] = [
   { title: 'Fractions in measurement', subtitle: 'Grades 3–5 · Rulers, line plots, conversions, and stories' },
   { title: 'Fraction models in context', subtitle: 'Grade 3 and 5 · Equal-area shapes and fractional-side area; chance is bonus' },
   { title: 'Fractions and decimals', subtitle: 'Grades 4–5 · Decimal comparison; percent is bonus' },
+  { title: 'Problem solving', subtitle: 'Grades 4–5 · Find the whole, spot the mistake, fraction of the rest; dividing fractions is bonus' },
 ];
 
 // Lessons where kids make fractions by folding a paper strip (1 → 1/2 → 1/4 → 1/8).

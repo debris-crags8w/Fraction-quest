@@ -40,6 +40,11 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Competitor curriculum review (docs/curriculum-gap-analysis.md, "Competitor review"). Added unit 15 "Problem solving"
+  (72 lessons): find-the-whole, spot-the-mistake (yes/no rows at i%3==0 so practice rows 1/4/7/10 are never yes/no),
+  fraction-of-remainder, bonus divide-fractions. New worksheet modes in getExtensionWorksheet; practice recipes in
+  practice-bank (verifyLater in game.test.ts re-solves them); unit 15 challenge, teaching guide and pacing (totals kept
+  35/45/45). `ExtensionTopic.example` overrides the worked example when the first build would not show the answer.
 - Equal parts look equal (user rule): every on-screen bar (question pictures `.fq-bar`, builder `.fq-ll-bar`, tap example
   `.fq-tap-bar`, daily `.fq-daily-model`, strips `.fq-partition-whole`) is one rectangle with a dark 3px outline (3px outer
   radius only, so no part is clipped), identical square parts, 2px straight divider lines, no per-part rounding, gaps,
