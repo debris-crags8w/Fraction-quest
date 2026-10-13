@@ -2,7 +2,7 @@ import React, { useEffect, useId, useRef, useState, type ReactNode } from 'react
 import { Volume2, VolumeX } from 'lucide-react';
 import { useOptionalFun } from './fun-ui';
 import { setLearningVoicePreference } from './lib/fun';
-import { KokoroDiagnostic, showVoiceSelfTest } from './KokoroDiagnostic';
+import { KokoroDiagnostic } from './KokoroDiagnostic';
 import { MathText } from './MathText';
 import { execAll } from './lib/regexp';
 import { selectLearningVoice as selectGentleVoice, sentences, spokenText, VOICE_PITCH, VOICE_RATE } from './lib/voice';
@@ -359,7 +359,7 @@ function NaturalVoiceSettings() {
         </div>
       )}
       <p className="fq-parent-note" role="status" data-testid="status-natural-voice">{statusText}</p>
-      {showVoiceSelfTest() && <KokoroDiagnostic />}
+      {Boolean(import.meta.env?.DEV) && <KokoroDiagnostic />}
       {(
         <div className="fq-natural-voice-actions">
           {(status.state === 'idle' || status.state === 'error') && <button type="button" className="fq-button ghost" onClick={() => { void warmUpNaturalVoice(); }} data-testid="button-download-natural-voice">Connect now</button>}

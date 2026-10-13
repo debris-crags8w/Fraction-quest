@@ -2623,13 +2623,10 @@ describe('lesson steps for the map pies', () => {
 });
 
 describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
-  it('shows the self-test only in development or with ?voicetest', async () => {
-    const { showVoiceSelfTest } = await import('./KokoroDiagnostic');
-    assert.equal(showVoiceSelfTest(true, ''), true);
-    assert.equal(showVoiceSelfTest(false, ''), false);
-    assert.equal(showVoiceSelfTest(false, '?voicetest'), true);
-    assert.equal(showVoiceSelfTest(false, '?a=1&voicetest=1'), true);
-    assert.equal(showVoiceSelfTest(false, '?voicetester'), false);
+  it('gates the Kokoro self-test behind Vite development mode', () => {
+    const learningText = readFileSync(new URL('./LearningText.tsx', import.meta.url), 'utf8');
+    assert.match(learningText, /Boolean\(import\.meta\.env\?\.DEV\)\s*&&\s*<KokoroDiagnostic\s*\/>/);
+    assert.doesNotMatch(learningText, /showVoiceSelfTest|voicetest/);
   });
 
   it('no longer ships the voice model to the browser', () => {

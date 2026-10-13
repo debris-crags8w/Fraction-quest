@@ -14,12 +14,6 @@ type TestState = {
   message?: string;
 };
 
-/** The self-test is a developer tool: it shows in development builds (the Replit dev URL), or anywhere with
-    `?voicetest` in the address for troubleshooting. Families never see it. */
-export function showVoiceSelfTest(dev = Boolean(import.meta.env?.DEV), search = globalThis.location?.search ?? ''): boolean {
-  return dev || /[?&]voicetest(?:=|&|$)/.test(search);
-}
-
 const TEST_PHRASE = 'Hello! This is a short Kokoro voice test.';
 /* If Safari runs out of memory it reloads the page and every error handler is lost. Each step is saved here
    first, so after a reload the test can say where it stopped. */
