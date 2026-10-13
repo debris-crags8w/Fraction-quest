@@ -116,8 +116,8 @@ export default function DailyPractice({
   );
   const bar = question.modelKind === 'bar';
   const buildDirectionsSpeech = bar
-    ? 'The denominator, the bottom number, tells how many equal parts make one whole. Choose that below. The numerator, the top number, tells how many parts to shade.'
-    : 'The denominator, the bottom number, tells how many equal spaces go from 0 to 1. Choose that below. The numerator, the top number, tells how many jumps to make from 0.';
+    ? 'The denominator is the bottom number. It tells how many equal parts make one whole. Choose that number below. The numerator is the top number. It tells how many parts to shade.'
+    : 'The denominator is the bottom number. It tells how many equal spaces go from 0 to 1. Choose that number below. The numerator is the top number. It tells how many jumps to make from 0.';
   const questionTitle = topicQuestion
     ? <LearningText text={topicQuestion.prompt} emphasize />
     : <>Build <MathText text={`${question.numerator}/${question.denominator}`} /> {bar ? 'with a bar.' : 'on a number line.'}</>;

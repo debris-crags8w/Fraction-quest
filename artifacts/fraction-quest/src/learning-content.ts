@@ -176,7 +176,7 @@ export function choiceDistractors(answer: string): [string, string] {
 // Each skill has its own reasoning and model target; transfer uses new numbers.
 const CHECKS: Record<string, [number, number, LearningModel['kind'], string, string, number?]> = {
   'equal-parts': [1, 3, 'bar', 'Cut a bar into 3 equal pieces. Shade 1.', 'All 3 pieces are the same size.'],
-  'fraction-names': [3, 5, 'bar', 'Make 3/5.', 'Denominator: 5 equal pieces. Numerator: 3 are shaded.'],
+  'fraction-names': [3, 5, 'bar', 'Make 3/5.', 'The denominator is 5. That means 5 equal pieces in all. The numerator is 3. That means 3 pieces are shaded.'],
   'unit-fractions': [1, 6, 'bar', 'Make 1/6. Just one piece!', 'A unit fraction is just 1 equal piece.'],
   'unit-size': [1, 4, 'bar', 'Which is bigger, 1/4 or 1/8? Make the bigger one.', 'Fewer pieces means bigger pieces.'],
   'sets-unit-fractions': [1, 3, 'set', 'Put 12 dots in 3 equal groups. Pick 1 group.', 'Make 3 equal groups. 1 group is 1/3.', 12],
@@ -185,7 +185,7 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'benchmarks-zero-one': [7, 8, 'bar', 'Make a fraction 1/8 less than 1 whole.', '8/8 is 1 whole. One less is 7/8.'],
   'fraction-magnitude': [5, 12, 'bar', 'Make a fraction 1/12 less than half.', 'Half of 12 is 6. One less is 5/12.'],
   'number-line-basics': [2, 5, 'line', 'Cut 0 to 1 into 5 equal spaces. Make 2 jumps.', 'Count the spaces, not the tick marks.'],
-  'number-line-points': [4, 7, 'line', 'Mark 4/7 on the number line.', 'Denominator: 7 spaces in 1 whole. Numerator: 4 jumps.'],
+  'number-line-points': [4, 7, 'line', 'Mark 4/7 on the number line.', 'The denominator is 7 equal spaces in one whole. The numerator is 4 jumps from zero.'],
   'number-line-beyond-one': [7, 5, 'line', 'Mark 1 and 2/5 on the number line.', '5/5 is 1 whole. 2 more fifths makes 7/5.'],
   'compare-same-denominator': [5, 8, 'bar', 'Which is bigger, 3/8 or 5/8? Make it.', 'Same size pieces. 5 is more than 3.'],
   'compare-same-numerator': [3, 5, 'bar', 'Which is bigger, 3/5 or 3/8? Make it.', 'Fifths are bigger pieces than eighths.'],
@@ -275,7 +275,7 @@ const EXTENSION_TRANSFERS: Record<string, { n: number; d: number; prompt: string
   'subtract-mixed-numbers': { n: 3, d: 4, prompt: 'A roll is 2 1/4 m. Cut off 1 1/2 m. Make what is left.', reason: '2 1/4 = 9/4 and 1 1/2 = 6/4. 9 − 6 = 3, so 3/4.' },
   'fraction-of-quantity': { n: 2, d: 3, total: 18, kind: 'set', prompt: 'Put 18 markers in 3 equal groups. Pick 2 groups.', reason: '18 in 3 groups is 6 each. 2 groups is 12.' },
   'multiply-whole-by-fraction': { n: 4, d: 3, prompt: '4 cups each hold 1/3 cup of juice. Make the total.', reason: '4 groups of 1/3 is 4/3, or 1 1/3.' },
-  'multiply-fractions': { n: 6, d: 20, prompt: 'Make 2/5 of 3/4.', reason: 'Numerator: 2 × 3 = 6. Denominator: 5 × 4 = 20. So 6/20.' },
+  'multiply-fractions': { n: 6, d: 20, prompt: 'Make 2/5 of 3/4.', reason: 'The numerator is 2 times 3, which is 6. The denominator is 5 times 4, which is 20. So the answer is 6/20.' },
   'fraction-of-collection': { n: 2, d: 5, total: 20, kind: 'set', prompt: 'Put 20 cards in 5 equal groups. Pick 2 groups.', reason: '20 in 5 groups is 4 each. 2 groups is 8.' },
   'divide-whole-by-unit-fraction': { n: 10, d: 5, prompt: 'How many 1/5 cups fill 2 cups? Make it in fifths.', reason: 'Each cup is 5 fifths. 2 cups is 10 fifths.' },
   'fraction-of-length': { n: 5, d: 8, kind: 'line', prompt: 'Mark 5/8 of a kilometer on the line.', reason: 'Each space is 1/8. Count 5 spaces.' },
@@ -514,7 +514,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
     const d = isIntroTopic ? [3, 4, 5, 6, 2, 3, 4, 5, 6, 2, 3, 4][(i + (variant ? (variant - 1) % 4 + 1 : 0)) % 12] : [3, 4, 5, 6, 8, 10, 7, 9, 12, 4, 6, 8][t];
     const n = 1 + (i + variant) % (d - 1);
     const value = f(n, d);
-    let prompt = ''; let answer = value; let hint = 'Numerator: parts you count. Denominator: equal parts in 1 whole.';
+    let prompt = ''; let answer = value; let hint = 'The numerator is the number of parts you count. The denominator is the number of equal parts in one whole.';
     let visual: LearningModel | undefined; let form: WorksheetProblem['form']; let denominator: number | undefined;
     let modelRequired = false; let task: BarTask | undefined; let area: AreaFigure | undefined; let areaTask: AreaTask | undefined;
     const context = ['ribbon', 'paper strip', 'rope', 'piece of tape'][i % 4];
@@ -604,7 +604,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         if (i === 11 && circleCut(d) && n < d) {
           prompt = 'What fraction of this circle is shaded?'; visual = undefined; modelRequired = false;
           area = { cut: circleCut(d)!, shaded: Array.from({ length: n }, (_, k) => k) };
-          hint = 'Denominator: all the same-size slices. Numerator: the shaded slices.';
+          hint = 'The denominator is the total number of equal-size slices. The numerator is the number of shaded slices.';
         }
         break;
       case 'unit-size':
@@ -668,7 +668,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           i % 3 === 1 ? `A frog makes ${top} ${top === 1 ? 'jump' : 'jumps'}. Each jump is 1/${d} meter. How far did it go?` : `Each whole has ${d} equal spaces. What fraction is at the dot?`;
         answer = basicsCount ? String(d) : f(top, d);
         if (!basicsCount && i % 3 !== 1) visual = model(top, d, 'line');
-        hint = 'Denominator: spaces in 1 whole. Numerator: jumps from 0.'; break;
+        hint = 'The denominator is the number of equal spaces in one whole. The numerator is the number of jumps from zero.'; break;
       }
       case 'compare-same-denominator':
         {
@@ -903,7 +903,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const [green, total] = ([[1, 4], [2, 6], [3, 8], [3, 10], [2, 5], [5, 12], [1, 6], [5, 8], [7, 10], [3, 4], [7, 12], [4, 5]] as const)[tr];
         prompt = `A bag has ${total} marbles. ${green} ${green === 1 ? 'is' : 'are'} green. What is the chance of picking green?`;
         answer = f(green, total); visual = model(green, total, 'set', total);
-        hint = 'Numerator: green marbles. Denominator: all the marbles.'; break;
+        hint = 'The numerator is the number of green marbles. The denominator is the total number of marbles.'; break;
       }
       case 'area': {
         const cuts = [

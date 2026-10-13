@@ -70,7 +70,7 @@ export function AnswerTiles({ shape, value, onChange, disabled = false, testIdPr
 }
 
 const SLOT_LABEL: Record<string, string> = {
-  n: 'answer', num: 'numerator: parts selected', den: 'denominator: equal parts in 1 whole', whole: 'wholes', dec: 'digits after the decimal point',
+  n: 'answer', num: 'numerator is the number of parts selected', den: 'denominator is the total number of equal parts in 1 whole', whole: 'wholes', dec: 'digits after the decimal point',
 };
 
 /** Number boxes (one number, a fraction, a mixed number, a decimal or a percent) and a tray of 0–9. */
