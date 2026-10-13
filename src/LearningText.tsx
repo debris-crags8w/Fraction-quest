@@ -6,7 +6,7 @@ import { KokoroDiagnostic, showVoiceSelfTest } from './KokoroDiagnostic';
 import { MathText } from './MathText';
 import { execAll } from './lib/regexp';
 import { selectLearningVoice as selectGentleVoice, sentences, spokenText, VOICE_PITCH, VOICE_RATE } from './lib/voice';
-import { createNaturalSpeaker, NATURAL_VOICES, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, setNaturalVoicePreference, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoicePhase, type NaturalVoiceStatus } from './lib/natural-voice';
+import { createNaturalSpeaker, NATURAL_VOICES, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, setNaturalVoicePreference, unlockAudioPlayback, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoicePhase, type NaturalVoiceStatus } from './lib/natural-voice';
 
 type VocabularyEntry = { pattern: string; definition: string };
 
@@ -522,6 +522,39 @@ export function LearningVoicePicker() {
       {saveFailed && <p className="fq-learning-voice-fallback" role="alert">This browser could not save the voice choice. It will reset if you reload.</p>}
     </section>
   );
+}
+
+/** Call from a tap that starts something which will read aloud later (a race): browsers, iPhones most of all,
+    only allow sound that a tap unlocked. */
+export function primeReadAloud() {
+  unlockAudioPlayback();
+  try {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined') {
+      const silent = new SpeechSynthesisUtterance(' ');
+      silent.volume = 0;
+      window.speechSynthesis.speak(silent);
+    }
+  } catch { /* no device speech: the natural voice (if any) still plays */ }
+}
+
+/** Read `text` aloud each time `key` changes (a new race question), with the family's chosen voice. A new key, null,
+    or leaving the screen stops the reading. */
+export function useReadAloud(text: string | null, key: string | number | null = text) {
+  const funContext = useOptionalFun();
+  const preferredVoiceId = funContext ? funContext.fun.preferredLearningVoiceId ?? null : getSavedLearningVoiceId();
+  const controllerRef = useRef<ReturnType<typeof createLearningSpeechController> | null>(null);
+  const supported = typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+  useEffect(() => {
+    if (!supported) return;
+    const controller = createLearningSpeechController(window.speechSynthesis, () => {}, undefined, undefined, () => preferredVoiceId);
+    controllerRef.current = controller;
+    return () => { controller.dispose(); controllerRef.current = null; };
+  }, [preferredVoiceId, supported]);
+  useEffect(() => {
+    if (!text) { controllerRef.current?.stop(); return; }
+    controllerRef.current?.speak(text, getLearningLanguage());
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read once per key, not on every re-render
+  }, [key, text === null]);
 }
 
 function ListenButton({ text }: { text: string }) {

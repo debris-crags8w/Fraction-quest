@@ -664,3 +664,34 @@ test('top-bar symbols explain themselves when tapped, one at a time', async ({ p
   await page.locator('h1').first().click();
   await expect(page.getByTestId('button-tip-account-tip')).toHaveCount(0);
 });
+
+test('racing the robot reads each new question aloud as it appears', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('fraction-quest-natural-voice', 'off'); // device voice, so the stub below hears it
+    const spoken: string[] = [];
+    (window as unknown as { __spoken: string[] }).__spoken = spoken;
+    class FakeUtterance { text: string; voice = null; lang = ''; rate = 1; pitch = 1; volume = 1; onend: (() => void) | null = null; onerror: (() => void) | null = null; constructor(text: string) { this.text = text; } }
+    const synth = {
+      speaking: false, pending: false, paused: false,
+      getVoices: () => [{ name: 'Test voice', lang: 'en-US', default: true, localService: true, voiceURI: 'test' }],
+      speak: (u: FakeUtterance) => { if (u.text.trim()) spoken.push(u.text); setTimeout(() => u.onend?.(), 10); },
+      cancel: () => {}, pause: () => {}, resume: () => {},
+      addEventListener: () => {}, removeEventListener: () => {},
+    };
+    Object.defineProperty(window, 'speechSynthesis', { value: synth, configurable: true });
+    Object.defineProperty(window, 'SpeechSynthesisUtterance', { value: FakeUtterance, configurable: true });
+  });
+  await openAsGuest(page);
+  const node = page.getByTestId('button-node-equal-parts');
+  if ((await node.getAttribute('aria-expanded')) !== 'true') await node.click({ force: true });
+  await page.getByTestId('button-race-equal-parts').click();
+  await page.getByTestId('button-race-robot-1').click();
+  const firstPrompt = page.locator('.fq-race-q').first();
+  await expect(firstPrompt).toBeVisible({ timeout: 5000 });
+  const spokenCount = () => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.length);
+  await expect.poll(spokenCount).toBeGreaterThan(0);
+  const before = await spokenCount();
+  // Answer (right or wrong); the next question is read when it shows.
+  await page.locator('[data-testid^="race-you-choice-"]').first().click();
+  await expect.poll(spokenCount, { timeout: 6000 }).toBeGreaterThan(before);
+});

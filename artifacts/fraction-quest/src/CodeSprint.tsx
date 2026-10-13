@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { ArrowLeft, ArrowRight, Bot, Code2, Flag, Play, RotateCcw, Timer, Trophy } from 'lucide-react';
+import { primeReadAloud, useReadAloud } from './LearningText';
 import type { Mission } from './game';
 import { MathText } from './MathText';
 import { Confetti, Mascot, useFun } from './fun-ui';
@@ -55,6 +56,8 @@ export default function CodeSprint({ mission, best, onExit, onFinish }: { missio
   const [won, setWon] = useState(false);
   const timer = useRef<number | null>(null);
   const round = rounds[at];
+  // Each program's goal is read aloud when it appears (sound on).
+  useReadAloud(phase === 'play' && fun.sound ? `Make the robot ${goal(round.target)}.` : null, phase === 'play' ? at : null);
   const elapsed = phase === 'play' ? (now - startedAt) / 1000 + penalty : finalTime;
 
   useEffect(() => () => { if (timer.current) window.clearInterval(timer.current); }, []);
@@ -67,6 +70,7 @@ export default function CodeSprint({ mission, best, onExit, onFinish }: { missio
   useEffect(() => { if (phase === 'play' && elapsed >= ROBOT_CODER_SECONDS) finish(false); });
 
   const begin = () => {
+    primeReadAloud();
     const fresh = makeSprint(mission.id);
     setRounds(fresh); setAt(0); setProgram(fresh[0].start); setPenalty(0); setMisses(0); setResult(null); setFrame(-1); setMessage(null); setPickedWrong(null); setSolved(false);
     setStartedAt(Date.now()); setNow(Date.now()); setPhase('play');

@@ -41,6 +41,10 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Races read aloud: racing the robot, each new question is spoken when it appears (`useReadAloud(text, key)` in
+  LearningText.tsx, same voice choice as Listen buttons; natural voice when ready, else device voice). Not while stalled
+  on a missed question, not in 2-player mode (two voices would clash), and only with sound on. The code sprint reads each
+  program's goal. `primeReadAloud()` runs in the tap that starts a race so iPhones allow the sound.
 - Removed the "Things to practice" list (tracked mistakes with counts) from the lesson's "How you're doing" box; the
   user found it unhelpful. Mistakes are still tracked and still pick the targeted extra practice.
 - Worksheet "Not yet." feedback reads as one line (it was a flex row, so "Not yet." became its own column) and is bright
