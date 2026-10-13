@@ -221,7 +221,7 @@ let audio: AudioContext | null = null;
 type Cue = 'correct' | 'retry' | 'star' | 'complete';
 const CUES: Record<Cue, number[]> = {
   correct: [660, 880],
-  retry: [300, 240],
+  retry: [392, 330],
   star: [990],
   complete: [523, 659, 784, 1047],
 };
@@ -238,10 +238,10 @@ export function playCue(cue: Cue, enabled: boolean) {
       const osc = audio!.createOscillator();
       const gain = audio!.createGain();
       const at = start + index * 0.09;
-      osc.type = cue === 'retry' ? 'triangle' : 'sine';
+      osc.type = 'sine'; // a soft "boop" for a miss, never a buzzer
       osc.frequency.setValueAtTime(freq, at);
       gain.gain.setValueAtTime(0.0001, at);
-      gain.gain.exponentialRampToValueAtTime(0.18, at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(cue === 'retry' ? 0.08 : 0.18, at + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
       osc.connect(gain).connect(audio!.destination);
       osc.start(at);

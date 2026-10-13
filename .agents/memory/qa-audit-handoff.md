@@ -41,6 +41,14 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Wrong-answer help (lessons, practice more, quick review, daily practice topic questions): Hoot the fix-it owl
+  (`Hoot` in fun-ui.tsx) replaces the frowning fox; a kind rotating opener (`retryOpener`); the exact slip when we can
+  name it (`wrongChoiceReason` in src/wrong-answer.ts: flipped fraction, added the bottoms, parts+shaded as bottom,
+  miscounted parts, decimal place, smaller/bigger, "You can't tell"/"They are equal"; ~23% of wrong choices), else the
+  question's guiding hint. It is read aloud (useReadAloud, sound on). Feedback now sits under the answers (no fixed bottom
+  bar over them); the tried choice is greyed out with ✗ ("ruled-out"); "Got it, try again" → "Try again". After a right
+  answer the panel shows the worked explanation (retryFeedback) instead of the hint — retryFeedback used to show after a
+  miss and often gave the answer away. Softer miss sound (quiet sine "boop"); the fox's "oops" brows are worried, not angry.
 - Short answer choices (user rule: short but readable, no blurbs). Builder "Which idea explains why?": the right choice is
   now each lesson's key idea in ≤6 words (`REASON_IDEAS` in learning-content.ts) instead of the full explanation (which
   was long and so gave the answer away); wrong reasons shortened to match; the full explanation still shows after the

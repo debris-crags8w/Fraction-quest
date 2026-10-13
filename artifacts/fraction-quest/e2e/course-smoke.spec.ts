@@ -32,17 +32,20 @@ async function retryLessonQuestion(
   const wrongChoice = (question.correctChoice + 1) % question.choices.length;
   await page.getByTestId(`button-answer-${question.id}-${wrongChoice}`).click();
   await page.getByTestId('button-check-answer').click();
-  await expect(page.getByTestId('status-feedback')).toContainText('Not quite!');
+  await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'retry');
+  await expect(page.locator('[data-testid="status-feedback"] .fq-hoot')).toBeVisible();
 
   await page.getByTestId('button-try-again').click();
   await expect(page.getByTestId('button-check-answer')).toBeDisabled();
+  // The choice already tried is greyed out, so the next try is a real choice.
+  await expect(page.getByTestId(`button-answer-${question.id}-${wrongChoice}`)).toBeDisabled();
   const correctAnswer = page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`);
   await expect(correctAnswer).toHaveAttribute('aria-pressed', 'false');
   await correctAnswer.click();
   await expect(page.getByTestId('button-check-answer')).toBeEnabled();
   await expect(correctAnswer).toHaveAttribute('aria-pressed', 'true');
   await page.getByTestId('button-check-answer').click();
-  await expect(page.getByTestId('status-feedback')).not.toContainText('Not quite!');
+  await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
   await expect(page.getByTestId('button-next-question')).toBeVisible();
 }
 
@@ -694,4 +697,35 @@ test('racing the robot reads each new question aloud as it appears', async ({ pa
   // Answer (right or wrong); the next question is read when it shows.
   await page.locator('[data-testid^="race-you-choice-"]').first().click();
   await expect.poll(spokenCount, { timeout: 6000 }).toBeGreaterThan(before);
+});
+
+test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried choice', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('fraction-quest-natural-voice', 'off');
+    const spoken: string[] = [];
+    (window as unknown as { __spoken: string[] }).__spoken = spoken;
+    class FakeUtterance { text: string; voice = null; lang = ''; rate = 1; pitch = 1; volume = 1; onend: (() => void) | null = null; onerror: (() => void) | null = null; constructor(text: string) { this.text = text; } }
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
+      speaking: false, pending: false, paused: false,
+      getVoices: () => [{ name: 'Test voice', lang: 'en-US', default: true, localService: true, voiceURI: 'test' }],
+      speak: (u: FakeUtterance) => { if (u.text.trim()) spoken.push(u.text); setTimeout(() => u.onend?.(), 10); },
+      cancel: () => {}, pause: () => {}, resume: () => {}, addEventListener: () => {}, removeEventListener: () => {},
+    } });
+    Object.defineProperty(window, 'SpeechSynthesisUtterance', { value: FakeUtterance, configurable: true });
+  });
+  // Lesson 2 (no cake rounds): its first question is a tap question.
+  await page.addInitScript(() => localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: ['equal-parts'], starsByMission: {}, reviewQueue: [], learning: { 'equal-parts': { completedAt: Date.now() } }, assessments: [] })));
+  await openAsGuest(page);
+  const mission = MISSIONS[1];
+  const question = mission.questions[0];
+  await page.getByTestId('button-continue-course').or(page.getByTestId('button-jump-current')).first().click();
+  if (await page.getByTestId(`button-start-mission-${mission.id}`).count()) await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await page.getByTestId('button-start-practice').click();
+  const wrong = (question.correctChoice + 1) % question.choices.length;
+  await page.getByTestId(`button-answer-${question.id}-${wrong}`).click();
+  await page.getByTestId('button-check-answer').click();
+  await expect(page.locator('[data-testid="status-feedback"] .fq-hoot')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.join(' | '))).toMatch(/Almost|Good try|look again|Not quite|So close/);
+  await page.getByTestId('button-try-again').click();
+  await expect(page.getByTestId(`button-answer-${question.id}-${wrong}`)).toBeDisabled();
 });

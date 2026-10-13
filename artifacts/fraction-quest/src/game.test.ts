@@ -1,3 +1,4 @@
+import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { fourthChoice, isSignQuestion } from './fourth-choice';
 import { answerValue } from './learning-content';
 import { readFileSync } from 'node:fs';
@@ -2720,5 +2721,29 @@ describe('number-line tick labels', () => {
     assert.match(html(5, 5), />1</);
     assert.match(html(7, 5), /aria-label="7 over 5"/, 'past 1 the labels keep counting fifths');
     assert.match(html(10, 5), />2</);
+  });
+});
+
+describe('wrong-answer help', () => {
+  it('names the slip behind the picked choice, without giving the answer', () => {
+    const q = 'A shape has 9 equal parts. 1 is colored. What fraction is colored?';
+    assert.match(wrongChoiceReason(q, ['9/1', '1/9', '1/8', '1/10'], 1, 0)!, /flipped/);
+    assert.match(wrongChoiceReason(q, ['9/1', '1/9', '1/8', '1/10'], 1, 2)!, /Count all the equal parts again/);
+    assert.match(wrongChoiceReason('What is 3/8 + 2/8?', ['5/8', '5/16', '6/8', '5/13'], 0, 1)!, /Add only the top numbers/);
+    assert.match(wrongChoiceReason('Write 8/100 as a decimal.', ['0.08', '0.8', '8.00', '0.008'], 0, 1)!, /places/);
+    assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 1)!, /smaller/);
+    assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 3)!, /You can tell/);
+    assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 2)!, /not the same amount/);
+    assert.equal(wrongChoiceReason('Is this strip cut into thirds?', ['Yes, 3 equal pieces', 'No, the pieces are unequal'], 1, 0), null, 'worded choices fall back to the lesson help');
+    assert.equal(wrongChoiceReason(q, ['9/1', '1/9'], 1, 1), null, 'no help for a right answer');
+    for (const m of MISSIONS) for (const question of m.questions) question.choices.forEach((_, i) => {
+      const said = wrongChoiceReason(question.prompt, question.choices, question.correctChoice, i);
+      if (said) assert.ok(!said.includes(question.choices[question.correctChoice]) || /^\d$/.test(question.choices[question.correctChoice]), `${question.id}: help gives the answer away`);
+    });
+  });
+  it('opens kindly, with a few different openers', () => {
+    const openers = new Set(MISSIONS.flatMap((m) => m.questions.map((q) => retryOpener(`${q.id}:1`))));
+    assert.ok(openers.size >= 4);
+    for (const o of openers) assert.doesNotMatch(o, /wrong|no!/i);
   });
 });

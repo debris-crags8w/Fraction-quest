@@ -1904,3 +1904,26 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-ll-ws.bad strong { font-weight: 900; }
 .fq-ll-ws.bad .fq-learning-listen { vertical-align: middle; margin-left: 6px; }
 .fq-ll-model-status.retry { color: var(--fq-alert); }
+
+/* Feedback after Check sits under the answers (never over them). A miss brings Hoot, the fix-it owl. */
+.fq-inline-feedback { margin-top: 16px; padding: 14px 16px; border-radius: 18px; animation: fq-rise-in 220ms ease-out both; }
+.fq-inline-feedback.correct { background: var(--fq-good-bg); }
+.fq-inline-feedback.retry { background: var(--fq-bad-bg); }
+.fq-inline-feedback.correct .fq-sheet-copy { color: var(--fq-good-fg); }
+.fq-inline-feedback.retry .fq-sheet-copy { color: var(--fq-bad-fg); }
+.fq-inline-feedback .fq-sheet-copy strong { font-size: 1.2rem; }
+.fq-inline-feedback.retry .fq-sheet-button { background: #c62828; box-shadow: 0 5px 0 #8e1b1b; }
+.fq-inline-feedback .fq-hoot, .fq-inline-feedback .fq-mascot { flex: none; align-self: flex-start; }
+.fq-hoot { animation: fq-hoot-pop 380ms cubic-bezier(.2, .9, .3, 1.3) both; }
+@keyframes fq-hoot-pop { from { transform: translateY(10px) scale(.6) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }
+/* A wrong choice already tried: greyed out with an ✗, so the next try is a real choice. */
+.fq-answer-choice.ruled-out { opacity: .5; cursor: not-allowed; text-decoration: line-through; text-decoration-thickness: 2px; background: hsl(var(--muted)); }
+.fq-answer-choice.ruled-out .fq-choice-marker { color: var(--fq-bad-fg); border-color: var(--fq-red); }
+@media (max-width: 560px) {
+  .fq-inline-feedback { flex-wrap: wrap; gap: 10px; padding: 12px; }
+  .fq-inline-feedback .fq-sheet-copy { flex-basis: calc(100% - 76px); }
+  .fq-inline-feedback .fq-sheet-button { flex-basis: 100%; min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .fq-hoot, .fq-inline-feedback { animation: none; } }
+.fq-daily-miss { display: flex; align-items: flex-start; gap: 10px; }
+.fq-daily-miss p { margin: 0; }

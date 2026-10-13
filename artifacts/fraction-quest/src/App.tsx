@@ -34,7 +34,7 @@ import { saveAssessmentAttempt } from './assessments';
 import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
-import { LearningText } from './LearningText';
+import { LearningText, useReadAloud } from './LearningText';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
@@ -44,7 +44,9 @@ import { DAILY_GOAL, loadFun, playCue, recordCodeLevel, recordCorrect, recordMin
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, WholeBracket } from './models';
-import { Confetti, DailyRing, denomColor, FunContext, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type MascotMood, type PathNode } from './fun-ui';
+import { Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type PathNode } from './fun-ui';
+import { retryOpener, wrongChoiceReason } from './wrong-answer';
+import { useRevealWhen } from './lib/reveal';
 import PaperCheck from './PaperCheck';
 import Challenge from './Challenge';
 import { freshSeed, generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
@@ -549,6 +551,10 @@ function PlayView({
   const [hintOpen, setHintOpen] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [useSimplerModel, setUseSimplerModel] = useState(false);
+  /** Choices already tried and wrong on this question: greyed out with an ✗, so a retry is not a blind guess. */
+  const [ruledOut, setRuledOut] = useState<number[]>([]);
+  /** What Hoot says about the last wrong choice (the exact slip when we can name it). */
+  const [retryText, setRetryText] = useState('');
   const [burst, setBurst] = useState(0);
   const [shake, setShake] = useState(0);
   const { fun } = useFun();
@@ -580,6 +586,9 @@ function PlayView({
         }
       }
       setAttempts((current) => current + 1);
+      setRuledOut((current) => current.includes(selection as number) ? current : [...current, selection as number]);
+      // The guiding hint, not the worked explanation (that one names the answer; it shows after a right answer).
+      setRetryText(wrongChoiceReason(question.prompt, question.choices, question.correctChoice, selection as number) ?? question.hint);
       if (!isQuickReview && !question.isOptionalReview) onPracticeSignal(question.reviewMissionId ?? mission.id, question.retryFeedback);
       setFeedback('retry');
       setShake((n) => n + 1);
@@ -629,11 +638,15 @@ function PlayView({
   const noExample = isQuickReview || isExtraPractice;
   const steps = mission.questions.length + (noExample ? 0 : 1);
   const doneSteps = (noExample ? 0 : 1) + Math.max(0, questionIndex) + (feedback === 'correct' ? 1 : 0) - (isExample ? 1 : 0);
-  const mood: MascotMood = feedback === 'correct' ? 'cheer' : feedback === 'retry' ? 'oops' : 'thinking';
+  const opener = question ? retryOpener(`${question.id}:${attempts}`) : '';
+  // After a miss, Hoot's help is read aloud (with sound on), so a child who can't read it all still hears why.
+  useReadAloud(feedback === 'retry' && fun.sound ? `${opener} ${retryText}` : null, feedback === 'retry' ? `${question?.id}:${attempts}` : null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  useRevealWhen(sheetRef, feedback !== null);
   const cheer = combo >= 3 ? `${combo} in a row! You're on fire.` : question?.isMastery ? 'Practice checkpoint passed!' : ['Nice work!', 'You found it!', 'Great thinking!', 'Yes, that\'s it!'][(questionIndex + 4) % 4];
 
   return (
-    <div className={`fq-app fq-lesson-app ${question && !feedback ? 'has-inline-check' : ''}`} style={{ '--unit': unitColor(mission.unit) } as CSSProperties}>
+    <div className={`fq-app fq-lesson-app ${question ? 'has-inline-check' : ''}`} style={{ '--unit': unitColor(mission.unit) } as CSSProperties}>
       <Confetti burst={burst} />
       <main className="fq-shell fq-play-shell fq-appear">
         <div className="fq-lesson-top">
@@ -697,25 +710,47 @@ function PlayView({
                 </div>
               )}
               <div className="fq-answer-choices" role="group" aria-label="Choose an answer">
-                {question.choices.map((choice, index) => (
+                {question.choices.map((choice, index) => {
+                  const out = ruledOut.includes(index) && !(selection === index && feedback === 'retry');
+                  return (
                   <button
                     key={`${question.id}-${index}${selection === index && feedback === 'retry' ? `-shake-${shake}` : ''}`}
-                    className={`fq-answer-choice ${selection === index ? `selected ${feedback ?? ''}` : ''} ${selection === index && feedback === 'retry' ? 'fq-shake' : ''}`}
+                    className={`fq-answer-choice ${selection === index ? `selected ${feedback ?? ''}` : ''} ${selection === index && feedback === 'retry' ? 'fq-shake' : ''} ${out ? 'ruled-out' : ''}`}
+                    disabled={out}
                     onClick={() => {
-                      if (feedback === 'correct') return;
+                      if (feedback === 'correct' || out) return;
                       setSelection(index);
                       if (feedback === 'retry') setFeedback(null);
                     }}
                     aria-pressed={selection === index}
                     data-testid={`button-answer-${question.id}-${index}`}
                   >
-                    <span className="fq-choice-marker" aria-hidden="true">{String.fromCharCode(65 + index)}</span>
-                    <span><MathText text={choice} /><span className="fq-sr">{selection === index ? ` (${feedback === 'correct' ? 'correct' : feedback === 'retry' ? 'try again' : 'selected, not checked yet'})` : ''}</span></span>
+                    <span className="fq-choice-marker" aria-hidden="true">{out ? <X size={16} strokeWidth={3} /> : String.fromCharCode(65 + index)}</span>
+                    <span><MathText text={choice} /><span className="fq-sr">{out ? ' (already tried)' : selection === index ? ` (${feedback === 'correct' ? 'correct' : feedback === 'retry' ? 'try again' : 'selected, not checked yet'})` : ''}</span></span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
               {/* Check sits right under the answers (not in a bar over them) so every answer stays in view. */}
-              {!feedback && (
+              {feedback ? (
+                <div ref={sheetRef} className={`fq-sheet fq-inline-feedback ${feedback}`} role="status" data-testid="status-feedback" data-result={feedback}>
+                  {feedback === 'correct' ? <Mascot mood="cheer" size={56} /> : <Hoot size={60} />}
+                  <div className="fq-sheet-copy">
+                    {feedback === 'correct'
+                      ? <><strong>{cheer}</strong><span><LearningText text={question.retryFeedback} speak /></span></>
+                      : <><strong>{opener}</strong><span><LearningText text={retryText} /></span></>}
+                  </div>
+                  {feedback === 'correct' ? (
+                    <button className="fq-button fq-sheet-button" onClick={moveOn} data-testid={isLastQuestion ? 'button-finish-mission' : 'button-next-question'}>
+                      {isLastQuestion ? isQuickReview ? 'Finish review' : isExtraPractice ? 'Finish practice' : 'Build & explain next' : 'Continue'} <ArrowRight size={17} />
+                    </button>
+                  ) : (
+                    <button className="fq-button fq-sheet-button" onClick={() => { setFeedback(null); setSelection(null); }} data-testid="button-try-again">
+                      Try again
+                    </button>
+                  )}
+                </div>
+              ) : (
                 <div className="fq-inline-check">
                   {question.isOptionalReview ? (
                     <button className="fq-hint-button" onClick={skipOptionalReview} data-testid="button-skip-review">Skip this review</button>
@@ -730,32 +765,14 @@ function PlayView({
         </section>
       </main>
 
-      {(feedback || isExample) && <div className={`fq-lesson-footer ${feedback ? `show ${feedback}` : ''}`}>
+      {isExample && <div className="fq-lesson-footer">
         <div className="fq-shell fq-lesson-footer-inner">
-          {feedback && question ? (
-            <div className="fq-sheet" role="status" data-testid="status-feedback">
-              <Mascot mood={mood} size={64} />
-              <div className="fq-sheet-copy">
-                {feedback === 'correct'
-                  ? <><strong>{cheer}</strong><span><LearningText text={question.hint} speak /></span></>
-                   : <><strong>Not quite!</strong><span><LearningText text={question.retryFeedback} speak /></span></>}
-              </div>
-              {feedback === 'correct' ? (
-                <button className="fq-button fq-sheet-button" onClick={moveOn} data-testid={isLastQuestion ? 'button-finish-mission' : 'button-next-question'}>
-                  {isLastQuestion ? isQuickReview ? 'Finish review' : isExtraPractice ? 'Finish practice' : 'Build & explain next' : 'Continue'} <ArrowRight size={17} />
-                </button>
-              ) : (
-                <button className="fq-button fq-sheet-button" onClick={() => { setFeedback(null); setSelection(null); }} data-testid="button-try-again">
-                  Got it, try again
-                </button>
-              )}
-            </div>
-          ) : isExample ? (
+          {(
             <div className="fq-footer-actions">
               <button className="fq-hint-button" onClick={onBack} data-testid="button-back-example"><ArrowLeft size={17} /> Back to map</button>
               <button className="fq-button" onClick={moveOn} data-testid="button-start-practice">Let me try it <ArrowRight size={17} /></button>
             </div>
-          ) : null}
+          )}
         </div>
       </div>}
     </div>
