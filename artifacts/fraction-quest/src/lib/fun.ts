@@ -177,6 +177,11 @@ function isYesterday(day: string | null, now = new Date()): boolean {
   return day === today(yesterday);
 }
 
+/** The streak to show: it ends once a whole day goes by with no correct answer (the saved number only changes on the next answer). */
+export function shownStreak(state: FunState, now = new Date()): number {
+  return state.lastActiveDay === today(now) || isYesterday(state.lastActiveDay, now) ? state.dayStreak : 0;
+}
+
 /** Record one correct answer: +10 XP, one step toward the daily goal, and keep the day streak alive. */
 export function recordCorrect(state: FunState): FunState {
   const current = state.day === today() ? state : { ...state, day: today(), answeredToday: 0 };

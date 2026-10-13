@@ -4,6 +4,7 @@ import { getBuildChecks, getWorksheet, answerMatches, isYesNoProblem } from '../
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
 import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
 import { getExtraPractice, hasGenerator } from '../src/practice-bank';
+import { PART_FINDER_LESSONS } from '../src/part-finder';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
 
@@ -332,6 +333,7 @@ test('all 68 lessons render their worked model and first interactive question', 
     await expect(page.locator('#lesson-title')).toHaveText(mission.title);
     await expect(page.locator('.fq-example .fq-model-area')).toBeVisible();
     await page.getByTestId('button-start-practice').click();
+    if (PART_FINDER_LESSONS.has(mission.id)) await page.getByTestId('button-hands-on-skip').click();
 
     const question = mission.questions[0];
     await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
@@ -371,6 +373,7 @@ test('learners can correct a wrong answer across every lesson model type', async
     await page.getByTestId(`button-node-${mission.id}`).click();
     await page.getByTestId(`button-start-mission-${mission.id}`).click();
     await page.getByTestId('button-start-practice').click();
+    if (PART_FINDER_LESSONS.has(mission.id)) await page.getByTestId('button-hands-on-skip').click();
 
     const question = mission.questions[0];
     await expect(page.locator('.fq-model-area')).toBeVisible();
@@ -462,9 +465,11 @@ test('daily practice opens as a separate short session', async ({ page }) => {
   await expect(page.getByTestId('button-daily-hint')).toBeVisible();
 });
 
-test('Part Finder shows equal pieces first and adds a mixed-shape cake share challenge', async ({ page }) => {
+test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, then mixed shapes', async ({ page }) => {
   await openAsGuest(page);
-  await page.getByTestId('button-part-finder-equal-parts').click();
+  await page.getByTestId('button-continue-course').click();
+  await page.getByTestId('button-start-practice').click();
+  await expect(page.getByTestId('button-hands-on-skip')).toHaveCount(0);
 
   await expect(page.getByRole('heading', { name: 'Share a cake cut into equal pieces' })).toBeVisible();
   await expect(page.getByText(/4 friends share this square cake\. It is cut into 8 equal pieces\./)).toBeVisible();
@@ -508,6 +513,8 @@ test('Part Finder shows equal pieces first and adds a mixed-shape cake share cha
   await assignPiece(7);
   await page.getByTestId('button-part-finder-check').click();
   await expect(page.getByTestId('part-finder-feedback')).toContainText('Every friend gets 1/4 of the cake.');
+  await page.getByTestId('button-part-finder-next').click();
+  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
 });
 
 test('daily bar builder explains the denominator as total equal parts in one whole', async ({ page }) => {

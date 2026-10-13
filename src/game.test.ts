@@ -17,8 +17,8 @@ import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './Fra
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
 import { CODE_LEVEL_COUNT, describe as describeRun, getCodeLevels, getRunHint, makeMultiBug, matchesTarget, passesCodeLevel, predictionMatchesTarget, runProgram, solution, toText, usesEffectiveLoop, usesLoop, type Block } from './code-quest';
 import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
-import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder } from './lib/fun';
-import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
+import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, shownStreak } from './lib/fun';
+import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderRoundsFor, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
 import { createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
 import type { PracticeQuestion } from './game';
@@ -1471,12 +1471,33 @@ describe('Part Finder rounds', () => {
     assert.deepEqual([...PART_FINDER_LESSONS], ['equal-parts', 'unit-fractions', 'equivalent-models']);
   });
 
+  it('puts every round inside the lesson it teaches, each exactly once', () => {
+    assert.deepEqual(partFinderRoundsFor('equal-parts').map((round) => round.id), ['sort', 'sort-cake']);
+    assert.deepEqual(partFinderRoundsFor('unit-fractions').map((round) => round.id), ['tile']);
+    assert.deepEqual(partFinderRoundsFor('equivalent-models').map((round) => round.id), ['match']);
+    assert.deepEqual(partFinderRoundsFor('add-like-denominators'), []);
+    const placed = [...PART_FINDER_LESSONS].flatMap((id) => partFinderRoundsFor(id).map((round) => round.id)).sort();
+    assert.deepEqual(placed, PART_FINDER_ROUNDS.map((round) => round.id).sort());
+    for (const id of PART_FINDER_LESSONS) assert.ok(MISSIONS.some((mission) => mission.id === id), `${id} is a real lesson`);
+  });
+
   it('awards points only for a correct first check and caps the score at four', () => {
     assert.equal(scorePartFinderRound(0, true), 1);
     assert.equal(scorePartFinderRound(0, false), 0);
     assert.equal(scorePartFinderRound(2, true), 3);
     assert.equal(scorePartFinderRound(3, true), 4);
     assert.equal(scorePartFinderRound(4, true), 4);
+  });
+});
+
+describe('day streak shown in the top bar', () => {
+  it('keeps the streak through yesterday and shows 0 once a whole day is missed', () => {
+    const base = { ...loadFun(), dayStreak: 4 };
+    const now = new Date(2026, 9, 13, 12);
+    assert.equal(shownStreak({ ...base, lastActiveDay: '2026-10-13' }, now), 4);
+    assert.equal(shownStreak({ ...base, lastActiveDay: '2026-10-12' }, now), 4, 'today is still open to keep it going');
+    assert.equal(shownStreak({ ...base, lastActiveDay: '2026-10-11' }, now), 0);
+    assert.equal(shownStreak({ ...base, lastActiveDay: null }, now), 0);
   });
 });
 

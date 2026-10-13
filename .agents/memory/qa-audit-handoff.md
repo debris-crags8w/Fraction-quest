@@ -41,6 +41,13 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Part Finder is no longer a standalone game. Its rounds are a hands-on step inside the lessons they teach, right after the
+  worked example and before the questions (view `hands-on`; `PART_FINDER_BY_LESSON` / `partFinderRoundsFor` in
+  `src/part-finder.ts`): equal-parts → the two cake-sharing rounds, unit-fractions → copies filling the whole,
+  equivalent-models → same amount as 1/4. Each round must fit to move on; a lesson already completed shows a Skip button
+  (`button-hands-on-skip`). Removed: Games-menu card, map node button, reward-screen button, score/best screen.
+  `fun.partFinderBest`/`recordPartFinder` are now unused (kept so old saved data still loads).
+- Top-bar streak shows 0 once a whole day is missed (`shownStreak` in `lib/fun.ts`); the saved number still only changes on the next answer.
 - Map reorganized (branch `review/fraction-standard-mastery`): the map shows only units and lessons. Everything else is in the
   top-bar "More" dropdown (`src/AppMenu.tsx`, `button-app-menu`, panel `app-menu`): Practice (daily practice, quick skill review
   when due), Games (games, coding), Check what you know (check-ins, find my level), Grown-ups (progress report and settings,

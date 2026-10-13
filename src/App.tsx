@@ -40,7 +40,7 @@ import { PieFraction } from './fraction-ui';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, recordRace, recordSprint, resetFun, setBreakPreferences, setDisplayPreferences, setSound, type FunState } from './lib/fun';
+import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, shownStreak, setBreakPreferences, setDisplayPreferences, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, WholeBracket } from './models';
@@ -63,7 +63,7 @@ import DailyPractice from './DailyPractice';
 import { createDailyPractice, dailyPracticeDay } from './daily-practice';
 import PartFinder from './PartFinder';
 import { AssessmentHub, AssessmentRunner } from './Assessment';
-import { PART_FINDER_LESSONS, PART_FINDER_ROUNDS } from './part-finder';
+import { PART_FINDER_LESSONS, partFinderRoundsFor } from './part-finder';
 import ConceptGames, { type LessonGame } from './ConceptGames';
 import { BrainBreakOffer } from './BrainBreakOffer';
 import { warmUpNaturalVoice } from './lib/natural-voice';
@@ -79,13 +79,15 @@ type View =
   | { type: 'concept-games' }
   | { type: 'assessments' }
   | { type: 'assessment'; definition: AssessmentDefinition; seed: number }
-  | { type: 'reward'; missionId: string; stars: number };
+  | { type: 'reward'; missionId: string; stars: number }
+  /** The lesson's hands-on cake rounds (Part Finder), between the worked example and the questions. */
+  | { type: 'hands-on'; missionId: string; reviewQuestions: PracticeQuestion[] };
 type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string };
 type RedoView = { type: 'redo'; missionId: string };
 type ChallengeView = { type: 'challenge'; unit: number };
 type ParentPage = { type: 'parent' };
-type GameView = { type: 'race' | 'code' | 'part-finder'; missionId: string; /** Opened from the Games menu: go back there. */ fromGames?: boolean };
+type GameView = { type: 'race' | 'code'; missionId: string; /** Opened from the Games menu: go back there. */ fromGames?: boolean };
 type PlacementView = { type: 'placement' };
 // seed 0 = the fixed 12 "Practice more" questions; any other seed = freshly generated questions.
 type ExtraView = { type: 'extra'; missionId: string; seed: number; questionIndex: number; firstTry: number } | { type: 'extra-done'; missionId: string; seed: number; firstTry: number; total: number };
@@ -249,7 +251,7 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
         </button>
         <div className="fq-topbar-actions">
           <div className="fq-fun-stats">
-            <span className="fq-stat fq-stat-streak" title="Day streak" data-testid="status-day-streak"><Flame size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{fun.dayStreak}</strong><span className="fq-sr">day streak</span></span>
+            <span className="fq-stat fq-stat-streak" title="Day streak" data-testid="status-day-streak"><Flame size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{shownStreak(fun)}</strong><span className="fq-sr">day streak</span></span>
             <span className="fq-stat fq-stat-xp" title="XP earned" data-testid="status-xp"><Zap size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{fun.xp}</strong><span className="fq-stat-unit">XP</span></span>
             <DailyRing answered={fun.answeredToday} />
           </div>
@@ -279,7 +281,7 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
   );
 }
 
-function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code' | 'part-finder', missionId: string) => void; onPlacement: () => void }) {
+function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
   const account = useAccount();
   const { user } = account;
   const { fun } = useFun();
@@ -325,7 +327,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
             note: `${dueReviews} ${dueReviews === 1 ? 'skill is' : 'skills are'} ready for a short retry` }] : []),
         ] },
         { title: 'Games', items: [
-          { id: 'games', icon: <Dumbbell size={18} />, label: 'Games', testId: 'button-open-concept-games', onSelect: onConceptGames, note: 'Fraction Race, Part Finder and the fraction workshop' },
+          { id: 'games', icon: <Dumbbell size={18} />, label: 'Games', testId: 'button-open-concept-games', onSelect: onConceptGames, note: 'Fraction Race and the fraction workshop' },
           ...(nextCodeMission ? [{ id: 'code', icon: <Code2 size={18} />, label: codeSummary.missionsStarted ? 'Continue coding' : 'Try coding', testId: 'button-continue-coding',
             onSelect: () => onGame('code', nextCodeMission.id), note: `${codeSummary.levelsPassed} of ${codeSummary.levelsTotal} coding levels passed` }] : []),
         ] },
@@ -458,7 +460,6 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
                                 <button className="fq-button ghost" onClick={() => onPaper(mission.id)} data-testid={`button-check-paper-${mission.id}`}><ClipboardCheck size={17} /> Check my paper</button>
                                 <button className="fq-button ghost" onClick={() => onGame('race', mission.id)} data-testid={`button-race-${mission.id}`}><Zap size={17} /> Race</button>
                                 <button className="fq-button ghost" onClick={() => onGame('code', mission.id)} data-testid={`button-code-${mission.id}`}><Code2 size={17} /> Code</button>
-                                {PART_FINDER_LESSONS.has(mission.id) && <button className="fq-button ghost" onClick={() => onGame('part-finder', mission.id)} data-testid={`button-part-finder-${mission.id}`}><Compass size={17} /> Part Finder{fun.partFinderBest !== undefined ? ` · Best ${fun.partFinderBest}/${PART_FINDER_ROUNDS.length}` : ''}</button>}
                               </div>
                             )}
                           </>
@@ -731,7 +732,7 @@ function PlayView({
   );
 }
 
-function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code' | 'part-finder') => void }) {
+function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code') => void }) {
   const nextMission = getNextMission(progress);
   const { fun } = useFun();
   useEffect(() => {
@@ -759,7 +760,6 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
             <span>Play with this lesson:</span>
             <button className="fq-button ghost" onClick={() => onGame('race')} data-testid="button-reward-race"><Zap size={17} /> Race</button>
             <button className="fq-button ghost" onClick={() => onGame('code')} data-testid="button-reward-code"><Code2 size={17} /> Code</button>
-            {PART_FINDER_LESSONS.has(mission.id) && <button className="fq-button ghost" onClick={() => onGame('part-finder')} data-testid="button-reward-part-finder"><Compass size={17} /> Part Finder</button>}
           </div>
         </section>
       </main>
@@ -956,7 +956,7 @@ function Game() {
     if (!(record.redo?.part === part && !record.redo.finishedAt)) persistProgress(updateLearning(progress, missionId, startRedo(record, part)));
     setView({ type: 'redo', missionId });
   };
-  const exitGame = () => { if ((view.type === 'race' || view.type === 'code' || view.type === 'part-finder') && view.fromGames) setView({ type: 'concept-games' }); else returnToMap(); };
+  const exitGame = () => { if ((view.type === 'race' || view.type === 'code') && view.fromGames) setView({ type: 'concept-games' }); else returnToMap(); };
   const returnToMap = () => { setPendingRetention(null); setCombo(0); consecutiveWrongAnswers.current = 0; setView({ type: 'map' }); };
   const nextReviewView = (nextView: View) => {
     if (pendingRetention) {
@@ -993,15 +993,13 @@ function Game() {
       {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
       {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} renderModel={(model, reveal) => <ModelView model={model} reveal={reveal} />} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
       {view.type === 'concept-games' && (() => {
-        // The lesson games use the lesson the child is on (or the last open one); Part Finder uses the latest lesson it belongs to.
+        // The lesson games use the lesson the child is on (or the last open one).
         const open = MISSIONS.filter((mission) => isMissionUnlocked(progress, mission.id));
         const lesson = getNextMission(progress) ?? open[open.length - 1] ?? MISSIONS[0];
-        const finder = [...open].reverse().find((mission) => PART_FINDER_LESSONS.has(mission.id));
         const name = (mission: Mission) => `Lesson ${MISSIONS.indexOf(mission) + 1}: ${mission.shortTitle}`;
         const games: LessonGame[] = [
           { id: 'race', title: 'Fraction Race', blurb: 'Race a robot or a friend with quick questions.', icon: Zap, lessonTitle: name(lesson), onOpen: () => setView({ type: 'race', missionId: lesson.id, fromGames: true }) },
           { id: 'code', title: 'Coding', blurb: 'Write a little program that builds the fraction.', icon: Code2, lessonTitle: name(lesson), onOpen: () => setView({ type: 'code', missionId: lesson.id, fromGames: true }) },
-          ...(finder ? [{ id: 'part-finder' as const, title: 'Part Finder', blurb: 'Find fair shares hidden in a square.', icon: Compass, lessonTitle: name(finder), onOpen: () => setView({ type: 'part-finder', missionId: finder.id, fromGames: true }) }] : []),
         ];
         return <ConceptGames onExit={returnToMap} lessonGames={games} />;
       })()}
@@ -1019,7 +1017,12 @@ function Game() {
         <CodeQuest key={view.missionId} mission={getMission(view.missionId)} solved={fun.codeLevels?.[view.missionId] ?? 0}
           onExit={exitGame} onSolved={(level) => setFun((current) => recordCodeLevel(current, view.missionId, level))} />
       )}
-      {view.type === 'part-finder' && <PartFinder best={fun.partFinderBest ?? null} onExit={exitGame} onFinish={(score) => setFun((current) => recordPartFinder(current, score))} />}
+      {view.type === 'hands-on' && (() => {
+        const mission = getMission(view.missionId);
+        const toQuestions = () => setView({ type: 'play', missionId: view.missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions: view.reviewQuestions });
+        return <PartFinder key={view.missionId} rounds={partFinderRoundsFor(view.missionId)} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
+          onExit={returnToMap} onDone={toQuestions} onSkip={progress.completedMissionIds.includes(view.missionId) || hasLearningGate(progress, view.missionId) ? toQuestions : undefined} />;
+      })()}
       {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);
@@ -1078,6 +1081,9 @@ function Game() {
           onNext={(firstTryAnswers) => {
             if (view.type === 'review') {
               nextReviewView({ type: 'review', questionIndex: view.questionIndex + 1, reviewQuestions: view.reviewQuestions });
+            } else if (view.questionIndex < 0 && PART_FINDER_LESSONS.has(activeMission.id)) {
+              // Hands-on cake rounds come right after the worked example, before the questions.
+              setView({ type: 'hands-on', missionId: activeMission.id, reviewQuestions: view.reviewQuestions });
             } else {
               setView({
                 type: 'play',
