@@ -1,11 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { useColors } from '@/hooks/useColors';
-import { Image } from 'expo-image';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -14,598 +14,194 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
+import {
+  EMPTY_SAVED_PROGRESS,
+  MISSIONS,
+  UNIT_INFO,
+  answerMatches,
+  checkWorksheet,
+  cleanSavedProgress,
+  findFirstUnfinishedPractice,
+  getBuildChecks,
+  getLessonRecord,
+  getWorksheet,
+  hasLearningGate,
+  isLessonComplete,
+  isLessonOpen,
+  targetedPracticeCount,
+  targetedPracticePlans,
+  type LearningModel,
+  type LearningRecord,
+  type SavedProgress,
+  type WorksheetProblem,
+  toWebProgress,
+} from '../lib/curriculum';
+import {
+  AnswerTileBuilder,
+} from '../components/AnswerTileBuilder';
+import {
+  ModelBuilder,
+  ModelPreview,
+  WorksheetModelInput,
+  blankBuildState,
+  type BuildState,
+} from '../components/LearningActivity';
 
-type FractionProblem = {
-  numerator: number;
-  denominator: number;
-};
-
-type Lesson = {
-  id: string;
-  title: string;
-  unit: string;
-  description: string;
-  model: 'bar' | 'set';
-  questions: FractionProblem[];
-  transfer: FractionProblem;
-  tint: 'coral' | 'teal';
-};
-
-type SavedProgress = {
-  completedLessonIds: string[];
-  worksheetAnswers: Record<string, string[]>;
-};
-
-const STORAGE_KEY = 'fraction-quest-ios-progress-v1';
-const WORKSHEET_SIZE = 10;
-
-const LESSONS: Lesson[] = [
-  {
-    id: 'equal-parts',
-    title: 'Make equal parts',
-    unit: 'Meet fractions',
-    description: 'Split one whole into fair, equal pieces.',
-    model: 'bar',
-    tint: 'coral',
-    questions: [
-      { numerator: 1, denominator: 2 },
-      { numerator: 2, denominator: 3 },
-      { numerator: 3, denominator: 4 },
-      { numerator: 1, denominator: 4 },
-      { numerator: 3, denominator: 5 },
-      { numerator: 5, denominator: 6 },
-      { numerator: 3, denominator: 8 },
-      { numerator: 4, denominator: 5 },
-      { numerator: 5, denominator: 8 },
-      { numerator: 2, denominator: 6 },
-    ],
-    transfer: { numerator: 4, denominator: 6 },
-  },
-  {
-    id: 'fractions-in-groups',
-    title: 'Find a part of a group',
-    unit: 'Fractions in groups',
-    description: 'Show equal shares in a collection.',
-    model: 'set',
-    tint: 'teal',
-    questions: [
-      { numerator: 2, denominator: 4 },
-      { numerator: 1, denominator: 3 },
-      { numerator: 3, denominator: 5 },
-      { numerator: 4, denominator: 6 },
-      { numerator: 2, denominator: 5 },
-      { numerator: 5, denominator: 8 },
-      { numerator: 3, denominator: 4 },
-      { numerator: 4, denominator: 8 },
-      { numerator: 5, denominator: 6 },
-      { numerator: 3, denominator: 8 },
-    ],
-    transfer: { numerator: 2, denominator: 3 },
-  },
-];
-
-const EMPTY_PROGRESS: SavedProgress = {
-  completedLessonIds: [],
-  worksheetAnswers: {},
-};
-
-const TRANSFER_STEP = WORKSHEET_SIZE;
-
-function cleanProgress(value: unknown): SavedProgress {
-  if (!value || typeof value !== 'object') {
-    throw new Error('Saved progress is not in a readable format.');
-  }
-  const raw = value as Partial<SavedProgress>;
-  if (!Array.isArray(raw.completedLessonIds) || !raw.worksheetAnswers || typeof raw.worksheetAnswers !== 'object') {
-    throw new Error('Saved progress is missing required learning records.');
-  }
-  const validIds = new Set(LESSONS.map((lesson) => lesson.id));
-  const completedLessonIds = raw.completedLessonIds.filter(
-    (id): id is string => typeof id === 'string' && validIds.has(id),
-  );
-  const worksheetAnswers: Record<string, string[]> = {};
-  for (const lesson of LESSONS) {
-    const answers = raw.worksheetAnswers[lesson.id];
-    if (answers !== undefined && !Array.isArray(answers)) {
-      throw new Error('A saved worksheet could not be read.');
-    }
-    worksheetAnswers[lesson.id] = (answers ?? [])
-      .filter((answer): answer is string => typeof answer === 'string')
-      .slice(0, WORKSHEET_SIZE);
-  }
-  return { completedLessonIds, worksheetAnswers };
-}
-
-async function readProgress(): Promise<SavedProgress> {
-  const saved = await AsyncStorage.getItem(STORAGE_KEY);
-  return saved ? cleanProgress(JSON.parse(saved) as unknown) : EMPTY_PROGRESS;
-}
-
-function sameFraction(
-  numeratorText: string,
-  denominatorText: string,
-  expected: FractionProblem,
-): boolean {
-  const numerator = Number(numeratorText);
-  const denominator = Number(denominatorText);
-  return (
-    numeratorText.trim() !== '' &&
-    denominatorText.trim() !== '' &&
-    Number.isSafeInteger(numerator) &&
-    Number.isSafeInteger(denominator) &&
-    numerator >= 0 &&
-    denominator > 0 &&
-    numerator * expected.denominator === expected.numerator * denominator
-  );
-}
+const STORAGE_KEY = 'fraction-quest-ios-progress-v2';
+const LEGACY_STORAGE_KEY = 'fraction-quest-ios-progress-v1';
+type Screen = 'home' | 'practice' | 'build' | 'worksheet' | 'targeted' | 'complete';
+type AnswerResult = 'idle' | 'correct' | 'incorrect' | 'save-error';
 
 function useStyles() {
   const colors = useColors();
-  return useMemo(
-    () =>
-      StyleSheet.create({
-        screen: { flex: 1, backgroundColor: colors.background },
-        scrollContent: {
-          paddingHorizontal: 20,
-          paddingBottom: 36,
-          gap: 22,
-        },
-        brandRow: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: 8,
-        },
-        brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-        brandIcon: { width: 38, height: 38, borderRadius: 12 },
-        brandName: { color: colors.foreground, fontSize: 18, fontFamily: 'BricolageGrotesque_700Bold' },
-        profileBadge: {
-          width: 42,
-          height: 42,
-          borderRadius: 21,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: colors.card,
-          borderWidth: 1,
-          borderColor: colors.border,
-        },
-        eyebrow: {
-          color: colors.secondary,
-          fontSize: 12,
-          fontFamily: 'BricolageGrotesque_700Bold',
-          textTransform: 'uppercase',
-          letterSpacing: 1.1,
-        },
-        heroTitle: {
-          color: colors.foreground,
-          fontSize: 33,
-          lineHeight: 39,
-          fontFamily: 'BricolageGrotesque_700Bold',
-          letterSpacing: -0.8,
-          marginTop: 7,
-        },
-        body: {
-          color: colors.mutedForeground,
-          fontSize: 15,
-          lineHeight: 22,
-          fontFamily: 'BricolageGrotesque_400Regular',
-        },
-        heroBody: { marginTop: 8, maxWidth: 310 },
-        progressCard: {
-          padding: 19,
-          borderRadius: colors.radius,
-          backgroundColor: colors.secondary,
-          overflow: 'hidden',
-        },
-        progressTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-        progressTitle: {
-          color: colors.secondaryForeground,
-          fontSize: 16,
-          fontFamily: 'BricolageGrotesque_600SemiBold',
-        },
-        progressCopy: {
-          color: colors.secondaryForeground,
-          opacity: 0.82,
-          fontSize: 13,
-          marginTop: 4,
-          fontFamily: 'BricolageGrotesque_400Regular',
-        },
-        progressCount: {
-          color: colors.secondaryForeground,
-          fontSize: 30,
-          fontFamily: 'BricolageGrotesque_700Bold',
-          lineHeight: 34,
-        },
-        progressTrack: {
-          height: 8,
-          backgroundColor: 'rgba(255,255,255,0.24)',
-          borderRadius: 8,
-          marginTop: 18,
-          overflow: 'hidden',
-        },
-        progressFill: { height: '100%', backgroundColor: colors.accent, borderRadius: 8 },
-        sectionHeading: {
-          color: colors.foreground,
-          fontSize: 22,
-          fontFamily: 'BricolageGrotesque_700Bold',
-          letterSpacing: -0.35,
-        },
-        sectionSubheading: { color: colors.mutedForeground, fontSize: 14, marginTop: 4 },
-        lessonList: { gap: 12, marginTop: 14 },
-        lessonCard: {
-          padding: 17,
-          borderRadius: colors.radius,
-          borderWidth: 1,
-          borderColor: colors.border,
-          backgroundColor: colors.card,
-          gap: 14,
-        },
-        lessonCardPressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
-        lessonCardLocked: { opacity: 0.72 },
-        lessonCardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-        lessonIcon: {
-          width: 46,
-          height: 46,
-          borderRadius: 16,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        lessonIconCoral: { backgroundColor: colors.coralSoft },
-        lessonIconTeal: { backgroundColor: colors.tealSoft },
-        lessonText: { flex: 1, gap: 3 },
-        lessonUnit: {
-          color: colors.mutedForeground,
-          fontSize: 11,
-          textTransform: 'uppercase',
-          letterSpacing: 0.8,
-          fontFamily: 'BricolageGrotesque_600SemiBold',
-        },
-        lessonTitle: {
-          color: colors.foreground,
-          fontSize: 18,
-          fontFamily: 'BricolageGrotesque_700Bold',
-        },
-        lessonCopy: { color: colors.mutedForeground, fontSize: 13, lineHeight: 19 },
-        cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-        statusPill: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 6,
-          paddingHorizontal: 10,
-          paddingVertical: 7,
-          borderRadius: 99,
-          backgroundColor: colors.muted,
-        },
-        statusText: {
-          color: colors.mutedForeground,
-          fontSize: 12,
-          fontFamily: 'BricolageGrotesque_600SemiBold',
-        },
-        statusComplete: { backgroundColor: colors.tealSoft },
-        statusCompleteText: { color: colors.success },
-        cardAction: {
-          minHeight: 44,
-          minWidth: 92,
-          paddingHorizontal: 16,
-          borderRadius: 14,
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'row',
-          gap: 7,
-          backgroundColor: colors.primary,
-        },
-        cardActionTeal: { backgroundColor: colors.secondary },
-        cardActionDisabled: { backgroundColor: colors.muted },
-        cardActionText: {
-          color: colors.primaryForeground,
-          fontSize: 14,
-          fontFamily: 'BricolageGrotesque_700Bold',
-        },
-        cardActionDisabledText: { color: colors.mutedForeground },
-        noteCard: {
-          flexDirection: 'row',
-          alignItems: 'flex-start',
-          gap: 11,
-          padding: 15,
-          borderRadius: 18,
-          backgroundColor: colors.goldSoft,
-        },
-        noteText: { flex: 1, color: colors.foreground, fontSize: 13, lineHeight: 19 },
-        screenHeader: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 13,
-          marginTop: 8,
-        },
-        backButton: {
-          width: 44,
-          height: 44,
-          borderRadius: 15,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: colors.card,
-          borderWidth: 1,
-          borderColor: colors.border,
-        },
-        lessonHeaderText: { flex: 1, gap: 2 },
-        stepLabel: {
-          color: colors.secondary,
-          fontSize: 11,
-          textTransform: 'uppercase',
-          letterSpacing: 0.9,
-          fontFamily: 'BricolageGrotesque_700Bold',
-        },
-        lessonHeaderTitle: {
-          color: colors.foreground,
-          fontSize: 21,
-          fontFamily: 'BricolageGrotesque_700Bold',
-        },
-        lessonProgressTrack: {
-          height: 7,
-          borderRadius: 7,
-          backgroundColor: colors.muted,
-          overflow: 'hidden',
-          marginTop: 5,
-        },
-        modelCard: {
-          padding: 18,
-          borderRadius: colors.radius,
-          backgroundColor: colors.card,
-          borderWidth: 1,
-          borderColor: colors.border,
-          gap: 17,
-        },
-        modelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-        modelLabel: {
-          color: colors.mutedForeground,
-          fontSize: 11,
-          letterSpacing: 0.8,
-          textTransform: 'uppercase',
-          fontFamily: 'BricolageGrotesque_700Bold',
-        },
-        modelCount: { color: colors.secondary, fontSize: 12, fontFamily: 'BricolageGrotesque_600SemiBold' },
-        wholeLabel: { color: colors.foreground, fontSize: 12, fontFamily: 'BricolageGrotesque_600SemiBold' },
-        barRow: { flexDirection: 'row', gap: 4 },
-        barPart: {
-          flex: 1,
-          height: 59,
-          borderRadius: 10,
-          borderWidth: 1.5,
-          borderColor: colors.border,
-          backgroundColor: colors.background,
-        },
-        barPartSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-        setGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, paddingVertical: 3 },
-        setPiece: {
-          width: 39,
-          height: 39,
-          borderRadius: 20,
-          borderWidth: 1.5,
-          borderColor: colors.border,
-          backgroundColor: colors.background,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        setPieceSelected: { backgroundColor: colors.secondary, borderColor: colors.secondary },
-        prompt: {
-          color: colors.foreground,
-          fontSize: 23,
-          lineHeight: 30,
-          fontFamily: 'BricolageGrotesque_700Bold',
-          letterSpacing: -0.35,
-        },
-        inputLabel: {
-          color: colors.mutedForeground,
-          fontSize: 12,
-          fontFamily: 'BricolageGrotesque_600SemiBold',
-          marginBottom: 9,
-        },
-        fractionInputs: { flexDirection: 'row', alignItems: 'center', gap: 11 },
-        fractionInput: {
-          width: 76,
-          height: 58,
-          textAlign: 'center',
-          fontSize: 22,
-          color: colors.foreground,
-          backgroundColor: colors.card,
-          borderWidth: 1.5,
-          borderColor: colors.border,
-          borderRadius: 15,
-          fontFamily: 'BricolageGrotesque_700Bold',
-        },
-        fractionSlash: { width: 28, height: 2, backgroundColor: colors.foreground },
-        helpRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
-        helpText: { flex: 1, color: colors.mutedForeground, fontSize: 13, lineHeight: 19 },
-        feedback: {
-          flexDirection: 'row',
-          alignItems: 'flex-start',
-          gap: 9,
-          padding: 12,
-          borderRadius: 14,
-          backgroundColor: colors.coralSoft,
-        },
-        feedbackCorrect: { backgroundColor: colors.tealSoft },
-        feedbackText: { flex: 1, color: colors.foreground, fontSize: 14, lineHeight: 20 },
-        primaryButton: {
-          minHeight: 56,
-          borderRadius: 17,
-          paddingHorizontal: 20,
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'row',
-          gap: 10,
-          backgroundColor: colors.primary,
-        },
-        primaryButtonPressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
-        primaryButtonDisabled: { opacity: 0.48 },
-        primaryButtonText: {
-          color: colors.primaryForeground,
-          fontSize: 16,
-          fontFamily: 'BricolageGrotesque_700Bold',
-        },
-        errorScreen: {
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 26,
-          gap: 14,
-        },
-        errorTitle: {
-          color: colors.foreground,
-          textAlign: 'center',
-          fontSize: 23,
-          fontFamily: 'BricolageGrotesque_700Bold',
-        },
-        errorCopy: { color: colors.mutedForeground, textAlign: 'center', fontSize: 15, lineHeight: 22 },
-      }),
-    [
-      colors.accent,
-      colors.background,
-      colors.border,
-      colors.card,
-      colors.coralSoft,
-      colors.foreground,
-      colors.goldSoft,
-      colors.input,
-      colors.muted,
-      colors.mutedForeground,
-      colors.primary,
-      colors.primaryForeground,
-      colors.radius,
-      colors.secondary,
-      colors.secondaryForeground,
-      colors.success,
-      colors.tealSoft,
-    ],
-  );
+  return useMemo(() => StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.background },
+    content: { paddingHorizontal: 20, paddingBottom: 36, gap: 20 },
+    brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+    brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    brandIcon: { width: 38, height: 38, borderRadius: 12 },
+    brandName: { color: colors.foreground, fontSize: 18, fontFamily: 'BricolageGrotesque_700Bold' },
+    profileBadge: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+    eyebrow: { color: colors.secondary, fontSize: 12, fontFamily: 'BricolageGrotesque_700Bold', textTransform: 'uppercase', letterSpacing: 1.1 },
+    title: { color: colors.foreground, fontSize: 30, lineHeight: 37, fontFamily: 'BricolageGrotesque_700Bold', letterSpacing: -0.6, marginTop: 7 },
+    body: { color: colors.mutedForeground, fontSize: 14, lineHeight: 21, fontFamily: 'BricolageGrotesque_400Regular' },
+    card: { padding: 17, borderRadius: colors.radius, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, gap: 12 },
+    progressCard: { padding: 19, borderRadius: colors.radius, backgroundColor: colors.secondary, gap: 12 },
+    progressTitle: { color: colors.secondaryForeground, fontSize: 16, fontFamily: 'BricolageGrotesque_700Bold' },
+    progressCopy: { color: colors.secondaryForeground, opacity: 0.84, fontSize: 13, marginTop: 4 },
+    progressCount: { color: colors.secondaryForeground, fontSize: 28, fontFamily: 'BricolageGrotesque_700Bold' },
+    progressTrack: { height: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.24)', overflow: 'hidden' },
+    progressFill: { height: '100%', borderRadius: 8, backgroundColor: colors.accent },
+    sectionHeading: { color: colors.foreground, fontSize: 21, fontFamily: 'BricolageGrotesque_700Bold' },
+    sectionSubheading: { color: colors.mutedForeground, fontSize: 13, lineHeight: 18, marginTop: 4 },
+    unitCard: { borderRadius: colors.radius, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, overflow: 'hidden' },
+    unitHeading: { padding: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, backgroundColor: colors.muted },
+    unitKicker: { color: colors.secondary, fontSize: 11, fontFamily: 'BricolageGrotesque_700Bold', textTransform: 'uppercase', letterSpacing: 0.7 },
+    unitTitle: { color: colors.foreground, fontSize: 17, fontFamily: 'BricolageGrotesque_700Bold', marginTop: 3 },
+    unitSubtitle: { color: colors.mutedForeground, fontSize: 12, lineHeight: 17, marginTop: 3 },
+    unitCount: { minWidth: 42, textAlign: 'center', color: colors.secondary, fontSize: 14, fontWeight: '700' },
+    lessonItem: { padding: 14, borderTopWidth: 1, borderColor: colors.border, gap: 8 },
+    lessonLocked: { opacity: 0.57 },
+    lessonRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    lessonNumber: { width: 31, height: 31, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.coralSoft },
+    lessonText: { flex: 1, gap: 2 },
+    lessonName: { color: colors.foreground, fontSize: 15, fontFamily: 'BricolageGrotesque_700Bold' },
+    lessonDescription: { color: colors.mutedForeground, fontSize: 12, lineHeight: 17 },
+    lessonProgress: { color: colors.mutedForeground, fontSize: 12, fontWeight: '600' },
+    lessonAction: { minHeight: 40, paddingHorizontal: 13, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.primary },
+    lessonActionTeal: { backgroundColor: colors.secondary },
+    lessonActionLocked: { backgroundColor: colors.muted },
+    lessonActionText: { color: colors.primaryForeground, fontSize: 12, fontWeight: '700' },
+    lessonActionLockedText: { color: colors.mutedForeground },
+    note: { padding: 15, borderRadius: 17, backgroundColor: colors.goldSoft, flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+    header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 15, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
+    headerMain: { flex: 1 },
+    stepLabel: { color: colors.secondary, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
+    headerTitle: { color: colors.foreground, fontSize: 20, lineHeight: 25, fontFamily: 'BricolageGrotesque_700Bold' },
+    stat: { color: colors.secondary, fontWeight: '700', fontSize: 12 },
+    question: { color: colors.foreground, fontSize: 21, lineHeight: 28, fontFamily: 'BricolageGrotesque_700Bold' },
+    option: { minHeight: 52, borderRadius: 15, borderWidth: 1, borderColor: colors.border, padding: 14, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    optionSelected: { borderColor: colors.primary, backgroundColor: colors.coralSoft },
+    optionText: { color: colors.foreground, flex: 1, fontSize: 15, lineHeight: 21 },
+    button: { minHeight: 54, borderRadius: 16, backgroundColor: colors.primary, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+    buttonDisabled: { opacity: 0.45 },
+    buttonText: { color: colors.primaryForeground, fontSize: 15, fontFamily: 'BricolageGrotesque_700Bold' },
+    secondaryButton: { minHeight: 45, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    secondaryButtonText: { color: colors.secondary, fontWeight: '700', fontSize: 14 },
+    feedback: { borderRadius: 14, padding: 13, backgroundColor: colors.coralSoft, flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
+    feedbackGood: { backgroundColor: colors.tealSoft },
+    feedbackText: { color: colors.foreground, flex: 1, fontSize: 13, lineHeight: 19 },
+    meter: { height: 7, borderRadius: 7, backgroundColor: colors.muted, overflow: 'hidden' },
+    meterFill: { height: '100%', backgroundColor: colors.primary },
+    errorScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 26, gap: 14 },
+    errorTitle: { color: colors.foreground, textAlign: 'center', fontSize: 23, fontFamily: 'BricolageGrotesque_700Bold' },
+    errorCopy: { color: colors.mutedForeground, textAlign: 'center', fontSize: 15, lineHeight: 22 },
+  }), [colors.accent, colors.background, colors.border, colors.card, colors.coralSoft, colors.foreground,
+    colors.goldSoft, colors.muted, colors.mutedForeground, colors.primary, colors.primaryForeground,
+    colors.radius, colors.secondary, colors.secondaryForeground, colors.success, colors.tealSoft]);
 }
 
-function ProgressBar({ progress, style }: { progress: number; style?: StyleProp<ViewStyle> }) {
-  const colors = useColors();
-  return (
-    <View style={[{ height: 8, borderRadius: 8, backgroundColor: colors.muted, overflow: 'hidden' }, style]}>
-      <View
-        style={{
-          width: `${Math.max(0, Math.min(100, progress))}%`,
-          height: '100%',
-          backgroundColor: colors.primary,
-          borderRadius: 8,
-        }}
-      />
-    </View>
-  );
+function isCheckCorrect(target: LearningModel, kind: LearningModel['kind'], state: BuildState): boolean {
+  if (state.d !== target.d || state.count !== target.n) return false;
+  if (kind === 'set' && target.total && target.total % state.d !== 0) return false;
+  return kind !== 'bar' || state.wholes === target.wholes;
 }
 
-function FractionModel({
-  lesson,
-  problem,
-  selected,
-  onToggle,
-}: {
-  lesson: Lesson;
-  problem: FractionProblem;
-  selected: number[];
-  onToggle: (index: number) => void;
-}) {
-  const styles = useStyles();
-  const colors = useColors();
-  const selectedSet = new Set(selected);
+function gatedWorksheetModel(problem: WorksheetProblem): boolean {
+  return (!!problem.modelRequired && problem.model?.kind === 'bar')
+    || !!problem.rulerTask || !!problem.linePlotTask || !!problem.scaleTask || !!(problem.area && problem.areaTask);
+}
 
-  return (
-    <View style={styles.modelCard}>
-      <View style={styles.modelHeader}>
-        <Text style={styles.modelLabel}>Build your model</Text>
-        <Text style={styles.modelCount}>
-          {selected.length} of {problem.denominator} selected
-        </Text>
-      </View>
-      <Text style={styles.wholeLabel}>{lesson.model === 'bar' ? 'ONE WHOLE' : 'ONE GROUP'}</Text>
-      {lesson.model === 'bar' ? (
-        <View
-          accessibilityRole="radiogroup"
-          accessibilityLabel={`${problem.denominator} equal parts`}
-          style={styles.barRow}
-        >
-          {Array.from({ length: problem.denominator }, (_, index) => {
-            const active = selectedSet.has(index);
-            return (
-              <Pressable
-                key={index}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={`Part ${index + 1} of ${problem.denominator}${active ? ', shaded' : ', not shaded'}`}
-                testID={`model-part-${index + 1}`}
-                onPress={() => onToggle(index)}
-                style={({ pressed }) => [
-                  styles.barPart,
-                  active && styles.barPartSelected,
-                  pressed && { opacity: 0.72 },
-                ]}
-              />
-            );
-          })}
-        </View>
-      ) : (
-        <View
-          accessibilityRole="radiogroup"
-          accessibilityLabel={`${problem.denominator} objects in one group`}
-          style={styles.setGrid}
-        >
-          {Array.from({ length: problem.denominator }, (_, index) => {
-            const active = selectedSet.has(index);
-            return (
-              <Pressable
-                key={index}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={`Object ${index + 1} of ${problem.denominator}${active ? ', selected' : ', not selected'}`}
-                testID={`model-part-${index + 1}`}
-                onPress={() => onToggle(index)}
-                style={({ pressed }) => [
-                  styles.setPiece,
-                  active && styles.setPieceSelected,
-                  pressed && { opacity: 0.72 },
-                ]}
-              >
-                <Feather name="circle" size={17} color={active ? colors.secondaryForeground : colors.mutedForeground} />
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
-    </View>
-  );
+function worksheetAnswerCount(record: LearningRecord, missionId: string): number {
+  return Object.keys(record.worksheet).filter((id) => {
+    const problem = getWorksheet(missionId).find((item) => item.id === id);
+    const answer = record.worksheet[id];
+    return problem && answer.checkedValue === answer.draft && answerMatches(problem, answer.draft);
+  }).length;
 }
 
 export default function HomeScreen() {
   const colors = useColors();
   const styles = useStyles();
   const insets = useSafeAreaInsets();
-  const [progress, setProgress] = useState<SavedProgress>(EMPTY_PROGRESS);
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
+  const [progress, setProgress] = useState<SavedProgress>(EMPTY_SAVED_PROGRESS);
   const [loading, setLoading] = useState(true);
   const [storageError, setStorageError] = useState<string | null>(null);
-  const [screen, setScreen] = useState<'home' | 'lesson'>('home');
-  const [activeLessonId, setActiveLessonId] = useState(LESSONS[0].id);
-  const [step, setStep] = useState(0);
-  const [selected, setSelected] = useState<number[]>([]);
-  const [numeratorDraft, setNumeratorDraft] = useState('');
-  const [denominatorDraft, setDenominatorDraft] = useState('');
-  const [result, setResult] = useState<'idle' | 'correct' | 'incorrect' | 'save-error'>('idle');
+  const [screen, setScreen] = useState<Screen>('home');
+  const [activeMissionId, setActiveMissionId] = useState(MISSIONS[0].id);
+  const [practiceIndex, setPracticeIndex] = useState(0);
+  const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
+  const [buildIndex, setBuildIndex] = useState(0);
+  const [primaryBuild, setPrimaryBuild] = useState<BuildState>(blankBuildState());
+  const [secondaryBuild, setSecondaryBuild] = useState<BuildState>(blankBuildState());
+  const [selectedReason, setSelectedReason] = useState<number | null>(null);
+  const [buildSupported, setBuildSupported] = useState(false);
+  const [worksheetIndex, setWorksheetIndex] = useState(0);
+  const [targetedIndex, setTargetedIndex] = useState(0);
+  const [answerDraft, setAnswerDraft] = useState('');
+  const [worksheetModelReady, setWorksheetModelReady] = useState(false);
+  const [result, setResult] = useState<AnswerResult>('idle');
   const [hintVisible, setHintVisible] = useState(false);
 
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const bottomInset = Platform.OS === 'web' ? 34 : Math.max(insets.bottom, 14);
 
+  const persist = useCallback(async (next: SavedProgress): Promise<boolean> => {
+    setStorageError(null);
+    setProgress(next);
+    saveQueue.current = saveQueue.current.catch(() => undefined).then(async () => {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    });
+    try {
+      await saveQueue.current;
+      return true;
+    } catch {
+      setStorageError('Your latest answer could not be saved on this device.');
+      setResult('save-error');
+      return false;
+    }
+  }, []);
+
   const reload = useCallback(async () => {
     setLoading(true);
     setStorageError(null);
     try {
-      const saved = await readProgress();
-      setProgress(saved);
+      const saved = await AsyncStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        setProgress(cleanSavedProgress(JSON.parse(saved) as unknown));
+      } else {
+        const legacy = await AsyncStorage.getItem(LEGACY_STORAGE_KEY);
+        if (legacy) {
+          const old = JSON.parse(legacy) as { completedLessonIds?: unknown[] };
+          setProgress({ ...EMPTY_SAVED_PROGRESS, legacyCompletedCount: Array.isArray(old.completedLessonIds) ? old.completedLessonIds.length : 0 });
+        } else {
+          setProgress(EMPTY_SAVED_PROGRESS);
+        }
+      }
     } catch (error) {
       setStorageError(error instanceof Error ? error.message : 'Progress could not be loaded.');
     } finally {
@@ -613,110 +209,259 @@ export default function HomeScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  useEffect(() => { void reload(); }, [reload]);
 
-  const completedCount = progress.completedLessonIds.length;
-  const totalAnswers = LESSONS.reduce(
-    (sum, lesson) => sum + (progress.worksheetAnswers[lesson.id]?.length ?? 0),
-    0,
-  );
-  const totalSteps = LESSONS.length * (WORKSHEET_SIZE + 1);
-  const firstIncomplete = LESSONS.findIndex((lesson, index) => {
-    const unlocked = index === 0 || progress.completedLessonIds.includes(LESSONS[index - 1].id);
-    return unlocked && !progress.completedLessonIds.includes(lesson.id);
-  });
-  const activeLesson = LESSONS.find((lesson) => lesson.id === activeLessonId) ?? LESSONS[0];
-  const isTransfer = step >= TRANSFER_STEP;
-  const activeProblem = isTransfer
-    ? activeLesson.transfer
-    : activeLesson.questions[Math.min(step, WORKSHEET_SIZE - 1)];
-  const answeredCount = progress.worksheetAnswers[activeLesson.id]?.length ?? 0;
-  const isModelReady = selected.length === activeProblem.numerator;
-  const canCheck =
-    isModelReady &&
-    numeratorDraft.trim() !== '' &&
-    denominatorDraft.trim() !== '' &&
-    result !== 'correct';
+  const activeMission = MISSIONS.find((mission) => mission.id === activeMissionId) ?? MISSIONS[0];
+  const record = getLessonRecord(progress, activeMission.id);
+  const worksheet = useMemo(() => getWorksheet(activeMission.id), [activeMission.id]);
+  const checks = useMemo(() => getBuildChecks(activeMission.id), [activeMission.id]);
+  const webProgress = toWebProgress(progress);
+  const completedCount = MISSIONS.filter((mission) => hasLearningGate(webProgress, mission.id)).length;
+  const question = activeMission.questions[Math.min(practiceIndex, activeMission.questions.length - 1)];
+  const buildCheck = checks[Math.min(buildIndex, checks.length - 1)];
+  const secondaryKind: LearningModel['kind'] = buildCheck?.target.kind === 'line' ? 'bar' : 'line';
+  const buildReady = !!buildCheck &&
+    isCheckCorrect(buildCheck.target, buildCheck.target.kind, primaryBuild) &&
+    isCheckCorrect(buildCheck.target, secondaryKind, secondaryBuild);
+  const currentWorksheet = worksheet[Math.min(worksheetIndex, worksheet.length - 1)];
+  const currentTargeted = useMemo(() => {
+    const plans = targetedPracticePlans(activeMission.id, record);
+    return plans.flatMap((plan) => plan.problems);
+  }, [activeMission.id, record]);
+  const currentTargetedProblem = currentTargeted[Math.min(targetedIndex, Math.max(0, currentTargeted.length - 1))];
+  const currentProblem = screen === 'targeted' ? currentTargetedProblem : currentWorksheet;
+  const isCurrentProblemCorrect = !!currentProblem && record.worksheet[currentProblem.id]?.checkedValue === record.worksheet[currentProblem.id]?.draft
+    && answerMatches(currentProblem, record.worksheet[currentProblem.id]?.draft ?? '');
+  const currentModelGated = !!currentProblem && gatedWorksheetModel(currentProblem);
+  const canCheckWorksheet = !!currentProblem && answerDraft.trim().length > 0 && (!currentModelGated || worksheetModelReady) && !isCurrentProblemCorrect;
+  const worksheetCount = worksheetAnswerCount(record, activeMission.id);
+  const extraProgress = targetedPracticeCount(activeMission.id, record);
+  const lessonComplete = isLessonComplete(progress, activeMission.id);
 
-  const openLesson = (lesson: Lesson) => {
-    const lessonIndex = LESSONS.findIndex((item) => item.id === lesson.id);
-    const unlocked =
-      lessonIndex === 0 || progress.completedLessonIds.includes(LESSONS[lessonIndex - 1].id);
-    if (!unlocked) return;
-    setActiveLessonId(lesson.id);
-    setStep(progress.completedLessonIds.includes(lesson.id) ? 0 : (progress.worksheetAnswers[lesson.id]?.length ?? 0));
-    setSelected([]);
-    setNumeratorDraft('');
-    setDenominatorDraft('');
-    setResult('idle');
+  const updateRecord = async (missionId: string, nextRecord: LearningRecord) => {
+    const next = { ...progress, learning: { ...progress.learning, [missionId]: nextRecord } };
+    return persist(next);
+  };
+
+  const openMission = (missionId: string) => {
+    if (!isLessonOpen(progress, missionId)) return;
+    const selectedMission = MISSIONS.find((mission) => mission.id === missionId);
+    if (!selectedMission) return;
+    const selectedRecord = getLessonRecord(progress, missionId);
+    setActiveMissionId(missionId);
+    setPracticeIndex(findFirstUnfinishedPractice(missionId, progress));
+    setSelectedChoice(null);
+    setBuildIndex(getBuildChecks(missionId).findIndex((check) => !selectedRecord.checks[check.id]?.passed));
+    setPrimaryBuild(blankBuildState());
+    setSecondaryBuild(blankBuildState());
+    setSelectedReason(null);
+    setBuildSupported(false);
+    const sheet = getWorksheet(missionId);
+    const nextWorksheet = sheet.findIndex((problem) => {
+      const answer = selectedRecord.worksheet[problem.id];
+      return !answer || answer.checkedValue !== answer.draft || !answerMatches(problem, answer.draft);
+    });
+    const plans = targetedPracticePlans(missionId, selectedRecord).flatMap((plan) => plan.problems);
+    const nextTargeted = plans.findIndex((problem) => {
+      const answer = selectedRecord.worksheet[problem.id];
+      return !answer || answer.checkedValue !== answer.draft || !answerMatches(problem, answer.draft);
+    });
+    const gateProgress = toWebProgress(progress);
+    const nextScreen: Screen = hasLearningGate(gateProgress, missionId)
+      ? 'complete'
+      : !selectedRecord.practiceDone
+        ? 'practice'
+        : getBuildChecks(missionId).some((check) => !selectedRecord.checks[check.id]?.passed)
+          ? 'build'
+          : nextWorksheet >= 0
+            ? 'worksheet'
+            : nextTargeted >= 0
+              ? 'targeted'
+              : 'complete';
+    setTargetedIndex(Math.max(0, nextTargeted));
+    const nextSheetIndex = Math.max(0, nextWorksheet);
+    const nextExtraIndex = Math.max(0, nextTargeted);
+    setWorksheetIndex(nextSheetIndex);
+    setAnswerDraft(nextScreen === 'targeted'
+      ? selectedRecord.worksheet[plans[nextExtraIndex]?.id]?.draft ?? ''
+      : nextScreen === 'worksheet'
+        ? selectedRecord.worksheet[sheet[nextSheetIndex]?.id]?.draft ?? ''
+        : '');
+    setWorksheetModelReady(false);
     setHintVisible(false);
-    setScreen('lesson');
+    setResult('idle');
+    setScreen(nextScreen);
     void Haptics.selectionAsync();
   };
 
   const goHome = () => {
     setScreen('home');
+    setSelectedChoice(null);
+    setAnswerDraft('');
     setResult('idle');
-    setSelected([]);
-    setNumeratorDraft('');
-    setDenominatorDraft('');
+    setHintVisible(false);
   };
 
-  const togglePiece = (index: number) => {
-    setSelected((current) =>
-      current.includes(index) ? current.filter((item) => item !== index) : [...current, index],
-    );
-    if (result !== 'idle') setResult('idle');
-  };
-
-  const saveAnswer = async () => {
-    if (!isModelReady) {
-      setResult('incorrect');
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      return;
-    }
-    if (!sameFraction(numeratorDraft, denominatorDraft, activeProblem)) {
+  const checkPracticeAnswer = () => {
+    if (!question || selectedChoice !== question.correctChoice) {
       setResult('incorrect');
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
+    setResult('correct');
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
 
-    const next: SavedProgress = {
-      completedLessonIds: isTransfer
-        ? Array.from(new Set([...progress.completedLessonIds, activeLesson.id]))
-        : progress.completedLessonIds,
-      worksheetAnswers: { ...progress.worksheetAnswers },
+  const continuePractice = async () => {
+    const nextIndex = practiceIndex + 1;
+    const nextRecord = nextIndex >= activeMission.questions.length
+      ? { ...record, practiceDone: true }
+      : record;
+    const next = {
+      ...progress,
+      practiceIndexByMission: { ...progress.practiceIndexByMission, [activeMission.id]: nextIndex },
+      learning: { ...progress.learning, [activeMission.id]: nextRecord },
     };
-
-    if (!isTransfer) {
-      const answers = [...(progress.worksheetAnswers[activeLesson.id] ?? [])];
-      answers[step] = `${Number(numeratorDraft)}/${Number(denominatorDraft)}`;
-      next.worksheetAnswers[activeLesson.id] = answers.slice(0, WORKSHEET_SIZE);
-    }
-
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      setProgress(next);
-      setResult('correct');
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
-      setResult('save-error');
+    if (!(await persist(next))) return;
+    if (nextIndex >= activeMission.questions.length) {
+      const nextBuild = checks.findIndex((check) => !nextRecord.checks[check.id]?.passed);
+      setBuildIndex(Math.max(0, nextBuild));
+      setPrimaryBuild(blankBuildState());
+      setSecondaryBuild(blankBuildState());
+      setSelectedReason(null);
+      setResult('idle');
+      setScreen('build');
+    } else {
+      setPracticeIndex(nextIndex);
+      setSelectedChoice(null);
+      setResult('idle');
     }
   };
 
-  const continueAfterCorrect = () => {
-    if (isTransfer) {
-      goHome();
+  const submitBuild = async () => {
+    if (!buildCheck || !buildReady || selectedReason === null) return;
+    const previous = record.checks[buildCheck.id];
+    if (selectedReason !== buildCheck.correctReason) {
+      const reasonSignal = 'Picking the reason';
+      const failed: LearningRecord = {
+        ...record,
+        helpUses: record.helpUses + 1,
+        misconceptions: { ...record.misconceptions, [reasonSignal]: (record.misconceptions[reasonSignal] ?? 0) + 1 },
+        checks: { ...record.checks, [buildCheck.id]: { passed: false, supported: true, attempts: (previous?.attempts ?? 0) + 1 } },
+      };
+      await updateRecord(activeMission.id, failed);
+      setBuildSupported(true);
+      setResult('incorrect');
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
-    setStep((current) => current + 1);
-    setSelected([]);
-    setNumeratorDraft('');
-    setDenominatorDraft('');
+    const nextRecord: LearningRecord = {
+      ...record,
+      checks: { ...record.checks, [buildCheck.id]: { passed: true, supported: !!previous?.supported || buildSupported, attempts: (previous?.attempts ?? 0) + 1 } },
+    };
+    const next = { ...progress, learning: { ...progress.learning, [activeMission.id]: nextRecord } };
+    if (!(await persist(next))) return;
     setResult('idle');
-    setHintVisible(false);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const nextIndex = checks.findIndex((check) => !nextRecord.checks[check.id]?.passed);
+    if (nextIndex >= 0) {
+      setBuildIndex(nextIndex);
+      setPrimaryBuild(blankBuildState());
+      setSecondaryBuild(blankBuildState());
+      setSelectedReason(null);
+      setBuildSupported(false);
+      setHintVisible(false);
+    } else {
+      setWorksheetIndex(0);
+      setResult('idle');
+      setScreen('worksheet');
+    }
+  };
+
+  const updateWorksheetDraft = (problem: WorksheetProblem, draft: string) => {
+    setAnswerDraft(draft);
+    setResult('idle');
+    const prior = record.worksheet[problem.id] ?? { draft: '', attempts: 0, supported: false };
+    const nextRecord: LearningRecord = {
+      ...record,
+      worksheet: {
+        ...record.worksheet,
+        [problem.id]: { ...prior, draft, checkedValue: undefined },
+      },
+      confirmedAt: undefined,
+    };
+    void updateRecord(activeMission.id, nextRecord);
+  };
+
+  const checkWorksheetAnswer = async (problem: WorksheetProblem, isTargeted: boolean) => {
+    if (!problem || !answerDraft.trim() || (gatedWorksheetModel(problem) && !worksheetModelReady)) return;
+    const base = record.worksheet[problem.id] ?? { draft: answerDraft, attempts: 0, supported: false };
+    const withDraft = { ...record, worksheet: { ...record.worksheet, [problem.id]: { ...base, draft: answerDraft } } };
+    const nextRecord = checkWorksheet(withDraft, problem, !isTargeted);
+    if (!(await updateRecord(activeMission.id, nextRecord))) return;
+    if (answerMatches(problem, answerDraft)) {
+      setResult('correct');
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      setResult('incorrect');
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  };
+
+  const continueWorksheet = (isTargeted: boolean) => {
+    const nextIndex = isTargeted
+      ? currentTargeted.findIndex((problem) => {
+        const entry = record.worksheet[problem.id];
+        return !entry || entry.checkedValue !== entry.draft || !answerMatches(problem, entry.draft);
+      })
+      : worksheet.findIndex((problem) => {
+        const entry = record.worksheet[problem.id];
+        return !entry || entry.checkedValue !== entry.draft || !answerMatches(problem, entry.draft);
+      });
+    if (isTargeted) {
+      if (nextIndex >= 0) {
+        setTargetedIndex(nextIndex);
+        setAnswerDraft(record.worksheet[currentTargeted[nextIndex].id]?.draft ?? '');
+        setWorksheetModelReady(false);
+        setResult('idle');
+        setHintVisible(false);
+      } else {
+        setScreen('complete');
+      }
+      return;
+    }
+    if (nextIndex >= 0) {
+      setWorksheetIndex(nextIndex);
+      setAnswerDraft(record.worksheet[worksheet[nextIndex].id]?.draft ?? '');
+      setWorksheetModelReady(false);
+      setResult('idle');
+      setHintVisible(false);
+    } else {
+      const plans = targetedPracticePlans(activeMission.id, record).flatMap((plan) => plan.problems);
+      const pendingExtra = plans.findIndex((problem) => {
+        const entry = record.worksheet[problem.id];
+        return !entry || entry.checkedValue !== entry.draft || !answerMatches(problem, entry.draft);
+      });
+      if (pendingExtra >= 0) {
+        setTargetedIndex(pendingExtra);
+        setAnswerDraft(record.worksheet[plans[pendingExtra].id]?.draft ?? '');
+        setWorksheetModelReady(false);
+        setHintVisible(false);
+        setScreen('targeted');
+      } else {
+        setScreen('complete');
+      }
+    }
+  };
+
+  const showHint = async (problem: WorksheetProblem) => {
+    setHintVisible(true);
+    const prior = record.worksheet[problem.id] ?? { draft: '', attempts: 0, supported: false };
+    await updateRecord(activeMission.id, {
+      ...record,
+      helpUses: record.helpUses + 1,
+      worksheet: { ...record.worksheet, [problem.id]: { ...prior, supported: true } },
+    });
   };
 
   if (loading) {
@@ -729,14 +474,14 @@ export default function HomeScreen() {
     );
   }
 
-  if (storageError) {
+  if (storageError && !progress.legacyCompletedCount && completedCount === 0 && Object.keys(progress.learning).length === 0) {
     return (
       <View style={[styles.screen, styles.errorScreen, { paddingTop: topInset + 20, paddingBottom: bottomInset + 20 }]}>
         <Feather name="alert-circle" size={35} color={colors.destructive} />
         <Text style={styles.errorTitle}>Your progress didn’t load</Text>
         <Text style={styles.errorCopy}>{storageError}</Text>
-        <Pressable accessibilityRole="button" onPress={() => void reload()} style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Try again</Text>
+        <Pressable accessibilityRole="button" onPress={() => void reload()} style={styles.button}>
+          <Text style={styles.buttonText}>Try again</Text>
         </Pressable>
       </View>
     );
@@ -744,294 +489,293 @@ export default function HomeScreen() {
 
   if (screen === 'home') {
     return (
-      <ScrollView
-        style={styles.screen}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: topInset + 12, paddingBottom: bottomInset + 34 }]}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.screen}
+        contentContainerStyle={[styles.content, { paddingTop: topInset + 12, paddingBottom: bottomInset + 34 }]}
+        showsVerticalScrollIndicator={false}>
         <View style={styles.brandRow}>
           <View style={styles.brand}>
-            <Image
-              source={require('../assets/images/icon.png')}
-              contentFit="cover"
-              style={styles.brandIcon}
-              accessibilityLabel="Fraction Quest icon"
-            />
+            <Image source={require('../assets/images/icon.png')} contentFit="cover" style={styles.brandIcon} accessibilityLabel="Fraction Quest icon" />
             <Text style={styles.brandName}>Fraction Quest</Text>
           </View>
           <View style={styles.profileBadge} accessibilityLabel="Your local learning profile">
             <Feather name="smile" size={20} color={colors.secondary} />
           </View>
         </View>
-
         <View>
           <Text style={styles.eyebrow}>A little practice, a lot of “aha!”</Text>
-          <Text style={styles.heroTitle}>Your fraction adventure starts here.</Text>
-          <Text style={[styles.body, styles.heroBody]}>
-            Tap the model, enter your answer, and see fractions come to life.
-          </Text>
+          <Text style={styles.title}>Your fraction adventure starts here.</Text>
+          <Text style={[styles.body, { marginTop: 8 }]}>Explore the complete fraction course. Build models, answer each lesson’s questions, and keep your progress on this iPhone.</Text>
         </View>
-
         <View style={styles.progressCard}>
-          <View style={styles.progressTop}>
-            <View>
-              <Text style={styles.progressTitle}>Your iPhone starter trail</Text>
-              <Text style={styles.progressCopy}>
-                {completedCount === LESSONS.length
-                  ? 'Both starter lessons complete'
-                  : `${completedCount} of ${LESSONS.length} lessons complete`}
-              </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.progressTitle}>Your fraction course</Text>
+              <Text style={styles.progressCopy}>{completedCount === MISSIONS.length ? 'Every lesson complete' : `${completedCount} of ${MISSIONS.length} lessons complete`}</Text>
             </View>
-            <Text style={styles.progressCount}>{completedCount}/{LESSONS.length}</Text>
+            <Text style={styles.progressCount}>{completedCount}/{MISSIONS.length}</Text>
           </View>
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${(completedCount / LESSONS.length) * 100}%` }]} />
+            <View style={[styles.progressFill, { width: `${(completedCount / MISSIONS.length) * 100}%` }]} />
           </View>
         </View>
-
         <View>
-          <Text style={styles.sectionHeading}>Choose your next step</Text>
-          <Text style={styles.sectionSubheading}>Each lesson has 10 practice questions and a final model check.</Text>
-          <View style={styles.lessonList}>
-            {LESSONS.map((lesson, index) => {
-              const unlocked =
-                index === 0 || progress.completedLessonIds.includes(LESSONS[index - 1].id);
-              const complete = progress.completedLessonIds.includes(lesson.id);
-              const savedAnswers = progress.worksheetAnswers[lesson.id]?.length ?? 0;
-              return (
-                <Pressable
-                  key={lesson.id}
-                  testID={`lesson-card-${lesson.id}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ disabled: !unlocked }}
-                  accessibilityLabel={`${lesson.title}, ${complete ? 'complete' : unlocked ? `${savedAnswers} of 10 answers` : 'locked'}`}
-                  disabled={!unlocked}
-                  onPress={() => openLesson(lesson)}
-                  style={({ pressed }) => [
-                    styles.lessonCard,
-                    !unlocked && styles.lessonCardLocked,
-                    pressed && styles.lessonCardPressed,
-                  ]}
-                >
-                  <View style={styles.lessonCardTop}>
-                    <View style={[styles.lessonIcon, lesson.tint === 'coral' ? styles.lessonIconCoral : styles.lessonIconTeal]}>
-                      <Feather
-                        name={lesson.model === 'bar' ? 'sidebar' : 'grid'}
-                        size={21}
-                        color={lesson.tint === 'coral' ? colors.primary : colors.secondary}
-                      />
-                    </View>
-                    <View style={styles.lessonText}>
-                      <Text style={styles.lessonUnit}>{`STEP ${index + 1} · ${lesson.unit}`}</Text>
-                      <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                    </View>
-                    {complete ? (
-                      <Feather name="check-circle" size={21} color={colors.success} />
-                    ) : unlocked ? (
-                      <Feather name="arrow-up-right" size={20} color={colors.mutedForeground} />
-                    ) : (
-                      <Feather name="lock" size={19} color={colors.mutedForeground} />
-                    )}
-                  </View>
-                  <Text style={styles.lessonCopy}>{lesson.description}</Text>
-                  <View style={styles.cardFooter}>
-                    <View style={[styles.statusPill, complete && styles.statusComplete]}>
-                      <Feather
-                        name={complete ? 'check' : unlocked ? 'edit-3' : 'lock'}
-                        size={13}
-                        color={complete ? colors.success : colors.mutedForeground}
-                      />
-                      <Text style={[styles.statusText, complete && styles.statusCompleteText]}>
-                        {complete ? 'Completed' : unlocked ? `${savedAnswers} / 10 answers` : 'Finish step 1 first'}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.cardAction,
-                        lesson.tint === 'teal' && unlocked && styles.cardActionTeal,
-                        !unlocked && styles.cardActionDisabled,
-                      ]}
-                    >
-                      <Text style={[styles.cardActionText, !unlocked && styles.cardActionDisabledText]}>
-                        {complete ? 'Review' : unlocked ? savedAnswers > 0 ? 'Continue' : 'Start' : 'Locked'}
-                      </Text>
-                      <Feather
-                        name={complete ? 'rotate-ccw' : unlocked ? 'arrow-right' : 'lock'}
-                        size={15}
-                        color={!unlocked ? colors.mutedForeground : colors.primaryForeground}
-                      />
-                    </View>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
+          <Text style={styles.sectionHeading}>The lesson path</Text>
+          <Text style={styles.sectionSubheading}>Finish the lesson practice, both model builds, and all 12 worksheet answers to open what comes next.</Text>
         </View>
-
-        <View style={styles.noteCard}>
+        {UNIT_INFO.map((unit, unitIndex) => {
+          const unitMissions = MISSIONS.filter((mission) => mission.unit === unitIndex + 1);
+          if (!unitMissions.length) return null;
+          const finished = unitMissions.filter((mission) => isLessonComplete(progress, mission.id)).length;
+          return (
+            <View key={unitIndex} style={styles.unitCard}>
+              <View style={styles.unitHeading}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.unitKicker}>Unit {unitIndex + 1}</Text>
+                  <Text style={styles.unitTitle}>{unit.title}</Text>
+                  <Text style={styles.unitSubtitle}>{unit.subtitle}</Text>
+                </View>
+                <Text accessibilityLabel={`${finished} of ${unitMissions.length} lessons mastered`} style={styles.unitCount}>{finished}/{unitMissions.length}</Text>
+              </View>
+              {unitMissions.map((mission) => {
+                const unlocked = isLessonOpen(progress, mission.id);
+                const complete = isLessonComplete(progress, mission.id);
+                const lessonRecord = getLessonRecord(progress, mission.id);
+                const rows = worksheetAnswerCount(lessonRecord, mission.id);
+                const checksDone = getBuildChecks(mission.id).filter((check) => lessonRecord.checks[check.id]?.passed).length;
+                const questionsDone = lessonRecord.practiceDone ? mission.questions.length : progress.practiceIndexByMission[mission.id] ?? 0;
+                const isTeal = mission.unit % 2 === 0;
+                return (
+                  <View key={mission.id} style={[styles.lessonItem, !unlocked && styles.lessonLocked]}>
+                    <View style={styles.lessonRow}>
+                      <View style={styles.lessonNumber}>
+                        {complete ? <Feather name="check" size={16} color={colors.success} /> : unlocked ? <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}</Text> : <Feather name="lock" size={14} color={colors.mutedForeground} />}
+                      </View>
+                      <View style={styles.lessonText}>
+                        <Text style={styles.lessonName}>{mission.title}</Text>
+                        <Text style={styles.lessonDescription}>{mission.description}</Text>
+                      </View>
+                      <Pressable testID={`lesson-card-${mission.id}`} accessibilityRole="button"
+                        accessibilityLabel={`${mission.title}, ${complete ? 'complete' : unlocked ? 'available' : 'locked'}`}
+                        accessibilityState={{ disabled: !unlocked }} disabled={!unlocked} onPress={() => openMission(mission.id)}
+                        style={({ pressed }) => [styles.lessonAction, isTeal && unlocked && styles.lessonActionTeal, !unlocked && styles.lessonActionLocked, pressed && { opacity: 0.78 }]}>
+                        <Text style={[styles.lessonActionText, !unlocked && styles.lessonActionLockedText]}>{complete ? 'Review' : unlocked ? 'Open' : 'Locked'}</Text>
+                        <Feather name={complete ? 'rotate-ccw' : unlocked ? 'arrow-right' : 'lock'} size={14} color={!unlocked ? colors.mutedForeground : colors.primaryForeground} />
+                      </Pressable>
+                    </View>
+                    <Text style={styles.lessonProgress}>
+                      {complete ? 'Complete' : !unlocked ? `Finish earlier lessons first · ${questionsDone}/${mission.questions.length} practice · ${checksDone}/2 builds · ${rows}/12 worksheet` : `${questionsDone}/${mission.questions.length} practice · ${checksDone}/2 builds · ${rows}/12 worksheet`}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          );
+        })}
+        {progress.legacyCompletedCount > 0 && (
+          <View style={styles.note}>
+            <Feather name="archive" size={18} color={colors.foreground} />
+            <Text style={[styles.body, { flex: 1 }]}>
+              Your earlier starter-trail record ({progress.legacyCompletedCount} completed lesson{progress.legacyCompletedCount === 1 ? '' : 's'}) is preserved. It stays separate from the full-course mastery checks.
+            </Text>
+          </View>
+        )}
+        {!!storageError && <View style={styles.feedback}><Feather name="alert-triangle" size={18} color={colors.destructive} /><Text style={styles.feedbackText}>{storageError}</Text></View>}
+        <View style={styles.note}>
           <Feather name="smartphone" size={18} color={colors.foreground} />
-          <Text style={styles.noteText}>
-            Your progress is saved on this device. Complete all 10 answers and the final model check to unlock the next lesson.
-          </Text>
+          <Text style={[styles.body, { flex: 1 }]}>Progress is saved on this device. Each lesson stays locked until its practice, model checks, worksheet, and any extra practice are complete.</Text>
         </View>
       </ScrollView>
     );
   }
 
-  const worksheetProgress = Math.min(answeredCount, WORKSHEET_SIZE);
-  const displayedStep = isTransfer ? WORKSHEET_SIZE + 1 : step + 1;
-  const lessonNumber = LESSONS.findIndex((lesson) => lesson.id === activeLesson.id) + 1;
-  const successMessage = isTransfer
-    ? `${activeLesson.title} complete. The next lesson is now unlocked.`
-    : 'That fraction matches your model. Nice work.';
+  if (screen === 'practice' && question) {
+    const correctAnswerShown = result === 'correct';
+    return (
+      <KeyboardAwareScrollViewCompat style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: topInset + 10, paddingBottom: bottomInset + 26 }]} keyboardShouldPersistTaps="handled" bottomOffset={20}>
+        <LessonHeader styles={styles} mission={activeMission} label={`LESSON ${MISSIONS.indexOf(activeMission) + 1} · PRACTICE`} count={`${practiceIndex + 1}/${activeMission.questions.length}`} onBack={goHome} />
+        <ProgressMeter styles={styles} progress={(practiceIndex / activeMission.questions.length) * 100} />
+        <Text style={styles.question}>{question.prompt}</Text>
+        <ModelPreview model={question.model} />
+        <View style={{ gap: 9 }}>
+          {question.choices.map((choice, index) => (
+            <Pressable key={`${question.id}-${index}`} accessibilityRole="radio" accessibilityState={{ selected: selectedChoice === index }}
+              disabled={correctAnswerShown} onPress={() => { setSelectedChoice(index); setResult('idle'); }}
+              style={[styles.option, selectedChoice === index && styles.optionSelected]}>
+              <Feather name={selectedChoice === index ? 'check-circle' : 'circle'} size={19} color={selectedChoice === index ? colors.primary : colors.mutedForeground} />
+              <Text style={styles.optionText}>{choice}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <PrimaryAction styles={styles} label={correctAnswerShown ? practiceIndex + 1 >= activeMission.questions.length ? 'Start model builds' : 'Next question' : 'Check answer'}
+          disabled={selectedChoice === null && !correctAnswerShown}
+          onPress={correctAnswerShown ? () => void continuePractice() : checkPracticeAnswer} />
+        {result === 'incorrect' && <Feedback styles={styles} text={question.retryFeedback || question.hint} />}
+        {correctAnswerShown && <Feedback styles={styles} good text="That answer is right. Keep going." />}
+        {!!storageError && <Feedback styles={styles} text={storageError} />}
+      </KeyboardAwareScrollViewCompat>
+    );
+  }
+
+  if (screen === 'build' && buildCheck) {
+    const primaryCorrect = isCheckCorrect(buildCheck.target, buildCheck.target.kind, primaryBuild);
+    const secondaryCorrect = isCheckCorrect(buildCheck.target, secondaryKind, secondaryBuild);
+    const reasonReady = primaryCorrect && secondaryCorrect;
+    const reasonOptions = buildCheck.reasons;
+    return (
+      <KeyboardAwareScrollViewCompat style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: topInset + 10, paddingBottom: bottomInset + 26 }]} keyboardShouldPersistTaps="handled" bottomOffset={20}>
+        <LessonHeader styles={styles} mission={activeMission} label={buildCheck.transfer ? 'STEP 2 · ON YOUR OWN' : 'STEP 1 · BUILD IT'} count={`${buildIndex + 1}/2`} onBack={goHome} />
+        <ProgressMeter styles={styles} progress={(buildIndex / checks.length) * 100} />
+        <Text style={styles.question}>{buildCheck.prompt}</Text>
+        <ModelBuilder check={buildCheck} kind={buildCheck.target.kind} value={primaryBuild} onChange={(value) => { setPrimaryBuild(value); setSelectedReason(null); setResult('idle'); }} title={`Build it ${buildCheck.target.kind === 'set' ? 'with equal groups' : buildCheck.target.kind === 'line' ? 'on a number line' : 'with a bar model'}`} />
+        <View style={styles.feedbackGood}>
+          <Text style={styles.feedbackText}>{primaryCorrect ? `${buildCheck.target.n}/${buildCheck.target.d} is built in this model.` : 'Match the equal parts and selected amount to the prompt.'}</Text>
+        </View>
+        {primaryCorrect ? (
+          <>
+            <View style={{ gap: 6 }}>
+              <Text style={styles.sectionHeading}>Show the same amount another way</Text>
+              <Text style={styles.sectionSubheading}>{secondaryKind === 'line' ? 'Now place it on a number line.' : 'Now show it with a bar model.'}</Text>
+            </View>
+            <ModelBuilder check={buildCheck} kind={secondaryKind} value={secondaryBuild} onChange={(value) => { setSecondaryBuild(value); setSelectedReason(null); setResult('idle'); }} title={secondaryKind === 'line' ? 'Number line' : 'Bar model'} />
+          </>
+        ) : null}
+        {reasonReady && secondaryCorrect && (
+          <>
+            <Text style={styles.sectionHeading}>Which idea explains why?</Text>
+            {reasonOptions.map((reason, index) => (
+              <Pressable key={`${buildCheck.id}-reason-${index}`} accessibilityRole="radio" accessibilityState={{ selected: selectedReason === index }}
+                onPress={() => { setSelectedReason(index); setResult('idle'); }} style={[styles.option, selectedReason === index && styles.optionSelected]}>
+                <Feather name={selectedReason === index ? 'check-circle' : 'circle'} size={19} color={selectedReason === index ? colors.primary : colors.mutedForeground} />
+                <Text style={styles.optionText}>{reason}</Text>
+              </Pressable>
+            ))}
+          </>
+        )}
+        <Pressable accessibilityRole="button" onPress={() => { setHintVisible(true); setBuildSupported(true); void updateRecord(activeMission.id, { ...record, helpUses: record.helpUses + 1 }); }} style={styles.secondaryButton}>
+          <Feather name="help-circle" size={17} color={colors.secondary} /><Text style={styles.secondaryButtonText}>Need a hint?</Text>
+        </Pressable>
+        {hintVisible && <Feedback styles={styles} text={`Split each whole into ${buildCheck.target.d} equal ${buildCheck.target.kind === 'line' ? 'spaces' : buildCheck.target.kind === 'set' ? 'groups' : 'parts'}, then ${buildCheck.target.kind === 'line' ? 'mark' : buildCheck.target.kind === 'set' ? 'select' : 'shade'} ${buildCheck.target.n}.`} />}
+        <PrimaryAction styles={styles} label="Check model and reason" disabled={!reasonReady || selectedReason === null} onPress={() => void submitBuild()} />
+        {result === 'incorrect' && <Feedback styles={styles} text="That reason does not match both models yet. Try another choice." />}
+        {result === 'correct' && <Feedback styles={styles} good text={buildCheck.explanation} />}
+        {!!storageError && <Feedback styles={styles} text={storageError} />}
+      </KeyboardAwareScrollViewCompat>
+    );
+  }
+
+  if ((screen === 'worksheet' || screen === 'targeted') && currentProblem) {
+    const isTargeted = screen === 'targeted';
+    const entry = record.worksheet[currentProblem.id];
+    const answerAlreadyCorrect = !!entry && entry.checkedValue === entry.draft && answerMatches(currentProblem, entry.draft);
+    const submittedCorrect = result === 'correct' || answerAlreadyCorrect;
+    const localDraft = answerDraft !== '' ? answerDraft : entry?.draft ?? '';
+    const enteredCount = isTargeted ? extraProgress.done : worksheetCount;
+    const totalCount = isTargeted ? extraProgress.total : worksheet.length;
+    return (
+      <KeyboardAwareScrollViewCompat key={`${activeMission.id}-${currentProblem.id}`} style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: topInset + 10, paddingBottom: bottomInset + 26 }]} keyboardShouldPersistTaps="handled" bottomOffset={20}>
+        <LessonHeader styles={styles} mission={activeMission} label={isTargeted ? 'EXTRA PRACTICE' : 'WORKSHEET'} count={`${enteredCount}/${totalCount}`} onBack={goHome} />
+        <ProgressMeter styles={styles} progress={(enteredCount / Math.max(totalCount, 1)) * 100} />
+        <View style={styles.card}>
+          <Text style={styles.eyebrow}>{isTargeted ? 'One idea needs another try' : `Question ${worksheetIndex + 1} of ${worksheet.length}`}</Text>
+          <Text style={styles.question}>{currentProblem.prompt}</Text>
+        </View>
+        <WorksheetModelInput key={currentProblem.id} problem={currentProblem} disabled={submittedCorrect}
+          onReady={setWorksheetModelReady} />
+        <View style={{ gap: 8 }}>
+          <Text style={styles.sectionSubheading}>Build your answer with tiles</Text>
+          <AnswerTileBuilder key={currentProblem.id} problem={currentProblem} value={localDraft}
+            onChange={(value) => updateWorksheetDraft(currentProblem, value)} disabled={submittedCorrect} />
+        </View>
+        <PrimaryAction styles={styles}
+          label={submittedCorrect ? isTargeted ? 'Next extra check' : 'Next question' : 'Check answer'}
+          disabled={submittedCorrect ? false : !canCheckWorksheet}
+          onPress={submittedCorrect ? () => continueWorksheet(isTargeted) : () => void checkWorksheetAnswer(currentProblem, isTargeted)} />
+        {result === 'incorrect' && <Feedback styles={styles} text={currentProblem.hint || 'Not quite yet. Try again.'} />}
+        {submittedCorrect && <Feedback styles={styles} good text="That answer is correct. Your work is saved." />}
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: hintVisible }} onPress={() => void showHint(currentProblem)} style={styles.secondaryButton}>
+          <Feather name="help-circle" size={17} color={colors.secondary} /><Text style={styles.secondaryButtonText}>{hintVisible ? 'Hint shown' : 'Need a hint?'}</Text>
+        </Pressable>
+        {hintVisible && <Feedback styles={styles} text={currentProblem.hint} />}
+        {!!storageError && <Feedback styles={styles} text={storageError} />}
+        <View style={styles.note}>
+          <Feather name="check-square" size={17} color={colors.foreground} />
+          <Text style={[styles.body, { flex: 1 }]}>{isTargeted ? `${enteredCount} of ${totalCount} extra answers checked.` : `${worksheetCount} of 12 worksheet answers checked.`} You can leave and return; checked work remains saved.</Text>
+        </View>
+      </KeyboardAwareScrollViewCompat>
+    );
+  }
+
+  if (screen === 'complete' || lessonComplete) {
+    const unitLessons = MISSIONS.filter((mission) => mission.unit === activeMission.unit);
+    const nextMission = MISSIONS[MISSIONS.indexOf(activeMission) + 1];
+    const nextIsOpen = !!nextMission && isLessonOpen(progress, nextMission.id);
+    return (
+      <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: topInset + 10, paddingBottom: bottomInset + 30 }]}>
+        <LessonHeader styles={styles} mission={activeMission} label={`UNIT ${activeMission.unit} COMPLETE`} count={`${unitLessons.filter((mission) => isLessonComplete(progress, mission.id)).length}/${unitLessons.length}`} onBack={goHome} />
+        <View style={[styles.progressCard, { alignItems: 'center', paddingVertical: 28 }]}>
+          <Feather name="award" size={42} color={colors.accent} />
+          <Text style={[styles.progressTitle, { fontSize: 21, textAlign: 'center', marginTop: 10 }]}>{activeMission.title} complete!</Text>
+          <Text style={[styles.progressCopy, { textAlign: 'center', lineHeight: 20 }]}>Your practice, model builds, and worksheet are saved. {nextIsOpen ? 'The next lesson is unlocked.' : 'You can keep exploring the course path.'}</Text>
+        </View>
+        <View style={styles.card}>
+          <Text style={styles.sectionHeading}>Lesson evidence</Text>
+          <Text style={styles.body}>Practice: complete</Text>
+          <Text style={styles.body}>Model builds: {checks.filter((check) => record.checks[check.id]?.passed).length} of {checks.length}</Text>
+          <Text style={styles.body}>Worksheet: {worksheetCount} of 12</Text>
+          {extraProgress.total > 0 && <Text style={styles.body}>Extra practice: {extraProgress.done} of {extraProgress.total}</Text>}
+        </View>
+        <PrimaryAction styles={styles} label={nextIsOpen && nextMission ? `Continue to ${nextMission.title}` : 'Back to lesson path'} onPress={() => nextIsOpen && nextMission ? openMission(nextMission.id) : goHome()} />
+        <Pressable onPress={goHome} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>View all units and lessons</Text></Pressable>
+      </ScrollView>
+    );
+  }
 
   return (
-    <KeyboardAwareScrollViewCompat
-      style={styles.screen}
-      contentContainerStyle={[
-        styles.scrollContent,
-        { paddingTop: topInset + 12, paddingBottom: bottomInset + 26 },
-      ]}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-      bottomOffset={20}
-    >
-      <View style={styles.screenHeader}>
-        <Pressable
-          testID="lesson-back"
-          accessibilityRole="button"
-          accessibilityLabel="Back to lessons"
-          onPress={goHome}
-          style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}
-        >
-          <Feather name="arrow-left" size={20} color={colors.foreground} />
-        </Pressable>
-        <View style={styles.lessonHeaderText}>
-          <Text style={styles.stepLabel}>
-            {isTransfer ? 'FINAL MODEL CHECK' : `LESSON ${lessonNumber} · ${worksheetProgress}/10`}
-          </Text>
-          <Text style={styles.lessonHeaderTitle}>{activeLesson.title}</Text>
-        </View>
-        <Text style={styles.modelCount}>{displayedStep}/11</Text>
-      </View>
+    <View style={[styles.screen, styles.errorScreen]}>
+      <Feather name="alert-circle" size={35} color={colors.destructive} />
+      <Text style={styles.errorTitle}>This lesson is not available yet</Text>
+      <Text style={styles.errorCopy}>Finish the earlier lessons first, then come back to this one.</Text>
+      <Pressable accessibilityRole="button" onPress={goHome} style={styles.button}><Text style={styles.buttonText}>Back to lesson path</Text></Pressable>
+    </View>
+  );
+}
 
-      <ProgressBar progress={(displayedStep / 11) * 100} />
-
-      <View style={{ gap: 8 }}>
-        <Text style={styles.prompt}>
-          {isTransfer
-            ? `Tap ${activeProblem.numerator} of ${activeProblem.denominator} equal ${activeLesson.model === 'bar' ? 'pieces' : 'objects'}. What fraction is selected?`
-            : `Tap ${activeProblem.numerator} of ${activeProblem.denominator} equal ${activeLesson.model === 'bar' ? 'pieces' : 'objects'}. What fraction is selected?`}
-        </Text>
-        <Text style={styles.body}>
-          {isModelReady
-            ? isTransfer
-              ? 'Now write the fraction that matches your model.'
-              : 'Your model is ready. Write the fraction to continue.'
-            : `Select ${activeProblem.numerator} equal ${activeLesson.model === 'bar' ? 'pieces' : 'objects'} in the model first.`}
-        </Text>
-      </View>
-
-      <FractionModel
-        lesson={activeLesson}
-        problem={activeProblem}
-        selected={selected}
-        onToggle={togglePiece}
-      />
-
-      <View>
-        <Text style={styles.inputLabel}>Enter the fraction you made</Text>
-        <View style={styles.fractionInputs}>
-          <TextInput
-            testID="answer-numerator"
-            accessibilityLabel="Fraction numerator"
-            value={numeratorDraft}
-            onChangeText={(value) => {
-              setNumeratorDraft(value.replace(/[^0-9]/g, '').slice(0, 2));
-              if (result !== 'idle') setResult('idle');
-            }}
-            keyboardType="number-pad"
-            returnKeyType="next"
-            maxLength={2}
-            selectTextOnFocus
-            style={styles.fractionInput}
-            placeholder="?"
-            placeholderTextColor={colors.mutedForeground}
-          />
-          <View style={styles.fractionSlash} />
-          <TextInput
-            testID="answer-denominator"
-            accessibilityLabel="Fraction denominator"
-            value={denominatorDraft}
-            onChangeText={(value) => {
-              setDenominatorDraft(value.replace(/[^0-9]/g, '').slice(0, 2));
-              if (result !== 'idle') setResult('idle');
-            }}
-            keyboardType="number-pad"
-            returnKeyType="done"
-            maxLength={2}
-            selectTextOnFocus
-            style={styles.fractionInput}
-            placeholder="?"
-            placeholderTextColor={colors.mutedForeground}
-          />
-        </View>
-      </View>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={result === 'correct' ? (isTransfer ? 'Finish lesson' : 'Continue to next question') : 'Check answer'}
-        testID="answer-submit"
-        disabled={result !== 'correct' && !canCheck}
-        onPress={result === 'correct' ? continueAfterCorrect : () => void saveAnswer()}
-        style={({ pressed }) => [
-          styles.primaryButton,
-          pressed && styles.primaryButtonPressed,
-          result !== 'correct' && !canCheck && styles.primaryButtonDisabled,
-        ]}
-      >
-        <Text style={styles.primaryButtonText}>
-          {result === 'correct' ? (isTransfer ? 'Finish lesson' : 'Next question') : 'Check answer'}
-        </Text>
-        <Feather name={result === 'correct' && !isTransfer ? 'arrow-right' : 'check'} size={18} color={colors.primaryForeground} />
+function LessonHeader({ styles, mission, label, count, onBack }: {
+  styles: ReturnType<typeof useStyles>; mission: (typeof MISSIONS)[number]; label: string; count: string; onBack: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <View style={styles.header}>
+      <Pressable testID="lesson-back" accessibilityRole="button" accessibilityLabel="Back to lessons" onPress={onBack} style={styles.back}>
+        <Feather name="arrow-left" size={20} color={colors.foreground} />
       </Pressable>
+      <View style={styles.headerMain}>
+        <Text style={styles.stepLabel}>{label}</Text>
+        <Text style={styles.headerTitle} numberOfLines={2}>{mission.title}</Text>
+      </View>
+      <Text style={styles.stat}>{count}</Text>
+    </View>
+  );
+}
 
-      {result === 'incorrect' && (
-        <View style={styles.feedback} accessibilityLiveRegion="polite">
-          <Feather name="info" size={18} color={colors.primary} />
-          <Text style={styles.feedbackText}>
-            {!isModelReady
-              ? `Choose ${activeProblem.numerator} equal ${activeLesson.model === 'bar' ? 'pieces' : 'objects'} in the model, then try again.`
-              : 'Not quite yet. The top number counts selected parts; the bottom counts all equal parts. Try again.'}
-          </Text>
-        </View>
-      )}
-      {result === 'save-error' && (
-        <View style={styles.feedback} accessibilityLiveRegion="polite">
-          <Feather name="alert-triangle" size={18} color={colors.destructive} />
-          <Text style={styles.feedbackText}>Your answer couldn’t be saved on this device. Please check storage and try again.</Text>
-        </View>
-      )}
-      {result === 'correct' && (
-        <View style={[styles.feedback, styles.feedbackCorrect]} accessibilityLiveRegion="polite">
-          <Feather name="check-circle" size={18} color={colors.success} />
-          <Text style={styles.feedbackText}>{successMessage}</Text>
-        </View>
-      )}
+function ProgressMeter({ styles, progress }: { styles: ReturnType<typeof useStyles>; progress: number }) {
+  return <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(progress) }} style={styles.meter}><View style={[styles.meterFill, { width: `${Math.max(0, Math.min(100, progress))}%` }]} /></View>;
+}
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: hintVisible }}
-        onPress={() => setHintVisible((visible) => !visible)}
-        style={styles.helpRow}
-      >
-        <Feather name="help-circle" size={17} color={colors.secondary} />
-        <Text style={styles.helpText}>
-          {hintVisible
-            ? 'The bottom number tells how many equal parts make one whole. The top number tells how many parts you selected.'
-            : 'Need a hint?'}
-        </Text>
-      </Pressable>
-    </KeyboardAwareScrollViewCompat>
+function PrimaryAction({ styles, label, disabled = false, onPress }: { styles: ReturnType<typeof useStyles>; label: string; disabled?: boolean; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, disabled && styles.buttonDisabled, pressed && { opacity: 0.85 }]}>
+      <Text style={styles.buttonText}>{label}</Text><Feather name="arrow-right" size={18} color="white" />
+    </Pressable>
+  );
+}
+
+function Feedback({ styles, text, good = false }: { styles: ReturnType<typeof useStyles>; text: string; good?: boolean }) {
+  const colors = useColors();
+  return (
+    <View accessibilityLiveRegion="polite" style={[styles.feedback, good && styles.feedbackGood]}>
+      <Feather name={good ? 'check-circle' : 'info'} size={18} color={good ? colors.success : colors.primary} />
+      <Text style={styles.feedbackText}>{text}</Text>
+    </View>
   );
 }
