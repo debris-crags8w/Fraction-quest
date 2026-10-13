@@ -543,7 +543,7 @@
 
 /* example step */
 .fq-mascot-say { display: flex; align-items: flex-end; gap: 12px; margin-top: 14px; }
-.fq-mascot-say .fq-skill-statement {
+.fq-mascot-say .fq-skill-bubble {
   position: relative;
   flex: 1;
   margin: 0;
@@ -553,6 +553,24 @@
   background: hsl(var(--card));
   font-weight: 800;
 }
+.fq-skill-header,
+.fq-example-section-header,
+.fq-story-question-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.fq-skill-header { align-items: center; margin-bottom: 4px; }
+.fq-skill-label,
+.fq-example-section-header h3 { margin: 0; color: hsl(var(--muted-foreground)); font-size: 0.84rem; font-weight: 900; }
+.fq-skill-copy { margin: 0; line-height: 1.45; }
+.fq-example-section { margin-top: 10px; }
+.fq-example-section-header .fq-learning-listen,
+.fq-skill-header .fq-learning-listen,
+.fq-story-question-heading .fq-learning-listen { flex: none; margin: 0; }
+.fq-story-question-heading { align-items: flex-start; margin-top: 8px; }
+.fq-story-question-heading .fq-question-text { flex: 1; min-width: 0; margin: 0; }
 .fq-example-answer { border: 0; border-radius: 20px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); }
 .fq-example-label { color: var(--fq-grape); font-weight: 900; }
 .fq-example-result { color: var(--fq-grape); font-family: var(--app-font-display); }

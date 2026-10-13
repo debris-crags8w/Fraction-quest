@@ -557,7 +557,13 @@ export function useReadAloud(text: string | null, key: string | number | null = 
   }, [key, text === null]);
 }
 
-function ListenButton({ text }: { text: string }) {
+export function LearningListenButton({
+  text,
+  label = 'Listen to this explanation',
+}: {
+  text: string;
+  label?: string;
+}) {
   const [speaking, setSpeaking] = useState(false);
   const funContext = useOptionalFun();
   const preferredVoiceId = funContext
@@ -601,7 +607,7 @@ function ListenButton({ text }: { text: string }) {
       className="fq-learning-listen"
       onClick={toggleSpeech}
       disabled={!supported}
-      aria-label={!supported ? 'Audio unavailable' : speaking ? 'Stop reading' : 'Listen to this explanation'}
+      aria-label={!supported ? 'Audio unavailable' : speaking ? 'Stop reading' : label}
       aria-pressed={speaking}
       title={supported ? undefined : 'Audio is not available in this browser.'}
       data-testid="button-listen-learning-text"
@@ -670,7 +676,7 @@ export function LearningText({
   return (
     <span className="fq-learning-text">
       {parts}
-      {speak && <ListenButton text={text} />}
+      {speak && <LearningListenButton text={text} />}
     </span>
   );
 }

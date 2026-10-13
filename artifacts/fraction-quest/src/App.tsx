@@ -34,7 +34,7 @@ import { saveAssessmentAttempt } from './assessments';
 import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
-import { LearningText, useReadAloud } from './LearningText';
+import { LearningListenButton, LearningText, useReadAloud } from './LearningText';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
@@ -540,14 +540,38 @@ function GuidedExample({ mission, title, lessonLabel }: { mission: Mission; titl
       {title && <h2 className="fq-example-heading">{title}</h2>}
       <div className="fq-mascot-say">
         <Mascot mood="happy" size={64} />
-        <p className="fq-skill-statement"><LearningText text={mission.skill} speak /></p>
+        <div className="fq-skill-bubble">
+          <div className="fq-skill-header">
+            <span className="fq-skill-label">Lesson idea</span>
+            <LearningListenButton text={mission.skill} label="Listen to the lesson idea" />
+          </div>
+          <p className="fq-skill-copy"><LearningText text={mission.skill} /></p>
+        </div>
       </div>
       <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
       <div className="fq-example-answer">
         <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
-        <p><strong><LearningText text={mission.example.prompt} speak /></strong></p>
-        <p className="fq-example-result"><LearningText text={mission.example.answer} speak /></p>
-        <p><LearningText text={mission.example.explanation} speak /></p>
+        <section className="fq-example-section" aria-label="Example question">
+          <header className="fq-example-section-header">
+            <h3>Question</h3>
+            <LearningListenButton text={mission.example.prompt} label="Listen to the example question" />
+          </header>
+          <p><strong><LearningText text={mission.example.prompt} /></strong></p>
+        </section>
+        <section className="fq-example-section" aria-label="Example answer">
+          <header className="fq-example-section-header">
+            <h3>Answer</h3>
+            <LearningListenButton text={mission.example.answer} label="Listen to the example answer" />
+          </header>
+          <p className="fq-example-result"><LearningText text={mission.example.answer} /></p>
+        </section>
+        <section className="fq-example-section" aria-label="Why the answer works">
+          <header className="fq-example-section-header">
+            <h3>Why?</h3>
+            <LearningListenButton text={mission.example.explanation} label="Listen to the explanation" />
+          </header>
+          <p><LearningText text={mission.example.explanation} /></p>
+        </section>
       </div>
       {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
       {SHAPE_LESSONS.includes(mission.id) && <SameSizeIdea />}
