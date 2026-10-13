@@ -557,7 +557,13 @@ export function useReadAloud(text: string | null, key: string | number | null = 
   }, [key, text === null]);
 }
 
-function ListenButton({ text }: { text: string }) {
+export function LearningListenButton({
+  text,
+  label = 'Listen to this explanation',
+}: {
+  text: string;
+  label?: string;
+}) {
   const [speaking, setSpeaking] = useState(false);
   const funContext = useOptionalFun();
   const preferredVoiceId = funContext
@@ -567,6 +573,7 @@ function ListenButton({ text }: { text: string }) {
   const supported = typeof window !== 'undefined'
     && 'speechSynthesis' in window
     && typeof SpeechSynthesisUtterance !== 'undefined';
+  const section = label.replace(/^Listen to\s+/i, '');
 
   useEffect(() => {
     if (!supported) return;
@@ -601,14 +608,45 @@ function ListenButton({ text }: { text: string }) {
       className="fq-learning-listen"
       onClick={toggleSpeech}
       disabled={!supported}
-      aria-label={!supported ? 'Audio unavailable' : speaking ? 'Stop reading' : 'Listen to this explanation'}
+      aria-label={!supported ? label : speaking ? `Stop reading ${section}` : label}
       aria-pressed={speaking}
-      title={supported ? undefined : 'Audio is not available in this browser.'}
+      title={supported ? undefined : `Audio for ${section} is not available in this browser.`}
       data-testid="button-listen-learning-text"
     >
       {speaking ? <VolumeX size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
       {supported ? (speaking ? 'Stop' : 'Listen') : 'Audio unavailable'}
     </button>
+  );
+}
+
+/** A headed, speakable section with one control for its complete text. */
+export function LearningTextSection({
+  heading,
+  text,
+  id,
+  label,
+  className = 'fq-learning-section',
+  paragraphClassName,
+  emphasize = false,
+  bold = false,
+}: {
+  heading: string;
+  text: string;
+  id: string;
+  label?: string;
+  className?: string;
+  paragraphClassName?: string;
+  emphasize?: boolean;
+  bold?: boolean;
+}) {
+  return (
+    <section className={className} aria-labelledby={id}>
+      <header className="fq-example-section-header">
+        <h3 id={id}>{heading}</h3>
+        <LearningListenButton text={text} label={label ?? `Listen to the ${heading.toLowerCase()}`} />
+      </header>
+      <p className={paragraphClassName}>{bold ? <strong><LearningText text={text} emphasize={emphasize} /></strong> : <LearningText text={text} emphasize={emphasize} />}</p>
+    </section>
   );
 }
 
@@ -670,7 +708,7 @@ export function LearningText({
   return (
     <span className="fq-learning-text">
       {parts}
-      {speak && <ListenButton text={text} />}
+      {speak && <LearningListenButton text={text} label="Listen to this explanation" />}
     </span>
   );
 }

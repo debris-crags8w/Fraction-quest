@@ -1,6 +1,6 @@
-import { createContext, useContext, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { MathText } from './MathText';
-import { LearningText } from './LearningText';
+import { LearningListenButton, LearningText } from './LearningText';
 import { Check, Gift, LockKeyhole, Sparkles, Star } from 'lucide-react';
 import type { ModelSpec } from './game';
 import { DAILY_GOAL, type FunState } from './lib/fun';
@@ -319,13 +319,16 @@ export function splitStory(prompt: string): { lines: string[]; question: string 
 export function StoryPrompt({ prompt, id }: { prompt: string; id: string }) {
   const { lines, question } = splitStory(prompt);
   return (
-    <>
+    <div className="fq-story-prompt">
       {lines.length > 0 && (
         <ol className="fq-story" aria-label="The story, one line at a time">
-          {lines.map((line, i) => <li key={i}><span aria-hidden="true">{i + 1}</span><span><LearningText text={line} speak emphasize /></span></li>)}
+          {lines.map((line, i) => <li key={i}><span aria-hidden="true">{i + 1}</span><span><LearningText text={line} emphasize /></span></li>)}
         </ol>
       )}
-      <h1 id={id} className="fq-question-text"><LearningText text={question} speak emphasize /></h1>
-    </>
+      <div className="fq-story-question-heading">
+        <h1 id={id} className="fq-question-text"><LearningText text={question} emphasize /></h1>
+        <LearningListenButton text={prompt} label="Listen to the question" />
+      </div>
+    </div>
   );
 }

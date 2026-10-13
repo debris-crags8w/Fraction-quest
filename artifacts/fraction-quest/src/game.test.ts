@@ -11,7 +11,7 @@ import * as React from 'react';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
-import { FunContext, splitStory } from './fun-ui';
+import { FunContext, splitStory, StoryPrompt } from './fun-ui';
 import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
 import { createNaturalSpeaker, isIOSVoiceDevice, naturalVoicePreference, naturalVoiceStatus, setNaturalEngineForTests, setNaturalVoicePreference } from './lib/natural-voice';
@@ -30,6 +30,7 @@ import { AnswerTiles } from './AnswerTiles';
 import {
   createLearningSpeechController,
   LearningVoicePicker,
+  LearningTextSection,
   LearningText,
   selectLearningVoice,
   subscribeToSpeechVoices,
@@ -715,6 +716,39 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.match(markup, /class="fq-mfrac" role="math" aria-label="1 over 4"/);
     assert.match(markup, /class="fq-learning-listen"/);
     assert.match(markup, /Audio unavailable/, 'browsers without speech support explain that audio is unavailable');
+  });
+
+  it('offers one accessible Listen control for a complete question, including story lines in order', () => {
+    const prompt = 'A kite fell. Mia found it. Where did Mia find it?';
+    const markup = renderToStaticMarkup(createElement(StoryPrompt, { prompt, id: 'lesson-question' }));
+
+    assert.equal((markup.match(/data-testid="button-listen-learning-text"/g) ?? []).length, 1);
+    assert.match(markup, /aria-label="Listen to the question"/);
+    assert.ok(markup.indexOf('A kite fell.') < markup.indexOf('Mia found it.'));
+    assert.ok(markup.indexOf('Mia found it.') < markup.indexOf('Where did Mia find it?'));
+    assert.match(markup, /class="fq-story-question-heading"/);
+    assert.match(markup, /id="lesson-question"/);
+  });
+
+  it('gives question, worked answer, and explanation their own section-level Listen controls', () => {
+    const sections = [
+      { heading: 'Question', id: 'example-question', text: 'How many parts are shaded?' },
+      { heading: 'Worked answer', id: 'example-answer', text: '3/4' },
+      { heading: 'Explanation', id: 'example-explanation', text: 'Three of four equal parts are shaded.' },
+    ];
+    const markup = renderToStaticMarkup(createElement(
+      'div',
+      null,
+      ...sections.map((section) => createElement(LearningTextSection, { ...section, key: section.id })),
+    ));
+
+    assert.equal((markup.match(/data-testid="button-listen-learning-text"/g) ?? []).length, sections.length);
+    for (const section of sections) {
+      assert.match(markup, new RegExp(`aria-labelledby="${section.id}"`));
+      assert.match(markup, new RegExp(`id="${section.id}">${section.heading}</h3>`));
+      assert.match(markup, new RegExp(`aria-label="Listen to the ${section.heading.toLowerCase()}"`));
+      assert.ok(markup.indexOf(`id="${section.id}">${section.heading}</h3>`) < markup.indexOf(`aria-label="Listen to the ${section.heading.toLowerCase()}"`));
+    }
   });
 
   it('shows the family voice-selection section and explains when local speech is unsupported', () => {
@@ -1601,6 +1635,18 @@ describe('long problems', () => {
     );
     assert.deepEqual(splitStory('Which is bigger, 0.4 or 0.35?'), { lines: [], question: 'Which is bigger, 0.4 or 0.35?' });
     assert.equal(splitStory('3/5 = 12/?. What is the missing number?').lines.length, 0);
+  });
+
+  it('places one question Listen control beside the heading for the whole story', () => {
+    const markup = renderToStaticMarkup(createElement(StoryPrompt, {
+      prompt: 'A ribbon is 9/10 m long. You cut off 4/10 m. Then you cut off 3/10 m. How much is left?',
+      id: 'question-title',
+    }));
+    assert.equal((markup.match(/class="fq-learning-listen"/g) ?? []).length, 1);
+    assert.match(markup, /aria-label="Listen to the question"/);
+    assert.match(markup, /class="fq-story-question-heading"[^>]*>.*<h1 id="question-title".*<button[^>]*class="fq-learning-listen"/);
+    const storyList = markup.match(/<ol class="fq-story"[\s\S]*?<\/ol>/)?.[0] ?? '';
+    assert.doesNotMatch(storyList, /fq-learning-listen/, 'story sentences do not each get their own inline control');
   });
 
   it('gives each walk-through step three distinct choices and the authored answer', () => {
