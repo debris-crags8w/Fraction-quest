@@ -52,7 +52,9 @@ export default defineConfig({
       { find: '@', replacement: path.resolve(import.meta.dirname, 'src') },
       { find: '@assets', replacement: path.resolve(import.meta.dirname, '..', '..', 'attached_assets') },
     ],
-    dedupe: ['react', 'react-dom'],
+    // One copy each: the shared API client (lib/api-client-react) must use the app's react-query, or its hooks can't
+    // find the app's QueryClientProvider (the Expo app in the workspace pulls in another React version).
+    dedupe: ['react', 'react-dom', '@tanstack/react-query'],
   },
   root: path.resolve(import.meta.dirname),
   build: {

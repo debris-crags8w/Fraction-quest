@@ -2623,10 +2623,20 @@ describe('lesson steps for the map pies', () => {
 });
 
 describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
-  it('gates the Kokoro self-test behind Vite development mode', () => {
+  it('shows the self-test only in development or with ?voicetest', async () => {
+    const { showVoiceSelfTest } = await import('./KokoroDiagnostic');
+    assert.equal(showVoiceSelfTest(true, ''), true);
+    assert.equal(showVoiceSelfTest(false, ''), false);
+    assert.equal(showVoiceSelfTest(false, '?voicetest'), true);
+    assert.equal(showVoiceSelfTest(false, '?a=1&voicetest=1'), true);
+    assert.equal(showVoiceSelfTest(false, '?voicetester'), false);
     const learningText = readFileSync(new URL('./LearningText.tsx', import.meta.url), 'utf8');
-    assert.match(learningText, /Boolean\(import\.meta\.env\?\.DEV\)\s*&&\s*<KokoroDiagnostic\s*\/>/);
-    assert.doesNotMatch(learningText, /showVoiceSelfTest|voicetest/);
+    assert.match(learningText, /showVoiceSelfTest\(\)\s*&&\s*<KokoroDiagnostic\s*\/>/);
+  });
+
+  it('bundles one copy of react-query, so the grown-ups page finds its QueryClientProvider', () => {
+    const config = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
+    assert.match(config, /dedupe:\s*\[[^\]]*'@tanstack\/react-query'/);
   });
 
   it('no longer ships the voice model to the browser', () => {
