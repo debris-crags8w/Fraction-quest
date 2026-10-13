@@ -41,6 +41,11 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Short answer choices (user rule: short but readable, no blurbs). Builder "Which idea explains why?": the right choice is
+  now each lesson's key idea in ≤6 words (`REASON_IDEAS` in learning-content.ts) instead of the full explanation (which
+  was long and so gave the answer away); wrong reasons shortened to match; the full explanation still shows after the
+  build passes. Lesson and practice tap choices trimmed to ≤6 words ("Yes, same-size pieces", "7 equal parts in all").
+  Tests enforce ≤6 words for every lesson/practice choice and every reason, and that the right reason isn't the longest.
 - Races read aloud: racing the robot, each new question is spoken when it appears (`useReadAloud(text, key)` in
   LearningText.tsx, same voice choice as Listen buttons; natural voice when ready, else device voice). Not while stalled
   on a missed question, not in 2-player mode (two voices would clash), and only with sound on. The code sprint reads each

@@ -219,9 +219,9 @@ const curriculum: MissionSeed[] = [
       model: { kind: 'partition', parts: [25, 25, 25, 25], caption: '1 whole cut into equal pieces' },
     },
     questions: [
-      practice('Is this strip cut into thirds?', ['Yes, 3 equal pieces', 'No, the pieces are not equal', 'No, there are 2 pieces', 'Yes, there are 3 pieces'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Thirds are 3 pieces, all the same size. Compare the pieces.', 'One piece is twice as big as the others, so these are not thirds.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
+      practice('Is this strip cut into thirds?', ['Yes, 3 equal pieces', 'No, the pieces are unequal', 'No, there are 2 pieces', 'Yes, there are 3 pieces'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Thirds are 3 pieces, all the same size. Compare the pieces.', 'One piece is twice as big as the others, so these are not thirds.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
       practice('A sandwich is cut into 4 equal pieces. What is 1 piece?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), '1 piece out of 4 equal pieces is 1/4.', 'The denominator is all 4 pieces. You have 1.', bars({ numerator: 1, denominator: 2 })),
-      practice('This ribbon is cut into 2 pieces. Are the pieces equal halves?', ['Yes, both pieces are the same size', 'No, one piece is bigger', 'No, halves need 3 pieces', 'No, the pieces are different colors'], 0, { kind: 'partition', parts: [50, 50] }, 'Halves are 2 pieces of the same size.', '2 pieces are halves only if they are the same size. These are.', { kind: 'partition', parts: [50, 50] }),
+      practice('This ribbon is cut into 2 pieces. Are the pieces equal halves?', ['Yes, same-size pieces', 'No, one piece is bigger', 'No, halves need 3 pieces', 'No, they are different colors'], 0, { kind: 'partition', parts: [50, 50] }, 'Halves are 2 pieces of the same size.', '2 pieces are halves only if they are the same size. These are.', { kind: 'partition', parts: [50, 50] }),
       practice('A strip has 5 equal pieces. What is 1 piece?', ['one fifth', 'one fourth', 'five wholes', 'one sixth'], 0, bars({ numerator: 1, denominator: 5 }), '1 piece out of 5 equal pieces.', '1 of 5 equal pieces is one fifth, or 1/5.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
@@ -234,7 +234,7 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 3, denominator: 5 }),
     },
     questions: [
-      practice('In 2/7, what does the 7 mean?', ['7 equal parts in the whole', '7 parts are shaded', '7 wholes', '7 parts are not shaded'], 0, bars({ numerator: 2, denominator: 7 }), 'Look at the denominator.', 'The denominator is how many equal parts in all.', bars({ numerator: 1, denominator: 3 })),
+      practice('In 2/7, what does the 7 mean?', ['7 equal parts in all', '7 parts are shaded', '7 wholes', '7 parts not shaded'], 0, bars({ numerator: 2, denominator: 7 }), 'Look at the denominator.', 'The denominator is how many equal parts in all.', bars({ numerator: 1, denominator: 3 })),
       practice('A tray has 6 spaces. 4 have a snack. What fraction have a snack?', ['6/4', '4/6', '4/4'], 1, bars({ numerator: 4, denominator: 6 }), 'Numerator: spaces with a snack. Denominator: all the spaces.', 'Numerator: 4 with a snack. Denominator: 6 in all.', bars({ numerator: 1, denominator: 2 })),
       practice('In 5/8, how many pieces are counted?', ['8', '5', '13'], 1, bars({ numerator: 5, denominator: 8 }), 'Look at the numerator.', 'The numerator is 5. So 5 pieces are counted.', bars({ numerator: 2, denominator: 4 })),
       practice('A shape has 9 equal parts. 1 is colored. What fraction is colored?', ['1/9', '9/1', '1/8'], 0, bars({ numerator: 1, denominator: 9 }), '1 colored part out of 9.', 'Denominator: all 9 parts. Numerator: the 1 colored part.', bars({ numerator: 1, denominator: 4 })),
@@ -251,7 +251,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Which is a unit fraction?', ['3/8', '1/8', '8/1'], 1, bars({ numerator: 1, denominator: 8 }), 'A unit fraction has a numerator of 1.', 'Look for the one with a numerator of 1.', bars({ numerator: 1, denominator: 4 })),
       practice('A whole is cut into 10 equal pieces. What is 1 piece?', ['1/10', '10/1', '1/9'], 0, bars({ numerator: 1, denominator: 10 }), '10 pieces in all. You have 1.', '1 of 10 equal pieces is 1/10.', bars({ numerator: 1, denominator: 5 })),
-      practice('Does this bar show 1/3?', ['Yes, 1 of 3 equal parts is shaded', 'No, 3 parts are shaded', 'No, the parts are not equal', 'No, 2 parts are not shaded'], 0, bars({ numerator: 1, denominator: 3 }), '1/3 is 1 of 3 equal parts.', 'The bar has 3 equal parts and 1 is shaded. That is 1/3.', bars({ numerator: 1, denominator: 2 })),
+      practice('Does this bar show 1/3?', ['Yes, 1 of 3 equal parts', 'No, 3 parts are shaded', 'No, the parts are unequal', 'No, 2 parts not shaded'], 0, bars({ numerator: 1, denominator: 3 }), '1/3 is 1 of 3 equal parts.', 'The bar has 3 equal parts and 1 is shaded. That is 1/3.', bars({ numerator: 1, denominator: 2 })),
       practice('What fraction is 1 of 12 equal tiles?', ['12/1', '1/12', '1/11'], 1, bars({ numerator: 1, denominator: 12 }), '1 tile out of 12.', '1 out of 12 equal parts is 1/12.', bars({ numerator: 1, denominator: 6 })),
     ],
   },

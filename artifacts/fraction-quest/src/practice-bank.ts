@@ -88,8 +88,8 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
         ['fourths-mixed', true, 'square'], ['quarter-and-triangles', false, 'square'], ['fourths-triangles', true, 'square'],
         ['circle-sixths', true, 'pizza'], ['circle-unequal', false, 'pizza'], ['fourths-unequal', false, 'square'], ['hexagon-sixths', true, 'hexagon'],
       ] as const);
-      const yes = 'Yes, all the parts are the same size'; const bigger = 'No, some parts are bigger'; const shapes = 'No, the parts are different shapes';
-      return { prompt: `Is this ${whole} cut into equal parts?`, right: fair ? yes : bigger, wrong: fair ? [bigger, shapes] : [yes, shapes], extra: 'Yes, it is cut into pieces',
+      const yes = 'Yes, same-size parts'; const bigger = 'No, some parts are bigger'; const shapes = 'No, the shapes are different';
+      return { prompt: `Is this ${whole} cut into equal parts?`, right: fair ? yes : bigger, wrong: fair ? [bigger, shapes] : [yes, shapes], extra: 'Yes, it is cut up',
         hint: 'Equal parts are the same size. They do not have to be the same shape.',
         retry: fair ? 'Every part takes up the same amount of space, so the parts are equal, even if their shapes are different.' : 'Compare the sizes: one part is bigger than another, so the parts are not equal.',
         model: area(cut) };
@@ -100,9 +100,9 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     const sizes = Array.from({ length: count }, () => 1);
     if (kind === 1) sizes[r.int(0, count - 1)] = 2.5; // one piece clearly bigger
     const total = sizes.reduce((a, b) => a + b, 0);
-    const yes = `Yes, ${d} equal pieces`; const unequal = 'No, the pieces are not equal'; const tooMany = `No, there are ${d + 1} pieces`;
+    const yes = `Yes, ${d} equal pieces`; const unequal = 'No, the pieces are unequal'; const tooMany = `No, there are ${d + 1} pieces`;
     return { prompt: `Is this strip cut into equal ${name(d)}?`, right: [yes, unequal, tooMany][kind], wrong: [yes, unequal, tooMany].filter((_, i) => i !== kind) as [string, string],
-      extra: d === 2 ? 'No, there is only 1 piece' : `No, there are ${d - 1} pieces`,
+      extra: d === 2 ? 'No, there is 1 piece' : `No, there are ${d - 1} pieces`,
       hint: `Equal ${name(d)}: exactly ${d} pieces, all the same size. Count them, then compare them.`,
       retry: kind === 0 ? `There are ${d} pieces and they are all the same size, so they are equal ${name(d)}.` : kind === 1 ? 'One piece is bigger than the others, so the pieces are not equal.' : `Count again: there are ${d + 1} pieces, not ${d}.`,
       model: { kind: 'partition', parts: sizes.map((size) => (size / total) * 100) }, simpler: { kind: 'partition', parts: Array.from({ length: d }, () => 100 / d) } };
@@ -110,7 +110,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'fraction-names': (r) => {
     const d = r.pick(DENS); const n = r.int(1, d - 1);
     return r.chance()
-      ? { prompt: `In ${f(n, d)}, what does the ${d} mean?`, right: `${d} equal parts in the whole`, wrong: [`${d} parts are shaded`, `${d} wholes`], extra: `${d} parts are not shaded`, hint: 'Look at the denominator.', retry: 'The denominator is how many equal parts in all.', model: bar(n, d) }
+      ? { prompt: `In ${f(n, d)}, what does the ${d} mean?`, right: `${d} equal parts in all`, wrong: [`${d} parts are shaded`, `${d} wholes`], extra: `${d} parts not shaded`, hint: 'Look at the denominator.', retry: 'The denominator is how many equal parts in all.', model: bar(n, d) }
       : { prompt: 'What fraction is shaded?', right: f(n, d), wrong: [f(d, n), f(d - n, d)], hint: 'Numerator: parts shaded. Denominator: all the parts.', retry: `Count all ${d} parts for the denominator. Count the ${n} shaded for the numerator.`, model: bar(n, d) };
   },
   'unit-fractions': (r) => {

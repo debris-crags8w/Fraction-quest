@@ -24,7 +24,7 @@ import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinder
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
 import { createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
 import type { PracticeQuestion } from './game';
-import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
+import { REASON_IDEAS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
 import { AnswerTiles } from './AnswerTiles';
 import {
   createLearningSpeechController,
@@ -1682,6 +1682,7 @@ describe('question generator', () => {
     const want = isSignQuestion(question.choices) ? 3 : 4;
     assert.equal(question.choices.length, want, `${question.id}: ${question.prompt} | ${question.choices.join(' / ')}`);
     assert.equal(new Set(question.choices.map((choice) => choice.trim())).size, want, question.id);
+    for (const c of question.choices) assert.ok(c.trim().split(/\s+/).length <= 6, `${question.id}: "${c}" is too long for an answer choice`);
     let match = /^(\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \?$/.exec(question.prompt);
     if (match) {
       const result = Number(match[1]) / Number(match[2]) + (match[3] === '+' ? 1 : -1) * Number(match[4]) / Number(match[5]);
@@ -1847,7 +1848,19 @@ describe('quality audit fixes', () => {
   it('puts the right reason in different spots, not always the same one', () => {
     const spots = new Set(MISSIONS.flatMap((mission) => getBuildChecks(mission.id).map((check) => check.correctReason)));
     assert.equal(spots.size, 3);
-    for (const mission of MISSIONS) for (const check of getBuildChecks(mission.id)) assert.equal(check.reasons[check.correctReason], check.explanation);
+    for (const mission of MISSIONS) for (const check of getBuildChecks(mission.id)) assert.equal(check.reasons[check.correctReason], REASON_IDEAS[mission.id], mission.id);
+  });
+  it('keeps every "which idea explains why?" choice short, with the right one no longer than the others', () => {
+    const words = (t: string) => t.trim().split(/\s+/).length;
+    for (const mission of MISSIONS) {
+      assert.ok(REASON_IDEAS[mission.id], `${mission.id} needs a short key idea`);
+      const checks = [...getBuildChecks(mission.id), getReviewCheck(mission.id, 0), getReviewCheck(mission.id, 1)];
+      for (const check of checks) {
+        for (const r of check.reasons) assert.ok(words(r) <= 6, `${mission.id}: "${r}" is too long`);
+        const right = words(check.reasons[check.correctReason]);
+        assert.ok(check.reasons.some((r, i) => i !== check.correctReason && words(r) >= right - 1), `${mission.id}: the right reason stands out by length`);
+      }
+    }
   });
   it('worksheets use grade-friendly denominators, real hints, and no zero, trivial or repeated questions', () => {
     for (const mission of MISSIONS) {
@@ -2215,6 +2228,7 @@ describe('new tenths + hundredths lesson', () => {
       assert.equal(q.choices.length, want, `${q.id}: ${q.prompt} | ${q.choices.join(' / ')}`);
       assert.equal(new Set(q.choices.map((c) => c.trim().toLowerCase())).size, want, q.id);
       for (const c of q.choices) assert.doesNotMatch(c, /^(?:Yes|No):/, 'yes and no are followed by a comma');
+      for (const c of q.choices) assert.ok(c.trim().split(/\s+/).length <= 6, `${q.id}: "${c}" is too long for an answer choice`);
     }
   });
 });
@@ -2291,14 +2305,14 @@ describe('pictures never give the answer away', () => {
       if (q.model.kind === 'area') {
         // Squares, pizzas and hexagons: the answer follows the piece sizes, never the shapes.
         shapes++;
-        assert.equal(q.choices[q.correctChoice], allEqual(q.model.cut) ? 'Yes, all the parts are the same size' : 'No, some parts are bigger', q.model.cut);
+        assert.equal(q.choices[q.correctChoice], allEqual(q.model.cut) ? 'Yes, same-size parts' : 'No, some parts are bigger', q.model.cut);
         continue;
       }
       assert.equal(q.model.kind, 'partition');
       if (q.model.kind !== 'partition') continue;
       const d = Number(/equal (\w+)/.exec(q.prompt) && { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8 }[/equal (\w+)\?/.exec(q.prompt)![1] as 'halves']);
       const parts = q.model.parts; const equal = parts.every((p) => Math.abs(p - parts[0]) < 1e-6);
-      const truth = parts.length !== d ? `No, there are ${d + 1} pieces` : equal ? `Yes, ${d} equal pieces` : 'No, the pieces are not equal';
+      const truth = parts.length !== d ? `No, there are ${d + 1} pieces` : equal ? `Yes, ${d} equal pieces` : 'No, the pieces are unequal';
       assert.equal(q.choices[q.correctChoice], truth, `${q.prompt} with ${parts.length} parts, equal=${equal}`);
     }
     assert.ok(shapes > 20, 'some practice questions use squares and circles');
