@@ -240,10 +240,19 @@ for (const missionId of unitRepresentativeIds) {
   const mission = MISSIONS.find((item) => item.id === missionId)!;
   test(`unit ${mission.unit} model builds and worksheet evidence unlock lessons in order`, async ({ page }) => {
     test.setTimeout(90_000);
-    await page.addInitScript((progress) => {
-      localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
-    }, progressBefore(mission));
+    if (mission.id !== 'equal-parts') {
+      await page.addInitScript((progress) => {
+        localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+      }, progressBefore(mission));
+    }
     await openAsGuest(page);
+    if (mission.id === 'equal-parts') {
+      await page.evaluate((progress) => {
+        localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+      }, progressBefore(mission));
+      await page.reload();
+      await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+    }
 
     // In units 9–14, same-unit lessons are selectable together; the next unit stays gated.
     const nextMission = MISSIONS[MISSIONS.indexOf(mission) + 1];
@@ -267,13 +276,28 @@ for (const missionId of unitRepresentativeIds) {
     await expect(page.getByTestId('section-worksheet')).toBeVisible();
 
     const worksheet = getWorksheet(mission.id);
+    const problemProgress = page.getByTestId('worksheet-problem-progress');
+    await expect(problemProgress.locator(':scope > li')).toHaveCount(12);
+    await expect(page.getByTestId(`worksheet-progress-${worksheet[0].id}`)).toHaveAttribute('aria-current', 'step');
+    await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuetext', /Problem 1 is next/);
     if (mission.id === 'equal-parts') {
       const problem = worksheet.find((row) => !row.modelRequired && !row.areaTask)!;
       const wrongAnswer = wrongTileAnswer(problem);
       await enterWorksheetAnswer(page, problem, wrongAnswer);
       await expect(page.getByTestId(`status-worksheet-${problem.id}`)).toContainText('Not yet.');
       await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuenow', '0');
+      const retryMarker = page.getByTestId(`worksheet-progress-${problem.id}`);
+      await expect(retryMarker).toHaveClass(/retry/);
+      await expect(retryMarker).toContainText('Needs another try');
       await expect(page.getByTestId('button-lab-finish')).toBeDisabled();
+
+      // A wrong attempt remains marked for retry after the learner leaves and reopens the lesson.
+      await page.reload();
+      await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+      await expectMissionStart(page, mission.id, true);
+      await page.getByTestId(`button-start-mission-${mission.id}`).click();
+      await expect(page.getByTestId('section-worksheet')).toBeVisible();
+      await expect(page.getByTestId(`worksheet-progress-${problem.id}`)).toHaveClass(/retry/);
     }
 
     for (const problem of worksheet) {
@@ -282,6 +306,7 @@ for (const missionId of unitRepresentativeIds) {
       await expect(page.getByTestId(`status-worksheet-${problem.id}`)).toContainText('Correct!');
     }
     await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuenow', '12');
+    await expect(problemProgress.locator(':scope > li.complete')).toHaveCount(12);
     await expect(page.getByTestId('text-next-level')).toHaveText('All done! The next lesson is open.');
     await expect(page.getByTestId('button-lab-finish')).toBeEnabled();
 
