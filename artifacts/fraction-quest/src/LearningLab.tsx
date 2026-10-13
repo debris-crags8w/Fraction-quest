@@ -5,7 +5,7 @@ import { getMission, numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
 import {
   checkRedoRow, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, learningSummary, redoChecks, redoDone, redoWorksheet,
-  redoWorksheetCount, startRedo, targetedPracticeCount, targetedPracticePlans, updateLearning, worksheetCount, type LearningRecord, type RedoAttempt, type RedoPart,
+  redoWorksheetCount, startRedo, targetedPracticeCount, targetedPracticePlans, updateLearning, worksheetProblemProgress, type LearningRecord, type RedoAttempt, type RedoPart,
 } from './learning';
 import { denomColor } from './fun-ui';
 import { BarSvg, MODEL_CONCEPTS, ModelPair, ModelTag, WholeBracket } from './models';
@@ -511,7 +511,12 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   }
 
   const idx = activeCheckIndex;
-  const count = worksheetCount(rec, missionId);
+  const problemProgress = worksheetProblemProgress(rec, sheet);
+  const count = problemProgress.filter(problem => problem.status === 'complete').length;
+  const currentProblemIndex = problemProgress.findIndex(problem => problem.current);
+  const progressText = count === sheet.length
+    ? `All ${sheet.length} problems complete`
+    : `${count} of ${sheet.length} complete · ${sheet.length - count} remaining · Problem ${currentProblemIndex + 1} ${problemProgress[currentProblemIndex]?.status === 'retry' ? 'needs another try' : 'is next'}`;
   const sum = learningSummary(rec);
   const reteachPlans = targetedPracticePlans(missionId, rec);
   const reteachProgress = targetedPracticeCount(missionId, rec);
@@ -585,8 +590,25 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         <section className="fq-ll-sheet" aria-labelledby="ws-title" data-testid="section-worksheet">
           <div className="fq-ll-sheet-head">
             <h3 id="ws-title">Worksheet</h3>
-            <div className="fq-ll-meter" role="progressbar" aria-valuemin={0} aria-valuemax={12} aria-valuenow={count} aria-label="Worksheet problems correct" data-testid="progress-worksheet">
-              <b style={{ width: `${(count / 12) * 100}%` }} /><span>{count} of 12 checked</span>
+            <ol className="fq-ll-problem-progress" aria-label="Status of each worksheet problem" tabIndex={0} data-testid="worksheet-problem-progress">
+              {problemProgress.map((problem, index) => {
+                const statusText = problem.status === 'complete' ? 'Complete'
+                  : problem.status === 'retry' ? 'Needs another try'
+                    : problem.status === 'current' ? 'Up next' : 'Not started';
+                return <li key={problem.problemId}
+                  className={`fq-ll-problem-progress-item ${problem.status}${problem.current ? ' is-current' : ''}`}
+                  aria-current={problem.current ? 'step' : undefined}
+                  data-testid={`worksheet-progress-${problem.problemId}`}>
+                  <span aria-hidden="true">{index + 1}</span>
+                  {problem.status === 'complete' && <Check size={14} aria-hidden="true" />}
+                  {problem.status === 'retry' && <RotateCcw size={13} aria-hidden="true" />}
+                  {problem.status === 'current' && <i className="fq-ll-progress-current-dot" aria-hidden="true" />}
+                  <span className="fq-ll-sr-only">Problem {index + 1}: {statusText}{problem.current ? ', current problem' : ''}</span>
+                </li>;
+              })}
+            </ol>
+            <div className="fq-ll-meter" role="progressbar" aria-valuemin={0} aria-valuemax={sheet.length} aria-valuenow={count} aria-valuetext={progressText} aria-label="Worksheet problems completed" data-testid="progress-worksheet">
+              <b style={{ width: `${(count / sheet.length) * 100}%` }} /><span>{progressText}</span>
             </div>
           </div>
           <ol className="fq-ll-rows">

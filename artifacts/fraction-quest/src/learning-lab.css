@@ -104,6 +104,39 @@
 .fq-ll-meter { position: relative; height: 28px; border: 2px solid hsl(var(--foreground)); border-radius: 99px; overflow: hidden; background: hsl(var(--muted)); }
 .fq-ll-meter b { position: absolute; inset: 0 auto 0 0; background: hsl(var(--secondary) / .55); transition: width 300ms ease; }
 .fq-ll-meter span { position: relative; display: block; text-align: center; line-height: 24px; font: 800 .78rem var(--app-font-mono); }
+.fq-ll-problem-progress {
+  display: flex;
+  gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 4px 4px 8px;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.fq-ll-problem-progress:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 2px; border-radius: 12px; }
+.fq-ll-problem-progress-item {
+  flex: 0 0 46px;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 4px;
+  border: 2px solid hsl(var(--border));
+  border-radius: 12px;
+  background: hsl(var(--muted) / .45);
+  color: hsl(var(--muted-foreground));
+  font: 900 .8rem var(--app-font-mono);
+}
+.fq-ll-problem-progress-item.complete { border-color: hsl(var(--secondary)); background: hsl(var(--secondary) / .13); color: hsl(var(--secondary)); }
+.fq-ll-problem-progress-item.current { border-color: hsl(var(--primary)); background: hsl(var(--primary) / .1); color: hsl(var(--foreground)); }
+.fq-ll-problem-progress-item.retry { border-color: hsl(35 85% 54%); background: hsl(43 92% 58% / .2); color: hsl(29 62% 26%); }
+.fq-ll-problem-progress-item.is-current { outline: 3px solid hsl(var(--primary) / .28); outline-offset: 1px; }
+.fq-ll-progress-current-dot { width: 6px; height: 6px; flex: none; border-radius: 50%; background: currentColor; }
 .fq-ll-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .fq-ll-row { padding: 14px 16px; border: 2px solid hsl(var(--border)); border-radius: 16px; }
 .fq-ll-row.ok { border-color: hsl(var(--secondary)); background: hsl(var(--secondary) / .07); }

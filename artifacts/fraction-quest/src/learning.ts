@@ -125,6 +125,28 @@ export function redoWorksheet(id: string, redo: RedoAttempt): WorksheetProblem[]
   });
 }
 const rowCorrect = (p: WorksheetProblem, entry?: WorksheetEntry) => !!entry && entry.checkedValue === entry.draft && answerMatches(p, entry.draft);
+export type WorksheetProblemProgressState = 'complete' | 'current' | 'retry' | 'upcoming';
+export type WorksheetProblemProgressItem = {
+  problemId: string;
+  status: WorksheetProblemProgressState;
+  current: boolean;
+};
+/** Statuses for the numbered worksheet overview, using the same checked-answer rule as worksheet completion. */
+export function worksheetProblemProgress(record: LearningRecord, problems: WorksheetProblem[]): WorksheetProblemProgressItem[] {
+  const complete = problems.map(problem => rowCorrect(problem, record.worksheet[problem.id]));
+  const currentIndex = complete.findIndex(isComplete => !isComplete);
+  return problems.map((problem, index) => {
+    const entry = record.worksheet[problem.id];
+    const current = index === currentIndex;
+    return {
+      problemId: problem.id,
+      current,
+      status: complete[index] ? 'complete'
+        : (entry?.attempts ?? 0) > 0 ? 'retry'
+          : current ? 'current' : 'upcoming',
+    };
+  });
+}
 export function redoWorksheetCount(id: string, redo: RedoAttempt): number {
   return redoWorksheet(id, redo).filter(p => rowCorrect(p, redo.worksheet[p.id])).length;
 }
