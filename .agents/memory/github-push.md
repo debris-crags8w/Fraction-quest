@@ -20,3 +20,11 @@ GitHub's Git Database API can omit the final newline from a commit message when 
 **Why:** a code-only review-branch publish created a matching tree but initially failed the exact-commit check because the API-normalized message had no trailing newline.
 
 **How to apply:** treat a commit SHA mismatch as a stop before moving the branch ref. Inspect the GitHub-created commit object and reproduce its exact message bytes locally if matching local and remote refs matters; update the remote only after verifying tree and parent and rechecking the branch ref.
+
+## Short-lived branches and pull requests
+
+For new app work, start from the latest `main` on a short-lived branch and submit a pull request to `main`; do not accumulate new work on a long-lived review branch.
+
+**Why:** the user asked that new work use short branches from `main` and a pull request, like the paper-fold change.
+
+**How to apply:** fetch `github/main` before starting, create the work branch from that commit, push it and open a pull request, then return the workspace to `main` after merge.
