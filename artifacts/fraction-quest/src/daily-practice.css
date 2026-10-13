@@ -12,6 +12,7 @@
 .fq-daily-card { padding: clamp(18px, 4vw, 34px); border: 2px solid var(--fq-edge); border-radius: 28px; background: hsl(var(--card)); box-shadow: 0 5px 0 hsl(var(--border)); }
 .fq-daily-topic { display: inline-flex; min-height: 30px; align-items: center; padding: 3px 12px; border-radius: 999px; background: hsl(var(--primary) / .12); color: var(--fq-grape); font-size: .82rem; font-weight: 900; }
 .fq-daily-card h2 { margin: 18px 0 6px; font-size: clamp(1.5rem, 4vw, 2rem); }
+.fq-daily-question-heading h2 { flex: 1; min-width: 0; }
 .fq-daily-fraction { display: inline-block; padding: 0 7px; border-radius: 8px; background: hsl(var(--accent) / .35); font-variant-numeric: tabular-nums; }
 .fq-daily-instruction { margin: 0 0 22px; color: hsl(var(--muted-foreground)); font-size: 1.02rem; line-height: 1.5; }
 .fq-daily-instruction strong { color: hsl(var(--foreground)); }

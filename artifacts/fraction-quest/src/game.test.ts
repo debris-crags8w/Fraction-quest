@@ -24,6 +24,7 @@ import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder
 import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderRoundsFor, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
 import { createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
+import { DailyPracticeQuestionHeading } from './DailyPracticeQuestionHeading';
 import type { PracticeQuestion } from './game';
 import { REASON_IDEAS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
 import { AnswerTiles } from './AnswerTiles';
@@ -2475,6 +2476,19 @@ describe('daily practice is a real review', () => {
     assert.equal(dailyBuildCorrect(build, build.denominator, build.numerator), true);
     assert.equal(dailyBuildCorrect(build, build.denominator * 2, build.numerator * 2), true, 'an equivalent build counts');
     assert.equal(dailyBuildCorrect(build, build.denominator + 1, build.numerator), false);
+  });
+
+  it('puts one Listen control in the daily model question header', () => {
+    const markup = renderToStaticMarkup(createElement(DailyPracticeQuestionHeading, {
+      title: 'Build 1/9 on a number line.',
+      speechText: 'Build one ninth on a number line. Choose equal spaces from 0 to 1, then make one jump.',
+      label: 'Listen to the question and directions',
+    }));
+    const heading = /<header class="fq-example-section-header fq-daily-question-heading" data-testid="daily-practice-question-header">([\s\S]*?)<\/header>/.exec(markup)?.[1];
+    assert.ok(heading, 'the question should have a clear header section');
+    assert.match(heading, /id="daily-question-title"/);
+    assert.match(heading, /data-testid="button-listen-learning-text"/);
+    assert.equal((markup.match(/data-testid="button-listen-learning-text"/g) ?? []).length, 1);
   });
 });
 
