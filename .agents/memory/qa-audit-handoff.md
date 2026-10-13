@@ -40,6 +40,8 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Mascot is now **Numi** (user picked option B of 3): `Mascot` in fun-ui.tsx draws a purple head, an orange fraction-bar
+  for arms (tilts with mood) and a round body cut into 2 equal halves, 1 shaded. Same props and moods as the old fox.
 - Competitor curriculum review (docs/curriculum-gap-analysis.md, "Competitor review"). Added unit 15 "Problem solving"
   (72 lessons): find-the-whole, spot-the-mistake (yes/no rows at i%3==0 so practice rows 1/4/7/10 are never yes/no),
   fraction-of-remainder, bonus divide-fractions. New worksheet modes in getExtensionWorksheet; practice recipes in
