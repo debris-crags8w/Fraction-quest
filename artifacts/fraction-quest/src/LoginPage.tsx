@@ -17,6 +17,7 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
   const [parentConsent, setParentConsent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [usernameAlreadyExists, setUsernameAlreadyExists] = useState(false);
   const [busy, setBusy] = useState(false);
   const [recoveryCode, setRecoveryCode] = useState('');
   // After sign-up or a reset, the new recovery code is shown once before going in.
@@ -24,12 +25,13 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
   const creating = mode === 'create';
   const recovering = mode === 'recover';
 
-  const switchMode = (next: Mode) => { setMode(next); setError(''); };
+  const switchMode = (next: Mode) => { setMode(next); setError(''); setUsernameAlreadyExists(false); };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (busy) return;
     setError('');
+    setUsernameAlreadyExists(false);
     if (creating && !/^[A-Za-z0-9_]{3,20}$/.test(username.trim())) { setError('Usernames are 3–20 letters, numbers or _ (no spaces).'); return; }
     if (creating && password.length < 8) { setError('Passwords need at least 8 characters.'); return; }
     if (creating && !parentConsent) { setError('A parent or caregiver must review and accept the privacy notice.'); return; }
@@ -57,6 +59,8 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
       await onSignedIn(user);
     } catch (err) {
       const fallback = creating ? "Couldn't create the account. Check your connection and try again." : "Couldn't sign in. Check your connection and try again.";
+      const status = (err as { status?: unknown } | null)?.status;
+      setUsernameAlreadyExists(creating && status === 409);
       setError(errorMessage(err, '') || (err instanceof Error && err.message ? err.message : fallback));
       setBusy(false);
     }
@@ -96,7 +100,13 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
         <form className="fq-login-form" onSubmit={submit} noValidate>
           <label htmlFor="login-username">Username</label>
           <input id="login-username" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} maxLength={20}
-            value={username} onChange={(e) => setUsername(e.target.value)} placeholder={creating ? 'like star_fox7' : 'Your username'} required data-testid="input-username" />
+            value={username} onChange={(e) => {
+              setUsername(e.target.value);
+              if (usernameAlreadyExists) {
+                setError('');
+                setUsernameAlreadyExists(false);
+              }
+            }} placeholder={creating ? 'like star_fox7' : 'Your username'} required data-testid="input-username" />
           {creating && <small>3–20 letters, numbers or _. Use a nickname, not your real name.</small>}
 
           {creating && (
@@ -138,6 +148,14 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
           )}
 
           {error && <p className="fq-login-error" role="alert" data-testid="text-login-error">{error}</p>}
+          {usernameAlreadyExists && (
+            <p className="fq-login-help">
+              If you already tried to make this account,{' '}
+              <button type="button" className="fq-link-button" onClick={() => switchMode('sign-in')} data-testid="button-sign-in-existing-account">
+                sign in with this username
+              </button>.
+            </p>
+          )}
 
           <button type="submit" className="fq-button fq-login-submit" disabled={busy || !username.trim() || !password || (creating && !parentConsent) || (recovering && !recoveryCode.trim())} data-testid="button-login-submit">
             {busy ? 'One moment…' : recovering ? 'Set new password' : creating ? 'Create my account' : 'Sign in'} {!busy && <ArrowRight size={17} />}

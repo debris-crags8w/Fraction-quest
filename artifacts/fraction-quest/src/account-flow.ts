@@ -62,6 +62,20 @@ export function accountEntryAfterSessionFailure(hasGuestMarker: boolean): 'guest
   return hasGuestMarker ? 'guest' : 'signed-out';
 }
 
+export type AccountEntryFailure =
+  | { kind: 'signed-out'; notice: string }
+  | { kind: 'profile-error'; notice: string };
+
+export function accountEntryFailure(status: number | undefined, fallback: string): AccountEntryFailure {
+  if (status === 401) {
+    return {
+      kind: 'signed-out',
+      notice: "Your sign-in was accepted, but this browser couldn't keep the session. Check that cookies are allowed for Fraction Quest, then sign in again.",
+    };
+  }
+  return { kind: 'profile-error', notice: fallback };
+}
+
 export async function signOutSafely(
   flush: () => Promise<boolean>,
   logout: () => Promise<unknown>,
