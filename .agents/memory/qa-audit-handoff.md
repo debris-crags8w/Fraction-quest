@@ -45,6 +45,10 @@ the square area model and the Part Finder proposal; local review changes should 
   fraction-of-remainder, bonus divide-fractions. New worksheet modes in getExtensionWorksheet; practice recipes in
   practice-bank (verifyLater in game.test.ts re-solves them); unit 15 challenge, teaching guide and pacing (totals kept
   35/45/45). `ExtensionTopic.example` overrides the worked example when the first build would not show the answer.
+- Equal parts look equal (user rule): every on-screen bar (question pictures `.fq-bar`, builder `.fq-ll-bar`, tap example
+  `.fq-tap-bar`, daily `.fq-daily-model`, strips `.fq-partition-whole`) is one rectangle with a dark 3px outline (3px outer
+  radius only, so no part is clipped), identical square parts, 2px straight divider lines, no per-part rounding, gaps,
+  shadows or press-scaling. Printed SVG bars were already square. CSS block "equal parts look equal" at the end of theme-pop.css.
 - Removed the root `src/` mirror (user decision): unused by Replit, builds, typecheck and tests, and it had drifted.
 - "Count with me" after a miss: `ModelView walk={attempts}` (PlayView, on retry) pops numbers 1, 2, 3… onto each part
   of bar models (several bars count on from each other), partition strips and number-line spaces (≤24), 0.45 s apart,
