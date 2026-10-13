@@ -233,6 +233,7 @@ const unitRepresentativeIds = [
   'fraction-as-division',
   'fraction-recipes',
   'multi-step-fraction-stories',
+  'spot-the-mistake',
 ];
 
 for (const missionId of unitRepresentativeIds) {
@@ -317,7 +318,7 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
 });
 
-test('all 68 lessons render their worked model and first interactive question', async ({ page }) => {
+test('all 72 lessons render their worked model and first interactive question', async ({ page }) => {
   test.setTimeout(300_000);
   const lessonIds = MISSIONS.map((mission) => mission.id);
   await page.addInitScript((ids) => {
@@ -737,4 +738,36 @@ test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried 
   await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.join(' | '))).toMatch(/Almost|Good try|look again|Not quite|So close/);
   await page.getByTestId('button-try-again').click();
   await expect(page.getByTestId(`button-answer-${question.id}-${wrong}`)).toBeDisabled();
+});
+
+test('inside the Expo iPhone app, printing goes to the native print sheet and answers send a haptic tap', async ({ page }) => {
+  await page.addInitScript(() => {
+    const sent: string[] = [];
+    (window as unknown as { __shell: string[] }).__shell = sent;
+    (window as unknown as { ReactNativeWebView: unknown }).ReactNativeWebView = { postMessage: (m: string) => sent.push(m) };
+    (window as Window & { __printCalls?: number }).__printCalls = 0;
+    window.print = () => { (window as Window & { __printCalls?: number }).__printCalls! += 1; };
+  });
+  const messages = () => page.evaluate(() => (window as unknown as { __shell: string[] }).__shell.map((m) => JSON.parse(m) as { type: string; cue?: string; html?: string }));
+  // A right answer in lesson 2's first question: a haptic tap.
+  await page.addInitScript(() => localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: ['equal-parts'], starsByMission: {}, reviewQueue: [], learning: { 'equal-parts': { completedAt: Date.now() } }, assessments: [] })));
+  await openAsGuest(page);
+  const mission = MISSIONS[1];
+  const question = mission.questions[0];
+  await page.getByTestId('button-continue-course').or(page.getByTestId('button-jump-current')).first().click();
+  if (await page.getByTestId(`button-start-mission-${mission.id}`).count()) await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  if (await page.getByTestId('button-start-practice').count()) await page.getByTestId('button-start-practice').click();
+  await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
+  await page.getByTestId('button-check-answer').click();
+  await expect.poll(async () => (await messages()).some((m) => m.type === 'haptic' && m.cue === 'correct')).toBe(true);
+  // Printing the progress report hands the page to the native print sheet (not the web view's print, which does nothing).
+  await page.getByTestId('button-back-map').click();
+  await openMenuItem(page, 'button-open-parent');
+  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByRole('textbox').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByTestId('button-parent-print').click();
+  await expect.poll(async () => (await messages()).find((m) => m.type === 'print')?.html ?? '').toMatch(/<base href=.*parent-report|<base href=[\s\S]*data-testid="parent-report"/);
+  expect(await page.evaluate(() => (window as Window & { __printCalls?: number }).__printCalls)).toBe(0);
 });

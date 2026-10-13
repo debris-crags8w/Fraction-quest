@@ -1,7 +1,7 @@
 kind = "mobile"
 previewPath = "/fraction-quest-ios/"
 title = "Fraction Quest iOS"
-description = "A native iPhone learning app for Fraction Quest, with interactive fraction models, answer-entry missions, and locally saved progress."
+description = "The Fraction Quest iPhone app: a native Expo shell that shows the live web app, so every lesson and fix stays in sync. Adds the iPhone print sheet, haptic taps on answers, and opens outside links in Safari."
 version = "1.0.0"
 id = "artifacts/fraction-quest-ios"
 router = "expo-domain"

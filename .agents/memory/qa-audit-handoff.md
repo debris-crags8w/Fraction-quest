@@ -42,11 +42,23 @@ the square area model and the Part Finder proposal; local review changes should 
 ## Recent work (this session, newest first)
 - Mascot is now **Numi** (user picked option B of 3): `Mascot` in fun-ui.tsx draws a purple head, an orange fraction-bar
   for arms (tilts with mood) and a round body cut into 2 equal halves, 1 shaded. Same props and moods as the old fox.
+- Competitor curriculum review (docs/curriculum-gap-analysis.md, "Competitor review"). Added unit 15 "Problem solving"
+  (72 lessons): find-the-whole, spot-the-mistake (yes/no rows at i%3==0 so practice rows 1/4/7/10 are never yes/no),
+  fraction-of-remainder, bonus divide-fractions. New worksheet modes in getExtensionWorksheet; practice recipes in
+  practice-bank (verifyLater in game.test.ts re-solves them); unit 15 challenge, teaching guide and pacing (totals kept
+  35/45/45). `ExtensionTopic.example` overrides the worked example when the first build would not show the answer.
 - Equal parts look equal (user rule): every on-screen bar (question pictures `.fq-bar`, builder `.fq-ll-bar`, tap example
   `.fq-tap-bar`, daily `.fq-daily-model`, strips `.fq-partition-whole`) is one rectangle with a dark 3px outline (3px outer
   radius only, so no part is clipped), identical square parts, 2px straight divider lines, no per-part rounding, gaps,
   shadows or press-scaling. Printed SVG bars were already square. CSS block "equal parts look equal" at the end of theme-pop.css.
 - Removed the root `src/` mirror (user decision): unused by Replit, builds, typecheck and tests, and it had drifted.
+- Expo iPhone app (`artifacts/fraction-quest-ios`) is now a thin native shell around the live web app (react-native-webview
+  13.16.1, in Expo Go), so it always matches the web app. URL: EXPO_PUBLIC_WEB_APP_URL, else https://EXPO_PUBLIC_DOMAIN/
+  (the web app is served at "/" on the same Replit domain). Native extras: printing (web `printPage` posts the page HTML →
+  expo-print sheet), haptics (`playCue` posts {type:'haptic'}), outside links open in Safari, offline screen with Try again,
+  media autoplay allowed for read-aloud. Web side: `artifacts/fraction-quest/src/lib/native-shell.ts`. The old native lesson screens
+  (LearningActivity, AnswerTileBuilder, lib/curriculum) were removed (in git history). On the Expo web target it redirects
+  to the web app. The Capacitor app on `ios-local-icloud` is untouched (kept separate per the user).
 - "Count with me" after a miss: `ModelView walk={attempts}` (PlayView, on retry) pops numbers 1, 2, 3… onto each part
   of bar models (several bars count on from each other), partition strips and number-line spaces (≤24), 0.45 s apart,
   then the shaded parts glow (`.fq-count-badge`, `.fq-walking`). Runs alongside Hoot's spoken help; not word-synced

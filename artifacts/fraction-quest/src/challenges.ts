@@ -1,5 +1,5 @@
 /* Kangaroo-style Unit challenges: short puzzles with five choices (A–E), worth 3, 4 or 5 points.
-   Points count only on the first try. Each unit's challenge unlocks when all its lessons are done. All 14 units have one. */
+   Points count only on the first try. Each unit's challenge unlocks when all its lessons are done. All 15 units have one. */
 import { standardsForChallenge } from './standard-catalog';
 
 /** Pictures for puzzles. None of them print the answer: the picture is the puzzle. */
@@ -231,6 +231,24 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
       step('What is 1/4 of 24?', ['6', '4', '8'], 0),
       step('24 − 6 = ?', ['20', '18', '16'], 1),
       step('1/3 of 18 is 6. 18 − 6 = ?', ['14', '6', '12'], 2),
+    ]),
+  ],
+  15: [
+    q('u15-p1', 3, 'The shaded part is 6 stickers. How many stickers are in the whole bar?', ['6', '12', '9', '18', '24'], 3, 'The shaded part is 2 of 6 equal parts, so each part is 3. 6 parts is 18.', { kind: 'bars', bars: [{ n: 2, d: 6 }] }),
+    q('u15-c1', 3, '6 marbles are 1/4 of a bag. How many marbles are in the bag?', ['10', '24', '18', '30', '6/4'], 1, '1 fourth is 6. 4 fourths is 4 × 6 = 24.'),
+    q('u15-c2', 3, 'Sam says 2/7 + 3/7 = 5/14. What is the right answer?', ['5/14', '6/7', '1/7', '5/7', '6/14'], 3, 'Sevenths plus sevenths make sevenths. 2 + 3 = 5, so 5/7.'),
+    q('u15-c3', 4, '12 cards are 3/5 of a pile. How many cards are in the pile?', ['15', '20', '36', '60', '7'], 1, '3 fifths is 12, so 1 fifth is 4. 5 fifths is 20.', undefined, [
+      step('3 fifths is 12. What is 1 fifth?', ['4', '3', '36'], 0),
+      step('The whole is 5 fifths. 5 × 4 = ?', ['9', '20', '15'], 1),
+    ]),
+    q('u15-c4', 4, 'Mia has 36 beads. She uses 1/4 of them. Then she uses 1/3 of the rest. How many beads are left?', ['9', '27', '18', '24', '12'], 2, '1/4 of 36 is 9, so 27 are left. 1/3 of 27 is 9, so 18 are left.', undefined, [
+      step('What is 1/4 of 36?', ['9', '4', '27'], 0),
+      step('36 − 9 = ?', ['18', '27', '9'], 1),
+      step('1/3 of 27 is 9. 27 − 9 = ?', ['9', '27', '18'], 2),
+    ]),
+    q('u15-c5', 5, 'A jug holds 3/4 liter. A cup holds 1/8 liter. How many cups can you fill from the jug?', ['3', '4', '8', '6', '12'], 3, '3/4 = 6/8. Six 1/8-liter cups fit.', undefined, [
+      step('Write 3/4 in eighths.', ['3/8', '6/8', '4/8'], 1),
+      step('How many 1/8s are in 6/8?', ['6', '8', '1'], 0),
     ]),
   ],
 };

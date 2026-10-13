@@ -133,6 +133,7 @@ const EXPECTED_EXTENSION_IDS = [
   'line-plot-leveling', 'measurement-word-problems', 'fractional-unit-conversions', 'fractional-sharing', 'fraction-as-division',
   'fraction-probability', 'fraction-of-area', 'fractional-side-area', 'equivalent-number-line', 'fraction-recipes',
   'fractions-to-percent', 'percent-to-fraction', 'decimal-fraction-equivalence', 'compare-decimals', 'multi-step-fraction-stories',
+  'find-the-whole', 'spot-the-mistake', 'fraction-of-remainder', 'divide-fractions',
 ];
 
 const memory = new Map<string, string>();
@@ -204,8 +205,8 @@ function assertModel(model: ModelSpec, location: string): void {
 }
 
 describe('lesson catalog', () => {
-  it('covers 68 sequenced lessons in the expected sequence and unit groups', () => {
-    assert.equal(MISSIONS.length, 68);
+  it('covers 72 sequenced lessons in the expected sequence and unit groups', () => {
+    assert.equal(MISSIONS.length, 72);
     assert.deepEqual(MISSIONS.slice(0, 28).map((mission) => mission.id), EXPECTED_MISSION_IDS);
     assert.deepEqual(MISSIONS.slice(28).map((mission) => mission.id), EXPECTED_EXTENSION_IDS);
     assert.deepEqual(
@@ -213,7 +214,7 @@ describe('lesson catalog', () => {
         [...new Set(MISSIONS.map((mission) => mission.unit))]
           .map((unit) => [unit, MISSIONS.filter((mission) => mission.unit === unit).length]),
       ),
-      { 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 4, 8: 8, 9: 5, 10: 7, 11: 6, 12: 10, 13: 5, 14: 5 },
+      { 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 4, 8: 8, 9: 5, 10: 7, 11: 6, 12: 10, 13: 5, 14: 5, 15: 4 },
     );
   });
 
@@ -1560,10 +1561,11 @@ describe('unit challenges', () => {
     'u13-c3': ['6/8', '9/12', '12/16', '15/20', '8/10'].find((f) => { const [t, b] = f.split('/').map(Number); return t * 4 !== b * 3; })!,
     'u13-c4': `${12 - 3 - 4}/12`, 'u13-c5': '1 1/8 cups',
     'u14-p1': '40%', 'u14-c1': `${(3 / 4) * 100}%`, 'u14-c2': '1/2, 55%, 0.6', 'u14-c3': `${(17 / 20) * 100}%`, 'u14-c4': `${100 - 40 - 30}%`, 'u14-c5': String(24 - 24 / 4 - (24 - 24 / 4) / 3),
+    'u15-p1': String((6 / 2) * 6), 'u15-c1': String(6 * 4), 'u15-c2': `${2 + 3}/7`, 'u15-c3': String((12 / 3) * 5), 'u15-c4': String(36 - 36 / 4 - (36 - 36 / 4) / 3), 'u15-c5': String((3 / 4) / (1 / 8)),
   };
 
   it('has a picture puzzle plus five questions worth 3, 3, 3, 4, 4 and 5 points in every unit', () => {
-    for (let unit = 1; unit <= 14; unit++) {
+    for (let unit = 1; unit <= 15; unit++) {
       assert.deepEqual(CHALLENGES[unit].map((item) => item.points), [3, 3, 3, 4, 4, 5]);
       assert.ok(CHALLENGES[unit][0].figure, `unit ${unit} starts with a picture puzzle`);
       assert.equal(challengeMaxPoints(unit), 22);
@@ -1614,6 +1616,7 @@ describe('long problems', () => {
       'u12-c3': ['4/8', '2/8', '9/8'], 'u12-c4': ['2/5', '3/8', '2/5'], 'u12-c5': ['200', '25 cm', '125 cm'],
       'u13-c4': ['7', '5', '5/12'], 'u13-c5': ['3/8 cup', '3/4 + 3/8', '9/8'],
       'u14-c3': ['85/100', '85%'], 'u14-c4': ['40%', '30%', '30%'], 'u14-c5': ['6', '18', '12'],
+      'u15-c3': ['4', '20'], 'u15-c4': ['9', '27', '18'], 'u15-c5': ['6/8', '6'],
     };
     for (const items of Object.values(CHALLENGES)) {
       for (const item of items) {
@@ -1670,6 +1673,11 @@ describe('question generator', () => {
     else if ((m = /^Write (\d+)% as a fraction\.$/.exec(p))) expected = N(m[1]) / 100;
     else if ((m = /^Write (\d+)\/(\d+) as a decimal\.$/.exec(p))) { assert.match(answer, /^\d+\.\d+$/, p); expected = N(m[1]) / N(m[2]); }
     else if ((m = /^(\d+)\/(\d+) of a garden is planted\. Then (\d+)\/(\d+) more/.exec(p)) || (m = /^Mia reads (\d+)\/(\d+) of a book on Monday and (\d+)\/(\d+) on Tuesday/.exec(p))) expected = 1 - N(m[1]) / N(m[2]) - N(m[3]) / N(m[4]);
+    // Unit 15: find the whole, fix a mistake, fraction of the rest, and fraction ÷ fraction.
+    else if ((m = /^(\d+) stickers are (\d+)\/(\d+) of a pack\. How many stickers are in the pack\?$/.exec(p))) expected = (N(m[1]) / N(m[2])) * N(m[3]);
+    else if ((m = /^(?:Sam|Kim) says (\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \d+\/\d+\. What is the right answer\?$/.exec(p))) expected = N(m[1]) / N(m[2]) + (m[3] === '+' ? 1 : -1) * N(m[4]) / N(m[5]);
+    else if ((m = /^Ana has (\d+) stickers\. She gives away (\d+)\/(\d+) of them\. Then she gives away (\d+)\/(\d+) of the rest\. How many are left\?$/.exec(p))) expected = N(m[1]) * (1 - N(m[2]) / N(m[3])) * (1 - N(m[4]) / N(m[5]));
+    else if ((m = /^How many 1\/(\d+) cup scoops fill (\d+)\/(\d+) cup\?$/.exec(p))) expected = (N(m[2]) / N(m[3])) * N(m[1]);
     if (expected === null) return false;
     if (typeof expected === 'string') assert.equal(answer.replace(/\s/g, ''), expected.replace(/\s/g, ''), p);
     else assert.ok(near(num(answer), expected), `${p} → ${answer}, expected ${expected}`);
@@ -1944,7 +1952,7 @@ describe('quality audit fixes', () => {
 });
 
 describe('grown-ups report', () => {
-  const titles = Array.from({ length: 14 }, (_, i) => `Unit ${i + 1}`);
+  const titles = Array.from({ length: 15 }, (_, i) => `Unit ${i + 1}`);
   const fun0 = { xp: 0, day: '2026-10-11', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: true };
   it('starts empty and points to lesson 1', () => {
     const report = buildParentReport(EMPTY_PROGRESS, fun0, titles, new Date(2026, 9, 11));
@@ -1954,7 +1962,7 @@ describe('grown-ups report', () => {
     assert.equal(report.firstTryRate, null); assert.equal(report.onOwnRate, null);
     assert.equal(report.nextLesson, `Lesson 1: ${MISSIONS[0].title}`);
     assert.equal(report.week.length, 7); assert.equal(report.minutesWeek, 0);
-    assert.equal(report.units.length, 14);
+    assert.equal(report.units.length, 15);
     assert.equal(report.units[0].lessons[0].status, 'open'); assert.equal(report.units[0].lessons[1].status, 'locked');
   });
   it('counts first-try answers, independent builds, tricky ideas and this week\'s activity', () => {
@@ -2362,9 +2370,9 @@ describe('game improvements', () => {
 describe('course counts', () => {
   it('counts lessons and units from the course, leaving out free units', () => {
     const all = courseCounts();
-    assert.equal(all.lessons, MISSIONS.length); assert.equal(all.units, 14);
+    assert.equal(all.lessons, MISSIONS.length); assert.equal(all.units, 15);
     const trial = courseCounts([1]);
-    assert.equal(trial.lockedUnits, 13);
+    assert.equal(trial.lockedUnits, 14);
     assert.equal(trial.lockedLessons, MISSIONS.filter((mission) => mission.unit !== 1).length);
   });
 });
@@ -2767,5 +2775,44 @@ describe('paper folding', () => {
     assert.equal(shadedName(4, [2, 2, 2]), '4/8 = 1/2');
     assert.equal(shadedName(6, [2, 2, 2]), '6/8 = 3/4');
     assert.equal(shadedName(0, [2]), '');
+  });
+});
+
+describe('Expo iPhone shell', () => {
+  it('loads the web app from its own domain, keeps app pages inside, and reads its messages', async () => {
+    const { webAppUrl, isAppPage, parseShellMessage } = await import('../../fraction-quest-ios/lib/web-app');
+    const saved = { url: process.env.EXPO_PUBLIC_WEB_APP_URL, domain: process.env.EXPO_PUBLIC_DOMAIN };
+    try {
+      delete process.env.EXPO_PUBLIC_WEB_APP_URL;
+      process.env.EXPO_PUBLIC_DOMAIN = 'fraction-quest.example.replit.app';
+      assert.equal(webAppUrl(), 'https://fraction-quest.example.replit.app/');
+      process.env.EXPO_PUBLIC_WEB_APP_URL = 'https://fractionquest.app';
+      assert.equal(webAppUrl(), 'https://fractionquest.app/', 'an explicit address wins');
+      delete process.env.EXPO_PUBLIC_WEB_APP_URL; delete process.env.EXPO_PUBLIC_DOMAIN;
+      assert.equal(webAppUrl(), null);
+    } finally {
+      if (saved.url === undefined) delete process.env.EXPO_PUBLIC_WEB_APP_URL; else process.env.EXPO_PUBLIC_WEB_APP_URL = saved.url;
+      if (saved.domain === undefined) delete process.env.EXPO_PUBLIC_DOMAIN; else process.env.EXPO_PUBLIC_DOMAIN = saved.domain;
+    }
+    assert.equal(isAppPage('https://a.replit.app/lesson', 'https://a.replit.app/'), true);
+    assert.equal(isAppPage('https://webassets.zearn.org/guide.pdf', 'https://a.replit.app/'), false, 'other sites open in Safari');
+    assert.equal(isAppPage('about:blank', 'https://a.replit.app/'), true);
+    assert.deepEqual(parseShellMessage('{"type":"haptic","cue":"correct"}'), { type: 'haptic', cue: 'correct' });
+    assert.equal(parseShellMessage('{"type":"print","html":"<html></html>"}')?.type, 'print');
+    assert.equal(parseShellMessage('{"type":"other"}'), null);
+    assert.equal(parseShellMessage('not json'), null);
+  });
+
+  it('the web app talks to the shell only when it is inside it', async () => {
+    const { inExpoShell, postToShell } = await import('./lib/native-shell');
+    assert.equal(inExpoShell(), false);
+    assert.equal(postToShell({ type: 'haptic', cue: 'correct' }), false);
+    const sent: string[] = [];
+    (globalThis as { ReactNativeWebView?: unknown }).ReactNativeWebView = { postMessage: (m: string) => sent.push(m) };
+    try {
+      assert.equal(inExpoShell(), true);
+      assert.equal(postToShell({ type: 'haptic', cue: 'retry' }), true);
+      assert.deepEqual(JSON.parse(sent[0]), { type: 'haptic', cue: 'retry' });
+    } finally { delete (globalThis as { ReactNativeWebView?: unknown }).ReactNativeWebView; }
   });
 });

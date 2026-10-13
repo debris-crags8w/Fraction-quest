@@ -9,8 +9,8 @@ import {
 import { GRADE_PACING, UNIT_TEACHING_GUIDES, pacingSessionTotal } from './teaching-guide-data';
 
 describe('family teaching guides', () => {
-  it('covers all 14 units and gives realistic, correctly totaled grade pacing', () => {
-    assert.deepEqual(UNIT_TEACHING_GUIDES.map((guide) => guide.unit), Array.from({ length: 14 }, (_, index) => index + 1));
+  it('covers all 15 units and gives realistic, correctly totaled grade pacing', () => {
+    assert.deepEqual(UNIT_TEACHING_GUIDES.map((guide) => guide.unit), Array.from({ length: 15 }, (_, index) => index + 1));
     assert.ok(MISSIONS.every((mission) => UNIT_TEACHING_GUIDES.some((guide) => guide.unit === mission.unit)));
     assert.deepEqual(GRADE_PACING.map((plan) => [plan.grade, plan.totalSessions, pacingSessionTotal(plan)]), [
       [3, 35, 35], [4, 45, 45], [5, 45, 45],
