@@ -559,9 +559,11 @@ export function useReadAloud(text: string | null, key: string | number | null = 
 
 export function LearningListenButton({
   text,
-  label = 'Listen to this explanation',
+  section,
+  label,
 }: {
   text: string;
+  section?: string;
   label?: string;
 }) {
   const [speaking, setSpeaking] = useState(false);
@@ -570,10 +572,13 @@ export function LearningListenButton({
     ? funContext.fun.preferredLearningVoiceId ?? null
     : getSavedLearningVoiceId();
   const controllerRef = useRef<ReturnType<typeof createLearningSpeechController> | null>(null);
+  const accessibleSection = section
+    ?? label?.replace(/^Listen to (?:the|this) /i, '')
+    ?? 'explanation';
+  const listenLabel = label ?? `Listen to the ${accessibleSection}`;
   const supported = typeof window !== 'undefined'
     && 'speechSynthesis' in window
     && typeof SpeechSynthesisUtterance !== 'undefined';
-  const section = label.replace(/^Listen to\s+/i, '');
 
   useEffect(() => {
     if (!supported) return;
@@ -608,9 +613,11 @@ export function LearningListenButton({
       className="fq-learning-listen"
       onClick={toggleSpeech}
       disabled={!supported}
-      aria-label={!supported ? label : speaking ? `Stop reading ${section}` : label}
+      aria-label={!supported
+        ? `Audio unavailable for the ${accessibleSection}`
+        : speaking ? `Stop reading the ${accessibleSection}` : listenLabel}
       aria-pressed={speaking}
-      title={supported ? undefined : `Audio for ${section} is not available in this browser.`}
+      title={supported ? undefined : `Audio for the ${accessibleSection} is not available in this browser.`}
       data-testid="button-listen-learning-text"
     >
       {speaking ? <VolumeX size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}

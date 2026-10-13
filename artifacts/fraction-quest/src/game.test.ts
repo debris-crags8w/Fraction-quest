@@ -705,17 +705,24 @@ describe('entered-answer worksheets and evidence gates', () => {
     }
   });
 
-  it('highlights fraction vocabulary, explains terms, keeps fractions stacked, and offers audio', () => {
+  it('highlights fraction vocabulary, keeps fractions stacked, and does not add inline audio controls', () => {
     const markup = renderToStaticMarkup(createElement(LearningText, {
       text: 'Each equal share is 1/4 of a whole.',
-      speak: true,
     }));
     assert.match(markup, /class="fq-vocab-trigger" role="term" tabindex="0" aria-describedby=/);
     assert.match(markup, /role="tooltip"/);
     assert.match(markup, /A whole is the full shape or amount/);
     assert.match(markup, /class="fq-mfrac" role="math" aria-label="1 over 4"/);
+    assert.doesNotMatch(markup, /fq-learning-listen|button-listen-learning-text/);
+  });
+
+  it('keeps explicit read-aloud support for screens that still request it', () => {
+    const markup = renderToStaticMarkup(createElement(LearningText, {
+      text: 'Each equal share is 1/4 of a whole.',
+      speak: true,
+    }));
     assert.match(markup, /class="fq-learning-listen"/);
-    assert.match(markup, /Audio unavailable/, 'browsers without speech support explain that audio is unavailable');
+    assert.match(markup, /aria-label="Audio unavailable for the explanation"/);
   });
 
   it('offers one accessible Listen control for a complete question, including story lines in order', () => {
@@ -723,7 +730,7 @@ describe('entered-answer worksheets and evidence gates', () => {
     const markup = renderToStaticMarkup(createElement(StoryPrompt, { prompt, id: 'lesson-question' }));
 
     assert.equal((markup.match(/data-testid="button-listen-learning-text"/g) ?? []).length, 1);
-    assert.match(markup, /aria-label="Listen to the question"/);
+    assert.match(markup, /aria-label="Audio unavailable for the question"/);
     assert.ok(markup.indexOf('A kite fell.') < markup.indexOf('Mia found it.'));
     assert.ok(markup.indexOf('Mia found it.') < markup.indexOf('Where did Mia find it?'));
     assert.match(markup, /class="fq-story-question-heading"/);
@@ -746,8 +753,8 @@ describe('entered-answer worksheets and evidence gates', () => {
     for (const section of sections) {
       assert.match(markup, new RegExp(`aria-labelledby="${section.id}"`));
       assert.match(markup, new RegExp(`id="${section.id}">${section.heading}</h3>`));
-      assert.match(markup, new RegExp(`aria-label="Listen to the ${section.heading.toLowerCase()}"`));
-      assert.ok(markup.indexOf(`id="${section.id}">${section.heading}</h3>`) < markup.indexOf(`aria-label="Listen to the ${section.heading.toLowerCase()}"`));
+      assert.match(markup, new RegExp(`aria-label="Audio unavailable for the ${section.heading.toLowerCase()}"`));
+      assert.ok(markup.indexOf(`id="${section.id}">${section.heading}</h3>`) < markup.indexOf(`aria-label="Audio unavailable for the ${section.heading.toLowerCase()}"`));
     }
   });
 
@@ -1643,7 +1650,7 @@ describe('long problems', () => {
       id: 'question-title',
     }));
     assert.equal((markup.match(/class="fq-learning-listen"/g) ?? []).length, 1);
-    assert.match(markup, /aria-label="Listen to the question"/);
+    assert.match(markup, /aria-label="Audio unavailable for the question"/);
     assert.match(markup, /class="fq-story-question-heading"[^>]*>.*<h1 id="question-title".*<button[^>]*class="fq-learning-listen"/);
     const storyList = markup.match(/<ol class="fq-story"[\s\S]*?<\/ol>/)?.[0] ?? '';
     assert.doesNotMatch(storyList, /fq-learning-listen/, 'story sentences do not each get their own inline control');
