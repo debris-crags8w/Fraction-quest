@@ -9,11 +9,11 @@ Before making local code changes, check GitHub for newer commits and merge them 
 
 **How to apply:** fetch and inspect the relevant GitHub branch before editing; merge newer commits first, resolve any conflicts, and verify the working branch. Do not edit app code before completing this check.
 
-When Git CLI pushes fail with authentication errors despite the GitHub integrations being active, the connected GitHub App can still write through the Git Data API. Build a tree from the current remote base, create a single-parent commit, and update the branch without force.
+When Git CLI pushes fail with authentication errors despite the GitHub integration being active, the connected GitHub App can still write through the Git Data API. Build a tree from the current remote branch tip, create the commit with the intended parent(s), and update the branch without force.
 
-**Why:** the source-control connection was reported as active but `git push` rejected the workspace credentials; the GitHub App API connection had repository write access.
+**Why:** Git CLI authentication can fail even when the connected GitHub App has repository write access; conflict resolution may need a merge commit with both the PR head and updated base as parents.
 
-**How to apply:** check integration status and repository write access, preserve full repository paths when building monorepo trees, and compare every uploaded Git blob SHA with its local Git blob SHA before creating a tree. Compare the resulting tree SHA with the local commit tree. Re-read the branch ref immediately before updating it; if it moved, fetch and merge the new commit, then rebuild on that base. Verify the final ref and tree, and never force-update the branch as a workaround.
+**How to apply:** check integration status and repository write access, preserve full repository paths when building monorepo trees, and compare every uploaded Git blob SHA with its local Git blob SHA before creating a tree. Compare the resulting tree SHA with the local commit tree. For a merge-resolution commit, include both source and updated-base parent SHAs and all changed paths in the tree. Re-read the branch ref immediately before updating it; if it moved, fetch and merge the new commit, then rebuild on that base. Verify the final ref and tree, and never force-update the branch as a workaround.
 
 GitHub's Git Database API can omit the final newline from a commit message when creating a commit, producing a different commit SHA even when tree, parent, author, committer, and visible message match the local commit.
 
