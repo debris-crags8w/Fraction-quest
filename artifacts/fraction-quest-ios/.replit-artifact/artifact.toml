@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/fraction-quest-ios/"
+title = "Fraction Quest iOS"
+description = "A native iPhone learning app for Fraction Quest, with interactive fraction models, answer-entry missions, and locally saved progress."
+version = "1.0.0"
+id = "artifacts/fraction-quest-ios"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/fraction-quest-ios/" ]
+localPort = 20785
+
+[services.development]
+run = "pnpm --filter @workspace/fraction-quest-ios run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/fraction-quest-ios", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/fraction-quest-ios", "run", "serve" ]
+
+[services.env]
+PORT = "20785"
+BASE_PATH = "/fraction-quest-ios/"
