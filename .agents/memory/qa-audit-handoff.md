@@ -8,9 +8,8 @@ wording, repetition, printables, model-centred learning, and everything pushed t
 the square area model and the Part Finder proposal; local review changes should be merged only after checking current `main`.
 
 ## How to work
-- pnpm monorepo. App: `artifacts/fraction-quest`. A root `src/` mirror must be kept identical: copy every changed/new file
-  from `artifacts/fraction-quest/src/` to `src/` before committing (`diff -rq artifacts/fraction-quest/src src`; only the
-  app-only folders components/, hooks/, pages/, main.tsx, lib/utils.ts should differ).
+- pnpm monorepo. App: `artifacts/fraction-quest` (its `src/` is the only copy of the web app's code). The old root
+  `src/` mirror was removed (nothing built or imported it, and it kept drifting); don't recreate it.
 - Typecheck: `pnpm run typecheck`. Tests (82 passing): `cd artifacts/fraction-quest && npm exec --yes --package=tsx@4.19.2 -- tsx --test src/game.test.ts src/account-flow.test.ts`.
 - Build: from `artifacts/fraction-quest`, run `PORT=5173 BASE_PATH=/ pnpm run build`. Preview: `PORT=5173 BASE_PATH=/ npx vite preview --config vite.config.ts --port 5173 --strictPort`.
   Stop it with `pkill -f "[v]ite preview"` in its own Bash call (the command text kills its own shell otherwise).
@@ -41,6 +40,7 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Removed the root `src/` mirror (user decision): unused by Replit, builds, typecheck and tests, and it had drifted.
 - "Count with me" after a miss: `ModelView walk={attempts}` (PlayView, on retry) pops numbers 1, 2, 3… onto each part
   of bar models (several bars count on from each other), partition strips and number-line spaces (≤24), 0.45 s apart,
   then the shaded parts glow (`.fq-count-badge`, `.fq-walking`). Runs alongside Hoot's spoken help; not word-synced
