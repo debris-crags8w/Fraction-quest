@@ -110,8 +110,8 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'fraction-names': (r) => {
     const d = r.pick(DENS); const n = r.int(1, d - 1);
     return r.chance()
-      ? { prompt: `In ${f(n, d)}, what does the ${d} mean?`, right: `${d} equal parts in all`, wrong: [`${d} parts are shaded`, `${d} wholes`], extra: `${d} parts not shaded`, hint: 'Look at the denominator.', retry: 'The denominator is how many equal parts in all.', model: bar(n, d) }
-      : { prompt: 'What fraction is shaded?', right: f(n, d), wrong: [f(d, n), f(d - n, d)], hint: 'Numerator: parts shaded. Denominator: all the parts.', retry: `Count all ${d} parts for the denominator. Count the ${n} shaded for the numerator.`, model: bar(n, d) };
+      ? { prompt: `In ${f(n, d)}, what does the ${d} mean?`, right: `${d} equal parts in all`, wrong: [`${d} parts are shaded`, `${d} wholes`], extra: `${d} parts not shaded`, hint: 'Look at the denominator.', retry: 'The denominator is the number of equal parts in all.', model: bar(n, d) }
+      : { prompt: 'What fraction is shaded?', right: f(n, d), wrong: [f(d, n), f(d - n, d)], hint: 'The numerator is the number of parts shaded. The denominator is all the equal parts.', retry: `The denominator is all ${d} parts. The numerator is the ${n} shaded parts.`, model: bar(n, d) };
   },
   'unit-fractions': (r) => {
     if (r.int(0, 2) === 0) {
@@ -388,7 +388,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'fraction-probability': (r) => {
     const t = r.pick([4, 5, 6, 8, 10, 12]); const g = r.int(1, t - 1);
     return later(`A bag has ${t} marbles. ${g} ${g === 1 ? 'is' : 'are'} green. What is the chance of picking green?`, f(g, t), [f(g, t - g), f(t - g, t), f(t, g)],
-      'Numerator: green marbles. Denominator: all the marbles.', `${g} green out of ${t}: ${f(g, t)}.`, set(g, t));
+      'The numerator is the number of green marbles. The denominator is the total number of marbles.', `${g} green out of ${t}: ${f(g, t)}.`, set(g, t));
   },
   'fraction-of-area': (r) => {
     const d = r.pick([3, 4, 5, 6, 8, 10, 12]); const n = r.int(1, d - 1);

@@ -226,18 +226,18 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'fraction-names', unit: 1, title: 'Read a fraction', shortTitle: 'Fraction names', skill: 'Denominator: equal parts. Numerator: parts you count.',
+    id: 'fraction-names', unit: 1, title: 'Read a fraction', shortTitle: 'Fraction names', skill: 'The denominator is the number of equal parts in one whole. The numerator is the number of parts you count.',
     description: 'Learn what the numerator and denominator mean.', example: {
       prompt: 'In 3/5, what does each number tell you?',
-      answer: '5 equal parts in all. 3 are counted.',
-      explanation: 'Bottom (5): equal pieces in all. Top (3): pieces you count.',
+      answer: 'There are 5 equal parts in all. 3 parts are counted.',
+      explanation: 'The denominator is 5, so the whole has 5 equal parts. The numerator is 3, so 3 parts are counted.',
       model: bars({ numerator: 3, denominator: 5 }),
     },
     questions: [
-      practice('In 2/7, what does the 7 mean?', ['7 equal parts in all', '7 parts are shaded', '7 wholes', '7 parts not shaded'], 0, bars({ numerator: 2, denominator: 7 }), 'Look at the denominator.', 'The denominator is how many equal parts in all.', bars({ numerator: 1, denominator: 3 })),
-      practice('A tray has 6 spaces. 4 have a snack. What fraction have a snack?', ['6/4', '4/6', '4/4'], 1, bars({ numerator: 4, denominator: 6 }), 'Numerator: spaces with a snack. Denominator: all the spaces.', 'Numerator: 4 with a snack. Denominator: 6 in all.', bars({ numerator: 1, denominator: 2 })),
+      practice('In 2/7, what does the 7 mean?', ['7 equal parts in all', '7 parts are shaded', '7 wholes', '7 parts not shaded'], 0, bars({ numerator: 2, denominator: 7 }), 'Look at the denominator.', 'The denominator is the number of equal parts in all.', bars({ numerator: 1, denominator: 3 })),
+      practice('A tray has 6 spaces. 4 have a snack. What fraction have a snack?', ['6/4', '4/6', '4/4'], 1, bars({ numerator: 4, denominator: 6 }), 'The numerator is the number of spaces with a snack. The denominator is the number of spaces in all.', 'The numerator is 4 spaces with a snack. The denominator is 6 spaces in all.', bars({ numerator: 1, denominator: 2 })),
       practice('In 5/8, how many pieces are counted?', ['8', '5', '13'], 1, bars({ numerator: 5, denominator: 8 }), 'Look at the numerator.', 'The numerator is 5. So 5 pieces are counted.', bars({ numerator: 2, denominator: 4 })),
-      practice('A shape has 9 equal parts. 1 is colored. What fraction is colored?', ['1/9', '9/1', '1/8'], 0, bars({ numerator: 1, denominator: 9 }), '1 colored part out of 9.', 'Denominator: all 9 parts. Numerator: the 1 colored part.', bars({ numerator: 1, denominator: 4 })),
+      practice('A shape has 9 equal parts. 1 is colored. What fraction is colored?', ['1/9', '9/1', '1/8'], 0, bars({ numerator: 1, denominator: 9 }), '1 colored part out of 9.', 'The denominator is all 9 equal parts. The numerator is the 1 colored part.', bars({ numerator: 1, denominator: 4 })),
     ],
   },
   {

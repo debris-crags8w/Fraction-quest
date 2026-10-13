@@ -985,8 +985,8 @@ describe('entered-answer worksheets and evidence gates', () => {
     const markup = renderToStaticMarkup(createElement(AnswerTiles, {
       shape: { kind: 'fraction', allowWhole: false }, value: '1/3', onChange: () => undefined, testIdPrefix: 'ws-w1',
     }));
-    assert.match(markup, /aria-label="numerator: parts selected: 1[,"]/);
-    assert.match(markup, /aria-label="denominator: equal parts in 1 whole: 3"/);
+    assert.match(markup, /aria-label="numerator is the number of parts selected: 1[,"]/);
+    assert.match(markup, /aria-label="denominator is the total number of equal parts in 1 whole: 3"/);
     assert.match(markup, /data-testid="tile-ws-w1-digit-9"/);
     assert.doesNotMatch(markup, /<input|<textarea/);
   });
@@ -1187,6 +1187,11 @@ describe('entered-answer worksheets and evidence gates', () => {
   });
 });
   it('keeps the first fraction lesson focused on equal parts, then layers in unit fractions', () => {
+    const fractionNameLesson = getMission('fraction-names');
+    assert.equal(fractionNameLesson.skill, 'The denominator is the number of equal parts in one whole. The numerator is the number of parts you count.');
+    assert.match(spokenLearningText(fractionNameLesson.skill), /The denominator is .* The numerator is/);
+    assert.match(fractionNameLesson.example.explanation, /The denominator is 5.* The numerator is 3/);
+
     const equalParts = getWorksheet('equal-parts');
     assert.ok(equalParts.every(problem => problem.model?.kind === 'bar' || problem.area));
     const bars = equalParts.filter(problem => problem.model);
