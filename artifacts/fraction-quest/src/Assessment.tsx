@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, BarChart3, Check, RotateCcw } from 'lucide-react
 import { MathText } from './MathText';
 import { AnswerTiles } from './AnswerTiles';
 import { answerShape } from './answer-shape';
-import { useRevealWhen } from './lib/reveal';
+import { useRevealWhen, useScrollTopOn } from './lib/reveal';
 import { YesNoCards } from './YesNoCards';
 import { isYesNoProblem } from './learning-content';
 import { AreaShade, AreaSvg } from './AreaModel';
@@ -161,6 +161,7 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
 }) {
   const items = useMemo(() => buildAssessmentItems(definition, seed), [definition, seed]);
   const [index, setIndex] = useState(0);
+  useScrollTopOn(index);
   const [answer, setAnswer] = useState('');
   const submitRef = useRef<HTMLButtonElement>(null);
   useRevealWhen(submitRef, !!answer.trim());

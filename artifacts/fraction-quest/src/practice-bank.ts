@@ -1,3 +1,4 @@
+import { fourthChoice } from './fourth-choice';
 import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, getWorksheet, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
@@ -52,7 +53,9 @@ const shadedFirst = (n: number) => Array.from({ length: n }, (_, k) => k);
 const DENS = [3, 4, 5, 6, 8, 10, 12] as const;
 const withLabels = (model: ModelSpec): ModelSpec => ('hideLabels' in model ? { ...model, hideLabels: false } : model);
 
-type Item = { prompt: string; right: string; wrong: [string, string]; hint: string; retry: string; model: ModelSpec; simpler?: ModelSpec };
+type Item = { prompt: string; right: string; wrong: [string, string]; hint: string; retry: string; model: ModelSpec; simpler?: ModelSpec;
+  /** A fourth wrong choice written for this kind of question (otherwise one is made from the question). */
+  extra?: string };
 
 /** Nudge a wrong choice to the next number if it repeats another choice (e.g. "5" → "6", "3/8" → "4/8"). */
 function nudge(choice: string): string {
@@ -85,8 +88,8 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
         ['fourths-mixed', true, 'square'], ['quarter-and-triangles', false, 'square'], ['fourths-triangles', true, 'square'],
         ['circle-sixths', true, 'pizza'], ['circle-unequal', false, 'pizza'], ['fourths-unequal', false, 'square'], ['hexagon-sixths', true, 'hexagon'],
       ] as const);
-      const yes = 'Yes: all the parts are the same size'; const bigger = 'No: some parts are bigger'; const shapes = 'No: the parts are different shapes';
-      return { prompt: `Is this ${whole} cut into equal parts?`, right: fair ? yes : bigger, wrong: fair ? [bigger, shapes] : [yes, shapes],
+      const yes = 'Yes, same-size parts'; const bigger = 'No, some parts are bigger'; const shapes = 'No, the shapes are different';
+      return { prompt: `Is this ${whole} cut into equal parts?`, right: fair ? yes : bigger, wrong: fair ? [bigger, shapes] : [yes, shapes], extra: 'Yes, it is cut up',
         hint: 'Equal parts are the same size. They do not have to be the same shape.',
         retry: fair ? 'Every part takes up the same amount of space, so the parts are equal, even if their shapes are different.' : 'Compare the sizes: one part is bigger than another, so the parts are not equal.',
         model: area(cut) };
@@ -97,8 +100,9 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     const sizes = Array.from({ length: count }, () => 1);
     if (kind === 1) sizes[r.int(0, count - 1)] = 2.5; // one piece clearly bigger
     const total = sizes.reduce((a, b) => a + b, 0);
-    const yes = `Yes: ${d} equal pieces`; const unequal = 'No: the pieces are not equal'; const tooMany = `No: there are ${d + 1} pieces`;
+    const yes = `Yes, ${d} equal pieces`; const unequal = 'No, the pieces are unequal'; const tooMany = `No, there are ${d + 1} pieces`;
     return { prompt: `Is this strip cut into equal ${name(d)}?`, right: [yes, unequal, tooMany][kind], wrong: [yes, unequal, tooMany].filter((_, i) => i !== kind) as [string, string],
+      extra: d === 2 ? 'No, there is 1 piece' : `No, there are ${d - 1} pieces`,
       hint: `Equal ${name(d)}: exactly ${d} pieces, all the same size. Count them, then compare them.`,
       retry: kind === 0 ? `There are ${d} pieces and they are all the same size, so they are equal ${name(d)}.` : kind === 1 ? 'One piece is bigger than the others, so the pieces are not equal.' : `Count again: there are ${d + 1} pieces, not ${d}.`,
       model: { kind: 'partition', parts: sizes.map((size) => (size / total) * 100) }, simpler: { kind: 'partition', parts: Array.from({ length: d }, () => 100 / d) } };
@@ -106,7 +110,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'fraction-names': (r) => {
     const d = r.pick(DENS); const n = r.int(1, d - 1);
     return r.chance()
-      ? { prompt: `In ${f(n, d)}, what does the ${d} mean?`, right: `${d} equal parts in the whole`, wrong: [`${d} parts are shaded`, `${d} wholes`], hint: 'Look at the denominator.', retry: 'The denominator is how many equal parts in all.', model: bar(n, d) }
+      ? { prompt: `In ${f(n, d)}, what does the ${d} mean?`, right: `${d} equal parts in all`, wrong: [`${d} parts are shaded`, `${d} wholes`], extra: `${d} parts not shaded`, hint: 'Look at the denominator.', retry: 'The denominator is how many equal parts in all.', model: bar(n, d) }
       : { prompt: 'What fraction is shaded?', right: f(n, d), wrong: [f(d, n), f(d - n, d)], hint: 'Numerator: parts shaded. Denominator: all the parts.', retry: `Count all ${d} parts for the denominator. Count the ${n} shaded for the numerator.`, model: bar(n, d) };
   },
   'unit-fractions': (r) => {
@@ -146,7 +150,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     const d = r.pick([6, 8, 10, 12]); const kind = r.int(0, 2);
     const n = kind === 0 ? 1 : kind === 2 ? d - 1 : Math.round(d / 2);
     const right = ['0', '1/2', '1'][kind];
-    return { prompt: `Is ${f(n, d)} closest to 0, 1/2 or 1?`, right, wrong: ['0', '1/2', '1'].filter((x) => x !== right) as [string, string],
+    return { prompt: `Is ${f(n, d)} closest to 0, 1/2, 1 or 2?`, right, wrong: ['0', '1/2', '1'].filter((x) => x !== right) as [string, string], extra: '2',
       hint: 'Is it tiny, about half, or almost full?', retry: `${f(n, d)} is closest to ${right}.`, model: bar(n, d) };
   },
   'fraction-magnitude': (r) => {
@@ -470,6 +474,15 @@ function balanceChoices(item: Item, rng: Rng): Item {
   return { ...item, wrong: [wrong[0], wrong[1]] };
 }
 
+/** Four choices (A–D): add the recipe's own fourth choice, or one made from the question, at `at`. */
+function withFourth(item: Item, placed: Pick<PracticeQuestion, 'choices' | 'correctChoice'>, at: number): Pick<PracticeQuestion, 'choices' | 'correctChoice'> {
+  const extra = item.extra && !placed.choices.includes(item.extra) ? item.extra : fourthChoice(item.prompt, placed.choices, placed.correctChoice);
+  if (!extra) return placed;
+  const choices = [...placed.choices];
+  choices.splice(at, 0, extra);
+  return { choices, correctChoice: placed.correctChoice + (at <= placed.correctChoice ? 1 : 0) };
+}
+
 export function generateQuestions(missionId: string, baseQuestionIds: string[], seed: number, count: number): PracticeQuestion[] {
   const recipe = RECIPES[missionId];
   if (!recipe) throw new Error(`No question generator for ${missionId}`);
@@ -484,7 +497,7 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
     out.push({
       id: `${missionId}-g${seed}-${out.length + 1}`,
       prompt: item.prompt,
-      ...place(balanceChoices(item, rng), rng.int(0, 2)),
+      ...withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3)),
       hint: item.hint,
       retryFeedback: item.retry,
       model: nameBars(item.model, item.prompt),

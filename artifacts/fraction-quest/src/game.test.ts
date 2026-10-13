@@ -1,5 +1,10 @@
+import { retryOpener, wrongChoiceReason } from './wrong-answer';
+import { fourthChoice, isSignQuestion } from './fourth-choice';
+import { answerValue } from './learning-content';
+import { readFileSync } from 'node:fs';
 import { pickVoice, sayFraction, sentences, spokenText } from './lib/voice';
 import { AREA_CUTS, allEqual, areaFeedback, areaTaskDone, areaWhole, circleCut, cutTotal, pieceArea, shadedArea } from './area-shapes';
+import { amountsIn } from './auto-picture';
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 import * as React from 'react';
@@ -9,24 +14,25 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { FunContext, splitStory } from './fun-ui';
 import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
-import { naturalVoicePreference, naturalVoiceStatus, setNaturalVoicePreference } from './lib/natural-voice';
+import { createNaturalSpeaker, isIOSVoiceDevice, naturalVoicePreference, naturalVoiceStatus, setNaturalEngineForTests, setNaturalVoicePreference } from './lib/natural-voice';
 import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
 import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './FractionRace';
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
 import { CODE_LEVEL_COUNT, describe as describeRun, getCodeLevels, getRunHint, makeMultiBug, matchesTarget, passesCodeLevel, predictionMatchesTarget, runProgram, solution, toText, usesEffectiveLoop, usesLoop, type Block } from './code-quest';
 import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
-import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder } from './lib/fun';
-import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
+import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, shownStreak } from './lib/fun';
+import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderRoundsFor, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
 import { createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
 import type { PracticeQuestion } from './game';
-import { answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
+import { REASON_IDEAS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
 import { AnswerTiles } from './AnswerTiles';
 import {
   createLearningSpeechController,
   LearningVoicePicker,
   LearningText,
   selectLearningVoice,
+  subscribeToSpeechVoices,
   spokenLearningText,
 } from './LearningText';
 import { BarSvg } from './models';
@@ -678,6 +684,25 @@ function withLearning(progress: Progress, id: string): Progress {
 }
 
 describe('entered-answer worksheets and evidence gates', () => {
+  it('builds lesson models and math text without String.matchAll in older webviews', () => {
+    const original = Object.getOwnPropertyDescriptor(String.prototype, 'matchAll');
+    try {
+      Object.defineProperty(String.prototype, 'matchAll', { configurable: true, writable: true, value: undefined });
+      assert.deepEqual(amountsIn('Compare 3/4 or 1/2.'), [
+        { numerator: 3, denominator: 4 },
+        { numerator: 1, denominator: 2 },
+      ]);
+      const markup = renderToStaticMarkup(createElement(LearningText, {
+        text: 'Each equal share is 1/4 of a whole.',
+      }));
+      assert.match(markup, /class="fq-mfrac" role="math" aria-label="1 over 4"/);
+      assert.match(markup, /class="fq-vocab-trigger"/);
+    } finally {
+      if (original) Object.defineProperty(String.prototype, 'matchAll', original);
+      else delete (String.prototype as { matchAll?: unknown }).matchAll;
+    }
+  });
+
   it('highlights fraction vocabulary, explains terms, keeps fractions stacked, and offers audio', () => {
     const markup = renderToStaticMarkup(createElement(LearningText, {
       text: 'Each equal share is 1/4 of a whole.',
@@ -695,8 +720,9 @@ describe('entered-answer worksheets and evidence gates', () => {
     const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
     assert.match(markup, /Read-aloud voice/);
     assert.match(markup, /Natural voice/);
+    assert.doesNotMatch(markup, /Kokoro self-test/, 'the self-test is for development only');
     assert.match(markup, /Device voices/);
-    assert.match(markup, /can’t run the natural voice/, 'without browser support the natural voice explains the fallback');
+    assert.match(markup, /can’t play the natural voice/, 'without browser support the natural voice explains the fallback');
     assert.match(markup, /Read-aloud voices are not available in this browser/);
   });
 
@@ -827,6 +853,26 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(utterances.length, 1);
     assert.equal(utterances[0].voice, null);
     assert.equal(utterances[0].lang, 'en-US');
+    controller.dispose();
+  });
+
+  it('uses the device default when mobile speech synthesis has no voice-change event methods', async () => {
+    const utterances: SpeechSynthesisUtterance[] = [];
+    const fakeSynthesis = {
+      getVoices: () => [] as SpeechSynthesisVoice[],
+      speak(utterance: SpeechSynthesisUtterance) { utterances.push(utterance); },
+    } as unknown as SpeechSynthesis;
+    const states: boolean[] = [];
+    const natural = { ready: () => false, speak() {}, stop() {}, warmUp() {} };
+    const controller = createLearningSpeechController(fakeSynthesis, (value) => states.push(value), makeTestSpeechUtterance, 0, () => null, natural);
+
+    assert.doesNotThrow(() => controller.speak('Use the device voice.', 'en-US'));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(utterances.length, 1);
+    assert.equal(utterances[0].voice, null);
+    assert.equal(utterances[0].lang, 'en-US');
+    controller.stop();
+    assert.equal(states.at(-1), false);
     controller.dispose();
   });
 
@@ -1425,12 +1471,33 @@ describe('Part Finder rounds', () => {
     assert.deepEqual([...PART_FINDER_LESSONS], ['equal-parts', 'unit-fractions', 'equivalent-models']);
   });
 
+  it('puts every round inside the lesson it teaches, each exactly once', () => {
+    assert.deepEqual(partFinderRoundsFor('equal-parts').map((round) => round.id), ['sort', 'sort-cake']);
+    assert.deepEqual(partFinderRoundsFor('unit-fractions').map((round) => round.id), ['tile']);
+    assert.deepEqual(partFinderRoundsFor('equivalent-models').map((round) => round.id), ['match']);
+    assert.deepEqual(partFinderRoundsFor('add-like-denominators'), []);
+    const placed = [...PART_FINDER_LESSONS].flatMap((id) => partFinderRoundsFor(id).map((round) => round.id)).sort();
+    assert.deepEqual(placed, PART_FINDER_ROUNDS.map((round) => round.id).sort());
+    for (const id of PART_FINDER_LESSONS) assert.ok(MISSIONS.some((mission) => mission.id === id), `${id} is a real lesson`);
+  });
+
   it('awards points only for a correct first check and caps the score at four', () => {
     assert.equal(scorePartFinderRound(0, true), 1);
     assert.equal(scorePartFinderRound(0, false), 0);
     assert.equal(scorePartFinderRound(2, true), 3);
     assert.equal(scorePartFinderRound(3, true), 4);
     assert.equal(scorePartFinderRound(4, true), 4);
+  });
+});
+
+describe('day streak shown in the top bar', () => {
+  it('keeps the streak through yesterday and shows 0 once a whole day is missed', () => {
+    const base = { ...loadFun(), dayStreak: 4 };
+    const now = new Date(2026, 9, 13, 12);
+    assert.equal(shownStreak({ ...base, lastActiveDay: '2026-10-13' }, now), 4);
+    assert.equal(shownStreak({ ...base, lastActiveDay: '2026-10-12' }, now), 4, 'today is still open to keep it going');
+    assert.equal(shownStreak({ ...base, lastActiveDay: '2026-10-11' }, now), 0);
+    assert.equal(shownStreak({ ...base, lastActiveDay: null }, now), 0);
   });
 });
 
@@ -1612,8 +1679,11 @@ describe('question generator', () => {
   };
   const verify = (question: PracticeQuestion): boolean => {
     const answer = question.choices[question.correctChoice];
-    assert.equal(question.choices.length, 3, question.id);
-    assert.equal(new Set(question.choices.map((choice) => choice.trim())).size, 3, question.id);
+    // Four choices (A–D); sign questions have only <, = and >.
+    const want = isSignQuestion(question.choices) ? 3 : 4;
+    assert.equal(question.choices.length, want, `${question.id}: ${question.prompt} | ${question.choices.join(' / ')}`);
+    assert.equal(new Set(question.choices.map((choice) => choice.trim())).size, want, question.id);
+    for (const c of question.choices) assert.ok(c.trim().split(/\s+/).length <= 6, `${question.id}: "${c}" is too long for an answer choice`);
     let match = /^(\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \?$/.exec(question.prompt);
     if (match) {
       const result = Number(match[1]) / Number(match[2]) + (match[3] === '+' ? 1 : -1) * Number(match[4]) / Number(match[5]);
@@ -1724,7 +1794,7 @@ describe('question generator', () => {
         assert.ok(mission.questions.some((base) => base.id === question.reviewQuestionId), question.id);
       }
     }
-    assert.deepEqual([...positions].sort(), [0, 1, 2]);
+    assert.deepEqual([...positions].sort(), [0, 1, 2, 3]);
   });
 
   it('generates thousands of fresh questions with valid answers and no duplicate choices', () => {
@@ -1779,7 +1849,19 @@ describe('quality audit fixes', () => {
   it('puts the right reason in different spots, not always the same one', () => {
     const spots = new Set(MISSIONS.flatMap((mission) => getBuildChecks(mission.id).map((check) => check.correctReason)));
     assert.equal(spots.size, 3);
-    for (const mission of MISSIONS) for (const check of getBuildChecks(mission.id)) assert.equal(check.reasons[check.correctReason], check.explanation);
+    for (const mission of MISSIONS) for (const check of getBuildChecks(mission.id)) assert.equal(check.reasons[check.correctReason], REASON_IDEAS[mission.id], mission.id);
+  });
+  it('keeps every "which idea explains why?" choice short, with the right one no longer than the others', () => {
+    const words = (t: string) => t.trim().split(/\s+/).length;
+    for (const mission of MISSIONS) {
+      assert.ok(REASON_IDEAS[mission.id], `${mission.id} needs a short key idea`);
+      const checks = [...getBuildChecks(mission.id), getReviewCheck(mission.id, 0), getReviewCheck(mission.id, 1)];
+      for (const check of checks) {
+        for (const r of check.reasons) assert.ok(words(r) <= 6, `${mission.id}: "${r}" is too long`);
+        const right = words(check.reasons[check.correctReason]);
+        assert.ok(check.reasons.some((r, i) => i !== check.correctReason && words(r) >= right - 1), `${mission.id}: the right reason stands out by length`);
+      }
+    }
   });
   it('worksheets use grade-friendly denominators, real hints, and no zero, trivial or repeated questions', () => {
     for (const mission of MISSIONS) {
@@ -2135,10 +2217,20 @@ describe('new tenths + hundredths lesson', () => {
     const nextUnitTen = MISSIONS.find((m) => m.unit === 10 && !LATE_ADDED_LESSONS.has(m.id))!;
     assert.equal(isMissionUnlocked(newcomer, nextUnitTen.id), false);
   });
-  it('spreads the right answer across A, B and C', () => {
-    const pos = [0, 0, 0]; for (const m of MISSIONS) for (const q of m.questions) pos[q.correctChoice]++;
+  it('spreads the right answer across A, B, C and D', () => {
+    const pos = [0, 0, 0, 0]; for (const m of MISSIONS) for (const q of m.questions) pos[q.correctChoice]++;
     const total = pos.reduce((a, b) => a + b, 0);
-    for (const n of pos) assert.ok(n / total > 0.25 && n / total < 0.42, `positions ${pos}`);
+    for (const n of pos) assert.ok(n / total > 0.17 && n / total < 0.34, `positions ${pos}`);
+  });
+
+  it('gives every lesson question four different choices (sign questions three)', () => {
+    for (const m of MISSIONS) for (const q of m.questions) {
+      const want = isSignQuestion(q.choices) ? 3 : 4;
+      assert.equal(q.choices.length, want, `${q.id}: ${q.prompt} | ${q.choices.join(' / ')}`);
+      assert.equal(new Set(q.choices.map((c) => c.trim().toLowerCase())).size, want, q.id);
+      for (const c of q.choices) assert.doesNotMatch(c, /^(?:Yes|No):/, 'yes and no are followed by a comma');
+      for (const c of q.choices) assert.ok(c.trim().split(/\s+/).length <= 6, `${q.id}: "${c}" is too long for an answer choice`);
+    }
   });
 });
 
@@ -2214,14 +2306,14 @@ describe('pictures never give the answer away', () => {
       if (q.model.kind === 'area') {
         // Squares, pizzas and hexagons: the answer follows the piece sizes, never the shapes.
         shapes++;
-        assert.equal(q.choices[q.correctChoice], allEqual(q.model.cut) ? 'Yes: all the parts are the same size' : 'No: some parts are bigger', q.model.cut);
+        assert.equal(q.choices[q.correctChoice], allEqual(q.model.cut) ? 'Yes, same-size parts' : 'No, some parts are bigger', q.model.cut);
         continue;
       }
       assert.equal(q.model.kind, 'partition');
       if (q.model.kind !== 'partition') continue;
       const d = Number(/equal (\w+)/.exec(q.prompt) && { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8 }[/equal (\w+)\?/.exec(q.prompt)![1] as 'halves']);
       const parts = q.model.parts; const equal = parts.every((p) => Math.abs(p - parts[0]) < 1e-6);
-      const truth = parts.length !== d ? `No: there are ${d + 1} pieces` : equal ? `Yes: ${d} equal pieces` : 'No: the pieces are not equal';
+      const truth = parts.length !== d ? `No, there are ${d + 1} pieces` : equal ? `Yes, ${d} equal pieces` : 'No, the pieces are unequal';
       assert.equal(q.choices[q.correctChoice], truth, `${q.prompt} with ${parts.length} parts, equal=${equal}`);
     }
     assert.ok(shapes > 20, 'some practice questions use squares and circles');
@@ -2370,6 +2462,33 @@ describe('fraction labels on bar models', () => {
 });
 
 describe('natural read-aloud voice', () => {
+  it('recognizes iPhone and touch-enabled iPad devices for the safe device-voice fallback', () => {
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)', 'iPhone', 5), true);
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)', 'iPad', 5), true);
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (Macintosh; Intel Mac OS X)', 'MacIntel', 5), true);
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (Macintosh; Intel Mac OS X)', 'MacIntel', 1), false);
+    assert.equal(isIOSVoiceDevice('Mozilla/5.0 (Linux; Android 15)', 'Linux armv8l', 5), false);
+  });
+  it('offers the natural voice on iPhone and iPad too (the server makes the audio)', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: {
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
+        platform: 'iPhone',
+        maxTouchPoints: 5,
+      },
+    });
+    try {
+      const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
+      assert.match(markup, /works on every device, iPhone and iPad included/);
+      assert.match(markup, /radio-natural-voice-af_heart/);
+      assert.doesNotMatch(markup, /paused on iPhone/);
+    } finally {
+      if (original) Object.defineProperty(globalThis, 'navigator', original);
+      else Reflect.deleteProperty(globalThis, 'navigator');
+    }
+  });
   const device = () => {
     const utterances: SpeechSynthesisUtterance[] = [];
     const synthesis = {
@@ -2411,6 +2530,34 @@ describe('natural read-aloud voice', () => {
     assert.equal(second.utterances.length, 1, 'a failed natural reading falls back to the device voice');
     c2.dispose();
   });
+  it('plays natural audio when a mobile browser returns no promise from audio.play()', async () => {
+    setNaturalVoicePreference('af_heart');
+    setNaturalEngineForTests({
+      async generate() { return { toBlob: () => new Blob(['sample audio'], { type: 'audio/wav' }) }; },
+    });
+    let audio!: HTMLAudioElement;
+    audio = {
+      duration: Number.NaN,
+      pause() {},
+      play() {
+        queueMicrotask(() => {
+          audio.onplaying?.(new Event('playing'));
+          audio.onended?.(new Event('ended'));
+        });
+        return undefined;
+      },
+    } as unknown as HTMLAudioElement;
+    const speaker = createNaturalSpeaker(() => audio);
+    try {
+      const phases: string[] = [];
+      const result = new Promise<boolean>((resolve) => speaker.speak(['Hello there.'], resolve, (phase) => phases.push(phase)));
+      assert.equal(await result, true);
+      assert.deepEqual(phases, ['preparing', 'generating', 'playing']);
+    } finally {
+      speaker.stop();
+      setNaturalEngineForTests(null);
+    }
+  });
   it('is on by default and remembers a grown-up turning it off', () => {
     const store = new Map<string, string>();
     (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v); } };
@@ -2421,6 +2568,31 @@ describe('natural read-aloud voice', () => {
     setNaturalVoicePreference('af_bella');
     assert.equal(naturalVoicePreference(), 'af_bella');
     delete (globalThis as { localStorage?: unknown }).localStorage;
+  });
+});
+
+describe('mobile device voice previews', () => {
+  it('reads the available device voices when speechSynthesis has no event-listener methods', () => {
+    const voice = { name: 'Samantha', lang: 'en-US', voiceURI: 'samantha', default: true } as SpeechSynthesisVoice;
+    let received: SpeechSynthesisVoice[] = [];
+    const synthesis = { getVoices: () => [voice] } as unknown as SpeechSynthesis;
+    const unsubscribe = subscribeToSpeechVoices(synthesis, (voices) => { received = voices; });
+    assert.deepEqual(received, [voice]);
+    assert.doesNotThrow(unsubscribe);
+  });
+  it('polls briefly for device voices when the browser cannot notify that they loaded', async () => {
+    const voice = { name: 'Samantha', lang: 'en-US', voiceURI: 'samantha', default: true } as SpeechSynthesisVoice;
+    let voices: SpeechSynthesisVoice[] = [];
+    let received: SpeechSynthesisVoice[] = [];
+    const synthesis = { getVoices: () => voices } as unknown as SpeechSynthesis;
+    const unsubscribe = subscribeToSpeechVoices(synthesis, (next) => { received = next; });
+    voices = [voice];
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 550));
+      assert.deepEqual(received, [voice]);
+    } finally {
+      unsubscribe();
+    }
   });
 });
 
@@ -2447,5 +2619,153 @@ describe('lesson steps for the map pies', () => {
     const record = emptyLearningRecord();
     record.checks[checks[0].id] = { passed: true, supported: false, attempts: 1 };
     assert.deepEqual(lessonSteps(updateLearning(EMPTY_PROGRESS, id, record), id), { done: 1, total: checks.length + 1 });
+  });
+});
+
+describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
+  it('shows the self-test only in development or with ?voicetest', async () => {
+    const { showVoiceSelfTest } = await import('./KokoroDiagnostic');
+    assert.equal(showVoiceSelfTest(true, ''), true);
+    assert.equal(showVoiceSelfTest(false, ''), false);
+    assert.equal(showVoiceSelfTest(false, '?voicetest'), true);
+    assert.equal(showVoiceSelfTest(false, '?a=1&voicetest=1'), true);
+    assert.equal(showVoiceSelfTest(false, '?voicetester'), false);
+    const learningText = readFileSync(new URL('./LearningText.tsx', import.meta.url), 'utf8');
+    assert.match(learningText, /showVoiceSelfTest\(\)\s*&&\s*<KokoroDiagnostic\s*\/>/);
+  });
+
+  it('bundles one copy of react-query, so the grown-ups page finds its QueryClientProvider', () => {
+    const config = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
+    assert.match(config, /dedupe:\s*\[[^\]]*'@tanstack\/react-query'/);
+  });
+
+  it('no longer ships the voice model to the browser', () => {
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { dependencies?: Record<string, string> };
+    assert.equal(pkg.dependencies?.['kokoro-js'], undefined);
+    assert.equal(pkg.dependencies?.['onnxruntime-web'], undefined);
+    assert.doesNotMatch(readFileSync(new URL('./lib/natural-voice.ts', import.meta.url), 'utf8'), /import\('kokoro-js'\)/);
+  });
+
+  it('asks the server for each sentence and waits while the server loads the voice', async () => {
+    const { serverEngine, speechUrl, warmUpNaturalVoice, setNaturalEngineForTests, setNaturalVoicePreference } = await import('./lib/natural-voice');
+    assert.equal(speechUrl('af_heart', '3/4 & more'), '/api/voice/speech?voice=af_heart&text=3%2F4%20%26%20more');
+    const originalFetch = globalThis.fetch; const hadWindow = typeof (globalThis as { window?: unknown }).window !== 'undefined';
+    const originalAudio = (globalThis as { Audio?: unknown }).Audio;
+    const asked: string[] = []; let statusCalls = 0;
+    globalThis.fetch = (async (url: string) => {
+      asked.push(url);
+      if (url.startsWith('/api/voice/status')) { statusCalls++; return new Response(JSON.stringify({ state: statusCalls < 2 ? 'loading' : 'ready' })); }
+      return new Response(new Blob([new Uint8Array([82, 73, 70, 70])], { type: 'audio/wav' }));
+    }) as typeof fetch;
+    if (!hadWindow) Object.defineProperty(globalThis, 'window', { configurable: true, value: globalThis });
+    (globalThis as { Audio?: unknown }).Audio = class {};
+    try {
+      setNaturalEngineForTests(null); setNaturalVoicePreference('af_heart');
+      const engine = await warmUpNaturalVoice();
+      assert.equal(engine, serverEngine);
+      assert.equal(statusCalls, 2, 'it kept asking until the server said ready');
+      const clip = await serverEngine.generate('One half.', { voice: 'af_bella', speed: 1 });
+      assert.equal(clip.toBlob().type, 'audio/wav');
+      assert.ok(asked.includes('/api/voice/speech?voice=af_bella&text=One%20half.'));
+    } finally {
+      globalThis.fetch = originalFetch; (globalThis as { Audio?: unknown }).Audio = originalAudio;
+      if (!hadWindow) Reflect.deleteProperty(globalThis, 'window');
+      setNaturalEngineForTests(null);
+    }
+  });
+
+  it('remembers the step a crashed test reached and reports it after the reload', async () => {
+    const store = new Map<string, string>();
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v); }, removeItem: (k: string) => { store.delete(k); },
+    };
+    try {
+      const { KokoroDiagnostic, readBreadcrumb, saveBreadcrumb, clearBreadcrumb } = await import('./KokoroDiagnostic');
+      saveBreadcrumb('load', 'connected to the voice server');
+      assert.equal(readBreadcrumb()?.step, 'load');
+      const markup = renderToStaticMarkup(createElement(KokoroDiagnostic));
+      assert.match(markup, /The last test stopped the page during: Reach the Kokoro voice server \(connected to the voice server\)/);
+      assert.match(markup, /Safari ran out of memory/);
+      clearBreadcrumb();
+      assert.equal(readBreadcrumb(), null);
+      assert.doesNotMatch(renderToStaticMarkup(createElement(KokoroDiagnostic)), /The last test stopped the page/);
+    } finally {
+      delete (globalThis as { localStorage?: unknown }).localStorage;
+    }
+  });
+});
+
+describe('fourth answer choice', () => {
+  it('adds a believable wrong answer that is never a second right one', () => {
+    assert.equal(fourthChoice('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 1), null, 'only three signs exist');
+    assert.equal(fourthChoice('Which is bigger, 4/7 or 2/7?', ['4/7', '2/7', 'They are equal'], 0), "You can't tell");
+    const order = fourthChoice('Put 1/2, 3/10 and 8/10 in order, smallest first.', ['8/10, 1/2, 3/10', '3/10, 1/2, 8/10', '1/2, 3/10, 8/10'], 1)!;
+    assert.ok(order && !['8/10, 1/2, 3/10', '3/10, 1/2, 8/10', '1/2, 3/10, 8/10'].includes(order));
+    assert.deepEqual(order.split(', ').sort(), ['1/2', '3/10', '8/10']);
+    const more = fourthChoice('Which is more than 1/2?', ['5/8', '2/6', '3/10'], 0)!;
+    assert.ok(answerValue(more) < 0.5, more);
+    const closest = fourthChoice('Which is closest to 1/2?', ['1/5', '4/9', '7/8'], 1)!;
+    assert.ok(Math.abs(answerValue(closest) - 0.5) > Math.abs(4 / 9 - 0.5), closest);
+    const unit = fourthChoice('Which is a unit fraction?', ['3/8', '1/8', '8/1'], 1)!;
+    assert.doesNotMatch(unit, /^1\//);
+    const sum = fourthChoice('Which adds up to 3/5?', ['1/5 + 1/5', '1/5 + 2/5', '3/5 + 2/5'], 1)!;
+    assert.match(sum, /^\d+\/5 \+ \d+\/5$/);
+    assert.notEqual(sum.split(' + ').reduce((t, x) => t + Number(x.split('/')[0]), 0), 3);
+    const amountQ = fourthChoice('What is 1/6 + 4/6?', ['5/12', '5/6', '1/6'], 1)!;
+    assert.match(amountQ, /\/6$/, 'keeps the denominator the question uses');
+    assert.notEqual(answerValue(amountQ), 5 / 6);
+    assert.equal(fourthChoice('Is it equal?', ['Yes, 3 equal pieces', 'No, 2 pieces', 'No, not equal'], 0), null, 'worded reasons are written by hand');
+  });
+});
+
+describe('number-line tick labels', () => {
+  it('reads 0, 1/5, 2/5 … 1 along the line', async () => {
+    const { TickLabel } = await import('./fraction-ui');
+    const html = (i: number, d: number) => renderToStaticMarkup(createElement(TickLabel, { i, d }));
+    assert.match(html(0, 5), />0</);
+    assert.match(html(2, 5), /aria-label="2 over 5"/);
+    assert.match(html(2, 5), /<b>2<\/b>.*<b>5<\/b>/);
+    assert.match(html(5, 5), />1</);
+    assert.match(html(7, 5), /aria-label="7 over 5"/, 'past 1 the labels keep counting fifths');
+    assert.match(html(10, 5), />2</);
+  });
+});
+
+describe('wrong-answer help', () => {
+  it('names the slip behind the picked choice, without giving the answer', () => {
+    const q = 'A shape has 9 equal parts. 1 is colored. What fraction is colored?';
+    assert.match(wrongChoiceReason(q, ['9/1', '1/9', '1/8', '1/10'], 1, 0)!, /flipped/);
+    assert.match(wrongChoiceReason(q, ['9/1', '1/9', '1/8', '1/10'], 1, 2)!, /Count all the equal parts again/);
+    assert.match(wrongChoiceReason('What is 3/8 + 2/8?', ['5/8', '5/16', '6/8', '5/13'], 0, 1)!, /Add only the top numbers/);
+    assert.match(wrongChoiceReason('Write 8/100 as a decimal.', ['0.08', '0.8', '8.00', '0.008'], 0, 1)!, /places/);
+    assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 1)!, /smaller/);
+    assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 3)!, /You can tell/);
+    assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 2)!, /not the same amount/);
+    assert.equal(wrongChoiceReason('Is this strip cut into thirds?', ['Yes, 3 equal pieces', 'No, the pieces are unequal'], 1, 0), null, 'worded choices fall back to the lesson help');
+    assert.equal(wrongChoiceReason(q, ['9/1', '1/9'], 1, 1), null, 'no help for a right answer');
+    for (const m of MISSIONS) for (const question of m.questions) question.choices.forEach((_, i) => {
+      const said = wrongChoiceReason(question.prompt, question.choices, question.correctChoice, i);
+      if (said) assert.ok(!said.includes(question.choices[question.correctChoice]) || /^\d$/.test(question.choices[question.correctChoice]), `${question.id}: help gives the answer away`);
+    });
+  });
+  it('opens kindly, with a few different openers', () => {
+    const openers = new Set(MISSIONS.flatMap((m) => m.questions.map((q) => retryOpener(`${q.id}:1`))));
+    assert.ok(openers.size >= 4);
+    for (const o of openers) assert.doesNotMatch(o, /wrong|no!/i);
+  });
+});
+
+describe('paper folding', () => {
+  it('keeps each fold’s crease and names shaded amounts in earlier pieces', async () => {
+    const { creaseLevel, shadedName } = await import('./PaperFold');
+    // Halves, then fourths: the middle crease is from the first fold, the others from the second.
+    assert.deepEqual([1, 2, 3].map((i) => creaseLevel(i, [2, 2])), [2, 1, 2]);
+    assert.deepEqual([1, 2, 3, 4, 5, 6, 7].map((i) => creaseLevel(i, [2, 2, 2])), [3, 2, 3, 1, 3, 2, 3]);
+    assert.deepEqual([1, 2, 3, 4, 5].map((i) => creaseLevel(i, [3, 2])), [2, 1, 2, 1, 2]);
+    assert.equal(shadedName(2, [2, 2]), '2/4 = 1/2');
+    assert.equal(shadedName(3, [2, 2]), '3/4');
+    assert.equal(shadedName(4, [2, 2, 2]), '4/8 = 1/2');
+    assert.equal(shadedName(6, [2, 2, 2]), '6/8 = 3/4');
+    assert.equal(shadedName(0, [2]), '');
   });
 });

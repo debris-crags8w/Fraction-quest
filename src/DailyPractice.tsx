@@ -5,10 +5,12 @@ import { dailyBuildCorrect, dailyChoiceQuestion } from './daily-practice';
 import { MathText } from './MathText';
 import { WholeBracket } from './models';
 import './daily-practice.css';
-import { LearningText } from './LearningText';
+import { LearningText, useReadAloud } from './LearningText';
+import { Hoot, useOptionalFun } from './fun-ui';
+import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { TaskBar } from './TaskBar';
 import { LiveFraction } from './fraction-ui';
-import { useRevealWhen } from './lib/reveal';
+import { useRevealWhen, useScrollTopOn } from './lib/reveal';
 
 /** Arrow keys move through a radio group and choose (the usual radio-button pattern). */
 function radioArrows(event: KeyboardEvent<HTMLDivElement>) {
@@ -52,6 +54,7 @@ export default function DailyPractice({
   const [showHelp, setShowHelp] = useState(false);
   const questionHeading = useRef<HTMLHeadingElement>(null);
   const question = session.questions[session.index];
+  useScrollTopOn(session.index);
   const topicQuestion = useMemo(() => (question ? dailyChoiceQuestion(question) : null), [question]);
   useEffect(() => {
     questionHeading.current?.focus({ preventScroll: true });
@@ -62,6 +65,12 @@ export default function DailyPractice({
   const current = question ? session.attempts[question.id] : undefined;
   useRevealWhen(nextRef, !!current?.answerCorrect);
   useRevealWhen(checkRef, !current?.answerCorrect && (current?.choice !== undefined || (!!current?.parts && (current?.shaded.length ?? 0) > 0)));
+  // A missed topic question: Hoot names the slip when it can (else the hint), and it is read aloud with sound on.
+  const sound = useOptionalFun()?.fun.sound ?? true;
+  const missed = !!topicQuestion && !!current?.answerChecked && !current.answerCorrect && current.choice !== undefined;
+  const missText = missed ? wrongChoiceReason(topicQuestion!.prompt, topicQuestion!.choices, topicQuestion!.correctChoice, current!.choice!) ?? topicQuestion!.hint : '';
+  const missOpener = question ? retryOpener(`${question.id}:${current?.choice ?? ''}`) : '';
+  useReadAloud(missed && sound ? `${missOpener} ${missText}` : null, missed ? `${question?.id}:${current?.choice}` : null);
   if (!question || session.completedAt) {
     return (
       <div className="fq-app">
@@ -124,7 +133,7 @@ export default function DailyPractice({
           </button>
         ))}
       </div>
-      {attempt.answerChecked && !done && <p className="fq-daily-feedback retry" role="status">Not quite. {topicQuestion.hint}</p>}
+      {attempt.answerChecked && !done && <div className="fq-daily-feedback retry fq-daily-miss" role="status"><Hoot size={48} /><p><strong>{missOpener}</strong> <MathText text={missText || topicQuestion.hint} /></p></div>}
       {done && <div className="fq-daily-feedback success" role="status"><strong>That’s it!</strong> <MathText text={topicQuestion.retryFeedback} /></div>}
       {done ? nextButton : (
         <div className="fq-daily-actions">

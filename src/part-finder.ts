@@ -19,7 +19,6 @@ export type ShareAssignment = number[];
 /** The friends sharing the cake in the mixed-shape challenge (one color each). */
 export const FRIENDS = ['Ava', 'Ben', 'Cam', 'Dee'];
 
-export const PART_FINDER_LESSONS: ReadonlySet<string> = new Set(['equal-parts', 'unit-fractions', 'equivalent-models']);
 
 /** Four short challenges: equal pieces first, then a fair-share cake with differently shaped pieces. */
 export const PART_FINDER_ROUNDS: PartFinderRound[] = [
@@ -64,6 +63,19 @@ export const PART_FINDER_ROUNDS: PartFinderRound[] = [
   },
 ];
 export const PART_FINDER_SCORE_MAX = PART_FINDER_ROUNDS.length;
+
+/** Each round is a hands-on step inside the lesson it teaches (after the worked example, before the questions):
+    fair shares in lesson 1, copies of one piece filling the whole for unit fractions, the same amount for equivalence. */
+export const PART_FINDER_BY_LESSON: Readonly<Record<string, PartFinderRound['id'][]>> = {
+  'equal-parts': ['sort', 'sort-cake'],
+  'unit-fractions': ['tile'],
+  'equivalent-models': ['match'],
+};
+export const PART_FINDER_LESSONS: ReadonlySet<string> = new Set(Object.keys(PART_FINDER_BY_LESSON));
+/** The hands-on rounds for a lesson ([] when it has none). */
+export function partFinderRoundsFor(missionId: string): PartFinderRound[] {
+  return (PART_FINDER_BY_LESSON[missionId] ?? []).map((id) => PART_FINDER_ROUNDS.find((round) => round.id === id)!);
+}
 
 const EPSILON = 1e-9;
 

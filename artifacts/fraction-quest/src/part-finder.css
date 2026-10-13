@@ -10,6 +10,8 @@
 .fq-pf *::after { box-sizing: border-box; }
 
 .fq-pf-shell { width: min(100%, 1000px); margin: 0 auto; }
+.fq-pf-lesson-example { margin: 0 0 18px; }
+.fq-pf-lesson-example .fq-example { margin-top: 0; }
 .fq-pf-top { display: flex; align-items: center; gap: 14px; margin: 0 0 20px; }
 .fq-pf-back {
   min-height: 44px;
@@ -156,8 +158,11 @@
 
 /* Phones: the whole round (story, cake, friends, buttons) fits on one screen. */
 @media (max-width: 620px) {
-  .fq-pf-square { width: min(100%, 220px); }
+  .fq-pf-square { width: min(100%, 220px, 26dvh); }
   .fq-pf-interactive figcaption span { display: none; }
+  /* The story already says how many friends and pieces; the match round keeps its "find the same amount" label. */
+  .fq-pf-workspace:not(.match) .fq-pf-interactive figcaption { display: none; }
+  .fq-pf-instruction { font-size: .78rem; }
   .fq-pf-friends { margin: 2px 0 8px; gap: 4px; }
   .fq-pf-friends .fq-pf-shares { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; width: 100%; }
   .fq-pf-share { justify-content: center; gap: 5px; min-height: 44px; padding: 5px 4px; }

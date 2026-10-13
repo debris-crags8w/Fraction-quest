@@ -116,6 +116,9 @@ backups/
 exports/
 student-data/
 
+# Kokoro voice embeddings are copied from node_modules during API builds.
+/artifacts/api-server/voices/
+
 # Logs and crash reports (can contain tokens, emails or request bodies)
 *.log
 logs/

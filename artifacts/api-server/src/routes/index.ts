@@ -4,12 +4,15 @@ import authRouter from "./auth";
 import progressRouter from "./progress";
 import familyRouter from "./family";
 import privacyRouter from "./privacy";
+import voiceRouter from "./voice";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
 router.use(progressRouter);
+// Voice is public so guest learners can use it; mount it before routers with session-wide auth middleware.
+router.use(voiceRouter);
 router.use(familyRouter);
 router.use(privacyRouter);
 

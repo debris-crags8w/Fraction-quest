@@ -1,6 +1,6 @@
 import { type CSSProperties, type RefObject, useEffect, useRef, useState } from 'react';
 import { LearningText } from './LearningText';
-import { ArrowLeft, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
 import { getMission, numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
 import {
@@ -17,7 +17,7 @@ import { YesNoCards } from './YesNoCards';
 import { LessonTeachingSupport } from './LessonTeachingSupport';
 import './learning-lab.css';
 import { TaskBar } from './TaskBar';
-import { LiveFraction } from './fraction-ui';
+import { LiveFraction, TickLabel } from './fraction-ui';
 import { AnswerTiles } from './AnswerTiles';
 import { answerShape } from './answer-shape';
 import { useRevealWhen } from './lib/reveal';
@@ -27,7 +27,7 @@ type St = { d: number; wholes: number; count: number };
 const blank = (): St => ({ d: 0, wholes: 1, count: 0 });
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(Number.isFinite(v) ? v : lo)));
 
-// Also shown to kids under "Things to practice", so keep these short and friendly.
+// Short, friendly names for the mistakes we track (they choose the extra practice).
 const M = {
   parts: 'Picking the number of equal parts',
   count: 'Counting pieces, groups or jumps',
@@ -253,7 +253,7 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
               {Array.from({ length: st.d * wholes + 1 }, (_, i) => (
                 <button key={i} type="button" className={'fq-ll-tick ' + (i === st.count ? 'on ' : '') + (i % st.d === 0 ? 'whole' : '')} style={{ left: ((i / (st.d * wholes)) * 100) + '%' }}
                   aria-label={'Tick ' + i + ' of ' + (st.d * wholes) + ' equal spaces'} aria-pressed={i === st.count} onClick={() => setCount(i)} data-testid={'tick-' + id + '-' + i}>
-                  <span>{i % st.d === 0 ? i / st.d : ''}</span>
+                  <TickLabel i={i} d={st.d} />
                 </button>
               ))}
             </div>
@@ -265,8 +265,10 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
 }
 
 type Outcome = { supported: boolean; attempts: number };
-function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuccess }: {
+function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuccess, onNext, nextLabel }: {
   check: BuildCheck; review: boolean;
+  /** After it passes, the check stays on screen with its explanation until the child presses Next. */
+  onNext?: () => void; nextLabel?: string;
   onHelp: (kind: 'hint' | 'error', keys: string[]) => void; onPass: (o: Outcome) => void;
   headingRef?: RefObject<HTMLHeadingElement | null>;
   onWrong?: () => void; onSuccess?: () => void;
@@ -360,6 +362,9 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
         <button type="button" className="fq-hint-button" onClick={hint} disabled={done} data-testid={`button-hint-${check.id}`}><Lightbulb size={17} /> {hints ? 'Another hint' : 'Hint'}</button>
          {stage === 'reason' && <button type="button" className="fq-button" onClick={submit} disabled={locked || done || reason === null} data-testid={`button-check-${check.id}`}>Check <Check size={17} /></button>}
       </div>
+      {done && onNext && (
+        <button type="button" className="fq-button fq-ll-finish" data-testid={`button-next-${check.id}`} onClick={onNext}>{nextLabel ?? 'Next'} <ArrowRight size={17} /></button>
+      )}
       {done && review && (
         <button type="button" className="fq-button secondary fq-ll-finish" data-testid="button-review-finish" onClick={() => onPass({ supported, attempts: -1 })}>Finish review</button>
       )}
@@ -432,7 +437,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
         <div id={'ws-fb-' + p.id} aria-live="polite">
           {ok && <p className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Correct!
             {onNewQuestion && <button type="button" className="fq-ll-hintbtn fq-ll-newq" onClick={onNewQuestion} data-testid={'button-new-question-' + p.id}><RotateCcw size={15} /> New question</button>}</p>}
-          {!ok && wrong === draft && <p className="fq-ll-ws bad" data-testid={'status-worksheet-' + p.id}>Not yet. <LearningText text={p.hint} speak /></p>}
+          {!ok && wrong === draft && <p className="fq-ll-ws bad" role="alert" data-testid={'status-worksheet-' + p.id}><strong>Not yet.</strong> <LearningText text={p.hint} speak /></p>}
           {!ok && e && e.attempts > 0 && e.checkedValue === undefined && wrong !== draft && draft.trim() && <p className="fq-ll-ws" data-testid={'status-worksheet-' + p.id}>Changed. Press Check.</p>}
           {open && <p className="fq-ll-ws hint" data-testid={'text-hint-worksheet-' + p.id}><LearningText text={p.hint} speak /></p>}
         </div>
@@ -453,10 +458,13 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const [reviewPassed, setReviewPassed] = useState(false);
   const [reviewSupported, setReviewSupported] = useState(() => (getLearningRecord(progress, missionId).reviewSupportedUntil ?? 0) > Date.now());
   const rec = getLearningRecord(progress, missionId);
-  const activeCheckIndex = checks.findIndex(c => !rec.checks[c.id]?.passed);
+  // A check that just passed stays on screen (explanation + Next) until the child moves on.
+  const [held, setHeld] = useState<string | null>(null);
+  const firstOpen = checks.findIndex(c => !rec.checks[c.id]?.passed);
+  const heldIndex = held ? checks.findIndex(c => c.id === held) : -1;
+  const activeCheckIndex = heldIndex !== -1 ? heldIndex : firstOpen;
   const activeCheckId = !review && activeCheckIndex !== -1 ? checks[activeCheckIndex].id : null;
   const activeCheckHeading = useRef<HTMLHeadingElement | null>(null);
-  const previousActiveCheckId = useRef<string | null>(null);
   const save = (r: LearningRecord) => { const p = updateLearning(ref.current, missionId, r); ref.current = p; onChange(p); };
   const cur = () => getLearningRecord(ref.current, missionId);
   const bump = (r: LearningRecord, keys: string[]): LearningRecord => ({
@@ -464,21 +472,18 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
     misconceptions: keys.reduce((m, k) => ({ ...m, [k]: (m[k] ?? 0) + 1 }), r.misconceptions),
   });
 
+  // After Next, show the top of the next part (the next check, or the worksheet), not the middle of the page.
+  const scrollToNext = useRef(false);
   useEffect(() => {
-    const previousId = previousActiveCheckId.current;
-    previousActiveCheckId.current = activeCheckId;
-    if (!previousId || !activeCheckId || previousId === activeCheckId) return;
-
+    if (!scrollToNext.current) return;
+    scrollToNext.current = false;
     requestAnimationFrame(() => {
-      const heading = activeCheckHeading.current;
-      if (!heading) return;
-      heading.focus({ preventScroll: true });
-      heading.scrollIntoView({
-        block: 'start',
-        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-      });
+      const target = activeCheckHeading.current?.closest('.fq-ll-check') ?? document.querySelector('[data-testid="section-worksheet"]');
+      if (!target) return;
+      activeCheckHeading.current?.focus({ preventScroll: true });
+      target.scrollIntoView({ block: 'start', behavior: 'auto' });
     });
-  }, [activeCheckId]);
+  }, [activeCheckId, held]);
 
   if (review) {
     const check = getReviewCheck(missionId, progress.reviewQueue.find(item => item.missionId === missionId)?.reviewCount ?? 0);
@@ -570,8 +575,10 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           onPass={o => {
             const r = cur(); const id = checks[idx].id; const old = r.checks[id];
             save({ ...r, checks: { ...r.checks, [id]: { passed: true, supported: !!old?.supported || o.supported, attempts: (old?.attempts ?? 0) + 1 } } });
-            setNotice(id === 'build' ? 'Great! Next, try a new one on your own.' : 'Great! Your worksheet is ready.');
-          }} />
+            setHeld(id);
+          }}
+          nextLabel={checks.slice(idx + 1).some(c => !rec.checks[c.id]?.passed) ? 'Next: on your own' : 'Next: worksheet'}
+          onNext={() => { setHeld(null); setNotice(''); scrollToNext.current = true; }} />
       )}
 
       {idx === -1 && (
@@ -634,10 +641,6 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           <div><dt>Hints used</dt><dd data-testid="text-help-uses">{sum.helpUses}</dd></div>
           <div><dt>Remembered later</dt><dd data-testid="text-retention">{sum.retention}</dd></div>
         </dl>
-        <h4>Things to practice</h4>
-        {sum.misconceptions.length ? (
-          <ul className="fq-ll-patterns" data-testid="list-misconceptions">{sum.misconceptions.map(([k, v]) => <li key={k}><span>{k}</span><b>{v}</b></li>)}</ul>
-        ) : <p className="fq-ll-note" data-testid="text-no-misconceptions">Nothing yet. Nice!</p>}
         <button className="fq-button secondary" disabled={!gate} onClick={() => gate && onFinish()} data-testid="button-lab-finish">Finish lesson</button>
       </section>
     </div>
@@ -650,6 +653,7 @@ export function RedoLab({ missionId, progress, onChange, onBack, onWrong, onSucc
   missionId: string; progress: Progress; onChange: (progress: Progress) => void; onBack: () => void; onWrong?: () => void; onSuccess?: () => void;
 }) {
   const ref = useRef(progress); ref.current = progress;
+  const [held, setHeld] = useState<string | null>(null);
   const redo = getLearningRecord(progress, missionId).redo;
   const cur = () => getLearningRecord(ref.current, missionId);
   const save = (r: LearningRecord) => { const p = updateLearning(ref.current, missionId, r); ref.current = p; onChange(p); };
@@ -664,7 +668,8 @@ export function RedoLab({ missionId, progress, onChange, onBack, onWrong, onSucc
   const asRecord = (worksheet: RedoAttempt['worksheet']): LearningRecord => ({ ...emptyLearningRecord(), worksheet });
 
   const checks = redo.part === 'builds' ? redoChecks(missionId, redo.round) : [];
-  const idx = checks.findIndex(c => !redo.checks[c.id]?.passed);
+  const heldIndex = held ? checks.findIndex(c => c.id === held) : -1;
+  const idx = heldIndex !== -1 ? heldIndex : checks.findIndex(c => !redo.checks[c.id]?.passed);
   const rows = redo.part === 'worksheet' ? redoWorksheet(missionId, redo) : [];
   const count = redo.part === 'worksheet' ? redoWorksheetCount(missionId, redo) : 0;
 
@@ -688,8 +693,10 @@ export function RedoLab({ missionId, progress, onChange, onBack, onWrong, onSucc
               onSuccess={onSuccess}
               onHelp={(kind) => change(r => { const id = checks[idx].id; const old = r.checks[id];
                 return { ...r, checks: { ...r.checks, [id]: { passed: false, supported: true, attempts: (old?.attempts ?? 0) + (kind === 'error' ? 1 : 0) } } }; })}
-              onPass={o => change(r => { const id = checks[idx].id; const old = r.checks[id];
-                return { ...r, checks: { ...r.checks, [id]: { passed: true, supported: !!old?.supported || o.supported, attempts: (old?.attempts ?? 0) + 1 } } }; })} />
+              onPass={o => { setHeld(checks[idx].id); change(r => { const id = checks[idx].id; const old = r.checks[id];
+                return { ...r, checks: { ...r.checks, [id]: { passed: true, supported: !!old?.supported || o.supported, attempts: (old?.attempts ?? 0) + 1 } } }; }); }}
+              nextLabel={idx < checks.length - 1 ? 'Next build' : 'Next'}
+              onNext={() => { setHeld(null); window.scrollTo(0, 0); }} />
           )}
         </>
       )}
@@ -718,7 +725,7 @@ export function RedoLab({ missionId, progress, onChange, onBack, onWrong, onSucc
         </section>
       )}
 
-      {done && (
+      {done && !held && (
         <section className="fq-ll-feedback ok fq-ll-redo-done" role="status" data-testid="status-redo-done">
           <Check size={22} />
           <div>

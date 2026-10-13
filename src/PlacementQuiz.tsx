@@ -9,7 +9,7 @@ import { PER_UNIT, PLACEMENT_UNITS, placementItems, startUnit } from './placemen
 import { YesNoCards } from './YesNoCards';
 import { AnswerTiles } from './AnswerTiles';
 import { answerShape } from './answer-shape';
-import { useRevealWhen } from './lib/reveal';
+import { useRevealWhen, useScrollTopOn } from './lib/reveal';
 
 /* "Find my level": a short quiz answered with tiles, unit by unit, that stops at the first unit not yet known. */
 
@@ -20,6 +20,7 @@ export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
   const [phase, setPhase] = useState<'intro' | 'quiz' | 'result'>('intro');
   const [unit, setUnit] = useState(1);
   const [index, setIndex] = useState(0);
+  useScrollTopOn(`${unit}-${index}`);
   const [rightInUnit, setRightInUnit] = useState(0);
   const [passed, setPassed] = useState(0);
   const [draft, setDraft] = useState('');

@@ -6,7 +6,7 @@ import { freshSeed, generateQuestions } from './practice-bank';
 import { MathText } from './MathText';
 import { Confetti, Mascot, useFun } from './fun-ui';
 import { playCue } from './lib/fun';
-import { LearningText } from './LearningText';
+import { LearningText, primeReadAloud, useReadAloud } from './LearningText';
 
 /* Fraction Race: a short competition built from the lesson's own question generator.
    - Race the robot: get 10 right before the robot crosses the line (3 speeds).
@@ -118,7 +118,15 @@ export default function FractionRace({ mission, best, robotBeaten, sprintBest, o
   const elapsed = phase === 'race' ? (now - startedAt) / 1000 : finishTime;
   const robotProgress = robot ? Math.min(1, elapsed / robot.seconds) : 0;
 
+  // Racing the robot, each new question is read aloud as it appears (sound on; not in 2-player, where two voices would clash).
+  const lead = racers[0];
+  const leadStalled = now < lead.stallUntil;
+  const readQuestion = phase === 'race' && mode?.kind === 'robot' && fun.sound && !leadStalled && !finished.current
+    ? questions[0][lead.index % questions[0].length].prompt : null;
+  useReadAloud(readQuestion, readQuestion === null ? null : lead.index);
+
   const start = (next: Mode) => {
+    primeReadAloud();
     if (next.kind === 'sprint') { setMode(next); setPhase('race'); return; }
     setMode(next); setSeeds([freshSeed(), freshSeed()]); setRacers([newRacer(), newRacer()]);
     setWinner(null); finished.current = false; setCount(3); setPhase('countdown');

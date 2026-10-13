@@ -1251,6 +1251,24 @@
   line-height: 1.5;
 }
 
+.fq-example {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0 24px;
+  padding: clamp(16px, 2.5vw, 24px);
+  border: 2px solid hsl(var(--border));
+  border-radius: 22px;
+  background: hsl(var(--card));
+}
+
+.fq-example-heading {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.2vw, 1.7rem);
+  line-height: 1.2;
+}
+
+.fq-example .fq-mascot-say { margin-top: 0; }
+
 .fq-example-answer p {
   margin: 8px 0 0;
 }

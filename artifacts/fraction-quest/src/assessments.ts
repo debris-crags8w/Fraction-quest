@@ -1,6 +1,7 @@
 import { MISSIONS, type AssessmentAttempt, type AssessmentResponse, type Progress } from './game';
 import { answerMatches, getWorksheet, type WorksheetProblem } from './learning-content';
 import { FRACTION_STANDARDS, MISSION_STANDARDS, type StandardId, standardsForMission } from './standard-catalog';
+import { execAll } from './lib/regexp';
 
 export const ASSESSMENT_ITEM_COUNT = 12;
 export const MIN_ASSESSMENT_ITEMS = 10;
@@ -94,7 +95,7 @@ function hasInteractiveModel(problem: WorksheetProblem): boolean {
 }
 
 function promptFractions(prompt: string): { n: number; d: number; wholes: number }[] {
-  return [...prompt.matchAll(/(\d+)\s*\/\s*(\d+)/g)]
+  return execAll(prompt, /(\d+)\s*\/\s*(\d+)/g)
     .map(match => {
       const n = Number(match[1]); const d = Number(match[2]);
       return { n, d, wholes: Math.max(1, Math.ceil(n / d)) };

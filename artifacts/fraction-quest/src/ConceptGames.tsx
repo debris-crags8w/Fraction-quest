@@ -175,8 +175,8 @@ function CenterPack() {
 
 type Section = 'war' | 'match' | 'line' | 'pack';
 type Card = { id: string; title: string; blurb: string; icon: typeof Scale; testId: string; kicker: string; onOpen: () => void; tone?: string };
-/** Lesson games (Fraction Race, coding, Part Finder) open with the child's current lesson; they also stay on each lesson. */
-export type LessonGame = { id: 'race' | 'code' | 'part-finder'; title: string; blurb: string; icon: typeof Scale; lessonTitle: string; onOpen: () => void };
+/** Lesson games (Fraction Race, coding) open with the child's current lesson; they also stay on each lesson. */
+export type LessonGame = { id: 'race' | 'code'; title: string; blurb: string; icon: typeof Scale; lessonTitle: string; onOpen: () => void };
 const WORKSHOP: { id: Section; title: string; blurb: string; icon: typeof Scale; testId: string }[] = [
   { id: 'war', title: 'Fraction War', blurb: 'Build two fractions and see which is bigger.', icon: Scale, testId: 'link-game-war' },
   { id: 'match', title: 'Equivalence Match', blurb: 'Find pairs that show the same amount.', icon: Shuffle, testId: 'link-game-match' },

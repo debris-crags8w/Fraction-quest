@@ -40,6 +40,12 @@ packages:
   - lib/integrations/*
   - scripts
 
+# Transformers 3.8.1 imports this runtime package but omits it from its manifest.
+packageExtensions:
+  "@huggingface/transformers@3.8.1":
+    dependencies:
+      onnxruntime-common: 1.22.0-dev.20250409-89f8206ba4
+
 catalog:
   '@replit/vite-plugin-cartographer': ^0.5.21
   '@replit/vite-plugin-dev-banner': ^0.1.1
@@ -47,8 +53,8 @@ catalog:
   '@tailwindcss/vite': ^4.1.14
   '@tanstack/react-query': ^5.90.21
   '@types/node': ^25.3.3
-  '@types/react': ^19.2.0
-  '@types/react-dom': ^19.2.0
+  '@types/react': ~19.2.2
+  '@types/react-dom': ~19.2.2
   '@vitejs/plugin-react': ^5.0.4
   class-variance-authority: ^0.7.1
   clsx: ^2.1.1

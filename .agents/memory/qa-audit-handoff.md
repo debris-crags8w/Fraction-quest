@@ -41,6 +41,78 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- "Count with me" after a miss: `ModelView walk={attempts}` (PlayView, on retry) pops numbers 1, 2, 3… onto each part
+  of bar models (several bars count on from each other), partition strips and number-line spaces (≤24), 0.45 s apart,
+  then the shaded parts glow (`.fq-count-badge`, `.fq-walking`). Runs alongside Hoot's spoken help; not word-synced
+  (browser voices give no reliable word timing). Reduced motion shows the numbers and an outline without animation.
+- The native iOS app shell (Capacitor: Xcode project, iCloud sync, printing, StoreKit subscriptions) is only on branch
+  `ios-local-icloud`, not on main or this review branch. User decision: keep the iOS branch separate. Don't merge
+  main or review work into it (or it into them) unless the user asks.
+- Wrong-answer help (lessons, practice more, quick review, daily practice topic questions): Hoot the fix-it owl
+  (`Hoot` in fun-ui.tsx) replaces the frowning fox; a kind rotating opener (`retryOpener`); the exact slip when we can
+  name it (`wrongChoiceReason` in src/wrong-answer.ts: flipped fraction, added the bottoms, parts+shaded as bottom,
+  miscounted parts, decimal place, smaller/bigger, "You can't tell"/"They are equal"; ~23% of wrong choices), else the
+  question's guiding hint. It is read aloud (useReadAloud, sound on). Feedback now sits under the answers (no fixed bottom
+  bar over them); the tried choice is greyed out with ✗ ("ruled-out"); "Got it, try again" → "Try again". After a right
+  answer the panel shows the worked explanation (retryFeedback) instead of the hint — retryFeedback used to show after a
+  miss and often gave the answer away. Softer miss sound (quiet sine "boop"); the fox's "oops" brows are worried, not angry.
+- Short answer choices (user rule: short but readable, no blurbs). Builder "Which idea explains why?": the right choice is
+  now each lesson's key idea in ≤6 words (`REASON_IDEAS` in learning-content.ts) instead of the full explanation (which
+  was long and so gave the answer away); wrong reasons shortened to match; the full explanation still shows after the
+  build passes. Lesson and practice tap choices trimmed to ≤6 words ("Yes, same-size pieces", "7 equal parts in all").
+  Tests enforce ≤6 words for every lesson/practice choice and every reason, and that the right reason isn't the longest.
+- Races read aloud: racing the robot, each new question is spoken when it appears (`useReadAloud(text, key)` in
+  LearningText.tsx, same voice choice as Listen buttons; natural voice when ready, else device voice). Not while stalled
+  on a missed question, not in 2-player mode (two voices would clash), and only with sound on. The code sprint reads each
+  program's goal. `primeReadAloud()` runs in the tap that starts a race so iPhones allow the sound.
+- Removed the "Things to practice" list (tracked mistakes with counts) from the lesson's "How you're doing" box; the
+  user found it unhelpful. Mistakes are still tracked and still pick the targeted extra practice.
+- Worksheet "Not yet." feedback reads as one line (it was a flex row, so "Not yet." became its own column) and is bright
+  red (`--fq-alert` #D90429, #FF6B78 in dark mode); the builder's "not yet" model status uses the same red.
+- Top-bar symbols are tappable (`src/StatTip.tsx`): streak, points, today's goal pie, stars/lessons pill (desktop) and the
+  avatar each open a one-line explanation (one open at a time; outside tap, Escape, scroll close). On phones (≤560px)
+  Sign in/Sign out moved into the avatar tip, the More button is a 44px icon with a corner badge, and under 360px the
+  home logo hides, so the bar fits an iPhone SE (it used to clip Sign in and more).
+- No automatic advances (user rule: every move has an explicit Next): a passed lesson build check stays with its
+  explanation and a "Next: on your own" / "Next: worksheet" button (`held` state in LearningLab and RedoLab; progress is
+  still saved at once); the coding sprint shows Next/Finish after a right answer; the brain break waits at 0 with
+  "Back to the lesson". The Fraction Race is the one exception (a timed race switching questions as you answer).
+- Scroll to top: `useScrollTopOn(key)` in `lib/reveal.ts` for steps inside a screen (daily practice, check-ins, level quiz,
+  challenge, cake rounds, coding sprint); view changes already scrolled to top in App. Lab Next scrolls to the top of the
+  next check / worksheet.
+- Number lines label every tick: 0, 1/5, 2/5 … 1 (whole numbers at wholes, small stacked fractions between; past 1 they
+  keep counting, e.g. 7/5). Shared `TickLabel` in `fraction-ui.tsx` (class `fq-nl-label`; `fq-tick-label` was already
+  taken by an old style). Used in the lab builder, the worked-example tap line and `ModelView`. Question pictures pass
+  `asked` (lesson/extra practice, daily practice, race): tick labels, the fraction readout and the "marked at" screen-reader
+  text stay hidden until the answer is right (this also fixed an older give-away: the readout showed the answer).
+  Lines with more than 16 spaces keep just the whole-number labels. Printed worksheets/check-ins (`LineSvg`) unchanged.
+- Four answer choices (A–D) on every tap question; pick-the-sign questions keep three (<, =, >). `src/fourth-choice.ts`
+  adds a fourth wrong answer by question type (amount slips keeping the question's denominator; criterion-aware for
+  "which is more than / closest to / between / same as / unit fraction"; another order for ordering; a different sum;
+  "You can't tell" for "Which is bigger, a or b? / They are equal"; "More than 1 (whole)" for more/less than half).
+  Applied in `practice()` (game.ts) and `generateQuestions` (practice-bank, `Item.extra` for hand-written ones).
+  Worded reasons (yes/no etc.) have hand-written fourth choices. Yes/No choices now read "Yes, …"/"No, …" (comma).
+  Tests: every lesson question has 4 distinct choices (3 for signs), answer spread across A–D, helper rule tests.
+- Lesson question screens: Check moved out of the fixed bottom bar to sit right under the answers (`.fq-inline-check`), so it
+  never covers the last answer. The fixed footer now only appears for the worked example ("Let me try it") and the feedback
+  sheet. Phones get a tighter picture area; on short phones (≤700px tall) the grade/standard chip is hidden on question screens.
+- Kokoro self-test (`KokoroDiagnostic`) is development-only: `showVoiceSelfTest()` shows it when `import.meta.env.DEV`
+  (the Replit dev URL) or with `?voicetest` in the address. The natural-voice choice (Heart default, Bella, Nicole, Emma, Off)
+  stays in Grown-ups → Read-aloud voice for everyone. The user confirmed the server Kokoro voice works on their iPhone.
+- Part Finder is no longer a standalone game. Its rounds are a hands-on step inside the lessons they teach, right after the
+  worked example and before the questions (view `hands-on`; `PART_FINDER_BY_LESSON` / `partFinderRoundsFor` in
+  `src/part-finder.ts`): equal-parts → the two cake-sharing rounds, unit-fractions → copies filling the whole,
+  equivalent-models → same amount as 1/4. Each round must fit to move on; a lesson already completed shows a Skip button
+  (`button-hands-on-skip`). Removed: Games-menu card, map node button, reward-screen button, score/best screen.
+  `fun.partFinderBest`/`recordPartFinder` are now unused (kept so old saved data still loads).
+- Top-bar streak shows 0 once a whole day is missed (`shownStreak` in `lib/fun.ts`); the saved number still only changes on the next answer.
+- Map reorganized (branch `review/fraction-standard-mastery`): the map shows only units and lessons. Everything else is in the
+  top-bar "More" dropdown (`src/AppMenu.tsx`, `button-app-menu`, panel `app-menu`): Practice (daily practice, quick skill review
+  when due), Games (games, coding), Check what you know (check-ins, find my level), Grown-ups (progress report and settings,
+  reset progress), plus an "About this learning path" footer. The badge counts waiting items. On the map the reset button moved
+  from the top bar into the menu (other screens still show it in the bar). The call to action reads "Start your first lesson"
+  (`button-continue-course`) until any lesson is done, then "Jump to current section" (`button-jump-current`), which scrolls to
+  and opens the current lesson. E2E helper `openMenuItem(page, testId)` in `e2e/course-smoke.spec.ts`.
 - **Thorough test round (content audit + a11y sweep + touch play-through).** Fixed:
   - Choice give-aways: `choiceDistractors` (learning-content) now picks real slips from `distractorCandidates` so the
     answer is smallest/middle/largest about equally (was the middle value 59% of the time); `balanceChoices`

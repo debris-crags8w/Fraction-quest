@@ -4,8 +4,15 @@ import { getBuildChecks, getWorksheet, answerMatches, isYesNoProblem } from '../
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
 import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
 import { getExtraPractice, hasGenerator } from '../src/practice-bank';
+import { PART_FINDER_LESSONS } from '../src/part-finder';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
+
+/** Practice, games, check-ins and grown-ups live in the top bar's "More" menu. */
+async function openMenuItem(page: import('@playwright/test').Page, testId: string) {
+  await page.getByTestId('button-app-menu').click();
+  await page.getByTestId(testId).click();
+}
 
 async function openAsGuest(page: import('@playwright/test').Page) {
   await page.route('**/api/**', (route) => route.fulfill({
@@ -25,17 +32,20 @@ async function retryLessonQuestion(
   const wrongChoice = (question.correctChoice + 1) % question.choices.length;
   await page.getByTestId(`button-answer-${question.id}-${wrongChoice}`).click();
   await page.getByTestId('button-check-answer').click();
-  await expect(page.getByTestId('status-feedback')).toContainText('Not quite!');
+  await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'retry');
+  await expect(page.locator('[data-testid="status-feedback"] .fq-hoot')).toBeVisible();
 
   await page.getByTestId('button-try-again').click();
   await expect(page.getByTestId('button-check-answer')).toBeDisabled();
+  // The choice already tried is greyed out, so the next try is a real choice.
+  await expect(page.getByTestId(`button-answer-${question.id}-${wrongChoice}`)).toBeDisabled();
   const correctAnswer = page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`);
   await expect(correctAnswer).toHaveAttribute('aria-pressed', 'false');
   await correctAnswer.click();
   await expect(page.getByTestId('button-check-answer')).toBeEnabled();
   await expect(correctAnswer).toHaveAttribute('aria-pressed', 'true');
   await page.getByTestId('button-check-answer').click();
-  await expect(page.getByTestId('status-feedback')).not.toContainText('Not quite!');
+  await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
   await expect(page.getByTestId('button-next-question')).toBeVisible();
 }
 
@@ -160,6 +170,10 @@ async function completeBuilds(page: import('@playwright/test').Page, missionId: 
     await expect(page.getByTestId(`status-secondary-${check.id}`)).toBeVisible();
     await page.getByTestId(`radio-reason-${check.id}-${check.correctReason}`).check({ force: true });
     await page.getByTestId(`button-check-${check.id}`).click();
+    // The passed check stays with its explanation until Next is pressed (no automatic jump).
+    await expect(page.getByTestId(`status-pass-${check.id}`)).toBeVisible();
+    await expect(page.getByTestId(`check-${check.id}`)).toBeVisible();
+    await page.getByTestId(`button-next-${check.id}`).click();
     if (check.id === 'build') await expect(page.getByTestId('check-transfer')).toBeVisible();
     else await expect(page.getByTestId('section-worksheet')).toBeVisible();
   }
@@ -297,7 +311,8 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
 
   await page.getByTestId('button-continue-course').click();
-  await expect(page.locator('#lesson-title')).toBeVisible();
+  await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
+  await expect(page.locator('.fq-pf-lesson-example .fq-example-heading')).toHaveText(MISSIONS[0].title);
   await expect(page.getByTestId('button-listen-learning-text').first()).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
 });
@@ -323,13 +338,19 @@ test('all 68 lessons render their worked model and first interactive question', 
     await expect(startLesson).toBeEnabled();
     await startLesson.click();
 
-    await expect(page.locator('#lesson-title')).toHaveText(mission.title);
-    await expect(page.locator('.fq-example .fq-model-area')).toBeVisible();
-    await page.getByTestId('button-start-practice').click();
+    if (PART_FINDER_LESSONS.has(mission.id)) {
+      await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
+      await expect(page.locator('.fq-pf-lesson-example .fq-example-heading')).toHaveText(mission.title);
+      await page.getByTestId('button-hands-on-skip').click();
+    } else {
+      await expect(page.locator('#lesson-title')).toHaveText(mission.title);
+      await expect(page.getByTestId('lesson-example')).toBeVisible();
+      await expect(page.locator('.fq-example .fq-model-area')).toBeVisible();
+    }
 
     const question = mission.questions[0];
     await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
-    await expect(page.locator('.fq-model-area')).toBeVisible();
+    await expect(page.getByTestId('question-model-area')).toBeVisible();
     await expect(page.locator('.fq-answer-choices button')).toHaveCount(question.choices.length);
     await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
     await page.getByTestId('button-check-answer').click();
@@ -364,10 +385,11 @@ test('learners can correct a wrong answer across every lesson model type', async
     if (!mission) throw new Error('Missing lesson for a question model type');
     await page.getByTestId(`button-node-${mission.id}`).click();
     await page.getByTestId(`button-start-mission-${mission.id}`).click();
-    await page.getByTestId('button-start-practice').click();
+    if (PART_FINDER_LESSONS.has(mission.id)) await page.getByTestId('button-hands-on-skip').click();
+    else await expect(page.getByTestId('lesson-example')).toBeVisible();
 
     const question = mission.questions[0];
-    await expect(page.locator('.fq-model-area')).toBeVisible();
+    await expect(page.getByTestId('question-model-area')).toBeVisible();
     await retryLessonQuestion(page, question);
     await page.getByTestId('button-next-question').click();
     await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 2 of \d+$/);
@@ -450,15 +472,18 @@ test('a completed learner can open a redo section without changing the lesson ro
 
 test('daily practice opens as a separate short session', async ({ page }) => {
   await openAsGuest(page);
-  await page.getByTestId('button-start-daily-practice').click();
+  await openMenuItem(page, 'button-start-daily-practice');
   await expect(page.locator('.fq-taskbar-title')).toContainText('Daily practice');
   await expect(page.locator('#daily-question-title')).toBeVisible();
   await expect(page.getByTestId('button-daily-hint')).toBeVisible();
 });
 
-test('Part Finder shows equal pieces first and adds a mixed-shape cake share challenge', async ({ page }) => {
+test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, then mixed shapes', async ({ page }) => {
   await openAsGuest(page);
-  await page.getByTestId('button-part-finder-equal-parts').click();
+  await page.getByTestId('button-continue-course').click();
+  await expect(page.getByTestId('button-hands-on-skip')).toHaveCount(0);
+  await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
+  await expect(page.locator('.fq-pf-lesson-example .fq-example-heading')).toHaveText(MISSIONS[0].title);
 
   await expect(page.getByRole('heading', { name: 'Share a cake cut into equal pieces' })).toBeVisible();
   await expect(page.getByText(/4 friends share this square cake\. It is cut into 8 equal pieces\./)).toBeVisible();
@@ -502,6 +527,8 @@ test('Part Finder shows equal pieces first and adds a mixed-shape cake share cha
   await assignPiece(7);
   await page.getByTestId('button-part-finder-check').click();
   await expect(page.getByTestId('part-finder-feedback')).toContainText('Every friend gets 1/4 of the cake.');
+  await page.getByTestId('button-part-finder-next').click();
+  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
 });
 
 test('daily bar builder explains the denominator as total equal parts in one whole', async ({ page }) => {
@@ -531,7 +558,7 @@ test('daily bar builder explains the denominator as total equal parts in one who
     }));
   });
   await openAsGuest(page);
-  await page.getByTestId('button-start-daily-practice').click();
+  await openMenuItem(page, 'button-start-daily-practice');
 
   await expect(page.getByTestId('text-daily-parts-instruction')).toHaveText(
     'The denominator (bottom number) tells how many equal parts make one whole: choose that below. The numerator (top number) tells how many of those parts to shade.',
@@ -571,7 +598,7 @@ test('daily number-line model lets a learner choose the 1/3 landing point after 
     }));
   });
   await openAsGuest(page);
-  await page.getByTestId('button-start-daily-practice').click();
+  await openMenuItem(page, 'button-start-daily-practice');
   await page.getByTestId('button-daily-parts-3').click();
 
   const twoThirds = page.getByTestId('button-daily-jump-2');
@@ -591,7 +618,7 @@ test('an adult progress report can invoke browser printing', async ({ page }) =>
     window.print = () => { (window as Window & { __printCalls?: number }).__printCalls! += 1; };
   });
   await openAsGuest(page);
-  await page.getByTestId('button-open-parent').click();
+  await openMenuItem(page, 'button-open-parent');
   const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge?.match(/(\d+)\s×\s(\d+)/);
   expect(factors).not.toBeNull();
@@ -600,4 +627,114 @@ test('an adult progress report can invoke browser printing', async ({ page }) =>
   await expect(page.getByTestId('parent-report')).toBeVisible();
   await page.getByTestId('button-parent-print').click();
   await expect.poll(() => page.evaluate(() => (window as Window & { __printCalls?: number }).__printCalls)).toBe(1);
+});
+
+test('the map shows only lessons; extras live in the More menu; start becomes jump after the first lesson', async ({ page }) => {
+  await openAsGuest(page);
+  await expect(page.getByTestId('button-continue-course')).toContainText('Start your first lesson');
+  await expect(page.getByTestId('button-jump-current')).toHaveCount(0);
+  for (const id of ['button-start-daily-practice', 'button-open-concept-games', 'button-open-assessments', 'button-find-level', 'button-open-parent']) {
+    await expect(page.getByTestId(id)).toHaveCount(0); // not on the map itself
+  }
+  await page.getByTestId('button-app-menu').click();
+  await expect(page.getByTestId('app-menu')).toBeVisible();
+  for (const id of ['button-start-daily-practice', 'button-open-concept-games', 'button-open-assessments', 'button-find-level', 'button-open-parent']) {
+    await expect(page.getByTestId(id)).toBeVisible();
+  }
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('app-menu')).toHaveCount(0);
+
+  // After the first lesson is finished, the map offers "Jump to current section" instead.
+  const first = MISSIONS[0];
+  await page.evaluate((record) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: [], starsByMission: {}, reviewQueue: [], learning: { [record.id]: record.value }, assessments: [] }));
+  }, { id: first.id, value: masteredRecord(first.id) });
+  await page.reload();
+  await expect(page.getByTestId('button-continue-course')).toHaveCount(0);
+  const jump = page.getByTestId('button-jump-current');
+  await expect(jump).toContainText('Jump to current section');
+  await jump.click();
+  await expect(page.getByTestId(`button-node-${MISSIONS[1].id}`)).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByTestId(`button-start-mission-${MISSIONS[1].id}`)).toBeInViewport();
+});
+
+test('top-bar symbols explain themselves when tapped, one at a time', async ({ page }) => {
+  await openAsGuest(page);
+  await page.getByTestId('button-tip-streak').click();
+  await expect(page.getByTestId('button-tip-streak-tip')).toContainText('streak');
+  await page.getByTestId('button-tip-xp').click();
+  await expect(page.getByTestId('button-tip-xp-tip')).toContainText('10 points for every right answer');
+  await expect(page.getByTestId('button-tip-streak-tip')).toHaveCount(0);
+  await page.getByTestId('button-tip-daily').click();
+  await expect(page.getByTestId('button-tip-daily-tip')).toContainText("Today's goal");
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('button-tip-daily-tip')).toHaveCount(0);
+  await page.getByTestId('button-tip-account').click();
+  await expect(page.getByTestId('button-tip-account-tip')).toContainText('Playing as');
+  await page.locator('h1').first().click();
+  await expect(page.getByTestId('button-tip-account-tip')).toHaveCount(0);
+});
+
+test('racing the robot reads each new question aloud as it appears', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('fraction-quest-natural-voice', 'off'); // device voice, so the stub below hears it
+    const spoken: string[] = [];
+    (window as unknown as { __spoken: string[] }).__spoken = spoken;
+    class FakeUtterance { text: string; voice = null; lang = ''; rate = 1; pitch = 1; volume = 1; onend: (() => void) | null = null; onerror: (() => void) | null = null; constructor(text: string) { this.text = text; } }
+    const synth = {
+      speaking: false, pending: false, paused: false,
+      getVoices: () => [{ name: 'Test voice', lang: 'en-US', default: true, localService: true, voiceURI: 'test' }],
+      speak: (u: FakeUtterance) => { if (u.text.trim()) spoken.push(u.text); setTimeout(() => u.onend?.(), 10); },
+      cancel: () => {}, pause: () => {}, resume: () => {},
+      addEventListener: () => {}, removeEventListener: () => {},
+    };
+    Object.defineProperty(window, 'speechSynthesis', { value: synth, configurable: true });
+    Object.defineProperty(window, 'SpeechSynthesisUtterance', { value: FakeUtterance, configurable: true });
+  });
+  await openAsGuest(page);
+  const node = page.getByTestId('button-node-equal-parts');
+  if ((await node.getAttribute('aria-expanded')) !== 'true') await node.click({ force: true });
+  await page.getByTestId('button-race-equal-parts').click();
+  await page.getByTestId('button-race-robot-1').click();
+  const firstPrompt = page.locator('.fq-race-q').first();
+  await expect(firstPrompt).toBeVisible({ timeout: 5000 });
+  const spokenCount = () => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.length);
+  await expect.poll(spokenCount).toBeGreaterThan(0);
+  const before = await spokenCount();
+  // Answer (right or wrong); the next question is read when it shows.
+  await page.locator('[data-testid^="race-you-choice-"]').first().click();
+  await expect.poll(spokenCount, { timeout: 6000 }).toBeGreaterThan(before);
+});
+
+test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried choice', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('fraction-quest-natural-voice', 'off');
+    const spoken: string[] = [];
+    (window as unknown as { __spoken: string[] }).__spoken = spoken;
+    class FakeUtterance { text: string; voice = null; lang = ''; rate = 1; pitch = 1; volume = 1; onend: (() => void) | null = null; onerror: (() => void) | null = null; constructor(text: string) { this.text = text; } }
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
+      speaking: false, pending: false, paused: false,
+      getVoices: () => [{ name: 'Test voice', lang: 'en-US', default: true, localService: true, voiceURI: 'test' }],
+      speak: (u: FakeUtterance) => { if (u.text.trim()) spoken.push(u.text); setTimeout(() => u.onend?.(), 10); },
+      cancel: () => {}, pause: () => {}, resume: () => {}, addEventListener: () => {}, removeEventListener: () => {},
+    } });
+    Object.defineProperty(window, 'SpeechSynthesisUtterance', { value: FakeUtterance, configurable: true });
+  });
+  // Lesson 2 (no cake rounds): its first question is a tap question.
+  await page.addInitScript(() => localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: ['equal-parts'], starsByMission: {}, reviewQueue: [], learning: { 'equal-parts': { completedAt: Date.now() } }, assessments: [] })));
+  await openAsGuest(page);
+  const mission = MISSIONS[1];
+  const question = mission.questions[0];
+  await page.getByTestId('button-continue-course').or(page.getByTestId('button-jump-current')).first().click();
+  if (await page.getByTestId(`button-start-mission-${mission.id}`).count()) await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await expect(page.getByTestId('lesson-example')).toBeVisible();
+  const wrong = (question.correctChoice + 1) % question.choices.length;
+  await page.getByTestId(`button-answer-${question.id}-${wrong}`).click();
+  await page.getByTestId('button-check-answer').click();
+  await expect(page.locator('[data-testid="status-feedback"] .fq-hoot')).toBeVisible();
+  // "Count with me": numbers pop onto the parts of the picture.
+  await expect(page.getByTestId('question-model-area').locator('.fq-count-badge').first()).toBeAttached();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.join(' | '))).toMatch(/Almost|Good try|look again|Not quite|So close/);
+  await page.getByTestId('button-try-again').click();
+  await expect(page.getByTestId(`button-answer-${question.id}-${wrong}`)).toBeDisabled();
 });

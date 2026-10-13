@@ -1,4 +1,5 @@
 import type { ModelSpec } from './game';
+import { execAll } from './lib/regexp';
 
 /* Every question gets a picture. When a question has no model of its own, draw the amounts it names:
    one bar per fraction (mixed numbers, decimals and percents too), so "Which is bigger, 3/4 or 3/8?"
@@ -18,16 +19,16 @@ export function amountsIn(text: string): Amount[] {
     taken.push([start, end]); found.push({ at: start, amount });
   };
   // Mixed numbers first ("1 2/3", "2 and 1/4"), then plain fractions, decimals and percents.
-  for (const m of text.matchAll(/\b(\d+)\s+(?:and\s+)?(\d+)\/(\d+)\b/g)) {
+  for (const m of execAll(text, /\b(\d+)\s+(?:and\s+)?(\d+)\/(\d+)\b/g)) {
     const [whole, n, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
     if (d > 0 && n < d) take(m as RegExpExecArray, { numerator: whole * d + n, denominator: d });
   }
-  for (const m of text.matchAll(/\b(\d+)\/(\d+)\b/g)) take(m as RegExpExecArray, { numerator: Number(m[1]), denominator: Number(m[2]) });
-  for (const m of text.matchAll(/\b(\d*)\.(\d{1,2})\b/g)) {
+  for (const m of execAll(text, /\b(\d+)\/(\d+)\b/g)) take(m, { numerator: Number(m[1]), denominator: Number(m[2]) });
+  for (const m of execAll(text, /\b(\d*)\.(\d{1,2})\b/g)) {
     const places = m[2].length; const denominator = 10 ** places;
     take(m as RegExpExecArray, { numerator: Number(m[1] || 0) * denominator + Number(m[2]), denominator });
   }
-  for (const m of text.matchAll(/\b(\d{1,3})%/g)) take(m as RegExpExecArray, { numerator: Number(m[1]), denominator: 100 });
+  for (const m of execAll(text, /\b(\d{1,3})%/g)) take(m, { numerator: Number(m[1]), denominator: 100 });
   const seen = new Set<string>();
   return found.sort((a, b) => a.at - b.at).map((item) => item.amount)
     .filter(({ numerator, denominator }) => {

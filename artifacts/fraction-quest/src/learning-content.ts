@@ -1,6 +1,7 @@
 import { circleCut, type AreaFigure, type AreaTask } from './area-shapes';
 import { standardsForMission } from './standard-catalog';
 import { autoPicture } from './auto-picture';
+import { execAll } from './lib/regexp';
 import type { ModelSpec } from './game';
 export type Rational = { n: number; d: number };
 /** `sizes` (bars only) draws pieces of different widths, for "Is this cut into equal parts?" pictures. */
@@ -335,6 +336,79 @@ const EXTENSION_WORKSHEETS: Record<string, { mode: ExtensionWorksheetMode; conte
   'unit-fraction-divided-whole': { mode: 'unit-divided-whole', context: 'pan of brownies', n: 1, d: 12 },
   'fractional-unit-conversions': { mode: 'unit-conversion', context: 'measuring tools', n: 3, d: 4 },
 };
+/** The right answer to "Both models match. Which idea explains why?": the lesson's key idea in a few words, as short as
+    the wrong choices so length gives nothing away. The full explanation shows after the build passes. */
+export const REASON_IDEAS: Record<string, string> = {
+  'equal-parts': 'All pieces are the same size',
+  'fraction-names': 'Bottom: equal parts. Top: parts counted',
+  'unit-fractions': 'A unit fraction is 1 piece',
+  'unit-size': 'Fewer pieces means bigger pieces',
+  'sets-unit-fractions': 'Make equal groups, then count groups',
+  'sets-nonunit': 'Make equal groups, then count groups',
+  'benchmark-half': 'Find half first, then count back',
+  'benchmarks-zero-one': '1 whole is all the pieces',
+  'fraction-magnitude': 'Find half first, then count back',
+  'number-line-basics': 'Count the spaces, not ticks',
+  'number-line-points': 'Count jumps from 0',
+  'number-line-beyond-one': 'Keep jumping past 1 whole',
+  'compare-same-denominator': 'Same-size pieces: more is bigger',
+  'compare-same-numerator': 'Fewer pieces means bigger pieces',
+  'order-fractions': 'Compare same-size pieces',
+  'equivalent-models': 'Split pieces: same amount, new name',
+  'build-equivalents': 'Split pieces: same amount, new name',
+  'missing-equivalent': 'Top and bottom grow together',
+  'compose-to-one': 'All the pieces make 1 whole',
+  'decompose-fractions': 'Small pieces add up to it',
+  'improper-fractions': 'Extra pieces go past 1 whole',
+  'mixed-improper': 'A full bar is 1 whole',
+  'add-like-denominators': 'Add the tops, keep the bottom',
+  'subtract-like-denominators': 'Take away tops, keep the bottom',
+  'add-related-fractions': 'Make the pieces match first',
+  'tenths-decimals': 'Decimals can name tenths',
+  'hundredths-decimals': 'Decimals name tenths or hundredths',
+  'add-tenths-hundredths': 'Change tenths into hundredths first',
+  'unit-fraction-multiples': 'Copies of one piece add up',
+  'multiply-whole-by-fraction': 'Equal groups of the same piece',
+  'simplify-fractions': 'Divide top and bottom alike',
+  'equivalent-missing-both': 'Change top and bottom alike',
+  'whole-numbers-as-fractions': 'A full set makes 1 whole',
+  'compare-unlike-fractions': 'Use same-size pieces to compare',
+  'order-unlike-fractions': 'Use same-size pieces to compare',
+  'subtract-unlike-fractions': 'Make the pieces match first',
+  'add-unlike-fractions': 'Make the pieces match first',
+  'add-mixed-numbers': 'Make the pieces match first',
+  'subtract-mixed-numbers': 'Turn wholes into pieces first',
+  'fraction-of-quantity': 'Make equal groups, then count groups',
+  'mixed-unlike-operations': 'Make the pieces match first',
+  'estimate-fraction-operations': 'Compare each part to 1/2',
+  'multiply-fractions': 'Cut each piece into smaller pieces',
+  'fraction-of-collection': 'Make equal groups, then count groups',
+  'divide-whole-by-unit-fraction': 'Count the pieces in each whole',
+  'multiplication-scaling': 'Part of a group is less',
+  'multiply-mixed-numbers': 'Count the small squares inside',
+  'unit-fraction-divided-whole': 'Split each piece into equal shares',
+  'fraction-of-length': 'Count equal spaces on the line',
+  'fractional-measure-addition': 'Make the pieces match first',
+  'ruler-measurement': 'Count the small ruler spaces',
+  'build-line-plots': 'One X for each measurement',
+  'read-line-plots': 'Longest minus shortest',
+  'line-plot-leveling': 'Share the total equally',
+  'measurement-word-problems': 'Make the pieces match first',
+  'fractional-unit-conversions': 'Change the whole unit first',
+  'fractional-sharing': 'Loaves ÷ friends is each share',
+  'fraction-as-division': 'Things ÷ sharers is each share',
+  'fraction-probability': 'Blue parts out of all parts',
+  'fraction-of-area': 'Shaded parts out of equal parts',
+  'fractional-side-area': 'Multiply the two side lengths',
+  'equivalent-number-line': 'Same spot, same amount',
+  'fraction-recipes': 'Doubling adds the amount again',
+  'fractions-to-percent': 'Percent means out of 100',
+  'percent-to-fraction': 'Percent means out of 100',
+  'decimal-fraction-equivalence': 'Decimals name tenths or hundredths',
+  'compare-decimals': 'Compare using hundredths',
+  'multi-step-fraction-stories': 'One step at a time',
+};
+const idea = (id: string, fallback: string) => REASON_IDEAS[id] ?? fallback;
 /** Put the right reason at a spot that changes from lesson to lesson (but is the same every visit). */
 function arrangeReasons(key: string, right: string, wrong: [string, string]): { reasons: string[]; correctReason: number } {
   const correctReason = [...key].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 3;
@@ -348,9 +422,9 @@ export function getBuildChecks(id: string): BuildCheck[] {
   const transfer = transferTarget(id, n, d, kind);
   return [
     { id: 'build', prompt, target: model(n, d, kind, total), explanation, transfer: false,
-      ...arrangeReasons(`${id}:build`, explanation, ['Bigger numbers always mean a bigger fraction.', 'Only the shaded pieces need to be equal.']) },
+      ...arrangeReasons(`${id}:build`, idea(id, explanation), ['Bigger numbers mean a bigger fraction', 'Only shaded pieces must be equal']) },
     { id: 'transfer', prompt: transfer.prompt, target: transfer.target, explanation: transfer.reason, transfer: true,
-      ...arrangeReasons(`${id}:transfer`, transfer.reason, ['Change only the denominator. The amount stays the same.', 'Count the tick marks, not the spaces.']) },
+      ...arrangeReasons(`${id}:transfer`, idea(id, transfer.reason), ['Change only the bottom number', 'Count the tick marks, not spaces']) },
   ];
 }
 function transferTarget(id: string, n: number, d: number, kind: LearningModel['kind']) {
@@ -409,7 +483,7 @@ export function getWorksheet(id: string, variant = 0): WorksheetProblem[] {
   return tag(sheet);
 }
 const VARIANT_CACHE = new Map<string, WorksheetProblem[]>();
-const largestBottom = (p: WorksheetProblem) => Math.max(0, ...[...`${p.prompt} ${p.answer}`.matchAll(/\d+\/(\d+)/g)].map((m) => Number(m[1])));
+const largestBottom = (p: WorksheetProblem) => Math.max(0, ...execAll(`${p.prompt} ${p.answer}`, /\d+\/(\d+)/g).map((m) => Number(m[1])));
 
 function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
   if (!CHECKS[id]) throw new Error(`Missing worksheet: ${id}`);
@@ -1081,25 +1155,25 @@ export function getReviewCheck(id: string, round: number): BuildCheck {
     // Alternate the lesson's two builds so a later review is not always the same one.
     const check = getBuildChecks(id)[round % 2];
     return { ...check, id: 'retention', transfer: true,
-      ...arrangeReasons(`${id}:review:${round % 2}`, check.explanation, ['The whole can change. The fraction stays the same.', 'Only the numerator tells the size.']) };
+      ...arrangeReasons(`${id}:review:${round % 2}`, idea(id, check.explanation), ['Only the top number matters', 'Bigger numbers mean a bigger fraction']) };
   }
   if (id === 'order-fractions') {
     const d = [6, 8, 10][round % 3];
     const reason = 'Same size pieces. The most pieces is the biggest.';
     return { id: 'retention', transfer: true, prompt: `Which is longest: 2/${d}, 4/${d} or 3/${d}? Make it.`,
-      target: model(4, d), ...arrangeReasons(`${id}:review:${round % 3}`, reason, ['The smallest numerator is the biggest.', 'Shade the denominator of pieces.']), explanation: reason };
+      target: model(4, d), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['The smallest top number wins', 'Shade the bottom number of pieces']), explanation: reason };
   }
   if (id.includes('equivalent')) {
     const d = [3, 4, 5][round % 3]; const n = d - 1; const factor = 2 + round % 2;
     const reason = `Split every piece into ${factor}. Multiply the numerator and denominator by ${factor}.`;
     return { id: 'retention', transfer: true, prompt: `A ribbon is ${n}/${d} colored. Show it with a denominator of ${d * factor}.`,
-      target: model(n * factor, d * factor), ...arrangeReasons(`${id}:review:${round % 3}`, reason, ['Change only the denominator.', 'A bigger denominator always means more.']), explanation: reason };
+      target: model(n * factor, d * factor), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['Change only the bottom number', 'A bigger bottom always means more']), explanation: reason };
   }
   if (id.startsWith('sets-')) {
     const d = [4, 5, 6][round % 3]; const n = id === 'sets-unit-fractions' ? 1 : 2; const total = d * 4;
     const reason = `Put ${total} in ${d} equal groups. Pick ${n}.`;
     return { id: 'retention', transfer: true, prompt: `Put ${total} shells in ${d} equal groups. Pick ${n}/${d}.`, target: model(n, d, 'set', total),
-      ...arrangeReasons(`${id}:review:${round % 3}`, reason, ['The numerator is how many groups to make.', 'Pick the denominator of shells.']), explanation: reason };
+      ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['Make groups equal to the top', 'Pick the bottom number of shells']), explanation: reason };
   }
   // Review is built from scratch with no picture, so skip questions that need one, already show
   // the answer (unless picking it is the skill: "Which is bigger…"), or ask for a symbol, decimal or order.
@@ -1110,7 +1184,7 @@ export function getReviewCheck(id: string, round: number): BuildCheck {
   const asked = numeric.filter(p => {
     if (p.model || p.area) return false;
     const value = parseAnswer(p.answer)!;
-    const shown = [...p.prompt.matchAll(/(\d+)\/(\d+)/g)].map(m => Number(m[1]) / Number(m[2]));
+    const shown = execAll(p.prompt, /(\d+)\/(\d+)/g).map(m => Number(m[1]) / Number(m[2]));
     return p.prompt.startsWith('Which is') || !shown.includes(value.n / value.d);
   });
   // Lessons whose questions all need a picture ("What fraction is shaded?") just ask to make the fraction.
@@ -1123,6 +1197,6 @@ export function getReviewCheck(id: string, round: number): BuildCheck {
   const prompt = /^Make .+\.$/.test(ask) ? ask.replace(/\.$/, ' two ways.') : `${ask} Build the answer two ways.`;
   return { id: 'retention', transfer: true, prompt,
     target: model(value.n, value.d, id.startsWith('number-line') ? 'line' : 'bar'),
-    ...arrangeReasons(`${id}:review:${round % variants.length}`, reason, ['Count the tick marks, not the spaces.', 'Only the shaded parts need to be equal.']),
+    ...arrangeReasons(`${id}:review:${round % variants.length}`, idea(id, reason), ['Count the tick marks, not spaces', 'Only shaded pieces must be equal']),
     explanation: reason };
 }

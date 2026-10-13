@@ -14,3 +14,9 @@ When Git CLI pushes fail with authentication errors despite the GitHub integrati
 **Why:** the source-control connection was reported as active but `git push` rejected the workspace credentials; the GitHub App API connection had repository write access.
 
 **How to apply:** check integration status and repository write access, preserve full repository paths when building monorepo trees, and compare every uploaded Git blob SHA with its local Git blob SHA before creating a tree. Compare the resulting tree SHA with the local commit tree. Re-read the branch ref immediately before updating it; if it moved, fetch and merge the new commit, then rebuild on that base. Verify the final ref and tree, and never force-update the branch as a workaround.
+
+GitHub's Git Database API can omit the final newline from a commit message when creating a commit, producing a different commit SHA even when tree, parent, author, committer, and visible message match the local commit.
+
+**Why:** a code-only review-branch publish created a matching tree but initially failed the exact-commit check because the API-normalized message had no trailing newline.
+
+**How to apply:** treat a commit SHA mismatch as a stop before moving the branch ref. Inspect the GitHub-created commit object and reproduce its exact message bytes locally if matching local and remote refs matters; update the remote only after verifying tree and parent and rechecking the branch ref.

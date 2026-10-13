@@ -177,8 +177,6 @@
 .fq-ll-summary dl div { padding: 10px 12px; border-radius: 12px; background: hsl(var(--muted) / .5); }
 .fq-ll-summary dt { font-size: .72rem; color: hsl(var(--muted-foreground)); font-weight: 800; letter-spacing: 0.01em; }
 .fq-ll-summary dd { margin: 3px 0 0; font-weight: 900; }
-.fq-ll-patterns { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.fq-ll-patterns li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 10px; background: hsl(var(--accent) / .16); font-size: .88rem; }
 .fq-ll-summary .fq-button { justify-self: start; }
 @media (max-width: 560px) {
   .fq-ll-builder { padding: 10px; }

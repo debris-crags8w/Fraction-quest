@@ -2,9 +2,11 @@ import React, { useEffect, useId, useRef, useState, type ReactNode } from 'react
 import { Volume2, VolumeX } from 'lucide-react';
 import { useOptionalFun } from './fun-ui';
 import { setLearningVoicePreference } from './lib/fun';
+import { KokoroDiagnostic, showVoiceSelfTest } from './KokoroDiagnostic';
 import { MathText } from './MathText';
+import { execAll } from './lib/regexp';
 import { selectLearningVoice as selectGentleVoice, sentences, spokenText, VOICE_PITCH, VOICE_RATE } from './lib/voice';
-import { createNaturalSpeaker, NATURAL_VOICES, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, setNaturalVoicePreference, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoiceStatus } from './lib/natural-voice';
+import { createNaturalSpeaker, NATURAL_VOICES, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, setNaturalVoicePreference, unlockAudioPlayback, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoicePhase, type NaturalVoiceStatus } from './lib/natural-voice';
 
 type VocabularyEntry = { pattern: string; definition: string };
 
@@ -98,6 +100,49 @@ export function selectLearningVoice<T extends VoiceCandidate>(
   return selectGentleVoice(voices, preferredLanguage);
 }
 
+/** Handles browsers whose speechSynthesis only partially implements voice-list events. */
+export function subscribeToSpeechVoices(
+  synthesis: SpeechSynthesis,
+  onVoicesChanged: (voices: SpeechSynthesisVoice[]) => void,
+) {
+  let lastSignature: string | undefined;
+  let listening = false;
+  let pollTimer: ReturnType<typeof setInterval> | undefined;
+  const refresh = () => {
+    let voices: SpeechSynthesisVoice[] = [];
+    try { voices = synthesis.getVoices(); } catch { /* keep the browser's default voice available */ }
+    const signature = voices.map((voice) => `${voice.voiceURI}\u0000${voice.name}\u0000${voice.lang}`).join('\u0001');
+    if (signature !== lastSignature) {
+      lastSignature = signature;
+      onVoicesChanged(voices);
+    }
+    return voices.length > 0;
+  };
+  const handleChange = () => { refresh(); };
+  if (typeof synthesis.addEventListener === 'function' && typeof synthesis.removeEventListener === 'function') {
+    try {
+      synthesis.addEventListener('voiceschanged', handleChange);
+      listening = true;
+    } catch { /* use the bounded polling fallback below */ }
+  }
+  const hasVoices = refresh();
+  if (!hasVoices) {
+    let attempts = 20;
+    pollTimer = setInterval(() => {
+      if (refresh() || --attempts <= 0) {
+        if (pollTimer !== undefined) clearInterval(pollTimer);
+        pollTimer = undefined;
+      }
+    }, 500);
+  }
+  return () => {
+    if (pollTimer !== undefined) clearInterval(pollTimer);
+    if (listening && typeof synthesis.removeEventListener === 'function') {
+      try { synthesis.removeEventListener('voiceschanged', handleChange); } catch { /* partial mobile implementations */ }
+    }
+  };
+}
+
 const VOICE_LIST_WAIT_MS = 500;
 
 /**
@@ -122,7 +167,9 @@ export function createLearningSpeechController(
   const clearVoiceWait = () => {
     if (waitTimer !== undefined) clearTimeout(waitTimer);
     waitTimer = undefined;
-    if (waitingListener) synthesis.removeEventListener('voiceschanged', waitingListener);
+    if (waitingListener && typeof synthesis.removeEventListener === 'function') {
+      try { synthesis.removeEventListener('voiceschanged', waitingListener); } catch { /* older browsers may expose partial event support */ }
+    }
     waitingListener = undefined;
     waitingForVoices = false;
   };
@@ -136,12 +183,11 @@ export function createLearningSpeechController(
   const stop = () => {
     generation += 1;
     clearVoiceWait();
-    natural.stop();
+    try { natural.stop(); } catch { /* keep the device speech controls usable if the natural player fails */ }
     try {
-      synthesis.cancel();
-    } finally {
-      setSpeaking(false);
-    }
+      if (typeof synthesis.cancel === 'function') synthesis.cancel();
+    } catch { /* some mobile browsers expose speech synthesis without every control method */ }
+    setSpeaking(false);
   };
 
   const startUtterance = (text: string, language: string, playback: number, voices: readonly SpeechSynthesisVoice[]) => {
@@ -177,7 +223,7 @@ export function createLearningSpeechController(
       stop();
       const playback = generation;
       // The natural voice reads English when it's ready; otherwise this playback uses the device voice
-      // while the natural voice downloads in the background for next time.
+      // while the natural voice connects in the background for next time.
       if (natural.ready() && /^en\b/i.test(language)) {
         setSpeaking(true);
         natural.speak(sentences(spokenLearningText(text)), (ok) => {
@@ -216,8 +262,13 @@ export function createLearningSpeechController(
           if (latestVoices.length === 0 && waitTimer !== undefined) return;
           startUtterance(text, language, playback, latestVoices);
         };
-        waitingListener = startWithCurrentVoices;
-        synthesis.addEventListener('voiceschanged', startWithCurrentVoices);
+        // Safari and embedded iOS browsers can expose speechSynthesis while missing
+        // one or both EventTarget methods. In that case, use the timed default-voice
+        // fallback below rather than throwing from the Listen button.
+        if (typeof synthesis.addEventListener === 'function' && typeof synthesis.removeEventListener === 'function') {
+          waitingListener = startWithCurrentVoices;
+          try { synthesis.addEventListener('voiceschanged', startWithCurrentVoices); } catch { waitingListener = undefined; }
+        }
         waitTimer = setTimeout(() => {
           waitTimer = undefined;
           startWithCurrentVoices();
@@ -233,7 +284,7 @@ export function createLearningSpeechController(
 }
 
 /** What the controller needs from the natural voice (injectable for tests). */
-export type NaturalReader = { ready(): boolean; speak(parts: string[], onDone: (ok: boolean) => void): void; stop(): void; warmUp(): void };
+export type NaturalReader = { ready(): boolean; speak(parts: string[], onDone: (ok: boolean) => void, onPhase?: (phase: NaturalVoicePhase) => void): void; stop(): void; warmUp(): void };
 function defaultNaturalReader(): NaturalReader {
   const speaker = createNaturalSpeaker();
   return { ready: naturalVoiceReady, speak: speaker.speak, stop: speaker.stop, warmUp: () => { void warmUpNaturalVoice(); } };
@@ -241,43 +292,86 @@ function defaultNaturalReader(): NaturalReader {
 
 const VOICE_PREVIEW = 'Hi there! I can read your fraction lessons to you.';
 
-/** Grown-ups' choice of natural voice (or off), with the download status. */
+/** Grown-ups' choice of natural voice (or off), with its connection status. */
 function NaturalVoiceSettings() {
   const [status, setStatus] = useState<NaturalVoiceStatus>(() => naturalVoiceStatus());
   const [choice, setChoice] = useState(naturalVoicePreference);
   const [previewing, setPreviewing] = useState(false);
+  const [previewPhase, setPreviewPhase] = useState<NaturalVoicePhase>('preparing');
+  const [previewMessage, setPreviewMessage] = useState('');
   const speaker = useRef<ReturnType<typeof createNaturalSpeaker> | null>(null);
+  const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => onNaturalVoiceStatus(setStatus), []);
-  useEffect(() => () => speaker.current?.stop(), []);
-  const choose = (next: NaturalVoiceId | 'off') => { setChoice(next); setNaturalVoicePreference(next); speaker.current?.stop(); setPreviewing(false); };
+  useEffect(() => () => {
+    if (previewTimer.current !== null) clearTimeout(previewTimer.current);
+    speaker.current?.stop();
+  }, []);
+  const choose = (next: NaturalVoiceId | 'off') => {
+    if (previewTimer.current !== null) clearTimeout(previewTimer.current);
+    previewTimer.current = null;
+    setChoice(next); setNaturalVoicePreference(next); speaker.current?.stop(); setPreviewing(false); setPreviewMessage('');
+  };
   const preview = () => {
     speaker.current ??= createNaturalSpeaker();
+    if (previewing) {
+      if (previewTimer.current !== null) clearTimeout(previewTimer.current);
+      previewTimer.current = null;
+      speaker.current.stop();
+      setPreviewing(false);
+      setPreviewMessage('');
+      return;
+    }
+    setPreviewMessage('');
     setPreviewing(true);
-    speaker.current.speak([VOICE_PREVIEW], () => setPreviewing(false));
+    setPreviewPhase('preparing');
+    previewTimer.current = setTimeout(() => {
+      previewTimer.current = null;
+      speaker.current?.stop();
+      setPreviewing(false);
+      setPreviewMessage('This natural voice is taking too long to preview here. Try a device voice below.');
+    }, 80_000);
+    speaker.current.speak([VOICE_PREVIEW], (ok) => {
+      if (previewTimer.current !== null) clearTimeout(previewTimer.current);
+      previewTimer.current = null;
+      setPreviewing(false);
+      setPreviewMessage(ok ? '' : 'This natural voice could not finish its preview here. Try a device voice below.');
+    }, setPreviewPhase);
   };
   const statusText = status.state === 'off' ? 'Off: lessons use the device voice.'
-    : status.state === 'unsupported' ? 'This browser can’t run the natural voice, so lessons use the device voice.'
-    : status.state === 'ready' ? 'Ready on this device.'
-    : status.state === 'loading' ? `Downloading… ${status.progress ?? 0}%`
-    : status.state === 'error' ? 'The download didn’t finish. Lessons use the device voice; try again on Wi-Fi.'
-    : 'Downloads once (about 90 MB) the first time a child presses Listen. Wi-Fi is best.';
+    : status.state === 'unsupported' ? 'This browser can’t play the natural voice, so lessons use the device voice.'
+    : status.state === 'ready' ? 'Ready.'
+    : status.state === 'loading' ? 'Connecting to the voice…'
+    : status.state === 'error' ? 'The natural voice isn’t reachable right now, so lessons use the device voice. Try again later.'
+    : 'Connects the first time a child presses Listen. Nothing to download.';
   return (
     <div className="fq-natural-voice" data-testid="natural-voice-settings">
       <h3 className="fq-learning-voice-subhead">Natural voice</h3>
-      <p>A free, open-source voice that sounds like a real person. It runs on this device: no account, and nothing you read is sent anywhere.</p>
-      <div className="fq-natural-voice-options" role="radiogroup" aria-label="Natural voice">
-        {[...NATURAL_VOICES.map((voice) => ({ id: voice.id as NaturalVoiceId | 'off', label: voice.name, note: voice.note })), { id: 'off' as const, label: 'Off', note: 'use the device voice' }].map((option) => (
-          <label key={option.id} className={choice === option.id ? 'on' : ''}>
-            <input type="radio" name="natural-voice" value={option.id} checked={choice === option.id} onChange={() => choose(option.id)} data-testid={`radio-natural-voice-${option.id}`} />
-            <span><strong>{option.label}</strong><small>{option.note}</small></span>
-          </label>
-        ))}
-      </div>
+      <p>A free, open-source voice that sounds like a real person. Our server makes the audio from the lesson sentence
+        only (never a child’s name or answers), so it works on every device, iPhone and iPad included.</p>
+      {(
+        <div className="fq-natural-voice-options" role="radiogroup" aria-label="Natural voice">
+          {[...NATURAL_VOICES.map((voice) => ({ id: voice.id as NaturalVoiceId | 'off', label: voice.name, note: voice.note })), { id: 'off' as const, label: 'Off', note: 'use the device voice' }].map((option) => (
+            <label key={option.id} className={choice === option.id ? 'on' : ''}>
+              <input type="radio" name="natural-voice" value={option.id} checked={choice === option.id} onChange={() => choose(option.id)} data-testid={`radio-natural-voice-${option.id}`} />
+              <span><strong>{option.label}</strong><small>{option.note}</small></span>
+            </label>
+          ))}
+        </div>
+      )}
       <p className="fq-parent-note" role="status" data-testid="status-natural-voice">{statusText}</p>
-      <div className="fq-natural-voice-actions">
-        {(status.state === 'idle' || status.state === 'error') && <button type="button" className="fq-button ghost" onClick={() => { void warmUpNaturalVoice(); }} data-testid="button-download-natural-voice">Download now</button>}
-        {status.state === 'ready' && <button type="button" className="fq-button ghost" onClick={preview} disabled={previewing} data-testid="button-preview-natural-voice"><Volume2 size={16} aria-hidden="true" /> {previewing ? 'Playing' : 'Preview'}</button>}
-      </div>
+      {showVoiceSelfTest() && <KokoroDiagnostic />}
+      {(
+        <div className="fq-natural-voice-actions">
+          {(status.state === 'idle' || status.state === 'error') && <button type="button" className="fq-button ghost" onClick={() => { void warmUpNaturalVoice(); }} data-testid="button-download-natural-voice">Connect now</button>}
+          {status.state === 'ready' && <button type="button" className="fq-button ghost" onClick={preview} data-testid="button-preview-natural-voice"><Volume2 size={16} aria-hidden="true" /> {previewing ? 'Stop preview' : 'Preview voice'}</button>}
+        </div>
+      )}
+      {previewing && <p className="fq-parent-note" role="status" data-testid="status-natural-voice-preview-phase">
+        {previewPhase === 'playing' ? 'The voice preview is playing. Tap Stop preview to stop it.'
+          : previewPhase === 'generating' ? 'Making your voice preview…'
+          : 'Preparing your voice preview…'}
+      </p>}
+      {previewMessage && <p className="fq-learning-voice-fallback" role="alert" data-testid="status-natural-voice-preview">{previewMessage}</p>}
     </div>
   );
 }
@@ -292,7 +386,9 @@ export function LearningVoicePicker() {
   const [supported, setSupported] = useState(false);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(savedPreference);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState('');
   const [saveFailed, setSaveFailed] = useState(false);
+  const voicePreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const language = getLearningLanguage();
   const primaryLanguage = language.toLowerCase().replace(/_/g, '-').split('-')[0];
 
@@ -306,18 +402,12 @@ export function LearningVoicePicker() {
 
     const synthesis = window.speechSynthesis;
     setSupported(true);
-    const updateVoices = () => {
-      try {
-        setVoices(synthesis.getVoices());
-      } catch {
-        setVoices([]);
-      }
-    };
-    updateVoices();
-    synthesis.addEventListener('voiceschanged', updateVoices);
+    const unsubscribe = subscribeToSpeechVoices(synthesis, setVoices);
     return () => {
-      synthesis.removeEventListener('voiceschanged', updateVoices);
-      synthesis.cancel();
+      unsubscribe();
+      if (voicePreviewTimer.current !== null) clearTimeout(voicePreviewTimer.current);
+      voicePreviewTimer.current = null;
+      try { if (typeof synthesis.cancel === 'function') synthesis.cancel(); } catch { /* partial mobile implementations */ }
     };
   }, []);
 
@@ -336,21 +426,34 @@ export function LearningVoicePicker() {
   const previewVoice = (voice: SpeechSynthesisVoice) => {
     if (!supported) return;
     const synthesis = window.speechSynthesis;
-    synthesis.cancel();
+    if (voicePreviewTimer.current !== null) clearTimeout(voicePreviewTimer.current);
+    voicePreviewTimer.current = null;
+    try { if (typeof synthesis.cancel === 'function') synthesis.cancel(); } catch { /* partial mobile implementations */ }
     const utterance = new SpeechSynthesisUtterance(VOICE_PREVIEW);
     utterance.voice = voice;
     utterance.lang = voice.lang;
     utterance.rate = VOICE_RATE;
     utterance.pitch = VOICE_PITCH;
     const id = learningVoiceId(voice);
+    setPreviewError('');
     setPreviewingVoiceId(id);
-    const finish = () => setPreviewingVoiceId((active) => active === id ? null : active);
-    utterance.onend = finish;
-    utterance.onerror = finish;
+    let timer: ReturnType<typeof setTimeout>;
+    const finish = (message = '') => {
+      if (voicePreviewTimer.current !== timer) return;
+      clearTimeout(timer);
+      voicePreviewTimer.current = null;
+      setPreviewingVoiceId((active) => active === id ? null : active);
+      setPreviewError(message);
+    };
+    timer = setTimeout(() => finish('This voice did not finish its preview. Try another voice.'), 15_000);
+    voicePreviewTimer.current = timer;
+    utterance.onend = () => finish();
+    utterance.onerror = () => finish('This voice could not play here. Try another voice.');
     try {
+      if (typeof synthesis.speak !== 'function') throw new Error('Speech is unavailable');
       synthesis.speak(utterance);
     } catch {
-      finish();
+      finish('This voice could not play here. Try another voice.');
     }
   };
 
@@ -366,7 +469,7 @@ export function LearningVoicePicker() {
       <h2 id="learning-voice-heading">Read-aloud voice</h2>
       <NaturalVoiceSettings />
       <h3 className="fq-learning-voice-subhead">Device voices</h3>
-      <p>Used while the natural voice downloads, when it is off, or on devices that can't run it. Signed-in choices follow your account, but each device uses its own local voice. Audio stays on this device.</p>
+      <p>Used while the natural voice connects, when it is off, or when it can't be reached. Signed-in choices follow your account, but each device uses its own local voice. Device-voice audio stays on this device.</p>
       {!supported ? (
         <p className="fq-parent-note" role="status">Read-aloud voices are not available in this browser.</p>
       ) : matchingVoices.length > 0 ? (
@@ -403,6 +506,7 @@ export function LearningVoicePicker() {
       ) : (
         <p className="fq-parent-note" role="status">No local voices for {language} are listed by this browser. Explanations will ask the browser for a voice in that language.</p>
       )}
+      {previewError && <p className="fq-learning-voice-fallback" role="alert" data-testid="status-learning-voice-preview">{previewError}</p>}
       {supported && selectedVoiceId && !savedVoiceAvailable && (
         <p className="fq-learning-voice-fallback" role="status" data-testid="status-learning-voice-fallback">
           The saved voice is not available on this device. Explanations are using {currentVoice?.name
@@ -418,6 +522,39 @@ export function LearningVoicePicker() {
       {saveFailed && <p className="fq-learning-voice-fallback" role="alert">This browser could not save the voice choice. It will reset if you reload.</p>}
     </section>
   );
+}
+
+/** Call from a tap that starts something which will read aloud later (a race): browsers, iPhones most of all,
+    only allow sound that a tap unlocked. */
+export function primeReadAloud() {
+  unlockAudioPlayback();
+  try {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined') {
+      const silent = new SpeechSynthesisUtterance(' ');
+      silent.volume = 0;
+      window.speechSynthesis.speak(silent);
+    }
+  } catch { /* no device speech: the natural voice (if any) still plays */ }
+}
+
+/** Read `text` aloud each time `key` changes (a new race question), with the family's chosen voice. A new key, null,
+    or leaving the screen stops the reading. */
+export function useReadAloud(text: string | null, key: string | number | null = text) {
+  const funContext = useOptionalFun();
+  const preferredVoiceId = funContext ? funContext.fun.preferredLearningVoiceId ?? null : getSavedLearningVoiceId();
+  const controllerRef = useRef<ReturnType<typeof createLearningSpeechController> | null>(null);
+  const supported = typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+  useEffect(() => {
+    if (!supported) return;
+    const controller = createLearningSpeechController(window.speechSynthesis, () => {}, undefined, undefined, () => preferredVoiceId);
+    controllerRef.current = controller;
+    return () => { controller.dispose(); controllerRef.current = null; };
+  }, [preferredVoiceId, supported]);
+  useEffect(() => {
+    if (!text) { controllerRef.current?.stop(); return; }
+    controllerRef.current?.speak(text, getLearningLanguage());
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read once per key, not on every re-render
+  }, [key, text === null]);
 }
 
 function ListenButton({ text }: { text: string }) {
@@ -488,7 +625,7 @@ const KEY_PATTERN = new RegExp([
 function EmphasizedText({ text }: { text: string }) {
   const parts: ReactNode[] = [];
   let last = 0;
-  for (const match of text.matchAll(KEY_PATTERN)) {
+  for (const match of execAll(text, KEY_PATTERN)) {
     const at = match.index ?? 0;
     if (at > last) parts.push(<MathText key={`t-${last}`} text={text.slice(last, at)} />);
     parts.push(<span key={`k-${at}`} className="fq-key">{match[0]}</span>);
@@ -515,7 +652,7 @@ export function LearningText({
 
   const parts: ReactNode[] = [];
   let last = 0;
-  for (const match of text.matchAll(VOCABULARY_PATTERN)) {
+  for (const match of execAll(text, VOCABULARY_PATTERN)) {
     const at = match.index ?? 0;
     const word = match[0];
     const entry = entryFor(word);

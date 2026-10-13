@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { useScrollTopOn } from './lib/reveal';
 import { AREA_CUTS, pieceArea, type AreaCut, type Piece } from './area-shapes';
-import { FRIENDS, PART_FINDER_ROUNDS, isPartFinderAnswer, partFinderFeedback, scorePartFinderRound } from './part-finder';
+import { FRIENDS, isPartFinderAnswer, partFinderFeedback, type PartFinderRound } from './part-finder';
 import './part-finder.css';
 import { TaskBar } from './TaskBar';
 import { AnswerTiles } from './AnswerTiles';
@@ -84,21 +85,27 @@ function TileFill({ cut, selection, solved }: { cut: AreaCut; selection: number[
   );
 }
 
-export default function PartFinder({ best, onExit, onFinish }: {
-  best: number | null;
+/** Hands-on cake rounds inside a lesson, between the worked example and the questions. Each round must fit
+    before the child moves on; the feedback says why a try doesn't fit. */
+export default function PartFinder({ rounds, lessonLabel, intro, onExit, onDone, onSkip }: {
+  rounds: PartFinderRound[];
+  /** "Lesson 01 · Same whole, fair pieces": shown in the bar so the child knows this is part of the lesson. */
+  lessonLabel: string;
+  /** A worked example shown as part of the lesson before its hands-on rounds. */
+  intro?: ReactNode;
   onExit: () => void;
-  onFinish: (score: number) => void;
+  onDone: () => void;
+  /** Replaying a finished lesson: the cake rounds can be skipped. */
+  onSkip?: () => void;
 }) {
   const [roundIndex, setRoundIndex] = useState(0);
+  useScrollTopOn(roundIndex);
   const [selected, setSelected] = useState<number[]>([]);
   const [checked, setChecked] = useState<CheckState>('idle');
-  const [score, setScore] = useState(0);
-  const [roundHadMiss, setRoundHadMiss] = useState(false);
-  const [finished, setFinished] = useState(false);
   const [tileCount, setTileCount] = useState('');
-  const round = PART_FINDER_ROUNDS[roundIndex];
+  const round = rounds[roundIndex];
   const emptyShares = () => AREA_CUTS[round.cut].map(() => -1);
-  const [assignment, setAssignment] = useState<number[]>(() => AREA_CUTS[PART_FINDER_ROUNDS[0].cut].map(() => -1));
+  const [assignment, setAssignment] = useState<number[]>(() => AREA_CUTS[rounds[0].cut].map(() => -1));
   const [activeShare, setActiveShare] = useState(0);
   const sorting = round.mode === 'sort';
   // Sort rounds check the share of every piece; the other rounds check the chosen pieces.
@@ -106,6 +113,7 @@ export default function PartFinder({ best, onExit, onFinish }: {
   const placed = assignment.filter((share) => share >= 0).length;
   const correct = checked === 'right';
   const tileAnswer = tileCount.trim() ? Number(tileCount) : undefined;
+  const lastRound = roundIndex === rounds.length - 1;
 
   const togglePiece = (index: number) => {
     if (correct) return;
@@ -121,12 +129,7 @@ export default function PartFinder({ best, onExit, onFinish }: {
     });
   };
 
-  const checkAnswer = () => {
-    const isCorrect = isPartFinderAnswer(round, answerPieces, tileAnswer);
-    setChecked(isCorrect ? 'right' : 'try-again');
-    if (isCorrect) setScore((current) => scorePartFinderRound(current, !roundHadMiss));
-    if (!isCorrect) setRoundHadMiss(true);
-  };
+  const checkAnswer = () => setChecked(isPartFinderAnswer(round, answerPieces, tileAnswer) ? 'right' : 'try-again');
 
   const clearSelection = () => {
     if (correct) return;
@@ -137,63 +140,22 @@ export default function PartFinder({ best, onExit, onFinish }: {
   };
 
   const advance = () => {
-    if (roundIndex === PART_FINDER_ROUNDS.length - 1) {
-      setFinished(true);
-      onFinish(score);
-      return;
-    }
+    if (lastRound) { onDone(); return; }
     setRoundIndex((index) => index + 1);
-    setAssignment(AREA_CUTS[PART_FINDER_ROUNDS[roundIndex + 1].cut].map(() => -1));
+    setAssignment(AREA_CUTS[rounds[roundIndex + 1].cut].map(() => -1));
     setSelected([]);
     setChecked('idle');
-    setRoundHadMiss(false);
     setTileCount('');
     setActiveShare(0);
   };
-
-  const replay = () => {
-    setRoundIndex(0);
-    setAssignment(AREA_CUTS[PART_FINDER_ROUNDS[0].cut].map(() => -1));
-    setActiveShare(0);
-    setSelected([]);
-    setChecked('idle');
-    setScore(0);
-    setRoundHadMiss(false);
-    setFinished(false);
-    setTileCount('');
-  };
-
-  if (finished) {
-    const shownBest = Math.max(best ?? 0, score);
-    return (
-      <main className="fq-app fq-pf" data-testid="part-finder-screen">
-        <div className="fq-pf-shell">
-          <header className="fq-pf-top">
-            <button className="fq-pf-back" type="button" onClick={onExit} data-testid="button-part-finder-exit">Back to lessons</button>
-            <span className="fq-pf-badge">Optional side game</span>
-          </header>
-          <section className="fq-pf-result" aria-labelledby="pf-result-title">
-            <div className="fq-pf-result-mark" aria-hidden="true"><span /></div>
-            <p className="fq-pf-kicker">Part Finder complete</p>
-            <h1 id="pf-result-title">Nice fraction finding!</h1>
-            <p className="fq-pf-score" data-testid="part-finder-final-score"><strong>{score}</strong><span>out of 3</span></p>
-            <p className="fq-pf-best" data-testid="part-finder-best-score">Best result: {best === null && score === 0 ? 'Not set' : `${shownBest} out of 3`}</p>
-            <p className="fq-pf-separation">This side game is just for fun. It does not change lesson progress or unlocks.</p>
-            <div className="fq-pf-actions">
-              <button type="button" className="fq-button" onClick={replay} data-testid="button-part-finder-replay">Play again</button>
-              <button type="button" className="fq-button ghost" onClick={onExit} data-testid="button-part-finder-result-exit">Back to lessons</button>
-            </div>
-          </section>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="fq-app fq-pf" data-testid="part-finder-screen">
       <div className="fq-pf-shell">
-        <TaskBar onBack={onExit} backLabel="Lessons" testId="button-part-finder-exit" title="Part Finder" step={roundIndex + 1} total={PART_FINDER_ROUNDS.length}
-          actions={<span className="fq-pf-best" data-testid="part-finder-best-score">Best: {best === null ? '—' : `${best} / ${PART_FINDER_ROUNDS.length}`}</span>} />
+        <TaskBar onBack={onExit} backLabel="Map" testId="button-part-finder-exit" title="Try it with cake" backAriaLabel={`Back to the map (leaves ${lessonLabel})`} step={roundIndex + 1} total={rounds.length}
+          actions={onSkip && <button type="button" className="fq-hint-button" onClick={onSkip} data-testid="button-hands-on-skip">Skip</button>} />
+
+        {intro && <section className="fq-pf-lesson-example" data-testid="part-finder-lesson-example">{intro}</section>}
 
         <section className="fq-pf-card" aria-labelledby="pf-title">
           <div className="fq-pf-heading">
@@ -222,7 +184,7 @@ export default function PartFinder({ best, onExit, onFinish }: {
                 disabled={correct}
                 onToggle={togglePiece}
               />
-              <p className="fq-pf-instruction">{sorting ? 'Tap a friend below, then tap the pieces that friend gets. Tap a piece again to take it back.' : 'Tap or click pieces to select them. Use Tab, then Enter or Space.'}</p>
+              <p className="fq-pf-instruction">{sorting ? 'Tap a friend, then tap their pieces. Tap a piece again to take it back.' : 'Tap or click pieces to select them. Use Tab, then Enter or Space.'}</p>
             </figure>
           </div>
 
@@ -263,7 +225,7 @@ export default function PartFinder({ best, onExit, onFinish }: {
               <button type="button" className="fq-button ghost" onClick={clearSelection} disabled={(sorting ? placed === 0 : selected.length === 0) || correct} data-testid="button-part-finder-clear">Clear</button>
               {correct ? (
                 <button type="button" className="fq-button" onClick={advance} data-testid="button-part-finder-next">
-                  {roundIndex === PART_FINDER_ROUNDS.length - 1 ? 'See result' : 'Next round'}
+                  {lastRound ? 'Keep going' : 'Next cake'}
                 </button>
               ) : (
                 <button type="button" className="fq-button" onClick={checkAnswer} disabled={(sorting ? placed === 0 : selected.length === 0) || (round.mode === 'tile' && tileAnswer === undefined)} data-testid="button-part-finder-check">{sorting ? 'Is it fair?' : 'Check pieces'}</button>
@@ -276,7 +238,6 @@ export default function PartFinder({ best, onExit, onFinish }: {
               <span>{partFinderFeedback(round, answerPieces, tileAnswer)}</span>
             </div>
           )}
-          <p className="fq-pf-separation">Just for fun — this game does not affect lessons, worksheet evidence, or unlocks.</p>
         </section>
       </div>
     </main>

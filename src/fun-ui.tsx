@@ -5,7 +5,7 @@ import { Check, Gift, LockKeyhole, Sparkles, Star } from 'lucide-react';
 import type { ModelSpec } from './game';
 import { DAILY_GOAL, type FunState } from './lib/fun';
 import { MODEL_NAMES, ModelTag, WholeBracket } from './models';
-import { LinkedFraction, PieFraction } from './fraction-ui';
+import { LinkedFraction, PieFraction, TickLabel } from './fraction-ui';
 
 /* ---------- shared fun state ---------- */
 
@@ -64,14 +64,40 @@ export function Mascot({ mood = 'happy', size = 76 }: { mood?: MascotMood; size?
       )}
       {mood === 'oops' && (
         <>
-          <path d="M24 34 L34 36" stroke="#2B2D42" strokeWidth="3" strokeLinecap="round" />
-          <path d="M56 34 L46 36" stroke="#2B2D42" strokeWidth="3" strokeLinecap="round" />
+          <path d="M24 36 L34 33" stroke="#2B2D42" strokeWidth="3" strokeLinecap="round" />
+          <path d="M56 36 L46 33" stroke="#2B2D42" strokeWidth="3" strokeLinecap="round" />
         </>
       )}
       {mood === 'thinking' && <circle cx="66" cy="20" r="4" fill="#FFC800" />}
       <ellipse cx="40" cy="52" rx="4" ry="3" fill="#2B2D42" />
       <circle cx="22" cy="52" r="3.5" fill="#FF4B91" opacity=".35" />
       <circle cx="58" cy="52" r="3.5" fill="#FF4B91" opacity=".35" />
+    </svg>
+  );
+}
+
+/** Hoot, the fix-it owl: shows up after a wrong answer to help look closer. Always curious and kind, never cross. */
+export function Hoot({ size = 64 }: { size?: number }) {
+  return (
+    <svg className="fq-hoot" width={size} height={size} viewBox="0 0 80 80" aria-hidden="true">
+      <path d="M22 16 L28 28 L18 28 Z" fill="#6D4BD8" />
+      <path d="M58 16 L52 28 L62 28 Z" fill="#6D4BD8" />
+      <ellipse cx="40" cy="46" rx="25" ry="27" fill="#7C5CF0" />
+      <ellipse cx="40" cy="56" rx="15" ry="14" fill="#E9E2FF" />
+      <path d="M33 54 q3 3 7 0 q4 3 7 0" stroke="#B9A8F5" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <circle cx="30" cy="38" r="10" fill="#fff" />
+      <circle cx="50" cy="38" r="10" fill="#fff" />
+      <circle cx="31" cy="39" r="4.5" fill="#2B2D42" />
+      <circle cx="51" cy="39" r="4.5" fill="#2B2D42" />
+      <circle cx="32.5" cy="37.5" r="1.5" fill="#fff" />
+      <circle cx="52.5" cy="37.5" r="1.5" fill="#fff" />
+      {/* Raised, curious brows */}
+      <path d="M22 26 Q29 22 36 26" stroke="#4B2FB0" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      <path d="M44 26 Q51 22 58 26" stroke="#4B2FB0" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      <path d="M37 45 L43 45 L40 50 Z" fill="#FFB020" />
+      {/* Magnifying glass */}
+      <circle cx="66" cy="60" r="7" fill="#DFF3FF" stroke="#2B2D42" strokeWidth="3" />
+      <path d="M61 65 L55 71" stroke="#2B2D42" strokeWidth="3.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -164,7 +190,7 @@ export function TapModel({ model }: { model: ModelSpec }) {
           {Array.from({ length: target.d * target.wholes + 1 }, (_, i) => (
             <button type="button" key={i} className={`${i === count ? 'on' : ''} ${i % target.d === 0 ? 'whole' : ''}`} style={{ left: `${(i / (target.d * target.wholes)) * 100}%` }}
               aria-label={`Land after ${i} jumps`} aria-pressed={i === count} onClick={() => setCount(i)} data-testid={`button-tap-tick-${i}`}>
-              <span>{i % target.d === 0 ? i / target.d : ''}</span>
+              <TickLabel i={i} d={target.d} />
             </button>
           ))}
         </div>

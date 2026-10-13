@@ -77,7 +77,6 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "@capacitor/core": "8.5.2",
-    "kokoro-js": "1.2.1"
+    "@capacitor/core": "8.5.2"
   }
 }
