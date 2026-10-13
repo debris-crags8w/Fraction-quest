@@ -1988,3 +1988,29 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   .fq-fold-paper, .fq-fold-piece, .fq-fold-piece small, .fq-fold-layers { transition: none; animation: none; opacity: 1; }
 }
 @media (max-width: 560px) { .fq-fold-paper, .fq-fold-ghost { height: 72px; } .fq-fold-stage { min-height: 100px; } }
+
+/* ---------- equal parts look equal ----------
+   A bar is one whole: a single rectangle with a dark outline, split by straight lines into identical rectangular
+   parts. No part is rounded, no gaps between parts, and the end parts look exactly like the middle ones. The outline
+   keeps a tiny 3px rounding on its outside only (a 3px border leaves the inside corners square, so no part is clipped).
+   The lines come from the bar's background showing through a 2px gap. */
+:root { --fq-whole-edge: hsl(var(--foreground) / .85); --fq-part-line: color-mix(in srgb, var(--fq-den) 55%, var(--fq-edge)); }
+.fq-bar, .fq-ll-bar, .fq-tap-bar, .fq-daily-model, .fq-partition-whole {
+  gap: 2px; padding: 0; overflow: hidden; border: 3px solid var(--fq-whole-edge); border-radius: 3px; background: var(--fq-part-line);
+}
+.fq-bar span, .fq-bar span:last-child, .fq-ll-piece, .fq-tap-bar button, .fq-daily-part, .fq-partition-whole span, .fq-partition-whole span:last-child {
+  border: 0; border-radius: 0; box-shadow: none;
+}
+.fq-bar span.empty, .fq-ll-piece:not(.on), .fq-tap-bar button:not(.on), .fq-daily-part:not(.shaded) { background: hsl(var(--card)); box-shadow: none; }
+.fq-ll-piece.on, .fq-tap-bar button.on { box-shadow: none; }
+.fq-daily-part.shaded { border: 0; }
+/* Pressing a part must not change its size (that would make it look unequal for a moment). */
+.fq-ll-piece:hover, .fq-ll-piece:active, .fq-tap-bar button:active, .fq-daily-part:hover:not(:disabled) { transform: none; }
+.fq-ll-piece:focus-visible, .fq-tap-bar button:focus-visible, .fq-daily-part:focus-visible { outline: 3px solid var(--fq-sky); outline-offset: -5px; }
+/* Strips with unequal pieces (the "are these fair?" questions) keep straight dividers too: only the sizes differ. */
+.fq-partition-whole { gap: 0; background: hsl(var(--muted)); }
+.fq-partition-whole span + span { border-left: 2px solid var(--fq-whole-edge); }
+.fq-partition-whole span.part-sample { outline-offset: -4px; }
+/* The count-along glow stays inside its part. */
+@keyframes fq-count-glow { 50% { filter: brightness(1.25) drop-shadow(0 0 6px var(--fq-sun)); } }
+.fq-bar { grid-template-columns: repeat(var(--pieces), minmax(0, 1fr)); }
