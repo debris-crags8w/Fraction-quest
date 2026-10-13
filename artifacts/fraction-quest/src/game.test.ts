@@ -1,3 +1,5 @@
+import { fourthChoice, isSignQuestion } from './fourth-choice';
+import { answerValue } from './learning-content';
 import { readFileSync } from 'node:fs';
 import { pickVoice, sayFraction, sentences, spokenText } from './lib/voice';
 import { AREA_CUTS, allEqual, areaFeedback, areaTaskDone, areaWhole, circleCut, cutTotal, pieceArea, shadedArea } from './area-shapes';
@@ -1676,8 +1678,10 @@ describe('question generator', () => {
   };
   const verify = (question: PracticeQuestion): boolean => {
     const answer = question.choices[question.correctChoice];
-    assert.equal(question.choices.length, 3, question.id);
-    assert.equal(new Set(question.choices.map((choice) => choice.trim())).size, 3, question.id);
+    // Four choices (A–D); sign questions have only <, = and >.
+    const want = isSignQuestion(question.choices) ? 3 : 4;
+    assert.equal(question.choices.length, want, `${question.id}: ${question.prompt} | ${question.choices.join(' / ')}`);
+    assert.equal(new Set(question.choices.map((choice) => choice.trim())).size, want, question.id);
     let match = /^(\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \?$/.exec(question.prompt);
     if (match) {
       const result = Number(match[1]) / Number(match[2]) + (match[3] === '+' ? 1 : -1) * Number(match[4]) / Number(match[5]);
@@ -1788,7 +1792,7 @@ describe('question generator', () => {
         assert.ok(mission.questions.some((base) => base.id === question.reviewQuestionId), question.id);
       }
     }
-    assert.deepEqual([...positions].sort(), [0, 1, 2]);
+    assert.deepEqual([...positions].sort(), [0, 1, 2, 3]);
   });
 
   it('generates thousands of fresh questions with valid answers and no duplicate choices', () => {
@@ -2199,10 +2203,19 @@ describe('new tenths + hundredths lesson', () => {
     const nextUnitTen = MISSIONS.find((m) => m.unit === 10 && !LATE_ADDED_LESSONS.has(m.id))!;
     assert.equal(isMissionUnlocked(newcomer, nextUnitTen.id), false);
   });
-  it('spreads the right answer across A, B and C', () => {
-    const pos = [0, 0, 0]; for (const m of MISSIONS) for (const q of m.questions) pos[q.correctChoice]++;
+  it('spreads the right answer across A, B, C and D', () => {
+    const pos = [0, 0, 0, 0]; for (const m of MISSIONS) for (const q of m.questions) pos[q.correctChoice]++;
     const total = pos.reduce((a, b) => a + b, 0);
-    for (const n of pos) assert.ok(n / total > 0.25 && n / total < 0.42, `positions ${pos}`);
+    for (const n of pos) assert.ok(n / total > 0.17 && n / total < 0.34, `positions ${pos}`);
+  });
+
+  it('gives every lesson question four different choices (sign questions three)', () => {
+    for (const m of MISSIONS) for (const q of m.questions) {
+      const want = isSignQuestion(q.choices) ? 3 : 4;
+      assert.equal(q.choices.length, want, `${q.id}: ${q.prompt} | ${q.choices.join(' / ')}`);
+      assert.equal(new Set(q.choices.map((c) => c.trim().toLowerCase())).size, want, q.id);
+      for (const c of q.choices) assert.doesNotMatch(c, /^(?:Yes|No):/, 'yes and no are followed by a comma');
+    }
   });
 });
 
@@ -2278,14 +2291,14 @@ describe('pictures never give the answer away', () => {
       if (q.model.kind === 'area') {
         // Squares, pizzas and hexagons: the answer follows the piece sizes, never the shapes.
         shapes++;
-        assert.equal(q.choices[q.correctChoice], allEqual(q.model.cut) ? 'Yes: all the parts are the same size' : 'No: some parts are bigger', q.model.cut);
+        assert.equal(q.choices[q.correctChoice], allEqual(q.model.cut) ? 'Yes, all the parts are the same size' : 'No, some parts are bigger', q.model.cut);
         continue;
       }
       assert.equal(q.model.kind, 'partition');
       if (q.model.kind !== 'partition') continue;
       const d = Number(/equal (\w+)/.exec(q.prompt) && { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8 }[/equal (\w+)\?/.exec(q.prompt)![1] as 'halves']);
       const parts = q.model.parts; const equal = parts.every((p) => Math.abs(p - parts[0]) < 1e-6);
-      const truth = parts.length !== d ? `No: there are ${d + 1} pieces` : equal ? `Yes: ${d} equal pieces` : 'No: the pieces are not equal';
+      const truth = parts.length !== d ? `No, there are ${d + 1} pieces` : equal ? `Yes, ${d} equal pieces` : 'No, the pieces are not equal';
       assert.equal(q.choices[q.correctChoice], truth, `${q.prompt} with ${parts.length} parts, equal=${equal}`);
     }
     assert.ok(shapes > 20, 'some practice questions use squares and circles');
@@ -2657,5 +2670,28 @@ describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
     } finally {
       delete (globalThis as { localStorage?: unknown }).localStorage;
     }
+  });
+});
+
+describe('fourth answer choice', () => {
+  it('adds a believable wrong answer that is never a second right one', () => {
+    assert.equal(fourthChoice('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 1), null, 'only three signs exist');
+    assert.equal(fourthChoice('Which is bigger, 4/7 or 2/7?', ['4/7', '2/7', 'They are equal'], 0), "You can't tell");
+    const order = fourthChoice('Put 1/2, 3/10 and 8/10 in order, smallest first.', ['8/10, 1/2, 3/10', '3/10, 1/2, 8/10', '1/2, 3/10, 8/10'], 1)!;
+    assert.ok(order && !['8/10, 1/2, 3/10', '3/10, 1/2, 8/10', '1/2, 3/10, 8/10'].includes(order));
+    assert.deepEqual(order.split(', ').sort(), ['1/2', '3/10', '8/10']);
+    const more = fourthChoice('Which is more than 1/2?', ['5/8', '2/6', '3/10'], 0)!;
+    assert.ok(answerValue(more) < 0.5, more);
+    const closest = fourthChoice('Which is closest to 1/2?', ['1/5', '4/9', '7/8'], 1)!;
+    assert.ok(Math.abs(answerValue(closest) - 0.5) > Math.abs(4 / 9 - 0.5), closest);
+    const unit = fourthChoice('Which is a unit fraction?', ['3/8', '1/8', '8/1'], 1)!;
+    assert.doesNotMatch(unit, /^1\//);
+    const sum = fourthChoice('Which adds up to 3/5?', ['1/5 + 1/5', '1/5 + 2/5', '3/5 + 2/5'], 1)!;
+    assert.match(sum, /^\d+\/5 \+ \d+\/5$/);
+    assert.notEqual(sum.split(' + ').reduce((t, x) => t + Number(x.split('/')[0]), 0), 3);
+    const amountQ = fourthChoice('What is 1/6 + 4/6?', ['5/12', '5/6', '1/6'], 1)!;
+    assert.match(amountQ, /\/6$/, 'keeps the denominator the question uses');
+    assert.notEqual(answerValue(amountQ), 5 / 6);
+    assert.equal(fourthChoice('Is it equal?', ['Yes, 3 equal pieces', 'No, 2 pieces', 'No, not equal'], 0), null, 'worded reasons are written by hand');
   });
 });

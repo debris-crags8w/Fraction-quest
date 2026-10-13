@@ -1,3 +1,4 @@
+import { withFourthChoice } from './fourth-choice';
 import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
 import type { AreaCut } from './area-shapes';
 import { amountsIn, autoPicture } from './auto-picture';
@@ -178,7 +179,8 @@ function practice(
   // and the authored help picture doesn't (a generic 1/2 bar), the help shows the question's bars, labelled.
   const aboutQuestion = (m: ModelSpec) => m.kind === 'bars' && m.bars.some((bar) => bar.named);
   if (aboutQuestion(named) && !aboutQuestion(simpler)) simpler = named;
-  return { prompt, choices, correctChoice, model: named, hint, retryFeedback, simplerModel: simpler };
+  // Four choices (A–D): lessons list three, a fourth believable wrong answer is added (sign questions keep three).
+  return withFourthChoice({ prompt, choices, correctChoice, model: named, hint, retryFeedback, simplerModel: simpler });
 }
 
 /** Authored questions mostly listed the right answer first. Put it at a spot picked from the question id
@@ -217,10 +219,10 @@ const curriculum: MissionSeed[] = [
       model: { kind: 'partition', parts: [25, 25, 25, 25], caption: '1 whole cut into equal pieces' },
     },
     questions: [
-      practice('Is this strip cut into thirds?', ['Yes: 3 equal pieces', 'No: the pieces are not equal', 'No: there are 2 pieces'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Thirds are 3 pieces, all the same size. Compare the pieces.', 'One piece is twice as big as the others, so these are not thirds.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
+      practice('Is this strip cut into thirds?', ['Yes, 3 equal pieces', 'No, the pieces are not equal', 'No, there are 2 pieces', 'Yes, there are 3 pieces'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Thirds are 3 pieces, all the same size. Compare the pieces.', 'One piece is twice as big as the others, so these are not thirds.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
       practice('A sandwich is cut into 4 equal pieces. What is 1 piece?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), '1 piece out of 4 equal pieces is 1/4.', 'The denominator is all 4 pieces. You have 1.', bars({ numerator: 1, denominator: 2 })),
-      practice('This ribbon is cut into 2 pieces. Are the pieces equal halves?', ['Yes: both pieces are the same size', 'No: one piece is bigger', 'No: halves need 3 pieces'], 0, { kind: 'partition', parts: [50, 50] }, 'Halves are 2 pieces of the same size.', '2 pieces are halves only if they are the same size. These are.', { kind: 'partition', parts: [50, 50] }),
-      practice('A strip has 5 equal pieces. What is 1 piece?', ['one fifth', 'one fourth', 'five wholes'], 0, bars({ numerator: 1, denominator: 5 }), '1 piece out of 5 equal pieces.', '1 of 5 equal pieces is one fifth, or 1/5.', bars({ numerator: 1, denominator: 2 })),
+      practice('This ribbon is cut into 2 pieces. Are the pieces equal halves?', ['Yes, both pieces are the same size', 'No, one piece is bigger', 'No, halves need 3 pieces', 'No, the pieces are different colors'], 0, { kind: 'partition', parts: [50, 50] }, 'Halves are 2 pieces of the same size.', '2 pieces are halves only if they are the same size. These are.', { kind: 'partition', parts: [50, 50] }),
+      practice('A strip has 5 equal pieces. What is 1 piece?', ['one fifth', 'one fourth', 'five wholes', 'one sixth'], 0, bars({ numerator: 1, denominator: 5 }), '1 piece out of 5 equal pieces.', '1 of 5 equal pieces is one fifth, or 1/5.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
@@ -232,7 +234,7 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 3, denominator: 5 }),
     },
     questions: [
-      practice('In 2/7, what does the 7 mean?', ['7 equal parts in the whole', '7 parts are shaded', '7 wholes'], 0, bars({ numerator: 2, denominator: 7 }), 'Look at the denominator.', 'The denominator is how many equal parts in all.', bars({ numerator: 1, denominator: 3 })),
+      practice('In 2/7, what does the 7 mean?', ['7 equal parts in the whole', '7 parts are shaded', '7 wholes', '7 parts are not shaded'], 0, bars({ numerator: 2, denominator: 7 }), 'Look at the denominator.', 'The denominator is how many equal parts in all.', bars({ numerator: 1, denominator: 3 })),
       practice('A tray has 6 spaces. 4 have a snack. What fraction have a snack?', ['6/4', '4/6', '4/4'], 1, bars({ numerator: 4, denominator: 6 }), 'Numerator: spaces with a snack. Denominator: all the spaces.', 'Numerator: 4 with a snack. Denominator: 6 in all.', bars({ numerator: 1, denominator: 2 })),
       practice('In 5/8, how many pieces are counted?', ['8', '5', '13'], 1, bars({ numerator: 5, denominator: 8 }), 'Look at the numerator.', 'The numerator is 5. So 5 pieces are counted.', bars({ numerator: 2, denominator: 4 })),
       practice('A shape has 9 equal parts. 1 is colored. What fraction is colored?', ['1/9', '9/1', '1/8'], 0, bars({ numerator: 1, denominator: 9 }), '1 colored part out of 9.', 'Denominator: all 9 parts. Numerator: the 1 colored part.', bars({ numerator: 1, denominator: 4 })),
@@ -249,7 +251,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Which is a unit fraction?', ['3/8', '1/8', '8/1'], 1, bars({ numerator: 1, denominator: 8 }), 'A unit fraction has a numerator of 1.', 'Look for the one with a numerator of 1.', bars({ numerator: 1, denominator: 4 })),
       practice('A whole is cut into 10 equal pieces. What is 1 piece?', ['1/10', '10/1', '1/9'], 0, bars({ numerator: 1, denominator: 10 }), '10 pieces in all. You have 1.', '1 of 10 equal pieces is 1/10.', bars({ numerator: 1, denominator: 5 })),
-      practice('Does this bar show 1/3?', ['Yes: 1 of 3 equal parts is shaded', 'No: 3 parts are shaded', 'No: the parts are not equal'], 0, bars({ numerator: 1, denominator: 3 }), '1/3 is 1 of 3 equal parts.', 'The bar has 3 equal parts and 1 is shaded. That is 1/3.', bars({ numerator: 1, denominator: 2 })),
+      practice('Does this bar show 1/3?', ['Yes, 1 of 3 equal parts is shaded', 'No, 3 parts are shaded', 'No, the parts are not equal', 'No, 2 parts are not shaded'], 0, bars({ numerator: 1, denominator: 3 }), '1/3 is 1 of 3 equal parts.', 'The bar has 3 equal parts and 1 is shaded. That is 1/3.', bars({ numerator: 1, denominator: 2 })),
       practice('What fraction is 1 of 12 equal tiles?', ['12/1', '1/12', '1/11'], 1, bars({ numerator: 1, denominator: 12 }), '1 tile out of 12.', '1 out of 12 equal parts is 1/12.', bars({ numerator: 1, denominator: 6 })),
     ],
   },
@@ -325,7 +327,7 @@ const curriculum: MissionSeed[] = [
       practice('Which amount is closest to 0?', ['1/8', '4/5', '7/8'], 0, bars({ numerator: 1, denominator: 8 }, { numerator: 4, denominator: 5 }, { numerator: 7, denominator: 8 }), 'The smallest shaded part is closest to 0.', '1/8 is tiny. The others are almost full.', bars({ numerator: 1, denominator: 4 })),
       practice('Which fraction is closest to 1 whole?', ['2/9', '8/9', '4/9'], 1, bars({ numerator: 2, denominator: 9 }, { numerator: 8, denominator: 9 }, { numerator: 4, denominator: 9 }), 'Which one is missing just 1 piece?', '8/9 is just 1 piece away from 1 whole.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is between 1/2 and 1?', ['3/8', '3/4', '1/4'], 1, bars({ numerator: 3, denominator: 4 }), 'Find one past half but not full.', '3/4 is more than half but less than 1.', bars({ numerator: 1, denominator: 2 })),
-      practice('A plant grew 9/10 of a meter. Is that near 0 or 1 meter?', ['0 meters', '1 meter', 'Exactly halfway'], 1, bars({ numerator: 9, denominator: 10 }), 'Just 1 tenth is missing.', '9/10 is almost 1 whole meter.', bars({ numerator: 1, denominator: 2 })),
+      practice('A plant grew 9/10 of a meter. Is that near 0 or 1 meter?', ['0 meters', '1 meter', 'Exactly halfway', '9 meters'], 1, bars({ numerator: 9, denominator: 10 }), 'Just 1 tenth is missing.', '9/10 is almost 1 whole meter.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
@@ -340,7 +342,7 @@ const curriculum: MissionSeed[] = [
       practice('Which is just a little less than 1/2?', ['4/9', '1/8', '8/9'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 4, denominator: 9, named: true }, { numerator: 1, denominator: 8, named: true }, { numerator: 8, denominator: 9, named: true }), 'Half of 9 is 4 and a half. 4 is close.', '4/9 is just under half.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fraction is a little more than 1/2?', ['3/8', '5/9', '1/6'], 1, bars({ numerator: 5, denominator: 9 }, { numerator: 1, denominator: 2 }), 'Half of 9 is 4 and a half. Which is a bit more?', '5/9 is just over half. The others are under.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fraction is closest to 1?', ['6/7', '2/7', '3/7'], 0, bars({ numerator: 6, denominator: 7 }, { numerator: 2, denominator: 7 }, { numerator: 3, denominator: 7 }), 'Which numerator is closest to 7?', '6/7 is just 1 piece away from 1 whole.', bars({ numerator: 1, denominator: 2 })),
-      practice('About how much is 1/10 + 1/10 + 1/10 + 1/10 + 1/10?', ['About 1/2', 'About 1/5', 'About 1 whole'], 0, bars({ numerator: 5, denominator: 10 }), '5 tenths is halfway.', '5/10 is the same as 1/2.', bars({ numerator: 2, denominator: 4 })),
+      practice('About how much is 1/10 + 1/10 + 1/10 + 1/10 + 1/10?', ['About 1/2', 'About 1/5', 'About 1 whole', 'About 5 wholes'], 0, bars({ numerator: 5, denominator: 10 }), '5 tenths is halfway.', '5/10 is the same as 1/2.', bars({ numerator: 2, denominator: 4 })),
     ],
   },
   {
@@ -354,7 +356,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('0 to 1 has 5 equal spaces. What is 1 jump?', ['1/5', '1/4', '5/1'], 0, line(1, 5), 'Count the spaces from 0 to 1.', '5 jumps make 1 whole. So 1 jump is 1/5.', line(1, 2)),
       practice('How many spaces do you need for fourths?', ['4 spaces', '3 spaces', '5 spaces'], 0, line(2, 4), 'Fourths means 4 equal pieces.', 'Fourths need 4 spaces from 0 to 1.', line(1, 2)),
-      practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps past 1'], 0, line(3, 8), 'Start at 0. Count 3 jumps.', 'The numerator 3 means 3 jumps.', line(1, 4)),
+      practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps past 1', '5 jumps from 0'], 0, line(3, 8), 'Start at 0. Count 3 jumps.', 'The numerator 3 means 3 jumps.', line(1, 4)),
       practice('0 to 1 has 6 equal spaces. What is 5 jumps?', ['5/6', '6/5', '1/5'], 0, line(5, 6), 'Count 5 jumps from 0.', '5 jumps of 1/6 is 5/6.', line(2, 4)),
     ],
   },
@@ -383,9 +385,9 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('Each jump is 1/4. What is 5 jumps from 0?', ['5/4', '4/5', '1/4'], 0, line(5, 4, 2), '4 jumps reach 1. Then 1 more.', '5 jumps is 5/4. That is 1 and 1/4.', line(3, 4)),
-      practice('Each jump is 1/3. Which point is just past 1?', ['2/3', '4/3', '1/3'], 1, line(4, 3, 2), '3 jumps reach 1. 1 more is 4/3.', '4/3 is 1 and 1/3, just past 1.', line(2, 3)),
+      practice('Each jump is 1/3. Which point is just past 1?', ['2/3', '4/3', '1/3', '3/3'], 1, line(4, 3, 2), '3 jumps reach 1. 1 more is 4/3.', '4/3 is 1 and 1/3, just past 1.', line(2, 3)),
       practice('How many sixths make 1 and 2/6?', ['8/6', '6/8', '2/6'], 0, line(8, 6, 2), '1 whole is 6/6. Add 2 more.', '6/6 + 2/6 = 8/6.', line(6, 6)),
-      practice('A runner takes 9 steps of 1/5. How far is that?', ['1 and 3/5', '9/5 = 1 and 4/5', '4/5'], 1, line(9, 5, 2), '5 steps make 1 whole. How many are left?', '9/5 is 5/5 and 4/5. That is 1 and 4/5.', line(5, 5)),
+      practice('A runner takes 9 steps of 1/5. How far is that?', ['1 and 3/5', '9/5 = 1 and 4/5', '4/5', '9/10'], 1, line(9, 5, 2), '5 steps make 1 whole. How many are left?', '9/5 is 5/5 and 4/5. That is 1 and 4/5.', line(5, 5)),
     ],
   },
   {
@@ -489,8 +491,8 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('How many 1/5 pieces make 1 whole?', ['5 pieces', '4 pieces', '10 pieces'], 0, bars({ numerator: 5, denominator: 5 }), 'The denominator is how many pieces make 1 whole.', '5 fifths make 1 whole: 5/5 = 1.', bars({ numerator: 2, denominator: 4 })),
       practice('Which sum makes 1 whole?', ['1/3 + 2/3', '1/4 + 1/4', '2/5 + 1/5'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 3 }), 'Look for numerators that add up to the denominator.', '1/3 + 2/3 = 3/3. That is 1 whole.', bars({ numerator: 1, denominator: 2 })),
-      practice('What is 2/8 + 6/8?', ['8/8 = 1', '8/16', '4/8'], 0, bars({ numerator: 2, denominator: 8 }, { numerator: 6, denominator: 8 }), 'Add the numerators. Keep eighths.', '2 + 6 = 8. 8/8 is 1 whole.', bars({ numerator: 1, denominator: 2 })),
-      practice('A recipe uses 3/6 cup, then 3/6 cup more. How much in all?', ['6/6 = 1 cup', '6/12 cup', '3/6 cup'], 0, bars({ numerator: 3, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Add the numerators. How many sixths fill 1 cup?', '3 + 3 = 6. 6/6 is 1 cup.', bars({ numerator: 1, denominator: 2 })),
+      practice('What is 2/8 + 6/8?', ['8/8 = 1', '8/16', '4/8', '6/8'], 0, bars({ numerator: 2, denominator: 8 }, { numerator: 6, denominator: 8 }), 'Add the numerators. Keep eighths.', '2 + 6 = 8. 8/8 is 1 whole.', bars({ numerator: 1, denominator: 2 })),
+      practice('A recipe uses 3/6 cup, then 3/6 cup more. How much in all?', ['6/6 = 1 cup', '6/12 cup', '3/6 cup', '6/3 cup'], 0, bars({ numerator: 3, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Add the numerators. How many sixths fill 1 cup?', '3 + 3 = 6. 6/6 is 1 cup.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
@@ -517,7 +519,7 @@ const curriculum: MissionSeed[] = [
       model: { kind: 'bars', bars: [{ numerator: 4, denominator: 4 }, { numerator: 3, denominator: 4 }], caption: '7/4 is 1 whole and 3/4' },
     },
     questions: [
-      practice('What is 5/3 as wholes and a fraction?', ['1 and 2/3', '2 and 1/3', '5 and 3'], 0, line(5, 3, 2), '3/3 is 1 whole. How many are left?', '5/3 is 3/3 and 2/3. That is 1 and 2/3.', line(3, 3, 2)),
+      practice('What is 5/3 as wholes and a fraction?', ['1 and 2/3', '2 and 1/3', '5 and 3', '2 and 2/3'], 0, line(5, 3, 2), '3/3 is 1 whole. How many are left?', '5/3 is 3/3 and 2/3. That is 1 and 2/3.', line(3, 3, 2)),
       practice('What is 2 and 1/5 as fifths?', ['11/5', '7/5', '2/5'], 0, line(11, 5, 3), '2 wholes is 10/5. Add 1 more.', '10/5 + 1/5 = 11/5.', line(5, 5, 2)),
       practice('What is 1 and 2/4 as fourths?', ['6/4', '3/4', '4/6'], 0, line(6, 4, 2), '1 whole is 4/4. Add 2 more.', '4 + 2 = 6. So 6/4.', line(4, 4, 2)),
       practice('Which is more than 1 whole?', ['9/8', '7/8', '1/8'], 0, line(9, 8, 2), '8/8 is exactly 1 whole.', '9/8 is 1 piece more than a whole.', line(8, 8, 2)),

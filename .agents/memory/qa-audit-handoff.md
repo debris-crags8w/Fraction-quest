@@ -41,6 +41,13 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Four answer choices (A–D) on every tap question; pick-the-sign questions keep three (<, =, >). `src/fourth-choice.ts`
+  adds a fourth wrong answer by question type (amount slips keeping the question's denominator; criterion-aware for
+  "which is more than / closest to / between / same as / unit fraction"; another order for ordering; a different sum;
+  "You can't tell" for "Which is bigger, a or b? / They are equal"; "More than 1 (whole)" for more/less than half).
+  Applied in `practice()` (game.ts) and `generateQuestions` (practice-bank, `Item.extra` for hand-written ones).
+  Worded reasons (yes/no etc.) have hand-written fourth choices. Yes/No choices now read "Yes, …"/"No, …" (comma).
+  Tests: every lesson question has 4 distinct choices (3 for signs), answer spread across A–D, helper rule tests.
 - Lesson question screens: Check moved out of the fixed bottom bar to sit right under the answers (`.fq-inline-check`), so it
   never covers the last answer. The fixed footer now only appears for the worked example ("Let me try it") and the feedback
   sheet. Phones get a tighter picture area; on short phones (≤700px tall) the grade/standard chip is hidden on question screens.
