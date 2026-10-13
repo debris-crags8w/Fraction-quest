@@ -218,6 +218,21 @@ export function resetFun(): FunState {
   return saveFun({ ...fresh(), sound: loadFun().sound });
 }
 
+/** Clear per-lesson game results for a unit without changing global rewards or family preferences. */
+export function resetMissionGameProgress(state: FunState, missionIds: ReadonlySet<string>): FunState {
+  const withoutMissions = <T,>(values: Record<string, T> | undefined): Record<string, T> | undefined => {
+    if (!values) return values;
+    return Object.fromEntries(Object.entries(values).filter(([id]) => !missionIds.has(id)));
+  };
+  return saveFun({
+    ...state,
+    raceBest: withoutMissions(state.raceBest),
+    robotBeaten: withoutMissions(state.robotBeaten),
+    codeLevels: withoutMissions(state.codeLevels),
+    sprintBest: withoutMissions(state.sprintBest),
+  });
+}
+
 let audio: AudioContext | null = null;
 type Cue = 'correct' | 'retry' | 'star' | 'complete';
 const CUES: Record<Cue, number[]> = {
