@@ -725,6 +725,8 @@ test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried 
   await page.getByTestId(`button-answer-${question.id}-${wrong}`).click();
   await page.getByTestId('button-check-answer').click();
   await expect(page.locator('[data-testid="status-feedback"] .fq-hoot')).toBeVisible();
+  // "Count with me": numbers pop onto the parts of the picture.
+  await expect(page.locator('.fq-model-area .fq-count-badge').first()).toBeAttached();
   await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.join(' | '))).toMatch(/Almost|Good try|look again|Not quite|So close/);
   await page.getByTestId('button-try-again').click();
   await expect(page.getByTestId(`button-answer-${question.id}-${wrong}`)).toBeDisabled();

@@ -41,6 +41,12 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- "Count with me" after a miss: `ModelView walk={attempts}` (PlayView, on retry) pops numbers 1, 2, 3… onto each part
+  of bar models (several bars count on from each other), partition strips and number-line spaces (≤24), 0.45 s apart,
+  then the shaded parts glow (`.fq-count-badge`, `.fq-walking`). Runs alongside Hoot's spoken help; not word-synced
+  (browser voices give no reliable word timing). Reduced motion shows the numbers and an outline without animation.
+- The native iOS app shell (Capacitor: Xcode project, iCloud sync, printing, StoreKit subscriptions) is only on branch
+  `ios-local-icloud`, not on main or this review branch.
 - Wrong-answer help (lessons, practice more, quick review, daily practice topic questions): Hoot the fix-it owl
   (`Hoot` in fun-ui.tsx) replaces the frowning fox; a kind rotating opener (`retryOpener`); the exact slip when we can
   name it (`wrongChoiceReason` in src/wrong-answer.ts: flipped fraction, added the bottoms, parts+shaded as bottom,

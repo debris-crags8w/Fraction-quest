@@ -1927,3 +1927,21 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 @media (prefers-reduced-motion: reduce) { .fq-hoot, .fq-inline-feedback { animation: none; } }
 .fq-daily-miss { display: flex; align-items: flex-start; gap: 10px; }
 .fq-daily-miss p { margin: 0; }
+
+/* "Count with me": after a miss, numbers pop onto each part one at a time (0.45 s apart), then the shaded parts glow. */
+.fq-count-badge {
+  position: absolute; left: 50%; top: 50%; z-index: 2; display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 4px;
+  border-radius: 999px; background: #fff; color: #2B2D42; box-shadow: 0 0 0 2px var(--fq-den, #5a32d6);
+  font: 900 .78rem var(--app-font-display); line-height: 1; transform: translate(-50%, -50%) scale(0); opacity: 0;
+  animation: fq-count-pop 260ms cubic-bezier(.2, .9, .3, 1.4) forwards; animation-delay: calc((var(--i) + var(--start, 0)) * 450ms + 300ms);
+}
+.fq-bar span, .fq-partition-whole span { position: relative; }
+.fq-walking .fq-bar span:not(.empty) { animation: fq-count-glow 900ms ease-in-out 2; animation-delay: calc(var(--count) * 450ms + 500ms); }
+.fq-line-walk { position: absolute; inset: 0; pointer-events: none; }
+.fq-line-walk .fq-count-badge { top: -6px; animation-delay: calc(var(--i) * 450ms + 300ms); }
+@keyframes fq-count-pop { to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+@keyframes fq-count-glow { 50% { filter: brightness(1.25) drop-shadow(0 0 6px var(--fq-sun)); transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .fq-count-badge { animation: none; transform: translate(-50%, -50%); opacity: 1; }
+  .fq-walking .fq-bar span:not(.empty) { animation: none; outline: 3px solid var(--fq-sun); outline-offset: -3px; }
+}

@@ -140,16 +140,23 @@ function Fraction({ numerator, denominator }: { numerator: number; denominator: 
     not the fraction (sighted children count the parts themselves). */
 /** `guide`: after a compare question, a dashed line at this point of the whole (0–1), drawn through every bar,
     so kids see which amount reaches further. */
-function FractionBar({ numerator, denominator, quiet = false, label = false, guide }: { numerator: number; denominator: number; quiet?: boolean; label?: boolean; guide?: number }) {
+/** `walk`: after a miss, count along the picture: 1, 2, 3… pops onto each part (from part `start`), then the
+    shaded parts glow. A new number replays it. */
+function FractionBar({ numerator, denominator, quiet = false, label = false, guide, walk = null, start = 0 }: { numerator: number; denominator: number; quiet?: boolean; label?: boolean; guide?: number; walk?: number | null; start?: number }) {
+  const total = Math.max(1, Math.ceil(numerator / denominator)) * denominator;
   return (
     <div className="fq-bar-model-labelled" style={{ '--piece': denomColor(denominator) } as CSSProperties}>
     {label && <span className="fq-bar-label" data-testid="bar-fraction-label"><Fraction numerator={numerator} denominator={denominator} /></span>}
-    <div className="fq-bar-model" style={{ '--pieces': denominator, '--piece': denomColor(denominator) } as CSSProperties} role="img" aria-label={quiet ? 'A bar model. Count the equal parts and the shaded parts.' : `${numerator}/${denominator}: each whole is split into ${denominator} equal parts, with ${numerator} parts shaded`}>
+    <div key={walk ?? 'still'} className={`fq-bar-model ${walk !== null ? 'fq-walking' : ''}`} style={{ '--pieces': denominator, '--piece': denomColor(denominator), '--start': start, '--count': start + total } as CSSProperties} role="img" aria-label={quiet ? 'A bar model. Count the equal parts and the shaded parts.' : `${numerator}/${denominator}: each whole is split into ${denominator} equal parts, with ${numerator} parts shaded`}>
       {Array.from({ length: Math.max(1, Math.ceil(numerator / denominator)) }, (_, whole) => (
         <div className="fq-bar-whole" key={whole}>
           <div className="fq-bar">
             {guide !== undefined && whole === 0 && <i className="fq-compare-guide" style={{ left: `${guide * 100}%` }} aria-hidden="true" data-testid="compare-guide" />}
-            {Array.from({ length: denominator }, (_, index) => <span className={whole * denominator + index < numerator ? '' : 'empty'} style={{ '--i': whole * denominator + index } as CSSProperties} key={index} />)}
+            {Array.from({ length: denominator }, (_, index) => (
+              <span className={whole * denominator + index < numerator ? '' : 'empty'} style={{ '--i': whole * denominator + index } as CSSProperties} key={index}>
+                {walk !== null && <b className="fq-count-badge" aria-hidden="true">{index + 1}</b>}
+              </span>
+            ))}
           </div>
           <WholeBracket />
         </div>
@@ -168,7 +175,8 @@ function compareGuide(model: ModelSpec, reveal: boolean): number | undefined {
 
 /** `reveal`: the question is answered, so every bar shows its fraction label. */
 /** `asked`: the picture belongs to a question, so number-line labels (1/5, 2/5…) and the readout stay hidden until it is answered. */
-function ModelView({ model, compact = false, reveal = false, asked = false }: { model: ModelSpec; compact?: boolean; reveal?: boolean; asked?: boolean }) {
+/** `walk`: after a miss, a "count with me" walk along the picture (see FractionBar); a new value replays it. */
+function ModelView({ model, compact = false, reveal = false, asked = false, walk = null }: { model: ModelSpec; compact?: boolean; reveal?: boolean; asked?: boolean; walk?: number | null }) {
   return (
     <div className={`fq-visual-model ${compact ? 'compact' : ''}`} data-testid="visual-fraction-model">
       {!compact && (model.kind === 'bars' || model.kind === 'decimal') && <ModelTag kind="bar" />}
@@ -176,11 +184,15 @@ function ModelView({ model, compact = false, reveal = false, asked = false }: { 
       {!compact && model.kind === 'set' && <ModelTag kind="set" />}
       {model.kind === 'bars' && (
         <div className="fq-visual-bars">
-          {model.bars.map((item, index) => (
+          {model.bars.map((item, index) => {
+            // Bars are counted one after another, so each later bar starts where the one before stopped.
+            const start = model.bars.slice(0, index).reduce((sum, bar) => sum + Math.max(1, Math.ceil(bar.numerator / bar.denominator)) * bar.denominator, 0);
+            return (
             <div className="fq-visual-bar-row" key={`${item.numerator}-${item.denominator}-${index}`}>
-              <FractionBar numerator={item.numerator} denominator={item.denominator} quiet={model.hideLabels && !item.named && !reveal} label={!!item.named || reveal} guide={compareGuide(model, reveal)} />
+              <FractionBar numerator={item.numerator} denominator={item.denominator} quiet={model.hideLabels && !item.named && !reveal} label={!!item.named || reveal} guide={compareGuide(model, reveal)} walk={walk} start={start} />
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {model.kind === 'set' && (
@@ -206,6 +218,13 @@ function ModelView({ model, compact = false, reveal = false, asked = false }: { 
                 ))}
               </svg>
               <span className="fq-numberline-marker" style={{ left: (value * 100) + '%', '--jumps': model.numerator } as CSSProperties} />
+              {walk !== null && divisions <= 24 && (
+                <span key={walk} className="fq-walking fq-line-walk" style={{ '--start': 0, '--count': divisions } as CSSProperties} aria-hidden="true">
+                  {Array.from({ length: divisions }, (_, space) => (
+                    <b className="fq-count-badge" style={{ left: `${((space + 0.5) / divisions) * 100}%`, '--i': space } as CSSProperties} key={space}>{(space % model.denominator) + 1}</b>
+                  ))}
+                </span>
+              )}
               {Array.from({ length: divisions + 1 }, (_, tick) => (
                 <span className={`fq-numberline-tick ${tick % model.denominator === 0 ? 'whole' : ''}`} style={{ left: ((tick / divisions) * 100) + '%' }} key={tick}>
                   {/* Every tick reads 1/5, 2/5… Practice pictures (hideLabels) show only the wholes until the child answers,
@@ -224,7 +243,11 @@ function ModelView({ model, compact = false, reveal = false, asked = false }: { 
       {model.kind === 'partition' && (
         <div className="fq-partition-model" role="img" aria-label={`One whole split into ${model.parts.length} pieces; the first piece is one part`}>
           <div className="fq-partition-whole">
-            {model.parts.map((size, index) => <span className={index === 0 ? 'part-sample' : ''} style={{ flexBasis: `${size}%`, '--i': index } as CSSProperties} key={`${size}-${index}`} />)}
+            {model.parts.map((size, index) => (
+              <span className={`${index === 0 ? 'part-sample' : ''} ${walk !== null ? 'fq-walk-part' : ''}`} style={{ flexBasis: `${size}%`, '--i': index } as CSSProperties} key={`${size}-${index}-${walk ?? ''}`}>
+                {walk !== null && <b className="fq-count-badge" aria-hidden="true">{index + 1}</b>}
+              </span>
+            ))}
           </div>
           <WholeBracket />
         </div>
@@ -699,7 +722,7 @@ function PlayView({
               {question.isReview && <div className="fq-review-label"><RotateCcw size={15} />{question.isOptionalReview ? `${isQuickReview ? 'Due skill' : 'Optional review'} · ${question.reviewTopicTitle}` : ' A quick revisit to help it stick'}</div>}
               {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint · models and worksheet come next</div>}
               <div className="fq-model-area">
-                <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} />
+                <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} />
               </div>
               {hintOpen && <div className="fq-hint" data-testid="text-question-hint"><Lightbulb size={18} /> <span><strong>Try this idea:</strong> <LearningText text={question.hint} speak /></span></div>}
               {attempts >= 2 && (
