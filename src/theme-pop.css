@@ -1137,21 +1137,6 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 
 .fq-fold { --fq-fold-edge: color-mix(in srgb, var(--fq-sky) 55%, #0b4f73); display: grid; gap: 12px; margin-top: 18px; padding: 18px; border: 3px dashed color-mix(in srgb, var(--fq-sky) 45%, transparent); border-radius: 22px; background: color-mix(in srgb, var(--fq-sky) 6%, hsl(var(--card))); }
 .fq-fold-intro { margin: 0; font-weight: 900; }
-.fq-fold-stage { padding: 8px 18px 22px 4px; }
-.fq-fold-stage { perspective: 900px; }
-.fq-fold-paper { position: relative; height: 64px; transition: width 450ms cubic-bezier(.4, .1, .2, 1); }
-.fq-fold-sheet, .fq-fold-rest, .fq-fold-flap { position: absolute; top: 0; bottom: 0; border: 2px solid #0b4f73; border-radius: 4px; background: #E8F7FF; }
-.fq-fold-sheet { left: 0; right: 0; display: flex; overflow: hidden; transition: box-shadow 300ms ease; }
-.fq-fold-paper.folded .fq-fold-sheet, .fq-fold-rest { background: #CDEFFF; }
-.fq-fold.shade-half .fq-fold-paper.open .fq-fold-sheet { background: linear-gradient(to right, color-mix(in srgb, var(--fq-grape) 55%, #fff) 50%, #E8F7FF 50%); }
-.fq-fold-flap { z-index: 2; backface-visibility: visible; transform-style: preserve-3d; animation: fq-flap-right 620ms cubic-bezier(.45, .05, .3, 1) forwards; box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
-.fq-fold-flap.left { animation-name: fq-flap-left; animation-delay: 80ms; }
-.fq-fold-piece { flex: 1; display: grid; place-items: center; border-right: 2px dashed #0b4f73; transform-origin: left center; animation: fq-unfold-piece 380ms cubic-bezier(.3, .8, .4, 1) both; animation-delay: calc(var(--i, 0) * 70ms); }
-.fq-fold-piece:last-child { border-right: 0; }
-.fq-fold-piece small { font: 900 0.85rem var(--app-font-display); color: #0b4f73; }
-@keyframes fq-flap-right { 0% { transform: rotateY(0); background: #E8F7FF; } 49% { background: #E8F7FF; } 50% { background: #B9E6FF; box-shadow: -8px 4px 14px rgba(11, 79, 115, .25); } 100% { transform: rotateY(-180deg); background: #B9E6FF; } }
-@keyframes fq-flap-left { 0% { transform: rotateY(0); background: #E8F7FF; } 49% { background: #E8F7FF; } 50% { background: #B9E6FF; box-shadow: 8px 4px 14px rgba(11, 79, 115, .25); } 100% { transform: rotateY(180deg); background: #B9E6FF; } }
-@keyframes fq-unfold-piece { from { transform: rotateY(85deg); opacity: .2; } to { transform: none; opacity: 1; } }
 
 .fq-fold-message { margin: 0; font-weight: 800; }
 .fq-fold-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -1945,3 +1930,61 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   .fq-count-badge { animation: none; transform: translate(-50%, -50%); opacity: 1; }
   .fq-walking .fq-bar span:not(.empty) { animation: none; outline: 3px solid var(--fq-sun); outline-offset: -3px; }
 }
+
+
+/* ---------- paper folding: real-looking paper ---------- */
+.fq-fold { --fold-paper: #FBFDFF; --fold-back: #CFE9FB; --fold-edge: #0b4f73; --fold-crease-1: #6D4BD8; --fold-crease-2: #3b8fc4; --fold-crease-3: #7aa9c6; }
+.fq-fold-stage { position: relative; display: flex; justify-content: center; align-items: center; min-height: 112px; padding: 10px 6px 24px; perspective: 1100px; }
+.fq-fold-ghost { position: absolute; left: 6px; right: 6px; top: 10px; height: 84px; border: 2px dashed color-mix(in srgb, var(--fold-edge) 30%, transparent); border-radius: 6px; transition: opacity 300ms ease; }
+.fq-fold-ghost.hidden { opacity: 0; }
+.fq-fold-paper { position: relative; height: 84px; transition: width 420ms cubic-bezier(.4, .1, .2, 1); transform-style: preserve-3d; }
+/* Paper: a soft texture of fine lines, a crisp edge, a little lift off the page. */
+.fq-fold-sheet, .fq-fold-rest, .fq-fold-flap > i, .fq-fold-stack > i {
+  border: 2px solid var(--fold-edge); border-radius: 5px;
+  background: repeating-linear-gradient(0deg, transparent 0 7px, rgba(11, 79, 115, .035) 7px 8px), var(--fold-paper);
+}
+.fq-fold-sheet { position: absolute; inset: 0; display: flex; overflow: hidden; box-shadow: 0 6px 14px rgba(11, 79, 115, .14); }
+.fq-fold-piece {
+  position: relative; flex: 1; display: grid; place-items: center; padding: 0; border: 0; border-left: 3px solid transparent; background: transparent;
+  color: var(--fold-edge); cursor: pointer; transform-origin: left center; touch-action: manipulation;
+  animation: fq-fold-open 420ms cubic-bezier(.3, .8, .35, 1) both; animation-delay: calc(var(--i) * 60ms);
+}
+.fq-fold-piece:disabled { cursor: default; }
+.fq-fold-piece:focus-visible { outline: 3px solid var(--fq-sky); outline-offset: -4px; }
+/* Each fold keeps its own crease style: 1st fold bold purple, 2nd blue dashes, 3rd light dots. */
+.fq-fold-piece.crease-1 { border-left: 3px solid var(--fold-crease-1); }
+.fq-fold-piece.crease-2 { border-left: 3px dashed var(--fold-crease-2); }
+.fq-fold-piece.crease-3, .fq-fold-piece.crease-4 { border-left: 2px dotted var(--fold-crease-3); }
+.fq-fold-piece.shaded { background: color-mix(in srgb, var(--fq-grape) 45%, #fff); color: #2a1166; }
+.fq-fold-piece small { font: 900 .9rem var(--app-font-display); opacity: 0; animation: fq-fade-in 300ms ease forwards; animation-delay: calc(var(--n) * 160ms + 450ms); }
+.phase-flat .fq-fold-piece small { animation: none; opacity: 1; }
+.fq-fold-count { position: absolute; top: 50%; left: 50%; display: grid; place-items: center; min-width: 26px; height: 26px; border-radius: 99px; background: var(--fq-sun); color: #2B2D42; font: 900 .85rem var(--app-font-display);
+  transform: translate(-50%, -50%) scale(0); animation: fq-fold-count 900ms ease forwards; animation-delay: calc(var(--i) * 160ms + 380ms); }
+/* The flap: a front and a back face. The back is a deeper blue, so you see the paper turn over. */
+.fq-fold-rest { position: absolute; top: 0; bottom: 0; box-shadow: calc(var(--layers) * 2px) calc(var(--layers) * 2px) 0 -1px var(--fold-back), 0 6px 14px rgba(11, 79, 115, .14); }
+.fq-fold-flap { position: absolute; top: 0; bottom: 0; z-index: 3; transform-style: preserve-3d; }
+.fq-fold-flap > i { position: absolute; inset: 0; backface-visibility: hidden; }
+.fq-fold-flap > i.back { transform: rotateY(180deg); background: repeating-linear-gradient(0deg, transparent 0 7px, rgba(11, 79, 115, .05) 7px 8px), var(--fold-back); }
+.fq-fold-flap.right { transform-origin: left center; animation: fq-flap-over-right 680ms cubic-bezier(.5, .05, .25, 1) forwards; }
+.fq-fold-flap.left { z-index: 4; transform-origin: right center; animation: fq-flap-over-left 680ms cubic-bezier(.5, .05, .25, 1) 420ms forwards; }
+.fq-fold-crease-draw { position: absolute; top: 0; bottom: 0; z-index: 5; width: 3px; margin-left: -1.5px; background: var(--fold-crease-1); transform: scaleY(0); transform-origin: top; animation: fq-crease-draw 260ms ease-out 560ms forwards; }
+.fq-fold-crease-draw.second { animation-delay: 980ms; }
+/* The folded stack: every layer's edge peeks out, like a stack of cards. */
+.fq-fold-stack { position: absolute; inset: 0; }
+.fq-fold-stack > i { position: absolute; inset: 0; transform: translate(calc(var(--k) * 3px), calc(var(--k) * 3px)); z-index: calc(20 - var(--k)); background: var(--fold-paper); }
+.fq-fold-stack > i:not(:first-child) { background: var(--fold-back); }
+.fq-fold-stack > i:first-child { box-shadow: 0 6px 14px rgba(11, 79, 115, .16); }
+.phase-collapsing .fq-fold-sheet { animation: fq-fold-collapse 420ms ease-in forwards; }
+.fq-fold-layers { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); padding: 2px 10px; border-radius: 99px; background: var(--fold-edge); color: #fff; font: 900 .78rem var(--app-font-display); animation: fq-fade-in 250ms ease both; }
+.fq-fold-equal { margin: -4px 0 0; color: var(--fold-crease-1); font: 900 1.05rem var(--app-font-display); }
+@keyframes fq-flap-over-right { 0% { transform: rotateY(0); } 100% { transform: rotateY(-180deg); } }
+@keyframes fq-flap-over-left { 0% { transform: rotateY(0); } 100% { transform: rotateY(180deg); } }
+@keyframes fq-crease-draw { to { transform: scaleY(1); } }
+@keyframes fq-fold-open { from { transform: rotateY(-88deg); opacity: .15; } to { transform: none; opacity: 1; } }
+@keyframes fq-fold-collapse { to { transform: scaleX(.35); opacity: .6; } }
+@keyframes fq-fold-count { 0% { transform: translate(-50%, -50%) scale(0); } 25% { transform: translate(-50%, -50%) scale(1.15); } 70% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(.9); opacity: 0; } }
+@keyframes fq-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .fq-fold-paper, .fq-fold-piece, .fq-fold-piece small, .fq-fold-layers { transition: none; animation: none; opacity: 1; }
+}
+@media (max-width: 560px) { .fq-fold-paper, .fq-fold-ghost { height: 72px; } .fq-fold-stage { min-height: 100px; } }
