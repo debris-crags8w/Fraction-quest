@@ -167,6 +167,10 @@ async function completeBuilds(page: import('@playwright/test').Page, missionId: 
     await expect(page.getByTestId(`status-secondary-${check.id}`)).toBeVisible();
     await page.getByTestId(`radio-reason-${check.id}-${check.correctReason}`).check({ force: true });
     await page.getByTestId(`button-check-${check.id}`).click();
+    // The passed check stays with its explanation until Next is pressed (no automatic jump).
+    await expect(page.getByTestId(`status-pass-${check.id}`)).toBeVisible();
+    await expect(page.getByTestId(`check-${check.id}`)).toBeVisible();
+    await page.getByTestId(`button-next-${check.id}`).click();
     if (check.id === 'build') await expect(page.getByTestId('check-transfer')).toBeVisible();
     else await expect(page.getByTestId('section-worksheet')).toBeVisible();
   }
@@ -642,4 +646,21 @@ test('the map shows only lessons; extras live in the More menu; start becomes ju
   await jump.click();
   await expect(page.getByTestId(`button-node-${MISSIONS[1].id}`)).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByTestId(`button-start-mission-${MISSIONS[1].id}`)).toBeInViewport();
+});
+
+test('top-bar symbols explain themselves when tapped, one at a time', async ({ page }) => {
+  await openAsGuest(page);
+  await page.getByTestId('button-tip-streak').click();
+  await expect(page.getByTestId('button-tip-streak-tip')).toContainText('streak');
+  await page.getByTestId('button-tip-xp').click();
+  await expect(page.getByTestId('button-tip-xp-tip')).toContainText('10 points for every right answer');
+  await expect(page.getByTestId('button-tip-streak-tip')).toHaveCount(0);
+  await page.getByTestId('button-tip-daily').click();
+  await expect(page.getByTestId('button-tip-daily-tip')).toContainText("Today's goal");
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('button-tip-daily-tip')).toHaveCount(0);
+  await page.getByTestId('button-tip-account').click();
+  await expect(page.getByTestId('button-tip-account-tip')).toContainText('Playing as');
+  await page.locator('h1').first().click();
+  await expect(page.getByTestId('button-tip-account-tip')).toHaveCount(0);
 });

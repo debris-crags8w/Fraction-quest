@@ -1866,3 +1866,31 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-tap-line { height: 92px; }
 .fq-visual-numberline { height: 60px; }
 .fq-numberline-tick .fq-nl-label { margin-top: 6px; }
+
+/* Tappable top-bar symbols and their one-line explanation. */
+.fq-stat-tip { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0 2px; border: 0; border-radius: 12px; background: none; color: inherit; font: inherit; cursor: pointer; }
+.fq-stat-tip:hover { background: color-mix(in srgb, var(--fq-grape) 8%, transparent); }
+.fq-stat-tip[aria-expanded="true"] { background: color-mix(in srgb, var(--fq-grape) 12%, transparent); }
+.fq-stat-tip.fq-progress-tip { min-width: 0; padding: 0; }
+.fq-stat-bubble {
+  position: fixed; z-index: 60; width: min(260px, calc(100vw - 32px)); padding: 10px 12px;
+  border: 2px solid var(--fq-edge); border-radius: 14px; background: hsl(var(--card)); color: hsl(var(--foreground));
+  box-shadow: 0 12px 30px rgb(40 20 90 / .18); font-size: .9rem; font-weight: 700; line-height: 1.35; text-align: left;
+  animation: fq-menu-in 140ms ease-out;
+}
+.fq-stat-bubble strong { font-weight: 900; }
+@media (prefers-reduced-motion: reduce) { .fq-stat-bubble { animation: none; } }
+@media (max-width: 420px) { .fq-stat-tip { min-width: 40px; } }
+/* In the top bar the symbols keep their own width (44px tall tap area) so the bar still fits a phone. */
+.fq-topbar .fq-stat-tip { min-width: 0; padding: 0 3px; }
+.fq-account .fq-stat-tip { padding: 0; border-radius: 50%; }
+.fq-stat-bubble-action { display: none; margin-top: 8px; }
+@media (max-width: 720px) { .fq-topbar .fq-progress-tip { display: none; } }
+@media (max-width: 560px) {
+  /* Phones: Sign in / Sign out moves into the avatar's tip; the More button shows its count as a corner badge. */
+  .fq-topbar .fq-account-signin { display: none; }
+  .fq-stat-bubble-action { display: block; }
+  .fq-topbar .fq-menu-button { position: relative; width: 44px; padding: 0; justify-content: center; }
+  .fq-topbar .fq-menu-badge { position: absolute; top: -6px; right: -6px; }
+}
+@media (max-width: 359px) { .fq-topbar .fq-brand { display: none; } }

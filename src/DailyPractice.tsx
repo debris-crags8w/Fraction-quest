@@ -8,7 +8,7 @@ import './daily-practice.css';
 import { LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
 import { LiveFraction } from './fraction-ui';
-import { useRevealWhen } from './lib/reveal';
+import { useRevealWhen, useScrollTopOn } from './lib/reveal';
 
 /** Arrow keys move through a radio group and choose (the usual radio-button pattern). */
 function radioArrows(event: KeyboardEvent<HTMLDivElement>) {
@@ -52,6 +52,7 @@ export default function DailyPractice({
   const [showHelp, setShowHelp] = useState(false);
   const questionHeading = useRef<HTMLHeadingElement>(null);
   const question = session.questions[session.index];
+  useScrollTopOn(session.index);
   const topicQuestion = useMemo(() => (question ? dailyChoiceQuestion(question) : null), [question]);
   useEffect(() => {
     questionHeading.current?.focus({ preventScroll: true });

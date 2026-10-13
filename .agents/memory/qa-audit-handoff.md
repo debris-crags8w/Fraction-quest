@@ -41,6 +41,17 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Top-bar symbols are tappable (`src/StatTip.tsx`): streak, points, today's goal pie, stars/lessons pill (desktop) and the
+  avatar each open a one-line explanation (one open at a time; outside tap, Escape, scroll close). On phones (≤560px)
+  Sign in/Sign out moved into the avatar tip, the More button is a 44px icon with a corner badge, and under 360px the
+  home logo hides, so the bar fits an iPhone SE (it used to clip Sign in and more).
+- No automatic advances (user rule: every move has an explicit Next): a passed lesson build check stays with its
+  explanation and a "Next: on your own" / "Next: worksheet" button (`held` state in LearningLab and RedoLab; progress is
+  still saved at once); the coding sprint shows Next/Finish after a right answer; the brain break waits at 0 with
+  "Back to the lesson". The Fraction Race is the one exception (a timed race switching questions as you answer).
+- Scroll to top: `useScrollTopOn(key)` in `lib/reveal.ts` for steps inside a screen (daily practice, check-ins, level quiz,
+  challenge, cake rounds, coding sprint); view changes already scrolled to top in App. Lab Next scrolls to the top of the
+  next check / worksheet.
 - Number lines label every tick: 0, 1/5, 2/5 … 1 (whole numbers at wholes, small stacked fractions between; past 1 they
   keep counting, e.g. 7/5). Shared `TickLabel` in `fraction-ui.tsx` (class `fq-nl-label`; `fq-tick-label` was already
   taken by an old style). Used in the lab builder, the worked-example tap line and `ModelView`. Question pictures pass

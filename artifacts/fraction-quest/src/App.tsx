@@ -40,7 +40,7 @@ import { PieFraction, TickLabel } from './fraction-ui';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, shownStreak, setBreakPreferences, setDisplayPreferences, setSound, type FunState } from './lib/fun';
+import { DAILY_GOAL, loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, shownStreak, setBreakPreferences, setDisplayPreferences, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, WholeBracket } from './models';
@@ -67,6 +67,7 @@ import { PART_FINDER_LESSONS, partFinderRoundsFor } from './part-finder';
 import ConceptGames, { type LessonGame } from './ConceptGames';
 import { BrainBreakOffer } from './BrainBreakOffer';
 import { warmUpNaturalVoice } from './lib/natural-voice';
+import { StatTip } from './StatTip';
 import { AppMenu } from './AppMenu';
 const queryClient = new QueryClient();
 
@@ -241,7 +242,9 @@ function ModelView({ model, compact = false, reveal = false, asked = false }: { 
 
 function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onReset: () => void; onHome: () => void; menu?: ReactNode }) {
   const stars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
+  const lessonsDone = MISSIONS.filter(item => hasLearningGate(progress, item.id)).length;
   const { fun, setFun } = useFun();
+  const streak = shownStreak(fun);
   const account = useAccount();
   const [signingOut, setSigningOut] = useState(false);
   const syncLabel = account.user
@@ -256,21 +259,41 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
         </button>
         <div className="fq-topbar-actions">
           <div className="fq-fun-stats">
-            <span className="fq-stat fq-stat-streak" title="Day streak" data-testid="status-day-streak"><Flame size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{shownStreak(fun)}</strong><span className="fq-sr">day streak</span></span>
-            <span className="fq-stat fq-stat-xp" title="XP earned" data-testid="status-xp"><Zap size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{fun.xp}</strong><span className="fq-stat-unit">XP</span></span>
-            <DailyRing answered={fun.answeredToday} />
+            {/* Each symbol is a button: tap it to read what it means. */}
+            <StatTip testId="button-tip-streak" label={`Day streak: ${streak}. What is this?`}
+              tip={streak > 0 ? <><strong>{streak} {streak === 1 ? 'day' : 'days'} in a row!</strong> Get one answer right each day to keep your streak going.</> : <><strong>Day streak.</strong> Get one answer right today to start a streak!</>}>
+              <span className="fq-stat fq-stat-streak" data-testid="status-day-streak"><Flame size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{streak}</strong><span className="fq-sr">day streak</span></span>
+            </StatTip>
+            <StatTip testId="button-tip-xp" label={`${fun.xp} points. What is this?`}
+              tip={<><strong>{fun.xp} points!</strong> You get 10 points for every right answer.</>}>
+              <span className="fq-stat fq-stat-xp" data-testid="status-xp"><Zap size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{fun.xp}</strong><span className="fq-stat-unit">XP</span></span>
+            </StatTip>
+            <StatTip testId="button-tip-daily" label={`Today's goal: ${Math.min(fun.answeredToday, DAILY_GOAL)} of ${DAILY_GOAL}. What is this?`}
+              tip={fun.answeredToday >= DAILY_GOAL ? <><strong>Today's goal is done!</strong> You got {DAILY_GOAL} answers right today.</> : <><strong>Today's goal: {fun.answeredToday} of {DAILY_GOAL}.</strong> Each slice fills in when you get an answer right.</>}>
+              <DailyRing answered={fun.answeredToday} />
+            </StatTip>
           </div>
+          <StatTip testId="button-tip-progress" className="fq-progress-tip" label={`${stars} stars, ${lessonsDone} of ${MISSIONS.length} lessons. What is this?`}
+            tip={<><strong>{stars} stars</strong> from lesson practice (up to 3 per lesson). <strong>{lessonsDone} of {MISSIONS.length} lessons</strong> done.</>}>
           <div className="fq-progress-pill" data-testid="status-overall-progress" aria-live="polite">
             <Star size={15} className="filled" aria-hidden="true" />
             <span><strong>{stars}</strong> stars</span><span aria-hidden="true">·</span>
-            <span><strong>{MISSIONS.filter(item => hasLearningGate(progress, item.id)).length}</strong>/{MISSIONS.length} lessons</span>
+            <span><strong>{lessonsDone}</strong>/{MISSIONS.length} lessons</span>
           </div>
+          </StatTip>
           {menu}
           <button className="fq-icon-button" onClick={() => setFun(setSound(fun, !fun.sound))} aria-label={fun.sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={fun.sound} data-testid="button-toggle-sound">{fun.sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
           {/* With a menu (the map), reset lives in it under Grown-ups so the bar fits a phone. */}
           {!menu && <button className="fq-icon-button" onClick={onReset} aria-label="Reset progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>}
           <div className="fq-account">
-            <span className="fq-account-avatar" aria-hidden="true">{account.activeProfile?.displayName.trim().charAt(0).toUpperCase() ?? 'G'}</span>
+            <StatTip testId="button-tip-account" label={`Playing as ${account.activeProfile?.displayName ?? 'a guest'}. What is this?`}
+              tip={<><strong>{account.activeProfile ? `Playing as ${account.activeProfile.displayName}.` : 'Playing as a guest.'}</strong> {account.user ? 'Progress is saved to your family account.' : 'Progress stays on this device.'}
+                {/* On phones the Sign in / Sign out button lives here, so the top bar fits. */}
+                <span className="fq-stat-bubble-action">{account.user
+                  ? <button type="button" className="fq-hint-button" disabled={signingOut} onClick={async () => { setSigningOut(true); await account.signOut(); setSigningOut(false); }} data-testid="button-sign-out-tip">{signingOut ? 'Saving…' : 'Sign out'}</button>
+                  : <button type="button" className="fq-hint-button" onClick={account.goToSignIn} data-testid="button-sign-in-tip">Sign in</button>}</span></>}>
+              <span className="fq-account-avatar" aria-hidden="true">{account.activeProfile?.displayName.trim().charAt(0).toUpperCase() ?? 'G'}</span>
+            </StatTip>
             <span className="fq-account-name">
               <strong>{account.activeProfile?.displayName ?? 'Guest learner'}</strong>
               <small className={account.syncStatus === 'saving' ? 'sync-saving' : account.syncStatus === 'offline' ? 'sync-offline' : ''} aria-live="polite">{syncLabel}</small>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { ArrowLeft, Bot, Code2, Flag, Play, RotateCcw, Timer, Trophy } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bot, Code2, Flag, Play, RotateCcw, Timer, Trophy } from 'lucide-react';
 import type { Mission } from './game';
 import { MathText } from './MathText';
 import { Confetti, Mascot, useFun } from './fun-ui';
@@ -49,6 +49,8 @@ export default function CodeSprint({ mission, best, onExit, onFinish }: { missio
   const [frame, setFrame] = useState(-1);
   const [message, setMessage] = useState<string | null>(null);
   const [pickedWrong, setPickedWrong] = useState<number | null>(null);
+  /** The round is solved: wait for the child to press Next (no automatic jump). */
+  const [solved, setSolved] = useState(false);
   const [finalTime, setFinalTime] = useState(0);
   const [won, setWon] = useState(false);
   const timer = useRef<number | null>(null);
@@ -66,7 +68,7 @@ export default function CodeSprint({ mission, best, onExit, onFinish }: { missio
 
   const begin = () => {
     const fresh = makeSprint(mission.id);
-    setRounds(fresh); setAt(0); setProgram(fresh[0].start); setPenalty(0); setMisses(0); setResult(null); setFrame(-1); setMessage(null); setPickedWrong(null);
+    setRounds(fresh); setAt(0); setProgram(fresh[0].start); setPenalty(0); setMisses(0); setResult(null); setFrame(-1); setMessage(null); setPickedWrong(null); setSolved(false);
     setStartedAt(Date.now()); setNow(Date.now()); setPhase('play');
   };
   const finish = (playerWon: boolean) => {
@@ -78,19 +80,20 @@ export default function CodeSprint({ mission, best, onExit, onFinish }: { missio
   };
   const next = () => {
     if (at === rounds.length - 1) { finish(true); return; }
-    setAt(at + 1); setProgram(rounds[at + 1].start); setResult(null); setFrame(-1); setMessage(null); setPickedWrong(null);
+    setAt(at + 1); setProgram(rounds[at + 1].start); setResult(null); setFrame(-1); setMessage(null); setPickedWrong(null); setSolved(false);
+    window.scrollTo(0, 0);
   };
   const miss = (text: string) => { setPenalty((p) => p + MISS_PENALTY); setMisses((m) => m + 1); setMessage(text); playCue('retry', fun.sound); };
 
   const run = () => {
-    if (timer.current) return;
+    if (timer.current || solved) return;
     const r = runProgram(program, round.target);
     setResult(r); setMessage(null); setFrame(0);
     const total = r.steps.length; const ms = Math.max(40, Math.min(200, 2400 / Math.max(1, total)));
     let k = 0;
     const done = () => {
       timer.current = null;
-      if (matchesTarget(r, round.target)) { playCue('correct', fun.sound); setMessage('It works!'); window.setTimeout(next, 600); }
+      if (matchesTarget(r, round.target)) { playCue('correct', fun.sound); setMessage('It works!'); setSolved(true); }
       else miss(`${r.error ?? describe(r)} +${MISS_PENALTY} s. Fix it and run again.`);
     };
     if (!total) { done(); return; }
@@ -101,7 +104,8 @@ export default function CodeSprint({ mission, best, onExit, onFinish }: { missio
     }, ms);
   };
   const choose = (i: number) => {
-    if (i === 0) { playCue('correct', fun.sound); setMessage('Yes! That program works.'); window.setTimeout(next, 600); return; }
+    if (solved) return;
+    if (i === 0) { playCue('correct', fun.sound); setMessage('Yes! That program works.'); setSolved(true); return; }
     setPickedWrong(i); miss(`That one makes ${describe(runProgram(round.choices![i], round.target)).replace(/^It /, 'the robot ').replace(/\.$/, '')}. +${MISS_PENALTY} s.`);
   };
 
@@ -194,6 +198,7 @@ export default function CodeSprint({ mission, best, onExit, onFinish }: { missio
         </>
       )}
       {message && <p className={`fq-sprint-msg ${message.startsWith('It works') || message.startsWith('Yes') ? 'ok' : 'bad'}`} role="status" data-testid="text-sprint-message"><MathText text={message} /></p>}
+      {solved && <button type="button" className="fq-button" onClick={next} data-testid="button-sprint-next">{at === rounds.length - 1 ? 'Finish' : 'Next'} <ArrowRight size={17} /></button>}
       <p className="fq-race-note"><Trophy size={14} /> Robot coder finishes at {ROBOT_CODER_SECONDS} s.</p>
     </main></div>
   );

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useScrollTopOn } from './lib/reveal';
 import { AREA_CUTS, pieceArea, type AreaCut, type Piece } from './area-shapes';
 import { FRIENDS, isPartFinderAnswer, partFinderFeedback, type PartFinderRound } from './part-finder';
 import './part-finder.css';
@@ -96,6 +97,7 @@ export default function PartFinder({ rounds, lessonLabel, onExit, onDone, onSkip
   onSkip?: () => void;
 }) {
   const [roundIndex, setRoundIndex] = useState(0);
+  useScrollTopOn(roundIndex);
   const [selected, setSelected] = useState<number[]>([]);
   const [checked, setChecked] = useState<CheckState>('idle');
   const [tileCount, setTileCount] = useState('');

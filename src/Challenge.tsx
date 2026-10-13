@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react';
+import { useScrollTopOn } from './lib/reveal';
 import { MathText } from './MathText';
 import { ArrowRight, Check, Footprints, Map as MapIcon, RotateCcw, Trophy, X } from 'lucide-react';
 import { CHALLENGES, challengeMaxPoints, challengeTrophy, type ChallengeQuestion } from './challenges';
@@ -63,6 +64,7 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
   const [state, setState] = useState<'asking' | 'right' | 'wrong' | 'reveal' | 'finished'>('asking');
   const [burst, setBurst] = useState(0);
   const [round, setRound] = useState(0);
+  useScrollTopOn(`${round}-${index}-${state === 'finished'}`);
   const question = questions[index];
   // Best score from before this run, so finishing doesn't compare against itself.
   const [bestBefore, setBestBefore] = useState(best);

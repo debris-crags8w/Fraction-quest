@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Eye, Pause, Play, RotateCcw, Wind, X } from 'lucide-react';
 import './brain-break.css';
 
@@ -28,16 +28,12 @@ export function BrainBreakOffer({ reason, quietMode, onSkip, onFinish }: {
   const [seconds, setSeconds] = useState<number>(options[0].seconds);
   const [started, setStarted] = useState(false);
   const [paused, setPaused] = useState(false);
-  const finishRef = useRef(onFinish);
-  finishRef.current = onFinish;
   const selected = options.find(activity => activity.id === activityId) ?? options[0];
 
   useEffect(() => {
     if (!started || paused) return;
-    if (seconds === 0) {
-      finishRef.current();
-      return;
-    }
+    // At 0 the break waits: "Break's over" with a button back to the lesson (no automatic jump).
+    if (seconds === 0) return;
     const timer = window.setInterval(() => setSeconds(value => Math.max(0, value - 1)), 1000);
     return () => window.clearInterval(timer);
   }, [started, paused, seconds]);
@@ -63,10 +59,10 @@ export function BrainBreakOffer({ reason, quietMode, onSkip, onFinish }: {
         <div className={`fq-break-live ${paused ? 'paused' : ''}`} aria-live="polite">
           <span className="fq-break-live-mark"><ActivityMark kind={selected.icon} /></span>
           <strong data-testid="status-break-countdown" aria-label={`${seconds} seconds remaining`}>{minutes}</strong>
-          <span>{paused ? 'Paused' : selected.title}</span>
+          <span>{seconds === 0 ? 'Break’s over!' : paused ? 'Paused' : selected.title}</span>
         </div>
-        <p className="fq-break-detail">{selected.detail}</p>
-        <div className="fq-break-actions"><button type="button" className="fq-break-start" onClick={() => setPaused(value => !value)} data-testid="button-break-pause">{paused ? <><Play size={16} /> Continue</> : <><Pause size={16} /> Pause</>}</button><button type="button" className="fq-break-reset" onClick={reset} data-testid="button-break-reset"><RotateCcw size={16} /> Restart</button><button type="button" className="fq-break-skip" onClick={onSkip} data-testid="button-break-skip">Return to lesson</button></div>
+        <p className="fq-break-detail">{seconds === 0 ? 'Nice reset. Ready when you are.' : selected.detail}</p>
+        {seconds === 0 ? <div className="fq-break-actions"><button type="button" className="fq-break-start" onClick={onFinish} data-testid="button-break-done">Back to the lesson <Play size={16} /></button></div> : <div className="fq-break-actions"><button type="button" className="fq-break-start" onClick={() => setPaused(value => !value)} data-testid="button-break-pause">{paused ? <><Play size={16} /> Continue</> : <><Pause size={16} /> Pause</>}</button><button type="button" className="fq-break-reset" onClick={reset} data-testid="button-break-reset"><RotateCcw size={16} /> Restart</button><button type="button" className="fq-break-skip" onClick={onSkip} data-testid="button-break-skip">Return to lesson</button></div>}
       </>}
     </section>
   </div>;
