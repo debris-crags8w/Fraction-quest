@@ -46,7 +46,8 @@ the square area model and the Part Finder proposal; local review changes should 
   then the shaded parts glow (`.fq-count-badge`, `.fq-walking`). Runs alongside Hoot's spoken help; not word-synced
   (browser voices give no reliable word timing). Reduced motion shows the numbers and an outline without animation.
 - The native iOS app shell (Capacitor: Xcode project, iCloud sync, printing, StoreKit subscriptions) is only on branch
-  `ios-local-icloud`, not on main or this review branch.
+  `ios-local-icloud`, not on main or this review branch. User decision: keep the iOS branch separate. Don't merge
+  main or review work into it (or it into them) unless the user asks.
 - Wrong-answer help (lessons, practice more, quick review, daily practice topic questions): Hoot the fix-it owl
   (`Hoot` in fun-ui.tsx) replaces the frowning fox; a kind rotating opener (`retryOpener`); the exact slip when we can
   name it (`wrongChoiceReason` in src/wrong-answer.ts: flipped fraction, added the bottoms, parts+shaded as bottom,
