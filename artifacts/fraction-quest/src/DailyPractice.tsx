@@ -5,7 +5,8 @@ import { dailyBuildCorrect, dailyChoiceQuestion } from './daily-practice';
 import { MathText } from './MathText';
 import { WholeBracket } from './models';
 import './daily-practice.css';
-import { LearningText, useReadAloud } from './LearningText';
+import { LearningText, spokenLearningText, useReadAloud } from './LearningText';
+import { DailyPracticeQuestionHeading } from './DailyPracticeQuestionHeading';
 import { Hoot, useOptionalFun } from './fun-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { TaskBar } from './TaskBar';
@@ -113,6 +114,24 @@ export default function DailyPractice({
       {showHelp ? 'Hide hint' : 'Hint'}
     </button>
   );
+  const bar = question.modelKind === 'bar';
+  const buildDirectionsSpeech = bar
+    ? 'The denominator, the bottom number, tells how many equal parts make one whole. Choose that below. The numerator, the top number, tells how many parts to shade.'
+    : 'The denominator, the bottom number, tells how many equal spaces go from 0 to 1. Choose that below. The numerator, the top number, tells how many jumps to make from 0.';
+  const questionTitle = topicQuestion
+    ? <LearningText text={topicQuestion.prompt} emphasize />
+    : <>Build <MathText text={`${question.numerator}/${question.denominator}`} /> {bar ? 'with a bar.' : 'on a number line.'}</>;
+  const questionSpeech = spokenLearningText(topicQuestion
+    ? topicQuestion.prompt
+    : `Build ${question.numerator}/${question.denominator} ${bar ? 'with a bar.' : 'on a number line.'} ${buildDirectionsSpeech}`);
+  const questionHeader = (
+    <DailyPracticeQuestionHeading
+      title={questionTitle}
+      speechText={questionSpeech}
+      label={topicQuestion ? 'Listen to the question' : 'Listen to the question and directions'}
+      headingRef={questionHeading}
+    />
+  );
 
   /* ---- Topic question: the lesson's own kind of question (compare, add, decimals…). ---- */
   if (topicQuestion) {
@@ -122,7 +141,7 @@ export default function DailyPractice({
       setAttempt({ ...attempt, answerChecked: true, answerCorrect: correct });
     };
     return shell(<>
-      <h2 id="daily-question-title" ref={questionHeading} tabIndex={-1} className="fq-question-text"><LearningText text={topicQuestion.prompt} speak emphasize /></h2>
+      {questionHeader}
       {renderModel && <div className="fq-daily-picture">{renderModel(topicQuestion.model, done)}</div>}
       <div className="fq-daily-choices" role="radiogroup" aria-label="Answer choices" onKeyDown={radioArrows}>
         {topicQuestion.choices.map((choice, index) => (
@@ -147,7 +166,6 @@ export default function DailyPractice({
 
   /* ---- Build question: the child chooses the equal parts, then shades or jumps. ---- */
   const parts = attempt.parts;
-  const bar = question.modelKind === 'bar';
   const checkModel = () => {
     const correct = dailyBuildCorrect(question, parts, attempt.shaded.length);
     if (correct) onSuccess?.(); else onWrong?.();
@@ -158,9 +176,7 @@ export default function DailyPractice({
     ? `Look at the denominator: how many equal ${bar ? 'parts' : 'spaces'} make one whole?`
     : `Look at the numerator: how many ${bar ? 'parts should be shaded' : 'jumps from 0'}?`;
   return shell(<>
-    <h2 id="daily-question-title" ref={questionHeading} tabIndex={-1} className="fq-question-text">
-      Build <MathText text={`${question.numerator}/${question.denominator}`} /> {bar ? 'with a bar.' : 'on a number line.'}
-    </h2>
+    {questionHeader}
     <p className="fq-daily-instruction" id="daily-parts-instruction" data-testid="text-daily-parts-instruction">
       {bar ? (
         <>The <strong>denominator</strong> (bottom number) tells how many equal parts make one whole: choose that below. The <strong>numerator</strong> (top number) tells how many of those parts to shade.</>
