@@ -1,75 +1,146 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react';
 import { RotateCcw } from 'lucide-react';
+import { useOptionalFun } from './fun-ui';
+import { useReadAloud } from './LearningText';
 
 /* A virtual paper strip: fold it in halves or thirds, then unfold to see equal pieces.
    This is how kids *make* fractions: 1 → 1/2 → 1/4 → 1/8. */
 
 const MAX_PIECES = 16;
+const FLAP_MS = 680;
+const COLLAPSE_MS = 420;
+const COUNT_MS = 160;
+
+/** Which fold made the crease at piece boundary `i` (1 = the first fold). Each fold keeps its own line style,
+    so after unfolding you still see the halves inside the fourths (1/2 = 2/4). */
+export function creaseLevel(i: number, factors: number[]): number {
+  const pieces = factors.reduce((a, b) => a * b, 1);
+  let size = pieces;
+  for (let level = 0; level < factors.length; level++) {
+    size /= factors[level];
+    if (i % size === 0) return level + 1;
+  }
+  return factors.length;
+}
+
+/** The shaded amount, and the same amount in an earlier fold's pieces when it fits ("2/4 = 1/2"). */
+export function shadedName(shaded: number, factors: number[]): string {
+  const pieces = factors.reduce((a, b) => a * b, 1);
+  if (!shaded) return '';
+  let denominator = 1;
+  for (const f of factors) {
+    denominator *= f;
+    if (denominator < pieces && (shaded * denominator) % pieces === 0) return `${shaded}/${pieces} = ${(shaded * denominator) / pieces}/${denominator}`;
+  }
+  return `${shaded}/${pieces}`;
+}
+
+type Phase = 'flat' | 'collapsing' | 'folding' | 'folded' | 'unfolding';
 
 export function PaperFold({ allowThirds = true, shadeHalf = false, intro }: { allowThirds?: boolean; shadeHalf?: boolean; intro?: string }) {
   const [factors, setFactors] = useState<number[]>([]);
-  const [folded, setFolded] = useState(false);
-  // 'flap' = a fold is flipping over right now (the flap swings onto the rest of the strip).
-  const [flap, setFlap] = useState<number | null>(null);
+  const [phase, setPhase] = useState<Phase>('flat');
+  const [flap, setFlap] = useState<number>(2);
+  const [shaded, setShaded] = useState<number[]>([]);
   const [round, setRound] = useState(0);
   const timers = useRef<number[]>([]);
   useEffect(() => () => timers.current.forEach(window.clearTimeout), []);
   const later = (ms: number, fn: () => void) => { timers.current.push(window.setTimeout(fn, ms)); };
+  const sound = useOptionalFun()?.fun.sound ?? false;
 
   const pieces = factors.reduce((a, b) => a * b, 1);
   const trail = factors.reduce<number[]>((list, f) => [...list, list[list.length - 1] * f], [1]);
   const reduceMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const busy = phase === 'collapsing' || phase === 'folding' || phase === 'unfolding';
+  const open = phase === 'flat' || phase === 'unfolding';
 
   const fold = (factor: number) => {
-    if (flap || pieces * factor > MAX_PIECES) return;
-    const commit = () => { setFactors((list) => [...list, factor]); setFolded(true); setFlap(null); };
+    if (busy || pieces * factor > MAX_PIECES) return;
+    setShaded([]);
+    const commit = () => { setFactors((list) => [...list, factor]); setPhase('folded'); };
     if (reduceMotion) { commit(); return; }
-    const startFlap = () => { setFlap(factor); later(650, commit); };
-    if (!folded && pieces > 1) { setFolded(true); later(480, startFlap); } else startFlap();
+    const flip = () => { setFlap(factor); setPhase('folding'); later(factor === 3 ? FLAP_MS + 420 : FLAP_MS, commit); };
+    // An opened strip with creases folds back up along them first, then folds again.
+    if (phase === 'flat' && pieces > 1) { setPhase('collapsing'); later(COLLAPSE_MS, flip); } else flip();
   };
-  const unfold = () => { if (!flap) { setFolded(false); setRound((r) => r + 1); } };
-  const reset = () => { if (!flap) { setFactors([]); setFolded(false); } };
+  const unfold = () => {
+    if (phase !== 'folded') return;
+    setRound((r) => r + 1);
+    setShaded(shadeHalf && pieces % 2 === 0 ? Array.from({ length: pieces / 2 }, (_, i) => i) : []);
+    if (reduceMotion) { setPhase('flat'); return; }
+    setPhase('unfolding');
+    later(pieces * COUNT_MS + 900, () => setPhase('flat'));
+  };
+  const reset = () => { if (!busy) { setFactors([]); setPhase('flat'); setShaded([]); } };
+  const toggle = (i: number) => { if (phase === 'flat' && pieces > 1) setShaded((list) => list.includes(i) ? list.filter((x) => x !== i) : [...list, i]); };
 
-  const layers = folded || flap ? Math.min(pieces, 8) : 1;
-  const thickness = Array.from({ length: layers - 1 }, (_, k) => `${(k + 1) * 3}px ${(k + 1) * 3}px 0 -1px var(--fq-fold-edge)`).join(', ') || 'none';
-  const paperStyle = { width: folded ? `${100 / pieces}%` : '100%' } as CSSProperties;
+  const layers = Math.min(pieces, 8);
+  const blockWidth = open ? 100 : 100 / pieces;
+  const equivalence = trail.length > 2 ? trail.slice(1).map((d) => `${d / trail[1]}/${d}`).join(' = ') : '';
 
   let message = 'A paper strip is 1 whole. Fold it!';
-  if (flap) message = flap === 2 ? 'Folding in half…' : 'Folding in thirds…';
-  else if (pieces > 1 && folded) message = `Folded ${factors.length} ${factors.length === 1 ? 'time' : 'times'}: ${pieces} layers thick. Unfold to see the pieces.`;
-  else if (pieces > 1) message = `${pieces} equal pieces. Each piece is 1/${pieces}.${shadeHalf && pieces % 2 === 0 ? ` The shaded half is ${pieces / 2}/${pieces}.` : ''}`;
+  if (phase === 'collapsing') message = 'Folding it back up along the creases…';
+  else if (phase === 'folding') message = flap === 2 ? 'Folding in half…' : 'Folding in thirds…';
+  else if (phase === 'folded') message = `Folded ${factors.length} ${factors.length === 1 ? 'time' : 'times'}: ${pieces} layers thick. Unfold to see the pieces.`;
+  else if (phase === 'unfolding') message = 'Unfolding… count the pieces!';
+  else if (pieces > 1) message = shaded.length
+    ? `You shaded ${shadedName(shaded.length, factors)} of the strip.`
+    : `${pieces} equal pieces. Each piece is 1/${pieces}. Tap pieces to shade them.`;
+  // Each opened strip is said aloud once: how many folds, how many equal pieces.
+  useReadAloud(phase === 'unfolding' && sound ? `${factors.length} ${factors.length === 1 ? 'fold' : 'folds'}. ${pieces} equal pieces. Each piece is 1/${pieces}.` : null, phase === 'unfolding' ? round : null);
 
   return (
     <section className={`fq-fold ${shadeHalf ? 'shade-half' : ''}`} aria-label="Fold the paper" data-testid="section-paper-fold">
       {intro && <p className="fq-fold-intro">{intro}</p>}
       <div className="fq-fold-stage">
-        <div className={`fq-fold-paper ${folded || flap ? 'folded' : 'open'} ${flap ? 'flipping' : ''}`} style={paperStyle} role="img"
-          aria-label={folded ? `Paper folded into ${pieces} layers` : `Paper strip with ${pieces} equal pieces`} data-testid="paper-fold-strip">
-          {flap ? (
+        {/* The whole strip stays as a faint outline, so a folded stack is still seen as part of 1 whole. */}
+        <div className={`fq-fold-ghost ${open ? 'hidden' : ''}`} aria-hidden="true" />
+        <div className={`fq-fold-paper ${open ? 'open' : 'folded'} phase-${phase}`} style={{ width: `${blockWidth}%` } as CSSProperties} role="img"
+          aria-label={open ? `Paper strip with ${pieces} equal pieces` : `Paper folded into ${pieces} layers`} data-testid="paper-fold-strip">
+          {phase === 'folding' ? (
             <>
-              {/* The part that stays put, and the flap(s) that swing over it. */}
-              <span className="fq-fold-rest" style={{ left: flap === 3 ? '33.333%' : 0, width: `${100 / flap}%`, boxShadow: thickness }} />
-              <span className="fq-fold-flap right" style={{ left: `${100 - 100 / flap}%`, width: `${100 / flap}%`, transformOrigin: 'left center' }} />
-              {flap === 3 && <span className="fq-fold-flap left" style={{ left: 0, width: '33.333%', transformOrigin: 'right center' }} />}
+              {/* The panel that stays put (with the layers under it), and the flap(s) that swing over on a hinge. */}
+              <span className="fq-fold-rest" style={{ left: flap === 3 ? '33.333%' : 0, width: `${100 / flap}%`, '--layers': layers } as CSSProperties} />
+              <span className="fq-fold-flap right" style={{ left: `${100 - 100 / flap}%`, width: `${100 / flap}%` } as CSSProperties}>
+                <i className="front" /><i className="back" />
+              </span>
+              {flap === 3 && (
+                <span className="fq-fold-flap left" style={{ left: 0, width: '33.333%' } as CSSProperties}>
+                  <i className="front" /><i className="back" />
+                </span>
+              )}
+              <i className="fq-fold-crease-draw" style={{ left: `${100 / flap * (flap === 3 ? 2 : 1)}%` } as CSSProperties} aria-hidden="true" />
+              {flap === 3 && <i className="fq-fold-crease-draw second" style={{ left: '33.333%' }} aria-hidden="true" />}
             </>
-          ) : (
-            <span className="fq-fold-sheet" style={{ boxShadow: folded ? thickness : 'none' }} key={round}>
-              {!folded && pieces > 1 && Array.from({ length: pieces }, (_, i) => (
-                <span key={i} className="fq-fold-piece" style={{ '--i': i } as CSSProperties}>{pieces <= 8 && <small>1/{pieces}</small>}</span>
+          ) : open ? (
+            <span className="fq-fold-sheet" key={round}>
+              {pieces > 1 && Array.from({ length: pieces }, (_, i) => (
+                <button key={i} type="button" className={`fq-fold-piece ${shaded.includes(i) ? 'shaded' : ''} crease-${i ? creaseLevel(i, factors) : 0}`}
+                  style={{ '--i': i, '--n': pieces } as CSSProperties} onClick={() => toggle(i)} disabled={phase !== 'flat'}
+                  aria-pressed={shaded.includes(i)} aria-label={`Piece ${i + 1} of ${pieces}${shaded.includes(i) ? ', shaded' : ''}`} data-testid={`button-fold-piece-${i}`}>
+                  {phase === 'unfolding' && <b className="fq-fold-count" aria-hidden="true">{i + 1}</b>}
+                  {pieces <= 8 && <small>1/{pieces}</small>}
+                </button>
               ))}
+            </span>
+          ) : (
+            <span className="fq-fold-stack" style={{ '--layers': layers } as CSSProperties}>
+              {Array.from({ length: layers }, (_, k) => <i key={k} style={{ '--k': k } as CSSProperties} />)}
             </span>
           )}
         </div>
+        {phase === 'folded' && <span className="fq-fold-layers" data-testid="text-fold-layers">{pieces} layers</span>}
       </div>
       <p className="fq-fold-message" aria-live="polite" data-testid="text-paper-fold">{message}</p>
+      {phase === 'flat' && equivalence && <p className="fq-fold-equal" data-testid="text-fold-equivalence">{equivalence}</p>}
       <div className="fq-fold-trail" aria-label="Fractions made so far">
         {trail.map((p, i) => <span key={i} className={i === trail.length - 1 ? 'now' : ''}>{p === 1 ? '1' : `1/${p}`}</span>)}
       </div>
       <div className="fq-fold-buttons">
-        <button type="button" className="fq-button" onClick={() => fold(2)} disabled={!!flap || pieces * 2 > MAX_PIECES} data-testid="button-fold-half">Fold in half</button>
-        {allowThirds && <button type="button" className="fq-button secondary" onClick={() => fold(3)} disabled={!!flap || pieces * 3 > MAX_PIECES} data-testid="button-fold-thirds">Fold in thirds</button>}
-        <button type="button" className="fq-button ghost" onClick={unfold} disabled={!folded || !!flap} data-testid="button-unfold">Unfold</button>
-        <button type="button" className="fq-icon-button" onClick={reset} aria-label="Start over with a flat strip" disabled={!factors.length || !!flap} data-testid="button-fold-reset"><RotateCcw size={18} /></button>
+        <button type="button" className="fq-button" onClick={() => fold(2)} disabled={busy || pieces * 2 > MAX_PIECES} data-testid="button-fold-half">Fold in half</button>
+        {allowThirds && <button type="button" className="fq-button secondary" onClick={() => fold(3)} disabled={busy || pieces * 3 > MAX_PIECES} data-testid="button-fold-thirds">Fold in thirds</button>}
+        <button type="button" className="fq-button ghost" onClick={unfold} disabled={phase !== 'folded'} data-testid="button-unfold">Unfold</button>
+        <button type="button" className="fq-icon-button" onClick={reset} aria-label="Start over with a flat strip" disabled={!factors.length || busy} data-testid="button-fold-reset"><RotateCcw size={18} /></button>
       </div>
     </section>
   );

@@ -2623,13 +2623,10 @@ describe('lesson steps for the map pies', () => {
 });
 
 describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
-  it('shows the self-test only in development or with ?voicetest', async () => {
-    const { showVoiceSelfTest } = await import('./KokoroDiagnostic');
-    assert.equal(showVoiceSelfTest(true, ''), true);
-    assert.equal(showVoiceSelfTest(false, ''), false);
-    assert.equal(showVoiceSelfTest(false, '?voicetest'), true);
-    assert.equal(showVoiceSelfTest(false, '?a=1&voicetest=1'), true);
-    assert.equal(showVoiceSelfTest(false, '?voicetester'), false);
+  it('gates the Kokoro self-test behind Vite development mode', () => {
+    const learningText = readFileSync(new URL('./LearningText.tsx', import.meta.url), 'utf8');
+    assert.match(learningText, /Boolean\(import\.meta\.env\?\.DEV\)\s*&&\s*<KokoroDiagnostic\s*\/>/);
+    assert.doesNotMatch(learningText, /showVoiceSelfTest|voicetest/);
   });
 
   it('no longer ships the voice model to the browser', () => {
@@ -2745,5 +2742,20 @@ describe('wrong-answer help', () => {
     const openers = new Set(MISSIONS.flatMap((m) => m.questions.map((q) => retryOpener(`${q.id}:1`))));
     assert.ok(openers.size >= 4);
     for (const o of openers) assert.doesNotMatch(o, /wrong|no!/i);
+  });
+});
+
+describe('paper folding', () => {
+  it('keeps each fold’s crease and names shaded amounts in earlier pieces', async () => {
+    const { creaseLevel, shadedName } = await import('./PaperFold');
+    // Halves, then fourths: the middle crease is from the first fold, the others from the second.
+    assert.deepEqual([1, 2, 3].map((i) => creaseLevel(i, [2, 2])), [2, 1, 2]);
+    assert.deepEqual([1, 2, 3, 4, 5, 6, 7].map((i) => creaseLevel(i, [2, 2, 2])), [3, 2, 3, 1, 3, 2, 3]);
+    assert.deepEqual([1, 2, 3, 4, 5].map((i) => creaseLevel(i, [3, 2])), [2, 1, 2, 1, 2]);
+    assert.equal(shadedName(2, [2, 2]), '2/4 = 1/2');
+    assert.equal(shadedName(3, [2, 2]), '3/4');
+    assert.equal(shadedName(4, [2, 2, 2]), '4/8 = 1/2');
+    assert.equal(shadedName(6, [2, 2, 2]), '6/8 = 3/4');
+    assert.equal(shadedName(0, [2]), '');
   });
 });
