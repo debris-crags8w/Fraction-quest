@@ -28,3 +28,11 @@ For new app work, start from the latest `main` on a short-lived branch and submi
 **Why:** the user asked that new work use short branches from `main` and a pull request, like the paper-fold change.
 
 **How to apply:** fetch `github/main` before starting, create the work branch from that commit, push it and open a pull request, then return the workspace to `main` after merge.
+
+## Preserve local branch backups
+
+When removing a merged GitHub review branch, retain its local-only history under a clearly named backup branch unless the user asks to discard it.
+
+**Why:** the user confirmed that keeping the local backup is harmless and preferred over losing its unpublished commits.
+
+**How to apply:** after verifying the review work is in `main`, remove the remote review ref and stale remote-tracking ref, but rename rather than force-delete a divergent local branch; keep the active workspace on `main`.
