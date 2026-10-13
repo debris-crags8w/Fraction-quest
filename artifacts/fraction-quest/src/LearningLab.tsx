@@ -27,7 +27,7 @@ type St = { d: number; wholes: number; count: number };
 const blank = (): St => ({ d: 0, wholes: 1, count: 0 });
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(Number.isFinite(v) ? v : lo)));
 
-// Also shown to kids under "Things to practice", so keep these short and friendly.
+// Short, friendly names for the mistakes we track (they choose the extra practice).
 const M = {
   parts: 'Picking the number of equal parts',
   count: 'Counting pieces, groups or jumps',
@@ -641,10 +641,6 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           <div><dt>Hints used</dt><dd data-testid="text-help-uses">{sum.helpUses}</dd></div>
           <div><dt>Remembered later</dt><dd data-testid="text-retention">{sum.retention}</dd></div>
         </dl>
-        <h4>Things to practice</h4>
-        {sum.misconceptions.length ? (
-          <ul className="fq-ll-patterns" data-testid="list-misconceptions">{sum.misconceptions.map(([k, v]) => <li key={k}><span>{k}</span><b>{v}</b></li>)}</ul>
-        ) : <p className="fq-ll-note" data-testid="text-no-misconceptions">Nothing yet. Nice!</p>}
         <button className="fq-button secondary" disabled={!gate} onClick={() => gate && onFinish()} data-testid="button-lab-finish">Finish lesson</button>
       </section>
     </div>

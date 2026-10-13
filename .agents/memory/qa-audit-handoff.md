@@ -41,6 +41,8 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Removed the "Things to practice" list (tracked mistakes with counts) from the lesson's "How you're doing" box; the
+  user found it unhelpful. Mistakes are still tracked and still pick the targeted extra practice.
 - Worksheet "Not yet." feedback reads as one line (it was a flex row, so "Not yet." became its own column) and is bright
   red (`--fq-alert` #D90429, #FF6B78 in dark mode); the builder's "not yet" model status uses the same red.
 - Top-bar symbols are tappable (`src/StatTip.tsx`): streak, points, today's goal pie, stars/lessons pill (desktop) and the
