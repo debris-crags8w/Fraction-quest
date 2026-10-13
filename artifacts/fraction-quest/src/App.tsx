@@ -34,7 +34,7 @@ import { saveAssessmentAttempt } from './assessments';
 import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
-import { LearningText, useReadAloud } from './LearningText';
+import { LearningListenButton, LearningText, LearningTextSection, useReadAloud } from './LearningText';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
@@ -540,14 +540,31 @@ function GuidedExample({ mission, title, lessonLabel }: { mission: Mission; titl
       {title && <h2 className="fq-example-heading">{title}</h2>}
       <div className="fq-mascot-say">
         <Mascot mood="happy" size={64} />
-        <p className="fq-skill-statement"><LearningText text={mission.skill} speak /></p>
+        <div className="fq-skill-statement">
+          <strong className="fq-sr">Key idea</strong>
+          <LearningListenButton text={mission.skill} section="key idea" />
+          <p><LearningText text={mission.skill} /></p>
+        </div>
       </div>
       <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
       <div className="fq-example-answer">
         <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
-        <p><strong><LearningText text={mission.example.prompt} speak /></strong></p>
-        <p className="fq-example-result"><LearningText text={mission.example.answer} speak /></p>
-        <p><LearningText text={mission.example.explanation} speak /></p>
+        <LearningTextSection
+          id="example-question-heading"
+          heading="Question"
+          text={mission.example.prompt}
+          emphasize
+        />
+        <LearningTextSection
+          id="example-worked-answer-heading"
+          heading="Worked answer"
+          text={mission.example.answer}
+        />
+        <LearningTextSection
+          id="example-explanation-heading"
+          heading="Explanation"
+          text={mission.example.explanation}
+        />
       </div>
       {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
       {SHAPE_LESSONS.includes(mission.id) && <SameSizeIdea />}
@@ -735,11 +752,11 @@ function PlayView({
               <div className="fq-model-area" data-testid="question-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} />
               </div>
-              {hintOpen && <div className="fq-hint" data-testid="text-question-hint"><Lightbulb size={18} /> <span><strong>Try this idea:</strong> <LearningText text={question.hint} speak /></span></div>}
+              {hintOpen && <div className="fq-hint" data-testid="text-question-hint"><Lightbulb size={18} /> <span className="fq-hint-copy"><strong>Try this idea:</strong> <LearningListenButton text={question.hint} section="hint" /><span><LearningText text={question.hint} /></span></span></div>}
               {attempts >= 2 && (
                 <div className="fq-remediation" role="note" data-testid="status-remediation">
-                  <strong>Let's make it simpler.</strong>
-                  <span><LearningText text={question.hint} speak /></span>
+                  <div className="fq-remediation-heading"><strong>Let's make it simpler.</strong><LearningListenButton text={question.hint} section="simpler explanation" /></div>
+                  <span><LearningText text={question.hint} /></span>
                   <ModelView model={question.simplerModel} compact />
                 </div>
               )}
@@ -771,7 +788,7 @@ function PlayView({
                   {feedback === 'correct' ? <Mascot mood="cheer" size={56} /> : <Hoot size={60} />}
                   <div className="fq-sheet-copy">
                     {feedback === 'correct'
-                      ? <><strong>{cheer}</strong><span><LearningText text={question.retryFeedback} speak /></span></>
+                      ? <><strong className="fq-feedback-heading">{cheer}<LearningListenButton text={question.retryFeedback} section="feedback" /></strong><span><LearningText text={question.retryFeedback} /></span></>
                       : <><strong>{opener}</strong><span><LearningText text={retryText} /></span></>}
                   </div>
                   {feedback === 'correct' ? (

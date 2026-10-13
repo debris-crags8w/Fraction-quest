@@ -557,7 +557,7 @@ export function useReadAloud(text: string | null, key: string | number | null = 
   }, [key, text === null]);
 }
 
-function ListenButton({ text }: { text: string }) {
+export function LearningListenButton({ text, section }: { text: string; section: string }) {
   const [speaking, setSpeaking] = useState(false);
   const funContext = useOptionalFun();
   const preferredVoiceId = funContext
@@ -601,14 +601,39 @@ function ListenButton({ text }: { text: string }) {
       className="fq-learning-listen"
       onClick={toggleSpeech}
       disabled={!supported}
-      aria-label={!supported ? 'Audio unavailable' : speaking ? 'Stop reading' : 'Listen to this explanation'}
+      aria-label={!supported
+        ? `Audio unavailable for the ${section}`
+        : speaking ? `Stop reading the ${section}` : `Listen to the ${section}`}
       aria-pressed={speaking}
-      title={supported ? undefined : 'Audio is not available in this browser.'}
+      title={supported ? undefined : `Audio for the ${section} is not available in this browser.`}
       data-testid="button-listen-learning-text"
     >
       {speaking ? <VolumeX size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
       {supported ? (speaking ? 'Stop' : 'Listen') : 'Audio unavailable'}
     </button>
+  );
+}
+
+/** A headed, speakable section with one control for its complete text. */
+export function LearningTextSection({
+  heading,
+  text,
+  id,
+  emphasize = false,
+}: {
+  heading: string;
+  text: string;
+  id: string;
+  emphasize?: boolean;
+}) {
+  return (
+    <section className="fq-learning-section" aria-labelledby={id}>
+      <div className="fq-learning-section-heading">
+        <h3 id={id}>{heading}</h3>
+        <LearningListenButton text={text} section={heading.toLowerCase()} />
+      </div>
+      <p><LearningText text={text} emphasize={emphasize} /></p>
+    </section>
   );
 }
 
@@ -670,7 +695,7 @@ export function LearningText({
   return (
     <span className="fq-learning-text">
       {parts}
-      {speak && <ListenButton text={text} />}
+      {speak && <LearningListenButton text={text} section="explanation" />}
     </span>
   );
 }
