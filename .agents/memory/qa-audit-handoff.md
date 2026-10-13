@@ -41,6 +41,9 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Kokoro self-test (`KokoroDiagnostic`) is development-only: `showVoiceSelfTest()` shows it when `import.meta.env.DEV`
+  (the Replit dev URL) or with `?voicetest` in the address. The natural-voice choice (Heart default, Bella, Nicole, Emma, Off)
+  stays in Grown-ups → Read-aloud voice for everyone. The user confirmed the server Kokoro voice works on their iPhone.
 - Part Finder is no longer a standalone game. Its rounds are a hands-on step inside the lessons they teach, right after the
   worked example and before the questions (view `hands-on`; `PART_FINDER_BY_LESSON` / `partFinderRoundsFor` in
   `src/part-finder.ts`): equal-parts → the two cake-sharing rounds, unit-fractions → copies filling the whole,

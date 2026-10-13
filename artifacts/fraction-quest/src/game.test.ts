@@ -717,10 +717,7 @@ describe('entered-answer worksheets and evidence gates', () => {
     const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
     assert.match(markup, /Read-aloud voice/);
     assert.match(markup, /Natural voice/);
-    assert.match(markup, /Kokoro self-test/);
-    assert.match(markup, /Reach the Kokoro voice server/);
-    assert.match(markup, /Generate a short sample/);
-    assert.match(markup, /Play the sample/);
+    assert.doesNotMatch(markup, /Kokoro self-test/, 'the self-test is for development only');
     assert.match(markup, /Device voices/);
     assert.match(markup, /can’t play the natural voice/, 'without browser support the natural voice explains the fallback');
     assert.match(markup, /Read-aloud voices are not available in this browser/);
@@ -2598,6 +2595,15 @@ describe('lesson steps for the map pies', () => {
 });
 
 describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
+  it('shows the self-test only in development or with ?voicetest', async () => {
+    const { showVoiceSelfTest } = await import('./KokoroDiagnostic');
+    assert.equal(showVoiceSelfTest(true, ''), true);
+    assert.equal(showVoiceSelfTest(false, ''), false);
+    assert.equal(showVoiceSelfTest(false, '?voicetest'), true);
+    assert.equal(showVoiceSelfTest(false, '?a=1&voicetest=1'), true);
+    assert.equal(showVoiceSelfTest(false, '?voicetester'), false);
+  });
+
   it('no longer ships the voice model to the browser', () => {
     const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { dependencies?: Record<string, string> };
     assert.equal(pkg.dependencies?.['kokoro-js'], undefined);
