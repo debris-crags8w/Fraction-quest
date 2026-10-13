@@ -34,7 +34,7 @@ import { saveAssessmentAttempt } from './assessments';
 import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
-import { LearningListenButton, LearningText, useReadAloud } from './LearningText';
+import { LearningListenButton, LearningText, LearningTextSection, useReadAloud } from './LearningText';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
@@ -551,27 +551,30 @@ function GuidedExample({ mission, title, lessonLabel }: { mission: Mission; titl
       <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
       <div className="fq-example-answer">
         <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
-        <section className="fq-example-section" aria-label="Example question">
-          <header className="fq-example-section-header">
-            <h3>Question</h3>
-            <LearningListenButton text={mission.example.prompt} label="Listen to the example question" />
-          </header>
-          <p><strong><LearningText text={mission.example.prompt} /></strong></p>
-        </section>
-        <section className="fq-example-section" aria-label="Example answer">
-          <header className="fq-example-section-header">
-            <h3>Answer</h3>
-            <LearningListenButton text={mission.example.answer} label="Listen to the example answer" />
-          </header>
-          <p className="fq-example-result"><LearningText text={mission.example.answer} /></p>
-        </section>
-        <section className="fq-example-section" aria-label="Why the answer works">
-          <header className="fq-example-section-header">
-            <h3>Why?</h3>
-            <LearningListenButton text={mission.example.explanation} label="Listen to the explanation" />
-          </header>
-          <p><LearningText text={mission.example.explanation} /></p>
-        </section>
+        <LearningTextSection
+          id="example-question-heading"
+          heading="Question"
+          text={mission.example.prompt}
+          label="Listen to the example question"
+          className="fq-example-section"
+          emphasize
+          bold
+        />
+        <LearningTextSection
+          id="example-worked-answer-heading"
+          heading="Worked answer"
+          text={mission.example.answer}
+          label="Listen to the worked answer"
+          className="fq-example-section"
+          paragraphClassName="fq-example-result"
+        />
+        <LearningTextSection
+          id="example-explanation-heading"
+          heading="Explanation"
+          text={mission.example.explanation}
+          label="Listen to the explanation"
+          className="fq-example-section"
+        />
       </div>
       {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
       {SHAPE_LESSONS.includes(mission.id) && <SameSizeIdea />}
@@ -759,11 +762,11 @@ function PlayView({
               <div className="fq-model-area" data-testid="question-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} />
               </div>
-              {hintOpen && <div className="fq-hint" data-testid="text-question-hint"><Lightbulb size={18} /> <span><strong>Try this idea:</strong> <LearningText text={question.hint} speak /></span></div>}
+              {hintOpen && <div className="fq-hint" data-testid="text-question-hint"><Lightbulb size={18} /> <span className="fq-hint-copy"><strong>Try this idea:</strong> <LearningListenButton text={question.hint} label="Listen to the hint" /><span><LearningText text={question.hint} /></span></span></div>}
               {attempts >= 2 && (
                 <div className="fq-remediation" role="note" data-testid="status-remediation">
-                  <strong>Let's make it simpler.</strong>
-                  <span><LearningText text={question.hint} speak /></span>
+                  <div className="fq-remediation-heading"><strong>Let's make it simpler.</strong><LearningListenButton text={question.hint} label="Listen to the simpler explanation" /></div>
+                  <span><LearningText text={question.hint} /></span>
                   <ModelView model={question.simplerModel} compact />
                 </div>
               )}
@@ -795,7 +798,7 @@ function PlayView({
                   {feedback === 'correct' ? <Mascot mood="cheer" size={56} /> : <Hoot size={60} />}
                   <div className="fq-sheet-copy">
                     {feedback === 'correct'
-                      ? <><strong>{cheer}</strong><span><LearningText text={question.retryFeedback} speak /></span></>
+                      ? <><strong className="fq-feedback-heading">{cheer}<LearningListenButton text={question.retryFeedback} label="Listen to the feedback" /></strong><span><LearningText text={question.retryFeedback} /></span></>
                       : <><strong>{opener}</strong><span><LearningText text={retryText} /></span></>}
                   </div>
                   {feedback === 'correct' ? (
