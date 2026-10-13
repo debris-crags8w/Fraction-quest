@@ -39,39 +39,62 @@ export const unitColor = (unit: number) => UNIT_COLORS[(unit - 1) % UNIT_COLORS.
 
 export type MascotMood = 'happy' | 'thinking' | 'cheer' | 'oops';
 
+/** Numi, a living fraction: a head on top, the fraction bar for arms, and a round body cut into 2 equal halves
+    with 1 shaded ("I am one half!"). The arms tilt with the mood. */
 export function Mascot({ mood = 'happy', size = 76 }: { mood?: MascotMood; size?: number }) {
-  const closed = mood === 'cheer';
+  const ink = '#2B2D42';
+  const arms = mood === 'cheer' ? 'rotate(-12 40 41)' : mood === 'oops' ? 'rotate(8 40 41)' : mood === 'thinking' ? 'rotate(-5 40 41)' : undefined;
+  const look = mood === 'thinking' ? 1.3 : 0; // eyes glance up and to the side
   return (
     <svg className={`fq-mascot fq-mascot-${mood}`} width={size} height={size} viewBox="0 0 80 80" aria-hidden="true">
-      <path d="M14 10 L30 30 L12 38 Z" fill="#FF9600" />
-      <path d="M66 10 L50 30 L68 38 Z" fill="#FF9600" />
-      <path d="M18 18 L27 30 L17 34 Z" fill="#FFD7A8" />
-      <path d="M62 18 L53 30 L63 34 Z" fill="#FFD7A8" />
-      <ellipse cx="40" cy="44" rx="28" ry="24" fill="#FF9600" />
-      <path d="M16 46 Q40 80 64 46 Q52 58 40 58 Q28 58 16 46 Z" fill="#FFF4E6" />
-      {closed ? (
+      <circle cx="40" cy="21" r="16" fill="#7C5CFF" />
+      <path d="M30 7 Q34 1 38 6" stroke="#7C5CFF" strokeWidth="3" fill="none" strokeLinecap="round" />
+      {mood === 'cheer' ? (
         <>
-          <path d="M25 43 Q30 36 35 43" stroke="#2B2D42" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-          <path d="M45 43 Q50 36 55 43" stroke="#2B2D42" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+          <path d="M31.2 21 Q34.4 15.4 37.6 21" stroke={ink} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+          <path d="M42.4 21 Q45.6 15.4 48.8 21" stroke={ink} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+          <path d="M35.2 25.6 Q40 33.6 44.8 25.6 Z" fill={ink} />
+          <path d="M37.6 28.8 Q40 31.2 42.4 28.8" fill="#FF6B8B" />
         </>
       ) : (
         <>
-          <circle cx="30" cy="42" r="4.5" fill="#2B2D42" />
-          <circle cx="50" cy="42" r="4.5" fill="#2B2D42" />
-          <circle cx="31.5" cy="40.5" r="1.5" fill="#fff" />
-          <circle cx="51.5" cy="40.5" r="1.5" fill="#fff" />
+          <circle cx="34.4" cy="20" r="5.1" fill="#fff" />
+          <circle cx="45.6" cy="20" r="5.1" fill="#fff" />
+          <circle cx={34.4 + look} cy={20 - look} r="3.4" fill={ink} />
+          <circle cx={45.6 + look} cy={20 - look} r="3.4" fill={ink} />
+          <circle cx={35.5 + look} cy={18.9 - look} r="1.1" fill="#fff" />
+          <circle cx={46.7 + look} cy={18.9 - look} r="1.1" fill="#fff" />
+          {mood === 'happy' && <path d="M36 26.4 Q40 30.4 44 26.4" stroke={ink} strokeWidth="2.2" fill="none" strokeLinecap="round" />}
+          {mood === 'thinking' && <path d="M38.4 28 L43.2 27.2" stroke={ink} strokeWidth="2.2" strokeLinecap="round" />}
+          {mood === 'oops' && (
+            <>
+              <path d="M30.4 14.4 L37.6 12.4" stroke={ink} strokeWidth="2.1" strokeLinecap="round" />
+              <path d="M49.6 14.4 L42.4 12.4" stroke={ink} strokeWidth="2.1" strokeLinecap="round" />
+              <ellipse cx="40" cy="28" rx="2.2" ry="2.7" fill={ink} />
+            </>
+          )}
         </>
       )}
-      {mood === 'oops' && (
+      <circle cx="30.4" cy="25.6" r="2.6" fill="#FF4B91" opacity=".35" />
+      <circle cx="49.6" cy="25.6" r="2.6" fill="#FF4B91" opacity=".35" />
+      <g transform={arms}>
+        <rect x="8" y="38.5" width="64" height="5" rx="2.5" fill="#FF9600" />
+        <circle cx="8" cy="41" r="4.5" fill="#FFB547" />
+        <circle cx="72" cy="41" r="4.5" fill="#FFB547" />
+      </g>
+      <path d="M40 46 L40 74 A14 14 0 0 1 40 46 Z" fill="#00B8A9" />
+      <path d="M40 46 A14 14 0 0 1 40 74 Z" fill="#fff" />
+      <circle cx="40" cy="60" r="14" fill="none" stroke="#00897B" strokeWidth="2.4" />
+      <path d="M40 46 L40 74" stroke="#00897B" strokeWidth="2.4" />
+      <rect x="31" y="74" width="7" height="4" rx="2" fill={ink} />
+      <rect x="42" y="74" width="7" height="4" rx="2" fill={ink} />
+      {mood === 'thinking' && (
         <>
-          <path d="M24 36 L34 33" stroke="#2B2D42" strokeWidth="3" strokeLinecap="round" />
-          <path d="M56 36 L46 33" stroke="#2B2D42" strokeWidth="3" strokeLinecap="round" />
+          <circle cx="66" cy="12" r="4" fill="#FFC800" />
+          <circle cx="59" cy="20" r="2.4" fill="#FFC800" />
         </>
       )}
-      {mood === 'thinking' && <circle cx="66" cy="20" r="4" fill="#FFC800" />}
-      <ellipse cx="40" cy="52" rx="4" ry="3" fill="#2B2D42" />
-      <circle cx="22" cy="52" r="3.5" fill="#FF4B91" opacity=".35" />
-      <circle cx="58" cy="52" r="3.5" fill="#FF4B91" opacity=".35" />
+      {mood === 'cheer' && <path d="M66 6 l2 5 5 .5 -4 3 1.3 5 -4.3-2.8 -4.3 2.8 1.3-5 -4-3 5-.5z" fill="#FFC800" />}
     </svg>
   );
 }

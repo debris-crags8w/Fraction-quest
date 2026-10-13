@@ -40,6 +40,8 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Mascot is now **Numi** (user picked option B of 3): `Mascot` in fun-ui.tsx draws a purple head, an orange fraction-bar
+  for arms (tilts with mood) and a round body cut into 2 equal halves, 1 shaded. Same props and moods as the old fox.
 - Equal parts look equal (user rule): every on-screen bar (question pictures `.fq-bar`, builder `.fq-ll-bar`, tap example
   `.fq-tap-bar`, daily `.fq-daily-model`, strips `.fq-partition-whole`) is one rectangle with a dark 3px outline (3px outer
   radius only, so no part is clipped), identical square parts, 2px straight divider lines, no per-part rounding, gaps,
