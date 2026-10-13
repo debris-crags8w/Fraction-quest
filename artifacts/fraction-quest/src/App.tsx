@@ -605,7 +605,7 @@ function PlayView({
   const cheer = combo >= 3 ? `${combo} in a row! You're on fire.` : question?.isMastery ? 'Practice checkpoint passed!' : ['Nice work!', 'You found it!', 'Great thinking!', 'Yes, that\'s it!'][(questionIndex + 4) % 4];
 
   return (
-    <div className="fq-app fq-lesson-app" style={{ '--unit': unitColor(mission.unit) } as CSSProperties}>
+    <div className={`fq-app fq-lesson-app ${question && !feedback ? 'has-inline-check' : ''}`} style={{ '--unit': unitColor(mission.unit) } as CSSProperties}>
       <Confetti burst={burst} />
       <main className="fq-shell fq-play-shell fq-appear">
         <div className="fq-lesson-top">
@@ -686,12 +686,23 @@ function PlayView({
                   </button>
                 ))}
               </div>
+              {/* Check sits right under the answers (not in a bar over them) so every answer stays in view. */}
+              {!feedback && (
+                <div className="fq-inline-check">
+                  {question.isOptionalReview ? (
+                    <button className="fq-hint-button" onClick={skipOptionalReview} data-testid="button-skip-review">Skip this review</button>
+                  ) : <span />}
+                  <button className="fq-button" onClick={checkAnswer} disabled={selection === null} data-testid="button-check-answer">
+                    Check <Check size={17} strokeWidth={3} />
+                  </button>
+                </div>
+              )}
             </>
           )}
         </section>
       </main>
 
-      <div className={`fq-lesson-footer ${feedback ? `show ${feedback}` : ''}`}>
+      {(feedback || isExample) && <div className={`fq-lesson-footer ${feedback ? `show ${feedback}` : ''}`}>
         <div className="fq-shell fq-lesson-footer-inner">
           {feedback && question ? (
             <div className="fq-sheet" role="status" data-testid="status-feedback">
@@ -716,18 +727,9 @@ function PlayView({
               <button className="fq-hint-button" onClick={onBack} data-testid="button-back-example"><ArrowLeft size={17} /> Back to map</button>
               <button className="fq-button" onClick={moveOn} data-testid="button-start-practice">Let me try it <ArrowRight size={17} /></button>
             </div>
-          ) : question && (
-            <div className="fq-footer-actions">
-              {question.isOptionalReview ? (
-                <button className="fq-hint-button" onClick={skipOptionalReview} data-testid="button-skip-review">Skip this review</button>
-              ) : <span />}
-              <button className="fq-button" onClick={checkAnswer} disabled={selection === null} data-testid="button-check-answer">
-                Check <Check size={17} strokeWidth={3} />
-              </button>
-            </div>
-          )}
+          ) : null}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

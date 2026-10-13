@@ -41,6 +41,9 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Lesson question screens: Check moved out of the fixed bottom bar to sit right under the answers (`.fq-inline-check`), so it
+  never covers the last answer. The fixed footer now only appears for the worked example ("Let me try it") and the feedback
+  sheet. Phones get a tighter picture area; on short phones (≤700px tall) the grade/standard chip is hidden on question screens.
 - Kokoro self-test (`KokoroDiagnostic`) is development-only: `showVoiceSelfTest()` shows it when `import.meta.env.DEV`
   (the Replit dev URL) or with `?voicetest` in the address. The natural-voice choice (Heart default, Bella, Nicole, Emma, Off)
   stays in Grown-ups → Read-aloud voice for everyone. The user confirmed the server Kokoro voice works on their iPhone.
