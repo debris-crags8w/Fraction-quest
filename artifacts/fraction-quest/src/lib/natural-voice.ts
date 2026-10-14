@@ -3,12 +3,21 @@
    lesson sentence is sent, never a child's name or answers; the server keeps each sentence it has made, so
    repeats are instant. When the server can't be reached, Listen uses the device's own voice. */
 
-export type NaturalVoiceId = 'af_heart' | 'af_bella' | 'af_nicole' | 'bf_emma';
+export type NaturalVoiceId =
+  | 'af_heart' | 'af_bella' | 'af_nicole' | 'bf_emma'
+  | 'af_aoede' | 'af_sarah' | 'bf_isabella'
+  | 'am_michael' | 'am_puck' | 'bm_george';
 export const NATURAL_VOICES: { id: NaturalVoiceId; name: string; note: string }[] = [
   { id: 'af_heart', name: 'Heart', note: 'warm and gentle' },
   { id: 'af_bella', name: 'Bella', note: 'bright and friendly' },
   { id: 'af_nicole', name: 'Nicole', note: 'soft and calm' },
+  { id: 'af_aoede', name: 'Aoede', note: 'American English · female' },
+  { id: 'af_sarah', name: 'Sarah', note: 'American English · female' },
   { id: 'bf_emma', name: 'Emma', note: 'British, clear' },
+  { id: 'bf_isabella', name: 'Isabella', note: 'British English · female' },
+  { id: 'am_michael', name: 'Michael', note: 'American English · male' },
+  { id: 'am_puck', name: 'Puck', note: 'American English · male' },
+  { id: 'bm_george', name: 'George', note: 'British English · male' },
 ];
 export const NATURAL_VOICE_SPEED = 0.92; // the server reads at this speed
 const STORAGE_KEY = 'fraction-quest-natural-voice';
