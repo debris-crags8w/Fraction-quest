@@ -4,22 +4,38 @@ import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { endAllSessions, hashPassword } from "../lib/auth";
 import { createRateLimiter } from "../lib/rate-limit";
+import { logger } from "../lib/logger";
 
-// Admin tools for managing accounts. Disabled unless the server has ADMIN_TOKEN set (16+ characters).
+// Admin tools for managing accounts. Disabled unless the server has ADMIN_TOKEN set (32+ characters).
 // Nothing in the learner app links here; every data route needs the token in an Authorization header.
 const router: IRouter = Router();
 const failures = createRateLimiter({ max: 5, windowMs: 15 * 60 * 1000 });
+// Also cap failures across all IPs, so rotating or spoofed addresses can't brute-force the token.
+const globalFailures = createRateLimiter({ max: 30, windowMs: 60 * 60 * 1000 });
+// Optional: ADMIN_ALLOWED_IPS="1.2.3.4,5.6.7.8" hides the admin from every other address (404).
+const allowedIps = () => (process.env.ADMIN_ALLOWED_IPS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+const ipAllowed = (ip: string) => !allowedIps().length || allowedIps().includes(ip);
 
 const digest = (s: string) => createHash("sha256").update(s).digest();
 
 function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const expected = process.env.ADMIN_TOKEN;
-  if (!expected || expected.length < 16) {
+  if (!expected || expected.length < 32) {
     res.status(404).json({ error: "Not found." });
     return;
   }
   const ip = req.ip ?? "unknown";
-  if (failures.isLimited(ip)) {
+  if (!ipAllowed(ip)) {
+    res.status(404).json({ error: "Not found." });
+    return;
+  }
+  // Mutations must come from this server's own page, not another site.
+  const origin = req.get("origin");
+  if (req.method !== "GET" && origin && origin !== `${req.protocol}://${req.get("host")}`) {
+    res.status(403).json({ error: "Forbidden." });
+    return;
+  }
+  if (failures.isLimited(ip) || globalFailures.isLimited("all")) {
     res.status(429).json({ error: "Too many attempts. Try again later." });
     return;
   }
@@ -27,22 +43,25 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const given = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!timingSafeEqual(digest(given), digest(expected))) {
     failures.hit(ip);
+    globalFailures.hit("all");
+    logger.warn({ ip }, "admin auth failed");
     res.status(401).json({ error: "Unauthorized." });
     return;
   }
   res.setHeader("Cache-Control", "no-store");
+  if (req.method !== "GET") logger.info({ ip, method: req.method, path: req.path }, "admin action");
   next();
 }
 
 // The page itself holds no data and is not indexed; it only collects the token and calls the API below.
-router.get("/admin", (_req, res) => {
-  if (!process.env.ADMIN_TOKEN) {
+router.get("/admin", (req, res) => {
+  if (!process.env.ADMIN_TOKEN || !ipAllowed(req.ip ?? "unknown")) {
     res.status(404).end();
     return;
   }
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   res.setHeader("Cache-Control", "no-store");
-  res.setHeader("Content-Security-Policy", "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'");
+  res.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'");
   res.type("html").send(ADMIN_PAGE);
 });
 
