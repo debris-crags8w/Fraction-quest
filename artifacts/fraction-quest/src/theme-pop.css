@@ -815,6 +815,13 @@
 .fq-ll-meter { height: 22px; border: 0; background: var(--fq-track); }
 .fq-ll-meter b { background: var(--fq-lime); }
 .fq-ll-meter span { line-height: 22px; font-family: var(--app-font-sans); }
+.fq-ll-problem-progress-item { border-bottom-width: 4px; }
+.fq-ll-problem-progress-item.complete { border-color: var(--fq-lime); background: var(--fq-good-bg); color: var(--fq-good-fg); }
+.fq-ll-problem-progress-item.current { border-color: var(--fq-grape); background: color-mix(in srgb, var(--fq-grape) 12%, hsl(var(--card))); color: var(--fq-grape); }
+.fq-ll-problem-progress-item.retry { border-color: var(--fq-tangerine); background: #FFF4D6; color: #704500; }
+.fq-ll-problem-progress-item.upcoming { border-color: var(--fq-edge); background: var(--fq-track); color: hsl(var(--muted-foreground)); }
+.fq-ll-problem-progress-item.is-current { outline-color: color-mix(in srgb, var(--fq-grape) 42%, transparent); }
+.dark .fq-ll-problem-progress-item.retry { background: #3B2C11; color: #FFE39A; }
 .fq-ll-row { border-bottom-width: 4px; border-radius: 18px; }
 .fq-ll-row.ok { border-color: var(--fq-lime); background: var(--fq-good-bg); }
 .fq-ll-num { color: #fff; background: var(--fq-grape); font-family: var(--app-font-sans); }
