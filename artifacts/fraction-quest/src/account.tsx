@@ -195,6 +195,7 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
       const failure = accountEntryFailure(statusOf(err), message);
       if (failure.kind === 'signed-out') {
         setState(failure);
+        return;
       } else {
         setState({ ...failure, user });
       }
