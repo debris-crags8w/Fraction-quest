@@ -14,7 +14,7 @@ import {
 import { EMPTY_PROGRESS, loadProgress, resetProgress, saveProgress, type Progress } from './game';
 import { loadFun, replaceFun, resetFun, type FunState } from './lib/fun';
 import { clearScopedLearnerStorage, setLearnerStorageScope } from './storage-scope';
-import { createProgressSaveQueue, signOutSafely, type AccountBundle, type SaveStatus } from './account-flow';
+import { accountEntryFailure, createProgressSaveQueue, signOutSafely, type AccountBundle, type SaveStatus } from './account-flow';
 
 const GUEST_KEY = 'fraction-quest-guest';
 const activeProfileKey = (userId: number) => `fraction-quest-active-profile:${userId}`;
@@ -192,8 +192,14 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
       setState({ kind: 'ready', user, profiles, profileId: loaded.profile.id, bundle: loaded.bundle });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Signed in, but learner profiles could not be loaded. Please try again.';
-      setState({ kind: 'profile-error', user, notice: message });
-      throw new Error(message);
+      const failure = accountEntryFailure(statusOf(err), message);
+      if (failure.kind === 'signed-out') {
+        setState(failure);
+        return;
+      } else {
+        setState({ ...failure, user });
+      }
+      throw new Error(failure.notice);
     }
   }, []);
 
@@ -325,7 +331,7 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
   if (state.kind === 'profile-error') return (
     <div className="fq-app fq-login-app">
       <main className="fq-login fq-consent-screen" role="alert">
-        <h1>Your account is signed in</h1>
+        <h1>We couldn’t load the learner profile</h1>
         <p>{state.notice}</p>
         <button className="fq-button fq-login-submit" onClick={() => void enter(state.user).catch(() => {})}>Try again</button>
         <button type="button" className="fq-hint-button" onClick={() => void signOut()}>Sign out</button>
