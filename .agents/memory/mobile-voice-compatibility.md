@@ -18,3 +18,11 @@ Treat browser APIs as partially implemented on mobile Safari and embedded browse
 **How to apply:** after Kokoro, Transformers, or API build changes, verify actual WAV synthesis for every enabled voice, not just module import or `/api/voice/status`; keep the staged voice list aligned with the UI's choices.
 
 **How to apply:** avoid relying on `String.prototype.matchAll()` in app code. Keep Kokoro off for normal iOS lessons and clearly explain the device-voice fallback; only an explicit adult diagnostic may temporarily bypass that guard, without changing the saved voice. Use the current stable ONNX Runtime and one WASM thread for the diagnostic, but leave SIMD feature detection enabled. Verify model loading and audio generation on real Safari; desktop Chromium is only a smoke test. Feature-detect and guard speech event registration, briefly poll for device voices when needed, and handle audio completion through media events plus bounded timeouts. Test missing text/speech APIs and non-Promise `play()` results. Validate actual audio separately on real iOS and Android devices.
+
+### Replit Expo DevTools on Nix
+
+React Native 0.86.3's optional Linux DevTools binary needs the `glib` system package (`libglib-2.0.so.0`). Expo can continue starting Metro without it, but logs a DevTools installation error.
+
+**Why:** the warning persisted through an Expo restart until the Nix environment included GLib; after installation Metro started without the warning.
+
+**How to apply:** add `glib` with the system-dependency installer when this exact missing-library warning appears; do not change Expo app code or disable DevTools as a workaround.
