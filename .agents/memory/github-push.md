@@ -21,11 +21,11 @@ GitHub's Git Database API can omit the final newline from a commit message when 
 
 **How to apply:** treat a commit SHA mismatch as a stop before moving the branch ref. Inspect the GitHub-created commit object and reproduce its exact message bytes locally if matching local and remote refs matters; update the remote only after verifying tree and parent and rechecking the branch ref.
 
-Large base64 output from CodeExecution `shellExec` can be silently truncated near 80 KB even when `maxOutputBytes` is higher.
+Large file output from CodeExecution `shellExec` can be shortened even when `maxOutputBytes` is higher and `truncated` is false; this can create GitHub blobs whose content looks right but whose SHA does not match the local Git object.
 
-**Why:** a GitHub blob SHA check exposed a shortened file transfer even though the shell callback did not report truncation.
+**Why:** a tree-hash check caught incomplete file transfers while publishing a review PR; fetching the Git blob through shell output did not preserve its complete bytes.
 
-**How to apply:** when transferring large Git blobs through CodeExecution, retrieve base64 in small chunks, reassemble it in memory, and verify the resulting blob SHA before creating trees or moving refs.
+**How to apply:** transfer large blobs in compressed base64 or small base64 chunks, reconstruct the raw bytes in the impure function, and verify each Git blob SHA plus the final tree SHA before creating refs or PRs.
 
 ## Short-lived branches and pull requests
 
