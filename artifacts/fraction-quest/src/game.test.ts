@@ -20,13 +20,13 @@ import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './Fra
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
 import { CODE_LEVEL_COUNT, describe as describeRun, getCodeLevels, getRunHint, makeMultiBug, matchesTarget, passesCodeLevel, predictionMatchesTarget, runProgram, solution, toText, usesEffectiveLoop, usesLoop, type Block } from './code-quest';
 import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
-import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, shownStreak } from './lib/fun';
+import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, resetMissionGameProgress, shownStreak } from './lib/fun';
 import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderRoundsFor, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
 import { createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
 import { DailyPracticeQuestionHeading } from './DailyPracticeQuestionHeading';
 import type { PracticeQuestion } from './game';
-import { REASON_IDEAS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
+import { REASON_IDEAS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
 import { AnswerTiles } from './AnswerTiles';
 import {
   createLearningSpeechController,
@@ -40,7 +40,7 @@ import {
 import { BarSvg } from './models';
 import Printable, { AnswerKey, PrintMenu, STUDENT_PRINT_OPTIONS } from './Printables';
 import { barTaskDone, canEnterWorksheetAnswer, WorksheetBarCopy, worksheetBarMatches } from './WorksheetBarCopy';
-import { checkRedoRow, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, lessonSteps, redoChecks, redoDone, redoWorksheet, redoWorksheetCount, startRedo, targetedPracticePlans, updateLearning, worksheetCount, type LearningRecord } from './learning';
+import { checkRedoRow, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, lessonSteps, redoChecks, redoDone, redoWorksheet, redoWorksheetCount, resetUnitLearningProgress, startRedo, targetedPracticePlans, updateLearning, worksheetCount, type LearningRecord } from './learning';
 import QuickReviewEntry from './QuickReviewEntry';
 import {
   completeMission,
@@ -548,6 +548,51 @@ describe('saved progress', () => {
     assert.deepEqual(loadProgress(), EMPTY_PROGRESS);
   });
 
+  it('resets only one unit and removes just its topics from saved daily practice', () => {
+    const inUnit = MISSIONS.find((mission) => mission.unit === 1)!;
+    const otherUnit = MISSIONS.find((mission) => mission.unit === 2)!;
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      completedMissionIds: [inUnit.id, otherUnit.id],
+      starsByMission: { [inUnit.id]: 3, [otherUnit.id]: 2 },
+      learning: {
+        [inUnit.id]: { ...emptyLearningRecord(), practiceDone: true, worksheet: { w1: { draft: '1/2', attempts: 1, supported: false } } },
+        [otherUnit.id]: { ...emptyLearningRecord(), practiceDone: true },
+      },
+      reviewQueue: [
+        { missionId: inUnit.id, missedQuestionId: inUnit.questions[0].id, dueAt: 100, reviewCount: 1 },
+        { missionId: otherUnit.id, missedQuestionId: otherUnit.questions[0].id, dueAt: 200, reviewCount: 0 },
+      ],
+      challengeBest: { '1': 18, '2': 14 },
+      dailyPractice: {
+        day: '2026-10-13', startedAt: 10,
+        questions: [
+          { id: 'daily-in-1', missionId: inUnit.id, topicTitle: inUnit.title, modelKind: 'bar', numerator: 1, denominator: 2, explanation: 'in-unit' },
+          { id: 'daily-out', missionId: otherUnit.id, topicTitle: otherUnit.title, modelKind: 'bar', numerator: 1, denominator: 3, explanation: 'other-unit' },
+          { id: 'daily-in-2', missionId: inUnit.id, topicTitle: inUnit.title, modelKind: 'bar', numerator: 2, denominator: 3, explanation: 'in-unit' },
+        ],
+        index: 2,
+        attempts: { 'daily-in-1': { shaded: [], draft: '1/2', modelChecked: true, modelCorrect: true, answerChecked: true, answerCorrect: true },
+          'daily-out': { shaded: [], draft: '', modelChecked: false, modelCorrect: false, answerChecked: false, answerCorrect: false } },
+      },
+      assessments: [{ assessmentId: 'grade-middle', seed: 4, startedAt: 10, completedAt: 20, responses: [] }],
+    };
+
+    const reset = resetUnitLearningProgress(progress, new Set([inUnit.id]), 1);
+
+    assert.deepEqual(reset.completedMissionIds, [otherUnit.id]);
+    assert.deepEqual(reset.starsByMission, { [otherUnit.id]: 2 });
+    assert.equal(reset.learning?.[inUnit.id], undefined);
+    assert.deepEqual(reset.learning?.[otherUnit.id], progress.learning?.[otherUnit.id]);
+    assert.deepEqual(reset.reviewQueue.map((item) => item.missionId), [otherUnit.id]);
+    assert.deepEqual(reset.challengeBest, { '2': 14 });
+    assert.deepEqual(reset.dailyPractice?.questions.map((question) => question.id), ['daily-out']);
+    assert.equal(reset.dailyPractice?.index, 1, 'keeps the cursor after previously completed other-unit topics');
+    assert.deepEqual(Object.keys(reset.dailyPractice?.attempts ?? {}), ['daily-out']);
+    assert.deepEqual(reset.assessments, progress.assessments, 'unit reset does not clear broader check-ins');
+    assert.deepEqual(progress.completedMissionIds, [inUnit.id, otherUnit.id], 'the source snapshot is unchanged');
+  });
+
   it('migrates completion and stars from the three original trails', () => {
     memory.set('fraction-quest-progress-v1', JSON.stringify({
       completedMissionIds: ['share', 'number-line', 'equivalent', 'share', 'removed-lesson'],
@@ -921,15 +966,15 @@ describe('entered-answer worksheets and evidence gates', () => {
 
   it('keeps answer keys out of every student printable and student print choices', () => {
     assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.label.toLowerCase().includes('answer key')), false);
-    assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.mode === 'answers'), true);
+    assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.mode === 'blank' && option.label === 'Worksheet'), true);
+    assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.label.toLowerCase() === 'my answers'), false);
     const record = emptyLearningRecord();
-    const menu = renderToStaticMarkup(createElement(PrintMenu, { missionId: 'number-line-basics', record }));
-    assert.doesNotMatch(menu, /answer key/i);
+    const menu = renderToStaticMarkup(createElement(PrintMenu, { missionId: 'number-line-basics' }));
+    assert.doesNotMatch(menu, /answer key|my answers/i);
 
     for (const { mode } of STUDENT_PRINT_OPTIONS) {
       const markup = renderToStaticMarkup(createElement(Printable, {
         missionId: 'number-line-basics',
-        record,
         mode,
         seed: 1,
       }));
@@ -938,7 +983,6 @@ describe('entered-answer worksheets and evidence gates', () => {
 
     const generated = renderToStaticMarkup(createElement(Printable, {
       missionId: 'number-line-basics',
-      record,
       mode: 'generated',
       seed: 1,
     }));
@@ -946,18 +990,20 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.doesNotMatch(generated, /Cut this part off/i);
   });
 
-  it('keeps the student’s own checked responses on the My answers sheet', () => {
+  it('prints a blank worksheet without exposing or changing saved lesson answers', () => {
     const problem = getWorksheet('number-line-basics')[0];
     const record = checkWorksheet(editWorksheet(emptyLearningRecord(), problem.id, problem.answer), problem);
     const markup = renderToStaticMarkup(createElement(Printable, {
       missionId: 'number-line-basics',
-      record,
-      mode: 'answers',
+      mode: 'blank',
     }));
 
-    assert.match(markup, /My answers/);
-    assert.match(markup, new RegExp(`<b>${problem.answer}<\\/b>`));
-    assert.match(markup, /✓ Correct/);
+    assert.match(markup, /data-testid="print-worksheet-blank"/);
+    assert.doesNotMatch(markup, /My answers|✓ Correct|Worksheet: 1 of 12 correct/);
+    const answerFields = [...markup.matchAll(/<div class="fq-print-answer">([\s\S]*?)<\/div>/g)];
+    assert.equal(answerFields.length, 12);
+    assert.ok(answerFields.every(([, field]) => /<span>Answer:<\/span><b><\/b>/.test(field)));
+    assert.equal(record.worksheet[problem.id]?.checkedValue, problem.answer);
   });
 
   it('keeps the grown-up answer key printable with practice, worksheet, and model solutions', () => {
@@ -1041,7 +1087,7 @@ describe('entered-answer worksheets and evidence gates', () => {
     const expected = ['3', '1', '3', '1/2', '2', '4', '1/4', '1/3', '3/4', '3', '1/3', '4/3', '2/3', '2/3', '1/3, 2/3, 3/3', '2', '2/6', '2', '2/3', '2', '>', '4/3', '2/3', '1/3', '3/4', '0.1', '0.08', '34/100'];
     MISSIONS.slice(0, expected.length).forEach((mission, index) => assert.equal(getWorksheet(mission.id)[0].answer, expected[index], mission.id));
   });
-  it('authors twelve valid problems and two skill checks for every topic', () => {
+  it('authors twelve valid problems and three required Build checks for every topic', () => {
     for (const mission of MISSIONS) {
       const problems = getWorksheet(mission.id); const checks = getBuildChecks(mission.id);
       assert.equal(problems.length, 12, mission.id);
@@ -1052,9 +1098,12 @@ describe('entered-answer worksheets and evidence gates', () => {
         assert.equal(answerMatches(p, ''), false); assert.equal(answerMatches(p, '1/0'), false);
         assert.ok(p.hint.length > 10);
       });
-      assert.equal(checks.length, 2);
+      assert.equal(checks.length, 3);
       assert.equal(checks[1].transfer, true);
       assert.notDeepEqual(checks[0].target, checks[1].target, `${mission.id}: transfer must use new numbers`);
+      assert.equal(checks[0].stepLabel, 'Step 1 · Build it');
+      assert.equal(checks[2].stepLabel, 'Step 3 · Apply it');
+      assert.ok(checks.every((check, i) => checks.slice(i + 1).every(next => JSON.stringify(next.target) !== JSON.stringify(check.target))), `${mission.id}: each required Build target must differ`);
       checks.forEach(c => {
         assert.ok(c.correctReason >= 0 && c.correctReason < c.reasons.length);
         assert.ok(c.target.n > 0 && c.target.d > 0 && c.target.n <= c.target.d * c.target.wholes);
@@ -1066,6 +1115,22 @@ describe('entered-answer worksheets and evidence gates', () => {
         assert.ok(review.target.n <= review.target.d * review.target.wholes);
         assert.ok(review.reasons[review.correctReason]);
       }
+    }
+  });
+  it('provides ten optional Build questions per lesson and a fresh next set', () => {
+    for (const mission of MISSIONS) {
+      const first = getBuildPracticeChecks(mission.id);
+      assert.equal(first.length, 10, mission.id);
+      assert.equal(new Set(first.map(check => JSON.stringify(check.target))).size, 10, `${mission.id}: duplicate target in the first set`);
+      first.forEach(check => {
+        assert.ok(check.target.n > 0 && check.target.d > 1 && check.target.n <= check.target.d * check.target.wholes, `${mission.id}: invalid optional target`);
+      });
+    }
+    for (const id of ['equal-parts', 'sets-unit-fractions', 'number-line-basics', 'whole-numbers-as-fractions']) {
+      const first = getBuildPracticeChecks(id);
+      const second = getBuildPracticeChecks(id, 1);
+      assert.equal(second.length, 10, `${id}: second set`);
+      assert.ok(first.every(check => !second.some(next => JSON.stringify(next.target) === JSON.stringify(check.target))), `${id}: the next set repeats a question`);
     }
   });
   it('accepts equivalent values without rounding and respects requested forms', () => {
@@ -1535,6 +1600,40 @@ describe('Part Finder rounds', () => {
     assert.equal(scorePartFinderRound(2, true), 3);
     assert.equal(scorePartFinderRound(3, true), 4);
     assert.equal(scorePartFinderRound(4, true), 4);
+  });
+});
+
+describe('unit-scoped game reset', () => {
+  it('removes the selected lessons’ game results while preserving rewards, settings, and other lesson scores', () => {
+    const selected = MISSIONS.find((mission) => mission.unit === 1)!;
+    const other = MISSIONS.find((mission) => mission.unit === 2)!;
+    const state = {
+      xp: 140, day: '2026-10-13', answeredToday: 4, dayStreak: 3, lastActiveDay: '2026-10-13', sound: false,
+      activity: { '2026-10-13': { minutes: 8, answered: 4 } },
+      raceBest: { [selected.id]: 12.3, [other.id]: 19.4 },
+      robotBeaten: { [selected.id]: 2, [other.id]: 1 },
+      codeLevels: { [selected.id]: 4, [other.id]: 2 },
+      sprintBest: { [selected.id]: 34.5, [other.id]: 45.6 },
+      partFinderBest: 3,
+      preferredLearningVoiceId: 'family-voice',
+      breakPreferences: { intervalMinutes: 20 as const, quietMode: true },
+      displayPreferences: { textSize: 'large' as const, highContrast: true, reducedMotion: true },
+    };
+
+    const reset = resetMissionGameProgress(state, new Set([selected.id]));
+
+    assert.deepEqual(reset.raceBest, { [other.id]: 19.4 });
+    assert.deepEqual(reset.robotBeaten, { [other.id]: 1 });
+    assert.deepEqual(reset.codeLevels, { [other.id]: 2 });
+    assert.deepEqual(reset.sprintBest, { [other.id]: 45.6 });
+    assert.equal(reset.xp, state.xp);
+    assert.equal(reset.dayStreak, state.dayStreak);
+    assert.deepEqual(reset.activity, state.activity);
+    assert.equal(reset.partFinderBest, state.partFinderBest);
+    assert.equal(reset.preferredLearningVoiceId, state.preferredLearningVoiceId);
+    assert.deepEqual(reset.breakPreferences, state.breakPreferences);
+    assert.deepEqual(reset.displayPreferences, state.displayPreferences);
+    assert.deepEqual(loadFun().codeLevels, reset.codeLevels, 'the scoped game reset is saved on this device');
   });
 });
 
@@ -2030,7 +2129,7 @@ describe('grown-ups report', () => {
     // 12 answers: 10 right first time, 2 needed a second try.
     sheet.forEach((p, i) => { record = editWorksheet(record, p.id, i < 10 ? p.answer : 'oops'); record = checkWorksheet(record, p); });
     sheet.slice(10).forEach((p) => { record = editWorksheet(record, p.id, p.answer); record = checkWorksheet(record, p); });
-    record = { ...record, practiceDone: true, checks: { build: { passed: true, supported: false, attempts: 1 }, transfer: { passed: true, supported: true, attempts: 2 } }, misconceptions: { ...record.misconceptions, 'Counting pieces, groups or jumps': 3 } };
+    record = { ...record, practiceDone: true, checks: { build: { passed: true, supported: false, attempts: 1 }, transfer: { passed: true, supported: true, attempts: 2 }, apply: { passed: true, supported: true, attempts: 2 } }, misconceptions: { ...record.misconceptions, 'Counting pieces, groups or jumps': 3 } };
     for (const plan of targetedPracticePlans(id, record)) for (const problem of plan.problems) {
       record = editWorksheet(record, problem.id, problem.answer);
       record = checkWorksheet(record, problem, false);
@@ -2041,7 +2140,7 @@ describe('grown-ups report', () => {
     const report = buildParentReport(progress, fun, titles, now);
     assert.equal(report.lessonsDone, 1); assert.equal(report.stars, 2);
     assert.equal(report.firstTryRate, Math.round((10 / 12) * 100));
-    assert.equal(report.onOwnRate, 50);
+    assert.equal(report.onOwnRate, 33);
     assert.equal(report.units[0].lessons[0].builds, 'With help');
     assert.equal(report.minutesWeek, 17, 'only the last 7 days count'); assert.equal(report.answeredWeek, 11);
     assert.equal(report.toPractice[0].idea, 'Counting pieces, groups or jumps'); assert.equal(report.toPractice[0].count, 3);
@@ -2254,7 +2353,7 @@ describe('Fraction Race rules', () => {
 describe('new tenths + hundredths lesson', () => {
   const core = MISSIONS.filter((m) => m.unit <= 8 && m.id !== 'add-tenths-hundredths');
   const withAll = (ids: string[]) => ids.reduce((progress, id) => {
-    let record = { ...emptyLearningRecord(), practiceDone: true, checks: { build: { passed: true, supported: false, attempts: 1 }, transfer: { passed: true, supported: false, attempts: 1 } } };
+    let record = { ...emptyLearningRecord(), practiceDone: true, checks: Object.fromEntries(getBuildChecks(id).map(check => [check.id, { passed: true, supported: false, attempts: 1 }])) };
     for (const p of getWorksheet(id)) { record = editWorksheet(record, p.id, p.answer); record = checkWorksheet(record, p); }
     return updateLearning({ ...progress, completedMissionIds: [...progress.completedMissionIds, id] }, id, record);
   }, EMPTY_PROGRESS);

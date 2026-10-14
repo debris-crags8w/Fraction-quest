@@ -12,6 +12,13 @@
 .fq-ll-check { scroll-margin-top: 92px; }
 .fq-ll-check h3 { scroll-margin-top: 92px; font-size: clamp(1.3rem, 3vw, 1.8rem); }
 .fq-ll-check h3:focus { outline: 3px solid hsl(var(--ring)); outline-offset: 5px; border-radius: 5px; }
+.fq-ll-build-practice { display: grid; gap: 12px; padding: clamp(16px, 4vw, 28px); border: 2px solid hsl(var(--secondary) / .35); border-radius: 22px; background: hsl(var(--accent) / .12); }
+.fq-ll-build-practice h3 { font-size: clamp(1.15rem, 3vw, 1.55rem); }
+.fq-ll-build-practice > p { margin: 0; color: hsl(var(--muted-foreground)); line-height: 1.45; }
+.fq-ll-build-practice h3:focus { outline: 3px solid hsl(var(--ring)); outline-offset: 5px; border-radius: 5px; }
+.fq-ll-practice-meter { position: relative; min-height: 36px; display: grid; place-items: center; overflow: hidden; border-radius: 99px; background: hsl(var(--muted)); color: hsl(var(--foreground)); font-size: .82rem; font-weight: 900; }
+.fq-ll-practice-meter b { position: absolute; inset: 0 auto 0 0; background: hsl(var(--accent)); }
+.fq-ll-practice-meter span { position: relative; padding: 0 12px; }
 .fq-ll-translate { margin: 4px 0 -4px; font-weight: 900; color: hsl(var(--secondary)); }
 .fq-ll-builder { padding: 16px; border: 2px dashed hsl(var(--secondary) / .4); border-radius: 18px; background: hsl(var(--muted) / .35); display: grid; gap: 12px; }
 .fq-ll-builder h4 { font-size: 1rem; }
