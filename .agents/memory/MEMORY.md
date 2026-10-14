@@ -4,3 +4,4 @@
 - [Student progress privacy](student-progress-privacy.md) — educator-linked progress uses class codes, no student names, and is saved online.
 - [Voice runtime compatibility](mobile-voice-compatibility.md) — guard partial iOS APIs and verify server Kokoro voice assets with real synthesis, not model status alone.
 - [Scoped progress resets](unit-scoped-reset.md) — keep unit-attributable clearing separate from shared rewards, settings, and unlinked progress.
+- [Admin TOTP setup](admin-totp-setup.md) — keep the authenticator seed out of the admin page; enroll from the separately stored secret.
