@@ -1,7 +1,7 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { Router, type IRouter, type NextFunction, type Request, type Response } from "express";
-import { eq } from "drizzle-orm";
-import { db, usersTable } from "@workspace/db";
+import { count, eq, gt, isNotNull } from "drizzle-orm";
+import { db, progressTable, sessionsTable, usersTable } from "@workspace/db";
 import { endAllSessions, hashPassword } from "../lib/auth";
 import { createRateLimiter } from "../lib/rate-limit";
 import { logger } from "../lib/logger";
@@ -121,6 +121,22 @@ router.post("/admin/login", requireAdmin, (req, res) => {
   res.json({ session });
 });
 
+// Aggregate counts only: no learner names or progress contents.
+router.get("/admin/stats", requireAdmin, async (_req, res) => {
+  const now = Date.now();
+  const n = async (q: Promise<{ n: number }[]>) => (await q)[0]?.n ?? 0;
+  const [accounts, newDay, newWeek, withConsent, withProgress, activeSessions, progressWeek] = await Promise.all([
+    n(db.select({ n: count() }).from(usersTable)),
+    n(db.select({ n: count() }).from(usersTable).where(gt(usersTable.createdAt, new Date(now - 864e5)))),
+    n(db.select({ n: count() }).from(usersTable).where(gt(usersTable.createdAt, new Date(now - 7 * 864e5)))),
+    n(db.select({ n: count() }).from(usersTable).where(isNotNull(usersTable.parentConsentAt))),
+    n(db.select({ n: count() }).from(progressTable)),
+    n(db.select({ n: count() }).from(sessionsTable).where(gt(sessionsTable.expiresAt, new Date(now)))),
+    n(db.select({ n: count() }).from(progressTable).where(gt(progressTable.updatedAt, new Date(now - 7 * 864e5)))),
+  ]);
+  res.json({ accounts, newDay, newWeek, withConsent, withProgress, activeSessions, progressWeek });
+});
+
 router.get("/admin/users", requireAdmin, async (_req, res) => {
   const rows = await db.select({
     id: usersTable.id, username: usersTable.username, displayName: usersTable.displayName,
@@ -174,6 +190,7 @@ const ADMIN_PAGE = `<!doctype html><meta charset="utf-8"><meta name="robots" con
 <title>Admin</title><style>body{font:14px system-ui;margin:2rem}td,th{padding:4px 10px;text-align:left}button{margin-right:4px}</style>
 <h1>Account admin</h1>
 <p><input id="t" type="password" placeholder="Admin token" autocomplete="off"> <input id="c" placeholder="6-digit code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" size="8"> <button id="go">Load</button> <span id="m"></span></p>
+<p id="st"></p>
 <table id="tb"></table>
 <script>
 const $=id=>document.getElementById(id);let tok="";
@@ -188,6 +205,7 @@ async function load(){
   try{
     if(!tok){const r=await fetch("/api/admin/login",{method:"POST",headers:{Authorization:"Bearer "+$("t").value,"X-Admin-Code":$("c").value}});
       $("t").value="";$("c").value="";const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.status);tok=j.session}
+    const S=await api("/stats");$("st").textContent="Accounts: "+S.accounts+" | New 24h: "+S.newDay+" | New 7d: "+S.newWeek+" | Parent consent: "+S.withConsent+" | Saved progress: "+S.withProgress+" | Active learners 7d: "+S.progressWeek+" | Signed-in sessions: "+S.activeSessions;
     const {users}=await api("/users");const tb=$("tb");tb.textContent="";
     for(const u of users){const tr=tb.insertRow();cell(tr,u.id);cell(tr,u.username);cell(tr,u.displayName);cell(tr,(u.createdAt||"").slice(0,10));
       const a=cell(tr,"");
