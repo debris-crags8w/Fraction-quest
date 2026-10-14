@@ -966,15 +966,15 @@ describe('entered-answer worksheets and evidence gates', () => {
 
   it('keeps answer keys out of every student printable and student print choices', () => {
     assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.label.toLowerCase().includes('answer key')), false);
-    assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.mode === 'answers'), true);
+    assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.mode === 'blank' && option.label === 'Worksheet'), true);
+    assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.label.toLowerCase() === 'my answers'), false);
     const record = emptyLearningRecord();
-    const menu = renderToStaticMarkup(createElement(PrintMenu, { missionId: 'number-line-basics', record }));
-    assert.doesNotMatch(menu, /answer key/i);
+    const menu = renderToStaticMarkup(createElement(PrintMenu, { missionId: 'number-line-basics' }));
+    assert.doesNotMatch(menu, /answer key|my answers/i);
 
     for (const { mode } of STUDENT_PRINT_OPTIONS) {
       const markup = renderToStaticMarkup(createElement(Printable, {
         missionId: 'number-line-basics',
-        record,
         mode,
         seed: 1,
       }));
@@ -983,7 +983,6 @@ describe('entered-answer worksheets and evidence gates', () => {
 
     const generated = renderToStaticMarkup(createElement(Printable, {
       missionId: 'number-line-basics',
-      record,
       mode: 'generated',
       seed: 1,
     }));
@@ -991,18 +990,20 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.doesNotMatch(generated, /Cut this part off/i);
   });
 
-  it('keeps the student’s own checked responses on the My answers sheet', () => {
+  it('prints a blank worksheet without exposing or changing saved lesson answers', () => {
     const problem = getWorksheet('number-line-basics')[0];
     const record = checkWorksheet(editWorksheet(emptyLearningRecord(), problem.id, problem.answer), problem);
     const markup = renderToStaticMarkup(createElement(Printable, {
       missionId: 'number-line-basics',
-      record,
-      mode: 'answers',
+      mode: 'blank',
     }));
 
-    assert.match(markup, /My answers/);
-    assert.match(markup, new RegExp(`<b>${problem.answer}<\\/b>`));
-    assert.match(markup, /✓ Correct/);
+    assert.match(markup, /data-testid="print-worksheet-blank"/);
+    assert.doesNotMatch(markup, /My answers|✓ Correct|Worksheet: 1 of 12 correct/);
+    const answerFields = [...markup.matchAll(/<div class="fq-print-answer">([\s\S]*?)<\/div>/g)];
+    assert.equal(answerFields.length, 12);
+    assert.ok(answerFields.every(([, field]) => /<span>Answer:<\/span><b><\/b>/.test(field)));
+    assert.equal(record.worksheet[problem.id]?.checkedValue, problem.answer);
   });
 
   it('keeps the grown-up answer key printable with practice, worksheet, and model solutions', () => {

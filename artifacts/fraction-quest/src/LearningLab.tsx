@@ -548,7 +548,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
     <div className="fq-ll" data-testid="learning-lab">
       <TaskBar onBack={onBack} testId="button-lab-back" title={getMission(missionId).shortTitle}
         actions={<div className="fq-ll-print" role="group" aria-label="Print">
-          <PrintMenu missionId={missionId} record={rec} />
+          <PrintMenu missionId={missionId} />
           {onPaper && <button type="button" className="fq-button ghost" onClick={onPaper} data-testid="button-check-paper" aria-label="Check my paper"><ClipboardCheck size={17} /><span className="fq-hide-narrow"> Check my paper</span></button>}
         </div>} />
 

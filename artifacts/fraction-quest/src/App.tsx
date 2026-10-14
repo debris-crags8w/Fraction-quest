@@ -544,7 +544,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
                             {unlocked && (
                               <div className="fq-node-tools">
                                 {hasGenerator(mission.id) && <button className="fq-button ghost" onClick={() => onExtra(mission.id)} data-testid={`button-practice-more-${mission.id}`}><Dumbbell size={17} /> Practice more</button>}
-                                <PrintMenu missionId={mission.id} record={learning} />
+                                <PrintMenu missionId={mission.id} />
                                 <button className="fq-button ghost" onClick={() => onPaper(mission.id)} data-testid={`button-check-paper-${mission.id}`}><ClipboardCheck size={17} /> Check my paper</button>
                                 <button className="fq-button ghost" onClick={() => onGame('race', mission.id)} data-testid={`button-race-${mission.id}`}><Zap size={17} /> Race</button>
                                 <button className="fq-button ghost" onClick={() => onGame('code', mission.id)} data-testid={`button-code-${mission.id}`}><Code2 size={17} /> Code</button>
