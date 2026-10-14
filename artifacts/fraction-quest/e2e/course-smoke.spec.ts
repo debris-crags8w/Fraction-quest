@@ -159,7 +159,8 @@ async function enterModel(
 }
 
 async function completeBuilds(page: import('@playwright/test').Page, missionId: string) {
-  for (const check of getBuildChecks(missionId)) {
+  const checks = getBuildChecks(missionId);
+  for (const [index, check] of checks.entries()) {
     await enterModel(page, check.id, 'a', check.target);
     await expect(page.getByTestId(`status-primary-${check.id}`)).toBeVisible();
     await enterModel(page, check.id, 'b', {
@@ -174,8 +175,12 @@ async function completeBuilds(page: import('@playwright/test').Page, missionId: 
     await expect(page.getByTestId(`status-pass-${check.id}`)).toBeVisible();
     await expect(page.getByTestId(`check-${check.id}`)).toBeVisible();
     await page.getByTestId(`button-next-${check.id}`).click();
-    if (check.id === 'build') await expect(page.getByTestId('check-transfer')).toBeVisible();
-    else await expect(page.getByTestId('section-worksheet')).toBeVisible();
+    const nextCheck = checks[index + 1];
+    if (nextCheck) await expect(page.getByTestId(`check-${nextCheck.id}`)).toBeVisible();
+    else {
+      await expect(page.getByTestId('section-build-practice')).toBeVisible();
+      await expect(page.getByTestId('section-worksheet')).toBeVisible();
+    }
   }
 }
 

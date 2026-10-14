@@ -34,6 +34,37 @@ export function getLearningRecord(progress: Progress, id: string): LearningRecor
 export function updateLearning(progress: Progress, id: string, record: LearningRecord): Progress {
   return { ...progress, learning: { ...progress.learning, [id]: record } };
 }
+
+/** Clear one unit's lesson evidence while preserving progress and practice from every other unit. */
+export function resetUnitLearningProgress(progress: Progress, missionIds: ReadonlySet<string>, unit: number): Progress {
+  const learning = Object.fromEntries(Object.entries(progress.learning ?? {}).filter(([id]) => !missionIds.has(id)));
+  const starsByMission = Object.fromEntries(Object.entries(progress.starsByMission).filter(([id]) => !missionIds.has(id)));
+  const dailyPractice = progress.dailyPractice;
+  const keptDailyQuestions = dailyPractice?.questions.filter((question) => !missionIds.has(question.missionId));
+  const removedDailyQuestionIds = new Set(
+    dailyPractice?.questions.filter((question) => missionIds.has(question.missionId)).map((question) => question.id) ?? [],
+  );
+  const keptBeforeCurrent = dailyPractice
+    ? dailyPractice.questions.slice(0, dailyPractice.index).filter((question) => !missionIds.has(question.missionId)).length
+    : 0;
+  const attempts = dailyPractice
+    ? Object.fromEntries(Object.entries(dailyPractice.attempts).filter(([id]) => !removedDailyQuestionIds.has(id)))
+    : undefined;
+  const nextDailyPractice = dailyPractice && keptDailyQuestions?.length
+    ? { ...dailyPractice, questions: keptDailyQuestions, index: Math.min(keptBeforeCurrent, keptDailyQuestions.length), attempts: attempts ?? dailyPractice.attempts }
+    : undefined;
+
+  return {
+    ...progress,
+    completedMissionIds: progress.completedMissionIds.filter((id) => !missionIds.has(id)),
+    starsByMission,
+    learning,
+    reviewQueue: progress.reviewQueue.filter((item) => !missionIds.has(item.missionId)),
+    challengeBest: Object.fromEntries(Object.entries(progress.challengeBest ?? {}).filter(([savedUnit]) => savedUnit !== String(unit))),
+    ...(nextDailyPractice ? { dailyPractice: nextDailyPractice } : { dailyPractice: undefined }),
+  };
+}
+
 export type TargetedPracticePlan = { signal: string; problems: WorksheetProblem[] };
 const stableHash = (value: string) => {
   let hash = 2166136261;
