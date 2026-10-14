@@ -21,8 +21,8 @@ Treat browser APIs as partially implemented on mobile Safari and embedded browse
 
 ### Replit Expo DevTools on Nix
 
-React Native 0.86.3's optional Linux DevTools binary needs the `glib` system package (`libglib-2.0.so.0`). Expo can continue starting Metro without it, but logs a DevTools installation error.
+The `react-native-devtools` launcher is a DotSlash manifest, not the native executable. Locate DotSlash's downloaded ELF before running `ldd`. Missing libraries are reported sequentially, so adding the first one may reveal more. In this environment `libgbm.so.1` comes from the separate Nix `libgbm` attribute; adding `mesa` alone does not expose it.
 
-**Why:** the warning persisted through an Expo restart until the Nix environment included GLib; after installation Metro started without the warning.
+**Why:** installing only `glib` or `nspr` cleared the first loader error but exposed later missing libraries; Expo kept Metro alive while DevTools failed to install.
 
-**How to apply:** add `glib` with the system-dependency installer when this exact missing-library warning appears; do not change Expo app code or disable DevTools as a workaround.
+**How to apply:** use the exact missing-library output and `ldd` on the cached ELF to identify required Nix attributes, then restart Expo and confirm both that the loader error is gone and that Metro reports `packager-status:running`.
