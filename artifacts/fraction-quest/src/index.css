@@ -978,6 +978,39 @@
   .fq-modal h2 { margin: 0; font-size: 1.5rem; letter-spacing: -0.05em; }
   .fq-modal p { color: hsl(var(--muted-foreground)); line-height: 1.5; }
   .fq-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+  .fq-reset-modal { width: min(100%, 560px); max-height: min(90vh, 800px); overflow-y: auto; }
+  .fq-reset-unit-select { display: grid; gap: 7px; margin: 18px 0; }
+  .fq-reset-unit-select select {
+    width: 100%;
+    min-height: 44px;
+    padding: 9px 12px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 10px;
+    color: hsl(var(--foreground));
+    background: hsl(var(--background));
+    font: inherit;
+  }
+  .fq-reset-preview {
+    padding: 14px 16px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 14px;
+    background: hsl(var(--muted) / 0.35);
+  }
+  .fq-reset-preview h3 { margin: 0 0 8px; font-size: 1rem; }
+  .fq-reset-preview ul { display: grid; gap: 8px; max-height: 220px; overflow-y: auto; margin: 0; padding-left: 20px; }
+  .fq-reset-preview li { padding-left: 2px; line-height: 1.4; }
+  .fq-reset-preview p { margin: 8px 0 0; font-size: 0.92rem; }
+  .fq-reset-all-link {
+    display: block;
+    margin: 16px auto 0;
+    padding: 6px;
+    border: 0;
+    color: hsl(var(--muted-foreground));
+    background: transparent;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
 
   .fq-appear {
     animation: fq-appear 420ms ease both;

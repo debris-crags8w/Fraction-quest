@@ -34,6 +34,37 @@ export function getLearningRecord(progress: Progress, id: string): LearningRecor
 export function updateLearning(progress: Progress, id: string, record: LearningRecord): Progress {
   return { ...progress, learning: { ...progress.learning, [id]: record } };
 }
+
+/** Clear one unit's lesson evidence while preserving progress and practice from every other unit. */
+export function resetUnitLearningProgress(progress: Progress, missionIds: ReadonlySet<string>, unit: number): Progress {
+  const learning = Object.fromEntries(Object.entries(progress.learning ?? {}).filter(([id]) => !missionIds.has(id)));
+  const starsByMission = Object.fromEntries(Object.entries(progress.starsByMission).filter(([id]) => !missionIds.has(id)));
+  const dailyPractice = progress.dailyPractice;
+  const keptDailyQuestions = dailyPractice?.questions.filter((question) => !missionIds.has(question.missionId));
+  const removedDailyQuestionIds = new Set(
+    dailyPractice?.questions.filter((question) => missionIds.has(question.missionId)).map((question) => question.id) ?? [],
+  );
+  const keptBeforeCurrent = dailyPractice
+    ? dailyPractice.questions.slice(0, dailyPractice.index).filter((question) => !missionIds.has(question.missionId)).length
+    : 0;
+  const attempts = dailyPractice
+    ? Object.fromEntries(Object.entries(dailyPractice.attempts).filter(([id]) => !removedDailyQuestionIds.has(id)))
+    : undefined;
+  const nextDailyPractice = dailyPractice && keptDailyQuestions?.length
+    ? { ...dailyPractice, questions: keptDailyQuestions, index: Math.min(keptBeforeCurrent, keptDailyQuestions.length), attempts: attempts ?? dailyPractice.attempts }
+    : undefined;
+
+  return {
+    ...progress,
+    completedMissionIds: progress.completedMissionIds.filter((id) => !missionIds.has(id)),
+    starsByMission,
+    learning,
+    reviewQueue: progress.reviewQueue.filter((item) => !missionIds.has(item.missionId)),
+    challengeBest: Object.fromEntries(Object.entries(progress.challengeBest ?? {}).filter(([savedUnit]) => savedUnit !== String(unit))),
+    ...(nextDailyPractice ? { dailyPractice: nextDailyPractice } : { dailyPractice: undefined }),
+  };
+}
+
 export type TargetedPracticePlan = { signal: string; problems: WorksheetProblem[] };
 const stableHash = (value: string) => {
   let hash = 2166136261;
@@ -133,6 +164,28 @@ export function redoWorksheet(id: string, redo: RedoAttempt): WorksheetProblem[]
   });
 }
 const rowCorrect = (p: WorksheetProblem, entry?: WorksheetEntry) => !!entry && entry.checkedValue === entry.draft && answerMatches(p, entry.draft);
+export type WorksheetProblemProgressState = 'complete' | 'current' | 'retry' | 'upcoming';
+export type WorksheetProblemProgressItem = {
+  problemId: string;
+  status: WorksheetProblemProgressState;
+  current: boolean;
+};
+/** Statuses for the numbered worksheet overview, using the same checked-answer rule as worksheet completion. */
+export function worksheetProblemProgress(record: LearningRecord, problems: WorksheetProblem[]): WorksheetProblemProgressItem[] {
+  const complete = problems.map(problem => rowCorrect(problem, record.worksheet[problem.id]));
+  const currentIndex = complete.findIndex(isComplete => !isComplete);
+  return problems.map((problem, index) => {
+    const entry = record.worksheet[problem.id];
+    const current = index === currentIndex;
+    return {
+      problemId: problem.id,
+      current,
+      status: complete[index] ? 'complete'
+        : (entry?.attempts ?? 0) > 0 ? 'retry'
+          : current ? 'current' : 'upcoming',
+    };
+  });
+}
 export function redoWorksheetCount(id: string, redo: RedoAttempt): number {
   return redoWorksheet(id, redo).filter(p => rowCorrect(p, redo.worksheet[p.id])).length;
 }
