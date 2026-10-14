@@ -1,5 +1,5 @@
 import type { Progress } from './game';
-import { answerMatches, getBuildChecks, getReviewCheck, getWorksheet, type BuildCheck, type WorksheetProblem } from './learning-content';
+import { answerMatches, getBuildChecks, getBuildPracticeChecks, getWorksheet, type BuildCheck, type WorksheetProblem } from './learning-content';
 
 export type WorksheetEntry = { draft: string; checkedValue?: string; attempts: number; supported: boolean };
 export type CheckEvidence = { passed: boolean; supported: boolean; attempts: number };
@@ -75,15 +75,23 @@ export function worksheetCount(record: LearningRecord, id: string): number {
     return entry?.checkedValue === entry?.draft && !!entry && answerMatches(problem, entry.draft);
   }).length;
 }
+/** Keep the newly added required check from re-locking lessons completed before it existed. */
+export function requiredBuildChecks(progress: Progress, id: string): BuildCheck[] {
+  const record = getLearningRecord(progress, id);
+  const completedBeforeApplyStep = progress.completedMissionIds.includes(id)
+    && typeof record.completedAt === 'number'
+    && !record.checks.apply?.passed;
+  return getBuildChecks(id).filter(check => !(completedBeforeApplyStep && check.id === 'apply'));
+}
 export function hasLearningGate(progress: Progress, id: string): boolean {
   const record = getLearningRecord(progress, id);
   const reteach = targetedPracticeCount(id, record);
-  return !!record.practiceDone && getBuildChecks(id).every(check => record.checks[check.id]?.passed)
+  return !!record.practiceDone && requiredBuildChecks(progress, id).every(check => record.checks[check.id]?.passed)
     && worksheetCount(record, id) === 12 && reteach.done === reteach.total;
 }
 /** A lesson's steps as a fraction, for its badge on the map: each build check, then the worksheet. */
 export function lessonSteps(progress: Progress, id: string): { done: number; total: number } {
-  const checks = getBuildChecks(id);
+  const checks = requiredBuildChecks(progress, id);
   const total = checks.length + 1;
   if (hasLearningGate(progress, id)) return { done: total, total };
   const record = getLearningRecord(progress, id);
@@ -128,18 +136,12 @@ const rowCorrect = (p: WorksheetProblem, entry?: WorksheetEntry) => !!entry && e
 export function redoWorksheetCount(id: string, redo: RedoAttempt): number {
   return redoWorksheet(id, redo).filter(p => rowCorrect(p, redo.worksheet[p.id])).length;
 }
-/** Two new builds from the lesson's review set (not the builds the child already did). */
+/** Two new builds from the lesson's optional question bank (not the builds the child already did). */
 export function redoChecks(id: string, round: number): BuildCheck[] {
-  const used = new Set(getBuildChecks(id).map(c => JSON.stringify(c.target)));
-  const picked: BuildCheck[] = [];
-  for (let r = (round - 1) * 2; picked.length < 2 && r < (round - 1) * 2 + 12; r++) {
-    const check = getReviewCheck(id, r); const key = JSON.stringify(check.target);
-    if (used.has(key)) continue;
-    used.add(key); picked.push({ ...check, id: `redo-${picked.length + 1}`, transfer: picked.length === 1 });
-  }
-  // Lessons with few review targets fall back to their own builds.
-  for (const check of getBuildChecks(id)) if (picked.length < 2) picked.push({ ...check, id: `redo-${picked.length + 1}` });
-  return picked;
+  const batch = Math.max(0, Math.floor(round) - 1);
+  return getBuildPracticeChecks(id, batch).slice(0, 2).map((check, index) => ({
+    ...check, id: `redo-${index + 1}`, transfer: index === 1, stepLabel: `Redo build ${index + 1}`,
+  }));
 }
 export function redoDone(id: string, redo: RedoAttempt): boolean {
   return redo.part === 'worksheet'

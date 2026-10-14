@@ -311,7 +311,7 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
           {menu}
           <button className="fq-icon-button" onClick={() => setFun(setSound(fun, !fun.sound))} aria-label={fun.sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={fun.sound} data-testid="button-toggle-sound">{fun.sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
           {/* With a menu (the map), reset lives in it under Grown-ups so the bar fits a phone. */}
-          {!menu && <button className="fq-icon-button" onClick={onReset} aria-label="Reset progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>}
+          {!menu && <button className="fq-icon-button" onClick={onReset} aria-label="Reset units and lesson activity" data-testid="button-reset-progress"><RotateCcw size={18} /></button>}
           <div className="fq-account">
             <StatTip testId="button-tip-account" label={`Playing as ${account.activeProfile?.displayName ?? 'a guest'}. What is this?`}
               tip={<><strong>{account.activeProfile ? `Playing as ${account.activeProfile.displayName}.` : 'Playing as a guest.'}</strong> {account.user ? 'Progress is saved to your family account.' : 'Progress stays on this device.'}
@@ -392,7 +392,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
         ] },
         { title: 'Grown-ups', items: [
           { id: 'parent', icon: <BarChart3 size={18} />, label: 'Progress report and settings', testId: 'button-open-parent', onSelect: onParent, note: 'Time this week, what to practice, voices, answer keys' },
-          { id: 'reset', icon: <RotateCcw size={18} />, label: 'Reset progress', testId: 'button-reset-progress', onSelect: onReset, note: 'Start the course over on this device' },
+          { id: 'reset', icon: <RotateCcw size={18} />, label: 'Reset units and lesson activity', testId: 'button-reset-progress', onSelect: onReset, note: 'Clear this learner’s unit progress, answers and saved practice' },
         ] },
       ]}
       footer={<details className="fq-menu-about"><summary>About this learning path</summary><p>
@@ -1240,11 +1240,11 @@ function Game() {
         <div className="fq-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setResetOpen(false); }}>
           <div className="fq-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description">
             <button className="fq-icon-button fq-modal-close" onClick={() => setResetOpen(false)} aria-label="Close reset dialog" data-testid="button-close-reset"><X size={18} /></button>
-            <h2 id="reset-title">Start the map over?</h2>
-            <p id="reset-description">{account.user ? `This clears ${account.activeProfile?.displayName ?? 'this learner'}’s lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
+            <h2 id="reset-title">Reset units and lesson activity?</h2>
+            <p id="reset-description">{account.user ? `This clears ${account.activeProfile?.displayName ?? 'this learner'}’s unit progress, lesson answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on every device.` : 'This clears unit progress, lesson answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
             <div className="fq-modal-actions">
               <button className="fq-button ghost" onClick={() => setResetOpen(false)} data-testid="button-cancel-reset">Keep exploring</button>
-              <button className="fq-button" onClick={resetProgress} data-testid="button-confirm-reset">Reset progress</button>
+              <button className="fq-button" onClick={resetProgress} data-testid="button-confirm-reset">Reset units and activity</button>
             </div>
           </div>
         </div>

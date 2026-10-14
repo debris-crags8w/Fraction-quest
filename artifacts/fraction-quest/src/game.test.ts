@@ -26,7 +26,7 @@ import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './pr
 import { createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
 import { DailyPracticeQuestionHeading } from './DailyPracticeQuestionHeading';
 import type { PracticeQuestion } from './game';
-import { REASON_IDEAS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
+import { REASON_IDEAS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
 import { AnswerTiles } from './AnswerTiles';
 import {
   createLearningSpeechController,
@@ -1041,7 +1041,7 @@ describe('entered-answer worksheets and evidence gates', () => {
     const expected = ['3', '1', '3', '1/2', '2', '4', '1/4', '1/3', '3/4', '3', '1/3', '4/3', '2/3', '2/3', '1/3, 2/3, 3/3', '2', '2/6', '2', '2/3', '2', '>', '4/3', '2/3', '1/3', '3/4', '0.1', '0.08', '34/100'];
     MISSIONS.slice(0, expected.length).forEach((mission, index) => assert.equal(getWorksheet(mission.id)[0].answer, expected[index], mission.id));
   });
-  it('authors twelve valid problems and two skill checks for every topic', () => {
+  it('authors twelve valid problems and three required Build checks for every topic', () => {
     for (const mission of MISSIONS) {
       const problems = getWorksheet(mission.id); const checks = getBuildChecks(mission.id);
       assert.equal(problems.length, 12, mission.id);
@@ -1052,9 +1052,12 @@ describe('entered-answer worksheets and evidence gates', () => {
         assert.equal(answerMatches(p, ''), false); assert.equal(answerMatches(p, '1/0'), false);
         assert.ok(p.hint.length > 10);
       });
-      assert.equal(checks.length, 2);
+      assert.equal(checks.length, 3);
       assert.equal(checks[1].transfer, true);
       assert.notDeepEqual(checks[0].target, checks[1].target, `${mission.id}: transfer must use new numbers`);
+      assert.equal(checks[0].stepLabel, 'Step 1 · Build it');
+      assert.equal(checks[2].stepLabel, 'Step 3 · Apply it');
+      assert.ok(checks.every((check, i) => checks.slice(i + 1).every(next => JSON.stringify(next.target) !== JSON.stringify(check.target))), `${mission.id}: each required Build target must differ`);
       checks.forEach(c => {
         assert.ok(c.correctReason >= 0 && c.correctReason < c.reasons.length);
         assert.ok(c.target.n > 0 && c.target.d > 0 && c.target.n <= c.target.d * c.target.wholes);
@@ -1066,6 +1069,22 @@ describe('entered-answer worksheets and evidence gates', () => {
         assert.ok(review.target.n <= review.target.d * review.target.wholes);
         assert.ok(review.reasons[review.correctReason]);
       }
+    }
+  });
+  it('provides ten optional Build questions per lesson and a fresh next set', () => {
+    for (const mission of MISSIONS) {
+      const first = getBuildPracticeChecks(mission.id);
+      assert.equal(first.length, 10, mission.id);
+      assert.equal(new Set(first.map(check => JSON.stringify(check.target))).size, 10, `${mission.id}: duplicate target in the first set`);
+      first.forEach(check => {
+        assert.ok(check.target.n > 0 && check.target.d > 1 && check.target.n <= check.target.d * check.target.wholes, `${mission.id}: invalid optional target`);
+      });
+    }
+    for (const id of ['equal-parts', 'sets-unit-fractions', 'number-line-basics', 'whole-numbers-as-fractions']) {
+      const first = getBuildPracticeChecks(id);
+      const second = getBuildPracticeChecks(id, 1);
+      assert.equal(second.length, 10, `${id}: second set`);
+      assert.ok(first.every(check => !second.some(next => JSON.stringify(next.target) === JSON.stringify(check.target))), `${id}: the next set repeats a question`);
     }
   });
   it('accepts equivalent values without rounding and respects requested forms', () => {
@@ -2030,7 +2049,7 @@ describe('grown-ups report', () => {
     // 12 answers: 10 right first time, 2 needed a second try.
     sheet.forEach((p, i) => { record = editWorksheet(record, p.id, i < 10 ? p.answer : 'oops'); record = checkWorksheet(record, p); });
     sheet.slice(10).forEach((p) => { record = editWorksheet(record, p.id, p.answer); record = checkWorksheet(record, p); });
-    record = { ...record, practiceDone: true, checks: { build: { passed: true, supported: false, attempts: 1 }, transfer: { passed: true, supported: true, attempts: 2 } }, misconceptions: { ...record.misconceptions, 'Counting pieces, groups or jumps': 3 } };
+    record = { ...record, practiceDone: true, checks: { build: { passed: true, supported: false, attempts: 1 }, transfer: { passed: true, supported: true, attempts: 2 }, apply: { passed: true, supported: true, attempts: 2 } }, misconceptions: { ...record.misconceptions, 'Counting pieces, groups or jumps': 3 } };
     for (const plan of targetedPracticePlans(id, record)) for (const problem of plan.problems) {
       record = editWorksheet(record, problem.id, problem.answer);
       record = checkWorksheet(record, problem, false);
@@ -2041,7 +2060,7 @@ describe('grown-ups report', () => {
     const report = buildParentReport(progress, fun, titles, now);
     assert.equal(report.lessonsDone, 1); assert.equal(report.stars, 2);
     assert.equal(report.firstTryRate, Math.round((10 / 12) * 100));
-    assert.equal(report.onOwnRate, 50);
+    assert.equal(report.onOwnRate, 33);
     assert.equal(report.units[0].lessons[0].builds, 'With help');
     assert.equal(report.minutesWeek, 17, 'only the last 7 days count'); assert.equal(report.answeredWeek, 11);
     assert.equal(report.toPractice[0].idea, 'Counting pieces, groups or jumps'); assert.equal(report.toPractice[0].count, 3);
@@ -2254,7 +2273,7 @@ describe('Fraction Race rules', () => {
 describe('new tenths + hundredths lesson', () => {
   const core = MISSIONS.filter((m) => m.unit <= 8 && m.id !== 'add-tenths-hundredths');
   const withAll = (ids: string[]) => ids.reduce((progress, id) => {
-    let record = { ...emptyLearningRecord(), practiceDone: true, checks: { build: { passed: true, supported: false, attempts: 1 }, transfer: { passed: true, supported: false, attempts: 1 } } };
+    let record = { ...emptyLearningRecord(), practiceDone: true, checks: Object.fromEntries(getBuildChecks(id).map(check => [check.id, { passed: true, supported: false, attempts: 1 }])) };
     for (const p of getWorksheet(id)) { record = editWorksheet(record, p.id, p.answer); record = checkWorksheet(record, p); }
     return updateLearning({ ...progress, completedMissionIds: [...progress.completedMissionIds, id] }, id, record);
   }, EMPTY_PROGRESS);
