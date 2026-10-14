@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><title>Design B: Sidebar</title>
+<style>body{font:14px system-ui;margin:0;display:flex;min-height:100vh}nav{width:190px;background:#12372a;color:#fff;padding:18px}nav a{display:block;color:#cfe;padding:8px 0}
+main{flex:1;padding:24px}.k{display:flex;gap:24px;margin-bottom:16px;font-size:13px;color:#555}.k b{font-size:20px;color:#000}.pane{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+table{border-collapse:collapse;width:100%}td,th{padding:7px;text-align:left;border-bottom:1px solid #ddd}.box{border:1px solid #ddd;border-radius:8px;padding:14px}input{padding:6px}</style>
+<nav><b>Admin</b><a>Overview</a><a>Accounts</a><a>Progress lookup</a><a>Audit log</a><a>Sign out</a></nav>
+<main><h2>Overview (design B: sidebar, sample data)</h2><div class="k"><span><b>4</b><br>accounts</span><span><b>3</b><br>active 7d</span><span><b>2</b><br>new 7d</span></div>
+<div class="pane"><div><table><tr><th>ID</th><th>Username</th><th>Name</th><th>Lessons</th><th>XP</th><th>Streak</th><th>Last active</th></tr><tr><td>1</td><td>maple_fox</td><td>Maple</td><td>14</td><td>520</td><td>5</td><td>Today</td></tr><tr><td>2</td><td>river_9</td><td>River</td><td>6</td><td>210</td><td>2</td><td>2 days ago</td></tr><tr><td>3</td><td>sky_star</td><td>Sky</td><td>31</td><td>1180</td><td>12</td><td>Today</td></tr><tr><td>4</td><td>otter22</td><td>Otter</td><td>0</td><td>0</td><td>0</td><td>Never</td></tr></table></div><div class="box"><p><input placeholder="Username" value="maple_fox"> <button>Show</button></p>
+<p>Lessons 14 | Stars 31 | XP 520 | Streak 5</p><p>Last 14 days: ▂▅▇▃▁▆▇▅▂▁▄▆▇▅</p><button>Reset password</button> <button>Sign out</button></div></div></main>
