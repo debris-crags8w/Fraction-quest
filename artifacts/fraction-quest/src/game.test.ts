@@ -20,7 +20,7 @@ import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './Fra
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
 import { CODE_LEVEL_COUNT, describe as describeRun, getCodeLevels, getRunHint, makeMultiBug, matchesTarget, passesCodeLevel, predictionMatchesTarget, runProgram, solution, toText, usesEffectiveLoop, usesLoop, type Block } from './code-quest';
 import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
-import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, shownStreak } from './lib/fun';
+import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, resetMissionGameProgress, shownStreak } from './lib/fun';
 import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderRoundsFor, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
 import { createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
@@ -40,7 +40,7 @@ import {
 import { BarSvg } from './models';
 import Printable, { AnswerKey, PrintMenu, STUDENT_PRINT_OPTIONS } from './Printables';
 import { barTaskDone, canEnterWorksheetAnswer, WorksheetBarCopy, worksheetBarMatches } from './WorksheetBarCopy';
-import { checkRedoRow, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, lessonSteps, redoChecks, redoDone, redoWorksheet, redoWorksheetCount, startRedo, targetedPracticePlans, updateLearning, worksheetCount, type LearningRecord } from './learning';
+import { checkRedoRow, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, lessonSteps, redoChecks, redoDone, redoWorksheet, redoWorksheetCount, resetUnitLearningProgress, startRedo, targetedPracticePlans, updateLearning, worksheetCount, type LearningRecord } from './learning';
 import QuickReviewEntry from './QuickReviewEntry';
 import {
   completeMission,
@@ -546,6 +546,51 @@ describe('saved progress', () => {
 
     assert.deepEqual(resetProgress(), EMPTY_PROGRESS);
     assert.deepEqual(loadProgress(), EMPTY_PROGRESS);
+  });
+
+  it('resets only one unit and removes just its topics from saved daily practice', () => {
+    const inUnit = MISSIONS.find((mission) => mission.unit === 1)!;
+    const otherUnit = MISSIONS.find((mission) => mission.unit === 2)!;
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      completedMissionIds: [inUnit.id, otherUnit.id],
+      starsByMission: { [inUnit.id]: 3, [otherUnit.id]: 2 },
+      learning: {
+        [inUnit.id]: { ...emptyLearningRecord(), practiceDone: true, worksheet: { w1: { draft: '1/2', attempts: 1, supported: false } } },
+        [otherUnit.id]: { ...emptyLearningRecord(), practiceDone: true },
+      },
+      reviewQueue: [
+        { missionId: inUnit.id, missedQuestionId: inUnit.questions[0].id, dueAt: 100, reviewCount: 1 },
+        { missionId: otherUnit.id, missedQuestionId: otherUnit.questions[0].id, dueAt: 200, reviewCount: 0 },
+      ],
+      challengeBest: { '1': 18, '2': 14 },
+      dailyPractice: {
+        day: '2026-10-13', startedAt: 10,
+        questions: [
+          { id: 'daily-in-1', missionId: inUnit.id, topicTitle: inUnit.title, modelKind: 'bar', numerator: 1, denominator: 2, explanation: 'in-unit' },
+          { id: 'daily-out', missionId: otherUnit.id, topicTitle: otherUnit.title, modelKind: 'bar', numerator: 1, denominator: 3, explanation: 'other-unit' },
+          { id: 'daily-in-2', missionId: inUnit.id, topicTitle: inUnit.title, modelKind: 'bar', numerator: 2, denominator: 3, explanation: 'in-unit' },
+        ],
+        index: 2,
+        attempts: { 'daily-in-1': { shaded: [], draft: '1/2', modelChecked: true, modelCorrect: true, answerChecked: true, answerCorrect: true },
+          'daily-out': { shaded: [], draft: '', modelChecked: false, modelCorrect: false, answerChecked: false, answerCorrect: false } },
+      },
+      assessments: [{ assessmentId: 'grade-middle', seed: 4, startedAt: 10, completedAt: 20, responses: [] }],
+    };
+
+    const reset = resetUnitLearningProgress(progress, new Set([inUnit.id]), 1);
+
+    assert.deepEqual(reset.completedMissionIds, [otherUnit.id]);
+    assert.deepEqual(reset.starsByMission, { [otherUnit.id]: 2 });
+    assert.equal(reset.learning?.[inUnit.id], undefined);
+    assert.deepEqual(reset.learning?.[otherUnit.id], progress.learning?.[otherUnit.id]);
+    assert.deepEqual(reset.reviewQueue.map((item) => item.missionId), [otherUnit.id]);
+    assert.deepEqual(reset.challengeBest, { '2': 14 });
+    assert.deepEqual(reset.dailyPractice?.questions.map((question) => question.id), ['daily-out']);
+    assert.equal(reset.dailyPractice?.index, 1, 'keeps the cursor after previously completed other-unit topics');
+    assert.deepEqual(Object.keys(reset.dailyPractice?.attempts ?? {}), ['daily-out']);
+    assert.deepEqual(reset.assessments, progress.assessments, 'unit reset does not clear broader check-ins');
+    assert.deepEqual(progress.completedMissionIds, [inUnit.id, otherUnit.id], 'the source snapshot is unchanged');
   });
 
   it('migrates completion and stars from the three original trails', () => {
@@ -1554,6 +1599,40 @@ describe('Part Finder rounds', () => {
     assert.equal(scorePartFinderRound(2, true), 3);
     assert.equal(scorePartFinderRound(3, true), 4);
     assert.equal(scorePartFinderRound(4, true), 4);
+  });
+});
+
+describe('unit-scoped game reset', () => {
+  it('removes the selected lessons’ game results while preserving rewards, settings, and other lesson scores', () => {
+    const selected = MISSIONS.find((mission) => mission.unit === 1)!;
+    const other = MISSIONS.find((mission) => mission.unit === 2)!;
+    const state = {
+      xp: 140, day: '2026-10-13', answeredToday: 4, dayStreak: 3, lastActiveDay: '2026-10-13', sound: false,
+      activity: { '2026-10-13': { minutes: 8, answered: 4 } },
+      raceBest: { [selected.id]: 12.3, [other.id]: 19.4 },
+      robotBeaten: { [selected.id]: 2, [other.id]: 1 },
+      codeLevels: { [selected.id]: 4, [other.id]: 2 },
+      sprintBest: { [selected.id]: 34.5, [other.id]: 45.6 },
+      partFinderBest: 3,
+      preferredLearningVoiceId: 'family-voice',
+      breakPreferences: { intervalMinutes: 20 as const, quietMode: true },
+      displayPreferences: { textSize: 'large' as const, highContrast: true, reducedMotion: true },
+    };
+
+    const reset = resetMissionGameProgress(state, new Set([selected.id]));
+
+    assert.deepEqual(reset.raceBest, { [other.id]: 19.4 });
+    assert.deepEqual(reset.robotBeaten, { [other.id]: 1 });
+    assert.deepEqual(reset.codeLevels, { [other.id]: 2 });
+    assert.deepEqual(reset.sprintBest, { [other.id]: 45.6 });
+    assert.equal(reset.xp, state.xp);
+    assert.equal(reset.dayStreak, state.dayStreak);
+    assert.deepEqual(reset.activity, state.activity);
+    assert.equal(reset.partFinderBest, state.partFinderBest);
+    assert.equal(reset.preferredLearningVoiceId, state.preferredLearningVoiceId);
+    assert.deepEqual(reset.breakPreferences, state.breakPreferences);
+    assert.deepEqual(reset.displayPreferences, state.displayPreferences);
+    assert.deepEqual(loadFun().codeLevels, reset.codeLevels, 'the scoped game reset is saved on this device');
   });
 });
 
