@@ -376,18 +376,18 @@ function SyncStatusBridge({ onStatus }: { onStatus: (status: SyncStatus) => void
 }
 
 /** Debounced online save plus a per-profile local retry queue for offline edits. */
-export function useAccountSync(progress: Progress, fun: FunState) {
+export function useAccountSync(progress: Progress, fun: FunState, enabled = true) {
   const { user, activeProfileId } = useAccount();
   const firstScope = useRef<string | null>(null);
   const scope = user && activeProfileId ? accountScope(user.id, activeProfileId) : null;
   useEffect(() => {
-    if (!user || !activeProfileId || !scope) return;
+    if (!enabled || !user || !activeProfileId || !scope) return;
     if (firstScope.current !== scope) {
       firstScope.current = scope;
       return;
     }
     queueFor(user.id, activeProfileId).enqueue({ progress, fun });
-  }, [user, activeProfileId, scope, progress, fun]);
+  }, [enabled, user, activeProfileId, scope, progress, fun]);
 
   useEffect(() => {
     if (!user || !activeProfileId) return;

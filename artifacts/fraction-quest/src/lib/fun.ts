@@ -94,6 +94,13 @@ const bump = (state: FunState, key: keyof DayActivity): Record<string, DayActivi
   return { ...activity, [day]: { ...current, [key]: current[key] + 1 } };
 };
 
+let funStorageEnabled = true;
+
+/** Temporarily keep local game activity in memory only (used by developer lesson previews). */
+export function setFunStorageEnabled(enabled: boolean): void {
+  funStorageEnabled = enabled;
+}
+
 /** A small lesson-id → number map, clamped (anything odd is dropped). */
 function cleanScores(value: unknown, max: number): Record<string, number> {
   if (!value || typeof value !== 'object') return {};
@@ -163,6 +170,7 @@ export function loadFun(): FunState {
 }
 
 function saveFun(state: FunState): FunState {
+  if (!funStorageEnabled) return state;
   try {
     window.localStorage.setItem(scopedStorageKey(FUN_KEY), JSON.stringify(state));
   } catch {
