@@ -43,6 +43,9 @@ function base32Decode(input: string): Buffer {
   }
   return Buffer.from(out);
 }
+function hasValidTotpSecret(secret = process.env.ADMIN_TOTP_SECRET): boolean {
+  return Boolean(secret && base32Decode(secret).length >= 10);
+}
 function totpAt(key: Buffer, step: number): string {
   const counter = Buffer.alloc(8);
   counter.writeBigUInt64BE(BigInt(step));
@@ -72,7 +75,7 @@ function checkTotp(secret: string, code: string): boolean {
 function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const expected = process.env.ADMIN_TOKEN;
   const totpSecret = process.env.ADMIN_TOTP_SECRET;
-  if (!expected || expected.length < 32 || !totpSecret || base32Decode(totpSecret).length < 10) {
+  if (!expected || expected.length < 32 || !totpSecret || !hasValidTotpSecret(totpSecret)) {
     res.status(404).json({ error: "Not found." });
     return;
   }
@@ -124,7 +127,11 @@ router.get("/admin", (req, res) => {
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'");
-  res.type("html").send(ADMIN_PAGE);
+  const configReady = (process.env.ADMIN_TOKEN?.length ?? 0) >= 32 && hasValidTotpSecret();
+  const status = configReady
+    ? '<p id="setup-status" class="setup-ready" role="status">Setup is complete. Sign in with your admin token and a fresh six-digit authenticator code.</p>'
+    : '<p id="setup-status" class="setup-needed" role="status">Setup is incomplete. Add both required secrets below, then restart the API Server before signing in.</p>';
+  res.type("html").send(ADMIN_PAGE.replace("<!-- admin-setup-status -->", status));
 });
 
 router.post("/admin/login", requireAdmin, (req, res) => {
@@ -276,10 +283,28 @@ section{margin-bottom:22px}h2{font-size:15px;margin:0 0 8px}.cards{display:grid;
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}.box{background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px #0002}
 table{border-collapse:collapse;width:100%}td,th{padding:5px 8px;text-align:left;border-bottom:1px solid #eee}tr.go{cursor:pointer}tr.go:hover{background:#f0f4ff}
 .bar{display:flex;align-items:center;gap:6px;margin:3px 0}.bar i{display:block;height:12px;background:#4a6fdc;border-radius:3px}.bar span{min-width:90px}
-.muted{color:#778}button{margin-right:4px}pre{white-space:pre-wrap}#login{margin-bottom:16px}
+.muted{color:#667085}button{margin-right:4px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f6fb;padding:10px;border-radius:8px}#login{margin:16px 0}
+.setup{max-width:900px;margin-bottom:16px}.setup ol{padding-left:22px}.setup li{margin:8px 0}.setup-ready{color:#18794e}.setup-needed{color:#9a6700}
+.login-field{display:inline-grid;gap:4px;margin:8px 12px 8px 0}.login-field input{font:inherit;padding:8px;max-width:100%}
 </style>
 <header><b>Fraction Quest Admin</b></header><main>
-<div id="login"><input id="t" type="password" placeholder="Admin token" autocomplete="off"> <input id="c" placeholder="6-digit code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" size="8"> <button id="go">Sign in</button> <span id="m"></span></div>
+<!-- admin-setup-status -->
+<details class="box setup" open>
+<summary><strong>First-time setup: connect your authenticator</strong></summary>
+<ol>
+<li>Generate two separate random values in a private shell. Keep the output private; do not commit it or paste it into chat. The first is the admin token. The second is the authenticator secret.</li>
+<li>In Replit Secrets, save the values under the exact names <code>ADMIN_TOKEN</code> and <code>ADMIN_TOTP_SECRET</code>.</li>
+<li>In your authenticator app, add an account using the <code>ADMIN_TOTP_SECRET</code> value as a manual setup key. Choose time-based codes, SHA1, 6 digits, and a 30-second period. The code in the app changes every 30 seconds.</li>
+<li>Restart the API Server workflow. Return here and sign in with <code>ADMIN_TOKEN</code> and the current six-digit code. The page never displays either saved secret.</li>
+</ol>
+<p>Generate the values with Node.js:</p>
+<pre><code>node -e 'const c=require("node:crypto"),a="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";let n=0,v=0,s="";for(const b of c.randomBytes(20)){v=v*256+b;n+=8;while(n&gt;=5){const p=2**(n-5);s+=a[Math.floor(v/p)%32];v%=p;n-=5}}if(n)s+=a[v*2**(5-n)];console.log("ADMIN_TOKEN="+c.randomBytes(32).toString("base64url"));console.log("ADMIN_TOTP_SECRET="+s)'</code></pre>
+<p class="muted">The admin token must be at least 32 characters. If this page is hidden, check that <code>ADMIN_TOKEN</code> exists and that any <code>ADMIN_ALLOWED_IPS</code> restriction includes your current IP.</p>
+</details>
+<div id="login" class="box">
+<label class="login-field" for="t"><strong>Admin token</strong><input id="t" name="admin-token" type="password" autocomplete="off" required></label>
+<label class="login-field" for="c"><strong>Current authenticator code</strong><input id="c" name="authenticator-code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label>
+<button id="go" type="button">Sign in</button> <span id="m" role="alert" aria-live="polite"></span></div>
 <div id="app" hidden>
 <p>Range: <select id="rng"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option></select>
 <button id="rf">Refresh</button> <span class="muted" id="ts"></span></p>
