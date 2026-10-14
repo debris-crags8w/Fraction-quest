@@ -2,7 +2,7 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypt
 import { Router, type IRouter, type NextFunction, type Request, type Response } from "express";
 import { count, eq, gt, isNotNull } from "drizzle-orm";
 import { db, progressTable, sessionsTable, usersTable } from "@workspace/db";
-import { endAllSessions, hashPassword } from "../lib/auth";
+import { endAllSessions, hashPassword, normalizeUsername } from "../lib/auth";
 import { createRateLimiter } from "../lib/rate-limit";
 import { logger } from "../lib/logger";
 
@@ -137,6 +137,34 @@ router.get("/admin/stats", requireAdmin, async (_req, res) => {
   res.json({ accounts, newDay, newWeek, withConsent, withProgress, activeSessions, progressWeek });
 });
 
+// Progress summary for one account, looked up by username. Summary numbers only, not answers or worksheet drafts.
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+router.get("/admin/progress/:username", requireAdmin, async (req, res) => {
+  const username = normalizeUsername(String(req.params.username)).slice(0, 40);
+  const [row] = await db.select({
+    username: usersTable.username, displayName: usersTable.displayName, progress: progressTable.progress,
+    fun: progressTable.fun, updatedAt: progressTable.updatedAt,
+  }).from(usersTable).leftJoin(progressTable, eq(progressTable.userId, usersTable.id))
+    .where(eq(usersTable.username, username)).limit(1);
+  if (!row) {
+    res.status(404).json({ error: "No such account." });
+    return;
+  }
+  const p = (row.progress ?? {}) as Record<string, any>;
+  const f = (row.fun ?? {}) as Record<string, any>;
+  const stars = Object.values(p.starsByMission ?? {}).reduce((sum: number, v) => sum + num(v), 0);
+  const days = Object.entries((f.activity ?? {}) as Record<string, { minutes?: number; answered?: number }>)
+    .sort(([a], [b]) => (a < b ? -1 : 1)).slice(-14)
+    .map(([day, a]) => ({ day, minutes: num(a?.minutes), answered: num(a?.answered) }));
+  logger.info({ ip: req.ip, username }, "admin viewed progress");
+  res.json({
+    username: row.username, displayName: row.displayName, hasProgress: !!row.progress, updatedAt: row.updatedAt,
+    lessonsCompleted: Array.isArray(p.completedMissionIds) ? p.completedMissionIds.length : 0,
+    stars, xp: num(f.xp), dayStreak: num(f.dayStreak), lastActiveDay: f.lastActiveDay ?? null,
+    assessments: Array.isArray(p.assessments) ? p.assessments.length : 0, recentDays: days,
+  });
+});
+
 router.get("/admin/users", requireAdmin, async (_req, res) => {
   const rows = await db.select({
     id: usersTable.id, username: usersTable.username, displayName: usersTable.displayName,
@@ -191,6 +219,8 @@ const ADMIN_PAGE = `<!doctype html><meta charset="utf-8"><meta name="robots" con
 <h1>Account admin</h1>
 <p><input id="t" type="password" placeholder="Admin token" autocomplete="off"> <input id="c" placeholder="6-digit code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" size="8"> <button id="go">Load</button> <span id="m"></span></p>
 <p id="st"></p>
+<p><input id="u" placeholder="Username" autocomplete="off"> <button id="pg">Show progress</button></p>
+<pre id="pr"></pre>
 <table id="tb"></table>
 <script>
 const $=id=>document.getElementById(id);let tok="";
@@ -217,6 +247,8 @@ async function load(){
 }
 const load2=load;
 $("go").onclick=load;
+$("pg").onclick=async()=>{try{const d=await api("/progress/"+encodeURIComponent($("u").value.trim()));
+  $("pr").textContent=d.username+" ("+d.displayName+")\n"+(d.hasProgress?"Lessons done: "+d.lessonsCompleted+" | Stars: "+d.stars+" | XP: "+d.xp+" | Day streak: "+d.dayStreak+" | Checks: "+d.assessments+"\nLast saved: "+d.updatedAt+" | Last active: "+d.lastActiveDay+"\nLast 14 days (minutes / answers):\n"+d.recentDays.map(x=>x.day+"  "+x.minutes+" / "+x.answered).join("\n"):"No saved progress yet.");msg("")}catch(e){msg(e.message)}};
 </script>`;
 
 export default router;
