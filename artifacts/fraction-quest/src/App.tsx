@@ -37,10 +37,10 @@ import LearningLab, { RedoLab } from './LearningLab';
 import { LearningListenButton, LearningText, LearningTextSection, useReadAloud } from './LearningText';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
-import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
+import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, resetUnitLearningProgress, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { DAILY_GOAL, loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, shownStreak, setBreakPreferences, setDisplayPreferences, setSound, type FunState } from './lib/fun';
+import { DAILY_GOAL, loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, WholeBracket } from './models';
@@ -129,6 +129,39 @@ const FOLD_LESSONS: Record<string, { intro: string; allowThirds?: boolean; shade
 };
 
 const UNIT_TITLES = UNIT_INFO.map((unit) => unit.title);
+
+function getUnitResetPreview(progress: Progress, fun: FunState, unit: number) {
+  const missions = MISSIONS.filter((mission) => mission.unit === unit);
+  const missionIds = new Set(missions.map((mission) => mission.id));
+  const lessons = missions.map((mission) => {
+    const record = progress.learning?.[mission.id];
+    const reviewCount = progress.reviewQueue.filter((review) => review.missionId === mission.id).length;
+    const gameResults = [
+      fun.raceBest?.[mission.id] !== undefined || fun.robotBeaten?.[mission.id] !== undefined ? 'Fraction Race' : null,
+      fun.codeLevels?.[mission.id] !== undefined ? 'Code Quest' : null,
+      fun.sprintBest?.[mission.id] !== undefined ? 'Code Sprint' : null,
+    ].filter((label): label is string => label !== null);
+    const hasSavedLessonWork = !!record && (
+      !!record.practiceDone || typeof record.completedAt === 'number' || typeof record.confirmedAt === 'number'
+      || record.helpUses > 0 || Object.keys(record.checks ?? {}).length > 0
+      || Object.keys(record.worksheet ?? {}).length > 0 || Object.keys(record.misconceptions ?? {}).length > 0
+      || !!record.redo || (record.redoRounds ?? 0) > 0 || (record.redosFinished ?? 0) > 0
+    );
+    const activity = [
+      progress.completedMissionIds.includes(mission.id) ? 'completed lesson' : null,
+      progress.starsByMission[mission.id] !== undefined ? `${progress.starsByMission[mission.id]} stars` : null,
+      hasSavedLessonWork ? 'saved answers, builds, and lesson evidence' : null,
+      reviewCount ? `${reviewCount} saved skill ${reviewCount === 1 ? 'review' : 'reviews'}` : null,
+      gameResults.length ? `${gameResults.join(', ')} results` : null,
+    ].filter((label): label is string => label !== null);
+    return { id: mission.id, title: mission.title, activity };
+  });
+  const dailyTopics = progress.dailyPractice?.questions
+    .filter((question) => missionIds.has(question.missionId))
+    .map((question) => question.topicTitle) ?? [];
+  const challengeBest = progress.challengeBest?.[String(unit)];
+  return { lessons, dailyTopics, challengeBest };
+}
 
 function Fraction({ numerator, denominator }: { numerator: number; denominator: number }) {
   return (
@@ -311,7 +344,7 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
           {menu}
           <button className="fq-icon-button" onClick={() => setFun(setSound(fun, !fun.sound))} aria-label={fun.sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={fun.sound} data-testid="button-toggle-sound">{fun.sound ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
           {/* With a menu (the map), reset lives in it under Grown-ups so the bar fits a phone. */}
-          {!menu && <button className="fq-icon-button" onClick={onReset} aria-label="Reset progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>}
+          {!menu && <button className="fq-icon-button" onClick={onReset} aria-label="Reset a unit or all learner progress" data-testid="button-reset-progress"><RotateCcw size={18} /></button>}
           <div className="fq-account">
             <StatTip testId="button-tip-account" label={`Playing as ${account.activeProfile?.displayName ?? 'a guest'}. What is this?`}
               tip={<><strong>{account.activeProfile ? `Playing as ${account.activeProfile.displayName}.` : 'Playing as a guest.'}</strong> {account.user ? 'Progress is saved to your family account.' : 'Progress stays on this device.'}
@@ -392,7 +425,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
         ] },
         { title: 'Grown-ups', items: [
           { id: 'parent', icon: <BarChart3 size={18} />, label: 'Progress report and settings', testId: 'button-open-parent', onSelect: onParent, note: 'Time this week, what to practice, voices, answer keys' },
-          { id: 'reset', icon: <RotateCcw size={18} />, label: 'Reset progress', testId: 'button-reset-progress', onSelect: onReset, note: 'Start the course over on this device' },
+          { id: 'reset', icon: <RotateCcw size={18} />, label: 'Reset a unit or all progress', testId: 'button-reset-progress', onSelect: onReset, note: 'Choose what to clear while keeping other units safe' },
         ] },
       ]}
       footer={<details className="fq-menu-about"><summary>About this learning path</summary><p>
@@ -511,7 +544,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
                             {unlocked && (
                               <div className="fq-node-tools">
                                 {hasGenerator(mission.id) && <button className="fq-button ghost" onClick={() => onExtra(mission.id)} data-testid={`button-practice-more-${mission.id}`}><Dumbbell size={17} /> Practice more</button>}
-                                <PrintMenu missionId={mission.id} record={learning} />
+                                <PrintMenu missionId={mission.id} />
                                 <button className="fq-button ghost" onClick={() => onPaper(mission.id)} data-testid={`button-check-paper-${mission.id}`}><ClipboardCheck size={17} /> Check my paper</button>
                                 <button className="fq-button ghost" onClick={() => onGame('race', mission.id)} data-testid={`button-race-${mission.id}`}><Zap size={17} /> Race</button>
                                 <button className="fq-button ghost" onClick={() => onGame('code', mission.id)} data-testid={`button-code-${mission.id}`}><Code2 size={17} /> Code</button>
@@ -915,6 +948,8 @@ function Game() {
   const [view, setView] = useState<View | LabView | RetentionView | PaperView | RedoView | ChallengeView | ExtraView | ParentPage | GameView | PlacementView>({ type: 'map' });
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
+  const [resetAllConfirm, setResetAllConfirm] = useState(false);
+  const [resetUnit, setResetUnit] = useState(1);
   const [saveError, setSaveError] = useState(false);
   const [fun, setFun] = useState<FunState>(() => account.initialFun ?? loadFun());
   const [combo, setCombo] = useState(0);
@@ -925,6 +960,10 @@ function Game() {
   const quietBreaks = fun.breakPreferences?.quietMode ?? false;
   const activeStudyView = ['play', 'review', 'daily', 'lab', 'redo', 'extra', 'retention'].includes(view.type);
   useAccountSync(progress, fun);
+  const openResetDialog = () => {
+    setResetAllConfirm(false);
+    setResetOpen(true);
+  };
 
   // Check the natural voice soon after opening (a tiny request; it also wakes the server's voice), so the very
   // first Listen already uses it instead of the device voice.
@@ -1036,6 +1075,15 @@ function Game() {
     setResetOpen(false);
   };
 
+  const resetSelectedUnit = () => {
+    const missionIds = new Set(MISSIONS.filter((mission) => mission.unit === resetUnit).map((mission) => mission.id));
+    persistProgress(resetUnitLearningProgress(progress, missionIds, resetUnit));
+    setFun(resetMissionGameProgress(fun, missionIds));
+    setCombo(0);
+    setView({ type: 'map' });
+    setResetOpen(false);
+  };
+
   const baseMission = view.type === 'play' || view.type === 'reward' || view.type === 'lab' || view.type === 'retention'
     ? getMission(view.missionId)
     : view.type === 'review'
@@ -1095,7 +1143,7 @@ function Game() {
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={() => setResetOpen(true)} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
       {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} renderModel={(model, reveal) => <ModelView model={model} reveal={reveal} asked />} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
       {view.type === 'concept-games' && (() => {
         // The lesson games use the lesson the child is on (or the last open one).
@@ -1155,7 +1203,7 @@ function Game() {
         );
       })()}
       {view.type === 'extra-done' && (
-        <ExtraDoneView mission={getMission(view.missionId)} firstTry={view.firstTry} total={view.total} progress={progress} onMap={returnToMap} onReset={() => setResetOpen(true)}
+        <ExtraDoneView mission={getMission(view.missionId)} firstTry={view.firstTry} total={view.total} progress={progress} onMap={returnToMap} onReset={openResetDialog}
           fresh={view.seed !== 0}
           onAgain={() => setView({ type: 'extra', missionId: view.missionId, seed: view.seed, questionIndex: 0, firstTry: 0 })}
           onNew={() => setView({ type: 'extra', missionId: view.missionId, seed: freshSeed(), questionIndex: 0, firstTry: 0 })} />
@@ -1230,22 +1278,63 @@ function Game() {
         setView(view.nextView);
       }} />}
       {view.type === 'reward' && activeMission && (
-        <RewardView mission={activeMission} stars={view.stars} progress={progress} onMap={returnToMap} onNext={startMission} onReset={() => setResetOpen(true)} onGame={(type) => setView({ type, missionId: activeMission.id })} />
+        <RewardView mission={activeMission} stars={view.stars} progress={progress} onMap={returnToMap} onNext={startMission} onReset={openResetDialog} onGame={(type) => setView({ type, missionId: activeMission.id })} />
       )}
       {view.type === 'review-complete' && (
-        <ReviewCompleteView reviewedCount={view.reviewedCount} progress={progress} onMap={returnToMap} onReset={() => setResetOpen(true)} />
+        <ReviewCompleteView reviewedCount={view.reviewedCount} progress={progress} onMap={returnToMap} onReset={openResetDialog} />
       )}
       {breakReason && <BrainBreakOffer reason={breakReason} quietMode={quietBreaks} onSkip={closeBreak} onFinish={closeBreak} />}
       {resetOpen && (
         <div className="fq-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setResetOpen(false); }}>
-          <div className="fq-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description">
+          <div className="fq-modal fq-reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description">
             <button className="fq-icon-button fq-modal-close" onClick={() => setResetOpen(false)} aria-label="Close reset dialog" data-testid="button-close-reset"><X size={18} /></button>
-            <h2 id="reset-title">Start the map over?</h2>
-            <p id="reset-description">{account.user ? `This clears ${account.activeProfile?.displayName ?? 'this learner'}’s lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews, on every device.` : 'This clears lesson progress, worksheet answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
-            <div className="fq-modal-actions">
-              <button className="fq-button ghost" onClick={() => setResetOpen(false)} data-testid="button-cancel-reset">Keep exploring</button>
-              <button className="fq-button" onClick={resetProgress} data-testid="button-confirm-reset">Reset progress</button>
-            </div>
+            {resetAllConfirm ? (
+              <>
+                <h2 id="reset-title">Reset all learner progress?</h2>
+                <p id="reset-description">{account.user ? `This clears ${account.activeProfile?.displayName ?? 'this learner'}’s progress, lesson answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on every device.` : 'This clears progress, lesson answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
+                <div className="fq-modal-actions">
+                  <button className="fq-button ghost" onClick={() => setResetAllConfirm(false)} data-testid="button-back-to-unit-reset">Back to unit reset</button>
+                  <button className="fq-button ghost" onClick={() => setResetOpen(false)} data-testid="button-cancel-reset">Keep exploring</button>
+                  <button className="fq-button" onClick={resetProgress} data-testid="button-confirm-reset">Reset all units and activity</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 id="reset-title">Reset one unit?</h2>
+                <p id="reset-description">Choose a unit to clear its lesson work while keeping progress in every other unit and this learner’s family settings.</p>
+                <label className="fq-reset-unit-select">
+                  <strong>Unit to reset</strong>
+                  <select aria-label="Unit to reset" value={resetUnit} onChange={(event) => setResetUnit(Number(event.target.value))} data-testid="select-reset-unit">
+                    {UNIT_INFO.map((unit, index) => <option key={unit.title} value={index + 1}>Unit {index + 1} · {unit.title}</option>)}
+                  </select>
+                </label>
+                {(() => {
+                  const preview = getUnitResetPreview(progress, fun, resetUnit);
+                  const savedLessons = preview.lessons.filter((lesson) => lesson.activity.length > 0);
+                  const hasAnything = savedLessons.length > 0 || preview.dailyTopics.length > 0 || preview.challengeBest !== undefined;
+                  return (
+                    <section className="fq-reset-preview" aria-labelledby="reset-preview-title" aria-live="polite" data-testid="reset-unit-preview">
+                      <h3 id="reset-preview-title">Exactly what will be cleared</h3>
+                      {!hasAnything ? <p>No saved activity to clear in this unit yet.</p> : (
+                        <>
+                          {savedLessons.length > 0 && <ul>
+                            {savedLessons.map((lesson) => <li key={lesson.id}><strong>{lesson.title}</strong>: {lesson.activity.join('; ')}</li>)}
+                          </ul>}
+                          {preview.dailyTopics.length > 0 && <p>Today’s practice: answers for {preview.dailyTopics.join(', ')}.</p>}
+                          {preview.challengeBest !== undefined && <p>Unit {resetUnit} challenge: best score of {preview.challengeBest}.</p>}
+                        </>
+                      )}
+                      <p>All other units, account settings, and unrelated progress will remain unchanged.</p>
+                    </section>
+                  );
+                })()}
+                <div className="fq-modal-actions">
+                  <button className="fq-button ghost" onClick={() => setResetOpen(false)} data-testid="button-cancel-reset">Keep exploring</button>
+                  <button className="fq-button" onClick={resetSelectedUnit} data-testid="button-confirm-unit-reset">Reset this unit</button>
+                </div>
+                <button className="fq-reset-all-link" onClick={() => setResetAllConfirm(true)} data-testid="button-reset-all-progress">Reset all units and learner activity…</button>
+              </>
+            )}
           </div>
         </div>
       )}

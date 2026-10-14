@@ -112,7 +112,7 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
           <p>Did it on paper? Put in your answers here: practice, worksheet and the Unit challenge. They count just like answers in the app.</p>
         </div>
       </header>
-      <div className="fq-ll-print"><PrintMenu missionId={missionId} record={rec} /></div>
+      <div className="fq-ll-print"><PrintMenu missionId={missionId} /></div>
 
       <section className="fq-ll-check" aria-labelledby="paper-practice">
         <h3 id="paper-practice">Practice sheet</h3>
