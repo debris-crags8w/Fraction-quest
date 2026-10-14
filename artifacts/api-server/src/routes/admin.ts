@@ -6,6 +6,7 @@ import { endAllSessions, hashPassword, normalizeUsername } from "../lib/auth";
 import { createRateLimiter } from "../lib/rate-limit";
 import { logger } from "../lib/logger";
 import { buildDashboard } from "../lib/dashboard";
+import { logSummary, recentLogs } from "../lib/log-buffer";
 
 // Admin tools for managing accounts. Disabled unless the server has ADMIN_TOKEN (32+ characters) and ADMIN_TOTP_SECRET set.
 // Nothing in the learner app links here; every data route needs the token in an Authorization header.
@@ -209,6 +210,15 @@ router.get("/admin/dashboard", requireAdmin, async (req, res) => {
   });
 });
 
+// Recent server log entries (warnings, errors, failed and slow requests) from the in-memory buffer.
+router.get("/admin/logs", requireAdmin, (req, res) => {
+  const level = ["info", "warn", "error"].includes(String(req.query.level)) ? String(req.query.level) : "warn";
+  res.json({
+    summary: logSummary(),
+    entries: recentLogs({ level, limit: 100 }).map((e) => ({ ...e, at: new Date(e.at).toISOString() })),
+  });
+});
+
 router.get("/admin/users", requireAdmin, async (_req, res) => {
   const rows = await db.select({
     id: usersTable.id, username: usersTable.username, displayName: usersTable.displayName,
@@ -286,6 +296,9 @@ table{border-collapse:collapse;width:100%}td,th{padding:5px 8px;text-align:left;
 <div class="box"><h2>Needs attention</h2><div id="att"></div></div>
 <div class="box"><h2>System and trust</h2><div id="ops"></div></div>
 </section>
+<section class="box"><h2>Server logs</h2><div id="logsum" class="muted"></div>
+<p>Show: <select id="lvl"><option value="warn">Warnings and errors</option><option value="error">Errors only</option><option value="info">All kept entries</option></select> <button id="lr">Refresh logs</button></p>
+<table id="logs"></table></section>
 <section class="box"><h2>Progress by username</h2><input id="u" placeholder="Username" autocomplete="off"> <button id="pg">Show progress</button><pre id="pr"></pre></section>
 <section class="box"><h2>Accounts</h2><table id="tb"></table></section>
 </div>
@@ -339,11 +352,19 @@ async function dashboard(fresh){
   for(const v of O.recentAdminEvents)line(p,v.at.slice(11,19)+" "+v.kind+" "+v.detail);
   $("ts").textContent="Updated "+D.generatedAt.slice(11,19)+" UTC";
 }
+async function logs(){
+  const L=await api("/logs?level="+$("lvl").value),S=L.summary;
+  $("logsum").textContent="Errors (24h): "+S.errors24h+" | Warnings (24h): "+S.warnings24h+" | Requests since start: "+S.requestsSinceStart+" | 4xx: "+S.status4xxSinceStart+" | 5xx: "+S.status5xxSinceStart+" (in memory, cleared on restart)";
+  const t=$("logs");t.textContent="";const h=t.insertRow();for(const x of["Time (UTC)","Level","Message","Request","Status","ms","Detail"]){const th=document.createElement("th");th.textContent=x;h.appendChild(th)}
+  for(const e of L.entries){const tr=t.insertRow();cell(tr,e.at.slice(5,19).replace("T"," "));const lv=cell(tr,e.level);if(e.level==="error"||e.level==="fatal")lv.className="down";
+    cell(tr,e.msg);cell(tr,((e.method||"")+" "+(e.path||"")).trim());cell(tr,dash(e.status));cell(tr,dash(e.ms));cell(tr,(e.error||"")+(e.ip?" ["+e.ip+"]":""))}
+  if(!L.entries.length){const tr=t.insertRow();cell(tr,"Nothing to show.")}
+}
 async function load(){
   try{
     if(!tok){const r=await fetch("/api/admin/login",{method:"POST",headers:{Authorization:"Bearer "+$("t").value,"X-Admin-Code":$("c").value}});
       $("t").value="";$("c").value="";const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.status);tok=j.session}
-    $("app").hidden=false;msg("");await dashboard(false);
+    $("app").hidden=false;msg("");await dashboard(false);await logs();
     const {users}=await api("/users");const tb=$("tb");tb.textContent="";
     for(const u of users){const tr=tb.insertRow();tr.className="go";cell(tr,u.id);cell(tr,u.username);cell(tr,u.displayName);cell(tr,(u.createdAt||"").slice(0,10));
       tr.onclick=ev=>{if(ev.target.tagName!=="BUTTON"){$("u").value=u.username;$("pg").onclick()}};
@@ -356,6 +377,8 @@ async function load(){
 $("go").onclick=load;
 $("rng").onchange=()=>dashboard(false).catch(e=>msg(e.message));
 $("rf").onclick=()=>dashboard(true).catch(e=>msg(e.message));
+$("lr").onclick=()=>logs().catch(e=>msg(e.message));
+$("lvl").onchange=$("lr").onclick;
 $("pg").onclick=async()=>{try{const d=await api("/progress/"+encodeURIComponent($("u").value.trim()));
   $("pr").textContent=d.username+" ("+d.displayName+")\\n"+(d.hasProgress?"Lessons done: "+d.lessonsCompleted+" | Stars: "+d.stars+" | XP: "+d.xp+" | Day streak: "+d.dayStreak+" | Checks: "+d.assessments+"\\nLast saved: "+d.updatedAt+" | Last active: "+d.lastActiveDay+"\\nLast 14 days (minutes / answers):\\n"+d.recentDays.map(x=>x.day+"  "+x.minutes+" / "+x.answered).join("\\n"):"No saved progress yet.");msg("")}catch(e){msg(e.message)}};
 </script>`;
