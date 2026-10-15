@@ -72,24 +72,32 @@ after(async () => {
 });
 
 describe("admin authenticator setup", () => {
-  it("shows a clear first-time setup flow without exposing configured secrets", async () => {
+  it("serves a private login shell without setup instructions or readiness details", async () => {
     const response = await fetch(`${base}/api/admin`);
     assert.equal(response.status, 200);
     const html = await response.text();
-    assert.match(html, /First-time setup: connect your authenticator/);
-    assert.match(html, /ADMIN_TOKEN/);
-    assert.match(html, /ADMIN_TOTP_SECRET/);
-    assert.match(html, /30-second period/);
-    assert.match(html, /Setup is complete/);
+    assert.equal(response.headers.get("x-robots-tag"), "noindex, nofollow");
+    assert.equal(response.headers.get("cache-control"), "no-store");
+    assert.match(response.headers.get("content-security-policy") ?? "", /default-src 'none'/);
+    assert.match(html, /<form id="login-form"/);
+    assert.match(html, /name="admin-token"/);
+    assert.match(html, /name="authenticator-code"/);
+    assert.match(html, /type="submit">Sign in/);
+    assert.match(html, /<aside id="admin-sidebar" aria-label="Admin sections" hidden>/);
+    assert.doesNotMatch(html, /First-time setup|Setup is complete|Setup is incomplete/i);
+    assert.doesNotMatch(html, /ADMIN_TOKEN|ADMIN_TOTP_SECRET|ADMIN_ALLOWED_IPS/);
+    assert.doesNotMatch(html, /node -e|Generate the values|Replit Secrets/);
     assert.doesNotMatch(html, new RegExp(TEST_TOKEN));
     assert.doesNotMatch(html, new RegExp(TEST_SECRET));
   });
 
-  it("explains incomplete setup and refuses login until both factors are configured", async () => {
+  it("does not reveal readiness while the existing login gate still rejects missing factors", async () => {
     process.env.ADMIN_TOTP_SECRET = "";
     const page = await fetch(`${base}/api/admin`);
     assert.equal(page.status, 200);
-    assert.match(await page.text(), /Setup is incomplete/);
+    const html = await page.text();
+    assert.match(html, /<form id="login-form"/);
+    assert.doesNotMatch(html, /Setup is (?:complete|incomplete)/i);
 
     const login = await fetch(`${base}/api/admin/login`, {
       method: "POST",

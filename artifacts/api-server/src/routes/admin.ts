@@ -127,11 +127,7 @@ router.get("/admin", (req, res) => {
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'");
-  const configReady = (process.env.ADMIN_TOKEN?.length ?? 0) >= 32 && hasValidTotpSecret();
-  const status = configReady
-    ? '<p id="setup-status" class="setup-ready" role="status">Setup is complete. Sign in with your admin token and a fresh six-digit authenticator code.</p>'
-    : '<p id="setup-status" class="setup-needed" role="status">Setup is incomplete. Add both required secrets below, then restart the API Server before signing in.</p>';
-  res.type("html").send(ADMIN_PAGE.replace("<!-- admin-setup-status -->", status));
+  res.type("html").send(ADMIN_PAGE);
 });
 
 router.post("/admin/login", requireAdmin, (req, res) => {
@@ -275,58 +271,47 @@ router.delete("/admin/users/:id", requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
-const ADMIN_PAGE = `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Admin</title><style>
-body{font:14px system-ui;margin:0;background:#f4f6fb;color:#1b2233}header{background:#1f2a44;color:#fff;padding:14px 24px}main{padding:20px 24px}
-section{margin-bottom:22px}h2{font-size:15px;margin:0 0 8px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-.c{background:#fff;border-radius:10px;padding:12px;box-shadow:0 1px 3px #0002;cursor:default}.c b{display:block;font-size:26px}.c small{color:#667}.up{color:#18794e}.down{color:#b42318}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}.box{background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px #0002}
-table{border-collapse:collapse;width:100%}td,th{padding:5px 8px;text-align:left;border-bottom:1px solid #eee}tr.go{cursor:pointer}tr.go:hover{background:#f0f4ff}
-.bar{display:flex;align-items:center;gap:6px;margin:3px 0}.bar i{display:block;height:12px;background:#4a6fdc;border-radius:3px}.bar span{min-width:90px}
-.muted{color:#667085}button{margin-right:4px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f6fb;padding:10px;border-radius:8px}#login{margin:16px 0}
-.setup{max-width:900px;margin-bottom:16px}.setup ol{padding-left:22px}.setup li{margin:8px 0}.setup-ready{color:#18794e}.setup-needed{color:#9a6700}
-.login-field{display:inline-grid;gap:4px;margin:8px 12px 8px 0}.login-field input{font:inherit;padding:8px;max-width:100%}
-</style>
-<header><b>Fraction Quest Admin</b></header><main>
-<!-- admin-setup-status -->
-<details class="box setup" open>
-<summary><strong>First-time setup: connect your authenticator</strong></summary>
-<ol>
-<li>Generate two separate random values in a private shell. Keep the output private; do not commit it or paste it into chat. The first is the admin token. The second is the authenticator secret.</li>
-<li>In Replit Secrets, save the values under the exact names <code>ADMIN_TOKEN</code> and <code>ADMIN_TOTP_SECRET</code>.</li>
-<li>In your authenticator app, add an account using the <code>ADMIN_TOTP_SECRET</code> value as a manual setup key. Choose time-based codes, SHA1, 6 digits, and a 30-second period. The code in the app changes every 30 seconds.</li>
-<li>Restart the API Server workflow. Return here and sign in with <code>ADMIN_TOKEN</code> and the current six-digit code. The page never displays either saved secret.</li>
-</ol>
-<p>Generate the values with Node.js:</p>
-<pre><code>node -e 'const c=require("node:crypto"),a="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";let n=0,v=0,s="";for(const b of c.randomBytes(20)){v=v*256+b;n+=8;while(n&gt;=5){const p=2**(n-5);s+=a[Math.floor(v/p)%32];v%=p;n-=5}}if(n)s+=a[v*2**(5-n)];console.log("ADMIN_TOKEN="+c.randomBytes(32).toString("base64url"));console.log("ADMIN_TOTP_SECRET="+s)'</code></pre>
-<p class="muted">The admin token must be at least 32 characters. If this page is hidden, check that <code>ADMIN_TOKEN</code> exists and that any <code>ADMIN_ALLOWED_IPS</code> restriction includes your current IP.</p>
-</details>
-<div id="login" class="box">
-<label class="login-field" for="t"><strong>Admin token</strong><input id="t" name="admin-token" type="password" autocomplete="off" required></label>
-<label class="login-field" for="c"><strong>Current authenticator code</strong><input id="c" name="authenticator-code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label>
-<button id="go" type="button">Sign in</button> <span id="m" role="alert" aria-live="polite"></span></div>
+const ADMIN_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fraction Quest · Administration</title><style>
+:root{color-scheme:light;--ink:#202b37;--muted:#687783;--paper:#f1f3ee;--panel:#fffefa;--line:#dce2dc;--nav:#233746;--nav2:#304a57;--accent:#be593d;--accent-soft:#f5e7df;--mint:#dce9df;--good:#386b4e;--bad:#a63d35;--shadow:0 3px 14px #283b3110}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}button{border:1px solid #c8d2cd;border-radius:5px;background:#fffefa;color:var(--ink);padding:8px 12px;cursor:pointer;transition:background .16s,transform .16s}button:hover{background:#f0f3ef}button:active{transform:translateY(1px)}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #bf765a55;outline-offset:2px}
+header{height:64px;background:var(--nav);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,3vw,38px);box-shadow:0 2px 8px #20313b20}
+.brand{display:flex;align-items:center;gap:12px;font-size:16px;font-weight:700;letter-spacing:.01em}.mark{width:28px;height:28px;border:1px solid #e6bda8;border-radius:5px;display:grid;place-items:center;color:#f4d2bf;font-family:Georgia,serif;font-size:17px}.header-note{color:#d4dedb;font-size:12px}
+.layout{display:grid;grid-template-columns:1fr;min-height:calc(100dvh - 64px)}body.authenticated .layout{grid-template-columns:220px minmax(0,1fr)}aside{background:var(--nav);padding:20px 12px;color:#e2e9e6}.side-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#9db0b3;padding:8px 12px 12px}.navitem{display:flex;align-items:center;gap:11px;padding:10px 12px;margin:2px 0;color:#dce5e1;text-decoration:none;border-radius:5px;font-size:13px}.navitem.active{background:var(--nav2);color:#fff;border-left:3px solid #d18a6f;padding-left:9px}.navicon{width:18px;text-align:center;color:#c7a18e;font-size:15px}.side-foot{margin:32px 12px 0;padding-top:14px;border-top:1px solid #ffffff20;color:#b7c5c2;font-size:11px}
+main{min-width:0;padding:28px clamp(16px,3vw,38px) 56px;max-width:1600px}.pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}.eyebrow{color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.14em;font-weight:700}.pagehead h1{font:500 clamp(25px,3vw,34px)/1.15 Georgia,"Times New Roman",serif;margin:4px 0 0;letter-spacing:-.02em}.subline{color:var(--muted);margin:7px 0 0}.tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.tools select,select{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:8px 10px;color:var(--ink)}.primary{background:var(--accent);border-color:var(--accent);color:white}.primary:hover{background:#a94d34}.status{min-height:22px;color:var(--bad);font-size:13px}
+section{margin:0 0 22px}.section-head{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 10px}h2{font-size:13px;letter-spacing:.03em;margin:0;font-weight:700}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.c{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:15px 16px;box-shadow:var(--shadow);min-height:98px}.c b{display:block;font:500 28px/1.1 Georgia,serif;color:#263c42;margin-bottom:8px}.c small{color:var(--muted);font-size:12px}.up{color:var(--good)}.down{color:var(--bad)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:17px;box-shadow:var(--shadow);min-width:0}.box h2{margin-bottom:13px}.grid .box{min-height:152px}.muted{color:var(--muted)}.bar{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:12px}.bar span:first-child{min-width:105px;color:#53616a}.bar i{display:block;height:9px;max-width:42%;background:#789487;border-radius:2px;flex:0 1 160px}.bar span:last-child{color:#34464b;font-variant-numeric:tabular-nums}
+table{border-collapse:collapse;width:100%;font-size:12px}td,th{padding:8px 9px;text-align:left;border-bottom:1px solid #e7ebe6;vertical-align:top}th{color:#687783;font-size:10px;text-transform:uppercase;letter-spacing:.07em;background:#f6f7f2}tr.go{cursor:pointer}tr.go:hover{background:#f4f5ef}td button{font-size:11px;padding:6px 8px;margin:2px 3px 2px 0}.table-scroll{overflow-x:auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f6f1;border:1px solid var(--line);padding:12px;border-radius:5px;min-height:44px;font:12px/1.55 ui-monospace,SFMono-Regular,monospace}#login{max-width:520px;margin:12vh auto 0;padding:28px}.login-intro{margin-bottom:22px}.login-intro h1{font:500 28px Georgia,serif;margin:0 0 7px}.login-intro p{margin:0;color:var(--muted)}.login-field{display:grid;gap:6px;margin:0 0 16px;font-size:12px;font-weight:650}.login-field input{width:100%;font:inherit;font-size:14px;font-weight:400;padding:11px 12px;border:1px solid #cbd5ce;border-radius:5px;background:#fff}.login-actions{display:flex;align-items:center;gap:12px}.login-actions button{min-width:115px}#m{font-size:12px}.loading{color:var(--muted);padding:12px 0}.chart{min-height:95px}#logs{min-width:720px}
+@media(max-width:900px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}body.authenticated .layout{grid-template-columns:176px minmax(0,1fr)}aside{padding-inline:8px}}
+@media(max-width:680px){header{height:58px}.header-note{display:none}.layout{display:block;min-height:calc(100dvh - 58px)}body.authenticated aside{padding:8px 12px;display:flex;gap:4px;overflow-x:auto}.side-label,.side-foot{display:none}.navitem{white-space:nowrap;margin:0;padding:8px 10px;font-size:12px}.navitem.active{padding-left:7px}main{padding:22px 14px 40px}.pagehead{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:1fr}.cards{gap:8px}.c{padding:12px;min-height:88px}.c b{font-size:24px}#login{margin:7vh auto 0;padding:22px}.tools{width:100%}.bar span:first-child{min-width:90px}}
+</style></head><body>
+<header><div class="brand"><span class="mark" aria-hidden="true">F</span><span>Fraction Quest <span style="font-weight:400;color:#c7d5d0">/ Admin</span></span></div><div class="header-note">Owner control panel</div></header>
+<div class="layout"><aside id="admin-sidebar" aria-label="Admin sections" hidden><div class="side-label">Workspace</div><a class="navitem active" href="#report"><span class="navicon" aria-hidden="true">▦</span>Overview</a><a class="navitem" href="#log-section"><span class="navicon" aria-hidden="true">◷</span>Server logs</a><a class="navitem" href="#progress-section"><span class="navicon" aria-hidden="true">◎</span>Learner progress</a><a class="navitem" href="#accounts-section"><span class="navicon" aria-hidden="true">♙</span>Accounts</a><div class="side-foot">Private administration<br>Aggregate learner health</div></aside>
+<main><div id="login" class="box">
+<div class="login-intro"><div class="eyebrow">Restricted area</div><h1>Welcome back</h1><p>Sign in to review learner health and support accounts.</p></div>
+<form id="login-form" autocomplete="on">
+<label class="login-field" for="t">Admin token<input id="t" name="admin-token" type="password" autocomplete="off" required></label>
+<label class="login-field" for="c">Authenticator code<input id="c" name="authenticator-code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required aria-describedby="login-hint"></label>
+<div class="login-actions"><button id="go" class="primary" type="submit">Sign in</button><span id="login-hint" class="muted">Enter the current six-digit code.</span></div>
+<p id="m" class="status" role="status" aria-live="polite"></p></form></div>
 <div id="app" hidden>
-<p>Range: <select id="rng"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option></select>
-<button id="rf">Refresh</button> <span class="muted" id="ts"></span></p>
-<section><h2>Key numbers</h2><div class="cards" id="cards"></div></section>
+<div class="pagehead" id="report"><div><div class="eyebrow">Learner health</div><h1>Overview</h1><p class="subline">A clear view of learning activity, account health, and system signals.</p></div><div class="tools"><label for="rng" class="muted">Reporting period</label><select id="rng"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option></select><button id="rf" type="button">Refresh report</button><span class="muted" id="ts"></span></div></div>
+<section><div class="section-head"><h2>Key numbers</h2><span class="muted">Compared with prior period where available</span></div><div class="cards" id="cards"></div></section>
 <section class="grid">
-<div class="box"><h2>Active learners per day</h2><div id="trend"></div><div class="muted" id="trendnote"></div></div>
-<div class="box"><h2>Unit funnel (started / passed one / finished)</h2><div id="funnel"></div></div>
-<div class="box"><h2>Where learners get stuck</h2><div id="struggles"></div></div>
-</section>
-<section class="grid">
+<div class="box"><h2>Active learners per day</h2><div id="trend" class="chart"></div><div class="muted" id="trendnote"></div></div>
+<div class="box"><h2>Unit funnel</h2><div class="muted">Started / passed one / finished</div><div id="funnel"></div></div>
+<div class="box"><h2>Where learners get stuck</h2><div class="table-scroll" id="struggles"></div></div>
 <div class="box"><h2>Engagement</h2><div id="eng"></div></div>
 <div class="box"><h2>Learning outcomes</h2><div id="out"></div></div>
-<div class="box"><h2>Modes used (learners)</h2><div id="modes"></div></div>
+<div class="box"><h2>Modes used</h2><div id="modes"></div></div>
 <div class="box"><h2>Needs attention</h2><div id="att"></div></div>
 <div class="box"><h2>System and trust</h2><div id="ops"></div></div>
 </section>
-<section class="box"><h2>Server logs</h2><div id="logsum" class="muted"></div>
-<p>Show: <select id="lvl"><option value="warn">Warnings and errors</option><option value="error">Errors only</option><option value="info">All kept entries</option></select> <button id="lr">Refresh logs</button></p>
-<table id="logs"></table></section>
-<section class="box"><h2>Progress by username</h2><input id="u" placeholder="Username" autocomplete="off"> <button id="pg">Show progress</button><pre id="pr"></pre></section>
-<section class="box"><h2>Accounts</h2><table id="tb"></table></section>
-</div>
+<section class="box" id="log-section"><div class="section-head"><h2>Server logs</h2><div class="tools"><label for="lvl" class="muted">Show</label><select id="lvl"><option value="warn">Warnings and errors</option><option value="error">Errors only</option><option value="info">All kept entries</option></select><button id="lr" type="button">Refresh logs</button></div></div><div id="logsum" class="muted"></div><div class="table-scroll"><table id="logs"></table></div></section>
+<section class="grid" id="progress-section"><div class="box"><h2>Progress by username</h2><label class="login-field" for="u">Username<input id="u" placeholder="Enter a username" autocomplete="off"></label><button id="pg" type="button">Show progress</button><pre id="pr" aria-live="polite">Lookup results appear here.</pre></div><div class="box"><h2>Account support</h2><p class="muted">Select a row to open that learner's progress. Password resets, sign-out, and deletion are available in the account table.</p><div id="account-note" class="muted">Use account actions only when responding to a support request.</div></div></section>
+<section class="box" id="accounts-section"><div class="section-head"><h2>Accounts</h2><span class="muted">Click a learner row to review progress</span></div><div class="table-scroll"><table id="tb"></table></div></section>
+</div></main></div>
 <script>
 const $=id=>document.getElementById(id);let tok="";
 const msg=s=>$("m").textContent=s;
@@ -385,11 +370,14 @@ async function logs(){
     cell(tr,e.msg);cell(tr,((e.method||"")+" "+(e.path||"")).trim());cell(tr,dash(e.status));cell(tr,dash(e.ms));cell(tr,(e.error||"")+(e.ip?" ["+e.ip+"]":""))}
   if(!L.entries.length){const tr=t.insertRow();cell(tr,"Nothing to show.")}
 }
-async function load(){
+async function load(tokenValue="",codeValue=""){
   try{
-    if(!tok){const r=await fetch("/api/admin/login",{method:"POST",headers:{Authorization:"Bearer "+$("t").value,"X-Admin-Code":$("c").value}});
-      $("t").value="";$("c").value="";const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.status);tok=j.session}
-    $("app").hidden=false;msg("");await dashboard(false);await logs();
+    if(!tok){
+      $("t").value="";$("c").value="";
+      const r=await fetch("/api/admin/login",{method:"POST",headers:{Authorization:"Bearer "+tokenValue,"X-Admin-Code":codeValue}});
+      const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.status);tok=j.session
+    }
+    $("app").hidden=false;$("login").hidden=true;$("admin-sidebar").hidden=false;document.body.classList.add("authenticated");msg("");await dashboard(false);await logs();
     const {users}=await api("/users");const tb=$("tb");tb.textContent="";
     for(const u of users){const tr=tb.insertRow();tr.className="go";cell(tr,u.id);cell(tr,u.username);cell(tr,u.displayName);cell(tr,(u.createdAt||"").slice(0,10));
       tr.onclick=ev=>{if(ev.target.tagName!=="BUTTON"){$("u").value=u.username;$("pg").onclick()}};
@@ -397,15 +385,20 @@ async function load(){
       btn(a,"Reset password",async()=>{const p=prompt("New password (8+ chars) for "+u.username);if(p)await api("/users/"+u.id+"/password","POST",{password:p})});
       btn(a,"Sign out",()=>api("/users/"+u.id+"/sign-out","POST"));
       btn(a,"Delete",async()=>{if(confirm("Delete "+u.username+" and all progress?")){await api("/users/"+u.id,"DELETE");load()}});}
-  }catch(e){tok="";$("app").hidden=true;msg(e.message)}
+  }catch(e){tok="";$("app").hidden=true;$("login").hidden=false;$("admin-sidebar").hidden=true;document.body.classList.remove("authenticated");msg(e.message)}
 }
-$("go").onclick=load;
+$("login-form").addEventListener("submit",event=>{
+  event.preventDefault();
+  const tokenValue=$("t").value,codeValue=$("c").value;
+  $("t").value="";$("c").value="";
+  load(tokenValue,codeValue);
+});
 $("rng").onchange=()=>dashboard(false).catch(e=>msg(e.message));
 $("rf").onclick=()=>dashboard(true).catch(e=>msg(e.message));
 $("lr").onclick=()=>logs().catch(e=>msg(e.message));
 $("lvl").onchange=$("lr").onclick;
 $("pg").onclick=async()=>{try{const d=await api("/progress/"+encodeURIComponent($("u").value.trim()));
   $("pr").textContent=d.username+" ("+d.displayName+")\\n"+(d.hasProgress?"Lessons done: "+d.lessonsCompleted+" | Stars: "+d.stars+" | XP: "+d.xp+" | Day streak: "+d.dayStreak+" | Checks: "+d.assessments+"\\nLast saved: "+d.updatedAt+" | Last active: "+d.lastActiveDay+"\\nLast 14 days (minutes / answers):\\n"+d.recentDays.map(x=>x.day+"  "+x.minutes+" / "+x.answered).join("\\n"):"No saved progress yet.");msg("")}catch(e){msg(e.message)}};
-</script>`;
+</script></body></html>`;
 
 export default router;
