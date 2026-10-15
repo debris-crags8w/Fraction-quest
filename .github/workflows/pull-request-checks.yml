@@ -1,0 +1,129 @@
+name: Pull request checks
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pull-request-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API tests, typecheck, and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fraction_quest_test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fraction_quest_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fraction_quest_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run API tests
+        run: pnpm --filter @workspace/api-server test
+
+      - name: Build shared TypeScript declarations
+        run: pnpm run typecheck:libs
+
+      - name: Typecheck API
+        run: pnpm --filter @workspace/api-server typecheck
+
+      - name: Build API for production
+        run: pnpm --filter @workspace/api-server build
+
+  web:
+    name: Web tests, typecheck, and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PORT: 4173
+      BASE_PATH: /
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run web unit tests
+        run: pnpm --filter @workspace/fraction-quest test
+
+      - name: Build shared TypeScript declarations
+        run: pnpm run typecheck:libs
+
+      - name: Typecheck web
+        run: pnpm --filter @workspace/fraction-quest typecheck
+
+      - name: Build web for production
+        run: pnpm --filter @workspace/fraction-quest build
+
+  ios-typecheck:
+    name: iOS package typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck iOS package
+        run: pnpm --filter @workspace/fraction-quest-ios typecheck
