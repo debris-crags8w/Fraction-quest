@@ -82,6 +82,10 @@ export type WorkedExample = {
   answer: string;
   explanation: string;
   model: ModelSpec;
+  numberLine?: {
+    points: FractionValue[];
+    benchmark: FractionValue;
+  };
 };
 
 export type Mission = {
@@ -716,6 +720,14 @@ const extensionTopics: ExtensionTopic[] = [
         { numerator: 3, denominator: 8, named: true },
         { numerator: 5, denominator: 8, named: true },
       ] },
+      numberLine: {
+        points: [
+          { numerator: 1, denominator: 4 },
+          { numerator: 3, denominator: 8 },
+          { numerator: 5, denominator: 8 },
+        ],
+        benchmark: { numerator: 1, denominator: 2 },
+      },
     },
     mode: 'order', n: 1, d: 5, context: 'hiking trail',
   },

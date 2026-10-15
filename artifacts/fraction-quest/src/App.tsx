@@ -206,6 +206,63 @@ function FractionBar({ numerator, denominator, quiet = false, label = false, gui
   );
 }
 
+function OrderNumberLine({ points, benchmark }: { points: { numerator: number; denominator: number }[]; benchmark: { numerator: number; denominator: number } }) {
+  const pointText = (point: { numerator: number; denominator: number }) =>
+    `${point.numerator}/${point.denominator} is at ${point.numerator} of ${point.denominator} equal spaces from zero to one`;
+  const benchmarkIsHalf = benchmark.numerator * 2 === benchmark.denominator;
+  const description = [
+    'A number line from zero to one.',
+    ...points.map(pointText),
+    ...(benchmarkIsHalf
+      ? ['The one-half benchmark is halfway between zero and one.']
+      : [`The benchmark ${benchmark.numerator}/${benchmark.denominator} is at ${benchmark.numerator} of ${benchmark.denominator} equal spaces from zero to one.`]),
+    `From left to right, the fractions are ${points.map(({ numerator, denominator }) => `${numerator}/${denominator}`).join(', ')}.`,
+  ].join(' ');
+
+  return (
+    <figure className="fq-order-line-figure" data-testid="fraction-order-numberline">
+      <div
+        className="fq-order-line"
+        role="img"
+        aria-label={description}
+      >
+        <span className="fq-order-line-axis" aria-hidden="true" />
+        {[0, 1].map((end) => <span className="fq-order-line-end" style={{ left: `${end * 100}%` }} key={end} aria-hidden="true" />)}
+        <span
+          className="fq-order-line-benchmark"
+          style={{ left: `${(benchmark.numerator / benchmark.denominator) * 100}%` }}
+          data-testid="fraction-order-benchmark"
+          aria-hidden="true"
+        >
+          <span>{benchmark.numerator}/{benchmark.denominator}</span>
+        </span>
+        {points.map((point, index) => {
+          const position = (point.numerator / point.denominator) * 100;
+          return (
+            <span
+              className="fq-order-line-point"
+              style={{ left: `${position}%`, '--lane': index % 2 } as CSSProperties}
+              key={`${point.numerator}/${point.denominator}`}
+              data-testid={`fraction-order-point-${point.numerator}-${point.denominator}`}
+              data-position={position}
+              aria-hidden="true"
+            >
+              <span>{point.numerator}/{point.denominator}</span>
+            </span>
+          );
+        })}
+      </div>
+      <figcaption className="fq-order-line-caption">
+        <span>0</span><span>1 whole</span>
+      </figcaption>
+      <p className="fq-order-line-description" data-testid="text-fraction-order-line-description">
+        {description}
+        <LearningListenButton text={description} label="Listen to the fraction number line" />
+      </p>
+    </figure>
+  );
+}
+
 /** Two bars of one whole each, once answered: where the larger amount ends. */
 function compareGuide(model: ModelSpec, reveal: boolean): number | undefined {
   if (!reveal || model.kind !== 'bars' || model.bars.length !== 2) return undefined;
@@ -630,6 +687,12 @@ function GuidedExample({ mission, title, lessonLabel }: { mission: Mission; titl
         </section>
       )}
       <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
+      {mission.example.numberLine && (
+        <OrderNumberLine
+          points={mission.example.numberLine.points}
+          benchmark={mission.example.numberLine.benchmark}
+        />
+      )}
       <div className="fq-example-answer">
         <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
         <LearningTextSection

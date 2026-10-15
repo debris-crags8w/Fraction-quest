@@ -269,6 +269,18 @@ describe('lesson catalog', () => {
             mission.example.model.bars.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
             ['1/4', '3/8', '5/8'],
           );
+          const line = mission.example.numberLine;
+          assert.ok(line, 'the worked example includes a matching number line');
+          assert.deepEqual(
+            line.points.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
+            mission.example.model.bars.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
+            'number-line points match the bar-model fractions in the authored answer order',
+          );
+          assert.deepEqual(line.benchmark, { numerator: 1, denominator: 2 });
+          const orderedPointPositions = line.points.map(({ numerator, denominator }) => numerator / denominator);
+          assert.ok(orderedPointPositions.every((position, index) => index === 0 || orderedPointPositions[index - 1] < position));
+          assert.equal(mission.example.answer, line.points.map(({ numerator, denominator }) => `${numerator}/${denominator}`).join(' < '));
+          assert.deepEqual(orderedPointPositions, [0.25, 0.375, 0.625]);
         }
       }
 
