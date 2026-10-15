@@ -23,6 +23,7 @@ import {
   numberLineWholeCount,
   recordMissedSkill,
   resetProgress as resetSavedProgress,
+  sameFractionValue,
   saveProgress,
   starsFromFirstTryAnswers,
   type Answer,
@@ -206,7 +207,7 @@ function FractionBar({ numerator, denominator, quiet = false, label = false, gui
   );
 }
 
-function OrderNumberLine({
+export function OrderNumberLine({
   points,
   benchmark,
   equivalentNames = [],
@@ -216,17 +217,13 @@ function OrderNumberLine({
   equivalentNames?: { fraction: { numerator: number; denominator: number }; equivalentTo: { numerator: number; denominator: number } }[];
 }) {
   const fractionName = ({ numerator, denominator }: { numerator: number; denominator: number }) => `${numerator}/${denominator}`;
-  const sameFraction = (
-    left: { numerator: number; denominator: number },
-    right: { numerator: number; denominator: number },
-  ) => left.numerator * right.denominator === right.numerator * left.denominator;
   const equivalentNamesFor = (point: { numerator: number; denominator: number }) =>
-    equivalentNames.filter(({ equivalentTo }) => sameFraction(point, equivalentTo));
+    equivalentNames.filter(({ equivalentTo }) => sameFractionValue(point, equivalentTo));
   const equivalentDescriptionFor = (
     point: { numerator: number; denominator: number },
     names: { fraction: { numerator: number; denominator: number } }[],
   ) => names.map(({ fraction }) =>
-    `${fractionName(point)} and ${fractionName(fraction)} are equivalent fractions. They share the same ${Math.round((point.numerator / point.denominator) * 100)} percent spot.`,
+    `${fractionName(point)} and ${fractionName(fraction)} are equivalent fractions. They mark the same amount and number-line spot.`,
   ).join(' ');
   const pointText = (point: { numerator: number; denominator: number }) =>
     `${point.numerator}/${point.denominator} is at ${point.numerator} of ${point.denominator} equal spaces from zero to one`;

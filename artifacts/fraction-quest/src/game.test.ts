@@ -66,6 +66,7 @@ import {
   numberLineWholeCount,
   recordMissedSkill,
   resetProgress,
+  sameFractionValue,
   saveProgress,
   SKILL_REVIEW_DELAY_MS,
   starsFromFirstTryAnswers,
@@ -98,6 +99,13 @@ describe('lesson star scoring', () => {
 });
 
 describe('fraction ordering activity', () => {
+  it('compares equivalent fractions exactly rather than by rounded percent', () => {
+    assert.equal(sameFractionValue({ numerator: 1, denominator: 4 }, { numerator: 2, denominator: 8 }), true);
+    assert.equal(sameFractionValue({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), true);
+    assert.equal(sameFractionValue({ numerator: 1, denominator: 3 }, { numerator: 33, denominator: 100 }), false);
+    assert.equal(sameFractionValue({ numerator: 1, denominator: 0 }, { numerator: 1, denominator: 1 }), false);
+  });
+
   it('checks smallest-to-biggest and biggest-to-smallest sorts exactly', () => {
     assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[0].cards.slice(1).concat(FRACTION_ORDER_ROUNDS[0].cards[0]), 'ascending'), true);
     assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[0].cards, 'ascending'), false);
@@ -312,30 +320,40 @@ describe('lesson catalog', () => {
             && equivalentTo.numerator === 1 && equivalentTo.denominator === 4,
           );
           assert.ok(equivalentName, 'the number line shows 2/8 as another name for 1/4');
-          const quarterBar = mission.example.model.bars.find(({ numerator, denominator }) => numerator === 1 && denominator === 4);
-          const twoEighthsBar = mission.example.model.bars.find(({ numerator, denominator }) => numerator === 2 && denominator === 8);
-          assert.ok(quarterBar && twoEighthsBar);
-          assert.equal(quarterBar.numerator / quarterBar.denominator, 0.25);
-          assert.equal(twoEighthsBar.numerator / twoEighthsBar.denominator, 0.25);
-          assert.equal(equivalentName.fraction.numerator / equivalentName.fraction.denominator, 0.25);
-          assert.equal(equivalentName.equivalentTo.numerator / equivalentName.equivalentTo.denominator, 0.25);
           assert.deepEqual(line.benchmark, { numerator: 1, denominator: 2 });
           const halfEquivalentName = line.equivalentNames?.find(({ fraction, equivalentTo }) =>
             fraction.numerator === 2 && fraction.denominator === 4
             && equivalentTo.numerator === 1 && equivalentTo.denominator === 2,
           );
           assert.ok(halfEquivalentName, 'the number-line benchmark shows 2/4 as another name for 1/2');
-          const halfBar = mission.example.model.bars.find(({ numerator, denominator }) => numerator === 1 && denominator === 2);
-          const twoFourthsBar = mission.example.model.bars.find(({ numerator, denominator }) => numerator === 2 && denominator === 4);
-          assert.ok(halfBar && twoFourthsBar);
-          assert.equal(halfBar.numerator / halfBar.denominator, 0.5);
-          assert.equal(twoFourthsBar.numerator / twoFourthsBar.denominator, 0.5);
-          assert.equal(halfEquivalentName.fraction.numerator / halfEquivalentName.fraction.denominator, 0.5);
-          assert.equal(halfEquivalentName.equivalentTo.numerator / halfEquivalentName.equivalentTo.denominator, 0.5);
-          const orderedPointPositions = line.points.map(({ numerator, denominator }) => numerator / denominator);
-          assert.ok(orderedPointPositions.every((position, index) => index === 0 || orderedPointPositions[index - 1] < position));
+          const equivalentNames = line.equivalentNames ?? [];
+          assert.ok(equivalentNames.length >= 2, 'the number line checks more than one equivalent-name pair');
+          assert.ok(line.points.slice(1).every((point, index) => {
+            const previous = line.points[index];
+            return BigInt(previous.numerator) * BigInt(point.denominator)
+              < BigInt(point.numerator) * BigInt(previous.denominator);
+          }), 'number-line points are ordered by their exact fraction values');
           assert.equal(mission.example.answer, line.points.map(({ numerator, denominator }) => `${numerator}/${denominator}`).join(' < '));
-          assert.deepEqual(orderedPointPositions, [0.25, 0.375, 0.625]);
+        }
+      }
+
+      const numberLine = mission.example.numberLine;
+      if (numberLine?.equivalentNames?.length) {
+        assert.equal(mission.example.model.kind, 'bars', `${mission.id} equivalent names have a bar model`);
+        if (mission.example.model.kind === 'bars') {
+          for (const { fraction, equivalentTo } of numberLine.equivalentNames) {
+            assert.ok(sameFractionValue(fraction, equivalentTo), `${mission.id}: ${fraction.numerator}/${fraction.denominator} must equal ${equivalentTo.numerator}/${equivalentTo.denominator} exactly`);
+            for (const namedFraction of [fraction, equivalentTo]) {
+              assert.ok(
+                mission.example.model.bars.some((bar) => sameFractionValue(bar, namedFraction)),
+                `${mission.id}: ${namedFraction.numerator}/${namedFraction.denominator} has a matching bar amount`,
+              );
+            }
+            assert.ok(
+              [...numberLine.points, numberLine.benchmark].some((point) => sameFractionValue(point, equivalentTo)),
+              `${mission.id}: ${equivalentTo.numerator}/${equivalentTo.denominator} is a number-line point or benchmark`,
+            );
+          }
         }
       }
 

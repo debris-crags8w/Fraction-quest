@@ -9,6 +9,20 @@ import { scopedStorageKey } from './storage-scope';
 /** `named`: the question states this fraction, so the bar shows its label (other bars are labelled once answered). */
 export type FractionValue = { numerator: number; denominator: number; named?: boolean };
 
+/** Compare fraction values exactly without converting them to rounded decimals or percentages. */
+export function sameFractionValue(
+  left: Pick<FractionValue, 'numerator' | 'denominator'>,
+  right: Pick<FractionValue, 'numerator' | 'denominator'>,
+): boolean {
+  if (
+    !Number.isSafeInteger(left.numerator) || !Number.isSafeInteger(right.numerator)
+    || !Number.isSafeInteger(left.denominator) || left.denominator <= 0
+    || !Number.isSafeInteger(right.denominator) || right.denominator <= 0
+  ) return false;
+  return BigInt(left.numerator) * BigInt(right.denominator)
+    === BigInt(right.numerator) * BigInt(left.denominator);
+}
+
 export type FractionOrderDirection = 'ascending' | 'descending';
 export type FractionOrderRound = {
   id: string;
