@@ -222,22 +222,27 @@ function OrderNumberLine({
   ) => left.numerator * right.denominator === right.numerator * left.denominator;
   const equivalentNamesFor = (point: { numerator: number; denominator: number }) =>
     equivalentNames.filter(({ equivalentTo }) => sameFraction(point, equivalentTo));
+  const equivalentDescriptionFor = (
+    point: { numerator: number; denominator: number },
+    names: { fraction: { numerator: number; denominator: number } }[],
+  ) => names.map(({ fraction }) =>
+    `${fractionName(point)} and ${fractionName(fraction)} are equivalent fractions. They share the same ${Math.round((point.numerator / point.denominator) * 100)} percent spot.`,
+  ).join(' ');
   const pointText = (point: { numerator: number; denominator: number }) =>
     `${point.numerator}/${point.denominator} is at ${point.numerator} of ${point.denominator} equal spaces from zero to one`;
+  const benchmarkNames = equivalentNamesFor(benchmark);
   const benchmarkIsHalf = benchmark.numerator * 2 === benchmark.denominator;
   const description = [
     'A number line from zero to one.',
     ...points.map((point) => {
       const names = equivalentNamesFor(point);
       return names.length
-        ? `${pointText(point)}. ${names.map(({ fraction }) =>
-          `${fractionName(point)} and ${fractionName(fraction)} are equivalent fractions. They share the same ${Math.round((point.numerator / point.denominator) * 100)} percent spot.`,
-        ).join(' ')}`
+        ? `${pointText(point)}. ${equivalentDescriptionFor(point, names)}`
         : pointText(point);
     }),
     ...(benchmarkIsHalf
-      ? ['The one-half benchmark is halfway between zero and one.']
-      : [`The benchmark ${benchmark.numerator}/${benchmark.denominator} is at ${benchmark.numerator} of ${benchmark.denominator} equal spaces from zero to one.`]),
+      ? [`The one-half benchmark is halfway between zero and one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]
+      : [`The benchmark ${benchmark.numerator}/${benchmark.denominator} is at ${benchmark.numerator} of ${benchmark.denominator} equal spaces from zero to one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]),
     `From left to right, the fractions are ${points.map(({ numerator, denominator }) => `${numerator}/${denominator}`).join(', ')}.`,
   ].join(' ');
 
@@ -254,9 +259,10 @@ function OrderNumberLine({
           className="fq-order-line-benchmark"
           style={{ left: `${(benchmark.numerator / benchmark.denominator) * 100}%` }}
           data-testid="fraction-order-benchmark"
+          data-equivalent-names={benchmarkNames.map(({ fraction }) => fractionName(fraction)).join(',')}
           aria-hidden="true"
         >
-          <span>{benchmark.numerator}/{benchmark.denominator}</span>
+          <span>{[fractionName(benchmark), ...benchmarkNames.map(({ fraction }) => fractionName(fraction))].join(' = ')}</span>
         </span>
         {points.map((point, index) => {
           const position = (point.numerator / point.denominator) * 100;

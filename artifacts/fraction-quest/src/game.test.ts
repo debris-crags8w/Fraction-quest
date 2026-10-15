@@ -267,7 +267,7 @@ describe('lesson catalog', () => {
         if (mission.example.model.kind === 'bars') {
           assert.deepEqual(
             mission.example.model.bars.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
-            ['1/4', '2/8', '3/8', '5/8'],
+            ['1/4', '2/8', '3/8', '1/2', '2/4', '5/8'],
           );
           const line = mission.example.numberLine;
           assert.ok(line, 'the worked example includes a matching number line');
@@ -289,6 +289,18 @@ describe('lesson catalog', () => {
           assert.equal(equivalentName.fraction.numerator / equivalentName.fraction.denominator, 0.25);
           assert.equal(equivalentName.equivalentTo.numerator / equivalentName.equivalentTo.denominator, 0.25);
           assert.deepEqual(line.benchmark, { numerator: 1, denominator: 2 });
+          const halfEquivalentName = line.equivalentNames?.find(({ fraction, equivalentTo }) =>
+            fraction.numerator === 2 && fraction.denominator === 4
+            && equivalentTo.numerator === 1 && equivalentTo.denominator === 2,
+          );
+          assert.ok(halfEquivalentName, 'the number-line benchmark shows 2/4 as another name for 1/2');
+          const halfBar = mission.example.model.bars.find(({ numerator, denominator }) => numerator === 1 && denominator === 2);
+          const twoFourthsBar = mission.example.model.bars.find(({ numerator, denominator }) => numerator === 2 && denominator === 4);
+          assert.ok(halfBar && twoFourthsBar);
+          assert.equal(halfBar.numerator / halfBar.denominator, 0.5);
+          assert.equal(twoFourthsBar.numerator / twoFourthsBar.denominator, 0.5);
+          assert.equal(halfEquivalentName.fraction.numerator / halfEquivalentName.fraction.denominator, 0.5);
+          assert.equal(halfEquivalentName.equivalentTo.numerator / halfEquivalentName.equivalentTo.denominator, 0.5);
           const orderedPointPositions = line.points.map(({ numerator, denominator }) => numerator / denominator);
           assert.ok(orderedPointPositions.every((position, index) => index === 0 || orderedPointPositions[index - 1] < position));
           assert.equal(mission.example.answer, line.points.map(({ numerator, denominator }) => `${numerator}/${denominator}`).join(' < '));

@@ -63,18 +63,91 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   await expect(numberLine).toContainText('1/4 = 2/8');
   await expect(numberLine).toContainText('1/4 and 2/8 are equivalent fractions');
   await expect(numberLine).toContainText('same 25 percent spot');
+  await expect(numberLine).toContainText('1/2 = 2/4');
+  await expect(numberLine).toContainText('1/2 and 2/4 are equivalent fractions');
+  await expect(numberLine).toContainText('same 50 percent spot');
   await expect(numberLine.getByRole('button', { name: 'Listen to the fraction number line' })).toBeVisible();
-  await expect(page.getByTestId('fraction-order-benchmark')).toHaveAttribute('style', /left: 50%/);
+  const benchmark = page.getByTestId('fraction-order-benchmark');
+  await expect(benchmark).toHaveAttribute('style', /left: 50%/);
+  await expect(benchmark).toHaveAttribute('data-equivalent-names', '2/4');
+  await expect(benchmark).toContainText('1/2 = 2/4');
   await expect(page.getByTestId('fraction-order-point-1-4')).toHaveAttribute('data-position', '25');
   await expect(page.getByTestId('fraction-order-point-1-4')).toHaveAttribute('data-equivalent-names', '2/8');
   await expect(page.getByTestId('fraction-order-point-1-4')).toContainText('1/4 = 2/8');
   await expect(page.getByTestId('fraction-order-point-3-8')).toHaveAttribute('data-position', '37.5');
   await expect(page.getByTestId('fraction-order-point-5-8')).toHaveAttribute('data-position', '62.5');
-  await expect(numberLine.locator('.fq-order-line')).toHaveAttribute('aria-label', /1\/4 is at 1 of 4 equal spaces.*1\/4 and 2\/8 are equivalent fractions.*same 25 percent spot.*3\/8 is at 3 of 8 equal spaces.*5\/8 is at 5 of 8 equal spaces.*one-half benchmark is halfway/);
+  await expect(numberLine.locator('.fq-order-line')).toHaveAttribute('aria-label', /1\/4 is at 1 of 4 equal spaces.*1\/4 and 2\/8 are equivalent fractions.*same 25 percent spot.*3\/8 is at 3 of 8 equal spaces.*5\/8 is at 5 of 8 equal spaces.*one-half benchmark is halfway.*1\/2 and 2\/4 are equivalent fractions.*same 50 percent spot/);
 
   const introBottom = await intro.evaluate((element) => element.getBoundingClientRect().bottom);
   const modelTop = await page.locator('.fq-example .fq-model-area').evaluate((element) => element.getBoundingClientRect().top);
   expect(introBottom).toBeLessThan(modelTop);
+});
+
+test('number-line labels, axis, markers, and halfway guide stay distinct in both themes', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+
+  const figure = page.getByTestId('fraction-order-numberline');
+  await expect(figure).toBeVisible();
+
+  for (const dark of [false, true]) {
+    await page.evaluate((useDarkTheme) => {
+      document.documentElement.classList.toggle('dark', useDarkTheme);
+    }, dark);
+    const colors = await figure.evaluate((element) => {
+      const firstPoint = element.querySelector<HTMLElement>('.fq-order-line-point');
+      const firstLabel = firstPoint?.querySelector<HTMLElement>('span');
+      const benchmarkLabel = element.querySelector<HTMLElement>('.fq-order-line-benchmark > span');
+      const axis = element.querySelector<HTMLElement>('.fq-order-line-axis');
+      const marker = firstPoint ? getComputedStyle(firstPoint, '::after') : null;
+      const guide = element.querySelector<HTMLElement>('.fq-order-line-benchmark');
+      const guideLine = guide ? getComputedStyle(guide, '::before') : null;
+      if (!firstLabel || !benchmarkLabel || !axis || !marker || !guideLine) {
+        throw new Error('Expected all number-line color targets to render');
+      }
+      const readColor = (value: string) => {
+        const match = value.match(/rgba?\(([^)]+)\)/);
+        if (!match) throw new Error(`Could not read rendered color: ${value}`);
+        const channels = match[1].split(/[\s,\/]+/).filter(Boolean).slice(0, 3).map(Number);
+        if (channels.length !== 3 || channels.some(Number.isNaN)) {
+          throw new Error(`Could not read rendered color channels: ${value}`);
+        }
+        return channels;
+      };
+      const markerRing = marker.boxShadow.match(/rgba?\(([^)]+)\)/)?.[0];
+      if (!markerRing) throw new Error(`Could not read marker outline: ${marker.boxShadow}`);
+      return {
+        label: readColor(getComputedStyle(firstLabel).color),
+        labelSurface: readColor(getComputedStyle(firstLabel).backgroundColor),
+        benchmark: readColor(getComputedStyle(benchmarkLabel).color),
+        axis: readColor(getComputedStyle(axis).backgroundColor),
+        marker: readColor(marker.backgroundColor),
+        markerRing: readColor(markerRing),
+        guide: readColor(guideLine.borderLeftColor),
+      };
+    });
+    const luminance = (channels: number[]) => {
+      const linear = channels.map((channel) => {
+        const normalized = channel / 255;
+        return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+    };
+    const contrast = (first: number[], second: number[]) => {
+      const [lighter, darker] = [luminance(first), luminance(second)].sort((a, b) => b - a);
+      return (lighter + 0.05) / (darker + 0.05);
+    };
+    const context = dark ? 'dark theme' : 'light theme';
+
+    expect(contrast(colors.label, colors.labelSurface), `${context}: fraction labels should remain readable`).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(colors.benchmark, colors.labelSurface), `${context}: the halfway label should remain readable`).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(colors.axis, colors.labelSurface), `${context}: the number-line axis should stand out`).toBeGreaterThanOrEqual(3);
+    expect(contrast(colors.marker, colors.axis), `${context}: fraction dots should stand out from the axis`).toBeGreaterThanOrEqual(3);
+    expect(contrast(colors.markerRing, colors.marker), `${context}: marker outlines should separate dots from the line`).toBeGreaterThanOrEqual(1.5);
+    expect(contrast(colors.guide, colors.labelSurface), `${context}: the dashed halfway guide should stand out`).toBeGreaterThanOrEqual(3);
+  }
 });
 
 test('the ordering number line keeps fraction labels clear on narrow screens and with enlarged text', async ({ page }) => {

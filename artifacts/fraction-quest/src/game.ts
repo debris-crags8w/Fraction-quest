@@ -720,6 +720,8 @@ const extensionTopics: ExtensionTopic[] = [
         { numerator: 1, denominator: 4, named: true },
         { numerator: 2, denominator: 8, named: true },
         { numerator: 3, denominator: 8, named: true },
+        { numerator: 1, denominator: 2, named: true },
+        { numerator: 2, denominator: 4, named: true },
         { numerator: 5, denominator: 8, named: true },
       ] },
       numberLine: {
@@ -731,6 +733,7 @@ const extensionTopics: ExtensionTopic[] = [
         benchmark: { numerator: 1, denominator: 2 },
         equivalentNames: [
           { fraction: { numerator: 2, denominator: 8 }, equivalentTo: { numerator: 1, denominator: 4 } },
+          { fraction: { numerator: 2, denominator: 4 }, equivalentTo: { numerator: 1, denominator: 2 } },
         ],
       },
     },
