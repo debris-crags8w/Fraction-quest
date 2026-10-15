@@ -57,6 +57,9 @@ jobs:
       - name: Run API tests
         run: pnpm --filter @workspace/api-server test
 
+      - name: Build shared TypeScript declarations
+        run: pnpm run typecheck:libs
+
       - name: Typecheck API
         run: pnpm --filter @workspace/api-server typecheck
 
@@ -90,6 +93,9 @@ jobs:
 
       - name: Run web unit tests
         run: pnpm --filter @workspace/fraction-quest test
+
+      - name: Build shared TypeScript declarations
+        run: pnpm run typecheck:libs
 
       - name: Typecheck web
         run: pnpm --filter @workspace/fraction-quest typecheck
