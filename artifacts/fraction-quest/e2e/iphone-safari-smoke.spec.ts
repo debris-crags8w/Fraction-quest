@@ -71,7 +71,35 @@ async function openLesson(page: import('@playwright/test').Page, resumeWorksheet
 }
 
 async function expectNoHorizontalOverflow(page: import('@playwright/test').Page) {
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  try {
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  } catch {
+    const layout = await page.evaluate(() => {
+      const width = window.innerWidth;
+      const offenders = Array.from(document.querySelectorAll<HTMLElement>('body *'))
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          return {
+            tag: element.tagName.toLowerCase(),
+            testId: element.dataset.testid ?? null,
+            className: typeof element.className === 'string' ? element.className : '',
+            left: Math.round(rect.left),
+            right: Math.round(rect.right),
+            width: Math.round(rect.width),
+          };
+        })
+        .filter((element) => element.left < -1 || element.right > width + 1)
+        .sort((a, b) => b.right - a.right)
+        .slice(0, 12);
+      return {
+        viewportWidth: width,
+        documentWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+        offenders,
+      };
+    });
+    throw new Error(`Horizontal overflow in phone layout: ${JSON.stringify(layout)}`);
+  }
 }
 
 test('phone Safari opens a lesson, accepts its first tap answer, and advances', async ({ page }) => {
