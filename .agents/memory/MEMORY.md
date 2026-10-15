@@ -5,3 +5,4 @@
 - [Voice runtime compatibility](mobile-voice-compatibility.md) — guard partial iOS APIs and verify server Kokoro voice assets with real synthesis, not model status alone.
 - [Scoped progress resets](unit-scoped-reset.md) — keep unit-attributable clearing separate from shared rewards, settings, and unlinked progress.
 - [Admin console security and layout](admin-totp-setup.md) — keep pre-auth admin screens generic and private; use a familiar, organized admin layout after sign-in.
+- [Artifact workflow port recovery](artifact-workflow-port-recovery.md) — check for stale child servers before retrying a workflow that fails with a port-in-use error.
