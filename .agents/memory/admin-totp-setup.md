@@ -1,10 +1,10 @@
 ---
-name: Admin TOTP setup
-description: Security constraint for the admin dashboard's authenticator enrollment flow.
+name: Admin console security and layout
+description: Security and design rules for the owner admin page.
 ---
 
-Keep the TOTP seed out of the admin HTML. The page may show whether configuration is complete, but enrollment must use the separately stored `ADMIN_TOTP_SECRET` rather than rendering it or a QR code in the page.
+Keep the public admin page limited to generic sign-in. Do not include setup instructions, environment-variable names, setup-readiness status, or generator commands before authentication. Keep the TOTP seed out of admin HTML; enrollment uses the separately stored `ADMIN_TOTP_SECRET`, never a secret or QR rendered into the page. After sign-in, use a familiar, organized admin layout similar to WordPress.
 
-**Why:** the setup page can be reached before the authenticator factor has been verified; revealing the seed there would expose the second factor.
+**Why:** the page is reachable before the authenticator factor has been verified, so setup details and second-factor material should not be exposed there. The user preferred a WordPress-like admin experience and confirmed the refreshed layout is better.
 
-**How to apply:** document manual authenticator enrollment from the secret store, and test that the admin page never includes configured secret values.
+**How to apply:** keep enrollment guidance in documentation, not the page. If an authenticator requires a QR, generate it locally from the secret, never through an online QR generator. Keep the pre-auth page generic and the authenticated console easy to navigate. Test that the pre-auth page contains no setup details or configured secret values.
