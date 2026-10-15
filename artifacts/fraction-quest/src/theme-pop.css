@@ -727,10 +727,17 @@
   font-size: .9rem;
   line-height: 1.45;
 }
+.fq-order-line-description-copy { flex: 1; min-width: 0; }
 .fq-order-line-description .fq-learning-listen { flex: none; }
 @media (max-width: 420px) {
   .fq-order-line-figure { padding-right: 12px; padding-left: 12px; }
-  .fq-order-line-description { align-items: flex-start; }
+  .fq-order-line-description {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    justify-content: stretch;
+  }
+  .fq-order-line-description .fq-learning-listen { justify-self: start; margin-left: 0; }
   .fq-order-line { height: 142px; }
   .fq-order-line-point { top: calc(4px + var(--lane) * 48px); min-width: 40px; font-size: .88rem; }
   .fq-order-line-point::after { top: calc(46px - var(--lane) * 48px); }

@@ -133,6 +133,58 @@ test('the ordering number line keeps fraction labels clear on narrow screens and
       });
 
       const context = `${width}px viewport, ${enlargedText ? 'enlarged' : 'normal'} text`;
+      const description = page.getByTestId('text-fraction-order-line-description-copy');
+      const listenButton = figure.getByRole('button', { name: 'Listen to the fraction number line' });
+      await expect(description).toBeVisible();
+      await expect(listenButton).toBeVisible();
+      await expect(listenButton).toBeEnabled();
+      const descriptionLayout = await figure.evaluate((element) => {
+        const copy = element.querySelector<HTMLElement>('[data-testid="text-fraction-order-line-description-copy"]');
+        const button = element.querySelector<HTMLElement>('.fq-order-line-description .fq-learning-listen');
+        const figureBounds = element.getBoundingClientRect();
+        const copyBounds = copy?.getBoundingClientRect();
+        const buttonBounds = button?.getBoundingClientRect();
+        return {
+          pageWidth: document.documentElement.scrollWidth,
+          viewportWidth: window.innerWidth,
+          copyText: copy?.textContent?.trim() ?? '',
+          lineHeight: Number.parseFloat(copy ? getComputedStyle(copy).lineHeight : '0'),
+          copy: copyBounds ? {
+            left: copyBounds.left,
+            right: copyBounds.right,
+            top: copyBounds.top,
+            bottom: copyBounds.bottom,
+            scrollWidth: copy?.scrollWidth ?? 0,
+            clientWidth: copy?.clientWidth ?? 0,
+            scrollHeight: copy?.scrollHeight ?? 0,
+            clientHeight: copy?.clientHeight ?? 0,
+          } : null,
+          button: buttonBounds ? {
+            left: buttonBounds.left,
+            right: buttonBounds.right,
+            top: buttonBounds.top,
+            bottom: buttonBounds.bottom,
+            width: buttonBounds.width,
+            height: buttonBounds.height,
+          } : null,
+          figure: { left: figureBounds.left, right: figureBounds.right },
+          accessibleDescription: element.querySelector<HTMLElement>('.fq-order-line')?.getAttribute('aria-label') ?? '',
+        };
+      });
+      expect(descriptionLayout.pageWidth, `${context}: the page should not overflow horizontally`).toBeLessThanOrEqual(descriptionLayout.viewportWidth);
+      expect(descriptionLayout.copyText, `${context}: all spoken description text should remain visible`).toBe(descriptionLayout.accessibleDescription);
+      expect(descriptionLayout.copy, `${context}: the description should have a measurable layout`).not.toBeNull();
+      expect(descriptionLayout.copy!.scrollWidth, `${context}: the description should not overflow its width`).toBeLessThanOrEqual(descriptionLayout.copy!.clientWidth + 1);
+      expect(descriptionLayout.copy!.scrollHeight, `${context}: the description should not be vertically clipped`).toBeLessThanOrEqual(descriptionLayout.copy!.clientHeight + 1);
+      expect(descriptionLayout.copy!.bottom - descriptionLayout.copy!.top, `${context}: the full description should wrap across lines`).toBeGreaterThan(descriptionLayout.lineHeight);
+      expect(descriptionLayout.button, `${context}: the Listen control should have a measurable layout`).not.toBeNull();
+      expect(descriptionLayout.button!.left, `${context}: Listen should stay inside the number-line card`).toBeGreaterThanOrEqual(descriptionLayout.figure.left);
+      expect(descriptionLayout.button!.right, `${context}: Listen should not clip past the number-line card`).toBeLessThanOrEqual(descriptionLayout.figure.right);
+      expect(descriptionLayout.button!.top, `${context}: Listen should appear below the wrapped description`).toBeGreaterThanOrEqual(descriptionLayout.copy!.bottom - 1);
+      expect(descriptionLayout.button!.height, `${context}: Listen should retain a usable touch target`).toBeGreaterThanOrEqual(34);
+      await listenButton.focus();
+      await expect(listenButton, `${context}: Listen should remain keyboard reachable`).toBeFocused();
+
       expect(layout.labels, `${context}: all four fraction and halfway labels should render`).toHaveLength(4);
       for (const label of layout.labels) {
         expect(label.left, `${context}: ${label.text} should not clip past the left edge`).toBeGreaterThanOrEqual(layout.figure.left);

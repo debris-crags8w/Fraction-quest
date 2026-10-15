@@ -281,7 +281,9 @@ function OrderNumberLine({
         <span>0</span><span>1 whole</span>
       </figcaption>
       <p className="fq-order-line-description" data-testid="text-fraction-order-line-description">
-        {description}
+        <span className="fq-order-line-description-copy" data-testid="text-fraction-order-line-description-copy">
+          {description}
+        </span>
         <LearningListenButton text={description} label="Listen to the fraction number line" />
       </p>
     </figure>
