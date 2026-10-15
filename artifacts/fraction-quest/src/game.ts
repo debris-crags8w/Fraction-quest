@@ -9,6 +9,46 @@ import { scopedStorageKey } from './storage-scope';
 /** `named`: the question states this fraction, so the bar shows its label (other bars are labelled once answered). */
 export type FractionValue = { numerator: number; denominator: number; named?: boolean };
 
+export type FractionOrderDirection = 'ascending' | 'descending';
+export type FractionOrderRound = {
+  id: string;
+  direction: FractionOrderDirection;
+  title: string;
+  cards: FractionValue[];
+  strategyHint: string;
+  explanation: string;
+};
+
+/** The ordering lesson's unscored, in-memory card sort. */
+export const FRACTION_ORDER_ROUNDS: FractionOrderRound[] = [
+  {
+    id: 'smallest-first',
+    direction: 'ascending',
+    title: 'Smallest to biggest',
+    cards: [{ numerator: 8, denominator: 10 }, { numerator: 3, denominator: 10 }, { numerator: 1, denominator: 2 }],
+    strategyHint: 'Use 1/2 as a landmark. 3/10 is below half and 8/10 is above half. Also, 1/2 is 5/10.',
+    explanation: '1/2 is 5/10, so the order is 3/10, 1/2, 8/10.',
+  },
+  {
+    id: 'biggest-first',
+    direction: 'descending',
+    title: 'Biggest to smallest',
+    cards: [{ numerator: 1, denominator: 8 }, { numerator: 5, denominator: 8 }, { numerator: 3, denominator: 8 }],
+    strategyHint: 'All three fractions are eighths. Compare the numerators: more eighths means a bigger fraction.',
+    explanation: 'They are all eighths, so compare the top numbers: 5/8, 3/8, 1/8.',
+  },
+];
+
+/** Check the left-to-right (or top-to-bottom) order without converting to rounded decimals. */
+export function fractionOrderMatches(cards: readonly FractionValue[], direction: FractionOrderDirection): boolean {
+  if (cards.length < 2 || cards.some(({ denominator }) => denominator <= 0)) return false;
+  return cards.slice(1).every((card, index) => {
+    const previous = cards[index];
+    const difference = previous.numerator * card.denominator - card.numerator * previous.denominator;
+    return direction === 'ascending' ? difference <= 0 : difference >= 0;
+  });
+}
+
 export type ModelSpec =
   | { kind: 'bars'; bars: FractionValue[]; caption?: string; hideLabels?: boolean }
   | { kind: 'set'; selected: number; total: number; caption?: string }
@@ -42,6 +82,11 @@ export type WorkedExample = {
   answer: string;
   explanation: string;
   model: ModelSpec;
+  numberLine?: {
+    points: FractionValue[];
+    benchmark: FractionValue;
+    equivalentNames?: { fraction: FractionValue; equivalentTo: FractionValue }[];
+  };
 };
 
 export type Mission = {
@@ -663,7 +708,33 @@ const extensionTopics: ExtensionTopic[] = [
       goal: 'Put fractions from smallest to biggest or biggest to smallest.',
       process: 'First compare each fraction to 1/2. If that is not enough, rename them with the same denominator, then compare the top numbers.',
       why: 'The same denominator means equal-size pieces. More of those pieces makes a greater amount.',
-    }, mode: 'order', n: 1, d: 5, context: 'hiking trail' },
+    },
+    example: {
+      prompt: 'Order 1/4, 3/8 and 5/8 from smallest to biggest.',
+      answer: '1/4 < 3/8 < 5/8',
+      explanation: 'First compare with 1/2: 1/4 and 3/8 are below it, and 5/8 is above it. To compare 1/4 and 3/8, rename 1/4 as 2/8. Eighths are the same-size pieces, and 2/8 is less than 3/8. So the order is 1/4, 3/8, 5/8.',
+      model: { kind: 'bars', bars: [
+        { numerator: 1, denominator: 4, named: true },
+        { numerator: 2, denominator: 8, named: true },
+        { numerator: 3, denominator: 8, named: true },
+        { numerator: 1, denominator: 2, named: true },
+        { numerator: 2, denominator: 4, named: true },
+        { numerator: 5, denominator: 8, named: true },
+      ] },
+      numberLine: {
+        points: [
+          { numerator: 1, denominator: 4 },
+          { numerator: 3, denominator: 8 },
+          { numerator: 5, denominator: 8 },
+        ],
+        benchmark: { numerator: 1, denominator: 2 },
+        equivalentNames: [
+          { fraction: { numerator: 2, denominator: 8 }, equivalentTo: { numerator: 1, denominator: 4 } },
+          { fraction: { numerator: 2, denominator: 4 }, equivalentTo: { numerator: 1, denominator: 2 } },
+        ],
+      },
+    },
+    mode: 'order', n: 1, d: 5, context: 'hiking trail' },
   { id: 'subtract-unlike-fractions', unit: 10, title: 'Take away different pieces', shortTitle: 'Subtract unlike parts', description: 'Rename, then take away.', skill: 'First rename both fractions with the same denominator so the pieces match. Then subtract the number of pieces.', mode: 'subtract-unlike', n: 3, d: 4, context: 'water bottle' },
   { id: 'add-unlike-fractions', unit: 10, title: 'Add unlike fractions', shortTitle: 'Add unlike parts', description: 'Make different-sized pieces the same size before adding.', skill: 'Rename both fractions with the same denominator so the pieces match. Then add the number of pieces.', mode: 'add-unlike', n: 7, d: 12, context: 'ribbons', gradeBand: 5, standards: ['5.NF.1'] },
   { id: 'add-mixed-numbers', unit: 10, title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Add wholes and pieces.', skill: 'Add the whole numbers and the fraction pieces. If the pieces fill a whole, regroup them as one more whole.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route' },
