@@ -295,7 +295,6 @@ function OrderNumberLine({
     </figure>
   );
 }
-
 /** Two bars of one whole each, once answered: where the larger amount ends. */
 function compareGuide(model: ModelSpec, reveal: boolean): number | undefined {
   if (!reveal || model.kind !== 'bars' || model.bars.length !== 2) return undefined;

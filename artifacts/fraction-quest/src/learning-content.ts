@@ -180,7 +180,7 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'equal-parts': [1, 3, 'bar', 'Cut a bar into 3 equal pieces. Shade 1.', 'Each whole has 3 equal parts. Shade 1 part in the bar and mark 1 of 3 equal jumps on the number line.'],
   'fraction-names': [3, 5, 'bar', 'Make 3/5.', 'The denominator is 5. That means 5 equal pieces in all. The numerator is 3. That means 3 pieces are shaded.'],
   'unit-fractions': [1, 6, 'bar', 'Make 1/6. Just one piece!', 'A unit fraction is just 1 equal piece.'],
-  'unit-size': [1, 4, 'bar', 'Which is bigger, 1/4 or 1/8? Make the bigger one.', 'A larger denominator splits the whole into more equal parts, so each piece is smaller.'],
+  'unit-size': [1, 4, 'bar', 'Which is bigger, 1/4 or 1/8? Make the bigger one.', 'Eight equal parts make smaller pieces than four, so 1/8 is smaller than 1/4.'],
   'sets-unit-fractions': [1, 3, 'set', 'Put 12 dots in 3 equal groups. Pick 1 group.', 'Make 3 equal groups. 1 group is 1/3.', 12],
   'sets-nonunit': [2, 3, 'set', 'Put 12 dots in 3 equal groups. Pick 2 groups.', 'Make 3 equal groups. 2 groups is 2/3.', 12],
   'benchmark-half': [3, 8, 'bar', 'Make a fraction 1/8 less than half.', 'Half of 8 is 4. One less is 3/8.'],
@@ -190,7 +190,7 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'number-line-points': [4, 7, 'line', 'Mark 4/7 on the number line.', 'The denominator is 7 equal spaces in one whole. The numerator is 4 jumps from zero.'],
   'number-line-beyond-one': [7, 5, 'line', 'Mark 1 and 2/5 on the number line.', '5/5 is 1 whole. 2 more fifths makes 7/5.'],
   'compare-same-denominator': [5, 8, 'bar', 'Which is bigger, 3/8 or 5/8? Make it.', 'Same size pieces. 5 is more than 3.'],
-  'compare-same-numerator': [3, 5, 'bar', 'Which is bigger, 3/5 or 3/8? Make it.', 'Both count 3 pieces. A denominator of 8 makes more, smaller pieces than 5, so 3/8 is smaller than 3/5.'],
+  'compare-same-numerator': [3, 5, 'bar', 'Which is bigger, 3/5 or 3/8? Make it.', 'Both count 3 pieces. Eight equal parts make smaller pieces than five, so 3/8 is smaller than 3/5.'],
   'order-fractions': [3, 4, 'bar', 'Which is biggest: 1/4, 1/2 or 3/4? Make it.', '3/4 is more than half.'],
   'equivalent-models': [2, 4, 'bar', 'Show 1/2 using fourths. Split every piece.', 'Split each half in 2. So 1/2 = 2/4.'],
   'build-equivalents': [4, 6, 'bar', 'Show 2/3 using sixths.', 'Split each third in 2. So 2/3 = 4/6.'],
@@ -213,7 +213,7 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'simplify-fractions': [3, 4, 'bar', 'Make 6/8 in simplest form.', 'Divide the numerator and denominator by 2. 6/8 = 3/4.'],
   'equivalent-missing-both': [4, 10, 'bar', 'Show 2/5 using tenths.', 'Multiply the numerator and denominator by 2. 2/5 = 4/10.'],
   'compare-unlike-fractions': [2, 3, 'bar', 'Which is bigger, 2/3 or 3/5? Make it.', 'Use fifteenths: 2/3 = 10/15 and 3/5 = 9/15.'],
-  'order-unlike-fractions': [3, 4, 'bar', 'Which is biggest: 1/2, 2/3 or 3/4? Make it.', 'Use twelfths: 6/12, 8/12, 9/12. So 3/4 is biggest.'],
+  'order-unlike-fractions': [3, 4, 'bar', 'Which is biggest: 1/2, 2/3 or 3/4? Make it.', 'Use 1/2 as a landmark, then rename the fractions in twelfths. 6/12, 8/12, and 9/12 show that 3/4 is biggest.'],
   'subtract-unlike-fractions': [1, 4, 'bar', 'Make 3/4 − 1/2.', '1/2 = 2/4. 3/4 − 2/4 = 1/4.'],
   'add-mixed-numbers': [7, 4, 'bar', 'Make 1/4 + 1 1/2.', '1 1/2 = 6/4. 6/4 + 1/4 = 7/4, or 1 3/4.'],
   'subtract-mixed-numbers': [2, 3, 'bar', 'Make 2 1/3 − 1 2/3.', '2 1/3 = 7/3 and 1 2/3 = 5/3. 7 − 5 = 2, so 2/3.'],
@@ -356,7 +356,7 @@ export const REASON_IDEAS: Record<string, string> = {
   'equal-parts': 'Equal parts and same number shaded',
   'fraction-names': 'Bottom: equal parts. Top: parts counted',
   'unit-fractions': 'A unit fraction is 1 piece',
-  'unit-size': 'More equal parts: smaller pieces',
+  'unit-size': 'Larger denominator: smaller pieces',
   'sets-unit-fractions': 'Make equal groups, then count groups',
   'sets-nonunit': 'Make equal groups, then count groups',
   'benchmark-half': 'Find half first, then count back',
@@ -366,8 +366,8 @@ export const REASON_IDEAS: Record<string, string> = {
   'number-line-points': 'Count jumps from 0',
   'number-line-beyond-one': 'Keep jumping past 1 whole',
   'compare-same-denominator': 'Same-size pieces: more is bigger',
-  'compare-same-numerator': 'Bigger denominator, smaller pieces',
-  'order-fractions': 'Compare same-size pieces',
+  'compare-same-numerator': 'Larger denominator: smaller pieces',
+  'order-fractions': 'Use half or same-size pieces',
   'equivalent-models': 'Split pieces: same amount, new name',
   'build-equivalents': 'Split pieces: same amount, new name',
   'missing-equivalent': 'Top and bottom grow together',
@@ -387,7 +387,7 @@ export const REASON_IDEAS: Record<string, string> = {
   'equivalent-missing-both': 'Change top and bottom alike',
   'whole-numbers-as-fractions': 'A full set makes 1 whole',
   'compare-unlike-fractions': 'Use same-size pieces to compare',
-  'order-unlike-fractions': 'Use same-size pieces to compare',
+  'order-unlike-fractions': 'Use a landmark or same-size pieces',
   'subtract-unlike-fractions': 'Make the pieces match first',
   'add-unlike-fractions': 'Make the pieces match first',
   'add-mixed-numbers': 'Make the pieces match first',
@@ -554,11 +554,11 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
   if (id === 'compose-to-one') return { prompt: 'A recipe uses 2/5 of a bag. Make what is left.', target: model(3, 5), reason: '5/5 is a full bag. 5 − 2 = 3, so 3/5.' };
   if (id === 'subtract-like-denominators') return { prompt: 'A ribbon is 7/10 long. Cut off 3/10. Make what is left.', target: model(4, 10), reason: '7 − 3 = 4, so 4/10.' };
   if (id === 'add-like-denominators') return { prompt: 'Make 1/5 + 2/5.', target: model(3, 5), reason: '1 + 2 = 3, so 3/5.' };
-  if (id === 'unit-size') return { prompt: 'Which is bigger, 1/3 or 1/6? Make it.', target: model(1, 3), reason: 'A denominator of 6 makes more equal parts than 3, so each sixth is smaller than each third.' };
-  if (id === 'compare-same-numerator') return { prompt: 'Which is bigger, 2/3 or 2/5? Make it.', target: model(2, 3), reason: 'Both count 2 pieces. A denominator of 5 makes more, smaller pieces than 3, so 2/5 is smaller than 2/3.' };
+  if (id === 'unit-size') return { prompt: 'Which is bigger, 1/3 or 1/6? Make it.', target: model(1, 3), reason: 'Six equal parts make smaller pieces than three, so 1/6 is smaller than 1/3.' };
+  if (id === 'compare-same-numerator') return { prompt: 'Which is bigger, 2/3 or 2/5? Make it.', target: model(2, 3), reason: 'Both count 2 pieces. Five equal parts make smaller pieces than three, so 2/5 is smaller than 2/3.' };
   if (id === 'benchmark-half' || id === 'fraction-magnitude') return { prompt: 'Use tenths. Make 1/10 less than half.', target: model(4, 10), reason: 'Half is 5/10. One less is 4/10.' };
   if (id === 'benchmarks-zero-one') return { prompt: 'A jug is 1/6 away from full. Make it.', target: model(5, 6), reason: '6/6 is full. One less is 5/6.' };
-  if (id === 'compare-same-denominator' || id === 'order-fractions') return { prompt: 'Which is longer, 2/5 or 4/5 of a meter? Make it.', target: model(4, 5), reason: 'Same size pieces. 4 is more than 2.' };
+  if (id === 'compare-same-denominator' || id === 'order-fractions') return { prompt: 'Which is longer, 2/5 or 4/5 of a meter? Make it.', target: model(4, 5), reason: 'Both use fifths, so the pieces are the same size. Four fifths is longer because 4 pieces is more than 2.' };
   const nextD = d === 5 ? 4 : 5; const nextN = n > d ? nextD + 2 : id === 'unit-fractions' || id === 'equal-parts' ? 1 : 3;
   return { prompt: kind === 'line' ? `Mark ${f(nextN, nextD)} on the number line.` : `A ribbon is ${f(nextN, nextD)} of a meter. Make ${f(nextN, nextD)}.`, target: model(nextN, nextD, kind),
     reason: `1 whole is ${nextD} equal parts. Count ${nextN} of them.` };
@@ -721,8 +721,9 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           prompt = `Which is ${i % 2 ? 'smaller' : 'bigger'}, ${f(top, first)} or ${f(top, second)}?`;
           answer = f(top, i % 2 ? big : small);
         }
-        hint = id === 'unit-size' ? 'A larger denominator splits the same whole into more equal parts, so each piece is smaller.'
-          : `Same numerator: ${top} pieces are counted in each fraction. A larger denominator (${big}) splits the same whole into more equal parts, so each piece is smaller. The fraction with denominator ${big} is smaller.`; break;
+        hint = id === 'unit-size'
+          ? `The larger denominator, ${big}, splits the same whole into more equal parts. Each ${big}th is smaller than each ${small}th.`
+          : `Both fractions count ${top} pieces. The larger denominator, ${big}, splits the same whole into more equal parts, so each piece—and that fraction—is smaller.`; break;
       }
       case 'sets-unit-fractions':
       case 'sets-nonunit': {
@@ -915,7 +916,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const [a, b, c, e] = ([[1, 2, 2, 5], [2, 3, 3, 4], [3, 4, 2, 3], [1, 3, 2, 6], [3, 5, 3, 4], [5, 6, 5, 8], [2, 5, 1, 3], [3, 8, 1, 2], [4, 6, 2, 3], [7, 10, 3, 5], [2, 5, 2, 3], [5, 8, 3, 4]] as const)[tr];
         prompt = `Put <, = or > in the gap: ${f(a, b)} __ ${f(c, e)}.`;
         answer = a * e > c * b ? '>' : a * e < c * b ? '<' : '='; form = 'symbol';
-         hint = a === c ? `Same numerator: ${a} pieces are counted in each fraction. A larger denominator splits the same whole into more equal parts, so each piece—and the fraction—is smaller.` : 'Give both fractions the same denominator. Then compare the numerators.'; break;
+        hint = a === c
+          ? `Both fractions count ${a} pieces. The larger denominator splits the whole into more equal parts, so each piece—and that fraction—is smaller.`
+          : 'Rename both fractions with the same denominator so the pieces match. Then compare the numerators.'; break;
       }
       case 'order': {
         const triples: [number, number][][] = [
@@ -928,7 +931,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const shown = triples[tr].every((x, j) => x === sorted[j]) ? [triples[tr][1], triples[tr][2], triples[tr][0]] : triples[tr];
         prompt = `Put ${shown.map(([t, b]) => f(t, b)).join(', ')} in order, ${up ? 'smallest' : 'biggest'} first.`;
         answer = sorted.map(([t, b]) => f(t, b)).join(', '); form = 'ordered';
-        hint = 'Compare each one to 1/2 first. Or give them all the same denominator.'; break;
+        hint = 'Compare each one to 1/2 first. If needed, rename them with the same denominator so their pieces match, then compare.'; break;
       }
       case 'subtract-unlike': {
         const [a, b, c, e] = ([[3, 4, 1, 2], [5, 6, 1, 2], [7, 8, 1, 2], [5, 8, 1, 4], [5, 6, 1, 3], [9, 10, 1, 2], [7, 12, 1, 3], [3, 4, 1, 8], [2, 3, 1, 6], [7, 10, 1, 5], [11, 12, 1, 4], [5, 6, 2, 3]] as const)[tr];

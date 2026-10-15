@@ -46,8 +46,8 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   const intro = page.getByTestId('lesson-introduction');
   await expect(intro).toBeVisible();
   await expect(intro).toContainText('smallest to biggest');
-  await expect(intro).toContainText('one half');
-  await expect(intro).toContainText('same-size pieces');
+  await expect(intro).toContainText('same denominator');
+  await expect(intro).toContainText('top numbers');
   await expect(intro.getByRole('button', { name: 'Listen to the goal' })).toBeVisible();
   await expect(intro.getByRole('button', { name: 'Listen to the process' })).toBeVisible();
   await expect(intro.getByRole('button', { name: 'Listen to why it works' })).toBeVisible();

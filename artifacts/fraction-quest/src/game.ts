@@ -257,7 +257,7 @@ function mission(seed: MissionSeed): Mission {
 
 const curriculum: MissionSeed[] = [
   {
-    id: 'equal-parts', unit: 1, title: 'Same whole, fair pieces', shortTitle: 'Equal parts', skill: 'A fraction is made of equal parts of 1 whole.',
+    id: 'equal-parts', unit: 1, title: 'Same whole, fair pieces', shortTitle: 'Equal parts', skill: 'A fraction names equal parts of one whole. The parts must be the same size.',
     description: 'Spot fair, equal pieces.', example: {
       prompt: 'A strip is cut into 4 pieces. When are they fourths?',
       answer: 'When all 4 pieces are the same size.',
@@ -272,7 +272,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'fraction-names', unit: 1, title: 'Read a fraction', shortTitle: 'Fraction names', skill: 'The denominator is the number of equal parts in one whole. The numerator is the number of parts you count.',
+    id: 'fraction-names', unit: 1, title: 'Read a fraction', shortTitle: 'Fraction names', skill: 'The denominator, or bottom number, tells how many equal parts make one whole. The numerator, or top number, tells how many parts we count.',
     description: 'Learn what the numerator and denominator mean.', example: {
       prompt: 'In 3/5, what does each number tell you?',
       answer: 'There are 5 equal parts in all. 3 parts are counted.',
@@ -287,7 +287,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'unit-fractions', unit: 1, title: 'One piece at a time', shortTitle: 'Unit fractions', skill: 'A unit fraction has a numerator of 1.',
+    id: 'unit-fractions', unit: 1, title: 'One piece at a time', shortTitle: 'Unit fractions', skill: 'A unit fraction counts one equal part. Its top number is 1.',
     description: 'Find just 1 equal piece.', example: {
       prompt: 'What fraction is 1 of 6 equal pieces?',
       answer: '1/6',
@@ -302,7 +302,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'unit-size', unit: 2, title: 'More pieces, smaller pieces', shortTitle: 'Unit fraction size', skill: 'Cut a whole into more pieces, and each piece gets smaller.',
+    id: 'unit-size', unit: 2, title: 'More pieces, smaller pieces', shortTitle: 'Unit fraction size', skill: 'The bottom number tells how many equal pieces make a whole. More pieces means each piece is smaller.',
     description: 'Compare 1 piece from same-size wholes.', example: {
       prompt: 'Which is bigger, 1/3 or 1/8?',
       answer: '1/3 is bigger.',
@@ -317,7 +317,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'sets-unit-fractions', unit: 2, title: 'Fractions in a group', shortTitle: 'Fractions of sets', skill: 'A fraction of a group uses equal groups.',
+    id: 'sets-unit-fractions', unit: 2, title: 'Fractions in a group', shortTitle: 'Fractions of sets', skill: 'Split a group into equal groups. One group is one part of the whole set.',
     description: 'Share things into equal groups.', example: {
       prompt: 'There are 12 buttons. What is 1/3 of the buttons?',
       answer: '4 buttons.',
@@ -332,7 +332,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'sets-nonunit', unit: 2, title: 'More than one group', shortTitle: 'Count groups in a set', skill: 'Make the equal groups first. Then count the groups you need.',
+    id: 'sets-nonunit', unit: 2, title: 'More than one group', shortTitle: 'Count groups in a set', skill: 'The bottom number tells how many equal groups to make. The top number tells how many groups to count.',
     description: 'Count 2 or 3 equal groups.', example: {
       prompt: 'What is 2/5 of 15 counters?',
       answer: '6 counters.',
@@ -347,7 +347,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'benchmark-half', unit: 3, title: 'Is it less or more than half?', shortTitle: 'Near one half', skill: 'Use 1/2 to tell if a fraction is big or small.',
+    id: 'benchmark-half', unit: 3, title: 'Is it less or more than half?', shortTitle: 'Near one half', skill: 'Compare a fraction with 1/2. A bar or number line shows whether it is less or more than halfway.',
     description: 'Is it more or less than half?', example: {
       prompt: 'Is 3/8 more or less than 1/2?',
       answer: 'Less than 1/2.',
@@ -362,7 +362,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'benchmarks-zero-one', unit: 3, title: 'Near zero, half, or one?', shortTitle: 'Near 0, 1/2 or 1', skill: 'Is it near 0, 1/2 or 1?',
+    id: 'benchmarks-zero-one', unit: 3, title: 'Near zero, half, or one?', shortTitle: 'Near 0, 1/2 or 1', skill: 'Compare a fraction with 0, 1/2, and 1. These landmarks show how much of the whole it is.',
     description: 'Guess the size using 0, 1/2 and 1.', example: {
       prompt: 'Is 7/8 near 0, 1/2 or 1?',
       answer: 'Near 1.',
@@ -377,7 +377,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'fraction-magnitude', unit: 3, title: 'Fractions can be close together', shortTitle: 'Estimate size', skill: 'Guess how big a fraction is.',
+    id: 'fraction-magnitude', unit: 3, title: 'Fractions can be close together', shortTitle: 'Estimate size', skill: 'Use familiar landmarks like 0, 1/2, and 1 to estimate a fraction before comparing it.',
     description: 'Guess first, then check.', example: {
       prompt: 'Is 5/12 more or less than 1/2?',
       answer: 'A little less than 1/2.',
@@ -392,7 +392,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'number-line-basics', unit: 4, title: 'Build a fraction number line', shortTitle: 'Split the line', skill: 'Cut 0 to 1 into equal spaces.',
+    id: 'number-line-basics', unit: 4, title: 'Build a fraction number line', shortTitle: 'Split the line', skill: 'Split the distance from 0 to 1 into equal spaces. The bottom number tells the spaces in one whole.',
     description: 'Every jump is the same size.', example: {
       prompt: 'How many spaces do you need for thirds?',
       answer: '3 equal spaces.',
@@ -407,7 +407,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'number-line-points', unit: 4, title: 'Find the marked fraction', shortTitle: 'Read the line', skill: 'Count jumps from 0 to name a point.',
+    id: 'number-line-points', unit: 4, title: 'Find the marked fraction', shortTitle: 'Read the line', skill: 'The bottom number tells the equal spaces in one whole. The top number tells the jumps from 0.',
     description: 'Count jumps from 0.', example: {
       prompt: 'A line has 7 spaces. The point is 4 jumps from 0. What is it?',
       answer: '4/7',
@@ -422,7 +422,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'number-line-beyond-one', unit: 4, title: 'Keep going past one', shortTitle: 'Past one whole', skill: 'Fractions can go past 1.',
+    id: 'number-line-beyond-one', unit: 4, title: 'Keep going past one', shortTitle: 'Past one whole', skill: 'When the jumps pass 1 whole, keep counting the same-size spaces to show the extra part.',
     description: 'Keep counting jumps past 1.', example: {
       prompt: 'Each jump is 1/5. What is 7 jumps from 0?',
       answer: '7/5, or 1 and 2/5.',
@@ -437,7 +437,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'compare-same-denominator', unit: 5, title: 'Same pieces, different counts', shortTitle: 'Compare like pieces', skill: 'Same denominator? The bigger numerator wins.',
+    id: 'compare-same-denominator', unit: 5, title: 'Same pieces, different counts', shortTitle: 'Compare like pieces', skill: 'The same bottom number means the pieces are the same size. More counted pieces make the larger fraction.',
     description: 'Compare fractions with same-size pieces.', example: {
       prompt: 'Which is bigger, 3/8 or 5/8?',
       answer: '5/8.',
@@ -452,37 +452,37 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'compare-same-numerator', unit: 5, title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'Same numerator? A larger denominator splits the whole into more equal parts, so each piece is smaller. The fraction is smaller too.',
+    id: 'compare-same-numerator', unit: 5, title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'The same top number means we count the same number of pieces. A larger bottom number makes more equal parts, so each piece—and the fraction we count—is smaller.',
     description: 'Compare fractions with the same numerator.', example: {
       prompt: 'Which is bigger, 3/5 or 3/8?',
       answer: '3/5.',
-      explanation: 'Both count 3 pieces. Splitting the same whole into 8 equal parts makes smaller pieces than splitting it into 5, so 3/8 is smaller than 3/5.',
+      explanation: 'Both fractions count 3 pieces. Eighths come from splitting the whole into more equal parts than fifths, so each eighth is smaller. That makes 3/8 less than 3/5.',
       model: bars({ numerator: 3, denominator: 5 }, { numerator: 3, denominator: 8 }),
     },
     questions: [
-      practice('Which is bigger, 2/3 or 2/7?', ['2/7', '2/3', 'They are equal'], 1, bars({ numerator: 2, denominator: 3 }, { numerator: 2, denominator: 7 }), 'Both count 2 pieces. The larger denominator, 7, splits the whole into more equal parts, so each piece is smaller.', 'Thirds are larger than sevenths, so 2/3 is greater than 2/7.', bars({ numerator: 1, denominator: 3 })),
-      practice('Which is smaller, 4/5 or 4/9?', ['4/5', '4/9', 'They are equal'], 1, bars({ numerator: 4, denominator: 5 }, { numerator: 4, denominator: 9 }), 'Both count 4 pieces. The larger denominator, 9, makes more equal parts in the whole, so each piece is smaller.', 'With the same 4 pieces counted, 4/9 is less than 4/5.', bars({ numerator: 1, denominator: 2 })),
-      practice('Pick the sign: 1/6 __ 1/4', ['>', '<', '='], 1, bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 4 }), 'The larger denominator, 6, splits the whole into more equal parts than 4, so each sixth is smaller.', 'So 1/6 < 1/4.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which covers more: 3/10 or 3/8?', ['3/10', '3/8', 'They cover the same'], 1, bars({ numerator: 3, denominator: 10 }, { numerator: 3, denominator: 8 }), 'Both count 3 pieces. The larger denominator, 10, makes more equal parts than 8, so each piece is smaller.', 'Eighths are larger than tenths, so 3/8 is greater than 3/10.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is bigger, 2/3 or 2/7?', ['2/7', '2/3', 'They are equal'], 1, bars({ numerator: 2, denominator: 3 }, { numerator: 2, denominator: 7 }), 'Both count 2 pieces. Seven equal parts make smaller pieces than three, so 2/7 is smaller.', 'Both count 2 pieces. Each third is bigger than each seventh, so 2/3 is bigger.', bars({ numerator: 1, denominator: 3 })),
+      practice('Which is smaller, 4/5 or 4/9?', ['4/5', '4/9', 'They are equal'], 1, bars({ numerator: 4, denominator: 5 }, { numerator: 4, denominator: 9 }), 'Both count 4 pieces. The larger denominator, 9, makes smaller pieces.', 'Both count 4 pieces. Ninths are smaller than fifths, so 4/9 is less than 4/5.', bars({ numerator: 1, denominator: 2 })),
+      practice('Pick the sign: 1/6 __ 1/4', ['>', '<', '='], 1, bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 4 }), 'Six equal parts are smaller than four equal parts of the same whole.', 'One sixth is smaller than one fourth, so 1/6 < 1/4.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which covers more: 3/10 or 3/8?', ['3/10', '3/8', 'They cover the same'], 1, bars({ numerator: 3, denominator: 10 }, { numerator: 3, denominator: 8 }), 'Both count 3 pieces. Eighths are larger because 8 parts are fewer than 10.', 'Each eighth is larger than each tenth. With 3 pieces counted, 3/8 covers more than 3/10.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
-    id: 'order-fractions', unit: 5, title: 'Put fractions in order', shortTitle: 'Order fractions', skill: 'Put fractions in order from small to big.',
+    id: 'order-fractions', unit: 5, title: 'Put fractions in order', shortTitle: 'Order fractions', skill: 'Compare the amounts, then put them from smallest to largest or largest to smallest.',
     description: 'Compare amounts, not just numbers.', example: {
       prompt: 'Put 1/4, 3/4 and 1/2 in order, smallest first.',
       answer: '1/4, 1/2, 3/4',
-      explanation: '1/4 is less than half. 3/4 is more than half.',
+      explanation: 'Use 1/2 as a halfway landmark. 1/4 is less than half and 3/4 is more, so the order is 1/4, 1/2, 3/4.',
       model: bars({ numerator: 1, denominator: 4 }, { numerator: 1, denominator: 2 }, { numerator: 3, denominator: 4 }),
     },
     questions: [
       practice('Which order goes smallest to biggest?', ['1/3, 2/3, 3/3', '3/3, 2/3, 1/3', '2/3, 1/3, 3/3'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 3 }, { numerator: 3, denominator: 3 }), 'All thirds. Count the pieces.', '1/3 is smallest. 3/3 is 1 whole.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which order goes biggest to smallest?', ['1/2, 1/4, 1/5', '1/5, 1/4, 1/2', '1/4, 1/2, 1/5'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 4 }, { numerator: 1, denominator: 5 }), 'Fewer pieces means bigger pieces.', '1/2 is biggest, then 1/4, then 1/5.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which order goes biggest to smallest?', ['1/2, 1/4, 1/5', '1/5, 1/4, 1/2', '1/4, 1/2, 1/5'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 4 }, { numerator: 1, denominator: 5 }), 'Each fraction counts 1 piece. The larger denominator makes a smaller piece.', '1/2 is biggest, then 1/4, then 1/5.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fits between 2/8 and 6/8?', ['1/8', '4/8', '7/8'], 1, bars({ numerator: 2, denominator: 8 }, { numerator: 6, denominator: 8 }), 'All eighths. Which numerator is between 2 and 6?', '4 is between 2 and 6.', bars({ numerator: 1, denominator: 2 })),
       practice('Put 1/2, 3/10 and 8/10 in order, smallest first.', ['3/10, 1/2, 8/10', '8/10, 1/2, 3/10', '1/2, 3/10, 8/10'], 0, bars({ numerator: 3, denominator: 10 }, { numerator: 1, denominator: 2 }, { numerator: 8, denominator: 10 }), '1/2 is the same as 5/10. Compare to that.', '3/10 is less than half. 8/10 is more.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
-    id: 'equivalent-models', unit: 6, title: 'Same amount, new name', shortTitle: 'See equivalence', skill: 'Different fractions can be the same amount.',
+    id: 'equivalent-models', unit: 6, title: 'Same amount, new name', shortTitle: 'See equivalence', skill: 'Equal fractions can look different but name the same amount. Splitting every piece keeps the whole amount unchanged.',
     description: 'Find fractions that match.', example: {
       prompt: 'How can 1/2 and 2/4 be the same?',
       answer: 'Cut each half into 2 pieces.',
@@ -497,7 +497,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'build-equivalents', unit: 6, title: 'Make a matching fraction', shortTitle: 'Make a match', skill: 'Multiply the numerator and denominator by the same number.',
+    id: 'build-equivalents', unit: 6, title: 'Make a matching fraction', shortTitle: 'Make a match', skill: 'Multiply the top and bottom numbers by the same amount. That changes the piece size, not the fraction’s value.',
     description: 'New name, same amount.', example: {
       prompt: 'Double the numerator and denominator of 2/3. What do you get?',
       answer: '4/6',
@@ -512,7 +512,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'missing-equivalent', unit: 6, title: 'Find the missing number', shortTitle: 'Missing parts', skill: 'Find the pattern. Top and bottom change by the same number.',
+    id: 'missing-equivalent', unit: 6, title: 'Find the missing number', shortTitle: 'Missing parts', skill: 'Equivalent fractions keep the same amount. Whatever factor changes the bottom must also change the top.',
     description: 'Fill the blank. Keep it the same amount.', example: {
       prompt: 'Fill the blank: 2/3 = ?/6',
       answer: '4/6',
@@ -527,7 +527,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'compose-to-one', unit: 7, title: 'Put pieces together', shortTitle: 'Make 1 whole', skill: 'Put same-size pieces together to make 1 whole.',
+    id: 'compose-to-one', unit: 7, title: 'Put pieces together', shortTitle: 'Make 1 whole', skill: 'Pieces with the same denominator are the same size. Put enough together to fill one whole.',
     description: 'Add pieces until you have 1 whole.', example: {
       prompt: 'How many 1/4 pieces make 1 whole?',
       answer: '4 pieces: 4/4 = 1.',
@@ -542,7 +542,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'decompose-fractions', unit: 7, title: 'Break a fraction apart', shortTitle: 'Break apart', skill: 'Split a fraction into smaller parts.',
+    id: 'decompose-fractions', unit: 7, title: 'Break a fraction apart', shortTitle: 'Break apart', skill: 'Break the counted pieces into smaller groups. Keep the piece size the same.',
     description: 'Show one amount in different ways.', example: {
       prompt: 'Split 5/6 into two parts. Keep sixths.',
       answer: '2/6 + 3/6 = 5/6.',
@@ -557,7 +557,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'improper-fractions', unit: 7, title: 'More than one whole', shortTitle: 'Past a whole', skill: 'A fraction can be more than 1 whole.',
+    id: 'improper-fractions', unit: 7, title: 'More than one whole', shortTitle: 'Past a whole', skill: 'When the top number is greater than the bottom, the fraction has at least one whole and some extra pieces.',
     description: 'Keep counting pieces past 1 whole.', example: {
       prompt: 'What is 7/4 as wholes and a fraction?',
       answer: '1 and 3/4.',
@@ -572,7 +572,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'mixed-improper', unit: 7, title: 'Two ways to write it', shortTitle: 'Two ways to name it', skill: '7/4 and 1 and 3/4 are the same amount.',
+    id: 'mixed-improper', unit: 7, title: 'Two ways to write it', shortTitle: 'Two ways to name it', skill: 'A whole number and leftover fraction can be written as one fraction. For example, 7/4 is 1 whole and 3/4.',
     description: 'Swap pieces for wholes, and back again.', example: {
       prompt: 'What is 1 and 3/8 as eighths?',
       answer: '11/8.',
@@ -587,7 +587,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'add-like-denominators', unit: 8, title: 'Add same-size pieces', shortTitle: 'Add fractions', skill: 'Add the numerators. The denominator stays the same.',
+    id: 'add-like-denominators', unit: 8, title: 'Add same-size pieces', shortTitle: 'Add fractions', skill: 'When the pieces are the same size, add how many pieces you have. Keep the denominator because the piece size stays the same.',
     description: 'Add pieces that are the same size.', example: {
       prompt: 'What is 2/7 + 3/7?',
       answer: '5/7.',
@@ -602,7 +602,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'subtract-like-denominators', unit: 8, title: 'Take pieces away', shortTitle: 'Subtract fractions', skill: 'Take away the numerators. The denominator stays the same.',
+    id: 'subtract-like-denominators', unit: 8, title: 'Take pieces away', shortTitle: 'Subtract fractions', skill: 'When the pieces are the same size, subtract how many pieces remain. Keep the denominator because the piece size stays the same.',
     description: 'Take away same-size pieces.', example: {
       prompt: 'What is 6/8 − 2/8?',
       answer: '4/8.',
@@ -617,7 +617,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'add-related-fractions', unit: 8, title: 'Rename, then add', shortTitle: 'Add different names', skill: 'Make the pieces match, then add.',
+    id: 'add-related-fractions', unit: 8, title: 'Rename, then add', shortTitle: 'Add different names', skill: 'Rename the fractions as the same-size pieces. Then add the pieces you have.',
     description: 'Change one fraction so the pieces match.', example: {
       prompt: 'What is 1/2 + 1/4?',
       answer: '3/4.',
@@ -632,7 +632,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'tenths-decimals', unit: 8, title: 'Tenths as decimals', shortTitle: 'Fractions and decimals', skill: 'Tenths can be written as decimals, like 0.7.',
+    id: 'tenths-decimals', unit: 8, title: 'Tenths as decimals', shortTitle: 'Fractions and decimals', skill: 'One tenth is 0.1. Write tenths as one digit to the right of the decimal point.',
     description: 'Match tenths to decimals.', example: {
       prompt: 'How do you write 7/10 as a decimal?',
       answer: '0.7',
@@ -647,7 +647,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'hundredths-decimals', unit: 8, title: 'Hundredths and place value', shortTitle: 'Hundredths', skill: 'Hundredths use 2 places after the dot, like 0.25.',
+    id: 'hundredths-decimals', unit: 8, title: 'Hundredths and place value', shortTitle: 'Hundredths', skill: 'One hundredth is 0.01. Write hundredths with two digits to the right of the decimal point.',
     description: 'Two numbers after the dot means hundredths.', example: {
       prompt: 'How do you write 25/100 as a decimal?',
       answer: '0.25',
@@ -662,7 +662,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'add-tenths-hundredths', unit: 8, title: 'Add tenths and hundredths', shortTitle: 'Tenths + hundredths', skill: 'Change tenths to hundredths. Then add.',
+    id: 'add-tenths-hundredths', unit: 8, title: 'Add tenths and hundredths', shortTitle: 'Tenths + hundredths', skill: 'Rename tenths as hundredths so the pieces match. Then add the hundredths.',
     description: 'Add 3/10 + 4/100.', example: {
       prompt: 'What is 3/10 + 4/100?',
       answer: '34/100, or 0.34.',
@@ -698,19 +698,16 @@ type ExtensionTopic = {
 
 const extensionTopics: ExtensionTopic[] = [
   // Grade 4 (4.NF.4a, 4.NF.4b): ends unit 8, so grade-4 learners (and the level quiz) reach it before grade 5.
-  { id: 'unit-fraction-multiples', unit: 8, title: 'Make groups of a unit fraction', shortTitle: 'Unit fraction multiples', description: 'Build several copies of one unit fraction.', skill: 'Repeated addition of a unit fraction makes a multiple.', mode: 'unit-multiples', n: 5, d: 4, context: 'paper strips', gradeBand: 4, standards: ['4.NF.4a'] },
-  { id: 'multiply-whole-by-fraction', unit: 8, title: 'Groups of a fraction', shortTitle: 'Whole × fraction', description: '3 groups of 1/2.', skill: 'Multiply the numerator. The denominator stays.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles' },
-  { id: 'simplify-fractions', unit: 9, title: 'Simplest form', shortTitle: 'Simplest form', description: 'Use bigger pieces. Same amount.', skill: 'Divide the numerator and denominator by the same number.', mode: 'simplify', n: 3, d: 4, context: 'paper strip' },
-  { id: 'equivalent-missing-both', unit: 9, title: 'Find the missing number', shortTitle: 'Equivalent fractions', description: 'Fill a blank on the top or bottom.', skill: 'Do the same thing to the numerator and denominator.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
-  { id: 'whole-numbers-as-fractions', unit: 9, title: 'Wholes as fractions', shortTitle: 'Whole numbers as fractions', description: 'Build one or more wholes from unit fractions.', skill: 'The numerator counts pieces. A whole is made from as many pieces as the denominator.', mode: 'whole-fraction', n: 6, d: 3, context: 'fraction bars', gradeBand: 3, standards: ['3.NF.3c'] },
-  { id: 'compare-unlike-fractions', unit: 9, title: 'Compare different pieces', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the denominators differ?', skill: 'Give both fractions the same denominator. Then compare.', mode: 'compare', n: 2, d: 3, context: 'race track' },
-  {
-    id: 'order-unlike-fractions', unit: 9, title: 'Order different pieces', shortTitle: 'Order unlike parts',
-    description: 'Put 3 fractions in order.', skill: 'Compare with 1/2, then use equal-size pieces if needed.',
-    learningIntro: {
-      goal: 'Put fractions in the order the question asks: smallest to biggest, or biggest to smallest.',
-      process: 'Compare each fraction with one half. If two are on the same side, rename them with the same denominator (bottom number), then compare their numerators (top numbers).',
-      why: 'Matching denominators mean the fractions have same-size pieces. The fraction with more pieces is bigger.',
+  { id: 'unit-fraction-multiples', unit: 8, title: 'Make groups of a unit fraction', shortTitle: 'Unit fraction multiples', description: 'Build several copies of one unit fraction.', skill: 'A multiple is several equal copies added together. Count how many unit-fraction pieces you have.', mode: 'unit-multiples', n: 5, d: 4, context: 'paper strips', gradeBand: 4, standards: ['4.NF.4a'] },
+  { id: 'multiply-whole-by-fraction', unit: 8, title: 'Groups of a fraction', shortTitle: 'Whole × fraction', description: '3 groups of 1/2.', skill: 'To find several groups of a fraction, count that fraction once for each group. The piece size stays the same.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles' },
+  { id: 'simplify-fractions', unit: 9, title: 'Simplest form', shortTitle: 'Simplest form', description: 'Use bigger pieces. Same amount.', skill: 'Divide the top and bottom by the same factor. The pieces get bigger, but the total amount stays the same.', mode: 'simplify', n: 3, d: 4, context: 'paper strip' },
+  { id: 'equivalent-missing-both', unit: 9, title: 'Find the missing number', shortTitle: 'Equivalent fractions', description: 'Fill a blank on the top or bottom.', skill: 'Equivalent fractions name the same amount. Multiply or divide the top and bottom by the same factor.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
+  { id: 'whole-numbers-as-fractions', unit: 9, title: 'Wholes as fractions', shortTitle: 'Whole numbers as fractions', description: 'Build one or more wholes from unit fractions.', skill: 'The bottom number tells how many pieces fill one whole. Count that many pieces for each whole.', mode: 'whole-fraction', n: 6, d: 3, context: 'fraction bars', gradeBand: 3, standards: ['3.NF.3c'] },
+  { id: 'compare-unlike-fractions', unit: 9, title: 'Compare different pieces', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the denominators differ?', skill: 'Make the pieces the same size by using a common denominator. Then compare how many pieces each fraction has.', mode: 'compare', n: 2, d: 3, context: 'race track' },
+  { id: 'order-unlike-fractions', unit: 9, title: 'Order different pieces', shortTitle: 'Order unlike parts', description: 'Put 3 fractions in order.', skill: 'Use 1/2 as a landmark or rename the fractions with the same denominator. Then order their amounts.', learningIntro: {
+      goal: 'Put fractions from smallest to biggest or biggest to smallest.',
+      process: 'First compare each fraction to 1/2. If that is not enough, rename them with the same denominator, then compare the top numbers.',
+      why: 'The same denominator means equal-size pieces. More of those pieces makes a greater amount.',
     },
     example: {
       prompt: 'Order 1/4, 3/8 and 5/8 from smallest to biggest.',
@@ -737,47 +734,46 @@ const extensionTopics: ExtensionTopic[] = [
         ],
       },
     },
-    mode: 'order', n: 1, d: 5, context: 'hiking trail',
-  },
-  { id: 'subtract-unlike-fractions', unit: 10, title: 'Take away different pieces', shortTitle: 'Subtract unlike parts', description: 'Rename, then take away.', skill: 'Make the pieces the same size. Then take away.', mode: 'subtract-unlike', n: 3, d: 4, context: 'water bottle' },
-  { id: 'add-unlike-fractions', unit: 10, title: 'Add unlike fractions', shortTitle: 'Add unlike parts', description: 'Make different-sized pieces the same size before adding.', skill: 'Rename each fraction with a common denominator, then add.', mode: 'add-unlike', n: 7, d: 12, context: 'ribbons', gradeBand: 5, standards: ['5.NF.1'] },
-  { id: 'add-mixed-numbers', unit: 10, title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Add wholes and pieces.', skill: 'Add the pieces. A full set of pieces makes a new whole.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route' },
-  { id: 'subtract-mixed-numbers', unit: 10, title: 'Subtract mixed numbers', shortTitle: 'Subtract mixed numbers', description: 'Trade a whole when you need more pieces.', skill: 'Not enough pieces? Trade 1 whole for more pieces.', mode: 'mixed-subtract', n: 1, d: 3, context: 'fabric roll' },
-  { id: 'fraction-of-quantity', unit: 10, title: 'A fraction of a number', shortTitle: 'Fractions of amounts', description: 'Find 3/5 of 20.', skill: 'Make equal groups. Count the groups you need.', mode: 'quantity', n: 3, d: 5, context: 'classroom supplies' },
-  { id: 'mixed-unlike-operations', unit: 10, title: 'Mixed numbers with unlike parts', shortTitle: 'Mixed number operations', description: 'Add or subtract mixed numbers with different denominators.', skill: 'Rename fractional parts with a common denominator. Regroup when needed.', mode: 'mixed-unlike', n: 25, d: 12, context: 'walking route', gradeBand: 5, standards: ['5.NF.1'] },
-  { id: 'estimate-fraction-operations', unit: 10, title: 'Estimate to check', shortTitle: 'Estimate fraction sums', description: 'Use 0, 1/2 and 1 to check whether an answer makes sense.', skill: 'Compare each fraction to a benchmark before calculating.', mode: 'estimate', n: 9, d: 10, context: 'trail lengths', gradeBand: 5, standards: ['5.NF.2'] },
-  { id: 'multiply-fractions', unit: 11, title: 'A part of a part', shortTitle: 'Fraction × fraction', description: 'Find 1/2 of 3/4.', skill: 'Multiply the numerators. Multiply the denominators.', mode: 'multiply', n: 2, d: 3, context: 'garden plot' },
-  { id: 'fraction-of-collection', unit: 11, title: 'A fraction of a group', shortTitle: 'Groups of objects', description: 'Find 3/4 of 16 cards.', skill: 'Make equal groups. Count the groups you need.', mode: 'sets', n: 3, d: 4, context: 'sports cards' },
-  { id: 'divide-whole-by-unit-fraction', unit: 11, title: 'How many pieces fit?', shortTitle: 'Divide by a fraction', description: 'How many 1/4 cups fill 2 cups?', skill: '1 whole holds as many pieces as the denominator.', mode: 'divide', n: 1, d: 4, context: 'measuring cup' },
-  { id: 'multiplication-scaling', unit: 11, title: 'Scaling with fractions', shortTitle: 'Scale an amount', description: 'See how a factor below or above one changes an amount.', skill: 'A factor below 1 makes less; a factor above 1 makes more.', mode: 'scaling', n: 3, d: 4, context: 'collections', gradeBand: 5, standards: ['5.NF.5'] },
-  { id: 'multiply-mixed-numbers', unit: 11, title: 'Multiply mixed numbers', shortTitle: 'Mixed number multiplication', description: 'Use a rectangle to find the area of a mixed-number garden.', skill: 'Rename mixed numbers as fractions, then multiply.', mode: 'mixed-multiply', n: 2, d: 1, context: 'garden plot', gradeBand: 5, standards: ['5.NF.6'] },
-  { id: 'unit-fraction-divided-whole', unit: 11, title: 'Share a unit fraction', shortTitle: 'Divide a unit fraction', description: 'Split one unit fraction into equal shares.', skill: 'Divide the unit fraction into more equal pieces.', mode: 'unit-divided-whole', n: 1, d: 12, context: 'pan of brownies', gradeBand: 5, standards: ['5.NF.7a'] },
-  { id: 'fraction-of-length', unit: 12, title: 'A fraction of a length', shortTitle: 'Fractional lengths', description: 'Find 3/8 of a ribbon.', skill: 'Cut the length into equal parts. Count the parts.', mode: 'measure', n: 3, d: 8, context: 'ribbon' },
-  { id: 'fractional-measure-addition', unit: 12, title: 'Add lengths', shortTitle: 'Measure together', description: 'Add 1/2 meter and 1/4 meter.', skill: 'Make the pieces the same size. Then add.', mode: 'measure-add', n: 1, d: 2, context: 'wooden boards' },
-  { id: 'ruler-measurement', unit: 12, title: 'Measure with fractional inches', shortTitle: 'Read a ruler', description: 'Use equal ruler marks to name a length.', skill: 'Each ruler interval is one equal fraction of an inch.', mode: 'ruler', n: 5, d: 4, context: 'ruler', gradeBand: 3, standards: ['3.MD.4'] },
-  { id: 'build-line-plots', unit: 12, title: 'Build a fraction line plot', shortTitle: 'Build line plots', description: 'Place one X for each measurement.', skill: 'Measurements with the same value stack above one tick.', mode: 'line-plot', n: 3, d: 4, context: 'ribbon lengths', gradeBand: 3, standards: ['3.MD.4'] },
-  { id: 'read-line-plots', unit: 12, title: 'Read a fraction line plot', shortTitle: 'Read line plots', description: 'Use line-plot marks to compare measurements.', skill: 'Read the tick labels, then compare or find the difference.', mode: 'line-plot-read', n: 5, d: 8, context: 'pencil lengths', gradeBand: 4, standards: ['4.MD.4'] },
-  { id: 'line-plot-leveling', unit: 12, title: 'Use line plots to share amounts', shortTitle: 'Reason with line plots', description: 'Use data to find a total and make equal shares.', skill: 'Add the measurements, then divide the total into equal shares.', mode: 'line-plot-level', n: 3, d: 4, context: 'beaker amounts', gradeBand: 5, standards: ['5.MD.2'] },
-  { id: 'measurement-word-problems', unit: 12, title: 'Fractions in measurement stories', shortTitle: 'Measurement stories', description: 'Use fractions with length, time, money, mass and volume.', skill: 'Keep the unit with the amount and use the whole-unit conversion.', mode: 'measure-context', n: 3, d: 4, context: 'measurement stories', gradeBand: 4, standards: ['4.MD.2'] },
-  { id: 'fractional-unit-conversions', unit: 12, title: 'Convert fraction units', shortTitle: 'Fraction unit conversions', description: 'Find a fractional amount in a smaller unit.', skill: 'Convert the whole unit first, then find the fraction.', mode: 'unit-conversion', n: 3, d: 4, context: 'measuring tools', gradeBand: 5, standards: ['5.MD.1'] },
-  { id: 'fractional-sharing', unit: 12, title: 'Fair shares', shortTitle: 'Fair sharing', description: 'Share 3 loaves with 4 friends.', skill: 'Each friend gets loaves ÷ friends.', mode: 'share', n: 3, d: 4, context: 'loaf of bread' },
-  { id: 'fraction-as-division', unit: 12, title: 'Division is a fraction', shortTitle: 'Fraction quotient', description: '5 ÷ 4 = 5/4.', skill: 'a ÷ b is the fraction a/b.', mode: 'quotient', n: 5, d: 4, context: 'pizzas' },
-  { id: 'fraction-probability', unit: 13, title: 'Bonus: Chance as a fraction', shortTitle: 'Bonus probability', description: 'What is the chance of blue?', skill: 'Ways to win on top. All the ways on the bottom.', mode: 'probability', n: 2, d: 8, context: 'color spinner', enrichment: true },
-  { id: 'fraction-of-area', unit: 13, title: 'Fractions in shapes', shortTitle: 'Equal-area partitions', description: 'Explore equal-area parts in squares, rectangles, circles and hexagons.', skill: 'Fraction parts must have equal areas, even when their shapes look different.', mode: 'area', n: 3, d: 8, context: 'shape tiles', gradeBand: 3, standards: ['3.G.2'] },
-  { id: 'fractional-side-area', unit: 13, title: 'Area with fractional sides', shortTitle: 'Fractional side area', description: 'Use a grid to find the area when both side lengths are fractions.', skill: 'Multiply the fractional side lengths to find square units.', mode: 'fractional-area', n: 1, d: 2, context: 'rectangle grid', gradeBand: 5, standards: ['5.NF.4b'] },
-  { id: 'equivalent-number-line', unit: 13, title: 'Same spot, new name', shortTitle: 'Line equivalence', description: '2/3 and 4/6 land on the same spot.', skill: 'Cut every space in half: twice the spaces, twice the jumps.', mode: 'line', n: 2, d: 3, context: 'number line' },
-  { id: 'fraction-recipes', unit: 13, title: 'Recipe fractions', shortTitle: 'Recipe fractions', description: 'Double a recipe.', skill: 'Add the amount again, or multiply the numerator.', mode: 'recipe', n: 3, d: 4, context: 'pancake recipe' },
-  { id: 'fractions-to-percent', unit: 14, title: 'Bonus: Fractions to percent', shortTitle: 'Bonus percent', description: 'Write 3/4 as 75%.', skill: 'Percent means out of 100.', mode: 'percent', n: 3, d: 4, context: 'school survey', enrichment: true },
-  { id: 'percent-to-fraction', unit: 14, title: 'Bonus: Percent to fractions', shortTitle: 'Bonus percent as fraction', description: 'Write 60% as 60/100.', skill: 'Percent means out of 100.', mode: 'percent-inverse', n: 3, d: 5, context: 'game score', enrichment: true },
-  { id: 'decimal-fraction-equivalence', unit: 14, title: 'Fractions to decimals', shortTitle: 'Three forms', description: 'Write 1/4 as 0.25.', skill: 'Change to tenths or hundredths. Then write the decimal.', mode: 'decimal-equivalent', n: 7, d: 10, context: 'battery meter' },
-  { id: 'compare-decimals', unit: 14, title: 'Compare decimals', shortTitle: 'Compare decimal sizes', description: 'Compare decimals using tenths and hundredths.', skill: 'Rename both decimals with the same number of decimal places, then compare.', mode: 'decimal-compare', n: 3, d: 10, context: 'hundredths grid', gradeBand: 4, standards: ['4.NF.7'] },
-  { id: 'multi-step-fraction-stories', unit: 14, title: 'Two-step stories', shortTitle: 'Fraction stories', description: 'Solve a story in 2 steps.', skill: 'Do one step at a time.', mode: 'story', n: 2, d: 5, context: 'community garden' },
+    mode: 'order', n: 1, d: 5, context: 'hiking trail' },
+  { id: 'subtract-unlike-fractions', unit: 10, title: 'Take away different pieces', shortTitle: 'Subtract unlike parts', description: 'Rename, then take away.', skill: 'First rename both fractions with the same denominator so the pieces match. Then subtract the number of pieces.', mode: 'subtract-unlike', n: 3, d: 4, context: 'water bottle' },
+  { id: 'add-unlike-fractions', unit: 10, title: 'Add unlike fractions', shortTitle: 'Add unlike parts', description: 'Make different-sized pieces the same size before adding.', skill: 'Rename both fractions with the same denominator so the pieces match. Then add the number of pieces.', mode: 'add-unlike', n: 7, d: 12, context: 'ribbons', gradeBand: 5, standards: ['5.NF.1'] },
+  { id: 'add-mixed-numbers', unit: 10, title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Add wholes and pieces.', skill: 'Add the whole numbers and the fraction pieces. If the pieces fill a whole, regroup them as one more whole.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route' },
+  { id: 'subtract-mixed-numbers', unit: 10, title: 'Subtract mixed numbers', shortTitle: 'Subtract mixed numbers', description: 'Trade a whole when you need more pieces.', skill: 'If there are not enough fraction pieces to subtract, trade 1 whole for equal-size pieces.', mode: 'mixed-subtract', n: 1, d: 3, context: 'fabric roll' },
+  { id: 'fraction-of-quantity', unit: 10, title: 'A fraction of a number', shortTitle: 'Fractions of amounts', description: 'Find 3/5 of 20.', skill: 'Split the amount into equal groups using the bottom number. Count the number of groups shown by the top number.', mode: 'quantity', n: 3, d: 5, context: 'classroom supplies' },
+  { id: 'mixed-unlike-operations', unit: 10, title: 'Mixed numbers with unlike parts', shortTitle: 'Mixed number operations', description: 'Add or subtract mixed numbers with different denominators.', skill: 'Rename the fraction pieces so they are the same size. Then add or subtract, regrouping a whole if needed.', mode: 'mixed-unlike', n: 25, d: 12, context: 'walking route', gradeBand: 5, standards: ['5.NF.1'] },
+  { id: 'estimate-fraction-operations', unit: 10, title: 'Estimate to check', shortTitle: 'Estimate fraction sums', description: 'Use 0, 1/2 and 1 to check whether an answer makes sense.', skill: 'Compare each fraction with 0, 1/2, or 1. Use those landmarks to check whether the answer is a sensible size.', mode: 'estimate', n: 9, d: 10, context: 'trail lengths', gradeBand: 5, standards: ['5.NF.2'] },
+  { id: 'multiply-fractions', unit: 11, title: 'A part of a part', shortTitle: 'Fraction × fraction', description: 'Find 1/2 of 3/4.', skill: 'To find a part of a part, split the pieces again. Multiply the top numbers and the bottom numbers.', mode: 'multiply', n: 2, d: 3, context: 'garden plot' },
+  { id: 'fraction-of-collection', unit: 11, title: 'A fraction of a group', shortTitle: 'Groups of objects', description: 'Find 3/4 of 16 cards.', skill: 'Split the collection into equal groups using the bottom number. Count the groups shown by the top number.', mode: 'sets', n: 3, d: 4, context: 'sports cards' },
+  { id: 'divide-whole-by-unit-fraction', unit: 11, title: 'How many pieces fit?', shortTitle: 'Divide by a fraction', description: 'How many 1/4 cups fill 2 cups?', skill: 'The bottom number tells how many equal pieces fit in one whole. Count those pieces in the amount.', mode: 'divide', n: 1, d: 4, context: 'measuring cup' },
+  { id: 'multiplication-scaling', unit: 11, title: 'Scaling with fractions', shortTitle: 'Scale an amount', description: 'See how a factor below or above one changes an amount.', skill: 'Multiplying by less than 1 takes part of an amount, so it gets smaller. Multiplying by more than 1 makes more than one copy, so it gets bigger.', mode: 'scaling', n: 3, d: 4, context: 'collections', gradeBand: 5, standards: ['5.NF.5'] },
+  { id: 'multiply-mixed-numbers', unit: 11, title: 'Multiply mixed numbers', shortTitle: 'Mixed number multiplication', description: 'Use a rectangle to find the area of a mixed-number garden.', skill: 'Use the side lengths as rows and columns in a rectangle. The number of square units is the product of the side lengths.', mode: 'mixed-multiply', n: 2, d: 1, context: 'garden plot', gradeBand: 5, standards: ['5.NF.6'] },
+  { id: 'unit-fraction-divided-whole', unit: 11, title: 'Share a unit fraction', shortTitle: 'Divide a unit fraction', description: 'Split one unit fraction into equal shares.', skill: 'Share the unit fraction equally. Each share is a smaller piece of the original whole.', mode: 'unit-divided-whole', n: 1, d: 12, context: 'pan of brownies', gradeBand: 5, standards: ['5.NF.7a'] },
+  { id: 'fraction-of-length', unit: 12, title: 'A fraction of a length', shortTitle: 'Fractional lengths', description: 'Find 3/8 of a ribbon.', skill: 'Split the whole length into equal parts using the bottom number. Measure the number of parts shown by the top number.', mode: 'measure', n: 3, d: 8, context: 'ribbon' },
+  { id: 'fractional-measure-addition', unit: 12, title: 'Add lengths', shortTitle: 'Measure together', description: 'Add 1/2 meter and 1/4 meter.', skill: 'Rename the lengths as the same-size pieces. Then add them and keep the unit.', mode: 'measure-add', n: 1, d: 2, context: 'wooden boards' },
+  { id: 'ruler-measurement', unit: 12, title: 'Measure with fractional inches', shortTitle: 'Read a ruler', description: 'Use equal ruler marks to name a length.', skill: 'The spaces between ruler marks are equal fractions of an inch. Count the spaces to measure.', mode: 'ruler', n: 5, d: 4, context: 'ruler', gradeBand: 3, standards: ['3.MD.4'] },
+  { id: 'build-line-plots', unit: 12, title: 'Build a fraction line plot', shortTitle: 'Build line plots', description: 'Place one X for each measurement.', skill: 'Place one X for each measurement above its matching value. Stack Xs when measurements match.', mode: 'line-plot', n: 3, d: 4, context: 'ribbon lengths', gradeBand: 3, standards: ['3.MD.4'] },
+  { id: 'read-line-plots', unit: 12, title: 'Read a fraction line plot', shortTitle: 'Read line plots', description: 'Use line-plot marks to compare measurements.', skill: 'Read the labels to find each measurement. Then compare them or find how far apart they are.', mode: 'line-plot-read', n: 5, d: 8, context: 'pencil lengths', gradeBand: 4, standards: ['4.MD.4'] },
+  { id: 'line-plot-leveling', unit: 12, title: 'Use line plots to share amounts', shortTitle: 'Reason with line plots', description: 'Use data to find a total and make equal shares.', skill: 'Add the measurements to find the total. Divide that total into equal shares.', mode: 'line-plot-level', n: 3, d: 4, context: 'beaker amounts', gradeBand: 5, standards: ['5.MD.2'] },
+  { id: 'measurement-word-problems', unit: 12, title: 'Fractions in measurement stories', shortTitle: 'Measurement stories', description: 'Use fractions with length, time, money, mass and volume.', skill: 'Keep the measurement unit in your answer. Convert units before comparing or calculating.', mode: 'measure-context', n: 3, d: 4, context: 'measurement stories', gradeBand: 4, standards: ['4.MD.2'] },
+  { id: 'fractional-unit-conversions', unit: 12, title: 'Convert fraction units', shortTitle: 'Fraction unit conversions', description: 'Find a fractional amount in a smaller unit.', skill: 'Convert the whole measurement to smaller units first. Then find the fraction of that amount.', mode: 'unit-conversion', n: 3, d: 4, context: 'measuring tools', gradeBand: 5, standards: ['5.MD.1'] },
+  { id: 'fractional-sharing', unit: 12, title: 'Fair shares', shortTitle: 'Fair sharing', description: 'Share 3 loaves with 4 friends.', skill: 'Share the total equally. The amount each friend gets is the total divided by the number of friends.', mode: 'share', n: 3, d: 4, context: 'loaf of bread' },
+  { id: 'fraction-as-division', unit: 12, title: 'Division is a fraction', shortTitle: 'Fraction quotient', description: '5 ÷ 4 = 5/4.', skill: 'A fraction bar means division. The top number is divided by the bottom number.', mode: 'quotient', n: 5, d: 4, context: 'pizzas' },
+  { id: 'fraction-probability', unit: 13, title: 'Bonus: Chance as a fraction', shortTitle: 'Bonus probability', description: 'What is the chance of blue?', skill: 'The top counts the outcomes you want. The bottom counts all equally likely outcomes.', mode: 'probability', n: 2, d: 8, context: 'color spinner', enrichment: true },
+  { id: 'fraction-of-area', unit: 13, title: 'Fractions in shapes', shortTitle: 'Equal-area partitions', description: 'Explore equal-area parts in squares, rectangles, circles and hexagons.', skill: 'Fraction pieces must have equal areas. Their shapes may look different, but each piece must cover the same amount of space.', mode: 'area', n: 3, d: 8, context: 'shape tiles', gradeBand: 3, standards: ['3.G.2'] },
+  { id: 'fractional-side-area', unit: 13, title: 'Area with fractional sides', shortTitle: 'Fractional side area', description: 'Use a grid to find the area when both side lengths are fractions.', skill: 'A rectangle’s area is its side lengths multiplied. Count the small squares to see the fractional area.', mode: 'fractional-area', n: 1, d: 2, context: 'rectangle grid', gradeBand: 5, standards: ['5.NF.4b'] },
+  { id: 'equivalent-number-line', unit: 13, title: 'Same spot, new name', shortTitle: 'Line equivalence', description: '2/3 and 4/6 land on the same spot.', skill: 'Split every space into the same number of smaller spaces. The jumps change too, so the point stays in the same place.', mode: 'line', n: 2, d: 3, context: 'number line' },
+  { id: 'fraction-recipes', unit: 13, title: 'Recipe fractions', shortTitle: 'Recipe fractions', description: 'Double a recipe.', skill: 'To double a recipe, use twice as much of every ingredient. Add each amount to itself.', mode: 'recipe', n: 3, d: 4, context: 'pancake recipe' },
+  { id: 'fractions-to-percent', unit: 14, title: 'Bonus: Fractions to percent', shortTitle: 'Bonus percent', description: 'Write 3/4 as 75%.', skill: 'Percent means out of 100. Rename the fraction in hundredths to find the percent.', mode: 'percent', n: 3, d: 4, context: 'school survey', enrichment: true },
+  { id: 'percent-to-fraction', unit: 14, title: 'Bonus: Percent to fractions', shortTitle: 'Bonus percent as fraction', description: 'Write 60% as 60/100.', skill: 'Percent means out of 100. Write the percent as that many parts out of 100.', mode: 'percent-inverse', n: 3, d: 5, context: 'game score', enrichment: true },
+  { id: 'decimal-fraction-equivalence', unit: 14, title: 'Fractions to decimals', shortTitle: 'Three forms', description: 'Write 1/4 as 0.25.', skill: 'Rename a fraction in tenths or hundredths. Write tenths with one decimal place and hundredths with two.', mode: 'decimal-equivalent', n: 7, d: 10, context: 'battery meter' },
+  { id: 'compare-decimals', unit: 14, title: 'Compare decimals', shortTitle: 'Compare decimal sizes', description: 'Compare decimals using tenths and hundredths.', skill: 'Write both decimals with the same number of places. Then compare the digits by place value.', mode: 'decimal-compare', n: 3, d: 10, context: 'hundredths grid', gradeBand: 4, standards: ['4.NF.7'] },
+  { id: 'multi-step-fraction-stories', unit: 14, title: 'Two-step stories', shortTitle: 'Fraction stories', description: 'Solve a story in 2 steps.', skill: 'Find what the story asks first. Solve that step, then use the answer in the next step.', mode: 'story', n: 2, d: 5, context: 'community garden' },
   // Unit 15 · Problem solving: the reasoning that Singapore, Beast Academy and Eureka lean on and quizzes skip.
-  { id: 'find-the-whole', unit: 15, title: 'Find the whole', shortTitle: 'Find the whole', description: '3 is 1/4 of it. What is the whole?', skill: 'Find 1 part. Then make all the parts.', mode: 'whole-from-part', n: 1, d: 4, context: 'sticker packs', gradeBand: 4, standards: ['3.NF.1', '4.NF.4c'],
+  { id: 'find-the-whole', unit: 15, title: 'Find the whole', shortTitle: 'Find the whole', description: '3 is 1/4 of it. What is the whole?', skill: 'The known amount is one of the equal parts. Find one part, then multiply by the bottom number to make the whole.', mode: 'whole-from-part', n: 1, d: 4, context: 'sticker packs', gradeBand: 4, standards: ['3.NF.1', '4.NF.4c'],
     example: { prompt: '3 stickers are 1/4 of a pack. How many stickers are in the pack?', answer: '12 stickers', explanation: '1/4 is 1 of 4 equal parts. Each part is 3. 4 parts of 3 is 12.', model: setModel(3, 12) } },
-  { id: 'spot-the-mistake', unit: 15, title: 'Spot the mistake', shortTitle: 'Spot the mistake', description: 'Is Sam right? Fix it.', skill: 'Check the rule. Then fix the answer.', mode: 'mistake', n: 3, d: 4, context: 'homework check', gradeBand: 4, standards: ['4.NF.3a', '4.NF.2'] },
-  { id: 'fraction-of-remainder', unit: 15, title: 'Fraction of the rest', shortTitle: 'Fraction of the rest', description: 'Spend 1/3. Then spend 1/2 of the rest.', skill: 'Find what is left first. Then take a part of it.', mode: 'remainder', n: 1, d: 3, context: 'pocket money', gradeBand: 5, standards: ['5.NF.6', '5.NF.2'] },
-  { id: 'divide-fractions', unit: 15, title: 'Bonus: Divide by a fraction', shortTitle: 'Bonus fraction ÷ fraction', description: 'How many 1/8s fit in 3/4?', skill: 'Use the same pieces. Count how many fit.', mode: 'divide-fractions', n: 3, d: 4, context: 'measuring scoops', enrichment: true },
+  { id: 'spot-the-mistake', unit: 15, title: 'Spot the mistake', shortTitle: 'Spot the mistake', description: 'Is Sam right? Fix it.', skill: 'Check whether each step uses the right fraction rule. Find the first wrong step and correct it.', mode: 'mistake', n: 3, d: 4, context: 'homework check', gradeBand: 4, standards: ['4.NF.3a', '4.NF.2'] },
+  { id: 'fraction-of-remainder', unit: 15, title: 'Fraction of the rest', shortTitle: 'Fraction of the rest', description: 'Spend 1/3. Then spend 1/2 of the rest.', skill: 'First find how much is left. Then split that remaining amount and find the fraction asked for.', mode: 'remainder', n: 1, d: 3, context: 'pocket money', gradeBand: 5, standards: ['5.NF.6', '5.NF.2'] },
+  { id: 'divide-fractions', unit: 15, title: 'Bonus: Divide by a fraction', shortTitle: 'Bonus fraction ÷ fraction', description: 'How many 1/8s fit in 3/4?', skill: 'Division asks how many groups fit. Count how many pieces of the given fraction fit in the amount.', mode: 'divide-fractions', n: 3, d: 4, context: 'measuring scoops', enrichment: true },
 ];
 
 const picture = (top: number, bottom: number): ModelSpec => ({ kind: 'bars', bars: [{ numerator: top, denominator: bottom }], hideLabels: true });
