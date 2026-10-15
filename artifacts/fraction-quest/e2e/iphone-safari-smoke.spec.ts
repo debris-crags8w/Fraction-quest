@@ -95,6 +95,23 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
         viewportWidth: width,
         documentWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
+        containers: ['.fq-ll', '.fq-ll-sheet', '.fq-ll-sheet-head', '.fq-ll-problem-progress']
+          .map((selector) => {
+            const element = document.querySelector<HTMLElement>(selector);
+            if (!element) return { selector, missing: true };
+            const rect = element.getBoundingClientRect();
+            const style = getComputedStyle(element);
+            return {
+              selector,
+              left: Math.round(rect.left),
+              right: Math.round(rect.right),
+              width: Math.round(rect.width),
+              scrollWidth: element.scrollWidth,
+              clientWidth: element.clientWidth,
+              gridTemplateColumns: style.gridTemplateColumns,
+              overflowX: style.overflowX,
+            };
+          }),
         offenders,
       };
     });
