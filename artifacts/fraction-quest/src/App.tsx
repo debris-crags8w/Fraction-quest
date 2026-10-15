@@ -30,6 +30,7 @@ import {
   type PracticeQuestion,
   type Progress,
 } from './game';
+import { createDeveloperLessonProgress } from './developer-test';
 import { saveAssessmentAttempt } from './assessments';
 import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
@@ -40,7 +41,7 @@ import { PieFraction, TickLabel } from './fraction-ui';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, resetUnitLearningProgress, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { DAILY_GOAL, loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setSound, type FunState } from './lib/fun';
+import { DAILY_GOAL, loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, WholeBracket } from './models';
@@ -369,7 +370,7 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
   );
 }
 
-function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
+function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onDeveloperTest: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
   const account = useAccount();
   const { user } = account;
   const { fun } = useFun();
@@ -382,6 +383,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
     && !(progress.placement && item.unit < progress.placement.unit && !progress.learning?.[item.id]));
   const evidenceRecommendation = !!nextMission && nextMission.id !== firstPendingMission?.id;
   const [selectedId, setSelectedId] = useState<string | null>(() => nextMission?.id ?? null);
+  const [developerMissionId, setDeveloperMissionId] = useState(MISSIONS[0]?.id ?? '');
   const units = UNIT_INFO.map((unit, index) => ({
     ...unit,
     number: index + 1,
@@ -454,6 +456,21 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
             Your teacher suggested: {assignedUnits.map((unit) => `Unit ${unit}: ${UNIT_TITLES[unit - 1]}`).join(' · ')}.
             These suggestions do not change which lessons are unlocked.
           </p>}
+          {import.meta.env.DEV && <details className="fq-developer-test" data-testid="developer-module-test">
+            <summary>Developer testing · open any lesson</summary>
+            <div className="fq-developer-test-body">
+              <p>Choose a lesson to test it without finishing earlier units. Test answers and progress are temporary and discarded when you exit.</p>
+              <label htmlFor="developer-lesson-select">Lesson to test</label>
+              <select id="developer-lesson-select" value={developerMissionId} onChange={(event) => setDeveloperMissionId(event.target.value)} data-testid="select-developer-lesson">
+                {units.map((unit) => <optgroup key={unit.number} label={`Unit ${unit.number}: ${unit.title}`}>
+                  {unit.missions.map((mission) => <option key={mission.id} value={mission.id}>{mission.title}</option>)}
+                </optgroup>)}
+              </select>
+              <button type="button" className="fq-button secondary" disabled={!developerMissionId} onClick={() => onDeveloperTest(developerMissionId)} data-testid="button-open-developer-lesson">
+                Open lesson test
+              </button>
+            </div>
+          </details>}
 
           {!nextMission ? (
             <div className="fq-course-finished" data-testid="status-course-complete"><Trophy size={24} /> You explored every lesson. Replay any one to practice again.</div>
@@ -945,6 +962,9 @@ function ReviewCompleteView({ reviewedCount, progress, onMap, onReset }: { revie
 function Game() {
   const account = useAccount();
   const [progress, setProgress] = useState<Progress>(() => account.initialProgress ?? loadProgress());
+  const [moduleTestActive, setModuleTestActive] = useState(false);
+  const originalModuleTestProgress = useRef<Progress | null>(null);
+  const originalModuleTestFun = useRef<FunState | null>(null);
   const [view, setView] = useState<View | LabView | RetentionView | PaperView | RedoView | ChallengeView | ExtraView | ParentPage | GameView | PlacementView>({ type: 'map' });
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
@@ -959,8 +979,9 @@ function Game() {
   const breakIntervalMinutes = fun.breakPreferences?.intervalMinutes ?? 15;
   const quietBreaks = fun.breakPreferences?.quietMode ?? false;
   const activeStudyView = ['play', 'review', 'daily', 'lab', 'redo', 'extra', 'retention'].includes(view.type);
-  useAccountSync(progress, fun);
+  useAccountSync(progress, fun, !moduleTestActive);
   const openResetDialog = () => {
+    if (moduleTestActive) { returnToMap(); return; }
     setResetAllConfirm(false);
     setResetOpen(true);
   };
@@ -1017,14 +1038,15 @@ function Game() {
     consecutiveWrongAnswers.current = 0;
   }, [breakIntervalMinutes]);
 
-  const startMission = (missionId: string) => {
-    if (!isMissionUnlocked(progress, missionId)) return;
-    const record = getLearningRecord(progress, missionId);
+  const startMission = (missionId: string, testProgress?: Progress) => {
+    const activeProgress = testProgress ?? progress;
+    if (!testProgress && !isMissionUnlocked(activeProgress, missionId)) return;
+    const record = getLearningRecord(activeProgress, missionId);
     if (record.practiceDone && !hasLearningGate(progress, missionId)) {
       setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? record.practiceStars ?? 1 });
       return;
     }
-    const reviewQuestions = getDelayedReviewQuestions(progress, missionId);
+    const reviewQuestions = getDelayedReviewQuestions(activeProgress, missionId);
     if (PART_FINDER_LESSONS.has(missionId)) {
       setView({ type: 'hands-on', missionId, reviewQuestions });
       return;
@@ -1037,6 +1059,17 @@ function Game() {
       reviewQuestions,
       showExample: true,
     });
+  };
+  const startDeveloperLessonTest = (missionId: string) => {
+    if (!import.meta.env.DEV || moduleTestActive) return;
+    const previewProgress = createDeveloperLessonProgress(progress, missionId);
+    if (!previewProgress) return;
+    originalModuleTestProgress.current = progress;
+    originalModuleTestFun.current = fun;
+    setFunStorageEnabled(false);
+    setModuleTestActive(true);
+    setProgress(previewProgress);
+    startMission(missionId, previewProgress);
   };
 
   const startReview = () => {
@@ -1055,7 +1088,7 @@ function Game() {
   };
 
   const persistProgress = (nextProgress: Progress) => {
-    setSaveError(!saveProgress(nextProgress));
+    if (!moduleTestActive) setSaveError(!saveProgress(nextProgress));
     setProgress(nextProgress);
   };
 
@@ -1110,7 +1143,22 @@ function Game() {
     setView({ type: 'redo', missionId });
   };
   const exitGame = () => { if ((view.type === 'race' || view.type === 'code') && view.fromGames) setView({ type: 'concept-games' }); else returnToMap(); };
-  const returnToMap = () => { setPendingRetention(null); setCombo(0); consecutiveWrongAnswers.current = 0; setView({ type: 'map' }); };
+  const returnToMap = () => {
+    setPendingRetention(null);
+    setCombo(0);
+    consecutiveWrongAnswers.current = 0;
+    const savedProgress = originalModuleTestProgress.current;
+    const savedFun = originalModuleTestFun.current;
+    if (savedProgress) {
+      setFunStorageEnabled(true);
+      setProgress(savedProgress);
+      if (savedFun) setFun(savedFun);
+      originalModuleTestProgress.current = null;
+      originalModuleTestFun.current = null;
+      setModuleTestActive(false);
+    }
+    setView({ type: 'map' });
+  };
   const nextReviewView = (nextView: View) => {
     if (pendingRetention) {
       setView({ type: 'retention', missionId: pendingRetention, startedAt: Date.now(), nextView });
@@ -1142,8 +1190,12 @@ function Game() {
 
   return (
     <FunContext.Provider value={{ fun, setFun }}>
+      {moduleTestActive && <div className="fq-developer-test-banner" role="status" data-testid="developer-test-banner">
+        Developer lesson test · progress is temporary and will not be saved.
+        <button type="button" onClick={returnToMap} data-testid="button-exit-developer-test">Exit test</button>
+      </div>}
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onDeveloperTest={startDeveloperLessonTest} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
       {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} renderModel={(model, reveal) => <ModelView model={model} reveal={reveal} asked />} onChange={(session) => persistProgress({ ...progress, dailyPractice: session })} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
       {view.type === 'concept-games' && (() => {
         // The lesson games use the lesson the child is on (or the last open one).
