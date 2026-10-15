@@ -131,6 +131,34 @@ jobs:
       - name: Open every lesson and answer its first question
         run: pnpm --filter @workspace/fraction-quest test:e2e:all-lessons
 
+  iphone-safari-e2e:
+    name: iPhone Safari lesson smoke (WebKit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright WebKit
+        run: pnpm --filter @workspace/fraction-quest exec playwright install --with-deps webkit
+
+      - name: Open lessons and answer questions at an iPhone viewport
+        run: pnpm --filter @workspace/fraction-quest test:e2e:iphone-safari
+
   ios-typecheck:
     name: iOS package typecheck
     runs-on: ubuntu-latest
