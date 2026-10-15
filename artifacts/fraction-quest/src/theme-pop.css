@@ -405,6 +405,40 @@
 .fq-lesson-close { flex: none; color: hsl(var(--muted-foreground)); border: 0; background: none; }
 .fq-lesson-close:active { border: 0; }
 
+.fq-order-sort-shell { width: min(100% - 24px, 900px); margin: 0 auto; padding: 18px 0 40px; }
+.fq-order-sort-header { display: flex; align-items: center; gap: 18px; margin-bottom: 20px; }
+.fq-order-sort-header > div { min-width: 0; }
+.fq-order-sort-header > div > span { color: hsl(var(--muted-foreground)); font-size: 0.84rem; font-weight: 800; }
+.fq-order-sort-header h1 { margin: 0; font-size: clamp(1.45rem, 4vw, 2rem); }
+.fq-order-sort-example { margin-bottom: 18px; }
+.fq-order-sort-card { padding: clamp(18px, 4vw, 32px); border: 2px solid var(--fq-edge); border-radius: 24px; background: hsl(var(--card)); box-shadow: 0 8px 0 color-mix(in srgb, var(--fq-edge) 45%, transparent); }
+.fq-order-sort-progress { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.fq-order-sort-progress > span:not(.fq-order-sort-round-label) { flex: 1; height: 10px; border-radius: 99px; background: var(--fq-track); }
+.fq-order-sort-progress > span.active { background: var(--fq-lime); }
+.fq-order-sort-round-label { color: hsl(var(--muted-foreground)); font-size: 0.82rem; font-weight: 800; white-space: nowrap; }
+.fq-order-sort-card h2 { margin: 0; font-size: clamp(1.3rem, 3vw, 1.65rem); }
+.fq-order-sort-instructions { margin: 4px 0 18px; color: hsl(var(--muted-foreground)); }
+.fq-order-sort-list { display: grid; gap: 10px; max-width: 540px; margin: 0 auto 18px; padding: 0; list-style: none; }
+.fq-order-sort-item { display: flex; align-items: center; gap: 14px; min-height: 72px; padding: 8px 12px; border: 2px solid var(--fq-edge); border-radius: 16px; background: color-mix(in srgb, var(--fq-sky) 7%, hsl(var(--card))); }
+.fq-order-position { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: hsl(var(--card)); color: hsl(var(--muted-foreground)); font-weight: 900; }
+.fq-order-fraction { display: inline-grid; justify-items: center; min-width: 38px; line-height: 1.05; font-family: var(--app-font-mono); font-size: 1.15rem; font-weight: 900; }
+.fq-order-fraction i { width: 100%; height: 2px; margin: 2px 0; border-radius: 99px; background: currentColor; }
+.fq-order-move-controls { display: flex; gap: 6px; margin-left: auto; }
+.fq-order-move { display: grid; place-items: center; width: 44px; height: 44px; border: 2px solid var(--fq-edge); border-radius: 12px; background: hsl(var(--card)); color: hsl(var(--foreground)); cursor: pointer; }
+.fq-order-move:focus-visible { outline: 3px solid var(--fq-grape); outline-offset: 2px; }
+.fq-order-move:disabled { opacity: 0.35; cursor: default; }
+.fq-order-sort-feedback { display: grid; gap: 3px; max-width: 540px; margin: 0 auto 18px; padding: 13px 16px; border-radius: 14px; line-height: 1.4; }
+.fq-order-sort-feedback.correct { background: var(--fq-good-bg); color: var(--fq-good-fg); }
+.fq-order-sort-feedback.retry { background: var(--fq-bad-bg); color: var(--fq-bad-fg); }
+.fq-order-sort-actions { display: flex; justify-content: center; }
+.fq-order-sort-actions .fq-button { min-width: min(100%, 260px); }
+@media (max-width: 560px) {
+  .fq-order-sort-shell { width: min(100% - 16px, 900px); padding-top: 8px; }
+  .fq-order-sort-header { align-items: flex-start; gap: 8px; flex-direction: column; }
+  .fq-order-sort-header .fq-back { min-height: 42px; }
+  .fq-order-sort-card { padding: 16px 12px; border-radius: 18px; }
+}
+
 .fq-segments { flex: 1; display: flex; gap: 5px; }
 .fq-segments i {
   flex: 1;

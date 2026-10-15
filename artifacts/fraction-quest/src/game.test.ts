@@ -48,6 +48,8 @@ import {
   countsTowardLessonStars,
   deferSkillReview,
   EMPTY_PROGRESS,
+  FRACTION_ORDER_ROUNDS,
+  fractionOrderMatches,
   getMission,
   getDelayedReviewQuestions,
   getDueSkillReviewCount,
@@ -92,6 +94,29 @@ describe('lesson star scoring', () => {
     assert.equal(starsFromFirstTryAnswers(4, 5), 2);
     assert.equal(starsFromFirstTryAnswers(5, 5), 3);
     assert.equal(starsFromFirstTryAnswers(9, 5), 3);
+  });
+});
+
+describe('fraction ordering activity', () => {
+  it('checks smallest-to-biggest and biggest-to-smallest sorts exactly', () => {
+    assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[0].cards.slice(1).concat(FRACTION_ORDER_ROUNDS[0].cards[0]), 'ascending'), true);
+    assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[0].cards, 'ascending'), false);
+    assert.equal(fractionOrderMatches([
+      { numerator: 5, denominator: 8 },
+      { numerator: 3, denominator: 8 },
+      { numerator: 1, denominator: 8 },
+    ], 'descending'), true);
+    assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[1].cards, 'descending'), false);
+  });
+
+  it('accepts a corrected card order after a missed attempt and gives a useful strategy for each round', () => {
+    const halfRound = FRACTION_ORDER_ROUNDS[0];
+    let attempt = [...halfRound.cards];
+    assert.equal(fractionOrderMatches(attempt, halfRound.direction), false);
+    attempt = [attempt[1], attempt[2], attempt[0]];
+    assert.equal(fractionOrderMatches(attempt, halfRound.direction), true);
+    assert.match(halfRound.strategyHint, /1\/2|half/i);
+    assert.match(FRACTION_ORDER_ROUNDS[1].strategyHint, /eighths|numerators/i);
   });
 });
 const EXPECTED_MISSION_IDS = [

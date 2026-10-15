@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { MISSIONS } from '../src/game';
+import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, MISSIONS } from '../src/game';
 import { getBuildChecks, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
 import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
@@ -25,6 +25,18 @@ async function openAsGuest(page: import('@playwright/test').Page) {
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
 }
 
+async function localStorageSnapshot(page: import('@playwright/test').Page) {
+  return page.evaluate(() => {
+    const entries: Array<[string, string | null]> = [];
+    for (let index = 0; index < localStorage.length; index++) {
+      const key = localStorage.key(index);
+      if (key !== null) entries.push([key, localStorage.getItem(key)]);
+    }
+    entries.sort(([a], [b]) => a.localeCompare(b));
+    return JSON.stringify(Object.fromEntries(entries));
+  });
+}
+
 test('the ordering lesson explains its strategy before showing a distinct worked model', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
@@ -33,7 +45,7 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   await page.getByTestId('select-developer-lesson').selectOption(mission.id);
   await page.getByTestId('button-open-developer-lesson').click();
   await expect(page.getByTestId('developer-test-banner')).toBeVisible();
-  await expect(page.locator('#lesson-title')).toHaveText(mission.title);
+  await expect(page.locator('.fq-order-sort-example .fq-example-heading')).toHaveText(mission.title);
 
   const intro = page.getByTestId('lesson-introduction');
   await expect(intro).toBeVisible();
@@ -51,6 +63,50 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   const modelTop = await page.locator('.fq-example .fq-model-area').evaluate((element) => element.getBoundingClientRect().top);
   expect(introBottom).toBeLessThan(modelTop);
 });
+
+test('learners sort fractions in both directions, correct a try, and do not save progress before questions', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await openAsGuest(page);
+  const savedStorage = await localStorageSnapshot(page);
+  await page.getByTestId('developer-module-test').locator('summary').click();
+  await page.getByTestId('select-developer-lesson').selectOption(mission.id);
+  await page.getByTestId('button-open-developer-lesson').click();
+  await expect(page.getByTestId('developer-test-banner')).toBeVisible();
+  await expect(page.getByTestId('fraction-order-activity')).toBeVisible();
+  await expect(page.locator('.fq-order-sort-example .fq-example-heading')).toHaveText(mission.title);
+  await expect.poll(() => localStorageSnapshot(page)).toBe(savedStorage);
+
+  await completeFractionOrderLesson(page);
+  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
+  await expect.poll(() => localStorageSnapshot(page)).toBe(savedStorage);
+});
+
+async function completeFractionOrderLesson(page: import('@playwright/test').Page) {
+  const firstRound = FRACTION_ORDER_ROUNDS[0];
+  await page.getByTestId('button-sort-check').click();
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText('Not quite yet.');
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText('1/2');
+  await page.getByTestId('button-sort-8-10-down').click();
+  await page.getByTestId('button-sort-8-10-down').click();
+  await page.getByTestId('button-sort-check').click();
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(firstRound.explanation);
+  await page.getByTestId('button-sort-next').click();
+
+  const secondRound = FRACTION_ORDER_ROUNDS[1];
+  await page.getByTestId('button-sort-5-8-up').click();
+  await page.getByTestId('button-sort-3-8-up').click();
+  const sortedCards = await page.locator('[data-testid^="sort-card-"]').evaluateAll((items) =>
+    items.map((item) => {
+      const [numerator, denominator] = (item.getAttribute('data-fraction') ?? '').split('/').map(Number);
+      return { numerator, denominator };
+    }),
+  );
+  expect(fractionOrderMatches(sortedCards, secondRound.direction)).toBe(true);
+  await page.getByTestId('button-sort-check').click();
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText('That order is right!');
+  await page.getByTestId('button-sort-next').click();
+}
 
 async function retryLessonQuestion(
   page: import('@playwright/test').Page,

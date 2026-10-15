@@ -9,6 +9,46 @@ import { scopedStorageKey } from './storage-scope';
 /** `named`: the question states this fraction, so the bar shows its label (other bars are labelled once answered). */
 export type FractionValue = { numerator: number; denominator: number; named?: boolean };
 
+export type FractionOrderDirection = 'ascending' | 'descending';
+export type FractionOrderRound = {
+  id: string;
+  direction: FractionOrderDirection;
+  title: string;
+  cards: FractionValue[];
+  strategyHint: string;
+  explanation: string;
+};
+
+/** The ordering lesson's unscored, in-memory card sort. */
+export const FRACTION_ORDER_ROUNDS: FractionOrderRound[] = [
+  {
+    id: 'smallest-first',
+    direction: 'ascending',
+    title: 'Smallest to biggest',
+    cards: [{ numerator: 8, denominator: 10 }, { numerator: 3, denominator: 10 }, { numerator: 1, denominator: 2 }],
+    strategyHint: 'Use 1/2 as a landmark. 3/10 is below half and 8/10 is above half. Also, 1/2 is 5/10.',
+    explanation: '1/2 is 5/10, so the order is 3/10, 1/2, 8/10.',
+  },
+  {
+    id: 'biggest-first',
+    direction: 'descending',
+    title: 'Biggest to smallest',
+    cards: [{ numerator: 1, denominator: 8 }, { numerator: 5, denominator: 8 }, { numerator: 3, denominator: 8 }],
+    strategyHint: 'All three fractions are eighths. Compare the numerators: more eighths means a bigger fraction.',
+    explanation: 'They are all eighths, so compare the top numbers: 5/8, 3/8, 1/8.',
+  },
+];
+
+/** Check the left-to-right (or top-to-bottom) order without converting to rounded decimals. */
+export function fractionOrderMatches(cards: readonly FractionValue[], direction: FractionOrderDirection): boolean {
+  if (cards.length < 2 || cards.some(({ denominator }) => denominator <= 0)) return false;
+  return cards.slice(1).every((card, index) => {
+    const previous = cards[index];
+    const difference = previous.numerator * card.denominator - card.numerator * previous.denominator;
+    return direction === 'ascending' ? difference <= 0 : difference >= 0;
+  });
+}
+
 export type ModelSpec =
   | { kind: 'bars'; bars: FractionValue[]; caption?: string; hideLabels?: boolean }
   | { kind: 'set'; selected: number; total: number; caption?: string }

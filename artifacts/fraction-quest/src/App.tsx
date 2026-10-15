@@ -18,6 +18,7 @@ import {
   isCorrectAnswer,
   isMissionUnlocked,
   loadProgress,
+  FRACTION_ORDER_ROUNDS,
   MISSIONS,
   numberLineWholeCount,
   recordMissedSkill,
@@ -66,6 +67,7 @@ import { getRouterBasePath } from './app-routing';
 import DailyPractice from './DailyPractice';
 import { createDailyPractice, dailyPracticeDay } from './daily-practice';
 import PartFinder from './PartFinder';
+import FractionSortActivity from './FractionSortActivity';
 import { AssessmentHub, AssessmentRunner } from './Assessment';
 import { PART_FINDER_LESSONS, partFinderRoundsFor } from './part-finder';
 import ConceptGames, { type LessonGame } from './ConceptGames';
@@ -86,7 +88,9 @@ type View =
   | { type: 'assessment'; definition: AssessmentDefinition; seed: number }
   | { type: 'reward'; missionId: string; stars: number }
   /** The lesson's hands-on cake rounds (Part Finder), between the worked example and the questions. */
-  | { type: 'hands-on'; missionId: string; reviewQuestions: PracticeQuestion[] };
+  | { type: 'hands-on'; missionId: string; reviewQuestions: PracticeQuestion[] }
+  /** Local card arrangement before scored questions; it does not save lesson evidence. */
+  | { type: 'fraction-sort'; missionId: string; reviewQuestions: PracticeQuestion[] };
 type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string };
 type RedoView = { type: 'redo'; missionId: string };
@@ -1073,6 +1077,10 @@ function Game() {
       return;
     }
     const reviewQuestions = getDelayedReviewQuestions(activeProgress, missionId);
+    if (missionId === 'order-unlike-fractions') {
+      setView({ type: 'fraction-sort', missionId, reviewQuestions });
+      return;
+    }
     if (PART_FINDER_LESSONS.has(missionId)) {
       setView({ type: 'hands-on', missionId, reviewQuestions });
       return;
@@ -1254,6 +1262,14 @@ function Game() {
         return <PartFinder key={view.missionId} rounds={partFinderRoundsFor(view.missionId)} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
           intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} />}
           onExit={returnToMap} onDone={toQuestions} onSkip={progress.completedMissionIds.includes(view.missionId) || hasLearningGate(progress, view.missionId) ? toQuestions : undefined} />;
+      })()}
+      {view.type === 'fraction-sort' && (() => {
+        const mission = getMission(view.missionId);
+        const toQuestions = () => setView({ type: 'play', missionId: view.missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions: view.reviewQuestions });
+        return <FractionSortActivity key={view.missionId} rounds={FRACTION_ORDER_ROUNDS}
+          lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
+          intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} />}
+          onExit={returnToMap} onDone={toQuestions} />;
       })()}
       {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
       {view.type === 'extra' && (() => {
