@@ -2662,6 +2662,9 @@ describe('natural read-aloud voice', () => {
       const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
       assert.match(markup, /works on every device, iPhone and iPad included/);
       assert.match(markup, /radio-natural-voice-af_heart/);
+      for (const voice of ['af_aoede', 'af_sarah', 'bf_isabella', 'am_michael', 'am_puck', 'bm_george']) {
+        assert.match(markup, new RegExp(`radio-natural-voice-${voice}`));
+      }
       assert.doesNotMatch(markup, /paused on iPhone/);
     } finally {
       if (original) Object.defineProperty(globalThis, 'navigator', original);
