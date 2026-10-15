@@ -9,7 +9,11 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:4179',
     browserName: 'chromium',
     launchOptions: {
-      executablePath: process.env.CHROMIUM_PATH ?? '/repl/tools/bin/chromium',
+      ...(process.env.CHROMIUM_PATH
+        ? { executablePath: process.env.CHROMIUM_PATH }
+        : process.env.CI
+          ? {}
+          : { executablePath: '/repl/tools/bin/chromium' }),
       args: ['--no-sandbox'],
     },
     trace: 'retain-on-failure',

@@ -348,7 +348,7 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
 });
 
-test('all 72 lessons render their worked model and first interactive question', async ({ page }) => {
+test('every lesson renders its worked model and first interactive question', async ({ page }) => {
   test.setTimeout(300_000);
   const lessonIds = MISSIONS.map((mission) => mission.id);
   await page.addInitScript((ids) => {
