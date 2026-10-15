@@ -1,4 +1,4 @@
-.fq-ll { width: min(900px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 48px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; color: hsl(var(--foreground)); }
+.fq-ll { width: min(900px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 48px; display: grid; gap: 20px; color: hsl(var(--foreground)); }
 .fq-ll h2, .fq-ll h3, .fq-ll h4 { margin: 0; letter-spacing: -0.04em; }
 .fq-ll-head h2 { font-size: clamp(1.6rem, 4vw, 2.4rem); line-height: 1.05; margin: 8px 0; }
 .fq-ll-head p { margin: 0; color: hsl(var(--muted-foreground)); }
@@ -9,7 +9,6 @@
 .fq-ll-steps li.now { border-color: hsl(var(--primary)); color: hsl(var(--foreground)); }
 .fq-ll-steps li.done { border-color: hsl(var(--secondary)); color: hsl(var(--secondary)); }
 .fq-ll-check, .fq-ll-sheet, .fq-ll-summary { padding: clamp(16px, 4vw, 32px); border: 2px solid hsl(var(--foreground) / .15); border-radius: 26px; background: hsl(var(--card)); box-shadow: var(--shadow-card); display: grid; gap: 16px; }
-.fq-ll-sheet { min-width: 0; grid-template-columns: minmax(0, 1fr); }
 .fq-ll-check { scroll-margin-top: 92px; }
 .fq-ll-check h3 { scroll-margin-top: 92px; font-size: clamp(1.3rem, 3vw, 1.8rem); }
 .fq-ll-check h3:focus { outline: 3px solid hsl(var(--ring)); outline-offset: 5px; border-radius: 5px; }
@@ -108,14 +107,13 @@
 .fq-ll-full-explanation > *:not(summary) { display: block; margin-top: 8px; }
 .fq-ll-actions { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
 .fq-ll-finish { justify-self: end; }
-.fq-ll-sheet-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
+.fq-ll-sheet-head { display: grid; gap: 10px; }
 .fq-ll-meter { position: relative; height: 28px; border: 2px solid hsl(var(--foreground)); border-radius: 99px; overflow: hidden; background: hsl(var(--muted)); }
 .fq-ll-meter b { position: absolute; inset: 0 auto 0 0; background: hsl(var(--secondary) / .55); transition: width 300ms ease; }
 .fq-ll-meter span { position: relative; display: block; text-align: center; line-height: 24px; font: 800 .78rem var(--app-font-mono); }
 .fq-ll-problem-progress {
   display: flex;
   gap: 8px;
-  width: 100%;
   max-width: 100%;
   min-width: 0;
   margin: 0;

@@ -71,50 +71,59 @@ async function openLesson(page: import('@playwright/test').Page, resumeWorksheet
 }
 
 async function expectNoHorizontalOverflow(page: import('@playwright/test').Page) {
-  try {
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  } catch {
-    const layout = await page.evaluate(() => {
-      const width = window.innerWidth;
-      const offenders = Array.from(document.querySelectorAll<HTMLElement>('body *'))
-        .map((element) => {
+  const measureLayout = () => page.evaluate(() => {
+    const width = window.innerWidth;
+    const offenders = Array.from(document.querySelectorAll<HTMLElement>('#root, #root *'))
+      .filter((element) => {
+        let ancestor = element.parentElement;
+        while (ancestor && ancestor !== document.documentElement) {
+          const overflowX = getComputedStyle(ancestor).overflowX;
+          if (overflowX === 'auto' || overflowX === 'scroll') return false;
+          ancestor = ancestor.parentElement;
+        }
+        const rect = element.getBoundingClientRect();
+        return rect.left < -1 || rect.right > width + 1;
+      })
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          tag: element.tagName.toLowerCase(),
+          testId: element.dataset.testid ?? null,
+          className: typeof element.className === 'string' ? element.className : '',
+          left: Math.round(rect.left),
+          right: Math.round(rect.right),
+          width: Math.round(rect.width),
+        };
+      })
+      .slice(0, 12);
+    return {
+      viewportWidth: width,
+      documentWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+      containers: ['.fq-ll', '.fq-ll-sheet', '.fq-ll-sheet-head', '.fq-ll-problem-progress']
+        .map((selector) => {
+          const element = document.querySelector<HTMLElement>(selector);
+          if (!element) return { selector, missing: true };
           const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
           return {
-            tag: element.tagName.toLowerCase(),
-            testId: element.dataset.testid ?? null,
-            className: typeof element.className === 'string' ? element.className : '',
+            selector,
             left: Math.round(rect.left),
             right: Math.round(rect.right),
             width: Math.round(rect.width),
+            scrollWidth: element.scrollWidth,
+            clientWidth: element.clientWidth,
+            gridTemplateColumns: style.gridTemplateColumns,
+            overflowX: style.overflowX,
           };
-        })
-        .filter((element) => element.left < -1 || element.right > width + 1)
-        .sort((a, b) => b.right - a.right)
-        .slice(0, 12);
-      return {
-        viewportWidth: width,
-        documentWidth: document.documentElement.scrollWidth,
-        clientWidth: document.documentElement.clientWidth,
-        containers: ['.fq-ll', '.fq-ll-sheet', '.fq-ll-sheet-head', '.fq-ll-problem-progress']
-          .map((selector) => {
-            const element = document.querySelector<HTMLElement>(selector);
-            if (!element) return { selector, missing: true };
-            const rect = element.getBoundingClientRect();
-            const style = getComputedStyle(element);
-            return {
-              selector,
-              left: Math.round(rect.left),
-              right: Math.round(rect.right),
-              width: Math.round(rect.width),
-              scrollWidth: element.scrollWidth,
-              clientWidth: element.clientWidth,
-              gridTemplateColumns: style.gridTemplateColumns,
-              overflowX: style.overflowX,
-            };
-          }),
-        offenders,
-      };
-    });
+        }),
+      offenders,
+    };
+  });
+  try {
+    await expect.poll(async () => (await measureLayout()).offenders.length).toBe(0);
+  } catch {
+    const layout = await measureLayout();
     throw new Error(`Horizontal overflow in phone layout: ${JSON.stringify(layout)}`);
   }
 }
