@@ -267,15 +267,27 @@ describe('lesson catalog', () => {
         if (mission.example.model.kind === 'bars') {
           assert.deepEqual(
             mission.example.model.bars.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
-            ['1/4', '3/8', '5/8'],
+            ['1/4', '2/8', '3/8', '5/8'],
           );
           const line = mission.example.numberLine;
           assert.ok(line, 'the worked example includes a matching number line');
           assert.deepEqual(
             line.points.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
-            mission.example.model.bars.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
+            ['1/4', '3/8', '5/8'],
             'number-line points match the bar-model fractions in the authored answer order',
           );
+          const equivalentName = line.equivalentNames?.find(({ fraction, equivalentTo }) =>
+            fraction.numerator === 2 && fraction.denominator === 8
+            && equivalentTo.numerator === 1 && equivalentTo.denominator === 4,
+          );
+          assert.ok(equivalentName, 'the number line shows 2/8 as another name for 1/4');
+          const quarterBar = mission.example.model.bars.find(({ numerator, denominator }) => numerator === 1 && denominator === 4);
+          const twoEighthsBar = mission.example.model.bars.find(({ numerator, denominator }) => numerator === 2 && denominator === 8);
+          assert.ok(quarterBar && twoEighthsBar);
+          assert.equal(quarterBar.numerator / quarterBar.denominator, 0.25);
+          assert.equal(twoEighthsBar.numerator / twoEighthsBar.denominator, 0.25);
+          assert.equal(equivalentName.fraction.numerator / equivalentName.fraction.denominator, 0.25);
+          assert.equal(equivalentName.equivalentTo.numerator / equivalentName.equivalentTo.denominator, 0.25);
           assert.deepEqual(line.benchmark, { numerator: 1, denominator: 2 });
           const orderedPointPositions = line.points.map(({ numerator, denominator }) => numerator / denominator);
           assert.ok(orderedPointPositions.every((position, index) => index === 0 || orderedPointPositions[index - 1] < position));
@@ -1443,6 +1455,10 @@ describe('read-aloud voice', () => {
     assert.equal(spokenText('Write 1 2/3 as a fraction.'), 'Write 1 and two thirds as a fraction.');
     assert.equal(spokenText('2/8 = ?/4'), 'two eighths equals how many fourths');
     assert.equal(spokenText('3/8 < 1/2'), 'three eighths is less than one half');
+    assert.equal(
+      spokenText('The equivalent fractions 1/4 and 2/8 share the same 25 percent spot.'),
+      'The equivalent fractions one fourth and two eighths share the same 25 percent spot.',
+    );
     assert.equal(spokenText('25% of 8'), '25 percent of 8');
     assert.deepEqual(sentences('One part. Two parts! Ready?'), ['One part.', 'Two parts!', 'Ready?']);
   });

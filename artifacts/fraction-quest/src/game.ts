@@ -85,6 +85,7 @@ export type WorkedExample = {
   numberLine?: {
     points: FractionValue[];
     benchmark: FractionValue;
+    equivalentNames?: { fraction: FractionValue; equivalentTo: FractionValue }[];
   };
 };
 
@@ -717,6 +718,7 @@ const extensionTopics: ExtensionTopic[] = [
       explanation: 'First compare with 1/2: 1/4 and 3/8 are below it, and 5/8 is above it. To compare 1/4 and 3/8, rename 1/4 as 2/8. Eighths are the same-size pieces, and 2/8 is less than 3/8. So the order is 1/4, 3/8, 5/8.',
       model: { kind: 'bars', bars: [
         { numerator: 1, denominator: 4, named: true },
+        { numerator: 2, denominator: 8, named: true },
         { numerator: 3, denominator: 8, named: true },
         { numerator: 5, denominator: 8, named: true },
       ] },
@@ -727,6 +729,9 @@ const extensionTopics: ExtensionTopic[] = [
           { numerator: 5, denominator: 8 },
         ],
         benchmark: { numerator: 1, denominator: 2 },
+        equivalentNames: [
+          { fraction: { numerator: 2, denominator: 8 }, equivalentTo: { numerator: 1, denominator: 4 } },
+        ],
       },
     },
     mode: 'order', n: 1, d: 5, context: 'hiking trail',

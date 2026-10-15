@@ -60,12 +60,17 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   await expect(numberLine).toContainText('0');
   await expect(numberLine).toContainText('1 whole');
   await expect(numberLine).toContainText('one-half benchmark is halfway');
+  await expect(numberLine).toContainText('1/4 = 2/8');
+  await expect(numberLine).toContainText('1/4 and 2/8 are equivalent fractions');
+  await expect(numberLine).toContainText('same 25 percent spot');
   await expect(numberLine.getByRole('button', { name: 'Listen to the fraction number line' })).toBeVisible();
   await expect(page.getByTestId('fraction-order-benchmark')).toHaveAttribute('style', /left: 50%/);
   await expect(page.getByTestId('fraction-order-point-1-4')).toHaveAttribute('data-position', '25');
+  await expect(page.getByTestId('fraction-order-point-1-4')).toHaveAttribute('data-equivalent-names', '2/8');
+  await expect(page.getByTestId('fraction-order-point-1-4')).toContainText('1/4 = 2/8');
   await expect(page.getByTestId('fraction-order-point-3-8')).toHaveAttribute('data-position', '37.5');
   await expect(page.getByTestId('fraction-order-point-5-8')).toHaveAttribute('data-position', '62.5');
-  await expect(numberLine.locator('.fq-order-line')).toHaveAttribute('aria-label', /1\/4 is at 1 of 4 equal spaces.*3\/8 is at 3 of 8 equal spaces.*5\/8 is at 5 of 8 equal spaces.*one-half benchmark is halfway/);
+  await expect(numberLine.locator('.fq-order-line')).toHaveAttribute('aria-label', /1\/4 is at 1 of 4 equal spaces.*1\/4 and 2\/8 are equivalent fractions.*same 25 percent spot.*3\/8 is at 3 of 8 equal spaces.*5\/8 is at 5 of 8 equal spaces.*one-half benchmark is halfway/);
 
   const introBottom = await intro.evaluate((element) => element.getBoundingClientRect().bottom);
   const modelTop = await page.locator('.fq-example .fq-model-area').evaluate((element) => element.getBoundingClientRect().top);
