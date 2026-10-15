@@ -48,6 +48,8 @@ import {
   countsTowardLessonStars,
   deferSkillReview,
   EMPTY_PROGRESS,
+  FRACTION_ORDER_ROUNDS,
+  fractionOrderMatches,
   getMission,
   getDelayedReviewQuestions,
   getDueSkillReviewCount,
@@ -92,6 +94,29 @@ describe('lesson star scoring', () => {
     assert.equal(starsFromFirstTryAnswers(4, 5), 2);
     assert.equal(starsFromFirstTryAnswers(5, 5), 3);
     assert.equal(starsFromFirstTryAnswers(9, 5), 3);
+  });
+});
+
+describe('fraction ordering activity', () => {
+  it('checks smallest-to-biggest and biggest-to-smallest sorts exactly', () => {
+    assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[0].cards.slice(1).concat(FRACTION_ORDER_ROUNDS[0].cards[0]), 'ascending'), true);
+    assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[0].cards, 'ascending'), false);
+    assert.equal(fractionOrderMatches([
+      { numerator: 5, denominator: 8 },
+      { numerator: 3, denominator: 8 },
+      { numerator: 1, denominator: 8 },
+    ], 'descending'), true);
+    assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[1].cards, 'descending'), false);
+  });
+
+  it('accepts a corrected card order after a missed attempt and gives a useful strategy for each round', () => {
+    const halfRound = FRACTION_ORDER_ROUNDS[0];
+    let attempt = [...halfRound.cards];
+    assert.equal(fractionOrderMatches(attempt, halfRound.direction), false);
+    attempt = [attempt[1], attempt[2], attempt[0]];
+    assert.equal(fractionOrderMatches(attempt, halfRound.direction), true);
+    assert.match(halfRound.strategyHint, /1\/2|half/i);
+    assert.match(FRACTION_ORDER_ROUNDS[1].strategyHint, /eighths|numerators/i);
   });
 });
 const EXPECTED_MISSION_IDS = [
@@ -229,6 +254,35 @@ describe('lesson catalog', () => {
       assert.ok(mission.questions.length >= 4, `${mission.id} needs enough practice and a mastery check`);
       assert.ok(mission.example.prompt.trim() && mission.example.answer.trim() && mission.example.explanation.trim());
       assertModel(mission.example.model, `${mission.id} worked example`);
+      if (mission.id === 'order-unlike-fractions') {
+        assert.ok(mission.learningIntro);
+        assert.match(mission.learningIntro.goal, /smallest to biggest.*biggest to smallest/);
+        assert.match(mission.learningIntro.process, /one half.*same denominator.*numerators/);
+        assert.match(mission.learningIntro.why, /same-size pieces/);
+        assert.match(mission.example.prompt, /1\/4, 3\/8 and 5\/8/);
+        assert.notEqual(mission.example.prompt, mission.questions[0].prompt);
+        assert.doesNotMatch(mission.example.prompt, /1\/2|2\/3|3\/4/);
+        assert.match(mission.example.explanation, /rename 1\/4 as 2\/8.*same-size pieces/i);
+        assert.equal(mission.example.model.kind, 'bars');
+        if (mission.example.model.kind === 'bars') {
+          assert.deepEqual(
+            mission.example.model.bars.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
+            ['1/4', '3/8', '5/8'],
+          );
+          const line = mission.example.numberLine;
+          assert.ok(line, 'the worked example includes a matching number line');
+          assert.deepEqual(
+            line.points.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
+            mission.example.model.bars.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
+            'number-line points match the bar-model fractions in the authored answer order',
+          );
+          assert.deepEqual(line.benchmark, { numerator: 1, denominator: 2 });
+          const orderedPointPositions = line.points.map(({ numerator, denominator }) => numerator / denominator);
+          assert.ok(orderedPointPositions.every((position, index) => index === 0 || orderedPointPositions[index - 1] < position));
+          assert.equal(mission.example.answer, line.points.map(({ numerator, denominator }) => `${numerator}/${denominator}`).join(' < '));
+          assert.deepEqual(orderedPointPositions, [0.25, 0.375, 0.625]);
+        }
+      }
 
       const mastery = mission.questions.filter((question) => question.isMastery);
       assert.equal(mastery.length, 1, `${mission.id} must have exactly one mastery question`);
@@ -2611,6 +2665,29 @@ describe('same numerator, different denominators', () => {
     assert.match(transfer.prompt, /2\/3 or 2\/5/);
     const unlike = getWorksheet('compare-unlike-fractions');
     assert.ok(unlike.some((p) => { const m = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(p.prompt); return !!m && m[1] === m[2]; }));
+  });
+  it('clearly teaches that a larger denominator makes smaller pieces when the numerator stays the same', () => {
+    const lesson = MISSIONS.find((m) => m.id === 'compare-same-numerator')!;
+    assert.match(lesson.skill, /same numerator.*larger denominator.*more equal parts.*piece is smaller/i);
+    assert.match(lesson.example.explanation, /both count 3 pieces.*8 equal parts.*smaller pieces.*3\/8 is smaller than 3\/5/i);
+    assert.ok(lesson.questions.every((question) => /larger denominator/i.test(question.hint) && /smaller/i.test(question.hint)), 'each authored hint explains the larger-denominator relationship');
+
+    const generated = generateQuestions('compare-same-numerator', ['x'], 3, 8);
+    assert.ok(generated.every((question) => /larger denominator/i.test(question.hint) && /smaller/i.test(question.hint)), 'generated same-numerator practice keeps the explanation');
+
+    const extensionRows = getWorksheet('compare-unlike-fractions').filter((row) => {
+      const match = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(row.prompt);
+      return !!match && match[1] === match[2];
+    });
+    assert.ok(extensionRows.length > 0, 'the extension worksheet includes a same-numerator comparison');
+    assert.ok(extensionRows.every((row) => /larger denominator/i.test(row.hint) && /smaller/i.test(row.hint)), 'extension worksheet hints make the larger-denominator rule explicit');
+
+    const generatedUnlike = Array.from({ length: 40 }, (_, seed) => generateQuestions('compare-unlike-fractions', ['x'], seed + 1, 12)).flat().filter((question) => {
+      const match = /(\d+)\/\d+ or (\d+)\/\d+/.exec(question.prompt);
+      return !!match && match[1] === match[2];
+    });
+    assert.ok(generatedUnlike.length > 0, 'generated unlike-fraction practice includes same-numerator comparisons');
+    assert.ok(generatedUnlike.every((question) => /larger denominator/i.test(question.hint) && /smaller/i.test(question.hint)), 'same-numerator extension practice repeats the rule');
   });
 });
 

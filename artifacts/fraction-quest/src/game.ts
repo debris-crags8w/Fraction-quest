@@ -9,6 +9,46 @@ import { scopedStorageKey } from './storage-scope';
 /** `named`: the question states this fraction, so the bar shows its label (other bars are labelled once answered). */
 export type FractionValue = { numerator: number; denominator: number; named?: boolean };
 
+export type FractionOrderDirection = 'ascending' | 'descending';
+export type FractionOrderRound = {
+  id: string;
+  direction: FractionOrderDirection;
+  title: string;
+  cards: FractionValue[];
+  strategyHint: string;
+  explanation: string;
+};
+
+/** The ordering lesson's unscored, in-memory card sort. */
+export const FRACTION_ORDER_ROUNDS: FractionOrderRound[] = [
+  {
+    id: 'smallest-first',
+    direction: 'ascending',
+    title: 'Smallest to biggest',
+    cards: [{ numerator: 8, denominator: 10 }, { numerator: 3, denominator: 10 }, { numerator: 1, denominator: 2 }],
+    strategyHint: 'Use 1/2 as a landmark. 3/10 is below half and 8/10 is above half. Also, 1/2 is 5/10.',
+    explanation: '1/2 is 5/10, so the order is 3/10, 1/2, 8/10.',
+  },
+  {
+    id: 'biggest-first',
+    direction: 'descending',
+    title: 'Biggest to smallest',
+    cards: [{ numerator: 1, denominator: 8 }, { numerator: 5, denominator: 8 }, { numerator: 3, denominator: 8 }],
+    strategyHint: 'All three fractions are eighths. Compare the numerators: more eighths means a bigger fraction.',
+    explanation: 'They are all eighths, so compare the top numbers: 5/8, 3/8, 1/8.',
+  },
+];
+
+/** Check the left-to-right (or top-to-bottom) order without converting to rounded decimals. */
+export function fractionOrderMatches(cards: readonly FractionValue[], direction: FractionOrderDirection): boolean {
+  if (cards.length < 2 || cards.some(({ denominator }) => denominator <= 0)) return false;
+  return cards.slice(1).every((card, index) => {
+    const previous = cards[index];
+    const difference = previous.numerator * card.denominator - card.numerator * previous.denominator;
+    return direction === 'ascending' ? difference <= 0 : difference >= 0;
+  });
+}
+
 export type ModelSpec =
   | { kind: 'bars'; bars: FractionValue[]; caption?: string; hideLabels?: boolean }
   | { kind: 'set'; selected: number; total: number; caption?: string }
@@ -42,6 +82,10 @@ export type WorkedExample = {
   answer: string;
   explanation: string;
   model: ModelSpec;
+  numberLine?: {
+    points: FractionValue[];
+    benchmark: FractionValue;
+  };
 };
 
 export type Mission = {
@@ -50,6 +94,7 @@ export type Mission = {
   shortTitle: string;
   description: string;
   skill: string;
+  learningIntro?: { goal: string; process: string; why: string };
   unit: number;
   gradeBand?: 3 | 4 | 5;
   standards?: string[];
@@ -406,18 +451,18 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'compare-same-numerator', unit: 5, title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'Same numerator? The smaller denominator wins.',
+    id: 'compare-same-numerator', unit: 5, title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'Same numerator? A larger denominator splits the whole into more equal parts, so each piece is smaller. The fraction is smaller too.',
     description: 'Compare fractions with the same numerator.', example: {
       prompt: 'Which is bigger, 3/5 or 3/8?',
       answer: '3/5.',
-      explanation: 'Both have 3 pieces. Fifths are bigger than eighths.',
+      explanation: 'Both count 3 pieces. Splitting the same whole into 8 equal parts makes smaller pieces than splitting it into 5, so 3/8 is smaller than 3/5.',
       model: bars({ numerator: 3, denominator: 5 }, { numerator: 3, denominator: 8 }),
     },
     questions: [
-      practice('Which is bigger, 2/3 or 2/7?', ['2/7', '2/3', 'They are equal'], 1, bars({ numerator: 2, denominator: 3 }, { numerator: 2, denominator: 7 }), 'Both have 2 pieces. Which pieces are bigger?', 'Thirds are bigger than sevenths. So 2/3 wins.', bars({ numerator: 1, denominator: 3 })),
-      practice('Which is smaller, 4/5 or 4/9?', ['4/5', '4/9', 'They are equal'], 1, bars({ numerator: 4, denominator: 5 }, { numerator: 4, denominator: 9 }), 'Both have 4 pieces. Ninths are smaller.', '4/9 is less than 4/5.', bars({ numerator: 1, denominator: 2 })),
-      practice('Pick the sign: 1/6 __ 1/4', ['>', '<', '='], 1, bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 4 }), 'More pieces means smaller pieces.', '1/6 is smaller than 1/4.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which covers more: 3/10 or 3/8?', ['3/10', '3/8', 'They cover the same'], 1, bars({ numerator: 3, denominator: 10 }, { numerator: 3, denominator: 8 }), 'Both have 3 pieces. Which pieces are bigger?', 'Eighths are bigger than tenths. So 3/8 covers more.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is bigger, 2/3 or 2/7?', ['2/7', '2/3', 'They are equal'], 1, bars({ numerator: 2, denominator: 3 }, { numerator: 2, denominator: 7 }), 'Both count 2 pieces. The larger denominator, 7, splits the whole into more equal parts, so each piece is smaller.', 'Thirds are larger than sevenths, so 2/3 is greater than 2/7.', bars({ numerator: 1, denominator: 3 })),
+      practice('Which is smaller, 4/5 or 4/9?', ['4/5', '4/9', 'They are equal'], 1, bars({ numerator: 4, denominator: 5 }, { numerator: 4, denominator: 9 }), 'Both count 4 pieces. The larger denominator, 9, makes more equal parts in the whole, so each piece is smaller.', 'With the same 4 pieces counted, 4/9 is less than 4/5.', bars({ numerator: 1, denominator: 2 })),
+      practice('Pick the sign: 1/6 __ 1/4', ['>', '<', '='], 1, bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 4 }), 'The larger denominator, 6, splits the whole into more equal parts than 4, so each sixth is smaller.', 'So 1/6 < 1/4.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which covers more: 3/10 or 3/8?', ['3/10', '3/8', 'They cover the same'], 1, bars({ numerator: 3, denominator: 10 }, { numerator: 3, denominator: 8 }), 'Both count 3 pieces. The larger denominator, 10, makes more equal parts than 8, so each piece is smaller.', 'Eighths are larger than tenths, so 3/8 is greater than 3/10.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
@@ -645,6 +690,7 @@ type ExtensionTopic = {
   id: string; unit: number; title: string; shortTitle: string; description: string; skill: string;
   mode: ExtensionMode; n: number; d: number; context: string;
   gradeBand?: 3 | 4 | 5; standards?: string[]; enrichment?: boolean;
+  learningIntro?: Mission['learningIntro'];
   /** A worked example of its own, when the lesson's first build ("make the whole") would not show the answer. */
   example?: Mission['example'];
 };
@@ -657,7 +703,34 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'equivalent-missing-both', unit: 9, title: 'Find the missing number', shortTitle: 'Equivalent fractions', description: 'Fill a blank on the top or bottom.', skill: 'Do the same thing to the numerator and denominator.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
   { id: 'whole-numbers-as-fractions', unit: 9, title: 'Wholes as fractions', shortTitle: 'Whole numbers as fractions', description: 'Build one or more wholes from unit fractions.', skill: 'The numerator counts pieces. A whole is made from as many pieces as the denominator.', mode: 'whole-fraction', n: 6, d: 3, context: 'fraction bars', gradeBand: 3, standards: ['3.NF.3c'] },
   { id: 'compare-unlike-fractions', unit: 9, title: 'Compare different pieces', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the denominators differ?', skill: 'Give both fractions the same denominator. Then compare.', mode: 'compare', n: 2, d: 3, context: 'race track' },
-  { id: 'order-unlike-fractions', unit: 9, title: 'Order different pieces', shortTitle: 'Order unlike parts', description: 'Put 3 fractions in order.', skill: 'Compare to 1/2, or use the same denominator.', mode: 'order', n: 1, d: 5, context: 'hiking trail' },
+  {
+    id: 'order-unlike-fractions', unit: 9, title: 'Order different pieces', shortTitle: 'Order unlike parts',
+    description: 'Put 3 fractions in order.', skill: 'Compare with 1/2, then use equal-size pieces if needed.',
+    learningIntro: {
+      goal: 'Put fractions in the order the question asks: smallest to biggest, or biggest to smallest.',
+      process: 'Compare each fraction with one half. If two are on the same side, rename them with the same denominator (bottom number), then compare their numerators (top numbers).',
+      why: 'Matching denominators mean the fractions have same-size pieces. The fraction with more pieces is bigger.',
+    },
+    example: {
+      prompt: 'Order 1/4, 3/8 and 5/8 from smallest to biggest.',
+      answer: '1/4 < 3/8 < 5/8',
+      explanation: 'First compare with 1/2: 1/4 and 3/8 are below it, and 5/8 is above it. To compare 1/4 and 3/8, rename 1/4 as 2/8. Eighths are the same-size pieces, and 2/8 is less than 3/8. So the order is 1/4, 3/8, 5/8.',
+      model: { kind: 'bars', bars: [
+        { numerator: 1, denominator: 4, named: true },
+        { numerator: 3, denominator: 8, named: true },
+        { numerator: 5, denominator: 8, named: true },
+      ] },
+      numberLine: {
+        points: [
+          { numerator: 1, denominator: 4 },
+          { numerator: 3, denominator: 8 },
+          { numerator: 5, denominator: 8 },
+        ],
+        benchmark: { numerator: 1, denominator: 2 },
+      },
+    },
+    mode: 'order', n: 1, d: 5, context: 'hiking trail',
+  },
   { id: 'subtract-unlike-fractions', unit: 10, title: 'Take away different pieces', shortTitle: 'Subtract unlike parts', description: 'Rename, then take away.', skill: 'Make the pieces the same size. Then take away.', mode: 'subtract-unlike', n: 3, d: 4, context: 'water bottle' },
   { id: 'add-unlike-fractions', unit: 10, title: 'Add unlike fractions', shortTitle: 'Add unlike parts', description: 'Make different-sized pieces the same size before adding.', skill: 'Rename each fraction with a common denominator, then add.', mode: 'add-unlike', n: 7, d: 12, context: 'ribbons', gradeBand: 5, standards: ['5.NF.1'] },
   { id: 'add-mixed-numbers', unit: 10, title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Add wholes and pieces.', skill: 'Add the pieces. A full set of pieces makes a new whole.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route' },
@@ -741,6 +814,7 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
   const t = build.target;
   return {
     id: topic.id, unit: topic.unit, title: topic.title, shortTitle: topic.shortTitle, description: topic.description, skill: topic.skill,
+    learningIntro: topic.learningIntro,
     gradeBand: topic.gradeBand, standards: topic.standards, enrichment: topic.enrichment,
     example: topic.example ?? {
       prompt: build.prompt,

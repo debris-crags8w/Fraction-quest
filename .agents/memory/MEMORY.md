@@ -1,4 +1,5 @@
 - [Learning design requirements](learning-design-requirements.md) — keep worked examples inside lessons before hands-on practice and question one; retain interactive evidence gates.
+- [Full-course lesson smoke tests](full-course-lesson-smoke.md) — include generated questions and hands-on gates while isolating learner progress.
 - [GitHub sync and push](github-push.md) — merge newer GitHub changes before edits; use the connected GitHub App if CLI pushes fail.
 - [Development database bootstrap](development-database-bootstrap.md) — the development database can be provisioned without app tables; apply the existing schema before DB-backed account tests.
 - [Student progress privacy](student-progress-privacy.md) — educator-linked progress uses class codes, no student names, and is saved online.
@@ -6,3 +7,4 @@
 - [Scoped progress resets](unit-scoped-reset.md) — keep unit-attributable clearing separate from shared rewards, settings, and unlinked progress.
 - [Admin console security and layout](admin-totp-setup.md) — keep pre-auth admin screens generic and private; use a familiar, organized admin layout after sign-in.
 - [Artifact workflow port recovery](artifact-workflow-port-recovery.md) — check for stale child servers before retrying a workflow that fails with a port-in-use error.
+- [WebKit browser validation](webkit-browser-validation.md) — local Playwright WebKit downloads but lacks launch libraries; rely on the CI dependency-install step to run it.

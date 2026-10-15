@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { MISSIONS } from '../src/game';
+import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, MISSIONS } from '../src/game';
 import { getBuildChecks, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
-import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
+import { AREA_CUTS, areaTaskDone, pieceArea } from '../src/area-shapes';
 import { getExtraPractice, hasGenerator } from '../src/practice-bank';
-import { PART_FINDER_LESSONS } from '../src/part-finder';
+import { isPartFinderAnswer, PART_FINDER_LESSONS, partFinderRoundsFor, type PartFinderRound } from '../src/part-finder';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
 
@@ -23,6 +23,380 @@ async function openAsGuest(page: import('@playwright/test').Page) {
   await page.goto('/');
   await page.getByTestId('button-play-guest').click();
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+}
+
+async function localStorageSnapshot(page: import('@playwright/test').Page) {
+  return page.evaluate(() => {
+    const entries: Array<[string, string | null]> = [];
+    for (let index = 0; index < localStorage.length; index++) {
+      const key = localStorage.key(index);
+      if (key !== null) entries.push([key, localStorage.getItem(key)]);
+    }
+    entries.sort(([a], [b]) => a.localeCompare(b));
+    return JSON.stringify(Object.fromEntries(entries));
+  });
+}
+
+test('the ordering lesson explains its strategy before showing a distinct worked model', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+
+  const intro = page.getByTestId('lesson-introduction');
+  await expect(intro).toBeVisible();
+  await expect(intro).toContainText('smallest to biggest');
+  await expect(intro).toContainText('one half');
+  await expect(intro).toContainText('same-size pieces');
+  await expect(intro.getByRole('button', { name: 'Listen to the goal' })).toBeVisible();
+  await expect(intro.getByRole('button', { name: 'Listen to the process' })).toBeVisible();
+  await expect(intro.getByRole('button', { name: 'Listen to why it works' })).toBeVisible();
+  const workedExample = page.getByTestId('lesson-example');
+  // Fraction bars render numerator and denominator separately, so the combined text omits slashes.
+  await expect(workedExample).toContainText('Order 14, 38 and 58 from smallest to biggest');
+  await expect(workedExample).toContainText('14 < 38 < 58');
+  const numberLine = page.getByTestId('fraction-order-numberline');
+  await expect(numberLine).toBeVisible();
+  await expect(numberLine).toContainText('0');
+  await expect(numberLine).toContainText('1 whole');
+  await expect(numberLine).toContainText('one-half benchmark is halfway');
+  await expect(numberLine.getByRole('button', { name: 'Listen to the fraction number line' })).toBeVisible();
+  await expect(page.getByTestId('fraction-order-benchmark')).toHaveAttribute('style', /left: 50%/);
+  await expect(page.getByTestId('fraction-order-point-1-4')).toHaveAttribute('data-position', '25');
+  await expect(page.getByTestId('fraction-order-point-3-8')).toHaveAttribute('data-position', '37.5');
+  await expect(page.getByTestId('fraction-order-point-5-8')).toHaveAttribute('data-position', '62.5');
+  await expect(numberLine.locator('.fq-order-line')).toHaveAttribute('aria-label', /1\/4 is at 1 of 4 equal spaces.*3\/8 is at 3 of 8 equal spaces.*5\/8 is at 5 of 8 equal spaces.*one-half benchmark is halfway/);
+
+  const introBottom = await intro.evaluate((element) => element.getBoundingClientRect().bottom);
+  const modelTop = await page.locator('.fq-example .fq-model-area').evaluate((element) => element.getBoundingClientRect().top);
+  expect(introBottom).toBeLessThan(modelTop);
+});
+
+test('the ordering number line keeps fraction labels clear on narrow screens and with enlarged text', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await page.setViewportSize({ width: 320, height: 900 });
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+
+  const figure = page.getByTestId('fraction-order-numberline');
+  await expect(figure).toBeVisible();
+
+  for (const width of [320, 360]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const enlargedText of [false, true]) {
+      await page.evaluate((enlarge) => {
+        document.getElementById('large-text-test-style')?.remove();
+        if (enlarge) {
+          const style = document.createElement('style');
+          style.id = 'large-text-test-style';
+          style.textContent = 'html { font-size: 200% !important; }';
+          document.head.append(style);
+        }
+      }, enlargedText);
+
+      const layout = await figure.evaluate((element) => {
+        const figureBounds = element.getBoundingClientRect();
+        const labels = Array.from(element.querySelectorAll<HTMLElement>(
+          '.fq-order-line-point > span, .fq-order-line-benchmark > span',
+        )).map((label) => {
+          const bounds = label.getBoundingClientRect();
+          return {
+            text: label.textContent?.trim() ?? '',
+            left: bounds.left,
+            right: bounds.right,
+            top: bounds.top,
+            bottom: bounds.bottom,
+          };
+        });
+        const guide = element.querySelector<HTMLElement>('.fq-order-line-benchmark');
+        const guideStyle = guide ? getComputedStyle(guide, '::before') : null;
+        return {
+          figure: {
+            left: figureBounds.left,
+            right: figureBounds.right,
+            top: figureBounds.top,
+            bottom: figureBounds.bottom,
+          },
+          labels,
+          guide: {
+            left: guide ? Number.parseFloat(guide.style.left) : Number.NaN,
+            borderStyle: guideStyle?.borderLeftStyle ?? '',
+            height: Number.parseFloat(guideStyle?.height ?? '0'),
+          },
+        };
+      });
+
+      const context = `${width}px viewport, ${enlargedText ? 'enlarged' : 'normal'} text`;
+      expect(layout.labels, `${context}: all four fraction and halfway labels should render`).toHaveLength(4);
+      for (const label of layout.labels) {
+        expect(label.left, `${context}: ${label.text} should not clip past the left edge`).toBeGreaterThanOrEqual(layout.figure.left);
+        expect(label.right, `${context}: ${label.text} should not clip past the right edge`).toBeLessThanOrEqual(layout.figure.right);
+        expect(label.top, `${context}: ${label.text} should not clip above the number line`).toBeGreaterThanOrEqual(layout.figure.top);
+        expect(label.bottom, `${context}: ${label.text} should not clip below the number line`).toBeLessThanOrEqual(layout.figure.bottom);
+      }
+      for (let first = 0; first < layout.labels.length; first += 1) {
+        for (let second = first + 1; second < layout.labels.length; second += 1) {
+          const a = layout.labels[first];
+          const b = layout.labels[second];
+          const overlaps = a.left < b.right - 1 && a.right > b.left + 1
+            && a.top < b.bottom - 1 && a.bottom > b.top + 1;
+          expect(overlaps, `${context}: ${a.text} and ${b.text} must not overlap`).toBe(false);
+        }
+      }
+      expect(layout.guide.left, `${context}: halfway guide should stay at the midpoint`).toBeCloseTo(50);
+      expect(layout.guide.borderStyle, `${context}: halfway guide should remain visibly dashed`).toBe('dashed');
+      expect(layout.guide.height, `${context}: halfway guide should reach the line from its label`).toBeGreaterThan(0);
+    }
+  }
+});
+
+test('learners sort fractions in both directions, correct a try, and do not save progress before questions', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await openAsGuest(page);
+  const savedStorage = await localStorageSnapshot(page);
+  await openDeveloperLesson(page, mission);
+  await expect(page.getByTestId('fraction-order-activity')).toBeVisible();
+  await expect(page.getByTestId('fraction-order-example')).toContainText(mission.title);
+  await expect.poll(() => localStorageSnapshot(page)).toBe(savedStorage);
+
+  await completeFractionOrderLesson(page);
+  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
+  await expect.poll(() => localStorageSnapshot(page)).toBe(savedStorage);
+});
+
+async function completeQuestionSequence(
+  page: import('@playwright/test').Page,
+  questions: Mission['questions'],
+) {
+  await page.evaluate(async (items) => {
+    const settleReactUpdate = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+    const button = (testId: string) => {
+      const element = document.querySelector(`[data-testid="${CSS.escape(testId)}"]`);
+      if (!(element instanceof HTMLButtonElement) || element.disabled) {
+        throw new Error(`Expected enabled button ${testId}`);
+      }
+      return element;
+    };
+    for (const [index, question] of items.entries()) {
+      const progress = document.querySelector<HTMLElement>('[data-testid="status-lesson-progress"]');
+      if (progress?.getAttribute('aria-label') !== `Question ${index + 1} of ${items.length}`) {
+        throw new Error(`Lesson question ${index + 1} is not the active question`);
+      }
+      if (progress.getAttribute('aria-valuemax') !== String(items.length)) {
+        throw new Error(`Lesson question count did not match ${items.length}`);
+      }
+      if (index === 0 && !document.querySelector('[data-testid="question-model-area"]')) {
+        throw new Error('The lesson question model is missing');
+      }
+
+      button(`button-answer-${question.id}-${question.correctChoice}`).click();
+      await settleReactUpdate();
+      button('button-check-answer').click();
+      await settleReactUpdate();
+
+      const feedback = document.querySelector<HTMLElement>('[data-testid="status-feedback"]');
+      if (feedback?.getAttribute('data-result') !== 'correct') {
+        throw new Error(`Question ${question.id} did not accept its correct answer`);
+      }
+      if (progress.getAttribute('aria-valuenow') !== String(index + 1)) {
+        throw new Error(`Question ${question.id} did not advance lesson progress`);
+      }
+
+      button(index === items.length - 1 ? 'button-finish-mission' : 'button-next-question').click();
+      await settleReactUpdate();
+      if (index === items.length - 1) {
+        if (!document.querySelector('[data-testid="learning-lab"]')) {
+          throw new Error('The learning lab did not open after the final question');
+        }
+      } else {
+        const nextProgress = document.querySelector<HTMLElement>('[data-testid="status-lesson-progress"]');
+        if (nextProgress?.getAttribute('aria-label') !== `Question ${index + 2} of ${items.length}`) {
+          throw new Error(`Question ${index + 2} did not open`);
+        }
+      }
+    }
+  }, questions.map(({ id, correctChoice }) => ({ id, correctChoice })));
+}
+
+async function openDeveloperLesson(page: import('@playwright/test').Page, mission: Mission) {
+  await page.evaluate(async ({ id, title, isPartFinder, isFractionOrder }) => {
+    const settleReactUpdate = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+    const developerTest = document.querySelector<HTMLDetailsElement>('[data-testid="developer-module-test"]');
+    const selector = document.querySelector<HTMLSelectElement>('[data-testid="select-developer-lesson"]');
+    if (!developerTest || !selector) throw new Error('The developer lesson selector is missing');
+    developerTest.open = true;
+    selector.value = id;
+    selector.dispatchEvent(new Event('change', { bubbles: true }));
+    await settleReactUpdate();
+    if (selector.value !== id) throw new Error(`The developer selector did not choose ${id}`);
+
+    const open = document.querySelector<HTMLButtonElement>('[data-testid="button-open-developer-lesson"]');
+    if (!open || open.disabled) throw new Error('The developer lesson could not be opened');
+    open.click();
+    await settleReactUpdate();
+    if (!document.querySelector('[data-testid="developer-test-banner"]')) {
+      throw new Error('The isolated developer test did not start');
+    }
+
+    const titleSelector = isPartFinder
+      ? '.fq-pf-lesson-example .fq-example-heading'
+      : isFractionOrder
+        ? '.fq-order-sort-example .fq-example-heading'
+        : '#lesson-title';
+    const lessonTitle = document.querySelector<HTMLElement>(titleSelector);
+    if (lessonTitle?.textContent?.trim() !== title) {
+      throw new Error(`Expected to open ${title}, but the lesson title did not match`);
+    }
+    const exampleSelector = isPartFinder ? '[data-testid="part-finder-lesson-example"]' : '[data-testid="lesson-example"]';
+    if (!document.querySelector(exampleSelector)) throw new Error(`The example for ${title} is missing`);
+    if (!isPartFinder && !document.querySelector('.fq-example .fq-model-area')) {
+      throw new Error(`The worked model for ${title} is missing`);
+    }
+  }, {
+    id: mission.id,
+    title: mission.title,
+    isPartFinder: PART_FINDER_LESSONS.has(mission.id),
+    isFractionOrder: mission.id === 'order-unlike-fractions',
+  });
+}
+
+async function finishDeveloperLesson(page: import('@playwright/test').Page, savedStorage: string) {
+  await page.evaluate(async (expectedStorage) => {
+    const settleReactUpdate = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+    const snapshot = () => {
+      const entries: Array<[string, string | null]> = [];
+      for (let index = 0; index < localStorage.length; index++) {
+        const key = localStorage.key(index);
+        if (key !== null) entries.push([key, localStorage.getItem(key)]);
+      }
+      entries.sort(([a], [b]) => a.localeCompare(b));
+      return JSON.stringify(Object.fromEntries(entries));
+    };
+    const lab = document.querySelector('[data-testid="learning-lab"]');
+    if (!lab) throw new Error('Finishing the questions did not open the learning lab');
+    const requirements = document.querySelector('[data-testid="list-requirements"]');
+    const practice = requirements && Array.from(requirements.querySelectorAll<HTMLElement>('*'))
+      .find((element) => element.textContent?.trim() === 'Practice');
+    if (!practice?.classList.contains('done')) throw new Error('The lesson practice requirement was not saved');
+    const finish = document.querySelector<HTMLButtonElement>('[data-testid="button-lab-finish"]');
+    if (!finish?.disabled) throw new Error('The lesson unlocked before its other required work was complete');
+
+    const breakOverlay = document.querySelector<HTMLElement>('[data-testid="brain-break-overlay"]');
+    const visible = !!breakOverlay
+      && breakOverlay.getClientRects().length > 0
+      && getComputedStyle(breakOverlay).visibility !== 'hidden'
+      && getComputedStyle(breakOverlay).display !== 'none';
+    if (visible) {
+      const skip = document.querySelector<HTMLButtonElement>('[data-testid="button-break-skip"]');
+      if (!skip || skip.disabled) throw new Error('The lesson break could not be dismissed');
+      skip.click();
+      await settleReactUpdate();
+    }
+    if (snapshot() !== expectedStorage) throw new Error('The developer test wrote learner progress to browser storage');
+
+    const exit = document.querySelector<HTMLButtonElement>('[data-testid="button-exit-developer-test"]');
+    if (!exit || exit.disabled) throw new Error('The developer test could not be exited');
+    exit.click();
+    await settleReactUpdate();
+    const mapVisible = Array.from(document.querySelectorAll<HTMLElement>('h1,h2,h3'))
+      .some((heading) => /your learning map/i.test(heading.textContent ?? ''));
+    if (!mapVisible) throw new Error('Exiting the developer test did not return to the learning map');
+    if (snapshot() !== expectedStorage) throw new Error('Exiting the developer test changed browser storage');
+  }, savedStorage);
+}
+
+function partFinderSolution(round: PartFinderRound): { assignment?: number[]; selected: number[]; tileCount?: number } {
+  const pieces = AREA_CUTS[round.cut];
+  if (round.mode === 'sort') {
+    const shareCount = round.shares ?? 0;
+    const target = 1 / shareCount;
+    const assignment = Array<number>(pieces.length).fill(-1);
+    const areas = Array.from(pieces, pieceArea);
+    const totals = Array<number>(shareCount).fill(0);
+    const assign = (index: number): boolean => {
+      if (index === pieces.length) return totals.every((area) => Math.abs(area - target) < 1e-9);
+      for (let share = 0; share < shareCount; share++) {
+        if (totals[share] + areas[index] > target + 1e-9) continue;
+        assignment[index] = share;
+        totals[share] += areas[index];
+        if (assign(index + 1)) return true;
+        totals[share] -= areas[index];
+        assignment[index] = -1;
+      }
+      return false;
+    };
+    if (shareCount > 0 && assign(0)) return { assignment, selected: [] };
+    throw new Error(`No fair share assignment found for Part Finder round ${round.id}`);
+  }
+
+  for (let mask = 1; mask < 2 ** pieces.length; mask++) {
+    const selected = pieces.map((_, index) => index).filter((index) => mask & (1 << index));
+    if (round.mode === 'tile') {
+      if (selected.length !== 1) continue;
+      const tileCount = Math.round(1 / pieceArea(pieces[selected[0]]));
+      if (isPartFinderAnswer(round, selected, tileCount)) return { selected, tileCount };
+    } else if (isPartFinderAnswer(round, selected)) {
+      return { selected };
+    }
+  }
+  throw new Error(`No valid piece selection found for Part Finder round ${round.id}`);
+}
+
+async function completePartFinderLesson(page: import('@playwright/test').Page, missionId: string) {
+  for (const round of partFinderRoundsFor(missionId)) {
+    const solution = partFinderSolution(round);
+    if (solution.assignment) {
+      for (const [index, share] of solution.assignment.entries()) {
+        if (share > 0) await page.getByTestId(`button-part-finder-share-${share + 1}`).click();
+        const piece = page.getByTestId(`button-part-finder-piece-${index + 1}`);
+        await piece.focus();
+        await piece.press('Enter');
+      }
+    } else {
+      for (const index of solution.selected) {
+        const piece = page.getByTestId(`button-part-finder-piece-${index + 1}`);
+        await piece.focus();
+        await piece.press('Enter');
+      }
+      if (solution.tileCount !== undefined) {
+        await page.getByTestId('slot-part-finder-tile-count-n').click();
+        for (const digit of String(solution.tileCount)) {
+          await page.getByTestId(`tile-part-finder-tile-count-digit-${digit}`).click();
+        }
+      }
+    }
+    await page.getByTestId('button-part-finder-check').click();
+    await expect(page.getByTestId('part-finder-feedback')).toContainText('That fits!');
+    await page.getByTestId('button-part-finder-next').click();
+  }
+}
+
+async function completeFractionOrderLesson(page: import('@playwright/test').Page) {
+  const firstRound = FRACTION_ORDER_ROUNDS[0];
+  await page.getByTestId('button-sort-check').click();
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText('Not quite yet.');
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText('1/2');
+  await page.getByTestId('button-sort-8-10-down').click();
+  await page.getByTestId('button-sort-8-10-down').click();
+  await page.getByTestId('button-sort-check').click();
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(firstRound.explanation);
+  await page.getByTestId('button-sort-next').click();
+
+  const secondRound = FRACTION_ORDER_ROUNDS[1];
+  await page.getByTestId('button-sort-5-8-up').click();
+  await page.getByTestId('button-sort-3-8-up').click();
+  const sortedCards = await page.locator('[data-testid^="sort-card-"]').evaluateAll((items) =>
+    items.map((item) => {
+      const [numerator, denominator] = (item.getAttribute('data-fraction') ?? '').split('/').map(Number);
+      return { numerator, denominator };
+    }),
+  );
+  expect(fractionOrderMatches(sortedCards, secondRound.direction)).toBe(true);
+  await page.getByTestId('button-sort-check').click();
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText('That order is right!');
+  await page.getByTestId('button-sort-next').click();
 }
 
 async function retryLessonQuestion(
@@ -348,48 +722,35 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
 });
 
-test('every lesson renders its worked model and first interactive question', async ({ page }) => {
-  test.setTimeout(300_000);
-  const lessonIds = MISSIONS.map((mission) => mission.id);
-  await page.addInitScript((ids) => {
-    const completedAt = Date.now();
-    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({
-      completedMissionIds: ids,
-      starsByMission: {},
-      reviewQueue: [],
-      learning: Object.fromEntries(ids.map((id) => [id, { completedAt }])),
-      assessments: [],
-    }));
-  }, lessonIds);
-  await openAsGuest(page);
+test.describe('all-lesson required-question smoke', () => {
+  test.describe.configure({ timeout: 900_000 });
 
-  for (const mission of MISSIONS) {
-    await page.getByTestId(`button-node-${mission.id}`).click();
-    const startLesson = page.getByTestId(`button-start-mission-${mission.id}`);
-    await expect(startLesson).toBeEnabled();
-    await startLesson.click();
+  test('every lesson completes its required questions in an isolated developer test', async ({ page }) => {
+    await openAsGuest(page);
+    const savedStorage = await localStorageSnapshot(page);
 
-    if (PART_FINDER_LESSONS.has(mission.id)) {
-      await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
-      await expect(page.locator('.fq-pf-lesson-example .fq-example-heading')).toHaveText(mission.title);
-      await page.getByTestId('button-hands-on-skip').click();
-    } else {
-      await expect(page.locator('#lesson-title')).toHaveText(mission.title);
-      await expect(page.getByTestId('lesson-example')).toBeVisible();
-      await expect(page.locator('.fq-example .fq-model-area')).toBeVisible();
+    for (const mission of MISSIONS) {
+      await test.step(`${mission.id}: ${mission.title}`, async () => {
+        await openDeveloperLesson(page, mission);
+
+        if (PART_FINDER_LESSONS.has(mission.id)) {
+          await completePartFinderLesson(page, mission.id);
+        } else if (mission.id === 'order-unlike-fractions') {
+          await completeFractionOrderLesson(page);
+        }
+
+        const lessonQuestions = [
+          ...mission.questions.slice(0, -1),
+          ...(hasGenerator(mission.id)
+            ? getExtraPractice(mission.id, mission.questions.map((question) => question.id)).slice(0, 4)
+            : []),
+          mission.questions.at(-1)!,
+        ];
+        await completeQuestionSequence(page, lessonQuestions);
+        await finishDeveloperLesson(page, savedStorage);
+      });
     }
-
-    const question = mission.questions[0];
-    await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
-    await expect(page.getByTestId('question-model-area')).toBeVisible();
-    await expect(page.locator('.fq-answer-choices button')).toHaveCount(question.choices.length);
-    await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
-    await page.getByTestId('button-check-answer').click();
-    await expect(page.getByTestId('status-feedback')).toBeVisible();
-
-    await page.getByTestId('button-back-map').click();
-    await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
-  }
+  });
 });
 
 test('learners can correct a wrong answer across every lesson model type', async ({ page }) => {
