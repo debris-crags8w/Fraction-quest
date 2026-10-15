@@ -2,9 +2,9 @@ import { expect, test } from '@playwright/test';
 import { MISSIONS } from '../src/game';
 import { getBuildChecks, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
-import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
+import { AREA_CUTS, areaTaskDone, pieceArea } from '../src/area-shapes';
 import { getExtraPractice, hasGenerator } from '../src/practice-bank';
-import { PART_FINDER_LESSONS } from '../src/part-finder';
+import { isPartFinderAnswer, PART_FINDER_LESSONS, partFinderRoundsFor, type PartFinderRound } from '../src/part-finder';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
 
@@ -23,6 +23,218 @@ async function openAsGuest(page: import('@playwright/test').Page) {
   await page.goto('/');
   await page.getByTestId('button-play-guest').click();
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+}
+
+async function localStorageSnapshot(page: import('@playwright/test').Page) {
+  return page.evaluate(() => {
+    const entries: Array<[string, string | null]> = [];
+    for (let index = 0; index < localStorage.length; index++) {
+      const key = localStorage.key(index);
+      if (key !== null) entries.push([key, localStorage.getItem(key)]);
+    }
+    entries.sort(([a], [b]) => a.localeCompare(b));
+    return JSON.stringify(Object.fromEntries(entries));
+  });
+}
+
+async function completeQuestionSequence(
+  page: import('@playwright/test').Page,
+  questions: Mission['questions'],
+) {
+  await page.evaluate(async (items) => {
+    const settleReactUpdate = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+    const button = (testId: string) => {
+      const element = document.querySelector(`[data-testid="${CSS.escape(testId)}"]`);
+      if (!(element instanceof HTMLButtonElement) || element.disabled) {
+        throw new Error(`Expected enabled button ${testId}`);
+      }
+      return element;
+    };
+    for (const [index, question] of items.entries()) {
+      const progress = document.querySelector<HTMLElement>('[data-testid="status-lesson-progress"]');
+      if (progress?.getAttribute('aria-label') !== `Question ${index + 1} of ${items.length}`) {
+        throw new Error(`Lesson question ${index + 1} is not the active question`);
+      }
+      if (progress.getAttribute('aria-valuemax') !== String(items.length)) {
+        throw new Error(`Lesson question count did not match ${items.length}`);
+      }
+      if (index === 0 && !document.querySelector('[data-testid="question-model-area"]')) {
+        throw new Error('The lesson question model is missing');
+      }
+
+      button(`button-answer-${question.id}-${question.correctChoice}`).click();
+      await settleReactUpdate();
+      button('button-check-answer').click();
+      await settleReactUpdate();
+
+      const feedback = document.querySelector<HTMLElement>('[data-testid="status-feedback"]');
+      if (feedback?.getAttribute('data-result') !== 'correct') {
+        throw new Error(`Question ${question.id} did not accept its correct answer`);
+      }
+      if (progress.getAttribute('aria-valuenow') !== String(index + 1)) {
+        throw new Error(`Question ${question.id} did not advance lesson progress`);
+      }
+
+      button(index === items.length - 1 ? 'button-finish-mission' : 'button-next-question').click();
+      await settleReactUpdate();
+      if (index === items.length - 1) {
+        if (!document.querySelector('[data-testid="learning-lab"]')) {
+          throw new Error('The learning lab did not open after the final question');
+        }
+      } else {
+        const nextProgress = document.querySelector<HTMLElement>('[data-testid="status-lesson-progress"]');
+        if (nextProgress?.getAttribute('aria-label') !== `Question ${index + 2} of ${items.length}`) {
+          throw new Error(`Question ${index + 2} did not open`);
+        }
+      }
+    }
+  }, questions.map(({ id, correctChoice }) => ({ id, correctChoice })));
+}
+
+async function openDeveloperLesson(page: import('@playwright/test').Page, mission: Mission) {
+  await page.evaluate(async ({ id, title, isPartFinder }) => {
+    const settleReactUpdate = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+    const developerTest = document.querySelector<HTMLDetailsElement>('[data-testid="developer-module-test"]');
+    const selector = document.querySelector<HTMLSelectElement>('[data-testid="select-developer-lesson"]');
+    if (!developerTest || !selector) throw new Error('The developer lesson selector is missing');
+    developerTest.open = true;
+    selector.value = id;
+    selector.dispatchEvent(new Event('change', { bubbles: true }));
+    await settleReactUpdate();
+    if (selector.value !== id) throw new Error(`The developer selector did not choose ${id}`);
+
+    const open = document.querySelector<HTMLButtonElement>('[data-testid="button-open-developer-lesson"]');
+    if (!open || open.disabled) throw new Error('The developer lesson could not be opened');
+    open.click();
+    await settleReactUpdate();
+    if (!document.querySelector('[data-testid="developer-test-banner"]')) {
+      throw new Error('The isolated developer test did not start');
+    }
+
+    const titleSelector = isPartFinder
+      ? '.fq-pf-lesson-example .fq-example-heading'
+      : '#lesson-title';
+    const lessonTitle = document.querySelector<HTMLElement>(titleSelector);
+    if (lessonTitle?.textContent?.trim() !== title) {
+      throw new Error(`Expected to open ${title}, but the lesson title did not match`);
+    }
+    const exampleSelector = isPartFinder ? '[data-testid="part-finder-lesson-example"]' : '[data-testid="lesson-example"]';
+    if (!document.querySelector(exampleSelector)) throw new Error(`The example for ${title} is missing`);
+    if (!isPartFinder && !document.querySelector('.fq-example .fq-model-area')) {
+      throw new Error(`The worked model for ${title} is missing`);
+    }
+  }, { id: mission.id, title: mission.title, isPartFinder: PART_FINDER_LESSONS.has(mission.id) });
+}
+
+async function finishDeveloperLesson(page: import('@playwright/test').Page, savedStorage: string) {
+  await page.evaluate(async (expectedStorage) => {
+    const settleReactUpdate = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+    const snapshot = () => {
+      const entries: Array<[string, string | null]> = [];
+      for (let index = 0; index < localStorage.length; index++) {
+        const key = localStorage.key(index);
+        if (key !== null) entries.push([key, localStorage.getItem(key)]);
+      }
+      entries.sort(([a], [b]) => a.localeCompare(b));
+      return JSON.stringify(Object.fromEntries(entries));
+    };
+    const lab = document.querySelector('[data-testid="learning-lab"]');
+    if (!lab) throw new Error('Finishing the questions did not open the learning lab');
+    const requirements = document.querySelector('[data-testid="list-requirements"]');
+    const practice = requirements && Array.from(requirements.querySelectorAll<HTMLElement>('*'))
+      .find((element) => element.textContent?.trim() === 'Practice');
+    if (!practice?.classList.contains('done')) throw new Error('The lesson practice requirement was not saved');
+    const finish = document.querySelector<HTMLButtonElement>('[data-testid="button-lab-finish"]');
+    if (!finish?.disabled) throw new Error('The lesson unlocked before its other required work was complete');
+
+    const breakOverlay = document.querySelector<HTMLElement>('[data-testid="brain-break-overlay"]');
+    const visible = !!breakOverlay
+      && breakOverlay.getClientRects().length > 0
+      && getComputedStyle(breakOverlay).visibility !== 'hidden'
+      && getComputedStyle(breakOverlay).display !== 'none';
+    if (visible) {
+      const skip = document.querySelector<HTMLButtonElement>('[data-testid="button-break-skip"]');
+      if (!skip || skip.disabled) throw new Error('The lesson break could not be dismissed');
+      skip.click();
+      await settleReactUpdate();
+    }
+    if (snapshot() !== expectedStorage) throw new Error('The developer test wrote learner progress to browser storage');
+
+    const exit = document.querySelector<HTMLButtonElement>('[data-testid="button-exit-developer-test"]');
+    if (!exit || exit.disabled) throw new Error('The developer test could not be exited');
+    exit.click();
+    await settleReactUpdate();
+    const mapVisible = Array.from(document.querySelectorAll<HTMLElement>('h1,h2,h3'))
+      .some((heading) => /your learning map/i.test(heading.textContent ?? ''));
+    if (!mapVisible) throw new Error('Exiting the developer test did not return to the learning map');
+    if (snapshot() !== expectedStorage) throw new Error('Exiting the developer test changed browser storage');
+  }, savedStorage);
+}
+
+function partFinderSolution(round: PartFinderRound): { assignment?: number[]; selected: number[]; tileCount?: number } {
+  const pieces = AREA_CUTS[round.cut];
+  if (round.mode === 'sort') {
+    const shareCount = round.shares ?? 0;
+    const target = 1 / shareCount;
+    const assignment = Array<number>(pieces.length).fill(-1);
+    const areas = Array.from(pieces, pieceArea);
+    const totals = Array<number>(shareCount).fill(0);
+    const assign = (index: number): boolean => {
+      if (index === pieces.length) return totals.every((area) => Math.abs(area - target) < 1e-9);
+      for (let share = 0; share < shareCount; share++) {
+        if (totals[share] + areas[index] > target + 1e-9) continue;
+        assignment[index] = share;
+        totals[share] += areas[index];
+        if (assign(index + 1)) return true;
+        totals[share] -= areas[index];
+        assignment[index] = -1;
+      }
+      return false;
+    };
+    if (shareCount > 0 && assign(0)) return { assignment, selected: [] };
+    throw new Error(`No fair share assignment found for Part Finder round ${round.id}`);
+  }
+
+  for (let mask = 1; mask < 2 ** pieces.length; mask++) {
+    const selected = pieces.map((_, index) => index).filter((index) => mask & (1 << index));
+    if (round.mode === 'tile') {
+      if (selected.length !== 1) continue;
+      const tileCount = Math.round(1 / pieceArea(pieces[selected[0]]));
+      if (isPartFinderAnswer(round, selected, tileCount)) return { selected, tileCount };
+    } else if (isPartFinderAnswer(round, selected)) {
+      return { selected };
+    }
+  }
+  throw new Error(`No valid piece selection found for Part Finder round ${round.id}`);
+}
+
+async function completePartFinderLesson(page: import('@playwright/test').Page, missionId: string) {
+  for (const round of partFinderRoundsFor(missionId)) {
+    const solution = partFinderSolution(round);
+    if (solution.assignment) {
+      for (const [index, share] of solution.assignment.entries()) {
+        if (share > 0) await page.getByTestId(`button-part-finder-share-${share + 1}`).click();
+        const piece = page.getByTestId(`button-part-finder-piece-${index + 1}`);
+        await piece.focus();
+        await piece.press('Enter');
+      }
+    } else {
+      for (const index of solution.selected) {
+        const piece = page.getByTestId(`button-part-finder-piece-${index + 1}`);
+        await piece.focus();
+        await piece.press('Enter');
+      }
+      if (solution.tileCount !== undefined) {
+        await page.getByTestId('slot-part-finder-tile-count-n').click();
+        for (const digit of String(solution.tileCount)) {
+          await page.getByTestId(`tile-part-finder-tile-count-digit-${digit}`).click();
+        }
+      }
+    }
+    await page.getByTestId('button-part-finder-check').click();
+    await expect(page.getByTestId('part-finder-feedback')).toContainText('That fits!');
+    await page.getByTestId('button-part-finder-next').click();
+  }
 }
 
 async function retryLessonQuestion(
@@ -348,48 +560,33 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
 });
 
-test('every lesson renders its worked model and first interactive question', async ({ page }) => {
-  test.setTimeout(300_000);
-  const lessonIds = MISSIONS.map((mission) => mission.id);
-  await page.addInitScript((ids) => {
-    const completedAt = Date.now();
-    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({
-      completedMissionIds: ids,
-      starsByMission: {},
-      reviewQueue: [],
-      learning: Object.fromEntries(ids.map((id) => [id, { completedAt }])),
-      assessments: [],
-    }));
-  }, lessonIds);
-  await openAsGuest(page);
+test.describe('all-lesson required-question smoke', () => {
+  test.describe.configure({ timeout: 900_000 });
 
-  for (const mission of MISSIONS) {
-    await page.getByTestId(`button-node-${mission.id}`).click();
-    const startLesson = page.getByTestId(`button-start-mission-${mission.id}`);
-    await expect(startLesson).toBeEnabled();
-    await startLesson.click();
+  test('every lesson completes its required questions in an isolated developer test', async ({ page }) => {
+    await openAsGuest(page);
+    const savedStorage = await localStorageSnapshot(page);
 
-    if (PART_FINDER_LESSONS.has(mission.id)) {
-      await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
-      await expect(page.locator('.fq-pf-lesson-example .fq-example-heading')).toHaveText(mission.title);
-      await page.getByTestId('button-hands-on-skip').click();
-    } else {
-      await expect(page.locator('#lesson-title')).toHaveText(mission.title);
-      await expect(page.getByTestId('lesson-example')).toBeVisible();
-      await expect(page.locator('.fq-example .fq-model-area')).toBeVisible();
+    for (const mission of MISSIONS) {
+      await test.step(`${mission.id}: ${mission.title}`, async () => {
+        await openDeveloperLesson(page, mission);
+
+        if (PART_FINDER_LESSONS.has(mission.id)) {
+          await completePartFinderLesson(page, mission.id);
+        }
+
+        const lessonQuestions = [
+          ...mission.questions.slice(0, -1),
+          ...(hasGenerator(mission.id)
+            ? getExtraPractice(mission.id, mission.questions.map((question) => question.id)).slice(0, 4)
+            : []),
+          mission.questions.at(-1)!,
+        ];
+        await completeQuestionSequence(page, lessonQuestions);
+        await finishDeveloperLesson(page, savedStorage);
+      });
     }
-
-    const question = mission.questions[0];
-    await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
-    await expect(page.getByTestId('question-model-area')).toBeVisible();
-    await expect(page.locator('.fq-answer-choices button')).toHaveCount(question.choices.length);
-    await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
-    await page.getByTestId('button-check-answer').click();
-    await expect(page.getByTestId('status-feedback')).toBeVisible();
-
-    await page.getByTestId('button-back-map').click();
-    await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
-  }
+  });
 });
 
 test('learners can correct a wrong answer across every lesson model type', async ({ page }) => {
