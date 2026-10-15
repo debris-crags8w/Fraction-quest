@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test src/*.test.ts",
     "test:e2e": "playwright test --config=playwright.config.ts",
-    "test:e2e:all-lessons": "playwright test --config=playwright.config.ts --grep \"every lesson renders its worked model and first interactive question\""
+    "test:e2e:all-lessons": "playwright test --config=playwright.config.ts --grep \"every lesson completes its required questions in an isolated developer test\" --workers=1"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",
