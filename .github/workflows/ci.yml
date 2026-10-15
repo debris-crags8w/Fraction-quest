@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate workspace
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck all workspace packages
+        run: pnpm run typecheck
+
+      - name: Test API
+        run: pnpm --filter @workspace/api-server run test
+
+      - name: Build API
+        run: pnpm --filter @workspace/api-server run build
+
+      - name: Test web app
+        run: pnpm --filter @workspace/fraction-quest run test
+
+      - name: Build web app
+        run: pnpm --filter @workspace/fraction-quest run build
+        env:
+          PORT: 5173
+          BASE_PATH: /fraction-quest
