@@ -41,6 +41,12 @@ For new app work, start from the latest `main` on a short-lived branch and submi
 
 **How to apply:** fetch `github/main` before starting, create the work branch from that commit, push it and open a pull request, then return the workspace to `main` after merge.
 
+When the workspace branch contains unrelated task or review commits, base the review pull request on clean `github/main` and carry over only the current feature.
+
+**Why:** automated task merges can leave unrelated changes in the active local history; including them in a feature PR creates duplicate or cross-scope review work.
+
+**How to apply:** compare the feature diff against both the active branch and remote `main`, preserve unrelated local changes on their existing branch or stash, and verify the PR file list contains only the requested work.
+
 ## Preserve local branch backups
 
 When removing a merged GitHub review branch, retain its local-only history under a clearly named backup branch unless the user asks to discard it.

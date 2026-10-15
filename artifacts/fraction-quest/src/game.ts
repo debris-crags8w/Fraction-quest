@@ -50,6 +50,7 @@ export type Mission = {
   shortTitle: string;
   description: string;
   skill: string;
+  learningIntro?: { goal: string; process: string; why: string };
   unit: number;
   gradeBand?: 3 | 4 | 5;
   standards?: string[];
@@ -645,6 +646,7 @@ type ExtensionTopic = {
   id: string; unit: number; title: string; shortTitle: string; description: string; skill: string;
   mode: ExtensionMode; n: number; d: number; context: string;
   gradeBand?: 3 | 4 | 5; standards?: string[]; enrichment?: boolean;
+  learningIntro?: Mission['learningIntro'];
   /** A worked example of its own, when the lesson's first build ("make the whole") would not show the answer. */
   example?: Mission['example'];
 };
@@ -657,7 +659,26 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'equivalent-missing-both', unit: 9, title: 'Find the missing number', shortTitle: 'Equivalent fractions', description: 'Fill a blank on the top or bottom.', skill: 'Do the same thing to the numerator and denominator.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
   { id: 'whole-numbers-as-fractions', unit: 9, title: 'Wholes as fractions', shortTitle: 'Whole numbers as fractions', description: 'Build one or more wholes from unit fractions.', skill: 'The numerator counts pieces. A whole is made from as many pieces as the denominator.', mode: 'whole-fraction', n: 6, d: 3, context: 'fraction bars', gradeBand: 3, standards: ['3.NF.3c'] },
   { id: 'compare-unlike-fractions', unit: 9, title: 'Compare different pieces', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the denominators differ?', skill: 'Give both fractions the same denominator. Then compare.', mode: 'compare', n: 2, d: 3, context: 'race track' },
-  { id: 'order-unlike-fractions', unit: 9, title: 'Order different pieces', shortTitle: 'Order unlike parts', description: 'Put 3 fractions in order.', skill: 'Compare to 1/2, or use the same denominator.', mode: 'order', n: 1, d: 5, context: 'hiking trail' },
+  {
+    id: 'order-unlike-fractions', unit: 9, title: 'Order different pieces', shortTitle: 'Order unlike parts',
+    description: 'Put 3 fractions in order.', skill: 'Compare with 1/2, then use equal-size pieces if needed.',
+    learningIntro: {
+      goal: 'Put fractions in the order the question asks: smallest to biggest, or biggest to smallest.',
+      process: 'Compare each fraction with one half. If two are on the same side, rename them with the same denominator (bottom number), then compare their numerators (top numbers).',
+      why: 'Matching denominators mean the fractions have same-size pieces. The fraction with more pieces is bigger.',
+    },
+    example: {
+      prompt: 'Order 1/4, 3/8 and 5/8 from smallest to biggest.',
+      answer: '1/4 < 3/8 < 5/8',
+      explanation: 'First compare with 1/2: 1/4 and 3/8 are below it, and 5/8 is above it. To compare 1/4 and 3/8, rename 1/4 as 2/8. Eighths are the same-size pieces, and 2/8 is less than 3/8. So the order is 1/4, 3/8, 5/8.',
+      model: { kind: 'bars', bars: [
+        { numerator: 1, denominator: 4, named: true },
+        { numerator: 3, denominator: 8, named: true },
+        { numerator: 5, denominator: 8, named: true },
+      ] },
+    },
+    mode: 'order', n: 1, d: 5, context: 'hiking trail',
+  },
   { id: 'subtract-unlike-fractions', unit: 10, title: 'Take away different pieces', shortTitle: 'Subtract unlike parts', description: 'Rename, then take away.', skill: 'Make the pieces the same size. Then take away.', mode: 'subtract-unlike', n: 3, d: 4, context: 'water bottle' },
   { id: 'add-unlike-fractions', unit: 10, title: 'Add unlike fractions', shortTitle: 'Add unlike parts', description: 'Make different-sized pieces the same size before adding.', skill: 'Rename each fraction with a common denominator, then add.', mode: 'add-unlike', n: 7, d: 12, context: 'ribbons', gradeBand: 5, standards: ['5.NF.1'] },
   { id: 'add-mixed-numbers', unit: 10, title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Add wholes and pieces.', skill: 'Add the pieces. A full set of pieces makes a new whole.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route' },
@@ -741,6 +762,7 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
   const t = build.target;
   return {
     id: topic.id, unit: topic.unit, title: topic.title, shortTitle: topic.shortTitle, description: topic.description, skill: topic.skill,
+    learningIntro: topic.learningIntro,
     gradeBand: topic.gradeBand, standards: topic.standards, enrichment: topic.enrichment,
     example: topic.example ?? {
       prompt: build.prompt,

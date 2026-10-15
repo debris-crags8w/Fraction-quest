@@ -229,6 +229,23 @@ describe('lesson catalog', () => {
       assert.ok(mission.questions.length >= 4, `${mission.id} needs enough practice and a mastery check`);
       assert.ok(mission.example.prompt.trim() && mission.example.answer.trim() && mission.example.explanation.trim());
       assertModel(mission.example.model, `${mission.id} worked example`);
+      if (mission.id === 'order-unlike-fractions') {
+        assert.ok(mission.learningIntro);
+        assert.match(mission.learningIntro.goal, /smallest to biggest.*biggest to smallest/);
+        assert.match(mission.learningIntro.process, /one half.*same denominator.*numerators/);
+        assert.match(mission.learningIntro.why, /same-size pieces/);
+        assert.match(mission.example.prompt, /1\/4, 3\/8 and 5\/8/);
+        assert.notEqual(mission.example.prompt, mission.questions[0].prompt);
+        assert.doesNotMatch(mission.example.prompt, /1\/2|2\/3|3\/4/);
+        assert.match(mission.example.explanation, /rename 1\/4 as 2\/8.*same-size pieces/i);
+        assert.equal(mission.example.model.kind, 'bars');
+        if (mission.example.model.kind === 'bars') {
+          assert.deepEqual(
+            mission.example.model.bars.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
+            ['1/4', '3/8', '5/8'],
+          );
+        }
+      }
 
       const mastery = mission.questions.filter((question) => question.isMastery);
       assert.equal(mastery.length, 1, `${mission.id} must have exactly one mastery question`);

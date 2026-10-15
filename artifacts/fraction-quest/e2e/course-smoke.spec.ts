@@ -25,6 +25,33 @@ async function openAsGuest(page: import('@playwright/test').Page) {
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
 }
 
+test('the ordering lesson explains its strategy before showing a distinct worked model', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await openAsGuest(page);
+  await page.getByTestId('developer-module-test').locator('summary').click();
+  await page.getByTestId('select-developer-lesson').selectOption(mission.id);
+  await page.getByTestId('button-open-developer-lesson').click();
+  await expect(page.getByTestId('developer-test-banner')).toBeVisible();
+  await expect(page.locator('#lesson-title')).toHaveText(mission.title);
+
+  const intro = page.getByTestId('lesson-introduction');
+  await expect(intro).toBeVisible();
+  await expect(intro).toContainText('smallest to biggest');
+  await expect(intro).toContainText('one half');
+  await expect(intro).toContainText('same-size pieces');
+  await expect(intro.getByRole('button', { name: 'Listen to the goal' })).toBeVisible();
+  await expect(intro.getByRole('button', { name: 'Listen to the process' })).toBeVisible();
+  await expect(intro.getByRole('button', { name: 'Listen to why it works' })).toBeVisible();
+  const workedExample = page.getByTestId('lesson-example');
+  await expect(workedExample).toContainText('Order');
+  await expect(workedExample).toContainText('smallest to biggest');
+
+  const introBottom = await intro.evaluate((element) => element.getBoundingClientRect().bottom);
+  const modelTop = await page.locator('.fq-example .fq-model-area').evaluate((element) => element.getBoundingClientRect().top);
+  expect(introBottom).toBeLessThan(modelTop);
+});
+
 async function retryLessonQuestion(
   page: import('@playwright/test').Page,
   question: Mission['questions'][number],

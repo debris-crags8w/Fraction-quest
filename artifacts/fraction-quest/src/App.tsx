@@ -599,6 +599,32 @@ function GuidedExample({ mission, title, lessonLabel }: { mission: Mission; titl
           <p className="fq-skill-copy"><LearningText text={mission.skill} /></p>
         </div>
       </div>
+      {mission.learningIntro && (
+        <section className="fq-example-intro" aria-label="How to order fractions" data-testid="lesson-introduction">
+          <h3>How to order fractions</h3>
+          <LearningTextSection
+            id="lesson-intro-goal"
+            heading="Goal"
+            text={mission.learningIntro.goal}
+            label="Listen to the goal"
+            className="fq-example-section"
+          />
+          <LearningTextSection
+            id="lesson-intro-process"
+            heading="Process"
+            text={mission.learningIntro.process}
+            label="Listen to the process"
+            className="fq-example-section"
+          />
+          <LearningTextSection
+            id="lesson-intro-why"
+            heading="Why it works"
+            text={mission.learningIntro.why}
+            label="Listen to why it works"
+            className="fq-example-section"
+          />
+        </section>
+      )}
       <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
       <div className="fq-example-answer">
         <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>

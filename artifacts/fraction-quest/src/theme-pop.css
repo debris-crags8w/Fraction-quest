@@ -578,6 +578,17 @@
 .fq-example-section-header h3 { margin: 0; color: hsl(var(--muted-foreground)); font-size: 0.84rem; font-weight: 900; }
 .fq-skill-copy { margin: 0; line-height: 1.45; }
 .fq-example-section { margin-top: 10px; }
+.fq-example-intro {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 2px solid hsl(var(--primary) / 0.24);
+  border-radius: 18px;
+  background: hsl(var(--primary) / 0.045);
+}
+.fq-example-intro > h3 { margin: 0; color: var(--fq-grape); font-size: 1.05rem; }
+.fq-example-intro .fq-example-section { margin: 0; }
+.fq-example-intro .fq-example-section > p { margin: 0; line-height: 1.45; }
 .fq-example-section-header .fq-learning-listen,
 .fq-skill-header .fq-learning-listen,
 .fq-story-question-heading .fq-learning-listen { flex: none; margin: 0; }
