@@ -220,6 +220,37 @@ describe('lesson catalog', () => {
     );
   });
 
+  it('gives every lesson a brief, complete explanation of its main idea', () => {
+    for (const mission of MISSIONS) {
+      const idea = mission.skill.trim();
+      assert.ok(idea.length >= 30 && idea.length <= 240, `${mission.id} lesson idea should be brief and explain a concept`);
+      assert.match(idea, /[.!?]$/, `${mission.id} lesson idea should read as a complete thought`);
+    }
+
+    const sameNumerator = MISSIONS.find((mission) => mission.id === 'compare-same-numerator')!;
+    assert.match(sameNumerator.skill, /same top number.*count the same number.*larger bottom number.*more equal parts.*smaller/i);
+    assert.match(sameNumerator.example.explanation, /both fractions count 3 pieces.*more equal parts.*each eighth is smaller.*3\/8 less than 3\/5/i);
+
+    const unlikeOrdering = MISSIONS.find((mission) => mission.id === 'order-unlike-fractions')!;
+    assert.ok(unlikeOrdering.learningIntro, 'fraction ordering explains the goal, steps, and why the method works');
+    assert.match(unlikeOrdering.learningIntro.goal, /smallest to biggest.*biggest to smallest/);
+    assert.match(unlikeOrdering.learningIntro.process, /1\/2.*same denominator.*compare the top numbers/);
+    assert.match(unlikeOrdering.learningIntro.why, /same denominator.*equal-size pieces.*greater amount/);
+  });
+
+  it('keeps the same-numerator explanation clear in the build, worksheet, and generated practice', () => {
+    const checks = getBuildChecks('compare-same-numerator');
+    assert.match(checks[0].explanation, /Both count 3 pieces.*Eight equal parts make smaller pieces than five/i);
+    assert.match(checks[1].explanation, /Five equal parts make smaller pieces than three/i);
+
+    const worksheet = getWorksheet('compare-same-numerator');
+    assert.ok(worksheet.every((problem) => /Both fractions count .*larger denominator.*more equal parts.*smaller/i.test(problem.hint)));
+
+    const generated = generateQuestions('compare-same-numerator', ['unused'], 21, 12);
+    assert.ok(generated.every((question) => /Both fractions count .*larger denominator.*more equal parts.*smaller/i.test(question.hint)));
+    assert.match(REASON_IDEAS['compare-same-numerator'], /larger denominator.*smaller pieces/i);
+  });
+
   it('has unique question IDs, valid answer bounds, and required visual and support content', () => {
     const missionIds = new Set(MISSIONS.map((mission) => mission.id));
     const questionIds = new Set<string>();
@@ -1253,8 +1284,8 @@ describe('entered-answer worksheets and evidence gates', () => {
 });
   it('keeps the first fraction lesson focused on equal parts, then layers in unit fractions', () => {
     const fractionNameLesson = getMission('fraction-names');
-    assert.equal(fractionNameLesson.skill, 'The denominator is the number of equal parts in one whole. The numerator is the number of parts you count.');
-    assert.match(spokenLearningText(fractionNameLesson.skill), /The denominator is .* The numerator is/);
+    assert.match(fractionNameLesson.skill, /The denominator, or bottom number, tells how many equal parts make one whole\. The numerator, or top number, tells how many parts we count\./);
+    assert.match(spokenLearningText(fractionNameLesson.skill), /The denominator.*The numerator/);
     assert.match(fractionNameLesson.example.explanation, /The denominator is 5.* The numerator is 3/);
 
     const equalParts = getWorksheet('equal-parts');
