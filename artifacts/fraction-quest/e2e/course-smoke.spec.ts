@@ -72,6 +72,85 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   expect(introBottom).toBeLessThan(modelTop);
 });
 
+test('the ordering number line keeps fraction labels clear on narrow screens and with enlarged text', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await page.setViewportSize({ width: 320, height: 900 });
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+
+  const figure = page.getByTestId('fraction-order-numberline');
+  await expect(figure).toBeVisible();
+
+  for (const width of [320, 360]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const enlargedText of [false, true]) {
+      await page.evaluate((enlarge) => {
+        document.getElementById('large-text-test-style')?.remove();
+        if (enlarge) {
+          const style = document.createElement('style');
+          style.id = 'large-text-test-style';
+          style.textContent = 'html { font-size: 200% !important; }';
+          document.head.append(style);
+        }
+      }, enlargedText);
+
+      const layout = await figure.evaluate((element) => {
+        const figureBounds = element.getBoundingClientRect();
+        const labels = Array.from(element.querySelectorAll<HTMLElement>(
+          '.fq-order-line-point > span, .fq-order-line-benchmark > span',
+        )).map((label) => {
+          const bounds = label.getBoundingClientRect();
+          return {
+            text: label.textContent?.trim() ?? '',
+            left: bounds.left,
+            right: bounds.right,
+            top: bounds.top,
+            bottom: bounds.bottom,
+          };
+        });
+        const guide = element.querySelector<HTMLElement>('.fq-order-line-benchmark');
+        const guideStyle = guide ? getComputedStyle(guide, '::before') : null;
+        return {
+          figure: {
+            left: figureBounds.left,
+            right: figureBounds.right,
+            top: figureBounds.top,
+            bottom: figureBounds.bottom,
+          },
+          labels,
+          guide: {
+            left: guide ? Number.parseFloat(guide.style.left) : Number.NaN,
+            borderStyle: guideStyle?.borderLeftStyle ?? '',
+            height: Number.parseFloat(guideStyle?.height ?? '0'),
+          },
+        };
+      });
+
+      const context = `${width}px viewport, ${enlargedText ? 'enlarged' : 'normal'} text`;
+      expect(layout.labels, `${context}: all four fraction and halfway labels should render`).toHaveLength(4);
+      for (const label of layout.labels) {
+        expect(label.left, `${context}: ${label.text} should not clip past the left edge`).toBeGreaterThanOrEqual(layout.figure.left);
+        expect(label.right, `${context}: ${label.text} should not clip past the right edge`).toBeLessThanOrEqual(layout.figure.right);
+        expect(label.top, `${context}: ${label.text} should not clip above the number line`).toBeGreaterThanOrEqual(layout.figure.top);
+        expect(label.bottom, `${context}: ${label.text} should not clip below the number line`).toBeLessThanOrEqual(layout.figure.bottom);
+      }
+      for (let first = 0; first < layout.labels.length; first += 1) {
+        for (let second = first + 1; second < layout.labels.length; second += 1) {
+          const a = layout.labels[first];
+          const b = layout.labels[second];
+          const overlaps = a.left < b.right - 1 && a.right > b.left + 1
+            && a.top < b.bottom - 1 && a.bottom > b.top + 1;
+          expect(overlaps, `${context}: ${a.text} and ${b.text} must not overlap`).toBe(false);
+        }
+      }
+      expect(layout.guide.left, `${context}: halfway guide should stay at the midpoint`).toBeCloseTo(50);
+      expect(layout.guide.borderStyle, `${context}: halfway guide should remain visibly dashed`).toBe('dashed');
+      expect(layout.guide.height, `${context}: halfway guide should reach the line from its label`).toBeGreaterThan(0);
+    }
+  }
+});
+
 test('learners sort fractions in both directions, correct a try, and do not save progress before questions', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
