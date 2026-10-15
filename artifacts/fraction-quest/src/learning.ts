@@ -65,7 +65,12 @@ export function resetUnitLearningProgress(progress: Progress, missionIds: Readon
   };
 }
 
-export type TargetedPracticePlan = { signal: string; problems: WorksheetProblem[] };
+export type TargetedPracticePlan = {
+  signal: string;
+  difficultyBand: 'scaffolded' | 'grade-level' | 'transfer';
+  reason: string;
+  problems: WorksheetProblem[];
+};
 const stableHash = (value: string) => {
   let hash = 2166136261;
   for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
@@ -73,11 +78,20 @@ const stableHash = (value: string) => {
 };
 /** Repeated errors add three fresh, lesson-aligned problems to the existing worksheet record. */
 export function targetedPracticePlans(id: string, record: LearningRecord): TargetedPracticePlan[] {
+  const checkedRows = Object.values(record.worksheet ?? {}).filter((entry) => entry.attempts > 0);
+  const checkedCorrect = checkedRows.filter((entry) => entry.checkedValue === entry.draft).length;
+  const accuracy = checkedRows.length ? checkedCorrect / checkedRows.length : null;
   return Object.entries(record.misconceptions)
     .filter(([, count]) => count >= 2)
     .sort(([a, aCount], [b, bCount]) => bCount - aCount || a.localeCompare(b))
-    .map(([signal]) => {
+    .map(([signal, count]) => {
       const hash = stableHash(`${id}:${signal}`);
+      const difficultyBand: TargetedPracticePlan['difficultyBand'] = count >= 3 || (accuracy !== null && accuracy < 0.5)
+        ? 'scaffolded'
+        : 'grade-level';
+      const reason = difficultyBand === 'scaffolded'
+        ? `scaffolded due to ${count} repeated misses`
+        : 'grade-level targeted practice';
       const sheet = getWorksheet(id, 1 + (hash % 997));
       const terms = signal.toLowerCase().split(/\W+/).filter((word) => word.length > 3);
       const related = sheet
@@ -91,6 +105,8 @@ export function targetedPracticePlans(id: string, record: LearningRecord): Targe
       const key = hash.toString(36);
       return {
         signal,
+        difficultyBand,
+        reason,
         problems: picked.map((problem, index) => ({ ...problem, id: `rt-${key}-${index + 1}` })),
       };
     });

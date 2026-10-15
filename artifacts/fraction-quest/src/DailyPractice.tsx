@@ -259,9 +259,10 @@ export default function DailyPractice({
           <TaskBar onBack={onBack} backLabel="Map" testId="button-daily-back" title={<><Sparkles size={16} aria-hidden="true" /> Daily practice</>} step={session.index + 1} total={session.questions.length} done={session.index + (session.attempts[question!.id]?.answerCorrect ? 1 : 0)} />
           <section className="fq-daily-card" aria-labelledby="daily-question-title">
             <div className="fq-daily-topic">A little review · {question!.topicTitle}</div>
+            {question!.adaptationReason && <p className="fq-parent-note" data-testid="daily-adaptation-reason">{question!.adaptationReason}.</p>}
             {card}
           </section>
-          <p className="fq-daily-note">This short practice is separate from lesson mastery. Your lesson checklist and skill reviews do not change here.</p>
+          <p className="fq-daily-note">This short practice adapts as answers come in. Lesson checklist and unlock order still stay separate.</p>
         </main>
       </div>
     );

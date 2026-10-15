@@ -32,6 +32,7 @@ export type ParentReport = {
   placement: { unit: number; date: string } | null;
   assessmentChecksCompleted: number;
   standardMastery: StandardMastery[];
+  adaptationReasons: { day: string; lesson: string; reason: string }[];
 };
 
 const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) * 100) : null);
@@ -118,6 +119,14 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
     const levelsPassed = Math.max(0, Math.min(CODE_LEVEL_COUNT, Math.floor(fun.codeLevels?.[mission.id] ?? 0)));
     return levelsPassed > 0 ? [{ id: mission.id, title: mission.title, levelsPassed }] : [];
   });
+  const adaptationReasons = [...(progress.adaptationLog ?? [])]
+    .sort((a, b) => b.at - a.at)
+    .slice(0, 6)
+    .map((event) => ({
+      day: new Date(event.at).toLocaleDateString(),
+      lesson: MISSIONS.find((mission) => mission.id === event.missionId)?.shortTitle ?? event.missionId,
+      reason: event.reason,
+    }));
 
   return {
     lessonsDone: rows.filter((row) => row.status === 'done').length, lessonsTotal: rows.length,
@@ -130,5 +139,6 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
     placement: progress.placement ? { unit: progress.placement.unit, date: new Date(progress.placement.at).toLocaleDateString() } : null,
     assessmentChecksCompleted: (progress.assessments ?? []).filter(attempt => !attempt.assessmentId.endsWith('-pre')).length,
     standardMastery: summarizeStandardMastery(progress.assessments),
+    adaptationReasons,
   };
 }

@@ -3,7 +3,7 @@ import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './l
 import type { AreaCut } from './area-shapes';
 import { amountsIn, autoPicture } from './auto-picture';
 import { asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
-import { FRACTION_STANDARDS, standardsForMission } from './standard-catalog';
+import { FRACTION_STANDARDS, standardsForMission, type StandardId } from './standard-catalog';
 import { scopedStorageKey } from './storage-scope';
 
 /** `named`: the question states this fraction, so the bar shows its label (other bars are labelled once answered). */
@@ -65,10 +65,30 @@ export type Progress = {
   learning?: Record<string, LearningRecord>;
   challengeBest?: Record<string, number>;
   dailyPractice?: DailyPracticeSession;
+  adaptiveStandards?: Record<string, AdaptiveStandardState>;
+  adaptationLog?: AdaptationEvent[];
   /** Placement quiz result: lessons in units before `unit` are open (not marked done). */
   placement?: { unit: number; at: number };
   /** Completed checks are saved with the rest of progress and never change lesson unlocks. */
   assessments?: AssessmentAttempt[];
+};
+
+export type AdaptiveStatus = 'not-yet' | 'developing' | 'mastered';
+export type DifficultyBand = 'scaffolded' | 'grade-level' | 'transfer';
+export type AdaptiveStandardState = {
+  status: AdaptiveStatus;
+  recent: boolean[];
+  accuracy: number;
+  streakCorrect: number;
+  streakMisses: number;
+  lastUpdatedAt: number;
+};
+export type AdaptationEvent = {
+  at: number;
+  missionId: string;
+  standard: StandardId;
+  band: DifficultyBand;
+  reason: string;
 };
 
 export type AssessmentResponse = {
@@ -90,6 +110,10 @@ export type DailyPracticeQuestion = {
   id: string;
   missionId: string;
   topicTitle: string;
+  standards?: StandardId[];
+  difficultyBand?: DifficultyBand;
+  adaptationReason?: string;
+  reteachLoop?: boolean;
   modelKind: 'bar' | 'number-line';
   numerator: number;
   denominator: number;
@@ -1114,6 +1138,52 @@ export function loadProgress(): Progress {
         };
       }
     }
+    const adaptiveStandards: Record<string, AdaptiveStandardState> = {};
+    if (value.adaptiveStandards && typeof value.adaptiveStandards === 'object') {
+      for (const [standard, rawState] of Object.entries(value.adaptiveStandards)) {
+        if (!FRACTION_STANDARDS.some((item) => item.id === standard) || !rawState || typeof rawState !== 'object') continue;
+        const state = rawState as Partial<AdaptiveStandardState>;
+        const recent = Array.isArray(state.recent)
+          ? state.recent.filter((entry): entry is boolean => typeof entry === 'boolean').slice(-6)
+          : [];
+        if (!recent.length) continue;
+        const accuracy = typeof state.accuracy === 'number' && Number.isFinite(state.accuracy)
+          ? Math.max(0, Math.min(1, state.accuracy))
+          : recent.filter(Boolean).length / recent.length;
+        const status = state.status === 'mastered' || state.status === 'developing' || state.status === 'not-yet'
+          ? state.status
+          : 'not-yet';
+        adaptiveStandards[standard] = {
+          status,
+          recent,
+          accuracy,
+          streakCorrect: safeCount(state.streakCorrect),
+          streakMisses: safeCount(state.streakMisses),
+          lastUpdatedAt: typeof state.lastUpdatedAt === 'number' && Number.isFinite(state.lastUpdatedAt) ? state.lastUpdatedAt : 0,
+        };
+      }
+    }
+    const adaptationLog: AdaptationEvent[] = [];
+    if (Array.isArray(value.adaptationLog)) {
+      for (const rawEvent of value.adaptationLog.slice(-120)) {
+        if (!rawEvent || typeof rawEvent !== 'object') continue;
+        const event = rawEvent as Partial<AdaptationEvent>;
+        if (
+          typeof event.at !== 'number' || !Number.isFinite(event.at)
+          || typeof event.missionId !== 'string' || !validIds.has(event.missionId)
+          || typeof event.standard !== 'string' || !FRACTION_STANDARDS.some((item) => item.id === event.standard)
+          || (event.band !== 'scaffolded' && event.band !== 'grade-level' && event.band !== 'transfer')
+          || typeof event.reason !== 'string' || event.reason.length < 3 || event.reason.length > 240
+        ) continue;
+        adaptationLog.push({
+          at: event.at,
+          missionId: event.missionId,
+          standard: event.standard as StandardId,
+          band: event.band,
+          reason: event.reason,
+        });
+      }
+    }
     const dailyPractice = readDailyPractice(value.dailyPractice, validIds);
     const knownStandards = new Set<string>(FRACTION_STANDARDS.map(item => item.id));
     const assessments: AssessmentAttempt[] = [];
@@ -1151,6 +1221,8 @@ export function loadProgress(): Progress {
       reviewQueue,
       ...(Object.keys(learning).length ? { learning } : {}),
       ...(Object.keys(challengeBest).length ? { challengeBest } : {}),
+      ...(Object.keys(adaptiveStandards).length ? { adaptiveStandards } : {}),
+      ...(adaptationLog.length ? { adaptationLog } : {}),
       ...(dailyPractice ? { dailyPractice } : {}),
       assessments,
       ...(value.placement && typeof value.placement === 'object' && Number.isInteger(value.placement.unit) && value.placement.unit >= 2 && value.placement.unit <= 9
@@ -1181,6 +1253,9 @@ function readDailyPractice(value: unknown, validMissionIds: Set<string>): DailyP
       typeof question.id !== 'string' || question.id.length > 120
       || typeof question.missionId !== 'string' || !validMissionIds.has(question.missionId)
       || typeof question.topicTitle !== 'string' || question.topicTitle.length > 160
+      || (question.difficultyBand !== undefined && question.difficultyBand !== 'scaffolded' && question.difficultyBand !== 'grade-level' && question.difficultyBand !== 'transfer')
+      || (question.adaptationReason !== undefined && (typeof question.adaptationReason !== 'string' || question.adaptationReason.length > 220))
+      || (question.reteachLoop !== undefined && question.reteachLoop !== true)
       || (question.modelKind !== 'bar' && question.modelKind !== 'number-line')
       || !Number.isInteger(question.numerator) || !Number.isInteger(question.denominator)
       || question.numerator! < 1 || question.denominator! < question.numerator!
@@ -1191,6 +1266,12 @@ function readDailyPractice(value: unknown, validMissionIds: Set<string>): DailyP
       id: question.id,
       missionId: question.missionId,
       topicTitle: question.topicTitle,
+      ...(Array.isArray(question.standards) && question.standards.length
+        ? { standards: [...new Set(question.standards.filter((standard): standard is StandardId => FRACTION_STANDARDS.some((item) => item.id === standard))).values()] }
+        : {}),
+      ...(question.difficultyBand ? { difficultyBand: question.difficultyBand } : {}),
+      ...(typeof question.adaptationReason === 'string' ? { adaptationReason: question.adaptationReason } : {}),
+      ...(question.reteachLoop === true ? { reteachLoop: true } : {}),
       modelKind: question.modelKind,
       numerator: question.numerator!,
       denominator: question.denominator!,

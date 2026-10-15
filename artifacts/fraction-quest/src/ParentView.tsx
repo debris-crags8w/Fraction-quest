@@ -218,6 +218,18 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
                 </ul>
               ) : <p>Nothing stands out yet.</p>}
             </section>
+            <section className="fq-parent-section" data-testid="parent-adaptation-reasons">
+              <h2>Adaptive changes</h2>
+              {report.adaptationReasons.length ? (
+                <ul className="fq-parent-list">
+                  {report.adaptationReasons.map((item, index) => (
+                    <li key={`${item.day}:${item.lesson}:${index}`}>
+                      <b>{item.reason}</b><span>{item.lesson} · {item.day}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p>No adaptive shifts recorded yet.</p>}
+            </section>
             <section className="fq-parent-section" data-testid="parent-strengths">
               <h2>Going well</h2>
               {report.strengths.length ? <ul className="fq-parent-list">{report.strengths.map((title) => <li key={title}><b>{title}</b></li>)}</ul>
