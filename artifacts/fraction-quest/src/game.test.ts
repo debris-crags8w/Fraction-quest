@@ -2612,6 +2612,29 @@ describe('same numerator, different denominators', () => {
     const unlike = getWorksheet('compare-unlike-fractions');
     assert.ok(unlike.some((p) => { const m = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(p.prompt); return !!m && m[1] === m[2]; }));
   });
+  it('clearly teaches that a larger denominator makes smaller pieces when the numerator stays the same', () => {
+    const lesson = MISSIONS.find((m) => m.id === 'compare-same-numerator')!;
+    assert.match(lesson.skill, /same numerator.*larger denominator.*more equal parts.*piece is smaller/i);
+    assert.match(lesson.example.explanation, /both count 3 pieces.*8 equal parts.*smaller pieces.*3\/8 is smaller than 3\/5/i);
+    assert.ok(lesson.questions.every((question) => /larger denominator/i.test(question.hint) && /smaller/i.test(question.hint)), 'each authored hint explains the larger-denominator relationship');
+
+    const generated = generateQuestions('compare-same-numerator', ['x'], 3, 8);
+    assert.ok(generated.every((question) => /larger denominator/i.test(question.hint) && /smaller/i.test(question.hint)), 'generated same-numerator practice keeps the explanation');
+
+    const extensionRows = getWorksheet('compare-unlike-fractions').filter((row) => {
+      const match = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(row.prompt);
+      return !!match && match[1] === match[2];
+    });
+    assert.ok(extensionRows.length > 0, 'the extension worksheet includes a same-numerator comparison');
+    assert.ok(extensionRows.every((row) => /larger denominator/i.test(row.hint) && /smaller/i.test(row.hint)), 'extension worksheet hints make the larger-denominator rule explicit');
+
+    const generatedUnlike = Array.from({ length: 40 }, (_, seed) => generateQuestions('compare-unlike-fractions', ['x'], seed + 1, 12)).flat().filter((question) => {
+      const match = /(\d+)\/\d+ or (\d+)\/\d+/.exec(question.prompt);
+      return !!match && match[1] === match[2];
+    });
+    assert.ok(generatedUnlike.length > 0, 'generated unlike-fraction practice includes same-numerator comparisons');
+    assert.ok(generatedUnlike.every((question) => /larger denominator/i.test(question.hint) && /smaller/i.test(question.hint)), 'same-numerator extension practice repeats the rule');
+  });
 });
 
 describe('whole number × fraction is in the grade-4 path', () => {
