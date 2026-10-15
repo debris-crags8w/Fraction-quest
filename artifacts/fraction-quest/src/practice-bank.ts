@@ -130,7 +130,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'unit-size': (r) => {
     const [a, b] = r.pick([[2, 4], [2, 3], [3, 6], [4, 8], [3, 4], [5, 10], [6, 12], [4, 6], [2, 8], [3, 8], [5, 8], [6, 10]] as const); const bigger = r.chance();
     return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${either(r, f(1, a), f(1, b))}?`, right: bigger ? f(1, a) : f(1, b), wrong: [bigger ? f(1, b) : f(1, a), 'They are the same'],
-      hint: 'More pieces means smaller pieces.', retry: `${Name(a)} are bigger than ${name(b)}.`, ...compareBars([1, a], [1, b]) };
+      hint: 'A larger denominator splits the same whole into more equal pieces, so each piece is smaller.', retry: `${Name(a)} are bigger than ${name(b)}.`, ...compareBars([1, a], [1, b]) };
   },
   'sets-unit-fractions': (r) => {
     const d = r.int(2, 6); let per = r.int(2, 7); if (per === d) per += 1; const t = d * per;
@@ -184,7 +184,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'compare-same-numerator': (r) => {
     const [a, b] = r.pick([[3, 6], [4, 8], [3, 4], [4, 6], [5, 10], [6, 12], [3, 8], [4, 10], [5, 8], [3, 5], [6, 8], [4, 5]] as const); const n = r.int(1, Math.min(4, a - 1)); const bigger = r.chance();
     return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${either(r, f(n, a), f(n, b))}?`, right: bigger ? f(n, a) : f(n, b), wrong: [bigger ? f(n, b) : f(n, a), 'They are equal'],
-      hint: `Same numerator: ${n} part${n === 1 ? '' : 's'} each. Which parts are bigger?`, retry: `${Name(a)} are bigger pieces than ${name(b)}, so ${n} ${name(a)} is more than ${n} ${name(b)}.`, ...compareBars([n, a], [n, b]) };
+       hint: `Same numerator: ${n} piece${n === 1 ? '' : 's'} counted in each fraction. A larger denominator splits the whole into more equal parts, so each piece is smaller.`, retry: `A denominator of ${b} makes smaller pieces than ${a}. With the same ${n} pieces counted, ${f(n, a)} is bigger than ${f(n, b)}.`, ...compareBars([n, a], [n, b]) };
   },
   'order-fractions': (r) => {
     const d = r.pick([5, 6, 8, 10, 12]); const a = r.int(1, d - 3); const b = r.int(a + 1, d - 2); const c = r.int(b + 1, d - 1);
@@ -299,7 +299,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       const [d1, d2] = r.pick([[3, 5], [4, 6], [4, 10], [5, 8], [3, 8], [6, 10], [5, 12], [8, 12]] as const); const n = r.int(2, d1 - 1);
       const big: [number, number] = [n, d1]; const small: [number, number] = [n, d2]; const [x, y] = r.chance() ? [big, small] : [small, big];
       return later(`Which is bigger, ${f(x[0], x[1])} or ${f(y[0], y[1])}?`, f(n, d1), [f(n, d2), 'They are equal'],
-        `Same numerator: ${n} parts each. Fewer equal parts in the whole means bigger parts.`, `${Name(d1)} are bigger than ${name(d2)}, so ${f(n, d1)} is bigger.`, compareBars(x, y).model, compareBars(x, y).simpler);
+         `Same numerator: ${n} pieces counted in each fraction. A larger denominator (${d2}) splits the whole into more equal parts, so each piece is smaller.`, `A denominator of ${d2} makes smaller pieces than ${d1}. With the same ${n} pieces counted, ${f(n, d1)} is bigger than ${f(n, d2)}.`, compareBars(x, y).model, compareBars(x, y).simpler);
     }
     if (r.int(0, 5) === 0) {
       const [n, d] = r.pick(POOL.filter(([, den]) => den <= 6)); const k = r.int(2, 3);
