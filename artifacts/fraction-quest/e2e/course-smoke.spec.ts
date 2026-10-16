@@ -1346,6 +1346,18 @@ test('replaying the first lesson and skipping its hands-on rounds preserves save
   expect(progress.learning).toEqual(savedProgress.learning);
 });
 
+test('the first fraction introduction uses natural read-aloud language', async ({ page }) => {
+  await openAsGuest(page);
+  const firstLesson = MISSIONS.find((mission) => mission.id === 'equal-parts')!;
+  await openDeveloperLesson(page, firstLesson);
+
+  const introduction = page.getByTestId('first-fraction-introduction');
+  await expect(introduction.locator('p')).toHaveText(
+    'A fraction shows equal parts of one whole. First look at the whole. Then split it into equal pieces and share them fairly.',
+  );
+  await expect(introduction.getByTestId('button-listen-learning-text')).toBeVisible();
+});
+
 test.describe('all-lesson required-question smoke', () => {
   test.describe.configure({ timeout: 900_000 });
 
