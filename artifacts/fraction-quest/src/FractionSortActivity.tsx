@@ -119,7 +119,7 @@ export default function FractionSortActivity({
                   const label = `${fraction.numerator}/${fraction.denominator}`;
                   return (
                     <label className="fq-order-rename-field" key={label}>
-                      <span><FractionCard fraction={fraction} /> as <b>{round.renamingCheck!.denominator}ths</b></span>
+                      <span><FractionCard fraction={fraction} /></span>
                       <span className="fq-order-rename-equation">=</span>
                       <input
                         type="number"
@@ -134,7 +134,7 @@ export default function FractionSortActivity({
                           return next;
                         })}
                         disabled={solved}
-                        aria-label={`Numerator when ${label} is renamed as ${round.renamingCheck!.denominator}ths`}
+                        aria-label={`Numerator in the equivalent fraction for ${label} with denominator ${round.renamingCheck!.denominator}`}
                         data-testid={`input-sort-rename-${fraction.numerator}-${fraction.denominator}`}
                       />
                       <span aria-hidden="true">/{round.renamingCheck!.denominator}</span>
