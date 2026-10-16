@@ -1225,7 +1225,11 @@ function Game() {
       {view.type === 'hands-on' && (() => {
         const mission = getMission(view.missionId);
         const toQuestions = () => setView({ type: 'play', missionId: view.missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions: view.reviewQuestions });
+        const activityTitle = view.missionId === 'equal-parts' ? 'Make fair shares'
+          : view.missionId === 'unit-fractions' ? 'Build a fraction'
+            : 'Find the same amount';
         return <PartFinder key={view.missionId} rounds={partFinderRoundsFor(view.missionId)} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
+          activityTitle={activityTitle} showFirstIntroduction={view.missionId === 'equal-parts'}
           intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} />}
           onExit={returnToMap} onDone={toQuestions} onSkip={progress.completedMissionIds.includes(view.missionId) || hasLearningGate(progress, view.missionId) ? toQuestions : undefined} />;
       })()}

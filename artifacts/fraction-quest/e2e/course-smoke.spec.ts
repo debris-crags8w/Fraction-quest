@@ -342,10 +342,57 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
 
   await page.getByTestId('button-continue-course').click();
+  await expect(page.locator('.fq-taskbar-title')).toHaveText('Make fair shares');
+  const firstIntro = page.getByTestId('first-fraction-introduction');
+  await expect(firstIntro).toBeVisible();
+  await expect(firstIntro.getByRole('heading', { name: 'Meet fractions with Numi' })).toBeVisible();
+  await expect(firstIntro.getByText(/A fraction names equal-size parts of one whole/)).toBeVisible();
+  await expect(page.getByTestId('first-fraction-intro-model').getByRole('img', { name: 'One whole divided into four equal-size parts' })).toBeVisible();
+  await expect(firstIntro.getByTestId('button-listen-learning-text')).toBeVisible();
   await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
   await expect(page.locator('.fq-pf-lesson-example .fq-example-heading')).toHaveText(MISSIONS[0].title);
   await expect(page.getByTestId('button-listen-learning-text').first()).toBeVisible();
+  await expect(page.locator('.fq-pf-intro-part').first()).toHaveCSS('animation-name', 'fq-pf-piece-reveal');
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
+});
+
+test('the first fraction introduction stays complete when reduced motion is enabled', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await openAsGuest(page);
+  await page.getByTestId('button-continue-course').click();
+
+  await expect(page.getByTestId('first-fraction-introduction')).toBeVisible();
+  await expect(page.getByTestId('first-fraction-intro-model').getByRole('img', { name: 'One whole divided into four equal-size parts' })).toBeVisible();
+  await expect(page.locator('.fq-pf-intro-part')).toHaveCount(4);
+  await expect(page.locator('.fq-pf-intro-part').first()).toHaveCSS('animation-name', 'none');
+  await expect(page.getByTestId('button-part-finder-exit')).toBeVisible();
+});
+
+test('replaying the first lesson and skipping its hands-on rounds preserves saved progress', async ({ page }) => {
+  const savedProgress = {
+    completedMissionIds: ['equal-parts'],
+    starsByMission: { 'equal-parts': 2 },
+    reviewQueue: [],
+    learning: { 'equal-parts': { completedAt: 1 } },
+    assessments: [],
+  };
+  await page.addInitScript((progress) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+  }, savedProgress);
+  await openAsGuest(page);
+  await page.getByTestId('button-node-equal-parts').click();
+  await page.getByTestId('button-start-mission-equal-parts').click();
+
+  await expect(page.locator('.fq-taskbar-title')).toHaveText('Make fair shares');
+  await expect(page.getByTestId('first-fraction-introduction')).toBeVisible();
+  await page.getByTestId('button-hands-on-skip').click();
+  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
+  await page.getByTestId('button-back-map').click();
+
+  const progress = await page.evaluate(() => JSON.parse(localStorage.getItem('fraction-quest-progress-v1:guest') ?? '{}'));
+  expect(progress.completedMissionIds).toEqual(savedProgress.completedMissionIds);
+  expect(progress.starsByMission).toEqual(savedProgress.starsByMission);
+  expect(progress.learning).toEqual(savedProgress.learning);
 });
 
 test('every lesson renders its worked model and first interactive question', async ({ page }) => {
@@ -372,6 +419,15 @@ test('every lesson renders its worked model and first interactive question', asy
     if (PART_FINDER_LESSONS.has(mission.id)) {
       await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
       await expect(page.locator('.fq-pf-lesson-example .fq-example-heading')).toHaveText(mission.title);
+      const activityTitle = mission.id === 'equal-parts' ? 'Make fair shares'
+        : mission.id === 'unit-fractions' ? 'Build a fraction'
+          : 'Find the same amount';
+      await expect(page.locator('.fq-taskbar-title')).toHaveText(activityTitle);
+      if (mission.id === 'equal-parts') {
+        await expect(page.getByTestId('first-fraction-introduction')).toBeVisible();
+      } else {
+        await expect(page.getByTestId('first-fraction-introduction')).toHaveCount(0);
+      }
       await page.getByTestId('button-hands-on-skip').click();
     } else {
       await expect(page.locator('#lesson-title')).toHaveText(mission.title);
