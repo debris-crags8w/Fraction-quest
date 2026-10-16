@@ -7,6 +7,7 @@ import { TaskBar } from './TaskBar';
 import { AnswerTiles } from './AnswerTiles';
 import { Mascot } from './fun-ui';
 import { LearningListenButton } from './LearningText';
+import { playHaptic } from './lib/fun';
 
 type CheckState = 'idle' | 'right' | 'try-again';
 
@@ -148,6 +149,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
 
   const togglePiece = (index: number) => {
     if (correct) return;
+    playHaptic('selection');
     setChecked('idle');
     if (sorting) {
       setAssignment((current) => current.map((share, i) => (i !== index ? share : share === activeShare ? -1 : activeShare)));
@@ -160,10 +162,17 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
     });
   };
 
-  const checkAnswer = () => setChecked(isPartFinderAnswer(round, answerPieces, tileAnswer) ? 'right' : 'try-again');
+  const checkAnswer = () => {
+    if (correct) return;
+    const isRight = isPartFinderAnswer(round, answerPieces, tileAnswer);
+    playHaptic(isRight ? 'correct' : 'retry');
+    setChecked(isRight ? 'right' : 'try-again');
+  };
 
   const clearSelection = () => {
     if (correct) return;
+    if (!selected.length && !assignment.some((share) => share >= 0) && !tileCount) return;
+    playHaptic('selection');
     setSelected([]);
     setAssignment(emptyShares());
     setChecked('idle');
@@ -230,7 +239,11 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
                   return (
                     <button key={name} type="button" role="radio" aria-checked={activeShare === share} disabled={correct}
                       className={`fq-pf-share share-${share}${activeShare === share ? ' active' : ''}`}
-                      onClick={() => setActiveShare(share)} data-testid={`button-part-finder-share-${share + 1}`}>
+                      onClick={() => {
+                        if (activeShare === share) return;
+                        playHaptic('selection');
+                        setActiveShare(share);
+                      }} data-testid={`button-part-finder-share-${share + 1}`}>
                       <i aria-hidden="true" /><span>{name}<small>{count} {count === 1 ? 'piece' : 'pieces'}</small></span>
                     </button>
                   );
