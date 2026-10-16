@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, MISSIONS } from '../src/game';
-import { getBuildChecks, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
+import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, getDueSkillReviewQuestions, MISSIONS } from '../src/game';
+import { getBuildChecks, getReviewCheck, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
 import { AREA_CUTS, areaTaskDone, pieceArea } from '../src/area-shapes';
 import { getExtraPractice, hasGenerator } from '../src/practice-bank';
@@ -62,10 +62,10 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   await expect(numberLine).toContainText('one-half benchmark is halfway');
   await expect(numberLine).toContainText('1/4 = 2/8');
   await expect(numberLine).toContainText('1/4 and 2/8 are equivalent fractions');
-  await expect(numberLine).toContainText('same 25 percent spot');
+  await expect(numberLine).toContainText('same amount and number-line spot');
   await expect(numberLine).toContainText('1/2 = 2/4');
   await expect(numberLine).toContainText('1/2 and 2/4 are equivalent fractions');
-  await expect(numberLine).toContainText('same 50 percent spot');
+  await expect(numberLine).toContainText('same amount and number-line spot');
   await expect(numberLine.getByRole('button', { name: 'Listen to the fraction number line' })).toBeVisible();
   const benchmark = page.getByTestId('fraction-order-benchmark');
   await expect(benchmark).toHaveAttribute('style', /left: 50%/);
@@ -76,7 +76,7 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   await expect(page.getByTestId('fraction-order-point-1-4')).toContainText('1/4 = 2/8');
   await expect(page.getByTestId('fraction-order-point-3-8')).toHaveAttribute('data-position', '37.5');
   await expect(page.getByTestId('fraction-order-point-5-8')).toHaveAttribute('data-position', '62.5');
-  await expect(numberLine.locator('.fq-order-line')).toHaveAttribute('aria-label', /1\/4 is at 1 of 4 equal spaces.*1\/4 and 2\/8 are equivalent fractions.*same 25 percent spot.*3\/8 is at 3 of 8 equal spaces.*5\/8 is at 5 of 8 equal spaces.*one-half benchmark is halfway.*1\/2 and 2\/4 are equivalent fractions.*same 50 percent spot/);
+  await expect(numberLine.locator('.fq-order-line')).toHaveAttribute('aria-label', /1\/4 is at 1 of 4 equal spaces.*1\/4 and 2\/8 are equivalent fractions.*same amount and number-line spot.*3\/8 is at 3 of 8 equal spaces.*5\/8 is at 5 of 8 equal spaces.*one-half benchmark is halfway.*1\/2 and 2\/4 are equivalent fractions.*same amount and number-line spot/);
 
   const introBottom = await intro.evaluate((element) => element.getBoundingClientRect().bottom);
   const modelTop = await page.locator('.fq-example .fq-model-area').evaluate((element) => element.getBoundingClientRect().top);
@@ -958,6 +958,79 @@ for (const viewport of [
     }
   });
 }
+
+test('a passed Build check in later review clearly offers Finish review', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mission = MISSIONS.find(({ id }) => id === 'equal-parts');
+  if (!mission) throw new Error('The first lesson is missing');
+  const progress = {
+    completedMissionIds: [mission.id],
+    starsByMission: { [mission.id]: 1 },
+    reviewQueue: [{
+      missionId: mission.id,
+      missedQuestionId: mission.questions[0].id,
+      dueAt: 0,
+      reviewCount: 0,
+    }],
+    learning: {
+      [mission.id]: {
+        practiceDone: true,
+        completedAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
+        checks: {},
+        worksheet: {},
+        helpUses: 0,
+        misconceptions: {},
+      },
+    },
+    assessments: [],
+  };
+  const reviewQuestion = getDueSkillReviewQuestions(progress)[0];
+  if (!reviewQuestion) throw new Error('The saved skill review has no question');
+
+  await page.addInitScript((savedProgress) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(savedProgress));
+  }, progress);
+  await openAsGuest(page);
+  await openMenuItem(page, 'button-start-due-review');
+  await page.getByTestId(`button-answer-${reviewQuestion.id}-${reviewQuestion.correctChoice}`).click();
+  await page.getByTestId('button-check-answer').click();
+  await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+  await page.getByTestId('button-finish-mission').click();
+  await expect(page.getByTestId('learning-lab-review')).toBeVisible();
+
+  const check = getReviewCheck(mission.id, 0);
+  await enterModel(page, check.id, 'a', check.target);
+  await enterModel(page, check.id, 'b', {
+    ...check.target,
+    kind: check.target.kind === 'line' ? 'bar' : 'line',
+    wholes: Math.max(1, Math.ceil(check.target.n / check.target.d)),
+  });
+  await page.getByTestId(`radio-reason-${check.id}-${check.correctReason}`).check({ force: true });
+  await page.getByTestId(`button-check-${check.id}`).click();
+
+  const reviewCheck = page.getByTestId(`check-${check.id}`);
+  await expect(reviewCheck.getByTestId(`status-pass-${check.id}`)).toContainText('Correct!');
+  const explanation = reviewCheck.locator('.fq-ll-full-explanation');
+  await explanation.locator('summary').click();
+  await expect(explanation).toContainText('The shaded part is 1 of them.');
+  await expect(reviewCheck.locator('.fq-ll-check-passed')).toHaveText('Passed');
+  await expect(page.getByTestId(`button-check-${check.id}`)).toHaveCount(0);
+
+  const finishReview = page.getByTestId('button-review-finish');
+  await expect(finishReview).toBeVisible();
+  await expect(finishReview).toBeEnabled();
+  const bounds = await finishReview.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { width: rect.width, height: rect.height, left: rect.left, right: rect.right, viewportWidth: window.innerWidth };
+  });
+  expect(bounds.height).toBeGreaterThanOrEqual(44);
+  expect(bounds.left).toBeGreaterThanOrEqual(0);
+  expect(bounds.right).toBeLessThanOrEqual(bounds.viewportWidth);
+  expect(bounds.width).toBeGreaterThan(bounds.viewportWidth * 0.7);
+
+  await finishReview.click();
+  await expect(page.getByTestId('status-review-complete')).toBeVisible();
+});
 
 async function buildWorksheetModel(page: import('@playwright/test').Page, problem: WorksheetProblem) {
   const row = page.getByTestId(`row-worksheet-${problem.id}`);
