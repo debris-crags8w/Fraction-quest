@@ -25,6 +25,7 @@ import {
   resetProgress as resetSavedProgress,
   sameFractionValue,
   saveProgress,
+  setModelLayout,
   starsFromFirstTryAnswers,
   type Answer,
   type Mission,
@@ -40,13 +41,13 @@ import LearningLab, { RedoLab } from './LearningLab';
 import { LearningListenButton, LearningText, LearningTextSection, useReadAloud } from './LearningText';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
-import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, resetUnitLearningProgress, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
+import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, optionalWorksheetCount, requiredWorksheetDone, resetUnitLearningProgress, startRedo, updateLearning, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
+import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
-import { ModelTag, WholeBracket } from './models';
+import { ModelTag, SetSvg, WholeBracket } from './models';
 import { Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type PathNode } from './fun-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
@@ -303,6 +304,7 @@ function compareGuide(model: ModelSpec, reveal: boolean): number | undefined {
 /** `asked`: the picture belongs to a question, so number-line labels (1/5, 2/5…) and the readout stay hidden until it is answered. */
 /** `walk`: after a miss, a "count with me" walk along the picture (see FractionBar); a new value replays it. */
 function ModelView({ model, compact = false, reveal = false, asked = false, walk = null }: { model: ModelSpec; compact?: boolean; reveal?: boolean; asked?: boolean; walk?: number | null }) {
+  const setLayout = model.kind === 'set' ? setModelLayout(model) : null;
   return (
     <div className={`fq-visual-model ${compact ? 'compact' : ''}`} data-testid="visual-fraction-model">
       {!compact && (model.kind === 'bars' || model.kind === 'decimal') && <ModelTag kind="bar" />}
@@ -323,9 +325,11 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
       )}
       {model.kind === 'set' && (
         <div className="fq-set-wrap">
-          <div className="fq-counter-set" role="img" aria-label={`${model.selected} of ${model.total} counters highlighted`}>
-            {Array.from({ length: model.total }, (_, index) => <span className={`fq-counter ${index < model.selected ? 'selected' : ''}`} style={{ '--i': index } as CSSProperties} key={index} />)}
-          </div>
+          {setLayout
+            ? <SetSvg n={setLayout.selectedGroups} d={setLayout.groupCount} total={model.total} />
+            : <div className="fq-counter-set" role="img" aria-label={`${model.selected} of ${model.total} counters highlighted`}>
+              {Array.from({ length: model.total }, (_, index) => <span className={`fq-counter ${index < model.selected ? 'selected' : ''}`} style={{ '--i': index } as CSSProperties} key={index} />)}
+            </div>}
         </div>
       )}
       {model.kind === 'line' && (() => {
@@ -628,10 +632,11 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                               {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
                             </p>}
                             <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
-                              Worksheet {worksheetCount(learning, mission.id)}/12 · Builds on my own {summary.independentChecks}/2
+                              Worksheet question 1 required: {requiredWorksheetDone(learning, mission.id) ? 'done' : 'to do'} · Optional practice {optionalWorksheetCount(learning, mission.id)}/11
+                              <br />Builds on my own {summary.independentChecks}/2
                               <br />Remembered: {summary.retention}
                               <br />Code levels passed: {Math.min(CODE_LEVEL_COUNT, Math.floor(fun.codeLevels?.[mission.id] ?? 0))}/{CODE_LEVEL_COUNT}
-                              {!completed && unlocked && <><br />Finish the builds and the worksheet to open the next lesson.</>}
+                              {!completed && unlocked && <><br />Finish the builds and required worksheet question to open the next lesson.</>}
                               {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Your old progress is saved. A few new steps are needed.</>}
                             </p>
                             <button
@@ -913,12 +918,12 @@ function PlayView({
         <section className="fq-play-card" aria-labelledby="lesson-title">
           <p className="fq-play-kicker">
             {isQuickReview
-              ? `Quick skill review · ${question?.reviewTopicTitle ?? mission.shortTitle}`
+              ? `Quick skill review · ${question?.reviewTopicTitle ?? mission.shortTitle} · Question ${questionIndex + 1} of ${mission.questions.length}`
               : isExtraPractice
-                ? `Practice more · Lesson ${lessonNumber} · ${questionIndex + 1} of ${mission.questions.length}`
+                ? `Practice more · Lesson ${lessonNumber} · Question ${questionIndex + 1} of ${mission.questions.length}`
               : showExample
-                ? `Lesson ${lessonNumber} · ${mission.shortTitle} · See it, then try it`
-                : `Lesson ${lessonNumber} · ${mission.shortTitle} · ${questionIndex + 1} of ${mission.questions.length}`}
+                ? `Lesson ${lessonNumber} · ${mission.shortTitle} · See it, then try it · Question ${questionIndex + 1} of ${mission.questions.length}`
+                : `Lesson ${lessonNumber} · ${mission.shortTitle} · Question ${questionIndex + 1} of ${mission.questions.length}`}
           </p>
           {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
             {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
@@ -1023,7 +1028,7 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
           <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
           <h1>{mission.title}<br />is on your map.</h1>
-           <p>You built it two ways, explained it, and got all 12 worksheet answers. The next lesson is open!</p>
+           <p>You built it two ways, explained it, and answered the required worksheet question. The next lesson is open!</p>
           <div className="fq-reward-stars" data-testid="status-mission-stars" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}
@@ -1306,6 +1311,9 @@ function Game() {
     setFun((current) => recordCorrect(current));
     setCombo((current) => (firstTry ? current + 1 : 0));
   };
+  const onWorksheetAnswerCorrect = (missionId: string, problemId: string) => {
+    setFun((current) => recordWorksheetCorrect(current, missionId, problemId));
+  };
   const onPracticeSuccess = () => { consecutiveWrongAnswers.current = 0; };
   const onPracticeWrong = () => {
     setCombo(0);
@@ -1410,6 +1418,7 @@ function Game() {
       )}
       {view.type === 'paper' && (
         <PaperCheck missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap}
+          onWorksheetCorrect={onWorksheetAnswerCorrect}
           onLab={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? getLearningRecord(progress, view.missionId).practiceStars ?? 1 })} />
       )}
       {(view.type === 'play' || view.type === 'review') && activeMission && (
@@ -1460,8 +1469,8 @@ function Game() {
           }}
         />
       )}
-      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId })} onRedo={(part) => startRedoPart(view.missionId, part)} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
-      {view.type === 'redo' && <RedoLab missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? 1 })} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
+      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId })} onRedo={(part) => startRedoPart(view.missionId, part)} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
+      {view.type === 'redo' && <RedoLab missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? 1 })} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
       {view.type === 'retention' && <LearningLab key={`retention-${view.startedAt}`} review missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onFinish={(updated) => {
         const latest = updated ?? progress;
         const record = getLearningRecord(latest, view.missionId);
