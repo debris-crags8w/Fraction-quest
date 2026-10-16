@@ -106,6 +106,8 @@
 .fq-ll-full-explanation summary { width: fit-content; cursor: pointer; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
 .fq-ll-full-explanation > *:not(summary) { display: block; margin-top: 8px; }
 .fq-ll-actions { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+.fq-ll-actions-complete { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; width: 100%; }
+.fq-ll-check-passed { display: inline-flex; align-items: center; gap: 6px; color: hsl(173 45% 24%); font-weight: 900; }
 .fq-ll-finish { justify-self: end; }
 .fq-ll-sheet-head { display: grid; gap: 10px; }
 .fq-ll-meter { position: relative; height: 28px; border: 2px solid hsl(var(--foreground)); border-radius: 99px; overflow: hidden; background: hsl(var(--muted)); }
@@ -224,6 +226,8 @@
 @media (max-width: 560px) {
   .fq-ll-builder { padding: 10px; }
   .fq-ll-actions .fq-button { width: 100%; }
+  .fq-ll-actions-complete { grid-template-columns: 1fr; }
+  .fq-ll-actions-complete .fq-ll-finish { justify-self: stretch; }
   .fq-ll-controls { gap: 10px; }
 }
 
