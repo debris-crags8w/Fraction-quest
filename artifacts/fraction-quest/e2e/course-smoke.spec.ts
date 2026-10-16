@@ -281,6 +281,74 @@ test('the ordering number line keeps fraction labels clear on narrow screens and
   }
 });
 
+test('the ordering number-line explanation and Listen control stay usable at 400% text size', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await page.setViewportSize({ width: 280, height: 900 });
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+
+  await page.addStyleTag({
+    content: 'html { font-size: 400% !important; }',
+  });
+
+  const figure = page.getByTestId('fraction-order-numberline');
+  const description = page.getByTestId('text-fraction-order-line-description-copy');
+  const listenButton = figure.getByRole('button', { name: 'Listen to the fraction number line' });
+  await expect(description).toBeVisible();
+  await expect(listenButton).toBeVisible();
+  await expect(listenButton).toBeEnabled();
+
+  const layout = await figure.evaluate((element) => {
+    const copy = element.querySelector<HTMLElement>('[data-testid="text-fraction-order-line-description-copy"]');
+    const button = element.querySelector<HTMLElement>('.fq-order-line-description .fq-learning-listen');
+    const visualDescription = element.querySelector<HTMLElement>('.fq-order-line');
+    const figureBounds = element.getBoundingClientRect();
+    const copyBounds = copy?.getBoundingClientRect();
+    const buttonBounds = button?.getBoundingClientRect();
+    return {
+      pageWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+      copyText: copy?.textContent?.trim() ?? '',
+      accessibleDescription: visualDescription?.getAttribute('aria-label') ?? '',
+      copy: copy && copyBounds ? {
+        scrollWidth: copy.scrollWidth,
+        clientWidth: copy.clientWidth,
+        scrollHeight: copy.scrollHeight,
+        clientHeight: copy.clientHeight,
+        top: copyBounds.top,
+        bottom: copyBounds.bottom,
+      } : null,
+      button: buttonBounds ? {
+        left: buttonBounds.left,
+        right: buttonBounds.right,
+        top: buttonBounds.top,
+        height: buttonBounds.height,
+      } : null,
+      figure: { left: figureBounds.left, right: figureBounds.right },
+    };
+  });
+
+  expect(layout.pageWidth, 'the page should not overflow horizontally').toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.copyText, 'all spoken description text should remain visible').toBe(layout.accessibleDescription);
+  expect(layout.copy, 'the description should have a measurable layout').not.toBeNull();
+  expect(layout.copy!.scrollWidth, 'the description should not overflow its width').toBeLessThanOrEqual(layout.copy!.clientWidth + 1);
+  expect(layout.copy!.scrollHeight, 'the description should not be vertically clipped').toBeLessThanOrEqual(layout.copy!.clientHeight + 1);
+  expect(layout.button, 'Listen should have a measurable layout').not.toBeNull();
+  expect(layout.button!.left, 'Listen should stay inside the number-line card').toBeGreaterThanOrEqual(layout.figure.left);
+  expect(layout.button!.right, 'Listen should not clip past the number-line card').toBeLessThanOrEqual(layout.figure.right);
+  expect(layout.button!.top, 'Listen should appear below the complete description').toBeGreaterThanOrEqual(layout.copy!.bottom - 1);
+  let reachedWithTab = false;
+  for (let tabPress = 0; tabPress < 40; tabPress += 1) {
+    await page.keyboard.press('Tab');
+    if (await listenButton.evaluate((button) => document.activeElement === button)) {
+      reachedWithTab = true;
+      break;
+    }
+  }
+  expect(reachedWithTab, 'Listen should remain reachable in the keyboard tab order').toBe(true);
+});
+
 test('learners sort fractions in both directions, correct a try, and do not save progress before questions', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
