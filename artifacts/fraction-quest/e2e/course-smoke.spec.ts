@@ -150,6 +150,90 @@ test('number-line labels, axis, markers, and halfway guide stay distinct in both
   }
 });
 
+test('number-line labels, axis, markers, and halfway guide stay clear in forced-colors mode', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+  await page.emulateMedia({ forcedColors: 'active' });
+
+  const figure = page.getByTestId('fraction-order-numberline');
+  await expect(figure).toBeVisible();
+  const colors = await figure.evaluate((element) => {
+    const point = element.querySelector<HTMLElement>('.fq-order-line-point');
+    const pointLabels = [...element.querySelectorAll<HTMLElement>('.fq-order-line-point > span')];
+    const benchmark = element.querySelector<HTMLElement>('.fq-order-line-benchmark');
+    const benchmarkLabel = benchmark?.querySelector<HTMLElement>('span');
+    const axis = element.querySelector<HTMLElement>('.fq-order-line-axis');
+    const points = [...element.querySelectorAll<HTMLElement>('.fq-order-line-point')];
+    const guide = benchmark ? getComputedStyle(benchmark, '::before') : null;
+    if (!points.length || !pointLabels.length || !benchmarkLabel || !axis || !guide) {
+      throw new Error('Expected all number-line forced-color targets to render');
+    }
+
+    const probe = document.createElement('span');
+    probe.style.cssText = 'position:absolute;color:CanvasText;background-color:Canvas;border-color:Highlight';
+    element.append(probe);
+    const systemColors = getComputedStyle(probe);
+    const resolved = {
+      text: systemColors.color,
+      canvas: systemColors.backgroundColor,
+      highlight: systemColors.borderTopColor,
+    };
+    probe.remove();
+
+    const style = (target: Element) => getComputedStyle(target);
+    const halfwayLabel = style(benchmarkLabel);
+    return {
+      forcedColorAdjust: style(element.querySelector<HTMLElement>('.fq-order-line')!).forcedColorAdjust,
+      fractionLabels: pointLabels.map((label) => {
+        const computed = style(label);
+        return {
+          text: computed.color,
+          surface: computed.backgroundColor,
+          border: computed.borderTopColor,
+          borderWidth: computed.borderTopWidth,
+          borderStyle: computed.borderTopStyle,
+        };
+      }),
+      markers: points.map((markerPoint) => {
+        const marker = getComputedStyle(markerPoint, '::after');
+        return { fill: marker.backgroundColor, ring: marker.boxShadow };
+      }),
+      halfwayLabelText: halfwayLabel.color,
+      halfwayLabelSurface: halfwayLabel.backgroundColor,
+      halfwayLabelBorder: halfwayLabel.borderTopColor,
+      axis: style(axis).backgroundColor,
+      guide: guide.borderLeftColor,
+      guideStyle: guide.borderLeftStyle,
+      guideWidth: guide.borderLeftWidth,
+      ...resolved,
+    };
+  });
+
+  expect(colors.forcedColorAdjust).toBe('none');
+  for (const [label, text, surface, border] of [
+    ...colors.fractionLabels.map((label, index) => [`fraction label ${index + 1}`, label.text, label.surface, label.border] as const),
+    ['halfway label', colors.halfwayLabelText, colors.halfwayLabelSurface, colors.halfwayLabelBorder] as const,
+  ]) {
+    expect(text, `${label} should use the system text color`).toBe(colors.text);
+    expect(surface, `${label} should use the system canvas`).toBe(colors.canvas);
+    expect(border, `${label} should have a visible system-color border`).toBe(colors.text);
+  }
+  for (const label of colors.fractionLabels) {
+    expect(label.borderWidth).toBe('2px');
+    expect(label.borderStyle).toBe('solid');
+  }
+  expect(colors.axis).toBe(colors.text);
+  for (const marker of colors.markers) {
+    expect(marker.fill).toBe(colors.highlight);
+    expect(marker.ring).toContain(colors.text);
+  }
+  expect(colors.guide).toBe(colors.highlight);
+  expect(colors.guideStyle).toBe('dashed');
+  expect(colors.guideWidth).toBe('2px');
+});
+
 test('the ordering number line keeps fraction labels clear on narrow screens and with enlarged text', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
@@ -160,7 +244,7 @@ test('the ordering number line keeps fraction labels clear on narrow screens and
   const figure = page.getByTestId('fraction-order-numberline');
   await expect(figure).toBeVisible();
 
-  for (const width of [320, 360]) {
+  for (const width of [280, 300, 320, 360]) {
     await page.setViewportSize({ width, height: 900 });
     for (const enlargedText of [false, true]) {
       await page.evaluate((enlarge) => {
@@ -281,6 +365,74 @@ test('the ordering number line keeps fraction labels clear on narrow screens and
   }
 });
 
+test('the ordering number-line explanation and Listen control stay usable at 400% text size', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await page.setViewportSize({ width: 280, height: 900 });
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+
+  await page.addStyleTag({
+    content: 'html { font-size: 400% !important; }',
+  });
+
+  const figure = page.getByTestId('fraction-order-numberline');
+  const description = page.getByTestId('text-fraction-order-line-description-copy');
+  const listenButton = figure.getByRole('button', { name: 'Listen to the fraction number line' });
+  await expect(description).toBeVisible();
+  await expect(listenButton).toBeVisible();
+  await expect(listenButton).toBeEnabled();
+
+  const layout = await figure.evaluate((element) => {
+    const copy = element.querySelector<HTMLElement>('[data-testid="text-fraction-order-line-description-copy"]');
+    const button = element.querySelector<HTMLElement>('.fq-order-line-description .fq-learning-listen');
+    const visualDescription = element.querySelector<HTMLElement>('.fq-order-line');
+    const figureBounds = element.getBoundingClientRect();
+    const copyBounds = copy?.getBoundingClientRect();
+    const buttonBounds = button?.getBoundingClientRect();
+    return {
+      pageWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+      copyText: copy?.textContent?.trim() ?? '',
+      accessibleDescription: visualDescription?.getAttribute('aria-label') ?? '',
+      copy: copy && copyBounds ? {
+        scrollWidth: copy.scrollWidth,
+        clientWidth: copy.clientWidth,
+        scrollHeight: copy.scrollHeight,
+        clientHeight: copy.clientHeight,
+        top: copyBounds.top,
+        bottom: copyBounds.bottom,
+      } : null,
+      button: buttonBounds ? {
+        left: buttonBounds.left,
+        right: buttonBounds.right,
+        top: buttonBounds.top,
+        height: buttonBounds.height,
+      } : null,
+      figure: { left: figureBounds.left, right: figureBounds.right },
+    };
+  });
+
+  expect(layout.pageWidth, 'the page should not overflow horizontally').toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.copyText, 'all spoken description text should remain visible').toBe(layout.accessibleDescription);
+  expect(layout.copy, 'the description should have a measurable layout').not.toBeNull();
+  expect(layout.copy!.scrollWidth, 'the description should not overflow its width').toBeLessThanOrEqual(layout.copy!.clientWidth + 1);
+  expect(layout.copy!.scrollHeight, 'the description should not be vertically clipped').toBeLessThanOrEqual(layout.copy!.clientHeight + 1);
+  expect(layout.button, 'Listen should have a measurable layout').not.toBeNull();
+  expect(layout.button!.left, 'Listen should stay inside the number-line card').toBeGreaterThanOrEqual(layout.figure.left);
+  expect(layout.button!.right, 'Listen should not clip past the number-line card').toBeLessThanOrEqual(layout.figure.right);
+  expect(layout.button!.top, 'Listen should appear below the complete description').toBeGreaterThanOrEqual(layout.copy!.bottom - 1);
+  let reachedWithTab = false;
+  for (let tabPress = 0; tabPress < 40; tabPress += 1) {
+    await page.keyboard.press('Tab');
+    if (await listenButton.evaluate((button) => document.activeElement === button)) {
+      reachedWithTab = true;
+      break;
+    }
+  }
+  expect(reachedWithTab, 'Listen should remain reachable in the keyboard tab order').toBe(true);
+});
+
 test('learners sort fractions in both directions, correct a try, and do not save progress before questions', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
@@ -292,9 +444,24 @@ test('learners sort fractions in both directions, correct a try, and do not save
   await expect.poll(() => localStorageSnapshot(page)).toBe(savedStorage);
 
   await completeFractionOrderLesson(page);
-  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
+  await expectLessonQuestionProgress(page, 1, 0);
   await expect.poll(() => localStorageSnapshot(page)).toBe(savedStorage);
 });
+
+async function expectLessonQuestionProgress(
+  page: import('@playwright/test').Page,
+  currentQuestion: number,
+  completedQuestions: number,
+) {
+  const progress = page.getByTestId('status-lesson-progress');
+  await expect(progress).toHaveAttribute(
+    'aria-label',
+    new RegExp(`^Lesson question progress: ${completedQuestions} of \\d+ completed$`),
+  );
+  await expect(progress.locator('.fq-sr')).toHaveText(
+    new RegExp(`^Question ${currentQuestion} of \\d+; ${completedQuestions} completed\\.$`),
+  );
+}
 
 async function completeQuestionSequence(
   page: import('@playwright/test').Page,
@@ -311,11 +478,12 @@ async function completeQuestionSequence(
     };
     for (const [index, question] of items.entries()) {
       const progress = document.querySelector<HTMLElement>('[data-testid="status-lesson-progress"]');
-      if (progress?.getAttribute('aria-label') !== `Question ${index + 1} of ${items.length}`) {
+      const activeQuestionText = progress?.querySelector<HTMLElement>('.fq-sr')?.textContent?.trim();
+      if (!progress || activeQuestionText !== `Question ${index + 1} of ${items.length}; ${index} completed.`) {
         throw new Error(`Lesson question ${index + 1} is not the active question`);
       }
-      if (progress.getAttribute('aria-valuemax') !== String(items.length)) {
-        throw new Error(`Lesson question count did not match ${items.length}`);
+      if (progress.getAttribute('aria-label') !== `Lesson question progress: ${index} of ${items.length} completed`) {
+        throw new Error(`Lesson question progress did not report ${index} completed`);
       }
       if (index === 0 && !document.querySelector('[data-testid="question-model-area"]')) {
         throw new Error('The lesson question model is missing');
@@ -330,7 +498,7 @@ async function completeQuestionSequence(
       if (feedback?.getAttribute('data-result') !== 'correct') {
         throw new Error(`Question ${question.id} did not accept its correct answer`);
       }
-      if (progress.getAttribute('aria-valuenow') !== String(index + 1)) {
+      if (progress.getAttribute('aria-label') !== `Lesson question progress: ${index + 1} of ${items.length} completed`) {
         throw new Error(`Question ${question.id} did not advance lesson progress`);
       }
 
@@ -342,8 +510,12 @@ async function completeQuestionSequence(
         }
       } else {
         const nextProgress = document.querySelector<HTMLElement>('[data-testid="status-lesson-progress"]');
-        if (nextProgress?.getAttribute('aria-label') !== `Question ${index + 2} of ${items.length}`) {
+        const nextQuestionText = nextProgress?.querySelector<HTMLElement>('.fq-sr')?.textContent?.trim();
+        if (nextQuestionText !== `Question ${index + 2} of ${items.length}; ${index + 1} completed.`) {
           throw new Error(`Question ${index + 2} did not open`);
+        }
+        if (nextProgress?.getAttribute('aria-label') !== `Lesson question progress: ${index + 1} of ${items.length} completed`) {
+          throw new Error(`Question ${index + 2} progress was not announced`);
         }
       }
     }
@@ -996,7 +1168,7 @@ test('replaying the first lesson and skipping its hands-on rounds preserves save
   await expect(page.locator('.fq-taskbar-title')).toHaveText('Make fair shares');
   await expect(page.getByTestId('first-fraction-introduction')).toBeVisible();
   await page.getByTestId('button-hands-on-skip').click();
-  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
+  await expectLessonQuestionProgress(page, 1, 0);
   await page.getByTestId('button-back-map').click();
 
   const progress = await page.evaluate(() => JSON.parse(localStorage.getItem('fraction-quest-progress-v1:guest') ?? '{}'));
@@ -1011,7 +1183,6 @@ test.describe('all-lesson required-question smoke', () => {
   test('every lesson completes its required questions in an isolated developer test', async ({ page }) => {
     await openAsGuest(page);
     const savedStorage = await localStorageSnapshot(page);
-
     for (const mission of MISSIONS) {
       await test.step(`${mission.id}: ${mission.title}`, async () => {
         await openDeveloperLesson(page, mission);
@@ -1067,7 +1238,7 @@ test('learners can correct a wrong answer across every lesson model type', async
     await expect(page.getByTestId('question-model-area')).toBeVisible();
     await retryLessonQuestion(page, question);
     await page.getByTestId('button-next-question').click();
-    await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 2 of \d+$/);
+    await expectLessonQuestionProgress(page, 2, 1);
     await page.getByTestId('button-back-map').click();
   }
 });
@@ -1092,11 +1263,11 @@ test('a generated practice question can be corrected and continued', async ({ pa
   await page.getByTestId(`button-node-${mission.id}`).click();
   await page.getByTestId(`button-practice-more-${mission.id}`).click();
 
-  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
+  await expectLessonQuestionProgress(page, 1, 0);
   await expect(page.getByTestId(`button-answer-${generatedQuestion.id}-0`)).toBeVisible();
   await retryLessonQuestion(page, generatedQuestion);
   await page.getByTestId('button-next-question').click();
-  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 2 of \d+$/);
+  await expectLessonQuestionProgress(page, 2, 1);
 });
 
 test('a completed learner can open a redo section without changing the lesson route', async ({ page }) => {
@@ -1218,7 +1389,7 @@ test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, 
   await page.getByTestId('button-part-finder-check').click();
   await expect(page.getByTestId('part-finder-feedback')).toContainText('Every friend gets 1/4 of the cake.');
   await page.getByTestId('button-part-finder-next').click();
-  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 1 of \d+$/);
+  await expectLessonQuestionProgress(page, 1, 0);
 });
 
 test('daily bar builder explains the denominator as total equal parts in one whole', async ({ page }) => {
