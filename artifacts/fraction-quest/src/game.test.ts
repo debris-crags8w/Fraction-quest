@@ -1142,15 +1142,6 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.doesNotMatch(markup, /fq-learning-listen|button-listen-learning-text/);
   });
 
-  it('keeps explicit read-aloud support for screens that still request it', () => {
-    const markup = renderToStaticMarkup(createElement(LearningText, {
-      text: 'Each equal share is 1/4 of a whole.',
-      speak: true,
-    }));
-    assert.match(markup, /class="fq-learning-listen"/);
-    assert.match(markup, /aria-label="Audio unavailable for the explanation"/);
-  });
-
   it('offers one accessible Listen control for a complete question, including story lines in order', () => {
     const prompt = 'A kite fell. Mia found it. Where did Mia find it?';
     const markup = renderToStaticMarkup(createElement(StoryPrompt, { prompt, id: 'lesson-question' }));

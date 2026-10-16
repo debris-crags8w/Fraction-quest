@@ -942,19 +942,38 @@ async function enterModel(
 async function completeBuilds(page: import('@playwright/test').Page, missionId: string) {
   const checks = getBuildChecks(missionId);
   for (const [index, check] of checks.entries()) {
+    const checkCard = page.getByTestId(`check-${check.id}`);
+    await expect(checkCard.locator('.fq-ll-check-heading').getByTestId('button-listen-learning-text')).toHaveCount(1);
     await enterModel(page, check.id, 'a', check.target);
-    await expect(page.getByTestId(`status-primary-${check.id}`)).toBeVisible();
+    const primaryStatus = page.getByTestId(`status-primary-${check.id}`);
+    await expect(primaryStatus).toBeVisible();
+    await expect(primaryStatus.getByTestId('button-listen-learning-text')).toHaveCount(1);
     await enterModel(page, check.id, 'b', {
       ...check.target,
       kind: check.target.kind === 'line' ? 'bar' : 'line',
       wholes: Math.max(1, Math.ceil(check.target.n / check.target.d)),
     });
-    await expect(page.getByTestId(`status-secondary-${check.id}`)).toBeVisible();
+    const secondaryStatus = page.getByTestId(`status-secondary-${check.id}`);
+    await expect(secondaryStatus).toBeVisible();
+    await expect(secondaryStatus.getByTestId('button-listen-learning-text')).toHaveCount(1);
+    if (index === 0) {
+      const wrongReason = check.reasons.findIndex((_, reason) => reason !== check.correctReason);
+      if (wrongReason >= 0) {
+        await page.getByTestId(`radio-reason-${check.id}-${wrongReason}`).check({ force: true });
+        await page.getByTestId(`button-check-${check.id}`).click();
+        const errors = page.getByTestId(`status-errors-${check.id}`);
+        await expect(errors).toBeVisible();
+        await expect(errors.getByTestId('button-listen-learning-text')).toHaveCount(1);
+        await page.getByTestId(`radio-reason-${check.id}-${check.correctReason}`).check({ force: true });
+      }
+    }
     await page.getByTestId(`radio-reason-${check.id}-${check.correctReason}`).check({ force: true });
     await page.getByTestId(`button-check-${check.id}`).click();
     // The passed check stays with its explanation until Next is pressed (no automatic jump).
-    await expect(page.getByTestId(`status-pass-${check.id}`)).toBeVisible();
-    await expect(page.getByTestId(`check-${check.id}`)).toBeVisible();
+    const passedStatus = page.getByTestId(`status-pass-${check.id}`);
+    await expect(passedStatus).toBeVisible();
+    await expect(passedStatus.locator('.fq-ll-full-explanation').getByTestId('button-listen-learning-text')).toHaveCount(1);
+    await expect(checkCard).toBeVisible();
     await expect(page.getByTestId(`button-check-${check.id}`)).toHaveCount(0);
     await expect(page.getByTestId(`check-${check.id}`).locator('.fq-ll-check-passed')).toHaveText('Passed');
     const next = page.getByTestId(`button-next-${check.id}`);
@@ -1194,6 +1213,7 @@ for (const missionId of unitRepresentativeIds) {
         localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
       }, progressBefore(mission));
     }
+    if (mission.id === 'equal-parts') await page.setViewportSize({ width: 390, height: 844 });
     await openAsGuest(page);
     if (mission.id === 'equal-parts') {
       await page.evaluate((progress) => {
@@ -1227,6 +1247,8 @@ for (const missionId of unitRepresentativeIds) {
     const worksheet = getWorksheet(mission.id);
     const problemProgress = page.getByTestId('worksheet-problem-progress');
     await expect(problemProgress.locator(':scope > li')).toHaveCount(12);
+    const firstWorksheetRow = page.getByTestId(`row-worksheet-${worksheet[0].id}`);
+    await expect(firstWorksheetRow.locator('.fq-ll-row-prompt-header').getByTestId('button-listen-learning-text')).toHaveCount(1);
     await expect(page.getByTestId(`worksheet-progress-${worksheet[0].id}`)).toHaveAttribute('aria-current', 'step');
     await expect(page.getByTestId(`row-worksheet-${worksheet[0].id}`)).toContainText('Question 1 of 12 · Required');
     await expect(page.getByTestId(`row-worksheet-${worksheet[1].id}`)).toContainText('Question 2 of 12 · Optional practice');
@@ -1345,6 +1367,18 @@ test('replaying the first lesson and skipping its hands-on rounds preserves save
   expect(progress.completedMissionIds).toEqual(savedProgress.completedMissionIds);
   expect(progress.starsByMission).toEqual(savedProgress.starsByMission);
   expect(progress.learning).toEqual(savedProgress.learning);
+});
+
+test('the first fraction introduction uses natural read-aloud language', async ({ page }) => {
+  await openAsGuest(page);
+  const firstLesson = MISSIONS.find((mission) => mission.id === 'equal-parts')!;
+  await openDeveloperLesson(page, firstLesson);
+
+  const introduction = page.getByTestId('first-fraction-introduction');
+  await expect(introduction.locator('p')).toHaveText(
+    'A fraction shows equal parts of one whole. First look at the whole. Then split it into equal pieces and share them fairly.',
+  );
+  await expect(introduction.getByTestId('button-listen-learning-text')).toBeVisible();
 });
 
 test.describe('all-lesson required-question smoke', () => {
@@ -1492,6 +1526,113 @@ test('daily practice opens as a separate short session', async ({ page }) => {
   await expect(page.locator('.fq-taskbar-title')).toContainText('Daily practice');
   await expect(page.locator('#daily-question-title')).toBeVisible();
   await expect(page.getByTestId('button-daily-hint')).toBeVisible();
+});
+
+test('daily practice resumes its checked scaffold and parent report after reload without duplicating adaptation history', async ({ page }) => {
+  const mission = MISSIONS[0];
+  await page.addInitScript((progress) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+  }, {
+    completedMissionIds: [],
+    starsByMission: {},
+    reviewQueue: [],
+    learning: {
+      [mission.id]: { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {} },
+    },
+    adaptiveStandards: {
+      '3.NF.1': {
+        status: 'developing',
+        recent: [false, false, false],
+        accuracy: 0,
+        streakCorrect: 0,
+        streakMisses: 3,
+        lastUpdatedAt: Date.now(),
+      },
+    },
+    assessments: [],
+  });
+  await openAsGuest(page);
+  await openMenuItem(page, 'button-start-daily-practice');
+  await expect(page.locator('#daily-question-title')).toBeVisible();
+
+  const started = await page.evaluate(() => {
+    const progress = JSON.parse(localStorage.getItem('fraction-quest-progress-v1:guest') ?? '{}');
+    const session = progress.dailyPractice;
+    const question = session.questions[session.index];
+    return {
+      index: session.index,
+      question,
+      adaptationLog: progress.adaptationLog ?? [],
+    };
+  });
+  expect(started.question.difficultyBand).toBe('scaffolded');
+  expect(started.question.kind).toBe('build');
+  expect(started.question.adaptationReason).toMatch(/moved to scaffolded/i);
+  expect(started.adaptationLog.length).toBeGreaterThan(0);
+  expect(started.adaptationLog.some((event: { missionId: string; band: string; reason: string }) =>
+    event.missionId === started.question.missionId
+    && event.band === 'scaffolded'
+    && event.reason === started.question.adaptationReason,
+  )).toBe(true);
+
+  await page.getByTestId(`button-daily-parts-${started.question.denominator}`).click();
+  for (let part = 1; part <= started.question.numerator; part++) {
+    await page.getByTestId(`button-daily-part-${part}`).click();
+  }
+  await page.getByTestId('button-daily-check-model').click();
+  await expect(page.getByRole('status')).toContainText('That’s it!');
+  await expect(page.getByTestId('button-daily-next')).toBeVisible();
+
+  const afterCheck = await page.evaluate(() => {
+    const progress = JSON.parse(localStorage.getItem('fraction-quest-progress-v1:guest') ?? '{}');
+    const session = progress.dailyPractice;
+    return {
+      index: session.index,
+      questionId: session.questions[session.index].id,
+      answer: session.attempts[session.questions[session.index].id],
+      adaptationLog: progress.adaptationLog ?? [],
+    };
+  });
+  expect(afterCheck.index).toBe(started.index);
+  expect(afterCheck.questionId).toBe(started.question.id);
+  expect(afterCheck.answer.answerCorrect).toBe(true);
+  expect(afterCheck.adaptationLog).toHaveLength(started.adaptationLog.length);
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+  await openMenuItem(page, 'button-start-daily-practice');
+  await expect(page.locator('#daily-question-title')).toBeVisible();
+  await expect(page.getByTestId('button-daily-next')).toBeVisible();
+  await expect(page.getByTestId('daily-adaptation-reason')).toContainText(started.question.adaptationReason);
+
+  const resumed = await page.evaluate(() => {
+    const progress = JSON.parse(localStorage.getItem('fraction-quest-progress-v1:guest') ?? '{}');
+    const session = progress.dailyPractice;
+    const question = session.questions[session.index];
+    return {
+      index: session.index,
+      questionId: question.id,
+      answer: session.attempts[question.id],
+      adaptationLog: progress.adaptationLog ?? [],
+    };
+  });
+  expect(resumed.index).toBe(started.index);
+  expect(resumed.questionId).toBe(started.question.id);
+  expect(resumed.answer.answerCorrect).toBe(true);
+  expect(resumed.adaptationLog).toHaveLength(started.adaptationLog.length);
+
+  await page.getByTestId('button-daily-back').click();
+  await openMenuItem(page, 'button-open-parent');
+  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge?.match(/(\d+)\s×\s(\d+)/);
+  expect(factors).not.toBeNull();
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors![1]) * Number(factors![2])));
+  await page.getByTestId('button-parent-gate').click();
+  const adaptations = page.getByTestId('parent-adaptation-reasons');
+  await expect(adaptations).toBeVisible();
+  await expect(adaptations).toContainText(started.question.adaptationReason);
+  await expect(adaptations).not.toContainText('transfer');
+  await expect(adaptations.getByRole('listitem')).toHaveCount(started.adaptationLog.length);
 });
 
 test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, then mixed shapes', async ({ page }) => {
