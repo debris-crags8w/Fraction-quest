@@ -3,12 +3,19 @@
 type NativeShell = { postMessage(message: string): void };
 const shell = (): NativeShell | undefined => (globalThis as { ReactNativeWebView?: NativeShell }).ReactNativeWebView;
 
+export type HapticCue = 'selection' | 'correct' | 'retry' | 'star' | 'complete';
+
 export const inExpoShell = (): boolean => !!shell();
 
 export function postToShell(message: { type: string; [key: string]: unknown }): boolean {
   const target = shell();
   if (!target) return false;
   try { target.postMessage(JSON.stringify(message)); return true; } catch { return false; }
+}
+
+/** Selection/result feedback is a no-op in a browser and a native cue inside Expo. */
+export function postHaptic(cue: HapticCue): boolean {
+  return postToShell({ type: 'haptic', cue });
 }
 
 /** The page as printable HTML for the iPhone print sheet: styles resolve against this site, print CSS applies. */

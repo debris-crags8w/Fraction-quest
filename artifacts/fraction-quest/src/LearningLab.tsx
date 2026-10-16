@@ -1,4 +1,5 @@
 import { type CSSProperties, type RefObject, useEffect, useRef, useState } from 'react';
+import { playHaptic } from './lib/fun';
 import { LearningText } from './LearningText';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
 import { getMission, numberLineWholeCount, type Progress } from './game';
@@ -117,7 +118,11 @@ export function RulerInteraction({ task, onReady, disabled, checkIn = false }: {
         {Array.from({ length: ticks + 1 }, (_, i) => (
           <button type="button" key={i} className={`fq-ruler-tick ${selected === i ? 'selected' : ''} ${i % task.denominator === 0 ? 'inch' : ''}`}
             style={{ left: `${(i / ticks) * 100}%` }} aria-pressed={selected === i} disabled={disabled}
-            aria-label={`Mark ${rulerLabel(i, task.denominator)} inches`} onClick={() => setSelected(i)}>
+             aria-label={`Mark ${rulerLabel(i, task.denominator)} inches`} onClick={() => {
+               if (disabled || selected === i) return;
+               playHaptic('selection');
+               setSelected(i);
+             }}>
             <i />{i % task.denominator === 0 && <span>{i / task.denominator}</span>}
           </button>
         ))}
@@ -146,7 +151,12 @@ export function LinePlotInteraction({ task, onReady, disabled, checkIn = false }
         {Array.from({ length: tickCount + 1 }, (_, i) => (
           <button type="button" key={i} className="fq-lineplot-tick" aria-label={`${rulerLabel(i, task.denominator)}, ${marks[i]} X marks. Add or remove one.`}
             aria-pressed={checkIn ? marks[i] > 0 : marks[i] === expected[i]} disabled={disabled}
-            onClick={() => setMarks(current => current.map((count, index) => index === i ? (count >= (checkIn ? task.values.length : expected[i]) ? 0 : count + 1) : count))}>
+             onClick={() => {
+               const limit = checkIn ? task.values.length : expected[i];
+               if (disabled || limit === 0) return;
+               playHaptic('selection');
+               setMarks(current => current.map((count, index) => index === i ? (count >= limit ? 0 : count + 1) : count));
+             }}>
             <span className="fq-lineplot-xs" aria-hidden="true">{Array.from({ length: marks[i] }, (_, j) => <b key={j}>×</b>)}</span>
             <i />
             <small>{rulerLabel(i, task.denominator)}</small>
@@ -183,7 +193,12 @@ export function ScaleInteraction({ task, onReady, disabled, id }: {
 /** A number set with buttons only (no typing): − and +, plus −10 and +10 when the number can get big. */
 function Stepper({ label, value, min, max, onSet, id, hint }: { label: string; value: number; min: number; max: number; onSet: (v: number) => void; id: string; hint?: string }) {
   const big = max > 20;
-  const step = (by: number) => onSet(clamp(value + by, min, max));
+  const step = (by: number) => {
+    const next = clamp(value + by, min, max);
+    if (next === value) return;
+    playHaptic('selection');
+    onSet(next);
+  };
   return (
     <div className="fq-ll-stepper" role="group" aria-labelledby={`${id}-label`}>
       <span id={`${id}-label`} className="fq-ll-stepper-label">{label}</span>
@@ -205,7 +220,12 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
   const wholes = kind === 'line' ? lineWholes : st.wholes;
   const pieces = kind === 'set' ? st.d : st.d * wholes;
   const setCount = (c: number) => set({ ...st, count: clamp(c, 0, pieces) });
-  const toggle = (i: number) => setCount(st.count === i + 1 ? i : i + 1);
+  const toggle = (i: number) => {
+    const count = st.count === i + 1 ? i : i + 1;
+    if (count === st.count) return;
+    playHaptic('selection');
+    setCount(count);
+  };
   const per = kind === 'set' && st.d && total ? total / st.d : 0;
   const wrap = st.d > 12;
   return (
@@ -317,8 +337,12 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
       if (!reasonFeedback.correct) keys.push(M.reason);
     }
     if (msgs.length) {
+      playHaptic('retry');
       setErrs(msgs); setFailedSig(sig); setSupported(true); setAttempts(n => n + 1); onHelp('error', Array.from(new Set(keys))); onWrong?.();
-    } else { setErrs([]); setDone(true); onSuccess?.(); onPass({ supported, attempts: attempts + 1 }); }
+    } else {
+      playHaptic('correct');
+      setErrs([]); setDone(true); onSuccess?.(); onPass({ supported, attempts: attempts + 1 });
+    }
   };
   const hint = () => { setHints(h => h + 1); setSupported(true); onHelp('hint', []); };
 
@@ -342,7 +366,10 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
          <legend>Both models match. Which idea explains why?</legend>
          {check.reasons.map((r, i) => (
            <label key={i} className={reason === i ? 'on' : ''}>
-             <input type="radio" name={`reason-${check.id}`} checked={reason === i} onChange={() => { setReason(i); setErrs([]); setFailedSig(null); }} data-testid={`radio-reason-${check.id}-${i}`} />
+             <input type="radio" name={`reason-${check.id}`} checked={reason === i} onChange={() => {
+               if (reason !== i) playHaptic('selection');
+               setReason(i); setErrs([]); setFailedSig(null);
+             }} data-testid={`radio-reason-${check.id}-${i}`} />
              <span><LearningText text={r} interactiveTerms={false} /></span>
            </label>
          ))}
@@ -402,6 +429,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
     if (!draft.trim() || !answerEnabled) return;
     const correct = answerMatches(p, draft);
     setWrong(correct ? null : draft);
+    playHaptic(correct ? 'correct' : 'retry');
     if (correct) onSuccess?.();
     else onWrong?.();
     onCheck();

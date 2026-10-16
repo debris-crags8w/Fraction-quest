@@ -48,6 +48,8 @@ import {
   countsTowardLessonStars,
   deferSkillReview,
   EMPTY_PROGRESS,
+  FRACTION_ORDER_ROUNDS,
+  fractionOrderMatches,
   getMission,
   getDelayedReviewQuestions,
   getDueSkillReviewCount,
@@ -64,7 +66,9 @@ import {
   numberLineWholeCount,
   recordMissedSkill,
   resetProgress,
+  sameFractionValue,
   saveProgress,
+  setModelLayout,
   SKILL_REVIEW_DELAY_MS,
   starsFromFirstTryAnswers,
   type ModelSpec,
@@ -92,6 +96,36 @@ describe('lesson star scoring', () => {
     assert.equal(starsFromFirstTryAnswers(4, 5), 2);
     assert.equal(starsFromFirstTryAnswers(5, 5), 3);
     assert.equal(starsFromFirstTryAnswers(9, 5), 3);
+  });
+});
+
+describe('fraction ordering activity', () => {
+  it('compares equivalent fractions exactly rather than by rounded percent', () => {
+    assert.equal(sameFractionValue({ numerator: 1, denominator: 4 }, { numerator: 2, denominator: 8 }), true);
+    assert.equal(sameFractionValue({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), true);
+    assert.equal(sameFractionValue({ numerator: 1, denominator: 3 }, { numerator: 33, denominator: 100 }), false);
+    assert.equal(sameFractionValue({ numerator: 1, denominator: 0 }, { numerator: 1, denominator: 1 }), false);
+  });
+
+  it('checks smallest-to-biggest and biggest-to-smallest sorts exactly', () => {
+    assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[0].cards.slice(1).concat(FRACTION_ORDER_ROUNDS[0].cards[0]), 'ascending'), true);
+    assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[0].cards, 'ascending'), false);
+    assert.equal(fractionOrderMatches([
+      { numerator: 5, denominator: 8 },
+      { numerator: 3, denominator: 8 },
+      { numerator: 1, denominator: 8 },
+    ], 'descending'), true);
+    assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[1].cards, 'descending'), false);
+  });
+
+  it('accepts a corrected card order after a missed attempt and gives a useful strategy for each round', () => {
+    const halfRound = FRACTION_ORDER_ROUNDS[0];
+    let attempt = [...halfRound.cards];
+    assert.equal(fractionOrderMatches(attempt, halfRound.direction), false);
+    attempt = [attempt[1], attempt[2], attempt[0]];
+    assert.equal(fractionOrderMatches(attempt, halfRound.direction), true);
+    assert.match(halfRound.strategyHint, /1\/2|half/i);
+    assert.match(FRACTION_ORDER_ROUNDS[1].strategyHint, /eighths|numerators/i);
   });
 });
 const EXPECTED_MISSION_IDS = [
@@ -220,6 +254,41 @@ describe('lesson catalog', () => {
     );
   });
 
+  it('gives every lesson a brief, complete explanation of its main idea', () => {
+    for (const mission of MISSIONS) {
+      const idea = mission.skill.trim();
+      assert.ok(idea.length >= 30 && idea.length <= 240, `${mission.id} lesson idea should be brief and explain a concept`);
+      assert.match(idea, /[.!?]$/, `${mission.id} lesson idea should read as a complete thought`);
+    }
+
+    const sameNumerator = MISSIONS.find((mission) => mission.id === 'compare-same-numerator')!;
+    assert.match(sameNumerator.skill, /same top number.*count the same number.*larger bottom number.*more equal parts.*smaller/i);
+    assert.match(sameNumerator.example.explanation, /both (?:same-size (?:bars|wholes)|fractions) count 3 pieces/i);
+    assert.match(sameNumerator.example.explanation, /(?:8 equal parts|eighths).*smaller/i);
+    assert.match(sameNumerator.example.explanation, /3\/8 (?:is )?(?:less|smaller) than 3\/5/i);
+
+    const unlikeOrdering = MISSIONS.find((mission) => mission.id === 'order-unlike-fractions')!;
+    assert.ok(unlikeOrdering.learningIntro, 'fraction ordering explains the goal, steps, and why the method works');
+    assert.match(unlikeOrdering.learningIntro.goal, /smallest to biggest.*biggest to smallest/);
+    assert.match(unlikeOrdering.learningIntro.process, /1\/2.*same denominator.*compare the top numbers/);
+    assert.match(unlikeOrdering.learningIntro.why, /same denominator.*equal-size pieces.*greater amount/);
+  });
+
+  it('keeps the same-numerator explanation clear in the build, worksheet, and generated practice', () => {
+    const checks = getBuildChecks('compare-same-numerator');
+    assert.match(checks[0].explanation, /both (?:same-size (?:whole|bar)s?|fractions).*count 3 pieces/i);
+    assert.match(checks[0].explanation, /(?:eighths|eight equal parts|8 equal parts).*smaller/i);
+    assert.match(checks[0].explanation, /3\/8 (?:is )?(?:smaller|less) than 3\/5/i);
+    assert.match(checks[1].explanation, /Five equal parts make smaller pieces than three/i);
+
+    const worksheet = getWorksheet('compare-same-numerator');
+    assert.ok(worksheet.every((problem) => /Both fractions count .*larger denominator.*more equal parts.*smaller/i.test(problem.hint)));
+
+    const generated = generateQuestions('compare-same-numerator', ['unused'], 21, 12);
+    assert.ok(generated.every((question) => /Both fractions count .*larger denominator.*more equal parts.*smaller/i.test(question.hint)));
+    assert.match(REASON_IDEAS['compare-same-numerator'], /larger denominator.*smaller pieces/i);
+  });
+
   it('has unique question IDs, valid answer bounds, and required visual and support content', () => {
     const missionIds = new Set(MISSIONS.map((mission) => mission.id));
     const questionIds = new Set<string>();
@@ -229,6 +298,69 @@ describe('lesson catalog', () => {
       assert.ok(mission.questions.length >= 4, `${mission.id} needs enough practice and a mastery check`);
       assert.ok(mission.example.prompt.trim() && mission.example.answer.trim() && mission.example.explanation.trim());
       assertModel(mission.example.model, `${mission.id} worked example`);
+      if (mission.id === 'order-unlike-fractions') {
+        assert.ok(mission.learningIntro);
+        assert.match(mission.learningIntro.goal, /smallest to biggest.*biggest to smallest/);
+        assert.match(mission.learningIntro.process, /(?:one half|1\/2).*same denominator.*(?:numerators|top numbers)/i);
+        assert.match(mission.learningIntro.why, /(?:same|equal)-size pieces/i);
+        assert.match(mission.example.prompt, /1\/4, 3\/8 and 5\/8/);
+        assert.notEqual(mission.example.prompt, mission.questions[0].prompt);
+        assert.doesNotMatch(mission.example.prompt, /1\/2|2\/3|3\/4/);
+        assert.match(mission.example.explanation, /rename 1\/4 as 2\/8.*same-size pieces/i);
+        assert.equal(mission.example.model.kind, 'bars');
+        if (mission.example.model.kind === 'bars') {
+          assert.deepEqual(
+            mission.example.model.bars.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
+            ['1/4', '2/8', '3/8', '1/2', '2/4', '5/8'],
+          );
+          const line = mission.example.numberLine;
+          assert.ok(line, 'the worked example includes a matching number line');
+          assert.deepEqual(
+            line.points.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
+            ['1/4', '3/8', '5/8'],
+            'number-line points match the bar-model fractions in the authored answer order',
+          );
+          const equivalentName = line.equivalentNames?.find(({ fraction, equivalentTo }) =>
+            fraction.numerator === 2 && fraction.denominator === 8
+            && equivalentTo.numerator === 1 && equivalentTo.denominator === 4,
+          );
+          assert.ok(equivalentName, 'the number line shows 2/8 as another name for 1/4');
+          assert.deepEqual(line.benchmark, { numerator: 1, denominator: 2 });
+          const halfEquivalentName = line.equivalentNames?.find(({ fraction, equivalentTo }) =>
+            fraction.numerator === 2 && fraction.denominator === 4
+            && equivalentTo.numerator === 1 && equivalentTo.denominator === 2,
+          );
+          assert.ok(halfEquivalentName, 'the number-line benchmark shows 2/4 as another name for 1/2');
+          const equivalentNames = line.equivalentNames ?? [];
+          assert.ok(equivalentNames.length >= 2, 'the number line checks more than one equivalent-name pair');
+          assert.ok(line.points.slice(1).every((point, index) => {
+            const previous = line.points[index];
+            return BigInt(previous.numerator) * BigInt(point.denominator)
+              < BigInt(point.numerator) * BigInt(previous.denominator);
+          }), 'number-line points are ordered by their exact fraction values');
+          assert.equal(mission.example.answer, line.points.map(({ numerator, denominator }) => `${numerator}/${denominator}`).join(' < '));
+        }
+      }
+
+      const numberLine = mission.example.numberLine;
+      if (numberLine?.equivalentNames?.length) {
+        assert.equal(mission.example.model.kind, 'bars', `${mission.id} equivalent names have a bar model`);
+        if (mission.example.model.kind === 'bars') {
+          for (const { fraction, equivalentTo } of numberLine.equivalentNames) {
+            assert.ok(sameFractionValue(fraction, equivalentTo), `${mission.id}: ${fraction.numerator}/${fraction.denominator} must equal ${equivalentTo.numerator}/${equivalentTo.denominator} exactly`);
+            for (const namedFraction of [fraction, equivalentTo]) {
+              assert.ok(
+                mission.example.model.bars.some((bar) => sameFractionValue(bar, namedFraction)),
+                `${mission.id}: ${namedFraction.numerator}/${namedFraction.denominator} has a matching bar amount`,
+              );
+            }
+            assert.ok(
+              [...numberLine.points, numberLine.benchmark].some((point) => sameFractionValue(point, equivalentTo)),
+              `${mission.id}: ${equivalentTo.numerator}/${equivalentTo.denominator} is a number-line point or benchmark`,
+            );
+          }
+        }
+      }
 
       const mastery = mission.questions.filter((question) => question.isMastery);
       assert.equal(mastery.length, 1, `${mission.id} must have exactly one mastery question`);
@@ -1076,6 +1208,17 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(getModelFeedback({ kind: 'set', n: 1, d: 3, wholes: 1, total: 12 }), '12 objects are split into 3 equal groups. 1 group is selected.');
   });
 
+  it('groups set-model counters by the denominator and only highlights whole groups', () => {
+    assert.deepEqual(setModelLayout({ kind: 'set', selected: 4, total: 12, groupCount: 3 }), {
+      groupCount: 3, selectedGroups: 1, objectsPerGroup: 4,
+    });
+    assert.deepEqual(setModelLayout({ kind: 'set', selected: 6, total: 12, groupCount: 4 }), {
+      groupCount: 4, selectedGroups: 2, objectsPerGroup: 3,
+    });
+    assert.equal(setModelLayout({ kind: 'set', selected: 4, total: 12, groupCount: 5 }), null);
+    assert.equal(setModelLayout({ kind: 'set', selected: 3, total: 12, groupCount: 3 }), null);
+  });
+
   it('keeps proper-fraction number lines from 0 to 1 and extends only for improper fractions', () => {
     assert.equal(numberLineWholeCount(1, 3), 1);
     assert.equal(numberLineWholeCount(5, 5), 1);
@@ -1253,8 +1396,8 @@ describe('entered-answer worksheets and evidence gates', () => {
 });
   it('keeps the first fraction lesson focused on equal parts, then layers in unit fractions', () => {
     const fractionNameLesson = getMission('fraction-names');
-    assert.equal(fractionNameLesson.skill, 'The denominator is the number of equal parts in one whole. The numerator is the number of parts you count.');
-    assert.match(spokenLearningText(fractionNameLesson.skill), /The denominator is .* The numerator is/);
+    assert.match(fractionNameLesson.skill, /The denominator, or bottom number, tells how many equal parts make one whole\. The numerator, or top number, tells how many parts we count\./);
+    assert.match(spokenLearningText(fractionNameLesson.skill), /The denominator.*The numerator/);
     assert.match(fractionNameLesson.example.explanation, /The denominator is 5.* The numerator is 3/);
 
     const equalParts = getWorksheet('equal-parts');
@@ -1389,6 +1532,10 @@ describe('read-aloud voice', () => {
     assert.equal(spokenText('Write 1 2/3 as a fraction.'), 'Write 1 and two thirds as a fraction.');
     assert.equal(spokenText('2/8 = ?/4'), 'two eighths equals how many fourths');
     assert.equal(spokenText('3/8 < 1/2'), 'three eighths is less than one half');
+    assert.equal(
+      spokenText('The equivalent fractions 1/4 and 2/8 share the same 25 percent spot.'),
+      'The equivalent fractions one fourth and two eighths share the same 25 percent spot.',
+    );
     assert.equal(spokenText('25% of 8'), '25 percent of 8');
     assert.deepEqual(sentences('One part. Two parts! Ready?'), ['One part.', 'Two parts!', 'Ready?']);
   });
@@ -2617,6 +2764,36 @@ describe('same numerator, different denominators', () => {
     const unlike = getWorksheet('compare-unlike-fractions');
     assert.ok(unlike.some((p) => { const m = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(p.prompt); return !!m && m[1] === m[2]; }));
   });
+  it('clearly teaches that a larger denominator makes smaller pieces when the numerator stays the same', () => {
+    const lesson = MISSIONS.find((m) => m.id === 'compare-same-numerator')!;
+    const explainsPieceSize = (text: string) =>
+      /(?:denominator|bottom number|equal parts|pieces|parts)/i.test(text)
+      && /(?:smaller|larger|fewer|more)/i.test(text);
+    assert.match(lesson.skill, /same (?:numerator|top number).*(?:larger denominator|larger bottom number).*more equal parts.*piece.*smaller/i);
+    assert.match(lesson.example.explanation, /both (?:same-size (?:whole|bar)s?|fractions).*count 3 pieces/i);
+    assert.match(lesson.example.explanation, /(?:eighths|eight equal parts|8 equal parts).*smaller/i);
+    assert.match(lesson.example.explanation, /3\/8 (?:is )?(?:smaller|less) than 3\/5/i);
+    assert.ok(lesson.questions.every((question) => explainsPieceSize(question.hint)), 'each authored hint compares the denominator or piece size');
+
+    const generated = generateQuestions('compare-same-numerator', ['x'], 3, 8);
+    assert.ok(generated.every((question) => explainsPieceSize(question.hint)), 'generated same-numerator practice keeps the explanation');
+
+    const extensionRows = getWorksheet('compare-unlike-fractions').filter((row) => {
+      const match = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(row.prompt);
+      return !!match && match[1] === match[2];
+    });
+    assert.ok(extensionRows.length > 0, 'the extension worksheet includes a same-numerator comparison');
+    assert.ok(extensionRows.every((row) => explainsPieceSize(row.hint)), 'extension worksheet hints make the larger-denominator rule explicit');
+
+    const generatedUnlike = Array.from({ length: 40 }, (_, seed) => generateQuestions('compare-unlike-fractions', ['x'], seed + 1, 12)).flat().filter((question) => {
+      const match = /(\d+)\/\d+ or (\d+)\/\d+/.exec(question.prompt);
+      return !!match && match[1] === match[2];
+    });
+    assert.ok(generatedUnlike.length > 0, 'generated unlike-fraction practice includes same-numerator comparisons');
+    assert.ok(generatedUnlike.every((question) =>
+      explainsPieceSize(question.hint) || /same denominator.*compare (?:the )?numerators/i.test(question.hint),
+    ), 'same-numerator extension practice explains piece size or gives the valid same-denominator strategy');
+  });
 });
 
 describe('whole number × fraction is in the grade-4 path', () => {
@@ -2977,6 +3154,8 @@ describe('Expo iPhone shell', () => {
     assert.equal(isAppPage('https://webassets.zearn.org/guide.pdf', 'https://a.replit.app/'), false, 'other sites open in Safari');
     assert.equal(isAppPage('about:blank', 'https://a.replit.app/'), true);
     assert.deepEqual(parseShellMessage('{"type":"haptic","cue":"correct"}'), { type: 'haptic', cue: 'correct' });
+    assert.deepEqual(parseShellMessage('{"type":"haptic","cue":"selection"}'), { type: 'haptic', cue: 'selection' });
+    assert.equal(parseShellMessage('{"type":"haptic","cue":"unknown"}'), null);
     assert.equal(parseShellMessage('{"type":"print","html":"<html></html>"}')?.type, 'print');
     assert.equal(parseShellMessage('{"type":"other"}'), null);
     assert.equal(parseShellMessage('not json'), null);

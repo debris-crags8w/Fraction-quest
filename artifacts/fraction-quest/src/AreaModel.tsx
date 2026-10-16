@@ -1,6 +1,7 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import { MathText } from './MathText';
 import { AREA_CUTS, areaFeedback, areaLabel, areaOutline, areaTaskDone, type AreaFigure, type AreaTask } from './area-shapes';
+import { playHaptic } from './lib/fun';
 
 const SIZE = 160; const PAD = 4;
 const pts = (points: [number, number][]) => points.map(([x, y]) => `${PAD + x * SIZE},${PAD + y * SIZE}`).join(' ');
@@ -42,7 +43,11 @@ export function AreaShade({ figure, task, disabled, statusId, onMatchChange, che
   const done = areaTaskDone(figure.cut, task, shaded);
   const ready = checkIn ? shaded.length > 0 : done;
   useEffect(() => { onMatchChange(ready, done); }, [ready, done, onMatchChange]);
-  const toggle = (i: number) => { if (!disabled) setShaded((s) => (s.includes(i) ? s.filter((k) => k !== i) : [...s, i])); };
+  const toggle = (i: number) => {
+    if (disabled) return;
+    playHaptic('selection');
+    setShaded((s) => (s.includes(i) ? s.filter((k) => k !== i) : [...s, i]));
+  };
   const onKey = (event: KeyboardEvent, i: number) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(i); } };
   return (
     <div className="fq-ll-copy fq-area-shade" data-testid="area-shade">
