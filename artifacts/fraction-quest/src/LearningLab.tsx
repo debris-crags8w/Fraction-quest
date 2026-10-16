@@ -357,17 +357,19 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
           </div>
         </div>
       )}
-        {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>Both models use equal parts and show the same number of parts—shaded, marked, or selected.</strong><details className="fq-ll-full-explanation"><summary>Read the full explanation</summary><LearningText text={check.explanation} speak /></details></div></div>}
+        {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>Correct! Both models use equal parts and show the same number of parts—shaded, marked, or selected.</strong><details className="fq-ll-full-explanation"><summary>Read the full explanation</summary><LearningText text={check.explanation} speak /></details></div></div>}
       {done && <ModelPair n={t.n} d={t.d} />}
-      <div className="fq-ll-actions">
-        <button type="button" className="fq-hint-button" onClick={hint} disabled={done} data-testid={`button-hint-${check.id}`}><Lightbulb size={17} /> {hints ? 'Another hint' : 'Hint'}</button>
-         {stage === 'reason' && <button type="button" className="fq-button" onClick={submit} disabled={locked || done || reason === null} data-testid={`button-check-${check.id}`}>Check <Check size={17} /></button>}
-      </div>
-      {done && onNext && (
-        <button type="button" className="fq-button fq-ll-finish" data-testid={`button-next-${check.id}`} onClick={onNext}>{nextLabel ?? 'Next'} <ArrowRight size={17} /></button>
-      )}
-      {done && review && (
-        <button type="button" className="fq-button secondary fq-ll-finish" data-testid="button-review-finish" onClick={() => onPass({ supported, attempts: -1 })}>Finish review</button>
+      {done ? (
+        <div className="fq-ll-actions fq-ll-actions-complete">
+          <span className="fq-ll-check-passed" aria-hidden="true"><Check size={17} /> Passed</span>
+          {onNext && <button type="button" className="fq-button fq-ll-finish" data-testid={`button-next-${check.id}`} onClick={onNext}>{nextLabel ?? 'Next'} <ArrowRight size={17} /></button>}
+          {!onNext && review && <button type="button" className="fq-button secondary fq-ll-finish" data-testid="button-review-finish" onClick={() => onPass({ supported, attempts: -1 })}>Finish review</button>}
+        </div>
+      ) : (
+        <div className="fq-ll-actions">
+          <button type="button" className="fq-hint-button" onClick={hint} data-testid={`button-hint-${check.id}`}><Lightbulb size={17} /> {hints ? 'Another hint' : 'Hint'}</button>
+          {stage === 'reason' && <button type="button" className="fq-button" onClick={submit} disabled={locked || reason === null} data-testid={`button-check-${check.id}`}>Check <Check size={17} /></button>}
+        </div>
       )}
     </div>
   );

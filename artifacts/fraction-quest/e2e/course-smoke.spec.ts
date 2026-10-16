@@ -174,7 +174,12 @@ async function completeBuilds(page: import('@playwright/test').Page, missionId: 
     // The passed check stays with its explanation until Next is pressed (no automatic jump).
     await expect(page.getByTestId(`status-pass-${check.id}`)).toBeVisible();
     await expect(page.getByTestId(`check-${check.id}`)).toBeVisible();
-    await page.getByTestId(`button-next-${check.id}`).click();
+    await expect(page.getByTestId(`button-check-${check.id}`)).toHaveCount(0);
+    await expect(page.getByTestId(`check-${check.id}`).locator('.fq-ll-check-passed')).toHaveText('Passed');
+    const next = page.getByTestId(`button-next-${check.id}`);
+    await expect(next).toBeVisible();
+    await expect(next).toBeEnabled();
+    await next.click();
     const nextCheck = checks[index + 1];
     if (nextCheck) await expect(page.getByTestId(`check-${nextCheck.id}`)).toBeVisible();
     else {
@@ -182,6 +187,58 @@ async function completeBuilds(page: import('@playwright/test').Page, missionId: 
       await expect(page.getByTestId('section-worksheet')).toBeVisible();
     }
   }
+}
+
+for (const viewport of [
+  { name: 'phone', width: 390, height: 844 },
+  { name: 'tablet', width: 820, height: 1180 },
+]) {
+  test(`a passed Build check clearly offers the next step on ${viewport.name}`, async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    const mission = MISSIONS.find(({ id }) => id === 'equal-parts');
+    if (!mission) throw new Error('The first lesson is missing');
+
+    await openAsGuest(page);
+    await page.evaluate((progress) => {
+      localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+    }, progressBefore(mission));
+    await page.reload();
+    await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+    await expectMissionStart(page, mission.id, true);
+    await page.getByTestId(`button-start-mission-${mission.id}`).click();
+    await expect(page.getByTestId('learning-lab')).toBeVisible();
+
+    const check = getBuildChecks(mission.id)[0];
+    if (!check) throw new Error('The first lesson has no Build check');
+    await enterModel(page, check.id, 'a', check.target);
+    await enterModel(page, check.id, 'b', {
+      ...check.target,
+      kind: check.target.kind === 'line' ? 'bar' : 'line',
+      wholes: Math.max(1, Math.ceil(check.target.n / check.target.d)),
+    });
+
+    const checkButton = page.getByTestId(`button-check-${check.id}`);
+    await expect(checkButton).toBeDisabled();
+    await page.getByTestId(`radio-reason-${check.id}-${check.correctReason}`).check({ force: true });
+    await expect(checkButton).toBeEnabled();
+    await checkButton.click();
+
+    await expect(page.getByTestId(`status-pass-${check.id}`)).toContainText('Correct!');
+    await expect(checkButton).toHaveCount(0);
+    await expect(page.getByTestId(`check-${check.id}`).locator('.fq-ll-check-passed')).toHaveText('Passed');
+    const next = page.getByTestId(`button-next-${check.id}`);
+    await expect(next).toBeVisible();
+    await expect(next).toBeEnabled();
+    const bounds = await next.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return { width: rect.width, height: rect.height, left: rect.left, right: rect.right, viewportWidth: window.innerWidth };
+    });
+    expect(bounds.height).toBeGreaterThanOrEqual(44);
+    expect(bounds.left).toBeGreaterThanOrEqual(0);
+    expect(bounds.right).toBeLessThanOrEqual(bounds.viewportWidth);
+    if (viewport.width <= 560) expect(bounds.width).toBeGreaterThan(viewport.width * 0.7);
+  });
 }
 
 async function buildWorksheetModel(page: import('@playwright/test').Page, problem: WorksheetProblem) {
