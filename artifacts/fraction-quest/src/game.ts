@@ -17,6 +17,14 @@ export type FractionOrderRound = {
   cards: FractionValue[];
   strategyHint: string;
   explanation: string;
+  independentCheck?: boolean;
+  renamingCheck?: {
+    first: FractionValue;
+    second: FractionValue;
+    denominator: number;
+    expectedNumerators: [number, number];
+    prompt: string;
+  };
 };
 
 /** The ordering lesson's unscored, in-memory card sort. */
@@ -37,6 +45,22 @@ export const FRACTION_ORDER_ROUNDS: FractionOrderRound[] = [
     strategyHint: 'All three fractions are eighths. Compare the numerators: more eighths means a bigger fraction.',
     explanation: 'They are all eighths, so compare the top numbers: 5/8, 3/8, 1/8.',
   },
+  {
+    id: 'independent-order-check',
+    direction: 'ascending',
+    title: 'Try it on your own',
+    cards: [{ numerator: 5, denominator: 12 }, { numerator: 2, denominator: 3 }, { numerator: 3, denominator: 8 }],
+    strategyHint: 'Use 1/2 to place the fractions on either side. Then compare the two fractions below 1/2 using equal-size pieces.',
+    explanation: '3/8 is 9/24 and 5/12 is 10/24. So 3/8 < 5/12 < 2/3.',
+    independentCheck: true,
+    renamingCheck: {
+      first: { numerator: 3, denominator: 8 },
+      second: { numerator: 5, denominator: 12 },
+      denominator: 24,
+      expectedNumerators: [9, 10],
+      prompt: 'Both fractions are below 1/2. Rename them as twenty-fourths, then compare the numerators.',
+    },
+  },
 ];
 
 /** Check the left-to-right (or top-to-bottom) order without converting to rounded decimals. */
@@ -47,6 +71,18 @@ export function fractionOrderMatches(cards: readonly FractionValue[], direction:
     const difference = previous.numerator * card.denominator - card.numerator * previous.denominator;
     return direction === 'ascending' ? difference <= 0 : difference >= 0;
   });
+}
+
+/** The independent ordering check requires both the card order and equal-size renamings to be correct. */
+export function fractionOrderRoundMatches(
+  round: FractionOrderRound,
+  cards: readonly FractionValue[],
+  renamedNumerators: readonly number[] = [],
+): { orderCorrect: boolean; renamingCorrect: boolean; correct: boolean } {
+  const orderCorrect = fractionOrderMatches(cards, round.direction);
+  const renamingCorrect = !round.renamingCheck
+    || round.renamingCheck.expectedNumerators.every((expected, index) => renamedNumerators[index] === expected);
+  return { orderCorrect, renamingCorrect, correct: orderCorrect && renamingCorrect };
 }
 
 export type ModelSpec =
@@ -708,13 +744,13 @@ const extensionTopics: ExtensionTopic[] = [
     description: 'Put 3 fractions in order.', skill: 'Compare with 1/2, then use equal-size pieces if needed.',
     learningIntro: {
       goal: 'Put fractions in the order the question asks: smallest to biggest, or biggest to smallest.',
-      process: 'Compare each fraction with one half. If two are on the same side, rename them with the same denominator (bottom number), then compare their numerators (top numbers).',
+      process: 'First compare each fraction with 1/2. If two fractions are on the same side of 1/2, rename those fractions with the same denominator (bottom number), then compare the numerators (top numbers).',
       why: 'Matching denominators mean the fractions have same-size pieces. The fraction with more pieces is bigger.',
     },
     example: {
       prompt: 'Order 1/4, 3/8 and 5/8 from smallest to biggest.',
       answer: '1/4 < 3/8 < 5/8',
-      explanation: 'First compare with 1/2: 1/4 and 3/8 are below it, and 5/8 is above it. To compare 1/4 and 3/8, rename 1/4 as 2/8. Eighths are the same-size pieces, and 2/8 is less than 3/8. So the order is 1/4, 3/8, 5/8.',
+      explanation: 'First compare with 1/2: 1/4 and 3/8 are below it, and 5/8 is above it. Since 1/4 and 3/8 are on the same side, rename 1/4 as 2/8. Eighths are the same-size pieces, and 2/8 is less than 3/8. So the order is 1/4, 3/8, 5/8.',
       model: { kind: 'bars', bars: [
         { numerator: 1, denominator: 4, named: true },
         { numerator: 3, denominator: 8, named: true },

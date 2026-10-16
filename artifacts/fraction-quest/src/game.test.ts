@@ -50,6 +50,7 @@ import {
   EMPTY_PROGRESS,
   FRACTION_ORDER_ROUNDS,
   fractionOrderMatches,
+  fractionOrderRoundMatches,
   getMission,
   getDelayedReviewQuestions,
   getDueSkillReviewCount,
@@ -117,6 +118,32 @@ describe('fraction ordering activity', () => {
     assert.equal(fractionOrderMatches(attempt, halfRound.direction), true);
     assert.match(halfRound.strategyHint, /1\/2|half/i);
     assert.match(FRACTION_ORDER_ROUNDS[1].strategyHint, /eighths|numerators/i);
+  });
+
+  it('checks fresh half-landmark ordering and equal-size renaming separately', () => {
+    const check = FRACTION_ORDER_ROUNDS.find(({ independentCheck }) => independentCheck);
+    assert.ok(check?.renamingCheck, 'the lesson has an independent renaming check');
+    const sorted = [
+      { numerator: 3, denominator: 8 },
+      { numerator: 5, denominator: 12 },
+      { numerator: 2, denominator: 3 },
+    ];
+    assert.deepEqual(fractionOrderRoundMatches(check, sorted, [9, 10]), {
+      orderCorrect: true,
+      renamingCorrect: true,
+      correct: true,
+    });
+    assert.deepEqual(fractionOrderRoundMatches(check, sorted, [10, 10]), {
+      orderCorrect: true,
+      renamingCorrect: false,
+      correct: false,
+    });
+    assert.deepEqual(fractionOrderRoundMatches(check, [...sorted].reverse(), [9, 10]), {
+      orderCorrect: false,
+      renamingCorrect: true,
+      correct: false,
+    });
+    assert.match(check.renamingCheck.prompt, /below 1\/2.*twenty-fourths/i);
   });
 });
 const EXPECTED_MISSION_IDS = [
@@ -257,7 +284,7 @@ describe('lesson catalog', () => {
       if (mission.id === 'order-unlike-fractions') {
         assert.ok(mission.learningIntro);
         assert.match(mission.learningIntro.goal, /smallest to biggest.*biggest to smallest/);
-        assert.match(mission.learningIntro.process, /one half.*same denominator.*numerators/);
+        assert.match(mission.learningIntro.process, /1\/2.*same side.*same denominator.*numerators/);
         assert.match(mission.learningIntro.why, /same-size pieces/);
         assert.match(mission.example.prompt, /1\/4, 3\/8 and 5\/8/);
         assert.notEqual(mission.example.prompt, mission.questions[0].prompt);

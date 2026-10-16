@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowLeft, ArrowUp } from 'lucide-react';
-import { fractionOrderMatches, type FractionOrderRound, type FractionValue } from './game';
+import { fractionOrderRoundMatches, type FractionOrderRound, type FractionValue } from './game';
 
 function cardId({ numerator, denominator }: FractionValue) {
   return `${numerator}-${denominator}`;
@@ -29,9 +29,10 @@ export default function FractionSortActivity({
 }) {
   const [roundIndex, setRoundIndex] = useState(0);
   const [cards, setCards] = useState<FractionValue[]>(() => [...rounds[0].cards]);
-  const [result, setResult] = useState<'retry' | 'correct' | null>(null);
+  const [renamedNumerators, setRenamedNumerators] = useState<string[]>([]);
+  const [result, setResult] = useState<ReturnType<typeof fractionOrderRoundMatches> | null>(null);
   const round = rounds[roundIndex];
-  const solved = result === 'correct';
+  const solved = result?.correct === true;
 
   const moveCard = (index: number, offset: -1 | 1) => {
     const nextIndex = index + offset;
@@ -44,7 +45,7 @@ export default function FractionSortActivity({
   };
 
   const checkOrder = () => {
-    setResult(fractionOrderMatches(cards, round.direction) ? 'correct' : 'retry');
+    setResult(fractionOrderRoundMatches(round, cards, renamedNumerators.map((value) => Number(value))));
   };
 
   const advance = () => {
@@ -55,8 +56,15 @@ export default function FractionSortActivity({
     const nextIndex = roundIndex + 1;
     setRoundIndex(nextIndex);
     setCards([...rounds[nextIndex].cards]);
+    setRenamedNumerators([]);
     setResult(null);
   };
+
+  const renameFeedback = result?.orderCorrect && !result.renamingCorrect
+    ? 'The order is right. Check the equal-size names: 3/8 is 9/24, and 5/12 is 10/24.'
+    : !result?.orderCorrect && result?.renamingCorrect
+      ? 'The renamed fractions are right. Use 1/2 as a landmark, then compare the two fractions below half.'
+      : 'Check both parts: use 1/2 to place the fractions, then compare the same-size twenty-fourths.';
 
   return (
     <main className="fq-app fq-order-sort" data-testid="fraction-order-activity">
@@ -73,7 +81,7 @@ export default function FractionSortActivity({
         <section className="fq-order-sort-card" aria-labelledby="fraction-sort-title">
           <div className="fq-order-sort-progress" aria-label={`Sorting round ${roundIndex + 1} of ${rounds.length}`}>
             {rounds.map((item, index) => <span key={item.id} className={index <= roundIndex ? 'active' : ''} />)}
-            <span className="fq-order-sort-round-label">Round {roundIndex + 1} of {rounds.length}</span>
+            <span className="fq-order-sort-round-label">Question {roundIndex + 1} of {rounds.length}</span>
           </div>
           <h2 id="fraction-sort-title">{round.title}</h2>
           <p className="fq-order-sort-instructions">
@@ -103,21 +111,57 @@ export default function FractionSortActivity({
             })}
           </ol>
 
+          {round.renamingCheck && (
+            <section className="fq-order-rename-check" aria-labelledby="fraction-rename-prompt">
+              <p id="fraction-rename-prompt" className="fq-order-rename-prompt">{round.renamingCheck.prompt}</p>
+              <div className="fq-order-rename-fields">
+                {[round.renamingCheck.first, round.renamingCheck.second].map((fraction, index) => {
+                  const label = `${fraction.numerator}/${fraction.denominator}`;
+                  return (
+                    <label className="fq-order-rename-field" key={label}>
+                      <span><FractionCard fraction={fraction} /> as <b>{round.renamingCheck!.denominator}ths</b></span>
+                      <span className="fq-order-rename-equation">=</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={round.renamingCheck!.denominator}
+                        step="1"
+                        inputMode="numeric"
+                        value={renamedNumerators[index] ?? ''}
+                        onChange={(event) => setRenamedNumerators((current) => {
+                          const next = [...current];
+                          next[index] = event.target.value;
+                          return next;
+                        })}
+                        disabled={solved}
+                        aria-label={`Numerator when ${label} is renamed as ${round.renamingCheck!.denominator}ths`}
+                        data-testid={`input-sort-rename-${fraction.numerator}-${fraction.denominator}`}
+                      />
+                      <span aria-hidden="true">/{round.renamingCheck!.denominator}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
           {result && (
             <div className={`fq-order-sort-feedback ${solved ? 'correct' : 'retry'}`} role="status"
               aria-live="polite" data-testid="fraction-sort-feedback">
               <strong>{solved ? 'That order is right!' : 'Not quite yet.'}</strong>
-              <span>{solved ? round.explanation : round.strategyHint}</span>
+              <span>{solved ? round.explanation : round.renamingCheck ? renameFeedback : round.strategyHint}</span>
             </div>
           )}
 
           <div className="fq-order-sort-actions">
             {solved ? (
               <button type="button" className="fq-button" onClick={advance} data-testid="button-sort-next">
-                {roundIndex === rounds.length - 1 ? 'Start lesson questions' : 'Next: biggest to smallest'}
+                {roundIndex === rounds.length - 1 ? 'Start lesson questions' : `Next: ${rounds[roundIndex + 1].title.toLowerCase()}`}
               </button>
             ) : (
-              <button type="button" className="fq-button" onClick={checkOrder} data-testid="button-sort-check">Check order</button>
+              <button type="button" className="fq-button" onClick={checkOrder} data-testid="button-sort-check">
+                {round.renamingCheck ? 'Check my order and names' : 'Check order'}
+              </button>
             )}
           </div>
         </section>

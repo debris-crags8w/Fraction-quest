@@ -318,6 +318,21 @@ async function completeFractionOrderLesson(page: import('@playwright/test').Page
   await page.getByTestId('button-sort-check').click();
   await expect(page.getByTestId('fraction-sort-feedback')).toContainText('That order is right!');
   await page.getByTestId('button-sort-next').click();
+
+  const independentCheck = FRACTION_ORDER_ROUNDS[2];
+  await expect(page.getByText('Question 3 of 3')).toBeVisible();
+  await page.getByTestId('button-sort-3-8-up').click();
+  await page.getByTestId('button-sort-3-8-up').click();
+  await page.getByTestId('input-sort-rename-3-8').fill('10');
+  await page.getByTestId('input-sort-rename-5-12').fill('10');
+  await page.getByTestId('button-sort-check').click();
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText('The order is right.');
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText('3/8 is 9/24');
+
+  await page.getByTestId('input-sort-rename-3-8').fill('9');
+  await page.getByTestId('button-sort-check').click();
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(independentCheck.explanation);
+  await page.getByTestId('button-sort-next').click();
 }
 
 async function retryLessonQuestion(
