@@ -131,6 +131,9 @@ jobs:
       - name: Open every lesson and answer its first question
         run: pnpm --filter @workspace/fraction-quest test:e2e:all-lessons
 
+      - name: Run focused lesson interaction checks
+        run: pnpm --filter @workspace/fraction-quest test:e2e:lesson-interactions
+
   iphone-safari-e2e:
     name: iPhone Safari lesson smoke (WebKit)
     runs-on: ubuntu-latest

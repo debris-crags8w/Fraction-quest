@@ -12,6 +12,21 @@
 .fq-ll-check { scroll-margin-top: 92px; }
 .fq-ll-check h3 { scroll-margin-top: 92px; font-size: clamp(1.3rem, 3vw, 1.8rem); }
 .fq-ll-check h3:focus { outline: 3px solid hsl(var(--ring)); outline-offset: 5px; border-radius: 5px; }
+.fq-ll-section-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.fq-ll-section-header > :first-child { flex: 1; min-width: 0; }
+.fq-ll-section-header .fq-learning-listen { flex: none; }
+.fq-ll-check-heading h3 { margin: 0; min-width: 0; flex: 1; }
+.fq-ll-model-status-copy, .fq-ll-feedback-copy { display: grid; gap: 6px; min-width: 0; flex: 1; }
+.fq-ll-model-status-copy > span { display: block; }
+.fq-ll-model-status-copy .fq-ll-section-header strong { align-self: center; }
+.fq-ll-feedback-copy > strong { display: block; }
+.fq-ll-feedback-copy .fq-ll-section-header strong { flex: 1; }
+.fq-ll-hint > .fq-ll-section-header { margin-bottom: 6px; }
+.fq-ll-row-prompt-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.fq-ll-row-prompt-header .fq-question-text { min-width: 0; flex: 1; }
+.fq-ll-row-prompt-header .fq-learning-listen { flex: none; }
+.fq-ll-ws-section-copy { display: grid; gap: 5px; width: 100%; }
+.fq-ll-ws-section-copy .fq-ll-section-header { align-items: center; }
 .fq-ll-build-practice { display: grid; gap: 12px; padding: clamp(16px, 4vw, 28px); border: 2px solid hsl(var(--secondary) / .35); border-radius: 22px; background: hsl(var(--accent) / .12); }
 .fq-ll-build-practice h3 { font-size: clamp(1.15rem, 3vw, 1.55rem); }
 .fq-ll-build-practice > p { margin: 0; color: hsl(var(--muted-foreground)); line-height: 1.45; }
@@ -151,7 +166,7 @@
 .fq-ll-row.ok { border-color: hsl(var(--secondary)); background: hsl(var(--secondary) / .07); }
 .fq-ll-row form { display: grid; gap: 10px; }
 .fq-ll-row-question { display: flex; gap: 10px; align-items: flex-start; font-weight: 700; line-height: 1.4; }
-.fq-ll-row-prompt { display: grid; gap: 5px; min-width: 0; }
+.fq-ll-row-prompt { display: grid; gap: 5px; min-width: 0; flex: 1; }
 .fq-ll-sequence { display: block; color: hsl(var(--secondary)); font-size: .76rem; font-weight: 900; line-height: 1.25; }
 .fq-ll-response-step { display: inline-block; margin: 0 0 8px; color: hsl(var(--secondary)); font-size: .82rem; font-weight: 900; }
 .fq-ll-num { flex: 0 0 28px; height: 28px; display: grid; place-items: center; border-radius: 9px; background: hsl(var(--accent)); font: 900 .8rem var(--app-font-mono); }
