@@ -5,6 +5,11 @@ description: User requirements for fraction interactions and worksheet-based pro
 
 Fraction Quest must emphasize interactions: “this is fractions!” Each topic must include a worksheet with 10–15 problems that students complete by entering answers before unlocking the next level.
 
+**Lesson worksheet rule (user, 2026-10-16):** the lesson worksheet is printed and handed in, so a lesson cannot be marked
+complete until every question on it is submitted (answered right in the app or entered from paper with Check my paper).
+Only the lesson worksheet is required; the other worksheets (practice sheets, new-numbers sheets, redo) stay optional.
+This reverses 828ba0d ("only question 1 required").
+
 **Why:** The user explicitly requested interactive learning and entered-answer worksheets as prerequisites for progression.
 
 **How to apply:** Keep actual model manipulation central to the learning design. Do not replace worksheets with multiple-choice quizzes, optional practice, or static pictures; worksheet completion must be part of the level-unlock rule.

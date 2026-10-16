@@ -1582,26 +1582,27 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(getNextMission({ ...EMPTY_PROGRESS, completedMissionIds: MISSIONS.map((mission) => mission.id) })?.id, id);
     assert.equal(isMissionUnlocked(progress, 'unknown'), false);
   });
-  it('requires one named worksheet answer while leaving the other eleven as optional practice', () => {
+  it('requires every worksheet answer before the lesson can finish', () => {
     const id = MISSIONS[0].id;
     const problems = getWorksheet(id);
     const checks = getBuildChecks(id);
     let record: LearningRecord = { ...emptyLearningRecord(), practiceDone: true };
     for (const check of checks) record.checks[check.id] = { passed: true, supported: false, attempts: 1 };
-    record = checkWorksheet(editWorksheet(record, problems[0].id, problems[0].answer), problems[0]);
-    const progress = updateLearning(EMPTY_PROGRESS, id, record);
+    // Every question but the last: not done yet.
+    for (const problem of problems.slice(0, -1)) record = checkWorksheet(editWorksheet(record, problem.id, problem.answer), problem);
+    let progress = updateLearning(EMPTY_PROGRESS, id, record);
+    assert.equal(worksheetCount(record, id), problems.length - 1);
+    assert.equal(hasLearningGate(progress, id), false, 'one unanswered worksheet question blocks the lesson');
+    assert.equal(lessonSteps(progress, id).done, checks.length);
+    assert.equal(isMissionUnlocked(progress, MISSIONS[1].id), false);
 
-    assert.equal(worksheetCount(record, id), 1);
+    const last = problems[problems.length - 1];
+    record = checkWorksheet(editWorksheet(record, last.id, last.answer), last);
+    progress = updateLearning(progress, id, record);
+    assert.equal(worksheetCount(record, id), problems.length);
     assert.equal(hasLearningGate(progress, id), true);
     assert.equal(lessonSteps(progress, id).done, checks.length + 1);
     assert.equal(isMissionUnlocked(completeMission(progress, id, 2), MISSIONS[1].id), true);
-
-    const optional = problems[1];
-    const practiced = checkWorksheet(editWorksheet(record, optional.id, optional.answer), optional);
-    const practicedProgress = updateLearning(progress, id, practiced);
-    assert.equal(worksheetCount(practiced, id), 2);
-    assert.equal(hasLearningGate(practicedProgress, id), true);
-    assert.deepEqual(practicedProgress.starsByMission, progress.starsByMission, 'optional practice does not change stars');
   });
   it('preserves drafts, correction history and learning evidence over reload, then resets them', () => {
     const id = MISSIONS[0].id;

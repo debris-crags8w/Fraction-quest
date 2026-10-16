@@ -575,10 +575,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const idx = activeCheckIndex;
   const problemProgress = worksheetProblemProgress(rec, sheet);
   const count = problemProgress.filter(problem => problem.status === 'complete').length;
-  const requiredDone = problemProgress[0]?.status === 'complete';
-  const optionalDone = Math.max(0, count - Number(requiredDone));
-  const optionalTotal = Math.max(0, sheet.length - 1);
-  const progressText = `Required question ${requiredDone ? 'complete' : 'not complete'} · Optional practice ${optionalDone} of ${optionalTotal} complete`;
+  const requiredDone = sheet.length > 0 && count === sheet.length;
+  const progressText = `${count} of ${sheet.length} worksheet questions complete`;
   const sum = learningSummary(rec);
   const reteachPlans = targetedPracticePlans(missionId, rec);
   const reteachProgress = targetedPracticeCount(missionId, rec);
@@ -587,7 +585,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const reqs = [
     { label: 'Practice', done: !!rec.practiceDone },
     ...checks.map((check, index) => ({ label: buildStepName(check, index), done: !!rec.checks[check.id]?.passed })),
-    { label: 'Required worksheet question', done: requiredDone },
+    { label: 'Worksheet', done: requiredDone },
     ...(reteachProgress.total ? [{ label: `Extra practice ${reteachProgress.done}/${reteachProgress.total}`, done: reteachProgress.done === reteachProgress.total }] : []),
   ];
   const next = reqs.find(r => !r.done);
@@ -703,13 +701,12 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         <section className="fq-ll-sheet" aria-labelledby="ws-title" data-testid="section-worksheet">
           <div className="fq-ll-sheet-head">
             <h3 id="ws-title">Worksheet</h3>
-            <p className="fq-ll-note">Question 1 is required to finish the lesson. Questions 2–{sheet.length} are optional practice and do not block completion.</p>
+            <p className="fq-ll-note">Answer all {sheet.length} questions to finish the lesson. Print the worksheet to hand in, then enter your answers here or with Check my paper.</p>
             <ol className="fq-ll-problem-progress" aria-label="Status of each worksheet problem" tabIndex={0} data-testid="worksheet-problem-progress">
               {problemProgress.map((problem, index) => {
                 const statusText = problem.status === 'complete' ? 'Complete'
                   : problem.status === 'retry' ? 'Needs another try'
                     : problem.status === 'current' ? 'Up next' : 'Not started';
-                const requirementText = problem.required ? 'Required' : 'Optional practice';
                 return <li key={problem.problemId}
                   className={`fq-ll-problem-progress-item ${problem.status}${problem.current ? ' is-current' : ''}`}
                   aria-current={problem.current ? 'step' : undefined}
@@ -718,29 +715,29 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
                   {problem.status === 'complete' && <Check size={14} aria-hidden="true" />}
                   {problem.status === 'retry' && <RotateCcw size={13} aria-hidden="true" />}
                   {problem.status === 'current' && <i className="fq-ll-progress-current-dot" aria-hidden="true" />}
-                  <span className="fq-ll-sr-only">Question {index + 1} of {sheet.length}, {requirementText}: {statusText}{problem.current ? ', current question' : ''}</span>
+                  <span className="fq-ll-sr-only">Question {index + 1} of {sheet.length}: {statusText}{problem.current ? ', current question' : ''}</span>
                 </li>;
               })}
             </ol>
-            <div className="fq-ll-meter" role="progressbar" aria-valuemin={0} aria-valuemax={optionalTotal} aria-valuenow={optionalDone} aria-valuetext={progressText} aria-label="Optional worksheet practice completed" data-testid="progress-worksheet">
-              <b style={{ width: `${optionalTotal ? (optionalDone / optionalTotal) * 100 : 100}%` }} /><span>{progressText}</span>
+            <div className="fq-ll-meter" role="progressbar" aria-valuemin={0} aria-valuemax={sheet.length} aria-valuenow={count} aria-valuetext={progressText} aria-label="Worksheet questions completed" data-testid="progress-worksheet">
+              <b style={{ width: `${sheet.length ? (count / sheet.length) * 100 : 100}%` }} /><span>{progressText}</span>
             </div>
           </div>
           <ol className="fq-ll-rows">
             {sheet.map((p, index) => (
               <Fragment key={p.id}>
               <Row p={p} rec={rec} numberLabel={String(index + 1)}
-                sequenceLabel={`Question ${index + 1} of ${sheet.length} · ${problemProgress[index].required ? 'Required' : 'Optional practice'} · ${problemProgress[index].status === 'complete' ? 'Complete' : problemProgress[index].status === 'retry' ? 'Needs another try' : problemProgress[index].status === 'current' ? 'Up next' : 'Not started'}`}
+                sequenceLabel={`Question ${index + 1} of ${sheet.length} · ${problemProgress[index].status === 'complete' ? 'Complete' : problemProgress[index].status === 'retry' ? 'Needs another try' : problemProgress[index].status === 'current' ? 'Up next' : 'Not started'}`}
                 onEdit={v => save(editWorksheet(cur(), p.id, v))}
                 onCheck={() => save(checkLessonWorksheet(cur(), p, missionId))}
                 onWrong={onWrong}
                 onSuccess={() => { onSuccess?.(); onWorksheetCorrect?.(missionId, p.id); }}
                 onHint={() => { const r = cur(); const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };
                   save({ ...r, helpUses: r.helpUses + 1, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }); }} />
-              {/* Right after the required question: finishing is the main next step, more questions are a choice. */}
-              {index === 0 && gate && !finished && (
+              {/* After the last worksheet question, once every step is done: finishing is the next step. */}
+              {index === sheet.length - 1 && gate && !finished && (
                 <li className="fq-ll-finish-callout" data-testid="callout-lab-finish">
-                  <p><strong>You did it!</strong> You can finish the lesson now, or keep practicing below.</p>
+                  <p><strong>You did it!</strong> The whole worksheet is done. You can finish the lesson now.</p>
                   <button type="button" className="fq-button" onClick={() => onFinish()} data-testid="button-lab-finish-now">Finish lesson <ArrowRight size={17} /></button>
                 </li>
               )}
