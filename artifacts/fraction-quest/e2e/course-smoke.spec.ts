@@ -1493,6 +1493,113 @@ test('daily practice opens as a separate short session', async ({ page }) => {
   await expect(page.getByTestId('button-daily-hint')).toBeVisible();
 });
 
+test('daily practice resumes its checked scaffold and parent report after reload without duplicating adaptation history', async ({ page }) => {
+  const mission = MISSIONS[0];
+  await page.addInitScript((progress) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+  }, {
+    completedMissionIds: [],
+    starsByMission: {},
+    reviewQueue: [],
+    learning: {
+      [mission.id]: { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {} },
+    },
+    adaptiveStandards: {
+      '3.NF.1': {
+        status: 'developing',
+        recent: [false, false, false],
+        accuracy: 0,
+        streakCorrect: 0,
+        streakMisses: 3,
+        lastUpdatedAt: Date.now(),
+      },
+    },
+    assessments: [],
+  });
+  await openAsGuest(page);
+  await openMenuItem(page, 'button-start-daily-practice');
+  await expect(page.locator('#daily-question-title')).toBeVisible();
+
+  const started = await page.evaluate(() => {
+    const progress = JSON.parse(localStorage.getItem('fraction-quest-progress-v1:guest') ?? '{}');
+    const session = progress.dailyPractice;
+    const question = session.questions[session.index];
+    return {
+      index: session.index,
+      question,
+      adaptationLog: progress.adaptationLog ?? [],
+    };
+  });
+  expect(started.question.difficultyBand).toBe('scaffolded');
+  expect(started.question.kind).toBe('build');
+  expect(started.question.adaptationReason).toMatch(/moved to scaffolded/i);
+  expect(started.adaptationLog.length).toBeGreaterThan(0);
+  expect(started.adaptationLog.some((event: { missionId: string; band: string; reason: string }) =>
+    event.missionId === started.question.missionId
+    && event.band === 'scaffolded'
+    && event.reason === started.question.adaptationReason,
+  )).toBe(true);
+
+  await page.getByTestId(`button-daily-parts-${started.question.denominator}`).click();
+  for (let part = 1; part <= started.question.numerator; part++) {
+    await page.getByTestId(`button-daily-part-${part}`).click();
+  }
+  await page.getByTestId('button-daily-check-model').click();
+  await expect(page.getByRole('status')).toContainText('That’s it!');
+  await expect(page.getByTestId('button-daily-next')).toBeVisible();
+
+  const afterCheck = await page.evaluate(() => {
+    const progress = JSON.parse(localStorage.getItem('fraction-quest-progress-v1:guest') ?? '{}');
+    const session = progress.dailyPractice;
+    return {
+      index: session.index,
+      questionId: session.questions[session.index].id,
+      answer: session.attempts[session.questions[session.index].id],
+      adaptationLog: progress.adaptationLog ?? [],
+    };
+  });
+  expect(afterCheck.index).toBe(started.index);
+  expect(afterCheck.questionId).toBe(started.question.id);
+  expect(afterCheck.answer.answerCorrect).toBe(true);
+  expect(afterCheck.adaptationLog).toHaveLength(started.adaptationLog.length);
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+  await openMenuItem(page, 'button-start-daily-practice');
+  await expect(page.locator('#daily-question-title')).toBeVisible();
+  await expect(page.getByTestId('button-daily-next')).toBeVisible();
+  await expect(page.getByTestId('daily-adaptation-reason')).toContainText(started.question.adaptationReason);
+
+  const resumed = await page.evaluate(() => {
+    const progress = JSON.parse(localStorage.getItem('fraction-quest-progress-v1:guest') ?? '{}');
+    const session = progress.dailyPractice;
+    const question = session.questions[session.index];
+    return {
+      index: session.index,
+      questionId: question.id,
+      answer: session.attempts[question.id],
+      adaptationLog: progress.adaptationLog ?? [],
+    };
+  });
+  expect(resumed.index).toBe(started.index);
+  expect(resumed.questionId).toBe(started.question.id);
+  expect(resumed.answer.answerCorrect).toBe(true);
+  expect(resumed.adaptationLog).toHaveLength(started.adaptationLog.length);
+
+  await page.getByTestId('button-daily-back').click();
+  await openMenuItem(page, 'button-open-parent');
+  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge?.match(/(\d+)\s×\s(\d+)/);
+  expect(factors).not.toBeNull();
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors![1]) * Number(factors![2])));
+  await page.getByTestId('button-parent-gate').click();
+  const adaptations = page.getByTestId('parent-adaptation-reasons');
+  await expect(adaptations).toBeVisible();
+  await expect(adaptations).toContainText(started.question.adaptationReason);
+  await expect(adaptations).not.toContainText('transfer');
+  await expect(adaptations.getByRole('listitem')).toHaveCount(started.adaptationLog.length);
+});
+
 test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, then mixed shapes', async ({ page }) => {
   await page.addInitScript(() => {
     const sent: string[] = [];
