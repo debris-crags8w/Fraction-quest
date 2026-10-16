@@ -150,6 +150,102 @@ test('number-line labels, axis, markers, and halfway guide stay distinct in both
   }
 });
 
+test('the ordering number line stays legible in grayscale print media', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+  await page.getByTestId('fraction-order-numberline').evaluate((element) => {
+    // The app prints only .fq-print content; mount a copy there to exercise the
+    // number-line print rules without bypassing the normal print-only page filter.
+    const printRoot = document.createElement('section');
+    printRoot.className = 'fq-print';
+    printRoot.dataset.testid = 'fraction-order-print-preview';
+    printRoot.append(element.cloneNode(true));
+    document.querySelector('#root')?.append(printRoot);
+  });
+  await page.emulateMedia({ media: 'print' });
+
+  const figure = page.getByTestId('fraction-order-print-preview').getByTestId('fraction-order-numberline');
+  await expect(figure).toBeVisible();
+  await expect(figure.locator('.fq-order-line-caption')).toContainText('0');
+  await expect(figure.locator('.fq-order-line-caption')).toContainText('1 whole');
+  await expect(figure.locator('.fq-order-line-point > span')).toHaveCount(3);
+  await expect(figure.locator('.fq-order-line-point > span').nth(0)).toContainText('1/4 = 2/8');
+  await expect(figure.locator('.fq-order-line-point > span').nth(1)).toContainText('3/8');
+  await expect(figure.locator('.fq-order-line-point > span').nth(2)).toContainText('5/8');
+  await expect(figure.locator('.fq-order-line-benchmark > span')).toContainText('1/2 = 2/4');
+
+  const printStyles = await figure.evaluate((element) => {
+    const axis = element.querySelector<HTMLElement>('.fq-order-line-axis');
+    const endpoints = [...element.querySelectorAll<HTMLElement>('.fq-order-line-end')];
+    const points = [...element.querySelectorAll<HTMLElement>('.fq-order-line-point')];
+    const benchmark = element.querySelector<HTMLElement>('.fq-order-line-benchmark');
+    const labels = [...element.querySelectorAll<HTMLElement>('.fq-order-line-point > span, .fq-order-line-benchmark > span')];
+    const guide = benchmark ? getComputedStyle(benchmark, '::before') : null;
+    if (!axis || endpoints.length !== 2 || points.length !== 3 || !benchmark || !guide || labels.length !== 4) {
+      throw new Error('Expected all number-line print targets to render');
+    }
+    return {
+      figureBackground: getComputedStyle(element).backgroundColor,
+      figureBorder: getComputedStyle(element).borderTopColor,
+      axis: getComputedStyle(axis).backgroundColor,
+      endpoints: endpoints.map((end) => getComputedStyle(end).backgroundColor),
+      markerStyles: points.map((point) => {
+        const marker = getComputedStyle(point, '::after');
+        return {
+          fill: marker.backgroundColor,
+          border: marker.borderTopColor,
+          borderWidth: marker.borderTopWidth,
+          borderStyle: marker.borderTopStyle,
+          boxShadow: marker.boxShadow,
+          shape: marker.borderRadius,
+        };
+      }),
+      labels: labels.map((label) => {
+        const style = getComputedStyle(label);
+        return {
+          text: style.color,
+          background: style.backgroundColor,
+          border: style.borderTopColor,
+          borderWidth: style.borderTopWidth,
+        };
+      }),
+      guide: {
+        color: guide.borderLeftColor,
+        style: guide.borderLeftStyle,
+        width: guide.borderLeftWidth,
+      },
+      caption: getComputedStyle(element.querySelector<HTMLElement>('.fq-order-line-caption')!).color,
+    };
+  });
+
+  expect(printStyles.figureBackground).toBe('rgb(255, 255, 255)');
+  expect(printStyles.figureBorder).toBe('rgb(0, 0, 0)');
+  expect(printStyles.axis).toBe('rgb(0, 0, 0)');
+  expect(printStyles.endpoints).toEqual(['rgb(0, 0, 0)', 'rgb(0, 0, 0)']);
+  for (const marker of printStyles.markerStyles) {
+    expect(marker.fill).toBe('rgb(255, 255, 255)');
+    expect(marker.border).toBe('rgb(0, 0, 0)');
+    expect(marker.borderWidth).toBe('3px');
+    expect(marker.borderStyle).toBe('solid');
+    expect(marker.boxShadow).toBe('none');
+    expect(marker.shape).toBe('50%');
+  }
+  for (const label of printStyles.labels) {
+    expect(label.text).toBe('rgb(0, 0, 0)');
+    expect(label.background).toBe('rgb(255, 255, 255)');
+    expect(label.border).toBe('rgb(0, 0, 0)');
+    expect(label.borderWidth).toBe('1px');
+  }
+  expect(printStyles.guide).toEqual({
+    color: 'rgb(0, 0, 0)',
+    style: 'dashed',
+    width: '2px',
+  });
+  expect(printStyles.caption).toBe('rgb(0, 0, 0)');
+});
+
 test('number-line labels, axis, markers, and halfway guide stay clear in forced-colors mode', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
