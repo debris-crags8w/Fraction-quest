@@ -1277,8 +1277,9 @@ for (const missionId of unitRepresentativeIds) {
     await enterWorksheetAnswer(page, worksheet[0], worksheet[0].answer);
     await expect(page.getByTestId(`status-worksheet-${worksheet[0].id}`)).toContainText('Correct!');
     await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuetext', /Required question complete · Optional practice 0 of 11 complete/);
-    await expect(page.getByTestId('text-next-level')).toHaveText('All done! The next lesson is open.');
+    await expect(page.getByTestId('text-next-level')).toHaveText('All done! You can finish this lesson.');
     await expect(page.getByTestId('button-lab-finish')).toBeEnabled();
+    await expect(page.getByTestId('callout-lab-finish')).toBeVisible();
 
     // The second correct answer is practice, not another completion gate.
     if (mission.id === 'equal-parts') {

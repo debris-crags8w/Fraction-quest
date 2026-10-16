@@ -383,7 +383,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'fraction-as-division': (r) => {
     const b = r.int(2, 8); let a = r.int(1, 9); if (a % b === 0) a += 1;
     return later(r.chance() ? `${a} ÷ ${b} = ?` : `${a} ${a === 1 ? 'pizza is' : 'pizzas are'} shared fairly by ${b} friends. How much does each friend get?`, f(a, b), [f(b, a), f(1, b), f(a, a + b)],
-      `${a} ÷ ${b} is the fraction ${f(a, b)}.`, `Each friend gets ${f(a, b)}${a > b ? `, or ${mixedName(a, b)}` : ''}.`, wholes(a));
+      `Share ${a} ${a === 1 ? 'whole' : 'wholes'} into ${b} equal shares. What fraction is ${a} ÷ ${b}?`, `${a} ÷ ${b} is the fraction ${f(a, b)}. Each friend gets ${f(a, b)}${a > b ? `, or ${mixedName(a, b)}` : ''}.`, wholes(a));
   },
   'fraction-probability': (r) => {
     const t = r.pick([4, 5, 6, 8, 10, 12]); const g = r.int(1, t - 1);

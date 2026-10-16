@@ -476,7 +476,9 @@ function worksheetBuildCheck(id: string, serial: number, checkId: string): Build
   const visualNeeds = !!(problem.model || problem.area || problem.rulerTask || problem.linePlotTask || problem.scaleTask);
   const shown = execAll(problem.prompt, /(\d+)\/(\d+)/g).map(match => Number(match[1]) / Number(match[2]));
   const canUsePrompt = !visualNeeds && (problem.prompt.startsWith('Which is') || !shown.includes(value.n / value.d));
-  const ask = canUsePrompt ? problem.prompt.replace(/\s*(Type it|Type a number|Use commas)\.$/, '') : `Make ${problem.answer}.`;
+  // "Make 5/5 two ways." would drop the real task (adding, comparing…) and name the answer: skip such rows.
+  if (!canUsePrompt) return null;
+  const ask = problem.prompt.replace(/\s*(Type it|Type a number|Use commas)\.$/, '');
   const prompt = /^Make .+\.$/.test(ask) ? ask.replace(/\.$/, ' two ways.') : `${ask} Build the answer two ways.`;
   const kind: LearningModel['kind'] = id.startsWith('number-line') ? 'line'
     : id.startsWith('sets-') && value.d <= 12 && value.n <= value.d ? 'set' : 'bar';
@@ -499,7 +501,9 @@ function seededBuildCheck(id: string, serial: number, checkId: string): BuildChe
   const target = model(n, d, kind, kind === 'set' ? d * 4 : undefined);
   const explanation = `Split one whole into ${d} equal parts. Show ${n} of those parts.`;
   return {
-    id: checkId, prompt: `Build ${n}/${d}. Show the same amount with a bar and a number line.`,
+    id: checkId, prompt: kind === 'set'
+      ? `Build ${n}/${d} of ${d * 4} counters. Make ${d} equal groups.`
+      : `Build ${n}/${d}. Show the same amount with a bar and a number line.`,
     target, explanation, transfer: true,
     ...arrangeReasons(`${id}:${checkId}:seed:${serial}`, idea(id, explanation), ['Change only the bottom number', 'Count the tick marks, not spaces']),
   };
@@ -1000,7 +1004,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const pizzas = [1, 2, 3, 5, 4, 7, 2, 3, 5, 6, 1, 3][tr]; const friends = [2, 3, 4, 4, 3, 2, 5, 2, 3, 4, 4, 8][tr];
         prompt = `${pizzas} ${pizzas === 1 ? 'pizza is' : 'pizzas are'} shared fairly by ${friends} friends. How much pizza does each friend get?`;
         answer = f(pizzas, friends); visual = pizzas <= 3 ? { kind: 'bar', n: 0, d: friends, wholes: pizzas } : undefined;
-        hint = `${pizzas} ÷ ${friends} is the fraction ${pizzas}/${friends}.`; break;
+        hint = `The numerator is what is shared. The denominator is how many share it.`; break;
       }
       case 'probability': {
         const [green, total] = ([[1, 4], [2, 6], [3, 8], [3, 10], [2, 5], [5, 12], [1, 6], [5, 8], [7, 10], [3, 4], [7, 12], [4, 5]] as const)[tr];
@@ -1143,11 +1147,11 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           { prompt: 'A 1-kilogram bag is 3/4 full. How many grams are in it?', answer: '750', hint: '1 kilogram is 1000 grams. Find 3/4 of 1000.', numerator: 3, denominator: 4 },
           { prompt: 'How many cents are in 1/4 dollar?', answer: '25', hint: 'A dollar is 100 cents. Split 100 into 4 equal groups.', numerator: 1, denominator: 4 },
           { prompt: 'How many minutes are in 3/4 hour?', answer: '45', hint: 'An hour is 60 minutes. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
-          { prompt: 'A bottle has 1/2 liter. How many milliliters is that?', answer: '500', hint: 'A liter is 1000 milliliters. Half of 1000 is 500.', numerator: 1, denominator: 2 },
+          { prompt: 'A bottle has 1/2 liter. How many milliliters is that?', answer: '500', hint: 'A liter is 1000 milliliters. Find half of 1000.', numerator: 1, denominator: 2 },
           { prompt: 'A bag weighs 1/4 kilogram. How many grams is that?', answer: '250', hint: 'A kilogram is 1000 grams. Find one fourth of 1000.', numerator: 1, denominator: 4 },
           { prompt: 'A board is 3/4 meter. Another is 1/4 meter. How many meters in all?', answer: '1', hint: 'Four fourths make one whole meter.', numerator: 4, denominator: 4 },
           { prompt: 'How many cents are in 3/4 dollar?', answer: '75', hint: 'A dollar is 100 cents. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
-          { prompt: 'A 2-liter jug is 1/4 full. How many milliliters are inside?', answer: '500', hint: 'One fourth of 2 liters is 1/2 liter. A half liter is 500 milliliters.', numerator: 1, denominator: 4 },
+          { prompt: 'A 2-liter jug is 1/4 full. How many milliliters are inside?', answer: '500', hint: '2 liters is 2000 milliliters. Find one fourth of 2000.', numerator: 1, denominator: 4 },
           { prompt: 'How many hours are in 1/2 day?', answer: '12', hint: 'A day is 24 hours. Half of 24 is 12.', numerator: 1, denominator: 2 },
         ];
         const story = stories[tr]; prompt = story.prompt; answer = story.answer; form = story.form; hint = story.hint;
@@ -1231,7 +1235,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const unitDenominator = [2, 3, 4, 5, 6, 8, 3, 4, 5, 6, 8, 2][tr]; const people = 2 + (i % 4); const resultDenominator = unitDenominator * people;
         prompt = `${people} children share 1/${unitDenominator} of a pan equally. What fraction of the whole pan does each child get?`;
         answer = f(1, resultDenominator); denominator = resultDenominator; visual = model(1, unitDenominator); modelRequired = true;
-        hint = `Split the 1/${unitDenominator} piece into ${people} equal parts. Each new part is 1/${resultDenominator} of the whole.`; break;
+        hint = `Split the 1/${unitDenominator} piece into ${people} equal parts. How many of those small parts fill the whole pan?`; break;
       }
       case 'unit-conversion': {
         const conversions: { prompt: string; answer: string; numerator: number; denominator: number; hint: string }[] = [

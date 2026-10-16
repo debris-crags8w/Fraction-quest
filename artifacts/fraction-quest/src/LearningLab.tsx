@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, Fragment, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 import { playHaptic } from './lib/fun';
 import { LearningListenButton, LearningText } from './LearningText';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
@@ -644,6 +644,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const reteachPlans = targetedPracticePlans(missionId, rec);
   const reteachProgress = targetedPracticeCount(missionId, rec);
   const gate = hasLearningGate(progress, missionId);
+  const finished = progress.completedMissionIds.includes(missionId);
   const reqs = [
     { label: 'Practice', done: !!rec.practiceDone },
     ...checks.map((check, index) => ({ label: buildStepName(check, index), done: !!rec.checks[check.id]?.passed })),
@@ -788,7 +789,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           </div>
           <ol className="fq-ll-rows">
             {sheet.map((p, index) => (
-              <Row key={p.id} p={p} rec={rec} numberLabel={String(index + 1)}
+              <Fragment key={p.id}>
+              <Row p={p} rec={rec} numberLabel={String(index + 1)}
                 sequenceLabel={`Question ${index + 1} of ${sheet.length} · ${problemProgress[index].required ? 'Required' : 'Optional practice'} · ${problemProgress[index].status === 'complete' ? 'Complete' : problemProgress[index].status === 'retry' ? 'Needs another try' : problemProgress[index].status === 'current' ? 'Up next' : 'Not started'}`}
                 onEdit={v => save(editWorksheet(cur(), p.id, v))}
                 onCheck={() => save(checkLessonWorksheet(cur(), p, missionId))}
@@ -796,6 +798,14 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
                 onSuccess={() => { onSuccess?.(); onWorksheetCorrect?.(missionId, p.id); }}
                 onHint={() => { const r = cur(); const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };
                   save({ ...r, helpUses: r.helpUses + 1, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }); }} />
+              {/* Right after the required question: finishing is the main next step, more questions are a choice. */}
+              {index === 0 && gate && !finished && (
+                <li className="fq-ll-finish-callout" data-testid="callout-lab-finish">
+                  <p><strong>You did it!</strong> You can finish the lesson now, or keep practicing below.</p>
+                  <button type="button" className="fq-button" onClick={() => onFinish()} data-testid="button-lab-finish-now">Finish lesson <ArrowRight size={17} /></button>
+                </li>
+              )}
+              </Fragment>
             ))}
           </ol>
         </section>
@@ -833,14 +843,14 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         <ul className="fq-ll-reqs" data-testid="list-requirements">
           {reqs.map(r => <li key={r.label} className={r.done ? 'done' : ''}>{r.done ? <Check size={14} /> : <span className="dot" />}{r.label}</li>)}
         </ul>
-        <p data-testid="text-next-level">{gate ? 'All done! The next lesson is open.' : `Next up: ${next ? next.label : 'finish the last steps'}.`}</p>
+        <p data-testid="text-next-level">{gate ? 'All done! You can finish this lesson.' : `Next up: ${next ? next.label : 'finish the last steps'}.`}</p>
         <dl>
           <div><dt>Done on my own</dt><dd data-testid="text-independent-checks">{sum.independentChecks}</dd></div>
           <div><dt>On your own</dt><dd data-testid="text-transfer">{sum.transfer}</dd></div>
           <div><dt>Hints used</dt><dd data-testid="text-help-uses">{sum.helpUses}</dd></div>
           <div><dt>Remembered later</dt><dd data-testid="text-retention">{sum.retention}</dd></div>
         </dl>
-        <button className="fq-button secondary" disabled={!gate} onClick={() => gate && onFinish()} data-testid="button-lab-finish">Finish lesson</button>
+        <button className={`fq-button ${gate ? '' : 'secondary'}`} disabled={!gate} onClick={() => gate && onFinish()} data-testid="button-lab-finish">Finish lesson</button>
       </section>
     </div>
   );

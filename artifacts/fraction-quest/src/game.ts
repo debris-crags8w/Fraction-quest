@@ -317,7 +317,7 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('Is this strip cut into thirds?', ['Yes, 3 equal pieces', 'No, the pieces are unequal', 'No, there are 2 pieces', 'Yes, there are 3 pieces'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Thirds are 3 pieces, all the same size. Compare the pieces.', 'One piece is twice as big as the others, so these are not thirds.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
-      practice('A sandwich is cut into 4 equal pieces. What is 1 piece?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), '1 piece out of 4 equal pieces is 1/4.', 'The denominator is all 4 pieces. You have 1.', bars({ numerator: 1, denominator: 2 })),
+      practice('A sandwich is cut into 4 equal pieces. What is 1 piece?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), 'Count all the equal pieces for the denominator.', 'The denominator is all 4 pieces. You have 1.', bars({ numerator: 1, denominator: 2 })),
       practice('This ribbon is cut into 2 pieces. Are the pieces equal halves?', ['Yes, same-size pieces', 'No, one piece is bigger', 'No, halves need 3 pieces', 'No, they are different colors'], 0, { kind: 'partition', parts: [50, 50] }, 'Halves are 2 pieces of the same size.', '2 pieces are halves only if they are the same size. These are.', { kind: 'partition', parts: [50, 50] }),
       practice('A strip has 5 equal pieces. What is 1 piece?', ['one fifth', 'one fourth', 'five wholes', 'one sixth'], 0, bars({ numerator: 1, denominator: 5 }), '1 piece out of 5 equal pieces.', '1 of 5 equal pieces is one fifth, or 1/5.', bars({ numerator: 1, denominator: 2 })),
     ],
@@ -482,7 +482,7 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('Each jump is 1/4. What is 5 jumps from 0?', ['5/4', '4/5', '1/4'], 0, line(5, 4, 2), '4 jumps reach 1. Then 1 more.', '5 jumps is 5/4. That is 1 and 1/4.', line(3, 4)),
-      practice('Each jump is 1/3. Which point is just past 1?', ['2/3', '4/3', '1/3', '3/3'], 1, line(4, 3, 2), '3 jumps reach 1. 1 more is 4/3.', '4/3 is 1 and 1/3, just past 1.', line(2, 3)),
+      practice('Each jump is 1/3. Which point is just past 1?', ['2/3', '4/3', '1/3', '3/3'], 1, line(4, 3, 2), '3 jumps of 1/3 reach 1. Take 1 more jump.', '4/3 is 1 and 1/3, just past 1.', line(2, 3)),
       practice('How many sixths make 1 and 2/6?', ['8/6', '6/8', '2/6'], 0, line(8, 6, 2), '1 whole is 6/6. Add 2 more.', '6/6 + 2/6 = 8/6.', line(6, 6)),
       practice('A runner takes 9 steps of 1/5. How far is that?', ['1 and 3/5', '9/5 = 1 and 4/5', '4/5', '9/10'], 1, line(9, 5, 2), '5 steps make 1 whole. How many are left?', '9/5 is 5/5 and 4/5. That is 1 and 4/5.', line(5, 5)),
     ],

@@ -839,9 +839,10 @@ describe('daily fraction practice', () => {
       completedMissionIds: MISSIONS.map((mission) => mission.id),
       adaptiveStandards,
     };
-    const session = createDailyPractice(progress, new Date(2026, 9, 1, 12).getTime());
-    assert.ok(new Set(session.questions.map((question) => question.missionId)).size < session.questions.length,
-      'this fixture routes multiple source lessons to the same transfer lesson');
+    // Find a day where several sources land on one transfer lesson (routing is pseudo-random by day).
+    const session = Array.from({ length: 60 }, (_, offset) => createDailyPractice(progress, new Date(2026, 9, 1 + offset, 12).getTime()))
+      .find((candidate) => new Set(candidate.questions.map((question) => question.missionId)).size < candidate.questions.length);
+    assert.ok(session, 'some day routes multiple source lessons to the same transfer lesson');
     assert.equal(new Set(session.questions.map((question) => question.id)).size, session.questions.length);
   });
 
@@ -978,7 +979,7 @@ describe('daily fraction practice', () => {
     assert.match(first.adaptationReason ?? '', /high recent accuracy/i);
   });
 
-  it('detects failed build checks and puts a scaffold before the missed question', () => {
+  it('detects failed build checks and adds a scaffold step after the missed question', () => {
     const now = new Date(2026, 9, 11, 12).getTime();
     const mission = MISSIONS[0];
     const startingProgress: Progress = {
@@ -3448,5 +3449,61 @@ describe('Expo iPhone shell', () => {
       assert.equal(postToShell({ type: 'haptic', cue: 'retry' }), true);
       assert.deepEqual(JSON.parse(sent[0]), { type: 'haptic', cue: 'retry' });
     } finally { delete (globalThis as { ReactNativeWebView?: unknown }).ReactNativeWebView; }
+  });
+});
+
+describe('hints shown before answering', () => {
+  it('never state the answer (lesson and generated questions)', () => {
+    const leaks: string[] = [];
+    for (const mission of MISSIONS) {
+      const questions = [...mission.questions, ...(hasGenerator(mission.id) ? [1, 2, 3].flatMap((seed) => generateQuestions(mission.id, [], seed, 12)) : [])];
+      for (const question of questions) {
+        const answer = question.choices[question.correctChoice];
+        if (answer.length < 3 || /^Each [a-z ]*space is/.test(question.hint)) continue; // a ruler hint has to name its unit
+        const exact = new RegExp(`(^|[^\\d/])${answer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\d/])`);
+        if (exact.test(question.hint) && !exact.test(question.prompt)) leaks.push(`${question.id}: ${question.hint}`);
+      }
+    }
+    assert.deepEqual(leaks, []);
+  });
+});
+
+describe('daily practice support levels', () => {
+  const now = new Date(2026, 9, 11, 12).getTime();
+  const first12 = MISSIONS.slice(0, 12).map((mission) => mission.id);
+
+  it('lets a lesson leave the "more help" set once its daily answers are right again', () => {
+    const lesson = MISSIONS.find((mission) => mission.id === 'compare-same-denominator')!;
+    const base: Progress = {
+      ...EMPTY_PROGRESS,
+      completedMissionIds: MISSIONS.slice(0, MISSIONS.indexOf(lesson) + 1).map((mission) => mission.id),
+      learning: { [lesson.id]: { ...emptyLearningRecord(), completedAt: now - 1, misconceptions: { 'Compare the numerators': 3 } } },
+      reviewQueue: [{ missionId: lesson.id, missedQuestionId: lesson.questions[0].id, dueAt: now - 1, reviewCount: 0 }],
+    };
+    const bandOf = (progress: Progress) => createDailyPractice(progress, now).questions.find((question) => question.missionId === lesson.id)?.difficultyBand;
+    assert.equal(bandOf(base), 'scaffolded');
+    const recovered: Progress = { ...base, adaptiveStandards: Object.fromEntries((lesson.standards ?? []).map((standard) => [standard, {
+      status: 'developing' as const, recent: [false, true, true], accuracy: 2 / 3, streakCorrect: 2, streakMisses: 0, lastUpdatedAt: now - 1,
+    }])) };
+    assert.notEqual(bandOf(recovered), 'scaffolded');
+  });
+
+  it('takes stretch questions only from finished lessons', () => {
+    const adaptiveStandards = Object.fromEntries(FRACTION_STANDARDS.map(({ id }) => [id, {
+      status: 'mastered' as const, recent: [true, true, true, true, true], accuracy: 1, streakCorrect: 5, streakMisses: 0, lastUpdatedAt: now - 1,
+    }]));
+    const progress: Progress = { ...EMPTY_PROGRESS, placement: { unit: 12, at: now }, completedMissionIds: first12, adaptiveStandards };
+    for (let day = 0; day < 10; day++) {
+      for (const question of createDailyPractice(progress, now + day * 86_400_000).questions) {
+        assert.ok(first12.includes(question.missionId), `${question.missionId} was not taught yet`);
+      }
+    }
+  });
+
+  it('rotates topics across days when many lessons have mistakes', () => {
+    const learning = Object.fromEntries(first12.map((id) => [id, { ...emptyLearningRecord(), completedAt: now - 1, misconceptions: { 'Count the parts': 2 } }]));
+    const progress: Progress = { ...EMPTY_PROGRESS, completedMissionIds: first12, learning };
+    const topics = new Set(Array.from({ length: 7 }, (_, day) => createDailyPractice(progress, now + day * 86_400_000).questions.map((question) => question.missionId)).flat());
+    assert.ok(topics.size > DAILY_PRACTICE_LENGTH, `only ${topics.size} topics in a week`);
   });
 });

@@ -272,3 +272,6 @@
 .fq-ll-stepper > div { align-items: center; }
 .fq-ll-step.wide { width: auto; min-width: 48px; padding: 0 8px; font: 900 .9rem var(--app-font-display); }
 .fq-ll-step-value { display: grid; place-items: center; min-width: 56px; min-height: 44px; padding: 0 6px; border: 2px solid var(--fq-edge); border-radius: 12px; background: hsl(var(--card)); color: var(--fq-den); font: 900 1.15rem var(--app-font-display); }
+/* Shown right after the required worksheet question once the lesson can be finished. */
+.fq-ll-finish-callout { list-style: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border: 2px solid #58CC02; border-radius: 18px; background: #F1FCE8; }
+.fq-ll-finish-callout p { margin: 0; flex: 1 1 220px; font-weight: 700; }
