@@ -2972,6 +2972,8 @@ describe('Expo iPhone shell', () => {
     assert.equal(isAppPage('https://webassets.zearn.org/guide.pdf', 'https://a.replit.app/'), false, 'other sites open in Safari');
     assert.equal(isAppPage('about:blank', 'https://a.replit.app/'), true);
     assert.deepEqual(parseShellMessage('{"type":"haptic","cue":"correct"}'), { type: 'haptic', cue: 'correct' });
+    assert.deepEqual(parseShellMessage('{"type":"haptic","cue":"selection"}'), { type: 'haptic', cue: 'selection' });
+    assert.equal(parseShellMessage('{"type":"haptic","cue":"unknown"}'), null);
     assert.equal(parseShellMessage('{"type":"print","html":"<html></html>"}')?.type, 'print');
     assert.equal(parseShellMessage('{"type":"other"}'), null);
     assert.equal(parseShellMessage('not json'), null);
