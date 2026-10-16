@@ -12,6 +12,7 @@ import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { TaskBar } from './TaskBar';
 import { LiveFraction } from './fraction-ui';
 import { useRevealWhen, useScrollTopOn } from './lib/reveal';
+import { playHaptic } from './lib/fun';
 
 /** Arrow keys move through a radio group and choose (the usual radio-button pattern). */
 function radioArrows(event: KeyboardEvent<HTMLDivElement>) {
@@ -137,6 +138,7 @@ export default function DailyPractice({
   if (topicQuestion) {
     const check = () => {
       const correct = attempt.choice === topicQuestion.correctChoice;
+      playHaptic(correct ? 'correct' : 'retry');
       if (correct) onSuccess?.(); else onWrong?.();
       setAttempt({ ...attempt, answerChecked: true, answerCorrect: correct });
     };
@@ -147,7 +149,10 @@ export default function DailyPractice({
         {topicQuestion.choices.map((choice, index) => (
           <button key={index} type="button" role="radio" aria-checked={attempt.choice === index} disabled={done} tabIndex={tabStop(attempt.choice === index, index, attempt.choice !== undefined)}
             className={`fq-daily-choice ${attempt.choice === index ? 'selected' : ''} ${done && index === topicQuestion.correctChoice ? 'right' : ''}`}
-            onClick={() => setAttempt({ ...attempt, choice: index, answerChecked: false, answerCorrect: false })} data-testid={`button-daily-choice-${index}`}>
+            onClick={() => {
+              if (attempt.choice !== index) playHaptic('selection');
+              setAttempt({ ...attempt, choice: index, answerChecked: false, answerCorrect: false });
+            }} data-testid={`button-daily-choice-${index}`}>
             <MathText text={choice} />
           </button>
         ))}
@@ -168,10 +173,16 @@ export default function DailyPractice({
   const parts = attempt.parts;
   const checkModel = () => {
     const correct = dailyBuildCorrect(question, parts, attempt.shaded.length);
+    playHaptic(correct ? 'correct' : 'retry');
     if (correct) onSuccess?.(); else onWrong?.();
     setAttempt({ ...attempt, modelChecked: true, modelCorrect: correct, answerChecked: correct, answerCorrect: correct });
   };
-  const change = (patch: Partial<DailyPracticeAttempt>) => setAttempt({ ...attempt, ...patch, modelChecked: false, modelCorrect: false, answerChecked: false, answerCorrect: false });
+  const change = (patch: Partial<DailyPracticeAttempt>) => {
+    const changed = Object.entries(patch).some(([key, value]) =>
+      JSON.stringify(attempt[key as keyof DailyPracticeAttempt]) !== JSON.stringify(value));
+    if (changed) playHaptic('selection');
+    setAttempt({ ...attempt, ...patch, modelChecked: false, modelCorrect: false, answerChecked: false, answerCorrect: false });
+  };
   const wrongFeedback = !parts ? '' : question.denominator % parts !== 0 && parts % question.denominator !== 0
     ? `Look at the denominator: how many equal ${bar ? 'parts' : 'spaces'} make one whole?`
     : `Look at the numerator: how many ${bar ? 'parts should be shaded' : 'jumps from 0'}?`;

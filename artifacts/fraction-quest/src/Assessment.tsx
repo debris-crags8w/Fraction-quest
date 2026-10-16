@@ -4,6 +4,7 @@ import { MathText } from './MathText';
 import { AnswerTiles } from './AnswerTiles';
 import { answerShape } from './answer-shape';
 import { useRevealWhen, useScrollTopOn } from './lib/reveal';
+import { playHaptic } from './lib/fun';
 import { YesNoCards } from './YesNoCards';
 import { isYesNoProblem } from './learning-content';
 import { AreaShade, AreaSvg } from './AreaModel';
@@ -101,8 +102,11 @@ function FractionStripsBuilder({ fractions, onReady }: {
   const ready = fractions.every((_, index) => parts[index] > 0 && shaded[index].length > 0);
   const correct = fractions.every((fraction, index) => parts[index] === fraction.d && shaded[index].length === fraction.n);
   useEffect(() => { onReady(ready, correct); }, [onReady, ready, correct]);
-  const toggle = (fractionIndex: number, partIndex: number) => setShaded(current => current.map((list, index) =>
-    index !== fractionIndex ? list : list.includes(partIndex) ? list.filter(value => value !== partIndex) : [...list, partIndex]));
+  const toggle = (fractionIndex: number, partIndex: number) => {
+    playHaptic('selection');
+    setShaded(current => current.map((list, index) =>
+      index !== fractionIndex ? list : list.includes(partIndex) ? list.filter(value => value !== partIndex) : [...list, partIndex]));
+  };
   return (
     <section className="fq-assessment-model">
       <p>Build each fraction: choose how many equal parts, then color the parts selected.</p>
@@ -111,7 +115,13 @@ function FractionStripsBuilder({ fractions, onReady }: {
           <div className="fq-assessment-strip-row" key={`${fraction.n}/${fraction.d}-${fractionIndex}`}>
             <span><MathText text={`${fraction.n}/${fraction.d}`} /></span>
             <select value={parts[fractionIndex]} aria-label={`Equal parts for fraction ${fractionIndex + 1}`} data-testid={`select-assessment-parts-${fractionIndex}`}
-              onChange={event => { const value = Number(event.target.value); setParts(current => current.map((p, i) => i === fractionIndex ? value : p)); setShaded(current => current.map((list, i) => i === fractionIndex ? [] : list)); }}>
+              onChange={event => {
+                const value = Number(event.target.value);
+                if (parts[fractionIndex] === value) return;
+                playHaptic('selection');
+                setParts(current => current.map((p, i) => i === fractionIndex ? value : p));
+                setShaded(current => current.map((list, i) => i === fractionIndex ? [] : list));
+              }}>
               <option value={0} disabled>Parts…</option>
               {STRIP_PARTS.map(n => <option key={n} value={n}>{n}</option>)}
             </select>
@@ -193,6 +203,7 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
     event.preventDefault();
     if (!item || !answer.trim() || !modelBuilt) return;
     const response = assessmentResponse(item, modelCorrect, answer);
+    playHaptic(response.correct ? 'correct' : 'retry');
     const nextResponses = [...responses, response];
     if (index === items.length - 1) {
       const attempt: AssessmentAttempt = {

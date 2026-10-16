@@ -1,4 +1,5 @@
 import './yes-no-cards.css';
+import { playHaptic } from './lib/fun';
 
 export function YesNoCards({ value, onChange, disabled = false, testIdPrefix }: {
   value: string;
@@ -17,7 +18,11 @@ export function YesNoCards({ value, onChange, disabled = false, testIdPrefix }: 
             className={`fq-answer-choice fq-yes-no-choice${selected ? ' selected' : ''}`}
             aria-pressed={selected}
             disabled={disabled}
-            onClick={() => onChange(choice)}
+            onClick={() => {
+              if (disabled || selected) return;
+              playHaptic('selection');
+              onChange(choice);
+            }}
             data-testid={`button-${testIdPrefix}-${choice}`}
           >
             {choice === 'yes' ? 'Yes' : 'No'}

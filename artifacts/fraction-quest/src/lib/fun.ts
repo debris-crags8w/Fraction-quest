@@ -2,7 +2,7 @@
 // Guests keep it on this device; signed-in accounts sync it with their saved snapshot.
 // It stays separate from learning progress so it cannot alter lesson gating.
 
-import { postToShell } from './native-shell';
+import { postHaptic } from './native-shell';
 import { CODE_LEVEL_COUNT } from '../code-quest';
 import { PART_FINDER_SCORE_MAX } from '../part-finder';
 import { scopedStorageKey } from '../storage-scope';
@@ -278,9 +278,8 @@ const CUES: Record<Cue, number[]> = {
 
 /** Short synth chimes. Silently does nothing if audio is unavailable or sound is off. */
 export function playCue(cue: Cue, enabled: boolean) {
+  playHaptic(cue);
   if (!enabled || typeof window === 'undefined') return;
-  // In the iPhone app, answers also get a gentle haptic tap.
-  postToShell({ type: 'haptic', cue });
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return;
@@ -302,6 +301,11 @@ export function playCue(cue: Cue, enabled: boolean) {
   } catch {
     // Audio is a bonus; ignore failures.
   }
+}
+
+/** Native-only tactile feedback; browser previews and ordinary web use remain unchanged. */
+export function playHaptic(cue: 'selection' | Cue) {
+  postHaptic(cue);
 }
 
 /** Replace this device's fun state with one loaded from the student's account. */

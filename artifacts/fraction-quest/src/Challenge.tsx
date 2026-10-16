@@ -5,7 +5,7 @@ import { ArrowRight, Check, Footprints, Map as MapIcon, RotateCcw, Trophy, X } f
 import { CHALLENGES, challengeMaxPoints, challengeTrophy, type ChallengeQuestion } from './challenges';
 import { Confetti, Mascot, StoryPrompt, unitColor, useFun, type MascotMood } from './fun-ui';
 import { PaperFold } from './PaperFold';
-import { playCue } from './lib/fun';
+import { playCue, playHaptic } from './lib/fun';
 import { ChallengeFigureView } from './models';
 
 const letter = (index: number) => String.fromCharCode(65 + index);
@@ -31,7 +31,11 @@ function WalkThrough({ question, onClose }: { question: ChallengeQuestion; onClo
           <p><MathText text={current.prompt} /></p>
           <div className="fq-walk-choices" role="group" aria-label={`Step ${at + 1} answer`}>
             {current.choices.map((c, i) => (
-              <button type="button" key={i} className={pick === i ? (i === current.correct ? 'ok' : 'bad') : ''} onClick={() => setPick(i)} data-testid={`button-step-${at + 1}-${i}`}><MathText text={c} /></button>
+              <button type="button" key={i} className={pick === i ? (i === current.correct ? 'ok' : 'bad') : ''} onClick={() => {
+                if (pick === i) return;
+                playHaptic(i === current.correct ? 'correct' : 'retry');
+                setPick(i);
+              }} data-testid={`button-step-${at + 1}-${i}`}><MathText text={c} /></button>
             ))}
           </div>
           {pick !== null && (right
@@ -144,7 +148,12 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
             {question.choices.map((choice, i) => (
               <button key={`${question.id}-${i}`}
                 className={`fq-answer-choice ${selection === i ? `selected ${state === 'right' ? 'correct' : state === 'wrong' || state === 'reveal' ? 'retry' : ''}` : ''} ${state === 'reveal' && i === question.correct ? 'selected correct' : ''}`}
-                onClick={() => { if (answered) return; setSelection(i); if (state === 'wrong') setState('asking'); }}
+                onClick={() => {
+                  if (answered) return;
+                  if (selection !== i) playHaptic('selection');
+                  setSelection(i);
+                  if (state === 'wrong') setState('asking');
+                }}
                 aria-pressed={selection === i} data-testid={`button-challenge-${question.id}-${letter(i)}`}>
                 <span className="fq-choice-marker" aria-hidden="true">{letter(i)}</span><span><MathText text={choice} /></span>
               </button>
