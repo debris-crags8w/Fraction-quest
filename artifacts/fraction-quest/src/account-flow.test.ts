@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { accountEntryAfterSessionFailure, authenticateAccount, createProgressSaveQueue, hydrateAccountProgress, signOutSafely, type AccountBundle } from './account-flow';
+import { accountEntryAfterSessionFailure, accountEntryFailure, authenticateAccount, createProgressSaveQueue, hydrateAccountProgress, signOutSafely, type AccountBundle } from './account-flow';
 
 const guest: AccountBundle = {
   progress: { completedMissionIds: ['equal-parts'], starsByMission: { 'equal-parts': 2 }, reviewQueue: [] },
@@ -10,6 +10,20 @@ const guest: AccountBundle = {
 test('guest work reloads into guest mode only when a guest marker was saved', () => {
   assert.equal(accountEntryAfterSessionFailure(true), 'guest');
   assert.equal(accountEntryAfterSessionFailure(false), 'signed-out');
+});
+
+test('a rejected session after login returns to sign-in with cookie guidance', () => {
+  assert.deepEqual(accountEntryFailure(401, 'fallback'), {
+    kind: 'signed-out',
+    notice: "Your sign-in was accepted, but this browser couldn't keep the session. Check that cookies are allowed for Fraction Quest, then sign in again.",
+  });
+});
+
+test('other profile-load failures stay recoverable without claiming the session was rejected', () => {
+  assert.deepEqual(accountEntryFailure(503, 'The profiles could not be loaded.'), {
+    kind: 'profile-error',
+    notice: 'The profiles could not be loaded.',
+  });
 });
 
 test('sign-up and sign-in call their matching account endpoint', async () => {

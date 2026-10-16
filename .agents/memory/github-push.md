@@ -15,17 +15,23 @@ When Git CLI pushes fail with authentication errors despite the GitHub integrati
 
 **How to apply:** check integration status and repository write access, preserve full repository paths when building monorepo trees, and compare every uploaded Git blob SHA with its local Git blob SHA before creating a tree. Compare the resulting tree SHA with the local commit tree. For a merge-resolution commit, include both source and updated-base parent SHAs and all changed paths in the tree. Re-read the branch ref immediately before updating it; if it moved, fetch and merge the new commit, then rebuild on that base. Verify the final ref and tree, and never force-update the branch as a workaround.
 
-GitHub's Git Database API can omit the final newline from a commit message when creating a commit, producing a different commit SHA even when tree, parent, author, committer, and visible message match the local commit.
+Workflow files need the GitHub App's `workflow` permission in addition to repository write access. Git CLI push can fail for missing credentials even when the connected GitHub App can publish workflow changes through the Git Data API.
 
-**Why:** a code-only review-branch publish created a matching tree but initially failed the exact-commit check because the API-normalized message had no trailing newline.
+**Why:** A GitHub App connection with the workflow permission successfully published a tree containing `.github/workflows` files after Git CLI push failed authentication.
 
-**How to apply:** treat a commit SHA mismatch as a stop before moving the branch ref. Inspect the GitHub-created commit object and reproduce its exact message bytes locally if matching local and remote refs matters; update the remote only after verifying tree and parent and rechecking the branch ref.
+**How to apply:** use the Git Data API path when CLI authentication fails: upload exact local blobs, verify each returned SHA, create a tree and compare its SHA with the local tree, then create a commit and update the branch ref only after rereading it. If GitHub rejects the write, check the integration's permissions and reauthorize only when `getIntegrationReauthorizationContext` reports OAuth.
 
-Large base64 output from CodeExecution `shellExec` can be silently truncated near 80 KB even when `maxOutputBytes` is higher.
+GitHub's Git Database API can normalize commit messages or metadata and produce a different commit SHA even when the intended tree and parent match.
 
-**Why:** a GitHub blob SHA check exposed a shortened file transfer even though the shell callback did not report truncation.
+**Why:** API-created commits in a pushed feature branch had the expected tree and parent chain but different SHAs from their local counterparts.
 
-**How to apply:** when transferring large Git blobs through CodeExecution, retrieve base64 in small chunks, reassemble it in memory, and verify the resulting blob SHA before creating trees or moving refs.
+**How to apply:** if exact local commit IDs matter, inspect and reproduce the API's exact message and metadata bytes. Otherwise, verify every uploaded blob, each tree against its local counterpart, and each intended parent; recheck the target ref before updating it, and never force-move an existing branch.
+
+Large file output from CodeExecution `shellExec` can be shortened even when `maxOutputBytes` is higher and `truncated` is false; this can create GitHub blobs whose content looks right but whose SHA does not match the local Git object.
+
+**Why:** a tree-hash check caught incomplete file transfers while publishing a review PR; fetching the Git blob through shell output did not preserve its complete bytes.
+
+**How to apply:** transfer large blobs in compressed base64 or small base64 chunks, reconstruct the raw bytes in the impure function, and verify each Git blob SHA plus the final tree SHA before creating refs or PRs.
 
 ## Short-lived branches and pull requests
 
@@ -34,6 +40,12 @@ For new app work, start from the latest `main` on a short-lived branch and submi
 **Why:** the user asked that new work use short branches from `main` and a pull request, like the paper-fold change.
 
 **How to apply:** fetch `github/main` before starting, create the work branch from that commit, push it and open a pull request, then return the workspace to `main` after merge.
+
+When the workspace branch contains unrelated task or review commits, base the review pull request on clean `github/main` and carry over only the current feature.
+
+**Why:** automated task merges can leave unrelated changes in the active local history; including them in a feature PR creates duplicate or cross-scope review work.
+
+**How to apply:** compare the feature diff against both the active branch and remote `main`, preserve unrelated local changes on their existing branch or stash, and verify the PR file list contains only the requested work.
 
 ## Preserve local branch backups
 

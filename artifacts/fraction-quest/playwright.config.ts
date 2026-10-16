@@ -1,5 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
+const webkit = process.env.PLAYWRIGHT_BROWSER === 'webkit';
+const phoneViewport = process.env.PLAYWRIGHT_PHONE === '1';
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -7,10 +10,26 @@ export default defineConfig({
   outputDir: '/tmp/fraction-quest-playwright-results',
   use: {
     baseURL: 'http://127.0.0.1:4179',
-    browserName: 'chromium',
+    browserName: webkit ? 'webkit' : 'chromium',
+    ...(phoneViewport
+      ? {
+          viewport: { width: 390, height: 844 },
+          deviceScaleFactor: 3,
+          hasTouch: true,
+          isMobile: true,
+        }
+      : {}),
     launchOptions: {
-      executablePath: process.env.CHROMIUM_PATH ?? '/repl/tools/bin/chromium',
-      args: ['--no-sandbox'],
+      ...(!webkit
+        ? {
+            ...(process.env.CHROMIUM_PATH
+              ? { executablePath: process.env.CHROMIUM_PATH }
+              : process.env.CI
+                ? {}
+                : { executablePath: '/repl/tools/bin/chromium' }),
+            args: ['--no-sandbox'],
+          }
+        : {}),
     },
     trace: 'retain-on-failure',
   },

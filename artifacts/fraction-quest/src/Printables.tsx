@@ -1,9 +1,8 @@
 import React, { useEffect, useState, type ReactElement } from 'react';
 import { Printer } from 'lucide-react';
 import { MathText } from './MathText';
-import { getMission, MISSIONS, type Mission, type ModelSpec } from './game';
-import { answerMatches, getBuildChecks, getWorksheet, paperPrompt, type WorksheetProblem } from './learning-content';
-import { learningSummary, worksheetCount, type LearningRecord } from './learning';
+import { getMission, MISSIONS, setModelLayout, type Mission, type ModelSpec } from './game';
+import { getBuildChecks, getWorksheet, paperPrompt, type WorksheetProblem } from './learning-content';
 import { BarSvg, ChallengeFigureView, LineSvg, MODEL_CONCEPTS, ModelPair, ModelTag, SetSvg, SvgWholeBracket } from './models';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { AreaSvg, ColorTwoWays, SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
@@ -11,20 +10,10 @@ import { areaWhole } from './area-shapes';
 import { freshSeed, generateQuestions } from './practice-bank';
 import { printPage } from './lib/print';
 
-export type PrintMode = 'lesson' | 'practice' | 'generated' | 'blank' | 'answers' | 'challenge';
+export type PrintMode = 'lesson' | 'practice' | 'generated' | 'blank' | 'challenge';
 
 export const lessonCode = (missionId: string) => `FQ-${String(MISSIONS.findIndex((item) => item.id === missionId) + 1).padStart(2, '0')}`;
 const letter = (index: number) => String.fromCharCode(65 + index);
-
-type Status = 'correct' | 'not-yet' | 'unchecked' | 'blank';
-function statusOf(problem: WorksheetProblem, record: LearningRecord): Status {
-  const entry = record.worksheet[problem.id];
-  const draft = entry?.draft.trim() ?? '';
-  if (!draft) return 'blank';
-  if (entry!.checkedValue === entry!.draft && answerMatches(problem, entry!.draft)) return 'correct';
-  return entry!.attempts > 0 ? 'not-yet' : 'unchecked';
-}
-const STATUS_TEXT: Record<Status, string> = { correct: '✓ Correct', 'not-yet': '✗ Not yet', unchecked: '• Not checked', blank: '— No answer' };
 
 const ANSWER_FORMAT: Record<NonNullable<WorksheetProblem['form']>, string> = {
   symbol: 'Write <, = or >',
@@ -54,29 +43,26 @@ function keyExample(missionId: string): [number, number] {
   return targets.includes('3/4') ? [2, 3] : [3, 4];
 }
 
-/** The worksheet page (blank, or filled with the child's answers). */
-function WorksheetPage({ missionId, record, mode }: { missionId: string; record: LearningRecord; mode: PrintMode }) {
+/** The student worksheet is always a blank page to work on with pencil and paper. */
+function WorksheetPage({ missionId }: { missionId: string }) {
   const mission = getMission(missionId);
   const number = String(MISSIONS.findIndex((item) => item.id === missionId) + 1).padStart(2, '0');
   const problems = getWorksheet(missionId);
   const checks = getBuildChecks(missionId);
   const [kn, kd] = keyExample(missionId);
-  const answers = mode === 'answers';
   const isSet = checks[0].target.kind === 'set';
-  const summary = learningSummary(record);
-  const printedOn = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
-    <article className="fq-print" aria-hidden="true" data-testid={`print-worksheet-${mode}`}>
+    <article className="fq-print" aria-hidden="true" data-testid="print-worksheet-blank">
       <header className="fq-print-head">
         <div>
-          <p className="fq-print-kicker">Fraction Quest · Lesson {number} · {answers ? 'My answers' : 'Worksheet'} · Code {lessonCode(missionId)}</p>
+          <p className="fq-print-kicker">Fraction Quest · Lesson {number} · Worksheet · Code {lessonCode(missionId)}</p>
           <h1>{mission.title}</h1>
           <p>{mission.skill}</p>
         </div>
         <div className="fq-print-fields">
           <span>Name <i /></span>
-          <span>Date <i>{answers ? printedOn : ''}</i></span>
+          <span>Date <i /></span>
         </div>
       </header>
 
@@ -90,49 +76,34 @@ function WorksheetPage({ missionId, record, mode }: { missionId: string; record:
         <ModelPair n={kn} d={kd} />
       </section>
 
-      {answers && (
-        <section className="fq-print-summary">
-          <strong>Worksheet: {worksheetCount(record, missionId)} of 12 correct</strong>
-          <span>Builds: {checks.map((check) => `${check.transfer ? 'On your own' : 'Build it'}: ${record.checks[check.id]?.passed ? (record.checks[check.id].supported ? 'done with help' : 'done solo') : 'not yet'}`).join(' · ')}</span>
-          <span>Hints and help used: {summary.helpUses}</span>
-        </section>
-      )}
-
       <ol className="fq-print-problems">
-        {problems.map((problem) => {
-          const status = statusOf(problem, record);
-          const draft = record.worksheet[problem.id]?.draft.trim();
-          return (
-            <li key={problem.id}>
-              <p className="fq-print-prompt"><MathText text={paperPrompt(problem)} /></p>
-              <ProblemModel problem={problem} />
-              <div className="fq-print-answer">
-                <span>Answer:</span>
-                <b>{answers ? draft || '' : ''}</b>
-                {answers && <em className={`status-${status}`}>{STATUS_TEXT[status]}</em>}
-              </div>
-              {!answers && problem.form && <small>{ANSWER_FORMAT[problem.form]}</small>}
-            </li>
-          );
-        })}
+        {problems.map((problem) => (
+          <li key={problem.id}>
+            <p className="fq-print-prompt"><MathText text={paperPrompt(problem)} /></p>
+            <ProblemModel problem={problem} />
+            <div className="fq-print-answer">
+              <span>Answer:</span>
+              <b />
+            </div>
+            {problem.form && <small>{ANSWER_FORMAT[problem.form]}</small>}
+          </li>
+        ))}
       </ol>
 
-      {!answers && SHAPE_LESSONS.includes(missionId) && <ColorTwoWays />}
-      {!answers && (
-        <section className="fq-print-draw">
-          <h2>Show it both ways</h2>
-          <p>{checks[0].prompt} {isSet ? 'Circle equal groups' : 'Draw it on the bar'}, then show the same fraction on the number line.</p>
-          <div className="fq-print-draw-grid">
-            {isSet
-              ? <div><ModelTag kind="set">Set model: circle equal groups and shade the ones you pick</ModelTag><SetSvg n={0} d={1} total={checks[0].target.total ?? 12} /></div>
-              : <div><ModelTag kind="bar">Bar model: split the bar into equal pieces and shade</ModelTag><BarSvg /></div>}
-            <div><ModelTag kind="line">Number line: add equal spaces, then mark your point</ModelTag><LineSvg /></div>
-          </div>
-          <p className="fq-print-why">Why do both show the same fraction? <i /><i /></p>
-        </section>
-      )}
+      {SHAPE_LESSONS.includes(missionId) && <ColorTwoWays />}
+      <section className="fq-print-draw">
+        <h2>Show it both ways</h2>
+        <p>{checks[0].prompt} {isSet ? 'Circle equal groups' : 'Draw it on the bar'}, then show the same fraction on the number line.</p>
+        <div className="fq-print-draw-grid">
+          {isSet
+            ? <div><ModelTag kind="set">Set model: circle equal groups and shade the ones you pick</ModelTag><SetSvg n={0} d={1} total={checks[0].target.total ?? 12} /></div>
+            : <div><ModelTag kind="bar">Bar model: split the bar into equal pieces and shade</ModelTag><BarSvg /></div>}
+          <div><ModelTag kind="line">Number line: add equal spaces, then mark your point</ModelTag><LineSvg /></div>
+        </div>
+        <p className="fq-print-why">Why do both show the same fraction? <i /><i /></p>
+      </section>
 
-      <footer className="fq-print-foot">Fraction Quest · fractions for ages 8–10{answers ? ` · Printed ${printedOn}` : ''}</footer>
+      <footer className="fq-print-foot">Fraction Quest · fractions for ages 8–10</footer>
     </article>
   );
 }
@@ -141,6 +112,7 @@ function WorksheetPage({ missionId, record, mode }: { missionId: string; record:
 
 /** A lesson model drawn in black and white for paper. */
 export function PrintModel({ model, labels = true }: { model: ModelSpec; labels?: boolean }) {
+  const setLayout = model.kind === 'set' ? setModelLayout(model) : null;
   return (
     <div className="fq-print-model">
       {(model.kind === 'bars' || model.kind === 'decimal') && <ModelTag kind="bar" />}
@@ -153,8 +125,9 @@ export function PrintModel({ model, labels = true }: { model: ModelSpec; labels?
       ))}
       {model.kind === 'decimal' && <div className="fq-print-bar-row"><BarSvg n={model.tenths} d={10} />{labels && <b className="fq-print-decimal-value">{(model.tenths / 10).toFixed(1)}</b>}</div>}
       {model.kind === 'line' && <LineSvg n={model.numerator} d={model.denominator} wholes={model.wholes ?? Math.max(1, Math.ceil(model.numerator / model.denominator))} />}
-      {model.kind === 'set' && (
-        <svg className="fq-svg-set" viewBox={`0 0 ${Math.min(model.total, 10) * 26 + 4} ${Math.ceil(model.total / 10) * 26 + 4}`} role="img" aria-label={`${model.selected} of ${model.total} counters shaded`}>
+      {model.kind === 'set' && (setLayout
+        ? <SetSvg n={setLayout.selectedGroups} d={setLayout.groupCount} total={model.total} />
+        : <svg className="fq-svg-set" viewBox={`0 0 ${Math.min(model.total, 10) * 26 + 4} ${Math.ceil(model.total / 10) * 26 + 4}`} role="img" aria-label={`${model.selected} of ${model.total} counters shaded`}>
           {Array.from({ length: model.total }, (_, i) => <circle key={i} className={i < model.selected ? 'dot on' : 'dot'} cx={15 + (i % 10) * 26} cy={15 + Math.floor(i / 10) * 26} r={10} />)}
         </svg>
       )}
@@ -338,13 +311,13 @@ function GeneratedSheet({ mission, seed }: { mission: Mission; seed: number }) {
 }
 
 /** A print-only page. Hidden on screen; while printing it replaces everything else. */
-export default function Printable({ missionId, record, mode, seed = 1 }: { missionId: string; record: LearningRecord; mode: PrintMode; seed?: number }) {
+export default function Printable({ missionId, mode, seed = 1 }: { missionId: string; mode: PrintMode; seed?: number }) {
   const mission = getMission(missionId);
   if (mode === 'generated') return <GeneratedSheet mission={mission} seed={seed} />;
   if (mode === 'lesson') return <LessonSheet mission={mission} />;
   if (mode === 'practice') return <PracticeSheet mission={mission} />;
   if (mode === 'challenge' && CHALLENGES[mission.unit]) return <ChallengeSheet mission={mission} />;
-  return <WorksheetPage missionId={missionId} record={record} mode={mode} />;
+  return <WorksheetPage missionId={missionId} />;
 }
 
 export const STUDENT_PRINT_OPTIONS: { mode: PrintMode; label: string }[] = [
@@ -352,12 +325,11 @@ export const STUDENT_PRINT_OPTIONS: { mode: PrintMode; label: string }[] = [
   { mode: 'practice', label: 'Practice questions' },
   { mode: 'generated', label: 'New practice sheet' },
   { mode: 'blank', label: 'Worksheet' },
-  { mode: 'answers', label: 'My answers' },
   { mode: 'challenge', label: 'Unit challenge' },
 ];
 
 /** "Print" button that opens a short list of printable pages for one lesson. */
-export function PrintMenu({ missionId, record, className = '' }: { missionId: string; record: LearningRecord; className?: string }) {
+export function PrintMenu({ missionId, className = '' }: { missionId: string; className?: string }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<PrintMode>('blank');
   const [request, setRequest] = useState(0);
@@ -383,7 +355,7 @@ export function PrintMenu({ missionId, record, className = '' }: { missionId: st
           ))}
         </div>
       )}
-      <Printable missionId={missionId} record={record} mode={mode} seed={seed} />
+      <Printable missionId={missionId} mode={mode} seed={seed} />
     </div>
   );
 }

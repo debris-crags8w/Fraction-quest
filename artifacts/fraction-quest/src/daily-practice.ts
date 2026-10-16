@@ -101,13 +101,17 @@ function bandForMission(progress: Progress, missionId: string): { band: Difficul
   const misses = misconceptionMisses(progress, missionId);
   const title = mission?.shortTitle.toLowerCase() ?? missionId;
 
+  if (allMastered) {
+    const rate = Math.round(Math.min(...states.map((state) => state.accuracy)) * 100);
+    return { band: 'transfer', reason: `moved to transfer ${title} set due to high recent accuracy (${rate}%)` };
+  }
   if (highestMissStreak >= RETEACH_MISS_STREAK) {
     return { band: 'scaffolded', reason: `moved to scaffolded ${title} set due to ${highestMissStreak} recent misses` };
   }
   if (misses >= 3 || (accuracy !== null && accuracy < 0.5)) {
     return { band: 'scaffolded', reason: `moved to scaffolded ${title} set due to misconception trend` };
   }
-  if (allMastered || (accuracy !== null && accuracy >= 0.9 && misses === 0)) {
+  if (accuracy !== null && accuracy >= 0.9 && misses === 0) {
     const rate = states[0] ? Math.round(states[0].accuracy * 100) : Math.round((accuracy ?? 0.9) * 100);
     return { band: 'transfer', reason: `moved to transfer ${title} set due to high recent accuracy (${rate}%)` };
   }
@@ -146,6 +150,12 @@ function adaptiveTarget(question: Pick<DailyPracticeQuestion, 'numerator' | 'den
   return question;
 }
 
+function explanationForTarget(numerator: number, denominator: number, modelKind: DailyPracticeQuestion['modelKind']) {
+  return modelKind === 'bar'
+    ? `${denominator} equal parts make one whole. ${numerator} ${numerator === 1 ? 'part is' : 'parts are'} shaded, so the fraction is ${numerator}/${denominator}.`
+    : `The line from 0 to 1 has ${denominator} equal spaces. ${numerator} jump${numerator === 1 ? '' : 's'} land at ${numerator}/${denominator}.`;
+}
+
 function makeDailyQuestion({
   progress, missionId, day, index, round, band, reason, reteachLoop = false, idSuffix = '',
 }: {
@@ -166,7 +176,9 @@ function makeDailyQuestion({
     ? 'bar' as const
     : (index + hash(day)) % 2 === 0 ? 'bar' as const : 'number-line' as const;
   const kind = questionKind(missionId, index, day, band);
-  const standards = (mission.standards ?? standardsForMission(missionId)) as StandardId[];
+  const standards: StandardId[] = kind === 'choice'
+    ? (mission.standards ?? standardsForMission(missionId)) as StandardId[]
+    : [modelKind === 'bar' ? '3.NF.1' : '3.NF.2a'];
   return {
     kind,
     ...(kind === 'choice' ? { seed: hash(`${day}:${missionId}:${index}:${idSuffix}`) } : {}),
@@ -180,9 +192,7 @@ function makeDailyQuestion({
     modelKind,
     numerator: target.numerator,
     denominator: target.denominator,
-    explanation: modelKind === 'bar'
-      ? `${target.denominator} equal parts make one whole. ${target.numerator} ${target.numerator === 1 ? 'part is' : 'parts are'} shaded, so the fraction is ${target.numerator}/${target.denominator}.`
-      : `The line from 0 to 1 has ${target.denominator} equal spaces. ${target.numerator} jump${target.numerator === 1 ? '' : 's'} land at ${target.numerator}/${target.denominator}.`,
+    explanation: explanationForTarget(target.numerator, target.denominator, modelKind),
   };
 }
 
@@ -240,12 +250,13 @@ export function createDailyPractice(progress: Progress, now = Date.now()): Daily
   const pool = orderedIds.length ? orderedIds : [MISSIONS[0].id];
   const picks = Array.from({ length: DAILY_PRACTICE_LENGTH }, (_, index) => pool[index % pool.length]);
   const seen: string[] = [];
-  const questions = picks.map((pickId, index) => {
+  const questions: DailyPracticeQuestion[] = [];
+  for (const [index, pickId] of picks.entries()) {
     const { band, reason } = bandForMission(progress, pickId);
     const missionId = band === 'transfer'
       ? transferMissionFor(progress, pickId, `${day}:${index}:${pickId}`) ?? pickId
       : pickId;
-    const round = picks.slice(0, index).filter((id) => id === missionId).length;
+    const round = questions.filter((question) => question.missionId === missionId).length;
     const question = makeDailyQuestion({ progress, missionId, day, index, round, band, reason });
     let target = { numerator: question.numerator, denominator: question.denominator };
     // Repeated lessons get a fraction not already used today.
@@ -256,8 +267,13 @@ export function createDailyPractice(progress: Progress, now = Date.now()): Daily
       target = { numerator: n, denominator: d };
     }
     seen.push(`${target.numerator}/${target.denominator}`);
-    return { ...question, numerator: target.numerator, denominator: target.denominator };
-  });
+    questions.push({
+      ...question,
+      numerator: target.numerator,
+      denominator: target.denominator,
+      explanation: explanationForTarget(target.numerator, target.denominator, question.modelKind),
+    });
+  }
 
   return { day, startedAt: now, questions, index: 0, attempts: {} };
 }
@@ -285,11 +301,37 @@ function logAdaptiveEvent(progress: Progress, event: AdaptationEvent): Progress 
   return { ...progress, adaptationLog: [...current, event].slice(-120) };
 }
 
+function logQuestionAdaptation(
+  progress: Progress,
+  question: DailyPracticeQuestion,
+  band: DifficultyBand,
+  reason: string,
+  now: number,
+): Progress {
+  const standards = (question.standards?.length ? question.standards : standardsForMission(question.missionId)) as StandardId[];
+  return standards.reduce((updated, standard) => logAdaptiveEvent(updated, {
+    at: now,
+    missionId: question.missionId,
+    standard,
+    band,
+    reason,
+  }), progress);
+}
+
+/** Save non-grade-level decisions made when a new daily session is first created. */
+export function recordDailyPracticeStart(progress: Progress, session: DailyPracticeSession, now = session.startedAt): Progress {
+  let updated: Progress = { ...progress, dailyPractice: session };
+  for (const question of session.questions) {
+    if (!question.adaptationReason || !question.difficultyBand || question.difficultyBand === 'grade-level') continue;
+    updated = logQuestionAdaptation(updated, question, question.difficultyBand, question.adaptationReason, now);
+  }
+  return updated;
+}
+
 function recordAdaptiveStandards(progress: Progress, question: DailyPracticeQuestion, correct: boolean, now: number): Progress {
   const standards = (question.standards?.length ? question.standards : standardsForMission(question.missionId)) as StandardId[];
   if (!standards.length) return progress;
   const nextStates = { ...(progress.adaptiveStandards ?? {}) };
-  let updated = progress;
   for (const standard of standards) {
     const previous = nextStates[standard];
     const recent = [...(previous?.recent ?? []), correct].slice(-RECENT_WINDOW);
@@ -302,31 +344,14 @@ function recordAdaptiveStandards(progress: Progress, question: DailyPracticeQues
           ? 'mastered'
           : recent.length >= 2 ? 'developing' : previous?.status ?? 'not-yet';
     nextStates[standard] = { status, recent, accuracy, streakCorrect, streakMisses, lastUpdatedAt: now };
-    if (streakMisses >= RETEACH_MISS_STREAK) {
-      updated = logAdaptiveEvent(updated, {
-        at: now,
-        missionId: question.missionId,
-        standard,
-        band: 'scaffolded',
-        reason: `moved to scaffolded ${question.topicTitle.toLowerCase()} set due to ${streakMisses} recent misses`,
-      });
-    } else if (status === 'mastered' && accuracy >= MASTERY_ACCURACY && streakCorrect >= 3) {
-      updated = logAdaptiveEvent(updated, {
-        at: now,
-        missionId: question.missionId,
-        standard,
-        band: 'transfer',
-        reason: `moved to transfer ${question.topicTitle.toLowerCase()} set due to high recent accuracy (${Math.round(accuracy * 100)}%)`,
-      });
-    }
   }
-  return { ...updated, adaptiveStandards: nextStates };
+  return { ...progress, adaptiveStandards: nextStates };
 }
 
 function injectReteachQuestion(progress: Progress, session: DailyPracticeSession, index: number, reason: string): DailyPracticeSession {
   const current = session.questions[index];
-  const next = session.questions[index + 1];
-  if (!current || (next?.reteachLoop && next.missionId === current.missionId)) return session;
+  const previous = session.questions[index - 1];
+  if (!current || current.reteachLoop || (previous?.reteachLoop && previous.missionId === current.missionId)) return session;
   const round = session.questions.slice(0, index + 1).filter((question) => question.missionId === current.missionId).length;
   const reteach = makeDailyQuestion({
     progress,
@@ -339,9 +364,10 @@ function injectReteachQuestion(progress: Progress, session: DailyPracticeSession
     reteachLoop: true,
     idSuffix: `-rt-${hash(`${session.day}:${current.id}:${round}`) % 999}`,
   });
-  const questions = [...session.questions.slice(0, index + 1), reteach, ...session.questions.slice(index + 1)];
+  const questions = [...session.questions.slice(0, index), reteach, ...session.questions.slice(index)];
   if (questions.length > MAX_DAILY_QUESTIONS) questions.pop();
-  return { ...session, questions };
+  // Keep the original question immediately after the reteach so the learner can try it again.
+  return { ...session, questions, index };
 }
 
 function upgradeNextQuestion(progress: Progress, session: DailyPracticeSession, index: number, reason: string): DailyPracticeSession {
@@ -374,7 +400,9 @@ export function applyAdaptiveDailyPracticeUpdate(progress: Progress, nextSession
   const answered = nextSession.questions.find((question) => {
     const before = previous.attempts[question.id];
     const after = nextSession.attempts[question.id];
-    return !before?.answerChecked && !!after?.answerChecked;
+    const checkedBefore = question.kind === 'choice' ? !!before?.answerChecked : !!before?.modelChecked;
+    const checkedAfter = question.kind === 'choice' ? !!after?.answerChecked : !!after?.modelChecked;
+    return !checkedBefore && checkedAfter;
   });
   if (!answered) return nextProgress;
   const outcome = !!nextSession.attempts[answered.id]?.answerCorrect;
@@ -384,7 +412,19 @@ export function applyAdaptiveDailyPracticeUpdate(progress: Progress, nextSession
   if (answeredIndex < 0) return nextProgress;
   const { band, reason } = bandForMission(nextProgress, answered.missionId);
   let adaptedSession = nextProgress.dailyPractice ?? nextSession;
-  if (!outcome && band === 'scaffolded') adaptedSession = injectReteachQuestion(nextProgress, adaptedSession, answeredIndex, reason);
-  if (outcome && band === 'transfer') adaptedSession = upgradeNextQuestion(nextProgress, adaptedSession, answeredIndex, reason);
+  if (!outcome && band === 'scaffolded') {
+    const reteachSession = injectReteachQuestion(nextProgress, adaptedSession, answeredIndex, reason);
+    if (reteachSession !== adaptedSession) {
+      adaptedSession = reteachSession;
+      nextProgress = logQuestionAdaptation(nextProgress, answered, 'scaffolded', reason, now);
+    }
+  }
+  if (outcome && band === 'transfer') {
+    const transferSession = upgradeNextQuestion(nextProgress, adaptedSession, answeredIndex, reason);
+    if (transferSession !== adaptedSession) {
+      adaptedSession = transferSession;
+      nextProgress = logQuestionAdaptation(nextProgress, answered, 'transfer', reason, now);
+    }
+  }
   return { ...nextProgress, dailyPractice: adaptedSession };
 }

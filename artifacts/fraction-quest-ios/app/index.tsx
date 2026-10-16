@@ -28,9 +28,14 @@ export default function FractionQuestShell() {
     const message = parseShellMessage(event.nativeEvent.data);
     if (!message) return;
     if (message.type === 'haptic') {
-      if (message.cue === 'retry') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      else if (message.cue === 'complete') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      else void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const feedback = message.cue === 'selection'
+        ? Haptics.selectionAsync()
+        : message.cue === 'retry'
+          ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+          : message.cue === 'complete'
+            ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+            : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void feedback.catch(() => { /* haptics are optional and may be unavailable on this device */ });
     } else if (message.type === 'print') {
       void Print.printAsync({ html: message.html }).catch(() => { /* the child closed the sheet */ });
     }
@@ -79,7 +84,8 @@ export default function FractionQuestShell() {
           bounces={false}
           contentInsetAdjustmentBehavior="never"
           setSupportMultipleWindows={false}
-          textInteractionEnabled={false}
+          // Keep login, signup, and other web form fields editable in the iOS WebView.
+          textInteractionEnabled
           decelerationRate="normal"
         />
       )}

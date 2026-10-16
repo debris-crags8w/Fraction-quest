@@ -8,7 +8,7 @@ import type { Server } from "node:http";
 process.env.VOICE_CACHE_DIR = mkdtempSync(path.join(os.tmpdir(), "fq-voice-test-"));
 const express = (await import("express")).default;
 const { default: apiRouter } = await import("./routes/index");
-const { encodeWav, setVoiceEngineForTests, cleanVoiceText } = await import("./lib/voice");
+const { encodeWav, setVoiceEngineForTests, cleanVoiceText, VOICES } = await import("./lib/voice");
 
 let calls: string[] = [];
 const fakeEngine = {
@@ -48,6 +48,19 @@ describe("server natural voice", () => {
     const same = await Promise.all([fetch(`${base}/api/voice/speech?voice=af_bella&text=Two%20thirds.`), fetch(`${base}/api/voice/speech?voice=af_bella&text=Two%20thirds.`)]);
     await Promise.all(same.map((r) => r.arrayBuffer()));
     assert.deepEqual(calls, ["af_bella:One half.", "af_bella:Two thirds."]);
+  });
+
+  it("accepts every configured Kokoro voice and returns playable WAV audio", async () => {
+    setVoiceEngineForTests(fakeEngine); calls = [];
+    for (const voice of VOICES) {
+      const text = `Sample for ${voice}.`;
+      const res = await fetch(`${base}/api/voice/speech?voice=${voice}&text=${encodeURIComponent(text)}`);
+      assert.equal(res.status, 200, `voice ${voice} should be accepted`);
+      assert.equal(res.headers.get("content-type"), "audio/wav");
+      const wav = Buffer.from(await res.arrayBuffer());
+      assert.equal(wav.toString("ascii", 0, 4), "RIFF");
+    }
+    assert.deepEqual(calls, VOICES.map((voice) => `${voice}:Sample for ${voice}.`));
   });
 
   it("refuses unknown voices, empty text and very long text", async () => {

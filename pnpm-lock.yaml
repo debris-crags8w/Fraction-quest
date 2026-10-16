@@ -62,7 +62,7 @@ catalogs:
       version: 4.3.3
     tsx:
       specifier: ^4.21.0
-      version: 4.23.13
+      version: 4.23.15
     vite:
       specifier: ^7.3.2
       version: 7.3.6
@@ -225,6 +225,9 @@ importers:
       thread-stream:
         specifier: 3.1.0
         version: 3.1.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
 
   artifacts/fraction-quest:
     dependencies:
@@ -406,6 +409,9 @@ importers:
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.3
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
@@ -797,7 +803,7 @@ importers:
         version: 25.9.6
       tsx:
         specifier: 'catalog:'
-        version: 4.23.13
+        version: 4.23.15
 
 packages:
 
@@ -5246,11 +5252,6 @@ packages:
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
-  tsx@4.23.13:
-    resolution: {integrity: sha512-BL5MGkRln6aDYhb0xbQlEAGw743BaZYWdbWtdJOBriYJboKgUUYCadFp2/FpBBZquBC/ezNBn7wMMPx7FDZUDw==}
-    engines: {node: '>=18.0.0'}
-    hasBin: true
-
   tsx@4.23.15:
     resolution: {integrity: sha512-Yiex1Ovn8z2xPpOWckIiysV1SSyRMY9BkLF++q0yKiDxCqRhosKfMg3janKkiLBwZ5c/YryloKwGZcrEmtwxKw==}
     engines: {node: '>=18.0.0'}
@@ -8526,7 +8527,7 @@ snapshots:
       '@drizzle-team/brocli': 0.10.2
       '@esbuild-kit/esm-loader': tsx@4.23.15
       esbuild: 0.28.2
-      tsx: 4.23.13
+      tsx: 4.23.15
 
   drizzle-orm@0.45.2(@types/pg@8.23.1)(pg@8.23.0):
     optionalDependencies:
@@ -10810,12 +10811,6 @@ snapshots:
   tr46@0.0.3: {}
 
   tslib@2.8.1: {}
-
-  tsx@4.23.13:
-    dependencies:
-      esbuild: 0.28.2
-    optionalDependencies:
-      fsevents: 2.3.3
 
   tsx@4.23.15:
     dependencies:

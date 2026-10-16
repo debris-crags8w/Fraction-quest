@@ -18,11 +18,14 @@ import {
   isCorrectAnswer,
   isMissionUnlocked,
   loadProgress,
+  FRACTION_ORDER_ROUNDS,
   MISSIONS,
   numberLineWholeCount,
   recordMissedSkill,
   resetProgress as resetSavedProgress,
+  sameFractionValue,
   saveProgress,
+  setModelLayout,
   starsFromFirstTryAnswers,
   type Answer,
   type Mission,
@@ -30,6 +33,7 @@ import {
   type PracticeQuestion,
   type Progress,
 } from './game';
+import { createDeveloperLessonProgress } from './developer-test';
 import { saveAssessmentAttempt } from './assessments';
 import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
@@ -37,13 +41,13 @@ import LearningLab, { RedoLab } from './LearningLab';
 import { LearningListenButton, LearningText, LearningTextSection, useReadAloud } from './LearningText';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
-import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, resetUnitLearningProgress, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
+import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, optionalWorksheetCount, requiredWorksheetDone, resetUnitLearningProgress, startRedo, updateLearning, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { DAILY_GOAL, loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setSound, type FunState } from './lib/fun';
+import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
-import { ModelTag, WholeBracket } from './models';
+import { ModelTag, SetSvg, WholeBracket } from './models';
 import { Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type PathNode } from './fun-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
@@ -63,8 +67,9 @@ import { AccountGate, useAccount, useAccountSync } from './account';
 import LoginPage from './LoginPage';
 import { getRouterBasePath } from './app-routing';
 import DailyPractice from './DailyPractice';
-import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyPracticeDay } from './daily-practice';
+import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyPracticeDay, recordDailyPracticeStart } from './daily-practice';
 import PartFinder from './PartFinder';
+import FractionSortActivity from './FractionSortActivity';
 import { AssessmentHub, AssessmentRunner } from './Assessment';
 import { PART_FINDER_LESSONS, partFinderRoundsFor } from './part-finder';
 import ConceptGames, { type LessonGame } from './ConceptGames';
@@ -85,7 +90,9 @@ type View =
   | { type: 'assessment'; definition: AssessmentDefinition; seed: number }
   | { type: 'reward'; missionId: string; stars: number }
   /** The lesson's hands-on cake rounds (Part Finder), between the worked example and the questions. */
-  | { type: 'hands-on'; missionId: string; reviewQuestions: PracticeQuestion[] };
+  | { type: 'hands-on'; missionId: string; reviewQuestions: PracticeQuestion[] }
+  /** Local card arrangement before scored questions; it does not save lesson evidence. */
+  | { type: 'fraction-sort'; missionId: string; reviewQuestions: PracticeQuestion[] };
 type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string };
 type RedoView = { type: 'redo'; missionId: string };
@@ -201,6 +208,91 @@ function FractionBar({ numerator, denominator, quiet = false, label = false, gui
   );
 }
 
+export function OrderNumberLine({
+  points,
+  benchmark,
+  equivalentNames = [],
+}: {
+  points: { numerator: number; denominator: number }[];
+  benchmark: { numerator: number; denominator: number };
+  equivalentNames?: { fraction: { numerator: number; denominator: number }; equivalentTo: { numerator: number; denominator: number } }[];
+}) {
+  const fractionName = ({ numerator, denominator }: { numerator: number; denominator: number }) => `${numerator}/${denominator}`;
+  const equivalentNamesFor = (point: { numerator: number; denominator: number }) =>
+    equivalentNames.filter(({ equivalentTo }) => sameFractionValue(point, equivalentTo));
+  const equivalentDescriptionFor = (
+    point: { numerator: number; denominator: number },
+    names: { fraction: { numerator: number; denominator: number } }[],
+  ) => names.map(({ fraction }) =>
+    `${fractionName(point)} and ${fractionName(fraction)} are equivalent fractions. They mark the same amount and number-line spot.`,
+  ).join(' ');
+  const pointText = (point: { numerator: number; denominator: number }) =>
+    `${point.numerator}/${point.denominator} is at ${point.numerator} of ${point.denominator} equal spaces from zero to one`;
+  const benchmarkNames = equivalentNamesFor(benchmark);
+  const benchmarkIsHalf = benchmark.numerator * 2 === benchmark.denominator;
+  const description = [
+    'A number line from zero to one.',
+    ...points.map((point) => {
+      const names = equivalentNamesFor(point);
+      return names.length
+        ? `${pointText(point)}. ${equivalentDescriptionFor(point, names)}`
+        : pointText(point);
+    }),
+    ...(benchmarkIsHalf
+      ? [`The one-half benchmark is halfway between zero and one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]
+      : [`The benchmark ${benchmark.numerator}/${benchmark.denominator} is at ${benchmark.numerator} of ${benchmark.denominator} equal spaces from zero to one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]),
+    `From left to right, the fractions are ${points.map(({ numerator, denominator }) => `${numerator}/${denominator}`).join(', ')}.`,
+  ].join(' ');
+
+  return (
+    <figure className="fq-order-line-figure" data-testid="fraction-order-numberline">
+      <div
+        className="fq-order-line"
+        role="img"
+        aria-label={description}
+      >
+        <span className="fq-order-line-axis" aria-hidden="true" />
+        {[0, 1].map((end) => <span className="fq-order-line-end" style={{ left: `${end * 100}%` }} key={end} aria-hidden="true" />)}
+        <span
+          className="fq-order-line-benchmark"
+          style={{ left: `${(benchmark.numerator / benchmark.denominator) * 100}%` }}
+          data-testid="fraction-order-benchmark"
+          data-equivalent-names={benchmarkNames.map(({ fraction }) => fractionName(fraction)).join(',')}
+          aria-hidden="true"
+        >
+          <span>{[fractionName(benchmark), ...benchmarkNames.map(({ fraction }) => fractionName(fraction))].join(' = ')}</span>
+        </span>
+        {points.map((point, index) => {
+          const position = (point.numerator / point.denominator) * 100;
+          const names = equivalentNamesFor(point);
+          const label = [fractionName(point), ...names.map(({ fraction }) => fractionName(fraction))].join(' = ');
+          return (
+            <span
+              className="fq-order-line-point"
+              style={{ left: `${position}%`, '--lane': index % 2 } as CSSProperties}
+              key={`${point.numerator}/${point.denominator}`}
+              data-testid={`fraction-order-point-${point.numerator}-${point.denominator}`}
+              data-position={position}
+              data-equivalent-names={names.map(({ fraction }) => fractionName(fraction)).join(',')}
+              aria-hidden="true"
+            >
+              <span>{label}</span>
+            </span>
+          );
+        })}
+      </div>
+      <figcaption className="fq-order-line-caption">
+        <span>0</span><span>1 whole</span>
+      </figcaption>
+      <p className="fq-order-line-description" data-testid="text-fraction-order-line-description">
+        <span className="fq-order-line-description-copy" data-testid="text-fraction-order-line-description-copy">
+          {description}
+        </span>
+        <LearningListenButton text={description} label="Listen to the fraction number line" />
+      </p>
+    </figure>
+  );
+}
 /** Two bars of one whole each, once answered: where the larger amount ends. */
 function compareGuide(model: ModelSpec, reveal: boolean): number | undefined {
   if (!reveal || model.kind !== 'bars' || model.bars.length !== 2) return undefined;
@@ -212,6 +304,7 @@ function compareGuide(model: ModelSpec, reveal: boolean): number | undefined {
 /** `asked`: the picture belongs to a question, so number-line labels (1/5, 2/5…) and the readout stay hidden until it is answered. */
 /** `walk`: after a miss, a "count with me" walk along the picture (see FractionBar); a new value replays it. */
 function ModelView({ model, compact = false, reveal = false, asked = false, walk = null }: { model: ModelSpec; compact?: boolean; reveal?: boolean; asked?: boolean; walk?: number | null }) {
+  const setLayout = model.kind === 'set' ? setModelLayout(model) : null;
   return (
     <div className={`fq-visual-model ${compact ? 'compact' : ''}`} data-testid="visual-fraction-model">
       {!compact && (model.kind === 'bars' || model.kind === 'decimal') && <ModelTag kind="bar" />}
@@ -232,9 +325,11 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
       )}
       {model.kind === 'set' && (
         <div className="fq-set-wrap">
-          <div className="fq-counter-set" role="img" aria-label={`${model.selected} of ${model.total} counters highlighted`}>
-            {Array.from({ length: model.total }, (_, index) => <span className={`fq-counter ${index < model.selected ? 'selected' : ''}`} style={{ '--i': index } as CSSProperties} key={index} />)}
-          </div>
+          {setLayout
+            ? <SetSvg n={setLayout.selectedGroups} d={setLayout.groupCount} total={model.total} />
+            : <div className="fq-counter-set" role="img" aria-label={`${model.selected} of ${model.total} counters highlighted`}>
+              {Array.from({ length: model.total }, (_, index) => <span className={`fq-counter ${index < model.selected ? 'selected' : ''}`} style={{ '--i': index } as CSSProperties} key={index} />)}
+            </div>}
         </div>
       )}
       {model.kind === 'line' && (() => {
@@ -369,7 +464,7 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
   );
 }
 
-function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
+function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onDeveloperTest: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
   const account = useAccount();
   const { user } = account;
   const { fun } = useFun();
@@ -382,6 +477,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
     && !(progress.placement && item.unit < progress.placement.unit && !progress.learning?.[item.id]));
   const evidenceRecommendation = !!nextMission && nextMission.id !== firstPendingMission?.id;
   const [selectedId, setSelectedId] = useState<string | null>(() => nextMission?.id ?? null);
+  const [developerMissionId, setDeveloperMissionId] = useState(MISSIONS[0]?.id ?? '');
   const units = UNIT_INFO.map((unit, index) => ({
     ...unit,
     number: index + 1,
@@ -454,6 +550,21 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
             Your teacher suggested: {assignedUnits.map((unit) => `Unit ${unit}: ${UNIT_TITLES[unit - 1]}`).join(' · ')}.
             These suggestions do not change which lessons are unlocked.
           </p>}
+          {import.meta.env.DEV && <details className="fq-developer-test" data-testid="developer-module-test">
+            <summary>Developer testing · open any lesson</summary>
+            <div className="fq-developer-test-body">
+              <p>Choose a lesson to test it without finishing earlier units. Test answers and progress are temporary and discarded when you exit.</p>
+              <label htmlFor="developer-lesson-select">Lesson to test</label>
+              <select id="developer-lesson-select" value={developerMissionId} onChange={(event) => setDeveloperMissionId(event.target.value)} data-testid="select-developer-lesson">
+                {units.map((unit) => <optgroup key={unit.number} label={`Unit ${unit.number}: ${unit.title}`}>
+                  {unit.missions.map((mission) => <option key={mission.id} value={mission.id}>{mission.title}</option>)}
+                </optgroup>)}
+              </select>
+              <button type="button" className="fq-button secondary" disabled={!developerMissionId} onClick={() => onDeveloperTest(developerMissionId)} data-testid="button-open-developer-lesson">
+                Open lesson test
+              </button>
+            </div>
+          </details>}
 
           {!nextMission ? (
             <div className="fq-course-finished" data-testid="status-course-complete"><Trophy size={24} /> You explored every lesson. Replay any one to practice again.</div>
@@ -521,10 +632,11 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
                               {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
                             </p>}
                             <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
-                              Worksheet {worksheetCount(learning, mission.id)}/12 · Builds on my own {summary.independentChecks}/2
+                              Worksheet question 1 required: {requiredWorksheetDone(learning, mission.id) ? 'done' : 'to do'} · Optional practice {optionalWorksheetCount(learning, mission.id)}/11
+                              <br />Builds on my own {summary.independentChecks}/2
                               <br />Remembered: {summary.retention}
                               <br />Code levels passed: {Math.min(CODE_LEVEL_COUNT, Math.floor(fun.codeLevels?.[mission.id] ?? 0))}/{CODE_LEVEL_COUNT}
-                              {!completed && unlocked && <><br />Finish the builds and the worksheet to open the next lesson.</>}
+                              {!completed && unlocked && <><br />Finish the builds and required worksheet question to open the next lesson.</>}
                               {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Your old progress is saved. A few new steps are needed.</>}
                             </p>
                             <button
@@ -544,7 +656,7 @@ function MissionMap({ progress, onStart, onOpenLab, onStartReview, onStartDaily,
                             {unlocked && (
                               <div className="fq-node-tools">
                                 {hasGenerator(mission.id) && <button className="fq-button ghost" onClick={() => onExtra(mission.id)} data-testid={`button-practice-more-${mission.id}`}><Dumbbell size={17} /> Practice more</button>}
-                                <PrintMenu missionId={mission.id} record={learning} />
+                                <PrintMenu missionId={mission.id} />
                                 <button className="fq-button ghost" onClick={() => onPaper(mission.id)} data-testid={`button-check-paper-${mission.id}`}><ClipboardCheck size={17} /> Check my paper</button>
                                 <button className="fq-button ghost" onClick={() => onGame('race', mission.id)} data-testid={`button-race-${mission.id}`}><Zap size={17} /> Race</button>
                                 <button className="fq-button ghost" onClick={() => onGame('code', mission.id)} data-testid={`button-code-${mission.id}`}><Code2 size={17} /> Code</button>
@@ -582,7 +694,40 @@ function GuidedExample({ mission, title, lessonLabel }: { mission: Mission; titl
           <p className="fq-skill-copy"><LearningText text={mission.skill} /></p>
         </div>
       </div>
+      {mission.learningIntro && (
+        <section className="fq-example-intro" aria-label="How to order fractions" data-testid="lesson-introduction">
+          <h3>How to order fractions</h3>
+          <LearningTextSection
+            id="lesson-intro-goal"
+            heading="Goal"
+            text={mission.learningIntro.goal}
+            label="Listen to the goal"
+            className="fq-example-section"
+          />
+          <LearningTextSection
+            id="lesson-intro-process"
+            heading="Process"
+            text={mission.learningIntro.process}
+            label="Listen to the process"
+            className="fq-example-section"
+          />
+          <LearningTextSection
+            id="lesson-intro-why"
+            heading="Why it works"
+            text={mission.learningIntro.why}
+            label="Listen to why it works"
+            className="fq-example-section"
+          />
+        </section>
+      )}
       <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
+      {mission.example.numberLine && (
+        <OrderNumberLine
+          points={mission.example.numberLine.points}
+          benchmark={mission.example.numberLine.benchmark}
+          equivalentNames={mission.example.numberLine.equivalentNames}
+        />
+      )}
       <div className="fq-example-answer">
         <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
         <LearningTextSection
@@ -667,6 +812,7 @@ function PlayView({
   const [retryText, setRetryText] = useState('');
   const [burst, setBurst] = useState(0);
   const [shake, setShake] = useState(0);
+  const [reviewingPastIndex, setReviewingPastIndex] = useState<number | null>(null);
   const { fun } = useFun();
   const question: PracticeQuestion | null = mission.questions[questionIndex] ?? null;
   const isLastQuestion = question ? questionIndex === mission.questions.length - 1 : false;
@@ -748,7 +894,7 @@ function PlayView({
   const doneSteps = questionIndex + (feedback === 'correct' ? 1 : 0);
   const opener = question ? retryOpener(`${question.id}:${attempts}`) : '';
   // After a miss, Hoot's help is read aloud (with sound on), so a child who can't read it all still hears why.
-  useReadAloud(feedback === 'retry' && fun.sound ? `${opener} ${retryText}` : null, feedback === 'retry' ? `${question?.id}:${attempts}` : null);
+  useReadAloud(reviewingPastIndex === null && feedback === 'retry' && fun.sound ? `${opener} ${retryText}` : null, reviewingPastIndex === null && feedback === 'retry' ? `${question?.id}:${attempts}` : null);
   const sheetRef = useRef<HTMLDivElement>(null);
   useRevealWhen(sheetRef, feedback !== null);
   const cheer = combo >= 3 ? `${combo} in a row! You're on fire.` : question?.isMastery ? 'Practice checkpoint passed!' : ['Nice work!', 'You found it!', 'Great thinking!', 'Yes, that\'s it!'][(questionIndex + 4) % 4];
@@ -759,26 +905,38 @@ function PlayView({
       <main className="fq-shell fq-play-shell fq-appear">
         <div className="fq-lesson-top">
           <button className="fq-icon-button fq-lesson-close" onClick={onBack} aria-label="Back to learning map" data-testid="button-back-map"><X size={22} strokeWidth={3} /></button>
-          <div className="fq-segments" role="progressbar" aria-valuemin={0} aria-valuemax={steps} aria-valuenow={doneSteps} aria-label={`${isQuickReview ? 'Quick review · ' : ''}Question ${questionIndex + 1} of ${mission.questions.length}`} data-testid="status-lesson-progress">
-            {Array.from({ length: steps }, (_, index) => <i key={index} className={index < doneSteps ? 'on' : index === doneSteps ? 'now' : ''} />)}
+          <div className="fq-segments" role="group" aria-label={`Lesson question progress: ${doneSteps} of ${steps} completed`} data-testid="status-lesson-progress">
+            {Array.from({ length: steps }, (_, index) => index < doneSteps
+              ? <button key={index} type="button" className="fq-segment on" onClick={() => setReviewingPastIndex(index)} aria-label={`Review completed question ${index + 1}`} title={`Review question ${index + 1}`} data-testid={`button-review-question-${index + 1}`} />
+              : <span key={index} className={`fq-segment ${index === doneSteps ? 'now' : ''}`} aria-hidden="true" />)}
+            <span className="fq-sr" aria-live="polite">Question {Math.min(questionIndex + 1, steps)} of {steps}; {doneSteps} completed.</span>
           </div>
           {combo >= 2 && <span className="fq-combo" data-testid="status-combo"><Flame size={16} fill="currentColor" /> {combo}</span>}
-          {question && (
+          {question && reviewingPastIndex === null && (
             <button className={`fq-bulb ${hintOpen ? 'open' : ''}`} onClick={toggleHint} aria-expanded={hintOpen} aria-label={hintOpen ? 'Hide hint' : 'Show a hint'} data-testid="button-show-hint">
               <Lightbulb size={20} strokeWidth={2.75} />
             </button>
           )}
         </div>
 
-        <section className="fq-play-card" aria-labelledby="lesson-title">
+        <section className="fq-play-card" aria-labelledby={reviewingPastIndex === null ? 'lesson-title' : 'past-review-heading'}>
+          {reviewingPastIndex !== null && mission.questions[reviewingPastIndex] ? (
+            <PastQuestionReview
+              question={mission.questions[reviewingPastIndex]}
+              questionNumber={reviewingPastIndex + 1}
+              currentQuestionNumber={questionIndex + 1}
+              onReturn={() => setReviewingPastIndex(null)}
+            />
+          ) : (
+            <>
           <p className="fq-play-kicker">
             {isQuickReview
-              ? `Quick skill review · ${question?.reviewTopicTitle ?? mission.shortTitle}`
+              ? `Quick skill review · ${question?.reviewTopicTitle ?? mission.shortTitle} · Question ${questionIndex + 1} of ${mission.questions.length}`
               : isExtraPractice
-                ? `Practice more · Lesson ${lessonNumber} · ${questionIndex + 1} of ${mission.questions.length}`
+                ? `Practice more · Lesson ${lessonNumber} · Question ${questionIndex + 1} of ${mission.questions.length}`
               : showExample
-                ? `Lesson ${lessonNumber} · ${mission.shortTitle} · See it, then try it`
-                : `Lesson ${lessonNumber} · ${mission.shortTitle} · ${questionIndex + 1} of ${mission.questions.length}`}
+                ? `Lesson ${lessonNumber} · ${mission.shortTitle} · See it, then try it · Question ${questionIndex + 1} of ${mission.questions.length}`
+                : `Lesson ${lessonNumber} · ${mission.shortTitle} · Question ${questionIndex + 1} of ${mission.questions.length}`}
           </p>
           {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
             {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
@@ -814,6 +972,7 @@ function PlayView({
                     disabled={out}
                     onClick={() => {
                       if (feedback === 'correct' || out) return;
+                      if (selection !== index) playHaptic('selection');
                       setSelection(index);
                       if (feedback === 'retry') setFeedback(null);
                     }}
@@ -857,9 +1016,45 @@ function PlayView({
               )}
             </>
           )}
+            </>
+          )}
         </section>
       </main>
 
+    </div>
+  );
+}
+
+function PastQuestionReview({
+  question,
+  questionNumber,
+  currentQuestionNumber,
+  onReturn,
+}: {
+  question: PracticeQuestion;
+  questionNumber: number;
+  currentQuestionNumber: number;
+  onReturn: () => void;
+}) {
+  return (
+    <div className="fq-past-review" data-testid="panel-past-question-review">
+      <p className="fq-play-kicker">Completed problem · Question {questionNumber}</p>
+      <h1 id="past-review-heading">Review question {questionNumber}</h1>
+      <p className="fq-past-review-note">You’re still on question {currentQuestionNumber}. Reviewing this problem will not change your lesson progress.</p>
+      <StoryPrompt prompt={question.prompt} id={`past-review-prompt-${questionNumber}`} />
+      <div className="fq-model-area" data-testid="past-review-model">
+        <ModelView model={question.model} reveal />
+      </div>
+      <div className="fq-past-review-answer" role="note">
+        <strong>Correct answer: <MathText text={question.choices[question.correctChoice] ?? ''} /></strong>
+        <div className="fq-past-review-explanation">
+          <LearningListenButton text={question.retryFeedback} label="Listen to the explanation" />
+          <span><LearningText text={question.retryFeedback} /></span>
+        </div>
+      </div>
+      <button className="fq-button secondary" onClick={onReturn} data-testid="button-return-to-current-question">
+        Back to question {currentQuestionNumber}
+      </button>
     </div>
   );
 }
@@ -882,7 +1077,7 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
           <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
           <h1>{mission.title}<br />is on your map.</h1>
-           <p>You built it two ways, explained it, and got all 12 worksheet answers. The next lesson is open!</p>
+           <p>You built it two ways, explained it, and answered the required worksheet question. The next lesson is open!</p>
           <div className="fq-reward-stars" data-testid="status-mission-stars" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}
@@ -945,6 +1140,9 @@ function ReviewCompleteView({ reviewedCount, progress, onMap, onReset }: { revie
 function Game() {
   const account = useAccount();
   const [progress, setProgress] = useState<Progress>(() => account.initialProgress ?? loadProgress());
+  const [moduleTestActive, setModuleTestActive] = useState(false);
+  const originalModuleTestProgress = useRef<Progress | null>(null);
+  const originalModuleTestFun = useRef<FunState | null>(null);
   const [view, setView] = useState<View | LabView | RetentionView | PaperView | RedoView | ChallengeView | ExtraView | ParentPage | GameView | PlacementView>({ type: 'map' });
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
@@ -959,8 +1157,9 @@ function Game() {
   const breakIntervalMinutes = fun.breakPreferences?.intervalMinutes ?? 15;
   const quietBreaks = fun.breakPreferences?.quietMode ?? false;
   const activeStudyView = ['play', 'review', 'daily', 'lab', 'redo', 'extra', 'retention'].includes(view.type);
-  useAccountSync(progress, fun);
+  useAccountSync(progress, fun, !moduleTestActive);
   const openResetDialog = () => {
+    if (moduleTestActive) { returnToMap(); return; }
     setResetAllConfirm(false);
     setResetOpen(true);
   };
@@ -1017,14 +1216,19 @@ function Game() {
     consecutiveWrongAnswers.current = 0;
   }, [breakIntervalMinutes]);
 
-  const startMission = (missionId: string) => {
-    if (!isMissionUnlocked(progress, missionId)) return;
-    const record = getLearningRecord(progress, missionId);
+  const startMission = (missionId: string, testProgress?: Progress) => {
+    const activeProgress = testProgress ?? progress;
+    if (!testProgress && !isMissionUnlocked(activeProgress, missionId)) return;
+    const record = getLearningRecord(activeProgress, missionId);
     if (record.practiceDone && !hasLearningGate(progress, missionId)) {
       setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? record.practiceStars ?? 1 });
       return;
     }
-    const reviewQuestions = getDelayedReviewQuestions(progress, missionId);
+    const reviewQuestions = getDelayedReviewQuestions(activeProgress, missionId);
+    if (missionId === 'order-unlike-fractions') {
+      setView({ type: 'fraction-sort', missionId, reviewQuestions });
+      return;
+    }
     if (PART_FINDER_LESSONS.has(missionId)) {
       setView({ type: 'hands-on', missionId, reviewQuestions });
       return;
@@ -1038,6 +1242,17 @@ function Game() {
       showExample: true,
     });
   };
+  const startDeveloperLessonTest = (missionId: string) => {
+    if (!import.meta.env.DEV || moduleTestActive) return;
+    const previewProgress = createDeveloperLessonProgress(progress, missionId);
+    if (!previewProgress) return;
+    originalModuleTestProgress.current = progress;
+    originalModuleTestFun.current = fun;
+    setFunStorageEnabled(false);
+    setModuleTestActive(true);
+    setProgress(previewProgress);
+    startMission(missionId, previewProgress);
+  };
 
   const startReview = () => {
     setPendingRetention(null);
@@ -1050,12 +1265,12 @@ function Game() {
   const startDailyPractice = () => {
     const saved = progress.dailyPractice;
     const session = saved?.day === dailyPracticeDay() ? saved : createDailyPractice(progress);
-    if (session !== saved) persistProgress({ ...progress, dailyPractice: session });
+    if (session !== saved) persistProgress(recordDailyPracticeStart(progress, session));
     setView({ type: 'daily' });
   };
 
   const persistProgress = (nextProgress: Progress) => {
-    setSaveError(!saveProgress(nextProgress));
+    if (!moduleTestActive) setSaveError(!saveProgress(nextProgress));
     setProgress(nextProgress);
   };
 
@@ -1110,7 +1325,22 @@ function Game() {
     setView({ type: 'redo', missionId });
   };
   const exitGame = () => { if ((view.type === 'race' || view.type === 'code') && view.fromGames) setView({ type: 'concept-games' }); else returnToMap(); };
-  const returnToMap = () => { setPendingRetention(null); setCombo(0); consecutiveWrongAnswers.current = 0; setView({ type: 'map' }); };
+  const returnToMap = () => {
+    setPendingRetention(null);
+    setCombo(0);
+    consecutiveWrongAnswers.current = 0;
+    const savedProgress = originalModuleTestProgress.current;
+    const savedFun = originalModuleTestFun.current;
+    if (savedProgress) {
+      setFunStorageEnabled(true);
+      setProgress(savedProgress);
+      if (savedFun) setFun(savedFun);
+      originalModuleTestProgress.current = null;
+      originalModuleTestFun.current = null;
+      setModuleTestActive(false);
+    }
+    setView({ type: 'map' });
+  };
   const nextReviewView = (nextView: View) => {
     if (pendingRetention) {
       setView({ type: 'retention', missionId: pendingRetention, startedAt: Date.now(), nextView });
@@ -1130,6 +1360,9 @@ function Game() {
     setFun((current) => recordCorrect(current));
     setCombo((current) => (firstTry ? current + 1 : 0));
   };
+  const onWorksheetAnswerCorrect = (missionId: string, problemId: string) => {
+    setFun((current) => recordWorksheetCorrect(current, missionId, problemId));
+  };
   const onPracticeSuccess = () => { consecutiveWrongAnswers.current = 0; };
   const onPracticeWrong = () => {
     setCombo(0);
@@ -1142,8 +1375,12 @@ function Game() {
 
   return (
     <FunContext.Provider value={{ fun, setFun }}>
+      {moduleTestActive && <div className="fq-developer-test-banner" role="status" data-testid="developer-test-banner">
+        Developer lesson test · progress is temporary and will not be saved.
+        <button type="button" onClick={returnToMap} data-testid="button-exit-developer-test">Exit test</button>
+      </div>}
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onDeveloperTest={startDeveloperLessonTest} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
       {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} renderModel={(model, reveal) => <ModelView model={model} reveal={reveal} asked />} onChange={(session) => persistProgress(applyAdaptiveDailyPracticeUpdate(progress, session))} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
       {view.type === 'concept-games' && (() => {
         // The lesson games use the lesson the child is on (or the last open one).
@@ -1173,9 +1410,21 @@ function Game() {
       {view.type === 'hands-on' && (() => {
         const mission = getMission(view.missionId);
         const toQuestions = () => setView({ type: 'play', missionId: view.missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions: view.reviewQuestions });
+        const activityTitle = view.missionId === 'equal-parts' ? 'Make fair shares'
+          : view.missionId === 'unit-fractions' ? 'Build a fraction'
+            : 'Find the same amount';
         return <PartFinder key={view.missionId} rounds={partFinderRoundsFor(view.missionId)} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
+          activityTitle={activityTitle} showFirstIntroduction={view.missionId === 'equal-parts'}
           intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} />}
           onExit={returnToMap} onDone={toQuestions} onSkip={progress.completedMissionIds.includes(view.missionId) || hasLearningGate(progress, view.missionId) ? toQuestions : undefined} />;
+      })()}
+      {view.type === 'fraction-sort' && (() => {
+        const mission = getMission(view.missionId);
+        const toQuestions = () => setView({ type: 'play', missionId: view.missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions: view.reviewQuestions });
+        return <FractionSortActivity key={view.missionId} rounds={FRACTION_ORDER_ROUNDS}
+          lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
+          intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} />}
+          onExit={returnToMap} onDone={toQuestions} />;
       })()}
       {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
       {view.type === 'extra' && (() => {
@@ -1218,6 +1467,7 @@ function Game() {
       )}
       {view.type === 'paper' && (
         <PaperCheck missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap}
+          onWorksheetCorrect={onWorksheetAnswerCorrect}
           onLab={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? getLearningRecord(progress, view.missionId).practiceStars ?? 1 })} />
       )}
       {(view.type === 'play' || view.type === 'review') && activeMission && (
@@ -1268,8 +1518,8 @@ function Game() {
           }}
         />
       )}
-      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId })} onRedo={(part) => startRedoPart(view.missionId, part)} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
-      {view.type === 'redo' && <RedoLab missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? 1 })} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
+      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId })} onRedo={(part) => startRedoPart(view.missionId, part)} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
+      {view.type === 'redo' && <RedoLab missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? 1 })} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
       {view.type === 'retention' && <LearningLab key={`retention-${view.startedAt}`} review missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onFinish={(updated) => {
         const latest = updated ?? progress;
         const record = getLearningRecord(latest, view.missionId);

@@ -23,7 +23,8 @@ import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './
 import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, resetMissionGameProgress, shownStreak } from './lib/fun';
 import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderRoundsFor, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
-import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
+import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH, recordDailyPracticeStart } from './daily-practice';
+import { FRACTION_STANDARDS } from './standard-catalog';
 import { DailyPracticeQuestionHeading } from './DailyPracticeQuestionHeading';
 import type { PracticeQuestion } from './game';
 import { REASON_IDEAS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
@@ -48,6 +49,8 @@ import {
   countsTowardLessonStars,
   deferSkillReview,
   EMPTY_PROGRESS,
+  FRACTION_ORDER_ROUNDS,
+  fractionOrderMatches,
   getMission,
   getDelayedReviewQuestions,
   getDueSkillReviewCount,
@@ -64,7 +67,9 @@ import {
   numberLineWholeCount,
   recordMissedSkill,
   resetProgress,
+  sameFractionValue,
   saveProgress,
+  setModelLayout,
   SKILL_REVIEW_DELAY_MS,
   starsFromFirstTryAnswers,
   type ModelSpec,
@@ -92,6 +97,36 @@ describe('lesson star scoring', () => {
     assert.equal(starsFromFirstTryAnswers(4, 5), 2);
     assert.equal(starsFromFirstTryAnswers(5, 5), 3);
     assert.equal(starsFromFirstTryAnswers(9, 5), 3);
+  });
+});
+
+describe('fraction ordering activity', () => {
+  it('compares equivalent fractions exactly rather than by rounded percent', () => {
+    assert.equal(sameFractionValue({ numerator: 1, denominator: 4 }, { numerator: 2, denominator: 8 }), true);
+    assert.equal(sameFractionValue({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), true);
+    assert.equal(sameFractionValue({ numerator: 1, denominator: 3 }, { numerator: 33, denominator: 100 }), false);
+    assert.equal(sameFractionValue({ numerator: 1, denominator: 0 }, { numerator: 1, denominator: 1 }), false);
+  });
+
+  it('checks smallest-to-biggest and biggest-to-smallest sorts exactly', () => {
+    assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[0].cards.slice(1).concat(FRACTION_ORDER_ROUNDS[0].cards[0]), 'ascending'), true);
+    assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[0].cards, 'ascending'), false);
+    assert.equal(fractionOrderMatches([
+      { numerator: 5, denominator: 8 },
+      { numerator: 3, denominator: 8 },
+      { numerator: 1, denominator: 8 },
+    ], 'descending'), true);
+    assert.equal(fractionOrderMatches(FRACTION_ORDER_ROUNDS[1].cards, 'descending'), false);
+  });
+
+  it('accepts a corrected card order after a missed attempt and gives a useful strategy for each round', () => {
+    const halfRound = FRACTION_ORDER_ROUNDS[0];
+    let attempt = [...halfRound.cards];
+    assert.equal(fractionOrderMatches(attempt, halfRound.direction), false);
+    attempt = [attempt[1], attempt[2], attempt[0]];
+    assert.equal(fractionOrderMatches(attempt, halfRound.direction), true);
+    assert.match(halfRound.strategyHint, /1\/2|half/i);
+    assert.match(FRACTION_ORDER_ROUNDS[1].strategyHint, /eighths|numerators/i);
   });
 });
 const EXPECTED_MISSION_IDS = [
@@ -220,6 +255,41 @@ describe('lesson catalog', () => {
     );
   });
 
+  it('gives every lesson a brief, complete explanation of its main idea', () => {
+    for (const mission of MISSIONS) {
+      const idea = mission.skill.trim();
+      assert.ok(idea.length >= 30 && idea.length <= 240, `${mission.id} lesson idea should be brief and explain a concept`);
+      assert.match(idea, /[.!?]$/, `${mission.id} lesson idea should read as a complete thought`);
+    }
+
+    const sameNumerator = MISSIONS.find((mission) => mission.id === 'compare-same-numerator')!;
+    assert.match(sameNumerator.skill, /same top number.*count the same number.*larger bottom number.*more equal parts.*smaller/i);
+    assert.match(sameNumerator.example.explanation, /both (?:same-size (?:bars|wholes)|fractions) count 3 pieces/i);
+    assert.match(sameNumerator.example.explanation, /(?:8 equal parts|eighths).*smaller/i);
+    assert.match(sameNumerator.example.explanation, /3\/8 (?:is )?(?:less|smaller) than 3\/5/i);
+
+    const unlikeOrdering = MISSIONS.find((mission) => mission.id === 'order-unlike-fractions')!;
+    assert.ok(unlikeOrdering.learningIntro, 'fraction ordering explains the goal, steps, and why the method works');
+    assert.match(unlikeOrdering.learningIntro.goal, /smallest to biggest.*biggest to smallest/);
+    assert.match(unlikeOrdering.learningIntro.process, /1\/2.*same denominator.*compare the top numbers/);
+    assert.match(unlikeOrdering.learningIntro.why, /same denominator.*equal-size pieces.*greater amount/);
+  });
+
+  it('keeps the same-numerator explanation clear in the build, worksheet, and generated practice', () => {
+    const checks = getBuildChecks('compare-same-numerator');
+    assert.match(checks[0].explanation, /both (?:same-size (?:whole|bar)s?|fractions).*count 3 pieces/i);
+    assert.match(checks[0].explanation, /(?:eighths|eight equal parts|8 equal parts).*smaller/i);
+    assert.match(checks[0].explanation, /3\/8 (?:is )?(?:smaller|less) than 3\/5/i);
+    assert.match(checks[1].explanation, /Five equal parts make smaller pieces than three/i);
+
+    const worksheet = getWorksheet('compare-same-numerator');
+    assert.ok(worksheet.every((problem) => /Both fractions count .*larger denominator.*more equal parts.*smaller/i.test(problem.hint)));
+
+    const generated = generateQuestions('compare-same-numerator', ['unused'], 21, 12);
+    assert.ok(generated.every((question) => /Both fractions count .*larger denominator.*more equal parts.*smaller/i.test(question.hint)));
+    assert.match(REASON_IDEAS['compare-same-numerator'], /larger denominator.*smaller pieces/i);
+  });
+
   it('has unique question IDs, valid answer bounds, and required visual and support content', () => {
     const missionIds = new Set(MISSIONS.map((mission) => mission.id));
     const questionIds = new Set<string>();
@@ -229,6 +299,69 @@ describe('lesson catalog', () => {
       assert.ok(mission.questions.length >= 4, `${mission.id} needs enough practice and a mastery check`);
       assert.ok(mission.example.prompt.trim() && mission.example.answer.trim() && mission.example.explanation.trim());
       assertModel(mission.example.model, `${mission.id} worked example`);
+      if (mission.id === 'order-unlike-fractions') {
+        assert.ok(mission.learningIntro);
+        assert.match(mission.learningIntro.goal, /smallest to biggest.*biggest to smallest/);
+        assert.match(mission.learningIntro.process, /(?:one half|1\/2).*same denominator.*(?:numerators|top numbers)/i);
+        assert.match(mission.learningIntro.why, /(?:same|equal)-size pieces/i);
+        assert.match(mission.example.prompt, /1\/4, 3\/8 and 5\/8/);
+        assert.notEqual(mission.example.prompt, mission.questions[0].prompt);
+        assert.doesNotMatch(mission.example.prompt, /1\/2|2\/3|3\/4/);
+        assert.match(mission.example.explanation, /rename 1\/4 as 2\/8.*same-size pieces/i);
+        assert.equal(mission.example.model.kind, 'bars');
+        if (mission.example.model.kind === 'bars') {
+          assert.deepEqual(
+            mission.example.model.bars.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
+            ['1/4', '2/8', '3/8', '1/2', '2/4', '5/8'],
+          );
+          const line = mission.example.numberLine;
+          assert.ok(line, 'the worked example includes a matching number line');
+          assert.deepEqual(
+            line.points.map(({ numerator, denominator }) => `${numerator}/${denominator}`),
+            ['1/4', '3/8', '5/8'],
+            'number-line points match the bar-model fractions in the authored answer order',
+          );
+          const equivalentName = line.equivalentNames?.find(({ fraction, equivalentTo }) =>
+            fraction.numerator === 2 && fraction.denominator === 8
+            && equivalentTo.numerator === 1 && equivalentTo.denominator === 4,
+          );
+          assert.ok(equivalentName, 'the number line shows 2/8 as another name for 1/4');
+          assert.deepEqual(line.benchmark, { numerator: 1, denominator: 2 });
+          const halfEquivalentName = line.equivalentNames?.find(({ fraction, equivalentTo }) =>
+            fraction.numerator === 2 && fraction.denominator === 4
+            && equivalentTo.numerator === 1 && equivalentTo.denominator === 2,
+          );
+          assert.ok(halfEquivalentName, 'the number-line benchmark shows 2/4 as another name for 1/2');
+          const equivalentNames = line.equivalentNames ?? [];
+          assert.ok(equivalentNames.length >= 2, 'the number line checks more than one equivalent-name pair');
+          assert.ok(line.points.slice(1).every((point, index) => {
+            const previous = line.points[index];
+            return BigInt(previous.numerator) * BigInt(point.denominator)
+              < BigInt(point.numerator) * BigInt(previous.denominator);
+          }), 'number-line points are ordered by their exact fraction values');
+          assert.equal(mission.example.answer, line.points.map(({ numerator, denominator }) => `${numerator}/${denominator}`).join(' < '));
+        }
+      }
+
+      const numberLine = mission.example.numberLine;
+      if (numberLine?.equivalentNames?.length) {
+        assert.equal(mission.example.model.kind, 'bars', `${mission.id} equivalent names have a bar model`);
+        if (mission.example.model.kind === 'bars') {
+          for (const { fraction, equivalentTo } of numberLine.equivalentNames) {
+            assert.ok(sameFractionValue(fraction, equivalentTo), `${mission.id}: ${fraction.numerator}/${fraction.denominator} must equal ${equivalentTo.numerator}/${equivalentTo.denominator} exactly`);
+            for (const namedFraction of [fraction, equivalentTo]) {
+              assert.ok(
+                mission.example.model.bars.some((bar) => sameFractionValue(bar, namedFraction)),
+                `${mission.id}: ${namedFraction.numerator}/${namedFraction.denominator} has a matching bar amount`,
+              );
+            }
+            assert.ok(
+              [...numberLine.points, numberLine.benchmark].some((point) => sameFractionValue(point, equivalentTo)),
+              `${mission.id}: ${equivalentTo.numerator}/${equivalentTo.denominator} is a number-line point or benchmark`,
+            );
+          }
+        }
+      }
 
       const mastery = mission.questions.filter((question) => question.isMastery);
       assert.equal(mastery.length, 1, `${mission.id} must have exactly one mastery question`);
@@ -665,6 +798,53 @@ describe('daily fraction practice', () => {
     assert.ok(session.questions.every((question) => !/1 parts? are shaded/.test(question.explanation)));
   });
 
+  it('tags build evidence only to the fraction idea the selected model can show', () => {
+    const first = MISSIONS.find((mission) => mission.id === 'compare-same-denominator')!;
+    const target = MISSIONS.find((mission) => mission.id === 'compare-unlike-fractions')!;
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      placement: { unit: 12, at: now },
+      reviewQueue: [
+        { missionId: first.id, missedQuestionId: first.questions[0].id, dueAt: now - 2, reviewCount: 0 },
+        { missionId: target.id, missedQuestionId: target.questions[0].id, dueAt: now - 1, reviewCount: 0 },
+      ],
+    };
+    const session = createDailyPractice(progress, now);
+    const build = session.questions.find((question) => question.missionId === target.id && question.kind === 'build');
+    assert.ok(build, 'the second due question should be a build for unlike-denominator comparison');
+    assert.deepEqual(build.standards, [build.modelKind === 'bar' ? '3.NF.1' : '3.NF.2a']);
+    assert.ok(!build.standards?.includes('4.NF.2'), 'a generic fraction build does not demonstrate unlike-denominator comparison');
+  });
+
+  it('keeps each build explanation synchronized with its final, de-duplicated fraction', () => {
+    for (let offset = 0; offset < 80; offset++) {
+      const day = new Date(2026, 9, 1 + offset, 12).getTime();
+      for (const question of createDailyPractice(EMPTY_PROGRESS, day).questions) {
+        assert.ok(question.explanation.includes(`${question.numerator}/${question.denominator}`), question.id);
+      }
+    }
+  });
+
+  it('assigns question IDs after transfer routing when several sources land on one lesson', () => {
+    const adaptiveStandards = Object.fromEntries(FRACTION_STANDARDS.map(({ id }) => [id, {
+      status: 'mastered' as const,
+      recent: [true, true, true, true, true],
+      accuracy: 1,
+      streakCorrect: 5,
+      streakMisses: 0,
+      lastUpdatedAt: now - 1,
+    }]));
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      completedMissionIds: MISSIONS.map((mission) => mission.id),
+      adaptiveStandards,
+    };
+    const session = createDailyPractice(progress, new Date(2026, 9, 1, 12).getTime());
+    assert.ok(new Set(session.questions.map((question) => question.missionId)).size < session.questions.length,
+      'this fixture routes multiple source lessons to the same transfer lesson');
+    assert.equal(new Set(session.questions.map((question) => question.id)).size, session.questions.length);
+  });
+
   it('saves model work and typed drafts so the routine can resume after reload', () => {
     const session = createDailyPractice(EMPTY_PROGRESS, now);
     const question = session.questions[0];
@@ -745,16 +925,77 @@ describe('daily fraction practice', () => {
     assert.ok(session.questions.some((question) => question.difficultyBand === 'transfer' && /high recent accuracy/i.test(question.adaptationReason ?? '')));
   });
 
-  it('injects a scaffolded reteach loop after repeated misses', () => {
-    const now = new Date(2026, 9, 11, 12).getTime();
-    const session = createDailyPractice(EMPTY_PROGRESS, now);
-    const question = session.questions[0];
+  it('persists the initial scaffold and transfer decisions for the family report', () => {
+    const struggling = MISSIONS.find((mission) => mission.id === 'compare-unlike-fractions')!;
+    const strong = MISSIONS.find((mission) => mission.id === 'compare-same-denominator')!;
     const progress: Progress = {
       ...EMPTY_PROGRESS,
-      dailyPractice: session,
+      placement: { unit: 12, at: now },
+      reviewQueue: [
+        { missionId: struggling.id, missedQuestionId: struggling.questions[0].id, dueAt: now - 3, reviewCount: 0 },
+        { missionId: strong.id, missedQuestionId: strong.questions[0].id, dueAt: now - 2, reviewCount: 0 },
+      ],
+      learning: {
+        [struggling.id]: { ...emptyLearningRecord(), misconceptions: { 'Compare unlike parts': 4 } },
+      },
+      adaptiveStandards: {
+        '3.NF.3d': { status: 'mastered', recent: [true, true, true, true, true], accuracy: 1, streakCorrect: 6, streakMisses: 0, lastUpdatedAt: now - 1_000 },
+      },
+    };
+    const session = createDailyPractice(progress, now);
+    const adapted = session.questions.filter((question) => question.difficultyBand !== 'grade-level');
+    assert.ok(adapted.some((question) => question.difficultyBand === 'scaffolded'));
+    assert.ok(adapted.some((question) => question.difficultyBand === 'transfer'));
+
+    const started = recordDailyPracticeStart(progress, session, now);
+    for (const question of adapted) {
+      assert.ok(started.adaptationLog?.some((event) =>
+        event.missionId === question.missionId
+        && event.band === question.difficultyBand
+        && event.reason === question.adaptationReason
+        && event.standard === question.standards?.[0],
+      ), `${question.id} should appear in the saved adaptation history`);
+    }
+    const logCount = started.adaptationLog?.length ?? 0;
+    assert.equal(recordDailyPracticeStart(started, session, now).adaptationLog?.length, logCount, 'reopening the same session should not duplicate history');
+  });
+
+  it('lets recent demonstrated mastery recover from old misconception counts', () => {
+    const mission = MISSIONS.find((item) => item.id === 'compare-unlike-fractions')!;
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      placement: { unit: 12, at: now },
+      reviewQueue: [{ missionId: mission.id, missedQuestionId: mission.questions[0].id, dueAt: now - 1, reviewCount: 0 }],
+      learning: {
+        [mission.id]: { ...emptyLearningRecord(), misconceptions: { 'Compare unlike parts': 8 } },
+      },
+      adaptiveStandards: {
+        '4.NF.2': { status: 'mastered', recent: [true, true, true, true, true], accuracy: 1, streakCorrect: 5, streakMisses: 0, lastUpdatedAt: now - 1_000 },
+      },
+    };
+    const first = createDailyPractice(progress, now).questions[0];
+    assert.equal(first.difficultyBand, 'transfer');
+    assert.match(first.adaptationReason ?? '', /high recent accuracy/i);
+  });
+
+  it('detects failed build checks and puts a scaffold before the missed question', () => {
+    const now = new Date(2026, 9, 11, 12).getTime();
+    const mission = MISSIONS[0];
+    const startingProgress: Progress = {
+      ...EMPTY_PROGRESS,
+      learning: {
+        [mission.id]: { ...emptyLearningRecord(), misconceptions: { 'Equal parts': 3 } },
+      },
       adaptiveStandards: {
         '3.NF.1': { status: 'developing', recent: [false, false], accuracy: 0, streakCorrect: 0, streakMisses: 2, lastUpdatedAt: now - 500 },
       },
+    };
+    const session = createDailyPractice(startingProgress, now);
+    const question = session.questions[0];
+    assert.equal(question.kind, 'build', 'scaffolded review uses a model-build question');
+    const progress: Progress = {
+      ...startingProgress,
+      dailyPractice: session,
     };
     const nextSession = {
       ...session,
@@ -765,7 +1006,7 @@ describe('daily fraction practice', () => {
           draft: '',
           modelChecked: true,
           modelCorrect: false,
-          answerChecked: true,
+          answerChecked: false,
           answerCorrect: false,
         },
       },
@@ -774,19 +1015,31 @@ describe('daily fraction practice', () => {
     const updated = applyAdaptiveDailyPracticeUpdate(progress, nextSession, now + 1);
     assert.equal((updated.adaptiveStandards?.['3.NF.1']?.streakMisses ?? 0) >= 3, true);
     assert.equal(updated.dailyPractice!.questions.length, session.questions.length + 1);
-    const reteach = updated.dailyPractice!.questions[1];
+    assert.equal(updated.dailyPractice!.index, 0, 'the active question index should point to the inserted scaffold');
+    const reteach = updated.dailyPractice!.questions[0];
     assert.equal(reteach.reteachLoop, true);
     assert.equal(reteach.missionId, question.missionId);
     assert.equal(reteach.difficultyBand, 'scaffolded');
+    assert.equal(updated.dailyPractice!.questions[1].id, question.id, 'keep the missed question directly after the reteach');
+    assert.equal(updated.dailyPractice!.attempts[question.id].modelChecked, true, 'preserve the learner’s original attempt');
+    assert.ok(updated.adaptationLog?.some((event) => event.band === 'scaffolded' && event.missionId === question.missionId));
   });
 
   it('upgrades the next question to transfer after a high-accuracy correct answer', () => {
     const now = new Date(2026, 9, 11, 12).getTime();
-    const session = createDailyPractice(EMPTY_PROGRESS, now);
+    const mission = MISSIONS.find((item) => item.id === 'fraction-names')!;
+    const session = createDailyPractice({
+      ...EMPTY_PROGRESS,
+      completedMissionIds: [MISSIONS[0].id],
+      reviewQueue: [{ missionId: mission.id, missedQuestionId: mission.questions[0].id, dueAt: now - 1, reviewCount: 0 }],
+    }, now);
     const question = session.questions[0];
+    assert.equal(question.missionId, mission.id);
     const progress: Progress = {
       ...EMPTY_PROGRESS,
+      completedMissionIds: [MISSIONS[0].id],
       dailyPractice: session,
+      reviewQueue: [{ missionId: mission.id, missedQuestionId: mission.questions[0].id, dueAt: now - 1, reviewCount: 0 }],
       adaptiveStandards: {
         '3.NF.1': { status: 'mastered', recent: [true, true, true, true, true], accuracy: 1, streakCorrect: 2, streakMisses: 0, lastUpdatedAt: now - 500 },
       },
@@ -810,6 +1063,37 @@ describe('daily fraction practice', () => {
     const upgraded = updated.dailyPractice!.questions[1];
     assert.equal(upgraded.difficultyBand, 'transfer');
     assert.match(upgraded.adaptationReason ?? '', /high recent accuracy/i);
+    assert.ok(updated.adaptationLog?.some((event) => event.band === 'transfer' && event.missionId === question.missionId));
+  });
+
+  it('does not log a transfer threshold when no next question can be changed', () => {
+    const now = new Date(2026, 9, 11, 12).getTime();
+    const mission = MISSIONS.find((item) => item.id === 'fraction-names')!;
+    const draft = createDailyPractice(EMPTY_PROGRESS, now);
+    const lastQuestion = {
+      ...draft.questions[0],
+      id: 'daily-last-transfer-check',
+      missionId: mission.id,
+      topicTitle: mission.shortTitle,
+      standards: ['3.NF.1'] as const,
+      difficultyBand: 'grade-level' as const,
+      adaptationReason: undefined,
+    };
+    const session = { ...draft, questions: [...draft.questions.slice(0, -1), lastQuestion], index: DAILY_PRACTICE_LENGTH - 1 };
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      dailyPractice: session,
+      adaptiveStandards: {
+        '3.NF.1': { status: 'mastered', recent: [true, true, true, true, true], accuracy: 1, streakCorrect: 2, streakMisses: 0, lastUpdatedAt: now - 500 },
+      },
+    };
+    const attempt = { shaded: [0], draft: '', modelChecked: true, modelCorrect: true, answerChecked: true, answerCorrect: true };
+    const updated = applyAdaptiveDailyPracticeUpdate(progress, {
+      ...session,
+      attempts: { ...session.attempts, [lastQuestion.id]: attempt },
+    }, now + 1);
+    assert.equal(updated.dailyPractice?.questions[DAILY_PRACTICE_LENGTH - 1].difficultyBand, 'grade-level');
+    assert.ok(!updated.adaptationLog?.some((event) => event.band === 'transfer'));
   });
 });
 
@@ -1057,15 +1341,15 @@ describe('entered-answer worksheets and evidence gates', () => {
 
   it('keeps answer keys out of every student printable and student print choices', () => {
     assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.label.toLowerCase().includes('answer key')), false);
-    assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.mode === 'answers'), true);
+    assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.mode === 'blank' && option.label === 'Worksheet'), true);
+    assert.equal(STUDENT_PRINT_OPTIONS.some((option) => option.label.toLowerCase() === 'my answers'), false);
     const record = emptyLearningRecord();
-    const menu = renderToStaticMarkup(createElement(PrintMenu, { missionId: 'number-line-basics', record }));
-    assert.doesNotMatch(menu, /answer key/i);
+    const menu = renderToStaticMarkup(createElement(PrintMenu, { missionId: 'number-line-basics' }));
+    assert.doesNotMatch(menu, /answer key|my answers/i);
 
     for (const { mode } of STUDENT_PRINT_OPTIONS) {
       const markup = renderToStaticMarkup(createElement(Printable, {
         missionId: 'number-line-basics',
-        record,
         mode,
         seed: 1,
       }));
@@ -1074,7 +1358,6 @@ describe('entered-answer worksheets and evidence gates', () => {
 
     const generated = renderToStaticMarkup(createElement(Printable, {
       missionId: 'number-line-basics',
-      record,
       mode: 'generated',
       seed: 1,
     }));
@@ -1082,18 +1365,20 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.doesNotMatch(generated, /Cut this part off/i);
   });
 
-  it('keeps the student’s own checked responses on the My answers sheet', () => {
+  it('prints a blank worksheet without exposing or changing saved lesson answers', () => {
     const problem = getWorksheet('number-line-basics')[0];
     const record = checkWorksheet(editWorksheet(emptyLearningRecord(), problem.id, problem.answer), problem);
     const markup = renderToStaticMarkup(createElement(Printable, {
       missionId: 'number-line-basics',
-      record,
-      mode: 'answers',
+      mode: 'blank',
     }));
 
-    assert.match(markup, /My answers/);
-    assert.match(markup, new RegExp(`<b>${problem.answer}<\\/b>`));
-    assert.match(markup, /✓ Correct/);
+    assert.match(markup, /data-testid="print-worksheet-blank"/);
+    assert.doesNotMatch(markup, /My answers|✓ Correct|Worksheet: 1 of 12 correct/);
+    const answerFields = [...markup.matchAll(/<div class="fq-print-answer">([\s\S]*?)<\/div>/g)];
+    assert.equal(answerFields.length, 12);
+    assert.ok(answerFields.every(([, field]) => /<span>Answer:<\/span><b><\/b>/.test(field)));
+    assert.equal(record.worksheet[problem.id]?.checkedValue, problem.answer);
   });
 
   it('keeps the grown-up answer key printable with practice, worksheet, and model solutions', () => {
@@ -1164,6 +1449,17 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(getModelFeedback({ kind: 'bar', n: 2, d: 5, wholes: 1 }), 'Each whole is split into 5 equal parts. 2 parts are shaded.');
     assert.equal(getModelFeedback({ kind: 'line', n: 1, d: 4, wholes: 1 }), 'Each whole has 4 equal spaces. 1 jump shows the amount.');
     assert.equal(getModelFeedback({ kind: 'set', n: 1, d: 3, wholes: 1, total: 12 }), '12 objects are split into 3 equal groups. 1 group is selected.');
+  });
+
+  it('groups set-model counters by the denominator and only highlights whole groups', () => {
+    assert.deepEqual(setModelLayout({ kind: 'set', selected: 4, total: 12, groupCount: 3 }), {
+      groupCount: 3, selectedGroups: 1, objectsPerGroup: 4,
+    });
+    assert.deepEqual(setModelLayout({ kind: 'set', selected: 6, total: 12, groupCount: 4 }), {
+      groupCount: 4, selectedGroups: 2, objectsPerGroup: 3,
+    });
+    assert.equal(setModelLayout({ kind: 'set', selected: 4, total: 12, groupCount: 5 }), null);
+    assert.equal(setModelLayout({ kind: 'set', selected: 3, total: 12, groupCount: 3 }), null);
   });
 
   it('keeps proper-fraction number lines from 0 to 1 and extends only for improper fractions', () => {
@@ -1277,6 +1573,27 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(getNextMission({ ...EMPTY_PROGRESS, completedMissionIds: MISSIONS.map((mission) => mission.id) })?.id, id);
     assert.equal(isMissionUnlocked(progress, 'unknown'), false);
   });
+  it('requires one named worksheet answer while leaving the other eleven as optional practice', () => {
+    const id = MISSIONS[0].id;
+    const problems = getWorksheet(id);
+    const checks = getBuildChecks(id);
+    let record: LearningRecord = { ...emptyLearningRecord(), practiceDone: true };
+    for (const check of checks) record.checks[check.id] = { passed: true, supported: false, attempts: 1 };
+    record = checkWorksheet(editWorksheet(record, problems[0].id, problems[0].answer), problems[0]);
+    const progress = updateLearning(EMPTY_PROGRESS, id, record);
+
+    assert.equal(worksheetCount(record, id), 1);
+    assert.equal(hasLearningGate(progress, id), true);
+    assert.equal(lessonSteps(progress, id).done, checks.length + 1);
+    assert.equal(isMissionUnlocked(completeMission(progress, id, 2), MISSIONS[1].id), true);
+
+    const optional = problems[1];
+    const practiced = checkWorksheet(editWorksheet(record, optional.id, optional.answer), optional);
+    const practicedProgress = updateLearning(progress, id, practiced);
+    assert.equal(worksheetCount(practiced, id), 2);
+    assert.equal(hasLearningGate(practicedProgress, id), true);
+    assert.deepEqual(practicedProgress.starsByMission, progress.starsByMission, 'optional practice does not change stars');
+  });
   it('preserves drafts, correction history and learning evidence over reload, then resets them', () => {
     const id = MISSIONS[0].id;
     const problem = getWorksheet(id)[0];
@@ -1343,8 +1660,8 @@ describe('entered-answer worksheets and evidence gates', () => {
 });
   it('keeps the first fraction lesson focused on equal parts, then layers in unit fractions', () => {
     const fractionNameLesson = getMission('fraction-names');
-    assert.equal(fractionNameLesson.skill, 'The denominator is the number of equal parts in one whole. The numerator is the number of parts you count.');
-    assert.match(spokenLearningText(fractionNameLesson.skill), /The denominator is .* The numerator is/);
+    assert.match(fractionNameLesson.skill, /The denominator, or bottom number, tells how many equal parts make one whole\. The numerator, or top number, tells how many parts we count\./);
+    assert.match(spokenLearningText(fractionNameLesson.skill), /The denominator.*The numerator/);
     assert.match(fractionNameLesson.example.explanation, /The denominator is 5.* The numerator is 3/);
 
     const equalParts = getWorksheet('equal-parts');
@@ -1479,6 +1796,10 @@ describe('read-aloud voice', () => {
     assert.equal(spokenText('Write 1 2/3 as a fraction.'), 'Write 1 and two thirds as a fraction.');
     assert.equal(spokenText('2/8 = ?/4'), 'two eighths equals how many fourths');
     assert.equal(spokenText('3/8 < 1/2'), 'three eighths is less than one half');
+    assert.equal(
+      spokenText('The equivalent fractions 1/4 and 2/8 share the same 25 percent spot.'),
+      'The equivalent fractions one fourth and two eighths share the same 25 percent spot.',
+    );
     assert.equal(spokenText('25% of 8'), '25 percent of 8');
     assert.deepEqual(sentences('One part. Two parts! Ready?'), ['One part.', 'Two parts!', 'Ready?']);
   });
@@ -2716,8 +3037,43 @@ describe('same numerator, different denominators', () => {
     }
     const transfer = getBuildChecks('compare-same-numerator').find((c) => c.transfer)!;
     assert.match(transfer.prompt, /2\/3 or 2\/5/);
+    assert.match(transfer.explanation, /same-size wholes count 2 pieces.*Five equal parts make smaller pieces/i);
+    const mission = MISSIONS.find((item) => item.id === 'compare-same-numerator')!;
+    assert.match(mission.skill, /wholes are the same size.*same top number.*larger bottom number.*more equal parts.*smaller/i);
+    assert.match(mission.explainPrompt ?? '', /3\/5 and 3\/8.*denominator.*same-size whole.*2\/3 and 2\/5/i);
+    assert.match(mission.example.explanation, /same-size bars count 3 pieces.*8 equal parts.*smaller pieces.*3\/8 is less than 3\/5/i);
     const unlike = getWorksheet('compare-unlike-fractions');
     assert.ok(unlike.some((p) => { const m = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(p.prompt); return !!m && m[1] === m[2]; }));
+  });
+  it('clearly teaches that a larger denominator makes smaller pieces when the numerator stays the same', () => {
+    const lesson = MISSIONS.find((m) => m.id === 'compare-same-numerator')!;
+    const explainsPieceSize = (text: string) =>
+      /(?:denominator|bottom number|equal parts|pieces|parts)/i.test(text)
+      && /(?:smaller|larger|fewer|more)/i.test(text);
+    assert.match(lesson.skill, /same (?:numerator|top number).*(?:larger denominator|larger bottom number).*more equal parts.*piece.*smaller/i);
+    assert.match(lesson.example.explanation, /both (?:same-size (?:whole|bar)s?|fractions).*count 3 pieces/i);
+    assert.match(lesson.example.explanation, /(?:eighths|eight equal parts|8 equal parts).*smaller/i);
+    assert.match(lesson.example.explanation, /3\/8 (?:is )?(?:smaller|less) than 3\/5/i);
+    assert.ok(lesson.questions.every((question) => explainsPieceSize(question.hint)), 'each authored hint compares the denominator or piece size');
+
+    const generated = generateQuestions('compare-same-numerator', ['x'], 3, 8);
+    assert.ok(generated.every((question) => explainsPieceSize(question.hint)), 'generated same-numerator practice keeps the explanation');
+
+    const extensionRows = getWorksheet('compare-unlike-fractions').filter((row) => {
+      const match = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(row.prompt);
+      return !!match && match[1] === match[2];
+    });
+    assert.ok(extensionRows.length > 0, 'the extension worksheet includes a same-numerator comparison');
+    assert.ok(extensionRows.every((row) => explainsPieceSize(row.hint)), 'extension worksheet hints make the larger-denominator rule explicit');
+
+    const generatedUnlike = Array.from({ length: 40 }, (_, seed) => generateQuestions('compare-unlike-fractions', ['x'], seed + 1, 12)).flat().filter((question) => {
+      const match = /(\d+)\/\d+ or (\d+)\/\d+/.exec(question.prompt);
+      return !!match && match[1] === match[2];
+    });
+    assert.ok(generatedUnlike.length > 0, 'generated unlike-fraction practice includes same-numerator comparisons');
+    assert.ok(generatedUnlike.every((question) =>
+      explainsPieceSize(question.hint) || /same denominator.*compare (?:the )?numerators/i.test(question.hint),
+    ), 'same-numerator extension practice explains piece size or gives the valid same-denominator strategy');
   });
 });
 
@@ -2769,6 +3125,9 @@ describe('natural read-aloud voice', () => {
       const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
       assert.match(markup, /works on every device, iPhone and iPad included/);
       assert.match(markup, /radio-natural-voice-af_heart/);
+      for (const voice of ['af_aoede', 'af_sarah', 'bf_isabella', 'am_michael', 'am_puck', 'bm_george']) {
+        assert.match(markup, new RegExp(`radio-natural-voice-${voice}`));
+      }
       assert.doesNotMatch(markup, /paused on iPhone/);
     } finally {
       if (original) Object.defineProperty(globalThis, 'navigator', original);
@@ -3076,6 +3435,8 @@ describe('Expo iPhone shell', () => {
     assert.equal(isAppPage('https://webassets.zearn.org/guide.pdf', 'https://a.replit.app/'), false, 'other sites open in Safari');
     assert.equal(isAppPage('about:blank', 'https://a.replit.app/'), true);
     assert.deepEqual(parseShellMessage('{"type":"haptic","cue":"correct"}'), { type: 'haptic', cue: 'correct' });
+    assert.deepEqual(parseShellMessage('{"type":"haptic","cue":"selection"}'), { type: 'haptic', cue: 'selection' });
+    assert.equal(parseShellMessage('{"type":"haptic","cue":"unknown"}'), null);
     assert.equal(parseShellMessage('{"type":"print","html":"<html></html>"}')?.type, 'print');
     assert.equal(parseShellMessage('{"type":"other"}'), null);
     assert.equal(parseShellMessage('not json'), null);

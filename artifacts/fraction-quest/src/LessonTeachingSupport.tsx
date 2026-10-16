@@ -35,7 +35,7 @@ export function LessonTeachingSupport({ missionId }: { missionId: string }) {
 
           <article>
             <h3>Explain your thinking</h3>
-            <p>{guide.explainFrame}</p>
+            <p>{mission.explainPrompt ?? guide.explainFrame}</p>
             <p className="fq-lesson-support-note">Try saying it to someone or writing it on paper. Your response is not recorded.</p>
           </article>
 

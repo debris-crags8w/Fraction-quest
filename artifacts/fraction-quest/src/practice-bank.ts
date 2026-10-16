@@ -40,7 +40,7 @@ const bar = (n: number, d: number): ModelSpec => ({ kind: 'bars', bars: [{ numer
 const wholes = (count: number): ModelSpec => ({ kind: 'bars', bars: Array.from({ length: count }, () => ({ numerator: 0, denominator: 1 })), hideLabels: true });
 const bars2 = (a: [number, number], b: [number, number]): ModelSpec => ({ kind: 'bars', bars: [{ numerator: a[0], denominator: a[1] }, { numerator: b[0], denominator: b[1] }], hideLabels: true });
 const line = (n: number, d: number, wholes = Math.max(1, Math.ceil(n / d))): ModelSpec => ({ kind: 'line', numerator: n, denominator: d, wholes, hideLabels: true });
-const set = (selected: number, total: number): ModelSpec => ({ kind: 'set', selected, total });
+const set = (selected: number, total: number, groupCount: number): ModelSpec => ({ kind: 'set', selected, total, groupCount });
 const half = bar(1, 2);
 /** Compare pictures: both amounts as same-size wholes, so the child sees why 3/4 is more than 3/8. */
 const compareBars = (a: [number, number], b: [number, number]): Pick<Item, 'model' | 'simpler'> =>
@@ -130,15 +130,15 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'unit-size': (r) => {
     const [a, b] = r.pick([[2, 4], [2, 3], [3, 6], [4, 8], [3, 4], [5, 10], [6, 12], [4, 6], [2, 8], [3, 8], [5, 8], [6, 10]] as const); const bigger = r.chance();
     return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${either(r, f(1, a), f(1, b))}?`, right: bigger ? f(1, a) : f(1, b), wrong: [bigger ? f(1, b) : f(1, a), 'They are the same'],
-      hint: 'More pieces means smaller pieces.', retry: `${Name(a)} are bigger than ${name(b)}.`, ...compareBars([1, a], [1, b]) };
+      hint: 'The denominator tells how many equal pieces make one whole. More pieces means each piece is smaller.', retry: `${Name(a)} are bigger than ${name(b)}.`, ...compareBars([1, a], [1, b]) };
   },
   'sets-unit-fractions': (r) => {
     const d = r.int(2, 6); let per = r.int(2, 7); if (per === d) per += 1; const t = d * per;
-    return { prompt: `What is ${f(1, d)} of ${t}?`, right: String(per), wrong: [String(d), String(t)], hint: `Make ${d} equal groups. Count 1 group.`, retry: `${t} in ${d} groups is ${per} each.`, model: set(0, t) }; // plain dots: the child does the grouping
+    return { prompt: `What is ${f(1, d)} of ${t}?`, right: String(per), wrong: [String(d), String(t)], hint: `Make ${d} equal groups. Count 1 group.`, retry: `${t} in ${d} groups is ${per} each.`, model: set(0, t, d) }; // plain dots: the child does the grouping
   },
   'sets-nonunit': (r) => {
     const d = r.int(3, 6); const n = r.int(2, d - 1); const per = r.int(2, 6); const t = d * per;
-    return { prompt: `What is ${f(n, d)} of ${t}?`, right: String(n * per), wrong: [String(per), String(t)], hint: `Make ${d} equal groups. Count ${n} of them.`, retry: `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, model: set(0, t) };
+    return { prompt: `What is ${f(n, d)} of ${t}?`, right: String(n * per), wrong: [String(per), String(t)], hint: `Make ${d} equal groups. Count ${n} of them.`, retry: `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, model: set(0, t, d) };
   },
   'benchmark-half': (r) => {
     const d = r.pick([4, 6, 8, 10, 12]); let n = r.int(1, d - 1); if (n * 2 === d) n += n > 1 && r.chance() ? -1 : 1;
@@ -184,7 +184,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'compare-same-numerator': (r) => {
     const [a, b] = r.pick([[3, 6], [4, 8], [3, 4], [4, 6], [5, 10], [6, 12], [3, 8], [4, 10], [5, 8], [3, 5], [6, 8], [4, 5]] as const); const n = r.int(1, Math.min(4, a - 1)); const bigger = r.chance();
     return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${either(r, f(n, a), f(n, b))}?`, right: bigger ? f(n, a) : f(n, b), wrong: [bigger ? f(n, b) : f(n, a), 'They are equal'],
-      hint: `Same numerator: ${n} part${n === 1 ? '' : 's'} each. Which parts are bigger?`, retry: `${Name(a)} are bigger pieces than ${name(b)}, so ${n} ${name(a)} is more than ${n} ${name(b)}.`, ...compareBars([n, a], [n, b]) };
+      hint: `Both fractions count ${n} piece${n === 1 ? '' : 's'} from the same-size whole. A larger denominator makes more equal parts, so each piece is smaller.`, retry: `A denominator of ${b} splits the same-size whole into smaller pieces than ${a}. With the same ${n} pieces counted, ${f(n, a)} is bigger than ${f(n, b)}.`, ...compareBars([n, a], [n, b]) };
   },
   'order-fractions': (r) => {
     const d = r.pick([5, 6, 8, 10, 12]); const a = r.int(1, d - 3); const b = r.int(a + 1, d - 2); const c = r.int(b + 1, d - 1);
@@ -299,7 +299,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       const [d1, d2] = r.pick([[3, 5], [4, 6], [4, 10], [5, 8], [3, 8], [6, 10], [5, 12], [8, 12]] as const); const n = r.int(2, d1 - 1);
       const big: [number, number] = [n, d1]; const small: [number, number] = [n, d2]; const [x, y] = r.chance() ? [big, small] : [small, big];
       return later(`Which is bigger, ${f(x[0], x[1])} or ${f(y[0], y[1])}?`, f(n, d1), [f(n, d2), 'They are equal'],
-        `Same numerator: ${n} parts each. Fewer equal parts in the whole means bigger parts.`, `${Name(d1)} are bigger than ${name(d2)}, so ${f(n, d1)} is bigger.`, compareBars(x, y).model, compareBars(x, y).simpler);
+        `Both fractions count ${n} pieces. A larger denominator, ${d2}, makes more equal parts, so each piece is smaller.`, `Both count ${n} pieces. The ${d1}ths are bigger than the ${d2}ths, so ${f(n, d1)} is bigger.`, compareBars(x, y).model, compareBars(x, y).simpler);
     }
     if (r.int(0, 5) === 0) {
       const [n, d] = r.pick(POOL.filter(([, den]) => den <= 6)); const k = r.int(2, 3);
@@ -320,7 +320,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
     const name = (list: [number, number][]) => list.map(([t, b]) => f(t, b)).join(', ');
     const shown = name(picked) === name(sorted) || name(picked) === name(sorted.slice().reverse()) ? [sorted[1], sorted[0], sorted[2]] : picked;
     return later(`Put ${name(shown)} in order, ${up ? 'smallest' : 'biggest'} first.`, name(sorted), [name(sorted.slice().reverse()), name(shown)],
-      'Compare each one to 1/2, or give them all the same denominator.', `${up ? 'Smallest' : 'Biggest'} first: ${name(sorted)}.`, bar(sorted[0][0], sorted[0][1]));
+      'Compare each fraction to 1/2. If needed, rename them with the same denominator so their pieces match, then compare.', `${up ? 'Smallest' : 'Biggest'} first: ${name(sorted)}.`, bar(sorted[0][0], sorted[0][1]));
   },
   'subtract-unlike-fractions': (r) => {
     const big = r.pick([4, 6, 8, 10, 12]); const small = r.pick([2, 3, 4, 5, 6].filter((e) => e < big && big % e === 0)); const k = big / small;
@@ -347,7 +347,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'fraction-of-collection': (r) => {
     const d = r.pick([2, 3, 4, 5, 6]); const n = r.int(1, d - 1); const per = r.int(2, 5); const t = d * per;
     return later(`What is ${f(n, d)} of ${t} cards?`, String(n * per), [String(per), String(t - n * per), String(n * per + 1)],
-      `Make ${d} equal groups. Count ${n} of them.`, `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, set(0, t));
+      `Make ${d} equal groups. Count ${n} of them.`, `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, set(0, t, d));
   },
   'multiply-whole-by-fraction': (r) => {
     const [n, d] = r.pick(POOL); const m = r.int(2, 6);
@@ -388,7 +388,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'fraction-probability': (r) => {
     const t = r.pick([4, 5, 6, 8, 10, 12]); const g = r.int(1, t - 1);
     return later(`A bag has ${t} marbles. ${g} ${g === 1 ? 'is' : 'are'} green. What is the chance of picking green?`, f(g, t), [f(g, t - g), f(t - g, t), f(t, g)],
-      'The numerator is the number of green marbles. The denominator is the total number of marbles.', `${g} green out of ${t}: ${f(g, t)}.`, set(g, t));
+      'The numerator is the number of green marbles. The denominator is the total number of marbles.', `${g} green out of ${t}: ${f(g, t)}.`, set(g, t, t));
   },
   'fraction-of-area': (r) => {
     const d = r.pick([3, 4, 5, 6, 8, 10, 12]); const n = r.int(1, d - 1);
