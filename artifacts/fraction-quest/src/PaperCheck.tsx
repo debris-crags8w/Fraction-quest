@@ -8,6 +8,7 @@ import { checkWorksheet, editWorksheet, getLearningRecord, updateLearning, works
 import { Row } from './LearningLab';
 import { lessonCode, PrintMenu } from './Printables';
 import { Mascot } from './fun-ui';
+import { playHaptic } from './lib/fun';
 import './learning-lab.css';
 
 const letter = (index: number) => String.fromCharCode(65 + index);
@@ -37,7 +38,11 @@ function ChallengePaper({ unit, best, onScore }: { unit: number; best: number | 
               <span className="fq-paper-letters" role="group" aria-label={`Puzzle ${i + 1} answer`}>
                 {item.choices.map((c, k) => (
                   <button type="button" key={k} className={choice === k ? 'on' : ''} aria-pressed={choice === k} aria-label={`${letter(k)}: ${c}`} disabled={checked}
-                    onClick={() => setPicked({ ...picked, [item.id]: k })} data-testid={`paper-challenge-${i + 1}-${letter(k)}`}>{letter(k)}</button>
+                    onClick={() => {
+                      if (choice === k) return;
+                      playHaptic('selection');
+                      setPicked({ ...picked, [item.id]: k });
+                    }} data-testid={`paper-challenge-${i + 1}-${letter(k)}`}>{letter(k)}</button>
                 ))}
               </span>
               {checked && (
@@ -80,6 +85,8 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
   const allRight = questions.every((q) => picked[q.id] === q.correctChoice);
 
   const pick = (questionId: string, choice: number, correct: number) => {
+    if (picked[questionId] === choice) return;
+    playHaptic('selection');
     const nextPicked = { ...picked, [questionId]: choice };
     const nextFirst = questionId in firstTry ? firstTry : { ...firstTry, [questionId]: choice === correct };
     setPicked(nextPicked); setFirstTry(nextFirst);

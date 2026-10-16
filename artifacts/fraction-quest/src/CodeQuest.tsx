@@ -4,7 +4,7 @@ import type { Mission } from './game';
 import { MathText } from './MathText';
 import { AnswerTiles } from './AnswerTiles';
 import { Confetti, Mascot, useFun } from './fun-ui';
-import { playCue } from './lib/fun';
+import { playCue, playHaptic } from './lib/fun';
 import { CODE_LEVEL_COUNT, countBlocks, describe, getCodeLevels, getRunHint, passesCodeLevel, predictionMatchesTarget, runProgram, toText, usesEffectiveLoop, usesLoop, type Block, type CodeLevel, type RobotState, type RunResult } from './code-quest';
 import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
 
@@ -140,7 +140,11 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
     stop(); setAt(i); setProgram(levels[i].start); setResult(null); setFrame(-1); setOutcome(null);
     setPrediction({ numerator: '', denominator: '' }); setPredictionFeedback(null);
   };
-  const edit = (next: Block[]) => { stop(); setProgram(next); setResult(null); setFrame(-1); setOutcome(null); setPredictionFeedback(null); };
+  const edit = (next: Block[]) => {
+    if (JSON.stringify(next) === JSON.stringify(program)) return;
+    playHaptic('selection');
+    stop(); setProgram(next); setResult(null); setFrame(-1); setOutcome(null); setPredictionFeedback(null);
+  };
 
   const run = () => {
     stop();

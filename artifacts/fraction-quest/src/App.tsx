@@ -18,10 +18,12 @@ import {
   isCorrectAnswer,
   isMissionUnlocked,
   loadProgress,
+  FRACTION_ORDER_ROUNDS,
   MISSIONS,
   numberLineWholeCount,
   recordMissedSkill,
   resetProgress as resetSavedProgress,
+  sameFractionValue,
   saveProgress,
   setModelLayout,
   starsFromFirstTryAnswers,
@@ -42,7 +44,7 @@ import { PieFraction, TickLabel } from './fraction-ui';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, resetUnitLearningProgress, startRedo, updateLearning, worksheetCount, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { DAILY_GOAL, loadFun, playCue, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
+import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
@@ -67,6 +69,7 @@ import { getRouterBasePath } from './app-routing';
 import DailyPractice from './DailyPractice';
 import { createDailyPractice, dailyPracticeDay } from './daily-practice';
 import PartFinder from './PartFinder';
+import FractionSortActivity from './FractionSortActivity';
 import { AssessmentHub, AssessmentRunner } from './Assessment';
 import { PART_FINDER_LESSONS, partFinderRoundsFor } from './part-finder';
 import ConceptGames, { type LessonGame } from './ConceptGames';
@@ -87,7 +90,9 @@ type View =
   | { type: 'assessment'; definition: AssessmentDefinition; seed: number }
   | { type: 'reward'; missionId: string; stars: number }
   /** The lesson's hands-on cake rounds (Part Finder), between the worked example and the questions. */
-  | { type: 'hands-on'; missionId: string; reviewQuestions: PracticeQuestion[] };
+  | { type: 'hands-on'; missionId: string; reviewQuestions: PracticeQuestion[] }
+  /** Local card arrangement before scored questions; it does not save lesson evidence. */
+  | { type: 'fraction-sort'; missionId: string; reviewQuestions: PracticeQuestion[] };
 type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string };
 type RedoView = { type: 'redo'; missionId: string };
@@ -203,6 +208,91 @@ function FractionBar({ numerator, denominator, quiet = false, label = false, gui
   );
 }
 
+export function OrderNumberLine({
+  points,
+  benchmark,
+  equivalentNames = [],
+}: {
+  points: { numerator: number; denominator: number }[];
+  benchmark: { numerator: number; denominator: number };
+  equivalentNames?: { fraction: { numerator: number; denominator: number }; equivalentTo: { numerator: number; denominator: number } }[];
+}) {
+  const fractionName = ({ numerator, denominator }: { numerator: number; denominator: number }) => `${numerator}/${denominator}`;
+  const equivalentNamesFor = (point: { numerator: number; denominator: number }) =>
+    equivalentNames.filter(({ equivalentTo }) => sameFractionValue(point, equivalentTo));
+  const equivalentDescriptionFor = (
+    point: { numerator: number; denominator: number },
+    names: { fraction: { numerator: number; denominator: number } }[],
+  ) => names.map(({ fraction }) =>
+    `${fractionName(point)} and ${fractionName(fraction)} are equivalent fractions. They mark the same amount and number-line spot.`,
+  ).join(' ');
+  const pointText = (point: { numerator: number; denominator: number }) =>
+    `${point.numerator}/${point.denominator} is at ${point.numerator} of ${point.denominator} equal spaces from zero to one`;
+  const benchmarkNames = equivalentNamesFor(benchmark);
+  const benchmarkIsHalf = benchmark.numerator * 2 === benchmark.denominator;
+  const description = [
+    'A number line from zero to one.',
+    ...points.map((point) => {
+      const names = equivalentNamesFor(point);
+      return names.length
+        ? `${pointText(point)}. ${equivalentDescriptionFor(point, names)}`
+        : pointText(point);
+    }),
+    ...(benchmarkIsHalf
+      ? [`The one-half benchmark is halfway between zero and one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]
+      : [`The benchmark ${benchmark.numerator}/${benchmark.denominator} is at ${benchmark.numerator} of ${benchmark.denominator} equal spaces from zero to one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]),
+    `From left to right, the fractions are ${points.map(({ numerator, denominator }) => `${numerator}/${denominator}`).join(', ')}.`,
+  ].join(' ');
+
+  return (
+    <figure className="fq-order-line-figure" data-testid="fraction-order-numberline">
+      <div
+        className="fq-order-line"
+        role="img"
+        aria-label={description}
+      >
+        <span className="fq-order-line-axis" aria-hidden="true" />
+        {[0, 1].map((end) => <span className="fq-order-line-end" style={{ left: `${end * 100}%` }} key={end} aria-hidden="true" />)}
+        <span
+          className="fq-order-line-benchmark"
+          style={{ left: `${(benchmark.numerator / benchmark.denominator) * 100}%` }}
+          data-testid="fraction-order-benchmark"
+          data-equivalent-names={benchmarkNames.map(({ fraction }) => fractionName(fraction)).join(',')}
+          aria-hidden="true"
+        >
+          <span>{[fractionName(benchmark), ...benchmarkNames.map(({ fraction }) => fractionName(fraction))].join(' = ')}</span>
+        </span>
+        {points.map((point, index) => {
+          const position = (point.numerator / point.denominator) * 100;
+          const names = equivalentNamesFor(point);
+          const label = [fractionName(point), ...names.map(({ fraction }) => fractionName(fraction))].join(' = ');
+          return (
+            <span
+              className="fq-order-line-point"
+              style={{ left: `${position}%`, '--lane': index % 2 } as CSSProperties}
+              key={`${point.numerator}/${point.denominator}`}
+              data-testid={`fraction-order-point-${point.numerator}-${point.denominator}`}
+              data-position={position}
+              data-equivalent-names={names.map(({ fraction }) => fractionName(fraction)).join(',')}
+              aria-hidden="true"
+            >
+              <span>{label}</span>
+            </span>
+          );
+        })}
+      </div>
+      <figcaption className="fq-order-line-caption">
+        <span>0</span><span>1 whole</span>
+      </figcaption>
+      <p className="fq-order-line-description" data-testid="text-fraction-order-line-description">
+        <span className="fq-order-line-description-copy" data-testid="text-fraction-order-line-description-copy">
+          {description}
+        </span>
+        <LearningListenButton text={description} label="Listen to the fraction number line" />
+      </p>
+    </figure>
+  );
+}
 /** Two bars of one whole each, once answered: where the larger amount ends. */
 function compareGuide(model: ModelSpec, reveal: boolean): number | undefined {
   if (!reveal || model.kind !== 'bars' || model.bars.length !== 2) return undefined;
@@ -603,7 +693,40 @@ function GuidedExample({ mission, title, lessonLabel }: { mission: Mission; titl
           <p className="fq-skill-copy"><LearningText text={mission.skill} /></p>
         </div>
       </div>
+      {mission.learningIntro && (
+        <section className="fq-example-intro" aria-label="How to order fractions" data-testid="lesson-introduction">
+          <h3>How to order fractions</h3>
+          <LearningTextSection
+            id="lesson-intro-goal"
+            heading="Goal"
+            text={mission.learningIntro.goal}
+            label="Listen to the goal"
+            className="fq-example-section"
+          />
+          <LearningTextSection
+            id="lesson-intro-process"
+            heading="Process"
+            text={mission.learningIntro.process}
+            label="Listen to the process"
+            className="fq-example-section"
+          />
+          <LearningTextSection
+            id="lesson-intro-why"
+            heading="Why it works"
+            text={mission.learningIntro.why}
+            label="Listen to why it works"
+            className="fq-example-section"
+          />
+        </section>
+      )}
       <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
+      {mission.example.numberLine && (
+        <OrderNumberLine
+          points={mission.example.numberLine.points}
+          benchmark={mission.example.numberLine.benchmark}
+          equivalentNames={mission.example.numberLine.equivalentNames}
+        />
+      )}
       <div className="fq-example-answer">
         <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
         <LearningTextSection
@@ -835,6 +958,7 @@ function PlayView({
                     disabled={out}
                     onClick={() => {
                       if (feedback === 'correct' || out) return;
+                      if (selection !== index) playHaptic('selection');
                       setSelection(index);
                       if (feedback === 'retry') setFeedback(null);
                     }}
@@ -1051,6 +1175,10 @@ function Game() {
       return;
     }
     const reviewQuestions = getDelayedReviewQuestions(activeProgress, missionId);
+    if (missionId === 'order-unlike-fractions') {
+      setView({ type: 'fraction-sort', missionId, reviewQuestions });
+      return;
+    }
     if (PART_FINDER_LESSONS.has(missionId)) {
       setView({ type: 'hands-on', missionId, reviewQuestions });
       return;
@@ -1232,6 +1360,14 @@ function Game() {
         return <PartFinder key={view.missionId} rounds={partFinderRoundsFor(view.missionId)} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
           intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} />}
           onExit={returnToMap} onDone={toQuestions} onSkip={progress.completedMissionIds.includes(view.missionId) || hasLearningGate(progress, view.missionId) ? toQuestions : undefined} />;
+      })()}
+      {view.type === 'fraction-sort' && (() => {
+        const mission = getMission(view.missionId);
+        const toQuestions = () => setView({ type: 'play', missionId: view.missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions: view.reviewQuestions });
+        return <FractionSortActivity key={view.missionId} rounds={FRACTION_ORDER_ROUNDS}
+          lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
+          intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} />}
+          onExit={returnToMap} onDone={toQuestions} />;
       })()}
       {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
       {view.type === 'extra' && (() => {
