@@ -24,7 +24,7 @@ the square area model and the Part Finder proposal; local review changes should 
   gates, model interaction central, no faked completions, bar models with WHOLE/PART labels, LearningText vocab + read-aloud).
 
 ## Feature map (where things live)
-- 72 lessons (`MISSIONS` in game.ts) in 15 units. Lesson completion: practice, 3 required builds, worksheet Q1 (Q2–12 optional).
+- 72 lessons (`MISSIONS` in game.ts) in 15 units. Lesson completion: practice, 3 required builds, and the WHOLE 12-question lesson worksheet (user rule; see learning-design-requirements.md). Other worksheets are optional.
 - Worksheets: `getWorksheet` in learning-content.ts (12 rows per lesson; extension units use `getExtensionWorksheet`).
   Rows can carry `model` (bar/set/line, bar `sizes` for unequal pieces), `task` (bar copy/count/shade), `area`/`areaTask`
   (square model), `form` (decimal/mixed/ordered/symbol/word=yes-no). `paperPrompt()` rewrites Tap/Type for paper.
@@ -40,6 +40,10 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- PR D (user rule, after the QA PRs): the whole lesson worksheet is required again (`requiredWorksheetDone` = all rows
+  right; every row's misses count toward reteach; finished lessons still never re-lock). Lab and Check my paper say
+  "Answer all 12 questions", the progress bar counts 12, the finish callout sits after the last question, the map card
+  shows "Worksheet: n of 12". PR A's "only Q1 counts misses" is superseded by this.
 - Workflow QA (2026-10-16) on main e93b719, fixed in 3 PRs (A: blockers, B: daily practice + lesson flow, C: copy).
   PR A: optional worksheet rows no longer count misses toward required reteach (`checkLessonWorksheet` in learning.ts;
   only the required Q1 does) and a finished lesson (in completedMissionIds with completedAt) never re-locks

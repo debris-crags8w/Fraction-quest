@@ -42,7 +42,7 @@ import { LearningListenButton, LearningText, LearningTextSection, useReadAloud }
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
 import { getWorksheet } from './learning-content';
-import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, optionalWorksheetCount, requiredBuildChecks, requiredWorksheetDone, resetUnitLearningProgress, startRedo, updateLearning, type RedoPart } from './learning';
+import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requiredBuildChecks, resetUnitLearningProgress, worksheetCount, startRedo, updateLearning, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
@@ -643,12 +643,12 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                             <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
                               {/* Short, kid-sized status: only what matters for this lesson right now. */}
                               {completed
-                                ? <>Done! Extra worksheet practice: {optionalWorksheetCount(learning, mission.id)} of {Math.max(0, worksheetLength(mission.id) - 1)}.{codeLevels > 0 && <><br />Code levels: {codeLevels} of {CODE_LEVEL_COUNT}.</>}</>
+                                ? <>Done! Worksheet handed in.{codeLevels > 0 && <><br />Code levels: {codeLevels} of {CODE_LEVEL_COUNT}.</>}</>
                                 : !unlocked
                                   ? <>Finish the lessons before this one to open it.</>
                                   : learning.practiceDone
-                                    ? <>Builds: {buildsPassed} of {buildsNeeded}. Worksheet question 1: {requiredWorksheetDone(learning, mission.id) ? 'done' : 'to do'}.</>
-                                    : <>Practice, build it, then answer worksheet question 1.</>}
+                                    ? <>Builds: {buildsPassed} of {buildsNeeded}. Worksheet: {worksheetCount(learning, mission.id)} of {worksheetLength(mission.id)}.</>
+                                    : <>Practice, build it, then do the worksheet.</>}
                               {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Your work is saved. A few new steps are waiting.</>}
                             </p>
                             <button
@@ -1092,7 +1092,7 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
           <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
           <h1>{mission.title}<br />is on your map.</h1>
-           <p>You built it two ways, explained it, and answered the required worksheet question. {nextLessonOpen ? 'The next lesson is open!' : 'Finish the other lessons in this unit to open the next unit.'}</p>
+           <p>You built it two ways, explained it, and finished the worksheet. {nextLessonOpen ? 'The next lesson is open!' : 'Finish the other lessons in this unit to open the next unit.'}</p>
           <div className="fq-reward-stars" data-testid="status-mission-stars" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}

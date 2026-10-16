@@ -1250,9 +1250,8 @@ for (const missionId of unitRepresentativeIds) {
     const firstWorksheetRow = page.getByTestId(`row-worksheet-${worksheet[0].id}`);
     await expect(firstWorksheetRow.locator('.fq-ll-row-prompt-header').getByTestId('button-listen-learning-text')).toHaveCount(1);
     await expect(page.getByTestId(`worksheet-progress-${worksheet[0].id}`)).toHaveAttribute('aria-current', 'step');
-    await expect(page.getByTestId(`row-worksheet-${worksheet[0].id}`)).toContainText('Question 1 of 12 · Required');
-    await expect(page.getByTestId(`row-worksheet-${worksheet[1].id}`)).toContainText('Question 2 of 12 · Optional practice');
-    await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuetext', /Required question not complete · Optional practice 0 of 11 complete/);
+    await expect(page.getByTestId(`row-worksheet-${worksheet[0].id}`)).toContainText('Question 1 of 12');
+    await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuetext', /0 of 12 worksheet questions complete/);
     if (mission.id === 'equal-parts') {
       const problem = worksheet.find((row) => !row.modelRequired && !row.areaTask)!;
       const wrongAnswer = wrongTileAnswer(problem);
@@ -1273,21 +1272,21 @@ for (const missionId of unitRepresentativeIds) {
       await expect(page.getByTestId(`worksheet-progress-${problem.id}`)).toHaveClass(/retry/);
     }
 
-    await buildWorksheetModel(page, worksheet[0]);
-    await enterWorksheetAnswer(page, worksheet[0], worksheet[0].answer);
-    await expect(page.getByTestId(`status-worksheet-${worksheet[0].id}`)).toContainText('Correct!');
-    await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuetext', /Required question complete · Optional practice 0 of 11 complete/);
+    // The whole worksheet is handed in: the lesson cannot finish until every question is right.
+    for (const [index, problem] of worksheet.entries()) {
+      await buildWorksheetModel(page, problem);
+      await enterWorksheetAnswer(page, problem, problem.answer);
+      await expect(page.getByTestId(`status-worksheet-${problem.id}`)).toContainText('Correct!');
+      if (index < worksheet.length - 1) {
+        await expect(page.getByTestId('button-lab-finish')).toBeDisabled();
+        await expect(page.getByTestId('callout-lab-finish')).toHaveCount(0);
+      }
+    }
+    await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuenow', '12');
+    await expect(problemProgress.locator(':scope > li.complete')).toHaveCount(12);
     await expect(page.getByTestId('text-next-level')).toHaveText('All done! You can finish this lesson.');
     await expect(page.getByTestId('button-lab-finish')).toBeEnabled();
     await expect(page.getByTestId('callout-lab-finish')).toBeVisible();
-
-    // The second correct answer is practice, not another completion gate.
-    if (mission.id === 'equal-parts') {
-      await buildWorksheetModel(page, worksheet[1]);
-      await enterWorksheetAnswer(page, worksheet[1], worksheet[1].answer);
-      await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuenow', '1');
-      await expect(page.getByTestId('button-lab-finish')).toBeEnabled();
-    }
 
     await page.getByTestId('button-lab-finish').click();
     const breakOverlay = page.getByTestId('brain-break-overlay');

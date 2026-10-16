@@ -130,19 +130,12 @@ export function worksheetCount(record: LearningRecord, id: string): number {
     return entry?.checkedValue === entry?.draft && !!entry && answerMatches(problem, entry.draft);
   }).length;
 }
-/** The first authored worksheet question is the single required answer for lesson completion. */
-export function requiredWorksheetProblemId(id: string): string | undefined {
-  return getWorksheet(id)[0]?.id;
-}
+/** The lesson worksheet is printed and handed in: every question must be answered right (in the app, or entered
+    from paper with Check my paper) before the lesson can be finished. Other worksheets (practice sheets, new
+    numbers, redo) stay optional. */
 export function requiredWorksheetDone(record: LearningRecord, id: string): boolean {
-  const problem = getWorksheet(id)[0];
-  if (!problem) return false;
-  const entry = record.worksheet[problem.id];
-  return !!entry && entry.checkedValue === entry.draft && answerMatches(problem, entry.draft);
-}
-/** Optional answers count practice only; they never replace the required question. */
-export function optionalWorksheetCount(record: LearningRecord, id: string): number {
-  return Math.max(0, worksheetCount(record, id) - Number(requiredWorksheetDone(record, id)));
+  const total = getWorksheet(id).length;
+  return total > 0 && worksheetCount(record, id) === total;
 }
 /** Keep the newly added required check from re-locking lessons completed before it existed. */
 export function requiredBuildChecks(progress: Progress, id: string): BuildCheck[] {
@@ -181,10 +174,9 @@ export function checkWorksheet(record: LearningRecord, problem: WorksheetProblem
     worksheet: { ...record.worksheet, [problem.id]: { ...old, attempts: old.attempts + 1, supported: old.supported || !correct,
       checkedValue: correct ? old.draft : undefined } } };
 }
-/** Check a lesson worksheet row. Only the required question counts a miss toward reteach practice:
-    optional questions never add a step that blocks finishing the lesson. */
-export function checkLessonWorksheet(record: LearningRecord, problem: WorksheetProblem, missionId: string): LearningRecord {
-  return checkWorksheet(record, problem, problem.id === requiredWorksheetProblemId(missionId));
+/** Check a lesson worksheet row. Every row is required, so every miss counts toward reteach practice. */
+export function checkLessonWorksheet(record: LearningRecord, problem: WorksheetProblem, _missionId: string): LearningRecord {
+  return checkWorksheet(record, problem);
 }
 export function learningSummary(record: LearningRecord) {
   return {
@@ -226,7 +218,7 @@ export function worksheetProblemProgress(record: LearningRecord, problems: Works
     return {
       problemId: problem.id,
       current,
-      required: index === 0,
+      required: true,
       status: complete[index] ? 'complete'
         : (entry?.attempts ?? 0) > 0 ? 'retry'
           : current ? 'current' : 'upcoming',

@@ -23,7 +23,7 @@ describe('worksheet problem progress', () => {
       'current',
       ...Array.from({ length: 11 }, () => 'upcoming' as const),
     ]);
-    assert.deepEqual(progress.map(problem => problem.required), [true, ...Array.from({ length: 11 }, () => false)]);
+    assert.ok(progress.every(problem => problem.required), 'every lesson worksheet question is required');
     assert.equal(progress[0].current, true);
   });
 
@@ -85,31 +85,25 @@ describe('worksheet problem progress', () => {
   });
 });
 
-describe('optional worksheet questions never block or undo a lesson', () => {
+describe('the lesson worksheet is handed in whole', () => {
   const lessonId = 'fraction-names';
-  const passedRecord = () => {
-    const sheet = getWorksheet(lessonId);
-    const base: LearningRecord = { ...emptyLearningRecord(), practiceDone: true,
-      checks: Object.fromEntries(getBuildChecks(lessonId).map((check) => [check.id, { passed: true, supported: false, attempts: 1 }])) };
-    return checkLessonWorksheet(editWorksheet(base, sheet[0].id, sheet[0].answer), sheet[0], lessonId);
-  };
-  const missOptionalTwice = (record: LearningRecord) => {
-    const optional = getWorksheet(lessonId)[4];
-    let next = record;
-    for (let i = 0; i < 2; i++) next = checkLessonWorksheet(editWorksheet(next, optional.id, '99/100'), optional, lessonId);
-    return next;
-  };
+  const withBuilds = (): LearningRecord => ({ ...emptyLearningRecord(), practiceDone: true,
+    checks: Object.fromEntries(getBuildChecks(lessonId).map((check) => [check.id, { passed: true, supported: false, attempts: 1 }])) });
+  const answerAll = (record: LearningRecord, skip?: number) => getWorksheet(lessonId).reduce((next, problem, index) =>
+    index === skip ? next : checkLessonWorksheet(editWorksheet(next, problem.id, problem.answer), problem, lessonId), record);
 
-  it('does not add required reteach for misses on optional questions', () => {
-    const record = missOptionalTwice(passedRecord());
-    assert.deepEqual(record.misconceptions, {});
-    assert.equal(hasLearningGate({ ...EMPTY_PROGRESS, learning: { [lessonId]: record } }, lessonId), true);
+  it('cannot finish while any worksheet question is unanswered', () => {
+    for (const skip of [0, 5, 11]) {
+      const record = answerAll(withBuilds(), skip);
+      assert.equal(hasLearningGate({ ...EMPTY_PROGRESS, learning: { [lessonId]: record } }, lessonId), false, `question ${skip + 1} missing`);
+    }
+    assert.equal(hasLearningGate({ ...EMPTY_PROGRESS, learning: { [lessonId]: answerAll(withBuilds()) } }, lessonId), true);
   });
 
   it('keeps a finished lesson finished even if reteach practice is offered later', () => {
-    const required = getWorksheet(lessonId)[0];
-    let record: LearningRecord = { ...passedRecord(), completedAt: 1 };
-    // Two misses on the required question (it counts) after the lesson was finished.
+    const required = getWorksheet(lessonId)[3];
+    let record: LearningRecord = { ...answerAll(withBuilds()), completedAt: 1 };
+    // Two later misses on a worksheet question, then right again.
     for (let i = 0; i < 2; i++) record = checkWorksheet(editWorksheet(record, required.id, '99/100'), required);
     record = checkWorksheet(editWorksheet(record, required.id, required.answer), required);
     const progress = { ...EMPTY_PROGRESS, completedMissionIds: [lessonId], learning: { [lessonId]: record } };
