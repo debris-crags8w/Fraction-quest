@@ -41,3 +41,37 @@ test('developer can open a locked lesson and discard all test progress on exit',
   }));
   expect(savedAfterTest).toEqual(savedBeforeTest);
 });
+
+test('completed lesson questions can be reviewed without losing the current question', async ({ page }) => {
+  const mission = MISSIONS.find((item) => item.id === 'sets-unit-fractions')!;
+  const firstQuestion = mission.questions[0];
+
+  await page.route('**/api/**', (route) => route.fulfill({
+    status: 401,
+    contentType: 'application/json',
+    body: JSON.stringify({ error: 'Not signed in.' }),
+  }));
+  await page.goto('/');
+  await page.getByTestId('button-play-guest').click();
+  await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+  await page.getByTestId('developer-module-test').locator('summary').click();
+  await page.getByTestId('select-developer-lesson').selectOption(mission.id);
+  await page.getByTestId('button-open-developer-lesson').click();
+
+  await page.getByTestId(`button-answer-${firstQuestion.id}-${firstQuestion.correctChoice}`).click();
+  await page.getByTestId('button-check-answer').click();
+  await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+  await page.getByTestId('button-next-question').click();
+
+  const currentQuestion = await page.locator('#lesson-title').textContent();
+  await expect(page.getByTestId('button-review-question-2')).toHaveCount(0);
+  await page.getByTestId('button-review-question-1').click();
+  const review = page.getByTestId('panel-past-question-review');
+  await expect(review).toBeVisible();
+  await expect(review).toContainText(`Correct answer: ${firstQuestion.choices[firstQuestion.correctChoice]}`);
+  await expect(review).toContainText('will not change your lesson progress');
+  await page.getByTestId('button-return-to-current-question').click();
+
+  await expect(page.locator('#lesson-title')).toHaveText(currentQuestion ?? '');
+  await expect(page.getByTestId('button-review-question-1')).toBeVisible();
+});

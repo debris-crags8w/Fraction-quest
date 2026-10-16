@@ -42,6 +42,8 @@
   --fq-good-fg: #2F7300;
   --fq-bad-bg: #FFDFE0;
   --fq-bad-fg: #B42323;
+  --fq-order-accent: #5A35C7;
+  --fq-order-marker: #FF9600;
   --fq-track: hsl(250 30% 91%);
   --fq-edge: hsl(250 22% 84%);
   --unit: var(--fq-grape);
@@ -63,6 +65,8 @@
   --fq-good-fg: #A6F07A;
   --fq-bad-bg: #401A1E;
   --fq-bad-fg: #FFB3B5;
+  --fq-order-accent: #C7B3FF;
+  --fq-order-marker: #B55300;
   --fq-track: hsl(248 18% 26%);
   --fq-edge: hsl(248 18% 28%);
 }
@@ -405,16 +409,79 @@
 .fq-lesson-close { flex: none; color: hsl(var(--muted-foreground)); border: 0; background: none; }
 .fq-lesson-close:active { border: 0; }
 
-.fq-segments { flex: 1; display: flex; gap: 5px; }
-.fq-segments i {
+.fq-order-sort-shell { width: min(100% - 24px, 900px); margin: 0 auto; padding: 18px 0 40px; }
+.fq-order-sort-header { display: flex; align-items: center; gap: 18px; margin-bottom: 20px; }
+.fq-order-sort-header > div { min-width: 0; }
+.fq-order-sort-header > div > span { color: hsl(var(--muted-foreground)); font-size: 0.84rem; font-weight: 800; }
+.fq-order-sort-header h1 { margin: 0; font-size: clamp(1.45rem, 4vw, 2rem); }
+.fq-order-sort-example { margin-bottom: 18px; }
+.fq-order-sort-card { padding: clamp(18px, 4vw, 32px); border: 2px solid var(--fq-edge); border-radius: 24px; background: hsl(var(--card)); box-shadow: 0 8px 0 color-mix(in srgb, var(--fq-edge) 45%, transparent); }
+.fq-order-sort-progress { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.fq-order-sort-progress > span:not(.fq-order-sort-round-label) { flex: 1; height: 10px; border-radius: 99px; background: var(--fq-track); }
+.fq-order-sort-progress > span.active { background: var(--fq-lime); }
+.fq-order-sort-round-label { color: hsl(var(--muted-foreground)); font-size: 0.82rem; font-weight: 800; white-space: nowrap; }
+.fq-order-sort-card h2 { margin: 0; font-size: clamp(1.3rem, 3vw, 1.65rem); }
+.fq-order-sort-instructions { margin: 4px 0 18px; color: hsl(var(--muted-foreground)); }
+.fq-order-sort-list { display: grid; gap: 10px; max-width: 540px; margin: 0 auto 18px; padding: 0; list-style: none; }
+.fq-order-sort-item { display: flex; align-items: center; gap: 14px; min-height: 72px; padding: 8px 12px; border: 2px solid var(--fq-edge); border-radius: 16px; background: color-mix(in srgb, var(--fq-sky) 7%, hsl(var(--card))); }
+.fq-order-position { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: hsl(var(--card)); color: hsl(var(--muted-foreground)); font-weight: 900; }
+.fq-order-fraction { display: inline-grid; justify-items: center; min-width: 38px; line-height: 1.05; font-family: var(--app-font-mono); font-size: 1.15rem; font-weight: 900; }
+.fq-order-fraction i { width: 100%; height: 2px; margin: 2px 0; border-radius: 99px; background: currentColor; }
+.fq-order-move-controls { display: flex; gap: 6px; margin-left: auto; }
+.fq-order-move { display: grid; place-items: center; width: 44px; height: 44px; border: 2px solid var(--fq-edge); border-radius: 12px; background: hsl(var(--card)); color: hsl(var(--foreground)); cursor: pointer; }
+.fq-order-move:focus-visible { outline: 3px solid var(--fq-grape); outline-offset: 2px; }
+.fq-order-move:disabled { opacity: 0.35; cursor: default; }
+.fq-order-sort-feedback { display: grid; gap: 3px; max-width: 540px; margin: 0 auto 18px; padding: 13px 16px; border-radius: 14px; line-height: 1.4; }
+.fq-order-sort-feedback.correct { background: var(--fq-good-bg); color: var(--fq-good-fg); }
+.fq-order-sort-feedback.retry { background: var(--fq-bad-bg); color: var(--fq-bad-fg); }
+.fq-order-sort-actions { display: flex; justify-content: center; }
+.fq-order-sort-actions .fq-button { min-width: min(100%, 260px); }
+@media (max-width: 560px) {
+  .fq-order-sort-shell { width: min(100% - 16px, 900px); padding-top: 8px; }
+  .fq-order-sort-header { align-items: flex-start; gap: 8px; flex-direction: column; }
+  .fq-order-sort-header .fq-back { min-height: 42px; }
+  .fq-order-sort-card { padding: 16px 12px; border-radius: 18px; }
+}
+
+.fq-segments { flex: 1; display: flex; align-items: center; gap: 5px; }
+.fq-segments .fq-segment {
   flex: 1;
+  min-width: 0;
   height: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
   border-radius: 99px;
   background: var(--fq-track);
   transition: background-color 300ms ease;
 }
-.fq-segments i.on { background: var(--fq-lime); box-shadow: inset 0 -4px 0 rgb(0 0 0 / 0.1), inset 0 4px 0 rgb(255 255 255 / 0.3); }
-.fq-segments i.now { background: color-mix(in srgb, var(--fq-lime) 30%, var(--fq-track)); }
+.fq-segments .fq-segment.on { background: var(--fq-lime); box-shadow: inset 0 -4px 0 rgb(0 0 0 / 0.1), inset 0 4px 0 rgb(255 255 255 / 0.3); }
+.fq-segments .fq-segment.now { background: color-mix(in srgb, var(--fq-lime) 30%, var(--fq-track)); }
+.fq-segments button.fq-segment { appearance: none; cursor: pointer; }
+.fq-segments button.fq-segment.on:hover { filter: brightness(0.96); }
+.fq-segments button.fq-segment.on:focus-visible { outline: 3px solid var(--fq-sky); outline-offset: 3px; }
+
+.fq-past-review { display: flex; flex-direction: column; gap: 16px; }
+.fq-past-review > h1,
+.fq-past-review > p { margin: 0; }
+.fq-past-review-note {
+  padding: 12px 16px;
+  border-radius: 14px;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted));
+  font-weight: 700;
+}
+.fq-past-review-answer {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 2px solid color-mix(in srgb, var(--fq-lime) 55%, var(--fq-edge));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--fq-lime) 12%, hsl(var(--card)));
+}
+.fq-past-review-explanation { display: flex; align-items: flex-start; gap: 10px; }
+.fq-past-review-explanation > span { flex: 1; }
+.fq-past-review .fq-button { align-self: flex-start; }
 
 .fq-combo {
   display: inline-flex;
@@ -578,6 +645,17 @@
 .fq-example-section-header h3 { margin: 0; color: hsl(var(--muted-foreground)); font-size: 0.84rem; font-weight: 900; }
 .fq-skill-copy { margin: 0; line-height: 1.45; }
 .fq-example-section { margin-top: 10px; }
+.fq-example-intro {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 2px solid hsl(var(--primary) / 0.24);
+  border-radius: 18px;
+  background: hsl(var(--primary) / 0.045);
+}
+.fq-example-intro > h3 { margin: 0; color: var(--fq-grape); font-size: 1.05rem; }
+.fq-example-intro .fq-example-section { margin: 0; }
+.fq-example-intro .fq-example-section > p { margin: 0; line-height: 1.45; }
 .fq-example-section-header .fq-learning-listen,
 .fq-skill-header .fq-learning-listen,
 .fq-story-question-heading .fq-learning-listen { flex: none; margin: 0; }
@@ -588,6 +666,117 @@
 .fq-example-result { color: var(--fq-grape); font-family: var(--app-font-display); }
 .fq-example-section:first-of-type > p { margin-top: 6px; font-weight: 800; }
 .fq-example-section:nth-of-type(2) > p { margin-top: 6px; }
+.fq-order-line-figure {
+  margin: 0;
+  padding: 16px 18px 12px;
+  border: 2px solid hsl(var(--primary) / 0.24);
+  border-radius: 18px;
+  background: hsl(var(--primary) / 0.045);
+}
+.fq-order-line {
+  position: relative;
+  height: 102px;
+  margin: 0 4px;
+}
+.fq-order-line-axis {
+  position: absolute;
+  top: 58px;
+  right: 0;
+  left: 0;
+  height: 5px;
+  border-radius: 5px;
+  background: hsl(var(--foreground));
+}
+.fq-order-line-end,
+.fq-order-line-point,
+.fq-order-line-benchmark {
+  position: absolute;
+  transform: translateX(-50%);
+}
+.fq-order-line-end {
+  top: 51px;
+  width: 3px;
+  height: 19px;
+  border-radius: 3px;
+  background: hsl(var(--foreground));
+}
+.fq-order-line-point {
+  top: calc(4px + var(--lane) * 24px);
+  display: grid;
+  justify-items: center;
+  min-width: 46px;
+  color: var(--fq-order-accent);
+  font-weight: 900;
+}
+.fq-order-line-point::after {
+  position: absolute;
+  top: calc(46px - var(--lane) * 24px);
+  width: 17px;
+  height: 17px;
+  border: 3px solid hsl(var(--card));
+  border-radius: 50%;
+  background: var(--fq-order-marker);
+  box-shadow: 0 0 0 2px var(--fq-order-accent);
+  content: "";
+}
+.fq-order-line-point > span,
+.fq-order-line-benchmark > span {
+  padding: 2px 6px;
+  border: 1px solid var(--fq-edge);
+  border-radius: 9px;
+  background: hsl(var(--card));
+  white-space: nowrap;
+}
+.fq-order-line-benchmark {
+  z-index: 1;
+  top: 73px;
+  color: hsl(var(--foreground));
+  font-size: .78rem;
+  font-weight: 900;
+}
+.fq-order-line-benchmark::before {
+  position: absolute;
+  z-index: -1;
+  bottom: 22px;
+  left: 50%;
+  height: 34px;
+  border-left: 2px dashed var(--fq-order-accent);
+  content: "";
+}
+.fq-order-line-caption {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -1px;
+  color: hsl(var(--muted-foreground));
+  font-size: .82rem;
+  font-weight: 900;
+}
+.fq-order-line-description {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 10px 0 0;
+  font-size: .9rem;
+  line-height: 1.45;
+}
+.fq-order-line-description-copy { flex: 1; min-width: 0; }
+.fq-order-line-description .fq-learning-listen { flex: none; }
+@media (max-width: 420px) {
+  .fq-order-line-figure { padding-right: 12px; padding-left: 12px; }
+  .fq-order-line-description {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    justify-content: stretch;
+  }
+  .fq-order-line-description .fq-learning-listen { justify-self: start; margin-left: 0; }
+  .fq-order-line { height: 142px; }
+  .fq-order-line-point { top: calc(4px + var(--lane) * 48px); min-width: 40px; font-size: .88rem; }
+  .fq-order-line-point::after { top: calc(46px - var(--lane) * 48px); }
+  .fq-order-line-benchmark { top: 104px; }
+  .fq-order-line-benchmark::before { height: 54px; }
+}
 .fq-learning-section:nth-of-type(1) > p { font-weight: 800; }
 .fq-learning-section { display: grid; gap: 6px; }
 .fq-learning-section-heading { align-items: center; justify-content: flex-start; }
@@ -874,6 +1063,10 @@
 
 @media (max-width: 420px) {
   .fq-brand > span:last-child { display: none; }
+}
+
+@media (max-width: 320px) {
+  html { min-width: 0; }
 }
 
 /* ---------- model labels & shared drawings (bar model, number line, set) ---------- */

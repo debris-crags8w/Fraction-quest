@@ -18,10 +18,12 @@ import {
   isCorrectAnswer,
   isMissionUnlocked,
   loadProgress,
+  FRACTION_ORDER_ROUNDS,
   MISSIONS,
   numberLineWholeCount,
   recordMissedSkill,
   resetProgress as resetSavedProgress,
+  sameFractionValue,
   saveProgress,
   starsFromFirstTryAnswers,
   type Answer,
@@ -66,6 +68,7 @@ import { getRouterBasePath } from './app-routing';
 import DailyPractice from './DailyPractice';
 import { createDailyPractice, dailyPracticeDay } from './daily-practice';
 import PartFinder from './PartFinder';
+import FractionSortActivity from './FractionSortActivity';
 import { AssessmentHub, AssessmentRunner } from './Assessment';
 import { PART_FINDER_LESSONS, partFinderRoundsFor } from './part-finder';
 import ConceptGames, { type LessonGame } from './ConceptGames';
@@ -86,7 +89,9 @@ type View =
   | { type: 'assessment'; definition: AssessmentDefinition; seed: number }
   | { type: 'reward'; missionId: string; stars: number }
   /** The lesson's hands-on cake rounds (Part Finder), between the worked example and the questions. */
-  | { type: 'hands-on'; missionId: string; reviewQuestions: PracticeQuestion[] };
+  | { type: 'hands-on'; missionId: string; reviewQuestions: PracticeQuestion[] }
+  /** Local card arrangement before scored questions; it does not save lesson evidence. */
+  | { type: 'fraction-sort'; missionId: string; reviewQuestions: PracticeQuestion[] };
 type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string };
 type RedoView = { type: 'redo'; missionId: string };
@@ -202,6 +207,91 @@ function FractionBar({ numerator, denominator, quiet = false, label = false, gui
   );
 }
 
+export function OrderNumberLine({
+  points,
+  benchmark,
+  equivalentNames = [],
+}: {
+  points: { numerator: number; denominator: number }[];
+  benchmark: { numerator: number; denominator: number };
+  equivalentNames?: { fraction: { numerator: number; denominator: number }; equivalentTo: { numerator: number; denominator: number } }[];
+}) {
+  const fractionName = ({ numerator, denominator }: { numerator: number; denominator: number }) => `${numerator}/${denominator}`;
+  const equivalentNamesFor = (point: { numerator: number; denominator: number }) =>
+    equivalentNames.filter(({ equivalentTo }) => sameFractionValue(point, equivalentTo));
+  const equivalentDescriptionFor = (
+    point: { numerator: number; denominator: number },
+    names: { fraction: { numerator: number; denominator: number } }[],
+  ) => names.map(({ fraction }) =>
+    `${fractionName(point)} and ${fractionName(fraction)} are equivalent fractions. They mark the same amount and number-line spot.`,
+  ).join(' ');
+  const pointText = (point: { numerator: number; denominator: number }) =>
+    `${point.numerator}/${point.denominator} is at ${point.numerator} of ${point.denominator} equal spaces from zero to one`;
+  const benchmarkNames = equivalentNamesFor(benchmark);
+  const benchmarkIsHalf = benchmark.numerator * 2 === benchmark.denominator;
+  const description = [
+    'A number line from zero to one.',
+    ...points.map((point) => {
+      const names = equivalentNamesFor(point);
+      return names.length
+        ? `${pointText(point)}. ${equivalentDescriptionFor(point, names)}`
+        : pointText(point);
+    }),
+    ...(benchmarkIsHalf
+      ? [`The one-half benchmark is halfway between zero and one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]
+      : [`The benchmark ${benchmark.numerator}/${benchmark.denominator} is at ${benchmark.numerator} of ${benchmark.denominator} equal spaces from zero to one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]),
+    `From left to right, the fractions are ${points.map(({ numerator, denominator }) => `${numerator}/${denominator}`).join(', ')}.`,
+  ].join(' ');
+
+  return (
+    <figure className="fq-order-line-figure" data-testid="fraction-order-numberline">
+      <div
+        className="fq-order-line"
+        role="img"
+        aria-label={description}
+      >
+        <span className="fq-order-line-axis" aria-hidden="true" />
+        {[0, 1].map((end) => <span className="fq-order-line-end" style={{ left: `${end * 100}%` }} key={end} aria-hidden="true" />)}
+        <span
+          className="fq-order-line-benchmark"
+          style={{ left: `${(benchmark.numerator / benchmark.denominator) * 100}%` }}
+          data-testid="fraction-order-benchmark"
+          data-equivalent-names={benchmarkNames.map(({ fraction }) => fractionName(fraction)).join(',')}
+          aria-hidden="true"
+        >
+          <span>{[fractionName(benchmark), ...benchmarkNames.map(({ fraction }) => fractionName(fraction))].join(' = ')}</span>
+        </span>
+        {points.map((point, index) => {
+          const position = (point.numerator / point.denominator) * 100;
+          const names = equivalentNamesFor(point);
+          const label = [fractionName(point), ...names.map(({ fraction }) => fractionName(fraction))].join(' = ');
+          return (
+            <span
+              className="fq-order-line-point"
+              style={{ left: `${position}%`, '--lane': index % 2 } as CSSProperties}
+              key={`${point.numerator}/${point.denominator}`}
+              data-testid={`fraction-order-point-${point.numerator}-${point.denominator}`}
+              data-position={position}
+              data-equivalent-names={names.map(({ fraction }) => fractionName(fraction)).join(',')}
+              aria-hidden="true"
+            >
+              <span>{label}</span>
+            </span>
+          );
+        })}
+      </div>
+      <figcaption className="fq-order-line-caption">
+        <span>0</span><span>1 whole</span>
+      </figcaption>
+      <p className="fq-order-line-description" data-testid="text-fraction-order-line-description">
+        <span className="fq-order-line-description-copy" data-testid="text-fraction-order-line-description-copy">
+          {description}
+        </span>
+        <LearningListenButton text={description} label="Listen to the fraction number line" />
+      </p>
+    </figure>
+  );
+}
 /** Two bars of one whole each, once answered: where the larger amount ends. */
 function compareGuide(model: ModelSpec, reveal: boolean): number | undefined {
   if (!reveal || model.kind !== 'bars' || model.bars.length !== 2) return undefined;
@@ -599,7 +689,40 @@ function GuidedExample({ mission, title, lessonLabel }: { mission: Mission; titl
           <p className="fq-skill-copy"><LearningText text={mission.skill} /></p>
         </div>
       </div>
+      {mission.learningIntro && (
+        <section className="fq-example-intro" aria-label="How to order fractions" data-testid="lesson-introduction">
+          <h3>How to order fractions</h3>
+          <LearningTextSection
+            id="lesson-intro-goal"
+            heading="Goal"
+            text={mission.learningIntro.goal}
+            label="Listen to the goal"
+            className="fq-example-section"
+          />
+          <LearningTextSection
+            id="lesson-intro-process"
+            heading="Process"
+            text={mission.learningIntro.process}
+            label="Listen to the process"
+            className="fq-example-section"
+          />
+          <LearningTextSection
+            id="lesson-intro-why"
+            heading="Why it works"
+            text={mission.learningIntro.why}
+            label="Listen to why it works"
+            className="fq-example-section"
+          />
+        </section>
+      )}
       <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
+      {mission.example.numberLine && (
+        <OrderNumberLine
+          points={mission.example.numberLine.points}
+          benchmark={mission.example.numberLine.benchmark}
+          equivalentNames={mission.example.numberLine.equivalentNames}
+        />
+      )}
       <div className="fq-example-answer">
         <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
         <LearningTextSection
@@ -684,6 +807,7 @@ function PlayView({
   const [retryText, setRetryText] = useState('');
   const [burst, setBurst] = useState(0);
   const [shake, setShake] = useState(0);
+  const [reviewingPastIndex, setReviewingPastIndex] = useState<number | null>(null);
   const { fun } = useFun();
   const question: PracticeQuestion | null = mission.questions[questionIndex] ?? null;
   const isLastQuestion = question ? questionIndex === mission.questions.length - 1 : false;
@@ -765,7 +889,7 @@ function PlayView({
   const doneSteps = questionIndex + (feedback === 'correct' ? 1 : 0);
   const opener = question ? retryOpener(`${question.id}:${attempts}`) : '';
   // After a miss, Hoot's help is read aloud (with sound on), so a child who can't read it all still hears why.
-  useReadAloud(feedback === 'retry' && fun.sound ? `${opener} ${retryText}` : null, feedback === 'retry' ? `${question?.id}:${attempts}` : null);
+  useReadAloud(reviewingPastIndex === null && feedback === 'retry' && fun.sound ? `${opener} ${retryText}` : null, reviewingPastIndex === null && feedback === 'retry' ? `${question?.id}:${attempts}` : null);
   const sheetRef = useRef<HTMLDivElement>(null);
   useRevealWhen(sheetRef, feedback !== null);
   const cheer = combo >= 3 ? `${combo} in a row! You're on fire.` : question?.isMastery ? 'Practice checkpoint passed!' : ['Nice work!', 'You found it!', 'Great thinking!', 'Yes, that\'s it!'][(questionIndex + 4) % 4];
@@ -776,18 +900,30 @@ function PlayView({
       <main className="fq-shell fq-play-shell fq-appear">
         <div className="fq-lesson-top">
           <button className="fq-icon-button fq-lesson-close" onClick={onBack} aria-label="Back to learning map" data-testid="button-back-map"><X size={22} strokeWidth={3} /></button>
-          <div className="fq-segments" role="progressbar" aria-valuemin={0} aria-valuemax={steps} aria-valuenow={doneSteps} aria-label={`${isQuickReview ? 'Quick review · ' : ''}Question ${questionIndex + 1} of ${mission.questions.length}`} data-testid="status-lesson-progress">
-            {Array.from({ length: steps }, (_, index) => <i key={index} className={index < doneSteps ? 'on' : index === doneSteps ? 'now' : ''} />)}
+          <div className="fq-segments" role="group" aria-label={`Lesson question progress: ${doneSteps} of ${steps} completed`} data-testid="status-lesson-progress">
+            {Array.from({ length: steps }, (_, index) => index < doneSteps
+              ? <button key={index} type="button" className="fq-segment on" onClick={() => setReviewingPastIndex(index)} aria-label={`Review completed question ${index + 1}`} title={`Review question ${index + 1}`} data-testid={`button-review-question-${index + 1}`} />
+              : <span key={index} className={`fq-segment ${index === doneSteps ? 'now' : ''}`} aria-hidden="true" />)}
+            <span className="fq-sr" aria-live="polite">Question {Math.min(questionIndex + 1, steps)} of {steps}; {doneSteps} completed.</span>
           </div>
           {combo >= 2 && <span className="fq-combo" data-testid="status-combo"><Flame size={16} fill="currentColor" /> {combo}</span>}
-          {question && (
+          {question && reviewingPastIndex === null && (
             <button className={`fq-bulb ${hintOpen ? 'open' : ''}`} onClick={toggleHint} aria-expanded={hintOpen} aria-label={hintOpen ? 'Hide hint' : 'Show a hint'} data-testid="button-show-hint">
               <Lightbulb size={20} strokeWidth={2.75} />
             </button>
           )}
         </div>
 
-        <section className="fq-play-card" aria-labelledby="lesson-title">
+        <section className="fq-play-card" aria-labelledby={reviewingPastIndex === null ? 'lesson-title' : 'past-review-heading'}>
+          {reviewingPastIndex !== null && mission.questions[reviewingPastIndex] ? (
+            <PastQuestionReview
+              question={mission.questions[reviewingPastIndex]}
+              questionNumber={reviewingPastIndex + 1}
+              currentQuestionNumber={questionIndex + 1}
+              onReturn={() => setReviewingPastIndex(null)}
+            />
+          ) : (
+            <>
           <p className="fq-play-kicker">
             {isQuickReview
               ? `Quick skill review · ${question?.reviewTopicTitle ?? mission.shortTitle}`
@@ -874,9 +1010,45 @@ function PlayView({
               )}
             </>
           )}
+            </>
+          )}
         </section>
       </main>
 
+    </div>
+  );
+}
+
+function PastQuestionReview({
+  question,
+  questionNumber,
+  currentQuestionNumber,
+  onReturn,
+}: {
+  question: PracticeQuestion;
+  questionNumber: number;
+  currentQuestionNumber: number;
+  onReturn: () => void;
+}) {
+  return (
+    <div className="fq-past-review" data-testid="panel-past-question-review">
+      <p className="fq-play-kicker">Completed problem · Question {questionNumber}</p>
+      <h1 id="past-review-heading">Review question {questionNumber}</h1>
+      <p className="fq-past-review-note">You’re still on question {currentQuestionNumber}. Reviewing this problem will not change your lesson progress.</p>
+      <StoryPrompt prompt={question.prompt} id={`past-review-prompt-${questionNumber}`} />
+      <div className="fq-model-area" data-testid="past-review-model">
+        <ModelView model={question.model} reveal />
+      </div>
+      <div className="fq-past-review-answer" role="note">
+        <strong>Correct answer: <MathText text={question.choices[question.correctChoice] ?? ''} /></strong>
+        <div className="fq-past-review-explanation">
+          <LearningListenButton text={question.retryFeedback} label="Listen to the explanation" />
+          <span><LearningText text={question.retryFeedback} /></span>
+        </div>
+      </div>
+      <button className="fq-button secondary" onClick={onReturn} data-testid="button-return-to-current-question">
+        Back to question {currentQuestionNumber}
+      </button>
     </div>
   );
 }
@@ -1047,6 +1219,10 @@ function Game() {
       return;
     }
     const reviewQuestions = getDelayedReviewQuestions(activeProgress, missionId);
+    if (missionId === 'order-unlike-fractions') {
+      setView({ type: 'fraction-sort', missionId, reviewQuestions });
+      return;
+    }
     if (PART_FINDER_LESSONS.has(missionId)) {
       setView({ type: 'hands-on', missionId, reviewQuestions });
       return;
@@ -1228,6 +1404,14 @@ function Game() {
         return <PartFinder key={view.missionId} rounds={partFinderRoundsFor(view.missionId)} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
           intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} />}
           onExit={returnToMap} onDone={toQuestions} onSkip={progress.completedMissionIds.includes(view.missionId) || hasLearningGate(progress, view.missionId) ? toQuestions : undefined} />;
+      })()}
+      {view.type === 'fraction-sort' && (() => {
+        const mission = getMission(view.missionId);
+        const toQuestions = () => setView({ type: 'play', missionId: view.missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions: view.reviewQuestions });
+        return <FractionSortActivity key={view.missionId} rounds={FRACTION_ORDER_ROUNDS}
+          lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
+          intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} />}
+          onExit={returnToMap} onDone={toQuestions} />;
       })()}
       {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
       {view.type === 'extra' && (() => {
