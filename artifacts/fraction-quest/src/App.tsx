@@ -25,6 +25,7 @@ import {
   resetProgress as resetSavedProgress,
   sameFractionValue,
   saveProgress,
+  setModelLayout,
   starsFromFirstTryAnswers,
   type Answer,
   type Mission,
@@ -46,7 +47,7 @@ import { trackEvent } from './lib/analytics';
 import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
-import { ModelTag, WholeBracket } from './models';
+import { ModelTag, SetSvg, WholeBracket } from './models';
 import { Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type PathNode } from './fun-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
@@ -303,6 +304,7 @@ function compareGuide(model: ModelSpec, reveal: boolean): number | undefined {
 /** `asked`: the picture belongs to a question, so number-line labels (1/5, 2/5…) and the readout stay hidden until it is answered. */
 /** `walk`: after a miss, a "count with me" walk along the picture (see FractionBar); a new value replays it. */
 function ModelView({ model, compact = false, reveal = false, asked = false, walk = null }: { model: ModelSpec; compact?: boolean; reveal?: boolean; asked?: boolean; walk?: number | null }) {
+  const setLayout = model.kind === 'set' ? setModelLayout(model) : null;
   return (
     <div className={`fq-visual-model ${compact ? 'compact' : ''}`} data-testid="visual-fraction-model">
       {!compact && (model.kind === 'bars' || model.kind === 'decimal') && <ModelTag kind="bar" />}
@@ -323,9 +325,11 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
       )}
       {model.kind === 'set' && (
         <div className="fq-set-wrap">
-          <div className="fq-counter-set" role="img" aria-label={`${model.selected} of ${model.total} counters highlighted`}>
-            {Array.from({ length: model.total }, (_, index) => <span className={`fq-counter ${index < model.selected ? 'selected' : ''}`} style={{ '--i': index } as CSSProperties} key={index} />)}
-          </div>
+          {setLayout
+            ? <SetSvg n={setLayout.selectedGroups} d={setLayout.groupCount} total={model.total} />
+            : <div className="fq-counter-set" role="img" aria-label={`${model.selected} of ${model.total} counters highlighted`}>
+              {Array.from({ length: model.total }, (_, index) => <span className={`fq-counter ${index < model.selected ? 'selected' : ''}`} style={{ '--i': index } as CSSProperties} key={index} />)}
+            </div>}
         </div>
       )}
       {model.kind === 'line' && (() => {

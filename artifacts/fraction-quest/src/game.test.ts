@@ -68,6 +68,7 @@ import {
   resetProgress,
   sameFractionValue,
   saveProgress,
+  setModelLayout,
   SKILL_REVIEW_DELAY_MS,
   starsFromFirstTryAnswers,
   type ModelSpec,
@@ -1201,6 +1202,17 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(getModelFeedback({ kind: 'bar', n: 2, d: 5, wholes: 1 }), 'Each whole is split into 5 equal parts. 2 parts are shaded.');
     assert.equal(getModelFeedback({ kind: 'line', n: 1, d: 4, wholes: 1 }), 'Each whole has 4 equal spaces. 1 jump shows the amount.');
     assert.equal(getModelFeedback({ kind: 'set', n: 1, d: 3, wholes: 1, total: 12 }), '12 objects are split into 3 equal groups. 1 group is selected.');
+  });
+
+  it('groups set-model counters by the denominator and only highlights whole groups', () => {
+    assert.deepEqual(setModelLayout({ kind: 'set', selected: 4, total: 12, groupCount: 3 }), {
+      groupCount: 3, selectedGroups: 1, objectsPerGroup: 4,
+    });
+    assert.deepEqual(setModelLayout({ kind: 'set', selected: 6, total: 12, groupCount: 4 }), {
+      groupCount: 4, selectedGroups: 2, objectsPerGroup: 3,
+    });
+    assert.equal(setModelLayout({ kind: 'set', selected: 4, total: 12, groupCount: 5 }), null);
+    assert.equal(setModelLayout({ kind: 'set', selected: 3, total: 12, groupCount: 3 }), null);
   });
 
   it('keeps proper-fraction number lines from 0 to 1 and extends only for improper fractions', () => {

@@ -65,13 +65,25 @@ export function fractionOrderMatches(cards: readonly FractionValue[], direction:
 
 export type ModelSpec =
   | { kind: 'bars'; bars: FractionValue[]; caption?: string; hideLabels?: boolean }
-  | { kind: 'set'; selected: number; total: number; caption?: string }
+  | { kind: 'set'; selected: number; total: number; groupCount?: number; caption?: string }
   | { kind: 'line'; numerator: number; denominator: number; wholes?: number; caption?: string; hideLabels?: boolean }
   | { kind: 'partition'; parts: number[]; caption?: string }
   | { kind: 'equation'; text: string; caption?: string }
   | { kind: 'decimal'; tenths: number; caption?: string; hideLabels?: boolean }
   /** A square, circle or hexagon cut into pieces (see area-shapes.ts); `shaded` lists piece numbers. */
   | { kind: 'area'; cut: AreaCut; shaded: number[]; caption?: string };
+
+export type SetModelLayout = { groupCount: number; selectedGroups: number; objectsPerGroup: number };
+
+/** Return an equal-group layout only when every displayed object belongs to a whole, equal group. */
+export function setModelLayout(model: Extract<ModelSpec, { kind: 'set' }>): SetModelLayout | null {
+  const { groupCount, selected, total } = model;
+  if (!groupCount || !Number.isInteger(groupCount) || groupCount < 1 || !Number.isInteger(total) || total < 1 || total % groupCount !== 0) return null;
+  if (!Number.isInteger(selected) || selected < 0 || selected > total) return null;
+  const objectsPerGroup = total / groupCount;
+  if (selected % objectsPerGroup !== 0) return null;
+  return { groupCount, selectedGroups: selected / objectsPerGroup, objectsPerGroup };
+}
 
 export type PracticeQuestion = {
   id: string;
@@ -217,7 +229,7 @@ export function starsFromFirstTryAnswers(firstTryAnswers: number, requiredQuesti
 }
 
 const bars = (...fractions: FractionValue[]): ModelSpec => ({ kind: 'bars', bars: fractions });
-const setModel = (selected: number, total: number, caption?: string): ModelSpec => ({ kind: 'set', selected, total, caption });
+const setModel = (selected: number, total: number, groupCount: number, caption?: string): ModelSpec => ({ kind: 'set', selected, total, groupCount, caption });
 const line = (numerator: number, denominator: number, wholes = numberLineWholeCount(numerator, denominator)): ModelSpec => ({ kind: 'line', numerator, denominator, wholes });
 const equation = (text: string): ModelSpec => ({ kind: 'equation', text });
 const decimal = (tenths: number): ModelSpec => ({ kind: 'decimal', tenths });
@@ -336,13 +348,13 @@ const curriculum: MissionSeed[] = [
       prompt: 'There are 12 buttons. What is 1/3 of the buttons?',
       answer: '4 buttons.',
       explanation: 'Make 3 equal groups. Each has 4. So 1/3 is 4.',
-      model: setModel(4, 12, '1 of 3 equal groups'),
+      model: setModel(4, 12, 3, '1 of 3 equal groups'),
     },
     questions: [
-      practice('What is 1/4 of 12 toy cars?', ['3 cars', '4 cars', '8 cars'], 0, setModel(0, 12), 'Make 4 equal groups. Count 1 group.', '12 in 4 groups is 3 each. 1 group is 3.', setModel(2, 8)),
-      practice('What is 1/3 of 15 beads?', ['3 beads', '5 beads', '12 beads'], 1, setModel(0, 15), 'Make 3 equal groups.', '15 in 3 groups is 5 each.', setModel(3, 9)),
-      practice('What is 1/2 of 10 shells?', ['5 shells', '2 shells', '8 shells'], 0, setModel(0, 10), 'Make 2 equal groups.', '10 in 2 groups is 5 each.', setModel(4, 8)),
-      practice('A class has 20 pencils. What is 1/5 of the pencils?', ['4', '5', '15'], 0, setModel(0, 20), 'Make 5 equal groups. Count 1 group.', '20 in 5 groups is 4 each.', setModel(2, 10)),
+      practice('What is 1/4 of 12 toy cars?', ['3 cars', '4 cars', '8 cars'], 0, setModel(0, 12, 4), 'Make 4 equal groups. Count 1 group.', '12 in 4 groups is 3 each. 1 group is 3.', setModel(2, 8, 4)),
+      practice('What is 1/3 of 15 beads?', ['3 beads', '5 beads', '12 beads'], 1, setModel(0, 15, 3), 'Make 3 equal groups.', '15 in 3 groups is 5 each.', setModel(3, 9, 3)),
+      practice('What is 1/2 of 10 shells?', ['5 shells', '2 shells', '8 shells'], 0, setModel(0, 10, 2), 'Make 2 equal groups.', '10 in 2 groups is 5 each.', setModel(4, 8, 2)),
+      practice('A class has 20 pencils. What is 1/5 of the pencils?', ['4', '5', '15'], 0, setModel(0, 20, 5), 'Make 5 equal groups. Count 1 group.', '20 in 5 groups is 4 each.', setModel(2, 10, 5)),
     ],
   },
   {
@@ -351,13 +363,13 @@ const curriculum: MissionSeed[] = [
       prompt: 'What is 2/5 of 15 counters?',
       answer: '6 counters.',
       explanation: 'Make 5 groups of 3. Count 2 groups: 3 + 3 = 6.',
-      model: setModel(6, 15, '2 of 5 equal groups'),
+      model: setModel(6, 15, 5, '2 of 5 equal groups'),
     },
     questions: [
-      practice('What is 2/3 of 12?', ['8', '4', '9'], 0, setModel(0, 12), 'Make 3 equal groups. Count 2.', '12 in 3 groups is 4 each. 2 groups is 8.', setModel(4, 12)),
-      practice('What is 3/4 of 8 stickers?', ['2 stickers', '6 stickers', '7 stickers'], 1, setModel(0, 8), 'Make 4 equal groups. Count 3.', '8 in 4 groups is 2 each. 3 groups is 6.', setModel(4, 8)),
-      practice('What is 2/5 of 20 cubes?', ['8 cubes', '5 cubes', '10 cubes'], 0, setModel(0, 20), 'Make 5 equal groups. Count 2.', '20 in 5 groups is 4 each. 2 groups is 8.', setModel(4, 20)),
-      practice('What is 3/6 of 18 buttons?', ['9 buttons', '6 buttons', '15 buttons'], 0, setModel(0, 18), 'Make 6 equal groups. Count 3.', '18 in 6 groups is 3 each. 3 groups is 9.', setModel(6, 18)),
+      practice('What is 2/3 of 12?', ['8', '4', '9'], 0, setModel(0, 12, 3), 'Make 3 equal groups. Count 2.', '12 in 3 groups is 4 each. 2 groups is 8.', setModel(4, 12, 3)),
+      practice('What is 3/4 of 8 stickers?', ['2 stickers', '6 stickers', '7 stickers'], 1, setModel(0, 8, 4), 'Make 4 equal groups. Count 3.', '8 in 4 groups is 2 each. 3 groups is 6.', setModel(4, 8, 4)),
+      practice('What is 2/5 of 20 cubes?', ['8 cubes', '5 cubes', '10 cubes'], 0, setModel(0, 20, 5), 'Make 5 equal groups. Count 2.', '20 in 5 groups is 4 each. 2 groups is 8.', setModel(4, 20, 5)),
+      practice('What is 3/6 of 18 buttons?', ['9 buttons', '6 buttons', '15 buttons'], 0, setModel(0, 18, 6), 'Make 6 equal groups. Count 3.', '18 in 6 groups is 3 each. 3 groups is 9.', setModel(6, 18, 6)),
     ],
   },
   {
@@ -784,7 +796,7 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'multi-step-fraction-stories', unit: 14, title: 'Two-step stories', shortTitle: 'Fraction stories', description: 'Solve a story in 2 steps.', skill: 'Find what the story asks first. Solve that step, then use the answer in the next step.', mode: 'story', n: 2, d: 5, context: 'community garden' },
   // Unit 15 · Problem solving: the reasoning that Singapore, Beast Academy and Eureka lean on and quizzes skip.
   { id: 'find-the-whole', unit: 15, title: 'Find the whole', shortTitle: 'Find the whole', description: '3 is 1/4 of it. What is the whole?', skill: 'The known amount is one of the equal parts. Find one part, then multiply by the bottom number to make the whole.', mode: 'whole-from-part', n: 1, d: 4, context: 'sticker packs', gradeBand: 4, standards: ['3.NF.1', '4.NF.4c'],
-    example: { prompt: '3 stickers are 1/4 of a pack. How many stickers are in the pack?', answer: '12 stickers', explanation: '1/4 is 1 of 4 equal parts. Each part is 3. 4 parts of 3 is 12.', model: setModel(3, 12) } },
+    example: { prompt: '3 stickers are 1/4 of a pack. How many stickers are in the pack?', answer: '12 stickers', explanation: '1/4 is 1 of 4 equal parts. Each part is 3. 4 parts of 3 is 12.', model: setModel(3, 12, 4) } },
   { id: 'spot-the-mistake', unit: 15, title: 'Spot the mistake', shortTitle: 'Spot the mistake', description: 'Is Sam right? Fix it.', skill: 'Check whether each step uses the right fraction rule. Find the first wrong step and correct it.', mode: 'mistake', n: 3, d: 4, context: 'homework check', gradeBand: 4, standards: ['4.NF.3a', '4.NF.2'] },
   { id: 'fraction-of-remainder', unit: 15, title: 'Fraction of the rest', shortTitle: 'Fraction of the rest', description: 'Spend 1/3. Then spend 1/2 of the rest.', skill: 'First find how much is left. Then split that remaining amount and find the fraction asked for.', mode: 'remainder', n: 1, d: 3, context: 'pocket money', gradeBand: 5, standards: ['5.NF.6', '5.NF.2'] },
   { id: 'divide-fractions', unit: 15, title: 'Bonus: Divide by a fraction', shortTitle: 'Bonus fraction ÷ fraction', description: 'How many 1/8s fit in 3/4?', skill: 'Division asks how many groups fit. Count how many pieces of the given fraction fit in the amount.', mode: 'divide-fractions', n: 3, d: 4, context: 'measuring scoops', enrichment: true },
@@ -796,7 +808,7 @@ export function problemPicture(problem: WorksheetProblem): ModelSpec {
   const m = problem.model;
   // An empty picture: the wholes cut into equal pieces, nothing shaded yet (sharing questions).
   if (m && m.n === 0) return { kind: 'bars', bars: Array.from({ length: m.wholes }, () => ({ numerator: 0, denominator: m.d })), hideLabels: true };
-  if (m?.kind === 'set' && m.total) return setModel((m.total / m.d) * m.n, m.total);
+  if (m?.kind === 'set' && m.total) return setModel((m.total / m.d) * m.n, m.total, m.d);
   if (m?.kind === 'line') return { kind: 'line', numerator: m.n, denominator: m.d, wholes: numberLineWholeCount(m.n, m.d), hideLabels: true };
   if (m) return picture(m.n, m.d);
   const fraction = /(\d+)\/(\d+)/.exec(problem.prompt);
@@ -838,7 +850,7 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
       prompt: build.prompt,
       answer: t.kind === 'set' && t.total ? `${(t.total / t.d) * t.n} of ${t.total}` : `${t.n}/${t.d}`,
       explanation: build.explanation,
-      model: t.kind === 'set' && t.total ? setModel((t.total / t.d) * t.n, t.total) : t.kind === 'line' ? line(t.n, t.d) : bars({ numerator: t.n, denominator: t.d }),
+      model: t.kind === 'set' && t.total ? setModel((t.total / t.d) * t.n, t.total, t.d) : t.kind === 'line' ? line(t.n, t.d) : bars({ numerator: t.n, denominator: t.d }),
     },
     // Practice uses different worksheet rows than the first ones, so the sheet still has fresh numbers.
     questions: [1, 4, 7, 10].map((row, i) => problemQuestion(sheet[row], i + row)),
