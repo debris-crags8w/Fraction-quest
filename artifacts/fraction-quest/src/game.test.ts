@@ -68,6 +68,7 @@ import {
   resetProgress,
   sameFractionValue,
   saveProgress,
+  setModelLayout,
   SKILL_REVIEW_DELAY_MS,
   starsFromFirstTryAnswers,
   type ModelSpec,
@@ -262,7 +263,9 @@ describe('lesson catalog', () => {
 
     const sameNumerator = MISSIONS.find((mission) => mission.id === 'compare-same-numerator')!;
     assert.match(sameNumerator.skill, /same top number.*count the same number.*larger bottom number.*more equal parts.*smaller/i);
-    assert.match(sameNumerator.example.explanation, /both fractions count 3 pieces.*more equal parts.*each eighth is smaller.*3\/8 less than 3\/5/i);
+    assert.match(sameNumerator.example.explanation, /both (?:same-size (?:bars|wholes)|fractions) count 3 pieces/i);
+    assert.match(sameNumerator.example.explanation, /(?:8 equal parts|eighths).*smaller/i);
+    assert.match(sameNumerator.example.explanation, /3\/8 (?:is )?(?:less|smaller) than 3\/5/i);
 
     const unlikeOrdering = MISSIONS.find((mission) => mission.id === 'order-unlike-fractions')!;
     assert.ok(unlikeOrdering.learningIntro, 'fraction ordering explains the goal, steps, and why the method works');
@@ -273,7 +276,9 @@ describe('lesson catalog', () => {
 
   it('keeps the same-numerator explanation clear in the build, worksheet, and generated practice', () => {
     const checks = getBuildChecks('compare-same-numerator');
-    assert.match(checks[0].explanation, /Both count 3 pieces.*Eight equal parts make smaller pieces than five/i);
+    assert.match(checks[0].explanation, /both (?:same-size (?:whole|bar)s?|fractions).*count 3 pieces/i);
+    assert.match(checks[0].explanation, /(?:eighths|eight equal parts|8 equal parts).*smaller/i);
+    assert.match(checks[0].explanation, /3\/8 (?:is )?(?:smaller|less) than 3\/5/i);
     assert.match(checks[1].explanation, /Five equal parts make smaller pieces than three/i);
 
     const worksheet = getWorksheet('compare-same-numerator');
@@ -1203,6 +1208,17 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(getModelFeedback({ kind: 'set', n: 1, d: 3, wholes: 1, total: 12 }), '12 objects are split into 3 equal groups. 1 group is selected.');
   });
 
+  it('groups set-model counters by the denominator and only highlights whole groups', () => {
+    assert.deepEqual(setModelLayout({ kind: 'set', selected: 4, total: 12, groupCount: 3 }), {
+      groupCount: 3, selectedGroups: 1, objectsPerGroup: 4,
+    });
+    assert.deepEqual(setModelLayout({ kind: 'set', selected: 6, total: 12, groupCount: 4 }), {
+      groupCount: 4, selectedGroups: 2, objectsPerGroup: 3,
+    });
+    assert.equal(setModelLayout({ kind: 'set', selected: 4, total: 12, groupCount: 5 }), null);
+    assert.equal(setModelLayout({ kind: 'set', selected: 3, total: 12, groupCount: 3 }), null);
+  });
+
   it('keeps proper-fraction number lines from 0 to 1 and extends only for improper fractions', () => {
     assert.equal(numberLineWholeCount(1, 3), 1);
     assert.equal(numberLineWholeCount(5, 5), 1);
@@ -1313,6 +1329,27 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.equal(isMissionUnlocked({ ...EMPTY_PROGRESS, completedMissionIds: MISSIONS.map((mission) => mission.id) }, MISSIONS[1].id), false);
     assert.equal(getNextMission({ ...EMPTY_PROGRESS, completedMissionIds: MISSIONS.map((mission) => mission.id) })?.id, id);
     assert.equal(isMissionUnlocked(progress, 'unknown'), false);
+  });
+  it('requires one named worksheet answer while leaving the other eleven as optional practice', () => {
+    const id = MISSIONS[0].id;
+    const problems = getWorksheet(id);
+    const checks = getBuildChecks(id);
+    let record: LearningRecord = { ...emptyLearningRecord(), practiceDone: true };
+    for (const check of checks) record.checks[check.id] = { passed: true, supported: false, attempts: 1 };
+    record = checkWorksheet(editWorksheet(record, problems[0].id, problems[0].answer), problems[0]);
+    const progress = updateLearning(EMPTY_PROGRESS, id, record);
+
+    assert.equal(worksheetCount(record, id), 1);
+    assert.equal(hasLearningGate(progress, id), true);
+    assert.equal(lessonSteps(progress, id).done, checks.length + 1);
+    assert.equal(isMissionUnlocked(completeMission(progress, id, 2), MISSIONS[1].id), true);
+
+    const optional = problems[1];
+    const practiced = checkWorksheet(editWorksheet(record, optional.id, optional.answer), optional);
+    const practicedProgress = updateLearning(progress, id, practiced);
+    assert.equal(worksheetCount(practiced, id), 2);
+    assert.equal(hasLearningGate(practicedProgress, id), true);
+    assert.deepEqual(practicedProgress.starsByMission, progress.starsByMission, 'optional practice does not change stars');
   });
   it('preserves drafts, correction history and learning evidence over reload, then resets them', () => {
     const id = MISSIONS[0].id;
@@ -2740,6 +2777,11 @@ describe('same numerator, different denominators', () => {
     }
     const transfer = getBuildChecks('compare-same-numerator').find((c) => c.transfer)!;
     assert.match(transfer.prompt, /2\/3 or 2\/5/);
+    assert.match(transfer.explanation, /same-size wholes count 2 pieces.*Five equal parts make smaller pieces/i);
+    const mission = MISSIONS.find((item) => item.id === 'compare-same-numerator')!;
+    assert.match(mission.skill, /wholes are the same size.*same top number.*larger bottom number.*more equal parts.*smaller/i);
+    assert.match(mission.explainPrompt ?? '', /3\/5 and 3\/8.*denominator.*same-size whole.*2\/3 and 2\/5/i);
+    assert.match(mission.example.explanation, /same-size bars count 3 pieces.*8 equal parts.*smaller pieces.*3\/8 is less than 3\/5/i);
     const unlike = getWorksheet('compare-unlike-fractions');
     assert.ok(unlike.some((p) => { const m = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(p.prompt); return !!m && m[1] === m[2]; }));
   });
@@ -2749,7 +2791,9 @@ describe('same numerator, different denominators', () => {
       /(?:denominator|bottom number|equal parts|pieces|parts)/i.test(text)
       && /(?:smaller|larger|fewer|more)/i.test(text);
     assert.match(lesson.skill, /same (?:numerator|top number).*(?:larger denominator|larger bottom number).*more equal parts.*piece.*smaller/i);
-    assert.match(lesson.example.explanation, /both (?:fractions )?count 3 pieces.*eighths.*smaller.*3\/8 (?:is )?(?:smaller|less) than 3\/5/i);
+    assert.match(lesson.example.explanation, /both (?:same-size (?:whole|bar)s?|fractions).*count 3 pieces/i);
+    assert.match(lesson.example.explanation, /(?:eighths|eight equal parts|8 equal parts).*smaller/i);
+    assert.match(lesson.example.explanation, /3\/8 (?:is )?(?:smaller|less) than 3\/5/i);
     assert.ok(lesson.questions.every((question) => explainsPieceSize(question.hint)), 'each authored hint compares the denominator or piece size');
 
     const generated = generateQuestions('compare-same-numerator', ['x'], 3, 8);
@@ -3131,6 +3175,8 @@ describe('Expo iPhone shell', () => {
     assert.equal(isAppPage('https://webassets.zearn.org/guide.pdf', 'https://a.replit.app/'), false, 'other sites open in Safari');
     assert.equal(isAppPage('about:blank', 'https://a.replit.app/'), true);
     assert.deepEqual(parseShellMessage('{"type":"haptic","cue":"correct"}'), { type: 'haptic', cue: 'correct' });
+    assert.deepEqual(parseShellMessage('{"type":"haptic","cue":"selection"}'), { type: 'haptic', cue: 'selection' });
+    assert.equal(parseShellMessage('{"type":"haptic","cue":"unknown"}'), null);
     assert.equal(parseShellMessage('{"type":"print","html":"<html></html>"}')?.type, 'print');
     assert.equal(parseShellMessage('{"type":"other"}'), null);
     assert.equal(parseShellMessage('not json'), null);

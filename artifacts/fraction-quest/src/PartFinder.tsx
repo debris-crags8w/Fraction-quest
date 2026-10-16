@@ -5,6 +5,9 @@ import { FRIENDS, isPartFinderAnswer, partFinderFeedback, type PartFinderRound }
 import './part-finder.css';
 import { TaskBar } from './TaskBar';
 import { AnswerTiles } from './AnswerTiles';
+import { Mascot } from './fun-ui';
+import { LearningListenButton } from './LearningText';
+import { playHaptic } from './lib/fun';
 
 type CheckState = 'idle' | 'right' | 'try-again';
 
@@ -12,6 +15,31 @@ const svgPoints = (piece: Piece) =>
   piece.points.map(([x, y]) => `${x * 168},${y * 168}`).join(' ');
 
 const SHARE_NAMES = FRIENDS;
+
+const FIRST_FRACTION_TEXT = 'A fraction names equal-size parts of one whole. First, see the whole; next, make equal pieces; then share them fairly.';
+
+function FirstFractionIntroduction() {
+  return (
+    <section className="fq-pf-first-intro" data-testid="first-fraction-introduction" aria-labelledby="pf-first-intro-title">
+      <div className="fq-pf-first-intro-copy">
+        <Mascot mood="happy" size={62} />
+        <div>
+          <div className="fq-pf-first-intro-heading">
+            <h2 id="pf-first-intro-title">Meet fractions with Numi</h2>
+            <LearningListenButton text={FIRST_FRACTION_TEXT} label="Listen to the fraction introduction" />
+          </div>
+          <p>{FIRST_FRACTION_TEXT}</p>
+        </div>
+      </div>
+      <figure className="fq-pf-first-intro-model" data-testid="first-fraction-intro-model">
+        <div className="fq-pf-intro-whole" role="img" aria-label="One whole divided into four equal-size parts">
+          {[1, 2, 3, 4].map((part) => <span className="fq-pf-intro-part" key={part} />)}
+        </div>
+        <figcaption>1 whole · 4 equal-size parts</figcaption>
+      </figure>
+    </section>
+  );
+}
 
 function CutPicture({ cut, label, selected = [], groups, interactive = false, disabled = false, onToggle }: {
   cut: AreaCut;
@@ -87,10 +115,14 @@ function TileFill({ cut, selection, solved }: { cut: AreaCut; selection: number[
 
 /** Hands-on cake rounds inside a lesson, between the worked example and the questions. Each round must fit
     before the child moves on; the feedback says why a try doesn't fit. */
-export default function PartFinder({ rounds, lessonLabel, intro, onExit, onDone, onSkip }: {
+export default function PartFinder({ rounds, lessonLabel, activityTitle, showFirstIntroduction = false, intro, onExit, onDone, onSkip }: {
   rounds: PartFinderRound[];
   /** "Lesson 01 · Same whole, fair pieces": shown in the bar so the child knows this is part of the lesson. */
   lessonLabel: string;
+  /** Short label for the specific hands-on activity. */
+  activityTitle: string;
+  /** Show the Numi-led introduction for the learner's first fraction lesson. */
+  showFirstIntroduction?: boolean;
   /** A worked example shown as part of the lesson before its hands-on rounds. */
   intro?: ReactNode;
   onExit: () => void;
@@ -117,6 +149,7 @@ export default function PartFinder({ rounds, lessonLabel, intro, onExit, onDone,
 
   const togglePiece = (index: number) => {
     if (correct) return;
+    playHaptic('selection');
     setChecked('idle');
     if (sorting) {
       setAssignment((current) => current.map((share, i) => (i !== index ? share : share === activeShare ? -1 : activeShare)));
@@ -129,10 +162,17 @@ export default function PartFinder({ rounds, lessonLabel, intro, onExit, onDone,
     });
   };
 
-  const checkAnswer = () => setChecked(isPartFinderAnswer(round, answerPieces, tileAnswer) ? 'right' : 'try-again');
+  const checkAnswer = () => {
+    if (correct) return;
+    const isRight = isPartFinderAnswer(round, answerPieces, tileAnswer);
+    playHaptic(isRight ? 'correct' : 'retry');
+    setChecked(isRight ? 'right' : 'try-again');
+  };
 
   const clearSelection = () => {
     if (correct) return;
+    if (!selected.length && !assignment.some((share) => share >= 0) && !tileCount) return;
+    playHaptic('selection');
     setSelected([]);
     setAssignment(emptyShares());
     setChecked('idle');
@@ -152,8 +192,10 @@ export default function PartFinder({ rounds, lessonLabel, intro, onExit, onDone,
   return (
     <main className="fq-app fq-pf" data-testid="part-finder-screen">
       <div className="fq-pf-shell">
-        <TaskBar onBack={onExit} backLabel="Map" testId="button-part-finder-exit" title="Try it with cake" backAriaLabel={`Back to the map (leaves ${lessonLabel})`} step={roundIndex + 1} total={rounds.length}
+        <TaskBar onBack={onExit} backLabel="Map" testId="button-part-finder-exit" title={activityTitle} backAriaLabel={`Back to the map (leaves ${lessonLabel})`} step={roundIndex + 1} total={rounds.length} sequenceLabel="Round"
           actions={onSkip && <button type="button" className="fq-hint-button" onClick={onSkip} data-testid="button-hands-on-skip">Skip</button>} />
+
+        {showFirstIntroduction && <FirstFractionIntroduction />}
 
         {intro && <section className="fq-pf-lesson-example" data-testid="part-finder-lesson-example">{intro}</section>}
 
@@ -197,7 +239,11 @@ export default function PartFinder({ rounds, lessonLabel, intro, onExit, onDone,
                   return (
                     <button key={name} type="button" role="radio" aria-checked={activeShare === share} disabled={correct}
                       className={`fq-pf-share share-${share}${activeShare === share ? ' active' : ''}`}
-                      onClick={() => setActiveShare(share)} data-testid={`button-part-finder-share-${share + 1}`}>
+                      onClick={() => {
+                        if (activeShare === share) return;
+                        playHaptic('selection');
+                        setActiveShare(share);
+                      }} data-testid={`button-part-finder-share-${share + 1}`}>
                       <i aria-hidden="true" /><span>{name}<small>{count} {count === 1 ? 'piece' : 'pieces'}</small></span>
                     </button>
                   );

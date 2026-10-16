@@ -106,6 +106,8 @@
 .fq-ll-full-explanation summary { width: fit-content; cursor: pointer; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
 .fq-ll-full-explanation > *:not(summary) { display: block; margin-top: 8px; }
 .fq-ll-actions { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+.fq-ll-actions-complete { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; width: 100%; }
+.fq-ll-check-passed { display: inline-flex; align-items: center; gap: 6px; color: hsl(173 45% 24%); font-weight: 900; }
 .fq-ll-finish { justify-self: end; }
 .fq-ll-sheet-head { display: grid; gap: 10px; }
 .fq-ll-meter { position: relative; height: 28px; border: 2px solid hsl(var(--foreground)); border-radius: 99px; overflow: hidden; background: hsl(var(--muted)); }
@@ -149,6 +151,9 @@
 .fq-ll-row.ok { border-color: hsl(var(--secondary)); background: hsl(var(--secondary) / .07); }
 .fq-ll-row form { display: grid; gap: 10px; }
 .fq-ll-row-question { display: flex; gap: 10px; align-items: flex-start; font-weight: 700; line-height: 1.4; }
+.fq-ll-row-prompt { display: grid; gap: 5px; min-width: 0; }
+.fq-ll-sequence { display: block; color: hsl(var(--secondary)); font-size: .76rem; font-weight: 900; line-height: 1.25; }
+.fq-ll-response-step { display: inline-block; margin: 0 0 8px; color: hsl(var(--secondary)); font-size: .82rem; font-weight: 900; }
 .fq-ll-num { flex: 0 0 28px; height: 28px; display: grid; place-items: center; border-radius: 9px; background: hsl(var(--accent)); font: 900 .8rem var(--app-font-mono); }
 .fq-ll-answer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .fq-ll-answer input { width: min(100%, 220px); text-align: left; padding: 0 12px; }
@@ -221,6 +226,8 @@
 @media (max-width: 560px) {
   .fq-ll-builder { padding: 10px; }
   .fq-ll-actions .fq-button { width: 100%; }
+  .fq-ll-actions-complete { grid-template-columns: 1fr; }
+  .fq-ll-actions-complete .fq-ll-finish { justify-self: stretch; }
   .fq-ll-controls { gap: 10px; }
 }
 

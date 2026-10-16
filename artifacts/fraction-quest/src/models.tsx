@@ -145,11 +145,11 @@ export function SetSvg({ n, d, total }: { n: number; d: number; total: number })
   const perRow = Math.max(1, Math.floor((W + PAD * 2) / (gw + 8)));
   const height = Math.ceil(d / perRow) * (gh + 8);
   return (
-    <svg className="fq-svg-set" viewBox={`0 0 ${W + PAD * 2} ${height}`} role="img" aria-label={`Set model: ${total} objects in ${d} equal groups, ${n} groups selected`}>
+    <svg className="fq-svg-set" viewBox={`0 0 ${W + PAD * 2} ${height}`} role="img" aria-label={`Set model: ${total} objects in ${d} equal groups of ${per}, ${n} ${n === 1 ? 'group' : 'groups'} selected.`}>
       {Array.from({ length: d }, (_, g) => {
         const gx = (g % perRow) * (gw + 8); const gy = Math.floor(g / perRow) * (gh + 8);
         return (
-          <g key={g} transform={`translate(${gx + 2} ${gy + 2})`}>
+          <g key={g} transform={`translate(${gx + 2} ${gy + 2})`} data-testid="set-model-group" data-group-index={g + 1}>
             <rect className={g < n ? 'group on' : 'group'} width={gw} height={gh} rx={8} />
             {Array.from({ length: per }, (_, k) => (
               <circle key={k} className={g < n ? 'dot on' : 'dot'} cx={14 + (k % cols) * 16} cy={14 + Math.floor(k / cols) * 16} r={5.5} />

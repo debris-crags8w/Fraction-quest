@@ -2,7 +2,7 @@
 // Guests keep it on this device; signed-in accounts sync it with their saved snapshot.
 // It stays separate from learning progress so it cannot alter lesson gating.
 
-import { postToShell } from './native-shell';
+import { postHaptic } from './native-shell';
 import { CODE_LEVEL_COUNT } from '../code-quest';
 import { PART_FINDER_SCORE_MAX } from '../part-finder';
 import { scopedStorageKey } from '../storage-scope';
@@ -34,6 +34,8 @@ export type FunState = {
   sprintBest?: Record<string, number>;
   /** Part Finder: best score across all rounds. Kept separate from lesson mastery. */
   partFinderBest?: number;
+  /** Worksheet questions that have already earned answer XP, so replay cannot reward them again. */
+  worksheetRewards?: Record<string, string[]>;
   /** Preferred local read-aloud voice ID; another device may need to use a local fallback. */
   preferredLearningVoiceId?: string;
   /** Optional break reminders; kept with preferences, separate from all lesson evidence. */
@@ -71,6 +73,7 @@ const fresh = (): FunState => ({
   dayStreak: 0,
   lastActiveDay: null,
   sound: true,
+  worksheetRewards: {},
   breakPreferences: { ...DEFAULT_BREAK_PREFERENCES },
   displayPreferences: { ...DEFAULT_DISPLAY_PREFERENCES },
 });
@@ -119,6 +122,16 @@ const cleanGames = (saved: Partial<FunState>) => ({
     ? Math.max(0, Math.min(PART_FINDER_SCORE_MAX, Math.floor(saved.partFinderBest)))
     : undefined,
 });
+function cleanWorksheetRewards(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== 'object') return {};
+  const out: Record<string, string[]> = {};
+  for (const [missionId, rawIds] of Object.entries(value as Record<string, unknown>)) {
+    if (!/^[a-z0-9-]{1,60}$/.test(missionId) || !Array.isArray(rawIds)) continue;
+    const ids = [...new Set(rawIds.filter((id): id is string => typeof id === 'string' && /^[a-z0-9-]{1,60}$/.test(id)))].slice(0, 512);
+    if (ids.length) out[missionId] = ids;
+  }
+  return out;
+}
 const cleanLearningVoicePreference = (value: unknown): string | undefined =>
   typeof value === 'string' && value.length > 0 && value.length <= 512 ? value : undefined;
 
@@ -157,6 +170,7 @@ export function loadFun(): FunState {
     const saved = {
       ...fresh(),
       ...parsed,
+      worksheetRewards: cleanWorksheetRewards(parsed.worksheetRewards),
       preferredLearningVoiceId: cleanLearningVoicePreference(parsed.preferredLearningVoiceId),
       breakPreferences: cleanBreakPreferences(parsed.breakPreferences),
       displayPreferences: cleanDisplayPreferences(parsed.displayPreferences),
@@ -196,6 +210,18 @@ export function recordCorrect(state: FunState): FunState {
   const current = state.day === today() ? state : { ...state, day: today(), answeredToday: 0 };
   const dayStreak = current.lastActiveDay === today() ? current.dayStreak : isYesterday(current.lastActiveDay) ? current.dayStreak + 1 : 1;
   return saveFun({ ...current, xp: current.xp + 10, answeredToday: current.answeredToday + 1, dayStreak, lastActiveDay: today(), activity: bump(current, 'answered') });
+}
+
+/** Award worksheet answer XP once per distinct, saved question, even across retries and reloads. */
+export function recordWorksheetCorrect(state: FunState, missionId: string, questionId: string): FunState {
+  if (!/^[a-z0-9-]{1,60}$/.test(missionId) || !/^[a-z0-9-]{1,60}$/.test(questionId)) return state;
+  const rewards = cleanWorksheetRewards(state.worksheetRewards);
+  const existing = rewards[missionId] ?? [];
+  if (existing.includes(questionId) || existing.length >= 512) return state;
+  return recordCorrect({
+    ...state,
+    worksheetRewards: { ...rewards, [missionId]: [...existing, questionId] },
+  });
 }
 
 /** One more active minute today (called while the child is using the app). */
@@ -252,9 +278,8 @@ const CUES: Record<Cue, number[]> = {
 
 /** Short synth chimes. Silently does nothing if audio is unavailable or sound is off. */
 export function playCue(cue: Cue, enabled: boolean) {
+  playHaptic(cue);
   if (!enabled || typeof window === 'undefined') return;
-  // In the iPhone app, answers also get a gentle haptic tap.
-  postToShell({ type: 'haptic', cue });
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return;
@@ -278,11 +303,17 @@ export function playCue(cue: Cue, enabled: boolean) {
   }
 }
 
+/** Native-only tactile feedback; browser previews and ordinary web use remain unchanged. */
+export function playHaptic(cue: 'selection' | Cue) {
+  postHaptic(cue);
+}
+
 /** Replace this device's fun state with one loaded from the student's account. */
 export function replaceFun(saved: Partial<FunState>): FunState {
   const merged = {
     ...fresh(),
     ...saved,
+    worksheetRewards: cleanWorksheetRewards(saved.worksheetRewards),
     preferredLearningVoiceId: cleanLearningVoicePreference(saved.preferredLearningVoiceId),
     breakPreferences: cleanBreakPreferences(saved.breakPreferences),
     displayPreferences: cleanDisplayPreferences(saved.displayPreferences),

@@ -20,6 +20,7 @@ describe('worksheet problem progress', () => {
       'current',
       ...Array.from({ length: 11 }, () => 'upcoming' as const),
     ]);
+    assert.deepEqual(progress.map(problem => problem.required), [true, ...Array.from({ length: 11 }, () => false)]);
     assert.equal(progress[0].current, true);
   });
 

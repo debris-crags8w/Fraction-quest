@@ -4,7 +4,7 @@ import type { Mission } from './game';
 import { MathText } from './MathText';
 import { AnswerTiles } from './AnswerTiles';
 import { Confetti, Mascot, useFun } from './fun-ui';
-import { playCue } from './lib/fun';
+import { playCue, playHaptic } from './lib/fun';
 import { CODE_LEVEL_COUNT, countBlocks, describe, getCodeLevels, getRunHint, passesCodeLevel, predictionMatchesTarget, runProgram, toText, usesEffectiveLoop, usesLoop, type Block, type CodeLevel, type RobotState, type RunResult } from './code-quest';
 import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
 
@@ -140,7 +140,11 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
     stop(); setAt(i); setProgram(levels[i].start); setResult(null); setFrame(-1); setOutcome(null);
     setPrediction({ numerator: '', denominator: '' }); setPredictionFeedback(null);
   };
-  const edit = (next: Block[]) => { stop(); setProgram(next); setResult(null); setFrame(-1); setOutcome(null); setPredictionFeedback(null); };
+  const edit = (next: Block[]) => {
+    if (JSON.stringify(next) === JSON.stringify(program)) return;
+    playHaptic('selection');
+    stop(); setProgram(next); setResult(null); setFrame(-1); setOutcome(null); setPredictionFeedback(null);
+  };
 
   const run = () => {
     stop();
@@ -225,7 +229,7 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
         </details>
 
         <section className="fq-code-goal" ref={goalRef} tabIndex={-1}>
-          <p className="fq-code-level-title">Level {level.level} · {level.title}</p>
+          <p className="fq-code-level-title">Step {level.level} of {levels.length} · {level.title}</p>
           <h2><MathText text={level.goal} /></h2>
           <p className="fq-code-tip"><MathText text={level.tip} /></p>
           <div className="fq-code-mission-progress" data-testid="status-code-mission-progress">
@@ -244,6 +248,7 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
         </section>
 
         <section className="fq-code-editor">
+          {level.mode === 'predict' && <p className="fq-response-sequence">Part 2 of 2 · Build the program</p>}
           <div className="fq-code-editor-head">
             <strong>Program</strong>
             <span className="fq-code-blocks-label">Blocks</span>
@@ -262,7 +267,8 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
           )}
           {level.mode === 'predict' && (
             <div className="fq-code-prediction" role="group" aria-label="Build your predicted fraction">
-              <p>Predict the fraction: numerator (how many parts) over denominator (equal parts in one whole).</p>
+              <p className="fq-response-sequence">Part 1 of 2 · Predict the fraction</p>
+              <p>Numerator means how many parts; denominator means equal parts in one whole.</p>
               <AnswerTiles key={`prediction-${at}`} shape={{ kind: 'fraction', allowWhole: false }} testIdPrefix="code-prediction" label="Your predicted fraction"
                 value={prediction.numerator && prediction.denominator ? `${prediction.numerator}/${prediction.denominator}` : ''}
                 onChange={(built) => {
