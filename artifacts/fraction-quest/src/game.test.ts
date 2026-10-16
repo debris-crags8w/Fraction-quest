@@ -263,7 +263,9 @@ describe('lesson catalog', () => {
 
     const sameNumerator = MISSIONS.find((mission) => mission.id === 'compare-same-numerator')!;
     assert.match(sameNumerator.skill, /same top number.*count the same number.*larger bottom number.*more equal parts.*smaller/i);
-    assert.match(sameNumerator.example.explanation, /both fractions count 3 pieces.*more equal parts.*each eighth is smaller.*3\/8 less than 3\/5/i);
+    assert.match(sameNumerator.example.explanation, /both (?:same-size (?:bars|wholes)|fractions) count 3 pieces/i);
+    assert.match(sameNumerator.example.explanation, /(?:8 equal parts|eighths).*smaller/i);
+    assert.match(sameNumerator.example.explanation, /3\/8 (?:is )?(?:less|smaller) than 3\/5/i);
 
     const unlikeOrdering = MISSIONS.find((mission) => mission.id === 'order-unlike-fractions')!;
     assert.ok(unlikeOrdering.learningIntro, 'fraction ordering explains the goal, steps, and why the method works');
@@ -274,7 +276,9 @@ describe('lesson catalog', () => {
 
   it('keeps the same-numerator explanation clear in the build, worksheet, and generated practice', () => {
     const checks = getBuildChecks('compare-same-numerator');
-    assert.match(checks[0].explanation, /Both count 3 pieces.*Eight equal parts make smaller pieces than five/i);
+    assert.match(checks[0].explanation, /both (?:same-size (?:whole|bar)s?|fractions).*count 3 pieces/i);
+    assert.match(checks[0].explanation, /(?:eighths|eight equal parts|8 equal parts).*smaller/i);
+    assert.match(checks[0].explanation, /3\/8 (?:is )?(?:smaller|less) than 3\/5/i);
     assert.match(checks[1].explanation, /Five equal parts make smaller pieces than three/i);
 
     const worksheet = getWorksheet('compare-same-numerator');
@@ -2752,6 +2756,11 @@ describe('same numerator, different denominators', () => {
     }
     const transfer = getBuildChecks('compare-same-numerator').find((c) => c.transfer)!;
     assert.match(transfer.prompt, /2\/3 or 2\/5/);
+    assert.match(transfer.explanation, /same-size wholes count 2 pieces.*Five equal parts make smaller pieces/i);
+    const mission = MISSIONS.find((item) => item.id === 'compare-same-numerator')!;
+    assert.match(mission.skill, /wholes are the same size.*same top number.*larger bottom number.*more equal parts.*smaller/i);
+    assert.match(mission.explainPrompt ?? '', /3\/5 and 3\/8.*denominator.*same-size whole.*2\/3 and 2\/5/i);
+    assert.match(mission.example.explanation, /same-size bars count 3 pieces.*8 equal parts.*smaller pieces.*3\/8 is less than 3\/5/i);
     const unlike = getWorksheet('compare-unlike-fractions');
     assert.ok(unlike.some((p) => { const m = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(p.prompt); return !!m && m[1] === m[2]; }));
   });
@@ -2761,7 +2770,9 @@ describe('same numerator, different denominators', () => {
       /(?:denominator|bottom number|equal parts|pieces|parts)/i.test(text)
       && /(?:smaller|larger|fewer|more)/i.test(text);
     assert.match(lesson.skill, /same (?:numerator|top number).*(?:larger denominator|larger bottom number).*more equal parts.*piece.*smaller/i);
-    assert.match(lesson.example.explanation, /both (?:fractions )?count 3 pieces.*eighths.*smaller.*3\/8 (?:is )?(?:smaller|less) than 3\/5/i);
+    assert.match(lesson.example.explanation, /both (?:same-size (?:whole|bar)s?|fractions).*count 3 pieces/i);
+    assert.match(lesson.example.explanation, /(?:eighths|eight equal parts|8 equal parts).*smaller/i);
+    assert.match(lesson.example.explanation, /3\/8 (?:is )?(?:smaller|less) than 3\/5/i);
     assert.ok(lesson.questions.every((question) => explainsPieceSize(question.hint)), 'each authored hint compares the denominator or piece size');
 
     const generated = generateQuestions('compare-same-numerator', ['x'], 3, 8);

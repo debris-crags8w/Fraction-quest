@@ -184,7 +184,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'compare-same-numerator': (r) => {
     const [a, b] = r.pick([[3, 6], [4, 8], [3, 4], [4, 6], [5, 10], [6, 12], [3, 8], [4, 10], [5, 8], [3, 5], [6, 8], [4, 5]] as const); const n = r.int(1, Math.min(4, a - 1)); const bigger = r.chance();
     return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${either(r, f(n, a), f(n, b))}?`, right: bigger ? f(n, a) : f(n, b), wrong: [bigger ? f(n, b) : f(n, a), 'They are equal'],
-      hint: `Both fractions count ${n} piece${n === 1 ? '' : 's'}. A larger denominator makes more equal parts in the whole, so each piece is smaller.`, retry: `A denominator of ${b} makes smaller pieces than ${a}. With the same ${n} pieces counted, ${f(n, a)} is bigger than ${f(n, b)}.`, ...compareBars([n, a], [n, b]) };
+      hint: `Both fractions count ${n} piece${n === 1 ? '' : 's'} from the same-size whole. A larger denominator makes more equal parts, so each piece is smaller.`, retry: `A denominator of ${b} splits the same-size whole into smaller pieces than ${a}. With the same ${n} pieces counted, ${f(n, a)} is bigger than ${f(n, b)}.`, ...compareBars([n, a], [n, b]) };
   },
   'order-fractions': (r) => {
     const d = r.pick([5, 6, 8, 10, 12]); const a = r.int(1, d - 3); const b = r.int(a + 1, d - 2); const c = r.int(b + 1, d - 1);
