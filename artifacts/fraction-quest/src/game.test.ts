@@ -23,7 +23,8 @@ import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './
 import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, resetMissionGameProgress, shownStreak } from './lib/fun';
 import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderRoundsFor, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
-import { createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH } from './daily-practice';
+import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyBuildCorrect, dailyChoiceQuestion, dailyPracticeDay, DAILY_PRACTICE_LENGTH, recordDailyPracticeStart } from './daily-practice';
+import { FRACTION_STANDARDS } from './standard-catalog';
 import { DailyPracticeQuestionHeading } from './DailyPracticeQuestionHeading';
 import type { PracticeQuestion } from './game';
 import { REASON_IDEAS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
@@ -797,6 +798,53 @@ describe('daily fraction practice', () => {
     assert.ok(session.questions.every((question) => !/1 parts? are shaded/.test(question.explanation)));
   });
 
+  it('tags build evidence only to the fraction idea the selected model can show', () => {
+    const first = MISSIONS.find((mission) => mission.id === 'compare-same-denominator')!;
+    const target = MISSIONS.find((mission) => mission.id === 'compare-unlike-fractions')!;
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      placement: { unit: 12, at: now },
+      reviewQueue: [
+        { missionId: first.id, missedQuestionId: first.questions[0].id, dueAt: now - 2, reviewCount: 0 },
+        { missionId: target.id, missedQuestionId: target.questions[0].id, dueAt: now - 1, reviewCount: 0 },
+      ],
+    };
+    const session = createDailyPractice(progress, now);
+    const build = session.questions.find((question) => question.missionId === target.id && question.kind === 'build');
+    assert.ok(build, 'the second due question should be a build for unlike-denominator comparison');
+    assert.deepEqual(build.standards, [build.modelKind === 'bar' ? '3.NF.1' : '3.NF.2a']);
+    assert.ok(!build.standards?.includes('4.NF.2'), 'a generic fraction build does not demonstrate unlike-denominator comparison');
+  });
+
+  it('keeps each build explanation synchronized with its final, de-duplicated fraction', () => {
+    for (let offset = 0; offset < 80; offset++) {
+      const day = new Date(2026, 9, 1 + offset, 12).getTime();
+      for (const question of createDailyPractice(EMPTY_PROGRESS, day).questions) {
+        assert.ok(question.explanation.includes(`${question.numerator}/${question.denominator}`), question.id);
+      }
+    }
+  });
+
+  it('assigns question IDs after transfer routing when several sources land on one lesson', () => {
+    const adaptiveStandards = Object.fromEntries(FRACTION_STANDARDS.map(({ id }) => [id, {
+      status: 'mastered' as const,
+      recent: [true, true, true, true, true],
+      accuracy: 1,
+      streakCorrect: 5,
+      streakMisses: 0,
+      lastUpdatedAt: now - 1,
+    }]));
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      completedMissionIds: MISSIONS.map((mission) => mission.id),
+      adaptiveStandards,
+    };
+    const session = createDailyPractice(progress, new Date(2026, 9, 1, 12).getTime());
+    assert.ok(new Set(session.questions.map((question) => question.missionId)).size < session.questions.length,
+      'this fixture routes multiple source lessons to the same transfer lesson');
+    assert.equal(new Set(session.questions.map((question) => question.id)).size, session.questions.length);
+  });
+
   it('saves model work and typed drafts so the routine can resume after reload', () => {
     const session = createDailyPractice(EMPTY_PROGRESS, now);
     const question = session.questions[0];
@@ -851,6 +899,201 @@ describe('daily fraction practice', () => {
     assert.deepEqual(loaded.completedMissionIds, []);
     assert.deepEqual(loaded.starsByMission, {});
     assert.equal(hasLearningGate(loaded, mission.id), false);
+  });
+
+  it('assigns scaffolded and transfer bands from misconception and accuracy trends', () => {
+    const now = new Date(2026, 9, 11, 12).getTime();
+    const struggling = MISSIONS.find((mission) => mission.id === 'compare-unlike-fractions')!;
+    const strong = MISSIONS.find((mission) => mission.id === 'compare-same-denominator')!;
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      placement: { unit: 11, at: now },
+      reviewQueue: [
+        { missionId: struggling.id, missedQuestionId: struggling.questions[0].id, dueAt: now - 3, reviewCount: 0 },
+        { missionId: strong.id, missedQuestionId: strong.questions[0].id, dueAt: now - 2, reviewCount: 0 },
+      ],
+      learning: {
+        [struggling.id]: { ...emptyLearningRecord(), misconceptions: { 'Compare unlike parts': 4 } },
+      },
+      adaptiveStandards: {
+        '3.NF.3d': { status: 'mastered', recent: [true, true, true, true, true], accuracy: 1, streakCorrect: 6, streakMisses: 0, lastUpdatedAt: now - 1_000 },
+      },
+    };
+
+    const session = createDailyPractice(progress, now);
+    assert.ok(session.questions.some((question) => question.difficultyBand === 'scaffolded' && /recent misses|misconception trend/i.test(question.adaptationReason ?? '')));
+    assert.ok(session.questions.some((question) => question.difficultyBand === 'transfer' && /high recent accuracy/i.test(question.adaptationReason ?? '')));
+  });
+
+  it('persists the initial scaffold and transfer decisions for the family report', () => {
+    const struggling = MISSIONS.find((mission) => mission.id === 'compare-unlike-fractions')!;
+    const strong = MISSIONS.find((mission) => mission.id === 'compare-same-denominator')!;
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      placement: { unit: 12, at: now },
+      reviewQueue: [
+        { missionId: struggling.id, missedQuestionId: struggling.questions[0].id, dueAt: now - 3, reviewCount: 0 },
+        { missionId: strong.id, missedQuestionId: strong.questions[0].id, dueAt: now - 2, reviewCount: 0 },
+      ],
+      learning: {
+        [struggling.id]: { ...emptyLearningRecord(), misconceptions: { 'Compare unlike parts': 4 } },
+      },
+      adaptiveStandards: {
+        '3.NF.3d': { status: 'mastered', recent: [true, true, true, true, true], accuracy: 1, streakCorrect: 6, streakMisses: 0, lastUpdatedAt: now - 1_000 },
+      },
+    };
+    const session = createDailyPractice(progress, now);
+    const adapted = session.questions.filter((question) => question.difficultyBand !== 'grade-level');
+    assert.ok(adapted.some((question) => question.difficultyBand === 'scaffolded'));
+    assert.ok(adapted.some((question) => question.difficultyBand === 'transfer'));
+
+    const started = recordDailyPracticeStart(progress, session, now);
+    for (const question of adapted) {
+      assert.ok(started.adaptationLog?.some((event) =>
+        event.missionId === question.missionId
+        && event.band === question.difficultyBand
+        && event.reason === question.adaptationReason
+        && event.standard === question.standards?.[0],
+      ), `${question.id} should appear in the saved adaptation history`);
+    }
+    const logCount = started.adaptationLog?.length ?? 0;
+    assert.equal(recordDailyPracticeStart(started, session, now).adaptationLog?.length, logCount, 'reopening the same session should not duplicate history');
+  });
+
+  it('lets recent demonstrated mastery recover from old misconception counts', () => {
+    const mission = MISSIONS.find((item) => item.id === 'compare-unlike-fractions')!;
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      placement: { unit: 12, at: now },
+      reviewQueue: [{ missionId: mission.id, missedQuestionId: mission.questions[0].id, dueAt: now - 1, reviewCount: 0 }],
+      learning: {
+        [mission.id]: { ...emptyLearningRecord(), misconceptions: { 'Compare unlike parts': 8 } },
+      },
+      adaptiveStandards: {
+        '4.NF.2': { status: 'mastered', recent: [true, true, true, true, true], accuracy: 1, streakCorrect: 5, streakMisses: 0, lastUpdatedAt: now - 1_000 },
+      },
+    };
+    const first = createDailyPractice(progress, now).questions[0];
+    assert.equal(first.difficultyBand, 'transfer');
+    assert.match(first.adaptationReason ?? '', /high recent accuracy/i);
+  });
+
+  it('detects failed build checks and puts a scaffold before the missed question', () => {
+    const now = new Date(2026, 9, 11, 12).getTime();
+    const mission = MISSIONS[0];
+    const startingProgress: Progress = {
+      ...EMPTY_PROGRESS,
+      learning: {
+        [mission.id]: { ...emptyLearningRecord(), misconceptions: { 'Equal parts': 3 } },
+      },
+      adaptiveStandards: {
+        '3.NF.1': { status: 'developing', recent: [false, false], accuracy: 0, streakCorrect: 0, streakMisses: 2, lastUpdatedAt: now - 500 },
+      },
+    };
+    const session = createDailyPractice(startingProgress, now);
+    const question = session.questions[0];
+    assert.equal(question.kind, 'build', 'scaffolded review uses a model-build question');
+    const progress: Progress = {
+      ...startingProgress,
+      dailyPractice: session,
+    };
+    const nextSession = {
+      ...session,
+      attempts: {
+        ...session.attempts,
+        [question.id]: {
+          shaded: [],
+          draft: '',
+          modelChecked: true,
+          modelCorrect: false,
+          answerChecked: false,
+          answerCorrect: false,
+        },
+      },
+    };
+
+    const updated = applyAdaptiveDailyPracticeUpdate(progress, nextSession, now + 1);
+    assert.equal((updated.adaptiveStandards?.['3.NF.1']?.streakMisses ?? 0) >= 3, true);
+    assert.equal(updated.dailyPractice!.questions.length, session.questions.length + 1);
+    assert.equal(updated.dailyPractice!.index, 0, 'the active question index should point to the inserted scaffold');
+    const reteach = updated.dailyPractice!.questions[0];
+    assert.equal(reteach.reteachLoop, true);
+    assert.equal(reteach.missionId, question.missionId);
+    assert.equal(reteach.difficultyBand, 'scaffolded');
+    assert.equal(updated.dailyPractice!.questions[1].id, question.id, 'keep the missed question directly after the reteach');
+    assert.equal(updated.dailyPractice!.attempts[question.id].modelChecked, true, 'preserve the learner’s original attempt');
+    assert.ok(updated.adaptationLog?.some((event) => event.band === 'scaffolded' && event.missionId === question.missionId));
+  });
+
+  it('upgrades the next question to transfer after a high-accuracy correct answer', () => {
+    const now = new Date(2026, 9, 11, 12).getTime();
+    const mission = MISSIONS.find((item) => item.id === 'fraction-names')!;
+    const session = createDailyPractice({
+      ...EMPTY_PROGRESS,
+      completedMissionIds: [MISSIONS[0].id],
+      reviewQueue: [{ missionId: mission.id, missedQuestionId: mission.questions[0].id, dueAt: now - 1, reviewCount: 0 }],
+    }, now);
+    const question = session.questions[0];
+    assert.equal(question.missionId, mission.id);
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      completedMissionIds: [MISSIONS[0].id],
+      dailyPractice: session,
+      reviewQueue: [{ missionId: mission.id, missedQuestionId: mission.questions[0].id, dueAt: now - 1, reviewCount: 0 }],
+      adaptiveStandards: {
+        '3.NF.1': { status: 'mastered', recent: [true, true, true, true, true], accuracy: 1, streakCorrect: 2, streakMisses: 0, lastUpdatedAt: now - 500 },
+      },
+    };
+    const nextSession = {
+      ...session,
+      attempts: {
+        ...session.attempts,
+        [question.id]: {
+          shaded: [0],
+          draft: '',
+          modelChecked: true,
+          modelCorrect: true,
+          answerChecked: true,
+          answerCorrect: true,
+        },
+      },
+    };
+
+    const updated = applyAdaptiveDailyPracticeUpdate(progress, nextSession, now + 1);
+    const upgraded = updated.dailyPractice!.questions[1];
+    assert.equal(upgraded.difficultyBand, 'transfer');
+    assert.match(upgraded.adaptationReason ?? '', /high recent accuracy/i);
+    assert.ok(updated.adaptationLog?.some((event) => event.band === 'transfer' && event.missionId === question.missionId));
+  });
+
+  it('does not log a transfer threshold when no next question can be changed', () => {
+    const now = new Date(2026, 9, 11, 12).getTime();
+    const mission = MISSIONS.find((item) => item.id === 'fraction-names')!;
+    const draft = createDailyPractice(EMPTY_PROGRESS, now);
+    const lastQuestion = {
+      ...draft.questions[0],
+      id: 'daily-last-transfer-check',
+      missionId: mission.id,
+      topicTitle: mission.shortTitle,
+      standards: ['3.NF.1'] as const,
+      difficultyBand: 'grade-level' as const,
+      adaptationReason: undefined,
+    };
+    const session = { ...draft, questions: [...draft.questions.slice(0, -1), lastQuestion], index: DAILY_PRACTICE_LENGTH - 1 };
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      dailyPractice: session,
+      adaptiveStandards: {
+        '3.NF.1': { status: 'mastered', recent: [true, true, true, true, true], accuracy: 1, streakCorrect: 2, streakMisses: 0, lastUpdatedAt: now - 500 },
+      },
+    };
+    const attempt = { shaded: [0], draft: '', modelChecked: true, modelCorrect: true, answerChecked: true, answerCorrect: true };
+    const updated = applyAdaptiveDailyPracticeUpdate(progress, {
+      ...session,
+      attempts: { ...session.attempts, [lastQuestion.id]: attempt },
+    }, now + 1);
+    assert.equal(updated.dailyPractice?.questions[DAILY_PRACTICE_LENGTH - 1].difficultyBand, 'grade-level');
+    assert.ok(!updated.adaptationLog?.some((event) => event.band === 'transfer'));
   });
 });
 
@@ -2314,6 +2557,23 @@ describe('grown-ups report', () => {
     assert.equal(report.toPractice[0].idea, 'Counting pieces, groups or jumps'); assert.equal(report.toPractice[0].count, 3);
     assert.deepEqual(report.toPractice[0].lessons, [MISSIONS[0].title]);
     assert.equal(report.nextLesson, `Lesson 2: ${MISSIONS[1].title}`);
+  });
+  it('shows adaptation reasons for parents and teachers', () => {
+    const mission = MISSIONS.find((item) => item.id === 'compare-unlike-fractions')!;
+    const progress: Progress = {
+      ...EMPTY_PROGRESS,
+      adaptationLog: [{
+        at: new Date(2026, 9, 11, 9).getTime(),
+        missionId: mission.id,
+        standard: '4.NF.2',
+        band: 'scaffolded',
+        reason: 'moved to scaffolded compare-unlike set due to 3 recent misses',
+      }],
+    };
+    const report = buildParentReport(progress, fun0, titles, new Date(2026, 9, 11));
+    assert.equal(report.adaptationReasons.length, 1);
+    assert.equal(report.adaptationReasons[0].reason, 'moved to scaffolded compare-unlike set due to 3 recent misses');
+    assert.equal(report.adaptationReasons[0].lesson, mission.shortTitle);
   });
   it('reports only saved coding levels and keeps them separate from lesson completion', () => {
     const fun = { ...fun0, codeLevels: { [MISSIONS[0].id]: 2, [MISSIONS[1].id]: 3 } };
