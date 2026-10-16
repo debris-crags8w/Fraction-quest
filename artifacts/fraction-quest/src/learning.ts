@@ -106,6 +106,20 @@ export function worksheetCount(record: LearningRecord, id: string): number {
     return entry?.checkedValue === entry?.draft && !!entry && answerMatches(problem, entry.draft);
   }).length;
 }
+/** The first authored worksheet question is the single required answer for lesson completion. */
+export function requiredWorksheetProblemId(id: string): string | undefined {
+  return getWorksheet(id)[0]?.id;
+}
+export function requiredWorksheetDone(record: LearningRecord, id: string): boolean {
+  const problem = getWorksheet(id)[0];
+  if (!problem) return false;
+  const entry = record.worksheet[problem.id];
+  return !!entry && entry.checkedValue === entry.draft && answerMatches(problem, entry.draft);
+}
+/** Optional answers count practice only; they never replace the required question. */
+export function optionalWorksheetCount(record: LearningRecord, id: string): number {
+  return Math.max(0, worksheetCount(record, id) - Number(requiredWorksheetDone(record, id)));
+}
 /** Keep the newly added required check from re-locking lessons completed before it existed. */
 export function requiredBuildChecks(progress: Progress, id: string): BuildCheck[] {
   const record = getLearningRecord(progress, id);
@@ -118,7 +132,7 @@ export function hasLearningGate(progress: Progress, id: string): boolean {
   const record = getLearningRecord(progress, id);
   const reteach = targetedPracticeCount(id, record);
   return !!record.practiceDone && requiredBuildChecks(progress, id).every(check => record.checks[check.id]?.passed)
-    && worksheetCount(record, id) === 12 && reteach.done === reteach.total;
+    && requiredWorksheetDone(record, id) && reteach.done === reteach.total;
 }
 /** A lesson's steps as a fraction, for its badge on the map: each build check, then the worksheet. */
 export function lessonSteps(progress: Progress, id: string): { done: number; total: number } {
@@ -126,7 +140,7 @@ export function lessonSteps(progress: Progress, id: string): { done: number; tot
   const total = checks.length + 1;
   if (hasLearningGate(progress, id)) return { done: total, total };
   const record = getLearningRecord(progress, id);
-  const done = checks.filter(check => record.checks[check.id]?.passed).length + (worksheetCount(record, id) === 12 ? 1 : 0);
+  const done = checks.filter(check => record.checks[check.id]?.passed).length + (requiredWorksheetDone(record, id) ? 1 : 0);
   return { done: Math.min(done, total - 1), total };
 }
 export function editWorksheet(record: LearningRecord, problemId: string, draft: string): LearningRecord {
@@ -169,6 +183,7 @@ export type WorksheetProblemProgressItem = {
   problemId: string;
   status: WorksheetProblemProgressState;
   current: boolean;
+  required: boolean;
 };
 /** Statuses for the numbered worksheet overview, using the same checked-answer rule as worksheet completion. */
 export function worksheetProblemProgress(record: LearningRecord, problems: WorksheetProblem[]): WorksheetProblemProgressItem[] {
@@ -180,6 +195,7 @@ export function worksheetProblemProgress(record: LearningRecord, problems: Works
     return {
       problemId: problem.id,
       current,
+      required: index === 0,
       status: complete[index] ? 'complete'
         : (entry?.attempts ?? 0) > 0 ? 'retry'
           : current ? 'current' : 'upcoming',

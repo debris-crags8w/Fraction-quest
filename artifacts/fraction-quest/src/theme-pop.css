@@ -1771,6 +1771,8 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-taskbar-fraction .fq-linked-fraction { font-size: 0.95rem; }
 .fq-taskbar-fraction .fq-linked-fraction i { height: 2px; margin: 2px 0; }
 .fq-taskbar-fraction small { color: hsl(var(--muted-foreground)); font-size: 0.75rem; font-weight: 800; }
+.fq-taskbar-fraction .fq-taskbar-sequence { font-size: .64rem; line-height: 1.1; white-space: nowrap; }
+.fq-response-sequence { margin: 0 0 8px; color: var(--fq-grape); font-size: .82rem; font-weight: 900; }
 .fq-taskbar-segments { display: grid; gap: 3px; }
 .fq-taskbar-segments span { height: 9px; border-radius: 4px; background: var(--fq-track); transition: background-color 180ms ease; }
 .fq-taskbar-segments span.on { background: var(--fq-lime); }

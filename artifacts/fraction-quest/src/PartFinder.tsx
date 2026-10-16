@@ -152,7 +152,7 @@ export default function PartFinder({ rounds, lessonLabel, intro, onExit, onDone,
   return (
     <main className="fq-app fq-pf" data-testid="part-finder-screen">
       <div className="fq-pf-shell">
-        <TaskBar onBack={onExit} backLabel="Map" testId="button-part-finder-exit" title="Try it with cake" backAriaLabel={`Back to the map (leaves ${lessonLabel})`} step={roundIndex + 1} total={rounds.length}
+        <TaskBar onBack={onExit} backLabel="Map" testId="button-part-finder-exit" title="Try it with cake" backAriaLabel={`Back to the map (leaves ${lessonLabel})`} step={roundIndex + 1} total={rounds.length} sequenceLabel="Round"
           actions={onSkip && <button type="button" className="fq-hint-button" onClick={onSkip} data-testid="button-hands-on-skip">Skip</button>} />
 
         {intro && <section className="fq-pf-lesson-example" data-testid="part-finder-lesson-example">{intro}</section>}

@@ -131,6 +131,7 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
         </div>
         <section className="fq-play-card" aria-labelledby="challenge-title">
           <p className="fq-play-kicker">Unit {unit} challenge · {unitTitle} · <span className={`fq-points p${question.points}`}>{question.points} points</span></p>
+          <p className="fq-response-sequence">Question {index + 1} of {questions.length}</p>
           <StoryPrompt prompt={question.prompt} id="challenge-title" />
           {question.figure && <div className="fq-model-area"><div className="fq-visual-model fq-challenge-figure"><ChallengeFigureView figure={question.figure} /></div></div>}
           {question.steps && !walking && state === 'asking' && (
