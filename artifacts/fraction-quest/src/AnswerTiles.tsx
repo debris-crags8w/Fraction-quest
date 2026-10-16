@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, type PointerEvent as ReactPointerEv
 import { Delete } from 'lucide-react';
 import { MathText } from './MathText';
 import { SLOT_DIGITS, SLOTS, slotAnswer, slotsFromAnswer, type AnswerShape } from './answer-shape';
+import { playHaptic } from './lib/fun';
 
 /* Answers are built, not typed: drag a tile into a box, or tap a box and then tap tiles (the same thing for
    small fingers, keyboards and screen readers). The component reports the answer as the usual string. */
@@ -86,9 +87,17 @@ function NumberSlots({ shape, value, onChange, disabled, testIdPrefix, label }: 
     const current = slots[slot] ?? '';
     setActive(slot);
     if (current.length >= SLOT_DIGITS) return;
-    update({ ...slots, [slot]: current === '0' && shape.kind !== 'decimal' ? digit : current + digit });
+    const nextValue = current === '0' && shape.kind !== 'decimal' ? digit : current + digit;
+    if (nextValue === current) return;
+    playHaptic('selection');
+    update({ ...slots, [slot]: nextValue });
   };
-  const erase = () => { const current = slots[active] ?? ''; if (current) update({ ...slots, [active]: current.slice(0, -1) }); };
+  const erase = () => {
+    const current = slots[active] ?? '';
+    if (disabled || !current) return;
+    playHaptic('selection');
+    update({ ...slots, [active]: current.slice(0, -1) });
+  };
   const { bind, wasDrag } = useTileDrag((payload, target) => put(payload, target));
   const box = (name: string) => (
     <button key={name} type="button" data-drop={name} disabled={disabled}
@@ -128,11 +137,16 @@ function SingleChoice({ shape, value, onChange, disabled, testIdPrefix, label }:
   shape: Extract<AnswerShape, { kind: 'pick' | 'symbol' }>; value: string; onChange: (value: string) => void; disabled: boolean; testIdPrefix: string; label: string;
 }) {
   const options = shape.kind === 'symbol' ? ['<', '=', '>'] : shape.options;
-  const { bind, wasDrag } = useTileDrag((payload) => { if (!disabled) onChange(payload); });
+  const choose = (next: string) => {
+    if (disabled || next === value) return;
+    playHaptic('selection');
+    onChange(next);
+  };
+  const { bind, wasDrag } = useTileDrag((payload) => choose(payload));
   const slot = (
     <button type="button" data-drop="answer" disabled={disabled} className={`fq-tile-slot slot-choice ${value ? 'filled' : ''}`}
       aria-label={value ? `${label}: ${shape.kind === 'symbol' ? SYMBOL_NAMES[value] ?? value : value}. Tap to take it out.` : `${label}: empty`}
-      onClick={() => onChange('')} data-testid={`slot-${testIdPrefix}-answer`}>
+      onClick={() => choose('')} data-testid={`slot-${testIdPrefix}-answer`}>
       {value ? <MathText text={value} /> : ''}
     </button>
   );
@@ -144,7 +158,7 @@ function SingleChoice({ shape, value, onChange, disabled, testIdPrefix, label }:
       <div className="fq-tile-tray" aria-label={shape.kind === 'symbol' ? 'Sign tiles' : 'Answer cards'}>
         {options.map((option, index) => (
           <button key={option} type="button" className={`fq-tile ${shape.kind === 'pick' ? 'card' : 'symbol'} ${value === option ? 'used' : ''}`} disabled={disabled}
-            {...bind(option, option, disabled)} onClick={() => { if (!wasDrag()) onChange(option); }}
+            {...bind(option, option, disabled)} onClick={() => { if (!wasDrag()) choose(option); }}
             aria-label={shape.kind === 'symbol' ? `Put ${SYMBOL_NAMES[option]} in the gap` : `Choose ${option}`}
             data-testid={`tile-${testIdPrefix}-${shape.kind === 'symbol' ? `symbol-${SYMBOL_IDS[option]}` : `option-${index}`}`}>
             <MathText text={option} />
@@ -166,6 +180,8 @@ function OrderCards({ shape, value, onChange, disabled, testIdPrefix }: {
     return restored.length === shape.items.length && restored.every((i) => i >= 0) ? restored : shape.items.map(() => null);
   });
   const update = (next: (number | null)[]) => {
+    if (disabled || next.every((item, index) => item === order[index])) return;
+    playHaptic('selection');
     setOrder(next);
     onChange(next.every((i) => i !== null) ? next.map((i) => shape.items[i!]).join(', ') : '');
   };

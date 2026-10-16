@@ -1001,6 +1001,11 @@ test('daily practice opens as a separate short session', async ({ page }) => {
 });
 
 test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, then mixed shapes', async ({ page }) => {
+  await page.addInitScript(() => {
+    const sent: string[] = [];
+    (window as unknown as { __shell: string[] }).__shell = sent;
+    (window as unknown as { ReactNativeWebView: unknown }).ReactNativeWebView = { postMessage: (message: string) => sent.push(message) };
+  });
   await openAsGuest(page);
   await page.getByTestId('button-continue-course').click();
   await expect(page.getByTestId('button-hands-on-skip')).toHaveCount(0);
@@ -1019,6 +1024,9 @@ test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, 
     await piece.press('Enter');
   };
   await assignPiece(1);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __shell: string[] }).__shell
+    .map((message) => JSON.parse(message) as { type: string; cue?: string })
+    .filter((message) => message.type === 'haptic' && message.cue === 'selection').length)).toBe(1);
   await assignPiece(2);
   await page.getByTestId('button-part-finder-share-2').click();
   await assignPiece(3);
@@ -1032,6 +1040,13 @@ test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, 
   await expect(page.getByTestId('part-finder-selection')).toHaveText('8 of 8 pieces given out.');
   await page.getByTestId('button-part-finder-check').click();
   await expect(page.getByTestId('part-finder-feedback')).toContainText('Each friend gets 2 of the 8 equal pieces.');
+  const selectedPieceCues = await page.evaluate(() => (window as unknown as { __shell: string[] }).__shell
+    .map((message) => JSON.parse(message) as { type: string; cue?: string })
+    .filter((message) => message.type === 'haptic' && message.cue === 'selection').length);
+  await page.getByTestId('button-part-finder-piece-1').dispatchEvent('click');
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __shell: string[] }).__shell
+    .map((message) => JSON.parse(message) as { type: string; cue?: string })
+    .filter((message) => message.type === 'haptic' && message.cue === 'selection').length)).toBe(selectedPieceCues);
 
   await page.getByTestId('button-part-finder-next').click();
   await expect(page.getByRole('heading', { name: 'Now the pieces are different shapes' })).toBeVisible();
@@ -1245,6 +1260,7 @@ test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried 
   // Lesson 2 (no cake rounds): its first question is a tap question.
   await page.addInitScript(() => localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: ['equal-parts'], starsByMission: {}, reviewQueue: [], learning: { 'equal-parts': { completedAt: Date.now() } }, assessments: [] })));
   await openAsGuest(page);
+  await page.getByTestId('button-toggle-sound').click();
   const mission = MISSIONS[1];
   const question = mission.questions[0];
   await page.getByTestId('button-continue-course').or(page.getByTestId('button-jump-current')).first().click();
@@ -1261,7 +1277,7 @@ test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried 
   await expect(page.getByTestId(`button-answer-${question.id}-${wrong}`)).toBeDisabled();
 });
 
-test('inside the Expo iPhone app, printing goes to the native print sheet and answers send a haptic tap', async ({ page }) => {
+test('inside the Expo iPhone app, answer and result haptics work with sound off, and printing uses the native print sheet', async ({ page }) => {
   await page.addInitScript(() => {
     const sent: string[] = [];
     (window as unknown as { __shell: string[] }).__shell = sent;
@@ -1279,6 +1295,10 @@ test('inside the Expo iPhone app, printing goes to the native print sheet and an
   if (await page.getByTestId(`button-start-mission-${mission.id}`).count()) await page.getByTestId(`button-start-mission-${mission.id}`).click();
   if (await page.getByTestId('button-start-practice').count()) await page.getByTestId('button-start-practice').click();
   await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
+  await expect.poll(async () => (await messages()).some((m) => m.type === 'haptic' && m.cue === 'selection')).toBe(true);
+  const selectionCues = (await messages()).filter((message) => message.type === 'haptic' && message.cue === 'selection').length;
+  await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
+  await expect.poll(async () => (await messages()).filter((message) => message.type === 'haptic' && message.cue === 'selection').length).toBe(selectionCues);
   await page.getByTestId('button-check-answer').click();
   await expect.poll(async () => (await messages()).some((m) => m.type === 'haptic' && m.cue === 'correct')).toBe(true);
   // Printing the progress report hands the page to the native print sheet (not the web view's print, which does nothing).

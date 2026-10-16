@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { BarTask, LearningModel } from './learning-content';
 import { WholeBracket } from './models';
+import { playHaptic } from './lib/fun';
 
 export function worksheetBarMatches(target: LearningModel, shaded: boolean[]): boolean {
   if (target.kind !== 'bar' || shaded.length !== target.d * target.wholes) return false;
@@ -66,6 +67,8 @@ export function WorksheetBarCopy({ target, task = { kind: 'copy', n: target.n },
                     aria-pressed={shaded[index]}
                     disabled={disabled}
                     onClick={() => {
+                      if (disabled) return;
+                      playHaptic('selection');
                       setTouched(true);
                       setShaded(current => current.map((value, at) => at === index ? !value : value));
                       setOrder(current => current.includes(index) ? current.filter(at => at !== index) : [...current, index]);
