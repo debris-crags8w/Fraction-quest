@@ -353,12 +353,13 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
       <p className="fq-ll-kicker">{review ? 'Review' : check.stepLabel ?? (check.transfer ? 'Step 2 · On your own' : 'Step 1 · Build it')}</p>
        <h3 ref={headingRef} tabIndex={-1}><LearningText text={check.prompt} speak /></h3>
         {!restoredPassed && <>
+          <p className="fq-ll-response-step" data-testid={`response-step-${check.id}-1`}>Part 1 of 3 · Build the model</p>
           <Builder kind={k} total={t.total} st={a} set={updatePrimary} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
           {!primaryReady && a.d > 0 && primaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-primary-${check.id}`}>{primaryValidation.msgs[0]}</p>}
           {primaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-primary-${check.id}`}><Check size={18} /><LearningText text={getModelFeedback(t, k)} speak /></div>}
           {stage !== 'primary' && <>
             <div className="fq-ll-translate">
-              <strong>{transLabel}</strong>
+              <strong><span className="fq-ll-response-step">Part 2 of 3 · </span>{transLabel}</strong>
               <span>Show the same amount with a new model.</span>
             </div>
             <Builder kind={tk} st={b} set={updateSecondary} id={`${check.id}-b`} title={`Show the same amount ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
@@ -366,7 +367,7 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
             {secondaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-secondary-${check.id}`}><Check size={18} /><LearningText text={getModelFeedback(t, tk)} speak /></div>}
           </>}
           {stage === 'reason' && <fieldset className="fq-ll-reasons" data-testid={`reasons-${check.id}`}>
-            <legend>Both models match. Which idea explains why?</legend>
+            <legend><span className="fq-ll-response-step">Part 3 of 3 · </span>Both models match. Which idea explains why?</legend>
             {check.reasons.map((r, i) => (
               <label key={i} className={reason === i ? 'on' : ''}>
                 <input type="radio" name={`reason-${check.id}`} checked={reason === i} onChange={() => {
@@ -406,9 +407,9 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
   );
 }
 
-export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabel, onWrong, onSuccess }: {
+export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabel, sequenceLabel, onWrong, onSuccess }: {
   p: WorksheetProblem; rec: LearningRecord; onEdit: (v: string) => void; onCheck: () => void; onHint: () => void;
-  onNewQuestion?: () => void; numberLabel?: string; onWrong?: () => void; onSuccess?: () => void;
+  onNewQuestion?: () => void; numberLabel?: string; sequenceLabel?: string; onWrong?: () => void; onSuccess?: () => void;
 }) {
   const e = rec.worksheet[p.id]; const draft = e?.draft ?? '';
   const ok = !!e && e.checkedValue === e.draft && answerMatches(p, draft);
@@ -445,7 +446,10 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
       <form onSubmit={submit}>
         <div className="fq-ll-row-question">
           <span className="fq-ll-num" aria-hidden="true">{numberLabel ?? p.id.slice(1)}</span>
-          <span id={promptId} className="fq-question-text"><LearningText text={yesNo ? yesNoPrompt(p) : p.prompt} speak emphasize /></span>
+          <div className="fq-ll-row-prompt">
+            {sequenceLabel && <span className="fq-ll-sequence">{sequenceLabel}</span>}
+            <span id={promptId} className="fq-question-text"><LearningText text={yesNo ? yesNoPrompt(p) : p.prompt} speak emphasize /></span>
+          </div>
         </div>
         {/* For counting and shading, the tappable bar is the picture, so it is not drawn twice. */}
         {p.model && (!p.task || p.task.kind === 'copy') && <Preview m={p.model} named={amountsIn(p.prompt).some((a) => a.numerator === p.model!.n && a.denominator === p.model!.d) || ok} />}
@@ -481,10 +485,11 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
   );
 }
 
-export default function LearningLab({ missionId, progress, onChange, onFinish, onBack, onPaper, onRedo, review = false, onWrong, onSuccess }: {
+export default function LearningLab({ missionId, progress, onChange, onFinish, onBack, onPaper, onRedo, review = false, onWrong, onSuccess, onWorksheetCorrect }: {
   missionId: string; progress: Progress; onChange: (progress: Progress) => void; onFinish: (nextProgress?: Progress) => void; onBack: () => void; onPaper?: () => void;
   /** Offered once the lesson is finished: practice a part again with new numbers. */
   onRedo?: (part: RedoPart) => void; review?: boolean; onWrong?: () => void; onSuccess?: () => void;
+  onWorksheetCorrect?: (missionId: string, problemId: string) => void;
 }) {
   const ref = useRef(progress); ref.current = progress;
   const checks = requiredBuildChecks(progress, missionId);
@@ -570,10 +575,10 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const idx = activeCheckIndex;
   const problemProgress = worksheetProblemProgress(rec, sheet);
   const count = problemProgress.filter(problem => problem.status === 'complete').length;
-  const currentProblemIndex = problemProgress.findIndex(problem => problem.current);
-  const progressText = count === sheet.length
-    ? `All ${sheet.length} problems complete`
-    : `${count} of ${sheet.length} complete · ${sheet.length - count} remaining · Problem ${currentProblemIndex + 1} ${problemProgress[currentProblemIndex]?.status === 'retry' ? 'needs another try' : 'is next'}`;
+  const requiredDone = problemProgress[0]?.status === 'complete';
+  const optionalDone = Math.max(0, count - Number(requiredDone));
+  const optionalTotal = Math.max(0, sheet.length - 1);
+  const progressText = `Required question ${requiredDone ? 'complete' : 'not complete'} · Optional practice ${optionalDone} of ${optionalTotal} complete`;
   const sum = learningSummary(rec);
   const reteachPlans = targetedPracticePlans(missionId, rec);
   const reteachProgress = targetedPracticeCount(missionId, rec);
@@ -581,7 +586,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const reqs = [
     { label: 'Practice', done: !!rec.practiceDone },
     ...checks.map((check, index) => ({ label: buildStepName(check, index), done: !!rec.checks[check.id]?.passed })),
-    { label: `Worksheet ${count}/12`, done: count === 12 },
+    { label: 'Required worksheet question', done: requiredDone },
     ...(reteachProgress.total ? [{ label: `Extra practice ${reteachProgress.done}/${reteachProgress.total}`, done: reteachProgress.done === reteachProgress.total }] : []),
   ];
   const next = reqs.find(r => !r.done);
@@ -602,7 +607,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           return <li key={c.id} className={e?.passed ? 'done' : i === idx ? 'now' : ''} data-testid={`step-${c.id}`}>
             {e?.passed ? <Check size={15} /> : i + 1}<span>{buildStepName(c, i)}{e?.passed ? (e.supported ? ' · with help' : ' · solo') : ''}</span></li>;
         })}
-        <li className={idx === -1 ? (count === 12 ? 'done' : 'now') : ''}>{checks.length + 1}<span>Worksheet {count}/12</span></li>
+        <li className={idx === -1 ? (requiredDone ? 'done' : 'now') : ''}>{checks.length + 1}<span>Worksheet · required question {requiredDone ? 'done' : 'to do'}</span></li>
         {reteachProgress.total > 0 && <li className={reteachProgress.done === reteachProgress.total ? 'done' : ''}>{checks.length + 2}<span>Extra practice {reteachProgress.done}/{reteachProgress.total}</span></li>}
       </ol>
 
@@ -697,11 +702,13 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         <section className="fq-ll-sheet" aria-labelledby="ws-title" data-testid="section-worksheet">
           <div className="fq-ll-sheet-head">
             <h3 id="ws-title">Worksheet</h3>
+            <p className="fq-ll-note">Question 1 is required to finish the lesson. Questions 2–{sheet.length} are optional practice and do not block completion.</p>
             <ol className="fq-ll-problem-progress" aria-label="Status of each worksheet problem" tabIndex={0} data-testid="worksheet-problem-progress">
               {problemProgress.map((problem, index) => {
                 const statusText = problem.status === 'complete' ? 'Complete'
                   : problem.status === 'retry' ? 'Needs another try'
                     : problem.status === 'current' ? 'Up next' : 'Not started';
+                const requirementText = problem.required ? 'Required' : 'Optional practice';
                 return <li key={problem.problemId}
                   className={`fq-ll-problem-progress-item ${problem.status}${problem.current ? ' is-current' : ''}`}
                   aria-current={problem.current ? 'step' : undefined}
@@ -710,21 +717,22 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
                   {problem.status === 'complete' && <Check size={14} aria-hidden="true" />}
                   {problem.status === 'retry' && <RotateCcw size={13} aria-hidden="true" />}
                   {problem.status === 'current' && <i className="fq-ll-progress-current-dot" aria-hidden="true" />}
-                  <span className="fq-ll-sr-only">Problem {index + 1}: {statusText}{problem.current ? ', current problem' : ''}</span>
+                  <span className="fq-ll-sr-only">Question {index + 1} of {sheet.length}, {requirementText}: {statusText}{problem.current ? ', current question' : ''}</span>
                 </li>;
               })}
             </ol>
-            <div className="fq-ll-meter" role="progressbar" aria-valuemin={0} aria-valuemax={sheet.length} aria-valuenow={count} aria-valuetext={progressText} aria-label="Worksheet problems completed" data-testid="progress-worksheet">
-              <b style={{ width: `${(count / sheet.length) * 100}%` }} /><span>{progressText}</span>
+            <div className="fq-ll-meter" role="progressbar" aria-valuemin={0} aria-valuemax={optionalTotal} aria-valuenow={optionalDone} aria-valuetext={progressText} aria-label="Optional worksheet practice completed" data-testid="progress-worksheet">
+              <b style={{ width: `${optionalTotal ? (optionalDone / optionalTotal) * 100 : 100}%` }} /><span>{progressText}</span>
             </div>
           </div>
           <ol className="fq-ll-rows">
-            {sheet.map(p => (
-              <Row key={p.id} p={p} rec={rec}
+            {sheet.map((p, index) => (
+              <Row key={p.id} p={p} rec={rec} numberLabel={String(index + 1)}
+                sequenceLabel={`Question ${index + 1} of ${sheet.length} · ${problemProgress[index].required ? 'Required' : 'Optional practice'} · ${problemProgress[index].status === 'complete' ? 'Complete' : problemProgress[index].status === 'retry' ? 'Needs another try' : problemProgress[index].status === 'current' ? 'Up next' : 'Not started'}`}
                 onEdit={v => save(editWorksheet(cur(), p.id, v))}
                 onCheck={() => save(checkWorksheet(cur(), p))}
                 onWrong={onWrong}
-                onSuccess={onSuccess}
+                onSuccess={() => { onSuccess?.(); onWorksheetCorrect?.(missionId, p.id); }}
                 onHint={() => { const r = cur(); const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };
                   save({ ...r, helpUses: r.helpUses + 1, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }); }} />
             ))}
@@ -742,10 +750,11 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
               <ol className="fq-ll-rows">
                 {plan.problems.map((problem, problemIndex) => (
                   <Row key={problem.id} p={problem} rec={rec} numberLabel={`R${problemIndex + 1}`}
+                    sequenceLabel={`Extra practice ${problemIndex + 1} of ${plan.problems.length}`}
                     onEdit={value => save(editWorksheet(cur(), problem.id, value))}
                     onCheck={() => save(checkWorksheet(cur(), problem, false))}
                     onWrong={onWrong}
-                    onSuccess={onSuccess}
+                    onSuccess={() => { onSuccess?.(); onWorksheetCorrect?.(missionId, problem.id); }}
                     onHint={() => {
                       const record = cur();
                       const entry = record.worksheet[problem.id] ?? { draft: '', attempts: 0, supported: false };
@@ -778,8 +787,9 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
 /** A second try at a finished lesson's builds or worksheet, with new numbers. Practice only: it is saved apart
     from the lesson's own answers, so completion, unlocks and first-try results never change. */
-export function RedoLab({ missionId, progress, onChange, onBack, onWrong, onSuccess }: {
+export function RedoLab({ missionId, progress, onChange, onBack, onWrong, onSuccess, onWorksheetCorrect }: {
   missionId: string; progress: Progress; onChange: (progress: Progress) => void; onBack: () => void; onWrong?: () => void; onSuccess?: () => void;
+  onWorksheetCorrect?: (missionId: string, problemId: string) => void;
 }) {
   const ref = useRef(progress); ref.current = progress;
   const [held, setHeld] = useState<string | null>(null);
@@ -839,12 +849,16 @@ export function RedoLab({ missionId, progress, onChange, onBack, onWrong, onSucc
             </div>
           </div>
           <ol className="fq-ll-rows">
-            {rows.map(p => (
+            {rows.map((p, index) => (
               <Row key={`${p.id}-${redo.round}-${redo.rowRounds[p.id] ?? 0}`} p={p} rec={asRecord(redo.worksheet)}
+                numberLabel={String(index + 1)} sequenceLabel={`Question ${index + 1} of ${rows.length} · Redo practice`}
                 onEdit={v => change(r => ({ ...r, worksheet: editWorksheet(asRecord(r.worksheet), p.id, v).worksheet }))}
                 onCheck={() => { const r = cur(); const next = checkRedoRow(r, p); if (next.redo) save(redoDone(missionId, next.redo) ? finishRedo(next) : next); }}
                 onWrong={onWrong}
-                onSuccess={onSuccess}
+                onSuccess={() => {
+                  onSuccess?.();
+                  onWorksheetCorrect?.(missionId, `${p.id}-redo-${redo.round}-${redo.rowRounds[p.id] ?? 0}`);
+                }}
                 onHint={() => change(r => { const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };
                   return { ...r, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }; })}
                 onNewQuestion={() => change(r => { const { [p.id]: _old, ...worksheet } = r.worksheet;
