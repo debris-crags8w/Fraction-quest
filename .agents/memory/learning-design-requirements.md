@@ -33,6 +33,12 @@ Fraction bar models should clearly label the whole and identify a representative
 
 **How to apply:** Carry these conventions across lesson diagrams, interactive builders, tap models, worksheet previews, and printables; keep the parts manipulable wherever the learner is building a model.
 
+Each lesson needs a brief, plain-language explanation of its main idea and why the rule works. For same-numerator comparisons, explain that both fractions count the same number of pieces, while a larger denominator makes more equal pieces, so each piece and the fraction are smaller.
+
+**Why:** The user asked for simple, clear explanations in every lesson and specifically emphasized the relationship between a larger denominator and smaller pieces.
+
+**How to apply:** Keep the explanation visible before practice and consistent in worked examples, hints, retry feedback, and read-aloud text. Do not rely on the picture alone to teach the rule.
+
 Solution keys belong in the grown-up area, not student print menus or practice sheets. Keep “My answers” available to students because it contains their own work. Prefer a gentle feminine-sounding speech voice when the device offers one, while keeping explanations matched to the requested language.
 
 **Why:** The user chose adult-only answer-key access and asked for a gentler, smoother female voice.

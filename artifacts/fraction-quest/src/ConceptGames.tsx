@@ -5,6 +5,7 @@ import { areEquivalent, compareFractions, targetTick, WAR_PARTS, WAR_ROUNDS, war
 import { printPage } from './lib/print';
 import { TaskBar } from './TaskBar';
 import { LiveFraction } from './fraction-ui';
+import { playHaptic } from './lib/fun';
 
 type Fraction = { n: number; d: number };
 type Model = { d: number; n: number };
@@ -46,6 +47,9 @@ function FractionWar() {
   const target = rounds[round % rounds.length];
   const modelsBuilt = models.every((model, i) => model.d === target[i].d && model.n === target[i].n);
   const changeModel = (side: 0 | 1, patch: Partial<Model>) => {
+    const next = { ...models[side], ...patch };
+    if (next.d === models[side].d && next.n === models[side].n) return;
+    playHaptic('selection');
     setModels(current => current.map((model, i) => i === side ? { ...model, ...patch } : model) as [Model, Model]);
     setChoice(null); setFeedback('');
   };
@@ -57,6 +61,7 @@ function FractionWar() {
     if (!choice) { setFeedback('Look at both shaded amounts, then choose the larger one or same amount.'); return; }
     const comparison = compareFractions(target[0], target[1]);
     const expected = comparison > 0 ? 'left' : comparison < 0 ? 'right' : 'same';
+    playHaptic(choice === expected ? 'correct' : 'retry');
     if (choice === expected) { setScore(s => s + 1); setRoundSolved(true); setFeedback('That is it. Equal-size wholes make the shaded amounts easy to compare.'); }
     else setFeedback(`Not yet. ${warHint(target[0], target[1])}`);
   };
@@ -78,7 +83,11 @@ function FractionWar() {
         <LiveFraction n={model.n} d={model.d} compact color="var(--fq-sky)" testId={`war-live-fraction-${side}`} />
       </article>;
     })}</div>
-    <fieldset className="cg-compare"><legend>Which amount is larger?</legend>{(['left', 'right', 'same'] as const).map((v, i) => <button type="button" key={v} className={`cg-choice ${choice === v ? 'selected' : ''}`} aria-pressed={choice === v} disabled={!modelsBuilt || roundSolved} onClick={() => { setChoice(v); setFeedback(''); }} data-testid={`button-war-choice-${v}`}>{i === 0 ? 'Whole A' : i === 1 ? 'Whole B' : 'Same amount'}</button>)}</fieldset>
+    <fieldset className="cg-compare"><legend>Which amount is larger?</legend>{(['left', 'right', 'same'] as const).map((v, i) => <button type="button" key={v} className={`cg-choice ${choice === v ? 'selected' : ''}`} aria-pressed={choice === v} disabled={!modelsBuilt || roundSolved} onClick={() => {
+      if (choice === v) return;
+      playHaptic('selection');
+      setChoice(v); setFeedback('');
+    }} data-testid={`button-war-choice-${v}`}>{i === 0 ? 'Whole A' : i === 1 ? 'Whole B' : 'Same amount'}</button>)}</fieldset>
     <div className="cg-actions"><button type="button" className="cg-primary" onClick={choose} disabled={!modelsBuilt || !choice || roundSolved} data-testid="button-war-check">{roundSolved ? 'Round complete' : 'Check my comparison'}</button><button type="button" className="cg-secondary" onClick={next} data-testid="button-war-next">Next pair</button><button type="button" className="cg-text-button" onClick={replay} data-testid="button-war-replay"><RotateCcw size={16} /> Replay</button></div>
     {feedback && <p className={`cg-feedback ${feedback.startsWith('That is it') ? 'success' : ''}`} role="status" aria-live="polite" data-testid="status-war-feedback">{feedback}</p>}
   </section>;
@@ -101,9 +110,9 @@ function EquivalenceMatch() {
     const next = [...selected, index]; setSelected(next);
     if (next.length === 2) {
       const [a, b] = next.map(i => matches[i]);
-      if (areEquivalent(a, b)) { setFound(current => [...current, ...next]); setScore(s => s + 1); setMessage('A match. The bars cover the same amount, so the fractions are equivalent.'); setSelected([]); }
-      else setMessage('These amounts differ. Compare the shaded lengths, then try another pair.');
-    } else setMessage('One card turned. Find the card with the same shaded amount.');
+      if (areEquivalent(a, b)) { playHaptic('correct'); setFound(current => [...current, ...next]); setScore(s => s + 1); setMessage('A match. The bars cover the same amount, so the fractions are equivalent.'); setSelected([]); }
+      else { playHaptic('retry'); setMessage('These amounts differ. Compare the shaded lengths, then try another pair.'); }
+    } else { playHaptic('selection'); setMessage('One card turned. Find the card with the same shaded amount.'); }
   };
   const cards = cardOrder.map(index => ({ fraction: matches[index], index }));
   return <section className="cg-game" aria-labelledby="match-title">
@@ -144,11 +153,19 @@ function NumberLineTarget() {
     <h2 id="line-title">Number Line Target</h2><p className="cg-instruction">Choose equal spaces from 0 to 1, then tap the tick that lands on the target fraction.</p>
     <div className="cg-target"><span>Target point</span><strong><FractionLabel {...target} /></strong></div>
     <label className="cg-control-label" htmlFor="line-spaces">Split the whole into equal spaces</label>
-    <select id="line-spaces" value={denominator} onChange={e => { setDenominator(Number(e.target.value)); setMark(null); setFeedback(''); }} data-testid="select-line-spaces"><option value={0} disabled>Choose…</option>{partitions.map(n => <option key={n} value={n}>{n} equal spaces</option>)}</select>
+    <select id="line-spaces" value={denominator} onChange={e => {
+      const next = Number(e.target.value);
+      if (next === denominator) return;
+      playHaptic('selection');
+      setDenominator(next); setMark(null); setFeedback('');
+    }} data-testid="select-line-spaces"><option value={0} disabled>Choose…</option>{partitions.map(n => <option key={n} value={n}>{n} equal spaces</option>)}</select>
     {!denominator ? <p className="cg-feedback" data-testid="status-line-choose">Choose how many equal spaces to split 0 to 1 into.</p> : <>
     <div className="cg-line-area" role="group" aria-label={`Number line from zero to one divided into ${denominator} equal spaces`}>
       <div className="cg-line-track" aria-hidden="true" />
-      {Array.from({ length: denominator + 1 }, (_, i) => <button type="button" className={`cg-line-tick ${mark === i ? 'marked' : ''} ${i === 0 || i === denominator ? 'endpoint' : ''}`} style={{ left: `${i / denominator * 100}%` }} key={i} onClick={() => { setMark(i); setFeedback(i === answerTick ? 'You found it. Count equal jumps from 0: the numerator tells how many jumps.'
+      {Array.from({ length: denominator + 1 }, (_, i) => <button type="button" className={`cg-line-tick ${mark === i ? 'marked' : ''} ${i === 0 || i === denominator ? 'endpoint' : ''}`} style={{ left: `${i / denominator * 100}%` }} key={i} onClick={() => {
+        if (mark === i) return;
+        playHaptic(answerTick !== null && i === answerTick ? 'correct' : 'retry');
+        setMark(i); setFeedback(i === answerTick ? 'You found it. Count equal jumps from 0: the numerator tells how many jumps.'
         : answerTick === null ? `With ${denominator} equal spaces, no tick lands exactly on ${target.n}/${target.d}. Try a different number of spaces.`
         : 'That tick is not the target yet. Count equal jumps from 0, then try again.'); }} aria-label={i === 0 ? 'Zero, start of the whole' : i === denominator ? 'One whole, end of the line' : `Tick ${i} of ${denominator}`} aria-pressed={mark === i} data-testid={`button-line-tick-${i}`}><span>{i === 0 ? '0' : i === denominator ? '1' : ''}</span></button>)}
     </div>

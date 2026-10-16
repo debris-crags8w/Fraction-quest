@@ -21,13 +21,15 @@ export function isAppPage(url: string, appUrl: string): boolean {
 }
 
 export type ShellMessage =
-  | { type: 'haptic'; cue: 'correct' | 'retry' | 'star' | 'complete' | string }
+  | { type: 'haptic'; cue: 'selection' | 'correct' | 'retry' | 'star' | 'complete' }
   | { type: 'print'; jobName?: string; html: string };
 
 export function parseShellMessage(data: string): ShellMessage | null {
   try {
-    const message = JSON.parse(data) as Partial<ShellMessage>;
-    if (message?.type === 'haptic' && typeof message.cue === 'string') return message as ShellMessage;
+    const message = JSON.parse(data) as { type?: unknown; cue?: unknown; html?: unknown; jobName?: unknown };
+    if (message?.type === 'haptic' && ['selection', 'correct', 'retry', 'star', 'complete'].includes(String(message.cue))) {
+      return message as ShellMessage;
+    }
     if (message?.type === 'print' && typeof (message as { html?: unknown }).html === 'string') return message as ShellMessage;
   } catch { /* not ours */ }
   return null;
