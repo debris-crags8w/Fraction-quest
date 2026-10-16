@@ -780,6 +780,46 @@
     color: CanvasText;
   }
 }
+@media print {
+  .fq-order-line-figure {
+    border: 1px solid #000;
+    background: #fff;
+    color: #000;
+    break-inside: avoid;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .fq-order-line {
+    color: #000;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .fq-order-line-axis,
+  .fq-order-line-end {
+    background: #000;
+  }
+  .fq-order-line-point,
+  .fq-order-line-benchmark {
+    color: #000;
+  }
+  .fq-order-line-point::after {
+    border-color: #000;
+    background: #fff;
+    box-shadow: none;
+  }
+  .fq-order-line-point > span,
+  .fq-order-line-benchmark > span {
+    border: 1px solid #000;
+    color: #000;
+    background: #fff;
+  }
+  .fq-order-line-benchmark::before {
+    border-left-color: #000;
+  }
+  .fq-order-line-caption {
+    color: #000;
+  }
+}
 .fq-order-line-caption {
   display: flex;
   justify-content: space-between;
