@@ -7,6 +7,8 @@ export type LearningRecord = {
   practiceDone?: boolean; checks: Record<string, CheckEvidence>; worksheet: Record<string, WorksheetEntry>;
   completedAt?: number; confirmedAt?: number; helpUses: number; misconceptions: Record<string, number>;
   reviewSupportedUntil?: number;
+  /** A passed Build check waiting for the learner to choose Next. */
+  pendingBuildCheckId?: string;
   /** Stars earned in practice (on screen or on paper), used when the lesson is finished. */
   practiceStars?: number;
   /** A practice-only second try at a finished part. See RedoAttempt. */

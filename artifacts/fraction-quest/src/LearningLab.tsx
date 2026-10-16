@@ -266,8 +266,9 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
 }
 
 type Outcome = { supported: boolean; attempts: number };
-function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuccess, onNext, nextLabel }: {
+function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuccess, onNext, nextLabel, initiallyPassed = false }: {
   check: BuildCheck; review: boolean;
+  initiallyPassed?: boolean;
   /** After it passes, the check stays on screen with its explanation until the child presses Next. */
   onNext?: () => void; nextLabel?: string;
   onHelp: (kind: 'hint' | 'error', keys: string[]) => void; onPass: (o: Outcome) => void;
@@ -281,7 +282,8 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
   const [errs, setErrs] = useState<string[]>([]);
   const [failedSig, setFailedSig] = useState<string | null>(null);
   const [hints, setHints] = useState(0); const [supported, setSupported] = useState(false); const [attempts, setAttempts] = useState(0);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState(initiallyPassed);
+  const [restoredPassed] = useState(initiallyPassed);
   const secondTarget: LearningModel = { ...t, kind: tk, total: undefined, wholes: Math.max(1, Math.ceil(t.n / t.d)) };
   const primaryValidation = validate(k, t, a);
   const secondaryValidation = validate(tk, secondTarget, b);
@@ -326,37 +328,39 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
       <p className="fq-ll-kicker">{review ? 'Review' : check.stepLabel ?? (check.transfer ? 'Step 2 · On your own' : 'Step 1 · Build it')}</p>
        <h3 ref={headingRef} tabIndex={-1}><LearningText text={check.prompt} speak /></h3>
-       <Builder kind={k} total={t.total} st={a} set={updatePrimary} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
-       {!primaryReady && a.d > 0 && primaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-primary-${check.id}`}>{primaryValidation.msgs[0]}</p>}
-       {primaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-primary-${check.id}`}><Check size={18} /><LearningText text={getModelFeedback(t, k)} speak /></div>}
-       {stage !== 'primary' && <>
-         <div className="fq-ll-translate">
-           <strong>{transLabel}</strong>
-           <span>Show the same amount with a new model.</span>
-         </div>
-         <Builder kind={tk} st={b} set={updateSecondary} id={`${check.id}-b`} title={`Show the same amount ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
-         {!secondaryReady && b.d > 0 && secondaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-secondary-${check.id}`}>{secondaryValidation.msgs[0]}</p>}
-         {secondaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-secondary-${check.id}`}><Check size={18} /><LearningText text={getModelFeedback(t, tk)} speak /></div>}
-       </>}
-       {stage === 'reason' && <fieldset className="fq-ll-reasons" data-testid={`reasons-${check.id}`}>
-         <legend>Both models match. Which idea explains why?</legend>
-         {check.reasons.map((r, i) => (
-           <label key={i} className={reason === i ? 'on' : ''}>
-             <input type="radio" name={`reason-${check.id}`} checked={reason === i} onChange={() => { setReason(i); setErrs([]); setFailedSig(null); }} data-testid={`radio-reason-${check.id}-${i}`} />
-             <span><LearningText text={r} interactiveTerms={false} /></span>
-           </label>
-         ))}
-       </fieldset>}
-       {hints > 0 && <div className="fq-ll-hint" data-testid={`text-hint-${check.id}`}><strong>Hint:</strong> <LearningText text={hintTexts[Math.min(hints, 2) - 1]} speak /></div>}
-      {errs.length > 0 && (
-        <div className="fq-ll-feedback retry" role="alert" data-testid={`status-errors-${check.id}`}>
-          <CircleHelp size={20} />
-          <div>
-            <strong>{locked ? 'Not yet! Fix these, then check again.' : 'Changed something? Check again.'}</strong>
-             <ul>{errs.map((e, i) => <li key={i}><LearningText text={e} speak /></li>)}</ul>
-          </div>
-        </div>
-      )}
+        {!restoredPassed && <>
+          <Builder kind={k} total={t.total} st={a} set={updatePrimary} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
+          {!primaryReady && a.d > 0 && primaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-primary-${check.id}`}>{primaryValidation.msgs[0]}</p>}
+          {primaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-primary-${check.id}`}><Check size={18} /><LearningText text={getModelFeedback(t, k)} speak /></div>}
+          {stage !== 'primary' && <>
+            <div className="fq-ll-translate">
+              <strong>{transLabel}</strong>
+              <span>Show the same amount with a new model.</span>
+            </div>
+            <Builder kind={tk} st={b} set={updateSecondary} id={`${check.id}-b`} title={`Show the same amount ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
+            {!secondaryReady && b.d > 0 && secondaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-secondary-${check.id}`}>{secondaryValidation.msgs[0]}</p>}
+            {secondaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-secondary-${check.id}`}><Check size={18} /><LearningText text={getModelFeedback(t, tk)} speak /></div>}
+          </>}
+          {stage === 'reason' && <fieldset className="fq-ll-reasons" data-testid={`reasons-${check.id}`}>
+            <legend>Both models match. Which idea explains why?</legend>
+            {check.reasons.map((r, i) => (
+              <label key={i} className={reason === i ? 'on' : ''}>
+                <input type="radio" name={`reason-${check.id}`} checked={reason === i} onChange={() => { setReason(i); setErrs([]); setFailedSig(null); }} data-testid={`radio-reason-${check.id}-${i}`} />
+                <span><LearningText text={r} interactiveTerms={false} /></span>
+              </label>
+            ))}
+          </fieldset>}
+          {hints > 0 && <div className="fq-ll-hint" data-testid={`text-hint-${check.id}`}><strong>Hint:</strong> <LearningText text={hintTexts[Math.min(hints, 2) - 1]} speak /></div>}
+          {errs.length > 0 && (
+            <div className="fq-ll-feedback retry" role="alert" data-testid={`status-errors-${check.id}`}>
+              <CircleHelp size={20} />
+              <div>
+                <strong>{locked ? 'Not yet! Fix these, then check again.' : 'Changed something? Check again.'}</strong>
+                <ul>{errs.map((e, i) => <li key={i}><LearningText text={e} speak /></li>)}</ul>
+              </div>
+            </div>
+          )}
+        </>}
         {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>Correct! Both models use equal parts and show the same number of parts—shaded, marked, or selected.</strong><details className="fq-ll-full-explanation"><summary>Read the full explanation</summary><LearningText text={check.explanation} speak /></details></div></div>}
       {done && <ModelPair n={t.n} d={t.d} />}
       {done ? (
@@ -470,7 +474,10 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const buildPracticeHeading = useRef<HTMLHeadingElement | null>(null);
   const buildPracticeSectionHeading = useRef<HTMLHeadingElement | null>(null);
   // A check that just passed stays on screen (explanation + Next) until the child moves on.
-  const [held, setHeld] = useState<string | null>(null);
+  const [held, setHeld] = useState<string | null>(() => {
+    const pendingId = rec.pendingBuildCheckId;
+    return pendingId && rec.checks[pendingId]?.passed ? pendingId : null;
+  });
   const firstOpen = checks.findIndex(c => !rec.checks[c.id]?.passed);
   const heldIndex = held ? checks.findIndex(c => c.id === held) : -1;
   const activeCheckIndex = heldIndex !== -1 ? heldIndex : firstOpen;
@@ -600,14 +607,15 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           }}
           onPass={o => {
             const r = cur(); const id = checks[idx].id; const old = r.checks[id];
-            save({ ...r, checks: { ...r.checks, [id]: { passed: true, supported: !!old?.supported || o.supported, attempts: (old?.attempts ?? 0) + 1 } } });
+            save({ ...r, checks: { ...r.checks, [id]: { passed: true, supported: !!old?.supported || o.supported, attempts: (old?.attempts ?? 0) + 1 } }, pendingBuildCheckId: id });
             setHeld(id);
           }}
+          initiallyPassed={!!rec.checks[checks[idx].id]?.passed}
           nextLabel={(() => {
             const nextCheck = checks.slice(idx + 1).find(c => !rec.checks[c.id]?.passed);
             return nextCheck ? `Next: ${buildStepName(nextCheck, checks.indexOf(nextCheck))}` : 'Next: extra practice';
           })()}
-          onNext={() => { setHeld(null); setNotice(''); scrollToNext.current = true; }} />
+          onNext={() => { save({ ...cur(), pendingBuildCheckId: undefined }); setHeld(null); setNotice(''); scrollToNext.current = true; }} />
       )}
 
       {idx === -1 && (

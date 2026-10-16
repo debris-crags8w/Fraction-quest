@@ -238,6 +238,39 @@ for (const viewport of [
     expect(bounds.left).toBeGreaterThanOrEqual(0);
     expect(bounds.right).toBeLessThanOrEqual(bounds.viewportWidth);
     if (viewport.width <= 560) expect(bounds.width).toBeGreaterThan(viewport.width * 0.7);
+
+    await page.getByTestId('button-lab-back').click();
+    await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+    await expectMissionStart(page, mission.id, true);
+    await page.getByTestId(`button-start-mission-${mission.id}`).click();
+
+    const reopenedCheck = page.getByTestId(`check-${check.id}`);
+    await expect(reopenedCheck.locator('.fq-ll-check-passed')).toHaveText('Passed');
+    await expect(page.getByTestId(`status-pass-${check.id}`)).toContainText('Correct!');
+    await expect(page.getByTestId(`button-check-${check.id}`)).toHaveCount(0);
+    const reopenedNext = page.getByTestId(`button-next-${check.id}`);
+    await expect(reopenedNext).toBeVisible();
+    await expect(reopenedNext).toBeEnabled();
+    const explanation = reopenedCheck.locator('.fq-ll-full-explanation');
+    await explanation.locator('summary').click();
+    await expect(explanation).toContainText(/Shade 1 part in the bar and mark 1 of 3 equal jumps on the number line/);
+    await reopenedNext.click();
+
+    const nextCheck = getBuildChecks(mission.id)[1];
+    if (nextCheck) await expect(page.getByTestId(`check-${nextCheck.id}`)).toBeVisible();
+    else await expect(page.getByTestId('section-build-practice')).toBeVisible();
+
+    await page.getByTestId('button-lab-back').click();
+    await expectMissionStart(page, mission.id, true);
+    await page.getByTestId(`button-start-mission-${mission.id}`).click();
+    if (nextCheck) {
+      const resumedCheck = page.getByTestId(`check-${nextCheck.id}`);
+      await expect(resumedCheck).toBeVisible();
+      await expect(resumedCheck.locator('.fq-ll-check-passed')).toHaveCount(0);
+      await expect(page.getByTestId(`check-${check.id}`)).toHaveCount(0);
+    } else {
+      await expect(page.getByTestId('section-build-practice')).toBeVisible();
+    }
   });
 }
 
