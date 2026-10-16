@@ -33,6 +33,12 @@ Large file output from CodeExecution `shellExec` can be shortened even when `max
 
 **How to apply:** transfer large blobs in compressed base64 or small base64 chunks, reconstruct the raw bytes in the impure function, and verify each Git blob SHA plus the final tree SHA before creating refs or PRs.
 
+Retargeting an open pull request to `main` may not start checks if the branch was updated before the retarget and the workflow does not listen for pull-request edits. Check for runs after changing the base; if none start, a no-content fast-forward commit can trigger the normal synchronize checks without changing the PR diff.
+
+**Why:** An update made while a PR targeted a review branch did not start CI; changing its base to `main` also left checks absent, while a no-content commit triggered them.
+
+**How to apply:** Verify the PR base, head, and required check list first. Use a non-forced commit only when the tree will stay unchanged, then wait for all required checks before merging.
+
 ## Short-lived branches and pull requests
 
 For new app work, start from the latest `main` on a short-lived branch and submit a pull request to `main`; do not accumulate new work on a long-lived review branch.
