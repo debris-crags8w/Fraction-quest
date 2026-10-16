@@ -140,7 +140,13 @@ test('phone Safari opens a lesson, accepts its first tap answer, and advances', 
   await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
 
   await page.getByTestId('button-next-question').tap();
-  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute('aria-label', /^Question 2 of \d+$/);
+  await expect(page.getByTestId('status-lesson-progress')).toHaveAttribute(
+    'aria-label',
+    /^Lesson question progress: 1 of \d+ completed$/,
+  );
+  await expect(page.getByTestId('status-lesson-progress').locator('.fq-sr')).toHaveText(
+    /^Question 2 of \d+; 1 completed\.$/,
+  );
   await expect(page.getByTestId('question-model-area')).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });

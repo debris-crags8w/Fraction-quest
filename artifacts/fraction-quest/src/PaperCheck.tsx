@@ -3,11 +3,12 @@ import { MathText } from './MathText';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, RotateCcw, Trophy, X } from 'lucide-react';
 import { CHALLENGES, challengeMaxPoints, challengeTrophy } from './challenges';
 import { getMission, type Progress } from './game';
-import { getWorksheet } from './learning-content';
-import { checkWorksheet, editWorksheet, getLearningRecord, updateLearning, worksheetCount, type LearningRecord } from './learning';
+import { answerMatches, getWorksheet } from './learning-content';
+import { checkWorksheet, editWorksheet, getLearningRecord, optionalWorksheetCount, requiredWorksheetDone, updateLearning, worksheetProblemProgress, type LearningRecord } from './learning';
 import { Row } from './LearningLab';
 import { lessonCode, PrintMenu } from './Printables';
 import { Mascot } from './fun-ui';
+import { playHaptic } from './lib/fun';
 import './learning-lab.css';
 
 const letter = (index: number) => String.fromCharCode(65 + index);
@@ -33,11 +34,15 @@ function ChallengePaper({ unit, best, onScore }: { unit: number; best: number | 
           return (
             <li key={item.id} className={!checked || choice === undefined ? '' : right ? 'ok' : 'bad'} data-testid={`paper-challenge-${i + 1}`}>
               <span className="fq-ll-num">{i + 1}</span>
-              <span className="fq-paper-prompt"><MathText text={item.prompt} /> <small className={`fq-points p${item.points}`}>{item.points} pts</small></span>
+              <span className="fq-paper-prompt"><span className="fq-ll-sequence">Puzzle {i + 1} of {items.length}</span><MathText text={item.prompt} /> <small className={`fq-points p${item.points}`}>{item.points} pts</small></span>
               <span className="fq-paper-letters" role="group" aria-label={`Puzzle ${i + 1} answer`}>
                 {item.choices.map((c, k) => (
                   <button type="button" key={k} className={choice === k ? 'on' : ''} aria-pressed={choice === k} aria-label={`${letter(k)}: ${c}`} disabled={checked}
-                    onClick={() => setPicked({ ...picked, [item.id]: k })} data-testid={`paper-challenge-${i + 1}-${letter(k)}`}>{letter(k)}</button>
+                    onClick={() => {
+                      if (choice === k) return;
+                      playHaptic('selection');
+                      setPicked({ ...picked, [item.id]: k });
+                    }} data-testid={`paper-challenge-${i + 1}-${letter(k)}`}>{letter(k)}</button>
                 ))}
               </span>
               {checked && (
@@ -64,8 +69,9 @@ function ChallengePaper({ unit, best, onScore }: { unit: number; best: number | 
 }
 
 /** Check printed sheets: tap the circled letters from the practice sheet and build the worksheet answers with tiles. */
-export default function PaperCheck({ missionId, progress, onChange, onBack, onLab }: {
+export default function PaperCheck({ missionId, progress, onChange, onBack, onLab, onWorksheetCorrect }: {
   missionId: string; progress: Progress; onChange: (progress: Progress) => void; onBack: () => void; onLab: () => void;
+  onWorksheetCorrect?: (missionId: string, problemId: string) => void;
 }) {
   const mission = getMission(missionId);
   const ref = useRef(progress); ref.current = progress;
@@ -80,6 +86,8 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
   const allRight = questions.every((q) => picked[q.id] === q.correctChoice);
 
   const pick = (questionId: string, choice: number, correct: number) => {
+    if (picked[questionId] === choice) return;
+    playHaptic('selection');
     const nextPicked = { ...picked, [questionId]: choice };
     const nextFirst = questionId in firstTry ? firstTry : { ...firstTry, [questionId]: choice === correct };
     setPicked(nextPicked); setFirstTry(nextFirst);
@@ -91,12 +99,21 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
   };
 
   const sheet = getWorksheet(missionId);
-  const count = worksheetCount(rec, missionId);
+  const requiredDone = requiredWorksheetDone(rec, missionId);
+  const optionalDone = optionalWorksheetCount(rec, missionId);
+  const worksheetProgress = worksheetProblemProgress(rec, sheet);
   const checkAll = () => {
     let r = cur();
     for (const problem of sheet) {
       const entry = r.worksheet[problem.id];
-      if (entry?.draft.trim() && entry.checkedValue !== entry.draft) r = checkWorksheet(r, problem);
+      const wasCorrect = !!entry && entry.checkedValue === entry.draft && answerMatches(problem, entry.draft);
+      if (entry?.draft.trim() && entry.checkedValue !== entry.draft) {
+        r = checkWorksheet(r, problem);
+        const checked = r.worksheet[problem.id];
+        if (!wasCorrect && checked?.checkedValue === checked?.draft && answerMatches(problem, checked.draft)) {
+          onWorksheetCorrect?.(missionId, problem.id);
+        }
+      }
     }
     save(r);
   };
@@ -124,7 +141,7 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
             return (
               <li key={q.id} className={choice === undefined ? '' : right ? 'ok' : 'bad'} data-testid={`paper-practice-${i + 1}`}>
                 <span className="fq-ll-num">{i + 1}</span>
-                <span className="fq-paper-prompt"><MathText text={q.prompt} /></span>
+                <span className="fq-paper-prompt"><span className="fq-ll-sequence">Question {i + 1} of {questions.length}</span><MathText text={q.prompt} /></span>
                 <span className="fq-paper-letters" role="group" aria-label={`Question ${i + 1} answer`}>
                   {q.choices.map((c, k) => (
                     <button type="button" key={k} className={choice === k ? 'on' : ''} aria-pressed={choice === k} aria-label={`${letter(k)}: ${c}`} onClick={() => pick(q.id, k, q.correctChoice)} data-testid={`paper-practice-${i + 1}-${letter(k)}`}>{letter(k)}</button>
@@ -141,16 +158,18 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
       <section className="fq-ll-sheet" aria-labelledby="paper-ws">
         <div className="fq-ll-sheet-head">
           <h3 id="paper-ws">Worksheet</h3>
-          <p className="fq-ll-note">Type what you wrote in each box. Then press Check.</p>
-          <div className="fq-ll-meter" role="progressbar" aria-valuemin={0} aria-valuemax={12} aria-valuenow={count} aria-label="Worksheet problems correct">
-            <b style={{ width: `${(count / 12) * 100}%` }} /><span>{count} of 12 correct</span>
+          <p className="fq-ll-note">Question 1 is required to finish the lesson. Questions 2–{sheet.length} are optional practice and do not block completion. Type what you wrote, then press Check.</p>
+          <div className="fq-ll-meter" role="progressbar" aria-valuemin={0} aria-valuemax={sheet.length - 1} aria-valuenow={optionalDone} aria-valuetext={`Required question ${requiredDone ? 'complete' : 'not complete'} · Optional practice ${optionalDone} of ${sheet.length - 1} complete`} aria-label="Optional worksheet practice completed">
+            <b style={{ width: `${((sheet.length - 1) ? optionalDone / (sheet.length - 1) : 1) * 100}%` }} /><span>Required Q1: {requiredDone ? 'done' : 'to do'} · Optional practice: {optionalDone} of {sheet.length - 1}</span>
           </div>
         </div>
         <ol className="fq-ll-rows">
-          {sheet.map((p) => (
-            <Row key={p.id} p={p} rec={rec}
+          {sheet.map((p, index) => (
+            <Row key={p.id} p={p} rec={rec} numberLabel={String(index + 1)}
+              sequenceLabel={`Question ${index + 1} of ${sheet.length} · ${index === 0 ? 'Required' : 'Optional practice'} · ${worksheetProgress[index].status === 'complete' ? 'Complete' : worksheetProgress[index].status === 'retry' ? 'Needs another try' : worksheetProgress[index].status === 'current' ? 'Up next' : 'Not started'}`}
               onEdit={(v) => save(editWorksheet(cur(), p.id, v))}
               onCheck={() => save(checkWorksheet(cur(), p))}
+              onSuccess={() => onWorksheetCorrect?.(missionId, p.id)}
               onHint={() => { const r = cur(); const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };
                 save({ ...r, helpUses: r.helpUses + 1, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }); }} />
           ))}

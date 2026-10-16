@@ -50,7 +50,13 @@ function storyPicture(text: string): ModelSpec | null {
   }
   // "12 beads are shared into 4 equal groups": the beads, to group.
   const beads = /(\d+) [a-z]+ (?:are|is) (?:shared|split|put) into (\d+) equal groups/i.exec(text);
-  if (beads && Number(beads[1]) <= 40) return { kind: 'set', selected: 0, total: Number(beads[1]) };
+  if (beads) {
+    const total = Number(beads[1]);
+    const groupCount = Number(beads[2]);
+    if (total > 0 && total <= 40 && groupCount > 0) {
+      return { kind: 'set', selected: 0, total, ...(total % groupCount === 0 ? { groupCount } : {}) };
+    }
+  }
   // "How many equal spaces from 0 to 1 make thirds?": a bare 0-to-1 line (splitting it would give the answer).
   if (/equal spaces from 0 to 1/i.test(text)) return { kind: 'line', numerator: 0, denominator: 1, wholes: 1, hideLabels: true };
   return null;
