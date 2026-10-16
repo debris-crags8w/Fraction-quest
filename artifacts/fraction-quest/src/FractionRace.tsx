@@ -55,12 +55,14 @@ function Lane({ name, questions, racer, now, onAnswer, renderModel, color, flipp
 }) {
   const stalled = now < racer.stallUntil;
   // While stalled, keep the missed question on screen with the right answer: the stall becomes a mini lesson.
-  const q = questions[(stalled ? racer.index - 1 : racer.index) % questions.length];
+  const questionIndex = stalled ? Math.max(0, racer.index - 1) : racer.index;
+  const q = questions[questionIndex % questions.length];
   const turbo = now - racer.boostAt < 1200 && racer.boostAt > 0;
   return (
     <section className={`fq-race-lane ${flipped ? 'flipped' : ''} ${stalled ? 'stalled' : ''}`} style={{ '--lane': color } as CSSProperties} aria-label={`${name}'s questions`}>
       <p className="fq-race-lane-name"><b>{name}</b> · {racer.score}/{RACE_GOAL}{racer.shield ? <span className="fq-race-streak"> · 🛡️ shield on</span> : racer.streak > 0 && !stalled ? <span className="fq-race-streak"> · {'🔥'.repeat(Math.min(racer.streak, TURBO_STREAK))} {TURBO_STREAK - racer.streak} more for a shield</span> : null}</p>
       {turbo && <p className="fq-race-turbo" role="status">TURBO SHIELD! Your next mistake won't roll you back.</p>}
+      <p className="fq-response-sequence">Question {Math.min(questionIndex + 1, RACE_GOAL)} of {RACE_GOAL}</p>
       <h2 className="fq-race-q fq-question-text"><LearningText text={q.prompt} emphasize interactiveTerms={false} /></h2>
       {(q.model.kind !== 'equation') && <div className="fq-race-model">{renderModel(q.model)}</div>}
       <div className="fq-race-choices" role="group" aria-label="Choose an answer">
