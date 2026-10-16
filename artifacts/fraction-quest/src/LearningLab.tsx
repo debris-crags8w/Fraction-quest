@@ -1,6 +1,6 @@
-import { type CSSProperties, type RefObject, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 import { playHaptic } from './lib/fun';
-import { LearningText } from './LearningText';
+import { LearningListenButton, LearningText } from './LearningText';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
 import { getMission, numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildCheckStage, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
@@ -27,6 +27,20 @@ type Kind = LearningModel['kind'];
 type St = { d: number; wholes: number; count: number };
 const blank = (): St => ({ d: 0, wholes: 1, count: 0 });
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(Number.isFinite(v) ? v : lo)));
+
+function SectionListenHeader({ children, text, label, className = '' }: {
+  children: ReactNode;
+  text: string;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <header className={`fq-ll-section-header ${className}`.trim()}>
+      {children}
+      <LearningListenButton text={text} label={label} />
+    </header>
+  );
+}
 
 // Short, friendly names for the mistakes we track (they choose the extra practice).
 const M = {
@@ -347,16 +361,29 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
     }
   };
   const hint = () => { setHints(h => h + 1); setSupported(true); onHelp('hint', []); };
+  const currentHint = hintTexts[Math.min(hints, 2) - 1];
+  const primaryFeedback = getModelFeedback(t, k);
+  const secondaryFeedback = getModelFeedback(t, tk);
+  const errorHeading = locked ? 'Not yet! Fix these, then check again.' : 'Changed something? Check again.';
+  const errorSpeechText = `${errorHeading} ${errs.join(' ')}`;
 
   return (
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
       <p className="fq-ll-kicker">{review ? 'Review' : check.stepLabel ?? (check.transfer ? 'Step 2 · On your own' : 'Step 1 · Build it')}</p>
-       <h3 ref={headingRef} tabIndex={-1}><LearningText text={check.prompt} speak /></h3>
+       <SectionListenHeader text={check.prompt} label="Listen to the question" className="fq-ll-check-heading">
+         <h3 ref={headingRef} tabIndex={-1}><LearningText text={check.prompt} /></h3>
+       </SectionListenHeader>
         {!restoredPassed && <>
           <p className="fq-ll-response-step" data-testid={`response-step-${check.id}-1`}>Part 1 of 3 · Build the model</p>
           <Builder kind={k} total={t.total} st={a} set={updatePrimary} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
           {!primaryReady && a.d > 0 && primaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-primary-${check.id}`}>{primaryValidation.msgs[0]}</p>}
-          {primaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-primary-${check.id}`}><Check size={18} /><LearningText text={getModelFeedback(t, k)} speak /></div>}
+           {primaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-primary-${check.id}`}>
+             <Check size={18} />
+             <div className="fq-ll-model-status-copy">
+               <SectionListenHeader text={primaryFeedback} label="Listen to the first model feedback"><strong>First model check</strong></SectionListenHeader>
+               <span><LearningText text={primaryFeedback} /></span>
+             </div>
+           </div>}
           {stage !== 'primary' && <>
             <div className="fq-ll-translate">
               <strong><span className="fq-ll-response-step">Part 2 of 3 · </span>{transLabel}</strong>
@@ -364,7 +391,13 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
             </div>
             <Builder kind={tk} st={b} set={updateSecondary} id={`${check.id}-b`} title={`Show the same amount ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
             {!secondaryReady && b.d > 0 && secondaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-secondary-${check.id}`}>{secondaryValidation.msgs[0]}</p>}
-            {secondaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-secondary-${check.id}`}><Check size={18} /><LearningText text={getModelFeedback(t, tk)} speak /></div>}
+             {secondaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-secondary-${check.id}`}>
+               <Check size={18} />
+               <div className="fq-ll-model-status-copy">
+                 <SectionListenHeader text={secondaryFeedback} label="Listen to the second model feedback"><strong>Second model check</strong></SectionListenHeader>
+                 <span><LearningText text={secondaryFeedback} /></span>
+               </div>
+             </div>}
           </>}
           {stage === 'reason' && <fieldset className="fq-ll-reasons" data-testid={`reasons-${check.id}`}>
             <legend><span className="fq-ll-response-step">Part 3 of 3 · </span>Both models match. Which idea explains why?</legend>
@@ -378,18 +411,31 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
               </label>
             ))}
           </fieldset>}
-          {hints > 0 && <div className="fq-ll-hint" data-testid={`text-hint-${check.id}`}><strong>Hint:</strong> <LearningText text={hintTexts[Math.min(hints, 2) - 1]} speak /></div>}
+           {hints > 0 && <div className="fq-ll-hint" data-testid={`text-hint-${check.id}`}>
+             <SectionListenHeader text={currentHint} label="Listen to the hint"><strong>Hint</strong></SectionListenHeader>
+             <LearningText text={currentHint} />
+           </div>}
           {errs.length > 0 && (
             <div className="fq-ll-feedback retry" role="alert" data-testid={`status-errors-${check.id}`}>
               <CircleHelp size={20} />
-              <div>
-                <strong>{locked ? 'Not yet! Fix these, then check again.' : 'Changed something? Check again.'}</strong>
-                <ul>{errs.map((e, i) => <li key={i}><LearningText text={e} speak /></li>)}</ul>
+               <div className="fq-ll-feedback-copy">
+                 <SectionListenHeader text={errorSpeechText} label="Listen to all feedback"><strong>{errorHeading}</strong></SectionListenHeader>
+                 <ul>{errs.map((e, i) => <li key={i}><LearningText text={e} /></li>)}</ul>
               </div>
             </div>
           )}
         </>}
-        {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}><Check size={20} /><div><strong>Correct! Both models use equal parts and show the same number of parts—shaded, marked, or selected.</strong><details className="fq-ll-full-explanation"><summary>Read the full explanation</summary><LearningText text={check.explanation} speak /></details></div></div>}
+         {done && <div className="fq-ll-feedback ok" role="status" data-testid={`status-pass-${check.id}`}>
+           <Check size={20} />
+           <div className="fq-ll-feedback-copy">
+             <strong>Correct! Both models use equal parts and show the same number of parts—shaded, marked, or selected.</strong>
+             <details className="fq-ll-full-explanation">
+               <summary>Read the full explanation</summary>
+               <SectionListenHeader text={check.explanation} label="Listen to the explanation"><strong>Explanation</strong></SectionListenHeader>
+               <LearningText text={check.explanation} />
+             </details>
+           </div>
+         </div>}
       {done && <ModelPair n={t.n} d={t.d} />}
       {done ? (
         <div className="fq-ll-actions fq-ll-actions-complete">
@@ -416,6 +462,8 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
   const [open, setOpen] = useState(false);
   const [wrong, setWrong] = useState<string | null>(null);
   const yesNo = isYesNoProblem(p);
+  const promptText = yesNo ? yesNoPrompt(p) : p.prompt;
+  const problemNumber = numberLabel ?? p.id.slice(1);
   const shape = answerShape(p);
   const checkRef = useRef<HTMLButtonElement>(null);
   useRevealWhen(checkRef, !!draft.trim() && !ok);
@@ -448,7 +496,10 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
           <span className="fq-ll-num" aria-hidden="true">{numberLabel ?? p.id.slice(1)}</span>
           <div className="fq-ll-row-prompt">
             {sequenceLabel && <span className="fq-ll-sequence">{sequenceLabel}</span>}
-            <span id={promptId} className="fq-question-text"><LearningText text={yesNo ? yesNoPrompt(p) : p.prompt} speak emphasize /></span>
+            <div className="fq-ll-row-prompt-header">
+              <span id={promptId} className="fq-question-text"><LearningText text={promptText} emphasize /></span>
+              <LearningListenButton text={promptText} label={`Listen to question ${problemNumber}`} />
+            </div>
           </div>
         </div>
         {/* For counting and shading, the tappable bar is the picture, so it is not drawn twice. */}
@@ -476,9 +527,19 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
         <div id={'ws-fb-' + p.id} aria-live="polite">
           {ok && <p className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Correct!
             {onNewQuestion && <button type="button" className="fq-ll-hintbtn fq-ll-newq" onClick={onNewQuestion} data-testid={'button-new-question-' + p.id}><RotateCcw size={15} /> New question</button>}</p>}
-          {!ok && wrong === draft && <p className="fq-ll-ws bad" role="alert" data-testid={'status-worksheet-' + p.id}><strong>Not yet.</strong> <LearningText text={p.hint} speak /></p>}
+          {!ok && wrong === draft && <div className="fq-ll-ws bad" role="alert" data-testid={'status-worksheet-' + p.id}>
+            <div className="fq-ll-ws-section-copy">
+              <SectionListenHeader text={`Not yet. ${p.hint}`} label="Listen to the feedback"><strong>Not yet.</strong></SectionListenHeader>
+              <LearningText text={p.hint} />
+            </div>
+          </div>}
           {!ok && e && e.attempts > 0 && e.checkedValue === undefined && wrong !== draft && draft.trim() && <p className="fq-ll-ws" data-testid={'status-worksheet-' + p.id}>Changed. Press Check.</p>}
-          {open && <p className="fq-ll-ws hint" data-testid={'text-hint-worksheet-' + p.id}><LearningText text={p.hint} speak /></p>}
+          {open && !ok && wrong !== draft && <div className="fq-ll-ws hint" data-testid={'text-hint-worksheet-' + p.id}>
+            <div className="fq-ll-ws-section-copy">
+              <SectionListenHeader text={`Hint. ${p.hint}`} label="Listen to the hint"><strong>Hint</strong></SectionListenHeader>
+              <LearningText text={p.hint} />
+            </div>
+          </div>}
         </div>
       </form>
     </li>

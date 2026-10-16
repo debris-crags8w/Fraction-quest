@@ -682,12 +682,10 @@ function EmphasizedText({ text }: { text: string }) {
 
 export function LearningText({
   text,
-  speak = false,
   interactiveTerms = true,
   emphasize = false,
 }: {
   text: string | undefined | null;
-  speak?: boolean;
   interactiveTerms?: boolean;
   /** Questions: underline the key points. */
   emphasize?: boolean;
@@ -715,7 +713,6 @@ export function LearningText({
   return (
     <span className="fq-learning-text">
       {parts}
-      {speak && <LearningListenButton text={text} label="Listen to this explanation" />}
     </span>
   );
 }
