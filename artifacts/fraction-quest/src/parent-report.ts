@@ -2,7 +2,7 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { isMissionUnlocked, MISSIONS, type Progress } from './game';
 import { getLearningRecord, hasLearningGate, worksheetCount } from './learning';
 import { answerMatches, getWorksheet } from './learning-content';
-import { today, type FunState } from './lib/fun';
+import { shownStreak, today, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { summarizeStandardMastery, type StandardMastery } from './assessments';
@@ -130,7 +130,7 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
 
   return {
     lessonsDone: rows.filter((row) => row.status === 'done').length, lessonsTotal: rows.length,
-    stars: Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0), xp: fun.xp, streak: fun.dayStreak,
+    stars: Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0), xp: fun.xp, streak: shownStreak(fun, now),
     codeLevelsPassed: codeProgress.levelsPassed, codeLevelsTotal: codeProgress.levelsTotal,
     codeMissionsStarted: codeProgress.missionsStarted, codeMissionsComplete: codeProgress.missionsComplete, codeMissionRows,
     week, minutesWeek: week.reduce((sum, day) => sum + day.minutes, 0), answeredWeek: week.reduce((sum, day) => sum + day.answered, 0),

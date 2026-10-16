@@ -89,3 +89,6 @@
   .fq-daily-feedback { padding: 10px 12px; font-size: .95rem; }
 }
 .fq-daily-step-note { display: inline-block; margin: 6px 0 0; padding: 3px 10px; border-radius: 999px; background: #E3F8F5; color: #00796B; font-size: .85rem; font-weight: 800; }
+/* A–D letters, like lesson questions. */
+.fq-daily-choice { display: flex; align-items: center; gap: 12px; }
+.fq-daily-choice.selected .fq-choice-marker { color: hsl(var(--card)); background: hsl(var(--foreground)); }

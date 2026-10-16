@@ -1,4 +1,4 @@
-import { fourthChoice } from './fourth-choice';
+import { fourthChoice, orderedWithSigns } from './fourth-choice';
 import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, getWorksheet, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
@@ -203,7 +203,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'missing-equivalent': (r) => {
     const d = r.int(2, 6); const n = r.int(1, d - 1); const k = d === 5 ? r.pick([2, 4]) : r.int(2, 4); // no fifteenths
-    return { prompt: `Fill the blank: ${f(n, d)} = ?/${d * k}`, right: String(n * k), wrong: [String(n + k), String(n * k + 1)], hint: `What times ${d} makes ${d * k}?`, retry: `The denominator was times ${k}. So the numerator is ${n} × ${k} = ${n * k}.`, model: bar(n, d) };
+    return { prompt: `Fill the blank: ${f(n, d)} = ?/${d * k}`, right: String(n * k), wrong: [String(n + k), String(n * k + 1)], hint: `What times ${d} makes ${d * k}?`, retry: `The denominator was multiplied by ${k}. So the numerator is ${n} × ${k} = ${n * k}.`, model: bar(n, d) };
   },
   'compose-to-one': (r) => {
     const d = r.pick(DENS); const n = r.int(1, d - 1);
@@ -289,9 +289,9 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
     const [n, d] = r.pick(SMALL_POOL); const k = r.int(2, 4);
     return r.chance()
       ? later(`Fill the blank: ${f(n, d)} = ?/${d * k}`, String(n * k), [String(n + k), String(n * k + 1), String(n * k - 1)],
-        `The bottom was multiplied by ${k}.`, `${n} × ${k} = ${n * k}.`, bar(n, d))
+        `The denominator was multiplied by ${k}.`, `${n} × ${k} = ${n * k}.`, bar(n, d))
       : later(`Fill the blank: ${f(n, d)} = ${n * k}/?`, String(d * k), [String(d + k), String(d * k + 1), String(d * k - 1)],
-        `The top was multiplied by ${k}.`, `${d} × ${k} = ${d * k}.`, bar(n, d));
+        `The numerator was multiplied by ${k}.`, `${d} × ${k} = ${d * k}.`, bar(n, d));
   },
   'compare-unlike-fractions': (r) => {
     // About 1 in 4 pairs share a numerator (3/4 vs 3/8), so that strategy keeps coming back.
@@ -508,6 +508,16 @@ function withFourth(item: Item, placed: Pick<PracticeQuestion, 'choices' | 'corr
   return { choices, correctChoice: placed.correctChoice + (at <= placed.correctChoice ? 1 : 0) };
 }
 
+/** Generated sentences use counts like "${n} pieces"; when n is 1 that reads "1 pieces are". Fix it to "1 piece is". */
+const COUNT_NOUNS = 'piece|jump|group|part|space|share|slice|cup|step';
+const signedOrder = (prompt: string, placed: Pick<PracticeQuestion, 'choices' | 'correctChoice'>) =>
+  ({ ...placed, choices: orderedWithSigns(prompt, placed.choices) });
+export function oneIsSingular(text: string): string {
+  return text
+    .replace(new RegExp(`(^|[^\\d/.])1 (${COUNT_NOUNS})s (are|were)\\b`, 'g'), (_m, lead, noun, verb) => `${lead}1 ${noun} ${verb === 'are' ? 'is' : 'was'}`)
+    .replace(new RegExp(`(^|[^\\d/.])1 (${COUNT_NOUNS})s\\b`, 'g'), '$11 $2');
+}
+
 export function generateQuestions(missionId: string, baseQuestionIds: string[], seed: number, count: number): PracticeQuestion[] {
   const recipe = RECIPES[missionId];
   if (!recipe) throw new Error(`No question generator for ${missionId}`);
@@ -521,10 +531,10 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
     seen.add(key);
     out.push({
       id: `${missionId}-g${seed}-${out.length + 1}`,
-      prompt: item.prompt,
-      ...withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3)),
-      hint: item.hint,
-      retryFeedback: item.retry,
+      prompt: oneIsSingular(item.prompt),
+      ...signedOrder(item.prompt, withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3))),
+      hint: oneIsSingular(item.hint),
+      retryFeedback: oneIsSingular(item.retry),
       model: nameBars(item.model, item.prompt),
       // Help shows the same picture, now with its labels, so it is about this question.
       simplerModel: nameBars(item.simpler ?? withLabels(item.model), item.prompt),

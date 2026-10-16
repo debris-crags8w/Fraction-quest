@@ -41,7 +41,8 @@ import LearningLab, { RedoLab } from './LearningLab';
 import { LearningListenButton, LearningText, LearningTextSection, useReadAloud } from './LearningText';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
-import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, optionalWorksheetCount, requiredWorksheetDone, resetUnitLearningProgress, startRedo, updateLearning, type RedoPart } from './learning';
+import { getWorksheet } from './learning-content';
+import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, optionalWorksheetCount, requiredBuildChecks, requiredWorksheetDone, resetUnitLearningProgress, startRedo, updateLearning, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
@@ -103,6 +104,7 @@ type PlacementView = { type: 'placement' };
 // seed 0 = the fixed 12 "Practice more" questions; any other seed = freshly generated questions.
 type ExtraView = { type: 'extra'; missionId: string; seed: number; questionIndex: number; firstTry: number } | { type: 'extra-done'; missionId: string; seed: number; firstTry: number; total: number };
 const FRESH_ROUND = 10;
+const worksheetLength = (missionId: string) => getWorksheet(missionId).length;
 /** Paper answers count once the lesson's worked example, hands-on step and questions are done in the app,
     so paper never skips the order: see it, try it, then the worksheet. */
 const paperCheckOpen = (progress: Progress, missionId: string) =>
@@ -517,7 +519,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
         { title: 'Games', items: [
           { id: 'games', icon: <Dumbbell size={18} />, label: 'Games', testId: 'button-open-concept-games', onSelect: onConceptGames, note: 'Fraction Race and the fraction workshop' },
           ...(nextCodeMission ? [{ id: 'code', icon: <Code2 size={18} />, label: codeSummary.missionsStarted ? 'Continue coding' : 'Try coding', testId: 'button-continue-coding',
-            onSelect: () => onGame('code', nextCodeMission.id), note: `${codeSummary.levelsPassed} of ${codeSummary.levelsTotal} coding levels passed` }] : []),
+            onSelect: () => onGame('code', nextCodeMission.id), note: codeSummary.levelsPassed ? `${codeSummary.levelsPassed} coding levels passed` : 'Make a robot draw fractions' }] : []),
         ] },
         { title: 'Check what you know', items: [
           { id: 'checkins', icon: <ClipboardCheck size={18} />, label: 'Check-ins', testId: 'button-open-assessments', onSelect: onAssessments, note: 'Build a model, answer, and see what to practice next' },
@@ -618,6 +620,9 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                       const completed = hasLearningGate(progress, mission.id);
                       const learning = getLearningRecord(progress, mission.id);
                       const summary = learningSummary(learning);
+                      const buildsNeeded = requiredBuildChecks(progress, mission.id).length;
+                      const buildsPassed = requiredBuildChecks(progress, mission.id).filter((check) => learning.checks[check.id]?.passed).length;
+                      const codeLevels = Math.min(CODE_LEVEL_COUNT, Math.floor(fun.codeLevels?.[mission.id] ?? 0));
                       const missionNumber = MISSIONS.indexOf(mission) + 1;
                       return {
                         id: mission.id,
@@ -636,12 +641,15 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                               {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
                             </p>}
                             <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
-                              Worksheet question 1 required: {requiredWorksheetDone(learning, mission.id) ? 'done' : 'to do'} · Optional practice {optionalWorksheetCount(learning, mission.id)}/11
-                              <br />Builds on my own {summary.independentChecks}/2
-                              <br />Remembered: {summary.retention}
-                              <br />Code levels passed: {Math.min(CODE_LEVEL_COUNT, Math.floor(fun.codeLevels?.[mission.id] ?? 0))}/{CODE_LEVEL_COUNT}
-                              {!completed && unlocked && <><br />Finish the builds and required worksheet question to open the next lesson.</>}
-                              {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Your old progress is saved. A few new steps are needed.</>}
+                              {/* Short, kid-sized status: only what matters for this lesson right now. */}
+                              {completed
+                                ? <>Done! Extra worksheet practice: {optionalWorksheetCount(learning, mission.id)} of {Math.max(0, worksheetLength(mission.id) - 1)}.{codeLevels > 0 && <><br />Code levels: {codeLevels} of {CODE_LEVEL_COUNT}.</>}</>
+                                : !unlocked
+                                  ? <>Finish the lessons before this one to open it.</>
+                                  : learning.practiceDone
+                                    ? <>Builds: {buildsPassed} of {buildsNeeded}. Worksheet question 1: {requiredWorksheetDone(learning, mission.id) ? 'done' : 'to do'}.</>
+                                    : <>Practice, build it, then answer worksheet question 1.</>}
+                              {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Your work is saved. A few new steps are waiting.</>}
                             </p>
                             <button
                               className={`fq-button ${completed ? 'ghost' : ''}`}
@@ -683,13 +691,13 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
   );
 }
 
-function GuidedExample({ mission, title, lessonLabel }: { mission: Mission; title?: string; lessonLabel?: string }) {
+function GuidedExample({ mission, title, lessonLabel, hideMascot = false }: { mission: Mission; title?: string; lessonLabel?: string; /** Numi already introduced this screen. */ hideMascot?: boolean }) {
   return (
     <div className="fq-example" data-testid="lesson-example">
       {lessonLabel && <p className="fq-play-kicker">{lessonLabel} · See it first</p>}
       {title && <h2 className="fq-example-heading">{title}</h2>}
-      <div className="fq-mascot-say">
-        <Mascot mood="happy" size={64} />
+      <div className={`fq-mascot-say ${hideMascot ? 'no-mascot' : ''}`}>
+        {!hideMascot && <Mascot mood="happy" size={64} />}
         <div className="fq-skill-bubble">
           <div className="fq-skill-header">
             <span className="fq-skill-label">Lesson idea</span>
@@ -954,7 +962,7 @@ function PlayView({
             <>
               {showExample && <StoryPrompt prompt={question.prompt} id="lesson-question-title" />}
               {question.isReview && <div className="fq-review-label"><RotateCcw size={15} />{question.isOptionalReview ? `${isQuickReview ? 'Due skill' : 'Optional review'} · ${question.reviewTopicTitle}` : ' A quick revisit to help it stick'}</div>}
-              {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint · models and worksheet come next</div>}
+              {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint · Models and worksheet come next</div>}
               <div className="fq-model-area" data-testid="question-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} />
               </div>
@@ -1426,7 +1434,7 @@ function Game() {
             : 'Find the same amount';
         return <PartFinder key={view.missionId} rounds={partFinderRoundsFor(view.missionId)} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
           activityTitle={activityTitle} showFirstIntroduction={view.missionId === 'equal-parts'}
-          intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} />}
+          intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} hideMascot={view.missionId === 'equal-parts'} />}
           onExit={returnToMap} onDone={toQuestions} onSkip={progress.completedMissionIds.includes(view.missionId) || hasLearningGate(progress, view.missionId) ? toQuestions : undefined} />;
       })()}
       {view.type === 'fraction-sort' && (() => {

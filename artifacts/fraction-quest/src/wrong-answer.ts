@@ -30,12 +30,12 @@ export function wrongChoiceReason(prompt: string, choices: string[], correct: nu
   if (f && r) {
     const [pt, pb] = [Number(f[1]), Number(f[2])];
     const [rt, rb] = [Number(r[1]), Number(r[2])];
-    if (pt === rb && pb === rt && pt !== pb) return 'You flipped it. The parts you count go on top. All the equal parts go on the bottom.';
+    if (pt === rb && pb === rt && pt !== pb) return 'You flipped it. The parts you count go in the numerator. All the equal parts go in the denominator.';
     const sum = LIKE_SUM.exec(prompt);
     if (sum && pb === Number(sum[2]) * 2 && pt === rt) return sum[3] === '+'
-      ? 'Add only the top numbers. The pieces stay the same size, so the bottom stays the same.'
-      : 'Take away only the top numbers. The pieces stay the same size, so the bottom stays the same.';
-    if (pt === rt && pb === rt + rb) return 'The bottom number is all the equal parts, not parts plus shaded. Count all the parts.';
+      ? 'Add only the numerators. The pieces stay the same size, so the denominator stays the same.'
+      : 'Take away only the numerators. The pieces stay the same size, so the denominator stays the same.';
+    if (pt === rt && pb === rt + rb) return 'The denominator is all the equal parts, not parts plus shaded. Count all the parts.';
     if (pt === rt && Math.abs(pb - rb) === 1 && /\b(?:piece|part|space|slice|jump|tile|equal)\b/.test(p)) return 'Count all the equal parts again, one at a time.';
     if (pb === rb && Math.abs(pt - rt) === 1 && /\b(?:shaded|colored|jumps?|pieces?|parts?)\b/.test(p) && !LIKE_SUM.test(prompt)) return 'Count the parts again, one at a time.';
   }

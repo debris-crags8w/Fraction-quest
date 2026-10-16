@@ -47,7 +47,7 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   await expect(intro).toBeVisible();
   await expect(intro).toContainText('smallest to biggest');
   await expect(intro).toContainText('same denominator');
-  await expect(intro).toContainText('top numbers');
+  await expect(intro).toContainText(/top numbers|numerators/);
   await expect(intro.getByRole('button', { name: 'Listen to the goal' })).toBeVisible();
   await expect(intro.getByRole('button', { name: 'Listen to the process' })).toBeVisible();
   await expect(intro.getByRole('button', { name: 'Listen to why it works' })).toBeVisible();

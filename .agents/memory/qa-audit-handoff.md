@@ -3,7 +3,7 @@ name: QA audit handoff
 description: Current state of Fraction Quest work — how to build/verify, feature map, recent changes, open items, and the next proposed step (Part Finder game).
 ---
 
-Fraction Quest: fractions app for ages 8–10 (units 1–8 grade 3–4, units 9–14 grade 5). The user wants short kid-friendly
+Fraction Quest: fractions app for ages 8–10 (72 lessons in 15 units; units 1–8 grade 3–4, units 9–15 grades 3–5). The user wants short kid-friendly
 wording, repetition, printables, model-centred learning, and everything pushed to `main`. The latest upstream state includes
 the square area model and the Part Finder proposal; local review changes should be merged only after checking current `main`.
 
@@ -24,7 +24,7 @@ the square area model and the Part Finder proposal; local review changes should 
   gates, model interaction central, no faked completions, bar models with WHOLE/PART labels, LearningText vocab + read-aloud).
 
 ## Feature map (where things live)
-- 52 lessons (`MISSIONS` in game.ts): units 1–8 have 28 (unit 8 has 6 incl. add-tenths-hundredths), units 9–14 have 4 each.
+- 72 lessons (`MISSIONS` in game.ts) in 15 units. Lesson completion: practice, 3 required builds, worksheet Q1 (Q2–12 optional).
 - Worksheets: `getWorksheet` in learning-content.ts (12 rows per lesson; extension units use `getExtensionWorksheet`).
   Rows can carry `model` (bar/set/line, bar `sizes` for unequal pieces), `task` (bar copy/count/shade), `area`/`areaTask`
   (square model), `form` (decimal/mixed/ordered/symbol/word=yes-no). `paperPrompt()` rewrites Tap/Type for paper.
@@ -56,6 +56,12 @@ the square area model and the Part Finder proposal; local review changes should 
   "Finish lesson" callout appears under it; reward copy says when the next unit is still closed; reopening a lesson
   whose steps are done but not finished goes to the lab. Check my paper shows only after in-app practice; from the
   lab its Back returns to the lab.
+  PR C: map lesson card is one short line per state; ordering tap answers use "<"/">" instead of commas
+  (`orderedWithSigns` in fourth-choice.ts, applied in practice() and generateQuestions; worksheets keep their typed
+  form); reasons have no commas; learner text says numerator/denominator (only lesson 2's intro keeps "or bottom
+  number"); generated "1 pieces are" → "1 piece is" (`oneIsSingular`); daily choices show A–D; held Build check
+  survives reload; redo XP once per question; unit reset finishes a daily session whose cursor ran past its kept
+  questions and drops that unit's adaptation notes; parent report streak uses `shownStreak`; lesson 1 shows Numi once.
 - Mascot is now **Numi** (user picked option B of 3): `Mascot` in fun-ui.tsx draws a purple head, an orange fraction-bar
   for arms (tilts with mood) and a round body cut into 2 equal halves, 1 shaded. Same props and moods as the old fox.
 - Competitor curriculum review (docs/curriculum-gap-analysis.md, "Competitor review"). Added unit 15 "Problem solving"

@@ -52,8 +52,12 @@ export function resetUnitLearningProgress(progress: Progress, missionIds: Readon
   const attempts = dailyPractice
     ? Object.fromEntries(Object.entries(dailyPractice.attempts).filter(([id]) => !removedDailyQuestionIds.has(id)))
     : undefined;
+  // If every kept question was already answered, the session is finished (not a blank "done" screen with no end).
   const nextDailyPractice = dailyPractice && keptDailyQuestions?.length
-    ? { ...dailyPractice, questions: keptDailyQuestions, index: Math.min(keptBeforeCurrent, keptDailyQuestions.length), attempts: attempts ?? dailyPractice.attempts }
+    ? keptBeforeCurrent >= keptDailyQuestions.length
+      ? { ...dailyPractice, questions: keptDailyQuestions, index: keptDailyQuestions.length - 1, attempts: attempts ?? dailyPractice.attempts,
+          completedAt: dailyPractice.completedAt ?? Date.now() }
+      : { ...dailyPractice, questions: keptDailyQuestions, index: keptBeforeCurrent, attempts: attempts ?? dailyPractice.attempts }
     : undefined;
 
   return {
@@ -63,6 +67,8 @@ export function resetUnitLearningProgress(progress: Progress, missionIds: Readon
     learning,
     reviewQueue: progress.reviewQueue.filter((item) => !missionIds.has(item.missionId)),
     challengeBest: Object.fromEntries(Object.entries(progress.challengeBest ?? {}).filter(([savedUnit]) => savedUnit !== String(unit))),
+    // The grown-up "why practice changed" notes for this unit's lessons go too; standards are shared with other units.
+    ...(progress.adaptationLog ? { adaptationLog: progress.adaptationLog.filter((event) => !missionIds.has(event.missionId)) } : {}),
     ...(nextDailyPractice ? { dailyPractice: nextDailyPractice } : { dailyPractice: undefined }),
   };
 }

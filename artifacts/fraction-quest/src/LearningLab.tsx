@@ -708,14 +708,14 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           initiallyPassed={!!rec.checks[checks[idx].id]?.passed}
           nextLabel={(() => {
             const nextCheck = checks.slice(idx + 1).find(c => !rec.checks[c.id]?.passed);
-            return nextCheck ? `Next: ${buildStepName(nextCheck, checks.indexOf(nextCheck))}` : 'Next: extra practice';
+            return nextCheck ? `Next: ${buildStepName(nextCheck, checks.indexOf(nextCheck))}` : 'Next: worksheet or extra builds';
           })()}
           onNext={() => { save({ ...cur(), pendingBuildCheckId: undefined }); setHeld(null); setNotice(''); scrollToNext.current = true; }} />
       )}
 
       {idx === -1 && (
         <section className="fq-ll-build-practice" aria-labelledby="build-practice-title" data-testid="section-build-practice">
-          <h3 id="build-practice-title" ref={buildPracticeSectionHeading} tabIndex={-1}>More Build practice</h3>
+          <h3 id="build-practice-title" ref={buildPracticeSectionHeading} tabIndex={-1}>More build practice</h3>
           {!buildPracticeActive ? (
             <>
               <p>Try 10 new, optional questions with this lesson’s ideas. Extra practice does not change lesson completion.</p>
@@ -724,13 +724,13 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
                 setBuildPracticePassed(0);
                 setBuildPracticeActive(true);
               }} data-testid="button-start-build-practice">
-                {buildPracticeSetsDone ? 'Generate 10 more questions' : 'Try 10 extra builds'}
+                {buildPracticeSetsDone ? 'Try 10 more' : 'Try 10 extra builds'}
               </button>
               {!!buildPracticeSetsDone && <p className="fq-ll-note" data-testid="text-build-practice-sets">{buildPracticeSetsDone} optional {buildPracticeSetsDone === 1 ? 'set' : 'sets'} finished.</p>}
             </>
           ) : (
             <>
-              <div className="fq-ll-practice-meter" role="progressbar" aria-valuemin={0} aria-valuemax={10} aria-valuenow={buildPracticePassed} aria-label="Optional Build questions completed" data-testid="progress-build-practice">
+              <div className="fq-ll-practice-meter" role="progressbar" aria-valuemin={0} aria-valuemax={10} aria-valuenow={buildPracticePassed} aria-label="Optional build questions completed" data-testid="progress-build-practice">
                 <b style={{ width: `${buildPracticePassed * 10}%` }} />
                 <span>{buildPracticePassed} of 10 extra builds done</span>
               </div>
@@ -754,7 +754,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
               <button type="button" className="fq-button ghost" onClick={() => {
                 setBuildPracticeActive(false);
                 requestAnimationFrame(() => document.querySelector('[data-testid="section-worksheet"]')?.scrollIntoView({ block: 'start', behavior: 'auto' }));
-              }} data-testid="button-skip-build-practice">Skip extra practice and go to worksheet</button>
+              }} data-testid="button-skip-build-practice">Skip to the worksheet</button>
             </>
           )}
         </section>
@@ -928,7 +928,8 @@ export function RedoLab({ missionId, progress, onChange, onBack, onWrong, onSucc
                 onWrong={onWrong}
                 onSuccess={() => {
                   onSuccess?.();
-                  onWorksheetCorrect?.(missionId, `${p.id}-redo-${redo.round}-${redo.rowRounds[p.id] ?? 0}`);
+                  // XP once per redo question (not again for every "new numbers" round), so redo cannot be farmed for points.
+                  onWorksheetCorrect?.(missionId, `${p.id}-redo`);
                 }}
                 onHint={() => change(r => { const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };
                   return { ...r, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }; })}
