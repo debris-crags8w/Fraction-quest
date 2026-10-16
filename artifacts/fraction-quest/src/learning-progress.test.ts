@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { getWorksheet } from './learning-content';
+import { EMPTY_PROGRESS } from './game';
+import { getBuildChecks, getWorksheet } from './learning-content';
 import {
+  checkLessonWorksheet,
   checkWorksheet,
+  hasLearningGate,
   editWorksheet,
   emptyLearningRecord,
   worksheetProblemProgress,
@@ -79,5 +82,38 @@ describe('worksheet problem progress', () => {
     const progress = worksheetProblemProgress(record, problems);
     assert.ok(progress.every(problem => problem.status === 'complete'));
     assert.ok(progress.every(problem => !problem.current));
+  });
+});
+
+describe('optional worksheet questions never block or undo a lesson', () => {
+  const lessonId = 'fraction-names';
+  const passedRecord = () => {
+    const sheet = getWorksheet(lessonId);
+    const base: LearningRecord = { ...emptyLearningRecord(), practiceDone: true,
+      checks: Object.fromEntries(getBuildChecks(lessonId).map((check) => [check.id, { passed: true, supported: false, attempts: 1 }])) };
+    return checkLessonWorksheet(editWorksheet(base, sheet[0].id, sheet[0].answer), sheet[0], lessonId);
+  };
+  const missOptionalTwice = (record: LearningRecord) => {
+    const optional = getWorksheet(lessonId)[4];
+    let next = record;
+    for (let i = 0; i < 2; i++) next = checkLessonWorksheet(editWorksheet(next, optional.id, '99/100'), optional, lessonId);
+    return next;
+  };
+
+  it('does not add required reteach for misses on optional questions', () => {
+    const record = missOptionalTwice(passedRecord());
+    assert.deepEqual(record.misconceptions, {});
+    assert.equal(hasLearningGate({ ...EMPTY_PROGRESS, learning: { [lessonId]: record } }, lessonId), true);
+  });
+
+  it('keeps a finished lesson finished even if reteach practice is offered later', () => {
+    const required = getWorksheet(lessonId)[0];
+    let record: LearningRecord = { ...passedRecord(), completedAt: 1 };
+    // Two misses on the required question (it counts) after the lesson was finished.
+    for (let i = 0; i < 2; i++) record = checkWorksheet(editWorksheet(record, required.id, '99/100'), required);
+    record = checkWorksheet(editWorksheet(record, required.id, required.answer), required);
+    const progress = { ...EMPTY_PROGRESS, completedMissionIds: [lessonId], learning: { [lessonId]: record } };
+    assert.equal(hasLearningGate(progress, lessonId), true);
+    assert.equal(hasLearningGate({ ...progress, completedMissionIds: [] }, lessonId), false, 'an unfinished lesson still needs its reteach');
   });
 });

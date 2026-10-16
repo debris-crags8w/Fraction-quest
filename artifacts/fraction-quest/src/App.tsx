@@ -1364,6 +1364,8 @@ function Game() {
     setFun((current) => recordWorksheetCorrect(current, missionId, problemId));
   };
   const onPracticeSuccess = () => { consecutiveWrongAnswers.current = 0; };
+  /** Daily practice answers count like lesson answers: XP, today's goal, streak and the weekly report. */
+  const onDailyCorrect = () => { consecutiveWrongAnswers.current = 0; setFun((current) => recordCorrect(current)); };
   const onPracticeWrong = () => {
     setCombo(0);
     consecutiveWrongAnswers.current += 1;
@@ -1381,7 +1383,7 @@ function Game() {
       </div>}
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
       {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onDeveloperTest={startDeveloperLessonTest} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
-      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} renderModel={(model, reveal) => <ModelView model={model} reveal={reveal} asked />} onChange={(session) => persistProgress(applyAdaptiveDailyPracticeUpdate(progress, session))} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} />}
+      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} renderModel={(model, reveal) => <ModelView model={model} reveal={reveal} asked />} onChange={(session) => persistProgress(applyAdaptiveDailyPracticeUpdate(progress, session))} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onDailyCorrect} />}
       {view.type === 'concept-games' && (() => {
         // The lesson games use the lesson the child is on (or the last open one).
         const open = MISSIONS.filter((mission) => isMissionUnlocked(progress, mission.id));

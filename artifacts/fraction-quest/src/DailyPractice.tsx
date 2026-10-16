@@ -81,7 +81,7 @@ export default function DailyPractice({
             <div className="fq-daily-spark"><Check size={30} aria-hidden="true" /></div>
             <p className="fq-eyebrow">Today’s fraction practice</p>
             <h1 id="daily-done-title">You made it through today’s practice!</h1>
-            <p>You finished today’s five practice questions. Your lesson progress stays just as it was.</p>
+            <p>You finished today’s practice. Great work!</p>
             <button className="fq-button" onClick={onBack} data-testid="button-daily-done-map">Back to the learning map</button>
           </section>
         </main>
@@ -270,10 +270,14 @@ export default function DailyPractice({
           <TaskBar onBack={onBack} backLabel="Map" testId="button-daily-back" title={<><Sparkles size={16} aria-hidden="true" /> Daily practice</>} step={session.index + 1} total={session.questions.length} done={session.index + (session.attempts[question!.id]?.answerCorrect ? 1 : 0)} />
           <section className="fq-daily-card" aria-labelledby="daily-question-title">
             <div className="fq-daily-topic">A little review · {question!.topicTitle}</div>
-            {question!.adaptationReason && <p className="fq-parent-note" data-testid="daily-adaptation-reason">{question!.adaptationReason}.</p>}
+            {/* The grown-up reason is kept for the progress report; the child sees a short, kind label. */}
+            {question!.reteachLoop
+              ? <p className="fq-daily-step-note" data-testid="daily-adaptation-reason">A small step to help</p>
+              : question!.difficultyBand === 'transfer'
+                ? <p className="fq-daily-step-note" data-testid="daily-adaptation-reason">A stretch question</p>
+                : null}
             {card}
           </section>
-          <p className="fq-daily-note">This short practice adapts as answers come in. Lesson checklist and unlock order still stay separate.</p>
         </main>
       </div>
     );

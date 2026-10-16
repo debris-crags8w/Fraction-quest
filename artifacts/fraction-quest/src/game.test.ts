@@ -1015,12 +1015,16 @@ describe('daily fraction practice', () => {
     const updated = applyAdaptiveDailyPracticeUpdate(progress, nextSession, now + 1);
     assert.equal((updated.adaptiveStandards?.['3.NF.1']?.streakMisses ?? 0) >= 3, true);
     assert.equal(updated.dailyPractice!.questions.length, session.questions.length + 1);
-    assert.equal(updated.dailyPractice!.index, 0, 'the active question index should point to the inserted scaffold');
-    const reteach = updated.dailyPractice!.questions[0];
+    assert.equal(updated.dailyPractice!.index, 0, 'the child stays on the missed question and its feedback');
+    assert.equal(updated.dailyPractice!.questions[0].id, question.id, 'the missed question is not swapped out');
+    const reteach = updated.dailyPractice!.questions[1];
     assert.equal(reteach.reteachLoop, true);
     assert.equal(reteach.missionId, question.missionId);
     assert.equal(reteach.difficultyBand, 'scaffolded');
-    assert.equal(updated.dailyPractice!.questions[1].id, question.id, 'keep the missed question directly after the reteach');
+    // A second miss on the same question adds no second extra step.
+    const again = applyAdaptiveDailyPracticeUpdate(updated, { ...updated.dailyPractice!, attempts: { ...updated.dailyPractice!.attempts, [question.id]: { ...updated.dailyPractice!.attempts[question.id], modelChecked: false } } }, now + 2);
+    const twice = applyAdaptiveDailyPracticeUpdate(again, { ...again.dailyPractice!, attempts: { ...again.dailyPractice!.attempts, [question.id]: { ...again.dailyPractice!.attempts[question.id], modelChecked: true } } }, now + 3);
+    assert.equal(twice.dailyPractice!.questions.length, session.questions.length + 1);
     assert.equal(updated.dailyPractice!.attempts[question.id].modelChecked, true, 'preserve the learner’s original attempt');
     assert.ok(updated.adaptationLog?.some((event) => event.band === 'scaffolded' && event.missionId === question.missionId));
   });

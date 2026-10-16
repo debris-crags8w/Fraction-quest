@@ -1753,7 +1753,10 @@ test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried 
   // Lesson 2 (no cake rounds): its first question is a tap question.
   await page.addInitScript(() => localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: ['equal-parts'], starsByMission: {}, reviewQueue: [], learning: { 'equal-parts': { completedAt: Date.now() } }, assessments: [] })));
   await openAsGuest(page);
-  await page.getByTestId('button-toggle-sound').click();
+  // Sound starts on; turn it on only if this device saved it as off.
+  const soundToggle = page.getByTestId('button-toggle-sound');
+  if (await soundToggle.getAttribute('aria-label') === 'Turn sound on') await soundToggle.click();
+  await expect(soundToggle).toHaveAttribute('aria-label', 'Turn sound off');
   const mission = MISSIONS[1];
   const question = mission.questions[0];
   await page.getByTestId('button-continue-course').or(page.getByTestId('button-jump-current')).first().click();

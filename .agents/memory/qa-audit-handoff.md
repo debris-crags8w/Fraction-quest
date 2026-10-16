@@ -40,6 +40,14 @@ the square area model and the Part Finder proposal; local review changes should 
   unit 1–8 lesson from re-locking units 9–14.
 
 ## Recent work (this session, newest first)
+- Workflow QA (2026-10-16) on main e93b719, fixed in 3 PRs (A: blockers, B: daily practice + lesson flow, C: copy).
+  PR A: optional worksheet rows no longer count misses toward required reteach (`checkLessonWorksheet` in learning.ts;
+  only the required Q1 does) and a finished lesson (in completedMissionIds with completedAt) never re-locks
+  (`hasLearningGate`). Daily practice inserts its reteach step AFTER the missed question (the child keeps Hoot's
+  feedback and needs the right answer + Next), once per question; daily correct answers call `recordCorrect`
+  (XP, goal, streak, report). Kid labels replace the grown-up adaptation reason on daily questions. Math copy fixed
+  (thirds vs eighths, "Each eighth is smaller than each third", improper fractions "at least one whole").
+  The Hoot e2e test now only turns sound on if it is off (sound starts on).
 - Mascot is now **Numi** (user picked option B of 3): `Mascot` in fun-ui.tsx draws a purple head, an orange fraction-bar
   for arms (tilts with mood) and a round body cut into 2 equal halves, 1 shaded. Same props and moods as the old fox.
 - Competitor curriculum review (docs/curriculum-gap-analysis.md, "Competitor review"). Added unit 15 "Problem solving"

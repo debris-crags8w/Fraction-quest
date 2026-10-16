@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Mi
 import { getMission, numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildCheckStage, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
 import {
-  checkRedoRow, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, learningSummary, redoChecks, redoDone, redoWorksheet, requiredBuildChecks,
+  checkRedoRow, checkLessonWorksheet, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, learningSummary, redoChecks, redoDone, redoWorksheet, requiredBuildChecks,
   redoWorksheetCount, startRedo, targetedPracticeCount, targetedPracticePlans, updateLearning, worksheetProblemProgress, type LearningRecord, type RedoAttempt, type RedoPart,
 } from './learning';
 import { denomColor } from './fun-ui';
@@ -730,7 +730,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
               <Row key={p.id} p={p} rec={rec} numberLabel={String(index + 1)}
                 sequenceLabel={`Question ${index + 1} of ${sheet.length} · ${problemProgress[index].required ? 'Required' : 'Optional practice'} · ${problemProgress[index].status === 'complete' ? 'Complete' : problemProgress[index].status === 'retry' ? 'Needs another try' : problemProgress[index].status === 'current' ? 'Up next' : 'Not started'}`}
                 onEdit={v => save(editWorksheet(cur(), p.id, v))}
-                onCheck={() => save(checkWorksheet(cur(), p))}
+                onCheck={() => save(checkLessonWorksheet(cur(), p, missionId))}
                 onWrong={onWrong}
                 onSuccess={() => { onSuccess?.(); onWorksheetCorrect?.(missionId, p.id); }}
                 onHint={() => { const r = cur(); const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };

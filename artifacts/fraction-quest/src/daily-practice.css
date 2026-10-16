@@ -88,3 +88,4 @@
   .fq-daily-instruction { margin-bottom: 12px; font-size: .92rem; line-height: 1.4; }
   .fq-daily-feedback { padding: 10px 12px; font-size: .95rem; }
 }
+.fq-daily-step-note { display: inline-block; margin: 6px 0 0; padding: 3px 10px; border-radius: 999px; background: #E3F8F5; color: #00796B; font-size: .85rem; font-weight: 800; }
