@@ -357,14 +357,14 @@ const curriculum: MissionSeed[] = [
     description: 'Compare 1 piece from same-size wholes.', example: {
       prompt: 'Which is bigger, 1/3 or 1/8?',
       answer: '1/3 is bigger.',
-      explanation: '3 pieces are bigger than 8 pieces of the same whole.',
+      explanation: 'A third is bigger than an eighth of the same whole.',
       model: bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 8 }),
     },
     questions: [
       practice('Which piece is bigger, 1/4 or 1/6?', ['1/6', '1/4', 'They are equal'], 1, bars({ numerator: 1, denominator: 4 }, { numerator: 1, denominator: 6 }), 'Cut a whole into 4. Cut another into 6. Which pieces are bigger?', 'More cuts make smaller pieces. Fourths are bigger.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is bigger, 1/9 or 1/5?', ['1/9', '1/5', 'They match'], 1, bars({ numerator: 1, denominator: 9 }, { numerator: 1, denominator: 5 }), 'Both are 1 piece. Which whole has fewer pieces?', 'Fifths are bigger. 5 pieces is fewer than 9.', bars({ numerator: 1, denominator: 3 })),
       practice('Which is closer to one whole: 1/2 or 1/10?', ['1/10', '1/2', 'They are equally close'], 1, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 10 }), 'The bigger piece is closer to 1 whole.', '1/2 is much bigger than 1/10.', bars({ numerator: 1, denominator: 4 })),
-      practice('Which is smaller: 1/3 or 1/7?', ['1/3', '1/7', 'They are the same'], 1, bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 7 }), 'Which whole has more pieces?', '7 pieces are smaller than 3 pieces.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is smaller: 1/3 or 1/7?', ['1/3', '1/7', 'They are the same'], 1, bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 7 }), 'Which whole has more pieces?', 'Sevenths are smaller than thirds. So 1/7 is smaller.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
@@ -609,7 +609,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'improper-fractions', unit: 7, title: 'More than one whole', shortTitle: 'Past a whole', skill: 'When the top number is greater than the bottom, the fraction has at least one whole and some extra pieces.',
+    id: 'improper-fractions', unit: 7, title: 'More than one whole', shortTitle: 'Past a whole', skill: 'When the top number is greater than the bottom, the fraction is at least one whole. It may have extra pieces too.',
     description: 'Keep counting pieces past 1 whole.', example: {
       prompt: 'What is 7/4 as wholes and a fraction?',
       answer: '1 and 3/4.',

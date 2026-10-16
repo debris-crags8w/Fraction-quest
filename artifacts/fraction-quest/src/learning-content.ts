@@ -64,6 +64,8 @@ const f = (n: number, d: number) => `${n}/${d}`;
 const UNIT_NAMES: Record<number, string> = { 2: 'halves', 3: 'thirds', 4: 'fourths', 5: 'fifths', 6: 'sixths', 7: 'sevenths', 8: 'eighths', 9: 'ninths', 10: 'tenths', 12: 'twelfths', 15: 'fifteenths', 16: 'sixteenths' };
 /** Plural name for pieces of size 1/d, e.g. 3 → "thirds". */
 const unitName = (d: number) => UNIT_NAMES[d] ?? `${d}ths`;
+/** One piece's name: "half", "third", "eighth". */
+const unitPiece = (d: number) => (d === 2 ? 'half' : unitName(d).replace(/s$/, ''));
 
 /** Exact decimal/fraction arithmetic: never silently round a student's answer. */
 export function parseAnswer(raw: string): Rational | null {
@@ -722,7 +724,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           answer = f(top, i % 2 ? big : small);
         }
         hint = id === 'unit-size'
-          ? `The larger denominator, ${big}, splits the same-size whole into more equal parts. Each ${big}th is smaller than each ${small}th.`
+          ? `The larger denominator, ${big}, splits the same-size whole into more equal parts. Each ${unitPiece(big)} is smaller than each ${unitPiece(small)}.`
           : `Both fractions count ${top} pieces from the same-size whole. The larger denominator, ${big}, splits it into more equal parts, so each piece—and that fraction—is smaller.`; break;
       }
       case 'sets-unit-fractions':

@@ -350,8 +350,10 @@ function recordAdaptiveStandards(progress: Progress, question: DailyPracticeQues
 
 function injectReteachQuestion(progress: Progress, session: DailyPracticeSession, index: number, reason: string): DailyPracticeSession {
   const current = session.questions[index];
-  const previous = session.questions[index - 1];
-  if (!current || current.reteachLoop || (previous?.reteachLoop && previous.missionId === current.missionId)) return session;
+  const following = session.questions[index + 1];
+  // One extra step per missed question, and only while there is room in the session.
+  if (!current || current.reteachLoop || (following?.reteachLoop && following.missionId === current.missionId)
+    || session.questions.length >= MAX_DAILY_QUESTIONS) return session;
   const round = session.questions.slice(0, index + 1).filter((question) => question.missionId === current.missionId).length;
   const reteach = makeDailyQuestion({
     progress,
@@ -364,9 +366,9 @@ function injectReteachQuestion(progress: Progress, session: DailyPracticeSession
     reteachLoop: true,
     idSuffix: `-rt-${hash(`${session.day}:${current.id}:${round}`) % 999}`,
   });
-  const questions = [...session.questions.slice(0, index), reteach, ...session.questions.slice(index)];
-  if (questions.length > MAX_DAILY_QUESTIONS) questions.pop();
-  // Keep the original question immediately after the reteach so the learner can try it again.
+  // The child stays on the missed question (with Hoot's help) until it is right, then Next leads to the extra step.
+  // Never swap the screen under them: the current question and its feedback stay put.
+  const questions = [...session.questions.slice(0, index + 1), reteach, ...session.questions.slice(index + 1)];
   return { ...session, questions, index };
 }
 

@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Check, ClipboardCheck, RotateCcw, Trophy, X } fr
 import { CHALLENGES, challengeMaxPoints, challengeTrophy } from './challenges';
 import { getMission, type Progress } from './game';
 import { answerMatches, getWorksheet } from './learning-content';
-import { checkWorksheet, editWorksheet, getLearningRecord, optionalWorksheetCount, requiredWorksheetDone, updateLearning, worksheetProblemProgress, type LearningRecord } from './learning';
+import { checkLessonWorksheet, editWorksheet, getLearningRecord, optionalWorksheetCount, requiredWorksheetDone, updateLearning, worksheetProblemProgress, type LearningRecord } from './learning';
 import { Row } from './LearningLab';
 import { lessonCode, PrintMenu } from './Printables';
 import { Mascot } from './fun-ui';
@@ -108,7 +108,7 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
       const entry = r.worksheet[problem.id];
       const wasCorrect = !!entry && entry.checkedValue === entry.draft && answerMatches(problem, entry.draft);
       if (entry?.draft.trim() && entry.checkedValue !== entry.draft) {
-        r = checkWorksheet(r, problem);
+        r = checkLessonWorksheet(r, problem, missionId);
         const checked = r.worksheet[problem.id];
         if (!wasCorrect && checked?.checkedValue === checked?.draft && answerMatches(problem, checked.draft)) {
           onWorksheetCorrect?.(missionId, problem.id);
@@ -168,7 +168,7 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
             <Row key={p.id} p={p} rec={rec} numberLabel={String(index + 1)}
               sequenceLabel={`Question ${index + 1} of ${sheet.length} · ${index === 0 ? 'Required' : 'Optional practice'} · ${worksheetProgress[index].status === 'complete' ? 'Complete' : worksheetProgress[index].status === 'retry' ? 'Needs another try' : worksheetProgress[index].status === 'current' ? 'Up next' : 'Not started'}`}
               onEdit={(v) => save(editWorksheet(cur(), p.id, v))}
-              onCheck={() => save(checkWorksheet(cur(), p))}
+              onCheck={() => save(checkLessonWorksheet(cur(), p, missionId))}
               onSuccess={() => onWorksheetCorrect?.(missionId, p.id)}
               onHint={() => { const r = cur(); const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };
                 save({ ...r, helpUses: r.helpUses + 1, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }); }} />

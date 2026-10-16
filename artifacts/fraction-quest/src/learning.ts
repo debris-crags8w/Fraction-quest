@@ -148,9 +148,11 @@ export function requiredBuildChecks(progress: Progress, id: string): BuildCheck[
 }
 export function hasLearningGate(progress: Progress, id: string): boolean {
   const record = getLearningRecord(progress, id);
+  // A finished lesson stays finished: later misses can offer reteach practice, but never re-lock it.
+  const finished = progress.completedMissionIds.includes(id) && typeof record.completedAt === 'number';
   const reteach = targetedPracticeCount(id, record);
   return !!record.practiceDone && requiredBuildChecks(progress, id).every(check => record.checks[check.id]?.passed)
-    && requiredWorksheetDone(record, id) && reteach.done === reteach.total;
+    && requiredWorksheetDone(record, id) && (finished || reteach.done === reteach.total);
 }
 /** A lesson's steps as a fraction, for its badge on the map: each build check, then the worksheet. */
 export function lessonSteps(progress: Progress, id: string): { done: number; total: number } {
@@ -172,6 +174,11 @@ export function checkWorksheet(record: LearningRecord, problem: WorksheetProblem
     misconceptions: correct || !trackMisconception ? record.misconceptions : { ...record.misconceptions, [problem.hint]: (record.misconceptions[problem.hint] ?? 0) + 1 },
     worksheet: { ...record.worksheet, [problem.id]: { ...old, attempts: old.attempts + 1, supported: old.supported || !correct,
       checkedValue: correct ? old.draft : undefined } } };
+}
+/** Check a lesson worksheet row. Only the required question counts a miss toward reteach practice:
+    optional questions never add a step that blocks finishing the lesson. */
+export function checkLessonWorksheet(record: LearningRecord, problem: WorksheetProblem, missionId: string): LearningRecord {
+  return checkWorksheet(record, problem, problem.id === requiredWorksheetProblemId(missionId));
 }
 export function learningSummary(record: LearningRecord) {
   return {
