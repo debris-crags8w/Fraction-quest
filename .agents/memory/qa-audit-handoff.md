@@ -48,6 +48,14 @@ the square area model and the Part Finder proposal; local review changes should 
   (XP, goal, streak, report). Kid labels replace the grown-up adaptation reason on daily questions. Math copy fixed
   (thirds vs eighths, "Each eighth is smaller than each third", improper fractions "at least one whole").
   The Hoot e2e test now only turns sound on if it is off (sound starts on).
+  PR B: daily practice "more help" mixes in the lesson's own tap questions (only those count toward lesson standards,
+  per the team's rule that a generic bar build does not prove e.g. 4.NF.2) and a lesson leaves it when its standards
+  have streakCorrect >= 2; "stretch" uses first-try worksheet accuracy and only finished lessons; reviews and
+  mistakes are capped at 2 each per day and mistakes rotate by day. Hints never state the answer (test in game.test.ts).
+  Build practice skips worksheet rows it can't reuse (no "Make 5/5 two ways"). After the required question, a
+  "Finish lesson" callout appears under it; reward copy says when the next unit is still closed; reopening a lesson
+  whose steps are done but not finished goes to the lab. Check my paper shows only after in-app practice; from the
+  lab its Back returns to the lab.
 - Mascot is now **Numi** (user picked option B of 3): `Mascot` in fun-ui.tsx draws a purple head, an orange fraction-bar
   for arms (tilts with mood) and a round body cut into 2 equal halves, 1 shaded. Same props and moods as the old fox.
 - Competitor curriculum review (docs/curriculum-gap-analysis.md, "Competitor review"). Added unit 15 "Problem solving"

@@ -71,8 +71,9 @@ function lessonAccuracy(progress: Progress, missionId: string): number | null {
   if (!record) return null;
   const rows = Object.values(record.worksheet ?? {}).filter((entry) => entry.attempts > 0);
   if (!rows.length) return null;
-  const correct = rows.filter((entry) => entry.checkedValue === entry.draft).length;
-  return correct / rows.length;
+  // First-try accuracy: a row that needed several tries is not evidence the lesson is easy.
+  const firstTry = rows.filter((entry) => entry.attempts === 1 && entry.checkedValue === entry.draft).length;
+  return firstTry / rows.length;
 }
 
 function misconceptionMisses(progress: Progress, missionId: string): number {
@@ -108,11 +109,13 @@ function bandForMission(progress: Progress, missionId: string): { band: Difficul
   if (highestMissStreak >= RETEACH_MISS_STREAK) {
     return { band: 'scaffolded', reason: `moved to scaffolded ${title} set due to ${highestMissStreak} recent misses` };
   }
-  if (misses >= 3 || (accuracy !== null && accuracy < 0.5)) {
+  // Recent daily success outweighs old lesson mistakes, so a lesson can leave the "more help" set.
+  const recovering = states.length > 0 && states.every((state) => state.streakCorrect >= 2);
+  if (!recovering && (misses >= 3 || (accuracy !== null && accuracy < 0.5))) {
     return { band: 'scaffolded', reason: `moved to scaffolded ${title} set due to misconception trend` };
   }
   if (accuracy !== null && accuracy >= 0.9 && misses === 0) {
-    const rate = states[0] ? Math.round(states[0].accuracy * 100) : Math.round((accuracy ?? 0.9) * 100);
+    const rate = Math.round(accuracy * 100);
     return { band: 'transfer', reason: `moved to transfer ${title} set due to high recent accuracy (${rate}%)` };
   }
   return { band: 'grade-level', reason: '' };
@@ -123,7 +126,8 @@ function transferMissionFor(progress: Progress, missionId: string, token: string
   const sourceStandards = new Set(source?.standards ?? []);
   const candidates = MISSIONS.filter((mission) =>
     mission.id !== missionId
-    && isMissionUnlocked(progress, mission.id)
+    // Stretch questions come from lessons the child has finished, never from ones not taught yet.
+    && progress.completedMissionIds.includes(mission.id)
     && hasGenerator(mission.id)
     && mission.standards?.some((standard) => !sourceStandards.has(standard)),
   );
@@ -131,8 +135,10 @@ function transferMissionFor(progress: Progress, missionId: string, token: string
   return candidates[hash(token) % candidates.length].id;
 }
 
-function questionKind(missionId: string, index: number, day: string, band: DifficultyBand): DailyPracticeQuestion['kind'] {
-  if (band === 'scaffolded') return 'build';
+function questionKind(missionId: string, index: number, day: string, band: DifficultyBand, reteachLoop = false): DailyPracticeQuestion['kind'] {
+  // The extra reteach step is always a build. Otherwise "more help" mixes in the lesson's own tap questions: only
+  // those count toward the lesson's standards, so the lesson can show it has recovered and leave this set.
+  if (band === 'scaffolded') return reteachLoop || index % 2 === 0 || !hasGenerator(missionId) ? 'build' : 'choice';
   if (band === 'transfer') return hasGenerator(missionId) ? 'choice' : 'build';
   return index % 2 === 0 && hasGenerator(missionId) ? 'choice' : 'build';
 }
@@ -175,7 +181,7 @@ function makeDailyQuestion({
   const modelKind = band === 'scaffolded'
     ? 'bar' as const
     : (index + hash(day)) % 2 === 0 ? 'bar' as const : 'number-line' as const;
-  const kind = questionKind(missionId, index, day, band);
+  const kind = questionKind(missionId, index, day, band, reteachLoop);
   const standards: StandardId[] = kind === 'choice'
     ? (mission.standards ?? standardsForMission(missionId)) as StandardId[]
     : [modelKind === 'bar' ? '3.NF.1' : '3.NF.2a'];
@@ -212,6 +218,12 @@ export function createDailyPractice(progress: Progress, now = Date.now()): Daily
     .filter((item) => item.misses > 0)
     .sort((first, second) => second.misses - first.misses)
     .map((item) => item.missionId);
+  // Rotate the lessons with mistakes by day, and cap reviews and mistakes at 2 each, so the same five topics
+  // do not come back every day.
+  if (misconceptionTopics.length > 1) {
+    const turn = hash(`${day}:mistakes`) % misconceptionTopics.length;
+    misconceptionTopics.push(...misconceptionTopics.splice(0, turn));
+  }
 
   const learnerEvidence = Object.entries(progress.learning ?? {})
     .filter(([missionId, record]) =>
@@ -241,8 +253,8 @@ export function createDailyPractice(progress: Progress, now = Date.now()): Daily
   // Lessons the child has worked on come first; the rest is filled only from lessons they can open,
   // never from lessons that are still locked. A new learner repeats their open lesson with new numbers.
   const orderedIds = [...new Set([
-    ...due,
-    ...misconceptionTopics,
+    ...due.slice(0, 2),
+    ...misconceptionTopics.filter((missionId) => !due.slice(0, 2).includes(missionId)).slice(0, 2),
     ...learnerEvidence,
     ...completed.map((mission) => mission.id),
     ...MISSIONS.filter((mission) => isMissionUnlocked(progress, mission.id)).map((mission) => mission.id),

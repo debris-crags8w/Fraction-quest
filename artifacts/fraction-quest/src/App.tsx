@@ -94,7 +94,7 @@ type View =
   /** Local card arrangement before scored questions; it does not save lesson evidence. */
   | { type: 'fraction-sort'; missionId: string; reviewQuestions: PracticeQuestion[] };
 type LabView = { type: 'lab'; missionId: string; stars: number };
-type PaperView = { type: 'paper'; missionId: string };
+type PaperView = { type: 'paper'; missionId: string; /** Opened from the lesson lab: Back returns there. */ fromLab?: boolean };
 type RedoView = { type: 'redo'; missionId: string };
 type ChallengeView = { type: 'challenge'; unit: number };
 type ParentPage = { type: 'parent' };
@@ -103,6 +103,10 @@ type PlacementView = { type: 'placement' };
 // seed 0 = the fixed 12 "Practice more" questions; any other seed = freshly generated questions.
 type ExtraView = { type: 'extra'; missionId: string; seed: number; questionIndex: number; firstTry: number } | { type: 'extra-done'; missionId: string; seed: number; firstTry: number; total: number };
 const FRESH_ROUND = 10;
+/** Paper answers count once the lesson's worked example, hands-on step and questions are done in the app,
+    so paper never skips the order: see it, try it, then the worksheet. */
+const paperCheckOpen = (progress: Progress, missionId: string) =>
+  progress.completedMissionIds.includes(missionId) || !!progress.learning?.[missionId]?.practiceDone;
 
 /** Extra bank questions mixed into a lesson's own practice (the full bank is in "Practice more"). */
 const EXTRA_IN_LESSON = 4;
@@ -657,7 +661,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                               <div className="fq-node-tools">
                                 {hasGenerator(mission.id) && <button className="fq-button ghost" onClick={() => onExtra(mission.id)} data-testid={`button-practice-more-${mission.id}`}><Dumbbell size={17} /> Practice more</button>}
                                 <PrintMenu missionId={mission.id} />
-                                <button className="fq-button ghost" onClick={() => onPaper(mission.id)} data-testid={`button-check-paper-${mission.id}`}><ClipboardCheck size={17} /> Check my paper</button>
+                                {paperCheckOpen(progress, mission.id) && <button className="fq-button ghost" onClick={() => onPaper(mission.id)} data-testid={`button-check-paper-${mission.id}`}><ClipboardCheck size={17} /> Check my paper</button>}
                                 <button className="fq-button ghost" onClick={() => onGame('race', mission.id)} data-testid={`button-race-${mission.id}`}><Zap size={17} /> Race</button>
                                 <button className="fq-button ghost" onClick={() => onGame('code', mission.id)} data-testid={`button-code-${mission.id}`}><Code2 size={17} /> Code</button>
                               </div>
@@ -1061,6 +1065,9 @@ function PastQuestionReview({
 
 function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code') => void }) {
   const nextMission = getNextMission(progress);
+  // Units 9+ open only after every lesson in the unit before is done, so "next lesson is open" is not always true.
+  const following = MISSIONS[MISSIONS.findIndex((item) => item.id === mission.id) + 1];
+  const nextLessonOpen = !following || isMissionUnlocked(progress, following.id);
   const { fun } = useFun();
   useEffect(() => {
     playCue('complete', fun.sound);
@@ -1077,7 +1084,7 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
           <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
           <h1>{mission.title}<br />is on your map.</h1>
-           <p>You built it two ways, explained it, and answered the required worksheet question. The next lesson is open!</p>
+           <p>You built it two ways, explained it, and answered the required worksheet question. {nextLessonOpen ? 'The next lesson is open!' : 'Finish the other lessons in this unit to open the next unit.'}</p>
           <div className="fq-reward-stars" data-testid="status-mission-stars" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}
@@ -1220,7 +1227,9 @@ function Game() {
     const activeProgress = testProgress ?? progress;
     if (!testProgress && !isMissionUnlocked(activeProgress, missionId)) return;
     const record = getLearningRecord(activeProgress, missionId);
-    if (record.practiceDone && !hasLearningGate(progress, missionId)) {
+    // Unfinished work, or every step done but "Finish lesson" not pressed yet: go back to the lab, where the
+    // finish button waits. Only a finished lesson replays from the start.
+    if (record.practiceDone && (!hasLearningGate(progress, missionId) || !progress.completedMissionIds.includes(missionId))) {
       setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? record.practiceStars ?? 1 });
       return;
     }
@@ -1382,7 +1391,7 @@ function Game() {
         <button type="button" onClick={returnToMap} data-testid="button-exit-developer-test">Exit test</button>
       </div>}
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onDeveloperTest={startDeveloperLessonTest} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onDeveloperTest={startDeveloperLessonTest} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId) && paperCheckOpen(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
       {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} renderModel={(model, reveal) => <ModelView model={model} reveal={reveal} asked />} onChange={(session) => persistProgress(applyAdaptiveDailyPracticeUpdate(progress, session))} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onDailyCorrect} />}
       {view.type === 'concept-games' && (() => {
         // The lesson games use the lesson the child is on (or the last open one).
@@ -1468,7 +1477,7 @@ function Game() {
           }} />
       )}
       {view.type === 'paper' && (
-        <PaperCheck missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap}
+        <PaperCheck missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={view.fromLab ? () => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? getLearningRecord(progress, view.missionId).practiceStars ?? 1 }) : returnToMap}
           onWorksheetCorrect={onWorksheetAnswerCorrect}
           onLab={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? getLearningRecord(progress, view.missionId).practiceStars ?? 1 })} />
       )}
@@ -1520,7 +1529,7 @@ function Game() {
           }}
         />
       )}
-      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId })} onRedo={(part) => startRedoPart(view.missionId, part)} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
+      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId, fromLab: true })} onRedo={(part) => startRedoPart(view.missionId, part)} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
       {view.type === 'redo' && <RedoLab missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? 1 })} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
       {view.type === 'retention' && <LearningLab key={`retention-${view.startedAt}`} review missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onFinish={(updated) => {
         const latest = updated ?? progress;
