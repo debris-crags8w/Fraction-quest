@@ -942,19 +942,38 @@ async function enterModel(
 async function completeBuilds(page: import('@playwright/test').Page, missionId: string) {
   const checks = getBuildChecks(missionId);
   for (const [index, check] of checks.entries()) {
+    const checkCard = page.getByTestId(`check-${check.id}`);
+    await expect(checkCard.locator('.fq-ll-check-heading').getByTestId('button-listen-learning-text')).toHaveCount(1);
     await enterModel(page, check.id, 'a', check.target);
-    await expect(page.getByTestId(`status-primary-${check.id}`)).toBeVisible();
+    const primaryStatus = page.getByTestId(`status-primary-${check.id}`);
+    await expect(primaryStatus).toBeVisible();
+    await expect(primaryStatus.getByTestId('button-listen-learning-text')).toHaveCount(1);
     await enterModel(page, check.id, 'b', {
       ...check.target,
       kind: check.target.kind === 'line' ? 'bar' : 'line',
       wholes: Math.max(1, Math.ceil(check.target.n / check.target.d)),
     });
-    await expect(page.getByTestId(`status-secondary-${check.id}`)).toBeVisible();
+    const secondaryStatus = page.getByTestId(`status-secondary-${check.id}`);
+    await expect(secondaryStatus).toBeVisible();
+    await expect(secondaryStatus.getByTestId('button-listen-learning-text')).toHaveCount(1);
+    if (index === 0) {
+      const wrongReason = check.reasons.findIndex((_, reason) => reason !== check.correctReason);
+      if (wrongReason >= 0) {
+        await page.getByTestId(`radio-reason-${check.id}-${wrongReason}`).check({ force: true });
+        await page.getByTestId(`button-check-${check.id}`).click();
+        const errors = page.getByTestId(`status-errors-${check.id}`);
+        await expect(errors).toBeVisible();
+        await expect(errors.getByTestId('button-listen-learning-text')).toHaveCount(1);
+        await page.getByTestId(`radio-reason-${check.id}-${check.correctReason}`).check({ force: true });
+      }
+    }
     await page.getByTestId(`radio-reason-${check.id}-${check.correctReason}`).check({ force: true });
     await page.getByTestId(`button-check-${check.id}`).click();
     // The passed check stays with its explanation until Next is pressed (no automatic jump).
-    await expect(page.getByTestId(`status-pass-${check.id}`)).toBeVisible();
-    await expect(page.getByTestId(`check-${check.id}`)).toBeVisible();
+    const passedStatus = page.getByTestId(`status-pass-${check.id}`);
+    await expect(passedStatus).toBeVisible();
+    await expect(passedStatus.locator('.fq-ll-full-explanation').getByTestId('button-listen-learning-text')).toHaveCount(1);
+    await expect(checkCard).toBeVisible();
     await expect(page.getByTestId(`button-check-${check.id}`)).toHaveCount(0);
     await expect(page.getByTestId(`check-${check.id}`).locator('.fq-ll-check-passed')).toHaveText('Passed');
     const next = page.getByTestId(`button-next-${check.id}`);
@@ -1194,6 +1213,7 @@ for (const missionId of unitRepresentativeIds) {
         localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
       }, progressBefore(mission));
     }
+    if (mission.id === 'equal-parts') await page.setViewportSize({ width: 390, height: 844 });
     await openAsGuest(page);
     if (mission.id === 'equal-parts') {
       await page.evaluate((progress) => {
@@ -1227,6 +1247,8 @@ for (const missionId of unitRepresentativeIds) {
     const worksheet = getWorksheet(mission.id);
     const problemProgress = page.getByTestId('worksheet-problem-progress');
     await expect(problemProgress.locator(':scope > li')).toHaveCount(12);
+    const firstWorksheetRow = page.getByTestId(`row-worksheet-${worksheet[0].id}`);
+    await expect(firstWorksheetRow.locator('.fq-ll-row-prompt-header').getByTestId('button-listen-learning-text')).toHaveCount(1);
     await expect(page.getByTestId(`worksheet-progress-${worksheet[0].id}`)).toHaveAttribute('aria-current', 'step');
     await expect(page.getByTestId(`row-worksheet-${worksheet[0].id}`)).toContainText('Question 1 of 12 · Required');
     await expect(page.getByTestId(`row-worksheet-${worksheet[1].id}`)).toContainText('Question 2 of 12 · Optional practice');
