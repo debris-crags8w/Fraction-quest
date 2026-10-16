@@ -743,6 +743,43 @@
   border-left: 2px dashed var(--fq-order-accent);
   content: "";
 }
+@media (forced-colors: active) {
+  .fq-order-line-figure {
+    border-color: CanvasText;
+    background: Canvas;
+  }
+  .fq-order-line {
+    color: CanvasText;
+    background: Canvas;
+    border: 1px solid CanvasText;
+    forced-color-adjust: none;
+  }
+  .fq-order-line-axis,
+  .fq-order-line-end {
+    background: CanvasText;
+  }
+  .fq-order-line-point,
+  .fq-order-line-benchmark {
+    color: CanvasText;
+  }
+  .fq-order-line-point::after {
+    border-color: Canvas;
+    background: Highlight;
+    box-shadow: 0 0 0 2px CanvasText;
+  }
+  .fq-order-line-point > span,
+  .fq-order-line-benchmark > span {
+    border: 2px solid CanvasText;
+    color: CanvasText;
+    background: Canvas;
+  }
+  .fq-order-line-benchmark::before {
+    border-left-color: Highlight;
+  }
+  .fq-order-line-caption {
+    color: CanvasText;
+  }
+}
 .fq-order-line-caption {
   display: flex;
   justify-content: space-between;

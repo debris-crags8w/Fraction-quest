@@ -150,6 +150,90 @@ test('number-line labels, axis, markers, and halfway guide stay distinct in both
   }
 });
 
+test('number-line labels, axis, markers, and halfway guide stay clear in forced-colors mode', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+  await page.emulateMedia({ forcedColors: 'active' });
+
+  const figure = page.getByTestId('fraction-order-numberline');
+  await expect(figure).toBeVisible();
+  const colors = await figure.evaluate((element) => {
+    const point = element.querySelector<HTMLElement>('.fq-order-line-point');
+    const pointLabels = [...element.querySelectorAll<HTMLElement>('.fq-order-line-point > span')];
+    const benchmark = element.querySelector<HTMLElement>('.fq-order-line-benchmark');
+    const benchmarkLabel = benchmark?.querySelector<HTMLElement>('span');
+    const axis = element.querySelector<HTMLElement>('.fq-order-line-axis');
+    const points = [...element.querySelectorAll<HTMLElement>('.fq-order-line-point')];
+    const guide = benchmark ? getComputedStyle(benchmark, '::before') : null;
+    if (!points.length || !pointLabels.length || !benchmarkLabel || !axis || !guide) {
+      throw new Error('Expected all number-line forced-color targets to render');
+    }
+
+    const probe = document.createElement('span');
+    probe.style.cssText = 'position:absolute;color:CanvasText;background-color:Canvas;border-color:Highlight';
+    element.append(probe);
+    const systemColors = getComputedStyle(probe);
+    const resolved = {
+      text: systemColors.color,
+      canvas: systemColors.backgroundColor,
+      highlight: systemColors.borderTopColor,
+    };
+    probe.remove();
+
+    const style = (target: Element) => getComputedStyle(target);
+    const halfwayLabel = style(benchmarkLabel);
+    return {
+      forcedColorAdjust: style(element.querySelector<HTMLElement>('.fq-order-line')!).forcedColorAdjust,
+      fractionLabels: pointLabels.map((label) => {
+        const computed = style(label);
+        return {
+          text: computed.color,
+          surface: computed.backgroundColor,
+          border: computed.borderTopColor,
+          borderWidth: computed.borderTopWidth,
+          borderStyle: computed.borderTopStyle,
+        };
+      }),
+      markers: points.map((markerPoint) => {
+        const marker = getComputedStyle(markerPoint, '::after');
+        return { fill: marker.backgroundColor, ring: marker.boxShadow };
+      }),
+      halfwayLabelText: halfwayLabel.color,
+      halfwayLabelSurface: halfwayLabel.backgroundColor,
+      halfwayLabelBorder: halfwayLabel.borderTopColor,
+      axis: style(axis).backgroundColor,
+      guide: guide.borderLeftColor,
+      guideStyle: guide.borderLeftStyle,
+      guideWidth: guide.borderLeftWidth,
+      ...resolved,
+    };
+  });
+
+  expect(colors.forcedColorAdjust).toBe('none');
+  for (const [label, text, surface, border] of [
+    ...colors.fractionLabels.map((label, index) => [`fraction label ${index + 1}`, label.text, label.surface, label.border] as const),
+    ['halfway label', colors.halfwayLabelText, colors.halfwayLabelSurface, colors.halfwayLabelBorder] as const,
+  ]) {
+    expect(text, `${label} should use the system text color`).toBe(colors.text);
+    expect(surface, `${label} should use the system canvas`).toBe(colors.canvas);
+    expect(border, `${label} should have a visible system-color border`).toBe(colors.text);
+  }
+  for (const label of colors.fractionLabels) {
+    expect(label.borderWidth).toBe('2px');
+    expect(label.borderStyle).toBe('solid');
+  }
+  expect(colors.axis).toBe(colors.text);
+  for (const marker of colors.markers) {
+    expect(marker.fill).toBe(colors.highlight);
+    expect(marker.ring).toContain(colors.text);
+  }
+  expect(colors.guide).toBe(colors.highlight);
+  expect(colors.guideStyle).toBe('dashed');
+  expect(colors.guideWidth).toBe('2px');
+});
+
 test('the ordering number line keeps fraction labels clear on narrow screens and with enlarged text', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
