@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, MISSIONS } from '../src/game';
-import { getBuildChecks, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
+import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, getDueSkillReviewQuestions, MISSIONS } from '../src/game';
+import { getBuildChecks, getReviewCheck, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
 import { AREA_CUTS, areaTaskDone, pieceArea } from '../src/area-shapes';
 import { getExtraPractice, hasGenerator } from '../src/practice-bank';
@@ -786,6 +786,79 @@ for (const viewport of [
     }
   });
 }
+
+test('a passed Build check in later review clearly offers Finish review', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mission = MISSIONS.find(({ id }) => id === 'equal-parts');
+  if (!mission) throw new Error('The first lesson is missing');
+  const progress = {
+    completedMissionIds: [mission.id],
+    starsByMission: { [mission.id]: 1 },
+    reviewQueue: [{
+      missionId: mission.id,
+      missedQuestionId: mission.questions[0].id,
+      dueAt: 0,
+      reviewCount: 0,
+    }],
+    learning: {
+      [mission.id]: {
+        practiceDone: true,
+        completedAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
+        checks: {},
+        worksheet: {},
+        helpUses: 0,
+        misconceptions: {},
+      },
+    },
+    assessments: [],
+  };
+  const reviewQuestion = getDueSkillReviewQuestions(progress)[0];
+  if (!reviewQuestion) throw new Error('The saved skill review has no question');
+
+  await page.addInitScript((savedProgress) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(savedProgress));
+  }, progress);
+  await openAsGuest(page);
+  await openMenuItem(page, 'button-start-due-review');
+  await page.getByTestId(`button-answer-${reviewQuestion.id}-${reviewQuestion.correctChoice}`).click();
+  await page.getByTestId('button-check-answer').click();
+  await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+  await page.getByTestId('button-finish-mission').click();
+  await expect(page.getByTestId('learning-lab-review')).toBeVisible();
+
+  const check = getReviewCheck(mission.id, 0);
+  await enterModel(page, check.id, 'a', check.target);
+  await enterModel(page, check.id, 'b', {
+    ...check.target,
+    kind: check.target.kind === 'line' ? 'bar' : 'line',
+    wholes: Math.max(1, Math.ceil(check.target.n / check.target.d)),
+  });
+  await page.getByTestId(`radio-reason-${check.id}-${check.correctReason}`).check({ force: true });
+  await page.getByTestId(`button-check-${check.id}`).click();
+
+  const reviewCheck = page.getByTestId(`check-${check.id}`);
+  await expect(reviewCheck.getByTestId(`status-pass-${check.id}`)).toContainText('Correct!');
+  const explanation = reviewCheck.locator('.fq-ll-full-explanation');
+  await explanation.locator('summary').click();
+  await expect(explanation).toContainText('The shaded part is 1 of them.');
+  await expect(reviewCheck.locator('.fq-ll-check-passed')).toHaveText('Passed');
+  await expect(page.getByTestId(`button-check-${check.id}`)).toHaveCount(0);
+
+  const finishReview = page.getByTestId('button-review-finish');
+  await expect(finishReview).toBeVisible();
+  await expect(finishReview).toBeEnabled();
+  const bounds = await finishReview.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { width: rect.width, height: rect.height, left: rect.left, right: rect.right, viewportWidth: window.innerWidth };
+  });
+  expect(bounds.height).toBeGreaterThanOrEqual(44);
+  expect(bounds.left).toBeGreaterThanOrEqual(0);
+  expect(bounds.right).toBeLessThanOrEqual(bounds.viewportWidth);
+  expect(bounds.width).toBeGreaterThan(bounds.viewportWidth * 0.7);
+
+  await finishReview.click();
+  await expect(page.getByTestId('status-review-complete')).toBeVisible();
+});
 
 async function buildWorksheetModel(page: import('@playwright/test').Page, problem: WorksheetProblem) {
   const row = page.getByTestId(`row-worksheet-${problem.id}`);
