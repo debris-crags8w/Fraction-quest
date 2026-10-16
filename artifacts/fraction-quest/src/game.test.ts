@@ -263,7 +263,7 @@ describe('lesson catalog', () => {
     }
 
     const sameNumerator = MISSIONS.find((mission) => mission.id === 'compare-same-numerator')!;
-    assert.match(sameNumerator.skill, /same top number.*count the same number.*larger bottom number.*more equal parts.*smaller/i);
+    assert.match(sameNumerator.skill, /same (?:top number|numerator).*count the same number.*larger (?:bottom number|denominator).*more equal parts.*smaller/i);
     assert.match(sameNumerator.example.explanation, /both (?:same-size (?:bars|wholes)|fractions) count 3 pieces/i);
     assert.match(sameNumerator.example.explanation, /(?:8 equal parts|eighths).*smaller/i);
     assert.match(sameNumerator.example.explanation, /3\/8 (?:is )?(?:less|smaller) than 3\/5/i);
@@ -271,7 +271,7 @@ describe('lesson catalog', () => {
     const unlikeOrdering = MISSIONS.find((mission) => mission.id === 'order-unlike-fractions')!;
     assert.ok(unlikeOrdering.learningIntro, 'fraction ordering explains the goal, steps, and why the method works');
     assert.match(unlikeOrdering.learningIntro.goal, /smallest to biggest.*biggest to smallest/);
-    assert.match(unlikeOrdering.learningIntro.process, /1\/2.*same denominator.*compare the top numbers/);
+    assert.match(unlikeOrdering.learningIntro.process, /1\/2.*same denominator.*compare the (?:top numbers|numerators)/);
     assert.match(unlikeOrdering.learningIntro.why, /same denominator.*equal-size pieces.*greater amount/);
   });
 
@@ -423,7 +423,9 @@ describe('lesson catalog', () => {
     MISSIONS.slice(28).forEach((mission, index) => {
       const question = mission.questions[0];
       const worksheetQuestion = getWorksheet(mission.id)[1];
-      assert.equal(question.choices[question.correctChoice], worksheetQuestion.answer, `${mission.id} answer key must match its source worksheet`);
+      // Ordering answers show < or > instead of commas on tap questions; the worksheet keeps its typed form.
+      const sameOrder = (text: string) => text.split(/\s*[,<>]\s*/).join(',');
+      assert.equal(sameOrder(question.choices[question.correctChoice]), sameOrder(worksheetQuestion.answer), `${mission.id} answer key must match its source worksheet`);
       assert.equal(new Set(question.choices).size, question.choices.length, `${mission.id} has duplicate answer choices`);
     });
   });
@@ -720,7 +722,9 @@ describe('saved progress', () => {
     assert.deepEqual(reset.reviewQueue.map((item) => item.missionId), [otherUnit.id]);
     assert.deepEqual(reset.challengeBest, { '2': 14 });
     assert.deepEqual(reset.dailyPractice?.questions.map((question) => question.id), ['daily-out']);
-    assert.equal(reset.dailyPractice?.index, 1, 'keeps the cursor after previously completed other-unit topics');
+    // The cursor was past every kept topic, so the session is finished (not a blank "done" screen with no end).
+    assert.equal(reset.dailyPractice?.index, 0);
+    assert.equal(typeof reset.dailyPractice?.completedAt, 'number');
     assert.deepEqual(Object.keys(reset.dailyPractice?.attempts ?? {}), ['daily-out']);
     assert.deepEqual(reset.assessments, progress.assessments, 'unit reset does not clear broader check-ins');
     assert.deepEqual(progress.completedMissionIds, [inUnit.id, otherUnit.id], 'the source snapshot is unchanged');
@@ -2253,7 +2257,7 @@ describe('question generator', () => {
     else if ((m = /^Ana has (\d+) stickers\. She gives away (\d+)\/(\d+) of them\. Then she gives away (\d+)\/(\d+) of the rest\. How many are left\?$/.exec(p))) expected = N(m[1]) * (1 - N(m[2]) / N(m[3])) * (1 - N(m[4]) / N(m[5]));
     else if ((m = /^How many 1\/(\d+) cup scoops fill (\d+)\/(\d+) cup\?$/.exec(p))) expected = (N(m[2]) / N(m[3])) * N(m[1]);
     if (expected === null) return false;
-    if (typeof expected === 'string') assert.equal(answer.replace(/\s/g, ''), expected.replace(/\s/g, ''), p);
+    if (typeof expected === 'string') assert.equal(answer.replace(/[\s,<>]/g, ''), expected.replace(/[\s,<>]/g, ''), p);
     else assert.ok(near(num(answer), expected), `${p} → ${answer}, expected ${expected}`);
     // Wrong choices must really be wrong.
     question.choices.forEach((c, i) => { if (i !== question.correctChoice && typeof expected === 'number' && !Number.isNaN(num(c))) assert.ok(!near(num(c), expected), `${p}: "${c}" is also right`); });
@@ -2351,7 +2355,7 @@ describe('question generator', () => {
       ? getWorksheet(sourceMission.id).find((problem) => asChoicePrompt(problem.prompt) === question.prompt)
       : undefined;
     if (sourceProblem) {
-      assert.equal(answer, sourceProblem.answer, `${question.id} should preserve its worksheet answer key`);
+      assert.equal(answer.split(/\s*[,<>]\s*/).join(','), sourceProblem.answer.split(/\s*[,<>]\s*/).join(','), `${question.id} should preserve its worksheet answer key`);
       return true;
     }
     return false;
@@ -3044,7 +3048,7 @@ describe('same numerator, different denominators', () => {
     assert.match(transfer.prompt, /2\/3 or 2\/5/);
     assert.match(transfer.explanation, /same-size wholes count 2 pieces.*Five equal parts make smaller pieces/i);
     const mission = MISSIONS.find((item) => item.id === 'compare-same-numerator')!;
-    assert.match(mission.skill, /wholes are the same size.*same top number.*larger bottom number.*more equal parts.*smaller/i);
+    assert.match(mission.skill, /wholes are the same size.*same (?:top number|numerator).*larger (?:bottom number|denominator).*more equal parts.*smaller/i);
     assert.match(mission.explainPrompt ?? '', /3\/5 and 3\/8.*denominator.*same-size whole.*2\/3 and 2\/5/i);
     assert.match(mission.example.explanation, /same-size bars count 3 pieces.*8 equal parts.*smaller pieces.*3\/8 is less than 3\/5/i);
     const unlike = getWorksheet('compare-unlike-fractions');
@@ -3386,7 +3390,7 @@ describe('wrong-answer help', () => {
     const q = 'A shape has 9 equal parts. 1 is colored. What fraction is colored?';
     assert.match(wrongChoiceReason(q, ['9/1', '1/9', '1/8', '1/10'], 1, 0)!, /flipped/);
     assert.match(wrongChoiceReason(q, ['9/1', '1/9', '1/8', '1/10'], 1, 2)!, /Count all the equal parts again/);
-    assert.match(wrongChoiceReason('What is 3/8 + 2/8?', ['5/8', '5/16', '6/8', '5/13'], 0, 1)!, /Add only the top numbers/);
+    assert.match(wrongChoiceReason('What is 3/8 + 2/8?', ['5/8', '5/16', '6/8', '5/13'], 0, 1)!, /Add only the (?:top numbers|numerators)/);
     assert.match(wrongChoiceReason('Write 8/100 as a decimal.', ['0.08', '0.8', '8.00', '0.008'], 0, 1)!, /places/);
     assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 1)!, /smaller/);
     assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 3)!, /You can tell/);

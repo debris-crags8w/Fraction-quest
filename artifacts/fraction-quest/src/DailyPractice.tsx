@@ -153,6 +153,7 @@ export default function DailyPractice({
               if (attempt.choice !== index) playHaptic('selection');
               setAttempt({ ...attempt, choice: index, answerChecked: false, answerCorrect: false });
             }} data-testid={`button-daily-choice-${index}`}>
+            <span className="fq-choice-marker" aria-hidden="true">{String.fromCharCode(65 + index)}</span>
             <MathText text={choice} />
           </button>
         ))}

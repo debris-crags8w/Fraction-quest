@@ -2341,3 +2341,8 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 /* The count-along glow stays inside its part. */
 @keyframes fq-count-glow { 50% { filter: brightness(1.25) drop-shadow(0 0 6px var(--fq-sun)); } }
 .fq-bar { grid-template-columns: repeat(var(--pieces), minmax(0, 1fr)); }
+
+/* Lesson 1 shows Numi once (in the fraction introduction), so its lesson idea box needs no second mascot. */
+.fq-mascot-say.no-mascot { grid-template-columns: 1fr; display: block; }
+/* On phones the progress fraction and bar already show the round; the "Round 1 of 2" text clipped off the edge. */
+@media (max-width: 560px) { .fq-taskbar-fraction .fq-taskbar-sequence { display: none; } }

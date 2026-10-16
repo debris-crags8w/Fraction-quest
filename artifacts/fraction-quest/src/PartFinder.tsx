@@ -16,7 +16,7 @@ const svgPoints = (piece: Piece) =>
 
 const SHARE_NAMES = FRIENDS;
 
-const FIRST_FRACTION_TEXT = 'A fraction names equal-size parts of one whole. First, see the whole; next, make equal pieces; then share them fairly.';
+const FIRST_FRACTION_TEXT = 'A fraction names equal-size parts of one whole. See the whole. Make equal pieces. Then share them fairly.';
 
 function FirstFractionIntroduction() {
   return (

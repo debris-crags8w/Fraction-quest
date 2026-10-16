@@ -158,7 +158,7 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
       <section className="fq-ll-sheet" aria-labelledby="paper-ws">
         <div className="fq-ll-sheet-head">
           <h3 id="paper-ws">Worksheet</h3>
-          <p className="fq-ll-note">Question 1 is required to finish the lesson. Questions 2–{sheet.length} are optional practice and do not block completion. Type what you wrote, then press Check.</p>
+          <p className="fq-ll-note">Question 1 is required to finish the lesson. Questions 2–{sheet.length} are optional practice and do not block completion. Enter what you wrote with the tiles, then press Check.</p>
           <div className="fq-ll-meter" role="progressbar" aria-valuemin={0} aria-valuemax={sheet.length - 1} aria-valuenow={optionalDone} aria-valuetext={`Required question ${requiredDone ? 'complete' : 'not complete'} · Optional practice ${optionalDone} of ${sheet.length - 1} complete`} aria-label="Optional worksheet practice completed">
             <b style={{ width: `${((sheet.length - 1) ? optionalDone / (sheet.length - 1) : 1) * 100}%` }} /><span>Required Q1: {requiredDone ? 'done' : 'to do'} · Optional practice: {optionalDone} of {sheet.length - 1}</span>
           </div>

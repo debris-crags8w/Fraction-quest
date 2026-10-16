@@ -288,7 +288,7 @@ const EXTENSION_TRANSFERS: Record<string, { n: number; d: number; prompt: string
   'fraction-as-division': { n: 7, d: 3, prompt: '7 pizzas are shared fairly by 3 tables. Build how much one table gets.', reason: '7 ÷ 3 = 7/3. That is 2 1/3 each.' },
   'fraction-probability': { n: 3, d: 10, prompt: 'A spinner has 10 equal parts. 3 are blue. Make the chance of blue.', reason: '3 blue parts out of 10 is 3/10.' },
   'fraction-of-area': { n: 4, d: 6, prompt: 'A tile has 6 equal parts. Shade 4.', reason: '6 equal parts. 4 shaded is 4/6.' },
-  'equivalent-number-line': { n: 4, d: 6, kind: 'line', prompt: 'Mark 4/6 on the line. Does it land on 2/3?', reason: 'Yes. 4/6 and 2/3 are the same spot.' },
+  'equivalent-number-line': { n: 4, d: 6, kind: 'line', prompt: 'Mark 4/6 on the line. Does it land on 2/3?', reason: 'Yes, 4/6 and 2/3 are the same spot.' },
   'fraction-recipes': { n: 4, d: 3, prompt: 'A recipe uses 2/3 cup of oats. Double it. Make it in thirds.', reason: '2/3 + 2/3 = 4/3, or 1 1/3 cups.' },
   'fractions-to-percent': { n: 35, d: 100, prompt: '35 out of 100 kids said yes. Make it.', reason: '35 out of 100 is 35%.' },
   'percent-to-fraction': { n: 45, d: 100, prompt: 'A score is 45%. Make it as a fraction.', reason: '45% means 45 out of 100: 45/100.' },
@@ -356,37 +356,37 @@ const EXTENSION_WORKSHEETS: Record<string, { mode: ExtensionWorksheetMode; conte
     the wrong choices so length gives nothing away. The full explanation shows after the build passes. */
 export const REASON_IDEAS: Record<string, string> = {
   'equal-parts': 'Equal parts and same number shaded',
-  'fraction-names': 'Bottom: equal parts. Top: parts counted',
+  'fraction-names': 'Denominator: all parts. Numerator: counted',
   'unit-fractions': 'A unit fraction is 1 piece',
   'unit-size': 'Larger denominator: smaller pieces',
-  'sets-unit-fractions': 'Make equal groups, then count groups',
-  'sets-nonunit': 'Make equal groups, then count groups',
-  'benchmark-half': 'Find half first, then count back',
+  'sets-unit-fractions': 'Make equal groups and count them',
+  'sets-nonunit': 'Make equal groups and count them',
+  'benchmark-half': 'Find half first and count back',
   'benchmarks-zero-one': '1 whole is all the pieces',
-  'fraction-magnitude': 'Find half first, then count back',
-  'number-line-basics': 'Count the spaces, not ticks',
+  'fraction-magnitude': 'Find half first and count back',
+  'number-line-basics': 'Count the spaces between ticks',
   'number-line-points': 'Count jumps from 0',
   'number-line-beyond-one': 'Keep jumping past 1 whole',
   'compare-same-denominator': 'Same-size pieces: more is bigger',
   'compare-same-numerator': 'Larger denominator: smaller pieces',
   'order-fractions': 'Use half or same-size pieces',
-  'equivalent-models': 'Split pieces: same amount, new name',
-  'build-equivalents': 'Split pieces: same amount, new name',
-  'missing-equivalent': 'Top and bottom grow together',
+  'equivalent-models': 'Split pieces for a new name',
+  'build-equivalents': 'Split pieces for a new name',
+  'missing-equivalent': 'Numerator and denominator grow together',
   'compose-to-one': 'All the pieces make 1 whole',
   'decompose-fractions': 'Small pieces add up to it',
   'improper-fractions': 'Extra pieces go past 1 whole',
   'mixed-improper': 'A full bar is 1 whole',
-  'add-like-denominators': 'Add the tops, keep the bottom',
-  'subtract-like-denominators': 'Take away tops, keep the bottom',
+  'add-like-denominators': 'Add numerators and keep the denominator',
+  'subtract-like-denominators': 'Subtract numerators and keep the denominator',
   'add-related-fractions': 'Make the pieces match first',
   'tenths-decimals': 'Decimals can name tenths',
   'hundredths-decimals': 'Decimals name tenths or hundredths',
   'add-tenths-hundredths': 'Change tenths into hundredths first',
   'unit-fraction-multiples': 'Copies of one piece add up',
   'multiply-whole-by-fraction': 'Equal groups of the same piece',
-  'simplify-fractions': 'Divide top and bottom alike',
-  'equivalent-missing-both': 'Change top and bottom alike',
+  'simplify-fractions': 'Divide numerator and denominator alike',
+  'equivalent-missing-both': 'Change numerator and denominator alike',
   'whole-numbers-as-fractions': 'A full set makes 1 whole',
   'compare-unlike-fractions': 'Use same-size pieces to compare',
   'order-unlike-fractions': 'Use a landmark or same-size pieces',
@@ -394,11 +394,11 @@ export const REASON_IDEAS: Record<string, string> = {
   'add-unlike-fractions': 'Make the pieces match first',
   'add-mixed-numbers': 'Make the pieces match first',
   'subtract-mixed-numbers': 'Turn wholes into pieces first',
-  'fraction-of-quantity': 'Make equal groups, then count groups',
+  'fraction-of-quantity': 'Make equal groups and count them',
   'mixed-unlike-operations': 'Make the pieces match first',
   'estimate-fraction-operations': 'Compare each part to 1/2',
   'multiply-fractions': 'Cut each piece into smaller pieces',
-  'fraction-of-collection': 'Make equal groups, then count groups',
+  'fraction-of-collection': 'Make equal groups and count them',
   'divide-whole-by-unit-fraction': 'Count the pieces in each whole',
   'multiplication-scaling': 'Part of a group is less',
   'multiply-mixed-numbers': 'Count the small squares inside',
@@ -416,7 +416,7 @@ export const REASON_IDEAS: Record<string, string> = {
   'fraction-probability': 'Blue parts out of all parts',
   'fraction-of-area': 'Shaded parts out of equal parts',
   'fractional-side-area': 'Multiply the two side lengths',
-  'equivalent-number-line': 'Same spot, same amount',
+  'equivalent-number-line': 'Same spot means same amount',
   'fraction-recipes': 'Doubling adds the amount again',
   'fractions-to-percent': 'Percent means out of 100',
   'percent-to-fraction': 'Percent means out of 100',
@@ -425,7 +425,7 @@ export const REASON_IDEAS: Record<string, string> = {
   'multi-step-fraction-stories': 'One step at a time',
   'find-the-whole': 'All the parts make the whole',
   'spot-the-mistake': 'Same-size pieces keep their name',
-  'fraction-of-remainder': 'Find the rest, then its part',
+  'fraction-of-remainder': 'Find the rest first',
   'divide-fractions': 'Count how many pieces fit',
 };
 const idea = (id: string, fallback: string) => REASON_IDEAS[id] ?? fallback;
@@ -443,7 +443,7 @@ export function getBuildChecks(id: string): BuildCheck[] {
   const primary: BuildCheck = { id: 'build', prompt, target: model(n, d, kind, total), explanation, transfer: false, stepLabel: 'Step 1 · Build it',
     ...arrangeReasons(`${id}:build`, idea(id, explanation), ['Bigger numbers mean a bigger fraction', 'Only shaded pieces must be equal']) };
   const independent: BuildCheck = { id: 'transfer', prompt: transfer.prompt, target: transfer.target, explanation: transfer.reason, transfer: true, stepLabel: 'Step 2 · On your own',
-    ...arrangeReasons(`${id}:transfer`, idea(id, transfer.reason), ['Change only the bottom number', 'Count the tick marks, not spaces']) };
+    ...arrangeReasons(`${id}:transfer`, idea(id, transfer.reason), ['Change only the denominator', 'Count the tick marks only']) };
   const used = new Set([primary, independent].map(check => JSON.stringify(check.target)));
   let apply: BuildCheck | null = null;
   for (let serial = 0; serial < 12 * 12 && !apply; serial++) {
@@ -486,7 +486,7 @@ function worksheetBuildCheck(id: string, serial: number, checkId: string): Build
   const explanation = problem.hint;
   return {
     id: checkId, prompt, target: model(value.n, value.d, kind, total), explanation, transfer: true,
-    ...arrangeReasons(`${id}:${checkId}:${serial}`, idea(id, problem.hint), ['Change only the bottom number', 'Count the tick marks, not spaces']),
+    ...arrangeReasons(`${id}:${checkId}:${serial}`, idea(id, problem.hint), ['Change only the denominator', 'Count the tick marks only']),
   };
 }
 
@@ -505,7 +505,7 @@ function seededBuildCheck(id: string, serial: number, checkId: string): BuildChe
       ? `Build ${n}/${d} of ${d * 4} counters. Make ${d} equal groups.`
       : `Build ${n}/${d}. Show the same amount with a bar and a number line.`,
     target, explanation, transfer: true,
-    ...arrangeReasons(`${id}:${checkId}:seed:${serial}`, idea(id, explanation), ['Change only the bottom number', 'Count the tick marks, not spaces']),
+    ...arrangeReasons(`${id}:${checkId}:seed:${serial}`, idea(id, explanation), ['Change only the denominator', 'Count the tick marks only']),
   };
 }
 
@@ -729,7 +729,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         }
         hint = id === 'unit-size'
           ? `The larger denominator, ${big}, splits the same-size whole into more equal parts. Each ${unitPiece(big)} is smaller than each ${unitPiece(small)}.`
-          : `Both fractions count ${top} pieces from the same-size whole. The larger denominator, ${big}, splits it into more equal parts, so each piece—and that fraction—is smaller.`; break;
+          : `Both fractions count ${top} pieces from the same-size whole. The larger denominator, ${big}, splits it into more equal parts, so each piece is smaller, and so is that fraction.`; break;
       }
       case 'sets-unit-fractions':
       case 'sets-nonunit': {
@@ -917,13 +917,13 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       case 'equivalent':
         prompt = i % 2 ? `Write ${f(n, d)} with a denominator of ${d * k}.` : `Fill the missing numerator: ${f(n, d)} = ?/${d * k}.`;
         answer = i % 2 ? f(n * k, d * k) : String(n * k); denominator = i % 2 ? d * k : undefined;
-        hint = `The bottom was multiplied by ${k}. Multiply the numerator by ${k} too.`; break;
+        hint = `The denominator was multiplied by ${k}. Multiply the numerator by ${k} too.`; break;
       case 'compare': {
         const [a, b, c, e] = ([[1, 2, 2, 5], [2, 3, 3, 4], [3, 4, 2, 3], [1, 3, 2, 6], [3, 5, 3, 4], [5, 6, 5, 8], [2, 5, 1, 3], [3, 8, 1, 2], [4, 6, 2, 3], [7, 10, 3, 5], [2, 5, 2, 3], [5, 8, 3, 4]] as const)[tr];
         prompt = `Put <, = or > in the gap: ${f(a, b)} __ ${f(c, e)}.`;
         answer = a * e > c * b ? '>' : a * e < c * b ? '<' : '='; form = 'symbol';
         hint = a === c
-          ? `Both fractions count ${a} pieces. The larger denominator splits the whole into more equal parts, so each piece—and that fraction—is smaller.`
+          ? `Both fractions count ${a} pieces. The larger denominator splits the whole into more equal parts, so each piece is smaller, and so is that fraction.`
           : 'Rename both fractions with the same denominator so the pieces match. Then compare the numerators.'; break;
       }
       case 'order': {
@@ -1033,7 +1033,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           const setting = ['paper design', 'classroom poster', 'garden map', 'window panel', 'quilt square', 'tile pattern', 'greeting card', 'floor plan', 'art print', 'flag design', 'mosaic panel', 'shape puzzle'][i];
           prompt = `On the ${setting}, this ${shape.whole} is split into ${shape.parts} equal-area ${partition}. Color ${shaded}. What fraction of the whole is colored?`;
           answer = f(shaded, shape.parts); area = { cut: shape.cut }; areaTask = { n: shaded, d: shape.parts };
-          hint = 'The denominator counts all equal-area parts. The top counts the parts you colored.';
+          hint = 'The denominator counts all equal-area parts. The numerator counts the parts you colored.';
         }
         break;
       }
@@ -1071,7 +1071,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const item = examples[tr];
         if (item.kind === 'write') {
           prompt = `Write ${item.numerator} whole bars as a fraction with a denominator of 1.`; answer = `${item.numerator}/1`; visual = model(item.numerator, 1);
-          hint = 'The bottom 1 means each piece is one whole.';
+          hint = 'The denominator 1 means each piece is one whole.';
         } else if (item.kind === 'count') {
           prompt = `How many wholes are ${item.numerator}/${item.denominator}?`; answer = String(item.numerator / item.denominator); visual = model(item.numerator, item.denominator);
           hint = `${item.denominator}/${item.denominator} makes 1 whole. Count groups of ${item.denominator}/${item.denominator}.`;
@@ -1128,8 +1128,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       }
       case 'line-plot-level': {
         const dataSets = [
-          [1, 2, 3], [2, 2, 2], [1, 2, 6], [1, 3, 5], [2, 4, 6], [1, 3, 5],
-          [1, 1, 4], [1, 4, 4], [3, 3, 3], [1, 1, 7], [2, 3, 5], [1, 4, 7],
+          // Never three equal amounts: then "share equally" has nothing to do.
+          [1, 2, 3], [2, 3, 4], [1, 2, 6], [1, 3, 5], [2, 4, 6], [2, 2, 5],
+          [1, 1, 4], [1, 4, 4], [1, 3, 8], [1, 1, 7], [2, 3, 5], [1, 4, 7],
         ];
         const values = dataSets[tr % dataSets.length]; const total = values.reduce((sum, value) => sum + value, 0);
         const divisor = values.length; const factor = gcd(total, divisor * 4);
@@ -1282,7 +1283,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           ['Ben says 3/4 − 1/2 = 2/2.', '1/4', 'Change 1/2 to 2/4 first. Then take away.'],
           ['Eva says 1/2 + 1/3 = 2/5.', '5/6', 'Change both to sixths first: 3/6 + 2/6.'],
           ['Max says 7/4 = 1 1/3.', '1 3/4', '4 fourths make 1 whole. Count the fourths left over.', undefined, 'mixed'],
-          ['Zoe says 2/3 = 3/4 because she added 1 to the top and bottom.', '4/6', 'Multiply the top and bottom by the same number.', 6],
+          ['Zoe says 2/3 = 3/4 because she added 1 to the numerator and denominator.', '4/6', 'Multiply the numerator and denominator by the same number.', 6],
           ['Tim says half of 3/4 is 3/2.', '3/8', 'Cut each fourth in half. Each half is an eighth.'],
         ];
         if (i % 3 === 0) {
@@ -1342,25 +1343,25 @@ export function getReviewCheck(id: string, round: number): BuildCheck {
     // Alternate the lesson's two builds so a later review is not always the same one.
     const check = getBuildChecks(id)[round % 2];
     return { ...check, id: 'retention', transfer: true,
-      ...arrangeReasons(`${id}:review:${round % 2}`, idea(id, check.explanation), ['Only the top number matters', 'Bigger numbers mean a bigger fraction']) };
+      ...arrangeReasons(`${id}:review:${round % 2}`, idea(id, check.explanation), ['Only the numerator matters', 'Bigger numbers mean a bigger fraction']) };
   }
   if (id === 'order-fractions') {
     const d = [6, 8, 10][round % 3];
     const reason = 'Same size pieces. The most pieces is the biggest.';
     return { id: 'retention', transfer: true, prompt: `Which is longest: 2/${d}, 4/${d} or 3/${d}? Make it.`,
-      target: model(4, d), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['The smallest top number wins', 'Shade the bottom number of pieces']), explanation: reason };
+      target: model(4, d), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['The smallest numerator wins', 'Shade the denominator of pieces']), explanation: reason };
   }
   if (id.includes('equivalent')) {
     const d = [3, 4, 5][round % 3]; const n = d - 1; const factor = 2 + round % 2;
     const reason = `Split every piece into ${factor}. Multiply the numerator and denominator by ${factor}.`;
     return { id: 'retention', transfer: true, prompt: `A ribbon is ${n}/${d} colored. Show it with a denominator of ${d * factor}.`,
-      target: model(n * factor, d * factor), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['Change only the bottom number', 'A bigger bottom always means more']), explanation: reason };
+      target: model(n * factor, d * factor), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['Change only the denominator', 'A bigger bottom always means more']), explanation: reason };
   }
   if (id.startsWith('sets-')) {
     const d = [4, 5, 6][round % 3]; const n = id === 'sets-unit-fractions' ? 1 : 2; const total = d * 4;
     const reason = `Put ${total} in ${d} equal groups. Pick ${n}.`;
     return { id: 'retention', transfer: true, prompt: `Put ${total} shells in ${d} equal groups. Pick ${n}/${d}.`, target: model(n, d, 'set', total),
-      ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['Make groups equal to the top', 'Pick the bottom number of shells']), explanation: reason };
+      ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['Make groups equal to the numerator', 'Pick the denominator of shells']), explanation: reason };
   }
   // Review is built from scratch with no picture, so skip questions that need one, already show
   // the answer (unless picking it is the skill: "Which is bigger…"), or ask for a symbol, decimal or order.
@@ -1384,6 +1385,6 @@ export function getReviewCheck(id: string, round: number): BuildCheck {
   const prompt = /^Make .+\.$/.test(ask) ? ask.replace(/\.$/, ' two ways.') : `${ask} Build the answer two ways.`;
   return { id: 'retention', transfer: true, prompt,
     target: model(value.n, value.d, id.startsWith('number-line') ? 'line' : 'bar'),
-    ...arrangeReasons(`${id}:review:${round % variants.length}`, idea(id, reason), ['Count the tick marks, not spaces', 'Only shaded pieces must be equal']),
+    ...arrangeReasons(`${id}:review:${round % variants.length}`, idea(id, reason), ['Count the tick marks only', 'Only shaded pieces must be equal']),
     explanation: reason };
 }
