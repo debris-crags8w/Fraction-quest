@@ -190,7 +190,7 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'number-line-points': [4, 7, 'line', 'Mark 4/7 on the number line.', 'The denominator is 7 equal spaces in one whole. The numerator is 4 jumps from zero.'],
   'number-line-beyond-one': [7, 5, 'line', 'Mark 1 and 2/5 on the number line.', '5/5 is 1 whole. 2 more fifths makes 7/5.'],
   'compare-same-denominator': [5, 8, 'bar', 'Which is bigger, 3/8 or 5/8? Make it.', 'Same size pieces. 5 is more than 3.'],
-  'compare-same-numerator': [3, 5, 'bar', 'Which is bigger, 3/5 or 3/8? Make it.', 'Fifths are bigger pieces than eighths.'],
+  'compare-same-numerator': [3, 5, 'bar', 'Which is bigger, 3/5 or 3/8? Make it.', 'Both same-size wholes count 3 pieces. Eighths are smaller than fifths because the same whole is split into more equal parts, so 3/8 is smaller than 3/5.'],
   'order-fractions': [3, 4, 'bar', 'Which is biggest: 1/4, 1/2 or 3/4? Make it.', '3/4 is more than half.'],
   'equivalent-models': [2, 4, 'bar', 'Show 1/2 using fourths. Split every piece.', 'Split each half in 2. So 1/2 = 2/4.'],
   'build-equivalents': [4, 6, 'bar', 'Show 2/3 using sixths.', 'Split each third in 2. So 2/3 = 4/6.'],
@@ -555,7 +555,7 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
   if (id === 'subtract-like-denominators') return { prompt: 'A ribbon is 7/10 long. Cut off 3/10. Make what is left.', target: model(4, 10), reason: '7 − 3 = 4, so 4/10.' };
   if (id === 'add-like-denominators') return { prompt: 'Make 1/5 + 2/5.', target: model(3, 5), reason: '1 + 2 = 3, so 3/5.' };
   if (id === 'unit-size') return { prompt: 'Which is bigger, 1/3 or 1/6? Make it.', target: model(1, 3), reason: 'Fewer pieces means bigger pieces.' };
-  if (id === 'compare-same-numerator') return { prompt: 'Which is bigger, 2/3 or 2/5? Make it.', target: model(2, 3), reason: 'Both have 2 parts. Thirds are bigger than fifths, so 2/3 is bigger.' };
+  if (id === 'compare-same-numerator') return { prompt: 'Which is bigger, 2/3 or 2/5? Make it.', target: model(2, 3), reason: 'Both same-size wholes count 2 pieces. Five equal parts make smaller pieces than three, so 2/5 is smaller than 2/3.' };
   if (id === 'benchmark-half' || id === 'fraction-magnitude') return { prompt: 'Use tenths. Make 1/10 less than half.', target: model(4, 10), reason: 'Half is 5/10. One less is 4/10.' };
   if (id === 'benchmarks-zero-one') return { prompt: 'A jug is 1/6 away from full. Make it.', target: model(5, 6), reason: '6/6 is full. One less is 5/6.' };
   if (id === 'compare-same-denominator' || id === 'order-fractions') return { prompt: 'Which is longer, 2/5 or 4/5 of a meter? Make it.', target: model(4, 5), reason: 'Same size pieces. 4 is more than 2.' };
@@ -722,7 +722,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           answer = f(top, i % 2 ? big : small);
         }
         hint = id === 'unit-size' ? 'More pieces in the same whole means smaller pieces.'
-          : `Same numerator: ${top} parts each. More parts in the whole means smaller parts, so fewer parts means bigger parts.`; break;
+          : `Both fractions count ${top} pieces from the same-size whole. The larger denominator, ${big}, splits it into more equal parts, so each piece—and that fraction—is smaller.`; break;
       }
       case 'sets-unit-fractions':
       case 'sets-nonunit': {

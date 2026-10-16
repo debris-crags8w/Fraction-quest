@@ -2609,6 +2609,11 @@ describe('same numerator, different denominators', () => {
     }
     const transfer = getBuildChecks('compare-same-numerator').find((c) => c.transfer)!;
     assert.match(transfer.prompt, /2\/3 or 2\/5/);
+    assert.match(transfer.explanation, /same-size wholes count 2 pieces.*Five equal parts make smaller pieces/i);
+    const mission = MISSIONS.find((item) => item.id === 'compare-same-numerator')!;
+    assert.match(mission.skill, /wholes are the same size.*same top number.*larger bottom number.*more equal parts.*smaller/i);
+    assert.match(mission.explainPrompt ?? '', /3\/5 and 3\/8.*denominator.*same-size whole.*2\/3 and 2\/5/i);
+    assert.match(mission.example.explanation, /same-size bars count 3 pieces.*8 equal parts.*smaller pieces.*3\/8 is less than 3\/5/i);
     const unlike = getWorksheet('compare-unlike-fractions');
     assert.ok(unlike.some((p) => { const m = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(p.prompt); return !!m && m[1] === m[2]; }));
   });

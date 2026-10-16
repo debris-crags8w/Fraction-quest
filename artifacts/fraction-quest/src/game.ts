@@ -50,6 +50,7 @@ export type Mission = {
   shortTitle: string;
   description: string;
   skill: string;
+  explainPrompt?: string;
   unit: number;
   gradeBand?: 3 | 4 | 5;
   standards?: string[];
@@ -406,18 +407,19 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'compare-same-numerator', unit: 5, title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'Same numerator? The smaller denominator wins.',
+    id: 'compare-same-numerator', unit: 5, title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'When the wholes are the same size, the same top number means we count the same number of pieces. A larger bottom number splits that whole into more equal parts, so each piece—and the fraction we count—is smaller.',
+    explainPrompt: 'Use the bars for 3/5 and 3/8. What does the denominator change in the same-size whole? Why is 3/8 smaller even though both fractions count 3 pieces? Then draw same-length bars for 2/3 and 2/5 and explain why 2/3 is larger without repeating the example.',
     description: 'Compare fractions with the same numerator.', example: {
       prompt: 'Which is bigger, 3/5 or 3/8?',
       answer: '3/5.',
-      explanation: 'Both have 3 pieces. Fifths are bigger than eighths.',
+      explanation: 'Both same-size bars count 3 pieces. Splitting the whole into 8 equal parts makes smaller pieces than splitting it into 5, so 3/8 is less than 3/5.',
       model: bars({ numerator: 3, denominator: 5 }, { numerator: 3, denominator: 8 }),
     },
     questions: [
-      practice('Which is bigger, 2/3 or 2/7?', ['2/7', '2/3', 'They are equal'], 1, bars({ numerator: 2, denominator: 3 }, { numerator: 2, denominator: 7 }), 'Both have 2 pieces. Which pieces are bigger?', 'Thirds are bigger than sevenths. So 2/3 wins.', bars({ numerator: 1, denominator: 3 })),
-      practice('Which is smaller, 4/5 or 4/9?', ['4/5', '4/9', 'They are equal'], 1, bars({ numerator: 4, denominator: 5 }, { numerator: 4, denominator: 9 }), 'Both have 4 pieces. Ninths are smaller.', '4/9 is less than 4/5.', bars({ numerator: 1, denominator: 2 })),
-      practice('Pick the sign: 1/6 __ 1/4', ['>', '<', '='], 1, bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 4 }), 'More pieces means smaller pieces.', '1/6 is smaller than 1/4.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which covers more: 3/10 or 3/8?', ['3/10', '3/8', 'They cover the same'], 1, bars({ numerator: 3, denominator: 10 }, { numerator: 3, denominator: 8 }), 'Both have 3 pieces. Which pieces are bigger?', 'Eighths are bigger than tenths. So 3/8 covers more.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is bigger, 2/3 or 2/7?', ['2/7', '2/3', 'They are equal'], 1, bars({ numerator: 2, denominator: 3 }, { numerator: 2, denominator: 7 }), 'On the same-size whole, both count 2 pieces. Seven equal parts make smaller pieces than three, so 2/7 is smaller.', 'Both count 2 pieces from the same-size whole. Each third is bigger than each seventh, so 2/3 is bigger.', bars({ numerator: 1, denominator: 3 })),
+      practice('Which is smaller, 4/5 or 4/9?', ['4/5', '4/9', 'They are equal'], 1, bars({ numerator: 4, denominator: 5 }, { numerator: 4, denominator: 9 }), 'Both count 4 pieces from the same-size whole. The larger denominator, 9, makes smaller pieces.', 'Both count 4 pieces from the same-size whole. Ninths are smaller than fifths, so 4/9 is less than 4/5.', bars({ numerator: 1, denominator: 2 })),
+      practice('Pick the sign: 1/6 __ 1/4', ['>', '<', '='], 1, bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 4 }), 'On the same-size whole, six equal parts are smaller than four equal parts.', 'One sixth is smaller than one fourth, so 1/6 < 1/4.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which covers more: 3/10 or 3/8?', ['3/10', '3/8', 'They cover the same'], 1, bars({ numerator: 3, denominator: 10 }, { numerator: 3, denominator: 8 }), 'On the same-size whole, both count 3 pieces. Eighths are larger because 8 parts are fewer than 10.', 'Each eighth is larger than each tenth. With 3 pieces counted from the same-size whole, 3/8 covers more than 3/10.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
