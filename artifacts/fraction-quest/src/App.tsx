@@ -1,6 +1,6 @@
 import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, BarChart3, Check, ClipboardCheck, Code2, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BarChart3, BookOpen, Check, ClipboardCheck, Code2, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { MathText } from './MathText';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -45,11 +45,14 @@ import { getWorksheet } from './learning-content';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requiredBuildChecks, resetUnitLearningProgress, worksheetCount, startRedo, updateLearning, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
+import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSeasonLesson, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
-import { Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type PathNode } from './fun-ui';
+import { CandyIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
+import { activeSeason } from './seasons';
+import { chapterFor, lessonComic } from './story';
+import { ChapterTag, StoryCardsView, StoryComicView, StoryPayoff, StorySay } from './story-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
 import PaperCheck from './PaperCheck';
@@ -90,6 +93,9 @@ type View =
   | { type: 'assessments' }
   | { type: 'assessment'; definition: AssessmentDefinition; seed: number }
   | { type: 'reward'; missionId: string; stars: number }
+  /** The story comic before a lesson starts. */
+  | { type: 'story'; missionId: string }
+  | { type: 'cards' }
   /** The lesson's hands-on cake rounds (Part Finder), between the worked example and the questions. */
   | { type: 'hands-on'; missionId: string; reviewQuestions: PracticeQuestion[] }
   /** Local card arrangement before scored questions; it does not save lesson evidence. */
@@ -406,6 +412,8 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
   const lessonsDone = MISSIONS.filter(item => hasLearningGate(progress, item.id)).length;
   const { fun, setFun } = useFun();
   const streak = shownStreak(fun);
+  const { season } = useSeason();
+  const points = season?.points ?? 'points';
   const account = useAccount();
   const [signingOut, setSigningOut] = useState(false);
   const syncLabel = account.user
@@ -425,9 +433,9 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
               tip={streak > 0 ? <><strong>{streak} {streak === 1 ? 'day' : 'days'} in a row!</strong> Get one answer right each day to keep your streak going.</> : <><strong>Day streak.</strong> Get one answer right today to start a streak!</>}>
               <span className="fq-stat fq-stat-streak" data-testid="status-day-streak"><Flame size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{streak}</strong><span className="fq-sr">day streak</span></span>
             </StatTip>
-            <StatTip testId="button-tip-xp" label={`${fun.xp} points. What is this?`}
-              tip={<><strong>{fun.xp} points!</strong> You get 10 points for every right answer.</>}>
-              <span className="fq-stat fq-stat-xp" data-testid="status-xp"><Zap size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{fun.xp}</strong><span className="fq-stat-unit">XP</span></span>
+            <StatTip testId="button-tip-xp" label={`${fun.xp} ${points}. What is this?`}
+              tip={<><strong>{fun.xp} {points}!</strong> You get 10 {points} for every right answer.</>}>
+              <span className="fq-stat fq-stat-xp" data-testid="status-xp">{season ? <CandyIcon /> : <Zap size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" />}<strong>{fun.xp}</strong><span className="fq-stat-unit">{season ? points : 'XP'}</span></span>
             </StatTip>
             <StatTip testId="button-tip-daily" label={`Today's goal: ${Math.min(fun.answeredToday, DAILY_GOAL)} of ${DAILY_GOAL}. What is this?`}
               tip={fun.answeredToday >= DAILY_GOAL ? <><strong>Today's goal is done!</strong> You got {DAILY_GOAL} answers right today.</> : <><strong>Today's goal: {fun.answeredToday} of {DAILY_GOAL}.</strong> Each slice fills in when you get an answer right.</>}>
@@ -470,10 +478,11 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
   );
 }
 
-function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement }: { progress: Progress; onStart: (missionId: string) => void; onDeveloperTest: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
+function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement, onCards }: { progress: Progress; onStart: (missionId: string) => void; onCards: () => void; onDeveloperTest: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
   const account = useAccount();
   const { user } = account;
   const { fun } = useFun();
+  const storyOn = fun.displayPreferences?.storyMode !== false;
   const codeSummary = summarizeCodeProgress(fun.codeLevels, MISSIONS.map((mission) => mission.id));
   const nextCodeMission = MISSIONS.find((mission) => isMissionUnlocked(progress, mission.id) && (fun.codeLevels?.[mission.id] ?? 0) < CODE_LEVEL_COUNT);
   const totalStars = Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0);
@@ -520,6 +529,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
           { id: 'games', icon: <Dumbbell size={18} />, label: 'Games', testId: 'button-open-concept-games', onSelect: onConceptGames, note: 'Fraction Race and the fraction workshop' },
           ...(nextCodeMission ? [{ id: 'code', icon: <Code2 size={18} />, label: codeSummary.missionsStarted ? 'Continue coding' : 'Try coding', testId: 'button-continue-coding',
             onSelect: () => onGame('code', nextCodeMission.id), note: codeSummary.levelsPassed ? `${codeSummary.levelsPassed} coding levels passed` : 'Make a robot draw fractions' }] : []),
+          ...(storyOn ? [{ id: 'cards', icon: <BookOpen size={18} />, label: 'Character cards', testId: 'button-open-story-cards', onSelect: onCards, note: 'Friends you meet in the story' }] : []),
         ] },
         { title: 'Check what you know', items: [
           { id: 'checkins', icon: <ClipboardCheck size={18} />, label: 'Check-ins', testId: 'button-open-assessments', onSelect: onAssessments, note: 'Build a model, answer, and see what to practice next' },
@@ -538,7 +548,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
   );
 
   return (
-    <div className="fq-app">
+    <div className="fq-app fq-map-app">
       <Topbar progress={progress} onReset={onReset} onHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })} menu={menu} />
       <main className="fq-shell">
         <section className="fq-map fq-course-map" aria-labelledby="course-title">
@@ -552,6 +562,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
               </p>
             </div>
           </div>
+          <SeasonBanner />
           {assignedUnits.length > 0 && <p className="fq-assigned-units" role="note" data-testid="text-assigned-units">
             Your teacher suggested: {assignedUnits.map((unit) => `Unit ${unit}: ${UNIT_TITLES[unit - 1]}`).join(' · ')}.
             These suggestions do not change which lessons are unlocked.
@@ -603,6 +614,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                   <div className="fq-unit-heading">
                     <div>
                       <span className="fq-unit-kicker">Unit {unit.number}</span>
+                      {storyOn && chapterFor(unit.number) && <ChapterTag chapter={chapterFor(unit.number)!} />}
                       <h3 id={`unit-${unit.number}`}>{unit.title}</h3>
                       <p>{unit.subtitle}</p>
                     </div>
@@ -826,6 +838,8 @@ function PlayView({
   const [shake, setShake] = useState(0);
   const [reviewingPastIndex, setReviewingPastIndex] = useState<number | null>(null);
   const { fun } = useFun();
+  const storyOn = fun.displayPreferences?.storyMode !== false;
+  const seasonOn = !!useSeason().season;
   const question: PracticeQuestion | null = mission.questions[questionIndex] ?? null;
   const isLastQuestion = question ? questionIndex === mission.questions.length - 1 : false;
   const lessonStarIds = new Set(starEligibleQuestionIds ?? mission.questions.filter((item) => !item.isOptionalReview).map((item) => item.id));
@@ -954,6 +968,10 @@ function PlayView({
             {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
             {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
           </p>}
+          {/* One friendly line per question: the seasonal one while a theme is on, otherwise the story friend's. */}
+          {question && !showExample && (seasonOn
+            ? <SeasonSay kind={question.model.kind} id={question.id} />
+            : storyOn && chapterFor(mission.unit) && <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} />)}
           {showExample
             ? <h1 id="lesson-title">{mission.title}</h1>
             : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
@@ -1077,6 +1095,10 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
   const following = MISSIONS[MISSIONS.findIndex((item) => item.id === mission.id) + 1];
   const nextLessonOpen = !following || isMissionUnlocked(progress, following.id);
   const { fun } = useFun();
+  const storyOn = fun.displayPreferences?.storyMode !== false;
+  const chapter = chapterFor(mission.unit);
+  const unitMissions = MISSIONS.filter((item) => item.unit === mission.unit);
+  const { season } = useSeason();
   useEffect(() => {
     playCue('complete', fun.sound);
     const timers = Array.from({ length: stars }, (_, index) => window.setTimeout(() => playCue('star', fun.sound), 700 + index * 380));
@@ -1091,8 +1113,10 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
         <section className="fq-reward fq-appear" data-testid="status-mission-complete">
           <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
-          <h1>{mission.title}<br />is on your map.</h1>
+          <h1>{season?.id === 'halloween' && <>Spooky good!<br /></>}{mission.title}<br />is on your map.</h1>
            <p>You built it two ways, explained it, and finished the worksheet. {nextLessonOpen ? 'The next lesson is open!' : 'Finish the other lessons in this unit to open the next unit.'}</p>
+          <SeasonReward missionId={mission.id} />
+          {storyOn && chapter && <StoryPayoff chapter={chapter} lessonsDone={unitMissions.filter((item) => hasLearningGate(progress, item.id)).length} lessonsTotal={unitMissions.length} />}
           <div className="fq-reward-stars" data-testid="status-mission-stars" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}
@@ -1165,6 +1189,7 @@ function Game() {
   const [resetUnit, setResetUnit] = useState(1);
   const [saveError, setSaveError] = useState(false);
   const [fun, setFun] = useState<FunState>(() => account.initialFun ?? loadFun());
+  const storyMode = fun.displayPreferences?.storyMode !== false;
   const [combo, setCombo] = useState(0);
   const [breakReason, setBreakReason] = useState<'interval' | 'mistakes' | 'lesson-part' | null>(null);
   const activeStudyMilliseconds = useRef(0);
@@ -1192,8 +1217,11 @@ function Game() {
     root.dataset.fqTextSize = preferences.textSize;
     root.classList.toggle('fq-high-contrast', preferences.highContrast);
     root.classList.toggle('fq-reduced-motion', preferences.reducedMotion);
+    const season = activeSeason(fun);
+    if (season) root.dataset.fqSeason = season.id; else delete root.dataset.fqSeason;
     return () => {
       delete root.dataset.fqTextSize;
+      delete root.dataset.fqSeason;
       root.classList.remove('fq-high-contrast', 'fq-reduced-motion');
     };
   }, [fun.displayPreferences]);
@@ -1231,10 +1259,16 @@ function Game() {
     consecutiveWrongAnswers.current = 0;
   }, [breakIntervalMinutes]);
 
-  const startMission = (missionId: string, testProgress?: Progress) => {
+  const startMission = (missionId: string, testProgress?: Progress, afterStory = false) => {
     const activeProgress = testProgress ?? progress;
     if (!testProgress && !isMissionUnlocked(activeProgress, missionId)) return;
     const record = getLearningRecord(activeProgress, missionId);
+    // A lesson started for the first time opens with its story comic (when story mode is on).
+    const mission = MISSIONS.find((item) => item.id === missionId);
+    if (!afterStory && !testProgress && storyMode && mission && chapterFor(mission.unit) && !record.practiceDone && !hasLearningGate(activeProgress, missionId)) {
+      setView({ type: 'story', missionId });
+      return;
+    }
     // Unfinished work, or every step done but "Finish lesson" not pressed yet: go back to the lab, where the
     // finish button waits. Only a finished lesson replays from the start.
     if (record.practiceDone && (!hasLearningGate(progress, missionId) || !progress.completedMissionIds.includes(missionId))) {
@@ -1295,6 +1329,8 @@ function Game() {
     const nextProgress = completeMission(progress, missionId, stars);
     if (!hasLearningGate(nextProgress, missionId)) return;
     persistProgress(nextProgress);
+    const season = activeSeason(fun);
+    if (season) setFun((current) => recordSeasonLesson(current, season.key, missionId));
     setView({ type: 'reward', missionId, stars: nextProgress.starsByMission[missionId] ?? stars });
     if (breakIntervalMinutes > 0) setBreakReason('lesson-part');
   };
@@ -1399,7 +1435,7 @@ function Game() {
         <button type="button" onClick={returnToMap} data-testid="button-exit-developer-test">Exit test</button>
       </div>}
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onDeveloperTest={startDeveloperLessonTest} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId) && paperCheckOpen(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onDeveloperTest={startDeveloperLessonTest} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId) && paperCheckOpen(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} onCards={() => setView({ type: 'cards' })} />}
       {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} renderModel={(model, reveal) => <ModelView model={model} reveal={reveal} asked />} onChange={(session) => persistProgress(applyAdaptiveDailyPracticeUpdate(progress, session))} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onDailyCorrect} />}
       {view.type === 'concept-games' && (() => {
         // The lesson games use the lesson the child is on (or the last open one).
@@ -1549,6 +1585,17 @@ function Game() {
       {view.type === 'reward' && activeMission && (
         <RewardView mission={activeMission} stars={view.stars} progress={progress} onMap={returnToMap} onNext={startMission} onReset={openResetDialog} onGame={(type) => setView({ type, missionId: activeMission.id })} />
       )}
+      {view.type === 'story' && (() => {
+        const mission = MISSIONS.find((item) => item.id === view.missionId);
+        const chapter = mission && chapterFor(mission.unit);
+        if (!mission || !chapter) return null;
+        const first = MISSIONS.find((item) => item.unit === mission.unit)?.id === mission.id;
+        const unitMissions = MISSIONS.filter((item) => item.unit === mission.unit);
+        return <StoryComicView chapter={chapter} first={first} panels={lessonComic(chapter, mission, first)}
+          lessonLabel={`Lesson ${unitMissions.indexOf(mission) + 1} of ${unitMissions.length} · ${mission.title}`}
+          onGo={() => startMission(mission.id, undefined, true)} onBack={returnToMap} />;
+      })()}
+      {view.type === 'cards' && <StoryCardsView completedUnits={new Set(UNIT_INFO.map((_, index) => index + 1).filter((unit) => MISSIONS.filter((item) => item.unit === unit).every((item) => hasLearningGate(progress, item.id))))} onBack={returnToMap} />}
       {view.type === 'review-complete' && (
         <ReviewCompleteView reviewedCount={view.reviewedCount} progress={progress} onMap={returnToMap} onReset={openResetDialog} />
       )}

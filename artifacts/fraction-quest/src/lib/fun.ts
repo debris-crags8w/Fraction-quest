@@ -12,9 +12,11 @@ export const DAILY_GOAL = 10;
 
 export type BreakIntervalMinutes = 0 | 10 | 15 | 20;
 export type BreakPreferences = { intervalMinutes: BreakIntervalMinutes; quietMode: boolean };
-export type DisplayPreferences = { textSize: 'standard' | 'large'; highContrast: boolean; reducedMotion: boolean };
+export type DisplayPreferences = { textSize: 'standard' | 'large'; highContrast: boolean; reducedMotion: boolean;
+  /** Holiday looks like Halloween (on unless a grown-up turns them off). */ seasonalThemes?: boolean;
+  /** Story comics with Numi's friends around lessons (on unless a grown-up turns them off). */ storyMode?: boolean };
 const DEFAULT_BREAK_PREFERENCES: BreakPreferences = { intervalMinutes: 15, quietMode: false };
-const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = { textSize: 'standard', highContrast: false, reducedMotion: false };
+const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: true, storyMode: true };
 
 export type FunState = {
   xp: number;
@@ -42,6 +44,8 @@ export type FunState = {
   breakPreferences?: BreakPreferences;
   /** Adult-configured display and motion preferences, synced with this learner profile. */
   displayPreferences?: DisplayPreferences;
+  /** Lessons finished during each seasonal theme (key like "halloween-2026"), for costume unlocks only. */
+  seasonLessons?: Record<string, string[]>;
 };
 export type DayActivity = { minutes: number; answered: number };
 const KEEP_DAYS = 35;
@@ -61,6 +65,8 @@ function cleanDisplayPreferences(value: unknown): DisplayPreferences {
     textSize: preferences.textSize === 'large' ? 'large' : 'standard',
     highContrast: preferences.highContrast === true,
     reducedMotion: preferences.reducedMotion === true,
+    seasonalThemes: preferences.seasonalThemes !== false,
+    storyMode: preferences.storyMode !== false,
   };
 }
 
@@ -132,6 +138,16 @@ function cleanWorksheetRewards(value: unknown): Record<string, string[]> {
   }
   return out;
 }
+function cleanSeasonLessons(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== 'object') return {};
+  const out: Record<string, string[]> = {};
+  for (const [key, rawIds] of Object.entries(value as Record<string, unknown>)) {
+    if (!/^[a-z]{1,20}-\d{4}$/.test(key) || !Array.isArray(rawIds)) continue;
+    const ids = [...new Set(rawIds.filter((id): id is string => typeof id === 'string' && /^[a-z0-9-]{1,60}$/.test(id)))].slice(0, 200);
+    if (ids.length) out[key] = ids;
+  }
+  return out;
+}
 const cleanLearningVoicePreference = (value: unknown): string | undefined =>
   typeof value === 'string' && value.length > 0 && value.length <= 512 ? value : undefined;
 
@@ -174,6 +190,7 @@ export function loadFun(): FunState {
       preferredLearningVoiceId: cleanLearningVoicePreference(parsed.preferredLearningVoiceId),
       breakPreferences: cleanBreakPreferences(parsed.breakPreferences),
       displayPreferences: cleanDisplayPreferences(parsed.displayPreferences),
+      seasonLessons: cleanSeasonLessons(parsed.seasonLessons),
       activity: cleanActivity(parsed.activity),
       ...cleanGames(parsed),
     };
@@ -240,6 +257,14 @@ export function setBreakPreferences(state: FunState, preferences: BreakPreferenc
 
 export function setDisplayPreferences(state: FunState, preferences: DisplayPreferences): FunState {
   return saveFun({ ...state, displayPreferences: cleanDisplayPreferences(preferences) });
+}
+
+/** Count a finished lesson toward this season's costumes (each lesson once). Lesson progress is untouched. */
+export function recordSeasonLesson(state: FunState, seasonKey: string, missionId: string): FunState {
+  const lessons = cleanSeasonLessons(state.seasonLessons);
+  const existing = lessons[seasonKey] ?? [];
+  if (existing.includes(missionId) || !/^[a-z]{1,20}-\d{4}$/.test(seasonKey) || !/^[a-z0-9-]{1,60}$/.test(missionId)) return state;
+  return saveFun({ ...state, seasonLessons: { ...lessons, [seasonKey]: [...existing, missionId] } });
 }
 
 /** Save a local read-aloud voice preference; signed-in app state also syncs through the account snapshot. */
@@ -317,6 +342,7 @@ export function replaceFun(saved: Partial<FunState>): FunState {
     preferredLearningVoiceId: cleanLearningVoicePreference(saved.preferredLearningVoiceId),
     breakPreferences: cleanBreakPreferences(saved.breakPreferences),
     displayPreferences: cleanDisplayPreferences(saved.displayPreferences),
+    seasonLessons: cleanSeasonLessons(saved.seasonLessons),
     sound: loadFun().sound,
     activity: cleanActivity(saved.activity),
     ...cleanGames(saved),
