@@ -102,7 +102,8 @@ test('a story is read aloud as "friend", never with the child\'s name, so it pla
   const { voiceSentences } = await import('../scripts/voice-sentences');
   const { sentences, spokenText } = await import('./lib/voice');
   const { WHOLE_STONE_OPENING, withName } = await import('./story');
-  const script = `${storyScript(PROLOGUE, 'halloween')} ${withName(WHOLE_STONE_OPENING, null, 'christmas')}`;
+  const { EPILOGUE, CHAPTERS, chapterEnd } = await import('./story');
+  const script = `${storyScript(PROLOGUE, 'halloween')} ${withName(WHOLE_STONE_OPENING, null, 'christmas')} ${storyScript(EPILOGUE)} ${storyScript(chapterEnd(CHAPTERS[3]), 'christmas')}`;
   assert.doesNotMatch(script, /\{name\}/);
   const packed = new Set(voiceSentences().map((entry) => entry.text));
   for (const sentence of sentences(spokenText(script))) assert.ok(packed.has(cleanSentence(sentence)), `in the pack: ${sentence}`);

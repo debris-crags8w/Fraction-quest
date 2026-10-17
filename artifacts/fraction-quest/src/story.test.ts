@@ -3,7 +3,7 @@ import test from 'node:test';
 import { MISSIONS } from './game';
 import { SECRETS } from './riddles';
 import { recordStory, type FunState } from './lib/fun';
-import { CHAPTERS, CHARACTERS, PROLOGUE, PROPS, REACTIONS, STONE_PIECES, STORY_PROBLEMS, WHOLE_STONE_OPENING, chapterFor, lessonCliff, lessonComic, stoneQuestion, storyAsk, storyReaction, withName, type PropTheme } from './story';
+import { CHAPTERS, CHARACTERS, EPILOGUE, PROLOGUE, chapterEnd, PROPS, REACTIONS, STONE_PIECES, STORY_PROBLEMS, WHOLE_STONE_OPENING, chapterFor, lessonCliff, lessonComic, stoneQuestion, storyAsk, storyReaction, withName, type PropTheme } from './story';
 
 const lessonsIn = (unit: number) => MISSIONS.filter((mission) => mission.unit === unit);
 
@@ -76,8 +76,8 @@ test('cliffhangers: each lesson’s own, then the chapter’s at the end', () =>
 });
 
 test('the child’s name goes into the story, with a kind fallback', () => {
-  assert.equal(withName(PROLOGUE[2].text, 'Sam').startsWith('Sam, we need you!'), true);
-  assert.equal(withName(PROLOGUE[2].text, '  ').startsWith('Friend, we need you!'), true);
+  assert.equal(withName(PROLOGUE[PROLOGUE.length - 1].text, 'Sam').startsWith('Sam, we need you!'), true);
+  assert.equal(withName(PROLOGUE[PROLOGUE.length - 1].text, '  ').startsWith('Friend, we need you!'), true);
   assert.equal(withName('No name here.', 'Sam'), 'No name here.');
 });
 
@@ -154,4 +154,30 @@ test('the stone question: the right fraction once, with three mix-ups, for every
     assert.equal(new Set(choices).size, 4);
     assert.equal(choices[correct], `${found}/${STONE_PIECES}`);
   }
+});
+
+test('the storyline holds together: the opening sets up the case and pieces, every chapter ends with a piece and a clue, and the ending pays it off', () => {
+  const opening = PROLOGUE.map((panel) => panel.text).join(' ');
+  assert.match(opening, /15 equal pieces/);
+  assert.match(opening, /glass case/);
+  assert.match(opening, /Numi/);
+  assert.match(opening, /Hoot/);
+  assert.equal(CHAPTERS.length, STONE_PIECES);
+  CHAPTERS.forEach((chapter, index) => {
+    assert.equal(chapter.unit, index + 1);
+    const end = chapterEnd(chapter);
+    assert.equal(end.length, 3);
+    assert.equal(end[0].speaker, chapter.character);
+    assert.match(end[1].text, new RegExp(chapter.clue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  });
+  // The glass case snapped shut in the prologue, so chapters 13 and 14 open it to put the pieces back.
+  assert.match(chapterFor(13)!.cliff, /glass case/);
+  assert.match(chapterFor(14)!.intro[0].text, /glass case/);
+  // Pip crosses the broken bridge in chapter 4; Bolt's machine fixes it for good in chapter 11.
+  assert.match(chapterFor(4)!.done, /still needs new planks/);
+  assert.ok(chapterFor(11)!.cliffs.some((line) => /bridge is fixed/.test(line)));
+  const ending = EPILOGUE.map((panel) => panel.text).join(' ');
+  assert.match(ending, /glows again/);
+  assert.match(ending, /Keeper of the Whole Stone/);
+  assert.ok(EPILOGUE.some((panel) => panel.speaker === 'bolt'), 'Bolt says sorry at the festival');
 });

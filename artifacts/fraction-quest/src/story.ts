@@ -75,12 +75,26 @@ const pick = (label: string, detail: string, speaker: Speaker, reply: string): S
 export const WHOLE_STONE_OPENING =
   '{name}, the Whole Stone glows in the town square before the Fraction Festival. One night, it cracks into 15 equal pieces that scatter across town. Help Numi find every piece and follow the clues to discover who cracked it.';
 
-/** The comic prologue, shown once after the story setup. */
-export const PROLOGUE: [Panel, Panel, Panel] = [
-  say('numi', 'The Fraction Festival is one week away. The Whole Stone glows in the town square.'),
-  say('hoot', 'CRACK! The stone broke into 15 equal pieces, and they flew all over town!'),
-  say('numi', '{name}, we need you! Can you find every piece and find out who cracked it?'),
+/** The comic prologue, shown once after the story setup: who we are, why the stone matters, the crack, the chase. */
+export const PROLOGUE: Panel[] = [
+  say('numi', 'I’m Numi, and this is Hoot. The Fraction Festival is one week away!'),
+  say('hoot', 'The Whole Stone glows in a glass case in the town square. Its light starts the festival.'),
+  say('hoot', 'CRACK! It broke into 15 equal pieces. The case snapped shut, and the pieces flew all over town!'),
+  say('numi', '{name}, we need you! Each friend in town has a piece. Can you find them all and find out who cracked it?'),
 ];
+
+/** The ending, after the last chapter: read it again from the Storybook's finale. */
+export const EPILOGUE: Panel[] = [
+  say('hoot', 'Festival night! All 15 pieces are back. Fifteen fifteenths make one whole, and the stone glows again!'),
+  say('bolt', 'Beep… I am sorry I cracked it. Thank you for helping me fix it.'),
+  say('chomp', 'Okay, okay. Bolt told the truth. That makes him brave.'),
+  say('numi', '{name}, you followed every clue. You are the Keeper of the Whole Stone!'),
+];
+
+/** A finished chapter's ending, to read again: the friend's thanks, the clue it added, and what happens next. */
+export function chapterEnd(chapter: Chapter): Panel[] {
+  return [say(chapter.character, chapter.done), say('hoot', `New clue for your notebook: ${chapter.clue}.`), say('numi', chapter.cliff)];
+}
 
 export const CHAPTERS: Chapter[] = [
   { unit: 1, title: 'The bakery mix-up', character: 'chomp',
@@ -121,7 +135,7 @@ export const CHAPTERS: Chapter[] = [
     cliff: 'Chomp is building a tall tower. Is he hiding something on top?',
     clue: 'Matching teeth marks on the bridge',
     asks: ['Ribbit! Help me plan this one.', 'Equal jumps only. Ready, set, hop!', 'Help me count my hops.'],
-    thanks: 'Ribbit! I landed right on the plank.', done: 'I made it home! One equal jump at a time.',
+    thanks: 'Ribbit! I landed right on the plank.', done: 'I made it home! One equal jump at a time. The bridge still needs new planks, though.',
     card: { title: 'Pip the jump champion', blurb: 'Hops in equal jumps and lands right where he plans.' } },
   { unit: 5, title: 'Chomp’s tower of treats', character: 'chomp',
     intro: [say('chomp', 'Go away! My tower of treats is private!'), say('numi', 'Your tower keeps wobbling, Chomp. The biggest treats go at the bottom.'), say('hoot', 'Equal-size pieces make comparing easier.')],
@@ -207,14 +221,14 @@ export const CHAPTERS: Chapter[] = [
     intro: [say('bea', 'Buzz! The festival garden needs fair plots, and a stone piece is under the flowers!'), say('numi', 'Let’s find the fraction of each area.'), say('hoot', 'Equal areas can have different shapes.')],
     choice: [pick('Plan the garden', 'Make fair plots', 'bea', 'Buzz! A fair garden for all.'), pick('Dig for the piece', 'Find it first', 'chomp', 'I’ll dig gently. Promise!')],
     scenes: ['Each friend gets an equal part of the garden.', 'These plots have fraction sides. How big are they?', 'Let’s mark the garden path in equal steps.', 'Let’s make festival {drink} with the recipe.'],
-    cliffs: ['A bee lands on one flower. The stone piece is right below!', 'Chomp digs gently. Got it!', 'The garden looks fair and beautiful.', 'Bolt finds a lock on the stone’s glass case.'],
-    cliff: 'The stone’s case has a lock with a number code.',
+    cliffs: ['A bee lands on one flower. The stone piece is right below!', 'Chomp digs gently. Got it!', 'The garden looks fair and beautiful.', 'Bolt looks at the glass case. It snapped shut when the stone cracked.'],
+    cliff: 'To put the pieces back, the team must open the glass case. Its lock has a number code.',
     clue: 'The stone’s case is locked',
     asks: ['Buzz! Help me plan this one.', 'My flowers need equal space.', 'Let’s plan the garden.'],
     thanks: 'Buzz! My garden is fair.', done: 'A fair garden for everyone. Buzz buzz!',
     card: { title: 'Bea the gardener', blurb: 'Splits her garden into fair areas, whatever the shape.' } },
   { unit: 14, title: 'The lock code', character: 'bolt',
-    intro: [say('bolt', 'Beep! The stone’s case has a lock. The code uses decimals and percents.'), say('numi', 'Let’s match them to fractions.'), say('hoot', 'Decimals, fractions and percents can name the same amount.')],
+    intro: [say('bolt', 'Beep! The pieces go back in the glass case, but it is locked. The code uses decimals and percents.'), say('numi', 'Let’s match them to fractions.'), say('hoot', 'Decimals, fractions and percents can name the same amount.')],
     choice: [pick('Crack the code', 'Help Bolt', 'bolt', 'Computing… with you.'), pick('Read the clues', 'Check your notebook', 'hoot', 'Every clue we found helps here.')],
     scenes: ['The next dial uses a percent. What fraction is that?', 'Match this decimal to its fraction.', 'Two dials show decimals. Let’s compare.', 'The last part is a story puzzle. Step by step.'],
     cliffs: ['Click! The first dial turns.', 'Click! Another dial done.', 'Click! The case starts to glow.', 'The case opens… but one piece is still missing!'],
