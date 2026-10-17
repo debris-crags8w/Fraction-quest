@@ -38,8 +38,8 @@ export const STONE_PIECES = 15;
    fills them, so a Halloween lesson has pumpkin pies and candy. Only nouns change: never a number or answer. */
 export type PropTheme = 'everyday' | 'halloween';
 export const PROPS: Record<PropTheme, Record<string, string>> = {
-  everyday: { cake: 'cake', cakes: 'cakes', bar: 'snack bar', bars: 'snack bars', snack: 'snack', snacks: 'snacks', drink: 'lemonade', plant: 'sunflower' },
-  halloween: { cake: 'pumpkin pie', cakes: 'pumpkin pies', bar: 'candy bar', bars: 'candy bars', snack: 'candy', snacks: 'candies', drink: 'pumpkin juice', plant: 'pumpkin vine' },
+  everyday: { cake: 'cake', cakes: 'cakes', pie: 'pie', cookies: 'cookies', bar: 'snack bar', bars: 'snack bars', snack: 'snack', snacks: 'snacks', drink: 'lemonade', plant: 'sunflower' },
+  halloween: { cake: 'pumpkin pie', cakes: 'pumpkin pies', pie: 'pumpkin pie', cookies: 'bat cookies', bar: 'candy bar', bars: 'candy bars', snack: 'candy', snacks: 'candies', drink: 'pumpkin juice', plant: 'corn stalk' },
 };
 export const propTheme = (seasonId: string | null | undefined): PropTheme => (seasonId && seasonId in PROPS ? seasonId as PropTheme : 'everyday');
 
@@ -146,11 +146,11 @@ export const CHAPTERS: Chapter[] = [
   { unit: 8, title: 'The secret in the den', character: 'chomp',
     intro: [say('chomp', 'Okay, okay. You found Bolt’s rocket boots. I didn’t crack the stone.'), say('chomp', 'The boots bumped it. Bolt was so scared. I hid them so nobody would blame him.'), say('numi', 'You took the blame to protect your friend, Chomp?')],
     choice: [pick('Thank Chomp', 'That was kind', 'chomp', 'Friends look out for friends.'), pick('Ask Chomp to join', 'Find the rest together', 'chomp', 'Yes! Let’s find the rest together.')],
-    scenes: ['Now take some away. How much is left in my snack jar?', 'Some snacks are cut in different sizes. Can we still add them?', 'Bolt says robots count in tenths. Show me!', 'Hundredths? That’s tiny! Let’s try.', 'Let’s add tenths and hundredths to fix Bolt’s boots.', 'I eat the same small piece of pie every day. How much after a few days?', 'Each friend gets part of a sandwich. How much in all?'],
+    scenes: ['Now take some away. How much is left in my {snack} jar?', 'Some {snacks} are cut in different sizes. Can we still add them?', 'Bolt says robots count in tenths. Show me!', 'Hundredths? That’s tiny! Let’s try.', 'Let’s add tenths and hundredths to fix Bolt’s boots.', 'I eat the same small piece of {pie} every day. How much after a few days?', 'Each friend gets part of a sandwich. How much in all?'],
     cliffs: ['Chomp opens a jar. Inside is a stone piece he was keeping safe!', 'Chomp: “I was saving it to give back. I promise.”', 'Bolt’s boots need fixing before he can say sorry.', 'Bolt’s screen flashes: “Fixing boots…”', 'Bolt is almost ready… but still too scared to talk.', 'The boots whir back to life!', 'Chomp: “Now let’s finish the job. Together.”'],
     cliff: 'Tilly has a race map with three routes. One leads to a stone piece!',
     clue: 'Chomp hid the boots to protect Bolt',
-    asks: ['Let’s count it up together.', 'My snack jar needs your help.', 'Team Chomp is on it!'],
+    asks: ['Let’s count it up together.', 'My {snack} jar needs your help.', 'Team Chomp is on it!'],
     thanks: 'We make a good team!', done: 'I’m on your team now. Mystery half solved!',
     card: { title: 'Chomp the loyal friend', blurb: 'Took the blame to protect a friend. Now he helps everyone.' } },
   { unit: 9, title: 'Tilly’s race map', character: 'tilly',
@@ -166,7 +166,7 @@ export const CHAPTERS: Chapter[] = [
   { unit: 10, title: 'The team picnic', character: 'chomp',
     intro: [say('chomp', 'I packed sandwiches for the whole team. Is it enough?'), say('numi', 'Let’s add and take away to plan the picnic.'), say('hoot', 'Mixed numbers have wholes and a fraction part.')],
     choice: [pick('Plan the food', 'Count the sandwiches', 'chomp', 'Yum. Let’s do it right.'), pick('Save a spot for Bolt', 'Maybe he’ll come', 'numi', 'We saved a sandwich for Bolt. He’s watching from the bushes.')],
-    scenes: ['Pip brought pie cut a different way. Can we add it all?', 'Tilly brought more sandwiches. How many now?', 'I ate some. Oops. How much is left?', 'Let’s share the berries. Everyone gets part of the bowl.', 'Mixing everything is tricky. Let’s work it out.', 'Quick! About how much food is left? Close is fine.'],
+    scenes: ['Pip brought {pie} cut a different way. Can we add it all?', 'Tilly brought more sandwiches. How many now?', 'I ate some. Oops. How much is left?', 'Let’s share the {snacks}. Everyone gets part of the bowl.', 'Mixing everything is tricky. Let’s work it out.', 'Quick! About how much food is left? Close is fine.'],
     cliffs: ['A stone piece is hidden in the picnic basket!', 'Bolt peeks out, then hides again.', 'Bolt’s sandwich is gone. He took it!', 'A note in the basket: “Thank you. I am sorry. — B”', 'Chomp: “He’s almost ready. Give him time.”', 'Bolt’s boots leave tiny sparks on the path.'],
     cliff: 'The sparks lead to Bolt’s workshop. A big machine is humming.',
     clue: 'A sorry note from Bolt',
@@ -186,7 +186,7 @@ export const CHAPTERS: Chapter[] = [
   { unit: 12, title: 'Pip measures the stage', character: 'pip',
     intro: [say('pip', 'The festival stage needs measuring, and I have my ruler!'), say('numi', 'Let’s use fractions of an inch.'), say('hoot', 'Rulers and line plots use fractions too.')],
     choice: [pick('Measure the stage', 'Grab the ruler', 'pip', 'Ribbit! Ready.'), pick('Measure hops', 'Pip wants to practice', 'pip', 'Every hop counts!')],
-    scenes: ['Two boards go end to end. How long together?', 'Read my ruler carefully. Where does it end?', 'Let’s put all my hops on a line plot.', 'What does the line plot tell us?', 'Let’s even out the pieces so they match.', 'Bea sent a measuring puzzle. Ready?', 'Inches and feet are mixed up. Help?', 'Let’s share the ribbon fairly for the stage.', 'Split the cookies for the stage crew.'],
+    scenes: ['Two boards go end to end. How long together?', 'Read my ruler carefully. Where does it end?', 'Let’s put all my hops on a line plot.', 'What does the line plot tell us?', 'Let’s even out the pieces so they match.', 'Bea sent a measuring puzzle. Ready?', 'Inches and feet are mixed up. Help?', 'Let’s share the ribbon fairly for the stage.', 'Split the {cookies} for the stage crew.'],
     cliffs: ['Under the stage floor, something glows.', 'It’s a stone piece, stuck in a crack!', 'Pip wiggles the stone piece free!', 'The stage is almost ready.', 'Bea buzzes by: “The garden still isn’t fair!”', 'Chomp and Bolt carry boards together.', 'Tilly checks every board twice.', 'The stage lights flicker on.', 'The crew cheers for the new stage.'],
     cliff: 'Bea’s festival garden needs fair plots before tomorrow.',
     clue: 'The festival stage is ready',
@@ -196,7 +196,7 @@ export const CHAPTERS: Chapter[] = [
   { unit: 13, title: 'Bea’s festival garden', character: 'bea',
     intro: [say('bea', 'Buzz! The festival garden needs fair plots, and a stone piece is under the flowers!'), say('numi', 'Let’s find the fraction of each area.'), say('hoot', 'Equal areas can have different shapes.')],
     choice: [pick('Plan the garden', 'Make fair plots', 'bea', 'Buzz! A fair garden for all.'), pick('Dig for the piece', 'Find it first', 'chomp', 'I’ll dig gently. Promise!')],
-    scenes: ['Each friend gets an equal part of the garden.', 'These plots have fraction sides. How big are they?', 'Let’s mark the garden path in equal steps.', 'Let’s make festival lemonade with the recipe.'],
+    scenes: ['Each friend gets an equal part of the garden.', 'These plots have fraction sides. How big are they?', 'Let’s mark the garden path in equal steps.', 'Let’s make festival {drink} with the recipe.'],
     cliffs: ['A bee lands on one flower. The stone piece is right below!', 'Chomp digs gently. Got it!', 'The garden looks fair and beautiful.', 'Bolt finds a lock on the stone’s glass case.'],
     cliff: 'The stone’s case has a lock with a number code.',
     clue: 'The stone’s case is locked',
@@ -290,7 +290,7 @@ export const STORY_PROBLEMS: Record<string, StoryProblem> = {
   'benchmark-half': { setup: 'I packed a drink for the climb. Do I have enough?',
     prompt: 'Tilly’s jug of {drink} is 6/10 full. Is that more or less than half?',
     result: 'More than half a jug! Tilly has plenty of {drink} for the climb.' },
-  'benchmarks-zero-one': { setup: 'Look at this {plant} by the trail. Is it almost as tall as a meter stick?',
+  'benchmarks-zero-one': { setup: 'Look at this tall {plant} by the trail. Is it almost as tall as a meter stick?',
     prompt: 'A {plant} on the hill grew 9/10 of a meter. Is that near 0 or 1 meter?',
     result: 'Almost 1 meter! Tilly uses the tall {plant} as a landmark.' },
   'fraction-magnitude': { setup: 'I climb in little steps. Each one is a tenth of the path.',

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MISSIONS } from './game';
+import { SECRETS } from './riddles';
 import { recordStory, type FunState } from './lib/fun';
 import { CHAPTERS, CHARACTERS, PROLOGUE, PROPS, REACTIONS, STONE_PIECES, STORY_PROBLEMS, chapterFor, lessonCliff, lessonComic, stoneQuestion, storyAsk, storyReaction, withName, type PropTheme } from './story';
 
@@ -98,6 +99,7 @@ const everyStoryLine = () => [
     ...chapter.scenes, ...chapter.cliffs, ...chapter.asks, ...chapter.intro.map((panel) => panel.text),
     ...chapter.choice.flatMap((option) => [option.label, option.detail, option.reply.text])]),
   ...Object.values(STORY_PROBLEMS).flatMap((problem) => [problem.setup, problem.prompt, problem.result, ...(problem.choices ?? [])]),
+  ...SECRETS,
 ];
 
 test('seasonal props fill every blank in every theme, and only nouns change', () => {

@@ -1,5 +1,7 @@
 import { StoryCharacter } from './characters';
 import { dailySecret, lanternWeek, riddleReaction, riddleSetup } from './riddles';
+import { withName } from './story';
+import { useStoryTheme } from './story-ui';
 import type { DayActivity } from './lib/fun';
 
 /** Hoot's lantern: lit for a night with a right answer, dashed for tonight while it waits. */
@@ -46,10 +48,11 @@ export function RiddleSetup({ index, total, result = null }: { index: number; to
 
 /** The prize for finishing today's riddles: Chomp's secret of the day. */
 export function RiddleSecret() {
+  const theme = useStoryTheme();
   return (
     <div className="fq-riddle-secret" data-testid="riddle-secret">
       <StoryCharacter id="chomp" size={64} happy />
-      <p><b>Chomp:</b> You solved all my riddles! Okay, okay. Here’s today’s secret: <span>{dailySecret()}</span></p>
+      <p><b>Chomp:</b> You solved all my riddles! Okay, okay. Here’s today’s secret: <span>{withName(dailySecret(), null, theme)}</span></p>
     </div>
   );
 }
