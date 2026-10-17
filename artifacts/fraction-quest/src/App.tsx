@@ -53,6 +53,7 @@ import { CandyIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPat
 import { activeSeason } from './seasons';
 import { CHAPTERS, PROLOGUE, chapterFor, lessonComic } from './story';
 import { ChapterTag, StoneBanner, StoryCardsView, StoryComicView, StoryPayoff, StorySay } from './story-ui';
+import { LanternIcon } from './riddle-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
 import PaperCheck from './PaperCheck';
@@ -415,6 +416,7 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
   const lessonsDone = MISSIONS.filter(item => hasLearningGate(progress, item.id)).length;
   const { fun, setFun } = useFun();
   const streak = shownStreak(fun);
+  const storyOn = fun.displayPreferences?.storyMode !== false;
   const { season } = useSeason();
   const points = season?.points ?? 'points';
   const account = useAccount();
@@ -433,8 +435,10 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
           <div className="fq-fun-stats">
             {/* Each symbol is a button: tap it to read what it means. */}
             <StatTip testId="button-tip-streak" label={`Day streak: ${streak}. What is this?`}
-              tip={streak > 0 ? <><strong>{streak} {streak === 1 ? 'day' : 'days'} in a row!</strong> Get one answer right each day to keep your streak going.</> : <><strong>Day streak.</strong> Get one answer right today to start a streak!</>}>
-              <span className="fq-stat fq-stat-streak" data-testid="status-day-streak"><Flame size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{streak}</strong><span className="fq-sr">day streak</span></span>
+              tip={storyOn
+                ? <><strong>Hoot’s lantern: {streak} {streak === 1 ? 'night' : 'nights'} in a row.</strong> This is your streak. Get one answer right each day to keep it glowing.</>
+                : streak > 0 ? <><strong>{streak} {streak === 1 ? 'day' : 'days'} in a row!</strong> Get one answer right each day to keep your streak going.</> : <><strong>Day streak.</strong> Get one answer right today to start a streak!</>}>
+              <span className="fq-stat fq-stat-streak" data-testid="status-day-streak">{storyOn ? <LanternIcon lit={streak > 0} size={20} /> : <Flame size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" />}<strong>{streak}</strong><span className="fq-sr">day streak</span></span>
             </StatTip>
             <StatTip testId="button-tip-xp" label={`${fun.xp} ${points}. What is this?`}
               tip={<><strong>{fun.xp} {points}!</strong> You get 10 {points} for every right answer.</>}>
@@ -524,7 +528,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
       sections={[
         { title: 'Practice', items: [
           { id: 'daily', icon: <Sparkles size={18} />, label: 'Daily practice', testId: 'button-start-daily-practice', onSelect: onStartDaily, waiting: !dailyDone,
-            note: dailyDone ? 'Done for today. Review it anytime.' : today ? `Pick up where you left off: ${today.index + 1} of ${today.questions.length}` : 'Five quick questions, about 5 minutes' },
+            note: dailyDone ? 'Done for today. Review it anytime.' : today ? `Pick up where you left off: ${today.index + 1} of ${today.questions.length}` : storyOn ? 'Chomp’s five riddles, about 5 minutes' : 'Five quick questions, about 5 minutes' },
           ...(dueReviews > 0 ? [{ id: 'review', icon: <RotateCcw size={18} />, label: 'Quick skill review', testId: 'button-start-due-review', onSelect: onStartReview, waiting: true,
             note: `${dueReviews} ${dueReviews === 1 ? 'skill is' : 'skills are'} ready for a short retry` }] : []),
         ] },
