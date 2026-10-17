@@ -2611,3 +2611,47 @@ test('the hint bulb always shows its help: it scrolls the hint into view, and af
   await page.getByTestId('button-show-hint').click();
   await expect(page.getByTestId('status-remediation')).toBeInViewport();
 });
+
+test('Story mode: daily practice is Chomp’s riddles with a secret of the day, and the streak is Hoot’s lantern', async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2026, 2, 10, 10, 0, 0));
+  const question = {
+    id: 'daily-bar-one-fourth', missionId: 'equal-parts', topicTitle: 'Equal parts', modelKind: 'bar',
+    numerator: 1, denominator: 4, explanation: 'One of four equal parts is one fourth.', kind: 'build',
+  };
+  await page.addInitScript((q) => {
+    if (localStorage.getItem('riddle-test-seeded')) return;
+    localStorage.setItem('riddle-test-seeded', '1');
+    const start = new Date(2026, 2, 10, 9, 0, 0).getTime();
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: [], starsByMission: {}, reviewQueue: [],
+      dailyPractice: { day: '2026-03-10', startedAt: start, questions: [q], index: 0, attempts: {} } }));
+    localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 30, sound: false, day: '2026-03-10', answeredToday: 2, dayStreak: 2, lastActiveDay: '2026-03-10',
+      breakPreferences: { intervalMinutes: 0, quietMode: false },
+      activity: { '2026-03-10': { minutes: 4, answered: 2 }, '2026-03-09': { minutes: 6, answered: 3 } } }));
+  }, question);
+  await openAsGuest(page);
+
+  // The streak is Hoot's lantern.
+  await page.getByTestId('button-tip-streak').click();
+  await expect(page.getByTestId('button-tip-streak-tip')).toContainText('Hoot’s lantern: 2 nights in a row.');
+  await page.getByTestId('button-tip-streak').click();
+
+  // Chomp sets up each question, with words only.
+  await openMenuItem(page, 'button-start-daily-practice');
+  await expect(page.locator('.fq-taskbar-title')).toContainText('Daily practice · Chomp’s riddles');
+  await expect(page.getByTestId('riddle-setup')).toContainText('Last riddle!');
+
+  // Finishing earns the secret of the day and shows the lantern week.
+  await page.evaluate(() => {
+    const key = 'fraction-quest-progress-v1:guest';
+    const progress = JSON.parse(localStorage.getItem(key) ?? '{}');
+    progress.dailyPractice.completedAt = Date.now();
+    localStorage.setItem(key, JSON.stringify(progress));
+  });
+  await page.reload();
+  await openMenuItem(page, 'button-start-daily-practice');
+  await expect(page.getByTestId('riddle-secret')).toContainText('Here’s today’s secret:');
+  const week = page.getByTestId('lantern-week');
+  await expect(week).toContainText('Hoot’s lantern · 2 nights in a row');
+  await expect(week.locator('li[data-lit="true"]')).toHaveCount(2);
+  await expect(week.locator('li').last()).toContainText('Today');
+});

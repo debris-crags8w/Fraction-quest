@@ -12,7 +12,8 @@ import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { TaskBar } from './TaskBar';
 import { LiveFraction } from './fraction-ui';
 import { useRevealWhen, useScrollTopOn } from './lib/reveal';
-import { playHaptic } from './lib/fun';
+import { playHaptic, shownStreak } from './lib/fun';
+import { LanternWeek, RiddleSecret, RiddleSetup } from './riddle-ui';
 
 /** Arrow keys move through a radio group and choose (the usual radio-button pattern). */
 function radioArrows(event: KeyboardEvent<HTMLDivElement>) {
@@ -68,7 +69,10 @@ export default function DailyPractice({
   useRevealWhen(nextRef, !!current?.answerCorrect);
   useRevealWhen(checkRef, !current?.answerCorrect && (current?.choice !== undefined || (!!current?.parts && (current?.shaded.length ?? 0) > 0)));
   // A missed topic question: Hoot names the slip when it can (else the hint), and it is read aloud with sound on.
-  const sound = useOptionalFun()?.fun.sound ?? true;
+  const fun = useOptionalFun()?.fun;
+  const sound = fun?.sound ?? true;
+  // With story mode on, daily practice is Chomp's daily riddles, and the streak is Hoot's lantern.
+  const storyOn = fun?.displayPreferences?.storyMode !== false;
   const missed = !!topicQuestion && !!current?.answerChecked && !current.answerCorrect && current.choice !== undefined;
   const missText = missed ? wrongChoiceReason(topicQuestion!.prompt, topicQuestion!.choices, topicQuestion!.correctChoice, current!.choice!) ?? topicQuestion!.hint : '';
   const missOpener = question ? retryOpener(`${question.id}:${current?.choice ?? ''}`) : '';
@@ -81,7 +85,8 @@ export default function DailyPractice({
             <div className="fq-daily-spark"><Check size={30} aria-hidden="true" /></div>
             <p className="fq-eyebrow">Today’s fraction practice</p>
             <h1 id="daily-done-title">You made it through today’s practice!</h1>
-            <p>You finished today’s practice. Great work!</p>
+            {storyOn ? <RiddleSecret /> : <p>You finished today’s practice. Great work!</p>}
+            {storyOn && fun && <LanternWeek activity={fun.activity} streak={shownStreak(fun)} />}
             <button className="fq-button" onClick={onBack} data-testid="button-daily-done-map">Back to the learning map</button>
           </section>
         </main>
@@ -268,8 +273,9 @@ export default function DailyPractice({
     return (
       <div className="fq-app">
         <main className="fq-shell fq-daily-shell">
-          <TaskBar onBack={onBack} backLabel="Map" testId="button-daily-back" title={<><Sparkles size={16} aria-hidden="true" /> Daily practice</>} step={session.index + 1} total={session.questions.length} done={session.index + (session.attempts[question!.id]?.answerCorrect ? 1 : 0)} />
+          <TaskBar onBack={onBack} backLabel="Map" testId="button-daily-back" title={<><Sparkles size={16} aria-hidden="true" /> Daily practice{storyOn ? ' · Chomp’s riddles' : ''}</>} step={session.index + 1} total={session.questions.length} done={session.index + (session.attempts[question!.id]?.answerCorrect ? 1 : 0)} />
           <section className="fq-daily-card" aria-labelledby="daily-question-title">
+            {storyOn && <RiddleSetup index={session.index} total={session.questions.length} />}
             <div className="fq-daily-topic">A little review · {question!.topicTitle}</div>
             {/* The grown-up reason is kept for the progress report; the child sees a short, kind label. */}
             {question!.reteachLoop

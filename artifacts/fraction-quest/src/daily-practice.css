@@ -92,3 +92,17 @@
 /* A–D letters, like lesson questions. */
 .fq-daily-choice { display: flex; align-items: center; gap: 12px; }
 .fq-daily-choice.selected .fq-choice-marker { color: hsl(var(--card)); background: hsl(var(--foreground)); }
+
+/* Chomp's daily riddles and Hoot's lantern (story mode). */
+.fq-riddle-setup { margin: 0 0 10px; }
+.fq-riddle-secret { display: flex; align-items: center; gap: 12px; margin: 6px 0 12px; padding: 12px 14px; border-radius: 16px; color: #2B2D42; background: #FFF6D6; border: 2px dashed #E0B84A; text-align: left; }
+.fq-riddle-secret > svg { flex: none; }
+.fq-riddle-secret p { margin: 0; line-height: 1.4; }
+.fq-riddle-secret span { display: block; margin-top: 4px; font-weight: 700; }
+.fq-lantern-week { margin: 0 0 14px; padding: 14px; border-radius: 16px; color: #fff; background: #2B2D42; text-align: left; }
+.fq-lantern-week h2 { margin: 0 0 2px; color: #FFE27A; font-size: 1rem; }
+.fq-lantern-week p { margin: 0 0 10px; color: #D8D9EA; font-size: .9rem; }
+.fq-lantern-week ol { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; text-align: center; }
+.fq-lantern-week li { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: .72rem; font-weight: 700; color: #D8D9EA; }
+.fq-lantern-week li.today { color: #FFE27A; }
+.fq-stat-streak .fq-lantern { margin-right: 2px; }
