@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
-import { ArrowDown, ArrowLeft, ArrowUp, ListOrdered, Printer, RotateCcw, Scale, Shuffle, Waypoints } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, ListOrdered, Printer, Rabbit, RotateCcw, Scale, Shuffle, Waypoints } from 'lucide-react';
+import FrogHop from './FrogHop';
 import './concept-games.css';
 import { areEquivalent, compareFractions, LINE_UP_ROUNDS, lineUpHint, lineUpInOrder, lineUpRound, targetTick, WAR_PARTS, WAR_ROUNDS, warHint, type LineUpMode } from './concept-games';
 import { printPage } from './lib/print';
@@ -343,7 +344,7 @@ function CenterPack() {
   </section>;
 }
 
-type Section = 'war' | 'match' | 'line' | 'lineup' | 'pack';
+type Section = 'war' | 'match' | 'line' | 'lineup' | 'frog' | 'pack';
 type Card = { id: string; title: string; blurb: string; icon: typeof Scale; testId: string; kicker: string; onOpen: () => void; tone?: string };
 /** Lesson games (Fraction Race, coding) open with the child's current lesson; they also stay on each lesson. */
 export type LessonGame = { id: 'race' | 'code'; title: string; blurb: string; icon: typeof Scale; lessonTitle: string; onOpen: () => void };
@@ -352,6 +353,7 @@ const WORKSHOP: { id: Section; title: string; blurb: string; icon: typeof Scale;
   { id: 'match', title: 'Equivalence Match', blurb: 'Find pairs that show the same amount.', icon: Shuffle, testId: 'link-game-match' },
   { id: 'line', title: 'Number Line Target', blurb: 'Split the line and land on the fraction.', icon: Waypoints, testId: 'link-game-number-line' },
   { id: 'lineup', title: 'Fraction Line-Up', blurb: 'Drag fractions into order, smallest or biggest first.', icon: ListOrdered, testId: 'link-game-lineup' },
+  { id: 'frog', title: 'Frog Hop', blurb: 'Hop by fractions to land on the lily pad. Watch for the crocodile!', icon: Rabbit, testId: 'link-game-frog' },
   { id: 'pack', title: 'Print center pack', blurb: 'Hands-on activities to do on paper.', icon: Printer, testId: 'link-game-print-pack' },
 ];
 
@@ -381,6 +383,7 @@ export default function ConceptGames({ onExit, lessonGames = [] }: { onExit: () 
         {open.id === 'match' && <EquivalenceMatch />}
         {open.id === 'line' && <NumberLineTarget />}
         {open.id === 'lineup' && <FractionLineUp />}
+        {open.id === 'frog' && <FrogHop />}
         {open.id === 'pack' && <CenterPack />}
       </div>
       {open.id === 'pack' && <style>{`@media print { body * { visibility: hidden !important; } #fraction-center-pack, #fraction-center-pack * { visibility: visible !important; } #fraction-center-pack { position: absolute; inset: 0 auto auto 0; width: 100%; } }`}</style>}
