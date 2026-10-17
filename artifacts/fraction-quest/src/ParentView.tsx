@@ -65,6 +65,10 @@ function DisplaySettings({ preferences, onChange }: { preferences: DisplayPrefer
         <span><strong>Reduce motion</strong><small>Use fewer animations and transitions.</small></span>
         <input type="checkbox" checked={preferences.reducedMotion} onChange={(event) => onChange({ ...preferences, reducedMotion: event.target.checked })} />
       </label>
+      <label className="fq-display-setting">
+        <span><strong>Seasonal themes</strong><small>Dress the app up for holidays like Halloween. Lessons and answers stay the same.</small></span>
+        <input type="checkbox" checked={preferences.seasonalThemes !== false} onChange={(event) => onChange({ ...preferences, seasonalThemes: event.target.checked })} data-testid="checkbox-seasonal-themes" />
+      </label>
     </section>
   );
 }

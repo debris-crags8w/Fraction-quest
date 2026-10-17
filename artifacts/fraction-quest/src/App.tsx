@@ -45,11 +45,12 @@ import { getWorksheet } from './learning-content';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requiredBuildChecks, resetUnitLearningProgress, worksheetCount, startRedo, updateLearning, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
+import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSeasonLesson, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
-import { Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, StoryPrompt, TapModel, unitColor, useFun, type PathNode } from './fun-ui';
+import { CandyIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
+import { activeSeason } from './seasons';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
 import PaperCheck from './PaperCheck';
@@ -406,6 +407,8 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
   const lessonsDone = MISSIONS.filter(item => hasLearningGate(progress, item.id)).length;
   const { fun, setFun } = useFun();
   const streak = shownStreak(fun);
+  const { season } = useSeason();
+  const points = season?.points ?? 'points';
   const account = useAccount();
   const [signingOut, setSigningOut] = useState(false);
   const syncLabel = account.user
@@ -425,9 +428,9 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
               tip={streak > 0 ? <><strong>{streak} {streak === 1 ? 'day' : 'days'} in a row!</strong> Get one answer right each day to keep your streak going.</> : <><strong>Day streak.</strong> Get one answer right today to start a streak!</>}>
               <span className="fq-stat fq-stat-streak" data-testid="status-day-streak"><Flame size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{streak}</strong><span className="fq-sr">day streak</span></span>
             </StatTip>
-            <StatTip testId="button-tip-xp" label={`${fun.xp} points. What is this?`}
-              tip={<><strong>{fun.xp} points!</strong> You get 10 points for every right answer.</>}>
-              <span className="fq-stat fq-stat-xp" data-testid="status-xp"><Zap size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" /><strong>{fun.xp}</strong><span className="fq-stat-unit">XP</span></span>
+            <StatTip testId="button-tip-xp" label={`${fun.xp} ${points}. What is this?`}
+              tip={<><strong>{fun.xp} {points}!</strong> You get 10 {points} for every right answer.</>}>
+              <span className="fq-stat fq-stat-xp" data-testid="status-xp">{season ? <CandyIcon /> : <Zap size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" />}<strong>{fun.xp}</strong><span className="fq-stat-unit">{season ? points : 'XP'}</span></span>
             </StatTip>
             <StatTip testId="button-tip-daily" label={`Today's goal: ${Math.min(fun.answeredToday, DAILY_GOAL)} of ${DAILY_GOAL}. What is this?`}
               tip={fun.answeredToday >= DAILY_GOAL ? <><strong>Today's goal is done!</strong> You got {DAILY_GOAL} answers right today.</> : <><strong>Today's goal: {fun.answeredToday} of {DAILY_GOAL}.</strong> Each slice fills in when you get an answer right.</>}>
@@ -538,7 +541,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
   );
 
   return (
-    <div className="fq-app">
+    <div className="fq-app fq-map-app">
       <Topbar progress={progress} onReset={onReset} onHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })} menu={menu} />
       <main className="fq-shell">
         <section className="fq-map fq-course-map" aria-labelledby="course-title">
@@ -552,6 +555,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
               </p>
             </div>
           </div>
+          <SeasonBanner />
           {assignedUnits.length > 0 && <p className="fq-assigned-units" role="note" data-testid="text-assigned-units">
             Your teacher suggested: {assignedUnits.map((unit) => `Unit ${unit}: ${UNIT_TITLES[unit - 1]}`).join(' · ')}.
             These suggestions do not change which lessons are unlocked.
@@ -954,6 +958,7 @@ function PlayView({
             {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
             {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
           </p>}
+          {question && !showExample && <SeasonSay kind={question.model.kind} id={question.id} />}
           {showExample
             ? <h1 id="lesson-title">{mission.title}</h1>
             : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
@@ -1077,6 +1082,7 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
   const following = MISSIONS[MISSIONS.findIndex((item) => item.id === mission.id) + 1];
   const nextLessonOpen = !following || isMissionUnlocked(progress, following.id);
   const { fun } = useFun();
+  const { season } = useSeason();
   useEffect(() => {
     playCue('complete', fun.sound);
     const timers = Array.from({ length: stars }, (_, index) => window.setTimeout(() => playCue('star', fun.sound), 700 + index * 380));
@@ -1091,8 +1097,9 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
         <section className="fq-reward fq-appear" data-testid="status-mission-complete">
           <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
-          <h1>{mission.title}<br />is on your map.</h1>
+          <h1>{season?.id === 'halloween' && <>Spooky good!<br /></>}{mission.title}<br />is on your map.</h1>
            <p>You built it two ways, explained it, and finished the worksheet. {nextLessonOpen ? 'The next lesson is open!' : 'Finish the other lessons in this unit to open the next unit.'}</p>
+          <SeasonReward missionId={mission.id} />
           <div className="fq-reward-stars" data-testid="status-mission-stars" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}
@@ -1192,8 +1199,11 @@ function Game() {
     root.dataset.fqTextSize = preferences.textSize;
     root.classList.toggle('fq-high-contrast', preferences.highContrast);
     root.classList.toggle('fq-reduced-motion', preferences.reducedMotion);
+    const season = activeSeason(fun);
+    if (season) root.dataset.fqSeason = season.id; else delete root.dataset.fqSeason;
     return () => {
       delete root.dataset.fqTextSize;
+      delete root.dataset.fqSeason;
       root.classList.remove('fq-high-contrast', 'fq-reduced-motion');
     };
   }, [fun.displayPreferences]);
@@ -1295,6 +1305,8 @@ function Game() {
     const nextProgress = completeMission(progress, missionId, stars);
     if (!hasLearningGate(nextProgress, missionId)) return;
     persistProgress(nextProgress);
+    const season = activeSeason(fun);
+    if (season) setFun((current) => recordSeasonLesson(current, season.key, missionId));
     setView({ type: 'reward', missionId, stars: nextProgress.starsByMission[missionId] ?? stars });
     if (breakIntervalMinutes > 0) setBreakReason('lesson-part');
   };

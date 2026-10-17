@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { crocodileLimit, fliesFor, FROG_ROUNDS, frogRound, hop, parHops, positionName, type FrogCard } from './frog-hop';
 import { playHaptic } from './lib/fun';
+import { useSeason } from './fun-ui';
 
 const newSeed = () => 1 + Math.floor(Math.random() * 100000);
 
@@ -10,15 +11,16 @@ function Fraction({ n, d }: FrogCard) {
 }
 
 /** A small frog. It squashes and leaps when `hopKey` changes. */
-function Frog({ hopKey, splash }: { hopKey: number; splash: boolean }) {
+function Frog({ hopKey, splash, hat = false }: { hopKey: number; splash: boolean; hat?: boolean }) {
   return (
-    <svg key={hopKey} className={`fh-frog ${hopKey ? 'is-hopping' : ''} ${splash ? 'is-splash' : ''}`} viewBox="0 0 60 50" aria-hidden="true">
+    <svg key={hopKey} className={`fh-frog ${hopKey ? 'is-hopping' : ''} ${splash ? 'is-splash' : ''}`} viewBox={hat ? '0 -14 60 64' : '0 0 60 50'} aria-hidden="true">
       <ellipse cx="30" cy="34" rx="22" ry="14" fill="#3FAE2A" />
       <circle cx="19" cy="18" r="9" fill="#3FAE2A" /><circle cx="41" cy="18" r="9" fill="#3FAE2A" />
       <circle cx="19" cy="17" r="5.5" fill="#fff" /><circle cx="41" cy="17" r="5.5" fill="#fff" />
       <circle cx="20" cy="17" r="3" fill="#2B2D42" /><circle cx="42" cy="17" r="3" fill="#2B2D42" />
       <path d="M21 36 Q30 43 39 36" stroke="#1E6B12" strokeWidth="2.5" fill="none" strokeLinecap="round" />
       <ellipse cx="12" cy="45" rx="7" ry="3" fill="#2E8B1E" /><ellipse cx="48" cy="45" rx="7" ry="3" fill="#2E8B1E" />
+      {hat && <g><path d="M21 9 L31 -13 L39 9 Z" fill="#2B1B4D" /><rect x="15" y="7" width="30" height="5" rx="2.5" fill="#2B1B4D" /><rect x="23" y="4" width="15" height="3.5" fill="#FF8A1F" /></g>}
     </svg>
   );
 }
@@ -50,6 +52,9 @@ export default function FrogHop() {
   const [landed, setLanded] = useState(false);
   const [caught, setCaught] = useState(false);
   const [flies, setFlies] = useState(0);
+  // At Halloween the pond is a moonlit swamp and the frog catches fireflies.
+  const halloween = useSeason().season?.id === 'halloween';
+  const bugs = halloween ? 'fireflies' : 'flies';
   const done = roundIndex >= FROG_ROUNDS;
   const round = frogRound(seed, Math.min(roundIndex, FROG_ROUNDS - 1));
   const par = parHops(round);
@@ -90,9 +95,9 @@ export default function FrogHop() {
 
   if (done) {
     return <section className="cg-game" aria-labelledby="frog-title">
-      <div className="cg-game-heading"><span className="cg-index">Game 5 · Hop to the goal</span><span className="cg-score" data-testid="status-frog-flies">Flies · {flies}/{FROG_ROUNDS * 3}</span></div>
+      <div className="cg-game-heading"><span className="cg-index">Game 5 · Hop to the goal</span><span className="cg-score" data-testid="status-frog-flies">{halloween ? 'Fireflies' : 'Flies'} · {flies}/{FROG_ROUNDS * 3}</span></div>
       <h2 id="frog-title">Pond complete!</h2>
-      <p className="cg-feedback success" role="status" data-testid="status-frog-done">You caught {flies} of {FROG_ROUNDS * 3} flies.</p>
+      <p className="cg-feedback success" role="status" data-testid="status-frog-done">You caught {flies} of {FROG_ROUNDS * 3} {bugs}.</p>
       <div className="cg-actions"><button type="button" className="cg-primary" onClick={replay} data-testid="button-frog-again">Play again</button></div>
     </section>;
   }
@@ -101,12 +106,12 @@ export default function FrogHop() {
   return <section className="cg-game" aria-labelledby="frog-title">
     <div className="cg-game-heading">
       <span className="cg-index">Round {roundIndex + 1} of {FROG_ROUNDS} · Hops {hops}</span>
-      <span className="cg-score" data-testid="status-frog-flies">Flies · {flies}</span>
+      <span className="cg-score" data-testid="status-frog-flies">{halloween ? 'Fireflies' : 'Flies'} · {flies}</span>
     </div>
     <h2 id="frog-title">Land on <span className="fh-goal-name"><Fraction n={round.goal / gcd(round.goal, round.denominator)} d={round.denominator / gcd(round.goal, round.denominator)} /></span>{round.goal > round.denominator ? <small className="fh-goal-mixed"> ({goalName})</small> : null}</h2>
     <p className="cg-instruction">Pick a jump card, then press Hop. Land exactly on the lily pad in as few hops as you can.</p>
 
-    <div className="fh-pond" data-testid="frog-pond" data-goal={round.goal} data-denominator={round.denominator} data-wholes={round.wholes} aria-label={`Number line from 0 to ${round.wholes}. Goal at ${goalName}. Frog at ${positionName(position, round.denominator)}.`} role="img">
+    <div className={`fh-pond ${halloween ? 'is-halloween' : ''}`} data-testid="frog-pond" data-goal={round.goal} data-denominator={round.denominator} data-wholes={round.wholes} aria-label={`Number line from 0 to ${round.wholes}. Goal at ${goalName}. Frog at ${positionName(position, round.denominator)}.`} role="img">
       <div className="fh-water" aria-hidden="true">
         {/* The crocodile closes in on the frog with every hop that doesn't land. */}
         <span className={`fh-croc ${caught ? 'is-snap' : ''}`} style={{ left: `min(calc(${Math.min(100, (position / end) * 100 + (crocAway / limit) * 70)}% + 14px), calc(100% - 44px))` }}>🐊</span>
@@ -120,7 +125,7 @@ export default function FrogHop() {
         {trail && <span className={`fh-trail ${splash ? 'is-splash' : ''}`} style={{ left: at(Math.min(trail.from, trail.to)), width: at(Math.abs(trail.to - trail.from)) }} />}
         <span className={`fh-pad ${landed ? 'is-landed' : ''}`} style={{ left: at(round.goal) }} data-testid="frog-goal" />
         <span className="fh-frog-spot" style={{ left: at(position) }} data-testid="frog-position" data-steps={position}>
-          <Frog hopKey={hops} splash={splash} />
+          <Frog hopKey={hops} splash={splash} hat={halloween} />
         </span>
       </div>
     </div>
@@ -134,7 +139,7 @@ export default function FrogHop() {
     </div>
 
     {message && <p className={`cg-feedback ${landed ? 'success' : caught || splash ? 'retry' : ''}`} role="status" aria-live="polite" data-testid="status-frog-feedback">{message}</p>}
-    {landed && <p className="fh-flies" aria-label={`${fliesFor(hops, par)} flies`} data-testid="status-frog-round-flies">{'🪰'.repeat(fliesFor(hops, par))}</p>}
+    {landed && <p className="fh-flies" aria-label={`${fliesFor(hops, par)} ${bugs}`} data-testid="status-frog-round-flies">{(halloween ? '✨' : '🪰').repeat(fliesFor(hops, par))}</p>}
 
     <div className="cg-actions">
       {landed

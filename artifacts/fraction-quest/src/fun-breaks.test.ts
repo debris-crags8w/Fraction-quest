@@ -32,7 +32,7 @@ test('reading preferences are stored without changing learner rewards', () => {
     activity: { '2026-10-11': { minutes: 12, answered: 8 } },
   };
   const updated = setDisplayPreferences(state, { textSize: 'large', highContrast: true, reducedMotion: true });
-  assert.deepEqual(updated.displayPreferences, { textSize: 'large', highContrast: true, reducedMotion: true });
+  assert.deepEqual(updated.displayPreferences, { textSize: 'large', highContrast: true, reducedMotion: true, seasonalThemes: true });
   assert.equal(updated.xp, state.xp);
   assert.equal(updated.answeredToday, state.answeredToday);
   assert.equal(updated.dayStreak, state.dayStreak);

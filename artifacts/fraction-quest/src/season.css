@@ -1,0 +1,124 @@
+/* Seasonal themes. Everything here hangs off :root[data-fq-season], set only while a theme is on, and the
+   night look stays off under high contrast. Models, answers and cards keep their normal light colors. */
+
+:root[data-fq-season="halloween"] {
+  --fq-night: #1E1838;
+  --fq-night-2: #2D2257;
+  --fq-night-edge: #4A3D84;
+  --fq-moon: #FFF1B8;
+  --fq-pumpkin: #FF8A1F;
+  --fq-pumpkin-dark: #B95300;
+  --fq-night-text: #FFF6E5;
+  --fq-night-muted: #D9CFF5;
+}
+
+/* ---------- the map at night ---------- */
+
+:root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-map-app {
+  background:
+    radial-gradient(circle at calc(100% - 64px) 150px, var(--fq-moon) 0 30px, transparent 31px),
+    radial-gradient(circle at 12% 18%, #fff 0 1.5px, transparent 2px),
+    radial-gradient(circle at 34% 6%, #fff 0 1.2px, transparent 2px),
+    radial-gradient(circle at 64% 14%, #fff 0 1.5px, transparent 2px),
+    radial-gradient(circle at 8% 52%, #fff 0 1.2px, transparent 2px),
+    radial-gradient(circle at 94% 40%, #fff 0 1.5px, transparent 2px),
+    var(--fq-night);
+  color: var(--fq-night-text);
+}
+:root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-map-app :is(.fq-brand, .fq-section-heading h1, .fq-unit-heading h3, .fq-account-name strong) { color: var(--fq-night-text); }
+:root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-map-app :is(.fq-section-heading p, .fq-unit-heading p, .fq-account-name small, .fq-place-note, .fq-assigned-units, .fq-chest-label, .fq-node-steps, .fq-node-steps small, .fq-footer, .fq-trail-note) { color: var(--fq-night-muted); }
+:root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-map-app .fq-unit-kicker { color: #FFB347; }
+:root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-map-app .fq-unit-count { color: var(--fq-night-text); background: var(--fq-night-2); }
+:root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-map-app .fq-unit { border-top-color: var(--fq-night-edge); }
+:root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-map-app :is(.fq-trail-note, .fq-footer) { background: transparent; border-color: var(--fq-night-edge); }
+:root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-map-app .fq-footer button { color: #FFB347; }
+
+/* Lesson nodes become jack-o'-lanterns: lit when done, glowing for the next lesson, dark when locked. */
+:root[data-fq-season="halloween"] .fq-node {
+  position: relative;
+  width: 82px;
+  height: 68px;
+  border-radius: 50% / 48%;
+  color: #5A2A00;
+  background: var(--fq-pumpkin);
+  box-shadow: 0 7px 0 var(--fq-pumpkin-dark), inset 14px 0 0 -6px rgb(0 0 0 / .08), inset -14px 0 0 -6px rgb(0 0 0 / .08);
+}
+:root[data-fq-season="halloween"] .fq-node::before {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 9px;
+  height: 13px;
+  margin-left: -4.5px;
+  border-radius: 3px;
+  background: #4E7D2A;
+}
+:root[data-fq-season="halloween"] .fq-node.done { background: #FFB347; box-shadow: 0 7px 0 var(--fq-pumpkin-dark), 0 0 0 6px rgb(255 200 90 / .25); }
+:root[data-fq-season="halloween"] .fq-node.now::after { border-color: var(--fq-pumpkin); opacity: .35; border-radius: 50% / 48%; }
+:root[data-fq-season="halloween"] .fq-node.now { box-shadow: 0 7px 0 var(--fq-pumpkin-dark), 0 0 22px 6px rgb(255 160 60 / .55); }
+:root[data-fq-season="halloween"] .fq-node.lock { color: #CFC5F2; background: #4A3D84; box-shadow: 0 7px 0 #2D2257; }
+:root[data-fq-season="halloween"] .fq-node.lock::before { background: #3C3460; }
+:root[data-fq-season="halloween"] .fq-node .fq-node-pie { opacity: .9; }
+
+/* ---------- season pieces ---------- */
+
+.fq-season-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 2px solid var(--fq-night-edge, #4A3D84);
+  border-radius: 20px;
+  color: var(--fq-night-text, #FFF6E5);
+  background: var(--fq-night-2, #2D2257);
+}
+.fq-season-banner .fq-mascot { flex: none; }
+.fq-season-banner-copy { flex: 1; min-width: 0; }
+.fq-season-kicker { color: #FFB347; font-size: .78rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.fq-season-banner h2 { margin: 2px 0 4px; color: inherit; font-family: var(--app-font-display); font-size: 1.45rem; line-height: 1.1; }
+.fq-season-banner p { margin: 0; color: var(--fq-night-muted, #D9CFF5); font-size: .95rem; line-height: 1.35; }
+.fq-season-progress { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.fq-season-progress span { flex: 1; height: 12px; overflow: hidden; border-radius: 6px; background: var(--fq-night, #1E1838); }
+.fq-season-progress b { display: block; height: 100%; border-radius: 6px; background: #7BE36B; }
+.fq-season-progress small { color: inherit; font-size: .85rem; font-weight: 900; }
+
+.fq-season-say { display: flex; align-items: flex-end; gap: 8px; margin: 4px 0 10px; }
+.fq-season-say .fq-mascot { flex: none; }
+.fq-season-say p {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 14px 14px 14px 4px;
+  color: var(--fq-night-text, #FFF6E5);
+  background: var(--fq-night-2, #2D2257);
+  font-size: .95rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.fq-season-reward {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px auto 12px;
+  padding: 12px 16px;
+  max-width: 420px;
+  border-radius: 18px;
+  color: var(--fq-night-text, #FFF6E5);
+  background: var(--fq-night-2, #2D2257);
+  text-align: left;
+}
+.fq-season-reward-icon { display: grid; place-items: center; width: 52px; height: 52px; flex: none; border-radius: 14px; color: #B57CFF; background: var(--fq-night, #1E1838); }
+.fq-season-reward.is-earned { box-shadow: 0 0 0 3px #B57CFF; }
+.fq-season-reward small { display: block; color: #FFB347; font-size: .75rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.fq-season-reward strong { display: block; font-size: 1.1rem; line-height: 1.2; }
+.fq-season-reward em { display: block; margin-top: 2px; color: var(--fq-night-muted, #D9CFF5); font-size: .88rem; font-style: normal; }
+
+:root[data-fq-season="halloween"] .fq-stat-xp { color: #9B4DFF; }
+
+@media (max-width: 520px) {
+  .fq-season-banner { padding: 12px; gap: 10px; }
+  .fq-season-banner .fq-mascot { width: 76px; height: 76px; }
+  .fq-season-banner h2 { font-size: 1.25rem; }
+}

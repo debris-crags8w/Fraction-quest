@@ -73,3 +73,9 @@ In coding challenges, hints are diagnostic support, not evidence of independent 
 **Why:** The user explicitly required robot hints to support retries without awarding success or revealing a complete solution.
 
 **How to apply:** Keep hint rendering separate from level-passing and progress-saving logic; a hint may guide one next step, but only a qualifying run can pass the challenge.
+
+Seasonal themes (Halloween first) dress the app up without touching the math: Numi's costume, a night map with jack-o'-lantern nodes, candy points, a short Numi story line on questions, Frog Hop's moonlit swamp, and costumes earned by finishing lessons during the season.
+
+**Why:** The user wanted fun characters and holiday themes so kids treat lessons as games rather than chores.
+
+**How to apply:** Keep every theme cosmetic (`src/seasons.ts`, `src/season.css`, `:root[data-fq-season]`). Never change questions, answers, models or unlocking; keep cards and models light for readability; story lines must not contain numbers or hints. Grown-ups can turn themes off in Reading and display (`displayPreferences.seasonalThemes`), and high contrast skips the night background.
