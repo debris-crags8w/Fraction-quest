@@ -2583,3 +2583,31 @@ test('Story quest: a comic before a new lesson, a friend on questions, a payoff 
   await page.getByTestId(`button-start-mission-${next.id}`).click();
   await expect(page.getByTestId('story-comic')).toHaveCount(0);
 });
+
+test('the hint bulb always shows its help: it scrolls the hint into view, and after two misses it points to the simpler help', async ({ page }) => {
+  const mission = MISSIONS.find((item) => item.id === 'benchmark-half')!;
+  const question = mission.questions[0];
+  expect(question.choices.length).toBeGreaterThanOrEqual(3);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+
+  // The first question sits under the worked example, far below the bulb.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.getByTestId('button-show-hint').click();
+  await expect(page.getByTestId('text-question-hint')).toBeInViewport();
+  await expect(page.getByTestId('text-question-hint')).toContainText('Try this idea:');
+
+  // Two misses replace the hint with "Let's make it simpler"; the bulb now brings that into view.
+  const wrong = [0, 1, 2].filter((index) => index !== question.correctChoice).slice(0, 2);
+  for (const choice of wrong) {
+    await page.getByTestId(`button-answer-${question.id}-${choice}`).click();
+    await page.getByTestId('button-check-answer').click();
+    await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'retry');
+    await page.getByTestId('button-try-again').click();
+  }
+  await expect(page.getByTestId('status-remediation')).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.getByTestId('button-show-hint').click();
+  await expect(page.getByTestId('status-remediation')).toBeInViewport();
+});
