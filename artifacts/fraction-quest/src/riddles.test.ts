@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { SECRETS, dailySecret, lanternWeek, riddleSetup } from './riddles';
+import { SECRETS, dailySecret, lanternWeek, riddleReaction, riddleSetup } from './riddles';
 
 test('Chomp’s set-up lines use words only, and the last question always gets the last riddle line', () => {
   for (let index = 0; index < 5; index++) assert.doesNotMatch(riddleSetup(index, 5), /\d/);
@@ -26,4 +26,12 @@ test('Hoot’s lantern shows the last 7 nights, ending tonight, lit on days with
   assert.equal(nights[6].label, 'Today');
   assert.equal(nights[0].label, 'Sun');
   assert.equal(nights.filter((night) => night.today).length, 1);
+});
+
+test('Chomp reacts to a checked riddle with words only', () => {
+  for (let index = 0; index < 5; index++) for (const result of ['correct', 'retry'] as const) {
+    assert.doesNotMatch(riddleReaction(result, index), /\d/);
+    assert.ok(riddleReaction(result, index).length <= 40);
+  }
+  assert.notEqual(riddleReaction('correct', 0), riddleReaction('retry', 0));
 });

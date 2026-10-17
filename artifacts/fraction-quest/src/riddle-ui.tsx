@@ -1,5 +1,5 @@
 import { StoryCharacter } from './characters';
-import { dailySecret, lanternWeek, riddleSetup } from './riddles';
+import { dailySecret, lanternWeek, riddleReaction, riddleSetup } from './riddles';
 import type { DayActivity } from './lib/fun';
 
 /** Hoot's lantern: lit for a night with a right answer, dashed for tonight while it waits. */
@@ -34,12 +34,12 @@ export function LanternWeek({ activity, streak }: { activity?: Record<string, Da
   );
 }
 
-/** Chomp sets up each daily question. Words only: never a number, never a hint. */
-export function RiddleSetup({ index, total }: { index: number; total: number }) {
+/** Chomp sets up each daily question, then reacts once it is checked. Words only: never a number, never a hint. */
+export function RiddleSetup({ index, total, result = null }: { index: number; total: number; result?: 'correct' | 'retry' | null }) {
   return (
-    <div className="fq-story-say fq-riddle-setup" data-testid="riddle-setup">
-      <StoryCharacter id="chomp" size={44} />
-      <p><span className="fq-sr">Chomp says: </span>{riddleSetup(index, total)}</p>
+    <div className={`fq-story-say fq-riddle-setup ${result ? `is-${result}` : ''}`} data-testid="riddle-setup" data-result={result ?? undefined}>
+      <StoryCharacter id="chomp" size={40} happy={result === 'correct'} />
+      <p aria-live="polite"><span className="fq-sr">Chomp says: </span>{result ? riddleReaction(result, index) : riddleSetup(index, total)}</p>
     </div>
   );
 }

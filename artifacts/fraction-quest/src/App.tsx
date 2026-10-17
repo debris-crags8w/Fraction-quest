@@ -1013,7 +1013,7 @@ function PlayView({
           {/* One friendly line per question: the seasonal one while a theme is on, otherwise the story friend's. */}
           {question && !showExample && (seasonOn
             ? <SeasonSay kind={question.model.kind} id={question.id} />
-            : storyOn && chapterFor(mission.unit) && <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} />)}
+            : storyOn && chapterFor(mission.unit) && <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} result={feedback} />)}
           {showExample
             ? <h1 id="lesson-title">{mission.title}</h1>
             : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
@@ -1154,10 +1154,11 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
       <Topbar progress={progress} onReset={onReset} onHome={onMap} />
       <main className="fq-shell">
         <section className="fq-reward fq-appear" data-testid="status-mission-complete">
-          <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>
+          {/* With the story on, the chapter friend does the cheering, so the screen stays short (a season keeps Numi for the costume). */}
+          {!(storyOn && chapter && !season) && <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>}
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
           <h1>{season?.id === 'halloween' && <>Spooky good!<br /></>}{mission.title}<br />is on your map.</h1>
-           <p>You built it two ways, explained it, and finished the worksheet. {nextLessonOpen ? 'The next lesson is open!' : 'Finish the other lessons in this unit to open the next unit.'}</p>
+           <p className={storyOn && chapter ? 'fq-reward-note' : undefined}>{storyOn && chapter ? '' : 'You built it two ways, explained it, and finished the worksheet. '}{nextLessonOpen ? 'The next lesson is open!' : 'Finish the other lessons in this unit to open the next unit.'}</p>
           <SeasonReward missionId={mission.id} />
           {storyOn && chapter && <StoryPayoff chapter={chapter} lessonIndex={unitMissions.indexOf(mission)} lessonsTotal={unitMissions.length}
             chapterDone={unitMissions.every((item) => hasLearningGate(progress, item.id))} piecesFound={completedStoryUnits(progress).size} name={account.activeProfile?.displayName ?? null} />}

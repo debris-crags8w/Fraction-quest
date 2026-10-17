@@ -3,7 +3,7 @@ import { ArrowRight, LockKeyhole, Search } from 'lucide-react';
 import { StoryCharacter } from './characters';
 import { LearningListenButton, LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
-import { CHAPTERS, CHARACTERS, STONE_PIECES, lessonCliff, storyAsk, withName, type Chapter, type Panel, type StoryChoice } from './story';
+import { CHAPTERS, CHARACTERS, STONE_PIECES, lessonCliff, storyAsk, storyReaction, withName, type Chapter, type Panel, type StoryChoice } from './story';
 
 /** The Whole Stone as a fraction model: one bar cut into 15 equal pieces, the found ones lit. */
 export function StoneBar({ found, fresh = false }: { found: number; /** Glow the newest piece. */ fresh?: boolean }) {
@@ -69,12 +69,12 @@ export function StoryComicView({ title, kicker, panels, name, choice, goLabel, o
   );
 }
 
-/** The friend's short line above a question. It sets the scene; it never hints at the answer. */
-export function StorySay({ chapter, questionId }: { chapter: Chapter; questionId: string }) {
+/** The friend's short line above a question. It sets the scene, then reacts once the answer is checked; it never hints. */
+export function StorySay({ chapter, questionId, result = null }: { chapter: Chapter; questionId: string; result?: 'correct' | 'retry' | null }) {
   return (
-    <div className="fq-story-say" data-testid="story-line">
-      <StoryCharacter id={chapter.character} size={44} />
-      <p><span className="fq-sr">{CHARACTERS[chapter.character].name} says: </span>{storyAsk(chapter, questionId)}</p>
+    <div className={`fq-story-say ${result ? `is-${result}` : ''}`} data-testid="story-line" data-result={result ?? undefined}>
+      <StoryCharacter id={chapter.character} size={40} happy={result === 'correct'} />
+      <p aria-live="polite"><span className="fq-sr">{CHARACTERS[chapter.character].name} says: </span>{result ? storyReaction(chapter.character, result, questionId) : storyAsk(chapter, questionId)}</p>
     </div>
   );
 }
@@ -101,7 +101,7 @@ export function StoneBanner({ completedUnits, teaser, chapterTitle }: { complete
   );
 }
 
-/** After a lesson: the friend's line, a piece of the stone when the chapter is done, and the cliffhanger. */
+/** After a lesson, in one compact box: the friend's line, the stone piece and new card when the chapter is done, then the cliffhanger. */
 export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, piecesFound, name }: {
   chapter: Chapter; lessonIndex: number; lessonsTotal: number; chapterDone: boolean; piecesFound: number; name: string | null;
 }) {
@@ -109,50 +109,54 @@ export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, p
   return (
     <div className="fq-story-payoff" data-testid="story-payoff">
       <div className="fq-story-say">
-        <StoryCharacter id={chapter.character} size={56} happy />
+        <StoryCharacter id={chapter.character} size={48} happy />
         <p><span className="fq-sr">{CHARACTERS[chapter.character].name} says: </span>{withName(chapterDone ? chapter.done : chapter.thanks, name)}</p>
       </div>
       {chapterDone && (
         <div className="fq-stone-found" data-testid="stone-found">
-          <strong>{finale ? 'The Whole Stone is whole again!' : 'You found a piece of the Whole Stone!'}</strong>
+          <span className="fq-stone-found-head">
+            <strong>{finale ? <>The stone is <u>one whole</u> again!</> : 'You found a stone piece!'}</strong>
+            <span><b>{piecesFound}/{STONE_PIECES}</b> found</span>
+          </span>
           <StoneBar found={piecesFound} fresh />
-          <span>{finale ? <>You found <b>{piecesFound}/{STONE_PIECES}</b>. <u>That’s one whole!</u></> : <>Now <b>{piecesFound}/{STONE_PIECES}</b> of the stone is back.</>}</span>
           <span className="fq-stone-clue new" data-testid="stone-new-clue"><Search size={14} aria-hidden="true" /> New clue: {chapter.clue}</span>
+          {finale ? <KeeperCard name={name} fresh compact /> : <StoryCard chapter={chapter} unlocked fresh compact />}
+          {!finale && <p className="fq-story-cliff" data-testid="story-cliff">{withName(lessonCliff(chapter, lessonIndex, lessonsTotal), name)}</p>}
         </div>
       )}
-      {chapterDone && <StoryCard chapter={chapter} unlocked fresh />}
-      {finale && <KeeperCard name={name} fresh />}
-      {!finale && (
-        <p className="fq-story-cliff" data-testid="story-cliff">{withName(lessonCliff(chapter, lessonIndex, lessonsTotal), name)}</p>
+      {!chapterDone && (
+        <p className="fq-story-cliff is-solo" data-testid="story-cliff">
+          {withName(lessonCliff(chapter, lessonIndex, lessonsTotal), name)}
+          <span className="fq-story-progress">Chapter {chapter.unit}: <strong>{lessonIndex + 1} of {lessonsTotal}</strong> lessons done</span>
+        </p>
       )}
-      {!chapterDone && <p className="fq-story-progress">Chapter {chapter.unit} · {chapter.title}: <strong>{lessonIndex + 1} of {lessonsTotal}</strong> lessons done</p>}
     </div>
   );
 }
 
 /** The last card, for finding every piece. */
-export function KeeperCard({ name, fresh = false }: { name: string | null; fresh?: boolean }) {
+export function KeeperCard({ name, fresh = false, compact = false }: { name: string | null; fresh?: boolean; compact?: boolean }) {
   return (
-    <article className={`fq-story-card fq-keeper-card ${fresh ? 'is-fresh' : ''}`} data-testid="keeper-card">
+    <article className={`fq-story-card fq-keeper-card ${fresh ? 'is-fresh' : ''} ${compact ? 'is-compact' : ''}`} data-testid="keeper-card">
       <span className="fq-story-card-art"><StoneBar found={STONE_PIECES} /></span>
       <span className="fq-story-card-copy">
         {fresh && <small>Final card</small>}
         <strong>{name ? `${name}, Keeper of the Whole Stone` : 'Keeper of the Whole Stone'}</strong>
-        <span>Found all {STONE_PIECES} pieces and solved the mystery.</span>
+        {!compact && <span>Found all {STONE_PIECES} pieces and solved the mystery.</span>}
       </span>
     </article>
   );
 }
 
 /** One character card. Locked cards show a shadow and the chapter that unlocks them. */
-export function StoryCard({ chapter, unlocked, fresh = false }: { chapter: Chapter; unlocked: boolean; fresh?: boolean }) {
+export function StoryCard({ chapter, unlocked, fresh = false, compact = false }: { chapter: Chapter; unlocked: boolean; fresh?: boolean; compact?: boolean }) {
   return (
-    <article className={`fq-story-card ${unlocked ? '' : 'is-locked'} ${fresh ? 'is-fresh' : ''}`} data-testid={`story-card-${chapter.unit}`}>
-      <span className="fq-story-card-art">{unlocked ? <StoryCharacter id={chapter.character} size={64} happy /> : <LockKeyhole size={26} aria-hidden="true" />}</span>
+    <article className={`fq-story-card ${unlocked ? '' : 'is-locked'} ${fresh ? 'is-fresh' : ''} ${compact ? 'is-compact' : ''}`} data-testid={`story-card-${chapter.unit}`}>
+      <span className="fq-story-card-art">{unlocked ? <StoryCharacter id={chapter.character} size={compact ? 40 : 64} happy /> : <LockKeyhole size={26} aria-hidden="true" />}</span>
       <span className="fq-story-card-copy">
         {fresh && <small>New card</small>}
         <strong>{unlocked ? chapter.card.title : `Chapter ${chapter.unit}`}</strong>
-        <span>{unlocked ? chapter.card.blurb : `Finish “${chapter.title}” to unlock this card.`}</span>
+        {!compact && <span>{unlocked ? chapter.card.blurb : `Finish “${chapter.title}” to unlock this card.`}</span>}
       </span>
     </article>
   );

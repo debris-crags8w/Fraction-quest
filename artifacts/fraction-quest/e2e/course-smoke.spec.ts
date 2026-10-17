@@ -2555,6 +2555,13 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   // Questions carry the chapter friend's short line.
   await page.getByTestId(`button-practice-more-${second.id}`).click();
   await expect(page.getByTestId('story-line')).toBeVisible();
+  // After Check, the same bubble becomes the friend's reaction (words only), so the screen does not grow.
+  const askLine = await page.getByTestId('story-line').textContent();
+  await page.locator('[data-testid^="button-answer-"]').first().click();
+  await page.getByTestId('button-check-answer').click();
+  await expect(page.getByTestId('story-line')).toHaveAttribute('data-result', /^(correct|retry)$/);
+  await expect(page.getByTestId('story-line')).not.toHaveText(askLine!);
+  await expect(page.getByTestId('story-line')).not.toContainText(/\d/);
 
   // Finishing chapter 2 returns a stone piece, adds a clue and unlocks Pip's card.
   const mission = MISSIONS.find((item) => item.id === 'sets-nonunit')!;
