@@ -643,13 +643,22 @@ async function completeQuestionSequence(
   }, questions.map(({ id, correctChoice }) => ({ id, correctChoice })));
 }
 
+/** Developer testing lives with the grown-ups' settings: open them through the grown-up check. */
+async function openDeveloperTesting(page: import('@playwright/test').Page) {
+  await openMenuItem(page, 'button-open-parent');
+  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+  await page.getByTestId('section-developer-testing').waitFor();
+}
+
 async function openDeveloperLesson(page: import('@playwright/test').Page, mission: Mission) {
+  await openDeveloperTesting(page);
   await page.evaluate(async ({ id, title, isPartFinder, isFractionOrder }) => {
     const settleReactUpdate = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
-    const developerTest = document.querySelector<HTMLDetailsElement>('[data-testid="developer-module-test"]');
     const selector = document.querySelector<HTMLSelectElement>('[data-testid="select-developer-lesson"]');
-    if (!developerTest || !selector) throw new Error('The developer lesson selector is missing');
-    developerTest.open = true;
+    if (!selector) throw new Error('The developer lesson selector is missing');
     selector.value = id;
     selector.dispatchEvent(new Event('change', { bubbles: true }));
     await settleReactUpdate();
@@ -1894,7 +1903,9 @@ test('an adult progress report can invoke browser printing', async ({ page }) =>
 
 test('the map shows only lessons; extras live in the More menu; start becomes jump after the first lesson', async ({ page }) => {
   await openAsGuest(page);
-  await expect(page.getByTestId('button-continue-course')).toContainText('Start your first lesson');
+  // In story mode, chapter 1's banner carries the first step (there is no separate start card).
+  await expect(page.getByTestId('button-continue-course')).toContainText('Read & start lesson 1');
+  await expect(page.getByTestId('chapter-banner-1').getByTestId('button-continue-course')).toBeVisible();
   await expect(page.getByTestId('button-jump-current')).toHaveCount(0);
   for (const id of ['button-start-daily-practice', 'button-open-concept-games', 'button-open-assessments', 'button-find-level', 'button-open-parent']) {
     await expect(page.getByTestId(id)).toHaveCount(0); // not on the map itself
@@ -2562,7 +2573,8 @@ test('Christmas: a snowy map, a Santa hat and scarf, candy canes, story props, a
 
   // Story text uses the Christmas props.
   await page.getByTestId('button-continue-course').click();
-  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away.');
+  await page.getByTestId('button-story-intro-go').click();
+  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away!');
   await page.getByTestId('button-story-go').click();
   await expect(page.getByTestId('story-panel-0')).toContainText('I cut the festival Christmas cake for all 4 of us.');
   await page.getByTestId('button-story-back').click();
@@ -2580,12 +2592,31 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.clock.setFixedTime(new Date(2026, 2, 10, 10, 0, 0));
   await openAsGuest(page);
 
-  // The map shows the quest: the stone (0/15), an empty clue notebook and the first teaser.
+  // The map shows the quest: the stone (0/15) and a Storybook button, then chapter 1 leads the first unit with
+  // its friend, its hook and the one next step. There is no separate "Start your first lesson" card.
   const banner = page.getByTestId('stone-banner');
   await expect(banner).toContainText('0/15');
-  await expect(page.getByTestId('clue-notebook')).toContainText('No clues yet');
+  await expect(banner.getByTestId('button-open-storybook')).toBeVisible();
+  const chapterOne = page.getByTestId('chapter-banner-1');
+  await expect(chapterOne).toContainText('Chapter 1 · with Chomp');
+  await expect(chapterOne.getByRole('heading', { name: 'The bakery mix-up' })).toBeVisible();
+  await expect(chapterOne).toContainText('0/3 lessons');
   await expect(page.getByTestId('stone-teaser')).toContainText('The Whole Stone just cracked.');
-  await expect(page.getByTestId('chapter-tag-1')).toContainText('Chapter 1 · The bakery mix-up');
+  await expect(page.getByTestId('button-continue-course')).toContainText('Read & start lesson 1');
+  await expect(page.getByTestId('chapter-banner-2')).toContainText('Finish chapter 1 to open this chapter');
+  await expect(page.getByTestId(`badge-story-${MISSIONS[0].id}`)).toContainText('New story');
+  await expect(page.getByTestId('developer-module-test')).toHaveCount(0);
+
+  // The Storybook: the prologue waits for the first lesson, chapter 1's start is new, later chapters are locked,
+  // and the clue notebook is empty.
+  await banner.getByTestId('button-open-storybook').click();
+  await expect(page.getByTestId('button-storybook-prologue')).toBeDisabled();
+  await expect(page.getByTestId(`button-storybook-part-${MISSIONS[0].id}`)).toContainText('New');
+  await expect(page.getByTestId('storybook-chapter-2')).toContainText('Pip’s pond party');
+  await expect(page.getByTestId('storybook-finale')).toContainText('Find all 15 pieces');
+  await page.getByTestId('tab-storybook-clues').click();
+  await expect(page.getByTestId('clue-notebook')).toContainText('No clues yet');
+  await page.getByTestId('button-storybook-back').click();
 
   // The story setup introduces the quest before the one-time prologue comic.
   await page.getByTestId('button-continue-course').click();
@@ -2603,8 +2634,10 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId('story-introduction')).toBeVisible();
   await page.getByTestId('button-story-intro-go').click();
   await expect(page.getByTestId('story-introduction')).toHaveCount(0);
-  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away.');
-  await expect(page.getByTestId('story-panel-2')).toContainText('Friend, we need you!');
+  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away!');
+  await expect(page.getByTestId('story-panel-0')).toContainText('I’m Numi, and this is Hoot');
+  await expect(page.getByTestId('story-panel-2')).toContainText('The case snapped shut');
+  await expect(page.getByTestId('story-panel-3')).toContainText('Friend, we need you!');
   await expect(page.getByTestId('button-story-go')).toContainText('I’ll help!');
   await page.getByTestId('button-story-go').click();
   await expect(page.getByTestId('story-panel-0')).toContainText('The big piece is mine!');
@@ -2625,6 +2658,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.evaluate((progress) => localStorage.setItem('fraction-quest-progress-v1:guest', JSON.stringify(progress)), seeded);
   await page.goto('/');
   await expect(page.getByTestId('stone-teaser')).toContainText('Under the crumbs the stone piece glows');
+  await expect(page.getByTestId(`button-chapter-start-1`)).toContainText('Read & start lesson 2');
   await page.getByTestId(`button-start-mission-${second.id}`).click();
   await expect(page.getByTestId('story-panel-0')).toContainText('The baker wrote fractions on the slices');
   await expect(page.getByTestId('story-panel-1')).toContainText(`Today’s lesson is ${second.title.charAt(0).toLowerCase()}`);
@@ -2677,13 +2711,19 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(payoff.getByTestId('story-cliff')).toContainText('Tilly calls from the hill');
   await page.getByTestId('button-return-map').click();
 
-  // Back on the map: 2/15 found, two clues, and chapter 3's teaser.
+  // Back on the map: 2/15 found, and chapter 3 leads with chapter 2's cliffhanger.
   await expect(page.getByTestId('stone-bar').first()).toHaveAttribute('data-found', '2');
-  await expect(page.getByTestId('clue-notebook')).toContainText('A big green tail by the pond');
-  await expect(page.getByTestId('stone-teaser')).toContainText('Chapter 3 · Tilly’s halfway hill.');
+  await expect(page.getByTestId('chapter-banner-3')).toContainText('Tilly’s halfway hill');
+  await expect(page.getByTestId('stone-teaser')).toContainText('Tilly calls from the hill');
 
-  // The cards screen shows finished chapters unlocked and later ones locked.
+  // The Storybook (also in the menu) keeps the clues and the cards: finished chapters unlocked, later ones locked.
   await openMenuItem(page, 'button-open-story-cards');
+  await expect(page.getByTestId('button-storybook-prologue')).toBeEnabled();
+  await expect(page.getByTestId(`button-storybook-part-${MISSIONS[0].id}`)).toBeEnabled();
+  await page.getByTestId('tab-storybook-clues').click();
+  await expect(page.getByTestId('clue-notebook')).toContainText('A big green tail by the pond');
+  await expect(page.getByTestId('clue-notebook')).toContainText('Finish chapter 3 to find the next clue.');
+  await page.getByTestId('tab-storybook-cards').click();
   await expect(page.getByText('2 of 15')).toBeVisible();
   await expect(page.getByTestId('story-card-1')).toContainText('Chomp the sneaky sharer');
   await expect(page.getByTestId('story-card-3')).toContainText('Finish “Tilly’s halfway hill” to unlock this card.');
@@ -2693,10 +2733,23 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.getByTestId('button-read-chapter-1').click();
   await expect(page.getByTestId('story-panel-0')).toContainText('The big piece is mine!');
   await expect(page.getByTestId('story-choice-reply')).toContainText('big muddy footprints');
-  await expect(page.getByTestId('button-story-go')).toContainText('Back to cards');
+  await expect(page.getByTestId('button-story-go')).toContainText('Back to the Storybook');
   await page.getByTestId('button-story-go').click();
-  await expect(page.getByTestId('story-cards')).toBeVisible();
-  await page.getByTestId('button-cards-back').click();
+  await expect(page.getByTestId('storybook-chapter-1')).toBeVisible();
+  // The prologue can be read again too.
+  await page.getByTestId('button-storybook-prologue').click();
+  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away!');
+  await page.getByTestId('button-story-go').click();
+  // A finished chapter's ending (thanks, clue, what happens next) can be read again; an unfinished one is locked.
+  await page.getByTestId('storybook-chapter-2').locator('summary').click();
+  await page.getByTestId('button-storybook-end-2').click();
+  await expect(page.getByTestId('story-panel-0')).toContainText('Best party ever!');
+  await expect(page.getByTestId('story-panel-1')).toContainText('A big green tail by the pond');
+  await expect(page.getByTestId('story-panel-2')).toContainText('Tilly calls from the hill');
+  await page.getByTestId('button-story-go').click();
+  await expect(page.getByTestId('button-storybook-end-3')).toBeDisabled();
+  await expect(page.getByTestId('storybook-finale')).toBeDisabled();
+  await page.getByTestId('button-storybook-back').click();
 
   // A finished lesson's comic can be read again from the map; it returns to the map instead of starting the lesson.
   await page.getByTestId(`button-node-${mission.id}`).click();
@@ -2715,7 +2768,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId('story-choice')).toBeVisible();
   await page.getByTestId('button-story-back').click();
 
-  // A grown-up can turn story mode off: no quest banner or chapter tags, and no comics.
+  // A grown-up can turn story mode off: no quest banner or chapter banners, and no comics.
   await page.goto('/');
   await openMenuItem(page, 'button-open-parent');
   const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
@@ -2725,7 +2778,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.getByTestId('checkbox-story-mode').uncheck();
   await page.goto('/');
   await expect(page.getByTestId('stone-banner')).toHaveCount(0);
-  await expect(page.getByTestId('chapter-tag-1')).toHaveCount(0);
+  await expect(page.getByTestId('chapter-banner-1')).toHaveCount(0);
   await page.getByTestId(`button-start-mission-${next.id}`).click();
   await expect(page.getByTestId('story-introduction')).toHaveCount(0);
   await expect(page.getByTestId('story-comic')).toHaveCount(0);

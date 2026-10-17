@@ -2,6 +2,17 @@ import { expect, test } from '@playwright/test';
 import { MISSIONS } from '../src/game';
 import { PART_FINDER_LESSONS } from '../src/part-finder';
 
+/** Developer testing lives with the grown-ups' settings, behind the grown-up check. */
+async function openDeveloperTesting(page: import('@playwright/test').Page) {
+  await page.getByTestId('button-app-menu').click();
+  await page.getByTestId('button-open-parent').click();
+  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+  await expect(page.getByTestId('section-developer-testing')).toBeVisible();
+}
+
 test('developer can open a locked lesson and discard all test progress on exit', async ({ page }) => {
   const mission = [...MISSIONS].reverse().find((item) => !PART_FINDER_LESSONS.has(item.id))!;
   const question = mission.questions[0];
@@ -21,8 +32,7 @@ test('developer can open a locked lesson and discard all test progress on exit',
     fun: localStorage.getItem('fraction-quest-fun-v1:guest'),
   }));
 
-  const developerPanel = page.getByTestId('developer-module-test');
-  await developerPanel.locator('summary').click();
+  await openDeveloperTesting(page);
   await page.getByTestId('select-developer-lesson').selectOption(mission.id);
   await page.getByTestId('button-open-developer-lesson').click();
 
@@ -51,7 +61,7 @@ test('set-model arrays are visibly grouped by the denominator', async ({ page })
   await page.goto('/');
   await page.getByTestId('button-play-guest').click();
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
-  await page.getByTestId('developer-module-test').locator('summary').click();
+  await openDeveloperTesting(page);
   await page.getByTestId('select-developer-lesson').selectOption('sets-unit-fractions');
   await page.getByTestId('button-open-developer-lesson').click();
 
@@ -76,7 +86,7 @@ test('completed lesson questions can be reviewed without losing the current ques
   await page.goto('/');
   await page.getByTestId('button-play-guest').click();
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
-  await page.getByTestId('developer-module-test').locator('summary').click();
+  await openDeveloperTesting(page);
   await page.getByTestId('select-developer-lesson').selectOption(mission.id);
   await page.getByTestId('button-open-developer-lesson').click();
 
@@ -119,7 +129,7 @@ test('prepares visible lesson audio before the learner taps Listen', async ({ pa
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
   expect(speechRequests).toHaveLength(0);
 
-  await page.getByTestId('developer-module-test').locator('summary').click();
+  await openDeveloperTesting(page);
   await page.getByTestId('select-developer-lesson').selectOption('order-unlike-fractions');
   await page.getByTestId('button-open-developer-lesson').click();
   await expect(page.getByTestId('developer-test-banner')).toBeVisible();
@@ -133,4 +143,27 @@ test('prepares visible lesson audio before the learner taps Listen', async ({ pa
   expect(speechRequests[0].voice).toBe('af_heart');
   expect(speechRequests[0].text?.trim()).toBeTruthy();
   await expect(page.getByTestId('button-listen-learning-text').first()).toBeVisible();
+});
+
+test('developer testing is off the child map: a grown-up turns on developer mode, then the Dev button opens it', async ({ page }) => {
+  const mission = MISSIONS.find((item) => item.id === 'sets-unit-fractions')!;
+  await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Not signed in.' }) }));
+  await page.goto('/');
+  await page.getByTestId('button-play-guest').click();
+  await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+  await expect(page.getByTestId('developer-module-test')).toHaveCount(0);
+  await expect(page.getByTestId('button-dev-chip')).toHaveCount(0);
+
+  await openDeveloperTesting(page);
+  await page.getByTestId('checkbox-developer-mode').check();
+  await page.getByTestId('button-parent-back').click();
+
+  await page.getByTestId('button-dev-chip').click();
+  await expect(page.getByRole('dialog', { name: 'Developer testing' })).toBeVisible();
+  await page.getByTestId('select-developer-lesson').selectOption(mission.id);
+  await page.getByTestId('button-open-developer-lesson').click();
+  await expect(page.getByTestId('developer-test-banner')).toBeVisible();
+  await page.getByTestId('button-exit-developer-test').click();
+  // Developer mode stays on for this device until a grown-up turns it off.
+  await expect(page.getByTestId('button-dev-chip')).toBeVisible();
 });

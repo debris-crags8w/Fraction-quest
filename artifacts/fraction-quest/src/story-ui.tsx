@@ -127,25 +127,168 @@ export function StorySay({ chapter, questionId, result = null, setup }: { chapte
   );
 }
 
-/** The quest on the map: the stone filling in, the clue notebook, and what happens next. */
-export function StoneBanner({ completedUnits, teaser, chapterTitle }: { completedUnits: Set<number>; teaser: string; chapterTitle: string | null }) {
-  const clues = CHAPTERS.filter((chapter) => completedUnits.has(chapter.unit)).map((chapter) => chapter.clue);
+/** The quest at the top of the map: the stone filling in, and the way into the Storybook. */
+export function StoneBanner({ completedUnits, onStorybook }: { completedUnits: Set<number>; onStorybook: () => void }) {
   return (
     <section className="fq-stone-banner" aria-labelledby="stone-title" data-testid="stone-banner">
       <div className="fq-stone-head">
         <h2 id="stone-title">The Whole Stone</h2>
         <span><strong>{completedUnits.size}/{STONE_PIECES}</strong> found</span>
+        <button type="button" className="fq-storybook-button" onClick={onStorybook} data-testid="button-open-storybook">
+          <BookOpen size={18} aria-hidden="true" /> Storybook
+        </button>
       </div>
       <StoneBar found={completedUnits.size} />
-      <div className="fq-stone-clues" aria-label="Clue notebook" data-testid="clue-notebook">
-        <Search size={15} aria-hidden="true" />
-        {clues.length
-          ? clues.slice(-3).map((clue) => <span key={clue} className="fq-stone-clue">{clue}</span>)
-          : <span className="fq-stone-clue empty">No clues yet. Who cracked the stone?</span>}
-        {clues.length > 3 && <span className="fq-stone-clue empty">+{clues.length - 3} more</span>}
-      </div>
-      {chapterTitle && <p className="fq-stone-teaser" data-testid="stone-teaser"><b>{chapterTitle}.</b> {teaser}</p>}
     </section>
+  );
+}
+
+/** A chapter on the map: the story leads (friend, chapter title), with the unit's math underneath. The current
+   chapter carries the hook and the one next step; a chapter not reached yet shows what opens it. */
+export function ChapterBanner({ chapter, unitTitle, done, total, state, teaser, startLabel, startTestId, onStart, onRead }: {
+  chapter: Chapter; unitTitle: string; done: number; total: number;
+  state: 'current' | 'reached' | 'locked'; teaser?: string;
+  startLabel?: string; startTestId?: string; onStart?: () => void; onRead: () => void;
+}) {
+  const theme = useStoryTheme();
+  return (
+    <div className={`fq-chapter-banner is-${state}`} data-testid={`chapter-banner-${chapter.unit}`}>
+      <div className="fq-chapter-banner-head">
+        <span className="fq-chapter-banner-art"><StoryCharacter id={chapter.character} size={72} happy={done === total} /></span>
+        <div>
+          <span className="fq-chapter-banner-kicker">Chapter {chapter.unit} · with {CHARACTERS[chapter.character].name}</span>
+          <h3 id={`unit-${chapter.unit}`}>{chapter.title}</h3>
+          <p>{unitTitle} · <span aria-label={`${done} of ${total} lessons mastered`}>{done}/{total} lessons</span></p>
+        </div>
+      </div>
+      {state === 'current' && teaser && <p className="fq-chapter-banner-teaser" data-testid="stone-teaser">{withName(teaser, null, theme)}</p>}
+      {state === 'current' && onStart && startLabel && (
+        <button type="button" className="fq-button fq-chapter-banner-go" onClick={onStart} data-testid={startTestId}>
+          {startLabel} <ArrowRight size={18} aria-hidden="true" />
+        </button>
+      )}
+      {state === 'locked'
+        ? <p className="fq-chapter-banner-lock"><LockKeyhole size={16} aria-hidden="true" /> {chapter.unit > 1 ? `Finish chapter ${chapter.unit - 1} to open this chapter` : 'Finish the lessons before this one to open it'}</p>
+        : (
+          <button type="button" className="fq-chapter-banner-read" onClick={onRead} data-testid={`button-read-chapter-${chapter.unit}-map`}>
+            <BookOpen size={16} aria-hidden="true" /> Read chapter {chapter.unit}
+          </button>
+        )}
+    </div>
+  );
+}
+
+export type StorybookTab = 'story' | 'clues' | 'cards';
+export type StorybookChapter = {
+  chapter: Chapter;
+  /** A lesson of it is open (or done). */
+  reached: boolean;
+  lessons: { id: string; title: string; state: 'read' | 'new' | 'locked' }[];
+  /** Every lesson is done: the chapter's ending (thanks, clue, what happens next) can be read. */
+  ended: boolean;
+};
+
+/** Every story part in one place: the prologue, each chapter's comics, the finale; plus the clue notebook and
+   the friends' cards. Parts open as the lessons do; nothing here changes progress. */
+export function StorybookView({ tab, chapters, completedUnits, prologueSeen, focusUnit, name, onTab, onPrologue, onLesson, onEnding, onEpilogue, onBack }: {
+  tab: StorybookTab; chapters: StorybookChapter[]; completedUnits: Set<number>; prologueSeen: boolean; focusUnit?: number; name: string | null;
+  onTab: (tab: StorybookTab) => void; onPrologue: () => void; onLesson: (missionId: string) => void;
+  onEnding: (unit: number) => void; onEpilogue: () => void; onBack: () => void;
+}) {
+  const theme = useStoryTheme();
+  const tabs: [StorybookTab, string][] = [['story', 'Story'], ['clues', 'Clues'], ['cards', 'Cards']];
+  const clues = CHAPTERS.filter((chapter) => completedUnits.has(chapter.unit));
+  const nextClue = CHAPTERS.find((chapter) => !completedUnits.has(chapter.unit));
+  const finale = completedUnits.size >= STONE_PIECES;
+  const open = focusUnit ?? chapters.filter((item) => item.reached).at(-1)?.chapter.unit;
+  return (
+    <div className="fq-app fq-story-app">
+      <main className="fq-shell fq-story-shell">
+        <TaskBar onBack={onBack} backLabel="Map" testId="button-storybook-back" title="Storybook" />
+        <div className="fq-storybook-tabs" role="tablist" aria-label="Storybook sections">
+          {tabs.map(([id, label]) => (
+            <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => onTab(id)} data-testid={`tab-storybook-${id}`}>{label}</button>
+          ))}
+        </div>
+
+        {tab === 'story' && (
+          <ol className="fq-storybook-list" data-testid="storybook-story">
+            <li>
+              <button type="button" className="fq-storybook-row" onClick={onPrologue} disabled={!prologueSeen} data-testid="button-storybook-prologue">
+                <span className="fq-storybook-num">P</span>
+                <span><strong>Prologue · The night the stone cracked</strong><small>{prologueSeen ? 'Read again' : 'Starts with your first lesson'}</small></span>
+                {!prologueSeen && <LockKeyhole size={16} aria-label="Locked" />}
+              </button>
+            </li>
+            {chapters.map(({ chapter, reached, lessons, ended }) => reached ? (
+              <li key={chapter.unit}>
+                <details className="fq-storybook-chapter" open={chapter.unit === open} data-testid={`storybook-chapter-${chapter.unit}`}>
+                  <summary>
+                    <span className="fq-storybook-num">{chapter.unit}</span>
+                    <span><strong>{chapter.title}</strong><small>With {CHARACTERS[chapter.character].name} · {ended ? 'Stone piece found' : `${lessons.filter((item) => item.state === 'read').length} of ${lessons.length} lessons`}</small></span>
+                  </summary>
+                  <ol>
+                    {lessons.map((lesson, index) => (
+                      <li key={lesson.id}>
+                        <button type="button" className={`fq-storybook-part is-${lesson.state}`} disabled={lesson.state === 'locked'} onClick={() => onLesson(lesson.id)} data-testid={`button-storybook-part-${lesson.id}`}>
+                          <span>{index === 0 ? 'Chapter start' : `Lesson ${index + 1}`} · {lesson.title}</span>
+                          {lesson.state === 'new' && <em>New</em>}
+                          {lesson.state === 'locked' && <LockKeyhole size={15} aria-label="Locked" />}
+                        </button>
+                      </li>
+                    ))}
+                    <li>
+                      <button type="button" className={`fq-storybook-part ${ended ? 'is-read' : 'is-locked'}`} disabled={!ended} onClick={() => onEnding(chapter.unit)} data-testid={`button-storybook-end-${chapter.unit}`}>
+                        <span>Chapter end · The stone piece and a clue</span>
+                        {!ended && <LockKeyhole size={15} aria-label="Locked" />}
+                      </button>
+                    </li>
+                  </ol>
+                </details>
+              </li>
+            ) : (
+              <li key={chapter.unit}>
+                <div className="fq-storybook-row is-locked" data-testid={`storybook-chapter-${chapter.unit}`}>
+                  <span className="fq-storybook-num">{chapter.unit}</span>
+                  <span><strong>{chapter.title}</strong></span>
+                  <LockKeyhole size={16} aria-label="Locked" />
+                </div>
+              </li>
+            ))}
+            <li>
+              <button type="button" className="fq-storybook-row" disabled={!finale} onClick={onEpilogue} data-testid="storybook-finale">
+                <span className="fq-storybook-num">F</span>
+                <span><strong>Finale · The stone is whole again</strong><small>{finale ? 'Read the ending' : 'Find all 15 pieces to read the ending'}</small></span>
+                {!finale && <LockKeyhole size={16} aria-label="Locked" />}
+              </button>
+            </li>
+          </ol>
+        )}
+
+        {tab === 'clues' && (
+          <div className="fq-storybook-clues" data-testid="clue-notebook">
+            {clues.length === 0 && <p className="fq-storybook-empty">No clues yet. Who cracked the stone?</p>}
+            {clues.map((chapter, index) => (
+              <p key={chapter.unit} className="fq-storybook-clue"><strong>Clue {index + 1} · Chapter {chapter.unit}</strong><span>{withName(chapter.clue, name, theme)}</span></p>
+            ))}
+            {nextClue && <p className="fq-storybook-empty">Finish chapter {nextClue.unit} to find the next clue.</p>}
+          </div>
+        )}
+
+        {tab === 'cards' && (
+          <>
+            <p className="fq-story-cards-note">Finish a chapter to meet its friend. <strong>{completedUnits.size} of {CHAPTERS.length}</strong> cards collected.</p>
+            <div className="fq-story-cards" data-testid="story-cards">
+              {CHAPTERS.map((chapter) => {
+                const first = chapters.find((item) => item.chapter.unit === chapter.unit)?.lessons[0];
+                return <StoryCard key={chapter.unit} chapter={chapter} unlocked={completedUnits.has(chapter.unit)} onRead={first ? () => onLesson(first.id) : undefined} />;
+              })}
+              {finale && <KeeperCard name={name} />}
+            </div>
+          </>
+        )}
+      </main>
+    </div>
   );
 }
 
@@ -253,35 +396,5 @@ export function StoryCard({ chapter, unlocked, fresh = false, compact = false, o
         )}
       </span>
     </article>
-  );
-}
-
-/** A small chapter tag on the map's unit heading. */
-export function ChapterTag({ chapter }: { chapter: Chapter }) {
-  return (
-    <span className="fq-chapter-tag" data-testid={`chapter-tag-${chapter.unit}`}>
-      <StoryCharacter id={chapter.character} size={30} />
-      <span>Chapter {chapter.unit} · {chapter.title}</span>
-    </span>
-  );
-}
-
-/** Every card and the stone: unlocked cards come from finished chapters, the rest stay locked. */
-export function StoryCardsView({ completedUnits, name, onBack, onRead }: { completedUnits: Set<number>; name: string | null; onBack: () => void; onRead: (unit: number) => void }) {
-  return (
-    <div className="fq-app fq-story-app">
-      <main className="fq-shell fq-story-shell">
-        <TaskBar onBack={onBack} backLabel="Map" testId="button-cards-back" title="Character cards" />
-        <div className="fq-stone-banner fq-stone-banner-small">
-          <div className="fq-stone-head"><h2>The Whole Stone</h2><span><strong>{completedUnits.size}/{STONE_PIECES}</strong> found</span></div>
-          <StoneBar found={completedUnits.size} />
-        </div>
-        <p className="fq-story-cards-note">Finish a chapter to meet its friend and read its story again. <strong>{completedUnits.size} of {CHAPTERS.length}</strong> cards collected.</p>
-        <div className="fq-story-cards" data-testid="story-cards">
-          {CHAPTERS.map((chapter) => <StoryCard key={chapter.unit} chapter={chapter} unlocked={completedUnits.has(chapter.unit)} onRead={() => onRead(chapter.unit)} />)}
-          {completedUnits.size >= STONE_PIECES && <KeeperCard name={name} />}
-        </div>
-      </main>
-    </div>
   );
 }
