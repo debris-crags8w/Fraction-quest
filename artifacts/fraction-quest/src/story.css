@@ -24,6 +24,27 @@
 .fq-story-bubble p { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.35; }
 .fq-story-go { align-self: stretch; justify-content: center; min-height: 52px; font-size: 1.1rem; }
 
+.fq-story-opening {
+  display: grid;
+  gap: 18px;
+  margin-top: 8px;
+  padding: clamp(16px, 4vw, 24px);
+  border: 3px solid var(--fq-edge, #C9C8DB);
+  border-radius: 24px;
+  background: linear-gradient(145deg, #fff 34%, #F1ECFF);
+}
+.fq-story-opening-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.fq-story-opening-identity { display: flex; flex: 1 1 230px; align-items: center; gap: 10px; min-width: 0; }
+.fq-story-opening-identity > span { flex: none; }
+.fq-story-opening-kicker { color: var(--fq-grape, #7C4DFF); font-size: .82rem; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+.fq-story-opening-head h2 { margin: 3px 0 0; font-family: var(--app-font-display); font-size: 1.35rem; line-height: 1.15; }
+.fq-story-opening-copy { margin: 0; font-size: 1.08rem; font-weight: 700; line-height: 1.5; }
+.fq-story-opening-stone { display: grid; gap: 9px; padding: 13px 15px; border-radius: 18px; color: #fff; background: #2B2D42; }
+.fq-story-opening-stone-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.fq-story-opening-stone-head strong { font-size: 1rem; }
+.fq-story-opening-stone-head span { color: #FFE27A; font-size: .9rem; font-weight: 800; }
+.fq-story-opening .fq-story-go { width: 100%; }
+
 .fq-story-say { display: flex; align-items: flex-end; gap: 8px; margin: 4px 0 10px; }
 .fq-story-say > svg { flex: none; }
 .fq-story-say p { margin: 0; padding: 7px 11px; border: 2px solid hsl(var(--foreground)); border-radius: 14px 14px 14px 4px; background: #fff; font-size: .92rem; font-weight: 700; line-height: 1.3; }
@@ -88,6 +109,13 @@
 .fq-reward .fq-reward-note { margin: 4px 0 0; font-size: .95rem; }
 
 @media (max-width: 520px) {
+  .fq-story-opening { gap: 14px; }
+  .fq-story-opening-identity { flex-basis: 175px; }
+  .fq-story-opening-identity > span svg { width: 60px; height: 60px; }
+  .fq-story-opening-head h2 { font-size: 1.15rem; }
+  .fq-story-opening-copy { font-size: 1rem; }
+  .fq-story-opening-stone { padding: 11px 12px; }
+  .fq-story-opening-stone-head { align-items: flex-start; flex-direction: column; gap: 2px; }
   .fq-story-panel { min-height: 100px; padding: 8px 10px; }
   .fq-story-panel > svg { width: 60px; height: 60px; }
   .fq-story-bubble p { font-size: .95rem; }

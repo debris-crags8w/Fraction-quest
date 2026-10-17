@@ -7,7 +7,7 @@ import { getBuildChecks, getBuildPracticeChecks, getReviewCheck, getWorksheet } 
 import { getExtraPractice } from '../src/practice-bank';
 import { partFinderRoundsFor, PART_FINDER_ROUNDS } from '../src/part-finder';
 import { getAssessmentDefinitions } from '../src/assessments';
-import { CHAPTERS, PROLOGUE, REACTIONS, STORY_PROBLEMS, lessonComic, storyScript, withName, type Panel, type PropTheme } from '../src/story';
+import { CHAPTERS, PROLOGUE, WHOLE_STONE_OPENING, REACTIONS, STORY_PROBLEMS, lessonComic, storyScript, withName, type Panel, type PropTheme } from '../src/story';
 import { seasonalWords } from '../src/seasonal-words';
 import { sentences, spokenText } from '../src/lib/voice';
 import { cleanSentence, voiceKey } from '../src/lib/voice-pack';
@@ -47,7 +47,7 @@ export function voiceSentences(): { key: string; text: string }[] {
   EXTRA.forEach((line) => lesson.add(line));
 
   const story = new Set<string>();
-  collect([PROLOGUE, CHAPTERS, STORY_PROBLEMS, REACTIONS], story);
+  collect([WHOLE_STONE_OPENING, PROLOGUE, CHAPTERS, STORY_PROBLEMS, REACTIONS], story);
   const scripts: Panel[][] = [PROLOGUE];
   for (const chapter of CHAPTERS) {
     const lessons = MISSIONS.filter((mission) => mission.unit === chapter.unit);

@@ -3,7 +3,7 @@ import { ArrowRight, BookOpen, LockKeyhole, Search } from 'lucide-react';
 import { StoryCharacter } from './characters';
 import { LearningListenButton, LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
-import { CHAPTERS, CHARACTERS, STONE_PIECES, lessonCliff, propTheme, stoneQuestion, storyAsk, storyReaction, storyScript, withName, type Chapter, type Panel, type StoryChoice } from './story';
+import { CHAPTERS, CHARACTERS, STONE_PIECES, WHOLE_STONE_OPENING, lessonCliff, propTheme, stoneQuestion, storyAsk, storyReaction, storyScript, withName, type Chapter, type Panel, type StoryChoice } from './story';
 import { useSeason } from './fun-ui';
 import { MathText } from './MathText';
 
@@ -68,6 +68,47 @@ export function StoryComicView({ title, kicker, panels, name, choice, picked: sa
           )}
           <button type="button" className="fq-button fq-story-go" onClick={() => onGo(picked ?? undefined)} disabled={!!choice && picked === null} data-testid="button-story-go">
             {goLabel} <ArrowRight size={18} />
+          </button>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+/** A short story setup before the first comic, so the learner knows what the Whole Stone quest is about. */
+export function StoryOpeningView({ name, onGo, onBack }: {
+  name: string | null;
+  onGo: () => void;
+  onBack: () => void;
+}) {
+  const theme = useStoryTheme();
+  const text = withName(WHOLE_STONE_OPENING, name, theme);
+  return (
+    <div className="fq-app fq-story-app">
+      <main className="fq-shell fq-story-shell">
+        <TaskBar onBack={onBack} backLabel="Map" testId="button-story-intro-back" title="The Whole Stone" />
+        <section className="fq-story-opening" aria-labelledby="story-opening-title" data-testid="story-introduction">
+          <header className="fq-story-opening-head">
+            <div className="fq-story-opening-identity">
+              <span aria-hidden="true"><StoryCharacter id="numi" size={76} /></span>
+              <div>
+                <span className="fq-story-opening-kicker">Before the comic</span>
+                <h2 id="story-opening-title">Meet the Whole Stone</h2>
+              </div>
+            </div>
+            {/* Read aloud as "friend", like the comics: the name stays on this device and the pack has the line. */}
+            <LearningListenButton text={withName(WHOLE_STONE_OPENING, null, theme)} label="Listen to the story introduction" prefetch />
+          </header>
+          <p className="fq-story-opening-copy">{text}</p>
+          <div className="fq-story-opening-stone" data-testid="story-opening-stone">
+            <div className="fq-story-opening-stone-head">
+              <strong>Pieces to find</strong>
+              <span>15 equal pieces</span>
+            </div>
+            <StoneBar found={0} />
+          </div>
+          <button type="button" className="fq-button fq-story-go" onClick={onGo} data-testid="button-story-intro-go">
+            Start the story <ArrowRight size={18} />
           </button>
         </section>
       </main>
