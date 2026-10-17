@@ -6,7 +6,10 @@ import { useState, type ReactElement } from 'react';
 import { ArrowRight, Search } from 'lucide-react';
 import { StoryCharacter } from './characters';
 import { TaskBar } from './TaskBar';
-import { CHAPTERS, CHARACTERS, withName, type Chapter, type CharacterId, type PropTheme } from './story';
+import { LearningListenButton } from './LearningText';
+import { BOARD_AFTER, CHAPTERS, CHARACTERS, SUSPECTS, bonusClue, suspectReply, withName, type Chapter, type CharacterId, type PropTheme, type SuspectBoard } from './story';
+
+export { BOARD_AFTER, bonusClue, suspectReply, type SuspectBoard };
 
 const INK = '#2B2D42';
 
@@ -30,12 +33,6 @@ export function ClueArt({ unit, size = 52 }: { unit: number; size?: number }) {
     15: <path d="M28 4 l7 15 16 2 -12 11 3 16 -14 -8 -14 8 3 -16 -12 -11 16 -2z" fill="#FFC800" stroke={INK} strokeWidth="2" />,
   };
   return <svg className="fq-clue-art" width={size} height={size} viewBox="0 0 56 56" aria-hidden="true">{art[unit] ?? art[15]}</svg>;
-}
-
-/** The chapter choice that looks for a clue (the second one, in chapters 1–7) gives a bonus clue: its reply. */
-export function bonusClue(chapter: Chapter): string | null {
-  const option = chapter.choice[1];
-  return /clue|search|who saw|hiding/i.test(option.detail) ? option.reply.text : null;
 }
 
 /** One clue on a card: its picture, where it was found and what it says. */
@@ -109,22 +106,6 @@ export function StickerView({ sticker, earned = true, fresh = false, compact = f
 
 /* ---------- the suspect board ---------- */
 
-export type SuspectBoard = 1 | 2;
-/** Board 1 opens after chapter 4, board 2 after chapter 7. */
-export const BOARD_AFTER: Record<SuspectBoard, number> = { 1: 4, 2: 7 };
-const SUSPECTS: Record<SuspectBoard, CharacterId[]> = { 1: ['chomp', 'pip', 'tilly'], 2: ['chomp', 'bolt', 'bea', 'pip', 'tilly'] };
-
-/** What Hoot says about a guess: kind, with a nudge back to the clues; never the final answer. */
-export function suspectReply(board: SuspectBoard, suspect: CharacterId): { good: boolean; text: string } {
-  if (board === 1) {
-    return suspect === 'chomp'
-      ? { good: true, text: 'Good detective work! The big footprints, the green tail and the pointy teeth all match Chomp. But Chomp says he didn’t do it… keep collecting clues.' }
-      : { good: false, text: `Hmm. ${CHARACTERS[suspect].name} was busy helping us. Look at your clues again: big footprints, a green tail, pointy teeth. Who has those?` };
-  }
-  if (suspect === 'bolt') return { good: true, text: 'Sharp thinking! The map leads to Bolt’s workshop, and his rocket boots are missing. Keep a close eye on Bolt.' };
-  if (suspect === 'chomp') return { good: true, text: 'Chomp hid the boots and drew the map… but why draw a map to Bolt’s workshop? Something doesn’t add up. Keep reading!' };
-  return { good: false, text: `Hmm. ${CHARACTERS[suspect].name} has been helping all along. Look at your clues: whose boots are missing, and where does the map lead?` };
-}
 
 /** "Who cracked the stone?": the clues found so far as picture cards, then a guess. The guess is saved and the
    story remembers it when the truth comes out. */
@@ -160,6 +141,7 @@ export function SuspectBoardView({ board, choices, saved, name, theme, onGuess, 
             <div className={`fq-suspect-reply ${reply.good ? 'is-good' : ''}`} role="status" data-testid="suspect-reply">
               <StoryCharacter id="hoot" size={48} />
               <p>{reply.text}</p>
+              <LearningListenButton text={reply.text} label="Listen to Hoot" />
             </div>
           ) : (
             <button type="button" className="fq-button fq-suspect-go" disabled={!picked} onClick={() => { if (picked) { setAnswered(picked); onGuess(picked); } }} data-testid="button-suspect-guess">

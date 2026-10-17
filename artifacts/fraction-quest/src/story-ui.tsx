@@ -3,7 +3,7 @@ import { ArrowRight, BookOpen, LockKeyhole, Search } from 'lucide-react';
 import { StoryCharacter } from './characters';
 import { LearningListenButton, LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
-import { CHAPTERS, CHARACTERS, STONE_PIECES, type CharacterId, lessonCliff, propTheme, stoneQuestion, storyAsk, storyReaction, withName, type Chapter, type Panel, type StoryChoice } from './story';
+import { CHAPTERS, CHARACTERS, STONE_PIECES, type CharacterId, lessonCliff, propTheme, stoneQuestion, storyAsk, storyReaction, storyScript, withName, type Chapter, type Panel, type StoryChoice } from './story';
 import { useSeason } from './fun-ui';
 import { MathText } from './MathText';
 import { BOARD_AFTER, ClueCard, StickerView, bonusClue, earnsThanks, thanksSticker, lessonSticker, type Sticker, type SuspectBoard } from './quest';
@@ -34,7 +34,7 @@ export function StoryComicView({ title, kicker, panels, name, choice, picked: sa
   const theme = useStoryTheme();
   const lines = panels.map((panel) => ({ ...panel, text: withName(panel.text, name, theme) }));
   const reply = choice && picked !== null ? { ...choice[picked].reply, text: withName(choice[picked].reply.text, name, theme) } : null;
-  const script = [...lines, ...(reply ? [reply] : [])].map((panel) => `${CHARACTERS[panel.speaker].name} says: ${panel.text}`).join(' ');
+  const script = storyScript([...panels, ...(choice && picked !== null ? [choice[picked].reply] : [])], theme);
   return (
     <div className="fq-app fq-story-app">
       <main className="fq-shell fq-story-shell">

@@ -34,7 +34,7 @@ import {
   type Progress,
 } from './game';
 import { createDeveloperLessonProgress } from './developer-test';
-import { BOARD_AFTER, SuspectBoardView, TownMap, bonusClue, lessonSticker, thanksSticker, type SuspectBoard } from './quest';
+import { BOARD_AFTER, SuspectBoardView, TownMap, lessonSticker, thanksSticker, type SuspectBoard } from './quest';
 import { DeveloperChip } from './DeveloperTesting';
 import { saveAssessmentAttempt } from './assessments';
 import type { AssessmentDefinition } from './assessments';
@@ -53,7 +53,7 @@ import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
 import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
-import { CHAPTERS, EPILOGUE, PROLOGUE, chapterEnd, chapterFor, type CharacterId, lessonComic, propTheme, storyProblemFor, withName, type PropTheme } from './story';
+import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, withName, type PropTheme } from './story';
 import { ChapterBanner, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
 import { LanternIcon } from './riddle-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
@@ -157,24 +157,6 @@ const FOLD_LESSONS: Record<string, { intro: string; allowThirds?: boolean; shade
 
 const UNIT_TITLES = UNIT_INFO.map((unit) => unit.title);
 /** Units whose every lesson is done: each one returns a piece of the Whole Stone. */
-/** Story mode: the friend's ask at the top of a hands-on lesson, in the season's props. */
-const HANDS_ON_ASKS: Record<string, string> = {
-  sort: 'Help me share it fairly. Every friend must get the same amount!',
-  'sort-cake': 'Help me share it fairly. Every friend must get the same amount!',
-  tile: 'How many pieces this size make the whole thing?',
-  match: 'Can different pieces make the same amount?',
-};
-/** When the truth comes out (chapters 8 and 11), the story remembers the child's suspect board guess. */
-function detectiveNote(unit: number, guesses: Record<string, string>): string | undefined {
-  const guess = guesses['2'] ?? guesses['1'];
-  if (!guess) return undefined;
-  if (unit === 8) return guess === 'chomp' ? 'Detective note: you suspected Chomp. The clues pointed at him… but he was protecting a friend!'
-    : guess === 'bolt' ? 'Detective note: you suspected Bolt. You might be onto something!' : undefined;
-  if (unit === 11) return guess === 'bolt' ? 'Detective note: you figured it out back in chapter 7. Great detective work, {name}!'
-    : 'Detective note: the clues were all there: the map, the missing boots and the sorry note.';
-  return undefined;
-}
-
 /** Story mode: on a lesson's first question the chapter friend asks for this lesson's help (the comic's scene). */
 const lessonAsk = (mission: Mission) => {
   const chapter = chapterFor(mission.unit);
@@ -1751,7 +1733,7 @@ function Game() {
         const saved = fun.story?.choices?.[String(chapter.unit)];
         return <StoryComicView key={`${mission.id}-${view.replay ? 'replay' : 'new'}`} title={`Chapter ${chapter.unit} · ${chapter.title}`} kicker={`Lesson ${index + 1} of ${unitMissions.length} · ${mission.title}`}
           panels={lessonComic(chapter, mission, index)} name={name} choice={index === 0 ? chapter.choice : undefined} picked={view.replay ? saved : undefined}
-          choiceNotes={index === 0 ? [`You earned ${CHARACTER_NAMES[chapter.character]}’s thank-you sticker!`, bonusClue(chapter) ? 'Bonus clue added to your notebook!' : `You earned ${CHARACTER_NAMES[chapter.character]}’s thank-you sticker!`] : undefined}
+          choiceNotes={index === 0 ? choiceNotes(chapter) : undefined}
           note={index === 0 ? detectiveNote(chapter.unit, fun.story?.guesses ?? {}) : undefined}
           goLabel={view.replay === 'storybook' ? 'Back to the Storybook' : view.replay ? 'Back to map' : index === 0 ? 'Let’s go!' : 'Let’s help!'}
           onGo={(choice) => {
