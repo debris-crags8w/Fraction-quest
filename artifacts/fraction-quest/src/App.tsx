@@ -52,7 +52,7 @@ import { ModelTag, SetSvg, WholeBracket } from './models';
 import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
 import { CHAPTERS, PROLOGUE, chapterFor, lessonComic, propTheme, storyProblemFor, withName, type PropTheme } from './story';
-import { ChapterTag, StoneBanner, StoryCardsView, StoryComicView, StoryPayoff, StorySay } from './story-ui';
+import { ChapterTag, StoneBanner, StoryCardsView, StoryComicView, StoryOpeningView, StoryPayoff, StorySay } from './story-ui';
 import { LanternIcon } from './riddle-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
@@ -96,6 +96,8 @@ type View =
   | { type: 'reward'; missionId: string; stars: number }
   /** The story comic before a lesson starts. */
   | { type: 'story'; missionId: string; /** The one-time opening before the first lesson. */ prologue?: boolean; /** Reading a finished lesson's comic again: where it was opened from, to go back there. */ replay?: 'map' | 'cards' }
+  /** The one-time Whole Stone setup, shown before its comic prologue. */
+  | { type: 'story-intro'; missionId: string }
   | { type: 'cards' }
   /** The lesson's hands-on cake rounds (Part Finder), between the worked example and the questions. */
   | { type: 'hands-on'; missionId: string; reviewQuestions: PracticeQuestion[] }
@@ -1326,8 +1328,10 @@ function Game() {
     // A lesson started for the first time opens with its story comic (when story mode is on).
     const mission = MISSIONS.find((item) => item.id === missionId);
     if (!afterStory && !testProgress && storyMode && mission && chapterFor(mission.unit) && !record.practiceDone && !hasLearningGate(activeProgress, missionId)) {
-      // The prologue opens the story once, then each new lesson gets its chapter comic.
-      setView({ type: 'story', missionId, prologue: !fun.story?.prologueSeen });
+      // Introduce the Whole Stone before its one-time comic prologue.
+      setView(fun.story?.prologueSeen
+        ? { type: 'story', missionId }
+        : { type: 'story-intro', missionId });
       return;
     }
     // Unfinished work, or every step done but "Finish lesson" not pressed yet: go back to the lab, where the
@@ -1645,6 +1649,13 @@ function Game() {
       }} />}
       {view.type === 'reward' && activeMission && (
         <RewardView mission={activeMission} stars={view.stars} progress={progress} onMap={returnToMap} onNext={startMission} onReset={openResetDialog} onGame={(type) => setView({ type, missionId: activeMission.id })} />
+      )}
+      {view.type === 'story-intro' && (
+        <StoryOpeningView
+          name={account.activeProfile?.displayName ?? null}
+          onBack={returnToMap}
+          onGo={() => setView({ type: 'story', missionId: view.missionId, prologue: true })}
+        />
       )}
       {view.type === 'story' && (() => {
         const mission = MISSIONS.find((item) => item.id === view.missionId);

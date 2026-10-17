@@ -66,7 +66,11 @@ export const CHARACTERS: Record<Speaker, { name: string; kind: string }> = {
 const say = (speaker: Speaker, text: string): Panel => ({ speaker, text });
 const pick = (label: string, detail: string, speaker: Speaker, reply: string): StoryChoice => ({ label, detail, reply: say(speaker, reply) });
 
-/** The opening, once, before the very first lesson. */
+/** The brief setup shown before the first comic, without revealing who cracked the stone. */
+export const WHOLE_STONE_OPENING =
+  '{name}, the Whole Stone glows in the town square before the Fraction Festival. One night, it cracks into 15 equal pieces that scatter across town. Help Numi find every piece and follow the clues to discover who cracked it.';
+
+/** The comic prologue, shown once after the story setup. */
 export const PROLOGUE: [Panel, Panel, Panel] = [
   say('numi', 'The Fraction Festival is one week away. The Whole Stone glows in the town square.'),
   say('hoot', 'CRACK! The stone broke into 15 equal pieces, and they flew all over town!'),
