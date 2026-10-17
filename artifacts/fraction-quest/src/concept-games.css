@@ -187,3 +187,10 @@ button.cg-cell:focus-visible { outline:3px solid var(--fq-grape,#7c4dff); outlin
 @keyframes fh-glow { 0%,100% { box-shadow:0 0 0 4px rgb(255 255 255 / .6), 0 0 10px 2px #b6ff8a; } 50% { box-shadow:0 0 0 4px rgb(255 255 255 / .9), 0 0 18px 7px #b6ff8a; } }
 @keyframes fh-snap { 50% { transform:translateX(-6px) rotate(8deg); } }
 @media (prefers-reduced-motion: reduce) { .fh-frog-spot, .fh-croc { transition:none; } .fh-frog.is-hopping, .fh-frog.is-splash, .fh-pad, .fh-croc.is-snap { animation:none; } }
+
+/* Frog Hop at Halloween: a moonlit swamp. */
+.fh-pond.is-halloween { background: radial-gradient(circle at 88% 22%, #FFF1B8 0 22px, transparent 23px), #12203A; }
+.fh-pond.is-halloween .fh-water { background: #0F2D3A; }
+.fh-pond.is-halloween .fh-line, .fh-pond.is-halloween .fh-tick { background: #FFF6E5; }
+.fh-pond.is-halloween .fh-croc { filter: drop-shadow(0 0 6px #FFE27A); }
+.fh-pond.is-halloween .fh-frog { width: 44px; height: 47px; }

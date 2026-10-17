@@ -1864,7 +1864,7 @@ test('top-bar symbols explain themselves when tapped, one at a time', async ({ p
   await page.getByTestId('button-tip-streak').click();
   await expect(page.getByTestId('button-tip-streak-tip')).toContainText('streak');
   await page.getByTestId('button-tip-xp').click();
-  await expect(page.getByTestId('button-tip-xp-tip')).toContainText('10 points for every right answer');
+  await expect(page.getByTestId('button-tip-xp-tip')).toContainText(/10 (points|candy) for every right answer/);
   await expect(page.getByTestId('button-tip-streak-tip')).toHaveCount(0);
   await page.getByTestId('button-tip-daily').click();
   await expect(page.getByTestId('button-tip-daily-tip')).toContainText("Today's goal");
@@ -2019,10 +2019,10 @@ test('Frog Hop: a splash hops back, the best route lands with 3 flies, and Next 
       await page.getByTestId('button-frog-hop').click();
     }
     await expect(page.getByTestId('status-frog-feedback')).toContainText('You landed');
-    await expect(page.getByTestId('status-frog-round-flies')).toHaveAttribute('aria-label', '3 flies');
+    await expect(page.getByTestId('status-frog-round-flies')).toHaveAttribute('aria-label', /^3 (fire)?flies$/);
     await page.getByTestId('button-frog-next').click();
   }
-  await expect(page.getByTestId('status-frog-done')).toContainText('You caught 18 of 18 flies');
+  await expect(page.getByTestId('status-frog-done')).toContainText(/You caught 18 of 18 (fire)?flies/);
 });
 
 test('Fraction War gives a clear retry hint after a wrong comparison', async ({ page }) => {
@@ -2372,4 +2372,62 @@ test('a wrong Code Sprint run explains the fix, adds its penalty, and can be ret
   await page.getByTestId('button-sprint-next').click();
   await expect(page.locator('.fq-code-level-title').last()).toContainText('Program 5 of 5');
   expect(await localStorageSnapshot(page)).toBe(savedProgress);
+});
+
+test('Halloween: the night map, costumes earned by finishing lessons, candy points, a swamp Frog Hop, and a grown-up off switch', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0, 0));
+  const mission = MISSIONS.find((item) => item.id === 'sets-nonunit')!;
+  await page.addInitScript((progress) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+    localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 40, sound: false, breakPreferences: { intervalMinutes: 0, quietMode: false }, seasonLessons: { 'halloween-2026': ['equal-parts', 'unit-fractions'] } }));
+  }, progressBefore(mission));
+  await openAsGuest(page);
+
+  // The map: banner with progress to the first costume, and Numi in a witch hat.
+  const banner = page.getByTestId('season-banner');
+  await expect(banner).toContainText('Spooky fraction night');
+  await expect(banner).toContainText("Finish 1 more lesson to unlock Numi's bat wings.");
+  await expect(banner.locator('svg.fq-mascot')).toHaveAttribute('data-costume', 'witch-hat');
+  await expect(page.getByTestId('status-xp')).toContainText('40');
+  await expect(page.locator('html')).toHaveAttribute('data-fq-season', 'halloween');
+
+  // Finishing a lesson earns the bat wings.
+  await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await expect(page.getByTestId('learning-lab')).toBeVisible();
+  await completeBuilds(page, mission.id);
+  for (const problem of getWorksheet(mission.id)) {
+    await buildWorksheetModel(page, problem);
+    await enterWorksheetAnswer(page, problem, problem.answer);
+    await expect(page.getByTestId(`status-worksheet-${problem.id}`)).toContainText('Correct!');
+  }
+  await page.getByTestId('button-lab-finish').click();
+  await expect(page.getByTestId('status-mission-complete')).toContainText('Spooky good!');
+  const reward = page.getByTestId('season-reward');
+  await expect(reward).toContainText('Costume unlocked');
+  await expect(reward).toContainText("Numi's bat wings");
+  await expect(reward).toContainText('2 more lessons for the glow-in-the-dark hat.');
+  await expect(page.locator('.fq-reward-mascot svg.fq-mascot')).toHaveAttribute('data-costume', 'witch-hat bat-wings');
+  await page.getByTestId('button-return-map').click();
+  await expect(page.getByTestId('season-banner')).toContainText('Finish 2 more lessons to unlock the glow-in-the-dark hat.');
+
+  // Frog Hop is a moonlit swamp with fireflies.
+  await openMenuItem(page, 'button-open-concept-games');
+  await page.getByTestId('link-game-frog').click();
+  await expect(page.getByTestId('frog-pond')).toHaveClass(/is-halloween/);
+  await expect(page.getByTestId('status-frog-flies')).toContainText('Fireflies');
+
+  // A grown-up can turn seasonal themes off; lessons and points stay the same.
+  await page.goto('/');
+  await openMenuItem(page, 'button-open-parent');
+  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+  await page.getByTestId('checkbox-seasonal-themes').uncheck();
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+  await expect(page.getByTestId('season-banner')).toHaveCount(0);
+  await expect(page.locator('html')).not.toHaveAttribute('data-fq-season', 'halloween');
+  await expect(page.getByTestId('status-xp')).toContainText('XP');
 });
