@@ -3,7 +3,7 @@ import { answerValue } from './learning-content';
 /* What to say after a wrong tap: a kind opener, then (when we can tell) the exact slip behind the choice the
    child picked ("You flipped it"), so the help is about their thinking. It never names the right answer. */
 
-const OPENERS = ['Almost!', 'Good try!', 'Let’s look again.', 'Not quite.', 'So close!'];
+const OPENERS = ['Good try!', 'Almost!', 'Let’s look together.', 'Keep going!', 'Nice effort!'];
 /** A kind opener that changes from question to question (and try to try), but is the same on every visit. */
 export function retryOpener(seed: string): string {
   const h = [...seed].reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) >>> 0, 7);

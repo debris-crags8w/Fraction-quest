@@ -56,3 +56,9 @@ export function lanternWeek(activity: Record<string, DayActivity> | undefined, n
     return { day, label: i === 6 ? 'Today' : names[date.getDay()], lit: (activity?.[day]?.answered ?? 0) > 0, today: i === 6 };
   });
 }
+
+/** Chomp's reaction to a checked riddle answer: words only. */
+export const riddleReaction = (result: 'correct' | 'retry', index: number) =>
+  result === 'correct'
+    ? ['Grr! You solved it!', 'What? How did you know?', 'Okay, you’re good at this.'][index % 3]
+    : ['Tricky one, right? Try again!', 'Not yet! Have another go.', 'Hmm. Look one more time.'][index % 3];

@@ -803,7 +803,7 @@ async function completePartFinderLesson(page: import('@playwright/test').Page, m
 async function completeFractionOrderLesson(page: import('@playwright/test').Page) {
   const firstRound = FRACTION_ORDER_ROUNDS[0];
   await page.getByTestId('button-sort-check').click();
-  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(/Almost!|Good try!|Let’s look again\.|Not quite\.|So close!/);
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(/Good try!|Almost!|Let’s look together\.|Keep going!|Nice effort!/);
   await expect(page.getByTestId('fraction-sort-feedback')).toContainText('1/2');
   await page.getByTestId('button-sort-8-10-down').click();
   await page.getByTestId('button-sort-8-10-down').click();
@@ -1968,7 +1968,7 @@ test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried 
   await expect(page.locator('[data-testid="status-feedback"] .fq-hoot')).toBeVisible();
   // "Count with me": numbers pop onto the parts of the picture.
   await expect(page.getByTestId('question-model-area').locator('.fq-count-badge').first()).toBeAttached();
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.join(' | '))).toMatch(/Almost|Good try|look again|Not quite|So close/);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.join(' | '))).toMatch(/Good try|Almost|look together|Keep going|Nice effort/);
   await page.getByTestId('button-try-again').click();
   await expect(page.getByTestId(`button-answer-${question.id}-${wrong}`)).toBeDisabled();
 });
@@ -2523,7 +2523,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
 
   // The first lesson opens with the one-time prologue, then the chapter intro with a choice.
   await page.getByTestId('button-continue-course').click();
-  await expect(page.getByTestId('story-panel-0')).toContainText('night before the Fraction Festival');
+  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away.');
   await expect(page.getByTestId('story-panel-2')).toContainText('Friend, we need you!');
   await expect(page.getByTestId('button-story-go')).toContainText('I’ll help!');
   await page.getByTestId('button-story-go').click();
@@ -2555,6 +2555,13 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   // Questions carry the chapter friend's short line.
   await page.getByTestId(`button-practice-more-${second.id}`).click();
   await expect(page.getByTestId('story-line')).toBeVisible();
+  // After Check, the same bubble becomes the friend's reaction (words only), so the screen does not grow.
+  const askLine = await page.getByTestId('story-line').textContent();
+  await page.locator('[data-testid^="button-answer-"]').first().click();
+  await page.getByTestId('button-check-answer').click();
+  await expect(page.getByTestId('story-line')).toHaveAttribute('data-result', /^(correct|retry)$/);
+  await expect(page.getByTestId('story-line')).not.toHaveText(askLine!);
+  await expect(page.getByTestId('story-line')).not.toContainText(/\d/);
 
   // Finishing chapter 2 returns a stone piece, adds a clue and unlocks Pip's card.
   const mission = MISSIONS.find((item) => item.id === 'sets-nonunit')!;
@@ -2590,7 +2597,25 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByText('2 of 15')).toBeVisible();
   await expect(page.getByTestId('story-card-1')).toContainText('Chomp the sneaky sharer');
   await expect(page.getByTestId('story-card-3')).toContainText('Finish “Tilly’s halfway hill” to unlock this card.');
+  await expect(page.getByTestId('button-read-chapter-3')).toHaveCount(0);
+
+  // A finished chapter can be read again from its card, with the choice already made, and it goes back to the cards.
+  await page.getByTestId('button-read-chapter-1').click();
+  await expect(page.getByTestId('story-panel-0')).toContainText('The big piece is mine!');
+  await expect(page.getByTestId('story-choice-reply')).toContainText('big muddy footprints');
+  await expect(page.getByTestId('button-story-go')).toContainText('Back to cards');
+  await page.getByTestId('button-story-go').click();
+  await expect(page.getByTestId('story-cards')).toBeVisible();
   await page.getByTestId('button-cards-back').click();
+
+  // A finished lesson's comic can be read again from the map; it returns to the map instead of starting the lesson.
+  await page.getByTestId(`button-node-${mission.id}`).click();
+  await page.getByTestId(`button-story-replay-${mission.id}`).click();
+  await expect(page.getByTestId('story-comic')).toBeVisible();
+  await expect(page.getByTestId('button-story-go')).toContainText('Back to map');
+  await page.getByTestId('button-story-go').click();
+  await expect(page.getByTestId('stone-banner')).toBeVisible();
+  await expect(page.getByTestId(`button-story-replay-${MISSIONS.find((item) => item.unit === 3)!.id}`)).toHaveCount(0);
 
   // The next chapter opens with its own intro and choice.
   const next = MISSIONS.find((item) => item.unit === 3)!;

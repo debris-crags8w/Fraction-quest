@@ -258,7 +258,7 @@ export default function DailyPractice({
       </>
     )}
     <LiveFraction n={attempt.shaded.length} d={parts ?? 0} unit={bar ? 'bar' : 'line'} color={bar ? '#38bdb0' : undefined} testId="daily-live-fraction" />
-    {attempt.modelChecked && !done && <p className="fq-daily-feedback retry" role="status">Not quite. {wrongFeedback} Change your model, then check again.</p>}
+    {attempt.modelChecked && !done && <p className="fq-daily-feedback retry" role="status">Good try. {wrongFeedback} Change your model, then check again.</p>}
     {done && <div className="fq-daily-feedback success" role="status"><strong>That’s it!</strong> {parts === question.denominator ? question.explanation : `${attempt.shaded.length}/${parts} is the same amount as ${question.numerator}/${question.denominator}.`}</div>}
     {done ? nextButton : (
       <div className="fq-daily-actions">
@@ -275,7 +275,7 @@ export default function DailyPractice({
         <main className="fq-shell fq-daily-shell">
           <TaskBar onBack={onBack} backLabel="Map" testId="button-daily-back" title={<><Sparkles size={16} aria-hidden="true" /> Daily practice{storyOn ? ' · Chomp’s riddles' : ''}</>} step={session.index + 1} total={session.questions.length} done={session.index + (session.attempts[question!.id]?.answerCorrect ? 1 : 0)} />
           <section className="fq-daily-card" aria-labelledby="daily-question-title">
-            {storyOn && <RiddleSetup index={session.index} total={session.questions.length} />}
+            {storyOn && <RiddleSetup index={session.index} total={session.questions.length} result={riddleResult(session.attempts[question!.id])} />}
             <div className="fq-daily-topic">A little review · {question!.topicTitle}</div>
             {/* The grown-up reason is kept for the progress report; the child sees a short, kind label. */}
             {question!.reteachLoop
@@ -289,4 +289,11 @@ export default function DailyPractice({
       </div>
     );
   }
+}
+
+/** How Chomp should react: after a right answer, after a checked miss, or not yet. */
+function riddleResult(attempt?: { answerChecked?: boolean; answerCorrect?: boolean; modelChecked?: boolean }): 'correct' | 'retry' | null {
+  if (!attempt) return null;
+  if (attempt.answerCorrect) return 'correct';
+  return attempt.answerChecked || attempt.modelChecked ? 'retry' : null;
 }

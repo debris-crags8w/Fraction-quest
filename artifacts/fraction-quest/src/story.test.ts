@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MISSIONS } from './game';
 import { recordStory, type FunState } from './lib/fun';
-import { CHAPTERS, CHARACTERS, PROLOGUE, STONE_PIECES, chapterFor, lessonCliff, lessonComic, storyAsk, withName } from './story';
+import { CHAPTERS, CHARACTERS, PROLOGUE, REACTIONS, STONE_PIECES, chapterFor, lessonCliff, lessonComic, storyAsk, storyReaction, withName } from './story';
 
 const lessonsIn = (unit: number) => MISSIONS.filter((mission) => mission.unit === unit);
 
@@ -75,4 +75,18 @@ test('story progress saves the prologue and each chapter’s choice, and drops b
   fun = recordStory(fun, { prologueSeen: true });
   fun = recordStory(fun, { unit: 3, choice: 0 });
   assert.deepEqual(fun.story, { prologueSeen: true, choices: { '1': 1, '3': 0 } });
+});
+
+test('friend reactions cheer or encourage with words only, for every chapter friend', () => {
+  for (const chapter of CHAPTERS) {
+    const lines = REACTIONS[chapter.character];
+    assert.ok(lines.right.length >= 2 && lines.retry.length >= 2, chapter.character);
+    for (const line of [...lines.right, ...lines.retry]) {
+      assert.doesNotMatch(line, /\d/, line);
+      assert.ok(line.length <= 40, line);
+    }
+  }
+  assert.ok(REACTIONS.chomp.right.includes(storyReaction('chomp', 'correct', 'q-1')));
+  assert.ok(REACTIONS.chomp.retry.includes(storyReaction('chomp', 'retry', 'q-1')));
+  assert.equal(storyReaction('bea', 'retry', 'q-9'), storyReaction('bea', 'retry', 'q-9'));
 });
