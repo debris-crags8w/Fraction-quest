@@ -45,10 +45,14 @@
 .cg-model-card select,.cg-game>select { width:100%; max-width:260px; min-height:43px; padding:7px 12px; border:2px solid var(--cg-edge); border-radius:12px; color:var(--cg-ink); background:hsl(var(--card)); font:inherit; font-weight:750; }
 .cg-bar-wrap { width:100%; padding:8px 0 4px; }
 .cg-bar-unsplit { grid-template-columns:1fr !important; }
-.cg-bar { display:grid; grid-template-columns:repeat(var(--parts),minmax(0,1fr)); gap:4px; width:100%; }
-.cg-cell { min-width:0; height:48px; padding:0; border:2px solid color-mix(in srgb,var(--fq-sky,#1cb0f6) 50%,var(--cg-edge)); border-radius:9px; background:hsl(var(--card)); }
+/* Equal parts look equal: every workshop bar is one rectangle with a dark outline and straight 2px dividers;
+   no gaps, rounded parts or shadows on single pieces. */
+.cg-bar { display:grid; grid-template-columns:repeat(var(--parts),minmax(0,1fr)); gap:0; column-gap:2px; width:100%;
+  border:3px solid hsl(var(--foreground)); border-radius:3px; background:hsl(var(--foreground)); }
+.cg-cell { min-width:0; height:48px; padding:0; border:0; border-radius:0; background:hsl(var(--card)); }
 button.cg-cell { cursor:pointer; }
-.cg-cell.is-shaded { border-color:var(--fq-sky,#1cb0f6); background:var(--fq-sky,#1cb0f6); box-shadow:inset 0 -5px 0 rgb(0 0 0 / .12); }
+.cg-cell.is-shaded { background:var(--fq-sky,#1cb0f6); box-shadow:none; }
+button.cg-cell:focus-visible { outline:3px solid var(--fq-grape,#7c4dff); outline-offset:-3px; }
 .cg-model-readout { display:flex; justify-content:space-between; gap:8px; color:var(--cg-muted); font-size:.75rem; font-weight:800; }
 .cg-compare { display:flex; flex-wrap:wrap; gap:9px; padding:0; border:0; }
 .cg-compare legend { width:100%; margin-bottom:9px; font-weight:900; }
@@ -104,8 +108,8 @@ button.cg-cell { cursor:pointer; }
  .cg-war-models { gap:8px; margin:12px 0; }
  .cg-model-card { gap:7px; padding:10px; border-radius:15px; }
  .cg-model-card select { min-height:40px; padding:5px 6px; font-size:.85rem; }
- .cg-cell { height:40px; border-radius:7px; }
- .cg-bar { gap:3px; }
+ .cg-cell { height:40px; }
+ .cg-bar { column-gap:2px; }
  .cg-hide-narrow { display:none; }
  .cg-compare legend { margin-bottom:6px; }
  .cg-choice { min-height:42px; padding:0 12px; }
@@ -126,3 +130,23 @@ button.cg-cell { cursor:pointer; }
  .cg-print-button { display:none; }
 }
 @media(prefers-reduced-motion:reduce) { .cg-page *, .cg-page *::before,.cg-page *::after { scroll-behavior:auto !important; transition-duration:.01ms !important; animation-duration:.01ms !important; } }
+
+/* ---------- Fraction Line-Up ---------- */
+.cg-lineup-modes { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-top:14px; }
+.cg-lineup-modes .cg-menu-card { min-height:96px; }
+.cg-lineup-end { margin:10px 0 4px; color:var(--cg-muted); font-size:.85rem; font-weight:900; text-transform:uppercase; letter-spacing:.06em; }
+.cg-lineup-list { display:grid; gap:8px; margin:0; padding:0; list-style:none; }
+.cg-lineup-card { display:grid; grid-template-columns:28px 44px minmax(0,1fr) auto; align-items:center; gap:10px; padding:8px 10px;
+  border:2px solid var(--cg-edge); border-radius:16px; background:hsl(var(--card)); box-shadow:0 3px 0 var(--cg-edge);
+  touch-action:none; user-select:none; cursor:grab; transition:transform 120ms ease, box-shadow 120ms ease; }
+.cg-lineup-card.is-dragging { cursor:grabbing; transform:scale(1.02); border-color:var(--fq-sky,#1cb0f6); box-shadow:0 8px 18px rgb(0 0 0 / .18); }
+.cg-lineup-card.is-solved { cursor:default; border-color:var(--fq-lime,#58cc02); }
+.cg-lineup-place { display:grid; place-items:center; width:28px; height:28px; border-radius:50%; color:var(--cg-muted); background:hsl(var(--muted)); font-weight:900; font-size:.85rem; }
+.cg-lineup-card .cg-fraction { font-size:1.35rem; }
+.cg-lineup-card .cg-bar-wrap { padding:0; }
+.cg-lineup-card .cg-cell { height:34px; }
+.cg-lineup-arrows { display:flex; flex-direction:column; gap:4px; }
+.cg-lineup-arrow { display:grid; place-items:center; width:44px; height:30px; border:2px solid var(--cg-edge); border-radius:10px; color:var(--cg-ink); background:hsl(var(--card)); cursor:pointer; }
+.cg-lineup-arrow:disabled { opacity:.35; cursor:default; }
+.cg-feedback-retry { color:var(--fq-alert,#D90429); background:#ffe9ec; }
+@media (max-width:420px) { .cg-lineup-card { grid-template-columns:24px 38px minmax(0,1fr) auto; gap:8px; } }

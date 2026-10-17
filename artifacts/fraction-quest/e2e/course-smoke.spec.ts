@@ -1320,7 +1320,7 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
   const firstIntro = page.getByTestId('first-fraction-introduction');
   await expect(firstIntro).toBeVisible();
   await expect(firstIntro.getByRole('heading', { name: 'Meet fractions with Numi' })).toBeVisible();
-  await expect(firstIntro.getByText(/A fraction names equal-size parts of one whole/)).toBeVisible();
+  await expect(firstIntro.getByText(/A fraction shows equal parts of one whole/)).toBeVisible();
   await expect(page.getByTestId('first-fraction-intro-model').getByRole('img', { name: 'One whole divided into four equal-size parts' })).toBeVisible();
   await expect(firstIntro.getByTestId('button-listen-learning-text')).toBeVisible();
   await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
@@ -1603,7 +1603,8 @@ test('daily practice resumes its checked scaffold and parent report after reload
   await openMenuItem(page, 'button-start-daily-practice');
   await expect(page.locator('#daily-question-title')).toBeVisible();
   await expect(page.getByTestId('button-daily-next')).toBeVisible();
-  await expect(page.getByTestId('daily-adaptation-reason')).toContainText(started.question.adaptationReason);
+  // The grown-up reason stays in the parent report; the child never sees it.
+  await expect(page.locator('.fq-daily-card')).not.toContainText(started.question.adaptationReason);
 
   const resumed = await page.evaluate(() => {
     const progress = JSON.parse(localStorage.getItem('fraction-quest-progress-v1:guest') ?? '{}');
@@ -1976,4 +1977,33 @@ test('Fraction War gives a clear retry hint after a wrong comparison', async ({ 
   await expect(feedback).toHaveClass(/retry/);
   await expect(feedback).toContainText(warHint(left, right));
   await expect(page.getByTestId('status-war-score')).toContainText('0');
+});
+
+test('Fraction Line-Up: order same-numerator fractions, miss once with a hint, then finish with Next', async ({ page }) => {
+  await openAsGuest(page);
+  await openMenuItem(page, 'button-open-concept-games');
+  await page.getByTestId('link-game-lineup').click();
+  await page.getByTestId('button-lineup-mode-same-numerator').click();
+  const value = (text: string) => { const [n, d] = text.split('/').map(Number); return n / d; };
+  for (let round = 0; round < 6; round++) {
+    const heading = await page.locator('#lineup-title').innerText();
+    const smallestFirst = /smallest first/i.test(heading);
+    if (round === 0) {
+      // A first check of the shuffled cards is never right: the hint explains the rule without naming an answer.
+      await page.getByTestId('button-lineup-check').click();
+      await expect(page.getByTestId('status-lineup-feedback')).toContainText('Same numerator');
+    }
+    // Sort with the arrow buttons (bubble sort: always a valid, explicit move).
+    for (let pass = 0; pass < 4; pass++) {
+      for (let i = 0; i < 3; i++) {
+        const a = value((await page.getByTestId(`lineup-card-${i}`).getAttribute('data-fraction'))!);
+        const b = value((await page.getByTestId(`lineup-card-${i + 1}`).getAttribute('data-fraction'))!);
+        if (smallestFirst ? a > b : a < b) await page.getByTestId(`button-lineup-down-${i}`).click();
+      }
+    }
+    await page.getByTestId('button-lineup-check').click();
+    await expect(page.getByTestId('status-lineup-feedback')).toContainText('Yes!');
+    await page.getByTestId('button-lineup-next').click();
+  }
+  await expect(page.getByTestId('status-lineup-done')).toContainText('5 were right on the first try');
 });

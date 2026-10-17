@@ -1,7 +1,7 @@
-import { useEffect, useState, type CSSProperties } from 'react';
-import { ArrowLeft, Printer, RotateCcw, Scale, Shuffle, Waypoints } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { ArrowDown, ArrowLeft, ArrowUp, ListOrdered, Printer, RotateCcw, Scale, Shuffle, Waypoints } from 'lucide-react';
 import './concept-games.css';
-import { areEquivalent, compareFractions, targetTick, WAR_PARTS, WAR_ROUNDS, warHint } from './concept-games';
+import { areEquivalent, compareFractions, LINE_UP_ROUNDS, lineUpHint, lineUpInOrder, lineUpRound, targetTick, WAR_PARTS, WAR_ROUNDS, warHint, type LineUpMode } from './concept-games';
 import { printPage } from './lib/print';
 import { TaskBar } from './TaskBar';
 import { LiveFraction } from './fraction-ui';
@@ -192,6 +192,143 @@ function NumberLineTarget() {
   </section>;
 }
 
+
+const LINE_UP_MODES: { id: LineUpMode; label: string; example: string }[] = [
+  { id: 'same-denominator', label: 'Same denominator', example: '3/8 · 6/8 · 1/8' },
+  { id: 'same-numerator', label: 'Same numerator', example: '2/3 · 2/8 · 2/5' },
+  { id: 'mixed', label: 'Mix it up', example: 'Both kinds' },
+];
+const newSeed = () => 1 + Math.floor(Math.random() * 100000);
+
+/** Fraction Line-Up: drag four fraction cards into order. Each card shows its fraction and a bar cut into its
+    equal parts; the bars fill in after Check (or as help after two misses), so the picture never gives the order away. */
+function FractionLineUp() {
+  const [mode, setMode] = useState<LineUpMode | null>(null);
+  const [seed, setSeed] = useState(newSeed);
+  const [roundIndex, setRoundIndex] = useState(0);
+  const round = mode ? lineUpRound(mode, seed, roundIndex) : null;
+  const [cards, setCards] = useState(round?.cards ?? []);
+  const [misses, setMisses] = useState(0);
+  const [solved, setSolved] = useState(false);
+  const [firstTry, setFirstTry] = useState(0);
+  const [feedback, setFeedback] = useState('');
+  const [dragging, setDragging] = useState<number | null>(null);
+  const listRef = useRef<HTMLOListElement | null>(null);
+  const done = roundIndex >= LINE_UP_ROUNDS;
+
+  const startRound = (nextMode: LineUpMode, nextSeed: number, index: number) => {
+    setCards(index < LINE_UP_ROUNDS ? lineUpRound(nextMode, nextSeed, index).cards : []);
+    setMisses(0); setSolved(false); setFeedback(''); setDragging(null);
+    window.scrollTo?.({ top: 0 });
+  };
+  const choose = (nextMode: LineUpMode) => {
+    const nextSeed = newSeed();
+    playHaptic('selection');
+    setMode(nextMode); setSeed(nextSeed); setRoundIndex(0); setFirstTry(0); startRound(nextMode, nextSeed, 0);
+  };
+  const move = (from: number, to: number) => {
+    if (solved || to < 0 || to >= cards.length || from === to) return;
+    setCards((current) => { const next = [...current]; const [card] = next.splice(from, 1); next.splice(to, 0, card); return next; });
+    setFeedback('');
+  };
+  // Drag with a finger or mouse: the card follows the pointer from slot to slot.
+  const onPointerDown = (event: ReactPointerEvent<HTMLLIElement>, index: number) => {
+    if (solved || (event.target as HTMLElement).closest('button')) return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setDragging(index);
+    playHaptic('selection');
+  };
+  const onPointerMove = (event: ReactPointerEvent<HTMLLIElement>) => {
+    if (dragging === null || !listRef.current) return;
+    const items = [...listRef.current.querySelectorAll<HTMLElement>('[data-lineup-index]')];
+    const target = items.findIndex((item) => { const box = item.getBoundingClientRect(); return event.clientY >= box.top && event.clientY <= box.bottom; });
+    if (target !== -1 && target !== dragging) { move(dragging, target); setDragging(target); }
+  };
+  const onPointerUp = () => setDragging(null);
+
+  const check = () => {
+    if (!round || solved) return;
+    if (lineUpInOrder(cards, round.direction)) {
+      playHaptic('correct');
+      setSolved(true);
+      if (misses === 0) setFirstTry((count) => count + 1);
+      setFeedback(round.rule === 'same-denominator'
+        ? 'Yes! Same-size pieces, so the one with more pieces is bigger.'
+        : 'Yes! Same number of pieces, so the one with bigger pieces is bigger.');
+    } else {
+      playHaptic('retry');
+      setMisses((count) => count + 1);
+      setFeedback(`Not yet. ${lineUpHint(round)}${misses >= 1 ? ' The bars are filled in to help.' : ''}`);
+    }
+  };
+  const next = () => {
+    if (!mode) return;
+    const index = roundIndex + 1;
+    setRoundIndex(index);
+    startRound(mode, seed, index);
+  };
+
+  if (!mode || !round) {
+    return <section className="cg-game" aria-labelledby="lineup-title">
+      <div className="cg-game-heading"><span className="cg-index">Game 4 · Put in order</span></div>
+      <h2 id="lineup-title">Fraction Line-Up</h2>
+      <p className="cg-instruction">Drag four fractions into order. Pick a kind of line-up.</p>
+      <div className="cg-lineup-modes">{LINE_UP_MODES.map((item) => (
+        <button type="button" key={item.id} className="cg-menu-card" onClick={() => choose(item.id)} data-testid={`button-lineup-mode-${item.id}`}>
+          <b>{item.label}</b><span>{item.example}</span>
+        </button>
+      ))}</div>
+    </section>;
+  }
+
+  if (done) {
+    return <section className="cg-game" aria-labelledby="lineup-title">
+      <div className="cg-game-heading"><span className="cg-index">Game 4 · Put in order</span><span className="cg-score" data-testid="status-lineup-score">First try · {firstTry}/{LINE_UP_ROUNDS}</span></div>
+      <h2 id="lineup-title">Line-up complete!</h2>
+      <p className="cg-feedback success" role="status" data-testid="status-lineup-done">You ordered {LINE_UP_ROUNDS} line-ups. {firstTry} were right on the first try.</p>
+      <div className="cg-actions">
+        <button type="button" className="cg-primary" onClick={() => choose(mode)} data-testid="button-lineup-again">Play again</button>
+        <button type="button" className="cg-secondary" onClick={() => setMode(null)} data-testid="button-lineup-modes">Pick another kind</button>
+      </div>
+    </section>;
+  }
+
+  const showAmounts = solved || misses >= 2;
+  return <section className="cg-game" aria-labelledby="lineup-title">
+    <div className="cg-game-heading">
+      <span className="cg-index">{LINE_UP_MODES.find((item) => item.id === mode)!.label} · Round {roundIndex + 1} of {LINE_UP_ROUNDS}</span>
+      <span className="cg-score" data-testid="status-lineup-score">First try · {firstTry}</span>
+    </div>
+    <h2 id="lineup-title">Put them in order: <u>{round.direction} first</u></h2>
+    <p className="cg-instruction">{round.rule === 'same-denominator' ? 'All the denominators match.' : 'All the numerators match.'} Drag a card, or use the arrows.</p>
+    <p className="cg-lineup-end" aria-hidden="true">{round.direction === 'smallest' ? 'Smallest' : 'Biggest'}</p>
+    <ol className="cg-lineup-list" ref={listRef} aria-label={`Fraction cards, ${round.direction} first`} data-testid="lineup-list">
+      {cards.map((card, index) => (
+        <li key={`${card.n}-${card.d}`} data-lineup-index={index}
+          className={`cg-lineup-card ${dragging === index ? 'is-dragging' : ''} ${solved ? 'is-solved' : ''}`}
+          onPointerDown={(event) => onPointerDown(event, index)} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
+          data-testid={`lineup-card-${index}`} data-fraction={`${card.n}/${card.d}`}>
+          <span className="cg-lineup-place" aria-hidden="true">{index + 1}</span>
+          <FractionLabel n={card.n} d={card.d} />
+          <Bar model={{ d: card.d, n: showAmounts ? card.n : 0 }} label={`lineup-bar-${index}`} />
+          <span className="cg-lineup-arrows">
+            <button type="button" className="cg-lineup-arrow" aria-label={`Move ${card.n} over ${card.d} up`} disabled={solved || index === 0} onClick={() => { playHaptic('selection'); move(index, index - 1); }} data-testid={`button-lineup-up-${index}`}><ArrowUp size={18} /></button>
+            <button type="button" className="cg-lineup-arrow" aria-label={`Move ${card.n} over ${card.d} down`} disabled={solved || index === cards.length - 1} onClick={() => { playHaptic('selection'); move(index, index + 1); }} data-testid={`button-lineup-down-${index}`}><ArrowDown size={18} /></button>
+          </span>
+        </li>
+      ))}
+    </ol>
+    <p className="cg-lineup-end" aria-hidden="true">{round.direction === 'smallest' ? 'Biggest' : 'Smallest'}</p>
+    {feedback && <p className={`cg-feedback ${solved ? 'success' : 'cg-feedback-retry'}`} role="status" aria-live="polite" data-testid="status-lineup-feedback">{feedback}</p>}
+    <div className="cg-actions">
+      {solved
+        ? <button type="button" className="cg-primary" onClick={next} data-testid="button-lineup-next">{roundIndex + 1 === LINE_UP_ROUNDS ? 'Finish' : 'Next line-up'}</button>
+        : <button type="button" className="cg-primary" onClick={check} data-testid="button-lineup-check">Check my order</button>}
+      <button type="button" className="cg-text-button" onClick={() => setMode(null)} data-testid="button-lineup-change"><RotateCcw size={16} /> Change kind</button>
+    </div>
+  </section>;
+}
+
 function CenterPack() {
   return <section className="cg-print-pack" id="fraction-center-pack" aria-labelledby="cg-pack-title">
     <p className="cg-index">Take it off screen</p><h2 id="cg-pack-title">Fraction center pack</h2>
@@ -206,7 +343,7 @@ function CenterPack() {
   </section>;
 }
 
-type Section = 'war' | 'match' | 'line' | 'pack';
+type Section = 'war' | 'match' | 'line' | 'lineup' | 'pack';
 type Card = { id: string; title: string; blurb: string; icon: typeof Scale; testId: string; kicker: string; onOpen: () => void; tone?: string };
 /** Lesson games (Fraction Race, coding) open with the child's current lesson; they also stay on each lesson. */
 export type LessonGame = { id: 'race' | 'code'; title: string; blurb: string; icon: typeof Scale; lessonTitle: string; onOpen: () => void };
@@ -214,6 +351,7 @@ const WORKSHOP: { id: Section; title: string; blurb: string; icon: typeof Scale;
   { id: 'war', title: 'Fraction War', blurb: 'Build two fractions and see which is bigger.', icon: Scale, testId: 'link-game-war' },
   { id: 'match', title: 'Equivalence Match', blurb: 'Find pairs that show the same amount.', icon: Shuffle, testId: 'link-game-match' },
   { id: 'line', title: 'Number Line Target', blurb: 'Split the line and land on the fraction.', icon: Waypoints, testId: 'link-game-number-line' },
+  { id: 'lineup', title: 'Fraction Line-Up', blurb: 'Drag fractions into order, smallest or biggest first.', icon: ListOrdered, testId: 'link-game-lineup' },
   { id: 'pack', title: 'Print center pack', blurb: 'Hands-on activities to do on paper.', icon: Printer, testId: 'link-game-print-pack' },
 ];
 
@@ -242,6 +380,7 @@ export default function ConceptGames({ onExit, lessonGames = [] }: { onExit: () 
         {open.id === 'war' && <FractionWar />}
         {open.id === 'match' && <EquivalenceMatch />}
         {open.id === 'line' && <NumberLineTarget />}
+        {open.id === 'lineup' && <FractionLineUp />}
         {open.id === 'pack' && <CenterPack />}
       </div>
       {open.id === 'pack' && <style>{`@media print { body * { visibility: hidden !important; } #fraction-center-pack, #fraction-center-pack * { visibility: visible !important; } #fraction-center-pack { position: absolute; inset: 0 auto auto 0; width: 100%; } }`}</style>}
