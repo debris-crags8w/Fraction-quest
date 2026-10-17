@@ -2533,6 +2533,37 @@ test('Halloween: the night map, costumes earned by finishing lessons, candy poin
   await expect(page.getByTestId('status-xp')).toContainText('XP');
 });
 
+test('Christmas: a snowy map, a Santa hat and scarf, candy canes, story props, a frozen Frog Hop, and the same lessons', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.clock.setFixedTime(new Date(2026, 11, 10, 10, 0, 0));
+  await page.addInitScript(() => {
+    localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 25, sound: false, breakPreferences: { intervalMinutes: 0, quietMode: false }, seasonLessons: { 'christmas-2026': ['equal-parts', 'unit-fractions', 'unit-size'] } }));
+  });
+  await openAsGuest(page);
+
+  // The map: a snowy night, Numi in a Santa hat and the scarf earned after 3 lessons, candy cane points.
+  await expect(page.locator('html')).toHaveAttribute('data-fq-season', 'christmas');
+  const banner = page.getByTestId('season-banner');
+  await expect(banner).toContainText('Christmas');
+  await expect(banner).toContainText('Snowy fraction nights');
+  await expect(banner).toContainText('Finish 2 more lessons to unlock the twinkling Santa hat.');
+  await expect(banner.locator('svg.fq-mascot')).toHaveAttribute('data-costume', 'santa-hat scarf');
+  await expect(page.locator('.fq-stat-xp .fq-candy-cane')).toBeVisible();
+
+  // Story text uses the Christmas props.
+  await page.getByTestId('button-continue-course').click();
+  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away.');
+  await page.getByTestId('button-story-go').click();
+  await expect(page.getByTestId('story-panel-0')).toContainText('I cut the festival Christmas cake for all 4 of us.');
+  await page.getByTestId('button-story-back').click();
+
+  // Frog Hop is a frozen pond with snowflakes.
+  await openMenuItem(page, 'button-open-concept-games');
+  await page.getByTestId('link-game-frog').click();
+  await expect(page.getByTestId('frog-pond')).toHaveClass(/is-christmas/);
+  await expect(page.getByTestId('status-frog-flies')).toContainText('Snowflakes');
+});
+
 test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffhangers, stone pieces and clues, cards, and a grown-up off switch', async ({ page }) => {
   test.setTimeout(150_000);
   // Outside a seasonal theme, so the story friend (not the holiday line) speaks on questions.

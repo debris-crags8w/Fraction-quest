@@ -52,3 +52,23 @@ test('story lines fit the picture, repeat for the same question, and never menti
     for (const id of ['a', 'b', 'c', 'd']) assert.doesNotMatch(seasonLine(season, kind, id), /\d/);
   }
 });
+
+test('Christmas runs through December with its own costumes, points and lines', () => {
+  assert.equal(seasonOn(new Date(2026, 10, 30)), null);
+  const christmas = seasonOn(new Date(2026, 11, 1))!;
+  assert.equal(christmas.id, 'christmas');
+  assert.equal(christmas.key, 'christmas-2026');
+  assert.equal(seasonOn(new Date(2026, 11, 31))?.id, 'christmas');
+  assert.equal(seasonOn(new Date(2027, 0, 1)), null);
+  assert.equal(christmas.points, 'candy canes');
+  assert.deepEqual(unlockedCostumes(christmas, 5).map((costume) => costume.id), ['scarf', 'twinkle-hat']);
+  assert.equal(nextCostume(christmas, 0)?.id, 'scarf');
+  for (const kind of ['bars', 'partition', 'area', 'line', 'set', 'decimal', 'equation', undefined] as const) {
+    const line = seasonLine(christmas, kind, 'q-1');
+    assert.ok(line.length > 0 && line.length <= 90, line);
+    assert.doesNotMatch(line, /\d|pumpkin|witch|ghost|Halloween/i, line);
+  }
+  // Each season names itself in the banner, the reward heading and the last costume line.
+  const halloween = seasonOn(october)!;
+  assert.deepEqual([halloween.name, halloween.cheer, christmas.name, christmas.cheer], ['Halloween', 'Spooky good!', 'Christmas', 'Merry and bright!']);
+});

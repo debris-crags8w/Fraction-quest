@@ -45,6 +45,21 @@ export function useSeason(): { season: Season | null; costumes: string[] } {
   return { season, costumes: season ? unlockedCostumes(season, seasonLessonCount(fun, season)).map((costume) => costume.id) : [] };
 }
 
+/** A candy cane: what points look like at Christmas. */
+function CandyCaneIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" aria-hidden="true" className="fq-candy-icon fq-candy-cane">
+      <path d="M7 19 V7 a4 4 0 0 1 8 0" stroke="#fff" strokeWidth="4" fill="none" strokeLinecap="round" />
+      <path d="M7 19 V7 a4 4 0 0 1 8 0" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round" strokeDasharray="2.6 2.6" />
+    </svg>
+  );
+}
+
+/** What points look like during a season: candy at Halloween, a candy cane at Christmas. */
+export function SeasonPointsIcon({ size = 18 }: { size?: number }) {
+  return useSeason().season?.id === 'christmas' ? <CandyCaneIcon size={size} /> : <CandyIcon size={size} />;
+}
+
 /** A wrapped sweet: what points look like during Halloween. */
 export function CandyIcon({ size = 18 }: { size?: number }) {
   return (
@@ -68,6 +83,31 @@ function WitchHat({ x = 0, y = 0, glow = false }: { x?: number; y?: number; glow
   );
 }
 
+/** A Santa hat sized for an 80-wide character; `twinkle` gives it a glowing star pom-pom. */
+function SantaHat({ x = 0, y = 0, twinkle = false }: { x?: number; y?: number; twinkle?: boolean }) {
+  return (
+    <g transform={`translate(${x} ${y})`} className="fq-santa-hat">
+      <path d="M25 6 Q32 -15 55 -8 L52 6 Z" fill="#D23B3B" />
+      <rect x="21" y="2.5" width="38" height="6.5" rx="3.25" fill="#fff" />
+      {twinkle
+        ? <path d="M56 -14 l1.8 4.2 4.4 .4 -3.4 2.9 1 4.4 -3.8-2.4 -3.8 2.4 1-4.4 -3.4-2.9 4.4-.4z" fill="#FFE27A" />
+        : <circle cx="56" cy="-8" r="4" fill="#fff" />}
+    </g>
+  );
+}
+
+/** Numi's striped scarf: a Christmas costume. */
+function Scarf() {
+  return (
+    <g className="fq-scarf">
+      <rect x="27" y="33.5" width="26" height="6" rx="3" fill="#2E8B57" />
+      <path d="M33 33.5 v6 M39 33.5 v6 M45 33.5 v6" stroke="#D23B3B" strokeWidth="2.2" />
+      <rect x="44" y="36" width="6" height="13" rx="2" fill="#2E8B57" />
+      <path d="M44 41 h6 M44 45 h6" stroke="#D23B3B" strokeWidth="2" />
+    </g>
+  );
+}
+
 /* ---------- mascot ---------- */
 
 export type MascotMood = 'happy' | 'thinking' | 'cheer' | 'oops';
@@ -78,11 +118,15 @@ export function Mascot({ mood = 'happy', size = 76 }: { mood?: MascotMood; size?
   const ink = '#2B2D42';
   const { season, costumes } = useSeason();
   const halloween = season?.id === 'halloween';
+  const christmas = season?.id === 'christmas';
+  const hatted = halloween || christmas;
+  // The body is one half shaded in every season: a pumpkin at Halloween, a red ornament at Christmas.
+  const body = halloween ? { shade: '#D95F00', rest: '#FFAE5C', line: '#8A3F00' } : christmas ? { shade: '#C62F2F', rest: '#FFD9D9', line: '#7E1A1A' } : { shade: '#00B8A9', rest: '#fff', line: '#00897B' };
   const arms = mood === 'cheer' ? 'rotate(-12 40 41)' : mood === 'oops' ? 'rotate(8 40 41)' : mood === 'thinking' ? 'rotate(-5 40 41)' : undefined;
   const look = mood === 'thinking' ? 1.3 : 0; // eyes glance up and to the side
   return (
-    <svg className={`fq-mascot fq-mascot-${mood} ${halloween ? 'is-halloween' : ''}`} width={size} height={size} viewBox={halloween ? '0 -14 80 94' : '0 0 80 80'} aria-hidden="true"
-      data-costume={halloween ? ['witch-hat', ...costumes].join(' ') : undefined}>
+    <svg className={`fq-mascot fq-mascot-${mood} ${season ? `is-${season.id}` : ''}`} width={size} height={size} viewBox={hatted ? '0 -14 80 94' : '0 0 80 80'} aria-hidden="true"
+      data-costume={halloween ? ['witch-hat', ...costumes].join(' ') : christmas ? ['santa-hat', ...costumes].join(' ') : undefined}>
       {halloween && costumes.includes('bat-wings') && (
         <g className="fq-bat-wings">
           <path d="M30 56 C 22 40, 8 42, 0 48 C 6 51, 7 55, 6 60 C 11 56, 16 58, 18 62 C 21 57, 26 57, 30 60 Z" fill="#2B1B4D" />
@@ -90,7 +134,7 @@ export function Mascot({ mood = 'happy', size = 76 }: { mood?: MascotMood; size?
         </g>
       )}
       <circle cx="40" cy="21" r="16" fill="#7C5CFF" />
-      {!halloween && <path d="M30 7 Q34 1 38 6" stroke="#7C5CFF" strokeWidth="3" fill="none" strokeLinecap="round" />}
+      {!hatted && <path d="M30 7 Q34 1 38 6" stroke="#7C5CFF" strokeWidth="3" fill="none" strokeLinecap="round" />}
       {mood === 'cheer' ? (
         <>
           <path d="M31.2 21 Q34.4 15.4 37.6 21" stroke={ink} strokeWidth="2.6" fill="none" strokeLinecap="round" />
@@ -119,17 +163,18 @@ export function Mascot({ mood = 'happy', size = 76 }: { mood?: MascotMood; size?
       )}
       <circle cx="30.4" cy="25.6" r="2.6" fill="#FF4B91" opacity=".35" />
       <circle cx="49.6" cy="25.6" r="2.6" fill="#FF4B91" opacity=".35" />
+      {christmas && costumes.includes('scarf') && <Scarf />}
       <g transform={arms}>
         <rect x="8" y="38.5" width="64" height="5" rx="2.5" fill="#FF9600" />
         <circle cx="8" cy="41" r="4.5" fill="#FFB547" />
         <circle cx="72" cy="41" r="4.5" fill="#FFB547" />
       </g>
-      {/* The body is always one whole cut into 2 equal halves with 1 shaded; at Halloween it is a pumpkin. */}
-      <path d="M40 46 L40 74 A14 14 0 0 1 40 46 Z" fill={halloween ? '#D95F00' : '#00B8A9'} />
-      <path d="M40 46 A14 14 0 0 1 40 74 Z" fill={halloween ? '#FFAE5C' : '#fff'} />
+      {/* The body is always one whole cut into 2 equal halves with 1 shaded. */}
+      <path d="M40 46 L40 74 A14 14 0 0 1 40 46 Z" fill={body.shade} />
+      <path d="M40 46 A14 14 0 0 1 40 74 Z" fill={body.rest} />
       {halloween && <path d="M33 47.5 Q29.5 60 33 72.5 M47 47.5 Q50.5 60 47 72.5" stroke="#A84F00" strokeWidth="1.4" fill="none" />}
-      <circle cx="40" cy="60" r="14" fill="none" stroke={halloween ? '#8A3F00' : '#00897B'} strokeWidth="2.4" />
-      <path d="M40 46 L40 74" stroke={halloween ? '#8A3F00' : '#00897B'} strokeWidth="2.4" />
+      <circle cx="40" cy="60" r="14" fill="none" stroke={body.line} strokeWidth="2.4" />
+      <path d="M40 46 L40 74" stroke={body.line} strokeWidth="2.4" />
       <rect x="31" y="74" width="7" height="4" rx="2" fill={ink} />
       <rect x="42" y="74" width="7" height="4" rx="2" fill={ink} />
       {mood === 'thinking' && (
@@ -140,15 +185,16 @@ export function Mascot({ mood = 'happy', size = 76 }: { mood?: MascotMood; size?
       )}
       {mood === 'cheer' && <path d="M66 6 l2 5 5 .5 -4 3 1.3 5 -4.3-2.8 -4.3 2.8 1.3-5 -4-3 5-.5z" fill="#FFC800" />}
       {halloween && <WitchHat glow={costumes.includes('glow-hat')} />}
+      {christmas && <SantaHat twinkle={costumes.includes('twinkle-hat')} />}
     </svg>
   );
 }
 
 /** Hoot, the fix-it owl: shows up after a wrong answer to help look closer. Always curious and kind, never cross. */
 export function Hoot({ size = 64 }: { size?: number }) {
-  const halloween = useSeason().season?.id === 'halloween';
+  const seasonId = useSeason().season?.id;
   return (
-    <svg className={`fq-hoot ${halloween ? 'is-halloween' : ''}`} width={size} height={size} viewBox={halloween ? '0 -12 80 92' : '0 0 80 80'} aria-hidden="true">
+    <svg className={`fq-hoot ${seasonId ? `is-${seasonId}` : ''}`} width={size} height={size} viewBox={seasonId ? '0 -12 80 92' : '0 0 80 80'} aria-hidden="true">
       <path d="M22 16 L28 28 L18 28 Z" fill="#6D4BD8" />
       <path d="M58 16 L52 28 L62 28 Z" fill="#6D4BD8" />
       <ellipse cx="40" cy="46" rx="25" ry="27" fill="#7C5CF0" />
@@ -167,7 +213,8 @@ export function Hoot({ size = 64 }: { size?: number }) {
       {/* Magnifying glass */}
       <circle cx="66" cy="60" r="7" fill="#DFF3FF" stroke="#2B2D42" strokeWidth="3" />
       <path d="M61 65 L55 71" stroke="#2B2D42" strokeWidth="3.5" strokeLinecap="round" />
-      {halloween && <WitchHat y={12} />}
+      {seasonId === 'halloween' && <WitchHat y={12} />}
+      {seasonId === 'christmas' && <SantaHat y={12} />}
     </svg>
   );
 }
@@ -393,7 +440,7 @@ export function SeasonBanner() {
     <section className="fq-season-banner" aria-labelledby="season-title" data-testid="season-banner">
       <Mascot mood="happy" size={84} />
       <div className="fq-season-banner-copy">
-        <span className="fq-season-kicker">Halloween</span>
+        <span className="fq-season-kicker">{season.name}</span>
         <h2 id="season-title">{season.title}</h2>
         {next
           ? <>
@@ -403,7 +450,7 @@ export function SeasonBanner() {
               <small>{count} of {next.lessons}</small>
             </div>
           </>
-          : <p>You earned every costume. <u>Happy Halloween!</u></p>}
+          : <p>You earned every costume. <u>{season.greeting}</u></p>}
       </div>
     </section>
   );
@@ -433,12 +480,14 @@ export function SeasonReward({ missionId }: { missionId: string }) {
   return (
     <div className={`fq-season-reward ${earned ? 'is-earned' : ''}`} data-testid="season-reward">
       <span className="fq-season-reward-icon" aria-hidden="true">
-        <svg width="40" height="30" viewBox="0 0 56 40"><path d="M28 22 C 18 8, 8 12, 4 16 C 10 18, 10 22, 9 26 C 15 22, 19 24, 21 28 C 23 24, 26 24, 28 26 C 30 24, 33 24, 35 28 C 37 24, 41 22, 47 26 C 46 22, 46 18, 52 16 C 48 12, 38 8, 28 22 Z" fill="currentColor" /></svg>
+        {season.id === 'christmas'
+          ? <svg width="34" height="34" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z" fill="currentColor" /></svg>
+          : <svg width="40" height="30" viewBox="0 0 56 40"><path d="M28 22 C 18 8, 8 12, 4 16 C 10 18, 10 22, 9 26 C 15 22, 19 24, 21 28 C 23 24, 26 24, 28 26 C 30 24, 33 24, 35 28 C 37 24, 41 22, 47 26 C 46 22, 46 18, 52 16 C 48 12, 38 8, 28 22 Z" fill="currentColor" /></svg>}
       </span>
       <span>
         {earned
           ? <><small>Costume unlocked</small><strong>{earned.name.charAt(0).toUpperCase() + earned.name.slice(1)}</strong>{next && <em>{next.lessons - lessons.length} more {next.lessons - lessons.length === 1 ? 'lesson' : 'lessons'} for {next.name}.</em>}</>
-          : <><small>Halloween costume</small><strong>{next!.lessons - lessons.length} more {next!.lessons - lessons.length === 1 ? 'lesson' : 'lessons'} for {next!.name}</strong></>}
+          : <><small>{season.name} costume</small><strong>{next!.lessons - lessons.length} more {next!.lessons - lessons.length === 1 ? 'lesson' : 'lessons'} for {next!.name}</strong></>}
       </span>
     </div>
   );

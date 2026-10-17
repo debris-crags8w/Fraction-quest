@@ -4,13 +4,18 @@
 import type { FunState } from './lib/fun';
 import type { ModelSpec } from './game';
 
-export type SeasonId = 'halloween';
-export type Costume = { id: 'bat-wings' | 'glow-hat'; name: string; lessons: number };
+export type SeasonId = 'halloween' | 'christmas';
+export type Costume = { id: 'bat-wings' | 'glow-hat' | 'scarf' | 'twinkle-hat'; name: string; lessons: number };
 export type Season = {
   id: SeasonId;
   /** One key per season per year, so costumes are earned fresh each Halloween. */
   key: string;
   title: string;
+  /** The season's name for kickers ("Halloween costume"), and the line once every costume is earned. */
+  name: string;
+  greeting: string;
+  /** The reward heading's first line ("Spooky good!"). */
+  cheer: string;
   /** What points are called while the theme is on. */
   points: string;
   costumes: Costume[];
@@ -21,10 +26,19 @@ const HALLOWEEN_COSTUMES: Costume[] = [
   { id: 'glow-hat', name: 'the glow-in-the-dark hat', lessons: 5 },
 ];
 
-/** The season on this date, ignoring preferences. Halloween runs for all of October. */
+const CHRISTMAS_COSTUMES: Costume[] = [
+  { id: 'scarf', name: "Numi's striped scarf", lessons: 3 },
+  { id: 'twinkle-hat', name: 'the twinkling Santa hat', lessons: 5 },
+];
+
+/** The season on this date, ignoring preferences. Halloween runs for all of October, Christmas for all of December. */
 export function seasonOn(now = new Date()): Season | null {
+  const year = now.getFullYear();
   if (now.getMonth() === 9) {
-    return { id: 'halloween', key: `halloween-${now.getFullYear()}`, title: 'Spooky fraction night', points: 'candy', costumes: HALLOWEEN_COSTUMES };
+    return { id: 'halloween', key: `halloween-${year}`, title: 'Spooky fraction night', name: 'Halloween', greeting: 'Happy Halloween!', cheer: 'Spooky good!', points: 'candy', costumes: HALLOWEEN_COSTUMES };
+  }
+  if (now.getMonth() === 11) {
+    return { id: 'christmas', key: `christmas-${year}`, title: 'Snowy fraction nights', name: 'Christmas', greeting: 'Merry Christmas!', cheer: 'Merry and bright!', points: 'candy canes', costumes: CHRISTMAS_COSTUMES };
   }
   return null;
 }
@@ -53,6 +67,16 @@ const LINES: Record<SeasonId, Partial<Record<ModelSpec['kind'], string[]>> & { o
     decimal: ['The witch’s potion needs careful measuring.'],
     equation: ['Crack the code to open the spooky door.'],
     other: ['Happy Halloween! Let’s solve this one.'],
+  },
+  christmas: {
+    bars: ['Help me share this peppermint bar.', 'The elves cut a candy cane bar. Let’s look!', 'This chocolate bar came in my stocking!'],
+    partition: ['Let’s cut the Christmas cake fairly.', 'The reindeer want fair shares of the cookies!'],
+    area: ['Let’s cut the gingerbread house walls fairly.', 'Help me share this big tray of fudge.'],
+    line: ['Help the frog hop across the frozen pond!', 'Follow the sleigh tracks in the snow.'],
+    set: ['Let’s count the ornaments on the tree!', 'How many presents are in this group?'],
+    decimal: ['The hot cocoa needs careful measuring.'],
+    equation: ['Crack the code to open the present.'],
+    other: ['Merry Christmas! Let’s solve this one.'],
   },
 };
 export function seasonLine(season: Season, kind: ModelSpec['kind'] | undefined, id: string): string {

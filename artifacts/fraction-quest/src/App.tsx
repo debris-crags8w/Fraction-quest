@@ -49,7 +49,7 @@ import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrec
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
-import { CandyIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
+import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
 import { CHAPTERS, PROLOGUE, chapterFor, lessonComic, propTheme, storyProblemFor, withName, type PropTheme } from './story';
 import { ChapterTag, StoneBanner, StoryCardsView, StoryComicView, StoryPayoff, StorySay } from './story-ui';
@@ -442,7 +442,7 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
             </StatTip>
             <StatTip testId="button-tip-xp" label={`${fun.xp} ${points}. What is this?`}
               tip={<><strong>{fun.xp} {points}!</strong> You get 10 {points} for every right answer.</>}>
-              <span className="fq-stat fq-stat-xp" data-testid="status-xp">{season ? <CandyIcon /> : <Zap size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" />}<strong>{fun.xp}</strong><span className="fq-stat-unit">{season ? points : 'XP'}</span></span>
+              <span className="fq-stat fq-stat-xp" data-testid="status-xp">{season ? <SeasonPointsIcon /> : <Zap size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" />}<strong>{fun.xp}</strong><span className="fq-stat-unit">{season ? points : 'XP'}</span></span>
             </StatTip>
             <StatTip testId="button-tip-daily" label={`Today's goal: ${Math.min(fun.answeredToday, DAILY_GOAL)} of ${DAILY_GOAL}. What is this?`}
               tip={fun.answeredToday >= DAILY_GOAL ? <><strong>Today's goal is done!</strong> You got {DAILY_GOAL} answers right today.</> : <><strong>Today's goal: {fun.answeredToday} of {DAILY_GOAL}.</strong> Each slice fills in when you get an answer right.</>}>
@@ -1171,7 +1171,7 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
           {/* With the story on, the chapter friend does the cheering, so the screen stays short (a season keeps Numi for the costume). */}
           {!(storyOn && chapter && !season) && <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>}
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
-          <h1>{season?.id === 'halloween' && <>Spooky good!<br /></>}{mission.title}<br />is on your map.</h1>
+          <h1>{season && <>{season.cheer}<br /></>}{mission.title}<br />is on your map.</h1>
            <p className={storyOn && chapter ? 'fq-reward-note' : undefined}>{storyOn && chapter ? '' : 'You built it two ways, explained it, and finished the worksheet. '}{nextLessonOpen ? 'The next lesson is open!' : 'Finish the other lessons in this unit to open the next unit.'}</p>
           <SeasonReward missionId={mission.id} />
           {storyOn && chapter && <StoryPayoff chapter={chapter} lessonIndex={unitMissions.indexOf(mission)} lessonsTotal={unitMissions.length}
