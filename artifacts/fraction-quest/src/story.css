@@ -206,8 +206,8 @@
 .fq-path-start.is-story { color: #2B2D42; background: #FFC800; border-color: #C99A00; }
 .fq-path-start.is-story::after { border-top-color: #C99A00; }
 
-.fq-storybook-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 4px 0 12px; padding: 4px; border-radius: 16px; background: #2B2D42; }
-.fq-storybook-tabs button { min-height: 44px; border: 0; border-radius: 12px; color: #fff; background: transparent; font: inherit; font-weight: 900; cursor: pointer; }
+.fq-storybook-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin: 4px 0 12px; padding: 4px; border-radius: 16px; background: #2B2D42; }
+.fq-storybook-tabs button { min-height: 44px; padding: 0 2px; font-size: .88rem; border: 0; border-radius: 12px; color: #fff; background: transparent; font: inherit; font-weight: 900; cursor: pointer; }
 .fq-storybook-tabs button.on { color: #2B2D42; background: #FFC800; }
 .fq-storybook-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .fq-storybook-list ol { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
@@ -231,3 +231,77 @@
 .fq-storybook-empty { margin: 0; padding: 14px; border: 2px dashed hsl(var(--border)); border-radius: 16px; color: hsl(var(--muted-foreground)); font-weight: 700; }
 
 .fq-dev-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 12px; border: 2px dashed hsl(var(--secondary)); border-radius: 14px; color: hsl(var(--secondary)); background: transparent; font: inherit; font-size: .85rem; font-weight: 900; cursor: pointer; }
+
+/* Story mode: try first, help below. */
+.fq-example-help { display: grid; gap: 10px; margin-top: 22px; padding-top: 16px; border-top: 2px dashed hsl(var(--border)); }
+.fq-example-help > h2 { margin: 0; font-family: var(--app-font-display); font-size: 1.15rem; color: hsl(var(--secondary)); }
+
+/* ---------- detective quest: clue cards, suspect board, stickers ---------- */
+.fq-clue-card { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; color: #2B2D42; background: #FFF6D6; border: 2px solid #E8C96A; text-align: left; }
+.fq-clue-card span { display: grid; gap: 2px; }
+.fq-clue-card small { color: #7A5B00; font-size: .75rem; font-weight: 800; }
+.fq-clue-card strong { font-size: .95rem; line-height: 1.3; }
+.fq-clue-card .fq-clue-art { flex: none; padding: 4px; border-radius: 12px; background: #fff; }
+.fq-clue-card.is-bonus { background: #E8F7FF; border-color: #7CC4F0; }
+.fq-clue-card.is-bonus small { color: #0B5E8A; }
+.fq-clue-card.is-fresh { animation: fq-pop-in .5s ease-out both; }
+@keyframes fq-pop-in { from { transform: scale(.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.fq-storybook-clue-pair { display: grid; gap: 6px; }
+.fq-storybook-suspects { justify-content: center; }
+
+.fq-suspect-board { display: grid; gap: 12px; }
+.fq-suspect-board h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--app-font-display); font-size: 1.35rem; }
+.fq-suspect-board > p { margin: 0; font-weight: 700; color: hsl(var(--muted-foreground)); }
+.fq-suspect-clues { display: grid; gap: 6px; }
+
+
+.fq-suspects { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.fq-suspects button { display: grid; justify-items: center; gap: 2px; min-width: 64px; min-height: 44px; padding: 6px 8px; border: 3px solid hsl(var(--border)); border-radius: 16px; background: hsl(var(--card)); color: hsl(var(--foreground)); font: inherit; font-weight: 800; cursor: pointer; }
+.fq-suspects button.on { border-color: #FFC800; background: #FFF6D6; color: #2B2D42; }
+.fq-suspect-go { justify-content: center; min-height: 54px; }
+.fq-suspect-reply { display: flex; align-items: center; gap: 10px; margin: 0; padding: 12px; border-radius: 16px; color: #2B2D42; background: #F1ECFF; }
+.fq-suspect-reply.is-good { background: #E7F8DC; }
+.fq-suspect-reply p { margin: 0; font-weight: 700; line-height: 1.35; }
+
+.fq-story-reward { display: block; margin-top: 4px; color: #0B6B2E; font-style: normal; font-weight: 900; }
+.fq-story-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 14px; color: #2B2D42; background: #FFF6D6; font-weight: 800; line-height: 1.35; }
+.fq-detective-go { justify-content: center; min-height: 52px; background: #2B2D42; box-shadow: 0 4px 0 #11121C; }
+
+.fq-sticker { display: grid; justify-items: center; gap: 4px; margin: 0; text-align: center; }
+.fq-sticker-face { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: #fff; border: 3px solid #fff; box-shadow: 0 0 0 2px hsl(var(--border)), 0 4px 0 rgb(0 0 0 / .12); }
+.fq-sticker figcaption { max-width: 84px; font-size: .72rem; font-weight: 800; line-height: 1.2; }
+.fq-sticker.is-locked .fq-sticker-face { background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); font-size: 1.4rem; font-weight: 900; box-shadow: 0 0 0 2px hsl(var(--border)); }
+.fq-sticker.is-locked figcaption { color: hsl(var(--muted-foreground)); }
+.fq-sticker.is-fresh .fq-sticker-face { animation: fq-sticker-slap .6s cubic-bezier(.2, 1.6, .4, 1) both; }
+@keyframes fq-sticker-slap { from { transform: scale(1.8) rotate(-20deg); opacity: 0; } to { transform: scale(1) rotate(-4deg); opacity: 1; } }
+.fq-sticker-earned { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; background: #FFF0F5; color: #2B2D42; text-align: left; }
+.fq-sticker-earned span { display: grid; font-weight: 700; }
+.fq-storybook-stickers { display: grid; gap: 12px; }
+.fq-sticker-row { display: grid; gap: 8px; padding: 12px; border-radius: 18px; background: hsl(var(--card)); box-shadow: 0 0 0 2px hsl(var(--border)); }
+.fq-sticker-row h3 { margin: 0; font-size: .95rem; }
+.fq-sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 10px; }
+@media (prefers-reduced-motion: reduce) { .fq-clue-card.is-fresh, .fq-sticker.is-fresh .fq-sticker-face { animation: none; } }
+.fq-ll-round { list-style: none; margin: 10px 0 0; padding: 4px 12px; justify-self: start; border-radius: 999px; color: #fff; background: hsl(var(--secondary)); font-size: .82rem; font-weight: 900; }
+.fq-ll-round-cheer { list-style: none; display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 14px; color: #2B2D42; background: #FFF1C2; font-weight: 900; animation: fq-pop-in .5s ease-out both; }
+.fq-ll-round-cheer svg { color: #E0A800; fill: #FFC800; }
+.fq-town { position: relative; height: 180px; margin-top: 4px; border-radius: 14px; background: linear-gradient(#8ED081, #6DBB63); overflow: hidden; }
+.fq-town-ground { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fq-town-place { position: absolute; display: grid; place-items: center; width: 44px; height: 44px; margin: -22px 0 0 -22px; padding: 0; border: 3px solid #fff; border-radius: 50%; background: #5E8F55; cursor: pointer; }
+.fq-town-place.is-found { background: #2B2D42; border-color: #FFC800; box-shadow: 0 0 0 4px rgb(255 200 0 / .35); }
+.fq-town-place.is-locked { background: #7FA678; border-color: #CFE3C9; cursor: default; }
+.fq-town-place.is-here { border-color: #FFC800; animation: fq-town-pulse 1.6s ease-in-out infinite; }
+@keyframes fq-town-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgb(255 200 0 / .7); } 50% { box-shadow: 0 0 0 9px rgb(255 200 0 / 0); } }
+.fq-town-you { position: absolute; top: 100%; margin-top: 2px; padding: 1px 6px; border-radius: 999px; color: #2B2D42; background: #FFC800; font-size: .68rem; font-weight: 900; white-space: nowrap; }
+.fq-town-place:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .fq-town-place.is-here { animation: none; } }
+.fq-suspect-clues { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fq-clue-card.is-compact { gap: 6px; padding: 6px 8px; border-radius: 12px; }
+.fq-clue-card.is-compact strong { font-size: .78rem; line-height: 1.2; }
+.fq-clue-card.is-compact small { font-size: .66rem; }
+.fq-clue-card.is-compact .fq-clue-art { padding: 2px; border-radius: 8px; }
+.fq-town-place.is-here { width: 50px; height: 50px; margin: -25px 0 0 -25px; background: #fff; }
+.fq-town-you.is-right { right: -4px; }
+.fq-town-you.is-left { left: -4px; }
+.fq-sticker.is-compact .fq-sticker-face { width: 48px; height: 48px; }
+.fq-sticker.is-compact .fq-sticker-face svg { width: 34px; height: 34px; }
+.fq-sticker-earned { padding: 8px 12px; }

@@ -119,7 +119,7 @@ const inSmallest = (round: PartFinderRound, area: number) => {
   return Math.round(area / smallest);
 };
 
-export function partFinderFeedback(round: PartFinderRound, selected: number[], answer?: number): string {
+export function partFinderFeedback(round: PartFinderRound, selected: number[], answer?: number, friends: readonly string[] = FRIENDS): string {
   if (round.mode === 'sort') {
     // Both sharing rounds are 4 friends sharing a cake; the hints name the friend.
     const left = selected.filter((share) => share < 0).length + Math.max(0, AREA_CUTS[round.cut].length - selected.length);
@@ -128,9 +128,9 @@ export function partFinderFeedback(round: PartFinderRound, selected: number[], a
     const fair = 1 / (round.shares ?? 1);
     const areas = shareAreas(round, selected);
     const big = areas.findIndex((area) => area > fair + EPSILON);
-    if (big >= 0) return `${FRIENDS[big]} gets too much cake. Give one of ${FRIENDS[big]}’s pieces to a friend who has less.`;
+    if (big >= 0) return `${friends[big]} gets too much cake. Give one of ${friends[big]}’s pieces to a friend who has less.`;
     const small = areas.findIndex((area) => area < fair - EPSILON);
-    if (small >= 0) return `${FRIENDS[small]} doesn’t get enough cake.`;
+    if (small >= 0) return `${friends[small]} doesn’t get enough cake.`;
     return round.id === 'sort-cake'
       ? 'Fair! Every friend gets 1/4 of the cake. One friend has a small square, the others have 2 triangles: the same amount, in different shapes.'
       : 'Fair! Each friend gets 2 of the 8 equal pieces. 2/8 of the cake is the same amount as 1/4.';

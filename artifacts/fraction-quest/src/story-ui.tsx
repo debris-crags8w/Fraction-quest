@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ArrowRight, BookOpen, LockKeyhole, Search } from 'lucide-react';
 import { StoryCharacter } from './characters';
 import { LearningListenButton, LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
-import { CHAPTERS, CHARACTERS, STONE_PIECES, WHOLE_STONE_OPENING, lessonCliff, propTheme, stoneQuestion, storyAsk, storyReaction, withName, type Chapter, type Panel, type StoryChoice } from './story';
+import { CHAPTERS, CHARACTERS, STONE_PIECES, type CharacterId, lessonCliff, propTheme, stoneQuestion, storyAsk, storyReaction, withName, type Chapter, type Panel, type StoryChoice } from './story';
 import { useSeason } from './fun-ui';
 import { MathText } from './MathText';
+import { BOARD_AFTER, ClueCard, StickerView, bonusClue, earnsThanks, thanksSticker, lessonSticker, type Sticker, type SuspectBoard } from './quest';
 
 /** The props theme for story text: the season showing now (pumpkin pies at Halloween), else everyday props. */
 export const useStoryTheme = () => propTheme(useSeason().season?.id);
@@ -19,9 +20,14 @@ export function StoneBar({ found, fresh = false }: { found: number; /** Glow the
   );
 }
 
+/** A friend in trouble looks worried: a question, a plea for help, something missing or broken. */
+const looksWorried = (panel: Panel) => !['numi', 'hoot'].includes(panel.speaker) && /\?|can’t|help|missing|broken|wobbl|stuck|sorry|scared/i.test(panel.text);
+
 /** A comic: three panels, an optional choice that must be picked, then an explicit button on. */
-export function StoryComicView({ title, kicker, panels, name, choice, picked: saved, goLabel, onGo, onBack }: {
+export function StoryComicView({ title, kicker, panels, name, choice, picked: saved, choiceNotes, note, goLabel, onGo, onBack }: {
   title: string; kicker: string; panels: Panel[]; name: string | null;
+  /** What each choice earns ("Bonus clue added!"), shown with the reply. */ choiceNotes?: [string, string];
+  /** A detective note under the comic: the story remembering the child's guess. */ note?: string;
   choice?: [StoryChoice, StoryChoice]; /** The choice already made, when reading the comic again. */ picked?: 0 | 1; goLabel: string; onGo: (choice?: 0 | 1) => void; onBack: () => void;
 }) {
   const [picked, setPicked] = useState<0 | 1 | null>(saved ?? null);
@@ -41,7 +47,7 @@ export function StoryComicView({ title, kicker, panels, name, choice, picked: sa
           <ol className="fq-story-panels">
             {lines.map((panel, index) => (
               <li key={index} className={`fq-story-panel ${index % 2 ? 'is-right' : ''} is-${panel.speaker}`} data-testid={`story-panel-${index}`}>
-                <StoryCharacter id={panel.speaker} size={72} />
+                <StoryCharacter id={panel.speaker} size={72} happy={panel.mood === 'happy'} worried={panel.mood === 'worried' || (!panel.mood && looksWorried(panel))} />
                 <div className="fq-story-bubble">
                   <span className="fq-story-name">{CHARACTERS[panel.speaker].name}</span>
                   <p>{panel.speaker === 'hoot' ? <LearningText text={panel.text} emphasize /> : panel.text}</p>
@@ -61,53 +67,15 @@ export function StoryComicView({ title, kicker, panels, name, choice, picked: sa
               {reply && (
                 <p className="fq-story-reply" role="status" data-testid="story-choice-reply">
                   <StoryCharacter id={reply.speaker} size={40} />
-                  <span><b>{CHARACTERS[reply.speaker].name}:</b> {reply.text}</span>
+                  <span><b>{CHARACTERS[reply.speaker].name}:</b> {reply.text}
+                    {choiceNotes && picked !== null && <em className="fq-story-reward" data-testid="story-choice-reward">{choiceNotes[picked]}</em>}</span>
                 </p>
               )}
             </fieldset>
           )}
+          {note && <p className="fq-story-note" data-testid="story-detective-note"><Search size={16} aria-hidden="true" /> {withName(note, name, theme)}</p>}
           <button type="button" className="fq-button fq-story-go" onClick={() => onGo(picked ?? undefined)} disabled={!!choice && picked === null} data-testid="button-story-go">
             {goLabel} <ArrowRight size={18} />
-          </button>
-        </section>
-      </main>
-    </div>
-  );
-}
-
-/** A short story setup before the first comic, so the learner knows what the Whole Stone quest is about. */
-export function StoryOpeningView({ name, onGo, onBack }: {
-  name: string | null;
-  onGo: () => void;
-  onBack: () => void;
-}) {
-  const theme = useStoryTheme();
-  const text = withName(WHOLE_STONE_OPENING, name, theme);
-  return (
-    <div className="fq-app fq-story-app">
-      <main className="fq-shell fq-story-shell">
-        <TaskBar onBack={onBack} backLabel="Map" testId="button-story-intro-back" title="The Whole Stone" />
-        <section className="fq-story-opening" aria-labelledby="story-opening-title" data-testid="story-introduction">
-          <header className="fq-story-opening-head">
-            <div className="fq-story-opening-identity">
-              <span aria-hidden="true"><StoryCharacter id="numi" size={76} /></span>
-              <div>
-                <span className="fq-story-opening-kicker">Before the comic</span>
-                <h2 id="story-opening-title">Meet the Whole Stone</h2>
-              </div>
-            </div>
-            <LearningListenButton text={text} label="Listen to the story introduction" prefetch />
-          </header>
-          <p className="fq-story-opening-copy">{text}</p>
-          <div className="fq-story-opening-stone" data-testid="story-opening-stone">
-            <div className="fq-story-opening-stone-head">
-              <strong>Pieces to find</strong>
-              <span>15 equal pieces</span>
-            </div>
-            <StoneBar found={0} />
-          </div>
-          <button type="button" className="fq-button fq-story-go" onClick={onGo} data-testid="button-story-intro-go">
-            Start the story <ArrowRight size={18} />
           </button>
         </section>
       </main>
@@ -128,7 +96,7 @@ export function StorySay({ chapter, questionId, result = null, setup }: { chapte
 }
 
 /** The quest at the top of the map: the stone filling in, and the way into the Storybook. */
-export function StoneBanner({ completedUnits, onStorybook }: { completedUnits: Set<number>; onStorybook: () => void }) {
+export function StoneBanner({ completedUnits, onStorybook, town }: { completedUnits: Set<number>; onStorybook: () => void; /** The town map, under the stone. */ town?: ReactNode }) {
   return (
     <section className="fq-stone-banner" aria-labelledby="stone-title" data-testid="stone-banner">
       <div className="fq-stone-head">
@@ -139,6 +107,7 @@ export function StoneBanner({ completedUnits, onStorybook }: { completedUnits: S
         </button>
       </div>
       <StoneBar found={completedUnits.size} />
+      {town}
     </section>
   );
 }
@@ -178,29 +147,34 @@ export function ChapterBanner({ chapter, unitTitle, done, total, state, teaser, 
   );
 }
 
-export type StorybookTab = 'story' | 'clues' | 'cards';
+export type StorybookTab = 'story' | 'clues' | 'stickers' | 'cards';
 export type StorybookChapter = {
   chapter: Chapter;
   /** A lesson of it is open (or done). */
   reached: boolean;
-  lessons: { id: string; title: string; state: 'read' | 'new' | 'locked' }[];
+  lessons: { id: string; title: string; state: 'read' | 'new' | 'locked'; /** Finished: its sticker is earned. */ done: boolean }[];
   /** Every lesson is done: the chapter's ending (thanks, clue, what happens next) can be read. */
   ended: boolean;
 };
 
 /** Every story part in one place: the prologue, each chapter's comics, the finale; plus the clue notebook and
    the friends' cards. Parts open as the lessons do; nothing here changes progress. */
-export function StorybookView({ tab, chapters, completedUnits, prologueSeen, focusUnit, name, onTab, onPrologue, onLesson, onEnding, onEpilogue, onBack }: {
+export function StorybookView({ tab, chapters, completedUnits, prologueSeen, focusUnit, name, choices, guesses, onTab, onPrologue, onLesson, onEnding, onEpilogue, onSuspects, onBack }: {
   tab: StorybookTab; chapters: StorybookChapter[]; completedUnits: Set<number>; prologueSeen: boolean; focusUnit?: number; name: string | null;
+  /** The chapter choices made (unit → 0 or 1): looking closely gives a bonus clue, helping gives a thank-you sticker. */
+  choices: Record<string, 0 | 1>;
+  /** Suspect board guesses (board → suspect). */
+  guesses: Record<string, string>;
   onTab: (tab: StorybookTab) => void; onPrologue: () => void; onLesson: (missionId: string) => void;
-  onEnding: (unit: number) => void; onEpilogue: () => void; onBack: () => void;
+  onEnding: (unit: number) => void; onEpilogue: () => void; onSuspects: (board: SuspectBoard) => void; onBack: () => void;
 }) {
   const theme = useStoryTheme();
-  const tabs: [StorybookTab, string][] = [['story', 'Story'], ['clues', 'Clues'], ['cards', 'Cards']];
+  const tabs: [StorybookTab, string][] = [['story', 'Story'], ['clues', 'Clues'], ['stickers', 'Stickers'], ['cards', 'Cards']];
   const clues = CHAPTERS.filter((chapter) => completedUnits.has(chapter.unit));
   const nextClue = CHAPTERS.find((chapter) => !completedUnits.has(chapter.unit));
   const finale = completedUnits.size >= STONE_PIECES;
   const open = focusUnit ?? chapters.filter((item) => item.reached).at(-1)?.chapter.unit;
+  const earnedStickers = chapters.reduce((sum, { chapter, lessons }) => sum + lessons.filter((lesson) => lesson.done).length + (earnsThanks(chapter, choices, completedUnits.has(chapter.unit)) ? 1 : 0), 0);
   return (
     <div className="fq-app fq-story-app">
       <main className="fq-shell fq-story-shell">
@@ -268,10 +242,33 @@ export function StorybookView({ tab, chapters, completedUnits, prologueSeen, foc
         {tab === 'clues' && (
           <div className="fq-storybook-clues" data-testid="clue-notebook">
             {clues.length === 0 && <p className="fq-storybook-empty">No clues yet. Who cracked the stone?</p>}
-            {clues.map((chapter, index) => (
-              <p key={chapter.unit} className="fq-storybook-clue"><strong>Clue {index + 1} · Chapter {chapter.unit}</strong><span>{withName(chapter.clue, name, theme)}</span></p>
+            {clues.map((chapter) => (
+              <div key={chapter.unit} className="fq-storybook-clue-pair">
+                <ClueCard chapter={chapter} name={name} theme={theme} />
+                {choices[String(chapter.unit)] === 1 && bonusClue(chapter) && <ClueCard chapter={chapter} bonus name={name} theme={theme} />}
+              </div>
+            ))}
+            {([1, 2] as SuspectBoard[]).filter((board) => completedUnits.has(BOARD_AFTER[board])).map((board) => (
+              <button key={board} type="button" className="fq-button secondary fq-storybook-suspects" onClick={() => onSuspects(board)} data-testid={`button-storybook-suspects-${board}`}>
+                <Search size={17} aria-hidden="true" /> Suspect board {board}{guesses[String(board)] ? ` · you guessed ${CHARACTERS[guesses[String(board)] as CharacterId]?.name ?? ''}` : ''}
+              </button>
             ))}
             {nextClue && <p className="fq-storybook-empty">Finish chapter {nextClue.unit} to find the next clue.</p>}
+          </div>
+        )}
+
+        {tab === 'stickers' && (
+          <div className="fq-storybook-stickers" data-testid="sticker-book">
+            <p className="fq-story-cards-note">Every lesson earns a sticker. Helping a friend earns a thank-you sticker. <strong>{earnedStickers} stickers</strong> collected.</p>
+            {chapters.filter((item) => item.reached).map(({ chapter, lessons }) => (
+              <section key={chapter.unit} className="fq-sticker-row" aria-label={`Chapter ${chapter.unit} stickers`}>
+                <h3>Chapter {chapter.unit} · {chapter.title}</h3>
+                <div className="fq-sticker-grid">
+                  {lessons.map((lesson, index) => <StickerView key={lesson.id} sticker={lessonSticker(chapter, index, lesson.title)} earned={lesson.done} />)}
+                  <StickerView sticker={thanksSticker(chapter)} earned={earnsThanks(chapter, choices, completedUnits.has(chapter.unit))} />
+                </div>
+              </section>
+            ))}
           </div>
         )}
 
@@ -294,8 +291,12 @@ export function StorybookView({ tab, chapters, completedUnits, prologueSeen, foc
 
 /** After a lesson, in one compact box: the friend's line, what the story problem changed, the stone question and
    piece when the chapter is done, then the cliffhanger. */
-export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, piecesFound, name, problem }: {
+export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, piecesFound, name, problem, sticker, onSuspects }: {
   chapter: Chapter; lessonIndex: number; lessonsTotal: number; chapterDone: boolean; piecesFound: number; name: string | null;
+  /** The sticker this lesson earned. */
+  sticker?: Sticker;
+  /** After chapters 4 and 7: open the suspect board. */
+  onSuspects?: () => void;
   /** What the lesson's story problem changed in the story. */
   problem?: { result: string };
 }) {
@@ -323,9 +324,20 @@ export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, p
             <span><b>{piecesFound}/{STONE_PIECES}</b> found</span>
           </span>
           <StoneBar found={piecesFound} fresh />
-          <span className="fq-stone-clue new" data-testid="stone-new-clue"><Search size={14} aria-hidden="true" /> New clue: {tell(chapter.clue)}</span>
+          <div data-testid="stone-new-clue"><ClueCard chapter={chapter} name={name} theme={theme} fresh /></div>
           {finale ? <KeeperCard name={name} fresh compact /> : <StoryCard chapter={chapter} unlocked fresh compact />}
           {!finale && <p className="fq-story-cliff" data-testid="story-cliff">{tell(lessonCliff(chapter, lessonIndex, lessonsTotal))}</p>}
+        </div>
+      )}
+      {chapterDone && stoneSolved && onSuspects && (
+        <button type="button" className="fq-button fq-detective-go" onClick={onSuspects} data-testid="button-open-suspects">
+          <Search size={18} aria-hidden="true" /> Detective time: who did it?
+        </button>
+      )}
+      {sticker && (
+        <div className="fq-sticker-earned" data-testid="sticker-earned">
+          <StickerView sticker={sticker} fresh compact />
+          <span><strong>New sticker!</strong> {sticker.label}. It’s in your Storybook.</span>
         </div>
       )}
       {!chapterDone && (

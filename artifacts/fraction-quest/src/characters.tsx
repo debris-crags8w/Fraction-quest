@@ -2,7 +2,11 @@ import { Hoot, Mascot } from './fun-ui';
 import type { Speaker } from './story';
 
 /** The story cast, drawn to match Numi and Hoot: round, friendly, thick outlines kept simple. */
-export function StoryCharacter({ id, size = 64, happy = false }: { id: Speaker; size?: number; happy?: boolean }) {
+/** Where each friend's eyebrows go when worried: [left x, right x, y]. */
+const BROWS: Partial<Record<Speaker, [number, number, number]>> = { chomp: [26, 54, 17], pip: [26, 54, 17], tilly: [12, 22, 29], bea: [35, 45, 19] };
+
+export function StoryCharacter({ id, size = 64, happy = false, worried = false }: { id: Speaker; size?: number; happy?: boolean; /** A worried face: raised brows and a small frown. */ worried?: boolean }) {
+  worried = worried && !happy;
   if (id === 'numi') return <Mascot mood={happy ? 'cheer' : 'happy'} size={size} />;
   if (id === 'hoot') return <Hoot size={size} />;
   const ink = '#2B2D42';
@@ -13,7 +17,7 @@ export function StoryCharacter({ id, size = 64, happy = false }: { id: Speaker; 
         <circle cx="26" cy="30" r="11" fill="#4CAF50" /><circle cx="54" cy="30" r="11" fill="#4CAF50" />
         <circle cx="26" cy="29" r="6.5" fill="#fff" /><circle cx="54" cy="29" r="6.5" fill="#fff" />
         <circle cx="27" cy="29" r="3.5" fill={ink} /><circle cx="55" cy="29" r="3.5" fill={ink} />
-        <path d={happy ? 'M18 56 q22 14 44 0' : 'M18 58 q22 8 44 0'} stroke={ink} strokeWidth="3" fill="none" strokeLinecap="round" />
+        <path d={happy ? 'M18 56 q22 14 44 0' : worried ? 'M22 62 q18 -7 36 0' : 'M18 58 q22 8 44 0'} stroke={ink} strokeWidth="3" fill="none" strokeLinecap="round" />
         <path d="M23 59 l4 5 l4 -4 l4 5 l4 -5 l4 4 l4 -5 l4 4 l4 -4" stroke="#fff" strokeWidth="2.4" fill="none" strokeLinejoin="round" />
         <circle cx="33" cy="47" r="1.6" fill="#2E7D32" /><circle cx="47" cy="47" r="1.6" fill="#2E7D32" />
       </>}
@@ -22,7 +26,7 @@ export function StoryCharacter({ id, size = 64, happy = false }: { id: Speaker; 
         <circle cx="26" cy="31" r="12" fill="#3FAE2A" /><circle cx="54" cy="31" r="12" fill="#3FAE2A" />
         <circle cx="26" cy="30" r="7.5" fill="#fff" /><circle cx="54" cy="30" r="7.5" fill="#fff" />
         <circle cx="27" cy="30" r="4" fill={ink} /><circle cx="55" cy="30" r="4" fill={ink} />
-        <path d={happy ? 'M27 55 Q40 68 53 55' : 'M28 56 Q40 64 52 56'} stroke="#1E6B12" strokeWidth="3" fill="none" strokeLinecap="round" />
+        <path d={happy ? 'M27 55 Q40 68 53 55' : worried ? 'M30 60 Q40 54 50 60' : 'M28 56 Q40 64 52 56'} stroke="#1E6B12" strokeWidth="3" fill="none" strokeLinecap="round" />
         <circle cx="22" cy="52" r="3" fill="#FF8FA8" opacity=".6" /><circle cx="58" cy="52" r="3" fill="#FF8FA8" opacity=".6" />
         <ellipse cx="18" cy="72" rx="9" ry="4" fill="#2E8B1E" /><ellipse cx="62" cy="72" rx="9" ry="4" fill="#2E8B1E" />
       </>}
@@ -34,7 +38,7 @@ export function StoryCharacter({ id, size = 64, happy = false }: { id: Speaker; 
         <path d="M10 60 q-2 10 6 12 M68 64 q4 8 -2 10" stroke="#7CC36A" strokeWidth="7" fill="none" strokeLinecap="round" />
         <circle cx="12" cy="35" r="4.8" fill="#fff" /><circle cx="22" cy="35" r="4.8" fill="#fff" />
         <circle cx="12.6" cy="35" r="2.6" fill={ink} /><circle cx="22.6" cy="35" r="2.6" fill={ink} />
-        <path d={happy ? 'M10 43 Q17 49 24 43' : 'M11 44 Q17 47 23 44'} stroke={ink} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+        <path d={happy ? 'M10 43 Q17 49 24 43' : worried ? 'M12 46 Q17 42 22 46' : 'M11 44 Q17 47 23 44'} stroke={ink} strokeWidth="2.4" fill="none" strokeLinecap="round" />
       </>}
       {id === 'bolt' && <>
         <path d="M40 6 v8" stroke="#8D99AE" strokeWidth="3" /><circle cx="40" cy="6" r="4" fill="#FF6B6B" />
@@ -43,7 +47,8 @@ export function StoryCharacter({ id, size = 64, happy = false }: { id: Speaker; 
         {happy
           ? <><path d="M28 32 q4 -6 8 0 M44 32 q4 -6 8 0" stroke="#7CF3FF" strokeWidth="2.6" fill="none" strokeLinecap="round" /></>
           : <><circle cx="32" cy="30" r="3.6" fill="#7CF3FF" /><circle cx="48" cy="30" r="3.6" fill="#7CF3FF" /></>}
-        <path d="M34 37 h12" stroke="#7CF3FF" strokeWidth="2.4" strokeLinecap="round" />
+        <path d={worried ? 'M34 39 q6 -4 12 0' : 'M34 37 h12'} stroke="#7CF3FF" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+        {worried && <path d="M27 25 l8 -2 M53 25 l-8 -2" stroke="#7CF3FF" strokeWidth="2.2" strokeLinecap="round" />}
         <rect x="22" y="50" width="36" height="22" rx="7" fill="#A8B4C8" stroke="#6C7A91" strokeWidth="2.5" />
         <circle cx="34" cy="61" r="3" fill="#FFC800" /><circle cx="46" cy="61" r="3" fill="#58CC02" />
         <path d="M22 56 h-8 M58 56 h8" stroke="#6C7A91" strokeWidth="4" strokeLinecap="round" />
@@ -56,8 +61,12 @@ export function StoryCharacter({ id, size = 64, happy = false }: { id: Speaker; 
         <circle cx="40" cy="26" r="13" fill="#FFC800" />
         <path d="M34 15 q-4 -8 -9 -9 M46 15 q4 -8 9 -9" stroke={ink} strokeWidth="2.4" fill="none" strokeLinecap="round" />
         <circle cx="35" cy="25" r="3.4" fill={ink} /><circle cx="45" cy="25" r="3.4" fill={ink} />
-        <path d={happy ? 'M35 30 Q40 36 45 30' : 'M36 31 Q40 34 44 31'} stroke={ink} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+        <path d={happy ? 'M35 30 Q40 36 45 30' : worried ? 'M36 33 Q40 30 44 33' : 'M36 31 Q40 34 44 31'} stroke={ink} strokeWidth="2.2" fill="none" strokeLinecap="round" />
       </>}
+      {worried && BROWS[id] && (() => {
+        const [left, right, y] = BROWS[id]!;
+        return <path d={`M${left - 6} ${y} l7 -3 M${right + 6} ${y} l-7 -3`} stroke={ink} strokeWidth="2.6" strokeLinecap="round" />;
+      })()}
     </svg>
   );
 }

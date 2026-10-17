@@ -47,7 +47,7 @@ test('duplicate sign-up can switch to sign-in and a missing session explains how
   await expect(page.getByTestId('text-login-notice')).toContainText("couldn't keep the session");
   await expect(page.getByTestId('text-login-notice')).toHaveCount(1);
   await expect(page.getByTestId('text-login-error')).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Welcome back, explorer!' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'A fraction mystery is waiting!' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Your account is signed in' })).toHaveCount(0);
 });
 
@@ -93,7 +93,7 @@ test('new account shows session recovery guidance after the recovery code is sav
   await expect(page.getByTestId('text-login-notice')).toContainText("couldn't keep the session");
   await expect(page.getByTestId('text-login-notice')).toHaveCount(1);
   await expect(page.getByTestId('tab-sign-in')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Welcome back, explorer!' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'A fraction mystery is waiting!' })).toBeVisible();
   await expect(page.getByTestId('text-login-error')).toHaveCount(0);
   await expect(page.getByTestId('recovery-code-card')).toHaveCount(0);
 });
