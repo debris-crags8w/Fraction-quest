@@ -16,7 +16,7 @@ export function StoryComicView({ chapter, panels, first, lessonLabel, onGo, onBa
         <section className="fq-story-comic" aria-labelledby="story-title" data-testid="story-comic">
           <div className="fq-story-comic-head">
             <h2 id="story-title">{lessonLabel}</h2>
-            <LearningListenButton text={script} label="Listen to the story" />
+            <LearningListenButton text={script} label="Listen to the story" prefetch />
           </div>
           <ol className="fq-story-panels">
             {panels.map((panel, index) => (

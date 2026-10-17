@@ -713,7 +713,7 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false }: { mi
         <div className="fq-skill-bubble">
           <div className="fq-skill-header">
             <span className="fq-skill-label">Lesson idea</span>
-            <LearningListenButton text={mission.skill} label="Listen to the lesson idea" />
+            <LearningListenButton text={mission.skill} label="Listen to the lesson idea" prefetch />
           </div>
           <p className="fq-skill-copy"><LearningText text={mission.skill} /></p>
         </div>
@@ -726,7 +726,7 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false }: { mi
               { heading: 'Goal', text: mission.learningIntro.goal },
               { heading: 'Process', text: mission.learningIntro.process },
               { heading: 'Why it works', text: mission.learningIntro.why },
-            ])} label="Listen to how to order fractions" />
+            ])} label="Listen to how to order fractions" prefetch />
           </div>
           <LearningTextSection
             id="lesson-intro-goal"
@@ -766,7 +766,7 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false }: { mi
             { heading: 'Question', text: mission.example.prompt },
             { heading: 'Worked answer', text: mission.example.answer },
             { heading: 'Explanation', text: mission.example.explanation },
-          ])} label="Listen to the whole example" />
+          ])} label="Listen to the whole example" prefetch />
         </div>
         <LearningTextSection
           id="example-question-heading"

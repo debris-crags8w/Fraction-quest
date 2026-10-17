@@ -3320,6 +3320,48 @@ describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
     }
   });
 
+  it('prefetches visible-section audio and shares it with Listen without prefetching when voice is off', async () => {
+    const {
+      naturalVoicePreference,
+      prefetchNaturalVoice,
+      serverEngine,
+      setNaturalEngineForTests,
+      setNaturalVoicePreference,
+    } = await import('./lib/natural-voice');
+    const originalFetch = globalThis.fetch;
+    const previousChoice = naturalVoicePreference();
+    const asked: string[] = [];
+    let releaseFirst!: (response: Response) => void;
+    const firstResponse = new Promise<Response>((resolve) => { releaseFirst = resolve; });
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      asked.push(url);
+      if (asked.length === 1) return firstResponse;
+      return new Response(new Uint8Array([82, 73, 70, 70]), { headers: { 'Content-Type': 'audio/wav' } });
+    }) as typeof fetch;
+    try {
+      setNaturalEngineForTests(null);
+      setNaturalVoicePreference('af_heart');
+      const prefetch = prefetchNaturalVoice('af_heart', ['First sentence.', 'Second sentence.']);
+      const listen = serverEngine.generate('First sentence.', { voice: 'af_heart', speed: 0.92 });
+      assert.equal(asked.length, 1, 'Listen shares the in-flight prefetch request');
+      releaseFirst(new Response(new Uint8Array([82, 73, 70, 70]), { headers: { 'Content-Type': 'audio/wav' } }));
+      await Promise.all([prefetch, listen]);
+      await serverEngine.generate('First sentence.', { voice: 'af_heart', speed: 0.92 });
+      assert.equal(asked.length, 2, 'the first sentence is cached and only the second sentence needed a request');
+      assert.match(asked[0], /text=First%20sentence\./);
+      assert.match(asked[1], /text=Second%20sentence\./);
+
+      setNaturalVoicePreference('off');
+      await prefetchNaturalVoice('af_heart', ['Do not prefetch this sentence.']);
+      assert.equal(asked.length, 2, 'disabled natural voice does not start prefetch requests');
+    } finally {
+      globalThis.fetch = originalFetch;
+      setNaturalVoicePreference(previousChoice);
+      setNaturalEngineForTests(null);
+    }
+  });
+
   it('remembers the step a crashed test reached and reports it after the reload', async () => {
     const store = new Map<string, string>();
     (globalThis as { localStorage?: unknown }).localStorage = {
