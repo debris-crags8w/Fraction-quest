@@ -2573,7 +2573,6 @@ test('Christmas: a snowy map, a Santa hat and scarf, candy canes, story props, a
 
   // Story text uses the Christmas props.
   await page.getByTestId('button-continue-course').click();
-  await page.getByTestId('button-story-intro-go').click();
   await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away!');
   await page.getByTestId('button-story-go').click();
   await expect(page.getByTestId('story-panel-0')).toContainText('I cut the festival Christmas cake for all 4 of us.');
@@ -2618,22 +2617,15 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId('clue-notebook')).toContainText('No clues yet');
   await page.getByTestId('button-storybook-back').click();
 
-  // The story setup introduces the quest before the one-time prologue comic.
+  // The first lesson opens straight into the one-time prologue comic (no extra setup screen).
   await page.getByTestId('button-continue-course').click();
-  await expect(page.getByTestId('story-introduction').getByRole('heading', { name: 'Meet the Whole Stone' })).toBeVisible();
-  await expect(page.getByTestId('story-introduction')).toContainText('15 equal pieces');
-  await expect(page.getByTestId('story-introduction')).toContainText('discover who cracked it');
-  await expect(page.getByTestId('story-opening-stone')).toBeVisible();
-  await expect(page.getByTestId('button-story-intro-go')).toContainText('Start the story');
-  // Leaving before the comic does not mark the prologue complete; the setup appears again.
-  await page.getByTestId('button-story-intro-back').click();
+  await expect(page.getByTestId('story-panel-2')).toContainText('15 equal pieces');
+  // Leaving before the end does not mark the prologue as seen; it appears again.
+  await page.getByTestId('button-story-back').click();
   await expect(page.getByTestId('stone-banner')).toBeVisible();
   const introProgress = await page.evaluate(() => JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}').story?.prologueSeen ?? false);
   expect(introProgress).toBe(false);
   await page.getByTestId('button-continue-course').click();
-  await expect(page.getByTestId('story-introduction')).toBeVisible();
-  await page.getByTestId('button-story-intro-go').click();
-  await expect(page.getByTestId('story-introduction')).toHaveCount(0);
   await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away!');
   await expect(page.getByTestId('story-panel-0')).toContainText('I’m Numi, and this is Hoot');
   await expect(page.getByTestId('story-panel-2')).toContainText('The case snapped shut');
@@ -2645,8 +2637,18 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId('button-story-go')).toBeDisabled();
   await page.getByTestId('button-story-choice-1').click();
   await expect(page.getByTestId('story-choice-reply')).toContainText('big muddy footprints');
+  // Looking closely earns a bonus clue (helping would earn a thank-you sticker).
+  await expect(page.getByTestId('story-choice-reward')).toContainText('Bonus clue added to your notebook!');
+  await page.getByTestId('button-story-choice-0').click();
+  await expect(page.getByTestId('story-choice-reward')).toContainText('thank-you sticker');
+  await page.getByTestId('button-story-choice-1').click();
   await page.getByTestId('button-story-go').click();
   await expect(page.getByTestId('story-comic')).toHaveCount(0);
+  // The lesson starts with the story's task: Chomp asks, and the cast shares the cake; the worked help is below.
+  await expect(page.getByTestId('story-line')).toContainText('Help me share it fairly');
+  await expect(page.getByTestId('button-part-finder-share-1')).toContainText('Chomp');
+  await expect(page.getByTestId('button-part-finder-share-4')).toContainText('Pip');
+  await expect(page.getByTestId('example-help')).toContainText('Need help? See how it works');
   await expect(page.getByTestId('lesson-example').or(page.getByTestId('first-fraction-introduction')).first()).toBeVisible();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}').story);
   expect(saved).toEqual({ prologueSeen: true, choices: { '1': 1 } });
@@ -2709,6 +2711,8 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(payoff.getByTestId('stone-new-clue')).toContainText('A big green tail by the pond');
   await expect(payoff.getByTestId('story-card-2')).toContainText('Pip the party host');
   await expect(payoff.getByTestId('story-cliff')).toContainText('Tilly calls from the hill');
+  await expect(payoff.getByTestId('sticker-earned')).toContainText('New sticker!');
+  await expect(payoff.getByTestId('button-open-suspects')).toHaveCount(0);
   await page.getByTestId('button-return-map').click();
 
   // Back on the map: 2/15 found, and chapter 3 leads with chapter 2's cliffhanger.
@@ -2854,4 +2858,65 @@ test('Story mode: daily practice is Chomp’s riddles with a secret of the day, 
   await expect(week).toContainText('Hoot’s lantern · 2 nights in a row');
   await expect(week.locator('li[data-lit="true"]')).toHaveCount(2);
   await expect(week.locator('li').last()).toContainText('Today');
+});
+
+test('the mystery is playable: picture clues, a suspect board after chapter 4, stickers, and the story remembers the guess', async ({ page }) => {
+  await openAsGuest(page);
+  const afterFour = MISSIONS.find((item) => item.unit === 5)!;
+  await page.evaluate(({ progress }) => {
+    localStorage.setItem('fraction-quest-progress-v1:guest', JSON.stringify(progress));
+    const fun = JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}');
+    fun.story = { prologueSeen: true, choices: { '1': 1, '2': 0, '3': 0, '4': 1 } };
+    localStorage.setItem('fraction-quest-fun-v1:guest', JSON.stringify(fun));
+  }, { progress: progressBefore(afterFour) });
+  await page.goto('/');
+
+  // The town map: four places lit, the story's place glowing, and a tap opens that chapter.
+  await expect(page.getByTestId('town-place-4')).toHaveAttribute('aria-label', /stone piece found/);
+  await expect(page.getByTestId('town-place-5')).toHaveAttribute('aria-label', /the story is here now/);
+  await expect(page.getByTestId('town-place-9')).toBeDisabled();
+  await page.getByTestId('town-place-2').click();
+  await expect(page.getByTestId('storybook-chapter-2')).toHaveAttribute('open', '');
+
+  // Clues are picture cards, with bonus clues for the chapters where the child looked closely.
+  await page.getByTestId('tab-storybook-clues').click();
+  await expect(page.getByTestId('clue-card-1')).toContainText('Big muddy footprints');
+  await expect(page.getByTestId('clue-card-1-bonus')).toContainText('Bonus clue');
+  await expect(page.getByTestId('clue-card-2-bonus')).toHaveCount(0);
+  await expect(page.getByTestId('button-storybook-suspects-2')).toHaveCount(0);
+
+  // Stickers: one per finished lesson, and a thank-you sticker for helping.
+  await page.getByTestId('tab-storybook-stickers').click();
+  await expect(page.getByTestId('sticker-lesson-1-1')).not.toHaveClass(/is-locked/);
+  await expect(page.getByTestId('sticker-thanks-2')).toContainText('Pip says thank you');
+  await expect(page.getByTestId('sticker-lesson-5-1')).toHaveClass(/is-locked/);
+
+  // The suspect board: a kind nudge for a wrong guess, a cheer for following the clues; the guess is saved.
+  await page.getByTestId('tab-storybook-clues').click();
+  await page.getByTestId('button-storybook-suspects-1').click();
+  await expect(page.getByTestId('suspect-clues')).toContainText('Matching teeth marks');
+  await page.getByTestId('button-suspect-pip').click();
+  await page.getByTestId('button-suspect-guess').click();
+  await expect(page.getByTestId('suspect-reply')).toContainText('Look at your clues again');
+  await page.getByTestId('button-suspect-chomp').click();
+  await page.getByTestId('button-suspect-guess').click();
+  await expect(page.getByTestId('suspect-reply')).toContainText('Good detective work!');
+  const guesses = await page.evaluate(() => JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}').story?.guesses);
+  expect(guesses).toEqual({ '1': 'chomp' });
+  await page.getByTestId('button-suspects-done').click();
+  await expect(page.getByTestId('button-storybook-suspects-1')).toContainText('you guessed Chomp');
+
+  // When the truth comes out in chapter 8, the story remembers the guess.
+  const chapterEight = MISSIONS.find((item) => item.unit === 8)!;
+  await page.evaluate((progress) => localStorage.setItem('fraction-quest-progress-v1:guest', JSON.stringify(progress)), progressBefore(chapterEight));
+  await page.evaluate(() => {
+    const fun = JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}');
+    const progress = JSON.parse(localStorage.getItem('fraction-quest-progress-v1:guest') ?? '{}');
+    delete progress.learning[Object.keys(progress.learning).at(-1)!];
+    localStorage.setItem('fraction-quest-progress-v1:guest', JSON.stringify(progress));
+    localStorage.setItem('fraction-quest-fun-v1:guest', JSON.stringify(fun));
+  });
+  await page.goto('/');
+  await page.getByTestId('button-chapter-start-8').click();
+  await expect(page.getByTestId('story-detective-note')).toContainText('you suspected Chomp');
 });

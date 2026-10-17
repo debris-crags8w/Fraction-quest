@@ -5,7 +5,7 @@
 
 export type CharacterId = 'chomp' | 'pip' | 'tilly' | 'bolt' | 'bea';
 export type Speaker = CharacterId | 'numi' | 'hoot';
-export type Panel = { speaker: Speaker; text: string };
+export type Panel = { speaker: Speaker; text: string; /** The face to draw (else worried when the line sounds like trouble). */ mood?: 'happy' | 'worried' };
 export type StoryChoice = { label: string; detail: string; reply: Panel };
 export type Chapter = {
   unit: number;
@@ -64,6 +64,7 @@ export const CHARACTERS: Record<Speaker, { name: string; kind: string }> = {
 };
 
 const say = (speaker: Speaker, text: string): Panel => ({ speaker, text });
+const happySay = (speaker: Speaker, text: string): Panel => ({ speaker, text, mood: 'happy' });
 const pick = (label: string, detail: string, speaker: Speaker, reply: string): StoryChoice => ({ label, detail, reply: say(speaker, reply) });
 
 /** The brief setup shown before the first comic, without revealing who cracked the stone. */
@@ -80,10 +81,10 @@ export const PROLOGUE: Panel[] = [
 
 /** The ending, after the last chapter: read it again from the Storybook's finale. */
 export const EPILOGUE: Panel[] = [
-  say('hoot', 'Festival night! All 15 pieces are back. Fifteen fifteenths make one whole, and the stone glows again!'),
-  say('bolt', 'Beep… I am sorry I cracked it. Thank you for helping me fix it.'),
-  say('chomp', 'Okay, okay. Bolt told the truth. That makes him brave.'),
-  say('numi', '{name}, you followed every clue. You are the Keeper of the Whole Stone!'),
+  happySay('hoot', 'Festival night! All 15 pieces are back. Fifteen fifteenths make one whole, and the stone glows again!'),
+  happySay('bolt', 'Beep… I am sorry I cracked it. Thank you for helping me fix it.'),
+  happySay('chomp', 'Okay, okay. Bolt told the truth. That makes him brave.'),
+  happySay('numi', '{name}, you followed every clue. You are the Keeper of the Whole Stone!'),
 ];
 
 /** A finished chapter's ending, to read again: the friend's thanks, the clue it added, and what happens next. */

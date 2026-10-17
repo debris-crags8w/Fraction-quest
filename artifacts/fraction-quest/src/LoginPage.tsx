@@ -85,10 +85,18 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
           <Mascot mood={error ? 'oops' : creating ? 'cheer' : 'happy'} size={96} />
           <div>
             <p className="fq-login-brand"><PieFraction n={3} d={4} size={22} fill="var(--fq-sun)" stroke="var(--fq-grape)" /> Fraction Quest</p>
-            <h1>{recovering ? 'Set a new password' : creating ? 'Make your explorer account' : 'Welcome back, explorer!'}</h1>
-            <p>{recovering ? 'Use the recovery code a grown-up saved when the account was made.' : creating ? 'Your stars, streak and lessons will be saved, so you can keep going on any device.' : 'Sign in to pick up where you left off.'}</p>
+            <h1>{recovering ? 'Set a new password' : creating ? 'Make your explorer account' : 'A fraction mystery is waiting!'}</h1>
+            <p>{recovering ? 'Use the recovery code a grown-up saved when the account was made.' : creating ? 'Your stars, streak and lessons will be saved, so you can keep going on any device.' : 'The Whole Stone cracked into 15 pieces. Help find them all.'}</p>
           </div>
         </div>
+
+        {/* A child can start straight away; signing in is for coming back on another device. */}
+        {!creating && !recovering && (
+          <div className="fq-login-play">
+            <button type="button" className="fq-button fq-login-play-button" onClick={onGuest} data-testid="button-play-guest">Play now <ArrowRight size={20} /></button>
+            <small>Progress stays on this device. Have an account? Sign in below.</small>
+          </div>
+        )}
 
         {notice && <p className="fq-login-notice" role="status" data-testid="text-login-notice">{notice}</p>}
 
@@ -168,11 +176,13 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
             ? <p className="fq-login-help">No recovery code? If this account is still signed in on another device, a grown-up can set a new password from the grown-ups’ page there. <button type="button" className="fq-link-button" onClick={() => switchMode('sign-in')} data-testid="button-back-to-sign-in">Back to sign in</button></p>
             : <p className="fq-login-help">Forgot your password? <button type="button" className="fq-link-button" onClick={() => switchMode('recover')} data-testid="button-forgot-password">Use the recovery code</button></p>}
 
-        <div className="fq-login-guest">
-          <span>or</span>
-          <button type="button" className="fq-hint-button" onClick={onGuest} data-testid="button-play-guest">Play without an account</button>
-          <small>Progress stays on this device only.</small>
-        </div>
+        {(creating || recovering) && (
+          <div className="fq-login-guest">
+            <span>or</span>
+            <button type="button" className="fq-hint-button" onClick={onGuest} data-testid="button-play-guest">Play without an account</button>
+            <small>Progress stays on this device only.</small>
+          </div>
+        )}
       </main>
     </div>
   );

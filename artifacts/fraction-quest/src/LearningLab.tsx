@@ -1,7 +1,7 @@
 import { type CSSProperties, Fragment, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 import { playHaptic } from './lib/fun';
 import { LearningListenButton, LearningText } from './LearningText';
-import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw, Star } from 'lucide-react';
 import { getMission, numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildCheckStage, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
 import {
@@ -22,6 +22,8 @@ import { LiveFraction, TickLabel } from './fraction-ui';
 import { AnswerTiles } from './AnswerTiles';
 import { answerShape } from './answer-shape';
 import { useRevealWhen } from './lib/reveal';
+
+const WORKSHEET_ROUND = 4;
 
 type Kind = LearningModel['kind'];
 type St = { d: number; wholes: number; count: number };
@@ -787,6 +789,10 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           <ol className="fq-ll-rows">
             {sheet.map((p, index) => (
               <Fragment key={p.id}>
+              {/* Short rounds of 4, so a long worksheet feels like a few quick wins. */}
+              {index % WORKSHEET_ROUND === 0 && sheet.length > WORKSHEET_ROUND && (
+                <li className="fq-ll-round" data-testid={`worksheet-round-${index / WORKSHEET_ROUND + 1}`}>Round {index / WORKSHEET_ROUND + 1} of {Math.ceil(sheet.length / WORKSHEET_ROUND)}</li>
+              )}
               <Row p={p} rec={rec} numberLabel={String(index + 1)}
                 sequenceLabel={`Question ${index + 1} of ${sheet.length} · ${problemProgress[index].status === 'complete' ? 'Complete' : problemProgress[index].status === 'retry' ? 'Needs another try' : problemProgress[index].status === 'current' ? 'Up next' : 'Not started'}`}
                 onEdit={v => save(editWorksheet(cur(), p.id, v))}
@@ -795,6 +801,12 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
                 onSuccess={() => { onSuccess?.(); onWorksheetCorrect?.(missionId, p.id); }}
                 onHint={() => { const r = cur(); const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };
                   save({ ...r, helpUses: r.helpUses + 1, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }); }} />
+              {(index + 1) % WORKSHEET_ROUND === 0 && index < sheet.length - 1
+                && problemProgress.slice(index + 1 - WORKSHEET_ROUND, index + 1).every((item) => item.status === 'complete') && (
+                <li className="fq-ll-round-cheer" role="status" data-testid={`worksheet-round-done-${(index + 1) / WORKSHEET_ROUND}`}>
+                  <Star size={18} aria-hidden="true" /> Round {(index + 1) / WORKSHEET_ROUND} done! {index + 1 + WORKSHEET_ROUND >= sheet.length ? 'One round left!' : 'Great work, keep going!'}
+                </li>
+              )}
               {/* After the last worksheet question, once every step is done: finishing is the next step. */}
               {index === sheet.length - 1 && gate && !finished && (
                 <li className="fq-ll-finish-callout" data-testid="callout-lab-finish">
