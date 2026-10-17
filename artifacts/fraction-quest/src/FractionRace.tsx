@@ -5,7 +5,8 @@ import type { Mission, ModelSpec, PracticeQuestion } from './game';
 import { freshSeed, generateQuestions } from './practice-bank';
 import { MathText } from './MathText';
 import { Confetti, Mascot, useFun } from './fun-ui';
-import { playCue } from './lib/fun';
+import { playCue, playHaptic } from './lib/fun';
+import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { LearningText, primeReadAloud, useReadAloud } from './LearningText';
 
 /* Fraction Race: a short competition built from the lesson's own question generator.
@@ -58,6 +59,9 @@ function Lane({ name, questions, racer, now, onAnswer, renderModel, color, flipp
   const questionIndex = stalled ? Math.max(0, racer.index - 1) : racer.index;
   const q = questions[questionIndex % questions.length];
   const turbo = now - racer.boostAt < 1200 && racer.boostAt > 0;
+  const missReason = stalled && racer.pick !== null
+    ? wrongChoiceReason(q.prompt, q.choices, q.correctChoice, racer.pick) ?? q.hint
+    : '';
   return (
     <section className={`fq-race-lane ${flipped ? 'flipped' : ''} ${stalled ? 'stalled' : ''}`} style={{ '--lane': color } as CSSProperties} aria-label={`${name}'s questions`}>
       <p className="fq-race-lane-name"><b>{name}</b> · {racer.score}/{RACE_GOAL}{racer.shield ? <span className="fq-race-streak"> · 🛡️ shield on</span> : racer.streak > 0 && !stalled ? <span className="fq-race-streak"> · {'🔥'.repeat(Math.min(racer.streak, TURBO_STREAK))} {TURBO_STREAK - racer.streak} more for a shield</span> : null}</p>
@@ -73,7 +77,10 @@ function Lane({ name, questions, racer, now, onAnswer, renderModel, color, flipp
           </button>
         ))}
       </div>
-      {stalled && <p className="fq-race-stall" role="status">The answer is {letter(q.correctChoice)}. <MathText text={q.retryFeedback} /> {racer.savedAt === racer.stallUntil - STALL_MS ? 'Your shield saved you: no roll-back!' : 'Back one space…'}</p>}
+      {stalled && <p className="fq-race-stall" role="status" aria-live="polite" data-testid={`race-${name.replace(/\s/g, '').toLowerCase()}-feedback`}>
+        <strong>{retryOpener(`${q.id}:${racer.wrong}:${racer.pick}`)}</strong>{' '}
+        <MathText text={`${missReason} The answer is ${letter(q.correctChoice)}. ${q.retryFeedback} ${racer.savedAt === racer.stallUntil - STALL_MS ? 'Your shield saved you: no roll-back!' : 'Back one space…'}`} />
+      </p>}
     </section>
   );
 }
@@ -172,6 +179,7 @@ export default function FractionRace({ mission, best, robotBeaten, sprintBest, o
     next[who] = applyAnswer(racer, choice === q.correctChoice, t, choice);
     if (choice === q.correctChoice) {
       playCue('correct', fun.sound);
+      playHaptic('correct');
       if (next[who].score >= RACE_GOAL) {
         const seconds = (t - startedAt) / 1000;
         end(mode?.kind === 'duo' ? (who === 0 ? 'Player 1' : 'Player 2') : 'You', seconds, true);
@@ -179,6 +187,7 @@ export default function FractionRace({ mission, best, robotBeaten, sprintBest, o
     } else {
       // Stalled and moved on to a new question (no hunting for the answer by tapping every choice).
       playCue('retry', fun.sound);
+      playHaptic('retry');
     }
     setRacers(next);
   };

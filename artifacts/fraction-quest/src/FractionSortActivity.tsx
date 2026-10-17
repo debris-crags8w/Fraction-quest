@@ -1,6 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowLeft, ArrowUp } from 'lucide-react';
 import { fractionOrderMatches, type FractionOrderRound, type FractionValue } from './game';
+import { useFun } from './fun-ui';
+import { playCue, playHaptic } from './lib/fun';
+import { retryOpener } from './wrong-answer';
 
 function cardId({ numerator, denominator }: FractionValue) {
   return `${numerator}-${denominator}`;
@@ -27,6 +30,7 @@ export default function FractionSortActivity({
   onExit: () => void;
   onDone: () => void;
 }) {
+  const { fun } = useFun();
   const [roundIndex, setRoundIndex] = useState(0);
   const [cards, setCards] = useState<FractionValue[]>(() => [...rounds[0].cards]);
   const [result, setResult] = useState<'retry' | 'correct' | null>(null);
@@ -44,7 +48,10 @@ export default function FractionSortActivity({
   };
 
   const checkOrder = () => {
-    setResult(fractionOrderMatches(cards, round.direction) ? 'correct' : 'retry');
+    const correct = fractionOrderMatches(cards, round.direction);
+    setResult(correct ? 'correct' : 'retry');
+    playCue(correct ? 'correct' : 'retry', fun.sound);
+    playHaptic(correct ? 'correct' : 'retry');
   };
 
   const advance = () => {
@@ -106,7 +113,7 @@ export default function FractionSortActivity({
           {result && (
             <div className={`fq-order-sort-feedback ${solved ? 'correct' : 'retry'}`} role="status"
               aria-live="polite" data-testid="fraction-sort-feedback">
-              <strong>{solved ? 'That order is right!' : 'Not quite yet.'}</strong>
+              <strong>{solved ? 'That order is right!' : retryOpener(`${round.id}:${roundIndex}`)}</strong>
               <span>{solved ? round.explanation : round.strategyHint}</span>
             </div>
           )}

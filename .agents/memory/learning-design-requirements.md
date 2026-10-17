@@ -44,6 +44,12 @@ Each lesson needs a brief, plain-language explanation of its main idea and why t
 
 **How to apply:** Keep the explanation visible before practice and consistent in worked examples, hints, retry feedback, and read-aloud text. Do not rely on the picture alone to teach the rule.
 
+Game wrong answers should receive the same supportive, specific feedback as lesson wrong answers.
+
+**Why:** The user asked for wrong answers in games to be treated like wrong answers in lessons.
+
+**How to apply:** Pair a kind opener with an explanation of the likely mistake and a useful next step, consistent with lesson retry feedback.
+
 Solution keys belong in the grown-up area, not student print menus or practice sheets. Keep “My answers” available to students because it contains their own work. Prefer a gentle feminine-sounding speech voice when the device offers one, while keeping explanations matched to the requested language.
 
 **Why:** The user chose adult-only answer-key access and asked for a gentler, smoother female voice.
