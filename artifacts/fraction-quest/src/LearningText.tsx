@@ -636,6 +636,7 @@ export function LearningTextSection({
   paragraphClassName,
   emphasize = false,
   bold = false,
+  listen = true,
 }: {
   heading: string;
   text: string;
@@ -645,17 +646,23 @@ export function LearningTextSection({
   paragraphClassName?: string;
   emphasize?: boolean;
   bold?: boolean;
+  /** False when the card around this section has one Listen button for all of its sections. */
+  listen?: boolean;
 }) {
   return (
     <section className={className} aria-labelledby={id}>
       <header className="fq-example-section-header">
         <h3 id={id}>{heading}</h3>
-        <LearningListenButton text={text} label={label ?? `Listen to the ${heading.toLowerCase()}`} />
+        {listen && <LearningListenButton text={text} label={label ?? `Listen to the ${heading.toLowerCase()}`} />}
       </header>
       <p className={paragraphClassName}>{bold ? <strong><LearningText text={text} emphasize={emphasize} /></strong> : <LearningText text={text} emphasize={emphasize} />}</p>
     </section>
   );
 }
+
+/** One script for a card with several headed sections, read in order: "Question: … Worked answer: …". */
+export const sectionsScript = (sections: { heading: string; text: string }[]) =>
+  sections.map(({ heading, text }) => `${heading}: ${text}`).join(' ');
 
 /** Keeps fractions stacked while making core vocabulary explorable and optionally audible. */
 /* Key points in a question get a solid underline: amounts ("2 pieces", "4 friends"), fraction names (halves, eighths)
