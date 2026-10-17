@@ -227,3 +227,6 @@ button.cg-cell:focus-visible { outline:3px solid var(--fq-grape,#7c4dff); outlin
 .fh-pond.is-halloween .fh-line, .fh-pond.is-halloween .fh-tick { background: #FFF6E5; }
 .fh-pond.is-halloween .fh-croc { filter: drop-shadow(0 0 6px #FFE27A); }
 .fh-pond.is-halloween .fh-frog { width: 44px; height: 47px; }
+.fh-pond.is-christmas { background: radial-gradient(circle at 12% 20%, #fff 0 3px, transparent 3.5px), radial-gradient(circle at 70% 14%, #fff 0 2.5px, transparent 3px), radial-gradient(circle at 90% 34%, #fff 0 3px, transparent 3.5px), #DCEBFA; }
+.fh-pond.is-christmas .fh-water { background: #BFD9F2; }
+.fh-pond.is-christmas .fh-frog { width: 44px; height: 47px; }

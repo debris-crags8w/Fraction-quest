@@ -35,11 +35,12 @@ export type Chapter = {
 export const STONE_PIECES = 15;
 
 /** Seasonal props: story text names its treats with blanks ("the festival {cake}") and the theme showing now
-   fills them, so a Halloween lesson has pumpkin pies and candy. Only nouns change: never a number or answer. */
-export type PropTheme = 'everyday' | 'halloween';
+   fills them, so a Halloween lesson has pumpkin pies and candy, and a Christmas one gingerbread and candy canes. Only nouns change: never a number or answer. */
+export type PropTheme = 'everyday' | 'halloween' | 'christmas';
 export const PROPS: Record<PropTheme, Record<string, string>> = {
   everyday: { cake: 'cake', cakes: 'cakes', pie: 'pie', cookies: 'cookies', bar: 'snack bar', bars: 'snack bars', snack: 'snack', snacks: 'snacks', drink: 'lemonade', plant: 'sunflower' },
   halloween: { cake: 'pumpkin pie', cakes: 'pumpkin pies', pie: 'pumpkin pie', cookies: 'bat cookies', bar: 'candy bar', bars: 'candy bars', snack: 'candy', snacks: 'candies', drink: 'pumpkin juice', plant: 'corn stalk' },
+  christmas: { cake: 'Christmas cake', cakes: 'Christmas cakes', pie: 'cherry pie', cookies: 'gingerbread cookies', bar: 'peppermint bar', bars: 'peppermint bars', snack: 'candy cane', snacks: 'candy canes', drink: 'hot cocoa', plant: 'holly bush' },
 };
 export const propTheme = (seasonId: string | null | undefined): PropTheme => (seasonId && seasonId in PROPS ? seasonId as PropTheme : 'everyday');
 

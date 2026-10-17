@@ -61,6 +61,69 @@
 :root[data-fq-season="halloween"] .fq-node.lock::before { background: #3C3460; }
 :root[data-fq-season="halloween"] .fq-node .fq-node-pie { opacity: .9; }
 
+:root[data-fq-season="christmas"] {
+  --fq-night: #12284A;
+  --fq-night-2: #1C3A63;
+  --fq-night-edge: #3A5C8C;
+  --fq-moon: #FFFFFF;
+  --fq-night-text: #F3F8FF;
+  --fq-night-muted: #CFE0F5;
+  --fq-ornament: #D23B3B;
+  --fq-ornament-dark: #8E1F1F;
+}
+
+/* ---------- the map on a snowy night ---------- */
+
+:root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-map-app {
+  background:
+    radial-gradient(circle at 10% 12%, #fff 0 2.5px, transparent 3px),
+    radial-gradient(circle at 28% 30%, #fff 0 2px, transparent 2.5px),
+    radial-gradient(circle at 52% 8%, #fff 0 2.5px, transparent 3px),
+    radial-gradient(circle at 74% 24%, #fff 0 2px, transparent 2.5px),
+    radial-gradient(circle at 90% 10%, #fff 0 2.5px, transparent 3px),
+    radial-gradient(circle at 6% 48%, #fff 0 2px, transparent 2.5px),
+    radial-gradient(circle at 96% 44%, #fff 0 2.5px, transparent 3px),
+    var(--fq-night);
+  color: var(--fq-night-text);
+}
+:root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-map-app :is(.fq-brand, .fq-section-heading h1, .fq-unit-heading h3, .fq-account-name strong) { color: var(--fq-night-text); }
+:root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-map-app :is(.fq-section-heading p, .fq-unit-heading p, .fq-account-name small, .fq-place-note, .fq-assigned-units, .fq-chest-label, .fq-node-steps, .fq-node-steps small, .fq-footer, .fq-trail-note) { color: var(--fq-night-muted); }
+:root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-map-app .fq-unit-kicker { color: #FF9E9E; }
+:root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-map-app .fq-unit-count { color: var(--fq-night-text); background: var(--fq-night-2); }
+:root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-map-app .fq-unit { border-top-color: var(--fq-night-edge); }
+:root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-map-app :is(.fq-trail-note, .fq-footer) { background: transparent; border-color: var(--fq-night-edge); }
+:root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-map-app .fq-footer button { color: #FF9E9E; }
+
+/* Lesson nodes become ornaments: gold when done, glowing for the next lesson, frosty when locked. */
+:root[data-fq-season="christmas"] .fq-node {
+  position: relative;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--fq-ornament);
+  box-shadow: 0 7px 0 var(--fq-ornament-dark), inset -10px -8px 0 -4px rgb(0 0 0 / .12);
+}
+:root[data-fq-season="christmas"] .fq-node::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 16px;
+  height: 10px;
+  margin-left: -8px;
+  border-radius: 3px;
+  background: #C9A227;
+}
+:root[data-fq-season="christmas"] .fq-node.done { color: #4A3200; background: #FFC93C; box-shadow: 0 7px 0 #B8860B, 0 0 0 6px rgb(255 215 90 / .25); }
+:root[data-fq-season="christmas"] .fq-node.now::after { border-color: #7BE36B; opacity: .4; border-radius: 50%; }
+:root[data-fq-season="christmas"] .fq-node.now { box-shadow: 0 7px 0 var(--fq-ornament-dark), 0 0 22px 6px rgb(123 227 107 / .55); }
+:root[data-fq-season="christmas"] .fq-node.lock { color: #DCE8F7; background: #3A5C8C; box-shadow: 0 7px 0 #1C3A63; }
+:root[data-fq-season="christmas"] .fq-node.lock::before { background: #6C86A8; }
+:root[data-fq-season="christmas"] .fq-season-kicker { color: #FF9E9E; }
+:root[data-fq-season="christmas"] .fq-season-reward small { color: #FF9E9E; }
+:root[data-fq-season="christmas"] .fq-season-reward-icon { color: #FFD54A; }
+:root[data-fq-season="christmas"] .fq-season-reward.is-earned { box-shadow: 0 0 0 3px #FFD54A; }
+:root[data-fq-season="christmas"] .fq-stat-xp { color: #D23B3B; }
+
 /* ---------- season pieces ---------- */
 
 .fq-season-banner {
