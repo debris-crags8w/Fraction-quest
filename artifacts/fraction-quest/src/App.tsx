@@ -34,6 +34,7 @@ import {
   type Progress,
 } from './game';
 import { createDeveloperLessonProgress } from './developer-test';
+import { BOARD_AFTER, SuspectBoardView, TownMap, lessonSticker, thanksSticker, type SuspectBoard } from './quest';
 import { DeveloperChip } from './DeveloperTesting';
 import { saveAssessmentAttempt } from './assessments';
 import type { AssessmentDefinition } from './assessments';
@@ -52,8 +53,8 @@ import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
 import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
-import { CHAPTERS, EPILOGUE, PROLOGUE, chapterEnd, chapterFor, lessonComic, propTheme, storyProblemFor, withName, type PropTheme } from './story';
-import { ChapterBanner, StoneBanner, StorybookView, StoryComicView, StoryOpeningView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
+import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, withName, type PropTheme } from './story';
+import { ChapterBanner, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
 import { LanternIcon } from './riddle-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
@@ -99,10 +100,10 @@ type View =
   | { type: 'story'; missionId: string; /** The one-time opening before the first lesson. */ prologue?: boolean; /** Reading a finished lesson's comic again: where it was opened from, to go back there. */ replay?: 'map' | 'storybook';
     /** From the Storybook: a finished chapter's ending, or the epilogue after the last chapter. */
     part?: 'end' | 'epilogue' }
-  /** The one-time Whole Stone setup, shown before its comic prologue. */
-  | { type: 'story-intro'; missionId: string }
   /** Every story part to read again, the clue notebook and the friends' cards. */
   | { type: 'storybook'; tab: StorybookTab; unit?: number }
+  /** "Who cracked the stone?" after chapters 4 and 7 (opened from the lesson's payoff or the Storybook). */
+  | { type: 'suspects'; board: SuspectBoard; from: 'reward' | 'storybook' }
   /** The lesson's hands-on cake rounds (Part Finder), between the worked example and the questions. */
   | { type: 'hands-on'; missionId: string; reviewQuestions: PracticeQuestion[] }
   /** Local card arrangement before scored questions; it does not save lesson evidence. */
@@ -156,6 +157,20 @@ const FOLD_LESSONS: Record<string, { intro: string; allowThirds?: boolean; shade
 
 const UNIT_TITLES = UNIT_INFO.map((unit) => unit.title);
 /** Units whose every lesson is done: each one returns a piece of the Whole Stone. */
+/** Story mode: on a lesson's first question the chapter friend asks for this lesson's help (the comic's scene). */
+const lessonAsk = (mission: Mission) => {
+  const chapter = chapterFor(mission.unit);
+  if (!chapter) return undefined;
+  const index = MISSIONS.filter((item) => item.unit === mission.unit).findIndex((item) => item.id === mission.id);
+  return index > 0 ? chapter.scenes[index - 1] ?? chapter.scenes[chapter.scenes.length - 1] : chapter.asks[0];
+};
+/** Story mode: the four friends sharing in a hands-on lesson are the chapter friend, Numi, Hoot and one more friend. */
+const storyCast = (chapter: { character: string }) => {
+  const friend = CHARACTER_NAMES[chapter.character] ?? 'Chomp';
+  return [friend, 'Numi', 'Hoot', friend === 'Pip' ? 'Chomp' : 'Pip'];
+};
+const CHARACTER_NAMES: Record<string, string> = { chomp: 'Chomp', pip: 'Pip', tilly: 'Tilly', bolt: 'Bolt', bea: 'Bea' };
+
 const completedStoryUnits = (progress: Progress) =>
   new Set(CHAPTERS.map((chapter) => chapter.unit).filter((unit) => MISSIONS.filter((item) => item.unit === unit).every((item) => hasLearningGate(progress, item.id))));
 
@@ -504,6 +519,7 @@ function storybookChapters(progress: Progress): StorybookChapter[] {
       lessons: missions.map((item) => ({
         id: item.id,
         title: item.title,
+        done: hasLearningGate(progress, item.id),
         state: hasLearningGate(progress, item.id) || getLearningRecord(progress, item.id).practiceDone ? 'read' as const
           : item.id === next?.id ? 'new' as const : 'locked' as const,
       })),
@@ -598,7 +614,10 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
             <DeveloperChip unitTitles={UNIT_TITLES} onOpen={onDeveloperTest} />
           </div>
           <SeasonBanner />
-          {storyOn && <StoneBanner completedUnits={completedStoryUnits(progress)} onStorybook={() => onStorybook('story')} />}
+          {storyOn && <StoneBanner completedUnits={completedStoryUnits(progress)} onStorybook={() => onStorybook('story')}
+            town={<TownMap completedUnits={completedStoryUnits(progress)} currentUnit={nextMission?.unit}
+              reachedUnits={new Set(CHAPTERS.filter((chapter) => MISSIONS.some((item) => item.unit === chapter.unit && isMissionUnlocked(progress, item.id))).map((chapter) => chapter.unit))}
+              onPlace={(unit) => onStorybook('story', unit)} />} />}
           {assignedUnits.length > 0 && <p className="fq-assigned-units" role="note" data-testid="text-assigned-units">
             Your teacher suggested: {assignedUnits.map((unit) => `Unit ${unit}: ${UNIT_TITLES[unit - 1]}`).join(' · ')}.
             These suggestions do not change which lessons are unlocked.
@@ -896,6 +915,8 @@ function PlayView({
   const [reviewingPastIndex, setReviewingPastIndex] = useState<number | null>(null);
   const { fun } = useFun();
   const storyOn = fun.displayPreferences?.storyMode !== false;
+  // Story mode on a lesson's first question: the friend asks, the child tries, and the worked example sits below as help.
+  const actionFirst = showExample && storyOn && !!chapterFor(mission.unit);
   const seasonOn = !!useSeason().season;
   const question: PracticeQuestion | null = mission.questions[questionIndex] ?? null;
   const isLastQuestion = question ? questionIndex === mission.questions.length - 1 : false;
@@ -1040,13 +1061,13 @@ function PlayView({
             {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
           </p>}
           {/* One friendly line per question: the story friend's (in the season's props) when the story is on, else the seasonal one. */}
-          {question && !showExample && (storyOn && chapterFor(mission.unit)
-            ? <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} result={feedback} setup={question.storySetup} />
+          {question && (!showExample || actionFirst) && (storyOn && chapterFor(mission.unit)
+            ? <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} result={feedback} setup={question.storySetup ?? (actionFirst ? lessonAsk(mission) : undefined)} />
             : seasonOn && <SeasonSay kind={question.model.kind} id={question.id} />)}
           {showExample
             ? <h1 id="lesson-title">{mission.title}</h1>
             : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
-          {showExample && <GuidedExample mission={mission} />}
+          {showExample && !actionFirst && <GuidedExample mission={mission} />}
           {question && (
             <>
               {showExample && <StoryPrompt prompt={question.prompt} id="lesson-question-title" />}
@@ -1115,6 +1136,13 @@ function PlayView({
                   </button>
                 </div>
               )}
+              {/* Story mode: try it first, with the worked example right below as help. */}
+              {showExample && actionFirst && (
+                <section className="fq-example-help" aria-labelledby="example-help-title" data-testid="example-help">
+                  <h2 id="example-help-title">Need help? See an example</h2>
+                  <GuidedExample mission={mission} />
+                </section>
+              )}
             </>
           )}
             </>
@@ -1168,7 +1196,7 @@ function storyQuestion(mission: Mission, question: PracticeQuestion, storyOn: bo
   return { ...question, prompt: withName(problem.prompt, null, theme), choices: (problem.choices ?? question.choices).map((choice) => withName(choice, null, theme)), storySetup: problem.setup };
 }
 
-function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code') => void }) {
+function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame, onSuspects }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code') => void; onSuspects: (board: SuspectBoard) => void }) {
   const nextMission = getNextMission(progress);
   // Units 9+ open only after every lesson in the unit before is done, so "next lesson is open" is not always true.
   const following = MISSIONS[MISSIONS.findIndex((item) => item.id === mission.id) + 1];
@@ -1199,7 +1227,9 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
           <SeasonReward missionId={mission.id} />
           {storyOn && chapter && <StoryPayoff chapter={chapter} lessonIndex={unitMissions.indexOf(mission)} lessonsTotal={unitMissions.length}
             chapterDone={unitMissions.every((item) => hasLearningGate(progress, item.id))} piecesFound={completedStoryUnits(progress).size} name={account.activeProfile?.displayName ?? null}
-            problem={storyProblemFor(mission.id) ?? undefined} />}
+            problem={storyProblemFor(mission.id) ?? undefined}
+            sticker={lessonSticker(chapter, unitMissions.indexOf(mission), mission.title)}
+            onSuspects={([1, 2] as SuspectBoard[]).filter((board) => BOARD_AFTER[board] === chapter.unit).map((board) => () => onSuspects(board))[0]} />}
           <div className="fq-reward-stars" data-testid="status-mission-stars" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}
@@ -1273,6 +1303,7 @@ function Game() {
   const [saveError, setSaveError] = useState(false);
   const [fun, setFun] = useState<FunState>(() => account.initialFun ?? loadFun());
   const storyMode = fun.displayPreferences?.storyMode !== false;
+  const storyTheme = propTheme(useSeason().season?.id);
   const [combo, setCombo] = useState(0);
   const [breakReason, setBreakReason] = useState<'interval' | 'mistakes' | 'lesson-part' | null>(null);
   const activeStudyMilliseconds = useRef(0);
@@ -1349,10 +1380,10 @@ function Game() {
     // A lesson started for the first time opens with its story comic (when story mode is on).
     const mission = MISSIONS.find((item) => item.id === missionId);
     if (!afterStory && !testProgress && storyMode && mission && chapterFor(mission.unit) && !record.practiceDone && !hasLearningGate(activeProgress, missionId)) {
-      // Introduce the Whole Stone before its one-time comic prologue.
+      // The very first lesson opens with the one-time comic prologue (it introduces the Whole Stone).
       setView(fun.story?.prologueSeen
         ? { type: 'story', missionId }
-        : { type: 'story-intro', missionId });
+        : { type: 'story', missionId, prologue: true });
       return;
     }
     // Unfinished work, or every step done but "Finish lesson" not pressed yet: go back to the lab, where the
@@ -1554,10 +1585,15 @@ function Game() {
         const activityTitle = view.missionId === 'equal-parts' ? 'Make fair shares'
           : view.missionId === 'unit-fractions' ? 'Build a fraction'
             : 'Find the same amount';
+        const chapter = chapterFor(mission.unit);
         return <PartFinder key={view.missionId} rounds={partFinderRoundsFor(view.missionId)} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
           activityTitle={activityTitle} showFirstIntroduction={view.missionId === 'equal-parts'}
           intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} hideMascot={view.missionId === 'equal-parts'} />}
-          onExit={returnToMap} onDone={toQuestions} onSkip={progress.completedMissionIds.includes(view.missionId) || hasLearningGate(progress, view.missionId) ? toQuestions : undefined} />;
+          onExit={returnToMap} onDone={toQuestions} onSkip={progress.completedMissionIds.includes(view.missionId) || hasLearningGate(progress, view.missionId) ? toQuestions : undefined}
+          {...(storyMode && chapter ? {
+            friends: storyCast(chapter),
+            storyLine: (result: 'correct' | 'retry' | null) => <StorySay chapter={chapter} questionId={`${view.missionId}-hands-on`} result={result} setup={HANDS_ON_ASKS[partFinderRoundsFor(view.missionId)[0]?.id ?? 'sort']} />,
+          } : {})} />;
       })()}
       {view.type === 'fraction-sort' && (() => {
         const mission = getMission(view.missionId);
@@ -1669,14 +1705,7 @@ function Game() {
         setView(view.nextView);
       }} />}
       {view.type === 'reward' && activeMission && (
-        <RewardView mission={activeMission} stars={view.stars} progress={progress} onMap={returnToMap} onNext={startMission} onReset={openResetDialog} onGame={(type) => setView({ type, missionId: activeMission.id })} />
-      )}
-      {view.type === 'story-intro' && (
-        <StoryOpeningView
-          name={account.activeProfile?.displayName ?? null}
-          onBack={returnToMap}
-          onGo={() => setView({ type: 'story', missionId: view.missionId, prologue: true })}
-        />
+        <RewardView mission={activeMission} stars={view.stars} progress={progress} onMap={returnToMap} onNext={startMission} onReset={openResetDialog} onGame={(type) => setView({ type, missionId: activeMission.id })} onSuspects={(board) => setView({ type: 'suspects', board, from: 'reward' })} />
       )}
       {view.type === 'story' && (() => {
         const mission = MISSIONS.find((item) => item.id === view.missionId);
@@ -1704,15 +1733,25 @@ function Game() {
         const saved = fun.story?.choices?.[String(chapter.unit)];
         return <StoryComicView key={`${mission.id}-${view.replay ? 'replay' : 'new'}`} title={`Chapter ${chapter.unit} · ${chapter.title}`} kicker={`Lesson ${index + 1} of ${unitMissions.length} · ${mission.title}`}
           panels={lessonComic(chapter, mission, index)} name={name} choice={index === 0 ? chapter.choice : undefined} picked={view.replay ? saved : undefined}
+          choiceNotes={index === 0 ? choiceNotes(chapter) : undefined}
+          note={index === 0 ? detectiveNote(chapter.unit, fun.story?.guesses ?? {}) : undefined}
           goLabel={view.replay === 'storybook' ? 'Back to the Storybook' : view.replay ? 'Back to map' : index === 0 ? 'Let’s go!' : 'Let’s help!'}
           onGo={(choice) => {
             if (choice !== undefined) setFun((current) => recordStory(current, { unit: chapter.unit, choice }));
             if (view.replay === 'storybook') toStorybook(); else if (view.replay) returnToMap(); else startMission(mission.id, undefined, true);
           }} onBack={view.replay === 'storybook' ? toStorybook : returnToMap} />;
       })()}
+      {view.type === 'suspects' && (
+        <SuspectBoardView board={view.board} choices={fun.story?.choices ?? {}} saved={fun.story?.guesses?.[String(view.board)] as CharacterId | undefined}
+          name={account.activeProfile?.displayName ?? null} theme={storyTheme}
+          onGuess={(suspect) => setFun((current) => recordStory(current, { board: view.board, suspect }))}
+          onBack={view.from === 'storybook' ? () => setView({ type: 'storybook', tab: 'clues' }) : returnToMap} />
+      )}
       {view.type === 'storybook' && (
         <StorybookView tab={view.tab} focusUnit={view.unit} completedUnits={completedStoryUnits(progress)} prologueSeen={!!fun.story?.prologueSeen}
           name={account.activeProfile?.displayName ?? null} chapters={storybookChapters(progress)}
+          choices={fun.story?.choices ?? {}} guesses={fun.story?.guesses ?? {}}
+          onSuspects={(board) => setView({ type: 'suspects', board, from: 'storybook' })}
           onTab={(tab) => setView({ type: 'storybook', tab, unit: view.unit })} onBack={returnToMap}
           onPrologue={() => { if (MISSIONS[0]) setView({ type: 'story', missionId: MISSIONS[0].id, prologue: true, replay: 'storybook' }); }}
           onLesson={(missionId) => setView({ type: 'story', missionId, replay: 'storybook' })}

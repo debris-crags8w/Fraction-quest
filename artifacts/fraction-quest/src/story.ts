@@ -5,7 +5,7 @@
 
 export type CharacterId = 'chomp' | 'pip' | 'tilly' | 'bolt' | 'bea';
 export type Speaker = CharacterId | 'numi' | 'hoot';
-export type Panel = { speaker: Speaker; text: string };
+export type Panel = { speaker: Speaker; text: string; /** The face to draw (else worried when the line sounds like trouble). */ mood?: 'happy' | 'worried' };
 export type StoryChoice = { label: string; detail: string; reply: Panel };
 export type Chapter = {
   unit: number;
@@ -69,6 +69,7 @@ export const storyScript = (panels: Panel[], theme: PropTheme = 'everyday') =>
   panels.map((panel) => `${CHARACTERS[panel.speaker].name} says: ${withName(panel.text, null, theme)}`).join(' ');
 
 const say = (speaker: Speaker, text: string): Panel => ({ speaker, text });
+const happySay = (speaker: Speaker, text: string): Panel => ({ speaker, text, mood: 'happy' });
 const pick = (label: string, detail: string, speaker: Speaker, reply: string): StoryChoice => ({ label, detail, reply: say(speaker, reply) });
 
 /** The brief setup shown before the first comic, without revealing who cracked the stone. */
@@ -85,10 +86,10 @@ export const PROLOGUE: Panel[] = [
 
 /** The ending, after the last chapter: read it again from the Storybook's finale. */
 export const EPILOGUE: Panel[] = [
-  say('hoot', 'Festival night! All 15 pieces are back. Fifteen fifteenths make one whole, and the stone glows again!'),
-  say('bolt', 'Beep… I am sorry I cracked it. Thank you for helping me fix it.'),
-  say('chomp', 'Okay, okay. Bolt told the truth. That makes him brave.'),
-  say('numi', '{name}, you followed every clue. You are the Keeper of the Whole Stone!'),
+  happySay('hoot', 'Festival night! All 15 pieces are back. Fifteen fifteenths make one whole, and the stone glows again!'),
+  happySay('bolt', 'Beep… I am sorry I cracked it. Thank you for helping me fix it.'),
+  happySay('chomp', 'Okay, okay. Bolt told the truth. That makes him brave.'),
+  happySay('numi', '{name}, you followed every clue. You are the Keeper of the Whole Stone!'),
 ];
 
 /** A finished chapter's ending, to read again: the friend's thanks, the clue it added, and what happens next. */
@@ -534,4 +535,58 @@ export function stoneQuestion(found: number): { choices: string[]; correct: numb
   const choices = [...wrong];
   choices.splice(correct, 0, right);
   return { choices, correct };
+}
+
+/* ---------- the detective quest's words (also read aloud from the voice pack) ---------- */
+
+export type SuspectBoard = 1 | 2;
+/** Board 1 opens after chapter 4, board 2 after chapter 7. */
+export const BOARD_AFTER: Record<SuspectBoard, number> = { 1: 4, 2: 7 };
+export const SUSPECTS: Record<SuspectBoard, CharacterId[]> = { 1: ['chomp', 'pip', 'tilly'], 2: ['chomp', 'bolt', 'bea', 'pip', 'tilly'] };
+
+/** The chapter choice that looks for a clue (the second one, in chapters 1–7) gives a bonus clue: its reply. */
+export function bonusClue(chapter: Chapter): string | null {
+  const option = chapter.choice[1];
+  return /clue|search|who saw|hiding/i.test(option.detail) ? option.reply.text : null;
+}
+
+
+/** What Hoot says about a guess: kind, with a nudge back to the clues; never the final answer. */
+export function suspectReply(board: SuspectBoard, suspect: CharacterId): { good: boolean; text: string } {
+  if (board === 1) {
+    return suspect === 'chomp'
+      ? { good: true, text: 'Good detective work! The big footprints, the green tail and the pointy teeth all match Chomp. But Chomp says he didn’t do it… keep collecting clues.' }
+      : { good: false, text: `Hmm. ${CHARACTERS[suspect].name} was busy helping us. Look at your clues again: big footprints, a green tail, pointy teeth. Who has those?` };
+  }
+  if (suspect === 'bolt') return { good: true, text: 'Sharp thinking! The map leads to Bolt’s workshop, and his rocket boots are missing. Keep a close eye on Bolt.' };
+  if (suspect === 'chomp') return { good: true, text: 'Chomp hid the boots and drew the map… but why draw a map to Bolt’s workshop? Something doesn’t add up. Keep reading!' };
+  return { good: false, text: `Hmm. ${CHARACTERS[suspect].name} has been helping all along. Look at your clues: whose boots are missing, and where does the map lead?` };
+}
+
+
+/** What each chapter choice earns, shown with its reply. */
+export function choiceNotes(chapter: Chapter): [string, string] {
+  const thanks = `You earned ${CHARACTERS[chapter.character].name}’s thank-you sticker!`;
+  return [thanks, bonusClue(chapter) ? 'Bonus clue added to your notebook!' : thanks];
+}
+
+/** Story mode: the friend's ask at the top of a hands-on lesson. */
+export const HANDS_ON_ASKS: Record<string, string> = {
+  sort: 'Help me share it fairly. Every friend must get the same amount!',
+  'sort-cake': 'Help me share it fairly. Every friend must get the same amount!',
+  tile: 'How many pieces this size make the whole thing?',
+  match: 'Can different pieces make the same amount?',
+};
+
+/** When the truth comes out (chapters 8 and 11), the story remembers the child's suspect board guess. */
+export const DETECTIVE_NOTES = {
+  8: { chomp: 'Detective note: you suspected Chomp. The clues pointed at him… but he was protecting a friend!', bolt: 'Detective note: you suspected Bolt. You might be onto something!' },
+  11: { bolt: 'Detective note: you figured it out back in chapter 7. Great detective work, {name}!', other: 'Detective note: the clues were all there: the map, the missing boots and the sorry note.' },
+} as const;
+export function detectiveNote(unit: number, guesses: Record<string, string>): string | undefined {
+  const guess = guesses['2'] ?? guesses['1'];
+  if (!guess) return undefined;
+  if (unit === 8) return guess === 'chomp' ? DETECTIVE_NOTES[8].chomp : guess === 'bolt' ? DETECTIVE_NOTES[8].bolt : undefined;
+  if (unit === 11) return guess === 'bolt' ? DETECTIVE_NOTES[11].bolt : DETECTIVE_NOTES[11].other;
+  return undefined;
 }

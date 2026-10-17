@@ -14,7 +14,6 @@ type CheckState = 'idle' | 'right' | 'try-again';
 const svgPoints = (piece: Piece) =>
   piece.points.map(([x, y]) => `${x * 168},${y * 168}`).join(' ');
 
-const SHARE_NAMES = FRIENDS;
 
 const FIRST_FRACTION_TEXT = 'A fraction shows equal parts of one whole. First look at the whole. Then split it into equal pieces and share them fairly.';
 
@@ -41,8 +40,10 @@ function FirstFractionIntroduction() {
   );
 }
 
-function CutPicture({ cut, label, selected = [], groups, interactive = false, disabled = false, onToggle }: {
+function CutPicture({ cut, label, selected = [], groups, interactive = false, disabled = false, onToggle, names = FRIENDS }: {
   cut: AreaCut;
+  /** Who each share belongs to (sort rounds). */
+  names?: readonly string[];
   label: string;
   selected?: number[];
   /** Sort rounds: the share each piece is in (-1 = none), shown as a color. */
@@ -58,7 +59,7 @@ function CutPicture({ cut, label, selected = [], groups, interactive = false, di
       {pieces.map((piece, index) => {
         const group = groups?.[index] ?? -1;
         const pressed = groups ? group >= 0 : selected.includes(index);
-        const name = `${piece.shape === 'rect' ? 'rectangle' : piece.shape} piece ${index + 1}${groups ? (group >= 0 ? `, ${SHARE_NAMES[group]}’s` : ', nobody’s yet') : pressed ? ', selected' : ''}`;
+        const name = `${piece.shape === 'rect' ? 'rectangle' : piece.shape} piece ${index + 1}${groups ? (group >= 0 ? `, ${names[group]}’s` : ', nobody’s yet') : pressed ? ', selected' : ''}`;
         const look = groups ? (group >= 0 ? ` share-${group}` : ' unassigned') : pressed ? ' selected' : '';
         return interactive ? (
           <polygon
@@ -115,7 +116,7 @@ function TileFill({ cut, selection, solved }: { cut: AreaCut; selection: number[
 
 /** Hands-on cake rounds inside a lesson, between the worked example and the questions. Each round must fit
     before the child moves on; the feedback says why a try doesn't fit. */
-export default function PartFinder({ rounds, lessonLabel, activityTitle, showFirstIntroduction = false, intro, onExit, onDone, onSkip }: {
+export default function PartFinder({ rounds, lessonLabel, activityTitle, showFirstIntroduction = false, intro, onExit, onDone, onSkip, friends = FRIENDS, storyLine }: {
   rounds: PartFinderRound[];
   /** "Lesson 01 · Same whole, fair pieces": shown in the bar so the child knows this is part of the lesson. */
   lessonLabel: string;
@@ -129,6 +130,10 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
   onDone: () => void;
   /** Replaying a finished lesson: the cake rounds can be skipped. */
   onSkip?: () => void;
+  /** Story mode: the friends sharing the cake are the story's cast. */
+  friends?: readonly string[];
+  /** Story mode: the chapter friend's line above the task (asks, then reacts to each check). */
+  storyLine?: (result: 'correct' | 'retry' | null) => ReactNode;
 }) {
   // During a season the shared treat follows it (a pumpkin cake at Halloween); pieces and answers stay the same.
   const words = useSeasonalWords();
@@ -181,6 +186,11 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
     setTileCount('');
   };
 
+  const help = <>
+    {showFirstIntroduction && <FirstFractionIntroduction />}
+    {intro && <section className="fq-pf-lesson-example" data-testid="part-finder-lesson-example">{intro}</section>}
+  </>;
+
   const advance = () => {
     if (lastRound) { onDone(); return; }
     setRoundIndex((index) => index + 1);
@@ -197,9 +207,9 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
         <TaskBar onBack={onExit} backLabel="Map" testId="button-part-finder-exit" title={activityTitle} backAriaLabel={`Back to the map (leaves ${lessonLabel})`} step={roundIndex + 1} total={rounds.length} sequenceLabel="Round"
           actions={onSkip && <button type="button" className="fq-hint-button" onClick={onSkip} data-testid="button-hands-on-skip">Skip</button>} />
 
-        {showFirstIntroduction && <FirstFractionIntroduction />}
+        {!storyLine && help}
 
-        {intro && <section className="fq-pf-lesson-example" data-testid="part-finder-lesson-example">{intro}</section>}
+        {storyLine?.(checked === 'idle' ? null : correct ? 'correct' : 'retry')}
 
         <section className="fq-pf-card" aria-labelledby="pf-title">
           <div className="fq-pf-heading">
@@ -224,6 +234,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
                 label={`${round.title}: choose pieces`}
                 selected={selected}
                 groups={sorting ? assignment : undefined}
+                names={friends}
                 interactive
                 disabled={correct}
                 onToggle={togglePiece}
@@ -236,7 +247,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
             <div className="fq-pf-friends">
               <p className="fq-pf-friends-label" id="pf-friends-label">Who gets the next pieces you tap?</p>
               <div className="fq-pf-shares" role="radiogroup" aria-labelledby="pf-friends-label">
-                {SHARE_NAMES.slice(0, round.shares).map((name, share) => {
+                {friends.slice(0, round.shares).map((name, share) => {
                   const count = assignment.filter((owner) => owner === share).length;
                   return (
                     <button key={name} type="button" role="radio" aria-checked={activeShare === share} disabled={correct}
@@ -283,10 +294,18 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
           {checked !== 'idle' && (
             <div className={`fq-pf-feedback ${correct ? 'right' : 'retry'}`} role="status" aria-live="polite" data-testid="part-finder-feedback">
               <strong>{correct ? 'That fits!' : 'Almost there.'}</strong>
-              <span>{words(partFinderFeedback(round, answerPieces, tileAnswer))}</span>
+              <span>{words(partFinderFeedback(round, answerPieces, tileAnswer, friends))}</span>
             </div>
           )}
         </section>
+
+        {/* Story mode: try it first; the introduction and worked example sit below as help. */}
+        {storyLine && (showFirstIntroduction || intro) && (
+          <section className="fq-example-help" aria-labelledby="pf-help-title" data-testid="example-help">
+            <h2 id="pf-help-title">Need help? See how it works</h2>
+            {help}
+          </section>
+        )}
       </div>
     </main>
   );

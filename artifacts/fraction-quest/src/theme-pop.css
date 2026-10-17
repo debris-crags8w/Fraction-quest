@@ -2367,3 +2367,6 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 @keyframes fq-hint-flash { 0% { box-shadow: 0 0 0 0 rgb(255 200 0 / .7); } 60% { box-shadow: 0 0 0 10px rgb(255 200 0 / 0); } 100% { box-shadow: none; } }
 @media (prefers-reduced-motion: reduce) { .fq-hint-flash { animation: none; } }
 :root.fq-reduced-motion .fq-hint-flash { animation: none; }
+.fq-login-play { display: grid; gap: 6px; justify-items: stretch; text-align: center; color: hsl(var(--muted-foreground)); font-weight: 700; }
+.fq-login-play-button { justify-content: center; min-height: 60px; font-size: 1.2rem; }
+.fq-login-play small { font-size: .82rem; }

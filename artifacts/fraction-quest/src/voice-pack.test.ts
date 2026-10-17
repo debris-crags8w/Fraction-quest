@@ -108,3 +108,12 @@ test('a story is read aloud as "friend", never with the child\'s name, so it pla
   const packed = new Set(voiceSentences().map((entry) => entry.text));
   for (const sentence of sentences(spokenText(script))) assert.ok(packed.has(cleanSentence(sentence)), `in the pack: ${sentence}`);
 });
+
+test('the detective quest lines are in the voice pack too', async () => {
+  const { voiceSentences } = await import('../scripts/voice-sentences');
+  const { suspectReply } = await import('./story');
+  const { sentences, spokenText } = await import('./lib/voice');
+  const packed = new Set(voiceSentences().map((entry) => entry.text));
+  for (const sentence of sentences(spokenText(suspectReply(2, 'bolt').text))) assert.ok(packed.has(cleanSentence(sentence)), sentence);
+  assert.ok(packed.has('Detective note: you figured it out back in chapter 7.'));
+});
