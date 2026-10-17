@@ -133,7 +133,7 @@ export default function FrogHop() {
       ))}
     </div>
 
-    {message && <p className={`cg-feedback ${landed ? 'success' : caught || splash ? 'cg-feedback-retry' : ''}`} role="status" aria-live="polite" data-testid="status-frog-feedback">{message}</p>}
+    {message && <p className={`cg-feedback ${landed ? 'success' : caught || splash ? 'retry' : ''}`} role="status" aria-live="polite" data-testid="status-frog-feedback">{message}</p>}
     {landed && <p className="fh-flies" aria-label={`${fliesFor(hops, par)} flies`} data-testid="status-frog-round-flies">{'🪰'.repeat(fliesFor(hops, par))}</p>}
 
     <div className="cg-actions">

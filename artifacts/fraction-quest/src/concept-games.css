@@ -159,7 +159,6 @@ button.cg-cell { cursor:pointer; }
 .fh-card-bar .cg-cell { height:18px; border:0; border-radius:0; box-shadow:none; background:hsl(var(--card)); }
 .fh-card-bar .cg-cell.is-shaded { background:#FFC800; }
 .fh-flies { margin:8px 0 0; font-size:1.8rem; letter-spacing:4px; }
-.cg-feedback-retry { color:var(--fq-alert,#D90429); background:#ffe9ec; }
 @keyframes fh-hop { 0% { transform:translateY(0) scale(1,1); } 15% { transform:translateY(0) scale(1.1,.85); } 50% { transform:translateY(-34px) scale(.95,1.08); } 100% { transform:translateY(0) scale(1,1); } }
 @keyframes fh-wobble { 0%,100% { transform:rotate(0); } 50% { transform:rotate(-12deg); } }
 @keyframes fh-glow { 0%,100% { box-shadow:0 0 0 4px rgb(255 255 255 / .6), 0 0 10px 2px #b6ff8a; } 50% { box-shadow:0 0 0 4px rgb(255 255 255 / .9), 0 0 18px 7px #b6ff8a; } }
