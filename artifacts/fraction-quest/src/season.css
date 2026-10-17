@@ -185,3 +185,46 @@
   .fq-season-banner .fq-mascot { width: 76px; height: 76px; }
   .fq-season-banner h2 { font-size: 1.25rem; }
 }
+
+/* ---------- the models dress up for the season ----------
+   Screens only (print stays plain) and never under high contrast. Straight dividers, equal parts, labels and the
+   "1 whole" bracket are untouched; each denominator keeps its own color, picked from the season's palette. */
+@media screen {
+  :root[data-fq-season="halloween"]:not(.fq-high-contrast) {
+    --fq-denom-1: #8E5CD9; --fq-denom-2: #B23A48; --fq-denom-3: #4F9A2A; --fq-denom-4: #D2600F; --fq-denom-5: #B84DB0;
+    --fq-denom-6: #8E5CD9; --fq-denom-7: #C74B4B; --fq-denom-8: #2F9C95; --fq-denom-9: #4F7DD6; --fq-denom-10: #A87400;
+    --fq-denom-11: #A0522D; --fq-denom-12: #7A4A2A; --fq-denom-100: #A87400;
+    --fq-season-empty: #FFF4E6; --fq-season-shade: #D2600F; --fq-season-rim: #B5651D;
+  }
+  :root[data-fq-season="christmas"]:not(.fq-high-contrast) {
+    --fq-denom-1: #7C4DFF; --fq-denom-2: #B8860B; --fq-denom-3: #3A6FC4; --fq-denom-4: #D23B3B; --fq-denom-5: #9B2D5B;
+    --fq-denom-6: #2E8B57; --fq-denom-7: #B03A2E; --fq-denom-8: #B9773A; --fq-denom-9: #3A7CA5; --fq-denom-10: #A87400;
+    --fq-denom-11: #6B8E23; --fq-denom-12: #4F7F32; --fq-denom-100: #A87400;
+    --fq-season-empty: #FFFFFF; --fq-season-shade: #D23B3B; --fq-season-rim: #8B5A2B;
+  }
+  :root[data-fq-season]:not(.fq-high-contrast) :is(.fq-bar span.empty, .fq-svg-bar rect.empty, .fq-svg-area polygon.empty) { background: var(--fq-season-empty); fill: var(--fq-season-empty); }
+  :root[data-fq-season]:not(.fq-high-contrast) :is(.fq-svg-area polygon.shaded, .fq-svg-set .dot.on) { fill: var(--fq-season-shade); }
+  :root[data-fq-season]:not(.fq-high-contrast) .fq-counter.selected { background: var(--fq-season-shade); }
+  /* Circles become a pumpkin pie with a crust, or a gingerbread cookie with a baked edge. */
+  :root[data-fq-season]:not(.fq-high-contrast) .fq-svg-area.is-circle polygon.frame { stroke: var(--fq-season-rim); stroke-width: 6; }
+  :root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-svg-area.is-circle polygon.shaded { fill: #A8682E; }
+  :root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-svg-area.is-circle polygon.empty { fill: #FFF3E4; }
+  /* The Make fair shares cake takes the season's flavor; the friends' colors stay the same. */
+  :root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-pf-piece.unassigned { fill: #FCE8D0; }
+  :root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-pf-piece.unassigned { fill: #F3E1CC; }
+  /* Counters become wrapped candies, or ornaments with a gold cap. */
+  :root[data-fq-season]:not(.fq-high-contrast) .fq-counter { position: relative; }
+  :root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-counter-set { column-gap: 16px; }
+  :root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-counter::before,
+  :root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-counter::after {
+    content: ""; position: absolute; top: 50%; width: 0; height: 0; margin-top: -5px;
+    border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+  }
+  :root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-counter::before { right: 100%; border-right: 6px solid currentColor; }
+  :root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-counter::after { left: 100%; border-left: 6px solid currentColor; }
+  :root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-counter { color: #C9B9A6; }
+  :root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-counter.selected { color: #B85F12; }
+  :root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-counter::before {
+    content: ""; position: absolute; bottom: 100%; left: 50%; width: 8px; height: 5px; margin-left: -4px; border-radius: 2px 2px 0 0; background: #C9A227;
+  }
+}

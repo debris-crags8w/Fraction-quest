@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
-import { useOptionalFun } from './fun-ui';
+import { useOptionalFun, useSeasonalWords } from './fun-ui';
 import { setLearningVoicePreference } from './lib/fun';
 import { KokoroDiagnostic, showVoiceSelfTest } from './KokoroDiagnostic';
 import { MathText } from './MathText';
@@ -569,6 +569,8 @@ export function LearningListenButton({
   /** Prepare fixed lesson or story copy as its Listen control approaches the viewport. */
   prefetch?: boolean;
 }) {
+  const words = useSeasonalWords();
+  text = words(text);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   useNaturalVoicePrefetch(buttonRef, text, prefetch);
   const [speaking, setSpeaking] = useState(false);

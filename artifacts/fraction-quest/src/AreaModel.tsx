@@ -11,7 +11,7 @@ const outline = (figure: AreaFigure) => pts(areaOutline(figure.cut));
 export function AreaSvg({ figure, label }: { figure: AreaFigure; label?: string }) {
   const shaded = figure.shaded ?? [];
   return (
-    <svg className="fq-svg-area" viewBox={`0 0 ${SIZE + PAD * 2} ${SIZE + PAD * 2}`} role="img" aria-label={label ?? areaLabel(figure.cut, shaded)}>
+    <svg className={`fq-svg-area ${figure.cut.startsWith('circle') ? 'is-circle' : ''}`} viewBox={`0 0 ${SIZE + PAD * 2} ${SIZE + PAD * 2}`} role="img" aria-label={label ?? areaLabel(figure.cut, shaded)}>
       {AREA_CUTS[figure.cut].map((piece, i) => <polygon key={i} className={shaded.includes(i) ? 'shaded' : 'empty'} points={pts(piece.points)} />)}
        <polygon className="frame" points={outline(figure)} fill="none" />
     </svg>
@@ -52,7 +52,7 @@ export function AreaShade({ figure, task, disabled, statusId, onMatchChange, che
   return (
     <div className="fq-ll-copy fq-area-shade" data-testid="area-shade">
       <p className="fq-ll-copy-instruction">Tap pieces to color them. Tap again to clear.</p>
-      <svg className="fq-svg-area interactive" viewBox={`0 0 ${SIZE + PAD * 2} ${SIZE + PAD * 2}`} aria-label={areaLabel(figure.cut)}>
+      <svg className={`fq-svg-area interactive ${figure.cut.startsWith('circle') ? 'is-circle' : ''}`} viewBox={`0 0 ${SIZE + PAD * 2} ${SIZE + PAD * 2}`} aria-label={areaLabel(figure.cut)}>
         {AREA_CUTS[figure.cut].map((piece, i) => (
           <polygon
             key={i} points={pts(piece.points)} role="button" tabIndex={disabled ? -1 : 0}

@@ -7,6 +7,7 @@ import { DAILY_GOAL, type FunState } from './lib/fun';
 import { MODEL_NAMES, ModelTag, WholeBracket } from './models';
 import { LinkedFraction, PieFraction, TickLabel } from './fraction-ui';
 import { activeSeason, nextCostume, seasonLessonCount, seasonLine, unlockedCostumes, type Season } from './seasons';
+import { seasonalWords } from './seasonal-words';
 
 /* ---------- shared fun state ---------- */
 
@@ -28,8 +29,9 @@ const DENOM_COLORS: Record<number, string> = {
   1: '#7C4DFF', 2: '#FF4B91', 3: '#FF9600', 4: '#58CC02', 5: '#1CB0F6', 6: '#9B5CFF',
   8: '#00B8A9', 10: '#FFC800', 12: '#FF6B4A',
 };
+/** A denominator's color. A season can repaint it (season.css sets --fq-denom-N); each denominator keeps its own. */
 export function denomColor(denominator: number): string {
-  return DENOM_COLORS[denominator] ?? ['#1CB0F6', '#FF4B91', '#58CC02', '#FF9600'][denominator % 4];
+  return `var(--fq-denom-${denominator}, ${DENOM_COLORS[denominator] ?? ['#1CB0F6', '#FF4B91', '#58CC02', '#FF9600'][denominator % 4]})`;
 }
 
 // Deep enough for white text at 4.5:1 or better (unit headers and map nodes).
@@ -43,6 +45,12 @@ export function useSeason(): { season: Season | null; costumes: string[] } {
   const fun = useOptionalFun()?.fun;
   const season = activeSeason(fun);
   return { season, costumes: season ? unlockedCostumes(season, seasonLessonCount(fun, season)).map((costume) => costume.id) : [] };
+}
+
+/** Lesson text in the season's words (treats only); unchanged outside a season. */
+export function useSeasonalWords(): (text: string) => string {
+  const seasonId = useSeason().season?.id;
+  return (text: string) => seasonalWords(text, seasonId);
 }
 
 /** A candy cane: what points look like at Christmas. */
