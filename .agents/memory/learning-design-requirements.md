@@ -5,6 +5,11 @@ description: User requirements for fraction interactions and worksheet-based pro
 
 Fraction Quest must emphasize interactions: “this is fractions!” Each topic must include a worksheet with 10–15 problems that students complete by entering answers before unlocking the next level.
 
+**Lesson worksheet rule (user, 2026-10-16):** the lesson worksheet is printed and handed in, so a lesson cannot be marked
+complete until every question on it is submitted (answered right in the app or entered from paper with Check my paper).
+Only the lesson worksheet is required; the other worksheets (practice sheets, new-numbers sheets, redo) stay optional.
+This reverses 828ba0d ("only question 1 required").
+
 **Why:** The user explicitly requested interactive learning and entered-answer worksheets as prerequisites for progression.
 
 **How to apply:** Keep actual model manipulation central to the learning design. Do not replace worksheets with multiple-choice quizzes, optional practice, or static pictures; worksheet completion must be part of the level-unlock rule.
@@ -38,6 +43,12 @@ Each lesson needs a brief, plain-language explanation of its main idea and why t
 **Why:** The user asked for simple, clear explanations in every lesson and specifically emphasized the relationship between a larger denominator and smaller pieces.
 
 **How to apply:** Keep the explanation visible before practice and consistent in worked examples, hints, retry feedback, and read-aloud text. Do not rely on the picture alone to teach the rule.
+
+Game wrong answers should receive the same supportive, specific feedback as lesson wrong answers.
+
+**Why:** The user asked for wrong answers in games to be treated like wrong answers in lessons.
+
+**How to apply:** Pair a kind opener with an explanation of the likely mistake and a useful next step, consistent with lesson retry feedback.
 
 Solution keys belong in the grown-up area, not student print menus or practice sheets. Keep “My answers” available to students because it contains their own work. Prefer a gentle feminine-sounding speech voice when the device offers one, while keeping explanations matched to the requested language.
 

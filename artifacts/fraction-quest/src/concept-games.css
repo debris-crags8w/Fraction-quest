@@ -62,6 +62,7 @@ button.cg-cell { cursor:pointer; }
 .cg-text-button { display:inline-flex; align-items:center; gap:7px; min-height:42px; padding:0 8px; border:0; color:var(--cg-muted); background:transparent; cursor:pointer; font-weight:850; }
 .cg-feedback { margin:15px 0 0; padding:13px 15px; border-radius:13px; color:#694700; background:#fff3ce; line-height:1.45; font-weight:750; }
 .cg-feedback.success { color:var(--fq-good-fg,#2f7300); background:var(--fq-good-bg,#d7ffb8); }
+.cg-feedback.retry { color:var(--fq-bad-fg,#8c2d00); background:var(--fq-bad-bg,#ffe5cc); }
 .cg-memory-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:23px 0 4px; }
 .cg-memory-card { display:grid; place-items:center; align-content:center; gap:12px; min-height:130px; padding:13px; border:2px solid var(--cg-edge); border-bottom-width:5px; border-radius:17px; color:var(--cg-ink); background:hsl(var(--background)); cursor:pointer; }
 .cg-memory-card.revealed { background:hsl(var(--muted)); }

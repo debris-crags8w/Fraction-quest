@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, getDueSkillReviewQuestions, MISSIONS } from '../src/game';
+import { compareFractions, WAR_ROUNDS, warHint } from '../src/concept-games';
 import { getBuildChecks, getReviewCheck, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
 import { AREA_CUTS, areaTaskDone, pieceArea } from '../src/area-shapes';
@@ -783,7 +784,7 @@ async function completePartFinderLesson(page: import('@playwright/test').Page, m
 async function completeFractionOrderLesson(page: import('@playwright/test').Page) {
   const firstRound = FRACTION_ORDER_ROUNDS[0];
   await page.getByTestId('button-sort-check').click();
-  await expect(page.getByTestId('fraction-sort-feedback')).toContainText('Not quite yet.');
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(/Almost!|Good try!|Let’s look again\.|Not quite\.|So close!/);
   await expect(page.getByTestId('fraction-sort-feedback')).toContainText('1/2');
   await page.getByTestId('button-sort-8-10-down').click();
   await page.getByTestId('button-sort-8-10-down').click();
@@ -1250,9 +1251,8 @@ for (const missionId of unitRepresentativeIds) {
     const firstWorksheetRow = page.getByTestId(`row-worksheet-${worksheet[0].id}`);
     await expect(firstWorksheetRow.locator('.fq-ll-row-prompt-header').getByTestId('button-listen-learning-text')).toHaveCount(1);
     await expect(page.getByTestId(`worksheet-progress-${worksheet[0].id}`)).toHaveAttribute('aria-current', 'step');
-    await expect(page.getByTestId(`row-worksheet-${worksheet[0].id}`)).toContainText('Question 1 of 12 · Required');
-    await expect(page.getByTestId(`row-worksheet-${worksheet[1].id}`)).toContainText('Question 2 of 12 · Optional practice');
-    await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuetext', /Required question not complete · Optional practice 0 of 11 complete/);
+    await expect(page.getByTestId(`row-worksheet-${worksheet[0].id}`)).toContainText('Question 1 of 12');
+    await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuetext', /0 of 12 worksheet questions complete/);
     if (mission.id === 'equal-parts') {
       const problem = worksheet.find((row) => !row.modelRequired && !row.areaTask)!;
       const wrongAnswer = wrongTileAnswer(problem);
@@ -1273,21 +1273,21 @@ for (const missionId of unitRepresentativeIds) {
       await expect(page.getByTestId(`worksheet-progress-${problem.id}`)).toHaveClass(/retry/);
     }
 
-    await buildWorksheetModel(page, worksheet[0]);
-    await enterWorksheetAnswer(page, worksheet[0], worksheet[0].answer);
-    await expect(page.getByTestId(`status-worksheet-${worksheet[0].id}`)).toContainText('Correct!');
-    await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuetext', /Required question complete · Optional practice 0 of 11 complete/);
+    // The whole worksheet is handed in: the lesson cannot finish until every question is right.
+    for (const [index, problem] of worksheet.entries()) {
+      await buildWorksheetModel(page, problem);
+      await enterWorksheetAnswer(page, problem, problem.answer);
+      await expect(page.getByTestId(`status-worksheet-${problem.id}`)).toContainText('Correct!');
+      if (index < worksheet.length - 1) {
+        await expect(page.getByTestId('button-lab-finish')).toBeDisabled();
+        await expect(page.getByTestId('callout-lab-finish')).toHaveCount(0);
+      }
+    }
+    await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuenow', '12');
+    await expect(problemProgress.locator(':scope > li.complete')).toHaveCount(12);
     await expect(page.getByTestId('text-next-level')).toHaveText('All done! You can finish this lesson.');
     await expect(page.getByTestId('button-lab-finish')).toBeEnabled();
     await expect(page.getByTestId('callout-lab-finish')).toBeVisible();
-
-    // The second correct answer is practice, not another completion gate.
-    if (mission.id === 'equal-parts') {
-      await buildWorksheetModel(page, worksheet[1]);
-      await enterWorksheetAnswer(page, worksheet[1], worksheet[1].answer);
-      await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuenow', '1');
-      await expect(page.getByTestId('button-lab-finish')).toBeEnabled();
-    }
 
     await page.getByTestId('button-lab-finish').click();
     const breakOverlay = page.getByTestId('brain-break-overlay');
@@ -1995,4 +1995,31 @@ test('Frog Hop: a splash hops back, the best route lands with 3 flies, and Next 
     await page.getByTestId('button-frog-next').click();
   }
   await expect(page.getByTestId('status-frog-done')).toContainText('You caught 18 of 18 flies');
+});
+
+test('Fraction War gives a clear retry hint after a wrong comparison', async ({ page }) => {
+  await openAsGuest(page);
+  await openMenuItem(page, 'button-open-concept-games');
+  await page.getByTestId('link-game-war').click();
+
+  const [left, right] = WAR_ROUNDS[0];
+  for (const [side, fraction] of [left, right].entries()) {
+    await page.getByTestId(`select-war-denominator-${side}`).selectOption(String(fraction.d));
+    const bar = side === 0 ? 'whole-a' : 'whole-b';
+    for (let part = 1; part <= fraction.n; part += 1) {
+      await page.getByTestId(`${bar}-part-${part}`).click();
+    }
+  }
+
+  const comparison = compareFractions(left, right);
+  const incorrectChoice = comparison > 0 ? 'right' : comparison < 0 ? 'left' : 'left';
+  await page.getByTestId(`button-war-choice-${incorrectChoice}`).click();
+  await page.getByTestId('button-war-check').click();
+
+  const feedback = page.getByTestId('status-war-feedback');
+  await expect(feedback).toBeVisible();
+  await expect(feedback).toHaveAttribute('role', 'status');
+  await expect(feedback).toHaveClass(/retry/);
+  await expect(feedback).toContainText(warHint(left, right));
+  await expect(page.getByTestId('status-war-score')).toContainText('0');
 });

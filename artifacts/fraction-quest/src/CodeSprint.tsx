@@ -4,7 +4,7 @@ import { primeReadAloud, useReadAloud } from './LearningText';
 import type { Mission } from './game';
 import { MathText } from './MathText';
 import { Confetti, Mascot, useFun } from './fun-ui';
-import { playCue } from './lib/fun';
+import { playCue, playHaptic } from './lib/fun';
 import { describe, makeBug, matchesTarget, readChoices, runProgram, solution, sprintTargets, toText, type Block, type RunResult, type Target } from './code-quest';
 import { Program, World } from './CodeQuest';
 
@@ -80,6 +80,7 @@ export default function CodeSprint({ mission, best, onExit, onFinish }: { missio
     const seconds = Math.round(((Date.now() - startedAt) / 1000 + penalty) * 10) / 10;
     setFinalTime(seconds); setWon(playerWon); setPhase('done');
     playCue(playerWon ? 'complete' : 'retry', fun.sound);
+    playHaptic(playerWon ? 'correct' : 'retry');
     if (playerWon) onFinish(seconds);
   };
   const next = () => {
@@ -87,7 +88,13 @@ export default function CodeSprint({ mission, best, onExit, onFinish }: { missio
     setAt(at + 1); setProgram(rounds[at + 1].start); setResult(null); setFrame(-1); setMessage(null); setPickedWrong(null); setSolved(false);
     window.scrollTo(0, 0);
   };
-  const miss = (text: string) => { setPenalty((p) => p + MISS_PENALTY); setMisses((m) => m + 1); setMessage(text); playCue('retry', fun.sound); };
+  const miss = (text: string) => {
+    setPenalty((p) => p + MISS_PENALTY);
+    setMisses((m) => m + 1);
+    setMessage(text);
+    playCue('retry', fun.sound);
+    playHaptic('retry');
+  };
 
   const run = () => {
     if (timer.current || solved) return;
@@ -97,7 +104,7 @@ export default function CodeSprint({ mission, best, onExit, onFinish }: { missio
     let k = 0;
     const done = () => {
       timer.current = null;
-      if (matchesTarget(r, round.target)) { playCue('correct', fun.sound); setMessage('It works!'); setSolved(true); }
+      if (matchesTarget(r, round.target)) { playCue('correct', fun.sound); playHaptic('correct'); setMessage('It works!'); setSolved(true); }
       else miss(`${r.error ?? describe(r)} +${MISS_PENALTY} s. Fix it and run again.`);
     };
     if (!total) { done(); return; }
@@ -109,7 +116,7 @@ export default function CodeSprint({ mission, best, onExit, onFinish }: { missio
   };
   const choose = (i: number) => {
     if (solved) return;
-    if (i === 0) { playCue('correct', fun.sound); setMessage('Yes! That program works.'); setSolved(true); return; }
+    if (i === 0) { playCue('correct', fun.sound); playHaptic('correct'); setMessage('Yes! That program works.'); setSolved(true); return; }
     setPickedWrong(i); miss(`That one makes ${describe(runProgram(round.choices![i], round.target)).replace(/^It /, 'the robot ').replace(/\.$/, '')}. +${MISS_PENALTY} s.`);
   };
 

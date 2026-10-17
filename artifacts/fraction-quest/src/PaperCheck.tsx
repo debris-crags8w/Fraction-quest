@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Check, ClipboardCheck, RotateCcw, Trophy, X } fr
 import { CHALLENGES, challengeMaxPoints, challengeTrophy } from './challenges';
 import { getMission, type Progress } from './game';
 import { answerMatches, getWorksheet } from './learning-content';
-import { checkLessonWorksheet, editWorksheet, getLearningRecord, optionalWorksheetCount, requiredWorksheetDone, updateLearning, worksheetProblemProgress, type LearningRecord } from './learning';
+import { checkLessonWorksheet, editWorksheet, getLearningRecord, requiredWorksheetDone, updateLearning, worksheetCount, worksheetProblemProgress, type LearningRecord } from './learning';
 import { Row } from './LearningLab';
 import { lessonCode, PrintMenu } from './Printables';
 import { Mascot } from './fun-ui';
@@ -99,8 +99,8 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
   };
 
   const sheet = getWorksheet(missionId);
+  const sheetDone = worksheetCount(rec, missionId);
   const requiredDone = requiredWorksheetDone(rec, missionId);
-  const optionalDone = optionalWorksheetCount(rec, missionId);
   const worksheetProgress = worksheetProblemProgress(rec, sheet);
   const checkAll = () => {
     let r = cur();
@@ -158,15 +158,15 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
       <section className="fq-ll-sheet" aria-labelledby="paper-ws">
         <div className="fq-ll-sheet-head">
           <h3 id="paper-ws">Worksheet</h3>
-          <p className="fq-ll-note">Question 1 is required to finish the lesson. Questions 2–{sheet.length} are optional practice and do not block completion. Enter what you wrote with the tiles, then press Check.</p>
-          <div className="fq-ll-meter" role="progressbar" aria-valuemin={0} aria-valuemax={sheet.length - 1} aria-valuenow={optionalDone} aria-valuetext={`Required question ${requiredDone ? 'complete' : 'not complete'} · Optional practice ${optionalDone} of ${sheet.length - 1} complete`} aria-label="Optional worksheet practice completed">
-            <b style={{ width: `${((sheet.length - 1) ? optionalDone / (sheet.length - 1) : 1) * 100}%` }} /><span>Required Q1: {requiredDone ? 'done' : 'to do'} · Optional practice: {optionalDone} of {sheet.length - 1}</span>
+          <p className="fq-ll-note">All {sheet.length} questions are needed to finish the lesson. Enter what you wrote with the tiles, then press Check.</p>
+          <div className="fq-ll-meter" role="progressbar" aria-valuemin={0} aria-valuemax={sheet.length} aria-valuenow={sheetDone} aria-valuetext={`${sheetDone} of ${sheet.length} worksheet questions complete${requiredDone ? '. The worksheet is done.' : ''}`} aria-label="Worksheet questions completed">
+            <b style={{ width: `${sheet.length ? (sheetDone / sheet.length) * 100 : 100}%` }} /><span>Worksheet: {sheetDone} of {sheet.length}{requiredDone ? ' · Done!' : ''}</span>
           </div>
         </div>
         <ol className="fq-ll-rows">
           {sheet.map((p, index) => (
             <Row key={p.id} p={p} rec={rec} numberLabel={String(index + 1)}
-              sequenceLabel={`Question ${index + 1} of ${sheet.length} · ${index === 0 ? 'Required' : 'Optional practice'} · ${worksheetProgress[index].status === 'complete' ? 'Complete' : worksheetProgress[index].status === 'retry' ? 'Needs another try' : worksheetProgress[index].status === 'current' ? 'Up next' : 'Not started'}`}
+              sequenceLabel={`Question ${index + 1} of ${sheet.length} · ${worksheetProgress[index].status === 'complete' ? 'Complete' : worksheetProgress[index].status === 'retry' ? 'Needs another try' : worksheetProgress[index].status === 'current' ? 'Up next' : 'Not started'}`}
               onEdit={(v) => save(editWorksheet(cur(), p.id, v))}
               onCheck={() => save(checkLessonWorksheet(cur(), p, missionId))}
               onSuccess={() => onWorksheetCorrect?.(missionId, p.id)}
