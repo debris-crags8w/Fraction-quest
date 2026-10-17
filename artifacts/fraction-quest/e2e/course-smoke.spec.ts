@@ -1,11 +1,14 @@
 import { expect, test } from '@playwright/test';
+import { CHALLENGES } from '../src/challenges';
 import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, getDueSkillReviewQuestions, MISSIONS } from '../src/game';
 import { compareFractions, WAR_ROUNDS, warHint } from '../src/concept-games';
+import { getCodeLevels } from '../src/code-quest';
 import { getBuildChecks, getReviewCheck, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
 import { AREA_CUTS, areaTaskDone, pieceArea } from '../src/area-shapes';
-import { getExtraPractice, hasGenerator } from '../src/practice-bank';
+import { generateQuestions, getExtraPractice, hasGenerator } from '../src/practice-bank';
 import { isPartFinderAnswer, PART_FINDER_LESSONS, partFinderRoundsFor, type PartFinderRound } from '../src/part-finder';
+import { makeSprint } from '../src/CodeSprint';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
 
@@ -841,6 +844,31 @@ function masteredRecord(missionId: string) {
     { draft: problem.answer, checkedValue: problem.answer, attempts: 1, supported: false },
   ]));
   return { practiceDone: true, checks, worksheet, helpUses: 0, misconceptions: {} };
+}
+
+async function setNumberSlot(page: import('@playwright/test').Page, label: string, value: number) {
+  const editor = page.locator('.fq-code-editor');
+  const output = editor.getByTestId(`code-input-${label.replace(/\W+/g, '-')}`);
+  let current = Number(await output.textContent()) || 0;
+  while (current < value) {
+    await editor.getByRole('button', { name: `More: ${label}` }).click();
+    current += 1;
+  }
+  while (current > value) {
+    await editor.getByRole('button', { name: `Less: ${label}` }).click();
+    current -= 1;
+  }
+}
+
+async function fillProgramNumbers(page: import('@playwright/test').Page, target: { kind: 'bar' | 'line' | 'set'; n: number; d: number }) {
+  const splitLabel = target.kind === 'line' ? 'split each whole into' : target.kind === 'set' ? 'make equal groups:' : 'split each bar into';
+  await setNumberSlot(page, `${splitLabel} 0`, target.d);
+  await setNumberSlot(page, 'repeat 1', target.n);
+}
+
+async function enterTileNumber(page: import('@playwright/test').Page, prefix: string, slot: 'num' | 'den', value: number) {
+  await page.getByTestId(`slot-${prefix}-${slot}`).click();
+  for (const digit of String(value)) await page.getByTestId(`tile-${prefix}-digit-${digit}`).click();
 }
 
 function progressBefore(mission: Mission) {
@@ -1952,6 +1980,51 @@ test('inside the Expo iPhone app, answer and result haptics work with sound off,
   expect(await page.evaluate(() => (window as Window & { __printCalls?: number }).__printCalls)).toBe(0);
 });
 
+test('Frog Hop: a splash hops back, the best route lands with 3 flies, and Next moves through all six ponds', async ({ page }) => {
+  await openAsGuest(page);
+  await openMenuItem(page, 'button-open-concept-games');
+  await page.getByTestId('link-game-frog').click();
+  const pond = page.getByTestId('frog-pond');
+  // Reads the pond, then finds the fewest hops with the same rule as the game (hops always go toward the goal).
+  const bestRoute = async () => {
+    const goal = Number(await pond.getAttribute('data-goal'));
+    const d = Number(await pond.getAttribute('data-denominator'));
+    const end = d * Number(await pond.getAttribute('data-wholes'));
+    const cards = await page.locator('[data-testid^="button-frog-card-"]').evaluateAll((els) => els.map((el) => el.getAttribute('data-card')!));
+    const steps = cards.map((card) => { const [n, den] = card.split('/').map(Number); return (n * d) / den; });
+    const queue: { at: number; path: number[] }[] = [{ at: 0, path: [] }];
+    const seen = new Set([0]);
+    while (queue.length) {
+      const { at, path } = queue.shift()!;
+      for (const [index, size] of steps.entries()) {
+        const to = Math.max(0, Math.min(end, at + (at <= goal ? size : -size)));
+        if (to === goal) return [...path, index];
+        if (!seen.has(to)) { seen.add(to); queue.push({ at: to, path: [...path, index] }); }
+      }
+    }
+    throw new Error('no route');
+  };
+  for (let round = 0; round < 6; round++) {
+    if (round === 0) {
+      // Too big a jump first: the largest card always overshoots a goal that is not one hop away... unless it lands short.
+      await page.getByTestId('button-frog-card-0').click();
+      await page.getByTestId('button-frog-hop').click();
+      await expect(page.getByTestId('status-frog-feedback')).toContainText(/Splash|The frog is at|You landed/);
+      if (await page.getByTestId('button-frog-next').count()) { await page.getByTestId('button-frog-next').click(); continue; }
+      // Start this pond over with the planned route so it scores 3 flies.
+      await page.getByTestId('button-frog-replay').click();
+    }
+    for (const index of await bestRoute()) {
+      await page.getByTestId(`button-frog-card-${index}`).click();
+      await page.getByTestId('button-frog-hop').click();
+    }
+    await expect(page.getByTestId('status-frog-feedback')).toContainText('You landed');
+    await expect(page.getByTestId('status-frog-round-flies')).toHaveAttribute('aria-label', '3 flies');
+    await page.getByTestId('button-frog-next').click();
+  }
+  await expect(page.getByTestId('status-frog-done')).toContainText('You caught 18 of 18 flies');
+});
+
 test('Fraction War gives a clear retry hint after a wrong comparison', async ({ page }) => {
   await openAsGuest(page);
   await openMenuItem(page, 'button-open-concept-games');
@@ -2032,4 +2105,271 @@ test('Fraction Line-Up: a card follows the drag and drops into the slot where it
   const after = await order();
   await page.getByTestId('lineup-card-1').click({ position: { x: 60, y: 20 } });
   expect(await order()).toEqual(after);
+});
+
+test('a wrong unit-challenge answer gives a hint, allows a retry, and earns no points', async ({ page }) => {
+  const unitMissions = MISSIONS.filter((mission) => mission.unit === 1);
+  const completedAt = Date.now();
+  const progress = {
+    completedMissionIds: unitMissions.map((mission) => mission.id),
+    starsByMission: {},
+    reviewQueue: [],
+    learning: Object.fromEntries(unitMissions.map((mission) => [
+      mission.id,
+      { ...masteredRecord(mission.id), completedAt },
+    ])),
+    assessments: [],
+  };
+  await page.addInitScript((value) => localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(value)), progress);
+  await openAsGuest(page);
+  await page.getByTestId('button-challenge-unit-1').click();
+
+  const question = CHALLENGES[1][0];
+  const wrong = question.correct === 0 ? 1 : 0;
+  const savedProgress = await localStorageSnapshot(page);
+  await page.getByTestId(`button-challenge-${question.id}-${String.fromCharCode(65 + wrong)}`).click();
+  await page.getByTestId('button-challenge-check').click();
+
+  const feedback = page.getByTestId('status-challenge-feedback');
+  await expect(feedback).toBeVisible();
+  await expect(feedback).toHaveAttribute('role', 'status');
+  await expect(feedback).toContainText('Compare the amounts in the choices, then try again.');
+  await expect(page.getByTestId('status-challenge-points')).toHaveText('0 pts');
+  await expect(page.getByRole('progressbar', { name: 'Challenge question 1 of 6' })).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByTestId(`button-challenge-${question.id}-${String.fromCharCode(65 + wrong)}`)).toBeDisabled();
+  expect(await localStorageSnapshot(page)).toBe(savedProgress);
+
+  await page.getByTestId('button-challenge-retry').click();
+  const secondWrong = (question.correct + 2) % question.choices.length;
+  await page.getByTestId(`button-challenge-${question.id}-${String.fromCharCode(65 + secondWrong)}`).click();
+  await page.getByTestId('button-challenge-check').click();
+  await expect(page.getByTestId('status-challenge-feedback')).toContainText(`The answer is ${String.fromCharCode(65 + question.correct)}.`);
+  await expect(page.getByTestId('status-challenge-points')).toHaveText('0 pts');
+  await page.getByTestId('button-challenge-next').click();
+
+  for (const item of CHALLENGES[1].slice(1, 3)) {
+    await page.getByTestId(`button-challenge-${item.id}-${String.fromCharCode(65 + item.correct)}`).click();
+    await page.getByTestId('button-challenge-check').click();
+    await expect(page.getByTestId('status-challenge-feedback')).toContainText(item.explanation.replaceAll('/', ''));
+    await page.getByTestId('button-challenge-next').click();
+  }
+
+  const guidedQuestion = CHALLENGES[1][3];
+  await expect(page.getByTestId('button-walkthrough')).toBeVisible();
+  await page.getByTestId('button-walkthrough').click();
+  const step = guidedQuestion.steps![0];
+  const wrongStepChoice = (step.correct + 1) % step.choices.length;
+  const scoreBeforeStepMiss = await page.getByTestId('status-challenge-points').textContent();
+  await page.getByTestId(`button-step-1-${wrongStepChoice}`).click();
+  await expect(page.locator('.fq-walk-retry')).toHaveAttribute('role', 'status');
+  await expect(page.locator('.fq-walk-retry')).toContainText('Read the step again and count carefully.');
+  await expect(page.getByTestId('status-challenge-points')).toHaveText(scoreBeforeStepMiss!);
+  expect(await localStorageSnapshot(page)).toBe(savedProgress);
+  await page.getByTestId(`button-step-1-${step.correct}`).click();
+  await page.getByTestId('button-step-next').click();
+  await expect(page.getByTestId('section-walkthrough')).toContainText('step 2 of');
+  await expect(page.getByTestId('status-challenge-points')).toHaveText(scoreBeforeStepMiss!);
+  expect(await localStorageSnapshot(page)).toBe(savedProgress);
+});
+
+test('a wrong Fraction Race answer explains the miss, stalls without scoring, then moves to the next question', async ({ page }) => {
+  await page.addInitScript(() => { Math.random = () => 0.123; });
+  await openAsGuest(page);
+  const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
+  const firstQuestion = generateQuestions(mission.id, mission.questions.map((question) => question.id), 123000001, 40)[0];
+  const savedProgress = await localStorageSnapshot(page);
+  const node = page.getByTestId(`button-node-${mission.id}`);
+  if ((await node.getAttribute('aria-expanded')) !== 'true') await node.click({ force: true });
+  await page.getByTestId(`button-race-${mission.id}`).click();
+  await page.getByTestId('button-race-robot-1').click();
+  await expect(page.getByTestId('race-live')).toBeVisible();
+  await expect(page.locator('.fq-race-q')).toContainText(firstQuestion.prompt);
+
+  const wrong = (firstQuestion.correctChoice + 1) % firstQuestion.choices.length;
+  await page.getByTestId(`race-you-choice-${wrong}`).click();
+  const feedback = page.getByTestId('race-you-feedback');
+  await expect(feedback).toBeVisible();
+  await expect(feedback).toHaveAttribute('role', 'status');
+  await expect(feedback).toContainText(firstQuestion.retryFeedback);
+  await expect(feedback).toContainText('The answer is');
+  await expect(feedback).toContainText('Back one space');
+  await expect(page.getByRole('progressbar', { name: 'You progress' })).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.locator('.fq-race-lane').first()).toContainText('0/10');
+  await expect(page.getByTestId(`race-you-choice-${wrong}`)).toBeDisabled();
+  expect(await localStorageSnapshot(page)).toBe(savedProgress);
+
+  await expect(page.locator('.fq-race-q')).not.toContainText(firstQuestion.prompt, { timeout: 4000 });
+  await expect(page.locator('.fq-response-sequence').first()).toContainText('Question 2 of 10');
+  await expect(page.getByRole('progressbar', { name: 'You progress' })).toHaveAttribute('aria-valuenow', '0');
+  expect(await localStorageSnapshot(page)).toBe(savedProgress);
+});
+
+test('a wrong number-line placement explains how to retry without changing the target', async ({ page }) => {
+  await openAsGuest(page);
+  await openMenuItem(page, 'button-open-concept-games');
+  await page.getByTestId('link-game-number-line').click();
+  const savedProgress = await localStorageSnapshot(page);
+
+  await page.getByTestId('select-line-spaces').selectOption('4');
+  await page.getByTestId('button-line-tick-2').click();
+  const feedback = page.getByTestId('status-line-feedback');
+  await expect(feedback).toBeVisible();
+  await expect(feedback).toHaveAttribute('role', 'status');
+  await expect(feedback).toHaveClass(/retry/);
+  await expect(feedback).toContainText('Count equal jumps from 0, then try again.');
+  await expect(page.getByTestId('status-line-round')).toHaveText('Target 1');
+  await expect(page.getByTestId('button-line-tick-2')).toHaveAttribute('aria-pressed', 'true');
+  expect(await localStorageSnapshot(page)).toBe(savedProgress);
+
+  await page.getByTestId('button-line-tick-3').click();
+  await expect(page.getByTestId('status-line-feedback')).toHaveClass(/success/);
+  await expect(page.getByTestId('status-line-feedback')).toContainText('You found it');
+  await expect(page.getByTestId('status-line-round')).toHaveText('Target 1');
+  expect(await localStorageSnapshot(page)).toBe(savedProgress);
+});
+
+test('a wrong equivalence match explains what to compare and does not count as a pair', async ({ page }) => {
+  await openAsGuest(page);
+  await openMenuItem(page, 'button-open-concept-games');
+  await page.getByTestId('link-game-match').click();
+  const savedProgress = await localStorageSnapshot(page);
+
+  await page.getByTestId('button-match-card-0').click();
+  await page.getByTestId('button-match-card-1').click();
+  const feedback = page.getByTestId('status-match-feedback');
+  await expect(feedback).toBeVisible();
+  await expect(feedback).toHaveAttribute('role', 'status');
+  await expect(feedback).toHaveClass(/retry/);
+  await expect(feedback).toContainText('Compare the shaded lengths, then try another pair.');
+  await expect(page.getByTestId('status-match-score')).toHaveText('Pairs found · 0/3');
+  await expect(page.getByTestId('button-match-card-0')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('button-match-card-1')).toHaveAttribute('aria-pressed', 'true');
+  expect(await localStorageSnapshot(page)).toBe(savedProgress);
+
+  await expect(page.getByTestId('button-match-card-0')).toBeEnabled({ timeout: 2500 });
+  await page.getByTestId('button-match-card-0').click();
+  await page.getByTestId('button-match-card-3').click();
+  await expect(page.getByTestId('status-match-score')).toHaveText('Pairs found · 1/3');
+  await expect(page.getByTestId('status-match-feedback')).toHaveClass(/success/);
+  expect(await localStorageSnapshot(page)).toBe(savedProgress);
+});
+
+test('a wrong Code Quest run gives a next step and does not pass the level until corrected', async ({ page }) => {
+  await openAsGuest(page);
+  const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
+  const target = getCodeLevels(mission.id)[0].target;
+  const savedProgress = await localStorageSnapshot(page);
+  const node = page.getByTestId(`button-node-${mission.id}`);
+  if ((await node.getAttribute('aria-expanded')) !== 'true') await node.click({ force: true });
+  await page.getByTestId(`button-code-${mission.id}`).click();
+  await page.getByTestId('button-code-run').click();
+
+  const result = page.getByTestId('code-result');
+  await expect(result).toHaveClass(/miss/);
+  await expect(result).toContainText('One number block is blank. Fill it in, then run the robot again.');
+  await expect(page.getByTestId('text-code-hint')).toContainText('One number block is blank');
+  await expect(page.getByTestId('status-code-mission-progress')).toContainText('0 of 6');
+  await expect(page.getByTestId('button-code-next')).toHaveCount(0);
+  expect(await localStorageSnapshot(page)).toBe(savedProgress);
+
+  await fillProgramNumbers(page, target);
+  await page.getByTestId('button-code-run').click();
+  await expect(result).toHaveClass(/win/, { timeout: 10_000 });
+  await expect(page.getByTestId('status-code-mission-progress')).toContainText('1 of 6');
+  await expect(page.getByTestId('button-code-next')).toBeVisible();
+
+  const levels = getCodeLevels(mission.id);
+  await page.getByTestId('button-code-next').click();
+  await page.getByTestId('button-code-add-split').click();
+  await page.getByTestId('button-code-add-repeat').click();
+  await fillProgramNumbers(page, levels[1].target);
+  await page.getByTestId('button-code-run').click();
+  await expect(result).toHaveClass(/win/, { timeout: 10_000 });
+  await expect(page.getByTestId('button-code-next')).toBeVisible();
+  await page.getByTestId('button-code-next').click();
+  const beforeDebugMiss = await localStorageSnapshot(page);
+  await page.getByTestId('button-code-run').click();
+  await expect(result).toHaveClass(/miss/, { timeout: 10_000 });
+  await expect(page.getByTestId('text-code-hint')).toContainText(/Hint: .*(Check|Move|Change|Add)/i);
+  await expect(page.getByTestId('status-code-mission-progress')).toContainText('2 of 6');
+  await expect(page.getByTestId('button-code-next')).toHaveCount(0);
+  expect(await localStorageSnapshot(page)).toBe(beforeDebugMiss);
+  await fillProgramNumbers(page, levels[2].target);
+  await page.getByTestId('button-code-run').click();
+  await expect(result).toHaveClass(/win/, { timeout: 10_000 });
+  await expect(page.getByTestId('status-code-mission-progress')).toContainText('3 of 6');
+  await page.getByTestId('button-code-next').click();
+
+  const beforePredictionMiss = await localStorageSnapshot(page);
+  const predictionTarget = levels[3].target;
+  await enterTileNumber(page, 'code-prediction', 'num', predictionTarget.n);
+  await enterTileNumber(page, 'code-prediction', 'den', predictionTarget.d + 1);
+  await page.getByTestId('button-code-run').click();
+  await expect(result).toHaveClass(/miss/);
+  await expect(result).toContainText('Not yet. Read the split number and count how many times the loop runs, then try again.');
+  await expect(page.getByTestId('status-code-mission-progress')).toContainText('3 of 6');
+  await expect(page.getByTestId('button-code-next')).toHaveCount(0);
+  expect(await localStorageSnapshot(page)).toBe(beforePredictionMiss);
+});
+
+test('a wrong Code Sprint run explains the fix, adds its penalty, and can be retried', async ({ page }) => {
+  await page.addInitScript(() => { Math.random = () => 0.123; });
+  await openAsGuest(page);
+  const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
+  const rounds = makeSprint(mission.id, () => 0.123);
+  const target = rounds[0].target;
+  const node = page.getByTestId(`button-node-${mission.id}`);
+  if ((await node.getAttribute('aria-expanded')) !== 'true') await node.click({ force: true });
+  await page.getByTestId(`button-race-${mission.id}`).click();
+  await page.getByTestId('button-race-sprint').click();
+  await page.getByTestId('button-sprint-start').click();
+  const savedProgress = await localStorageSnapshot(page);
+
+  await page.getByTestId('button-sprint-run').click();
+  const message = page.getByTestId('text-sprint-message');
+  await expect(message).toBeVisible();
+  await expect(message).toHaveAttribute('role', 'status');
+  await expect(message).toContainText('A block is missing a number.');
+  await expect(message).toContainText('+5 s. Fix it and run again.');
+  await expect(page.getByTestId('text-sprint-clock')).toContainText('(+5)');
+  await expect(page.locator('.fq-code-level-title').last()).toContainText('Program 1 of 5');
+  await expect(page.getByTestId('button-sprint-next')).toHaveCount(0);
+  expect(await localStorageSnapshot(page)).toBe(savedProgress);
+
+  await fillProgramNumbers(page, target);
+  await page.getByTestId('button-sprint-run').click();
+  await expect(message).toContainText('It works!', { timeout: 10_000 });
+  await expect(page.getByTestId('button-sprint-next')).toBeVisible();
+  await page.getByTestId('button-sprint-next').click();
+  await expect(page.locator('.fq-code-level-title').last()).toContainText('Program 2 of 5');
+  await expect(page.getByTestId('text-sprint-clock')).toContainText('(+5)');
+
+  await fillProgramNumbers(page, rounds[1].target);
+  await page.getByTestId('button-sprint-run').click();
+  await expect(message).toContainText('It works!', { timeout: 10_000 });
+  await page.getByTestId('button-sprint-next').click();
+  await expect(page.locator('.fq-code-level-title').last()).toContainText('Program 3 of 5');
+
+  await page.getByTestId('button-sprint-run').click();
+  await expect(message).toContainText('+5 s. Fix it and run again.', { timeout: 10_000 });
+  await expect(page.getByTestId('text-sprint-clock')).toContainText('(+10)');
+  await fillProgramNumbers(page, rounds[2].target);
+  await page.getByTestId('button-sprint-run').click();
+  await expect(message).toContainText('It works!', { timeout: 10_000 });
+  await page.getByTestId('button-sprint-next').click();
+  await expect(page.locator('.fq-code-level-title').last()).toContainText('Program 4 of 5');
+
+  await page.getByTestId('button-sprint-read-wrong-0').click();
+  await expect(message).toContainText('That one makes the robot');
+  await expect(message).toContainText('+5 s.');
+  await expect(page.getByTestId('text-sprint-clock')).toContainText('(+15)');
+  await expect(page.getByTestId('button-sprint-next')).toHaveCount(0);
+  expect(await localStorageSnapshot(page)).toBe(savedProgress);
+  await page.getByTestId('button-sprint-read-right').click();
+  await expect(message).toContainText('Yes! That program works.');
+  await expect(page.getByTestId('button-sprint-next')).toBeVisible();
+  await expect(page.getByTestId('text-sprint-clock')).toContainText('(+15)');
+  await page.getByTestId('button-sprint-next').click();
+  await expect(page.locator('.fq-code-level-title').last()).toContainText('Program 5 of 5');
+  expect(await localStorageSnapshot(page)).toBe(savedProgress);
 });
