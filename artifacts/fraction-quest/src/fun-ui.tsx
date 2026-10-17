@@ -344,6 +344,8 @@ export type PathNode = {
   stars: number;
   /** Lesson steps finished (build checks, then the worksheet): the badge is a pie cut into that many slices. */
   steps?: { done: number; total: number };
+  /** Its story comic hasn't been read yet: the next lesson says so on the map. */
+  story?: boolean;
   detail: ReactNode;
 };
 
@@ -361,7 +363,7 @@ export function LessonPath({ unit, color, nodes, selectedId, onSelect, allDone, 
         const selected = node.id === selectedId;
         return (
           <li key={node.id} className={`fq-path-step ${selected ? 'selected' : ''}`} style={{ '--offset': offset } as CSSProperties} data-testid={`card-mission-${node.id}`}>
-            {node.state === 'now' && !selected && <span className="fq-path-start" aria-hidden="true">Start</span>}
+            {node.state === 'now' && (!selected || node.story) && <span className={`fq-path-start ${node.story ? 'is-story' : ''}`} aria-hidden="true" data-testid={node.story ? `badge-story-${node.id}` : undefined}>{node.story ? 'New story' : 'Start'}</span>}
             <button
               type="button"
               className={`fq-node ${node.state}`}

@@ -148,7 +148,8 @@
 
 .fq-stone-banner { display: grid; gap: 8px; margin: 0 0 16px; padding: 14px; border-radius: 18px; color: #fff; background: #2B2D42; }
 .fq-stone-banner-small { margin: 8px 0 12px; }
-.fq-stone-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.fq-stone-head { display: flex; align-items: center; gap: 10px; }
+.fq-stone-head h2 { flex: 1; }
 .fq-stone-head h2 { margin: 0; color: #fff; font-family: var(--app-font-display); font-size: 1.15rem; }
 .fq-stone-head span { color: #D8D9EA; font-size: .9rem; }
 .fq-stone-head strong { color: #FFC800; }
@@ -184,3 +185,49 @@
 
 /* The tag on a lesson's story problem. */
 .fq-story-problem-tag { display: inline-block; margin-right: 6px; padding: 1px 9px; border-radius: 999px; color: #2B2D42; background: #FFC800; font-weight: 900; }
+
+/* ---------- the story on the map: chapter banners and the Storybook ---------- */
+.fq-storybook-button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 14px; color: #2B2D42; background: #FFC800; box-shadow: 0 3px 0 #C99A00; font: inherit; font-size: .9rem; font-weight: 900; cursor: pointer; }
+.fq-storybook-button:focus-visible, .fq-chapter-banner button:focus-visible, .fq-storybook-tabs button:focus-visible, .fq-storybook-row:focus-visible, .fq-storybook-part:focus-visible { outline: 3px solid #FFC800; outline-offset: 2px; }
+
+.fq-chapter-banner { display: grid; gap: 12px; margin-bottom: 16px; padding: 16px; border-radius: 22px; color: #fff; background: var(--unit); box-shadow: 0 5px 0 var(--unit-dark, rgb(0 0 0 / .25)); }
+.fq-chapter-banner-head { display: flex; align-items: center; gap: 14px; }
+.fq-chapter-banner-art { flex: none; display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; background: rgb(255 255 255 / .9); }
+.fq-chapter-banner-kicker { color: #FFF1C2; font-size: .78rem; font-weight: 900; letter-spacing: .03em; text-transform: uppercase; }
+.fq-chapter-banner h3 { margin: 2px 0; color: #fff; font-family: var(--app-font-display); font-size: 1.5rem; line-height: 1.05; }
+.fq-chapter-banner p { margin: 0; color: #fff; font-weight: 700; }
+.fq-chapter-banner-teaser { padding: 10px 12px; border-radius: 14px; background: rgb(0 0 0 / .16); line-height: 1.35; }
+.fq-chapter-banner-go { justify-content: center; min-height: 56px; font-size: 1.05rem; }
+.fq-chapter-banner-read { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 2px solid rgb(255 255 255 / .6); border-radius: 14px; color: #fff; background: transparent; font: inherit; font-weight: 800; cursor: pointer; }
+.fq-chapter-banner-lock { display: flex; align-items: center; gap: 8px; font-size: .92rem; }
+.fq-chapter-banner.is-locked { color: #F1EEFA; background: #4A4766; box-shadow: 0 5px 0 #34324A; }
+.fq-chapter-banner.is-locked .fq-chapter-banner-art { opacity: .55; filter: grayscale(.8); }
+
+.fq-path-start.is-story { color: #2B2D42; background: #FFC800; border-color: #C99A00; }
+.fq-path-start.is-story::after { border-top-color: #C99A00; }
+
+.fq-storybook-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 4px 0 12px; padding: 4px; border-radius: 16px; background: #2B2D42; }
+.fq-storybook-tabs button { min-height: 44px; border: 0; border-radius: 12px; color: #fff; background: transparent; font: inherit; font-weight: 900; cursor: pointer; }
+.fq-storybook-tabs button.on { color: #2B2D42; background: #FFC800; }
+.fq-storybook-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.fq-storybook-list ol { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+.fq-storybook-row, .fq-storybook-chapter > summary { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; box-sizing: border-box; padding: 10px 14px; border: 0; border-radius: 18px; color: #fff; background: #2B2D42; font: inherit; text-align: left; cursor: pointer; }
+.fq-storybook-row > span:nth-child(2), .fq-storybook-chapter > summary > span:nth-child(2) { flex: 1; display: grid; }
+.fq-storybook-row small, .fq-storybook-chapter small { color: #D8D9EA; font-weight: 700; }
+.fq-storybook-row.is-locked, .fq-storybook-row:disabled { color: #B9B6CF; background: #3A3852; cursor: default; }
+.fq-storybook-num { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; color: #2B2D42; background: #FFC800; font-weight: 900; }
+.fq-storybook-row.is-locked .fq-storybook-num { color: #D8D9EA; background: #4A4766; }
+.fq-storybook-chapter { padding: 0 0 10px; border-radius: 18px; background: #6A3CE0; }
+.fq-storybook-chapter > summary { background: transparent; list-style: none; }
+.fq-storybook-chapter > summary::-webkit-details-marker { display: none; }
+.fq-storybook-chapter ol { padding: 0 10px; }
+.fq-storybook-part { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; padding: 6px 12px; border: 0; border-radius: 12px; color: #fff; background: rgb(0 0 0 / .18); font: inherit; font-weight: 800; text-align: left; cursor: pointer; }
+.fq-storybook-part span { flex: 1; }
+.fq-storybook-part.is-new { color: #2B2D42; background: #fff; }
+.fq-storybook-part em { padding: 2px 8px; border-radius: 999px; color: #2B2D42; background: #FFC800; font-size: .75rem; font-style: normal; font-weight: 900; }
+.fq-storybook-part:disabled { color: #D8CCFF; background: rgb(0 0 0 / .28); cursor: default; }
+.fq-storybook-clues { display: grid; gap: 10px; }
+.fq-storybook-clue { display: grid; gap: 4px; margin: 0; padding: 14px; border-radius: 16px; color: #2B2D42; background: #FFF6D6; }
+.fq-storybook-empty { margin: 0; padding: 14px; border: 2px dashed hsl(var(--border)); border-radius: 16px; color: hsl(var(--muted-foreground)); font-weight: 700; }
+
+.fq-dev-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 12px; border: 2px dashed hsl(var(--secondary)); border-radius: 14px; color: hsl(var(--secondary)); background: transparent; font: inherit; font-size: .85rem; font-weight: 900; cursor: pointer; }
