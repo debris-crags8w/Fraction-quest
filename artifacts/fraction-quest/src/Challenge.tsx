@@ -7,6 +7,7 @@ import { Confetti, Mascot, StoryPrompt, unitColor, useFun, type MascotMood } fro
 import { PaperFold } from './PaperFold';
 import { playCue, playHaptic } from './lib/fun';
 import { ChallengeFigureView } from './models';
+import { retryOpener, wrongChoiceReason } from './wrong-answer';
 
 const letter = (index: number) => String.fromCharCode(65 + index);
 const TROPHY_TEXT = { gold: 'Gold trophy!', silver: 'Silver trophy!', bronze: 'Bronze trophy!' };
@@ -16,9 +17,13 @@ function WalkThrough({ question, onClose }: { question: ChallengeQuestion; onClo
   const steps = question.steps ?? [];
   const [at, setAt] = useState(0);
   const [pick, setPick] = useState<number | null>(null);
+  const [ruledOut, setRuledOut] = useState<number[]>([]);
   const done = at >= steps.length;
   const current = steps[at];
   const right = pick !== null && current && pick === current.correct;
+  const retryText = pick !== null && current
+    ? wrongChoiceReason(current.prompt, current.choices, current.correct, pick) ?? 'Read the step again and count carefully.'
+    : '';
   return (
     <section className="fq-walk" aria-label="Walk me through it" data-testid="section-walkthrough">
       <p className="fq-walk-title"><Footprints size={16} /> Step by step {done ? '· all done!' : `· step ${at + 1} of ${steps.length}`}</p>
@@ -31,16 +36,19 @@ function WalkThrough({ question, onClose }: { question: ChallengeQuestion; onClo
           <p><MathText text={current.prompt} /></p>
           <div className="fq-walk-choices" role="group" aria-label={`Step ${at + 1} answer`}>
             {current.choices.map((c, i) => (
-              <button type="button" key={i} className={pick === i ? (i === current.correct ? 'ok' : 'bad') : ''} onClick={() => {
-                if (pick === i) return;
+              <button type="button" key={i} className={`${pick === i ? (i === current.correct ? 'ok' : 'bad') : ''} ${ruledOut.includes(i) ? 'ruled-out' : ''}`}
+                disabled={ruledOut.includes(i)}
+                onClick={() => {
+                if (pick === i || ruledOut.includes(i)) return;
                 playHaptic(i === current.correct ? 'correct' : 'retry');
                 setPick(i);
+                if (i !== current.correct) setRuledOut((currentRuledOut) => [...currentRuledOut, i]);
               }} data-testid={`button-step-${at + 1}-${i}`}><MathText text={c} /></button>
             ))}
           </div>
           {pick !== null && (right
-            ? <button type="button" className="fq-button" onClick={() => { setAt(at + 1); setPick(null); }} data-testid="button-step-next">{at === steps.length - 1 ? 'Finish steps' : 'Next step'} <ArrowRight size={16} /></button>
-            : <p className="fq-walk-retry">Not quite. Try another one.</p>)}
+            ? <button type="button" className="fq-button" onClick={() => { setAt(at + 1); setPick(null); setRuledOut([]); }} data-testid="button-step-next">{at === steps.length - 1 ? 'Finish steps' : 'Next step'} <ArrowRight size={16} /></button>
+            : <p className="fq-walk-retry" role="status" aria-live="polite"><strong>{retryOpener(`${question.id}-step-${at}-${pick}`)}</strong> {retryText}</p>)}
         </div>
       )}
       {done && (
@@ -64,12 +72,16 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
   const [index, setIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [selection, setSelection] = useState<number | null>(null);
+  const [ruledOut, setRuledOut] = useState<number[]>([]);
   const [tries, setTries] = useState(0);
   const [state, setState] = useState<'asking' | 'right' | 'wrong' | 'reveal' | 'finished'>('asking');
   const [burst, setBurst] = useState(0);
   const [round, setRound] = useState(0);
   useScrollTopOn(`${round}-${index}-${state === 'finished'}`);
   const question = questions[index];
+  const retryText = selection === null ? '' : wrongChoiceReason(question.prompt, question.choices, question.correct, selection)
+    ?? (question.steps ? 'Look at the model and take this one step at a time.' : 'Compare the amounts in the choices, then try again.');
+  const retryHeading = retryOpener(`challenge-${round}-${question.id}-${tries}`);
   // Best score from before this run, so finishing doesn't compare against itself.
   const [bestBefore, setBestBefore] = useState(best);
   // Walk-through help: open/closed, and whether it was used on this question (then no points).
@@ -81,9 +93,10 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
     if (selection === null) return;
     if (selection === question.correct) {
       if (tries === 0 && !helped) setScore((s) => s + question.points);
-      setState('right'); setBurst((n) => n + 1); playCue('correct', fun.sound);
+      setState('right'); setBurst((n) => n + 1); playCue('correct', fun.sound); playHaptic('correct');
     } else {
-      playCue('retry', fun.sound);
+      playCue('retry', fun.sound); playHaptic('retry');
+      setRuledOut((current) => current.includes(selection) ? current : [...current, selection]);
       setTries((t) => t + 1);
       setState(tries === 0 ? 'wrong' : 'reveal');
     }
@@ -94,10 +107,10 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
       setState('finished'); onDone(score); playCue('complete', fun.sound); setBurst((n) => n + 1);
       return;
     }
-    setIndex((i) => i + 1); setSelection(null); setTries(0); setState('asking'); setWalking(false); setHelped(false);
+    setIndex((i) => i + 1); setSelection(null); setRuledOut([]); setTries(0); setState('asking'); setWalking(false); setHelped(false);
   };
 
-  const restart = () => { setBestBefore(Math.max(bestBefore, score)); setIndex(0); setScore(0); setSelection(null); setTries(0); setState('asking'); setWalking(false); setHelped(false); setRound((r) => r + 1); };
+  const restart = () => { setBestBefore(Math.max(bestBefore, score)); setIndex(0); setScore(0); setSelection(null); setRuledOut([]); setTries(0); setState('asking'); setWalking(false); setHelped(false); setRound((r) => r + 1); };
 
   if (state === 'finished') {
     const trophy = challengeTrophy(score, unit);
@@ -147,15 +160,17 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
           <div className="fq-answer-choices fq-challenge-choices" role="group" aria-label="Choose an answer">
             {question.choices.map((choice, i) => (
               <button key={`${question.id}-${i}`}
-                className={`fq-answer-choice ${selection === i ? `selected ${state === 'right' ? 'correct' : state === 'wrong' || state === 'reveal' ? 'retry' : ''}` : ''} ${state === 'reveal' && i === question.correct ? 'selected correct' : ''}`}
+                className={`fq-answer-choice ${selection === i ? `selected ${state === 'right' ? 'correct' : state === 'wrong' || state === 'reveal' ? 'retry' : ''}` : ''} ${state === 'reveal' && i === question.correct ? 'selected correct' : ''} ${ruledOut.includes(i) ? 'ruled-out' : ''}`}
+                disabled={answered || ruledOut.includes(i)}
                 onClick={() => {
                   if (answered) return;
+                  if (ruledOut.includes(i)) return;
                   if (selection !== i) playHaptic('selection');
                   setSelection(i);
                   if (state === 'wrong') setState('asking');
                 }}
                 aria-pressed={selection === i} data-testid={`button-challenge-${question.id}-${letter(i)}`}>
-                <span className="fq-choice-marker" aria-hidden="true">{letter(i)}</span><span><MathText text={choice} /></span>
+                <span className="fq-choice-marker" aria-hidden="true">{letter(i)}</span><span><MathText text={choice} /><span className="fq-sr">{ruledOut.includes(i) ? ' (already tried)' : ''}</span></span>
               </button>
             ))}
           </div>
@@ -174,7 +189,7 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
               <Mascot mood={mood} size={64} />
               <div className="fq-sheet-copy">
                 {state === 'right' && <><strong>{tries === 0 && !helped ? `+${question.points} points!` : 'You got it!'}</strong><span><MathText text={question.explanation} /></span></>}
-                {state === 'wrong' && <><strong>Not quite!</strong><span>{question.steps ? 'Think again, or walk through it step by step.' : 'Think again. You get one more try.'}</span></>}
+                 {state === 'wrong' && <><strong>{retryHeading}</strong><span>{retryText} {question.steps ? 'You can also walk through it step by step.' : 'Choose a different answer to try again.'}</span></>}
                 {state === 'reveal' && <><strong>The answer is {letter(question.correct)}.</strong><span><MathText text={question.explanation} /></span></>}
               </div>
               {state === 'wrong'

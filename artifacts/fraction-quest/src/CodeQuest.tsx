@@ -150,6 +150,7 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
     stop();
     if (level.mode === 'predict' && !predictionMatchesTarget(level.target, prediction.numerator, prediction.denominator)) {
       setResult(null); setFrame(-1); setOutcome('miss');
+      playCue('retry', fun.sound); playHaptic('retry');
       setPredictionFeedback(prediction.numerator === '' || prediction.denominator === ''
         ? 'Enter both numbers in your prediction, then check again.'
         : 'Not yet. Read the split number and count how many times the loop runs, then try again.');
@@ -164,6 +165,7 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
     const finish = () => {
       const passed = passesCodeLevel(level, r, program);
       setOutcome(passed ? 'win' : 'miss'); playCue(passed ? 'complete' : 'retry', fun.sound);
+      playHaptic(passed ? 'correct' : 'retry');
       if (passed) { setBurst((b) => b + 1); if (level.level > solved) onSolved(level.level); }
     };
     if (!total) { finish(); return; }

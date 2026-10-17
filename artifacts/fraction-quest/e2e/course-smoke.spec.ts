@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, getDueSkillReviewQuestions, MISSIONS } from '../src/game';
+import { compareFractions, WAR_ROUNDS, warHint } from '../src/concept-games';
 import { getBuildChecks, getReviewCheck, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
 import { AREA_CUTS, areaTaskDone, pieceArea } from '../src/area-shapes';
@@ -783,7 +784,7 @@ async function completePartFinderLesson(page: import('@playwright/test').Page, m
 async function completeFractionOrderLesson(page: import('@playwright/test').Page) {
   const firstRound = FRACTION_ORDER_ROUNDS[0];
   await page.getByTestId('button-sort-check').click();
-  await expect(page.getByTestId('fraction-sort-feedback')).toContainText('Not quite yet.');
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(/Almost!|Good try!|Let’s look again\.|Not quite\.|So close!/);
   await expect(page.getByTestId('fraction-sort-feedback')).toContainText('1/2');
   await page.getByTestId('button-sort-8-10-down').click();
   await page.getByTestId('button-sort-8-10-down').click();
@@ -1948,4 +1949,31 @@ test('inside the Expo iPhone app, answer and result haptics work with sound off,
   await page.getByTestId('button-parent-print').click();
   await expect.poll(async () => (await messages()).find((m) => m.type === 'print')?.html ?? '').toMatch(/<base href=.*parent-report|<base href=[\s\S]*data-testid="parent-report"/);
   expect(await page.evaluate(() => (window as Window & { __printCalls?: number }).__printCalls)).toBe(0);
+});
+
+test('Fraction War gives a clear retry hint after a wrong comparison', async ({ page }) => {
+  await openAsGuest(page);
+  await openMenuItem(page, 'button-open-concept-games');
+  await page.getByTestId('link-game-war').click();
+
+  const [left, right] = WAR_ROUNDS[0];
+  for (const [side, fraction] of [left, right].entries()) {
+    await page.getByTestId(`select-war-denominator-${side}`).selectOption(String(fraction.d));
+    const bar = side === 0 ? 'whole-a' : 'whole-b';
+    for (let part = 1; part <= fraction.n; part += 1) {
+      await page.getByTestId(`${bar}-part-${part}`).click();
+    }
+  }
+
+  const comparison = compareFractions(left, right);
+  const incorrectChoice = comparison > 0 ? 'right' : comparison < 0 ? 'left' : 'left';
+  await page.getByTestId(`button-war-choice-${incorrectChoice}`).click();
+  await page.getByTestId('button-war-check').click();
+
+  const feedback = page.getByTestId('status-war-feedback');
+  await expect(feedback).toBeVisible();
+  await expect(feedback).toHaveAttribute('role', 'status');
+  await expect(feedback).toHaveClass(/retry/);
+  await expect(feedback).toContainText(warHint(left, right));
+  await expect(page.getByTestId('status-war-score')).toContainText('0');
 });
