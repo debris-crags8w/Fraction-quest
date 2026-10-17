@@ -7,7 +7,7 @@ import { getBuildChecks, getBuildPracticeChecks, getReviewCheck, getWorksheet } 
 import { getExtraPractice } from '../src/practice-bank';
 import { partFinderRoundsFor, PART_FINDER_ROUNDS } from '../src/part-finder';
 import { getAssessmentDefinitions } from '../src/assessments';
-import { CHAPTERS, CHARACTERS, PROLOGUE, REACTIONS, STORY_PROBLEMS, lessonComic, withName, type Panel, type PropTheme } from '../src/story';
+import { CHAPTERS, PROLOGUE, REACTIONS, STORY_PROBLEMS, lessonComic, storyScript, withName, type Panel, type PropTheme } from '../src/story';
 import { seasonalWords } from '../src/seasonal-words';
 import { sentences, spokenText } from '../src/lib/voice';
 import { cleanSentence, voiceKey } from '../src/lib/voice-pack';
@@ -52,6 +52,7 @@ export function voiceSentences(): { key: string; text: string }[] {
   for (const chapter of CHAPTERS) {
     const lessons = MISSIONS.filter((mission) => mission.unit === chapter.unit);
     lessons.forEach((mission, index) => scripts.push(lessonComic(chapter, mission, index)));
+    scripts.push(chapter.choice.map((option) => option.reply));
   }
 
   const texts = new Set<string>();
@@ -60,11 +61,7 @@ export function voiceSentences(): { key: string; text: string }[] {
     const season = theme === 'everyday' ? null : theme;
     for (const text of lesson) add(seasonalWords(text, season));
     for (const text of story) add(withName(text, null, theme));
-    for (const panels of scripts) {
-      for (const panel of panels) {
-        add(`${CHARACTERS[panel.speaker].name} says: ${withName(panel.text, null, theme)}`);
-      }
-    }
+    for (const panels of scripts) add(storyScript(panels, theme));
   }
   return [...texts].sort().map((text) => ({ key: voiceKey(text), text }));
 }

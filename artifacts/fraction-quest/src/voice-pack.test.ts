@@ -96,3 +96,13 @@ test('the pack index keeps sentences every voice has and removes stale files', a
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('a story is read aloud as "friend", never with the child\'s name, so it plays from the pack', async () => {
+  const { storyScript, PROLOGUE } = await import('./story');
+  const { voiceSentences } = await import('../scripts/voice-sentences');
+  const { sentences, spokenText } = await import('./lib/voice');
+  const script = storyScript(PROLOGUE, 'halloween');
+  assert.doesNotMatch(script, /\{name\}/);
+  const packed = new Set(voiceSentences().map((entry) => entry.text));
+  for (const sentence of sentences(spokenText(script))) assert.ok(packed.has(cleanSentence(sentence)), `in the pack: ${sentence}`);
+});
