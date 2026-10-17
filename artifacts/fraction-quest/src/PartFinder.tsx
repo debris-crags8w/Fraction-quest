@@ -280,7 +280,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
           </div>
           {checked !== 'idle' && (
             <div className={`fq-pf-feedback ${correct ? 'right' : 'retry'}`} role="status" aria-live="polite" data-testid="part-finder-feedback">
-              <strong>{correct ? 'That fits!' : 'Not quite yet.'}</strong>
+              <strong>{correct ? 'That fits!' : 'Almost there.'}</strong>
               <span>{partFinderFeedback(round, answerPieces, tileAnswer)}</span>
             </div>
           )}

@@ -236,9 +236,9 @@ export function storyAsk(chapter: Chapter, questionId: string): string {
 /** The chapter friend's reaction after the child checks an answer. Words only: it cheers or encourages, never hints. */
 export const REACTIONS: Record<CharacterId, { right: string[]; retry: string[] }> = {
   chomp: { right: ['Chomp chomp! You got it!', 'Grr… fine. That was right.', 'Wow. Even I’m impressed.'], retry: ['Not yet! You can do it.', 'Almost! Have another go.', 'Hmm. Look one more time.'] },
-  pip: { right: ['Ribbit! Right on the lily pad!', 'Hop hooray! You got it!', 'That’s a perfect hop!'], retry: ['Oops, a little splash. Try again!', 'Almost! Hop back and look again.', 'No worries. Try one more time!'] },
+  pip: { right: ['Ribbit! Right on the lily pad!', 'Hop hooray! You got it!', 'That’s a perfect hop!'], retry: ['A little splash! Try again.', 'Almost! Hop back and look again.', 'No worries. Try one more time!'] },
   tilly: { right: ['Slow and steady wins. Yes!', 'You got it. Nice and careful!', 'Right! I knew you could.'], retry: ['Take your time. Try again.', 'No rush. Look once more.', 'Almost there. Step by step!'] },
-  bolt: { right: ['Beep beep beep! Correct!', 'Calculating… you got it!', 'System says: awesome!'], retry: ['Beep boop. Try again!', 'Error? No problem. Retry!', 'Rebooting… have another go!'] },
+  bolt: { right: ['Beep beep beep! Correct!', 'Calculating… you got it!', 'System says: awesome!'], retry: ['Beep boop. Try again!', 'No problem. Let’s retry!', 'Rebooting… have another go!'] },
   bea: { right: ['Bzz! Sweet as honey!', 'You got it! Bzz bzz!', 'Buzz-tastic work!'], retry: ['Bzz… not yet. Try again!', 'Buzz back and look again.', 'Almost! One more try.'] },
 };
 export function storyReaction(character: CharacterId, result: 'correct' | 'retry', key: string): string {

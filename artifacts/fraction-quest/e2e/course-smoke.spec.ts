@@ -803,7 +803,7 @@ async function completePartFinderLesson(page: import('@playwright/test').Page, m
 async function completeFractionOrderLesson(page: import('@playwright/test').Page) {
   const firstRound = FRACTION_ORDER_ROUNDS[0];
   await page.getByTestId('button-sort-check').click();
-  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(/Almost!|Good try!|Let’s look again\.|Not quite\.|So close!/);
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(/Good try!|Almost!|Let’s look together\.|Keep going!|Nice effort!/);
   await expect(page.getByTestId('fraction-sort-feedback')).toContainText('1/2');
   await page.getByTestId('button-sort-8-10-down').click();
   await page.getByTestId('button-sort-8-10-down').click();
@@ -1968,7 +1968,7 @@ test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried 
   await expect(page.locator('[data-testid="status-feedback"] .fq-hoot')).toBeVisible();
   // "Count with me": numbers pop onto the parts of the picture.
   await expect(page.getByTestId('question-model-area').locator('.fq-count-badge').first()).toBeAttached();
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.join(' | '))).toMatch(/Almost|Good try|look again|Not quite|So close/);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.join(' | '))).toMatch(/Good try|Almost|look together|Keep going|Nice effort/);
   await page.getByTestId('button-try-again').click();
   await expect(page.getByTestId(`button-answer-${question.id}-${wrong}`)).toBeDisabled();
 });

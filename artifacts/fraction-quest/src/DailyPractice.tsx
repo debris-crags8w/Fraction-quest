@@ -258,7 +258,7 @@ export default function DailyPractice({
       </>
     )}
     <LiveFraction n={attempt.shaded.length} d={parts ?? 0} unit={bar ? 'bar' : 'line'} color={bar ? '#38bdb0' : undefined} testId="daily-live-fraction" />
-    {attempt.modelChecked && !done && <p className="fq-daily-feedback retry" role="status">Not quite. {wrongFeedback} Change your model, then check again.</p>}
+    {attempt.modelChecked && !done && <p className="fq-daily-feedback retry" role="status">Good try. {wrongFeedback} Change your model, then check again.</p>}
     {done && <div className="fq-daily-feedback success" role="status"><strong>That’s it!</strong> {parts === question.denominator ? question.explanation : `${attempt.shaded.length}/${parts} is the same amount as ${question.numerator}/${question.denominator}.`}</div>}
     {done ? nextButton : (
       <div className="fq-daily-actions">

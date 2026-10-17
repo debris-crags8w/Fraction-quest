@@ -53,7 +53,7 @@ export function getModelFeedback(target: LearningModel, kind: LearningModel['kin
 /** Keep reasoning feedback separate from model errors so a correct explanation is not blamed for a bad build. */
 export function getReasonFeedback(check: BuildCheck, selected: number | null, modelsCorrect: boolean): ReasonFeedback | null {
   if (selected === null) return { message: 'Reason: Pick the statement that matches your model.', correct: false };
-  if (selected !== check.correctReason) return { message: 'Reason: Not quite. Look at the models and choose again.', correct: false };
+  if (selected !== check.correctReason) return { message: 'Reason: Good try. Look at the models and choose again.', correct: false };
   if (!modelsCorrect) return { message: 'Reason: Your choice is right; fix the model above.', correct: true };
   return null;
 }

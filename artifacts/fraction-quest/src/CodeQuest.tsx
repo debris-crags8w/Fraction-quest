@@ -294,7 +294,7 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
           <section className={`fq-code-result ${outcome}`} role="status" data-testid="code-result">
             <Mascot mood={outcome === 'win' ? 'cheer' : 'oops'} size={56} />
             <div>
-              <strong>{outcome === 'win' ? 'It works!' : predictionFeedback ? 'Try again.' : result?.error ? 'Bug found!' : 'Not quite.'}</strong>
+              <strong>{outcome === 'win' ? 'It works!' : predictionFeedback ? 'Try again.' : result?.error ? 'Bug found!' : 'Close! Try again.'}</strong>
               <p>
                 <MathText text={predictionFeedback ?? result?.error ?? (result ? describe(result) : '')} />
                 {outcome === 'miss' && result && !result.error && !level.requiresLoop && <MathText text={` The goal is ${level.target.n}/${level.target.d}.`} />}
