@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { ArrowLeft, Layers, Printer, RotateCcw, Scale, Shuffle, Waypoints } from 'lucide-react';
+import { ArrowLeft, Layers, Printer, Rabbit, RotateCcw, Scale, Shuffle, Waypoints } from 'lucide-react';
+import FrogHop from './FrogHop';
 import StackTower from './StackTower';
 import './concept-games.css';
 import { areEquivalent, compareFractions, targetTick, WAR_PARTS, WAR_ROUNDS, warHint } from './concept-games';
@@ -207,7 +208,7 @@ function CenterPack() {
   </section>;
 }
 
-type Section = 'war' | 'match' | 'line' | 'tower' | 'pack';
+type Section = 'war' | 'match' | 'line' | 'frog' | 'tower' | 'pack';
 type Card = { id: string; title: string; blurb: string; icon: typeof Scale; testId: string; kicker: string; onOpen: () => void; tone?: string };
 /** Lesson games (Fraction Race, coding) open with the child's current lesson; they also stay on each lesson. */
 export type LessonGame = { id: 'race' | 'code'; title: string; blurb: string; icon: typeof Scale; lessonTitle: string; onOpen: () => void };
@@ -215,6 +216,7 @@ const WORKSHOP: { id: Section; title: string; blurb: string; icon: typeof Scale;
   { id: 'war', title: 'Fraction War', blurb: 'Build two fractions and see which is bigger.', icon: Scale, testId: 'link-game-war' },
   { id: 'match', title: 'Equivalence Match', blurb: 'Find pairs that show the same amount.', icon: Shuffle, testId: 'link-game-match' },
   { id: 'line', title: 'Number Line Target', blurb: 'Split the line and land on the fraction.', icon: Waypoints, testId: 'link-game-number-line' },
+  { id: 'frog', title: 'Frog Hop', blurb: 'Hop by fractions to land on the lily pad. Watch for the crocodile!', icon: Rabbit, testId: 'link-game-frog' },
   { id: 'tower', title: 'Stack the Tower', blurb: 'Stack fractions with the biggest at the bottom. Three wobbles and it falls!', icon: Layers, testId: 'link-game-tower' },
   { id: 'pack', title: 'Print center pack', blurb: 'Hands-on activities to do on paper.', icon: Printer, testId: 'link-game-print-pack' },
 ];
@@ -244,6 +246,7 @@ export default function ConceptGames({ onExit, lessonGames = [] }: { onExit: () 
         {open.id === 'war' && <FractionWar />}
         {open.id === 'match' && <EquivalenceMatch />}
         {open.id === 'line' && <NumberLineTarget />}
+        {open.id === 'frog' && <FrogHop />}
         {open.id === 'tower' && <StackTower />}
         {open.id === 'pack' && <CenterPack />}
       </div>
