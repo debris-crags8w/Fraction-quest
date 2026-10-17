@@ -12,10 +12,15 @@ import { makeSprint } from '../src/CodeSprint';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
 
-/** A new lesson opens with story screens (the prologue once, then the chapter comic, which may ask for a choice). */
+/** A new lesson opens with story screens (the setup and prologue once, then the chapter comic, which may ask for a choice). */
 async function passStory(page: import('@playwright/test').Page) {
   for (let screen = 0; screen < 3; screen++) {
     await page.waitForTimeout(50);
+    const introGo = page.getByTestId('button-story-intro-go');
+    if (await introGo.isVisible()) {
+      await introGo.click();
+      continue;
+    }
     const go = page.getByTestId('button-story-go');
     if (!(await go.isVisible())) return;
     const choice = page.getByTestId('button-story-choice-0');
@@ -2582,8 +2587,22 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId('stone-teaser')).toContainText('The Whole Stone just cracked.');
   await expect(page.getByTestId('chapter-tag-1')).toContainText('Chapter 1 · The bakery mix-up');
 
-  // The first lesson opens with the one-time prologue, then the chapter intro with a choice.
+  // The story setup introduces the quest before the one-time prologue comic.
   await page.getByTestId('button-continue-course').click();
+  await expect(page.getByTestId('story-introduction').getByRole('heading', { name: 'Meet the Whole Stone' })).toBeVisible();
+  await expect(page.getByTestId('story-introduction')).toContainText('15 equal pieces');
+  await expect(page.getByTestId('story-introduction')).toContainText('discover who cracked it');
+  await expect(page.getByTestId('story-opening-stone')).toBeVisible();
+  await expect(page.getByTestId('button-story-intro-go')).toContainText('Start the story');
+  // Leaving before the comic does not mark the prologue complete; the setup appears again.
+  await page.getByTestId('button-story-intro-back').click();
+  await expect(page.getByTestId('stone-banner')).toBeVisible();
+  const introProgress = await page.evaluate(() => JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}').story?.prologueSeen ?? false);
+  expect(introProgress).toBe(false);
+  await page.getByTestId('button-continue-course').click();
+  await expect(page.getByTestId('story-introduction')).toBeVisible();
+  await page.getByTestId('button-story-intro-go').click();
+  await expect(page.getByTestId('story-introduction')).toHaveCount(0);
   await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away.');
   await expect(page.getByTestId('story-panel-2')).toContainText('Friend, we need you!');
   await expect(page.getByTestId('button-story-go')).toContainText('I’ll help!');
@@ -2691,6 +2710,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   // The next chapter opens with its own intro and choice.
   const next = MISSIONS.find((item) => item.unit === 3)!;
   await page.getByTestId(`button-start-mission-${next.id}`).click();
+  await expect(page.getByTestId('story-introduction')).toHaveCount(0);
   await expect(page.getByTestId('story-panel-0')).toContainText('I saw something shining at the top of the hill.');
   await expect(page.getByTestId('story-choice')).toBeVisible();
   await page.getByTestId('button-story-back').click();
@@ -2707,6 +2727,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId('stone-banner')).toHaveCount(0);
   await expect(page.getByTestId('chapter-tag-1')).toHaveCount(0);
   await page.getByTestId(`button-start-mission-${next.id}`).click();
+  await expect(page.getByTestId('story-introduction')).toHaveCount(0);
   await expect(page.getByTestId('story-comic')).toHaveCount(0);
 });
 

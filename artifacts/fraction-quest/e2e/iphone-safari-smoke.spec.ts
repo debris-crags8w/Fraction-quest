@@ -3,10 +3,15 @@ import { MISSIONS } from '../src/game';
 import { answerShape, slotsFromAnswer, SLOTS } from '../src/answer-shape';
 import { getBuildChecks, getWorksheet } from '../src/learning-content';
 
-/** A new lesson opens with story screens (the prologue once, then the chapter comic, which may ask for a choice). */
+/** A new lesson opens with story screens (the setup and prologue once, then the chapter comic, which may ask for a choice). */
 async function passStory(page: import('@playwright/test').Page) {
   for (let screen = 0; screen < 3; screen++) {
     await page.waitForTimeout(50);
+    const introGo = page.getByTestId('button-story-intro-go');
+    if (await introGo.isVisible()) {
+      await introGo.click();
+      continue;
+    }
     const go = page.getByTestId('button-story-go');
     if (!(await go.isVisible())) return;
     const choice = page.getByTestId('button-story-choice-0');

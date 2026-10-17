@@ -3,7 +3,7 @@ import test from 'node:test';
 import { MISSIONS } from './game';
 import { SECRETS } from './riddles';
 import { recordStory, type FunState } from './lib/fun';
-import { CHAPTERS, CHARACTERS, PROLOGUE, PROPS, REACTIONS, STONE_PIECES, STORY_PROBLEMS, chapterFor, lessonCliff, lessonComic, stoneQuestion, storyAsk, storyReaction, withName, type PropTheme } from './story';
+import { CHAPTERS, CHARACTERS, PROLOGUE, PROPS, REACTIONS, STONE_PIECES, STORY_PROBLEMS, WHOLE_STONE_OPENING, chapterFor, lessonCliff, lessonComic, stoneQuestion, storyAsk, storyReaction, withName, type PropTheme } from './story';
 
 const lessonsIn = (unit: number) => MISSIONS.filter((mission) => mission.unit === unit);
 
@@ -45,6 +45,16 @@ test('the mystery: clues point at Chomp, chapter 8 reveals Bolt, chapter 11 Bolt
   assert.match(chapterFor(8)!.intro.map((panel) => panel.text).join(' '), /boots.*Bolt|Bolt.*boots/);
   assert.match(chapterFor(11)!.intro[0].text, /sorry/i);
   assert.match(chapterFor(15)!.done, /whole again/i);
+});
+
+test('the story opening explains the cracked-stone quest without spoiling the mystery', () => {
+  assert.match(WHOLE_STONE_OPENING, /Whole Stone/);
+  assert.match(WHOLE_STONE_OPENING, /15 equal pieces/);
+  assert.match(WHOLE_STONE_OPENING, /scatter across town/);
+  assert.match(WHOLE_STONE_OPENING, /discover who cracked it/);
+  assert.doesNotMatch(WHOLE_STONE_OPENING, /Bolt/);
+  assert.match(withName(WHOLE_STONE_OPENING, 'Sam'), /Sam, the Whole Stone/);
+  assert.match(withName(WHOLE_STONE_OPENING, null), /Friend, the Whole Stone/);
 });
 
 test('comics: the intro opens a chapter; later lessons get the friend, the lesson and its idea', () => {
@@ -94,6 +104,7 @@ test('friend reactions cheer or encourage with words only, for every chapter fri
 
 const numbersIn = (text: string) => (text.match(/\d+/g) ?? []).sort();
 const everyStoryLine = () => [
+  WHOLE_STONE_OPENING,
   ...PROLOGUE.map((panel) => panel.text),
   ...CHAPTERS.flatMap((chapter) => [chapter.title, chapter.cliff, chapter.clue, chapter.thanks, chapter.done, chapter.card.title, chapter.card.blurb,
     ...chapter.scenes, ...chapter.cliffs, ...chapter.asks, ...chapter.intro.map((panel) => panel.text),
