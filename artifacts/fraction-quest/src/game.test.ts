@@ -3126,9 +3126,9 @@ describe('natural read-aloud voice', () => {
       const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
       assert.match(markup, /works on every device, iPhone and iPad included/);
       assert.match(markup, /radio-natural-voice-af_heart/);
-      for (const voice of ['af_aoede', 'af_sarah', 'bf_isabella', 'am_michael', 'am_puck', 'bm_george']) {
-        assert.match(markup, new RegExp(`radio-natural-voice-${voice}`));
-      }
+      for (const voice of ['am_michael', 'bf_emma']) assert.match(markup, new RegExp(`radio-natural-voice-${voice}`));
+      // Only the three pack voices are offered.
+      for (const voice of ['af_bella', 'am_puck', 'bm_george']) assert.doesNotMatch(markup, new RegExp(`radio-natural-voice-${voice}`));
       assert.doesNotMatch(markup, /paused on iPhone/);
     } finally {
       if (original) Object.defineProperty(globalThis, 'navigator', original);
@@ -3211,8 +3211,11 @@ describe('natural read-aloud voice', () => {
     setNaturalVoicePreference('off');
     assert.equal(naturalVoicePreference(), 'off');
     assert.equal(naturalVoiceStatus().state, 'off');
-    setNaturalVoicePreference('af_bella');
-    assert.equal(naturalVoicePreference(), 'af_bella');
+    setNaturalVoicePreference('am_michael');
+    assert.equal(naturalVoicePreference(), 'am_michael');
+    // A voice that is no longer offered falls back to Heart.
+    store.set('fraction-quest-natural-voice', 'af_bella');
+    assert.equal(naturalVoicePreference(), 'af_heart');
     delete (globalThis as { localStorage?: unknown }).localStorage;
   });
 });
@@ -3310,9 +3313,9 @@ describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
       const engine = await warmUpNaturalVoice();
       assert.equal(engine, serverEngine);
       assert.equal(statusCalls, 2, 'it kept asking until the server said ready');
-      const clip = await serverEngine.generate('One half.', { voice: 'af_bella', speed: 1 });
+      const clip = await serverEngine.generate('One half.', { voice: 'am_michael', speed: 1 });
       assert.equal(clip.toBlob().type, 'audio/wav');
-      assert.ok(asked.includes('/api/voice/speech?voice=af_bella&text=One%20half.'));
+      assert.ok(asked.includes('/api/voice/speech?voice=am_michael&text=One%20half.'));
     } finally {
       globalThis.fetch = originalFetch; (globalThis as { Audio?: unknown }).Audio = originalAudio;
       if (!hadWindow) Reflect.deleteProperty(globalThis, 'window');
@@ -3335,6 +3338,7 @@ describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
     const firstResponse = new Promise<Response>((resolve) => { releaseFirst = resolve; });
     globalThis.fetch = (async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      if (url.endsWith('/voice/index.json')) return new Response('', { status: 404 }); // no voice pack in this test
       asked.push(url);
       if (asked.length === 1) return firstResponse;
       return new Response(new Uint8Array([82, 73, 70, 70]), { headers: { 'Content-Type': 'audio/wav' } });
@@ -3344,6 +3348,7 @@ describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
       setNaturalVoicePreference('af_heart');
       const prefetch = prefetchNaturalVoice('af_heart', ['First sentence.', 'Second sentence.']);
       const listen = serverEngine.generate('First sentence.', { voice: 'af_heart', speed: 0.92 });
+      await new Promise((resolve) => setTimeout(resolve, 0)); // the voice pack lookup comes first
       assert.equal(asked.length, 1, 'Listen shares the in-flight prefetch request');
       releaseFirst(new Response(new Uint8Array([82, 73, 70, 70]), { headers: { 'Content-Type': 'audio/wav' } }));
       await Promise.all([prefetch, listen]);

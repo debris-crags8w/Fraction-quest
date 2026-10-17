@@ -9,11 +9,7 @@ import { copyFile, mkdir, rm } from "node:fs/promises";
 globalThis.require = createRequire(import.meta.url);
 
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
-const kokoroVoices = [
-  "af_heart", "af_bella", "af_nicole", "bf_emma",
-  "af_aoede", "af_sarah", "bf_isabella",
-  "am_michael", "am_puck", "bm_george",
-];
+const kokoroVoices = ["af_heart", "am_michael", "bf_emma"];
 
 async function copyKokoroVoiceAssets() {
   const requireFromArtifact = createRequire(import.meta.url);

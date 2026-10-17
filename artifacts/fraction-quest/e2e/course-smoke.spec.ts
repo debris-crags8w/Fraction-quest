@@ -2562,6 +2562,7 @@ test('Christmas: a snowy map, a Santa hat and scarf, candy canes, story props, a
 
   // Story text uses the Christmas props.
   await page.getByTestId('button-continue-course').click();
+  await page.getByTestId('button-story-intro-go').click();
   await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away.');
   await page.getByTestId('button-story-go').click();
   await expect(page.getByTestId('story-panel-0')).toContainText('I cut the festival Christmas cake for all 4 of us.');

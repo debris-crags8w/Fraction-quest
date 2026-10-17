@@ -63,6 +63,11 @@ export const CHARACTERS: Record<Speaker, { name: string; kind: string }> = {
   bea: { name: 'Bea', kind: 'a busy honeybee' },
 };
 
+/** The comic as read aloud. It says "friend", never the child's name: the name stays on this device, and every
+   line plays straight from the pre-made voice pack. */
+export const storyScript = (panels: Panel[], theme: PropTheme = 'everyday') =>
+  panels.map((panel) => `${CHARACTERS[panel.speaker].name} says: ${withName(panel.text, null, theme)}`).join(' ');
+
 const say = (speaker: Speaker, text: string): Panel => ({ speaker, text });
 const pick = (label: string, detail: string, speaker: Speaker, reply: string): StoryChoice => ({ label, detail, reply: say(speaker, reply) });
 
