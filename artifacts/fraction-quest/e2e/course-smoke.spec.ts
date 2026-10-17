@@ -1320,7 +1320,7 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
   const firstIntro = page.getByTestId('first-fraction-introduction');
   await expect(firstIntro).toBeVisible();
   await expect(firstIntro.getByRole('heading', { name: 'Meet fractions with Numi' })).toBeVisible();
-  await expect(firstIntro.getByText(/A fraction names equal-size parts of one whole/)).toBeVisible();
+  await expect(firstIntro.getByText(/A fraction shows equal parts of one whole/)).toBeVisible();
   await expect(page.getByTestId('first-fraction-intro-model').getByRole('img', { name: 'One whole divided into four equal-size parts' })).toBeVisible();
   await expect(firstIntro.getByTestId('button-listen-learning-text')).toBeVisible();
   await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
@@ -1603,7 +1603,8 @@ test('daily practice resumes its checked scaffold and parent report after reload
   await openMenuItem(page, 'button-start-daily-practice');
   await expect(page.locator('#daily-question-title')).toBeVisible();
   await expect(page.getByTestId('button-daily-next')).toBeVisible();
-  await expect(page.getByTestId('daily-adaptation-reason')).toContainText(started.question.adaptationReason);
+  // The grown-up reason stays in the parent report; the child never sees it.
+  await expect(page.locator('.fq-daily-card')).not.toContainText(started.question.adaptationReason);
 
   const resumed = await page.evaluate(() => {
     const progress = JSON.parse(localStorage.getItem('fraction-quest-progress-v1:guest') ?? '{}');
@@ -1949,4 +1950,49 @@ test('inside the Expo iPhone app, answer and result haptics work with sound off,
   await page.getByTestId('button-parent-print').click();
   await expect.poll(async () => (await messages()).find((m) => m.type === 'print')?.html ?? '').toMatch(/<base href=.*parent-report|<base href=[\s\S]*data-testid="parent-report"/);
   expect(await page.evaluate(() => (window as Window & { __printCalls?: number }).__printCalls)).toBe(0);
+});
+
+test('Frog Hop: a splash hops back, the best route lands with 3 flies, and Next moves through all six ponds', async ({ page }) => {
+  await openAsGuest(page);
+  await openMenuItem(page, 'button-open-concept-games');
+  await page.getByTestId('link-game-frog').click();
+  const pond = page.getByTestId('frog-pond');
+  // Reads the pond, then finds the fewest hops with the same rule as the game (hops always go toward the goal).
+  const bestRoute = async () => {
+    const goal = Number(await pond.getAttribute('data-goal'));
+    const d = Number(await pond.getAttribute('data-denominator'));
+    const end = d * Number(await pond.getAttribute('data-wholes'));
+    const cards = await page.locator('[data-testid^="button-frog-card-"]').evaluateAll((els) => els.map((el) => el.getAttribute('data-card')!));
+    const steps = cards.map((card) => { const [n, den] = card.split('/').map(Number); return (n * d) / den; });
+    const queue: { at: number; path: number[] }[] = [{ at: 0, path: [] }];
+    const seen = new Set([0]);
+    while (queue.length) {
+      const { at, path } = queue.shift()!;
+      for (const [index, size] of steps.entries()) {
+        const to = Math.max(0, Math.min(end, at + (at <= goal ? size : -size)));
+        if (to === goal) return [...path, index];
+        if (!seen.has(to)) { seen.add(to); queue.push({ at: to, path: [...path, index] }); }
+      }
+    }
+    throw new Error('no route');
+  };
+  for (let round = 0; round < 6; round++) {
+    if (round === 0) {
+      // Too big a jump first: the largest card always overshoots a goal that is not one hop away... unless it lands short.
+      await page.getByTestId('button-frog-card-0').click();
+      await page.getByTestId('button-frog-hop').click();
+      await expect(page.getByTestId('status-frog-feedback')).toContainText(/Splash|The frog is at|You landed/);
+      if (await page.getByTestId('button-frog-next').count()) { await page.getByTestId('button-frog-next').click(); continue; }
+      // Start this pond over with the planned route so it scores 3 flies.
+      await page.getByTestId('button-frog-replay').click();
+    }
+    for (const index of await bestRoute()) {
+      await page.getByTestId(`button-frog-card-${index}`).click();
+      await page.getByTestId('button-frog-hop').click();
+    }
+    await expect(page.getByTestId('status-frog-feedback')).toContainText('You landed');
+    await expect(page.getByTestId('status-frog-round-flies')).toHaveAttribute('aria-label', '3 flies');
+    await page.getByTestId('button-frog-next').click();
+  }
+  await expect(page.getByTestId('status-frog-done')).toContainText('You caught 18 of 18 flies');
 });
