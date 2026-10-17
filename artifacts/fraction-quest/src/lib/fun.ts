@@ -46,7 +46,10 @@ export type FunState = {
   displayPreferences?: DisplayPreferences;
   /** Lessons finished during each seasonal theme (key like "halloween-2026"), for costume unlocks only. */
   seasonLessons?: Record<string, string[]>;
+  /** The Whole Stone story: whether the prologue was shown, and the choice made when each chapter opened (unit → 0 or 1). */
+  story?: StoryState;
 };
+export type StoryState = { prologueSeen?: boolean; choices?: Record<string, 0 | 1> };
 export type DayActivity = { minutes: number; answered: number };
 const KEEP_DAYS = 35;
 
@@ -148,6 +151,15 @@ function cleanSeasonLessons(value: unknown): Record<string, string[]> {
   }
   return out;
 }
+function cleanStory(value: unknown): StoryState {
+  if (!value || typeof value !== 'object') return {};
+  const raw = value as Partial<StoryState>;
+  const choices: Record<string, 0 | 1> = {};
+  for (const [unit, choice] of Object.entries(raw.choices ?? {})) {
+    if (/^\d{1,2}$/.test(unit) && (choice === 0 || choice === 1)) choices[unit] = choice;
+  }
+  return { prologueSeen: raw.prologueSeen === true, choices };
+}
 const cleanLearningVoicePreference = (value: unknown): string | undefined =>
   typeof value === 'string' && value.length > 0 && value.length <= 512 ? value : undefined;
 
@@ -191,6 +203,7 @@ export function loadFun(): FunState {
       breakPreferences: cleanBreakPreferences(parsed.breakPreferences),
       displayPreferences: cleanDisplayPreferences(parsed.displayPreferences),
       seasonLessons: cleanSeasonLessons(parsed.seasonLessons),
+      story: cleanStory(parsed.story),
       activity: cleanActivity(parsed.activity),
       ...cleanGames(parsed),
     };
@@ -257,6 +270,13 @@ export function setBreakPreferences(state: FunState, preferences: BreakPreferenc
 
 export function setDisplayPreferences(state: FunState, preferences: DisplayPreferences): FunState {
   return saveFun({ ...state, displayPreferences: cleanDisplayPreferences(preferences) });
+}
+
+/** Remember story progress (the prologue, a chapter's choice). It never touches lesson progress. */
+export function recordStory(state: FunState, update: { prologueSeen?: true; unit?: number; choice?: 0 | 1 }): FunState {
+  const story = cleanStory(state.story);
+  const choices = update.unit !== undefined && update.choice !== undefined ? { ...story.choices, [String(update.unit)]: update.choice } : story.choices;
+  return saveFun({ ...state, story: { prologueSeen: story.prologueSeen || update.prologueSeen === true, choices } });
 }
 
 /** Count a finished lesson toward this season's costumes (each lesson once). Lesson progress is untouched. */
@@ -343,6 +363,7 @@ export function replaceFun(saved: Partial<FunState>): FunState {
     breakPreferences: cleanBreakPreferences(saved.breakPreferences),
     displayPreferences: cleanDisplayPreferences(saved.displayPreferences),
     seasonLessons: cleanSeasonLessons(saved.seasonLessons),
+    story: cleanStory(saved.story),
     sound: loadFun().sound,
     activity: cleanActivity(saved.activity),
     ...cleanGames(saved),

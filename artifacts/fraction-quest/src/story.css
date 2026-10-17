@@ -60,3 +60,48 @@
   .fq-story-panel > svg { width: 60px; height: 60px; }
   .fq-story-bubble p { font-size: .95rem; }
 }
+
+/* ---------- The Whole Stone ---------- */
+
+/* One bar cut into 15 equal pieces: straight dividers, no gaps, found pieces lit. */
+.fq-stone-bar { display: grid; grid-template-columns: repeat(15, minmax(0, 1fr)); column-gap: 2px; border: 3px solid #FFF6D6; border-radius: 3px; background: #FFF6D6; }
+.fq-stone-bar span { height: 26px; background: #3D3F5C; }
+.fq-stone-bar span.on { background: #FFC800; }
+.fq-stone-bar span.fresh { background: #FFE680; box-shadow: inset 0 0 0 3px #fff; animation: fq-stone-glow 1.4s ease-in-out 2; }
+@keyframes fq-stone-glow { 50% { background: #FFF6D6; } }
+
+.fq-stone-banner { display: grid; gap: 8px; margin: 0 0 16px; padding: 14px; border-radius: 18px; color: #fff; background: #2B2D42; }
+.fq-stone-banner-small { margin: 8px 0 12px; }
+.fq-stone-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.fq-stone-head h2 { margin: 0; color: #fff; font-family: var(--app-font-display); font-size: 1.15rem; }
+.fq-stone-head span { color: #D8D9EA; font-size: .9rem; }
+.fq-stone-head strong { color: #FFC800; }
+.fq-stone-clues { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: #FFE27A; }
+.fq-stone-clue { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; color: #2B2D42; background: #FFF6D6; font-size: .8rem; font-weight: 700; }
+.fq-stone-clue.empty { color: #D8D9EA; background: transparent; border: 1px dashed #6C6E8C; }
+.fq-stone-clue.new { color: #2B2D42; background: #FFF6D6; border: 2px dashed #E0B84A; }
+.fq-stone-teaser { margin: 0; color: #D8D9EA; font-size: .92rem; line-height: 1.4; }
+.fq-stone-teaser b { color: #fff; }
+
+.fq-stone-found { display: grid; gap: 8px; padding: 12px 14px; border-radius: 16px; color: #fff; background: #2B2D42; text-align: left; }
+.fq-stone-found strong { color: #FFC800; }
+.fq-stone-found b { color: #FFC800; }
+
+.fq-story-cliff { margin: 0; padding: 12px 14px; border: 3px solid #2B2D42; border-radius: 14px; color: #fff; background: #1F2147; font-weight: 700; line-height: 1.4; text-align: left; }
+.fq-story-cliff::before { content: "Next… "; color: #FFC800; }
+
+.fq-story-choice { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.fq-story-choice legend { margin-bottom: 6px; font-family: var(--app-font-display); font-size: 1.15rem; font-weight: 800; }
+.fq-story-choice button { display: grid; gap: 2px; min-height: 60px; padding: 8px 14px; border: 2px solid var(--fq-edge); border-radius: 16px; background: hsl(var(--card)); box-shadow: 0 4px 0 var(--fq-edge); color: inherit; text-align: left; cursor: pointer; }
+.fq-story-choice button strong { font-size: 1rem; }
+.fq-story-choice button span { color: hsl(var(--muted-foreground)); font-size: .88rem; }
+.fq-story-choice button.on { border: 3px solid var(--fq-go, #358000); background: #ECFBE3; box-shadow: 0 4px 0 var(--fq-go, #358000); }
+.fq-story-reply { display: flex; align-items: center; gap: 8px; margin: 2px 0 0; padding: 8px 10px; border-radius: 14px; background: #FFF6D6; font-size: .95rem; line-height: 1.35; }
+.fq-story-reply svg { flex: none; }
+.fq-story-go:disabled { opacity: .55; cursor: not-allowed; }
+
+.fq-keeper-card .fq-story-card-art { width: 96px; padding: 6px; background: #2B2D42; }
+.fq-keeper-card .fq-stone-bar span { height: 22px; }
+
+@media (prefers-reduced-motion: reduce) { .fq-stone-bar span.fresh { animation: none; } }
+:root.fq-reduced-motion .fq-stone-bar span.fresh { animation: none; }
