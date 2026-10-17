@@ -60,6 +60,22 @@
 .fq-chapter-tag { display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 0; padding: 2px 10px 2px 4px; border-radius: 999px; background: rgb(255 255 255 / .85); color: #2B2D42; font-size: .8rem; font-weight: 800; }
 .fq-chapter-tag svg { flex: none; }
 
+/* What the story problem changed, in one line. */
+.fq-reward .fq-story-result, .fq-story-result { margin: 0; padding: 10px 12px; border: 2px solid #FFC800; border-radius: 14px; color: #2B2D42; background: #FFF6D6; font-size: .95rem; font-weight: 700; line-height: 1.35; text-align: left; }
+.fq-story-result strong { color: #7A4A00; }
+
+/* The stone question after a chapter. */
+.fq-stone-question { display: grid; gap: 10px; padding: 12px 14px; border-radius: 16px; color: #fff; background: #2B2D42; text-align: left; }
+.fq-stone-question-tag { justify-self: start; padding: 2px 10px; border-radius: 999px; color: #2B2D42; background: #FFC800; font-size: .78rem; font-weight: 900; }
+.fq-stone-question h2 { margin: 0; color: #fff; font-family: var(--app-font-display); font-size: 1.15rem; line-height: 1.2; }
+.fq-stone-question u { text-decoration-color: #FFC800; }
+.fq-stone-question-choices { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.fq-stone-question-choices button { display: grid; place-items: center; min-height: 56px; border: 2px solid #6C6E8C; border-radius: 12px; color: #2B2D42; background: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.fq-stone-question-choices button.on { border: 3px solid #FFC800; background: #FFF6D6; }
+.fq-stone-question-choices button.on.missed { border-color: #FF9600; }
+.fq-stone-question-note { margin: 0; padding: 8px 10px; border-radius: 12px; color: #7A4A00; background: #FFF1D6; font-weight: 700; line-height: 1.35; }
+.fq-stone-question-check { justify-content: center; }
+
 /* Compact card, inside the stone box after a chapter. */
 .fq-story-card.is-compact { gap: 10px; padding: 8px 10px; background: #3D3F5C; }
 .fq-story-card.is-compact .fq-story-card-art { width: 48px; height: 48px; border-radius: 10px; }
@@ -137,3 +153,6 @@
 
 @media (prefers-reduced-motion: reduce) { .fq-stone-bar span.fresh { animation: none; } }
 :root.fq-reduced-motion .fq-stone-bar span.fresh { animation: none; }
+
+/* The tag on a lesson's story problem. */
+.fq-story-problem-tag { display: inline-block; margin-right: 6px; padding: 1px 9px; border-radius: 999px; color: #2B2D42; background: #FFC800; font-weight: 900; }

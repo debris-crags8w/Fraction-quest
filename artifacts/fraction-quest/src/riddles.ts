@@ -22,7 +22,7 @@ export const SECRETS = [
   'Bea knows the name of every flower in Fractionville.',
   'Hoot reads with a tiny lamp after everyone is asleep.',
   'Numi’s favorite snack is half of a sandwich. Exactly half.',
-  'I once ate a whole cake by myself. My tummy said no more cake.',
+  'I once ate a whole {cake} by myself. My tummy said no more {cake}.',
   'Bolt’s rocket boots can fly as high as the bakery roof.',
   'Pip’s lily pad has a secret drawer full of shiny pebbles.',
   'Tilly’s shell has a map of the whole town drawn on it.',

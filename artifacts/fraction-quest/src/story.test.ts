@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MISSIONS } from './game';
+import { SECRETS } from './riddles';
 import { recordStory, type FunState } from './lib/fun';
-import { CHAPTERS, CHARACTERS, PROLOGUE, REACTIONS, STONE_PIECES, chapterFor, lessonCliff, lessonComic, storyAsk, storyReaction, withName } from './story';
+import { CHAPTERS, CHARACTERS, PROLOGUE, PROPS, REACTIONS, STONE_PIECES, STORY_PROBLEMS, chapterFor, lessonCliff, lessonComic, stoneQuestion, storyAsk, storyReaction, withName, type PropTheme } from './story';
 
 const lessonsIn = (unit: number) => MISSIONS.filter((mission) => mission.unit === unit);
 
@@ -89,4 +90,56 @@ test('friend reactions cheer or encourage with words only, for every chapter fri
   assert.ok(REACTIONS.chomp.right.includes(storyReaction('chomp', 'correct', 'q-1')));
   assert.ok(REACTIONS.chomp.retry.includes(storyReaction('chomp', 'retry', 'q-1')));
   assert.equal(storyReaction('bea', 'retry', 'q-9'), storyReaction('bea', 'retry', 'q-9'));
+});
+
+const numbersIn = (text: string) => (text.match(/\d+/g) ?? []).sort();
+const everyStoryLine = () => [
+  ...PROLOGUE.map((panel) => panel.text),
+  ...CHAPTERS.flatMap((chapter) => [chapter.title, chapter.cliff, chapter.clue, chapter.thanks, chapter.done, chapter.card.title, chapter.card.blurb,
+    ...chapter.scenes, ...chapter.cliffs, ...chapter.asks, ...chapter.intro.map((panel) => panel.text),
+    ...chapter.choice.flatMap((option) => [option.label, option.detail, option.reply.text])]),
+  ...Object.values(STORY_PROBLEMS).flatMap((problem) => [problem.setup, problem.prompt, problem.result, ...(problem.choices ?? [])]),
+  ...SECRETS,
+];
+
+test('seasonal props fill every blank in every theme, and only nouns change', () => {
+  const keys = Object.keys(PROPS.everyday).sort();
+  for (const theme of Object.keys(PROPS) as PropTheme[]) {
+    assert.deepEqual(Object.keys(PROPS[theme]).sort(), keys, `${theme} has every prop`);
+    for (const value of Object.values(PROPS[theme])) assert.doesNotMatch(value, /\d/);
+    for (const line of everyStoryLine()) {
+      const filled = withName(line, 'Sam', theme);
+      assert.doesNotMatch(filled, /[{}]/, `${theme}: "${line}"`);
+      assert.deepEqual(numbersIn(filled), numbersIn(line), `${theme}: numbers stay the same in "${line}"`);
+    }
+  }
+  assert.equal(withName('I cut the festival {cake}.', null, 'halloween'), 'I cut the festival pumpkin pie.');
+  assert.equal(withName('Share the {snacks}, {name}!', 'Sam', 'everyday'), 'Share the snacks, Sam!');
+});
+
+test('story problems keep the lesson checkpoint: same numbers, same answer, words only before it', () => {
+  for (const [missionId, problem] of Object.entries(STORY_PROBLEMS)) {
+    const mission = MISSIONS.find((item) => item.id === missionId);
+    assert.ok(mission, `${missionId} is a lesson`);
+    assert.ok(chapterFor(mission.unit), `${missionId} is in a chapter`);
+    const checkpoint = mission.questions[mission.questions.length - 1];
+    assert.deepEqual(numbersIn(problem.prompt), numbersIn(checkpoint.prompt), `${missionId}: the prompt keeps every number`);
+    if (problem.choices) {
+      assert.equal(problem.choices.length, checkpoint.choices.length);
+      problem.choices.forEach((choice, index) => assert.deepEqual(numbersIn(choice), numbersIn(checkpoint.choices[index]), `${missionId}: choice ${index}`));
+    }
+    assert.doesNotMatch(problem.setup, /\d/, `${missionId}: the setup line cannot hint`);
+    for (const text of [problem.setup, problem.prompt, problem.result]) assert.ok(text.length <= 120, text);
+  }
+  // Chapters 1 to 5 have a story problem in every lesson.
+  for (const mission of MISSIONS.filter((item) => item.unit <= 5)) assert.ok(STORY_PROBLEMS[mission.id], `${mission.id} has a story problem`);
+});
+
+test('the stone question: the right fraction once, with three mix-ups, for every chapter', () => {
+  for (let found = 1; found <= STONE_PIECES; found++) {
+    const { choices, correct } = stoneQuestion(found);
+    assert.equal(choices.length, 4);
+    assert.equal(new Set(choices).size, 4);
+    assert.equal(choices[correct], `${found}/${STONE_PIECES}`);
+  }
 });

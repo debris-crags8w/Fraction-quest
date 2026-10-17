@@ -1422,6 +1422,31 @@ test('replaying the first lesson and skipping its hands-on rounds preserves save
   expect(progress.learning).toEqual(savedProgress.learning);
 });
 
+test('a lesson ends with its story problem, told with the season’s props (pumpkin pies at Halloween)', async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0, 0));
+  await openAsGuest(page);
+  const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
+  await openDeveloperLesson(page, mission);
+  if (PART_FINDER_LESSONS.has(mission.id)) await completePartFinderLesson(page, mission.id);
+  const before = [
+    ...mission.questions.slice(0, -1),
+    ...(hasGenerator(mission.id) ? getExtraPractice(mission.id, mission.questions.map((question) => question.id)).slice(0, 4) : []),
+  ];
+  for (const question of before) {
+    await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
+    await page.getByTestId('button-check-answer').click();
+    await page.getByTestId('button-next-question').click();
+  }
+  const last = mission.questions.at(-1)!;
+  await expect(page.getByTestId('story-problem-tag')).toHaveText('Story problem');
+  await expect(page.getByTestId('story-line')).toContainText('The baker gave me a pumpkin pie to share.');
+  await expect(page.locator('#lesson-title')).toContainText('Chomp cut a pumpkin pie into 5 equal pieces. What is 1 piece?');
+  await page.getByTestId(`button-answer-${last.id}-${last.correctChoice}`).click();
+  await page.getByTestId('button-check-answer').click();
+  await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+});
+
 test('the first fraction introduction uses natural read-aloud language', async ({ page }) => {
   await openAsGuest(page);
   const firstLesson = MISSIONS.find((mission) => mission.id === 'equal-parts')!;
@@ -2581,6 +2606,16 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   if (await breakOverlay.isVisible()) await page.getByTestId('button-break-skip').click();
   const payoff = page.getByTestId('story-payoff');
   await expect(payoff).toContainText('Best party ever! And we found the stone piece!');
+  // The story problem changed the story: its picture and what the answer did.
+  await expect(payoff.getByTestId('story-problem-result')).toContainText('The guests ate 9 snacks. Half the bowl is still left!');
+  // The stone question comes first: a miss gets a kind nudge, the right fraction shows the piece.
+  await expect(payoff.getByTestId('stone-found')).toHaveCount(0);
+  await expect(payoff.getByTestId('stone-question')).toContainText('How much of the Whole Stone is back?');
+  await payoff.getByTestId('button-stone-choice-0').click();
+  await payoff.getByTestId('button-stone-check').click();
+  await expect(payoff.getByTestId('stone-question-feedback')).toContainText('Good try!');
+  await payoff.getByTestId('button-stone-choice-2').click();
+  await payoff.getByTestId('button-stone-check').click();
   await expect(payoff.getByTestId('stone-found')).toContainText('2/15');
   await expect(payoff.getByTestId('stone-new-clue')).toContainText('A big green tail by the pond');
   await expect(payoff.getByTestId('story-card-2')).toContainText('Pip the party host');
