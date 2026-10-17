@@ -74,6 +74,12 @@ In coding challenges, hints are diagnostic support, not evidence of independent 
 
 **How to apply:** Keep hint rendering separate from level-passing and progress-saving logic; a hint may guide one next step, but only a qualifying run can pass the challenge.
 
+Seasonal themes (Halloween first) dress the app up without touching the math: Numi's costume, a night map with jack-o'-lantern nodes, candy points, a short Numi story line on questions, Frog Hop's moonlit swamp, and costumes earned by finishing lessons during the season.
+
+**Why:** The user wanted fun characters and holiday themes so kids treat lessons as games rather than chores.
+
+**How to apply:** Keep every theme cosmetic (`src/seasons.ts`, `src/season.css`, `:root[data-fq-season]`). Never change questions, answers, models or unlocking; keep cards and models light for readability; story lines must not contain numbers or hints. Grown-ups can turn themes off in Reading and display (`displayPreferences.seasonalThemes`), and high contrast skips the night background.
+
 Story quest: each unit is a chapter where Numi and Hoot help a friend (Chomp, Pip, Tilly, Bolt, Bea). A 3-panel comic opens a lesson the first time it starts, the friend says a short line on questions, the reward shows a thank-you, and finishing a chapter unlocks its character card.
 
 **Why:** The user wanted fun characters that make kids treat lessons as games rather than chores.

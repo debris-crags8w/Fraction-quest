@@ -187,3 +187,43 @@ button.cg-cell:focus-visible { outline:3px solid var(--fq-grape,#7c4dff); outlin
 @keyframes fh-glow { 0%,100% { box-shadow:0 0 0 4px rgb(255 255 255 / .6), 0 0 10px 2px #b6ff8a; } 50% { box-shadow:0 0 0 4px rgb(255 255 255 / .9), 0 0 18px 7px #b6ff8a; } }
 @keyframes fh-snap { 50% { transform:translateX(-6px) rotate(8deg); } }
 @media (prefers-reduced-motion: reduce) { .fh-frog-spot, .fh-croc { transition:none; } .fh-frog.is-hopping, .fh-frog.is-splash, .fh-pad, .fh-croc.is-snap { animation:none; } }
+
+/* Stack the Tower */
+.st-incoming { display:flex; flex-direction:column; align-items:center; gap:4px; margin:10px 0 4px; }
+.st-incoming-label { color:var(--cg-muted); font-size:.85rem; font-weight:850; }
+.st-drag { width:min(100%,300px); touch-action:none; cursor:grab; }
+.st-drag.is-dragging { position:relative; z-index:5; cursor:grabbing; opacity:.9; }
+.st-block { display:flex; align-items:center; gap:10px; width:100%; min-height:44px; padding:5px 10px; border:2px solid var(--cg-edge); border-radius:12px; background:hsl(var(--card)); color:var(--cg-ink); box-shadow:0 3px 0 var(--cg-edge); box-sizing:border-box; }
+.st-block .cg-fraction { min-width:30px; font-size:1.1rem; }
+.st-bar { position:relative; display:grid; flex:1; grid-template-columns:repeat(var(--parts),minmax(0,1fr)); column-gap:2px; border:3px solid hsl(var(--foreground)); border-radius:3px; background:hsl(var(--foreground)); }
+.st-cell { height:20px; background:hsl(var(--card)); }
+.st-cell.is-shaded { background:#FFC800; }
+/* The ½ mark sits on every bar: the benchmark to compare with. */
+.st-half { position:absolute; top:-7px; bottom:-7px; left:50%; width:0; border-left:3px dashed #e5484d; transform:translateX(-1.5px); }
+.st-tower { display:flex; flex-direction:column; align-items:center; width:min(100%,300px); margin:2px auto 0; }
+.st-tower .st-block.is-placed { width:100%; }
+.st-tower .st-block.is-new { animation:st-drop 360ms cubic-bezier(.3,.7,.4,1); }
+.st-gap { display:flex; align-items:center; justify-content:center; width:100%; min-height:26px; padding:3px 0; border:0; background:transparent; cursor:pointer; }
+.st-gap-line { width:70%; height:0; border-top:3px dashed color-mix(in srgb,var(--cg-muted) 55%,transparent); border-radius:2px; }
+.st-gap:hover .st-gap-line,.st-gap:focus-visible .st-gap-line { border-top-color:var(--fq-go,#358000); }
+.st-gap:focus-visible { outline:3px solid var(--fq-sky,#1cb0f6); outline-offset:1px; border-radius:10px; }
+.st-gap-here { width:100%; padding:1px 0; border-radius:8px; color:#fff; background:var(--fq-go,#358000); font-size:.8rem; font-weight:900; line-height:1.2; }
+.st-ground { display:block; width:112%; height:10px; margin-top:2px; border-radius:6px; background:#8B5E34; box-shadow:0 3px 0 #5f3e21; }
+.st-tower.is-wobbling { animation:st-wobble 420ms ease; transform-origin:50% 100%; }
+.st-tower.is-toppled { overflow:hidden; padding-top:6px; }
+.st-tower.is-toppled .st-block { animation:st-topple 700ms ease-in forwards; }
+.st-tower.is-toppled .st-block:nth-of-type(2n) { animation-name:st-topple-left; }
+.st-stars { margin:8px 0 0; font-size:1.7rem; letter-spacing:4px; }
+@keyframes st-drop { from { transform:translateY(-22px); opacity:.4; } to { transform:none; opacity:1; } }
+@keyframes st-wobble { 0%,100% { transform:rotate(0); } 25% { transform:rotate(-4deg); } 60% { transform:rotate(3deg); } 85% { transform:rotate(-1.5deg); } }
+@keyframes st-topple { to { transform:translate(24px,8px) rotate(9deg); opacity:.35; } }
+@keyframes st-topple-left { to { transform:translate(-24px,8px) rotate(-9deg); opacity:.35; } }
+@media (max-width:520px) { .st-incoming { margin:4px 0 0; gap:2px; } .st-block { min-height:36px; padding:3px 10px; } .st-block .cg-fraction { font-size:1rem; } .st-cell { height:15px; } .st-gap { min-height:22px; padding:2px 0; } }
+@media (prefers-reduced-motion: reduce) { .st-tower.is-wobbling, .st-tower .st-block.is-new, .st-tower.is-toppled .st-block { animation:none; } .st-tower.is-toppled .st-block { opacity:.45; } }
+
+/* Frog Hop at Halloween: a moonlit swamp. */
+.fh-pond.is-halloween { background: radial-gradient(circle at 88% 22%, #FFF1B8 0 22px, transparent 23px), #12203A; }
+.fh-pond.is-halloween .fh-water { background: #0F2D3A; }
+.fh-pond.is-halloween .fh-line, .fh-pond.is-halloween .fh-tick { background: #FFF6E5; }
+.fh-pond.is-halloween .fh-croc { filter: drop-shadow(0 0 6px #FFE27A); }
+.fh-pond.is-halloween .fh-frog { width: 44px; height: 47px; }

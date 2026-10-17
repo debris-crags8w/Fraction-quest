@@ -5,6 +5,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 
 import './index.css';
 import './theme-pop.css';
+import './season.css';
 import './story.css';
 import './answer-tiles.css';
 
