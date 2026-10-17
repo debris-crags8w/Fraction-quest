@@ -1,0 +1,131 @@
+name: Voice pack
+
+# Makes the pre-made Kokoro voice pack: every fixed sentence the app reads, in each pack voice, as small MP3s in
+# artifacts/fraction-quest/public/voice. Run it by hand from the Actions tab after lesson or story text changes.
+# Only new sentences are made; audio for removed sentences is deleted. The result arrives as a pull request.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: voice-pack
+  cancel-in-progress: false
+
+jobs:
+  sentences:
+    name: List sentences
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: List every fixed sentence
+        working-directory: artifacts/fraction-quest
+        run: |
+          pnpm exec tsx scripts/voice-sentences.ts > "$RUNNER_TEMP/sentences.json"
+          node -e 'const s=require(process.argv[1]); console.log(`${s.length} sentences`)' "$RUNNER_TEMP/sentences.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sentences
+          path: ${{ runner.temp }}/sentences.json
+
+  render:
+    name: Render ${{ matrix.voice }} (${{ matrix.shard }}/4)
+    needs: sentences
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        voice: [af_heart, am_michael, bf_emma]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: sentences
+          path: ${{ runner.temp }}
+      - name: Make the missing MP3s
+        working-directory: artifacts/api-server
+        run: |
+          touch "$RUNNER_TEMP/started"
+          pnpm exec tsx scripts/render-voice-pack.ts "$RUNNER_TEMP/sentences.json" ../fraction-quest/public/voice ${{ matrix.voice }} ${{ matrix.shard }} 4
+          mkdir -p "$RUNNER_TEMP/new/${{ matrix.voice }}"
+          find ../fraction-quest/public/voice/${{ matrix.voice }} -name '*.mp3' -newer "$RUNNER_TEMP/started" -exec cp {} "$RUNNER_TEMP/new/${{ matrix.voice }}/" \;
+          echo "New files: $(ls "$RUNNER_TEMP/new/${{ matrix.voice }}" | wc -l)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voice-${{ matrix.voice }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/new
+          if-no-files-found: ignore
+          retention-days: 3
+
+  publish:
+    name: Open the voice pack pull request
+    needs: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: sentences
+          path: ${{ runner.temp }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: voice-*
+          path: artifacts/fraction-quest/public/voice
+          merge-multiple: true
+      - name: Remove old audio and write the index
+        working-directory: artifacts/fraction-quest
+        run: |
+          pnpm exec tsx scripts/voice-pack-index.ts "$RUNNER_TEMP/sentences.json" public/voice | tee "$RUNNER_TEMP/summary.txt"
+          du -sh public/voice/* | tee -a "$RUNNER_TEMP/summary.txt"
+      - name: Commit and open a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add -A artifacts/fraction-quest/public/voice
+          if git diff --cached --quiet; then echo "The voice pack is already up to date."; exit 0; fi
+          branch="voice-pack/${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git commit -q -m "Update the pre-made voice pack" -m "$(cat "$RUNNER_TEMP/summary.txt")"
+          git push -u origin "$branch"
+          gh pr create --base main --head "$branch" --title "Update the pre-made voice pack" \
+            --body "Made by the Voice pack workflow (run ${{ github.run_id }}).
+
+          \`\`\`
+          $(cat "$RUNNER_TEMP/summary.txt")
+          \`\`\`" \
+            || echo "::warning::Pushed $branch but could not open the pull request. Open it from the branch page, or allow GitHub Actions to create pull requests in the repository settings."
