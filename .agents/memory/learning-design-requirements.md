@@ -79,3 +79,9 @@ Seasonal themes (Halloween first) dress the app up without touching the math: Nu
 **Why:** The user wanted fun characters and holiday themes so kids treat lessons as games rather than chores.
 
 **How to apply:** Keep every theme cosmetic (`src/seasons.ts`, `src/season.css`, `:root[data-fq-season]`). Never change questions, answers, models or unlocking; keep cards and models light for readability; story lines must not contain numbers or hints. Grown-ups can turn themes off in Reading and display (`displayPreferences.seasonalThemes`), and high contrast skips the night background.
+
+Story quest: each unit is a chapter where Numi and Hoot help a friend (Chomp, Pip, Tilly, Bolt, Bea). A 3-panel comic opens a lesson the first time it starts, the friend says a short line on questions, the reward shows a thank-you, and finishing a chapter unlocks its character card.
+
+**Why:** The user wanted fun characters that make kids treat lessons as games rather than chores.
+
+**How to apply:** Story is a frame only (`src/story.ts`, `src/story-ui.tsx`): it never changes questions, answers or unlocking, and cards come from lesson progress, not new saved state. Question lines must not contain numbers or hints. The comic always ends with an explicit button. Grown-ups can turn it off in Reading and display (`displayPreferences.storyMode`).

@@ -12,6 +12,14 @@ import { makeSprint } from '../src/CodeSprint';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
 
+/** A lesson started for the first time opens with its story comic; press its button to go on to the lesson. */
+async function passStory(page: import('@playwright/test').Page) {
+  const go = page.getByTestId('button-story-go');
+  await page.waitForTimeout(50);
+  if (await go.isVisible()) await go.click();
+}
+
+
 /** Practice, games, check-ins and grown-ups live in the top bar's "More" menu. */
 async function openMenuItem(page: import('@playwright/test').Page, testId: string) {
   await page.getByTestId('button-app-menu').click();
@@ -1036,6 +1044,7 @@ for (const viewport of [
     await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
     await expectMissionStart(page, mission.id, true);
     await page.getByTestId(`button-start-mission-${mission.id}`).click();
+    await passStory(page);
     await expect(page.getByTestId('learning-lab')).toBeVisible();
 
     const check = getBuildChecks(mission.id)[0];
@@ -1072,6 +1081,7 @@ for (const viewport of [
     await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
     await expectMissionStart(page, mission.id, true);
     await page.getByTestId(`button-start-mission-${mission.id}`).click();
+    await passStory(page);
 
     const reopenedCheck = page.getByTestId(`check-${check.id}`);
     await expect(reopenedCheck.locator('.fq-ll-check-passed')).toHaveText('Passed');
@@ -1092,6 +1102,7 @@ for (const viewport of [
     await page.getByTestId('button-lab-back').click();
     await expectMissionStart(page, mission.id, true);
     await page.getByTestId(`button-start-mission-${mission.id}`).click();
+    await passStory(page);
     if (nextCheck) {
       const resumedCheck = page.getByTestId(`check-${nextCheck.id}`);
       await expect(resumedCheck).toBeVisible();
@@ -1260,6 +1271,7 @@ for (const missionId of unitRepresentativeIds) {
     if (gateBoundaryMission) await expectMissionStart(page, gateBoundaryMission.id, false);
     await expectMissionStart(page, mission.id, true);
     await page.getByTestId(`button-start-mission-${mission.id}`).click();
+    await passStory(page);
     await expect(page.getByTestId('learning-lab')).toBeVisible();
 
     await completeBuilds(page, mission.id);
@@ -1271,6 +1283,7 @@ for (const missionId of unitRepresentativeIds) {
     if (gateBoundaryMission) await expectMissionStart(page, gateBoundaryMission.id, false);
     await expectMissionStart(page, mission.id, true);
     await page.getByTestId(`button-start-mission-${mission.id}`).click();
+    await passStory(page);
     await expect(page.getByTestId('section-worksheet')).toBeVisible();
 
     const worksheet = getWorksheet(mission.id);
@@ -1297,6 +1310,7 @@ for (const missionId of unitRepresentativeIds) {
       await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
       await expectMissionStart(page, mission.id, true);
       await page.getByTestId(`button-start-mission-${mission.id}`).click();
+      await passStory(page);
       await expect(page.getByTestId('section-worksheet')).toBeVisible();
       await expect(page.getByTestId(`worksheet-progress-${problem.id}`)).toHaveClass(/retry/);
     }
@@ -1344,6 +1358,7 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
 
   await page.getByTestId('button-continue-course').click();
+  await passStory(page);
   await expect(page.locator('.fq-taskbar-title')).toHaveText('Make fair shares');
   const firstIntro = page.getByTestId('first-fraction-introduction');
   await expect(firstIntro).toBeVisible();
@@ -1362,6 +1377,7 @@ test('the first fraction introduction stays complete when reduced motion is enab
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openAsGuest(page);
   await page.getByTestId('button-continue-course').click();
+  await passStory(page);
 
   await expect(page.getByTestId('first-fraction-introduction')).toBeVisible();
   await expect(page.getByTestId('first-fraction-intro-model').getByRole('img', { name: 'One whole divided into four equal-size parts' })).toBeVisible();
@@ -1384,6 +1400,7 @@ test('replaying the first lesson and skipping its hands-on rounds preserves save
   await openAsGuest(page);
   await page.getByTestId('button-node-equal-parts').click();
   await page.getByTestId('button-start-mission-equal-parts').click();
+  await passStory(page);
 
   await expect(page.locator('.fq-taskbar-title')).toHaveText('Make fair shares');
   await expect(page.getByTestId('first-fraction-introduction')).toBeVisible();
@@ -1463,6 +1480,7 @@ test('learners can correct a wrong answer across every lesson model type', async
     if (!mission) throw new Error('Missing lesson for a question model type');
     await page.getByTestId(`button-node-${mission.id}`).click();
     await page.getByTestId(`button-start-mission-${mission.id}`).click();
+    await passStory(page);
     if (PART_FINDER_LESSONS.has(mission.id)) await page.getByTestId('button-hands-on-skip').click();
     else await expect(page.getByTestId('lesson-example')).toBeVisible();
 
@@ -1672,6 +1690,7 @@ test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, 
   });
   await openAsGuest(page);
   await page.getByTestId('button-continue-course').click();
+  await passStory(page);
   await expect(page.getByTestId('button-hands-on-skip')).toHaveCount(0);
   await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
   await expect(page.locator('.fq-pf-lesson-example .fq-example-heading')).toHaveText(MISSIONS[0].title);
@@ -1931,7 +1950,9 @@ test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried 
   const mission = MISSIONS[1];
   const question = mission.questions[0];
   await page.getByTestId('button-continue-course').or(page.getByTestId('button-jump-current')).first().click();
+  await passStory(page);
   if (await page.getByTestId(`button-start-mission-${mission.id}`).count()) await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await passStory(page);
   await expect(page.getByTestId('lesson-example')).toBeVisible();
   const wrong = (question.correctChoice + 1) % question.choices.length;
   await page.getByTestId(`button-answer-${question.id}-${wrong}`).click();
@@ -1959,7 +1980,9 @@ test('inside the Expo iPhone app, answer and result haptics work with sound off,
   const mission = MISSIONS[1];
   const question = mission.questions[0];
   await page.getByTestId('button-continue-course').or(page.getByTestId('button-jump-current')).first().click();
+  await passStory(page);
   if (await page.getByTestId(`button-start-mission-${mission.id}`).count()) await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await passStory(page);
   if (await page.getByTestId('button-start-practice').count()) await page.getByTestId('button-start-practice').click();
   await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
   await expect.poll(async () => (await messages()).some((m) => m.type === 'haptic' && m.cue === 'selection')).toBe(true);
@@ -2438,6 +2461,7 @@ test('Halloween: the night map, costumes earned by finishing lessons, candy poin
 
   // Finishing a lesson earns the bat wings.
   await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await passStory(page);
   await expect(page.getByTestId('learning-lab')).toBeVisible();
   await completeBuilds(page, mission.id);
   for (const problem of getWorksheet(mission.id)) {
@@ -2474,4 +2498,85 @@ test('Halloween: the night map, costumes earned by finishing lessons, candy poin
   await expect(page.getByTestId('season-banner')).toHaveCount(0);
   await expect(page.locator('html')).not.toHaveAttribute('data-fq-season', 'halloween');
   await expect(page.getByTestId('status-xp')).toContainText('XP');
+});
+
+test('Story quest: a comic before a new lesson, a friend on questions, a payoff with a character card, and a grown-up off switch', async ({ page }) => {
+  test.setTimeout(120_000);
+  // Outside a seasonal theme, so the story friend (not the holiday line) speaks on questions.
+  await page.clock.setFixedTime(new Date(2026, 2, 10, 10, 0, 0));
+  await openAsGuest(page);
+
+  // The map names each unit's chapter; a brand-new lesson opens with the chapter's intro comic.
+  await expect(page.getByTestId('chapter-tag-1')).toContainText('Chapter 1 · The bakery mix-up');
+  await page.getByTestId('button-continue-course').click();
+  const comic = page.getByTestId('story-comic');
+  await expect(comic).toBeVisible();
+  await expect(page.getByTestId('story-panel-0')).toContainText('The big piece is mine!');
+  await expect(page.getByTestId('story-panel-2')).toContainText('Fair shares are equal parts');
+  await page.getByTestId('button-story-go').click();
+  await expect(comic).toHaveCount(0);
+  await expect(page.getByTestId('lesson-example').or(page.getByTestId('first-fraction-introduction')).first()).toBeVisible();
+
+  // A later lesson's comic: the friend, the lesson and its idea.
+  const second = MISSIONS[1];
+  const seeded = progressBefore(second) as { learning: Record<string, unknown> };
+  delete seeded.learning[second.id];
+  await page.evaluate((progress) => localStorage.setItem('fraction-quest-progress-v1:guest', JSON.stringify(progress)), seeded);
+  await page.goto('/');
+  await page.getByTestId(`button-start-mission-${second.id}`).click();
+  await expect(page.getByTestId('story-panel-0')).toContainText('I have more cakes to cut.');
+  await expect(page.getByTestId('story-panel-1')).toContainText(`Today’s lesson is ${second.title.charAt(0).toLowerCase()}`);
+  await expect(page.getByTestId('story-panel-2')).toContainText(second.skill.split(' ').slice(-4).join(' '));
+  await page.getByTestId('button-story-back').click();
+
+  // Questions carry the chapter friend's short line.
+  await page.getByTestId(`button-practice-more-${second.id}`).click();
+  await expect(page.getByTestId('story-line')).toBeVisible();
+
+  // Finishing a chapter's last lesson unlocks its card (Pip, after chapter 2).
+  const mission = MISSIONS.find((item) => item.id === 'sets-nonunit')!;
+  await page.evaluate((progress) => localStorage.setItem('fraction-quest-progress-v1:guest', JSON.stringify(progress)), progressBefore(mission));
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+  await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await expect(page.getByTestId('learning-lab')).toBeVisible();
+  await completeBuilds(page, mission.id);
+  for (const problem of getWorksheet(mission.id)) {
+    await buildWorksheetModel(page, problem);
+    await enterWorksheetAnswer(page, problem, problem.answer);
+    await expect(page.getByTestId(`status-worksheet-${problem.id}`)).toContainText('Correct!');
+  }
+  await page.getByTestId('button-lab-finish').click();
+  const breakOverlay = page.getByTestId('brain-break-overlay');
+  if (await breakOverlay.isVisible()) await page.getByTestId('button-break-skip').click();
+  const payoff = page.getByTestId('story-payoff');
+  await expect(payoff).toContainText('Best party ever! Every group was fair.');
+  await expect(payoff.getByTestId('story-card-2')).toContainText('Pip the party host');
+  await page.getByTestId('button-return-map').click();
+
+  // The cards screen shows finished chapters unlocked and later ones locked.
+  await openMenuItem(page, 'button-open-story-cards');
+  await expect(page.getByText('2 of 15')).toBeVisible();
+  await expect(page.getByTestId('story-card-1')).toContainText('Chomp the sneaky sharer');
+  await expect(page.getByTestId('story-card-3')).toContainText('Finish “Tilly’s halfway hill” to unlock this card.');
+  await page.getByTestId('button-cards-back').click();
+
+  // The next chapter's first lesson opens with that chapter's intro.
+  const next = MISSIONS.find((item) => item.unit === 3)!;
+  await page.getByTestId(`button-start-mission-${next.id}`).click();
+  await expect(page.getByTestId('story-panel-0')).toContainText('I’m climbing the hill slowly.');
+  await page.getByTestId('button-story-back').click();
+
+  // A grown-up can turn story mode off: no chapter tags, and new lessons start without a comic.
+  await page.goto('/');
+  await openMenuItem(page, 'button-open-parent');
+  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+  await page.getByTestId('checkbox-story-mode').uncheck();
+  await page.goto('/');
+  await expect(page.getByTestId('chapter-tag-1')).toHaveCount(0);
+  await page.getByTestId(`button-start-mission-${next.id}`).click();
+  await expect(page.getByTestId('story-comic')).toHaveCount(0);
 });
