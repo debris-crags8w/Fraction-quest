@@ -129,10 +129,11 @@ test('story problems keep the lesson checkpoint: same numbers, same answer, word
       problem.choices.forEach((choice, index) => assert.deepEqual(numbersIn(choice), numbersIn(checkpoint.choices[index]), `${missionId}: choice ${index}`));
     }
     assert.doesNotMatch(problem.setup, /\d/, `${missionId}: the setup line cannot hint`);
-    for (const text of [problem.setup, problem.prompt, problem.result]) assert.ok(text.length <= 120, text);
+    for (const text of [problem.setup, problem.result]) assert.ok(text.length <= 120, text);
+    assert.ok(problem.prompt.length <= 140, problem.prompt);
   }
-  // Chapters 1 to 5 have a story problem in every lesson.
-  for (const mission of MISSIONS.filter((item) => item.unit <= 5)) assert.ok(STORY_PROBLEMS[mission.id], `${mission.id} has a story problem`);
+  // Every lesson in every chapter ends with a story problem.
+  for (const mission of MISSIONS) assert.ok(STORY_PROBLEMS[mission.id], `${mission.id} has a story problem`);
 });
 
 test('the stone question: the right fraction once, with three mix-ups, for every chapter', () => {
