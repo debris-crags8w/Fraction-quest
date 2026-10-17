@@ -32,3 +32,25 @@ test('Fraction War mixes same-numerator, same-denominator and equal pairs the ba
   assert.ok(WAR_ROUNDS.flat().every(f => WAR_PARTS.includes(f.d)));
   assert.match(warHint({ n: 3, d: 4 }, { n: 3, d: 8 }), /bigger/);
 });
+
+test('Fraction Line-Up rounds share a denominator or numerator, have four distinct cards and never start in order', async () => {
+  const { LINE_UP_ROUNDS, lineUpHint, lineUpInOrder, lineUpRound } = await import('./concept-games');
+  for (const mode of ['same-denominator', 'same-numerator', 'mixed'] as const) {
+    for (let seed = 1; seed <= 40; seed++) {
+      for (let index = 0; index < LINE_UP_ROUNDS; index++) {
+        const round = lineUpRound(mode, seed, index);
+        assert.equal(round.cards.length, 4);
+        assert.equal(new Set(round.cards.map(({ n, d }) => n / d)).size, 4, 'four different amounts');
+        const shared = round.rule === 'same-denominator' ? new Set(round.cards.map(({ d }) => d)) : new Set(round.cards.map(({ n }) => n));
+        assert.equal(shared.size, 1, `${round.rule} shares one number`);
+        assert.ok(round.cards.every(({ n, d }) => n > 0 && n < d && d <= 12));
+        assert.ok(!lineUpInOrder(round.cards, 'smallest') && !lineUpInOrder(round.cards, 'biggest'), 'never already in order');
+        if (mode !== 'mixed') assert.equal(round.rule, mode);
+        assert.doesNotMatch(lineUpHint(round), /\d+\/\d+/, 'the hint names no fraction');
+      }
+    }
+  }
+  assert.equal(lineUpInOrder([{ n: 2, d: 8 }, { n: 2, d: 5 }, { n: 2, d: 3 }], 'smallest'), true);
+  assert.equal(lineUpInOrder([{ n: 2, d: 3 }, { n: 2, d: 5 }, { n: 2, d: 8 }], 'biggest'), true);
+  assert.equal(lineUpInOrder([{ n: 1, d: 8 }, { n: 3, d: 8 }, { n: 2, d: 8 }], 'smallest'), false);
+});
