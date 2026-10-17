@@ -65,6 +65,10 @@ function DisplaySettings({ preferences, onChange }: { preferences: DisplayPrefer
         <span><strong>Reduce motion</strong><small>Use fewer animations and transitions.</small></span>
         <input type="checkbox" checked={preferences.reducedMotion} onChange={(event) => onChange({ ...preferences, reducedMotion: event.target.checked })} />
       </label>
+      <label className="fq-display-setting">
+        <span><strong>Story mode</strong><small>Short comics with Numi’s friends before and after lessons. Lessons and answers stay the same.</small></span>
+        <input type="checkbox" checked={preferences.storyMode !== false} onChange={(event) => onChange({ ...preferences, storyMode: event.target.checked })} data-testid="checkbox-story-mode" />
+      </label>
     </section>
   );
 }

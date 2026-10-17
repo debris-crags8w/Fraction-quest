@@ -3,6 +3,14 @@ import { MISSIONS } from '../src/game';
 import { answerShape, slotsFromAnswer, SLOTS } from '../src/answer-shape';
 import { getBuildChecks, getWorksheet } from '../src/learning-content';
 
+/** A lesson started for the first time opens with its story comic; press its button to go on to the lesson. */
+async function passStory(page: import('@playwright/test').Page) {
+  const go = page.getByTestId('button-story-go');
+  await page.waitForTimeout(50);
+  if (await go.isVisible()) await go.click();
+}
+
+
 const lesson = MISSIONS.find((mission) => mission.id === 'fraction-magnitude');
 if (!lesson) throw new Error('The representative phone Safari lesson is missing');
 
@@ -61,6 +69,7 @@ async function openLesson(page: import('@playwright/test').Page, resumeWorksheet
   if (await node.getAttribute('aria-expanded') !== 'true') await node.click({ force: true });
   await expect(node).toHaveAttribute('aria-expanded', 'true');
   await page.getByTestId(`button-start-mission-${lesson.id}`).click();
+  await passStory(page);
   if (resumeWorksheet) {
     await expect(page.getByTestId('learning-lab')).toBeVisible();
     await expect(page.getByTestId('section-worksheet')).toBeVisible();

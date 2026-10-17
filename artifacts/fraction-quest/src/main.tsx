@@ -5,6 +5,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 
 import './index.css';
 import './theme-pop.css';
+import './story.css';
 import './answer-tiles.css';
 
 createRoot(document.getElementById('root')!, {

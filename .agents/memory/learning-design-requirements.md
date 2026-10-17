@@ -73,3 +73,9 @@ In coding challenges, hints are diagnostic support, not evidence of independent 
 **Why:** The user explicitly required robot hints to support retries without awarding success or revealing a complete solution.
 
 **How to apply:** Keep hint rendering separate from level-passing and progress-saving logic; a hint may guide one next step, but only a qualifying run can pass the challenge.
+
+Story quest: each unit is a chapter where Numi and Hoot help a friend (Chomp, Pip, Tilly, Bolt, Bea). A 3-panel comic opens a lesson the first time it starts, the friend says a short line on questions, the reward shows a thank-you, and finishing a chapter unlocks its character card.
+
+**Why:** The user wanted fun characters that make kids treat lessons as games rather than chores.
+
+**How to apply:** Story is a frame only (`src/story.ts`, `src/story-ui.tsx`): it never changes questions, answers or unlocking, and cards come from lesson progress, not new saved state. Question lines must not contain numbers or hints. The comic always ends with an explicit button. Grown-ups can turn it off in Reading and display (`displayPreferences.storyMode`).

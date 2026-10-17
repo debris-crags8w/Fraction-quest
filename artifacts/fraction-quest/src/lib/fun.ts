@@ -12,9 +12,9 @@ export const DAILY_GOAL = 10;
 
 export type BreakIntervalMinutes = 0 | 10 | 15 | 20;
 export type BreakPreferences = { intervalMinutes: BreakIntervalMinutes; quietMode: boolean };
-export type DisplayPreferences = { textSize: 'standard' | 'large'; highContrast: boolean; reducedMotion: boolean };
+export type DisplayPreferences = { textSize: 'standard' | 'large'; highContrast: boolean; reducedMotion: boolean; /** Story comics with Numi's friends around lessons (on unless a grown-up turns them off). */ storyMode?: boolean };
 const DEFAULT_BREAK_PREFERENCES: BreakPreferences = { intervalMinutes: 15, quietMode: false };
-const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = { textSize: 'standard', highContrast: false, reducedMotion: false };
+const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = { textSize: 'standard', highContrast: false, reducedMotion: false, storyMode: true };
 
 export type FunState = {
   xp: number;
@@ -61,6 +61,7 @@ function cleanDisplayPreferences(value: unknown): DisplayPreferences {
     textSize: preferences.textSize === 'large' ? 'large' : 'standard',
     highContrast: preferences.highContrast === true,
     reducedMotion: preferences.reducedMotion === true,
+    storyMode: preferences.storyMode !== false,
   };
 }
 

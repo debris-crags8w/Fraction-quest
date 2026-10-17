@@ -68,6 +68,6 @@ test('a family can review and reset one unit without losing progress elsewhere',
   expect(saved.fun.xp).toBe(fun.xp);
   expect(saved.fun.dayStreak).toBe(fun.dayStreak);
   expect(saved.fun.breakPreferences).toEqual(fun.breakPreferences);
-  expect(saved.fun.displayPreferences).toEqual(fun.displayPreferences);
+  expect(saved.fun.displayPreferences).toEqual({ ...fun.displayPreferences, storyMode: true });
   expect(saved.fun.preferredLearningVoiceId).toBe(fun.preferredLearningVoiceId);
 });
