@@ -1,8 +1,11 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
+import { assertDatabaseRuntimeEnvironment } from "./environment-guard";
 
 const { Pool } = pg;
+
+assertDatabaseRuntimeEnvironment();
 
 if (!process.env.DATABASE_URL) {
   throw new Error(

@@ -38,7 +38,7 @@ import { saveAssessmentAttempt } from './assessments';
 import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
-import { LearningListenButton, LearningText, LearningTextSection, useReadAloud } from './LearningText';
+import { LearningListenButton, LearningText, LearningTextSection, sectionsScript, useReadAloud } from './LearningText';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
 import { getWorksheet } from './learning-content';
@@ -720,27 +720,34 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false }: { mi
       </div>
       {mission.learningIntro && (
         <section className="fq-example-intro" aria-label="How to order fractions" data-testid="lesson-introduction">
-          <h3>How to order fractions</h3>
+          <div className="fq-example-card-head">
+            <h3>How to order fractions</h3>
+            <LearningListenButton text={sectionsScript([
+              { heading: 'Goal', text: mission.learningIntro.goal },
+              { heading: 'Process', text: mission.learningIntro.process },
+              { heading: 'Why it works', text: mission.learningIntro.why },
+            ])} label="Listen to how to order fractions" />
+          </div>
           <LearningTextSection
             id="lesson-intro-goal"
             heading="Goal"
             text={mission.learningIntro.goal}
-            label="Listen to the goal"
             className="fq-example-section"
+            listen={false}
           />
           <LearningTextSection
             id="lesson-intro-process"
             heading="Process"
             text={mission.learningIntro.process}
-            label="Listen to the process"
             className="fq-example-section"
+            listen={false}
           />
           <LearningTextSection
             id="lesson-intro-why"
             heading="Why it works"
             text={mission.learningIntro.why}
-            label="Listen to why it works"
             className="fq-example-section"
+            listen={false}
           />
         </section>
       )}
@@ -753,30 +760,37 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false }: { mi
         />
       )}
       <div className="fq-example-answer">
-        <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
+        <div className="fq-example-card-head">
+          <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
+          <LearningListenButton text={sectionsScript([
+            { heading: 'Question', text: mission.example.prompt },
+            { heading: 'Worked answer', text: mission.example.answer },
+            { heading: 'Explanation', text: mission.example.explanation },
+          ])} label="Listen to the whole example" />
+        </div>
         <LearningTextSection
           id="example-question-heading"
           heading="Question"
           text={mission.example.prompt}
-          label="Listen to the example question"
           className="fq-example-section"
           emphasize
           bold
+          listen={false}
         />
         <LearningTextSection
           id="example-worked-answer-heading"
           heading="Worked answer"
           text={mission.example.answer}
-          label="Listen to the worked answer"
           className="fq-example-section"
           paragraphClassName="fq-example-result"
+          listen={false}
         />
         <LearningTextSection
           id="example-explanation-heading"
           heading="Explanation"
           text={mission.example.explanation}
-          label="Listen to the explanation"
           className="fq-example-section"
+          listen={false}
         />
       </div>
       {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
@@ -909,11 +923,24 @@ function PlayView({
     onNext(firstTryAnswers);
   };
 
+  const hintRef = useRef<HTMLDivElement>(null);
+  const remediationRef = useRef<HTMLDivElement>(null);
+  const [hintFlash, setHintFlash] = useState(0);
   const toggleHint = () => {
     if (!question) return;
+    // After two misses the help already shows as "Let's make it simpler": the bulb points to it instead.
+    const opening = !hintOpen || attempts >= 2;
     if (!hintOpen) { onPracticeSignal(question.reviewMissionId ?? mission.id); setAttempts(current => Math.max(1, current)); }
-    setHintOpen((open) => !open);
+    if (attempts < 2) setHintOpen((open) => !open);
+    if (opening) setHintFlash((count) => count + 1);
   };
+  // The hint can open below the fold (under a worked example or a tall model), so bring it into view.
+  useEffect(() => {
+    if (!hintFlash) return;
+    const target = (attempts >= 2 ? remediationRef : hintRef).current;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    target?.scrollIntoView?.({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+  }, [hintFlash]);
   // `mission` can be a copy with review questions mixed in, so look it up by id.
   const lessonNumber = String(MISSIONS.findIndex((item) => item.id === mission.id) + 1).padStart(2, '0');
   const steps = mission.questions.length;
@@ -984,9 +1011,9 @@ function PlayView({
               <div className="fq-model-area" data-testid="question-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} />
               </div>
-              {hintOpen && attempts < 2 && <div className="fq-hint" data-testid="text-question-hint"><Lightbulb size={18} /> <span className="fq-hint-copy"><strong>Try this idea:</strong> <LearningListenButton text={question.hint} label="Listen to the hint" /><span><LearningText text={question.hint} /></span></span></div>}
+              {hintOpen && attempts < 2 && <div ref={hintRef} key={`hint-${hintFlash}`} className="fq-hint fq-hint-flash" data-testid="text-question-hint"><Lightbulb size={18} /> <span className="fq-hint-copy"><strong>Try this idea:</strong> <LearningListenButton text={question.hint} label="Listen to the hint" /><span><LearningText text={question.hint} /></span></span></div>}
               {attempts >= 2 && (
-                <div className="fq-remediation" role="note" data-testid="status-remediation">
+                <div ref={remediationRef} key={`remediation-${hintFlash}`} className={`fq-remediation ${hintFlash ? 'fq-hint-flash' : ''}`} role="note" data-testid="status-remediation">
                   <div className="fq-remediation-heading"><strong>Let's make it simpler.</strong><LearningListenButton text={question.hint} label="Listen to the simpler explanation" /></div>
                   <span><LearningText text={question.hint} /></span>
                   <ModelView model={question.simplerModel} compact />
