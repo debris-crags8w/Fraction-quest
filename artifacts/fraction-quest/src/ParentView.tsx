@@ -69,6 +69,10 @@ function DisplaySettings({ preferences, onChange }: { preferences: DisplayPrefer
         <span><strong>Seasonal themes</strong><small>Dress the app up for holidays like Halloween. Lessons and answers stay the same.</small></span>
         <input type="checkbox" checked={preferences.seasonalThemes !== false} onChange={(event) => onChange({ ...preferences, seasonalThemes: event.target.checked })} data-testid="checkbox-seasonal-themes" />
       </label>
+      <label className="fq-display-setting">
+        <span><strong>Story mode</strong><small>Short comics with Numi’s friends before and after lessons. Lessons and answers stay the same.</small></span>
+        <input type="checkbox" checked={preferences.storyMode !== false} onChange={(event) => onChange({ ...preferences, storyMode: event.target.checked })} data-testid="checkbox-story-mode" />
+      </label>
     </section>
   );
 }

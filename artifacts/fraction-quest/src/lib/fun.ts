@@ -12,9 +12,11 @@ export const DAILY_GOAL = 10;
 
 export type BreakIntervalMinutes = 0 | 10 | 15 | 20;
 export type BreakPreferences = { intervalMinutes: BreakIntervalMinutes; quietMode: boolean };
-export type DisplayPreferences = { textSize: 'standard' | 'large'; highContrast: boolean; reducedMotion: boolean; /** Holiday looks like Halloween (on unless a grown-up turns them off). */ seasonalThemes?: boolean };
+export type DisplayPreferences = { textSize: 'standard' | 'large'; highContrast: boolean; reducedMotion: boolean;
+  /** Holiday looks like Halloween (on unless a grown-up turns them off). */ seasonalThemes?: boolean;
+  /** Story comics with Numi's friends around lessons (on unless a grown-up turns them off). */ storyMode?: boolean };
 const DEFAULT_BREAK_PREFERENCES: BreakPreferences = { intervalMinutes: 15, quietMode: false };
-const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: true };
+const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: true, storyMode: true };
 
 export type FunState = {
   xp: number;
@@ -64,6 +66,7 @@ function cleanDisplayPreferences(value: unknown): DisplayPreferences {
     highContrast: preferences.highContrast === true,
     reducedMotion: preferences.reducedMotion === true,
     seasonalThemes: preferences.seasonalThemes !== false,
+    storyMode: preferences.storyMode !== false,
   };
 }
 
