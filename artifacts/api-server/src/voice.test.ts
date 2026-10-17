@@ -42,12 +42,12 @@ describe("server natural voice", () => {
 
   it("makes each sentence once, then serves it from the cache", async () => {
     setVoiceEngineForTests(fakeEngine); calls = [];
-    const url = `${base}/api/voice/speech?voice=af_bella&text=${encodeURIComponent("One half.")}`;
+    const url = `${base}/api/voice/speech?voice=am_michael&text=${encodeURIComponent("One half.")}`;
     await (await fetch(url)).arrayBuffer();
     await (await fetch(url)).arrayBuffer();
-    const same = await Promise.all([fetch(`${base}/api/voice/speech?voice=af_bella&text=Two%20thirds.`), fetch(`${base}/api/voice/speech?voice=af_bella&text=Two%20thirds.`)]);
+    const same = await Promise.all([fetch(`${base}/api/voice/speech?voice=am_michael&text=Two%20thirds.`), fetch(`${base}/api/voice/speech?voice=am_michael&text=Two%20thirds.`)]);
     await Promise.all(same.map((r) => r.arrayBuffer()));
-    assert.deepEqual(calls, ["af_bella:One half.", "af_bella:Two thirds."]);
+    assert.deepEqual(calls, ["am_michael:One half.", "am_michael:Two thirds."]);
   });
 
   it("accepts every configured Kokoro voice and returns playable WAV audio", async () => {

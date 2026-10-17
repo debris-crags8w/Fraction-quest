@@ -1,23 +1,16 @@
-/* A natural read-aloud voice: Kokoro, an open-source neural voice. It runs on the app's server, and the device
-   only plays a short audio file per sentence. (Running the model in the browser crashed iPhone Safari.) Only the
-   lesson sentence is sent, never a child's name or answers; the server keeps each sentence it has made, so
-   repeats are instant. When the server can't be reached, Listen uses the device's own voice. */
+/* A natural read-aloud voice: Kokoro, an open-source neural voice. Lesson and story sentences come from the
+   pre-made voice pack (small MP3 files shipped with the app, see voice-pack.ts), so Listen starts at once. A
+   sentence the pack doesn't have is made by the app's server, and the device only plays the audio. (Running the
+   model in the browser crashed iPhone Safari.) Only the lesson sentence is sent, never a child's answers. When
+   neither can play, Listen uses the device's own voice. */
+import { voicePackHasVoice, voicePackUrl } from './voice-pack';
 
-export type NaturalVoiceId =
-  | 'af_heart' | 'af_bella' | 'af_nicole' | 'bf_emma'
-  | 'af_aoede' | 'af_sarah' | 'bf_isabella'
-  | 'am_michael' | 'am_puck' | 'bm_george';
+/** The three pack voices. A saved choice of an older voice falls back to Heart. */
+export type NaturalVoiceId = 'af_heart' | 'am_michael' | 'bf_emma';
 export const NATURAL_VOICES: { id: NaturalVoiceId; name: string; note: string }[] = [
   { id: 'af_heart', name: 'Heart', note: 'warm and gentle' },
-  { id: 'af_bella', name: 'Bella', note: 'bright and friendly' },
-  { id: 'af_nicole', name: 'Nicole', note: 'soft and calm' },
-  { id: 'af_aoede', name: 'Aoede', note: 'American English · female' },
-  { id: 'af_sarah', name: 'Sarah', note: 'American English · female' },
+  { id: 'am_michael', name: 'Michael', note: 'friendly and steady' },
   { id: 'bf_emma', name: 'Emma', note: 'British, clear' },
-  { id: 'bf_isabella', name: 'Isabella', note: 'British English · female' },
-  { id: 'am_michael', name: 'Michael', note: 'American English · male' },
-  { id: 'am_puck', name: 'Puck', note: 'American English · male' },
-  { id: 'bm_george', name: 'George', note: 'British English · male' },
 ];
 export const NATURAL_VOICE_SPEED = 0.92; // the server reads at this speed
 const STORAGE_KEY = 'fraction-quest-natural-voice';
@@ -99,6 +92,18 @@ async function fetchSpeechBlob(voice: NaturalVoiceId, text: string): Promise<Blo
   if (pending) return pending;
 
   const request = (async () => {
+    // The pre-made pack first: instant, and no work for the server.
+    const packUrl = await voicePackUrl(voice, text);
+    if (packUrl) {
+      try {
+        const packed = await fetch(packUrl);
+        const blob = packed.ok ? await packed.blob() : null;
+        if (blob?.size) {
+          rememberSpeechBlob(key, blob);
+          return blob;
+        }
+      } catch { /* the server can still make it */ }
+    }
     const response = await fetch(speechUrl(voice, text));
     if (!response.ok) throw new Error(`The voice server answered ${response.status}`);
     const blob = await response.blob();
@@ -157,6 +162,13 @@ export function warmUpNaturalVoice(options: NaturalVoiceLoadOptions = {}): Promi
   failed = false;
   loading = (async () => {
     try {
+      // With the voice pack there is nothing to wait for: sentences play from files, and only the rare sentence
+      // outside the pack asks the server. (The grown-ups' self-test still checks the server itself.)
+      if (!options.diagnostic && await voicePackHasVoice(currentChoice())) {
+        try { options.onProgress?.(100); } catch { /* diagnostics only */ }
+        engine = serverEngine;
+        return engine;
+      }
       const started = Date.now();
       for (;;) {
         const response = await fetch(STATUS_URL, { cache: 'no-store' });
