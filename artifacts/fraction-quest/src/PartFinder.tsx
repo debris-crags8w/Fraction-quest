@@ -26,7 +26,7 @@ function FirstFractionIntroduction() {
         <div>
           <div className="fq-pf-first-intro-heading">
             <h2 id="pf-first-intro-title">Meet fractions with Numi</h2>
-            <LearningListenButton text={FIRST_FRACTION_TEXT} label="Listen to the fraction introduction" />
+            <LearningListenButton text={FIRST_FRACTION_TEXT} label="Listen to the fraction introduction" prefetch />
           </div>
           <p>{FIRST_FRACTION_TEXT}</p>
         </div>

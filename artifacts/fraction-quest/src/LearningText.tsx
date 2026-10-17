@@ -561,11 +561,16 @@ export function LearningListenButton({
   text,
   section,
   label,
+  prefetch = false,
 }: {
   text: string;
   section?: string;
   label?: string;
+  /** Prepare fixed lesson or story copy as its Listen control approaches the viewport. */
+  prefetch?: boolean;
 }) {
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  useNaturalVoicePrefetch(buttonRef, text, prefetch);
   const [speaking, setSpeaking] = useState(false);
   const funContext = useOptionalFun();
   const preferredVoiceId = funContext
@@ -609,6 +614,7 @@ export function LearningListenButton({
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       className="fq-learning-listen"
       onClick={toggleSpeech}
@@ -626,32 +632,19 @@ export function LearningListenButton({
   );
 }
 
-/** A headed, speakable section with one control for its complete text. */
-export function LearningTextSection({
-  heading,
-  text,
-  id,
-  label,
-  className = 'fq-learning-section',
-  paragraphClassName,
-  emphasize = false,
-  bold = false,
-}: {
-  heading: string;
-  text: string;
-  id: string;
-  label?: string;
-  className?: string;
-  paragraphClassName?: string;
-  emphasize?: boolean;
-  bold?: boolean;
-}) {
-  const sectionRef = useRef<HTMLElement | null>(null);
+function useNaturalVoicePrefetch<T extends Element>(
+  targetRef: { current: T | null },
+  text: string,
+  enabled: boolean,
+) {
   const [prefetchVoice, setPrefetchVoice] = useState(naturalVoiceId);
-  useEffect(() => onNaturalVoiceStatus(() => setPrefetchVoice(naturalVoiceId())), []);
   useEffect(() => {
-    const section = sectionRef.current;
-    if (!section || !prefetchVoice || typeof IntersectionObserver === 'undefined') return;
+    if (!enabled) return;
+    return onNaturalVoiceStatus(() => setPrefetchVoice(naturalVoiceId()));
+  }, [enabled]);
+  useEffect(() => {
+    const target = targetRef.current;
+    if (!enabled || !target || !prefetchVoice || typeof IntersectionObserver === 'undefined') return;
 
     let active = true;
     const observer = new IntersectionObserver((entries) => {
@@ -666,23 +659,54 @@ export function LearningTextSection({
         );
       });
     }, { rootMargin: '160px 0px' });
-    observer.observe(section);
+    observer.observe(target);
     return () => {
       active = false;
       observer.disconnect();
     };
-  }, [prefetchVoice, text]);
+  }, [enabled, prefetchVoice, targetRef, text]);
+}
+
+/** A headed, speakable section with one control for its complete text. */
+export function LearningTextSection({
+  heading,
+  text,
+  id,
+  label,
+  className = 'fq-learning-section',
+  paragraphClassName,
+  emphasize = false,
+  bold = false,
+  listen = true,
+}: {
+  heading: string;
+  text: string;
+  id: string;
+  label?: string;
+  className?: string;
+  paragraphClassName?: string;
+  emphasize?: boolean;
+  bold?: boolean;
+  /** False when the card around this section has one Listen button for all of its sections. */
+  listen?: boolean;
+}) {
+  const sectionRef = useRef<HTMLElement | null>(null);
+  useNaturalVoicePrefetch(sectionRef, text, listen);
 
   return (
     <section ref={sectionRef} className={className} aria-labelledby={id}>
       <header className="fq-example-section-header">
         <h3 id={id}>{heading}</h3>
-        <LearningListenButton text={text} label={label ?? `Listen to the ${heading.toLowerCase()}`} />
+        {listen && <LearningListenButton text={text} label={label ?? `Listen to the ${heading.toLowerCase()}`} />}
       </header>
       <p className={paragraphClassName}>{bold ? <strong><LearningText text={text} emphasize={emphasize} /></strong> : <LearningText text={text} emphasize={emphasize} />}</p>
     </section>
   );
 }
+
+/** One script for a card with several headed sections, read in order: "Question: … Worked answer: …". */
+export const sectionsScript = (sections: { heading: string; text: string }[]) =>
+  sections.map(({ heading, text }) => `${heading}: ${text}`).join(' ');
 
 /** Keeps fractions stacked while making core vocabulary explorable and optionally audible. */
 /* Key points in a question get a solid underline: amounts ("2 pieces", "4 friends"), fraction names (halves, eighths)

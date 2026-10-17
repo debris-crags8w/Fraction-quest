@@ -2346,3 +2346,6 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-mascot-say.no-mascot { grid-template-columns: 1fr; display: block; }
 /* On phones the progress fraction and bar already show the round; the "Round 1 of 2" text clipped off the edge. */
 @media (max-width: 560px) { .fq-taskbar-fraction .fq-taskbar-sequence { display: none; } }
+
+/* A card with several headed sections gets one Listen button in its header that reads them all in order. */
+.fq-example-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }

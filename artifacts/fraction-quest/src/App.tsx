@@ -38,7 +38,7 @@ import { saveAssessmentAttempt } from './assessments';
 import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
-import { LearningListenButton, LearningText, LearningTextSection, useReadAloud } from './LearningText';
+import { LearningListenButton, LearningText, LearningTextSection, sectionsScript, useReadAloud } from './LearningText';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
 import { getWorksheet } from './learning-content';
@@ -713,34 +713,41 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false }: { mi
         <div className="fq-skill-bubble">
           <div className="fq-skill-header">
             <span className="fq-skill-label">Lesson idea</span>
-            <LearningListenButton text={mission.skill} label="Listen to the lesson idea" />
+            <LearningListenButton text={mission.skill} label="Listen to the lesson idea" prefetch />
           </div>
           <p className="fq-skill-copy"><LearningText text={mission.skill} /></p>
         </div>
       </div>
       {mission.learningIntro && (
         <section className="fq-example-intro" aria-label="How to order fractions" data-testid="lesson-introduction">
-          <h3>How to order fractions</h3>
+          <div className="fq-example-card-head">
+            <h3>How to order fractions</h3>
+            <LearningListenButton text={sectionsScript([
+              { heading: 'Goal', text: mission.learningIntro.goal },
+              { heading: 'Process', text: mission.learningIntro.process },
+              { heading: 'Why it works', text: mission.learningIntro.why },
+            ])} label="Listen to how to order fractions" prefetch />
+          </div>
           <LearningTextSection
             id="lesson-intro-goal"
             heading="Goal"
             text={mission.learningIntro.goal}
-            label="Listen to the goal"
             className="fq-example-section"
+            listen={false}
           />
           <LearningTextSection
             id="lesson-intro-process"
             heading="Process"
             text={mission.learningIntro.process}
-            label="Listen to the process"
             className="fq-example-section"
+            listen={false}
           />
           <LearningTextSection
             id="lesson-intro-why"
             heading="Why it works"
             text={mission.learningIntro.why}
-            label="Listen to why it works"
             className="fq-example-section"
+            listen={false}
           />
         </section>
       )}
@@ -753,30 +760,37 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false }: { mi
         />
       )}
       <div className="fq-example-answer">
-        <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
+        <div className="fq-example-card-head">
+          <span className="fq-example-label"><Lightbulb size={16} /> Let's think it through</span>
+          <LearningListenButton text={sectionsScript([
+            { heading: 'Question', text: mission.example.prompt },
+            { heading: 'Worked answer', text: mission.example.answer },
+            { heading: 'Explanation', text: mission.example.explanation },
+          ])} label="Listen to the whole example" prefetch />
+        </div>
         <LearningTextSection
           id="example-question-heading"
           heading="Question"
           text={mission.example.prompt}
-          label="Listen to the example question"
           className="fq-example-section"
           emphasize
           bold
+          listen={false}
         />
         <LearningTextSection
           id="example-worked-answer-heading"
           heading="Worked answer"
           text={mission.example.answer}
-          label="Listen to the worked answer"
           className="fq-example-section"
           paragraphClassName="fq-example-result"
+          listen={false}
         />
         <LearningTextSection
           id="example-explanation-heading"
           heading="Explanation"
           text={mission.example.explanation}
-          label="Listen to the explanation"
           className="fq-example-section"
+          listen={false}
         />
       </div>
       {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}

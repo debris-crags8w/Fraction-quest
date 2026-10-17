@@ -60,10 +60,13 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   await expect(intro).toContainText('smallest to biggest');
   await expect(intro).toContainText('same denominator');
   await expect(intro).toContainText(/top numbers|numerators/);
-  await expect(intro.getByRole('button', { name: 'Listen to the goal' })).toBeVisible();
-  await expect(intro.getByRole('button', { name: 'Listen to the process' })).toBeVisible();
-  await expect(intro.getByRole('button', { name: 'Listen to why it works' })).toBeVisible();
+  // One Listen button per card reads all of its sections in order.
+  await expect(intro.getByRole('button', { name: /Listen/ })).toHaveCount(1);
+  await expect(intro.getByRole('button', { name: 'Listen to how to order fractions' })).toBeVisible();
   const workedExample = page.getByTestId('lesson-example');
+  const thinkItThrough = workedExample.locator('.fq-example-answer');
+  await expect(thinkItThrough.getByRole('button', { name: /Listen/ })).toHaveCount(1);
+  await expect(thinkItThrough.getByRole('button', { name: 'Listen to the whole example' })).toBeVisible();
   // Fraction bars render numerator and denominator separately, so the combined text omits slashes.
   await expect(workedExample).toContainText('Order 14, 38 and 58 from smallest to biggest');
   await expect(workedExample).toContainText('14 < 38 < 58');
