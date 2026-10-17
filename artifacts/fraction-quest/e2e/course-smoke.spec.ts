@@ -2186,6 +2186,13 @@ test('a wrong Code Quest run gives a next step and does not pass the level until
   await expect(result).toHaveClass(/win/, { timeout: 10_000 });
   await expect(page.getByTestId('button-code-next')).toBeVisible();
   await page.getByTestId('button-code-next').click();
+  const beforeDebugMiss = await localStorageSnapshot(page);
+  await page.getByTestId('button-code-run').click();
+  await expect(result).toHaveClass(/miss/, { timeout: 10_000 });
+  await expect(page.getByTestId('text-code-hint')).toContainText(/Hint: .*(Check|Move|Change|Add)/i);
+  await expect(page.getByTestId('status-code-mission-progress')).toContainText('2 of 6');
+  await expect(page.getByTestId('button-code-next')).toHaveCount(0);
+  expect(await localStorageSnapshot(page)).toBe(beforeDebugMiss);
   await fillProgramNumbers(page, levels[2].target);
   await page.getByTestId('button-code-run').click();
   await expect(result).toHaveClass(/win/, { timeout: 10_000 });
