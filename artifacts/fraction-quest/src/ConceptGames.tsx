@@ -231,20 +231,47 @@ function FractionLineUp() {
     setCards((current) => { const next = [...current]; const [card] = next.splice(from, 1); next.splice(to, 0, card); return next; });
     setFeedback('');
   };
-  // Drag with a finger or mouse: the card follows the pointer from slot to slot.
+  // Drag with a finger or mouse: the card follows the pointer, the other cards slide aside to make room,
+  // and the order only changes when the card is let go.
+  const drag = useRef<{ index: number; startY: number; centers: number[]; step: number; moved: boolean } | null>(null);
+  const [dragY, setDragY] = useState(0);
+  const [dropAt, setDropAt] = useState<number | null>(null);
   const onPointerDown = (event: ReactPointerEvent<HTMLLIElement>, index: number) => {
-    if (solved || (event.target as HTMLElement).closest('button')) return;
+    if (solved || !listRef.current || (event.target as HTMLElement).closest('button')) return;
+    event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    setDragging(index);
+    const boxes = [...listRef.current.querySelectorAll<HTMLElement>('[data-lineup-index]')].map((item) => item.getBoundingClientRect());
+    const step = boxes.length > 1 ? boxes[1].top - boxes[0].top : boxes[0].height;
+    drag.current = { index, startY: event.clientY, centers: boxes.map((box) => box.top + box.height / 2), step, moved: false };
+    setDragging(index); setDragY(0); setDropAt(index);
     playHaptic('selection');
   };
   const onPointerMove = (event: ReactPointerEvent<HTMLLIElement>) => {
-    if (dragging === null || !listRef.current) return;
-    const items = [...listRef.current.querySelectorAll<HTMLElement>('[data-lineup-index]')];
-    const target = items.findIndex((item) => { const box = item.getBoundingClientRect(); return event.clientY >= box.top && event.clientY <= box.bottom; });
-    if (target !== -1 && target !== dragging) { move(dragging, target); setDragging(target); }
+    const current = drag.current;
+    if (!current) return;
+    const dy = event.clientY - current.startY;
+    if (!current.moved && Math.abs(dy) < 4) return;
+    current.moved = true;
+    setDragY(dy);
+    // The slot whose centre is nearest the dragged card's centre.
+    const centre = current.centers[current.index] + dy;
+    const target = current.centers.reduce((best, c, i) => (Math.abs(c - centre) < Math.abs(current.centers[best] - centre) ? i : best), 0);
+    setDropAt((previous) => { if (previous !== target) playHaptic('selection'); return target; });
   };
-  const onPointerUp = () => setDragging(null);
+  const onPointerUp = () => {
+    const current = drag.current;
+    drag.current = null;
+    if (current && dropAt !== null && dropAt !== current.index) move(current.index, dropAt);
+    setDragging(null); setDragY(0); setDropAt(null);
+  };
+  // While dragging, the cards between the start and the drop slot shift one place to make room.
+  const shiftFor = (index: number) => {
+    const current = drag.current;
+    if (dragging === null || dropAt === null || !current || index === dragging) return 0;
+    if (dragging < dropAt && index > dragging && index <= dropAt) return -current.step;
+    if (dragging > dropAt && index < dragging && index >= dropAt) return current.step;
+    return 0;
+  };
 
   const check = () => {
     if (!round || solved) return;
@@ -306,6 +333,7 @@ function FractionLineUp() {
       {cards.map((card, index) => (
         <li key={`${card.n}-${card.d}`} data-lineup-index={index}
           className={`cg-lineup-card ${dragging === index ? 'is-dragging' : ''} ${solved ? 'is-solved' : ''}`}
+          style={dragging === index ? { transform: `translateY(${dragY}px) scale(1.02)`, transition: 'none', zIndex: 3 } : { transform: `translateY(${shiftFor(index)}px)` }}
           onPointerDown={(event) => onPointerDown(event, index)} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
           data-testid={`lineup-card-${index}`} data-fraction={`${card.n}/${card.d}`}>
           <span className="cg-lineup-place" aria-hidden="true">{index + 1}</span>

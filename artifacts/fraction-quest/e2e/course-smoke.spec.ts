@@ -2007,3 +2007,29 @@ test('Fraction Line-Up: order same-numerator fractions, miss once with a hint, t
   }
   await expect(page.getByTestId('status-lineup-done')).toContainText('5 were right on the first try');
 });
+
+test('Fraction Line-Up: a card follows the drag and drops into the slot where it is let go', async ({ page }) => {
+  await openAsGuest(page);
+  await openMenuItem(page, 'button-open-concept-games');
+  await page.getByTestId('link-game-lineup').click();
+  await page.getByTestId('button-lineup-mode-same-denominator').click();
+  const order = () => page.locator('[data-testid^="lineup-card-"]').evaluateAll((els) => els.map((el) => el.getAttribute('data-fraction')));
+  const before = await order();
+  const from = (await page.getByTestId('lineup-card-0').boundingBox())!;
+  const to = (await page.getByTestId('lineup-card-2').boundingBox())!;
+  // Grab the card on its fraction (not the arrow buttons) and drag it down slowly.
+  const x = from.x + 60;
+  await page.mouse.move(x, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(x, to.y + to.height / 2, { steps: 12 });
+  // Mid-drag the card follows the pointer, but the order has not changed yet.
+  expect(await order()).toEqual(before);
+  const moving = (await page.getByTestId('lineup-card-0').boundingBox())!;
+  expect(moving.y).toBeGreaterThan(to.y - 10);
+  await page.mouse.up();
+  await expect.poll(order).toEqual([before[1], before[2], before[0], before[3]]);
+  // A tap without moving changes nothing.
+  const after = await order();
+  await page.getByTestId('lineup-card-1').click({ position: { x: 60, y: 20 } });
+  expect(await order()).toEqual(after);
+});
