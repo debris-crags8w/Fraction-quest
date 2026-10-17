@@ -1428,6 +1428,9 @@ test('a lesson ends with its story problem, told with the season’s props (pump
   await openAsGuest(page);
   const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
   await openDeveloperLesson(page, mission);
+  // The lesson itself follows the season too: the Make fair shares cake is a pumpkin cake, and models wear Halloween colors.
+  await expect(page.locator('#pf-title')).toContainText('pumpkin cake');
+  await expect(page.locator('html')).toHaveAttribute('data-fq-season', 'halloween');
   if (PART_FINDER_LESSONS.has(mission.id)) await completePartFinderLesson(page, mission.id);
   const before = [
     ...mission.questions.slice(0, -1),
@@ -1716,6 +1719,8 @@ test('daily practice resumes its checked scaffold and parent report after reload
 });
 
 test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, then mixed shapes', async ({ page }) => {
+  // Outside a seasonal theme, so the cake is a plain cake (in October it is a pumpkin cake).
+  await page.clock.setFixedTime(new Date(2026, 2, 10, 10, 0, 0));
   await page.addInitScript(() => {
     const sent: string[] = [];
     (window as unknown as { __shell: string[] }).__shell = sent;

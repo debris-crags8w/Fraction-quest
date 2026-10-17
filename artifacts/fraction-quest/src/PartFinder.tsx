@@ -5,7 +5,7 @@ import { FRIENDS, isPartFinderAnswer, partFinderFeedback, type PartFinderRound }
 import './part-finder.css';
 import { TaskBar } from './TaskBar';
 import { AnswerTiles } from './AnswerTiles';
-import { Mascot } from './fun-ui';
+import { Mascot, useSeasonalWords } from './fun-ui';
 import { LearningListenButton } from './LearningText';
 import { playHaptic } from './lib/fun';
 
@@ -130,6 +130,8 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
   /** Replaying a finished lesson: the cake rounds can be skipped. */
   onSkip?: () => void;
 }) {
+  // During a season the shared treat follows it (a pumpkin cake at Halloween); pieces and answers stay the same.
+  const words = useSeasonalWords();
   const [roundIndex, setRoundIndex] = useState(0);
   useScrollTopOn(roundIndex);
   const [selected, setSelected] = useState<number[]>([]);
@@ -201,8 +203,8 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
 
         <section className="fq-pf-card" aria-labelledby="pf-title">
           <div className="fq-pf-heading">
-            <h1 id="pf-title">{round.title}</h1>
-            <p className="fq-pf-prompt">{round.prompt}</p>
+            <h1 id="pf-title">{words(round.title)}</h1>
+            <p className="fq-pf-prompt">{words(round.prompt)}</p>
           </div>
 
           <div className={`fq-pf-workspace ${round.id === 'match' ? 'match' : ''}`}>
@@ -215,7 +217,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
             <figure className="fq-pf-interactive">
               <figcaption>
                 <span>{round.id === 'match' ? 'Find the same amount' : sorting ? 'Share it out' : 'Choose a piece'}</span>
-                <strong>{round.targetLabel}</strong>
+                <strong>{words(round.targetLabel)}</strong>
               </figcaption>
               <CutPicture
                 cut={round.cut}
@@ -281,7 +283,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
           {checked !== 'idle' && (
             <div className={`fq-pf-feedback ${correct ? 'right' : 'retry'}`} role="status" aria-live="polite" data-testid="part-finder-feedback">
               <strong>{correct ? 'That fits!' : 'Almost there.'}</strong>
-              <span>{partFinderFeedback(round, answerPieces, tileAnswer)}</span>
+              <span>{words(partFinderFeedback(round, answerPieces, tileAnswer))}</span>
             </div>
           )}
         </section>

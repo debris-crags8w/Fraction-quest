@@ -1,5 +1,6 @@
 import React, { type ReactNode } from 'react';
 import { execAll } from './lib/regexp';
+import { useSeasonalWords } from './fun-ui';
 
 /* Shows fractions in text the way math books (and LaTeX's \frac) do: the top number over a bar
    over the bottom number. "3/4" → ³⁄₄ stacked, "1 and 3/4" → 1 ³⁄₄, "?/12" → a blank over 12. */
@@ -27,7 +28,10 @@ function Mixed({ whole, top, bottom }: { whole: string; top: string; bottom: str
 }
 
 /** Renders text with every fraction stacked. Plain text passes through unchanged. */
-export function MathText({ text }: { text: string | undefined | null }) {
+export function MathText({ text: written }: { text: string | undefined | null }) {
+  // During a season, treats in lesson text follow it (numbers and answers never change).
+  const words = useSeasonalWords();
+  const text = written ? words(written) : written;
   if (!text) return null;
   const out: ReactNode[] = [];
   let last = 0;
