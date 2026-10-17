@@ -97,3 +97,40 @@ test('completed lesson questions can be reviewed without losing the current ques
   await expect(page.locator('#lesson-title')).toHaveText(currentQuestion ?? '');
   await expect(page.getByTestId('button-review-question-1')).toBeVisible();
 });
+
+test('prepares visible lesson audio before the learner taps Listen', async ({ page }) => {
+  const speechRequests: { voice: string | null; text: string | null }[] = [];
+  await page.route('**/api/**', async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/api/voice/status')) {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ state: 'ready' }) });
+      return;
+    }
+    if (url.pathname.endsWith('/api/voice/speech')) {
+      speechRequests.push({ voice: url.searchParams.get('voice'), text: url.searchParams.get('text') });
+      await route.fulfill({ status: 200, contentType: 'audio/wav', body: Buffer.from([82, 73, 70, 70]) });
+      return;
+    }
+    await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Not signed in.' }) });
+  });
+
+  await page.goto('/');
+  await page.getByTestId('button-play-guest').click();
+  await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+  expect(speechRequests).toHaveLength(0);
+
+  await page.getByTestId('developer-module-test').locator('summary').click();
+  await page.getByTestId('select-developer-lesson').selectOption('order-unlike-fractions');
+  await page.getByTestId('button-open-developer-lesson').click();
+  await expect(page.getByTestId('developer-test-banner')).toBeVisible();
+  const storyGo = page.getByTestId('button-story-go');
+  if (await storyGo.isVisible()) await storyGo.click();
+
+  const section = page.locator('section.fq-example-section').first();
+  await expect(section).toBeVisible();
+  await section.scrollIntoViewIfNeeded();
+  await expect.poll(() => speechRequests.length, { timeout: 10_000 }).toBeGreaterThan(0);
+  expect(speechRequests[0].voice).toBe('af_heart');
+  expect(speechRequests[0].text?.trim()).toBeTruthy();
+  await expect(page.getByTestId('button-listen-learning-text').first()).toBeVisible();
+});

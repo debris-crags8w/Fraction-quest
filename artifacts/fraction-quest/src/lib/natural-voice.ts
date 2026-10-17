@@ -24,6 +24,10 @@ const STORAGE_KEY = 'fraction-quest-natural-voice';
 const STATUS_URL = '/api/voice/status';
 export const speechUrl = (voice: NaturalVoiceId, text: string) =>
   `/api/voice/speech?voice=${encodeURIComponent(voice)}&text=${encodeURIComponent(text)}`;
+const SPEECH_BLOB_CACHE_LIMIT = 24;
+const speechBlobCache = new Map<string, Blob>();
+const speechBlobRequests = new Map<string, Promise<Blob>>();
+const speechBlobKey = (voice: NaturalVoiceId, text: string) => `${voice}\u0000${text}`;
 
 export type NaturalVoiceState = 'off' | 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
 export type NaturalVoiceStatus = { state: NaturalVoiceState; progress?: number };
@@ -76,15 +80,63 @@ export function onNaturalVoiceStatus(listener: (status: NaturalVoiceStatus) => v
   return () => { listeners.delete(listener); };
 }
 
+function rememberSpeechBlob(key: string, blob: Blob) {
+  speechBlobCache.delete(key);
+  speechBlobCache.set(key, blob);
+  while (speechBlobCache.size > SPEECH_BLOB_CACHE_LIMIT) {
+    speechBlobCache.delete(speechBlobCache.keys().next().value as string);
+  }
+}
+
+async function fetchSpeechBlob(voice: NaturalVoiceId, text: string): Promise<Blob> {
+  const key = speechBlobKey(voice, text);
+  const cached = speechBlobCache.get(key);
+  if (cached) {
+    rememberSpeechBlob(key, cached);
+    return cached;
+  }
+  const pending = speechBlobRequests.get(key);
+  if (pending) return pending;
+
+  const request = (async () => {
+    const response = await fetch(speechUrl(voice, text));
+    if (!response.ok) throw new Error(`The voice server answered ${response.status}`);
+    const blob = await response.blob();
+    if (!blob.size) throw new Error('The voice server returned an empty audio clip');
+    rememberSpeechBlob(key, blob);
+    return blob;
+  })();
+  speechBlobRequests.set(key, request);
+  try {
+    return await request;
+  } finally {
+    if (speechBlobRequests.get(key) === request) speechBlobRequests.delete(key);
+  }
+}
+
 /** Fetches one sentence's audio from the server. */
 export const serverEngine: NaturalEngine = {
   async generate(text, { voice }) {
-    const response = await fetch(speechUrl(voice as NaturalVoiceId, text));
-    if (!response.ok) throw new Error(`The voice server answered ${response.status}`);
-    const blob = await response.blob();
+    const blob = await fetchSpeechBlob(voice as NaturalVoiceId, text);
     return { toBlob: () => blob };
   },
 };
+
+/** Prepare the selected voice's section audio before Listen is tapped. Failures stay silent; Listen can retry. */
+export async function prefetchNaturalVoice(
+  voice: NaturalVoiceId,
+  parts: readonly string[],
+  shouldContinue: () => boolean = () => true,
+): Promise<void> {
+  for (const text of parts) {
+    if (!text.trim() || currentChoice() !== voice || !shouldContinue()) return;
+    try {
+      await fetchSpeechBlob(voice, text);
+    } catch {
+      return;
+    }
+  }
+}
 
 export type NaturalVoiceLoadOptions = {
   /** The grown-ups' self-test: check the server even when the voice is switched off. */
@@ -295,4 +347,10 @@ export function createNaturalSpeaker(
 }
 
 /** Tests only: pretend the model is loaded (or unload it). */
-export function setNaturalEngineForTests(next: NaturalEngine | null) { engine = next; failed = false; loading = null; }
+export function setNaturalEngineForTests(next: NaturalEngine | null) {
+  engine = next;
+  failed = false;
+  loading = null;
+  speechBlobCache.clear();
+  speechBlobRequests.clear();
+}

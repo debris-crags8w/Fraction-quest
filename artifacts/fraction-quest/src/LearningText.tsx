@@ -6,7 +6,7 @@ import { KokoroDiagnostic, showVoiceSelfTest } from './KokoroDiagnostic';
 import { MathText } from './MathText';
 import { execAll } from './lib/regexp';
 import { selectLearningVoice as selectGentleVoice, sentences, spokenText, VOICE_PITCH, VOICE_RATE } from './lib/voice';
-import { createNaturalSpeaker, NATURAL_VOICES, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, setNaturalVoicePreference, unlockAudioPlayback, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoicePhase, type NaturalVoiceStatus } from './lib/natural-voice';
+import { createNaturalSpeaker, NATURAL_VOICES, naturalVoiceId, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, prefetchNaturalVoice, setNaturalVoicePreference, unlockAudioPlayback, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoicePhase, type NaturalVoiceStatus } from './lib/natural-voice';
 
 type VocabularyEntry = { pattern: string; definition: string };
 
@@ -342,7 +342,7 @@ function NaturalVoiceSettings() {
     : status.state === 'ready' ? 'Ready.'
     : status.state === 'loading' ? 'Connecting to the voice…'
     : status.state === 'error' ? 'The natural voice isn’t reachable right now, so lessons use the device voice. Try again later.'
-    : 'Connects the first time a child presses Listen. Nothing to download.';
+    : 'Prepares visible lesson sections in the background. Nothing to download.';
   return (
     <div className="fq-natural-voice" data-testid="natural-voice-settings">
       <h3 className="fq-learning-voice-subhead">Natural voice</h3>
@@ -646,8 +646,35 @@ export function LearningTextSection({
   emphasize?: boolean;
   bold?: boolean;
 }) {
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [prefetchVoice, setPrefetchVoice] = useState(naturalVoiceId);
+  useEffect(() => onNaturalVoiceStatus(() => setPrefetchVoice(naturalVoiceId())), []);
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section || !prefetchVoice || typeof IntersectionObserver === 'undefined') return;
+
+    let active = true;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      observer.disconnect();
+      void warmUpNaturalVoice().then((engine) => {
+        if (!engine || !active || naturalVoiceId() !== prefetchVoice) return;
+        return prefetchNaturalVoice(
+          prefetchVoice,
+          sentences(spokenLearningText(text)),
+          () => active && naturalVoiceId() === prefetchVoice,
+        );
+      });
+    }, { rootMargin: '160px 0px' });
+    observer.observe(section);
+    return () => {
+      active = false;
+      observer.disconnect();
+    };
+  }, [prefetchVoice, text]);
+
   return (
-    <section className={className} aria-labelledby={id}>
+    <section ref={sectionRef} className={className} aria-labelledby={id}>
       <header className="fq-example-section-header">
         <h3 id={id}>{heading}</h3>
         <LearningListenButton text={text} label={label ?? `Listen to the ${heading.toLowerCase()}`} />
