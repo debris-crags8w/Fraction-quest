@@ -10,5 +10,6 @@
 - [Scoped progress resets](unit-scoped-reset.md) — keep unit-attributable clearing separate from shared rewards, settings, and unlinked progress.
 - [Admin console security and layout](admin-totp-setup.md) — keep pre-auth admin screens generic and private; use a familiar, organized admin layout after sign-in.
 - [Artifact workflow port recovery](artifact-workflow-port-recovery.md) — check for stale child servers before retrying a workflow that fails with a port-in-use error.
+- [PostgreSQL load-test counters](postgres-load-test-counters.md) — cumulative DB statistics may lag fixture setup and are database-wide, not API-attributed.
 - [Database environment safety](database-environment-safety.md) — use Replit's published-deployment marker, not an ambiguous shell environment label, to guard DB access.
 - [WebKit browser validation](webkit-browser-validation.md) — local Playwright WebKit downloads but lacks launch libraries; rely on the CI dependency-install step to run it.
