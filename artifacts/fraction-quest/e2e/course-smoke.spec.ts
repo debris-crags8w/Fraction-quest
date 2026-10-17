@@ -2373,3 +2373,47 @@ test('a wrong Code Sprint run explains the fix, adds its penalty, and can be ret
   await expect(page.locator('.fq-code-level-title').last()).toContainText('Program 5 of 5');
   expect(await localStorageSnapshot(page)).toBe(savedProgress);
 });
+
+test('Stack the Tower: a wrong gap wobbles with a hint, three wobbles topple it, and Next builds all six towers', async ({ page }) => {
+  await openAsGuest(page);
+  await openMenuItem(page, 'button-open-concept-games');
+  await page.getByTestId('link-game-tower').click();
+  const value = (text: string) => { const [n, d] = text.split('/').map(Number); return n / d; };
+  const correctGap = async () => {
+    const incoming = value((await page.getByTestId('tower-incoming').getAttribute('data-fraction'))!);
+    const placed = await page.locator('[data-testid^="tower-block-"]').evaluateAll((els) => els.map((el) => el.getAttribute('data-fraction')!));
+    return { gap: placed.filter((fraction) => value(fraction) > incoming).length, gaps: placed.length + 1 };
+  };
+  const placeAt = async (gap: number) => {
+    await page.getByTestId(`button-tower-gap-${gap}`).click();
+    await page.getByTestId('button-tower-place').click();
+  };
+  for (let round = 0; round < 6; round++) {
+    await expect(page.getByTestId('tower-block-0')).toBeVisible();
+    if (round === 0) {
+      // Place is disabled until a gap is chosen; a wrong gap wobbles and the hint never names the gap.
+      await expect(page.getByTestId('button-tower-place')).toBeDisabled();
+      const { gap, gaps } = await correctGap();
+      await placeAt(gap === 0 ? gaps - 1 : 0);
+      await expect(page.getByTestId('status-tower-feedback')).toContainText('Wobble!');
+      await expect(page.getByTestId('status-tower-feedback')).not.toContainText(/bottom|top|between|gap/i);
+    }
+    if (round === 1) {
+      for (let wobble = 0; wobble < 3; wobble++) {
+        const { gap, gaps } = await correctGap();
+        await placeAt(gap === 0 ? gaps - 1 : 0);
+      }
+      await expect(page.getByTestId('status-tower-feedback')).toContainText('toppled');
+      await expect(page.getByTestId('button-tower-place')).toHaveCount(0);
+      await page.getByTestId('button-tower-retry').click();
+      await expect(page.getByText('Wobbles 0 of 3')).toBeVisible();
+    }
+    while (await page.getByTestId('tower-incoming').count()) {
+      await placeAt((await correctGap()).gap);
+    }
+    await expect(page.getByTestId('status-tower-feedback')).toContainText('Tower built!');
+    await expect(page.getByTestId('status-tower-round-stars')).toHaveAttribute('aria-label', round === 0 ? '2 stars' : '3 stars');
+    await page.getByTestId('button-tower-next').click();
+  }
+  await expect(page.getByTestId('status-tower-done')).toContainText('You earned 17 of 18 stars');
+});
