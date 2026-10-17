@@ -2574,7 +2574,7 @@ test('Christmas: a snowy map, a Santa hat and scarf, candy canes, story props, a
   // Story text uses the Christmas props.
   await page.getByTestId('button-continue-course').click();
   await page.getByTestId('button-story-intro-go').click();
-  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away.');
+  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away!');
   await page.getByTestId('button-story-go').click();
   await expect(page.getByTestId('story-panel-0')).toContainText('I cut the festival Christmas cake for all 4 of us.');
   await page.getByTestId('button-story-back').click();
@@ -2634,8 +2634,10 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId('story-introduction')).toBeVisible();
   await page.getByTestId('button-story-intro-go').click();
   await expect(page.getByTestId('story-introduction')).toHaveCount(0);
-  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away.');
-  await expect(page.getByTestId('story-panel-2')).toContainText('Friend, we need you!');
+  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away!');
+  await expect(page.getByTestId('story-panel-0')).toContainText('I’m Numi, and this is Hoot');
+  await expect(page.getByTestId('story-panel-2')).toContainText('The case snapped shut');
+  await expect(page.getByTestId('story-panel-3')).toContainText('Friend, we need you!');
   await expect(page.getByTestId('button-story-go')).toContainText('I’ll help!');
   await page.getByTestId('button-story-go').click();
   await expect(page.getByTestId('story-panel-0')).toContainText('The big piece is mine!');
@@ -2736,8 +2738,17 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId('storybook-chapter-1')).toBeVisible();
   // The prologue can be read again too.
   await page.getByTestId('button-storybook-prologue').click();
-  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away.');
+  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away!');
   await page.getByTestId('button-story-go').click();
+  // A finished chapter's ending (thanks, clue, what happens next) can be read again; an unfinished one is locked.
+  await page.getByTestId('storybook-chapter-2').locator('summary').click();
+  await page.getByTestId('button-storybook-end-2').click();
+  await expect(page.getByTestId('story-panel-0')).toContainText('Best party ever!');
+  await expect(page.getByTestId('story-panel-1')).toContainText('A big green tail by the pond');
+  await expect(page.getByTestId('story-panel-2')).toContainText('Tilly calls from the hill');
+  await page.getByTestId('button-story-go').click();
+  await expect(page.getByTestId('button-storybook-end-3')).toBeDisabled();
+  await expect(page.getByTestId('storybook-finale')).toBeDisabled();
   await page.getByTestId('button-storybook-back').click();
 
   // A finished lesson's comic can be read again from the map; it returns to the map instead of starting the lesson.

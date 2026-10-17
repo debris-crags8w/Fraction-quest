@@ -184,13 +184,16 @@ export type StorybookChapter = {
   /** A lesson of it is open (or done). */
   reached: boolean;
   lessons: { id: string; title: string; state: 'read' | 'new' | 'locked' }[];
+  /** Every lesson is done: the chapter's ending (thanks, clue, what happens next) can be read. */
+  ended: boolean;
 };
 
 /** Every story part in one place: the prologue, each chapter's comics, the finale; plus the clue notebook and
    the friends' cards. Parts open as the lessons do; nothing here changes progress. */
-export function StorybookView({ tab, chapters, completedUnits, prologueSeen, focusUnit, name, onTab, onPrologue, onLesson, onBack }: {
+export function StorybookView({ tab, chapters, completedUnits, prologueSeen, focusUnit, name, onTab, onPrologue, onLesson, onEnding, onEpilogue, onBack }: {
   tab: StorybookTab; chapters: StorybookChapter[]; completedUnits: Set<number>; prologueSeen: boolean; focusUnit?: number; name: string | null;
-  onTab: (tab: StorybookTab) => void; onPrologue: () => void; onLesson: (missionId: string) => void; onBack: () => void;
+  onTab: (tab: StorybookTab) => void; onPrologue: () => void; onLesson: (missionId: string) => void;
+  onEnding: (unit: number) => void; onEpilogue: () => void; onBack: () => void;
 }) {
   const theme = useStoryTheme();
   const tabs: [StorybookTab, string][] = [['story', 'Story'], ['clues', 'Clues'], ['cards', 'Cards']];
@@ -217,12 +220,12 @@ export function StorybookView({ tab, chapters, completedUnits, prologueSeen, foc
                 {!prologueSeen && <LockKeyhole size={16} aria-label="Locked" />}
               </button>
             </li>
-            {chapters.map(({ chapter, reached, lessons }) => reached ? (
+            {chapters.map(({ chapter, reached, lessons, ended }) => reached ? (
               <li key={chapter.unit}>
                 <details className="fq-storybook-chapter" open={chapter.unit === open} data-testid={`storybook-chapter-${chapter.unit}`}>
                   <summary>
                     <span className="fq-storybook-num">{chapter.unit}</span>
-                    <span><strong>{chapter.title}</strong><small>With {CHARACTERS[chapter.character].name} · {lessons.filter((item) => item.state === 'read').length} of {lessons.length} parts read</small></span>
+                    <span><strong>{chapter.title}</strong><small>With {CHARACTERS[chapter.character].name} · {ended ? 'Stone piece found' : `${lessons.filter((item) => item.state === 'read').length} of ${lessons.length} lessons`}</small></span>
                   </summary>
                   <ol>
                     {lessons.map((lesson, index) => (
@@ -234,6 +237,12 @@ export function StorybookView({ tab, chapters, completedUnits, prologueSeen, foc
                         </button>
                       </li>
                     ))}
+                    <li>
+                      <button type="button" className={`fq-storybook-part ${ended ? 'is-read' : 'is-locked'}`} disabled={!ended} onClick={() => onEnding(chapter.unit)} data-testid={`button-storybook-end-${chapter.unit}`}>
+                        <span>Chapter end · The stone piece and a clue</span>
+                        {!ended && <LockKeyhole size={15} aria-label="Locked" />}
+                      </button>
+                    </li>
                   </ol>
                 </details>
               </li>
@@ -247,11 +256,11 @@ export function StorybookView({ tab, chapters, completedUnits, prologueSeen, foc
               </li>
             ))}
             <li>
-              <div className={`fq-storybook-row ${finale ? '' : 'is-locked'}`} data-testid="storybook-finale">
+              <button type="button" className="fq-storybook-row" disabled={!finale} onClick={onEpilogue} data-testid="storybook-finale">
                 <span className="fq-storybook-num">F</span>
-                <span><strong>Finale · The stone is whole again</strong><small>{finale ? 'You found every piece! Your Keeper card is in Cards.' : 'Find all 15 pieces to read the finale'}</small></span>
+                <span><strong>Finale · The stone is whole again</strong><small>{finale ? 'Read the ending' : 'Find all 15 pieces to read the ending'}</small></span>
                 {!finale && <LockKeyhole size={16} aria-label="Locked" />}
-              </div>
+              </button>
             </li>
           </ol>
         )}

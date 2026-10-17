@@ -52,7 +52,7 @@ import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
 import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
-import { CHAPTERS, PROLOGUE, chapterFor, lessonComic, propTheme, storyProblemFor, withName, type PropTheme } from './story';
+import { CHAPTERS, EPILOGUE, PROLOGUE, chapterEnd, chapterFor, lessonComic, propTheme, storyProblemFor, withName, type PropTheme } from './story';
 import { ChapterBanner, StoneBanner, StorybookView, StoryComicView, StoryOpeningView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
 import { LanternIcon } from './riddle-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
@@ -96,7 +96,9 @@ type View =
   | { type: 'assessment'; definition: AssessmentDefinition; seed: number }
   | { type: 'reward'; missionId: string; stars: number }
   /** The story comic before a lesson starts. */
-  | { type: 'story'; missionId: string; /** The one-time opening before the first lesson. */ prologue?: boolean; /** Reading a finished lesson's comic again: where it was opened from, to go back there. */ replay?: 'map' | 'storybook' }
+  | { type: 'story'; missionId: string; /** The one-time opening before the first lesson. */ prologue?: boolean; /** Reading a finished lesson's comic again: where it was opened from, to go back there. */ replay?: 'map' | 'storybook';
+    /** From the Storybook: a finished chapter's ending, or the epilogue after the last chapter. */
+    part?: 'end' | 'epilogue' }
   /** The one-time Whole Stone setup, shown before its comic prologue. */
   | { type: 'story-intro'; missionId: string }
   /** Every story part to read again, the clue notebook and the friends' cards. */
@@ -498,6 +500,7 @@ function storybookChapters(progress: Progress): StorybookChapter[] {
     return {
       chapter,
       reached: missions.some((item) => isMissionUnlocked(progress, item.id)),
+      ended: missions.length > 0 && missions.every((item) => hasLearningGate(progress, item.id)),
       lessons: missions.map((item) => ({
         id: item.id,
         title: item.title,
@@ -1681,6 +1684,12 @@ function Game() {
         if (!mission || !chapter) return null;
         const name = account.activeProfile?.displayName ?? null;
         const toStorybook = () => setView({ type: 'storybook', tab: 'story', unit: chapter.unit });
+        if (view.part) {
+          const epilogue = view.part === 'epilogue';
+          return <StoryComicView key={`${view.part}-${chapter.unit}`} title={epilogue ? 'The Whole Stone' : `Chapter ${chapter.unit} · ${chapter.title}`}
+            kicker={epilogue ? 'Finale · Festival night' : 'Chapter end · The stone piece and a clue'} panels={epilogue ? EPILOGUE : chapterEnd(chapter)} name={name}
+            goLabel="Back to the Storybook" onGo={toStorybook} onBack={toStorybook} />;
+        }
         if (view.prologue) {
           if (view.replay === 'storybook') {
             return <StoryComicView key="prologue-replay" title="The Whole Stone" kicker="Prologue · The night the stone cracked" panels={PROLOGUE} name={name} goLabel="Back to the Storybook"
@@ -1706,7 +1715,9 @@ function Game() {
           name={account.activeProfile?.displayName ?? null} chapters={storybookChapters(progress)}
           onTab={(tab) => setView({ type: 'storybook', tab, unit: view.unit })} onBack={returnToMap}
           onPrologue={() => { if (MISSIONS[0]) setView({ type: 'story', missionId: MISSIONS[0].id, prologue: true, replay: 'storybook' }); }}
-          onLesson={(missionId) => setView({ type: 'story', missionId, replay: 'storybook' })} />
+          onLesson={(missionId) => setView({ type: 'story', missionId, replay: 'storybook' })}
+          onEnding={(unit) => { const first = MISSIONS.find((item) => item.unit === unit); if (first) setView({ type: 'story', missionId: first.id, replay: 'storybook', part: 'end' }); }}
+          onEpilogue={() => { const last = MISSIONS[MISSIONS.length - 1]; if (last) setView({ type: 'story', missionId: last.id, replay: 'storybook', part: 'epilogue' }); }} />
       )}
       {view.type === 'review-complete' && (
         <ReviewCompleteView reviewedCount={view.reviewedCount} progress={progress} onMap={returnToMap} onReset={openResetDialog} />
