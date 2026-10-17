@@ -1051,7 +1051,7 @@
     .fq-choice { min-height: 130px; padding: 11px 7px; }
     .fq-question-bottom { align-items: stretch; flex-direction: column; gap: 14px; }
     .fq-question-bottom .fq-button { width: 100%; }
-    .fq-reward { margin: 28px auto; padding: 38px 20px; }
+    .fq-reward { margin: 12px auto; padding: 24px 16px; }
   }
 
   @media (prefers-reduced-motion: reduce) {

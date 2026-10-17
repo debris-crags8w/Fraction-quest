@@ -1901,6 +1901,15 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-race-missed ul { display: grid; gap: 6px; margin: 0; padding-left: 18px; }
 .fq-race-missed b { color: var(--fq-good-fg); }
 .fq-reward-play { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; font-weight: 800; color: hsl(var(--muted-foreground)); }
+/* Phones: the stars and the buttons sit closer, so the reward screen fits without scrolling. */
+@media (max-width: 520px) {
+  .fq-reward-stars { margin: 12px 0 16px; }
+  .fq-reward-stars svg { width: 38px; height: 38px; }
+  .fq-reward-play { gap: 6px; margin-top: 10px; }
+  .fq-reward-play .fq-button { min-height: 40px; padding: 6px 12px; }
+  .fq-reward-actions { gap: 8px; }
+  .fq-reward-actions .fq-button { padding-inline: 14px; }
+}
 .fq-sprint-steps { display: grid; gap: 6px; margin: 0; padding: 12px 14px 12px 34px; border-radius: 18px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); line-height: 1.4; }
 .fq-sprint-read { display: grid; gap: 10px; }
 .fq-sprint-code { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 0; border-radius: 16px; background: #1E1B2E; color: #E9ECEF; text-align: left; cursor: pointer; box-shadow: 0 4px 0 #0f0d18; font: inherit; }

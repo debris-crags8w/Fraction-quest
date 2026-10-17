@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, LockKeyhole, Search } from 'lucide-react';
+import { ArrowRight, BookOpen, LockKeyhole, Search } from 'lucide-react';
 import { StoryCharacter } from './characters';
 import { LearningListenButton, LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
@@ -15,11 +15,11 @@ export function StoneBar({ found, fresh = false }: { found: number; /** Glow the
 }
 
 /** A comic: three panels, an optional choice that must be picked, then an explicit button on. */
-export function StoryComicView({ title, kicker, panels, name, choice, goLabel, onGo, onBack }: {
+export function StoryComicView({ title, kicker, panels, name, choice, picked: saved, goLabel, onGo, onBack }: {
   title: string; kicker: string; panels: Panel[]; name: string | null;
-  choice?: [StoryChoice, StoryChoice]; goLabel: string; onGo: (choice?: 0 | 1) => void; onBack: () => void;
+  choice?: [StoryChoice, StoryChoice]; /** The choice already made, when reading the comic again. */ picked?: 0 | 1; goLabel: string; onGo: (choice?: 0 | 1) => void; onBack: () => void;
 }) {
-  const [picked, setPicked] = useState<0 | 1 | null>(null);
+  const [picked, setPicked] = useState<0 | 1 | null>(saved ?? null);
   const lines = panels.map((panel) => ({ ...panel, text: withName(panel.text, name) }));
   const reply = choice && picked !== null ? { ...choice[picked].reply, text: withName(choice[picked].reply.text, name) } : null;
   const script = [...lines, ...(reply ? [reply] : [])].map((panel) => `${CHARACTERS[panel.speaker].name} says: ${panel.text}`).join(' ');
@@ -149,7 +149,7 @@ export function KeeperCard({ name, fresh = false, compact = false }: { name: str
 }
 
 /** One character card. Locked cards show a shadow and the chapter that unlocks them. */
-export function StoryCard({ chapter, unlocked, fresh = false, compact = false }: { chapter: Chapter; unlocked: boolean; fresh?: boolean; compact?: boolean }) {
+export function StoryCard({ chapter, unlocked, fresh = false, compact = false, onRead }: { chapter: Chapter; unlocked: boolean; fresh?: boolean; compact?: boolean; /** Read the chapter's comic again. */ onRead?: () => void }) {
   return (
     <article className={`fq-story-card ${unlocked ? '' : 'is-locked'} ${fresh ? 'is-fresh' : ''} ${compact ? 'is-compact' : ''}`} data-testid={`story-card-${chapter.unit}`}>
       <span className="fq-story-card-art">{unlocked ? <StoryCharacter id={chapter.character} size={compact ? 40 : 64} happy /> : <LockKeyhole size={26} aria-hidden="true" />}</span>
@@ -157,6 +157,11 @@ export function StoryCard({ chapter, unlocked, fresh = false, compact = false }:
         {fresh && <small>New card</small>}
         <strong>{unlocked ? chapter.card.title : `Chapter ${chapter.unit}`}</strong>
         {!compact && <span>{unlocked ? chapter.card.blurb : `Finish “${chapter.title}” to unlock this card.`}</span>}
+        {unlocked && onRead && (
+          <button type="button" className="fq-story-card-read" onClick={onRead} data-testid={`button-read-chapter-${chapter.unit}`}>
+            <BookOpen size={15} aria-hidden="true" /> Read chapter {chapter.unit} again
+          </button>
+        )}
       </span>
     </article>
   );
@@ -173,7 +178,7 @@ export function ChapterTag({ chapter }: { chapter: Chapter }) {
 }
 
 /** Every card and the stone: unlocked cards come from finished chapters, the rest stay locked. */
-export function StoryCardsView({ completedUnits, name, onBack }: { completedUnits: Set<number>; name: string | null; onBack: () => void }) {
+export function StoryCardsView({ completedUnits, name, onBack, onRead }: { completedUnits: Set<number>; name: string | null; onBack: () => void; onRead: (unit: number) => void }) {
   return (
     <div className="fq-app fq-story-app">
       <main className="fq-shell fq-story-shell">
@@ -182,9 +187,9 @@ export function StoryCardsView({ completedUnits, name, onBack }: { completedUnit
           <div className="fq-stone-head"><h2>The Whole Stone</h2><span><strong>{completedUnits.size}/{STONE_PIECES}</strong> found</span></div>
           <StoneBar found={completedUnits.size} />
         </div>
-        <p className="fq-story-cards-note">Finish a chapter to meet its friend. <strong>{completedUnits.size} of {CHAPTERS.length}</strong> cards collected.</p>
+        <p className="fq-story-cards-note">Finish a chapter to meet its friend and read its story again. <strong>{completedUnits.size} of {CHAPTERS.length}</strong> cards collected.</p>
         <div className="fq-story-cards" data-testid="story-cards">
-          {CHAPTERS.map((chapter) => <StoryCard key={chapter.unit} chapter={chapter} unlocked={completedUnits.has(chapter.unit)} />)}
+          {CHAPTERS.map((chapter) => <StoryCard key={chapter.unit} chapter={chapter} unlocked={completedUnits.has(chapter.unit)} onRead={() => onRead(chapter.unit)} />)}
           {completedUnits.size >= STONE_PIECES && <KeeperCard name={name} />}
         </div>
       </main>

@@ -2597,7 +2597,25 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByText('2 of 15')).toBeVisible();
   await expect(page.getByTestId('story-card-1')).toContainText('Chomp the sneaky sharer');
   await expect(page.getByTestId('story-card-3')).toContainText('Finish “Tilly’s halfway hill” to unlock this card.');
+  await expect(page.getByTestId('button-read-chapter-3')).toHaveCount(0);
+
+  // A finished chapter can be read again from its card, with the choice already made, and it goes back to the cards.
+  await page.getByTestId('button-read-chapter-1').click();
+  await expect(page.getByTestId('story-panel-0')).toContainText('The big piece is mine!');
+  await expect(page.getByTestId('story-choice-reply')).toContainText('big muddy footprints');
+  await expect(page.getByTestId('button-story-go')).toContainText('Back to cards');
+  await page.getByTestId('button-story-go').click();
+  await expect(page.getByTestId('story-cards')).toBeVisible();
   await page.getByTestId('button-cards-back').click();
+
+  // A finished lesson's comic can be read again from the map; it returns to the map instead of starting the lesson.
+  await page.getByTestId(`button-node-${mission.id}`).click();
+  await page.getByTestId(`button-story-replay-${mission.id}`).click();
+  await expect(page.getByTestId('story-comic')).toBeVisible();
+  await expect(page.getByTestId('button-story-go')).toContainText('Back to map');
+  await page.getByTestId('button-story-go').click();
+  await expect(page.getByTestId('stone-banner')).toBeVisible();
+  await expect(page.getByTestId(`button-story-replay-${MISSIONS.find((item) => item.unit === 3)!.id}`)).toHaveCount(0);
 
   // The next chapter opens with its own intro and choice.
   const next = MISSIONS.find((item) => item.unit === 3)!;
