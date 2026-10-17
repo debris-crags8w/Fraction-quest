@@ -101,6 +101,8 @@ export type PracticeQuestion = {
   reviewQuestionId?: string;
   reviewTopicTitle?: string;
   standards?: string[];
+  /** Set on a lesson's story problem (story mode): the chapter friend's line before it. */
+  storySetup?: string;
 };
 
 export type WorkedExample = {

@@ -3,7 +3,12 @@ import { ArrowRight, BookOpen, LockKeyhole, Search } from 'lucide-react';
 import { StoryCharacter } from './characters';
 import { LearningListenButton, LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
-import { CHAPTERS, CHARACTERS, STONE_PIECES, lessonCliff, storyAsk, storyReaction, withName, type Chapter, type Panel, type StoryChoice } from './story';
+import { CHAPTERS, CHARACTERS, STONE_PIECES, lessonCliff, propTheme, stoneQuestion, storyAsk, storyReaction, withName, type Chapter, type Panel, type StoryChoice } from './story';
+import { useSeason } from './fun-ui';
+import { MathText } from './MathText';
+
+/** The props theme for story text: the season showing now (pumpkin pies at Halloween), else everyday props. */
+export const useStoryTheme = () => propTheme(useSeason().season?.id);
 
 /** The Whole Stone as a fraction model: one bar cut into 15 equal pieces, the found ones lit. */
 export function StoneBar({ found, fresh = false }: { found: number; /** Glow the newest piece. */ fresh?: boolean }) {
@@ -20,8 +25,9 @@ export function StoryComicView({ title, kicker, panels, name, choice, picked: sa
   choice?: [StoryChoice, StoryChoice]; /** The choice already made, when reading the comic again. */ picked?: 0 | 1; goLabel: string; onGo: (choice?: 0 | 1) => void; onBack: () => void;
 }) {
   const [picked, setPicked] = useState<0 | 1 | null>(saved ?? null);
-  const lines = panels.map((panel) => ({ ...panel, text: withName(panel.text, name) }));
-  const reply = choice && picked !== null ? { ...choice[picked].reply, text: withName(choice[picked].reply.text, name) } : null;
+  const theme = useStoryTheme();
+  const lines = panels.map((panel) => ({ ...panel, text: withName(panel.text, name, theme) }));
+  const reply = choice && picked !== null ? { ...choice[picked].reply, text: withName(choice[picked].reply.text, name, theme) } : null;
   const script = [...lines, ...(reply ? [reply] : [])].map((panel) => `${CHARACTERS[panel.speaker].name} says: ${panel.text}`).join(' ');
   return (
     <div className="fq-app fq-story-app">
@@ -49,7 +55,7 @@ export function StoryComicView({ title, kicker, panels, name, choice, picked: sa
               {choice.map((option, index) => (
                 <button key={option.label} type="button" className={picked === index ? 'on' : ''} aria-pressed={picked === index}
                   onClick={() => setPicked(index as 0 | 1)} data-testid={`button-story-choice-${index}`}>
-                  <strong>{option.label}</strong><span>{option.detail}</span>
+                  <strong>{withName(option.label, name, theme)}</strong><span>{withName(option.detail, name, theme)}</span>
                 </button>
               ))}
               {reply && (
@@ -69,12 +75,14 @@ export function StoryComicView({ title, kicker, panels, name, choice, picked: sa
   );
 }
 
-/** The friend's short line above a question. It sets the scene, then reacts once the answer is checked; it never hints. */
-export function StorySay({ chapter, questionId, result = null }: { chapter: Chapter; questionId: string; result?: 'correct' | 'retry' | null }) {
+/** The friend's short line above a question. It sets the scene (or a story problem's setup), then reacts once the
+   answer is checked; it never hints. */
+export function StorySay({ chapter, questionId, result = null, setup }: { chapter: Chapter; questionId: string; result?: 'correct' | 'retry' | null; setup?: string }) {
+  const theme = useStoryTheme();
   return (
     <div className={`fq-story-say ${result ? `is-${result}` : ''}`} data-testid="story-line" data-result={result ?? undefined}>
       <StoryCharacter id={chapter.character} size={40} happy={result === 'correct'} />
-      <p aria-live="polite"><span className="fq-sr">{CHARACTERS[chapter.character].name} says: </span>{result ? storyReaction(chapter.character, result, questionId) : storyAsk(chapter, questionId)}</p>
+      <p aria-live="polite"><span className="fq-sr">{CHARACTERS[chapter.character].name} says: </span>{result ? storyReaction(chapter.character, result, questionId) : withName(setup ?? storyAsk(chapter, questionId), null, theme)}</p>
     </div>
   );
 }
@@ -101,36 +109,76 @@ export function StoneBanner({ completedUnits, teaser, chapterTitle }: { complete
   );
 }
 
-/** After a lesson, in one compact box: the friend's line, the stone piece and new card when the chapter is done, then the cliffhanger. */
-export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, piecesFound, name }: {
+/** After a lesson, in one compact box: the friend's line, what the story problem changed, the stone question and
+   piece when the chapter is done, then the cliffhanger. */
+export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, piecesFound, name, problem }: {
   chapter: Chapter; lessonIndex: number; lessonsTotal: number; chapterDone: boolean; piecesFound: number; name: string | null;
+  /** What the lesson's story problem changed in the story. */
+  problem?: { result: string };
 }) {
+  const theme = useStoryTheme();
   const finale = chapterDone && piecesFound >= STONE_PIECES;
+  // The stone piece is shown after the child works out how much of the stone is back.
+  const [stoneSolved, setStoneSolved] = useState(false);
+  const tell = (text: string) => withName(text, name, theme);
   return (
     <div className="fq-story-payoff" data-testid="story-payoff">
       <div className="fq-story-say">
         <StoryCharacter id={chapter.character} size={48} happy />
-        <p><span className="fq-sr">{CHARACTERS[chapter.character].name} says: </span>{withName(chapterDone ? chapter.done : chapter.thanks, name)}</p>
+        <p><span className="fq-sr">{CHARACTERS[chapter.character].name} says: </span>{tell(chapterDone ? chapter.done : chapter.thanks)}</p>
       </div>
-      {chapterDone && (
+      {problem && (
+        <p className="fq-story-result" data-testid="story-problem-result">
+          <strong>Because you solved the story problem:</strong> {tell(problem.result)}
+        </p>
+      )}
+      {chapterDone && !stoneSolved && <StoneQuestion found={piecesFound} onSolved={() => setStoneSolved(true)} />}
+      {chapterDone && stoneSolved && (
         <div className="fq-stone-found" data-testid="stone-found">
           <span className="fq-stone-found-head">
             <strong>{finale ? <>The stone is <u>one whole</u> again!</> : 'You found a stone piece!'}</strong>
             <span><b>{piecesFound}/{STONE_PIECES}</b> found</span>
           </span>
           <StoneBar found={piecesFound} fresh />
-          <span className="fq-stone-clue new" data-testid="stone-new-clue"><Search size={14} aria-hidden="true" /> New clue: {chapter.clue}</span>
+          <span className="fq-stone-clue new" data-testid="stone-new-clue"><Search size={14} aria-hidden="true" /> New clue: {tell(chapter.clue)}</span>
           {finale ? <KeeperCard name={name} fresh compact /> : <StoryCard chapter={chapter} unlocked fresh compact />}
-          {!finale && <p className="fq-story-cliff" data-testid="story-cliff">{withName(lessonCliff(chapter, lessonIndex, lessonsTotal), name)}</p>}
+          {!finale && <p className="fq-story-cliff" data-testid="story-cliff">{tell(lessonCliff(chapter, lessonIndex, lessonsTotal))}</p>}
         </div>
       )}
       {!chapterDone && (
         <p className="fq-story-cliff is-solo" data-testid="story-cliff">
-          {withName(lessonCliff(chapter, lessonIndex, lessonsTotal), name)}
+          {tell(lessonCliff(chapter, lessonIndex, lessonsTotal))}
           <span className="fq-story-progress">Chapter {chapter.unit}: <strong>{lessonIndex + 1} of {lessonsTotal}</strong> lessons done</span>
         </p>
       )}
     </div>
+  );
+}
+
+/** "How much of the Whole Stone is back?" after a chapter: the stone bar is the model, the piece comes after. */
+function StoneQuestion({ found, onSolved }: { found: number; onSolved: () => void }) {
+  const { choices, correct } = stoneQuestion(found);
+  const [picked, setPicked] = useState<number | null>(null);
+  const [missed, setMissed] = useState(false);
+  return (
+    <section className="fq-stone-question" aria-labelledby="stone-question-title" data-testid="stone-question">
+      <span className="fq-stone-question-tag">Stone question</span>
+      <h2 id="stone-question-title">How much of the <u>Whole Stone</u> is back?</h2>
+      <StoneBar found={found} />
+      <div className="fq-stone-question-choices" role="group" aria-label="Choices">
+        {choices.map((choice, index) => (
+          <button key={choice} type="button" className={picked === index ? `on ${missed ? 'missed' : ''}` : ''} aria-pressed={picked === index}
+            onClick={() => { setPicked(index); setMissed(false); }} data-testid={`button-stone-choice-${index}`}>
+            <MathText text={choice} />
+          </button>
+        ))}
+      </div>
+      {missed && <p className="fq-stone-question-note" role="status" data-testid="stone-question-feedback">Good try! Count the gold pieces. Then count all the pieces in the whole stone.</p>}
+      <button type="button" className="fq-button fq-stone-question-check" disabled={picked === null || missed}
+        onClick={() => { if (picked === correct) onSolved(); else setMissed(true); }} data-testid="button-stone-check">
+        Check <ArrowRight size={17} />
+      </button>
+    </section>
   );
 }
 
@@ -150,13 +198,14 @@ export function KeeperCard({ name, fresh = false, compact = false }: { name: str
 
 /** One character card. Locked cards show a shadow and the chapter that unlocks them. */
 export function StoryCard({ chapter, unlocked, fresh = false, compact = false, onRead }: { chapter: Chapter; unlocked: boolean; fresh?: boolean; compact?: boolean; /** Read the chapter's comic again. */ onRead?: () => void }) {
+  const theme = useStoryTheme();
   return (
     <article className={`fq-story-card ${unlocked ? '' : 'is-locked'} ${fresh ? 'is-fresh' : ''} ${compact ? 'is-compact' : ''}`} data-testid={`story-card-${chapter.unit}`}>
       <span className="fq-story-card-art">{unlocked ? <StoryCharacter id={chapter.character} size={compact ? 40 : 64} happy /> : <LockKeyhole size={26} aria-hidden="true" />}</span>
       <span className="fq-story-card-copy">
         {fresh && <small>New card</small>}
         <strong>{unlocked ? chapter.card.title : `Chapter ${chapter.unit}`}</strong>
-        {!compact && <span>{unlocked ? chapter.card.blurb : `Finish “${chapter.title}” to unlock this card.`}</span>}
+        {!compact && <span>{unlocked ? withName(chapter.card.blurb, null, theme) : `Finish “${chapter.title}” to unlock this card.`}</span>}
         {unlocked && onRead && (
           <button type="button" className="fq-story-card-read" onClick={onRead} data-testid={`button-read-chapter-${chapter.unit}`}>
             <BookOpen size={15} aria-hidden="true" /> Read chapter {chapter.unit} again

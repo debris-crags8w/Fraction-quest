@@ -51,7 +51,7 @@ import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
 import { CandyIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
-import { CHAPTERS, PROLOGUE, chapterFor, lessonComic } from './story';
+import { CHAPTERS, PROLOGUE, chapterFor, lessonComic, propTheme, storyProblemFor, withName, type PropTheme } from './story';
 import { ChapterTag, StoneBanner, StoryCardsView, StoryComicView, StoryPayoff, StorySay } from './story-ui';
 import { LanternIcon } from './riddle-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
@@ -1003,6 +1003,7 @@ function PlayView({
           ) : (
             <>
           <p className="fq-play-kicker">
+            {question?.storySetup && <span className="fq-story-problem-tag" data-testid="story-problem-tag">Story problem</span>}
             {isQuickReview
               ? `Quick skill review · ${question?.reviewTopicTitle ?? mission.shortTitle} · Question ${questionIndex + 1} of ${mission.questions.length}`
               : isExtraPractice
@@ -1015,10 +1016,10 @@ function PlayView({
             {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
             {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
           </p>}
-          {/* One friendly line per question: the seasonal one while a theme is on, otherwise the story friend's. */}
-          {question && !showExample && (seasonOn
-            ? <SeasonSay kind={question.model.kind} id={question.id} />
-            : storyOn && chapterFor(mission.unit) && <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} result={feedback} />)}
+          {/* One friendly line per question: the story friend's (in the season's props) when the story is on, else the seasonal one. */}
+          {question && !showExample && (storyOn && chapterFor(mission.unit)
+            ? <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} result={feedback} setup={question.storySetup} />
+            : seasonOn && <SeasonSay kind={question.model.kind} id={question.id} />)}
           {showExample
             ? <h1 id="lesson-title">{mission.title}</h1>
             : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
@@ -1136,6 +1137,14 @@ function PastQuestionReview({
   );
 }
 
+/** A lesson's last question as its story problem (story mode): same model, answer and numbers, told in the chapter
+   with the season's props. Lessons without a written story problem keep their question as it is. */
+function storyQuestion(mission: Mission, question: PracticeQuestion, storyOn: boolean, theme: PropTheme): PracticeQuestion {
+  const problem = storyOn && chapterFor(mission.unit) ? storyProblemFor(mission.id) : null;
+  if (!problem) return question;
+  return { ...question, prompt: withName(problem.prompt, null, theme), choices: (problem.choices ?? question.choices).map((choice) => withName(choice, null, theme)), storySetup: problem.setup };
+}
+
 function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code') => void }) {
   const nextMission = getNextMission(progress);
   // Units 9+ open only after every lesson in the unit before is done, so "next lesson is open" is not always true.
@@ -1166,7 +1175,8 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame }
            <p className={storyOn && chapter ? 'fq-reward-note' : undefined}>{storyOn && chapter ? '' : 'You built it two ways, explained it, and finished the worksheet. '}{nextLessonOpen ? 'The next lesson is open!' : 'Finish the other lessons in this unit to open the next unit.'}</p>
           <SeasonReward missionId={mission.id} />
           {storyOn && chapter && <StoryPayoff chapter={chapter} lessonIndex={unitMissions.indexOf(mission)} lessonsTotal={unitMissions.length}
-            chapterDone={unitMissions.every((item) => hasLearningGate(progress, item.id))} piecesFound={completedStoryUnits(progress).size} name={account.activeProfile?.displayName ?? null} />}
+            chapterDone={unitMissions.every((item) => hasLearningGate(progress, item.id))} piecesFound={completedStoryUnits(progress).size} name={account.activeProfile?.displayName ?? null}
+            problem={storyProblemFor(mission.id) ?? undefined} />}
           <div className="fq-reward-stars" data-testid="status-mission-stars" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}
@@ -1415,7 +1425,7 @@ function Game() {
           ...baseMission.questions.slice(0, -1),
           ...(hasGenerator(baseMission.id) ? getExtraPractice(baseMission.id, baseMission.questions.map((q) => q.id)).slice(0, EXTRA_IN_LESSON) : []),
           ...view.reviewQuestions,
-          baseMission.questions[baseMission.questions.length - 1],
+          storyQuestion(baseMission, baseMission.questions[baseMission.questions.length - 1], storyMode, propTheme(activeSeason(fun)?.id)),
         ],
       }
     : view.type === 'review' && baseMission

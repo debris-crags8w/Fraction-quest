@@ -33,9 +33,21 @@ export type Chapter = {
 };
 
 export const STONE_PIECES = 15;
-/** Where a child's name goes in a line ("{name}, we need you!"). */
-export function withName(text: string, name: string | null | undefined): string {
-  const filled = text.split('{name}').join(name?.trim() || 'friend');
+
+/** Seasonal props: story text names its treats with blanks ("the festival {cake}") and the theme showing now
+   fills them, so a Halloween lesson has pumpkin pies and candy. Only nouns change: never a number or answer. */
+export type PropTheme = 'everyday' | 'halloween';
+export const PROPS: Record<PropTheme, Record<string, string>> = {
+  everyday: { cake: 'cake', cakes: 'cakes', bar: 'snack bar', bars: 'snack bars', snack: 'snack', snacks: 'snacks', drink: 'lemonade', plant: 'sunflower' },
+  halloween: { cake: 'pumpkin pie', cakes: 'pumpkin pies', bar: 'candy bar', bars: 'candy bars', snack: 'candy', snacks: 'candies', drink: 'pumpkin juice', plant: 'pumpkin vine' },
+};
+export const propTheme = (seasonId: string | null | undefined): PropTheme => (seasonId && seasonId in PROPS ? seasonId as PropTheme : 'everyday');
+
+/** Fill a story line: the child's name ("{name}, we need you!") and the season's props ("{cake}"). */
+export function withName(text: string, name: string | null | undefined, theme: PropTheme = 'everyday'): string {
+  const filled = text
+    .replace(/\{(\w+)\}/g, (token, key: string) => key === 'name' ? token : PROPS[theme][key] ?? token)
+    .split('{name}').join(name?.trim() || 'friend');
   // Without a name, a line that opens with it still starts with a capital: "Friend, we need you!"
   return filled.startsWith('friend') ? `F${filled.slice(1)}` : filled;
 }
@@ -62,8 +74,8 @@ export const PROLOGUE: [Panel, Panel, Panel] = [
 
 export const CHAPTERS: Chapter[] = [
   { unit: 1, title: 'The bakery mix-up', character: 'chomp',
-    intro: [say('chomp', 'I cut the festival cake for all 4 of us. The big piece is mine!'), say('numi', 'Wait! Those pieces are not the same size. And look, a stone piece is in the crumbs!'), say('hoot', 'Fair shares are equal parts. Fix the cake, {name}, and we can dig out the piece.')],
-    choice: [pick('Fix the cake', 'Help everyone share fairly', 'numi', 'Good plan. A fair cake makes everyone happy.'), pick('Look at the crumbs', 'Add a clue to your notebook', 'hoot', 'Crumbs… and big muddy footprints. Interesting.')],
+    intro: [say('chomp', 'I cut the festival {cake} for all 4 of us. The big piece is mine!'), say('numi', 'Wait! Those pieces are not the same size. And look, a stone piece is in the crumbs!'), say('hoot', 'Fair shares are equal parts. Fix the {cake}, {name}, and we can dig out the piece.')],
+    choice: [pick('Fix the {cake}', 'Help everyone share fairly', 'numi', 'Good plan. A fair {cake} makes everyone happy.'), pick('Look at the crumbs', 'Add a clue to your notebook', 'hoot', 'Crumbs… and big muddy footprints. Interesting.')],
     scenes: ['The baker wrote fractions on the slices, but I can’t read them. Help?', 'Okay, okay. I’ll take just one slice. How big is one slice?'],
     cliffs: ['Under the crumbs the stone piece glows… right next to big muddy footprints.', 'The footprints lead out the bakery door… toward the pond.'],
     cliff: 'Splash! Something shiny just fell into Pip’s pond.',
@@ -72,20 +84,20 @@ export const CHAPTERS: Chapter[] = [
     thanks: 'Okay, okay. Equal parts are fair!', done: 'Fair shares for everyone. But I did not crack that stone!',
     card: { title: 'Chomp the sneaky sharer', blurb: 'Loves the biggest piece. Now he knows fair shares are equal parts.' } },
   { unit: 2, title: 'Pip’s pond party', character: 'pip',
-    intro: [say('pip', 'Ribbit! My party guests are here, and a stone piece fell into the snack bowl!'), say('numi', 'Let’s share the snacks in equal groups so we can find it.'), say('hoot', 'A fraction can name part of a group too.')],
-    choice: [pick('Share the snacks', 'Make equal groups', 'numi', 'Equal groups coming up!'), pick('Ask the guests', 'Who saw the splash?', 'pip', 'My guests saw a big green tail by the water. Hmm.')],
-    scenes: ['More guests just hopped in! Can we share the berries again?', 'Some guests want more than one share. How much is that?'],
+    intro: [say('pip', 'Ribbit! My party guests are here, and a stone piece fell into the {snack} bowl!'), say('numi', 'Let’s share the {snacks} in equal groups so we can find it.'), say('hoot', 'A fraction can name part of a group too.')],
+    choice: [pick('Share the {snacks}', 'Make equal groups', 'numi', 'Equal groups coming up!'), pick('Ask the guests', 'Who saw the splash?', 'pip', 'My guests saw a big green tail by the water. Hmm.')],
+    scenes: ['More guests just hopped in! Can we share the {snacks} again?', 'Some guests want more than one share. How much is that?'],
     cliffs: ['Something under the lily pads blinks at you… then swims away.', 'The guests point up the hill. Tilly saw something shine up there!'],
     cliff: 'Tilly calls from the hill: “Something is shining up here!”',
     clue: 'A big green tail by the pond',
-    asks: ['Ribbit! Help me with this one.', 'Every friend should get the same.', 'Party snacks need fair groups!'],
+    asks: ['Ribbit! Help me with this one.', 'Every friend should get the same.', 'Party {snacks} need fair groups!'],
     thanks: 'Ribbit! Everyone got a fair share.', done: 'Best party ever! And we found the stone piece!',
-    card: { title: 'Pip the party host', blurb: 'Shares snacks in equal groups so every guest gets the same.' } },
+    card: { title: 'Pip the party host', blurb: 'Shares {snacks} in equal groups so every guest gets the same.' } },
   { unit: 3, title: 'Tilly’s halfway hill', character: 'tilly',
     intro: [say('tilly', 'I saw something shining at the top of the hill. But am I even halfway up?'), say('numi', 'Let’s use landmarks: 0, one half and 1.'), say('hoot', 'Landmarks help us tell how big a fraction is.')],
     choice: [pick('Climb with Tilly', 'Use the landmarks', 'tilly', 'Slow and steady. Thank you for coming with me.'), pick('Look around', 'Search for clues', 'hoot', 'Teeth marks on the trail sign. Big pointy ones.')],
     scenes: ['Let’s check where we are again. I like to be sure.', 'Some parts of the path are bigger than others. Help me save my energy?'],
-    cliffs: ['Halfway up, Tilly finds a trail of cake crumbs.', 'At the top, the stone piece glows in a bush… and the bridge below is broken!'],
+    cliffs: ['Halfway up, Tilly finds a trail of {cake} crumbs.', 'At the top, the stone piece glows in a bush… and the bridge below is broken!'],
     cliff: 'Down below, Pip can’t get home. The bridge is missing planks!',
     clue: 'Teeth marks on the trail sign',
     asks: ['Slow and steady. Help me check.', 'Let’s look at the landmarks.', 'I like to think before I move.'],
@@ -103,7 +115,7 @@ export const CHAPTERS: Chapter[] = [
     card: { title: 'Pip the jump champion', blurb: 'Hops in equal jumps and lands right where he plans.' } },
   { unit: 5, title: 'Chomp’s tower of treats', character: 'chomp',
     intro: [say('chomp', 'Go away! My tower of treats is private!'), say('numi', 'Your tower keeps wobbling, Chomp. The biggest treats go at the bottom.'), say('hoot', 'Equal-size pieces make comparing easier.')],
-    choice: [pick('Help fix the tower', 'Compare the treats', 'chomp', 'Fine. But don’t touch my snacks.'), pick('Peek at the top', 'What is Chomp hiding?', 'numi', 'A stone piece glows at the very top. Chomp looks nervous.')],
+    choice: [pick('Help fix the tower', 'Compare the treats', 'chomp', 'Fine. But don’t touch my {snacks}.'), pick('Peek at the top', 'What is Chomp hiding?', 'numi', 'A stone piece glows at the very top. Chomp looks nervous.')],
     scenes: ['These treats look so alike. Help me sort them?', 'Help me put them all in order so my tower stands tall.'],
     cliffs: ['The tower stands… and Chomp quickly hides a pair of shiny boots behind it.', 'Chomp mumbles: “Nobody can look in my den. Nobody!”'],
     cliff: 'Bea needs help at the honey shop. Someone left a strange map there.',
@@ -246,4 +258,75 @@ export function storyReaction(character: CharacterId, result: 'correct' | 'retry
   let hash = 0;
   for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
   return lines[hash % lines.length];
+}
+
+/** A lesson's story problem: its last (checkpoint) question told inside the chapter. The model, the answer and
+   every number stay the lesson's own; only the words change, so the math is the same one the lesson checks.
+   `setup` is the friend's line before it (words only), `result` is what the answer changes in the story. */
+export type StoryProblem = { setup: string; prompt: string; choices?: string[]; result: string };
+export const STORY_PROBLEMS: Record<string, StoryProblem> = {
+  // Chapter 1 · The bakery mix-up
+  'equal-parts': { setup: 'The baker gave me a {cake} to share. I cut it fair this time. Honest!',
+    prompt: 'Chomp cut a {cake} into 5 equal pieces. What is 1 piece?',
+    result: 'Each friend gets one fifth of the {cake}. Fair and square!' },
+  'fraction-names': { setup: 'The baker frosted one slice for me. What does the label say?',
+    prompt: 'The baker cut a {cake} into 9 equal slices. 1 slice is frosted. What fraction is frosted?',
+    result: 'The label says 1/9. Now Chomp can read his slice!' },
+  'unit-fractions': { setup: 'Okay, okay. Just one piece for me this time.',
+    prompt: 'The {cake} has 12 equal pieces. Chomp takes 1 piece. What fraction is that?',
+    result: 'Chomp took just 1/12. There is plenty left for everyone!' },
+  // Chapter 2 · Pip’s pond party
+  'unit-size': { setup: 'Two {bars} the same size! Which piece should the tiny guests get?',
+    prompt: 'One {bar} is cut into thirds and one into sevenths. Which piece is smaller: 1/3 or 1/7?',
+    result: 'The tiny guests get the 1/7 pieces. Just right for little frogs!' },
+  'sets-unit-fractions': { setup: 'Every party table needs the same number of {snacks}!',
+    prompt: 'Pip has 20 {snacks} for the party. What is 1/5 of the {snacks}?',
+    result: 'Each table gets 4 {snacks}. Ribbit, fair groups!' },
+  'sets-nonunit': { setup: 'Uh oh. Some guests have been snacking already!',
+    prompt: 'Pip had 18 {snacks}. The guests ate 3/6 of them. How many did they eat?',
+    choices: ['6 {snacks}', '15 {snacks}', '9 {snacks}', '8 {snacks}'],
+    result: 'The guests ate 9 {snacks}. Half the bowl is still left!' },
+  // Chapter 3 · Tilly’s halfway hill
+  'benchmark-half': { setup: 'I packed a drink for the climb. Do I have enough?',
+    prompt: 'Tilly’s jug of {drink} is 6/10 full. Is that more or less than half?',
+    result: 'More than half a jug! Tilly has plenty of {drink} for the climb.' },
+  'benchmarks-zero-one': { setup: 'Look at this {plant} by the trail. Is it almost as tall as a meter stick?',
+    prompt: 'A {plant} on the hill grew 9/10 of a meter. Is that near 0 or 1 meter?',
+    result: 'Almost 1 meter! Tilly uses the tall {plant} as a landmark.' },
+  'fraction-magnitude': { setup: 'I climb in little steps. Each one is a tenth of the path.',
+    prompt: 'Tilly climbs 1/10 + 1/10 + 1/10 + 1/10 + 1/10 of the path. About how far is that?',
+    result: 'About halfway! Tilly stops for a {snack} break.' },
+  // Chapter 4 · The broken bridge
+  'number-line-basics': { setup: 'The bridge has equal planks. Help me count my hops!',
+    prompt: 'The bridge from 0 to 1 has 6 equal planks. Pip hops 5 planks. Where is he?',
+    result: 'Pip is at 5/6 of the bridge. Just one plank to go!' },
+  'number-line-points': { setup: 'Oops! I dropped my {snack} on the bridge. Where did it land?',
+    prompt: 'The bridge has 8 equal spaces. Pip’s {snack} is 5 jumps from 0. What fraction is that?',
+    result: 'Found it at 5/8! Pip saves his {snack} for later.' },
+  'number-line-beyond-one': { setup: 'My house is past the end of the bridge. Keep counting with me!',
+    prompt: 'Pip takes 9 hops of 1/5 each. How far is that?',
+    result: 'Pip hopped 9/5, which is 1 and 4/5. He is home!' },
+  // Chapter 5 · Chomp’s tower of treats
+  'compare-same-denominator': { setup: 'The bigger treat goes at the bottom. Which one is it?',
+    prompt: 'Two {bars} are cut into twelfths. Which is bigger, 5/12 or 9/12?',
+    result: 'The 9/12 piece goes at the bottom. The tower stands tall!' },
+  'compare-same-numerator': { setup: 'These two treats look so alike. Help me pick!',
+    prompt: 'Two {cakes} are the same size. Which piece covers more: 3/10 or 3/8?',
+    result: '3/8 covers more, so it goes lower. No more wobbles!' },
+  'order-fractions': { setup: 'Smallest on top, biggest at the bottom. Help me stack!',
+    prompt: 'Chomp’s tower has 1/2, 3/10 and 8/10 of a {bar}. Put them in order, smallest first.',
+    result: 'Smallest on top and biggest at the bottom. The tower is perfect!' },
+};
+export const storyProblemFor = (missionId: string): StoryProblem | null => STORY_PROBLEMS[missionId] ?? null;
+
+/** The stone question after a chapter: how much of the Whole Stone is back? Four choices with the usual mix-ups. */
+export function stoneQuestion(found: number): { choices: string[]; correct: number } {
+  const right = `${found}/${STONE_PIECES}`;
+  const wrong = [`${STONE_PIECES}/${found}`, `${found}/${STONE_PIECES - found || 1}`, `${STONE_PIECES - found}/${STONE_PIECES}`, `1/${STONE_PIECES}`, `${found}/${STONE_PIECES + 1}`]
+    .filter((choice, index, all) => choice !== right && all.indexOf(choice) === index).slice(0, 3);
+  // A steady spot for the right answer that still moves from chapter to chapter.
+  const correct = found % 4;
+  const choices = [...wrong];
+  choices.splice(correct, 0, right);
+  return { choices, correct };
 }
