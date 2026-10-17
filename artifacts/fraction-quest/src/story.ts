@@ -1,4 +1,4 @@
-/* The Whole Stone: one story across all 15 units. The night before the Fraction Festival the Whole Stone
+/* The Whole Stone: one story across all 15 units. A week before the Fraction Festival the Whole Stone
    cracks into 15 equal pieces. Each chapter (unit) returns one piece and one clue to "who cracked it?".
    Act 1 points at Chomp; chapter 8 reveals he was protecting Bolt; Act 3 puts the stone back together.
    The story frames lessons only: it never changes a question, an answer or what unlocks next. */
@@ -67,7 +67,7 @@ const pick = (label: string, detail: string, speaker: Speaker, reply: string): S
 
 /** The opening, once, before the very first lesson. */
 export const PROLOGUE: [Panel, Panel, Panel] = [
-  say('numi', 'It’s the night before the Fraction Festival. The Whole Stone glows in the town square.'),
+  say('numi', 'The Fraction Festival is one week away. The Whole Stone glows in the town square.'),
   say('hoot', 'CRACK! The stone broke into 15 equal pieces, and they flew all over town!'),
   say('numi', '{name}, we need you! Can you find every piece and find out who cracked it?'),
 ];

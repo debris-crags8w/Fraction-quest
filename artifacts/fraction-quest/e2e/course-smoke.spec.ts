@@ -2548,7 +2548,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
 
   // The first lesson opens with the one-time prologue, then the chapter intro with a choice.
   await page.getByTestId('button-continue-course').click();
-  await expect(page.getByTestId('story-panel-0')).toContainText('night before the Fraction Festival');
+  await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away.');
   await expect(page.getByTestId('story-panel-2')).toContainText('Friend, we need you!');
   await expect(page.getByTestId('button-story-go')).toContainText('I’ll help!');
   await page.getByTestId('button-story-go').click();
