@@ -40,7 +40,8 @@ import { saveAssessmentAttempt } from './assessments';
 import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
-import { LearningListenButton, LearningText, LearningTextSection, primeReadAloud, sectionsScript, useReadAloud } from './LearningText';
+import { LearningListenButton, LearningText, LearningTextSection, prefetchReading, primeReadAloud, sectionsScript, useReadAloud } from './LearningText';
+import { comicLines } from './story-cinema';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
 import { getWorksheet } from './learning-content';
@@ -1317,6 +1318,23 @@ function Game() {
     setResetAllConfirm(false);
     setResetOpen(true);
   };
+
+  // The next story comic reads itself aloud as it opens: fetch its voice while the map is showing, so it starts at
+  // once (the prologue too, before the first lesson).
+  const onMap = view.type === 'map';
+  const prologueSeen = !!fun.story?.prologueSeen;
+  useEffect(() => {
+    if (!onMap || !storyMode || fun.sound === false) return;
+    const timer = setTimeout(() => {
+      const next = getNextMission(progress);
+      const chapter = next && chapterFor(next.unit);
+      if (!next || !chapter) return;
+      const index = MISSIONS.filter((item) => item.unit === next.unit).indexOf(next);
+      const comics = [...(prologueSeen ? [] : [PROLOGUE]), lessonComic(chapter, next, index)];
+      comics.forEach((panels) => prefetchReading(comicLines(panels, storyTheme).join(' ')));
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [onMap, progress, storyMode, fun.sound, prologueSeen, storyTheme]);
 
   // Check the natural voice soon after opening (a tiny request; it also wakes the server's voice), so the very
   // first Listen already uses it instead of the device voice.
