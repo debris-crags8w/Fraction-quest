@@ -3204,6 +3204,57 @@ describe('natural read-aloud voice', () => {
       setNaturalEngineForTests(null);
     }
   });
+  it('makes every sentence before playing and reports each one as it starts', async () => {
+    setNaturalVoicePreference('af_heart');
+    const made: string[] = [];
+    setNaturalEngineForTests({
+      async generate(text: string) { made.push(text); return { toBlob: () => new Blob([text], { type: 'audio/wav' }) }; },
+    });
+    let audio!: HTMLAudioElement;
+    let playsBeforeAllMade = 0;
+    audio = {
+      duration: Number.NaN,
+      pause() {},
+      play() {
+        if (made.length < 3) playsBeforeAllMade++;
+        queueMicrotask(() => { audio.onplaying?.(new Event('playing')); audio.onended?.(new Event('ended')); });
+        return Promise.resolve();
+      },
+    } as unknown as HTMLAudioElement;
+    const speaker = createNaturalSpeaker(() => audio);
+    try {
+      const parts: number[] = [];
+      const ok = await new Promise<boolean>((resolve) => speaker.speak(['One.', 'Two.', 'Three.'], resolve, undefined, undefined, (i) => parts.push(i)));
+      assert.equal(ok, true);
+      assert.equal(playsBeforeAllMade, 0, 'nothing plays until every sentence is ready');
+      assert.deepEqual(parts, [0, 1, 2]);
+    } finally {
+      speaker.stop();
+      setNaturalEngineForTests(null);
+    }
+  });
+  it('gives up cleanly when the voice is too slow, without playing part of the story', async () => {
+    setNaturalVoicePreference('af_heart');
+    setNaturalEngineForTests({
+      async generate(text: string) {
+        if (text === 'Slow.') await new Promise((resolve) => setTimeout(resolve, 200));
+        return { toBlob: () => new Blob([text], { type: 'audio/wav' }) };
+      },
+    });
+    let plays = 0;
+    const audio = { duration: Number.NaN, pause() {}, play() { plays++; return Promise.resolve(); } } as unknown as HTMLAudioElement;
+    const speaker = createNaturalSpeaker(() => audio, undefined, 30);
+    try {
+      let failed = false;
+      const ok = await new Promise<boolean>((resolve) => speaker.speak(['Fast.', 'Slow.'], resolve, undefined, () => { failed = true; }));
+      assert.equal(ok, false);
+      assert.equal(failed, true);
+      assert.equal(plays, 0);
+    } finally {
+      speaker.stop();
+      setNaturalEngineForTests(null);
+    }
+  });
   it('is on by default and remembers a grown-up turning it off', () => {
     const store = new Map<string, string>();
     (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v); } };

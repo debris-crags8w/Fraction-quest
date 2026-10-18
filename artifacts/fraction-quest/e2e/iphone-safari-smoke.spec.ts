@@ -12,6 +12,8 @@ async function passStory(page: import('@playwright/test').Page) {
       await introGo.click();
       continue;
     }
+    const skip = page.getByTestId('button-story-skip');
+    if (await skip.isVisible()) await skip.click();
     const go = page.getByTestId('button-story-go');
     if (!(await go.isVisible())) return;
     const choice = page.getByTestId('button-story-choice-0');

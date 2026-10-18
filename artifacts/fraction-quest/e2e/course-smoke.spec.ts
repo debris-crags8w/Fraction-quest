@@ -21,6 +21,8 @@ async function passStory(page: import('@playwright/test').Page) {
       await introGo.click();
       continue;
     }
+    const skip = page.getByTestId('button-story-skip');
+    if (await skip.isVisible()) await skip.click();
     const go = page.getByTestId('button-story-go');
     if (!(await go.isVisible())) return;
     const choice = page.getByTestId('button-story-choice-0');
@@ -29,6 +31,13 @@ async function passStory(page: import('@playwright/test').Page) {
   }
 }
 
+
+/** The animated comics play like a cartoon; "Show all" jumps to the end so the test can read every panel. */
+async function showWholeComic(page: import('@playwright/test').Page) {
+  await page.getByTestId('story-comic').waitFor();
+  const skip = page.getByTestId('button-story-skip');
+  if (await skip.isVisible()) await skip.click();
+}
 
 /** Practice, games, check-ins and grown-ups live in the top bar's "More" menu. */
 async function openMenuItem(page: import('@playwright/test').Page, testId: string) {
@@ -2573,8 +2582,10 @@ test('Christmas: a snowy map, a Santa hat and scarf, candy canes, story props, a
 
   // Story text uses the Christmas props.
   await page.getByTestId('button-continue-course').click();
+  await showWholeComic(page);
   await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away!');
   await page.getByTestId('button-story-go').click();
+  await showWholeComic(page);
   await expect(page.getByTestId('story-panel-0')).toContainText('I cut the festival Christmas cake for all 4 of us.');
   await page.getByTestId('button-story-back').click();
 
@@ -2619,6 +2630,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
 
   // The first lesson opens straight into the one-time prologue comic (no extra setup screen).
   await page.getByTestId('button-continue-course').click();
+  await showWholeComic(page);
   await expect(page.getByTestId('story-panel-2')).toContainText('15 equal pieces');
   // Leaving before the end does not mark the prologue as seen; it appears again.
   await page.getByTestId('button-story-back').click();
@@ -2626,12 +2638,14 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   const introProgress = await page.evaluate(() => JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}').story?.prologueSeen ?? false);
   expect(introProgress).toBe(false);
   await page.getByTestId('button-continue-course').click();
+  await showWholeComic(page);
   await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away!');
   await expect(page.getByTestId('story-panel-0')).toContainText('I’m Numi, and this is Hoot');
   await expect(page.getByTestId('story-panel-2')).toContainText('The case snapped shut');
   await expect(page.getByTestId('story-panel-3')).toContainText('Friend, we need you!');
   await expect(page.getByTestId('button-story-go')).toContainText('I’ll help!');
   await page.getByTestId('button-story-go').click();
+  await showWholeComic(page);
   await expect(page.getByTestId('story-panel-0')).toContainText('The big piece is mine!');
   await expect(page.getByTestId('story-panel-2')).toContainText('Fair shares are equal parts');
   await expect(page.getByTestId('button-story-go')).toBeDisabled();
@@ -2735,6 +2749,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
 
   // A finished chapter can be read again from its card, with the choice already made, and it goes back to the cards.
   await page.getByTestId('button-read-chapter-1').click();
+  await showWholeComic(page);
   await expect(page.getByTestId('story-panel-0')).toContainText('The big piece is mine!');
   await expect(page.getByTestId('story-choice-reply')).toContainText('big muddy footprints');
   await expect(page.getByTestId('button-story-go')).toContainText('Back to the Storybook');
@@ -2742,6 +2757,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId('storybook-chapter-1')).toBeVisible();
   // The prologue can be read again too.
   await page.getByTestId('button-storybook-prologue').click();
+  await showWholeComic(page);
   await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away!');
   await page.getByTestId('button-story-go').click();
   // A finished chapter's ending (thanks, clue, what happens next) can be read again; an unfinished one is locked.
@@ -2759,6 +2775,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.getByTestId(`button-node-${mission.id}`).click();
   await page.getByTestId(`button-story-replay-${mission.id}`).click();
   await expect(page.getByTestId('story-comic')).toBeVisible();
+  await showWholeComic(page);
   await expect(page.getByTestId('button-story-go')).toContainText('Back to map');
   await page.getByTestId('button-story-go').click();
   await expect(page.getByTestId('stone-banner')).toBeVisible();

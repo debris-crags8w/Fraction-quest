@@ -190,12 +190,15 @@ export function createLearningSpeechController(
     setSpeaking(false);
   };
 
+  /** A screen following the reading (a story comic): which sentence is being read, and when it ends. */
+  let follow: SpeechFollower | undefined;
   const startUtterance = (text: string, language: string, playback: number, voices: readonly SpeechSynthesisVoice[]) => {
     if (disposed || playback !== generation) return;
     clearVoiceWait();
     const voice = selectLearningVoice(voices, language, getPreferredVoiceId());
+    const following = follow;
     const finish = () => {
-      if (playback === generation) setSpeaking(false);
+      if (playback === generation) { setSpeaking(false); following?.onEnd?.(); }
     };
     // One utterance per sentence: the voice pauses between them, and Chrome doesn't cut off long readings.
     const parts = sentences(spokenLearningText(text));
@@ -208,6 +211,7 @@ export function createLearningSpeechController(
         utterance.rate = VOICE_RATE;
         utterance.pitch = VOICE_PITCH;
         if (index === parts.length - 1) utterance.onend = finish;
+        if (following?.onPart) utterance.onstart = () => { if (playback === generation) following.onPart?.(index); };
         utterance.onerror = finish;
         synthesis.speak(utterance);
       });
@@ -218,9 +222,10 @@ export function createLearningSpeechController(
   };
 
   return {
-    speak(text: string, language: string) {
+    speak(text: string, language: string, follower?: SpeechFollower) {
       if (disposed) return;
       stop();
+      follow = follower;
       const playback = generation;
       // The natural voice reads English when it's ready; otherwise this playback uses the device voice
       // while the natural voice connects in the background for next time.
@@ -228,9 +233,9 @@ export function createLearningSpeechController(
         setSpeaking(true);
         natural.speak(sentences(spokenLearningText(text)), (ok) => {
           if (playback !== generation || disposed) return;
-          if (ok) setSpeaking(false);
+          if (ok) { setSpeaking(false); follower?.onEnd?.(); }
           else startDevice();
-        });
+        }, undefined, undefined, (index) => { if (playback === generation) follower?.onPart?.(index); });
         return;
       }
       natural.warmUp();
@@ -283,8 +288,11 @@ export function createLearningSpeechController(
   };
 }
 
+/** Follows a reading sentence by sentence (the sentences are `sentences(spokenLearningText(text))`). */
+export type SpeechFollower = { onPart?: (index: number) => void; onEnd?: () => void };
+
 /** What the controller needs from the natural voice (injectable for tests). */
-export type NaturalReader = { ready(): boolean; speak(parts: string[], onDone: (ok: boolean) => void, onPhase?: (phase: NaturalVoicePhase) => void): void; stop(): void; warmUp(): void };
+export type NaturalReader = { ready(): boolean; speak(parts: string[], onDone: (ok: boolean) => void, onPhase?: (phase: NaturalVoicePhase) => void, onFailure?: (stage: 'generating' | 'playing', error: unknown) => void, onPart?: (index: number) => void): void; stop(): void; warmUp(): void };
 function defaultNaturalReader(): NaturalReader {
   const speaker = createNaturalSpeaker();
   return { ready: naturalVoiceReady, speak: speaker.speak, stop: speaker.stop, warmUp: () => { void warmUpNaturalVoice(); } };
@@ -555,6 +563,25 @@ export function useReadAloud(text: string | null, key: string | number | null = 
     controllerRef.current?.speak(text, getLearningLanguage());
     // eslint-disable-next-line react-hooks/exhaustive-deps -- read once per key, not on every re-render
   }, [key, text === null]);
+}
+
+/** Read text aloud while a screen follows along sentence by sentence (a story comic). Stops when the screen goes. */
+export function useFollowedReading() {
+  const funContext = useOptionalFun();
+  const preferredVoiceId = funContext ? funContext.fun.preferredLearningVoiceId ?? null : getSavedLearningVoiceId();
+  const controllerRef = useRef<ReturnType<typeof createLearningSpeechController> | null>(null);
+  const supported = typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+  useEffect(() => {
+    if (!supported) return;
+    const controller = createLearningSpeechController(window.speechSynthesis, () => {}, undefined, undefined, () => preferredVoiceId);
+    controllerRef.current = controller;
+    return () => { controller.dispose(); controllerRef.current = null; };
+  }, [preferredVoiceId, supported]);
+  return {
+    supported,
+    speak: (text: string, follower: SpeechFollower) => controllerRef.current?.speak(text, getLearningLanguage(), follower),
+    stop: () => controllerRef.current?.stop(),
+  };
 }
 
 export function LearningListenButton({
