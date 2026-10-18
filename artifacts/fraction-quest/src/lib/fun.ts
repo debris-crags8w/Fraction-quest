@@ -48,7 +48,10 @@ export type FunState = {
   seasonLessons?: Record<string, string[]>;
   /** The Whole Stone story: whether the prologue was shown, and the choice made when each chapter opened (unit → 0 or 1). */
   story?: StoryState;
+  /** The model intros (how to build, how a number line works) already watched, so they open by themselves once. */
+  introsSeen?: Partial<Record<IntroKind, true>>;
 };
+export type IntroKind = 'builder' | 'line';
 export type StoryState = { prologueSeen?: boolean; choices?: Record<string, 0 | 1>; /** Suspect board guesses: board number → suspect id. */ guesses?: Record<string, string> };
 const SUSPECT_IDS = ['chomp', 'pip', 'tilly', 'bolt', 'bea'];
 export type DayActivity = { minutes: number; answered: number };
@@ -152,6 +155,12 @@ function cleanSeasonLessons(value: unknown): Record<string, string[]> {
   }
   return out;
 }
+function cleanIntros(value: unknown): Partial<Record<IntroKind, true>> {
+  if (!value || typeof value !== 'object') return {};
+  const raw = value as Record<string, unknown>;
+  return { ...(raw.builder === true ? { builder: true } : {}), ...(raw.line === true ? { line: true } : {}) } as Partial<Record<IntroKind, true>>;
+}
+
 function cleanStory(value: unknown): StoryState {
   if (!value || typeof value !== 'object') return {};
   const raw = value as Partial<StoryState>;
@@ -209,6 +218,7 @@ export function loadFun(): FunState {
       displayPreferences: cleanDisplayPreferences(parsed.displayPreferences),
       seasonLessons: cleanSeasonLessons(parsed.seasonLessons),
       story: cleanStory(parsed.story),
+      introsSeen: cleanIntros(parsed.introsSeen),
       activity: cleanActivity(parsed.activity),
       ...cleanGames(parsed),
     };
@@ -275,6 +285,11 @@ export function setBreakPreferences(state: FunState, preferences: BreakPreferenc
 
 export function setDisplayPreferences(state: FunState, preferences: DisplayPreferences): FunState {
   return saveFun({ ...state, displayPreferences: cleanDisplayPreferences(preferences) });
+}
+
+/** Remember a model intro was watched (or skipped): it won't open by itself again. Helper still has it. */
+export function recordIntro(state: FunState, kind: IntroKind): FunState {
+  return saveFun({ ...state, introsSeen: { ...cleanIntros(state.introsSeen), [kind]: true } });
 }
 
 /** Remember story progress (the prologue, a chapter's choice). It never touches lesson progress. */
@@ -373,6 +388,7 @@ export function replaceFun(saved: Partial<FunState>): FunState {
     displayPreferences: cleanDisplayPreferences(saved.displayPreferences),
     seasonLessons: cleanSeasonLessons(saved.seasonLessons),
     story: cleanStory(saved.story),
+    introsSeen: cleanIntros(saved.introsSeen),
     sound: loadFun().sound,
     activity: cleanActivity(saved.activity),
     ...cleanGames(saved),

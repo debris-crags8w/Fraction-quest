@@ -1,0 +1,94 @@
+/* The model intros (model-intro.tsx): a demo that plays like a video, then guided tries. */
+.fq-mi { display: grid; gap: 12px; margin: 14px 0; padding: 14px 16px; border: 2px solid color-mix(in srgb, var(--fq-grape, #6D4BD8) 30%, transparent); border-radius: 20px; background: color-mix(in srgb, var(--fq-grape, #6D4BD8) 5%, hsl(var(--card))); }
+.fq-mi-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.fq-mi-head h3 { margin: 2px 0 0; font-family: var(--app-font-display); font-size: 1.35rem; line-height: 1.1; }
+.fq-mi-kicker { color: var(--fq-grape, #6D4BD8); font-size: .8rem; font-weight: 900; }
+.fq-mi-phases { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.fq-mi-phases li { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px; border: 2px solid hsl(var(--border)); border-radius: 999px; color: hsl(var(--muted-foreground)); background: hsl(var(--card)); font-size: .8rem; font-weight: 900; }
+.fq-mi-phases li.is-on { border-color: var(--fq-grape, #6D4BD8); color: #fff; background: var(--fq-grape, #6D4BD8); }
+.fq-mi-phases li.is-done { border-color: hsl(var(--secondary)); color: hsl(var(--secondary)); background: hsl(var(--secondary) / .1); }
+
+/* The "video": a dark screen showing the model as the finger works it. */
+.fq-mi-screen { position: relative; display: grid; gap: 14px; padding: 16px 18px 14px; border-radius: 18px; color: #fff; background: #1E1838; box-shadow: 0 5px 0 #14102A; overflow: hidden; }
+.fq-mi-screen-controls { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: .9rem; }
+.fq-mi-screen-controls > span:first-child { margin-right: auto; }
+.fq-mi-screen-controls b { min-width: 24px; text-align: center; color: #FFC800; font-family: var(--app-font-display); font-size: 1.4rem; }
+.fq-mi-fake-step { display: grid; place-items: center; width: 38px; height: 38px; border: 2px solid #4A4766; border-radius: 10px; background: #2B2D42; font-size: 1.2rem; }
+.is-tapped { position: relative; }
+.is-tapped::after { content: ''; position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; background: rgb(255 200 0 / .85); box-shadow: 0 0 0 6px rgb(255 200 0 / .3); animation: fq-mi-tap 1.4s ease-in-out infinite; pointer-events: none; }
+.fq-mi-demo-bar { display: flex; height: 64px; border: 3px solid #fff; border-radius: 12px; overflow: hidden; background: #FFF6EA; }
+.fq-mi-demo-bar span { flex: 1; transition: background .35s; }
+.fq-mi-demo-bar span + span { border-left: 3px solid #2B2D42; }
+.fq-mi-demo-bar span.is-on { background: var(--fq-grape, #6D4BD8); }
+.fq-mi-demo-line { position: relative; height: 74px; margin: 0 14px; }
+.fq-mi-demo-line::before { content: ''; position: absolute; left: 0; right: 0; top: 46px; height: 4px; border-radius: 2px; background: #D8D9EA; }
+.fq-mi-walked { position: absolute; left: 0; top: 46px; height: 4px; border-radius: 2px; background: #FFC800; transition: width .55s; }
+.fq-mi-demo-line i { position: absolute; top: 37px; width: 4px; height: 22px; margin-left: -2px; border-radius: 2px; background: #fff; animation: fq-mi-pop .35s ease both; }
+.fq-mi-demo-line em { position: absolute; top: 22px; height: 22px; box-sizing: border-box; border: 3px solid #FFC800; border-bottom: 0; border-radius: 50% 50% 0 0 / 100% 100% 0 0; animation: fq-mi-pop .4s ease both; }
+.fq-mi-frog { position: absolute; top: 14px; width: 30px; height: 26px; margin-left: -15px; border-radius: 50% 50% 45% 45%; background: #5FB872; box-shadow: inset 0 -4px 0 #3E8E52; transition: left .55s cubic-bezier(.3, 1.4, .4, 1); }
+.fq-mi-demo-line small { position: absolute; top: 60px; margin-left: -4px; font-weight: 900; }
+.fq-mi-readout { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; font-weight: 800; }
+.fq-mi-readout .fq-mi-frac { color: #FFC800; font-size: 1.6rem; }
+.fq-mi-caption { margin: 0; padding: 10px 12px; border-radius: 14px; background: rgb(255 255 255 / .1); font-size: 1rem; font-weight: 800; line-height: 1.35; animation: fq-mi-rise .45s ease both; }
+.fq-mi-dots { display: flex; justify-content: center; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.fq-mi-dots li { width: 8px; height: 8px; border-radius: 999px; background: hsl(var(--border)); transition: width .3s, background .3s; }
+.fq-mi-dots li.is-seen { background: color-mix(in srgb, var(--fq-grape, #6D4BD8) 45%, hsl(var(--card))); }
+.fq-mi-dots li.is-on { width: 22px; background: var(--fq-grape, #6D4BD8); }
+.fq-mi-actions { display: flex; gap: 8px; }
+.fq-mi-actions .fq-button:last-child { flex: 1; justify-content: center; }
+.fq-mi-watch { display: grid; gap: 10px; }
+
+/* The guided tries: the same controls as the builder. */
+.fq-mi-try { display: grid; gap: 12px; }
+.fq-mi-target { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 2px solid hsl(var(--border)); border-radius: 16px; background: hsl(var(--card)); }
+.fq-mi-target .fq-mi-frac { color: var(--fq-grape, #6D4BD8); font-size: 1.8rem; }
+.fq-mi-target div { display: grid; }
+.fq-mi-target small { color: var(--fq-grape, #6D4BD8); font-weight: 900; }
+.fq-mi-target strong { font-size: 1.1rem; }
+.fq-mi-stepper { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border: 2px solid hsl(var(--border)); border-radius: 16px; background: hsl(var(--card)); font-weight: 900; }
+.fq-mi-stepper > div { display: flex; align-items: center; gap: 8px; }
+.fq-mi-stepper output { min-width: 28px; text-align: center; color: var(--fq-grape, #6D4BD8); font-family: var(--app-font-display); font-size: 1.4rem; }
+.fq-ll-step.is-hot { border-color: #FFC800; box-shadow: 0 0 0 4px rgb(255 200 0 / .45); animation: fq-mi-hot 1.2s ease-in-out infinite; }
+.fq-mi-bar { display: flex; height: 68px; border: 3px solid hsl(var(--foreground)); border-radius: 12px; overflow: hidden; background: hsl(var(--card)); }
+.fq-mi-bar button { flex: 1; min-width: 0; border: 0; background: transparent; cursor: pointer; transition: background .3s; }
+.fq-mi-bar button + button { border-left: 3px solid hsl(var(--foreground)); }
+.fq-mi-bar button.is-on { background: var(--fq-grape, #6D4BD8); }
+.fq-mi-line { position: relative; height: 70px; margin: 0 22px; }
+.fq-mi-line::before { content: ''; position: absolute; left: 0; right: 0; top: 33px; height: 4px; border-radius: 2px; background: hsl(var(--foreground)); }
+.fq-mi-line button { position: absolute; top: 0; width: 44px; height: 70px; margin-left: -22px; border: 0; background: transparent; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+.fq-mi-line button i { display: block; width: 4px; height: 22px; margin-top: 24px; border-radius: 2px; background: hsl(var(--foreground)); }
+.fq-mi-line button.is-on i { background: var(--fq-grape, #6D4BD8); box-shadow: 0 0 0 5px color-mix(in srgb, var(--fq-grape, #6D4BD8) 30%, transparent); }
+.fq-mi-line button small { margin-top: 4px; font-weight: 900; }
+.fq-mi-bar.is-hot, .fq-mi-line.is-hot { border-radius: 12px; box-shadow: 0 0 0 4px rgb(255 200 0 / .45); }
+.fq-mi-hint { margin: 0; min-height: 44px; padding: 11px 13px; border-radius: 14px; color: #5A4500; background: #FFF6D6; font-weight: 900; }
+.fq-mi-hint.is-done { color: hsl(var(--secondary)); background: hsl(var(--secondary) / .12); }
+.fq-mi-try > .fq-button, .fq-mi-ready .fq-button { justify-content: center; }
+.fq-mi-ready { display: grid; justify-items: center; gap: 10px; padding: 8px 0; text-align: center; }
+.fq-mi-ready-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: hsl(var(--secondary)); background: hsl(var(--secondary) / .15); }
+.fq-mi-ready strong { font-family: var(--app-font-display); font-size: 1.3rem; }
+.fq-mi-ready p { margin: 0; font-weight: 800; line-height: 1.4; }
+.fq-mi-ready .fq-button { width: 100%; }
+.fq-mi-skip { justify-self: center; min-height: 40px; padding: 0 12px; border: 0; color: hsl(var(--muted-foreground)); background: none; font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
+.fq-mi-frac { display: inline-grid; justify-items: center; line-height: 1; font-family: var(--app-font-display); font-weight: 700; }
+.fq-mi-frac b + b { padding-top: 2px; border-top: 3px solid currentColor; }
+
+@keyframes fq-mi-tap { 50% { transform: scale(.7); } }
+@keyframes fq-mi-hot { 50% { box-shadow: 0 0 0 8px rgb(255 200 0 / .2); } }
+@keyframes fq-mi-pop { from { opacity: 0; transform: scaleY(0); } to { opacity: 1; transform: none; } }
+@keyframes fq-mi-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .is-tapped::after, .fq-ll-step.is-hot, .fq-mi-demo-line i, .fq-mi-demo-line em, .fq-mi-caption { animation: none; }
+  .fq-mi-demo-bar span, .fq-mi-walked, .fq-mi-frog, .fq-mi-bar button, .fq-mi-dots li { transition: none; }
+}
+
+/* The lesson Helper. */
+.fq-mi-helper-button { gap: 6px; }
+.fq-mi-helper { display: grid; gap: 10px; margin: 0 0 14px; padding: 14px 16px; border: 2px solid hsl(var(--border)); border-radius: 20px; background: hsl(var(--card)); scroll-margin-top: 12px; }
+.fq-mi-helper-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.fq-mi-helper-head h2 { margin: 0; font-family: var(--app-font-display); font-size: 1.3rem; }
+.fq-mi-helper-picks { display: grid; gap: 8px; }
+.fq-mi-helper-picks p { margin: 0; font-weight: 800; }
+.fq-mi-helper-pick { display: grid; gap: 2px; padding: 12px 14px; border: 2px solid hsl(var(--border)); border-radius: 16px; color: hsl(var(--foreground)); background: color-mix(in srgb, var(--fq-grape, #6D4BD8) 5%, hsl(var(--card))); font: inherit; text-align: left; cursor: pointer; }
+.fq-mi-helper-pick span { color: hsl(var(--muted-foreground)); font-size: .88rem; font-weight: 700; }
+.fq-mi-helper-pick:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 2px; }
+.fq-mi-helper .fq-mi { margin: 0; }

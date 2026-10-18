@@ -12,6 +12,7 @@ import { seasonalWords } from '../src/seasonal-words';
 import { sentences, spokenText } from '../src/lib/voice';
 import { cleanSentence, voiceKey } from '../src/lib/voice-pack';
 import { LAB_SECTION_SPEECH, supportSpeech, worksheetSpeech } from '../src/lab-copy';
+import { introSpeech } from '../src/intro-copy';
 import { guideForUnit } from '../src/teaching-guide-data';
 
 const THEMES: PropTheme[] = ['everyday', 'halloween', 'christmas'];
@@ -47,7 +48,8 @@ export function voiceSentences(): { key: string; text: string }[] {
   collect(PART_FINDER_ROUNDS, lesson);
   collect(getAssessmentDefinitions(), lesson);
   EXTRA.forEach((line) => lesson.add(line));
-  // The lesson page's section Listen buttons.
+  // The lesson page's section Listen buttons, and the model intros (how to build, how a number line works).
+  [...introSpeech('builder'), ...introSpeech('line')].forEach((line) => lesson.add(line));
   Object.values(LAB_SECTION_SPEECH).forEach((line) => lesson.add(line));
   for (const mission of MISSIONS) {
     lesson.add(worksheetSpeech(safe(() => getWorksheet(mission.id))?.length ?? 0));
