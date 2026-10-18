@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowRight, BookOpen, LockKeyhole, Search } from 'lucide-react';
+import { ArrowRight, BookOpen, LockKeyhole, RotateCcw, Search } from 'lucide-react';
 import { StoryCharacter } from './characters';
 import { LearningListenButton, LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
@@ -119,10 +119,29 @@ export function StoneBanner({ completedUnits, onStorybook, town }: { completedUn
 
 /** A chapter on the map: the story leads (friend, chapter title), with the unit's math underneath. The current
    chapter carries the hook and the one next step; a chapter not reached yet shows what opens it. */
-export function ChapterBanner({ chapter, unitTitle, done, total, state, teaser, startLabel, startTestId, onStart, onRead }: {
+/** The map's first stop, above chapter 1: the prologue. Not seen yet, it starts the story (the prologue, then the
+    next lesson); seen, it can be watched again. */
+export function PrologueCard({ seen, onWatch }: { seen: boolean; onWatch: () => void }) {
+  return (
+    <div className="fq-chapter-banner is-prologue" data-testid="prologue-card">
+      <div className="fq-chapter-banner-head">
+        <span className="fq-chapter-banner-art"><StoryCharacter id="hoot" size={72} /></span>
+        <div>
+          <span className="fq-chapter-banner-kicker">The beginning · Prologue</span>
+          <h3>The night the stone cracked</h3>
+          <p>{seen ? 'You saw how it began.' : 'Start here: see how it began.'}</p>
+        </div>
+      </div>
+      <button type="button" className={seen ? 'fq-chapter-banner-read' : 'fq-button fq-chapter-banner-go'} onClick={onWatch} data-testid="button-map-prologue">
+        {seen ? <><RotateCcw size={16} aria-hidden="true" /> Watch again</> : <>Watch the prologue <ArrowRight size={18} aria-hidden="true" /></>}
+      </button>
+    </div>
+  );
+}
+
+export function ChapterBanner({ chapter, unitTitle, done, total, state, teaser, onRead }: {
   chapter: Chapter; unitTitle: string; done: number; total: number;
-  state: 'current' | 'reached' | 'locked'; teaser?: string;
-  startLabel?: string; startTestId?: string; onStart?: () => void; onRead: () => void;
+  state: 'current' | 'reached' | 'locked'; teaser?: string; onRead: () => void;
 }) {
   const theme = useStoryTheme();
   return (
@@ -136,11 +155,6 @@ export function ChapterBanner({ chapter, unitTitle, done, total, state, teaser, 
         </div>
       </div>
       {state === 'current' && teaser && <p className="fq-chapter-banner-teaser" data-testid="stone-teaser">{withName(teaser, null, theme)}</p>}
-      {state === 'current' && onStart && startLabel && (
-        <button type="button" className="fq-button fq-chapter-banner-go" onClick={onStart} data-testid={startTestId}>
-          {startLabel} <ArrowRight size={18} aria-hidden="true" />
-        </button>
-      )}
       {state === 'locked'
         ? <p className="fq-chapter-banner-lock"><LockKeyhole size={16} aria-hidden="true" /> {chapter.unit > 1 ? `Finish chapter ${chapter.unit - 1} to open this chapter` : 'Finish the lessons before this one to open it'}</p>
         : (

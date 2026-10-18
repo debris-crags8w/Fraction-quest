@@ -305,3 +305,6 @@
 .fq-sticker.is-compact .fq-sticker-face { width: 48px; height: 48px; }
 .fq-sticker.is-compact .fq-sticker-face svg { width: 34px; height: 34px; }
 .fq-sticker-earned { padding: 8px 12px; }
+
+/* The map's prologue card: night sky, before chapter 1. */
+.fq-chapter-banner.is-prologue { background: linear-gradient(135deg, #1E1838, #3B2D6B); box-shadow: 0 5px 0 #14102A; }
