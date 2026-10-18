@@ -1,37 +1,37 @@
 import { Router, type IRouter } from "express";
-import { ObjectStorageService } from "../lib/objectStorage";
+import { appStorageVoicePack, isPackVoice, VOICE_CACHE_CONTROL, VOICE_KEY, type VoicePackStore } from "../lib/voice-pack-store";
 
-const router: IRouter = Router();
-const storage = new ObjectStorageService();
-const allowedVoicePath = /^(?:af_heart|am_michael|bf_emma)\/[0-9a-f]{16}\.mp3$/;
-
-// This public endpoint is intentionally restricted to the pre-generated voice pack.
-router.get("/storage/public-objects/voice/:voice/:fileName", async (req, res) => {
-  const voicePath = `${req.params.voice}/${req.params.fileName}`;
-  if (!allowedVoicePath.test(voicePath)) {
-    res.status(404).json({ error: "Object not found." });
-    return;
-  }
-
-  const file = await storage.searchPublicObject(`voice/${voicePath}`);
-  if (!file) {
-    res.status(404).json({ error: "Object not found." });
-    return;
-  }
-
-  res.setHeader("Content-Type", "audio/mpeg");
-  res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
-  res.setHeader("X-Content-Type-Options", "nosniff");
-
-  const stream = file.createReadStream();
-  stream.on("error", (error) => {
-    if (res.headersSent) {
-      res.destroy(error);
+/* This public endpoint is intentionally restricted to the pre-generated voice pack. It streams straight from App
+   Storage with no separate existence check (one storage round trip, not two), and since each file is named by its
+   sentence and never changes, browsers may keep it for good. */
+export function createStorageRouter(store: () => VoicePackStore = appStorageVoicePack): IRouter {
+  const router: IRouter = Router();
+  router.get("/storage/public-objects/voice/:voice/:fileName", (req, res) => {
+    const { voice, fileName } = req.params;
+    const key = fileName.endsWith(".mp3") ? fileName.slice(0, -4) : "";
+    if (!isPackVoice(voice) || !VOICE_KEY.test(key)) {
+      res.status(404).json({ error: "Object not found." });
       return;
     }
-    res.status(500).json({ error: "Unable to read voice audio." });
-  });
-  stream.pipe(res);
-});
 
-export default router;
+    // Headers wait for the first bytes, so a missing file can still answer 404.
+    const stream = store().read(voice, key);
+    stream.once("data", (first: Buffer) => {
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Cache-Control", VOICE_CACHE_CONTROL);
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.write(first);
+      stream.pipe(res);
+    });
+    stream.once("end", () => { if (!res.headersSent) res.status(404).json({ error: "Object not found." }); });
+    stream.on("error", (error: Error & { code?: number }) => {
+      if (res.headersSent) { res.destroy(error); return; }
+      if (error.code === 404) res.status(404).json({ error: "Object not found." });
+      else res.status(500).json({ error: "Unable to read voice audio." });
+    });
+    res.on("close", () => { if (!res.writableEnded) stream.destroy(); });
+  });
+  return router;
+}
+
+export default createStorageRouter();

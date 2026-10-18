@@ -9,6 +9,7 @@ import { createReadStream, existsSync, readdirSync, readFileSync } from "node:fs
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { objectStorageClient, ObjectStorageService } from "../src/lib/objectStorage";
+import { VOICE_CACHE_CONTROL } from "../src/lib/voice-pack-store";
 
 const PACK_VOICES = ["af_heart", "am_michael", "bf_emma"] as const;
 const KEY_PATTERN = /^[0-9a-f]{16}$/;
@@ -103,7 +104,7 @@ async function syncVoicePack(root: string): Promise<void> {
         resumable: false,
         metadata: {
           contentType: "audio/mpeg",
-          cacheControl: "public, max-age=86400, stale-while-revalidate=604800",
+          cacheControl: VOICE_CACHE_CONTROL,
         },
       }),
     );

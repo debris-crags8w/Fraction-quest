@@ -1,10 +1,17 @@
 name: Voice pack
 
-# Generates missing Kokoro audio and attaches it to the workflow run as a temporary artifact. Only the small
-# voice index is committed in the pull request; sync the artifact to App Storage before merging that pull request.
+# Generates missing Kokoro audio, uploads it to App Storage through the app's server, checks that every indexed
+# sentence is stored in every voice, and only then opens a pull request with the small voice index. (Only the
+# server can write to App Storage; the repository secrets VOICE_PACK_UPLOAD_URL and VOICE_PACK_UPLOAD_TOKEN let
+# this workflow send it the files.) Without those secrets, sync the run's artifact by hand before merging.
 
 on:
   workflow_dispatch:
+    inputs:
+      prune:
+        description: Also remove stored audio the voice index on main no longer lists (run after a deploy)
+        type: boolean
+        default: false
   push:
     branches:
       - main
@@ -168,9 +175,25 @@ jobs:
           name: voice-pack-${{ github.run_id }}
           path: artifacts/fraction-quest/public/voice
           retention-days: 30
+      - name: Upload the new audio to App Storage
+        id: upload
+        working-directory: artifacts/api-server
+        env:
+          VOICE_PACK_UPLOAD_URL: ${{ secrets.VOICE_PACK_UPLOAD_URL }}
+          VOICE_PACK_UPLOAD_TOKEN: ${{ secrets.VOICE_PACK_UPLOAD_TOKEN }}
+        run: |
+          if [ -z "$VOICE_PACK_UPLOAD_URL" ] || [ -z "$VOICE_PACK_UPLOAD_TOKEN" ]; then
+            echo "::warning::VOICE_PACK_UPLOAD_URL and VOICE_PACK_UPLOAD_TOKEN are not set, so the audio was not uploaded. Sync the artifact by hand before merging."
+            echo "uploaded=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Fails (and opens no pull request) unless every indexed sentence ends up stored in every voice.
+          pnpm exec tsx scripts/upload-voice-pack.ts ../fraction-quest/public/voice
+          echo "uploaded=true" >> "$GITHUB_OUTPUT"
       - name: Commit and open a pull request
         env:
           GH_TOKEN: ${{ github.token }}
+          UPLOADED: ${{ steps.upload.outputs.uploaded }}
         run: |
           git add artifacts/fraction-quest/public/voice/index.json
           if git diff --cached --quiet; then echo "The voice pack is already up to date."; exit 0; fi
@@ -180,13 +203,41 @@ jobs:
           git switch -c "$branch"
           git commit -q -m "Update the pre-made voice pack" -m "$(cat "$RUNNER_TEMP/summary.txt")"
           git push -u origin "$branch"
+          if [ "$UPLOADED" = "true" ]; then
+            storage_note="The audio is already in App Storage: the workflow uploaded it and checked that every sentence in this index is stored in every voice. Safe to merge."
+          else
+            storage_note="**Before merging:** download the \`voice-pack-${{ github.run_id }}\` artifact from [this workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) and sync it to App Storage with \`pnpm --filter @workspace/api-server run sync-voice-pack -- <artifact-directory>\`."
+          fi
           gh pr create --base main --head "$branch" --title "Update the pre-made voice pack index" \
             --body "Made by the Voice pack workflow (run ${{ github.run_id }}).
 
-          **Before merging:** download the \`voice-pack-${{ github.run_id }}\` artifact from [this workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) and sync it to App Storage with \`pnpm --filter @workspace/api-server run sync-voice-pack -- <artifact-directory>\`.
+          $storage_note
 
           \`\`\`
           $(cat "$RUNNER_TEMP/summary.txt")
           \`\`\`" \
             || echo "::warning::Pushed $branch but could not open the pull request. Open it from the branch page, or allow GitHub Actions to create pull requests in the repository settings."
           gh workflow run pull-request-checks.yml --ref "$branch" || echo "::warning::Could not dispatch the required pull request checks."
+
+  prune:
+    name: Remove unused stored audio
+    if: github.event_name == 'workflow_dispatch' && inputs.prune
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Only by hand, after the app is deployed with the current index: the live app must no longer list them.
+      - name: Check the index on main and remove what it no longer lists
+        working-directory: artifacts/api-server
+        env:
+          VOICE_PACK_UPLOAD_URL: ${{ secrets.VOICE_PACK_UPLOAD_URL }}
+          VOICE_PACK_UPLOAD_TOKEN: ${{ secrets.VOICE_PACK_UPLOAD_TOKEN }}
+        run: pnpm exec tsx scripts/upload-voice-pack.ts ../fraction-quest/public/voice --check-only --prune
