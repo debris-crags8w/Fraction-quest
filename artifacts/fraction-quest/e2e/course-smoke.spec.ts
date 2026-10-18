@@ -2792,6 +2792,8 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   const next = MISSIONS.find((item) => item.unit === 3)!;
   await page.getByTestId(`button-start-mission-${next.id}`).click();
   await expect(page.getByTestId('story-introduction')).toHaveCount(0);
+  // Chapter openings play as a short film; the choice comes after it.
+  await showWholeComic(page);
   await expect(page.getByTestId('story-panel-0')).toContainText('I saw something shining at the top of the hill.');
   await expect(page.getByTestId('story-choice')).toBeVisible();
   await page.getByTestId('button-story-back').click();
