@@ -5,7 +5,8 @@ name: Voice pack
 # merges: it sends the current sentence list to the Replit API, which checks App Storage, makes only a small
 # number of missing clips with Kokoro, and verifies storage. (Make "Voice audio is in App Storage" a required
 # check.) Replit owns the model and App Storage; GitHub never renders or uploads audio. The voice index is generated
-# from the app's text and is not committed.
+# from the app's text and is not committed. Until the app is published and both secrets are set, the check only
+# lists the sentences and passes with a warning.
 
 on:
   # Every pull request (a required check must always report); one that changes no sentence finishes in a minute.
@@ -72,7 +73,8 @@ jobs:
           retention-days: 3
 
   store:
-    # The required check: passes only when App Storage has every sentence of this code in every format.
+    # The required check: passes only when App Storage has every sentence of this code in every format (or, before
+    # the app is published, passes with a warning that nothing was checked).
     name: Voice audio is in App Storage
     needs: [plan]
     # Always report (a skipped required check would count as passing).
@@ -113,9 +115,12 @@ jobs:
           VOICE_PACK_UPLOAD_URL: ${{ secrets.VOICE_PACK_UPLOAD_URL }}
           VOICE_PACK_UPLOAD_TOKEN: ${{ secrets.VOICE_PACK_UPLOAD_TOKEN }}
         run: |
+          # Before the app is published there is no API to ask: say so and pass. Fill gaps from the Replit shell
+          # (generate-voice-pack). Setting both secrets after publishing turns the real check on.
           if [ -z "$VOICE_PACK_UPLOAD_URL" ] || [ -z "$VOICE_PACK_UPLOAD_TOKEN" ]; then
-            echo "::error::Set GitHub secrets VOICE_PACK_UPLOAD_URL (published app base URL) and VOICE_PACK_UPLOAD_TOKEN, and set the matching token in Replit Secrets."
-            exit 1
+            echo "::warning::App Storage was not checked: no published app is connected yet (GitHub secrets VOICE_PACK_UPLOAD_URL and VOICE_PACK_UPLOAD_TOKEN are not set). Run generate-voice-pack in the Replit shell to fill gaps."
+            echo "Voice audio not checked: no published app connected yet. $(node -e 'console.log(require(process.argv[1]).keys.length)' "$RUNNER_TEMP/index.json") sentences listed." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
           pnpm exec tsx scripts/upload-voice-pack.ts sync "$RUNNER_TEMP/sentences.json" "$RUNNER_TEMP/index.json"
 
