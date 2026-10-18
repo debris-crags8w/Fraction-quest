@@ -18,6 +18,21 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * Streams a public, pre-generated voice pack MP3 from App Storage.
+ * @summary Get a pre-generated voice audio file
+ */
+export const getPublicVoiceAudioPathFileNameRegExp = new RegExp('^[0-9a-f]{16}\\.mp3$');
+
+
+export const GetPublicVoiceAudioParams = zod.object({
+  "voice": zod.enum(['af_heart', 'am_michael', 'bf_emma']).describe('Voice identifier'),
+  "fileName": zod.coerce.string().regex(getPublicVoiceAudioPathFileNameRegExp).describe('Sixteen-character sentence key followed by .mp3')
+})
+
+export const GetPublicVoiceAudioResponse = zod.unknown()
+
+
+/**
  * Creates a student account and signs it in with a session cookie. The response includes a one-time recovery code to keep on paper.
  * @summary Create an account
  */

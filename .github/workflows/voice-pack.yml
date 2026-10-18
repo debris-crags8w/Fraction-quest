@@ -1,9 +1,7 @@
 name: Voice pack
 
-# Makes the pre-made Kokoro voice pack: every fixed sentence the app reads, in each pack voice, as small MP3s in
-# artifacts/fraction-quest/public/voice. It runs by itself when app text reaches main (and can be run by hand from
-# the Actions tab). It first checks for sentences without audio and stops there if none are missing; otherwise only
-# the new ones are made, audio for removed sentences is deleted, and the result arrives as a pull request.
+# Generates missing Kokoro audio and attaches it to the workflow run as a temporary artifact. Only the small
+# voice index is committed in the pull request; sync the artifact to App Storage before merging that pull request.
 
 on:
   workflow_dispatch:
@@ -32,6 +30,7 @@ jobs:
     timeout-minutes: 15
     outputs:
       missing: ${{ steps.check.outputs.missing }}
+      changed: ${{ steps.check.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -46,7 +45,7 @@ jobs:
         working-directory: artifacts/fraction-quest
         run: |
           pnpm exec tsx scripts/voice-sentences.ts > "$RUNNER_TEMP/sentences.json"
-      - name: Count sentences without audio
+      - name: Find missing and removed sentences
         id: check
         working-directory: artifacts/fraction-quest
         env:
@@ -56,21 +55,36 @@ jobs:
           open=$(gh pr list --state open --search "head:voice-pack" --json number --jq 'length' || echo 0)
           if [ "$open" != "0" ]; then
             echo "::notice::A voice pack pull request is still open. Merge it; that starts the next check."
-            echo "missing=0" >> "$GITHUB_OUTPUT"; exit 0
+            echo "missing=0" >> "$GITHUB_OUTPUT"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
-          missing=$(node -e '
+          node -e '
             const fs = require("fs");
             const list = require(process.argv[1]);
-            const voices = ["af_heart", "am_michael", "bf_emma"];
-            const missing = list.filter((s) => voices.some((v) => !fs.existsSync(`public/voice/${v}/${s.key}.mp3`))).length;
-            console.error(`${list.length} sentences, ${missing} need audio`);
-            console.log(missing);
-          ' "$RUNNER_TEMP/sentences.json")
+            const previousPath = "public/voice/index.json";
+            const previous = fs.existsSync(previousPath) ? JSON.parse(fs.readFileSync(previousPath, "utf8")) : { keys: [] };
+            const previousKeys = new Set(previous.keys || []);
+            const currentKeys = new Set(list.map((s) => s.key));
+            const missing = list.filter((s) => !previousKeys.has(s.key));
+            const removed = [...previousKeys].filter((key) => !currentKeys.has(key));
+            fs.writeFileSync(process.argv[2], JSON.stringify(missing));
+            fs.writeFileSync(process.argv[3], JSON.stringify({ version: 1, voices: previous.voices || [], keys: [...previousKeys] }));
+            console.error(`${list.length} sentences, ${missing.length} need audio, ${removed.length} are no longer used`);
+            fs.writeFileSync(process.argv[4], String(missing.length));
+            fs.writeFileSync(process.argv[5], String(missing.length > 0 || removed.length > 0));
+          ' "$RUNNER_TEMP/sentences.json" "$RUNNER_TEMP/missing-sentences.json" "$RUNNER_TEMP/previous-index.json" "$RUNNER_TEMP/missing-count" "$RUNNER_TEMP/has-changes"
+          missing=$(cat "$RUNNER_TEMP/missing-count")
+          changed=$(cat "$RUNNER_TEMP/has-changes")
           echo "missing=$missing" >> "$GITHUB_OUTPUT"
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: sentences
-          path: ${{ runner.temp }}/sentences.json
+          path: |
+            ${{ runner.temp }}/sentences.json
+            ${{ runner.temp }}/missing-sentences.json
+            ${{ runner.temp }}/previous-index.json
 
   render:
     name: Render ${{ matrix.voice }} (${{ matrix.shard }}/4)
@@ -103,7 +117,7 @@ jobs:
         working-directory: artifacts/api-server
         run: |
           touch "$RUNNER_TEMP/started"
-          pnpm exec tsx scripts/render-voice-pack.ts "$RUNNER_TEMP/sentences.json" ../fraction-quest/public/voice ${{ matrix.voice }} ${{ matrix.shard }} 4
+          pnpm exec tsx scripts/render-voice-pack.ts "$RUNNER_TEMP/missing-sentences.json" ../fraction-quest/public/voice ${{ matrix.voice }} ${{ matrix.shard }} 4
           mkdir -p "$RUNNER_TEMP/new/${{ matrix.voice }}"
           find ../fraction-quest/public/voice/${{ matrix.voice }} -name '*.mp3' -newer "$RUNNER_TEMP/started" -exec cp {} "$RUNNER_TEMP/new/${{ matrix.voice }}/" \;
           echo "New files: $(ls "$RUNNER_TEMP/new/${{ matrix.voice }}" | wc -l)"
@@ -115,8 +129,9 @@ jobs:
           retention-days: 3
 
   publish:
-    name: Open the voice pack pull request
-    needs: render
+    name: Prepare an index-only pull request
+    needs: [sentences, render]
+    if: ${{ !cancelled() && needs.sentences.outputs.changed == 'true' && (needs.render.result == 'success' || needs.render.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -138,20 +153,26 @@ jobs:
           name: sentences
           path: ${{ runner.temp }}
       - uses: actions/download-artifact@v4
+        if: needs.sentences.outputs.missing != '0'
         with:
           pattern: voice-*
           path: artifacts/fraction-quest/public/voice
           merge-multiple: true
-      - name: Remove old audio and write the index
+      - name: Write the next index
         working-directory: artifacts/fraction-quest
         run: |
-          pnpm exec tsx scripts/voice-pack-index.ts "$RUNNER_TEMP/sentences.json" public/voice | tee "$RUNNER_TEMP/summary.txt"
-          du -sh public/voice/* | tee -a "$RUNNER_TEMP/summary.txt"
+          pnpm exec tsx scripts/voice-pack-index.ts "$RUNNER_TEMP/sentences.json" public/voice "$RUNNER_TEMP/previous-index.json" | tee "$RUNNER_TEMP/summary.txt"
+      - name: Store generated MP3s as a temporary workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: voice-pack-${{ github.run_id }}
+          path: artifacts/fraction-quest/public/voice
+          retention-days: 30
       - name: Commit and open a pull request
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git add -A artifacts/fraction-quest/public/voice
+          git add artifacts/fraction-quest/public/voice/index.json
           if git diff --cached --quiet; then echo "The voice pack is already up to date."; exit 0; fi
           branch="voice-pack/${{ github.run_id }}"
           git config user.name "github-actions[bot]"
@@ -159,13 +180,13 @@ jobs:
           git switch -c "$branch"
           git commit -q -m "Update the pre-made voice pack" -m "$(cat "$RUNNER_TEMP/summary.txt")"
           git push -u origin "$branch"
-          gh pr create --base main --head "$branch" --title "Update the pre-made voice pack" \
+          gh pr create --base main --head "$branch" --title "Update the pre-made voice pack index" \
             --body "Made by the Voice pack workflow (run ${{ github.run_id }}).
+
+          **Before merging:** download the \`voice-pack-${{ github.run_id }}\` artifact from [this workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) and sync it to App Storage with \`pnpm --filter @workspace/api-server run sync-voice-pack -- <artifact-directory>\`.
 
           \`\`\`
           $(cat "$RUNNER_TEMP/summary.txt")
           \`\`\`" \
             || echo "::warning::Pushed $branch but could not open the pull request. Open it from the branch page, or allow GitHub Actions to create pull requests in the repository settings."
-          # Pull requests opened by a workflow get no automatic checks, so start the required ones on the branch.
-          gh workflow run pull-request-checks.yml --ref "$branch" \
-            || echo "::warning::Could not start the pull request checks on $branch. Run them from the Actions tab."
+          gh workflow run pull-request-checks.yml --ref "$branch" || echo "::warning::Could not dispatch the required pull request checks."

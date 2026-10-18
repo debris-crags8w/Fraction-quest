@@ -151,6 +151,89 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+export const getGetPublicVoiceAudioUrl = (voice: 'af_heart' | 'am_michael' | 'bf_emma',
+    fileName: string,) => {
+
+
+
+
+  return `/api/storage/public-objects/voice/${voice}/${fileName}`
+}
+
+/**
+ * Streams a public, pre-generated voice pack MP3 from App Storage.
+ * @summary Get a pre-generated voice audio file
+ */
+export const getPublicVoiceAudio = async (voice: 'af_heart' | 'am_michael' | 'bf_emma',
+    fileName: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetPublicVoiceAudioUrl(voice,fileName),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicVoiceAudioQueryKey = (voice: 'af_heart' | 'am_michael' | 'bf_emma',
+    fileName: string,) => {
+    return [
+    `/api/storage/public-objects/voice/${voice}/${fileName}`
+    ] as const;
+    }
+
+
+export const getGetPublicVoiceAudioQueryOptions = <TData = Awaited<ReturnType<typeof getPublicVoiceAudio>>, TError = ErrorType<ErrorResponse>>(voice: 'af_heart' | 'am_michael' | 'bf_emma',
+    fileName: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicVoiceAudio>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicVoiceAudioQueryKey(voice,fileName);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicVoiceAudio>>> = ({ signal }) => getPublicVoiceAudio(voice,fileName, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: voice !== null && voice !== undefined && fileName !== null && fileName !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicVoiceAudio>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicVoiceAudioQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicVoiceAudio>>>
+export type GetPublicVoiceAudioQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get a pre-generated voice audio file
+ */
+
+export function useGetPublicVoiceAudio<TData = Awaited<ReturnType<typeof getPublicVoiceAudio>>, TError = ErrorType<ErrorResponse>>(
+ voice: 'af_heart' | 'am_michael' | 'bf_emma',
+    fileName: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicVoiceAudio>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicVoiceAudioQueryOptions(voice,fileName,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getSignupUrl = () => {
 
 
