@@ -2628,6 +2628,11 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   // The Storybook: the prologue can be watched any time, chapter 1's start is new, later chapters are locked, and
   // the clue notebook is empty.
   await banner.getByTestId('button-open-storybook').click();
+  // Three sections: the beginning (the prologue on its own), the chapters from chapter 1, and the end.
+  await expect(page.getByTestId('storybook-story').locator('h3')).toHaveText(['The beginning', 'Chapters', 'The end']);
+  await expect(page.getByTestId('storybook-section-beginning').getByTestId('button-storybook-prologue')).toBeVisible();
+  await expect(page.getByTestId('storybook-section-chapters').locator('[data-testid^="storybook-chapter-"]').first()).toHaveAttribute('data-testid', 'storybook-chapter-1');
+  await expect(page.getByTestId('storybook-section-end').getByTestId('storybook-finale')).toBeVisible();
   const prologueRow = page.getByTestId('button-storybook-prologue');
   await expect(prologueRow).toBeEnabled();
   await expect(prologueRow).toContainText('Watch it now');
