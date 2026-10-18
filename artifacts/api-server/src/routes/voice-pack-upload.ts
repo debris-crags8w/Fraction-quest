@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import express, { Router, type IRouter, type NextFunction, type Request, type Response } from "express";
 import { createRateLimiter } from "../lib/rate-limit";
-import { appStorageVoicePack, checkVoicePack, isPackVoice, VOICE_KEY, type VoicePackStore } from "../lib/voice-pack-store";
+import { appStorageVoicePack, checkVoicePack, isPackVoice, parseVoiceFileName, VOICE_FORMATS, VOICE_KEY, type VoicePackStore } from "../lib/voice-pack-store";
 
 /* The Voice pack workflow uploads new audio here, then asks whether every indexed sentence is stored before it
    opens the index pull request. Only this server can write to App Storage (through Replit's sidecar), so GitHub
@@ -27,13 +27,16 @@ function requireUploadToken(req: Request, res: Response, next: NextFunction) {
 export function createVoicePackUploadRouter(store: () => VoicePackStore = appStorageVoicePack): IRouter {
   const router: IRouter = Router();
 
-  // One MP3 per request, so every request stays small and quick.
-  router.put("/voice-pack/files/:voice/:fileName", requireUploadToken, express.raw({ type: "audio/mpeg", limit: "2mb" }), async (req, res) => {
+  // One clip per request (<key>.mp3 or <key>.caf), so every request stays small and quick.
+  router.put("/voice-pack/files/:voice/:fileName", requireUploadToken, express.raw({ type: Object.values(VOICE_FORMATS), limit: "2mb" }), async (req, res) => {
     const { voice, fileName } = req.params as { voice: string; fileName: string };
-    const key = fileName.endsWith(".mp3") ? fileName.slice(0, -4) : "";
-    if (!isPackVoice(voice) || !VOICE_KEY.test(key)) { res.status(400).json({ error: "Not a voice pack file name." }); return; }
-    if (!Buffer.isBuffer(req.body) || req.body.length === 0) { res.status(400).json({ error: "Send the MP3 as audio/mpeg." }); return; }
-    await store().put(voice, key, req.body);
+    const parsed = parseVoiceFileName(fileName);
+    if (!isPackVoice(voice) || !parsed) { res.status(400).json({ error: "Not a voice pack file name." }); return; }
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0 || req.get("content-type") !== VOICE_FORMATS[parsed.format]) {
+      res.status(400).json({ error: `Send the clip as ${VOICE_FORMATS[parsed.format]}.` });
+      return;
+    }
+    await store().put({ voice, ...parsed }, req.body);
     res.status(204).end();
   });
 

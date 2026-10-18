@@ -3,7 +3,7 @@
    sentence the pack doesn't have is made by the app's server, and the device only plays the audio. (Running the
    model in the browser crashed iPhone Safari.) Only the lesson sentence is sent, never a child's answers. When
    neither can play, Listen uses the device's own voice. */
-import { voicePackHasVoice, voicePackUrl } from './voice-pack';
+import { isBundledVoiceApp, voicePackHasVoice, voicePackUrl } from './voice-pack';
 
 /** The one pack voice, Heart. A saved choice of an older voice (Michael, Emma, ...) falls back to it. */
 export type NaturalVoiceId = 'af_heart';
@@ -84,7 +84,8 @@ function rememberSpeechBlob(key: string, blob: Blob) {
    next visit reads them without the network. Browsers without Cache Storage just fetch them each time. */
 const PACK_CACHE = 'fraction-quest-voice-pack-v1';
 let packCache: Promise<Cache | null> | null = null;
-const openPackCache = () => packCache ??= (typeof caches === 'undefined'
+// The iOS app already has the files inside it: nothing to keep.
+const openPackCache = () => packCache ??= (typeof caches === 'undefined' || isBundledVoiceApp()
   ? Promise.resolve(null)
   : caches.open(PACK_CACHE).catch(() => null));
 
@@ -183,8 +184,9 @@ export function warmUpNaturalVoice(options: NaturalVoiceLoadOptions = {}): Promi
       // With the voice pack there is nothing to wait for: sentences play from files, and only the rare sentence
       // outside the pack asks the server. (The grown-ups' self-test still checks the server itself.)
       if (!options.diagnostic && await voicePackHasVoice(currentChoice())) {
-        // The pack's audio comes through the API server: wake it now (it may be asleep) so the first clip is quick.
-        try { void fetch(HEALTH_URL, { cache: 'no-store' }).catch(() => undefined); } catch { /* only a head start */ }
+        // On the web the pack's audio comes through the API server: wake it now (it may be asleep) so the first
+        // clip is quick. The iOS app plays its own bundled files.
+        if (!isBundledVoiceApp()) try { void fetch(HEALTH_URL, { cache: 'no-store' }).catch(() => undefined); } catch { /* only a head start */ }
         try { options.onProgress?.(100); } catch { /* diagnostics only */ }
         engine = serverEngine;
         return engine;

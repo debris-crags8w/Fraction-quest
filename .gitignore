@@ -146,3 +146,7 @@ coverage/
 *.swo
 *~
 .history/
+
+# The iOS app's bundled voice (scripts/fetch-voice-pack.ts): downloaded at build time, never committed.
+artifacts/fraction-quest/.voice-pack-cache/
+artifacts/fraction-quest/ios/App/App/public/voice/af_heart/

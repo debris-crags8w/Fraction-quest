@@ -1,8 +1,12 @@
-/* The pre-made voice pack is generated once by Kokoro and served from App Storage. Listen plays the audio
-   without running Kokoro; sentences outside the pack still use the voice server, with device voice as fallback. */
+/* The pre-made voice pack is generated once by Kokoro. The website streams it from App Storage; the iOS app ships
+   it inside the app (scripts/fetch-voice-pack.ts), so the voice plays at once and offline. Sentences outside the
+   pack still use the voice server, with the device voice as the last fallback. */
+import { Capacitor } from '@capacitor/core';
 
 /** The voices the pack is made for. */
 export const PACK_VOICES = ['af_heart'] as const;
+/** Every sentence is made twice: MP3 for the website, Opus in a .caf file (about 60% the size) for the iOS app. */
+export const PACK_FORMATS = ['mp3', 'caf'] as const;
 export type PackVoice = (typeof PACK_VOICES)[number];
 
 /** The sentence exactly as the voice server would read it (same cleaning as the server). */
@@ -24,9 +28,13 @@ export type VoicePackIndex = { version: 1; voices: string[]; keys: string[] };
 const base = () => {
   try { return (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/'; } catch { return '/'; }
 };
-/** The small index ships with the web app; MP3 files live in App Storage. */
+/** The small index ships with the app; the website streams MP3s from App Storage. */
 export const voicePackIndexPath = () => `${base().replace(/\/?$/, '/')}voice/index.json`;
-export const voicePackPath = (path: string) => `/api/storage/public-objects/voice/${path}`;
+/** Is this the iOS app (its Opus voice files are bundled inside it)? */
+export const isBundledVoiceApp = () => { try { return Capacitor.isNativePlatform(); } catch { return false; } };
+/** A pack file: inside the app on iOS (`af_heart/<key>.caf`), from App Storage on the web (`af_heart/<key>.mp3`). */
+export const voicePackPath = (path: string, bundled = isBundledVoiceApp()) =>
+  bundled ? `${base().replace(/\/?$/, '/')}voice/${path}` : `/api/storage/public-objects/voice/${path}`;
 
 let index: Promise<{ voices: Set<string>; keys: Set<string> } | null> | null = null;
 
@@ -56,7 +64,7 @@ export async function voicePackUrl(voice: string, sentence: string, fetchFn?: ty
   const pack = await loadVoicePack(fetchFn);
   const key = voiceKey(sentence);
   return PACK_VOICES.includes(voice as PackVoice) && pack?.voices.has(voice) && pack.keys.has(key)
-    ? voicePackPath(`${voice}/${key}.mp3`)
+    ? voicePackPath(`${voice}/${key}.${isBundledVoiceApp() ? 'caf' : 'mp3'}`)
     : null;
 }
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { cleanSentence, PACK_VOICES, resetVoicePackForTests, voiceKey, voicePackIndexPath, voicePackUrl } from './lib/voice-pack';
+import { cleanSentence, PACK_FORMATS, PACK_VOICES, resetVoicePackForTests, voiceKey, voicePackIndexPath, voicePackPath, voicePackUrl } from './lib/voice-pack';
 import { NATURAL_VOICES } from './lib/natural-voice';
 
 test('a sentence has one stable file name, the same however its spaces were typed', () => {
@@ -27,6 +27,18 @@ test('a sentence in the pack plays from its file; anything else, or another voic
 
 test('the voice index remains part of the app while its MP3 files use App Storage', () => {
   assert.equal(voicePackIndexPath(), '/voice/index.json');
+});
+
+test('the iOS app plays the Opus clips bundled inside it; the website streams MP3s from App Storage', () => {
+  assert.equal(voicePackPath('af_heart/0123456789abcdef.caf', true), '/voice/af_heart/0123456789abcdef.caf');
+  assert.equal(voicePackPath('af_heart/0123456789abcdef.mp3', false), '/api/storage/public-objects/voice/af_heart/0123456789abcdef.mp3');
+});
+
+test('the iOS build downloads every indexed Opus clip once and reuses cached ones', async () => {
+  const { planVoicePackFetch } = await import('../scripts/fetch-voice-pack');
+  const index = { version: 1 as const, voices: [...PACK_VOICES], keys: ['aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb'] };
+  const plan = planVoicePackFetch(index, (file) => file === 'af_heart/aaaaaaaaaaaaaaaa.caf');
+  assert.deepEqual(plan, { wanted: ['af_heart/aaaaaaaaaaaaaaaa.caf', 'af_heart/bbbbbbbbbbbbbbbb.caf'], download: ['af_heart/bbbbbbbbbbbbbbbb.caf'] });
 });
 
 test('with no pack yet (or a page instead of the index), Listen keeps using the server', async () => {
@@ -90,13 +102,16 @@ test('the pack index keeps sentences every voice has and removes stale files', a
   try {
     for (const voice of PACK_VOICES) {
       mkdirSync(path.join(dir, voice));
-      writeFileSync(path.join(dir, voice, 'aa.mp3'), 'x');
-      writeFileSync(path.join(dir, voice, 'old.mp3'), 'x');
+      for (const format of PACK_FORMATS) {
+        writeFileSync(path.join(dir, voice, `aa.${format}`), 'x');
+        writeFileSync(path.join(dir, voice, `old.${format}`), 'x');
+      }
+      writeFileSync(path.join(dir, voice, 'cc.mp3'), 'x'); // only one format so far
     }
-    // 'bb' has no audio yet, so the index leaves it out; 'old' is no longer a sentence, so its files go.
-    const { index, removed } = buildVoicePackIndex(['aa', 'bb'], dir);
+    // 'bb' has no audio and 'cc' no Opus yet, so the index leaves them out; 'old' is no longer a sentence, so its files go.
+    const { index, removed } = buildVoicePackIndex(['aa', 'bb', 'cc'], dir);
     assert.deepEqual(index, { version: 1, voices: [...PACK_VOICES], keys: ['aa'] });
-    assert.equal(removed, PACK_VOICES.length);
+    assert.equal(removed, PACK_VOICES.length * PACK_FORMATS.length);
     assert.equal(existsSync(path.join(dir, 'af_heart', 'old.mp3')), false);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -112,7 +127,7 @@ test('the next index preserves stored sentences and requires every new voice fil
   try {
     for (const voice of PACK_VOICES) {
       mkdirSync(path.join(dir, voice));
-      writeFileSync(path.join(dir, voice, 'bb.mp3'), 'new');
+      for (const format of PACK_FORMATS) writeFileSync(path.join(dir, voice, `bb.${format}`), 'new');
     }
     const previous = { version: 1 as const, voices: [...PACK_VOICES], keys: ['aa', 'stale'] };
     const result = buildNextVoicePackIndex(['aa', 'bb'], dir, previous);
@@ -121,7 +136,7 @@ test('the next index preserves stored sentences and requires every new voice fil
       added: 1,
       removed: 1,
     });
-    rmSync(path.join(dir, 'af_heart', 'bb.mp3'));
+    rmSync(path.join(dir, 'af_heart', 'bb.caf')); // a new sentence without its Opus clip can't be published
     assert.throws(() => buildNextVoicePackIndex(['aa', 'bb'], dir, previous), /missing one or more voice files/);
   } finally {
     rmSync(dir, { recursive: true, force: true });

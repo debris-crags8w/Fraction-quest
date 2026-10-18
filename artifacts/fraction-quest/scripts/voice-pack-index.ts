@@ -1,10 +1,21 @@
 /* Finishes the voice pack after rendering: removes audio for sentences the app no longer has, and writes
-   public/voice/index.json listing the sentences every pack voice has (the app only uses the pack for those).
+   public/voice/index.json listing the sentences every pack voice has in every format: MP3 for the website and
+   Opus (.caf) for the iOS app (the app only uses the pack for those).
    Usage: tsx scripts/voice-pack-index.ts <sentences.json> [voice dir]. */
 
 import { readdirSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { PACK_VOICES, type VoicePackIndex } from '../src/lib/voice-pack';
+import { PACK_FORMATS, PACK_VOICES, type VoicePackIndex } from '../src/lib/voice-pack';
+
+/** The sentence keys that have every format in one voice's folder. */
+function completeKeys(files: string[]): Set<string> {
+  const byKey = new Map<string, Set<string>>();
+  for (const file of files) {
+    const match = /^(.+)\.(mp3|caf)$/.exec(file);
+    if (match) byKey.set(match[1]!, (byKey.get(match[1]!) ?? new Set()).add(match[2]!));
+  }
+  return new Set([...byKey].filter(([, formats]) => PACK_FORMATS.every((format) => formats.has(format))).map(([key]) => key));
+}
 
 export function buildVoicePackIndex(keys: string[], dir: string): { index: VoicePackIndex; removed: number } {
   const wanted = new Set(keys);
@@ -12,13 +23,11 @@ export function buildVoicePackIndex(keys: string[], dir: string): { index: Voice
   const have = PACK_VOICES.map((voice) => {
     const voiceDir = path.join(dir, voice);
     const files = existsSync(voiceDir) ? readdirSync(voiceDir) : [];
-    const found = new Set<string>();
     for (const file of files) {
-      const key = file.replace(/\.mp3$/, '');
-      if (file.endsWith('.mp3') && wanted.has(key)) found.add(key);
-      else { rmSync(path.join(voiceDir, file)); removed++; }
+      const match = /^(.+)\.(mp3|caf)$/.exec(file);
+      if (!match || !wanted.has(match[1]!)) { rmSync(path.join(voiceDir, file)); removed++; }
     }
-    return found;
+    return completeKeys(existsSync(voiceDir) ? readdirSync(voiceDir) : []);
   });
   const complete = keys.filter((key) => have.every((found) => found.has(key))).sort();
   return { index: { version: 1, voices: [...PACK_VOICES], keys: complete }, removed };
@@ -36,7 +45,7 @@ export function buildNextVoicePackIndex(
   const renderedByVoice = PACK_VOICES.map((voice) => {
     const voiceDir = path.join(dir, voice);
     const files = existsSync(voiceDir) ? readdirSync(voiceDir) : [];
-    return new Set(files.filter((file) => file.endsWith('.mp3')).map((file) => file.slice(0, -4)));
+    return completeKeys(files);
   });
   const missing = addedKeys.filter((key) => !renderedByVoice.every((rendered) => rendered.has(key)));
   if (missing.length) {

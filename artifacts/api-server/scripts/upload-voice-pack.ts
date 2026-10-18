@@ -3,7 +3,7 @@
  * every sentence in the index is stored in every voice. Run by the Voice pack workflow.
  *
  * Usage: tsx scripts/upload-voice-pack.ts <voice-directory> [--check-only] [--prune]
- *   <voice-directory> holds index.json and <voice>/<key>.mp3 files (only the new ones are needed).
+ *   <voice-directory> holds index.json and <voice>/<key>.mp3 and <key>.caf files (only the new ones are needed).
  *   --check-only  upload nothing, just check the index against storage
  *   --prune       after a complete check, remove stored files the index no longer lists (only after the merge)
  * Environment: VOICE_PACK_UPLOAD_URL (the app's address), VOICE_PACK_UPLOAD_TOKEN (matches the server's).
@@ -38,7 +38,7 @@ async function send(url: string, init: RequestInit): Promise<Response> {
 async function upload() {
   const files = PACK_VOICES.flatMap((voice) => {
     const dir = path.join(root!, voice);
-    return existsSync(dir) ? readdirSync(dir).filter((name) => /^[0-9a-f]{16}\.mp3$/.test(name)).map((name) => ({ voice, name })) : [];
+    return existsSync(dir) ? readdirSync(dir).filter((name) => /^[0-9a-f]{16}\.(mp3|caf)$/.test(name)).map((name) => ({ voice, name })) : [];
   });
   console.log(`Uploading ${files.length} audio files to ${base}...`);
   let next = 0;
@@ -48,7 +48,7 @@ async function upload() {
       const { voice, name } = files[next++]!;
       const response = await send(`${base}/api/voice-pack/files/${voice}/${name}`, {
         method: "PUT",
-        headers: { "content-type": "audio/mpeg" },
+        headers: { "content-type": name.endsWith(".caf") ? "audio/x-caf" : "audio/mpeg" },
         body: readFileSync(path.join(root!, voice, name)),
       });
       if (response.status !== 204) throw new Error(`Upload of ${voice}/${name} failed: ${response.status} ${await response.text()}`);
@@ -68,7 +68,7 @@ async function check(prune: boolean) {
   if (result.missing) {
     throw new Error(`App Storage is missing ${result.missing} indexed audio files (first: ${result.firstMissing.join(", ")}).`);
   }
-  console.log(`App Storage has all ${result.sentences} sentences in every voice${prune ? `; removed ${result.removed} unused files` : ""}.`);
+  console.log(`App Storage has all ${result.sentences} sentences in every voice and format${prune ? `; removed ${result.removed} unused files` : ""}.`);
 }
 
 try {
