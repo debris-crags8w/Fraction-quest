@@ -16,7 +16,7 @@ test('the map fetches the next story comic’s voice and keeps it on the device,
   // Next visit: the comic's voice comes from the device, not the network.
   await page.reload();
   const before = voiceFiles.length;
-  await page.getByTestId('button-continue-course').click();
+  await page.getByTestId('button-map-prologue').click();
   await expect(page.getByTestId('story-comic')).toBeVisible();
   await page.waitForTimeout(2000);
   expect(voiceFiles.length - before).toBe(0);
