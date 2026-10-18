@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 
 test('the map fetches the next story comic’s voice and keeps it on the device, so the comic starts without waiting', async ({ page }) => {
   await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
+  // The pack's MP3s come from App Storage through the API; stand in a tiny clip for each (later routes win).
+  await page.route('**/api/storage/public-objects/voice/**', (route) => route.fulfill({ status: 200, contentType: 'audio/mpeg', body: Buffer.from([0xff, 0xfb, 0x90, 0x00]) }));
   const voiceFiles: string[] = [];
   page.on('request', (request) => { if (/\/voice\/[^/]+\/[0-9a-f]+\.mp3$/.test(request.url())) voiceFiles.push(request.url()); });
   await page.goto('/');
