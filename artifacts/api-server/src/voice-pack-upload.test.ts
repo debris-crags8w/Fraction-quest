@@ -6,6 +6,7 @@ import express from "express";
 import { createStorageRouter } from "./routes/storage";
 import { createVoicePackUploadRouter } from "./routes/voice-pack-upload";
 import { VOICE_CACHE_CONTROL, type VoiceFile, type VoicePackStore } from "./lib/voice-pack-store";
+import { voicePackSentenceKey } from "./lib/voice-pack-sync";
 
 const TOKEN = "voice-upload-test-token-0123456789abcdef";
 const KEY_A = "0123456789abcdef";
@@ -33,11 +34,18 @@ const fakeStore: VoicePackStore = {
 };
 
 let server: Server; let base = "";
+let syncCalls: { key: string; text: string }[][] = [];
 const previousToken = process.env.VOICE_PACK_UPLOAD_TOKEN;
 before(async () => {
   const app = express();
   app.use(express.json({ limit: "256kb" })); // as in app.ts: the routes must not depend on it
-  app.use("/api", createStorageRouter(() => fakeStore), createVoicePackUploadRouter(() => fakeStore));
+  const sync = async (_store: VoicePackStore, sentences: { key: string; text: string }[], options: { apply?: boolean; maxMissingSentences?: number }) => {
+    assert.equal(options.apply, true);
+    assert.equal(options.maxMissingSentences, 10);
+    syncCalls.push(sentences);
+    return { missingFiles: 4, generatedSentences: 2, remainingFiles: 0, dryRun: false };
+  };
+  app.use("/api", createStorageRouter(() => fakeStore), createVoicePackUploadRouter(() => fakeStore, sync));
   server = await new Promise<Server>((resolve) => { const s = app.listen(0, () => resolve(s)); });
   const address = server.address(); base = `http://127.0.0.1:${typeof address === "object" && address ? address.port : 0}`;
 });
@@ -45,7 +53,7 @@ after(() => {
   server.close();
   if (previousToken === undefined) delete process.env.VOICE_PACK_UPLOAD_TOKEN; else process.env.VOICE_PACK_UPLOAD_TOKEN = previousToken;
 });
-beforeEach(() => { stored.clear(); process.env.VOICE_PACK_UPLOAD_TOKEN = TOKEN; });
+beforeEach(() => { stored.clear(); syncCalls = []; process.env.VOICE_PACK_UPLOAD_TOKEN = TOKEN; });
 
 const TYPES = { mp3: "audio/mpeg", caf: "audio/x-caf" } as const;
 const put = (voice: string, key: string, format: "mp3" | "caf" = "mp3", token = TOKEN, type: string = TYPES[format]) =>
@@ -126,5 +134,26 @@ describe("voice pack uploads from the workflow", () => {
     assert.equal((await put("af_heart", KEY_B, "mp3")).status, 204); // its Opus file is missing
     const result = await (await check([KEY_A, KEY_B, "1111111111111111"], false, true)).json() as { missingKeys: string[] };
     assert.deepEqual(result.missingKeys.sort(), ["1111111111111111", KEY_B]);
+  });
+  it("lets Actions ask Replit to render a small, validated missing-sentence set", async () => {
+    const sentences = [{ key: voicePackSentenceKey("One half."), text: "One half." }];
+    assert.equal(sentences[0]!.key, "520c72924f268916");
+    const response = await fetch(`${base}/api/voice-pack/sync`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${TOKEN}`, "content-type": "text/plain" },
+      body: JSON.stringify({ sentences }),
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { sentences: 1, generatedFiles: 4, generatedSentences: 2, remainingFiles: 0 });
+    assert.deepEqual(syncCalls, [sentences]);
+  });
+  it("rejects mismatched sentence keys before requesting generation", async () => {
+    const response = await fetch(`${base}/api/voice-pack/sync`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${TOKEN}`, "content-type": "text/plain" },
+      body: JSON.stringify({ sentences: [{ key: KEY_A, text: "One half." }] }),
+    });
+    assert.equal(response.status, 400);
+    assert.equal(syncCalls.length, 0);
   });
 });

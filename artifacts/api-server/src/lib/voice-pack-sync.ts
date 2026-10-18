@@ -2,18 +2,35 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { PACK_VOICES, VOICE_FORMATS, type VoicePackStore } from "./voice-pack-store";
-import { loadVoiceEngine, type VoiceEngine } from "./voice";
+import { cleanVoiceText, loadVoiceEngine, type VoiceEngine } from "./voice";
 import { renderVoicePack, type PackSentence } from "./voice-pack-render";
 
 const BATCH_SIZE = 40;
 type PackFile = { voice: string; key: string; format: keyof typeof VOICE_FORMATS };
-type SyncResult = { missingFiles: number; generatedSentences: number; dryRun: boolean };
+type SyncResult = { missingFiles: number; generatedSentences: number; remainingFiles: number; dryRun: boolean };
+
+export class VoicePackSyncLimitError extends Error {
+  constructor(readonly missingSentences: number, readonly limit: number) {
+    super(`Found ${missingSentences} sentences missing audio; automatic PR sync is limited to ${limit}. Run the Replit batch command to backfill App Storage first.`);
+    this.name = "VoicePackSyncLimitError";
+  }
+}
+
+/** Same FNV-1a sentence key used by the browser voice index. */
+export function voicePackSentenceKey(text: string): string {
+  let hash = 0xcbf29ce484222325n;
+  for (const byte of new TextEncoder().encode(cleanVoiceText(text) ?? "")) {
+    hash ^= BigInt(byte);
+    hash = (hash * 0x100000001b3n) & 0xffffffffffffffffn;
+  }
+  return hash.toString(16).padStart(16, "0");
+}
 
 /** Check the complete lesson/story sentence list; on apply, render and store only files App Storage lacks. */
 export async function generateMissingVoicePack(
   store: VoicePackStore,
   sentences: PackSentence[],
-  options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void } = {},
+  options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void; maxMissingSentences?: number } = {},
 ): Promise<SyncResult> {
   const log = options.log ?? (() => undefined);
   const stored = new Set((await store.list()).map(({ voice, key, format }) => `${voice}/${key}.${format}`));
@@ -27,8 +44,12 @@ export async function generateMissingVoicePack(
     }
   }
 
+  const missingSentences = new Set(missing.map(({ key }) => key)).size;
+  if (options.maxMissingSentences !== undefined && missingSentences > options.maxMissingSentences) {
+    throw new VoicePackSyncLimitError(missingSentences, options.maxMissingSentences);
+  }
   if (!options.apply || missing.length === 0) {
-    return { missingFiles: missing.length, generatedSentences: 0, dryRun: true };
+    return { missingFiles: missing.length, generatedSentences: 0, remainingFiles: missing.length, dryRun: true };
   }
 
   const engine = options.engine ?? await loadVoiceEngine();
@@ -66,5 +87,7 @@ export async function generateMissingVoicePack(
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
-  return { missingFiles: missing.length, generatedSentences, dryRun: false };
+  const after = new Set((await store.list()).map(({ voice, key, format }) => `${voice}/${key}.${format}`));
+  const remainingFiles = missing.filter(({ voice, key, format }) => !after.has(`${voice}/${key}.${format}`)).length;
+  return { missingFiles: missing.length, generatedSentences, remainingFiles, dryRun: false };
 }

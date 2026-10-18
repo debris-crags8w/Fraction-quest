@@ -8,6 +8,8 @@
  *   tsx scripts/upload-voice-pack.ts check <index.json> [--prune]
  *       Fails unless every sentence in the index is stored in every voice and format. With --prune (only after a
  *       deploy), it also removes stored files the index no longer lists.
+ *   tsx scripts/upload-voice-pack.ts sync <sentences.json> <index.json>
+ *       Asks Replit to render and store only missing files (up to 10 missing sentence keys) then verifies the index.
  *
  * Environment: VOICE_PACK_UPLOAD_URL (the app's address), VOICE_PACK_UPLOAD_TOKEN (matches the server's).
  */
@@ -20,8 +22,8 @@ const PARALLEL = 8;
 const [command, target, ...rest] = process.argv.slice(2);
 const base = (process.env.VOICE_PACK_UPLOAD_URL ?? "").replace(/\/+$/, "");
 const token = process.env.VOICE_PACK_UPLOAD_TOKEN ?? "";
-if (!["missing", "upload", "check"].includes(command ?? "") || !target || !base || !token) {
-  console.error("Usage: VOICE_PACK_UPLOAD_URL=... VOICE_PACK_UPLOAD_TOKEN=... tsx scripts/upload-voice-pack.ts missing|upload|check <path> ...");
+if (!["missing", "upload", "check", "sync"].includes(command ?? "") || !target || !base || !token) {
+  console.error("Usage: VOICE_PACK_UPLOAD_URL=... VOICE_PACK_UPLOAD_TOKEN=... tsx scripts/upload-voice-pack.ts missing|upload|check|sync <path> ...");
   process.exit(2);
 }
 
@@ -79,6 +81,29 @@ try {
     console.log(`${result.sentences} sentences; ${result.missingKeys?.length ?? 0} lack audio in App Storage.`);
   } else if (command === "upload") {
     await upload(target!);
+  } else if (command === "sync") {
+    const sentenceList = JSON.parse(readFileSync(target!, "utf8")) as unknown;
+    if (!Array.isArray(sentenceList)) throw new Error("The sentence file must contain an array.");
+    let response: Response | undefined;
+    for (let attempt = 1; attempt <= 30; attempt++) {
+      response = await send(`${base}/api/voice-pack/sync`, {
+        method: "POST",
+        headers: { "content-type": "text/plain" },
+        body: JSON.stringify({ sentences: sentenceList }),
+      });
+      if (response.status !== 409) break;
+      const detail = await response.text();
+      if (!detail.includes("already running")) throw new Error(`Replit sync failed: 409 ${detail}`);
+      if (attempt === 30) throw new Error("Another Replit voice sync is still running after five minutes.");
+      console.log("Another Replit voice sync is running; retrying in 10 seconds.");
+      await new Promise((resolve) => setTimeout(resolve, 10_000));
+    }
+    if (!response?.ok) throw new Error(`Replit sync failed: ${response?.status} ${await response?.text()}`);
+    const result = await response.json() as { sentences: number; generatedFiles: number; generatedSentences: number; remainingFiles: number };
+    if (result.remainingFiles !== 0) throw new Error(`${result.remainingFiles} audio files remain missing.`);
+    const final = await check(rest[0]!, "");
+    if (final.missing) throw new Error(`Verification failed: ${final.missing} audio files are still missing.`);
+    console.log(`Replit stored ${result.generatedFiles} missing files; all ${final.sentences} sentences now have audio.`);
   } else {
     const prune = rest.includes("--prune");
     const result = await check(target!, prune ? "?prune=1" : "");

@@ -2,18 +2,17 @@ name: Voice pack
 
 # Keeps App Storage holding the audio for every sentence the app reads aloud: each made once by Kokoro, as Opus in
 # .caf (Apple browsers and the iPhone app) and as MP3 (everyone else). It runs on every pull request, before it
-# merges: it asks App Storage which of the PR's sentences lack audio, makes exactly those, uploads them, and passes
-# only when every sentence is stored, so text never merges without its audio. (Make "Voice audio is in App
-# Storage" a required check.) Only the app's server can write to App Storage; the repository secrets
-# VOICE_PACK_UPLOAD_URL and VOICE_PACK_UPLOAD_TOKEN let this workflow reach it. The voice index itself is built
-# from the app's text at build time (scripts/voice-pack-index.ts), so nothing is committed back.
+# merges: it sends the current sentence list to the Replit API, which checks App Storage, makes only a small
+# number of missing clips with Kokoro, and verifies storage. (Make "Voice audio is in App Storage" a required
+# check.) Replit owns the model and App Storage; GitHub never renders or uploads audio. The voice index is generated
+# from the app's text and is not committed.
 
 on:
   # Every pull request (a required check must always report); one that changes no sentence finishes in a minute.
   pull_request:
     branches:
       - main
-  # A safety net after merging: anything still missing is made then.
+  # A safety net after merging: Replit checks for missing audio again.
   push:
     branches:
       - main
@@ -23,10 +22,6 @@ on:
       - "!artifacts/fraction-quest/src/**/*.test.ts"
   workflow_dispatch:
     inputs:
-      rerender:
-        description: Re-make every sentence's audio (after an encoding change) and upload it
-        type: boolean
-        default: false
       prune:
         description: Also remove stored audio the app no longer uses (run after a deploy)
         type: boolean
@@ -45,7 +40,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
-      missing: ${{ steps.plan.outputs.missing }}
       skip: ${{ steps.plan.outputs.skip }}
     steps:
       - uses: actions/checkout@v4
@@ -57,99 +51,39 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Mark fork pull requests (secrets are not available to forks)
+        id: plan
+        env:
+          FORK: ${{ github.event.pull_request.head.repo.fork == true }}
+        run: |
+          if [ "$FORK" = "true" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; else echo "skip=false" >> "$GITHUB_OUTPUT"; fi
       - name: List every sentence the app reads aloud
         working-directory: artifacts/fraction-quest
         run: |
           pnpm exec tsx scripts/voice-sentences.ts > "$RUNNER_TEMP/sentences.json"
           pnpm exec tsx scripts/voice-pack-index.ts "$RUNNER_TEMP/index.json"
-      - name: Ask App Storage which ones lack audio
-        id: plan
-        working-directory: artifacts/api-server
-        env:
-          VOICE_PACK_UPLOAD_URL: ${{ secrets.VOICE_PACK_UPLOAD_URL }}
-          VOICE_PACK_UPLOAD_TOKEN: ${{ secrets.VOICE_PACK_UPLOAD_TOKEN }}
-          RERENDER: ${{ github.event_name == 'workflow_dispatch' && inputs.rerender }}
-          FORK: ${{ github.event.pull_request.head.repo.fork == true }}
-        run: |
-          if [ -z "$VOICE_PACK_UPLOAD_URL" ] || [ -z "$VOICE_PACK_UPLOAD_TOKEN" ]; then
-            if [ "$FORK" = "true" ]; then
-              echo "::notice::Pull requests from forks can't reach App Storage; the voice audio is made after merging."
-              echo "skip=true" >> "$GITHUB_OUTPUT"; echo "missing=0" >> "$GITHUB_OUTPUT"; exit 0
-            fi
-            echo "::error::Set the repository secrets VOICE_PACK_UPLOAD_URL and VOICE_PACK_UPLOAD_TOKEN (see .agents/memory/kokoro-pack-storage.md)."
-            exit 1
-          fi
-          if [ "$RERENDER" = "true" ]; then
-            node -e 'const fs = require("fs"); fs.writeFileSync(process.argv[2], JSON.stringify(require(process.argv[1]).keys));' "$RUNNER_TEMP/index.json" "$RUNNER_TEMP/missing-keys.json"
-          else
-            pnpm exec tsx scripts/upload-voice-pack.ts missing "$RUNNER_TEMP/index.json" "$RUNNER_TEMP/missing-keys.json"
-          fi
-          node -e '
-            const fs = require("fs");
-            const wanted = new Set(require(process.argv[2]));
-            const missing = require(process.argv[1]).filter((sentence) => wanted.has(sentence.key));
-            fs.writeFileSync(process.argv[3], JSON.stringify(missing));
-            console.log(`${missing.length} sentences need audio.`);
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, `missing=${missing.length}\nskip=false\n`);
-          ' "$RUNNER_TEMP/sentences.json" "$RUNNER_TEMP/missing-keys.json" "$RUNNER_TEMP/missing-sentences.json"
       - uses: actions/upload-artifact@v4
+        if: steps.plan.outputs.skip != 'true'
         with:
           name: sentences
           path: |
             ${{ runner.temp }}/index.json
-            ${{ runner.temp }}/missing-sentences.json
-          retention-days: 3
-
-  render:
-    name: Render ${{ matrix.voice }} (${{ matrix.shard }}/4)
-    needs: plan
-    if: needs.plan.outputs.missing != '0'
-    runs-on: ubuntu-latest
-    timeout-minutes: 300
-    strategy:
-      fail-fast: false
-      matrix:
-        voice: [af_heart, am_michael]
-        shard: [0, 1, 2, 3]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.26.1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@v4
-        with:
-          name: sentences
-          path: ${{ runner.temp }}
-      - name: Install ffmpeg (the audio encoder)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg && ffmpeg -version | head -1
-      - name: Make the missing clips (Opus and MP3)
-        working-directory: artifacts/api-server
-        run: pnpm exec tsx scripts/render-voice-pack.ts "$RUNNER_TEMP/missing-sentences.json" "$RUNNER_TEMP/new" ${{ matrix.voice }} ${{ matrix.shard }} 4
-      - uses: actions/upload-artifact@v4
-        with:
-          name: voice-${{ matrix.voice }}-${{ matrix.shard }}
-          path: ${{ runner.temp }}/new
-          if-no-files-found: ignore
+            ${{ runner.temp }}/sentences.json
           retention-days: 3
 
   store:
     # The required check: passes only when App Storage has every sentence of this code in every format.
     name: Voice audio is in App Storage
-    needs: [plan, render]
+    needs: [plan]
     # Always report (a skipped required check would count as passing).
     if: ${{ always() && needs.plan.result != 'cancelled' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Stop if an earlier step failed
-        if: needs.plan.result != 'success' || (needs.render.result != 'success' && needs.render.result != 'skipped')
+      - name: Stop if planning failed
+        if: needs.plan.result != 'success'
         run: |
-          echo "::error::Finding or making the voice audio failed (plan: ${{ needs.plan.result }}, render: ${{ needs.render.result }})."
+          echo "::error::Building the voice sentence list failed (plan: ${{ needs.plan.result }})."
           exit 1
       - name: Skip for pull requests from forks
         if: needs.plan.outputs.skip == 'true'
@@ -172,21 +106,14 @@ jobs:
         with:
           name: sentences
           path: ${{ runner.temp }}
-      - uses: actions/download-artifact@v4
-        if: needs.plan.outputs.skip != 'true' && needs.plan.outputs.missing != '0'
-        with:
-          pattern: voice-*
-          path: ${{ runner.temp }}/new
-          merge-multiple: true
-      - name: Upload the new audio and check every sentence
+      - name: Ask Replit to generate missing audio and verify App Storage
         if: needs.plan.outputs.skip != 'true'
         working-directory: artifacts/api-server
         env:
           VOICE_PACK_UPLOAD_URL: ${{ secrets.VOICE_PACK_UPLOAD_URL }}
           VOICE_PACK_UPLOAD_TOKEN: ${{ secrets.VOICE_PACK_UPLOAD_TOKEN }}
         run: |
-          if [ -d "$RUNNER_TEMP/new" ]; then pnpm exec tsx scripts/upload-voice-pack.ts upload "$RUNNER_TEMP/new"; fi
-          pnpm exec tsx scripts/upload-voice-pack.ts check "$RUNNER_TEMP/index.json"
+          pnpm exec tsx scripts/upload-voice-pack.ts sync "$RUNNER_TEMP/sentences.json" "$RUNNER_TEMP/index.json"
 
   prune:
     name: Remove unused stored audio
