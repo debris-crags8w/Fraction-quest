@@ -7,6 +7,9 @@ on:
   push:
     branches:
       - main
+  # The voice pack workflow starts these for the audio pull requests it opens, since GitHub does not run
+  # pull_request checks for pull requests opened by a workflow.
+  workflow_dispatch:
 
 permissions:
   contents: read

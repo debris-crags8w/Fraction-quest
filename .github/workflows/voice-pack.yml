@@ -120,6 +120,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
+      actions: write
       contents: write
       pull-requests: write
     steps:
@@ -165,3 +166,6 @@ jobs:
           $(cat "$RUNNER_TEMP/summary.txt")
           \`\`\`" \
             || echo "::warning::Pushed $branch but could not open the pull request. Open it from the branch page, or allow GitHub Actions to create pull requests in the repository settings."
+          # Pull requests opened by a workflow get no automatic checks, so start the required ones on the branch.
+          gh workflow run pull-request-checks.yml --ref "$branch" \
+            || echo "::warning::Could not start the pull request checks on $branch. Run them from the Actions tab."
