@@ -27,6 +27,12 @@ GitHub's Git Database API can normalize commit messages or metadata and produce 
 
 **How to apply:** if exact local commit IDs matter, inspect and reproduce the API's exact message and metadata bytes. Otherwise, verify every uploaded blob, each tree against its local counterpart, and each intended parent; recheck the target ref before updating it, and never force-move an existing branch.
 
+GitHub `main` is protected and rejects direct ref updates until required status checks pass. Publish changes on a short-lived branch and merge through a pull request instead of bypassing protection.
+
+**Why:** a direct GitHub App ref update to `main` was rejected because required checks were expected.
+
+**How to apply:** push the verified tree to a topic branch, open a pull request when it is safe for its checks to run, and wait for the required checks before merging.
+
 Large file output from CodeExecution `shellExec` can be shortened even when `maxOutputBytes` is higher and `truncated` is false; this can create GitHub blobs whose content looks right but whose SHA does not match the local Git object.
 
 **Why:** a tree-hash check caught incomplete file transfers while publishing a review PR; fetching the Git blob through shell output did not preserve its complete bytes.
