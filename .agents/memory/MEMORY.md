@@ -13,3 +13,4 @@
 - [PostgreSQL load-test counters](postgres-load-test-counters.md) — cumulative DB statistics may lag fixture setup and are database-wide, not API-attributed.
 - [Database environment safety](database-environment-safety.md) — use Replit's published-deployment marker, not an ambiguous shell environment label, to guard DB access.
 - [WebKit browser validation](webkit-browser-validation.md) — local Playwright WebKit downloads but lacks launch libraries; rely on the CI dependency-install step to run it.
+- [Kokoro pack storage](kokoro-pack-storage.md) — keep generated voice audio in App Storage, publish the compact index in Git, and verify files before merging index updates.
