@@ -16,7 +16,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const PACK_VOICES = ["af_heart", "am_michael"];
+const PACK_VOICES = ["af_heart"];
 const PARALLEL = 8;
 
 const [command, target, ...rest] = process.argv.slice(2);

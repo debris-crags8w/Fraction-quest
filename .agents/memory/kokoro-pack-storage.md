@@ -3,9 +3,9 @@ name: Kokoro pack storage
 description: Where pre-generated voice audio lives and how every pull request keeps it complete.
 ---
 
-The user chose Heart and Michael as the two natural voices and approved retiring Emma. Preserve that choice when reconciling upstream voice work. Each voice has MP3 and Opus audio in App Storage; keep the generated index and audio out of Git.
+The app has one natural voice, Heart (`af_heart`). Michael and Emma are retired; a saved choice of either falls back to Heart. Preserve this when reconciling upstream voice work. Heart has MP3 and Opus audio in App Storage; keep the generated index and audio out of Git.
 
-**Why this pair:** The user explicitly confirmed Heart and Michael and asked to combine them with the Opus and Wi-Fi workflow.
+**Why one voice:** On 2026-10-18 the user confirmed "I am just doing one voice (Heart)", replacing an earlier Heart and Michael pair. Backfills render Heart only.
 
 The Voice pack workflow sends the current sentence manifest to the authenticated Replit API. Replit compares it with App Storage, renders small PR gaps with Kokoro, writes directly to storage, and verifies the result; GitHub does not render or upload the audio. The check should be required. Keep automatic PR sync bounded so a forgotten full-pack backfill cannot unexpectedly launch thousands of renders; use the Replit batch command for a large gap. Previously merged MP3 blobs remain in Git history unless a history rewrite is explicitly approved.
 

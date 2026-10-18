@@ -95,42 +95,41 @@ describe("voice pack uploads from the workflow", () => {
     assert.equal((await put("af_heart", KEY_A, "caf", TOKEN, "audio/mpeg")).status, 400); // type must match the format
     assert.equal((await put("af_bella", KEY_A)).status, 400);
     assert.equal((await put("bf_emma", KEY_A)).status, 400); // retired
+    assert.equal((await put("am_michael", KEY_A)).status, 400); // retired
     assert.equal((await put("af_heart", "not-a-key")).status, 400);
     assert.equal(stored.size, 0);
   });
   it("stores uploads, reports what the index still lacks, and prunes only a complete pack", async () => {
     assert.deepEqual(await putBoth("af_heart", KEY_A), [204, 204]);
-    assert.deepEqual(await putBoth("am_michael", KEY_A), [204, 204]);
-    assert.deepEqual(await putBoth("am_michael", KEY_B), [204, 204]);
     stored.set(`bf_emma/${KEY_A}.mp3`, Buffer.from("retired voice"));
+    stored.set(`am_michael/${KEY_A}.mp3`, Buffer.from("retired voice"));
 
     // KEY_B has only its MP3 so far: its Opus file is missing, and nothing is pruned.
     assert.equal((await put("af_heart", KEY_B, "mp3")).status, 204);
     let result = await (await check([KEY_A, KEY_B], true)).json() as { sentences: number; missing: number; firstMissing: string[]; removed: number };
     assert.deepEqual(result, { sentences: 2, missing: 1, firstMissing: [`af_heart/${KEY_B}.caf`], removed: 0 });
-    assert.equal(stored.size, 8);
+    assert.equal(stored.size, 5);
     assert.equal((await put("af_heart", KEY_B, "caf")).status, 204);
 
     // Without prune, files the index dropped stay (the live app may still list them).
     result = await (await check([KEY_A])).json() as typeof result;
     assert.equal(result.missing, 0);
     assert.equal(result.removed, 0);
-    assert.equal(stored.size, 9);
+    assert.equal(stored.size, 6);
 
-    // Prune removes the dropped sentence (both formats) and the retired voice's file.
+    // Prune removes the dropped sentence (both formats) and the retired voices' files.
     result = await (await check([KEY_A], true)).json() as typeof result;
-    assert.equal(result.removed, 5);
-    assert.deepEqual([...stored.keys()].sort(), [`af_heart/${KEY_A}.caf`, `af_heart/${KEY_A}.mp3`, `am_michael/${KEY_A}.caf`, `am_michael/${KEY_A}.mp3`]);
+    assert.equal(result.removed, 4);
+    assert.deepEqual([...stored.keys()].sort(), [`af_heart/${KEY_A}.caf`, `af_heart/${KEY_A}.mp3`]);
   });
   it("accepts an index larger than the server's JSON limit", async () => {
     const keys = Array.from({ length: 20_000 }, (_, i) => i.toString(16).padStart(16, "0"));
     const response = await check(keys);
     assert.equal(response.status, 200);
-    assert.equal(((await response.json()) as { missing: number }).missing, 80_000); // two voices and two formats
+    assert.equal(((await response.json()) as { missing: number }).missing, 40_000); // one voice, two formats
   });
   it("lists every sentence that lacks a file, so the workflow makes exactly those", async () => {
     assert.deepEqual(await putBoth("af_heart", KEY_A), [204, 204]);
-    assert.deepEqual(await putBoth("am_michael", KEY_A), [204, 204]);
     assert.equal((await put("af_heart", KEY_B, "mp3")).status, 204); // its Opus file is missing
     const result = await (await check([KEY_A, KEY_B, "1111111111111111"], false, true)).json() as { missingKeys: string[] };
     assert.deepEqual(result.missingKeys.sort(), ["1111111111111111", KEY_B]);

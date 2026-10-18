@@ -11,7 +11,7 @@ import { pipeline } from "node:stream/promises";
 import { objectStorageClient, ObjectStorageService } from "../src/lib/objectStorage";
 import { VOICE_CACHE_CONTROL } from "../src/lib/voice-pack-store";
 
-const PACK_VOICES = ["af_heart", "am_michael"] as const;
+const PACK_VOICES = ["af_heart"] as const;
 const KEY_PATTERN = /^[0-9a-f]{16}$/;
 const MAX_PARALLEL_UPLOADS = 12;
 const storage = new ObjectStorageService();

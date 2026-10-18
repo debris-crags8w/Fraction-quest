@@ -13,7 +13,7 @@ test('a sentence has one stable file name, the same however its spaces were type
 });
 
 test('the app offers exactly the pack voices', () => {
-  assert.deepEqual([...PACK_VOICES], ['af_heart', 'am_michael']);
+  assert.deepEqual([...PACK_VOICES], ['af_heart']);
   assert.deepEqual(NATURAL_VOICES.map((voice) => voice.id), [...PACK_VOICES]);
 });
 

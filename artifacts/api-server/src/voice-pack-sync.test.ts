@@ -33,11 +33,11 @@ const engine = { async generate() { return { audio: new Float32Array(2400).fill(
 test("the batch command's dry run reports gaps without loading Kokoro or writing storage", async () => {
   const { store, files } = memoryStore([{ voice: "af_heart", key: sentence.key, format: "mp3" }]);
   const result = await generateMissingVoicePack(store, [sentence]);
-  assert.deepEqual(result, { missingFiles: 3, generatedSentences: 0, remainingFiles: 3, dryRun: true });
+  assert.deepEqual(result, { missingFiles: 1, generatedSentences: 0, remainingFiles: 1, dryRun: true });
   assert.equal(files.size, 1);
 });
 
-test("a voice-specific dry run ignores gaps for the other configured voice", async () => {
+test("a voice-specific dry run counts only that voice's gaps", async () => {
   const { store, files } = memoryStore([{ voice: "af_heart", key: sentence.key, format: "mp3" }]);
   const result = await generateMissingVoicePack(store, [sentence], { voices: ["af_heart"] });
   assert.deepEqual(result, { missingFiles: 1, generatedSentences: 0, remainingFiles: 1, dryRun: true });
@@ -57,13 +57,12 @@ test("the PR sync limit stops an unexpectedly large backfill before rendering", 
   assert.equal(files.size, 0);
 });
 
-test("the batch fills only missing formats for the two configured voices and preserves existing files", { skip: !hasFfmpeg && "ffmpeg is not installed" }, async () => {
+test("the batch fills only missing formats for the configured voice and preserves existing files", { skip: !hasFfmpeg && "ffmpeg is not installed" }, async () => {
   const { store, files } = memoryStore([{ voice: "af_heart", key: sentence.key, format: "mp3" }]);
   const previous = files.get(`af_heart/${sentence.key}.mp3`);
   const result = await generateMissingVoicePack(store, [sentence], { apply: true, engine });
-  assert.deepEqual(result, { missingFiles: 3, generatedSentences: 2, remainingFiles: 0, dryRun: false });
-  assert.equal(files.size, 4);
+  assert.deepEqual(result, { missingFiles: 1, generatedSentences: 1, remainingFiles: 0, dryRun: false });
+  assert.equal(files.size, 2);
   assert.equal(files.get(`af_heart/${sentence.key}.mp3`), previous);
   assert.equal(files.get(`af_heart/${sentence.key}.caf`)?.subarray(0, 4).toString(), "caff");
-  assert.ok(files.get(`am_michael/${sentence.key}.mp3`)!.length > 0);
 });

@@ -7,7 +7,7 @@ const apply = args.includes("--apply");
 const voiceIndex = args.indexOf("--voice");
 const requestedVoice = voiceIndex === -1 ? undefined : args[voiceIndex + 1];
 if (voiceIndex !== -1 && (!requestedVoice || !isPackVoice(requestedVoice))) {
-  throw new Error(`Use --voice with one configured voice: af_heart or am_michael.`);
+  throw new Error(`Use --voice with a configured voice: af_heart.`);
 }
 const voices = requestedVoice ? [requestedVoice] : undefined;
 if (voices) console.log(`Selected voice: ${voices[0]}`);

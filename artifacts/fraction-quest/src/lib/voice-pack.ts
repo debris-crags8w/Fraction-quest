@@ -4,7 +4,7 @@
    pack still use the voice server, with the device voice as the last fallback. */
 
 /** The voices the pack is made for. */
-export const PACK_VOICES = ['af_heart', 'am_michael'] as const;
+export const PACK_VOICES = ['af_heart'] as const;
 /** Every sentence is made twice: Opus in a .caf file (about 60% of the MP3's size; Apple browsers play it) and MP3. */
 export const PACK_FORMATS = ['mp3', 'caf'] as const;
 export type PackFormat = (typeof PACK_FORMATS)[number];

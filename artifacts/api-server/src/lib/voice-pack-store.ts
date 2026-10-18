@@ -4,7 +4,7 @@
 import type { Readable } from "node:stream";
 import { objectStorageClient, ObjectStorageService } from "./objectStorage";
 
-export const PACK_VOICES = ["af_heart", "am_michael"] as const;
+export const PACK_VOICES = ["af_heart"] as const;
 export type PackVoice = (typeof PACK_VOICES)[number];
 export const VOICE_KEY = /^[0-9a-f]{16}$/;
 export const VOICE_CACHE_CONTROL = "public, max-age=31536000, immutable";
