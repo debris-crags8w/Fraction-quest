@@ -1,21 +1,37 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { PACK_VOICES, VOICE_FORMATS, type PackVoice, type VoicePackStore } from "./voice-pack-store";
+import { PACK_VOICES, VOICE_FORMATS, VoicePackSyncInProgressError, type PackVoice, type VoicePackStore, type VoicePackSyncLock } from "./voice-pack-store";
 import { cleanVoiceText, loadVoiceEngine, type VoiceEngine } from "./voice";
 import { renderVoicePack, type PackSentence } from "./voice-pack-render";
 
 const BATCH_SIZE = 40;
 type PackFile = { voice: string; key: string; format: keyof typeof VOICE_FORMATS };
-type SyncResult = { missingFiles: number; generatedSentences: number; remainingFiles: number; dryRun: boolean };
+export type SyncResult = {
+  checkedSentences: number;
+  checkedFiles: number;
+  missingFiles: number;
+  missingSentences: number;
+  generatedFiles: number;
+  generatedSentences: number;
+  remainingFiles: number;
+  dryRun: boolean;
+};
 
 export class VoicePackSyncLimitError extends Error {
-  constructor(readonly missingSentences: number, readonly limit: number) {
-    super(`Found ${missingSentences} sentences missing audio; automatic PR sync is limited to ${limit}. In Replit, run "pnpm --filter @workspace/api-server run generate-voice-pack -- --apply" to backfill App Storage, then retry.`);
+  constructor(
+    readonly checkedSentences: number,
+    readonly checkedFiles: number,
+    readonly missingSentences: number,
+    readonly missingFiles: number,
+    readonly limit: number,
+  ) {
+    super(`Checked ${checkedSentences} sentences (${checkedFiles} audio files); ${missingFiles} files are missing across ${missingSentences} sentences, above the automatic limit of ${limit}. No audio was generated. For an intentional manual batch, run "pnpm --filter @workspace/api-server run generate-voice-pack -- --voice af_heart --apply".`);
     this.name = "VoicePackSyncLimitError";
   }
 }
 
+export const DAILY_VOICE_BACKFILL_LIMIT = 50;
 /** Same FNV-1a sentence key used by the browser voice index. */
 export function voicePackSentenceKey(text: string): string {
   let hash = 0xcbf29ce484222325n;
@@ -31,6 +47,20 @@ export async function generateMissingVoicePack(
   store: VoicePackStore,
   sentences: PackSentence[],
   options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void; maxMissingSentences?: number; voices?: readonly PackVoice[] } = {},
+): Promise<SyncResult> {
+  const lock = options.apply ? await store.acquireSyncLock?.() : undefined;
+  try {
+    return await generateMissingVoicePackUnlocked(store, sentences, options, lock);
+  } finally {
+    await lock?.release();
+  }
+}
+
+async function generateMissingVoicePackUnlocked(
+  store: VoicePackStore,
+  sentences: PackSentence[],
+  options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void; maxMissingSentences?: number; voices?: readonly PackVoice[] },
+  lock?: VoicePackSyncLock,
 ): Promise<SyncResult> {
   const log = options.log ?? (() => undefined);
   const voices = options.voices ?? PACK_VOICES;
@@ -48,12 +78,24 @@ export async function generateMissingVoicePack(
     }
   }
 
-  const missingSentences = new Set(missing.map(({ key }) => key)).size;
+  const missingSentences = new Set(missing.map(({ voice, key }) => `${voice}/${key}`)).size;
+  const checkedSentences = sentences.length * voices.length;
+  const checkedFiles = checkedSentences * Object.keys(VOICE_FORMATS).length;
+  log(`Checked ${checkedSentences} sentences (${checkedFiles} audio files); missing ${missing.length} files across ${missingSentences} sentences.`);
   if (options.maxMissingSentences !== undefined && missingSentences > options.maxMissingSentences) {
-    throw new VoicePackSyncLimitError(missingSentences, options.maxMissingSentences);
+    throw new VoicePackSyncLimitError(checkedSentences, checkedFiles, missingSentences, missing.length, options.maxMissingSentences);
   }
   if (!options.apply || missing.length === 0) {
-    return { missingFiles: missing.length, generatedSentences: 0, remainingFiles: missing.length, dryRun: true };
+    return {
+      checkedSentences,
+      checkedFiles,
+      missingFiles: missing.length,
+      missingSentences,
+      generatedFiles: 0,
+      generatedSentences: 0,
+      remainingFiles: missing.length,
+      dryRun: true,
+    };
   }
 
   const engine = options.engine ?? await loadVoiceEngine();
@@ -61,6 +103,7 @@ export async function generateMissingVoicePack(
   const missingSet = new Set(missing.map(({ voice, key, format }) => `${voice}/${key}.${format}`));
   const needsRender = new Set(missing.map(({ voice, key }) => `${voice}/${key}`));
   let generatedSentences = 0;
+  let generatedFiles = 0;
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "fraction-quest-voice-pack-"));
   try {
     for (const voice of voices) {
@@ -68,6 +111,7 @@ export async function generateMissingVoicePack(
         needsRender.has(`${voice}/${sentence.key}`),
       );
       for (let start = 0; start < voiceSentences.length; start += BATCH_SIZE) {
+        await lock?.renew();
         const batch = voiceSentences.slice(start, start + BATCH_SIZE);
         const requiredFormats = new Map(batch.map((sentence) => [
           sentence.key,
@@ -81,6 +125,7 @@ export async function generateMissingVoicePack(
             const audio = await readFile(path.join(tempRoot, voice, `${sentence.key}.${format}`));
             await store.put({ voice, key: sentence.key, format }, audio);
             stored.add(id);
+            generatedFiles++;
           }
           generatedSentences++;
         }
@@ -88,10 +133,53 @@ export async function generateMissingVoicePack(
         log(`${voice}: stored ${Math.min(start + batch.length, voiceSentences.length)} of ${voiceSentences.length} sentences needing audio`);
       }
     }
+  } catch (error) {
+    log(`Sync stopped after storing ${generatedFiles} files for ${generatedSentences} sentences. Completed files remain in App Storage; rerun safely to continue.`);
+    throw error;
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
   const after = new Set((await store.list()).map(({ voice, key, format }) => `${voice}/${key}.${format}`));
   const remainingFiles = missing.filter(({ voice, key, format }) => !after.has(`${voice}/${key}.${format}`)).length;
-  return { missingFiles: missing.length, generatedSentences, remainingFiles, dryRun: false };
+  return {
+    checkedSentences,
+    checkedFiles,
+    missingFiles: missing.length,
+    missingSentences,
+    generatedFiles,
+    generatedSentences,
+    remainingFiles,
+    dryRun: false,
+  };
+}
+
+/** Small scheduled catch-up; larger gaps fail before rendering for a deliberate manual batch. */
+export async function runDailyVoiceBackfill(
+  store: VoicePackStore,
+  sentences: PackSentence[],
+  options: { log?: (message: string) => void; engine?: VoiceEngine } = {},
+): Promise<SyncResult> {
+  const log = options.log ?? (() => undefined);
+  try {
+    const result = await generateMissingVoicePack(store, sentences, {
+      apply: true,
+      engine: options.engine,
+      voices: ["af_heart"],
+      maxMissingSentences: DAILY_VOICE_BACKFILL_LIMIT,
+      log,
+    });
+    if (result.remainingFiles > 0) {
+      log(`Daily voice backfill verification failed: ${result.remainingFiles} files remain missing after generation.`);
+      throw new Error(`${result.remainingFiles} voice files remain missing after the daily backfill.`);
+    }
+    log(`Daily voice backfill complete: checked ${result.checkedFiles} files across ${result.checkedSentences} sentences; missing ${result.missingFiles} files across ${result.missingSentences} sentences; generated ${result.generatedFiles} files; ${result.remainingFiles} files remain.`);
+    return result;
+  } catch (error) {
+    if (error instanceof VoicePackSyncLimitError) {
+      log(`Daily voice backfill stopped safely: checked ${error.checkedFiles} files across ${error.checkedSentences} sentences; missing ${error.missingFiles} files across ${error.missingSentences} sentences; generated 0 files. The ${DAILY_VOICE_BACKFILL_LIMIT}-sentence daily limit was exceeded.`);
+    } else if (error instanceof VoicePackSyncInProgressError) {
+      log("Daily voice backfill could not continue because the shared App Storage lock is busy or was lost; completed files are safe, and the job can be retried.");
+    }
+    throw error;
+  }
 }

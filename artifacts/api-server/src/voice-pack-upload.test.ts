@@ -43,7 +43,16 @@ before(async () => {
     assert.equal(options.apply, true);
     assert.equal(options.maxMissingSentences, 10);
     syncCalls.push(sentences);
-    return { missingFiles: 4, generatedSentences: 2, remainingFiles: 0, dryRun: false };
+    return {
+      checkedSentences: sentences.length,
+      checkedFiles: sentences.length * 4,
+      missingFiles: 4,
+      missingSentences: 2,
+      generatedFiles: 4,
+      generatedSentences: 2,
+      remainingFiles: 0,
+      dryRun: false,
+    };
   };
   app.use("/api", createStorageRouter(() => fakeStore), createVoicePackUploadRouter(() => fakeStore, sync));
   server = await new Promise<Server>((resolve) => { const s = app.listen(0, () => resolve(s)); });
