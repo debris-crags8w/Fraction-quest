@@ -1764,6 +1764,7 @@ function Game() {
           const epilogue = view.part === 'epilogue';
           return <StoryComicView key={`${view.part}-${chapter.unit}`} title={epilogue ? 'The Whole Stone' : `Chapter ${chapter.unit} · ${chapter.title}`}
             kicker={epilogue ? 'Finale · Festival night' : 'Chapter end · The stone piece and a clue'} panels={epilogue ? EPILOGUE : chapterEnd(chapter)} name={name}
+            scene={epilogue ? 'epilogue' : 'chapter-end'} unit={chapter.unit}
             goLabel="Back to the Storybook" onGo={toStorybook} onBack={toStorybook} />;
         }
         if (view.prologue) {
@@ -1784,7 +1785,7 @@ function Game() {
         const saved = fun.story?.choices?.[String(chapter.unit)];
         return <StoryComicView key={`${mission.id}-${view.replay ? 'replay' : 'new'}`} title={`Chapter ${chapter.unit} · ${chapter.title}`} kicker={`Lesson ${index + 1} of ${unitMissions.length} · ${mission.title}`}
           panels={lessonComic(chapter, mission, index)} name={name} choice={index === 0 ? chapter.choice : undefined} picked={view.replay ? saved : undefined}
-          scene={index === 0 ? CHAPTER_SCENES[chapter.unit] : undefined}
+          scene={index === 0 ? CHAPTER_SCENES[chapter.unit] : undefined} unit={chapter.unit}
           choiceNotes={index === 0 ? choiceNotes(chapter) : undefined}
           note={index === 0 ? detectiveNote(chapter.unit, fun.story?.guesses ?? {}) : undefined}
           goLabel={view.replay === 'storybook' ? 'Back to the Storybook' : view.replay ? 'Back to map' : index === 0 ? 'Let’s go!' : 'Let’s help!'}

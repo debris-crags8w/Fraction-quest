@@ -4,7 +4,7 @@
    plank) shake the screen with a thud and, in the app on iPhone and Android, a heavy tap. Without a voice the shots
    move on by themselves, and a voice that falls behind (a clip still loading) never holds the film up: it carries
    on without it. A tap finishes a caption or shows everything. "Reduce motion" keeps the camera still.
-   Scenes: the prologue and the opening comic of chapters 1 to 6. Other comics use the plain view. */
+   Scenes: the prologue, every chapter opening, completed chapter endings and the finale. */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowRight, RotateCcw, Search, Volume2, VolumeX } from 'lucide-react';
@@ -13,7 +13,7 @@ import { prefetchReading, useFollowedReading } from './LearningText';
 import { useFun, useSeason } from './fun-ui';
 import { playCue } from './lib/fun';
 import { sentences, spokenText } from './lib/voice';
-import { CHARACTERS, propTheme, withName, type Panel, type StoryChoice, type StoryScene } from './story';
+import { CHAPTERS, CHARACTERS, propTheme, withName, type Panel, type StoryChoice, type StoryScene } from './story';
 import { TaskBar } from './TaskBar';
 import './story-cinema.css';
 
@@ -45,6 +45,17 @@ const FILMING: Record<StoryScene, { shots: Shot[]; impact?: number; coldFrom?: n
   bridge: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '55% 38%'), shot('scale(1)', '50% 40%'), shot('scale(1.1)', '50% 36%')], impact: 0 },
   tower: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.25)', '30% 36%'), shot('scale(1.2)', '72% 30%'), shot('scale(1.05)', '60% 36%')], impact: 0 },
   honey: { shots: [shot('scale(1.1)', '50% 30%'), shot('scale(1.25)', '50% 16%'), shot('scale(1.4)', '30% 40%'), shot('scale(1.1)', '50% 40%')] },
+  workshop: { shots: [shot('scale(1.1)', '50% 38%'), shot('scale(1.35)', '68% 44%'), shot('scale(1.15)', '28% 40%'), shot('scale(1.05)', '50% 45%')], impact: 2 },
+  den: { shots: [shot('scale(1.12)', '50% 40%'), shot('scale(1.4)', '68% 48%'), shot('scale(1.25)', '34% 46%'), shot('scale(1.05)', '50% 42%')], coldFrom: 1 },
+  race: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.35)', '82% 30%'), shot('scale(1.2)', '30% 46%'), shot('scale(1.05)', '50% 42%')] },
+  picnic: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.3)', '50% 60%'), shot('scale(1.35)', '82% 35%'), shot('scale(1.05)', '50% 42%')] },
+  machine: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.3)', '65% 36%'), shot('scale(1.35)', '45% 60%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
+  stage: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.32)', '72% 48%'), shot('scale(1.2)', '30% 55%'), shot('scale(1.05)', '50% 42%')] },
+  garden: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.35)', '68% 54%'), shot('scale(1.2)', '28% 45%'), shot('scale(1.05)', '50% 42%')] },
+  lock: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '68% 48%'), shot('scale(1.25)', '50% 48%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
+  festival: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.3)', '25% 38%'), shot('scale(1.35)', '70% 42%'), shot('scale(1.05)', '50% 42%')] },
+  'chapter-end': { shots: [shot('scale(1.1)', '50% 42%'), shot('scale(1.3)', '50% 45%'), shot('scale(1.05)', '50% 42%')], impact: 1 },
+  epilogue: { shots: [shot('scale(1.08)', '50% 40%'), shot('scale(1.2)', '50% 42%'), shot('scale(1.3)', '50% 38%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
 };
 
 /** A fraction written the school way, one number over the other. */
@@ -245,8 +256,160 @@ function HoneyArt({ beat }: { beat: number }) {
   );
 }
 
-const ART: Record<StoryScene, (props: { beat: number }) => ReactNode> = {
+/** Chapter 7: Bolt's workshop, where a suspicious stone piece sits among the machine parts. */
+function WorkshopArt({ beat }: { beat: number }) {
+  return (
+    <>
+      <span className="fq-cine-workshop-window" /><span className="fq-cine-workbench" />
+      <span className={`fq-cine-workshop-box ${beat >= 1 ? 'is-open' : ''}`}><i /><i /><i /></span>
+      <span className={`fq-cine-gear ${beat >= 2 ? 'is-turning' : ''}`} style={pos(66, 30)} />
+      <span className="fq-cine-actor" style={pos(10, 27)}><StoryCharacter id="bolt" size={104} worried={beat >= 1} happy={beat === 3} /></span>
+      <span className={`fq-cine-glint ${beat >= 2 ? 'is-found' : ''}`} style={pos(77, 59)} aria-hidden="true" />
+    </>
+  );
+}
+
+/** Chapter 8: Chomp's den opens to reveal the boots he hid to protect Bolt. */
+function DenArt({ beat }: { beat: number }) {
+  return (
+    <>
+      <span className="fq-cine-den-cave" /><span className="fq-cine-den-floor" />
+      <span className={`fq-cine-boots ${beat >= 1 ? 'is-lit' : ''}`}><i /><i /></span>
+      <span className={`fq-cine-den-stone ${beat >= 2 ? 'is-found' : ''}`} />
+      <span className="fq-cine-actor" style={pos(8, 30)}><StoryCharacter id="chomp" size={108} worried={beat === 0} happy={beat >= 2} /></span>
+    </>
+  );
+}
+
+/** Chapter 9: Tilly follows the middle route while Bolt peeks from behind a tree. */
+function RaceArt({ beat }: { beat: number }) {
+  return (
+    <>
+      <span className="fq-cine-race-sky" /><span className="fq-cine-race-hill" /><span className="fq-cine-race-road" />
+      <span className="fq-cine-race-sign" style={pos(72, 20)}><b>⅓</b><b>½</b><b>⅔</b></span>
+      <span className="fq-cine-tree" style={pos(77, 39)} />
+      {beat >= 2 && <span className="fq-cine-peeker" style={pos(80, 37)}><StoryCharacter id="bolt" size={50} worried /></span>}
+      <span className="fq-cine-actor" style={pos(12, 42)}><StoryCharacter id="tilly" size={76} happy={beat >= 1} /></span>
+      <span className={`fq-cine-glint ${beat >= 1 ? 'is-found' : ''}`} style={pos(55, 65)} aria-hidden="true" />
+    </>
+  );
+}
+
+/** Chapter 10: the team shares a picnic and leaves a place for Bolt. */
+function PicnicArt({ beat }: { beat: number }) {
+  return (
+    <>
+      <span className="fq-cine-picnic-sky" /><span className="fq-cine-picnic-grass" />
+      <span className="fq-cine-picnic-blanket" />
+      {[16, 39, 62].map((x) => <span key={x} className="fq-cine-picnic-plate" style={pos(x, 63)} />)}
+      <span className="fq-cine-picnic-basket" style={pos(68, 57)} />
+      <span className="fq-cine-actor" style={pos(13, 27)}><StoryCharacter id="chomp" size={84} happy={beat >= 2} /></span>
+      <span className={`fq-cine-peeker ${beat >= 2 ? 'is-arriving' : ''}`} style={pos(80, 31)}><StoryCharacter id="bolt" size={58} worried={beat < 2} happy={beat >= 2} /></span>
+      {beat >= 1 && <span className="fq-cine-note" style={pos(70, 49)}>B</span>}
+    </>
+  );
+}
+
+/** Chapter 11: Bolt's machine rebuilds Pip's bridge as the team forgives him. */
+function MachineArt({ beat }: { beat: number }) {
+  return (
+    <>
+      <span className="fq-cine-machine-wall" /><span className="fq-cine-machine-floor" />
+      <span className={`fq-cine-machine ${beat >= 1 ? 'is-on' : ''}`}><i /><i /><i /></span>
+      <span className={`fq-cine-machine-plank ${beat >= 2 ? 'is-built' : ''}`} />
+      <span className="fq-cine-actor" style={pos(9, 29)}><StoryCharacter id="bolt" size={94} worried={beat === 0} happy={beat >= 2} /></span>
+      <span className="fq-cine-actor" style={pos(76, 43)}><StoryCharacter id="pip" size={62} happy={beat >= 2} /></span>
+      {beat === 1 && <span className="fq-cine-flash" />}
+    </>
+  );
+}
+
+/** Chapter 12: Pip measures the festival stage board by board. */
+function StageArt({ beat }: { beat: number }) {
+  return (
+    <>
+      <span className="fq-cine-stage-curtain" /><span className="fq-cine-stage-floor" />
+      <span className="fq-cine-stage-board" />
+      <span className="fq-cine-ruler" style={pos(24, 61)}>{Array.from({ length: 9 }, (_, i) => <i key={i} />)}</span>
+      <span className="fq-cine-actor" style={pos(8, 26)}><StoryCharacter id="pip" size={92} happy={beat >= 2} /></span>
+      {beat >= 1 && <span className="fq-cine-glint is-found" style={pos(65, 69)} aria-hidden="true" />}
+    </>
+  );
+}
+
+/** Chapter 13: Bea's garden is divided into equal plots around the locked glass case. */
+function GardenArt({ beat }: { beat: number }) {
+  return (
+    <>
+      <span className="fq-cine-garden-sky" /><span className="fq-cine-garden-bed" />
+      {[0, 1, 2, 3].map((i) => <span key={i} className={`fq-cine-garden-plot is-${i}`} />)}
+      <span className="fq-cine-garden-case" />
+      <span className="fq-cine-actor" style={pos(10, 27)}><StoryCharacter id="bea" size={88} happy={beat >= 2} /></span>
+      {beat >= 1 && <span className="fq-cine-glint is-found" style={pos(68, 64)} aria-hidden="true" />}
+    </>
+  );
+}
+
+/** Chapter 14: Bolt turns the fraction dials to unlock the Whole Stone's glass case. */
+function LockArt({ beat }: { beat: number }) {
+  return (
+    <>
+      <span className="fq-cine-lock-room" /><span className={`fq-cine-lock-case ${beat >= 2 ? 'is-open' : ''}`}>
+        <span className="fq-cine-lock-stone" />
+        <span className="fq-cine-lock-dials"><b>½</b><b>0.5</b><b>50%</b></span>
+      </span>
+      <span className="fq-cine-actor" style={pos(8, 32)}><StoryCharacter id="bolt" size={88} happy={beat >= 2} /></span>
+      {beat === 2 && <><span className="fq-cine-flash" /><Confetti /></>}
+    </>
+  );
+}
+
+/** Chapter 15: Chomp's last riddles bring the whole team together at the festival. */
+function FestivalArt({ beat }: { beat: number }) {
+  return (
+    <>
+      <span className="fq-cine-festival-sky" /><span className="fq-cine-festival-tent" />
+      <span className="fq-cine-festival-stone">{Array.from({ length: 15 }, (_, i) => <i key={i} />)}</span>
+      <span className="fq-cine-actor" style={pos(9, 29)}><StoryCharacter id="chomp" size={92} happy={beat >= 2} /></span>
+      {beat >= 1 && <span className="fq-cine-festival-riddle">?</span>}
+      {beat >= 2 && <Confetti />}
+    </>
+  );
+}
+
+/** Finished chapters close on the friend, their recovered piece, and an image of that chapter's story. */
+function ChapterEndArt({ beat, unit = 1 }: { beat: number; unit?: number }) {
+  const chapter = CHAPTERS[unit - 1] ?? CHAPTERS[0];
+  return (
+    <>
+      <span className="fq-cine-end-horizon" />
+      <span className={`fq-cine-end-symbol is-unit-${unit}`} aria-hidden="true" />
+      <span className={`fq-cine-end-stone ${beat >= 1 ? 'is-found' : ''}`} aria-label={`Chapter ${unit} stone piece recovered`} />
+      <span className="fq-cine-actor" style={pos(16, 27)}><StoryCharacter id={chapter.character} size={96} happy={beat >= 1} /></span>
+      <span className={`fq-cine-end-ribbon ${beat >= 2 ? 'is-visible' : ''}`}>{beat >= 2 ? `${unit}/15 pieces` : ''}</span>
+      {beat >= 2 && <Confetti />}
+    </>
+  );
+}
+
+function EpilogueArt({ beat }: { beat: number }) {
+  return (
+    <>
+      <span className="fq-cine-end-horizon is-festival" />
+      <span className="fq-cine-whole-stone" aria-label="The Whole Stone restored with 15 equal pieces">
+        {Array.from({ length: 15 }, (_, i) => <i key={i} />)}
+      </span>
+      <span className="fq-cine-actor" style={pos(11, 30)}><StoryCharacter id={beat >= 1 ? 'bolt' : 'hoot'} size={88} happy={beat >= 1} /></span>
+      <span className="fq-cine-festival-riddle">{beat >= 1 ? 'ONE WHOLE' : 'FESTIVAL'}</span>
+      {beat >= 2 && <Confetti />}
+    </>
+  );
+}
+
+const ART: Record<StoryScene, (props: { beat: number; unit?: number }) => ReactNode> = {
   prologue: PrologueArt, bakery: BakeryArt, pond: PondArt, hill: HillArt, bridge: BridgeArt, tower: TowerArt, honey: HoneyArt,
+  workshop: WorkshopArt, den: DenArt, race: RaceArt, picnic: PicnicArt, machine: MachineArt, stage: StageArt,
+  garden: GardenArt, lock: LockArt, festival: FestivalArt, 'chapter-end': ChapterEndArt, epilogue: EpilogueArt,
 };
 
 /** What a filmed comic reads aloud, panel by panel: just the line, with "friend" instead of the child's name. The
@@ -254,8 +417,8 @@ const ART: Record<StoryScene, (props: { beat: number }) => ReactNode> = {
 export const filmedLines = (panels: Panel[], theme: ReturnType<typeof propTheme>) =>
   panels.map((panel) => withName(panel.text, null, theme));
 
-export function CinematicComic({ scene, title, kicker, panels, name, choice, picked: saved, choiceNotes, note, goLabel, onGo, onBack }: {
-  scene: StoryScene; title: string; kicker: string; panels: Panel[]; name: string | null;
+export function CinematicComic({ scene, title, kicker, panels, name, choice, picked: saved, choiceNotes, note, goLabel, onGo, onBack, unit }: {
+  scene: StoryScene; title: string; kicker: string; panels: Panel[]; name: string | null; unit?: number;
   choice?: [StoryChoice, StoryChoice]; picked?: 0 | 1; choiceNotes?: [string, string]; note?: string; goLabel: string;
   onGo: (choice?: 0 | 1) => void; onBack: () => void;
 }) {
@@ -399,7 +562,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
             aria-label={done ? 'The last scene of the story' : 'Show the whole story now'}>
             <span className={`fq-cine-cam ${cold ? 'is-cold' : 'is-warm'}`} style={{ transform: camera, transformOrigin: origin }}>
               <span className={`fq-cine-set ${!done && beat === filming.impact ? 'is-shaking' : ''}`} data-testid="story-stage">
-                <Art beat={done ? lines.length - 1 : Math.max(beat, 0)} />
+                <Art beat={done ? lines.length - 1 : Math.max(beat, 0)} unit={unit} />
               </span>
             </span>
             <span className="fq-cine-vignette" />
