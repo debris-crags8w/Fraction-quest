@@ -193,10 +193,10 @@ export function StorybookView({ tab, chapters, completedUnits, prologueSeen, foc
         {tab === 'story' && (
           <ol className="fq-storybook-list" data-testid="storybook-story">
             <li>
-              <button type="button" className="fq-storybook-row" onClick={onPrologue} disabled={!prologueSeen} data-testid="button-storybook-prologue">
+              {/* Open any time: it is the story's start, not a spoiler (the first lesson still plays it until it is finished). */}
+              <button type="button" className="fq-storybook-row" onClick={onPrologue} data-testid="button-storybook-prologue">
                 <span className="fq-storybook-num">P</span>
-                <span><strong>Prologue · The night the stone cracked</strong><small>{prologueSeen ? 'Read again' : 'Starts with your first lesson'}</small></span>
-                {!prologueSeen && <LockKeyhole size={16} aria-label="Locked" />}
+                <span><strong>Prologue · The night the stone cracked</strong><small>{prologueSeen ? 'Read again' : 'Watch it now'}</small></span>
               </button>
             </li>
             {chapters.map(({ chapter, reached, lessons, ended }) => reached ? (
