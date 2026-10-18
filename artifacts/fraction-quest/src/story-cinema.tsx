@@ -152,7 +152,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
         <section className={`fq-story-comic fq-cine-comic ${done ? 'is-done' : ''}`} aria-labelledby="story-title" data-testid="story-comic">
           <div className="fq-story-comic-head">
             <h2 id="story-title">{kicker}</h2>
-            <button type="button" className="fq-cine-voice" aria-pressed={voiceOn} onClick={() => { const next = !voiceOn; setVoiceOn(next); if (!next) { reader.stop(); voiceDriving.current = false; if (!done && beat >= 0) later(() => showBeat(beat + 1), PAUSE_MS); } }}
+            <button type="button" className="fq-cine-voice" aria-pressed={voiceOn} onClick={() => { const next = !voiceOn; setVoiceOn(next); if (!next) { reader.stop(); voiceDriving.current = false; if (!done && beatRef.current >= 0 && typedRef.current) later(() => showBeat(beatRef.current + 1), PAUSE_MS); } }}
               aria-label={voiceOn ? 'Turn the story voice off' : 'Turn the story voice on'} data-testid="button-story-voice">
               {voiceOn ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />} {voiceOn ? 'Voice on' : 'Voice off'}
             </button>
