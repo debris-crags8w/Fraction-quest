@@ -5,7 +5,7 @@ import type { Server } from "node:http";
 import express from "express";
 import { createStorageRouter } from "./routes/storage";
 import { createVoicePackUploadRouter } from "./routes/voice-pack-upload";
-import { VOICE_CACHE_CONTROL, type VoiceFile, type VoicePackStore } from "./lib/voice-pack-store";
+import { PACK_VOICES, VOICE_CACHE_CONTROL, type VoiceFile, type VoicePackStore } from "./lib/voice-pack-store";
 
 const TOKEN = "voice-upload-test-token-0123456789abcdef";
 const KEY_A = "0123456789abcdef";
@@ -78,30 +78,30 @@ describe("voice pack uploads from the workflow", () => {
     assert.equal(stored.size, 0);
   });
   it("stores uploads, reports what the index still lacks, and prunes only a complete pack", async () => {
-    assert.equal((await put("af_heart", KEY_A)).status, 204);
-    stored.set(`am_michael/${KEY_A}`, Buffer.from("retired voice")); // left over from when there were three voices
+    for (const voice of PACK_VOICES) assert.equal((await put(voice, KEY_A)).status, 204);
+    stored.set(`bf_emma/${KEY_A}`, Buffer.from("retired voice"));
 
-    // KEY_B isn't stored yet: one file missing, and nothing is pruned.
+    // KEY_B isn't stored yet in either voice, and nothing is pruned.
     let result = await (await check([KEY_A, KEY_B], true)).json() as { sentences: number; missing: number; firstMissing: string[]; removed: number };
-    assert.deepEqual(result, { sentences: 2, missing: 1, firstMissing: [`af_heart/${KEY_B}.mp3`], removed: 0 });
-    assert.equal(stored.size, 2);
-    assert.equal((await put("af_heart", KEY_B)).status, 204);
+    assert.deepEqual(result, { sentences: 2, missing: 2, firstMissing: PACK_VOICES.map((voice) => `${voice}/${KEY_B}.mp3`), removed: 0 });
+    assert.equal(stored.size, 3);
+    for (const voice of PACK_VOICES) assert.equal((await put(voice, KEY_B)).status, 204);
 
     // Without prune, files the index dropped stay (the live app may still list them).
     result = await (await check([KEY_A])).json() as typeof result;
     assert.equal(result.missing, 0);
     assert.equal(result.removed, 0);
-    assert.equal(stored.size, 3);
+    assert.equal(stored.size, 5);
 
     // Prune removes the dropped sentence and the retired voice's files.
     result = await (await check([KEY_A], true)).json() as typeof result;
-    assert.equal(result.removed, 2);
-    assert.deepEqual([...stored.keys()], [`af_heart/${KEY_A}`]);
+    assert.equal(result.removed, 3);
+    assert.deepEqual([...stored.keys()], PACK_VOICES.map((voice) => `${voice}/${KEY_A}`));
   });
   it("accepts an index larger than the server's JSON limit", async () => {
     const keys = Array.from({ length: 20_000 }, (_, i) => i.toString(16).padStart(16, "0"));
     const response = await check(keys);
     assert.equal(response.status, 200);
-    assert.equal(((await response.json()) as { missing: number }).missing, 20_000);
+    assert.equal(((await response.json()) as { missing: number }).missing, 20_000 * PACK_VOICES.length);
   });
 });

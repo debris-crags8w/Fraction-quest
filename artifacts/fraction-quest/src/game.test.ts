@@ -3126,9 +3126,9 @@ describe('natural read-aloud voice', () => {
       const markup = renderToStaticMarkup(createElement(LearningVoicePicker));
       assert.match(markup, /works on every device, iPhone and iPad included/);
       assert.match(markup, /radio-natural-voice-af_heart/);
-      assert.match(markup, /radio-natural-voice-off/);
-      // Only the pack voice, Heart, is offered (Michael and Emma were retired).
-      for (const voice of ['am_michael', 'bf_emma', 'af_bella', 'bm_george']) assert.doesNotMatch(markup, new RegExp(`radio-natural-voice-${voice}`));
+      assert.match(markup, /radio-natural-voice-am_michael/);
+      // Only the two pack voices are offered.
+      for (const voice of ['bf_emma', 'af_bella', 'am_puck', 'bm_george']) assert.doesNotMatch(markup, new RegExp(`radio-natural-voice-${voice}`));
       assert.doesNotMatch(markup, /paused on iPhone/);
     } finally {
       if (original) Object.defineProperty(globalThis, 'navigator', original);
@@ -3262,13 +3262,11 @@ describe('natural read-aloud voice', () => {
     setNaturalVoicePreference('off');
     assert.equal(naturalVoicePreference(), 'off');
     assert.equal(naturalVoiceStatus().state, 'off');
-    setNaturalVoicePreference('af_heart');
+    setNaturalVoicePreference('am_michael');
+    assert.equal(naturalVoicePreference(), 'am_michael');
+    // A voice that is no longer offered falls back to Heart.
+    store.set('fraction-quest-natural-voice', 'af_bella');
     assert.equal(naturalVoicePreference(), 'af_heart');
-    // A voice that is no longer offered (Michael and Emma were retired) falls back to Heart.
-    for (const retired of ['am_michael', 'bf_emma', 'af_bella']) {
-      store.set('fraction-quest-natural-voice', retired);
-      assert.equal(naturalVoicePreference(), 'af_heart');
-    }
     delete (globalThis as { localStorage?: unknown }).localStorage;
   });
 });
@@ -3366,9 +3364,9 @@ describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
       const engine = await warmUpNaturalVoice();
       assert.equal(engine, serverEngine);
       assert.equal(statusCalls, 2, 'it kept asking until the server said ready');
-      const clip = await serverEngine.generate('One half.', { voice: 'af_heart', speed: 1 });
+      const clip = await serverEngine.generate('One half.', { voice: 'am_michael', speed: 1 });
       assert.equal(clip.toBlob().type, 'audio/wav');
-      assert.ok(asked.includes('/api/voice/speech?voice=af_heart&text=One%20half.'));
+      assert.ok(asked.includes('/api/voice/speech?voice=am_michael&text=One%20half.'));
     } finally {
       globalThis.fetch = originalFetch; (globalThis as { Audio?: unknown }).Audio = originalAudio;
       if (!hadWindow) Reflect.deleteProperty(globalThis, 'window');

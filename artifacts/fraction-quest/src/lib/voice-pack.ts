@@ -2,7 +2,7 @@
    without running Kokoro; sentences outside the pack still use the voice server, with device voice as fallback. */
 
 /** The voices the pack is made for. */
-export const PACK_VOICES = ['af_heart'] as const;
+export const PACK_VOICES = ['af_heart', 'am_michael'] as const;
 export type PackVoice = (typeof PACK_VOICES)[number];
 
 /** The sentence exactly as the voice server would read it (same cleaning as the server). */

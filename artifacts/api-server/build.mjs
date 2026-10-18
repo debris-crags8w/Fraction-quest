@@ -9,13 +9,14 @@ import { copyFile, mkdir, rm } from "node:fs/promises";
 globalThis.require = createRequire(import.meta.url);
 
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
-const kokoroVoices = ["af_heart"];
+const kokoroVoices = ["af_heart", "am_michael"];
 
 async function copyKokoroVoiceAssets() {
   const requireFromArtifact = createRequire(import.meta.url);
   const kokoroEntry = requireFromArtifact.resolve("kokoro-js");
   const sourceDir = path.resolve(path.dirname(kokoroEntry), "../voices");
   const targetDir = path.resolve(artifactDir, "voices");
+  await rm(targetDir, { recursive: true, force: true });
   await mkdir(targetDir, { recursive: true });
   await Promise.all(
     kokoroVoices.map((voice) =>

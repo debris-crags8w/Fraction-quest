@@ -1,17 +1,17 @@
 /**
  * Uploads a complete pack or an incremental workflow artifact to App Storage.
- * The index in the supplied directory is the source of truth; after uploads are
- * verified, unreferenced voice files are removed from the storage prefix.
+ * The index in the supplied directory is the source of truth. Unreferenced
+ * files are retained unless --prune is passed after deploying the new index.
  *
- * Usage: pnpm --filter @workspace/api-server run sync-voice-pack -- <voice-artifact-directory>
+ * Usage: pnpm --filter @workspace/api-server run sync-voice-pack -- <voice-artifact-directory> [--dry-run] [--prune]
  */
 import { createReadStream, existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { objectStorageClient, ObjectStorageService } from "../src/lib/objectStorage";
-import { VOICE_CACHE_CONTROL } from "../src/lib/voice-pack-store";
+import { PACK_VOICES, VOICE_CACHE_CONTROL } from "../src/lib/voice-pack-store";
 
-const PACK_VOICES = ["af_heart"] as const;
+const REMOVED_VOICES = new Set(["bf_emma"]);
 const KEY_PATTERN = /^[0-9a-f]{16}$/;
 const MAX_PARALLEL_UPLOADS = 12;
 const storage = new ObjectStorageService();
@@ -31,6 +31,7 @@ function readIndex(root: string): VoicePackIndex {
   if (
     index.version !== 1 ||
     !Array.isArray(index.voices) ||
+    index.voices.length !== PACK_VOICES.length ||
     !PACK_VOICES.every((voice) => index.voices?.includes(voice)) ||
     !Array.isArray(index.keys) ||
     index.keys.some((key) => typeof key !== "string" || !KEY_PATTERN.test(key)) ||
@@ -87,28 +88,32 @@ function parseStoredVoiceFile(name: string, prefix: string): { voice: string; ke
   return match ? { voice: match[1], key: match[2] } : null;
 }
 
-async function syncVoicePack(root: string): Promise<void> {
+async function syncVoicePack(root: string, dryRun: boolean, prune: boolean): Promise<void> {
   const index = readIndex(root);
   const uploads = collectUploads(root, index);
   const searchPaths = storage.getPublicObjectSearchPaths();
   const { bucketName, prefix } = parsePublicRoot(searchPaths[0]);
   const bucket = objectStorageClient.bucket(bucketName);
 
-  console.log(`Uploading ${uploads.length} audio files to App Storage...`);
-  await runLimited(uploads, MAX_PARALLEL_UPLOADS, async ({ voice, key, localPath }) => {
-    const objectName = `${prefix}/voice/${voice}/${key}.mp3`;
-    const file = bucket.file(objectName);
-    await pipeline(
-      createReadStream(localPath),
-      file.createWriteStream({
-        resumable: false,
-        metadata: {
-          contentType: "audio/mpeg",
-          cacheControl: VOICE_CACHE_CONTROL,
-        },
-      }),
-    );
-  });
+  if (dryRun) {
+    console.log(`Dry run: skipping ${uploads.length} possible uploads.`);
+  } else {
+    console.log(`Uploading ${uploads.length} audio files to App Storage...`);
+    await runLimited(uploads, MAX_PARALLEL_UPLOADS, async ({ voice, key, localPath }) => {
+      const objectName = `${prefix}/voice/${voice}/${key}.mp3`;
+      const file = bucket.file(objectName);
+      await pipeline(
+        createReadStream(localPath),
+        file.createWriteStream({
+          resumable: false,
+          metadata: {
+            contentType: "audio/mpeg",
+            cacheControl: VOICE_CACHE_CONTROL,
+          },
+        }),
+      );
+    });
+  }
 
   const [storedFiles] = await bucket.getFiles({ prefix: `${prefix}/voice/` });
   const storedKeysByVoice = new Map<string, Set<string>>();
@@ -117,7 +122,14 @@ async function syncVoicePack(root: string): Promise<void> {
   for (const file of storedFiles) {
     const parsed = parseStoredVoiceFile(file.name, prefix);
     if (!parsed) continue;
-    if (!PACK_VOICES.includes(parsed.voice as (typeof PACK_VOICES)[number]) || !indexedKeys.has(parsed.key)) {
+    if (REMOVED_VOICES.has(parsed.voice)) {
+      staleFiles.push(file);
+      continue;
+    }
+    if (!PACK_VOICES.includes(parsed.voice as (typeof PACK_VOICES)[number])) {
+      throw new Error(`Unexpected voice object found in App Storage: ${parsed.voice}/${parsed.key}.mp3`);
+    }
+    if (!indexedKeys.has(parsed.key)) {
       staleFiles.push(file);
       continue;
     }
@@ -136,7 +148,19 @@ async function syncVoicePack(root: string): Promise<void> {
     );
   }
 
-  console.log(`Verified ${index.keys.length} sentences in all ${PACK_VOICES.length} voices; removing ${staleFiles.length} stale files...`);
+  const removedVoiceCount = staleFiles.filter((file) => {
+    const parsed = parseStoredVoiceFile(file.name, prefix);
+    return parsed && REMOVED_VOICES.has(parsed.voice);
+  }).length;
+  console.log(
+    `${dryRun ? "Dry run: " : ""}Verified ${index.keys.length} sentences in both voices; ` +
+      `${staleFiles.length} stale objects (${removedVoiceCount} from removed voices: ${[...REMOVED_VOICES].join(", ")}).`,
+  );
+  if (dryRun) return;
+  if (!prune) {
+    console.log("Voice pack sync complete. Stale files retained; use --prune only after deploying the new index.");
+    return;
+  }
   await runLimited(staleFiles, MAX_PARALLEL_UPLOADS, async (file) => {
     await file.delete();
   });
@@ -144,12 +168,15 @@ async function syncVoicePack(root: string): Promise<void> {
 }
 
 const argumentsAfterScript = process.argv.slice(2);
-const rootArgument = argumentsAfterScript[0] === "--" ? argumentsAfterScript[1] : argumentsAfterScript[0];
+const scriptArguments = argumentsAfterScript[0] === "--" ? argumentsAfterScript.slice(1) : argumentsAfterScript;
+const dryRun = scriptArguments.includes("--dry-run");
+const prune = scriptArguments.includes("--prune");
+const rootArgument = scriptArguments.find((argument) => !argument.startsWith("--"));
 if (!rootArgument) {
-  throw new Error("Usage: sync-voice-pack.ts <voice-artifact-directory>");
+  throw new Error("Usage: sync-voice-pack.ts <voice-artifact-directory> [--dry-run] [--prune]");
 }
 
-syncVoicePack(path.resolve(process.env.INIT_CWD ?? process.cwd(), rootArgument)).catch((error: unknown) => {
+syncVoicePack(path.resolve(process.env.INIT_CWD ?? process.cwd(), rootArgument), dryRun, prune).catch((error: unknown) => {
   console.error(error);
   process.exitCode = 1;
 });
