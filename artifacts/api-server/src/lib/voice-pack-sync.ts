@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { PACK_VOICES, VOICE_FORMATS, type VoicePackStore } from "./voice-pack-store";
+import { PACK_VOICES, VOICE_FORMATS, type PackVoice, type VoicePackStore } from "./voice-pack-store";
 import { cleanVoiceText, loadVoiceEngine, type VoiceEngine } from "./voice";
 import { renderVoicePack, type PackSentence } from "./voice-pack-render";
 
@@ -30,13 +30,17 @@ export function voicePackSentenceKey(text: string): string {
 export async function generateMissingVoicePack(
   store: VoicePackStore,
   sentences: PackSentence[],
-  options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void; maxMissingSentences?: number } = {},
+  options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void; maxMissingSentences?: number; voices?: readonly PackVoice[] } = {},
 ): Promise<SyncResult> {
   const log = options.log ?? (() => undefined);
+  const voices = options.voices ?? PACK_VOICES;
+  if (voices.length === 0 || voices.some((voice) => !PACK_VOICES.includes(voice))) {
+    throw new Error("Choose at least one configured voice.");
+  }
   const stored = new Set((await store.list()).map(({ voice, key, format }) => `${voice}/${key}.${format}`));
   const missing: PackFile[] = [];
   for (const sentence of sentences) {
-    for (const voice of PACK_VOICES) {
+    for (const voice of voices) {
       for (const format of Object.keys(VOICE_FORMATS) as PackFile["format"][]) {
         const id = `${voice}/${sentence.key}.${format}`;
         if (!stored.has(id)) missing.push({ voice, key: sentence.key, format });
@@ -59,7 +63,7 @@ export async function generateMissingVoicePack(
   let generatedSentences = 0;
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "fraction-quest-voice-pack-"));
   try {
-    for (const voice of PACK_VOICES) {
+    for (const voice of voices) {
       const voiceSentences = sentences.filter((sentence) =>
         needsRender.has(`${voice}/${sentence.key}`),
       );

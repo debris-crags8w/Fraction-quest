@@ -37,6 +37,13 @@ test("the batch command's dry run reports gaps without loading Kokoro or writing
   assert.equal(files.size, 1);
 });
 
+test("a voice-specific dry run ignores gaps for the other configured voice", async () => {
+  const { store, files } = memoryStore([{ voice: "af_heart", key: sentence.key, format: "mp3" }]);
+  const result = await generateMissingVoicePack(store, [sentence], { voices: ["af_heart"] });
+  assert.deepEqual(result, { missingFiles: 1, generatedSentences: 0, remainingFiles: 1, dryRun: true });
+  assert.equal(files.size, 1);
+});
+
 test("the PR sync limit stops an unexpectedly large backfill before rendering", async () => {
   const { store, files } = memoryStore();
   const sentences = [

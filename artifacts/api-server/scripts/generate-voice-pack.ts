@@ -1,11 +1,20 @@
 import { voiceSentences } from "../../fraction-quest/scripts/voice-sentences";
-import { appStorageVoicePack } from "../src/lib/voice-pack-store";
+import { appStorageVoicePack, isPackVoice } from "../src/lib/voice-pack-store";
 import { generateMissingVoicePack } from "../src/lib/voice-pack-sync";
 
-const apply = process.argv.includes("--apply");
+const args = process.argv.slice(2);
+const apply = args.includes("--apply");
+const voiceIndex = args.indexOf("--voice");
+const requestedVoice = voiceIndex === -1 ? undefined : args[voiceIndex + 1];
+if (voiceIndex !== -1 && (!requestedVoice || !isPackVoice(requestedVoice))) {
+  throw new Error(`Use --voice with one configured voice: af_heart or am_michael.`);
+}
+const voices = requestedVoice ? [requestedVoice] : undefined;
+if (voices) console.log(`Selected voice: ${voices[0]}`);
 const result = await generateMissingVoicePack(appStorageVoicePack(), voiceSentences(), {
   apply,
   log: console.log,
+  voices,
 });
 
 if (result.dryRun && result.missingFiles > 0) {
