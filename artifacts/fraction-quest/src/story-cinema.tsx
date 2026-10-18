@@ -380,12 +380,13 @@ function FestivalArt({ beat }: { beat: number }) {
 /** Finished chapters close on the friend, their recovered piece, and an image of that chapter's story. */
 function ChapterEndArt({ beat, unit = 1 }: { beat: number; unit?: number }) {
   const chapter = CHAPTERS[unit - 1] ?? CHAPTERS[0];
+  const speaker = beat === 1 ? 'hoot' : beat === 2 ? 'numi' : chapter.character;
   return (
     <>
       <span className="fq-cine-end-horizon" />
       <span className={`fq-cine-end-symbol is-unit-${unit}`} aria-hidden="true" />
-      <span className={`fq-cine-end-stone ${beat >= 1 ? 'is-found' : ''}`} aria-label={`Chapter ${unit} stone piece recovered`} />
-      <span className="fq-cine-actor" style={pos(16, 27)}><StoryCharacter id={chapter.character} size={96} happy={beat >= 1} /></span>
+      <span className={`fq-cine-end-stone ${beat >= 1 ? 'is-found' : ''}`} role="img" aria-label={`Chapter ${unit} stone piece recovered`} />
+      <span className="fq-cine-actor" style={pos(16, 27)}><StoryCharacter id={speaker} size={96} happy={beat >= 1} /></span>
       <span className={`fq-cine-end-ribbon ${beat >= 2 ? 'is-visible' : ''}`}>{beat >= 2 ? `${unit}/15 pieces` : ''}</span>
       {beat >= 2 && <Confetti />}
     </>
@@ -393,13 +394,14 @@ function ChapterEndArt({ beat, unit = 1 }: { beat: number; unit?: number }) {
 }
 
 function EpilogueArt({ beat }: { beat: number }) {
+  const speaker = beat === 0 ? 'hoot' : beat === 1 ? 'bolt' : beat === 2 ? 'chomp' : 'numi';
   return (
     <>
       <span className="fq-cine-end-horizon is-festival" />
       <span className="fq-cine-whole-stone" aria-label="The Whole Stone restored with 15 equal pieces">
         {Array.from({ length: 15 }, (_, i) => <i key={i} />)}
       </span>
-      <span className="fq-cine-actor" style={pos(11, 30)}><StoryCharacter id={beat >= 1 ? 'bolt' : 'hoot'} size={88} happy={beat >= 1} /></span>
+      <span className="fq-cine-actor" style={pos(11, 30)}><StoryCharacter id={speaker} size={88} happy /></span>
       <span className="fq-cine-festival-riddle">{beat >= 1 ? 'ONE WHOLE' : 'FESTIVAL'}</span>
       {beat >= 2 && <Confetti />}
     </>
