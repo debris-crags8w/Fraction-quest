@@ -11,7 +11,7 @@ type SyncResult = { missingFiles: number; generatedSentences: number; remainingF
 
 export class VoicePackSyncLimitError extends Error {
   constructor(readonly missingSentences: number, readonly limit: number) {
-    super(`Found ${missingSentences} sentences missing audio; automatic PR sync is limited to ${limit}. Run the Replit batch command to backfill App Storage first.`);
+    super(`Found ${missingSentences} sentences missing audio; automatic PR sync is limited to ${limit}. In Replit, run "pnpm --filter @workspace/api-server run generate-voice-pack -- --apply" to backfill App Storage, then retry.`);
     this.name = "VoicePackSyncLimitError";
   }
 }

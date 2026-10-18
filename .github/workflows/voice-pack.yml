@@ -36,7 +36,7 @@ concurrency:
 
 jobs:
   plan:
-    name: Find sentences without audio
+    name: Build voice sentence manifest
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
@@ -113,6 +113,10 @@ jobs:
           VOICE_PACK_UPLOAD_URL: ${{ secrets.VOICE_PACK_UPLOAD_URL }}
           VOICE_PACK_UPLOAD_TOKEN: ${{ secrets.VOICE_PACK_UPLOAD_TOKEN }}
         run: |
+          if [ -z "$VOICE_PACK_UPLOAD_URL" ] || [ -z "$VOICE_PACK_UPLOAD_TOKEN" ]; then
+            echo "::error::Set GitHub secrets VOICE_PACK_UPLOAD_URL (published app base URL) and VOICE_PACK_UPLOAD_TOKEN, and set the matching token in Replit Secrets."
+            exit 1
+          fi
           pnpm exec tsx scripts/upload-voice-pack.ts sync "$RUNNER_TEMP/sentences.json" "$RUNNER_TEMP/index.json"
 
   prune:
