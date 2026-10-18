@@ -18,6 +18,8 @@ tags:
     description: Parent consent and learner-data controls
   - name: family
     description: Family learner profiles and educator classrooms
+  - name: storage
+    description: Public pre-generated voice audio
 paths:
   /healthz:
     get:
@@ -32,6 +34,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /storage/public-objects/voice/{voice}/{fileName}:
+    get:
+      operationId: getPublicVoiceAudio
+      tags: [storage]
+      summary: Get a pre-generated voice audio file
+      description: Streams a public, pre-generated voice pack MP3 from App Storage.
+      parameters:
+        - name: voice
+          in: path
+          required: true
+          description: Voice identifier
+          schema:
+            type: string
+            enum: [af_heart, am_michael, bf_emma]
+        - name: fileName
+          in: path
+          required: true
+          description: Sixteen-character sentence key followed by .mp3
+          schema:
+            type: string
+            pattern: "^[0-9a-f]{16}\\.mp3$"
+      responses:
+        "200":
+          description: Voice audio
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Audio not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /auth/signup:
     post:
       operationId: signup
