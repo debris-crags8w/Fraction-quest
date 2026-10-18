@@ -5,10 +5,11 @@
    neither can play, Listen uses the device's own voice. */
 import { loadVoicePack, preferredPackFormat, voicePackHasVoice, voicePackPath, voicePackUrl } from './voice-pack';
 
-/** The one pack voice, Heart. A saved choice of an older voice (Michael, Emma, ...) falls back to it. */
-export type NaturalVoiceId = 'af_heart';
+/** Two pack voices. A saved choice of a retired voice falls back to Heart. */
+export type NaturalVoiceId = 'af_heart' | 'am_michael';
 export const NATURAL_VOICES: { id: NaturalVoiceId; name: string; note: string }[] = [
   { id: 'af_heart', name: 'Heart', note: 'warm and gentle' },
+  { id: 'am_michael', name: 'Michael', note: 'clear and calm' },
 ];
 export const NATURAL_VOICE_SPEED = 0.92; // the server reads at this speed
 const STORAGE_KEY = 'fraction-quest-natural-voice';

@@ -11,7 +11,7 @@ import { pipeline } from "node:stream/promises";
 import { objectStorageClient, ObjectStorageService } from "../src/lib/objectStorage";
 import { VOICE_CACHE_CONTROL } from "../src/lib/voice-pack-store";
 
-const PACK_VOICES = ["af_heart"] as const;
+const PACK_VOICES = ["af_heart", "am_michael"] as const;
 const KEY_PATTERN = /^[0-9a-f]{16}$/;
 const MAX_PARALLEL_UPLOADS = 12;
 const storage = new ObjectStorageService();
@@ -136,6 +136,10 @@ async function syncVoicePack(root: string): Promise<void> {
     );
   }
 
+  if (!process.argv.includes("--prune")) {
+    console.log(`Verified ${index.keys.length} sentences in all ${PACK_VOICES.length} voices. Stale audio retained; use --prune only after deploying the new index.`);
+    return;
+  }
   console.log(`Verified ${index.keys.length} sentences in all ${PACK_VOICES.length} voices; removing ${staleFiles.length} stale files...`);
   await runLimited(staleFiles, MAX_PARALLEL_UPLOADS, async (file) => {
     await file.delete();

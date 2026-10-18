@@ -3127,8 +3127,8 @@ describe('natural read-aloud voice', () => {
       assert.match(markup, /works on every device, iPhone and iPad included/);
       assert.match(markup, /radio-natural-voice-af_heart/);
       assert.match(markup, /radio-natural-voice-off/);
-      // Only the pack voice, Heart, is offered (Michael and Emma were retired).
-      for (const voice of ['am_michael', 'bf_emma', 'af_bella', 'bm_george']) assert.doesNotMatch(markup, new RegExp(`radio-natural-voice-${voice}`));
+      assert.match(markup, /radio-natural-voice-am_michael/);
+      for (const voice of ['bf_emma', 'af_bella', 'bm_george']) assert.doesNotMatch(markup, new RegExp(`radio-natural-voice-${voice}`));
       assert.doesNotMatch(markup, /paused on iPhone/);
     } finally {
       if (original) Object.defineProperty(globalThis, 'navigator', original);
@@ -3264,8 +3264,10 @@ describe('natural read-aloud voice', () => {
     assert.equal(naturalVoiceStatus().state, 'off');
     setNaturalVoicePreference('af_heart');
     assert.equal(naturalVoicePreference(), 'af_heart');
-    // A voice that is no longer offered (Michael and Emma were retired) falls back to Heart.
-    for (const retired of ['am_michael', 'bf_emma', 'af_bella']) {
+    setNaturalVoicePreference('am_michael');
+    assert.equal(naturalVoicePreference(), 'am_michael');
+    // A retired voice falls back to Heart.
+    for (const retired of ['bf_emma', 'af_bella']) {
       store.set('fraction-quest-natural-voice', retired);
       assert.equal(naturalVoicePreference(), 'af_heart');
     }

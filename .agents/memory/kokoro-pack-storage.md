@@ -3,7 +3,9 @@ name: Kokoro pack storage
 description: Where pre-generated voice audio lives and how every pull request keeps it complete.
 ---
 
-The pack has one voice, Heart (`af_heart`). Each sentence is stored in App Storage twice: Opus 16 kbps in `.caf` (streamed to Apple browsers, the Expo iPhone app included, which also downloads the whole pack on Wi-Fi) and MP3 (everywhere else; Chrome can't play `.caf`). The voice index (`public/voice/index.json`) is never committed: `scripts/voice-pack-index.ts` builds it from the app's text before every `dev` and `build`.
+The user chose Heart and Michael as the two natural voices and approved retiring Emma. Preserve that choice when reconciling upstream voice work. Each voice has MP3 and Opus audio in App Storage; keep the generated index and audio out of Git.
+
+**Why this pair:** The user explicitly confirmed Heart and Michael and asked to combine them with the Opus and Wi-Fi workflow.
 
 The Voice pack workflow runs on every pull request. It asks the server which of the PR's sentences lack audio (`POST /api/voice-pack/check?list=1`), makes exactly those with Kokoro, uploads them (`PUT /api/voice-pack/files/:voice/:key.(mp3|caf)`), and its job "Voice audio is in App Storage" passes only when every sentence is stored. That job should be a required check. A push to main re-runs it as a safety net. Manual runs offer `rerender` (re-make everything, after an encoding change) and `prune` (remove unused files, only after a deploy). Previously merged MP3 blobs remain in Git history unless a history rewrite is explicitly approved.
 

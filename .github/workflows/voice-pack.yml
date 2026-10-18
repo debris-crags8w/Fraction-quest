@@ -109,7 +109,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        voice: [af_heart]
+        voice: [af_heart, am_michael]
         shard: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v4

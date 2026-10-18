@@ -13,6 +13,7 @@ test('a sentence has one stable file name, the same however its spaces were type
 });
 
 test('the app offers exactly the pack voices', () => {
+  assert.deepEqual([...PACK_VOICES], ['af_heart', 'am_michael']);
   assert.deepEqual(NATURAL_VOICES.map((voice) => voice.id), [...PACK_VOICES]);
 });
 
@@ -21,7 +22,7 @@ test('a sentence in the pack plays from its file; anything else, or another voic
   const fetchFn = (async () => new Response(JSON.stringify({ version: 1, voices: ['af_heart'], keys: [voiceKey('One half.')] }))) as unknown as typeof fetch;
   assert.equal(await voicePackUrl('af_heart', 'One half.', fetchFn), `/api/storage/public-objects/voice/af_heart/${voiceKey('One half.')}.mp3`);
   assert.equal(await voicePackUrl('af_heart', 'Seven twelfths.', fetchFn), null);
-  assert.equal(await voicePackUrl('am_michael', 'One half.', fetchFn), null); // a retired voice
+  assert.equal(await voicePackUrl('bf_emma', 'One half.', fetchFn), null); // a retired voice
   assert.equal(await voicePackUrl('../other', 'One half.', fetchFn), null);
 });
 
