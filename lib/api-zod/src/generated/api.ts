@@ -25,7 +25,7 @@ export const getPublicVoiceAudioPathFileNameRegExp = new RegExp('^[0-9a-f]{16}\\
 
 
 export const GetPublicVoiceAudioParams = zod.object({
-  "voice": zod.enum(['af_heart', 'am_michael', 'bf_emma']).describe('Voice identifier'),
+  "voice": zod.enum(['af_heart']).describe('Voice identifier'),
   "fileName": zod.coerce.string().regex(getPublicVoiceAudioPathFileNameRegExp).describe('Sixteen-character sentence key followed by .mp3')
 })
 

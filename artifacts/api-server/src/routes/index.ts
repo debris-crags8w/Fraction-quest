@@ -7,6 +7,7 @@ import privacyRouter from "./privacy";
 import voiceRouter from "./voice";
 import adminRouter from "./admin";
 import storageRouter from "./storage";
+import voicePackUploadRouter from "./voice-pack-upload";
 
 const router: IRouter = Router();
 
@@ -17,6 +18,8 @@ router.use(progressRouter);
 // Voice is public so guest learners can use it; mount it before routers with session-wide auth middleware.
 router.use(voiceRouter);
 router.use(storageRouter);
+// The Voice pack workflow's uploads: their own token, no session.
+router.use(voicePackUploadRouter);
 router.use(familyRouter);
 router.use(privacyRouter);
 

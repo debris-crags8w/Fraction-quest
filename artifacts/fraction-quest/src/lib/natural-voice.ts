@@ -5,16 +5,15 @@
    neither can play, Listen uses the device's own voice. */
 import { voicePackHasVoice, voicePackUrl } from './voice-pack';
 
-/** The three pack voices. A saved choice of an older voice falls back to Heart. */
-export type NaturalVoiceId = 'af_heart' | 'am_michael' | 'bf_emma';
+/** The one pack voice, Heart. A saved choice of an older voice (Michael, Emma, ...) falls back to it. */
+export type NaturalVoiceId = 'af_heart';
 export const NATURAL_VOICES: { id: NaturalVoiceId; name: string; note: string }[] = [
   { id: 'af_heart', name: 'Heart', note: 'warm and gentle' },
-  { id: 'am_michael', name: 'Michael', note: 'friendly and steady' },
-  { id: 'bf_emma', name: 'Emma', note: 'British, clear' },
 ];
 export const NATURAL_VOICE_SPEED = 0.92; // the server reads at this speed
 const STORAGE_KEY = 'fraction-quest-natural-voice';
 const STATUS_URL = '/api/voice/status';
+const HEALTH_URL = '/api/healthz';
 export const speechUrl = (voice: NaturalVoiceId, text: string) =>
   `/api/voice/speech?voice=${encodeURIComponent(voice)}&text=${encodeURIComponent(text)}`;
 const SPEECH_BLOB_CACHE_LIMIT = 48;
@@ -184,6 +183,8 @@ export function warmUpNaturalVoice(options: NaturalVoiceLoadOptions = {}): Promi
       // With the voice pack there is nothing to wait for: sentences play from files, and only the rare sentence
       // outside the pack asks the server. (The grown-ups' self-test still checks the server itself.)
       if (!options.diagnostic && await voicePackHasVoice(currentChoice())) {
+        // The pack's audio comes through the API server: wake it now (it may be asleep) so the first clip is quick.
+        try { void fetch(HEALTH_URL, { cache: 'no-store' }).catch(() => undefined); } catch { /* only a head start */ }
         try { options.onProgress?.(100); } catch { /* diagnostics only */ }
         engine = serverEngine;
         return engine;

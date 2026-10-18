@@ -7,8 +7,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-/** The app's three voices (the same ones the pre-made voice pack is made for). */
-export const VOICES = ["af_heart", "am_michael", "bf_emma"] as const;
+/** The app's voice, Heart (the one the pre-made voice pack is made for). */
+export const VOICES = ["af_heart"] as const;
 export type VoiceId = (typeof VOICES)[number];
 export const DEFAULT_VOICE: VoiceId = "af_heart";
 export const VOICE_SPEED = 0.92;

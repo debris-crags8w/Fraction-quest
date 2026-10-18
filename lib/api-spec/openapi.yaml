@@ -47,7 +47,7 @@ paths:
           description: Voice identifier
           schema:
             type: string
-            enum: [af_heart, am_michael, bf_emma]
+            enum: [af_heart]
         - name: fileName
           in: path
           required: true
