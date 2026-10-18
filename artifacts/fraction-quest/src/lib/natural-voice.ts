@@ -103,7 +103,7 @@ async function fetchPackFile(url: string): Promise<Blob | null> {
 const WHOLE_PACK_MARKER = 'fraction-quest-voice-pack-downloaded';
 const WHOLE_PACK_PARALLEL = 3;
 
-/** Inside the iPhone app, on Wi-Fi: fetch every pack clip once into the device's voice cache, so every sentence
+/** Inside the app (iPhone and Android), on Wi-Fi: fetch every pack clip once into the device's voice cache, so every sentence
     plays at once (lessons still load from the website). Clips already saved are skipped, so a stopped download
     picks up where it left off; once a whole index is saved, later launches skip the check entirely. Returns how
     many clips are saved, or null when there is nothing to download into (no pack, no Cache Storage). */

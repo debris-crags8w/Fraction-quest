@@ -1,9 +1,9 @@
 /* A story comic filmed like a short cartoon: a title card, then one shot per panel on a big letterboxed screen. The
    camera pushes in and pans between shots, the colours warm or cool with the mood, and the words appear as a
    caption with the speaker's face while the voice reads along. Big moments (the stone cracking, a splash, a falling
-   plank) shake the screen with a thud and, in the iPhone app, a heavy tap. Without a voice the shots move on by
-   themselves, and a voice that falls behind (a clip still loading) never holds the film up: it carries on without
-   it. A tap finishes a caption or shows everything. "Reduce motion" keeps the camera still.
+   plank) shake the screen with a thud and, in the app on iPhone and Android, a heavy tap. Without a voice the shots
+   move on by themselves, and a voice that falls behind (a clip still loading) never holds the film up: it carries
+   on without it. A tap finishes a caption or shows everything. "Reduce motion" keeps the camera still.
    Scenes: the prologue and the opening comic of chapters 1 to 6. Other comics use the plain view. */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -360,7 +360,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per comic
   }, []);
 
-  // The big moment lands with a thud (when sounds are on) and a heavy tap in the iPhone app.
+  // The big moment lands with a thud (when sounds are on) and a heavy tap in the app (iPhone and Android).
   useEffect(() => {
     if (!done && beat >= 0 && beat === filming.impact) playCue('impact', fun.sound !== false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per shot

@@ -1339,7 +1339,7 @@ function Game() {
     return () => clearTimeout(timer);
   }, [onMap, progress, storyMode, fun.sound, prologueSeen, storyTheme]);
 
-  // Inside the iPhone app, on Wi-Fi, keep the whole voice pack on the phone so every sentence plays at once. It
+  // Inside the app (iPhone and Android), on Wi-Fi, keep the whole voice pack on the phone so every sentence plays at once. It
   // pauses when Wi-Fi drops or the app goes to the background, and picks up where it left off.
   useEffect(() => {
     let running = false;
