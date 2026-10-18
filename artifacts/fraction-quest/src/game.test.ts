@@ -3402,7 +3402,8 @@ describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
       const prefetch = prefetchNaturalVoice('af_heart', ['First sentence.', 'Second sentence.']);
       const listen = serverEngine.generate('First sentence.', { voice: 'af_heart', speed: 0.92 });
       await new Promise((resolve) => setTimeout(resolve, 0)); // the voice pack lookup comes first
-      assert.equal(asked.length, 1, 'Listen shares the in-flight prefetch request');
+      assert.equal(asked.filter((url) => /First%20sentence/.test(url)).length, 1, 'Listen shares the in-flight prefetch request');
+      assert.ok(asked.some((url) => /Second%20sentence/.test(url)), 'the second sentence loads alongside the first, not after it');
       releaseFirst(new Response(new Uint8Array([82, 73, 70, 70]), { headers: { 'Content-Type': 'audio/wav' } }));
       await Promise.all([prefetch, listen]);
       await serverEngine.generate('First sentence.', { voice: 'af_heart', speed: 0.92 });
@@ -3410,9 +3411,21 @@ describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
       assert.match(asked[0], /text=First%20sentence\./);
       assert.match(asked[1], /text=Second%20sentence\./);
 
+      // A sentence the server can't make is skipped; the ones after it still load.
+      asked.length = 0;
+      globalThis.fetch = (async (input: RequestInfo | URL) => {
+        const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+        if (url.endsWith('/voice/index.json')) return new Response('', { status: 404 });
+        asked.push(url);
+        if (/Broken/.test(url)) return new Response('busy', { status: 503 });
+        return new Response(new Uint8Array([82, 73, 70, 70]), { headers: { 'Content-Type': 'audio/wav' } });
+      }) as typeof fetch;
+      await prefetchNaturalVoice('af_heart', ['Broken one.', 'After one.', 'After two.', 'After three.', 'After four.']);
+      assert.equal(asked.length, 5, 'every sentence was asked for, even after a failure');
+
       setNaturalVoicePreference('off');
       await prefetchNaturalVoice('af_heart', ['Do not prefetch this sentence.']);
-      assert.equal(asked.length, 2, 'disabled natural voice does not start prefetch requests');
+      assert.equal(asked.length, 5, 'disabled natural voice does not start prefetch requests');
     } finally {
       globalThis.fetch = originalFetch;
       setNaturalVoicePreference(previousChoice);
