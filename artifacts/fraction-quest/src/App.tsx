@@ -82,7 +82,8 @@ import { AssessmentHub, AssessmentRunner } from './Assessment';
 import { PART_FINDER_LESSONS, partFinderRoundsFor } from './part-finder';
 import ConceptGames, { type LessonGame } from './ConceptGames';
 import { BrainBreakOffer } from './BrainBreakOffer';
-import { warmUpNaturalVoice } from './lib/natural-voice';
+import { downloadWholeVoicePack, naturalVoiceId, warmUpNaturalVoice } from './lib/natural-voice';
+import { appShell, onAppShellChange } from './lib/app-shell';
 import { StatTip } from './StatTip';
 import { AppMenu } from './AppMenu';
 const queryClient = new QueryClient();
@@ -1335,6 +1336,26 @@ function Game() {
     }, 1500);
     return () => clearTimeout(timer);
   }, [onMap, progress, storyMode, fun.sound, prologueSeen, storyTheme]);
+
+  // Inside the iPhone app, on Wi-Fi, keep the whole voice pack on the phone so every sentence plays at once. It
+  // pauses when Wi-Fi drops or the app goes to the background, and picks up where it left off.
+  useEffect(() => {
+    let running = false;
+    let stopped = false;
+    const canRun = () => !stopped && !!appShell()?.wifi && !document.hidden && naturalVoiceId() !== null;
+    const start = () => {
+      if (running || !canRun()) return;
+      running = true;
+      void warmUpNaturalVoice()
+        .then((engine) => { const voice = naturalVoiceId(); return engine && voice ? downloadWholeVoicePack(voice, canRun) : null; })
+        .catch(() => null)
+        .finally(() => { running = false; });
+    };
+    const timer = setTimeout(start, 8000); // after the first screen has what it needs
+    const stopListening = onAppShellChange(start);
+    document.addEventListener('visibilitychange', start);
+    return () => { stopped = true; clearTimeout(timer); stopListening(); document.removeEventListener('visibilitychange', start); };
+  }, []);
 
   // Check the natural voice soon after opening (a tiny request; it also wakes the server's voice), so the very
   // first Listen already uses it instead of the device voice.

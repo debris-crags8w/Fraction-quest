@@ -1,6 +1,6 @@
 name: Voice pack
 
-# Generates missing Kokoro audio (each sentence as an MP3 for the website and as Opus in .caf for the iOS app), uploads it to App Storage through the app's server, checks that every indexed
+# Generates missing Kokoro audio (each sentence as Opus in .caf for Apple browsers and the iPhone app, and as an MP3 for everyone else), uploads it to App Storage through the app's server, checks that every indexed
 # sentence is stored in every voice, and only then opens a pull request with the small voice index. (Only the
 # server can write to App Storage; the repository secrets VOICE_PACK_UPLOAD_URL and VOICE_PACK_UPLOAD_TOKEN let
 # this workflow send it the files.) Without those secrets, sync the run's artifact by hand before merging.
@@ -126,7 +126,7 @@ jobs:
           path: ${{ runner.temp }}
       - name: Install ffmpeg (the MP3 encoder)
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg && ffmpeg -version | head -1
-      - name: Make the missing clips (MP3 for the website, Opus for the iOS app)
+      - name: Make the missing clips (Opus and MP3)
         working-directory: artifacts/api-server
         run: |
           touch "$RUNNER_TEMP/started"

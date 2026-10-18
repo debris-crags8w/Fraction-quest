@@ -1,6 +1,6 @@
 // Makes the pre-made voice pack: each listed sentence, read once by Kokoro in one voice and saved twice, named by
-// the sentence's key: an MP3 (mono, 24 kHz, 24 kbps) for the website, and Opus (mono, 16 kbps, in a .caf file)
-// for the iOS app, which bundles it. Opus is about 60% of the MP3's size; Chrome can't play .caf, iPhones can.
+// the sentence's key: Opus (mono, 16 kbps, in a .caf file) for Apple browsers, the Expo iPhone app included,
+// and an MP3 (mono, 24 kHz, 24 kbps) for everyone else. Opus is about 60% of the MP3's size; Chrome can't play .caf.
 // Sentences with both files are skipped, so a run only makes new ones. Used by scripts/render-voice-pack.ts in
 // the "voice pack" GitHub workflow.
 import { spawn } from "node:child_process";

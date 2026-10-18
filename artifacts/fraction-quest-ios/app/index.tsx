@@ -1,15 +1,17 @@
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as Network from 'expo-network';
 import * as Print from 'expo-print';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react-native-webview';
-import { isAppPage, parseShellMessage, webAppUrl } from '@/lib/web-app';
+import { isAppPage, parseShellMessage, shellInfoScript, webAppUrl } from '@/lib/web-app';
 
 /* Fraction Quest on iPhone: a native shell around the live web app. Every lesson and screen comes from the web app,
    so a change there shows up here on the next launch (no app rebuild). The shell adds what a website can't do on
-   its own: the iPhone print sheet, a gentle haptic tap on answers, and links to other sites opening in Safari. */
+   its own: the iPhone print sheet, a gentle haptic tap on answers, links to other sites opening in Safari, and
+   telling the page when the phone is on Wi-Fi (the page then keeps the whole voice pack on the phone). */
 
 const BACKGROUND = '#F5F3FF';
 const APP_URL = webAppUrl();
@@ -18,6 +20,18 @@ export default function FractionQuestShell() {
   const web = useRef<WebView>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [wifi, setWifi] = useState(false);
+
+  // Wi-Fi or not: the page downloads the whole voice pack only on Wi-Fi.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const update = (state: Network.NetworkState) => setWifi(state.type === Network.NetworkStateType.WIFI && state.isConnected !== false);
+    void Network.getNetworkStateAsync().then(update).catch(() => { /* treat as not on Wi-Fi */ });
+    const subscription = Network.addNetworkStateListener(update);
+    return () => subscription.remove();
+  }, []);
+  const tellPage = useCallback(() => { web.current?.injectJavaScript(shellInfoScript(Platform.OS, wifi)); }, [wifi]);
+  useEffect(() => { if (!loading) tellPage(); }, [loading, tellPage]);
 
   // On the web (Expo's browser preview) there is nothing to wrap: go straight to the web app.
   useEffect(() => {
@@ -68,8 +82,9 @@ export default function FractionQuestShell() {
           style={styles.web}
           originWhitelist={['*']}
           onMessage={onMessage}
+          injectedJavaScriptBeforeContentLoaded={shellInfoScript(Platform.OS, wifi)}
           onShouldStartLoadWithRequest={onNavigate}
-          onLoadEnd={() => setLoading(false)}
+          onLoadEnd={() => { setLoading(false); tellPage(); }}
           onError={() => setFailed(true)}
           onHttpError={(event) => { if (event.nativeEvent.statusCode >= 500) setFailed(true); }}
           // Read-aloud: let the natural voice and the device voice play inside the app.

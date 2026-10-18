@@ -1,5 +1,5 @@
-/* The pre-made voice pack in App Storage: `<public prefix>/voice/<voice>/<key>.<format>`, each sentence as an MP3
-   (the website) and as Opus in a .caf file (bundled into the iOS app). Each file is named by its sentence, so a
+/* The pre-made voice pack in App Storage: `<public prefix>/voice/<voice>/<key>.<format>`, each sentence as Opus in
+   a .caf file (Apple browsers, the iPhone app included) and as an MP3 (everyone else). Each file is named by its sentence, so a
    stored file never changes and browsers may keep it for good. */
 import type { Readable } from "node:stream";
 import { objectStorageClient, ObjectStorageService } from "./objectStorage";

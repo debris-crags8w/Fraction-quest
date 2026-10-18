@@ -14,3 +14,4 @@
 - [Database environment safety](database-environment-safety.md) — use Replit's published-deployment marker, not an ambiguous shell environment label, to guard DB access.
 - [WebKit browser validation](webkit-browser-validation.md) — local Playwright WebKit downloads but lacks launch libraries; rely on the CI dependency-install step to run it.
 - [Kokoro pack storage](kokoro-pack-storage.md) — Heart-only voice audio lives in App Storage; the workflow uploads it through the API and checks it before opening the index PR.
+- [The iPhone app is an Expo shell](ios-expo-shell.md) — the iOS app is the Expo WebView around the live website; Capacitor is retired, so change the website and detect the app with `appShell()`.
