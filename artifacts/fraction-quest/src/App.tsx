@@ -55,7 +55,7 @@ import { ModelTag, SetSvg, WholeBracket } from './models';
 import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
 import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
-import { ChapterBanner, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
+import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
 import { LanternIcon } from './riddle-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
@@ -529,7 +529,7 @@ function storybookChapters(progress: Progress): StorybookChapter[] {
   });
 }
 
-function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement, onStorybook, onStory }: { progress: Progress; onStart: (missionId: string) => void; onStorybook: (tab: StorybookTab, unit?: number) => void; onStory: (missionId: string) => void; onDeveloperTest: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
+function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement, onStorybook, onStory, onPrologue }: { progress: Progress; onStart: (missionId: string) => void; onStorybook: (tab: StorybookTab, unit?: number) => void; onStory: (missionId: string) => void; onPrologue: () => void; onDeveloperTest: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
   const account = useAccount();
   const { user } = account;
   const { fun } = useFun();
@@ -661,13 +661,11 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                     const previous = chapterFor(unit.number - 1);
                     const teaser = !current ? undefined : index > 0 ? chapter.cliffs[index - 1] ?? chapter.cliff
                       : previous ? previous.cliff : 'The Whole Stone just cracked. Chomp’s bakery is a mess. Can you find the first piece?';
-                    const lessonNumber = current ? MISSIONS.indexOf(nextMission!) + 1 : 0;
-                    const started = current && (getLearningRecord(progress, nextMission!.id).practiceDone || hasLearningGate(progress, nextMission!.id));
-                    return <ChapterBanner chapter={chapter} unitTitle={unit.title} done={completedInUnit} total={unit.missions.length}
-                      state={current ? 'current' : reached ? 'reached' : 'locked'} teaser={teaser}
-                      startLabel={started ? `Keep going: lesson ${lessonNumber}` : `Read & start lesson ${lessonNumber}`}
-                      startTestId={current && storyStartsHere ? 'button-continue-course' : `button-chapter-start-${unit.number}`}
-                      onStart={current ? () => onStart(nextMission!.id) : undefined} onRead={() => onStorybook('story', unit.number)} />;
+                    return <>
+                      {unit.number === 1 && <PrologueCard seen={!!fun.story?.prologueSeen} onWatch={onPrologue} />}
+                      <ChapterBanner chapter={chapter} unitTitle={unit.title} done={completedInUnit} total={unit.missions.length}
+                        state={current ? 'current' : reached ? 'reached' : 'locked'} teaser={teaser} onRead={() => onStorybook('story', unit.number)} />
+                    </>;
                   })() : (
                     <div className="fq-unit-heading">
                       <div>
@@ -1595,7 +1593,13 @@ function Game() {
         <button type="button" onClick={returnToMap} data-testid="button-exit-developer-test">Exit test</button>
       </div>}
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onDeveloperTest={startDeveloperLessonTest} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId) && paperCheckOpen(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} onStorybook={(tab, unit) => setView({ type: 'storybook', tab, unit })} onStory={(missionId) => { primeReadAloud(); setView({ type: 'story', missionId, replay: 'map' }); }} />}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onDeveloperTest={startDeveloperLessonTest} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId) && paperCheckOpen(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} onStorybook={(tab, unit) => setView({ type: 'storybook', tab, unit })} onStory={(missionId) => { primeReadAloud(); setView({ type: 'story', missionId, replay: 'map' }); }}
+        onPrologue={() => {
+          // Not seen yet: the same start as the next lesson's (the prologue, then that lesson). Seen: watch it again.
+          const next = getNextMission(progress) ?? MISSIONS[0];
+          primeReadAloud();
+          if (next) setView(fun.story?.prologueSeen ? { type: 'story', missionId: next.id, prologue: true, replay: 'map' } : { type: 'story', missionId: next.id, prologue: true });
+        }} />}
       {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} renderModel={(model, reveal) => <ModelView model={model} reveal={reveal} asked />} onChange={(session) => persistProgress(applyAdaptiveDailyPracticeUpdate(progress, session))} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onDailyCorrect} />}
       {view.type === 'concept-games' && (() => {
         // The lesson games use the lesson the child is on (or the last open one).
@@ -1766,6 +1770,10 @@ function Game() {
           if (view.replay === 'storybook') {
             return <StoryComicView key="prologue-replay" scene="prologue" title="The Whole Stone" kicker="Prologue · The night the stone cracked" panels={PROLOGUE} name={name} goLabel="Back to the Storybook"
               onGo={() => setView({ type: 'storybook', tab: 'story' })} onBack={() => setView({ type: 'storybook', tab: 'story' })} />;
+          }
+          if (view.replay === 'map') {
+            return <StoryComicView key="prologue-replay-map" scene="prologue" title="The Whole Stone" kicker="Prologue · The night the stone cracked" panels={PROLOGUE} name={name} goLabel="Back to map"
+              onGo={returnToMap} onBack={returnToMap} />;
           }
           return <StoryComicView key="prologue" scene="prologue" title="The Whole Stone" kicker="Prologue · The night the stone cracked" panels={PROLOGUE} name={name} goLabel="I’ll help!"
             onGo={() => { primeReadAloud(); setFun((current) => recordStory(current, { prologueSeen: true })); setView({ type: 'story', missionId: mission.id }); }} onBack={returnToMap} />;

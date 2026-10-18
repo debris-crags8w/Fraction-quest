@@ -1388,7 +1388,7 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
 
-  await page.getByTestId('button-continue-course').click();
+  await page.getByTestId(`button-start-mission-${MISSIONS[0].id}`).click();
   await passStory(page);
   await expect(page.locator('.fq-taskbar-title')).toHaveText('Make fair shares');
   const firstIntro = page.getByTestId('first-fraction-introduction');
@@ -1407,7 +1407,7 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
 test('the first fraction introduction stays complete when reduced motion is enabled', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openAsGuest(page);
-  await page.getByTestId('button-continue-course').click();
+  await page.getByTestId(`button-start-mission-${MISSIONS[0].id}`).click();
   await passStory(page);
 
   await expect(page.getByTestId('first-fraction-introduction')).toBeVisible();
@@ -1750,7 +1750,7 @@ test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, 
     (window as unknown as { ReactNativeWebView: unknown }).ReactNativeWebView = { postMessage: (message: string) => sent.push(message) };
   });
   await openAsGuest(page);
-  await page.getByTestId('button-continue-course').click();
+  await page.getByTestId(`button-start-mission-${MISSIONS[0].id}`).click();
   await passStory(page);
   await expect(page.getByTestId('button-hands-on-skip')).toHaveCount(0);
   await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
@@ -1912,9 +1912,16 @@ test('an adult progress report can invoke browser printing', async ({ page }) =>
 
 test('the map shows only lessons; extras live in the More menu; start becomes jump after the first lesson', async ({ page }) => {
   await openAsGuest(page);
-  // In story mode, chapter 1's banner carries the first step (there is no separate start card).
-  await expect(page.getByTestId('button-continue-course')).toContainText('Read & start lesson 1');
-  await expect(page.getByTestId('chapter-banner-1').getByTestId('button-continue-course')).toBeVisible();
+  // In story mode the map reads in story order: the prologue card, then chapter 1's banner (its hook and "Read
+  // chapter 1", no start button), then lesson 1, whose card has the one Start button.
+  await expect(page.getByTestId('prologue-card')).toContainText('The night the stone cracked');
+  await expect(page.getByTestId('button-map-prologue')).toContainText('Watch the prologue');
+  const prologueBox = await page.getByTestId('prologue-card').boundingBox();
+  const chapterBox = await page.getByTestId('chapter-banner-1').boundingBox();
+  expect(prologueBox!.y).toBeLessThan(chapterBox!.y);
+  await expect(page.getByTestId('chapter-banner-1').getByRole('button', { name: /start/i })).toHaveCount(0);
+  await expect(page.getByTestId('button-continue-course')).toHaveCount(0);
+  await expect(page.getByTestId(`button-start-mission-${MISSIONS[0].id}`)).toContainText('Start lesson');
   await expect(page.getByTestId('button-jump-current')).toHaveCount(0);
   for (const id of ['button-start-daily-practice', 'button-open-concept-games', 'button-open-assessments', 'button-find-level', 'button-open-parent']) {
     await expect(page.getByTestId(id)).toHaveCount(0); // not on the map itself
@@ -2581,7 +2588,7 @@ test('Christmas: a snowy map, a Santa hat and scarf, candy canes, story props, a
   await expect(page.locator('.fq-stat-xp .fq-candy-cane')).toBeVisible();
 
   // Story text uses the Christmas props.
-  await page.getByTestId('button-continue-course').click();
+  await page.getByTestId(`button-start-mission-${MISSIONS[0].id}`).click();
   await showWholeComic(page);
   await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away!');
   await page.getByTestId('button-story-go').click();
@@ -2612,7 +2619,8 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(chapterOne.getByRole('heading', { name: 'The bakery mix-up' })).toBeVisible();
   await expect(chapterOne).toContainText('0/3 lessons');
   await expect(page.getByTestId('stone-teaser')).toContainText('The Whole Stone just cracked.');
-  await expect(page.getByTestId('button-continue-course')).toContainText('Read & start lesson 1');
+  await expect(page.getByTestId('button-map-prologue')).toContainText('Watch the prologue');
+  await expect(page.getByTestId(`button-start-mission-${MISSIONS[0].id}`)).toContainText('Start lesson');
   await expect(page.getByTestId('chapter-banner-2')).toContainText('Finish chapter 1 to open this chapter');
   await expect(page.getByTestId(`badge-story-${MISSIONS[0].id}`)).toContainText('New story');
   await expect(page.getByTestId('developer-module-test')).toHaveCount(0);
@@ -2642,7 +2650,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.getByTestId('button-storybook-back').click();
 
   // The first lesson opens straight into the one-time prologue comic (no extra setup screen).
-  await page.getByTestId('button-continue-course').click();
+  await page.getByTestId(`button-start-mission-${MISSIONS[0].id}`).click();
   await expect(page.getByTestId('story-panel-0')).toBeVisible();
   await page.getByTestId('button-story-voice').click();
   // Turning off the voice must not advance to the next panel while this panel is still typing.
@@ -2657,7 +2665,9 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId('stone-banner')).toBeVisible();
   const introProgress = await page.evaluate(() => JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}').story?.prologueSeen ?? false);
   expect(introProgress).toBe(false);
-  await page.getByTestId('button-continue-course').click();
+  await expect(page.getByTestId('button-map-prologue')).toContainText('Watch the prologue');
+  // The map's prologue card starts the same way as lesson 1 while the prologue is unseen.
+  await page.getByTestId('button-map-prologue').click();
   await showWholeComic(page);
   await expect(page.getByTestId('story-panel-0')).toContainText('The Fraction Festival is one week away!');
   await expect(page.getByTestId('story-panel-0')).toContainText('I’m Numi, and this is Hoot');
@@ -2694,13 +2704,19 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.evaluate((progress) => localStorage.setItem('fraction-quest-progress-v1:guest', JSON.stringify(progress)), seeded);
   await page.goto('/');
   await expect(page.getByTestId('stone-teaser')).toContainText('Under the crumbs the stone piece glows');
-  await expect(page.getByTestId(`button-chapter-start-1`)).toContainText('Read & start lesson 2');
   await page.getByTestId(`button-start-mission-${second.id}`).click();
   await expect(page.getByTestId('story-panel-0')).toContainText('The baker wrote fractions on the slices');
   await expect(page.getByTestId('story-panel-1')).toContainText(`Today’s lesson is ${second.title.charAt(0).toLowerCase()}`);
   await expect(page.getByTestId('story-panel-2')).toContainText(second.skill.split(' ').slice(-4).join(' '));
   await expect(page.getByTestId('story-choice')).toHaveCount(0);
   await page.getByTestId('button-story-back').click();
+  // Once seen, the map's prologue card watches it again and comes back to the map.
+  await expect(page.getByTestId('button-map-prologue')).toContainText('Watch again');
+  await page.getByTestId('button-map-prologue').click();
+  await showWholeComic(page);
+  await expect(page.getByTestId('button-story-go')).toContainText('Back to map');
+  await page.getByTestId('button-story-go').click();
+  await expect(page.getByTestId('prologue-card')).toBeVisible();
 
   // Questions carry the chapter friend's short line.
   await page.getByTestId(`button-practice-more-${second.id}`).click();
@@ -2956,6 +2972,6 @@ test('the mystery is playable: picture clues, a suspect board after chapter 4, s
     localStorage.setItem('fraction-quest-fun-v1:guest', JSON.stringify(fun));
   });
   await page.goto('/');
-  await page.getByTestId('button-chapter-start-8').click();
+  await page.getByTestId(`button-start-mission-${chapterEight.id}`).click();
   await expect(page.getByTestId('story-detective-note')).toContainText('you suspected Chomp');
 });
