@@ -1,9 +1,9 @@
 /* A story comic filmed like a short cartoon: a title card, then one shot per panel on a big letterboxed screen. The
    camera pushes in and pans between shots, the colours warm or cool with the mood, and the words appear as a
    caption with the speaker's face while the voice reads along. Big moments (the stone cracking, a splash, a falling
-   plank) shake the screen with a thud and, in the iPhone app, a heavy tap. Without a voice the shots move on by
-   themselves, and a voice that falls behind (a clip still loading) never holds the film up: it carries on without
-   it. A tap finishes a caption or shows everything. "Reduce motion" keeps the camera still.
+   plank) shake the screen with a thud and, in the app on iPhone and Android, a heavy tap. Without a voice the shots
+   move on by themselves, and a voice that falls behind (a clip still loading) never holds the film up: it carries
+   on without it. A tap finishes a caption or shows everything. "Reduce motion" keeps the camera still.
    Scenes: the prologue and the opening comic of chapters 1 to 6. Other comics use the plain view. */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -13,14 +13,11 @@ import { prefetchReading, useFollowedReading } from './LearningText';
 import { useFun, useSeason } from './fun-ui';
 import { playCue } from './lib/fun';
 import { sentences, spokenText } from './lib/voice';
-import { CHARACTERS, propTheme, withName, type Panel, type StoryChoice } from './story';
+import { CHARACTERS, propTheme, withName, type Panel, type StoryChoice, type StoryScene } from './story';
 import { TaskBar } from './TaskBar';
 import './story-cinema.css';
 
-export type StoryScene = 'prologue' | 'bakery' | 'pond' | 'hill' | 'bridge' | 'tower' | 'honey';
-
-/** The scene that films each chapter's opening comic. */
-export const CHAPTER_SCENES: Record<number, StoryScene> = { 1: 'bakery', 2: 'pond', 3: 'hill', 4: 'bridge', 5: 'tower', 6: 'honey' };
+export { CHAPTER_SCENES, type StoryScene } from './story';
 
 const TYPE_MS = 32;        // one character every 32 ms: a little ahead of the voice
 const PAUSE_MS = 1100;     // without a voice, the pause before the next shot
@@ -252,9 +249,10 @@ const ART: Record<StoryScene, (props: { beat: number }) => ReactNode> = {
   prologue: PrologueArt, bakery: BakeryArt, pond: PondArt, hill: HillArt, bridge: BridgeArt, tower: TowerArt, honey: HoneyArt,
 };
 
-/** What a comic reads aloud, panel by panel: who speaks, then the line, with "friend" instead of the child's name. */
-export const comicLines = (panels: Panel[], theme: ReturnType<typeof propTheme>) =>
-  panels.map((panel) => `${CHARACTERS[panel.speaker].name} says: ${withName(panel.text, null, theme)}`);
+/** What a filmed comic reads aloud, panel by panel: just the line, with "friend" instead of the child's name. The
+    caption shows who is speaking, so the voice doesn't say it (plain comics read "Hoot says: ..." via storyScript). */
+export const filmedLines = (panels: Panel[], theme: ReturnType<typeof propTheme>) =>
+  panels.map((panel) => withName(panel.text, null, theme));
 
 export function CinematicComic({ scene, title, kicker, panels, name, choice, picked: saved, choiceNotes, note, goLabel, onGo, onBack }: {
   scene: StoryScene; title: string; kicker: string; panels: Panel[]; name: string | null;
@@ -281,7 +279,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const stall = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lines = useMemo(() => panels.map((panel) => ({ ...panel, text: withName(panel.text, name, theme) })), [panels, name, theme]);
   // What is read aloud says "friend", never the child's name; each panel is one or more of its sentences.
-  const spoken = useMemo(() => comicLines(panels, theme), [panels, theme]);
+  const spoken = useMemo(() => filmedLines(panels, theme), [panels, theme]);
   const sentenceToPanel = useMemo(() => spoken.flatMap((line, index) => sentences(spokenText(line)).map(() => index)), [spoken]);
 
   const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
@@ -362,7 +360,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per comic
   }, []);
 
-  // The big moment lands with a thud (when sounds are on) and a heavy tap in the iPhone app.
+  // The big moment lands with a thud (when sounds are on) and a heavy tap in the app (iPhone and Android).
   useEffect(() => {
     if (!done && beat >= 0 && beat === filming.impact) playCue('impact', fun.sound !== false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per shot

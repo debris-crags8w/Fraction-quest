@@ -1,4 +1,4 @@
-/* Inside the Expo iPhone app, the web app runs in a native web view that exposes `window.ReactNativeWebView`.
+/* Inside the Expo app (iPhone and Android), the web app runs in a native web view that exposes `window.ReactNativeWebView`.
    These helpers send it small messages (print this page, tap a haptic), and do nothing in a normal browser. */
 type NativeShell = { postMessage(message: string): void };
 const shell = (): NativeShell | undefined => (globalThis as { ReactNativeWebView?: NativeShell }).ReactNativeWebView;
@@ -18,7 +18,7 @@ export function postHaptic(cue: HapticCue): boolean {
   return postToShell({ type: 'haptic', cue });
 }
 
-/** The page as printable HTML for the iPhone print sheet: styles resolve against this site, print CSS applies. */
+/** The page as printable HTML for the phone's print sheet: styles resolve against this site, print CSS applies. */
 export function printableHtml(doc: Document = document): string {
   const clone = doc.documentElement.cloneNode(true) as HTMLElement;
   clone.querySelectorAll('script').forEach((script) => script.remove());

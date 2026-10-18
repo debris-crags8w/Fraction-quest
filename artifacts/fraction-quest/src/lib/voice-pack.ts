@@ -1,7 +1,8 @@
 /* The pre-made voice pack is generated once by Kokoro and streamed from App Storage, as Opus where the browser
-   plays it (iPhone, iPad and Mac, including the Expo iPhone app, which shows this website) and as MP3 elsewhere.
-   Inside the iPhone app the whole pack is also downloaded once on Wi-Fi (natural-voice.ts). Sentences outside the
-   pack still use the voice server, with the device voice as the last fallback. */
+   plays it (iPhone, iPad and Mac, including the app on iPhone, which shows this website) and as MP3 elsewhere
+   (Android included). Inside the app, on iPhone and Android, the whole pack is also downloaded once on Wi-Fi
+   (natural-voice.ts). Sentences outside the pack still use the voice server, with the device voice as the last
+   fallback. */
 
 /** The voices the pack is made for. */
 export const PACK_VOICES = ['af_heart'] as const;

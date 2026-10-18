@@ -65,6 +65,10 @@ export const CHARACTERS: Record<Speaker, { name: string; kind: string }> = {
 
 /** The comic as read aloud. It says "friend", never the child's name: the name stays on this device, and every
    line plays straight from the pre-made voice pack. */
+/** The filmed comics' scenes (story-cinema.tsx): the prologue, and the opening comic of these chapters. */
+export type StoryScene = 'prologue' | 'bakery' | 'pond' | 'hill' | 'bridge' | 'tower' | 'honey';
+export const CHAPTER_SCENES: Record<number, StoryScene> = { 1: 'bakery', 2: 'pond', 3: 'hill', 4: 'bridge', 5: 'tower', 6: 'honey' };
+
 export const storyScript = (panels: Panel[], theme: PropTheme = 'everyday') =>
   panels.map((panel) => `${CHARACTERS[panel.speaker].name} says: ${withName(panel.text, null, theme)}`).join(' ');
 
