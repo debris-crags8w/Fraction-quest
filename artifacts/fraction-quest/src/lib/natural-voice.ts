@@ -239,10 +239,12 @@ function withTimeout<T>(operation: Promise<T>, timeoutMs: number, message: strin
   });
 }
 
-/** Reads sentences one after another: the next sentence is made while the current one plays. */
+/** Reads sentences one after another. All of them are made first, so playback never waits mid-reading. */
 export function createNaturalSpeaker(
   makeAudio: (url: string) => HTMLAudioElement = sharedAudio,
   voiceOverride?: NaturalVoiceId,
+  /** How long to wait for every sentence to be ready (tests use a short wait). */
+  allReadyWaitMs = 12_000,
 ) {
   let playback = 0;
   let current: HTMLAudioElement | null = null;
@@ -258,6 +260,9 @@ export function createNaturalSpeaker(
   };
   const GENERATION_TIMEOUT_MS = 30_000; // a new sentence on a busy server; cached ones are instant
   const PLAYBACK_TIMEOUT_MS = 45_000;
+  // Every sentence is made before the first one plays, so the reading never stalls mid-story. If they aren't all
+  // ready by then (a slow server and no voice pack file), the caller reads it with the device voice instead.
+  const ALL_READY_WAIT_MS = allReadyWaitMs;
   const waitForPlayback = (audio: HTMLAudioElement, onPlaying?: () => void) => new Promise<void>((resolve, reject) => {
     let settled = false;
     let started = false;
@@ -314,6 +319,8 @@ export function createNaturalSpeaker(
       onDone: (ok: boolean) => void,
       onPhase?: (phase: NaturalVoicePhase) => void,
       onFailure?: (stage: NaturalVoiceFailureStage, error: unknown) => void,
+      /** Sentence `index` starts playing (a story comic follows along). */
+      onPart?: (index: number) => void,
     ) {
       const mine = ++playback; cleanUp();
       if (makeAudio === sharedAudio) unlockAudioPlayback(); // still inside the tap that asked to listen
@@ -329,15 +336,14 @@ export function createNaturalSpeaker(
       };
       (async () => {
         try {
-          let next = make(parts[0]);
+          const clips = await withTimeout(Promise.all(parts.map(make)), ALL_READY_WAIT_MS, 'The voice took too long to get ready')
+            .catch((error) => { throw isSpeakerFailure(error) ? error : speakerFailure('generating', error); });
           for (let i = 0; i < parts.length; i++) {
-            const clip = await next;
             if (mine !== playback) return;
-            if (i + 1 < parts.length) next = make(parts[i + 1]);
-            const url = URL.createObjectURL(clip.toBlob()); urls.push(url);
+            const url = URL.createObjectURL(clips[i].toBlob()); urls.push(url);
             const audio = makeAudio(url); current = audio;
             try {
-              await waitForPlayback(audio, () => onPhase?.('playing'));
+              await waitForPlayback(audio, () => { onPhase?.('playing'); try { onPart?.(i); } catch { /* a follower must not stop the reading */ } });
             } catch (error) {
               throw speakerFailure('playing', error);
             }
