@@ -146,3 +146,6 @@ coverage/
 *.swo
 *~
 .history/
+
+# Made from the app's text at build time (scripts/voice-pack-index.ts), never committed.
+artifacts/fraction-quest/public/voice/index.json

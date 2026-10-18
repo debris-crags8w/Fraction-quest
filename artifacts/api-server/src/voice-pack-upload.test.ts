@@ -51,8 +51,8 @@ const TYPES = { mp3: "audio/mpeg", caf: "audio/x-caf" } as const;
 const put = (voice: string, key: string, format: "mp3" | "caf" = "mp3", token = TOKEN, type: string = TYPES[format]) =>
   fetch(`${base}/api/voice-pack/files/${voice}/${key}.${format}`, { method: "PUT", headers: { authorization: `Bearer ${token}`, "content-type": type }, body: Buffer.from([0xff, 0xfb, 1, 2]) });
 const putBoth = async (voice: string, key: string) => [(await put(voice, key, "mp3")).status, (await put(voice, key, "caf")).status];
-const check = (keys: string[], prune = false) =>
-  fetch(`${base}/api/voice-pack/check${prune ? "?prune=1" : ""}`, { method: "POST", headers: { authorization: `Bearer ${TOKEN}`, "content-type": "text/plain" }, body: JSON.stringify({ version: 1, voices: [], keys }) });
+const check = (keys: string[], prune = false, list = false) =>
+  fetch(`${base}/api/voice-pack/check${prune ? "?prune=1" : list ? "?list=1" : ""}`, { method: "POST", headers: { authorization: `Bearer ${TOKEN}`, "content-type": "text/plain" }, body: JSON.stringify({ version: 1, voices: [], keys }) });
 
 describe("voice pack files from App Storage", () => {
   it("streams a stored file in either format with a cache header browsers keep for good", async () => {
@@ -117,5 +117,11 @@ describe("voice pack uploads from the workflow", () => {
     const response = await check(keys);
     assert.equal(response.status, 200);
     assert.equal(((await response.json()) as { missing: number }).missing, 40_000); // two formats each
+  });
+  it("lists every sentence that lacks a file, so the workflow makes exactly those", async () => {
+    assert.deepEqual(await putBoth("af_heart", KEY_A), [204, 204]);
+    assert.equal((await put("af_heart", KEY_B, "mp3")).status, 204); // its Opus file is missing
+    const result = await (await check([KEY_A, KEY_B, "1111111111111111"], false, true)).json() as { missingKeys: string[] };
+    assert.deepEqual(result.missingKeys.sort(), ["1111111111111111", KEY_B]);
   });
 });

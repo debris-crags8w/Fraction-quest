@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { cleanSentence, PACK_FORMATS, PACK_VOICES, preferredPackFormat, resetVoicePackForTests, voiceKey, voicePackIndexPath, voicePackUrl } from './lib/voice-pack';
+import { cleanSentence, PACK_VOICES, preferredPackFormat, resetVoicePackForTests, voiceKey, voicePackIndexPath, voicePackUrl } from './lib/voice-pack';
 import { NATURAL_VOICES } from './lib/natural-voice';
 
 test('a sentence has one stable file name, the same however its spaces were typed', () => {
@@ -97,54 +97,12 @@ test('the voice sentence list covers lessons, story and seasons with unique keys
   assert.ok(list.length > 3000);
 });
 
-test('the pack index keeps sentences every voice has and removes stale files', async () => {
-  const { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } = await import('node:fs');
-  const os = await import('node:os');
-  const path = await import('node:path');
+test('the voice index is built from the app\'s own text, so it always matches the code', async () => {
   const { buildVoicePackIndex } = await import('../scripts/voice-pack-index');
-  const dir = mkdtempSync(path.join(os.tmpdir(), 'pack-index-'));
-  try {
-    for (const voice of PACK_VOICES) {
-      mkdirSync(path.join(dir, voice));
-      for (const format of PACK_FORMATS) {
-        writeFileSync(path.join(dir, voice, `aa.${format}`), 'x');
-        writeFileSync(path.join(dir, voice, `old.${format}`), 'x');
-      }
-      writeFileSync(path.join(dir, voice, 'cc.mp3'), 'x'); // only one format so far
-    }
-    // 'bb' has no audio and 'cc' no Opus yet, so the index leaves them out; 'old' is no longer a sentence, so its files go.
-    const { index, removed } = buildVoicePackIndex(['aa', 'bb', 'cc'], dir);
-    assert.deepEqual(index, { version: 1, voices: [...PACK_VOICES], keys: ['aa'] });
-    assert.equal(removed, PACK_VOICES.length * PACK_FORMATS.length);
-    assert.equal(existsSync(path.join(dir, 'af_heart', 'old.mp3')), false);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test('the next index preserves stored sentences and requires every new voice file', async () => {
-  const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
-  const os = await import('node:os');
-  const path = await import('node:path');
-  const { buildNextVoicePackIndex } = await import('../scripts/voice-pack-index');
-  const dir = mkdtempSync(path.join(os.tmpdir(), 'next-pack-index-'));
-  try {
-    for (const voice of PACK_VOICES) {
-      mkdirSync(path.join(dir, voice));
-      for (const format of PACK_FORMATS) writeFileSync(path.join(dir, voice, `bb.${format}`), 'new');
-    }
-    const previous = { version: 1 as const, voices: [...PACK_VOICES], keys: ['aa', 'stale'] };
-    const result = buildNextVoicePackIndex(['aa', 'bb'], dir, previous);
-    assert.deepEqual(result, {
-      index: { version: 1, voices: [...PACK_VOICES], keys: ['aa', 'bb'] },
-      added: 1,
-      removed: 1,
-    });
-    rmSync(path.join(dir, 'af_heart', 'bb.caf')); // a new sentence without its Opus clip can't be published
-    assert.throws(() => buildNextVoicePackIndex(['aa', 'bb'], dir, previous), /missing one or more voice files/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  const index = buildVoicePackIndex([{ key: 'bbbbbbbbbbbbbbbb' }, { key: 'aaaaaaaaaaaaaaaa' }, { key: 'bbbbbbbbbbbbbbbb' }]);
+  assert.deepEqual(index, { version: 1, voices: [...PACK_VOICES], keys: ['aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb'] });
+  const { voiceSentences } = await import('../scripts/voice-sentences');
+  assert.equal(buildVoicePackIndex(voiceSentences()).keys.length, new Set(voiceSentences().map((sentence) => sentence.key)).size);
 });
 
 test('a story is read aloud as "friend", never with the child\'s name, so it plays from the pack', async () => {
@@ -213,4 +171,28 @@ test('the page knows when it runs inside the iPhone app and whether it is on Wi-
   g.fractionQuestShell = { platform: 'ios' };
   assert.deepEqual(appShell(), { platform: 'ios', wifi: false });
   delete g.fractionQuestShell;
+});
+
+test('the whole-pack download skips a clip App Storage does not have yet, and tries it again next launch', async () => {
+  const { downloadWholeVoicePack, setNaturalEngineForTests } = await import('./lib/natural-voice');
+  const keys = ['aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb', 'cccccccccccccccc'];
+  const saved = new Map<string, string>();
+  const storage = new Map<string, string>();
+  const g = globalThis as Record<string, unknown>;
+  const original = { caches: g.caches, fetch: g.fetch, localStorage: g.localStorage };
+  g.caches = { open: async () => ({ match: async (url: string) => (saved.has(url) ? new Response(saved.get(url)) : undefined), put: async (url: string, response: Response) => { saved.set(url, await response.text()); } }) };
+  g.localStorage = { getItem: (k: string) => storage.get(k) ?? null, setItem: (k: string, v: string) => { storage.set(k, v); } };
+  g.fetch = async (url: string) => {
+    if (url.endsWith('index.json')) return new Response(JSON.stringify({ version: 1, voices: ['af_heart'], keys }));
+    return url.includes('bbbbbbbbbbbbbbbb') ? new Response('', { status: 404 }) : new Response('opus');
+  };
+  try {
+    resetVoicePackForTests(); setNaturalEngineForTests(null);
+    assert.equal(await downloadWholeVoicePack('af_heart', () => true), 2);
+    assert.equal(saved.size, 2);
+    assert.equal(storage.size, 0, 'not marked complete, so the missing clip is tried next launch');
+  } finally {
+    Object.assign(g, original);
+    resetVoicePackForTests(); setNaturalEngineForTests(null);
+  }
 });

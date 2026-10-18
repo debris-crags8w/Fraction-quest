@@ -121,12 +121,14 @@ export async function downloadWholeVoicePack(
   let next = 0;
   let saved = 0;
   let failed = false;
+  let absent = 0; // not in App Storage yet (a brand-new sentence): skipped, tried again next launch
   await Promise.all(Array.from({ length: WHOLE_PACK_PARALLEL }, async () => {
     while (next < keys.length && shouldContinue()) {
       const url = voicePackPath(`${voice}/${keys[next++]}.${format}`);
       try {
         if (!(await store.match(url))) {
           const response = await fetch(url);
+          if (response.status === 404) { absent++; continue; }
           if (!response.ok) throw new Error(`The voice pack answered ${response.status}`);
           await store.put(url, response);
         }
