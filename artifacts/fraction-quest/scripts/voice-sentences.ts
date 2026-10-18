@@ -7,7 +7,7 @@ import { getBuildChecks, getBuildPracticeChecks, getReviewCheck, getWorksheet } 
 import { getExtraPractice } from '../src/practice-bank';
 import { partFinderRoundsFor, PART_FINDER_ROUNDS } from '../src/part-finder';
 import { getAssessmentDefinitions } from '../src/assessments';
-import { CHAPTERS, DETECTIVE_NOTES, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, SUSPECTS, WHOLE_STONE_OPENING, chapterEnd, choiceNotes, suspectReply, REACTIONS, STORY_PROBLEMS, lessonComic, storyScript, withName, type Panel, type PropTheme } from '../src/story';
+import { CHAPTER_SCENES, CHAPTERS, DETECTIVE_NOTES, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, SUSPECTS, WHOLE_STONE_OPENING, chapterEnd, choiceNotes, suspectReply, REACTIONS, STORY_PROBLEMS, lessonComic, storyScript, withName, type Panel, type PropTheme } from '../src/story';
 import { seasonalWords } from '../src/seasonal-words';
 import { sentences, spokenText } from '../src/lib/voice';
 import { cleanSentence, voiceKey } from '../src/lib/voice-pack';
@@ -49,10 +49,12 @@ export function voiceSentences(): { key: string; text: string }[] {
   const story = new Set<string>();
   collect([WHOLE_STONE_OPENING, PROLOGUE, CHAPTERS, STORY_PROBLEMS, REACTIONS, DETECTIVE_NOTES, HANDS_ON_ASKS, CHAPTERS.map(choiceNotes)], story);
   for (const board of [1, 2] as const) for (const suspect of SUSPECTS[board]) story.add(suspectReply(board, suspect).text);
-  const scripts: Panel[][] = [PROLOGUE, EPILOGUE, ...CHAPTERS.map(chapterEnd)];
+  // Plain comics read "Hoot says: ..."; filmed ones (the prologue, chapter openings with a scene) only the lines.
+  const scripts: Panel[][] = [EPILOGUE, ...CHAPTERS.map(chapterEnd)];
+  const filmed: Panel[][] = [PROLOGUE];
   for (const chapter of CHAPTERS) {
     const lessons = MISSIONS.filter((mission) => mission.unit === chapter.unit);
-    lessons.forEach((mission, index) => scripts.push(lessonComic(chapter, mission, index)));
+    lessons.forEach((mission, index) => (index === 0 && CHAPTER_SCENES[chapter.unit] ? filmed : scripts).push(lessonComic(chapter, mission, index)));
     scripts.push(chapter.choice.map((option) => option.reply));
   }
 
@@ -63,6 +65,7 @@ export function voiceSentences(): { key: string; text: string }[] {
     for (const text of lesson) add(seasonalWords(text, season));
     for (const text of story) add(withName(text, null, theme));
     for (const panels of scripts) add(storyScript(panels, theme));
+    for (const panels of filmed) for (const panel of panels) add(withName(panel.text, null, theme));
   }
   return [...texts].sort().map((text) => ({ key: voiceKey(text), text }));
 }

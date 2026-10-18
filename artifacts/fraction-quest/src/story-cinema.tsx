@@ -13,14 +13,11 @@ import { prefetchReading, useFollowedReading } from './LearningText';
 import { useFun, useSeason } from './fun-ui';
 import { playCue } from './lib/fun';
 import { sentences, spokenText } from './lib/voice';
-import { CHARACTERS, propTheme, withName, type Panel, type StoryChoice } from './story';
+import { CHARACTERS, propTheme, withName, type Panel, type StoryChoice, type StoryScene } from './story';
 import { TaskBar } from './TaskBar';
 import './story-cinema.css';
 
-export type StoryScene = 'prologue' | 'bakery' | 'pond' | 'hill' | 'bridge' | 'tower' | 'honey';
-
-/** The scene that films each chapter's opening comic. */
-export const CHAPTER_SCENES: Record<number, StoryScene> = { 1: 'bakery', 2: 'pond', 3: 'hill', 4: 'bridge', 5: 'tower', 6: 'honey' };
+export { CHAPTER_SCENES, type StoryScene } from './story';
 
 const TYPE_MS = 32;        // one character every 32 ms: a little ahead of the voice
 const PAUSE_MS = 1100;     // without a voice, the pause before the next shot
@@ -252,9 +249,10 @@ const ART: Record<StoryScene, (props: { beat: number }) => ReactNode> = {
   prologue: PrologueArt, bakery: BakeryArt, pond: PondArt, hill: HillArt, bridge: BridgeArt, tower: TowerArt, honey: HoneyArt,
 };
 
-/** What a comic reads aloud, panel by panel: who speaks, then the line, with "friend" instead of the child's name. */
-export const comicLines = (panels: Panel[], theme: ReturnType<typeof propTheme>) =>
-  panels.map((panel) => `${CHARACTERS[panel.speaker].name} says: ${withName(panel.text, null, theme)}`);
+/** What a filmed comic reads aloud, panel by panel: just the line, with "friend" instead of the child's name. The
+    caption shows who is speaking, so the voice doesn't say it (plain comics read "Hoot says: ..." via storyScript). */
+export const filmedLines = (panels: Panel[], theme: ReturnType<typeof propTheme>) =>
+  panels.map((panel) => withName(panel.text, null, theme));
 
 export function CinematicComic({ scene, title, kicker, panels, name, choice, picked: saved, choiceNotes, note, goLabel, onGo, onBack }: {
   scene: StoryScene; title: string; kicker: string; panels: Panel[]; name: string | null;
@@ -281,7 +279,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const stall = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lines = useMemo(() => panels.map((panel) => ({ ...panel, text: withName(panel.text, name, theme) })), [panels, name, theme]);
   // What is read aloud says "friend", never the child's name; each panel is one or more of its sentences.
-  const spoken = useMemo(() => comicLines(panels, theme), [panels, theme]);
+  const spoken = useMemo(() => filmedLines(panels, theme), [panels, theme]);
   const sentenceToPanel = useMemo(() => spoken.flatMap((line, index) => sentences(spokenText(line)).map(() => index)), [spoken]);
 
   const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
