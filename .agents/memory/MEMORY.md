@@ -13,4 +13,4 @@
 - [PostgreSQL load-test counters](postgres-load-test-counters.md) — cumulative DB statistics may lag fixture setup and are database-wide, not API-attributed.
 - [Database environment safety](database-environment-safety.md) — use Replit's published-deployment marker, not an ambiguous shell environment label, to guard DB access.
 - [WebKit browser validation](webkit-browser-validation.md) — local Playwright WebKit downloads but lacks launch libraries; rely on the CI dependency-install step to run it.
-- [Kokoro pack storage](kokoro-pack-storage.md) — voice audio lives in App Storage; the workflow uploads it through the API and checks it before opening the index PR.
+- [Kokoro pack storage](kokoro-pack-storage.md) — Heart-only voice audio lives in App Storage; the workflow uploads it through the API and checks it before opening the index PR.

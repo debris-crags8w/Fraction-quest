@@ -73,32 +73,35 @@ describe("voice pack uploads from the workflow", () => {
   it("refuses a wrong token and file names outside the pack", async () => {
     assert.equal((await put("af_heart", KEY_A, "x".repeat(TOKEN.length))).status, 401);
     assert.equal((await put("af_bella", KEY_A)).status, 400);
+    assert.equal((await put("bf_emma", KEY_A)).status, 400); // retired
     assert.equal((await put("af_heart", "not-a-key")).status, 400);
     assert.equal(stored.size, 0);
   });
   it("stores uploads, reports what the index still lacks, and prunes only a complete pack", async () => {
-    for (const voice of ["af_heart", "am_michael", "bf_emma"]) assert.equal((await put(voice, KEY_A)).status, 204);
-    assert.equal((await put("af_heart", KEY_B)).status, 204);
+    assert.equal((await put("af_heart", KEY_A)).status, 204);
+    stored.set(`am_michael/${KEY_A}`, Buffer.from("retired voice")); // left over from when there were three voices
 
-    // KEY_B is only in one voice: two files missing, and nothing is pruned.
+    // KEY_B isn't stored yet: one file missing, and nothing is pruned.
     let result = await (await check([KEY_A, KEY_B], true)).json() as { sentences: number; missing: number; firstMissing: string[]; removed: number };
-    assert.deepEqual(result, { sentences: 2, missing: 2, firstMissing: [`am_michael/${KEY_B}.mp3`, `bf_emma/${KEY_B}.mp3`], removed: 0 });
-    assert.equal(stored.size, 4);
+    assert.deepEqual(result, { sentences: 2, missing: 1, firstMissing: [`af_heart/${KEY_B}.mp3`], removed: 0 });
+    assert.equal(stored.size, 2);
+    assert.equal((await put("af_heart", KEY_B)).status, 204);
 
     // Without prune, files the index dropped stay (the live app may still list them).
     result = await (await check([KEY_A])).json() as typeof result;
     assert.equal(result.missing, 0);
     assert.equal(result.removed, 0);
-    assert.equal(stored.size, 4);
+    assert.equal(stored.size, 3);
 
+    // Prune removes the dropped sentence and the retired voice's files.
     result = await (await check([KEY_A], true)).json() as typeof result;
-    assert.equal(result.removed, 1);
-    assert.deepEqual([...stored.keys()].sort(), [`af_heart/${KEY_A}`, `am_michael/${KEY_A}`, `bf_emma/${KEY_A}`]);
+    assert.equal(result.removed, 2);
+    assert.deepEqual([...stored.keys()], [`af_heart/${KEY_A}`]);
   });
   it("accepts an index larger than the server's JSON limit", async () => {
     const keys = Array.from({ length: 20_000 }, (_, i) => i.toString(16).padStart(16, "0"));
     const response = await check(keys);
     assert.equal(response.status, 200);
-    assert.equal(((await response.json()) as { missing: number }).missing, 60_000);
+    assert.equal(((await response.json()) as { missing: number }).missing, 20_000);
   });
 });

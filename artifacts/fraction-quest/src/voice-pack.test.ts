@@ -21,7 +21,7 @@ test('a sentence in the pack plays from its file; anything else, or another voic
   const fetchFn = (async () => new Response(JSON.stringify({ version: 1, voices: ['af_heart'], keys: [voiceKey('One half.')] }))) as unknown as typeof fetch;
   assert.equal(await voicePackUrl('af_heart', 'One half.', fetchFn), `/api/storage/public-objects/voice/af_heart/${voiceKey('One half.')}.mp3`);
   assert.equal(await voicePackUrl('af_heart', 'Seven twelfths.', fetchFn), null);
-  assert.equal(await voicePackUrl('am_michael', 'One half.', fetchFn), null);
+  assert.equal(await voicePackUrl('am_michael', 'One half.', fetchFn), null); // a retired voice
   assert.equal(await voicePackUrl('../other', 'One half.', fetchFn), null);
 });
 
@@ -93,10 +93,10 @@ test('the pack index keeps sentences every voice has and removes stale files', a
       writeFileSync(path.join(dir, voice, 'aa.mp3'), 'x');
       writeFileSync(path.join(dir, voice, 'old.mp3'), 'x');
     }
-    writeFileSync(path.join(dir, 'af_heart', 'bb.mp3'), 'x');
+    // 'bb' has no audio yet, so the index leaves it out; 'old' is no longer a sentence, so its files go.
     const { index, removed } = buildVoicePackIndex(['aa', 'bb'], dir);
     assert.deepEqual(index, { version: 1, voices: [...PACK_VOICES], keys: ['aa'] });
-    assert.equal(removed, 3);
+    assert.equal(removed, PACK_VOICES.length);
     assert.equal(existsSync(path.join(dir, 'af_heart', 'old.mp3')), false);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -121,7 +121,7 @@ test('the next index preserves stored sentences and requires every new voice fil
       added: 1,
       removed: 1,
     });
-    rmSync(path.join(dir, 'bf_emma', 'bb.mp3'));
+    rmSync(path.join(dir, 'af_heart', 'bb.mp3'));
     assert.throws(() => buildNextVoicePackIndex(['aa', 'bb'], dir, previous), /missing one or more voice files/);
   } finally {
     rmSync(dir, { recursive: true, force: true });

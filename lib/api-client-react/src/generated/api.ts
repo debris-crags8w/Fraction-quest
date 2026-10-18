@@ -151,7 +151,7 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
-export const getGetPublicVoiceAudioUrl = (voice: 'af_heart' | 'am_michael' | 'bf_emma',
+export const getGetPublicVoiceAudioUrl = (voice: 'af_heart',
     fileName: string,) => {
 
 
@@ -164,7 +164,7 @@ export const getGetPublicVoiceAudioUrl = (voice: 'af_heart' | 'am_michael' | 'bf
  * Streams a public, pre-generated voice pack MP3 from App Storage.
  * @summary Get a pre-generated voice audio file
  */
-export const getPublicVoiceAudio = async (voice: 'af_heart' | 'am_michael' | 'bf_emma',
+export const getPublicVoiceAudio = async (voice: 'af_heart',
     fileName: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
 
   return customFetch<Blob>(getGetPublicVoiceAudioUrl(voice,fileName),
@@ -180,7 +180,7 @@ export const getPublicVoiceAudio = async (voice: 'af_heart' | 'am_michael' | 'bf
 
 
 
-export const getGetPublicVoiceAudioQueryKey = (voice: 'af_heart' | 'am_michael' | 'bf_emma',
+export const getGetPublicVoiceAudioQueryKey = (voice: 'af_heart',
     fileName: string,) => {
     return [
     `/api/storage/public-objects/voice/${voice}/${fileName}`
@@ -188,7 +188,7 @@ export const getGetPublicVoiceAudioQueryKey = (voice: 'af_heart' | 'am_michael' 
     }
 
 
-export const getGetPublicVoiceAudioQueryOptions = <TData = Awaited<ReturnType<typeof getPublicVoiceAudio>>, TError = ErrorType<ErrorResponse>>(voice: 'af_heart' | 'am_michael' | 'bf_emma',
+export const getGetPublicVoiceAudioQueryOptions = <TData = Awaited<ReturnType<typeof getPublicVoiceAudio>>, TError = ErrorType<ErrorResponse>>(voice: 'af_heart',
     fileName: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicVoiceAudio>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
@@ -216,7 +216,7 @@ export type GetPublicVoiceAudioQueryError = ErrorType<ErrorResponse>
  */
 
 export function useGetPublicVoiceAudio<TData = Awaited<ReturnType<typeof getPublicVoiceAudio>>, TError = ErrorType<ErrorResponse>>(
- voice: 'af_heart' | 'am_michael' | 'bf_emma',
+ voice: 'af_heart',
     fileName: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicVoiceAudio>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {

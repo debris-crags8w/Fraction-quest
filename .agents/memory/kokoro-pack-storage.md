@@ -3,7 +3,7 @@ name: Kokoro pack storage
 description: Where pre-generated voice audio belongs and how updates reach App Storage automatically.
 ---
 
-Store pre-generated Kokoro MP3s in App Storage and keep only the compact voice index in Git. The Voice pack workflow uploads new audio through the API (`PUT /api/voice-pack/files/:voice/:key.mp3`), checks every indexed sentence is stored in every voice (`POST /api/voice-pack/check`), and only then opens the index pull request. Unused files are removed only by a manual workflow run with `prune`, after a deploy. Scope cleanup to the current source tree; previously merged MP3 blobs remain in Git history unless a history rewrite is explicitly approved.
+The pack has one voice, Heart (`af_heart`); Michael and Emma were retired for simplicity. Store pre-generated Kokoro MP3s in App Storage and keep only the compact voice index in Git. The Voice pack workflow uploads new audio through the API (`PUT /api/voice-pack/files/:voice/:key.mp3`), checks every indexed sentence is stored in every voice (`POST /api/voice-pack/check`), and only then opens the index pull request. Unused files are removed only by a manual workflow run with `prune`, after a deploy. Scope cleanup to the current source tree; previously merged MP3 blobs remain in Git history unless a history rewrite is explicitly approved.
 
 **Why:** The pack contains over twenty thousand MP3s and hundreds of megabytes, which creates avoidable source and deployment bloat. Only the Replit server can write to App Storage (its sidecar credentials), so GitHub sends files to the server rather than writing storage itself.
 
