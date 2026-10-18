@@ -68,6 +68,10 @@ function Scene({ scene, beat, done }: { scene: StoryScene; beat: number; done: b
   );
 }
 
+/** What a comic reads aloud, panel by panel: who speaks, then the line, with "friend" instead of the child's name. */
+export const comicLines = (panels: Panel[], theme: ReturnType<typeof propTheme>) =>
+  panels.map((panel) => `${CHARACTERS[panel.speaker].name} says: ${withName(panel.text, null, theme)}`);
+
 export function CinematicComic({ scene, title, kicker, panels, name, choice, picked: saved, choiceNotes, goLabel, onGo, onBack }: {
   scene: StoryScene; title: string; kicker: string; panels: Panel[]; name: string | null;
   choice?: [StoryChoice, StoryChoice]; picked?: 0 | 1; choiceNotes?: [string, string]; goLabel: string;
@@ -88,7 +92,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const giveUp = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lines = useMemo(() => panels.map((panel) => ({ ...panel, text: withName(panel.text, name, theme) })), [panels, name, theme]);
   // What is read aloud says "friend", never the child's name; each panel is one or more of its sentences.
-  const spoken = useMemo(() => panels.map((panel) => `${CHARACTERS[panel.speaker].name} says: ${withName(panel.text, null, theme)}`), [panels, theme]);
+  const spoken = useMemo(() => comicLines(panels, theme), [panels, theme]);
   const sentenceToPanel = useMemo(() => spoken.flatMap((line, index) => sentences(spokenText(line)).map(() => index)), [spoken]);
 
   const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };

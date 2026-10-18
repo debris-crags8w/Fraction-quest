@@ -17,7 +17,7 @@ const STORAGE_KEY = 'fraction-quest-natural-voice';
 const STATUS_URL = '/api/voice/status';
 export const speechUrl = (voice: NaturalVoiceId, text: string) =>
   `/api/voice/speech?voice=${encodeURIComponent(voice)}&text=${encodeURIComponent(text)}`;
-const SPEECH_BLOB_CACHE_LIMIT = 24;
+const SPEECH_BLOB_CACHE_LIMIT = 48;
 const speechBlobCache = new Map<string, Blob>();
 const speechBlobRequests = new Map<string, Promise<Blob>>();
 const speechBlobKey = (voice: NaturalVoiceId, text: string) => `${voice}\u0000${text}`;
@@ -81,6 +81,26 @@ function rememberSpeechBlob(key: string, blob: Blob) {
   }
 }
 
+/* Pack files never change (each one is named by its sentence), so once fetched they are kept on the device and the
+   next visit reads them without the network. Browsers without Cache Storage just fetch them each time. */
+const PACK_CACHE = 'fraction-quest-voice-pack-v1';
+let packCache: Promise<Cache | null> | null = null;
+const openPackCache = () => packCache ??= (typeof caches === 'undefined'
+  ? Promise.resolve(null)
+  : caches.open(PACK_CACHE).catch(() => null));
+
+async function fetchPackFile(url: string): Promise<Blob | null> {
+  const store = await openPackCache();
+  const saved = await store?.match(url).catch(() => undefined);
+  if (saved) return saved.blob();
+  const response = await fetch(url);
+  if (!response.ok) return null;
+  if (store) {
+    try { await store.put(url, response.clone()); } catch { /* storage full or blocked: still play it */ }
+  }
+  return response.blob();
+}
+
 async function fetchSpeechBlob(voice: NaturalVoiceId, text: string): Promise<Blob> {
   const key = speechBlobKey(voice, text);
   const cached = speechBlobCache.get(key);
@@ -96,8 +116,7 @@ async function fetchSpeechBlob(voice: NaturalVoiceId, text: string): Promise<Blo
     const packUrl = await voicePackUrl(voice, text);
     if (packUrl) {
       try {
-        const packed = await fetch(packUrl);
-        const blob = packed.ok ? await packed.blob() : null;
+        const blob = await fetchPackFile(packUrl);
         if (blob?.size) {
           rememberSpeechBlob(key, blob);
           return blob;

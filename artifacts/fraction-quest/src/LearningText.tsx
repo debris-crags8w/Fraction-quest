@@ -565,6 +565,15 @@ export function useReadAloud(text: string | null, key: string | number | null = 
   }, [key, text === null]);
 }
 
+/** Fetch a reading's natural-voice audio in the background (the next story comic), so it starts at once later. */
+export function prefetchReading(text: string): void {
+  void warmUpNaturalVoice().then((engine) => {
+    const voice = naturalVoiceId();
+    if (!engine || !voice) return;
+    return prefetchNaturalVoice(voice, sentences(spokenLearningText(text)), () => naturalVoiceId() === voice);
+  });
+}
+
 /** Read text aloud while a screen follows along sentence by sentence (a story comic). Stops when the screen goes. */
 export function useFollowedReading() {
   const funContext = useOptionalFun();
