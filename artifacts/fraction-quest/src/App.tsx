@@ -41,7 +41,7 @@ import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
 import { LearningListenButton, LearningText, LearningTextSection, prefetchReading, primeReadAloud, sectionsScript, useReadAloud } from './LearningText';
-import { comicLines } from './story-cinema';
+import { CHAPTER_SCENES, comicLines } from './story-cinema';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
 import { getWorksheet } from './learning-content';
@@ -1753,7 +1753,7 @@ function Game() {
         const saved = fun.story?.choices?.[String(chapter.unit)];
         return <StoryComicView key={`${mission.id}-${view.replay ? 'replay' : 'new'}`} title={`Chapter ${chapter.unit} · ${chapter.title}`} kicker={`Lesson ${index + 1} of ${unitMissions.length} · ${mission.title}`}
           panels={lessonComic(chapter, mission, index)} name={name} choice={index === 0 ? chapter.choice : undefined} picked={view.replay ? saved : undefined}
-          scene={chapter.unit === 1 && index === 0 ? 'bakery' : undefined}
+          scene={index === 0 ? CHAPTER_SCENES[chapter.unit] : undefined}
           choiceNotes={index === 0 ? choiceNotes(chapter) : undefined}
           note={index === 0 ? detectiveNote(chapter.unit, fun.story?.guesses ?? {}) : undefined}
           goLabel={view.replay === 'storybook' ? 'Back to the Storybook' : view.replay ? 'Back to map' : index === 0 ? 'Let’s go!' : 'Let’s help!'}

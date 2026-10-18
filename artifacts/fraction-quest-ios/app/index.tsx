@@ -34,7 +34,9 @@ export default function FractionQuestShell() {
           ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
           : message.cue === 'complete'
             ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-            : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            : message.cue === 'impact' // a big story moment: the stone cracking, a splash, a falling plank
+              ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+              : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       void feedback.catch(() => { /* haptics are optional and may be unavailable on this device */ });
     } else if (message.type === 'print') {
       void Print.printAsync({ html: message.html }).catch(() => { /* the child closed the sheet */ });
