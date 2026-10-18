@@ -51,14 +51,14 @@
   white-space: normal;
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, 4px);
+  transform: translate(calc(-50% + var(--fq-tip-shift, 0px)), 4px);
   transition: opacity 120ms ease, transform 120ms ease;
 }
 
 .fq-vocab:hover .fq-vocab-tooltip,
 .fq-vocab:focus-within .fq-vocab-tooltip {
   opacity: 1;
-  transform: translate(-50%, 0);
+  transform: translate(calc(-50% + var(--fq-tip-shift, 0px)), 0);
 }
 
 .fq-vocab-static {
@@ -87,13 +87,13 @@
   white-space: normal;
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, 4px);
+  transform: translate(calc(-50% + var(--fq-tip-shift, 0px)), 4px);
   transition: opacity 120ms ease, transform 120ms ease;
 }
 
 .fq-vocab-static:hover::after {
   opacity: 1;
-  transform: translate(-50%, 0);
+  transform: translate(calc(-50% + var(--fq-tip-shift, 0px)), 0);
 }
 
 .fq-learning-listen {

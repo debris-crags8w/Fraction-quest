@@ -1,6 +1,7 @@
 import { type CSSProperties, Fragment, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 import { playHaptic } from './lib/fun';
 import { LearningListenButton, LearningText } from './LearningText';
+import { LAB_SECTION_SPEECH, worksheetSpeech } from './lab-copy';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw, Star } from 'lucide-react';
 import { getMission, numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildCheckStage, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
@@ -579,6 +580,29 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const activeCheckIndex = heldIndex !== -1 ? heldIndex : firstOpen;
   const activeCheckId = !review && activeCheckIndex !== -1 ? checks[activeCheckIndex].id : null;
   const activeCheckHeading = useRef<HTMLHeadingElement | null>(null);
+  const stepsList = useRef<HTMLOListElement | null>(null);
+  /** A step shortcut: scroll its part of the page into view and move focus there (for keyboards and screen readers). */
+  const jumpTo = (target: Element | null) => {
+    if (!(target instanceof HTMLElement)) return;
+    target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    const heading = target.matches('h2, h3') ? target : target.querySelector<HTMLElement>('h2, h3');
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+  };
+  // A finished build stays viewable: its prompt, the models it asked for and why they show the fraction. "Build it
+  // again" is practice only; it never changes the lesson's progress.
+  const [viewing, setViewing] = useState<string | null>(null);
+  const [rebuilding, setRebuilding] = useState(false);
+  const openStep = (id: string) => {
+    setViewing((current) => (current === id ? null : id));
+    setRebuilding(false);
+    requestAnimationFrame(() => jumpTo(document.querySelector('[data-testid="section-step-view"]')));
+  };
+  // On a phone the steps scroll sideways: keep the current one (often the worksheet, at the end) in view.
+  useEffect(() => {
+    const list = stepsList.current;
+    const now = list?.querySelector<HTMLElement>('li.now');
+    if (list && now && list.scrollWidth > list.clientWidth) list.scrollLeft = Math.max(0, now.offsetLeft - list.offsetLeft - 12);
+  }, [activeCheckIndex]);
   const save = (r: LearningRecord) => { const p = updateLearning(ref.current, missionId, r); ref.current = p; onChange(p); };
   const cur = () => getLearningRecord(ref.current, missionId);
   const bump = (r: LearningRecord, keys: string[]): LearningRecord => ({
@@ -663,19 +687,59 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
       <LessonTeachingSupport missionId={missionId} />
 
-      <ol className="fq-ll-steps" aria-label="Lab progress" data-testid="list-lab-steps">
+      {/* The steps double as shortcuts: tap one to go to its part of the page (the worksheet once the builds are done). */}
+      <ol className="fq-ll-steps" aria-label="Lab progress" data-testid="list-lab-steps" ref={stepsList}>
         {checks.map((c, i) => {
           const e = rec.checks[c.id];
+          const label = <>{e?.passed ? <Check size={15} /> : i + 1}<span>{buildStepName(c, i)}{e?.passed ? (e.supported ? ' · with help' : ' · solo') : ''}</span></>;
           return <li key={c.id} className={e?.passed ? 'done' : i === idx ? 'now' : ''} data-testid={`step-${c.id}`}>
-            {e?.passed ? <Check size={15} /> : i + 1}<span>{buildStepName(c, i)}{e?.passed ? (e.supported ? ' · with help' : ' · solo') : ''}</span></li>;
+            {i === idx ? <button type="button" onClick={() => jumpTo(activeCheckHeading.current)} aria-label={`Go to ${buildStepName(c, i)}`}>{label}</button>
+              : e?.passed ? <button type="button" onClick={() => openStep(c.id)} aria-pressed={viewing === c.id} aria-label={`See ${buildStepName(c, i)} again`} data-testid={`button-see-step-${c.id}`}>{label}</button>
+              : label}</li>;
         })}
-        <li className={idx === -1 ? (requiredDone ? 'done' : 'now') : ''}>{checks.length + 1}<span>Worksheet · required question {requiredDone ? 'done' : 'to do'}</span></li>
-        {reteachProgress.total > 0 && <li className={reteachProgress.done === reteachProgress.total ? 'done' : ''}>{checks.length + 2}<span>Extra practice {reteachProgress.done}/{reteachProgress.total}</span></li>}
+        <li className={idx === -1 ? (requiredDone ? 'done' : 'now') : ''} data-testid="step-worksheet">
+          {idx === -1
+            ? <button type="button" onClick={() => jumpTo(document.querySelector('[data-testid="section-worksheet"]'))} data-testid="button-go-worksheet">{requiredDone ? <Check size={15} /> : checks.length + 1}<span>Worksheet · {requiredDone ? 'done' : 'go to it'}</span></button>
+            : <>{checks.length + 1}<span>Worksheet · after the builds</span></>}
+        </li>
+        {reteachProgress.total > 0 && <li className={reteachProgress.done === reteachProgress.total ? 'done' : ''}>
+          <button type="button" onClick={() => jumpTo(document.querySelector('[data-testid="section-targeted-reteach"]'))} data-testid="button-go-reteach">{checks.length + 2}<span>Extra practice {reteachProgress.done}/{reteachProgress.total}</span></button>
+        </li>}
       </ol>
+
+      {(() => {
+        const index = checks.findIndex((c) => c.id === viewing);
+        const check = checks[index];
+        if (!check || !rec.checks[check.id]?.passed) return null;
+        const t = check.target;
+        const second: LearningModel = { ...t, kind: t.kind === 'line' ? 'bar' : 'line', total: undefined, wholes: Math.max(1, Math.ceil(t.n / t.d)) };
+        const name = buildStepName(check, index);
+        return (
+          <section className="fq-ll-step-view" aria-labelledby="step-view-title" data-testid="section-step-view">
+            <SectionListenHeader text={`${name}. ${check.prompt} ${check.explanation}`} label={`Listen to ${name}`}>
+              <h3 id="step-view-title"><Check size={18} /> {name} · done{rec.checks[check.id]?.supported ? ' with help' : ' solo'}</h3>
+            </SectionListenHeader>
+            <p><LearningText text={check.prompt} /></p>
+            <div className="fq-ll-step-view-models"><Preview m={t} named /><Preview m={second} named /></div>
+            <p className="fq-ll-note">{check.explanation}</p>
+            {rebuilding ? (
+              <CheckRunner key={`again-${check.id}`} check={check} review={false} onHelp={() => {}} onPass={() => {}} onWrong={onWrong} onSuccess={onSuccess}
+                nextLabel="Done practising" onNext={() => setRebuilding(false)} />
+            ) : (
+              <div className="fq-ll-redo-buttons">
+                <button type="button" className="fq-button secondary" onClick={() => setRebuilding(true)} data-testid="button-step-build-again">Build it again</button>
+                <button type="button" className="fq-button ghost" onClick={() => setViewing(null)} data-testid="button-step-view-close">Close</button>
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       {gate && onRedo && (
         <section className="fq-ll-redo" aria-labelledby="redo-title" data-testid="section-redo">
-          <h3 id="redo-title"><RotateCcw size={18} /> Do it again</h3>
+          <SectionListenHeader text={LAB_SECTION_SPEECH.redo} label="Listen to Do it again">
+            <h3 id="redo-title"><RotateCcw size={18} /> Do it again</h3>
+          </SectionListenHeader>
           <p>Want more practice? Try a part again with new numbers. Your lesson stays finished.</p>
           <div className="fq-ll-redo-buttons">
             <button type="button" className="fq-button secondary" onClick={() => onRedo('builds')} data-testid="button-redo-builds">
@@ -715,7 +779,9 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
       {idx === -1 && (
         <section className="fq-ll-build-practice" aria-labelledby="build-practice-title" data-testid="section-build-practice">
-          <h3 id="build-practice-title" ref={buildPracticeSectionHeading} tabIndex={-1}>More build practice</h3>
+          <SectionListenHeader text={LAB_SECTION_SPEECH.buildPractice} label="Listen to More build practice">
+            <h3 id="build-practice-title" ref={buildPracticeSectionHeading} tabIndex={-1}>More build practice</h3>
+          </SectionListenHeader>
           {!buildPracticeActive ? (
             <>
               <p>Try 10 new, optional questions with this lesson’s ideas. Extra practice does not change lesson completion.</p>
@@ -763,7 +829,9 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
       {idx === -1 && (
         <section className="fq-ll-sheet" aria-labelledby="ws-title" data-testid="section-worksheet">
           <div className="fq-ll-sheet-head">
-            <h3 id="ws-title">Worksheet</h3>
+            <SectionListenHeader text={worksheetSpeech(sheet.length)} label="Listen to the worksheet steps">
+              <h3 id="ws-title">Worksheet</h3>
+            </SectionListenHeader>
             <p className="fq-ll-note">Answer all {sheet.length} questions to finish the lesson. Print the worksheet to hand in, then enter your answers here or with Check my paper.</p>
             <ol className="fq-ll-problem-progress" aria-label="Status of each worksheet problem" tabIndex={0} data-testid="worksheet-problem-progress">
               {problemProgress.map((problem, index) => {
@@ -822,7 +890,9 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
       {reteachPlans.length > 0 && (
         <section className="fq-ll-reteach" aria-labelledby="reteach-title" data-testid="section-targeted-reteach">
-          <h3 id="reteach-title">Make this idea clearer</h3>
+          <SectionListenHeader text={LAB_SECTION_SPEECH.reteach} label="Listen to Make this idea clearer">
+            <h3 id="reteach-title">Make this idea clearer</h3>
+          </SectionListenHeader>
           <p>One idea has been tricky more than once: use each new model, then enter the answer. These extra checks help make the idea stick.</p>
           {reteachPlans.map((plan, planIndex) => (
             <div className="fq-ll-reteach-plan" key={plan.signal} data-testid={`targeted-reteach-${planIndex + 1}`}>

@@ -1,4 +1,4 @@
-import { fourthChoice, orderedWithSigns } from './fourth-choice';
+import { fourthChoice, noBeforeYes, orderedWithSigns } from './fourth-choice';
 import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, getWorksheet, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
@@ -89,7 +89,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
         ['circle-sixths', true, 'pizza'], ['circle-unequal', false, 'pizza'], ['fourths-unequal', false, 'square'], ['hexagon-sixths', true, 'hexagon'],
       ] as const);
       const yes = 'Yes, same-size parts'; const bigger = 'No, some parts are bigger'; const shapes = 'No, the shapes are different';
-      return { prompt: `Is this ${whole} cut into equal parts?`, right: fair ? yes : bigger, wrong: fair ? [bigger, shapes] : [yes, shapes], extra: 'Yes, it is cut up',
+      return { prompt: `Is this ${whole} cut into equal parts?`, right: fair ? yes : bigger, wrong: fair ? [bigger, shapes] : [yes, shapes], extra: 'Yes, it is cut into pieces',
         hint: 'Equal parts are the same size. They do not have to be the same shape.',
         retry: fair ? 'Every part takes up the same amount of space, so the parts are equal, even if their shapes are different.' : 'Compare the sizes: one part is bigger than another, so the parts are not equal.',
         model: area(cut) };
@@ -532,7 +532,7 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
     out.push({
       id: `${missionId}-g${seed}-${out.length + 1}`,
       prompt: oneIsSingular(item.prompt),
-      ...signedOrder(item.prompt, withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3))),
+      ...noBeforeYes(signedOrder(item.prompt, withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3)))),
       hint: oneIsSingular(item.hint),
       retryFeedback: oneIsSingular(item.retry),
       model: nameBars(item.model, item.prompt),

@@ -155,7 +155,7 @@
 @keyframes fq-cine-drift { from { translate: 0 0; } to { translate: -8px -4px; } }
 @keyframes fq-cine-shake { 0%, 100% { translate: 0 0; } 15% { translate: -9px 4px; } 30% { translate: 8px -5px; } 45% { translate: -6px 3px; } 60% { translate: 5px -2px; } 75% { translate: -3px 1px; } }
 @keyframes fq-cine-bars { from { height: 0; } to { height: 30px; } }
-@keyframes fq-cine-card { 0% { opacity: 0; } 15% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes fq-cine-card { 0%, 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
 @keyframes fq-cine-card-in { from { opacity: 0; letter-spacing: .3em; } to { opacity: 1; } }
 @keyframes fq-cine-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fq-cine-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }

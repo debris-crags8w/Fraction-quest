@@ -9,7 +9,8 @@ export function YesNoCards({ value, onChange, disabled = false, testIdPrefix }: 
 }) {
   return (
     <div className="fq-yes-no-cards" role="group" aria-label="Choose yes or no" aria-disabled={disabled}>
-      {(['yes', 'no'] as const).map((choice) => {
+      {/* No first, then yes: the same order on every yes-or-no question. */}
+      {(['no', 'yes'] as const).map((choice) => {
         const selected = value.trim().toLowerCase() === choice;
         return (
           <button

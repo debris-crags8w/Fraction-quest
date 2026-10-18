@@ -339,10 +339,12 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     showBeat(0);
   };
 
-  const play = () => {
+  const play = (replay = false) => {
     clearTimers(); clearTimeout(stall.current); reader.stop(); voiceDriving.current = false;
     setDone(false); setEnding(false); setBeat(-1); beatRef.current = -1; typedRef.current = false;
-    setTake((count) => count + 1);
+    // A replay remounts the screen so the title card and entrances play again; the first play must not (it would
+    // restart every animation a frame after they began).
+    if (replay) setTake((count) => count + 1);
     later(roll, TITLE_MS);
   };
 
@@ -459,7 +461,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
           )}
           {done && note && <p className="fq-story-note fq-cine-rise" data-testid="story-detective-note"><Search size={16} aria-hidden="true" /> {withName(note, name, theme)}</p>}
           <div className="fq-cine-controls">
-            <button type="button" className="fq-button ghost" onClick={play} data-testid="button-story-replay"><RotateCcw size={16} aria-hidden="true" /> Replay</button>
+            <button type="button" className="fq-button ghost" onClick={() => play(true)} data-testid="button-story-replay"><RotateCcw size={16} aria-hidden="true" /> Replay</button>
             {done ? (
               <button type="button" className="fq-button fq-story-go" onClick={() => onGo(picked ?? undefined)} disabled={!!choice && picked === null} data-testid="button-story-go">
                 {goLabel} <ArrowRight size={18} aria-hidden="true" />
