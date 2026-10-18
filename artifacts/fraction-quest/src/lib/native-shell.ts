@@ -3,7 +3,7 @@
 type NativeShell = { postMessage(message: string): void };
 const shell = (): NativeShell | undefined => (globalThis as { ReactNativeWebView?: NativeShell }).ReactNativeWebView;
 
-export type HapticCue = 'selection' | 'correct' | 'retry' | 'star' | 'complete';
+export type HapticCue = 'selection' | 'correct' | 'retry' | 'star' | 'complete' | 'impact';
 
 export const inExpoShell = (): boolean => !!shell();
 

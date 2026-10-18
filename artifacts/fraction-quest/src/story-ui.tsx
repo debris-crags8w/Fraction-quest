@@ -27,14 +27,14 @@ const looksWorried = (panel: Panel) => !['numi', 'hoot'].includes(panel.speaker)
 /** A comic: three panels, an optional choice that must be picked, then an explicit button on. */
 export function StoryComicView({ title, kicker, panels, name, choice, picked: saved, choiceNotes, note, goLabel, onGo, onBack, scene }: {
   title: string; kicker: string; panels: Panel[]; name: string | null;
-  /** Play this comic as a cartoon with its scene (the pilot comics). */ scene?: StoryScene;
+  /** Film this comic as a short cartoon with its scene (the prologue and the openings of chapters 1 to 6). */ scene?: StoryScene;
   /** What each choice earns ("Bonus clue added!"), shown with the reply. */ choiceNotes?: [string, string];
   /** A detective note under the comic: the story remembering the child's guess. */ note?: string;
   choice?: [StoryChoice, StoryChoice]; /** The choice already made, when reading the comic again. */ picked?: 0 | 1; goLabel: string; onGo: (choice?: 0 | 1) => void; onBack: () => void;
 }) {
-  // The pilot comics play as a cartoon (a mounted comic never switches between the two views).
+  // Comics with a scene play as a cartoon (a mounted comic never switches between the two views).
   if (scene) return <CinematicComic scene={scene} title={title} kicker={kicker} panels={panels} name={name}
-    choice={choice} picked={saved} choiceNotes={choiceNotes} goLabel={goLabel} onGo={onGo} onBack={onBack} />;
+    choice={choice} picked={saved} choiceNotes={choiceNotes} note={note} goLabel={goLabel} onGo={onGo} onBack={onBack} />;
   const [picked, setPicked] = useState<0 | 1 | null>(saved ?? null);
   const theme = useStoryTheme();
   const lines = panels.map((panel) => ({ ...panel, text: withName(panel.text, name, theme) }));

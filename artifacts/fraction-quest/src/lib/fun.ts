@@ -319,12 +319,13 @@ export function resetMissionGameProgress(state: FunState, missionIds: ReadonlySe
 }
 
 let audio: AudioContext | null = null;
-type Cue = 'correct' | 'retry' | 'star' | 'complete';
+type Cue = 'correct' | 'retry' | 'star' | 'complete' | 'impact';
 const CUES: Record<Cue, number[]> = {
   correct: [660, 880],
   retry: [392, 330],
   star: [990],
   complete: [523, 659, 784, 1047],
+  impact: [150, 70], // a deep "thud" for a big story moment
 };
 
 /** Short synth chimes. Silently does nothing if audio is unavailable or sound is off. */
@@ -340,14 +341,16 @@ export function playCue(cue: Cue, enabled: boolean) {
       const osc = audio!.createOscillator();
       const gain = audio!.createGain();
       const at = start + index * 0.09;
-      osc.type = 'sine'; // a soft "boop" for a miss, never a buzzer
+      const thud = cue === 'impact';
+      osc.type = thud ? 'triangle' : 'sine'; // a soft "boop" for a miss, never a buzzer
       osc.frequency.setValueAtTime(freq, at);
+      if (thud) osc.frequency.exponentialRampToValueAtTime(freq * 0.5, at + 0.3);
       gain.gain.setValueAtTime(0.0001, at);
-      gain.gain.exponentialRampToValueAtTime(cue === 'retry' ? 0.08 : 0.18, at + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
+      gain.gain.exponentialRampToValueAtTime(cue === 'retry' ? 0.08 : thud ? 0.3 : 0.18, at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + (thud ? 0.4 : 0.22));
       osc.connect(gain).connect(audio!.destination);
       osc.start(at);
-      osc.stop(at + 0.25);
+      osc.stop(at + (thud ? 0.45 : 0.25));
     });
   } catch {
     // Audio is a bonus; ignore failures.
