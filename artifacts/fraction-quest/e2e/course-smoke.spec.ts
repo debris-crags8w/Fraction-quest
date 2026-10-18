@@ -2617,10 +2617,18 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId(`badge-story-${MISSIONS[0].id}`)).toContainText('New story');
   await expect(page.getByTestId('developer-module-test')).toHaveCount(0);
 
-  // The Storybook: the prologue waits for the first lesson, chapter 1's start is new, later chapters are locked,
-  // and the clue notebook is empty.
+  // The Storybook: the prologue can be watched any time, chapter 1's start is new, later chapters are locked, and
+  // the clue notebook is empty.
   await banner.getByTestId('button-open-storybook').click();
-  await expect(page.getByTestId('button-storybook-prologue')).toBeDisabled();
+  const prologueRow = page.getByTestId('button-storybook-prologue');
+  await expect(prologueRow).toBeEnabled();
+  await expect(prologueRow).toContainText('Watch it now');
+  // Watching it here returns to the Storybook and doesn't count as seen: the first lesson still plays it.
+  await prologueRow.click();
+  await showWholeComic(page);
+  await expect(page.getByTestId('button-story-go')).toContainText('Back to the Storybook');
+  await page.getByTestId('button-story-go').click();
+  await expect(prologueRow).toContainText('Watch it now');
   await expect(page.getByTestId(`button-storybook-part-${MISSIONS[0].id}`)).toContainText('New');
   await expect(page.getByTestId('storybook-chapter-2')).toContainText('Pip’s pond party');
   await expect(page.getByTestId('storybook-finale')).toContainText('Find all 15 pieces');
