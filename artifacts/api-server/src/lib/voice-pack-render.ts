@@ -36,12 +36,14 @@ const exists = (file: string) => access(file).then(() => true, () => false);
 
 /** Make the missing clips for `voice` in `outDir/<voice>/`. Returns how many sentences were made and skipped. */
 export async function renderVoicePack(engine: VoiceEngine, voice: string, sentences: PackSentence[], outDir: string,
-  log: (line: string) => void = () => undefined): Promise<{ made: number; skipped: number }> {
+  log: (line: string) => void = () => undefined,
+  requiredFormats?: ReadonlyMap<string, readonly PackFormat[]>): Promise<{ made: number; skipped: number }> {
   const dir = path.join(outDir, voice);
   await mkdir(dir, { recursive: true });
   let made = 0, skipped = 0;
   for (const sentence of sentences) {
-    const files = (Object.keys(PACK_FORMATS) as PackFormat[]).map((format) => ({ format, file: path.join(dir, `${sentence.key}.${format}`) }));
+    const formats = requiredFormats?.get(sentence.key) ?? (Object.keys(PACK_FORMATS) as PackFormat[]);
+    const files = formats.map((format) => ({ format, file: path.join(dir, `${sentence.key}.${format}`) }));
     const missing = [];
     for (const entry of files) if (!(await exists(entry.file))) missing.push(entry);
     if (!missing.length) { skipped++; continue; }
