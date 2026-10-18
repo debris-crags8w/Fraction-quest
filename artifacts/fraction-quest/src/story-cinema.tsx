@@ -2,13 +2,14 @@
    camera pushes in and pans between shots, the colours warm or cool with the mood, and the words appear as a
    caption with the speaker's face while the voice reads along. Big moments (the stone cracking, a splash, a falling
    plank) shake the screen with a thud and, in the iPhone app, a heavy tap. Without a voice the shots move on by
-   themselves; a tap finishes a caption or shows everything. "Reduce motion" keeps the camera still.
+   themselves, and a voice that falls behind (a clip still loading) never holds the film up: it carries on without
+   it. A tap finishes a caption or shows everything. "Reduce motion" keeps the camera still.
    Scenes: the prologue and the opening comic of chapters 1 to 6. Other comics use the plain view. */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowRight, RotateCcw, Search, Volume2, VolumeX } from 'lucide-react';
 import { StoryCharacter } from './characters';
-import { useFollowedReading } from './LearningText';
+import { prefetchReading, useFollowedReading } from './LearningText';
 import { useFun, useSeason } from './fun-ui';
 import { playCue } from './lib/fun';
 import { sentences, spokenText } from './lib/voice';
@@ -25,7 +26,9 @@ const TYPE_MS = 32;        // one character every 32 ms: a little ahead of the v
 const PAUSE_MS = 1100;     // without a voice, the pause before the next shot
 const TITLE_MS = 1700;     // the title card before the first shot
 const END_MS = 1800;       // the "to be continued" card
-const VOICE_GIVE_UP_MS = 15_000; // no sentence started by then: move on without the voice
+const VOICE_GIVE_UP_MS = 15_000; // the first shot waits at least this long for the voice to start
+const VOICE_CPS = 10;      // a generous reading pace (characters a second): slower than any voice reads, "says:" included
+const VOICE_SLACK_MS = 4000; // beyond that pace, how long a shot waits for a late voice before the film moves on
 
 /** A camera position: what to scale and move, and the point it zooms towards. */
 type Shot = [transform: string, origin: string];
@@ -275,13 +278,27 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const voiceDriving = useRef(false);
   const beatRef = useRef(-1);
   const typedRef = useRef(false);
-  const giveUp = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const stall = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lines = useMemo(() => panels.map((panel) => ({ ...panel, text: withName(panel.text, name, theme) })), [panels, name, theme]);
   // What is read aloud says "friend", never the child's name; each panel is one or more of its sentences.
   const spoken = useMemo(() => comicLines(panels, theme), [panels, theme]);
   const sentenceToPanel = useMemo(() => spoken.flatMap((line, index) => sentences(spokenText(line)).map(() => index)), [spoken]);
 
   const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
+  /** The voice is late (a clip is still downloading or being made): the film keeps its pace without it. */
+  const dropVoice = () => {
+    clearTimeout(stall.current);
+    if (!voiceDriving.current) return;
+    voiceDriving.current = false; reader.stop();
+    if (typedRef.current) later(() => showBeat(beatRef.current + 1), PAUSE_MS); // a caption still typing moves on by itself
+  };
+  /** While the voice leads, each shot waits only as long as its line could take to read. */
+  const watchVoice = (shot: number) => {
+    clearTimeout(stall.current);
+    if (!voiceDriving.current) return;
+    const due = (lines[shot]?.text.length ?? 0) / VOICE_CPS * 1000 + VOICE_SLACK_MS;
+    stall.current = setTimeout(dropVoice, shot === 0 ? Math.max(VOICE_GIVE_UP_MS, due) : due);
+  };
   const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)); };
 
   const finish = () => {
@@ -295,6 +312,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     if (next >= lines.length) { finish(); return; }
     beatRef.current = next; typedRef.current = false;
     setBeat(next); setChars(0);
+    watchVoice(next);
     const length = lines[next].text.length;
     const tick = (count: number) => {
       setChars(count);
@@ -308,40 +326,39 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const roll = () => {
     voiceDriving.current = voiceRef.current && reader.supported;
     if (!voiceDriving.current) { showBeat(0); return; }
-    let started = false;
     reader.speak(spoken.join(' '), {
       onPart: (index) => {
-        started = true;
         const panel = sentenceToPanel[index] ?? 0;
         if (panel > beatRef.current) showBeat(panel);
       },
       onEnd: () => {
-        clearTimeout(giveUp.current);
+        clearTimeout(stall.current);
         voiceDriving.current = false;
         // No voice, or it stopped early: the timer carries on from here (a caption still typing moves on by itself).
         if (typedRef.current) later(() => showBeat(beatRef.current + 1), beatRef.current >= lines.length - 1 ? 600 : PAUSE_MS);
       },
     });
     showBeat(0);
-    if (voiceDriving.current) giveUp.current = setTimeout(() => { if (!started && voiceDriving.current) { voiceDriving.current = false; reader.stop(); showBeat(beatRef.current + 1); } }, VOICE_GIVE_UP_MS);
   };
 
   const play = () => {
-    clearTimers(); clearTimeout(giveUp.current); reader.stop(); voiceDriving.current = false;
+    clearTimers(); clearTimeout(stall.current); reader.stop(); voiceDriving.current = false;
     setDone(false); setEnding(false); setBeat(-1); beatRef.current = -1; typedRef.current = false;
     setTake((count) => count + 1);
     later(roll, TITLE_MS);
   };
 
   const showAll = () => {
-    clearTimers(); clearTimeout(giveUp.current); reader.stop(); voiceDriving.current = false;
+    clearTimers(); clearTimeout(stall.current); reader.stop(); voiceDriving.current = false;
     setBeat(lines.length - 1); beatRef.current = lines.length - 1; setEnding(false); setDone(true);
   };
 
   // The comic starts by itself (the tap that opened it unlocked the sound).
   useEffect(() => {
+    // Start fetching the voice now: the title card gives the first clips a head start.
+    if (voiceOn) prefetchReading(spoken.join(' '));
     play();
-    return () => { clearTimers(); clearTimeout(giveUp.current); reader.stop(); };
+    return () => { clearTimers(); clearTimeout(stall.current); reader.stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per comic
   }, []);
 
@@ -355,7 +372,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     const next = !voiceOn;
     setVoiceOn(next); voiceRef.current = next;
     if (!next) {
-      reader.stop(); voiceDriving.current = false;
+      clearTimeout(stall.current); reader.stop(); voiceDriving.current = false;
       if (!done && beatRef.current >= 0 && typedRef.current) later(() => showBeat(beatRef.current + 1), PAUSE_MS);
     }
   };

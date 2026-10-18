@@ -192,19 +192,24 @@ export const serverEngine: NaturalEngine = {
 };
 
 /** Prepare the selected voice's section audio before Listen is tapped. Failures stay silent; Listen can retry. */
+const PREFETCH_PARALLEL = 4;
+
+/** Fetches a reading's sentences ahead of time, a few at once and in reading order. A sentence that fails (the server
+    is slow or busy) is skipped, so it never holds up the ones after it; reading it later simply tries again. */
 export async function prefetchNaturalVoice(
   voice: NaturalVoiceId,
   parts: readonly string[],
   shouldContinue: () => boolean = () => true,
 ): Promise<void> {
-  for (const text of parts) {
-    if (!text.trim() || currentChoice() !== voice || !shouldContinue()) return;
-    try {
-      await fetchSpeechBlob(voice, text);
-    } catch {
-      return;
+  const queue = parts.filter((text) => text.trim());
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(PREFETCH_PARALLEL, queue.length) }, async () => {
+    while (next < queue.length && currentChoice() === voice && shouldContinue()) {
+      try {
+        await fetchSpeechBlob(voice, queue[next++]!);
+      } catch { /* skipped: the next sentence still loads */ }
     }
-  }
+  }));
 }
 
 export type NaturalVoiceLoadOptions = {
