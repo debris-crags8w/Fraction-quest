@@ -3,7 +3,7 @@
    sentence the pack doesn't have is made by the app's server, and the device only plays the audio. (Running the
    model in the browser crashed iPhone Safari.) Only the lesson sentence is sent, never a child's answers. When
    neither can play, Listen uses the device's own voice. */
-import { voicePackHasVoice, voicePackUrl } from './voice-pack';
+import { loadVoicePack, preferredPackFormat, voicePackHasVoice, voicePackPath, voicePackUrl } from './voice-pack';
 
 /** The one pack voice, Heart. A saved choice of an older voice (Michael, Emma, ...) falls back to it. */
 export type NaturalVoiceId = 'af_heart';
@@ -98,6 +98,52 @@ async function fetchPackFile(url: string): Promise<Blob | null> {
     try { await store.put(url, response.clone()); } catch { /* storage full or blocked: still play it */ }
   }
   return response.blob();
+}
+
+const WHOLE_PACK_MARKER = 'fraction-quest-voice-pack-downloaded';
+const WHOLE_PACK_PARALLEL = 3;
+
+/** Inside the iPhone app, on Wi-Fi: fetch every pack clip once into the device's voice cache, so every sentence
+    plays at once (lessons still load from the website). Clips already saved are skipped, so a stopped download
+    picks up where it left off; once a whole index is saved, later launches skip the check entirely. Returns how
+    many clips are saved, or null when there is nothing to download into (no pack, no Cache Storage). */
+export async function downloadWholeVoicePack(
+  voice: NaturalVoiceId,
+  shouldContinue: () => boolean,
+  onProgress?: (saved: number, total: number) => void,
+): Promise<number | null> {
+  const [pack, store] = await Promise.all([loadVoicePack(), openPackCache()]);
+  if (!pack?.voices.has(voice) || !store) return null;
+  const format = preferredPackFormat();
+  const keys = [...pack.keys].sort();
+  const marker = `${voice}:${format}:${keys.length}:${keys[0] ?? ''}:${keys[keys.length - 1] ?? ''}`;
+  try { if (globalThis.localStorage?.getItem(WHOLE_PACK_MARKER) === marker) return keys.length; } catch { /* check the cache instead */ }
+  let next = 0;
+  let saved = 0;
+  let failed = false;
+  let absent = 0; // not in App Storage yet (a brand-new sentence): skipped, tried again next launch
+  await Promise.all(Array.from({ length: WHOLE_PACK_PARALLEL }, async () => {
+    while (next < keys.length && shouldContinue()) {
+      const url = voicePackPath(`${voice}/${keys[next++]}.${format}`);
+      try {
+        if (!(await store.match(url))) {
+          const response = await fetch(url);
+          if (response.status === 404) { absent++; continue; }
+          if (!response.ok) throw new Error(`The voice pack answered ${response.status}`);
+          await store.put(url, response);
+        }
+        saved++;
+        onProgress?.(saved, keys.length);
+      } catch {
+        failed = true; // full storage or a lost connection: try again next launch
+        return;
+      }
+    }
+  }));
+  if (saved === keys.length && !failed) {
+    try { globalThis.localStorage?.setItem(WHOLE_PACK_MARKER, marker); } catch { /* checked again next time */ }
+  }
+  return saved;
 }
 
 async function fetchSpeechBlob(voice: NaturalVoiceId, text: string): Promise<Blob> {
@@ -396,4 +442,5 @@ export function setNaturalEngineForTests(next: NaturalEngine | null) {
   loading = null;
   speechBlobCache.clear();
   speechBlobRequests.clear();
+  packCache = null;
 }

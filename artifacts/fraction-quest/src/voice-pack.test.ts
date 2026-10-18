@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { cleanSentence, PACK_VOICES, resetVoicePackForTests, voiceKey, voicePackIndexPath, voicePackUrl } from './lib/voice-pack';
+import { cleanSentence, PACK_VOICES, preferredPackFormat, resetVoicePackForTests, voiceKey, voicePackIndexPath, voicePackUrl } from './lib/voice-pack';
 import { NATURAL_VOICES } from './lib/natural-voice';
 
 test('a sentence has one stable file name, the same however its spaces were typed', () => {
@@ -13,6 +13,7 @@ test('a sentence has one stable file name, the same however its spaces were type
 });
 
 test('the app offers exactly the pack voices', () => {
+  assert.deepEqual([...PACK_VOICES], ['af_heart']);
   assert.deepEqual(NATURAL_VOICES.map((voice) => voice.id), [...PACK_VOICES]);
 });
 
@@ -21,12 +22,28 @@ test('a sentence in the pack plays from its file; anything else, or another voic
   const fetchFn = (async () => new Response(JSON.stringify({ version: 1, voices: ['af_heart'], keys: [voiceKey('One half.')] }))) as unknown as typeof fetch;
   assert.equal(await voicePackUrl('af_heart', 'One half.', fetchFn), `/api/storage/public-objects/voice/af_heart/${voiceKey('One half.')}.mp3`);
   assert.equal(await voicePackUrl('af_heart', 'Seven twelfths.', fetchFn), null);
-  assert.equal(await voicePackUrl('am_michael', 'One half.', fetchFn), null); // a retired voice
+  assert.equal(await voicePackUrl('bf_emma', 'One half.', fetchFn), null); // a retired voice
   assert.equal(await voicePackUrl('../other', 'One half.', fetchFn), null);
 });
 
 test('the voice index remains part of the app while its MP3 files use App Storage', () => {
   assert.equal(voicePackIndexPath(), '/voice/index.json');
+});
+
+test('Apple browsers (the iPhone app included) stream the smaller Opus clip; others stream the MP3', async () => {
+  const key = voiceKey('One half.');
+  const fetchFn = (async () => new Response(JSON.stringify({ version: 1, voices: ['af_heart'], keys: [key] }))) as unknown as typeof fetch;
+  resetVoicePackForTests();
+  assert.equal(await voicePackUrl('af_heart', 'One half.', fetchFn, 'caf'), `/api/storage/public-objects/voice/af_heart/${key}.caf`);
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  for (const [answer, expected] of [['maybe', 'caf'], ['', 'mp3']] as const) {
+    resetVoicePackForTests();
+    Object.defineProperty(globalThis, 'document', { configurable: true, value: { createElement: () => ({ canPlayType: () => answer }) } });
+    assert.equal(preferredPackFormat(), expected);
+  }
+  if (original) Object.defineProperty(globalThis, 'document', original); else Reflect.deleteProperty(globalThis, 'document');
+  resetVoicePackForTests();
+  assert.equal(preferredPackFormat(), 'mp3', 'no browser: MP3');
 });
 
 test('with no pack yet (or a page instead of the index), Listen keeps using the server', async () => {
@@ -81,51 +98,12 @@ test('the voice sentence list covers lessons, story and seasons with unique keys
   assert.ok(list.length > 3000);
 });
 
-test('the pack index keeps sentences every voice has and removes stale files', async () => {
-  const { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } = await import('node:fs');
-  const os = await import('node:os');
-  const path = await import('node:path');
+test('the voice index is built from the app\'s own text, so it always matches the code', async () => {
   const { buildVoicePackIndex } = await import('../scripts/voice-pack-index');
-  const dir = mkdtempSync(path.join(os.tmpdir(), 'pack-index-'));
-  try {
-    for (const voice of PACK_VOICES) {
-      mkdirSync(path.join(dir, voice));
-      writeFileSync(path.join(dir, voice, 'aa.mp3'), 'x');
-      writeFileSync(path.join(dir, voice, 'old.mp3'), 'x');
-    }
-    // 'bb' has no audio yet, so the index leaves it out; 'old' is no longer a sentence, so its files go.
-    const { index, removed } = buildVoicePackIndex(['aa', 'bb'], dir);
-    assert.deepEqual(index, { version: 1, voices: [...PACK_VOICES], keys: ['aa'] });
-    assert.equal(removed, PACK_VOICES.length);
-    assert.equal(existsSync(path.join(dir, 'af_heart', 'old.mp3')), false);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test('the next index preserves stored sentences and requires every new voice file', async () => {
-  const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
-  const os = await import('node:os');
-  const path = await import('node:path');
-  const { buildNextVoicePackIndex } = await import('../scripts/voice-pack-index');
-  const dir = mkdtempSync(path.join(os.tmpdir(), 'next-pack-index-'));
-  try {
-    for (const voice of PACK_VOICES) {
-      mkdirSync(path.join(dir, voice));
-      writeFileSync(path.join(dir, voice, 'bb.mp3'), 'new');
-    }
-    const previous = { version: 1 as const, voices: [...PACK_VOICES], keys: ['aa', 'stale'] };
-    const result = buildNextVoicePackIndex(['aa', 'bb'], dir, previous);
-    assert.deepEqual(result, {
-      index: { version: 1, voices: [...PACK_VOICES], keys: ['aa', 'bb'] },
-      added: 1,
-      removed: 1,
-    });
-    rmSync(path.join(dir, 'af_heart', 'bb.mp3'));
-    assert.throws(() => buildNextVoicePackIndex(['aa', 'bb'], dir, previous), /missing one or more voice files/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  const index = buildVoicePackIndex([{ key: 'bbbbbbbbbbbbbbbb' }, { key: 'aaaaaaaaaaaaaaaa' }, { key: 'bbbbbbbbbbbbbbbb' }]);
+  assert.deepEqual(index, { version: 1, voices: [...PACK_VOICES], keys: ['aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb'] });
+  const { voiceSentences } = await import('../scripts/voice-sentences');
+  assert.equal(buildVoicePackIndex(voiceSentences()).keys.length, new Set(voiceSentences().map((sentence) => sentence.key)).size);
 });
 
 test('a story is read aloud as "friend", never with the child\'s name, so it plays from the pack', async () => {
@@ -147,4 +125,75 @@ test('the detective quest lines are in the voice pack too', async () => {
   const packed = new Set(voiceSentences().map((entry) => entry.text));
   for (const sentence of sentences(spokenText(suspectReply(2, 'bolt').text))) assert.ok(packed.has(cleanSentence(sentence)), sentence);
   assert.ok(packed.has('Detective note: you figured it out back in chapter 7.'));
+});
+
+test('inside the iPhone app the whole pack is saved once, picks up where it stopped, and is skipped after', async () => {
+  const { downloadWholeVoicePack, setNaturalEngineForTests } = await import('./lib/natural-voice');
+  const keys = ['aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb', 'cccccccccccccccc', 'dddddddddddddddd'];
+  const saved = new Map<string, string>();
+  const fetched: string[] = [];
+  const storage = new Map<string, string>();
+  const g = globalThis as Record<string, unknown>;
+  const original = { caches: g.caches, fetch: g.fetch, localStorage: g.localStorage };
+  g.caches = { open: async () => ({ match: async (url: string) => (saved.has(url) ? new Response(saved.get(url)) : undefined), put: async (url: string, response: Response) => { saved.set(url, await response.text()); } }) };
+  g.localStorage = { getItem: (k: string) => storage.get(k) ?? null, setItem: (k: string, v: string) => { storage.set(k, v); } };
+  g.fetch = async (url: string) => {
+    if (url.endsWith('index.json')) return new Response(JSON.stringify({ version: 1, voices: ['af_heart'], keys }));
+    fetched.push(url);
+    return new Response('opus');
+  };
+  try {
+    resetVoicePackForTests(); setNaturalEngineForTests(null);
+    // Wi-Fi drops after two clips: two are saved.
+    let allowed = 2;
+    const first = await downloadWholeVoicePack('af_heart', () => allowed-- > 0);
+    assert.ok(first! >= 1 && first! <= 2);
+    // Next launch: only the rest are fetched.
+    const before = fetched.length;
+    assert.equal(await downloadWholeVoicePack('af_heart', () => true), 4);
+    assert.equal(fetched.length - before, 4 - before);
+    assert.equal(saved.size, 4);
+    // Once complete, a later launch doesn't even check the cache.
+    const after = fetched.length;
+    assert.equal(await downloadWholeVoicePack('af_heart', () => true), 4);
+    assert.equal(fetched.length, after);
+  } finally {
+    Object.assign(g, original);
+    resetVoicePackForTests(); setNaturalEngineForTests(null);
+  }
+});
+
+test('the page knows when it runs inside the iPhone app and whether it is on Wi-Fi', async () => {
+  const { appShell } = await import('./lib/app-shell');
+  const g = globalThis as Record<string, unknown>;
+  assert.equal(appShell(), null);
+  g.fractionQuestShell = { platform: 'ios', wifi: true };
+  assert.deepEqual(appShell(), { platform: 'ios', wifi: true });
+  g.fractionQuestShell = { platform: 'ios' };
+  assert.deepEqual(appShell(), { platform: 'ios', wifi: false });
+  delete g.fractionQuestShell;
+});
+
+test('the whole-pack download skips a clip App Storage does not have yet, and tries it again next launch', async () => {
+  const { downloadWholeVoicePack, setNaturalEngineForTests } = await import('./lib/natural-voice');
+  const keys = ['aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb', 'cccccccccccccccc'];
+  const saved = new Map<string, string>();
+  const storage = new Map<string, string>();
+  const g = globalThis as Record<string, unknown>;
+  const original = { caches: g.caches, fetch: g.fetch, localStorage: g.localStorage };
+  g.caches = { open: async () => ({ match: async (url: string) => (saved.has(url) ? new Response(saved.get(url)) : undefined), put: async (url: string, response: Response) => { saved.set(url, await response.text()); } }) };
+  g.localStorage = { getItem: (k: string) => storage.get(k) ?? null, setItem: (k: string, v: string) => { storage.set(k, v); } };
+  g.fetch = async (url: string) => {
+    if (url.endsWith('index.json')) return new Response(JSON.stringify({ version: 1, voices: ['af_heart'], keys }));
+    return url.includes('bbbbbbbbbbbbbbbb') ? new Response('', { status: 404 }) : new Response('opus');
+  };
+  try {
+    resetVoicePackForTests(); setNaturalEngineForTests(null);
+    assert.equal(await downloadWholeVoicePack('af_heart', () => true), 2);
+    assert.equal(saved.size, 2);
+    assert.equal(storage.size, 0, 'not marked complete, so the missing clip is tried next launch');
+  } finally {
+    Object.assign(g, original);
+    resetVoicePackForTests(); setNaturalEngineForTests(null);
+  }
 });

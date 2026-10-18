@@ -1,10 +1,16 @@
 ---
 name: Kokoro pack storage
-description: Where pre-generated voice audio belongs and how updates reach App Storage automatically.
+description: Where pre-generated voice audio lives and how every pull request keeps it complete.
 ---
 
-The pack has one voice, Heart (`af_heart`); Michael and Emma were retired for simplicity. Store pre-generated Kokoro MP3s in App Storage and keep only the compact voice index in Git. The Voice pack workflow uploads new audio through the API (`PUT /api/voice-pack/files/:voice/:key.mp3`), checks every indexed sentence is stored in every voice (`POST /api/voice-pack/check`), and only then opens the index pull request. Unused files are removed only by a manual workflow run with `prune`, after a deploy. Scope cleanup to the current source tree; previously merged MP3 blobs remain in Git history unless a history rewrite is explicitly approved.
+The app has one natural voice, Heart (`af_heart`). Michael and Emma are retired; a saved choice of either falls back to Heart. Preserve this when reconciling upstream voice work. Heart has MP3 and Opus audio in App Storage; keep the generated index and audio out of Git.
 
-**Why:** The pack contains over twenty thousand MP3s and hundreds of megabytes, which creates avoidable source and deployment bloat. Only the Replit server can write to App Storage (its sidecar credentials), so GitHub sends files to the server rather than writing storage itself.
+**Why one voice:** On 2026-10-18 the user confirmed "I am just doing one voice (Heart)", replacing an earlier Heart and Michael pair. Backfills render Heart only.
 
-**How to apply:** Set `VOICE_PACK_UPLOAD_TOKEN` (32+ characters) in Replit Secrets and the same token plus the app's public address as GitHub secrets `VOICE_PACK_UPLOAD_TOKEN` and `VOICE_PACK_UPLOAD_URL`. Without them the workflow falls back to the manual `sync-voice-pack` script. Serve audio with a long immutable cache (files are named by sentence). Never prune before the live app's index stops listing a file.
+The Voice pack workflow sends the current sentence manifest to the authenticated Replit API. Replit compares it with App Storage, renders small PR gaps with Kokoro, writes directly to storage, and verifies the result; GitHub does not render or upload the audio. The check should be required. Keep automatic PR sync bounded so a forgotten full-pack backfill cannot unexpectedly launch thousands of renders; use the Replit batch command for a large gap. Previously merged MP3 blobs remain in Git history unless a history rewrite is explicitly approved.
+
+**Why:** The pack is thousands of files and tens of megabytes, which bloats source and deployments. The Replit app server can write directly to App Storage; GitHub Actions must call its public API rather than access storage itself. A bounded PR check prevents text reaching main without audio while keeping bulk regeneration intentional.
+
+**How to apply:** Set `VOICE_PACK_UPLOAD_TOKEN` (32+ characters) in Replit Secrets for the published API, and the same token plus the published app's base address as GitHub secrets `VOICE_PACK_UPLOAD_TOKEN` and `VOICE_PACK_UPLOAD_URL`; no separate API host is needed because the API is under `/api`. A Scheduled Deployment cannot access App Storage, so use the deployed app server. Until the user publishes the app (not yet, as of 2026-10-18), the secrets stay unset and the PR check passes with a warning instead of failing; the Replit shell backfill fills gaps meanwhile. **Why:** The user said the live check makes no sense before deploying. Serve audio with a long immutable cache (files are named by sentence). Never prune before the live app stops using a file.
+
+A full Replit shell backfill can be interrupted by a workspace restart, but completed App Storage writes persist. Re-running the dry-run recounts the actual remaining files, and rerunning `--apply` skips files already stored. **Why:** An interrupted backfill lost its process log, but a fresh storage scan confirmed its completed clips remained. **How to apply:** After any interruption, verify remaining files from storage before resuming; don't infer completion from the old shell log.

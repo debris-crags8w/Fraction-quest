@@ -34,3 +34,10 @@ export function parseShellMessage(data: string): ShellMessage | null {
   } catch { /* not ours */ }
   return null;
 }
+
+/** Script that tells the page it runs inside the iPhone app, and whether the phone is on Wi-Fi
+    (`window.fractionQuestShell`, plus a 'fraction-quest-shell' event so the page can react to changes). */
+export function shellInfoScript(platform: string, wifi: boolean): string {
+  const info = JSON.stringify({ platform, wifi });
+  return `window.fractionQuestShell = ${info}; window.dispatchEvent(new Event('fraction-quest-shell')); true;`;
+}

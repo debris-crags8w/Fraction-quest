@@ -136,6 +136,10 @@ async function syncVoicePack(root: string): Promise<void> {
     );
   }
 
+  if (!process.argv.includes("--prune")) {
+    console.log(`Verified ${index.keys.length} sentences in all ${PACK_VOICES.length} voices. Stale audio retained; use --prune only after deploying the new index.`);
+    return;
+  }
   console.log(`Verified ${index.keys.length} sentences in all ${PACK_VOICES.length} voices; removing ${staleFiles.length} stale files...`);
   await runLimited(staleFiles, MAX_PARALLEL_UPLOADS, async (file) => {
     await file.delete();

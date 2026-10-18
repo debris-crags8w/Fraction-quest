@@ -1,8 +1,26 @@
-/* The pre-made voice pack is generated once by Kokoro and served from App Storage. Listen plays the audio
-   without running Kokoro; sentences outside the pack still use the voice server, with device voice as fallback. */
+/* The pre-made voice pack is generated once by Kokoro and streamed from App Storage, as Opus where the browser
+   plays it (iPhone, iPad and Mac, including the Expo iPhone app, which shows this website) and as MP3 elsewhere.
+   Inside the iPhone app the whole pack is also downloaded once on Wi-Fi (natural-voice.ts). Sentences outside the
+   pack still use the voice server, with the device voice as the last fallback. */
 
 /** The voices the pack is made for. */
 export const PACK_VOICES = ['af_heart'] as const;
+/** Every sentence is made twice: Opus in a .caf file (about 60% of the MP3's size; Apple browsers play it) and MP3. */
+export const PACK_FORMATS = ['mp3', 'caf'] as const;
+export type PackFormat = (typeof PACK_FORMATS)[number];
+
+let format: PackFormat | null = null;
+/** Opus where this browser can play it (Safari and every iPhone web view), MP3 everywhere else. */
+export function preferredPackFormat(): PackFormat {
+  if (format) return format;
+  try {
+    const probe = typeof document === 'undefined' ? null : document.createElement('audio');
+    format = probe && (probe.canPlayType('audio/x-caf; codecs=opus') || probe.canPlayType('audio/x-caf')) ? 'caf' : 'mp3';
+  } catch {
+    format = 'mp3';
+  }
+  return format;
+}
 export type PackVoice = (typeof PACK_VOICES)[number];
 
 /** The sentence exactly as the voice server would read it (same cleaning as the server). */
@@ -24,7 +42,7 @@ export type VoicePackIndex = { version: 1; voices: string[]; keys: string[] };
 const base = () => {
   try { return (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/'; } catch { return '/'; }
 };
-/** The small index ships with the web app; MP3 files live in App Storage. */
+/** The small index ships with the app; the clips stream from App Storage. */
 export const voicePackIndexPath = () => `${base().replace(/\/?$/, '/')}voice/index.json`;
 export const voicePackPath = (path: string) => `/api/storage/public-objects/voice/${path}`;
 
@@ -52,13 +70,13 @@ export async function voicePackHasVoice(voice: string, fetchFn?: typeof fetch): 
 }
 
 /** The pack file for one sentence in one voice, or null when the pack doesn't have it. */
-export async function voicePackUrl(voice: string, sentence: string, fetchFn?: typeof fetch): Promise<string | null> {
+export async function voicePackUrl(voice: string, sentence: string, fetchFn?: typeof fetch, fileFormat: PackFormat = preferredPackFormat()): Promise<string | null> {
   const pack = await loadVoicePack(fetchFn);
   const key = voiceKey(sentence);
   return PACK_VOICES.includes(voice as PackVoice) && pack?.voices.has(voice) && pack.keys.has(key)
-    ? voicePackPath(`${voice}/${key}.mp3`)
+    ? voicePackPath(`${voice}/${key}.${fileFormat}`)
     : null;
 }
 
-/** Tests only: forget the loaded index. */
-export function resetVoicePackForTests() { index = null; }
+/** Tests only: forget the loaded index (and the chosen format). */
+export function resetVoicePackForTests() { index = null; format = null; }

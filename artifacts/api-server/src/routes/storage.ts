@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { appStorageVoicePack, isPackVoice, VOICE_CACHE_CONTROL, VOICE_KEY, type VoicePackStore } from "../lib/voice-pack-store";
+import { appStorageVoicePack, isPackVoice, parseVoiceFileName, VOICE_CACHE_CONTROL, VOICE_FORMATS, type VoicePackStore } from "../lib/voice-pack-store";
 
 /* This public endpoint is intentionally restricted to the pre-generated voice pack. It streams straight from App
    Storage with no separate existence check (one storage round trip, not two), and since each file is named by its
@@ -8,16 +8,16 @@ export function createStorageRouter(store: () => VoicePackStore = appStorageVoic
   const router: IRouter = Router();
   router.get("/storage/public-objects/voice/:voice/:fileName", (req, res) => {
     const { voice, fileName } = req.params;
-    const key = fileName.endsWith(".mp3") ? fileName.slice(0, -4) : "";
-    if (!isPackVoice(voice) || !VOICE_KEY.test(key)) {
+    const parsed = parseVoiceFileName(fileName);
+    if (!isPackVoice(voice) || !parsed) {
       res.status(404).json({ error: "Object not found." });
       return;
     }
 
     // Headers wait for the first bytes, so a missing file can still answer 404.
-    const stream = store().read(voice, key);
+    const stream = store().read({ voice, ...parsed });
     stream.once("data", (first: Buffer) => {
-      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Content-Type", VOICE_FORMATS[parsed.format]);
       res.setHeader("Cache-Control", VOICE_CACHE_CONTROL);
       res.setHeader("X-Content-Type-Options", "nosniff");
       res.write(first);
