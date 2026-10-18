@@ -2630,6 +2630,13 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
 
   // The first lesson opens straight into the one-time prologue comic (no extra setup screen).
   await page.getByTestId('button-continue-course').click();
+  await expect(page.getByTestId('story-panel-0')).toBeVisible();
+  await page.getByTestId('button-story-voice').click();
+  // Turning off the voice must not advance to the next panel while this panel is still typing.
+  await page.waitForTimeout(1_200);
+  await expect(page.getByTestId('story-panel-1')).toHaveCount(0);
+  await expect(page.getByTestId('story-panel-0')).toContainText('I’m Numi, and this is Hoot. The Fraction Festival is one week away!');
+  await expect(page.getByTestId('story-panel-1')).toHaveCount(0);
   await showWholeComic(page);
   await expect(page.getByTestId('story-panel-2')).toContainText('15 equal pieces');
   // Leaving before the end does not mark the prologue as seen; it appears again.
