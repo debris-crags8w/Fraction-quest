@@ -619,7 +619,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
               )}
             </fieldset>
           )}
-          {done && note && <p className="fq-story-note fq-cine-rise" data-testid="story-detective-note"><Search size={16} aria-hidden="true" /> {withName(note, name, theme)}</p>}
+          {note && <p className="fq-story-note fq-cine-rise" data-testid="story-detective-note"><Search size={16} aria-hidden="true" /> {withName(note, name, theme)}</p>}
           <div className="fq-cine-controls">
             <button type="button" className="fq-button ghost" onClick={play} data-testid="button-story-replay"><RotateCcw size={16} aria-hidden="true" /> Replay</button>
             {done ? (
