@@ -113,6 +113,12 @@
   cursor: pointer;
 }
 
+.fq-learning-listen.is-compact {
+  width: 34px;
+  padding: 0;
+  flex: none;
+}
+
 .fq-learning-listen:hover:not(:disabled) {
   background: hsl(var(--secondary) / 0.18);
 }

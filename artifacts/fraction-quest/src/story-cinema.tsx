@@ -559,12 +559,14 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
         <section className={`fq-story-comic fq-cine-comic ${done ? 'is-done' : ''} ${done && choice ? 'has-choice' : ''}`} aria-labelledby="story-title" data-testid="story-comic">
           <div className="fq-story-comic-head">
             <h2 id="story-title">{kicker}</h2>
+            <span className="fq-cine-head-tools">
+            {done && <LearningListenButton text={spoken.join(' ')} label="Listen to the story" compact />}
             <button type="button" className="fq-cine-voice" aria-pressed={voiceOn} onClick={toggleVoice}
               aria-label={voiceOn ? 'Turn the story voice off' : 'Turn the story voice on'} data-testid="button-story-voice">
               {voiceOn ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />} {voiceOn ? 'Voice on' : 'Voice off'}
             </button>
+            </span>
           </div>
-          {done && <LearningListenButton text={spoken.join(' ')} label="Listen to the story" />}
           <button type="button" key={take} className={`fq-cine-screen is-${scene} ${done ? '' : 'is-rolling'}`} data-testid="story-panels"
             onClick={() => (typing ? setChars(lines[beat].text.length) : undefined)}
             aria-label={done ? 'The last scene of the story' : 'The story scene'}>
@@ -610,7 +612,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
           {done && choice && (
             <fieldset className="fq-story-choice fq-cine-rise" data-testid="story-choice">
               <legend>What should we do first{name ? `, ${name}` : ''}?
-                <LearningListenButton text={choice.map((option) => `${withName(option.label, null, theme)}. ${withName(option.detail, null, theme)}`).join(' ')} label="Listen to the choices" />
+                <LearningListenButton text={choice.map((option) => `${withName(option.label, null, theme)}. ${withName(option.detail, null, theme)}.`).join(' ')} label="Listen to the choices" compact />
               </legend>
               {choice.map((option, index) => (
                 <button key={option.label} type="button" className={picked === index ? 'on' : ''} aria-pressed={picked === index}
@@ -621,14 +623,14 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
               {reply && (
                 <p className="fq-story-reply" role="status" data-testid="story-choice-reply">
                   <StoryCharacter id={reply.speaker} size={40} />
-                  <LearningListenButton text={withName(reply.text, null, theme)} label="Listen to the reply" />
+                  <LearningListenButton text={withName(reply.text, null, theme)} label="Listen to the reply" compact />
                   <span><b>{CHARACTERS[reply.speaker].name}:</b> {withName(reply.text, name, theme)}
                     {choiceNotes && picked !== null && <em className="fq-story-reward" data-testid="story-choice-reward">{choiceNotes[picked]}</em>}</span>
                 </p>
               )}
             </fieldset>
           )}
-          {done && note && <p className="fq-story-note fq-cine-rise" data-testid="story-detective-note"><Search size={16} aria-hidden="true" /> <LearningListenButton text={withName(note, null, theme)} label="Listen to the note" /> {withName(note, name, theme)}</p>}
+          {done && note && <p className="fq-story-note fq-cine-rise" data-testid="story-detective-note"><Search size={16} aria-hidden="true" /> <LearningListenButton text={withName(note, null, theme)} label="Listen to the note" compact /> {withName(note, name, theme)}</p>}
           <div className="fq-cine-controls">
             <button type="button" className="fq-button ghost" onClick={() => play(true)} data-testid="button-story-replay"><RotateCcw size={16} aria-hidden="true" /> Replay</button>
             {done ? (

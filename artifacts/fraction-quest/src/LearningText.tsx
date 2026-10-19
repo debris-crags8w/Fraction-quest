@@ -609,10 +609,13 @@ export function LearningListenButton({
   section,
   label,
   prefetch = false,
+  compact = false,
 }: {
   text: string;
   section?: string;
   label?: string;
+  /** A small round icon-only button, for tight spots. */
+  compact?: boolean;
   /** Prepare fixed lesson or story copy as its Listen control approaches the viewport. */
   prefetch?: boolean;
 }) {
@@ -665,7 +668,7 @@ export function LearningListenButton({
     <button
       ref={buttonRef}
       type="button"
-      className="fq-learning-listen"
+      className={compact ? 'fq-learning-listen is-compact' : 'fq-learning-listen'}
       onClick={toggleSpeech}
       disabled={!supported}
       aria-label={!supported
@@ -676,7 +679,7 @@ export function LearningListenButton({
       data-testid="button-listen-learning-text"
     >
       {speaking ? <VolumeX size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
-      {supported ? (speaking ? 'Stop' : 'Listen') : 'Audio unavailable'}
+      {!compact && (supported ? (speaking ? 'Stop' : 'Listen') : 'Audio unavailable')}
     </button>
   );
 }

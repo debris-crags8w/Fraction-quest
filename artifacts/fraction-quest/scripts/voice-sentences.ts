@@ -59,8 +59,8 @@ export function voiceSentences(): { key: string; text: string }[] {
 
   const story = new Set<string>();
   collect([WHOLE_STONE_OPENING, PROLOGUE, CHAPTERS, STORY_PROBLEMS, REACTIONS, DETECTIVE_NOTES, HANDS_ON_ASKS, CHAPTERS.map(choiceNotes)], story);
-  // The choice Listen button reads "label. detail" for each option.
-  for (const chapter of CHAPTERS) for (const option of chapter.choice) story.add(`${option.label}.`);
+  // The choice Listen button reads "label. detail." for each option.
+  for (const chapter of CHAPTERS) for (const option of chapter.choice) story.add(`${option.label}. ${option.detail}.`);
   for (const board of [1, 2] as const) for (const suspect of SUSPECTS[board]) story.add(suspectReply(board, suspect).text);
   // Plain comics read "Hoot says: ..."; filmed comics read only the lines.
   const scripts: Panel[][] = [];
