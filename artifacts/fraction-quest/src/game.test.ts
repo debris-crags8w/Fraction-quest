@@ -1476,7 +1476,7 @@ describe('entered-answer worksheets and evidence gates', () => {
   it('labels the whole with a bracket under the bar rather than showing a fraction hint beside it', () => {
     const markup = renderToStaticMarkup(createElement(BarSvg, { n: 2, d: 5 }));
     assert.match(markup, /fq-svg-whole-bracket/);
-    assert.match(markup, />1 whole<\/text>/);
+    assert.match(markup, />one whole<\/text>/);
     assert.match(markup, /each whole is split into 5 equal parts/);
     assert.match(markup, /2 parts are shaded/);
   });
@@ -1486,7 +1486,7 @@ describe('entered-answer worksheets and evidence gates', () => {
       shape: { kind: 'fraction', allowWhole: false }, value: '1/3', onChange: () => undefined, testIdPrefix: 'ws-w1',
     }));
     assert.match(markup, /aria-label="numerator is the number of parts selected: 1[,"]/);
-    assert.match(markup, /aria-label="denominator is the total number of equal parts in 1 whole: 3"/);
+    assert.match(markup, /aria-label="denominator is the total number of equal parts in one whole: 3"/);
     assert.match(markup, /data-testid="tile-ws-w1-digit-9"/);
     assert.doesNotMatch(markup, /<input|<textarea/);
   });
@@ -1819,7 +1819,7 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.match(markup, /class="fq-ll-copy-part/);
     assert.match(markup, /aria-pressed="false"/);
     assert.match(markup, /fq-whole-bracket/);
-    assert.match(markup, /<b>1 whole<\/b>/);
+    assert.match(markup, /<b>one whole<\/b>/);
 
     const target = problem.model!;
     assert.equal(worksheetBarMatches(target, Array(target.d).fill(false)), false);
