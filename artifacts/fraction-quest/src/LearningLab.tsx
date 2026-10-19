@@ -694,7 +694,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
   return (
     <div className="fq-ll" data-testid="learning-lab">
-      <TaskBar onBack={onBack} testId="button-lab-back" title={getMission(missionId).shortTitle}
+      <TaskBar onBack={onBack} backAriaLabel="Back to the map" testId="button-lab-back" title={getMission(missionId).shortTitle}
         actions={<div className="fq-ll-print" role="group" aria-label="Print and help">
           {helper.button}
           <PrintMenu missionId={missionId} />

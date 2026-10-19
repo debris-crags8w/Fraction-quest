@@ -143,6 +143,8 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
 
           <LearningVoicePicker />
 
+          <p className="fq-parent-refs">Topic-scope references: <a href="https://webassets.zearn.org/resources/G03_Course_Guide_Z1.pdf" target="_blank" rel="noreferrer">Zearn Grade 3 Course Guide</a> and <a href="https://www.dreambox.com/math/skills/fractions" target="_blank" rel="noreferrer">DreamBox fractions overview</a>.</p>
+
           <BreakSettings
             intervalMinutes={fun.breakPreferences?.intervalMinutes ?? 15}
             quietMode={fun.breakPreferences?.quietMode ?? false}
