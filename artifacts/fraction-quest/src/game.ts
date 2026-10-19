@@ -700,7 +700,7 @@ const curriculum: MissionSeed[] = [
       practice('Write 3/10 as a decimal.', ['0.3', '3.0', '0.03'], 0, decimal(3), 'Tenths go right after the dot.', '3 tenths is 0.3.', decimal(1)),
       practice('What fraction is 0.6?', ['6/10', '6/100', '1/6'], 0, decimal(6), 'The 6 is right after the dot. That means tenths.', '0.6 means 6 tenths, or 6/10.', decimal(5)),
       practice('A strip is 0.4 colored. What fraction is that?', ['4/10', '4/100', '10/4'], 0, decimal(4), 'The number right after the dot is tenths.', '0.4 means 4 tenths, or 4/10.', decimal(2)),
-      practice('Which is bigger, 0.8 or 5/10?', ['0.8', '5/10', 'They are equal'], 0, bars({ numerator: 8, denominator: 10 }, { numerator: 5, denominator: 10 }), '0.8 is 8 tenths. Compare it to 5 tenths.', '8 tenths is more than 5 tenths.', decimal(5)),
+      practice('Which is bigger, 0.8 or 5/10?', ['0.8', '5/10', 'They are equal'], 0, bars({ numerator: 8, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Write both numbers as tenths.', '8 tenths is more than 5 tenths.', decimal(5)),
     ],
   },
   {
@@ -714,7 +714,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Write 8/100 as a decimal.', ['0.08', '0.8', '8.00'], 0, { kind: 'bars', bars: [{ numerator: 8, denominator: 100 }] }, 'Hundredths need 2 places after the dot.', '8 hundredths is 0.08. The 0 holds the tenths place.', decimal(1)),
       practice('What fraction is 0.35?', ['35/100', '3/5', '35/10'], 0, { kind: 'bars', bars: [{ numerator: 35, denominator: 100 }] }, '2 places after the dot means hundredths.', '0.35 means 35 hundredths, or 35/100.', decimal(4)),
-      practice('Which is bigger, 0.4 or 0.35?', ['0.4', '0.35', 'They are equal'], 0, bars({ numerator: 4, denominator: 10 }, { numerator: 35, denominator: 100 }), '0.4 is the same as 0.40. Compare 40 and 35.', '0.40 is 40 hundredths. 40 is more than 35.', decimal(4)),
+      practice('Which is bigger, 0.4 or 0.35?', ['0.4', '0.35', 'They are equal'], 0, bars({ numerator: 4, denominator: 10 }, { numerator: 35, denominator: 100 }), 'Write both numbers as hundredths.', '0.40 is 40 hundredths. 40 is more than 35.', decimal(4)),
       practice('Which decimal equals 9/10?', ['0.9', '0.09', '9.10'], 0, decimal(9), 'Tenths have 1 place after the dot.', '9 tenths is 0.9. 0.09 is 9 hundredths.', decimal(5)),
     ],
   },

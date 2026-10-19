@@ -193,9 +193,9 @@ export function withFourthChoice<T extends { prompt: string; choices: string[]; 
 /** Ordering answers without commas (user rule: no commas in answers). "Put … in order, smallest first" shows
     "1/4 < 1/2 < 3/4"; biggest first shows "3/4 > 1/2 > 1/4". Read aloud as "is less than" / "is greater than". */
 export function orderedWithSigns(prompt: string, choices: string[]): string[] {
-  const order = /in order, (smallest|biggest) first/i.exec(prompt);
+  const order = /in order, (smallest|biggest) first|(smallest|biggest) to (?:smallest|biggest)/i.exec(prompt);
   if (!order) return choices;
-  const sign = order[1].toLowerCase() === 'smallest' ? ' < ' : ' > ';
+  const sign = (order[1] ?? order[2]).toLowerCase() === 'smallest' ? ' < ' : ' > ';
   return choices.map((choice) => (choice.includes(',') ? choice.split(',').map((item) => item.trim()).join(sign) : choice));
 }
 
