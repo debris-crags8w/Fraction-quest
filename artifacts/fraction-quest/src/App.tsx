@@ -150,11 +150,8 @@ const UNIT_INFO: UnitInfo[] = [
   { title: 'Problem solving', subtitle: 'Grades 4–5 · Find the whole, spot the mistake, fraction of the rest; dividing fractions is bonus' },
 ];
 
-// Lessons where kids make fractions by folding a paper strip (1 → 1/2 → 1/4 → 1/8).
+// Folding paper lives in the equivalence lesson only, where folding again shows 1/2 = 2/4 = 4/8.
 const FOLD_LESSONS: Record<string, { intro: string; allowThirds?: boolean; shadeHalf?: boolean }> = {
-  'equal-parts': { intro: 'Fold the paper. Every fold makes equal pieces.' },
-  'unit-fractions': { intro: 'Fold, then unfold. Each piece is a unit fraction.' },
-  'unit-size': { intro: 'Fold in half again and again: 1/2, 1/4, 1/8. Watch the pieces get smaller.', allowThirds: false },
   'equivalent-models': { intro: 'Half the paper is shaded. Fold it again and unfold: 1/2 = 2/4 = 4/8.', allowThirds: false, shadeHalf: true },
 };
 
@@ -766,7 +763,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
   );
 }
 
-function GuidedExample({ mission, title, lessonLabel, hideMascot = false }: { mission: Mission; title?: string; lessonLabel?: string; /** Numi already introduced this screen. */ hideMascot?: boolean }) {
+function GuidedExample({ mission, title, lessonLabel, hideMascot = false, withTap = true }: { mission: Mission; title?: string; lessonLabel?: string; /** Numi already introduced this screen. */ hideMascot?: boolean; /** The "Your turn" tap model. Off when a graded question sits on the same screen, so there is one thing to do. */ withTap?: boolean }) {
   return (
     <div className="fq-example" data-testid="lesson-example">
       {lessonLabel && <p className="fq-play-kicker">{lessonLabel} · See it first</p>}
@@ -858,7 +855,7 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false }: { mi
       </div>
       {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
       {SHAPE_LESSONS.includes(mission.id) && <SameSizeIdea />}
-      <TapModel model={mission.example.model} />
+      {withTap && <TapModel model={mission.example.model} />}
     </div>
   );
 }
@@ -1071,7 +1068,7 @@ function PlayView({
           {showExample
             ? <h1 id="lesson-title">{mission.title}</h1>
             : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
-          {showExample && !actionFirst && <GuidedExample mission={mission} />}
+          {showExample && !actionFirst && <GuidedExample mission={mission} withTap={false} />}
           {question && (
             <>
               {showExample && <StoryPrompt prompt={question.prompt} id="lesson-question-title" />}
@@ -1144,7 +1141,7 @@ function PlayView({
               {showExample && actionFirst && (
                 <section className="fq-example-help" aria-labelledby="example-help-title" data-testid="example-help">
                   <h2 id="example-help-title">Need help? See an example</h2>
-                  <GuidedExample mission={mission} />
+                  <GuidedExample mission={mission} withTap={false} />
                 </section>
               )}
             </>

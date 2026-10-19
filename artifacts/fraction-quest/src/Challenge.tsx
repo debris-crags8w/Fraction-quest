@@ -4,7 +4,6 @@ import { MathText } from './MathText';
 import { ArrowRight, Check, Footprints, Map as MapIcon, RotateCcw, Trophy, X } from 'lucide-react';
 import { CHALLENGES, challengeMaxPoints, challengeTrophy, type ChallengeQuestion } from './challenges';
 import { Confetti, Mascot, StoryPrompt, unitColor, useFun, type MascotMood } from './fun-ui';
-import { PaperFold } from './PaperFold';
 import { playCue, playHaptic } from './lib/fun';
 import { ChallengeFigureView } from './models';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
@@ -27,7 +26,6 @@ function WalkThrough({ question, onClose }: { question: ChallengeQuestion; onClo
   return (
     <section className="fq-walk" aria-label="Walk me through it" data-testid="section-walkthrough">
       <p className="fq-walk-title"><Footprints size={16} /> Step by step {done ? '· all done!' : `· step ${at + 1} of ${steps.length}`}</p>
-      {question.figure?.kind === 'fold' && <PaperFold allowThirds={false} intro="Try it: fold the paper like Sam. Then unfold it." />}
       <ol className="fq-walk-done">
         {steps.slice(0, at).map((s, i) => <li key={i}><Check size={14} strokeWidth={3} /> <span><MathText text={s.prompt} /> <b><MathText text={s.choices[s.correct]} /></b></span></li>)}
       </ol>

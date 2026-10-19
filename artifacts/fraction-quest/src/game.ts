@@ -487,7 +487,7 @@ const curriculum: MissionSeed[] = [
       practice('Each jump is 1/4. What is 5 jumps from 0?', ['5/4', '4/5', '1/4'], 0, line(5, 4, 2), '4 jumps reach 1. Then 1 more.', '5 jumps is 5/4. That is 1 and 1/4.', line(3, 4)),
       practice('Each jump is 1/3. Which point is just past 1?', ['2/3', '4/3', '1/3', '3/3'], 1, line(4, 3, 2), '3 jumps of 1/3 reach 1. Take 1 more jump.', '4/3 is 1 and 1/3, just past 1.', line(2, 3)),
       practice('How many sixths make 1 and 2/6?', ['8/6', '6/8', '2/6'], 0, line(8, 6, 2), '1 whole is 6/6. Add 2 more.', '6/6 + 2/6 = 8/6.', line(6, 6)),
-      practice('A runner takes 9 steps of 1/5. How far is that?', ['1 and 3/5', '9/5 = 1 and 4/5', '4/5', '9/10'], 1, line(9, 5, 2), '5 steps make 1 whole. How many are left?', '9/5 is 5/5 and 4/5. That is 1 and 4/5.', line(5, 5)),
+      practice('A runner takes 9 steps of 1/5. How far is that?', ['1 and 3/5', '1 and 4/5', '4/5', '9/10'], 1, line(9, 5, 2), '5 steps make 1 whole. How many are left?', '9/5 is 5/5 and 4/5. That is 1 and 4/5.', line(5, 5)),
     ],
   },
   {
@@ -548,6 +548,7 @@ const curriculum: MissionSeed[] = [
       practice('Which fraction covers the same amount as 1/2?', ['2/4', '1/4', '3/4'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Which bar is shaded just as far?', '2/4 covers the same as 1/2.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 2/3?', ['4/6', '3/6', '2/6'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }), 'Cut each third into 2 pieces.', 'Double the numerator and denominator: 2/3 = 4/6.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 3/4?', ['6/8', '3/8', '4/8'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'Cut each fourth into 2 pieces.', '3/4 and 6/8 are the same amount.', bars({ numerator: 1, denominator: 2 })),
+      practice('You fold a paper strip in half, then fold it in half again. You shade 1 of the 2 halves. Which fraction names the same shaded amount?', ['2/4', '1/4', '1/3'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Folding again cuts each half into 2 equal pieces. How many fourths are shaded?', 'The second fold cuts the shaded half into 2 fourths: 1/2 = 2/4.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 2/5?', ['4/10', '2/10', '5/2'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'Multiply the numerator and denominator by the same number.', 'Double both: 2/5 = 4/10.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
@@ -592,8 +593,8 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('How many 1/5 pieces make 1 whole?', ['5 pieces', '4 pieces', '10 pieces'], 0, bars({ numerator: 5, denominator: 5 }), 'The denominator is how many pieces make 1 whole.', '5 fifths make 1 whole: 5/5 = 1.', bars({ numerator: 2, denominator: 4 })),
       practice('Which sum makes 1 whole?', ['1/3 + 2/3', '1/4 + 1/4', '2/5 + 1/5'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 3 }), 'Look for numerators that add up to the denominator.', '1/3 + 2/3 = 3/3. That is 1 whole.', bars({ numerator: 1, denominator: 2 })),
-      practice('What is 2/8 + 6/8?', ['8/8 = 1', '8/16', '4/8', '6/8'], 0, bars({ numerator: 2, denominator: 8 }, { numerator: 6, denominator: 8 }), 'Add the numerators. Keep eighths.', '2 + 6 = 8. 8/8 is 1 whole.', bars({ numerator: 1, denominator: 2 })),
-      practice('A recipe uses 3/6 cup, then 3/6 cup more. How much in all?', ['6/6 = 1 cup', '6/12 cup', '3/6 cup', '6/3 cup'], 0, bars({ numerator: 3, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Add the numerators. How many sixths fill 1 cup?', '3 + 3 = 6. 6/6 is 1 cup.', bars({ numerator: 1, denominator: 2 })),
+      practice('What is 2/8 + 6/8?', ['8/8', '8/16', '4/8', '6/8'], 0, bars({ numerator: 2, denominator: 8 }, { numerator: 6, denominator: 8 }), 'Add the numerators. Keep eighths.', '2 + 6 = 8. 8/8 is 1 whole.', bars({ numerator: 1, denominator: 2 })),
+      practice('A recipe uses 3/6 cup, then 3/6 cup more. How much in all?', ['6/6 cup', '6/12 cup', '3/6 cup', '6/3 cup'], 0, bars({ numerator: 3, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Add the numerators. How many sixths fill 1 cup?', '3 + 3 = 6. 6/6 is 1 cup.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
@@ -726,7 +727,7 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('Change 6/10 into hundredths.', ['6/100', '60/100', '16/100'], 1, bars({ numerator: 6, denominator: 10 }), 'Each tenth is 10 hundredths.', '6 × 10 = 60. So 6/10 = 60/100.', bars({ numerator: 1, denominator: 10 })),
-      practice('What is 3/10 + 4/100?', ['34/100', '7/110', '7/100'], 0, bars({ numerator: 3, denominator: 10 }, { numerator: 4, denominator: 100 }), 'Change 3/10 into hundredths first.', '3/10 = 30/100. 30 + 4 = 34. So 34/100.', bars({ numerator: 1, denominator: 10 })),
+      practice('What is 5/10 + 3/100?', ['53/100', '8/110', '8/100'], 0, bars({ numerator: 5, denominator: 10 }, { numerator: 3, denominator: 100 }), 'Change 5/10 into hundredths first.', '5/10 = 50/100. 50 + 3 = 53. So 53/100.', bars({ numerator: 1, denominator: 10 })),
       practice('What is 2/10 + 15/100?', ['17/100', '35/100', '17/110'], 1, bars({ numerator: 2, denominator: 10 }, { numerator: 15, denominator: 100 }), 'Change 2/10 into hundredths first.', '2/10 = 20/100. 20 + 15 = 35. So 35/100.', bars({ numerator: 1, denominator: 10 })),
       practice('A ribbon is 4/10 m. Another is 25/100 m. How long are they together?', ['29/100 m', '65/100 m', '29/110 m'], 1, bars({ numerator: 4, denominator: 10 }, { numerator: 25, denominator: 100 }), 'Change 4/10 into hundredths.', '4/10 = 40/100. 40 + 25 = 65. So 65/100 m, or 0.65 m.', bars({ numerator: 1, denominator: 10 })),
     ],

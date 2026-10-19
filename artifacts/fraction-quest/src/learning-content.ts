@@ -227,7 +227,7 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'multiplication-scaling': [3, 4, 'set', 'Build 3/4 of 12. Is the answer less or more than 12?', 'Three of four equal groups is 9. Multiplying 12 by 3/4 makes a smaller amount. ', 12],
   'multiply-mixed-numbers': [12, 6, 'bar', 'Build 1 1/2 × 1 1/3 square units.', 'The rectangle has 3 half-unit rows and 4 third-unit columns: 12 sixths, or 2 square units.'],
   'fraction-of-collection': [3, 4, 'set', 'Put 16 cards in 4 equal groups. Pick 3 groups.', '16 in 4 groups is 4 each. 3 groups is 12.', 16],
-  'divide-whole-by-unit-fraction': [4, 4, 'bar', 'How many 1/4 cups fill 1 cup? Make it.', '4 fourths make 1 whole. So 4 cups of 1/4.'],
+  'divide-whole-by-unit-fraction': [4, 4, 'bar', 'How many 1/4-cup scoops fill 1 cup? Make it.', '4 fourths make 1 whole. So 4 scoops of 1/4 cup fill 1 cup.'],
   'unit-fraction-divided-whole': [1, 12, 'bar', 'Share 1/3 of a pan equally among 4 children. Build one share.', 'Split each third into 4 equal parts. One share is 1/12 of the whole pan.'],
   'fraction-of-length': [3, 8, 'line', 'Mark 3/8 of a meter on the line.', 'Each space is 1/8 meter. Count 3 spaces.'],
   'ruler-measurement': [5, 4, 'line', 'Mark a length of 1 1/4 inches on a ruler.', 'Each small space is 1/4 inch. Five quarter-inch spaces make 1 1/4 inches.'],
@@ -919,7 +919,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         answer = i % 2 ? f(n * k, d * k) : String(n * k); denominator = i % 2 ? d * k : undefined;
         hint = `The denominator was multiplied by ${k}. Multiply the numerator by ${k} too.`; break;
       case 'compare': {
-        const [a, b, c, e] = ([[1, 2, 2, 5], [2, 3, 3, 4], [3, 4, 2, 3], [1, 3, 2, 6], [3, 5, 3, 4], [5, 6, 5, 8], [2, 5, 1, 3], [3, 8, 1, 2], [4, 6, 2, 3], [7, 10, 3, 5], [2, 5, 2, 3], [5, 8, 3, 4]] as const)[tr];
+        const [a, b, c, e] = ([[1, 2, 2, 5], [4, 5, 3, 4], [3, 4, 2, 3], [1, 3, 2, 6], [3, 5, 3, 4], [5, 6, 5, 8], [2, 5, 1, 3], [1, 2, 3, 8], [4, 6, 2, 3], [7, 10, 3, 5], [2, 5, 2, 3], [5, 8, 3, 4]] as const)[tr];
         prompt = `Put <, = or > in the gap: ${f(a, b)} __ ${f(c, e)}.`;
         answer = a * e > c * b ? '>' : a * e < c * b ? '<' : '='; form = 'symbol';
         hint = a === c
@@ -962,7 +962,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       }
       case 'quantity':
       case 'sets': {
-        const bottom = [2, 3, 4, 5, 6, 8, 3, 4, 5, 6, 10, 4][tr]; const total = bottom * (2 + i % 4); const groups = 1 + i % (bottom - 1 || 1);
+        const bottom = [2, 3, 4, 5, 6, 8, 3, 4, 5, 6, 10, 4][tr]; const sets = spec.mode === 'sets';
+        const total = bottom * (sets ? 3 + (i + 1) % 4 : 2 + i % 4); const groups = 1 + (sets ? (i + 1) : i) % (bottom - 1 || 1);
         prompt = `What is ${f(groups, bottom)} of ${total} ${spec.mode === 'sets' ? 'cards' : 'pencils'}?`;
         answer = String(total / bottom * groups); visual = i % 3 === 2 ? model(groups, bottom, 'set', total) : undefined;
         hint = `Make ${bottom} equal groups. Count ${groups} of them.`; break;
@@ -1164,7 +1165,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       case 'add-unlike': {
         const examples: [number, number, number, number, '+' | '−'][] = [
           [1, 3, 1, 4, '+'], [1, 2, 1, 3, '+'], [3, 4, 1, 3, '−'], [2, 3, 1, 4, '+'],
-          [5, 6, 1, 4, '−'], [1, 5, 1, 2, '+'], [7, 8, 1, 4, '−'], [2, 5, 1, 3, '+'],
+          [1, 6, 1, 4, '+'], [1, 5, 1, 2, '+'], [7, 8, 1, 4, '−'], [2, 5, 1, 3, '+'],
           [3, 4, 1, 6, '+'], [5, 6, 1, 3, '−'], [1, 8, 1, 2, '+'], [4, 5, 1, 2, '−'],
         ];
         const [a, b, c, e, op] = examples[tr]; const common = lcm(b, e);
@@ -1193,8 +1194,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       }
       case 'estimate': {
         const examples: [number, number, number, number, '+' | '−'][] = [
-          [2, 5, 1, 2, '+'], [3, 4, 1, 2, '−'], [1, 3, 1, 4, '+'], [5, 6, 1, 4, '+'],
-          [3, 8, 1, 2, '+'], [4, 5, 1, 3, '−'], [2, 3, 1, 4, '+'], [3, 5, 1, 2, '−'],
+          [2, 5, 1, 2, '+'], [3, 4, 1, 2, '+'], [1, 3, 1, 4, '+'], [5, 6, 1, 4, '+'],
+          [3, 8, 1, 2, '+'], [4, 5, 1, 3, '−'], [2, 3, 1, 4, '+'], [3, 5, 1, 2, '+'],
           [5, 8, 1, 4, '+'], [7, 10, 1, 3, '−'], [1, 4, 1, 2, '+'], [3, 4, 1, 3, '+'],
         ];
         const [a, b, c, e, op] = examples[tr]; const common = lcm(b, e);
@@ -1213,7 +1214,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         hint = `The grid has 12 equal small rectangles. The overlap covers ${product} of them.`; break;
       }
       case 'scaling': {
-        const examples: [number, number, number][] = [[3, 4, 12], [1, 2, 8], [5, 4, 8], [3, 2, 10], [1, 4, 20], [3, 4, 16], [5, 4, 12], [1, 2, 14], [3, 2, 8], [1, 4, 12], [3, 4, 20], [5, 4, 16]];
+        const examples: [number, number, number][] = [[3, 4, 12], [3, 2, 12], [5, 4, 8], [3, 2, 10], [4, 4, 20], [3, 4, 16], [5, 4, 12], [5, 4, 24], [3, 2, 8], [1, 4, 12], [3, 4, 20], [5, 4, 16]];
         const [top, bottom, whole] = examples[tr];
         scaleTask = { whole, numerator: top, denominator: bottom };
         prompt = `Move the scale slider to ${top}/${bottom}. Without multiplying, compare ${top}/${bottom} × ${whole} with ${whole}: __ ${whole}.`;
