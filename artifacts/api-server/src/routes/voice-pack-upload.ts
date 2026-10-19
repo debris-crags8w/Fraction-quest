@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import express, { Router, type IRouter, type NextFunction, type Request, type Response } from "express";
 import { createRateLimiter } from "../lib/rate-limit";
-import { appStorageVoicePack, checkVoicePack, isPackVoice, parseVoiceFileName, VOICE_FORMATS, VOICE_KEY, type VoicePackStore } from "../lib/voice-pack-store";
+import { appStorageVoicePack, checkVoicePack, isPackVoice, parseVoiceFileName, VoicePackSyncInProgressError, VOICE_FORMATS, VOICE_KEY, type VoicePackStore } from "../lib/voice-pack-store";
 import { cleanVoiceText } from "../lib/voice";
 import { generateMissingVoicePack, VoicePackSyncLimitError, voicePackSentenceKey } from "../lib/voice-pack-sync";
 import type { PackSentence } from "../lib/voice-pack-render";
@@ -92,9 +92,12 @@ export function createVoicePackUploadRouter(
       if (result.remainingFiles > 0) {
         res.status(503).json({ error: `${result.remainingFiles} audio files remain missing after the Replit sync.` }); return;
       }
-      res.json({ sentences: sentences.length, generatedFiles: result.missingFiles, generatedSentences: result.generatedSentences, remainingFiles: 0 });
+      res.json({ sentences: sentences.length, generatedFiles: result.generatedFiles, generatedSentences: result.generatedSentences, remainingFiles: 0 });
     } catch (error) {
-      if (error instanceof VoicePackSyncLimitError) {
+      if (error instanceof VoicePackSyncInProgressError) {
+        res.setHeader("Retry-After", "60");
+        res.status(409).json({ error: error.message });
+      } else if (error instanceof VoicePackSyncLimitError) {
         res.status(409).json({ error: error.message, missingSentences: error.missingSentences, limit: error.limit });
       } else {
         req.log?.error({ err: error }, "Replit voice pack sync failed");

@@ -9,7 +9,7 @@ import { createReadStream, existsSync, readdirSync, readFileSync } from "node:fs
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { objectStorageClient, ObjectStorageService } from "../src/lib/objectStorage";
-import { VOICE_CACHE_CONTROL } from "../src/lib/voice-pack-store";
+import { appStorageVoicePack, VOICE_CACHE_CONTROL } from "../src/lib/voice-pack-store";
 
 const PACK_VOICES = ["af_heart"] as const;
 const KEY_PATTERN = /^[0-9a-f]{16}$/;
@@ -88,6 +88,16 @@ function parseStoredVoiceFile(name: string, prefix: string): { voice: string; ke
 }
 
 async function syncVoicePack(root: string): Promise<void> {
+  const lock = await appStorageVoicePack().acquireSyncLock?.();
+  if (!lock) throw new Error("App Storage does not support a shared voice sync lock.");
+  try {
+    await syncVoicePackUnlocked(root, lock);
+  } finally {
+    await lock.release();
+  }
+}
+
+async function syncVoicePackUnlocked(root: string, lock: { renew(): Promise<void> }): Promise<void> {
   const index = readIndex(root);
   const uploads = collectUploads(root, index);
   const searchPaths = storage.getPublicObjectSearchPaths();
@@ -96,6 +106,7 @@ async function syncVoicePack(root: string): Promise<void> {
 
   console.log(`Uploading ${uploads.length} audio files to App Storage...`);
   await runLimited(uploads, MAX_PARALLEL_UPLOADS, async ({ voice, key, localPath }) => {
+    await lock.renew();
     const objectName = `${prefix}/voice/${voice}/${key}.mp3`;
     const file = bucket.file(objectName);
     await pipeline(
@@ -142,6 +153,7 @@ async function syncVoicePack(root: string): Promise<void> {
   }
   console.log(`Verified ${index.keys.length} sentences in all ${PACK_VOICES.length} voices; removing ${staleFiles.length} stale files...`);
   await runLimited(staleFiles, MAX_PARALLEL_UPLOADS, async (file) => {
+    await lock.renew();
     await file.delete();
   });
   console.log("Voice pack sync complete.");
