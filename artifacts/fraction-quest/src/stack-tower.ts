@@ -88,19 +88,19 @@ const name = (block: TowerBlock) => `${block.n}/${block.d}`;
 /** How to compare one block with 1/2, without saying the answer. */
 const parts = (count: number) => `${count} ${count === 1 ? 'part' : 'parts'}`;
 const halfQuestion = (block: TowerBlock) => block.d % 2 === 0
-  ? `Is ${name(block)} more or less than ½? Half of ${parts(block.d)} is ${parts(block.d / 2)}.`
-  : `Is ${name(block)} more or less than ½? Compare ${parts(block.n)} with half of ${parts(block.d)}.`;
+  ? `Is ${name(block)} more or less than 1/2? Half of ${parts(block.d)} is ${parts(block.d / 2)}.`
+  : `Is ${name(block)} more or less than 1/2? Compare ${parts(block.n)} with half of ${parts(block.d)}.`;
 
-/** A hint after a wrong spot. It names the strategy (compare with ½, 0 or 1) but never the right gap. */
+/** A hint after a wrong spot. It names the strategy (compare with 1/2, 0 or 1) but never the right gap. */
 export function towerHint(tower: TowerBlock[], block: TowerBlock, gap: number): string {
   const right = correctGap(tower, block);
   // The block next to the chosen gap that is in the wrong order with it.
   const neighbor = gap > right ? tower[gap - 1] : tower[gap];
   const [a, b] = [versusHalf(block), versusHalf(neighbor)];
-  if (a === 0) return `${name(block)} is the same as ½. ${halfQuestion(neighbor)}`;
-  if (b === 0) return `${name(neighbor)} is the same as ½. ${halfQuestion(block)}`;
+  if (a === 0) return `${name(block)} is the same as 1/2. ${halfQuestion(neighbor)}`;
+  if (b === 0) return `${name(neighbor)} is the same as 1/2. ${halfQuestion(block)}`;
   if (a !== b) return `Bigger blocks go lower. ${halfQuestion(block)}`;
   return a < 0
-    ? `${name(block)} and ${name(neighbor)} are both less than ½. Which one is closer to 0?`
-    : `${name(block)} and ${name(neighbor)} are both more than ½. Which one is missing less to make 1?`;
+    ? `${name(block)} and ${name(neighbor)} are both less than 1/2. Which one is closer to 0?`
+    : `${name(block)} and ${name(neighbor)} are both more than 1/2. Which one is missing less to make 1?`;
 }
