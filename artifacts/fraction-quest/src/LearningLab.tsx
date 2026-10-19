@@ -461,6 +461,13 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
   const problemNumber = numberLabel ?? p.id.slice(1);
   const shape = answerShape(p);
   const checkRef = useRef<HTMLButtonElement>(null);
+  // A right answer disables Check; move focus to "Correct!" so keyboard and screen-reader users keep their place.
+  const okRef = useRef<HTMLParagraphElement>(null);
+  const wasOk = useRef(ok);
+  useEffect(() => {
+    if (ok && !wasOk.current && (document.activeElement === checkRef.current || document.activeElement === document.body)) okRef.current?.focus({ preventScroll: true });
+    wasOk.current = ok;
+  }, [ok]);
   useRevealWhen(checkRef, !!draft.trim() && !ok);
   const promptId = `ws-prompt-${p.id}`;
   const targetBar = p.modelRequired && p.model?.kind === 'bar' ? p.model : null;
@@ -520,7 +527,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
           <button type="button" className="fq-ll-hintbtn" aria-expanded={open} onClick={() => { if (!open) onHint(); setOpen(o => !o); }} data-testid={'button-hint-worksheet-' + p.id}><Lightbulb size={16} /> Hint</button>
         </div>
         <div id={'ws-fb-' + p.id} aria-live="polite">
-          {ok && <p className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Correct!
+          {ok && <p ref={okRef} tabIndex={-1} className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Correct!
             {onNewQuestion && <button type="button" className="fq-ll-hintbtn fq-ll-newq" onClick={onNewQuestion} data-testid={'button-new-question-' + p.id}><RotateCcw size={15} /> New question</button>}</p>}
           {!ok && wrong === draft && <div className="fq-ll-ws bad" role="alert" data-testid={'status-worksheet-' + p.id}>
             <div className="fq-ll-ws-section-copy">
@@ -638,7 +645,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   if (review) {
     const check = getReviewCheck(missionId, progress.reviewQueue.find(item => item.missionId === missionId)?.reviewCount ?? 0);
     return (
-      <div className="fq-ll" data-testid="learning-lab-review">
+      <div className="fq-ll" role="main" data-testid="learning-lab-review">
         <button className="fq-back" onClick={onBack} data-testid="button-lab-back"><ArrowLeft size={17} /> Back</button>
         <header className="fq-ll-head"><span className="fq-ll-badge"><RotateCcw size={16} /> Later review</span><h2>Show it again</h2>
           <p>Build this one from scratch.</p></header>
@@ -679,7 +686,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const next = reqs.find(r => !r.done);
 
   return (
-    <div className="fq-ll" data-testid="learning-lab">
+    <div className="fq-ll" role="main" data-testid="learning-lab">
       <TaskBar onBack={onBack} backAriaLabel="Back to the map" testId="button-lab-back" title={getMission(missionId).shortTitle}
         actions={<div className="fq-ll-print" role="group" aria-label="Print and help">
           {helper.button}

@@ -12,10 +12,10 @@
   --card-foreground: 235 22% 21%;
   --primary: 256 100% 65%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 97 88% 33%;
+  --secondary: 96 100% 22.5%;
   --secondary-foreground: 0 0% 100%;
   --muted: 250 40% 95%;
-  --muted-foreground: 245 12% 44%;
+  --muted-foreground: 245 11% 39%;
   --accent: 47 100% 50%;
   --accent-foreground: 235 22% 21%;
   --destructive: 0 100% 65%;
@@ -25,8 +25,10 @@
   --radius: 1.1rem;
   --shadow-card: 0 2px 0 hsl(250 25% 88%);
 
-  --fq-grape: #7C4DFF;
+  --fq-grape: #7346F5;
   --fq-sky: #1CB0F6;
+  /* Sky blue dark enough for text, focus rings and white-on-blue buttons (5.5:1 on white). */
+  --fq-sky-ink: #0A6FA6;
   --fq-lime: #58CC02;
   --fq-lime-dark: #46A302;
   /* Button fills behind white text: a deeper lime that reads at 4.5:1 or better. */
@@ -140,9 +142,9 @@
 .fq-button:hover { transform: none; box-shadow: 0 5px 0 var(--fq-go-dark); filter: brightness(1.08); }
 .fq-button:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 0 0 var(--fq-go-dark); }
 
-.fq-button.secondary { background: var(--fq-sky); box-shadow: 0 5px 0 #1294D0; }
-.fq-button.secondary:hover { box-shadow: 0 5px 0 #1294D0; }
-.fq-button.secondary:active:not(:disabled) { box-shadow: 0 0 0 #1294D0; }
+.fq-button.secondary { background: var(--fq-sky-ink); box-shadow: 0 5px 0 #07517A; }
+.fq-button.secondary:hover { box-shadow: 0 5px 0 #07517A; }
+.fq-button.secondary:active:not(:disabled) { box-shadow: 0 0 0 #07517A; }
 
 .fq-button.ghost {
   color: var(--unit, var(--fq-sky));
@@ -169,7 +171,7 @@
 .fq-icon-button:hover { transform: none; }
 .fq-icon-button:active { transform: translateY(2px); border-bottom-width: 2px; }
 
-.fq-hint-button { color: var(--fq-sky); font-weight: 900; }
+.fq-hint-button { color: var(--fq-sky-ink); font-weight: 900; }
 
 /* ---------- top bar ---------- */
 
@@ -190,7 +192,7 @@
   font-size: 1.02rem;
 }
 .fq-stat-streak { color: var(--fq-tangerine); }
-.fq-stat-xp { color: var(--fq-sky); }
+.fq-stat-xp { color: var(--fq-sky-ink); }
 .fq-stat-unit { font-size: 0.78rem; }
 
 .fq-daily { position: relative; display: inline-grid; place-items: center; }
@@ -462,7 +464,7 @@
 .fq-segments .fq-segment.now { background: color-mix(in srgb, var(--fq-lime) 30%, var(--fq-track)); }
 .fq-segments button.fq-segment { appearance: none; cursor: pointer; }
 .fq-segments button.fq-segment.on:hover { filter: brightness(0.96); }
-.fq-segments button.fq-segment.on:focus-visible { outline: 3px solid var(--fq-sky); outline-offset: 3px; }
+.fq-segments button.fq-segment.on:focus-visible { outline: 3px solid var(--fq-sky-ink, #0A6FA6); outline-offset: 3px; }
 
 .fq-past-review { display: flex; flex-direction: column; gap: 16px; }
 .fq-past-review > h1,
@@ -1053,7 +1055,7 @@
 }
 .fq-ll-badge { color: #fff; background: var(--fq-grape); font-family: var(--app-font-sans); }
 .fq-ll-kicker { color: var(--fq-grape); font-family: var(--app-font-sans); }
-.fq-ll-translate { color: var(--fq-sky); }
+.fq-ll-translate { color: var(--fq-sky-ink); }
 .fq-ll-steps li { border-bottom-width: 4px; }
 .fq-ll-steps li.now { border-color: var(--fq-sky); }
 .fq-ll-steps li.done { border-color: var(--fq-lime); color: var(--fq-good-fg); background: var(--fq-good-bg); }
@@ -1094,7 +1096,7 @@
 .fq-ll-row { border-bottom-width: 4px; border-radius: 18px; }
 .fq-ll-row.ok { border-color: var(--fq-lime); background: var(--fq-good-bg); }
 .fq-ll-num { color: #fff; background: var(--fq-grape); font-family: var(--app-font-sans); }
-.fq-ll-hintbtn { color: var(--fq-sky); }
+.fq-ll-hintbtn { color: var(--fq-sky-ink); }
 .fq-ll-reqs li.done { color: var(--fq-good-fg); background: var(--fq-good-bg); }
 
 /* ---------- motion ---------- */
@@ -1323,7 +1325,7 @@
 .fq-login-form label { margin-top: 8px; font-weight: 900; }
 .fq-login-form label:first-child { margin-top: 0; }
 .fq-login-form input { width: 100%; min-height: 52px; padding: 0 14px; border: 2px solid var(--fq-edge); border-bottom-width: 4px; border-radius: 14px; background: hsl(var(--card)); color: hsl(var(--foreground)); font: 800 1.05rem var(--app-font-sans); }
-.fq-login-form input:focus-visible { outline: 3px solid var(--fq-sky); outline-offset: 1px; border-color: var(--fq-sky); }
+.fq-login-form input:focus-visible { outline: 3px solid var(--fq-sky-ink, #0A6FA6); outline-offset: 1px; border-color: var(--fq-sky); }
 .fq-login-form small { color: hsl(var(--muted-foreground)); font-weight: 700; font-size: 0.82rem; }
 .fq-login-password { position: relative; }
 .fq-login-password input { padding-right: 52px; }
@@ -1463,7 +1465,7 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 .fq-fold-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .fq-fold-trail > span { padding: 2px 10px; border-radius: 99px; background: var(--fq-track); font-weight: 900; font-size: 0.9rem; }
 .fq-fold-trail > span + span::before { content: '→ '; color: hsl(var(--muted-foreground)); }
-.fq-fold-trail > span.now { color: #fff; background: var(--fq-sky); }
+.fq-fold-trail > span.now { color: #fff; background: var(--fq-sky-ink); }
 .fq-fold-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 .fq-fold-buttons .fq-button { min-height: 44px; padding: 0 14px; font-size: 0.8rem; }
 
@@ -1602,7 +1604,7 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   .fq-fun-stats { gap: 8px; }
 }
 /* Calm, consistent focus ring everywhere. */
-.fq-app :focus-visible, .fq-ll :focus-visible, .fq-login-app :focus-visible { outline: 3px solid var(--fq-sky); outline-offset: 3px; }
+.fq-app :focus-visible, .fq-ll :focus-visible, .fq-login-app :focus-visible { outline: 3px solid var(--fq-sky-ink, #0A6FA6); outline-offset: 3px; }
 /* Smooth page entrance. */
 .fq-appear { animation: fq-rise-in 260ms ease-out both; }
 @keyframes fq-rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -1754,7 +1756,7 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-code-prediction { display: grid; gap: 5px; width: min(100%, 330px); margin: 14px 0; }
 .fq-code-prediction label { display: grid; gap: 4px; color: hsl(var(--muted-foreground)); font-size: 0.8rem; font-weight: 850; }
 .fq-code-prediction input { min-height: 46px; padding: 8px 12px; border: 2px solid var(--fq-edge); border-radius: 12px; color: hsl(var(--foreground)); background: hsl(var(--background)); font: inherit; font-size: 1.1rem; font-weight: 900; text-align: center; }
-.fq-code-prediction input:focus-visible { outline: 3px solid var(--fq-sky); outline-offset: 2px; }
+.fq-code-prediction input:focus-visible { outline: 3px solid var(--fq-sky-ink, #0A6FA6); outline-offset: 2px; }
 .fq-code-prediction-line { width: 100%; height: 3px; border-radius: 2px; background: var(--fq-edge); }
 .fq-code-world { display: grid; gap: 8px; min-height: 64px; align-content: center; }
 .fq-code-bar { display: grid; gap: 3px; height: 48px; }
@@ -2228,8 +2230,7 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 
 /* Wrong-answer messages in the lesson builder and worksheet: bright red, and laid out as one line of text
    ("Not yet. Count every part…") rather than side-by-side columns. */
-:root { --fq-alert: #D90429; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --fq-alert: #FF6B78; } }
+:root { --fq-alert: #C00324; }
 :root[data-theme="dark"] { --fq-alert: #FF6B78; }
 .fq-ll-ws.bad { display: block; color: var(--fq-alert); font-weight: 700; }
 .fq-ll-ws.bad strong { font-weight: 900; }
@@ -2296,7 +2297,7 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   animation: fq-fold-open 420ms cubic-bezier(.3, .8, .35, 1) both; animation-delay: calc(var(--i) * 60ms);
 }
 .fq-fold-piece:disabled { cursor: default; }
-.fq-fold-piece:focus-visible { outline: 3px solid var(--fq-sky); outline-offset: -4px; }
+.fq-fold-piece:focus-visible { outline: 3px solid var(--fq-sky-ink, #0A6FA6); outline-offset: -4px; }
 /* Each fold keeps its own crease style: 1st fold bold purple, 2nd blue dashes, 3rd light dots. */
 .fq-fold-piece.crease-1 { border-left: 3px solid var(--fold-crease-1); }
 .fq-fold-piece.crease-2 { border-left: 3px dashed var(--fold-crease-2); }
@@ -2352,7 +2353,7 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-daily-part.shaded { border: 0; }
 /* Pressing a part must not change its size (that would make it look unequal for a moment). */
 .fq-ll-piece:hover, .fq-ll-piece:active, .fq-tap-bar button:active, .fq-daily-part:hover:not(:disabled) { transform: none; }
-.fq-ll-piece:focus-visible, .fq-tap-bar button:focus-visible, .fq-daily-part:focus-visible { outline: 3px solid var(--fq-sky); outline-offset: -5px; }
+.fq-ll-piece:focus-visible, .fq-tap-bar button:focus-visible, .fq-daily-part:focus-visible { outline: 3px solid var(--fq-sky-ink, #0A6FA6); outline-offset: -5px; }
 /* Strips with unequal pieces (the "are these fair?" questions) keep straight dividers too: only the sizes differ. */
 .fq-partition-whole { gap: 0; background: hsl(var(--muted)); }
 .fq-partition-whole span + span { border-left: 2px solid var(--fq-whole-edge); }
@@ -2389,3 +2390,6 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-ll-hintbtn { min-height: 44px; }
 .fq-taskbar-back { min-width: 44px; justify-content: center; }
 @media (max-width: 480px) { .fq-tile { min-width: 44px; } }
+
+/* Headings that take focus when a new question or round appears (for screen readers) don't show a focus ring. */
+:is(h1, h2, h3)[tabindex="-1"]:focus { outline: none; }

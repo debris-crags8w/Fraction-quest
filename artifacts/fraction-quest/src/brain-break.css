@@ -25,7 +25,7 @@
 .fq-break-live strong { font-family:var(--app-font-display,var(--app-font-sans)); font-size:3.3rem; line-height:1; font-variant-numeric:tabular-nums; }
 .fq-break-live>span:last-child { color:hsl(var(--muted-foreground)); font-weight:850; }
 .fq-break-live.paused { background:hsl(var(--muted)); }
-.fq-break-card :focus-visible { outline:3px solid var(--fq-sky,#1cb0f6); outline-offset:3px; }
+.fq-break-card :focus-visible { outline:3px solid var(--fq-sky-ink, #0A6FA6); outline-offset:3px; }
 .fq-break-settings { display:grid; gap:0; padding:22px; border:2px solid var(--fq-edge,hsl(var(--border))); border-radius:22px; color:hsl(var(--foreground)); background:hsl(var(--card)); box-shadow:0 4px 0 var(--fq-edge,hsl(var(--border))); }
 .fq-break-settings-head { display:flex; align-items:center; gap:13px; padding-bottom:15px; }
 .fq-break-settings-icon { display:grid; place-items:center; width:43px; height:43px; border-radius:14px; color:#fff; background:var(--fq-grape,#7c4dff); }
@@ -40,7 +40,7 @@
 .fq-break-switch span { display:block; width:22px; height:22px; border-radius:50%; background:hsl(var(--card)); box-shadow:0 1px 4px rgb(0 0 0 / .2); transition:transform 150ms ease; }
 .fq-break-switch.on { border-color:var(--fq-lime,#58cc02); background:var(--fq-lime,#58cc02); }
 .fq-break-switch.on span { transform:translateX(21px); }
-.fq-break-settings :focus-visible { outline:3px solid var(--fq-sky,#1cb0f6); outline-offset:3px; }
+.fq-break-settings :focus-visible { outline:3px solid var(--fq-sky-ink, #0A6FA6); outline-offset:3px; }
 @keyframes fq-break-in { from { opacity:0; transform:translateY(10px) scale(.99); } to { opacity:1; transform:translateY(0) scale(1); } }
 @media(max-width:500px) { .fq-break-options { grid-template-columns:1fr; } .fq-break-skip { margin-left:0; } }
 @media(max-width:560px) { .fq-break-settings { padding:18px; } .fq-break-settings-row { align-items:flex-start; flex-direction:column; padding:14px 0; gap:9px; } .fq-break-settings-row select { width:100%; max-width:none; } .fq-break-settings-row.quiet { align-items:center; flex-direction:row; } }

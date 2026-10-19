@@ -1005,6 +1005,18 @@ function PlayView({
   const checkButtonRef = useRef<HTMLButtonElement>(null);
   useRevealWhen(checkButtonRef, selection !== null && feedback === null);
   const helper = useLessonHelper({ compact: true });
+  // Screen readers: after Check, focus moves to the next step (Continue or Try again) instead of falling to the page,
+  // and each new question's heading takes focus so the question is read.
+  const sheetActionRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => { if (feedback) sheetActionRef.current?.focus({ preventScroll: true }); }, [feedback]);
+  const firstQuestion = useRef(true);
+  useEffect(() => {
+    if (firstQuestion.current) { firstQuestion.current = false; return; }
+    const heading = document.getElementById('lesson-title');
+    if (!heading) return;
+    heading.setAttribute('tabindex', '-1');
+    heading.focus({ preventScroll: true });
+  }, [question?.id]);
   const cheer = combo >= 3 ? `${combo} in a row! You're on fire.` : question?.isMastery ? 'Practice checkpoint passed!' : ['Nice work!', 'You found it!', 'Great thinking!', 'Yes, that\'s it!'][(questionIndex + 4) % 4];
 
   return (
@@ -1101,9 +1113,12 @@ function PlayView({
                   );
                 })}
               </div>
+              <p className="fq-sr" role="status" aria-live="polite" data-testid="status-question-announce">
+                {feedback === 'correct' ? `${cheer} ${question.retryFeedback}` : feedback === 'retry' ? `${opener} ${retryText}` : ''}
+              </p>
               {/* Check sits right under the answers (not in a bar over them) so every answer stays in view. */}
               {feedback ? (
-                <div ref={sheetRef} className={`fq-sheet fq-inline-feedback ${feedback}`} role="status" data-testid="status-feedback" data-result={feedback}>
+                <div ref={sheetRef} className={`fq-sheet fq-inline-feedback ${feedback}`} data-testid="status-feedback" data-result={feedback}>
                   {feedback === 'correct' ? <Mascot mood="cheer" size={56} /> : <Hoot size={60} />}
                   <div className="fq-sheet-copy">
                     {feedback === 'correct'
@@ -1111,11 +1126,11 @@ function PlayView({
                       : <><strong>{opener}</strong><span><LearningText text={retryText} /></span></>}
                   </div>
                   {feedback === 'correct' ? (
-                    <button className="fq-button fq-sheet-button" onClick={moveOn} data-testid={isLastQuestion ? 'button-finish-mission' : 'button-next-question'}>
+                    <button ref={sheetActionRef} className="fq-button fq-sheet-button" onClick={moveOn} data-testid={isLastQuestion ? 'button-finish-mission' : 'button-next-question'}>
                       {isLastQuestion ? isQuickReview ? 'Finish review' : isExtraPractice ? 'Finish practice' : 'Build & explain next' : 'Continue'} <ArrowRight size={17} />
                     </button>
                   ) : (
-                    <button className="fq-button fq-sheet-button" onClick={() => { setFeedback(null); setSelection(null); }} data-testid="button-try-again">
+                    <button ref={sheetActionRef} className="fq-button fq-sheet-button" onClick={() => { setFeedback(null); setSelection(null); }} data-testid="button-try-again">
                       Try again
                     </button>
                   )}

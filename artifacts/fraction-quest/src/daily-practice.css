@@ -35,7 +35,7 @@
 .fq-daily-part.shaded span { font-size: 1.2rem; text-shadow: 0 1px 2px #137268; }
 .fq-daily-part:disabled { cursor: default; }
 .fq-daily-part-label { max-width: 640px; margin: 8px auto 0; color: hsl(var(--muted-foreground)); font-size: .82rem; font-weight: 800; }
-.fq-daily-part-label span { color: var(--fq-sky); font-size: 1.1rem; }
+.fq-daily-part-label span { color: var(--fq-sky-ink, #0A6FA6); font-size: 1.1rem; }
 .fq-daily-count { max-width: 640px; min-height: 26px; margin: 13px auto 0; text-align: center; font-weight: 800; color: hsl(var(--muted-foreground)); }
 .fq-daily-line-endpoints { display: flex; justify-content: space-between; max-width: 640px; margin: 0 auto -4px; color: hsl(var(--foreground)); font-weight: 900; }
 .fq-daily-line-track { position: relative; display: block; max-width: 640px; height: 58px; margin: 0 auto; isolation: isolate; }

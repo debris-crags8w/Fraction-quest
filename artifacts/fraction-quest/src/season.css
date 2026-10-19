@@ -228,3 +228,8 @@
     content: ""; position: absolute; bottom: 100%; left: 50%; width: 8px; height: 5px; margin-left: -4px; border-radius: 2px 2px 0 0; background: #C9A227;
   }
 }
+
+/* Inside a unit's coloured banner the night colours are too faint: keep the label and subtitle white. The lesson's
+   small "done" chip has a white background, so its text stays dark. */
+:root:is([data-fq-season="halloween"], [data-fq-season="christmas"]):not(.fq-high-contrast) .fq-map-app .fq-unit-heading :is(.fq-unit-kicker, p) { color: #fff; }
+:root:is([data-fq-season="halloween"], [data-fq-season="christmas"]):not(.fq-high-contrast) .fq-map-app .fq-node-steps small { color: #2B2D42; }

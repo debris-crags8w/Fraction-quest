@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRevealWhen, useScrollTopOn } from './lib/reveal';
 import { MathText } from './MathText';
 import { AREA_CUTS, pieceArea, type AreaCut, type Piece } from './area-shapes';
@@ -55,9 +55,10 @@ function CutPicture({ cut, label, selected = [], groups, interactive = false, di
   onToggle?: (index: number) => void;
 }) {
   const pieces = AREA_CUTS[cut];
+  // The focused piece's outline is drawn again on top of every piece, so a neighbour can't cover it.
+  const [focused, setFocused] = useState<number | null>(null);
   return (
-    <svg className={`fq-pf-square${interactive ? ' interactive' : ''}`} viewBox="0 0 168 168" role={interactive ? undefined : 'img'} aria-label={interactive ? undefined : label}>
-      {interactive && <title>{label}</title>}
+    <svg className={`fq-pf-square${interactive ? ' interactive' : ''}`} viewBox="0 0 168 168" role={interactive ? 'group' : 'img'} aria-label={label}>
       {pieces.map((piece, index) => {
         const group = groups?.[index] ?? -1;
         const pressed = groups ? group >= 0 : selected.includes(index);
@@ -73,6 +74,8 @@ function CutPicture({ cut, label, selected = [], groups, interactive = false, di
             aria-pressed={pressed}
             aria-label={name}
             aria-disabled={disabled}
+            onFocus={() => setFocused(index)}
+            onBlur={() => setFocused((current) => (current === index ? null : current))}
             onClick={() => !disabled && onToggle?.(index)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' || event.key === ' ') {
@@ -87,6 +90,10 @@ function CutPicture({ cut, label, selected = [], groups, interactive = false, di
         );
       })}
       <rect className="fq-pf-frame" x="1.5" y="1.5" width="165" height="165" fill="none" aria-hidden="true" />
+      {interactive && focused !== null && pieces[focused] && <g className="fq-pf-focus" aria-hidden="true">
+        <polygon className="fq-pf-focus-halo" points={svgPoints(pieces[focused])} />
+        <polygon className="fq-pf-focus-line" points={svgPoints(pieces[focused])} />
+      </g>}
     </svg>
   );
 }
@@ -209,6 +216,14 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
     setActiveShare(0);
   };
   const feedbackText = checked === 'idle' ? '' : partFinderFeedback(round, answerPieces, tileAnswer, friends);
+  // Keyboard and screen-reader users: a right answer moves focus to "Next cake", and a new cake focuses its title.
+  const nextButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => { if (correct) nextButtonRef.current?.focus({ preventScroll: true }); }, [correct]);
+  const firstRound = useRef(true);
+  useEffect(() => {
+    if (firstRound.current) { firstRound.current = false; return; }
+    document.getElementById('pf-title')?.focus({ preventScroll: true });
+  }, [roundIndex]);
 
   return (
     <main className="fq-app fq-pf" data-testid="part-finder-screen">
@@ -230,7 +245,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
         <section className="fq-pf-card" aria-labelledby="pf-title">
           <div className="fq-pf-heading">
             <div className="fq-listen-row">
-              <h1 id="pf-title">{words(round.title)}</h1>
+              <h1 id="pf-title" tabIndex={-1}>{words(round.title)}</h1>
               <LearningListenButton text={`${round.title}. ${round.prompt} ${instruction}${sorting ? ' Who gets the next pieces you tap?' : ''}`} label="Listen to this cake's task" compact />
             </div>
             <p className="fq-pf-prompt"><MathText text={words(round.prompt)} /></p>
@@ -302,7 +317,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
             <div className="fq-pf-actions">
               <button type="button" className="fq-button ghost" onClick={clearSelection} disabled={(sorting ? placed === 0 : selected.length === 0) || correct} data-testid="button-part-finder-clear">Clear</button>
               {correct ? (
-                <button type="button" className="fq-button" onClick={advance} data-testid="button-part-finder-next">
+                <button ref={nextButtonRef} type="button" className="fq-button" onClick={advance} data-testid="button-part-finder-next">
                   {lastRound ? 'Keep going' : 'Next cake'}
                 </button>
               ) : (
@@ -310,12 +325,13 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
               )}
             </div>
           </div>
-          {checked !== 'idle' && (
-            <div className={`fq-pf-feedback ${correct ? 'right' : 'retry'}`} role="status" aria-live="polite" data-testid="part-finder-feedback">
+          {/* Always on the page, so the feedback is announced when it appears. */}
+          <div role="status" aria-live="polite">{checked !== 'idle' && (
+            <div className={`fq-pf-feedback ${correct ? 'right' : 'retry'}`} data-testid="part-finder-feedback">
               <strong className="fq-listen-row">{correct ? 'That fits!' : 'Almost there.'}<LearningListenButton text={`${correct ? 'That fits!' : 'Almost there.'} ${feedbackText}`} label="Listen to the feedback" compact /></strong>
               <span><MathText text={words(feedbackText)} /></span>
             </div>
-          )}
+          )}</div>
         </section>
 
       </div>

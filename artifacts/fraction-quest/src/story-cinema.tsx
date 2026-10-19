@@ -622,13 +622,13 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
               {lines.map((_, index) => <li key={index} className={index === beat ? 'is-on' : index < beat ? 'is-seen' : ''} />)}
             </ol>
           )}
-          {done && (
-            <ol className="fq-cine-transcript">
-              {lines.map((panel, index) => (
-                <li key={index} data-testid={`story-panel-${index}`}>{CHARACTERS[panel.speaker].name}: {panel.text}</li>
-              ))}
-            </ol>
-          )}
+          {/* For screen readers the scene is one button, so its captions are also kept here: each line is added (and
+              read) as it starts, and the whole story stays once the film ends. */}
+          <ol className="fq-cine-transcript" aria-live={done ? undefined : 'polite'} aria-label="Story so far">
+            {lines.slice(0, done ? lines.length : Math.max(beat + 1, 0)).map((panel, index) => (
+              <li key={index} data-testid={done ? `story-panel-${index}` : undefined}>{CHARACTERS[panel.speaker].name}: {panel.text}</li>
+            ))}
+          </ol>
           {done && choice && (
             <fieldset className="fq-story-choice fq-cine-rise" data-testid="story-choice">
               <legend>What should we do first{name ? `, ${name}` : ''}?

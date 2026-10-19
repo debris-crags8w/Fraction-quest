@@ -182,7 +182,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
               return (
                 <div key={grade} className="fq-parent-mastery-grade">
                   <h3>Grade {grade}</h3>
-                  <div className="fq-parent-table-wrap">
+                  <div className="fq-parent-table-wrap" tabIndex={0} role="region" aria-label={`Grade ${grade} standards`}>
                     <table className="fq-parent-table">
                       <thead><tr><th>Standard</th><th>Evidence</th><th>Status</th></tr></thead>
                       <tbody>
@@ -256,7 +256,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
             {activeUnits.map((unit) => (
               <div key={unit.number} className="fq-parent-unit">
                 <h3>Unit {unit.number}: {unit.title} <span>{unit.done}/{unit.total} done{unit.challengeBest !== null ? ` · challenge ${unit.challengeBest}/${unit.challengeMax}` : ''}</span></h3>
-                <div className="fq-parent-table-wrap">
+                <div className="fq-parent-table-wrap" tabIndex={0} role="region" aria-label={`Unit ${unit.number} lessons`}>
                   <table className="fq-parent-table">
                     <thead><tr><th>Lesson</th><th>Status</th><th>Worksheet</th><th>First try</th><th>Builds</th><th>Remembered</th></tr></thead>
                     <tbody>
