@@ -1459,9 +1459,9 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 
 .fq-fold-message { margin: 0; font-weight: 800; }
 .fq-fold-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.fq-fold-trail span { padding: 2px 10px; border-radius: 99px; background: var(--fq-track); font-weight: 900; font-size: 0.9rem; }
-.fq-fold-trail span + span::before { content: '→ '; color: hsl(var(--muted-foreground)); }
-.fq-fold-trail span.now { color: #fff; background: var(--fq-sky); }
+.fq-fold-trail > span { padding: 2px 10px; border-radius: 99px; background: var(--fq-track); font-weight: 900; font-size: 0.9rem; }
+.fq-fold-trail > span + span::before { content: '→ '; color: hsl(var(--muted-foreground)); }
+.fq-fold-trail > span.now { color: #fff; background: var(--fq-sky); }
 .fq-fold-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 .fq-fold-buttons .fq-button { min-height: 44px; padding: 0 14px; font-size: 0.8rem; }
 

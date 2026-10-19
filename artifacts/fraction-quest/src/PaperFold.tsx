@@ -132,10 +132,10 @@ export function PaperFold({ allowThirds = true, shadeHalf = false, intro }: { al
         </div>
         {phase === 'folded' && <span className="fq-fold-layers" data-testid="text-fold-layers">{pieces} layers</span>}
       </div>
-      <p className="fq-fold-message" aria-live="polite" data-testid="text-paper-fold">{message}</p>
+      <p className="fq-fold-message" aria-live="polite" data-testid="text-paper-fold"><MathText text={message} /></p>
       {phase === 'flat' && equivalence && <p className="fq-fold-equal" data-testid="text-fold-equivalence">{equivalence}</p>}
       <div className="fq-fold-trail" aria-label="Fractions made so far">
-        {trail.map((p, i) => <span key={i} className={i === trail.length - 1 ? 'now' : ''}>{p === 1 ? '1' : `1/${p}`}</span>)}
+        {trail.map((p, i) => <span key={i} className={i === trail.length - 1 ? 'now' : ''}><MathText text={p === 1 ? '1' : `1/${p}`} /></span>)}
       </div>
       <div className="fq-fold-buttons">
         <button type="button" className="fq-button" onClick={() => fold(2)} disabled={busy || pieces * 2 > MAX_PIECES} data-testid="button-fold-half">Fold in half</button>
