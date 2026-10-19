@@ -52,9 +52,9 @@ export function getModelFeedback(target: LearningModel, kind: LearningModel['kin
 
 /** Keep reasoning feedback separate from model errors so a correct explanation is not blamed for a bad build. */
 export function getReasonFeedback(check: BuildCheck, selected: number | null, modelsCorrect: boolean): ReasonFeedback | null {
-  if (selected === null) return { message: 'Pick the sentence that matches your picture.', correct: false };
-  if (selected !== check.correctReason) return { message: 'Good try. Look at the pictures and choose again.', correct: false };
-  if (!modelsCorrect) return { message: 'Your reason is right! Now fix the picture above.', correct: true };
+  if (selected === null) return { message: 'Pick the sentence that matches your model.', correct: false };
+  if (selected !== check.correctReason) return { message: 'Good try. Look at the models and choose again.', correct: false };
+  if (!modelsCorrect) return { message: 'Your reason is right! Now fix the model above.', correct: true };
   return null;
 }
 
@@ -192,7 +192,7 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'number-line-points': [4, 7, 'line', 'Mark 4/7 on the number line.', 'The denominator is 7 equal spaces in one whole. The numerator is 4 jumps from zero.'],
   'number-line-beyond-one': [7, 5, 'line', 'Mark 1 and 2/5 on the number line.', '5/5 is 1 whole. 2 more fifths makes 7/5.'],
   'compare-same-denominator': [5, 8, 'bar', 'Which is bigger, 3/8 or 5/8? Make it.', 'Same size pieces. 5 is more than 3.'],
-  'compare-same-numerator': [3, 5, 'bar', 'Which is bigger, 3/5 or 3/8? Make it.', 'Both count 3 pieces. Eighths are smaller than fifths, so 3/8 is smaller than 3/5.'],
+  'compare-same-numerator': [3, 5, 'bar', 'Which is bigger, 3/5 or 3/8? Make it.', 'Both same-size wholes count 3 pieces. Eighths are smaller because the whole is cut into more parts. So 3/8 is smaller than 3/5.'],
   'order-fractions': [3, 4, 'bar', 'Which is biggest: 1/4, 1/2 or 3/4? Make it.', '3/4 is more than half.'],
   'equivalent-models': [2, 4, 'bar', 'Show 1/2 using fourths. Split every piece.', 'Split each half in 2. So 1/2 = 2/4.'],
   'build-equivalents': [4, 6, 'bar', 'Show 2/3 using sixths.', 'Split each third in 2. So 2/3 = 4/6.'],
