@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { DAILY_VOICE_BACKFILL_LIMIT, generateMissingVoicePack, runDailyVoiceBackfill, voicePackSentenceKey, VoicePackSyncLimitError } from "./lib/voice-pack-sync";
+import { generateMissingVoicePack, runDailyVoiceBackfill, voicePackSentenceKey, VoicePackSyncLimitError } from "./lib/voice-pack-sync";
 import { VoicePackSyncInProgressError, type VoiceFile, type VoicePackStore } from "./lib/voice-pack-store";
 
 const hasFfmpeg = await import("node:child_process").then(({ execFileSync }) => {
@@ -78,21 +78,18 @@ test("the sync limit stops an unexpectedly large backfill before rendering and r
   assert.equal(files.size, 0);
 });
 
-test("the daily job reports an oversized gap and leaves it for a manual batch", async () => {
+test("a capped run renders the first sentences needing audio and leaves the rest for the next run", { skip: !hasFfmpeg && "ffmpeg is not installed" }, async () => {
   const { store, files } = memoryStore();
-  const sentences = Array.from({ length: DAILY_VOICE_BACKFILL_LIMIT + 1 }, (_, index) => ({
-    key: index.toString(16).padStart(16, "0"),
-    text: `Fraction question ${index}.`,
-  }));
-  const messages: string[] = [];
-  await assert.rejects(
-    runDailyVoiceBackfill(store, sentences, { log: (message) => messages.push(message) }),
-    VoicePackSyncLimitError,
-  );
-  assert.equal(files.size, 0);
-  assert.match(messages.join("\n"), /checked 102 files across 51 sentences/i);
-  assert.match(messages.join("\n"), /generated 0 files/i);
-  assert.match(messages.join("\n"), /daily limit was exceeded/i);
+  const sentences = ["One half.", "One third.", "One fourth."].map((text, index) => ({ key: index.toString(16).padStart(16, "0"), text }));
+  const first = await generateMissingVoicePack(store, sentences, { apply: true, engine, voices: ["af_heart"], maxSentencesPerRun: 2 });
+  assert.equal(first.missingFiles, 6);
+  assert.equal(first.generatedFiles, 4);
+  assert.equal(first.remainingFiles, 0);
+  assert.equal(files.size, 4);
+  const second = await generateMissingVoicePack(store, sentences, { apply: true, engine, voices: ["af_heart"], maxSentencesPerRun: 2 });
+  assert.equal(second.missingFiles, 2);
+  assert.equal(second.generatedFiles, 2);
+  assert.equal(files.size, 6);
 });
 
 test("a shared sync lock prevents overlapping generation and is released after the run", async () => {

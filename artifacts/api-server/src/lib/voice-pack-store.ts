@@ -24,6 +24,8 @@ export function parseVoiceFileName(fileName: string): { key: string; format: Voi
 export type VoiceFile = { voice: string; key: string; format: VoiceFormat };
 
 const VOICE_SYNC_LOCK_TTL_MS = 2 * 60 * 60 * 1000;
+/** App Storage refuses more than about one write per second to one object, so renewals are spaced well apart. */
+const VOICE_SYNC_LOCK_RENEW_MS = 60 * 1000;
 
 export class VoicePackSyncInProgressError extends Error {
   constructor(message = "Another voice-pack sync is already running. Retry after it finishes.") {
@@ -65,6 +67,7 @@ export function appStorageVoicePack(): VoicePackStore {
     const file = bucket.file(`${privatePrefixParts.join("/")}/.fraction-quest-voice-sync.lock`);
     const owner = randomUUID();
     let generation = "";
+    let renewedAt = 0;
 
     const writeLock = async (ifGenerationMatch: string | number) => {
       await file.save(JSON.stringify({ owner, expiresAt: Date.now() + VOICE_SYNC_LOCK_TTL_MS }), {
@@ -75,6 +78,7 @@ export function appStorageVoicePack(): VoicePackStore {
       const [metadata] = await file.getMetadata();
       if (!metadata.generation) throw new Error("App Storage did not return a generation for the voice sync lock.");
       generation = String(metadata.generation);
+      renewedAt = Date.now();
     };
     const isPreconditionFailure = (error: unknown) => {
       const code = (error as { code?: unknown } | null)?.code;
@@ -116,6 +120,7 @@ export function appStorageVoicePack(): VoicePackStore {
     return {
       renew() {
         if (released) throw new VoicePackSyncInProgressError("The voice-pack sync lock was already released.");
+        if (!renewal && Date.now() - renewedAt < VOICE_SYNC_LOCK_RENEW_MS) return Promise.resolve();
         if (!renewal) {
           renewal = (async () => {
             try {

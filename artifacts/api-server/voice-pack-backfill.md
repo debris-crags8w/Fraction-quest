@@ -6,8 +6,8 @@ rerun: existing clips are skipped, and the job does not delete files.
 
 ## Replit Scheduled Deployment
 
-After the current one-time backfill finishes, create a Scheduled Deployment in
-the Replit Publishing tool:
+Create a Scheduled Deployment in the Replit Publishing tool once the one-time
+Heart backfill has finished (its dry run reports 0 missing files):
 
 - **Schedule:** once daily (for example, `0 3 * * *`)
 - **Time zone:** `America/New_York`
@@ -21,15 +21,14 @@ It checks both audio formats for every Heart sentence and reports checked,
 missing, generated, and remaining file counts. It skips work when storage is
 complete.
 
-Each run is capped at 50 missing sentences (up to 100 audio files). A larger gap
-fails before generation and prints the missing counts and the manual command for
-an intentional batch. All writers use one expiring App Storage lock, renewed
-between batches. The lock lives in the private storage directory, so the daily
+Each run renders at most 100 missing sentences (up to 200 audio files) and leaves
+the rest for the next run, so a large lesson change fills over a few days without
+anyone stepping in. The log says how many files wait for the next run. All writers use one expiring App Storage lock, renewed
+at most once a minute between batches. The lock lives in the private storage directory, so the daily
 run will not overlap an API/Actions sync or a manual generator. A stopped run
 preserves completed files and can be retried.
 
-The initial one-time Heart backfill is complete. Review the first scheduled run
-to confirm its checked/missing/generated counts. After a lesson or story change
+Review the first scheduled run to confirm its checked/missing/generated counts. After a lesson or story change
 is merged, sync that revision into this Replit project and publish it. Replit
 then redeploys the Scheduled Deployment with the updated sentence list for its
 next run.

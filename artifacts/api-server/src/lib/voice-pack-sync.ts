@@ -31,7 +31,7 @@ export class VoicePackSyncLimitError extends Error {
   }
 }
 
-export const DAILY_VOICE_BACKFILL_LIMIT = 50;
+export const DAILY_VOICE_BACKFILL_LIMIT = 100;
 /** Same FNV-1a sentence key used by the browser voice index. */
 export function voicePackSentenceKey(text: string): string {
   let hash = 0xcbf29ce484222325n;
@@ -46,7 +46,7 @@ export function voicePackSentenceKey(text: string): string {
 export async function generateMissingVoicePack(
   store: VoicePackStore,
   sentences: PackSentence[],
-  options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void; maxMissingSentences?: number; voices?: readonly PackVoice[] } = {},
+  options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void; maxMissingSentences?: number; maxSentencesPerRun?: number; voices?: readonly PackVoice[] } = {},
 ): Promise<SyncResult> {
   const lock = options.apply ? await store.acquireSyncLock?.() : undefined;
   try {
@@ -59,7 +59,7 @@ export async function generateMissingVoicePack(
 async function generateMissingVoicePackUnlocked(
   store: VoicePackStore,
   sentences: PackSentence[],
-  options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void; maxMissingSentences?: number; voices?: readonly PackVoice[] },
+  options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void; maxMissingSentences?: number; maxSentencesPerRun?: number; voices?: readonly PackVoice[] },
   lock?: VoicePackSyncLock,
 ): Promise<SyncResult> {
   const log = options.log ?? (() => undefined);
@@ -100,8 +100,13 @@ async function generateMissingVoicePackUnlocked(
 
   const engine = options.engine ?? await loadVoiceEngine();
   if (!engine) throw new Error("Kokoro did not load; no voice files were changed.");
-  const missingSet = new Set(missing.map(({ voice, key, format }) => `${voice}/${key}.${format}`));
-  const needsRender = new Set(missing.map(({ voice, key }) => `${voice}/${key}`));
+  // A capped run renders the first sentences that need audio and leaves the rest for the next run.
+  const thisRunKeys = options.maxSentencesPerRun === undefined ? null
+    : new Set([...new Set(missing.map(({ voice, key }) => `${voice}/${key}`))].slice(0, options.maxSentencesPerRun));
+  const thisRun = thisRunKeys ? missing.filter(({ voice, key }) => thisRunKeys.has(`${voice}/${key}`)) : missing;
+  if (thisRun.length < missing.length) log(`This run renders ${thisRunKeys!.size} of ${missingSentences} sentences; the rest wait for the next run.`);
+  const missingSet = new Set(thisRun.map(({ voice, key, format }) => `${voice}/${key}.${format}`));
+  const needsRender = new Set(thisRun.map(({ voice, key }) => `${voice}/${key}`));
   let generatedSentences = 0;
   let generatedFiles = 0;
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "fraction-quest-voice-pack-"));
@@ -140,7 +145,7 @@ async function generateMissingVoicePackUnlocked(
     await rm(tempRoot, { recursive: true, force: true });
   }
   const after = new Set((await store.list()).map(({ voice, key, format }) => `${voice}/${key}.${format}`));
-  const remainingFiles = missing.filter(({ voice, key, format }) => !after.has(`${voice}/${key}.${format}`)).length;
+  const remainingFiles = thisRun.filter(({ voice, key, format }) => !after.has(`${voice}/${key}.${format}`)).length;
   return {
     checkedSentences,
     checkedFiles,
@@ -153,7 +158,7 @@ async function generateMissingVoicePackUnlocked(
   };
 }
 
-/** Small scheduled catch-up; larger gaps fail before rendering for a deliberate manual batch. */
+/** Scheduled catch-up: renders at most DAILY_VOICE_BACKFILL_LIMIT sentences per run, so a large gap fills over a few days. */
 export async function runDailyVoiceBackfill(
   store: VoicePackStore,
   sentences: PackSentence[],
@@ -165,19 +170,18 @@ export async function runDailyVoiceBackfill(
       apply: true,
       engine: options.engine,
       voices: ["af_heart"],
-      maxMissingSentences: DAILY_VOICE_BACKFILL_LIMIT,
+      maxSentencesPerRun: DAILY_VOICE_BACKFILL_LIMIT,
       log,
     });
     if (result.remainingFiles > 0) {
       log(`Daily voice backfill verification failed: ${result.remainingFiles} files remain missing after generation.`);
       throw new Error(`${result.remainingFiles} voice files remain missing after the daily backfill.`);
     }
-    log(`Daily voice backfill complete: checked ${result.checkedFiles} files across ${result.checkedSentences} sentences; missing ${result.missingFiles} files across ${result.missingSentences} sentences; generated ${result.generatedFiles} files; ${result.remainingFiles} files remain.`);
+    const waiting = result.missingFiles - result.generatedFiles;
+    log(`Daily voice backfill complete: checked ${result.checkedFiles} files across ${result.checkedSentences} sentences; missing ${result.missingFiles} files across ${result.missingSentences} sentences; generated ${result.generatedFiles} files; ${waiting} files wait for the next run.`);
     return result;
   } catch (error) {
-    if (error instanceof VoicePackSyncLimitError) {
-      log(`Daily voice backfill stopped safely: checked ${error.checkedFiles} files across ${error.checkedSentences} sentences; missing ${error.missingFiles} files across ${error.missingSentences} sentences; generated 0 files. The ${DAILY_VOICE_BACKFILL_LIMIT}-sentence daily limit was exceeded.`);
-    } else if (error instanceof VoicePackSyncInProgressError) {
+    if (error instanceof VoicePackSyncInProgressError) {
       log("Daily voice backfill could not continue because the shared App Storage lock is busy or was lost; completed files are safe, and the job can be retried.");
     }
     throw error;
