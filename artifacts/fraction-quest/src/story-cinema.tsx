@@ -3,7 +3,8 @@
    caption with the speaker's face while the voice reads along. Big moments (the stone cracking, a splash, a falling
    plank) shake the screen with a thud and, in the app on iPhone and Android, a heavy tap. Without a voice the shots
    move on by themselves, and a voice that falls behind (a clip still loading) never holds the film up: it carries
-   on without it. A tap on the picture finishes a caption and the Skip button jumps to the end, where the film stays on its last picture. "Reduce motion" keeps the camera still.
+   on without it. A tap on the picture finishes a caption and the Skip button jumps to the end, where the film
+   stays on its last picture. "Reduce motion" keeps the camera still.
    Scenes: the prologue, every chapter opening, completed chapter endings and the finale. */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -563,7 +564,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
               {voiceOn ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />} {voiceOn ? 'Voice on' : 'Voice off'}
             </button>
           </div>
-          {done && <LearningListenButton text={lines.map((panel) => `${CHARACTERS[panel.speaker].name}: ${panel.text}`).join(' ')} label="Listen to the story" />}
+          {done && <LearningListenButton text={spoken.join(' ')} label="Listen to the story" />}
           <button type="button" key={take} className={`fq-cine-screen is-${scene} ${done ? '' : 'is-rolling'}`} data-testid="story-panels"
             onClick={() => (typing ? setChars(lines[beat].text.length) : undefined)}
             aria-label={done ? 'The last scene of the story' : 'The story scene'}>
@@ -609,7 +610,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
           {done && choice && (
             <fieldset className="fq-story-choice fq-cine-rise" data-testid="story-choice">
               <legend>What should we do first{name ? `, ${name}` : ''}?
-                <LearningListenButton text={`What should we do first? ${choice.map((option) => `${withName(option.label, name, theme)}. ${withName(option.detail, name, theme)}`).join(' Or ')}`} label="Listen to the choices" />
+                <LearningListenButton text={choice.map((option) => `${withName(option.label, null, theme)}. ${withName(option.detail, null, theme)}`).join(' ')} label="Listen to the choices" />
               </legend>
               {choice.map((option, index) => (
                 <button key={option.label} type="button" className={picked === index ? 'on' : ''} aria-pressed={picked === index}
@@ -620,14 +621,14 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
               {reply && (
                 <p className="fq-story-reply" role="status" data-testid="story-choice-reply">
                   <StoryCharacter id={reply.speaker} size={40} />
-                  <LearningListenButton text={`${CHARACTERS[reply.speaker].name}: ${withName(reply.text, name, theme)}`} label="Listen to the reply" />
+                  <LearningListenButton text={withName(reply.text, null, theme)} label="Listen to the reply" />
                   <span><b>{CHARACTERS[reply.speaker].name}:</b> {withName(reply.text, name, theme)}
                     {choiceNotes && picked !== null && <em className="fq-story-reward" data-testid="story-choice-reward">{choiceNotes[picked]}</em>}</span>
                 </p>
               )}
             </fieldset>
           )}
-          {done && note && <p className="fq-story-note fq-cine-rise" data-testid="story-detective-note"><Search size={16} aria-hidden="true" /> <LearningListenButton text={withName(note, name, theme)} label="Listen to the note" /> {withName(note, name, theme)}</p>}
+          {done && note && <p className="fq-story-note fq-cine-rise" data-testid="story-detective-note"><Search size={16} aria-hidden="true" /> <LearningListenButton text={withName(note, null, theme)} label="Listen to the note" /> {withName(note, name, theme)}</p>}
           <div className="fq-cine-controls">
             <button type="button" className="fq-button ghost" onClick={() => play(true)} data-testid="button-story-replay"><RotateCcw size={16} aria-hidden="true" /> Replay</button>
             {done ? (
