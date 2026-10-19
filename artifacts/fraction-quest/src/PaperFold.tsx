@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react';
 import { RotateCcw } from 'lucide-react';
+import { MathText } from './MathText';
 import { useOptionalFun } from './fun-ui';
 import { useReadAloud } from './LearningText';
 
@@ -91,7 +92,7 @@ export function PaperFold({ allowThirds = true, shadeHalf = false, intro }: { al
 
   return (
     <section className={`fq-fold ${shadeHalf ? 'shade-half' : ''}`} aria-label="Fold the paper" data-testid="section-paper-fold">
-      {intro && <p className="fq-fold-intro">{intro}</p>}
+      {intro && <p className="fq-fold-intro"><MathText text={intro} /></p>}
       <div className="fq-fold-stage">
         {/* The whole strip stays as a faint outline, so a folded stack is still seen as part of 1 whole. */}
         <div className={`fq-fold-ghost ${open ? 'hidden' : ''}`} aria-hidden="true" />

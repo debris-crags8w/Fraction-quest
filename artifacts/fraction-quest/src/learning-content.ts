@@ -1101,7 +1101,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         rulerTask = { denominator: 4, wholes: 2, end };
         answer = mixedName(end, 4); form = answer.includes(' ') ? 'mixed' : undefined;
         prompt = `The blue ${object} starts at zero and ends at a tick with no number. Use the ruler. How long is it in inches?`;
-        hint = 'Each short space is 1/4 inch. Count the spaces from zero to the strip end.'; break;
+        hint = 'Each short space is the same size. Count the spaces from zero to the strip end.'; break;
       }
       case 'line-plot': {
         const dataSets = [

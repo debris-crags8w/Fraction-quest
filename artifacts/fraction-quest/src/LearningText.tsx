@@ -53,7 +53,7 @@ function VocabularyTerm({ text, definition, interactive }: { text: string; defin
   return (
     <span className="fq-vocab" onMouseEnter={keepOnScreen} onFocus={keepOnScreen}>
       <span className="fq-vocab-trigger" role="term" tabIndex={0} aria-describedby={tooltipId}>{text}</span>
-      <span className="fq-vocab-tooltip" id={tooltipId} role="tooltip">{definition}</span>
+      <span className="fq-vocab-tooltip" id={tooltipId} role="tooltip"><MathText text={definition} /></span>
     </span>
   );
 }

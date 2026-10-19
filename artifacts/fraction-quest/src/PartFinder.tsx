@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useScrollTopOn } from './lib/reveal';
+import { MathText } from './MathText';
 import { AREA_CUTS, pieceArea, type AreaCut, type Piece } from './area-shapes';
 import { FRIENDS, isPartFinderAnswer, partFinderFeedback, type PartFinderRound } from './part-finder';
 import './part-finder.css';
@@ -223,20 +224,20 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
         <section className="fq-pf-card" aria-labelledby="pf-title">
           <div className="fq-pf-heading">
             <h1 id="pf-title">{words(round.title)}</h1>
-            <p className="fq-pf-prompt">{words(round.prompt)}</p>
+            <p className="fq-pf-prompt"><MathText text={round.prompt} /></p>
           </div>
 
           <div className={`fq-pf-workspace ${round.id === 'match' ? 'match' : ''}`}>
             {round.id === 'match' && round.comparisonCut && (
               <figure className="fq-pf-comparison" data-testid="part-finder-comparison">
-                <figcaption><span>Compare</span><strong>1/4 of the cake</strong></figcaption>
+                <figcaption><span>Compare</span><strong><MathText text="1/4 of the cake" /></strong></figcaption>
                 <CutPicture cut={round.comparisonCut} label="Comparison square with one fourth highlighted" selected={[0]} />
               </figure>
             )}
             <figure className="fq-pf-interactive">
               <figcaption>
                 <span>{round.id === 'match' ? 'Find the same amount' : sorting ? 'Share it out' : 'Choose a piece'}</span>
-                <strong>{words(round.targetLabel)}</strong>
+                <strong><MathText text={round.targetLabel} /></strong>
               </figcaption>
               <CutPicture
                 cut={round.cut}
@@ -303,7 +304,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
           {checked !== 'idle' && (
             <div className={`fq-pf-feedback ${correct ? 'right' : 'retry'}`} role="status" aria-live="polite" data-testid="part-finder-feedback">
               <strong>{correct ? 'That fits!' : 'Almost there.'}</strong>
-              <span>{words(partFinderFeedback(round, answerPieces, tileAnswer, friends))}</span>
+              <span><MathText text={partFinderFeedback(round, answerPieces, tileAnswer, friends)} /></span>
             </div>
           )}
         </section>
