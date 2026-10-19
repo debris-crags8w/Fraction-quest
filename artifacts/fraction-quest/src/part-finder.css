@@ -98,7 +98,12 @@
 .fq-pf-frame { stroke: hsl(var(--foreground)); stroke-width: 3; pointer-events: none; }
 .fq-pf-square.interactive .fq-pf-piece { cursor: pointer; transition: fill 120ms ease, stroke-width 120ms ease; }
 .fq-pf-square.interactive .fq-pf-piece:not([class*="share-"]):hover { fill: color-mix(in srgb, var(--fq-sun) 76%, hsl(var(--card))); }
-.fq-pf-square.interactive .fq-pf-piece:focus { outline: none; filter: drop-shadow(0 0 3px var(--fq-sky)); stroke: var(--fq-sky); stroke-width: 4; }
+.fq-pf-square.interactive .fq-pf-piece:focus { outline: none; }
+/* The focus ring: a light halo and a dark line, drawn over every piece. */
+.fq-pf-focus { pointer-events: none; }
+.fq-pf-focus polygon { fill: none; stroke-linejoin: round; }
+.fq-pf-focus-halo { stroke: #fff; stroke-width: 7; }
+.fq-pf-focus-line { stroke: var(--fq-sky-ink, #0A6FA6); stroke-width: 3.5; }
 .fq-pf-instruction { margin: 0; color: hsl(var(--muted-foreground)); font-size: .83rem; font-weight: 700; text-align: center; }
 
 .fq-pf-tile-empty { width: min(100%, 550px); margin: 10px auto 20px; padding: 18px; border: 2px dashed var(--fq-edge); border-radius: 16px; color: hsl(var(--muted-foreground)); background: hsl(var(--muted)); text-align: center; font-weight: 750; }
@@ -122,7 +127,7 @@
 .fq-pf-feedback.right { color: var(--fq-good-fg); background: var(--fq-good-bg); }
 .fq-pf-feedback.retry { color: var(--fq-bad-fg); background: var(--fq-bad-bg); }
 .fq-pf-separation { margin: 18px 0 0; color: hsl(var(--muted-foreground)); font-size: .78rem; font-weight: 650; text-align: center; }
-.fq-pf button:focus-visible { outline: 4px solid var(--fq-sky); outline-offset: 3px; }
+.fq-pf button:focus-visible { outline: 4px solid var(--fq-sky-ink, #0A6FA6); outline-offset: 3px; }
 
 @keyframes fq-pf-piece-reveal {
   from { opacity: .4; transform: scaleX(.92); }
