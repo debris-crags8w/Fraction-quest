@@ -47,6 +47,17 @@ export function ModelIntro({ kind, onDone, onSkip, helper = false }: {
     }), SHOT_MS);
   };
   useEffect(() => { play(); return () => clearInterval(timer.current); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // On a short phone the intro starts below the lesson's header and steps, so "Your turn" is off screen: when the
+  // card doesn't fit, bring its top into view (the Helper scrolls its own panel).
+  const sectionRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (helper) return;
+    const frame = requestAnimationFrame(() => {
+      const box = sectionRef.current?.getBoundingClientRect();
+      if (box && box.bottom > window.innerHeight) sectionRef.current?.scrollIntoView?.({ block: 'start' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [helper]);
 
   const startTries = () => { clearInterval(timer.current); setPhase('try'); setTryIndex(0); setParts(1); setCount(kind === 'builder' ? 0 : -1); };
   const target = tries[tryIndex];
@@ -64,7 +75,7 @@ export function ModelIntro({ kind, onDone, onSkip, helper = false }: {
   };
 
   return (
-    <section className={`fq-mi is-${kind}`} aria-labelledby={`intro-title-${kind}`} data-testid={`intro-${kind}`}>
+    <section ref={sectionRef} className={`fq-mi is-${kind}`} aria-labelledby={`intro-title-${kind}`} data-testid={`intro-${kind}`}>
       <header className="fq-mi-head">
         <div>
           <span className="fq-mi-kicker">{text.kicker}</span>
@@ -187,12 +198,12 @@ export function useLessonHelper({ compact = false }: { /** An icon-only button, 
   const panelRef = useRef<HTMLElement | null>(null);
   const close = () => { setOpen(false); setKind(null); };
   const button = (
-    <button type="button" className={compact ? 'fq-icon-button fq-mi-helper-button' : 'fq-button ghost fq-mi-helper-button'} aria-expanded={open} aria-label={compact ? 'Helper: how to build and number lines' : undefined} onClick={() => {
+    <button type="button" className={compact ? 'fq-icon-button fq-mi-helper-button' : 'fq-button ghost fq-mi-helper-button'} aria-expanded={open} aria-label="Helper: how to build and number lines" onClick={() => {
       if (open) { close(); return; }
       setOpen(true);
       requestAnimationFrame(() => panelRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
     }} data-testid="button-lesson-helper">
-      <LifeBuoy size={compact ? 20 : 17} aria-hidden="true" />{!compact && <span>Helper</span>}
+      <LifeBuoy size={compact ? 20 : 17} aria-hidden="true" />{!compact && <span className="fq-hide-narrow">Helper</span>}
     </button>
   );
   const panel = open ? (
