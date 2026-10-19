@@ -243,23 +243,6 @@
 .fq-cine-screen.is-chapter-end .fq-cine-set { background: linear-gradient(#9EDCFF, #FFF4D6 65%, #7BD389); }
 .fq-cine-end-horizon { inset: 0; background: radial-gradient(circle at 84% 16%, #FFE066 0 24px, transparent 25px); }
 .fq-cine-end-horizon.is-festival { background: radial-gradient(circle at 50% 45%, rgb(255 200 0 / .25), transparent 45%), linear-gradient(#211D45, #6D4BD8 68%, #372D56); }
-.fq-cine-end-symbol { left: 55%; top: 28%; z-index: 1; display: grid; place-items: center; width: 120px; height: 100px; color: #FFF4D6; font-size: 3.5rem; filter: drop-shadow(0 4px 4px rgb(0 0 0 / .25)); }
-.fq-cine-end-symbol::before { content: '✦'; }
-.fq-cine-end-symbol.is-unit-1::before { content: '◉'; color: #F6A55B; }
-.fq-cine-end-symbol.is-unit-2::before { content: '●'; color: #4CC9F0; }
-.fq-cine-end-symbol.is-unit-3::before { content: '½'; color: #7BD389; }
-.fq-cine-end-symbol.is-unit-4::before { content: '⌁'; color: #4CC9F0; }
-.fq-cine-end-symbol.is-unit-5::before { content: '▤'; color: #FF9FB2; }
-.fq-cine-end-symbol.is-unit-6::before { content: '⅟'; color: #FFC800; }
-.fq-cine-end-symbol.is-unit-7::before { content: '⚙'; color: #C9D6DF; }
-.fq-cine-end-symbol.is-unit-8::before { content: '👢'; font-size: 3rem; }
-.fq-cine-end-symbol.is-unit-9::before { content: '➜'; color: #5FB872; }
-.fq-cine-end-symbol.is-unit-10::before { content: '♧'; color: #FF6B6B; }
-.fq-cine-end-symbol.is-unit-11::before { content: '⚙'; color: #4CC9F0; }
-.fq-cine-end-symbol.is-unit-12::before { content: '⌁'; color: #B98552; }
-.fq-cine-end-symbol.is-unit-13::before { content: '✿'; color: #FF6B6B; }
-.fq-cine-end-symbol.is-unit-14::before { content: '🔓'; font-size: 3rem; }
-.fq-cine-end-symbol.is-unit-15::before { content: '✦'; color: #FFC800; }
 .fq-cine-end-stone { left: 63%; top: 64%; z-index: 3; width: 24px; height: 30px; border: 3px solid #FFF4D6; border-radius: 5px; background: #5A4A2E; opacity: .4; transform: scale(.7); transition: transform .8s, opacity .8s, box-shadow .8s; }
 .fq-cine-end-stone.is-found { opacity: 1; transform: scale(1.25); background: #FFC800; box-shadow: 0 0 22px 9px rgb(255 200 0 / .75); }
 .fq-cine-end-ribbon { left: 0; right: 0; bottom: 17%; z-index: 4; color: #6D4BD8; font-size: 1.25rem; font-weight: 1000; text-align: center; text-shadow: 0 2px #fff; opacity: 0; transition: opacity .6s; }

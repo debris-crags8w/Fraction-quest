@@ -378,23 +378,20 @@ function FestivalArt({ beat }: { beat: number }) {
 }
 
 /** Finished chapters close on the friend, their recovered piece, and an image of that chapter's story. */
-function ChapterEndArt({ beat, unit = 1 }: { beat: number; unit?: number }) {
+function ChapterEndArt({ beat, unit = 1, speaker }: { beat: number; unit?: number; speaker?: Panel['speaker'] }) {
   const chapter = CHAPTERS[unit - 1] ?? CHAPTERS[0];
-  const speaker = beat === 1 ? 'hoot' : beat === 2 ? 'numi' : chapter.character;
   return (
     <>
       <span className="fq-cine-end-horizon" />
-      <span className={`fq-cine-end-symbol is-unit-${unit}`} aria-hidden="true" />
       <span className={`fq-cine-end-stone ${beat >= 1 ? 'is-found' : ''}`} role="img" aria-label={`Chapter ${unit} stone piece recovered`} />
-      <span className="fq-cine-actor" style={pos(16, 27)}><StoryCharacter id={speaker} size={96} happy={beat >= 1} /></span>
-      <span className={`fq-cine-end-ribbon ${beat >= 2 ? 'is-visible' : ''}`}>{beat >= 2 ? `${unit}/15 pieces` : ''}</span>
+      <span className="fq-cine-actor" style={pos(16, 27)}><StoryCharacter id={speaker ?? chapter.character} size={96} happy={beat >= 1} /></span>
+      <span className={`fq-cine-end-ribbon ${beat >= 2 ? 'is-visible' : ''}`}>{beat >= 2 ? `${unit} of 15 pieces` : ''}</span>
       {beat >= 2 && <Confetti />}
     </>
   );
 }
 
-function EpilogueArt({ beat }: { beat: number }) {
-  const speaker = beat === 0 ? 'hoot' : beat === 1 ? 'bolt' : beat === 2 ? 'chomp' : 'numi';
+function EpilogueArt({ beat, speaker = 'hoot' }: { beat: number; speaker?: Panel['speaker'] }) {
   return (
     <>
       <span className="fq-cine-end-horizon is-festival" />
@@ -402,13 +399,13 @@ function EpilogueArt({ beat }: { beat: number }) {
         {Array.from({ length: 15 }, (_, i) => <i key={i} />)}
       </span>
       <span className="fq-cine-actor" style={pos(11, 30)}><StoryCharacter id={speaker} size={88} happy /></span>
-      <span className="fq-cine-festival-riddle">{beat >= 1 ? 'ONE WHOLE' : 'FESTIVAL'}</span>
+      <span className="fq-cine-festival-riddle">{beat >= 1 ? 'One whole' : 'Festival'}</span>
       {beat >= 2 && <Confetti />}
     </>
   );
 }
 
-const ART: Record<StoryScene, (props: { beat: number; unit?: number }) => ReactNode> = {
+const ART: Record<StoryScene, (props: { beat: number; unit?: number; speaker?: Panel['speaker'] }) => ReactNode> = {
   prologue: PrologueArt, bakery: BakeryArt, pond: PondArt, hill: HillArt, bridge: BridgeArt, tower: TowerArt, honey: HoneyArt,
   workshop: WorkshopArt, den: DenArt, race: RaceArt, picnic: PicnicArt, machine: MachineArt, stage: StageArt,
   garden: GardenArt, lock: LockArt, festival: FestivalArt, 'chapter-end': ChapterEndArt, epilogue: EpilogueArt,
@@ -564,7 +561,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
             aria-label={done ? 'The last scene of the story' : 'Show the whole story now'}>
             <span className={`fq-cine-cam ${cold ? 'is-cold' : 'is-warm'}`} style={{ transform: camera, transformOrigin: origin }}>
               <span className={`fq-cine-set ${!done && beat === filming.impact ? 'is-shaking' : ''}`} data-testid="story-stage">
-                <Art beat={done ? lines.length - 1 : Math.max(beat, 0)} unit={unit} />
+                <Art beat={done ? lines.length - 1 : Math.max(beat, 0)} unit={unit} speaker={lines[done ? lines.length - 1 : Math.max(beat, 0)]?.speaker} />
               </span>
             </span>
             <span className="fq-cine-vignette" />

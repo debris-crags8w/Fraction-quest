@@ -112,12 +112,19 @@ test('a story is read aloud as "friend", never with the child\'s name, so it pla
   const { sentences, spokenText } = await import('./lib/voice');
   const { WHOLE_STONE_OPENING, withName } = await import('./story');
   const { EPILOGUE, CHAPTERS, chapterEnd } = await import('./story');
-  // Filmed comics (the prologue, chapter openings) read just the lines; plain ones say who speaks.
+  // Filmed comics (the prologue, chapter openings and story endings) read just the lines; plain ones say who speaks.
   const filmed = (panels: typeof PROLOGUE, theme: Parameters<typeof withName>[2]) => panels.map((panel) => withName(panel.text, null, theme)).join(' ');
-  const script = `${filmed(PROLOGUE, 'halloween')} ${filmed(CHAPTERS[1].intro, 'everyday')} ${withName(WHOLE_STONE_OPENING, null, 'christmas')} ${storyScript(EPILOGUE)} ${storyScript(chapterEnd(CHAPTERS[3]), 'christmas')}`;
+  const endingLines = [EPILOGUE, ...CHAPTERS.map(chapterEnd)].flatMap((panels) => panels.map((panel) => withName(panel.text, null, 'everyday')));
+  const script = `${filmed(PROLOGUE, 'halloween')} ${filmed(CHAPTERS[1].intro, 'everyday')} ${withName(WHOLE_STONE_OPENING, null, 'christmas')} ${storyScript(CHAPTERS[3].choice.map((option) => option.reply), 'christmas')}`;
   assert.doesNotMatch(script, /\{name\}/);
+  assert.doesNotMatch(endingLines.join(' '), /Hoot says:/);
   const packed = new Set(voiceSentences().map((entry) => entry.text));
+  assert.ok(![...packed].some((text) => text.startsWith('Hoot says: Festival night')));
   for (const sentence of sentences(spokenText(script))) assert.ok(packed.has(cleanSentence(sentence)), `in the pack: ${sentence}`);
+  for (const line of endingLines) for (const sentence of sentences(spokenText(line))) {
+    const clean = cleanSentence(sentence);
+    if (/[a-z]{2}/i.test(clean)) assert.ok(packed.has(clean), `in the pack: ${sentence}`);
+  }
 });
 
 test('the detective quest lines are in the voice pack too', async () => {
