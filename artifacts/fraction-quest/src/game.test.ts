@@ -242,6 +242,23 @@ function assertModel(model: ModelSpec, location: string): void {
 }
 
 describe('lesson catalog', () => {
+  it('gives the later lessons worked examples that answer their own question', () => {
+    // These lessons used to borrow their first build as the example, which showed the build target as the answer
+    // (for example "share 3/4 liter among 3 cups" answered 3/4).
+    const expected: Record<string, string> = {
+      'line-plot-leveling': '1/4 liter each', 'read-line-plots': '4/8 inch', 'build-line-plots': '2 Xs',
+      'divide-whole-by-unit-fraction': '8 scoops', 'divide-fractions': '6 eighths', 'estimate-fraction-operations': 'Less than 1',
+      'compare-decimals': '0.4', 'multiply-mixed-numbers': '2 square meters', 'fractional-unit-conversions': '45 minutes',
+      'multiplication-scaling': '9, less than 12',
+    };
+    for (const [id, answer] of Object.entries(expected)) {
+      const mission = MISSIONS.find((item) => item.id === id);
+      assert.ok(mission, id);
+      assert.equal(mission.example.answer, answer, id);
+      assert.notEqual(mission.example.prompt, getBuildChecks(id)[0].prompt, `${id} has its own example`);
+    }
+  });
+
   it('covers 72 sequenced lessons in the expected sequence and unit groups', () => {
     assert.equal(MISSIONS.length, 72);
     assert.deepEqual(MISSIONS.slice(0, 28).map((mission) => mission.id), EXPECTED_MISSION_IDS);

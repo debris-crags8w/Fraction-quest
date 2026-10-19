@@ -222,11 +222,15 @@ function Fraction({ numerator, denominator }: { numerator: number; denominator: 
     so kids see which amount reaches further. */
 /** `walk`: after a miss, count along the picture: 1, 2, 3… pops onto each part (from part `start`), then the
     shaded parts glow. A new number replays it. */
-function FractionBar({ numerator, denominator, quiet = false, label = false, guide, walk = null, start = 0 }: { numerator: number; denominator: number; quiet?: boolean; label?: boolean; guide?: number; walk?: number | null; start?: number }) {
+/** `gutter`: another bar in the same picture has a label, so this one keeps an empty label-width space and every
+    whole stays the same length (a shorter whole would make its fraction look smaller). */
+function FractionBar({ numerator, denominator, quiet = false, label = false, gutter = false, guide, walk = null, start = 0 }: { numerator: number; denominator: number; quiet?: boolean; label?: boolean; gutter?: boolean; guide?: number; walk?: number | null; start?: number }) {
   const total = Math.max(1, Math.ceil(numerator / denominator)) * denominator;
   return (
     <div className="fq-bar-model-labelled" style={{ '--piece': denomColor(denominator) } as CSSProperties}>
-    {label && <span className="fq-bar-label" data-testid="bar-fraction-label"><Fraction numerator={numerator} denominator={denominator} /></span>}
+    {label
+      ? <span className="fq-bar-label" data-testid="bar-fraction-label"><Fraction numerator={numerator} denominator={denominator} /></span>
+      : gutter && <span className="fq-bar-label is-blank" aria-hidden="true" />}
     <div key={walk ?? 'still'} className={`fq-bar-model ${walk !== null ? 'fq-walking' : ''}`} style={{ '--pieces': denominator, '--piece': denomColor(denominator), '--start': start, '--count': start + total } as CSSProperties} role="img" aria-label={quiet ? 'A bar model. Count the equal parts and the shaded parts.' : `${numerator} over ${denominator}: each whole is split into ${denominator} equal parts, with ${numerator} parts shaded`}>
       {Array.from({ length: Math.max(1, Math.ceil(numerator / denominator)) }, (_, whole) => (
         <div className="fq-bar-whole" key={whole}>
@@ -350,19 +354,19 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
       {!compact && (model.kind === 'bars' || model.kind === 'decimal') && <ModelTag kind="bar" />}
       {!compact && model.kind === 'line' && <ModelTag kind="line" />}
       {!compact && model.kind === 'set' && <ModelTag kind="set" />}
-      {model.kind === 'bars' && (
+      {model.kind === 'bars' && (() => { const labelled = reveal || model.bars.some((bar) => bar.named); return (
         <div className="fq-visual-bars">
           {model.bars.map((item, index) => {
             // Bars are counted one after another, so each later bar starts where the one before stopped.
             const start = model.bars.slice(0, index).reduce((sum, bar) => sum + Math.max(1, Math.ceil(bar.numerator / bar.denominator)) * bar.denominator, 0);
             return (
             <div className="fq-visual-bar-row" key={`${item.numerator}-${item.denominator}-${index}`}>
-              <FractionBar numerator={item.numerator} denominator={item.denominator} quiet={model.hideLabels && !item.named && !reveal} label={!!item.named || reveal} guide={compareGuide(model, reveal)} walk={walk} start={start} />
+              <FractionBar numerator={item.numerator} denominator={item.denominator} quiet={model.hideLabels && !item.named && !reveal} label={!!item.named || reveal} gutter={labelled} guide={compareGuide(model, reveal)} walk={walk} start={start} />
             </div>
             );
           })}
         </div>
-      )}
+      ); })()}
       {model.kind === 'set' && (
         <div className="fq-set-wrap">
           {setLayout

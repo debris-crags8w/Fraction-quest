@@ -1185,8 +1185,10 @@
 /* Each bar's fraction, to its left (named in the question, or shown once the question is answered). */
 .fq-bar-model-labelled { display: flex; align-items: flex-start; gap: 10px; width: 100%; }
 .fq-bar-model-labelled > .fq-bar-model { flex: 1 1 auto; min-width: 0; }
-.fq-bar-label { flex: none; display: grid; place-items: center; min-width: 40px; margin-top: 2px; padding: 4px 8px; border: 2px solid var(--fq-grape); border-radius: 12px; background: color-mix(in srgb, var(--fq-grape) 10%, hsl(var(--card))); color: hsl(var(--foreground)); font-size: 1.05rem; font-weight: 900; }
-.fq-race-model .fq-bar-label { min-width: 32px; padding: 2px 6px; font-size: .9rem; }
+/* A fixed width, so a labelled bar and an unlabelled one (which keeps a blank label space) have the same whole. */
+.fq-bar-label { flex: none; display: grid; place-items: center; box-sizing: border-box; width: 58px; margin-top: 2px; padding: 4px 8px; border: 2px solid var(--fq-grape); border-radius: 12px; background: color-mix(in srgb, var(--fq-grape) 10%, hsl(var(--card))); color: hsl(var(--foreground)); font-size: 1.05rem; font-weight: 900; }
+.fq-race-model .fq-bar-label { width: 46px; padding: 2px 6px; font-size: .9rem; }
+.fq-bar-label.is-blank { visibility: hidden; }
 /* "1 whole" bracket under every whole: from one end of the whole to the other. */
 .fq-whole-bracket { position: relative; display: block; height: 9px; margin: 5px 1px 20px; border: 2px solid hsl(var(--foreground) / 0.7); border-top: 0; border-radius: 0 0 3px 3px; }
 .fq-whole-bracket b { position: absolute; top: 100%; left: 50%; transform: translate(-50%, 3px); color: hsl(var(--foreground) / 0.8); font: 900 0.74rem var(--app-font-display); letter-spacing: 0.02em; white-space: nowrap; }
