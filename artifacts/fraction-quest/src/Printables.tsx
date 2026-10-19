@@ -72,7 +72,7 @@ function WorksheetPage({ missionId }: { missionId: string }) {
           <p><ModelTag kind="bar" /> {MODEL_CONCEPTS.bar}</p>
           <p><ModelTag kind="line" /> {MODEL_CONCEPTS.line}</p>
         </div>
-        <p className="fq-print-key-example">Example: {kn}/{kd}</p>
+        <p className="fq-print-key-example">Example: <MathText text={`${kn}/${kd}`} /></p>
         <ModelPair n={kn} d={kd} />
       </section>
 
@@ -113,6 +113,7 @@ function WorksheetPage({ missionId }: { missionId: string }) {
 /** A lesson model drawn in black and white for paper. */
 export function PrintModel({ model, labels = true }: { model: ModelSpec; labels?: boolean }) {
   const setLayout = model.kind === 'set' ? setModelLayout(model) : null;
+  const barLabelled = (bar: { named?: boolean }) => !!bar.named || (labels && model.kind === 'bars' && model.bars.length > 1);
   return (
     <div className="fq-print-model">
       {(model.kind === 'bars' || model.kind === 'decimal') && <ModelTag kind="bar" />}
@@ -120,7 +121,8 @@ export function PrintModel({ model, labels = true }: { model: ModelSpec; labels?
       {model.kind === 'set' && <ModelTag kind="set" />}
       {model.kind === 'bars' && model.bars.map((bar, index) => (
         <div className="fq-print-bar-row" key={index}>
-          <BarSvg n={bar.numerator} d={bar.denominator} wholes={Math.max(1, Math.ceil(bar.numerator / bar.denominator))} fraction={!!bar.named || (labels && model.bars.length > 1)} />
+          <BarSvg n={bar.numerator} d={bar.denominator} wholes={Math.max(1, Math.ceil(bar.numerator / bar.denominator))} fraction={barLabelled(bar)}
+            labelSpace={model.bars.some(barLabelled)} />
         </div>
       ))}
       {model.kind === 'decimal' && <div className="fq-print-bar-row"><BarSvg n={model.tenths} d={10} />{labels && <b className="fq-print-decimal-value">{(model.tenths / 10).toFixed(1)}</b>}</div>}
@@ -144,7 +146,7 @@ export function PrintModel({ model, labels = true }: { model: ModelSpec; labels?
       )}
       {model.kind === 'area' && <AreaSvg figure={{ cut: model.cut, shaded: model.shaded }} />}
       {model.kind === 'equation' && <p className="fq-print-equation"><MathText text={model.text} /></p>}
-      {labels && model.caption && <small>{model.caption}</small>}
+      {labels && model.caption && <small><MathText text={model.caption} /></small>}
     </div>
   );
 }
@@ -182,7 +184,7 @@ function LessonSheet({ mission }: { mission: Mission }) {
           <p><ModelTag kind="bar" /> {MODEL_CONCEPTS.bar}</p>
           <p><ModelTag kind="line" /> {MODEL_CONCEPTS.line}</p>
         </div>
-        <p className="fq-print-key-example">Example: {kn}/{kd}</p>
+        <p className="fq-print-key-example">Example: <MathText text={`${kn}/${kd}`} /></p>
         <ModelPair n={kn} d={kd} />
       </section>
       <footer className="fq-print-foot">Next: the practice sheet, then the worksheet. Check your paper in the app with code {lessonCode(mission.id)}.</footer>

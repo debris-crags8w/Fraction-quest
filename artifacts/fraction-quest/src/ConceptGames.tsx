@@ -11,6 +11,7 @@ import { playCue, playHaptic } from './lib/fun';
 import { useFun } from './fun-ui';
 import { retryOpener } from './wrong-answer';
 import { LearningListenButton } from './LearningText';
+import { MathText } from './MathText';
 
 type Fraction = { n: number; d: number };
 type Model = { d: number; n: number };
@@ -305,7 +306,7 @@ function FractionLineUp() {
       <div className="fq-listen-row"><p className="cg-instruction">Drag four fractions into order. Pick a kind of line-up.</p><LearningListenButton text={'Fraction Line-Up. Drag four fractions into order. Pick a kind of line-up.'} label="Listen to how to play" compact /></div>
       <div className="cg-lineup-modes">{LINE_UP_MODES.map((item) => (
         <button type="button" key={item.id} className="cg-menu-card" onClick={() => choose(item.id)} data-testid={`button-lineup-mode-${item.id}`}>
-          <b>{item.label}</b><span>{item.example}</span>
+          <b>{item.label}</b><span><MathText text={item.example} /></span>
         </button>
       ))}</div>
     </section>;

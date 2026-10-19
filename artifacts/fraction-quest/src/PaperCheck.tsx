@@ -26,7 +26,7 @@ function ChallengePaper({ unit, best, onScore }: { unit: number; best: number | 
   return (
     <section className="fq-ll-check" aria-labelledby="paper-challenge" data-testid="paper-challenge">
       <h3 id="paper-challenge">Unit {unit} challenge</h3>
-      <p className="fq-ll-note">Tap the letter you circled for each puzzle. Then press Check. {best != null && `Your best: ${best}/${max}.`}</p>
+      <p className="fq-ll-note">Tap the letter you circled for each puzzle. Then press Check. {best != null && `Your best: ${best} of ${max}.`}</p>
       <ol className="fq-paper-list">
         {items.map((item, i) => {
           const choice = picked[item.id];

@@ -1,6 +1,7 @@
 import React, { type CSSProperties, type ReactNode } from 'react';
 import type { ChallengeFigure } from './challenges';
 import { FoldIllustration } from './PaperFold';
+import { sayFraction } from './lib/voice';
 
 /* Shared drawings for the two core fraction models (plus sets), used on screen and on paper.
    Bars and number lines use the same x-scale, so a bar drawn above a line lines up exactly. */
@@ -65,11 +66,16 @@ export function SvgWholeBracket({ x, width, y = 54, label = '1 whole' }: { x: nu
 
 const W = 320; // drawing width for 0 → wholes
 const PAD = 22;
+/** Room left of a bar for its stacked fraction label. */
+const LABEL_W = 30;
+const LABEL_X = PAD - LABEL_W / 2 - 6;
 
 /** Bar model: each whole is one bar split into d equal pieces; the first n pieces are shaded. Omit d for an empty bar to partition by hand. */
 /** `sizes` draws one whole cut into pieces of these relative sizes (they may be unequal), for "Is this cut into equal parts?". */
 /** `fraction`: show the bar's fraction above its left end (when the question names it, or once it's answered). */
-export function BarSvg({ n = 0, d, wholes = 1, sizes, label, fraction = false }: { n?: number; d?: number; wholes?: number; sizes?: number[]; label?: string; fraction?: boolean }) {
+export function BarSvg({ n = 0, d, wholes = 1, sizes, label, fraction = false, labelSpace = fraction }: { n?: number; d?: number; wholes?: number; sizes?: number[]; label?: string; fraction?: boolean;
+  /** Keep room for a fraction label even when this bar has none, so bars drawn together stay the same length. */
+  labelSpace?: boolean }) {
   const unit = W / wholes;
   if (sizes?.length) {
     const sum = sizes.reduce((a, b) => a + b, 0);
@@ -85,9 +91,16 @@ export function BarSvg({ n = 0, d, wholes = 1, sizes, label, fraction = false }:
       </svg>
     );
   }
+  const labelled = fraction && !!d;
+  const room = labelled || labelSpace;
   return (
-    <svg className="fq-svg-bar" viewBox={`0 0 ${W + PAD * 2} 74`} role="img" aria-label={label ?? (d ? `Bar model: each whole is split into ${d} equal parts, and ${n} ${n === 1 ? 'part is' : 'parts are'} shaded` : 'Whole bar ready to split into equal parts')}>
-      {fraction && d && <text className="fq-svg-fraction-label" x={PAD} y={14}><tspan className="num">{n}</tspan><tspan className="bar">/</tspan><tspan className="den">{d}</tspan></text>}
+    <svg className="fq-svg-bar" viewBox={`${room ? -LABEL_W : 0} 0 ${W + PAD * 2 + (room ? LABEL_W : 0)} 74`} role="img" aria-label={label ?? (d ? `Bar model: each whole is split into ${d} equal parts, and ${n} ${n === 1 ? 'part is' : 'parts are'} shaded` : 'Whole bar ready to split into equal parts')}>
+      {/* The fraction sits left of the bar, one number over the other. */}
+      {labelled && <g className="fq-svg-fraction-label" aria-hidden="true">
+        <text className="num" x={LABEL_X} y={30} textAnchor="middle">{n}</text>
+        <line className="bar" x1={LABEL_X - 13} x2={LABEL_X + 13} y1={35} y2={35} />
+        <text className="den" x={LABEL_X} y={51} textAnchor="middle">{d}</text>
+      </g>}
       {Array.from({ length: wholes }, (_, w) => {
         const x0 = PAD + w * unit + (w ? 3 : 0);
         const width = unit - (wholes > 1 ? 3 : 0);
@@ -114,7 +127,7 @@ export function LineSvg({ n = 0, d, wholes = 1, showPoint = true, jumps = true, 
   const step = W / spaces;
   const y = 40;
   return (
-    <svg className="fq-svg-line" viewBox={`0 0 ${W + PAD * 2} 74`} role="img" aria-label={label ?? (d ? `Number line from 0 to ${wholes}, each whole split into ${d} equal spaces${showPoint ? `, point at ${n}/${d}` : ''}` : 'Empty number line from 0 to 1 to split into equal spaces')}>
+    <svg className="fq-svg-line" viewBox={`0 0 ${W + PAD * 2} 74`} role="img" aria-label={label ?? (d ? `Number line from 0 to ${wholes}, each whole split into ${d} equal spaces${showPoint ? `, point at ${sayFraction(n, d)}` : ''}` : 'Empty number line from 0 to 1 to split into equal spaces')}>
       <line className="axis" x1={PAD - 12} y1={y} x2={W + PAD + 12} y2={y} />
       <path className="axis-arrow" d={`M${W + PAD + 14} ${y} l-7 -5 v10 z`} />
       {Array.from({ length: spaces + 1 }, (_, i) => {

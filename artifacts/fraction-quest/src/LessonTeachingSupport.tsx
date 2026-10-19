@@ -1,5 +1,5 @@
 import { getMission } from './game';
-import { LearningListenButton } from './LearningText';
+import { LearningListenButton, LearningText } from './LearningText';
 import { supportSpeech } from './lab-copy';
 import { guideForUnit } from './teaching-guide-data';
 import './lesson-teaching-support.css';
@@ -20,10 +20,10 @@ export function LessonTeachingSupport({ missionId }: { missionId: string }) {
               <h3>Quick warm-up</h3>
               <LearningListenButton text={speech.warmup} label="Listen to the warm-up" />
             </header>
-            <p>{guide.warmup.prompt}</p>
+            <p><LearningText text={guide.warmup.prompt} interactiveTerms={false} /></p>
             <details className="fq-lesson-support-reveal">
               <summary>Show one way to think about it</summary>
-              <p>{guide.warmup.reveal}</p>
+              <p><LearningText text={guide.warmup.reveal} interactiveTerms={false} /></p>
             </details>
           </article>
 
@@ -36,7 +36,7 @@ export function LessonTeachingSupport({ missionId }: { missionId: string }) {
               {guide.vocabulary.map(({ term, meaning }) => (
                 <details key={term}>
                   <summary>{term}</summary>
-                  <p>{meaning}</p>
+                  <p><LearningText text={meaning} interactiveTerms={false} /></p>
                 </details>
               ))}
             </div>
@@ -47,7 +47,7 @@ export function LessonTeachingSupport({ missionId }: { missionId: string }) {
               <h3>Explain your thinking</h3>
               <LearningListenButton text={speech.explain} label="Listen to explain your thinking" />
             </header>
-            <p>{mission.explainPrompt ?? guide.explainFrame}</p>
+            <p><LearningText text={mission.explainPrompt ?? guide.explainFrame} interactiveTerms={false} /></p>
             <p className="fq-lesson-support-note">Try saying it to someone or writing it on paper. Your response is not recorded.</p>
           </article>
 
@@ -56,10 +56,10 @@ export function LessonTeachingSupport({ missionId }: { missionId: string }) {
               <h3>Be the teacher</h3>
               <LearningListenButton text={speech.teacher} label="Listen to be the teacher" />
             </header>
-            <p>{guide.errorAnalysis.claim}</p>
+            <p><LearningText text={guide.errorAnalysis.claim} interactiveTerms={false} /></p>
             <details className="fq-lesson-support-reveal">
               <summary>Reveal a way to fix the idea</summary>
-              <p>{guide.errorAnalysis.correction}</p>
+              <p><LearningText text={guide.errorAnalysis.correction} interactiveTerms={false} /></p>
             </details>
           </article>
 
@@ -68,7 +68,7 @@ export function LessonTeachingSupport({ missionId }: { missionId: string }) {
               <h3>Stretch your thinking</h3>
               <LearningListenButton text={speech.stretch} label="Listen to stretch your thinking" />
             </header>
-            <p>{guide.enrichment}</p>
+            <p><LearningText text={guide.enrichment} interactiveTerms={false} /></p>
           </article>
         </div>
       </details>

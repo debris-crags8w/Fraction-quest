@@ -42,7 +42,7 @@ export function AssessmentHub({ attempts, onStart, onBack }: {
           <span className={`fq-assessment-kind kind-${definition.kind}`}>{definition.unit ? `Unit ${definition.unit}` : `Grade ${definition.grade}`}</span>
           <h3>{definition.title}</h3>
           <p>{definition.description}</p>
-          {latest && <p className="fq-assessment-last">Most recent: {correct}/{checked} correct · {new Date(latest.completedAt).toLocaleDateString()}</p>}
+          {latest && <p className="fq-assessment-last">Most recent: {correct} of {checked} correct · {new Date(latest.completedAt).toLocaleDateString()}</p>}
           <small>{definition.standards.length} standards · {ASSESSMENT_ITEM_COUNT} model-and-answer questions</small>
         </div>
         <button className="fq-button" onClick={() => onStart(definition)} data-testid={`button-start-${definition.id}`}>
