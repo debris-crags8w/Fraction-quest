@@ -1,4 +1,4 @@
-import { noBeforeYes, orderedWithSigns, withFourthChoice } from './fourth-choice';
+import { noBeforeYes, orderedWithSigns, withFourthChoice, withSignComparisons } from './fourth-choice';
 import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
 import type { AreaCut } from './area-shapes';
 import { amountsIn, autoPicture } from './auto-picture';
@@ -278,8 +278,9 @@ function practice(
   // and the authored help picture doesn't (a generic 1/2 bar), the help shows the question's bars, labelled.
   const aboutQuestion = (m: ModelSpec) => m.kind === 'bars' && m.bars.some((bar) => bar.named);
   if (aboutQuestion(named) && !aboutQuestion(simpler)) simpler = named;
-  // Four choices (A–D): lessons list three, a fourth believable wrong answer is added (sign questions keep three).
-  const withFourth = withFourthChoice({ prompt, choices, correctChoice, model: named, hint, retryFeedback, simplerModel: simpler });
+  // Four choices (A–D): lessons list three, a fourth believable wrong answer is added (sign questions are written out as four comparisons).
+  const signs = withSignComparisons(prompt, choices, correctChoice);
+  const withFourth = withFourthChoice({ prompt, choices: signs?.choices ?? choices, correctChoice: signs?.correctChoice ?? correctChoice, model: named, hint, retryFeedback, simplerModel: simpler });
   return { ...withFourth, choices: orderedWithSigns(prompt, withFourth.choices) };
 }
 

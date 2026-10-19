@@ -1,4 +1,4 @@
-import { fourthChoice, noBeforeYes, orderedWithSigns } from './fourth-choice';
+import { fourthChoice, noBeforeYes, orderedWithSigns, withSignComparisons } from './fourth-choice';
 import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, getWorksheet, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
@@ -248,7 +248,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'hundredths-decimals': (r) => {
     const n = r.int(1, 99); const dec = (n / 100).toFixed(2);
     return r.chance()
-      ? { prompt: `What fraction is ${dec}?`, right: f(n, 100), wrong: [f(n, 10), f(1, n === 1 ? 2 : n)], hint: '2 places after the dot means hundredths.', retry: `${dec} means ${n} hundredths.`, model: bar(n, 100) }
+      ? { prompt: `What fraction is ${dec}?`, right: f(n, 100), wrong: [f(n, 10), n === 1 ? f(1, 2) : n === 10 ? f(10, 10) : f(1, n)], hint: '2 places after the dot means hundredths.', retry: `${dec} means ${n} hundredths.`, model: bar(n, 100) }
       : { prompt: `Write ${f(n, 100)} as a decimal.`, right: dec, wrong: [(n / 10).toFixed(1), `${n}.0`], hint: 'Hundredths need 2 places after the dot.', retry: `${n} hundredths is ${dec}.`, model: bar(n, 100) };
   },
 };
@@ -501,6 +501,8 @@ function balanceChoices(item: Item, rng: Rng): Item {
 
 /** Four choices (A–D): add the recipe's own fourth choice, or one made from the question, at `at`. */
 function withFourth(item: Item, placed: Pick<PracticeQuestion, 'choices' | 'correctChoice'>, at: number): Pick<PracticeQuestion, 'choices' | 'correctChoice'> {
+  const signs = withSignComparisons(item.prompt, placed.choices, placed.correctChoice, at);
+  if (signs) return signs;
   const extra = item.extra && !placed.choices.includes(item.extra) ? item.extra : fourthChoice(item.prompt, placed.choices, placed.correctChoice);
   if (!extra) return placed;
   const choices = [...placed.choices];
