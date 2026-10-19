@@ -1,19 +1,50 @@
 /* Developer testing: open any lesson in an isolated test, without finishing earlier units. It lives with the
-   grown-ups' settings (never on the child's map) and only in development builds. A grown-up can turn on
-   developer mode for this device, which adds a small Dev button to the map for quick testing. */
+   grown-ups' settings (never on the child's map). Development builds have it open; other builds (the preview, the
+   published app, the iPhone and Android app) show it only when built with VITE_DEVELOPER_CODE, and only after that
+   code is entered on the device. Developer mode then adds a small Dev button to the map for quick testing. */
 
 import { useEffect, useState } from 'react';
 import { Code2, X } from 'lucide-react';
 import { MISSIONS } from './game';
 
 const STORAGE_KEY = 'fraction-quest-developer-mode';
+const UNLOCK_KEY = 'fraction-quest-developer-unlocked';
 const CHANGED = 'fraction-quest-developer-mode-changed';
+const DEVELOPER_CODE = String(import.meta.env?.VITE_DEVELOPER_CODE ?? '').trim();
 
-/** Developer testing exists only in development builds. */
-export const developerTestingAvailable = () => import.meta.env.DEV;
+/** Developer testing is in development builds, and in any build made with a developer code. */
+export const developerTestingAvailable = () => import.meta.env.DEV || DEVELOPER_CODE.length > 0;
 
-function readDeveloperMode() {
-  try { return localStorage.getItem(STORAGE_KEY) === '1'; } catch { return false; }
+/** Whether a typed code opens developer testing (case and spaces don't matter). */
+export const developerCodeMatches = (typed: string, code = DEVELOPER_CODE) =>
+  code.length > 0 && typed.trim().toLowerCase() === code.toLowerCase();
+
+function readFlag(key: string) {
+  try { return localStorage.getItem(key) === '1'; } catch { return false; }
+}
+function writeFlag(key: string, on: boolean) {
+  try { if (on) localStorage.setItem(key, '1'); else localStorage.removeItem(key); } catch { /* private mode: this screen only */ }
+}
+/** Unlocked on this device: always in development builds, else once the developer code was entered. */
+const readUnlocked = () => import.meta.env.DEV || (developerTestingAvailable() && readFlag(UNLOCK_KEY));
+const readDeveloperMode = () => readUnlocked() && readFlag(STORAGE_KEY);
+
+/** Whether this device has entered the developer code: [unlocked, set]. */
+export function useDeveloperUnlock(): [boolean, (on: boolean) => void] {
+  const [unlocked, setUnlocked] = useState(readUnlocked);
+  useEffect(() => {
+    const sync = () => setUnlocked(readUnlocked());
+    window.addEventListener(CHANGED, sync);
+    window.addEventListener('storage', sync);
+    return () => { window.removeEventListener(CHANGED, sync); window.removeEventListener('storage', sync); };
+  }, []);
+  const set = (next: boolean) => {
+    writeFlag(UNLOCK_KEY, next);
+    if (!next) writeFlag(STORAGE_KEY, false); // locking also turns developer mode off
+    setUnlocked(readUnlocked());
+    window.dispatchEvent(new Event(CHANGED));
+  };
+  return [unlocked, set];
 }
 
 /** Developer mode for this device: [on, set]. Every screen using it updates together. */
@@ -26,8 +57,8 @@ export function useDeveloperMode(): [boolean, (on: boolean) => void] {
     return () => { window.removeEventListener(CHANGED, sync); window.removeEventListener('storage', sync); };
   }, []);
   const set = (next: boolean) => {
-    try { if (next) localStorage.setItem(STORAGE_KEY, '1'); else localStorage.removeItem(STORAGE_KEY); } catch { /* private mode: this screen only */ }
-    setOn(next);
+    writeFlag(STORAGE_KEY, next);
+    setOn(readDeveloperMode());
     window.dispatchEvent(new Event(CHANGED));
   };
   return [on, set];
@@ -54,10 +85,37 @@ export function DeveloperLessonPicker({ unitTitles, onOpen }: { unitTitles: stri
   );
 }
 
-/** The grown-ups' section: the developer mode switch and the lesson picker. */
+/** Enter the developer code to open developer testing on this device. */
+function DeveloperUnlock({ onUnlock }: { onUnlock: () => void }) {
+  const [code, setCode] = useState('');
+  const [wrong, setWrong] = useState(false);
+  return (
+    <form className="fq-developer-unlock" onSubmit={(event) => {
+      event.preventDefault();
+      if (developerCodeMatches(code)) onUnlock(); else { setWrong(true); setCode(''); }
+    }}>
+      <label htmlFor="developer-code">Developer code</label>
+      <input id="developer-code" type="password" autoComplete="off" value={code} onChange={(event) => { setCode(event.target.value); setWrong(false); }} data-testid="input-developer-code" />
+      <button type="submit" className="fq-button secondary" disabled={!code.trim()} data-testid="button-developer-unlock">Unlock</button>
+      {wrong && <p role="alert" data-testid="text-developer-code-wrong">That code didn't work.</p>}
+    </form>
+  );
+}
+
+/** The grown-ups' section: the developer code (outside development builds), the developer mode switch and the
+    lesson picker. */
 export function DeveloperSettings({ unitTitles, onOpen }: { unitTitles: string[]; onOpen: (missionId: string) => void }) {
   const [on, setOn] = useDeveloperMode();
+  const [unlocked, setUnlocked] = useDeveloperUnlock();
   if (!developerTestingAvailable()) return null;
+  if (!unlocked) {
+    return (
+      <section className="fq-parent-section fq-developer-test" aria-labelledby="developer-testing-title" data-testid="section-developer-testing">
+        <h2 id="developer-testing-title">Developer testing</h2>
+        <DeveloperUnlock onUnlock={() => setUnlocked(true)} />
+      </section>
+    );
+  }
   return (
     <section className="fq-parent-section fq-developer-test" aria-labelledby="developer-testing-title" data-testid="section-developer-testing">
       <h2 id="developer-testing-title">Developer testing</h2>
@@ -66,6 +124,9 @@ export function DeveloperSettings({ unitTitles, onOpen }: { unitTitles: string[]
         <input type="checkbox" checked={on} onChange={(event) => setOn(event.target.checked)} data-testid="checkbox-developer-mode" />
       </label>
       <DeveloperLessonPicker unitTitles={unitTitles} onOpen={onOpen} />
+      {!import.meta.env.DEV && (
+        <button type="button" className="fq-button ghost" onClick={() => setUnlocked(false)} data-testid="button-developer-lock">Lock developer testing on this device</button>
+      )}
     </section>
   );
 }
