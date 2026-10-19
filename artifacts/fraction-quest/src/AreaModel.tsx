@@ -77,7 +77,7 @@ export const SHAPE_LESSONS = ['equal-parts', 'unit-fractions'];
 export function SameSizeIdea() {
   const cuts: AreaFigure[] = [
     { cut: 'fourths-squares', shaded: [0] }, { cut: 'fourths-strips', shaded: [0] },
-    { cut: 'fourths-triangles', shaded: [0] }, { cut: 'quarter-and-triangles', shaded: [1, 2] },
+    { cut: 'fourths-triangles', shaded: [0] }, { cut: 'fourths-mixed', shaded: [2] },
   ];
   return (
     <section className="fq-area-idea" data-testid="same-size-idea">

@@ -2759,12 +2759,13 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.getByTestId('button-story-choice-1').click();
   await page.getByTestId('button-story-go').click();
   await expect(page.getByTestId('story-comic')).toHaveCount(0);
-  // The lesson starts with the story's task: Chomp asks, and the cast shares the cake; the worked help is below.
+  // The lesson teaches first (Numi's introduction and the worked example), then Chomp asks and the cast shares the cake.
+  const teaching = page.getByTestId('lesson-example').or(page.getByTestId('first-fraction-introduction')).first();
+  await expect(teaching).toBeVisible();
   await expect(page.getByTestId('story-line')).toContainText('Help me share it fairly');
+  expect((await teaching.boundingBox())!.y).toBeLessThan((await page.getByTestId('story-line').boundingBox())!.y);
   await expect(page.getByTestId('button-part-finder-share-1')).toContainText('Chomp');
   await expect(page.getByTestId('button-part-finder-share-4')).toContainText('Pip');
-  await expect(page.getByTestId('example-help')).toContainText('Need help? See how it works');
-  await expect(page.getByTestId('lesson-example').or(page.getByTestId('first-fraction-introduction')).first()).toBeVisible();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}').story);
   expect(saved).toEqual({ prologueSeen: true, choices: { '1': 1 } });
 

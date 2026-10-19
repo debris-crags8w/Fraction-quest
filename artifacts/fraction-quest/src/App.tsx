@@ -778,6 +778,8 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false, withTa
           <p className="fq-skill-copy"><LearningText text={mission.skill} /></p>
         </div>
       </div>
+      {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
+      {SHAPE_LESSONS.includes(mission.id) && <SameSizeIdea />}
       {mission.learningIntro && (
         <section className="fq-example-intro" aria-label="How to order fractions" data-testid="lesson-introduction">
           <div className="fq-example-card-head">
@@ -853,8 +855,6 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false, withTa
           listen={false}
         />
       </div>
-      {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
-      {SHAPE_LESSONS.includes(mission.id) && <SameSizeIdea />}
       {withTap && <TapModel model={mission.example.model} />}
     </div>
   );
@@ -913,7 +913,8 @@ function PlayView({
   const [reviewingPastIndex, setReviewingPastIndex] = useState<number | null>(null);
   const { fun } = useFun();
   const storyOn = fun.displayPreferences?.storyMode !== false;
-  // Story mode on a lesson's first question: the friend asks, the child tries, and the worked example sits below as help.
+  // A lesson's first question teaches first: the idea and a worked example, then (in story mode) the friend asks and
+  // the child tries.
   const actionFirst = showExample && storyOn && !!chapterFor(mission.unit);
   const seasonOn = !!useSeason().season;
   const question: PracticeQuestion | null = mission.questions[questionIndex] ?? null;
@@ -1062,15 +1063,16 @@ function PlayView({
             {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
           </p>}
           {/* One friendly line per question: the story friend's (in the season's props) when the story is on, else the seasonal one. */}
-          {question && (!showExample || actionFirst) && (storyOn && chapterFor(mission.unit)
-            ? <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} result={feedback} setup={question.storySetup ?? (actionFirst ? lessonAsk(mission) : undefined)} />
+          {question && !showExample && (storyOn && chapterFor(mission.unit)
+            ? <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} result={feedback} setup={question.storySetup} />
             : seasonOn && <SeasonSay kind={question.model.kind} id={question.id} />)}
           {showExample
             ? <h1 id="lesson-title">{mission.title}</h1>
             : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
-          {showExample && !actionFirst && <GuidedExample mission={mission} withTap={false} />}
+          {showExample && <GuidedExample mission={mission} withTap={false} />}
           {question && (
             <>
+              {actionFirst && <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} result={feedback} setup={question.storySetup ?? lessonAsk(mission)} />}
               {showExample && <StoryPrompt prompt={question.prompt} id="lesson-question-title" />}
               {question.isReview && <div className="fq-review-label"><RotateCcw size={15} />{question.isOptionalReview ? `${isQuickReview ? 'Due skill' : 'Optional review'} · ${question.reviewTopicTitle}` : ' A quick revisit to help it stick'}</div>}
               {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint · Models and worksheet come next</div>}
@@ -1136,13 +1138,6 @@ function PlayView({
                     Check <Check size={17} strokeWidth={3} />
                   </button>
                 </div>
-              )}
-              {/* Story mode: try it first, with the worked example right below as help. */}
-              {showExample && actionFirst && (
-                <section className="fq-example-help" aria-labelledby="example-help-title" data-testid="example-help">
-                  <h2 id="example-help-title">Need help? See an example</h2>
-                  <GuidedExample mission={mission} withTap={false} />
-                </section>
               )}
             </>
           )}

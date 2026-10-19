@@ -210,7 +210,13 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
           actions={<>{helper.button}{onSkip && <button type="button" className="fq-hint-button" onClick={onSkip} data-testid="button-hands-on-skip">Skip</button>}</>} />
         {helper.panel}
 
-        {!storyLine && help}
+        {/* Teach first: the introduction and worked example open the first round; later rounds keep them a tap away. */}
+        {(showFirstIntroduction || intro) && (roundIndex === 0 ? help : (
+          <details className="fq-pf-help-again" data-testid="part-finder-help-again">
+            <summary>See how it works again</summary>
+            {help}
+          </details>
+        ))}
 
         {storyLine?.(checked === 'idle' ? null : correct ? 'correct' : 'retry')}
 
@@ -302,13 +308,6 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
           )}
         </section>
 
-        {/* Story mode: try it first; the introduction and worked example sit below as help. */}
-        {storyLine && (showFirstIntroduction || intro) && (
-          <section className="fq-example-help" aria-labelledby="pf-help-title" data-testid="example-help">
-            <h2 id="pf-help-title">Need help? See how it works</h2>
-            {help}
-          </section>
-        )}
       </div>
     </main>
   );
