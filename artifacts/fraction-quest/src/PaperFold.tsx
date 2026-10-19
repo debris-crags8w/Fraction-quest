@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactElement } fr
 import { RotateCcw } from 'lucide-react';
 import { useOptionalFun } from './fun-ui';
 import { MathText, StackedFraction } from './MathText';
-import { useReadAloud } from './LearningText';
+import { LearningListenButton, useReadAloud } from './LearningText';
 import { foldSpeech } from './lab-copy';
 
 /* A virtual paper strip: fold it in halves or thirds, then unfold to see equal pieces.
@@ -93,7 +93,7 @@ export function PaperFold({ allowThirds = true, shadeHalf = false, intro }: { al
 
   return (
     <section className={`fq-fold ${shadeHalf ? 'shade-half' : ''}`} aria-label="Fold the paper" data-testid="section-paper-fold">
-      {intro && <p className="fq-fold-intro"><MathText text={intro} /></p>}
+      {intro && <div className="fq-listen-row"><p className="fq-fold-intro"><MathText text={intro} /></p><LearningListenButton text={intro} label="Listen to the paper fold" compact /></div>}
       <div className="fq-fold-stage">
         {/* The whole strip stays as a faint outline, so a folded stack is still seen as part of 1 whole. */}
         <div className={`fq-fold-ghost ${open ? 'hidden' : ''}`} aria-hidden="true" />
@@ -133,7 +133,7 @@ export function PaperFold({ allowThirds = true, shadeHalf = false, intro }: { al
         </div>
         {phase === 'folded' && <span className="fq-fold-layers" data-testid="text-fold-layers">{pieces} layers</span>}
       </div>
-      <p className="fq-fold-message" aria-live="polite" data-testid="text-paper-fold"><MathText text={message} /></p>
+      <div className="fq-listen-row"><p className="fq-fold-message" aria-live="polite" data-testid="text-paper-fold"><MathText text={message} /></p><LearningListenButton text={message} label="Listen to the strip" compact /></div>
       {phase === 'flat' && equivalence && <p className="fq-fold-equal" data-testid="text-fold-equivalence"><MathText text={equivalence} /></p>}
       <div className="fq-fold-trail" aria-label="Fractions made so far">
         {trail.map((p, i) => <span key={i} className={i === trail.length - 1 ? 'now' : ''}>{p === 1 ? '1' : <StackedFraction top="1" bottom={String(p)} />}</span>)}

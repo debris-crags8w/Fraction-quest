@@ -1,5 +1,7 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import { MathText } from './MathText';
+import { LearningListenButton } from './LearningText';
+import { LAB_SECTION_SPEECH } from './lab-copy';
 import { AREA_CUTS, areaFeedback, areaLabel, areaOutline, areaTaskDone, type AreaFigure, type AreaTask } from './area-shapes';
 import { playHaptic } from './lib/fun';
 
@@ -81,7 +83,7 @@ export function SameSizeIdea() {
   ];
   return (
     <section className="fq-area-idea" data-testid="same-size-idea">
-      <h3>Same size, different shapes</h3>
+      <div className="fq-listen-row"><h3>Same size, different shapes</h3><LearningListenButton text={LAB_SECTION_SPEECH.sameSize} label="Listen to same size, different shapes" compact /></div>
       <div className="fq-area-idea-row">
         {cuts.map((figure) => <AreaSvg key={figure.cut} figure={figure} label="One fourth of a square is shaded" />)}
       </div>

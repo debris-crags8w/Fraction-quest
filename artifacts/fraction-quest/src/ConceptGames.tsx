@@ -10,6 +10,7 @@ import { LiveFraction } from './fraction-ui';
 import { playCue, playHaptic } from './lib/fun';
 import { useFun } from './fun-ui';
 import { retryOpener } from './wrong-answer';
+import { LearningListenButton } from './LearningText';
 
 type Fraction = { n: number; d: number };
 type Model = { d: number; n: number };
@@ -77,7 +78,7 @@ function FractionWar() {
   const replay = () => { setRound(0); setScore(0); setModels(unbuilt()); setChoice(null); setRoundSolved(false); setFeedback(''); setFeedbackTone('info'); };
   return <section className="cg-game" aria-labelledby="war-title">
     <div className="cg-game-heading"><span className="cg-index">Game 1 · Build and compare</span><span className="cg-score" data-testid="status-war-score">Local round score · {score}</span></div>
-    <h2 id="war-title">Fraction War</h2><p className="cg-instruction">Build each fraction before deciding which amount is greater. Each bar is one same-size whole.</p>
+    <h2 id="war-title">Fraction War</h2><div className="fq-listen-row"><p className="cg-instruction">Build each fraction before deciding which amount is greater. Each bar is one same-size whole.</p><LearningListenButton text={'Build each fraction before deciding which amount is greater. Each bar is one same-size whole.'} label="Listen to how to play" compact /></div>
     <div className="cg-war-models">{target.map((fraction, side) => {
       const model = models[side as 0 | 1];
       return <article className="cg-model-card" key={side}>
@@ -127,7 +128,7 @@ function EquivalenceMatch() {
   const cards = cardOrder.map(index => ({ fraction: matches[index], index }));
   return <section className="cg-game" aria-labelledby="match-title">
     <div className="cg-game-heading"><span className="cg-index">Game 2 · Find same amounts</span><span className="cg-score" data-testid="status-match-score">Pairs found · {score}/3</span></div>
-    <h2 id="match-title">Equivalence Match</h2><p className="cg-instruction">Every symbol card has a bar card partner. Match by the amount shaded, not by the printed numbers.</p>
+    <h2 id="match-title">Equivalence Match</h2><div className="fq-listen-row"><p className="cg-instruction">Every symbol card has a bar card partner. Match by the amount shaded, not by the printed numbers.</p><LearningListenButton text={'Every symbol card has a bar card partner. Match by the amount shaded, not by the printed numbers.'} label="Listen to how to play" compact /></div>
     <div className="cg-memory-grid" role="group" aria-label="Fraction matching cards">{cards.map(({ fraction, index }) => {
       const visible = selected.includes(index) || found.includes(index);
       return <button type="button" className={`cg-memory-card ${visible ? 'revealed' : ''} ${found.includes(index) ? 'matched' : ''}`} key={index} onClick={() => flip(index)} disabled={found.includes(index) || (selected.length === 2 && !areEquivalent(matches[selected[0]], matches[selected[1]]))} aria-label={visible ? `${index < 3 ? 'Fraction' : 'Bar model'} card, ${fraction.n} over ${fraction.d}${found.includes(index) ? ', matched' : ''}` : `Hidden card ${index + 1}`} aria-pressed={visible} data-testid={`button-match-card-${index}`}>
@@ -163,7 +164,7 @@ function NumberLineTarget() {
   const replay = () => { setRound(0); setDenominator(0); setMark(null); setFeedback(''); setFeedbackTone('info'); };
   return <section className="cg-game" aria-labelledby="line-title">
     <div className="cg-game-heading"><span className="cg-index">Game 3 · Place a fraction</span><span className="cg-score" data-testid="status-line-round">Target {round + 1}</span></div>
-    <h2 id="line-title">Number Line Target</h2><p className="cg-instruction">Choose equal spaces from 0 to 1, then tap the tick that lands on the target fraction.</p>
+    <h2 id="line-title">Number Line Target</h2><div className="fq-listen-row"><p className="cg-instruction">Choose equal spaces from 0 to 1, then tap the tick that lands on the target fraction.</p><LearningListenButton text={'Choose equal spaces from 0 to 1, then tap the tick that lands on the target fraction.'} label="Listen to how to play" compact /></div>
     <div className="cg-target"><span>Target point</span><strong><FractionLabel {...target} /></strong></div>
     <label className="cg-control-label" htmlFor="line-spaces">Split the whole into equal spaces</label>
     <select id="line-spaces" value={denominator} onChange={e => {
@@ -301,7 +302,7 @@ function FractionLineUp() {
     return <section className="cg-game" aria-labelledby="lineup-title">
       <div className="cg-game-heading"><span className="cg-index">Game 4 · Put in order</span></div>
       <h2 id="lineup-title">Fraction Line-Up</h2>
-      <p className="cg-instruction">Drag four fractions into order. Pick a kind of line-up.</p>
+      <div className="fq-listen-row"><p className="cg-instruction">Drag four fractions into order. Pick a kind of line-up.</p><LearningListenButton text={'Fraction Line-Up. Drag four fractions into order. Pick a kind of line-up.'} label="Listen to how to play" compact /></div>
       <div className="cg-lineup-modes">{LINE_UP_MODES.map((item) => (
         <button type="button" key={item.id} className="cg-menu-card" onClick={() => choose(item.id)} data-testid={`button-lineup-mode-${item.id}`}>
           <b>{item.label}</b><span>{item.example}</span>
@@ -329,7 +330,7 @@ function FractionLineUp() {
       <span className="cg-score" data-testid="status-lineup-score">First try · {firstTry}</span>
     </div>
     <h2 id="lineup-title">Put them in order: <u>{round.direction} first</u></h2>
-    <p className="cg-instruction">{round.rule === 'same-denominator' ? 'All the denominators match.' : 'All the numerators match.'} Drag a card, or use the arrows.</p>
+    <div className="fq-listen-row"><p className="cg-instruction">{round.rule === 'same-denominator' ? 'All the denominators match.' : 'All the numerators match.'} Drag a card, or use the arrows.</p><LearningListenButton text={`Put them in order: ${round.direction} first. ${round.rule === 'same-denominator' ? 'All the denominators match.' : 'All the numerators match.'} Drag a card, or use the arrows.`} label="Listen to how to play" compact /></div>
     <p className="cg-lineup-end" aria-hidden="true">{round.direction === 'smallest' ? 'Smallest' : 'Biggest'}</p>
     <ol className="cg-lineup-list" ref={listRef} aria-label={`Fraction cards, ${round.direction} first`} data-testid="lineup-list">
       {cards.map((card, index) => (
@@ -422,7 +423,7 @@ export default function ConceptGames({ onExit, lessonGames = [] }: { onExit: () 
   }
   return <main className="cg-page fq-app fq-shell fq-appear" data-testid="games-menu">
     <header className="cg-top"><button type="button" className="cg-back" onClick={onExit} data-testid="button-concept-games-exit"><ArrowLeft size={18} /> Back to Fraction Quest</button><span className="cg-brand-mark" aria-hidden="true"><Scale size={22} /></span></header>
-    <section className="cg-hero"><span className="cg-index">Games</span><h1>Make it. See it.<br /><em>Then name it.</em></h1><p>Pick a game. Games are for fun and practice: they never change lesson progress.</p></section>
+    <section className="cg-hero"><span className="cg-index">Games</span><h1>Make it. See it.<br /><em>Then name it.</em></h1><div className="fq-listen-row"><p>Pick a game. Games are for fun and practice: they never change lesson progress.</p><LearningListenButton text={'Make it. See it. Then name it. Pick a game. Games are for fun and practice: they never change lesson progress.'} label="Listen to the games page" compact /></div></section>
     {lessonGames.length > 0 && <section className="cg-menu-group" aria-labelledby="cg-lesson-games">
       <h2 id="cg-lesson-games">With your lesson</h2>
       <p>These use <b>{lessonGames[0].lessonTitle}</b>. Each lesson also has its own.</p>

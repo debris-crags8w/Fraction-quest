@@ -17,7 +17,7 @@ import {
   type AssessmentDefinition, type AssessmentItem,
 } from './assessments';
 import type { AssessmentAttempt } from './game';
-import { LearningText } from './LearningText';
+import { LearningListenButton, LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
 
 export function AssessmentHub({ attempts, onStart, onBack }: {
@@ -227,7 +227,10 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
       <main className="fq-shell fq-assessment-runner fq-appear" data-testid="assessment-runner">
         <TaskBar onBack={onExit} backLabel="Leave" backAriaLabel="Leave the check-in" testId="button-assessment-exit" title={definition.title} step={index + 1} total={items.length} />
         <form className="fq-assessment-question" onSubmit={submit}>
-          <h2 id={promptId} className="fq-question-text"><LearningText text={item.prompt} emphasize /></h2>
+          <div className="fq-listen-row">
+            <h2 id={promptId} className="fq-question-text"><LearningText text={item.prompt} emphasize /></h2>
+            <LearningListenButton text={item.prompt} label="Listen to the question" compact />
+          </div>
           <AssessmentModelBuilder key={item.id} item={item} onReady={modelReady} />
           <p className="fq-assessment-model-gate" role="status" aria-live="polite">
             {modelBuilt ? 'Now build your answer with the tiles.' : 'Finish building the model to open the answer tiles.'}

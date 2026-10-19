@@ -3,6 +3,7 @@ import { RotateCcw } from 'lucide-react';
 import { correctGap, TOWER_ROUNDS, TOWER_WOBBLES, towerHint, towerRound, towerStars, type TowerBlock } from './stack-tower';
 import { playHaptic } from './lib/fun';
 import { MathText } from './MathText';
+import { LearningListenButton } from './LearningText';
 
 const newSeed = () => 1 + Math.floor(Math.random() * 100000);
 const name = (block: TowerBlock) => `${block.n}/${block.d}`;
@@ -131,7 +132,7 @@ export default function StackTower() {
       <span className="cg-score" data-testid="status-tower-stars">Stars · {stars}</span>
     </div>
     <h2 id="tower-title">Stack the tower</h2>
-    <p className="cg-instruction">Put the <u>biggest fraction at the bottom</u>. Tap a gap, then press Place.</p>
+    <div className="fq-listen-row"><p className="cg-instruction">Put the <u>biggest fraction at the bottom</u>. Tap a gap, then press Place.</p><LearningListenButton text={'Stack the tower. Put the biggest fraction at the bottom. Tap a gap, then press Place.'} label="Listen to how to play" compact /></div>
 
     {incoming && !toppled && (
       <div className="st-incoming">

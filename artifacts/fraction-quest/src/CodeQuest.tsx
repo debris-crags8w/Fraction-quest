@@ -7,6 +7,7 @@ import { Confetti, Mascot, useFun } from './fun-ui';
 import { playCue, playHaptic } from './lib/fun';
 import { CODE_LEVEL_COUNT, countBlocks, describe, getCodeLevels, getRunHint, passesCodeLevel, predictionMatchesTarget, runProgram, toText, usesEffectiveLoop, usesLoop, type Block, type CodeLevel, type RobotState, type RunResult } from './code-quest';
 import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
+import { LearningListenButton } from './LearningText';
 
 /* Code challenge: program a robot to build the lesson's fraction with blocks (or read it as Python). */
 
@@ -232,7 +233,7 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
 
         <section className="fq-code-goal" ref={goalRef} tabIndex={-1}>
           <p className="fq-code-level-title">Step {level.level} of {levels.length} · {level.title}</p>
-          <h2><MathText text={level.goal} /></h2>
+          <div className="fq-listen-row"><h2><MathText text={level.goal} /></h2><LearningListenButton text={`${level.goal} ${level.tip}`} label="Listen to the goal" compact /></div>
           <p className="fq-code-tip"><MathText text={level.tip} /></p>
           <div className="fq-code-mission-progress" data-testid="status-code-mission-progress">
             <span>Code levels passed</span>

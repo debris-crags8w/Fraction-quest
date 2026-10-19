@@ -47,6 +47,7 @@
 
 .fq-story-say { display: flex; align-items: flex-end; gap: 8px; margin: 4px 0 10px; }
 .fq-story-say > svg { flex: none; }
+.fq-story-say > .fq-learning-listen { flex: none; align-self: center; }
 .fq-story-say p { margin: 0; padding: 7px 11px; border: 2px solid hsl(var(--foreground)); border-radius: 14px 14px 14px 4px; background: #fff; font-size: .92rem; font-weight: 700; line-height: 1.3; }
 /* After Check, the friend reacts in the same bubble, so the screen does not grow. */
 .fq-story-say.is-correct p { border-color: var(--fq-go, #358000); background: #ECFBE3; }

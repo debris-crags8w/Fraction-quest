@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { useScrollTopOn } from './lib/reveal';
 import { MathText } from './MathText';
+import { LearningListenButton } from './LearningText';
 import { ArrowRight, Check, Footprints, Map as MapIcon, RotateCcw, Trophy, X } from 'lucide-react';
 import { CHALLENGES, challengeMaxPoints, challengeTrophy, type ChallengeQuestion } from './challenges';
 import { Confetti, Mascot, StoryPrompt, unitColor, useFun, type MascotMood } from './fun-ui';
@@ -31,7 +32,7 @@ function WalkThrough({ question, onClose }: { question: ChallengeQuestion; onClo
       </ol>
       {!done && current && (
         <div className="fq-walk-step">
-          <p><MathText text={current.prompt} /></p>
+          <div className="fq-listen-row"><p><MathText text={current.prompt} /></p><LearningListenButton text={current.prompt} label="Listen to this step" compact /></div>
           <div className="fq-walk-choices" role="group" aria-label={`Step ${at + 1} answer`}>
             {current.choices.map((c, i) => (
               <button type="button" key={i} className={`${pick === i ? (i === current.correct ? 'ok' : 'bad') : ''} ${ruledOut.includes(i) ? 'ruled-out' : ''}`}
@@ -46,7 +47,7 @@ function WalkThrough({ question, onClose }: { question: ChallengeQuestion; onClo
           </div>
           {pick !== null && (right
             ? <button type="button" className="fq-button" onClick={() => { setAt(at + 1); setPick(null); setRuledOut([]); }} data-testid="button-step-next">{at === steps.length - 1 ? 'Finish steps' : 'Next step'} <ArrowRight size={16} /></button>
-            : <p className="fq-walk-retry" role="status" aria-live="polite"><strong>{retryOpener(`${question.id}-step-${at}-${pick}`)}</strong> {retryText}</p>)}
+            : <p className="fq-walk-retry fq-listen-row" role="status" aria-live="polite"><span><strong>{retryOpener(`${question.id}-step-${at}-${pick}`)}</strong> {retryText}</span><LearningListenButton text={`${retryOpener(`${question.id}-step-${at}-${pick}`)} ${retryText}`} label="Listen to the hint" compact /></p>)}
         </div>
       )}
       {done && (

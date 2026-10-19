@@ -78,7 +78,7 @@ export function StoryComicView({ title, kicker, panels, name, choice, picked: sa
               )}
             </fieldset>
           )}
-          {note && <p className="fq-story-note" data-testid="story-detective-note"><Search size={16} aria-hidden="true" /> {withName(note, name, theme)}</p>}
+          {note && <div className="fq-listen-row"><p className="fq-story-note" data-testid="story-detective-note"><Search size={16} aria-hidden="true" /> {withName(note, name, theme)}</p><LearningListenButton text={withName(note, null, theme)} label="Listen to the detective note" compact /></div>}
           <button type="button" className="fq-button fq-story-go" onClick={() => onGo(picked ?? undefined)} disabled={!!choice && picked === null} data-testid="button-story-go">
             {goLabel} <ArrowRight size={18} />
           </button>
@@ -92,10 +92,12 @@ export function StoryComicView({ title, kicker, panels, name, choice, picked: sa
    answer is checked; it never hints. */
 export function StorySay({ chapter, questionId, result = null, setup }: { chapter: Chapter; questionId: string; result?: 'correct' | 'retry' | null; setup?: string }) {
   const theme = useStoryTheme();
+  const line = result ? storyReaction(chapter.character, result, questionId) : withName(setup ?? storyAsk(chapter, questionId), null, theme);
   return (
     <div className={`fq-story-say ${result ? `is-${result}` : ''}`} data-testid="story-line" data-result={result ?? undefined}>
       <StoryCharacter id={chapter.character} size={40} happy={result === 'correct'} />
-      <p aria-live="polite"><span className="fq-sr">{CHARACTERS[chapter.character].name} says: </span>{result ? storyReaction(chapter.character, result, questionId) : withName(setup ?? storyAsk(chapter, questionId), null, theme)}</p>
+      <p aria-live="polite"><span className="fq-sr">{CHARACTERS[chapter.character].name} says: </span>{line}</p>
+      <LearningListenButton text={line} label={`Listen to ${CHARACTERS[chapter.character].name}`} compact />
     </div>
   );
 }
@@ -154,7 +156,7 @@ export function ChapterBanner({ chapter, unitTitle, done, total, state, teaser, 
           <p>{unitTitle} · <span aria-label={`${done} of ${total} lessons mastered`}>{done}/{total} lessons</span></p>
         </div>
       </div>
-      {state === 'current' && teaser && <p className="fq-chapter-banner-teaser" data-testid="stone-teaser">{withName(teaser, null, theme)}</p>}
+      {state === 'current' && teaser && <div className="fq-listen-row"><p className="fq-chapter-banner-teaser" data-testid="stone-teaser">{withName(teaser, null, theme)}</p><LearningListenButton text={withName(teaser, null, theme)} label="Listen to the teaser" compact /></div>}
       {state === 'locked'
         ? <p className="fq-chapter-banner-lock"><LockKeyhole size={16} aria-hidden="true" /> {chapter.unit > 1 ? `Finish chapter ${chapter.unit - 1} to open this chapter` : 'Finish the lessons before this one to open it'}</p>
         : (
@@ -285,7 +287,7 @@ export function StorybookView({ tab, chapters, completedUnits, prologueSeen, foc
 
         {tab === 'stickers' && (
           <div className="fq-storybook-stickers" data-testid="sticker-book">
-            <p className="fq-story-cards-note">Every lesson earns a sticker. Helping a friend earns a thank-you sticker. <strong>{earnedStickers} stickers</strong> collected.</p>
+            <div className="fq-listen-row"><p className="fq-story-cards-note">Every lesson earns a sticker. Helping a friend earns a thank-you sticker. <strong>{earnedStickers} stickers</strong> collected.</p><LearningListenButton text={`Every lesson earns a sticker. Helping a friend earns a thank-you sticker. ${earnedStickers} stickers collected.`} label="Listen to the sticker book" compact /></div>
             {chapters.filter((item) => item.reached).map(({ chapter, lessons }) => (
               <section key={chapter.unit} className="fq-sticker-row" aria-label={`Chapter ${chapter.unit} stickers`}>
                 <h3>Chapter {chapter.unit} · {chapter.title}</h3>
@@ -300,7 +302,7 @@ export function StorybookView({ tab, chapters, completedUnits, prologueSeen, foc
 
         {tab === 'cards' && (
           <>
-            <p className="fq-story-cards-note">Finish a chapter to meet its friend. <strong>{completedUnits.size} of {CHAPTERS.length}</strong> cards collected.</p>
+            <div className="fq-listen-row"><p className="fq-story-cards-note">Finish a chapter to meet its friend. <strong>{completedUnits.size} of {CHAPTERS.length}</strong> cards collected.</p><LearningListenButton text={`Finish a chapter to meet its friend. ${completedUnits.size} of ${CHAPTERS.length} cards collected.`} label="Listen to the friend cards" compact /></div>
             <div className="fq-story-cards" data-testid="story-cards">
               {CHAPTERS.map((chapter) => {
                 const first = chapters.find((item) => item.chapter.unit === chapter.unit)?.lessons[0];
@@ -331,11 +333,19 @@ export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, p
   // The stone piece is shown after the child works out how much of the stone is back.
   const [stoneSolved, setStoneSolved] = useState(false);
   const tell = (text: string) => withName(text, name, theme);
+  const say = (text: string) => withName(text, null, theme);
+  const cliffShown = !chapterDone || (stoneSolved && !finale);
+  const payoffSpeech = [
+    say(chapterDone ? chapter.done : chapter.thanks),
+    problem ? `Because you solved the story problem: ${say(problem.result)}` : '',
+    cliffShown ? say(lessonCliff(chapter, lessonIndex, lessonsTotal)) : '',
+  ].filter(Boolean).join(' ');
   return (
     <div className="fq-story-payoff" data-testid="story-payoff">
       <div className="fq-story-say">
         <StoryCharacter id={chapter.character} size={48} happy />
         <p><span className="fq-sr">{CHARACTERS[chapter.character].name} says: </span>{tell(chapterDone ? chapter.done : chapter.thanks)}</p>
+        <LearningListenButton text={payoffSpeech} label="Listen to the story" compact />
       </div>
       {problem && (
         <p className="fq-story-result" data-testid="story-problem-result">
@@ -384,7 +394,7 @@ function StoneQuestion({ found, onSolved }: { found: number; onSolved: () => voi
   return (
     <section className="fq-stone-question" aria-labelledby="stone-question-title" data-testid="stone-question">
       <span className="fq-stone-question-tag">Stone question</span>
-      <h2 id="stone-question-title">How much of the <u>Whole Stone</u> is back?</h2>
+      <div className="fq-listen-row"><h2 id="stone-question-title">How much of the <u>Whole Stone</u> is back?</h2><LearningListenButton text="How much of the Whole Stone is back?" label="Listen to the stone question" compact /></div>
       <StoneBar found={found} />
       <div className="fq-stone-question-choices" role="group" aria-label="Choices">
         {choices.map((choice, index) => (
@@ -394,7 +404,7 @@ function StoneQuestion({ found, onSolved }: { found: number; onSolved: () => voi
           </button>
         ))}
       </div>
-      {missed && <p className="fq-stone-question-note" role="status" data-testid="stone-question-feedback">Good try! Count the gold pieces. Then count all the pieces in the whole stone.</p>}
+      {missed && <div className="fq-listen-row"><p className="fq-stone-question-note" role="status" data-testid="stone-question-feedback">Good try! Count the gold pieces. Then count all the pieces in the whole stone.</p><LearningListenButton text="Good try! Count the gold pieces. Then count all the pieces in the whole stone." label="Listen to the hint" compact /></div>}
       <button type="button" className="fq-button fq-stone-question-check" disabled={picked === null || missed}
         onClick={() => { if (picked === correct) onSolved(); else setMissed(true); }} data-testid="button-stone-check">
         Check <ArrowRight size={17} />
