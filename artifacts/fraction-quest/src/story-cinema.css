@@ -55,7 +55,7 @@
 .fq-cine-moon { right: 9%; top: 7%; width: 34px; height: 34px; border-radius: 50%; background: #FFF4C2; box-shadow: 0 0 30px 8px rgb(255 244 194 / .35); }
 .fq-cine-sun { right: 8%; top: 7%; width: 44px; height: 44px; border-radius: 50%; background: #FFE066; box-shadow: 0 0 40px 14px rgb(255 224 102 / .55); }
 .fq-cine-sun.is-low { right: auto; left: 8%; }
-.fq-cine-cloud { width: 70px; height: 22px; border-radius: 999px; background: #fff; opacity: .92; background: linear-gradient(#fff, #E6F1FA); box-shadow: 18px -10px 0 -2px #fff, inset 0 -5px 0 rgb(120 150 190 / .25); animation: fq-cine-cloud 14s linear infinite alternate; }
+.fq-cine-cloud { width: 70px; height: 22px; border-radius: 999px; opacity: .92; background: linear-gradient(#fff, #E6F1FA); box-shadow: 18px -10px 0 -2px #fff, inset 0 -5px 0 rgb(120 150 190 / .25); animation: fq-cine-cloud 14s linear infinite alternate; }
 .fq-cine-glint { z-index: 3; width: 14px; height: 18px; border-radius: 4px; background: #FFC800; box-shadow: 0 0 14px 6px rgb(255 200 0 / .8); opacity: .35; transition: opacity .6s; }
 .fq-cine-glint.is-found, .fq-cine-glint.is-shining { opacity: 1; animation: fq-cine-glint 1.4s ease-in-out infinite; }
 .fq-cine-glint.is-hidden { opacity: 0; }
@@ -143,7 +143,7 @@
 .fq-cine-sparkle { z-index: 3; width: 18px; height: 18px; background: #FFC800; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation: fq-cine-glint 1.2s ease-in-out infinite; }
 
 /* Chapter 6: Bea's honey jars. */
-.fq-cine-screen.is-honey .fq-cine-set { background: linear-gradient(#FFEBA8, #FFD76A 60%, #F6B93B); }
+.fq-cine-screen.is-honey .fq-cine-set { background: radial-gradient(ellipse at 50% 45%, #FFF6D6 55%, #FBE6A8); }
 .fq-cine-hive { width: 40px; height: 48px; border-radius: 50% 50% 46% 46%; background: repeating-linear-gradient(#F6B93B 0 9px, #D4901C 9px 12px); }
 .fq-cine-shelf.is-long { left: 4%; right: 4%; top: 56%; width: auto; height: 12px; box-shadow: none; }
 .fq-cine-jar { z-index: 2; width: 22%; height: 30%; border: 3px solid #BDE6FF; border-radius: 10px 10px 14px 14px; background: rgb(255 255 255 / .55); overflow: hidden; }
@@ -184,12 +184,12 @@
 .fq-cine-screen.is-pond .fq-cine-ambient { --mote: rgb(255 255 255 / .7); }
 .fq-cine-screen.is-bridge .fq-cine-ambient, .fq-cine-screen.is-tower .fq-cine-ambient { --mote: rgb(255 190 140 / .6); }
 /* Dusk deepens slowly at the bridge. */
-.fq-cine-screen.is-bridge .fq-cine-set::after { content: ''; inset: 0; background: rgb(30 10 70 / .5); opacity: 0; animation: fq-cine-dusk 40s ease-in forwards; pointer-events: none; z-index: 3; }
+.fq-cine-screen.is-bridge .fq-cine-set::after { content: ''; position: absolute; inset: 0; background: rgb(30 10 70 / .5); opacity: 0; animation: fq-cine-dusk 40s ease-in forwards; pointer-events: none; z-index: 3; }
 /* Water shimmer. */
 .fq-cine-pond::after, .fq-cine-river::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 9px, rgb(255 255 255 / .22) 9px 10px); opacity: .6; animation: fq-cine-shimmer 3s ease-in-out infinite alternate; }
 /* Bloom on the sun and moon; contact shadows and depth. */
 .fq-cine-sun::after, .fq-cine-moon::after { content: ''; position: absolute; inset: -60%; border-radius: 50%; background: radial-gradient(circle, rgb(255 244 200 / .5), transparent 65%); mix-blend-mode: screen; }
-.fq-cine-actor::after, .fq-cine-pie::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: -4%; height: 10px; z-index: -1; border-radius: 50%; background: rgb(0 0 0 / .28); filter: blur(4px); }
+.fq-cine-actor::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: -4%; height: 10px; z-index: -1; border-radius: 50%; background: rgb(0 0 0 / .28); filter: blur(4px); }
 .fq-cine-jar { box-shadow: 0 8px 8px -4px rgb(0 0 0 / .3); }
 .fq-cine-treat { filter: saturate(1.2); }
 .fq-cine-tower::after { content: ''; position: absolute; left: -10%; right: -10%; bottom: -3%; height: 12px; border-radius: 50%; background: rgb(0 0 0 / .3); filter: blur(5px); z-index: -1; }
@@ -243,6 +243,13 @@
   .fq-cine-confetti, .fq-cine-knife, .fq-cine-falling, .fq-cine-splash, .fq-cine-crumb { display: none; }
   .fq-cine-plank.is-falling { animation: none; visibility: hidden; }
   .fq-cine-piece, .fq-cine-actor, .fq-cine-snack, .fq-cine-treat, .fq-cine-slice { transition: none; }
-  .fq-cine-ambient, .fq-cine-screen::before, .fq-cine-screen.is-bridge .fq-cine-set::after { animation: none; }
+  .fq-cine-screen::before, .fq-cine-screen.is-bridge .fq-cine-set::after, .fq-cine-pond::after, .fq-cine-river::after, .fq-cine-flash::after { animation: none; }
+  .fq-cine-ambient { animation: none; display: none; }
+  .fq-cine-flash::after { display: none; }
   .fq-cine-caption, .fq-cine-panel, .fq-cine-rise, .fq-cine-bang, .fq-cine-flag, .fq-cine-tick, .fq-cine-card small, .fq-cine-card strong { animation: fq-cine-fade .3s ease both; }
+}
+
+/* Keep it light on small phones. */
+@media (max-width: 420px) {
+  .fq-cine-grain { display: none; }
 }
