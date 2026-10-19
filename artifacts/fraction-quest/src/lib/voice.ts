@@ -66,10 +66,10 @@ export function spokenText(text: string): string {
     .replace(/(\d+)\s+(\d+)\s*\/\s*(\d+)/g, (_, w, t, b) => `${w} and ${sayFraction(Number(t), Number(b))}`) // mixed numbers
     .replace(/\?\s*\/\s*(\d+)/g, (_, b) => `how many ${PARTS[Number(b)]?.[1] ?? `over ${b}`}`)               // ?/4
     .replace(/(\d+)\s*\/\s*\?/g, '$1 over what number')
-    .replace(/(\d+)\/(\d+)s\b/g, (_, t, b) => (PARTS[Number(b)] ? `${count(Number(t))} ${PARTS[Number(b)][1]}` : `${t} over ${b}s`)) // "3/4s"
+    .replace(/(\d+)\/(\d+)s\b/g, (_, t, b) => sayFraction(Number(t), Number(b))) // "1/2s"
     .replace(/(\d+)\s*\/\s*(\d+)/g, (_, t, b) => sayFraction(Number(t), Number(b)))
     .replace(/\$(\d+)\.(\d{2})\b/g, (_, d, c) => `${d} ${d === '1' ? 'dollar' : 'dollars'}${c === '00' ? '' : ` and ${Number(c)} cents`}`)
-    .replace(/(\d)\.(\d+)/g, (_, whole, dec) => `${count(Number(whole))} point ${dec.split('').map((d: string) => ONES[Number(d)]).join(' ')}`)
+    .replace(/(\d+)\.(\d+)/g, (_, whole, dec) => `${count(Number(whole))} point ${dec.split('').map((d: string) => ONES[Number(d)]).join(' ')}`)
     .replace(/\s<\s/g, ' is less than ').replace(/\s>\s/g, ' is greater than ').replace(/\s*=\s*/g, ' equals ')
     .replace(/(\d)%/g, '$1 percent')
     .replace(/\s+/g, ' ').trim();

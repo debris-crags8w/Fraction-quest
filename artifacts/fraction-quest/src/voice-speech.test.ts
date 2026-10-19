@@ -11,6 +11,12 @@ test('decimals and money are not split into separate sentences', () => {
 test('fractions with other denominators are read as words', () => {
   assert.equal(spokenText('3/20'), 'three twentieths');
   assert.equal(spokenText('2/1'), '2');
-  assert.equal(spokenText('1/2s'), 'one halves');
+  assert.equal(spokenText('1/2s'), 'one half');
+  assert.equal(spokenText('3/4s'), 'three fourths');
   assert.equal(spokenText('6/3 =2'), 'six thirds equals 2');
+});
+
+test('multi-digit decimals keep their whole part', () => {
+  assert.equal(spokenText('12.5 is more than 12.'), 'twelve point five is more than 12.');
+  assert.equal(spokenText('Pay $12.50'), 'Pay 12 dollars and 50 cents');
 });

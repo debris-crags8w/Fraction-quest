@@ -1794,7 +1794,7 @@ describe('read-aloud voice', () => {
     assert.equal(pickVoice([v('Google français', 'fr-FR')]), null);
   });
   it('says fractions the way a teacher would', () => {
-    assert.equal(sayFraction(1, 2), 'one half'); assert.equal(sayFraction(3, 4), 'three fourths'); assert.equal(sayFraction(7, 25), '7 over 25');
+    assert.equal(sayFraction(1, 2), 'one half'); assert.equal(sayFraction(3, 4), 'three fourths'); assert.equal(sayFraction(7, 25), 'seven twenty-fifths');
     assert.equal(spokenText('Color 1/4 of the square.'), 'Color one fourth of the square.');
     assert.equal(spokenText('Write 1 2/3 as a fraction.'), 'Write 1 and two thirds as a fraction.');
     assert.equal(spokenText('2/8 = ?/4'), 'two eighths equals how many fourths');
