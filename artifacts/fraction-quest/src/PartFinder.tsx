@@ -153,6 +153,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
   // Sort rounds check the share of every piece; the other rounds check the chosen pieces.
   const answerPieces = sorting ? assignment : selected;
   const placed = assignment.filter((share) => share >= 0).length;
+  const instruction = sorting ? 'Tap a friend, then tap their pieces. Tap a piece again to take it back.' : 'Tap or click pieces to select them. Use Tab, then Enter or Space.';
   // On a short phone the cake can push the check button below the screen: show it once there is something to check
   // (every piece shared out, or a piece picked).
   const checkButtonRef = useRef<HTMLButtonElement>(null);
@@ -207,6 +208,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
     setTileCount('');
     setActiveShare(0);
   };
+  const feedbackText = checked === 'idle' ? '' : partFinderFeedback(round, answerPieces, tileAnswer, friends);
 
   return (
     <main className="fq-app fq-pf" data-testid="part-finder-screen">
@@ -227,7 +229,10 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
 
         <section className="fq-pf-card" aria-labelledby="pf-title">
           <div className="fq-pf-heading">
-            <h1 id="pf-title">{words(round.title)}</h1>
+            <div className="fq-listen-row">
+              <h1 id="pf-title">{words(round.title)}</h1>
+              <LearningListenButton text={`${round.title}. ${round.prompt} ${instruction}${sorting ? ' Who gets the next pieces you tap?' : ''}`} label="Listen to this cake's task" compact />
+            </div>
             <p className="fq-pf-prompt"><MathText text={words(round.prompt)} /></p>
           </div>
 
@@ -253,7 +258,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
                 disabled={correct}
                 onToggle={togglePiece}
               />
-              <p className="fq-pf-instruction">{sorting ? 'Tap a friend, then tap their pieces. Tap a piece again to take it back.' : 'Tap or click pieces to select them. Use Tab, then Enter or Space.'}</p>
+              <p className="fq-pf-instruction">{instruction}</p>
             </figure>
           </div>
 
@@ -307,8 +312,8 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
           </div>
           {checked !== 'idle' && (
             <div className={`fq-pf-feedback ${correct ? 'right' : 'retry'}`} role="status" aria-live="polite" data-testid="part-finder-feedback">
-              <strong>{correct ? 'That fits!' : 'Almost there.'}</strong>
-              <span><MathText text={words(partFinderFeedback(round, answerPieces, tileAnswer, friends))} /></span>
+              <strong className="fq-listen-row">{correct ? 'That fits!' : 'Almost there.'}<LearningListenButton text={`${correct ? 'That fits!' : 'Almost there.'} ${feedbackText}`} label="Listen to the feedback" compact /></strong>
+              <span><MathText text={words(feedbackText)} /></span>
             </div>
           )}
         </section>

@@ -3,6 +3,7 @@ import { RotateCcw } from 'lucide-react';
 import { crocodileLimit, fliesFor, FROG_ROUNDS, frogRound, hop, parHops, positionName, type FrogCard } from './frog-hop';
 import { playHaptic } from './lib/fun';
 import { useSeason } from './fun-ui';
+import { LearningListenButton } from './LearningText';
 
 const newSeed = () => 1 + Math.floor(Math.random() * 100000);
 
@@ -113,7 +114,7 @@ export default function FrogHop() {
       <span className="cg-score" data-testid="status-frog-flies">{Bugs} · {flies}</span>
     </div>
     <h2 id="frog-title">Land on <span className="fh-goal-name"><Fraction n={round.goal / gcd(round.goal, round.denominator)} d={round.denominator / gcd(round.goal, round.denominator)} /></span>{round.goal > round.denominator ? <small className="fh-goal-mixed"> ({goalName})</small> : null}</h2>
-    <p className="cg-instruction">Pick a jump card, then press Hop. Land exactly on the lily pad in as few hops as you can.</p>
+    <div className="fq-listen-row"><p className="cg-instruction">Pick a jump card, then press Hop. Land exactly on the lily pad in as few hops as you can.</p><LearningListenButton text={`Land on ${round.goal / gcd(round.goal, round.denominator)}/${round.denominator / gcd(round.goal, round.denominator)}. Pick a jump card, then press Hop. Land exactly on the lily pad in as few hops as you can.`} label="Listen to how to play" compact /></div>
 
     <div className={`fh-pond ${seasonId ? `is-${seasonId}` : ''}`} data-testid="frog-pond" data-goal={round.goal} data-denominator={round.denominator} data-wholes={round.wholes} aria-label={`Number line from 0 to ${round.wholes}. Goal at ${goalName}. Frog at ${positionName(position, round.denominator)}.`} role="img">
       <div className="fh-water" aria-hidden="true">

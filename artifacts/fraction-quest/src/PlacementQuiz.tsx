@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, ArrowRight, Compass, Map as MapIcon } from 'lucide-react';
 import { answerMatches, isYesNoProblem, paperPrompt, yesNoPrompt } from './learning-content';
 import { MathText } from './MathText';
+import { LearningListenButton } from './LearningText';
 import { Mascot } from './fun-ui';
 import { BarSvg, LineSvg, SetSvg } from './models';
 import { AreaSvg } from './AreaModel';
@@ -74,6 +75,7 @@ export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
   }
 
   const m = item.problem.model;
+  const question = isYesNoProblem(item.problem) ? yesNoPrompt(item.problem) : paperPrompt(item.problem, true);
   return (
     <div className="fq-app"><main className="fq-shell fq-place fq-appear" data-testid="placement-quiz">
       <div className="fq-place-top">
@@ -83,7 +85,10 @@ export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
       </div>
       <section className="fq-place-card question" key={`${unit}-${index}`}>
         <p className="fq-place-small">{unitTitles[unit - 1]}</p>
-        <h2 data-testid="text-placement-question"><MathText text={isYesNoProblem(item.problem) ? yesNoPrompt(item.problem) : paperPrompt(item.problem, true)} /></h2>
+        <div className="fq-listen-row">
+          <h2 data-testid="text-placement-question"><MathText text={question} /></h2>
+          <LearningListenButton text={question} label="Listen to the question" compact />
+        </div>
         {m && <div className="fq-place-model">{m.kind === 'line' ? <LineSvg n={m.n} d={m.d} wholes={m.wholes} jumps={false} /> : m.kind === 'set' ? <SetSvg n={m.n} d={m.d} total={m.total ?? m.d} /> : <BarSvg n={m.n} d={m.d} wholes={m.wholes} sizes={m.sizes} />}</div>}
         {item.problem.area && <div className="fq-place-model"><AreaSvg figure={item.problem.area} /></div>}
         <form onSubmit={submit} className="fq-place-form">

@@ -63,3 +63,14 @@ export function introSpeech(kind: IntroKind): string[] {
   }
   return lines;
 }
+
+/** The Helper's pick screen: what each intro is about, and the line read before them. */
+export const HELPER_PICKS: Record<IntroKind, string> = {
+  builder: 'Split a whole into equal parts and shade them',
+  line: 'Equal spaces, jumps from 0, where you land',
+};
+export const HELPER_PICK_SPEECH = [
+  'Need a brush-up? Watch how it works, then try it.',
+  `${INTRO_TEXT.builder.title}. ${HELPER_PICKS.builder}.`,
+  `${INTRO_TEXT.line.title}. ${HELPER_PICKS.line}.`,
+];

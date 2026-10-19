@@ -15,9 +15,9 @@ import { BUILD_ERROR_HEADINGS, LAB_SECTION_SPEECH, buildErrors, buildHints, fold
 import { getModelFeedback, type LearningModel } from '../src/learning-content';
 import { CHALLENGES } from '../src/challenges';
 import { OPENERS, SLIPS } from '../src/wrong-answer';
-import { goal, sprintTargets } from '../src/code-quest';
+import { getCodeLevels, goal, sprintTargets } from '../src/code-quest';
 import { dailyBuildSpeech } from '../src/daily-practice';
-import { introSpeech } from '../src/intro-copy';
+import { HELPER_PICK_SPEECH, introSpeech } from '../src/intro-copy';
 import { guideForUnit } from '../src/teaching-guide-data';
 
 const THEMES: PropTheme[] = ['everyday', 'halloween', 'christmas'];
@@ -27,6 +27,20 @@ const EXTRA = [
   'Let\'s make it simpler.', 'Not yet.', 'Hint.', 'Choose yes or no.', 'Build it.', 'On your own.', 'Apply it.',
   'Pick the sentence that matches your model.', 'Good try. Look at the models and choose again.', 'Your reason is right! Now fix the model above.',
   ...OPENERS, ...Object.values(SLIPS),
+  // Listen buttons on the stone question, the story payoff, the Helper and the games.
+  'How much of the Whole Stone is back?', 'Good try! Count the gold pieces. Then count all the pieces in the whole stone.',
+  'Because you solved the story problem:', ...HELPER_PICK_SPEECH,
+  'Build each fraction before deciding which amount is greater. Each bar is one same-size whole.',
+  'Every symbol card has a bar card partner. Match by the amount shaded, not by the printed numbers.',
+  'Choose equal spaces from 0 to 1, then tap the tick that lands on the target fraction.',
+  'Fraction Line-Up. Drag four fractions into order. Pick a kind of line-up.',
+  'Put them in order: smallest first.', 'Put them in order: biggest first.', 'All the denominators match.', 'All the numerators match.', 'Drag a card, or use the arrows.',
+  'Make it. See it. Then name it. Pick a game. Games are for fun and practice: they never change lesson progress.',
+  'Pick a jump card, then press Hop. Land exactly on the lily pad in as few hops as you can.',
+  'Stack the tower. Put the biggest fraction at the bottom. Tap a gap, then press Place.',
+  'Move the cards up or down. The first card should be the smallest.', 'Move the cards up or down. The first card should be the biggest.',
+  'Tap a friend, then tap their pieces. Tap a piece again to take it back.', 'Tap or click pieces to select them. Use Tab, then Enter or Space.',
+  'Who gets the next pieces you tap?', 'That fits!', 'Almost there.',
 ];
 
 /** Prose worth reading, once said in words ("1/6 + 2/6 = ?" counts): has letters and a space, and isn't an id, a
@@ -86,6 +100,7 @@ export function voiceSentences(): { key: string; text: string }[] {
     for (let round = 0; round < 3; round++) { const check = safe(() => getReviewCheck(mission.id, round)); if (check) builds.push(check); }
     for (const check of builds) addBuildSpeech(check.target, lesson);
     for (const target of safe(() => sprintTargets(mission.id)) ?? []) lesson.add(`Make the robot ${goal(target)}.`);
+    for (const level of safe(() => getCodeLevels(mission.id)) ?? []) lesson.add(`${level.goal} ${level.tip}`);
   }
   BUILD_ERROR_HEADINGS.forEach((line) => lesson.add(line));
   // Daily practice builds n/d (d up to 12) with a bar or a number line; the paper strip opens into 2s and 3s.

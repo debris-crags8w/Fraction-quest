@@ -9,6 +9,7 @@ type Guide = NonNullable<ReturnType<typeof guideForUnit>>;
 export const LAB_SECTION_SPEECH = {
   redo: 'Do it again. Want more practice? Try a part again with new numbers. Your lesson stays finished.',
   buildPractice: 'More build practice. Try 10 new, optional questions with this lesson’s ideas. Extra practice does not change lesson completion.',
+  sameSize: 'Same size, different shapes. Each square shows 1/4. The shapes look different, but each colored part is the same size: 4 of them fill the square. Equal parts are the same size, not always the same shape.',
   reteach: 'Make this idea clearer. One idea has been tricky more than once: use each new model, then enter the answer. These extra checks help make the idea stick.',
 };
 

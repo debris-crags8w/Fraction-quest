@@ -312,3 +312,8 @@
   .fq-kokoro-test-step { grid-template-columns: 24px minmax(0, 1fr); }
   .fq-kokoro-test-result { grid-column: 2; }
 }
+
+/* A heading or line of text with its Listen button beside it. */
+.fq-listen-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.fq-listen-row > :first-child { flex: 1 1 auto; min-width: 0; }
+.fq-listen-row > .fq-learning-listen { flex: none; }

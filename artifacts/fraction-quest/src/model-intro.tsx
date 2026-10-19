@@ -6,7 +6,7 @@ import { ArrowRight, Check, LifeBuoy, Minus, Plus, RotateCcw } from 'lucide-reac
 import { playHaptic } from './lib/fun';
 import type { IntroKind } from './lib/fun';
 import { LearningListenButton } from './LearningText';
-import { INTRO_DEMOS, INTRO_TEXT, INTRO_TRIES, introHint } from './intro-copy';
+import { HELPER_PICKS, HELPER_PICK_SPEECH, INTRO_DEMOS, INTRO_TEXT, INTRO_TRIES, introHint } from './intro-copy';
 import './model-intro.css';
 
 const SHOT_MS = 2300;
@@ -65,6 +65,10 @@ export function ModelIntro({ kind, onDone, onSkip, helper = false }: {
   const hint = introHint(kind, target, parts, count);
   const demo = shots[shot];
   const atPhase = PHASES.indexOf(phase);
+  // The header's Listen reads the step on screen: the demo's captions, the try and its live hint, or the ready text.
+  const stepSpeech = phase === 'watch' ? [text.title, ...shots.map((item) => item.caption)].join(' ')
+    : phase === 'try' ? `${text.build} ${target.word}. ${hint.text}`
+    : `${text.ready} ${text.readyBody}`;
 
   const changeParts = (by: number) => {
     const next = Math.max(1, Math.min(8, parts + by));
@@ -81,7 +85,7 @@ export function ModelIntro({ kind, onDone, onSkip, helper = false }: {
           <span className="fq-mi-kicker">{text.kicker}</span>
           <h3 id={`intro-title-${kind}`}>{text.title}</h3>
         </div>
-        <LearningListenButton text={[text.title, ...shots.map((item) => item.caption)].join(' ')} label={`Listen to ${text.title.toLowerCase()}`} />
+        <LearningListenButton text={stepSpeech} label={`Listen to ${text.title.toLowerCase()}`} />
       </header>
 
       <ol className="fq-mi-phases" aria-label="Steps">
@@ -214,12 +218,12 @@ export function useLessonHelper({ compact = false }: { /** An icon-only button, 
       </div>
       {kind ? <ModelIntro key={kind} kind={kind} helper onDone={() => setKind(null)} /> : (
         <div className="fq-mi-helper-picks">
-          <p>Need a brush-up? Watch how it works, then try it.</p>
+          <div className="fq-listen-row"><p>{HELPER_PICK_SPEECH[0]}</p><LearningListenButton text={HELPER_PICK_SPEECH.join(' ')} label="Listen to the Helper" compact /></div>
           <button type="button" className="fq-mi-helper-pick" onClick={() => setKind('builder')} data-testid="button-helper-builder">
-            <strong>{INTRO_TEXT.builder.title}</strong><span>Split a whole into equal parts and shade them</span>
+            <strong>{INTRO_TEXT.builder.title}</strong><span>{HELPER_PICKS.builder}</span>
           </button>
           <button type="button" className="fq-mi-helper-pick" onClick={() => setKind('line')} data-testid="button-helper-line">
-            <strong>{INTRO_TEXT.line.title}</strong><span>Equal spaces, jumps from 0, where you land</span>
+            <strong>{INTRO_TEXT.line.title}</strong><span>{HELPER_PICKS.line}</span>
           </button>
         </div>
       )}
