@@ -1,4 +1,4 @@
-import { orderedWithSigns, withFourthChoice } from './fourth-choice';
+import { noBeforeYes, orderedWithSigns, withFourthChoice } from './fourth-choice';
 import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
 import type { AreaCut } from './area-shapes';
 import { amountsIn, autoPicture } from './auto-picture';
@@ -295,12 +295,12 @@ function spreadAnswer<T extends { choices: string[]; correctChoice: number }>(qu
 
 function mission(seed: MissionSeed): Mission {
   const standards = standardsForMission(seed.id);
-  const questions = seed.questions.map((question, index) => spreadAnswer({
+  const questions = seed.questions.map((question, index) => noBeforeYes(spreadAnswer({
     ...question,
     id: `${seed.id}-q${index + 1}`,
     isMastery: index === seed.questions.length - 1,
     standards: [...standards],
-  }, `${seed.id}-q${index + 1}`));
+  }, `${seed.id}-q${index + 1}`)));
   return {
     ...seed,
     ...(standards.length && !seed.gradeBand ? { gradeBand: Number(standards[0][0]) as 3 | 4 | 5 } : {}),
@@ -897,7 +897,8 @@ export const MISSIONS: Mission[] = curriculum.map((seed, index) => {
   const priorQuestion = mission(priorLesson).questions[0];
   const reviewChoices = [...priorQuestion.choices.slice(1), priorQuestion.choices[0]];
   const shiftedCorrect = (priorQuestion.correctChoice - 1 + priorQuestion.choices.length) % priorQuestion.choices.length;
-  const review: PracticeQuestion = {
+  // Yes-or-no reviews keep "No" first (the shuffle that moves the right answer doesn't apply to them).
+  const review: PracticeQuestion = noBeforeYes({
     ...priorQuestion,
     id: `${current.id}-review`,
     prompt: `Quick review · ${priorLesson.shortTitle}: ${priorQuestion.prompt}`,
@@ -908,7 +909,7 @@ export const MISSIONS: Mission[] = curriculum.map((seed, index) => {
     reviewMissionId: priorLesson.id,
     reviewQuestionId: priorQuestion.id,
     reviewTopicTitle: priorLesson.shortTitle,
-  };
+  });
   const mastery = current.questions[current.questions.length - 1];
   return { ...current, questions: [...current.questions.slice(0, -1), review, mastery] };
 });

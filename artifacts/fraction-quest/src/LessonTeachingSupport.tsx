@@ -1,4 +1,6 @@
 import { getMission } from './game';
+import { LearningListenButton } from './LearningText';
+import { supportSpeech } from './lab-copy';
 import { guideForUnit } from './teaching-guide-data';
 import './lesson-teaching-support.css';
 
@@ -6,6 +8,7 @@ export function LessonTeachingSupport({ missionId }: { missionId: string }) {
   const mission = getMission(missionId);
   const guide = guideForUnit(mission.unit);
   if (!guide) return null;
+  const speech = supportSpeech(guide, mission);
 
   return (
     <section className="fq-lesson-support" aria-label="Warm-up and thinking prompts" data-testid="lesson-teaching-support">
@@ -13,7 +16,10 @@ export function LessonTeachingSupport({ missionId }: { missionId: string }) {
         <summary>Warm up, use key words, and explain your thinking</summary>
         <div className="fq-lesson-support-content">
           <article>
-            <h3>Quick warm-up</h3>
+            <header className="fq-lesson-support-head">
+              <h3>Quick warm-up</h3>
+              <LearningListenButton text={speech.warmup} label="Listen to the warm-up" />
+            </header>
             <p>{guide.warmup.prompt}</p>
             <details className="fq-lesson-support-reveal">
               <summary>Show one way to think about it</summary>
@@ -22,7 +28,10 @@ export function LessonTeachingSupport({ missionId }: { missionId: string }) {
           </article>
 
           <article>
-            <h3>Words to know</h3>
+            <header className="fq-lesson-support-head">
+              <h3>Words to know</h3>
+              <LearningListenButton text={speech.words} label="Listen to the words to know" />
+            </header>
             <div className="fq-lesson-vocabulary">
               {guide.vocabulary.map(({ term, meaning }) => (
                 <details key={term}>
@@ -34,13 +43,19 @@ export function LessonTeachingSupport({ missionId }: { missionId: string }) {
           </article>
 
           <article>
-            <h3>Explain your thinking</h3>
+            <header className="fq-lesson-support-head">
+              <h3>Explain your thinking</h3>
+              <LearningListenButton text={speech.explain} label="Listen to explain your thinking" />
+            </header>
             <p>{mission.explainPrompt ?? guide.explainFrame}</p>
             <p className="fq-lesson-support-note">Try saying it to someone or writing it on paper. Your response is not recorded.</p>
           </article>
 
           <article>
-            <h3>Be the teacher</h3>
+            <header className="fq-lesson-support-head">
+              <h3>Be the teacher</h3>
+              <LearningListenButton text={speech.teacher} label="Listen to be the teacher" />
+            </header>
             <p>{guide.errorAnalysis.claim}</p>
             <details className="fq-lesson-support-reveal">
               <summary>Reveal a way to fix the idea</summary>
@@ -49,7 +64,10 @@ export function LessonTeachingSupport({ missionId }: { missionId: string }) {
           </article>
 
           <article>
-            <h3>Stretch your thinking</h3>
+            <header className="fq-lesson-support-head">
+              <h3>Stretch your thinking</h3>
+              <LearningListenButton text={speech.stretch} label="Listen to stretch your thinking" />
+            </header>
             <p>{guide.enrichment}</p>
           </article>
         </div>

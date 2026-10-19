@@ -101,3 +101,6 @@
     display: none !important;
   }
 }
+
+.fq-lesson-support-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fq-lesson-support-head h3 { margin: 0; }

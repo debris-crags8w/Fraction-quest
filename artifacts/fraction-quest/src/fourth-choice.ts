@@ -173,3 +173,15 @@ export function orderedWithSigns(prompt: string, choices: string[]): string[] {
   const sign = order[1].toLowerCase() === 'smallest' ? ' < ' : ' > ';
   return choices.map((choice) => (choice.includes(',') ? choice.split(',').map((item) => item.trim()).join(sign) : choice));
 }
+
+/** Answers that start with "No" or "Yes" are sorted: every "No, …" first, then every "Yes, …", then any other
+    answer ("You can't tell"). Each group keeps its order, and the right answer moves with its choice. Questions
+    without both a yes and a no answer are left as they are. */
+export function noBeforeYes<T extends { choices: string[]; correctChoice: number }>(question: T): T {
+  const yes = (text: string) => /^yes\b/i.test(text.trim());
+  const no = (text: string) => /^no\b/i.test(text.trim());
+  if (!question.choices.some(yes) || !question.choices.some(no)) return question;
+  const right = question.choices[question.correctChoice];
+  const choices = [...question.choices.filter(no), ...question.choices.filter(yes), ...question.choices.filter((c) => !yes(c) && !no(c))];
+  return { ...question, choices, correctChoice: choices.indexOf(right) };
+}

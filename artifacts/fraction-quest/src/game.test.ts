@@ -1,5 +1,5 @@
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
-import { fourthChoice, isSignQuestion } from './fourth-choice';
+import { fourthChoice, isSignQuestion, noBeforeYes } from './fourth-choice';
 import { answerValue } from './learning-content';
 import { readFileSync } from 'node:fs';
 import { pickVoice, sayFraction, sentences, spokenText } from './lib/voice';
@@ -379,8 +379,10 @@ describe('lesson catalog', () => {
         assert.equal(review.reviewQuestionId, priorQuestion.id);
         assert.ok(missionIds.has(review.reviewMissionId!));
         assert.equal(review.isMastery, false);
-        assert.deepEqual(review.choices, [...priorQuestion.choices.slice(1), priorQuestion.choices[0]]);
-        assert.equal(review.correctChoice, (priorQuestion.correctChoice - 1 + priorQuestion.choices.length) % priorQuestion.choices.length);
+        // The review moves the right answer by one place (yes-or-no reviews then put "No" first again).
+        const shifted = noBeforeYes({ choices: [...priorQuestion.choices.slice(1), priorQuestion.choices[0]], correctChoice: (priorQuestion.correctChoice - 1 + priorQuestion.choices.length) % priorQuestion.choices.length });
+        assert.deepEqual(review.choices, shifted.choices);
+        assert.equal(review.correctChoice, shifted.correctChoice);
       }
 
       mission.questions.forEach((question) => {
@@ -3457,6 +3459,19 @@ describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
 describe('fourth answer choice', () => {
   it('adds a believable wrong answer that is never a second right one', () => {
     assert.equal(fourthChoice('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 1), null, 'only three signs exist');
+    // Yes-or-no answers list "No, …" first, then "Yes, …"; the right answer moves with its choice.
+    const yn = noBeforeYes({ choices: ['Yes, same-size parts', 'No, some parts are bigger', 'Yes, it is cut into pieces', 'No, the shapes are different'], correctChoice: 0 });
+    assert.deepEqual(yn.choices, ['No, some parts are bigger', 'No, the shapes are different', 'Yes, same-size parts', 'Yes, it is cut into pieces']);
+    assert.equal(yn.correctChoice, 2);
+    const mixed = noBeforeYes({ choices: ['Yes, 3 equal pieces', "You can't tell", 'No, the pieces are unequal'], correctChoice: 1 });
+    assert.deepEqual(mixed.choices, ['No, the pieces are unequal', 'Yes, 3 equal pieces', "You can't tell"], 'other answers come after the yes and no ones');
+    assert.equal(mixed.correctChoice, 2);
+    const plain = { choices: ['1/2', '1/3', '1/4'], correctChoice: 0 };
+    assert.equal(noBeforeYes(plain), plain, 'questions without yes and no answers keep their order');
+    for (const mission of MISSIONS) for (const question of mission.questions) {
+      const kinds = question.choices.map((choice) => /^yes\b/i.test(choice) ? 'y' : /^no\b/i.test(choice) ? 'n' : '-').join('');
+      if (kinds.includes('y') && kinds.includes('n')) assert.ok(/^n*y*-*$/.test(kinds), `${question.id}: no before yes (${question.choices.join(' | ')})`);
+    }
     assert.equal(fourthChoice('Which is bigger, 4/7 or 2/7?', ['4/7', '2/7', 'They are equal'], 0), "You can't tell");
     const order = fourthChoice('Put 1/2, 3/10 and 8/10 in order, smallest first.', ['8/10, 1/2, 3/10', '3/10, 1/2, 8/10', '1/2, 3/10, 8/10'], 1)!;
     assert.ok(order && !['8/10, 1/2, 3/10', '3/10, 1/2, 8/10', '1/2, 3/10, 8/10'].includes(order));
