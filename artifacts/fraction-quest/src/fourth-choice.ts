@@ -8,13 +8,35 @@ import { namedChoices } from './answer-shape';
 const SIGNS = new Set(['<', '=', '>']);
 const norm = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
 const EPS = 1e-9;
-/** A real slip, not filler: comparing only the bottom numbers (never the right choice, which is always a sign). */
-export const SIGN_FOURTH = 'Just compare the bottom numbers';
-
-/** Pick the sign questions: there are only three signs, so their fourth choice is a worded slip. */
+/** Pick the sign questions: there are only three signs, so `withSignComparisons` writes them out as comparisons. */
 export function isSignQuestion(choices: string[]): boolean {
-  const signs = choices.filter((choice) => SIGNS.has(choice.trim()));
-  return signs.length >= 3 && choices.every((choice) => SIGNS.has(choice.trim()) || choice === SIGN_FOURTH);
+  return choices.every((choice) => SIGNS.has(choice.trim()));
+}
+
+/** The two amounts around the gap: "Pick the sign: 6/9 __ 7/9" → 6/9 and 7/9; "compare 3/4 + 1/2 with 1: __ 1." → 3/4 + 1/2 and 1. */
+function comparedAmounts(prompt: string): [string, string] | null {
+  const gap = prompt.indexOf('__');
+  if (gap < 0) return null;
+  const before = prompt.slice(0, gap);
+  const left = (/compare (.+?) with [^:]*:\s*$/i.exec(before)?.[1] ?? before.slice(before.lastIndexOf(': ') + 1)).trim();
+  const right = prompt.slice(gap + 2).replace(/[.?!\s]+$/, '').trim();
+  return left && right && left !== right ? [left, right] : null;
+}
+
+/** Sign questions as four full comparisons with one true: "6/9 > 7/9", "6/9 < 7/9", "6/9 = 7/9" and a flipped slip
+    ("7/9 < 6/9") that is never the same as the right one. The slip goes at `at` (default: the end).
+    Null when the prompt doesn't show the two amounts. */
+export function withSignComparisons(prompt: string, choices: string[], correct: number, at = choices.length): { choices: string[]; correctChoice: number } | null {
+  const amounts = isSignQuestion(choices) ? comparedAmounts(prompt) : null;
+  if (!amounts || choices.length !== 3) return null;
+  const [left, right] = amounts;
+  const written = choices.map((sign) => `${left} ${sign.trim()} ${right}`);
+  const flipped = (sign: string) => `${right} ${sign === '<' ? '>' : '<'} ${left}`;
+  // Flipping the wrong "<" or ">" gives something that is also wrong; flipping the right one would repeat it.
+  const slip = flipped(choices[correct].trim() === '<' ? '>' : '<');
+  const out = [...written];
+  out.splice(at, 0, slip);
+  return { choices: out, correctChoice: correct + (at <= correct ? 1 : 0) };
 }
 
 const hash = (text: string) => [...text].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7);
@@ -92,10 +114,9 @@ function denominatorRank(text: string, right: string, choices: string[]): number
 }
 
 /** A fourth wrong choice for a three-choice question, or null when it needs one written by hand.
-    Sign questions get a worded slip (`SIGN_FOURTH`). */
+    Sign questions keep three here: `withSignComparisons` makes their four choices. */
 export function fourthChoice(prompt: string, choices: string[], correct: number): string | null {
-  if (choices.length !== 3) return null;
-  if (isSignQuestion(choices)) return SIGN_FOURTH;
+  if (choices.length !== 3 || isSignQuestion(choices)) return null;
   const right = choices[correct];
   const taken = new Set(choices.map(norm));
   const fresh = (text: string) => !!text && !taken.has(norm(text));

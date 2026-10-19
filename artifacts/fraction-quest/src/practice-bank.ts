@@ -1,4 +1,4 @@
-import { fourthChoice, noBeforeYes, orderedWithSigns } from './fourth-choice';
+import { fourthChoice, noBeforeYes, orderedWithSigns, withSignComparisons } from './fourth-choice';
 import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, getWorksheet, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
@@ -501,6 +501,8 @@ function balanceChoices(item: Item, rng: Rng): Item {
 
 /** Four choices (A–D): add the recipe's own fourth choice, or one made from the question, at `at`. */
 function withFourth(item: Item, placed: Pick<PracticeQuestion, 'choices' | 'correctChoice'>, at: number): Pick<PracticeQuestion, 'choices' | 'correctChoice'> {
+  const signs = withSignComparisons(item.prompt, placed.choices, placed.correctChoice, at);
+  if (signs) return signs;
   const extra = item.extra && !placed.choices.includes(item.extra) ? item.extra : fourthChoice(item.prompt, placed.choices, placed.correctChoice);
   if (!extra) return placed;
   const choices = [...placed.choices];
