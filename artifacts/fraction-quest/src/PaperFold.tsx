@@ -3,6 +3,7 @@ import { RotateCcw } from 'lucide-react';
 import { useOptionalFun } from './fun-ui';
 import { MathText, StackedFraction } from './MathText';
 import { useReadAloud } from './LearningText';
+import { foldSpeech } from './lab-copy';
 
 /* A virtual paper strip: fold it in halves or thirds, then unfold to see equal pieces.
    This is how kids *make* fractions: 1 → 1/2 → 1/4 → 1/8. */
@@ -88,7 +89,7 @@ export function PaperFold({ allowThirds = true, shadeHalf = false, intro }: { al
     ? `You shaded ${shadedName(shaded.length, factors)} of the strip.`
     : `${pieces} equal pieces. Each piece is 1/${pieces}. Tap pieces to shade them.`;
   // Each opened strip is said aloud once: how many folds, how many equal pieces.
-  useReadAloud(phase === 'unfolding' && sound ? `${factors.length} ${factors.length === 1 ? 'fold' : 'folds'}. ${pieces} equal pieces. Each piece is 1/${pieces}.` : null, phase === 'unfolding' ? round : null);
+  useReadAloud(phase === 'unfolding' && sound ? foldSpeech(factors.length, pieces) : null, phase === 'unfolding' ? round : null);
 
   return (
     <section className={`fq-fold ${shadeHalf ? 'shade-half' : ''}`} aria-label="Fold the paper" data-testid="section-paper-fold">

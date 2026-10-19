@@ -11,7 +11,12 @@ import { CHAPTER_SCENES, CHAPTERS, DETECTIVE_NOTES, EPILOGUE, HANDS_ON_ASKS, PRO
 import { seasonalWords } from '../src/seasonal-words';
 import { sentences, spokenText } from '../src/lib/voice';
 import { cleanSentence, voiceKey } from '../src/lib/voice-pack';
-import { LAB_SECTION_SPEECH, supportSpeech, worksheetSpeech } from '../src/lab-copy';
+import { BUILD_ERROR_HEADINGS, LAB_SECTION_SPEECH, buildErrors, buildHints, foldSpeech, numberLineDescription, sectionsScript, supportSpeech, worksheetSpeech } from '../src/lab-copy';
+import { getModelFeedback, type LearningModel } from '../src/learning-content';
+import { CHALLENGES } from '../src/challenges';
+import { OPENERS, SLIPS } from '../src/wrong-answer';
+import { goal, sprintTargets } from '../src/code-quest';
+import { dailyBuildSpeech } from '../src/daily-practice';
 import { introSpeech } from '../src/intro-copy';
 import { guideForUnit } from '../src/teaching-guide-data';
 
@@ -19,11 +24,14 @@ const THEMES: PropTheme[] = ['everyday', 'halloween', 'christmas'];
 const EXTRA = [
   'Hi there! I can read your fraction lessons to you.',
   'A fraction shows equal parts of one whole. First look at the whole. Then split it into equal pieces and share them fairly.',
-  'Good try!', 'Almost!', 'Let’s look together.', 'Keep going!', 'Nice effort!', 'Let\'s make it simpler.',
+  'Let\'s make it simpler.', 'Not yet.', 'Hint.', 'Choose yes or no.', 'Build it.', 'On your own.', 'Apply it.',
+  'Pick the sentence that matches your model.', 'Good try. Look at the models and choose again.', 'Your reason is right! Now fix the model above.',
+  ...OPENERS, ...Object.values(SLIPS),
 ];
 
-/** Prose worth reading: has letters and a space, and isn't an id, a path or a color. */
-const isProse = (value: string) => /[a-z]/i.test(value) && /\s/.test(value.trim()) && !/^[\w-]+$/.test(value) && !/^#|^https?:/.test(value);
+/** Prose worth reading, once said in words ("1/6 + 2/6 = ?" counts): has letters and a space, and isn't an id, a
+    path or a color. */
+const isProse = (value: string) => !/^[\w-]+$/.test(value) && !/^#|^https?:/.test(value) && /[a-z]/i.test(spokenText(value)) && /\s/.test(value.trim());
 
 function collect(value: unknown, out: Set<string>, seen = new Set<unknown>()) {
   if (typeof value === 'string') { if (isProse(value)) out.add(value); return; }
@@ -33,6 +41,18 @@ function collect(value: unknown, out: Set<string>, seen = new Set<unknown>()) {
 }
 
 const safe = <T,>(make: () => T): T | null => { try { return make(); } catch { return null; } };
+
+/** What the Lab can say about one Build: its model feedback, its two hints and each "not yet" line. */
+function addBuildSpeech(target: LearningModel, out: Set<string>) {
+  const kinds: LearningModel['kind'][] = target.kind === 'set' ? ['set'] : ['bar', 'line'];
+  for (const kind of kinds) {
+    out.add(getModelFeedback(target, kind));
+    buildHints(target, kind).forEach((line) => out.add(line));
+    const wrong = [{ d: 0, count: 0, wholes: 1 }, { d: target.d + 1, count: target.n, wholes: target.wholes }, { d: target.d, count: target.n + 1, wholes: target.wholes + 1 }];
+    if (kind === 'set') for (let d = 2; d <= 12; d++) wrong.push({ d, count: 0, wholes: 1 });
+    for (const state of wrong) buildErrors(kind, target, state).msgs.forEach((line) => out.add(line));
+  }
+}
 
 export function voiceSentences(): { key: string; text: string }[] {
   const lesson = new Set<string>();
@@ -46,6 +66,31 @@ export function voiceSentences(): { key: string; text: string }[] {
     collect(safe(() => partFinderRoundsFor(mission.id)), lesson);
   }
   collect(PART_FINDER_ROUNDS, lesson);
+  collect(CHALLENGES, lesson);
+  for (const mission of MISSIONS) {
+    // Lesson page: the whole example and the ordering steps, read as one ("Question. …"), and the order number line.
+    lesson.add(sectionsScript([
+      { heading: 'Question', text: mission.example.prompt },
+      { heading: 'Worked answer', text: mission.example.answer },
+      { heading: 'Explanation', text: mission.example.explanation },
+    ]));
+    if (mission.learningIntro) lesson.add(sectionsScript([
+      { heading: 'Goal', text: mission.learningIntro.goal },
+      { heading: 'Process', text: mission.learningIntro.process },
+      { heading: 'Why it works', text: mission.learningIntro.why },
+    ]));
+    const line = mission.example.numberLine;
+    if (line) lesson.add(numberLineDescription(line.points, line.benchmark, line.equivalentNames));
+    // Lab: model feedback, hints and what is still wrong, for each Build's targets.
+    const builds = [...(safe(() => getBuildChecks(mission.id)) ?? []), ...(safe(() => getBuildPracticeChecks(mission.id, 0)) ?? [])];
+    for (let round = 0; round < 3; round++) { const check = safe(() => getReviewCheck(mission.id, round)); if (check) builds.push(check); }
+    for (const check of builds) addBuildSpeech(check.target, lesson);
+    for (const target of safe(() => sprintTargets(mission.id)) ?? []) lesson.add(`Make the robot ${goal(target)}.`);
+  }
+  BUILD_ERROR_HEADINGS.forEach((line) => lesson.add(line));
+  // Daily practice builds n/d (d up to 12) with a bar or a number line; the paper strip opens into 2s and 3s.
+  for (let d = 2; d <= 12; d++) for (let n = 1; n <= d; n++) for (const bar of [true, false]) lesson.add(dailyBuildSpeech(n, d, bar));
+  for (const pieces of [2, 3, 4, 6, 8, 9, 12, 16]) for (let folds = 1; folds <= 4; folds++) lesson.add(foldSpeech(folds, pieces));
   collect(getAssessmentDefinitions(), lesson);
   EXTRA.forEach((line) => lesson.add(line));
   // The lesson page's section Listen buttons, and the model intros (how to build, how a number line works).

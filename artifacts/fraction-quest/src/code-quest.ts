@@ -277,6 +277,9 @@ export function makeBug(t: Target): Block[] {
 
 const sameTarget = (a: Target, b: Target) => a.kind === b.kind && a.n === b.n && a.d === b.d && a.wholes === b.wholes && a.total === b.total;
 /** Every different fraction the lesson builds (its two checks and its review rounds), for Code Sprint. */
+/** What a sprint round asks for ("shade 3/4"); read aloud as "Make the robot shade 3/4." */
+export const goal = (t: Target) => t.kind === 'line' ? `land on ${t.n}/${t.d}` : t.kind === 'set' ? `pick ${t.n}/${t.d} of the ${t.total} dots` : `shade ${t.n}/${t.d}`;
+
 export function sprintTargets(missionId: string): Target[] {
   const all = [...getBuildChecks(missionId).map((c) => toTarget(c.target)), ...[0, 1, 2, 3, 4, 5].map((r) => toTarget(getReviewCheck(missionId, r).target))];
   return all.filter((t, i) => all.findIndex((u) => sameTarget(t, u)) === i && t.n <= 60);

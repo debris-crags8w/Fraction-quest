@@ -2,7 +2,6 @@ import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef,
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, BarChart3, BookOpen, Check, ClipboardCheck, Code2, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { MathText } from './MathText';
-import { sayFraction } from './lib/voice';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -43,6 +42,7 @@ import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
 import { useLessonHelper } from './model-intro';
 import { LearningListenButton, LearningText, LearningTextSection, prefetchReading, primeReadAloud, sectionsScript, useReadAloud } from './LearningText';
+import { numberLineDescription } from './lab-copy';
 import { CHAPTER_SCENES, filmedLines } from './story-cinema';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
@@ -261,32 +261,10 @@ export function OrderNumberLine({
 }) {
   // Labels on the line are stacked fractions ("1/4 = 2/8" through MathText); the description says them in words.
   const slashName = ({ numerator, denominator }: { numerator: number; denominator: number }) => `${numerator}/${denominator}`;
-  const fractionName = ({ numerator, denominator }: { numerator: number; denominator: number }) => sayFraction(numerator, denominator);
   const equivalentNamesFor = (point: { numerator: number; denominator: number }) =>
     equivalentNames.filter(({ equivalentTo }) => sameFractionValue(point, equivalentTo));
-  const equivalentDescriptionFor = (
-    point: { numerator: number; denominator: number },
-    names: { fraction: { numerator: number; denominator: number } }[],
-  ) => names.map(({ fraction }) =>
-    `${fractionName(point)} and ${fractionName(fraction)} are equivalent fractions. They mark the same amount and number-line spot.`,
-  ).join(' ');
-  const pointText = (point: { numerator: number; denominator: number }) =>
-    `${fractionName(point)} is at ${point.numerator} of ${point.denominator} equal spaces from zero to one.`;
   const benchmarkNames = equivalentNamesFor(benchmark);
-  const benchmarkIsHalf = benchmark.numerator * 2 === benchmark.denominator;
-  const description = [
-    'A number line from zero to one.',
-    ...points.map((point) => {
-      const names = equivalentNamesFor(point);
-      return names.length
-        ? `${pointText(point)} ${equivalentDescriptionFor(point, names)}`
-        : pointText(point);
-    }),
-    ...(benchmarkIsHalf
-      ? [`The one-half benchmark is halfway between zero and one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]
-      : [`The benchmark ${fractionName(benchmark)} is at ${benchmark.numerator} of ${benchmark.denominator} equal spaces from zero to one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]),
-    `From left to right, the fractions are ${points.map(fractionName).join(', ')}.`,
-  ].join(' ');
+  const description = numberLineDescription(points, benchmark, equivalentNames);
 
   return (
     <figure className="fq-order-line-figure" data-testid="fraction-order-numberline">

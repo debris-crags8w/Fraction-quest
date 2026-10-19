@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { ArrowRight, Check, Sparkles } from 'lucide-react';
 import type { DailyPracticeAttempt, DailyPracticeSession, ModelSpec } from './game';
-import { dailyBuildCorrect, dailyChoiceQuestion } from './daily-practice';
+import { dailyBuildCorrect, dailyBuildSpeech, dailyChoiceQuestion } from './daily-practice';
 import { MathText } from './MathText';
 import { WholeBracket } from './models';
 import './daily-practice.css';
@@ -121,15 +121,12 @@ export default function DailyPractice({
     </button>
   );
   const bar = question.modelKind === 'bar';
-  const buildDirectionsSpeech = bar
-    ? 'The denominator is the bottom number. It tells how many equal parts make one whole. Choose that number below. The numerator is the top number. It tells how many parts to shade.'
-    : 'The denominator is the bottom number. It tells how many equal spaces go from 0 to 1. Choose that number below. The numerator is the top number. It tells how many jumps to make from 0.';
   const questionTitle = topicQuestion
     ? <LearningText text={topicQuestion.prompt} emphasize />
     : <>Build <MathText text={`${question.numerator}/${question.denominator}`} /> {bar ? 'with a bar.' : 'on a number line.'}</>;
   const questionSpeech = spokenLearningText(topicQuestion
     ? topicQuestion.prompt
-    : `Build ${question.numerator}/${question.denominator} ${bar ? 'with a bar.' : 'on a number line.'} ${buildDirectionsSpeech}`);
+    : dailyBuildSpeech(question.numerator, question.denominator, bar));
   const questionHeader = (
     <DailyPracticeQuestionHeading
       title={questionTitle}

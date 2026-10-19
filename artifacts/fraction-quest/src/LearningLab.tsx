@@ -3,7 +3,7 @@ import { playHaptic, recordIntro, type IntroKind } from './lib/fun';
 import { useOptionalFun } from './fun-ui';
 import { ModelIntro, useLessonHelper } from './model-intro';
 import { LearningListenButton, LearningText } from './LearningText';
-import { LAB_SECTION_SPEECH, worksheetSpeech } from './lab-copy';
+import { BUILD_ERROR_HEADINGS, BUILD_SLIPS as M, LAB_SECTION_SPEECH, buildErrors, buildHints, worksheetSpeech } from './lab-copy';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw, Star } from 'lucide-react';
 import { getMission, numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildCheckStage, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
@@ -47,38 +47,9 @@ function SectionListenHeader({ children, text, label, className = '' }: {
   );
 }
 
-// Short, friendly names for the mistakes we track (they choose the extra practice).
-const M = {
-  parts: 'Picking the number of equal parts',
-  count: 'Counting pieces, groups or jumps',
-  wholes: 'Using the right number of wholes',
-  trans: 'Showing it the second way',
-  reason: 'Picking the reason',
-};
-const MODEL_LABEL: Record<Kind, string> = { bar: 'Bar', line: 'Number line', set: 'Groups' };
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const buildStepName = (check: BuildCheck, index: number) => check.stepLabel?.replace(/^Step \d+ · /, '') ?? (index === 0 ? 'Build it' : 'On your own');
 
-function validate(kind: Kind, t: LearningModel, s: St): { msgs: string[]; keys: string[] } {
-  const msgs: string[] = []; const keys: string[] = [];
-  const label = MODEL_LABEL[kind];
-  const unit = kind === 'line' ? 'spaces' : kind === 'set' ? 'groups' : 'pieces';
-  if (s.d === 0) return { msgs: [`${label}: choose how many equal ${unit} make one whole.`], keys: [M.parts] };
-  if (kind === 'set') {
-    const total = t.total ?? 0;
-    if (total % s.d !== 0) { msgs.push(`${label}: ${total} can't split into ${s.d} equal groups. Try another number.`); keys.push(M.parts); }
-  }
-  // Point at the part of the fraction to check, without saying the number (that would build it for the child).
-  if (s.d !== t.d && !msgs.length) { msgs.push(`${label}: not yet. Look at the denominator: how many equal ${unit} make one whole?`); keys.push(M.parts); }
-  if (kind === 'bar' && s.wholes !== t.wholes) { msgs.push(`${label}: use ${t.wholes} whole ${t.wholes === 1 ? 'bar' : 'bars'}.`); keys.push(M.wholes); }
-  if (s.count !== t.n && s.d === t.d) {
-    const action = kind === 'line' ? 'mark' : kind === 'set' ? 'select' : 'shade';
-    const counted = kind === 'line' ? 'jump' : kind === 'set' ? 'group' : 'piece';
-    msgs.push(`${label}: not yet. Look at the numerator: how many ${counted}s should you ${action}?`);
-    keys.push(M.count);
-  }
-  return { msgs, keys };
-}
+const validate = (kind: Kind, t: LearningModel, s: St) => buildErrors(kind, t, s);
 
 
 /* Read-only preview for worksheet visuals */
@@ -334,11 +305,7 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
   const sig = JSON.stringify([a, b, reason]);
   const locked = failedSig === sig;
   const transLabel = tk === 'line' ? 'Now show it on a number line' : 'Now show it with a bar';
-  const modelUnit = k === 'line' ? 'spaces' : k === 'set' ? 'groups' : 'parts';
-  const hintTexts = [
-    k === 'set' ? `Share ${t.total ?? t.d} objects into ${t.d} equal groups.` : `Split each whole into ${t.d} equal ${modelUnit}.`,
-    `${k === 'line' ? 'Mark' : k === 'set' ? 'Select' : 'Shade'} ${plural(t.n, k === 'line' ? 'jump' : k === 'set' ? 'group' : 'part', `${k === 'line' ? 'jump' : k === 'set' ? 'group' : 'part'}s`)}.`,
-  ];
+  const hintTexts = buildHints(t, k);
 
   // Once a build passes, it stays as built: editing it used to hide Next, and a later wrong check undid the pass.
   const updatePrimary = (next: St) => {
@@ -373,7 +340,7 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
   const currentHint = hintTexts[Math.min(hints, 2) - 1];
   const primaryFeedback = getModelFeedback(t, k);
   const secondaryFeedback = getModelFeedback(t, tk);
-  const errorHeading = locked ? 'Not yet! Fix these, then check again.' : 'Changed something? Check again.';
+  const errorHeading = BUILD_ERROR_HEADINGS[locked ? 0 : 1];
   const errorSpeechText = `${errorHeading} ${errs.join(' ')}`;
 
   return (

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { cleanSentence, PACK_VOICES, preferredPackFormat, resetVoicePackForTests, voiceKey, voicePackIndexPath, voicePackUrl } from './lib/voice-pack';
+import { cleanSentence, PACK_INDEX_TIMEOUT_MS, PACK_VOICES, preferredPackFormat, resetVoicePackForTests, voiceKey, voicePackIndexPath, voicePackUrl } from './lib/voice-pack';
 import { NATURAL_VOICES } from './lib/natural-voice';
 
 test('a sentence has one stable file name, the same however its spaces were typed', () => {
@@ -50,6 +50,36 @@ test('with no pack yet (or a page instead of the index), Listen keeps using the 
   resetVoicePackForTests();
   const fetchFn = (async () => new Response('<!doctype html><html></html>', { headers: { 'content-type': 'text/html' } })) as unknown as typeof fetch;
   assert.equal(await voicePackUrl('af_heart', 'One half.', fetchFn), null);
+});
+
+test('a missed index is tried again later, and a stalled one gives up instead of holding Listen', async (t) => {
+  resetVoicePackForTests();
+  const key = voiceKey('One half.');
+  let calls = 0; let online = false;
+  const fetchFn = (async () => {
+    calls++;
+    if (!online) throw new TypeError('offline');
+    return new Response(JSON.stringify({ version: 1, voices: ['af_heart'], keys: [key] }));
+  }) as unknown as typeof fetch;
+  assert.equal(await voicePackUrl('af_heart', 'One half.', fetchFn), null);
+  assert.equal(await voicePackUrl('af_heart', 'One half.', fetchFn), null);
+  assert.equal(calls, 1, 'a miss is remembered for a short while');
+  online = true;
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() + 31_000 });
+  assert.match(await voicePackUrl('af_heart', 'One half.', fetchFn) ?? '', /af_heart/);
+  assert.equal(calls, 2, 'then the pack is found once the connection is back');
+  t.mock.timers.reset();
+
+  resetVoicePackForTests();
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const stalled = ((_: unknown, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+    init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+  })) as unknown as typeof fetch;
+  const pending = voicePackUrl('af_heart', 'One half.', stalled);
+  t.mock.timers.tick(PACK_INDEX_TIMEOUT_MS);
+  assert.equal(await pending, null);
+  t.mock.timers.reset();
+  resetVoicePackForTests();
 });
 
 test('Listen reads from the pack without waking the voice server, and asks the server only for a missing sentence', async () => {

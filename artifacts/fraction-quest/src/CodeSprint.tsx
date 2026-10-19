@@ -5,7 +5,7 @@ import type { Mission } from './game';
 import { MathText } from './MathText';
 import { Confetti, Mascot, useFun } from './fun-ui';
 import { playCue, playHaptic } from './lib/fun';
-import { describe, makeBug, matchesTarget, readChoices, runProgram, solution, sprintTargets, toText, type Block, type RunResult, type Target } from './code-quest';
+import { describe, goal, makeBug, matchesTarget, readChoices, runProgram, solution, sprintTargets, toText, type Block, type RunResult, type Target } from './code-quest';
 import { Program, World } from './CodeQuest';
 
 /* Code Sprint: a coding race. Program the robot 5 times (fill in numbers, fix a bug, read Python)
@@ -33,7 +33,6 @@ export function makeSprint(missionId: string, random: () => number = Math.random
   });
 }
 
-const goal = (t: Target) => t.kind === 'line' ? `land on ${t.n}/${t.d}` : t.kind === 'set' ? `pick ${t.n}/${t.d} of the ${t.total} dots` : `shade ${t.n}/${t.d}`;
 const TITLE: Record<RoundKind, string> = { fill: 'Fill in the numbers', debug: 'Fix the bug', read: 'Which program works?' };
 
 export default function CodeSprint({ mission, best, onExit, onFinish }: { mission: Mission; best: number | null; onExit: () => void; onFinish: (seconds: number) => void }) {
