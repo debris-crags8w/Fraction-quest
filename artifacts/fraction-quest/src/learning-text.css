@@ -55,6 +55,10 @@
   transition: opacity 120ms ease, transform 120ms ease;
 }
 
+/* A closed tooltip takes no room, so a word near the screen edge can't push the page sideways. It is measured
+   and nudged on screen when it opens (keepOnScreen in LearningText.tsx), and aria-describedby still reads it. */
+.fq-vocab:not(:hover):not(:focus-within) .fq-vocab-tooltip { display: none; }
+
 .fq-vocab:hover .fq-vocab-tooltip,
 .fq-vocab:focus-within .fq-vocab-tooltip {
   opacity: 1;

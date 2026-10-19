@@ -13,7 +13,7 @@ export const MODEL_NAMES: Record<ModelKind, string> = { bar: 'Bar model', line: 
 export const MODEL_CONCEPTS: Record<ModelKind, string> = {
   bar: 'The whole bar is 1. Cut it into equal pieces. Shade the ones you count.',
   line: '0 to 1 is one whole. Cut it into equal spaces. Jump from 0.',
-  set: 'All the dots make 1 whole. Make equal groups. Pick the ones you count.',
+  set: 'All the dots make one whole. Make equal groups. Pick the ones you count.',
 };
 
 export function BarIcon({ size = 18 }: { size?: number }) {
@@ -53,11 +53,11 @@ export function ModelTag({ kind, children }: { kind: ModelKind; children?: React
 }
 
 /** The label under every whole: a bracket from one end of the whole to the other, marked "1 whole". */
-export function WholeBracket({ label = '1 whole' }: { label?: string }) {
+export function WholeBracket({ label = 'one whole' }: { label?: string }) {
   return <span className="fq-whole-bracket" aria-hidden="true"><b>{label}</b></span>;
 }
 /** The same bracket drawn in an SVG, under a whole from x to x + width. */
-export function SvgWholeBracket({ x, width, y = 54, label = '1 whole' }: { x: number; width: number; y?: number; label?: string }) {
+export function SvgWholeBracket({ x, width, y = 54, label = 'one whole' }: { x: number; width: number; y?: number; label?: string }) {
   return <g className="fq-svg-whole-bracket" aria-hidden="true">
     <path d={`M${x} ${y} V${y + 6} H${x + width} V${y}`} fill="none" />
     <text className="fq-svg-model-label" x={x + width / 2} y={y + 17} textAnchor="middle">{label}</text>

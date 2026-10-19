@@ -34,12 +34,12 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u1-p1', 3, 'What fraction of the rectangle is shaded?', ['1/3', '3/8', '3/5', '5/8', '3/4'], 1, '8 equal squares. 3 are shaded. So 3/8.', { kind: 'grid', rows: 2, cols: 4, shaded: [0, 3, 5] }),
     q('u1-c1', 3, 'A chocolate bar has 12 equal squares. Ana eats 1/4 of it. How many squares does she eat?', ['2', '3', '4', '6', '8'], 1, '12 in 4 equal groups is 3 each.'),
     q('u1-c2', 3, 'A pizza has 8 equal slices. Tom eats 1 slice. Mia eats 2 slices. What fraction is left?', ['3/8', '4/8', '5/8', '6/8', '7/8'], 2, '8 − 1 − 2 = 5 slices left. So 5/8.'),
-    q('u1-c3', 4, 'Sam folds a paper strip in half. Then he folds it in half again. He opens it. What fraction is each piece?', ['1/2', '1/3', '1/4', '1/6', '1/8'], 2, 'Half, then half again, makes 4 equal pieces.', { kind: 'fold', folds: [2, 2] }, [
-      step('Sam folds the strip in half once. How many pieces will it open into?', ['2', '1', '4'], 0),
-      step('He folds it in half again. Each half splits in 2. How many pieces now?', ['3', '4', '6'], 1),
-      step('The strip opens into 4 equal pieces. What is 1 piece?', ['1/2', '1/8', '1/4'], 2),
+    q('u1-c3', 4, 'Sam folds a paper strip in half. Then he folds it in half again. He opens it. What fraction is each part?', ['1/2', '1/3', '1/4', '1/6', '1/8'], 2, 'Half, then half again, makes 4 equal parts.', { kind: 'fold', folds: [2, 2] }, [
+      step('Sam folds the strip in half once. How many parts will it open into?', ['2', '1', '4'], 0),
+      step('He folds it in half again. Each half splits in 2. How many parts now?', ['3', '4', '6'], 1),
+      step('The strip opens into 4 equal parts. What is 1 part?', ['1/2', '1/8', '1/4'], 2),
     ]),
-    q('u1-c4', 4, '1/5 of a ribbon is 2 cm long. How long is the whole ribbon?', ['5 cm', '7 cm', '8 cm', '10 cm', '12 cm'], 3, '5 pieces of 2 cm make 10 cm.'),
+    q('u1-c4', 4, '1/5 of a ribbon is 2 cm long. How long is the whole ribbon?', ['5 cm', '7 cm', '8 cm', '10 cm', '12 cm'], 3, '5 parts of 2 cm make 10 cm.'),
     q('u1-c5', 5, 'A bar is cut into equal parts. 3 parts are shaded. That is 1/4 of the bar. How many parts are there in all?', ['4', '7', '9', '12', '15'], 3, '3 parts is 1/4. So 4 groups of 3 makes 12.', undefined, [
       step('3 shaded parts are 1/4 of the bar. How many quarters make the whole bar?', ['2', '4', '3'], 1),
       step('Each quarter has 3 parts. How many parts do 4 quarters have?', ['12', '7', '9'], 0),
@@ -47,7 +47,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   ],
   2: [
     q('u2-p1', 3, 'What fraction of the dots are shaded?', ['1/4', '1/3', '1/2', '2/3', '3/4'], 1, '4 of 12 dots are shaded. 12 in 3 groups of 4, so 1/3.', { kind: 'dots', rows: 3, cols: 4, shaded: [1, 4, 6, 11] }),
-    q('u2-c1', 3, 'The cakes are all the same size. Which piece is the biggest?', ['1/2', '1/3', '1/5', '1/8', '1/10'], 0, 'Fewer pieces means bigger pieces. Halves are biggest.'),
+    q('u2-c1', 3, 'The cakes are all the same size. Which part is the biggest?', ['1/2', '1/3', '1/5', '1/8', '1/10'], 0, 'Fewer parts means bigger parts. Halves are biggest.'),
     q('u2-c2', 3, 'There are 20 apples. 1/4 of them are red. How many apples are red?', ['4', '5', '8', '10', '16'], 1, '20 in 4 equal groups is 5 each.'),
     q('u2-c3', 4, 'There are 18 marbles. 2/3 of them are blue. How many marbles are NOT blue?', ['3', '6', '9', '12', '15'], 1, '1/3 of 18 is 6. The other 1/3 is not blue: 6.', undefined, [
       step('What is 1/3 of 18?', ['3', '6', '9'], 1),
@@ -67,7 +67,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   3: [
     q('u3-p1', 3, 'Which bar has more than half shaded?', ['A', 'B', 'C', 'D', 'E'], 3, 'Bar D is 5 of 8. Half of 8 is 4, and 5 is more.', { kind: 'bars', bars: [{ n: 2, d: 5, label: 'A' }, { n: 3, d: 7, label: 'B' }, { n: 4, d: 9, label: 'C' }, { n: 5, d: 8, label: 'D' }, { n: 1, d: 3, label: 'E' }] }),
     q('u3-c1', 3, 'Which fraction is more than 1/2?', ['2/5', '3/7', '4/9', '5/8', '1/3'], 3, 'Half of 8 is 4. 5 is more than 4.'),
-    q('u3-c2', 3, 'Which fraction is closest to 1?', ['1/2', '2/3', '3/4', '4/5', '5/6'], 4, 'Each is 1 piece short of 1. Sixths are the smallest pieces, so 5/6 is closest.'),
+    q('u3-c2', 3, 'Which fraction is closest to 1?', ['1/2', '2/3', '3/4', '4/5', '5/6'], 4, 'Each is 1 part short of 1. Sixths are the smallest parts, so 5/6 is closest.'),
     q('u3-c3', 4, 'Which fraction is closest to 0?', ['1/3', '1/5', '2/9', '1/4', '3/10'], 1, '1/5 is the smallest. 2/9 and 1/4 are a little bigger.'),
     q('u3-c4', 4, 'A glass is 3/8 full. How much more water makes it exactly half full?', ['1/8', '2/8', '3/8', '4/8', '5/8'], 0, 'Half is 4/8. 4/8 − 3/8 = 1/8.'),
     q('u3-c5', 5, 'Which fraction is exactly 1/2?', ['4/9', '9/18', '5/9', '3/8', '4/10'], 1, 'Half of 18 is 9. So 9/18 is exactly half.'),
@@ -86,10 +86,10 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   ],
   5: [
     q('u5-p1', 3, 'The bars are the same size. Which bar has the most shaded?', ['A', 'B', 'C', 'D', 'E'], 1, 'B is 3/4. The others are 2/3, 4/6, 5/8 and 3/5. All are less than 3/4.', { kind: 'bars', bars: [{ n: 2, d: 3, label: 'A' }, { n: 3, d: 4, label: 'B' }, { n: 4, d: 6, label: 'C' }, { n: 5, d: 8, label: 'D' }, { n: 3, d: 5, label: 'E' }] }),
-    q('u5-c1', 3, 'Which fraction is the biggest?', ['3/10', '5/10', '7/10', '2/10', '6/10'], 2, 'Same size pieces. 7 is the most.'),
-    q('u5-c2', 3, 'Which fraction is the smallest?', ['2/9', '2/3', '2/7', '2/4', '2/5'], 0, 'All have 2 pieces. Ninths are the smallest pieces.'),
+    q('u5-c1', 3, 'Which fraction is the biggest?', ['3/10', '5/10', '7/10', '2/10', '6/10'], 2, 'Same size parts. 7 is the most.'),
+    q('u5-c2', 3, 'Which fraction is the smallest?', ['2/9', '2/3', '2/7', '2/4', '2/5'], 0, 'All have 2 parts. Ninths are the smallest parts.'),
     q('u5-c3', 4, 'Which fraction is bigger than 3/4?', ['1/2', '3/5', '2/3', '5/8', '7/8'], 4, '3/4 = 6/8. 7/8 is more than 6/8.'),
-    q('u5-c4', 4, 'Ana ran 3/4 km. Ben ran 2/3 km. Cara ran 5/6 km. Dev ran 1/2 km. Who ran the farthest?', ['Ana', 'Ben', 'Cara', 'Dev', 'They all ran the same'], 2, 'Each is 1 piece short of 1 km. Sixths are smallest, so Cara is closest to 1.', undefined, [
+    q('u5-c4', 4, 'Ana ran 3/4 km. Ben ran 2/3 km. Cara ran 5/6 km. Dev ran 1/2 km. Who ran the farthest?', ['Ana', 'Ben', 'Cara', 'Dev', 'They all ran the same'], 2, 'Each is 1 part short of 1 km. Sixths are smallest, so Cara is closest to 1.', undefined, [
       step('Ana ran 3/4 km. How much is she short of 1 km?', ['1/4', '3/4', '1/2'], 0),
       step('Cara ran 5/6 km. How much is she short of 1 km?', ['5/6', '1/6', '1/2'], 1),
       step('Ben is 1/3 short and Dev is 1/2 short. Which is the smallest gap?', ['1/4', '1/2', '1/6'], 2),
@@ -97,7 +97,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u5-c5', 5, 'How many fractions with a denominator of 6 are more than 1/2 but less than 1?', ['0', '1', '2', '3', '4'], 2, '3/6 is exactly half. 4/6 and 5/6 fit. That is 2.'),
   ],
   6: [
-    q('u6-p1', 3, 'The top bar shows 1/2. How many pieces of the bottom bar must you shade to show the same amount?', ['1', '2', '3', '4', '8'], 3, 'The bottom bar has 8 pieces. Half of 8 is 4.', { kind: 'bars', bars: [{ n: 1, d: 2 }, { n: 0, d: 8 }] }),
+    q('u6-p1', 3, 'The top bar shows 1/2. How many parts of the bottom bar must you shade to show the same amount?', ['1', '2', '3', '4', '8'], 3, 'The bottom bar has 8 parts. Half of 8 is 4.', { kind: 'bars', bars: [{ n: 1, d: 2 }, { n: 0, d: 8 }] }),
     q('u6-c1', 3, 'Which fraction is the same as 1/2?', ['2/3', '3/6', '2/5', '4/6', '3/5'], 1, 'Half of 6 is 3. So 3/6 = 1/2.'),
     q('u6-c2', 3, '2/3 = ?/12. What is the missing number?', ['4', '6', '8', '9', '10'], 2, '3 × 4 = 12. So 2 × 4 = 8.'),
     q('u6-c3', 4, 'Which fraction is NOT the same as 1/3?', ['2/6', '3/9', '4/12', '5/14', '6/18'], 3, '5 × 3 = 15, not 14. So 5/14 is not 1/3.'),
@@ -108,11 +108,11 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u6-c5', 5, '3/5 = 12/?. What is the missing number?', ['15', '16', '18', '20', '25'], 3, '3 × 4 = 12. So 5 × 4 = 20.'),
   ],
   7: [
-    q('u7-p1', 3, 'Each bar is 1 whole. How much is shaded in all?', ['3/4', '4/7', '7/8', '1 and 3/4', '2 and 3/4'], 3, 'One full bar is 1. The second has 3 of 4 shaded. So 1 and 3/4.', { kind: 'bars', bars: [{ n: 4, d: 4 }, { n: 3, d: 4 }] }),
-    q('u7-c1', 3, '1/5 + 1/5 + 1/5 + 1/5 + 1/5 = ?', ['1/25', '5/25', '1/5', '1', '5'], 3, '5 fifths make 1 whole.'),
+    q('u7-p1', 3, 'Each bar is one whole. How much is shaded in all?', ['3/4', '4/7', '7/8', '1 and 3/4', '2 and 3/4'], 3, 'One full bar is 1. The second has 3 of 4 shaded. So 1 and 3/4.', { kind: 'bars', bars: [{ n: 4, d: 4 }, { n: 3, d: 4 }] }),
+    q('u7-c1', 3, '1/5 + 1/5 + 1/5 + 1/5 + 1/5 = ?', ['1/25', '5/25', '1/5', '1', '5'], 3, '5 fifths make one whole.'),
     q('u7-c2', 3, 'Which is the same as 9/4?', ['1 and 1/4', '2', '2 and 1/4', '2 and 1/2', '9 and 1/4'], 2, '8/4 is 2 wholes. 1/4 is left.'),
-    q('u7-c3', 4, 'How many 1/6 pieces make 2 wholes?', ['2', '6', '8', '12', '18'], 3, '6 pieces make 1 whole. 12 make 2.'),
-    q('u7-c4', 4, 'Which sum does NOT make 1 whole?', ['1/4 + 3/4', '2/5 + 3/5', '3/8 + 4/8', '1/2 + 1/2', '5/6 + 1/6'], 2, '3/8 + 4/8 = 7/8. That is not a whole.'),
+    q('u7-c3', 4, 'How many 1/6 parts make 2 wholes?', ['2', '6', '8', '12', '18'], 3, '6 parts make one whole. 12 make 2.'),
+    q('u7-c4', 4, 'Which sum does NOT make one whole?', ['1/4 + 3/4', '2/5 + 3/5', '3/8 + 4/8', '1/2 + 1/2', '5/6 + 1/6'], 2, '3/8 + 4/8 = 7/8. That is not a whole.'),
     q('u7-c5', 5, 'Jo has 7/3 cups of flour. Each cake needs 2/3 cup. How many whole cakes can Jo make?', ['2', '3', '4', '5', '7'], 1, '3 cakes use 6/3. 4 cakes need 8/3, which is too much.', undefined, [
       step('1 cake needs 2/3 cup. How much do 3 cakes need?', ['5/3', '6/3', '8/3'], 1),
       step('How much do 4 cakes need?', ['8/3', '7/3', '6/3'], 0),
@@ -120,7 +120,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     ]),
   ],
   8: [
-    q('u8-p1', 3, 'The big square is 1 whole. What decimal shows the shaded part?', ['0.035', '0.35', '3.5', '0.53', '35'], 1, '35 of 100 small squares are shaded. That is 0.35.', { kind: 'grid', rows: 10, cols: 10, shaded: Array.from({ length: 35 }, (_, i) => i) }),
+    q('u8-p1', 3, 'The big square is one whole. What decimal shows the shaded part?', ['0.035', '0.35', '3.5', '0.53', '35'], 1, '35 of 100 small squares are shaded. That is 0.35.', { kind: 'grid', rows: 10, cols: 10, shaded: Array.from({ length: 35 }, (_, i) => i) }),
     q('u8-c1', 3, '3/8 + 4/8 = ?', ['7/16', '7/8', '1/8', '12/8', '7'], 1, '3 + 4 = 7. The denominator stays 8.'),
     q('u8-c2', 3, 'Which decimal is the same as 3/10?', ['3.0', '0.03', '0.13', '0.3', '3.10'], 3, '3 tenths is 0.3.'),
     q('u8-c3', 4, 'Which number is the biggest?', ['0.5', '0.45', '0.09', '0.4', '0.38'], 0, '0.5 is 0.50. 50 hundredths is the most.'),
@@ -140,14 +140,14 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
       step('Change 3/4 to twelfths.', ['3/12', '9/12', '7/12'], 1),
       step('Change 5/6 to twelfths.', ['5/12', '11/12', '10/12'], 2),
     ]),
-    q('u9-c5', 5, 'Which fraction is closest to 1?', ['7/8', '5/6', '9/10', '3/4', '11/12'], 4, 'Each one is 1 piece short of 1 whole. The smallest piece is 1/12, so 11/12 is closest.'),
+    q('u9-c5', 5, 'Which fraction is closest to 1?', ['7/8', '5/6', '9/10', '3/4', '11/12'], 4, 'Each one is 1 part short of one whole. The smallest part is 1/12, so 11/12 is closest.'),
   ],
   10: [
     q('u10-p1', 3, 'Bar A shows 3/4. Bar B shows 1/2. How much more of bar A is shaded?', ['1/2', '1/4', '2/6', '1/8', '3/8'], 1, '1/2 = 2/4. 3/4 − 2/4 = 1/4.', { kind: 'bars', bars: [{ n: 3, d: 4, label: 'A' }, { n: 1, d: 2, label: 'B' }] }),
     q('u10-c1', 3, '1 1/2 + 2 1/2 = ?', ['3', '3 1/2', '4', '4 1/2', '5'], 2, '1 + 2 = 3 wholes. 1/2 + 1/2 = 1 more whole. So 4.'),
     q('u10-c2', 3, 'What is 2/3 of 15 stickers?', ['5', '6', '9', '10', '12'], 3, '15 in 3 equal groups is 5 each. 2 groups is 10.'),
-    q('u10-c3', 4, '3 1/4 − 1 3/4 = ?', ['1 1/2', '2 1/2', '1 3/4', '2', '1 1/4'], 0, 'Trade 1 whole: 3 1/4 = 2 5/4. 2 5/4 − 1 3/4 = 1 2/4 = 1 1/2.', undefined, [
-      step('1/4 is less than 3/4. Trade 1 whole for 4/4. 3 1/4 is the same as…', ['2 5/4', '2 4/4', '3 5/4'], 0),
+    q('u10-c3', 4, '3 1/4 − 1 3/4 = ?', ['1 1/2', '2 1/2', '1 3/4', '2', '1 1/4'], 0, 'Trade one whole: 3 1/4 = 2 5/4. 2 5/4 − 1 3/4 = 1 2/4 = 1 1/2.', undefined, [
+      step('1/4 is less than 3/4. Trade one whole for 4/4. 3 1/4 is the same as…', ['2 5/4', '2 4/4', '3 5/4'], 0),
       step('2 5/4 − 1 3/4 = ?', ['1 8/4', '1 2/4', '2 2/4'], 1),
       step('1 2/4 is the same as…', ['1 1/4', '2', '1 1/2'], 2),
     ]),
@@ -163,7 +163,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     ]),
   ],
   11: [
-    q('u11-p1', 3, 'The square is 1 whole. The shaded part is 2/3 of 3/4 of it. What fraction of the whole square is shaded?', ['5/12', '6/12', '5/7', '2/7', '8/12'], 1, '12 equal parts. 6 are shaded: 2/3 × 3/4 = 6/12.', { kind: 'grid', rows: 3, cols: 4, shaded: [0, 1, 2, 4, 5, 6] }),
+    q('u11-p1', 3, 'The square is one whole. The shaded part is 2/3 of 3/4 of it. What fraction of the whole square is shaded?', ['5/12', '6/12', '5/7', '2/7', '8/12'], 1, '12 equal parts. 6 are shaded: 2/3 × 3/4 = 6/12.', { kind: 'grid', rows: 3, cols: 4, shaded: [0, 1, 2, 4, 5, 6] }),
     q('u11-c1', 3, '4 × 2/5 = ?', ['8/20', '6/5', '8/5', '2/20', '4/5'], 2, '4 groups of 2/5: multiply the numerator. 4 × 2 = 8, so 8/5.'),
     q('u11-c2', 3, 'How many 1/3 cups of rice fill 4 cups?', ['3', '7', '4', '12', '16'], 3, '3 thirds fill 1 cup. 4 cups need 4 × 3 = 12.'),
     q('u11-c3', 4, 'What is 3/4 of 2/3?', ['5/7', '6/7', '6/12', '1/12', '5/12'], 2, 'Multiply the numerators: 3 × 2 = 6. Multiply the denominators: 4 × 3 = 12. So 6/12 (that is 1/2).'),
@@ -172,15 +172,15 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
       step('What is 1/3 of 30?', ['10', '3', '15'], 0),
       step('30 − 6 − 10 = ?', ['16', '24', '14'], 2),
     ]),
-    q('u11-c5', 5, 'A ribbon is 3 meters long. Kim cuts it into pieces that are each 1/4 meter. She uses 5 pieces. How many pieces are left?', ['3', '12', '7', '8', '17'], 2, 'Each meter makes 4 pieces, so 3 meters make 12. 12 − 5 = 7.', undefined, [
-      step('How many 1/4 meter pieces are in 1 meter?', ['4', '2', '3'], 0),
+    q('u11-c5', 5, 'A ribbon is 3 meters long. Kim cuts it into parts that are each 1/4 meter. She uses 5 parts. How many parts are left?', ['3', '12', '7', '8', '17'], 2, 'Each meter makes 4 parts, so 3 meters make 12. 12 − 5 = 7.', undefined, [
+      step('How many 1/4 meter parts are in 1 meter?', ['4', '2', '3'], 0),
       step('How many are in 3 meters?', ['7', '12', '34'], 1),
       step('12 − 5 = ?', ['6', '17', '7'], 2),
     ]),
   ],
   12: [
     q('u12-p1', 3, 'The line is 1 meter long. A snail crawls from 0 to the dot. How far is that?', ['34 cm', '25 cm', '75 cm', '70 cm', '3 cm'], 2, 'The dot is at 3/4. 1 meter is 100 cm, and 3/4 of 100 is 75 cm.', { kind: 'line', n: 3, d: 4 }),
-    q('u12-c1', 3, '3 pizzas are shared fairly by 4 kids. How much pizza does each kid get?', ['4/3', '1/4', '3/4', '1/3', '3/7'], 2, 'Cut each pizza into 4 pieces. Each kid gets 1 piece of each pizza: 3/4.'),
+    q('u12-c1', 3, '3 pizzas are shared fairly by 4 kids. How much pizza does each kid get?', ['4/3', '1/4', '3/4', '1/3', '3/7'], 2, 'Cut each pizza into 4 parts. Each kid gets 1 part of each pizza: 3/4.'),
     q('u12-c2', 3, 'How many centimeters is 3/5 of a meter?', ['35 cm', '60 cm', '53 cm', '30 cm', '75 cm'], 1, '100 cm in 5 parts is 20 cm each. 3 parts is 60 cm.'),
     q('u12-c3', 4, 'Three boards are 1/2 m, 3/8 m and 1/4 m long. How long are they together?', ['5/14 m', '1 1/8 m', '1 m', '7/8 m', '1 1/4 m'], 1, 'Use eighths: 4/8 + 3/8 + 2/8 = 9/8 = 1 1/8 m.', undefined, [
       step('Change 1/2 to eighths.', ['4/8', '2/8', '1/8'], 0),
@@ -192,10 +192,10 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
       step('How much does each kid on Team B get?', ['8/3', '3/8', '1/8'], 1),
       step('Use 40ths: 2/5 = 16/40 and 3/8 = 15/40. Which is bigger?', ['3/8', 'Same', '2/5'], 2),
     ]),
-    q('u12-c5', 5, 'A 2 meter rope is cut into 8 equal pieces. 3 pieces are used. How long is the rope that is left?', ['100 cm', '150 cm', '75 cm', '125 cm', '160 cm'], 3, '2 m = 200 cm. 200 ÷ 8 = 25 cm each. 5 pieces are left: 5 × 25 = 125 cm.', undefined, [
+    q('u12-c5', 5, 'A 2 meter rope is cut into 8 equal parts. 3 parts are used. How long is the rope that is left?', ['100 cm', '150 cm', '75 cm', '125 cm', '160 cm'], 3, '2 m = 200 cm. 200 ÷ 8 = 25 cm each. 5 parts are left: 5 × 25 = 125 cm.', undefined, [
       step('2 meters is how many centimeters?', ['200', '20', '2000'], 0),
-      step('200 cm in 8 equal pieces. How long is each piece?', ['20 cm', '25 cm', '16 cm'], 1),
-      step('8 − 3 = 5 pieces are left. 5 × 25 cm = ?', ['100 cm', '75 cm', '125 cm'], 2),
+      step('200 cm in 8 equal parts. How long is each part?', ['20 cm', '25 cm', '16 cm'], 1),
+      step('8 − 3 = 5 parts are left. 5 × 25 cm = ?', ['100 cm', '75 cm', '125 cm'], 2),
     ]),
   ],
   13: [
@@ -215,7 +215,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     ]),
   ],
   14: [
-    q('u14-p1', 3, 'The big square is 1 whole. What percent is shaded?', ['4%', '40%', '60%', '0.4%', '14%'], 1, '40 of 100 small squares are shaded. That is 40%.', { kind: 'grid', rows: 10, cols: 10, shaded: Array.from({ length: 40 }, (_, i) => i) }),
+    q('u14-p1', 3, 'The big square is one whole. What percent is shaded?', ['4%', '40%', '60%', '0.4%', '14%'], 1, '40 of 100 small squares are shaded. That is 40%.', { kind: 'grid', rows: 10, cols: 10, shaded: Array.from({ length: 40 }, (_, i) => i) }),
     q('u14-c1', 3, 'Which is the same as 3/4?', ['34%', '0.34', '75%', '0.43', '3.4'], 2, '3/4 = 75/100 = 75%.'),
     q('u14-c2', 3, 'Put these in order, smallest first: 0.6, 1/2, 55%', ['1/2, 55%, 0.6', '0.6, 55%, 1/2', '55%, 1/2, 0.6', '1/2, 0.6, 55%', '0.6, 1/2, 55%'], 0, 'Change them all to percent: 0.6 = 60%, 1/2 = 50%. So 50%, 55%, 60%.'),
     q('u14-c3', 4, 'A quiz has 20 questions. Zoe gets 17 right. What percent did she get right?', ['17%', '80%', '85%', '90%', '83%'], 2, '17/20 = 85/100 = 85%.', undefined, [
