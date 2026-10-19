@@ -1993,7 +1993,9 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-taskbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: 0 0 10px; }
 .fq-taskbar-row { display: flex; min-width: 0; align-items: center; gap: 10px; min-height: 44px; }
 .fq-taskbar-back { display: inline-flex; flex: none; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 2px solid var(--fq-edge); border-radius: 14px; background: hsl(var(--card)); color: var(--fq-grape); font: 800 0.95rem var(--app-font-sans); cursor: pointer; }
-.fq-taskbar-title { display: flex; flex: 1 1 auto; align-items: baseline; gap: 8px; min-width: 0; overflow: hidden; color: hsl(var(--foreground)); font: 800 1rem var(--app-font-sans); white-space: nowrap; text-overflow: ellipsis; }
+/* Up to two lines, so a long title wraps instead of being cut mid-word ("Make fair st"). */
+.fq-taskbar-title { display: -webkit-box; flex: 1 1 auto; min-width: 0; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: hsl(var(--foreground)); font: 800 1rem/1.15 var(--app-font-sans); overflow-wrap: anywhere; }
+@media (max-width: 420px) { .fq-taskbar-title { font-size: .92rem; } }
 .fq-taskbar-count { flex: none; color: hsl(var(--muted-foreground)); font-size: 0.9rem; font-weight: 800; }
 .fq-taskbar-actions { display: flex; flex: none; gap: 6px; }
 .fq-taskbar-actions .fq-button { min-height: 44px; padding: 0 12px; font-size: 0.9rem; }
@@ -2098,6 +2100,9 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 @media (hover: none) and (pointer: coarse) {
   .fq-app { min-height: calc(100dvh - var(--fq-bottom-clear)); }
 }
+/* Inside the app (iPhone and Android) there is no browser toolbar and the app already keeps clear of the home bar,
+   so no extra band: it made an iPhone SE screen scroll by a few pixels. */
+:root.fq-in-app { --fq-bottom-clear: 0px; }
 /* Buttons scrolled into view stop above the browser toolbar. */
 .fq-button, .fq-reveal-target { scroll-margin-bottom: calc(16px + var(--fq-bottom-clear)); scroll-margin-top: 12px; }
 
@@ -2372,3 +2377,15 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-login-play { display: grid; gap: 6px; justify-items: stretch; text-align: center; color: hsl(var(--muted-foreground)); font-weight: 700; }
 .fq-login-play-button { justify-content: center; min-height: 60px; font-size: 1.2rem; }
 .fq-login-play small { font-size: .82rem; }
+
+/* Tap targets: every control is at least 44px for a finger (the small round Listen buttons get a larger
+   invisible hit area instead of a larger circle). */
+.fq-learning-listen.is-compact::after { inset: -5px; }
+.fq-ll-steps li > button,
+.fq-mi-skip,
+.fq-developer-test-banner button,
+.fq-story-card-read,
+.fq-hint-button,
+.fq-ll-hintbtn { min-height: 44px; }
+.fq-taskbar-back { min-width: 44px; justify-content: center; }
+@media (max-width: 480px) { .fq-tile { min-width: 44px; } }

@@ -342,8 +342,8 @@ export function PrintMenu({ missionId, className = '' }: { missionId: string; cl
   }, [request]);
   return (
     <div className={`fq-print-menu ${className}`}>
-      <button type="button" className="fq-button ghost" aria-expanded={open} onClick={() => setOpen((v) => !v)} data-testid={`button-print-menu-${missionId}`}>
-        <Printer size={17} /> Print
+      <button type="button" className="fq-button ghost" aria-expanded={open} aria-label="Print" onClick={() => setOpen((v) => !v)} data-testid={`button-print-menu-${missionId}`}>
+        <Printer size={17} aria-hidden="true" /><span className="fq-hide-narrow"> Print</span>
       </button>
       {open && (
         <div className="fq-print-options" role="group" aria-label="Choose what to print">
