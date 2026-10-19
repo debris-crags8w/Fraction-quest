@@ -6,14 +6,12 @@ rerun: existing clips are skipped, and the job does not delete files.
 
 ## Replit Scheduled Deployment
 
-Create a Scheduled Deployment in the Replit Publishing tool once the one-time
-Heart backfill has finished (its dry run reports 0 missing files):
-
-- **Schedule:** once daily (for example, `0 3 * * *`)
-- **Time zone:** `America/New_York`
-- **Build command:** `pnpm install --frozen-lockfile`
-- **Run command:** `pnpm --filter @workspace/api-server run daily-voice-backfill`
-- **Timeout:** 2 hours
+The root `.replit` file declares a Scheduled Deployment for this job. It runs
+daily at 3:00 a.m. in `America/New_York` and stops after two hours if a run
+hangs. Publish the scheduled job in Replit's Publishing tool to activate it;
+it is safe to publish while audio gaps remain. Each run fills at most 100
+sentences, leaving any remaining gaps for later runs. If Publishing asks for a
+build command, use `pnpm install --frozen-lockfile`.
 
 The job uses the same Replit App Storage integration as the API server. It does
 not need a public URL, a GitHub Actions secret, or a separate always-on worker.

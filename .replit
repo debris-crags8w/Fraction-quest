@@ -8,6 +8,13 @@ deploymentTarget = "autoscale"
 args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
 
+[[deployment.scheduled]]
+job = "Daily Heart voice backfill"
+cron = "0 3 * * *"
+timezone = "America/New_York"
+timeout = 7200
+run = ["pnpm", "--filter", "@workspace/api-server", "run", "daily-voice-backfill"]
+
 [workflows]
 runButton = "Project"
 
