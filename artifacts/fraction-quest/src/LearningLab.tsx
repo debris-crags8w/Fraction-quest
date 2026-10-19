@@ -743,7 +743,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
                 <p><LearningText text={check.prompt} /></p>
               </SectionListenHeader>
               <div className="fq-ll-done-models"><Preview m={t} named /><Preview m={second} named /></div>
-              <p className="fq-ll-note"><LearningText text={check.explanation} /></p>
+              <p className="fq-ll-note"><LearningText text={check.explanation} interactiveTerms={false} /></p>
               {rebuilding === check.id ? (
                 <CheckRunner key={`again-${check.id}`} check={check} review={false} onHelp={() => {}} onPass={() => {}} onWrong={onWrong} onSuccess={onSuccess}
                   nextLabel="Done practising" onNext={() => setRebuilding(null)} />
