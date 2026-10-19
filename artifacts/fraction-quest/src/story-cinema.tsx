@@ -39,23 +39,23 @@ const FILMING: Record<StoryScene, { shots: Shot[]; impact?: number; coldFrom?: n
       shot('scale(1.28)', '50% 42%'), shot('scale(1)', '50% 60%')],
     impact: 2, coldFrom: 2, end: 'To be continued…',
   },
-  bakery: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.3)', '24% 40%'), shot('scale(1.55)', '60% 48%'), shot('scale(1.05)', '50% 40%')], impact: 2 },
-  pond: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '66% 38%'), shot('scale(1.1)', '50% 46%'), shot('scale(1.2)', '30% 50%')], impact: 0 },
-  hill: { shots: [shot('scale(1.1)', '20% 50%'), shot('scale(1.4)', '86% 14%'), shot('scale(1)', '50% 40%'), shot('scale(1.25)', '35% 40%')] },
-  bridge: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '55% 38%'), shot('scale(1)', '50% 40%'), shot('scale(1.1)', '50% 36%')], impact: 0 },
-  tower: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.25)', '30% 36%'), shot('scale(1.2)', '72% 30%'), shot('scale(1.05)', '60% 36%')], impact: 0 },
-  honey: { shots: [shot('scale(1.1)', '50% 30%'), shot('scale(1.25)', '50% 16%'), shot('scale(1.4)', '30% 40%'), shot('scale(1.1)', '50% 40%')] },
-  workshop: { shots: [shot('scale(1.1)', '50% 38%'), shot('scale(1.35)', '68% 44%'), shot('scale(1.15)', '28% 40%'), shot('scale(1.05)', '50% 45%')], impact: 2 },
-  den: { shots: [shot('scale(1.12)', '50% 40%'), shot('scale(1.4)', '68% 48%'), shot('scale(1.25)', '34% 46%'), shot('scale(1.05)', '50% 42%')], coldFrom: 1 },
-  race: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.35)', '82% 30%'), shot('scale(1.2)', '30% 46%'), shot('scale(1.05)', '50% 42%')] },
-  picnic: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.3)', '50% 60%'), shot('scale(1.35)', '82% 35%'), shot('scale(1.05)', '50% 42%')] },
-  machine: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.3)', '65% 36%'), shot('scale(1.35)', '45% 60%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
-  stage: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.32)', '72% 48%'), shot('scale(1.2)', '30% 55%'), shot('scale(1.05)', '50% 42%')] },
-  garden: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.35)', '68% 54%'), shot('scale(1.2)', '28% 45%'), shot('scale(1.05)', '50% 42%')] },
-  lock: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '68% 48%'), shot('scale(1.25)', '50% 48%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
-  festival: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.3)', '25% 38%'), shot('scale(1.35)', '70% 42%'), shot('scale(1.05)', '50% 42%')] },
+  bakery: { shots: [shot('scale(1.05)', '4% 22%'), shot('scale(1.2)', '4% 22%'), shot('scale(1.25)', '4% 22%'), shot('scale(1.05)', '4% 22%')], impact: 2 },
+  pond: { shots: [shot('scale(1.05)', '6% 24%'), shot('scale(1.15)', '6% 24%'), shot('scale(1.1)', '6% 24%'), shot('scale(1.15)', '6% 24%')], impact: 0 },
+  hill: { shots: [shot('scale(1.05)', '1% 50%'), shot('scale(1.2)', '1% 50%'), shot('scale(1)', '50% 40%'), shot('scale(1.25)', '35% 40%')] },
+  bridge: { shots: [shot('scale(1.05)', '2% 40%'), shot('scale(1.15)', '2% 40%'), shot('scale(1)', '2% 40%'), shot('scale(1.05)', '2% 40%')], impact: 0 },
+  tower: { shots: [shot('scale(1.05)', '4% 28%'), shot('scale(1.15)', '4% 28%'), shot('scale(1.1)', '4% 28%'), shot('scale(1.05)', '4% 28%')], impact: 0 },
+  honey: { shots: [shot('scale(1.1)', '50% 30%'), shot('scale(1.15)', '50% 4%'), shot('scale(1.2)', '30% 4%'), shot('scale(1.1)', '50% 40%')] },
+  workshop: { shots: [shot('scale(1.1)', '50% 38%'), shot('scale(1.15)', '10% 44%'), shot('scale(1.15)', '10% 40%'), shot('scale(1.05)', '50% 45%')], impact: 2 },
+  den: { shots: [shot('scale(1.12)', '50% 40%'), shot('scale(1.3)', '30% 48%'), shot('scale(1.2)', '32% 46%'), shot('scale(1.05)', '50% 42%')], coldFrom: 1 },
+  race: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.15)', '12% 30%'), shot('scale(1.2)', '30% 46%'), shot('scale(1.05)', '50% 42%')] },
+  picnic: { shots: [shot('scale(1.05)', '50% 42%'), shot('scale(1.05)', '50% 42%'), shot('scale(1.05)', '50% 42%'), shot('scale(1.05)', '50% 42%')] },
+  machine: { shots: [shot('scale(1.05)', '50% 42%'), shot('scale(1.05)', '50% 42%'), shot('scale(1.05)', '50% 42%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
+  stage: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.25)', '32% 48%'), shot('scale(1.15)', '34% 55%'), shot('scale(1.05)', '50% 42%')] },
+  garden: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.15)', '32% 48%'), shot('scale(1.08)', '40% 45%'), shot('scale(1.05)', '50% 42%')] },
+  lock: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.28)', '32% 48%'), shot('scale(1.18)', '34% 48%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
+  festival: { shots: [shot('scale(1.05)', '9% 29%'), shot('scale(1.2)', '9% 29%'), shot('scale(1.3)', '9% 29%'), shot('scale(1.05)', '9% 29%')] },
   'chapter-end': { shots: [shot('scale(1.1)', '50% 42%'), shot('scale(1.3)', '50% 45%'), shot('scale(1.05)', '50% 42%')], impact: 1 },
-  epilogue: { shots: [shot('scale(1.08)', '50% 40%'), shot('scale(1.2)', '50% 42%'), shot('scale(1.3)', '50% 38%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
+  epilogue: { shots: [shot('scale(1.05)', '11% 30%'), shot('scale(1.15)', '11% 30%'), shot('scale(1.15)', '11% 30%'), shot('scale(1.05)', '11% 30%')], impact: 2 },
 };
 
 /** A fraction written the school way, one number over the other. */
@@ -286,7 +286,7 @@ function RaceArt({ beat }: { beat: number }) {
   return (
     <>
       <span className="fq-cine-race-sky" /><span className="fq-cine-race-hill" /><span className="fq-cine-race-road" />
-      <span className="fq-cine-race-sign" style={pos(72, 20)}><b>⅓</b><b>½</b><b>⅔</b></span>
+      <span className="fq-cine-race-sign" style={pos(72, 20)}><b><Frac n={1} d={3} /></b><b><Frac n={1} d={2} /></b><b><Frac n={2} d={3} /></b></span>
       <span className="fq-cine-tree" style={pos(77, 39)} />
       {beat >= 2 && <span className="fq-cine-peeker" style={pos(80, 37)}><StoryCharacter id="bolt" size={50} worried /></span>}
       <span className="fq-cine-actor" style={pos(12, 42)}><StoryCharacter id="tilly" size={76} happy={beat >= 1} /></span>
@@ -304,7 +304,7 @@ function PicnicArt({ beat }: { beat: number }) {
       {[16, 39, 62].map((x) => <span key={x} className="fq-cine-picnic-plate" style={pos(x, 63)} />)}
       <span className="fq-cine-picnic-basket" style={pos(68, 57)} />
       <span className="fq-cine-actor" style={pos(13, 27)}><StoryCharacter id="chomp" size={84} happy={beat >= 2} /></span>
-      <span className={`fq-cine-peeker ${beat >= 2 ? 'is-arriving' : ''}`} style={pos(80, 31)}><StoryCharacter id="bolt" size={58} worried={beat < 2} happy={beat >= 2} /></span>
+      <span className={`fq-cine-peeker ${beat >= 2 ? 'is-arriving' : ''}`} style={pos(76, 31)}><StoryCharacter id="bolt" size={58} worried={beat < 2} happy={beat >= 2} /></span>
       {beat >= 1 && <span className="fq-cine-note" style={pos(70, 49)}>B</span>}
     </>
   );
@@ -318,7 +318,7 @@ function MachineArt({ beat }: { beat: number }) {
       <span className={`fq-cine-machine ${beat >= 1 ? 'is-on' : ''}`}><i /><i /><i /></span>
       <span className={`fq-cine-machine-plank ${beat >= 2 ? 'is-built' : ''}`} />
       <span className="fq-cine-actor" style={pos(9, 29)}><StoryCharacter id="bolt" size={94} worried={beat === 0} happy={beat >= 2} /></span>
-      <span className="fq-cine-actor" style={pos(76, 43)}><StoryCharacter id="pip" size={62} happy={beat >= 2} /></span>
+      <span className="fq-cine-actor" style={pos(72, 43)}><StoryCharacter id="pip" size={62} happy={beat >= 2} /></span>
       {beat === 1 && <span className="fq-cine-flash" />}
     </>
   );
@@ -384,7 +384,7 @@ function ChapterEndArt({ beat, unit = 1, speaker }: { beat: number; unit?: numbe
     <>
       <span className="fq-cine-end-horizon" />
       <span className={`fq-cine-end-stone ${beat >= 1 ? 'is-found' : ''}`} role="img" aria-label={`Chapter ${unit} stone piece recovered`} />
-      <span className="fq-cine-actor" style={pos(16, 27)}><StoryCharacter id={speaker ?? chapter.character} size={96} happy={beat >= 1} /></span>
+      <span className="fq-cine-actor" style={pos(26, 27)}><StoryCharacter id={speaker ?? chapter.character} size={96} happy={beat >= 1} /></span>
       <span className={`fq-cine-end-ribbon ${beat >= 2 ? 'is-visible' : ''}`}>{beat >= 2 ? `${unit} of 15 pieces` : ''}</span>
       {beat >= 2 && <Confetti />}
     </>
@@ -619,7 +619,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
               )}
             </fieldset>
           )}
-          {note && <p className="fq-story-note fq-cine-rise" data-testid="story-detective-note"><Search size={16} aria-hidden="true" /> {withName(note, name, theme)}</p>}
+          {done && note && <p className="fq-story-note fq-cine-rise" data-testid="story-detective-note"><Search size={16} aria-hidden="true" /> {withName(note, name, theme)}</p>}
           <div className="fq-cine-controls">
             <button type="button" className="fq-button ghost" onClick={play} data-testid="button-story-replay"><RotateCcw size={16} aria-hidden="true" /> Replay</button>
             {done ? (
