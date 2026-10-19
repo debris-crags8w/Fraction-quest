@@ -33,6 +33,16 @@ type St = { d: number; wholes: number; count: number };
 const blank = (): St => ({ d: 0, wholes: 1, count: 0 });
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(Number.isFinite(v) ? v : lo)));
 
+
+/** Label a worksheet bar only when the prompt writes that exact fraction. "Write 1 1/3 as a single fraction" draws
+    4/3, which is the answer, so it stays unlabelled until the row is right; so does a bar that is the answer itself. */
+function namesItsBar(p: WorksheetProblem): boolean {
+  if (!p.model) return false;
+  if (p.answer.trim() === `${p.model.n}/${p.model.d}`) return false;
+  return new RegExp(`(?<![\\d/])(?<!\\d )${p.model.n}\\s*/\\s*${p.model.d}(?![\\d/])`).test(p.prompt)
+    && amountsIn(p.prompt).some((a) => a.numerator === p.model!.n && a.denominator === p.model!.d);
+}
+
 function SectionListenHeader({ children, text, label, className = '' }: {
   children: ReactNode;
   text: string;
@@ -515,7 +525,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
           </div>
         </div>
         {/* For counting and shading, the tappable bar is the picture, so it is not drawn twice. */}
-        {p.model && (!p.task || p.task.kind === 'copy') && <Preview m={p.model} named={amountsIn(p.prompt).some((a) => a.numerator === p.model!.n && a.denominator === p.model!.d) || ok} />}
+        {p.model && (!p.task || p.task.kind === 'copy') && <Preview m={p.model} named={namesItsBar(p) || ok} />}
         {!p.model && p.picture && <div className="fq-ll-preview-wrap fq-ll-auto-picture"><PrintModel model={p.picture} labels={false} /></div>}
         {p.area && (p.areaTask
           ? <AreaShade figure={p.area} task={p.areaTask} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />

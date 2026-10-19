@@ -46,7 +46,7 @@ export function WorksheetBarCopy({ target, task = { kind: 'copy', n: target.n },
 
   return (
     <section className="fq-ll-copy-model" aria-label="Interactive bar model">
-      <p className="fq-ll-copy-instruction">{INSTRUCTION[task.kind](task.n)}</p>
+      <p className="fq-ll-copy-instruction">{task.say ?? INSTRUCTION[task.kind](task.n)}</p>
       <div className="fq-ll-copy-wholes">
         {Array.from({ length: target.wholes }, (_, whole) => (
           <div className="fq-ll-copy-whole" key={whole}>

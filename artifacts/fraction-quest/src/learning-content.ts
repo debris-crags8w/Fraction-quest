@@ -7,7 +7,8 @@ export type Rational = { n: number; d: number };
 /** `sizes` (bars only) draws pieces of different widths, for "Is this cut into equal parts?" pictures. */
 export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number; wholes: number; total?: number; sizes?: number[] };
 /** What the child does on the bar before typing: copy the shaded bar, tap each part to count it, or shade `n` parts. */
-export type BarTask = { kind: 'copy' | 'count' | 'shade'; n: number };
+/** `say`: the instruction to show instead of "Shade n parts", when n itself would be the answer. */
+export type BarTask = { kind: 'copy' | 'count' | 'shade'; n: number; say?: string };
 export type WorksheetProblem = {
   id: string; prompt: string; answer: string; hint: string; model?: LearningModel; modelRequired?: boolean; task?: BarTask;
   standards?: string[];
@@ -762,7 +763,8 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         const close: [number, string] = [[1, '0'], [e / 2 - 1, '1/2'], [e - 1, '1']][(i + variant + Math.floor(i / 3)) % 3] as [number, string];
         prompt = i % 3 === 0 ? `How much is missing from ${f(d - 1, d)} to make 1 whole?` :
           `Is ${f(close[0], e)} closest to 0, 1/2 or 1?`;
-        answer = i % 3 === 0 ? f(1, d) : close[1]; hint = 'Compare it to 0, 1/2 and 1. Pick the closest.'; break;
+        answer = i % 3 === 0 ? f(1, d) : close[1];
+        hint = i % 3 === 0 ? `One whole is ${f(d, d)}. How many parts are missing?` : 'Compare it to 0, 1/2 and 1. Pick the closest.'; break;
       }
       case 'number-line-basics':
       case 'number-line-points':
@@ -1085,8 +1087,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       case 'decimal-compare': {
         const hundredths: [number, number][] = [[30, 25], [40, 35], [8, 12], [55, 5], [23, 32], [70, 7], [45, 50], [3, 25], [99, 90], [60, 6], [11, 10], [35, 5]];
         const [a, b] = hundredths[tr];
-        const left = (a / 100).toFixed(2); const right = (b / 100).toFixed(2);
-        prompt = `Compare hundredths: ${left} (${a}/100) __ ${right} (${b}/100).`; answer = a > b ? '>' : a < b ? '<' : '='; form = 'symbol';
+        // Written the short way (0.4, not 0.40), with no fraction beside it: "0.4 or 0.35?" is the mistake to catch.
+        const left = String(a / 100); const right = String(b / 100);
+        prompt = `Compare: ${left} __ ${right}.`; answer = a > b ? '>' : a < b ? '<' : '='; form = 'symbol';
         visual = model(a, 100); modelRequired = true;
         hint = 'Write each decimal in hundredths. Compare the hundredths digits, not how long the number looks.'; break;
       }
@@ -1154,12 +1157,13 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           { prompt: 'A board is 3/4 meter. Another is 1/4 meter. How many meters in all?', answer: '1', hint: 'Four fourths make one whole meter.', numerator: 4, denominator: 4 },
           { prompt: 'How many cents are in 3/4 dollar?', answer: '75', hint: 'A dollar is 100 cents. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
           { prompt: 'A 2-liter jug is 1/4 full. How many milliliters are inside?', answer: '500', hint: '2 liters is 2000 milliliters. Find one fourth of 2000.', numerator: 1, denominator: 4 },
-          { prompt: 'How many hours are in 1/2 day?', answer: '12', hint: 'A day is 24 hours. Half of 24 is 12.', numerator: 1, denominator: 2 },
+          { prompt: 'How many hours are in 1/2 day?', answer: '12', hint: 'A day is 24 hours. Split 24 into 2 equal groups.', numerator: 1, denominator: 2 },
         ];
         const story = stories[tr]; prompt = story.prompt; answer = story.answer; form = story.form; hint = story.hint;
         visual = model(story.numerator, story.denominator); modelRequired = true;
         // Adding stories: the child shades the total (a drawn total would be the answer).
-        if (/together|now\?|in all/.test(story.prompt)) task = { kind: 'shade', n: story.numerator };
+        // The instruction doesn't say how many parts: that count is the answer.
+        if (/together|now\?|in all/.test(story.prompt)) task = { kind: 'shade', n: story.numerator, say: 'Shade both amounts on the bar. Tap again to clear.' };
         break;
       }
       case 'add-unlike': {

@@ -354,14 +354,17 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
       {!compact && (model.kind === 'bars' || model.kind === 'decimal') && <ModelTag kind="bar" />}
       {!compact && model.kind === 'line' && <ModelTag kind="line" />}
       {!compact && model.kind === 'set' && <ModelTag kind="set" />}
-      {model.kind === 'bars' && (() => { const labelled = reveal || model.bars.some((bar) => bar.named); return (
+      {model.kind === 'bars' && (() => {
+        // A bar that shows the answer waits until the question is answered.
+        const shownBars = asked && !reveal ? model.bars.filter((bar) => !bar.untilAnswered) : model.bars;
+        const labelled = reveal || shownBars.some((bar) => bar.named); return (
         <div className="fq-visual-bars">
-          {model.bars.map((item, index) => {
+          {shownBars.map((item, index) => {
             // Bars are counted one after another, so each later bar starts where the one before stopped.
-            const start = model.bars.slice(0, index).reduce((sum, bar) => sum + Math.max(1, Math.ceil(bar.numerator / bar.denominator)) * bar.denominator, 0);
+            const start = shownBars.slice(0, index).reduce((sum, bar) => sum + Math.max(1, Math.ceil(bar.numerator / bar.denominator)) * bar.denominator, 0);
             return (
             <div className="fq-visual-bar-row" key={`${item.numerator}-${item.denominator}-${index}`}>
-              <FractionBar numerator={item.numerator} denominator={item.denominator} quiet={model.hideLabels && !item.named && !reveal} label={!!item.named || reveal} gutter={labelled} guide={compareGuide(model, reveal)} walk={walk} start={start} />
+              <FractionBar numerator={item.numerator} denominator={item.denominator} quiet={(model.hideLabels || asked) && !item.named && !reveal} label={!!item.named || reveal} gutter={labelled} guide={compareGuide(model, reveal)} walk={walk} start={start} />
             </div>
             );
           })}
@@ -430,8 +433,9 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
       {model.kind === 'equation' && <div className="fq-model-equation" role="img" aria-label={`Visual equation ${model.text}`}><MathText text={model.text} /></div>}
       {model.kind === 'decimal' && (
         <div className="fq-decimal-model">
-          <FractionBar numerator={model.tenths} denominator={10} quiet={model.hideLabels} />
-          {!model.hideLabels && <span>{(model.tenths / 10).toFixed(1)}</span>}
+          <FractionBar numerator={model.tenths} denominator={10} quiet={model.hideLabels || (asked && !reveal)} />
+          {/* The decimal is shown once the question is answered (it was the answer to "Write 3/10 as a decimal"). */}
+          {!model.hideLabels && (!asked || reveal) && <span>{(model.tenths / 10).toFixed(1)}</span>}
         </div>
       )}
       {model.caption && <p className="fq-model-caption">{model.caption}</p>}
