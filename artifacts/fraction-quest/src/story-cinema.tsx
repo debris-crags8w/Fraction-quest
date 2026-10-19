@@ -39,17 +39,17 @@ const FILMING: Record<StoryScene, { shots: Shot[]; impact?: number; coldFrom?: n
       shot('scale(1.28)', '50% 42%'), shot('scale(1)', '50% 60%')],
     impact: 2, coldFrom: 2, end: 'To be continued…',
   },
-  bakery: { shots: [shot('scale(1.05)', '4% 22%'), shot('scale(1.08)', '4% 22%'), shot('scale(1.08)', '18% 22%'), shot('scale(1.05)', '4% 22%')], impact: 2 },
-  pond: { shots: [shot('scale(1.05)', '6% 24%'), shot('scale(1.15)', '6% 24%'), shot('scale(1.1)', '6% 24%'), shot('scale(1.15)', '6% 24%')], impact: 0 },
-  hill: { shots: [shot('scale(1.05)', '1% 50%'), shot('scale(1.05)', '1% 50%'), shot('scale(1)', '50% 40%'), shot('scale(1.12)', '35% 40%')] },
-  bridge: { shots: [shot('scale(1.05)', '2% 40%'), shot('scale(1.15)', '2% 40%'), shot('scale(1)', '2% 40%'), shot('scale(1.05)', '2% 40%')], impact: 0 },
-  tower: { shots: [shot('scale(1.05)', '4% 28%'), shot('scale(1.15)', '4% 28%'), shot('scale(1.1)', '4% 28%'), shot('scale(1.05)', '4% 28%')], impact: 0 },
-  honey: { shots: [shot('scale(1.1)', '50% 30%'), shot('scale(1.15)', '50% 4%'), shot('scale(1.2)', '30% 4%'), shot('scale(1.1)', '50% 40%')] },
+  bakery: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.3)', '24% 40%'), shot('scale(1.55)', '60% 48%'), shot('scale(1.05)', '50% 40%')], impact: 2 },
+  pond: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '66% 38%'), shot('scale(1.1)', '50% 46%'), shot('scale(1.2)', '30% 50%')], impact: 0 },
+  hill: { shots: [shot('scale(1.1)', '20% 50%'), shot('scale(1.4)', '86% 14%'), shot('scale(1)', '50% 40%'), shot('scale(1.25)', '35% 40%')] },
+  bridge: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '55% 38%'), shot('scale(1)', '50% 40%'), shot('scale(1.1)', '50% 36%')], impact: 0 },
+  tower: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.25)', '30% 36%'), shot('scale(1.2)', '72% 30%'), shot('scale(1.05)', '60% 36%')], impact: 0 },
+  honey: { shots: [shot('scale(1.1)', '50% 30%'), shot('scale(1.25)', '50% 16%'), shot('scale(1.4)', '30% 40%'), shot('scale(1.1)', '50% 40%')] },
   workshop: { shots: [shot('scale(1.1)', '50% 38%'), shot('scale(1.15)', '10% 44%'), shot('scale(1.15)', '10% 40%'), shot('scale(1.05)', '50% 45%')], impact: 2 },
   den: { shots: [shot('scale(1.12)', '50% 40%'), shot('scale(1.3)', '30% 48%'), shot('scale(1.2)', '32% 46%'), shot('scale(1.05)', '50% 42%')], coldFrom: 1 },
   race: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.15)', '12% 30%'), shot('scale(1.2)', '30% 46%'), shot('scale(1.05)', '50% 42%')] },
-  picnic: { shots: [shot('scale(1.05)', '50% 42%'), shot('scale(1.05)', '50% 42%'), shot('scale(1.05)', '50% 42%'), shot('scale(1.05)', '50% 42%')] },
-  machine: { shots: [shot('scale(1.05)', '50% 42%'), shot('scale(1.05)', '50% 42%'), shot('scale(1.05)', '50% 42%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
+  picnic: { shots: [shot('scale(1.05)', '50% 42%'), shot('scale(1.1)', '27% 38%'), shot('scale(1.1)', '72% 38%'), shot('scale(1.05)', '50% 42%')] },
+  machine: { shots: [shot('scale(1.05)', '50% 42%'), shot('scale(1.12)', '29% 40%'), shot('scale(1.12)', '71% 40%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
   stage: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.25)', '32% 48%'), shot('scale(1.15)', '34% 55%'), shot('scale(1.05)', '50% 42%')] },
   garden: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.15)', '32% 48%'), shot('scale(1.08)', '40% 45%'), shot('scale(1.05)', '50% 42%')] },
   lock: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.28)', '32% 48%'), shot('scale(1.18)', '34% 48%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
@@ -113,10 +113,10 @@ function BakeryArt({ beat }: { beat: number }) {
       <span className="fq-cine-awning" />
       <span className="fq-cine-shelf" style={pos(6, 18)} /><span className="fq-cine-shelf" style={pos(58, 16)} />
       <span className="fq-cine-counter" />
-      <span className={`fq-cine-actor fq-cine-enter-left ${beat === 0 ? 'is-grabbing' : ''} ${fair ? 'is-hopping' : ''}`} style={pos(4, 22)}>
+      <span className={`fq-cine-actor fq-cine-bakery-enter ${beat === 0 ? 'is-grabbing' : ''} ${fair ? 'is-hopping' : ''}`} style={pos(23, 22)}>
         <StoryCharacter id="chomp" size={112} happy={fair} worried={beat === 1} />
       </span>
-      <svg className="fq-cine-pie" style={pos(52, 24)} viewBox="0 0 120 120" role="img"
+      <svg className="fq-cine-pie" style={pos(38, 24)} viewBox="0 0 120 120" role="img"
         aria-label={fair ? 'A pie cut into 4 equal pieces' : 'A pie cut into 4 pieces of different sizes'}>
         {fair
           ? ['M60 60 V8 A52 52 0 0 1 112 60 Z', 'M60 60 H112 A52 52 0 0 1 60 112 Z', 'M60 60 V112 A52 52 0 0 1 8 60 Z', 'M60 60 H8 A52 52 0 0 1 60 8 Z'].map((d, i) => (
@@ -145,7 +145,7 @@ function PondArt({ beat }: { beat: number }) {
       <span className="fq-cine-bunting" />
       <span className="fq-cine-pond" />
       <span className="fq-cine-pad" style={pos(2, 44)} />
-      <span className="fq-cine-actor" style={pos(6, 24)}><StoryCharacter id="pip" size={96} happy={beat === 2} worried={beat === 0} /></span>
+      <span className="fq-cine-actor" style={pos(18, 24)}><StoryCharacter id="pip" size={96} happy={beat === 2} worried={beat === 0} /></span>
       <span className="fq-cine-bowl" style={pos(52, 32)} />
       {beat === 0 && <><span className="fq-cine-falling" style={pos(68, 0)} /><span className="fq-cine-splash" style={pos(57, 28)} /></>}
       {grouped && [18, 50, 82].map((x, plate) => (
@@ -179,8 +179,8 @@ function HillArt({ beat }: { beat: number }) {
       {flags && landmarks.map(([x, y, label], i) => (
         <span key={i} className="fq-cine-flag" style={pos(x, y, { animationDelay: `${i * 0.35}s` })}>{label}</span>
       ))}
-      <span className="fq-cine-glint is-shining" style={pos(88, 12)} aria-hidden="true" />
-      <span className="fq-cine-actor" style={beat >= 2 ? pos(30, 42) : pos(1, 50)}>
+      <span className="fq-cine-glint is-shining" style={pos(80, 12)} aria-hidden="true" />
+      <span className="fq-cine-actor" style={beat >= 2 ? pos(30, 42) : pos(26, 50)}>
         <StoryCharacter id="tilly" size={beat >= 2 ? 60 : 68} worried={beat === 0} happy={beat === 2} />
       </span>
       <span className="fq-cine-sr" role="img" aria-label={flags ? 'Flags for 0, one half and 1 along the hill path' : 'Something shines at the top of a hill'} />
@@ -205,7 +205,7 @@ function BridgeArt({ beat }: { beat: number }) {
       {beat >= 2 && <svg className="fq-cine-hops" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         {Array.from({ length: 6 }, (_, i) => <path key={i} d={`M${18 + i * 10.6} 39 q5.3 -12 10.6 0`} style={{ animationDelay: `${i * 0.3}s` }} />)}
       </svg>}
-      <span className="fq-cine-actor" style={pos(2, 23)}><StoryCharacter id="pip" size={76} worried={beat === 0} /></span>
+      <span className="fq-cine-actor" style={pos(18, 23)}><StoryCharacter id="pip" size={76} worried={beat === 0} /></span>
       <span className="fq-cine-sr" role="img" aria-label={beat >= 1 ? 'A bridge split into 6 equal jumps with 2 planks missing' : 'A bridge with 2 planks falling out'} />
     </>
   );
@@ -220,7 +220,7 @@ function TowerArt({ beat }: { beat: number }) {
     <>
       <span className="fq-cine-wall" />
       <span className="fq-cine-floor" />
-      <span className={`fq-cine-actor ${beat === 0 ? 'is-guarding' : ''}`} style={pos(4, 28)}>
+      <span className={`fq-cine-actor ${beat === 0 ? 'is-guarding' : ''}`} style={pos(16, 28)}>
         <StoryCharacter id="chomp" size={112} worried={beat === 1} happy={beat === 2} />
       </span>
       <div className={`fq-cine-tower ${beat === 0 ? 'is-wobbling' : ''}`} role="img"
@@ -247,7 +247,7 @@ function HoneyArt({ beat }: { beat: number }) {
         </span>
       ))}
       {beat === 2 && <span className="fq-cine-level" />}
-      <span className={`fq-cine-actor ${beat === 0 ? 'is-buzzing' : ''}`} style={pos(36, 4)}>
+      <span className={`fq-cine-actor ${beat === 0 ? 'is-buzzing' : ''}`} style={pos(36, 16)}>
         <StoryCharacter id="bea" size={72} happy={beat === 2} />
       </span>
       <span className={`fq-cine-map ${beat === 0 ? 'is-falling' : ''}`} aria-hidden="true" />
@@ -356,7 +356,7 @@ function LockArt({ beat }: { beat: number }) {
     <>
       <span className="fq-cine-lock-room" /><span className={`fq-cine-lock-case ${beat >= 2 ? 'is-open' : ''}`}>
         <span className="fq-cine-lock-stone" />
-        <span className="fq-cine-lock-dials"><b>½</b><b>0.5</b><b>50%</b></span>
+        <span className="fq-cine-lock-dials"><b><Frac n={1} d={2} /></b><b>0.5</b><b>50%</b></span>
       </span>
       <span className="fq-cine-actor" style={pos(8, 32)}><StoryCharacter id="bolt" size={88} happy={beat >= 2} /></span>
       {beat === 2 && <><span className="fq-cine-flash" /><Confetti /></>}
@@ -399,7 +399,7 @@ function EpilogueArt({ beat, speaker = 'hoot' }: { beat: number; speaker?: Panel
         {Array.from({ length: 15 }, (_, i) => <i key={i} />)}
       </span>
       <span className="fq-cine-actor" style={pos(11, 30)}><StoryCharacter id={speaker} size={88} happy /></span>
-      <span className="fq-cine-festival-riddle">{beat >= 1 ? 'One whole' : 'Festival'}</span>
+      <span className="fq-cine-festival-riddle fq-cine-epilogue-riddle">{beat >= 1 ? 'One whole' : 'Festival'}</span>
       {beat >= 2 && <Confetti />}
     </>
   );
