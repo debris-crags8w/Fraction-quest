@@ -529,6 +529,12 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
         <div id={'ws-fb-' + p.id} aria-live="polite">
           {ok && <p ref={okRef} tabIndex={-1} className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Correct!
             {onNewQuestion && <button type="button" className="fq-ll-hintbtn fq-ll-newq" onClick={onNewQuestion} data-testid={'button-new-question-' + p.id}><RotateCcw size={15} /> New question</button>}</p>}
+          {ok && p.why && <div className="fq-ll-ws why" data-testid={'text-why-worksheet-' + p.id}>
+            <div className="fq-ll-ws-section-copy">
+              <SectionListenHeader text={`Why it works. ${p.why}`} label="Listen to why it works"><strong>Why it works</strong></SectionListenHeader>
+              <LearningText text={p.why} emphasize interactiveTerms={false} />
+            </div>
+          </div>}
           {!ok && wrong === draft && <div className="fq-ll-ws bad" role="alert" data-testid={'status-worksheet-' + p.id}>
             <div className="fq-ll-ws-section-copy">
               <SectionListenHeader text={`Not yet. ${p.hint}`} label="Listen to the feedback"><strong>Not yet.</strong></SectionListenHeader>

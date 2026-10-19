@@ -334,6 +334,15 @@ describe('lesson catalog', () => {
     }
   });
 
+  it('explains why squares and triangles can both be fourths, after the answer and not in the hint', () => {
+    const rows = ['equal-parts', 'unit-fractions'].flatMap((id) => getWorksheet(id)).filter((p) => p.area?.cut === 'fourths-mixed');
+    assert.equal(rows.length, 2);
+    for (const row of rows) {
+      assert.match(row.why ?? '', /half of a half, so all 4 parts are fourths/);
+      assert.doesNotMatch(row.hint, /1\/4|fourths|same size/, 'the hint gives a first step, not the answer');
+    }
+  });
+
   it('never offers the same fraction twice or adds 0/100 on a redo sheet', () => {
     for (let variant = 0; variant < 12; variant++) {
       for (const problem of getWorksheet('fraction-magnitude', variant)) {

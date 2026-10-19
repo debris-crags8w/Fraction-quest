@@ -11,6 +11,8 @@ export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number
 export type BarTask = { kind: 'copy' | 'count' | 'shade'; n: number; say?: string };
 export type WorksheetProblem = {
   id: string; prompt: string; answer: string; hint: string; model?: LearningModel; modelRequired?: boolean; task?: BarTask;
+  /** Shown after a right answer, so a child who guessed still hears the reason. */
+  why?: string;
   standards?: string[];
   form?: 'decimal' | 'mixed' | 'ordered' | 'symbol' | 'word'; denominator?: number;
   /** A square cut into pieces that may have different shapes; with `areaTask` the child colors it before answering. */
@@ -543,6 +545,9 @@ function worksheetBuildCheck(id: string, serial: number, checkId: string): Build
   };
 }
 
+/** Halves cut two different ways: squares on one side, triangles on the other (equal size, different shape). */
+const MIXED_FOURTHS_WHY = 'The shapes are different, but the sizes match. The square is cut into 2 equal halves. One half is cut into 2 squares. The other half is cut into 2 triangles. Each part is half of a half, so all 4 parts are fourths.';
+
 const PRACTICE_DENOMINATORS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 16, 20];
 function seededBuildCheck(id: string, serial: number, checkId: string): BuildCheck {
   const [baseN, baseD, baseKind] = CHECKS[id];
@@ -673,7 +678,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
     const value = f(n, d);
     let prompt = ''; let answer = value; let hint = 'The numerator is the number of parts you count. The denominator is the number of equal parts in one whole.';
     let visual: LearningModel | undefined; let form: WorksheetProblem['form']; let denominator: number | undefined;
-    let modelRequired = false; let task: BarTask | undefined; let area: AreaFigure | undefined; let areaTask: AreaTask | undefined;
+    let modelRequired = false; let task: BarTask | undefined; let area: AreaFigure | undefined; let areaTask: AreaTask | undefined; let why: string | undefined;
     const context = ['ribbon', 'paper strip', 'rope', 'piece of tape'][i % 4];
     switch (id) {
       case 'equal-parts': {
@@ -709,7 +714,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         // Last four: a square whose equal parts have different shapes (same size, not always same shape).
         if (i === 8) {
           prompt = 'Are all 4 parts of this square the same size? Answer yes or no.'; answer = 'yes'; form = 'word'; visual = undefined; task = undefined;
-          area = { cut: 'fourths-mixed' }; hint = 'The line cuts the right half into 2 equal triangles. Each triangle is 1/4, just like each small square.';
+          area = { cut: 'fourths-mixed' }; hint = 'Look at the left half and the right half. How is each half cut?'; why = MIXED_FOURTHS_WHY;
         } else if (i === 9) {
           prompt = 'This square is cut into 4 parts. Are they fourths? Answer yes or no.'; answer = 'no'; form = 'word'; visual = undefined; task = undefined;
           area = { cut: 'fourths-unequal' }; hint = 'Fourths must all be the same size. Compare the biggest part and the smallest part.';
@@ -748,7 +753,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         } else if (i === 11) {
           prompt = 'What fraction of the square is the shaded triangle?'; answer = '1/4';
           area = { cut: 'fourths-mixed', shaded: [2] }; visual = undefined; task = undefined; modelRequired = false;
-          hint = 'The 4 parts are the same size, even though 2 are squares and 2 are triangles.';
+          hint = 'Look at the left half and the right half. How is each half cut?'; why = MIXED_FOURTHS_WHY;
         }
         break;
       case 'fraction-names':
@@ -939,7 +944,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
     }
     // Older bar worksheets: "copy the shaded bar".
     if (modelRequired && !task && visual?.kind === 'bar') task = { kind: 'copy', n: visual.n };
-    return { id: `w${i + 1}`, prompt, answer, hint, model: visual, modelRequired, task, form, denominator, ...(area ? { area } : {}), ...(areaTask ? { areaTask } : {}) };
+    return { id: `w${i + 1}`, prompt, answer, hint, model: visual, modelRequired, task, form, denominator, ...(area ? { area } : {}), ...(areaTask ? { areaTask } : {}), ...(why ? { why } : {}) };
   });
 }
 
