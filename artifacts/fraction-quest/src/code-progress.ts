@@ -14,11 +14,17 @@ const exampleFor = (kind: Target['kind'], title: string, note: (target: Target) 
   return { title, target, program: solution(target), note: note(target) };
 };
 
-export const CODE_EXAMPLES: CodeExample[] = [
-  exampleFor('bar', 'Shade a bar', (target) => `Split each bar into ${target.d} equal parts. Repeat shade and move ${target.n} times.`),
-  exampleFor('line', 'Hop on a line', (target) => `Split each whole into ${target.d} equal spaces. Repeat one jump ${target.n} times.`),
-  exampleFor('set', 'Pick groups', (target) => `Make ${target.d} equal groups. Repeat pick a group ${target.n} times.`),
-];
+let examples: CodeExample[] | null = null;
+/** The three worked examples, built the first time Code Quest needs them (building them at import time held up the
+    app's first paint by seconds on a phone). */
+export function codeExamples(): CodeExample[] {
+  examples ??= [
+    exampleFor('bar', 'Shade a bar', (target) => `Split each bar into ${target.d} equal parts. Repeat shade and move ${target.n} times.`),
+    exampleFor('line', 'Hop on a line', (target) => `Split each whole into ${target.d} equal spaces. Repeat one jump ${target.n} times.`),
+    exampleFor('set', 'Pick groups', (target) => `Make ${target.d} equal groups. Repeat pick a group ${target.n} times.`),
+  ];
+  return examples;
+}
 
 /** Names the active instruction and, inside a loop, tells the learner which pass is running. */
 export function exampleStepInstruction(

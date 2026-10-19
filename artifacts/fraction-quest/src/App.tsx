@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type CSSProperties, type ReactNode, Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, BarChart3, BookOpen, Check, ClipboardCheck, Code2, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { MathText } from './MathText';
@@ -61,33 +61,37 @@ import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView
 import { LanternIcon } from './riddle-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
-import PaperCheck from './PaperCheck';
-import Challenge from './Challenge';
 import { freshSeed, generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { PrintMenu } from './Printables';
 import { PaperFold } from './PaperFold';
 import { AreaSvg, SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
-import ParentView from './ParentView';
-import FractionRace from './FractionRace';
-import CodeQuest from './CodeQuest';
-import PlacementQuiz from './PlacementQuiz';
 import { applyPlacement } from './placement';
 import { AccountGate, useAccount, useAccountSync } from './account';
 import LoginPage from './LoginPage';
 import { getRouterBasePath } from './app-routing';
-import DailyPractice from './DailyPractice';
 import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyPracticeDay, recordDailyPracticeStart } from './daily-practice';
 import PartFinder from './PartFinder';
 import FractionSortActivity from './FractionSortActivity';
-import { AssessmentHub, AssessmentRunner } from './Assessment';
 import { PART_FINDER_LESSONS, partFinderRoundsFor } from './part-finder';
-import ConceptGames, { type LessonGame } from './ConceptGames';
+import type { LessonGame } from './ConceptGames';
 import { BrainBreakOffer } from './BrainBreakOffer';
 import { downloadWholeVoicePack, naturalVoiceId, warmUpNaturalVoice } from './lib/natural-voice';
 import { appShell, onAppShellChange } from './lib/app-shell';
 import { StatTip } from './StatTip';
 import { AppMenu } from './AppMenu';
+
+// Screens most visits never open load on first use, so the map and lessons start sooner.
+const PaperCheck = lazy(() => import('./PaperCheck'));
+const Challenge = lazy(() => import('./Challenge'));
+const ParentView = lazy(() => import('./ParentView'));
+const FractionRace = lazy(() => import('./FractionRace'));
+const CodeQuest = lazy(() => import('./CodeQuest'));
+const PlacementQuiz = lazy(() => import('./PlacementQuiz'));
+const DailyPractice = lazy(() => import('./DailyPractice'));
+const ConceptGames = lazy(() => import('./ConceptGames'));
+const AssessmentHub = lazy(() => import('./Assessment').then((module) => ({ default: module.AssessmentHub })));
+const AssessmentRunner = lazy(() => import('./Assessment').then((module) => ({ default: module.AssessmentRunner })));
 const queryClient = new QueryClient();
 
 type View =
@@ -1617,6 +1621,7 @@ function Game() {
 
   return (
     <FunContext.Provider value={{ fun, setFun }}>
+      <Suspense fallback={<main className="fq-app fq-lazy-loading" role="status" aria-live="polite">Loading…</main>}>
       {moduleTestActive && <div className="fq-developer-test-banner" role="status" data-testid="developer-test-banner">
         Developer lesson test · progress is temporary and will not be saved.
         <button type="button" onClick={returnToMap} data-testid="button-exit-developer-test">Exit test</button>
@@ -1903,6 +1908,7 @@ function Game() {
           </div>
         </div>
       )}
+      </Suspense>
     </FunContext.Provider>
   );
 }

@@ -6,7 +6,7 @@ import { AnswerTiles } from './AnswerTiles';
 import { Confetti, Mascot, useFun } from './fun-ui';
 import { playCue, playHaptic } from './lib/fun';
 import { CODE_LEVEL_COUNT, countBlocks, describe, getCodeLevels, getRunHint, passesCodeLevel, predictionMatchesTarget, runProgram, toText, usesEffectiveLoop, usesLoop, type Block, type CodeLevel, type RobotState, type RunResult } from './code-quest';
-import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
+import { codeExamples, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
 import { LearningListenButton } from './LearningText';
 
 /* Code challenge: program a robot to build the lesson's fraction with blocks (or read it as Python). */
@@ -126,7 +126,8 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
   const [predictionFeedback, setPredictionFeedback] = useState<string | null>(null);
   const kind = level.target.kind;
   const codeSummary = summarizeCodeProgress(fun.codeLevels, [mission.id]);
-  const example = CODE_EXAMPLES[exampleAt];
+  const examples = codeExamples();
+  const example = examples[exampleAt];
   const exampleRun = useMemo(() => runProgram(example.program, example.target), [example]);
   const exampleShown = exampleStep > 0 ? exampleRun.steps[exampleStep - 1] : null;
 
@@ -207,7 +208,7 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
             </div>
             <p className="fq-code-tip">Choose an example, then step through what the robot does. The highlighted block matches the changing picture.</p>
             <div className="fq-code-example-tabs" role="group" aria-label="Choose a worked example">
-              {CODE_EXAMPLES.map((item, index) => <button type="button" className={index === exampleAt ? 'on' : ''} onClick={() => { setExampleAt(index); setExampleStep(0); }} key={item.title} data-testid={`button-example-${index}`}>{item.title}</button>)}
+              {examples.map((item, index) => <button type="button" className={index === exampleAt ? 'on' : ''} onClick={() => { setExampleAt(index); setExampleStep(0); }} key={item.title} data-testid={`button-example-${index}`}>{item.title}</button>)}
             </div>
             <div className="fq-code-walk-grid">
               <div className="fq-code-walk-model">

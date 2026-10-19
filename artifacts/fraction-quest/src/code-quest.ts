@@ -190,8 +190,17 @@ const goalText = (t: Target) => t.kind === 'line'
   ? `Make the robot land on ${fractionName(t)} on the number line.`
   : t.kind === 'set' ? `Make the robot pick ${fractionName(t)} of the ${t.total} dots.` : `Make the robot shade ${fractionName(t)}${t.wholes > 1 ? ' (more than 1 whole bar)' : ''}.`;
 
-/** Six levels per lesson, built from the lesson's own fractions and current block vocabulary. */
+const LEVELS_CACHE = new Map<string, CodeLevel[]>();
+/** Six levels per lesson, built from the lesson's own fractions and current block vocabulary (built once per lesson). */
 export function getCodeLevels(missionId: string): CodeLevel[] {
+  const cached = LEVELS_CACHE.get(missionId);
+  if (cached) return cached;
+  const levels = buildCodeLevels(missionId);
+  LEVELS_CACHE.set(missionId, levels);
+  return levels;
+}
+
+function buildCodeLevels(missionId: string): CodeLevel[] {
   const [build, transfer] = getBuildChecks(missionId);
   const t1 = toTarget(build.target); const t2 = toTarget(transfer.target);
   let t3 = toTarget(getReviewCheck(missionId, 1).target);
