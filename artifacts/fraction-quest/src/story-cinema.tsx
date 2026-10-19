@@ -113,10 +113,10 @@ function BakeryArt({ beat }: { beat: number }) {
       <span className="fq-cine-awning" />
       <span className="fq-cine-shelf" style={pos(6, 18)} /><span className="fq-cine-shelf" style={pos(58, 16)} />
       <span className="fq-cine-counter" />
-      <span className={`fq-cine-actor fq-cine-bakery-enter ${beat === 0 ? 'is-grabbing' : ''} ${fair ? 'is-hopping' : ''}`} style={pos(23, 22)}>
+      <span className={`fq-cine-actor fq-cine-bakery-enter ${beat === 0 ? 'is-grabbing' : ''} ${fair ? 'is-hopping' : ''}`} style={pos(21, 22)}>
         <StoryCharacter id="chomp" size={112} happy={fair} worried={beat === 1} />
       </span>
-      <svg className="fq-cine-pie" style={pos(38, 24)} viewBox="0 0 120 120" role="img"
+      <svg className="fq-cine-pie" style={pos(53, 24)} viewBox="0 0 120 120" role="img"
         aria-label={fair ? 'A pie cut into 4 equal pieces' : 'A pie cut into 4 pieces of different sizes'}>
         {fair
           ? ['M60 60 V8 A52 52 0 0 1 112 60 Z', 'M60 60 H112 A52 52 0 0 1 60 112 Z', 'M60 60 V112 A52 52 0 0 1 8 60 Z', 'M60 60 H8 A52 52 0 0 1 60 8 Z'].map((d, i) => (
