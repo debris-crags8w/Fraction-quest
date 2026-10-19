@@ -22,6 +22,7 @@ import {
 import { errorMessage, useAccount } from './account';
 import { RecoveryCodeCard } from './RecoveryCode';
 import { AlertTriangle, Check, ChevronDown, Clipboard, Download, LoaderCircle, LockKeyhole, Plus, RefreshCw, Shield, Trash2, Users, X } from 'lucide-react';
+import { StackedFraction } from './MathText';
 import './FamilyControls.css';
 
 type FamilyControlsProps = { unitTitles?: string[] };
@@ -254,7 +255,7 @@ export default function FamilyControls({ unitTitles }: FamilyControlsProps) {
   return (
     <section className="fq-family" aria-labelledby="fq-family-title">
       <header className="fq-family-hero">
-        <div className="fq-family-orbit" aria-hidden="true"><span>1</span><i /><b>½</b></div>
+        <div className="fq-family-orbit" aria-hidden="true"><span>1</span><i /><b><StackedFraction top="1" bottom="2" /></b></div>
         <div className="fq-family-intro">
           <p className="fq-family-kicker"><LockKeyhole size={14} /> Family controls</p>
           <h2 id="fq-family-title">A little care for<br /><em>their learning space.</em></h2>

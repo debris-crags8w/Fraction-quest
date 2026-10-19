@@ -226,7 +226,7 @@ function FractionBar({ numerator, denominator, quiet = false, label = false, gui
   return (
     <div className="fq-bar-model-labelled" style={{ '--piece': denomColor(denominator) } as CSSProperties}>
     {label && <span className="fq-bar-label" data-testid="bar-fraction-label"><Fraction numerator={numerator} denominator={denominator} /></span>}
-    <div key={walk ?? 'still'} className={`fq-bar-model ${walk !== null ? 'fq-walking' : ''}`} style={{ '--pieces': denominator, '--piece': denomColor(denominator), '--start': start, '--count': start + total } as CSSProperties} role="img" aria-label={quiet ? 'A bar model. Count the equal parts and the shaded parts.' : `${numerator}/${denominator}: each whole is split into ${denominator} equal parts, with ${numerator} parts shaded`}>
+    <div key={walk ?? 'still'} className={`fq-bar-model ${walk !== null ? 'fq-walking' : ''}`} style={{ '--pieces': denominator, '--piece': denomColor(denominator), '--start': start, '--count': start + total } as CSSProperties} role="img" aria-label={quiet ? 'A bar model. Count the equal parts and the shaded parts.' : `${numerator} over ${denominator}: each whole is split into ${denominator} equal parts, with ${numerator} parts shaded`}>
       {Array.from({ length: Math.max(1, Math.ceil(numerator / denominator)) }, (_, whole) => (
         <div className="fq-bar-whole" key={whole}>
           <div className="fq-bar">
@@ -254,7 +254,7 @@ export function OrderNumberLine({
   benchmark: { numerator: number; denominator: number };
   equivalentNames?: { fraction: { numerator: number; denominator: number }; equivalentTo: { numerator: number; denominator: number } }[];
 }) {
-  const fractionName = ({ numerator, denominator }: { numerator: number; denominator: number }) => `${numerator}/${denominator}`;
+  const fractionName = ({ numerator, denominator }: { numerator: number; denominator: number }) => `${numerator} over ${denominator}`;
   const equivalentNamesFor = (point: { numerator: number; denominator: number }) =>
     equivalentNames.filter(({ equivalentTo }) => sameFractionValue(point, equivalentTo));
   const equivalentDescriptionFor = (
@@ -264,7 +264,7 @@ export function OrderNumberLine({
     `${fractionName(point)} and ${fractionName(fraction)} are equivalent fractions. They mark the same amount and number-line spot.`,
   ).join(' ');
   const pointText = (point: { numerator: number; denominator: number }) =>
-    `${point.numerator}/${point.denominator} is at ${point.numerator} of ${point.denominator} equal spaces from zero to one`;
+    `${point.numerator} over ${point.denominator} is at ${point.numerator} of ${point.denominator} equal spaces from zero to one`;
   const benchmarkNames = equivalentNamesFor(benchmark);
   const benchmarkIsHalf = benchmark.numerator * 2 === benchmark.denominator;
   const description = [
@@ -277,8 +277,8 @@ export function OrderNumberLine({
     }),
     ...(benchmarkIsHalf
       ? [`The one-half benchmark is halfway between zero and one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]
-      : [`The benchmark ${benchmark.numerator}/${benchmark.denominator} is at ${benchmark.numerator} of ${benchmark.denominator} equal spaces from zero to one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]),
-    `From left to right, the fractions are ${points.map(({ numerator, denominator }) => `${numerator}/${denominator}`).join(', ')}.`,
+      : [`The benchmark ${benchmark.numerator} over ${benchmark.denominator} is at ${benchmark.numerator} of ${benchmark.denominator} equal spaces from zero to one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]),
+    `From left to right, the fractions are ${points.map(({ numerator, denominator }) => `${numerator} over ${denominator}`).join(', ')}.`,
   ].join(' ');
 
   return (

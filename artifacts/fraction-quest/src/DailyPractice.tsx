@@ -246,7 +246,7 @@ export default function DailyPractice({
                 className={`fq-daily-jump ${jumps <= attempt.shaded.length ? 'passed' : ''} ${selected ? 'landing' : ''}`}
                 style={{ left: `${jumps / parts * 100}%`, width: `min(44px, ${100 / parts}%)` }}
                 key={index}
-                aria-label={`${jumps}/${parts}, ${jumps} jump${jumps === 1 ? '' : 's'} from 0`}
+                aria-label={`${jumps} over ${parts}, ${jumps} jump${jumps === 1 ? '' : 's'} from 0`}
                 disabled={done} onClick={() => change({ shaded: Array.from({ length: jumps }, (_, part) => part) })}
                 data-testid={`button-daily-jump-${index + 1}`}>
                 <i aria-hidden="true" />
@@ -259,7 +259,7 @@ export default function DailyPractice({
     )}
     <LiveFraction n={attempt.shaded.length} d={parts ?? 0} unit={bar ? 'bar' : 'line'} color={bar ? '#38bdb0' : undefined} testId="daily-live-fraction" />
     {attempt.modelChecked && !done && <p className="fq-daily-feedback retry" role="status">Good try. {wrongFeedback} Change your model, then check again.</p>}
-    {done && <div className="fq-daily-feedback success" role="status"><strong>That’s it!</strong> {parts === question.denominator ? question.explanation : `${attempt.shaded.length}/${parts} is the same amount as ${question.numerator}/${question.denominator}.`}</div>}
+    {done && <div className="fq-daily-feedback success" role="status"><strong>That’s it!</strong> {parts === question.denominator ? question.explanation : <MathText text={`${attempt.shaded.length}/${parts} is the same amount as ${question.numerator}/${question.denominator}.`} />}</div>}
     {done ? nextButton : (
       <div className="fq-daily-actions">
         <button ref={checkRef} className="fq-button" onClick={checkModel} disabled={!parts || attempt.shaded.length === 0} data-testid="button-daily-check-model">Check my model <Check size={17} /></button>
