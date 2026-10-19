@@ -150,11 +150,8 @@ const UNIT_INFO: UnitInfo[] = [
   { title: 'Problem solving', subtitle: 'Grades 4–5 · Find the whole, spot the mistake, fraction of the rest; dividing fractions is bonus' },
 ];
 
-// Lessons where kids make fractions by folding a paper strip (1 → 1/2 → 1/4 → 1/8).
+// Folding paper lives in the equivalence lesson only, where folding again shows 1/2 = 2/4 = 4/8.
 const FOLD_LESSONS: Record<string, { intro: string; allowThirds?: boolean; shadeHalf?: boolean }> = {
-  'equal-parts': { intro: 'Fold the paper. Every fold makes equal pieces.' },
-  'unit-fractions': { intro: 'Fold, then unfold. Each piece is a unit fraction.' },
-  'unit-size': { intro: 'Fold in half again and again: 1/2, 1/4, 1/8. Watch the pieces get smaller.', allowThirds: false },
   'equivalent-models': { intro: 'Half the paper is shaded. Fold it again and unfold: 1/2 = 2/4 = 4/8.', allowThirds: false, shadeHalf: true },
 };
 
