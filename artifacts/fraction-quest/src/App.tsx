@@ -1019,6 +1019,9 @@ function PlayView({
   useReadAloud(reviewingPastIndex === null && feedback === 'retry' && fun.sound ? `${opener} ${retryText}` : null, reviewingPastIndex === null && feedback === 'retry' ? `${question?.id}:${attempts}` : null);
   const sheetRef = useRef<HTMLDivElement>(null);
   useRevealWhen(sheetRef, feedback !== null);
+  // On a short phone the choices can push Check below the screen: once an answer is picked, bring it into view.
+  const checkButtonRef = useRef<HTMLButtonElement>(null);
+  useRevealWhen(checkButtonRef, selection !== null && feedback === null);
   const helper = useLessonHelper({ compact: true });
   const cheer = combo >= 3 ? `${combo} in a row! You're on fire.` : question?.isMastery ? 'Practice checkpoint passed!' : ['Nice work!', 'You found it!', 'Great thinking!', 'Yes, that\'s it!'][(questionIndex + 4) % 4];
 
@@ -1140,7 +1143,7 @@ function PlayView({
                   {question.isOptionalReview ? (
                     <button className="fq-hint-button" onClick={skipOptionalReview} data-testid="button-skip-review">Skip this review</button>
                   ) : <span />}
-                  <button className="fq-button" onClick={checkAnswer} disabled={selection === null} data-testid="button-check-answer">
+                  <button ref={checkButtonRef} className="fq-button" onClick={checkAnswer} disabled={selection === null} data-testid="button-check-answer">
                     Check <Check size={17} strokeWidth={3} />
                   </button>
                 </div>

@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { useScrollTopOn } from './lib/reveal';
+import { useRef, useState, type ReactNode } from 'react';
+import { useRevealWhen, useScrollTopOn } from './lib/reveal';
 import { MathText } from './MathText';
 import { AREA_CUTS, pieceArea, type AreaCut, type Piece } from './area-shapes';
 import { FRIENDS, isPartFinderAnswer, partFinderFeedback, type PartFinderRound } from './part-finder';
@@ -153,6 +153,10 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
   // Sort rounds check the share of every piece; the other rounds check the chosen pieces.
   const answerPieces = sorting ? assignment : selected;
   const placed = assignment.filter((share) => share >= 0).length;
+  // On a short phone the cake can push the check button below the screen: show it once there is something to check
+  // (every piece shared out, or a piece picked).
+  const checkButtonRef = useRef<HTMLButtonElement>(null);
+  useRevealWhen(checkButtonRef, checked === 'idle' && (sorting ? placed === assignment.length : selected.length > 0));
   const correct = checked === 'right';
   const tileAnswer = tileCount.trim() ? Number(tileCount) : undefined;
   const lastRound = roundIndex === rounds.length - 1;
@@ -297,7 +301,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
                   {lastRound ? 'Keep going' : 'Next cake'}
                 </button>
               ) : (
-                <button type="button" className="fq-button" onClick={checkAnswer} disabled={(sorting ? placed === 0 : selected.length === 0) || (round.mode === 'tile' && tileAnswer === undefined)} data-testid="button-part-finder-check">{sorting ? 'Is it fair?' : 'Check pieces'}</button>
+                <button ref={checkButtonRef} type="button" className="fq-button" onClick={checkAnswer} disabled={(sorting ? placed === 0 : selected.length === 0) || (round.mode === 'tile' && tileAnswer === undefined)} data-testid="button-part-finder-check">{sorting ? 'Is it fair?' : 'Check pieces'}</button>
               )}
             </div>
           </div>

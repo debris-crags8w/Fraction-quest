@@ -324,6 +324,8 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
   const [failedSig, setFailedSig] = useState<string | null>(null);
   const [hints, setHints] = useState(0); const [supported, setSupported] = useState(false); const [attempts, setAttempts] = useState(0);
   const [done, setDone] = useState(initiallyPassed);
+  const passedActionsRef = useRef<HTMLDivElement>(null);
+  useRevealWhen(passedActionsRef, done);
   const [restoredPassed] = useState(initiallyPassed);
   const secondTarget: LearningModel = { ...t, kind: tk, total: undefined, wholes: Math.max(1, Math.ceil(t.n / t.d)) };
   const primaryValidation = validate(k, t, a);
@@ -448,13 +450,16 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
              </details>
            </div>
          </div>}
-      {done && <ModelPair n={t.n} d={t.d} />}
+      {/* Next sits right under "Correct!", above the summary of both models, so it is on screen on a phone. */}
       {done ? (
-        <div className="fq-ll-actions fq-ll-actions-complete">
+        <>
+        <div ref={passedActionsRef} className="fq-ll-actions fq-ll-actions-complete">
           <span className="fq-ll-check-passed" aria-hidden="true"><Check size={17} /> Passed</span>
           {onNext && <button type="button" className="fq-button fq-ll-finish" data-testid={`button-next-${check.id}`} onClick={onNext}>{nextLabel ?? 'Next'} <ArrowRight size={17} /></button>}
           {!onNext && review && <button type="button" className="fq-button secondary fq-ll-finish" data-testid="button-review-finish" onClick={() => onPass({ supported, attempts: -1 })}>Finish review</button>}
         </div>
+        <ModelPair n={t.n} d={t.d} />
+        </>
       ) : (
         <div className="fq-ll-actions">
           <button type="button" className="fq-hint-button" onClick={hint} data-testid={`button-hint-${check.id}`}><Lightbulb size={17} /> {hints ? 'Another hint' : 'Hint'}</button>
