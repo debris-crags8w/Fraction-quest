@@ -118,7 +118,8 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
       })
       .slice(0, 12);
     return {
-      viewportWidth: width,
+      // The phone's own width: on a too-wide page, mobile Safari widens innerWidth to match, hiding the problem.
+      viewportWidth: Math.min(width, window.screen.width),
       documentWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
       containers: ['.fq-ll', '.fq-ll-sheet', '.fq-ll-sheet-head', '.fq-ll-problem-progress']
@@ -142,7 +143,8 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
     };
   });
   try {
-    await expect.poll(async () => (await measureLayout()).offenders.length).toBe(0);
+    // Nothing sticks out, and the page itself is no wider than the phone (a wider page makes iOS shrink everything).
+    await expect.poll(async () => { const layout = await measureLayout(); return layout.offenders.length + Math.max(0, layout.documentWidth - layout.viewportWidth); }).toBe(0);
   } catch {
     const layout = await measureLayout();
     throw new Error(`Horizontal overflow in phone layout: ${JSON.stringify(layout)}`);
@@ -180,6 +182,26 @@ test('phone Safari can enter a lesson worksheet number with the keyboard-operabl
   if (!worksheetProblem) throw new Error(`Lesson ${lesson.id} has no numeric worksheet answer`);
 
   await openLesson(page, true);
+  await expectNoHorizontalOverflow(page);
+  // The steps are shortcuts: the Worksheet step jumps to the worksheet, which reads itself aloud on request.
+  await page.getByTestId('button-go-worksheet').tap();
+  await expect(page.locator('#ws-title')).toBeFocused();
+  await expect(page.getByTestId('section-worksheet').getByRole('button', { name: 'Listen to the worksheet steps' })).toBeVisible();
+  // Finished builds stay on the page, folded to one line; a green step goes back up and opens one in place, with a
+  // practice-only "Build it again". The steps scroll sideways on a phone.
+  const firstBuild = getBuildChecks(lesson.id)[0];
+  const card = page.getByTestId(`section-done-${firstBuild.id}`);
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', '');
+  await expect.poll(() => page.getByTestId('list-lab-steps').evaluate((list) => getComputedStyle(list).flexWrap)).toBe('nowrap');
+  await page.getByTestId(`button-see-step-${firstBuild.id}`).tap();
+  await expect(card).toHaveAttribute('open', '');
+  await expect(card).toBeInViewport();
+  await expect(card).toContainText('done');
+  await card.getByTestId(`button-build-again-${firstBuild.id}`).tap();
+  await expect(card.locator('.fq-ll-builder').first()).toBeVisible();
+  await card.getByTestId(`button-done-${firstBuild.id}`).tap();
+  await expect(card).not.toHaveAttribute('open', '');
 
   const row = page.getByTestId(`row-worksheet-${worksheetProblem.id}`);
   const shape = answerShape(worksheetProblem);

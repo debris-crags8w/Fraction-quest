@@ -20,7 +20,7 @@ const result = await generateMissingVoicePack(appStorageVoicePack(), voiceSenten
 if (result.dryRun && result.missingFiles > 0) {
   console.log(`${result.missingFiles} audio files are missing. No changes made. Run with --apply to generate and save them.`);
 } else if (result.dryRun) {
-  console.log("All configured voice audio is already in App Storage.");
+  console.log(`Checked ${result.checkedFiles} files across ${result.checkedSentences} sentences; all configured voice audio is already in App Storage.`);
 } else {
-  console.log(`Stored ${result.missingFiles} missing audio files (${result.generatedSentences} sentence/voice renders). No stored files were deleted.`);
+  console.log(`Checked ${result.checkedFiles} files across ${result.checkedSentences} sentences; ${result.missingFiles} were missing, ${result.generatedFiles} generated, and ${result.remainingFiles} remain missing. No stored files were deleted.`);
 }

@@ -1,6 +1,9 @@
 import { type CSSProperties, Fragment, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
-import { playHaptic } from './lib/fun';
+import { playHaptic, recordIntro, type IntroKind } from './lib/fun';
+import { useOptionalFun } from './fun-ui';
+import { ModelIntro, useLessonHelper } from './model-intro';
 import { LearningListenButton, LearningText } from './LearningText';
+import { LAB_SECTION_SPEECH, worksheetSpeech } from './lab-copy';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw, Star } from 'lucide-react';
 import { getMission, numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildCheckStage, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
@@ -302,8 +305,10 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
 }
 
 type Outcome = { supported: boolean; attempts: number };
-function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuccess, onNext, nextLabel, initiallyPassed = false }: {
+function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuccess, onNext, nextLabel, initiallyPassed = false, lineIntro }: {
   check: BuildCheck; review: boolean;
+  /** The number line intro, while it is still to watch: it takes the place of the first number line builder. */
+  lineIntro?: { onDone: () => void };
   initiallyPassed?: boolean;
   /** After it passes, the check stays on screen with its explanation until the child presses Next. */
   onNext?: () => void; nextLabel?: string;
@@ -377,7 +382,8 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
        </SectionListenHeader>
         {!restoredPassed && <>
           <p className="fq-ll-response-step" data-testid={`response-step-${check.id}-1`}>Part 1 of 3 · Build the model</p>
-          <Builder kind={k} total={t.total} st={a} set={updatePrimary} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
+          {k === 'line' && lineIntro ? <ModelIntro kind="line" onDone={lineIntro.onDone} onSkip={lineIntro.onDone} />
+            : <Builder kind={k} total={t.total} st={a} set={updatePrimary} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />}
           {!primaryReady && a.d > 0 && primaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-primary-${check.id}`}>{primaryValidation.msgs[0]}</p>}
            {primaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-primary-${check.id}`}>
              <Check size={18} />
@@ -391,7 +397,8 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
               <strong><span className="fq-ll-response-step">Part 2 of 3 · </span>{transLabel}</strong>
               <span>Show the same amount with a new model.</span>
             </div>
-            <Builder kind={tk} st={b} set={updateSecondary} id={`${check.id}-b`} title={`Show the same amount ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
+            {tk === 'line' && lineIntro ? <ModelIntro kind="line" onDone={lineIntro.onDone} onSkip={lineIntro.onDone} />
+              : <Builder kind={tk} st={b} set={updateSecondary} id={`${check.id}-b`} title={`Show the same amount ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />}
             {!secondaryReady && b.d > 0 && secondaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-secondary-${check.id}`}>{secondaryValidation.msgs[0]}</p>}
              {secondaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-secondary-${check.id}`}>
                <Check size={18} />
@@ -579,6 +586,38 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const activeCheckIndex = heldIndex !== -1 ? heldIndex : firstOpen;
   const activeCheckId = !review && activeCheckIndex !== -1 ? checks[activeCheckIndex].id : null;
   const activeCheckHeading = useRef<HTMLHeadingElement | null>(null);
+  const stepsList = useRef<HTMLOListElement | null>(null);
+  // The model intros open by themselves once (before the first build; at the first number line). Without the fun
+  // context (an isolated screen) they count as seen. The Helper keeps both for a brush-up.
+  const funContext = useOptionalFun();
+  const introDue = (kind: IntroKind) => !!funContext && !funContext.fun.introsSeen?.[kind];
+  const seeIntro = (kind: IntroKind) => { if (funContext) funContext.setFun(recordIntro(funContext.fun, kind)); };
+  const helper = useLessonHelper();
+  /** A step shortcut: scroll its part of the page into view and move focus there (for keyboards and screen readers). */
+  const jumpTo = (target: Element | null) => {
+    if (!(target instanceof HTMLElement)) return;
+    target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    const heading = target.matches('h2, h3') ? target : target.querySelector<HTMLElement>('h2, h3');
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+  };
+  // A finished build stays on the page where it was, folded to one line: its prompt, the models it asked for and why
+  // they show the fraction open in place. Its green step scrolls back up to it. "Build it again" is practice only.
+  const [opened, setOpened] = useState<string | null>(null);
+  const [rebuilding, setRebuilding] = useState<string | null>(null);
+  const openStep = (id: string) => {
+    setOpened(id);
+    requestAnimationFrame(() => {
+      const card = document.getElementById(`done-${id}`);
+      card?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      card?.querySelector<HTMLElement>('summary')?.focus({ preventScroll: true });
+    });
+  };
+  // On a phone the steps scroll sideways: keep the current one (often the worksheet, at the end) in view.
+  useEffect(() => {
+    const list = stepsList.current;
+    const now = list?.querySelector<HTMLElement>('li.now');
+    if (list && now && list.scrollWidth > list.clientWidth) list.scrollLeft = Math.max(0, now.offsetLeft - list.offsetLeft - 12);
+  }, [activeCheckIndex]);
   const save = (r: LearningRecord) => { const p = updateLearning(ref.current, missionId, r); ref.current = p; onChange(p); };
   const cur = () => getLearningRecord(ref.current, missionId);
   const bump = (r: LearningRecord, keys: string[]): LearningRecord => ({
@@ -656,26 +695,40 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   return (
     <div className="fq-ll" data-testid="learning-lab">
       <TaskBar onBack={onBack} testId="button-lab-back" title={getMission(missionId).shortTitle}
-        actions={<div className="fq-ll-print" role="group" aria-label="Print">
+        actions={<div className="fq-ll-print" role="group" aria-label="Print and help">
+          {helper.button}
           <PrintMenu missionId={missionId} />
           {onPaper && <button type="button" className="fq-button ghost" onClick={onPaper} data-testid="button-check-paper" aria-label="Check my paper"><ClipboardCheck size={17} /><span className="fq-hide-narrow"> Check my paper</span></button>}
         </div>} />
 
+      {helper.panel}
       <LessonTeachingSupport missionId={missionId} />
 
-      <ol className="fq-ll-steps" aria-label="Lab progress" data-testid="list-lab-steps">
+      {/* The steps double as shortcuts: tap one to go to its part of the page (the worksheet once the builds are done). */}
+      <ol className="fq-ll-steps" aria-label="Lab progress" data-testid="list-lab-steps" ref={stepsList}>
         {checks.map((c, i) => {
           const e = rec.checks[c.id];
+          const label = <>{e?.passed ? <Check size={15} /> : i + 1}<span>{buildStepName(c, i)}{e?.passed ? (e.supported ? ' · with help' : ' · solo') : ''}</span></>;
           return <li key={c.id} className={e?.passed ? 'done' : i === idx ? 'now' : ''} data-testid={`step-${c.id}`}>
-            {e?.passed ? <Check size={15} /> : i + 1}<span>{buildStepName(c, i)}{e?.passed ? (e.supported ? ' · with help' : ' · solo') : ''}</span></li>;
+            {i === idx ? <button type="button" onClick={() => jumpTo(activeCheckHeading.current)} aria-label={`Go to ${buildStepName(c, i)}`}>{label}</button>
+              : e?.passed ? <button type="button" onClick={() => openStep(c.id)} aria-label={`Go back to ${buildStepName(c, i)}`} data-testid={`button-see-step-${c.id}`}>{label}</button>
+              : label}</li>;
         })}
-        <li className={idx === -1 ? (requiredDone ? 'done' : 'now') : ''}>{checks.length + 1}<span>Worksheet · required question {requiredDone ? 'done' : 'to do'}</span></li>
-        {reteachProgress.total > 0 && <li className={reteachProgress.done === reteachProgress.total ? 'done' : ''}>{checks.length + 2}<span>Extra practice {reteachProgress.done}/{reteachProgress.total}</span></li>}
+        <li className={idx === -1 ? (requiredDone ? 'done' : 'now') : ''} data-testid="step-worksheet">
+          {idx === -1
+            ? <button type="button" onClick={() => jumpTo(document.querySelector('[data-testid="section-worksheet"]'))} data-testid="button-go-worksheet">{requiredDone ? <Check size={15} /> : checks.length + 1}<span>Worksheet · {requiredDone ? 'done' : 'go to it'}</span></button>
+            : <>{checks.length + 1}<span>Worksheet · after the builds</span></>}
+        </li>
+        {reteachProgress.total > 0 && <li className={reteachProgress.done === reteachProgress.total ? 'done' : ''}>
+          <button type="button" onClick={() => jumpTo(document.querySelector('[data-testid="section-targeted-reteach"]'))} data-testid="button-go-reteach">{checks.length + 2}<span>Extra practice {reteachProgress.done}/{reteachProgress.total}</span></button>
+        </li>}
       </ol>
 
       {gate && onRedo && (
         <section className="fq-ll-redo" aria-labelledby="redo-title" data-testid="section-redo">
-          <h3 id="redo-title"><RotateCcw size={18} /> Do it again</h3>
+          <SectionListenHeader text={LAB_SECTION_SPEECH.redo} label="Listen to Do it again">
+            <h3 id="redo-title"><RotateCcw size={18} /> Do it again</h3>
+          </SectionListenHeader>
           <p>Want more practice? Try a part again with new numbers. Your lesson stays finished.</p>
           <div className="fq-ll-redo-buttons">
             <button type="button" className="fq-button secondary" onClick={() => onRedo('builds')} data-testid="button-redo-builds">
@@ -689,10 +742,39 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         </section>
       )}
 
+      {checks.map((check, index) => {
+        const entry = rec.checks[check.id];
+        if (index === idx || !entry?.passed) return null;
+        const t = check.target;
+        const second: LearningModel = { ...t, kind: t.kind === 'line' ? 'bar' : 'line', total: undefined, wholes: Math.max(1, Math.ceil(t.n / t.d)) };
+        const name = buildStepName(check, index);
+        return (
+          <details key={check.id} id={`done-${check.id}`} className="fq-ll-done" open={opened === check.id} data-testid={`section-done-${check.id}`}
+            onToggle={(event) => { const open = event.currentTarget.open; setOpened((current) => open ? check.id : current === check.id ? null : current); }}>
+            <summary data-testid={`button-done-${check.id}`}><Check size={18} aria-hidden="true" /><h3>{name} · done{entry.supported ? ' with help' : ' solo'}</h3><span className="fq-ll-done-see">{opened === check.id ? 'Hide' : 'See it'}</span></summary>
+            <div className="fq-ll-done-body">
+              <SectionListenHeader text={`${name}. ${check.prompt} ${check.explanation}`} label={`Listen to ${name}`}>
+                <p><LearningText text={check.prompt} /></p>
+              </SectionListenHeader>
+              <div className="fq-ll-done-models"><Preview m={t} named /><Preview m={second} named /></div>
+              <p className="fq-ll-note">{check.explanation}</p>
+              {rebuilding === check.id ? (
+                <CheckRunner key={`again-${check.id}`} check={check} review={false} onHelp={() => {}} onPass={() => {}} onWrong={onWrong} onSuccess={onSuccess}
+                  nextLabel="Done practising" onNext={() => setRebuilding(null)} />
+              ) : (
+                <button type="button" className="fq-button secondary" onClick={() => setRebuilding(check.id)} data-testid={`button-build-again-${check.id}`}>Build it again</button>
+              )}
+            </div>
+          </details>
+        );
+      })}
+
       {notice && idx !== -1 && <div className="fq-ll-feedback ok" role="status" data-testid="status-check-saved"><Check size={20} /><div>{notice}</div></div>}
 
-      {idx !== -1 && (
+      {idx !== -1 && introDue('builder') && <ModelIntro kind="builder" onDone={() => seeIntro('builder')} onSkip={() => seeIntro('builder')} />}
+      {idx !== -1 && !introDue('builder') && (
         <CheckRunner key={checks[idx].id} review={false} check={checks[idx]}
+          lineIntro={introDue('line') ? { onDone: () => seeIntro('line') } : undefined}
           headingRef={activeCheckHeading}
           onWrong={onWrong}
           onSuccess={onSuccess}
@@ -715,7 +797,9 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
       {idx === -1 && (
         <section className="fq-ll-build-practice" aria-labelledby="build-practice-title" data-testid="section-build-practice">
-          <h3 id="build-practice-title" ref={buildPracticeSectionHeading} tabIndex={-1}>More build practice</h3>
+          <SectionListenHeader text={LAB_SECTION_SPEECH.buildPractice} label="Listen to More build practice">
+            <h3 id="build-practice-title" ref={buildPracticeSectionHeading} tabIndex={-1}>More build practice</h3>
+          </SectionListenHeader>
           {!buildPracticeActive ? (
             <>
               <p>Try 10 new, optional questions with this lesson’s ideas. Extra practice does not change lesson completion.</p>
@@ -763,7 +847,9 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
       {idx === -1 && (
         <section className="fq-ll-sheet" aria-labelledby="ws-title" data-testid="section-worksheet">
           <div className="fq-ll-sheet-head">
-            <h3 id="ws-title">Worksheet</h3>
+            <SectionListenHeader text={worksheetSpeech(sheet.length)} label="Listen to the worksheet steps">
+              <h3 id="ws-title">Worksheet</h3>
+            </SectionListenHeader>
             <p className="fq-ll-note">Answer all {sheet.length} questions to finish the lesson. Print the worksheet to hand in, then enter your answers here or with Check my paper.</p>
             <ol className="fq-ll-problem-progress" aria-label="Status of each worksheet problem" tabIndex={0} data-testid="worksheet-problem-progress">
               {problemProgress.map((problem, index) => {
@@ -822,7 +908,9 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
       {reteachPlans.length > 0 && (
         <section className="fq-ll-reteach" aria-labelledby="reteach-title" data-testid="section-targeted-reteach">
-          <h3 id="reteach-title">Make this idea clearer</h3>
+          <SectionListenHeader text={LAB_SECTION_SPEECH.reteach} label="Listen to Make this idea clearer">
+            <h3 id="reteach-title">Make this idea clearer</h3>
+          </SectionListenHeader>
           <p>One idea has been tricky more than once: use each new model, then enter the answer. These extra checks help make the idea stick.</p>
           {reteachPlans.map((plan, planIndex) => (
             <div className="fq-ll-reteach-plan" key={plan.signal} data-testid={`targeted-reteach-${planIndex + 1}`}>

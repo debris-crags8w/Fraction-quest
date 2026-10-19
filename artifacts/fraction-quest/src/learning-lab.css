@@ -8,6 +8,10 @@
 .fq-ll-steps li { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border: 2px solid hsl(var(--border)); border-radius: 99px; background: hsl(var(--card)); font-size: .82rem; font-weight: 800; color: hsl(var(--muted-foreground)); }
 .fq-ll-steps li.now { border-color: hsl(var(--primary)); color: hsl(var(--foreground)); }
 .fq-ll-steps li.done { border-color: hsl(var(--secondary)); color: hsl(var(--secondary)); }
+/* A step that is also a shortcut: the whole chip is the button. */
+.fq-ll-steps li:has(> button) { padding: 0; }
+.fq-ll-steps li > button { display: flex; align-items: center; gap: inherit; min-height: 36px; padding: 7px 12px; border: 0; border-radius: inherit; color: inherit; background: none; font: inherit; cursor: pointer; }
+.fq-ll-steps li > button:focus-visible { outline: 3px solid hsl(var(--primary)); outline-offset: 2px; }
 .fq-ll-check, .fq-ll-sheet, .fq-ll-summary { padding: clamp(16px, 4vw, 32px); border: 2px solid hsl(var(--foreground) / .15); border-radius: 26px; background: hsl(var(--card)); box-shadow: var(--shadow-card); display: grid; gap: 16px; }
 .fq-ll-check { scroll-margin-top: 92px; }
 .fq-ll-check h3 { scroll-margin-top: 92px; font-size: clamp(1.3rem, 3vw, 1.8rem); }
@@ -129,6 +133,8 @@
 .fq-ll-meter b { position: absolute; inset: 0 auto 0 0; background: hsl(var(--secondary) / .55); transition: width 300ms ease; }
 .fq-ll-meter span { position: relative; display: block; text-align: center; line-height: 24px; font: 800 .78rem var(--app-font-mono); }
 .fq-ll-problem-progress {
+  /* Contain each square's screen-reader label: without this they escape the scrolling row and widen the page. */
+  position: relative;
   display: flex;
   gap: 8px;
   max-width: 100%;
@@ -252,6 +258,17 @@
 .fq-ll-redo { display: grid; gap: 8px; margin: 14px 0; padding: 14px 16px; border: 2px dashed var(--fq-grape); border-radius: 18px; background: color-mix(in srgb, var(--fq-grape) 6%, hsl(var(--card))); }
 .fq-ll-redo h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--app-font-display); }
 .fq-ll-redo p { margin: 0; }
+/* A finished build, seen again from its step. */
+.fq-ll-done { scroll-margin-top: 92px; margin: 10px 0; border: 2px solid hsl(var(--secondary)); border-radius: 18px; background: hsl(var(--secondary) / .06); }
+.fq-ll-done > summary { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 14px; color: hsl(var(--secondary)); cursor: pointer; list-style: none; }
+.fq-ll-done > summary::-webkit-details-marker { display: none; }
+.fq-ll-done > summary h3 { flex: 1; margin: 0; font-family: var(--app-font-display); font-size: 1.05rem; }
+.fq-ll-done-see { padding: 4px 10px; border-radius: 99px; color: #fff; background: hsl(var(--secondary)); font-size: .8rem; font-weight: 900; }
+.fq-ll-done > summary:focus-visible { outline: 3px solid hsl(var(--primary)); outline-offset: 2px; border-radius: 16px; }
+.fq-ll-done-body { display: grid; gap: 10px; padding: 0 16px 14px; }
+.fq-ll-done-body p { margin: 0; }
+.fq-ll-done-models { display: grid; gap: 10px; }
+.fq-ll-done-models .fq-ll-preview { justify-self: stretch; }
 .fq-ll-redo-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 .fq-ll-redo-buttons .fq-button { flex: 1 1 160px; width: auto; }
 .fq-ll-redo-done { align-items: flex-start; }
@@ -260,8 +277,10 @@
 
 /* Phones: one row of lesson steps, so the question starts higher on the screen. */
 @media (max-width: 620px) {
+  /* Every step stays in view (finished ones too): the chips wrap onto a second row instead of scrolling away. */
   .fq-ll-steps { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 6px; padding-bottom: 4px; }
   .fq-ll-steps li { flex: none; gap: 5px; padding: 5px 10px; font-size: .75rem; white-space: nowrap; }
+  .fq-ll-steps li > button { padding: 5px 10px; }
 }
 @media (max-width: 620px) {
   .fq-ll { width: calc(100% - 24px); padding-top: 12px; gap: 12px; }

@@ -40,6 +40,7 @@ import { saveAssessmentAttempt } from './assessments';
 import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
 import LearningLab, { RedoLab } from './LearningLab';
+import { useLessonHelper } from './model-intro';
 import { LearningListenButton, LearningText, LearningTextSection, prefetchReading, primeReadAloud, sectionsScript, useReadAloud } from './LearningText';
 import { CHAPTER_SCENES, filmedLines } from './story-cinema';
 import './learning-text.css';
@@ -1014,6 +1015,7 @@ function PlayView({
   useReadAloud(reviewingPastIndex === null && feedback === 'retry' && fun.sound ? `${opener} ${retryText}` : null, reviewingPastIndex === null && feedback === 'retry' ? `${question?.id}:${attempts}` : null);
   const sheetRef = useRef<HTMLDivElement>(null);
   useRevealWhen(sheetRef, feedback !== null);
+  const helper = useLessonHelper({ compact: true });
   const cheer = combo >= 3 ? `${combo} in a row! You're on fire.` : question?.isMastery ? 'Practice checkpoint passed!' : ['Nice work!', 'You found it!', 'Great thinking!', 'Yes, that\'s it!'][(questionIndex + 4) % 4];
 
   return (
@@ -1029,6 +1031,7 @@ function PlayView({
             <span className="fq-sr" aria-live="polite">Question {Math.min(questionIndex + 1, steps)} of {steps}; {doneSteps} completed.</span>
           </div>
           {combo >= 2 && <span className="fq-combo" data-testid="status-combo"><Flame size={16} fill="currentColor" /> {combo}</span>}
+          {helper.button}
           {question && reviewingPastIndex === null && (
             <button className={`fq-bulb ${hintOpen ? 'open' : ''}`} onClick={toggleHint} aria-expanded={hintOpen} aria-label={hintOpen ? 'Hide hint' : 'Show a hint'} data-testid="button-show-hint">
               <Lightbulb size={20} strokeWidth={2.75} />
@@ -1036,6 +1039,7 @@ function PlayView({
           )}
         </div>
 
+        {helper.panel}
         <section className="fq-play-card" aria-labelledby={reviewingPastIndex === null ? 'lesson-title' : 'past-review-heading'}>
           {reviewingPastIndex !== null && mission.questions[reviewingPastIndex] ? (
             <PastQuestionReview

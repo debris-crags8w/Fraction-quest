@@ -2,6 +2,7 @@
    a .caf file (Apple browsers, the iPhone app included) and as an MP3 (everyone else). Each file is named by its sentence, so a
    stored file never changes and browsers may keep it for good. */
 import type { Readable } from "node:stream";
+import { randomUUID } from "node:crypto";
 import { objectStorageClient, ObjectStorageService } from "./objectStorage";
 
 export const PACK_VOICES = ["af_heart"] as const;
@@ -22,11 +23,29 @@ export function parseVoiceFileName(fileName: string): { key: string; format: Voi
 
 export type VoiceFile = { voice: string; key: string; format: VoiceFormat };
 
+const VOICE_SYNC_LOCK_TTL_MS = 2 * 60 * 60 * 1000;
+/** App Storage refuses more than about one write per second to one object, so renewals are spaced well apart. */
+const VOICE_SYNC_LOCK_RENEW_MS = 60 * 1000;
+
+export class VoicePackSyncInProgressError extends Error {
+  constructor(message = "Another voice-pack sync is already running. Retry after it finishes.") {
+    super(message);
+    this.name = "VoicePackSyncInProgressError";
+  }
+}
+
+export interface VoicePackSyncLock {
+  renew(): Promise<void>;
+  release(): Promise<void>;
+}
+
 export interface VoicePackStore {
   read(file: VoiceFile): Readable;
   put(file: VoiceFile, audio: Buffer): Promise<void>;
   list(): Promise<VoiceFile[]>;
   remove(file: VoiceFile): Promise<void>;
+  /** Optional for in-memory test stores; App Storage provides a shared cross-process lock. */
+  acquireSyncLock?(): Promise<VoicePackSyncLock>;
 }
 
 /** App Storage, through the first public search path (bucket plus public prefix). */
@@ -38,6 +57,93 @@ export function appStorageVoicePack(): VoicePackStore {
     return { bucket: objectStorageClient.bucket(bucketName), prefix: `${prefixParts.join("/")}/voice` };
   };
   const object = ({ voice, key, format }: VoiceFile) => { const { bucket, prefix } = root(); return bucket.file(`${prefix}/${voice}/${key}.${format}`); };
+  async function acquireSyncLock(): Promise<VoicePackSyncLock> {
+    const privateDir = new ObjectStorageService().getPrivateObjectDir();
+    const [bucketName, ...privatePrefixParts] = privateDir.replace(/^\/+|\/+$/g, "").split("/");
+    if (!bucketName || privatePrefixParts.length === 0) {
+      throw new Error("PRIVATE_OBJECT_DIR must include a bucket and private prefix for the voice sync lock.");
+    }
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(`${privatePrefixParts.join("/")}/.fraction-quest-voice-sync.lock`);
+    const owner = randomUUID();
+    let generation = "";
+    let renewedAt = 0;
+
+    const writeLock = async (ifGenerationMatch: string | number) => {
+      await file.save(JSON.stringify({ owner, expiresAt: Date.now() + VOICE_SYNC_LOCK_TTL_MS }), {
+        resumable: false,
+        preconditionOpts: { ifGenerationMatch },
+        metadata: { contentType: "application/json", cacheControl: "no-store" },
+      });
+      const [metadata] = await file.getMetadata();
+      if (!metadata.generation) throw new Error("App Storage did not return a generation for the voice sync lock.");
+      generation = String(metadata.generation);
+      renewedAt = Date.now();
+    };
+    const isPreconditionFailure = (error: unknown) => {
+      const code = (error as { code?: unknown } | null)?.code;
+      return code === 409 || code === 412;
+    };
+
+    try {
+      await writeLock(0);
+    } catch (error) {
+      if (!isPreconditionFailure(error)) throw error;
+
+      const [metadata] = await file.getMetadata();
+      const [contents] = await file.download();
+      let expiresAt = 0;
+      try {
+        const parsed = JSON.parse(contents.toString("utf8")) as { expiresAt?: unknown };
+        if (typeof parsed.expiresAt === "number") expiresAt = parsed.expiresAt;
+      } catch {
+        // A malformed lock is only reclaimable after its storage timestamp is stale.
+      }
+      if (!expiresAt && metadata.updated) {
+        const updatedAt = Date.parse(metadata.updated);
+        if (Number.isFinite(updatedAt)) expiresAt = updatedAt + VOICE_SYNC_LOCK_TTL_MS;
+      }
+      if (!expiresAt || expiresAt > Date.now()) throw new VoicePackSyncInProgressError();
+      if (!metadata.generation) throw new VoicePackSyncInProgressError();
+
+      try {
+        await file.delete({ ignoreNotFound: true, ifGenerationMatch: metadata.generation });
+        await writeLock(0);
+      } catch (reclaimError) {
+        if (isPreconditionFailure(reclaimError)) throw new VoicePackSyncInProgressError();
+        throw reclaimError;
+      }
+    }
+
+    let released = false;
+    let renewal: Promise<void> | null = null;
+    return {
+      renew() {
+        if (released) throw new VoicePackSyncInProgressError("The voice-pack sync lock was already released.");
+        if (!renewal && Date.now() - renewedAt < VOICE_SYNC_LOCK_RENEW_MS) return Promise.resolve();
+        if (!renewal) {
+          renewal = (async () => {
+            try {
+              await writeLock(generation);
+            } catch {
+              throw new VoicePackSyncInProgressError("The voice-pack sync lock expired or was replaced; stopping safely.");
+            }
+          })();
+        }
+        return renewal.finally(() => { renewal = null; });
+      },
+      async release() {
+        if (released) return;
+        released = true;
+        try {
+          await file.delete({ ignoreNotFound: true, ifGenerationMatch: generation });
+        } catch (error) {
+          if (isPreconditionFailure(error) || (error as { code?: unknown } | null)?.code === 404) return;
+          throw error;
+        }
+      },
+    };
+  }
   return {
     read: (file) => object(file).createReadStream(),
     async put(file, audio) {
@@ -53,6 +159,7 @@ export function appStorageVoicePack(): VoicePackStore {
       });
     },
     async remove(file) { await object(file).delete({ ignoreNotFound: true }); },
+    acquireSyncLock,
   };
 }
 

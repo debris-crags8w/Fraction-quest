@@ -39,8 +39,19 @@ function VocabularyTerm({ text, definition, interactive }: { text: string; defin
     return <span className="fq-vocab-static" title={definition}>{text}</span>;
   }
 
+  // Centred on its word, the tooltip can run off a phone's edge: nudge it back inside when it opens.
+  const keepOnScreen = (event: { currentTarget: HTMLElement }) => {
+    const wrapper = event.currentTarget;
+    const tip = wrapper.querySelector<HTMLElement>('.fq-vocab-tooltip');
+    if (!tip) return;
+    wrapper.style.setProperty('--fq-tip-shift', '0px');
+    const { left, right } = tip.getBoundingClientRect();
+    const edge = 8;
+    const shift = left < edge ? edge - left : right > window.innerWidth - edge ? window.innerWidth - edge - right : 0;
+    wrapper.style.setProperty('--fq-tip-shift', `${Math.round(shift)}px`);
+  };
   return (
-    <span className="fq-vocab">
+    <span className="fq-vocab" onMouseEnter={keepOnScreen} onFocus={keepOnScreen}>
       <span className="fq-vocab-trigger" role="term" tabIndex={0} aria-describedby={tooltipId}>{text}</span>
       <span className="fq-vocab-tooltip" id={tooltipId} role="tooltip">{definition}</span>
     </span>

@@ -32,7 +32,7 @@ async function passStory(page: import('@playwright/test').Page) {
 }
 
 
-/** The animated comics play like a cartoon; "Show all" jumps to the end so the test can read every panel. */
+/** The animated comics play like a cartoon; "Skip to the end" jumps to the last picture; the panels stay readable to screen readers. */
 async function showWholeComic(page: import('@playwright/test').Page) {
   await page.getByTestId('story-comic').waitFor();
   const skip = page.getByTestId('button-story-skip');
@@ -984,6 +984,15 @@ function wrongTileAnswer(problem: WorksheetProblem): string {
   return candidates.find((candidate) => canBuild(shape, candidate) && !answerMatches(problem, candidate))!;
 }
 
+/** A first build opens the model intros (how to build, how a number line works): a child who knows can skip them. */
+async function skipIntros(page: import('@playwright/test').Page) {
+  for (let intro = 0; intro < 2; intro++) {
+    const skip = page.getByTestId('button-intro-skip');
+    if (!(await skip.isVisible())) return;
+    await skip.click();
+  }
+}
+
 async function enterModel(
   page: import('@playwright/test').Page,
   checkId: string,
@@ -991,6 +1000,7 @@ async function enterModel(
   target: ReturnType<typeof getBuildChecks>[number]['target'],
 ) {
   const builderId = `${checkId}-${builder}`;
+  await skipIntros(page);
   await setStepper(page, `${builderId}-d`, target.d);
 
   if (target.kind === 'bar') {
@@ -1010,6 +1020,7 @@ async function enterModel(
 async function completeBuilds(page: import('@playwright/test').Page, missionId: string) {
   const checks = getBuildChecks(missionId);
   for (const [index, check] of checks.entries()) {
+    await skipIntros(page);
     const checkCard = page.getByTestId(`check-${check.id}`);
     await expect(checkCard.locator('.fq-ll-check-heading').getByTestId('button-listen-learning-text')).toHaveCount(1);
     await enterModel(page, check.id, 'a', check.target);
@@ -1908,6 +1919,66 @@ test('an adult progress report can invoke browser printing', async ({ page }) =>
   await expect(page.getByTestId('parent-report')).toBeVisible();
   await page.getByTestId('button-parent-print').click();
   await expect.poll(() => page.evaluate(() => (window as Window & { __printCalls?: number }).__printCalls)).toBe(1);
+});
+
+test('the model intros: watch, two guided tries, then build; the number line intro at the first number line; Helper keeps both', async ({ page }) => {
+  const first = MISSIONS[0];
+  const [check] = getBuildChecks(first.id);
+  await page.addInitScript((id) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: [], starsByMission: {}, reviewQueue: [], assessments: [],
+      learning: { [id]: { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {} } } }));
+  }, first.id);
+  await openAsGuest(page);
+  await page.getByTestId(`button-start-mission-${first.id}`).click();
+  await passStory(page);
+
+  // Before the first build: the builder intro, a demo that plays by itself, in place of the build.
+  const intro = page.getByTestId('intro-builder');
+  await expect(intro).toBeVisible();
+  await expect(page.getByTestId(`model-${check.id}-a`)).toHaveCount(0);
+  await expect(intro.locator('.fq-mi-caption')).toContainText('This bar is one whole.');
+  await page.getByTestId('button-intro-your-turn').click();
+  // Try 1: one half. The nudge says what to do next, never the answer's picture.
+  await expect(page.getByTestId('status-intro-hint')).toContainText('First cut the whole into 2 equal parts.');
+  await expect(page.getByTestId('button-intro-next')).toBeDisabled();
+  await page.getByTestId('button-intro-plus').click();
+  await expect(page.getByTestId('status-intro-hint')).toContainText('Now shade 1 part.');
+  await page.getByTestId('intro-piece-0').click();
+  await expect(page.getByTestId('status-intro-hint')).toContainText('Yes! 1 of 2 equal parts is one half.');
+  await page.getByTestId('button-intro-next').click();
+  // Try 2: two thirds.
+  await page.getByTestId('button-intro-plus').click();
+  await page.getByTestId('button-intro-plus').click();
+  await page.getByTestId('intro-piece-1').click();
+  await page.getByTestId('button-intro-next').click();
+  await expect(intro).toContainText('You know how to build!');
+  await page.getByTestId('button-intro-start').click();
+  await expect(page.getByTestId(`model-${check.id}-a`)).toBeVisible();
+
+  // The first number line: its intro takes the number line builder's place until watched (or skipped).
+  await enterModel(page, check.id, 'a', check.target);
+  await expect(page.getByTestId('intro-line')).toBeVisible();
+  await expect(page.getByTestId('intro-line').locator('.fq-mi-caption')).toContainText('This line goes from 0 to 1.');
+  await page.getByTestId('button-intro-skip').click();
+  await expect(page.getByTestId(`model-${check.id}-b`)).toBeVisible();
+
+  // Seen once, neither opens by itself again (after a reload the app opens on the map).
+  await page.reload();
+  await page.getByTestId(`button-start-mission-${first.id}`).click();
+  await passStory(page);
+  await expect(page.getByTestId('learning-lab')).toBeVisible();
+  await expect(page.getByTestId('intro-builder')).toHaveCount(0);
+  await expect(page.getByTestId(`model-${check.id}-a`)).toBeVisible();
+
+  // The Helper keeps both for a brush-up (no skip there, and it changes nothing).
+  await page.getByTestId('button-lesson-helper').click();
+  const helper = page.getByTestId('lesson-helper');
+  await expect(helper).toBeVisible();
+  await helper.getByTestId('button-helper-line').click();
+  await expect(helper.getByTestId('intro-line')).toBeVisible();
+  await expect(helper.getByTestId('button-intro-skip')).toHaveCount(0);
+  await page.getByTestId('button-lesson-helper-close').click();
+  await expect(helper).toHaveCount(0);
 });
 
 test('the map shows only lessons; extras live in the More menu; start becomes jump after the first lesson', async ({ page }) => {

@@ -3,11 +3,14 @@
 .fq-cine-voice { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border: 2px solid #BDE3A8; border-radius: 999px; color: #2F6B12; background: #E7F8DC; font: inherit; font-size: .85rem; font-weight: 900; cursor: pointer; }
 .fq-cine-voice[aria-pressed="false"] { color: #5E5A78; background: #F1EEFA; border-color: #D9D2F2; }
 
-/* The screen: tall while the story plays; afterwards the words and the choice take its place. Each scene keeps its
-   action in the top 60%, above the caption. */
+/* The screen: tall while the story plays, and it stays on the last picture afterwards. With a choice to make it
+   shrinks so the picture, the choice and the buttons fit a phone. Each scene keeps its action in the top 60%, above
+   the caption. */
 .fq-cine-screen { position: relative; display: block; width: 100%; height: clamp(300px, calc(100dvh - 270px), 520px); margin: 0; padding: 0; border: 0; border-radius: 20px; overflow: hidden; background: #0B0820; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .fq-cine-screen:focus-visible { outline: 3px solid #FFC800; outline-offset: 2px; }
-.fq-cine-comic.is-done .fq-cine-screen { display: none; }
+.fq-cine-comic.is-done .fq-cine-screen { cursor: default; }
+.fq-cine-comic.has-choice .fq-cine-screen { height: clamp(200px, calc(100dvh - 530px), 420px); }
+.fq-cine-comic.has-choice:has(.fq-story-reply) .fq-cine-screen { height: clamp(130px, calc(100dvh - 610px), 400px); }
 .fq-cine-cam { position: absolute; inset: 0; transition: transform 2.6s cubic-bezier(.25, .8, .25, 1), transform-origin 2.6s cubic-bezier(.25, .8, .25, 1), filter 1.6s ease; }
 .fq-cine-cam.is-warm { filter: saturate(1.12) brightness(1.04); }
 .fq-cine-cam.is-cold { filter: saturate(.7) brightness(.82) hue-rotate(12deg); }
@@ -38,9 +41,8 @@
 .fq-cine-dots li.is-seen { background: #A99BE0; }
 .fq-cine-dots li.is-on { width: 22px; background: #6D4BD8; }
 
-/* After the story: the words as a short transcript. */
-.fq-cine-transcript { gap: 5px; }
-.fq-cine-panel { animation: fq-cine-fade .4s ease both; }
+/* After the story: the words stay readable for screen readers (the captions said them on screen). */
+.fq-cine-transcript { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .fq-cine-rise { animation: fq-cine-up .45s ease-out both; }
 .fq-cine-controls { display: flex; gap: 8px; }
 .fq-cine-controls .fq-story-go, .fq-cine-controls .secondary { flex: 1; justify-content: center; }
@@ -259,7 +261,7 @@
 @keyframes fq-cine-drift { from { translate: 0 0; } to { translate: -8px -4px; } }
 @keyframes fq-cine-shake { 0%, 100% { translate: 0 0; } 15% { translate: -9px 4px; } 30% { translate: 8px -5px; } 45% { translate: -6px 3px; } 60% { translate: 5px -2px; } 75% { translate: -3px 1px; } }
 @keyframes fq-cine-bars { from { height: 0; } to { height: 30px; } }
-@keyframes fq-cine-card { 0% { opacity: 0; } 15% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes fq-cine-card { 0%, 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
 @keyframes fq-cine-card-in { from { opacity: 0; letter-spacing: .3em; } to { opacity: 1; } }
 @keyframes fq-cine-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fq-cine-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
@@ -298,5 +300,5 @@
   .fq-cine-confetti, .fq-cine-knife, .fq-cine-falling, .fq-cine-splash, .fq-cine-crumb { display: none; }
   .fq-cine-plank.is-falling { animation: none; visibility: hidden; }
   .fq-cine-piece, .fq-cine-actor, .fq-cine-snack, .fq-cine-treat, .fq-cine-slice { transition: none; }
-  .fq-cine-caption, .fq-cine-panel, .fq-cine-rise, .fq-cine-bang, .fq-cine-flag, .fq-cine-tick, .fq-cine-card small, .fq-cine-card strong { animation: fq-cine-fade .3s ease both; }
+  .fq-cine-caption, .fq-cine-rise, .fq-cine-bang, .fq-cine-flag, .fq-cine-tick, .fq-cine-card small, .fq-cine-card strong { animation: fq-cine-fade .3s ease both; }
 }

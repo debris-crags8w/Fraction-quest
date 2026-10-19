@@ -3,7 +3,7 @@
    caption with the speaker's face while the voice reads along. Big moments (the stone cracking, a splash, a falling
    plank) shake the screen with a thud and, in the app on iPhone and Android, a heavy tap. Without a voice the shots
    move on by themselves, and a voice that falls behind (a clip still loading) never holds the film up: it carries
-   on without it. A tap finishes a caption or shows everything. "Reduce motion" keeps the camera still.
+   on without it. A tap finishes a caption or skips to the end, where the film stays on its last picture. "Reduce motion" keeps the camera still.
    Scenes: the prologue, every chapter opening, completed chapter endings and the finale. */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -501,10 +501,12 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     showBeat(0);
   };
 
-  const play = () => {
+  const play = (replay = false) => {
     clearTimers(); clearTimeout(stall.current); reader.stop(); voiceDriving.current = false;
     setDone(false); setEnding(false); setBeat(-1); beatRef.current = -1; typedRef.current = false;
-    setTake((count) => count + 1);
+    // A replay remounts the screen so the title card and entrances play again; the first play must not (it would
+    // restart every animation a frame after they began).
+    if (replay) setTake((count) => count + 1);
     later(roll, TITLE_MS);
   };
 
@@ -558,7 +560,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
           </div>
           <button type="button" key={take} className={`fq-cine-screen is-${scene} ${done ? '' : 'is-rolling'}`} data-testid="story-panels"
             onClick={() => (done ? undefined : typing ? setChars(lines[beat].text.length) : showAll())}
-            aria-label={done ? 'The last scene of the story' : 'Show the whole story now'}>
+            aria-label={done ? 'The last scene of the story' : 'Skip to the end'}>
             <span className={`fq-cine-cam ${cold ? 'is-cold' : 'is-warm'}`} style={{ transform: camera, transformOrigin: origin }}>
               <span className={`fq-cine-set ${!done && beat === filming.impact ? 'is-shaking' : ''}`} data-testid="story-stage">
                 <Art beat={done ? lines.length - 1 : Math.max(beat, 0)} unit={unit} speaker={lines[done ? lines.length - 1 : Math.max(beat, 0)]?.speaker} />
@@ -589,15 +591,9 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
             </ol>
           )}
           {done && (
-            <ol className="fq-story-panels fq-cine-transcript">
+            <ol className="fq-cine-transcript">
               {lines.map((panel, index) => (
-                <li key={index} className={`fq-story-panel fq-cine-panel ${index % 2 ? 'is-right' : ''} is-${panel.speaker}`} data-testid={`story-panel-${index}`}>
-                  <span className="fq-cine-face"><StoryCharacter id={panel.speaker} size={40} happy={panel.mood === 'happy'} worried={panel.mood === 'worried'} /></span>
-                  <div className="fq-story-bubble">
-                    <span className="fq-story-name">{CHARACTERS[panel.speaker].name}</span>
-                    <p>{panel.text}</p>
-                  </div>
-                </li>
+                <li key={index} data-testid={`story-panel-${index}`}>{CHARACTERS[panel.speaker].name}: {panel.text}</li>
               ))}
             </ol>
           )}
@@ -621,13 +617,13 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
           )}
           {done && note && <p className="fq-story-note fq-cine-rise" data-testid="story-detective-note"><Search size={16} aria-hidden="true" /> {withName(note, name, theme)}</p>}
           <div className="fq-cine-controls">
-            <button type="button" className="fq-button ghost" onClick={play} data-testid="button-story-replay"><RotateCcw size={16} aria-hidden="true" /> Replay</button>
+            <button type="button" className="fq-button ghost" onClick={() => play(true)} data-testid="button-story-replay"><RotateCcw size={16} aria-hidden="true" /> Replay</button>
             {done ? (
               <button type="button" className="fq-button fq-story-go" onClick={() => onGo(picked ?? undefined)} disabled={!!choice && picked === null} data-testid="button-story-go">
                 {goLabel} <ArrowRight size={18} aria-hidden="true" />
               </button>
             ) : (
-              <button type="button" className="fq-button secondary" onClick={showAll} data-testid="button-story-skip">Show all</button>
+              <button type="button" className="fq-button secondary" onClick={showAll} data-testid="button-story-skip">Skip to the end</button>
             )}
           </div>
         </section>
