@@ -97,8 +97,8 @@ export function towerHint(tower: TowerBlock[], block: TowerBlock, gap: number): 
   // The block next to the chosen gap that is in the wrong order with it.
   const neighbor = gap > right ? tower[gap - 1] : tower[gap];
   const [a, b] = [versusHalf(block), versusHalf(neighbor)];
-  if (a === 0) return `${name(block)} is the same as 1/2. ${halfQuestion(neighbor)}`;
-  if (b === 0) return `${name(neighbor)} is the same as 1/2. ${halfQuestion(block)}`;
+  if (a === 0) return `${name(block)} is exactly half. ${halfQuestion(neighbor)}`;
+  if (b === 0) return `${name(neighbor)} is exactly half. ${halfQuestion(block)}`;
   if (a !== b) return `Bigger blocks go lower. ${halfQuestion(block)}`;
   return a < 0
     ? `${name(block)} and ${name(neighbor)} are both less than 1/2. Which one is closer to 0?`
