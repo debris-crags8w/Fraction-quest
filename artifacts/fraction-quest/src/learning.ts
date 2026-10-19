@@ -1,7 +1,9 @@
 import type { Progress } from './game';
 import { answerMatches, getBuildChecks, getBuildPracticeChecks, getWorksheet, type BuildCheck, type WorksheetProblem } from './learning-content';
 
-export type WorksheetEntry = { draft: string; checkedValue?: string; attempts: number; supported: boolean };
+/** `wrongValue`: the answer last checked and found wrong. Checking that same answer again doesn't count as another
+    mistake (a double tap on Check used to add extra reteach questions). */
+export type WorksheetEntry = { draft: string; checkedValue?: string; wrongValue?: string; attempts: number; supported: boolean };
 export type CheckEvidence = { passed: boolean; supported: boolean; attempts: number };
 export type LearningRecord = {
   practiceDone?: boolean; checks: Record<string, CheckEvidence>; worksheet: Record<string, WorksheetEntry>;
@@ -9,6 +11,9 @@ export type LearningRecord = {
   reviewSupportedUntil?: number;
   /** A passed Build check waiting for the learner to choose Next. */
   pendingBuildCheckId?: string;
+  /** Where the child is in the lesson's practice questions, so a reload or the back button resumes there
+      instead of restarting the story and question 1. Cleared when practice is done. */
+  practiceAt?: { index: number; firstTry: number };
   /** Stars earned in practice (on screen or on paper), used when the lesson is finished. */
   practiceStars?: number;
   /** A practice-only second try at a finished part. See RedoAttempt. */
@@ -164,15 +169,16 @@ export function lessonSteps(progress: Progress, id: string): { done: number; tot
 }
 export function editWorksheet(record: LearningRecord, problemId: string, draft: string): LearningRecord {
   const old = record.worksheet[problemId] ?? { draft: '', attempts: 0, supported: false };
-  return { ...record, worksheet: { ...record.worksheet, [problemId]: { ...old, draft, checkedValue: undefined } }, confirmedAt: undefined };
+  return { ...record, worksheet: { ...record.worksheet, [problemId]: { ...old, draft, checkedValue: undefined, wrongValue: undefined } }, confirmedAt: undefined };
 }
 export function checkWorksheet(record: LearningRecord, problem: WorksheetProblem, trackMisconception = true): LearningRecord {
   const old = record.worksheet[problem.id] ?? { draft: '', attempts: 0, supported: false };
   const correct = answerMatches(problem, old.draft);
+  if (!correct && old.wrongValue === old.draft) return record;
   return { ...record,
     misconceptions: correct || !trackMisconception ? record.misconceptions : { ...record.misconceptions, [problem.hint]: (record.misconceptions[problem.hint] ?? 0) + 1 },
     worksheet: { ...record.worksheet, [problem.id]: { ...old, attempts: old.attempts + 1, supported: old.supported || !correct,
-      checkedValue: correct ? old.draft : undefined } } };
+      checkedValue: correct ? old.draft : undefined, wrongValue: correct ? undefined : old.draft } } };
 }
 /** Check a lesson worksheet row. Every row is required, so every miss counts toward reteach practice. */
 export function checkLessonWorksheet(record: LearningRecord, problem: WorksheetProblem, _missionId: string): LearningRecord {

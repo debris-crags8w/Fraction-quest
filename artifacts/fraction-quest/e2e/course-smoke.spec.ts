@@ -3048,3 +3048,52 @@ test('the mystery is playable: picture clues, a suspect board after chapter 4, s
   await showWholeComic(page);
   await expect(page.getByTestId('story-detective-note')).toContainText('you suspected Chomp');
 });
+
+test('a reload or the back button keeps the child’s place in a lesson’s practice', async ({ page }) => {
+  test.setTimeout(120_000);
+  const [first, second] = MISSIONS;
+  const learning = { [first.id]: { practiceDone: true, helpUses: 0, misconceptions: {}, completedAt: Date.now(),
+    checks: Object.fromEntries(getBuildChecks(first.id).map((check) => [check.id, { passed: true, supported: false, attempts: 1 }])),
+    worksheet: Object.fromEntries(getWorksheet(first.id).map((problem) => [problem.id, { draft: problem.answer, checkedValue: problem.answer, attempts: 1, supported: false }])) } };
+  // Seed once: a reload must keep what the app saved, not this starting point.
+  await page.addInitScript((progress) => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+  }, { completedMissionIds: [first.id], starsByMission: { [first.id]: 3 }, reviewQueue: [], assessments: [], learning });
+  await openAsGuest(page);
+  const startSecond = async () => {
+    const start = page.getByTestId(`button-start-mission-${second.id}`);
+    if (!(await start.isVisible())) await page.getByTestId(`button-node-${second.id}`).click();
+    await start.click();
+  };
+  const skipBreak = async () => {
+    const skip = page.getByTestId('button-break-skip-top');
+    if (await skip.isVisible().catch(() => false)) await skip.click();
+  };
+  await startSecond();
+  await passStory(page);
+  await expectLessonQuestionProgress(page, 1, 0);
+  for (let choice = 0; choice < 4; choice++) {
+    await skipBreak();
+    await page.locator('[data-testid^="button-answer-"]').nth(choice).click();
+    await page.getByTestId('button-check-answer').click();
+    await skipBreak();
+    if (await page.getByTestId('button-next-question').isVisible()) break;
+    await page.getByTestId('button-try-again').click();
+  }
+  await page.getByTestId('button-next-question').click();
+  await skipBreak();
+  await expectLessonQuestionProgress(page, 2, 1);
+
+  // The browser's back button returns to the map, not out of Fraction Quest.
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+
+  // After a reload the lesson opens on question 2 again, past its story.
+  await page.reload();
+  const guest = page.getByTestId('button-play-guest');
+  if (await guest.isVisible().catch(() => false)) await guest.click();
+  await startSecond();
+  await expectLessonQuestionProgress(page, 2, 1);
+});

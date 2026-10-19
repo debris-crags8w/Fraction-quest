@@ -1063,10 +1063,11 @@ function readRedo(raw: Partial<LearningRecord>): Pick<LearningRecord, 'redo' | '
   if (safeCount(raw.redosFinished) > 0) out.redosFinished = safeCount(raw.redosFinished);
   const redo = raw.redo;
   if (!redo || typeof redo !== 'object' || (redo.part !== 'worksheet' && redo.part !== 'builds') || safeCount(redo.round) < 1) return out;
-  const worksheet: Record<string, { draft: string; checkedValue?: string; attempts: number; supported: boolean }> = {};
+  const worksheet: Record<string, { draft: string; checkedValue?: string; wrongValue?: string; attempts: number; supported: boolean }> = {};
   for (const [key, entry] of Object.entries(redo.worksheet ?? {})) {
     if (/^w([1-9]|1[0-2])$/.test(key) && entry && typeof entry.draft === 'string') worksheet[key] = {
       draft: entry.draft.slice(0, 200), checkedValue: typeof entry.checkedValue === 'string' ? entry.checkedValue.slice(0, 200) : undefined,
+            wrongValue: typeof entry.wrongValue === 'string' ? entry.wrongValue.slice(0, 200) : undefined,
       attempts: safeCount(entry.attempts), supported: entry.supported !== false };
   }
   const checks: Record<string, { passed: boolean; supported: boolean; attempts: number }> = {};
@@ -1220,6 +1221,7 @@ export function loadProgress(): Progress {
           const entry = raw.worksheet?.[problem.id];
           if (entry && typeof entry.draft === 'string' && !staleDraft(problem, entry.draft)) worksheet[problem.id] = {
             draft: entry.draft.slice(0, 200), checkedValue: typeof entry.checkedValue === 'string' ? entry.checkedValue.slice(0, 200) : undefined,
+            wrongValue: typeof entry.wrongValue === 'string' ? entry.wrongValue.slice(0, 200) : undefined,
             attempts: safeCount(entry.attempts), supported: entry.supported !== false,
           };
         }
@@ -1234,6 +1236,7 @@ export function loadProgress(): Progress {
           const entry = raw.worksheet?.[problem.id];
           if (entry && typeof entry.draft === 'string' && !staleDraft(problem, entry.draft)) worksheet[problem.id] = {
             draft: entry.draft.slice(0, 200), checkedValue: typeof entry.checkedValue === 'string' ? entry.checkedValue.slice(0, 200) : undefined,
+            wrongValue: typeof entry.wrongValue === 'string' ? entry.wrongValue.slice(0, 200) : undefined,
             attempts: safeCount(entry.attempts), supported: entry.supported !== false,
           };
         }
@@ -1242,6 +1245,10 @@ export function loadProgress(): Progress {
           helpUses: safeCount(raw.helpUses),
           practiceStars: typeof raw.practiceStars === 'number' && Number.isFinite(raw.practiceStars)
             ? Math.max(0, Math.min(3, Math.floor(raw.practiceStars)))
+            : undefined,
+          practiceAt: raw.practiceDone !== true && raw.practiceAt && typeof raw.practiceAt === 'object'
+            && Number.isInteger((raw.practiceAt as { index?: unknown }).index) && Number.isInteger((raw.practiceAt as { firstTry?: unknown }).firstTry)
+            ? { index: Math.max(0, Math.min(50, (raw.practiceAt as { index: number }).index)), firstTry: Math.max(0, Math.min(50, (raw.practiceAt as { firstTry: number }).firstTry)) }
             : undefined,
           completedAt: typeof raw.completedAt === 'number' && Number.isFinite(raw.completedAt) ? raw.completedAt : undefined,
           confirmedAt: typeof raw.confirmedAt === 'number' && Number.isFinite(raw.confirmedAt) ? raw.confirmedAt : undefined,

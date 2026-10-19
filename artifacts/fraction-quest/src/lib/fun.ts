@@ -91,6 +91,22 @@ const fresh = (): FunState => ({
   displayPreferences: { ...DEFAULT_DISPLAY_PREFERENCES },
 });
 
+/** Points, streak, today's count, the day and the sound switch from saved data, checked like every other field
+    (points saved as text used to show "10010" after one right answer). */
+function cleanBasics(saved: Partial<FunState>): Pick<FunState, 'xp' | 'day' | 'answeredToday' | 'dayStreak' | 'lastActiveDay' | 'sound'> {
+  const base = fresh();
+  const count = (value: unknown, fallback: number) => (typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.floor(value) : fallback);
+  const dayText = (value: unknown) => (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null);
+  return {
+    xp: count(saved.xp, base.xp),
+    day: dayText(saved.day) ?? base.day,
+    answeredToday: count(saved.answeredToday, base.answeredToday),
+    dayStreak: count(saved.dayStreak, base.dayStreak),
+    lastActiveDay: dayText(saved.lastActiveDay),
+    sound: typeof saved.sound === 'boolean' ? saved.sound : base.sound,
+  };
+}
+
 /** Keep only well-formed recent days, so a bad or huge saved value can't break the report. */
 function cleanActivity(value: unknown, now = new Date()): Record<string, DayActivity> {
   if (!value || typeof value !== 'object') return {};
@@ -212,6 +228,7 @@ export function loadFun(): FunState {
     const saved = {
       ...fresh(),
       ...parsed,
+      ...cleanBasics(parsed),
       worksheetRewards: cleanWorksheetRewards(parsed.worksheetRewards),
       preferredLearningVoiceId: cleanLearningVoicePreference(parsed.preferredLearningVoiceId),
       breakPreferences: cleanBreakPreferences(parsed.breakPreferences),
@@ -382,6 +399,7 @@ export function replaceFun(saved: Partial<FunState>): FunState {
   const merged = {
     ...fresh(),
     ...saved,
+    ...cleanBasics(saved),
     worksheetRewards: cleanWorksheetRewards(saved.worksheetRewards),
     preferredLearningVoiceId: cleanLearningVoicePreference(saved.preferredLearningVoiceId),
     breakPreferences: cleanBreakPreferences(saved.breakPreferences),
