@@ -60,9 +60,9 @@ export function voiceSentences(): { key: string; text: string }[] {
   const story = new Set<string>();
   collect([WHOLE_STONE_OPENING, PROLOGUE, CHAPTERS, STORY_PROBLEMS, REACTIONS, DETECTIVE_NOTES, HANDS_ON_ASKS, CHAPTERS.map(choiceNotes)], story);
   for (const board of [1, 2] as const) for (const suspect of SUSPECTS[board]) story.add(suspectReply(board, suspect).text);
-  // Plain comics read "Hoot says: ..."; filmed ones (the prologue, chapter openings with a scene) only the lines.
-  const scripts: Panel[][] = [EPILOGUE, ...CHAPTERS.map(chapterEnd)];
-  const filmed: Panel[][] = [PROLOGUE];
+  // Plain comics read "Hoot says: ..."; filmed comics read only the lines.
+  const scripts: Panel[][] = [];
+  const filmed: Panel[][] = [PROLOGUE, EPILOGUE, ...CHAPTERS.map(chapterEnd)];
   for (const chapter of CHAPTERS) {
     const lessons = MISSIONS.filter((mission) => mission.unit === chapter.unit);
     lessons.forEach((mission, index) => (index === 0 && CHAPTER_SCENES[chapter.unit] ? filmed : scripts).push(lessonComic(chapter, mission, index)));

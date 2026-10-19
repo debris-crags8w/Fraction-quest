@@ -3,7 +3,7 @@ import test from 'node:test';
 import { MISSIONS } from './game';
 import { SECRETS } from './riddles';
 import { recordStory, type FunState } from './lib/fun';
-import { CHAPTERS, CHARACTERS, EPILOGUE, PROLOGUE, chapterEnd, PROPS, REACTIONS, STONE_PIECES, STORY_PROBLEMS, WHOLE_STONE_OPENING, chapterFor, lessonCliff, lessonComic, stoneQuestion, storyAsk, storyReaction, withName, type PropTheme } from './story';
+import { CHAPTERS, CHAPTER_SCENES, CHARACTERS, EPILOGUE, PROLOGUE, chapterEnd, PROPS, REACTIONS, STONE_PIECES, STORY_PROBLEMS, WHOLE_STONE_OPENING, chapterFor, lessonCliff, lessonComic, stoneQuestion, storyAsk, storyReaction, withName, type PropTheme } from './story';
 
 const lessonsIn = (unit: number) => MISSIONS.filter((mission) => mission.unit === unit);
 
@@ -11,6 +11,7 @@ test('one chapter per unit, one stone piece per chapter', () => {
   const units = [...new Set(MISSIONS.map((mission) => mission.unit))].sort((a, b) => a - b);
   assert.deepEqual(CHAPTERS.map((chapter) => chapter.unit), units);
   assert.equal(CHAPTERS.length, STONE_PIECES);
+  assert.deepEqual(Object.keys(CHAPTER_SCENES).map(Number), units);
 });
 
 test('every lesson has a scene and a cliffhanger, and every chapter a full script', () => {

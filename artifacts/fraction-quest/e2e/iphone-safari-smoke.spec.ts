@@ -187,15 +187,21 @@ test('phone Safari can enter a lesson worksheet number with the keyboard-operabl
   await page.getByTestId('button-go-worksheet').tap();
   await expect(page.locator('#ws-title')).toBeFocused();
   await expect(page.getByTestId('section-worksheet').getByRole('button', { name: 'Listen to the worksheet steps' })).toBeVisible();
-  // Finished builds stay viewable from their steps, with a practice-only "Build it again".
+  // Finished builds stay on the page, folded to one line; a green step goes back up and opens one in place, with a
+  // practice-only "Build it again". The steps scroll sideways on a phone.
   const firstBuild = getBuildChecks(lesson.id)[0];
+  const card = page.getByTestId(`section-done-${firstBuild.id}`);
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', '');
+  await expect.poll(() => page.getByTestId('list-lab-steps').evaluate((list) => getComputedStyle(list).flexWrap)).toBe('nowrap');
   await page.getByTestId(`button-see-step-${firstBuild.id}`).tap();
-  const view = page.getByTestId('section-step-view');
-  await expect(view).toContainText('done');
-  await view.getByTestId('button-step-build-again').tap();
-  await expect(view.getByTestId(`model-${firstBuild.id}-a`).or(view.locator('.fq-ll-builder').first())).toBeVisible();
-  await page.getByTestId(`button-see-step-${firstBuild.id}`).tap();
-  await expect(view).toHaveCount(0);
+  await expect(card).toHaveAttribute('open', '');
+  await expect(card).toBeInViewport();
+  await expect(card).toContainText('done');
+  await card.getByTestId(`button-build-again-${firstBuild.id}`).tap();
+  await expect(card.locator('.fq-ll-builder').first()).toBeVisible();
+  await card.getByTestId(`button-done-${firstBuild.id}`).tap();
+  await expect(card).not.toHaveAttribute('open', '');
 
   const row = page.getByTestId(`row-worksheet-${worksheetProblem.id}`);
   const shape = answerShape(worksheetProblem);
