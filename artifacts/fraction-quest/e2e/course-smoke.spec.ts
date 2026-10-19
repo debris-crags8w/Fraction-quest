@@ -32,7 +32,7 @@ async function passStory(page: import('@playwright/test').Page) {
 }
 
 
-/** The animated comics play like a cartoon; "Show all" jumps to the end so the test can read every panel. */
+/** The animated comics play like a cartoon; "Skip to the end" jumps to the last picture; the panels stay readable to screen readers. */
 async function showWholeComic(page: import('@playwright/test').Page) {
   await page.getByTestId('story-comic').waitFor();
   const skip = page.getByTestId('button-story-skip');
