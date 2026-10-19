@@ -548,8 +548,8 @@ const curriculum: MissionSeed[] = [
       practice('Which fraction covers the same amount as 1/2?', ['2/4', '1/4', '3/4'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Which bar is shaded just as far?', '2/4 covers the same as 1/2.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 2/3?', ['4/6', '3/6', '2/6'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }), 'Cut each third into 2 pieces.', 'Double the numerator and denominator: 2/3 = 4/6.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 3/4?', ['6/8', '3/8', '4/8'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'Cut each fourth into 2 pieces.', '3/4 and 6/8 are the same amount.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which is the same as 2/5?', ['4/10', '2/10', '5/2'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'Multiply the numerator and denominator by the same number.', 'Double both: 2/5 = 4/10.', bars({ numerator: 1, denominator: 2 })),
       practice('You fold a paper strip in half, then fold it in half again. You shade 1 of the 2 halves. Which fraction names the same shaded amount?', ['2/4', '1/4', '1/3'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Folding again cuts each half into 2 equal pieces. How many fourths are shaded?', 'The second fold cuts the shaded half into 2 fourths: 1/2 = 2/4.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is the same as 2/5?', ['4/10', '2/10', '5/2'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'Multiply the numerator and denominator by the same number.', 'Double both: 2/5 = 4/10.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
