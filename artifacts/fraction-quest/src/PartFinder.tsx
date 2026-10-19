@@ -8,6 +8,7 @@ import { AnswerTiles } from './AnswerTiles';
 import { Mascot, useSeasonalWords } from './fun-ui';
 import { LearningListenButton } from './LearningText';
 import { playHaptic } from './lib/fun';
+import { useLessonHelper } from './model-intro';
 
 type CheckState = 'idle' | 'right' | 'try-again';
 
@@ -138,6 +139,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
   // During a season the shared treat follows it (a pumpkin cake at Halloween); pieces and answers stay the same.
   const words = useSeasonalWords();
   const [roundIndex, setRoundIndex] = useState(0);
+  const helper = useLessonHelper();
   useScrollTopOn(roundIndex);
   const [selected, setSelected] = useState<number[]>([]);
   const [checked, setChecked] = useState<CheckState>('idle');
@@ -205,7 +207,8 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
     <main className="fq-app fq-pf" data-testid="part-finder-screen">
       <div className="fq-pf-shell">
         <TaskBar onBack={onExit} backLabel="Map" testId="button-part-finder-exit" title={activityTitle} backAriaLabel={`Back to the map (leaves ${lessonLabel})`} step={roundIndex + 1} total={rounds.length} sequenceLabel="Round"
-          actions={onSkip && <button type="button" className="fq-hint-button" onClick={onSkip} data-testid="button-hands-on-skip">Skip</button>} />
+          actions={<>{helper.button}{onSkip && <button type="button" className="fq-hint-button" onClick={onSkip} data-testid="button-hands-on-skip">Skip</button>}</>} />
+        {helper.panel}
 
         {!storyLine && help}
 

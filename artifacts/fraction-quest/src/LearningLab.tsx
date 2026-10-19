@@ -1,5 +1,7 @@
 import { type CSSProperties, Fragment, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
-import { playHaptic } from './lib/fun';
+import { playHaptic, recordIntro, type IntroKind } from './lib/fun';
+import { useOptionalFun } from './fun-ui';
+import { ModelIntro, useLessonHelper } from './model-intro';
 import { LearningListenButton, LearningText } from './LearningText';
 import { LAB_SECTION_SPEECH, worksheetSpeech } from './lab-copy';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw, Star } from 'lucide-react';
@@ -303,8 +305,10 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
 }
 
 type Outcome = { supported: boolean; attempts: number };
-function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuccess, onNext, nextLabel, initiallyPassed = false }: {
+function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuccess, onNext, nextLabel, initiallyPassed = false, lineIntro }: {
   check: BuildCheck; review: boolean;
+  /** The number line intro, while it is still to watch: it takes the place of the first number line builder. */
+  lineIntro?: { onDone: () => void };
   initiallyPassed?: boolean;
   /** After it passes, the check stays on screen with its explanation until the child presses Next. */
   onNext?: () => void; nextLabel?: string;
@@ -378,7 +382,8 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
        </SectionListenHeader>
         {!restoredPassed && <>
           <p className="fq-ll-response-step" data-testid={`response-step-${check.id}-1`}>Part 1 of 3 · Build the model</p>
-          <Builder kind={k} total={t.total} st={a} set={updatePrimary} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
+          {k === 'line' && lineIntro ? <ModelIntro kind="line" onDone={lineIntro.onDone} onSkip={lineIntro.onDone} />
+            : <Builder kind={k} total={t.total} st={a} set={updatePrimary} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />}
           {!primaryReady && a.d > 0 && primaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-primary-${check.id}`}>{primaryValidation.msgs[0]}</p>}
            {primaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-primary-${check.id}`}>
              <Check size={18} />
@@ -392,7 +397,8 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
               <strong><span className="fq-ll-response-step">Part 2 of 3 · </span>{transLabel}</strong>
               <span>Show the same amount with a new model.</span>
             </div>
-            <Builder kind={tk} st={b} set={updateSecondary} id={`${check.id}-b`} title={`Show the same amount ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
+            {tk === 'line' && lineIntro ? <ModelIntro kind="line" onDone={lineIntro.onDone} onSkip={lineIntro.onDone} />
+              : <Builder kind={tk} st={b} set={updateSecondary} id={`${check.id}-b`} title={`Show the same amount ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />}
             {!secondaryReady && b.d > 0 && secondaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-secondary-${check.id}`}>{secondaryValidation.msgs[0]}</p>}
              {secondaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-secondary-${check.id}`}>
                <Check size={18} />
@@ -581,6 +587,12 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const activeCheckId = !review && activeCheckIndex !== -1 ? checks[activeCheckIndex].id : null;
   const activeCheckHeading = useRef<HTMLHeadingElement | null>(null);
   const stepsList = useRef<HTMLOListElement | null>(null);
+  // The model intros open by themselves once (before the first build; at the first number line). Without the fun
+  // context (an isolated screen) they count as seen. The Helper keeps both for a brush-up.
+  const funContext = useOptionalFun();
+  const introDue = (kind: IntroKind) => !!funContext && !funContext.fun.introsSeen?.[kind];
+  const seeIntro = (kind: IntroKind) => { if (funContext) funContext.setFun(recordIntro(funContext.fun, kind)); };
+  const helper = useLessonHelper();
   /** A step shortcut: scroll its part of the page into view and move focus there (for keyboards and screen readers). */
   const jumpTo = (target: Element | null) => {
     if (!(target instanceof HTMLElement)) return;
@@ -680,11 +692,13 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   return (
     <div className="fq-ll" data-testid="learning-lab">
       <TaskBar onBack={onBack} testId="button-lab-back" title={getMission(missionId).shortTitle}
-        actions={<div className="fq-ll-print" role="group" aria-label="Print">
+        actions={<div className="fq-ll-print" role="group" aria-label="Print and help">
+          {helper.button}
           <PrintMenu missionId={missionId} />
           {onPaper && <button type="button" className="fq-button ghost" onClick={onPaper} data-testid="button-check-paper" aria-label="Check my paper"><ClipboardCheck size={17} /><span className="fq-hide-narrow"> Check my paper</span></button>}
         </div>} />
 
+      {helper.panel}
       <LessonTeachingSupport missionId={missionId} />
 
       {/* The steps double as shortcuts: tap one to go to its part of the page (the worksheet once the builds are done). */}
@@ -755,8 +769,10 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
       {notice && idx !== -1 && <div className="fq-ll-feedback ok" role="status" data-testid="status-check-saved"><Check size={20} /><div>{notice}</div></div>}
 
-      {idx !== -1 && (
+      {idx !== -1 && introDue('builder') && <ModelIntro kind="builder" onDone={() => seeIntro('builder')} onSkip={() => seeIntro('builder')} />}
+      {idx !== -1 && !introDue('builder') && (
         <CheckRunner key={checks[idx].id} review={false} check={checks[idx]}
+          lineIntro={introDue('line') ? { onDone: () => seeIntro('line') } : undefined}
           headingRef={activeCheckHeading}
           onWrong={onWrong}
           onSuccess={onSuccess}
