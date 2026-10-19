@@ -3,7 +3,7 @@
    caption with the speaker's face while the voice reads along. Big moments (the stone cracking, a splash, a falling
    plank) shake the screen with a thud and, in the app on iPhone and Android, a heavy tap. Without a voice the shots
    move on by themselves, and a voice that falls behind (a clip still loading) never holds the film up: it carries
-   on without it. A tap finishes a caption or shows everything. "Reduce motion" keeps the camera still.
+   on without it. A tap finishes a caption or skips to the end, where the film stays on its last picture. "Reduce motion" keeps the camera still.
    Scenes: the prologue and the opening comic of chapters 1 to 6. Other comics use the plain view. */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -398,7 +398,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
           </div>
           <button type="button" key={take} className={`fq-cine-screen is-${scene} ${done ? '' : 'is-rolling'}`} data-testid="story-panels"
             onClick={() => (done ? undefined : typing ? setChars(lines[beat].text.length) : showAll())}
-            aria-label={done ? 'The last scene of the story' : 'Show the whole story now'}>
+            aria-label={done ? 'The last scene of the story' : 'Skip to the end'}>
             <span className={`fq-cine-cam ${cold ? 'is-cold' : 'is-warm'}`} style={{ transform: camera, transformOrigin: origin }}>
               <span className={`fq-cine-set ${!done && beat === filming.impact ? 'is-shaking' : ''}`} data-testid="story-stage">
                 <Art beat={done ? lines.length - 1 : Math.max(beat, 0)} />
@@ -429,15 +429,9 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
             </ol>
           )}
           {done && (
-            <ol className="fq-story-panels fq-cine-transcript">
+            <ol className="fq-cine-transcript">
               {lines.map((panel, index) => (
-                <li key={index} className={`fq-story-panel fq-cine-panel ${index % 2 ? 'is-right' : ''} is-${panel.speaker}`} data-testid={`story-panel-${index}`}>
-                  <span className="fq-cine-face"><StoryCharacter id={panel.speaker} size={40} happy={panel.mood === 'happy'} worried={panel.mood === 'worried'} /></span>
-                  <div className="fq-story-bubble">
-                    <span className="fq-story-name">{CHARACTERS[panel.speaker].name}</span>
-                    <p>{panel.text}</p>
-                  </div>
-                </li>
+                <li key={index} data-testid={`story-panel-${index}`}>{CHARACTERS[panel.speaker].name}: {panel.text}</li>
               ))}
             </ol>
           )}
@@ -467,7 +461,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
                 {goLabel} <ArrowRight size={18} aria-hidden="true" />
               </button>
             ) : (
-              <button type="button" className="fq-button secondary" onClick={showAll} data-testid="button-story-skip">Show all</button>
+              <button type="button" className="fq-button secondary" onClick={showAll} data-testid="button-story-skip">Skip to the end</button>
             )}
           </div>
         </section>
