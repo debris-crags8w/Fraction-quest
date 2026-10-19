@@ -242,6 +242,24 @@ function assertModel(model: ModelSpec, location: string): void {
 }
 
 describe('lesson catalog', () => {
+  it('never draws the answer in a question picture before the child answers', () => {
+    const question = (prompt: string) => MISSIONS.flatMap((mission) => mission.questions).find((item) => item.prompt === prompt)!;
+    const shown = (prompt: string) => {
+      const model = question(prompt).model;
+      return model.kind === 'bars' ? model.bars.filter((bar) => !bar.untilAnswered).map((bar) => `${bar.numerator}/${bar.denominator}`) : [];
+    };
+    assert.deepEqual(shown('Fill the blank: 3/4 = 6/?'), ['3/4'], 'the 6/8 bar would show the missing 8');
+    assert.deepEqual(shown('Which is the same as 2/3?'), ['2/3']);
+    assert.deepEqual(shown('Which sum equals 4/7?'), ['4/7'], 'the two parts of the answer wait; the named total shows');
+    assert.deepEqual(shown('7/10 = 5/10 + what?'), ['7/10', '5/10']);
+    // Pictures that draw every choice, or the fractions being put in order, stay as they are.
+    assert.deepEqual(shown('Which is closest to 1/2?'), ['4/9', '1/5', '7/8']);
+    assert.deepEqual(shown('Put 1/2, 3/10 and 8/10 in order, smallest first.'), ['3/10', '1/2', '8/10']);
+    // After answering, the hidden bar comes back to confirm the answer.
+    const model = question('Which is the same as 2/3?').model;
+    assert.ok(model.kind === 'bars' && model.bars.some((bar) => bar.untilAnswered && bar.numerator === 4 && bar.denominator === 6));
+  });
+
   it('gives the later lessons worked examples that answer their own question', () => {
     // These lessons used to borrow their first build as the example, which showed the build target as the answer
     // (for example "share 3/4 liter among 3 cups" answered 3/4).
@@ -2531,7 +2549,9 @@ describe('quality audit fixes', () => {
       const sameValue = !!answer && answer.n * p.model.d === p.model.n * answer.d;
       // A mixed number in the question drawn in its pieces (1 1/2 shown as 9/6) also matches.
       const mixedInPrompt = [...p.prompt.matchAll(/(\d+) (\d+)\/(\d+)/g)].some(([, w, t, b]) => (Number(w) * Number(b) + Number(t)) * p.model!.d === p.model!.n * Number(b));
-      const mentioned = p.prompt.includes(shown) || sameValue || mixedInPrompt || /this|dot|shaded|of \d+/i.test(p.prompt) || p.model.kind === 'set';
+      // A decimal in the question drawn as hundredths (0.3 shown as 30/100) also matches.
+      const decimalInPrompt = [...p.prompt.matchAll(/\d*\.\d+/g)].some(([text]) => Math.abs(Number(text) - p.model!.n / p.model!.d) < 1e-9);
+      const mentioned = p.prompt.includes(shown) || sameValue || mixedInPrompt || decimalInPrompt || /this|dot|shaded|of \d+/i.test(p.prompt) || p.model.kind === 'set';
       assert.ok(mentioned, `${mission.id}/${p.id}: picture ${shown} does not match "${p.prompt}"`);
     }
   });

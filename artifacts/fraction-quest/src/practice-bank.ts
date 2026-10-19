@@ -165,7 +165,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'number-line-basics': (r) => {
     const d = r.int(3, 10);
     return r.chance()
-      ? { prompt: `How many equal spaces do you need for ${name(d)}?`, right: String(d), wrong: [String(d - 1), String(d + 1)], hint: `${Name(d)} means ${d} equal spaces from 0 to 1.`, retry: `${d} spaces from 0 to 1.`, model: line(0, 1) } // a plain 0–1 line: the picture must not show the answer
+      ? { prompt: `How many equal spaces do you need for ${name(d)}?`, right: String(d), wrong: [String(d - 1), String(d + 1)], hint: 'The denominator tells how many equal spaces go from 0 to 1.', retry: `${d} spaces from 0 to 1.`, model: line(0, 1) } // a plain 0–1 line: the picture must not show the answer
       : { prompt: `0 to 1 has ${d} equal spaces. What is 1 jump?`, right: f(1, d), wrong: [f(d, 1), f(1, d - 1)], hint: 'Count the spaces from 0 to 1.', retry: `${d} jumps make 1 whole. So 1 jump is 1/${d}.`, model: line(1, d) };
   },
   'number-line-points': (r) => {

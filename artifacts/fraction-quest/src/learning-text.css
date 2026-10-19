@@ -89,9 +89,14 @@
   pointer-events: none;
   transform: translate(calc(-50% + var(--fq-tip-shift, 0px)), 4px);
   transition: opacity 120ms ease, transform 120ms ease;
+  /* Not laid out until shown: an invisible tip near the right edge made the page a few pixels too wide. */
+  visibility: hidden;
 }
 
+.fq-vocab-static:not(:hover):not(:focus-visible)::after { display: none; }
+
 .fq-vocab-static:hover::after {
+  visibility: visible;
   opacity: 1;
   transform: translate(calc(-50% + var(--fq-tip-shift, 0px)), 0);
 }

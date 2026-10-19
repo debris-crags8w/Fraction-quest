@@ -7,7 +7,8 @@ import { FRACTION_STANDARDS, standardsForMission, type StandardId } from './stan
 import { scopedStorageKey } from './storage-scope';
 
 /** `named`: the question states this fraction, so the bar shows its label (other bars are labelled once answered). */
-export type FractionValue = { numerator: number; denominator: number; named?: boolean };
+/** `untilAnswered`: this bar shows the answer, so it stays hidden until the child answers (then it confirms it). */
+export type FractionValue = { numerator: number; denominator: number; named?: boolean; untilAnswered?: boolean };
 
 /** Compare fraction values exactly without converting them to rounded decimals or percentages. */
 export function sameFractionValue(
@@ -261,6 +262,45 @@ const line = (numerator: number, denominator: number, wholes = numberLineWholeCo
 const equation = (text: string): ModelSpec => ({ kind: 'equation', text });
 const decimal = (tenths: number): ModelSpec => ({ kind: 'decimal', tenths });
 
+const fractionValues = (text: string) => [...text.matchAll(/(\d+)\s*\/\s*(\d+)/g)].map((m) => Number(m[1]) / Number(m[2]));
+const sameValue = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+
+/** No picture gives the answer away. When the question names fractions, a bar that shows the answer (or, in a
+    "same amount" question, the matching fraction) waits until the child answers. Pictures that draw every choice,
+    and pictures that are the question itself ("What fraction is shaded?"), stay as they are. If nothing would be
+    left, the picture shows the fractions the question names instead. */
+export function hideAnswerBars(model: ModelSpec, prompt: string, choices: string[], correctChoice: number): ModelSpec {
+  if (model.kind !== 'bars') return model;
+  const named = amountsIn(prompt);
+  if (!named.length) return model;
+  const namedValues = named.map((amount) => amount.numerator / amount.denominator);
+  const answer = choices[correctChoice] ?? '';
+  const answerValues = fractionValues(answer);
+  // Putting named fractions in order: the bars are the fractions the child compares, not the answer.
+  const namedFractionValues = fractionValues(prompt);
+  if (answerValues.length > 1 && answerValues.every((value) => namedFractionValues.some((named) => sameValue(named, value)))) return model;
+  const choiceValues = choices.map((choice) => fractionValues(choice));
+  const drawnChoices = choiceValues.filter((values) => values.length === 1
+    && model.bars.some((bar) => !bar.named && sameValue(bar.numerator / bar.denominator, values[0]))).length;
+  if (drawnChoices > 1) return model;
+  // "Same amount" questions: the answer is a renamed fraction, or a missing number ("3/4 = 6/?").
+  const sameAmount = answerValues.length === 1 ? namedValues.some((value) => sameValue(value, answerValues[0])) : /\?/.test(prompt);
+  const gives = (bar: FractionValue) => {
+    if (bar.named) return false;
+    const value = bar.numerator / bar.denominator;
+    return answerValues.some((a) => sameValue(a, value)) || (sameAmount && namedValues.some((a) => sameValue(a, value)));
+  };
+  if (!model.bars.some(gives)) return model;
+  const bars = model.bars.map((bar) => (gives(bar) ? { ...bar, untilAnswered: true } : bar));
+  const shown = bars.filter((bar) => !bar.untilAnswered);
+  const missing = named.filter((amount) => amount.numerator > 0 && amount.denominator <= 24
+    && !shown.some((bar) => bar.numerator === amount.numerator && bar.denominator === amount.denominator));
+  const extra = shown.length === 0 || /\bsum|adds? up|\+/i.test(prompt)
+    ? missing.map((amount) => ({ numerator: amount.numerator, denominator: amount.denominator, named: true }))
+    : [];
+  return { ...model, bars: [...extra, ...bars] };
+}
+
 function practice(
   prompt: string,
   choices: string[],
@@ -272,7 +312,7 @@ function practice(
 ): PracticeSeed {
   // Every question shows a model: a typed-out equation ("1/6 + 4/6 = ?") also gets bars for its amounts.
   if (model.kind === 'equation') model = autoPicture(model.text, model.text) ?? model;
-  const named = nameBars(model, prompt);
+  const named = hideAnswerBars(nameBars(model, prompt), prompt, choices, correctChoice);
   let simpler = nameBars(simplerModel, prompt);
   // "Let's make it simpler" must stay about this question: if the question's own picture shows the fractions it names
   // and the authored help picture doesn't (a generic 1/2 bar), the help shows the question's bars, labelled.
@@ -456,7 +496,7 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('0 to 1 has 5 equal spaces. What is 1 jump?', ['1/5', '1/4', '5/1'], 0, line(1, 5), 'Count the spaces from 0 to 1.', '5 jumps make 1 whole. So 1 jump is 1/5.', line(1, 2)),
-      practice('How many spaces do you need for fourths?', ['4 spaces', '3 spaces', '5 spaces'], 0, line(2, 4), 'Fourths means 4 equal pieces.', 'Fourths need 4 spaces from 0 to 1.', line(1, 2)),
+      practice('How many spaces do you need for fourths?', ['4 spaces', '3 spaces', '5 spaces'], 0, line(2, 4), 'The denominator tells how many equal spaces go from 0 to 1.', 'Fourths need 4 spaces from 0 to 1.', line(1, 2)),
       practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps past 1', '5 jumps from 0'], 0, line(3, 8), 'Start at 0. Count 3 jumps.', 'The numerator 3 means 3 jumps.', line(1, 4)),
       practice('0 to 1 has 6 equal spaces. What is 5 jumps?', ['5/6', '6/5', '1/5'], 0, line(5, 6), 'Count 5 jumps from 0.', '5 jumps of 1/6 is 5/6.', line(2, 4)),
     ],
@@ -516,7 +556,7 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 3, denominator: 5 }, { numerator: 3, denominator: 8 }),
     },
     questions: [
-      practice('Which is bigger, 2/3 or 2/7?', ['2/7', '2/3', 'They are equal'], 1, bars({ numerator: 2, denominator: 3 }, { numerator: 2, denominator: 7 }), 'On the same-size whole, both count 2 pieces. Seven equal parts make smaller pieces than three, so 2/7 is smaller.', 'Both count 2 pieces from the same-size whole. Each third is bigger than each seventh, so 2/3 is bigger.', bars({ numerator: 1, denominator: 3 })),
+      practice('Which is bigger, 2/3 or 2/7?', ['2/7', '2/3', 'They are equal'], 1, bars({ numerator: 2, denominator: 3 }, { numerator: 2, denominator: 7 }), 'On the same-size whole, both count 2 pieces. Which are larger pieces: thirds or sevenths?', 'Both count 2 pieces from the same-size whole. Each third is bigger than each seventh, so 2/3 is bigger.', bars({ numerator: 1, denominator: 3 })),
       practice('Which is smaller, 4/5 or 4/9?', ['4/5', '4/9', 'They are equal'], 1, bars({ numerator: 4, denominator: 5 }, { numerator: 4, denominator: 9 }), 'Both count 4 pieces from the same-size whole. The larger denominator, 9, makes smaller pieces.', 'Both count 4 pieces from the same-size whole. Ninths are smaller than fifths, so 4/9 is less than 4/5.', bars({ numerator: 1, denominator: 2 })),
       practice('Pick the sign: 1/6 __ 1/4', ['>', '<', '='], 1, bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 4 }), 'On the same-size whole, six equal parts are smaller than four equal parts.', 'One sixth is smaller than one fourth, so 1/6 < 1/4.', bars({ numerator: 1, denominator: 2 })),
       practice('Which covers more: 3/10 or 3/8?', ['3/10', '3/8', 'They cover the same'], 1, bars({ numerator: 3, denominator: 10 }, { numerator: 3, denominator: 8 }), 'On the same-size whole, both count 3 pieces. Eighths are larger because 8 parts are fewer than 10.', 'Each eighth is larger than each tenth. With 3 pieces counted from the same-size whole, 3/8 covers more than 3/10.', bars({ numerator: 1, denominator: 2 })),
