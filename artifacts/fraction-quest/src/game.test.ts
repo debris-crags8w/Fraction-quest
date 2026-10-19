@@ -19,7 +19,7 @@ import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
 import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './FractionRace';
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
 import { CODE_LEVEL_COUNT, describe as describeRun, getCodeLevels, getRunHint, makeMultiBug, matchesTarget, passesCodeLevel, predictionMatchesTarget, runProgram, solution, toText, usesEffectiveLoop, usesLoop, type Block } from './code-quest';
-import { CODE_EXAMPLES, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
+import { codeExamples, exampleStepInstruction, summarizeCodeProgress } from './code-progress';
 import { loadFun, recordCodeLevel, recordCorrect, recordMinute, recordPartFinder, resetMissionGameProgress, shownStreak } from './lib/fun';
 import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderRoundsFor, partFinderFeedback, partFinderSelectionArea, scorePartFinderRound } from './part-finder';
 import { generateQuestions, getExtraPractice, hasGenerator, makeRng } from './practice-bank';
@@ -2692,8 +2692,8 @@ describe('grown-ups report', () => {
 
 describe('code challenge', () => {
   it('shows correct bar, number-line, and grouped-set examples with real repeat blocks', () => {
-    assert.deepEqual(CODE_EXAMPLES.map((example) => example.target.kind), ['bar', 'line', 'set']);
-    for (const example of CODE_EXAMPLES) {
+    assert.deepEqual(codeExamples().map((example) => example.target.kind), ['bar', 'line', 'set']);
+    for (const example of codeExamples()) {
       const result = runProgram(example.program, example.target);
       assert.equal(matchesTarget(result, example.target), true, example.title);
       const repeatIndex = example.program.findIndex((block) => block.op === 'repeat');
