@@ -260,7 +260,7 @@
 @keyframes fq-cine-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 @keyframes fq-cine-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 @keyframes fq-cine-caret { 50% { opacity: 0; } }
-@keyframes fq-cine-enter-left { from { opacity: 0; translate: -120px 0; } to { opacity: 1; translate: 0 0; } }
+@keyframes fq-cine-enter-left { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
 @keyframes fq-cine-grab { 0%, 100% { transform: translateX(0) rotate(0); } 50% { transform: translateX(10px) rotate(4deg); } }
 @keyframes fq-cine-hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-18px); } }
 @keyframes fq-cine-buzz { 0%, 100% { translate: 0 0; } 25% { translate: 40px 10px; } 50% { translate: 10px 22px; } 75% { translate: -36px 8px; } }
