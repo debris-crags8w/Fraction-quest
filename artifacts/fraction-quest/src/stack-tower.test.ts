@@ -36,10 +36,10 @@ test('hints teach the benchmark without naming the right gap', () => {
   const tower = [{ n: 5, d: 6 }, { n: 1, d: 5 }]; // bottom first
   // 3/8 belongs between them (gap 1); trying the top or bottom gets a hint.
   assert.equal(correctGap(tower, { n: 3, d: 8 }), 1);
-  assert.equal(towerHint(tower, { n: 3, d: 8 }, 2), '3/8 and 1/5 are both less than ½. Which one is closer to 0?');
-  assert.equal(towerHint(tower, { n: 3, d: 8 }, 0), 'Bigger blocks go lower. Is 3/8 more or less than ½? Half of 8 parts is 4 parts.');
-  assert.equal(towerHint([{ n: 1, d: 2 }], { n: 2, d: 3 }, 1), '1/2 is the same as ½. Is 2/3 more or less than ½? Compare 2 parts with half of 3 parts.');
-  assert.match(towerHint([{ n: 3, d: 4 }], { n: 5, d: 6 }, 1), /both more than ½/);
+  assert.equal(towerHint(tower, { n: 3, d: 8 }, 2), '3/8 and 1/5 are both less than 1/2. Which one is closer to 0?');
+  assert.equal(towerHint(tower, { n: 3, d: 8 }, 0), 'Bigger blocks go lower. Is 3/8 more or less than 1/2? Half of 8 parts is 4 parts.');
+  assert.equal(towerHint([{ n: 1, d: 2 }], { n: 2, d: 3 }, 1), '1/2 is exactly half. Is 2/3 more or less than 1/2? Compare 2 parts with half of 3 parts.');
+  assert.match(towerHint([{ n: 3, d: 4 }], { n: 5, d: 6 }, 1), /both more than 1\/2/);
   assert.match(towerHint([{ n: 3, d: 4 }], { n: 1, d: 9 }, 0), /Compare 1 part with half of 9 parts\./);
   for (const hint of [towerHint(tower, { n: 3, d: 8 }, 2), towerHint(tower, { n: 3, d: 8 }, 0)]) {
     assert.doesNotMatch(hint, /bottom|top|between|gap/i);

@@ -2,6 +2,7 @@ import { useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { correctGap, TOWER_ROUNDS, TOWER_WOBBLES, towerHint, towerRound, towerStars, type TowerBlock } from './stack-tower';
 import { playHaptic } from './lib/fun';
+import { MathText } from './MathText';
 
 const newSeed = () => 1 + Math.floor(Math.random() * 100000);
 const name = (block: TowerBlock) => `${block.n}/${block.d}`;
@@ -10,7 +11,7 @@ function Fraction({ n, d }: TowerBlock) {
   return <span className="cg-fraction" aria-label={`${n} over ${d}`}><span>{n}</span><i /> <span>{d}</span></span>;
 }
 
-/** One block: the fraction and an equal-parts bar the width of one whole, with a mark at ½.
+/** One block: the fraction and an equal-parts bar the width of one whole, with a mark at 1/2.
     The shading stays hidden until the block is placed (or after two wobbles, as help). */
 function Block({ block, shaded, className = '', testId }: { block: TowerBlock; shaded: boolean; className?: string; testId?: string }) {
   return (
@@ -70,7 +71,7 @@ export default function StackTower() {
     const count = wobbles + 1;
     setWobbles(count); setWobbleKey((key) => key + 1); setGap(null); setLastPlaced(null);
     playHaptic('retry');
-    setMessage(count >= TOWER_WOBBLES ? 'Crash! The tower toppled. Build it again and compare each block with ½.' : `Wobble! ${towerHint(tower, incoming, gap)}`);
+    setMessage(count >= TOWER_WOBBLES ? 'Crash! The tower toppled. Build it again and compare each block with 1/2.' : `Wobble! ${towerHint(tower, incoming, gap)}`);
     setTone('retry');
   };
   const next = () => { const index = roundIndex + 1; setRoundIndex(index); startTower(seed, index); };
@@ -148,7 +149,7 @@ export default function StackTower() {
       <span className="st-ground" aria-hidden="true" />
     </div>
 
-    {message && <p className={`cg-feedback ${tone}`} role="status" aria-live="polite" data-testid="status-tower-feedback">{message}</p>}
+    {message && <p className={`cg-feedback ${tone}`} role="status" aria-live="polite" data-testid="status-tower-feedback"><MathText text={message} /></p>}
     {built && <p className="st-stars" aria-label={`${towerStars(wobbles)} stars`} data-testid="status-tower-round-stars">{'⭐'.repeat(towerStars(wobbles))}</p>}
 
     <div className="cg-actions">

@@ -25,8 +25,8 @@ export function ColorTwoWays() {
       <h2>Color it two ways</h2>
       <p><MathText text="Color 1/4 of each square. Use a different way each time." /></p>
       <div className="fq-area-idea-row">
-        <AreaSvg figure={{ cut: 'quarter-and-triangles' }} label="A square to color" />
-        <AreaSvg figure={{ cut: 'quarter-and-triangles' }} label="A square to color" />
+        <AreaSvg figure={{ cut: 'quarter-and-triangles' }} label="A square cut into 1 square and 6 triangles. Color one fourth." />
+        <AreaSvg figure={{ cut: 'quarter-and-triangles' }} label="A square cut into 1 square and 6 triangles. Color one fourth." />
       </div>
       <p className="fq-print-why">How do you know both show 1/4? <i /><i /></p>
     </section>
@@ -64,7 +64,7 @@ export function AreaShade({ figure, task, disabled, statusId, onMatchChange, che
          <polygon className="frame" points={outline(figure)} fill="none" pointerEvents="none" />
       </svg>
       <p id={statusId} className={`fq-ll-copy-status ${done && !checkIn ? 'matched' : ''}`} role="status" aria-live="polite" data-testid="status-area">
-        {checkIn ? `${shaded.length} ${shaded.length === 1 ? 'piece' : 'pieces'} colored.` : areaFeedback(figure.cut, task, shaded)}
+        {checkIn ? `${shaded.length} ${shaded.length === 1 ? 'piece' : 'pieces'} colored.` : <MathText text={areaFeedback(figure.cut, task, shaded)} />}
       </p>
     </div>
   );

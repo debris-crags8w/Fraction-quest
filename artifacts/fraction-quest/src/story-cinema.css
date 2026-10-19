@@ -21,6 +21,7 @@
 .fq-cine-screen.is-rolling .fq-cine-bar { animation: fq-cine-bars .9s cubic-bezier(.2, .8, .2, 1) both; }
 .fq-cine-sr { width: 1px; height: 1px; overflow: hidden; }
 
+.fq-cine-card.is-waiting { animation: none; }
 .fq-cine-card { position: absolute; inset: 0; z-index: 7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 0 28px; background: #07051A; text-align: center; animation: fq-cine-card 1.7s ease both; }
 .fq-cine-card small { color: #FFC800; font-size: .78rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; animation: fq-cine-card-in 1.2s ease both; }
 .fq-cine-card strong { color: #FFF4D6; font-family: var(--app-font-display); font-size: 1.9rem; line-height: 1.1; animation: fq-cine-card-in 1.2s .15s ease both; }
@@ -319,7 +320,6 @@
 .fq-cine-tower::after { content: ''; position: absolute; left: -10%; right: -10%; bottom: -3%; height: 12px; border-radius: 50%; background: rgb(0 0 0 / .3); filter: blur(5px); z-index: -1; }
 .fq-cine-cliff { box-shadow: inset 0 -30px 40px -20px rgb(0 0 0 / .35); }
 /* Squash on hops, overshoot on cards. */
-.fq-cine-card strong { animation-timing-function: cubic-bezier(.2, 1.5, .4, 1); }
 @keyframes fq-cine-breathe { from { opacity: .75; } to { opacity: 1; } }
 @keyframes fq-cine-motes { to { background-position: 10px -130px, 70px -100px, 40px -50px; } }
 @keyframes fq-cine-dusk { to { opacity: 1; } }
@@ -329,7 +329,8 @@
 @keyframes fq-cine-shake { 0%, 100% { translate: 0 0; } 15% { translate: -9px 4px; } 30% { translate: 8px -5px; } 45% { translate: -6px 3px; } 60% { translate: 5px -2px; } 75% { translate: -3px 1px; } }
 @keyframes fq-cine-bars { from { height: 0; } to { height: 30px; } }
 @keyframes fq-cine-card { 0%, 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
-@keyframes fq-cine-card-in { from { opacity: 0; letter-spacing: .3em; } to { opacity: 1; } }
+/* Fade and rise only: animating letter-spacing changed the text's width every frame. */
+@keyframes fq-cine-card-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes fq-cine-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fq-cine-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 @keyframes fq-cine-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react';
 import { RotateCcw } from 'lucide-react';
-import { MathText } from './MathText';
 import { useOptionalFun } from './fun-ui';
+import { MathText, StackedFraction } from './MathText';
 import { useReadAloud } from './LearningText';
 
 /* A virtual paper strip: fold it in halves or thirds, then unfold to see equal pieces.
@@ -133,9 +133,9 @@ export function PaperFold({ allowThirds = true, shadeHalf = false, intro }: { al
         {phase === 'folded' && <span className="fq-fold-layers" data-testid="text-fold-layers">{pieces} layers</span>}
       </div>
       <p className="fq-fold-message" aria-live="polite" data-testid="text-paper-fold"><MathText text={message} /></p>
-      {phase === 'flat' && equivalence && <p className="fq-fold-equal" data-testid="text-fold-equivalence">{equivalence}</p>}
+      {phase === 'flat' && equivalence && <p className="fq-fold-equal" data-testid="text-fold-equivalence"><MathText text={equivalence} /></p>}
       <div className="fq-fold-trail" aria-label="Fractions made so far">
-        {trail.map((p, i) => <span key={i} className={i === trail.length - 1 ? 'now' : ''}><MathText text={p === 1 ? '1' : `1/${p}`} /></span>)}
+        {trail.map((p, i) => <span key={i} className={i === trail.length - 1 ? 'now' : ''}>{p === 1 ? '1' : <StackedFraction top="1" bottom={String(p)} />}</span>)}
       </div>
       <div className="fq-fold-buttons">
         <button type="button" className="fq-button" onClick={() => fold(2)} disabled={busy || pieces * 2 > MAX_PIECES} data-testid="button-fold-half">Fold in half</button>
