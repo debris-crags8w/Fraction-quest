@@ -3044,5 +3044,6 @@ test('the mystery is playable: picture clues, a suspect board after chapter 4, s
   });
   await page.goto('/');
   await page.getByTestId(`button-start-mission-${chapterEight.id}`).click();
+  await showWholeComic(page);
   await expect(page.getByTestId('story-detective-note')).toContainText('you suspected Chomp');
 });
