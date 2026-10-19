@@ -40,3 +40,6 @@ exposeLocalhost = true
 [[ports]]
 localPort = 24179
 externalPort = 3000
+
+[objectStorage]
+defaultBucketID = "replit-objstore-89e610bd-780d-4e7b-b3ff-54a484df360f"
