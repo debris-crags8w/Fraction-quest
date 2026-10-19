@@ -600,14 +600,17 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
     const heading = target.matches('h2, h3') ? target : target.querySelector<HTMLElement>('h2, h3');
     if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
   };
-  // A finished build stays viewable: its prompt, the models it asked for and why they show the fraction. "Build it
-  // again" is practice only; it never changes the lesson's progress.
-  const [viewing, setViewing] = useState<string | null>(null);
-  const [rebuilding, setRebuilding] = useState(false);
+  // A finished build stays on the page where it was, folded to one line: its prompt, the models it asked for and why
+  // they show the fraction open in place. Its green step scrolls back up to it. "Build it again" is practice only.
+  const [opened, setOpened] = useState<string | null>(null);
+  const [rebuilding, setRebuilding] = useState<string | null>(null);
   const openStep = (id: string) => {
-    setViewing((current) => (current === id ? null : id));
-    setRebuilding(false);
-    requestAnimationFrame(() => jumpTo(document.querySelector('[data-testid="section-step-view"]')));
+    setOpened(id);
+    requestAnimationFrame(() => {
+      const card = document.getElementById(`done-${id}`);
+      card?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      card?.querySelector<HTMLElement>('summary')?.focus({ preventScroll: true });
+    });
   };
   // On a phone the steps scroll sideways: keep the current one (often the worksheet, at the end) in view.
   useEffect(() => {
@@ -708,7 +711,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           const label = <>{e?.passed ? <Check size={15} /> : i + 1}<span>{buildStepName(c, i)}{e?.passed ? (e.supported ? ' · with help' : ' · solo') : ''}</span></>;
           return <li key={c.id} className={e?.passed ? 'done' : i === idx ? 'now' : ''} data-testid={`step-${c.id}`}>
             {i === idx ? <button type="button" onClick={() => jumpTo(activeCheckHeading.current)} aria-label={`Go to ${buildStepName(c, i)}`}>{label}</button>
-              : e?.passed ? <button type="button" onClick={() => openStep(c.id)} aria-pressed={viewing === c.id} aria-label={`See ${buildStepName(c, i)} again`} data-testid={`button-see-step-${c.id}`}>{label}</button>
+              : e?.passed ? <button type="button" onClick={() => openStep(c.id)} aria-label={`Go back to ${buildStepName(c, i)}`} data-testid={`button-see-step-${c.id}`}>{label}</button>
               : label}</li>;
         })}
         <li className={idx === -1 ? (requiredDone ? 'done' : 'now') : ''} data-testid="step-worksheet">
@@ -720,34 +723,6 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           <button type="button" onClick={() => jumpTo(document.querySelector('[data-testid="section-targeted-reteach"]'))} data-testid="button-go-reteach">{checks.length + 2}<span>Extra practice {reteachProgress.done}/{reteachProgress.total}</span></button>
         </li>}
       </ol>
-
-      {(() => {
-        const index = checks.findIndex((c) => c.id === viewing);
-        const check = checks[index];
-        if (!check || !rec.checks[check.id]?.passed) return null;
-        const t = check.target;
-        const second: LearningModel = { ...t, kind: t.kind === 'line' ? 'bar' : 'line', total: undefined, wholes: Math.max(1, Math.ceil(t.n / t.d)) };
-        const name = buildStepName(check, index);
-        return (
-          <section className="fq-ll-step-view" aria-labelledby="step-view-title" data-testid="section-step-view">
-            <SectionListenHeader text={`${name}. ${check.prompt} ${check.explanation}`} label={`Listen to ${name}`}>
-              <h3 id="step-view-title"><Check size={18} /> {name} · done{rec.checks[check.id]?.supported ? ' with help' : ' solo'}</h3>
-            </SectionListenHeader>
-            <p><LearningText text={check.prompt} /></p>
-            <div className="fq-ll-step-view-models"><Preview m={t} named /><Preview m={second} named /></div>
-            <p className="fq-ll-note">{check.explanation}</p>
-            {rebuilding ? (
-              <CheckRunner key={`again-${check.id}`} check={check} review={false} onHelp={() => {}} onPass={() => {}} onWrong={onWrong} onSuccess={onSuccess}
-                nextLabel="Done practising" onNext={() => setRebuilding(false)} />
-            ) : (
-              <div className="fq-ll-redo-buttons">
-                <button type="button" className="fq-button secondary" onClick={() => setRebuilding(true)} data-testid="button-step-build-again">Build it again</button>
-                <button type="button" className="fq-button ghost" onClick={() => setViewing(null)} data-testid="button-step-view-close">Close</button>
-              </div>
-            )}
-          </section>
-        );
-      })()}
 
       {gate && onRedo && (
         <section className="fq-ll-redo" aria-labelledby="redo-title" data-testid="section-redo">
@@ -766,6 +741,33 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           {!!rec.redosFinished && <p className="fq-ll-note" data-testid="text-redos-finished">Done again {rec.redosFinished} {rec.redosFinished === 1 ? 'time' : 'times'}. Nice practice!</p>}
         </section>
       )}
+
+      {checks.map((check, index) => {
+        const entry = rec.checks[check.id];
+        if (index === idx || !entry?.passed) return null;
+        const t = check.target;
+        const second: LearningModel = { ...t, kind: t.kind === 'line' ? 'bar' : 'line', total: undefined, wholes: Math.max(1, Math.ceil(t.n / t.d)) };
+        const name = buildStepName(check, index);
+        return (
+          <details key={check.id} id={`done-${check.id}`} className="fq-ll-done" open={opened === check.id} data-testid={`section-done-${check.id}`}
+            onToggle={(event) => { const open = event.currentTarget.open; setOpened((current) => open ? check.id : current === check.id ? null : current); }}>
+            <summary data-testid={`button-done-${check.id}`}><Check size={18} aria-hidden="true" /><h3>{name} · done{entry.supported ? ' with help' : ' solo'}</h3><span className="fq-ll-done-see">{opened === check.id ? 'Hide' : 'See it'}</span></summary>
+            <div className="fq-ll-done-body">
+              <SectionListenHeader text={`${name}. ${check.prompt} ${check.explanation}`} label={`Listen to ${name}`}>
+                <p><LearningText text={check.prompt} /></p>
+              </SectionListenHeader>
+              <div className="fq-ll-done-models"><Preview m={t} named /><Preview m={second} named /></div>
+              <p className="fq-ll-note">{check.explanation}</p>
+              {rebuilding === check.id ? (
+                <CheckRunner key={`again-${check.id}`} check={check} review={false} onHelp={() => {}} onPass={() => {}} onWrong={onWrong} onSuccess={onSuccess}
+                  nextLabel="Done practising" onNext={() => setRebuilding(null)} />
+              ) : (
+                <button type="button" className="fq-button secondary" onClick={() => setRebuilding(check.id)} data-testid={`button-build-again-${check.id}`}>Build it again</button>
+              )}
+            </div>
+          </details>
+        );
+      })}
 
       {notice && idx !== -1 && <div className="fq-ll-feedback ok" role="status" data-testid="status-check-saved"><Check size={20} /><div>{notice}</div></div>}
 
