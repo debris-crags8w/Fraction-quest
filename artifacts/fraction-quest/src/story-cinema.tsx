@@ -22,6 +22,20 @@ export { CHAPTER_SCENES, type StoryScene } from './story';
 const TYPE_MS = 32;        // one character every 32 ms: a little ahead of the voice
 const PAUSE_MS = 1100;     // without a voice, the pause before the next shot
 const TITLE_MS = 1700;     // the title card before the first shot
+const FONT_WAIT_MS = 500;  // the longest the title card waits for its font before it starts anyway
+
+/** The title card's fonts load from the web; a card that starts before they arrive jumps in size when they swap in.
+    Resolves when they are ready, or after FONT_WAIT_MS, so the film is never held up for long. */
+const TITLE_FONTS = ['700 30px "Baloo 2"', '700 12px "Atkinson Hyperlegible"'];
+function titleFontReady(): Promise<void> {
+  const fonts = typeof document !== 'undefined' ? document.fonts : undefined;
+  if (!fonts?.load) return Promise.resolve();
+  if (TITLE_FONTS.every((font) => fonts.check(font))) return Promise.resolve();
+  return Promise.race([
+    Promise.all(TITLE_FONTS.map((font) => fonts.load(font))).then(() => undefined, () => undefined),
+    new Promise<void>((resolve) => setTimeout(resolve, FONT_WAIT_MS)),
+  ]);
+}
 const END_MS = 1800;       // the "to be continued" card
 const VOICE_GIVE_UP_MS = 15_000; // the first shot waits at least this long for the voice to start
 const VOICE_CPS = 10;      // a generous reading pace (characters a second): slower than any voice reads, "says:" included
@@ -437,6 +451,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const [ending, setEnding] = useState(false);
   const [done, setDone] = useState(false);
   const [take, setTake] = useState(0); // counts replays, so the title card and entrances play again
+  const [started, setStarted] = useState(false); // the title font is in (or the short wait is over)
   const [picked, setPicked] = useState<0 | 1 | null>(saved ?? null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const voiceRef = useRef(voiceOn);
@@ -524,8 +539,9 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   useEffect(() => {
     // Start fetching the voice now: the title card gives the first clips a head start.
     if (voiceOn) prefetchReading(spoken.join(' '));
-    play();
-    return () => { clearTimers(); clearTimeout(stall.current); reader.stop(); };
+    let live = true;
+    titleFontReady().then(() => { if (live) { setStarted(true); play(); } });
+    return () => { live = false; clearTimers(); clearTimeout(stall.current); reader.stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per comic
   }, []);
 
@@ -576,12 +592,12 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
             <span className="fq-cine-vignette" />
             <span className="fq-cine-grain" aria-hidden="true" />
             <span className="fq-cine-bar is-top" /><span className="fq-cine-bar is-bottom" />
-            {titleCard && (
+            {titleCard && (started ? (
               <span className="fq-cine-card">
                 <small>{kicker}</small>
                 <strong>{title}</strong>
               </span>
-            )}
+            ) : <span className="fq-cine-card is-waiting" aria-hidden="true" />)}
             {current && (
               <span key={beat} className={`fq-cine-caption is-${current.speaker}`} data-testid={`story-panel-${beat}`}>
                 <span className={`fq-cine-face ${typing ? 'is-talking' : ''}`}><StoryCharacter id={current.speaker} size={44} happy={current.mood === 'happy'} worried={current.mood === 'worried'} /></span>
