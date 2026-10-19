@@ -404,7 +404,10 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
                 <Art beat={done ? lines.length - 1 : Math.max(beat, 0)} />
               </span>
             </span>
+            <span className={`fq-cine-grade ${cold ? 'is-cold' : 'is-warm'}`} aria-hidden="true" />
+            <span className="fq-cine-ambient" aria-hidden="true" />
             <span className="fq-cine-vignette" />
+            <span className="fq-cine-grain" aria-hidden="true" />
             <span className="fq-cine-bar is-top" /><span className="fq-cine-bar is-bottom" />
             {titleCard && (
               <span className="fq-cine-card">
