@@ -386,6 +386,10 @@ function ChapterEndArt({ beat, unit = 1, speaker }: { beat: number; unit?: numbe
       <span className="fq-cine-end-horizon" />
       <span className={`fq-cine-end-stone ${beat >= 1 ? 'is-found' : ''}`} role="img" aria-label={`Chapter ${unit} stone piece recovered`} />
       <span className="fq-cine-actor" style={pos(26, 27)}><StoryCharacter id={speaker ?? chapter.character} size={96} happy={beat >= 1} /></span>
+      {/* The chapter's friend stays beside their piece, so every ending looks like its own chapter. */}
+      {speaker && speaker !== chapter.character && (
+        <span className="fq-cine-actor" style={pos(72, 40)} data-testid="story-end-friend"><StoryCharacter id={chapter.character} size={66} happy={beat >= 1} /></span>
+      )}
       <span className={`fq-cine-end-ribbon ${beat >= 2 ? 'is-visible' : ''}`}>{beat >= 2 ? `${unit} of 15 pieces` : ''}</span>
       {beat >= 2 && <Confetti />}
     </>
