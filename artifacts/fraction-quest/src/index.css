@@ -1166,6 +1166,29 @@
   cursor: pointer;
 }
 
+.fq-developer-unlock {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  max-width: 360px;
+  padding-top: 12px;
+}
+
+.fq-developer-unlock input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 2px solid hsl(var(--border));
+  border-radius: 12px;
+  font: inherit;
+}
+
+.fq-developer-unlock p {
+  margin: 0;
+  color: hsl(var(--destructive));
+  font-weight: 800;
+}
+
 .fq-developer-test-body {
   display: grid;
   justify-items: start;
