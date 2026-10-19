@@ -1428,7 +1428,7 @@ describe('entered-answer worksheets and evidence gates', () => {
       for (const check of getBuildChecks(mission.id)) {
         const missing = getReasonFeedback(check, null, false);
         assert.equal(missing?.correct, false, `${mission.id}/${check.id} should ask for a reason`);
-        assert.match(missing?.message ?? '', /^Reason:/);
+        assert.match(missing?.message ?? '', /^Pick the sentence that matches your model/);
 
         const incorrectIndex = (check.correctReason + 1) % check.reasons.length;
         const incorrect = getReasonFeedback(check, incorrectIndex, false);
@@ -1437,7 +1437,7 @@ describe('entered-answer worksheets and evidence gates', () => {
 
         const correctButModelsWrong = getReasonFeedback(check, check.correctReason, false);
         assert.equal(correctButModelsWrong?.correct, true, `${mission.id}/${check.id} should preserve a correct reason`);
-        assert.match(correctButModelsWrong?.message ?? '', /choice is right/);
+        assert.match(correctButModelsWrong?.message ?? '', /reason is right/);
         assert.equal(getReasonFeedback(check, check.correctReason, true), null);
       }
     }
