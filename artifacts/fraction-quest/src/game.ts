@@ -313,10 +313,10 @@ const curriculum: MissionSeed[] = [
   {
     id: 'equal-parts', unit: 1, title: 'Same whole, fair pieces', shortTitle: 'Equal parts', skill: 'A fraction names equal parts of one whole. The parts must be the same size.',
     description: 'Spot fair, equal pieces.', example: {
-      prompt: 'A strip is cut into 4 pieces. When are they fourths?',
+      prompt: 'A square cake is cut into 4 pieces. When are they fourths?',
       answer: 'When all 4 pieces are the same size.',
-      explanation: 'Fourths must be equal. 4 unequal pieces are not fourths.',
-      model: { kind: 'partition', parts: [25, 25, 25, 25], caption: '1 whole cut into equal pieces' },
+      explanation: 'Fourths must be equal. The pieces can be different shapes, but 4 unequal pieces are not fourths.',
+      model: { kind: 'area', cut: 'fourths-squares', shaded: [], caption: 'A square cake cut into 4 equal pieces' },
     },
     questions: [
       practice('Is this strip cut into thirds?', ['Yes, 3 equal pieces', 'No, the pieces are unequal', 'No, there are 2 pieces', 'Yes, there are 3 pieces'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Thirds are 3 pieces, all the same size. Compare the pieces.', 'One piece is twice as big as the others, so these are not thirds.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
