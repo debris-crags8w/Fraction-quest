@@ -1420,6 +1420,16 @@ function Game() {
     const record = getLearningRecord(activeProgress, missionId);
     // A lesson started for the first time opens with its story comic (when story mode is on).
     const mission = MISSIONS.find((item) => item.id === missionId);
+    // Practice already under way: go back to the same question, past the story and the hands-on start.
+    const at = record.practiceAt;
+    if (!testProgress && !record.practiceDone && at && at.index > 0 && mission) {
+      const reviewQuestions = getDelayedReviewQuestions(activeProgress, missionId);
+      const extra = hasGenerator(missionId) ? getExtraPractice(missionId, mission.questions.map((q) => q.id)).slice(0, EXTRA_IN_LESSON).length : 0;
+      if (at.index < mission.questions.length + extra + reviewQuestions.length) {
+        setView({ type: 'play', missionId, questionIndex: at.index, firstTryAnswers: at.firstTry, reviewQuestions });
+        return;
+      }
+    }
     if (!afterStory && !testProgress && storyMode && mission && chapterFor(mission.unit) && !record.practiceDone && !hasLearningGate(activeProgress, missionId)) {
       // The comic starts reading by itself, so unlock sound while still inside the tap that opened it.
       primeReadAloud();
@@ -1554,6 +1564,23 @@ function Game() {
     }
     setView({ type: 'map' });
   };
+  // The browser's back button returns to the map instead of leaving Fraction Quest: opening any screen adds one
+  // history entry, and going back from it closes the screen. Coming back to the map in the app removes that entry.
+  const viewOnMap = useRef(onMap);
+  viewOnMap.current = onMap;
+  const returnToMapRef = useRef(returnToMap);
+  returnToMapRef.current = returnToMap;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const inScreen = (window.history.state as { fqScreen?: boolean } | null)?.fqScreen === true;
+    if (!onMap && !inScreen) window.history.pushState({ fqScreen: true }, '');
+    if (onMap && inScreen) window.history.back();
+  }, [onMap]);
+  useEffect(() => {
+    const onPop = () => { if (!viewOnMap.current) returnToMapRef.current(); };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
   const nextReviewView = (nextView: View) => {
     if (pendingRetention) {
       setView({ type: 'retention', missionId: pendingRetention, startedAt: Date.now(), nextView });
@@ -1713,6 +1740,11 @@ function Game() {
             if (view.type === 'review') {
               nextReviewView({ type: 'review', questionIndex: view.questionIndex + 1, reviewQuestions: view.reviewQuestions });
             } else {
+              // Remember the place, so a reload or the back button comes back to this question.
+              if (!moduleTestActive) {
+                const record = getLearningRecord(progress, activeMission.id);
+                if (!record.practiceDone) persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceAt: { index: view.questionIndex + 1, firstTry: firstTryAnswers } }));
+              }
               setView({
                 type: 'play',
                 missionId: activeMission.id,
@@ -1724,7 +1756,7 @@ function Game() {
           }}
           onFinish={(stars) => {
             const record = getLearningRecord(progress, activeMission.id);
-            persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceDone: true, practiceStars: Math.max(stars, record.practiceStars ?? 0) }));
+            persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceDone: true, practiceAt: undefined, practiceStars: Math.max(stars, record.practiceStars ?? 0) }));
             setView({ type: 'lab', missionId: activeMission.id, stars });
             if (breakIntervalMinutes > 0) setBreakReason('lesson-part');
           }}

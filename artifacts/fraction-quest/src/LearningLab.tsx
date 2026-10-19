@@ -340,11 +340,13 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
     `${k === 'line' ? 'Mark' : k === 'set' ? 'Select' : 'Shade'} ${plural(t.n, k === 'line' ? 'jump' : k === 'set' ? 'group' : 'part', `${k === 'line' ? 'jump' : k === 'set' ? 'group' : 'part'}s`)}.`,
   ];
 
+  // Once a build passes, it stays as built: editing it used to hide Next, and a later wrong check undid the pass.
   const updatePrimary = (next: St) => {
-    if (JSON.stringify(next) === JSON.stringify(a)) return;
+    if (done || JSON.stringify(next) === JSON.stringify(a)) return;
     setA(next); setB(blank()); setReason(null); setErrs([]); setFailedSig(null); setDone(false);
   };
   const updateSecondary = (next: St) => {
+    if (done) return;
     setB(next); setReason(null); setErrs([]); setFailedSig(null); setDone(false);
   };
 
@@ -412,7 +414,8 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
             <legend><span className="fq-ll-response-step">Part 3 of 3 · </span>Both models match. Which idea explains why?</legend>
             {check.reasons.map((r, i) => (
               <label key={i} className={reason === i ? 'on' : ''}>
-                <input type="radio" name={`reason-${check.id}`} checked={reason === i} onChange={() => {
+                <input type="radio" name={`reason-${check.id}`} checked={reason === i} disabled={done} onChange={() => {
+                  if (done) return;
                   if (reason !== i) playHaptic('selection');
                   setReason(i); setErrs([]); setFailedSig(null);
                 }} data-testid={`radio-reason-${check.id}-${i}`} />
@@ -530,7 +533,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
         {!yesNo && <AnswerTiles key={p.id + p.prompt} shape={shape} value={draft} onChange={value => { setWrong(null); onEdit(value); }}
           disabled={!answerEnabled || ok} testIdPrefix={'ws-' + p.id} />}
         <div className="fq-ll-answer" aria-busy={!answerEnabled}>
-          <button ref={checkRef} type="submit" className="fq-button" disabled={!draft.trim() || ok || !answerEnabled} data-testid={'button-check-worksheet-' + p.id}>{ok ? 'Correct' : 'Check'}</button>
+          <button ref={checkRef} type="submit" className="fq-button" disabled={!draft.trim() || ok || !answerEnabled || wrong === draft} data-testid={'button-check-worksheet-' + p.id}>{ok ? 'Correct' : 'Check'}</button>
           <button type="button" className="fq-ll-hintbtn" aria-expanded={open} onClick={() => { if (!open) onHint(); setOpen(o => !o); }} data-testid={'button-hint-worksheet-' + p.id}><Lightbulb size={16} /> Hint</button>
         </div>
         <div id={'ws-fb-' + p.id} aria-live="polite">
@@ -780,7 +783,8 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           onSuccess={onSuccess}
           onHelp={(kind, keys) => {
             const r = bump(cur(), keys); const id = checks[idx].id; const old = r.checks[id];
-            save({ ...r, checks: { ...r.checks, [id]: { passed: false, supported: true, attempts: (old?.attempts ?? 0) + (kind === 'error' ? 1 : 0) } } });
+            // A hint or a miss never undoes a build that already passed.
+            save({ ...r, checks: { ...r.checks, [id]: { passed: !!old?.passed, supported: true, attempts: (old?.attempts ?? 0) + (kind === 'error' ? 1 : 0) } } });
           }}
           onPass={o => {
             const r = cur(); const id = checks[idx].id; const old = r.checks[id];

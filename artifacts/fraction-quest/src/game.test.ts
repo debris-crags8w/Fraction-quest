@@ -1135,6 +1135,27 @@ function withLearning(progress: Progress, id: string): Progress {
 }
 
 describe('entered-answer worksheets and evidence gates', () => {
+  it('counts a wrong worksheet answer once, however many times Check is pressed', () => {
+    const lesson = MISSIONS[0];
+    const problem = getWorksheet(lesson.id)[0];
+    const wrong = problem.answer === 'No' ? 'Yes' : problem.answer === 'Yes' ? 'No' : '999';
+    let record = editWorksheet(emptyLearningRecord(), problem.id, wrong);
+    record = checkWorksheet(record, problem);
+    record = checkWorksheet(record, problem);
+    assert.equal(record.worksheet[problem.id].attempts, 1, 'a second Check of the same answer is not another attempt');
+    assert.equal(record.misconceptions[problem.hint], 1, 'and not another mistake (two would add reteach questions)');
+    record = checkWorksheet(editWorksheet(record, problem.id, wrong + ' '), problem);
+    assert.equal(record.worksheet[problem.id].attempts, 2, 'a changed answer counts again');
+  });
+
+  it('remembers the place in a lesson\'s practice questions across a reload', () => {
+    const lesson = MISSIONS[1];
+    saveProgress(updateLearning(EMPTY_PROGRESS, lesson.id, { ...emptyLearningRecord(), practiceAt: { index: 3, firstTry: 2 } }));
+    assert.deepEqual(getLearningRecord(loadProgress(), lesson.id).practiceAt, { index: 3, firstTry: 2 });
+    saveProgress(updateLearning(EMPTY_PROGRESS, lesson.id, { ...emptyLearningRecord(), practiceDone: true, practiceAt: { index: 3, firstTry: 2 } }));
+    assert.equal(getLearningRecord(loadProgress(), lesson.id).practiceAt, undefined, 'finished practice has no place to resume');
+  });
+
   it('builds lesson models and math text without String.matchAll in older webviews', () => {
     const original = Object.getOwnPropertyDescriptor(String.prototype, 'matchAll');
     try {
@@ -2090,6 +2111,13 @@ describe('Part Finder saved game result', () => {
     assert.equal(recordPartFinder(replay, 99).partFinderBest, 4, 'scores cannot exceed four rounds');
     window.localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ partFinderBest: 99 }));
     assert.equal(loadFun().partFinderBest, 4);
+    window.localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: '100', dayStreak: -3, answeredToday: 'x', sound: 'yes', day: 7 }));
+    const fixed = loadFun();
+    assert.equal(fixed.xp, 0, 'points saved as text are not trusted (they used to show "10010")');
+    assert.equal(fixed.dayStreak, 0);
+    assert.equal(fixed.answeredToday, 0);
+    assert.equal(fixed.sound, true);
+    assert.match(fixed.day, /^\d{4}-\d{2}-\d{2}$/);
     assert.equal(firstRun.partFinderBest, 2);
   });
 
