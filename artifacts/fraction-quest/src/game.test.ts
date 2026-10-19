@@ -343,6 +343,15 @@ describe('lesson catalog', () => {
     }
   });
 
+  it('words every Equal parts question differently, and a redo never repeats the last four squares', () => {
+    for (let variant = 0; variant < 6; variant++) {
+      const sheet = getWorksheet('equal-parts', variant);
+      assert.equal(new Set(sheet.map((p) => p.prompt)).size, sheet.length, `variant ${variant}: no two questions read the same`);
+      const squares = (v: number) => getWorksheet('equal-parts', v).slice(8).map((p) => `${p.prompt}|${JSON.stringify(p.area)}`);
+      if (variant > 0) assert.equal(squares(variant).filter((row) => squares(variant - 1).includes(row)).length, 0, `variant ${variant} repeats a square question`);
+    }
+  });
+
   it('never offers the same fraction twice or adds 0/100 on a redo sheet', () => {
     for (let variant = 0; variant < 12; variant++) {
       for (const problem of getWorksheet('fraction-magnitude', variant)) {

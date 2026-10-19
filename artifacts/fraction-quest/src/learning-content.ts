@@ -548,6 +548,25 @@ function worksheetBuildCheck(id: string, serial: number, checkId: string): Build
 /** Halves cut two different ways: squares on one side, triangles on the other (equal size, different shape). */
 const MIXED_FOURTHS_WHY = 'The shapes are different, but the sizes match. The square is cut into 2 equal halves. One half is cut into 2 squares. The other half is cut into 2 triangles. Each part is half of a half, so all 4 parts are fourths.';
 
+/** Equal parts, last four rows: is each square cut into fourths? Set 0 is the lesson's own sheet; redo sheets take
+    sets 1 and 2 in turn, so a redo never repeats the sheet before it. Every answer stays within fourths. */
+const SQUARE_ROWS: { prompt: string; answer: string; cut: AreaFigure['cut']; shaded?: number[]; hint: string; why?: string }[][] = [[
+  { prompt: 'Are all 4 parts of this square the same size? Answer yes or no.', answer: 'yes', cut: 'fourths-mixed', hint: 'Look at the left half and the right half. How is each half cut?', why: MIXED_FOURTHS_WHY },
+  { prompt: 'This square is cut into 4 parts. Are they fourths? Answer yes or no.', answer: 'no', cut: 'fourths-unequal', hint: 'Fourths must all be the same size. Compare the biggest part and the smallest part.' },
+  { prompt: 'These parts are triangles, not squares. Are they still fourths? Answer yes or no.', answer: 'yes', cut: 'fourths-triangles', hint: 'Compare the 4 triangles. Do they all fill the same space?' },
+  { prompt: 'How many small triangles cover the same space as the small square?', answer: '2', cut: 'quarter-and-triangles', hint: 'Picture the small square cut corner to corner. What shapes do you get?' },
+], [
+  { prompt: 'Is this square cut into fourths? Answer yes or no.', answer: 'yes', cut: 'fourths-squares', hint: 'Fourths are 4 equal parts. Compare all 4 parts.' },
+  { prompt: 'Is this square cut into 4 equal strips? Answer yes or no.', answer: 'no', cut: 'strips-unequal', hint: 'Look at the first strip. Compare it with the strips next to it.' },
+  { prompt: 'These strips are long and thin. Are they still fourths? Answer yes or no.', answer: 'yes', cut: 'fourths-strips', hint: 'Shape does not matter. Compare how much space each strip covers.' },
+  { prompt: 'One triangle is colored. What fraction of the square is it?', answer: '1/4', cut: 'fourths-triangles', shaded: [0], hint: 'How many triangles of this size fill the whole square?' },
+], [
+  { prompt: 'One triangle is colored. What fraction of the whole square is it?', answer: '1/4', cut: 'fourths-mixed', shaded: [2], hint: 'Look at the left half and the right half. How is each half cut?', why: MIXED_FOURTHS_WHY },
+  { prompt: 'Is each part of this square one fourth of it? Answer yes or no.', answer: 'no', cut: 'fourths-unequal', hint: 'One fourth means 4 of them fill the square exactly. Compare the parts.' },
+  { prompt: 'One strip is colored. What fraction of the square is it?', answer: '1/4', cut: 'fourths-strips', shaded: [1], hint: 'Count all the strips. Are they the same size?' },
+  { prompt: 'How many small squares make one half of the whole square?', answer: '2', cut: 'fourths-squares', hint: 'How many small squares fill the whole square? Half of that is how many?' },
+]];
+
 const PRACTICE_DENOMINATORS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 16, 20];
 function seededBuildCheck(id: string, serial: number, checkId: string): BuildCheck {
   const [baseN, baseD, baseKind] = CHECKS[id];
@@ -683,7 +702,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
     switch (id) {
       case 'equal-parts': {
         // Shading only appears when it means something (the part being named, or parts the child marks).
-        const kind = i % 4; const later = i >= 6; // second half: same ideas, new words
+        const kind = i % 4; const later = i >= 4; // second half (rows 5 to 8): same ideas, new words
         if (kind === 0) {
           prompt = later ? 'Tap each part to count it. How many equal parts make the whole bar?' : 'Tap each part to count it. How many equal parts is this bar cut into?';
           answer = String(d); visual = model(0, d); task = { kind: 'count', n: d };
@@ -711,19 +730,12 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           prompt = `Is this pizza cut into ${fair ? d : 4} equal slices? Answer yes or no.`; answer = fair ? 'yes' : 'no'; form = 'word'; visual = undefined; task = undefined;
           area = { cut: fair ?? 'circle-unequal' }; hint = 'Equal slices are all the same size. Is one slice bigger than the others?';
         }
-        // Last four: a square whose equal parts have different shapes (same size, not always same shape).
-        if (i === 8) {
-          prompt = 'Are all 4 parts of this square the same size? Answer yes or no.'; answer = 'yes'; form = 'word'; visual = undefined; task = undefined;
-          area = { cut: 'fourths-mixed' }; hint = 'Look at the left half and the right half. How is each half cut?'; why = MIXED_FOURTHS_WHY;
-        } else if (i === 9) {
-          prompt = 'This square is cut into 4 parts. Are they fourths? Answer yes or no.'; answer = 'no'; form = 'word'; visual = undefined; task = undefined;
-          area = { cut: 'fourths-unequal' }; hint = 'Fourths must all be the same size. Compare the biggest part and the smallest part.';
-        } else if (i === 10) {
-          prompt = 'These parts are triangles, not squares. Are they still fourths? Answer yes or no.'; answer = 'yes'; form = 'word'; visual = undefined; task = undefined;
-          area = { cut: 'fourths-triangles' }; hint = '4 triangles of the same size fill the square. Same size means fourths, whatever the shape.';
-        } else if (i === 11) {
-          prompt = 'How many small triangles cover the same space as the small square?'; answer = '2'; form = undefined; visual = undefined; task = undefined;
-          area = { cut: 'quarter-and-triangles' }; hint = 'Each triangle is half of a small square.';
+        // Last four: squares whose equal parts may have different shapes (same size, not always same shape). The first
+        // sheet keeps its four; redo sheets swap to a second set, so a redo never repeats the sheet before it.
+        if (i >= 8) {
+          const row = SQUARE_ROWS[variant === 0 ? 0 : 2 - (variant % 2)][i - 8];
+          prompt = row.prompt; answer = row.answer; form = row.answer === 'yes' || row.answer === 'no' ? 'word' : undefined;
+          visual = undefined; task = undefined; area = row.shaded ? { cut: row.cut, shaded: row.shaded } : { cut: row.cut }; hint = row.hint; why = row.why;
         }
         modelRequired = !!task; break;
       }
