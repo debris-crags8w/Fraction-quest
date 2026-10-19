@@ -113,7 +113,7 @@ function BakeryArt({ beat }: { beat: number }) {
       <span className="fq-cine-awning" />
       <span className="fq-cine-shelf" style={pos(6, 18)} /><span className="fq-cine-shelf" style={pos(58, 16)} />
       <span className="fq-cine-counter" />
-      <span className={`fq-cine-actor fq-cine-bakery-enter ${beat === 0 ? 'is-grabbing' : ''} ${fair ? 'is-hopping' : ''}`} style={pos(21, 22)}>
+      <span className={`fq-cine-actor fq-cine-bakery-enter ${beat === 0 ? 'is-grabbing' : ''} ${fair ? 'is-hopping' : ''}`} style={pos(17, 22)}>
         <StoryCharacter id="chomp" size={112} happy={fair} worried={beat === 1} />
       </span>
       <svg className="fq-cine-pie" style={pos(53, 24)} viewBox="0 0 120 120" role="img"

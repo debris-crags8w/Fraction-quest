@@ -88,6 +88,9 @@
 .fq-cine-shelf { width: 36%; height: 10px; border-radius: 4px; background: #B98552; box-shadow: 0 -18px 0 -4px #F6A55B, 30px -16px 0 -3px #FF9FB2; }
 .fq-cine-counter { left: 0; right: 0; bottom: 0; height: 46%; background: #B98552; border-top: 8px solid #8D6E63; }
 .fq-cine-pie { width: 32%; max-width: 170px; aspect-ratio: 1; overflow: visible; }
+@media (max-width: 340px) {
+  .fq-cine-bakery-enter .fq-character-chomp { width: 80px; height: 80px; }
+}
 .fq-cine-slice { transition: transform .9s cubic-bezier(.2, .9, .3, 1.2) .9s; }
 .fq-cine-slice.is-0 { transform: translate(5px, -5px); } .fq-cine-slice.is-1 { transform: translate(5px, 5px); }
 .fq-cine-slice.is-2 { transform: translate(-5px, 5px); } .fq-cine-slice.is-3 { transform: translate(-5px, -5px); }
