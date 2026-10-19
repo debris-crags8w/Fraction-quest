@@ -676,14 +676,18 @@
   border-radius: 18px;
   background: hsl(var(--primary) / 0.045);
 }
+/* Labels are stacked fractions, so the lanes are measured in rem (they grow with larger text): lane 0 and lane 1
+   sit above the line, and the benchmark label sits below it. */
 .fq-order-line {
+  --lab: 2.15rem;
+  --axis: calc(var(--lab) * 2 + 14px);
   position: relative;
-  height: 102px;
+  height: calc(var(--axis) + 22px + var(--lab));
   margin: 0 4px;
 }
 .fq-order-line-axis {
   position: absolute;
-  top: 58px;
+  top: var(--axis);
   right: 0;
   left: 0;
   height: 5px;
@@ -697,14 +701,14 @@
   transform: translateX(-50%);
 }
 .fq-order-line-end {
-  top: 51px;
+  top: calc(var(--axis) - 7px);
   width: 3px;
   height: 19px;
   border-radius: 3px;
   background: hsl(var(--foreground));
 }
 .fq-order-line-point {
-  top: calc(4px + var(--lane) * 24px);
+  top: calc(var(--lane) * (var(--lab) + 4px));
   display: grid;
   justify-items: center;
   min-width: 46px;
@@ -713,7 +717,7 @@
 }
 .fq-order-line-point::after {
   position: absolute;
-  top: calc(46px - var(--lane) * 24px);
+  top: calc(var(--axis) - 9px - var(--lane) * (var(--lab) + 4px));
   width: 17px;
   height: 17px;
   border: 3px solid hsl(var(--card));
@@ -732,7 +736,7 @@
 }
 .fq-order-line-benchmark {
   z-index: 1;
-  top: 73px;
+  top: calc(var(--axis) + 16px);
   color: hsl(var(--foreground));
   font-size: .78rem;
   font-weight: 900;
@@ -740,9 +744,9 @@
 .fq-order-line-benchmark::before {
   position: absolute;
   z-index: -1;
-  bottom: 22px;
+  bottom: 100%;
   left: 50%;
-  height: 34px;
+  height: 16px;
   border-left: 2px dashed var(--fq-order-accent);
   content: "";
 }
@@ -851,11 +855,7 @@
     justify-content: stretch;
   }
   .fq-order-line-description .fq-learning-listen { justify-self: start; margin-left: 0; }
-  .fq-order-line { height: 142px; }
-  .fq-order-line-point { top: calc(4px + var(--lane) * 48px); min-width: 40px; font-size: .88rem; }
-  .fq-order-line-point::after { top: calc(46px - var(--lane) * 48px); }
-  .fq-order-line-benchmark { top: 104px; }
-  .fq-order-line-benchmark::before { height: 54px; }
+  .fq-order-line-point { min-width: 40px; font-size: .88rem; }
 }
 .fq-learning-section:nth-of-type(1) > p { font-weight: 800; }
 .fq-learning-section { display: grid; gap: 6px; }

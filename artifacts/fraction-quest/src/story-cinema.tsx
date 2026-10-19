@@ -603,7 +603,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
               </span>
             ) : <span className="fq-cine-card is-waiting" aria-hidden="true" />)}
             {current && (
-              <span key={beat} className={`fq-cine-caption is-${current.speaker}`} data-testid={`story-panel-${beat}`}>
+              <span key={beat} className={`fq-cine-caption is-${current.speaker}`} data-testid={done ? 'story-caption-final' : `story-panel-${beat}`}>
                 <span className={`fq-cine-face ${typing ? 'is-talking' : ''}`}><StoryCharacter id={current.speaker} size={44} happy={current.mood === 'happy'} worried={current.mood === 'worried'} /></span>
                 <span className="fq-cine-words">
                   <span className="fq-cine-name">{CHARACTERS[current.speaker].name}</span>
