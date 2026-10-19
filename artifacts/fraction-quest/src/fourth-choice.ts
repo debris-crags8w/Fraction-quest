@@ -8,9 +8,10 @@ import { namedChoices } from './answer-shape';
 const SIGNS = new Set(['<', '=', '>']);
 const norm = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
 const EPS = 1e-9;
-export const SIGN_FOURTH = "Can't tell";
+/** A real slip, not filler: comparing only the bottom numbers (never the right choice, which is always a sign). */
+export const SIGN_FOURTH = 'Just compare the bottom numbers';
 
-/** Pick the sign questions: there are only three signs, so their fourth choice is "Can't tell". */
+/** Pick the sign questions: there are only three signs, so their fourth choice is a worded slip. */
 export function isSignQuestion(choices: string[]): boolean {
   const signs = choices.filter((choice) => SIGNS.has(choice.trim()));
   return signs.length >= 3 && choices.every((choice) => SIGNS.has(choice.trim()) || choice === SIGN_FOURTH);
@@ -91,7 +92,7 @@ function denominatorRank(text: string, right: string, choices: string[]): number
 }
 
 /** A fourth wrong choice for a three-choice question, or null when it needs one written by hand.
-    Sign questions get "Can't tell". */
+    Sign questions get a worded slip (`SIGN_FOURTH`). */
 export function fourthChoice(prompt: string, choices: string[], correct: number): string | null {
   if (choices.length !== 3) return null;
   if (isSignQuestion(choices)) return SIGN_FOURTH;

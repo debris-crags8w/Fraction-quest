@@ -2259,7 +2259,7 @@ describe('question generator', () => {
   };
   const verify = (question: PracticeQuestion): boolean => {
     const answer = question.choices[question.correctChoice];
-    // Four choices (A–D); sign questions add "Can't tell".
+    // Four choices (A–D); sign questions add a worded slip.
     const want = 4;
     assert.equal(question.choices.length, want, `${question.id}: ${question.prompt} | ${question.choices.join(' / ')}`);
     assert.equal(new Set(question.choices.map((choice) => choice.trim())).size, want, question.id);
@@ -3458,7 +3458,7 @@ describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
 
 describe('fourth answer choice', () => {
   it('adds a believable wrong answer that is never a second right one', () => {
-        assert.equal(fourthChoice('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 1), "Can't tell", 'only three signs exist, so the fourth is Can\'t tell');
+    assert.equal(fourthChoice('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 1), 'Just compare the bottom numbers', 'only three signs exist, so the fourth is a worded slip');
     // Yes-or-no answers list "No, …" first, then "Yes, …"; the right answer moves with its choice.
     const yn = noBeforeYes({ choices: ['Yes, same-size parts', 'No, some parts are bigger', 'Yes, it is cut into pieces', 'No, the shapes are different'], correctChoice: 0 });
     assert.deepEqual(yn.choices, ['No, some parts are bigger', 'No, the shapes are different', 'Yes, same-size parts', 'Yes, it is cut into pieces']);

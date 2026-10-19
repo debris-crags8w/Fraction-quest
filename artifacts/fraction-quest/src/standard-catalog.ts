@@ -7,7 +7,7 @@ export type FractionStandard = {
   summary: string;
 };
 
-/** The standards this curriculum actually teaches or assesses: Grades 3–5 (3.NF, 4.NF and 5.NF). Bonus topics are intentionally excluded. */
+/** The standards this curriculum actually teaches or assesses. Bonus topics are intentionally excluded. */
 export const FRACTION_STANDARDS: FractionStandard[] = [
   { id: '3.NF.1', grade: 3, title: 'Understand fractions as equal parts', summary: 'Name equal parts of one whole and build unit fractions.' },
   { id: '3.NF.2a', grade: 3, title: 'Fractions on number lines', summary: 'Show a fraction as a distance from zero.' },
