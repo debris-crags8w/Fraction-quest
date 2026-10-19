@@ -416,7 +416,7 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
           {!model.hideLabels && (!asked || reveal) && <span>{(model.tenths / 10).toFixed(1)}</span>}
         </div>
       )}
-      {model.caption && <p className="fq-model-caption">{model.caption}</p>}
+      {model.caption && <p className="fq-model-caption"><MathText text={model.caption} /></p>}
     </div>
   );
 }
@@ -659,7 +659,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                         <h3 id={`unit-${unit.number}`}>{unit.title}</h3>
                         <p>{unit.subtitle}</p>
                       </div>
-                      <span className="fq-unit-count" aria-label={`${completedInUnit} of ${unit.missions.length} lessons mastered`}>{completedInUnit}/{unit.missions.length}</span>
+                      <span className="fq-unit-count" aria-label={`${completedInUnit} of ${unit.missions.length} lessons mastered`}>{completedInUnit} of {unit.missions.length}</span>
                     </div>
                   )}
                   <LessonPath
@@ -690,7 +690,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                           <>
                             <span className="fq-node-kicker">Lesson {String(missionNumber).padStart(2, '0')}</span>
                             <h4>{mission.title}</h4>
-                            <p>{mission.description}</p>
+                            <p><MathText text={mission.description} /></p>
                             {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
                               {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
                               {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}

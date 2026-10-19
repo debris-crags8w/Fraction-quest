@@ -55,7 +55,7 @@ export function StoryComicView({ title, kicker, panels, name, choice, picked: sa
                 <StoryCharacter id={panel.speaker} size={72} happy={panel.mood === 'happy'} worried={panel.mood === 'worried' || (!panel.mood && looksWorried(panel))} />
                 <div className="fq-story-bubble">
                   <span className="fq-story-name">{CHARACTERS[panel.speaker].name}</span>
-                  <p>{panel.speaker === 'hoot' ? <LearningText text={panel.text} emphasize /> : panel.text}</p>
+                  <p>{panel.speaker === 'hoot' ? <LearningText text={panel.text} emphasize /> : <MathText text={panel.text} />}</p>
                 </div>
               </li>
             ))}
@@ -72,7 +72,7 @@ export function StoryComicView({ title, kicker, panels, name, choice, picked: sa
               {reply && (
                 <p className="fq-story-reply" role="status" data-testid="story-choice-reply">
                   <StoryCharacter id={reply.speaker} size={40} />
-                  <span><b>{CHARACTERS[reply.speaker].name}:</b> {reply.text}
+                  <span><b>{CHARACTERS[reply.speaker].name}:</b> <MathText text={reply.text} />
                     {choiceNotes && picked !== null && <em className="fq-story-reward" data-testid="story-choice-reward">{choiceNotes[picked]}</em>}</span>
                 </p>
               )}
@@ -108,7 +108,7 @@ export function StoneBanner({ completedUnits, onStorybook, town }: { completedUn
     <section className="fq-stone-banner" aria-labelledby="stone-title" data-testid="stone-banner">
       <div className="fq-stone-head">
         <h2 id="stone-title">The Whole Stone</h2>
-        <span><strong>{completedUnits.size}/{STONE_PIECES}</strong> found</span>
+        <span><strong>{completedUnits.size} of {STONE_PIECES}</strong> found</span>
         <button type="button" className="fq-storybook-button" onClick={onStorybook} data-testid="button-open-storybook">
           <BookOpen size={18} aria-hidden="true" /> Storybook
         </button>
@@ -153,7 +153,7 @@ export function ChapterBanner({ chapter, unitTitle, done, total, state, teaser, 
         <div>
           <span className="fq-chapter-banner-kicker">Chapter {chapter.unit} · with {CHARACTERS[chapter.character].name}</span>
           <h3 id={`unit-${chapter.unit}`}>{chapter.title}</h3>
-          <p>{unitTitle} · <span aria-label={`${done} of ${total} lessons mastered`}>{done}/{total} lessons</span></p>
+          <p>{unitTitle} · <span aria-label={`${done} of ${total} lessons mastered`}>{done} of {total} lessons</span></p>
         </div>
       </div>
       {state === 'current' && teaser && <div className="fq-listen-row"><p className="fq-chapter-banner-teaser" data-testid="stone-teaser">{withName(teaser, null, theme)}</p><LearningListenButton text={withName(teaser, null, theme)} label="Listen to the teaser" compact /></div>}
@@ -349,7 +349,7 @@ export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, p
       </div>
       {problem && (
         <p className="fq-story-result" data-testid="story-problem-result">
-          <strong>Because you solved the story problem:</strong> {tell(problem.result)}
+          <strong>Because you solved the story problem:</strong> <MathText text={tell(problem.result)} />
         </p>
       )}
       {chapterDone && !stoneSolved && <StoneQuestion found={piecesFound} onSolved={() => setStoneSolved(true)} />}
@@ -357,7 +357,7 @@ export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, p
         <div className="fq-stone-found" data-testid="stone-found">
           <span className="fq-stone-found-head">
             <strong>{finale ? <>The stone is <u>one whole</u> again!</> : 'You found a stone piece!'}</strong>
-            <span><b>{piecesFound}/{STONE_PIECES}</b> found</span>
+            <span><b>{piecesFound} of {STONE_PIECES}</b> found</span>
           </span>
           <StoneBar found={piecesFound} fresh />
           <div data-testid="stone-new-clue"><ClueCard chapter={chapter} name={name} theme={theme} fresh /></div>
@@ -436,7 +436,7 @@ export function StoryCard({ chapter, unlocked, fresh = false, compact = false, o
       <span className="fq-story-card-copy">
         {fresh && <small>New card</small>}
         <strong>{unlocked ? chapter.card.title : `Chapter ${chapter.unit}`}</strong>
-        {!compact && <span>{unlocked ? withName(chapter.card.blurb, null, theme) : `Finish “${chapter.title}” to unlock this card.`}</span>}
+        {!compact && <span><MathText text={unlocked ? withName(chapter.card.blurb, null, theme) : `Finish “${chapter.title}” to unlock this card.`} /></span>}
         {unlocked && onRead && (
           <button type="button" className="fq-story-card-read" onClick={onRead} data-testid={`button-read-chapter-${chapter.unit}`}>
             <BookOpen size={15} aria-hidden="true" /> Read chapter {chapter.unit} again

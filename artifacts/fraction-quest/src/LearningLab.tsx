@@ -22,6 +22,7 @@ import { LessonTeachingSupport } from './LessonTeachingSupport';
 import './learning-lab.css';
 import { TaskBar } from './TaskBar';
 import { LiveFraction, TickLabel } from './fraction-ui';
+import { MathText } from './MathText';
 import { AnswerTiles } from './AnswerTiles';
 import { answerShape } from './answer-shape';
 import { useRevealWhen } from './lib/reveal';
@@ -177,7 +178,7 @@ export function ScaleInteraction({ task, onReady, disabled, id }: {
   useEffect(() => { onReady(complete); }, [complete, onReady]);
   return (
     <div className="fq-ll-custom-model fq-scale-model" data-testid="scale-model">
-      <label htmlFor={`scale-factor-slider-${id}`}>Move the slider to <strong>{task.numerator}/{task.denominator}</strong> of the whole.</label>
+      <label htmlFor={`scale-factor-slider-${id}`}>Move the slider to <strong><MathText text={`${task.numerator}/${task.denominator}`} /></strong> of the whole.</label>
       <input id={`scale-factor-slider-${id}`} type="range" min="0" max="200" step="1" value={percent} disabled={disabled}
         aria-valuetext={`${percent}% of ${task.whole}`} onChange={event => setPercent(Number(event.target.value))} />
       <div className="fq-scale-compare" aria-label={`Original whole ${task.whole}; scaled amount ${((task.whole * percent) / 100).toFixed(1)}`}>
@@ -673,7 +674,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
     { label: 'Practice', done: !!rec.practiceDone },
     ...checks.map((check, index) => ({ label: buildStepName(check, index), done: !!rec.checks[check.id]?.passed })),
     { label: 'Worksheet', done: requiredDone },
-    ...(reteachProgress.total ? [{ label: `Extra practice ${reteachProgress.done}/${reteachProgress.total}`, done: reteachProgress.done === reteachProgress.total }] : []),
+    ...(reteachProgress.total ? [{ label: `Extra practice ${reteachProgress.done} of ${reteachProgress.total}`, done: reteachProgress.done === reteachProgress.total }] : []),
   ];
   const next = reqs.find(r => !r.done);
 
@@ -742,7 +743,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
                 <p><LearningText text={check.prompt} /></p>
               </SectionListenHeader>
               <div className="fq-ll-done-models"><Preview m={t} named /><Preview m={second} named /></div>
-              <p className="fq-ll-note">{check.explanation}</p>
+              <p className="fq-ll-note"><LearningText text={check.explanation} /></p>
               {rebuilding === check.id ? (
                 <CheckRunner key={`again-${check.id}`} check={check} review={false} onHelp={() => {}} onPass={() => {}} onWrong={onWrong} onSuccess={onSuccess}
                   nextLabel="Done practising" onNext={() => setRebuilding(null)} />

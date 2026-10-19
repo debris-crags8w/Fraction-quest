@@ -2046,7 +2046,7 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-svg-bar rect.shaded, .fq-svg-bar rect.empty { stroke: color-mix(in srgb, var(--fq-den) 70%, hsl(var(--foreground))); }
 .fq-svg-bar .fq-svg-fraction-label .num { fill: var(--fq-num); }
 .fq-svg-bar .fq-svg-fraction-label .den { fill: var(--fq-den); }
-.fq-svg-bar .fq-svg-fraction-label .bar { fill: hsl(var(--foreground)); }
+.fq-svg-bar .fq-svg-fraction-label .bar { stroke: hsl(var(--foreground)); stroke-width: 2.5; stroke-linecap: round; }
 @media print {
   .fq-svg-bar rect.shaded { fill: #bbb; }
   .fq-svg-bar rect.shaded, .fq-svg-bar rect.empty { stroke: #000; }

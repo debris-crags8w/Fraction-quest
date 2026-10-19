@@ -3,6 +3,7 @@ import { RotateCcw } from 'lucide-react';
 import { correctGap, TOWER_ROUNDS, TOWER_WOBBLES, towerHint, towerRound, towerStars, type TowerBlock } from './stack-tower';
 import { playHaptic } from './lib/fun';
 import { MathText } from './MathText';
+import { spokenText } from './lib/voice';
 import { LearningListenButton } from './LearningText';
 
 const newSeed = () => 1 + Math.floor(Math.random() * 100000);
@@ -114,8 +115,8 @@ export default function StackTower() {
       const label = g === tower.length ? `On top of ${name(tower[g - 1])}` : g === 0 ? `At the bottom under ${name(tower[0])}` : `Between ${name(tower[g])} and ${name(tower[g - 1])}`;
       rows.push(
         <button key={`gap-${g}`} type="button" className={`st-gap ${gap === g ? 'is-selected' : ''}`} data-gap={g} aria-pressed={gap === g}
-          aria-label={label} onClick={() => { if (gap !== g) playHaptic('selection'); setGap(g); }} data-testid={`button-tower-gap-${g}`}>
-          {gap === g && incoming ? <span className="st-gap-here">{name(incoming)} goes here</span> : <span className="st-gap-line" />}
+          aria-label={spokenText(label)} onClick={() => { if (gap !== g) playHaptic('selection'); setGap(g); }} data-testid={`button-tower-gap-${g}`}>
+          {gap === g && incoming ? <span className="st-gap-here"><MathText text={`${name(incoming)} goes here`} /></span> : <span className="st-gap-line" />}
         </button>,
       );
     }

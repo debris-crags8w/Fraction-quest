@@ -2358,7 +2358,7 @@ test('a wrong Fraction Race answer explains the miss, stalls without scoring, th
   await expect(feedback).toContainText('The answer is');
   await expect(feedback).toContainText('Back one space');
   await expect(page.getByRole('progressbar', { name: 'You progress' })).toHaveAttribute('aria-valuenow', '0');
-  await expect(page.locator('.fq-race-lane').first()).toContainText('0/10');
+  await expect(page.locator('.fq-race-lane').first()).toContainText('0 of 10');
   await expect(page.getByTestId(`race-you-choice-${wrong}`)).toBeDisabled();
   expect(await localStorageSnapshot(page)).toBe(savedProgress);
 
@@ -2680,15 +2680,15 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.clock.setFixedTime(new Date(2026, 2, 10, 10, 0, 0));
   await openAsGuest(page);
 
-  // The map shows the quest: the stone (0/15) and a Storybook button, then chapter 1 leads the first unit with
+  // The map shows the quest: the stone (0 of 15) and a Storybook button, then chapter 1 leads the first unit with
   // its friend, its hook and the one next step. There is no separate "Start your first lesson" card.
   const banner = page.getByTestId('stone-banner');
-  await expect(banner).toContainText('0/15');
+  await expect(banner).toContainText('0 of 15');
   await expect(banner.getByTestId('button-open-storybook')).toBeVisible();
   const chapterOne = page.getByTestId('chapter-banner-1');
   await expect(chapterOne).toContainText('Chapter 1 · with Chomp');
   await expect(chapterOne.getByRole('heading', { name: 'The bakery mix-up' })).toBeVisible();
-  await expect(chapterOne).toContainText('0/3 lessons');
+  await expect(chapterOne).toContainText('0 of 3 lessons');
   await expect(page.getByTestId('stone-teaser')).toContainText('The Whole Stone just cracked.');
   await expect(page.getByTestId('button-map-prologue')).toContainText('Watch the prologue');
   await expect(page.getByTestId(`button-start-mission-${MISSIONS[0].id}`)).toContainText('Start lesson');
@@ -2829,7 +2829,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(payoff.getByTestId('stone-question-feedback')).toContainText('Good try!');
   await payoff.getByTestId('button-stone-choice-2').click();
   await payoff.getByTestId('button-stone-check').click();
-  await expect(payoff.getByTestId('stone-found')).toContainText('2/15');
+  await expect(payoff.getByTestId('stone-found')).toContainText('2 of 15');
   await expect(payoff.getByTestId('stone-new-clue')).toContainText('A big green tail by the pond');
   await expect(payoff.getByTestId('story-card-2')).toContainText('Pip the party host');
   await expect(payoff.getByTestId('story-cliff')).toContainText('Tilly calls from the hill');
@@ -2837,7 +2837,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(payoff.getByTestId('button-open-suspects')).toHaveCount(0);
   await page.getByTestId('button-return-map').click();
 
-  // Back on the map: 2/15 found, and chapter 3 leads with chapter 2's cliffhanger.
+  // Back on the map: 2 of 15 found, and chapter 3 leads with chapter 2's cliffhanger.
   await expect(page.getByTestId('stone-bar').first()).toHaveAttribute('data-found', '2');
   await expect(page.getByTestId('chapter-banner-3')).toContainText('Tilly’s halfway hill');
   await expect(page.getByTestId('stone-teaser')).toContainText('Tilly calls from the hill');

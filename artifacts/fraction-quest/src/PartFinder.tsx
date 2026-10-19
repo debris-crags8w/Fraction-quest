@@ -111,7 +111,7 @@ function TileFill({ cut, selection, solved }: { cut: AreaCut; selection: number[
       <div className="fq-pf-fill-grid" role="group" aria-label={`${copies} copies of the piece filling one whole`}>
         <CutPicture cut={filled} label={`A whole filled with ${copies} copies of the selected piece`} selected={AREA_CUTS[filled].map((_, index) => index)} />
       </div>
-      <p>{copies} copies fill the whole, so each copy is 1/{copies}.</p>
+      <p><MathText text={`${copies} copies fill the whole, so each copy is 1/${copies}.`} /></p>
     </div>
   );
 }

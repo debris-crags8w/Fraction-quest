@@ -403,7 +403,7 @@ export function LessonPath({ unit, color, nodes, selectedId, onSelect, allDone, 
           <span className="fq-chest" aria-label="Finish the unit to open this challenge" role="img"><Gift size={30} strokeWidth={2.5} /></span>
         )}
         <span className="fq-chest-label" data-testid={`text-challenge-unit-${unit}`}>
-          {allDone ? <>Unit challenge{challenge?.best != null ? ` · best ${challenge.best}/${challenge.max}` : ''}</> : 'Challenge: finish the unit'}
+          {allDone ? <>Unit challenge{challenge?.best != null ? ` · best ${challenge.best} of ${challenge.max}` : ''}</> : 'Challenge: finish the unit'}
         </span>
       </li>
     </ol>
