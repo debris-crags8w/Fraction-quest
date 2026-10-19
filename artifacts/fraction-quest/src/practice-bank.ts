@@ -248,7 +248,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'hundredths-decimals': (r) => {
     const n = r.int(1, 99); const dec = (n / 100).toFixed(2);
     return r.chance()
-      ? { prompt: `What fraction is ${dec}?`, right: f(n, 100), wrong: [f(n, 10), f(1, n === 1 ? 2 : n)], hint: '2 places after the dot means hundredths.', retry: `${dec} means ${n} hundredths.`, model: bar(n, 100) }
+      ? { prompt: `What fraction is ${dec}?`, right: f(n, 100), wrong: [f(n, 10), n === 1 ? f(1, 2) : n === 10 ? f(10, 10) : f(1, n)], hint: '2 places after the dot means hundredths.', retry: `${dec} means ${n} hundredths.`, model: bar(n, 100) }
       : { prompt: `Write ${f(n, 100)} as a decimal.`, right: dec, wrong: [(n / 10).toFixed(1), `${n}.0`], hint: 'Hundredths need 2 places after the dot.', retry: `${n} hundredths is ${dec}.`, model: bar(n, 100) };
   },
 };

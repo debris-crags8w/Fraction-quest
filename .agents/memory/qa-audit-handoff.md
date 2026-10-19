@@ -3,7 +3,7 @@ name: QA audit handoff
 description: Current state of Fraction Quest work — how to build/verify, feature map, recent changes, open items, and the next proposed step (Part Finder game).
 ---
 
-Fraction Quest: fractions app for ages 8–10 (72 lessons in 15 units; units 1–8 grade 3–4, units 9–15 grades 3–5). The user wants short kid-friendly
+Fraction Quest: fractions app for ages 8–10 (72 lessons in 15 units; units 1–8 grade 3–4, units 9–15 grades 3–5; Grades 3–5 are all in scope, so grade 5 lessons are not bonus). The user wants short kid-friendly
 wording, repetition, printables, model-centred learning, and everything pushed to `main`. The latest upstream state includes
 the square area model and the Part Finder proposal; local review changes should be merged only after checking current `main`.
 

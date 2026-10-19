@@ -1,5 +1,5 @@
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
-import { fourthChoice, isSignQuestion, noBeforeYes } from './fourth-choice';
+import { fourthChoice, noBeforeYes } from './fourth-choice';
 import { answerValue } from './learning-content';
 import { readFileSync } from 'node:fs';
 import { pickVoice, sayFraction, sentences, spokenText } from './lib/voice';
@@ -2259,8 +2259,8 @@ describe('question generator', () => {
   };
   const verify = (question: PracticeQuestion): boolean => {
     const answer = question.choices[question.correctChoice];
-    // Four choices (A–D); sign questions have only <, = and >.
-    const want = isSignQuestion(question.choices) ? 3 : 4;
+    // Four choices (A–D); sign questions add "Can't tell".
+    const want = 4;
     assert.equal(question.choices.length, want, `${question.id}: ${question.prompt} | ${question.choices.join(' / ')}`);
     assert.equal(new Set(question.choices.map((choice) => choice.trim())).size, want, question.id);
     for (const c of question.choices) assert.ok(c.trim().split(/\s+/).length <= 6, `${question.id}: "${c}" is too long for an answer choice`);
@@ -2820,9 +2820,9 @@ describe('new tenths + hundredths lesson', () => {
     for (const n of pos) assert.ok(n / total > 0.17 && n / total < 0.34, `positions ${pos}`);
   });
 
-  it('gives every lesson question four different choices (sign questions three)', () => {
+  it('gives every lesson question four different choices', () => {
     for (const m of MISSIONS) for (const q of m.questions) {
-      const want = isSignQuestion(q.choices) ? 3 : 4;
+      const want = 4;
       assert.equal(q.choices.length, want, `${q.id}: ${q.prompt} | ${q.choices.join(' / ')}`);
       assert.equal(new Set(q.choices.map((c) => c.trim().toLowerCase())).size, want, q.id);
       for (const c of q.choices) assert.doesNotMatch(c, /^(?:Yes|No):/, 'yes and no are followed by a comma');
@@ -3458,7 +3458,7 @@ describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
 
 describe('fourth answer choice', () => {
   it('adds a believable wrong answer that is never a second right one', () => {
-    assert.equal(fourthChoice('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 1), null, 'only three signs exist');
+        assert.equal(fourthChoice('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 1), "Can't tell", 'only three signs exist, so the fourth is Can\'t tell');
     // Yes-or-no answers list "No, …" first, then "Yes, …"; the right answer moves with its choice.
     const yn = noBeforeYes({ choices: ['Yes, same-size parts', 'No, some parts are bigger', 'Yes, it is cut into pieces', 'No, the shapes are different'], correctChoice: 0 });
     assert.deepEqual(yn.choices, ['No, some parts are bigger', 'No, the shapes are different', 'Yes, same-size parts', 'Yes, it is cut into pieces']);
@@ -3638,5 +3638,26 @@ describe('daily practice support levels', () => {
     const progress: Progress = { ...EMPTY_PROGRESS, completedMissionIds: first12, learning };
     const topics = new Set(Array.from({ length: 7 }, (_, day) => createDailyPractice(progress, now + day * 86_400_000).questions.map((question) => question.missionId)).flat());
     assert.ok(topics.size > DAILY_PRACTICE_LENGTH, `only ${topics.size} topics in a week`);
+  });
+});
+
+describe('generated practice has exactly one right choice', () => {
+  const asFraction = (text: string) => { const m = /^(\d+)\/(\d+)$/.exec(text.trim()); return m ? { numerator: Number(m[1]), denominator: Number(m[2]) } : null; };
+  it('always has four different choices, and a decimal never has two matching fractions', () => {
+    for (const mission of MISSIONS) {
+      if (!hasGenerator(mission.id)) continue;
+      const baseIds = mission.questions.map((q) => q.id);
+      for (let seed = 1; seed <= 60; seed++) for (const q of generateQuestions(mission.id, baseIds, seed, 12)) {
+        const where = `${mission.id} seed ${seed}: ${q.prompt}`;
+        assert.equal(q.choices.length, 4, where);
+        assert.equal(new Set(q.choices).size, 4, where);
+        const right = asFraction(q.choices[q.correctChoice]);
+        if (!right || !/^What fraction is \d*\.\d+\?$/.test(q.prompt)) continue;
+        q.choices.forEach((choice, i) => {
+          const other = asFraction(choice);
+          if (i !== q.correctChoice && other) assert.ok(!sameFractionValue(other, right), `${where}: "${choice}" equals the right answer`);
+        });
+      }
+    }
   });
 });

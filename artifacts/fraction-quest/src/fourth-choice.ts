@@ -8,10 +8,12 @@ import { namedChoices } from './answer-shape';
 const SIGNS = new Set(['<', '=', '>']);
 const norm = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
 const EPS = 1e-9;
+export const SIGN_FOURTH = "Can't tell";
 
-/** Pick the sign questions: there are only three signs, so they keep three choices. */
+/** Pick the sign questions: there are only three signs, so their fourth choice is "Can't tell". */
 export function isSignQuestion(choices: string[]): boolean {
-  return choices.every((choice) => SIGNS.has(choice.trim()));
+  const signs = choices.filter((choice) => SIGNS.has(choice.trim()));
+  return signs.length >= 3 && choices.every((choice) => SIGNS.has(choice.trim()) || choice === SIGN_FOURTH);
 }
 
 const hash = (text: string) => [...text].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7);
@@ -89,9 +91,10 @@ function denominatorRank(text: string, right: string, choices: string[]): number
 }
 
 /** A fourth wrong choice for a three-choice question, or null when it needs one written by hand.
-    Sign questions never get one (see `isSignQuestion`). */
+    Sign questions get "Can't tell". */
 export function fourthChoice(prompt: string, choices: string[], correct: number): string | null {
-  if (choices.length !== 3 || isSignQuestion(choices)) return null;
+  if (choices.length !== 3) return null;
+  if (isSignQuestion(choices)) return SIGN_FOURTH;
   const right = choices[correct];
   const taken = new Set(choices.map(norm));
   const fresh = (text: string) => !!text && !taken.has(norm(text));
