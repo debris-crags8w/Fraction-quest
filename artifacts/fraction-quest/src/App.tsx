@@ -2,6 +2,7 @@ import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef,
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, BarChart3, BookOpen, Check, ClipboardCheck, Code2, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { MathText } from './MathText';
+import { sayFraction } from './lib/voice';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -254,7 +255,9 @@ export function OrderNumberLine({
   benchmark: { numerator: number; denominator: number };
   equivalentNames?: { fraction: { numerator: number; denominator: number }; equivalentTo: { numerator: number; denominator: number } }[];
 }) {
-  const fractionName = ({ numerator, denominator }: { numerator: number; denominator: number }) => `${numerator} over ${denominator}`;
+  // Labels on the line are stacked fractions ("1/4 = 2/8" through MathText); the description says them in words.
+  const slashName = ({ numerator, denominator }: { numerator: number; denominator: number }) => `${numerator}/${denominator}`;
+  const fractionName = ({ numerator, denominator }: { numerator: number; denominator: number }) => sayFraction(numerator, denominator);
   const equivalentNamesFor = (point: { numerator: number; denominator: number }) =>
     equivalentNames.filter(({ equivalentTo }) => sameFractionValue(point, equivalentTo));
   const equivalentDescriptionFor = (
@@ -264,7 +267,7 @@ export function OrderNumberLine({
     `${fractionName(point)} and ${fractionName(fraction)} are equivalent fractions. They mark the same amount and number-line spot.`,
   ).join(' ');
   const pointText = (point: { numerator: number; denominator: number }) =>
-    `${point.numerator} over ${point.denominator} is at ${point.numerator} of ${point.denominator} equal spaces from zero to one`;
+    `${fractionName(point)} is at ${point.numerator} of ${point.denominator} equal spaces from zero to one.`;
   const benchmarkNames = equivalentNamesFor(benchmark);
   const benchmarkIsHalf = benchmark.numerator * 2 === benchmark.denominator;
   const description = [
@@ -272,13 +275,13 @@ export function OrderNumberLine({
     ...points.map((point) => {
       const names = equivalentNamesFor(point);
       return names.length
-        ? `${pointText(point)}. ${equivalentDescriptionFor(point, names)}`
+        ? `${pointText(point)} ${equivalentDescriptionFor(point, names)}`
         : pointText(point);
     }),
     ...(benchmarkIsHalf
       ? [`The one-half benchmark is halfway between zero and one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]
-      : [`The benchmark ${benchmark.numerator} over ${benchmark.denominator} is at ${benchmark.numerator} of ${benchmark.denominator} equal spaces from zero to one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]),
-    `From left to right, the fractions are ${points.map(({ numerator, denominator }) => `${numerator} over ${denominator}`).join(', ')}.`,
+      : [`The benchmark ${fractionName(benchmark)} is at ${benchmark.numerator} of ${benchmark.denominator} equal spaces from zero to one.${benchmarkNames.length ? ` ${equivalentDescriptionFor(benchmark, benchmarkNames)}` : ''}`]),
+    `From left to right, the fractions are ${points.map(fractionName).join(', ')}.`,
   ].join(' ');
 
   return (
@@ -294,15 +297,15 @@ export function OrderNumberLine({
           className="fq-order-line-benchmark"
           style={{ left: `${(benchmark.numerator / benchmark.denominator) * 100}%` }}
           data-testid="fraction-order-benchmark"
-          data-equivalent-names={benchmarkNames.map(({ fraction }) => fractionName(fraction)).join(',')}
+          data-equivalent-names={benchmarkNames.map(({ fraction }) => slashName(fraction)).join(',')}
           aria-hidden="true"
         >
-          <span>{[fractionName(benchmark), ...benchmarkNames.map(({ fraction }) => fractionName(fraction))].join(' = ')}</span>
+          <span><MathText text={[slashName(benchmark), ...benchmarkNames.map(({ fraction }) => slashName(fraction))].join(' = ')} /></span>
         </span>
         {points.map((point, index) => {
           const position = (point.numerator / point.denominator) * 100;
           const names = equivalentNamesFor(point);
-          const label = [fractionName(point), ...names.map(({ fraction }) => fractionName(fraction))].join(' = ');
+          const label = [slashName(point), ...names.map(({ fraction }) => slashName(fraction))].join(' = ');
           return (
             <span
               className="fq-order-line-point"
@@ -310,10 +313,10 @@ export function OrderNumberLine({
               key={`${point.numerator}/${point.denominator}`}
               data-testid={`fraction-order-point-${point.numerator}-${point.denominator}`}
               data-position={position}
-              data-equivalent-names={names.map(({ fraction }) => fractionName(fraction)).join(',')}
+              data-equivalent-names={names.map(({ fraction }) => slashName(fraction)).join(',')}
               aria-hidden="true"
             >
-              <span>{label}</span>
+              <span><MathText text={label} /></span>
             </span>
           );
         })}

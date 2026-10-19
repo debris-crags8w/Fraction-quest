@@ -94,23 +94,23 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   await expect(numberLine).toContainText('0');
   await expect(numberLine).toContainText('1 whole');
   await expect(numberLine).toContainText('one-half benchmark is halfway');
-  await expect(numberLine).toContainText('1/4 = 2/8');
-  await expect(numberLine).toContainText('1/4 and 2/8 are equivalent fractions');
+  await expect(numberLine).toContainText('14 = 28');
+  await expect(numberLine).toContainText('one fourth and two eighths are equivalent fractions');
   await expect(numberLine).toContainText('same amount and number-line spot');
-  await expect(numberLine).toContainText('1/2 = 2/4');
-  await expect(numberLine).toContainText('1/2 and 2/4 are equivalent fractions');
+  await expect(numberLine).toContainText('12 = 24');
+  await expect(numberLine).toContainText('one half and two fourths are equivalent fractions');
   await expect(numberLine).toContainText('same amount and number-line spot');
   await expect(numberLine.getByRole('button', { name: 'Listen to the fraction number line' })).toBeVisible();
   const benchmark = page.getByTestId('fraction-order-benchmark');
   await expect(benchmark).toHaveAttribute('style', /left: 50%/);
   await expect(benchmark).toHaveAttribute('data-equivalent-names', '2/4');
-  await expect(benchmark).toContainText('1/2 = 2/4');
+  await expect(benchmark).toContainText('12 = 24');
   await expect(page.getByTestId('fraction-order-point-1-4')).toHaveAttribute('data-position', '25');
   await expect(page.getByTestId('fraction-order-point-1-4')).toHaveAttribute('data-equivalent-names', '2/8');
-  await expect(page.getByTestId('fraction-order-point-1-4')).toContainText('1/4 = 2/8');
+  await expect(page.getByTestId('fraction-order-point-1-4')).toContainText('14 = 28');
   await expect(page.getByTestId('fraction-order-point-3-8')).toHaveAttribute('data-position', '37.5');
   await expect(page.getByTestId('fraction-order-point-5-8')).toHaveAttribute('data-position', '62.5');
-  await expect(numberLine.locator('.fq-order-line')).toHaveAttribute('aria-label', /1\/4 is at 1 of 4 equal spaces.*1\/4 and 2\/8 are equivalent fractions.*same amount and number-line spot.*3\/8 is at 3 of 8 equal spaces.*5\/8 is at 5 of 8 equal spaces.*one-half benchmark is halfway.*1\/2 and 2\/4 are equivalent fractions.*same amount and number-line spot/);
+  await expect(numberLine.locator('.fq-order-line')).toHaveAttribute('aria-label', /one fourth is at 1 of 4 equal spaces.*one fourth and two eighths are equivalent fractions.*same amount and number-line spot.*three eighths is at 3 of 8 equal spaces.*five eighths is at 5 of 8 equal spaces.*one-half benchmark is halfway.*one half and two fourths are equivalent fractions.*same amount and number-line spot/);
 
   const introBottom = await intro.evaluate((element) => element.getBoundingClientRect().bottom);
   const modelTop = await page.locator('.fq-example .fq-model-area').evaluate((element) => element.getBoundingClientRect().top);
@@ -205,10 +205,10 @@ test('the ordering number line stays legible in grayscale print media', async ({
   await expect(figure.locator('.fq-order-line-caption')).toContainText('0');
   await expect(figure.locator('.fq-order-line-caption')).toContainText('1 whole');
   await expect(figure.locator('.fq-order-line-point > span')).toHaveCount(3);
-  await expect(figure.locator('.fq-order-line-point > span').nth(0)).toContainText('1/4 = 2/8');
-  await expect(figure.locator('.fq-order-line-point > span').nth(1)).toContainText('3/8');
-  await expect(figure.locator('.fq-order-line-point > span').nth(2)).toContainText('5/8');
-  await expect(figure.locator('.fq-order-line-benchmark > span')).toContainText('1/2 = 2/4');
+  await expect(figure.locator('.fq-order-line-point > span').nth(0)).toContainText('14 = 28');
+  await expect(figure.locator('.fq-order-line-point > span').nth(1)).toContainText('38');
+  await expect(figure.locator('.fq-order-line-point > span').nth(2)).toContainText('58');
+  await expect(figure.locator('.fq-order-line-benchmark > span')).toContainText('12 = 24');
 
   const printStyles = await figure.evaluate((element) => {
     const axis = element.querySelector<HTMLElement>('.fq-order-line-axis');
@@ -1818,7 +1818,7 @@ test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, 
   await assignPiece(6);
   await assignPiece(7);
   await page.getByTestId('button-part-finder-check').click();
-  await expect(page.getByTestId('part-finder-feedback')).toContainText('Every friend gets 1/4 of the cake.');
+  await expect(page.getByTestId('part-finder-feedback')).toContainText('Every friend gets 14 of the cake.');
   await page.getByTestId('button-part-finder-next').click();
   await expectLessonQuestionProgress(page, 1, 0);
 });
