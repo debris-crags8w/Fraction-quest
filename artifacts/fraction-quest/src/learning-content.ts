@@ -437,6 +437,54 @@ function arrangeReasons(key: string, right: string, wrong: [string, string]): { 
   reasons.splice(correctReason, 0, right);
   return { reasons, correctReason };
 }
+/** Step 3 ("Apply it") for lessons whose worksheet rows can't become a Build: the lesson's own idea with new numbers. */
+const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reason: string; kind?: LearningModel['kind']; total?: number }> = {
+  'equal-parts': { n: 1, d: 4, prompt: 'Cut a pizza into 4 equal slices. Shade 1.', reason: '4 equal slices. 1 of them is 1/4.' },
+  'fraction-names': { n: 2, d: 6, prompt: 'A pan has 6 equal parts. 2 are eaten. Make 2/6.', reason: 'The denominator, 6, is all the parts. The numerator, 2, is the parts you count.' },
+  'unit-fractions': { n: 1, d: 8, prompt: 'A pizza has 8 equal slices. Make one slice.', reason: '1 of 8 equal slices is 1/8.' },
+  'sets-unit-fractions': { n: 1, d: 4, kind: 'set', total: 16, prompt: 'Share 16 stickers among 4 friends. Pick 1 share.', reason: '16 in 4 equal groups is 4 each. 1 group is 1/4.' },
+  'sets-nonunit': { n: 3, d: 4, kind: 'set', total: 16, prompt: 'Put 16 stickers in 4 equal groups. Pick 3 groups.', reason: '16 in 4 equal groups is 4 each. 3 groups is 3/4.' },
+  'order-fractions': { n: 5, d: 8, prompt: 'Which is biggest: 3/8, 5/8 or 1/8? Make it.', reason: 'All are eighths, so the pieces are the same size. 5 pieces is the most.' },
+  'equivalent-models': { n: 3, d: 6, prompt: 'Show 1/2 using sixths. Split every piece.', reason: 'Split each half into 3. So 1/2 = 3/6.' },
+  'build-equivalents': { n: 6, d: 8, prompt: 'Show 3/4 using eighths.', reason: 'Split each fourth into 2. So 3/4 = 6/8.' },
+  'missing-equivalent': { n: 4, d: 6, prompt: '2/3 = ?/6. Make it.', reason: 'Thirds to sixths is times 2. 2 × 2 = 4, so 4/6.' },
+  'improper-fractions': { n: 5, d: 3, prompt: 'Make 5/3. It is more than 1 whole.', reason: '3/3 is 1 whole. 2 more thirds go past it.' },
+  'unit-fraction-multiples': { n: 4, d: 3, prompt: 'Put 4 pieces of 1/3 together. Build the total.', reason: '4 copies of 1/3 make 4/3.' },
+  'simplify-fractions': { n: 1, d: 2, prompt: 'Make 4/8 in simplest form.', reason: 'Divide both by 4. So 4/8 = 1/2.' },
+  'equivalent-missing-both': { n: 6, d: 8, prompt: 'Show 3/4 using eighths.', reason: 'Multiply both by 2. So 3/4 = 6/8.' },
+  'whole-numbers-as-fractions': { n: 10, d: 5, prompt: 'Build 2 wholes using fifths.', reason: 'Each whole is 5/5. 2 wholes is 10/5.' },
+  'compare-unlike-fractions': { n: 3, d: 4, prompt: 'Which is bigger, 3/4 or 5/8? Make it.', reason: '3/4 = 6/8. 6 eighths is more than 5 eighths.' },
+  'order-unlike-fractions': { n: 4, d: 5, prompt: 'Which is biggest: 1/2, 2/5 or 4/5? Make it.', reason: 'Use 1/2. 4/5 is more than 1/2, and 2/5 is less.' },
+  'add-unlike-fractions': { n: 3, d: 4, prompt: 'Build 1/2 + 1/4 using fourths.', reason: '1/2 = 2/4. 2/4 + 1/4 = 3/4.' },
+  'add-mixed-numbers': { n: 11, d: 4, prompt: 'Make 1 1/2 + 1 1/4.', reason: '1/2 = 2/4. 1 2/4 + 1 1/4 = 2 3/4, or 11/4.' },
+  'fraction-of-quantity': { n: 3, d: 4, kind: 'set', total: 12, prompt: 'Find 3/4 of 12 apples. Make 4 equal groups.', reason: '12 in 4 equal groups is 3 each. 3 groups is 9.' },
+  'mixed-unlike-operations': { n: 7, d: 4, prompt: 'Build 2 1/4 − 1/2 using fourths.', reason: '1/2 = 2/4. 2 1/4 − 2/4 = 1 3/4, or 7/4.' },
+  'estimate-fraction-operations': { n: 7, d: 8, kind: 'line', prompt: 'Build 1/2 + 3/8. Is the sum less than 1?', reason: '3/8 is less than 1/2, so the sum is less than 1. It is 7/8.' },
+  'multiply-fractions': { n: 2, d: 9, prompt: 'Make 1/3 of 2/3.', reason: 'Cut each third into 3. 1/3 of 2/3 is 2/9.' },
+  'fraction-of-collection': { n: 2, d: 3, kind: 'set', total: 15, prompt: 'Put 15 cards in 3 equal groups. Pick 2 groups.', reason: '15 in 3 equal groups is 5 each. 2 groups is 10 cards.' },
+  'divide-whole-by-unit-fraction': { n: 6, d: 3, prompt: 'How many 1/3-cup scoops fill 2 cups? Make it in thirds.', reason: 'Each cup holds 3 thirds. 2 cups hold 6.' },
+  'multiplication-scaling': { n: 3, d: 5, kind: 'set', total: 20, prompt: 'Build 3/5 of 20. Is it less than or more than 20?', reason: '3/5 is less than 1 whole, so 3/5 of 20 is less than 20. It is 12.' },
+  'multiply-mixed-numbers': { n: 9, d: 4, prompt: 'Build 1 1/2 × 1 1/2 square units.', reason: 'Cut each side into halves. 9 small squares are 9/4, or 2 1/4.' },
+  'unit-fraction-divided-whole': { n: 1, d: 8, prompt: 'Share 1/4 of a cake equally among 2 children. Build one share.', reason: 'Split the fourth into 2 equal shares. Each share is 1/8.' },
+  'fraction-of-length': { n: 2, d: 3, kind: 'line', prompt: 'Mark 2/3 of a mile on the line.', reason: 'Split the line into 3 equal spaces. Count 2.' },
+  'ruler-measurement': { n: 11, d: 8, kind: 'line', prompt: 'A pencil stub is 1 3/8 inches long. Mark it on the ruler.', reason: 'Each inch has 8 small spaces. 1 inch and 3 more eighths is 11/8.' },
+  'build-line-plots': { n: 5, d: 8, kind: 'line', prompt: 'Leaves are 3/8, 5/8 and 5/8 inch long. Mark where 2 Xs go.', reason: 'Two leaves are 5/8 inch, so 2 Xs stack at 5/8.' },
+  'read-line-plots': { n: 2, d: 4, kind: 'line', prompt: 'The shortest bug is 1/4 inch and the longest is 3/4 inch. Find their difference.', reason: 'Longest minus shortest: 3/4 − 1/4 = 2/4.' },
+  'line-plot-leveling': { n: 1, d: 3, kind: 'line', prompt: 'Share 1 liter equally among 3 cups. Show one cup.', reason: 'Split 1 liter into 3 equal parts. Each cup gets 1/3 liter.' },
+  'measurement-word-problems': { n: 5, d: 8, prompt: 'A jug has 1/4 liter. Add 3/8 liter. How much is there now?', reason: '1/4 = 2/8. 2/8 + 3/8 = 5/8 liter.' },
+  'fractional-unit-conversions': { n: 1, d: 4, kind: 'line', prompt: 'Show why 1/4 hour is 15 minutes.', reason: '1 hour is 60 minutes. 4 equal parts are 15 minutes each.' },
+  'fractional-sharing': { n: 2, d: 3, prompt: '2 pizzas are shared fairly by 3 friends. Build how much one friend gets.', reason: '2 ÷ 3 is 2/3. Each friend gets 2/3 of a pizza.' },
+  'fraction-probability': { n: 3, d: 5, prompt: 'A bag has 5 marbles. 3 are green. Make the chance of green.', reason: '3 green marbles out of 5 is 3/5.' },
+  'fraction-of-area': { n: 5, d: 12, prompt: 'A garden has 12 equal beds. Plant 5.', reason: '5 planted beds out of 12 is 5/12.' },
+  'fractional-side-area': { n: 1, d: 6, prompt: 'A rectangle is 1/2 unit by 1/3 unit. Find its area.', reason: '1/2 × 1/3 = 1/6 square unit.' },
+  'equivalent-number-line': { n: 6, d: 8, kind: 'line', prompt: 'Mark 6/8 on the line. Does it land on 3/4?', reason: 'Each fourth is 2 eighths. So 6/8 and 3/4 share a spot.' },
+  'fractions-to-percent': { n: 40, d: 100, prompt: 'A phone is 40% charged. Make it.', reason: 'Percent means out of 100. 40% is 40/100.' },
+  'decimal-fraction-equivalence': { n: 3, d: 10, prompt: 'A jar is 0.3 full. Make it in tenths.', reason: '0.3 means 3 tenths: 3/10.' },
+  'compare-decimals': { n: 5, d: 10, prompt: 'Build 0.5 with tenths. Then compare it to 0.45.', reason: '0.5 = 0.50. 50 hundredths is more than 45 hundredths.' },
+  'find-the-whole': { n: 5, d: 5, prompt: '2 beads are 1/5 of a string. Shade all the parts of the whole string.', reason: 'The whole is 5 fifths. 5 × 2 = 10 beads.' },
+  'fraction-of-remainder': { n: 3, d: 8, prompt: 'Pour out 1/2 of a jug. Then pour out 1/4 of the rest. Make what is left.', reason: '1/2 is left. 1/4 of that is 1/8. 1/2 − 1/8 = 3/8.' },
+  'divide-fractions': { n: 4, d: 10, prompt: 'How many 1/10s fit in 2/5? Make 2/5 in tenths.', reason: '2/5 = 4/10. So 4 tenths fit.' },
+};
 export function getBuildChecks(id: string): BuildCheck[] {
   const seed = CHECKS[id]; if (!seed) throw new Error(`Missing learning checks: ${id}`);
   const [n, d, kind, prompt, explanation, total] = seed;
@@ -446,7 +494,11 @@ export function getBuildChecks(id: string): BuildCheck[] {
   const independent: BuildCheck = { id: 'transfer', prompt: transfer.prompt, target: transfer.target, explanation: transfer.reason, transfer: true, stepLabel: 'Step 2 · On your own',
     ...arrangeReasons(`${id}:transfer`, idea(id, transfer.reason), ['Change only the denominator', 'Count the tick marks only']) };
   const used = new Set([primary, independent].map(check => JSON.stringify(check.target)));
-  let apply: BuildCheck | null = null;
+  const authored = APPLY_CHECKS[id];
+  let apply: BuildCheck | null = authored ? {
+    id: 'apply', prompt: authored.prompt, target: model(authored.n, authored.d, authored.kind ?? 'bar', authored.total), explanation: authored.reason, transfer: true,
+    ...arrangeReasons(`${id}:apply`, idea(id, authored.reason), ['Change only the denominator', 'Count the tick marks only']),
+  } : null;
   for (let serial = 0; serial < 12 * 12 && !apply; serial++) {
     const candidate = worksheetBuildCheck(id, serial, 'apply');
     if (candidate && !used.has(JSON.stringify(candidate.target))) apply = candidate;
@@ -750,7 +802,8 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         if (i % 3 === 1) visual = model(top, even); break;
       }
       case 'fraction-magnitude': {
-        const even = [4, 6, 8, 10, 12, 6, 8, 10, 12, 6, 10, 10][t]; const h = even / 2;
+        // In fourths the "closer" row would offer 1/4 twice (1/4 and h − 1 = 1), so it uses eighths.
+        const base = [4, 6, 8, 10, 12, 6, 8, 10, 12, 6, 10, 10][t]; const even = i % 3 === 2 && base === 4 ? 8 : base; const h = even / 2;
         const top = [h + 1, h, h - 1, h][i % 4];
         prompt = i % 3 === 0 ? `What is 1/${even} more than 1/2?` :
           i % 3 === 1 ? `Put <, = or > in the gap: ${f(top, even)} __ 1/2.` : (t + i) % 2 ? `Which is closer to 1/2: ${f(1, even)} or ${f(h - 1, even)}?` : `Which is closer to 1/2: ${f(h - 1, even)} or ${f(1, even)}?`;
@@ -866,7 +919,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         answer = f(large / small + 1, large); hint = `Change 1/${small} into ${unitName(large)} first.`; break;
       }
       case 'add-tenths-hundredths': {
-        const a = [3, 6, 2, 5, 4, 7, 1, 8, 4, 2, 3, 5][t]; const b = [4, 0, 15, 7, 0, 25, 6, 0, 35, 9, 0, 45][t];
+        const a = [3, 6, 2, 5, 4, 7, 1, 8, 4, 2, 3, 5][t]; const b = [4, 12, 15, 7, 8, 25, 6, 11, 35, 9, 30, 45][t];
         prompt = i % 3 === 0 ? `${f(a, 10)} + ${f(b, 100)} = ?` : i % 3 === 1 ? `Change ${f(a, 10)} into hundredths.` : `Write ${f(a, 10)} + ${f(b, 100)} as a decimal.`;
         answer = i % 3 === 0 ? f(10 * a + b, 100) : i % 3 === 1 ? f(10 * a, 100) : ((10 * a + b) / 100).toFixed(2);
         denominator = i % 3 === 1 ? 100 : undefined; form = i % 3 === 2 ? 'decimal' : undefined;

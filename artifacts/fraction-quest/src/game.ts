@@ -906,7 +906,8 @@ export function problemQuestion(problem: WorksheetProblem, position: number): Pr
   choices.splice(position % 3, 0, problem.answer);
   const model = problemPicture(problem);
   const simpler = 'hideLabels' in model ? { ...model, hideLabels: false } : model;
-  return practice(asChoicePrompt(problem.prompt), choices, position % 3, model, problem.hint, problem.hint, simpler);
+  // The explanation shows after a right answer, so it adds the answer to the hint instead of repeating it.
+  return practice(asChoicePrompt(problem.prompt), choices, position % 3, model, problem.hint, `${problem.hint} So the answer is ${problem.answer}.`, simpler);
 }
 
 function extensionMission(topic: ExtensionTopic): MissionSeed {

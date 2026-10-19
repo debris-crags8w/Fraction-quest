@@ -325,6 +325,27 @@ describe('lesson catalog', () => {
     assert.match(REASON_IDEAS['compare-same-numerator'], /larger denominator.*smaller pieces/i);
   });
 
+  it('gives every lesson its own third Build, with new numbers and a reason that fits', () => {
+    for (const mission of MISSIONS) {
+      const checks = getBuildChecks(mission.id);
+      const targets = checks.map((check) => JSON.stringify(check.target));
+      assert.equal(new Set(targets).size, 3, `${mission.id}: the three Builds use different amounts`);
+      assert.doesNotMatch(checks[2].prompt, /Show the same amount with a bar and a number line|^Build \d+\/\d+ of \d+ counters/, `${mission.id}: step 3 is not a generic build`);
+    }
+  });
+
+  it('never offers the same fraction twice or adds 0/100 on a redo sheet', () => {
+    for (let variant = 0; variant < 12; variant++) {
+      for (const problem of getWorksheet('fraction-magnitude', variant)) {
+        const closer = /closer to 1\/2: (\S+) or (\S+)\?/.exec(problem.prompt);
+        if (closer) assert.notEqual(closer[1], closer[2], problem.prompt);
+      }
+      for (const problem of getWorksheet('add-tenths-hundredths', variant)) assert.doesNotMatch(problem.prompt, /\b0\/100/, problem.prompt);
+    }
+    const feedback = generateQuestions('compare-unlike-fractions', ['unused'], 40, 40).map((question) => question.retryFeedback).join(' ');
+    assert.doesNotMatch(feedback, /\d+ths/);
+  });
+
   it('has unique question IDs, valid answer bounds, and required visual and support content', () => {
     const missionIds = new Set(MISSIONS.map((mission) => mission.id));
     const questionIds = new Set<string>();

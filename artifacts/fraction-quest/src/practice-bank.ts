@@ -299,7 +299,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       const [d1, d2] = r.pick([[3, 5], [4, 6], [4, 10], [5, 8], [3, 8], [6, 10], [5, 12], [8, 12]] as const); const n = r.int(2, d1 - 1);
       const big: [number, number] = [n, d1]; const small: [number, number] = [n, d2]; const [x, y] = r.chance() ? [big, small] : [small, big];
       return later(`Which is bigger, ${f(x[0], x[1])} or ${f(y[0], y[1])}?`, f(n, d1), [f(n, d2), 'They are equal'],
-        `Both fractions count ${n} pieces. A larger denominator, ${d2}, makes more equal parts, so each piece is smaller.`, `Both count ${n} pieces. The ${d1}ths are bigger than the ${d2}ths, so ${f(n, d1)} is bigger.`, compareBars(x, y).model, compareBars(x, y).simpler);
+        `Both fractions count ${n} pieces. A larger denominator, ${d2}, makes more equal parts, so each piece is smaller.`, `Both count ${n} pieces. The ${name(d1)} are bigger than the ${name(d2)}, so ${f(n, d1)} is bigger.`, compareBars(x, y).model, compareBars(x, y).simpler);
     }
     if (r.int(0, 5) === 0) {
       const [n, d] = r.pick(POOL.filter(([, den]) => den <= 6)); const k = r.int(2, 3);
