@@ -48,11 +48,13 @@ const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'ei
 const PARTS: Record<number, [string, string]> = {
   2: ['half', 'halves'], 3: ['third', 'thirds'], 4: ['fourth', 'fourths'], 5: ['fifth', 'fifths'], 6: ['sixth', 'sixths'],
   7: ['seventh', 'sevenths'], 8: ['eighth', 'eighths'], 9: ['ninth', 'ninths'], 10: ['tenth', 'tenths'], 12: ['twelfth', 'twelfths'],
-  100: ['hundredth', 'hundredths'],
+  11: ['eleventh', 'elevenths'], 15: ['fifteenth', 'fifteenths'], 16: ['sixteenth', 'sixteenths'], 20: ['twentieth', 'twentieths'],
+  25: ['twenty-fifth', 'twenty-fifths'], 50: ['fiftieth', 'fiftieths'], 100: ['hundredth', 'hundredths'],
 };
 const count = (n: number) => (n <= 12 ? ONES[n] : String(n));
-/** "3/4" → "three fourths", "1/2" → "one half", "7/25" → "7 over 25". */
+/** "3/4" → "three fourths", "1/2" → "one half", "2/1" → "2", "7/30" → "7 over 30". */
 export function sayFraction(top: number, bottom: number): string {
+  if (bottom === 1) return String(top);
   const part = PARTS[bottom];
   if (!part) return `${top} over ${bottom}`;
   return `${count(top)} ${top === 1 ? part[0] : part[1]}`;
@@ -64,15 +66,18 @@ export function spokenText(text: string): string {
     .replace(/(\d+)\s+(\d+)\s*\/\s*(\d+)/g, (_, w, t, b) => `${w} and ${sayFraction(Number(t), Number(b))}`) // mixed numbers
     .replace(/\?\s*\/\s*(\d+)/g, (_, b) => `how many ${PARTS[Number(b)]?.[1] ?? `over ${b}`}`)               // ?/4
     .replace(/(\d+)\s*\/\s*\?/g, '$1 over what number')
+    .replace(/(\d+)\/(\d+)s\b/g, (_, t, b) => sayFraction(Number(t), Number(b))) // "1/2s"
     .replace(/(\d+)\s*\/\s*(\d+)/g, (_, t, b) => sayFraction(Number(t), Number(b)))
-    .replace(/\s<\s/g, ' is less than ').replace(/\s>\s/g, ' is greater than ').replace(/\s=\s/g, ' equals ')
+    .replace(/\$(\d+)\.(\d{2})\b/g, (_, d, c) => `${d} ${d === '1' ? 'dollar' : 'dollars'}${c === '00' ? '' : ` and ${Number(c)} cents`}`)
+    .replace(/(\d+)\.(\d+)/g, (_, whole, dec) => `${count(Number(whole))} point ${dec.split('').map((d: string) => ONES[Number(d)]).join(' ')}`)
+    .replace(/\s<\s/g, ' is less than ').replace(/\s>\s/g, ' is greater than ').replace(/\s*=\s*/g, ' equals ')
     .replace(/(\d)%/g, '$1 percent')
     .replace(/\s+/g, ' ').trim();
 }
 
 /** Split into sentences so the voice pauses between them (long single utterances also get cut off in Chrome). */
 export function sentences(text: string): string[] {
-  return (text.match(/[^.!?]+[.!?]*/g) ?? [text]).map((s) => s.trim()).filter(Boolean);
+  return (text.match(/(?:[^.!?]|[.!?](?!\s|$))+(?:[.!?]+|$)/g) ?? [text]).map((s) => s.trim()).filter(Boolean);
 }
 
 /** Calm, easy to follow, a little brighter and friendlier than the default. */
