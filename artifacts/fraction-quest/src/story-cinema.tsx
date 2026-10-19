@@ -263,8 +263,8 @@ function HoneyArt({ beat }: { beat: number }) {
         </span>
       ))}
       {beat === 2 && <span className="fq-cine-level" />}
-      <span className={`fq-cine-actor ${beat === 0 ? 'is-buzzing' : ''}`} style={pos(36, 16)}>
-        <StoryCharacter id="bea" size={72} happy={beat === 2} />
+      <span className={`fq-cine-actor ${beat === 0 ? 'is-buzzing' : ''}`} style={pos(40, 1)}>
+        <StoryCharacter id="bea" size={64} happy={beat === 2} />
       </span>
       <span className={`fq-cine-map ${beat === 0 ? 'is-falling' : ''}`} aria-hidden="true" />
       <span className="fq-cine-sr" role="img" aria-label="Three honey jars filled to the same height, labelled 1 over 2, 2 over 4 and 4 over 8" />
@@ -302,9 +302,9 @@ function RaceArt({ beat }: { beat: number }) {
   return (
     <>
       <span className="fq-cine-race-sky" /><span className="fq-cine-race-hill" /><span className="fq-cine-race-road" />
-      <span className="fq-cine-race-sign" style={pos(72, 20)}><b><Frac n={1} d={3} /></b><b><Frac n={1} d={2} /></b><b><Frac n={2} d={3} /></b></span>
-      <span className="fq-cine-tree" style={pos(77, 39)} />
-      {beat >= 2 && <span className="fq-cine-peeker" style={pos(80, 37)}><StoryCharacter id="bolt" size={50} worried /></span>}
+      <span className="fq-cine-race-sign" style={pos(62, 6)}><b><Frac n={1} d={3} /></b><b><Frac n={1} d={2} /></b><b><Frac n={2} d={3} /></b></span>
+      <span className="fq-cine-tree" style={pos(80, 46)} />
+      {beat >= 2 && <span className="fq-cine-peeker" style={pos(80, 41)}><StoryCharacter id="bolt" size={50} worried /></span>}
       <span className="fq-cine-actor" style={pos(12, 42)}><StoryCharacter id="tilly" size={76} happy={beat >= 1} /></span>
       <span className={`fq-cine-glint ${beat >= 1 ? 'is-found' : ''}`} style={pos(55, 65)} aria-hidden="true" />
     </>
@@ -607,7 +607,11 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
                 <span className={`fq-cine-face ${typing ? 'is-talking' : ''}`}><StoryCharacter id={current.speaker} size={44} happy={current.mood === 'happy'} worried={current.mood === 'worried'} /></span>
                 <span className="fq-cine-words">
                   <span className="fq-cine-name">{CHARACTERS[current.speaker].name}</span>
-                  <span className="fq-cine-line"><LearningText text={done ? current.text : current.text.slice(0, chars)} emphasize interactiveTerms={false} />{typing && <i className="fq-cine-caret" aria-hidden="true" />}</span>
+                  <span className="fq-cine-line">
+                    {/* The full line, hidden, holds the caption's size so it doesn't grow or re-wrap as it types. */}
+                    {!done && <span className="fq-cine-line-space" aria-hidden="true"><LearningText text={current.text} emphasize interactiveTerms={false} /></span>}
+                    <span><LearningText text={done ? current.text : current.text.slice(0, chars)} emphasize interactiveTerms={false} />{typing && <i className="fq-cine-caret" aria-hidden="true" />}</span>
+                  </span>
                 </span>
               </span>
             )}
