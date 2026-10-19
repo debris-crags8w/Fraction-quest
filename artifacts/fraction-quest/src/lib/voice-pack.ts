@@ -48,21 +48,37 @@ export const voicePackIndexPath = () => `${base().replace(/\/?$/, '/')}voice/ind
 export const voicePackPath = (path: string) => `/api/storage/public-objects/voice/${path}`;
 
 let index: Promise<{ voices: Set<string>; keys: Set<string> } | null> | null = null;
+/** When the last index fetch came back empty (null while the pack is loaded or still loading). */
+let missedAt: number | null = null;
 
-/** Load the pack's index once. No pack yet (or offline): null, and Listen uses the voice server as before. */
+/** How long to wait for the index before reading without it, and how soon to try again after a miss. */
+export const PACK_INDEX_TIMEOUT_MS = 4000;
+const PACK_RETRY_MS = 30_000;
+
+/** Load the pack's index once. No pack yet (or offline): null, and Listen uses the voice server as before.
+    A miss (offline, a slow network, an error) is only remembered for a short while, so the pack is found once the
+    connection comes back. */
 export function loadVoicePack(fetchFn: typeof fetch = fetch): Promise<{ voices: Set<string>; keys: Set<string> } | null> {
-  index ??= (async () => {
+  if (index && !(missedAt !== null && Date.now() - missedAt > PACK_RETRY_MS)) return index;
+  missedAt = null;
+  const attempt: Promise<{ voices: Set<string>; keys: Set<string> } | null> = (async () => {
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), PACK_INDEX_TIMEOUT_MS) : null;
     try {
-      const response = await fetchFn(voicePackIndexPath());
+      const response = await fetchFn(voicePackIndexPath(), controller ? { signal: controller.signal } : undefined);
       if (!response.ok) return null;
       const data = await response.json() as Partial<VoicePackIndex>;
       if (data.version !== 1 || !Array.isArray(data.voices) || !Array.isArray(data.keys)) return null;
       return { voices: new Set(data.voices), keys: new Set(data.keys) };
     } catch {
       return null;
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   })();
-  return index;
+  index = attempt;
+  void attempt.then((pack) => { if (!pack && index === attempt) missedAt = Date.now(); });
+  return attempt;
 }
 
 /** Does the pack cover this voice at all? (Then the server isn't needed to start reading.) */
@@ -80,4 +96,4 @@ export async function voicePackUrl(voice: string, sentence: string, fetchFn?: ty
 }
 
 /** Tests only: forget the loaded index (and the chosen format). */
-export function resetVoicePackForTests() { index = null; format = null; }
+export function resetVoicePackForTests() { index = null; missedAt = null; format = null; }

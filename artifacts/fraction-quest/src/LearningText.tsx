@@ -757,8 +757,7 @@ export function LearningTextSection({
 }
 
 /** One script for a card with several headed sections, read in order: "Question: … Worked answer: …". */
-export const sectionsScript = (sections: { heading: string; text: string }[]) =>
-  sections.map(({ heading, text }) => `${heading}: ${text}`).join(' ');
+export { sectionsScript } from './lab-copy';
 
 /** Keeps fractions stacked while making core vocabulary explorable and optionally audible. */
 /* Key points in a question get a solid underline: amounts ("2 pieces", "4 friends"), fraction names (halves, eighths)

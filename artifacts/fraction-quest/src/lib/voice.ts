@@ -49,6 +49,8 @@ const PARTS: Record<number, [string, string]> = {
   2: ['half', 'halves'], 3: ['third', 'thirds'], 4: ['fourth', 'fourths'], 5: ['fifth', 'fifths'], 6: ['sixth', 'sixths'],
   7: ['seventh', 'sevenths'], 8: ['eighth', 'eighths'], 9: ['ninth', 'ninths'], 10: ['tenth', 'tenths'], 12: ['twelfth', 'twelfths'],
   11: ['eleventh', 'elevenths'], 15: ['fifteenth', 'fifteenths'], 16: ['sixteenth', 'sixteenths'], 20: ['twentieth', 'twentieths'],
+  14: ['fourteenth', 'fourteenths'], 18: ['eighteenth', 'eighteenths'], 24: ['twenty-fourth', 'twenty-fourths'],
+  28: ['twenty-eighth', 'twenty-eighths'], 32: ['thirty-second', 'thirty-seconds'],
   25: ['twenty-fifth', 'twenty-fifths'], 50: ['fiftieth', 'fiftieths'], 100: ['hundredth', 'hundredths'],
 };
 const count = (n: number) => (n <= 12 ? ONES[n] : String(n));
@@ -63,6 +65,11 @@ export function sayFraction(top: number, bottom: number): string {
 /** Text as a teacher would read it to a child. */
 export function spokenText(text: string): string {
   return text
+    // "Put <, = or > in the gap: 4/6 __ 1/2." names the signs as a list, and the gap as a blank.
+    .replace(/<\s*,\s*=\s*,?\s*or\s*>/g, 'less than, equals or greater than')
+    .replace(/_{2,}/g, 'blank')
+    .replace(/\s*=\s*\?(?!\s*\/)/g, ' equals what?')                  // "1/6 + 2/6 = ?"
+    .replace(/\?(?=\s*[=+−×÷])/g, 'blank')                    // "3/4 + ? = 1"
     .replace(/(\d+)\s+(\d+)\s*\/\s*(\d+)/g, (_, w, t, b) => `${w} and ${sayFraction(Number(t), Number(b))}`) // mixed numbers
     .replace(/\?\s*\/\s*(\d+)/g, (_, b) => `how many ${PARTS[Number(b)]?.[1] ?? `over ${b}`}`)               // ?/4
     .replace(/(\d+)\s*\/\s*\?/g, '$1 over what number')
@@ -71,6 +78,7 @@ export function spokenText(text: string): string {
     .replace(/\$(\d+)\.(\d{2})\b/g, (_, d, c) => `${d} ${d === '1' ? 'dollar' : 'dollars'}${c === '00' ? '' : ` and ${Number(c)} cents`}`)
     .replace(/(\d+)\.(\d+)/g, (_, whole, dec) => `${count(Number(whole))} point ${dec.split('').map((d: string) => ONES[Number(d)]).join(' ')}`)
     .replace(/\s<\s/g, ' is less than ').replace(/\s>\s/g, ' is greater than ').replace(/\s*=\s*/g, ' equals ')
+    .replace(/\s\+\s/g, ' plus ').replace(/\s[−-]\s/g, ' minus ').replace(/\s×\s/g, ' times ').replace(/\s÷\s/g, ' divided by ')
     .replace(/(\d)%/g, '$1 percent')
     .replace(/\s+/g, ' ').trim();
 }

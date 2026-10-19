@@ -1876,6 +1876,11 @@ describe('read-aloud voice', () => {
     assert.equal(spokenText('Write 1 2/3 as a fraction.'), 'Write 1 and two thirds as a fraction.');
     assert.equal(spokenText('2/8 = ?/4'), 'two eighths equals how many fourths');
     assert.equal(spokenText('3/8 < 1/2'), 'three eighths is less than one half');
+    assert.equal(spokenText('Put <, = or > in the gap: 4/6 __ 1/2.'), 'Put less than, equals or greater than in the gap: four sixths blank one half.');
+    assert.equal(spokenText('1/6 + 2/6 = ?'), 'one sixth plus two sixths equals what?');
+    assert.equal(spokenText('Fill the blank: 3/4 + ? = 1'), 'Fill the blank: three fourths plus blank equals 1');
+    assert.equal(spokenText('5 − 2 = 3. 2 × 3 ÷ 6'), '5 minus 2 equals 3. 2 times 3 divided by 6');
+    assert.equal(spokenText('1/7 = ?/14 and 12/24'), 'one seventh equals how many fourteenths and twelve twenty-fourths');
     assert.equal(
       spokenText('The equivalent fractions 1/4 and 2/8 share the same 25 percent spot.'),
       'The equivalent fractions one fourth and two eighths share the same 25 percent spot.',

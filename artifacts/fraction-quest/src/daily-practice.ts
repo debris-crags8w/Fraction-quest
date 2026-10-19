@@ -156,6 +156,14 @@ function adaptiveTarget(question: Pick<DailyPracticeQuestion, 'numerator' | 'den
   return question;
 }
 
+/** A build question and its directions, as read aloud. */
+export function dailyBuildSpeech(numerator: number, denominator: number, bar: boolean): string {
+  const directions = bar
+    ? 'The denominator is the bottom number. It tells how many equal parts make one whole. Choose that number below. The numerator is the top number. It tells how many parts to shade.'
+    : 'The denominator is the bottom number. It tells how many equal spaces go from 0 to 1. Choose that number below. The numerator is the top number. It tells how many jumps to make from 0.';
+  return `Build ${numerator}/${denominator} ${bar ? 'with a bar.' : 'on a number line.'} ${directions}`;
+}
+
 function explanationForTarget(numerator: number, denominator: number, modelKind: DailyPracticeQuestion['modelKind']) {
   return modelKind === 'bar'
     ? `${denominator} equal parts make one whole. ${numerator} ${numerator === 1 ? 'part is' : 'parts are'} shaded, so the fraction is ${numerator}/${denominator}.`
