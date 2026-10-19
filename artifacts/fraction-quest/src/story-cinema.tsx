@@ -118,6 +118,7 @@ function BakeryArt({ beat }: { beat: number }) {
       </span>
       <svg className="fq-cine-pie" style={pos(53, 24)} viewBox="0 0 120 120" role="img"
         aria-label={fair ? 'A pie cut into 4 equal pieces' : 'A pie cut into 4 pieces of different sizes'}>
+        <ellipse cx="60" cy="116" rx="52" ry="7" fill="rgb(0 0 0 / .28)" style={{ filter: 'blur(3px)' }} aria-hidden="true" />
         {fair
           ? ['M60 60 V8 A52 52 0 0 1 112 60 Z', 'M60 60 H112 A52 52 0 0 1 60 112 Z', 'M60 60 V112 A52 52 0 0 1 8 60 Z', 'M60 60 H8 A52 52 0 0 1 60 8 Z'].map((d, i) => (
             <path key={i} className={`fq-cine-slice is-${i}`} d={d} fill="#F6A55B" stroke="#B5651D" strokeWidth="3" />
@@ -570,7 +571,10 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
                 <Art beat={done ? lines.length - 1 : Math.max(beat, 0)} unit={unit} speaker={lines[done ? lines.length - 1 : Math.max(beat, 0)]?.speaker} />
               </span>
             </span>
+            <span className={`fq-cine-grade ${cold ? 'is-cold' : 'is-warm'}`} aria-hidden="true" />
+            <span className="fq-cine-ambient" aria-hidden="true" />
             <span className="fq-cine-vignette" />
+            <span className="fq-cine-grain" aria-hidden="true" />
             <span className="fq-cine-bar is-top" /><span className="fq-cine-bar is-bottom" />
             {titleCard && (
               <span className="fq-cine-card">
