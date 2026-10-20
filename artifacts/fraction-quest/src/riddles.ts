@@ -1,7 +1,7 @@
 /* Chomp's daily riddles: daily practice told as a story. Chomp sets up each question (never a hint, never a
    number), and finishing earns his secret of the day. Hoot's lantern shows the streak as a week of nights. */
 
-import { today, type DayActivity } from './lib/fun';
+import { today, type DayActivity, type OilNotice } from './lib/fun';
 
 /** Chomp's set-up line for the question at `index` (words only, so it cannot hint at an answer). */
 const SETUPS = [
@@ -45,17 +45,39 @@ export function dailySecret(day = today()): string {
   return SECRETS[hash % SECRETS.length];
 }
 
-export type LanternNight = { day: string; label: string; lit: boolean; today: boolean };
-/** The last 7 days, ending today: a night is lit when at least one answer was right that day. */
-export function lanternWeek(activity: Record<string, DayActivity> | undefined, now = new Date()): LanternNight[] {
+export type LanternNight = { day: string; label: string; lit: boolean; today: boolean; /** No right answer, but a drop of spare oil kept the streak going. */ saved: boolean };
+/** The last 7 days, ending today: a night is lit when at least one answer was right that day, saved when spare oil covered it. */
+export function lanternWeek(activity: Record<string, DayActivity> | undefined, now = new Date(), savedDays: readonly string[] = []): LanternNight[] {
   const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   return Array.from({ length: 7 }, (_, i) => {
     const date = new Date(now);
     date.setDate(now.getDate() - (6 - i));
     const day = today(date);
-    return { day, label: i === 6 ? 'Today' : names[date.getDay()], lit: (activity?.[day]?.answered ?? 0) > 0, today: i === 6 };
+    const lit = (activity?.[day]?.answered ?? 0) > 0;
+    return { day, label: i === 6 ? 'Today' : names[date.getDay()], lit, today: i === 6, saved: !lit && savedDays.includes(day) };
   });
 }
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const dayName = (day: string) => DAY_NAMES[new Date(`${day}T12:00:00`).getDay()];
+const count = (n: number, one: string, many: string) => `${n === 1 ? 'a' : n} ${n === 1 ? one : many}`;
+
+/** What Hoot says (story mode) or the plain message, when spare oil was used or earned. A part in { key } is a key word:
+    it is underlined on screen and read like the rest. */
+export type OilWords = { title: string; speaker: 'Hoot' | null; parts: (string | { key: string })[] };
+export function oilNoticeWords(notice: OilNotice, storyOn: boolean, streak: number): OilWords {
+  if (notice.kind === 'used') {
+    const days = notice.days.map(dayName);
+    const missed = days.length === 1 ? days[0] : `${days.slice(0, -1).join(', ')} and ${days[days.length - 1]}`;
+    return storyOn
+      ? { title: 'Your lantern is still lit!', speaker: 'Hoot', parts: ['Welcome back! You missed ', { key: missed }, `, so I used ${count(days.length, 'drop', 'drops')} of `, { key: 'spare oil' }, `. Your ${streak} ${streak === 1 ? 'night is' : 'nights are'} safe.`] }
+      : { title: 'Your streak is safe!', speaker: null, parts: ['You missed ', { key: missed }, `, so ${days.length === 1 ? 'a streak saver' : `${days.length} streak savers`} kept your `, { key: `${streak}-day streak` }, ' going.'] };
+  }
+  return storyOn
+    ? { title: 'A whole week of light!', speaker: 'Hoot', parts: [`${notice.streak} nights in a row! Here is a drop of `, { key: 'spare oil' }, '. It keeps your lantern lit if you miss a night.'] }
+    : { title: `${notice.streak} days in a row!`, speaker: null, parts: ['You earned a ', { key: 'streak saver' }, '. It keeps your streak going if you miss a day.'] };
+}
+export const oilWordsText = (words: OilWords) => words.parts.map((part) => (typeof part === 'string' ? part : part.key)).join('');
 
 /** Chomp's reaction to a checked riddle answer: words only. */
 export const riddleReaction = (result: 'correct' | 'retry', index: number) =>

@@ -1,0 +1,27 @@
+/* The top of the grown-ups' report (ParentGlance). */
+.fq-glance { display: grid; gap: 14px; margin-bottom: 18px; }
+.fq-glance-summary { margin: 0; font-size: 1.08rem; line-height: 1.45; }
+.fq-glance-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.fq-glance-tiles div { display: grid; align-content: start; gap: 2px; padding: 10px; border-radius: 16px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); }
+.fq-glance-tiles strong { font-family: var(--app-font-display); font-size: 1.5rem; line-height: 1.1; color: var(--fq-grape); }
+.fq-glance-tiles span { font-size: .85rem; color: hsl(var(--muted-foreground)); }
+.fq-glance-tiles small { font-size: .78rem; color: #9A4A00; }
+.fq-glance-card { display: grid; gap: 10px; padding: 14px; border-radius: 18px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); }
+.fq-glance-card h2 { margin: 0; font-size: 1.2rem; }
+.fq-glance-card p { margin: 0; line-height: 1.45; }
+.fq-glance-grade { display: grid; gap: 4px; }
+.fq-glance-grade > div { display: flex; justify-content: space-between; gap: 8px; font-size: .95rem; }
+.fq-glance-bar { display: block; height: 12px; border-radius: 6px; background: color-mix(in srgb, var(--fq-grape) 12%, #fff); overflow: hidden; }
+.fq-glance-bar i { display: block; height: 100%; background: var(--fq-grape); }
+.fq-glance-bar i.done { background: #2E8A50; }
+.fq-glance-note { font-size: .85rem; color: hsl(var(--muted-foreground)); }
+.fq-glance-learned { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.fq-glance-learned li { display: flex; gap: 10px; align-items: flex-start; }
+.fq-glance-learned svg { flex: none; width: 24px; height: 24px; padding: 4px; box-sizing: border-box; border-radius: 50%; background: #2E8A50; color: #fff; }
+.fq-glance-eyebrow { font-size: .8rem; font-weight: 800; color: #9A4A00; }
+.fq-glance-home { display: grid; gap: 4px; padding: 12px; border-radius: 14px; background: #FFF3E3; }
+.fq-glance-share-text { margin: 0; padding: 12px; border: 1.5px dashed color-mix(in srgb, var(--fq-grape) 35%, #fff); border-radius: 12px;
+  font: inherit; font-size: .9rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fq-glance-card .fq-button { justify-self: stretch; gap: 8px; }
+.fq-glance-full { margin: 6px 0 10px; font-size: 1.2rem; }
+@media print { .fq-glance-card .fq-button, .fq-glance-card [role="status"] { display: none; } }

@@ -1,4 +1,5 @@
 import { fourthChoice, noBeforeYes, orderedWithSigns, withSignComparisons } from './fourth-choice';
+import { preferMisconceptions } from './misconceptions';
 import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, getWorksheet, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
@@ -207,7 +208,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'compose-to-one': (r) => {
     const d = r.pick(DENS); const n = r.int(1, d - 1);
-    return { prompt: `Fill the blank: ${f(n, d)} + ? = 1`, right: f(d - n, d), wrong: [f(n, d), f(d - n, d * 2)], hint: `one whole is ${f(d, d)}.`, retry: `${d} − ${n} = ${d - n}. So ${f(d - n, d)}.`, model: bar(n, d) };
+    return { prompt: `Fill the blank: ${f(n, d)} + ? = 1`, right: f(d - n, d), wrong: [f(n, d), f(d - n, d * 2)], hint: `One whole is ${f(d, d)}.`, retry: `${d} − ${n} = ${d - n}. So ${f(d - n, d)}.`, model: bar(n, d) };
   },
   'decompose-fractions': (r) => {
     const d = r.pick([5, 6, 8, 10, 12]); const n = r.int(3, d - 1); const first = r.int(1, n - 2);
@@ -219,7 +220,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'mixed-improper': (r) => {
     const d = r.int(2, 8); const left = r.int(1, d - 1);
-    return { prompt: `What is 1 and ${f(left, d)} as ${name(d)}?`, right: f(d + left, d), wrong: [f(left, d), f(1 + left, d)], hint: `one whole is ${f(d, d)}.`, retry: `${f(d, d)} + ${f(left, d)} = ${f(d + left, d)}.`, model: line(d + left, d) };
+    return { prompt: `What is 1 and ${f(left, d)} as ${name(d)}?`, right: f(d + left, d), wrong: [f(left, d), f(1 + left, d)], hint: `One whole is ${f(d, d)}.`, retry: `${f(d, d)} + ${f(left, d)} = ${f(d + left, d)}.`, model: line(d + left, d) };
   },
   'add-like-denominators': (r) => {
     const d = r.pick([5, 6, 8, 10, 12]); const a = r.int(1, d - 2); const b = r.int(1, d - 1 - a);
@@ -515,6 +516,9 @@ function withFourth(item: Item, placed: Pick<PracticeQuestion, 'choices' | 'corr
 
 /** Generated sentences use counts like "${n} pieces"; when n is 1 that reads "1 pieces are". Fix it to "1 piece is". */
 const COUNT_NOUNS = 'piece|jump|group|part|space|share|slice|cup|step';
+/** Whole-number answers: wrong choices from real slips instead of answer ± 1 (see misconceptions.ts). */
+const slipChoices = (prompt: string, placed: Pick<PracticeQuestion, 'choices' | 'correctChoice'>): Pick<PracticeQuestion, 'choices' | 'correctChoice'> =>
+  ({ choices: preferMisconceptions({ prompt, ...placed }).choices, correctChoice: placed.correctChoice });
 const signedOrder = (prompt: string, placed: Pick<PracticeQuestion, 'choices' | 'correctChoice'>) =>
   ({ ...placed, choices: orderedWithSigns(prompt, placed.choices) });
 export function oneIsSingular(text: string): string {
@@ -538,7 +542,7 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
     const key = `${item.prompt}|${item.right}`;
     const question = {
       prompt: oneIsSingular(item.prompt),
-      ...noBeforeYes(signedOrder(item.prompt, withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3)))),
+      ...noBeforeYes(signedOrder(item.prompt, slipChoices(item.prompt, withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3))))),
       hint: oneIsSingular(item.hint),
       retryFeedback: oneIsSingular(item.retry),
       model: nameBars(item.model, item.prompt),

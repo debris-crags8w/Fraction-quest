@@ -86,7 +86,7 @@ export default function DailyPractice({
             <p className="fq-eyebrow">Today’s fraction practice</p>
             <h1 id="daily-done-title">You made it through today’s practice!</h1>
             {storyOn ? <RiddleSecret /> : <p>You finished today’s practice. Great work!</p>}
-            {storyOn && fun && <LanternWeek activity={fun.activity} streak={shownStreak(fun)} />}
+            {storyOn && fun && <LanternWeek activity={fun.activity} streak={shownStreak(fun)} savedDays={fun.savedDays} oil={fun.spareOil ?? 0} />}
             <button className="fq-button" onClick={onBack} data-testid="button-daily-done-map">Back to the learning map</button>
           </section>
         </main>

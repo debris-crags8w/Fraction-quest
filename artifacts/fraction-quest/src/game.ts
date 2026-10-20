@@ -1,4 +1,5 @@
 import { noBeforeYes, orderedWithSigns, withFourthChoice, withSignComparisons } from './fourth-choice';
+import { preferMisconceptions } from './misconceptions';
 import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
 import type { AreaCut } from './area-shapes';
 import { amountsIn, autoPicture } from './auto-picture';
@@ -225,6 +226,8 @@ export type SkillReview = {
   missedQuestionId: string;
   dueAt: number;
   reviewCount: number;
+  /** Spaced review step: 0 is the review 1 day after the lesson, then 3 days, then 7 days (absent in older saves: 0). */
+  stage?: number;
 };
 
 export type Answer = number;
@@ -321,7 +324,9 @@ function practice(
   // Four choices (A–D): lessons list three, a fourth believable wrong answer is added (sign questions are written out as four comparisons).
   const signs = withSignComparisons(prompt, choices, correctChoice);
   const withFourth = withFourthChoice({ prompt, choices: signs?.choices ?? choices, correctChoice: signs?.correctChoice ?? correctChoice, model: named, hint, retryFeedback, simplerModel: simpler });
-  return { ...withFourth, choices: orderedWithSigns(prompt, withFourth.choices) };
+  // Whole-number answers: wrong choices come from real slips (one group, the rest, the whole), not answer ± 1.
+  const slipped = preferMisconceptions(withFourth);
+  return { ...slipped, choices: orderedWithSigns(prompt, slipped.choices) };
 }
 
 /** Authored questions mostly listed the right answer first. Put it at a spot picked from the question id
@@ -412,7 +417,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'sets-unit-fractions', unit: 2, title: 'Fractions in a group', shortTitle: 'Fractions of sets', skill: 'Split a group into equal groups. One group is one part of the whole set.',
+    id: 'sets-unit-fractions', unit: 11, title: 'Fractions in a group', shortTitle: 'Fractions of sets', skill: 'Split a group into equal groups. One group is one part of the whole set.',
     description: 'Share things into equal groups.', example: {
       prompt: 'There are 12 buttons. What is 1/3 of the buttons?',
       answer: '4 buttons.',
@@ -427,7 +432,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'sets-nonunit', unit: 2, title: 'More than one group', shortTitle: 'Count groups in a set', skill: 'The denominator tells how many equal groups to make. The numerator tells how many groups to count.',
+    id: 'sets-nonunit', unit: 11, title: 'More than one group', shortTitle: 'Count groups in a set', skill: 'The denominator tells how many equal groups to make. The numerator tells how many groups to count.',
     description: 'Count 2 or 3 equal groups.', example: {
       prompt: 'What is 2/5 of 15 counters?',
       answer: '6 counters.',
@@ -527,7 +532,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Each jump is 1/4. What is 5 jumps from 0?', ['5/4', '4/5', '1/4'], 0, line(5, 4, 2), '4 jumps reach 1. Then 1 more.', '5 jumps is 5/4. That is 1 and 1/4.', line(3, 4)),
       practice('Each jump is 1/3. Which point is just past 1?', ['2/3', '4/3', '1/3', '3/3'], 1, line(4, 3, 2), '3 jumps of 1/3 reach 1. Take 1 more jump.', '4/3 is 1 and 1/3, just past 1.', line(2, 3)),
-      practice('How many sixths make 1 and 2/6?', ['8/6', '6/8', '2/6'], 0, line(8, 6, 2), 'one whole is 6/6. Add 2 more.', '6/6 + 2/6 = 8/6.', line(6, 6)),
+      practice('How many sixths make 1 and 2/6?', ['8/6', '6/8', '2/6'], 0, line(8, 6, 2), 'One whole is 6/6. Add 2 more.', '6/6 + 2/6 = 8/6.', line(6, 6)),
       practice('A runner takes 9 steps of 1/5. How far is that?', ['1 and 3/5', '1 and 4/5', '4/5', '9/10'], 1, line(9, 5, 2), '5 steps make one whole. How many are left?', '9/5 is 5/5 and 4/5. That is 1 and 4/5.', line(5, 5)),
     ],
   },
@@ -547,7 +552,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'compare-same-numerator', unit: 5, title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'When the wholes are the same size, the same numerator means we count the same number of parts. A larger denominator splits that whole into more equal parts, so each part is smaller, and so is the fraction.',
+    id: 'compare-same-numerator', unit: 2, title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'When the wholes are the same size, the same numerator means we count the same number of parts. A larger denominator splits that whole into more equal parts, so each part is smaller, and so is the fraction.',
     explainPrompt: 'Use the bars for 3/5 and 3/8. What does the denominator change in the same-size whole? Why is 3/8 smaller even though both fractions count 3 parts? Then draw same-length bars for 2/3 and 2/5 and explain why 2/3 is larger without repeating the example.',
     description: 'Compare fractions with the same numerator.', example: {
       prompt: 'Which is bigger, 3/5 or 3/8?',
@@ -664,7 +669,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('What is 5/3 as wholes and a fraction?', ['1 and 2/3', '2 and 1/3', '5 and 3', '2 and 2/3'], 0, line(5, 3, 2), '3/3 is one whole. How many are left?', '5/3 is 3/3 and 2/3. That is 1 and 2/3.', line(3, 3, 2)),
       practice('What is 2 and 1/5 as fifths?', ['11/5', '7/5', '2/5'], 0, line(11, 5, 3), '2 wholes is 10/5. Add 1 more.', '10/5 + 1/5 = 11/5.', line(5, 5, 2)),
-      practice('What is 1 and 2/4 as fourths?', ['6/4', '3/4', '4/6'], 0, line(6, 4, 2), 'one whole is 4/4. Add 2 more.', '4 + 2 = 6. So 6/4.', line(4, 4, 2)),
+      practice('What is 1 and 2/4 as fourths?', ['6/4', '3/4', '4/6'], 0, line(6, 4, 2), 'One whole is 4/4. Add 2 more.', '4 + 2 = 6. So 6/4.', line(4, 4, 2)),
       practice('Which is more than one whole?', ['9/8', '7/8', '1/8'], 0, line(9, 8, 2), '8/8 is exactly one whole.', '9/8 is 1 part more than a whole.', line(8, 8, 2)),
     ],
   },
@@ -673,11 +678,11 @@ const curriculum: MissionSeed[] = [
     description: 'Swap parts for wholes, and back again.', example: {
       prompt: 'What is 1 and 3/8 as eighths?',
       answer: '11/8.',
-      explanation: 'one whole is 8/8. Add 3 more: 11/8.',
-      model: { kind: 'bars', bars: [{ numerator: 8, denominator: 8 }, { numerator: 3, denominator: 8 }], caption: 'one whole and 3/8' },
+      explanation: 'One whole is 8/8. Add 3 more: 11/8.',
+      model: { kind: 'bars', bars: [{ numerator: 8, denominator: 8 }, { numerator: 3, denominator: 8 }], caption: 'One whole and 3/8' },
     },
     questions: [
-      practice('What is 1 and 2/3 as thirds?', ['5/3', '3/5', '4/3'], 0, line(5, 3, 2), 'one whole is 3/3. Add 2 more.', '3/3 + 2/3 = 5/3.', line(3, 3, 2)),
+      practice('What is 1 and 2/3 as thirds?', ['5/3', '3/5', '4/3'], 0, line(5, 3, 2), 'One whole is 3/3. Add 2 more.', '3/3 + 2/3 = 5/3.', line(3, 3, 2)),
       practice('What is 9/4 as wholes and a fraction?', ['2 and 1/4', '3 and 1/4', '2 and 2/4'], 0, line(9, 4, 3), 'Every 4/4 is one whole. What is left?', '8/4 is 2 wholes. 1/4 is left.', line(8, 4, 2)),
       practice('What is 2 and 3/5 as fifths?', ['13/5', '10/5', '5/13'], 0, line(13, 5, 3), '2 wholes is 10/5. Add 3 more.', '10/5 + 3/5 = 13/5.', line(10, 5, 2)),
       practice('What is 10/6 as wholes and a fraction?', ['1 and 4/6', '1 and 2/6', '2 and 4/6'], 0, line(10, 6, 2), '6/6 is one whole. What is left?', '10/6 is 6/6 and 4/6. That is 1 and 4/6.', line(6, 6, 2)),
@@ -798,7 +803,7 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'unit-fraction-multiples', unit: 8, title: 'Make groups of a unit fraction', shortTitle: 'Unit fraction multiples', description: 'Build several copies of one unit fraction.', skill: 'A multiple is several equal copies added together. Count how many unit-fraction parts you have.', mode: 'unit-multiples', n: 5, d: 4, context: 'paper strips', gradeBand: 4, standards: ['4.NF.4a'] },
   { id: 'multiply-whole-by-fraction', unit: 8, title: 'Groups of a fraction', shortTitle: 'Whole × fraction', description: '3 groups of 1/2.', skill: 'To find several groups of a fraction, count that fraction once for each group. The part size stays the same.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles' },
   { id: 'simplify-fractions', unit: 9, title: 'Simplest form', shortTitle: 'Simplest form', description: 'Use bigger parts. Same amount.', skill: 'Divide the numerator and denominator by the same factor. The parts get bigger, but the total amount stays the same.', mode: 'simplify', n: 3, d: 4, context: 'paper strip' },
-  { id: 'equivalent-missing-both', unit: 9, title: 'Find the missing number', shortTitle: 'Equivalent fractions', description: 'Fill a blank in the numerator or denominator.', skill: 'Equivalent fractions name the same amount. Multiply or divide the numerator and denominator by the same factor.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
+  { id: 'equivalent-missing-both', unit: 9, title: 'Rename with a new denominator', shortTitle: 'Equivalent fractions', description: 'Fill a blank in the numerator or denominator.', skill: 'Equivalent fractions name the same amount. Multiply or divide the numerator and denominator by the same factor.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
   { id: 'whole-numbers-as-fractions', unit: 9, title: 'Wholes as fractions', shortTitle: 'Whole numbers as fractions', description: 'Build one or more wholes from unit fractions.', skill: 'The denominator tells how many parts fill one whole. Count that many parts for each whole.', mode: 'whole-fraction', n: 6, d: 3, context: 'fraction bars', gradeBand: 3, standards: ['3.NF.3c'] },
   { id: 'compare-unlike-fractions', unit: 9, title: 'Compare different parts', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the denominators differ?', skill: 'Make the parts the same size by using a common denominator. Then compare how many parts each fraction has.', mode: 'compare', n: 2, d: 3, context: 'race track' },
   { id: 'order-unlike-fractions', unit: 9, title: 'Order different parts', shortTitle: 'Order unlike parts', description: 'Put 3 fractions in order.', skill: 'Use 1/2 as a benchmark or rename the fractions with the same denominator. Then order their amounts.', learningIntro: {
@@ -866,7 +871,7 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'compare-decimals', unit: 14, title: 'Compare decimals', shortTitle: 'Compare decimal sizes', description: 'Compare decimals using tenths and hundredths.', skill: 'Write both decimals with the same number of places. Then compare the digits by place value.', example: { prompt: 'Which is bigger, 0.4 or 0.35?', answer: '0.4', explanation: 'Write 0.4 as 0.40, so both have 2 places after the dot. 40 hundredths is more than 35 hundredths. So 0.4 is bigger, even though 35 looks bigger than 4.', model: bars({ numerator: 40, denominator: 100 }, { numerator: 35, denominator: 100 }) }, mode: 'decimal-compare', n: 3, d: 10, context: 'hundredths grid', gradeBand: 4, standards: ['4.NF.7'] },
   { id: 'multi-step-fraction-stories', unit: 14, title: 'Two-step stories', shortTitle: 'Fraction stories', description: 'Solve a story in 2 steps.', skill: 'Find what the story asks first. Solve that step, then use the answer in the next step.', mode: 'story', n: 2, d: 5, context: 'community garden' },
   // Unit 15 · Problem solving: the reasoning that Singapore, Beast Academy and Eureka lean on and quizzes skip.
-  { id: 'find-the-whole', unit: 15, title: 'Find the whole', shortTitle: 'Find the whole', description: '3 is 1/4 of it. What is the whole?', skill: 'The known amount is one of the equal parts. Find one part, then multiply by the denominator to make the whole.', mode: 'whole-from-part', n: 1, d: 4, context: 'sticker packs', gradeBand: 4, standards: ['3.NF.1', '4.NF.4c'],
+  { id: 'find-the-whole', unit: 15, title: 'Find the whole', shortTitle: 'Find the whole', description: '3 is 1/4 of it. What is the whole?', skill: 'The known amount is one of the equal parts. Find one part, then multiply by the denominator to make the whole.', mode: 'whole-from-part', n: 1, d: 4, context: 'sticker packs', gradeBand: 4, standards: ['4.NF.4c'],
     example: { prompt: '3 stickers are 1/4 of a pack. How many stickers are in the pack?', answer: '12 stickers', explanation: '1/4 is 1 of 4 equal parts. Each part is 3. 4 parts of 3 is 12.', model: setModel(3, 12, 4) } },
   { id: 'spot-the-mistake', unit: 15, title: 'Spot the mistake', shortTitle: 'Spot the mistake', description: 'Is Sam right? Fix it.', skill: 'Check whether each step uses the right fraction rule. Find the first wrong step and correct it.', mode: 'mistake', n: 3, d: 4, context: 'homework check', gradeBand: 4, standards: ['4.NF.3a', '4.NF.2'] },
   { id: 'fraction-of-remainder', unit: 15, title: 'Fraction of the rest', shortTitle: 'Fraction of the rest', description: 'Spend 1/3. Then spend 1/2 of the rest.', skill: 'First find how much is left. Then split that remaining amount and find the fraction asked for.', mode: 'remainder', n: 1, d: 3, context: 'pocket money', gradeBand: 5, standards: ['5.NF.6', '5.NF.2'] },
@@ -929,7 +934,12 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
   };
 }
 
+/** Lessons added after the first 28, whose practice is made from their own worksheets. */
+export const EXTENSION_LESSON_IDS: ReadonlySet<string> = new Set(extensionTopics.map((topic) => topic.id));
 curriculum.push(...extensionTopics.map(extensionMission));
+// Lessons run unit by unit. The sort is stable, so within a unit they keep the order they are written in (a core lesson
+// moved to a later unit, like the fraction-of-a-group lessons in unit 11, comes first in that unit).
+curriculum.sort((a, b) => a.unit - b.unit);
 
 export const MISSIONS: Mission[] = curriculum.map((seed, index) => {
   const current = mission(seed);
@@ -960,6 +970,8 @@ export const MISSIONS: Mission[] = curriculum.map((seed, index) => {
 export const EMPTY_PROGRESS: Progress = { completedMissionIds: [], starsByMission: {}, reviewQueue: [], assessments: [] };
 const STORAGE_KEY = 'fraction-quest-progress-v1';
 export const SKILL_REVIEW_DELAY_MS = 24 * 60 * 60 * 1000;
+/** After each passed review the next comes later: 1 day after the lesson, then 3 days, then 7 days, then it is done. */
+export const SPACED_REVIEW_DAYS = [1, 3, 7] as const;
 const MAX_DELAYED_REVIEW_QUESTIONS = 2;
 const LEGACY_MISSION_IDS: Record<string, string> = {
   share: 'equal-parts',
@@ -993,11 +1005,19 @@ export function recordMissedSkill(
   };
 }
 
-export function completeSkillReview(progress: Progress, missionId: string): Progress {
+export function completeSkillReview(progress: Progress, missionId: string, now = Date.now()): Progress {
   const evidence = progress.learning?.[missionId];
   if (evidence && (!evidence.completedAt || !evidence.confirmedAt || evidence.confirmedAt < evidence.completedAt + SKILL_REVIEW_DELAY_MS)) return progress;
-  const reviewQueue = progress.reviewQueue.filter((item) => item.missionId !== missionId);
-  return reviewQueue.length === progress.reviewQueue.length ? progress : { ...progress, reviewQueue };
+  const item = progress.reviewQueue.find((review) => review.missionId === missionId);
+  if (!item) return progress;
+  // A passed review comes back later (3 days, then 7) until the last step, so the skill is remembered, not just met once.
+  const next = (item.stage ?? 0) + 1;
+  const reviewQueue = next < SPACED_REVIEW_DAYS.length
+    ? progress.reviewQueue.map((review) => review === item
+      ? { ...review, stage: next, reviewCount: review.reviewCount + 1, dueAt: now + SPACED_REVIEW_DAYS[next] * SKILL_REVIEW_DELAY_MS }
+      : review)
+    : progress.reviewQueue.filter((review) => review !== item);
+  return { ...progress, reviewQueue };
 }
 
 export function deferSkillReview(progress: Progress, missionId: string, now = Date.now()): Progress {
@@ -1138,7 +1158,11 @@ export function isMissionUnlocked(progress: Progress, missionId: string): boolea
   const placedOut = (item: Mission) => !!progress.placement && item.unit < progress.placement.unit;
   // A lesson added (or moved) later must not re-lock lessons a learner had already reached (they can still do it any time).
   const alreadyInLaterUnits = MISSIONS.some((item) => item.unit >= 9 && (!!progress.learning?.[item.id] || progress.completedMissionIds.includes(item.id)));
-  if (target.unit < 9) return MISSIONS.slice(0, targetIndex).every(item => placedOut(item) || passedLesson(progress, item.id) || (alreadyInLaterUnits && LATE_ADDED_LESSONS.has(item.id)));
+  // A lesson moved earlier in the course doesn't re-lock lessons the learner already passed after it (it stays open).
+  const skippedByMove = (item: Mission, index: number) => MOVED_EARLIER_LESSONS.has(item.id)
+    && MISSIONS.slice(index + 1).some((later) => passedLesson(progress, later.id));
+  if (target.unit < 9) return MISSIONS.slice(0, targetIndex).every((item, index) => placedOut(item) || passedLesson(progress, item.id)
+    || (alreadyInLaterUnits && LATE_ADDED_LESSONS.has(item.id)) || skippedByMove(item, index));
   return MISSIONS.filter(item => item.unit < target.unit && !placedOut(item) && !(alreadyInLaterUnits && LATE_ADDED_LESSONS.has(item.id)))
     .every(item => passedLesson(progress, item.id));
 }
@@ -1153,6 +1177,9 @@ export function passedLesson(progress: Progress, missionId: string): boolean {
  * later units (they stay open to do any time, and "Continue" still suggests them). New learners take them in order.
  * Add every lesson inserted into an existing unit here.
  */
+/** Lessons moved to an earlier spot, which learners already past that spot never had: compare same numerator moved from
+    unit 5 to unit 2 when the fraction-of-a-group lessons moved to unit 11. */
+export const MOVED_EARLIER_LESSONS: ReadonlySet<string> = new Set(['compare-same-numerator']);
 export const LATE_ADDED_LESSONS: ReadonlySet<string> = new Set([
   'add-tenths-hundredths',
   // Moved from unit 11 to the end of unit 8 (grade 4).
@@ -1242,6 +1269,7 @@ export function loadProgress(): Progress {
           reviewCount: typeof item.reviewCount === 'number' && Number.isFinite(item.reviewCount)
             ? Math.max(0, Math.floor(item.reviewCount))
             : 0,
+          ...(typeof item.stage === 'number' && Number.isInteger(item.stage) && item.stage > 0 && item.stage < SPACED_REVIEW_DAYS.length ? { stage: item.stage } : {}),
         });
       }
     }

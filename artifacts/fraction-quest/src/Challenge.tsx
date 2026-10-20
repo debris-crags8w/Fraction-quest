@@ -60,7 +60,7 @@ function WalkThrough({ question, onClose }: { question: ChallengeQuestion; onClo
   );
 }
 
-/** A Unit challenge: five puzzle questions, A–E, worth 3–5 points each. Points count on the first try only. */
+/** A Unit challenge: five puzzle questions, A–D, worth 3–5 points each. Points count on the first try only. */
 export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
   unit: number; unitTitle: string; best: number;
   onDone: (score: number) => void; onExit: () => void;

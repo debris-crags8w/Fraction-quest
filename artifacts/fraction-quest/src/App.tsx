@@ -50,7 +50,7 @@ import { getWorksheet } from './learning-content';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requiredBuildChecks, resetUnitLearningProgress, worksheetCount, startRedo, updateLearning, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
+import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
@@ -58,7 +58,7 @@ import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, Le
 import { activeSeason } from './seasons';
 import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
 import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
-import { LanternIcon } from './riddle-ui';
+import { LanternIcon, OilNoticeCard } from './riddle-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
 import { freshSeed, generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
@@ -139,16 +139,16 @@ type RetentionView = { type: 'retention'; missionId: string; startedAt: number; 
 type UnitInfo = { title: string; subtitle: string };
 const UNIT_INFO: UnitInfo[] = [
   { title: 'Meet fractions', subtitle: 'Fair shares, fraction names, and unit fractions' },
-  { title: 'Fractions in groups', subtitle: 'Find equal shares and parts of collections' },
+  { title: 'Size of the parts', subtitle: 'More parts make smaller parts; compare the same numerator' },
   { title: 'Size and benchmarks', subtitle: 'Estimate with zero, one-half, and one whole' },
   { title: 'Fraction number lines', subtitle: 'Mark equal jumps, including past one' },
-  { title: 'Compare and order', subtitle: 'Use equal pieces and benchmarks to reason' },
+  { title: 'Compare and order', subtitle: 'Compare same-size parts, then put fractions in order' },
   { title: 'Equivalent fractions', subtitle: 'Rename an amount without changing its size' },
   { title: 'Put fractions together', subtitle: 'Compose, decompose, and go beyond one' },
   { title: 'Operations and decimals', subtitle: 'Add, subtract, and connect fractions to decimals' },
   { title: 'Rename and compare', subtitle: 'Grades 3–5 · Whole numbers as fractions and equivalent names' },
   { title: 'Mixed numbers and amounts', subtitle: 'Grades 4–5 · Unlike denominators, mixed numbers, and estimates' },
-  { title: 'Multiply and divide', subtitle: 'Grades 4–5 · Unit fractions, scaling, multiplication, and sharing' },
+  { title: 'Multiply and divide', subtitle: 'Grade 5 · Fractions of a group, multiplication, scaling, and sharing' },
   { title: 'Fractions in measurement', subtitle: 'Grades 3–5 · Rulers, line plots, conversions, and stories' },
   { title: 'Fraction models in context', subtitle: 'Grade 3 and 5 · Equal-area shapes and fractional-side area; chance is bonus' },
   { title: 'Fractions and decimals', subtitle: 'Grades 4–5 · Decimal comparison; percent is bonus' },
@@ -450,8 +450,8 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
             {/* Each symbol is a button: tap it to read what it means. */}
             <StatTip testId="button-tip-streak" label={`Day streak: ${streak}. What is this?`}
               tip={storyOn
-                ? <><strong>Hoot’s lantern: {streak} {streak === 1 ? 'night' : 'nights'} in a row.</strong> This is your streak. Get one answer right each day to keep it glowing.</>
-                : streak > 0 ? <><strong>{streak} {streak === 1 ? 'day' : 'days'} in a row!</strong> Get one answer right each day to keep your streak going.</> : <><strong>Day streak.</strong> Get one answer right today to start a streak!</>}>
+                ? <><strong>Hoot’s lantern: {streak} {streak === 1 ? 'night' : 'nights'} in a row.</strong> This is your streak. Get one answer right each day to keep it glowing. <strong>Spare oil: {fun.spareOil ?? 0} of {SPARE_OIL_MAX}.</strong> A drop keeps it lit if you miss a night.</>
+                : <>{streak > 0 ? <><strong>{streak} {streak === 1 ? 'day' : 'days'} in a row!</strong> Get one answer right each day to keep your streak going.</> : <><strong>Day streak.</strong> Get one answer right today to start a streak!</>} <strong>Streak savers: {fun.spareOil ?? 0} of {SPARE_OIL_MAX}.</strong> Earn one for every 7 days in a row.</>}>
               <span className="fq-stat fq-stat-streak" data-testid="status-day-streak">{storyOn ? <LanternIcon lit={streak > 0} size={20} /> : <Flame size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" />}<strong>{streak}</strong><span className="fq-sr">day streak</span></span>
             </StatTip>
             <StatTip testId="button-tip-xp" label={`${fun.xp} ${points}. What is this?`}
@@ -696,8 +696,8 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                             <h4>{mission.title}</h4>
                             <p><MathText text={mission.description} /></p>
                             {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
+                              {/* Standards codes are for grown-ups: they live in the Grown-ups report, not on the child's map. */}
                               {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
-                              {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
                             </p>}
                             <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
                               {/* Short, kid-sized status: only what matters for this lesson right now. */}
@@ -1067,7 +1067,6 @@ function PlayView({
           </p>
           {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
             {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
-            {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
           </p>}
           {/* One friendly line per question: the story friend's (in the season's props) when the story is on, else the seasonal one. */}
           {question && !showExample && (storyOn && chapterFor(mission.unit)
@@ -1852,6 +1851,9 @@ function Game() {
       )}
       {view.type === 'review-complete' && (
         <ReviewCompleteView reviewedCount={view.reviewedCount} progress={progress} onMap={returnToMap} onReset={openResetDialog} />
+      )}
+      {onMap && fun.oilNotice && !breakReason && (
+        <OilNoticeCard notice={fun.oilNotice} storyOn={storyMode} streak={shownStreak(fun)} onNext={() => setFun((current) => clearOilNotice(current))} />
       )}
       {breakReason && <BrainBreakOffer reason={breakReason} quietMode={quietBreaks} onSkip={closeBreak} onFinish={closeBreak} />}
       {resetOpen && (
