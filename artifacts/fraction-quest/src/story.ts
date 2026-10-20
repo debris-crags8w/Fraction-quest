@@ -445,7 +445,7 @@ export const STORY_PROBLEMS: Record<string, StoryProblem> = {
     prompt: 'Bolt fills his machine with oil. How many 1/8 cup scoops fill 3 cups?',
     result: '24 scoops! Each cup holds 8 scoops of 1/8 cup.' },
   'multiplication-scaling': { setup: 'Will this setting make it bigger or smaller?',
-    prompt: 'Bolt sets his machine. Move the scale slider to 3/4. Without multiplying, compare 3/4 × 20 with 20: __ 20.',
+    prompt: 'Bolt sets his machine. Without multiplying, compare 3/4 × 20 with 20: __ 20.',
     result: '3/4 × 20 is less than 20. The machine made it smaller!' },
   'multiply-mixed-numbers': { setup: 'Now with mixed numbers. Computing…',
     prompt: 'Bolt’s new stage panel is 1 1/2 meters by 2 1/3 meters. What is its area?',

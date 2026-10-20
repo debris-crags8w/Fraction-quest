@@ -126,7 +126,11 @@ export function answerMatches(problem: WorksheetProblem, rawInput: string): bool
 export function asChoicePrompt(prompt: string): string {
   return prompt
     .replace(/^(?:Type <, = or >|Put <, = or > in the gap): /, 'Pick the sign: ')
-    .replace(/\s*(Type it|Type a number|Use commas)\.$/, '');
+    .replace(/\s*(Type it|Type a number|Use commas)\.$/, '')
+    // Tap questions show the finished plot and the factor as pictures: there is no slider to move or plot to make.
+    .replace(/^Move the scale slider to \d+\/\d+\. /, '')
+    .replace(/^Plot these ([a-z ]+?) lengths/, 'The line plot shows these $1 lengths')
+    .replace(/\. Plot them, then share the total equally\./, '. Share the total equally.');
 }
 
 /** Believable wrong answers for a number answer (slips a child really makes), smallest-first order not implied. */
@@ -1085,7 +1089,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const bottom = [2, 3, 4, 5, 6, 8, 3, 4, 5, 6, 10, 4][tr]; const sets = spec.mode === 'sets';
         const total = bottom * (sets ? 3 + (i + 1) % 4 : 2 + i % 4); const groups = 1 + (sets ? (i + 1) : i) % (bottom - 1 || 1);
         prompt = `What is ${f(groups, bottom)} of ${total} ${spec.mode === 'sets' ? 'cards' : 'pencils'}?`;
-        answer = String(total / bottom * groups); visual = i % 3 === 2 ? model(groups, bottom, 'set', total) : undefined;
+        // The groups, none picked: picking them is the answer.
+        answer = String(total / bottom * groups); visual = i % 3 === 2 ? model(0, bottom, 'set', total) : undefined;
         hint = `Make ${bottom} equal groups. Count ${groups} of them.`; break;
       }
       case 'share': {
