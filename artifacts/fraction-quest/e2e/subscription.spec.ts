@@ -1,0 +1,113 @@
+import { expect, test, type Page } from '@playwright/test';
+
+const dayKey = () => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+/** Pretend to be the app (iPhone and Android): the shell reports the subscription and records what the page asks. */
+async function openInApp(page: Page, subscription: Record<string, unknown> | null) {
+  await page.addInitScript(({ savedSubscription, day }) => {
+    if (!localStorage.getItem('fraction-quest-fun-v1:guest')) {
+      localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: [], starsByMission: {}, reviewQueue: [], assessments: [], learning: {} }));
+      localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 0, day, answeredToday: 0, sound: false, story: { prologueSeen: true } }));
+    }
+    const scope = window as Window & { fractionQuestShell?: unknown; ReactNativeWebView?: unknown; __asked?: string[] };
+    scope.__asked = [];
+    if (savedSubscription) {
+      scope.fractionQuestShell = { platform: 'ios', wifi: true, subscription: savedSubscription };
+      scope.ReactNativeWebView = { postMessage: (message: string) => scope.__asked!.push(message) };
+    }
+  }, { savedSubscription: subscription, day: dayKey() });
+  await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Not signed in.' }) }));
+  await page.goto('/');
+  const guest = page.getByTestId('button-play-guest');
+  const start = page.getByTestId('button-start-mission-equal-parts');
+  await expect(guest.or(start)).toBeVisible();
+  if (await guest.isVisible()) await guest.click();
+}
+
+const asked = (page: Page) => page.evaluate(() => ((window as Window & { __asked?: string[] }).__asked ?? []).map((message) => JSON.parse(message)));
+
+test('in the app without a subscription, a lesson asks for a grown-up and opens once the trial starts', async ({ page }) => {
+  await openInApp(page, { state: 'none', price: '$4.99' });
+  await page.getByTestId('button-start-mission-equal-parts').click();
+
+  const ask = page.getByTestId('subscribe-ask');
+  await expect(ask).toBeVisible();
+  await expect(ask).toContainText('ask a grown-up to unlock Fraction Quest');
+  // Back goes to the map, which stays open.
+  await page.getByTestId('button-subscribe-back').click();
+  await expect(page.getByTestId('button-start-mission-equal-parts')).toBeVisible();
+  await page.getByTestId('button-start-mission-equal-parts').click();
+
+  await page.getByTestId('button-get-grown-up').click();
+  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+
+  await expect(page.getByTestId('paywall')).toBeVisible();
+  await expect(page.getByTestId('paywall-price')).toHaveText('7 days free, then $4.99 a month');
+  await page.getByTestId('button-start-trial').click();
+  expect(await asked(page)).toContainEqual({ type: 'subscription', action: 'buy' });
+
+  // The store's sheet is open: the button waits.
+  await page.evaluate(() => {
+    const scope = window as Window & { fractionQuestShell?: { subscription?: unknown } };
+    scope.fractionQuestShell!.subscription = { state: 'none', price: '$4.99', busy: true };
+    window.dispatchEvent(new Event('fraction-quest-shell'));
+  });
+  await expect(page.getByTestId('button-start-trial')).toBeDisabled();
+
+  // The purchase goes through: the lesson that was asked for opens by itself.
+  await page.evaluate(() => {
+    const scope = window as Window & { fractionQuestShell?: { subscription?: unknown } };
+    scope.fractionQuestShell!.subscription = { state: 'active', renewsAt: Date.now() + 7 * 86_400_000 };
+    window.dispatchEvent(new Event('fraction-quest-shell'));
+  });
+  await expect(page.getByTestId('paywall')).toHaveCount(0);
+  await expect(page.getByTestId('subscribe-ask')).toHaveCount(0);
+});
+
+test('after a subscription ends, the child is told their progress is saved and can open the Storybook', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('fraction-quest-subscribed-once', '1'));
+  await openInApp(page, { state: 'none' });
+  await page.getByTestId('button-start-mission-equal-parts').click();
+  const ask = page.getByTestId('subscribe-ask');
+  await expect(ask).toHaveAttribute('data-lapsed', 'true');
+  await expect(ask.getByRole('heading')).toHaveText('Hoot’s lantern is waiting');
+  await expect(ask).toContainText('Everything you learned is saved: 0 stone pieces and 0 lessons.');
+  await page.getByTestId('button-subscribe-storybook').click();
+  await expect(page.getByTestId('subscribe-ask')).toHaveCount(0);
+});
+
+test('the grown-ups page shows the subscription and opens the store to manage it', async ({ page }) => {
+  await openInApp(page, { state: 'active', renewsAt: new Date(2026, 10, 3).getTime() });
+  await page.getByTestId('button-app-menu').click();
+  await page.getByTestId('button-open-parent').click();
+  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+  await expect(page.getByTestId('subscription-status')).toContainText('Fraction Quest is on. It renews on November 3, 2026.');
+  await page.getByTestId('button-manage-subscription').click();
+  await page.getByTestId('button-parent-restore').click();
+  expect(await asked(page)).toEqual([{ type: 'subscription', action: 'manage' }, { type: 'subscription', action: 'restore' }]);
+});
+
+test('in a browser there is no subscription: lessons open and the grown-ups page has no subscription section', async ({ page }) => {
+  await openInApp(page, null);
+  await page.getByTestId('button-start-mission-equal-parts').click();
+  await expect(page.getByTestId('subscribe-ask')).toHaveCount(0);
+  await expect(page.getByTestId('paywall')).toHaveCount(0);
+  await page.goto('/');
+  await page.getByTestId('button-app-menu').click();
+  await page.getByTestId('button-open-parent').click();
+  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+  await expect(page.getByTestId('parent-glance')).toBeVisible();
+  await expect(page.getByTestId('section-subscription')).toHaveCount(0);
+});

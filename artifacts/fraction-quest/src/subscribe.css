@@ -1,0 +1,37 @@
+/* The subscription flow: the child's "ask a grown-up" screen (night, like Hoot's lantern) and the grown-up's paywall. */
+.fq-subscribe-ask { min-height: 100dvh; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 18px;
+  padding: 40px 16px 24px; background: #1E1838; color: #FFF6E5; text-align: center; }
+.fq-subscribe-ask h1 { margin: 0; color: #FFE27A; font-size: clamp(1.6rem, 7vw, 2rem); line-height: 1.15; }
+.fq-subscribe-hero { display: grid; place-items: center; width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, rgb(255 200 0 / .22), transparent 70%); }
+.fq-subscribe-say { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; width: 100%; max-width: 440px; box-sizing: border-box;
+  padding: 16px; border: 2px solid #4A3D84; border-radius: 16px; background: #2B2550; text-align: left; }
+.fq-subscribe-say p { margin: 0; font-size: 1.05rem; line-height: 1.45; }
+.fq-subscribe-say u, .fq-subscribe-ask u { text-decoration-color: #FFE27A; text-underline-offset: 3px; }
+.fq-subscribe-say .fq-learning-listen { margin: 0; min-height: 44px; padding: 3px 14px; color: #FFE27A; border-color: #6B5DB0; background: transparent; }
+.fq-subscribe-note { margin: 0; color: #D9CFF5; }
+.fq-subscribe-actions { display: grid; gap: 10px; width: 100%; max-width: 440px; margin-top: auto; }
+.fq-subscribe-actions .fq-button { min-height: 52px; }
+.fq-subscribe-actions .fq-button.ghost { color: #FFF6E5; border-color: #4A3D84; background: transparent; }
+.fq-subscribe-actions .fq-button.fq-subscribe-go { color: #fff; background: #FF8A1F; box-shadow: 0 4px 0 #B95300; }
+.fq-app.fq-subscribe-night { background: #1E1838; }
+
+.fq-paywall { min-height: 100dvh; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; max-width: 520px; padding: 20px 16px; }
+.fq-paywall-top { display: flex; justify-content: space-between; align-items: center; color: hsl(var(--muted-foreground)); font-weight: 700; font-size: .9rem; }
+.fq-paywall h1 { margin: 0; font-size: clamp(1.5rem, 6.5vw, 1.8rem); line-height: 1.15; }
+.fq-paywall > p { margin: 0; line-height: 1.45; }
+.fq-paywall-list { display: grid; gap: 10px; margin: 0; padding: 16px; list-style: none; border-radius: 18px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); }
+.fq-paywall-list li { display: flex; gap: 10px; line-height: 1.4; }
+.fq-paywall-list svg { flex: none; width: 22px; height: 22px; padding: 3px; box-sizing: border-box; border-radius: 50%; background: #2E8A50; color: #fff; }
+.fq-paywall-terms { display: grid; gap: 4px; text-align: center; }
+.fq-paywall-terms strong { font-size: 1.1rem; }
+.fq-paywall-terms span { font-size: .88rem; color: hsl(var(--muted-foreground)); }
+.fq-paywall-error { margin: 0; padding: 10px 12px; border-radius: 12px; background: #FBEBEB; color: #8E1F1F; }
+.fq-paywall-start { min-height: 56px; margin-top: auto; }
+.fq-paywall-links { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: .88rem; }
+.fq-paywall-restore { min-height: 44px; padding: 0 6px; border: 0; background: none; color: var(--fq-grape); font: inherit; font-weight: 800; cursor: pointer; }
+.fq-paywall-links a { color: var(--fq-grape); }
+.fq-paywall-privacy { display: inline; }
+.fq-paywall-privacy summary { display: inline; cursor: pointer; color: var(--fq-grape); text-decoration: underline; }
+.fq-paywall-privacy p { position: absolute; left: 16px; right: 16px; bottom: 80px; margin: 0; padding: 12px; border-radius: 12px; background: hsl(var(--card)); box-shadow: 0 6px 20px rgb(0 0 0 / .2); line-height: 1.45; }
+
+.fq-subscription-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }

@@ -20,9 +20,25 @@ export function isAppPage(url: string, appUrl: string): boolean {
   }
 }
 
+export type SubscriptionAction = 'status' | 'buy' | 'restore' | 'manage';
 export type ShellMessage =
   | { type: 'haptic'; cue: 'selection' | 'correct' | 'retry' | 'star' | 'complete' | 'impact' }
-  | { type: 'print'; jobName?: string; html: string };
+  | { type: 'print'; jobName?: string; html: string }
+  | { type: 'subscription'; action: SubscriptionAction };
+
+/** What the page is told about the monthly subscription. `unavailable`: the store could not be reached or the
+    subscription is not set up yet, so the page cannot know (it then leaves lessons open). */
+export type SubscriptionStatus = {
+  state: 'active' | 'none' | 'unavailable';
+  /** When the current period (or the free trial) ends, in milliseconds, when the store says. */
+  renewsAt?: number | null;
+  /** The store's price text, such as "$4.99". */
+  price?: string | null;
+  /** A purchase or restore is in progress. */
+  busy?: boolean;
+  /** A short message for the grown-up when something went wrong (never for a cancelled purchase). */
+  error?: string | null;
+};
 
 export function parseShellMessage(data: string): ShellMessage | null {
   try {
@@ -31,13 +47,16 @@ export function parseShellMessage(data: string): ShellMessage | null {
       return message as ShellMessage;
     }
     if (message?.type === 'print' && typeof (message as { html?: unknown }).html === 'string') return message as ShellMessage;
+    if (message?.type === 'subscription' && ['status', 'buy', 'restore', 'manage'].includes(String((message as { action?: unknown }).action))) {
+      return message as ShellMessage;
+    }
   } catch { /* not ours */ }
   return null;
 }
 
-/** Script that tells the page it runs inside the iPhone app, and whether the phone is on Wi-Fi
+/** Script that tells the page it runs inside the app, whether the phone is on Wi-Fi, and the subscription status
     (`window.fractionQuestShell`, plus a 'fraction-quest-shell' event so the page can react to changes). */
-export function shellInfoScript(platform: string, wifi: boolean): string {
-  const info = JSON.stringify({ platform, wifi });
+export function shellInfoScript(platform: string, wifi: boolean, subscription?: SubscriptionStatus | null): string {
+  const info = JSON.stringify(subscription ? { platform, wifi, subscription } : { platform, wifi });
   return `window.fractionQuestShell = ${info}; window.dispatchEvent(new Event('fraction-quest-shell')); true;`;
 }

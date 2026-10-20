@@ -9,7 +9,7 @@
     "build": "pnpm run voice-index && vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test src/*.test.ts",
+    "test": "tsx --test src/*.test.ts ../fraction-quest-ios/lib/*.test.ts",
     "test:e2e": "playwright test --config=playwright.config.ts",
     "test:e2e:all-lessons": "playwright test --config=playwright.config.ts --grep \"every lesson completes its required questions in an isolated developer test\" --workers=1",
     "test:e2e:lesson-interactions": "playwright test --config=playwright.config.ts --grep \"learners sort fractions in both directions|a passed Build check clearly offers the next step|a passed Build check in later review clearly offers Finish review|replaying the first lesson and skipping its hands-on rounds preserves saved progress\" --workers=1",

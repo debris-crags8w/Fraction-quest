@@ -1,0 +1,119 @@
+import { useState } from 'react';
+import { Check, X } from 'lucide-react';
+import { StoryCharacter } from './characters';
+import { GrownUpGate } from './GrownUpGate';
+import { LearningListenButton } from './LearningText';
+import { LanternIcon } from './riddle-ui';
+import { askShell, LISTED_PRICE, useSubscription, type Subscription } from './lib/subscription';
+import './subscribe.css';
+
+/* What a child sees when a lesson needs the subscription: ask a grown-up, the grown-up check (Apple requires one before
+   any purchase in a children's app), then the free-trial screen for the grown-up. The purchase itself happens in
+   Apple's or Google's own sheet; when it goes through, the lesson that was asked for opens by itself. */
+
+/** Apple's standard licence agreement, used as the Terms of Use until Fraction Quest has its own. */
+const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+const PRIVACY = 'Fraction Quest saves the account username and display name, learner nicknames, lesson answers and progress, and app preferences so learning can continue on another device. We do not ask for email, record audio, show ads, or sell anything to anyone.';
+
+type Step = 'ask' | 'gate' | 'paywall';
+
+export function SubscribeFlow({ subscription, lapsed, lessonsDone, piecesFound, onBack, onStorybook }: {
+  subscription: Subscription; lapsed: boolean; lessonsDone: number; piecesFound: number; onBack: () => void; onStorybook: () => void;
+}) {
+  const [step, setStep] = useState<Step>('ask');
+  if (step === 'gate') {
+    return <div className="fq-app"><GrownUpGate onPass={() => setStep('paywall')} onBack={() => setStep('ask')} backLabel="Back"
+      reason="Subscriptions are for grown-ups. Please answer to continue." /></div>;
+  }
+  if (step === 'paywall') return <Paywall subscription={subscription} onClose={onBack} />;
+  return <AskGrownUp lapsed={lapsed} lessonsDone={lessonsDone} piecesFound={piecesFound} onGrownUp={() => setStep('gate')} onBack={onBack} onStorybook={onStorybook} />;
+}
+
+function AskGrownUp({ lapsed, lessonsDone, piecesFound, onGrownUp, onBack, onStorybook }: {
+  lapsed: boolean; lessonsDone: number; piecesFound: number; onGrownUp: () => void; onBack: () => void; onStorybook: () => void;
+}) {
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  const say = lapsed
+    ? `Fraction Quest needs a grown-up to keep going. Everything you learned is saved: ${plural(piecesFound, 'stone piece', 'stone pieces')} and ${plural(lessonsDone, 'lesson', 'lessons')}.`
+    : 'You found the first clue! To find all 15 pieces of the Whole Stone, ask a grown-up to unlock Fraction Quest.';
+  return (
+    <div className="fq-app fq-subscribe-night">
+      <main className="fq-shell fq-subscribe-ask" data-testid="subscribe-ask" data-lapsed={lapsed}>
+        <div className="fq-subscribe-hero" aria-hidden="true">{lapsed ? <LanternIcon lit={false} waiting size={110} /> : <StoryCharacter id="hoot" size={120} />}</div>
+        <h1>{lapsed ? 'Hoot’s lantern is waiting' : 'The adventure is ready!'}</h1>
+        <section className="fq-subscribe-say">
+          <p><b>Hoot: </b>{lapsed
+            ? <>Fraction Quest needs a <u>grown-up</u> to keep going. Everything you learned is saved: {plural(piecesFound, 'stone piece', 'stone pieces')} and {plural(lessonsDone, 'lesson', 'lessons')}.</>
+            : <>You found the first clue! To find all 15 pieces of the Whole Stone, ask a <u>grown-up</u> to unlock Fraction Quest.</>}</p>
+          <LearningListenButton text={say} label="Listen to Hoot" />
+        </section>
+        <p className="fq-subscribe-note">{lapsed ? 'You can still read the Storybook and see your stone pieces.' : 'Your level quiz and everything you did so far are saved.'}</p>
+        <div className="fq-subscribe-actions">
+          <button className="fq-button fq-subscribe-go" onClick={onGrownUp} data-testid="button-get-grown-up">Get a grown-up</button>
+          {lapsed
+            ? <button className="fq-button ghost" onClick={onStorybook} data-testid="button-subscribe-storybook">Open the Storybook</button>
+            : <button className="fq-button ghost" onClick={onBack} data-testid="button-subscribe-back">Back to the map</button>}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function Paywall({ subscription, onClose }: { subscription: Subscription; onClose: () => void }) {
+  const price = subscription.price ?? LISTED_PRICE;
+  return (
+    <div className="fq-app">
+      <main className="fq-shell fq-paywall" data-testid="paywall">
+        <div className="fq-paywall-top">
+          <span>For grown-ups</span>
+          <button className="fq-icon-button" onClick={onClose} aria-label="Close" data-testid="button-paywall-close"><X size={18} /></button>
+        </div>
+        <h1>Try Fraction Quest free for 7 days</h1>
+        <p>A full fraction course for grades 3 to 5, built to the Common Core standards.</p>
+        <ul className="fq-paywall-list">
+          <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>72 lessons</strong> that teach first, then practise, with a picture for every question</span></li>
+          <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>Every answer checked</strong> by an automatic math check before it ships</span></li>
+          <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>A weekly report</strong> showing what your child learned and how to help at home</span></li>
+          <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>No ads</strong>, and nothing sold to anyone</span></li>
+        </ul>
+        <div className="fq-paywall-terms">
+          <strong data-testid="paywall-price">7 days free, then {price} a month</strong>
+          <span>Renews monthly until cancelled. Cancel anytime in your phone’s Settings, at least a day before the trial ends, and you won’t be charged.</span>
+        </div>
+        {subscription.error && <p className="fq-paywall-error" role="alert">{subscription.error}</p>}
+        <button className="fq-button fq-paywall-start" onClick={() => askShell('buy')} disabled={subscription.busy} data-testid="button-start-trial">
+          {subscription.busy ? 'One moment…' : 'Start free trial'}
+        </button>
+        <div className="fq-paywall-links">
+          <button className="fq-paywall-restore" onClick={() => askShell('restore')} disabled={subscription.busy} data-testid="button-restore">Restore purchase</button>
+          <span><a href={TERMS_URL} target="_blank" rel="noreferrer">Terms</a> · <details className="fq-paywall-privacy"><summary>Privacy</summary><p>{PRIVACY}</p></details></span>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+/** The grown-ups' page in the app: whether the subscription is on, when it renews, and the store's own controls.
+    Hidden in a browser, where there is nothing to buy. */
+export function SubscriptionSettings() {
+  const subscription = useSubscription();
+  if (!subscription) return null;
+  const renews = subscription.renewsAt ? new Date(subscription.renewsAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : null;
+  return (
+    <section className="fq-parent-section fq-subscription-settings" aria-labelledby="subscription-title" data-testid="section-subscription" data-state={subscription.state}>
+      <h2 id="subscription-title">Subscription</h2>
+      <p data-testid="subscription-status">{subscription.state === 'active'
+        ? <>Fraction Quest is on{renews ? <>. It renews on <strong>{renews}</strong></> : null}.</>
+        : subscription.state === 'none'
+          ? <>Lessons are locked. Start the 7-day free trial, then {subscription.price ?? LISTED_PRICE} a month.</>
+          : <>The store can’t be reached right now, so all lessons stay open.</>}</p>
+      {subscription.error && <p className="fq-paywall-error" role="alert">{subscription.error}</p>}
+      <div className="fq-subscription-actions">
+        {subscription.state === 'active'
+          ? <button className="fq-button" onClick={() => askShell('manage')} data-testid="button-manage-subscription">Manage or cancel</button>
+          : subscription.state === 'none' && <button className="fq-button" onClick={() => askShell('buy')} disabled={subscription.busy} data-testid="button-parent-start-trial">Start free trial</button>}
+        <button className="fq-button ghost" onClick={() => askShell('restore')} disabled={subscription.busy} data-testid="button-parent-restore">Restore purchase</button>
+      </div>
+    </section>
+  );
+}

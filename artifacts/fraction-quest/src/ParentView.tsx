@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { ArrowLeft, Lock, Printer } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Printer } from 'lucide-react';
 import { getMission, MISSIONS, type Progress } from './game';
 import type { FunState } from './lib/fun';
 import { buildParentReport, type LessonRow } from './parent-report';
 import { ParentGlance } from './ParentGlance';
+import { GrownUpGate } from './GrownUpGate';
 import './parent-glance.css';
 import { AnswerKey } from './Printables';
 import { LearningVoicePicker } from './LearningText';
@@ -14,37 +15,9 @@ import type { DisplayPreferences } from './lib/fun';
 import FamilyControls from './FamilyControls';
 import { printPage } from './lib/print';
 import { DeveloperSettings } from './DeveloperTesting';
+import { SubscriptionSettings } from './Subscribe';
 
 const STATUS: Record<LessonRow['status'], string> = { done: 'Done', started: 'In progress', skipped: 'Skipped by quiz', open: 'Open', locked: 'Locked' };
-
-/** A light check that a grown-up is here (not security; just keeps young kids on their own screens). */
-function GrownUpGate({ onPass, onBack }: { onPass: () => void; onBack: () => void }) {
-  const ask = () => ({ a: 6 + Math.floor(Math.random() * 4), b: 6 + Math.floor(Math.random() * 4) });
-  const [q, setQ] = useState(ask);
-  const [value, setValue] = useState('');
-  const [wrong, setWrong] = useState(false);
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (Number(value) === q.a * q.b) { onPass(); return; }
-    setWrong(true); setValue(''); setQ(ask());
-  };
-  return (
-    <main className="fq-shell fq-parent-gate fq-appear" data-testid="parent-gate">
-      <button className="fq-back" onClick={onBack} data-testid="button-parent-back"><ArrowLeft size={17} /> Back to the map</button>
-      <section className="fq-parent-card">
-        <span className="fq-parent-lock" aria-hidden="true"><Lock size={26} /></span>
-        <h1>For grown-ups</h1>
-        <p>This page shows your child's progress. Please answer to continue.</p>
-        <form onSubmit={submit} className="fq-parent-gate-form">
-          <label htmlFor="parent-gate-answer">{q.a} × {q.b} =</label>
-          <input id="parent-gate-answer" inputMode="numeric" autoComplete="off" value={value} onChange={(e) => { setValue(e.target.value.replace(/\D/g, '').slice(0, 3)); setWrong(false); }} data-testid="input-parent-gate" />
-          <button type="submit" className="fq-button" disabled={!value} data-testid="button-parent-gate">Continue</button>
-        </form>
-        {wrong && <p className="fq-parent-wrong" role="alert" data-testid="text-parent-gate-wrong">Not quite. Here is a new one.</p>}
-      </section>
-    </main>
-  );
-}
 
 const percent = (value: number | null) => (value === null ? '—' : `${value}%`);
 const MASTERY_LABEL = { mastered: 'Mastered', developing: 'Developing', 'not-yet': 'Not yet assessed' } as const;
@@ -301,6 +274,8 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
               </button>
             </div>
           </section>
+
+          <SubscriptionSettings />
 
           <FamilyGuide unitTitles={unitTitles} />
 
