@@ -4,7 +4,7 @@ import { getAssessmentDefinitions } from './assessments';
 import { EMPTY_PROGRESS, isMissionUnlocked, MISSIONS, type Progress } from './game';
 import { getWorksheet } from './learning-content';
 import { emptyLearningRecord } from './learning';
-import { FRACTION_STANDARDS } from './standard-catalog';
+import { FRACTION_STANDARDS, UNIT_CHALLENGE_STANDARDS } from './standard-catalog';
 
 describe('standards map', () => {
   it('teaches, practices and checks every grade 3–5 fraction standard', () => {
@@ -25,6 +25,27 @@ describe('standards map', () => {
     // Fraction of a group (a/b of q) is 5.NF.4a, taught with fraction multiplication.
     for (const id of ['sets-unit-fractions', 'sets-nonunit', 'fraction-of-quantity', 'fraction-of-collection', 'fraction-of-length']) {
       assert.deepEqual(MISSIONS.find((mission) => mission.id === id)?.standards, ['5.NF.4a'], id);
+    }
+  });
+
+  it('tags each unit challenge set with what that unit teaches, and gives every lesson its own name', () => {
+    for (const [unit, standards] of Object.entries(UNIT_CHALLENGE_STANDARDS)) {
+      // Challenges may stretch past the unit, but each unit's set must name something its own lessons teach.
+      const taught = MISSIONS.filter((mission) => mission.unit === Number(unit)).flatMap((mission) => mission.standards ?? []);
+      assert.ok(standards.some((standard) => taught.includes(standard)), `unit ${unit} challenges: ${standards.join(', ')}; its lessons teach ${taught.join(', ')}`);
+    }
+    const titles = MISSIONS.map((mission) => mission.title);
+    assert.deepEqual(titles.filter((title, index) => titles.indexOf(title) !== index), [], 'two lessons share a name');
+  });
+
+  it('writes each decimal and ruler hint for its own question', () => {
+    for (const row of getWorksheet('decimal-fraction-equivalence')) {
+      const asked = /Write (\S+) as a decimal/.exec(row.prompt)?.[1];
+      assert.ok(asked && row.hint.includes(asked), `${row.prompt} | ${row.hint}`);
+    }
+    for (const row of getWorksheet('ruler-measurement')) {
+      const object = /The blue (.+) starts/.exec(row.prompt)?.[1];
+      assert.ok(!object || row.hint.endsWith(`end of the ${object}.`), `${row.prompt} | ${row.hint}`);
     }
   });
 

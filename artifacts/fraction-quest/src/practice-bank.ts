@@ -208,7 +208,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'compose-to-one': (r) => {
     const d = r.pick(DENS); const n = r.int(1, d - 1);
-    return { prompt: `Fill the blank: ${f(n, d)} + ? = 1`, right: f(d - n, d), wrong: [f(n, d), f(d - n, d * 2)], hint: `one whole is ${f(d, d)}.`, retry: `${d} − ${n} = ${d - n}. So ${f(d - n, d)}.`, model: bar(n, d) };
+    return { prompt: `Fill the blank: ${f(n, d)} + ? = 1`, right: f(d - n, d), wrong: [f(n, d), f(d - n, d * 2)], hint: `One whole is ${f(d, d)}.`, retry: `${d} − ${n} = ${d - n}. So ${f(d - n, d)}.`, model: bar(n, d) };
   },
   'decompose-fractions': (r) => {
     const d = r.pick([5, 6, 8, 10, 12]); const n = r.int(3, d - 1); const first = r.int(1, n - 2);
@@ -220,7 +220,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'mixed-improper': (r) => {
     const d = r.int(2, 8); const left = r.int(1, d - 1);
-    return { prompt: `What is 1 and ${f(left, d)} as ${name(d)}?`, right: f(d + left, d), wrong: [f(left, d), f(1 + left, d)], hint: `one whole is ${f(d, d)}.`, retry: `${f(d, d)} + ${f(left, d)} = ${f(d + left, d)}.`, model: line(d + left, d) };
+    return { prompt: `What is 1 and ${f(left, d)} as ${name(d)}?`, right: f(d + left, d), wrong: [f(left, d), f(1 + left, d)], hint: `One whole is ${f(d, d)}.`, retry: `${f(d, d)} + ${f(left, d)} = ${f(d + left, d)}.`, model: line(d + left, d) };
   },
   'add-like-denominators': (r) => {
     const d = r.pick([5, 6, 8, 10, 12]); const a = r.int(1, d - 2); const b = r.int(1, d - 1 - a);
