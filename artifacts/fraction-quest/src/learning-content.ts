@@ -658,6 +658,9 @@ export function getWorksheet(id: string, variant = 0): WorksheetProblem[] {
     return { ...row, standards: [...standardsForMission(id)], ...(picture ? { picture } : {}) };
   });
   if (!variant) return tag(buildWorksheet(id, 0));
+  // Each redo sheet is built from the one before it, so map any variant onto a cycle of REDO_CYCLE sheets. Check-ins
+  // ask for variants in the millions, which would otherwise build (and recurse through) every sheet before them.
+  if (variant < 0 || variant > REDO_CYCLE) return getWorksheet(id, 1 + (Math.abs(variant) - 1) % REDO_CYCLE);
   const key = `${id}:${variant}`;
   const cached = VARIANT_CACHE.get(key);
   if (cached) return tag(cached);
@@ -690,6 +693,7 @@ export function getWorksheet(id: string, variant = 0): WorksheetProblem[] {
   return tag(sheet);
 }
 const VARIANT_CACHE = new Map<string, WorksheetProblem[]>();
+const REDO_CYCLE = 24;
 const largestBottom = (p: WorksheetProblem) => Math.max(0, ...execAll(`${p.prompt} ${p.answer}`, /\d+\/(\d+)/g).map((m) => Number(m[1])));
 
 function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
