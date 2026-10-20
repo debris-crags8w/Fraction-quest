@@ -1,6 +1,6 @@
 /* The monthly subscription, sold only in the app (iPhone and Android). The app's shell asks Apple or Google and puts
-   the answer on `window.fractionQuestShell.subscription`; this page asks it to buy, restore or manage. In a plain
-   browser there is no subscription and nothing is locked. */
+   the answer on `window.fractionQuestShell.subscription`; this page asks it to buy, restore or manage. The app is
+   where Fraction Quest lives: in a plain browser, only the first lesson is open and the rest point to the app. */
 import { useSyncExternalStore } from 'react';
 import { onAppShellChange } from './app-shell';
 import { postToShell } from './native-shell';
@@ -33,6 +33,15 @@ export function readSubscription(): Subscription | null {
 /** Lessons are locked only when the store says there is no subscription. Unknown (no store, offline, not set up
     yet) leaves them open, so a child is never stuck because of the store. */
 export const lessonsLocked = (subscription: Subscription | null): boolean => subscription?.state === 'none';
+
+/** In a plain browser (not the app), lessons after the first point to the app. A build with VITE_WEB_LESSONS_OPEN=1
+    (the browser tests) keeps them open, unless a test turns the browser limit back on with `__fqWebLimit`. */
+export function webLessonsLocked(): boolean {
+  const scope = globalThis as { fractionQuestShell?: unknown; ReactNativeWebView?: unknown; __fqWebLimit?: boolean };
+  if (scope.fractionQuestShell || scope.ReactNativeWebView) return false;
+  const open = String(import.meta.env?.VITE_WEB_LESSONS_OPEN ?? '') === '1';
+  return !open || scope.__fqWebLimit === true;
+}
 
 export const askShell = (action: SubscriptionAction): boolean => postToShell({ type: 'subscription', action });
 

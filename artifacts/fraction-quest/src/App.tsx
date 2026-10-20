@@ -59,8 +59,8 @@ import { activeSeason } from './seasons';
 import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
 import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
 import { LanternIcon, OilNoticeCard } from './riddle-ui';
-import { SubscribeFlow } from './Subscribe';
-import { lessonsLocked, subscribedBefore, useSubscription } from './lib/subscription';
+import { SubscribeFlow, WebAppOnlyFlow } from './Subscribe';
+import { lessonsLocked, subscribedBefore, useSubscription, webLessonsLocked } from './lib/subscription';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
 import { freshSeed, generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
@@ -1311,9 +1311,11 @@ function Game() {
   const originalModuleTestFun = useRef<FunState | null>(null);
   const [requestedView, setView] = useState<View | LabView | RetentionView | PaperView | RedoView | ChallengeView | ExtraView | ParentPage | GameView | PlacementView>({ type: 'map' });
   // In the app (iPhone and Android), lessons need the subscription: a lesson asked for without one shows the
-  // subscription flow instead, and opens by itself once the purchase goes through. Developer tests are never locked.
+  // subscription flow instead, and opens by itself once the purchase goes through. In a plain browser, lessons after
+  // the first point to the app. Developer tests are never locked.
   const subscription = useSubscription();
-  const view: typeof requestedView | SubscribeView = lessonsLocked(subscription) && !moduleTestActive && !isFreeView(requestedView)
+  const locked = lessonsLocked(subscription) || (!subscription && webLessonsLocked());
+  const view: typeof requestedView | SubscribeView = locked && !moduleTestActive && !isFreeView(requestedView)
     ? { type: 'subscribe' } : requestedView;
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
@@ -1662,6 +1664,7 @@ function Game() {
       {view.type === 'assessments' && <AssessmentHub attempts={progress.assessments ?? []} onStart={definition => setView({ type: 'assessment', definition, seed: freshSeed() })} onBack={returnToMap} />}
       {view.type === 'assessment' && <AssessmentRunner key={`${view.definition.id}:${view.seed}`} definition={view.definition} seed={view.seed}
         onComplete={attempt => persistProgress(saveAssessmentAttempt(progress, attempt))} onExit={() => setView({ type: 'assessments' })} />}
+      {view.type === 'subscribe' && !subscription && <WebAppOnlyFlow onBack={() => setView({ type: 'map' })} />}
       {view.type === 'subscribe' && subscription && (
         <SubscribeFlow subscription={subscription} lapsed={subscribedBefore()} lessonsDone={progress.completedMissionIds.length}
           piecesFound={completedStoryUnits(progress).size} onBack={() => setView({ type: 'map' })} onStorybook={() => setView({ type: 'storybook', tab: 'story' })} />

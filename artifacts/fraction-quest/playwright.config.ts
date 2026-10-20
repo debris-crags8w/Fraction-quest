@@ -34,7 +34,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'PORT=4179 BASE_PATH=/ pnpm run dev',
+    command: 'PORT=4179 BASE_PATH=/ VITE_WEB_LESSONS_OPEN=1 pnpm run dev',
     url: 'http://127.0.0.1:4179/',
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
