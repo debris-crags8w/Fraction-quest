@@ -1655,6 +1655,7 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-parent-bar i { display: block; width: 100%; min-height: 2px; border-radius: 8px; background: var(--fq-grape); }
 .fq-parent-day b { font-size: 0.85rem; }
 .fq-parent-day small { color: hsl(var(--muted-foreground)); font-size: 0.75rem; font-weight: 800; }
+.fq-parent-day small.fq-parent-saved { color: #9A4A00; }
 .fq-parent-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .fq-parent-list li { display: grid; gap: 1px; }
 .fq-parent-list span { color: hsl(var(--muted-foreground)); font-size: 0.85rem; }

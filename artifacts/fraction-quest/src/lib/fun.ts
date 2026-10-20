@@ -50,7 +50,19 @@ export type FunState = {
   story?: StoryState;
   /** The model intros (how to build, how a number line works) already watched, so they open by themselves once. */
   introsSeen?: Partial<Record<IntroKind, true>>;
+  /** Spare oil (story mode) or streak savers: each covers one missed day so the streak keeps going. Up to SPARE_OIL_MAX. */
+  spareOil?: number;
+  /** Missed days a drop covered (last 35 days). They keep the streak going but do not add to it, and are not activity. */
+  savedDays?: string[];
+  /** The last day a drop covered. lastActiveDay stays the last day with a right answer. */
+  streakKeptUntil?: string;
+  /** What to tell the child next time the map shows: a drop was used for these days, or a drop was earned. */
+  oilNotice?: OilNotice;
 };
+export type OilNotice = { kind: 'used'; days: string[] } | { kind: 'earned'; streak: number };
+/** A drop for every 7 days in a row, and the jar holds 2. */
+export const SPARE_OIL_EVERY = 7;
+export const SPARE_OIL_MAX = 2;
 export type IntroKind = 'builder' | 'line';
 export type StoryState = { prologueSeen?: boolean; choices?: Record<string, 0 | 1>; /** Suspect board guesses: board number → suspect id. */ guesses?: Record<string, string> };
 const SUSPECT_IDS = ['chomp', 'pip', 'tilly', 'bolt', 'bea'];
@@ -177,6 +189,22 @@ function cleanIntros(value: unknown): Partial<Record<IntroKind, true>> {
   return { ...(raw.builder === true ? { builder: true } : {}), ...(raw.line === true ? { line: true } : {}) } as Partial<Record<IntroKind, true>>;
 }
 
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** Spare oil from saved data: a count in range, recent well-formed days, and a notice that makes sense. */
+function cleanOil(saved: Partial<FunState>, now = new Date()): Pick<FunState, 'spareOil' | 'savedDays' | 'streakKeptUntil' | 'oilNotice'> {
+  const oldest = new Date(now); oldest.setDate(now.getDate() - KEEP_DAYS);
+  const days = (value: unknown) => (Array.isArray(value) ? [...new Set(value.filter((day): day is string => typeof day === 'string' && DAY_RE.test(day)))] : []);
+  const spareOil = typeof saved.spareOil === 'number' && Number.isFinite(saved.spareOil) ? Math.max(0, Math.min(SPARE_OIL_MAX, Math.floor(saved.spareOil))) : 0;
+  const savedDays = days(saved.savedDays).filter((day) => day >= today(oldest)).sort();
+  const streakKeptUntil = typeof saved.streakKeptUntil === 'string' && DAY_RE.test(saved.streakKeptUntil) ? saved.streakKeptUntil : undefined;
+  const raw = saved.oilNotice as Partial<OilNotice & { days: unknown; streak: unknown }> | undefined;
+  const noticeDays = raw?.kind === 'used' ? days(raw.days).slice(0, SPARE_OIL_MAX) : [];
+  const oilNotice: OilNotice | undefined = raw?.kind === 'used' && noticeDays.length ? { kind: 'used', days: noticeDays }
+    : raw?.kind === 'earned' && typeof raw.streak === 'number' && Number.isFinite(raw.streak) && raw.streak > 0 ? { kind: 'earned', streak: Math.floor(raw.streak) }
+      : undefined;
+  return { spareOil, savedDays, ...(streakKeptUntil ? { streakKeptUntil } : {}), ...(oilNotice ? { oilNotice } : {}) };
+}
+
 function cleanStory(value: unknown): StoryState {
   if (!value || typeof value !== 'object') return {};
   const raw = value as Partial<StoryState>;
@@ -236,10 +264,13 @@ export function loadFun(): FunState {
       seasonLessons: cleanSeasonLessons(parsed.seasonLessons),
       story: cleanStory(parsed.story),
       introsSeen: cleanIntros(parsed.introsSeen),
+      ...cleanOil(parsed),
       activity: cleanActivity(parsed.activity),
       ...cleanGames(parsed),
     };
-    return saved.day === today() ? saved : { ...saved, day: today(), answeredToday: 0 };
+    const opened = applySpareOil(saved);
+    if (opened !== saved) saveFun(opened);
+    return opened.day === today() ? opened : { ...opened, day: today(), answeredToday: 0 };
   } catch {
     return fresh();
   }
@@ -262,16 +293,54 @@ function isYesterday(day: string | null, now = new Date()): boolean {
   return day === today(yesterday);
 }
 
-/** The streak to show: it ends once a whole day goes by with no correct answer (the saved number only changes on the next answer). */
+/** The last day the streak reached: a day with a right answer, or a missed day a drop covered. */
+const streakReached = (state: FunState): string | null => {
+  const kept = state.streakKeptUntil ?? null;
+  return kept && (!state.lastActiveDay || kept > state.lastActiveDay) ? kept : state.lastActiveDay;
+};
+
+/** The streak to show: it ends once a whole day goes by with no correct answer and no drop to cover it
+    (the saved number only changes on the next answer). */
 export function shownStreak(state: FunState, now = new Date()): number {
-  return state.lastActiveDay === today(now) || isYesterday(state.lastActiveDay, now) ? state.dayStreak : 0;
+  const reached = streakReached(state);
+  return reached === today(now) || isYesterday(reached, now) ? state.dayStreak : 0;
 }
 
-/** Record one correct answer: +10 XP, one step toward the daily goal, and keep the day streak alive. */
+/** On opening the app: if whole days went by with no right answer and there are enough drops, use one per missed day
+    so the streak keeps going. Not enough drops: nothing is used and the streak ends as before. */
+export function applySpareOil(state: FunState, now = new Date()): FunState {
+  const reached = streakReached(state);
+  const oil = state.spareOil ?? 0;
+  if (!reached || state.dayStreak <= 0 || oil <= 0 || reached >= today(now) || isYesterday(reached, now)) return state;
+  const missed: string[] = [];
+  const day = new Date(`${reached}T12:00:00`);
+  for (day.setDate(day.getDate() + 1); today(day) < today(now) && missed.length <= oil; day.setDate(day.getDate() + 1)) missed.push(today(day));
+  if (!missed.length || missed.length > oil) return state;
+  const oldest = new Date(now); oldest.setDate(now.getDate() - KEEP_DAYS);
+  const savedDays = [...new Set([...(state.savedDays ?? []), ...missed])].filter((saved) => saved >= today(oldest)).sort();
+  return { ...state, spareOil: oil - missed.length, savedDays, streakKeptUntil: missed[missed.length - 1], oilNotice: { kind: 'used', days: missed } };
+}
+
+/** The notice was shown: clear it. */
+export function clearOilNotice(state: FunState): FunState {
+  if (!state.oilNotice) return state;
+  const { oilNotice: _shown, ...rest } = state;
+  return saveFun(rest);
+}
+
+/** Record one correct answer: +10 XP, one step toward the daily goal, and keep the day streak alive.
+    Every SPARE_OIL_EVERY days in a row earns a drop of spare oil, while the jar has room. */
 export function recordCorrect(state: FunState): FunState {
   const current = state.day === today() ? state : { ...state, day: today(), answeredToday: 0 };
-  const dayStreak = current.lastActiveDay === today() ? current.dayStreak : isYesterday(current.lastActiveDay) ? current.dayStreak + 1 : 1;
-  return saveFun({ ...current, xp: current.xp + 10, answeredToday: current.answeredToday + 1, dayStreak, lastActiveDay: today(), activity: bump(current, 'answered') });
+  const reached = streakReached(current);
+  const newDay = current.lastActiveDay !== today();
+  const dayStreak = !newDay ? current.dayStreak : reached === today() || isYesterday(reached) ? current.dayStreak + 1 : 1;
+  const oil = current.spareOil ?? 0;
+  const earned = newDay && dayStreak % SPARE_OIL_EVERY === 0 && oil < SPARE_OIL_MAX;
+  return saveFun({
+    ...current, xp: current.xp + 10, answeredToday: current.answeredToday + 1, dayStreak, lastActiveDay: today(), activity: bump(current, 'answered'),
+    ...(earned ? { spareOil: oil + 1, oilNotice: { kind: 'earned', streak: dayStreak } as OilNotice } : {}),
+  });
 }
 
 /** Award worksheet answer XP once per distinct, saved question, even across retries and reloads. */
@@ -407,9 +476,11 @@ export function replaceFun(saved: Partial<FunState>): FunState {
     seasonLessons: cleanSeasonLessons(saved.seasonLessons),
     story: cleanStory(saved.story),
     introsSeen: cleanIntros(saved.introsSeen),
+    ...cleanOil(saved),
     sound: loadFun().sound,
     activity: cleanActivity(saved.activity),
     ...cleanGames(saved),
   };
-  return saveFun(merged.day === today() ? merged : { ...merged, day: today(), answeredToday: 0 });
+  const opened = applySpareOil(merged);
+  return saveFun(opened.day === today() ? opened : { ...opened, day: today(), answeredToday: 0 });
 }

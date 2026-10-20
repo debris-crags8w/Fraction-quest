@@ -1,0 +1,19 @@
+/* Spare oil notice: shown over the map, so it loads with riddle-ui, not with lazy daily practice. */
+.fq-oil-notice u { text-decoration-color: #FFE27A; text-underline-offset: 3px; }
+.fq-oil-backdrop { z-index: 60; }
+.fq-oil-notice { width: min(100%, 420px); max-height: 100dvh; overflow-y: auto; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 16px;
+  padding: 28px 16px 20px; border-radius: 24px; background: #1E1838; color: #FFF6E5; text-align: center; }
+.fq-oil-notice h2 { margin: 0; color: #FFE27A; font-size: clamp(1.5rem, 7vw, 1.9rem); line-height: 1.15; }
+.fq-oil-hero { position: relative; display: grid; place-items: center; width: 150px; height: 150px; border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 200 0 / .32) 0%, rgb(255 200 0 / 0) 70%); }
+.fq-oil-hero-drop { position: absolute; right: 6px; bottom: 4px; }
+.fq-oil-say { display: flex; gap: 12px; align-items: flex-start; width: 100%; box-sizing: border-box; padding: 14px; border: 2px solid #4A3D84; border-radius: 16px; background: #2B2550; text-align: left; }
+.fq-oil-say > div { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.fq-oil-say p { margin: 0; font-size: 1.05rem; line-height: 1.45; color: #FFF6E5; }
+.fq-oil-next { width: 100%; min-height: 52px; }
+@media (prefers-reduced-motion: no-preference) {
+  .fq-oil-hero { animation: fq-oil-glow 2.4s ease-in-out infinite; }
+}
+@keyframes fq-oil-glow { 50% { transform: scale(1.04); } }
+.fq-oil-say > svg { flex: none; }
+.fq-oil-notice .fq-learning-listen { margin: 0; min-height: 44px; padding: 3px 14px; color: #FFE27A; border-color: #6B5DB0; background: transparent; }
