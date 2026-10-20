@@ -681,8 +681,11 @@ describe('due skill reviews', () => {
     const lessonReviews = getDelayedReviewQuestions(progress, firstMissionId, now);
     assert.ok(lessonReviews.every((question) => question.reviewMissionId !== firstMissionId));
 
-    const completed = completeSkillReview(progress, firstMissionId);
-    assert.ok(!completed.reviewQueue.some((item) => item.missionId === firstMissionId));
+    // A passed review is not due again for 3 days (spaced review: 1, 3 and 7 days).
+    const completed = completeSkillReview(progress, firstMissionId, now);
+    const later = completed.reviewQueue.find((item) => item.missionId === firstMissionId);
+    assert.equal(later?.stage, 1);
+    assert.equal(later?.dueAt, now + 3 * SKILL_REVIEW_DELAY_MS);
 
     const deferred = deferSkillReview(progress, firstMissionId, now);
     const deferredSkill = deferred.reviewQueue.find((item) => item.missionId === firstMissionId);
@@ -727,14 +730,15 @@ describe('due skill reviews', () => {
     let afterSession = progress;
     for (const question of sessionQuestions) {
       assert.equal(isCorrectAnswer(question, question.correctChoice), true);
-      afterSession = completeSkillReview(afterSession, question.reviewMissionId!);
+      afterSession = completeSkillReview(afterSession, question.reviewMissionId!, now);
     }
     saveProgress(afterSession);
 
     const reloaded = loadProgress();
     assert.equal(getDueSkillReviewCount(reloaded, now), 1);
+    // Answered skills come back in 3 days (and keep their step after a reload), so they are not due now.
     assert.ok(sessionQuestions.every((question) =>
-      !reloaded.reviewQueue.some((item) => item.missionId === question.reviewMissionId),
+      reloaded.reviewQueue.some((item) => item.missionId === question.reviewMissionId && item.stage === 1 && item.dueAt > now),
     ));
     const mapEntry = renderToStaticMarkup(
       createElement(QuickReviewEntry, { progress: reloaded, onStart: () => undefined }),
@@ -749,7 +753,7 @@ describe('due skill reviews', () => {
 
     const afterSkip = deferSkillReview(progress, skippedQuestion.reviewMissionId!, now);
     assert.equal(isCorrectAnswer(answeredQuestion, answeredQuestion.correctChoice), true);
-    const afterSession = completeSkillReview(afterSkip, answeredQuestion.reviewMissionId!);
+    const afterSession = completeSkillReview(afterSkip, answeredQuestion.reviewMissionId!, now);
     saveProgress(afterSession);
 
     const reloaded = loadProgress();
@@ -1828,7 +1832,13 @@ describe('entered-answer worksheets and evidence gates', () => {
     progress = updateLearning(progress, id, { ...getLearningRecord(progress, id), confirmedAt: 2_000 });
     assert.equal(completeSkillReview(progress, id).reviewQueue.length, 1);
     progress = updateLearning(progress, id, { ...getLearningRecord(progress, id), confirmedAt: 1_000 + SKILL_REVIEW_DELAY_MS });
-    assert.equal(completeSkillReview(progress, id).reviewQueue.length, 0);
+    // Passed a day later: the skill is scheduled again in 3 days, then 7, then it is done.
+    const day = SKILL_REVIEW_DELAY_MS; const start = 1_000 + day;
+    progress = completeSkillReview(progress, id, start);
+    assert.deepEqual([progress.reviewQueue[0].stage, progress.reviewQueue[0].dueAt], [1, start + 3 * day]);
+    progress = completeSkillReview(progress, id, start + 3 * day);
+    assert.deepEqual([progress.reviewQueue[0].stage, progress.reviewQueue[0].dueAt], [2, start + 10 * day]);
+    assert.equal(completeSkillReview(progress, id, start + 10 * day).reviewQueue.length, 0);
   });
   it('migrates legacy history without inventing understanding and rejects malformed evidence', () => {
     memory.set('fraction-quest-progress-v1', JSON.stringify({

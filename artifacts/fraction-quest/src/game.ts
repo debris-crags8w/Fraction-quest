@@ -1,4 +1,5 @@
 import { noBeforeYes, orderedWithSigns, withFourthChoice, withSignComparisons } from './fourth-choice';
+import { preferMisconceptions } from './misconceptions';
 import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
 import type { AreaCut } from './area-shapes';
 import { amountsIn, autoPicture } from './auto-picture';
@@ -225,6 +226,8 @@ export type SkillReview = {
   missedQuestionId: string;
   dueAt: number;
   reviewCount: number;
+  /** Spaced review step: 0 is the review 1 day after the lesson, then 3 days, then 7 days (absent in older saves: 0). */
+  stage?: number;
 };
 
 export type Answer = number;
@@ -321,7 +324,9 @@ function practice(
   // Four choices (A–D): lessons list three, a fourth believable wrong answer is added (sign questions are written out as four comparisons).
   const signs = withSignComparisons(prompt, choices, correctChoice);
   const withFourth = withFourthChoice({ prompt, choices: signs?.choices ?? choices, correctChoice: signs?.correctChoice ?? correctChoice, model: named, hint, retryFeedback, simplerModel: simpler });
-  return { ...withFourth, choices: orderedWithSigns(prompt, withFourth.choices) };
+  // Whole-number answers: wrong choices come from real slips (one group, the rest, the whole), not answer ± 1.
+  const slipped = preferMisconceptions(withFourth);
+  return { ...slipped, choices: orderedWithSigns(prompt, slipped.choices) };
 }
 
 /** Authored questions mostly listed the right answer first. Put it at a spot picked from the question id
@@ -965,6 +970,8 @@ export const MISSIONS: Mission[] = curriculum.map((seed, index) => {
 export const EMPTY_PROGRESS: Progress = { completedMissionIds: [], starsByMission: {}, reviewQueue: [], assessments: [] };
 const STORAGE_KEY = 'fraction-quest-progress-v1';
 export const SKILL_REVIEW_DELAY_MS = 24 * 60 * 60 * 1000;
+/** After each passed review the next comes later: 1 day after the lesson, then 3 days, then 7 days, then it is done. */
+export const SPACED_REVIEW_DAYS = [1, 3, 7] as const;
 const MAX_DELAYED_REVIEW_QUESTIONS = 2;
 const LEGACY_MISSION_IDS: Record<string, string> = {
   share: 'equal-parts',
@@ -998,11 +1005,19 @@ export function recordMissedSkill(
   };
 }
 
-export function completeSkillReview(progress: Progress, missionId: string): Progress {
+export function completeSkillReview(progress: Progress, missionId: string, now = Date.now()): Progress {
   const evidence = progress.learning?.[missionId];
   if (evidence && (!evidence.completedAt || !evidence.confirmedAt || evidence.confirmedAt < evidence.completedAt + SKILL_REVIEW_DELAY_MS)) return progress;
-  const reviewQueue = progress.reviewQueue.filter((item) => item.missionId !== missionId);
-  return reviewQueue.length === progress.reviewQueue.length ? progress : { ...progress, reviewQueue };
+  const item = progress.reviewQueue.find((review) => review.missionId === missionId);
+  if (!item) return progress;
+  // A passed review comes back later (3 days, then 7) until the last step, so the skill is remembered, not just met once.
+  const next = (item.stage ?? 0) + 1;
+  const reviewQueue = next < SPACED_REVIEW_DAYS.length
+    ? progress.reviewQueue.map((review) => review === item
+      ? { ...review, stage: next, reviewCount: review.reviewCount + 1, dueAt: now + SPACED_REVIEW_DAYS[next] * SKILL_REVIEW_DELAY_MS }
+      : review)
+    : progress.reviewQueue.filter((review) => review !== item);
+  return { ...progress, reviewQueue };
 }
 
 export function deferSkillReview(progress: Progress, missionId: string, now = Date.now()): Progress {
@@ -1254,6 +1269,7 @@ export function loadProgress(): Progress {
           reviewCount: typeof item.reviewCount === 'number' && Number.isFinite(item.reviewCount)
             ? Math.max(0, Math.floor(item.reviewCount))
             : 0,
+          ...(typeof item.stage === 'number' && Number.isInteger(item.stage) && item.stage > 0 && item.stage < SPACED_REVIEW_DAYS.length ? { stage: item.stage } : {}),
         });
       }
     }
