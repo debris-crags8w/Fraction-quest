@@ -126,11 +126,12 @@ type ParentPage = { type: 'parent' };
 type GameView = { type: 'race' | 'code'; missionId: string; /** Opened from the Games menu: go back there. */ fromGames?: boolean };
 type PlacementView = { type: 'placement' };
 type SubscribeView = { type: 'subscribe' };
-/** What stays open without the subscription: the map, the opening story, the level quiz, reading finished story
-    parts again, and the grown-ups' area. */
-const isFreeView = (view: { type: string; prologue?: boolean; replay?: string; part?: string }) =>
+/** What stays open without the subscription: the map, the opening story, the level quiz, the whole first lesson
+    (its story, games and worksheet too), reading finished story parts again, and the grown-ups' area. */
+const isFreeView = (view: { type: string; missionId?: string; prologue?: boolean; replay?: string; part?: string; nextView?: { type: string } }): boolean =>
   ['map', 'placement', 'storybook', 'suspects', 'parent'].includes(view.type)
-  || (view.type === 'story' && (!!view.prologue || !!view.replay || !!view.part));
+  || (view.type === 'story' && (!!view.prologue || !!view.replay || !!view.part))
+  || (view.missionId === MISSIONS[0].id && (!view.nextView || isFreeView(view.nextView)));
 // seed 0 = the fixed 12 "Practice more" questions; any other seed = freshly generated questions.
 type ExtraView = { type: 'extra'; missionId: string; seed: number; questionIndex: number; firstTry: number } | { type: 'extra-done'; missionId: string; seed: number; firstTry: number; total: number };
 const FRESH_ROUND = 10;

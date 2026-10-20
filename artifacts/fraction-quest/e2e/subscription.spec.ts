@@ -6,10 +6,12 @@ const dayKey = () => {
 };
 
 /** Pretend to be the app (iPhone and Android): the shell reports the subscription and records what the page asks. */
-async function openInApp(page: Page, subscription: Record<string, unknown> | null) {
-  await page.addInitScript(({ savedSubscription, day }) => {
+async function openInApp(page: Page, subscription: Record<string, unknown> | null, finished: string[] = []) {
+  const record = { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {}, completedAt: Date.now() };
+  const learning = Object.fromEntries(finished.map((id) => [id, record]));
+  await page.addInitScript(({ savedSubscription, day, done, learned }) => {
     if (!localStorage.getItem('fraction-quest-fun-v1:guest')) {
-      localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: [], starsByMission: {}, reviewQueue: [], assessments: [], learning: {} }));
+      localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: done, starsByMission: {}, reviewQueue: [], assessments: [], learning: learned }));
       localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 0, day, answeredToday: 0, sound: false, story: { prologueSeen: true } }));
     }
     const scope = window as Window & { fractionQuestShell?: unknown; ReactNativeWebView?: unknown; __asked?: string[] };
@@ -18,28 +20,36 @@ async function openInApp(page: Page, subscription: Record<string, unknown> | nul
       scope.fractionQuestShell = { platform: 'ios', wifi: true, subscription: savedSubscription };
       scope.ReactNativeWebView = { postMessage: (message: string) => scope.__asked!.push(message) };
     }
-  }, { savedSubscription: subscription, day: dayKey() });
+  }, { savedSubscription: subscription, day: dayKey(), done: finished, learned: learning });
   await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Not signed in.' }) }));
   await page.goto('/');
   const guest = page.getByTestId('button-play-guest');
-  const start = page.getByTestId('button-start-mission-equal-parts');
-  await expect(guest.or(start)).toBeVisible();
+  const map = page.getByTestId('button-app-menu');
+  await expect(guest.or(map)).toBeVisible();
   if (await guest.isVisible()) await guest.click();
 }
 
 const asked = (page: Page) => page.evaluate(() => ((window as Window & { __asked?: string[] }).__asked ?? []).map((message) => JSON.parse(message)));
 
-test('in the app without a subscription, a lesson asks for a grown-up and opens once the trial starts', async ({ page }) => {
+test('in the app the first lesson is free', async ({ page }) => {
   await openInApp(page, { state: 'none', price: '$4.99' });
   await page.getByTestId('button-start-mission-equal-parts').click();
+  await expect(page.getByTestId('subscribe-ask')).toHaveCount(0);
+  await expect(page.getByTestId('paywall')).toHaveCount(0);
+  expect(await asked(page)).toEqual([]);
+});
+
+test('in the app without a subscription, lesson 2 asks for a grown-up and opens once the trial starts', async ({ page }) => {
+  await openInApp(page, { state: 'none', price: '$4.99' }, ['equal-parts']);
+  await page.getByTestId('button-start-mission-fraction-names').click();
 
   const ask = page.getByTestId('subscribe-ask');
   await expect(ask).toBeVisible();
   await expect(ask).toContainText('ask a grown-up to unlock Fraction Quest');
   // Back goes to the map, which stays open.
   await page.getByTestId('button-subscribe-back').click();
-  await expect(page.getByTestId('button-start-mission-equal-parts')).toBeVisible();
-  await page.getByTestId('button-start-mission-equal-parts').click();
+  await expect(page.getByTestId('button-start-mission-fraction-names')).toBeVisible();
+  await page.getByTestId('button-start-mission-fraction-names').click();
 
   await page.getByTestId('button-get-grown-up').click();
   const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
@@ -72,12 +82,12 @@ test('in the app without a subscription, a lesson asks for a grown-up and opens 
 
 test('after a subscription ends, the child is told their progress is saved and can open the Storybook', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('fraction-quest-subscribed-once', '1'));
-  await openInApp(page, { state: 'none' });
-  await page.getByTestId('button-start-mission-equal-parts').click();
+  await openInApp(page, { state: 'none' }, ['equal-parts']);
+  await page.getByTestId('button-start-mission-fraction-names').click();
   const ask = page.getByTestId('subscribe-ask');
   await expect(ask).toHaveAttribute('data-lapsed', 'true');
   await expect(ask.getByRole('heading')).toHaveText('Hoot’s lantern is waiting');
-  await expect(ask).toContainText('Everything you learned is saved: 0 stone pieces and 0 lessons.');
+  await expect(ask).toContainText('Everything you learned is saved: 0 stone pieces and 1 lesson.');
   await page.getByTestId('button-subscribe-storybook').click();
   await expect(page.getByTestId('subscribe-ask')).toHaveCount(0);
 });
