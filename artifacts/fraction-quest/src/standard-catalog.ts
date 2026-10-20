@@ -120,7 +120,7 @@ export const MISSION_STANDARDS: Record<string, StandardId[]> = {
   'decimal-fraction-equivalence': ['4.NF.6'],
   'compare-decimals': ['4.NF.7'],
   'multi-step-fraction-stories': ['5.NF.2'],
-  'find-the-whole': ['3.NF.1', '4.NF.4c'],
+  'find-the-whole': ['4.NF.4c'],
   'spot-the-mistake': ['4.NF.3a', '4.NF.2'],
   'fraction-of-remainder': ['5.NF.6', '5.NF.2'],
   'divide-fractions': [],
@@ -135,7 +135,7 @@ export const gradeForStandard = (standard: string): 3 | 4 | 5 | null => {
 /** Challenge questions are tagged with the unit's taught standards; they do not alone establish mastery. */
 export const UNIT_CHALLENGE_STANDARDS: Record<number, StandardId[]> = {
   1: ['3.NF.1', '3.G.2'],
-  2: ['3.NF.1', '4.NF.4c'],
+  2: ['3.NF.3d'],
   3: ['3.NF.3d'],
   4: ['3.NF.2a', '3.NF.2b'],
   5: ['3.NF.3d', '4.NF.2'],
@@ -148,7 +148,7 @@ export const UNIT_CHALLENGE_STANDARDS: Record<number, StandardId[]> = {
   12: ['3.MD.4', '4.MD.2', '4.MD.4', '5.MD.1', '5.MD.2', '5.NF.3'],
   13: ['3.G.2', '3.NF.3a', '4.NF.4c', '5.NF.6'],
   14: ['4.NF.6', '4.NF.7', '5.NF.2'],
-  15: ['3.NF.1', '4.NF.2', '4.NF.3a', '4.NF.4c', '5.NF.2', '5.NF.6'],
+  15: ['4.NF.2', '4.NF.3a', '4.NF.4c', '5.NF.2', '5.NF.6'],
 };
 
 export const standardsForChallenge = (challengeId: string): StandardId[] => {

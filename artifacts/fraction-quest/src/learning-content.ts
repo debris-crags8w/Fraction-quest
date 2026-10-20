@@ -203,7 +203,7 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'compose-to-one': [5, 8, 'bar', '3/8 is used. Make what is left of one whole.', '8/8 is one whole. 8 − 3 = 5, so 5/8.'],
   'decompose-fractions': [4, 6, 'bar', 'Make 4/6 with four 1/6 parts.', 'Four 1/6 parts make 4/6.'],
   'improper-fractions': [7, 4, 'bar', 'Make 7/4.', '4/4 fills 1 bar. 3/4 more is left over.'],
-  'mixed-improper': [8, 5, 'bar', 'Make 1 and 3/5 using fifths.', 'one whole is 5/5. Add 3 more to get 8/5.'],
+  'mixed-improper': [8, 5, 'bar', 'Make 1 and 3/5 using fifths.', 'One whole is 5/5. Add 3 more to get 8/5.'],
   'whole-numbers-as-fractions': [6, 3, 'bar', 'Build 6/3 using thirds.', 'Three thirds make one whole. Six thirds make 2 wholes.'],
   'add-like-denominators': [5, 8, 'bar', 'Make 2/8 + 3/8.', 'Add the parts: 2 + 3 = 5. So 5/8.'],
   'subtract-like-denominators': [3, 7, 'bar', 'Make 5/7 − 2/7.', 'Take away 2 parts: 5 − 2 = 3. So 3/7.'],
@@ -365,7 +365,7 @@ export const REASON_IDEAS: Record<string, string> = {
   'sets-unit-fractions': 'Make equal groups and count them',
   'sets-nonunit': 'Make equal groups and count them',
   'benchmark-half': 'Find half first and count back',
-  'benchmarks-zero-one': 'one whole is all the parts',
+  'benchmarks-zero-one': 'One whole is all the parts',
   'fraction-magnitude': 'Find half first and count back',
   'number-line-basics': 'Count the spaces between ticks',
   'number-line-points': 'Count jumps from 0',
@@ -644,7 +644,7 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
   if (id === 'compare-same-denominator' || id === 'order-fractions') return { prompt: 'Which is longer, 2/5 or 4/5 of a meter? Make it.', target: model(4, 5), reason: 'Both use fifths, so the parts are the same size. Four fifths is longer because 4 parts is more than 2.' };
   const nextD = d === 5 ? 4 : 5; const nextN = n > d ? nextD + 2 : id === 'unit-fractions' || id === 'equal-parts' ? 1 : 3;
   return { prompt: kind === 'line' ? `Mark ${f(nextN, nextD)} on the number line.` : `A ribbon is ${f(nextN, nextD)} of a meter. Make ${f(nextN, nextD)}.`, target: model(nextN, nextD, kind),
-    reason: `one whole is ${nextD} equal parts. Count ${nextN} of them.` };
+    reason: `One whole is ${nextD} equal parts. Count ${nextN} of them.` };
 }
 
 /** Skill-specific authored templates and varied numbers, not recycled answer choices.
@@ -929,7 +929,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
       case 'compose-to-one': {
         const thing = ['fence', 'wall', 'board', 'box'][i % 4];
         prompt = i % 2 ? `${value} of a ${thing} is painted. What fraction is not painted yet?` : `Complete ${value} + ? = 1.`;
-        answer = f(d - n, d); hint = `one whole is ${d}/${d}. Count the parts left.`; break;
+        answer = f(d - n, d); hint = `One whole is ${d}/${d}. Count the parts left.`; break;
       }
       case 'decompose-fractions': {
         const top = Math.max(2, n); const whole = f(top, d); const first = top > 2 && i % 2 ? 2 : 1;
@@ -1185,7 +1185,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       case 'decimal-equivalent': {
         const [t, b] = pick(EXACT);
         prompt = `Write ${f(t, b)} as a decimal.`; answer = String(t / b); form = 'decimal';
-        hint = 'Change it to tenths or hundredths first. 1/2 = 5/10 = 0.5.'; break;
+        hint = `Change ${f(t, b)} to tenths or hundredths first.`; break;
       }
       case 'whole-fraction': {
         const examples: { kind: 'write' | 'count' | 'one'; numerator: number; denominator: number }[] = [
@@ -1232,7 +1232,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         rulerTask = { denominator: 4, wholes: 2, end };
         answer = mixedName(end, 4); form = answer.includes(' ') ? 'mixed' : undefined;
         prompt = `The blue ${object} starts at zero and ends at a tick with no number. Use the ruler. How long is it in inches?`;
-        hint = 'Count how many short spaces make 1 inch. Then count the spaces to the end of the strip.'; break;
+        hint = `Count how many short spaces make 1 inch. Then count the spaces to the end of the ${object}.`; break;
       }
       case 'line-plot': {
         const dataSets = [
@@ -1270,7 +1270,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         linePlotTask = { denominator: 4, wholes: 2, values };
         prompt = `Three ${context} hold ${values.map(value => f(value, 4)).join(', ')} liter. Plot them, then share the total equally. How many liters go in each?`;
         answer = (divisor * 4) / factor === 1 ? String(total / factor) : f(total / factor, (divisor * 4) / factor);
-        hint = 'Add the beaker amounts, then split that total into 3 equal shares.'; break;
+        hint = `Add the amounts in the ${context}, then split that total into 3 equal shares.`; break;
       }
       case 'measure-context': {
         const stories: { prompt: string; answer: string; hint: string; numerator: number; denominator: number; form?: WorksheetProblem['form'] }[] = [
