@@ -6,6 +6,8 @@ import { shownStreak, today, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { summarizeStandardMastery, type StandardMastery } from './assessments';
+import { FRACTION_STANDARDS } from './standard-catalog';
+import { guideForUnit } from './teaching-guide-data';
 
 /* The grown-ups' report: everything here is read from progress the app already saves.
    Nothing in it changes progress or lesson gating. */
@@ -34,7 +36,63 @@ export type ParentReport = {
   assessmentChecksCompleted: number;
   standardMastery: StandardMastery[];
   adaptationReasons: { day: string; lesson: string; reason: string }[];
+  glance: Glance;
 };
+
+/** The top of the report: the week in a few lines, grade level, and one thing to help with at home. */
+export type GlanceLesson = { id: string; title: string; grade: 3 | 4 | 5 | null; standards: string[]; idea: string };
+export type Glance = {
+  /** Days in the last 7 with at least one right answer, and days spare oil covered. */
+  daysPracticed: number; savedDays: number; minutes: number;
+  /** Lessons finished in the last 7 days, oldest first. */
+  learned: GlanceLesson[];
+  /** Skills (standards) mastered in Check-ins, per grade. */
+  grades: { grade: 3 | 4 | 5; mastered: number; total: number; started: boolean }[];
+  /** The lesson with the most wrong tries so far, with its idea and the unit's activity for home. */
+  focus: (GlanceLesson & { misses: number; homeActivity: string | null }) | null;
+};
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const glanceLesson = (mission: (typeof MISSIONS)[number]): GlanceLesson => ({
+  id: mission.id, title: mission.title, grade: mission.gradeBand ?? null, standards: [...(mission.standards ?? [])], idea: mission.skill,
+});
+
+export function buildGlance(progress: Progress, week: DayRow[], mastery: StandardMastery[], now = new Date()): Glance {
+  const learned = MISSIONS
+    .map((mission) => ({ mission, at: getLearningRecord(progress, mission.id).completedAt }))
+    .filter((item): item is { mission: (typeof MISSIONS)[number]; at: number } => typeof item.at === 'number' && item.at > now.getTime() - WEEK_MS && item.at <= now.getTime())
+    .sort((a, b) => a.at - b.at)
+    .map(({ mission }) => glanceLesson(mission));
+  const grades = ([3, 4, 5] as const).map((grade) => {
+    const ids = FRACTION_STANDARDS.filter((standard) => standard.grade === grade).map((standard) => standard.id as string);
+    const rows = mastery.filter((row) => ids.includes(row.standard));
+    return { grade, mastered: rows.filter((row) => row.status === 'mastered').length, total: ids.length, started: rows.some((row) => row.attempted > 0) };
+  });
+  let focus: Glance['focus'] = null;
+  for (const mission of MISSIONS) {
+    const record = getLearningRecord(progress, mission.id);
+    const misses = [record.misconceptions, record.redoMisconceptions ?? {}].reduce((sum, misses) => sum + Object.values(misses).reduce((a, b) => a + b, 0), 0);
+    if (misses > (focus?.misses ?? 0)) focus = { ...glanceLesson(mission), misses, homeActivity: guideForUnit(mission.unit)?.familyNote ?? null };
+  }
+  return {
+    daysPracticed: week.filter((day) => day.answered > 0).length, savedDays: week.filter((day) => day.saved).length,
+    minutes: week.reduce((sum, day) => sum + day.minutes, 0), learned, grades, focus,
+  };
+}
+
+const gradeTag = (lesson: GlanceLesson) => [lesson.grade ? `Grade ${lesson.grade}` : null, ...lesson.standards].filter(Boolean).join(', ');
+/** The short summary a grown-up can send to a teacher. It names no account details, only this week's learning. */
+export function glanceShareText(glance: Glance, firstTryRate: number | null, childName: string | null, now = new Date()): string {
+  const start = new Date(now); start.setDate(now.getDate() - 6);
+  const lines = [
+    `Fraction Quest · ${childName ?? 'My child'} · week of ${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`,
+    `Practiced ${glance.daysPracticed} of 7 days (${glance.minutes} min). Finished ${glance.learned.length} ${glance.learned.length === 1 ? 'lesson' : 'lessons'}.`,
+  ];
+  if (glance.learned.length) lines.push(`Learned: ${glance.learned.map((lesson) => `${lesson.title} (${gradeTag(lesson)})`).join('; ')}.`);
+  if (firstTryRate !== null) lines.push(`Right the first time: ${firstTryRate}%.`);
+  if (glance.focus) lines.push(`Working on: ${glance.focus.title} (${gradeTag(glance.focus)}).`);
+  return lines.join('\n');
+}
 
 const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) * 100) : null);
 
@@ -130,6 +188,7 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
       reason: event.reason,
     }));
 
+  const standardMastery = summarizeStandardMastery(progress.assessments);
   return {
     lessonsDone: rows.filter((row) => row.status === 'done').length, lessonsTotal: rows.length,
     stars: Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0), xp: fun.xp, streak: shownStreak(fun, now), savedDays: fun.savedDays?.length ?? 0, spareOil: fun.spareOil ?? 0,
@@ -140,7 +199,8 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
     nextLesson: next ? `Lesson ${next.number}: ${next.title}` : null, toPractice, dueReviews, strengths, units,
     placement: progress.placement ? { unit: progress.placement.unit, date: new Date(progress.placement.at).toLocaleDateString() } : null,
     assessmentChecksCompleted: (progress.assessments ?? []).filter(attempt => !attempt.assessmentId.endsWith('-pre')).length,
-    standardMastery: summarizeStandardMastery(progress.assessments),
+    standardMastery,
     adaptationReasons,
+    glance: buildGlance(progress, week, standardMastery, now),
   };
 }
