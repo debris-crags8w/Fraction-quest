@@ -148,7 +148,7 @@ export function fourthChoice(prompt: string, choices: string[], correct: number)
 
   // "More than 1/2 / Less than 1/2 / Exactly 1/2" (or half).
   if (choices.every((choice) => /^(?:more than|less than|exactly|equal to) (?:1\/2|half)$/i.test(choice.trim()))) {
-    const text = /half/i.test(right) ? 'More than 1 whole' : 'More than 1';
+    const text = /half/i.test(right) ? 'More than one whole' : 'More than 1';
     return fresh(text) ? text : null;
   }
 

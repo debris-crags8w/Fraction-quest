@@ -17,7 +17,7 @@ export function LinkedFraction({ n, d, className = '', label }: { n: number | nu
 
 type Unit = 'bar' | 'line' | 'set';
 const WORDS: Record<Unit, { selected: (n: number) => string; whole: (d: number) => string }> = {
-  bar: { selected: (n) => `${n} ${n === 1 ? 'part' : 'parts'} shaded`, whole: (d) => `${d} equal parts in 1 whole` },
+  bar: { selected: (n) => `${n} ${n === 1 ? 'part' : 'parts'} shaded`, whole: (d) => `${d} equal parts in one whole` },
   line: { selected: (n) => `${n} ${n === 1 ? 'jump' : 'jumps'} from 0`, whole: (d) => `${d} equal spaces from 0 to 1` },
   set: { selected: (n) => `${n} ${n === 1 ? 'group' : 'groups'} picked`, whole: (d) => `${d} equal groups in all` },
 };
@@ -37,7 +37,7 @@ export function LiveFraction({ n, d, unit = 'bar', wholes = 1, color, compact = 
       <span className="fq-live-legend">
         <span className="fq-live-num"><i aria-hidden="true" />{compact ? (built ? `${n} shaded` : 'Shaded') : built ? WORDS[unit].selected(n) : unit === 'line' ? 'Jumps from 0' : 'Parts selected'}</span>
         <span className="fq-live-den"><i aria-hidden="true" />{compact ? (built ? `${d} equal parts` : 'Choose parts') : built ? WORDS[unit].whole(d) : unit === 'line' ? 'Choose the equal spaces' : 'Choose the equal parts'}</span>
-        {whole && <strong className="fq-live-whole">= {wholeCount === 1 ? '1 whole' : `${wholeCount} wholes`}</strong>}
+        {whole && <strong className="fq-live-whole">= {wholeCount === 1 ? 'one whole' : `${wholeCount} wholes`}</strong>}
       </span>
     </div>
   );

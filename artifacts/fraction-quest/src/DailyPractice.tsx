@@ -224,7 +224,7 @@ export default function DailyPractice({
             );
           })}
         </div>
-        <WholeBracket label={`1 whole: ${parts} equal parts`} />
+        <WholeBracket label={`one whole: ${parts} equal parts`} />
       </>
     ) : (
       <>
@@ -251,7 +251,7 @@ export default function DailyPractice({
             );
           })}
         </div>
-        <WholeBracket label="1 whole: from 0 to 1" />
+        <WholeBracket label="one whole: from 0 to 1" />
       </>
     )}
     <LiveFraction n={attempt.shaded.length} d={parts ?? 0} unit={bar ? 'bar' : 'line'} color={bar ? '#38bdb0' : undefined} testId="daily-live-fraction" />

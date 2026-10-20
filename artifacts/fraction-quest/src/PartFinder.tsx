@@ -36,7 +36,7 @@ function FirstFractionIntroduction() {
         <div className="fq-pf-intro-whole" role="img" aria-label="One whole divided into four equal-size parts">
           {[1, 2, 3, 4].map((part) => <span className="fq-pf-intro-part" key={part} />)}
         </div>
-        <figcaption>1 whole · 4 equal-size parts</figcaption>
+        <figcaption>one whole · 4 equal-size parts</figcaption>
       </figure>
     </section>
   );
