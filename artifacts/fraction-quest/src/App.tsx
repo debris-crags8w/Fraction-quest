@@ -50,7 +50,7 @@ import { getWorksheet } from './learning-content';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requiredBuildChecks, resetUnitLearningProgress, worksheetCount, startRedo, updateLearning, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { DAILY_GOAL, loadFun, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
+import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
@@ -58,7 +58,7 @@ import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, Le
 import { activeSeason } from './seasons';
 import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
 import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
-import { LanternIcon } from './riddle-ui';
+import { LanternIcon, OilNoticeCard } from './riddle-ui';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
 import { freshSeed, generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
@@ -450,8 +450,8 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
             {/* Each symbol is a button: tap it to read what it means. */}
             <StatTip testId="button-tip-streak" label={`Day streak: ${streak}. What is this?`}
               tip={storyOn
-                ? <><strong>Hoot’s lantern: {streak} {streak === 1 ? 'night' : 'nights'} in a row.</strong> This is your streak. Get one answer right each day to keep it glowing.</>
-                : streak > 0 ? <><strong>{streak} {streak === 1 ? 'day' : 'days'} in a row!</strong> Get one answer right each day to keep your streak going.</> : <><strong>Day streak.</strong> Get one answer right today to start a streak!</>}>
+                ? <><strong>Hoot’s lantern: {streak} {streak === 1 ? 'night' : 'nights'} in a row.</strong> This is your streak. Get one answer right each day to keep it glowing. <strong>Spare oil: {fun.spareOil ?? 0} of {SPARE_OIL_MAX}.</strong> A drop keeps it lit if you miss a night.</>
+                : <>{streak > 0 ? <><strong>{streak} {streak === 1 ? 'day' : 'days'} in a row!</strong> Get one answer right each day to keep your streak going.</> : <><strong>Day streak.</strong> Get one answer right today to start a streak!</>} <strong>Streak savers: {fun.spareOil ?? 0} of {SPARE_OIL_MAX}.</strong> Earn one for every 7 days in a row.</>}>
               <span className="fq-stat fq-stat-streak" data-testid="status-day-streak">{storyOn ? <LanternIcon lit={streak > 0} size={20} /> : <Flame size={18} strokeWidth={2.75} fill="currentColor" aria-hidden="true" />}<strong>{streak}</strong><span className="fq-sr">day streak</span></span>
             </StatTip>
             <StatTip testId="button-tip-xp" label={`${fun.xp} ${points}. What is this?`}
@@ -1851,6 +1851,9 @@ function Game() {
       )}
       {view.type === 'review-complete' && (
         <ReviewCompleteView reviewedCount={view.reviewedCount} progress={progress} onMap={returnToMap} onReset={openResetDialog} />
+      )}
+      {onMap && fun.oilNotice && !breakReason && (
+        <OilNoticeCard notice={fun.oilNotice} storyOn={storyMode} streak={shownStreak(fun)} onNext={() => setFun((current) => clearOilNotice(current))} />
       )}
       {breakReason && <BrainBreakOffer reason={breakReason} quietMode={quietBreaks} onSkip={closeBreak} onFinish={closeBreak} />}
       {resetOpen && (

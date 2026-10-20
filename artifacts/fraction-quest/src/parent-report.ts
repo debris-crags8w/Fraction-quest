@@ -17,10 +17,11 @@ export type LessonRow = {
   remembered: 'Yes' | 'Not yet checked' | '—'; helpUses: number;
 };
 export type UnitRow = { number: number; title: string; done: number; total: number; challengeBest: number | null; challengeMax: number; lessons: LessonRow[] };
-export type DayRow = { day: string; label: string; minutes: number; answered: number };
+export type DayRow = { day: string; label: string; minutes: number; answered: number; /** No practice, but spare oil kept the streak going. */ saved: boolean };
 export type PracticeTip = { idea: string; lessons: string[]; count: number; /** How many of the misses happened in redos. */ inRedos?: number };
 export type ParentReport = {
   lessonsDone: number; lessonsTotal: number; stars: number; xp: number; streak: number;
+  /** Days in the last 35 that spare oil covered: they kept the streak going without practice. */ savedDays: number; spareOil: number;
   codeLevelsPassed: number; codeLevelsTotal: number; codeMissionsStarted: number; codeMissionsComplete: number;
   codeMissionRows: { id: string; title: string; levelsPassed: number }[];
   week: DayRow[]; minutesWeek: number; answeredWeek: number;
@@ -77,7 +78,8 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
   const week: DayRow[] = Array.from({ length: 7 }, (_, k) => {
     const date = new Date(now); date.setDate(now.getDate() - (6 - k));
     const day = today(date); const activity = fun.activity?.[day];
-    return { day, label: date.toLocaleDateString(undefined, { weekday: 'short' }), minutes: activity?.minutes ?? 0, answered: activity?.answered ?? 0 };
+    return { day, label: date.toLocaleDateString(undefined, { weekday: 'short' }), minutes: activity?.minutes ?? 0, answered: activity?.answered ?? 0,
+      saved: !(activity?.answered) && (fun.savedDays ?? []).includes(day) };
   });
 
   // Accuracy across every lesson.
@@ -130,7 +132,7 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
 
   return {
     lessonsDone: rows.filter((row) => row.status === 'done').length, lessonsTotal: rows.length,
-    stars: Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0), xp: fun.xp, streak: shownStreak(fun, now),
+    stars: Object.values(progress.starsByMission).reduce((sum, value) => sum + value, 0), xp: fun.xp, streak: shownStreak(fun, now), savedDays: fun.savedDays?.length ?? 0, spareOil: fun.spareOil ?? 0,
     codeLevelsPassed: codeProgress.levelsPassed, codeLevelsTotal: codeProgress.levelsTotal,
     codeMissionsStarted: codeProgress.missionsStarted, codeMissionsComplete: codeProgress.missionsComplete, codeMissionRows,
     week, minutesWeek: week.reduce((sum, day) => sum + day.minutes, 0), answeredWeek: week.reduce((sum, day) => sum + day.answered, 0),

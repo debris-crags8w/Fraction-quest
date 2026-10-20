@@ -137,7 +137,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
             <div data-testid="stat-minutes"><strong>{report.minutesWeek}<small> min</small></strong><span>This week</span></div>
             <div data-testid="stat-first-try"><strong>{percent(report.firstTryRate)}</strong><span>Worksheet answers right the first time</span></div>
             <div data-testid="stat-on-own"><strong>{percent(report.onOwnRate)}</strong><span>Builds done without help</span></div>
-            <div><strong>{report.streak}</strong><span>Day streak</span></div>
+            <div data-testid="stat-streak"><strong>{report.streak}</strong><span>Day streak{report.savedDays > 0 ? ` (${report.savedDays} ${report.savedDays === 1 ? 'day' : 'days'} saved by spare oil)` : ''}</span></div>
             <div><strong>{report.stars}</strong><span>Stars</span></div>
           </section>
 
@@ -210,10 +210,12 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
                   <span className="fq-parent-bar"><i style={{ height: `${(day.minutes / maxMinutes) * 100}%` }} /></span>
                   <b>{day.minutes}</b>
                   <small>{day.label}</small>
+                  {day.saved && <small className="fq-parent-saved">Saved</small>}
                 </div>
               ))}
             </div>
-            <p className="fq-parent-note">Minutes using the app each day. {report.answeredWeek} questions answered correctly this week.</p>
+            <p className="fq-parent-note">Minutes using the app each day. {report.answeredWeek} questions answered correctly this week.
+              {report.week.some((day) => day.saved) && <> “Saved” marks a day with no practice: a drop of spare oil kept the streak going. A drop is earned for every 7 days in a row, and up to 2 are kept.</>}</p>
           </section>
 
           <div className="fq-parent-grid">
