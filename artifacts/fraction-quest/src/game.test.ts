@@ -257,12 +257,12 @@ describe('lesson catalog', () => {
     };
     assert.deepEqual(shown('Fill the blank: 3/4 = 6/?'), ['3/4'], 'the 6/8 bar would show the missing 8');
     assert.deepEqual(shown('Which is the same as 2/3?'), ['2/3']);
-    assert.deepEqual(shown('Which sum equals 4/7?'), ['4/7'], 'the two parts of the answer wait; the named total shows');
+    assert.deepEqual(shown('Which sum equals 4/6?'), ['4/6'], 'the two parts of the answer wait; the named total shows');
     assert.deepEqual(shown('7/10 = 5/10 + what?'), ['7/10', '5/10']);
     // Pictures that draw every choice, or the fractions being put in order, stay as they are; a picture of every
-    // choice also draws the added fourth choice (6/9 here), so the child can check that one too.
-    assert.deepEqual(shown('Which is closest to 1/2?'), ['1/2', '4/9', '1/5', '7/8', '6/9']);
-    assert.deepEqual(shown('Put 1/2, 3/10 and 8/10 in order, smallest first.'), ['3/10', '1/2', '8/10']);
+    // choice also draws the added fourth choice (6/8 here), so the child can check that one too.
+    assert.deepEqual(shown('Which is closest to 1/2?'), ['1/2', '5/8', '1/6', '7/8', '6/8']);
+    assert.deepEqual(shown('Put 1/2, 3/8 and 7/8 in order, smallest first.'), ['3/8', '1/2', '7/8']);
     // After answering, the hidden bar comes back to confirm the answer.
     const model = question('Which is the same as 2/3?').model;
     assert.ok(model.kind === 'bars' && model.bars.some((bar) => bar.untilAnswered && bar.numerator === 4 && bar.denominator === 6));
@@ -309,7 +309,7 @@ describe('lesson catalog', () => {
     assert.match(sameNumerator.skill, /same (?:top number|numerator).*count the same number.*larger (?:bottom number|denominator).*more equal parts.*smaller/i);
     assert.match(sameNumerator.example.explanation, /both (?:same-size (?:bars|wholes)|fractions) count 3 parts/i);
     assert.match(sameNumerator.example.explanation, /(?:8 equal parts|eighths).*smaller/i);
-    assert.match(sameNumerator.example.explanation, /3\/8 (?:is )?(?:less|smaller) than 3\/5/i);
+    assert.match(sameNumerator.example.explanation, /3\/8 (?:is )?(?:less|smaller) than 3\/4/i);
 
     const unlikeOrdering = MISSIONS.find((mission) => mission.id === 'order-unlike-fractions')!;
     assert.ok(unlikeOrdering.learningIntro, 'fraction ordering explains the goal, steps, and why the method works');
@@ -322,8 +322,8 @@ describe('lesson catalog', () => {
     const checks = getBuildChecks('compare-same-numerator');
     assert.match(checks[0].explanation, /both (?:same-size (?:whole|bar)s?|fractions).*count 3 parts/i);
     assert.match(checks[0].explanation, /(?:eighths|eight equal parts|8 equal parts).*smaller/i);
-    assert.match(checks[0].explanation, /3\/8 (?:is )?(?:smaller|less) than 3\/5/i);
-    assert.match(checks[1].explanation, /Five equal parts make smaller parts than three/i);
+    assert.match(checks[0].explanation, /3\/8 (?:is )?(?:smaller|less) than 3\/4/i);
+    assert.match(checks[1].explanation, /Six equal parts make smaller parts than three/i);
 
     const worksheet = getWorksheet('compare-same-numerator');
     // The worksheet hint nudges (which parts are bigger?) without saying which fraction wins.
@@ -1862,7 +1862,7 @@ describe('entered-answer worksheets and evidence gates', () => {
     const fractionNameLesson = getMission('fraction-names');
     assert.match(fractionNameLesson.skill, /The denominator, or bottom number, tells how many equal parts make one whole\. The numerator, or top number, tells how many parts we count\./);
     assert.match(spokenLearningText(fractionNameLesson.skill), /The denominator.*The numerator/);
-    assert.match(fractionNameLesson.example.explanation, /The denominator is 5.* The numerator is 3/);
+    assert.match(fractionNameLesson.example.explanation, /The denominator is 4.* The numerator is 3/);
 
     const equalParts = getWorksheet('equal-parts');
     assert.ok(equalParts.every(problem => problem.model?.kind === 'bar' || problem.area));
@@ -3204,9 +3204,9 @@ describe('course counts', () => {
 
 describe('every question has a picture', () => {
   it('compare questions show both amounts as models, so the child can see why', () => {
-    const q = MISSIONS.find((m) => m.id === 'compare-same-numerator')!.questions.find((item) => /2\/3 or 2\/7/.test(item.prompt))!;
+    const q = MISSIONS.find((m) => m.id === 'compare-same-numerator')!.questions.find((item) => /2\/3 or 2\/8/.test(item.prompt))!;
     assert.equal(q.model.kind, 'bars');
-    if (q.model.kind === 'bars') assert.deepEqual(q.model.bars.map((b) => `${b.numerator}/${b.denominator}`), ['2/3', '2/7']);
+    if (q.model.kind === 'bars') assert.deepEqual(q.model.bars.map((b) => `${b.numerator}/${b.denominator}`), ['2/3', '2/8']);
     for (const id of ['unit-size', 'compare-same-denominator', 'compare-same-numerator', 'compare-unlike-fractions']) {
       const qs = Array.from({ length: 40 }, (_, seed) => generateQuestions(id, ['x'], seed + 1, 6)).flat().filter((item) => /^Which is (bigger|smaller), /.test(item.prompt));
       assert.ok(qs.length > 30, id);
@@ -3275,12 +3275,12 @@ describe('same numerator, different denominators', () => {
       if (p.form === 'symbol') assert.equal(p.answer, d1 < d2 ? '>' : '<', p.prompt);
     }
     const transfer = getBuildChecks('compare-same-numerator').find((c) => c.transfer)!;
-    assert.match(transfer.prompt, /2\/3 or 2\/5/);
-    assert.match(transfer.explanation, /same-size wholes count 2 parts.*Five equal parts make smaller parts/i);
+    assert.match(transfer.prompt, /2\/3 or 2\/6/);
+    assert.match(transfer.explanation, /same-size wholes count 2 parts.*Six equal parts make smaller parts/i);
     const mission = MISSIONS.find((item) => item.id === 'compare-same-numerator')!;
     assert.match(mission.skill, /wholes are the same size.*same (?:top number|numerator).*larger (?:bottom number|denominator).*more equal parts.*smaller/i);
-    assert.match(mission.explainPrompt ?? '', /3\/5 and 3\/8.*denominator.*same-size whole.*2\/3 and 2\/5/i);
-    assert.match(mission.example.explanation, /same-size bars count 3 parts.*8 equal parts.*smaller parts.*3\/8 is less than 3\/5/i);
+    assert.match(mission.explainPrompt ?? '', /3\/4 and 3\/8.*denominator.*same-size whole.*2\/3 and 2\/4/i);
+    assert.match(mission.example.explanation, /same-size bars count 3 parts.*8 equal parts.*smaller parts.*3\/8 is less than 3\/4/i);
     const unlike = getWorksheet('compare-unlike-fractions');
     assert.ok(unlike.some((p) => { const m = /(\d+)\/\d+ __ (\d+)\/\d+/.exec(p.prompt); return !!m && m[1] === m[2]; }));
   });
@@ -3292,7 +3292,7 @@ describe('same numerator, different denominators', () => {
     assert.match(lesson.skill, /same (?:numerator|top number).*(?:larger denominator|larger bottom number).*more equal parts.*part.*smaller/i);
     assert.match(lesson.example.explanation, /both (?:same-size (?:whole|bar)s?|fractions).*count 3 parts/i);
     assert.match(lesson.example.explanation, /(?:eighths|eight equal parts|8 equal parts).*smaller/i);
-    assert.match(lesson.example.explanation, /3\/8 (?:is )?(?:smaller|less) than 3\/5/i);
+    assert.match(lesson.example.explanation, /3\/8 (?:is )?(?:smaller|less) than 3\/4/i);
     assert.ok(lesson.questions.filter((question) => !question.isReview).every((question) => explainsPieceSize(question.hint)), 'each authored hint compares the denominator or piece size');
 
     const generated = generateQuestions('compare-same-numerator', ['x'], 3, 8);
@@ -3338,7 +3338,7 @@ describe('fraction labels on bar models', () => {
     // "What fraction is 0.35?": the 35/100 label would be the answer, so it waits until the child answers.
     const decimal = MISSIONS.find((m) => m.id === 'hundredths-decimals')!.questions.find((q) => /What fraction is 0\.35\?/.test(q.prompt));
     if (decimal?.model.kind === 'bars') assert.ok(decimal.model.bars.every((bar) => !bar.named || bar.untilAnswered), 'no label gives 35/100 away');
-    const compare = MISSIONS.find((m) => m.id === 'compare-same-numerator')!.questions.find((q) => /2\/3 or 2\/7/.test(q.prompt))!;
+    const compare = MISSIONS.find((m) => m.id === 'compare-same-numerator')!.questions.find((q) => /2\/3 or 2\/8/.test(q.prompt))!;
     assert.deepEqual(labels(compare.model), [true, true]);
     const practice = generateQuestions('compare-same-numerator', ['x'], 2, 6);
     assert.ok(practice.every((q) => labels(q.model).every(Boolean)));
@@ -3541,9 +3541,9 @@ describe('mobile device voice previews', () => {
 
 describe('the simpler help stays about the question', () => {
   it('shows the fractions the question names, not an unrelated 1/2 bar', () => {
-    const q = MISSIONS.find((m) => m.id === 'compare-same-numerator')!.questions.find((item) => /4\/5 or 4\/9/.test(item.prompt))!;
+    const q = MISSIONS.find((m) => m.id === 'compare-same-numerator')!.questions.find((item) => /4\/6 or 4\/8/.test(item.prompt))!;
     assert.equal(q.simplerModel.kind, 'bars');
-    if (q.simplerModel.kind === 'bars') assert.deepEqual(q.simplerModel.bars.map((b) => `${b.numerator}/${b.denominator}`), ['4/5', '4/9']);
+    if (q.simplerModel.kind === 'bars') assert.deepEqual(q.simplerModel.bars.map((b) => `${b.numerator}/${b.denominator}`), ['4/6', '4/8']);
     let unrelated = 0;
     for (const m of MISSIONS) for (const item of m.questions) {
       const namesOwn = item.model.kind === 'bars' && item.model.bars.some((b) => b.named);

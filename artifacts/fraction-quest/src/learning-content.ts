@@ -187,19 +187,19 @@ export function choiceDistractors(answer: string): [string, string] {
 // Each skill has its own reasoning and model target; transfer uses new numbers.
 const CHECKS: Record<string, [number, number, LearningModel['kind'], string, string, number?]> = {
   'equal-parts': [1, 3, 'bar', 'Cut a bar into 3 equal parts. Shade 1.', 'Each whole has 3 equal parts. Shade 1 part in the bar and mark 1 of 3 equal jumps on the number line.'],
-  'fraction-names': [3, 5, 'bar', 'Make 3/5.', 'The denominator is 5. That means 5 equal parts in all. The numerator is 3. That means 3 parts are shaded.'],
+  'fraction-names': [3, 4, 'bar', 'Make 3/4.', 'The denominator is 4. That means 4 equal parts in all. The numerator is 3. That means 3 parts are shaded.'],
   'unit-fractions': [1, 6, 'bar', 'Make 1/6. Just one part!', 'A unit fraction is just 1 equal part.'],
   'unit-size': [1, 4, 'bar', 'Which is bigger, 1/4 or 1/8? Make the bigger one.', 'Eight equal parts make smaller parts than four, so 1/8 is smaller than 1/4.'],
   'sets-unit-fractions': [1, 3, 'set', 'Put 12 dots in 3 equal groups. Pick 1 group.', 'Make 3 equal groups. 1 group is 1/3.', 12],
   'sets-nonunit': [2, 3, 'set', 'Put 12 dots in 3 equal groups. Pick 2 groups.', 'Make 3 equal groups. 2 groups is 2/3.', 12],
   'benchmark-half': [3, 8, 'bar', 'Make a fraction 1/8 less than half.', 'Half of 8 is 4. One less is 3/8.'],
   'benchmarks-zero-one': [7, 8, 'bar', 'Make a fraction 1/8 less than one whole.', '8/8 is one whole. One less is 7/8.'],
-  'fraction-magnitude': [5, 12, 'bar', 'Make a fraction 1/12 less than half.', 'Half of 12 is 6. One less is 5/12.'],
-  'number-line-basics': [2, 5, 'line', 'Cut 0 to 1 into 5 equal spaces. Make 2 jumps.', 'Count the spaces, not the tick marks.'],
-  'number-line-points': [4, 7, 'line', 'Mark 4/7 on the number line.', 'The denominator is 7 equal spaces in one whole. The numerator is 4 jumps from zero.'],
-  'number-line-beyond-one': [7, 5, 'line', 'Mark 1 and 2/5 on the number line.', '5/5 is one whole. 2 more fifths makes 7/5.'],
+  'fraction-magnitude': [2, 6, 'bar', 'Make a fraction 1/6 less than half.', 'Half of 6 is 3. One less is 2/6.'],
+  'number-line-basics': [2, 6, 'line', 'Cut 0 to 1 into 6 equal spaces. Make 2 jumps.', 'Count the spaces, not the tick marks.'],
+  'number-line-points': [4, 6, 'line', 'Mark 4/6 on the number line.', 'The denominator is 6 equal spaces in one whole. The numerator is 4 jumps from zero.'],
+  'number-line-beyond-one': [7, 4, 'line', 'Mark 1 and 3/4 on the number line.', '4/4 is one whole. 3 more fourths makes 7/4.'],
   'compare-same-denominator': [5, 8, 'bar', 'Which is bigger, 3/8 or 5/8? Make it.', 'Same size parts. 5 is more than 3.'],
-  'compare-same-numerator': [3, 5, 'bar', 'Which is bigger, 3/5 or 3/8? Make it.', 'Both same-size wholes count 3 parts. Eighths are smaller because the whole is cut into more parts. So 3/8 is smaller than 3/5.'],
+  'compare-same-numerator': [3, 4, 'bar', 'Which is bigger, 3/4 or 3/8? Make it.', 'Both same-size wholes count 3 parts. Eighths are smaller because the whole is cut into more parts. So 3/8 is smaller than 3/4.'],
   'order-fractions': [3, 4, 'bar', 'Which is biggest: 1/4, 1/2 or 3/4? Make it.', '3/4 is more than half.'],
   'equivalent-models': [2, 4, 'bar', 'Show 1/2 using fourths. Split every part.', 'Split each half in 2. So 1/2 = 2/4.'],
   'build-equivalents': [4, 6, 'bar', 'Show 2/3 using sixths.', 'Split each third in 2. So 2/3 = 4/6.'],
@@ -207,10 +207,10 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'compose-to-one': [5, 8, 'bar', '3/8 is used. Make what is left of one whole.', '8/8 is one whole. 8 − 3 = 5, so 5/8.'],
   'decompose-fractions': [4, 6, 'bar', 'Make 4/6 with four 1/6 parts.', 'Four 1/6 parts make 4/6.'],
   'improper-fractions': [7, 4, 'bar', 'Make 7/4.', '4/4 fills 1 bar. 3/4 more is left over.'],
-  'mixed-improper': [8, 5, 'bar', 'Make 1 and 3/5 using fifths.', 'One whole is 5/5. Add 3 more to get 8/5.'],
+  'mixed-improper': [9, 6, 'bar', 'Make 1 and 3/6 using sixths.', 'One whole is 6/6. Add 3 more to get 9/6.'],
   'whole-numbers-as-fractions': [6, 3, 'bar', 'Build 6/3 using thirds.', 'Three thirds make one whole. Six thirds make 2 wholes.'],
   'add-like-denominators': [5, 8, 'bar', 'Make 2/8 + 3/8.', 'Add the parts: 2 + 3 = 5. So 5/8.'],
-  'subtract-like-denominators': [3, 7, 'bar', 'Make 5/7 − 2/7.', 'Take away 2 parts: 5 − 2 = 3. So 3/7.'],
+  'subtract-like-denominators': [3, 6, 'bar', 'Make 5/6 − 2/6.', 'Take away 2 parts: 5 − 2 = 3. So 3/6.'],
   'add-related-fractions': [5, 6, 'bar', 'Make 1/2 + 1/3 using sixths.', '1/2 = 3/6 and 1/3 = 2/6. 3 + 2 = 5, so 5/6.'],
   'add-unlike-fractions': [7, 12, 'bar', 'Build 1/3 + 1/4 using twelfths.', '1/3 is 4/12 and 1/4 is 3/12. Together they are 7/12.'],
   'mixed-unlike-operations': [25, 12, 'bar', 'Build 1 1/3 + 3/4 using twelfths.', '1 1/3 is 16/12 and 3/4 is 9/12. Together they are 25/12, or 2 1/12.'],
@@ -221,7 +221,7 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'compare-decimals': [3, 10, 'bar', 'Build 0.3 with tenths. Then compare it to 0.25.', '0.30 is 30 hundredths. 30 hundredths is more than 25 hundredths.'],
   'simplify-fractions': [3, 4, 'bar', 'Make 6/8 in simplest form.', 'Divide the numerator and denominator by 2. 6/8 = 3/4.'],
   'equivalent-missing-both': [4, 10, 'bar', 'Show 2/5 using tenths.', 'Multiply the numerator and denominator by 2. 2/5 = 4/10.'],
-  'compare-unlike-fractions': [2, 3, 'bar', 'Which is bigger, 2/3 or 3/5? Make it.', 'Use fifteenths: 2/3 = 10/15 and 3/5 = 9/15.'],
+  'compare-unlike-fractions': [5, 6, 'bar', 'Which is bigger, 3/4 or 5/6? Make it.', 'Use twelfths: 3/4 = 9/12 and 5/6 = 10/12.'],
   'order-unlike-fractions': [3, 4, 'bar', 'Which is biggest: 1/2, 2/3 or 3/4? Make it.', 'Use 1/2 as a benchmark, then rename the fractions in twelfths. 6/12, 8/12, and 9/12 show that 3/4 is biggest.'],
   'subtract-unlike-fractions': [1, 4, 'bar', 'Make 3/4 − 1/2.', '1/2 = 2/4. 3/4 − 2/4 = 1/4.'],
   'add-mixed-numbers': [7, 4, 'bar', 'Make 1/4 + 1 1/2.', '1 1/2 = 6/4. 6/4 + 1/4 = 7/4, or 1 3/4.'],
@@ -277,8 +277,8 @@ const EXTENSION_TRANSFERS: Record<string, { n: number; d: number; prompt: string
   'multiply-mixed-numbers': { n: 15, d: 6, prompt: 'Build 1 1/2 × 1 2/3 square units.', reason: '3/2 × 5/3 = 15/6, or 2 1/2 square units.' },
   'unit-fraction-divided-whole': { n: 1, d: 15, prompt: 'Share 1/5 of a tray among 3 children. Build one share.', reason: 'Split each fifth into 3 equal parts. One share is 1/15 of the tray.' },
   'fractional-unit-conversions': { n: 1, d: 2, kind: 'line', prompt: 'Show why 1/2 foot is 6 inches.', reason: 'One foot is 12 inches. Half of 12 inches is 6 inches.' },
-  'simplify-fractions': { n: 2, d: 3, prompt: 'A strip is 10/15 colored. Make it in simplest form.', reason: 'Divide the numerator and denominator by 5. 10/15 = 2/3.' },
-  'equivalent-missing-both': { n: 9, d: 15, prompt: 'Show 3/5 using fifteenths.', reason: 'Each fifth is 3 fifteenths. 3/5 = 9/15.' },
+  'simplify-fractions': { n: 2, d: 3, prompt: 'A strip is 8/12 colored. Make it in simplest form.', reason: 'Divide the numerator and denominator by 4. 8/12 = 2/3.' },
+  'equivalent-missing-both': { n: 9, d: 12, prompt: 'Show 3/4 using twelfths.', reason: 'Each fourth is 3 twelfths. 3/4 = 9/12.' },
   'compare-unlike-fractions': { n: 3, d: 5, prompt: 'Which is longer, 3/5 or 1/2 of a race? Make it.', reason: 'Use tenths: 3/5 = 6/10 and 1/2 = 5/10.' },
   'order-unlike-fractions': { n: 5, d: 6, prompt: 'Which is biggest: 1/3, 3/4 or 5/6? Make it.', reason: 'Use twelfths: 4/12, 9/12, 10/12. So 5/6 is biggest.' },
   'subtract-unlike-fractions': { n: 2, d: 6, prompt: 'A jug is 5/6 full. Pour out 1/2. Make what is left.', reason: '1/2 = 3/6. 5/6 − 3/6 = 2/6.' },
@@ -458,7 +458,7 @@ const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reaso
   'unit-fraction-multiples': { n: 4, d: 3, prompt: 'Put 4 parts of 1/3 together. Build the total.', reason: '4 copies of 1/3 make 4/3.' },
   'simplify-fractions': { n: 1, d: 2, prompt: 'Make 4/8 in simplest form.', reason: 'Divide both by 4. So 4/8 = 1/2.' },
   'equivalent-missing-both': { n: 6, d: 8, prompt: 'Show 3/4 using eighths.', reason: 'Multiply both by 2. So 3/4 = 6/8.' },
-  'whole-numbers-as-fractions': { n: 10, d: 5, prompt: 'Build 2 wholes using fifths.', reason: 'Each whole is 5/5. 2 wholes is 10/5.' },
+  'whole-numbers-as-fractions': { n: 12, d: 6, prompt: 'Build 2 wholes using sixths.', reason: 'Each whole is 6/6. 2 wholes is 12/6.' },
   'compare-unlike-fractions': { n: 3, d: 4, prompt: 'Which is bigger, 3/4 or 5/8? Make it.', reason: '3/4 = 6/8. 6 eighths is more than 5 eighths.' },
   'order-unlike-fractions': { n: 4, d: 5, prompt: 'Which is biggest: 1/2, 2/5 or 4/5? Make it.', reason: 'Use 1/2. 4/5 is more than 1/2, and 2/5 is less.' },
   'add-unlike-fractions': { n: 3, d: 4, prompt: 'Build 1/2 + 1/4 using fourths.', reason: '1/2 = 2/4. 2/4 + 1/4 = 3/4.' },
@@ -481,7 +481,7 @@ const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reaso
   'fractional-unit-conversions': { n: 1, d: 4, kind: 'line', prompt: 'Show why 1/4 hour is 15 minutes.', reason: '1 hour is 60 minutes. 4 equal parts are 15 minutes each.' },
   'fractional-sharing': { n: 2, d: 3, prompt: '2 pizzas are shared fairly by 3 friends. Build how much one friend gets.', reason: '2 ÷ 3 is 2/3. Each friend gets 2/3 of a pizza.' },
   'fraction-probability': { n: 3, d: 5, prompt: 'A bag has 5 marbles. 3 are green. Make the chance of green.', reason: '3 green marbles out of 5 is 3/5.' },
-  'fraction-of-area': { n: 5, d: 12, prompt: 'A garden has 12 equal beds. Plant 5.', reason: '5 planted beds out of 12 is 5/12.' },
+  'fraction-of-area': { n: 5, d: 6, prompt: 'A garden has 6 equal beds. Plant 5.', reason: '5 planted beds out of 6 is 5/6.' },
   'fractional-side-area': { n: 1, d: 6, prompt: 'A rectangle is 1/2 unit by 1/3 unit. Find its area.', reason: '1/2 × 1/3 = 1/6 square unit.' },
   'equivalent-number-line': { n: 6, d: 8, kind: 'line', prompt: 'Mark 6/8 on the line. Does it land on 3/4?', reason: 'Each fourth is 2 eighths. So 6/8 and 3/4 share a spot.' },
   'fractions-to-percent': { n: 40, d: 100, prompt: 'A phone is 40% charged. Make it.', reason: 'Percent means out of 100. 40% is 40/100.' },
@@ -577,6 +577,30 @@ const SQUARE_ROWS: { prompt: string; answer: string; cut: AreaFigure['cut']; sha
 type LessonBuild = [string, number, number, string, LearningModel['kind']?, number?];
 const GRADE3_DENS = [2, 3, 4, 6, 8];
 const GRADE4_DENS = [2, 3, 4, 5, 6, 8, 10, 12];
+/** Grade 5 keeps bars readable: 24 parts at most (and hundredths). */
+const GRADE5_DENS = [2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24];
+/** The lesson's grade, from its first standard (lessons with no standard count as grade 5). */
+export function lessonGrade(id: string): 3 | 4 | 5 {
+  const grade = Number(standardsForMission(id)[0]?.[0]);
+  return grade === 3 || grade === 4 ? grade : 5;
+}
+/** Denominators a lesson may use (Common Core): grade 3 halves, thirds, fourths, sixths and eighths; grade 4 adds
+    fifths, tenths, twelfths and hundredths; grade 5 anything a bar can show clearly. Whole numbers (n/1) always fit. */
+export function gradeFits(id: string, d: number): boolean {
+  const grade = lessonGrade(id);
+  return d === 1 || (grade === 3 ? GRADE3_DENS : grade === 4 ? GRADE4_DENS : GRADE5_DENS).includes(d) || (grade > 3 && d === 100);
+}
+/** Equivalent fractions [n, d, k] (n/d = nk/dk, n/d in simplest form) whose denominators both fit the grade,
+    in a mixed order so neighbouring rows differ. */
+const EQUIVALENTS: Record<3 | 4, [number, number, number][]> = {
+  3: [[1, 2, 2], [1, 3, 2], [1, 2, 3], [3, 4, 2], [1, 4, 2], [2, 3, 2], [1, 2, 4]],
+  4: [[1, 3, 2], [2, 3, 2], [5, 6, 2], [2, 5, 2], [1, 3, 4], [3, 4, 2], [1, 4, 3], [3, 5, 2], [1, 2, 5], [2, 3, 4], [1, 6, 2], [3, 4, 3],
+    [1, 2, 3], [4, 5, 2], [1, 2, 2], [1, 4, 2], [1, 2, 6], [1, 5, 2], [1, 2, 4]],
+};
+/** Grade 3 equivalence also renames a fraction that is not in simplest form (2/4 = 4/8). */
+const EQUIVALENTS_G3_ALL: [number, number, number][] = [...EQUIVALENTS[3], [2, 4, 2]];
+/** Equivalent fractions [n, d, k] whose denominators both fit the lesson's grade (simplest form only after grade 3). */
+export const equivalentsFor = (id: string): readonly [number, number, number][] => (lessonGrade(id) === 3 ? EQUIVALENTS_G3_ALL : EQUIVALENTS[4]);
 const at = <T,>(list: readonly T[], s: number, salt = 0): T => list[(s + salt) % list.length];
 const gcdOf = (a: number, b: number): number => (b ? gcdOf(b, a % b) : a);
 /** a/b + c/d, written with the smallest shared denominator. */
@@ -598,15 +622,20 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
     if (way === 0) return [`A pizza has ${d} equal slices. Make one slice.`, 1, d, `1 of ${d} equal slices is 1/${d}.`];
     if (way === 1) return [`Cut 0 to 1 into ${d} equal spaces. Make 1 jump.`, 1, d, `A unit fraction is 1 part: 1 of ${d} equal spaces is 1/${d}.`, 'line'];
     const total = d * (2 + (Math.floor(s / 15) % 3)); return [`Put ${total} shells in ${d} equal groups. Pick 1 of the groups.`, 1, d, `1 of ${d} equal groups is 1/${d}.`, 'set', total]; },
+  'number-line-basics': (s) => { const d = at(GRADE3_DENS, s); const n = 1 + (Math.floor(s / 5) % d);
+    return [`Cut 0 to 1 into ${d} equal spaces. Make ${n} ${n === 1 ? 'jump' : 'jumps'}.`, n, d, `Each space is 1/${d}. ${n} ${n === 1 ? 'jump is' : 'jumps make'} ${n}/${d}.`, 'line']; },
   'fraction-of-area': (s) => { const d = at([4, 6, 8], s); const n = 1 + (s % (d - 1)); return [`A garden has ${d} equal beds. Plant ${n}.`, n, d, `${n} of ${d} equal beds is ${n}/${d}.`]; },
   'unit-size': (s) => { const [a, b] = at([[2, 4], [3, 6], [4, 8], [2, 3], [3, 4], [6, 8], [2, 6], [3, 8]] as const, s); const big = s % 2 === 0;
+    // Grade 3 has few unit fractions, so some builds share a set: more friends sharing means a smaller share.
+    if (Math.floor(s / 8) % 3 === 2) { const d = big ? a : b; const total = d * (2 + (s % 3));
+      return [`Share ${total} stickers among ${d} friends. Pick 1 share.`, 1, d, `${d} equal shares: 1 share is 1/${d}. More friends means each share is smaller.`, 'set', total]; }
     return [`Which is ${big ? 'bigger' : 'smaller'}, 1/${a} or 1/${b}?`, 1, big ? a : b, `${unitWord(b)} cut the same whole into more parts, so 1/${b} is smaller than 1/${a}.`]; },
-  'order-fractions': (s) => { const d = at([4, 6, 8], s); const a = 1 + (s % (d - 2)); const b = a + 1 + (s % 2 && a + 2 < d ? 1 : 0); const big = s % 2 === 0;
+  'order-fractions': (s) => { const d = at([4, 6, 8], s); const a = 1 + (Math.floor(s / 3) % (d - 2)); const b = a + 1 + (s % 2 && a + 2 < d ? 1 : 0); const big = s % 2 === 0;
     return [`Which is ${big ? 'bigger' : 'smaller'}, ${a}/${d} or ${b}/${d}?`, big ? b : a, d, `Same-size parts: ${b} parts is more than ${a}.`]; },
   'compare-unlike-fractions': (s) => { const [a, b, c, d] = at(UNLIKE_PAIRS, s); const big = a * d > c * b ? [a, b] : [c, d];
     return [`Which is bigger, ${a}/${b} or ${c}/${d}?`, big[0], big[1], `Rename both with the same denominator, then compare the numerators.`]; },
   'order-unlike-fractions': (s) => LESSON_BUILDS['compare-unlike-fractions'](s + 3),
-  'benchmark-half': (s) => { const d = at([4, 6, 8, 10, 12], s); return [`Use ${unitWord(d)}. Make a fraction 1/${d} less than half.`, d / 2 - 1, d, `Half is ${d / 2}/${d}. One part less is ${d / 2 - 1}/${d}.`]; },
+  'benchmark-half': (s) => { const d = at([4, 6, 8], s); return [`Use ${unitWord(d)}. Make a fraction 1/${d} less than half.`, d / 2 - 1, d, `Half is ${d / 2}/${d}. One part less is ${d / 2 - 1}/${d}.`]; },
   'equivalent-models': (s) => { const [a, b, c] = at(EQUIV_PAIRS[3], s); return [`${a}/${b} = ?/${c}. Make it.`, (a * c) / b, c, `Cut each ${unitPiece(b)} into ${c / b} equal parts: ${a}/${b} = ${(a * c) / b}/${c}.`]; },
   'build-equivalents': (s) => LESSON_BUILDS['equivalent-models'](s + 2),
   'missing-equivalent': (s) => { const [a, b, c] = at(EQUIV_PAIRS[4], s); return [`${a}/${b} = ?/${c}. Make it.`, (a * c) / b, c, `Multiply the numerator and denominator by ${c / b}: ${a}/${b} = ${(a * c) / b}/${c}.`]; },
@@ -689,9 +718,10 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
     return [`A garden is ${a}/${d} planted. Plant ${b}/${d} more. Make the part still empty.`, d - a - b, d, `First ${a} + ${b} = ${a + b} parts are planted. Then ${d} − ${a + b} = ${d - a - b} parts are empty.`]; },
   'find-the-whole': (s) => { const [n, d] = at([[3, 4], [2, 5], [4, 3], [3, 6], [5, 2], [2, 8], [4, 4], [3, 3], [2, 6], [5, 3], [6, 2], [3, 5]] as const, s);
     return [`${n} stickers are 1/${d} of a pack. Build the whole pack.`, d, d, `Each part is ${n}. ${d} parts make the whole pack: ${n * d} stickers.`, 'set', n * d]; },
-  'spot-the-mistake': (s) => { const d = at([4, 5, 6, 8, 10], s); const a = 1 + (s % (d - 2)); const b = 1 + ((s + 2) % (d - a - 1 || 1));
+  // The wrong sum's denominator (2d) stays a grade 4 one.
+  'spot-the-mistake': (s) => { const d = at([4, 5, 6], s); const a = 1 + (s % (d - 2)); const b = 1 + ((s + 2) % (d - a - 1 || 1));
     return [`Sam says ${a}/${d} + ${b}/${d} = ${a + b}/${2 * d}. Make the right answer.`, a + b, d, `Same-size parts keep their name: ${a}/${d} + ${b}/${d} = ${a + b}/${d}.`]; },
-  'fraction-of-remainder': (s) => { const [a, b, c, e] = at([[1, 3, 1, 2], [1, 4, 1, 3], [1, 2, 1, 2], [2, 5, 1, 3], [1, 4, 2, 3], [1, 3, 1, 4], [1, 2, 1, 3], [1, 2, 1, 4], [3, 4, 1, 3], [1, 5, 1, 2], [2, 3, 1, 2], [1, 6, 1, 5]] as const, s);
+  'fraction-of-remainder': (s) => { const [a, b, c, e] = at([[1, 3, 1, 2], [1, 4, 1, 3], [1, 2, 1, 2], [2, 5, 1, 3], [1, 4, 2, 3], [1, 3, 1, 4], [1, 2, 1, 3], [1, 2, 1, 4], [3, 4, 1, 3], [1, 5, 1, 2], [2, 3, 1, 2], [1, 6, 1, 4]] as const, s);
     const left = (b - a) * (e - c); const den = b * e;
     return [`Eat ${a}/${b} of a pizza. Then eat ${c}/${e} of the rest. Make what is left.`, left, den, `First ${b - a}/${b} is left. Then ${e - c}/${e} of that is left: ${left}/${den}.`]; },
 };
@@ -715,8 +745,9 @@ function lessonBuildCheck(id: string, serial: number, checkId: string): BuildChe
 const PRACTICE_DENOMINATORS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 16, 20];
 function seededBuildCheck(id: string, serial: number, checkId: string): BuildCheck {
   const [baseN, baseD, baseKind] = CHECKS[id];
-  const d = PRACTICE_DENOMINATORS[serial % PRACTICE_DENOMINATORS.length];
-  const nudge = Math.floor(serial / PRACTICE_DENOMINATORS.length) % 5 - 2;
+  const dens = PRACTICE_DENOMINATORS.filter((den) => gradeFits(id, den));
+  const d = dens[serial % dens.length];
+  const nudge = Math.floor(serial / dens.length) % 5 - 2;
   const n = Math.max(1, Math.min(d * 3, Math.round((baseN / baseD) * d) + nudge));
   const kind: LearningModel['kind'] = id.startsWith('number-line') ? 'line'
     : baseKind === 'set' && d <= 12 && n <= d ? 'set' : 'bar';
@@ -786,7 +817,9 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
     prompt: authored.prompt, target: model(authored.n, authored.d, authored.kind ?? 'bar', authored.total), reason: authored.reason,
   };
   if (id.startsWith('sets-')) return { prompt: 'Put 20 beads in 5 equal groups. Pick 3 groups.', target: model(3, 5, 'set', 20), reason: '20 in 5 groups is 4 each. 3 groups is 3/5.' };
-  if (id.includes('equivalent')) return { prompt: 'A ribbon is 3/5 colored. Show it in tenths.', target: model(6, 10), reason: '1 fifth is 2 tenths. So 3/5 = 6/10.' };
+  if (id.includes('equivalent')) return lessonGrade(id) === 3
+    ? { prompt: 'A ribbon is 3/4 colored. Show it in eighths.', target: model(6, 8), reason: '1 fourth is 2 eighths. So 3/4 = 6/8.' }
+    : { prompt: 'A ribbon is 3/5 colored. Show it in tenths.', target: model(6, 10), reason: '1 fifth is 2 tenths. So 3/5 = 6/10.' };
   if (id === 'add-related-fractions') return { prompt: 'Make 1/4 + 1/2 using fourths.', target: model(3, 4), reason: '1/2 = 2/4. 1 + 2 = 3, so 3/4.' };
   if (id === 'add-tenths-hundredths') return { prompt: 'Make 5/10 + 20/100 using hundredths.', target: model(70, 100), reason: '5/10 = 50/100. 50 + 20 = 70, so 70/100.' };
   if (id === 'tenths-decimals' || id === 'hundredths-decimals') return { prompt: 'Show 0.7 using tenths.', target: model(7, 10), reason: '0.7 means 7 tenths.' };
@@ -794,11 +827,13 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
   if (id === 'subtract-like-denominators') return { prompt: 'A ribbon is 7/10 meter long. Cut off 3/10 meter. Make what is left.', target: model(4, 10), reason: '7 − 3 = 4, so 4/10.' };
   if (id === 'add-like-denominators') return { prompt: 'Make 1/5 + 2/5.', target: model(3, 5), reason: '1 + 2 = 3, so 3/5.' };
   if (id === 'unit-size') return { prompt: 'Which is bigger, 1/3 or 1/6? Make it.', target: model(1, 3), reason: 'Six equal parts make smaller parts than three on the same-size whole, so 1/6 is smaller than 1/3.' };
-  if (id === 'compare-same-numerator') return { prompt: 'Which is bigger, 2/3 or 2/5? Make it.', target: model(2, 3), reason: 'Both same-size wholes count 2 parts. Five equal parts make smaller parts than three, so 2/5 is smaller than 2/3.' };
-  if (id === 'benchmark-half' || id === 'fraction-magnitude') return { prompt: 'Use tenths. Make 1/10 less than half.', target: model(4, 10), reason: 'Half is 5/10. One less is 4/10.' };
+  if (id === 'compare-same-numerator') return { prompt: 'Which is bigger, 2/3 or 2/6? Make it.', target: model(2, 3), reason: 'Both same-size wholes count 2 parts. Six equal parts make smaller parts than three, so 2/6 is smaller than 2/3.' };
+  if (id === 'benchmark-half') return { prompt: 'Use sixths. Make 1/6 less than half.', target: model(2, 6), reason: 'Half is 3/6. One less is 2/6.' };
+  if (id === 'fraction-magnitude') return { prompt: 'Use eighths. Make 1/8 less than half.', target: model(3, 8), reason: 'Half is 4/8. One less is 3/8.' };
   if (id === 'benchmarks-zero-one') return { prompt: 'A jug is 1/6 away from full. Show how full it is.', target: model(5, 6), reason: '6/6 is full. One less is 5/6.' };
-  if (id === 'compare-same-denominator' || id === 'order-fractions') return { prompt: 'Which is longer, 2/5 or 4/5 of a meter? Make it.', target: model(4, 5), reason: 'Both use fifths, so the parts are the same size. Four fifths is longer because 4 parts is more than 2.' };
-  const nextD = d === 5 ? 4 : 5; const nextN = n > d ? nextD + 2 : id === 'unit-fractions' || id === 'equal-parts' ? 1 : 3;
+  if (id === 'compare-same-denominator' || id === 'order-fractions') return { prompt: 'Which is longer, 2/6 or 4/6 of a meter? Make it.', target: model(4, 6), reason: 'Both use sixths, so the parts are the same size. Four sixths is longer because 4 parts is more than 2.' };
+  // New parts for the last step: sixths or fourths in grade 3, fifths or fourths later.
+  const nextD = lessonGrade(id) === 3 ? (d === 6 ? 4 : 6) : d === 5 ? 4 : 5; const nextN = n > d ? nextD + 2 : id === 'unit-fractions' || id === 'equal-parts' ? 1 : 3;
   return { prompt: kind === 'line' ? `Mark ${f(nextN, nextD)} on the number line.` : `A ribbon is ${f(nextN, nextD)} of a meter. Make ${f(nextN, nextD)}.`, target: model(nextN, nextD, kind),
     reason: `One whole is ${nextD} equal parts. Count ${nextN} of them.` };
 }
@@ -849,20 +884,33 @@ export function getWorksheet(id: string, variant = 0): WorksheetProblem[] {
   return tag(sheet);
 }
 const VARIANT_CACHE = new Map<string, WorksheetProblem[]>();
+/** [pieces in one whole, pieces from half] for the halfway lessons: fourths, sixths and eighths. */
+const HALF_STEPS: [number, number][] = [[4, 1], [6, 1], [8, 1], [6, 2], [8, 2], [8, 3]];
+/** [numerator, denominator, nearest of 0, 1/2 and 1] in grade 3 parts, mixing the three answers. */
+const NEAREST_BENCHMARK: [number, number, string][] = [[1, 6, '0'], [3, 8, '1/2'], [7, 8, '1'], [2, 6, '1/2'], [5, 6, '1'], [1, 8, '0'],
+  [5, 8, '1/2'], [2, 3, '1/2'], [4, 6, '1/2'], [1, 3, '1/2'], [2, 4, '1/2'], [3, 6, '1/2'], [4, 8, '1/2']];
+/** "4", or "1 and a half" for an odd count. */
+const halfOf = (n: number) => (n % 2 ? `${(n - 1) / 2} and a half` : String(n / 2));
 const REDO_CYCLE = 24;
 const largestBottom = (p: WorksheetProblem) => Math.max(0, ...execAll(`${p.prompt} ${p.answer}`, /\d+\/(\d+)/g).map((m) => Number(m[1])));
 
 function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
   if (!CHECKS[id]) throw new Error(`Missing worksheet: ${id}`);
   const extension = EXTENSION_WORKSHEETS[id];
-  if (extension) return getExtensionWorksheet(extension, variant);
+  if (extension) return getExtensionWorksheet(extension, variant, id);
   const shift = variant % 12; // one step per redo round, so back-to-back redos never repeat a row's numbers
   // The first lessons use small denominators and an interactive bar the child copies before answering.
   const isIntroTopic = ['equal-parts', 'fraction-names', 'unit-fractions'].includes(id);
+  // Denominators fit the lesson's grade: grade 3 uses halves to eighths (no fifths, tenths or twelfths).
+  const grade3 = lessonGrade(id) === 3;
+  // Grade 3 has only four denominators: this order keeps every question on the lesson's own sheet different.
+  const table = grade3 ? [3, 6, 4, 8, 4, 3, 6, 3, 8, 4, 6, 8] : [3, 4, 5, 6, 8, 10, 2, 5, 12, 4, 6, 8];
   return Array.from({ length: 12 }, (_, i) => {
     const t = (i + shift) % 12; // row in the number tables (the question type still follows i)
     // The intro list repeats every 5, so its shift cycles 1–4 (never a multiple of 5) and back-to-back redos differ.
-    const d = isIntroTopic ? [3, 4, 5, 6, 2, 3, 4, 5, 6, 2, 3, 4][(i + (variant ? (variant - 1) % 4 + 1 : 0)) % 12] : [3, 4, 5, 6, 8, 10, 7, 9, 12, 4, 6, 8][t];
+    // Equal parts keeps to 6 parts or fewer (its four-number list still moves on with every redo).
+    const introShift = variant ? (variant - 1) % 4 + 1 : 0;
+    const d = id === 'equal-parts' ? [3, 4, 6, 2][(i + introShift) % 4] : isIntroTopic ? [3, 4, 8, 6, 2, 3, 4, 8, 6, 2, 3, 4][(i + introShift) % 12] : table[t];
     const n = 1 + (i + variant) % (d - 1);
     const value = f(n, d);
     let prompt = ''; let answer = value; let hint = 'The numerator is the number of parts you count. The denominator is the number of equal parts in one whole.';
@@ -969,10 +1017,11 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         break;
       case 'unit-size':
       case 'compare-same-numerator': {
-        // Pairs use the usual grade 3–4 denominators (2, 3, 4, 5, 6, 8, 10, 12).
+        // Pairs use grade 3 denominators (2, 3, 4, 6, 8). A pair that comes back is 5 or 7 rows later, so it is asked
+        // the other way (bigger, not smaller).
         const pairs: [number, number][] = id === 'unit-size'
-          ? [[2, 4], [3, 6], [4, 8], [2, 3], [3, 4], [6, 8], [5, 10], [4, 6], [2, 8], [6, 12], [3, 8], [5, 6]]
-          : [[3, 6], [4, 8], [3, 4], [4, 6], [6, 8], [5, 10], [3, 8], [4, 10], [6, 12], [3, 5], [5, 8], [4, 5]];
+          ? [[2, 4], [3, 6], [4, 8], [2, 3], [3, 4], [2, 4], [6, 8], [2, 6], [4, 6], [2, 8], [3, 8], [3, 4]]
+          : [[3, 6], [4, 8], [3, 4], [4, 6], [3, 8], [6, 8], [4, 6], [3, 6], [4, 8], [3, 4], [6, 8], [3, 8]];
         // Same numerator: numerators from 2 up to one less than the smaller denominator (2/3 … 5/6), not just 2 and 3.
         const [small, big] = pairs[t]; const top = id === 'unit-size' ? 1 : 2 + (i % Math.max(1, small - 2));
         const [first, second] = i % 4 < 2 ? [small, big] : [big, small];
@@ -997,42 +1046,47 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         if (i % 3 === 2) visual = model(0, 1, 'set', total); break;
       }
       case 'benchmark-half': {
-        const even = 4 + 2 * ((i + variant) % 5);
-        // Odd redo sheets step 2 pieces from half instead of 1 (in eighths and up), so back-to-back sheets differ.
-        const step = variant % 2 === 1 && even >= 8 ? 2 : 1; const top = even / 2 + ((i + variant) % 2 ? step : -step);
-        prompt = i % 3 === 0 ? `What is ${step}/${even} less than 1/2?` :
-          i % 3 === 1 ? `Put <, = or > in the gap: ${f(top, even)} __ 1/2.` : `How much more does ${f(even / 2 - step, even)} need to reach half?`;
-        answer = i % 3 === 0 ? f(even / 2 - step, even) : i % 3 === 1 ? (top > even / 2 ? '>' : '<') : f(step, even);
-        form = i % 3 === 1 ? 'symbol' : undefined; hint = `Half of ${even} parts is ${even / 2} parts.`;
+        // Fourths, sixths and eighths, 1 to 3 pieces from half. Each kind of question takes 4 different ones per sheet;
+        // each redo moves every row on and flips its side of half, so back-to-back sheets differ.
+        const [even, step] = HALF_STEPS[(Math.floor(i / 3) + 2 * variant + i % 3) % HALF_STEPS.length]; const h = even / 2;
+        const above = (i + variant) % 2 === 1; const top = h + (above ? step : -step);
+        prompt = i % 3 === 0 ? `What is ${step}/${even} ${above ? 'more' : 'less'} than 1/2?` :
+          i % 3 === 1 ? `Put <, = or > in the gap: ${f(top, even)} __ 1/2.` : `How much more does ${f(h - step, even)} need to reach half?`;
+        answer = i % 3 === 0 ? f(top, even) : i % 3 === 1 ? (above ? '>' : '<') : f(step, even);
+        form = i % 3 === 1 ? 'symbol' : undefined; hint = `Half of ${even} parts is ${h} parts.`;
         if (i % 3 === 1) visual = model(top, even); break;
       }
       case 'fraction-magnitude': {
-        // In fourths the "closer" row would offer 1/4 twice (1/4 and h − 1 = 1), so it uses eighths.
-        const base = [4, 6, 8, 10, 12, 6, 8, 10, 12, 6, 10, 10][t]; const even = i % 3 === 2 && base === 4 ? 8 : base; const h = even / 2;
-        const step = variant % 2 === 1 && even >= 8 ? 2 : 1; // odd redo sheets: 2 pieces from half (as in benchmark-half)
-        const top = [h + step, h, h - step, h][i % 4];
-        prompt = i % 3 === 0 ? `What is ${step}/${even} more than 1/2?` :
-          i % 3 === 1 ? `Put <, = or > in the gap: ${f(top, even)} __ 1/2.` : (t + i) % 2 ? `Which is closer to 1/2: ${f(1, even)} or ${f(h - step, even)}?` : `Which is closer to 1/2: ${f(h - step, even)} or ${f(1, even)}?`;
-        answer = i % 3 === 0 ? f(h + step, even) : i % 3 === 1 ? (top > h ? '>' : top < h ? '<' : '=') : f(h - step, even);
+        // As in benchmark-half. The "closer" rows need h − step above 1 (or they would offer 1/even twice).
+        const steps = i % 3 === 2 ? HALF_STEPS.filter(([e, s]) => e / 2 - s > 1) : HALF_STEPS;
+        const [even, step] = steps[(Math.floor(i / 3) + 2 * variant + i % 3) % steps.length]; const h = even / 2;
+        const above = (i + variant) % 2 === 0;
+        // Sign rows: just above or below half, and the last one exactly half.
+        const top = Math.floor(i / 3) === 3 ? h : above ? h + step : h - step;
+        // "Closer" rows: just below half against a tiny amount, or just above half against nearly one whole.
+        const near = above ? h + step : h - step; const far = above ? even - 1 : 1;
+        prompt = i % 3 === 0 ? `What is ${step}/${even} ${above ? 'more' : 'less'} than 1/2?` :
+          i % 3 === 1 ? `Put <, = or > in the gap: ${f(top, even)} __ 1/2.` : (t + i) % 2 ? `Which is closer to 1/2: ${f(far, even)} or ${f(near, even)}?` : `Which is closer to 1/2: ${f(near, even)} or ${f(far, even)}?`;
+        answer = i % 3 === 0 ? f(near, even) : i % 3 === 1 ? (top > h ? '>' : top < h ? '<' : '=') : f(near, even);
         form = i % 3 === 1 ? 'symbol' : undefined; hint = `Half of ${even} parts is ${h}/${even}. Compare to that.`;
         if (i % 3 === 1) visual = model(top, even); break;
       }
       case 'benchmarks-zero-one': {
-        const e = [6, 8, 10, 12][(i + variant) % 4];
-        // Odd redo sheets step 2 pieces (2/10 is still closest to 0; 2/8 would sit halfway between 0 and 1/2).
-        const step = variant % 2 === 1 ? 2 : 1; const near = step === 2 && e >= 10 ? 2 : 1;
-        const close: [number, string] = [[near, '0'], [e / 2 - near, '1/2'], [e - near, '1']][(i + variant + Math.floor(i / 3)) % 3] as [number, string];
+        // Odd redo sheets step 2 pieces from one whole.
+        const step = variant % 2 === 1 ? 2 : 1;
+        // Grade 3 fractions with one clear nearest benchmark (1/4 and 2/8 sit halfway between 0 and 1/2, so they are left out).
+        const [top, e, near] = NEAREST_BENCHMARK[(i - Math.floor(i / 3) + 12 + 5 * variant) % NEAREST_BENCHMARK.length];
         prompt = i % 3 === 0 ? `How much is missing from ${f(d - step, d)} to make one whole?` :
-          `Is ${f(close[0], e)} closest to 0, 1/2 or 1?`;
-        answer = i % 3 === 0 ? f(step, d) : close[1];
-        hint = i % 3 === 0 ? `One whole is ${f(d, d)}. How many parts are missing?` : `Half of ${e} is ${e / 2}. Is ${close[0]} near 0, near ${e / 2}, or near ${e}?`; break;
+          `Is ${f(top, e)} closest to 0, 1/2 or 1?`;
+        answer = i % 3 === 0 ? f(step, d) : near;
+        hint = i % 3 === 0 ? `One whole is ${f(d, d)}. How many parts are missing?` : `Half of ${e} is ${halfOf(e)}. Is ${top} near 0, near ${halfOf(e)}, or near ${e}?`; break;
       }
       case 'number-line-basics':
       case 'number-line-points':
       case 'number-line-beyond-one': {
         const top = id === 'number-line-beyond-one' ? d + n : n;
         const basicsCount = i % 3 === 0 && id === 'number-line-basics';
-        prompt = basicsCount ? `How many equal spaces from 0 to 1 make ${unitName(d)}?` :
+        prompt = basicsCount ? `How many equal spaces ${variant % 2 ? 'do you need for' : 'from 0 to 1 make'} ${unitName(d)}?` :
           i % 3 === 1 ? `A frog makes ${top} ${top === 1 ? 'jump' : 'jumps'}. Each jump is 1/${d} meter. How far did it go?` : `Each whole has ${d} equal spaces. What fraction is at the dot?`;
         answer = basicsCount ? String(d) : f(top, d);
         if (!basicsCount && i % 3 !== 1) visual = model(top, d, 'line');
@@ -1049,18 +1103,23 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         const tops = d >= 5 ? [1, Math.floor(d / 2), d - 1] : [1, 2, 3];
         // Never shown already in the asked order; later rows shift so no question repeats.
         const shown = [[2, 0, 1], [1, 2, 0], [0, 2, 1], [1, 0, 2]][(i + (i >= 8 ? 2 : 0)) % 4].map(k => f(tops[k], d));
-        prompt = `Put ${shown.join(', ')} in order, ${i % 2 ? 'biggest' : 'smallest'} first.`;
-        answer = (i % 2 ? [...tops].reverse() : tops).map(top => f(top, d)).join(', '); form = 'ordered'; hint = 'Same size parts. Compare the numerators.'; break;
+        // Each redo flips the order asked for, so back-to-back sheets differ.
+        prompt = `Put ${shown.join(', ')} in order, ${(i + variant) % 2 ? 'biggest' : 'smallest'} first.`;
+        answer = ((i + variant) % 2 ? [...tops].reverse() : tops).map(top => f(top, d)).join(', '); form = 'ordered'; hint = 'Same size parts. Compare the numerators.'; break;
       }
       case 'equivalent-models':
       case 'build-equivalents':
       case 'missing-equivalent': {
-        const factor = d >= 9 ? 2 : 2 + i % 3; const big = f(n * factor, d * factor);
+        // Both denominators fit the grade (grade 3: 1/2 = 2/4 = 3/6 = 4/8, 1/3 = 2/6, 3/4 = 6/8, and past one whole,
+        // 3/2 = 6/4, so redo sheets have new rows). Each list is stepped through so rows on a sheet never repeat.
+        const pairs = lessonGrade(id) === 3 ? G3_EQUIVALENTS_WIDE : equivalentsFor(id);
+        const [top, bottom, factor] = pairs[lessonGrade(id) === 3 ? (i + 5 * variant) % pairs.length : (i * 5 + variant * 7) % pairs.length];
+        const small = f(top, bottom); const big = f(top * factor, bottom * factor);
         if (id === 'equivalent-models') {
-          prompt = i % 2 ? `This bar shows ${value}. Cut every part into ${factor}. What is the new fraction?` :
-            `This bar shows ${value}. Fill the missing numerator: ${value} = ?/${d * factor}.`;
-          answer = i % 2 ? big : String(n * factor); denominator = i % 2 ? d * factor : undefined;
-          visual = model(n, d); hint = `Cut each part into ${factor} equal parts. Now count the shaded parts and all the parts.`;
+          prompt = i % 2 ? `This bar shows ${small}. Cut every part into ${factor}. What is the new fraction?` :
+            `This bar shows ${small}. Fill the missing numerator: ${small} = ?/${bottom * factor}.`;
+          answer = i % 2 ? big : String(top * factor); denominator = i % 2 ? bottom * factor : undefined;
+          visual = model(top, bottom); hint = `Cut each part into ${factor} equal parts. Now count the shaded parts and all the parts.`;
           // The same amount, cut a different way, in a square.
           if (i === 10) {
             prompt = 'Each triangle is 1/8 of the square. Two are shaded. Fill the missing numerator: 2/8 = ?/4.'; answer = '1'; denominator = undefined;
@@ -1070,14 +1129,14 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
             visual = undefined; area = { cut: 'eighths-triangles' }; areaTask = { n: 1, d: 2 }; hint = '8 equal triangles make the square. Half of 8 is 4.';
           }
         } else if (id === 'build-equivalents') {
-          prompt = i % 3 === 0 ? `Multiply the numerator and denominator of ${value} by ${factor}. What do you get?` :
-            i % 3 === 1 ? `Write ${value} with a denominator of ${d * factor}.` : `Divide the numerator and denominator of ${big} by ${factor}. What do you get?`;
-          answer = i % 3 === 2 ? value : big; denominator = i % 3 === 2 ? d : d * factor;
+          prompt = i % 3 === 0 ? `Multiply the numerator and denominator of ${small} by ${factor}. What do you get?` :
+            i % 3 === 1 ? `Write ${small} with a denominator of ${bottom * factor}.` : `Divide the numerator and denominator of ${big} by ${factor}. What do you get?`;
+          answer = i % 3 === 2 ? small : big; denominator = i % 3 === 2 ? bottom : bottom * factor;
           hint = i % 3 === 2 ? `Divide the numerator and denominator by ${factor}.` : `Multiply the numerator and denominator by ${factor}.`;
         } else {
-          prompt = i % 3 === 0 ? `Fill the missing numerator: ${value} = ?/${d * factor}.` :
-            i % 3 === 1 ? `Fill the missing denominator: ${value} = ${n * factor}/?.` : `Fill the missing numerator: ?/${d} = ${big}.`;
-          answer = String(i % 3 === 0 ? n * factor : i % 3 === 1 ? d * factor : n);
+          prompt = i % 3 === 0 ? `Fill the missing numerator: ${small} = ?/${bottom * factor}.` :
+            i % 3 === 1 ? `Fill the missing denominator: ${small} = ${top * factor}/?.` : `Fill the missing numerator: ?/${bottom} = ${big}.`;
+          answer = String(i % 3 === 0 ? top * factor : i % 3 === 1 ? bottom * factor : top);
           hint = i % 3 === 2 ? `The denominator was divided by ${factor}. Divide the numerator too.` : `Do the same thing to the numerator and denominator: times ${factor}.`;
         }
         break;
@@ -1167,14 +1226,24 @@ const EXACT: [number, number][] = [[1, 2], [1, 4], [3, 4], [1, 5], [2, 5], [3, 1
   [3, 20], [7, 20], [9, 20], [11, 20], [13, 20], [17, 20], [19, 20], [2, 10], [4, 10], [6, 10], [8, 10], [2, 4]];
 /** Percent to fraction: the first sheet's percents (from EXACT), then new ones; its answers are hundredths anyway. */
 const PERCENTS = [...EXACT.slice(0, 12).map(([t, b]) => (t * 100) / b), 15, 35, 45, 55, 65, 85, 95, 12, 24, 36, 48, 64];
+/** [n, d, k]: n/d = nk/dk with grade 3 parts only, including amounts past one whole. */
+export const G3_EQUIVALENTS_WIDE: readonly [number, number, number][] = [[1, 2, 2], [1, 3, 2], [1, 2, 4], [1, 2, 3], [2, 3, 2], [1, 4, 2], [3, 2, 2], [2, 4, 2], [4, 3, 2], [5, 4, 2], [3, 4, 2], [3, 2, 3],
+  [3, 2, 4], [5, 3, 2], [7, 4, 2], [2, 2, 2], [3, 3, 2], [4, 4, 2], [5, 2, 2], [2, 2, 3], [2, 2, 4], [6, 4, 2], [4, 2, 2], [9, 4, 2]];
+/** Grade 4 fractions to simplify: [answer numerator, answer denominator, factor]. */
+const SIMPLIFY_POOL: [number, number, number][] = [...EQUIVALENTS[4], [3, 2, 2], [4, 3, 2], [5, 4, 2], [3, 2, 3], [5, 2, 2], [5, 3, 2], [3, 2, 4], [7, 4, 2]];
+/** [part of a pan, children sharing it], 24 small parts at most (grade 5 bars stay readable). */
+const PAN_SHARES: [number, number][] = [[2, 2], [3, 3], [4, 4], [5, 3], [6, 2], [8, 3], [3, 4], [4, 5], [5, 2], [6, 3], [8, 2], [2, 5],
+  [3, 2], [4, 2], [2, 3], [2, 4], [3, 5], [4, 3], [5, 4], [6, 4], [2, 6], [3, 6], [4, 6], [10, 2], [12, 2]];
 const SIMPLE: [number, number][] = [[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [2, 5], [1, 6], [5, 6], [3, 8], [3, 10], [5, 12], [7, 10]];
 
 /** Worksheets for the later (extension) lessons: exact math, grade-friendly numbers, a hint for each skill. */
-function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: string; n: number; d: number }, variant = 0): WorksheetProblem[] {
+function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: string; n: number; d: number }, variant = 0, id = ''): WorksheetProblem[] {
   const shift = variant % 12;
+  // Equivalent pairs whose denominators both fit the grade, stepping through all of them (each redo moves on).
+  const pairs = equivalentsFor(id);
   return Array.from({ length: 12 }, (_, i) => {
     const tr = (i + shift) % 12; // row in the number tables (the question type still follows i)
-    const [n, d] = SIMPLE[tr]; const k = 2 + (i + variant) % 3;
+    const [n, d] = SIMPLE[tr];
     // Tables with a second set of 12 rows: the first sheet uses rows 1-12, and redo sheets reach the new numbers.
     const pick = <T,>(table: readonly T[]): T => table[(i + variant) % table.length];
     let prompt = ''; let answer = f(n, d); let hint = '';
@@ -1184,17 +1253,21 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
     let scaleTask: WorksheetProblem['scaleTask']; let modelRequired = false; let task: BarTask | undefined;
     switch (spec.mode) {
       case 'simplify': {
-        const times = 2 + i % 3; // follows the row, not the fraction, so redo sheets pair each fraction with a new factor
-        prompt = `Write ${f(n * times, d * times)} in simplest form.`; denominator = d; visual = model(n * times, d * times);
+        // One kind of question, so it needs more than 21 different fractions: amounts past one whole too (6/4 = 3/2).
+        // Each redo takes the other half of the list.
+        const [top, bottom, times] = SIMPLIFY_POOL[(i + 13 * variant) % SIMPLIFY_POOL.length];
+        prompt = `Write ${f(top * times, bottom * times)} in simplest form.`; answer = f(top, bottom); denominator = bottom; visual = model(top * times, bottom * times);
         hint = 'Divide the numerator and denominator by the same number. Keep going until no number but 1 divides both.'; break;
       }
-      case 'equivalent':
-        prompt = i % 2 ? `Write ${f(n, d)} with a denominator of ${d * k}.` : `Fill the missing numerator: ${f(n, d)} = ?/${d * k}.`;
-        answer = i % 2 ? f(n * k, d * k) : String(n * k); denominator = i % 2 ? d * k : undefined;
-        hint = `The denominator was multiplied by ${k}. Multiply the numerator by ${k} too.`; break;
+      case 'equivalent': {
+        const [top, bottom, times] = pairs[(i * 5 + variant * 7) % pairs.length];
+        prompt = i % 2 ? `Write ${f(top, bottom)} with a denominator of ${bottom * times}.` : `Fill the missing numerator: ${f(top, bottom)} = ?/${bottom * times}.`;
+        answer = i % 2 ? f(top * times, bottom * times) : String(top * times); denominator = i % 2 ? bottom * times : undefined;
+        hint = `The denominator was multiplied by ${times}. Multiply the numerator by ${times} too.`; break;
+      }
       case 'compare': {
         const [a, b, c, e] = pick([[1, 2, 2, 5], [4, 5, 3, 4], [3, 4, 2, 3], [1, 3, 2, 6], [3, 5, 3, 4], [5, 6, 5, 8], [2, 5, 1, 3], [1, 2, 3, 8], [4, 6, 2, 3], [7, 10, 3, 5], [2, 5, 2, 3], [5, 8, 3, 4],
-          [2, 3, 3, 4], [5, 8, 1, 2], [3, 10, 1, 4], [2, 6, 1, 3], [4, 10, 1, 2], [4, 5, 7, 10], [1, 4, 2, 8], [3, 8, 2, 5], [5, 6, 3, 4], [2, 3, 5, 9], [7, 9, 2, 3], [2, 8, 2, 6]] as const);
+          [2, 3, 3, 4], [5, 8, 1, 2], [3, 10, 1, 4], [2, 6, 1, 3], [4, 10, 1, 2], [4, 5, 7, 10], [1, 4, 2, 8], [3, 8, 2, 5], [5, 6, 3, 4], [2, 3, 7, 12], [7, 12, 2, 3], [2, 8, 2, 6]] as const);
         prompt = `Put <, = or > in the gap: ${f(a, b)} __ ${f(c, e)}.`;
         answer = a * e > c * b ? '>' : a * e < c * b ? '<' : '='; form = 'symbol';
         hint = a === c
@@ -1247,7 +1320,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       }
       case 'share': {
         const [loaves, people] = pick([[1, 2], [2, 3], [3, 4], [1, 3], [3, 5], [2, 4], [2, 5], [3, 8], [3, 2], [1, 6], [1, 4], [3, 6],
-          [1, 5], [4, 5], [2, 6], [5, 6], [4, 3], [5, 8], [1, 8], [2, 7], [5, 4], [2, 8], [4, 6], [5, 2]] as const);
+          [1, 5], [4, 5], [2, 6], [5, 6], [4, 3], [5, 8], [1, 8], [3, 10], [5, 4], [2, 8], [4, 6], [5, 2]] as const);
         prompt = `${loaves} ${loaves === 1 ? 'loaf is' : 'loaves are'} shared fairly by ${people} friends. How much does each friend get?`;
         // Picture: each loaf cut into one piece per friend, nothing shaded (it must not suggest 1/people).
         answer = f(loaves, people); visual = { kind: 'bar', n: 0, d: people, wholes: loaves };
@@ -1259,7 +1332,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         hint = `${times} groups of ${f(n, d)}. Multiply the numerator by ${times}. The denominator stays.`; break;
       }
       case 'multiply': {
-        const part = 2 + i % 2;
+        const part = d * 3 > 24 ? 2 : 2 + i % 2; // 24 parts at most, so the bar stays readable
         prompt = `What is 1/${part} of ${f(n, d)}?`; answer = f(n, d * part); visual = model(n, d);
         hint = `Cut every part into ${part}. Multiply the numerators and multiply the denominators.`; break;
       }
@@ -1275,7 +1348,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       }
       case 'measure-add': {
         const [a, b, c, e] = pick([[1, 2, 1, 4], [1, 3, 1, 6], [1, 4, 1, 8], [1, 2, 1, 8], [2, 3, 1, 6], [1, 5, 1, 10], [1, 2, 1, 6], [3, 4, 1, 8], [1, 3, 1, 12], [2, 5, 1, 10], [1, 2, 3, 8], [1, 4, 1, 12],
-          [1, 2, 1, 10], [3, 4, 1, 12], [1, 6, 1, 12], [3, 5, 1, 10], [1, 4, 3, 8], [2, 3, 1, 12], [1, 2, 1, 12], [1, 6, 5, 12], [1, 3, 2, 9], [2, 5, 3, 10], [1, 5, 3, 10], [1, 4, 5, 8]] as const);
+          [1, 2, 1, 10], [3, 4, 1, 12], [1, 6, 1, 12], [3, 5, 1, 10], [1, 4, 3, 8], [2, 3, 1, 12], [1, 2, 1, 12], [1, 6, 5, 12], [1, 3, 5, 12], [2, 5, 3, 10], [1, 5, 3, 10], [1, 4, 5, 8]] as const);
         const m = lcm(b, e);
         prompt = `A board is ${f(a, b)} meter. Another is ${f(c, e)} meter. How long are they together?`; answer = f(a * (m / b) + c * (m / e), m);
         hint = `Change ${f(a, b)} into ${unitName(m)} first.`; break;
@@ -1320,8 +1393,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         break;
       }
       case 'line': {
-        // Redo sheets also cut each space into 3 or 4 (when the new denominator stays 24 or less).
-        const wanted = variant ? [2, 3, 4][(i + 2 * variant) % 3] : 2; const times = d * wanted <= 24 ? wanted : 2; // shifts apart from the fraction
+        // Grade 3: halves, thirds, fourths, sixths and eighths only (1/2 = 2/4 = 3/6 = 4/8, 1/3 = 2/6, 3/4 = 6/8), and past
+        // one whole too (3/2 = 6/4).
+        const [n, d, times] = pick(G3_EQUIVALENTS_WIDE);
         prompt = `${f(n, d)} is marked on a line. Which fraction with a denominator of ${d * times} is at the same spot?`;
         answer = f(n * times, d * times); denominator = d * times; visual = model(n, d, 'line');
         hint = times === 2 ? 'Cut every space in half. Now there are twice as many spaces and twice as many jumps.'
@@ -1343,7 +1417,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         hint = `${percent}% means ${percent} out of 100.`; break;
       }
       case 'decimal-equivalent': {
-        const [t, b] = pick(EXACT);
+        // Twentieths are not a grade 4 denominator: those rows ask about the same amount in hundredths.
+        const [top, bottom] = pick(EXACT); const [t, b] = gradeFits(id, bottom) ? [top, bottom] : [top * (100 / bottom), 100];
         prompt = `Write ${f(t, b)} as a decimal.`; answer = String(t / b); form = 'decimal';
         hint = `Change ${f(t, b)} to tenths or hundredths first.`; break;
       }
@@ -1352,11 +1427,11 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           { kind: 'write', numerator: 2, denominator: 1 }, { kind: 'count', numerator: 4, denominator: 2 }, { kind: 'one', numerator: 3, denominator: 3 },
           { kind: 'write', numerator: 3, denominator: 1 }, { kind: 'count', numerator: 9, denominator: 3 }, { kind: 'one', numerator: 4, denominator: 4 },
           { kind: 'write', numerator: 4, denominator: 1 }, { kind: 'count', numerator: 16, denominator: 4 }, { kind: 'one', numerator: 6, denominator: 6 },
-          { kind: 'write', numerator: 5, denominator: 1 }, { kind: 'count', numerator: 25, denominator: 5 }, { kind: 'one', numerator: 8, denominator: 8 },
+          { kind: 'write', numerator: 5, denominator: 1 }, { kind: 'count', numerator: 24, denominator: 8 }, { kind: 'one', numerator: 8, denominator: 8 },
           { kind: 'write', numerator: 6, denominator: 1 }, { kind: 'count', numerator: 6, denominator: 2 }, { kind: 'one', numerator: 2, denominator: 2 },
-          { kind: 'count', numerator: 10, denominator: 2 }, { kind: 'count', numerator: 12, denominator: 3 }, { kind: 'one', numerator: 5, denominator: 5 },
-          { kind: 'count', numerator: 12, denominator: 4 }, { kind: 'count', numerator: 8, denominator: 4 }, { kind: 'one', numerator: 7, denominator: 7 },
-          { kind: 'count', numerator: 15, denominator: 5 }, { kind: 'count', numerator: 20, denominator: 5 }, { kind: 'one', numerator: 1, denominator: 1 },
+          { kind: 'count', numerator: 10, denominator: 2 }, { kind: 'count', numerator: 12, denominator: 3 }, { kind: 'count', numerator: 16, denominator: 8 },
+          { kind: 'count', numerator: 12, denominator: 4 }, { kind: 'count', numerator: 8, denominator: 4 }, { kind: 'count', numerator: 8, denominator: 2 },
+          { kind: 'count', numerator: 12, denominator: 6 }, { kind: 'count', numerator: 18, denominator: 6 }, { kind: 'one', numerator: 1, denominator: 1 },
         ];
         const item = pick(examples);
         if (item.kind === 'write') {
@@ -1552,7 +1627,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         hint = 'Change each mixed number to an improper fraction. Multiply the numerators and multiply the denominators.'; break;
       }
       case 'unit-divided-whole': {
-        const unitDenominator = [2, 3, 4, 5, 6, 8, 3, 4, 5, 6, 8, 2][tr]; const people = 2 + (i % 4); const resultDenominator = unitDenominator * people;
+        // One kind of question: each redo takes the other half of the list, so back-to-back sheets share no row.
+        const [unitDenominator, people] = PAN_SHARES[(i + 13 * variant) % PAN_SHARES.length]; const resultDenominator = unitDenominator * people;
         prompt = `${people} children share 1/${unitDenominator} of a pan equally. What fraction of the whole pan does each child get?`;
         answer = f(1, resultDenominator); denominator = resultDenominator; visual = model(1, unitDenominator); modelRequired = true;
         hint = `Split the 1/${unitDenominator} part into ${people} equal parts. How many of those small parts fill the whole pan?`; break;
@@ -1614,17 +1690,17 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const fixes: [string, string, string, number?, WorksheetProblem['form']?][] = [
           ['Sam says 1/4 + 2/4 = 3/8.', '3/4', 'Fourths plus fourths make fourths. Add only the numerators.'],
           ['Kim says 5/6 − 2/6 = 3/12.', '3/6', 'Sixths minus sixths leave sixths. Take away only the numerators.'],
-          ['Jo says 3 × 2/5 = 6/15.', '6/5', 'Multiply only the numerator. The parts stay fifths.'],
+          ['Jo says 2 × 2/5 = 4/10.', '4/5', 'Multiply only the numerator. The parts stay fifths.'],
           ['Ben says 3/4 − 1/2 = 2/2.', '1/4', 'Change 1/2 to 2/4 first. Then take away.'],
           ['Eva says 1/2 + 1/3 = 2/5.', '5/6', 'Rename both to the same size parts first. Then add.'],
           ['Max says 7/4 = 1 1/3.', '1 3/4', '4 fourths make one whole. Count the fourths left over.', undefined, 'mixed'],
           ['Zoe says 2/3 = 3/4 because she added 1 to the numerator and denominator. Which fraction in sixths is really equal to 2/3?', '4/6', 'Multiply the numerator and denominator by the same number.', 6],
           ['Tim says half of 3/4 is 3/2.', '3/8', 'Cut each fourth in half. Each half is an eighth.'],
-          ['Liv says 2/7 + 3/7 = 5/14.', '5/7', 'Sevenths plus sevenths make sevenths. Add only the numerators.'],
+          ['Liv says 1/6 + 4/6 = 5/12.', '5/6', 'Sixths plus sixths make sixths. Add only the numerators.'],
           ['Dan says 4/5 − 1/5 = 3.', '3/5', 'Fifths minus fifths leave fifths. Keep the denominator.'],
-          ['Amy says 2 × 3/7 = 6/14.', '6/7', 'Multiply only the numerator. The parts stay sevenths.'],
+          ['Amy says 3 × 1/4 = 3/12.', '3/4', 'Multiply only the numerator. The parts stay fourths.'],
           ['Leo says 1/2 − 1/4 = 0/2.', '1/4', 'Change 1/2 to 2/4 first. Then take away.'],
-          ['Ivy says 1/3 + 1/6 = 2/9.', '3/6', 'Change 1/3 to 2/6 first: 2/6 + 1/6.', 6],
+          ['Ivy says 1/2 + 1/4 = 2/6.', '3/4', 'Change 1/2 to 2/4 first: 2/4 + 1/4.', 4],
           ['Gus says 9/4 = 2 1/2.', '2 1/4', '8 fourths make 2 wholes. Count the fourths left over.', undefined, 'mixed'],
           ['Nia says 3/5 = 4/6 because she added 1 to the numerator and denominator.', '6/10', 'Multiply the numerator and denominator by the same number.', 10],
           ['Sid says half of 1/4 is 2/4.', '1/8', 'Cut the fourth in half. Each half is an eighth.'],
@@ -1693,13 +1769,15 @@ export function getReviewCheck(id: string, round: number): BuildCheck {
       ...arrangeReasons(`${id}:review:${round % builds.length}`, idea(id, check.explanation), ['Only the numerator matters', 'Bigger numbers mean a bigger fraction']) };
   }
   if (id === 'order-fractions') {
-    const d = [6, 8, 10][round % 3];
+    // Grade 3 parts: sixths, eighths, then eighths again with other numerators.
+    const [d, low, high] = ([[6, 2, 4], [8, 2, 4], [8, 3, 6]] as const)[round % 3];
     const reason = 'Same size parts. The most parts is the biggest.';
-    return { id: 'retention', transfer: true, prompt: `Which is longest: 2/${d}, 4/${d} or 3/${d}? Make it.`,
-      target: model(4, d), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['The smallest numerator wins', 'Shade the denominator of parts']), explanation: reason };
+    return { id: 'retention', transfer: true, prompt: `Which is longest: ${low}/${d}, ${high}/${d} or ${low + 1}/${d}? Make it.`,
+      target: model(high, d), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['The smallest numerator wins', 'Shade the denominator of parts']), explanation: reason };
   }
   if (id.includes('equivalent')) {
-    const d = [3, 4, 5][round % 3]; const n = d - 1; const factor = 2 + round % 2;
+    // Both denominators fit the grade (grade 3: 2/3 = 4/6, 3/4 = 6/8, 1/2 = 3/6).
+    const [n, d, factor] = (lessonGrade(id) === 3 ? [[2, 3, 2], [3, 4, 2], [1, 2, 3]] : [[2, 3, 2], [3, 4, 3], [4, 5, 2]])[round % 3];
     const reason = `Split every part into ${factor}. Multiply the numerator and denominator by ${factor}.`;
     return { id: 'retention', transfer: true, prompt: `A ribbon is ${n}/${d} colored. Show it with a denominator of ${d * factor}.`,
       target: model(n * factor, d * factor), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['Change only the denominator', 'A bigger bottom always means more']), explanation: reason };
