@@ -106,7 +106,7 @@ test('the grown-ups page shows the subscription and opens the store to manage it
   expect(await asked(page)).toEqual([{ type: 'subscription', action: 'manage' }, { type: 'subscription', action: 'restore' }]);
 });
 
-test('in a browser there is no subscription: lessons open and the grown-ups page has no subscription section', async ({ page }) => {
+test('in a browser there is no subscription: with the website limit off, lessons open and the grown-ups page has no subscription section', async ({ page }) => {
   await openInApp(page, null);
   await page.getByTestId('button-start-mission-equal-parts').click();
   await expect(page.getByTestId('subscribe-ask')).toHaveCount(0);

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { lessonsLocked, readSubscription } from './lib/subscription';
+import { lessonsLocked, readSubscription, webLessonsLocked } from './lib/subscription';
 
 const withShell = (shell: unknown, run: () => void) => {
   const scope = globalThis as { fractionQuestShell?: unknown };
@@ -29,4 +29,9 @@ test('the page keeps only well-formed parts of what the app reports', () => {
   withShell({ platform: 'android', wifi: false, subscription: { state: 'none', renewsAt: 'soon', price: 'x'.repeat(40), busy: 'yes' } }, () => {
     assert.deepEqual(readSubscription(), { state: 'none', renewsAt: null, price: null, busy: false, error: null });
   });
+});
+
+test('in a plain browser lessons after the first point to the app; inside the app the store decides', () => {
+  assert.equal(webLessonsLocked(), true);
+  withShell({ platform: 'ios', wifi: true }, () => assert.equal(webLessonsLocked(), false));
 });

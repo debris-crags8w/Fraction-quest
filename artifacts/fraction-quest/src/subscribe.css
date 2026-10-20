@@ -35,3 +35,12 @@
 .fq-paywall-privacy p { position: absolute; left: 16px; right: 16px; bottom: 80px; margin: 0; padding: 12px; border-radius: 12px; background: hsl(var(--card)); box-shadow: 0 6px 20px rgb(0 0 0 / .2); line-height: 1.45; }
 
 .fq-subscription-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+
+/* In a plain browser, after the free first lesson: where to get the app. */
+.fq-get-app-stores { display: grid; gap: 10px; }
+.fq-get-app-store { display: flex; align-items: center; justify-content: center; min-height: 56px; border-radius: 28px; background: #24223A; color: #fff;
+  font-family: var(--app-font-display); font-size: 1.15rem; font-weight: 800; text-decoration: none; }
+.fq-get-app-store:hover { background: #3A3758; }
+.fq-get-app-soon { margin: 0; padding: 12px; border-radius: 14px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); text-align: center; font-weight: 700; }
+.fq-get-app-note { margin: 0; font-size: .88rem; line-height: 1.45; color: hsl(var(--muted-foreground)); }
+.fq-get-app-back { margin-top: auto; min-height: 48px; }

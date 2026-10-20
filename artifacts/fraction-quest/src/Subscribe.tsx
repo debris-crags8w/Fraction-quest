@@ -13,6 +13,9 @@ import './subscribe.css';
 
 /** Apple's standard licence agreement, used as the Terms of Use until Fraction Quest has its own. */
 const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+/** Where the app is listed; set for the published website once the store listings are live. */
+const APP_STORE_URL = String(import.meta.env?.VITE_APP_STORE_URL ?? '').trim();
+const GOOGLE_PLAY_URL = String(import.meta.env?.VITE_GOOGLE_PLAY_URL ?? '').trim();
 const PRIVACY = 'Fraction Quest saves the account username and display name, learner nicknames, lesson answers and progress, and app preferences so learning can continue on another device. We do not ask for email, record audio, show ads, or sell anything to anyone.';
 
 type Step = 'ask' | 'gate' | 'paywall';
@@ -27,6 +30,69 @@ export function SubscribeFlow({ subscription, lapsed, lessonsDone, piecesFound, 
   }
   if (step === 'paywall') return <Paywall subscription={subscription} onClose={onBack} />;
   return <AskGrownUp lapsed={lapsed} lessonsDone={lessonsDone} piecesFound={piecesFound} onGrownUp={() => setStep('gate')} onBack={onBack} onStorybook={onStorybook} />;
+}
+
+/** In a plain browser: the first lesson is free, and the rest of the adventure is in the app. A grown-up passes the
+    check to see the store links (links out of Fraction Quest are for grown-ups). */
+export function WebAppOnlyFlow({ onBack }: { onBack: () => void }) {
+  const [step, setStep] = useState<'ask' | 'gate' | 'app'>('ask');
+  if (step === 'gate') {
+    return <div className="fq-app"><GrownUpGate onPass={() => setStep('app')} onBack={() => setStep('ask')} backLabel="Back"
+      reason="This part is for grown-ups. Please answer to continue." /></div>;
+  }
+  if (step === 'app') return <GetTheApp onClose={onBack} />;
+  const say = 'The rest of the adventure is in the Fraction Quest app. Ask a grown-up to get it on a phone or tablet.';
+  return (
+    <div className="fq-app fq-subscribe-night">
+      <main className="fq-shell fq-subscribe-ask" data-testid="web-app-only">
+        <div className="fq-subscribe-hero" aria-hidden="true"><StoryCharacter id="hoot" size={120} /></div>
+        <h1>You found the first clue!</h1>
+        <section className="fq-subscribe-say">
+          <p><b>Hoot: </b>The rest of the adventure is in the Fraction Quest <u>app</u>. Ask a <u>grown-up</u> to get it on a phone or tablet.</p>
+          <LearningListenButton text={say} label="Listen to Hoot" />
+        </section>
+        <p className="fq-subscribe-note">You can still play lesson 1 again and read the Storybook here.</p>
+        <div className="fq-subscribe-actions">
+          <button className="fq-button fq-subscribe-go" onClick={() => setStep('gate')} data-testid="button-get-grown-up">Get a grown-up</button>
+          <button className="fq-button ghost" onClick={onBack} data-testid="button-subscribe-back">Back to the map</button>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function GetTheApp({ onClose }: { onClose: () => void }) {
+  // On a phone, list its own store first.
+  const android = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
+  const stores = [
+    { id: 'app-store', label: 'Get it on the App Store', url: APP_STORE_URL },
+    { id: 'google-play', label: 'Get it on Google Play', url: GOOGLE_PLAY_URL },
+  ].filter((store) => store.url);
+  if (android) stores.reverse();
+  return (
+    <div className="fq-app">
+      <main className="fq-shell fq-paywall" data-testid="get-the-app">
+        <div className="fq-paywall-top">
+          <span>For grown-ups</span>
+          <button className="fq-icon-button" onClick={onClose} aria-label="Close" data-testid="button-get-app-close"><X size={18} /></button>
+        </div>
+        <h1>Fraction Quest continues in the app</h1>
+        <p>Your child finished the free first lesson. The full course is in the app for iPhone, iPad and Android: 7 days free, then {LISTED_PRICE} a month.</p>
+        <ul className="fq-paywall-list">
+          <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>72 lessons</strong> that teach first, then practise, with a picture for every question</span></li>
+          <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>A weekly report</strong> showing what your child learned and how to help at home</span></li>
+          <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>No ads</strong>, and nothing sold to anyone</span></li>
+        </ul>
+        <div className="fq-get-app-stores">
+          {stores.length
+            ? stores.map((store) => <a key={store.id} className="fq-get-app-store" href={store.url} target="_blank" rel="noreferrer" data-testid={`link-${store.id}`}>{store.label}</a>)
+            : <p className="fq-get-app-soon" data-testid="get-app-soon">The app is coming soon to the App Store and Google Play.</p>}
+        </div>
+        <p className="fq-get-app-note">Lessons done here stay saved in this browser. The app starts fresh with its own level quiz.</p>
+        <button className="fq-button ghost fq-get-app-back" onClick={onClose} data-testid="button-get-app-back">Back to the map</button>
+      </main>
+    </div>
+  );
 }
 
 function AskGrownUp({ lapsed, lessonsDone, piecesFound, onGrownUp, onBack, onStorybook }: {
