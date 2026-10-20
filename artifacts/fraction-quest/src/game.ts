@@ -73,7 +73,9 @@ export type ModelSpec =
   | { kind: 'equation'; text: string; caption?: string }
   | { kind: 'decimal'; tenths: number; caption?: string; hideLabels?: boolean }
   /** A square, circle or hexagon cut into pieces (see area-shapes.ts); `shaded` lists piece numbers. */
-  | { kind: 'area'; cut: AreaCut; shaded: number[]; caption?: string };
+  | { kind: 'area'; cut: AreaCut; shaded: number[]; caption?: string }
+  /** A finished line plot to read: one X over each value (tick numbers, counted from 0 in steps of 1/denominator). */
+  | { kind: 'lineplot'; denominator: number; wholes: number; values: number[]; caption?: string };
 
 export type SetModelLayout = { groupCount: number; selectedGroups: number; objectsPerGroup: number };
 
@@ -299,9 +301,35 @@ export function hideAnswerBars(model: ModelSpec, prompt: string, choices: string
   const missing = named.filter((amount) => amount.numerator > 0 && amount.denominator <= 24
     && !shown.some((bar) => bar.numerator === amount.numerator && bar.denominator === amount.denominator));
   const extra = shown.length === 0 || /\bsum|adds? up|\+/i.test(prompt)
-    ? missing.map((amount) => ({ numerator: amount.numerator, denominator: amount.denominator, named: true }))
+    ? missing.map((amount) => ({ numerator: amount.numerator, denominator: amount.denominator, ...(amount.written ? { named: true } : {}) }))
     : [];
   return { ...model, bars: [...extra, ...bars] };
+}
+
+/** A bar drawn for a decimal or percent ("What fraction is 0.35?") would be labelled 35/100, the answer: that label
+    waits until the child answers. Fractions the question writes ("3/4 or 3/8?") keep their labels. */
+function unlabelAnswer(model: ModelSpec, prompt: string, answer: string): ModelSpec {
+  const spelled = amountsIn(prompt).some((amount) => !amount.written && `${amount.numerator}/${amount.denominator}` === answer.trim());
+  if (model.kind !== 'bars' || !spelled) return model;
+  return { ...model, bars: model.bars.map((bar) => (bar.named && `${bar.numerator}/${bar.denominator}` === answer.trim() ? { ...bar, untilAnswered: true } : bar)) };
+}
+
+/** A picture that draws every written choice ("Which is closest to 0? 1/8, 4/5, 7/8") also draws the added fourth
+    choice, so the child can check it too. */
+function withChoiceBars<T extends { choices: string[]; model: ModelSpec }>(question: T, authored: string[]): T {
+  const { model } = question;
+  if (model.kind !== 'bars') return question;
+  const plain = (choice: string) => /^\d+\/\d+$/.test(choice.trim());
+  const drawn = (choice: string) => model.bars.some((bar) => `${bar.numerator}/${bar.denominator}` === choice.trim());
+  const written = authored.filter(plain);
+  if (written.length < 2 || !written.every(drawn)) return question;
+  // Labelled like the other choices' bars.
+  const named = written.every((choice) => model.bars.some((bar) => bar.named && `${bar.numerator}/${bar.denominator}` === choice.trim()));
+  const added = question.choices.filter((choice) => plain(choice) && !drawn(choice)).map((choice) => {
+    const [numerator, denominator] = choice.trim().split('/').map(Number);
+    return { numerator, denominator, ...(named ? { named: true } : {}) };
+  });
+  return added.length ? { ...question, model: { ...model, bars: [...model.bars, ...added] } } : question;
 }
 
 function practice(
@@ -315,7 +343,7 @@ function practice(
 ): PracticeSeed {
   // Every question shows a model: a typed-out equation ("1/6 + 4/6 = ?") also gets bars for its amounts.
   if (model.kind === 'equation') model = autoPicture(model.text, model.text) ?? model;
-  const named = hideAnswerBars(nameBars(model, prompt), prompt, choices, correctChoice);
+  const named = hideAnswerBars(unlabelAnswer(nameBars(model, prompt), prompt, choices[correctChoice] ?? ''), prompt, choices, correctChoice);
   let simpler = nameBars(simplerModel, prompt);
   // "Let's make it simpler" must stay about this question: if the question's own picture shows the fractions it names
   // and the authored help picture doesn't (a generic 1/2 bar), the help shows the question's bars, labelled.
@@ -323,7 +351,7 @@ function practice(
   if (aboutQuestion(named) && !aboutQuestion(simpler)) simpler = named;
   // Four choices (A–D): lessons list three, a fourth believable wrong answer is added (sign questions are written out as four comparisons).
   const signs = withSignComparisons(prompt, choices, correctChoice);
-  const withFourth = withFourthChoice({ prompt, choices: signs?.choices ?? choices, correctChoice: signs?.correctChoice ?? correctChoice, model: named, hint, retryFeedback, simplerModel: simpler });
+  const withFourth = withChoiceBars(withFourthChoice({ prompt, choices: signs?.choices ?? choices, correctChoice: signs?.correctChoice ?? correctChoice, model: named, hint, retryFeedback, simplerModel: simpler }), choices);
   // Whole-number answers: wrong choices come from real slips (one group, the rest, the whole), not answer ± 1.
   const slipped = preferMisconceptions(withFourth);
   return { ...slipped, choices: orderedWithSigns(prompt, slipped.choices) };
@@ -395,7 +423,7 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 1, denominator: 6 }),
     },
     questions: [
-      practice('Which is a unit fraction?', ['3/8', '1/8', '8/1'], 1, bars({ numerator: 1, denominator: 8 }), 'A unit fraction has a numerator of 1.', 'Look for the one with a numerator of 1.', bars({ numerator: 1, denominator: 4 })),
+      practice('Which is a unit fraction?', ['3/8', '1/8', '8/1'], 1, bars({ numerator: 0, denominator: 8 }), 'A unit fraction has a numerator of 1.', 'Look for the one with a numerator of 1.', bars({ numerator: 1, denominator: 4 })),
       practice('A whole is cut into 10 equal parts. What is 1 part?', ['1/10', '10/1', '1/9'], 0, bars({ numerator: 1, denominator: 10 }), '10 parts in all. You have 1.', '1 of 10 equal parts is 1/10.', bars({ numerator: 1, denominator: 5 })),
       practice('Does this bar show 1/3?', ['Yes, 1 of 3 equal parts', 'No, 3 parts are shaded', 'No, the parts are unequal', 'No, 2 parts not shaded'], 0, bars({ numerator: 1, denominator: 3 }), '1/3 is 1 of 3 equal parts.', 'The bar has 3 equal parts and 1 is shaded. That is 1/3.', bars({ numerator: 1, denominator: 2 })),
       practice('What fraction is 1 of 12 equal tiles?', ['12/1', '1/12', '1/11'], 1, bars({ numerator: 1, denominator: 12 }), '1 tile out of 12.', '1 out of 12 equal parts is 1/12.', bars({ numerator: 1, denominator: 6 })),
@@ -457,7 +485,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Which is more than 1/2?', ['2/6', '5/8', '3/10'], 1, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 2, denominator: 6, named: true }, { numerator: 5, denominator: 8, named: true }, { numerator: 3, denominator: 10, named: true }), 'Half of 8 is 4. Is 5 more than 4?', '5/8 is more than half. The others are less.', bars({ numerator: 1, denominator: 2 })),
       practice('Is 2/5 more or less than 1/2?', ['Less than 1/2', 'Equal to 1/2', 'More than 1/2'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 1, denominator: 2 }), 'Half of 5 is 2 and a half.', '2 is less than 2 and a half. So 2/5 is less than half.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which is closest to 1/2?', ['4/9', '1/5', '7/8'], 0, bars({ numerator: 4, denominator: 9 }, { numerator: 1, denominator: 5 }, { numerator: 7, denominator: 8 }), 'Half of 9 is 4 and a half. Which is nearest to half?', '4/9 is just under half. The others are farther from half.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is closest to 1/2?', ['4/9', '1/5', '7/8'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 4, denominator: 9 }, { numerator: 1, denominator: 5 }, { numerator: 7, denominator: 8 }), 'Half of 9 is 4 and a half. Which is nearest to half?', '4/9 is just under half. The others are farther from half.', bars({ numerator: 1, denominator: 2 })),
       practice('A jug is 6/10 full. Is that more or less than half?', ['More than half', 'Less than half', 'Exactly half'], 0, bars({ numerator: 6, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Half of 10 is 5.', '6 is more than 5. So 6/10 is more than half.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
@@ -501,8 +529,8 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('0 to 1 has 5 equal spaces. What is 1 jump?', ['1/5', '1/4', '5/1'], 0, line(1, 5), 'Count the spaces from 0 to 1.', '5 jumps make one whole. So 1 jump is 1/5.', line(1, 2)),
-      practice('How many spaces do you need for fourths?', ['4 spaces', '3 spaces', '5 spaces'], 0, line(2, 4), 'The denominator tells how many equal spaces go from 0 to 1.', 'Fourths need 4 spaces from 0 to 1.', line(1, 2)),
-      practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps past 1', '5 jumps from 0'], 0, line(3, 8), 'The numerator tells how many jumps from 0.', 'The numerator 3 means 3 jumps.', line(1, 4)),
+      practice('How many spaces do you need for fourths?', ['4 spaces', '3 spaces', '5 spaces'], 0, { kind: 'line', numerator: 0, denominator: 1, wholes: 1, hideLabels: true }, 'The denominator tells how many equal spaces go from 0 to 1.', 'Fourths need 4 spaces from 0 to 1.', line(1, 2)),
+      practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps past 1', '5 jumps from 0'], 0, line(0, 8), 'The numerator tells how many jumps from 0.', 'The numerator 3 means 3 jumps.', line(1, 4)),
       practice('0 to 1 has 6 equal spaces. What is 5 jumps?', ['5/6', '6/5', '1/5'], 0, line(5, 6), 'Count 5 jumps from 0.', '5 jumps of 1/6 is 5/6.', line(2, 4)),
     ],
   },
@@ -638,7 +666,7 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('How many 1/5 parts make one whole?', ['5 parts', '4 parts', '10 parts'], 0, bars({ numerator: 5, denominator: 5 }), 'The denominator is how many parts make one whole.', '5 fifths make one whole: 5/5 = 1.', bars({ numerator: 2, denominator: 4 })),
-      practice('Which sum makes one whole?', ['1/3 + 2/3', '1/4 + 1/4', '2/5 + 1/5'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 3 }), 'Look for numerators that add up to the denominator.', '1/3 + 2/3 = 3/3. That is one whole.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which sum makes one whole?', ['1/3 + 2/3', '1/4 + 1/4', '2/5 + 1/5'], 0, bars({ numerator: 0, denominator: 3 }), 'Look for numerators that add up to the denominator.', '1/3 + 2/3 = 3/3. That is one whole.', bars({ numerator: 1, denominator: 2 })),
       practice('What is 2/8 + 6/8?', ['8/8', '8/16', '4/8', '6/8'], 0, bars({ numerator: 2, denominator: 8 }, { numerator: 6, denominator: 8 }), 'Add the numerators. Keep eighths.', '2 + 6 = 8. 8/8 is one whole.', bars({ numerator: 1, denominator: 2 })),
       practice('A recipe uses 3/6 cup, then 3/6 cup more. How much in all?', ['6/6 cup', '6/12 cup', '3/6 cup', '6/3 cup'], 0, bars({ numerator: 3, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Add the numerators. How many sixths fill 1 cup?', '3 + 3 = 6. 6/6 is 1 cup.', bars({ numerator: 1, denominator: 2 })),
     ],
@@ -805,7 +833,8 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'simplify-fractions', unit: 9, title: 'Simplest form', shortTitle: 'Simplest form', description: 'Use bigger parts. Same amount.', skill: 'Divide the numerator and denominator by the same factor. The parts get bigger, but the total amount stays the same.', mode: 'simplify', n: 3, d: 4, context: 'paper strip' },
   { id: 'equivalent-missing-both', unit: 9, title: 'Rename with a new denominator', shortTitle: 'Equivalent fractions', description: 'Fill a blank in the numerator or denominator.', skill: 'Equivalent fractions name the same amount. Multiply or divide the numerator and denominator by the same factor.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
   { id: 'whole-numbers-as-fractions', unit: 9, title: 'Wholes as fractions', shortTitle: 'Whole numbers as fractions', description: 'Build one or more wholes from unit fractions.', skill: 'The denominator tells how many parts fill one whole. Count that many parts for each whole.', mode: 'whole-fraction', n: 6, d: 3, context: 'fraction bars', gradeBand: 3, standards: ['3.NF.3c'] },
-  { id: 'compare-unlike-fractions', unit: 9, title: 'Compare different parts', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the denominators differ?', skill: 'Make the parts the same size by using a common denominator. Then compare how many parts each fraction has.', mode: 'compare', n: 2, d: 3, context: 'race track' },
+  { id: 'compare-unlike-fractions', unit: 9, title: 'Compare different parts', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the denominators differ?', skill: 'Make the parts the same size by using a common denominator. Then compare how many parts each fraction has.', mode: 'compare', n: 2, d: 3, context: 'race track',
+    example: { prompt: 'Which is bigger, 2/3 or 3/5?', answer: '2/3', explanation: 'Use fifteenths for both: 2/3 = 10/15 and 3/5 = 9/15. 10 fifteenths is more than 9 fifteenths, so 2/3 is bigger.', model: bars({ numerator: 2, denominator: 3, named: true }, { numerator: 3, denominator: 5, named: true }) } },
   { id: 'order-unlike-fractions', unit: 9, title: 'Order different parts', shortTitle: 'Order unlike parts', description: 'Put 3 fractions in order.', skill: 'Use 1/2 as a benchmark or rename the fractions with the same denominator. Then order their amounts.', learningIntro: {
       goal: 'Put fractions from smallest to biggest or biggest to smallest.',
       process: 'First compare each fraction to 1/2. If that is not enough, rename them with the same denominator, then compare the numerators.',
@@ -862,7 +891,8 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'fraction-as-division', unit: 12, title: 'Division is a fraction', shortTitle: 'Fraction quotient', description: '5 ÷ 4 = 5/4.', skill: 'A fraction bar means division. The numerator is divided by the denominator.', mode: 'quotient', n: 5, d: 4, context: 'pizzas' },
   { id: 'fraction-probability', unit: 13, title: 'Bonus: Chance as a fraction', shortTitle: 'Bonus probability', description: 'What is the chance of blue?', skill: 'The numerator counts the outcomes you want. The denominator counts all equally likely outcomes.', mode: 'probability', n: 2, d: 8, context: 'color spinner', enrichment: true },
   { id: 'fraction-of-area', unit: 13, title: 'Fractions in shapes', shortTitle: 'Equal-area partitions', description: 'Explore equal-area parts in squares, rectangles, circles and hexagons.', skill: 'Fraction parts must have equal areas. Their shapes may look different, but each part must cover the same amount of space.', mode: 'area', n: 3, d: 8, context: 'shape tiles', gradeBand: 3, standards: ['3.G.2'] },
-  { id: 'fractional-side-area', unit: 13, title: 'Area with fractional sides', shortTitle: 'Fractional side area', description: 'Use a grid to find the area when both side lengths are fractions.', skill: 'A rectangle’s area is its side lengths multiplied. Count the small squares to see the fractional area.', mode: 'fractional-area', n: 1, d: 2, context: 'rectangle grid', gradeBand: 5, standards: ['5.NF.4b'] },
+  { id: 'fractional-side-area', unit: 13, title: 'Area with fractional sides', shortTitle: 'Fractional side area', description: 'Use a grid to find the area when both side lengths are fractions.', skill: 'A rectangle’s area is its side lengths multiplied. Count the small squares to see the fractional area.', mode: 'fractional-area', n: 1, d: 2, context: 'rectangle grid', gradeBand: 5, standards: ['5.NF.4b'],
+    example: { prompt: 'A rectangle is 2/3 unit by 3/4 unit. What is its area?', answer: '6/12 square unit', explanation: 'Cut one square unit into 3 columns and 4 rows: 12 equal small rectangles. 2 columns and 3 rows overlap on 6 of them, so the area is 6/12 square unit.', model: { kind: 'area', cut: 'grid-3x4', shaded: [0, 1, 3, 4, 6, 7] } } },
   { id: 'equivalent-number-line', unit: 13, title: 'Same spot, new name', shortTitle: 'Line equivalence', description: '2/3 and 4/6 land on the same spot.', skill: 'Split every space into the same number of smaller spaces. The jumps change too, so the point stays in the same place.', mode: 'line', n: 2, d: 3, context: 'number line' },
   { id: 'fraction-recipes', unit: 13, title: 'Recipe fractions', shortTitle: 'Recipe fractions', description: 'Double a recipe.', skill: 'To double a recipe, use twice as much of every ingredient. Add each amount to itself.', mode: 'recipe', n: 3, d: 4, context: 'pancake recipe' },
   { id: 'fractions-to-percent', unit: 14, title: 'Bonus: Fractions to percent', shortTitle: 'Bonus percent', description: 'Write 3/4 as 75%.', skill: 'Percent means out of 100. Rename the fraction in hundredths to find the percent.', mode: 'percent', n: 3, d: 4, context: 'school survey', enrichment: true },
@@ -884,15 +914,26 @@ export function problemPicture(problem: WorksheetProblem): ModelSpec {
   const m = problem.model;
   // An empty picture: the wholes cut into equal pieces, nothing shaded yet (sharing questions).
   if (m && m.n === 0) return { kind: 'bars', bars: Array.from({ length: m.wholes }, () => ({ numerator: 0, denominator: m.d })), hideLabels: true };
-  if (m?.kind === 'set' && m.total) return setModel((m.total / m.d) * m.n, m.total, m.d);
-  if (m?.kind === 'line') return { kind: 'line', numerator: m.n, denominator: m.d, wholes: numberLineWholeCount(m.n, m.d), hideLabels: true };
-  if (m) return picture(m.n, m.d);
-  const fraction = /(\d+)\/(\d+)/.exec(problem.prompt);
-  if (fraction && Number(fraction[1]) <= Number(fraction[2]) * 3) return picture(Number(fraction[1]), Number(fraction[2]));
+  // The measuring tools the question talks about come first: the line plot, the ruler, the grid.
+  if (problem.linePlotTask) return { kind: 'lineplot', ...problem.linePlotTask };
   // Ruler questions: a number line marked like the ruler, with the end point (no labels).
   if (problem.rulerTask) return { kind: 'line', numerator: problem.rulerTask.end, denominator: problem.rulerTask.denominator, wholes: problem.rulerTask.wholes, hideLabels: true };
-  if (problem.picture) return problem.picture;
   if (problem.area) return { kind: 'area', cut: problem.area.cut, shaded: problem.area.shaded ?? [] };
+  // A set to share: the groups, none picked yet (picking them is the answer).
+  if (m?.kind === 'set' && m.total) return setModel(0, m.total, m.d);
+  // A row the child builds: its model is the answer. Show the amounts the question names ("Compare: 0.4 __ 0.35"
+  // shows both), or else the empty bars to build on.
+  const named = m && problem.task ? autoPicture(problem.prompt) : null;
+  if (named?.kind === 'bars' && named.bars.length > 1) return named;
+  if (m && problem.task) return { kind: 'bars', bars: Array.from({ length: Math.max(1, Math.ceil(m.n / m.d)) }, () => ({ numerator: 0, denominator: m.d })), hideLabels: true };
+  if (m?.kind === 'line') return { kind: 'line', numerator: m.n, denominator: m.d, wholes: numberLineWholeCount(m.n, m.d), hideLabels: true };
+  if (m) return picture(m.n, m.d);
+  // Every amount the question names ("Pick the sign: 4/5 __ 3/4" shows both), not just the first.
+  if (problem.picture) return problem.picture;
+  const mixed = /(\d+) (?:and )?(\d+)\/(\d+)/.exec(problem.prompt);
+  if (mixed && Number(mixed[2]) < Number(mixed[3])) return picture(Number(mixed[1]) * Number(mixed[3]) + Number(mixed[2]), Number(mixed[3]));
+  const fraction = /(\d+)\/(\d+)/.exec(problem.prompt);
+  if (fraction && Number(fraction[1]) <= Number(fraction[2]) * 3) return picture(Number(fraction[1]), Number(fraction[2]));
   return autoPicture(problem.prompt) ?? equation(problem.prompt.replace(/\?.*$/, '?'));
 }
 

@@ -233,6 +233,10 @@ function assertModel(model: ModelSpec, location: string): void {
     case 'decimal':
       assert.ok(Number.isInteger(model.tenths) && model.tenths >= 0 && model.tenths <= 9, `${location} has an invalid tenths value`);
       return;
+    case 'lineplot':
+      assert.ok(Number.isInteger(model.denominator) && model.denominator > 1 && model.wholes >= 1, `${location} has an invalid line plot`);
+      assert.ok(model.values.every((value) => Number.isInteger(value) && value >= 0 && value <= model.denominator * model.wholes), `${location} plots off the line`);
+      return;
     case 'area':
       assert.ok(model.cut in AREA_CUTS, `${location} has an unknown area cut`);
       assert.ok(model.shaded.every((piece) => Number.isInteger(piece) && piece >= 0 && piece < AREA_CUTS[model.cut].length), `${location} shades a missing piece`);
@@ -255,8 +259,9 @@ describe('lesson catalog', () => {
     assert.deepEqual(shown('Which is the same as 2/3?'), ['2/3']);
     assert.deepEqual(shown('Which sum equals 4/7?'), ['4/7'], 'the two parts of the answer wait; the named total shows');
     assert.deepEqual(shown('7/10 = 5/10 + what?'), ['7/10', '5/10']);
-    // Pictures that draw every choice, or the fractions being put in order, stay as they are.
-    assert.deepEqual(shown('Which is closest to 1/2?'), ['4/9', '1/5', '7/8']);
+    // Pictures that draw every choice, or the fractions being put in order, stay as they are; a picture of every
+    // choice also draws the added fourth choice (6/9 here), so the child can check that one too.
+    assert.deepEqual(shown('Which is closest to 1/2?'), ['1/2', '4/9', '1/5', '7/8', '6/9']);
     assert.deepEqual(shown('Put 1/2, 3/10 and 8/10 in order, smallest first.'), ['3/10', '1/2', '8/10']);
     // After answering, the hidden bar comes back to confirm the answer.
     const model = question('Which is the same as 2/3?').model;
@@ -1302,8 +1307,8 @@ describe('entered-answer worksheets and evidence gates', () => {
     try {
       Object.defineProperty(String.prototype, 'matchAll', { configurable: true, writable: true, value: undefined });
       assert.deepEqual(amountsIn('Compare 3/4 or 1/2.'), [
-        { numerator: 3, denominator: 4 },
-        { numerator: 1, denominator: 2 },
+        { numerator: 3, denominator: 4, written: true },
+        { numerator: 1, denominator: 2, written: true },
       ]);
       const markup = renderToStaticMarkup(createElement(LearningText, {
         text: 'Each equal share is 1/4 of a whole.',
@@ -3330,6 +3335,9 @@ describe('fraction labels on bar models', () => {
     assert.deepEqual(labels(nameBars(bars([2, 3], [4, 6]), 'Which is the same as 2/3?')), [true, false]);
     assert.deepEqual(labels(nameBars(bars([3, 5]), 'What fraction is shaded?')), [false]);
     assert.deepEqual(labels(nameBars(bars([4, 10], [35, 100]), 'Which is bigger, 0.4 or 0.35?')), [true, true]);
+    // "What fraction is 0.35?": the 35/100 label would be the answer, so it waits until the child answers.
+    const decimal = MISSIONS.find((m) => m.id === 'hundredths-decimals')!.questions.find((q) => /What fraction is 0\.35\?/.test(q.prompt));
+    if (decimal?.model.kind === 'bars') assert.ok(decimal.model.bars.every((bar) => !bar.named || bar.untilAnswered), 'no label gives 35/100 away');
     const compare = MISSIONS.find((m) => m.id === 'compare-same-numerator')!.questions.find((q) => /2\/3 or 2\/7/.test(q.prompt))!;
     assert.deepEqual(labels(compare.model), [true, true]);
     const practice = generateQuestions('compare-same-numerator', ['x'], 2, 6);

@@ -5,10 +5,12 @@ import { execAll } from './lib/regexp';
    one bar per fraction (mixed numbers, decimals and percents too), so "Which is bigger, 3/4 or 3/8?"
    shows 3/4 and 3/8 side by side and the child can see why. Pure, so it can be tested. */
 
-type Amount = { numerator: number; denominator: number };
+/** `written`: the question writes it as a fraction ("3/4", "1 2/3"), so its label is no give-away. A decimal or
+    percent drawn as a bar keeps its label hidden: "What fraction is 0.35?" must not show 35/100. */
+type Amount = { numerator: number; denominator: number; written?: boolean };
 const MAX_BARS = 3;
 
-/** The amounts named in a question, in order, without repeats. */
+/** The amounts named in a question, in order, without repeats (a sum keeps them: 1/3 + 1/3 is two bars). */
 export function amountsIn(text: string): Amount[] {
   const found: { at: number; amount: Amount }[] = [];
   const taken: [number, number][] = [];
@@ -21,21 +23,23 @@ export function amountsIn(text: string): Amount[] {
   // Mixed numbers first ("1 2/3", "2 and 1/4"), then plain fractions, decimals and percents.
   for (const m of execAll(text, /\b(\d+)\s+(?:and\s+)?(\d+)\/(\d+)\b/g)) {
     const [whole, n, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
-    if (d > 0 && n < d) take(m as RegExpExecArray, { numerator: whole * d + n, denominator: d });
+    if (d > 0 && n < d) take(m as RegExpExecArray, { numerator: whole * d + n, denominator: d, written: true });
   }
-  for (const m of execAll(text, /\b(\d+)\/(\d+)\b/g)) take(m, { numerator: Number(m[1]), denominator: Number(m[2]) });
+  for (const m of execAll(text, /\b(\d+)\/(\d+)\b/g)) take(m, { numerator: Number(m[1]), denominator: Number(m[2]), written: true });
   for (const m of execAll(text, /\b(\d*)\.(\d{1,2})\b/g)) {
     const places = m[2].length; const denominator = 10 ** places;
     take(m as RegExpExecArray, { numerator: Number(m[1] || 0) * denominator + Number(m[2]), denominator });
   }
   for (const m of execAll(text, /\b(\d{1,3})%/g)) take(m, { numerator: Number(m[1]), denominator: 100 });
   const seen = new Set<string>();
+  // "1/3 + 1/3" adds the same amount twice: two bars.
+  const sum = /\b(\d+\/\d+)\s*\+\s*\1\b/.test(text);
   return found.sort((a, b) => a.at - b.at).map((item) => item.amount)
     .filter(({ numerator, denominator }) => {
       const key = `${numerator}/${denominator}`;
       // Bars stay readable: up to 60 parts, plus hundredths, and at most 4 wholes.
       const drawable = denominator >= 2 && (denominator <= 60 || denominator === 100) && numerator >= 0 && numerator <= denominator * 4;
-      if (!drawable || seen.has(key)) return false;
+      if (!drawable || (seen.has(key) && !sum)) return false;
       seen.add(key); return true;
     });
 }
@@ -64,7 +68,10 @@ function storyPicture(text: string): ModelSpec | null {
 
 /** A picture of the amounts in `text` (bars), or of the story, or null when there is nothing to draw. */
 export function autoPicture(text: string, caption?: string): ModelSpec | null {
+  // "A frog makes 6 jumps. Each jump is 1/4 meter.": the number line to jump along, with no dot (the dot is the answer).
+  const hops = /(\d+) jumps?\. Each jump is 1\/(\d+)/.exec(text);
+  if (hops) return { kind: 'line', numerator: 0, denominator: Number(hops[2]), wholes: Math.max(1, Math.ceil(Number(hops[1]) / Number(hops[2]))), hideLabels: true };
   const bars = amountsIn(text).slice(0, MAX_BARS);
   if (!bars.length) return storyPicture(text);
-  return { kind: 'bars', bars: bars.map((bar) => ({ ...bar, named: true })), ...(caption ? { caption } : {}) };
+  return { kind: 'bars', bars: bars.map(({ numerator, denominator, written }) => ({ numerator, denominator, ...(written ? { named: true } : {}) })), ...(caption ? { caption } : {}) };
 }

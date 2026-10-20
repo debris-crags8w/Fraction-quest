@@ -138,7 +138,7 @@ const RULES: Rule[] = [
   { name: 'estimate against 1', re: /^Without finding the exact (sum|difference), compare (\d+\/\d+) ([+−]) (\d+\/\d+) with 1: __ 1\.$/,
     solve: (m) => { const t = frac(m[2]) + (m[3] === '+' ? 1 : -1) * frac(m[4]); if (near(t, 1)) return 'exactly 1';
       return { symbol: t < 1 ? '<' : '>', statement: `${m[2]} ${m[3]} ${m[4]} ${t < 1 ? '<' : '>'} 1` }; } },
-  { name: 'scaling', re: /^Move the scale slider to (\d+)\/(\d+)\. Without multiplying, compare \1\/\2 × (\d+) with \3: __ \3\.$/,
+  { name: 'scaling', re: /^(?:Move the scale slider to \d+\/\d+\. |Bolt sets his machine\. )?Without multiplying, compare (\d+)\/(\d+) × (\d+) with \3: __ \3\.$/,
     solve: (m) => { const s = sym(N(m[1]) / N(m[2]), 1); return { symbol: s, statement: `${m[1]}/${m[2]} × ${m[3]} ${s} ${m[3]}` }; } },
   { name: 'spot the mistake: compare claim', re: /^\w+ says (\d+\/\d+) is bigger than (\d+\/\d+)(?: because .+)?\. Is that right\?(?: Answer yes or no\.)?$/,
     solve: (m) => ({ yes: frac(m[1]) > frac(m[2]) }) },
@@ -208,11 +208,11 @@ const RULES: Rule[] = [
   { name: 'jumps of a unit', re: /^(?:(\d+) jumps of 1\/(\d+) make what fraction\?|Each jump is 1\/(\d+)\. What is (\d+) jumps from 0\?)$/,
     solve: (m) => (m[1] ? { value: N(m[1]) / N(m[2]) } : { value: N(m[4]) / N(m[3]) }) },
   { name: 'unit parts together', re: /^Put (\d+) parts of 1\/(\d+) together\. Build the total\.$/, solve: (m) => ({ value: N(m[1]) / N(m[2]) }) },
-  { name: 'line plot count', re: /^Plot these ribbon lengths: (.+) inch\. How many ribbons are (\d+\/\d+) inch long\?$/,
+  { name: 'line plot count', re: /^(?:Plot these|The line plot shows these) ribbon lengths: (.+) inch\. How many ribbons are (\d+\/\d+) inch long\?$/,
     solve: (m) => ({ value: m[1].split(', ').filter((x) => near(frac(x), frac(m[2]))).length }) },
-  { name: 'line plot difference', re: /^Plot these [\w ]+ lengths in eighths: (.+) inch\. What is the difference between the longest and shortest\?$/,
+  { name: 'line plot difference', re: /^(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths: (.+) inch\. What is the difference between the longest and shortest\?$/,
     solve: (m) => { const v = m[1].split(', ').map(frac); return { value: Math.max(...v) - Math.min(...v) }; } },
-  { name: 'line plot level', re: /^Three [\w ]+ hold (.+) liter\. Plot them, then share the total equally\. How many liters go in each\?$/,
+  { name: 'line plot level', re: /^Three [\w ]+ hold (.+) liter\. (?:Plot them, then share|Share) the total equally\. How many liters go in each\?$/,
     solve: (m) => { const v = m[1].split(', ').map(frac); return { value: v.reduce((a, b) => a + b, 0) / 3 }; } },
 
   // --- naming, renaming and equivalence

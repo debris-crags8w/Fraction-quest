@@ -192,7 +192,9 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     const up = r.chance();
     const small = `${f(a, d)}, ${f(b, d)}, ${f(c, d)}`; const big = `${f(c, d)}, ${f(b, d)}, ${f(a, d)}`; const mixed = `${f(b, d)}, ${f(a, d)}, ${f(c, d)}`;
     return { prompt: `Put ${mixed} in order, ${up ? 'smallest' : 'biggest'} first.`, right: up ? small : big, wrong: [up ? big : small, mixed],
-      hint: 'Same size parts. Order the numerators.', retry: up ? `${a}, then ${b}, then ${c}.` : `${c}, then ${b}, then ${a}.`, model: bars2([a, d], [c, d]) };
+      hint: 'Same size parts. Order the numerators.', retry: up ? `${a}, then ${b}, then ${c}.` : `${c}, then ${b}, then ${a}.`,
+      // All three, in the order the question lists them, so the picture doesn't put them in order for the child.
+      model: { kind: 'bars', bars: [[b, d], [a, d], [c, d]].map(([numerator, denominator]) => ({ numerator, denominator })), hideLabels: true } };
   },
   'equivalent-models': (r) => {
     const d = r.int(2, 6); const n = r.int(1, d - 1); const k = d === 5 ? r.pick([2, 4]) : r.int(2, 4); // no fifteenths
@@ -322,7 +324,8 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
     const name = (list: [number, number][]) => list.map(([t, b]) => f(t, b)).join(', ');
     const shown = name(picked) === name(sorted) || name(picked) === name(sorted.slice().reverse()) ? [sorted[1], sorted[0], sorted[2]] : picked;
     return later(`Put ${name(shown)} in order, ${up ? 'smallest' : 'biggest'} first.`, name(sorted), [name(sorted.slice().reverse()), name(shown)],
-      'Compare each fraction to 1/2. If needed, rename them with the same denominator so their parts match, then compare.', `${up ? 'Smallest' : 'Biggest'} first: ${name(sorted)}.`, bar(sorted[0][0], sorted[0][1]));
+      'Compare each fraction to 1/2. If needed, rename them with the same denominator so their parts match, then compare.', `${up ? 'Smallest' : 'Biggest'} first: ${name(sorted)}.`,
+      { kind: 'bars', bars: shown.map(([numerator, denominator]) => ({ numerator, denominator })), hideLabels: true });
   },
   'subtract-unlike-fractions': (r) => {
     const big = r.pick([4, 6, 8, 10, 12]); const small = r.pick([2, 3, 4, 5, 6].filter((e) => e < big && big % e === 0)); const k = big / small;
@@ -333,13 +336,13 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'add-mixed-numbers': (r) => {
     const d = r.pick([3, 4, 5, 6, 8]); const w = r.int(1, 3); const a = r.int(1, d - 1); const b = r.int(1, d - 1);
     return later(`${w} ${f(a, d)} + ${f(b, d)} = ?`, mixedName(w * d + a + b, d), [mixedName(w * d + a + b + d, d), `${w} ${a + b}/${d * 2}`, mixedName(w * d + a + b - 1, d)],
-      `Add the parts: ${a} + ${b}. ${d} parts make a new whole.`, `${a} + ${b} = ${a + b} parts. So ${mixedName(w * d + a + b, d)}.`, bar(a, d));
+      `Add the parts: ${a} + ${b}. ${d} parts make a new whole.`, `${a} + ${b} = ${a + b} parts. So ${mixedName(w * d + a + b, d)}.`, bar(w * d + a, d));
   },
   'subtract-mixed-numbers': (r) => {
     const d = r.pick([3, 4, 5, 6, 8]); const w = r.int(2, 4); const b = r.int(2, d - 1); const a = r.int(1, b - 1);
     const top = w * d + a - (d + b);
     return later(`${w} ${f(a, d)} − 1 ${f(b, d)} = ?`, mixedName(top, d), [`${w - 1} ${b - a}/${d}`, mixedName(top + d, d), mixedName(top + 1, d)],
-      `${a} parts are not enough to take away ${b}. Trade one whole for ${f(d, d)}.`, `${w} ${f(a, d)} = ${w - 1} ${f(d + a, d)}. Take away 1 ${f(b, d)}: ${mixedName(top, d)}.`, bar(a, d));
+      `${a} parts are not enough to take away ${b}. Trade one whole for ${f(d, d)}.`, `${w} ${f(a, d)} = ${w - 1} ${f(d + a, d)}. Take away 1 ${f(b, d)}: ${mixedName(top, d)}.`, bar(w * d + a, d));
   },
   'fraction-of-quantity': (r) => {
     const d = r.pick([2, 3, 4, 5, 6, 8, 10]); const n = r.int(1, d - 1); const per = r.int(2, 9); const t = d * per;

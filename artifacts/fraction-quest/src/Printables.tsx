@@ -1,4 +1,5 @@
 import React, { useEffect, useState, type ReactElement } from 'react';
+import { LinePlotPicture } from './line-plot-picture';
 import { Printer } from 'lucide-react';
 import { MathText } from './MathText';
 import { getMission, MISSIONS, setModelLayout, type Mission, type ModelSpec } from './game';
@@ -26,6 +27,9 @@ const ANSWER_FORMAT: Record<NonNullable<WorksheetProblem['form']>, string> = {
 function ProblemModel({ problem }: { problem: WorksheetProblem }) {
   const m = problem.model;
   if (problem.area) return <div className="fq-print-model"><span className="fq-model-tag kind-area">{areaWhole(problem.area.cut)[0].toUpperCase() + areaWhole(problem.area.cut).slice(1)} model</span><AreaSvg figure={problem.area} /></div>;
+  // Line plots and rulers on paper: an empty plot to mark the Xs on, and the ruler with the strip's end.
+  if (problem.linePlotTask) return <div className="fq-print-model"><LinePlotPicture denominator={problem.linePlotTask.denominator} wholes={problem.linePlotTask.wholes} values={[]} /></div>;
+  if (problem.rulerTask) return <div className="fq-print-model"><ModelTag kind="line" /><LineSvg n={problem.rulerTask.end} d={problem.rulerTask.denominator} wholes={problem.rulerTask.wholes} /></div>;
   if (!m) return problem.picture ? <PrintModel model={problem.picture} labels={false} /> : null;
   return (
     <div className="fq-print-model">
@@ -145,6 +149,7 @@ export function PrintModel({ model, labels = true }: { model: ModelSpec; labels?
         </svg>
       )}
       {model.kind === 'area' && <AreaSvg figure={{ cut: model.cut, shaded: model.shaded }} />}
+      {model.kind === 'lineplot' && <LinePlotPicture denominator={model.denominator} wholes={model.wholes} values={model.values} />}
       {model.kind === 'equation' && <p className="fq-print-equation"><MathText text={model.text} /></p>}
       {labels && model.caption && <small><MathText text={model.caption} /></small>}
     </div>
