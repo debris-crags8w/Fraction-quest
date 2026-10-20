@@ -57,7 +57,7 @@ describe('parent report at a glance', () => {
     const text = glanceShareText(glance, 82, 'Sam', now);
     assert.equal(text.split('\n')[1], 'Practiced 3 of 7 days (38 min). Finished 2 lessons.');
     assert.match(text, /^Fraction Quest · Sam · week of /);
-    assert.match(text, /Learned: Same count, different sizes \(Grade 3, 3\.NF\.3d\); Add same-size parts \(Grade 4, 4\.NF\.3a\)\./);
+    assert.match(text, /Learned: Same count, different sizes \(Grade 3, 3\.NF\.3d\); Add same-size parts \(Grade 4, 4\.NF\.3a, 4\.NF\.3d\)\./);
     assert.match(text, /Right the first time: 82%\./);
     assert.match(text, /Working on: Is it less or more than half\? \(Grade 3, 3\.NF\.3d\)\./);
     assert.doesNotMatch(glanceShareText({ ...glance, learned: [], focus: null }, null, null, now), /Learned|Working on|Right the first/);
