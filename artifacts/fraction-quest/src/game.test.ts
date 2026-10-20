@@ -321,7 +321,8 @@ describe('lesson catalog', () => {
     assert.match(checks[1].explanation, /Five equal parts make smaller parts than three/i);
 
     const worksheet = getWorksheet('compare-same-numerator');
-    assert.ok(worksheet.every((problem) => /Both fractions count .*larger denominator.*more equal parts.*smaller/i.test(problem.hint)));
+    // The worksheet hint nudges (which parts are bigger?) without saying which fraction wins.
+    assert.ok(worksheet.every((problem) => /^Both count \d+ parts\. Which parts are bigger: \w+ or \w+\?$/.test(problem.hint)));
 
     const generated = generateQuestions('compare-same-numerator', ['unused'], 21, 12);
     assert.ok(generated.every((question) => /Both fractions count .*larger denominator.*more equal parts.*smaller/i.test(question.hint)));
