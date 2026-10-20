@@ -3,6 +3,8 @@ import { ArrowLeft, Lock, Printer } from 'lucide-react';
 import { getMission, MISSIONS, type Progress } from './game';
 import type { FunState } from './lib/fun';
 import { buildParentReport, type LessonRow } from './parent-report';
+import { ParentGlance } from './ParentGlance';
+import './parent-glance.css';
 import { AnswerKey } from './Printables';
 import { LearningVoicePicker } from './LearningText';
 import { FamilyGuide } from './FamilyGuide';
@@ -132,6 +134,9 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
             <h1>{childName ? `${childName}'s progress` : 'Progress on this device'}</h1>
           </header>
 
+          <ParentGlance glance={report.glance} firstTryRate={report.firstTryRate} childName={childName} />
+
+          <h2 className="fq-glance-full">Full report</h2>
           <section className="fq-parent-stats" aria-label="Summary">
             <div data-testid="stat-lessons"><strong>{report.lessonsDone}<small>/{report.lessonsTotal}</small></strong><span>Lessons done</span></div>
             <div data-testid="stat-minutes"><strong>{report.minutesWeek}<small> min</small></strong><span>This week</span></div>
