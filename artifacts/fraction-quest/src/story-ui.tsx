@@ -25,15 +25,16 @@ export function StoneBar({ found, fresh = false }: { found: number; /** Glow the
 const looksWorried = (panel: Panel) => !['numi', 'hoot'].includes(panel.speaker) && /\?|can’t|help|missing|broken|wobbl|stuck|sorry|scared/i.test(panel.text);
 
 /** A comic: three panels, an optional choice that must be picked, then an explicit button on. */
-export function StoryComicView({ title, kicker, panels, name, choice, picked: saved, choiceNotes, note, goLabel, onGo, onBack, scene, unit }: {
+export function StoryComicView({ title, kicker, panels, name, choice, picked: saved, choiceNotes, note, goLabel, onGo, onBack, scene, unit, setOnly }: {
   title: string; kicker: string; panels: Panel[]; name: string | null;
   /** Film this comic as a short cartoon with its scene. */ scene?: StoryScene; unit?: number;
+  /** A later lesson: film it in the chapter's place, without the opening film's story props. */ setOnly?: boolean;
   /** What each choice earns ("Bonus clue added!"), shown with the reply. */ choiceNotes?: [string, string];
   /** A detective note under the comic: the story remembering the child's guess. */ note?: string;
   choice?: [StoryChoice, StoryChoice]; /** The choice already made, when reading the comic again. */ picked?: 0 | 1; goLabel: string; onGo: (choice?: 0 | 1) => void; onBack: () => void;
 }) {
   // Comics with a scene play as a cartoon (a mounted comic never switches between the two views).
-  if (scene) return <CinematicComic scene={scene} title={title} kicker={kicker} panels={panels} name={name} unit={unit}
+  if (scene) return <CinematicComic scene={scene} title={title} kicker={kicker} panels={panels} name={name} unit={unit} setOnly={setOnly}
     choice={choice} picked={saved} choiceNotes={choiceNotes} note={note} goLabel={goLabel} onGo={onGo} onBack={onBack} />;
   const [picked, setPicked] = useState<0 | 1 | null>(saved ?? null);
   const theme = useStoryTheme();

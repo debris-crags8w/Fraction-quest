@@ -55,7 +55,7 @@ const FILMING: Record<StoryScene, { shots: Shot[]; impact?: number; coldFrom?: n
     impact: 2, coldFrom: 2, end: 'To be continued…',
   },
   bakery: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.3)', '24% 40%'), shot('scale(1.55)', '60% 48%'), shot('scale(1.05)', '50% 40%')], impact: 2 },
-  pond: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '66% 38%'), shot('scale(1.1)', '50% 46%'), shot('scale(1.2)', '30% 50%')], impact: 0 },
+  pond: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '66% 30%'), shot('scale(1.1)', '50% 50%'), shot('scale(1)', '50% 40%')], impact: 0 },
   hill: { shots: [shot('scale(1.1)', '20% 50%'), shot('scale(1.4)', '86% 14%'), shot('scale(1)', '50% 40%'), shot('scale(1.25)', '35% 40%')] },
   bridge: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '55% 38%'), shot('scale(1)', '50% 40%'), shot('scale(1.1)', '50% 36%')], impact: 0 },
   tower: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.25)', '30% 36%'), shot('scale(1.2)', '72% 30%'), shot('scale(1.05)', '60% 36%')], impact: 0 },
@@ -152,30 +152,38 @@ function BakeryArt({ beat }: { beat: number }) {
   );
 }
 
-/** Chapter 2: a stone piece splashes into Pip's snack bowl; the snacks are shared into equal groups to find it. */
+/** Chapter 2: a stone piece splashes into Pip's snack bowl; two same-size snack bars are cut into halves and fourths,
+    and one piece of each is laid side by side: more equal parts means smaller parts. */
 function PondArt({ beat }: { beat: number }) {
-  const grouped = beat >= 1;
+  const cut = beat >= 1;
+  const compared = beat >= 2;
   return (
     <>
       <span className="fq-cine-sun" />
       <span className="fq-cine-bunting" />
       <span className="fq-cine-pond" />
       <span className="fq-cine-pad" style={pos(2, 44)} />
-      <span className="fq-cine-actor" style={pos(18, 24)}><StoryCharacter id="pip" size={96} happy={beat === 2} worried={beat === 0} /></span>
-      <span className="fq-cine-bowl" style={pos(52, 32)} />
-      {beat === 0 && <><span className="fq-cine-falling" style={pos(68, 0)} /><span className="fq-cine-splash" style={pos(57, 28)} /></>}
-      {grouped && [18, 50, 82].map((x, plate) => (
-        <span key={x} className={`fq-cine-plate ${beat === 2 && plate === 0 ? 'is-picked' : ''}`} style={pos(x - 11, 58)} />
-      ))}
-      {Array.from({ length: 12 }, (_, i) => {
-        const plate = Math.floor(i / 4);
-        const [left, top] = grouped
-          ? [[18, 50, 82][plate] - 3 + (i % 2) * 6, 58 + (Math.floor(i / 2) % 2) * 4]
-          : [60 + (i % 4) * 6, 35 + Math.floor(i / 4) * 3.5];
-        return <span key={i} className="fq-cine-snack" style={pos(left, top, { transitionDelay: `${(i * 0.06).toFixed(2)}s` })} />;
-      })}
-      <span className={`fq-cine-glint ${grouped ? 'is-found' : 'is-hidden'}`} style={pos(66, 38)} aria-hidden="true" />
-      <span className="fq-cine-sr" role="img" aria-label={grouped ? '12 snacks shared into 3 equal groups' : 'A stone piece falls into a bowl of 12 snacks'} />
+      <span className="fq-cine-actor" style={pos(8, 22)}><StoryCharacter id="pip" size={88} happy={compared} worried={beat === 0} /></span>
+      <span className="fq-cine-bowl" style={pos(60, 22)} />
+      {beat === 0 && <><span className="fq-cine-falling" style={pos(74, 0)} /><span className="fq-cine-splash" style={pos(65, 18)} /></>}
+      {cut && (
+        <span className={`fq-cine-bars ${compared ? 'is-compared' : ''}`} style={pos(30, 38)}>
+          {/* Both bars are the same size: one is cut into 2 equal pieces, the other into 4. */}
+          <span className="fq-cine-cutbar is-halves">
+            {[0, 1].map((i) => <i key={i} className={compared && i === 0 ? 'is-picked' : compared ? 'is-set-aside' : ''} />)}
+            <span className="fq-cine-cutbar-label"><Frac n={1} d={2} /></span>
+          </span>
+          <span className="fq-cine-cutbar is-fourths">
+            {[0, 1, 2, 3].map((i) => <i key={i} className={compared && i === 0 ? 'is-picked' : compared ? 'is-set-aside' : ''} />)}
+            <span className="fq-cine-cutbar-label"><Frac n={1} d={4} /></span>
+          </span>
+        </span>
+      )}
+      <span className={`fq-cine-glint ${compared ? 'is-found' : 'is-hidden'}`} style={pos(71, 26)} aria-hidden="true" />
+      <span className="fq-cine-sr" role="img" aria-label={compared
+        ? 'One half and one fourth side by side: the half is bigger. More equal parts means smaller parts.'
+        : cut ? 'Two same-size snack bars: one cut into 2 equal pieces, one cut into 4 equal pieces'
+          : 'A stone piece falls into a snack bowl'} />
     </>
   );
 }
@@ -425,6 +433,53 @@ function EpilogueArt({ beat, speaker = 'hoot' }: { beat: number; speaker?: Panel
   );
 }
 
+/** Lessons 2 onward play in the chapter's place with no story props, so nothing in the picture can disagree with the
+    lesson: just the backdrop, whoever is speaking, and the chapter's friend beside them. */
+type ChapterScene = Exclude<StoryScene, 'prologue' | 'chapter-end' | 'epilogue'>;
+const BACKDROPS: Record<ChapterScene, () => ReactNode> = {
+  bakery: () => <><span className="fq-cine-awning" /><span className="fq-cine-shelf" style={pos(6, 18)} /><span className="fq-cine-shelf" style={pos(58, 16)} /><span className="fq-cine-counter" /></>,
+  pond: () => <><span className="fq-cine-sun" /><span className="fq-cine-bunting" /><span className="fq-cine-pond" /><span className="fq-cine-pad" style={pos(2, 44)} /></>,
+  hill: () => <><span className="fq-cine-sun is-low" /><span className="fq-cine-cloud" style={pos(30, 8)} /><span className="fq-cine-cloud" style={pos(56, 22)} />
+    <svg className="fq-cine-hill" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 100 V64 C30 62 60 30 100 6 V100 Z" fill="#7BD389" /><path d="M0 100 V72 C34 70 62 40 100 18 V100 Z" fill="#5FB872" />
+    </svg></>,
+  bridge: () => <><Stars /><span className="fq-cine-cliff is-left" /><span className="fq-cine-cliff is-right" /><span className="fq-cine-river" /><span className="fq-cine-rope" />
+    {Array.from({ length: 6 }, (_, i) => <span key={i} className={`fq-cine-plank ${i === 2 || i === 4 ? 'is-gone' : ''}`} style={pos(18 + i * 10.6, 40)} />)}</>,
+  tower: () => <><span className="fq-cine-wall" /><span className="fq-cine-floor" /></>,
+  honey: () => <><span className="fq-cine-hive" style={pos(80, 6)} /><span className="fq-cine-shelf is-long" /></>,
+  workshop: () => <><span className="fq-cine-workshop-window" /><span className="fq-cine-workbench" /><span className="fq-cine-gear is-turning" style={pos(66, 30)} /></>,
+  den: () => <><span className="fq-cine-den-cave" /><span className="fq-cine-den-floor" /></>,
+  race: () => <><span className="fq-cine-race-sky" /><span className="fq-cine-race-hill" /><span className="fq-cine-race-road" /><span className="fq-cine-tree" style={pos(80, 46)} /></>,
+  picnic: () => <><span className="fq-cine-picnic-sky" /><span className="fq-cine-picnic-grass" /><span className="fq-cine-picnic-blanket" /><span className="fq-cine-picnic-basket" style={pos(68, 57)} /></>,
+  machine: () => <><span className="fq-cine-machine-wall" /><span className="fq-cine-machine-floor" /><span className="fq-cine-machine is-on"><i /><i /><i /></span></>,
+  stage: () => <><span className="fq-cine-stage-curtain" /><span className="fq-cine-stage-floor" /><span className="fq-cine-stage-board" /></>,
+  garden: () => <><span className="fq-cine-garden-sky" /><span className="fq-cine-garden-bed" /><span className="fq-cine-garden-case" /></>,
+  lock: () => <><span className="fq-cine-lock-room" /><span className="fq-cine-lock-case"><span className="fq-cine-lock-stone" /></span></>,
+  festival: () => <><span className="fq-cine-festival-sky" /><span className="fq-cine-festival-tent" /></>,
+};
+const isChapterScene = (scene: StoryScene): scene is ChapterScene => scene in BACKDROPS;
+
+function SetArt({ scene, unit = 1, speaker }: { scene: ChapterScene; beat: number; unit?: number; speaker?: Panel['speaker'] }) {
+  const friend = (CHAPTERS[unit - 1] ?? CHAPTERS[0]).character;
+  const Backdrop = BACKDROPS[scene];
+  return (
+    <>
+      <Backdrop />
+      <span key={speaker ?? friend} className="fq-cine-actor fq-cine-set-speaker" style={pos(10, 30)} data-testid="story-set-speaker">
+        <StoryCharacter id={speaker ?? friend} size={96} happy />
+      </span>
+      {speaker && speaker !== friend && (
+        <span className="fq-cine-actor" style={pos(70, 42)}><StoryCharacter id={friend} size={66} /></span>
+      )}
+    </>
+  );
+}
+
+/** A lesson scene's camera: a slow push in on whoever speaks, then back out for the still. */
+const setFilming = (panels: number) => ({
+  shots: [shot('scale(1.06)', '50% 45%'), ...Array.from({ length: panels }, (_, i) => shot(`scale(${i % 2 ? 1.12 : 1.18})`, i % 2 ? '45% 45%' : '24% 45%')), shot('scale(1.04)', '50% 45%')],
+}) as { shots: Shot[]; impact?: number; coldFrom?: number; end?: string };
+
 const ART: Record<StoryScene, (props: { beat: number; unit?: number; speaker?: Panel['speaker'] }) => ReactNode> = {
   prologue: PrologueArt, bakery: BakeryArt, pond: PondArt, hill: HillArt, bridge: BridgeArt, tower: TowerArt, honey: HoneyArt,
   workshop: WorkshopArt, den: DenArt, race: RaceArt, picnic: PicnicArt, machine: MachineArt, stage: StageArt,
@@ -436,16 +491,21 @@ const ART: Record<StoryScene, (props: { beat: number; unit?: number; speaker?: P
 export const filmedLines = (panels: Panel[], theme: ReturnType<typeof propTheme>) =>
   panels.map((panel) => withName(panel.text, null, theme));
 
-export function CinematicComic({ scene, title, kicker, panels, name, choice, picked: saved, choiceNotes, note, goLabel, onGo, onBack, unit }: {
+export function CinematicComic({ scene, title, kicker, panels, name, choice, picked: saved, choiceNotes, note, goLabel, onGo, onBack, unit, setOnly = false }: {
   scene: StoryScene; title: string; kicker: string; panels: Panel[]; name: string | null; unit?: number;
+  /** A later lesson: the chapter's place and the speakers, without the opening film's story props. */
+  setOnly?: boolean;
   choice?: [StoryChoice, StoryChoice]; picked?: 0 | 1; choiceNotes?: [string, string]; note?: string; goLabel: string;
   onGo: (choice?: 0 | 1) => void; onBack: () => void;
 }) {
   const { fun } = useFun();
   const theme = propTheme(useSeason().season?.id);
   const reader = useFollowedReading();
-  const filming = FILMING[scene];
-  const Art = ART[scene];
+  const lessonSet = setOnly && isChapterScene(scene) ? scene : null;
+  const filming = lessonSet ? setFilming(panels.length) : FILMING[scene];
+  const Art = useMemo(() => (lessonSet
+    ? (props: { beat: number; unit?: number; speaker?: Panel['speaker'] }) => <SetArt scene={lessonSet} {...props} />
+    : ART[scene]), [lessonSet, scene]);
   const [voiceOn, setVoiceOn] = useState(fun.sound !== false);
   const [beat, setBeat] = useState(-1);
   const [chars, setChars] = useState(0);
