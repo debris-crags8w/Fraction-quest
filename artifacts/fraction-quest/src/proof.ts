@@ -301,7 +301,7 @@ const RULES: Rule[] = [
   { name: 'groups (build)', re: /^(?:Put (\d+) \w+ in (\d+) equal groups\. Pick (1 group|\d+\/\d+)|Share (\d+) \w+ among (\d+) friends\. Pick 1 share)\.$/,
     solve: (m, item) => { const total = N(m[1] ?? m[4]); const groups = N(m[2] ?? m[5]); if (item.target?.total !== undefined && item.target.total !== total) return `the set has ${item.target.total}, not ${total}`;
       return { value: m[3] && m[3] !== '1 group' ? frac(m[3]) : 1 / groups }; } },
-  { name: 'cut and shade (build)', re: /^(?:Cut (?:a bar|a pizza|0 to 1) into (\d+) equal (?:parts|slices|spaces)\. (?:Shade|Make) (\d+)(?: jumps)?|A pan has (\d+) equal parts\. \d+ are eaten\. Make (\d+)\/\3|A pizza has (\d+) equal slices\. Make one slice|A garden has (\d+) equal beds\. Plant (\d+)|Make (\d+)\/(\d+) with \w+ 1\/\9 parts)\.$/,
+  { name: 'cut and shade (build)', re: /^(?:Cut (?:a bar|a pizza|0 to 1) into (\d+) equal (?:parts|slices|spaces)\. (?:Shade|Make) (\d+)(?: jumps?)?|A pan has (\d+) equal parts\. \d+ are eaten\. Make (\d+)\/\3|A pizza has (\d+) equal slices\. Make one slice|A garden has (\d+) equal beds\. Plant (\d+)|Make (\d+)\/(\d+) with \w+ 1\/\9 parts)\.$/,
     solve: (m) => { if (m[1]) return { value: N(m[2]) / N(m[1]) }; if (m[3]) return { value: N(m[4]) / N(m[3]) }; if (m[5]) return { value: 1 / N(m[5]) };
       if (m[6]) return { value: N(m[7]) / N(m[6]) }; return { value: N(m[8]) / N(m[9]) }; } },
   { name: 'what is left of one whole (build)', re: /^(?:(\d+\/\d+) is used\. Make what is left of one whole|A recipe uses (\d+\/\d+) of a bag\. Make what is left)\.$/, solve: (m) => ({ value: 1 - frac(m[1] ?? m[2]) }) },
