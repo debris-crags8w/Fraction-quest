@@ -16,6 +16,7 @@ import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
 import { createNaturalSpeaker, isIOSVoiceDevice, naturalVoicePreference, naturalVoiceStatus, setNaturalEngineForTests, setNaturalVoicePreference } from './lib/natural-voice';
 import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
+import { buildAssessmentItems, getAssessmentDefinitions } from './assessments';
 import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './FractionRace';
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
 import { CODE_LEVEL_COUNT, describe as describeRun, getCodeLevels, getRunHint, makeMultiBug, matchesTarget, passesCodeLevel, predictionMatchesTarget, runProgram, solution, toText, usesEffectiveLoop, usesLoop, type Block } from './code-quest';
@@ -350,6 +351,16 @@ describe('lesson catalog', () => {
       const squares = (v: number) => getWorksheet('equal-parts', v).slice(8).map((p) => `${p.prompt}|${JSON.stringify(p.area)}`);
       if (variant > 0) assert.equal(squares(variant).filter((row) => squares(variant - 1).includes(row)).length, 0, `variant ${variant} repeats a square question`);
     }
+  });
+
+  it('builds any redo sheet quickly, even the huge variants a Check-in asks for', () => {
+    const started = Date.now();
+    for (const variant of [25, 1_000_000, 999_999_999, -7]) {
+      const sheet = getWorksheet('add-unlike-fractions', variant);
+      assert.equal(sheet.length, 12, `variant ${variant}`);
+    }
+    for (const definition of getAssessmentDefinitions()) assert.ok(buildAssessmentItems(definition, 999_999_999).length >= 10, definition.id);
+    assert.ok(Date.now() - started < 20_000, `took ${Date.now() - started} ms`);
   });
 
   it('never asks the same question twice on a sheet, and a redo sheet is new (at most 3 rows from the sheet before)', () => {
