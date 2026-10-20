@@ -412,7 +412,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'sets-unit-fractions', unit: 2, title: 'Fractions in a group', shortTitle: 'Fractions of sets', skill: 'Split a group into equal groups. One group is one part of the whole set.',
+    id: 'sets-unit-fractions', unit: 11, title: 'Fractions in a group', shortTitle: 'Fractions of sets', skill: 'Split a group into equal groups. One group is one part of the whole set.',
     description: 'Share things into equal groups.', example: {
       prompt: 'There are 12 buttons. What is 1/3 of the buttons?',
       answer: '4 buttons.',
@@ -427,7 +427,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'sets-nonunit', unit: 2, title: 'More than one group', shortTitle: 'Count groups in a set', skill: 'The denominator tells how many equal groups to make. The numerator tells how many groups to count.',
+    id: 'sets-nonunit', unit: 11, title: 'More than one group', shortTitle: 'Count groups in a set', skill: 'The denominator tells how many equal groups to make. The numerator tells how many groups to count.',
     description: 'Count 2 or 3 equal groups.', example: {
       prompt: 'What is 2/5 of 15 counters?',
       answer: '6 counters.',
@@ -547,7 +547,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'compare-same-numerator', unit: 5, title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'When the wholes are the same size, the same numerator means we count the same number of parts. A larger denominator splits that whole into more equal parts, so each part is smaller, and so is the fraction.',
+    id: 'compare-same-numerator', unit: 2, title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'When the wholes are the same size, the same numerator means we count the same number of parts. A larger denominator splits that whole into more equal parts, so each part is smaller, and so is the fraction.',
     explainPrompt: 'Use the bars for 3/5 and 3/8. What does the denominator change in the same-size whole? Why is 3/8 smaller even though both fractions count 3 parts? Then draw same-length bars for 2/3 and 2/5 and explain why 2/3 is larger without repeating the example.',
     description: 'Compare fractions with the same numerator.', example: {
       prompt: 'Which is bigger, 3/5 or 3/8?',
@@ -929,7 +929,12 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
   };
 }
 
+/** Lessons added after the first 28, whose practice is made from their own worksheets. */
+export const EXTENSION_LESSON_IDS: ReadonlySet<string> = new Set(extensionTopics.map((topic) => topic.id));
 curriculum.push(...extensionTopics.map(extensionMission));
+// Lessons run unit by unit. The sort is stable, so within a unit they keep the order they are written in (a core lesson
+// moved to a later unit, like the fraction-of-a-group lessons in unit 11, comes first in that unit).
+curriculum.sort((a, b) => a.unit - b.unit);
 
 export const MISSIONS: Mission[] = curriculum.map((seed, index) => {
   const current = mission(seed);
@@ -1138,7 +1143,11 @@ export function isMissionUnlocked(progress: Progress, missionId: string): boolea
   const placedOut = (item: Mission) => !!progress.placement && item.unit < progress.placement.unit;
   // A lesson added (or moved) later must not re-lock lessons a learner had already reached (they can still do it any time).
   const alreadyInLaterUnits = MISSIONS.some((item) => item.unit >= 9 && (!!progress.learning?.[item.id] || progress.completedMissionIds.includes(item.id)));
-  if (target.unit < 9) return MISSIONS.slice(0, targetIndex).every(item => placedOut(item) || passedLesson(progress, item.id) || (alreadyInLaterUnits && LATE_ADDED_LESSONS.has(item.id)));
+  // A lesson moved earlier in the course doesn't re-lock lessons the learner already passed after it (it stays open).
+  const skippedByMove = (item: Mission, index: number) => MOVED_EARLIER_LESSONS.has(item.id)
+    && MISSIONS.slice(index + 1).some((later) => passedLesson(progress, later.id));
+  if (target.unit < 9) return MISSIONS.slice(0, targetIndex).every((item, index) => placedOut(item) || passedLesson(progress, item.id)
+    || (alreadyInLaterUnits && LATE_ADDED_LESSONS.has(item.id)) || skippedByMove(item, index));
   return MISSIONS.filter(item => item.unit < target.unit && !placedOut(item) && !(alreadyInLaterUnits && LATE_ADDED_LESSONS.has(item.id)))
     .every(item => passedLesson(progress, item.id));
 }
@@ -1153,6 +1162,9 @@ export function passedLesson(progress: Progress, missionId: string): boolean {
  * later units (they stay open to do any time, and "Continue" still suggests them). New learners take them in order.
  * Add every lesson inserted into an existing unit here.
  */
+/** Lessons moved to an earlier spot, which learners already past that spot never had: compare same numerator moved from
+    unit 5 to unit 2 when the fraction-of-a-group lessons moved to unit 11. */
+export const MOVED_EARLIER_LESSONS: ReadonlySet<string> = new Set(['compare-same-numerator']);
 export const LATE_ADDED_LESSONS: ReadonlySet<string> = new Set([
   'add-tenths-hundredths',
   // Moved from unit 11 to the end of unit 8 (grade 4).

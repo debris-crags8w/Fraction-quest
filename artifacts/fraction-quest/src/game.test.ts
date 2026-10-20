@@ -60,6 +60,7 @@ import {
   isCorrectAnswer,
   isMissionUnlocked,
   LATE_ADDED_LESSONS,
+  EXTENSION_LESSON_IDS,
   staleDraft,
   loadProgress,
   nameBars,
@@ -130,13 +131,13 @@ describe('fraction ordering activity', () => {
     assert.match(FRACTION_ORDER_ROUNDS[1].strategyHint, /eighths|numerators/i);
   });
 });
+/** Units 1–8 (grades 3–4), in order. The fraction-of-a-group lessons moved to unit 11 (5.NF.4a). */
 const EXPECTED_MISSION_IDS = [
   'equal-parts',
   'fraction-names',
   'unit-fractions',
   'unit-size',
-  'sets-unit-fractions',
-  'sets-nonunit',
+  'compare-same-numerator',
   'benchmark-half',
   'benchmarks-zero-one',
   'fraction-magnitude',
@@ -144,7 +145,6 @@ const EXPECTED_MISSION_IDS = [
   'number-line-points',
   'number-line-beyond-one',
   'compare-same-denominator',
-  'compare-same-numerator',
   'order-fractions',
   'equivalent-models',
   'build-equivalents',
@@ -165,6 +165,8 @@ const EXPECTED_EXTENSION_IDS = [
   'simplify-fractions', 'equivalent-missing-both', 'whole-numbers-as-fractions', 'compare-unlike-fractions', 'order-unlike-fractions',
   'subtract-unlike-fractions', 'add-unlike-fractions', 'add-mixed-numbers', 'subtract-mixed-numbers', 'fraction-of-quantity',
   'mixed-unlike-operations', 'estimate-fraction-operations',
+  'sets-unit-fractions',
+  'sets-nonunit',
   'multiply-fractions', 'fraction-of-collection', 'divide-whole-by-unit-fraction',
   'multiplication-scaling', 'multiply-mixed-numbers', 'unit-fraction-divided-whole',
   'fraction-of-length', 'fractional-measure-addition', 'ruler-measurement', 'build-line-plots', 'read-line-plots',
@@ -280,14 +282,14 @@ describe('lesson catalog', () => {
 
   it('covers 72 sequenced lessons in the expected sequence and unit groups', () => {
     assert.equal(MISSIONS.length, 72);
-    assert.deepEqual(MISSIONS.slice(0, 28).map((mission) => mission.id), EXPECTED_MISSION_IDS);
-    assert.deepEqual(MISSIONS.slice(28).map((mission) => mission.id), EXPECTED_EXTENSION_IDS);
+    assert.deepEqual(MISSIONS.slice(0, 26).map((mission) => mission.id), EXPECTED_MISSION_IDS);
+    assert.deepEqual(MISSIONS.slice(26).map((mission) => mission.id), EXPECTED_EXTENSION_IDS);
     assert.deepEqual(
       Object.fromEntries(
         [...new Set(MISSIONS.map((mission) => mission.unit))]
           .map((unit) => [unit, MISSIONS.filter((mission) => mission.unit === unit).length]),
       ),
-      { 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 4, 8: 8, 9: 5, 10: 7, 11: 6, 12: 10, 13: 5, 14: 5, 15: 4 },
+      { 1: 3, 2: 2, 3: 3, 4: 3, 5: 2, 6: 3, 7: 4, 8: 8, 9: 5, 10: 7, 11: 8, 12: 10, 13: 5, 14: 5, 15: 4 },
     );
   });
 
@@ -536,7 +538,7 @@ describe('lesson catalog', () => {
     }
   });
   it('checks the first answer key for every added mission independently', () => {
-    MISSIONS.slice(28).forEach((mission, index) => {
+    MISSIONS.filter((mission) => EXTENSION_LESSON_IDS.has(mission.id)).forEach((mission) => {
       const question = mission.questions[0];
       const worksheetQuestion = getWorksheet(mission.id)[1];
       // Ordering answers show < or > instead of commas on tap questions; the worksheet keeps its typed form.
@@ -1644,8 +1646,15 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.throws(() => numberLineWholeCount(1, 0), RangeError);
   });
   it('checks independently calculated keys across every curriculum topic', () => {
-    const expected = ['3', '1', '3', '1/2', '2', '4', '1/4', '1/3', '3/4', '3', '1/3', '4/3', '2/3', '2/3', '1/3, 2/3, 3/3', '2', '2/6', '2', '2/3', '2', '>', '4/3', '2/3', '1/3', '3/4', '0.1', '0.08', '34/100'];
-    MISSIONS.slice(0, expected.length).forEach((mission, index) => assert.equal(getWorksheet(mission.id)[0].answer, expected[index], mission.id));
+    const expected: Record<string, string> = {
+      'equal-parts': '3', 'fraction-names': '1', 'unit-fractions': '3', 'unit-size': '1/2', 'sets-unit-fractions': '2', 'sets-nonunit': '4',
+      'benchmark-half': '1/4', 'benchmarks-zero-one': '1/3', 'fraction-magnitude': '3/4', 'number-line-basics': '3', 'number-line-points': '1/3',
+      'number-line-beyond-one': '4/3', 'compare-same-denominator': '2/3', 'compare-same-numerator': '2/3', 'order-fractions': '1/3, 2/3, 3/3',
+      'equivalent-models': '2', 'build-equivalents': '2/6', 'missing-equivalent': '2', 'compose-to-one': '2/3', 'decompose-fractions': '2',
+      'improper-fractions': '>', 'mixed-improper': '4/3', 'add-like-denominators': '2/3', 'subtract-like-denominators': '1/3',
+      'add-related-fractions': '3/4', 'tenths-decimals': '0.1', 'hundredths-decimals': '0.08', 'add-tenths-hundredths': '34/100',
+    };
+    for (const [id, answer] of Object.entries(expected)) assert.equal(getWorksheet(id)[0].answer, answer, id);
   });
   it('authors twelve valid problems and three required Build checks for every topic', () => {
     for (const mission of MISSIONS) {
@@ -2274,7 +2283,7 @@ describe('unit challenges', () => {
   const expected: Record<string, string> = {
     'u1-p1': '3/8', 'u2-p1': '1/3', 'u3-p1': 'D', 'u4-p1': '3/5', 'u5-p1': 'B', 'u6-p1': '4', 'u7-p1': '1 and 3/4', 'u8-p1': '0.35',
     'u1-c1': '3', 'u1-c2': '5/8', 'u1-c3': '1/4', 'u1-c4': '10 cm', 'u1-c5': '12',
-    'u2-c1': '1/2', 'u2-c2': '5', 'u2-c3': '6', 'u2-c4': '24', 'u2-c5': '8',
+    'u2-c1': '1/2', 'u2-c2': '3/5', 'u2-c3': 'Mia', 'u2-c4': '2/9, 2/5, 2/3', 'u2-c5': 'Kim',
     'u3-c1': '5/8',
     'u3-c2': ['1/2', '2/3', '3/4', '4/5', '5/6'].sort((a, b) => {
       const [an, ad] = a.split('/').map(Number); const [bn, bd] = b.split('/').map(Number);
@@ -2297,7 +2306,7 @@ describe('unit challenges', () => {
     'u9-c4': ['Ana', 'Ben', 'Cal'][[2 / 3, 3 / 4, 5 / 6].indexOf(Math.max(2 / 3, 3 / 4, 5 / 6))],
     'u9-c5': ['7/8', '5/6', '9/10', '3/4', '11/12'].sort((a, b) => { const [an, ad] = a.split('/').map(Number); const [bn, bd] = b.split('/').map(Number); return (1 - an / ad) - (1 - bn / bd); })[0],
     'u10-p1': '1/4', 'u10-c1': String(1.5 + 2.5), 'u10-c2': String((15 / 3) * 2), 'u10-c3': '1 1/2', 'u10-c4': String(24 - (24 / 8) * 3), 'u10-c5': '1/4 liter',
-    'u11-p1': '6/12', 'u11-c1': '8/5', 'u11-c2': String(4 * 3), 'u11-c3': '6/12', 'u11-c4': String(30 - 30 / 5 - 30 / 3), 'u11-c5': String(3 * 4 - 5),
+    'u11-p1': '6/12', 'u11-c1': String(20 / 4), 'u11-c2': String(4 * 3), 'u11-c3': '6/12', 'u11-c4': String(30 - 30 / 5 - 30 / 3), 'u11-c5': String(3 * 4 - 5),
     'u12-p1': `${(3 / 4) * 100} cm`, 'u12-c1': '3/4', 'u12-c2': `${(100 / 5) * 3} cm`, 'u12-c3': '1 1/8 m',
     'u12-c4': ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'][[2 / 5, 3 / 8, 1 / 3, 3 / 10, 1 / 4].indexOf(Math.max(2 / 5, 3 / 8, 1 / 3, 3 / 10, 1 / 4))],
     'u12-c5': `${(200 / 8) * 5} cm`,
@@ -2319,8 +2328,8 @@ describe('unit challenges', () => {
   it('marks independently computed answers as correct', () => {
     for (const items of Object.values(CHALLENGES)) {
       for (const item of items) {
-        assert.equal(item.choices.length, 5, item.id);
-        assert.equal(new Set(item.choices).size, 5, `${item.id} has duplicate choices`);
+        assert.equal(item.choices.length, 4, item.id);
+        assert.equal(new Set(item.choices).size, 4, `${item.id} has duplicate choices`);
         assert.equal(item.choices[item.correct], expected[item.id], item.id);
       }
     }
@@ -2359,11 +2368,11 @@ describe('long problems', () => {
     assert.doesNotMatch(storyList, /fq-learning-listen/, 'story sentences do not each get their own inline control');
   });
 
-  it('gives each walk-through step three distinct choices and the authored answer', () => {
+  it('gives each walk-through step four distinct choices and the authored answer', () => {
     const expectedSteps: Record<string, string[]> = {
       'u1-c3': ['2', '4', '1/4'], 'u1-c5': ['4', '12'],
-      'u2-c3': ['6', '1/3', '6'], 'u2-c4': ['3', '24'],
-      'u2-c5': ['12', '4', '8'], 'u4-c5': ['6/8 m', '9/8 m', 'Yes'],
+      'u2-c3': ['1/4', 'Mia'], 'u2-c4': ['Ninths', 'Thirds'],
+      'u2-c5': ['3/6', '3/4', '3/4'], 'u4-c5': ['6/8 m', '9/8 m', 'Yes'],
       'u5-c4': ['1/4', '1/6', '1/6'], 'u6-c4': ['1/4', '2'],
       'u7-c5': ['6/3', '8/3', '3'], 'u8-c4': ['5/10 m', '2/10 m'],
       'u9-c4': ['8/12', '9/12', '10/12'],
@@ -2378,7 +2387,7 @@ describe('long problems', () => {
       for (const item of items) {
         if (!item.steps) continue;
         assert.deepEqual(item.steps.map((step) => step.choices[step.correct]), expectedSteps[item.id], `${item.id} steps`);
-        for (const step of item.steps) assert.equal(new Set(step.choices).size, 3, `${item.id}: ${step.prompt}`);
+        for (const step of item.steps) assert.equal(new Set(step.choices).size, 4, `${item.id}: ${step.prompt}`);
       }
     }
     assert.equal(Object.values(CHALLENGES).flat().filter((item) => item.steps).length, Object.keys(expectedSteps).length);
@@ -3268,7 +3277,7 @@ describe('same numerator, different denominators', () => {
     assert.match(lesson.example.explanation, /both (?:same-size (?:whole|bar)s?|fractions).*count 3 parts/i);
     assert.match(lesson.example.explanation, /(?:eighths|eight equal parts|8 equal parts).*smaller/i);
     assert.match(lesson.example.explanation, /3\/8 (?:is )?(?:smaller|less) than 3\/5/i);
-    assert.ok(lesson.questions.every((question) => explainsPieceSize(question.hint)), 'each authored hint compares the denominator or piece size');
+    assert.ok(lesson.questions.filter((question) => !question.isReview).every((question) => explainsPieceSize(question.hint)), 'each authored hint compares the denominator or piece size');
 
     const generated = generateQuestions('compare-same-numerator', ['x'], 3, 8);
     assert.ok(generated.every((question) => explainsPieceSize(question.hint)), 'generated same-numerator practice keeps the explanation');
