@@ -275,7 +275,8 @@ function safeWrong(right: string, candidates: string[]): [string, string] {
 }
 const POOL: [number, number][] = [[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [4, 5], [1, 6], [5, 6], [3, 8], [5, 8], [7, 8], [3, 10], [7, 10], [5, 12], [7, 12]];
 const SMALL_POOL = POOL.filter(([, d]) => d <= 6);
-const EXACT_PERCENT: [number, number][] = [[1, 2], [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [4, 5], [1, 10], [3, 10], [7, 10], [9, 10], [1, 20], [3, 20], [1, 25]];
+const EXACT_PERCENT: [number, number][] = [[1, 2], [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [4, 5], [1, 10], [3, 10], [7, 10], [9, 10], [1, 20], [3, 20], [1, 25],
+  [7, 20], [9, 20], [11, 20], [13, 20], [17, 20], [19, 20], [2, 25], [3, 25], [6, 25]];
 const later = (prompt: string, right: string, wrong: string[], hint: string, retry: string, model: ModelSpec, simpler?: ModelSpec): Item =>
   ({ prompt, right, wrong: safeWrong(right, wrong), hint, retry, model, simpler });
 
@@ -459,11 +460,13 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
 };
 Object.assign(RECIPES, LATER_RECIPES);
 
-// Any lesson still without its own recipe practices its worksheet problems as tap questions.
+// Any lesson still without its own recipe practices worksheet problems as tap questions, taken from its redo sheets
+// (new numbers, never the lesson's own sheet, which its lesson questions come from). Built on first use.
 for (const topic of MISSIONS.filter((item) => !(item.id in RECIPES))) {
-  const worksheet = getWorksheet(topic.id);
+  let pool: ReturnType<typeof getWorksheet> | null = null;
   RECIPES[topic.id] = (r) => {
-    const problem = r.pick(worksheet);
+    pool ??= [1, 2, 3, 4].flatMap((variant) => getWorksheet(topic.id, variant));
+    const problem = r.pick(pool);
     return {
       prompt: asChoicePrompt(problem.prompt), right: problem.answer, wrong: choiceDistractors(problem.answer),
       hint: problem.hint, retry: problem.hint, model: problemPicture(problem),
@@ -523,16 +526,17 @@ export function oneIsSingular(text: string): string {
 export function generateQuestions(missionId: string, baseQuestionIds: string[], seed: number, count: number): PracticeQuestion[] {
   const recipe = RECIPES[missionId];
   if (!recipe) throw new Error(`No question generator for ${missionId}`);
-  const out: PracticeQuestion[] = [];
+  // Prefer questions new to this set and to the lesson; then one of the lesson's own; a repeat in the set only if a
+  // lesson has too few different questions to fill it.
+  const lessonQuestions = new Set((MISSIONS.find((mission) => mission.id === missionId)?.questions ?? [])
+    .map((question) => `${question.prompt}|${question.choices[question.correctChoice]}`));
+  const fresh: Omit<PracticeQuestion, 'id' | 'reviewQuestionId'>[] = []; const fromLesson: typeof fresh = []; const repeats: typeof fresh = [];
   const seen = new Set<string>();
-  for (let i = 0; out.length < count && i < count * 30; i++) {
+  for (let i = 0; fresh.length < count && i < count * 30; i++) {
     const rng = makeRng(hash(`${missionId}:${seed}:${i}`));
     const item = recipe(rng);
     const key = `${item.prompt}|${item.right}`;
-    if (seen.has(key) && i < count * 15) continue; // avoid repeats within one round
-    seen.add(key);
-    out.push({
-      id: `${missionId}-g${seed}-${out.length + 1}`,
+    const question = {
       prompt: oneIsSingular(item.prompt),
       ...noBeforeYes(signedOrder(item.prompt, withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3)))),
       hint: oneIsSingular(item.hint),
@@ -541,9 +545,15 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
       // Help shows the same picture, now with its labels, so it is about this question.
       simplerModel: nameBars(item.simpler ?? withLabels(item.model), item.prompt),
       standards: [...standardsForMission(missionId)],
-      reviewQuestionId: baseQuestionIds[out.length % baseQuestionIds.length],
-    });
+    };
+    (seen.has(key) ? repeats : lessonQuestions.has(`${question.prompt}|${question.choices[question.correctChoice]}`) ? fromLesson : fresh).push(question);
+    seen.add(key);
   }
+  const out: PracticeQuestion[] = [...fresh, ...fromLesson, ...repeats].slice(0, count).map((question, index) => ({
+    ...question,
+    id: `${missionId}-g${seed}-${index + 1}`,
+    reviewQuestionId: baseQuestionIds[index % baseQuestionIds.length],
+  }));
   return out;
 }
 

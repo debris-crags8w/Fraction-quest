@@ -16,12 +16,16 @@ export function placementItems(unit: number, seed: number): PlacementItem[] {
   const lessons = MISSIONS.filter((mission) => mission.unit === unit);
   const picks = [lessons[0], lessons[Math.floor((lessons.length - 1) / 2)], lessons[lessons.length - 1]];
   const rng = makeRng(seed * 31 + unit);
+  const asked = new Set<string>(); // lessons can share a question (or the same lesson is picked twice): never ask the same one twice
   return picks.map((mission) => {
     const sheet = getWorksheet(mission.id);
     // Prefer rows that need no picture; fall back to any row (the picture is shown, read-only).
     const plain = sheet.filter((problem) => !problem.model && !problem.area);
     const pool = plain.length >= 3 ? plain : sheet.filter((problem) => !problem.areaTask); // no coloring tasks in the level quiz
-    return { unit, missionId: mission.id, problem: rng.pick(pool) };
+    const fresh = pool.filter((problem) => !asked.has(`${problem.prompt}|${problem.answer}`));
+    const problem = rng.pick(fresh.length ? fresh : pool);
+    asked.add(`${problem.prompt}|${problem.answer}`);
+    return { unit, missionId: mission.id, problem };
   });
 }
 

@@ -193,7 +193,7 @@
 .fq-ll-fraction-slash { min-width: 44px; min-height: 44px; border: 2px solid hsl(var(--foreground) / .5); border-radius: 11px; background: hsl(var(--card)); color: hsl(var(--foreground)); font: 900 1.2rem var(--app-font-mono); cursor: pointer; }
 .fq-ll-hintbtn { display: inline-flex; gap: 5px; align-items: center; min-height: 44px; padding: 0 8px; border: 0; background: none; color: hsl(var(--secondary)); font-weight: 900; cursor: pointer; }
 .fq-ll-ws { display: flex; gap: 6px; margin: 4px 0 0; font-size: .86rem; line-height: 1.4; color: hsl(var(--muted-foreground)); }
-.fq-ll-ws.ok { color: hsl(173 45% 24%); } .fq-ll-ws.bad { color: hsl(29 62% 28%); font-weight: 700; } .fq-ll-ws.hint { color: hsl(var(--foreground)); }
+.fq-ll-ws.ok { color: hsl(173 45% 24%); } .fq-ll-ws.bad { color: hsl(29 62% 28%); font-weight: 700; } .fq-ll-ws.hint, .fq-ll-ws.why { color: hsl(var(--foreground)); }
 .fq-ll-preview { padding: 6px 0; }
 .fq-ll-preview-bars { display: grid; gap: 8px; }
 .fq-ll-preview-whole { display: grid; gap: 4px; color: hsl(var(--muted-foreground)); font-size: 0.72rem; font-weight: 900; }

@@ -334,6 +334,53 @@ describe('lesson catalog', () => {
     }
   });
 
+  it('explains why squares and triangles can both be fourths, after the answer and not in the hint', () => {
+    const rows = ['equal-parts', 'unit-fractions'].flatMap((id) => getWorksheet(id)).filter((p) => p.area?.cut === 'fourths-mixed');
+    assert.equal(rows.length, 2);
+    for (const row of rows) {
+      assert.match(row.why ?? '', /half of a half, so all 4 parts are fourths/);
+      assert.doesNotMatch(row.hint, /1\/4|fourths|same size/, 'the hint gives a first step, not the answer');
+    }
+  });
+
+  it('words every Equal parts question differently, and a redo never repeats the last four squares', () => {
+    for (let variant = 0; variant < 6; variant++) {
+      const sheet = getWorksheet('equal-parts', variant);
+      assert.equal(new Set(sheet.map((p) => p.prompt)).size, sheet.length, `variant ${variant}: no two questions read the same`);
+      const squares = (v: number) => getWorksheet('equal-parts', v).slice(8).map((p) => `${p.prompt}|${JSON.stringify(p.area)}`);
+      if (variant > 0) assert.equal(squares(variant).filter((row) => squares(variant - 1).includes(row)).length, 0, `variant ${variant} repeats a square question`);
+    }
+  });
+
+  it('never asks the same question twice on a sheet, and a redo sheet is new (at most 3 rows from the sheet before)', () => {
+    const key = (p: ReturnType<typeof getWorksheet>[number]) => `${p.prompt}|${p.answer}|${JSON.stringify(p.model ?? p.area ?? p.rulerTask ?? p.linePlotTask ?? p.scaleTask ?? null)}`;
+    for (const mission of MISSIONS) {
+      let previous: string[] = [];
+      for (let variant = 0; variant < 6; variant++) {
+        const keys = getWorksheet(mission.id, variant).map(key);
+        assert.equal(new Set(keys).size, keys.length, `${mission.id} sheet ${variant} asks a question twice`);
+        if (variant) assert.ok(keys.filter((k) => previous.includes(k)).length <= 3, `${mission.id} sheet ${variant} repeats the sheet before`);
+        previous = keys;
+      }
+    }
+  });
+
+  it('never repeats a question in Find my level, or a lesson question in Practice more', () => {
+    for (let unit = 1; unit <= PLACEMENT_UNITS; unit++) for (let seed = 1; seed <= 10; seed++) {
+      const asked = placementItems(unit, seed).map((item) => `${item.problem.prompt}|${item.problem.answer}`);
+      assert.equal(new Set(asked).size, asked.length, `unit ${unit} seed ${seed}`);
+    }
+    for (const mission of MISSIONS) {
+      const lesson = new Set(mission.questions.map((q) => `${q.prompt}|${q.choices[q.correctChoice]}`));
+      for (let seed = 1; seed <= 5; seed++) {
+        const set = generateQuestions(mission.id, mission.questions.map((q) => q.id), seed, 12);
+        const keys = set.map((q) => `${q.prompt}|${q.choices[q.correctChoice]}|${JSON.stringify(q.model)}`);
+        assert.equal(new Set(keys).size, keys.length, `${mission.id} seed ${seed}: a question twice in one set`);
+        assert.ok(!set.some((q) => lesson.has(`${q.prompt}|${q.choices[q.correctChoice]}`)), `${mission.id} seed ${seed}: repeats a lesson question`);
+      }
+    }
+  });
+
   it('never offers the same fraction twice or adds 0/100 on a redo sheet', () => {
     for (let variant = 0; variant < 12; variant++) {
       for (const problem of getWorksheet('fraction-magnitude', variant)) {
@@ -2305,6 +2352,8 @@ describe('question generator', () => {
     return Number(t);
   };
   const near = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+  const PER: Record<string, number> = { 'inches/foot': 12, 'minutes/hour': 60, 'seconds/minute': 60, 'hours/day': 24, 'milliliters/liter': 1000,
+    'grams/kilogram': 1000, 'centimeters/meter': 100, 'ounces/pound': 16, 'cents/dollar': 100 };
   const verifyLater = (question: PracticeQuestion): boolean => {
     const answer = question.choices[question.correctChoice]; const p = question.prompt; const N = (x: string) => Number(x);
     let expected: number | string | null = null; let m: RegExpExecArray | null;
@@ -2339,6 +2388,25 @@ describe('question generator', () => {
     else if ((m = /^(?:Sam|Kim) says (\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \d+\/\d+\. What is the right answer\?$/.exec(p))) expected = N(m[1]) / N(m[2]) + (m[3] === '+' ? 1 : -1) * N(m[4]) / N(m[5]);
     else if ((m = /^Ana has (\d+) stickers\. She gives away (\d+)\/(\d+) of them\. Then she gives away (\d+)\/(\d+) of the rest\. How many are left\?$/.exec(p))) expected = N(m[1]) * (1 - N(m[2]) / N(m[3])) * (1 - N(m[4]) / N(m[5]));
     else if ((m = /^How many 1\/(\d+) cup scoops fill (\d+)\/(\d+) cup\?$/.exec(p))) expected = (N(m[2]) / N(m[3])) * N(m[1]);
+    else if ((m = /^How many wholes are (\d+)\/(\d+)\?$/.exec(p)) || (m = /^Write (\d+)\/(\d+) as a whole number\.$/.exec(p))) expected = N(m[1]) / N(m[2]);
+    else if ((m = /^Write (\d+) whole bars as a fraction with a denominator of 1\.$/.exec(p))) expected = N(m[1]);
+    // Later lessons' redo numbers: adding and taking away unlike fractions and mixed numbers, quick compares, measures.
+    else if ((m = /^(?:Rename: .+\. Then )?(\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \?$/.exec(p))) expected = N(m[1]) / N(m[2]) + (m[3] === '+' ? 1 : -1) * N(m[4]) / N(m[5]);
+    else if ((m = /^(?:Rename: .+\. Then )?(\d+) (\d+)\/(\d+) ([+−]) (?:(\d+) )?(\d+)\/(\d+) = \?$/.exec(p))) expected = N(m[1]) + N(m[2]) / N(m[3]) + (m[4] === '+' ? 1 : -1) * (N(m[5] ?? '0') + N(m[6]) / N(m[7]));
+    else if ((m = /^A rectangular garden is (\d+) (\d+)\/(\d+) meters by (\d+) (\d+)\/(\d+) meters\. What is its area\?$/.exec(p))) expected = (N(m[1]) + N(m[2]) / N(m[3])) * (N(m[4]) + N(m[5]) / N(m[6]));
+    else if ((m = /^How many (\w+) are in (\d+)\/(\d+) (\w+)\?$/.exec(p)) && PER[`${m[1]}/${m[4]}`]) expected = PER[`${m[1]}/${m[4]}`] * N(m[2]) / N(m[3]);
+    else if ((m = /^A (?:bottle has|bag weighs) (\d+)\/(\d+) (?:liter|kilogram)\. How many (?:milliliters|grams)/.exec(p))) expected = 1000 * N(m[1]) / N(m[2]);
+    else if ((m = /^A (\d+)-(?:kilogram bag|liter jug) is (\d+)\/(\d+) full\. How many (?:grams|milliliters)/.exec(p))) expected = 1000 * N(m[1]) * N(m[2]) / N(m[3]);
+    else if ((m = /^A (?:ribbon is|jug has|board is) (\d+)\/(\d+) (?:meter|liter)\.? (?:and another is|You add|Another is) (\d+)\/(\d+) (?:meter|liter)/.exec(p))) expected = N(m[1]) / N(m[2]) + N(m[3]) / N(m[4]);
+    else if ((m = /^Without finding the exact (?:sum|difference), compare (\d+)\/(\d+) ([+−]) (\d+)\/(\d+) with 1: __ 1\.$/.exec(p))) {
+      const total = N(m[1]) / N(m[2]) + (m[3] === '+' ? 1 : -1) * N(m[4]) / N(m[5]);
+      assert.equal(answer, `${m[1]}/${m[2]} ${m[3]} ${m[4]}/${m[5]} ${total < 1 ? '<' : '>'} 1`, p); return true;
+    } else if ((m = /^Move the scale slider to (\d+)\/(\d+)\. Without multiplying, compare \d+\/\d+ × (\d+) with \d+: __ \d+\.$/.exec(p))) {
+      const sign = N(m[1]) < N(m[2]) ? '<' : N(m[1]) === N(m[2]) ? '=' : '>';
+      assert.equal(answer, `${m[1]}/${m[2]} × ${m[3]} ${sign} ${m[3]}`, p); return true;
+    } else if ((m = /^Compare: ([\d.]+) __ ([\d.]+)\.$/.exec(p))) {
+      assert.equal(answer, `${m[1]} ${N(m[1]) < N(m[2]) ? '<' : N(m[1]) > N(m[2]) ? '>' : '='} ${m[2]}`, p); return true;
+    }
     if (expected === null) return false;
     if (typeof expected === 'string') assert.equal(answer.replace(/[\s,<>]/g, ''), expected.replace(/[\s,<>]/g, ''), p);
     else assert.ok(near(num(answer), expected), `${p} → ${answer}, expected ${expected}`);
@@ -2434,11 +2502,14 @@ describe('question generator', () => {
     }
     const sourceId = /^(.*?)-(?:x\d+|g\d+-\d+)$/.exec(question.id)?.[1];
     const sourceMission = sourceId ? MISSIONS.find((mission) => mission.id === sourceId) : undefined;
-    const sourceProblem = sourceMission?.unit && sourceMission.unit >= 9
-      ? getWorksheet(sourceMission.id).find((problem) => asChoicePrompt(problem.prompt) === question.prompt)
-      : undefined;
-    if (sourceProblem) {
-      assert.equal(signOnly(answer, sourceProblem.answer).split(/\s*[,<>]\s*/).join(','), sourceProblem.answer.split(/\s*[,<>]\s*/).join(','), `${question.id} should preserve its worksheet answer key`);
+    // Practice more draws on redo sheets 1-4. Some rows share words and differ only in the picture (a ruler), so any
+    // row with these words may be the source.
+    const sources = sourceMission?.unit && sourceMission.unit >= 9
+      ? [0, 1, 2, 3, 4].flatMap((variant) => getWorksheet(sourceMission.id, variant)).filter((problem) => asChoicePrompt(problem.prompt) === question.prompt)
+      : [];
+    if (sources.length) {
+      const key = (text: string) => text.split(/\s*[,<>]\s*/).join(',');
+      assert.ok(sources.some((problem) => key(signOnly(answer, problem.answer)) === key(problem.answer)), `${question.id} should preserve its worksheet answer key: ${answer}`);
       return true;
     }
     return false;

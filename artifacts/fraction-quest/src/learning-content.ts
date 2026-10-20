@@ -11,6 +11,8 @@ export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number
 export type BarTask = { kind: 'copy' | 'count' | 'shade'; n: number; say?: string };
 export type WorksheetProblem = {
   id: string; prompt: string; answer: string; hint: string; model?: LearningModel; modelRequired?: boolean; task?: BarTask;
+  /** Shown after a right answer, so a child who guessed still hears the reason. */
+  why?: string;
   standards?: string[];
   form?: 'decimal' | 'mixed' | 'ordered' | 'symbol' | 'word'; denominator?: number;
   /** A square cut into pieces that may have different shapes; with `areaTask` the child colors it before answering. */
@@ -543,6 +545,28 @@ function worksheetBuildCheck(id: string, serial: number, checkId: string): Build
   };
 }
 
+/** Halves cut two different ways: squares on one side, triangles on the other (equal size, different shape). */
+const MIXED_FOURTHS_WHY = 'The shapes are different, but the sizes match. The square is cut into 2 equal halves. One half is cut into 2 squares. The other half is cut into 2 triangles. Each part is half of a half, so all 4 parts are fourths.';
+
+/** Equal parts, last four rows: is each square cut into fourths? Set 0 is the lesson's own sheet; redo sheets take
+    sets 1 and 2 in turn, so a redo never repeats the sheet before it. Every answer stays within fourths. */
+const SQUARE_ROWS: { prompt: string; answer: string; cut: AreaFigure['cut']; shaded?: number[]; hint: string; why?: string }[][] = [[
+  { prompt: 'Are all 4 parts of this square the same size? Answer yes or no.', answer: 'yes', cut: 'fourths-mixed', hint: 'Look at the left half and the right half. How is each half cut?', why: MIXED_FOURTHS_WHY },
+  { prompt: 'This square is cut into 4 parts. Are they fourths? Answer yes or no.', answer: 'no', cut: 'fourths-unequal', hint: 'Fourths must all be the same size. Compare the biggest part and the smallest part.' },
+  { prompt: 'These parts are triangles, not squares. Are they still fourths? Answer yes or no.', answer: 'yes', cut: 'fourths-triangles', hint: 'Compare the 4 triangles. Do they all fill the same space?' },
+  { prompt: 'How many small triangles cover the same space as the small square?', answer: '2', cut: 'quarter-and-triangles', hint: 'Picture the small square cut corner to corner. What shapes do you get?' },
+], [
+  { prompt: 'Is this square cut into fourths? Answer yes or no.', answer: 'yes', cut: 'fourths-squares', hint: 'Fourths are 4 equal parts. Compare all 4 parts.' },
+  { prompt: 'Is this square cut into 4 equal strips? Answer yes or no.', answer: 'no', cut: 'strips-unequal', hint: 'Look at the first strip. Compare it with the strips next to it.' },
+  { prompt: 'These strips are long and thin. Are they still fourths? Answer yes or no.', answer: 'yes', cut: 'fourths-strips', hint: 'Shape does not matter. Compare how much space each strip covers.' },
+  { prompt: 'One triangle is colored. What fraction of the square is it?', answer: '1/4', cut: 'fourths-triangles', shaded: [0], hint: 'How many triangles of this size fill the whole square?' },
+], [
+  { prompt: 'One triangle is colored. What fraction of the whole square is it?', answer: '1/4', cut: 'fourths-mixed', shaded: [2], hint: 'Look at the left half and the right half. How is each half cut?', why: MIXED_FOURTHS_WHY },
+  { prompt: 'Is each part of this square one fourth of it? Answer yes or no.', answer: 'no', cut: 'fourths-unequal', hint: 'One fourth means 4 of them fill the square exactly. Compare the parts.' },
+  { prompt: 'One strip is colored. What fraction of the square is it?', answer: '1/4', cut: 'fourths-strips', shaded: [1], hint: 'Count all the strips. Are they the same size?' },
+  { prompt: 'How many small squares make one half of the whole square?', answer: '2', cut: 'fourths-squares', hint: 'How many small squares fill the whole square? Half of that is how many?' },
+]];
+
 const PRACTICE_DENOMINATORS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 16, 20];
 function seededBuildCheck(id: string, serial: number, checkId: string): BuildCheck {
   const [baseN, baseD, baseKind] = CHECKS[id];
@@ -643,11 +667,21 @@ export function getWorksheet(id: string, variant = 0): WorksheetProblem[] {
   const same = (a: WorksheetProblem, b: WorksheetProblem) => a.prompt === b.prompt && a.answer === b.answer && JSON.stringify(a.model) === JSON.stringify(b.model);
   const used = new Set<string>(); // no question twice on one sheet (same words and same picture)
   const rowKey = (row: WorksheetProblem) => `${row.prompt}|${row.answer}|${JSON.stringify(row.model ?? row.area ?? null)}`;
-  const fits = (row: WorksheetProblem, i: number) => largestBottom(row) <= limit && !same(row, base[i]) && !used.has(rowKey(row));
-  const first = buildWorksheet(id, variant);
-  const sheet = first.map((row, i) => {
-    let chosen = fits(row, i) ? row : undefined;
-    for (let k = 1; !chosen && k < 12; k++) { const alt = buildWorksheet(id, variant + k)[i]; if (fits(alt, i)) chosen = alt; }
+  // The sheet just before this one (the lesson's own sheet for the first redo): a redo repeats none of its questions.
+  if (variant > 1 && !VARIANT_CACHE.has(`${id}:${variant - 1}`)) getWorksheet(id, variant - 1);
+  const previous = new Set((variant > 1 ? VARIANT_CACHE.get(`${id}:${variant - 1}`)! : base).map(rowKey));
+  // Candidates for each row: this redo's own row, then the same row from later redos. Take the first one from the
+  // best group, always in range: new (differs from the lesson's row and the sheet before); else not on the sheet
+  // before; else at least not already on this sheet; else the lesson's own row.
+  const candidates = Array.from({ length: 24 }, (_, k) => buildWorksheet(id, variant + k));
+  const tiers: ((row: WorksheetProblem, i: number) => boolean)[] = [
+    (row, i) => largestBottom(row) <= limit && !same(row, base[i]) && !used.has(rowKey(row)) && !previous.has(rowKey(row)),
+    (row) => largestBottom(row) <= limit && !used.has(rowKey(row)) && !previous.has(rowKey(row)),
+    (row) => largestBottom(row) <= limit && !used.has(rowKey(row)),
+  ];
+  const sheet = base.map((_, i) => {
+    let chosen: WorksheetProblem | undefined;
+    for (const fits of tiers) { chosen = candidates.map((alt) => alt[i]).find((row) => row && fits(row, i)); if (chosen) break; }
     chosen ??= base[i];
     used.add(rowKey(chosen));
     return chosen;
@@ -673,12 +707,12 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
     const value = f(n, d);
     let prompt = ''; let answer = value; let hint = 'The numerator is the number of parts you count. The denominator is the number of equal parts in one whole.';
     let visual: LearningModel | undefined; let form: WorksheetProblem['form']; let denominator: number | undefined;
-    let modelRequired = false; let task: BarTask | undefined; let area: AreaFigure | undefined; let areaTask: AreaTask | undefined;
+    let modelRequired = false; let task: BarTask | undefined; let area: AreaFigure | undefined; let areaTask: AreaTask | undefined; let why: string | undefined;
     const context = ['ribbon', 'paper strip', 'rope', 'piece of tape'][i % 4];
     switch (id) {
       case 'equal-parts': {
         // Shading only appears when it means something (the part being named, or parts the child marks).
-        const kind = i % 4; const later = i >= 6; // second half: same ideas, new words
+        const kind = i % 4; const later = i >= 4; // second half (rows 5 to 8): same ideas, new words
         if (kind === 0) {
           prompt = later ? 'Tap each part to count it. How many equal parts make the whole bar?' : 'Tap each part to count it. How many equal parts is this bar cut into?';
           answer = String(d); visual = model(0, d); task = { kind: 'count', n: d };
@@ -706,19 +740,12 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           prompt = `Is this pizza cut into ${fair ? d : 4} equal slices? Answer yes or no.`; answer = fair ? 'yes' : 'no'; form = 'word'; visual = undefined; task = undefined;
           area = { cut: fair ?? 'circle-unequal' }; hint = 'Equal slices are all the same size. Is one slice bigger than the others?';
         }
-        // Last four: a square whose equal parts have different shapes (same size, not always same shape).
-        if (i === 8) {
-          prompt = 'Are all 4 parts of this square the same size? Answer yes or no.'; answer = 'yes'; form = 'word'; visual = undefined; task = undefined;
-          area = { cut: 'fourths-mixed' }; hint = 'The line cuts the right half into 2 equal triangles. Each triangle is 1/4, just like each small square.';
-        } else if (i === 9) {
-          prompt = 'This square is cut into 4 parts. Are they fourths? Answer yes or no.'; answer = 'no'; form = 'word'; visual = undefined; task = undefined;
-          area = { cut: 'fourths-unequal' }; hint = 'Fourths must all be the same size. Compare the biggest part and the smallest part.';
-        } else if (i === 10) {
-          prompt = 'These parts are triangles, not squares. Are they still fourths? Answer yes or no.'; answer = 'yes'; form = 'word'; visual = undefined; task = undefined;
-          area = { cut: 'fourths-triangles' }; hint = '4 triangles of the same size fill the square. Same size means fourths, whatever the shape.';
-        } else if (i === 11) {
-          prompt = 'How many small triangles cover the same space as the small square?'; answer = '2'; form = undefined; visual = undefined; task = undefined;
-          area = { cut: 'quarter-and-triangles' }; hint = 'Each triangle is half of a small square.';
+        // Last four: squares whose equal parts may have different shapes (same size, not always same shape). The first
+        // sheet keeps its four; redo sheets swap to a second set, so a redo never repeats the sheet before it.
+        if (i >= 8) {
+          const row = SQUARE_ROWS[variant === 0 ? 0 : 2 - (variant % 2)][i - 8];
+          prompt = row.prompt; answer = row.answer; form = row.answer === 'yes' || row.answer === 'no' ? 'word' : undefined;
+          visual = undefined; task = undefined; area = row.shaded ? { cut: row.cut, shaded: row.shaded } : { cut: row.cut }; hint = row.hint; why = row.why;
         }
         modelRequired = !!task; break;
       }
@@ -736,8 +763,24 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           area = { cut: circleCut(d)!, shaded: [0] }; visual = undefined; task = undefined; modelRequired = false;
           hint = `Count all the slices. ${d} same-size slices make the whole pizza.`;
         }
-        // Last three: one fourth of a square can look different (1 small square, or 2 triangles).
-        if (i === 9) {
+        // Last three: one fourth of a square can look different (1 small square, or 2 triangles). Odd redo sheets ask
+        // about the same shapes in new ways, so a redo never repeats the sheet before it.
+        if (i >= 9 && variant % 2 === 1) {
+          visual = undefined; task = undefined; modelRequired = false;
+          if (i === 9) {
+            prompt = 'Color 2 of the 4 triangles. What fraction of the square did you color?'; answer = '2/4';
+            area = { cut: 'fourths-triangles' }; areaTask = { n: 2, d: 4 };
+            hint = 'The 4 triangles are the same size. Count the ones you colored.';
+          } else if (i === 10) {
+            prompt = 'What fraction of the square do the 2 shaded triangles cover?'; answer = '1/4';
+            area = { cut: 'quarter-and-triangles', shaded: [1, 2] };
+            hint = 'Each triangle is half of a small square. How many small squares would fill the whole square?';
+          } else {
+            prompt = 'What fraction of the square is the shaded small square?'; answer = '1/4';
+            area = { cut: 'fourths-mixed', shaded: [0] };
+            hint = 'Look at the left half and the right half. How is each half cut?'; why = MIXED_FOURTHS_WHY;
+          }
+        } else if (i === 9) {
           prompt = 'Color 1/4 of the square. Any way that works is fine. What fraction did you color?'; answer = '1/4';
           area = { cut: 'quarter-and-triangles' }; areaTask = { n: 1, d: 4 }; visual = undefined; task = undefined; modelRequired = false;
           hint = 'The small square is 1/4. Two triangles together are also 1/4.';
@@ -748,7 +791,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         } else if (i === 11) {
           prompt = 'What fraction of the square is the shaded triangle?'; answer = '1/4';
           area = { cut: 'fourths-mixed', shaded: [2] }; visual = undefined; task = undefined; modelRequired = false;
-          hint = 'The 4 parts are the same size, even though 2 are squares and 2 are triangles.';
+          hint = 'Look at the left half and the right half. How is each half cut?'; why = MIXED_FOURTHS_WHY;
         }
         break;
       case 'fraction-names':
@@ -794,29 +837,34 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         if (i % 3 === 2) visual = model(0, 1, 'set', total); break;
       }
       case 'benchmark-half': {
-        const even = 4 + 2 * ((i + variant) % 5); const top = even / 2 + ((i + variant) % 2 ? 1 : -1);
-        prompt = i % 3 === 0 ? `What is 1/${even} less than 1/2?` :
-          i % 3 === 1 ? `Put <, = or > in the gap: ${f(top, even)} __ 1/2.` : `How much more does ${f(even / 2 - 1, even)} need to reach half?`;
-        answer = i % 3 === 0 ? f(even / 2 - 1, even) : i % 3 === 1 ? (top > even / 2 ? '>' : '<') : f(1, even);
+        const even = 4 + 2 * ((i + variant) % 5);
+        // Odd redo sheets step 2 pieces from half instead of 1 (in eighths and up), so back-to-back sheets differ.
+        const step = variant % 2 === 1 && even >= 8 ? 2 : 1; const top = even / 2 + ((i + variant) % 2 ? step : -step);
+        prompt = i % 3 === 0 ? `What is ${step}/${even} less than 1/2?` :
+          i % 3 === 1 ? `Put <, = or > in the gap: ${f(top, even)} __ 1/2.` : `How much more does ${f(even / 2 - step, even)} need to reach half?`;
+        answer = i % 3 === 0 ? f(even / 2 - step, even) : i % 3 === 1 ? (top > even / 2 ? '>' : '<') : f(step, even);
         form = i % 3 === 1 ? 'symbol' : undefined; hint = `Half of ${even} parts is ${even / 2} parts.`;
         if (i % 3 === 1) visual = model(top, even); break;
       }
       case 'fraction-magnitude': {
         // In fourths the "closer" row would offer 1/4 twice (1/4 and h − 1 = 1), so it uses eighths.
         const base = [4, 6, 8, 10, 12, 6, 8, 10, 12, 6, 10, 10][t]; const even = i % 3 === 2 && base === 4 ? 8 : base; const h = even / 2;
-        const top = [h + 1, h, h - 1, h][i % 4];
-        prompt = i % 3 === 0 ? `What is 1/${even} more than 1/2?` :
-          i % 3 === 1 ? `Put <, = or > in the gap: ${f(top, even)} __ 1/2.` : (t + i) % 2 ? `Which is closer to 1/2: ${f(1, even)} or ${f(h - 1, even)}?` : `Which is closer to 1/2: ${f(h - 1, even)} or ${f(1, even)}?`;
-        answer = i % 3 === 0 ? f(h + 1, even) : i % 3 === 1 ? (top > h ? '>' : top < h ? '<' : '=') : f(h - 1, even);
+        const step = variant % 2 === 1 && even >= 8 ? 2 : 1; // odd redo sheets: 2 pieces from half (as in benchmark-half)
+        const top = [h + step, h, h - step, h][i % 4];
+        prompt = i % 3 === 0 ? `What is ${step}/${even} more than 1/2?` :
+          i % 3 === 1 ? `Put <, = or > in the gap: ${f(top, even)} __ 1/2.` : (t + i) % 2 ? `Which is closer to 1/2: ${f(1, even)} or ${f(h - step, even)}?` : `Which is closer to 1/2: ${f(h - step, even)} or ${f(1, even)}?`;
+        answer = i % 3 === 0 ? f(h + step, even) : i % 3 === 1 ? (top > h ? '>' : top < h ? '<' : '=') : f(h - step, even);
         form = i % 3 === 1 ? 'symbol' : undefined; hint = `Half of ${even} parts is ${h}/${even}. Compare to that.`;
         if (i % 3 === 1) visual = model(top, even); break;
       }
       case 'benchmarks-zero-one': {
         const e = [6, 8, 10, 12][(i + variant) % 4];
-        const close: [number, string] = [[1, '0'], [e / 2 - 1, '1/2'], [e - 1, '1']][(i + variant + Math.floor(i / 3)) % 3] as [number, string];
-        prompt = i % 3 === 0 ? `How much is missing from ${f(d - 1, d)} to make one whole?` :
+        // Odd redo sheets step 2 pieces (2/10 is still closest to 0; 2/8 would sit halfway between 0 and 1/2).
+        const step = variant % 2 === 1 ? 2 : 1; const near = step === 2 && e >= 10 ? 2 : 1;
+        const close: [number, string] = [[near, '0'], [e / 2 - near, '1/2'], [e - near, '1']][(i + variant + Math.floor(i / 3)) % 3] as [number, string];
+        prompt = i % 3 === 0 ? `How much is missing from ${f(d - step, d)} to make one whole?` :
           `Is ${f(close[0], e)} closest to 0, 1/2 or 1?`;
-        answer = i % 3 === 0 ? f(1, d) : close[1];
+        answer = i % 3 === 0 ? f(step, d) : close[1];
         hint = i % 3 === 0 ? `One whole is ${f(d, d)}. How many parts are missing?` : 'Compare it to 0, 1/2 and 1. Pick the closest.'; break;
       }
       case 'number-line-basics':
@@ -939,7 +987,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
     }
     // Older bar worksheets: "copy the shaded bar".
     if (modelRequired && !task && visual?.kind === 'bar') task = { kind: 'copy', n: visual.n };
-    return { id: `w${i + 1}`, prompt, answer, hint, model: visual, modelRequired, task, form, denominator, ...(area ? { area } : {}), ...(areaTask ? { areaTask } : {}) };
+    return { id: `w${i + 1}`, prompt, answer, hint, model: visual, modelRequired, task, form, denominator, ...(area ? { area } : {}), ...(areaTask ? { areaTask } : {}), ...(why ? { why } : {}) };
   });
 }
 
@@ -951,7 +999,11 @@ const mixedName = (top: number, bottom: number) => {
   return whole && part ? `${whole} ${part}/${bottom}` : whole ? String(whole) : `${part}/${bottom}`;
 };
 // Fractions whose decimal and percent are exact (no rounding for kids).
-const EXACT: [number, number][] = [[1, 2], [1, 4], [3, 4], [1, 5], [2, 5], [3, 10], [7, 10], [3, 5], [4, 5], [1, 10], [9, 10], [1, 20]];
+const EXACT: [number, number][] = [[1, 2], [1, 4], [3, 4], [1, 5], [2, 5], [3, 10], [7, 10], [3, 5], [4, 5], [1, 10], [9, 10], [1, 20],
+  // Extra rows for redo sheets, still twentieths at most: new amounts, then fractions not yet in simplest form.
+  [3, 20], [7, 20], [9, 20], [11, 20], [13, 20], [17, 20], [19, 20], [2, 10], [4, 10], [6, 10], [8, 10], [2, 4]];
+/** Percent to fraction: the first sheet's percents (from EXACT), then new ones; its answers are hundredths anyway. */
+const PERCENTS = [...EXACT.slice(0, 12).map(([t, b]) => (t * 100) / b), 15, 35, 45, 55, 65, 85, 95, 12, 24, 36, 48, 64];
 const SIMPLE: [number, number][] = [[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [2, 5], [1, 6], [5, 6], [3, 8], [3, 10], [5, 12], [7, 10]];
 
 /** Worksheets for the later (extension) lessons: exact math, grade-friendly numbers, a hint for each skill. */
@@ -960,21 +1012,26 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
   return Array.from({ length: 12 }, (_, i) => {
     const tr = (i + shift) % 12; // row in the number tables (the question type still follows i)
     const [n, d] = SIMPLE[tr]; const k = 2 + (i + variant) % 3;
+    // Tables with a second set of 12 rows: the first sheet uses rows 1-12, and redo sheets reach the new numbers.
+    const pick = <T,>(table: readonly T[]): T => table[(i + variant) % table.length];
     let prompt = ''; let answer = f(n, d); let hint = '';
     let form: WorksheetProblem['form']; let visual: LearningModel | undefined; let denominator: number | undefined;
     let area: AreaFigure | undefined; let areaTask: AreaTask | undefined;
     let rulerTask: WorksheetProblem['rulerTask']; let linePlotTask: WorksheetProblem['linePlotTask'];
     let scaleTask: WorksheetProblem['scaleTask']; let modelRequired = false; let task: BarTask | undefined;
     switch (spec.mode) {
-      case 'simplify':
-        prompt = `Write ${f(n * k, d * k)} in simplest form.`; denominator = d; visual = model(n * k, d * k);
+      case 'simplify': {
+        const times = 2 + i % 3; // follows the row, not the fraction, so redo sheets pair each fraction with a new factor
+        prompt = `Write ${f(n * times, d * times)} in simplest form.`; denominator = d; visual = model(n * times, d * times);
         hint = 'Find a number that divides the numerator and denominator. Divide both by it.'; break;
+      }
       case 'equivalent':
         prompt = i % 2 ? `Write ${f(n, d)} with a denominator of ${d * k}.` : `Fill the missing numerator: ${f(n, d)} = ?/${d * k}.`;
         answer = i % 2 ? f(n * k, d * k) : String(n * k); denominator = i % 2 ? d * k : undefined;
         hint = `The denominator was multiplied by ${k}. Multiply the numerator by ${k} too.`; break;
       case 'compare': {
-        const [a, b, c, e] = ([[1, 2, 2, 5], [4, 5, 3, 4], [3, 4, 2, 3], [1, 3, 2, 6], [3, 5, 3, 4], [5, 6, 5, 8], [2, 5, 1, 3], [1, 2, 3, 8], [4, 6, 2, 3], [7, 10, 3, 5], [2, 5, 2, 3], [5, 8, 3, 4]] as const)[tr];
+        const [a, b, c, e] = pick([[1, 2, 2, 5], [4, 5, 3, 4], [3, 4, 2, 3], [1, 3, 2, 6], [3, 5, 3, 4], [5, 6, 5, 8], [2, 5, 1, 3], [1, 2, 3, 8], [4, 6, 2, 3], [7, 10, 3, 5], [2, 5, 2, 3], [5, 8, 3, 4],
+          [2, 3, 3, 4], [5, 8, 1, 2], [3, 10, 1, 4], [2, 6, 1, 3], [4, 10, 1, 2], [4, 5, 7, 10], [1, 4, 2, 8], [3, 8, 2, 5], [5, 6, 3, 4], [2, 3, 5, 9], [7, 9, 2, 3], [2, 8, 2, 6]] as const);
         prompt = `Put <, = or > in the gap: ${f(a, b)} __ ${f(c, e)}.`;
         answer = a * e > c * b ? '>' : a * e < c * b ? '<' : '='; form = 'symbol';
         hint = a === c
@@ -995,7 +1052,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         hint = 'Compare each one to 1/2 first. If needed, rename them with the same denominator so their parts match, then compare.'; break;
       }
       case 'subtract-unlike': {
-        const [a, b, c, e] = ([[3, 4, 1, 2], [5, 6, 1, 2], [7, 8, 1, 2], [5, 8, 1, 4], [5, 6, 1, 3], [9, 10, 1, 2], [7, 12, 1, 3], [3, 4, 1, 8], [2, 3, 1, 6], [7, 10, 1, 5], [11, 12, 1, 4], [5, 6, 2, 3]] as const)[tr];
+        const [a, b, c, e] = pick([[3, 4, 1, 2], [5, 6, 1, 2], [7, 8, 1, 2], [5, 8, 1, 4], [5, 6, 1, 3], [9, 10, 1, 2], [7, 12, 1, 3], [3, 4, 1, 8], [2, 3, 1, 6], [7, 10, 1, 5], [11, 12, 1, 4], [5, 6, 2, 3],
+          [2, 3, 1, 4], [4, 5, 1, 2], [5, 8, 1, 2], [3, 4, 1, 6], [5, 6, 1, 4], [7, 8, 1, 4], [9, 10, 2, 5], [2, 3, 1, 2], [3, 5, 1, 10], [5, 12, 1, 6], [7, 10, 1, 2], [11, 12, 2, 3]] as const);
         const m = lcm(b, e);
         prompt = `${f(a, b)} − ${f(c, e)} = ?`; answer = f(a * (m / b) - c * (m / e), m);
         hint = `Change both to ${unitName(m)} first. Then take away the numerators.`; break;
@@ -1024,7 +1082,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         hint = `Make ${bottom} equal groups. Count ${groups} of them.`; break;
       }
       case 'share': {
-        const [loaves, people] = ([[1, 2], [2, 3], [3, 4], [1, 3], [3, 5], [2, 4], [2, 5], [3, 8], [3, 2], [1, 6], [1, 4], [3, 6]] as const)[tr];
+        const [loaves, people] = pick([[1, 2], [2, 3], [3, 4], [1, 3], [3, 5], [2, 4], [2, 5], [3, 8], [3, 2], [1, 6], [1, 4], [3, 6],
+          [1, 5], [4, 5], [2, 6], [5, 6], [4, 3], [5, 8], [1, 8], [2, 7], [5, 4], [2, 8], [4, 6], [5, 2]] as const);
         prompt = `${loaves} ${loaves === 1 ? 'loaf is' : 'loaves are'} shared fairly by ${people} friends. How much does each friend get?`;
         // Picture: each loaf cut into one piece per friend, nothing shaded (it must not suggest 1/people).
         answer = f(loaves, people); visual = { kind: 'bar', n: 0, d: people, wholes: loaves };
@@ -1051,19 +1110,22 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         visual = model(n, d, 'line'); hint = `Cut ${length} meters into ${d} equal parts. Count ${n} ${n === 1 ? 'part' : 'parts'}.`; break;
       }
       case 'measure-add': {
-        const [a, b, c, e] = ([[1, 2, 1, 4], [1, 3, 1, 6], [1, 4, 1, 8], [1, 2, 1, 8], [2, 3, 1, 6], [1, 5, 1, 10], [1, 2, 1, 6], [3, 4, 1, 8], [1, 3, 1, 12], [2, 5, 1, 10], [1, 2, 3, 8], [1, 4, 1, 12]] as const)[tr];
+        const [a, b, c, e] = pick([[1, 2, 1, 4], [1, 3, 1, 6], [1, 4, 1, 8], [1, 2, 1, 8], [2, 3, 1, 6], [1, 5, 1, 10], [1, 2, 1, 6], [3, 4, 1, 8], [1, 3, 1, 12], [2, 5, 1, 10], [1, 2, 3, 8], [1, 4, 1, 12],
+          [1, 2, 1, 10], [3, 4, 1, 12], [1, 6, 1, 12], [3, 5, 1, 10], [1, 4, 3, 8], [2, 3, 1, 12], [1, 2, 1, 12], [1, 6, 5, 12], [1, 3, 2, 9], [2, 5, 3, 10], [1, 5, 3, 10], [1, 4, 5, 8]] as const);
         const m = lcm(b, e);
         prompt = `A board is ${f(a, b)} meter. Another is ${f(c, e)} meter. How long are they together?`; answer = f(a * (m / b) + c * (m / e), m);
         hint = `Change ${f(a, b)} into ${unitName(m)} first.`; break;
       }
       case 'quotient': {
-        const pizzas = [1, 2, 3, 5, 4, 7, 2, 3, 5, 6, 1, 3][tr]; const friends = [2, 3, 4, 4, 3, 2, 5, 2, 3, 4, 4, 8][tr];
+        const [pizzas, friends] = pick([[1, 2], [2, 3], [3, 4], [5, 4], [4, 3], [7, 2], [2, 5], [3, 2], [5, 3], [6, 4], [1, 4], [3, 8],
+          [1, 3], [3, 5], [4, 5], [5, 2], [5, 6], [1, 6], [7, 4], [4, 6], [2, 8], [7, 3], [5, 8], [1, 5]] as const);
         prompt = `${pizzas} ${pizzas === 1 ? 'pizza is' : 'pizzas are'} shared fairly by ${friends} friends. How much pizza does each friend get?`;
         answer = f(pizzas, friends); visual = pizzas <= 3 ? { kind: 'bar', n: 0, d: friends, wholes: pizzas } : undefined;
         hint = `The numerator is what is shared. The denominator is how many share it.`; break;
       }
       case 'probability': {
-        const [green, total] = ([[1, 4], [2, 6], [3, 8], [3, 10], [2, 5], [5, 12], [1, 6], [5, 8], [7, 10], [3, 4], [7, 12], [4, 5]] as const)[tr];
+        const [green, total] = pick([[1, 4], [2, 6], [3, 8], [3, 10], [2, 5], [5, 12], [1, 6], [5, 8], [7, 10], [3, 4], [7, 12], [4, 5],
+          [1, 3], [2, 3], [1, 5], [3, 5], [1, 8], [7, 8], [1, 10], [9, 10], [1, 12], [3, 6], [2, 8], [5, 6]] as const);
         prompt = `A bag has ${total} marbles. ${green} ${green === 1 ? 'is' : 'are'} green. What is the chance of picking green?`;
         answer = f(green, total); visual = model(green, total, 'set', total);
         hint = 'The numerator is the number of green marbles. The denominator is the total number of marbles.'; break;
@@ -1093,27 +1155,31 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         }
         break;
       }
-      case 'line':
-        prompt = `${f(n, d)} is marked on a line. Which fraction with a denominator of ${d * 2} is at the same spot?`;
-        answer = f(n * 2, d * 2); denominator = d * 2; visual = model(n, d, 'line');
-        hint = 'Cut every space in half. Now there are twice as many spaces and twice as many jumps.'; break;
+      case 'line': {
+        // Redo sheets also cut each space into 3 or 4 (when the new denominator stays 24 or less).
+        const wanted = variant ? [2, 3, 4][(i + 2 * variant) % 3] : 2; const times = d * wanted <= 24 ? wanted : 2; // shifts apart from the fraction
+        prompt = `${f(n, d)} is marked on a line. Which fraction with a denominator of ${d * times} is at the same spot?`;
+        answer = f(n * times, d * times); denominator = d * times; visual = model(n, d, 'line');
+        hint = times === 2 ? 'Cut every space in half. Now there are twice as many spaces and twice as many jumps.'
+          : `Cut every space into ${times} equal spaces. Now there are ${times} times as many spaces and ${times} times as many jumps.`; break;
+      }
       case 'recipe': {
         const batches = 2 + i % 2;
         prompt = `A recipe uses ${f(n, d)} cup of flour. You make ${batches} batches. How much flour do you need?`;
         answer = f(n * batches, d); hint = `${batches} batches: ${Array(batches).fill(f(n, d)).join(' + ')}. Or multiply the numerator by ${batches}.`; break;
       }
       case 'percent': {
-        const [t, b] = EXACT[tr];
+        const [t, b] = pick(EXACT);
         prompt = `Write ${f(t, b)} as a percent.`; answer = `${(t * 100) / b}%`;
         hint = `Percent means out of 100. Change ${f(t, b)} to hundredths.`; break;
       }
       case 'percent-inverse': {
-        const [t, b] = EXACT[tr]; const percent = (t * 100) / b;
+        const percent = pick(PERCENTS);
         prompt = `Write ${percent}% as a fraction with a denominator of 100.`; answer = f(percent, 100); denominator = 100;
         hint = `${percent}% means ${percent} out of 100.`; break;
       }
       case 'decimal-equivalent': {
-        const [t, b] = EXACT[tr];
+        const [t, b] = pick(EXACT);
         prompt = `Write ${f(t, b)} as a decimal.`; answer = String(t / b); form = 'decimal';
         hint = 'Change it to tenths or hundredths first. 1/2 = 5/10 = 0.5.'; break;
       }
@@ -1123,8 +1189,12 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           { kind: 'write', numerator: 3, denominator: 1 }, { kind: 'count', numerator: 9, denominator: 3 }, { kind: 'one', numerator: 4, denominator: 4 },
           { kind: 'write', numerator: 4, denominator: 1 }, { kind: 'count', numerator: 16, denominator: 4 }, { kind: 'one', numerator: 6, denominator: 6 },
           { kind: 'write', numerator: 5, denominator: 1 }, { kind: 'count', numerator: 25, denominator: 5 }, { kind: 'one', numerator: 8, denominator: 8 },
+          { kind: 'write', numerator: 6, denominator: 1 }, { kind: 'count', numerator: 6, denominator: 2 }, { kind: 'one', numerator: 2, denominator: 2 },
+          { kind: 'count', numerator: 10, denominator: 2 }, { kind: 'count', numerator: 12, denominator: 3 }, { kind: 'one', numerator: 5, denominator: 5 },
+          { kind: 'count', numerator: 12, denominator: 4 }, { kind: 'count', numerator: 8, denominator: 4 }, { kind: 'one', numerator: 7, denominator: 7 },
+          { kind: 'count', numerator: 15, denominator: 5 }, { kind: 'count', numerator: 20, denominator: 5 }, { kind: 'one', numerator: 1, denominator: 1 },
         ];
-        const item = examples[tr];
+        const item = pick(examples);
         if (item.kind === 'write') {
           prompt = `Write ${item.numerator} whole bars as a fraction with a denominator of 1.`; answer = `${item.numerator}/1`; visual = model(item.numerator, 1);
           hint = 'The denominator 1 means each part is one whole.';
@@ -1138,8 +1208,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         modelRequired = true; break;
       }
       case 'decimal-compare': {
-        const hundredths: [number, number][] = [[30, 25], [40, 35], [8, 12], [55, 5], [23, 32], [70, 7], [45, 50], [3, 25], [99, 90], [60, 6], [11, 10], [35, 5]];
-        const [a, b] = hundredths[tr];
+        const hundredths: [number, number][] = [[30, 25], [40, 35], [8, 12], [55, 5], [23, 32], [70, 7], [45, 50], [3, 25], [99, 90], [60, 6], [11, 10], [35, 5],
+          [50, 45], [20, 15], [9, 10], [65, 6], [42, 24], [80, 8], [15, 51], [4, 40], [88, 80], [30, 3], [21, 12], [75, 57]];
+        const [a, b] = pick(hundredths);
         // Written the short way (0.4, not 0.40), with no fraction beside it: "0.4 or 0.35?" is the mistake to catch.
         const left = String(a / 100); const right = String(b / 100);
         prompt = `Compare: ${left} __ ${right}.`; answer = a > b ? '>' : a < b ? '<' : '='; form = 'symbol';
@@ -1211,8 +1282,20 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           { prompt: 'How many cents are in 3/4 dollar?', answer: '75', hint: 'A dollar is 100 cents. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
           { prompt: 'A 2-liter jug is 1/4 full. How many milliliters are inside?', answer: '500', hint: '2 liters is 2000 milliliters. Find one fourth of 2000.', numerator: 1, denominator: 4 },
           { prompt: 'How many hours are in 1/2 day?', answer: '12', hint: 'A day is 24 hours. Split 24 into 2 equal groups.', numerator: 1, denominator: 2 },
+          { prompt: 'How many minutes are in 1/2 hour?', answer: '30', hint: 'An hour is 60 minutes. Split 60 into 2 equal groups.', numerator: 1, denominator: 2 },
+          { prompt: 'How many cents are in 1/2 dollar?', answer: '50', hint: 'A dollar is 100 cents. Split 100 into 2 equal groups.', numerator: 1, denominator: 2 },
+          { prompt: 'A 1-kilogram bag is 1/2 full. How many grams are in it?', answer: '500', hint: '1 kilogram is 1000 grams. Find half of 1000.', numerator: 1, denominator: 2 },
+          { prompt: 'A ribbon is 1/3 meter and another is 1/3 meter. How many meters long together?', answer: '2/3', hint: 'Thirds plus thirds make thirds. Add the numerators.', numerator: 2, denominator: 3 },
+          { prompt: 'How many hours are in 1/4 day?', answer: '6', hint: 'A day is 24 hours. Split 24 into 4 equal groups.', numerator: 1, denominator: 4 },
+          { prompt: 'A bottle has 3/4 liter. How many milliliters is that?', answer: '750', hint: 'A liter is 1000 milliliters. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
+          { prompt: 'A jug has 1/4 liter. You add 1/2 liter. How many liters now?', answer: '3/4', hint: 'Rename 1/2 as 2/4, then add.', numerator: 3, denominator: 4 },
+          { prompt: 'How many minutes are in 1/3 hour?', answer: '20', hint: 'An hour is 60 minutes. Split 60 into 3 equal groups.', numerator: 1, denominator: 3 },
+          { prompt: 'A board is 2/3 meter. Another is 1/3 meter. How many meters in all?', answer: '1', hint: 'Three thirds make one whole meter.', numerator: 3, denominator: 3 },
+          { prompt: 'How many hours are in 3/4 day?', answer: '18', hint: 'A day is 24 hours. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
+          { prompt: 'How many hours are in 1/3 day?', answer: '8', hint: 'A day is 24 hours. Split 24 into 3 equal groups.', numerator: 1, denominator: 3 },
+          { prompt: 'How many minutes are in 2/3 hour?', answer: '40', hint: 'An hour is 60 minutes. Find 2 of 3 equal groups.', numerator: 2, denominator: 3 },
         ];
-        const story = stories[tr]; prompt = story.prompt; answer = story.answer; form = story.form; hint = story.hint;
+        const story = pick(stories); prompt = story.prompt; answer = story.answer; form = story.form; hint = story.hint;
         visual = model(story.numerator, story.denominator); modelRequired = true;
         // Adding stories: the child shades the total (a drawn total would be the answer).
         // The instruction doesn't say how many parts: that count is the answer.
@@ -1224,8 +1307,11 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           [1, 3, 1, 4, '+'], [1, 2, 1, 3, '+'], [3, 4, 1, 3, '−'], [2, 3, 1, 4, '+'],
           [1, 6, 1, 4, '+'], [1, 5, 1, 2, '+'], [7, 8, 1, 4, '−'], [2, 5, 1, 3, '+'],
           [3, 4, 1, 6, '+'], [5, 6, 1, 3, '−'], [1, 8, 1, 2, '+'], [4, 5, 1, 2, '−'],
+          [1, 2, 1, 4, '+'], [1, 3, 1, 6, '+'], [2, 3, 1, 6, '−'], [3, 4, 1, 2, '−'],
+          [1, 4, 1, 8, '+'], [3, 5, 1, 10, '+'], [5, 6, 1, 2, '−'], [1, 2, 2, 5, '+'],
+          [1, 2, 1, 3, '−'], [3, 8, 1, 4, '+'], [5, 6, 3, 4, '−'], [1, 4, 2, 3, '+'],
         ];
-        const [a, b, c, e, op] = examples[tr]; const common = lcm(b, e);
+        const [a, b, c, e, op] = pick(examples); const common = lcm(b, e);
         const top = a * (common / b) + (op === '+' ? 1 : -1) * c * (common / e);
         const renames = [[a, b], [c, e]].filter(([, bottom]) => bottom !== common).map(([top, bottom]) => `${f(top, bottom)} = ${f(top * (common / bottom), common)}`);
         prompt = `${renames.length ? `Rename: ${renames.join(' and ')}. Then ` : ''}${f(a, b)} ${op} ${f(c, e)} = ?`;
@@ -1239,8 +1325,12 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           [2, 1, 2, 0, 1, 3, '−'], [3, 1, 4, 1, 1, 2, '−'], [2, 2, 3, 1, 1, 4, '−'],
           [1, 2, 5, 1, 1, 2, '+'], [2, 1, 6, 0, 1, 3, '+'], [3, 1, 3, 1, 3, 4, '−'],
           [1, 1, 4, 1, 1, 6, '+'], [2, 3, 5, 1, 1, 2, '−'], [1, 2, 3, 1, 1, 4, '+'],
+          [1, 1, 3, 1, 1, 6, '+'], [2, 1, 4, 1, 1, 2, '+'], [1, 1, 2, 0, 1, 4, '+'],
+          [3, 3, 4, 1, 1, 2, '−'], [2, 1, 3, 1, 1, 6, '−'], [2, 1, 2, 0, 3, 4, '−'],
+          [1, 2, 3, 1, 1, 6, '+'], [3, 1, 2, 1, 2, 3, '−'], [1, 3, 8, 1, 1, 4, '+'],
+          [2, 4, 5, 1, 1, 10, '−'], [1, 1, 6, 0, 1, 2, '+'], [4, 1, 3, 2, 1, 2, '−'],
         ];
-        const [wholeA, topA, bottomA, wholeB, topB, bottomB, op] = examples[tr];
+        const [wholeA, topA, bottomA, wholeB, topB, bottomB, op] = pick(examples);
         const a = wholeA * bottomA + topA; const b = bottomA; const c = wholeB * bottomB + topB; const e = bottomB;
         const common = lcm(b, e); const result = a * (common / b) + (op === '+' ? 1 : -1) * c * (common / e);
         const renames = [[topA, bottomA], [topB, bottomB]].filter(([, bottom]) => bottom !== common).map(([top, bottom]) => `${f(top, bottom)} = ${f(top * (common / bottom), common)}`);
@@ -1254,8 +1344,11 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           [2, 5, 1, 2, '+'], [3, 4, 1, 2, '+'], [1, 3, 1, 4, '+'], [5, 6, 1, 4, '+'],
           [3, 8, 1, 2, '+'], [4, 5, 1, 3, '−'], [2, 3, 1, 4, '+'], [3, 5, 1, 2, '+'],
           [5, 8, 1, 4, '+'], [7, 10, 1, 3, '−'], [1, 4, 1, 2, '+'], [3, 4, 1, 3, '+'],
+          [1, 2, 1, 3, '+'], [2, 3, 1, 2, '+'], [3, 5, 1, 3, '+'], [5, 6, 1, 2, '+'],
+          [1, 5, 1, 2, '+'], [7, 8, 1, 4, '+'], [4, 5, 1, 2, '+'], [3, 10, 1, 2, '+'],
+          [1, 8, 1, 2, '+'], [1, 6, 1, 2, '+'], [2, 5, 1, 3, '+'], [7, 10, 1, 2, '+'],
         ];
-        const [a, b, c, e, op] = examples[tr]; const common = lcm(b, e);
+        const [a, b, c, e, op] = pick(examples); const common = lcm(b, e);
         const total = a * (common / b) + (op === '+' ? 1 : -1) * c * (common / e);
         const operation = op === '+' ? 'sum' : 'difference';
         prompt = `Without finding the exact ${operation}, compare ${f(a, b)} ${op} ${f(c, e)} with 1: __ 1.`;
@@ -1271,8 +1364,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         hint = `The grid has 12 equal small rectangles. The overlap covers ${product} of them.`; break;
       }
       case 'scaling': {
-        const examples: [number, number, number][] = [[3, 4, 12], [3, 2, 12], [5, 4, 8], [3, 2, 10], [4, 4, 20], [3, 4, 16], [5, 4, 12], [5, 4, 24], [3, 2, 8], [1, 4, 12], [3, 4, 20], [5, 4, 16]];
-        const [top, bottom, whole] = examples[tr];
+        const examples: [number, number, number][] = [[3, 4, 12], [3, 2, 12], [5, 4, 8], [3, 2, 10], [4, 4, 20], [3, 4, 16], [5, 4, 12], [5, 4, 24], [3, 2, 8], [1, 4, 12], [3, 4, 20], [5, 4, 16],
+          [1, 2, 12], [1, 2, 20], [2, 4, 16], [4, 4, 12], [2, 2, 10], [1, 4, 16], [1, 4, 20], [3, 4, 8], [1, 2, 16], [2, 2, 16], [5, 4, 20], [2, 4, 8]];
+        const [top, bottom, whole] = pick(examples);
         scaleTask = { whole, numerator: top, denominator: bottom };
         prompt = `Move the scale slider to ${top}/${bottom}. Without multiplying, compare ${top}/${bottom} × ${whole} with ${whole}: __ ${whole}.`;
         answer = top < bottom ? '<' : top === bottom ? '=' : '>'; form = 'symbol';
@@ -1283,8 +1377,11 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           [1, 1, 2, 1, 1, 3], [1, 1, 2, 2, 1, 2], [2, 1, 2, 1, 1, 3], [1, 1, 3, 1, 1, 2],
           [1, 1, 4, 2, 1, 2], [2, 1, 3, 1, 1, 2], [1, 1, 2, 1, 1, 4], [1, 1, 3, 2, 1, 2],
           [2, 1, 4, 1, 1, 2], [1, 1, 5, 1, 1, 2], [1, 1, 2, 2, 1, 3], [2, 1, 5, 1, 1, 2],
+          [1, 1, 2, 1, 1, 2], [2, 1, 2, 2, 1, 2], [1, 1, 3, 1, 1, 3], [1, 1, 4, 1, 1, 2],
+          [3, 1, 2, 1, 1, 2], [1, 2, 3, 1, 1, 2], [2, 1, 3, 2, 1, 2], [1, 1, 5, 2, 1, 2],
+          [1, 3, 4, 1, 1, 2], [2, 1, 2, 1, 1, 4], [1, 1, 3, 3, 1, 2], [1, 2, 5, 1, 1, 2],
         ];
-        const [wa, na, da, wb, nb, db] = examples[tr]; const top = (wa * da + na) * (wb * db + nb); const bottom = da * db;
+        const [wa, na, da, wb, nb, db] = pick(examples); const top = (wa * da + na) * (wb * db + nb); const bottom = da * db;
         prompt = `A rectangular garden is ${wa} ${f(na, da)} meters by ${wb} ${f(nb, db)} meters. What is its area?`;
         answer = mixedName(top, bottom); form = answer.includes(' ') ? 'mixed' : undefined;
         visual = model(wa * da + na, da); modelRequired = true;
@@ -1310,8 +1407,20 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           { prompt: 'How many centimeters are in 1/4 meter?', answer: '25', numerator: 1, denominator: 4, hint: '1 meter is 100 centimeters. Find one fourth of 100.' },
           { prompt: 'How many ounces are in 1/2 pound?', answer: '8', numerator: 1, denominator: 2, hint: '1 pound is 16 ounces. Find half of 16.' },
           { prompt: 'How many hours are in 1/4 day?', answer: '6', numerator: 1, denominator: 4, hint: '1 day is 24 hours. Find one fourth of 24.' },
+          { prompt: 'How many inches are in 3/4 foot?', answer: '9', numerator: 3, denominator: 4, hint: '1 foot is 12 inches. Find 3 of 4 equal groups.' },
+          { prompt: 'How many minutes are in 1/4 hour?', answer: '15', numerator: 1, denominator: 4, hint: '1 hour is 60 minutes. Find one fourth of 60.' },
+          { prompt: 'How many minutes are in 1/3 hour?', answer: '20', numerator: 1, denominator: 3, hint: '1 hour is 60 minutes. Find one third of 60.' },
+          { prompt: 'How many milliliters are in 3/4 liter?', answer: '750', numerator: 3, denominator: 4, hint: '1 liter is 1000 milliliters. Find 3 of 4 equal groups.' },
+          { prompt: 'How many grams are in 1/4 kilogram?', answer: '250', numerator: 1, denominator: 4, hint: '1 kilogram is 1000 grams. Find one fourth of 1000.' },
+          { prompt: 'How many centimeters are in 3/4 meter?', answer: '75', numerator: 3, denominator: 4, hint: '1 meter is 100 centimeters. Find 3 of 4 equal groups.' },
+          { prompt: 'How many ounces are in 1/4 pound?', answer: '4', numerator: 1, denominator: 4, hint: '1 pound is 16 ounces. Find one fourth of 16.' },
+          { prompt: 'How many ounces are in 3/4 pound?', answer: '12', numerator: 3, denominator: 4, hint: '1 pound is 16 ounces. Find 3 of 4 equal groups.' },
+          { prompt: 'How many hours are in 1/2 day?', answer: '12', numerator: 1, denominator: 2, hint: '1 day is 24 hours. Find half of 24.' },
+          { prompt: 'How many hours are in 1/3 day?', answer: '8', numerator: 1, denominator: 3, hint: '1 day is 24 hours. Find one third of 24.' },
+          { prompt: 'How many inches are in 1/3 foot?', answer: '4', numerator: 1, denominator: 3, hint: '1 foot is 12 inches. Find one third of 12.' },
+          { prompt: 'How many seconds are in 1/2 minute?', answer: '30', numerator: 1, denominator: 2, hint: '1 minute is 60 seconds. Find half of 60.' },
         ];
-        const item = conversions[tr]; prompt = item.prompt; answer = item.answer; hint = item.hint;
+        const item = pick(conversions); prompt = item.prompt; answer = item.answer; hint = item.hint;
         visual = model(item.numerator, item.denominator); modelRequired = true; break;
       }
       case 'whole-from-part': {
@@ -1333,6 +1442,10 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           ['Lee says 3/4 is bigger than 3/8.', 'yes', 'Both have 3 parts. Fourths are bigger than eighths.'],
           ['Mia says 1/8 is bigger than 1/4 because 8 is bigger than 4.', 'no', 'More parts in the whole means smaller parts.'],
           ['Ana says 2/3 = 4/6.', 'yes', 'Cut each third into 2. Then 2 thirds is 4 sixths.'],
+          ['Ray says 1/3 is bigger than 1/5.', 'yes', 'Thirds are bigger parts than fifths.'],
+          ['Jen says 3/5 + 1/5 = 4/10.', 'no', 'Fifths plus fifths make fifths. Add only the numerators.'],
+          ['Pat says 4/8 = 1/2.', 'yes', '4 of 8 equal parts is half of them.'],
+          ['Kai says 2/6 is bigger than 2/3 because 6 is bigger than 3.', 'no', 'Both have 2 parts. Sixths are smaller than thirds.'],
         ];
         const fixes: [string, string, string, number?, WorksheetProblem['form']?][] = [
           ['Sam says 1/4 + 2/4 = 3/8.', '3/4', 'Fourths plus fourths make fourths. Add only the numerators.'],
@@ -1343,6 +1456,14 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           ['Max says 7/4 = 1 1/3.', '1 3/4', '4 fourths make one whole. Count the fourths left over.', undefined, 'mixed'],
           ['Zoe says 2/3 = 3/4 because she added 1 to the numerator and denominator.', '4/6', 'Multiply the numerator and denominator by the same number.', 6],
           ['Tim says half of 3/4 is 3/2.', '3/8', 'Cut each fourth in half. Each half is an eighth.'],
+          ['Liv says 2/7 + 3/7 = 5/14.', '5/7', 'Sevenths plus sevenths make sevenths. Add only the numerators.'],
+          ['Dan says 4/5 − 1/5 = 3.', '3/5', 'Fifths minus fifths leave fifths. Keep the denominator.'],
+          ['Amy says 2 × 3/7 = 6/14.', '6/7', 'Multiply only the numerator. The parts stay sevenths.'],
+          ['Leo says 1/2 − 1/4 = 0/2.', '1/4', 'Change 1/2 to 2/4 first. Then take away.'],
+          ['Ivy says 1/3 + 1/6 = 2/9.', '3/6', 'Change 1/3 to 2/6 first: 2/6 + 1/6.', 6],
+          ['Gus says 9/4 = 2 1/2.', '2 1/4', '8 fourths make 2 wholes. Count the fourths left over.', undefined, 'mixed'],
+          ['Nia says 3/5 = 4/6 because she added 1 to the numerator and denominator.', '6/10', 'Multiply the numerator and denominator by the same number.', 10],
+          ['Sid says half of 1/4 is 2/4.', '1/8', 'Cut the fourth in half. Each half is an eighth.'],
         ];
         if (i % 3 === 0) {
           const [claim, said, why] = checks[(i / 3 + variant) % checks.length];
