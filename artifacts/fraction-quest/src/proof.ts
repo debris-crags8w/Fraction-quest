@@ -238,7 +238,7 @@ const RULES: Rule[] = [
   { name: 'adds up to (choices)', re: /^Which adds up to (\d+\/\d+)\?$/,
     solve: (m, item) => { const ok = (item.choices ?? []).filter((c) => near(c.split(' + ').reduce((s, x) => s + frac(x), 0), frac(m[1])));
       if (ok.length !== 1) return `${ok.length} choices add up to ${m[1]}`; return { text: ok[0] }; } },
-  { name: 'wholes and a fraction', re: /^(?:What is (\d+)\/(\d+) as wholes and a fraction\?|Write (\d+)\/(\d+) as wholes and a fraction, like 1 2\/3\.)$/,
+  { name: 'wholes and a fraction', re: /^(?:What is (\d+)\/(\d+) as wholes and a fraction\?|Write (\d+)\/(\d+) as wholes and a fraction\.)$/,
     solve: (m) => { const [t, b] = m[1] ? [N(m[1]), N(m[2])] : [N(m[3]), N(m[4])]; return { value: t / b, form: 'mixed' }; } },
   { name: 'mixed to improper', re: /^(?:What is (\d+) and (\d+)\/(\d+) as (\w+)\?|Write (\d+) (\d+)\/(\d+) as a single fraction\.)$/,
     solve: (m) => { const [w, t, b] = m[1] ? [N(m[1]), N(m[2]), N(m[3])] : [N(m[5]), N(m[6]), N(m[7])];
@@ -249,7 +249,7 @@ const RULES: Rule[] = [
     solve: (m) => { const t = m[1] ?? m[2]; const places = (t.split('.')[1] ?? '').length; return { value: N(t), denominator: 10 ** places }; } },
   { name: 'to decimal', re: /^Write (\d+\/\d+)(?: \+ (\d+\/\d+))? as a decimal\.$/, solve: (m) => ({ value: frac(m[1]) + (m[2] ? frac(m[2]) : 0), form: 'decimal' }) },
   { name: 'to percent', re: /^Write (\d+\/\d+) as a percent\.$/, solve: (m) => ({ value: frac(m[1]), form: 'percent' }) },
-  { name: 'meter strip decimal', re: /^A meter strip has (10|100) equal parts\. (\d+) are colored\. Write the colored part as a decimal\.$/, solve: (m) => ({ value: N(m[2]) / N(m[1]), form: 'decimal' }) },
+  { name: 'meter strip decimal', re: /^A meter strip has (10|100) equal parts\. (\d+) (?:is|are) colored\. Write the colored part as a decimal\.$/, solve: (m) => ({ value: N(m[2]) / N(m[1]), form: 'decimal' }) },
   { name: 'unit conversion', re: /^How many (\w+) are in (\d+\/\d+) (\w+)\?$/,
     solve: (m) => { const per = PER[`${m[1]}/${m[3]}`]; if (!per) return `no unit table for ${m[1]}/${m[3]}`; return { value: per * frac(m[2]) }; } },
   { name: 'measure story', re: /^(?:A (?:bottle has|bag weighs) (\d+\/\d+) (liter|kilogram)\. How many (?:milliliters|grams) (?:is that)\?|A (\d+)-(kilogram bag|liter jug) is (\d+\/\d+) full\. How many (?:grams|milliliters) (?:are in it|are inside)\?)$/,
@@ -275,7 +275,7 @@ const RULES: Rule[] = [
 
     // --- building (the target is the answer)
   { name: 'build a fraction', re: /^(?:Build|Make) (\d+\/\d+)(?: two ways)?\.(?: Show the same amount with a bar and a number line\.)?$/, solve: (m) => ({ value: frac(m[1]) }) },
-  { name: 'build part of a set', re: /^(?:Build (\d+)\/(\d+) of (\d+) counters\. Make \2 equal groups\.|Put (\d+) \w+ in (\d+) equal groups\. Pick (?:1\/\5|(\d+) groups)\.)$/,
+  { name: 'build part of a set', re: /^(?:Build (\d+)\/(\d+) of (\d+) counters\. Make \2 equal groups\.|Put (\d+) \w+ in (\d+) equal groups\. Pick (?:1\/\5|(\d+) (?:of the )?groups)\.)$/,
     solve: (m, item) => { if (m[1]) return { value: N(m[1]) / N(m[2]) }; const groups = N(m[5]); const picked = m[6] ? N(m[6]) : 1;
       if (item.target && item.target.total !== N(m[4])) return `the set has ${item.target.total} objects, not ${m[4]}`; return { value: picked / groups }; } },
   { name: 'make a unit length', re: /^A ribbon is 1\/(\d+) of a meter\. Make 1\/\1\.$/, solve: (m) => ({ value: 1 / N(m[1]) }) },
@@ -293,7 +293,7 @@ const RULES: Rule[] = [
     solve: (m) => ({ value: valueOf(m[1] ?? m[2] ?? m[3] ?? m[4]) }) },
   { name: 'distance from a benchmark (build)', re: /^(?:Use (\w+)\. )?Make (?:a fraction )?(\d+\/\d+) less than (half|one whole)\.$/,
     solve: (m) => ({ value: (m[3] === 'half' ? 0.5 : 1) - frac(m[2]), denominator: m[1] ? UNIT_WORD[m[1]] : undefined }) },
-  { name: 'away from full', re: /^A jug is (\d+\/\d+) away from full\. Make it\.$/, solve: (m) => ({ value: 1 - frac(m[1]) }) },
+  { name: 'away from full', re: /^A jug is (\d+\/\d+) away from full\. Show how full it is\.$/, solve: (m) => ({ value: 1 - frac(m[1]) }) },
   { name: 'share a unit fraction (build)', re: /^Share 1\/(\d+) of an? \w+ (?:equally )?among (\d+) children\. Build one share\.$/, solve: (m) => ({ value: 1 / N(m[1]) / N(m[2]) }) },
   { name: 'scoops (build)', re: /^How many 1\/(\d+)(?:-cup scoops| cups) fill (\d+) cups?\? Make it(?: in \w+)?\.$/, solve: (m) => ({ value: N(m[2]), denominator: N(m[1]) }) },
   { name: 'fraction of a set (build)', re: /^(?:Build (\d+\/\d+) of (\d+)\. Is .+|Find (\d+\/\d+) of (\d+) \w+\. Make \d+ equal groups\.)$/,
@@ -306,7 +306,7 @@ const RULES: Rule[] = [
       if (m[6]) return { value: N(m[7]) / N(m[6]) }; return { value: N(m[8]) / N(m[9]) }; } },
   { name: 'what is left of one whole (build)', re: /^(?:(\d+\/\d+) is used\. Make what is left of one whole|A recipe uses (\d+\/\d+) of a bag\. Make what is left)\.$/, solve: (m) => ({ value: 1 - frac(m[1] ?? m[2]) }) },
   { name: 'still empty (build)', re: /^A garden is (\d+\/\d+) planted\. Plant (\d+\/\d+) more\. Make the (?:part still empty|empty part)\.$/, solve: (m) => ({ value: 1 - frac(m[1]) - frac(m[2]) }) },
-  { name: 'take away (build)', re: /^(?:A ribbon is (\d+\/\d+) long\. Cut off (\d+\/\d+)|A jug is (\d+\/\d+) full\. Pour out (\d+\/\d+)|A roll is (\d+ \d+\/\d+) m\. Cut off (\d+ \d+\/\d+) m)\. Make what is left\.$/,
+  { name: 'take away (build)', re: /^(?:A ribbon is (\d+\/\d+)(?: meter)? long\. Cut off (\d+\/\d+)(?: meter)?|A jug is (\d+\/\d+) full\. Pour out (\d+\/\d+)|A roll is (\d+ \d+\/\d+) m\. Cut off (\d+ \d+\/\d+) m)\. Make what is left\.$/,
     solve: (m) => { const v = m.slice(1).filter(Boolean); return { value: valueOf(v[0]) - valueOf(v[1]) }; } },
   { name: 'add on (build)', re: /^(?:Walk (\d+ \d+\/\d+) km, then (\d+\/\d+) km more\. Make the total|A (?:jug|bottle) (?:has|holds) (\d+\/\d+) liter(?: of water)?\. Add (\d+\/\d+) liter\. How much is there now\?|Model (\d+\/\d+) liter plus (\d+\/\d+) liter\.)\.?$/,
     solve: (m) => { const v = m.slice(1).filter(Boolean); return { value: valueOf(v[0]) + valueOf(v[1]) }; } },
@@ -424,7 +424,7 @@ const PICTURE_RULES: Rule[] = [
     solve: (m, item) => { const p = (item.pictures ?? []).find((x) => x.kind === 'area'); if (!p || p.kind !== 'area') return 'no square';
       const tri = AREA_CUTS[p.cut].filter((x) => x.shape === 'triangle').map(pieceArea); const piece = m[2] === 'eighths' ? 1 / 8 : tri[0];
       return { value: frac(m[1]) / piece }; } },
-  { name: 'picture: ruler', re: /^The blue [\w ]+ starts at zero and ends at a tick with no number\. Use the ruler\. How long is it in inches\?$/,
+  { name: 'picture: ruler', re: /^The blue [\w ]+ starts at zero(?: and ends at a tick with no number)?\. Use the ruler\. How long is it in inches\?$/,
     solve: (_m, item) => { if (item.rulerEnd) return { value: item.rulerEnd.end / item.rulerEnd.denominator };
       const line = (item.pictures ?? []).find((x) => x.kind === 'line' && 'numerator' in x) as { numerator: number; denominator: number } | undefined;
       return line ? { value: line.numerator / line.denominator } : 'no ruler'; } },

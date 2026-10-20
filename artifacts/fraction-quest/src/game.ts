@@ -441,9 +441,9 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('What is 2/3 of 12?', ['8', '4', '9'], 0, setModel(0, 12, 3), 'Make 3 equal groups. Count 2.', '12 in 3 groups is 4 each. 2 groups is 8.', setModel(4, 12, 3)),
-      practice('What is 3/4 of 8 stickers?', ['2 stickers', '6 stickers', '7 stickers'], 1, setModel(0, 8, 4), 'Make 4 equal groups. Count 3.', '8 in 4 groups is 2 each. 3 groups is 6.', setModel(4, 8, 4)),
+      practice('What is 3/4 of 8 stickers?', ['2 stickers', '6 stickers', '7 stickers'], 1, setModel(0, 8, 4), 'Make 4 equal groups. Count 3.', '8 in 4 groups is 2 each. 3 groups is 6.', setModel(2, 8, 4)),
       practice('What is 2/5 of 20 cubes?', ['8 cubes', '5 cubes', '10 cubes'], 0, setModel(0, 20, 5), 'Make 5 equal groups. Count 2.', '20 in 5 groups is 4 each. 2 groups is 8.', setModel(4, 20, 5)),
-      practice('What is 3/6 of 18 buttons?', ['9 buttons', '6 buttons', '15 buttons'], 0, setModel(0, 18, 6), 'Make 6 equal groups. Count 3.', '18 in 6 groups is 3 each. 3 groups is 9.', setModel(6, 18, 6)),
+      practice('What is 3/6 of 18 buttons?', ['9 buttons', '6 buttons', '15 buttons'], 0, setModel(0, 18, 6), 'Make 6 equal groups. Count 3.', '18 in 6 groups is 3 each. 3 groups is 9.', setModel(3, 18, 6)),
     ],
   },
   {
@@ -457,7 +457,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Which is more than 1/2?', ['2/6', '5/8', '3/10'], 1, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 2, denominator: 6, named: true }, { numerator: 5, denominator: 8, named: true }, { numerator: 3, denominator: 10, named: true }), 'Half of 8 is 4. Is 5 more than 4?', '5/8 is more than half. The others are less.', bars({ numerator: 1, denominator: 2 })),
       practice('Is 2/5 more or less than 1/2?', ['Less than 1/2', 'Equal to 1/2', 'More than 1/2'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 1, denominator: 2 }), 'Half of 5 is 2 and a half.', '2 is less than 2 and a half. So 2/5 is less than half.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which is closest to 1/2?', ['4/9', '1/5', '7/8'], 0, bars({ numerator: 4, denominator: 9 }, { numerator: 1, denominator: 5 }, { numerator: 7, denominator: 8 }), 'Which one is nearest to half?', '4/9 is just under half. The others are far away.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is closest to 1/2?', ['4/9', '1/5', '7/8'], 0, bars({ numerator: 4, denominator: 9 }, { numerator: 1, denominator: 5 }, { numerator: 7, denominator: 8 }), 'Half of 9 is 4 and a half. Which is nearest to half?', '4/9 is just under half. The others are farther from half.', bars({ numerator: 1, denominator: 2 })),
       practice('A jug is 6/10 full. Is that more or less than half?', ['More than half', 'Less than half', 'Exactly half'], 0, bars({ numerator: 6, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Half of 10 is 5.', '6 is more than 5. So 6/10 is more than half.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
@@ -470,10 +470,10 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 7, denominator: 8 }),
     },
     questions: [
-      practice('Which amount is closest to 0?', ['1/8', '4/5', '7/8'], 0, bars({ numerator: 1, denominator: 8 }, { numerator: 4, denominator: 5 }, { numerator: 7, denominator: 8 }), 'The smallest shaded part is closest to 0.', '1/8 is tiny. The others are almost full.', bars({ numerator: 1, denominator: 4 })),
+      practice('Which amount is closest to 0?', ['1/8', '4/5', '7/8'], 0, bars({ numerator: 1, denominator: 8 }, { numerator: 4, denominator: 5 }, { numerator: 7, denominator: 8 }), 'The smallest shaded part is closest to 0.', '1/8 is the smallest amount. It is closest to 0.', bars({ numerator: 1, denominator: 4 })),
       practice('Which fraction is closest to one whole?', ['2/9', '8/9', '4/9'], 1, bars({ numerator: 2, denominator: 9 }, { numerator: 8, denominator: 9 }, { numerator: 4, denominator: 9 }), 'Which one is missing just 1 part?', '8/9 is just 1 part away from one whole.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is between 1/2 and 1?', ['3/8', '3/4', '1/4'], 1, bars({ numerator: 3, denominator: 4 }), 'Find one past half but not full.', '3/4 is more than half but less than 1.', bars({ numerator: 1, denominator: 2 })),
-      practice('A plant grew 9/10 of a meter. Is that near 0 or 1 meter?', ['0 meters', '1 meter', 'Exactly halfway', '9 meters'], 1, bars({ numerator: 9, denominator: 10 }), 'Just 1 tenth is missing.', '9/10 is almost one whole meter.', bars({ numerator: 1, denominator: 2 })),
+      practice('A plant grew 9/10 of a meter. Is that near 0, 1/2 or 1 meter?', ['0 meters', '1 meter', 'Exactly halfway', '9 meters'], 1, bars({ numerator: 9, denominator: 10 }), 'Just 1 tenth is missing.', '9/10 is almost one whole meter.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
@@ -502,7 +502,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('0 to 1 has 5 equal spaces. What is 1 jump?', ['1/5', '1/4', '5/1'], 0, line(1, 5), 'Count the spaces from 0 to 1.', '5 jumps make one whole. So 1 jump is 1/5.', line(1, 2)),
       practice('How many spaces do you need for fourths?', ['4 spaces', '3 spaces', '5 spaces'], 0, line(2, 4), 'The denominator tells how many equal spaces go from 0 to 1.', 'Fourths need 4 spaces from 0 to 1.', line(1, 2)),
-      practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps past 1', '5 jumps from 0'], 0, line(3, 8), 'Start at 0. Count 3 jumps.', 'The numerator 3 means 3 jumps.', line(1, 4)),
+      practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps past 1', '5 jumps from 0'], 0, line(3, 8), 'The numerator tells how many jumps from 0.', 'The numerator 3 means 3 jumps.', line(1, 4)),
       practice('0 to 1 has 6 equal spaces. What is 5 jumps?', ['5/6', '6/5', '1/5'], 0, line(5, 6), 'Count 5 jumps from 0.', '5 jumps of 1/6 is 5/6.', line(2, 4)),
     ],
   },
@@ -532,7 +532,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Each jump is 1/4. What is 5 jumps from 0?', ['5/4', '4/5', '1/4'], 0, line(5, 4, 2), '4 jumps reach 1. Then 1 more.', '5 jumps is 5/4. That is 1 and 1/4.', line(3, 4)),
       practice('Each jump is 1/3. Which point is just past 1?', ['2/3', '4/3', '1/3', '3/3'], 1, line(4, 3, 2), '3 jumps of 1/3 reach 1. Take 1 more jump.', '4/3 is 1 and 1/3, just past 1.', line(2, 3)),
-      practice('How many sixths make 1 and 2/6?', ['8/6', '6/8', '2/6'], 0, line(8, 6, 2), 'One whole is 6/6. Add 2 more.', '6/6 + 2/6 = 8/6.', line(6, 6)),
+      practice('What fraction is the same as 1 and 2/6?', ['8/6', '6/8', '2/6'], 0, line(8, 6, 2), 'One whole is 6/6. Add 2 more.', '6/6 + 2/6 = 8/6.', line(6, 6)),
       practice('A runner takes 9 steps of 1/5. How far is that?', ['1 and 3/5', '1 and 4/5', '4/5', '9/10'], 1, line(9, 5, 2), '5 steps make one whole. How many are left?', '9/5 is 5/5 and 4/5. That is 1 and 4/5.', line(5, 5)),
     ],
   },
@@ -563,7 +563,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Which is bigger, 2/3 or 2/7?', ['2/7', '2/3', 'They are equal'], 1, bars({ numerator: 2, denominator: 3 }, { numerator: 2, denominator: 7 }), 'On the same-size whole, both count 2 parts. Which are larger parts: thirds or sevenths?', 'Both count 2 parts from the same-size whole. Each third is bigger than each seventh, so 2/3 is bigger.', bars({ numerator: 1, denominator: 3 })),
       practice('Which is smaller, 4/5 or 4/9?', ['4/5', '4/9', 'They are equal'], 1, bars({ numerator: 4, denominator: 5 }, { numerator: 4, denominator: 9 }), 'Both count 4 parts from the same-size whole. The larger denominator, 9, makes smaller parts.', 'Both count 4 parts from the same-size whole. Ninths are smaller than fifths, so 4/9 is less than 4/5.', bars({ numerator: 1, denominator: 2 })),
-      practice('Pick the sign: 1/6 __ 1/4', ['>', '<', '='], 1, bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 4 }), 'On the same-size whole, six equal parts are smaller than four equal parts.', 'One sixth is smaller than one fourth, so 1/6 < 1/4.', bars({ numerator: 1, denominator: 2 })),
+      practice('Pick the sign: 1/6 __ 1/4', ['>', '<', '='], 1, bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 4 }), 'Which is larger: one of 6 equal parts or one of 4 equal parts?', 'One sixth is smaller than one fourth, so 1/6 < 1/4.', bars({ numerator: 1, denominator: 2 })),
       practice('Which covers more: 3/10 or 3/8?', ['3/10', '3/8', 'They cover the same'], 1, bars({ numerator: 3, denominator: 10 }, { numerator: 3, denominator: 8 }), 'On the same-size whole, both count 3 parts. Eighths are larger because 8 parts are fewer than 10.', 'Each eighth is larger than each tenth. With 3 parts counted from the same-size whole, 3/8 covers more than 3/10.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
@@ -577,7 +577,7 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('Which order goes smallest to biggest?', ['1/3, 2/3, 3/3', '3/3, 2/3, 1/3', '2/3, 1/3, 3/3'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 3 }, { numerator: 3, denominator: 3 }), 'All thirds. Count the parts.', '1/3 is smallest. 3/3 is one whole.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which order goes biggest to smallest?', ['1/2, 1/4, 1/5', '1/5, 1/4, 1/2', '1/4, 1/2, 1/5'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 4 }, { numerator: 1, denominator: 5 }), 'Each fraction counts 1 part. The larger denominator makes a smaller part.', '1/2 is biggest, then 1/4, then 1/5.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which order goes biggest to smallest?', ['1/2, 1/4, 1/5', '1/5, 1/4, 1/2', '1/4, 1/2, 1/5'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 4 }, { numerator: 1, denominator: 5 }), 'Each counts 1 part of the same-size whole. More parts in the whole means each part is smaller.', '1/2 is biggest, then 1/4, then 1/5.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fits between 2/8 and 6/8?', ['1/8', '4/8', '7/8'], 1, bars({ numerator: 2, denominator: 8 }, { numerator: 6, denominator: 8 }), 'All eighths. Which numerator is between 2 and 6?', '4 is between 2 and 6.', bars({ numerator: 1, denominator: 2 })),
       practice('Put 1/2, 3/10 and 8/10 in order, smallest first.', ['3/10, 1/2, 8/10', '8/10, 1/2, 3/10', '1/2, 3/10, 8/10'], 0, bars({ numerator: 3, denominator: 10 }, { numerator: 1, denominator: 2 }, { numerator: 8, denominator: 10 }), '1/2 is the same as 5/10. Compare to that.', '3/10 is less than half. 8/10 is more.', bars({ numerator: 1, denominator: 2 })),
     ],
@@ -591,11 +591,11 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }),
     },
     questions: [
-      practice('Which fraction covers the same amount as 1/2?', ['2/4', '1/4', '3/4'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Which bar is shaded just as far?', '2/4 covers the same as 1/2.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which is the same as 2/3?', ['4/6', '3/6', '2/6'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }), 'Cut each third into 2 parts.', 'Double the numerator and denominator: 2/3 = 4/6.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which fraction covers the same amount as 1/2?', ['2/4', '1/4', '3/4'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Cut the half into 2 equal parts. How many fourths is that?', '2/4 covers the same as 1/2.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is the same as 2/3?', ['4/6', '3/6', '2/6'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }), 'Cut each third into 2 parts.', 'Each third became 2 sixths, so 2 thirds is 4 sixths: 2/3 = 4/6.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 3/4?', ['6/8', '3/8', '4/8'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'Cut each fourth into 2 parts.', '3/4 and 6/8 are the same amount.', bars({ numerator: 1, denominator: 2 })),
-      practice('You fold a paper strip in half, then fold it in half again. You shade 1 of the 2 halves. Which fraction names the same shaded amount?', ['2/4', '1/4', '1/3'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Folding again cuts each half into 2 equal parts. How many fourths are shaded?', 'The second fold cuts the shaded half into 2 fourths: 1/2 = 2/4.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which is the same as 2/5?', ['4/10', '2/10', '5/2'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'Multiply the numerator and denominator by the same number.', 'Double both: 2/5 = 4/10.', bars({ numerator: 1, denominator: 2 })),
+      practice('Fold a strip in half. Shade one half. Now fold it in half again. How many fourths are shaded?', ['2/4', '1/4', '1/3'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4, untilAnswered: true }), 'Folding again cuts each half into 2 equal parts. How many fourths are shaded?', 'The second fold cuts the shaded half into 2 fourths: 1/2 = 2/4.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is the same as 2/5?', ['4/10', '2/10', '5/2'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'Cut each fifth into 2 equal parts. Count the shaded parts now.', 'Each fifth became 2 tenths, so 2 fifths is 4 tenths: 2/5 = 4/10.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
@@ -871,7 +871,7 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'compare-decimals', unit: 14, title: 'Compare decimals', shortTitle: 'Compare decimal sizes', description: 'Compare decimals using tenths and hundredths.', skill: 'Write both decimals with the same number of places. Then compare the digits by place value.', example: { prompt: 'Which is bigger, 0.4 or 0.35?', answer: '0.4', explanation: 'Write 0.4 as 0.40, so both have 2 places after the dot. 40 hundredths is more than 35 hundredths. So 0.4 is bigger, even though 35 looks bigger than 4.', model: bars({ numerator: 40, denominator: 100 }, { numerator: 35, denominator: 100 }) }, mode: 'decimal-compare', n: 3, d: 10, context: 'hundredths grid', gradeBand: 4, standards: ['4.NF.7'] },
   { id: 'multi-step-fraction-stories', unit: 14, title: 'Two-step stories', shortTitle: 'Fraction stories', description: 'Solve a story in 2 steps.', skill: 'Find what the story asks first. Solve that step, then use the answer in the next step.', mode: 'story', n: 2, d: 5, context: 'community garden' },
   // Unit 15 · Problem solving: the reasoning that Singapore, Beast Academy and Eureka lean on and quizzes skip.
-  { id: 'find-the-whole', unit: 15, title: 'Find the whole', shortTitle: 'Find the whole', description: '3 is 1/4 of it. What is the whole?', skill: 'The known amount is one of the equal parts. Find one part, then multiply by the denominator to make the whole.', mode: 'whole-from-part', n: 1, d: 4, context: 'sticker packs', gradeBand: 4, standards: ['4.NF.4c'],
+  { id: 'find-the-whole', unit: 15, title: 'Find the whole', shortTitle: 'Find the whole', description: '3 is 1/4 of it. What is the whole?', skill: 'The known amount is some of the equal parts. Divide it by the numerator to find 1 part. Then multiply by the denominator to make the whole.', mode: 'whole-from-part', n: 1, d: 4, context: 'sticker packs', gradeBand: 4, standards: ['4.NF.4c'],
     example: { prompt: '3 stickers are 1/4 of a pack. How many stickers are in the pack?', answer: '12 stickers', explanation: '1/4 is 1 of 4 equal parts. Each part is 3. 4 parts of 3 is 12.', model: setModel(3, 12, 4) } },
   { id: 'spot-the-mistake', unit: 15, title: 'Spot the mistake', shortTitle: 'Spot the mistake', description: 'Is Sam right? Fix it.', skill: 'Check whether each step uses the right fraction rule. Find the first wrong step and correct it.', mode: 'mistake', n: 3, d: 4, context: 'homework check', gradeBand: 4, standards: ['4.NF.3a', '4.NF.2'] },
   { id: 'fraction-of-remainder', unit: 15, title: 'Fraction of the rest', shortTitle: 'Fraction of the rest', description: 'Spend 1/3. Then spend 1/2 of the rest.', skill: 'First find how much is left. Then split that remaining amount and find the fraction asked for.', mode: 'remainder', n: 1, d: 3, context: 'pocket money', gradeBand: 5, standards: ['5.NF.6', '5.NF.2'] },
