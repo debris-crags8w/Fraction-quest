@@ -11,6 +11,7 @@
     "test": "tsx --test src/*.test.ts",
     "sync-voice-pack": "tsx scripts/sync-voice-pack.ts",
     "generate-voice-pack": "tsx scripts/generate-voice-pack.ts",
+    "audit-voice-pack": "tsx scripts/audit-voice-pack.ts",
     "daily-voice-backfill": "tsx scripts/daily-voice-backfill.ts"
   },
   "dependencies": {
