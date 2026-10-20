@@ -139,16 +139,16 @@ type RetentionView = { type: 'retention'; missionId: string; startedAt: number; 
 type UnitInfo = { title: string; subtitle: string };
 const UNIT_INFO: UnitInfo[] = [
   { title: 'Meet fractions', subtitle: 'Fair shares, fraction names, and unit fractions' },
-  { title: 'Fractions in groups', subtitle: 'Find equal shares and parts of collections' },
+  { title: 'Size of the parts', subtitle: 'More parts make smaller parts; compare the same numerator' },
   { title: 'Size and benchmarks', subtitle: 'Estimate with zero, one-half, and one whole' },
   { title: 'Fraction number lines', subtitle: 'Mark equal jumps, including past one' },
-  { title: 'Compare and order', subtitle: 'Use equal pieces and benchmarks to reason' },
+  { title: 'Compare and order', subtitle: 'Compare same-size parts, then put fractions in order' },
   { title: 'Equivalent fractions', subtitle: 'Rename an amount without changing its size' },
   { title: 'Put fractions together', subtitle: 'Compose, decompose, and go beyond one' },
   { title: 'Operations and decimals', subtitle: 'Add, subtract, and connect fractions to decimals' },
   { title: 'Rename and compare', subtitle: 'Grades 3–5 · Whole numbers as fractions and equivalent names' },
   { title: 'Mixed numbers and amounts', subtitle: 'Grades 4–5 · Unlike denominators, mixed numbers, and estimates' },
-  { title: 'Multiply and divide', subtitle: 'Grades 4–5 · Unit fractions, scaling, multiplication, and sharing' },
+  { title: 'Multiply and divide', subtitle: 'Grade 5 · Fractions of a group, multiplication, scaling, and sharing' },
   { title: 'Fractions in measurement', subtitle: 'Grades 3–5 · Rulers, line plots, conversions, and stories' },
   { title: 'Fraction models in context', subtitle: 'Grade 3 and 5 · Equal-area shapes and fractional-side area; chance is bonus' },
   { title: 'Fractions and decimals', subtitle: 'Grades 4–5 · Decimal comparison; percent is bonus' },
@@ -696,8 +696,8 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                             <h4>{mission.title}</h4>
                             <p><MathText text={mission.description} /></p>
                             {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
+                              {/* Standards codes are for grown-ups: they live in the Grown-ups report, not on the child's map. */}
                               {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
-                              {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
                             </p>}
                             <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
                               {/* Short, kid-sized status: only what matters for this lesson right now. */}
@@ -1067,7 +1067,6 @@ function PlayView({
           </p>
           {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
             {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
-            {mission.standards?.length ? ` · ${mission.standards.join(', ')}` : ''}
           </p>}
           {/* One friendly line per question: the story friend's (in the season's props) when the story is on, else the seasonal one. */}
           {question && !showExample && (storyOn && chapterFor(mission.unit)

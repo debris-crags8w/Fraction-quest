@@ -1270,7 +1270,7 @@ async function enterWorksheetAnswer(page: import('@playwright/test').Page, probl
 
 const unitRepresentativeIds = [
   'equal-parts',
-  'sets-nonunit',
+  'compare-same-numerator',
   'fraction-magnitude',
   'number-line-beyond-one',
   'order-fractions',
@@ -2801,8 +2801,8 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId('story-line')).not.toHaveText(askLine!);
   await expect(page.getByTestId('story-line')).not.toContainText(/\d/);
 
-  // Finishing chapter 2 returns a stone piece, adds a clue and unlocks Pip's card.
-  const mission = MISSIONS.find((item) => item.id === 'sets-nonunit')!;
+  // Finishing chapter 2 (its last lesson is compare same numerator) returns a stone piece, adds a clue and unlocks Pip's card.
+  const mission = MISSIONS.find((item) => item.id === 'compare-same-numerator')!;
   await page.evaluate((progress) => localStorage.setItem('fraction-quest-progress-v1:guest', JSON.stringify(progress)), progressBefore(mission));
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
@@ -2820,7 +2820,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   const payoff = page.getByTestId('story-payoff');
   await expect(payoff).toContainText('Best party ever! And we found the stone piece!');
   // The story problem changed the story: its picture and what the answer did.
-  await expect(payoff.getByTestId('story-problem-result')).toContainText('The guests ate 9 snacks. Half the bowl is still left!');
+  await expect(payoff.getByTestId('story-problem-result')).toContainText('covers more, so the hungriest frog gets it. Ribbit!');
   // The stone question comes first: a miss gets a kind nudge, the right fraction shows the piece.
   await expect(payoff.getByTestId('stone-found')).toHaveCount(0);
   await expect(payoff.getByTestId('stone-question')).toContainText('How much of the Whole Stone is back?');
