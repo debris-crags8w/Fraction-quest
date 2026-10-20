@@ -828,8 +828,8 @@ async function completeFractionOrderLesson(page: import('@playwright/test').Page
   await page.getByTestId('button-sort-check').click();
   await expect(page.getByTestId('fraction-sort-feedback')).toContainText(/Good try!|Almost!|Let’s look together\.|Keep going!|Nice effort!/);
   await expect(page.getByTestId('fraction-sort-feedback')).toContainText('1/2');
-  await page.getByTestId('button-sort-8-10-down').click();
-  await page.getByTestId('button-sort-8-10-down').click();
+  await page.getByTestId('button-sort-5-6-down').click();
+  await page.getByTestId('button-sort-5-6-down').click();
   await page.getByTestId('button-sort-check').click();
   await expect(page.getByTestId('fraction-sort-feedback')).toContainText(firstRound.explanation);
   await page.getByTestId('button-sort-next').click();
@@ -1478,7 +1478,7 @@ test('a lesson ends with its story problem, told with the season’s props (pump
   const last = mission.questions.at(-1)!;
   await expect(page.getByTestId('story-problem-tag')).toHaveText('Story problem');
   await expect(page.getByTestId('story-line')).toContainText('The baker gave me a pumpkin pie to share.');
-  await expect(page.locator('#lesson-title')).toContainText('Chomp cut a pumpkin pie into 5 equal pieces. What is 1 piece?');
+  await expect(page.locator('#lesson-title')).toContainText('Chomp cut a pumpkin pie into 3 equal pieces. What is 1 piece?');
   await page.getByTestId(`button-answer-${last.id}-${last.correctChoice}`).click();
   await page.getByTestId('button-check-answer').click();
   await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
