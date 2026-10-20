@@ -116,11 +116,15 @@ test('Listen reads from the pack without waking the voice server, and asks the s
 });
 
 test('the voice sentence list covers lessons, story and seasons with unique keys', async () => {
-  const { voiceSentences } = await import('../scripts/voice-sentences');
+  const { VOICE_SENTENCE_SOURCES, VOICE_SENTENCE_THEMES, voiceSentenceGroups, voiceSentences } = await import('../scripts/voice-sentences');
   const list = voiceSentences();
   const texts = new Set(list.map((entry) => entry.text));
   assert.equal(new Set(list.map((entry) => entry.key)).size, list.length);
   for (const entry of list) assert.equal(entry.key, voiceKey(entry.text));
+  const groups = voiceSentenceGroups();
+  const groupedKeys = new Set(groups.flatMap((group) => group.sentences.map((entry) => entry.key)));
+  assert.equal(groups.length, VOICE_SENTENCE_SOURCES.length * VOICE_SENTENCE_THEMES.length);
+  assert.deepEqual([...groupedKeys].sort(), list.map((entry) => entry.key).sort());
   assert.ok(texts.has('Hi there!'));
   assert.ok([...texts].some((text) => /pumpkin/i.test(text)), 'Halloween words');
   assert.ok([...texts].some((text) => /gingerbread/i.test(text)), 'Christmas words');

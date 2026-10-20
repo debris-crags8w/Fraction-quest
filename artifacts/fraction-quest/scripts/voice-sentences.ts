@@ -20,28 +20,54 @@ import { dailyBuildSpeech } from '../src/daily-practice';
 import { HELPER_PICK_SPEECH, introSpeech } from '../src/intro-copy';
 import { guideForUnit } from '../src/teaching-guide-data';
 
-const THEMES: PropTheme[] = ['everyday', 'halloween', 'christmas'];
-const EXTRA = [
-  'Hi there! I can read your fraction lessons to you.',
-  'A fraction shows equal parts of one whole. First look at the whole. Then split it into equal pieces and share them fairly.',
-  'Let\'s make it simpler.', 'Not yet.', 'Hint.', 'Choose yes or no.', 'Build it.', 'On your own.', 'Apply it.',
-  'Pick the sentence that matches your model.', 'Good try. Look at the models and choose again.', 'Your reason is right! Now fix the model above.',
-  ...OPENERS, ...Object.values(SLIPS),
-  // Listen buttons on the stone question, the story payoff, the Helper and the games.
-  'How much of the Whole Stone is back?', 'Good try! Count the gold pieces. Then count all the pieces in the whole stone.',
-  'Because you solved the story problem:', ...HELPER_PICK_SPEECH,
-  'Build each fraction before deciding which amount is greater. Each bar is one same-size whole.',
-  'Every symbol card has a bar card partner. Match by the amount shaded, not by the printed numbers.',
-  'Choose equal spaces from 0 to 1, then tap the tick that lands on the target fraction.',
-  'Fraction Line-Up. Drag four fractions into order. Pick a kind of line-up.',
-  'Put them in order: smallest first.', 'Put them in order: biggest first.', 'All the denominators match.', 'All the numerators match.', 'Drag a card, or use the arrows.',
-  'Make it. See it. Then name it. Pick a game. Games are for fun and practice: they never change lesson progress.',
-  'Pick a jump card, then press Hop. Land exactly on the lily pad in as few hops as you can.',
-  'Stack the tower. Put the biggest fraction at the bottom. Tap a gap, then press Place.',
-  'Move the cards up or down. The first card should be the smallest.', 'Move the cards up or down. The first card should be the biggest.',
-  'Tap a friend, then tap their pieces. Tap a piece again to take it back.', 'Tap or click pieces to select them. Use Tab, then Enter or Space.',
-  'Who gets the next pieces you tap?', 'That fits!', 'Almost there.',
-];
+export const VOICE_SENTENCE_THEMES: readonly PropTheme[] = ['everyday', 'halloween', 'christmas'];
+export const VOICE_SENTENCE_SOURCES = ['lesson', 'worksheet', 'practice', 'games', 'story', 'shared'] as const;
+export type VoiceSentenceSource = (typeof VOICE_SENTENCE_SOURCES)[number];
+export type VoiceSentenceTheme = (typeof VOICE_SENTENCE_THEMES)[number];
+export type VoiceSentenceEntry = { key: string; text: string };
+export type VoiceSentenceGroup = {
+  source: VoiceSentenceSource;
+  theme: VoiceSentenceTheme;
+  sentences: VoiceSentenceEntry[];
+};
+
+const EXTRA_BY_SOURCE: Record<VoiceSentenceSource, string[]> = {
+  lesson: [
+    'A fraction shows equal parts of one whole. First look at the whole. Then split it into equal pieces and share them fairly.',
+    'Build it.', 'On your own.', 'Apply it.',
+    'Build each fraction before deciding which amount is greater. Each bar is one same-size whole.',
+  ],
+  worksheet: [],
+  practice: [
+    'Pick the sentence that matches your model.', 'Good try. Look at the models and choose again.',
+    'Your reason is right! Now fix the model above.', ...OPENERS, ...Object.values(SLIPS),
+  ],
+  games: [
+    'Every symbol card has a bar card partner. Match by the amount shaded, not by the printed numbers.',
+    'Choose equal spaces from 0 to 1, then tap the tick that lands on the target fraction.',
+    'Fraction Line-Up. Drag four fractions into order. Pick a kind of line-up.',
+    'Put them in order: smallest first.', 'Put them in order: biggest first.',
+    'All the denominators match.', 'All the numerators match.', 'Drag a card, or use the arrows.',
+    'Make it. See it. Then name it. Pick a game. Games are for fun and practice: they never change lesson progress.',
+    'Pick a jump card, then press Hop. Land exactly on the lily pad in as few hops as you can.',
+    'Stack the tower. Put the biggest fraction at the bottom. Tap a gap, then press Place.',
+    'Move the cards up or down. The first card should be the smallest.',
+    'Move the cards up or down. The first card should be the biggest.',
+    'Tap a friend, then tap their pieces. Tap a piece again to take it back.',
+    'Tap or click pieces to select them. Use Tab, then Enter or Space.',
+    'Who gets the next pieces you tap?', 'That fits!', 'Almost there.',
+  ],
+  story: [
+    'How much of the Whole Stone is back?',
+    'Good try! Count the gold pieces. Then count all the pieces in the whole stone.',
+    'Because you solved the story problem:',
+  ],
+  shared: [
+    'Hi there! I can read your fraction lessons to you.',
+    'Let\'s make it simpler.', 'Not yet.', 'Hint.', 'Choose yes or no.',
+    ...HELPER_PICK_SPEECH,
+  ],
+};
 
 /** Prose worth reading, once said in words ("1/6 + 2/6 = ?" counts): has letters and a space, and isn't an id, a
     path or a color. */
@@ -68,56 +94,67 @@ function addBuildSpeech(target: LearningModel, out: Set<string>) {
   }
 }
 
-export function voiceSentences(): { key: string; text: string }[] {
-  const lesson = new Set<string>();
+export function voiceSentenceGroups(): VoiceSentenceGroup[] {
+  const content = Object.fromEntries(
+    VOICE_SENTENCE_SOURCES.map((source) => [source, new Set<string>()]),
+  ) as Record<VoiceSentenceSource, Set<string>>;
+  const add = (source: VoiceSentenceSource, value: unknown) => collect(value, content[source]);
+  const addLine = (source: VoiceSentenceSource, line: string) => content[source].add(line);
+
   for (const mission of MISSIONS) {
-    collect(mission, lesson);
-    collect(safe(() => getBuildChecks(mission.id)), lesson);
-    collect(safe(() => getBuildPracticeChecks(mission.id, 0)), lesson);
-    for (let variant = 0; variant < 3; variant++) collect(safe(() => getWorksheet(mission.id, variant)), lesson);
-    for (let round = 0; round < 3; round++) collect(safe(() => getReviewCheck(mission.id, round)), lesson);
-    collect(safe(() => getExtraPractice(mission.id, mission.questions.map((q) => q.id))), lesson);
-    collect(safe(() => partFinderRoundsFor(mission.id)), lesson);
+    add('lesson', mission);
+    add('lesson', safe(() => getBuildChecks(mission.id)));
+    add('practice', safe(() => getBuildPracticeChecks(mission.id, 0)));
+    for (let variant = 0; variant < 3; variant++) add('worksheet', safe(() => getWorksheet(mission.id, variant)));
+    for (let round = 0; round < 3; round++) add('practice', safe(() => getReviewCheck(mission.id, round)));
+    add('practice', safe(() => getExtraPractice(mission.id, mission.questions.map((q) => q.id))));
+    add('games', safe(() => partFinderRoundsFor(mission.id)));
   }
-  collect(PART_FINDER_ROUNDS, lesson);
-  collect(CHALLENGES, lesson);
+  add('games', PART_FINDER_ROUNDS);
+  add('games', CHALLENGES);
+
   for (const mission of MISSIONS) {
     // Lesson page: the whole example and the ordering steps, read as one ("Question. …"), and the order number line.
-    lesson.add(sectionsScript([
+    addLine('lesson', sectionsScript([
       { heading: 'Question', text: mission.example.prompt },
       { heading: 'Worked answer', text: mission.example.answer },
       { heading: 'Explanation', text: mission.example.explanation },
     ]));
-    if (mission.learningIntro) lesson.add(sectionsScript([
+    if (mission.learningIntro) addLine('lesson', sectionsScript([
       { heading: 'Goal', text: mission.learningIntro.goal },
       { heading: 'Process', text: mission.learningIntro.process },
       { heading: 'Why it works', text: mission.learningIntro.why },
     ]));
     const line = mission.example.numberLine;
-    if (line) lesson.add(numberLineDescription(line.points, line.benchmark, line.equivalentNames));
-    // Lab: model feedback, hints and what is still wrong, for each Build's targets.
-    const builds = [...(safe(() => getBuildChecks(mission.id)) ?? []), ...(safe(() => getBuildPracticeChecks(mission.id, 0)) ?? [])];
-    for (let round = 0; round < 3; round++) { const check = safe(() => getReviewCheck(mission.id, round)); if (check) builds.push(check); }
-    for (const check of builds) addBuildSpeech(check.target, lesson);
-    for (const target of safe(() => sprintTargets(mission.id)) ?? []) lesson.add(`Make the robot ${goal(target)}.`);
-    for (const level of safe(() => getCodeLevels(mission.id)) ?? []) lesson.add(`${level.goal} ${level.tip}`);
+    if (line) addLine('lesson', numberLineDescription(line.points, line.benchmark, line.equivalentNames));
+    // Lab: model feedback, hints and what is still wrong, for each required and optional Build target.
+    for (const check of safe(() => getBuildChecks(mission.id)) ?? []) addBuildSpeech(check.target, content.lesson);
+    for (const check of safe(() => getBuildPracticeChecks(mission.id, 0)) ?? []) addBuildSpeech(check.target, content.practice);
+    for (let round = 0; round < 3; round++) {
+      const check = safe(() => getReviewCheck(mission.id, round));
+      if (check) addBuildSpeech(check.target, content.practice);
+    }
+    for (const target of safe(() => sprintTargets(mission.id)) ?? []) addLine('games', `Make the robot ${goal(target)}.`);
+    for (const level of safe(() => getCodeLevels(mission.id)) ?? []) addLine('games', `${level.goal} ${level.tip}`);
   }
-  BUILD_ERROR_HEADINGS.forEach((line) => lesson.add(line));
+  BUILD_ERROR_HEADINGS.forEach((line) => addLine('lesson', line));
   // Daily practice builds n/d (d up to 12) with a bar or a number line; the paper strip opens into 2s and 3s.
-  for (let d = 2; d <= 12; d++) for (let n = 1; n <= d; n++) for (const bar of [true, false]) lesson.add(dailyBuildSpeech(n, d, bar));
-  for (const pieces of [2, 3, 4, 6, 8, 9, 12, 16]) for (let folds = 1; folds <= 4; folds++) lesson.add(foldSpeech(folds, pieces));
-  collect(getAssessmentDefinitions(), lesson);
-  EXTRA.forEach((line) => lesson.add(line));
+  for (let d = 2; d <= 12; d++) for (let n = 1; n <= d; n++) for (const bar of [true, false]) addLine('practice', dailyBuildSpeech(n, d, bar));
+  for (const pieces of [2, 3, 4, 6, 8, 9, 12, 16]) for (let folds = 1; folds <= 4; folds++) addLine('practice', foldSpeech(folds, pieces));
+  add('practice', getAssessmentDefinitions());
+  for (const [source, lines] of Object.entries(EXTRA_BY_SOURCE) as [VoiceSentenceSource, string[]][]) {
+    lines.forEach((line) => addLine(source, line));
+  }
   // The lesson page's section Listen buttons, and the model intros (how to build, how a number line works).
-  [...introSpeech('builder'), ...introSpeech('line')].forEach((line) => lesson.add(line));
-  Object.values(LAB_SECTION_SPEECH).forEach((line) => lesson.add(line));
+  [...introSpeech('builder'), ...introSpeech('line')].forEach((line) => addLine('lesson', line));
+  Object.values(LAB_SECTION_SPEECH).forEach((line) => addLine('lesson', line));
   for (const mission of MISSIONS) {
-    lesson.add(worksheetSpeech(safe(() => getWorksheet(mission.id))?.length ?? 0));
+    addLine('worksheet', worksheetSpeech(safe(() => getWorksheet(mission.id))?.length ?? 0));
     const guide = guideForUnit(mission.unit);
-    if (guide) Object.values(supportSpeech(guide, mission)).forEach((line) => lesson.add(line));
+    if (guide) Object.values(supportSpeech(guide, mission)).forEach((line) => addLine('lesson', line));
   }
 
-  const story = new Set<string>();
+  const story = content.story;
   collect([WHOLE_STONE_OPENING, PROLOGUE, CHAPTERS, STORY_PROBLEMS, REACTIONS, DETECTIVE_NOTES, HANDS_ON_ASKS, CHAPTERS.map(choiceNotes)], story);
   // The choice Listen button reads "label. detail." for each option.
   for (const chapter of CHAPTERS) for (const option of chapter.choice) story.add(`${option.label}. ${option.detail}.`);
@@ -131,16 +168,42 @@ export function voiceSentences(): { key: string; text: string }[] {
     scripts.push(chapter.choice.map((option) => option.reply));
   }
 
-  const texts = new Set<string>();
-  const add = (text: string) => { for (const part of sentences(spokenText(text))) { const clean = cleanSentence(part); if (/[a-z]{2}/i.test(clean)) texts.add(clean); } };
-  for (const theme of THEMES) {
+  const grouped = new Map<string, Map<string, VoiceSentenceEntry>>();
+  const addSpoken = (source: VoiceSentenceSource, theme: VoiceSentenceTheme, text: string) => {
+    const groupKey = `${source}/${theme}`;
+    let group = grouped.get(groupKey);
+    if (!group) { group = new Map(); grouped.set(groupKey, group); }
+    for (const part of sentences(spokenText(text))) {
+      const clean = cleanSentence(part);
+      if (/[a-z]{2}/i.test(clean)) {
+        const key = voiceKey(clean);
+        group.set(key, { key, text: clean });
+      }
+    }
+  };
+  for (const theme of VOICE_SENTENCE_THEMES) {
     const season = theme === 'everyday' ? null : theme;
-    for (const text of lesson) add(seasonalWords(text, season));
-    for (const text of story) add(withName(text, null, theme));
-    for (const panels of scripts) add(storyScript(panels, theme));
-    for (const panels of filmed) for (const panel of panels) add(withName(panel.text, null, theme));
+    for (const source of VOICE_SENTENCE_SOURCES) {
+      if (source === 'story') continue;
+      for (const text of content[source]) addSpoken(source, theme, seasonalWords(text, season));
+    }
+    for (const text of story) addSpoken('story', theme, withName(text, null, theme));
+    for (const panels of scripts) addSpoken('story', theme, storyScript(panels, theme));
+    for (const panels of filmed) for (const panel of panels) addSpoken('story', theme, withName(panel.text, null, theme));
   }
-  return [...texts].sort().map((text) => ({ key: voiceKey(text), text }));
+  return VOICE_SENTENCE_SOURCES.flatMap((source) => VOICE_SENTENCE_THEMES.map((theme) => {
+    const sentences = [...(grouped.get(`${source}/${theme}`)?.values() ?? [])]
+      .sort((left, right) => left.text < right.text ? -1 : left.text > right.text ? 1 : 0);
+    return { source, theme, sentences };
+  }));
+}
+
+export function voiceSentences(): VoiceSentenceEntry[] {
+  const all = new Map<string, VoiceSentenceEntry>();
+  for (const group of voiceSentenceGroups()) {
+    for (const sentence of group.sentences) all.set(sentence.key, sentence);
+  }
+  return [...all.values()].sort((left, right) => left.text < right.text ? -1 : left.text > right.text ? 1 : 0);
 }
 
 if (process.argv[1]?.endsWith('voice-sentences.ts')) process.stdout.write(`${JSON.stringify(voiceSentences(), null, 0)}\n`);
