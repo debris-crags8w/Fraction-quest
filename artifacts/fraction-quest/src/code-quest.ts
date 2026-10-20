@@ -188,7 +188,7 @@ const toTarget = (m: LearningModel): Target => ({ kind: m.kind, n: m.n, d: m.d, 
 const fractionName = (t: Target) => `${t.n}/${t.d}`;
 const goalText = (t: Target) => t.kind === 'line'
   ? `Make the robot land on ${fractionName(t)} on the number line.`
-  : t.kind === 'set' ? `Make the robot pick ${fractionName(t)} of the ${t.total} dots.` : `Make the robot shade ${fractionName(t)}${t.wholes > 1 ? ' (more than 1 whole bar)' : ''}.`;
+  : t.kind === 'set' ? `Make the robot pick ${fractionName(t)} of the ${t.total} dots.` : `Make the robot shade ${fractionName(t)}${t.wholes > 1 ? ' (more than one whole bar)' : ''}.`;
 
 const LEVELS_CACHE = new Map<string, CodeLevel[]>();
 /** Six levels per lesson, built from the lesson's own fractions and current block vocabulary (built once per lesson). */
@@ -221,7 +221,7 @@ function buildCodeLevels(missionId: string): CodeLevel[] {
   const bug = makeBug(t3);
   return [
     { level: 1, mode: 'fill', title: 'Fill in the numbers', goal: goalText(t1), target: t1, start: solution(t1, true), palette: [],
-      tip: t1.kind === 'line' ? 'Split: spaces in 1 whole (the denominator). Repeat: how many jumps (the numerator).' : t1.kind === 'set' ? 'Split: how many equal groups (the denominator). Repeat: how many to pick (the numerator).' : 'Split: pieces in 1 bar (the denominator). Repeat: how many to shade (the numerator).' },
+      tip: t1.kind === 'line' ? 'Split: spaces in one whole (the denominator). Repeat: how many jumps (the numerator).' : t1.kind === 'set' ? 'Split: how many equal groups (the denominator). Repeat: how many to pick (the numerator).' : 'Split: pieces in 1 bar (the denominator). Repeat: how many to shade (the numerator).' },
     { level: 2, mode: 'build', title: 'Build the program', goal: goalText(t2), target: t2, start: [], palette: palette(t2),
       tip: 'Tap blocks to add them. Split first. A repeat loop saves lots of blocks!' },
     { level: 3, mode: 'debug', title: 'Fix the bug', goal: goalText(t3), target: t3, start: bug, palette: palette(t3),

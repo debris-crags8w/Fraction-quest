@@ -80,7 +80,7 @@ export function PaperFold({ allowThirds = true, shadeHalf = false, intro }: { al
   const blockWidth = open ? 100 : 100 / pieces;
   const equivalence = trail.length > 2 ? trail.slice(1).map((d) => `${d / trail[1]}/${d}`).join(' = ') : '';
 
-  let message = 'A paper strip is 1 whole. Fold it!';
+  let message = 'A paper strip is one whole. Fold it!';
   if (phase === 'collapsing') message = 'Folding it back up along the creases…';
   else if (phase === 'folding') message = flap === 2 ? 'Folding in half…' : 'Folding in thirds…';
   else if (phase === 'folded') message = `Folded ${factors.length} ${factors.length === 1 ? 'time' : 'times'}: ${pieces} layers thick. Unfold to see the pieces.`;

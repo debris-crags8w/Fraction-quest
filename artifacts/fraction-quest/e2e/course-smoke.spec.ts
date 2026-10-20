@@ -92,7 +92,7 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   const numberLine = page.getByTestId('fraction-order-numberline');
   await expect(numberLine).toBeVisible();
   await expect(numberLine).toContainText('0');
-  await expect(numberLine).toContainText('1 whole');
+  await expect(numberLine).toContainText('one whole');
   await expect(numberLine).toContainText('one-half benchmark is halfway');
   await expect(numberLine).toContainText('14 = 28');
   await expect(numberLine).toContainText('one fourth and two eighths are equivalent fractions');
@@ -203,7 +203,7 @@ test('the ordering number line stays legible in grayscale print media', async ({
   const figure = page.getByTestId('fraction-order-print-preview').getByTestId('fraction-order-numberline');
   await expect(figure).toBeVisible();
   await expect(figure.locator('.fq-order-line-caption')).toContainText('0');
-  await expect(figure.locator('.fq-order-line-caption')).toContainText('1 whole');
+  await expect(figure.locator('.fq-order-line-caption')).toContainText('one whole');
   await expect(figure.locator('.fq-order-line-point > span')).toHaveCount(3);
   await expect(figure.locator('.fq-order-line-point > span').nth(0)).toContainText('14 = 28');
   await expect(figure.locator('.fq-order-line-point > span').nth(1)).toContainText('38');
@@ -1860,7 +1860,7 @@ test('daily bar builder explains the denominator as total equal parts in one who
   await expect(fourParts).toHaveAttribute('aria-checked', 'false');
   await page.getByTestId('button-daily-parts-4').click();
   await expect(fourParts).toHaveAttribute('aria-checked', 'true');
-  await expect(page.locator('.fq-whole-bracket')).toHaveText('1 whole: 4 equal parts');
+  await expect(page.locator('.fq-whole-bracket')).toHaveText('one whole: 4 equal parts');
 });
 
 test('daily number-line model lets a learner choose the 1/3 landing point after 2/3', async ({ page }) => {

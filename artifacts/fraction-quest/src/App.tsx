@@ -140,7 +140,7 @@ type UnitInfo = { title: string; subtitle: string };
 const UNIT_INFO: UnitInfo[] = [
   { title: 'Meet fractions', subtitle: 'Fair shares, fraction names, and unit fractions' },
   { title: 'Fractions in groups', subtitle: 'Find equal shares and parts of collections' },
-  { title: 'Size and landmarks', subtitle: 'Estimate with zero, one-half, and one whole' },
+  { title: 'Size and benchmarks', subtitle: 'Estimate with zero, one-half, and one whole' },
   { title: 'Fraction number lines', subtitle: 'Mark equal jumps, including past one' },
   { title: 'Compare and order', subtitle: 'Use equal pieces and benchmarks to reason' },
   { title: 'Equivalent fractions', subtitle: 'Rename an amount without changing its size' },
@@ -308,7 +308,7 @@ export function OrderNumberLine({
         })}
       </div>
       <figcaption className="fq-order-line-caption">
-        <span>0</span><span>1 whole</span>
+        <span>0</span><span>one whole</span>
       </figcaption>
       <p className="fq-order-line-description" data-testid="text-fraction-order-line-description">
         <span className="fq-order-line-description-copy" data-testid="text-fraction-order-line-description-copy">

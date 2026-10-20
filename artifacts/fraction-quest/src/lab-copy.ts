@@ -15,7 +15,7 @@ export const LAB_SECTION_SPEECH = {
 
 /** Said once as a folded strip opens. */
 export const foldSpeech = (folds: number, pieces: number) =>
-  `${folds} ${folds === 1 ? 'fold' : 'folds'}. ${pieces} equal pieces. Each piece is 1/${pieces}.`;
+  `${folds} ${folds === 1 ? 'fold' : 'folds'}. ${pieces} equal parts. Each part is 1/${pieces}.`;
 
 type BuildKind = 'bar' | 'line' | 'set';
 type BuildTarget = { n: number; d: number; wholes: number; total?: number };
@@ -45,7 +45,7 @@ const MODEL_LABEL: Record<BuildKind, string> = { bar: 'Bar', line: 'Number line'
 export function buildErrors(kind: BuildKind, t: BuildTarget, s: { d: number; count: number; wholes: number }): { msgs: string[]; keys: string[] } {
   const msgs: string[] = []; const keys: string[] = [];
   const label = MODEL_LABEL[kind];
-  const unit = kind === 'line' ? 'spaces' : kind === 'set' ? 'groups' : 'pieces';
+  const unit = kind === 'line' ? 'spaces' : kind === 'set' ? 'groups' : 'parts';
   if (s.d === 0) return { msgs: [`${label}: choose how many equal ${unit} make one whole.`], keys: [BUILD_SLIPS.parts] };
   if (kind === 'set') {
     const total = t.total ?? 0;
@@ -56,7 +56,7 @@ export function buildErrors(kind: BuildKind, t: BuildTarget, s: { d: number; cou
   if (kind === 'bar' && s.wholes !== t.wholes) { msgs.push(`${label}: use ${t.wholes} whole ${t.wholes === 1 ? 'bar' : 'bars'}.`); keys.push(BUILD_SLIPS.wholes); }
   if (s.count !== t.n && s.d === t.d) {
     const action = kind === 'line' ? 'mark' : kind === 'set' ? 'select' : 'shade';
-    const counted = kind === 'line' ? 'jump' : kind === 'set' ? 'group' : 'piece';
+    const counted = kind === 'line' ? 'jump' : kind === 'set' ? 'group' : 'part';
     msgs.push(`${label}: not yet. Look at the numerator: how many ${counted}s should you ${action}?`);
     keys.push(BUILD_SLIPS.count);
   }
