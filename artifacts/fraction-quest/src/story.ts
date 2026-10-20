@@ -433,7 +433,7 @@ export const STORY_PROBLEMS: Record<string, StoryProblem> = {
     result: 'Each group has 4 bolts. Beep! Equal groups!' },
   'sets-nonunit': { setup: 'Some bolts already went into the machine!',
     prompt: 'Bolt had 18 bolts. The machine used 3/6 of them. How many did it use?',
-    choices: ['6 bolts', '15 bolts', '9 bolts', '8 bolts'],
+    choices: ['6 bolts', '15 bolts', '9 bolts', '3 bolts'],
     result: 'The machine used 9 bolts. Half the box is still left!' },
   'multiply-fractions': { setup: 'My machine picks part of the parts. How much is that?',
     prompt: 'Bolt’s machine takes half of a part. What is 1/2 of 5/12?',
