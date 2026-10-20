@@ -3566,13 +3566,12 @@ describe('lesson steps for the map pies', () => {
 });
 
 describe('Kokoro from the server, and the self-test crash breadcrumbs', () => {
-  it('shows the self-test only in development or with ?voicetest', async () => {
+  it('shows the step-by-step self-test only with ?voicetest (the Preview voice button is the everyday test)', async () => {
     const { showVoiceSelfTest } = await import('./KokoroDiagnostic');
-    assert.equal(showVoiceSelfTest(true, ''), true);
-    assert.equal(showVoiceSelfTest(false, ''), false);
-    assert.equal(showVoiceSelfTest(false, '?voicetest'), true);
-    assert.equal(showVoiceSelfTest(false, '?a=1&voicetest=1'), true);
-    assert.equal(showVoiceSelfTest(false, '?voicetester'), false);
+    assert.equal(showVoiceSelfTest(''), false);
+    assert.equal(showVoiceSelfTest('?voicetest'), true);
+    assert.equal(showVoiceSelfTest('?a=1&voicetest=1'), true);
+    assert.equal(showVoiceSelfTest('?voicetester'), false);
     const learningText = readFileSync(new URL('./LearningText.tsx', import.meta.url), 'utf8');
     assert.match(learningText, /showVoiceSelfTest\(\)\s*&&\s*<KokoroDiagnostic\s*\/>/);
   });
