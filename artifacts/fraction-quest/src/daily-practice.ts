@@ -15,7 +15,8 @@ import { standardsForMission, type StandardId } from './standard-catalog';
 export const DAILY_PRACTICE_LENGTH = 5;
 const MAX_DAILY_QUESTIONS = 10;
 const RECENT_WINDOW = 6;
-const MASTERY_ACCURACY = 0.84;
+// Five of the last six is the mastery bar (about 83%). 0.84 sat above 5/6 and 4/5, so only a perfect window could pass.
+const MASTERY_ACCURACY = 5 / 6;
 const RETEACH_MISS_STREAK = 3;
 
 export function dailyPracticeDay(now = Date.now()): string {

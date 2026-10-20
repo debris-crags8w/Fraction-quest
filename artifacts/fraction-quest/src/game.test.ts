@@ -1139,6 +1139,43 @@ describe('daily fraction practice', () => {
     assert.ok(updated.adaptationLog?.some((event) => event.band === 'scaffolded' && event.missionId === question.missionId));
   });
 
+  it('treats five of the last six answers as mastered, but not four of five', () => {
+    const now = new Date(2026, 9, 12, 12).getTime();
+    const mission = MISSIONS.find((item) => item.id === 'fraction-names')!;
+    const draft = createDailyPractice(EMPTY_PROGRESS, now);
+    const question = {
+      ...draft.questions[0],
+      id: 'daily-mastery-window',
+      missionId: mission.id,
+      standards: ['3.NF.1'] as const,
+      kind: 'choice' as const,
+    };
+    const session = { ...draft, questions: [question, ...draft.questions.slice(1)] };
+    const attempt = { shaded: [], draft: '', modelChecked: false, modelCorrect: false, answerChecked: true, answerCorrect: true };
+    const afterFourOfFive = applyAdaptiveDailyPracticeUpdate({
+      ...EMPTY_PROGRESS,
+      dailyPractice: session,
+      adaptiveStandards: {
+        '3.NF.1': { status: 'developing', recent: [false, true, true, true], accuracy: 0.75, streakCorrect: 3, streakMisses: 0, lastUpdatedAt: now - 500 },
+      },
+    }, { ...session, attempts: { ...session.attempts, [question.id]: attempt } }, now + 1);
+    assert.equal(afterFourOfFive.adaptiveStandards?.['3.NF.1']?.status, 'developing', '4/5 is 80%, below the mastery bar');
+    assert.equal(afterFourOfFive.adaptiveStandards?.['3.NF.1']?.recent.length, 5);
+
+    const afterFiveOfSix = applyAdaptiveDailyPracticeUpdate({
+      ...EMPTY_PROGRESS,
+      dailyPractice: session,
+      adaptiveStandards: {
+        '3.NF.1': { status: 'developing', recent: [false, true, true, true, true], accuracy: 0.8, streakCorrect: 4, streakMisses: 0, lastUpdatedAt: now - 500 },
+      },
+    }, { ...session, attempts: { ...session.attempts, [question.id]: attempt } }, now + 2);
+    const mastered = afterFiveOfSix.adaptiveStandards?.['3.NF.1'];
+    assert.equal(mastered?.status, 'mastered', '5/6 must clear the mastery bar; 0.84 used to require a perfect window');
+    assert.equal(mastered?.recent.filter(Boolean).length, 5);
+    assert.equal(mastered?.recent.length, 6);
+    assert.ok((mastered?.accuracy ?? 0) >= 5 / 6);
+  });
+
   it('upgrades the next question to transfer after a high-accuracy correct answer', () => {
     const now = new Date(2026, 9, 11, 12).getTime();
     const mission = MISSIONS.find((item) => item.id === 'fraction-names')!;
