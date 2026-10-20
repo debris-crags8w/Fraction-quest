@@ -21,7 +21,8 @@
         {
           "backgroundColor": "#f9f3e7"
         }
-      ]
+      ],
+      "expo-iap"
     ],
     "experiments": {
       "typedRoutes": true,

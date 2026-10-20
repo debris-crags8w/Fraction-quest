@@ -6,12 +6,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react-native-webview';
+import { useStoreSubscription } from '@/lib/store';
 import { isAppPage, parseShellMessage, shellInfoScript, webAppUrl } from '@/lib/web-app';
 
 /* Fraction Quest on iPhone: a native shell around the live web app. Every lesson and screen comes from the web app,
    so a change there shows up here on the next launch (no app rebuild). The shell adds what a website can't do on
    its own: the iPhone print sheet, a gentle haptic tap on answers, links to other sites opening in Safari, and
-   telling the page when the phone is on Wi-Fi (the page then keeps the whole voice pack on the phone). */
+   telling the page when the phone is on Wi-Fi (the page then keeps the whole voice pack on the phone), and the
+   monthly subscription through Apple or Google (the page asks to buy, restore or manage; the shell reports back). */
 
 const BACKGROUND = '#F5F3FF';
 const APP_URL = webAppUrl();
@@ -30,7 +32,8 @@ export default function FractionQuestShell() {
     const subscription = Network.addNetworkStateListener(update);
     return () => subscription.remove();
   }, []);
-  const tellPage = useCallback(() => { web.current?.injectJavaScript(shellInfoScript(Platform.OS, wifi)); }, [wifi]);
+  const [subscription, subscriptionAction] = useStoreSubscription();
+  const tellPage = useCallback(() => { web.current?.injectJavaScript(shellInfoScript(Platform.OS, wifi, subscription)); }, [wifi, subscription]);
   useEffect(() => { if (!loading) tellPage(); }, [loading, tellPage]);
 
   // On the web (Expo's browser preview) there is nothing to wrap: go straight to the web app.
@@ -54,8 +57,10 @@ export default function FractionQuestShell() {
       void feedback.catch(() => { /* haptics are optional and may be unavailable on this device */ });
     } else if (message.type === 'print') {
       void Print.printAsync({ html: message.html }).catch(() => { /* the child closed the sheet */ });
+    } else if (message.type === 'subscription') {
+      subscriptionAction(message.action);
     }
-  }, []);
+  }, [subscriptionAction]);
 
   const onNavigate = useCallback((request: WebViewNavigation) => {
     if (!APP_URL || isAppPage(request.url, APP_URL)) return true;
@@ -84,7 +89,7 @@ export default function FractionQuestShell() {
           style={styles.web}
           originWhitelist={['*']}
           onMessage={onMessage}
-          injectedJavaScriptBeforeContentLoaded={shellInfoScript(Platform.OS, wifi)}
+          injectedJavaScriptBeforeContentLoaded={shellInfoScript(Platform.OS, wifi, subscription)}
           onShouldStartLoadWithRequest={onNavigate}
           onLoadEnd={() => { setLoading(false); tellPage(); }}
           onError={() => setFailed(true)}

@@ -59,6 +59,8 @@ import { activeSeason } from './seasons';
 import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
 import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
 import { LanternIcon, OilNoticeCard } from './riddle-ui';
+import { SubscribeFlow } from './Subscribe';
+import { lessonsLocked, subscribedBefore, useSubscription } from './lib/subscription';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
 import { freshSeed, generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
@@ -123,6 +125,13 @@ type ChallengeView = { type: 'challenge'; unit: number };
 type ParentPage = { type: 'parent' };
 type GameView = { type: 'race' | 'code'; missionId: string; /** Opened from the Games menu: go back there. */ fromGames?: boolean };
 type PlacementView = { type: 'placement' };
+type SubscribeView = { type: 'subscribe' };
+/** What stays open without the subscription: the map, the opening story, the level quiz, the whole first lesson
+    (its story, games and worksheet too), reading finished story parts again, and the grown-ups' area. */
+const isFreeView = (view: { type: string; missionId?: string; prologue?: boolean; replay?: string; part?: string; nextView?: { type: string } }): boolean =>
+  ['map', 'placement', 'storybook', 'suspects', 'parent'].includes(view.type)
+  || (view.type === 'story' && (!!view.prologue || !!view.replay || !!view.part))
+  || (view.missionId === MISSIONS[0].id && (!view.nextView || isFreeView(view.nextView)));
 // seed 0 = the fixed 12 "Practice more" questions; any other seed = freshly generated questions.
 type ExtraView = { type: 'extra'; missionId: string; seed: number; questionIndex: number; firstTry: number } | { type: 'extra-done'; missionId: string; seed: number; firstTry: number; total: number };
 const FRESH_ROUND = 10;
@@ -1300,7 +1309,12 @@ function Game() {
   const [moduleTestActive, setModuleTestActive] = useState(false);
   const originalModuleTestProgress = useRef<Progress | null>(null);
   const originalModuleTestFun = useRef<FunState | null>(null);
-  const [view, setView] = useState<View | LabView | RetentionView | PaperView | RedoView | ChallengeView | ExtraView | ParentPage | GameView | PlacementView>({ type: 'map' });
+  const [requestedView, setView] = useState<View | LabView | RetentionView | PaperView | RedoView | ChallengeView | ExtraView | ParentPage | GameView | PlacementView>({ type: 'map' });
+  // In the app (iPhone and Android), lessons need the subscription: a lesson asked for without one shows the
+  // subscription flow instead, and opens by itself once the purchase goes through. Developer tests are never locked.
+  const subscription = useSubscription();
+  const view: typeof requestedView | SubscribeView = lessonsLocked(subscription) && !moduleTestActive && !isFreeView(requestedView)
+    ? { type: 'subscribe' } : requestedView;
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetAllConfirm, setResetAllConfirm] = useState(false);
@@ -1648,6 +1662,10 @@ function Game() {
       {view.type === 'assessments' && <AssessmentHub attempts={progress.assessments ?? []} onStart={definition => setView({ type: 'assessment', definition, seed: freshSeed() })} onBack={returnToMap} />}
       {view.type === 'assessment' && <AssessmentRunner key={`${view.definition.id}:${view.seed}`} definition={view.definition} seed={view.seed}
         onComplete={attempt => persistProgress(saveAssessmentAttempt(progress, attempt))} onExit={() => setView({ type: 'assessments' })} />}
+      {view.type === 'subscribe' && subscription && (
+        <SubscribeFlow subscription={subscription} lapsed={subscribedBefore()} lessonsDone={progress.completedMissionIds.length}
+          piecesFound={completedStoryUnits(progress).size} onBack={() => setView({ type: 'map' })} onStorybook={() => setView({ type: 'storybook', tab: 'story' })} />
+      )}
       {view.type === 'placement' && <PlacementQuiz unitTitles={UNIT_TITLES} onExit={returnToMap} onDone={(passed) => { persistProgress(applyPlacement(progress, passed)); returnToMap(); }} />}
       {view.type === 'race' && (
         <FractionRace key={view.missionId} mission={getMission(view.missionId)} best={fun.raceBest?.[view.missionId] ?? null} robotBeaten={fun.robotBeaten?.[view.missionId] ?? 0} sprintBest={fun.sprintBest?.[view.missionId] ?? null}
