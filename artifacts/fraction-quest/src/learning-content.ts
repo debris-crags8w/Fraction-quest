@@ -571,6 +571,147 @@ const SQUARE_ROWS: { prompt: string; answer: string; cut: AreaFigure['cut']; sha
   { prompt: 'How many small squares make one half of the whole square?', answer: '2', cut: 'fourths-squares', hint: 'How many small squares fill the whole square? Half of that is how many?' },
 ]];
 
+/* Extra builds that practise the lesson's own skill, with new numbers each time (never "Build 2/15" in a lesson about
+   something else). Each is [prompt, numerator, denominator, explanation, kind?, total?]; every prompt is a wording the
+   accuracy proof engine already solves. Denominators stay in the lesson's grade: 2, 3, 4, 6, 8 for grade 3. */
+type LessonBuild = [string, number, number, string, LearningModel['kind']?, number?];
+const GRADE3_DENS = [2, 3, 4, 6, 8];
+const GRADE4_DENS = [2, 3, 4, 5, 6, 8, 10, 12];
+const at = <T,>(list: readonly T[], s: number, salt = 0): T => list[(s + salt) % list.length];
+const gcdOf = (a: number, b: number): number => (b ? gcdOf(b, a % b) : a);
+/** a/b + c/d, written with the smallest shared denominator. */
+const sumIn = (a: number, b: number, c: number, d: number, sign = 1): [number, number] => {
+  const common = (b * d) / gcdOf(b, d);
+  return [a * (common / b) + sign * c * (common / d), common];
+};
+const EQUIV_PAIRS: Record<3 | 4, [number, number, number][]> = {
+  3: [[1, 2, 4], [1, 2, 6], [1, 2, 8], [1, 3, 6], [2, 3, 6], [1, 4, 8], [3, 4, 8], [2, 4, 8]],
+  4: [[2, 5, 10], [3, 5, 10], [1, 6, 12], [5, 6, 12], [3, 4, 12], [2, 3, 12], [1, 2, 10], [4, 5, 10], [1, 3, 12], [3, 4, 8]],
+};
+const UNLIKE_PAIRS: [number, number, number, number][] = [[1, 2, 1, 3], [2, 3, 3, 4], [3, 5, 1, 2], [5, 6, 3, 4], [2, 5, 1, 3], [3, 8, 1, 2], [5, 8, 2, 3], [3, 4, 4, 5], [1, 4, 1, 3], [7, 10, 3, 4]];
+const unitWord = (d: number) => unitName(d);
+const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
+  'equal-parts': (s) => { const d = at(GRADE3_DENS, s); const n = 1 + (Math.floor(s / 5) % (d - 1)); const pizza = Math.floor(s / 5) % 2 === 1;
+    return [`Cut ${pizza ? 'a pizza' : 'a bar'} into ${d} equal ${pizza ? 'slices' : 'parts'}. Shade ${n}.`, n, d, `${d} equal ${pizza ? 'slices' : 'parts'}, all the same size. ${n} of them is ${n}/${d}.`]; },
+  'fraction-names': (s) => { const d = at([3, 4, 6, 8], s); const n = 1 + (s % (d - 1)); return [`Cut a bar into ${d} equal parts. Shade ${n}.`, n, d, `The denominator, ${d}, is all the parts. The numerator, ${n}, is the parts you shade.`]; },
+  'unit-fractions': (s) => { const d = at(GRADE3_DENS, s); const way = Math.floor(s / 5) % 3;
+    if (way === 0) return [`A pizza has ${d} equal slices. Make one slice.`, 1, d, `1 of ${d} equal slices is 1/${d}.`];
+    if (way === 1) return [`Cut 0 to 1 into ${d} equal spaces. Make 1 jump.`, 1, d, `A unit fraction is 1 part: 1 of ${d} equal spaces is 1/${d}.`, 'line'];
+    const total = d * (2 + (Math.floor(s / 15) % 3)); return [`Put ${total} shells in ${d} equal groups. Pick 1 of the groups.`, 1, d, `1 of ${d} equal groups is 1/${d}.`, 'set', total]; },
+  'fraction-of-area': (s) => { const d = at([4, 6, 8], s); const n = 1 + (s % (d - 1)); return [`A garden has ${d} equal beds. Plant ${n}.`, n, d, `${n} of ${d} equal beds is ${n}/${d}.`]; },
+  'unit-size': (s) => { const [a, b] = at([[2, 4], [3, 6], [4, 8], [2, 3], [3, 4], [6, 8], [2, 6], [3, 8]] as const, s); const big = s % 2 === 0;
+    return [`Which is ${big ? 'bigger' : 'smaller'}, 1/${a} or 1/${b}?`, 1, big ? a : b, `${unitWord(b)} cut the same whole into more parts, so 1/${b} is smaller than 1/${a}.`]; },
+  'order-fractions': (s) => { const d = at([4, 6, 8], s); const a = 1 + (s % (d - 2)); const b = a + 1 + (s % 2 && a + 2 < d ? 1 : 0); const big = s % 2 === 0;
+    return [`Which is ${big ? 'bigger' : 'smaller'}, ${a}/${d} or ${b}/${d}?`, big ? b : a, d, `Same-size parts: ${b} parts is more than ${a}.`]; },
+  'compare-unlike-fractions': (s) => { const [a, b, c, d] = at(UNLIKE_PAIRS, s); const big = a * d > c * b ? [a, b] : [c, d];
+    return [`Which is bigger, ${a}/${b} or ${c}/${d}?`, big[0], big[1], `Rename both with the same denominator, then compare the numerators.`]; },
+  'order-unlike-fractions': (s) => LESSON_BUILDS['compare-unlike-fractions'](s + 3),
+  'benchmark-half': (s) => { const d = at([4, 6, 8, 10, 12], s); return [`Use ${unitWord(d)}. Make a fraction 1/${d} less than half.`, d / 2 - 1, d, `Half is ${d / 2}/${d}. One part less is ${d / 2 - 1}/${d}.`]; },
+  'equivalent-models': (s) => { const [a, b, c] = at(EQUIV_PAIRS[3], s); return [`${a}/${b} = ?/${c}. Make it.`, (a * c) / b, c, `Cut each ${unitPiece(b)} into ${c / b} equal parts: ${a}/${b} = ${(a * c) / b}/${c}.`]; },
+  'build-equivalents': (s) => LESSON_BUILDS['equivalent-models'](s + 2),
+  'missing-equivalent': (s) => { const [a, b, c] = at(EQUIV_PAIRS[4], s); return [`${a}/${b} = ?/${c}. Make it.`, (a * c) / b, c, `Multiply the numerator and denominator by ${c / b}: ${a}/${b} = ${(a * c) / b}/${c}.`]; },
+  'equivalent-missing-both': (s) => LESSON_BUILDS['missing-equivalent'](s + 3),
+  'equivalent-number-line': (s) => { const [a, b, c] = at([...EQUIV_PAIRS[3], [2, 4, 2], [4, 8, 2], [2, 6, 3], [4, 6, 3], [6, 8, 4], [2, 8, 4], [3, 6, 2], [4, 8, 4]] as const, s); return [`${a}/${b} = ?/${c}. Make it.`, (a * c) / b, c, `The same spot on the line: ${a}/${b} = ${(a * c) / b}/${c}.`, 'line']; },
+  'simplify-fractions': (s) => { const [a, b, c] = at(EQUIV_PAIRS[4], s); return [`${(a * c) / b}/${c} = ?/${b}. Make it.`, a, b, `Divide the numerator and denominator by ${c / b}: ${(a * c) / b}/${c} = ${a}/${b}.`]; },
+  'improper-fractions': (s) => { const d = at([2, 3, 4, 6], s); const n = d + 1 + (s % (d - 1 || 1)); return [`Make ${n}/${d}.`, n, d, `${d}/${d} is one whole. ${n - d} more ${n - d === 1 ? unitPiece(d) : unitWord(d)} go past it.`]; },
+  'whole-numbers-as-fractions': (s) => { const d = at([2, 3, 4, 6, 8], s); const w = 1 + (Math.floor(s / 5) % 3); return [`Make ${w * d}/${d}.`, w * d, d, `${d}/${d} is one whole, so ${w * d}/${d} is ${w} ${w === 1 ? 'whole' : 'wholes'}.`]; },
+  'mixed-improper': (s) => { const d = at([2, 3, 4, 6, 8], s); const r = 1 + (s % (d - 1)); return [`Walk 1 ${r}/${d} km, then 0/${d} km more. Make the total.`, d + r, d, `1 whole is ${d}/${d}. Add ${r}/${d}: ${d + r}/${d}.`]; },
+  'add-mixed-numbers': (s) => { const d = at([3, 4, 5, 6, 8], s); const a = 1 + (s % (d - 1)); const b = 1 + ((s + 1) % (d - 1));
+    return [`Walk 1 ${a}/${d} km, then ${b}/${d} km more. Make the total.`, d + a + b, d, `Add the parts: ${a} + ${b} = ${a + b}. Then add the whole: ${d + a + b}/${d}.`]; },
+  'subtract-mixed-numbers': (s) => { const d = at([3, 4, 5, 6, 8], s); const b = 2 + (Math.floor(s / 5) % (d - 2 || 1)); const a = 1 + (Math.floor(s / 25) % (b - 1));
+    return [`A roll is 2 ${a}/${d} m. Cut off 1 ${b}/${d} m. Make what is left.`, d + a - b, d, `Trade one whole for ${d}/${d}, then take away: ${d + a - b}/${d}.`]; },
+  'mixed-unlike-operations': (s) => { const [a, b, c, d] = at(UNLIKE_PAIRS, s); const [n, den] = sumIn(a, b, c, d);
+    return [`A jug has ${a}/${b} liter. Add ${c}/${d} liter. How much is there now?`, n, den, `Rename both in ${unitWord(den)}, then add: ${n}/${den}.`]; },
+  'add-like-denominators': (s) => { const d = at([4, 5, 6, 8, 10], s); const a = 1 + (s % (d - 2)); const b = 1 + ((s + 1) % (d - a - 1 || 1));
+    return [`A jug has ${a}/${d} liter. Add ${b}/${d} liter. How much is there now?`, a + b, d, `Same-size parts: ${a} + ${b} = ${a + b}, so ${a + b}/${d}.`]; },
+  'subtract-like-denominators': (s) => { const d = at([4, 5, 6, 8, 10], s); const a = 2 + (s % (d - 2)); const b = 1 + (s % (a - 1));
+    return [`A ribbon is ${a}/${d} meter long. Cut off ${b}/${d} meter. Make what is left.`, a - b, d, `Same-size parts: ${a} − ${b} = ${a - b}, so ${a - b}/${d}.`]; },
+  'add-related-fractions': (s) => { const [a, b, c, d] = at([[1, 2, 1, 4], [1, 4, 3, 8], [1, 3, 1, 6], [1, 2, 1, 8], [1, 5, 3, 10], [1, 6, 5, 12], [1, 2, 2, 6], [3, 4, 1, 8]] as const, s); const [n, den] = sumIn(a, b, c, d);
+    return [`A jug has ${a}/${b} liter. Add ${c}/${d} liter. How much is there now?`, n, den, `Rename ${a}/${b} in ${unitWord(den)}, then add: ${n}/${den}.`]; },
+  'add-unlike-fractions': (s) => LESSON_BUILDS['mixed-unlike-operations'](s + 1),
+  'fractional-measure-addition': (s) => LESSON_BUILDS['add-related-fractions'](s + 1),
+  'measurement-word-problems': (s) => LESSON_BUILDS['add-related-fractions'](s + 4),
+  'subtract-unlike-fractions': (s) => { const [a, b, c, d] = at(UNLIKE_PAIRS, s); const [big, small] = a * d > c * b ? [[a, b], [c, d]] : [[c, d], [a, b]]; const [n, den] = sumIn(big[0], big[1], small[0], small[1], -1);
+    return [`A jug is ${big[0]}/${big[1]} full. Pour out ${small[0]}/${small[1]}. Make what is left.`, n, den, `Rename both in ${unitWord(den)}, then take away: ${n}/${den}.`]; },
+  'tenths-decimals': (s) => { const t = 1 + (s % 9); return [`A jar is 0.${t} full. Make it in tenths.`, t, 10, `0.${t} means ${t} ${t === 1 ? 'tenth' : 'tenths'}.`]; },
+  'hundredths-decimals': (s) => { const h = at([5, 12, 25, 40, 63, 75, 9, 30, 50, 81], s); const dec = (h / 100).toFixed(2);
+    return [`A battery shows ${dec}. Make it in hundredths.`, h, 100, `${dec} means ${h} hundredths.`]; },
+  'decimal-fraction-equivalence': (s) => LESSON_BUILDS['hundredths-decimals'](s + 3),
+  'compare-decimals': (s) => { const h = at([40, 35, 7, 70, 23, 32, 50, 5], s); const dec = String(h / 100);
+    return [`A battery shows ${dec}. Make it in hundredths.`, h, 100, `${dec} is ${h} hundredths. Compare decimals as hundredths.`]; },
+  'add-tenths-hundredths': (s) => { const a = 1 + (s % 8); const b = at([4, 12, 25, 7, 31, 15, 9, 20], s);
+    return [`A jug has ${a}/10 liter. Add ${b}/100 liter. How much is there now?`, 10 * a + b, 100, `${a}/10 = ${10 * a}/100. Add ${b}/100: ${10 * a + b}/100.`]; },
+  'unit-fraction-multiples': (s) => { const d = at([3, 4, 5, 6, 8], s); const k = 2 + (s % (d + 1)); return [`${k} cups each hold 1/${d} cup of juice. Make the total.`, k, d, `${k} copies of 1/${d} is ${k}/${d}.`]; },
+  'multiply-whole-by-fraction': (s) => { const d = at([3, 4, 5, 6, 8], s); const a = 2 + (s % (d - 2 || 1)); const k = 2 + (s % 2);
+    return [`${k} cups each hold ${a}/${d} cup of juice. Make the total.`, k * a, d, `${k} groups of ${a}/${d} is ${k * a}/${d}. The parts stay ${unitWord(d)}.`]; },
+  'fraction-recipes': (s) => { const [a, b] = at([[2, 3], [3, 4], [1, 2], [3, 8], [2, 5], [5, 6]] as const, s); return [`A recipe uses ${a}/${b} cup of flour. Double it. Make it in ${unitWord(b)}.`, 2 * a, b, `Double ${a}/${b}: ${a}/${b} + ${a}/${b} = ${2 * a}/${b}.`]; },
+  'fraction-of-quantity': (s) => { const d = at([3, 4, 5, 6], s); const n = 1 + (s % (d - 1)); const total = d * (2 + (s % 3));
+    return [`Put ${total} shells in ${d} equal groups. Pick ${n} of the groups.`, n, d, `${total} in ${d} groups is ${total / d} each. ${n} groups is ${n}/${d}.`, 'set', total]; },
+  'sets-unit-fractions': (s) => { const d = at([2, 3, 4, 6, 8], s); const total = d * (2 + (Math.floor(s / 5) % 5));
+    return [`Put ${total} shells in ${d} equal groups. Pick 1 of the groups.`, 1, d, `${total} in ${d} groups is ${total / d} each. 1 group is 1/${d}.`, 'set', total]; },
+  'sets-nonunit': (s) => LESSON_BUILDS['fraction-of-quantity'](s + 1),
+  'fraction-of-collection': (s) => LESSON_BUILDS['fraction-of-quantity'](s + 2),
+  'multiplication-scaling': (s) => { const d = at([3, 4, 5, 6], s); const n = 1 + (Math.floor(s / 4) % (d - 1)); const total = d * (2 + (Math.floor(s / 12) % 3));
+    return [`Build ${n}/${d} of ${total} counters. Make ${d} equal groups.`, n, d, `${n}/${d} of ${total} is less than ${total}: part of a group is less.`, 'set', total]; },
+  'multiply-fractions': (s) => { const [a, b, c, d] = at([[1, 2, 3, 4], [2, 3, 1, 2], [1, 3, 3, 4], [2, 3, 3, 4], [1, 2, 1, 3], [3, 4, 1, 3], [1, 2, 1, 4], [2, 3, 2, 3], [1, 4, 3, 4], [1, 2, 2, 3], [3, 4, 3, 4], [1, 3, 1, 2]] as const, s);
+    return [`A rectangle is ${a}/${b} unit by ${c}/${d} unit. Find its area.`, a * c, b * d, `Cut the unit square into ${b * d} small parts. ${a * c} of them are covered: ${a * c}/${b * d}.`]; },
+  'fractional-side-area': (s) => { const [a, c] = at([[1, 1], [1, 2], [2, 1], [2, 3], [1, 3], [2, 2], [3, 1], [3, 2], [3, 3], [2, 4], [1, 4], [3, 4]] as const, s);
+    return [`A rectangle is ${a}/3 unit by ${c}/4 unit. Find its area.`, a * c, 12, `${a} columns by ${c} rows cover ${a * c} of 12 equal squares.`]; },
+  'multiply-mixed-numbers': (s) => { const [a, b, c, d] = at([[3, 2, 4, 3], [3, 2, 3, 2], [5, 4, 4, 3], [5, 4, 3, 2], [4, 3, 5, 4], [7, 4, 4, 3], [5, 3, 3, 2], [3, 2, 5, 4], [3, 2, 5, 3], [4, 3, 4, 3], [5, 4, 5, 4], [7, 6, 3, 2]] as const, s);
+    return [`A rectangle is ${a}/${b} unit by ${c}/${d} unit. Find its area.`, a * c, b * d, `Multiply the sides: ${a}/${b} × ${c}/${d} = ${a * c}/${b * d}.`]; },
+  'divide-whole-by-unit-fraction': (s) => { const d = at([2, 3, 4, 6], s); const w = 1 + (s % 3);
+    return [`How many 1/${d}-cup scoops fill ${w} ${w === 1 ? 'cup' : 'cups'}? Make it.`, w * d, d, `Each cup holds ${d} scoops of 1/${d}. ${w} ${w === 1 ? 'cup holds' : 'cups hold'} ${w * d}.`]; },
+  'unit-fraction-divided-whole': (s) => { const [b, n] = at([[2, 2], [2, 3], [3, 2], [2, 4], [4, 2], [3, 3], [2, 5], [2, 6]] as const, s);
+    return [`Share 1/${b} of a pizza among ${n} children. Build one share.`, 1, b * n, `Cut 1/${b} into ${n} equal shares. Each is 1/${b * n} of the pizza.`]; },
+  'divide-fractions': (s) => { const [a, b, d] = at([[3, 4, 8], [2, 3, 6], [1, 2, 8], [3, 5, 10], [5, 6, 12], [1, 2, 6], [1, 2, 4], [3, 4, 12], [2, 5, 10], [1, 3, 6], [2, 3, 12], [1, 4, 8]] as const, s);
+    return [`How many 1/${d}s fit in ${a}/${b}? Make ${a}/${b} in ${unitWord(d)}.`, (a * d) / b, d, `${a}/${b} = ${(a * d) / b}/${d}. So ${(a * d) / b} pieces of 1/${d} fit.`]; },
+  'fractional-sharing': (s) => { const [a, b] = at([[3, 4], [2, 3], [3, 5], [4, 3], [5, 4], [2, 5], [5, 6], [3, 2]] as const, s);
+    return [`${a} pizzas are shared fairly by ${b} tables. Build how much one table gets.`, a, b, `${a} ÷ ${b} = ${a}/${b}. Each table gets ${a}/${b} of a pizza.`]; },
+  'fraction-as-division': (s) => LESSON_BUILDS['fractional-sharing'](s + 3),
+  'fraction-of-length': (s) => { const d = at([4, 8, 3, 6], s); const n = 1 + (s % (d - 1)); return [`Cut 0 to 1 into ${d} equal spaces. Make ${n} ${n === 1 ? 'jump' : 'jumps'}.`, n, d, `Each space is 1/${d}. ${n} ${n === 1 ? 'jump is' : 'jumps is'} ${n}/${d}.`, 'line']; },
+  'ruler-measurement': (s) => { const d = at([2, 4, 8], s); const n = 1 + (Math.floor(s / 3) % (d - 1 || 1)); return [`Cut 0 to 1 into ${d} equal spaces. Make ${n} ${n === 1 ? 'jump' : 'jumps'}.`, n, d, `Each small ruler space is 1/${d} inch. ${n} spaces is ${n}/${d} inch.`, 'line']; },
+  'build-line-plots': (s) => { const d = at([4, 8], s); const twice = 1 + (Math.floor(s / 2) % (d - 1)); const other = twice === d - 1 ? 1 : twice + 1;
+    const vals = (s % 3 ? [twice, other, twice] : [other, twice, twice]).map((v) => `${v}/${d}`);
+    return [`Plot the measurements ${vals.join(', ')} inch.`, twice, d, `${twice}/${d} inch comes up twice, so it gets 2 Xs.`, 'line']; },
+  'read-line-plots': (s) => { const lo = 1 + (s % 3); const hi = Math.min(8, lo + 1 + (Math.floor(s / 3) % 6)); return [`The shortest mark is ${lo}/8 inch and the longest is ${hi}/8 inch. Find their difference.`, hi - lo, 8, `Longest minus shortest: ${hi}/8 − ${lo}/8 = ${hi - lo}/8.`]; },
+  'line-plot-leveling': (s) => { const [a, b, c] = at([[1, 1, 2], [1, 2, 2], [1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4], [2, 3, 5], [2, 4, 5], [3, 4, 5], [3, 4, 6], [3, 5, 6], [4, 5, 6]] as const, s); const total = a + b + c;
+    return [`Three beakers hold ${a}/4, ${b}/4 and ${c}/4 liters. Share the total equally.`, total, 12, `The total is ${total}/4. Shared by 3, each gets ${total}/12.`]; },
+  'fractional-unit-conversions': (s) => { const [frac, unit, val, small, per] = at([['1/4', 'hour', 15, 'minutes', 60], ['1/2', 'hour', 30, 'minutes', 60], ['3/4', 'hour', 45, 'minutes', 60], ['1/3', 'hour', 20, 'minutes', 60],
+      ['2/3', 'hour', 40, 'minutes', 60], ['1/6', 'hour', 10, 'minutes', 60], ['1/8', 'pound', 2, 'ounces', 16], ['3/8', 'pound', 6, 'ounces', 16], ['1/10', 'meter', 10, 'centimeters', 100], ['3/10', 'meter', 30, 'centimeters', 100], ['1/12', 'foot', 1, 'inches', 12], ['5/12', 'foot', 5, 'inches', 12],
+      ['1/2', 'foot', 6, 'inches', 12], ['3/4', 'foot', 9, 'inches', 12], ['1/4', 'dollar', 25, 'cents', 100], ['3/4', 'dollar', 75, 'cents', 100], ['1/2', 'day', 12, 'hours', 24], ['1/4', 'day', 6, 'hours', 24], ['1/2', 'liter', 500, 'milliliters', 1000], ['1/4', 'kilogram', 250, 'grams', 1000]] as const, s);
+    const [n, d] = frac.split('/').map(Number); return [`Show why ${frac} ${unit} is ${val} ${small}.`, n, d, `A ${unit} is ${per} ${small}. ${frac} of ${per} is ${val}.`]; },
+  'fraction-probability': (s) => { const total = at([4, 5, 6, 8, 10], s); const g = 1 + (s % (total - 1)); return [`A bag has ${total} marbles. ${g} are green. Make the chance of green.`, g, total, `${g} green out of ${total} marbles is ${g}/${total}.`]; },
+  'fractions-to-percent': (s) => { const p = at([25, 50, 75, 20, 40, 60, 10, 30], s); return [`Make ${p}% as a fraction.`, p, 100, `${p}% means ${p} out of 100: ${p}/100.`]; },
+  'percent-to-fraction': (s) => LESSON_BUILDS['fractions-to-percent'](s + 3),
+  'estimate-fraction-operations': (s) => { const [a, b, c, d] = at([[1, 2, 1, 3], [3, 4, 1, 2], [1, 4, 1, 3], [2, 3, 1, 2], [1, 5, 1, 4], [5, 6, 1, 3], [3, 8, 1, 2], [2, 3, 3, 4], [1, 2, 1, 4], [4, 5, 1, 2], [1, 3, 1, 6], [5, 8, 1, 4]] as const, s); const [n, den] = sumIn(a, b, c, d);
+    return [`Estimate ${a}/${b} + ${c}/${d}. Is it more or less than 1?`, n, den, `Compare each part to 1/2. The sum is ${n}/${den}.`]; },
+  'multi-step-fraction-stories': (s) => { const d = at([5, 6, 8, 10], s); const a = 1 + (s % (d - 3)); const b = 1 + ((s + 1) % (d - a - 1));
+    return [`A garden is ${a}/${d} planted. Plant ${b}/${d} more. Make the part still empty.`, d - a - b, d, `First ${a} + ${b} = ${a + b} parts are planted. Then ${d} − ${a + b} = ${d - a - b} parts are empty.`]; },
+  'find-the-whole': (s) => { const [n, d] = at([[3, 4], [2, 5], [4, 3], [3, 6], [5, 2], [2, 8], [4, 4], [3, 3], [2, 6], [5, 3], [6, 2], [3, 5]] as const, s);
+    return [`${n} stickers are 1/${d} of a pack. Build the whole pack.`, d, d, `Each part is ${n}. ${d} parts make the whole pack: ${n * d} stickers.`, 'set', n * d]; },
+  'spot-the-mistake': (s) => { const d = at([4, 5, 6, 8, 10], s); const a = 1 + (s % (d - 2)); const b = 1 + ((s + 2) % (d - a - 1 || 1));
+    return [`Sam says ${a}/${d} + ${b}/${d} = ${a + b}/${2 * d}. Make the right answer.`, a + b, d, `Same-size parts keep their name: ${a}/${d} + ${b}/${d} = ${a + b}/${d}.`]; },
+  'fraction-of-remainder': (s) => { const [a, b, c, e] = at([[1, 3, 1, 2], [1, 4, 1, 3], [1, 2, 1, 2], [2, 5, 1, 3], [1, 4, 2, 3], [1, 3, 1, 4], [1, 2, 1, 3], [1, 2, 1, 4], [3, 4, 1, 3], [1, 5, 1, 2], [2, 3, 1, 2], [1, 6, 1, 5]] as const, s);
+    const left = (b - a) * (e - c); const den = b * e;
+    return [`Eat ${a}/${b} of a pizza. Then eat ${c}/${e} of the rest. Make what is left.`, left, den, `First ${b - a}/${b} is left. Then ${e - c}/${e} of that is left: ${left}/${den}.`]; },
+};
+
+/** One extra build for lesson `id` from its own family, or null when the lesson has none. */
+function lessonBuildCheck(id: string, serial: number, checkId: string): BuildCheck | null {
+  const make = LESSON_BUILDS[id];
+  if (!make) return null;
+  const [prompt, n, d, explanation, made = 'bar', total] = make(serial);
+  if (!(d > 1 && n > 0 && n <= d * 3)) return null;
+  // Every other run of builds starts on the other model (each build asks for a bar and a number line), so a story can
+  // come back as a new build.
+  const flip = Math.floor(serial / 10) % 2 === 1;
+  const kind = flip && made === 'bar' ? 'line' : flip && made === 'line' ? 'bar' : made;
+  return {
+    id: checkId, prompt, target: model(n, d, kind, total), explanation, transfer: true,
+    ...arrangeReasons(`${id}:${checkId}:lesson:${serial}`, idea(id, explanation), ['Change only the denominator', 'Count the tick marks only']),
+  };
+}
+
 const PRACTICE_DENOMINATORS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 16, 20];
 function seededBuildCheck(id: string, serial: number, checkId: string): BuildCheck {
   const [baseN, baseD, baseKind] = CHECKS[id];
@@ -602,7 +743,7 @@ export function getBuildPracticeChecks(id: string, batch = 0, count = 10): Build
   const required = getBuildChecks(id);
   const excludedTargets = new Set(required.map(targetKey));
   const all: BuildCheck[] = [];
-  const seenTargets = new Set<string>(excludedTargets);
+  const seenTargets = new Set<string>([...excludedTargets, ...required.map((check) => check.prompt)]);
   // Worksheet variants provide new, curriculum-aligned numbers. Twelve variants × twelve rows
   // is a generous unique pool; later sets can still be generated without breaking the lesson.
   for (let serial = 0; serial < 12 * 12 && all.length < (batch + 1) * count; serial++) {
@@ -613,7 +754,18 @@ export function getBuildPracticeChecks(id: string, batch = 0, count = 10): Build
     seenTargets.add(key);
     all.push(check);
   }
+  // Then the lesson's own family, with new numbers; the generic builder only for a lesson with no family.
   for (let serial = 0; all.length < (batch + 1) * count && serial < (batch + 1) * count * 100; serial++) {
+    const check = lessonBuildCheck(id, serial, `lesson-${serial}`);
+    if (!check) break;
+    // Never the lesson's own builds again, and never the same build twice.
+    const key = targetKey(check);
+    if (seenTargets.has(key)) continue;
+    seenTargets.add(key);
+    all.push(check);
+  }
+  // A lesson with its own family repeats its own builds rather than borrow unrelated ones.
+  for (let serial = 0; !(id in LESSON_BUILDS) && all.length < (batch + 1) * count && serial < (batch + 1) * count * 100; serial++) {
     const check = seededBuildCheck(id, serial, `generated-${serial}`);
     const key = targetKey(check);
     if (seenTargets.has(key)) continue;
@@ -1532,10 +1684,13 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
 
 export function getReviewCheck(id: string, round: number): BuildCheck {
   if (EXTENSION_WORKSHEETS[id]) {
-    // Alternate the lesson's two builds so a later review is not always the same one.
-    const check = getBuildChecks(id)[round % 2];
+    // A later review is the lesson's own kind of build with new numbers; without one, it rotates through all three builds.
+    const fresh = lessonBuildCheck(id, 40 + round, 'retention');
+    if (fresh) return fresh;
+    const builds = getBuildChecks(id);
+    const check = builds[round % builds.length];
     return { ...check, id: 'retention', transfer: true,
-      ...arrangeReasons(`${id}:review:${round % 2}`, idea(id, check.explanation), ['Only the numerator matters', 'Bigger numbers mean a bigger fraction']) };
+      ...arrangeReasons(`${id}:review:${round % builds.length}`, idea(id, check.explanation), ['Only the numerator matters', 'Bigger numbers mean a bigger fraction']) };
   }
   if (id === 'order-fractions') {
     const d = [6, 8, 10][round % 3];
