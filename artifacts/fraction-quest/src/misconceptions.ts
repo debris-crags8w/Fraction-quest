@@ -43,7 +43,9 @@ function slips(prompt: string): [number, number[]] | null {
     const n = m[3] ? N(m[3]) : N(p.replace(/\d+\/\d+/g, ' ').match(/\d+/)?.[0] ?? NaN);
     if (Number.isFinite(n) && n % b === 0) {
       const right = (n / b) * a;
-      return [right, [a > 1 ? n / b : NaN, n - right, n, a > 1 ? n * a : n * b]];
+      // One group, the rest, the whole, multiplied, the denominator taken away or added, one group taken away, or the
+      // denominator itself.
+      return [right, [a > 1 ? n / b : NaN, n - right, n, a > 1 ? n * a : n * b, n - b, n + b, n - n / b, b]];
     }
   }
   // Scoops: "How many 1/3 cup scoops fill 2 cups?", "How many 1/8 cup scoops fill 3/4 cup?"
@@ -112,13 +114,13 @@ export function preferMisconceptions<T extends { prompt: string; choices: string
   const wrongs = whole.length ? whole : fractions;
   if (!wrongs.length) return question;
   const right = answerValue(answer);
-  const isSlip = (v: number) => fractions.some((slip) => Math.abs(answerValue(slip) - v) < 1e-9);
+  const isSlip = (v: number) => wrongs.some((slip) => Math.abs(answerValue(slip) - v) < 1e-9);
   const used = new Set(question.choices.map((choice) => answerValue(choice)));
   const fresh = wrongs.filter((wrong) => !used.has(answerValue(wrong)));
   const choices = question.choices.map((choice, index) => {
     if (index === question.correctChoice) return choice;
     const v = answerValue(choice);
-    if (fractions.length ? isSlip(v) : Number.isFinite(v) && Math.abs(v - right) > 2) return choice;
+    if (isSlip(v) || (!fractions.length && Number.isFinite(v) && Math.abs(v - right) > 2)) return choice;
     return fresh.shift() ?? choice;
   });
   return choices.every((choice, index) => choice === question.choices[index]) ? question : { ...question, choices };
