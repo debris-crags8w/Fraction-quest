@@ -718,7 +718,9 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                                   ? <>Finish the lessons before this one to open it.</>
                                   : learning.practiceDone
                                     ? <>Builds: {buildsPassed} of {buildsNeeded}. Worksheet: {worksheetCount(learning, mission.id)} of {worksheetLength(mission.id)}.</>
-                                    : <>Practice, build it, then do the worksheet.</>}
+                                    : learning.practiceAt
+                                      ? <>Pick up where you left off.</>
+                                      : <>Practice, build it, then do the worksheet.</>}
                               {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Your work is saved. A few new steps are waiting.</>}
                             </p>
                             <button
@@ -727,7 +729,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                               disabled={!unlocked}
                               data-testid={`button-start-mission-${mission.id}`}
                             >
-                              {completed ? 'Practice again' : unlocked ? learning.practiceDone ? 'Resume worksheet & models' : 'Start lesson' : 'Finish earlier lessons first'}
+                              {completed ? 'Practice again' : unlocked ? learning.practiceDone ? 'Resume worksheet & models' : learning.practiceAt ? 'Resume lesson' : 'Start lesson' : 'Finish earlier lessons first'}
                               {unlocked && <ArrowRight size={16} />}
                             </button>
                             {completed && (
