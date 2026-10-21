@@ -380,7 +380,7 @@ function LockArt({ beat }: { beat: number }) {
     <>
       <span className="fq-cine-lock-room" /><span className={`fq-cine-lock-case ${beat >= 2 ? 'is-open' : ''}`}>
         <span className="fq-cine-lock-stone" />
-        <span className="fq-cine-lock-dials"><b><Frac n={1} d={2} /></b><b>0.5</b><b>50%</b></span>
+        <span className="fq-cine-lock-dials"><b><Frac n={1} d={2} /></b><b><Frac n={50} d={100} /></b><b>50%</b></span>
       </span>
       <span className="fq-cine-actor" style={pos(8, 32)}><StoryCharacter id="bolt" size={88} happy={beat >= 2} /></span>
       {beat === 2 && <><span className="fq-cine-flash" /><Confetti /></>}

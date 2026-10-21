@@ -68,8 +68,8 @@ describe('standard-tagged assessments', () => {
     assert.equal(after, false);
   });
 
-  it('saves only assessment evidence and safely reloads the completed check-in', () => {
-    const definition = getAssessmentDefinitions().find(item => item.id === 'unit-1-end')!;
+  for (const id of ['unit-1-end', 'unit-15-end']) it(`saves only assessment evidence and safely reloads the completed check-in (${id})`, () => {
+    const definition = getAssessmentDefinitions().find(item => item.id === id)!;
     const items = buildAssessmentItems(definition, 37);
     const attempt: AssessmentAttempt = {
       assessmentId: definition.id, seed: 37, startedAt: 10, completedAt: 20,
