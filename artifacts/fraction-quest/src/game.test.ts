@@ -4099,3 +4099,43 @@ describe('garden questions show the garden', () => {
   });
 });
 const valueOf = (s: { whole: number; numerator: number; denominator: number }) => s.whole + s.numerator / s.denominator;
+
+describe('Extra practice in the new lessons offers real mistakes, not near-miss numbers', () => {
+  const N = Number;
+  /** The mistakes a child really makes on each kind of question, worked out here from the question's numbers. */
+  const realMistakes = (prompt: string): number[] | null => {
+    let m = /^(\d+)\/(\d+) × (\d+)\/(\d+) = \?$/.exec(prompt);
+    if (m) {
+      const [a, b, c, d] = m.slice(1).map(N);
+      // Add across; keep one denominator; add tops and multiply bottoms; multiply tops and add bottoms; cross-multiply.
+      return [(a + c) / (b + d), (a * c) / d, (a * c) / b, (a + c) / (b * d), (a * c) / (b + d), (a * d) / (b * c)];
+    }
+    m = /^How many 1\/(\d+)-\w+ \w+ can be filled from (\d+) \w+ of \w+\?$/.exec(prompt);
+    if (m) { const [d, w] = m.slice(1).map(N); return [w + d, d, w / d, w]; } // add; just the unit; multiply; just the wholes
+    m = /^1\/(\d+) \w+ of \w+ is shared by (\d+) friends\. How much does each get\?$/.exec(prompt);
+    if (m) { const [b, n] = m.slice(1).map(N); return [n / b, b * n, 1 / (b + n), 1 / b]; } // multiply; flip; add; not split
+    m = /^How many hundredths is 0\.(\d+)\?$/.exec(prompt);
+    if (m) { const h = N(m[1].padEnd(2, '0')); return [h / 10, h * 10, Math.floor(h / 10), h % 10, 100 - h]; } // tenths; ×10; digits; the white squares
+    return null;
+  };
+
+  for (const id of ['compare-decimals-grid', 'fraction-times-fraction', 'share-or-fit']) {
+    it(`${id}: every wrong number is a real mistake`, () => {
+      const lesson = MISSIONS.find((mission) => mission.id === id)!;
+      let checked = 0;
+      for (let seed = 0; seed < 6; seed++) {
+        for (const question of generateQuestions(id, lesson.questions.map(({ id }) => id), seed, 12)) {
+          const mistakes = realMistakes(question.prompt);
+          if (!mistakes) continue;
+          question.choices.forEach((choice, at) => {
+            if (at === question.correctChoice) return;
+            const value = answerValue(choice);
+            assert.ok(mistakes.some((mistake) => Math.abs(mistake - value) < 1e-9), `${question.prompt} offers ${choice}, which is not a real mistake`);
+            checked++;
+          });
+        }
+      }
+      assert.ok(checked > 30, `${id}: only ${checked} wrong choices checked`);
+    });
+  }
+});

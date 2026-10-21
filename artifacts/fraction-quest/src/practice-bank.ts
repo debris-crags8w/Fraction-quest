@@ -60,7 +60,10 @@ const withLabels = (model: ModelSpec): ModelSpec => ('hideLabels' in model ? { .
 
 type Item = { prompt: string; right: string; wrong: [string, string]; hint: string; retry: string; model: ModelSpec; simpler?: ModelSpec;
   /** A fourth wrong choice written for this kind of question (otherwise one is made from the question). */
-  extra?: string };
+  extra?: string;
+  /** More real mistakes for this question. With them, moving the right answer's place swaps in one of these,
+      never a near-miss number (11 or 13 scoops for 12) that no child would pick. */
+  slips?: string[] };
 
 /** Nudge a wrong choice to the next number if it repeats another choice (e.g. "5" → "6", "3/8" → "4/8"). */
 function nudge(choice: string): string {
@@ -302,6 +305,13 @@ const EXACT_PERCENT: [number, number][] = [[1, 2], [1, 4], [3, 4], [1, 5], [2, 5
 const EXACT_DECIMAL: [number, number][] = EXACT_PERCENT.map(([t, b]) => (gradeFits('decimal-fraction-equivalence', b) ? [t, b] : [t * (100 / b), 100]));
 const later = (prompt: string, right: string, wrong: string[], hint: string, retry: string, model: ModelSpec, simpler?: ModelSpec): Item =>
   ({ prompt, right, wrong: safeWrong(right, wrong), hint, retry, model, simpler });
+/** A question whose wrong choices all come from `slips`, its real mistakes: two to start, a third as the fourth choice. */
+function fromSlips(prompt: string, right: string, slips: string[], hint: string, retry: string, model: ModelSpec): Item {
+  const target = answerValue(right);
+  const real = slips.filter((slip, at) => Math.abs(answerValue(slip) - target) > 1e-9
+    && slips.findIndex((other) => Math.abs(answerValue(other) - answerValue(slip)) < 1e-9) === at); // one choice per amount
+  return { prompt, right, wrong: [real[0], real[1]], extra: real[2], slips: real, hint, retry, model };
+}
 
 const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'simplify-fractions': (r) => {
@@ -448,15 +458,19 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
           hint: 'Are the two pizzas the same size?', retry: 'The wholes are different sizes, so you can only compare parts of the same whole.', model: circles };
     }
     const h = r.pick([35, 45, 25, 75, 62, 48, 40, 60, 30, 90, 70, 20]);
-    return later(`How many hundredths is ${show(h)}?`, String(h), h % 10 === 0 ? [String(h / 10), String(h * 10)] : [String(Math.floor(h / 10)), String(h % 10)],
+    // Real mistakes: count tenths (6 for 0.6), ×10 (600), read the digits (3 or 5 for 0.35), or count the white squares.
+    const slips = h % 10 === 0 ? [h / 10, h * 10, 100 - h] : [Math.floor(h / 10), h % 10, 100 - h, h * 10];
+    return fromSlips(`How many hundredths is ${show(h)}?`, String(h), slips.map(String),
       'Two places after the decimal point name hundredths. One tenth is 10 hundredths.', `${show(h)} is ${h} hundredths: ${h} squares of the grid.`, { kind: 'area', cut: 'grid-10x10', shaded: [] });
   },
   'fraction-times-fraction': (r) => {
     const [a, b, c, d] = r.pick([[3, 4, 1, 2], [2, 3, 3, 4], [1, 2, 4, 5], [3, 5, 2, 3], [2, 3, 4, 5], [1, 3, 1, 2], [3, 4, 2, 3], [2, 5, 1, 2], [5, 6, 1, 2], [1, 4, 2, 3],
       [4, 5, 3, 4], [1, 2, 5, 6], [2, 3, 1, 4], [3, 4, 3, 5], [1, 6, 2, 3], [4, 5, 1, 3], [1, 2, 3, 4], [5, 6, 2, 3], [2, 5, 2, 3], [3, 4, 1, 3]] as const);
-    const right = f(a * c, b * d); const extra = b === d ? f(a + c, b * d) : f(a * c, b);
-    return { ...later(`${f(a, b)} × ${f(c, d)} = ?`, right, [f(a + c, b + d), f(a * c, d), extra], 'Rows for one fraction, columns for the other. Count the overlap.',
-      `${a} of ${b} rows and ${c} of ${d} columns overlap on ${a * c} of ${b * d} squares: ${right}.`, { kind: 'area', cut: gridCut(d, b), shaded: [] }) };
+    const right = f(a * c, b * d);
+    // Real mistakes: add across, keep one denominator, add the tops, add the bottoms, or cross-multiply.
+    return fromSlips(`${f(a, b)} × ${f(c, d)} = ?`, right, [f(a + c, b + d), f(a * c, d), f(a * c, b), f(a + c, b * d), f(a * c, b + d), f(a * d, b * c)],
+      'Rows for one fraction, columns for the other. Count the overlap.',
+      `${a} of ${b} rows and ${c} of ${d} columns overlap on ${a * c} of ${b * d} squares: ${right}.`, { kind: 'area', cut: gridCut(d, b), shaded: [] });
   },
   'bigger-or-smaller': (r) => {
     const factors = [[3, 4], [5, 4], [2, 3], [4, 3], [1, 2], [3, 2], [3, 3], [5, 6], [7, 6], [2, 2], [4, 5], [6, 5], [9, 10], [11, 10], [4, 4]] as const;
@@ -493,9 +507,11 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
         retry: `The ${thing} is split into ${n} equal shares, so this is sharing.`, model: bar(1, b) };
       case 1: return { prompt: `${fit} Is this sharing or fitting?`, right: 'Fitting', wrong: ['Sharing', kinds[1]], extra: kinds[2], hint: 'Is an amount split into equal shares, or do you count pieces that fit?',
         retry: `You count how many 1/${d}-${unit} ${holders} fit, so this is fitting.`, model: wholes(w) };
-      case 2: return later(`${share} How much does each get?`, `1/${b * n} ${unit}`, [`${n}/${b} ${n > b ? units : unit}`, `${b * n} ${units}`, `1/${b + n} ${unit}`],
+      // Real mistakes: multiply, flip, add, or forget to split.
+      case 2: return fromSlips(`${share} How much does each get?`, `1/${b * n} ${unit}`, [`${n}/${b} ${n > b ? units : unit}`, `${b * n} ${units}`, `1/${b + n} ${unit}`, `1/${b} ${unit}`],
         `Sharing: cut the 1/${b} ${unit} into ${n} equal shares.`, `1/${b} ÷ ${n} = 1/${b * n}. Check: ${n} × 1/${b * n} = 1/${b}.`, bar(1, b));
-      default: return later(fit, `${w * d} ${holders}`, [`${w + d} ${holders}`, `${d} ${holders}`, `${w * d + d} ${holders}`],
+      // Real mistakes: add, count one whole's pieces, multiply, or count the wholes.
+      default: return fromSlips(fit, `${w * d} ${holders}`, [`${w + d} ${holders}`, `${d} ${holders}`, `${w}/${d} ${w < d ? holders.replace(/s$/, '') : holders}`, `${w} ${holders}`],
         `Fitting: how many 1/${d} ${unit} pieces make 1 ${unit}?`, `${w} ÷ 1/${d} = ${w * d}. Check: ${w * d} × 1/${d} = ${w}.`, wholes(w));
     }
   },
@@ -602,7 +618,7 @@ function balanceChoices(item: Item, rng: Rng): Item {
   if (!Number.isFinite(target) || !item.wrong.every((w) => Number.isFinite(answerValue(w)))) return item;
   const wantBelow = rng.int(0, 2); // 0: answer smallest, 1: middle, 2: largest
   const wrong = [...item.wrong];
-  const candidates = distractorCandidates(item.right).filter((c) => Number.isFinite(answerValue(c)) && answerValue(c) >= 0 && Math.abs(answerValue(c) - target) > 1e-9);
+  const candidates = (item.slips ?? distractorCandidates(item.right)).filter((c) => Number.isFinite(answerValue(c)) && answerValue(c) >= 0 && Math.abs(answerValue(c) - target) > 1e-9 && c !== item.extra);
   for (let guard = 0; guard < 2; guard++) {
     const below = wrong.filter((w) => answerValue(w) < target).length;
     if (below === wantBelow) break;
