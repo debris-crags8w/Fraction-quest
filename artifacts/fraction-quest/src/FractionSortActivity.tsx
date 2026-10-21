@@ -83,7 +83,7 @@ export default function FractionSortActivity({
             {rounds.map((item, index) => <span key={item.id} className={index <= roundIndex ? 'active' : ''} />)}
             <span className="fq-order-sort-round-label">Round {roundIndex + 1} of {rounds.length}</span>
           </div>
-          <div className="fq-listen-row"><h2 id="fraction-sort-title">{round.title}</h2><LearningListenButton text={`${round.title}. Move the cards up or down. The first card should be ${round.direction === 'ascending' ? 'the smallest' : 'the biggest'}.`} label="Listen to how to sort" compact /></div>
+          <div className="fq-listen-row"><h2 id="fraction-sort-title">{round.title}</h2><LearningListenButton text={`Move the cards up or down. The first card should be ${round.direction === 'ascending' ? 'the smallest' : 'the biggest'}.`} label="Listen to how to sort" compact /></div>
           <p className="fq-order-sort-instructions">
             Move the cards up or down. The first card should be {round.direction === 'ascending' ? 'the smallest' : 'the biggest'}.
           </p>

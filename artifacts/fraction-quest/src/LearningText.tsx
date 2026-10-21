@@ -716,7 +716,8 @@ export function LearningListenButton({
       data-testid="button-listen-learning-text"
     >
       {speaking ? <VolumeX size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
-      {!compact && (supported ? (speaking ? 'Stop' : 'Listen') : 'Audio unavailable')}
+      {/* Every Listen button says what it does: the same word everywhere, small or full size. */}
+      {supported ? (speaking ? 'Stop' : 'Listen') : 'Audio unavailable'}
     </button>
   );
 }

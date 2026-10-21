@@ -66,7 +66,7 @@ export function ModelIntro({ kind, onDone, onSkip, helper = false }: {
   const demo = shots[shot];
   const atPhase = PHASES.indexOf(phase);
   // The header's Listen reads the step on screen: the demo's captions, the try and its live hint, or the ready text.
-  const stepSpeech = phase === 'watch' ? [text.title, ...shots.map((item) => item.caption)].join(' ')
+  const stepSpeech = phase === 'watch' ? shots.map((item) => item.caption).join(' ')
     : phase === 'try' ? `${text.build} ${target.word}. ${hint.text}`
     : `${text.ready} ${text.readyBody}`;
 

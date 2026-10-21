@@ -405,4 +405,4 @@
 .fq-cine-head-tools { display: flex; align-items: center; gap: 6px; }
 .fq-cine-head-tools .fq-learning-listen { margin: 0; }
 .fq-story-choice legend { display: flex; align-items: center; gap: 8px; }
-.fq-story-choice .fq-learning-listen.is-compact, .fq-story-reply .fq-learning-listen.is-compact { display: inline-flex; flex: none; width: 34px; min-height: 34px; margin: 0; padding: 0; border-width: 2px; border-radius: 999px; box-shadow: none; }
+.fq-story-choice .fq-learning-listen.is-compact, .fq-story-reply .fq-learning-listen.is-compact { display: inline-flex; flex: none; min-height: 34px; margin: 0; border-width: 2px; border-radius: 999px; box-shadow: none; }

@@ -122,9 +122,8 @@
   cursor: pointer;
 }
 
+/* A Listen button in a tight spot keeps its size, but still says "Listen" like every other one. */
 .fq-learning-listen.is-compact {
-  width: 34px;
-  padding: 0;
   flex: none;
 }
 
