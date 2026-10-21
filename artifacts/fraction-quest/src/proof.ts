@@ -262,6 +262,43 @@ const RULES: Rule[] = [
     solve: (m, item) => ({ value: /shaded/.test(item.prompt) ? N(m[1]) : N(m[2]) }) },
   { name: 'count unit parts', re: /^Tap each 1\/(\d+) part to count it\. How many 1\/\1 parts make (?:one|1) whole\?$/, solve: (m) => ({ value: N(m[1]) }) },
 
+  // --- dividing with the ÷ sign, sharing and fitting
+  { name: 'scoops with a division', re: /^How many 1\/(\d+)-cup scoops fill (\d+) cups?\? (\d+) ÷ 1\/(\d+) = \?$/,
+    solve: (m) => (m[3] !== m[2] || m[4] !== m[1] ? 'the division does not match the story' : { value: N(m[1]) * N(m[2]) }) },
+  { name: 'share a unit fraction (÷)', re: /^(\d+) (?:children|friends) share 1\/(\d+) of a pan(?: of [\w ]+)?\. 1\/(\d+) ÷ (\d+) = \?$/,
+    solve: (m) => (m[3] !== m[2] || m[4] !== m[1] ? 'the division does not match the story' : { value: 1 / N(m[2]) / N(m[1]) }) },
+  { name: 'division', re: new RegExp(String.raw`^(${TERM}) ÷ (${TERM}) = \?$`), solve: (m) => ({ value: valueOf(m[1]) / valueOf(m[2]) }) },
+  { name: 'division as a fraction', re: /^(?:Write|Make) (\d+) ÷ (\d+) as a fraction\.$/, solve: (m) => ({ value: N(m[1]) / N(m[2]), denominator: N(m[2]) }) },
+  { name: 'between whole numbers (the bigger one)', re: /^(\d+)\/(\d+) is between two whole numbers\. What is the bigger one\?$/,
+    solve: (m) => (N(m[1]) % N(m[2]) === 0 ? `${m[1]}/${m[2]} is a whole number` : { value: Math.ceil(N(m[1]) / N(m[2])) }) },
+  { name: 'between which two whole numbers', re: /^Between which two whole numbers is (\d+)\/(\d+)\?$/,
+    solve: (m) => { const low = Math.floor(N(m[1]) / N(m[2])); return N(m[1]) % N(m[2]) === 0 ? `${m[1]}/${m[2]} is a whole number` : { text: `${low} and ${low + 1}` }; } },
+  { name: 'sharing story', re: new RegExp(String.raw`^(${TERM}) (?:pounds?|cups?|liters?) of [\w ]+ (?:is|are) shared by (\d+) friends\. (?:What fraction of an? \w+ does each get|How much does each get)\?$`),
+    solve: (m) => ({ value: valueOf(m[1]) / N(m[2]) }) },
+  { name: 'fitting story', re: new RegExp(String.raw`^How many (\d+\/\d+)-\w+ \w+ (?:can be filled from (${TERM}) \w+ of [\w ]+|do (${TERM}) \w+ of \w+ fill)\?$`),
+    solve: (m) => ({ value: valueOf(m[2] ?? m[3]) / frac(m[1]) }) },
+  { name: 'sharing or fitting', re: /^(.+[.?]) Is this sharing or fitting\?$/,
+    solve: (m) => (/\bshared?\b/.test(m[1]) ? { text: 'Sharing' } : /^How many\b/.test(m[1]) ? { text: 'Fitting' } : 'the story is neither sharing nor fitting') },
+
+  // --- decimals on a grid, and comparing parts of the same whole
+  { name: 'hundredths in a decimal', re: /^How many hundredths is (\d*\.\d{1,2})\?$/, solve: (m) => ({ value: Math.round(N(m[1]) * 100), form: 'whole' }) },
+  { name: 'which is more of two', re: /^Which is (more|less): (\S+) or (\S+)\?$/,
+    solve: (m) => { const [a, b] = [valueOf(m[2]), valueOf(m[3])]; if (near(a, b)) return 'the two are equal'; return { value: (a > b) === (m[1] === 'more') ? a : b }; } },
+  { name: 'same whole', re: /^(\w+) eats (\S+) of a (small |big )?pizza\. (\w+) eats (\S+) of (?:a (small|big)|the same size) pizza\. (Can you tell who eats more\?(?: Answer yes or no\.)?|Who eats more\?)$/,
+    solve: (m) => { const same = !m[3] && !m[6]; if (/^Can/.test(m[7])) return { yes: same };
+      if (!same) return { text: "You can't tell" }; const [a, b] = [valueOf(m[2]), valueOf(m[5])]; return near(a, b) ? { text: 'They eat the same' } : { text: a > b ? m[1] : m[4] }; } },
+
+  // --- multiplying by a fraction: bigger, smaller or the same
+  { name: 'factor against the amount (sign)', re: new RegExp(String.raw`^Without multiplying, compare (\d+)\/(\d+) × (${TERM}) with \3: __ \3\.$`),
+    solve: (m) => { const s = sym(N(m[1]) / N(m[2]), 1); return { symbol: s, statement: `${m[1]}/${m[2]} × ${m[3]} ${s} ${m[3]}` }; } },
+  { name: 'factor against the amount (yes or no)', re: new RegExp(String.raw`^Is (\d+)\/(\d+) × (${TERM}) (more than|less than|the same as) \3\?(?: Answer yes or no\.)?$`),
+    solve: (m) => { const k = N(m[1]) / N(m[2]); return { yes: m[4] === 'more than' ? k > 1 && !near(k, 1) : m[4] === 'less than' ? k < 1 && !near(k, 1) : near(k, 1) }; } },
+  { name: 'factor against the amount (words)', re: new RegExp(String.raw`^Is (\d+)\/(\d+) × (${TERM}) more or less than \3\?$`),
+    solve: (m) => { const k = N(m[1]) / N(m[2]); return { text: `${near(k, 1) ? 'Equal to' : k < 1 ? 'Less than' : 'More than'} ${m[3]}` }; } },
+  { name: 'which product is more or less', re: new RegExp(String.raw`^Which one is (more|less) than (${TERM})\?$`),
+    solve: (m, item) => { const n = valueOf(m[2]); const fits = (item.choices ?? []).filter((c) => { const v = evaluate(c); return !near(v, n) && (m[1] === 'more' ? v > n : v < n); });
+      if (fits.length !== 1) return `${fits.length} choices are ${m[1]} than ${m[2]}`; return { text: fits[0] }; } },
+
   // --- pick the one choice that fits (exactly one must)
   { name: 'pick: the choice that fits', re: /^Which (?:fraction |amount |number |decimal |part |sum |order )?(?:is |covers |goes |fits |equals |makes )?(.+)\?$/,
     solve: (m, item) => {

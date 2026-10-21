@@ -1,7 +1,7 @@
 import { noBeforeYes, orderedWithSigns, withFourthChoice, withSignComparisons } from './fourth-choice';
 import { preferMisconceptions } from './misconceptions';
 import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
-import type { AreaCut } from './area-shapes';
+import { gridCut, gridOverlap, type AreaCut } from './area-shapes';
 import { amountsIn, autoPicture } from './auto-picture';
 import { asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 import { FRACTION_STANDARDS, standardsForMission, type StandardId } from './standard-catalog';
@@ -73,9 +73,17 @@ export type ModelSpec =
   | { kind: 'equation'; text: string; caption?: string }
   | { kind: 'decimal'; tenths: number; caption?: string; hideLabels?: boolean }
   /** A square, circle or hexagon cut into pieces (see area-shapes.ts); `shaded` lists piece numbers. */
-  | { kind: 'area'; cut: AreaCut; shaded: number[]; caption?: string }
+  | { kind: 'area'; cut: AreaCut; shaded: number[]; caption?: string; label?: string; scale?: number;
+      /** More wholes drawn beside the first (two hundredths grids to compare). `scale` < 1 draws a smaller whole. */
+      more?: AreaFigureSpec[] }
   /** A finished line plot to read: one X over each value (tick numbers, counted from 0 in steps of 1/denominator). */
   | { kind: 'lineplot'; denominator: number; wholes: number; values: number[]; caption?: string };
+
+/** One whole in an area picture: `label` is written under it (worked examples only), `scale` draws a smaller whole. */
+export type AreaFigureSpec = { cut: AreaCut; shaded: number[]; label?: string; scale?: number };
+/** Every whole an area picture draws, the first one included. */
+export const areaFigures = (model: Extract<ModelSpec, { kind: 'area' }>): AreaFigureSpec[] =>
+  [{ cut: model.cut, shaded: model.shaded, label: model.label, scale: model.scale }, ...(model.more ?? [])];
 
 export type SetModelLayout = { groupCount: number; selectedGroups: number; objectsPerGroup: number };
 
@@ -816,7 +824,8 @@ type ExtensionMode =
   | 'decimal-equivalent' | 'story' | 'whole-fraction' | 'decimal-compare' | 'unit-multiples' | 'ruler'
   | 'line-plot' | 'line-plot-read' | 'line-plot-level' | 'measure-context' | 'add-unlike' | 'mixed-unlike'
   | 'estimate' | 'fractional-area' | 'scaling' | 'mixed-multiply' | 'unit-divided-whole' | 'unit-conversion'
-  | 'whole-from-part' | 'mistake' | 'remainder' | 'divide-fractions';
+  | 'whole-from-part' | 'mistake' | 'remainder' | 'divide-fractions'
+  | 'decimal-grid' | 'bigger-smaller' | 'times-grid' | 'share-or-fit';
 type ExtensionTopic = {
   id: string; title: string; shortTitle: string; description: string; skill: string;
   mode: ExtensionMode; n: number; d: number; context: string;
@@ -824,7 +833,23 @@ type ExtensionTopic = {
   learningIntro?: Mission['learningIntro'];
   /** A worked example of its own, when the lesson's first build ("make the whole") would not show the answer. */
   example?: Mission['example'];
+  /** Questions written for the lesson (its approved first question and its mix of kinds). Without them, practice is
+      made from worksheet rows 2, 5, 8 and 11. */
+  questions?: PracticeSeed[];
 };
+
+/** A hundredths grid with `h` squares shaded, column by column, so whole columns are tenths. */
+const hundredthsGrid = (h: number, label?: string, scale?: number) => ({
+  cut: 'grid-10x10' as const, shaded: Array.from({ length: h }, (_, k) => (k % 10) * 10 + Math.floor(k / 10)),
+  ...(label ? { label } : {}), ...(scale ? { scale } : {}),
+});
+const grids = (...figures: ReturnType<typeof hundredthsGrid>[]): ModelSpec => ({ kind: 'area', ...figures[0], more: figures.slice(1) });
+/** The square to cut for a/rows × b/cols: `rows` rows by `cols` columns. Nothing is shaded, so the overlap stays the child's to find. */
+const timesGrid = (rows: number, cols: number, shadeRows = 0, shadeCols = 0): ModelSpec =>
+  ({ kind: 'area', cut: gridCut(cols, rows), shaded: shadeRows && shadeCols ? gridOverlap(cols, shadeRows, shadeCols) : [] });
+/** Whole bars, cut into `d` parts and not shaded: amounts to share or fit. */
+const emptyWholes = (count: number, d = 1): ModelSpec => ({ kind: 'bars', bars: Array.from({ length: count }, () => ({ numerator: 0, denominator: d })), hideLabels: true });
+const SHARE_OR_FIT = ['Sharing', 'Fitting', 'Adding', 'Taking away'];
 
 const extensionTopics: ExtensionTopic[] = [
   // Grade 4 (4.NF.4a, 4.NF.4b): ends unit 8, so grade-4 learners (and the level quiz) reach it before grade 5.
@@ -874,11 +899,72 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'mixed-unlike-operations', title: 'Mixed numbers with unlike parts', shortTitle: 'Mixed number operations', description: 'Add or subtract mixed numbers with different denominators.', skill: 'Rename the fraction parts so they are the same size. Then add or subtract, regrouping a whole if needed.', mode: 'mixed-unlike', n: 25, d: 12, context: 'walking route', gradeBand: 5, standards: ['5.NF.1'] },
   { id: 'estimate-fraction-operations', title: 'Estimate to check', shortTitle: 'Estimate fraction sums', description: 'Use 0, 1/2 and 1 to check whether an answer makes sense.', skill: 'Compare each fraction with 0, 1/2, or 1. Use those benchmarks to check whether the answer is a sensible size.', example: { prompt: 'Is 2/5 + 1/2 more or less than 1?', answer: 'Less than 1', explanation: '2/5 is a little less than the benchmark 1/2. Two halves make one whole. So 2/5 + 1/2 is a little less than one whole.', model: bars({ numerator: 2, denominator: 5, named: true }, { numerator: 1, denominator: 2, named: true }) }, mode: 'estimate', n: 9, d: 10, context: 'trail lengths', gradeBand: 5, standards: ['5.NF.2'] },
   { id: 'multiply-fractions', title: 'A part of a part', shortTitle: 'Fraction × fraction', description: 'Find 1/2 of 3/4.', skill: 'To find a part of a part, split the parts again. Multiply the numerators and the denominators.', mode: 'multiply', n: 2, d: 3, context: 'garden plot' },
+  { id: 'fraction-times-fraction', title: 'Fraction times fraction', shortTitle: 'Multiply on a grid', description: 'Find a/b × c/d where rows and columns overlap.',
+    skill: 'Cut one square into rows for one fraction and columns for the other. The overlap is the answer: multiply the tops, multiply the bottoms.',
+    example: { prompt: '2/3 × 4/5 = ?', answer: '8/15', explanation: '2 of 3 rows and 4 of 5 columns overlap on 8 of 15 small squares. So 2/3 × 4/5 = 8/15 (2 × 4 = 8, and 3 × 5 = 15).',
+      model: timesGrid(3, 5, 2, 4) },
+    mode: 'times-grid', n: 8, d: 15, context: 'square grid', gradeBand: 5, standards: ['5.NF.4a'],
+    questions: [
+      practice('3/4 × 1/2 = ?', ['4/6', '3/8', '3/6', '4/8'], 1, timesGrid(4, 2),
+        'Cut the square into 4 rows and 2 columns. Color 3 rows, then 1 column. Count where they overlap.',
+        '3 of 4 rows and 1 of 2 columns overlap on 3 of 8 squares. 3 × 1 = 3 and 4 × 2 = 8, so 3/8.', timesGrid(4, 2, 3, 1)),
+      practice('2/3 × 3/4 = ?', ['5/7', '6/12', '6/4', '5/12'], 1, timesGrid(3, 4),
+        'Cut the square into 3 rows and 4 columns. Count the squares where 2 rows and 3 columns overlap.',
+        '2 of 3 rows and 3 of 4 columns overlap on 6 of 12 squares. So 2/3 × 3/4 = 6/12.', timesGrid(3, 4, 2, 3)),
+      practice('1/2 × 4/5 = ?', ['5/7', '4/10', '4/5', '5/10'], 1, timesGrid(2, 5),
+        'Cut the square into 2 rows and 5 columns. Count the overlap of 1 row and 4 columns.',
+        '1 of 2 rows and 4 of 5 columns overlap on 4 of 10 squares. So 1/2 × 4/5 = 4/10.', timesGrid(2, 5, 1, 4)),
+      practice('3/5 × 2/3 = ?', ['5/8', '6/15', '6/5', '5/15'], 1, timesGrid(5, 3),
+        'Cut the square into 5 rows and 3 columns. Multiply the tops, then multiply the bottoms.',
+        '3 of 5 rows and 2 of 3 columns overlap on 6 of 15 squares. 3 × 2 = 6 and 5 × 3 = 15, so 6/15.', timesGrid(5, 3, 3, 2)),
+    ] },
   { id: 'fraction-of-collection', title: 'A fraction of a group', shortTitle: 'Groups of objects', description: 'Find 3/4 of 16 cards.', skill: 'Split the collection into equal groups using the denominator. Count the groups shown by the numerator.', mode: 'sets', n: 3, d: 4, context: 'sports cards' },
   { id: 'divide-whole-by-unit-fraction', title: 'How many parts fit?', shortTitle: 'Divide by a fraction', description: 'How many 1/4 cups fill 2 cups?', skill: 'The denominator tells how many equal parts fit in one whole. Count those parts in the amount.', example: { prompt: 'How many 1/4-cup scoops fill 2 cups?', answer: '8 scoops', explanation: 'One whole cup holds 4 fourths. 2 cups hold 2 groups of 4 fourths. That is 8 scoops of 1/4 cup.', model: bars({ numerator: 8, denominator: 4 }) }, mode: 'divide', n: 1, d: 4, context: 'measuring cup' },
   { id: 'multiplication-scaling', title: 'Scaling with fractions', shortTitle: 'Scale an amount', description: 'See how a factor below or above one changes an amount.', skill: 'Multiplying by less than 1 takes part of an amount, so it gets smaller. Multiplying by more than 1 makes more than one copy, so it gets bigger.', example: { prompt: 'What is 3/4 of 12? Is the answer less or more than 12?', answer: '9, less than 12', explanation: 'Make 4 equal groups of 3. Three of the groups is 9. Multiplying 12 by 3/4, which is less than one whole, makes a smaller amount.', model: setModel(9, 12, 4) }, mode: 'scaling', n: 3, d: 4, context: 'collections', gradeBand: 5, standards: ['5.NF.5'] },
+  { id: 'bigger-or-smaller', title: 'Bigger or smaller?', shortTitle: 'Bigger or smaller', description: 'Tell how a fraction factor changes an amount.',
+    skill: 'Multiply by a fraction less than 1: you get less. More than 1: you get more. Equal to 1: it stays the same.',
+    example: { prompt: 'Is 3/4 × 2 1/2 more or less than 2 1/2?', answer: 'Less than 2 1/2', explanation: 'Less. Three fourths of an amount is only part of it. The top bar is the whole amount; the bottom bar is three fourths of it.',
+      model: bars({ numerator: 5, denominator: 2, named: true }, { numerator: 15, denominator: 8 }) },
+    mode: 'bigger-smaller', n: 5, d: 4, context: 'scaling machine', gradeBand: 5, standards: ['5.NF.5'],
+    questions: [
+      practice('Which one is more than 8?', ['3/4 × 8', '5/4 × 8', '1/2 × 8', '8/8 × 8'], 1,
+        bars({ numerator: 3, denominator: 4, named: true }, { numerator: 5, denominator: 4, named: true }, { numerator: 1, denominator: 2, named: true }, { numerator: 8, denominator: 8, named: true }),
+        'Compare each fraction with 1. Which factor is more than one whole?',
+        '5/4 is more than 1, so 5/4 × 8 is more than 8. It is 10. The others are 6, 4 and 8.', bars({ numerator: 4, denominator: 4 }, { numerator: 5, denominator: 4 })),
+      practice('Is 2/3 × 6 more or less than 6?', ['Less than 6', 'More than 6', 'Equal to 6', "You can't tell"], 0,
+        bars({ numerator: 2, denominator: 3, named: true }),
+        'Is 2/3 less than 1, equal to 1, or more than 1?',
+        '2/3 is less than 1, so 2/3 × 6 is less than 6. It is 4.', bars({ numerator: 2, denominator: 3, named: true }, { numerator: 3, denominator: 3 })),
+      practice('Is 3/3 × 5/6 the same as 5/6?', ['No, it is less', 'No, it is more', 'Yes, 3/3 is 1', "You can't tell"], 2,
+        bars({ numerator: 3, denominator: 3, named: true }, { numerator: 5, denominator: 6, named: true }),
+        'What whole number is 3/3?',
+        '3/3 is one whole. Multiplying by 1 keeps the amount the same, so 3/3 × 5/6 is still 5/6. It is just a new name.', bars({ numerator: 3, denominator: 3, named: true })),
+      practice('Ana says multiplying always makes a number bigger. Is she right?', ['No, 1/2 × 4 is 2', 'No, it always gets smaller', 'Yes, it always gets bigger', 'Yes, with whole numbers'], 0,
+        bars({ numerator: 4, denominator: 1 }, { numerator: 1, denominator: 2 }),
+        'Try a factor less than 1, like 1/2. What is 1/2 × 4?',
+        'Not always. 1/2 × 4 = 2, which is less than 4. A factor less than 1 makes it smaller, and 1 keeps it the same.', bars({ numerator: 4, denominator: 1 }, { numerator: 2, denominator: 1 })),
+    ] },
   { id: 'multiply-mixed-numbers', title: 'Multiply mixed numbers', shortTitle: 'Mixed number multiplication', description: 'Use a rectangle to find the area of a mixed-number garden.', skill: 'Use the side lengths as rows and columns in a rectangle. The number of square units is the product of the side lengths.', example: { prompt: 'A garden is 1 1/2 meters by 1 1/3 meters. What is its area?', answer: '2 square meters', explanation: 'Cut the meters into halves one way and thirds the other way. The garden has 3 half rows and 4 third columns: 12 small parts. Each part is 1/6 of a square meter, so 12/6 = 2 square meters.', model: bars({ numerator: 12, denominator: 6 }) }, mode: 'mixed-multiply', n: 2, d: 1, context: 'garden plot', gradeBand: 5, standards: ['5.NF.4b', '5.NF.6'] },
   { id: 'unit-fraction-divided-whole', title: 'Share a unit fraction', shortTitle: 'Divide a unit fraction', description: 'Split one unit fraction into equal shares.', skill: 'Share the unit fraction equally. Each share is a smaller part of the original whole.', mode: 'unit-divided-whole', n: 1, d: 12, context: 'pan of brownies', gradeBand: 5, standards: ['5.NF.7a'] },
+  { id: 'share-or-fit', title: 'Share or fit?', shortTitle: 'Share or fit', description: 'Tell sharing from fitting, then divide.',
+    skill: 'Sharing splits an amount into equal shares. Fitting asks how many pieces fit. Both are division. Check with ×.',
+    example: { prompt: 'How many 1/3-cup servings are in 2 cups?', answer: '6 servings', explanation: '2 ÷ 1/3 = 6. Each cup holds 3 servings. Check: 6 × 1/3 = 2 cups.',
+      model: bars({ numerator: 3, denominator: 3 }, { numerator: 3, denominator: 3 }) },
+    mode: 'share-or-fit', n: 1, d: 6, context: 'clay and cups', gradeBand: 5, standards: ['5.NF.7c'],
+    questions: [
+      practice('1/2 pound of clay is shared by 3 friends. Is this sharing or fitting?', SHARE_OR_FIT, 0, bars({ numerator: 1, denominator: 2 }),
+        'Is an amount split among friends, or do you count how many pieces fit?',
+        'The clay is split into 3 equal shares, so this is sharing.', bars({ numerator: 1, denominator: 2 })),
+      practice('1/2 pound of clay is shared by 3 friends. How much does each get?', ['3/2 pounds', '1/6 pound', '6 pounds', '1/5 pound'], 1, bars({ numerator: 1, denominator: 2 }),
+        'Cut the half pound into 3 equal shares. How big is one share of the whole pound?',
+        '1/2 ÷ 3 = 1/6 pound. Check: 3 × 1/6 = 1/2.', bars({ numerator: 1, denominator: 6 })),
+      practice('How many 1/4-pound bags can be filled from 3 pounds of clay? Is this sharing or fitting?', SHARE_OR_FIT, 1, emptyWholes(3),
+        'Are you splitting the clay among people, or counting how many bags fit?',
+        'You count how many 1/4-pound bags fit in 3 pounds, so this is fitting.', emptyWholes(3)),
+      practice('How many 1/4-pound bags can be filled from 3 pounds of clay?', ['12 bags', '3/4 bag', '7 bags', '4 bags'], 0, emptyWholes(3),
+        'How many 1/4 pounds make 1 pound? Then think about 3 pounds.',
+        '3 ÷ 1/4 = 12 bags. Each pound fills 4 bags. Check: 12 × 1/4 = 3.', emptyWholes(3, 4)),
+    ] },
   { id: 'fraction-of-length', title: 'A fraction of a length', shortTitle: 'Fractional lengths', description: 'Find 3/8 of a ribbon.', skill: 'Split the whole length into equal parts using the denominator. Measure the number of parts shown by the numerator.', mode: 'measure', n: 3, d: 8, context: 'ribbon' },
   { id: 'fractional-measure-addition', title: 'Add lengths', shortTitle: 'Measure together', description: 'Add 1/2 meter and 1/4 meter.', skill: 'Rename the lengths as the same-size parts. Then add them and keep the unit.', mode: 'measure-add', n: 1, d: 2, context: 'wooden boards' },
   { id: 'ruler-measurement', title: 'Measure with fractional inches', shortTitle: 'Read a ruler', description: 'Use equal ruler marks to name a length.', skill: 'The spaces between ruler marks are equal fractions of an inch. Count the spaces to measure.', mode: 'ruler', n: 5, d: 4, context: 'ruler', gradeBand: 3, standards: ['3.MD.4'] },
@@ -888,7 +974,24 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'measurement-word-problems', title: 'Fractions in measurement stories', shortTitle: 'Measurement stories', description: 'Use fractions with length, time, money, mass and volume.', skill: 'Keep the measurement unit in your answer. Convert units before comparing or calculating.', mode: 'measure-context', n: 3, d: 4, context: 'measurement stories', gradeBand: 4, standards: ['4.MD.2'] },
   { id: 'fractional-unit-conversions', title: 'Convert fraction units', shortTitle: 'Fraction unit conversions', description: 'Find a fractional amount in a smaller unit.', skill: 'Convert the whole measurement to smaller units first. Then find the fraction of that amount.', example: { prompt: 'How many minutes are in 3/4 of an hour?', answer: '45 minutes', explanation: 'One hour is 60 minutes. Split it into 4 equal parts of 15 minutes each. 3 of those parts is 45 minutes.', model: bars({ numerator: 3, denominator: 4 }) }, mode: 'unit-conversion', n: 3, d: 4, context: 'measuring tools', gradeBand: 5, standards: ['5.MD.1'] },
   { id: 'fractional-sharing', title: 'Fair shares', shortTitle: 'Fair sharing', description: 'Share 3 loaves with 4 friends.', skill: 'Share the total equally. The amount each friend gets is the total divided by the number of friends.', mode: 'share', n: 3, d: 4, context: 'loaf of bread' },
-  { id: 'fraction-as-division', title: 'Division is a fraction', shortTitle: 'Fraction quotient', description: '5 ÷ 4 = 5/4.', skill: 'A fraction bar means division. The numerator is divided by the denominator.', mode: 'quotient', n: 5, d: 4, context: 'pizzas' },
+  { id: 'fraction-as-division', title: 'Division is a fraction', shortTitle: 'Fraction quotient', description: '5 ÷ 4 = 5/4.', skill: 'A fraction bar means division. The numerator is divided by the denominator.', mode: 'quotient', n: 5, d: 4, context: 'pizzas',
+    example: { prompt: '5 ÷ 4 = ?', answer: '5/4', explanation: 'Share 5 wholes among 4: cut each whole into 4 parts, and each share gets 5 of them. So 5 ÷ 4 = 5/4, or 1 1/4. The fraction bar means divide.',
+      model: bars({ numerator: 5, denominator: 4 }) },
+    // Division written as a fraction, and where that fraction sits between whole numbers (not more sharing stories).
+    questions: [
+      practice('5 ÷ 4 = ?', ['5/4', '4/5', '1/4', '9/4'], 0, emptyWholes(5, 4),
+        'The number you divide goes on top. The number you divide by goes on the bottom.',
+        '5 ÷ 4 = 5/4. That is 1 1/4.', emptyWholes(5, 4)),
+      practice('Between which two whole numbers is 7/3?', ['1 and 2', '2 and 3', '3 and 4', '7 and 8'], 1, line(0, 3, 3),
+        'How many thirds make one whole? How many wholes fit in 7 thirds?',
+        '7/3 = 7 ÷ 3 = 2 1/3. That is more than 2 and less than 3.', { kind: 'line', numerator: 7, denominator: 3, wholes: 3 }),
+      practice('Write 3 ÷ 8 as a fraction.', ['3/8', '8/3', '1/8', '3/11'], 0, emptyWholes(3, 8),
+        'The fraction bar means divide. Which number goes on top?',
+        '3 ÷ 8 = 3/8. Each share is less than one whole.', emptyWholes(3, 8)),
+      practice('Between which two whole numbers is 13/4?', ['2 and 3', '3 and 4', '4 and 5', '13 and 14'], 1, line(0, 4, 4),
+        'How many fourths make one whole? Count whole groups of 4 in 13.',
+        '13/4 = 13 ÷ 4 = 3 1/4. That is more than 3 and less than 4.', { kind: 'line', numerator: 13, denominator: 4, wholes: 4 }),
+    ] },
   { id: 'fraction-probability', title: 'Bonus: Chance as a fraction', shortTitle: 'Bonus probability', description: 'What is the chance of blue?', skill: 'The numerator counts the outcomes you want. The denominator counts all equally likely outcomes.', mode: 'probability', n: 2, d: 8, context: 'color spinner', enrichment: true },
   { id: 'fraction-of-area', title: 'Fractions in shapes', shortTitle: 'Equal-area partitions', description: 'Explore equal-area parts in squares, rectangles, circles and hexagons.', skill: 'Fraction parts must have equal areas. Their shapes may look different, but each part must cover the same amount of space.', mode: 'area', n: 3, d: 8, context: 'shape tiles', gradeBand: 3, standards: ['3.G.2'] },
   { id: 'fractional-side-area', title: 'Area with fractional sides', shortTitle: 'Fractional side area', description: 'Use a grid to find the area when both side lengths are fractions.', skill: 'A rectangle’s area is its side lengths multiplied. Count the small squares to see the fractional area.', mode: 'fractional-area', n: 1, d: 2, context: 'rectangle grid', gradeBand: 5, standards: ['5.NF.4b'],
@@ -899,6 +1002,30 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'percent-to-fraction', title: 'Bonus: Percent to fractions', shortTitle: 'Bonus percent as fraction', description: 'Write 60% as 60/100.', skill: 'Percent means out of 100. Write the percent as that many parts out of 100.', mode: 'percent-inverse', n: 3, d: 5, context: 'game score', enrichment: true },
   { id: 'decimal-fraction-equivalence', title: 'Fractions to decimals', shortTitle: 'Three forms', description: 'Write 1/4 as 0.25.', skill: 'Rename a fraction in tenths or hundredths. Write tenths with one decimal place and hundredths with two.', mode: 'decimal-equivalent', n: 7, d: 10, context: 'battery meter' },
   { id: 'compare-decimals', title: 'Compare decimals', shortTitle: 'Compare decimal sizes', description: 'Compare decimals using tenths and hundredths.', skill: 'Write both decimals with the same number of places. Then compare the digits by place value.', example: { prompt: 'Which is bigger, 0.4 or 0.35?', answer: '0.4', explanation: 'Write 0.4 as 0.40, so both have 2 places after the decimal point. 40 hundredths is more than 35 hundredths. So 0.4 is bigger, even though 35 looks bigger than 4.', model: bars({ numerator: 40, denominator: 100 }, { numerator: 35, denominator: 100 }) }, mode: 'decimal-compare', n: 3, d: 10, context: 'hundredths grid', gradeBand: 4, standards: ['4.NF.7'] },
+  { id: 'compare-decimals-grid', title: 'Compare decimals on a grid', shortTitle: 'Decimals on a grid', description: 'Use hundredths grids to compare and order decimals.',
+    skill: 'Write both decimals in hundredths. Then compare how many hundredths. Only compare amounts of the same whole.',
+    example: { prompt: 'Which is more: 0.7 or 0.07?', answer: '0.7', explanation: '0.7 = 70 hundredths. 0.07 = 7 hundredths. 0.7 is more. 70 hundredths is more than 7 hundredths.',
+      model: grids(hundredthsGrid(70, '0.7 = 70 hundredths'), hundredthsGrid(7, '0.07 = 7 hundredths')) },
+    mode: 'decimal-grid', n: 45, d: 100, context: 'hundredths grids', gradeBand: 4, standards: ['4.NF.7'],
+    questions: [
+      practice('Put 0.5, 0.45 and 0.6 in order, smallest first.', ['0.5, 0.45, 0.6', '0.45, 0.5, 0.6', '0.6, 0.5, 0.45', '0.45, 0.6, 0.5'], 1,
+        grids(hundredthsGrid(50), hundredthsGrid(45), hundredthsGrid(60)),
+        'Write each one in hundredths: 0.5 is 50 hundredths. Count the shaded squares on each grid.',
+        '0.5 = 50, 0.45 = 45 and 0.6 = 60 hundredths. 45 < 50 < 60, so 0.45 < 0.5 < 0.6.', grids(hundredthsGrid(50), hundredthsGrid(45), hundredthsGrid(60))),
+      practice('Mia eats 0.5 of a small pizza. Leo eats 0.4 of a big pizza. Who eats more?', ['Mia', 'Leo', 'They eat the same', "You can't tell"], 3,
+        { kind: 'area', cut: 'circle-halves', shaded: [], scale: 0.6, more: [{ cut: 'circle-tenths', shaded: [] }] },
+        'Look at the two wholes. Are the pizzas the same size?',
+        'The pizzas are different sizes, so 0.5 and 0.4 are parts of different wholes. You can only compare parts of the same whole.',
+        { kind: 'area', cut: 'circle-halves', shaded: [0], scale: 0.6, more: [{ cut: 'circle-tenths', shaded: [0, 1, 2, 3] }] }),
+      practice('Which is more: 0.3 or 0.25?', ['0.3', '0.25', 'They are equal', "You can't tell"], 0,
+        grids(hundredthsGrid(30), hundredthsGrid(25)),
+        'Write 0.3 in hundredths first. Then compare the counts.',
+        '0.3 = 30 hundredths and 0.25 = 25 hundredths. 30 is more than 25, so 0.3 is more.', grids(hundredthsGrid(30), hundredthsGrid(25))),
+      practice('Put 0.8, 0.75 and 0.09 in order, biggest first.', ['0.8, 0.75, 0.09', '0.75, 0.8, 0.09', '0.09, 0.75, 0.8', '0.8, 0.09, 0.75'], 0,
+        grids(hundredthsGrid(80), hundredthsGrid(75), hundredthsGrid(9)),
+        'Write each one in hundredths. Which grid has the most squares shaded?',
+        '0.8 = 80, 0.75 = 75 and 0.09 = 9 hundredths. 80 > 75 > 9, so 0.8 > 0.75 > 0.09.', grids(hundredthsGrid(80), hundredthsGrid(75), hundredthsGrid(9))),
+    ] },
   { id: 'multi-step-fraction-stories', title: 'Two-step stories', shortTitle: 'Fraction stories', description: 'Solve a story in 2 steps.', skill: 'Find what the story asks first. Solve that step, then use the answer in the next step.', mode: 'story', n: 2, d: 5, context: 'community garden' },
   // Unit 15 · Problem solving: the reasoning that Singapore, Beast Academy and Eureka lean on and quizzes skip.
   { id: 'find-the-whole', title: 'Find the whole', shortTitle: 'Find the whole', description: '3 is 1/4 of it. What is the whole?', skill: 'The known amount is some of the equal parts. Divide it by the numerator to find 1 part. Then multiply by the denominator to make the whole.', mode: 'whole-from-part', n: 1, d: 4, context: 'sticker packs', gradeBand: 5, standards: ['5.NF.6'],
@@ -953,7 +1080,8 @@ export function problemQuestion(problem: WorksheetProblem, position: number): Pr
   const model = problemPicture(problem);
   const simpler = 'hideLabels' in model ? { ...model, hideLabels: false } : model;
   // The explanation shows after a right answer, so it adds the answer to the hint instead of repeating it.
-  return practice(asChoicePrompt(problem.prompt), choices, position % 3, model, problem.hint, `${problem.hint} So the answer is ${problem.answer}.`, simpler);
+  // A check ("Check: 20 × 1/5 = 4.") comes after the answer.
+  return practice(asChoicePrompt(problem.prompt), choices, position % 3, model, problem.hint, `${problem.hint} So the answer is ${problem.answer}.${problem.why ? ` ${problem.why}` : ''}`, simpler);
 }
 
 function extensionMission(topic: ExtensionTopic): MissionSeed {
@@ -971,12 +1099,12 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
       model: t.kind === 'set' && t.total ? setModel((t.total / t.d) * t.n, t.total, t.d) : t.kind === 'line' ? line(t.n, t.d) : bars({ numerator: t.n, denominator: t.d }),
     },
     // Practice uses different worksheet rows than the first ones, so the sheet still has fresh numbers.
-    questions: [1, 4, 7, 10].map((row, i) => problemQuestion(sheet[row], i + row)),
+    questions: topic.questions ?? [1, 4, 7, 10].map((row, i) => problemQuestion(sheet[row], i + row)),
   };
 }
 
-/** Lessons added after the first 28, whose practice is made from their own worksheets. */
-export const EXTENSION_LESSON_IDS: ReadonlySet<string> = new Set(extensionTopics.map((topic) => topic.id));
+/** Lessons added after the first 28 whose practice is made from their own worksheets (not written question by question). */
+export const EXTENSION_LESSON_IDS: ReadonlySet<string> = new Set(extensionTopics.filter((topic) => !topic.questions).map((topic) => topic.id));
 /**
  * The course order: every lesson's unit, and its place in that unit. This is the one place a lesson's unit is set.
  * Units 1–5 are grade 3; units 6–9 bring in grade 4 (unit 8 holds like-fraction sums, mixed numbers and decimals), and
@@ -991,13 +1119,14 @@ export const LESSON_PLAN: Readonly<Record<number, readonly string[]>> = {
   6: ['equivalent-models', 'equivalent-number-line', 'build-equivalents', 'missing-equivalent'],
   7: ['compose-to-one', 'decompose-fractions', 'whole-numbers-as-fractions', 'improper-fractions', 'mixed-improper'],
   8: ['add-like-denominators', 'subtract-like-denominators', 'add-mixed-numbers', 'subtract-mixed-numbers', 'tenths-decimals',
-    'hundredths-decimals', 'decimal-fraction-equivalence', 'compare-decimals', 'add-tenths-hundredths', 'unit-fraction-multiples',
-    'multiply-whole-by-fraction'],
+    'hundredths-decimals', 'decimal-fraction-equivalence', 'compare-decimals', 'compare-decimals-grid', 'add-tenths-hundredths',
+    'unit-fraction-multiples', 'multiply-whole-by-fraction'],
   9: ['simplify-fractions', 'equivalent-missing-both', 'compare-unlike-fractions', 'order-unlike-fractions', 'read-line-plots',
     'measurement-word-problems'],
   10: ['add-related-fractions', 'add-unlike-fractions', 'subtract-unlike-fractions', 'mixed-unlike-operations', 'estimate-fraction-operations'],
-  11: ['sets-unit-fractions', 'sets-nonunit', 'fraction-of-quantity', 'multiply-fractions', 'fraction-of-collection',
-    'divide-whole-by-unit-fraction', 'multiplication-scaling', 'unit-fraction-divided-whole'],
+  11: ['sets-unit-fractions', 'sets-nonunit', 'fraction-of-quantity', 'multiply-fractions', 'fraction-times-fraction',
+    'fraction-of-collection', 'divide-whole-by-unit-fraction', 'multiplication-scaling', 'bigger-or-smaller',
+    'unit-fraction-divided-whole', 'share-or-fit'],
   12: ['fraction-of-length', 'fractional-measure-addition', 'line-plot-leveling', 'fractional-unit-conversions', 'fractional-sharing',
     'fraction-as-division'],
   13: ['fraction-probability', 'fractional-side-area', 'multiply-mixed-numbers', 'fraction-recipes'],
@@ -1259,6 +1388,8 @@ export const MOVED_EARLIER_LESSONS: ReadonlySet<string> = new Set([
   // The October 2026 reorder (LESSON_PLAN): moved to an earlier unit.
   'fraction-of-area', 'ruler-measurement', 'build-line-plots', 'equivalent-number-line', 'whole-numbers-as-fractions',
   'add-mixed-numbers', 'subtract-mixed-numbers', 'decimal-fraction-equivalence', 'compare-decimals', 'read-line-plots', 'measurement-word-problems',
+  // New lessons put in front of lessons a learner may already have passed (unit 8 and unit 11).
+  'compare-decimals-grid', 'fraction-times-fraction', 'bigger-or-smaller', 'share-or-fit',
 ]);
 /** Lessons the October 2026 reorder moved to a later unit. A learner who passed one before the move keeps it open, even
     though the lessons now in front of it may be new to them. */
@@ -1279,6 +1410,8 @@ export const LATE_ADDED_LESSONS: ReadonlySet<string> = new Set([
   'ruler-measurement', 'build-line-plots', 'read-line-plots', 'line-plot-leveling', 'measurement-word-problems', 'fractional-unit-conversions',
   'fractional-side-area',
   'compare-decimals',
+  // Grids, scaling and division lessons added to units 8 and 11.
+  'compare-decimals-grid', 'fraction-times-fraction', 'bigger-or-smaller', 'share-or-fit',
 ]);
 
 export function completeMission(progress: Progress, missionId: string, stars: number): Progress {

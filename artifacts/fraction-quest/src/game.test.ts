@@ -60,6 +60,7 @@ import {
   isCorrectAnswer,
   isMissionUnlocked,
   LATE_ADDED_LESSONS,
+  areaFigures,
   LESSON_PLAN,
   EXTENSION_LESSON_IDS,
   staleDraft,
@@ -143,13 +144,14 @@ const EXPECTED_COURSE: Record<number, string[]> = {
   6: ['equivalent-models', 'equivalent-number-line', 'build-equivalents', 'missing-equivalent'],
   7: ['compose-to-one', 'decompose-fractions', 'whole-numbers-as-fractions', 'improper-fractions', 'mixed-improper'],
   8: ['add-like-denominators', 'subtract-like-denominators', 'add-mixed-numbers', 'subtract-mixed-numbers', 'tenths-decimals',
-    'hundredths-decimals', 'decimal-fraction-equivalence', 'compare-decimals', 'add-tenths-hundredths', 'unit-fraction-multiples',
-    'multiply-whole-by-fraction'],
+    'hundredths-decimals', 'decimal-fraction-equivalence', 'compare-decimals', 'compare-decimals-grid', 'add-tenths-hundredths',
+    'unit-fraction-multiples', 'multiply-whole-by-fraction'],
   9: ['simplify-fractions', 'equivalent-missing-both', 'compare-unlike-fractions', 'order-unlike-fractions', 'read-line-plots',
     'measurement-word-problems'],
   10: ['add-related-fractions', 'add-unlike-fractions', 'subtract-unlike-fractions', 'mixed-unlike-operations', 'estimate-fraction-operations'],
-  11: ['sets-unit-fractions', 'sets-nonunit', 'fraction-of-quantity', 'multiply-fractions', 'fraction-of-collection',
-    'divide-whole-by-unit-fraction', 'multiplication-scaling', 'unit-fraction-divided-whole'],
+  11: ['sets-unit-fractions', 'sets-nonunit', 'fraction-of-quantity', 'multiply-fractions', 'fraction-times-fraction',
+    'fraction-of-collection', 'divide-whole-by-unit-fraction', 'multiplication-scaling', 'bigger-or-smaller',
+    'unit-fraction-divided-whole', 'share-or-fit'],
   12: ['fraction-of-length', 'fractional-measure-addition', 'line-plot-leveling', 'fractional-unit-conversions', 'fractional-sharing',
     'fraction-as-division'],
   13: ['fraction-probability', 'fractional-side-area', 'multiply-mixed-numbers', 'fraction-recipes'],
@@ -266,8 +268,8 @@ describe('lesson catalog', () => {
     }
   });
 
-  it('covers 72 sequenced lessons in the expected sequence and unit groups', () => {
-    assert.equal(MISSIONS.length, 72);
+  it('covers 76 sequenced lessons in the expected sequence and unit groups', () => {
+    assert.equal(MISSIONS.length, 76);
     assert.deepEqual(MISSIONS.map((mission) => mission.id), Object.values(EXPECTED_COURSE).flat());
     for (const [unit, ids] of Object.entries(EXPECTED_COURSE)) {
       assert.deepEqual(MISSIONS.filter((mission) => mission.unit === Number(unit)).map((mission) => mission.id), ids, `unit ${unit}`);
@@ -277,7 +279,7 @@ describe('lesson catalog', () => {
         [...new Set(MISSIONS.map((mission) => mission.unit))]
           .map((unit) => [unit, MISSIONS.filter((mission) => mission.unit === unit).length]),
       ),
-      { 1: 4, 2: 2, 3: 3, 4: 5, 5: 2, 6: 4, 7: 5, 8: 11, 9: 6, 10: 5, 11: 8, 12: 6, 13: 4, 14: 3, 15: 4 },
+      { 1: 4, 2: 2, 3: 3, 4: 5, 5: 2, 6: 4, 7: 5, 8: 12, 9: 6, 10: 5, 11: 11, 12: 6, 13: 4, 14: 3, 15: 4 },
     );
   });
 
@@ -524,6 +526,27 @@ describe('lesson catalog', () => {
       ['add-related-fractions-q1', '4/6'],
       ['hundredths-decimals-q1', '0.08'],
       ['hundredths-decimals-q3', '0.4'],
+      // Lessons whose questions are written one by one (not made from worksheet rows).
+      ['compare-decimals-grid-q1', '0.45 < 0.5 < 0.6'],
+      ['compare-decimals-grid-q2', "You can't tell"],
+      ['compare-decimals-grid-q3', '0.3'],
+      ['compare-decimals-grid-q4', '0.8 > 0.75 > 0.09'],
+      ['fraction-times-fraction-q1', '3/8'],
+      ['fraction-times-fraction-q2', '6/12'],
+      ['fraction-times-fraction-q3', '4/10'],
+      ['fraction-times-fraction-q4', '6/15'],
+      ['bigger-or-smaller-q1', '5/4 × 8'],
+      ['bigger-or-smaller-q2', 'Less than 6'],
+      ['bigger-or-smaller-q3', 'Yes, 3/3 is 1'],
+      ['bigger-or-smaller-q4', 'No, 1/2 × 4 is 2'],
+      ['share-or-fit-q1', 'Sharing'],
+      ['share-or-fit-q2', '1/6 pound'],
+      ['share-or-fit-q3', 'Fitting'],
+      ['share-or-fit-q4', '12 bags'],
+      ['fraction-as-division-q1', '5/4'],
+      ['fraction-as-division-q2', '2 and 3'],
+      ['fraction-as-division-q3', '3/8'],
+      ['fraction-as-division-q4', '3 and 4'],
     ] as const;
 
     for (const [questionId, expectedAnswer] of answerKeyChecks) {
@@ -2473,6 +2496,23 @@ describe('question generator', () => {
     } else if ((m = /^Compare: ([\d.]+) __ ([\d.]+)\.$/.exec(p))) {
       assert.equal(answer, `${m[1]} ${N(m[1]) < N(m[2]) ? '<' : N(m[1]) > N(m[2]) ? '>' : '='} ${m[2]}`, p); return true;
     }
+    // Unit 11 grids, scaling, sharing and fitting, and fractions as division.
+    const amountOf = (text: string) => num(text.replace(/ (?:pounds?|bags|scoops|bottles|cups?|liters?)$/, ''));
+    const factorWords = (k: number, amount: string) => `${near(k, 1) ? 'Equal to' : k < 1 ? 'Less than' : 'More than'} ${amount}`;
+    const product = (text: string) => { const [f, w] = text.split(' × '); return num(f) * num(w); };
+    if ((m = /^(\d+)\/(\d+) × (\d+)\/(\d+) = \?$/.exec(p))) expected = (N(m[1]) * N(m[3])) / (N(m[2]) * N(m[4]));
+    else if ((m = /^How many 1\/(\d+)-cup scoops fill (\d+) cups?\? (\d+) ÷ 1\/(\d+) = \?$/.exec(p))) { assert.equal(m[3], m[2], p); assert.equal(m[4], m[1], p); expected = N(m[1]) * N(m[2]); }
+    else if ((m = /^Between which two whole numbers is (\d+)\/(\d+)\?$/.exec(p))) { const low = Math.floor(N(m[1]) / N(m[2])); assert.equal(answer, `${low} and ${low + 1}`, p); return true; }
+    else if ((m = /^Which one is (more|less) than (\d+)\?$/.exec(p))) {
+      const fits = question.choices.filter((c) => (m![1] === 'more' ? product(c) > N(m![2]) + 1e-9 : product(c) < N(m![2]) - 1e-9));
+      assert.deepEqual(fits, [answer], p); return true;
+    } else if ((m = /^Is (\d+)\/(\d+) × (.+) more or less than \3\?$/.exec(p))) { assert.equal(answer, factorWords(N(m[1]) / N(m[2]), m[3]), p); return true; }
+    else if ((m = /^Without multiplying, compare (\d+)\/(\d+) × (.+) with \3: __ \3\.$/.exec(p))) {
+      const k = N(m[1]) / N(m[2]); assert.equal(answer, `${m[1]}/${m[2]} × ${m[3]} ${near(k, 1) ? '=' : k < 1 ? '<' : '>'} ${m[3]}`, p); return true;
+    } else if ((m = /^1\/(\d+) \w+ of \w+ is shared by (\d+) friends\. Is this sharing or fitting\?$/.exec(p))) { assert.equal(answer, 'Sharing', p); return true; }
+    else if ((m = /^How many 1\/\d+-\w+ \w+ can be filled from \d+ \w+ of \w+\? Is this sharing or fitting\?$/.exec(p))) { assert.equal(answer, 'Fitting', p); return true; }
+    else if ((m = /^1\/(\d+) \w+ of \w+ is shared by (\d+) friends\. How much does each get\?$/.exec(p))) { assert.ok(near(amountOf(answer), 1 / N(m[1]) / N(m[2])), p); return true; }
+    else if ((m = /^How many 1\/(\d+)-\w+ \w+ can be filled from (\d+) \w+ of \w+\?$/.exec(p))) { assert.ok(near(amountOf(answer), N(m[1]) * N(m[2])), p); return true; }
     if (expected === null) return false;
     if (typeof expected === 'string') assert.equal(answer.replace(/[\s,<>]/g, ''), expected.replace(/[\s,<>]/g, ''), p);
     else assert.ok(near(num(answer), expected), `${p} → ${answer}, expected ${expected}`);
@@ -3057,6 +3097,59 @@ describe('new tenths + hundredths lesson', () => {
       for (const c of q.choices) assert.doesNotMatch(c, /^(?:Yes|No):/, 'yes and no are followed by a comma');
       for (const c of q.choices) assert.ok(c.trim().split(/\s+/).length <= 6, `${q.id}: "${c}" is too long for an answer choice`);
     }
+  });
+});
+
+describe('grid, scaling and share-or-fit lessons', () => {
+  const lesson = (id: string) => MISSIONS.find((m) => m.id === id)!;
+  const answer = (q: PracticeQuestion) => q.choices[q.correctChoice];
+  it('teach first with the approved idea and worked example, then ask the approved first question', () => {
+    const grid = lesson('compare-decimals-grid');
+    assert.equal(grid.unit, 8);
+    assert.equal(MISSIONS[MISSIONS.indexOf(grid) - 1].id, 'compare-decimals');
+    assert.match(grid.skill, /hundredths.*same whole/);
+    assert.equal(grid.example.prompt, 'Which is more: 0.7 or 0.07?');
+    assert.ok(grid.example.model.kind === 'area' && areaFigures(grid.example.model).map((f) => f.shaded.length).join() === '70,7', 'two hundredths grids: 70 and 7');
+    assert.equal(grid.questions[0].prompt, 'Put 0.5, 0.45 and 0.6 in order, smallest first.');
+    assert.equal(answer(grid.questions[0]), '0.45 < 0.5 < 0.6');
+    assert.ok(grid.questions.some((q) => answer(q) === "You can't tell"), 'a same-whole question');
+
+    const scale = lesson('bigger-or-smaller');
+    assert.equal(MISSIONS[MISSIONS.indexOf(scale) - 1].id, 'multiplication-scaling');
+    assert.deepEqual(scale.questions[0].choices.slice().sort(), ['1/2 × 8', '3/4 × 8', '5/4 × 8', '8/8 × 8']);
+    assert.equal(answer(scale.questions[0]), '5/4 × 8');
+    const ana = scale.questions.find((q) => /^Ana says/.test(q.prompt))!;
+    assert.match(ana.choices[0], /^No\b/, 'No comes before Yes');
+
+    const times = lesson('fraction-times-fraction');
+    assert.equal(MISSIONS[MISSIONS.indexOf(times) - 1].id, 'multiply-fractions');
+    assert.equal(times.example.prompt, '2/3 × 4/5 = ?');
+    assert.equal(times.example.answer, '8/15');
+    assert.deepEqual(times.questions[0].choices.slice().sort(), ['3/6', '3/8', '4/6', '4/8']);
+    // Every question shows the square to cut, and never shades the overlap that is the answer.
+    for (const q of times.questions.filter((item) => !item.isReview)) assert.ok(q.model.kind === 'area' && q.model.shaded.length === 0, q.prompt);
+
+    const fit = lesson('share-or-fit');
+    assert.equal(MISSIONS.filter((m) => m.unit === 11).at(-1)?.id, 'share-or-fit');
+    assert.equal(fit.example.prompt, 'How many 1/3-cup servings are in 2 cups?');
+    assert.match(fit.example.explanation, /2 ÷ 1\/3 = 6.*Check: 6 × 1\/3 = 2/);
+    const clay = fit.questions.find((q) => /How much does each get\?$/.test(q.prompt))!;
+    assert.deepEqual(clay.choices.slice().sort(), ['1/5 pound', '1/6 pound', '3/2 pounds', '6 pounds']);
+    assert.equal(answer(clay), '1/6 pound');
+    // The child names the kind of story before solving it, for both kinds.
+    assert.deepEqual(fit.questions.filter((q) => /sharing or fitting\?$/.test(q.prompt)).map(answer), ['Sharing', 'Fitting']);
+  });
+  it('write the division and check it with × in the division lessons', () => {
+    for (const id of ['divide-whole-by-unit-fraction', 'unit-fraction-divided-whole']) {
+      for (const q of lesson(id).questions.filter((item) => !item.isReview)) {
+        assert.match(q.prompt, / ÷ /, q.prompt);
+        assert.match(q.retryFeedback, /Check: \d+ × 1\/\d+ = /, q.prompt);
+      }
+    }
+    const quotient = lesson('fraction-as-division');
+    assert.ok(quotient.questions.every((q) => q.isReview || !/shared fairly/.test(q.prompt)), 'no more sharing stories');
+    assert.ok(quotient.questions.some((q) => /^Between which two whole numbers is \d+\/\d+\?$/.test(q.prompt)));
+    assert.ok(getWorksheet('fraction-as-division').every((p) => !/shared fairly/.test(p.prompt)));
   });
 });
 
