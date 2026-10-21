@@ -132,7 +132,7 @@ export const gradeForStandard = (standard: string): 3 | 4 | 5 | null => {
   return grade === 3 || grade === 4 || grade === 5 ? grade : null;
 };
 
-/** Challenge questions are tagged with the unit's taught standards; they do not alone establish mastery. */
+/** Challenge questions are tagged with the standards their unit's puzzles practise; they do not alone establish mastery. */
 export const UNIT_CHALLENGE_STANDARDS: Record<number, StandardId[]> = {
   1: ['3.NF.1', '3.G.2'],
   2: ['3.NF.3d'],
@@ -141,14 +141,14 @@ export const UNIT_CHALLENGE_STANDARDS: Record<number, StandardId[]> = {
   5: ['3.NF.3d', '4.NF.2'],
   6: ['3.NF.3a', '3.NF.3b', '4.NF.1'],
   7: ['3.NF.3c', '4.NF.3b', '4.NF.3c'],
-  8: ['4.NF.3a', '4.NF.5', '4.NF.6', '5.NF.1'],
-  9: ['3.NF.3c', '4.NF.1', '4.NF.2'],
-  10: ['4.NF.3c', '4.NF.4c', '5.NF.1'],
-  11: ['4.NF.4a', '4.NF.4b', '4.NF.4c', '5.NF.4a', '5.NF.5', '5.NF.6', '5.NF.7a', '5.NF.7b'],
-  12: ['3.MD.4', '4.MD.2', '4.MD.4', '5.MD.1', '5.MD.2', '5.NF.3'],
-  13: ['3.G.2', '3.NF.3a', '4.NF.4c', '5.NF.6'],
-  14: ['4.NF.6', '4.NF.7', '5.NF.2'],
-  15: ['4.NF.2', '4.NF.3a', '4.NF.4c', '5.NF.2', '5.NF.6'],
+  8: ['4.NF.3a', '4.NF.3c', '4.NF.3d', '4.NF.6', '4.NF.7'],
+  9: ['4.NF.1', '4.NF.2'],
+  10: ['4.NF.3c', '5.NF.1', '5.NF.2'],
+  11: ['5.NF.4a', '5.NF.6', '5.NF.7b', '5.NF.7c'],
+  12: ['5.MD.1', '5.NF.1', '5.NF.2', '5.NF.3'],
+  13: ['4.NF.4b', '4.NF.4c', '5.NF.4b', '5.NF.6'],
+  14: ['4.NF.3d', '4.NF.6', '4.NF.7'],
+  15: ['4.NF.3a', '5.NF.2', '5.NF.6'],
 };
 
 export const standardsForChallenge = (challengeId: string): StandardId[] => {

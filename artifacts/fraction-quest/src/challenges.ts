@@ -127,7 +127,11 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
       step('Start with 9/10 m. Cut off 4/10 m. What is left?', ['5/10 m', '5/20 m', '13/10 m', '4/10 m'], 0),
       step('Now cut 3/10 m from 5/10 m. What is left?', ['8/10 m', '2/20 m', '2/10 m', '3/10 m'], 2),
     ]),
-    q('u8-c5', 5, '1/2 + 1/4 + 1/8 = ?', ['3/8', '5/8', '6/8', '7/8'], 3, '4/8 + 2/8 + 1/8 = 7/8.'),
+    q('u8-c5', 5, '2 3/4 + 1 2/4 = ?', ['3 5/8', '4 1/4', '3 1/4', '4 3/4'], 1, '2 + 1 = 3 wholes. 3/4 + 2/4 = 5/4, which is 1 1/4. So 3 + 1 1/4 = 4 1/4.', undefined, [
+      step('Add the wholes. 2 + 1 = ?', ['3', '2', '4', '1'], 0),
+      step('Add the parts. 3/4 + 2/4 = ?', ['5/8', '5/4', '1/4', '6/4'], 1),
+      step('5/4 is 1 1/4. 3 + 1 1/4 = ?', ['3 1/4', '4 3/4', '5 1/4', '4 1/4'], 3),
+    ]),
   ],
   9: [
     q('u9-p1', 3, 'What fraction of the rectangle is shaded? Give it in simplest form.', ['3/5', '2/3', '3/4', '4/5'], 1, '8 of 12 squares are shaded. Divide the numerator and denominator by 4: 8/12 = 2/3.', { kind: 'grid', rows: 3, cols: 4, shaded: [0, 1, 2, 4, 5, 6, 8, 9] }),
@@ -144,16 +148,15 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   10: [
     q('u10-p1', 3, 'Bar A shows 3/4. Bar B shows 1/2. How much more of bar A is shaded?', ['1/4', '2/6', '1/8', '3/8'], 0, '1/2 = 2/4. 3/4 − 2/4 = 1/4.', { kind: 'bars', bars: [{ n: 3, d: 4, label: 'A' }, { n: 1, d: 2, label: 'B' }] }),
     q('u10-c1', 3, '1 1/2 + 2 1/2 = ?', ['3', '3 1/2', '4', '4 1/2'], 2, '1 + 2 = 3 wholes. 1/2 + 1/2 = 1 more whole. So 4.'),
-    q('u10-c2', 3, 'What is 2/3 of 15 stickers?', ['5', '9', '10', '12'], 2, '15 in 3 equal groups is 5 each. 2 groups is 10.'),
+    q('u10-c2', 3, 'What is 1/2 + 1/3?', ['2/5', '5/6', '2/6', '1/6'], 1, 'Use sixths: 1/2 = 3/6 and 1/3 = 2/6. 3/6 + 2/6 = 5/6.'),
     q('u10-c3', 4, '3 1/4 − 1 3/4 = ?', ['1 1/2', '2 1/2', '1 3/4', '1 1/4'], 0, 'Trade one whole: 3 1/4 = 2 5/4. 2 5/4 − 1 3/4 = 1 2/4 = 1 1/2.', undefined, [
       step('1/4 is less than 3/4. Trade one whole for 4/4. 3 1/4 is the same as…', ['2 5/4', '2 4/4', '2 1/4', '3 5/4'], 0),
       step('2 5/4 − 1 3/4 = ?', ['1 8/4', '1 2/4', '1 1/4', '2 2/4'], 1),
       step('1 2/4 is the same as…', ['1 1/4', '2', '1 1/2', '1 1/3'], 2),
     ]),
-    q('u10-c4', 4, 'A class has 24 kids. 3/8 of them walk to school. How many kids do not walk?', ['9', '12', '15', '16'], 2, '24 in 8 groups is 3 each. 3 groups walk: 9 kids. 24 − 9 = 15.', undefined, [
-      step('24 kids in 8 equal groups. How many in each group?', ['3', '4', '8', '16'], 0),
-      step('3 groups walk. How many kids walk?', ['3', '6', '9', '12'], 2),
-      step('24 − 9 = ?', ['14', '33', '16', '15'], 3),
+    q('u10-c4', 4, 'Without adding exactly, which sum is more than 1?', ['1/3 + 1/4', '2/5 + 1/2', '3/8 + 1/2', '5/6 + 1/2'], 3, '5/6 is more than 1/2, and two halves make 1. So 5/6 + 1/2 is more than 1. In the other sums, the first fraction is less than 1/2.', undefined, [
+      step('Is 5/6 more or less than 1/2?', ['Less than 1/2', 'More than 1/2', 'Equal to 1/2', "You can't tell"], 1),
+      step('5/6 is more than 1/2. So is 5/6 + 1/2 more or less than 1?', ['Less than 1', 'Equal to 1', 'More than 1', "You can't tell"], 2),
     ]),
     q('u10-c5', 5, 'A jug has 5/6 liter of juice. Mia pours out 1/3 liter. Leo pours out 1/4 liter. How much juice is left?', ['1/6 liter', '3/13 liter', '1/4 liter', '5/12 liter'], 2, 'Use twelfths: 10/12 − 4/12 − 3/12 = 3/12 = 1/4 liter.', undefined, [
       step('Change 5/6 to twelfths.', ['10/12', '11/12', '5/12', '6/12'], 0),
@@ -201,7 +204,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u13-p1', 3, 'These marbles are in a bag. You pick one without looking. What is the chance it is dark?', ['3/7', '3/10', '7/10', '1/3'], 1, '10 marbles. 3 are dark. The chance is 3/10.', { kind: 'dots', rows: 2, cols: 5, shaded: [0, 3, 7] }),
     q('u13-c1', 3, 'A cube has the numbers 1, 2, 3, 4, 5 and 6. You roll it once. What is the chance of an even number?', ['1/6', '2/6', '3/6', '4/6'], 2, '2, 4 and 6 are even. That is 3 of 6.'),
     q('u13-c2', 3, 'A recipe uses 2/3 cup of milk. How much milk do 3 batches need?', ['6/9 cup', '2 cups', '5/3 cups', '3 cups'], 1, '3 × 2/3 = 6/3. That is 2 cups.'),
-    q('u13-c3', 4, 'Which fraction is NOT at the same spot as 3/4 on a number line?', ['6/8', '9/12', '12/16', '8/10'], 3, '6/8, 9/12 and 12/16 all equal 3/4. 8/10 equals 4/5.'),
+    q('u13-c3', 4, 'A garden bed is 3/4 meter long and 2/3 meter wide. What is its area?', ['5/7 square meter', '6/12 square meter', '5/12 square meter', '9/8 square meter'], 1, 'Multiply the side lengths: 3/4 × 2/3 = 6/12 square meter. That is the same as 1/2 square meter.'),
     q('u13-c4', 4, 'A spinner has 12 equal parts. 3 are red, 4 are blue, and the rest are green. What is the chance of green?', ['3/12', '7/12', '5/12', '4/12'], 2, '3 + 4 = 7 are red or blue. 12 − 7 = 5 are green: 5/12.', undefined, [
       step('How many parts are red or blue?', ['7', '12', '1', '5'], 0),
       step('How many parts are green?', ['7', '5', '12', '4'], 1),
@@ -226,10 +229,10 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
       step('0.3 is what percent?', ['3%', '30%', '0.3%', '300%'], 1),
       step('100% − 40% − 30% = ?', ['10%', '70%', '40%', '30%'], 3),
     ]),
-    q('u14-c5', 5, 'Sam has 24 stickers. He gives 1/4 of them to Ana. Then he gives 1/3 of the stickers he has left to Ben. How many stickers does Sam have now?', ['10', '12', '14', '8'], 1, '1/4 of 24 is 6, so 18 are left. 1/3 of 18 is 6, so 12 are left.', undefined, [
-      step('What is 1/4 of 24?', ['6', '4', '8', '20'], 0),
-      step('24 − 6 = ?', ['30', '20', '18', '16'], 2),
-      step('1/3 of 18 is 6. 18 − 6 = ?', ['14', '24', '6', '12'], 3),
+    q('u14-c5', 5, 'Leo paints 3/10 of a fence on Monday and 4/10 on Tuesday. What percent of the fence is still not painted?', ['70%', '30%', '3%', '37%'], 1, '3/10 + 4/10 = 7/10 is painted. 10/10 − 7/10 = 3/10 is left. 3/10 = 30/100 = 30%.', undefined, [
+      step('How much of the fence does Leo paint in the two days?', ['7/20', '7/10', '1/10', '12/10'], 1),
+      step('The whole fence is 10/10. How much is not painted?', ['3/10', '7/10', '10/7', '3/20'], 0),
+      step('3/10 is what percent?', ['3%', '0.3%', '30%', '70%'], 2),
     ]),
   ],
   15: [

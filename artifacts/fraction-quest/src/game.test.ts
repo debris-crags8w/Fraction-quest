@@ -60,6 +60,7 @@ import {
   isCorrectAnswer,
   isMissionUnlocked,
   LATE_ADDED_LESSONS,
+  LESSON_PLAN,
   EXTENSION_LESSON_IDS,
   staleDraft,
   loadProgress,
@@ -132,49 +133,29 @@ describe('fraction ordering activity', () => {
   });
 });
 /** Units 1–8 (grades 3–4), in order. The fraction-of-a-group lessons moved to unit 11 (5.NF.4a). */
-const EXPECTED_MISSION_IDS = [
-  'equal-parts',
-  'fraction-names',
-  'unit-fractions',
-  'unit-size',
-  'compare-same-numerator',
-  'benchmark-half',
-  'benchmarks-zero-one',
-  'fraction-magnitude',
-  'number-line-basics',
-  'number-line-points',
-  'number-line-beyond-one',
-  'compare-same-denominator',
-  'order-fractions',
-  'equivalent-models',
-  'build-equivalents',
-  'missing-equivalent',
-  'compose-to-one',
-  'decompose-fractions',
-  'improper-fractions',
-  'mixed-improper',
-  'add-like-denominators',
-  'subtract-like-denominators',
-  'add-related-fractions',
-  'tenths-decimals',
-  'hundredths-decimals',
-  'add-tenths-hundredths',
-];
-const EXPECTED_EXTENSION_IDS = [
-  'unit-fraction-multiples', 'multiply-whole-by-fraction',
-  'simplify-fractions', 'equivalent-missing-both', 'whole-numbers-as-fractions', 'compare-unlike-fractions', 'order-unlike-fractions',
-  'subtract-unlike-fractions', 'add-unlike-fractions', 'add-mixed-numbers', 'subtract-mixed-numbers', 'fraction-of-quantity',
-  'mixed-unlike-operations', 'estimate-fraction-operations',
-  'sets-unit-fractions',
-  'sets-nonunit',
-  'multiply-fractions', 'fraction-of-collection', 'divide-whole-by-unit-fraction',
-  'multiplication-scaling', 'multiply-mixed-numbers', 'unit-fraction-divided-whole',
-  'fraction-of-length', 'fractional-measure-addition', 'ruler-measurement', 'build-line-plots', 'read-line-plots',
-  'line-plot-leveling', 'measurement-word-problems', 'fractional-unit-conversions', 'fractional-sharing', 'fraction-as-division',
-  'fraction-probability', 'fraction-of-area', 'fractional-side-area', 'equivalent-number-line', 'fraction-recipes',
-  'fractions-to-percent', 'percent-to-fraction', 'decimal-fraction-equivalence', 'compare-decimals', 'multi-step-fraction-stories',
-  'find-the-whole', 'spot-the-mistake', 'fraction-of-remainder', 'divide-fractions',
-];
+/** The approved course order, unit by unit (written out here on purpose, so a change to LESSON_PLAN has to be meant). */
+const EXPECTED_COURSE: Record<number, string[]> = {
+  1: ['equal-parts', 'fraction-names', 'unit-fractions', 'fraction-of-area'],
+  2: ['unit-size', 'compare-same-numerator'],
+  3: ['benchmark-half', 'benchmarks-zero-one', 'fraction-magnitude'],
+  4: ['number-line-basics', 'number-line-points', 'number-line-beyond-one', 'ruler-measurement', 'build-line-plots'],
+  5: ['compare-same-denominator', 'order-fractions'],
+  6: ['equivalent-models', 'equivalent-number-line', 'build-equivalents', 'missing-equivalent'],
+  7: ['compose-to-one', 'decompose-fractions', 'whole-numbers-as-fractions', 'improper-fractions', 'mixed-improper'],
+  8: ['add-like-denominators', 'subtract-like-denominators', 'add-mixed-numbers', 'subtract-mixed-numbers', 'tenths-decimals',
+    'hundredths-decimals', 'decimal-fraction-equivalence', 'compare-decimals', 'add-tenths-hundredths', 'unit-fraction-multiples',
+    'multiply-whole-by-fraction'],
+  9: ['simplify-fractions', 'equivalent-missing-both', 'compare-unlike-fractions', 'order-unlike-fractions', 'read-line-plots',
+    'measurement-word-problems'],
+  10: ['add-related-fractions', 'add-unlike-fractions', 'subtract-unlike-fractions', 'mixed-unlike-operations', 'estimate-fraction-operations'],
+  11: ['sets-unit-fractions', 'sets-nonunit', 'fraction-of-quantity', 'multiply-fractions', 'fraction-of-collection',
+    'divide-whole-by-unit-fraction', 'multiplication-scaling', 'unit-fraction-divided-whole'],
+  12: ['fraction-of-length', 'fractional-measure-addition', 'line-plot-leveling', 'fractional-unit-conversions', 'fractional-sharing',
+    'fraction-as-division'],
+  13: ['fraction-probability', 'fractional-side-area', 'multiply-mixed-numbers', 'fraction-recipes'],
+  14: ['fractions-to-percent', 'percent-to-fraction', 'multi-step-fraction-stories'],
+  15: ['find-the-whole', 'spot-the-mistake', 'fraction-of-remainder', 'divide-fractions'],
+};
 
 const memory = new Map<string, string>();
 
@@ -287,15 +268,26 @@ describe('lesson catalog', () => {
 
   it('covers 72 sequenced lessons in the expected sequence and unit groups', () => {
     assert.equal(MISSIONS.length, 72);
-    assert.deepEqual(MISSIONS.slice(0, 26).map((mission) => mission.id), EXPECTED_MISSION_IDS);
-    assert.deepEqual(MISSIONS.slice(26).map((mission) => mission.id), EXPECTED_EXTENSION_IDS);
+    assert.deepEqual(MISSIONS.map((mission) => mission.id), Object.values(EXPECTED_COURSE).flat());
+    for (const [unit, ids] of Object.entries(EXPECTED_COURSE)) {
+      assert.deepEqual(MISSIONS.filter((mission) => mission.unit === Number(unit)).map((mission) => mission.id), ids, `unit ${unit}`);
+    }
     assert.deepEqual(
       Object.fromEntries(
         [...new Set(MISSIONS.map((mission) => mission.unit))]
           .map((unit) => [unit, MISSIONS.filter((mission) => mission.unit === unit).length]),
       ),
-      { 1: 3, 2: 2, 3: 3, 4: 3, 5: 2, 6: 3, 7: 4, 8: 8, 9: 5, 10: 7, 11: 8, 12: 10, 13: 5, 14: 5, 15: 4 },
+      { 1: 4, 2: 2, 3: 3, 4: 5, 5: 2, 6: 4, 7: 5, 8: 11, 9: 6, 10: 5, 11: 8, 12: 6, 13: 4, 14: 3, 15: 4 },
     );
+  });
+
+  it('sets every lesson\'s unit and place from LESSON_PLAN, which lists every lesson exactly once', () => {
+    const planned = Object.values(LESSON_PLAN).flat();
+    assert.equal(new Set(planned).size, planned.length, 'no lesson is listed twice');
+    assert.deepEqual([...planned].sort(), MISSIONS.map((mission) => mission.id).sort(), 'every lesson is listed, and nothing else');
+    assert.deepEqual(MISSIONS.map((mission) => mission.id), planned, 'lessons run in plan order');
+    for (const mission of MISSIONS) assert.ok(LESSON_PLAN[mission.unit].includes(mission.id), `${mission.id} sits in unit ${mission.unit}`);
+    assert.deepEqual(Object.keys(LESSON_PLAN).map(Number), Array.from({ length: 15 }, (_, i) => i + 1));
   });
 
   it('gives every lesson a brief, complete explanation of its main idea', () => {
@@ -2314,22 +2306,23 @@ describe('unit challenges', () => {
     'u5-c1': '7/10', 'u5-c2': '2/9', 'u5-c3': '7/8', 'u5-c4': 'Cara', 'u5-c5': '2',
     'u6-c1': '3/6', 'u6-c2': '8', 'u6-c3': '5/14', 'u6-c4': '2', 'u6-c5': '20',
     'u7-c1': '1', 'u7-c2': '2 and 1/4', 'u7-c3': '12', 'u7-c4': '3/8 + 4/8', 'u7-c5': '3',
-    'u8-c1': '7/8', 'u8-c2': '0.3', 'u8-c3': '0.5', 'u8-c4': '2/10 m', 'u8-c5': '7/8',
+    'u8-c1': '7/8', 'u8-c2': '0.3', 'u8-c3': '0.5', 'u8-c4': '2/10 m', 'u8-c5': `${2 + 1 + 1} ${3 + 2 - 4}/4`,
     // Units 9–14: worked out here, not copied from the challenge text.
     'u9-p1': '2/3', 'u9-c1': ['2/4', '3/6', '4/9', '5/10', '6/12'].find((f) => { const [t, b] = f.split('/').map(Number); return t * 2 !== b; })!,
     'u9-c2': String((3 * 20) / 4),
     'u9-c3': ['2/5', '3/7', '4/9', '5/8', '1/3'].find((f) => { const [t, b] = f.split('/').map(Number); return t / b > 0.5 && t / b < 1; })!,
     'u9-c4': ['Ana', 'Ben', 'Cal'][[2 / 3, 3 / 4, 5 / 6].indexOf(Math.max(2 / 3, 3 / 4, 5 / 6))],
     'u9-c5': ['7/8', '5/6', '9/10', '3/4', '11/12'].sort((a, b) => { const [an, ad] = a.split('/').map(Number); const [bn, bd] = b.split('/').map(Number); return (1 - an / ad) - (1 - bn / bd); })[0],
-    'u10-p1': '1/4', 'u10-c1': String(1.5 + 2.5), 'u10-c2': String((15 / 3) * 2), 'u10-c3': '1 1/2', 'u10-c4': String(24 - (24 / 8) * 3), 'u10-c5': '1/4 liter',
+    'u10-p1': '1/4', 'u10-c1': String(1.5 + 2.5), 'u10-c2': `${3 + 2}/6`, 'u10-c3': '1 1/2',
+    'u10-c4': ['1/3 + 1/4', '2/5 + 1/2', '3/8 + 1/2', '5/6 + 1/2'].find((sum) => sum.split(' + ').reduce((total, f) => { const [t, b] = f.split('/').map(Number); return total + t / b; }, 0) > 1)!, 'u10-c5': '1/4 liter',
     'u11-p1': '6/12', 'u11-c1': String(20 / 4), 'u11-c2': String(4 * 3), 'u11-c3': '6/12', 'u11-c4': String(30 - 30 / 5 - 30 / 3), 'u11-c5': String(3 * 4 - 5),
     'u12-p1': `${(3 / 4) * 100} cm`, 'u12-c1': '3/4', 'u12-c2': `${(100 / 5) * 3} cm`, 'u12-c3': '1 1/8 m',
     'u12-c4': ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'][[2 / 5, 3 / 8, 1 / 3, 3 / 10, 1 / 4].indexOf(Math.max(2 / 5, 3 / 8, 1 / 3, 3 / 10, 1 / 4))],
     'u12-c5': `${(200 / 8) * 5} cm`,
     'u13-p1': '3/10', 'u13-c1': '3/6', 'u13-c2': `${(3 * 2) / 3} cups`,
-    'u13-c3': ['6/8', '9/12', '12/16', '15/20', '8/10'].find((f) => { const [t, b] = f.split('/').map(Number); return t * 4 !== b * 3; })!,
+    'u13-c3': `${3 * 2}/${4 * 3} square meter`,
     'u13-c4': `${12 - 3 - 4}/12`, 'u13-c5': '1 1/8 cups',
-    'u14-p1': '40%', 'u14-c1': `${(3 / 4) * 100}%`, 'u14-c2': '1/2, 55%, 0.6', 'u14-c3': `${(17 / 20) * 100}%`, 'u14-c4': `${100 - 40 - 30}%`, 'u14-c5': String(24 - 24 / 4 - (24 - 24 / 4) / 3),
+    'u14-p1': '40%', 'u14-c1': `${(3 / 4) * 100}%`, 'u14-c2': '1/2, 55%, 0.6', 'u14-c3': `${(17 / 20) * 100}%`, 'u14-c4': `${100 - 40 - 30}%`, 'u14-c5': `${10 - 3 - 4}0%`,
     'u15-p1': String((6 / 2) * 6), 'u15-c1': String(6 * 4), 'u15-c2': `${2 + 3}/7`, 'u15-c3': String((12 / 3) * 5), 'u15-c4': String(36 - 36 / 4 - (36 - 36 / 4) / 3), 'u15-c5': String((3 / 4) / (1 / 8)),
   };
 
@@ -2390,13 +2383,13 @@ describe('long problems', () => {
       'u2-c3': ['1/4', 'Mia'], 'u2-c4': ['Ninths', 'Thirds'],
       'u2-c5': ['3/6', '3/4', '3/4'], 'u4-c5': ['6/8 m', '9/8 m', 'Yes'],
       'u5-c4': ['1/4', '1/6', '1/6'], 'u6-c4': ['1/4', '2'],
-      'u7-c5': ['6/3', '8/3', '3'], 'u8-c4': ['5/10 m', '2/10 m'],
+      'u7-c5': ['6/3', '8/3', '3'], 'u8-c4': ['5/10 m', '2/10 m'], 'u8-c5': ['3', '5/4', '4 1/4'],
       'u9-c4': ['8/12', '9/12', '10/12'],
-      'u10-c3': ['2 5/4', '1 2/4', '1 1/2'], 'u10-c4': ['3', '9', '15'], 'u10-c5': ['10/12', '4/12 and 3/12', '3/12'],
+      'u10-c3': ['2 5/4', '1 2/4', '1 1/2'], 'u10-c4': ['More than 1/2', 'More than 1'], 'u10-c5': ['10/12', '4/12 and 3/12', '3/12'],
       'u11-c4': ['6', '10', '14'], 'u11-c5': ['4', '12', '7'],
       'u12-c3': ['4/8', '2/8', '9/8'], 'u12-c4': ['2/5', '3/8', '2/5'], 'u12-c5': ['200', '25 cm', '125 cm'],
       'u13-c4': ['7', '5', '5/12'], 'u13-c5': ['3/8 cup', '3/4 + 3/8', '9/8'],
-      'u14-c3': ['85/100', '85%'], 'u14-c4': ['40%', '30%', '30%'], 'u14-c5': ['6', '18', '12'],
+      'u14-c3': ['85/100', '85%'], 'u14-c4': ['40%', '30%', '30%'], 'u14-c5': ['7/10', '3/10', '30%'],
       'u15-c3': ['4', '20'], 'u15-c4': ['9', '27', '18'], 'u15-c5': ['6/8', '6'],
     };
     for (const items of Object.values(CHALLENGES)) {

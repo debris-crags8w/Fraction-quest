@@ -64,4 +64,33 @@ describe('standards map', () => {
     assert.ok(isMissionUnlocked(fresh, 'compare-same-numerator'));
     assert.ok(!isMissionUnlocked(fresh, 'benchmark-half'), 'unit 3 waits for unit 2');
   });
+
+  it('keeps every finished lesson open for a learner part-way through the course order used before LESSON_PLAN', () => {
+    // The order before the October 2026 reorder, unit by unit.
+    const before = [
+      'equal-parts', 'fraction-names', 'unit-fractions', 'unit-size', 'compare-same-numerator', 'benchmark-half', 'benchmarks-zero-one',
+      'fraction-magnitude', 'number-line-basics', 'number-line-points', 'number-line-beyond-one', 'compare-same-denominator', 'order-fractions',
+      'equivalent-models', 'build-equivalents', 'missing-equivalent', 'compose-to-one', 'decompose-fractions', 'improper-fractions', 'mixed-improper',
+      'add-like-denominators', 'subtract-like-denominators', 'add-related-fractions', 'tenths-decimals', 'hundredths-decimals', 'add-tenths-hundredths',
+      'unit-fraction-multiples', 'multiply-whole-by-fraction', 'simplify-fractions', 'equivalent-missing-both', 'whole-numbers-as-fractions',
+      'compare-unlike-fractions', 'order-unlike-fractions', 'subtract-unlike-fractions', 'add-unlike-fractions', 'add-mixed-numbers',
+      'subtract-mixed-numbers', 'fraction-of-quantity', 'mixed-unlike-operations', 'estimate-fraction-operations', 'sets-unit-fractions', 'sets-nonunit',
+      'multiply-fractions', 'fraction-of-collection', 'divide-whole-by-unit-fraction', 'multiplication-scaling', 'multiply-mixed-numbers',
+      'unit-fraction-divided-whole', 'fraction-of-length', 'fractional-measure-addition', 'ruler-measurement', 'build-line-plots', 'read-line-plots',
+      'line-plot-leveling', 'measurement-word-problems', 'fractional-unit-conversions', 'fractional-sharing', 'fraction-as-division',
+      'fraction-probability', 'fraction-of-area', 'fractional-side-area', 'equivalent-number-line', 'fraction-recipes', 'fractions-to-percent',
+      'percent-to-fraction', 'decimal-fraction-equivalence', 'compare-decimals', 'multi-step-fraction-stories', 'find-the-whole', 'spot-the-mistake',
+      'fraction-of-remainder', 'divide-fractions',
+    ];
+    assert.deepEqual([...before].sort(), MISSIONS.map((mission) => mission.id).sort());
+    for (let reached = 1; reached < before.length; reached++) {
+      const done = before.slice(0, reached);
+      const progress: Progress = { ...EMPTY_PROGRESS, completedMissionIds: done,
+        learning: Object.fromEntries(done.map((id) => [id, { ...emptyLearningRecord(), completedAt: 1_700_000_000_000 }])) as Progress['learning'] };
+      const relocked = done.filter((id) => !isMissionUnlocked(progress, id));
+      assert.deepEqual(relocked, [], `after ${reached} lessons: finished lessons locked again`);
+      // Something new is always open to do next.
+      assert.ok(MISSIONS.some((mission) => !done.includes(mission.id) && isMissionUnlocked(progress, mission.id)), `after ${reached} lessons`);
+    }
+  });
 });
