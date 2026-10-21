@@ -256,10 +256,11 @@
 .fq-cine-screen.is-lock .fq-cine-set { background: radial-gradient(ellipse at 48% 44%, #63568A, #211D3A 70%); }
 .fq-cine-lock-room { inset: 0; background: repeating-linear-gradient(90deg, transparent 0 70px, rgb(255 255 255 / .05) 70px 73px); }
 .fq-cine-lock-case { left: 46%; top: 6%; z-index: 2; display: grid; place-items: center; width: 39%; height: 50%; border: 8px solid #BDE6FF; border-radius: 18px; background: rgb(189 230 255 / .13); box-shadow: 0 0 24px 5px rgb(189 230 255 / .35); transition: transform .8s, box-shadow .8s; }
-.fq-cine-lock-case.is-open { transform: perspective(400px) rotateY(-15deg); box-shadow: 14px 8px 0 #64748B, 0 0 38px 12px rgb(255 200 0 / .7); }
-.fq-cine-lock-stone { width: 46px; height: 46px; border: 4px solid #FFF4D6; border-radius: 8px; background: #FFC800; box-shadow: 0 0 20px 8px rgb(255 200 0 / .7); }
+/* The empty seat where the stone goes back. */
+.fq-cine-lock-seat { width: 46px; height: 46px; border: 4px dashed #FFF4D6; border-radius: 8px; opacity: .7; }
 .fq-cine-lock-dials { display: flex; gap: 4px; }
-.fq-cine-lock-dials b { padding: 4px 5px; border-radius: 5px; color: #2B2D42; background: #FFF4D6; font-size: .9rem; }
+.fq-cine-lock-dials b { padding: 4px 5px; border-radius: 5px; color: #2B2D42; background: #FFF4D6; font-size: .9rem; transition: background .6s, box-shadow .6s; }
+.fq-cine-lock-dials.is-matched b { background: #FFE066; box-shadow: 0 0 12px 3px rgb(255 200 0 / .7); }
 
 /* Chapter 15 and the ending: the whole stone shines at the festival. */
 .fq-cine-screen.is-festival .fq-cine-set { background: linear-gradient(#211D45, #6D4BD8 66%, #372D56); }

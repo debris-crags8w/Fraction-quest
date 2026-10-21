@@ -182,3 +182,31 @@ test('the storyline holds together: the opening sets up the case and pieces, eve
   assert.match(ending, /Keeper of the Whole Stone/);
   assert.ok(EPILOGUE.some((panel) => panel.speaker === 'bolt'), 'Bolt says sorry at the festival');
 });
+
+test('chapters 1 to 14 each find their stone piece, and chapter 15 brings back the last one', () => {
+  for (const chapter of CHAPTERS.slice(0, 14)) {
+    assert.ok([...chapter.cliffs, chapter.cliff, chapter.done].some((line) => /stone piece/.test(line)), `${chapter.title}: the stone piece is found`);
+  }
+  assert.match(chapterFor(14)!.cliff, /one piece is missing/);
+  assert.match(chapterFor(15)!.intro[0].text, /last piece/);
+});
+
+test('each chapter’s lines match the math of the lesson they come before', () => {
+  const comicFor = (missionId: string) => {
+    const mission = MISSIONS.find((item) => item.id === missionId)!;
+    const lessons = lessonsIn(mission.unit);
+    return lessonComic(chapterFor(mission.unit)!, mission, lessons.indexOf(mission)).map((panel) => panel.text).join(' ');
+  };
+  const questions = (missionId: string) => MISSIONS.find((item) => item.id === missionId)!.questions.map((q) => q.prompt).join(' ');
+  // Chapter 13 opens on chance (its first lesson), not on area.
+  assert.match(comicFor('fraction-probability'), /chance/);
+  assert.match(questions('fraction-probability'), /chance/);
+  assert.doesNotMatch(comicFor('fraction-probability'), /area|side lengths/);
+  // Chapter 12: the scene names what the lesson works with.
+  assert.match(comicFor('fractional-sharing'), /loaves/);
+  assert.match(questions('fractional-sharing'), /loaves/);
+  assert.doesNotMatch(comicFor('fractional-unit-conversions'), /^Pounds and ounces/, 'the lesson is feet, liters and kilograms too');
+  // Chapter 15: the stories give things away as well as eat them.
+  assert.match(questions('fraction-of-remainder'), /gives/);
+  assert.doesNotMatch(comicFor('fraction-of-remainder'), /eaten/);
+});
