@@ -636,7 +636,6 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
           <div className="fq-story-comic-head">
             <h2 id="story-title">{kicker}</h2>
             <span className="fq-cine-head-tools">
-            {done && <LearningListenButton text={spoken.join(' ')} label="Listen to the story" compact />}
             <button type="button" className="fq-cine-voice" aria-pressed={voiceOn} onClick={toggleVoice}
               aria-label={voiceOn ? 'Turn the story voice off' : 'Turn the story voice on'} data-testid="button-story-voice">
               {voiceOn ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />} {voiceOn ? 'Voice on' : 'Voice off'}

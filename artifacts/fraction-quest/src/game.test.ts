@@ -3412,6 +3412,46 @@ describe('natural read-aloud voice', () => {
     assert.equal(second.utterances.length, 1, 'a failed natural reading falls back to the device voice');
     c2.dispose();
   });
+  it('picks up where a failed natural reading stopped, never from the start again', () => {
+    const { utterances, synthesis } = device();
+    const natural = {
+      ready: () => true,
+      // Plays the first two sentences, then a clip fails on the third.
+      speak(parts: string[], done: (ok: boolean) => void, _phase?: unknown, _failure?: unknown, onPart?: (index: number) => void) {
+        onPart?.(0); onPart?.(1); onPart?.(2); done(false);
+      },
+      stop() {}, warmUp() {},
+    };
+    const controller = createLearningSpeechController(synthesis, () => undefined, makeTestSpeechUtterance, 0, () => null, natural);
+    controller.speak('One. Two. Three. Four.', 'en-US');
+    assert.deepEqual(utterances.map((utterance) => utterance.text), ['Three.', 'Four.']);
+    controller.dispose();
+  });
+  it('keeps a story comic in the natural voice: no device voice when it fails, and a short wait while it connects', async () => {
+    const failing = device();
+    const ends: string[] = [];
+    const broken = { ready: () => true, chosen: () => true, speak(_parts: string[], done: (ok: boolean) => void) { done(false); }, stop() {}, warmUp() {} };
+    const c1 = createLearningSpeechController(failing.synthesis, () => undefined, makeTestSpeechUtterance, 0, () => null, broken);
+    c1.speak('Chomp cut the pie. The pieces are not fair.', 'en-US', { onEnd: () => ends.push('ended') });
+    assert.equal(failing.utterances.length, 0, 'the comic carries on with captions, not the device voice');
+    assert.deepEqual(ends, ['ended']);
+    c1.dispose();
+
+    const waiting = device();
+    let ready = false; const spoken: string[][] = [];
+    const connecting = {
+      ready: () => ready, chosen: () => true,
+      whenReady: async () => { ready = true; return true; },
+      speak(parts: string[], done: (ok: boolean) => void) { spoken.push(parts); done(true); },
+      stop() {}, warmUp() {},
+    };
+    const c2 = createLearningSpeechController(waiting.synthesis, () => undefined, makeTestSpeechUtterance, 0, () => null, connecting);
+    c2.speak('Chomp cut the pie.', 'en-US', {});
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(waiting.utterances.length, 0, 'the comic did not start in the device voice');
+    assert.deepEqual(spoken, [['Chomp cut the pie.']]);
+    c2.dispose();
+  });
   it('plays natural audio when a mobile browser returns no promise from audio.play()', async () => {
     setNaturalVoicePreference('af_heart');
     setNaturalEngineForTests({

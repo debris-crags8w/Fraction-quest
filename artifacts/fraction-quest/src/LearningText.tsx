@@ -156,6 +156,8 @@ export function subscribeToSpeechVoices(
 }
 
 const VOICE_LIST_WAIT_MS = 500;
+/** How long a story comic waits for the natural voice to connect before it plays with captions alone. */
+const NATURAL_WAIT_MS = 5000;
 
 /**
  * Owns a single read-aloud session. The short voice-list wait lets browsers
@@ -204,7 +206,8 @@ export function createLearningSpeechController(
 
   /** A screen following the reading (a story comic): which sentence is being read, and when it ends. */
   let follow: SpeechFollower | undefined;
-  const startUtterance = (text: string, language: string, playback: number, voices: readonly SpeechSynthesisVoice[]) => {
+  /** Reads `parts` with the device voice; `offset` is the index of the first one (a reading picked up part-way). */
+  const startUtterance = (parts: string[], offset: number, language: string, playback: number, voices: readonly SpeechSynthesisVoice[]) => {
     if (disposed || playback !== generation) return;
     clearVoiceWait();
     const voice = selectLearningVoice(voices, language, getPreferredVoiceId());
@@ -213,7 +216,6 @@ export function createLearningSpeechController(
       if (playback === generation) { setSpeaking(false); following?.onEnd?.(); }
     };
     // One utterance per sentence: the voice pauses between them, and Chrome doesn't cut off long readings.
-    const parts = sentences(spokenLearningText(text));
     try {
       setSpeaking(true);
       parts.forEach((part, index) => {
@@ -223,7 +225,7 @@ export function createLearningSpeechController(
         utterance.rate = VOICE_RATE;
         utterance.pitch = VOICE_PITCH;
         if (index === parts.length - 1) utterance.onend = finish;
-        if (following?.onPart) utterance.onstart = () => { if (playback === generation) following.onPart?.(index); };
+        if (following?.onPart) utterance.onstart = () => { if (playback === generation) following.onPart?.(offset + index); };
         utterance.onerror = finish;
         synthesis.speak(utterance);
       });
@@ -239,30 +241,50 @@ export function createLearningSpeechController(
       stop();
       follow = follower;
       const playback = generation;
-      // The natural voice reads English when it's ready; otherwise this playback uses the device voice
-      // while the natural voice connects in the background for next time.
-      if (natural.ready() && /^en\b/i.test(language)) {
+      const parts = sentences(spokenLearningText(text));
+      const english = /^en\b/i.test(language);
+      // A story comic keeps one voice: while the natural voice is the chosen one, the comic never switches to the
+      // device voice. If the natural voice can't read it, the comic carries on with its captions alone.
+      const oneVoice = Boolean(follower) && english && (natural.chosen?.() ?? false);
+      const silent = () => { setSpeaking(false); follower?.onEnd?.(); };
+      const readNaturally = () => {
+        let reached = -1;
         setSpeaking(true);
-        natural.speak(sentences(spokenLearningText(text)), (ok) => {
+        natural.speak(parts, (ok) => {
           if (playback !== generation || disposed) return;
           if (ok) { setSpeaking(false); follower?.onEnd?.(); }
-          else startDevice();
-        }, undefined, undefined, (index) => { if (playback === generation) follower?.onPart?.(index); });
+          else if (oneVoice) silent();
+          // Pick up where the natural voice stopped, never from the start again.
+          else startDevice(Math.max(reached, 0));
+        }, undefined, undefined, (index) => { reached = index; if (playback === generation) follower?.onPart?.(index); });
+      };
+      // The natural voice reads English when it's ready; otherwise this playback uses the device voice
+      // while the natural voice connects in the background for next time.
+      if (natural.ready() && english) { readNaturally(); return; }
+      if (oneVoice && natural.whenReady) {
+        // A comic waits a moment for the natural voice to connect rather than starting in the device voice.
+        setSpeaking(true);
+        natural.whenReady(NATURAL_WAIT_MS).then((ready) => {
+          if (playback !== generation || disposed) return;
+          if (ready && natural.ready()) readNaturally();
+          else silent();
+        }, () => { if (playback === generation && !disposed) silent(); });
         return;
       }
       natural.warmUp();
-      startDevice();
-      function startDevice() {
+      startDevice(0);
+      function startDevice(from: number) {
+        const rest = parts.slice(from);
         let voices: SpeechSynthesisVoice[] = [];
         try {
           voices = synthesis.getVoices();
         } catch {
-          startUtterance(text, language, playback, []);
+          startUtterance(rest, from, language, playback, []);
           return;
         }
 
         if (voices.length > 0) {
-          startUtterance(text, language, playback, voices);
+          startUtterance(rest, from, language, playback, voices);
           return;
         }
 
@@ -277,7 +299,7 @@ export function createLearningSpeechController(
             // The native default voice remains available when voice enumeration fails.
           }
           if (latestVoices.length === 0 && waitTimer !== undefined) return;
-          startUtterance(text, language, playback, latestVoices);
+          startUtterance(rest, from, language, playback, latestVoices);
         };
         // Safari and embedded iOS browsers can expose speechSynthesis while missing
         // one or both EventTarget methods. In that case, use the timed default-voice
@@ -304,10 +326,24 @@ export function createLearningSpeechController(
 export type SpeechFollower = { onPart?: (index: number) => void; onEnd?: () => void };
 
 /** What the controller needs from the natural voice (injectable for tests). */
-export type NaturalReader = { ready(): boolean; speak(parts: string[], onDone: (ok: boolean) => void, onPhase?: (phase: NaturalVoicePhase) => void, onFailure?: (stage: 'generating' | 'playing', error: unknown) => void, onPart?: (index: number) => void): void; stop(): void; warmUp(): void };
+export type NaturalReader = {
+  ready(): boolean;
+  /** The natural voice is the chosen voice and can still connect (not off, unsupported or failed). */
+  chosen?(): boolean;
+  /** Resolves true once the natural voice is ready, or false after `ms`. */
+  whenReady?(ms: number): Promise<boolean>;
+  speak(parts: string[], onDone: (ok: boolean) => void, onPhase?: (phase: NaturalVoicePhase) => void, onFailure?: (stage: 'generating' | 'playing', error: unknown) => void, onPart?: (index: number) => void): void; stop(): void; warmUp(): void };
 function defaultNaturalReader(): NaturalReader {
   const speaker = createNaturalSpeaker();
-  return { ready: naturalVoiceReady, speak: speaker.speak, stop: speaker.stop, warmUp: () => { void warmUpNaturalVoice(); } };
+  return {
+    ready: naturalVoiceReady,
+    chosen: () => ['ready', 'loading', 'idle'].includes(naturalVoiceStatus().state),
+    whenReady: (ms) => Promise.race([
+      warmUpNaturalVoice().then((engine) => engine !== null),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), ms)),
+    ]),
+    speak: speaker.speak, stop: speaker.stop, warmUp: () => { void warmUpNaturalVoice(); },
+  };
 }
 
 const VOICE_PREVIEW = 'Hi there! I can read your fraction lessons to you.';
