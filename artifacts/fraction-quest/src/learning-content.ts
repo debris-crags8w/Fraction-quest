@@ -3,6 +3,7 @@ import { standardsForMission } from './standard-catalog';
 import { autoPicture } from './auto-picture';
 import { execAll } from './lib/regexp';
 import type { ModelSpec } from './game';
+import { gardenModel } from './garden';
 export type Rational = { n: number; d: number };
 /** `sizes` (bars only) draws pieces of different widths, for "Is this cut into equal parts?" pictures. */
 export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number; wholes: number; total?: number; sizes?: number[] };
@@ -1671,6 +1672,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         prompt = `A rectangular garden is ${wa} ${f(na, da)} meters by ${wb} ${f(nb, db)} meters. What is its area?`;
         answer = mixedName(top, bottom); form = answer.includes(' ') ? 'mixed' : undefined;
         visual = model(wa * da + na, da); modelRequired = true;
+        picture = gardenModel({ whole: wa, numerator: na, denominator: da }, { whole: wb, numerator: nb, denominator: db });
         hint = 'Change each mixed number to an improper fraction. Multiply the numerators and multiply the denominators.'; break;
       }
       case 'unit-divided-whole': {

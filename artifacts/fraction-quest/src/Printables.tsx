@@ -1,5 +1,6 @@
 import React, { useEffect, useState, type CSSProperties, type ReactElement } from 'react';
 import { LinePlotPicture } from './line-plot-picture';
+import { GardenPlan } from './GardenPlan';
 import { Printer } from 'lucide-react';
 import { MathText } from './MathText';
 import { areaFigures, getMission, MISSIONS, setModelLayout, type Mission, type ModelSpec } from './game';
@@ -155,6 +156,7 @@ export function PrintModel({ model, labels = true }: { model: ModelSpec; labels?
         </figure>
       ))}</div>}
       {model.kind === 'lineplot' && <LinePlotPicture denominator={model.denominator} wholes={model.wholes} values={model.values} />}
+      {model.kind === 'garden' && <GardenPlan width={model.width} height={model.height} labelParts={model.labelParts} />}
       {model.kind === 'equation' && <p className="fq-print-equation"><MathText text={model.text} /></p>}
       {labels && model.caption && <small><MathText text={model.caption} /></small>}
     </div>

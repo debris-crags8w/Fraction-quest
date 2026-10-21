@@ -224,6 +224,12 @@ function assertModel(model: ModelSpec, location: string): void {
       assert.ok(model.cut in AREA_CUTS, `${location} has an unknown area cut`);
       assert.ok(model.shaded.every((piece) => Number.isInteger(piece) && piece >= 0 && piece < AREA_CUTS[model.cut].length), `${location} shades a missing piece`);
       return;
+    case 'garden':
+      for (const side of [model.width, model.height]) {
+        assert.ok(Number.isInteger(side.whole) && side.whole >= 1, `${location} needs a whole meter on each side`);
+        assert.ok(Number.isInteger(side.numerator) && side.numerator > 0 && side.numerator < side.denominator, `${location} needs a proper fraction part on each side`);
+      }
+      return;
     default: {
       const unreachable: never = model;
       assert.fail(`${location} has an unsupported visual model: ${JSON.stringify(unreachable)}`);
@@ -4068,3 +4074,28 @@ describe('question pictures match the question', () => {
     assert.ok(seen.some((prompt) => prompt.startsWith('Quick review · Equal-area partitions')), 'the unit-size review is checked');
   });
 });
+
+describe('garden questions show the garden', () => {
+  const side = (s: { whole: number; numerator: number; denominator: number }) => `${s.whole} ${s.numerator}/${s.denominator}`;
+  const gardenIn = (prompt: string) => /garden is (\d+ \d+\/\d+) meters by (\d+ \d+\/\d+) meters/.exec(prompt);
+
+  it('every garden question, extra practice question and the worked example draw the garden to scale with its own sides', () => {
+    const lesson = MISSIONS.find(({ id }) => id === 'multiply-mixed-numbers')!;
+    const asked = [
+      ...lesson.questions.filter((question) => !question.isReview),
+      ...getExtraPractice(lesson.id, lesson.questions.map(({ id }) => id)),
+      { prompt: lesson.example.prompt, model: lesson.example.model },
+    ];
+    assert.ok(asked.length > 6);
+    for (const question of asked) {
+      const sides = gardenIn(question.prompt);
+      assert.ok(sides, question.prompt);
+      assert.equal(question.model.kind, 'garden', question.prompt);
+      if (question.model.kind !== 'garden') continue;
+      // The longer side runs across, so a tall garden still fits a phone screen.
+      assert.deepEqual([side(question.model.width), side(question.model.height)].sort(), [sides[1], sides[2]].sort(), question.prompt);
+      assert.ok(valueOf(question.model.width) >= valueOf(question.model.height), question.prompt);
+    }
+  });
+});
+const valueOf = (s: { whole: number; numerator: number; denominator: number }) => s.whole + s.numerator / s.denominator;

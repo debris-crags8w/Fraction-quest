@@ -3,6 +3,7 @@ import { preferMisconceptions } from './misconceptions';
 import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
 import { gridCut, gridOverlap, type AreaCut, type AreaTask } from './area-shapes';
 import { amountsIn, autoPicture } from './auto-picture';
+import { gardenModel, type GardenSide } from './garden';
 import { asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 import { FRACTION_STANDARDS, standardsForMission, type StandardId } from './standard-catalog';
 import { scopedStorageKey } from './storage-scope';
@@ -79,7 +80,11 @@ export type ModelSpec =
       /** "Color 2. What fraction is colored?": the child taps pieces to color them before answering. */
       colorTask?: AreaTask }
   /** A finished line plot to read: one X over each value (tick numbers, counted from 0 in steps of 1/denominator). */
-  | { kind: 'lineplot'; denominator: number; wholes: number; values: number[]; caption?: string };
+  | { kind: 'lineplot'; denominator: number; wholes: number; values: number[]; caption?: string }
+  /** A rectangular garden drawn to scale: thick lines at each whole meter, dashed lines at each small part, and the four
+      parts (whole × whole, whole × part, part × whole, part × part) in four colors. `labelParts` writes each part's area
+      on it (worked examples only: in a question that would be the answer). */
+  | { kind: 'garden'; width: GardenSide; height: GardenSide; labelParts?: boolean; caption?: string };
 
 /** One whole in an area picture: `label` is written under it (worked examples only), `scale` draws a smaller whole. */
 export type AreaFigureSpec = { cut: AreaCut; shaded: number[]; label?: string; scale?: number };
@@ -946,7 +951,7 @@ const extensionTopics: ExtensionTopic[] = [
         'Try a factor less than 1, like 1/2. What is 1/2 × 4?',
         'Not always. 1/2 × 4 = 2, which is less than 4. A factor less than 1 makes it smaller, and 1 keeps it the same.', bars({ numerator: 4, denominator: 1 }, { numerator: 2, denominator: 1 })),
     ] },
-  { id: 'multiply-mixed-numbers', title: 'Multiply mixed numbers', shortTitle: 'Mixed number multiplication', description: 'Use a rectangle to find the area of a mixed-number garden.', skill: 'Use the side lengths as rows and columns in a rectangle. The number of square units is the product of the side lengths.', example: { prompt: 'A garden is 1 1/2 meters by 1 1/3 meters. What is its area?', answer: '2 square meters', explanation: 'Cut the meters into halves one way and thirds the other way. The garden has 3 half rows and 4 third columns: 12 small parts. Each part is 1/6 of a square meter, so 12/6 = 2 square meters.', model: bars({ numerator: 12, denominator: 6 }) }, mode: 'mixed-multiply', n: 2, d: 1, context: 'garden plot', gradeBand: 5, standards: ['5.NF.4b', '5.NF.6'] },
+  { id: 'multiply-mixed-numbers', title: 'Multiply mixed numbers', shortTitle: 'Mixed number multiplication', description: 'Use a rectangle to find the area of a mixed-number garden.', skill: 'Use the side lengths as rows and columns in a rectangle. The number of square units is the product of the side lengths.', example: { prompt: 'A garden is 1 1/2 meters by 1 1/3 meters. What is its area?', answer: '2 square meters', explanation: 'Split the garden at the whole meters into 4 parts. 1 × 1 = 1. 1/2 × 1 = 1/2. 1 × 1/3 = 1/3. 1/2 × 1/3 = 1/6. Add the parts: 6/6 + 3/6 + 2/6 + 1/6 = 12/6, or 2 square meters.', model: gardenModel({ whole: 1, numerator: 1, denominator: 2 }, { whole: 1, numerator: 1, denominator: 3 }, true) }, mode: 'mixed-multiply', n: 2, d: 1, context: 'garden plot', gradeBand: 5, standards: ['5.NF.4b', '5.NF.6'] },
   { id: 'unit-fraction-divided-whole', title: 'Share a unit fraction', shortTitle: 'Divide a unit fraction', description: 'Split one unit fraction into equal shares.', skill: 'Share the unit fraction equally. Each share is a smaller part of the original whole.', mode: 'unit-divided-whole', n: 1, d: 12, context: 'pan of brownies', gradeBand: 5, standards: ['5.NF.7a'] },
   { id: 'share-or-fit', title: 'Share or fit?', shortTitle: 'Share or fit', description: 'Tell sharing from fitting, then divide.',
     skill: 'Sharing splits an amount into equal shares. Fitting asks how many pieces fit. Both are division. Check with ×.',
@@ -1045,6 +1050,8 @@ export function problemPicture(problem: WorksheetProblem): ModelSpec {
   if (m && m.n === 0) return { kind: 'bars', bars: Array.from({ length: m.wholes }, () => ({ numerator: 0, denominator: m.d })), hideLabels: true };
   // The measuring tools the question talks about come first: the line plot, the ruler, the grid.
   if (problem.linePlotTask) return { kind: 'lineplot', ...problem.linePlotTask };
+  // A garden question: the garden drawn to scale (its bars would only show the two side lengths, not the area).
+  if (problem.picture?.kind === 'garden') return problem.picture;
   // Ruler questions: a number line marked like the ruler, with the end point (no labels).
   if (problem.rulerTask) return { kind: 'line', numerator: problem.rulerTask.end, denominator: problem.rulerTask.denominator, wholes: problem.rulerTask.wholes, hideLabels: true };
   if (problem.area) return { kind: 'area', cut: problem.area.cut, shaded: problem.area.shaded ?? [], ...(problem.areaTask ? { colorTask: problem.areaTask } : {}) };
