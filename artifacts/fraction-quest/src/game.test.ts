@@ -1,4 +1,7 @@
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
+import { WHY } from './slip-reasons';
+import { misconceptionWrongs } from './misconceptions';
+import { fractionMistakes } from './fraction-slips';
 import { fourthChoice, noBeforeYes, withSignComparisons } from './fourth-choice';
 import { answerValue } from './learning-content';
 import { readFileSync } from 'node:fs';
@@ -3912,6 +3915,74 @@ describe('wrong-answer help', () => {
       const said = wrongChoiceReason(question.prompt, question.choices, question.correctChoice, i);
       if (said) assert.ok(!said.includes(question.choices[question.correctChoice]) || /^\d$/.test(question.choices[question.correctChoice]), `${question.id}: help gives the answer away`);
     });
+  });
+  it('says why a slip is wrong, for the slip behind the picked choice', () => {
+    const why = (prompt: string, right: string, pick: string) => wrongChoiceReason(prompt, [right, pick], 0, 1);
+    // Adding and taking away.
+    assert.equal(why('What is 1/3 + 1/6?', '3/6', '2/6'), WHY.keptOne);
+    assert.equal(why('What is 1/6 + 4/6?', '5/6', '4/6'), WHY.oneAmount);
+    assert.equal(why('What is 5/6 − 2/6?', '3/6', '7/6'), WHY.otherOpTake);
+    assert.equal(why('What is 5/6 − 2/6?', '3/6', '5/6'), WHY.startAmount);
+    assert.equal(why('3 2/6 − 1 3/6 = ?', '1 5/6', '2 1/6'), WHY.smallerFromBigger, 'like denominators: the smaller part from the bigger');
+    assert.equal(why('3 2/6 − 1 3/6 = ?', '1 5/6', '2 5/6'), WHY.trade);
+    assert.equal(why('2 2/6 + 4/6 = ?', '3', '2'), WHY.carry);
+    assert.equal(why('11/12 − 1/4 = ?', '8/12', '10/8'), WHY.acrossTake);
+    // Multiplying, sharing and fitting.
+    assert.equal(why('Write 4 × 1/3 as one fraction.', '4/3', '4/12'), WHY.onlyTop);
+    assert.equal(why('2 loaves are shared fairly by 3 friends. How much does each friend get?', '2/3', '1/3'), WHY.shareOne);
+    assert.equal(why('How many 1/4-pound bags can be filled from 3 pounds of clay?', '12 bags', '7 bags'), WHY.addedForFit);
+    assert.equal(why('How many 1/3-cup scoops fill 2 cups? 2 ÷ 1/3 = ?', '6', '3'), WHY.oneWhole);
+    // Groups of whole things and units.
+    assert.equal(why('What is 2/3 of 12?', '8', '4'), WHY.oneGroup);
+    assert.equal(why('How many minutes are in 1/4 hour?', '15', '45'), WHY.leftPart);
+    assert.equal(why('A 2-liter jug is 1/4 full. How many milliliters are inside?', '500', '250'), WHY.oneOfMany);
+    assert.equal(why('Tom read 6 pages. That is 3/4 of his book. How many pages are in the book?', '8', '6'), WHY.knownPart);
+    // Naming, renaming, decimals and percents.
+    assert.equal(why('A bag has 8 marbles. 5 are green. What is the chance of picking green?', '5/8', '3/8'), WHY.otherParts);
+    assert.equal(why('Which is the same as 3/4?', '6/8', '3/8'), WHY.keptTop);
+    assert.equal(why('What is 5/3 as wholes and a fraction?', '1 and 2/3', '2 and 1/3'), WHY.andSwap);
+    assert.equal(why('Write 1/4 as a percent.', '25%', '14%'), WHY.percentRename);
+    assert.equal(why('Max eats 1/3 of a pizza. Then he eats 1/2 of what is left. What fraction of the pizza is left now?', '1/3', '1/6'), WHY.ofRest);
+  });
+  it('matches a slip only as written: the same amount written another way came from somewhere else', () => {
+    // 3/6 is worth 2/4, the "green to the rest" slip, but it is not that slip.
+    assert.notEqual(wrongChoiceReason('A bag has 6 marbles. 2 are green. What is the chance of picking green?', ['2/6', '3/6'], 0, 1), WHY.partToPart);
+    assert.notEqual(wrongChoiceReason('What is 2/8 + 6/8?', ['8/8', '4/8'], 0, 1), WHY.acrossAdd);
+  });
+  it('says why a sign, an order or a benchmark choice is wrong', () => {
+    const why = (prompt: string, right: string, pick: string) => wrongChoiceReason(prompt, [right, pick], 0, 1);
+    assert.equal(why('Pick the sign: 1/6 __ 1/4', '1/6 < 1/4', '1/4 < 1/6'), WHY.bigBottom);
+    assert.equal(why('Compare: 0.4 __ 0.35.', '0.4 > 0.35', '0.4 < 0.35'), WHY.moreDigits);
+    assert.equal(why('Compare: 0.23 __ 0.32.', '0.23 < 0.32', '0.32 < 0.23'), WHY.signWay);
+    assert.match(why('Compare: 0.23 __ 0.32.', '0.23 < 0.32', '0.23 = 0.32')!, /not the same amount/);
+    assert.equal(why('Without multiplying, compare 3/2 × 12 with 12: __ 12.', '3/2 × 12 > 12', '3/2 × 12 < 12'), WHY.scaleCompare);
+    assert.equal(why('Without finding the exact sum, compare 3/4 + 1/2 with 1: __ 1.', '3/4 + 1/2 > 1', '3/4 + 1/2 < 1'), WHY.benchmarkSum);
+    assert.equal(why('Which order goes smallest to biggest?', '1/3 < 2/3 < 3/3', '3/3 < 2/3 < 1/3'), WHY.backwards);
+    assert.equal(why('Which order goes biggest to smallest?', '1/2 > 1/4 > 1/8', '1/2 > 1/8 > 1/4'), WHY.orderPair);
+    assert.equal(why('Which is closest to 1/2?', '5/8', '7/8'), WHY.farther);
+    assert.equal(why('Which is more than one whole?', '9/8', '7/8'), WHY.notMore);
+    assert.equal(why('Which is just a little less than 1/2?', '3/8', '5/8'), WHY.notLess);
+    assert.equal(why('Which is just a little less than 1/2?', '3/8', '1/8'), WHY.farther);
+    assert.equal(why('Which fits between 2/8 and 6/8?', '4/8', '1/8'), WHY.outside);
+  });
+  it('says why for nearly every wrong choice in the course, and for every real-mistake choice', () => {
+    let wrong = 0; let said = 0;
+    for (const m of MISSIONS) for (const q of m.questions) q.choices.forEach((choice, i) => {
+      if (i === q.correctChoice) return;
+      wrong++;
+      const reason = wrongChoiceReason(q.prompt, q.choices, q.correctChoice, i);
+      if (reason) said++;
+      const slips = [...misconceptionWrongs(q.prompt, q.choices[q.correctChoice]), ...fractionMistakes(q.prompt, q.choices[q.correctChoice])];
+      if (slips.includes(choice)) assert.ok(reason, `${q.id}: no reason for the slip ${choice}`);
+    });
+    // The rest are worded choices ("No, the parts are unequal") that say their own reason, and ruler readings.
+    assert.ok(said / wrong >= 0.85, `only ${said} of ${wrong} wrong choices say why`);
+  });
+  it('never puts an amount in a reason, so none can give an answer away', () => {
+    for (const [key, sentence] of Object.entries(WHY)) {
+      if (key === 'places') continue; // "Tenths are 1 place…" names places, not amounts
+      assert.doesNotMatch(sentence, /\d/, key);
+    }
   });
   it('opens kindly, with a few different openers', () => {
     const openers = new Set(MISSIONS.flatMap((m) => m.questions.map((q) => retryOpener(`${q.id}:1`))));
