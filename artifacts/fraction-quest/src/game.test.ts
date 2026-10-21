@@ -4284,3 +4284,70 @@ describe('multiplying and dividing questions offer real mistakes, not near-miss 
     assert.deepEqual([...new Set(bad)].slice(0, 15), [], `${bad.length} near-miss choices`);
   });
 });
+
+describe('equivalence, decimal, percent and picture questions offer real mistakes, not near-miss numbers', () => {
+  // Worked out here again, apart from the app. `right` is the app's answer as numerator and denominator.
+  const N = Number;
+  const gcdOf = (a: number, b: number): number => (b ? gcdOf(b, a % b) : a);
+  function mistakes(prompt: string, answer: string): number[] | null {
+    const p = prompt.replace(/^Quick review · [^:]+: /, ''); let m: RegExpExecArray | null;
+    const frac = /^(\d+)\/(\d+)$/.exec(answer.trim()); const [x, y] = frac ? [N(frac[1]), N(frac[2])] : [NaN, NaN];
+    // One part of a whole, what's colored, a dot, a chance: upside down, part to part, the rest (and counted ticks on a line).
+    if (frac && (/^(?:A|The) \w+ (?:is cut into|has) \d+ equal parts\.(?: \d+ is colored\.)? What (?:is 1 part|fraction is colored)\?$|^What fraction (?:is 1 of \d+ equal tiles|is shaded|of the (?!square)\w+ is shaded)\?$|shaded slice\?$/.test(p))) return [y / x, x / (y - x), (y - x) / y, 1 / y, x / (y + x)];
+    if (frac && (m = /^A bag has (\d+) marbles\. (\d+) (?:is|are) green\./.exec(p))) { const [t, g] = [N(m[1]), N(m[2])]; return [g / (t - g), (t - g) / t, t / g, g / (t + g), 1 / t]; }
+    if (frac && /^What fraction is at the dot\?$|jumps? from 0\?$|^Each jump is 1\/\d+\. What is \d+ jumps? from 0\?$|^0 to 1 has \d+ equal spaces\. What is \d+ jumps?\?$/.test(p)) return [x / (y + 1), y / x, 1 / y, (x + 1) / y, (y - x) / y];
+    // The same amount with another denominator: kept the top, added the same number, only the top, upside down.
+    if (frac && ((m = /^(\d+)\/(\d+) is marked on a line\. Which fraction with a denominator of \d+ is at the same spot\?$|^Write (\d+)\/(\d+) with a denominator of \d+\.$|^Which is the same as (\d+)\/(\d+)\?$/.exec(p)))) {
+      const [a, b] = m.slice(1).filter(Boolean).map(N);
+      return [a / y, (a + y - b) / y, x / b, y / x, 1 / y];
+    }
+    if (frac && (m = /^(Multiply|Divide|Double) the numerator and denominator of (\d+)\/(\d+)(?: by (\d+))?\. What do you get\?$/.exec(p))) {
+      const [a, b, k] = [N(m[2]), N(m[3]), m[1] === 'Double' ? 2 : N(m[4])]; const times = m[1] !== 'Divide';
+      return times ? [(a * k) / b, a / (b * k), (a + k) / (b + k), y / x, a / (b + k)] : [a / k / b, a / (b / k), (a - k) / (b - k), y / x, a / (b - k)];
+    }
+    if (frac && (m = /^Write (\d+)\/(\d+) in simplest form\.$/.exec(p))) {
+      const [n, d] = [N(m[1]), N(m[2])]; const g = gcdOf(n, d);
+      const part = [2, 3, 4].filter((f) => f < g && g % f === 0).map((f) => n / f / (d / f));
+      return [n / g / d, n / (d / g), d / n, ...part, (n - 1) / (d - 1)];
+    }
+    if (frac && (m = /^What (?:is|fraction is the same as) (\d+) and (\d+)\/(\d+)(?: as \w+)?\?$/.exec(p))) {
+      const [w, a, b] = m.slice(1).map(N); return [(w + a) / b, a / b, (w * b) / b, (w * b * a) / b, (w * b + a + b) / b];
+    }
+    // A line plot's longest minus shortest: the longest, the shortest, added, the bottoms added, the wrong mark read.
+    if (frac && (m = /^The line plot shows these [\w ]+ lengths in eighths: ([\d/, ]+) inch\. What is the difference between the longest and shortest\?$/.exec(p))) {
+      const tops = m[1].split(', ').map((t) => N(t.split('/')[0])).sort((u, v) => u - v);
+      const [lo, lo2, hi2, hi] = [tops[0], tops[1], tops[tops.length - 2], tops[tops.length - 1]];
+      return [hi / 8, lo / 8, (hi + lo) / 8, (hi - lo) / 16, (hi2 - lo) / 8, (hi - lo2) / 8];
+    }
+    // Decimals: the point in the wrong place, the digits written out.
+    if ((m = /^(?:Write (\d+)\/(10|100) as a decimal\.|Which decimal equals (\d+)\/(10|100)\?)$/.exec(p))) {
+      const [n, d] = m.slice(1).filter(Boolean).map(N); return [n / (d * 10), n / (d / 10), n, N(`${n}.${d}`), n / 10, n / 100];
+    }
+    if ((m = /^Write (\d+)\/10 \+ (\d+)\/100 as a decimal\.$/.exec(p))) { const [a, b] = m.slice(1).map(N); return [(a + b) / 100, (a + b) / 10, (10 * a + b) / 1000]; }
+    if (frac && (m = /^What fraction is 0\.(\d+)\?$/.exec(p))) { const n = N(m[1]); return [n / (y * 10), n, 1 / n, n / (y / 10), y / n]; }
+    // Percents: the numerator or denominator as the percent, both written side by side, the rest; and back again.
+    if ((m = /^Write (\d+)\/(\d+) as a percent\.$/.exec(p))) { const [a, b] = m.slice(1).map(N); const pct = (a / b) * 100; return [a, b, N(`${a}${b}`), 100 - pct].map((v) => v / 100); }
+    if (frac && (m = /^Write (\d+)% as a fraction(?: with a denominator of 100)?\.$/.exec(p))) { const v = N(m[1]); return [v / 10, 100 / v, (100 - v) / 100, v]; }
+    return null;
+  }
+
+  it('every wrong choice in a lesson, its review and Extra practice is a real mistake', () => {
+    const bad: string[] = []; let checked = 0;
+    const questions = MISSIONS.flatMap((lesson) => [
+      ...lesson.questions,
+      ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
+    ]);
+    for (const question of questions) {
+      const answer = question.choices[question.correctChoice];
+      const slips = mistakes(question.prompt, answer);
+      if (!slips) continue;
+      question.choices.forEach((choice, at) => {
+        if (at === question.correctChoice) return;
+        checked++;
+        if (!slips.some((slip) => Math.abs(slip - answerValue(choice)) < 1e-9)) bad.push(`${question.prompt} → ${choice} (✓ ${answer})`);
+      });
+    }
+    assert.ok(checked > 300, `only ${checked} choices checked`);
+    assert.deepEqual([...new Set(bad)].slice(0, 15), [], `${bad.length} near-miss choices`);
+  });
+});
