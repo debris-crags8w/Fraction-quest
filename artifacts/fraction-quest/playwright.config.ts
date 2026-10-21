@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 const webkit = process.env.PLAYWRIGHT_BROWSER === 'webkit';
 const phoneViewport = process.env.PLAYWRIGHT_PHONE === '1';
-// Two checkouts can test side by side when each uses its own port (PLAYWRIGHT_PORT), so neither reuses the other's server.
+/** Each checkout can test on its own port (PLAYWRIGHT_PORT), so two runs never share one dev server. */
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 4179);
 
 export default defineConfig({

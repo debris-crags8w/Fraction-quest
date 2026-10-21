@@ -4,7 +4,7 @@
    code is entered on the device. Developer mode then adds a small Dev button to the map for quick testing. */
 
 import { useEffect, useState } from 'react';
-import { Code2, X } from 'lucide-react';
+import { Code2, ListChecks, X } from 'lucide-react';
 import { MISSIONS } from './game';
 
 const STORAGE_KEY = 'fraction-quest-developer-mode';
@@ -85,6 +85,16 @@ export function DeveloperLessonPicker({ unitTitles, onOpen }: { unitTitles: stri
   );
 }
 
+/** Development server only (production builds drop it): every lesson by unit, on one page. */
+function LessonTesterButton({ onOpen, testId }: { onOpen: () => void; testId: string }) {
+  if (!import.meta.env.DEV) return null;
+  return (
+    <button type="button" className="fq-button secondary" onClick={onOpen} data-testid={testId}>
+      <ListChecks size={17} aria-hidden="true" /> Open the lesson tester
+    </button>
+  );
+}
+
 /** Enter the developer code to open developer testing on this device. */
 function DeveloperUnlock({ onUnlock }: { onUnlock: () => void }) {
   const [code, setCode] = useState('');
@@ -104,7 +114,7 @@ function DeveloperUnlock({ onUnlock }: { onUnlock: () => void }) {
 
 /** The grown-ups' section: the developer code (outside development builds), the developer mode switch and the
     lesson picker. */
-export function DeveloperSettings({ unitTitles, onOpen }: { unitTitles: string[]; onOpen: (missionId: string) => void }) {
+export function DeveloperSettings({ unitTitles, onOpen, onOpenTester }: { unitTitles: string[]; onOpen: (missionId: string) => void; onOpenTester?: () => void }) {
   const [on, setOn] = useDeveloperMode();
   const [unlocked, setUnlocked] = useDeveloperUnlock();
   if (!developerTestingAvailable()) return null;
@@ -124,6 +134,7 @@ export function DeveloperSettings({ unitTitles, onOpen }: { unitTitles: string[]
         <input type="checkbox" checked={on} onChange={(event) => setOn(event.target.checked)} data-testid="checkbox-developer-mode" />
       </label>
       <DeveloperLessonPicker unitTitles={unitTitles} onOpen={onOpen} />
+      {import.meta.env.DEV && onOpenTester && <LessonTesterButton onOpen={onOpenTester} testId="button-open-lesson-tester" />}
       {!import.meta.env.DEV && (
         <button type="button" className="fq-button ghost" onClick={() => setUnlocked(false)} data-testid="button-developer-lock">Lock developer testing on this device</button>
       )}
@@ -132,7 +143,7 @@ export function DeveloperSettings({ unitTitles, onOpen }: { unitTitles: string[]
 }
 
 /** The map's Dev button (developer mode only): opens the lesson picker in a small dialog. */
-export function DeveloperChip({ unitTitles, onOpen }: { unitTitles: string[]; onOpen: (missionId: string) => void }) {
+export function DeveloperChip({ unitTitles, onOpen, onOpenTester }: { unitTitles: string[]; onOpen: (missionId: string) => void; onOpenTester?: () => void }) {
   const [on] = useDeveloperMode();
   const [open, setOpen] = useState(false);
   if (!developerTestingAvailable() || !on) return null;
@@ -147,6 +158,7 @@ export function DeveloperChip({ unitTitles, onOpen }: { unitTitles: string[]; on
             <button className="fq-icon-button fq-modal-close" onClick={() => setOpen(false)} aria-label="Close developer testing" data-testid="button-close-dev"><X size={18} /></button>
             <h2 id="dev-dialog-title">Developer testing</h2>
             <DeveloperLessonPicker unitTitles={unitTitles} onOpen={(missionId) => { setOpen(false); onOpen(missionId); }} />
+            {import.meta.env.DEV && onOpenTester && <LessonTesterButton onOpen={() => { setOpen(false); onOpenTester(); }} testId="button-dev-open-lesson-tester" />}
           </div>
         </div>
       )}

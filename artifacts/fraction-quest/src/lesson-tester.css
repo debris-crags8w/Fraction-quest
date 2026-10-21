@@ -1,0 +1,17 @@
+/* Lesson tester (development server only). */
+.fq-tester-unit { display: grid; gap: 10px; scroll-margin-top: 72px; }
+.fq-tester-unit-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+.fq-tester-unit-head h2 { margin: 0; }
+.fq-tester-count { font-weight: 800; color: hsl(var(--muted-foreground)); font-size: 0.9rem; }
+.fq-tester-lessons { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.fq-tester-lessons li { display: grid; gap: 8px; padding: 10px 12px; border-radius: 14px; box-shadow: 0 0 0 2px var(--fq-edge); background: hsl(var(--background)); }
+.fq-tester-lessons li.is-tested { box-shadow: 0 0 0 2px var(--fq-good, #2f9e63); }
+.fq-tester-lesson-info { display: grid; gap: 2px; min-width: 0; }
+.fq-tester-lesson-info b { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: hsl(var(--muted-foreground)); }
+.fq-tester-lesson-info strong { font-size: 1.05rem; line-height: 1.25; }
+.fq-tester-lesson-info small { color: hsl(var(--muted-foreground)); font-weight: 700; }
+.fq-tester-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fq-tester-actions .fq-button { min-height: 44px; padding-inline: 12px; }
+.fq-tester-tick { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 6px; font-weight: 800; cursor: pointer; }
+.fq-tester-tick input { width: 22px; height: 22px; accent-color: var(--fq-grape); }
+.fq-tester-challenge { justify-self: start; min-height: 44px; }
