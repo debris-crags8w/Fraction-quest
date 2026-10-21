@@ -1,4 +1,4 @@
-/* Wrong answers from real mistakes, for questions whose answer is a fraction or a mixed number. The generic fallback
+/* Wrong answers from real mistakes, for questions whose answer is a fraction, a mixed number, a decimal or a percent. The generic fallback
    offers near misses (5/13 or 6/12 for 5/12, 3 7/8 for 2 7/8), which a child rules out without thinking about
    fractions. Here each wrong answer is what a child gets by making a specific slip: adding the denominators,
    keeping one denominator, renaming only one fraction, forgetting to carry or to trade a whole. Like
@@ -6,6 +6,8 @@
 
 /** An amount as numerator and denominator (2 3/5 is 13/5). */
 type Amount = [number, number];
+import { answerValue } from './learning-content';
+
 const N = Number;
 const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : Math.abs(a));
 const lcm = (a: number, b: number) => (a * b) / gcd(a, b);
@@ -16,9 +18,9 @@ function amount(text: string): Amount | null {
   return /^\d+$/.test(text.trim()) ? [N(text), 1] : null;
 }
 
-/** The right amount the rule worked out, and each slip: [numerator, denominator] as a child would write it, or just
-    its value, written over the answer's denominator. */
-type Found = { right: number; slips: (Amount | number)[] };
+/** The right amount the rule worked out, and each slip: [numerator, denominator] as a child would write it, its value
+    (written over the answer's denominator), or a decimal or percent already written out. */
+type Found = { right: number; slips: (Amount | number | string)[] };
 
 /** The slips for x ± y, written over the denominators a child would use. */
 function addOrSubtract(x: Amount, y: Amount, add: boolean): Found {
@@ -104,9 +106,90 @@ function timesOrShare(p: string): Found | null {
   return null;
 }
 
-function found(prompt: string): Found | null {
+/** Naming parts, number lines, equivalent fractions, simplest form, decimals and percents. `right` is the app's answer
+    as numerator and denominator (null for a decimal or percent). */
+function equivalence(p: string, right: Amount | null): Found | null {
+  let m: RegExpExecArray | null;
+  const [x, y] = right ?? [NaN, NaN];
+  const answer = right ? x / y : NaN;
+  // One part of a whole, what is colored or shaded: upside down, part to part, the rest, one piece, shaded out of all
+  // the pieces counted again with the shaded ones. (Not "of the square": a square can be cut into pieces of
+  // different sizes, and counting pieces, 2/7 for two triangles of a square cut into 7, is the mistake there.)
+  if (right && /^(?:A|The) \w+ (?:is cut into|has) \d+ equal parts\.(?: \d+ is colored\.)? What (?:is 1 part|fraction is colored)\?$|^What fraction (?:is 1 of \d+ equal tiles|is shaded|of the (?!square)\w+ is shaded)\?$|shaded slice\?$/.test(p)) {
+    return { right: answer, slips: [[y, x], [x, y - x], [y - x, y], [1, y], [x, y + x]] };
+  }
+  // A chance: green to the rest, the rest, upside down, green out of more, one marble.
+  if (right && (m = /^A bag has (\d+) marbles\. (\d+) (?:is|are) green\./.exec(p))) {
+    const [t, g] = [N(m[1]), N(m[2])];
+    return { right: g / t, slips: [[g, t - g], [t - g, t], [t, g], [g, t + g], [1, t]] };
+  }
+  // A dot or jumps on a number line: counted the tick marks, upside down, one jump, counted the 0 tick, the rest.
+  if (right && /^What fraction is at the dot\?$|jumps? from 0\?$|^Each jump is 1\/\d+\. What is \d+ jumps? from 0\?$|^0 to 1 has \d+ equal spaces\. What is \d+ jumps?\?$/.test(p)) {
+    return { right: answer, slips: [[x, y + 1], [y, x], [1, y], [x + 1, y], [y - x, y]] };
+  }
+  // The same amount with another denominator: kept the top, added the same number to both, multiplied only the top,
+  // upside down, one part (2/2 as eighths: 1/8).
+  if (right && (m = /^(\d+)\/(\d+) is marked on a line\. Which fraction with a denominator of \d+ is at the same spot\?$|^Write (\d+)\/(\d+) with a denominator of \d+\.$|^Which is the same as (\d+)\/(\d+)\?$/.exec(p))) {
+    const [a, b] = m.slice(1).filter(Boolean).map(N);
+    return { right: a / b, slips: [[a, y], ...(a + y - b > 0 ? [[a + y - b, y] as Amount] : []), [x, b], [y, x], [1, y]] };
+  }
+  // "Multiply (Divide, Double) the numerator and denominator of 1/4 by 3": only the top, only the bottom, added
+  // (taken away) the same number, upside down.
+  if (right && (m = /^(Multiply|Divide|Double) the numerator and denominator of (\d+)\/(\d+)(?: by (\d+))?\. What do you get\?$/.exec(p))) {
+    const [a, b, k] = [N(m[2]), N(m[3]), m[1] === 'Double' ? 2 : N(m[4])];
+    const slips: Amount[] = m[1] === 'Divide' ? [[a / k, b], [a, b / k], [a - k, b - k], [y, x], [a, b - k]] : [[a * k, b], [a, b * k], [a + k, b + k], [y, x], [a, b + k]];
+    return { right: a / b, slips };
+  }
+  // Simplest form: only the top divided, only the bottom, upside down, part of the way, one taken off each.
+  if (right && (m = /^Write (\d+)\/(\d+) in simplest form\.$/.exec(p))) {
+    const [n, d] = [N(m[1]), N(m[2])]; const g = gcd(n, d);
+    const partWay = [2, 3, 4].filter((f) => f < g && g % f === 0).map((f): Amount => [n / f, d / f]);
+    return { right: n / d, slips: [[n / g, d], [n, d / g], [d / g, n / g], ...partWay, [n - 1, d - 1]] };
+  }
+  // "What is 1 and 2/3 as thirds?": whole added to the top, the fraction part only, the whole only, all multiplied,
+  // one whole counted twice.
+  if (right && (m = /^What (?:is|fraction is the same as) (\d+) and (\d+)\/(\d+)(?: as \w+)?\?$/.exec(p))) {
+    const [w, a, b] = m.slice(1).map(N);
+    return { right: w + a / b, slips: [[w + a, b], [a, b], [w * b, b], [w * b * a, b], [w * b + a + b, b]] };
+  }
+  // A line plot's longest minus shortest: the longest, the shortest, the two added, the bottoms added, the wrong mark.
+  if (right && (m = /^The line plot shows these [\w ]+ lengths in eighths: ([\d/, ]+) inch\. What is the difference between the longest and shortest\?$/.exec(p))) {
+    const tops = m[1].split(', ').map((t) => N(t.split('/')[0])).sort((u, v) => u - v);
+    const [lo, lo2, hi2, hi] = [tops[0], tops[1], tops[tops.length - 2], tops[tops.length - 1]];
+    return { right: (hi - lo) / 8, slips: [[hi, 8], [lo, 8], [hi + lo, 8], [hi - lo, 16], [hi2 - lo, 8], [hi - lo2, 8]] };
+  }
+  // Decimals: the point a place too far either way, the digits written out ("9.10"), tenths read as hundredths.
+  if ((m = /^(?:Write (\d+)\/(10|100) as a decimal\.|Which decimal equals (\d+)\/(10|100)\?)$/.exec(p))) {
+    const [n, d] = m.slice(1).filter(Boolean).map(N);
+    return { right: n / d, slips: [String(n / (d * 10)), String(n / (d / 10)), `${n}.0`, `${n}.${d}`, String(n / 10), String(n / 100)] };
+  }
+  if ((m = /^Write (\d+)\/10 \+ (\d+)\/100 as a decimal\.$/.exec(p))) {
+    const [a, b] = m.slice(1).map(N);
+    return { right: (10 * a + b) / 100, slips: [String((a + b) / 100), String((a + b) / 10), String((10 * a + b) / 1000)] };
+  }
+  // "What fraction is 0.3?": hundredths for tenths, the digit alone, one over the digit, the other place, upside down.
+  if (right && (m = /^What fraction is 0\.(\d+)\?$/.exec(p))) {
+    const n = N(m[1]);
+    return { right: answer, slips: [[n, y * 10], [n, 1], [1, n], [n, y / 10], [y, n]] };
+  }
+  // Percents: the numerator or denominator as the percent, both side by side ("14%" for 1/4), the rest.
+  if ((m = /^Write (\d+)\/(\d+) as a percent\.$/.exec(p))) {
+    const [a, b] = m.slice(1).map(N);
+    return { right: a / b, slips: [`${a}%`, `${b}%`, `${a}${b}%`, `${100 - (a / b) * 100}%`] };
+  }
+  // And back: over 10, upside down, the rest, over 1.
+  if (right && (m = /^Write (\d+)% as a fraction(?: with a denominator of 100)?\.$/.exec(p))) {
+    const v = N(m[1]);
+    return { right: v / 100, slips: [[v, 10], [100, v], [100 - v, 100], [v, 1]] };
+  }
+  return null;
+}
+
+function found(prompt: string, right: Amount | null): Found | null {
   let p = prompt.replace(/^Quick review · [^:]+: /, '').replace(/^Rename: .+?\. Then /, '');
   let m: RegExpExecArray | null;
+  const named = equivalence(p, right);
+  if (named) return named;
   // "A board is 1/3 meter. Another is 1/6 meter. How long are they together?" is 1/3 + 1/6.
   if ((m = LENGTH.exec(p))) p = `${m[1]} + ${m[2]} = ?`;
   // "Mia reads 2/5 of a book on Monday and 1/5 on Tuesday. How much is left to read?", "… garden … still empty?"
@@ -131,7 +214,8 @@ function found(prompt: string): Found | null {
 
 /** Write a slip the way the answer is written: a fraction ("22/18"), a mixed number ("2 7/8") or a whole number when
     the answer is one. A slip given as a value is written over the answer's denominator. */
-function written(slip: Amount | number, answer: string, over: number): string | null {
+function written(slip: Amount | number | string, answer: string, over: number): string | null {
+  if (typeof slip === 'string') return slip;
   const whole = /^\d+$/.test(answer.trim());
   if (typeof slip === 'number') {
     // Over the answer's denominator, or (a whole-number answer) the smallest denominator that fits.
@@ -161,14 +245,15 @@ export function fractionMistakes(prompt: string, writtenAnswer: string): string[
   // An answer with a unit ("65/100 m", "3/4 meter"): the slips carry the same unit.
   const unit = / [a-z]+$/i.exec(writtenAnswer.trim())?.[0] ?? '';
   const answer = writtenAnswer.trim().slice(0, writtenAnswer.trim().length - unit.length);
-  const right = amount(answer);
-  const result = found(prompt);
-  if (!right || !result || Math.abs(result.right - right[0] / right[1]) > 1e-9) return [];
-  const out: string[] = []; const values = new Set([right[0] / right[1]]);
+  const right = amount(answer); const target = answerValue(answer);
+  const result = found(prompt, right);
+  if (!Number.isFinite(target) || !result || Math.abs(result.right - target) > 1e-9) return [];
+  const out: string[] = []; const values = new Set([target]);
   for (const slip of result.slips) {
-    const text = written(slip, answer, right[1]); const value = typeof slip === 'number' ? slip : slip[0] / slip[1];
+    const text = written(slip, answer, right?.[1] ?? 1);
+    const value = typeof slip === 'string' ? answerValue(slip) : typeof slip === 'number' ? slip : slip[0] / slip[1];
     // A choice of 0 ("0/3") is never a believable answer to these questions.
-    if (!text || value === 0 || [...values].some((v) => Math.abs(v - value) < 1e-9)) continue;
+    if (!text || !Number.isFinite(value) || value === 0 || [...values].some((v) => Math.abs(v - value) < 1e-9)) continue;
     values.add(value); out.push(text + unitFor(unit, value));
   }
   return out;
