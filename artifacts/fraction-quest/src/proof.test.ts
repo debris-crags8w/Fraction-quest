@@ -46,6 +46,6 @@ describe('accuracy proof engine', () => {
     fails({ ...base, prompt: 'Make 2/8 + 3/8.', target: { kind: 'bar', n: 6, d: 8 } }, 'wrong build');
     fails({ ...base, prompt: 'Which is closest to 1/2?', choices: ['3/8', '5/8', '1/8', '7/8'], correct: 0 }, 'tie between choices');
     fails({ ...base, prompt: 'How many minutes are in 3/4 hour?', answer: '40' }, 'wrong conversion');
-    fails({ ...base, prompt: 'A jug is 6/10 full. Is that more or less than half?', choices: ['Less than half', 'More than half'], correct: 0 }, 'hand-checked key');
+    fails({ ...base, prompt: 'A jug is 4/6 full. Is that more or less than half?', choices: ['Less than half', 'More than half'], correct: 0 }, 'hand-checked key');
   });
 });

@@ -1,7 +1,7 @@
 import { fourthChoice, noBeforeYes, orderedWithSigns, withSignComparisons } from './fourth-choice';
 import { preferMisconceptions } from './misconceptions';
 import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
-import { answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, getWorksheet, parseAnswer } from './learning-content';
+import { G3_EQUIVALENTS_WIDE, answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, equivalentsFor, getWorksheet, gradeFits, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
 import { circleCut, type AreaCut } from './area-shapes';
 
@@ -50,8 +50,12 @@ const compareBars = (a: [number, number], b: [number, number]): Pick<Item, 'mode
 const either = (r: Rng, x: string, y: string) => (r.chance() ? `${x} or ${y}` : `${y} or ${x}`);
 const area = (cut: AreaCut, shaded: number[] = []): ModelSpec => ({ kind: 'area', cut, shaded });
 const shadedFirst = (n: number) => Array.from({ length: n }, (_, k) => k);
-/** Grade 3–4 denominators (no elevenths, thirteenths, fifteenths…). */
+/** Grade 4 denominators (no elevenths, thirteenths, fifteenths…). */
 const DENS = [3, 4, 5, 6, 8, 10, 12] as const;
+/** Grade 3 denominators: thirds, fourths, sixths and eighths (halves where a question allows them). */
+const G3_DENS = [3, 4, 6, 8] as const;
+/** Same-size wholes with two grade 3 denominators, smaller one first. */
+const G3_PAIRS = [[2, 4], [2, 3], [3, 6], [4, 8], [3, 4], [2, 6], [4, 6], [2, 8], [3, 8], [6, 8]] as const;
 const withLabels = (model: ModelSpec): ModelSpec => ('hideLabels' in model ? { ...model, hideLabels: false } : model);
 
 type Item = { prompt: string; right: string; wrong: [string, string]; hint: string; retry: string; model: ModelSpec; simpler?: ModelSpec;
@@ -96,7 +100,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
         model: area(cut) };
     }
     // The picture is the puzzle: the strip may be fair, have unequal pieces, or have the wrong number of pieces.
-    const d = r.pick([2, 3, 4, 5, 6, 8]); const kind = r.int(0, 2);
+    const d = r.pick([2, 3, 4, 6, 8]); const kind = r.int(0, 2);
     const count = kind === 2 ? d + 1 : d;
     const sizes = Array.from({ length: count }, () => 1);
     if (kind === 1) sizes[r.int(0, count - 1)] = 2.5; // one piece clearly bigger
@@ -109,7 +113,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       model: { kind: 'partition', parts: sizes.map((size) => (size / total) * 100) }, simpler: { kind: 'partition', parts: Array.from({ length: d }, () => 100 / d) } };
   },
   'fraction-names': (r) => {
-    const d = r.pick(DENS); const n = r.int(1, d - 1);
+    const d = r.pick(G3_DENS); const n = r.int(1, d - 1);
     return r.chance()
       ? { prompt: `In ${f(n, d)}, what does the ${d} mean?`, right: `${d} equal parts in all`, wrong: [`${d} parts are shaded`, `${d} wholes`], extra: `${d} parts not shaded`, hint: 'Look at the denominator.', retry: 'The denominator is the number of equal parts in all.', model: bar(n, d) }
       : { prompt: 'What fraction is shaded?', right: f(n, d), wrong: [f(d, n), f(d - n, d)], hint: 'The numerator is the number of parts shaded. The denominator is all the equal parts.', retry: `The denominator is all ${d} parts. The numerator is the ${n} shaded ${n === 1 ? 'part' : 'parts'}.`, model: bar(n, d) };
@@ -125,11 +129,15 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       return { prompt: 'What fraction of the square is shaded?', right: '1/4', wrong: ['2/7', '1/7'],
         hint: 'The parts are not all the same size. Each triangle is half of the small square.', retry: 'The 2 shaded triangles cover the same space as the small square: 1/4 of the square.', model: area('quarter-and-triangles', [1, 2]) };
     }
-    const d = r.pick(DENS);
+    const d = r.pick(G3_DENS);
+    if (r.chance()) {
+      const n = r.int(2, d - 1);
+      return { prompt: 'Which is a unit fraction?', right: f(1, d), wrong: [f(n, d), f(d, 1)], hint: 'A unit fraction has a numerator of 1.', retry: `1/${d} counts just 1 equal part.`, model: bar(0, d) };
+    }
     return { prompt: `A whole is cut into ${d} equal parts. What is 1 part?`, right: f(1, d), wrong: [f(d, 1), f(1, d - 1)], hint: 'Count all the equal parts. That is the denominator.', retry: `1 of ${d} equal parts is 1/${d}.`, model: bar(1, d) };
   },
   'unit-size': (r) => {
-    const [a, b] = r.pick([[2, 4], [2, 3], [3, 6], [4, 8], [3, 4], [5, 10], [6, 12], [4, 6], [2, 8], [3, 8], [5, 8], [6, 10]] as const); const bigger = r.chance();
+    const [a, b] = r.pick(G3_PAIRS); const bigger = r.chance();
     return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${either(r, f(1, a), f(1, b))}?`, right: bigger ? f(1, a) : f(1, b), wrong: [bigger ? f(1, b) : f(1, a), 'They are the same'],
       hint: 'The denominator tells how many equal parts make one whole. More parts means each part is smaller.', retry: `${Name(a)} are bigger than ${name(b)}.`, ...compareBars([1, a], [1, b]) };
   },
@@ -142,53 +150,62 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     return { prompt: `What is ${f(n, d)} of ${t}?`, right: String(n * per), wrong: [String(per), String(t)], hint: `Make ${d} equal groups. Count ${n} of them.`, retry: `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, model: set(0, t, d) };
   },
   'benchmark-half': (r) => {
-    const d = r.pick([4, 6, 8, 10, 12]); let n = r.int(1, d - 1); if (n * 2 === d) n += n > 1 && r.chance() ? -1 : 1;
+    const d = r.pick([4, 6, 8]); let n = r.int(1, d - 1); if (n * 2 === d) n += n > 1 && r.chance() ? -1 : 1;
     const more = n * 2 > d;
     return { prompt: `Is ${f(n, d)} more or less than 1/2?`, right: more ? 'More than 1/2' : 'Less than 1/2', wrong: [more ? 'Less than 1/2' : 'More than 1/2', 'Exactly 1/2'],
       hint: `Half of ${d} is ${d / 2}.`, retry: `Compare ${n} with ${d / 2}.`, model: bars2([n, d], [1, 2]) };
   },
   'benchmarks-zero-one': (r) => {
-    const d = r.pick([6, 8, 10, 12]); const kind = r.int(0, 2);
-    const n = kind === 0 ? 1 : kind === 2 ? d - 1 : Math.round(d / 2);
-    const right = ['0', '1/2', '1'][kind];
+    // Grade 3 parts with one clear nearest benchmark (1/4 sits halfway between 0 and 1/2).
+    const [n, d, right] = r.pick([[1, 6, '0'], [1, 8, '0'], [1, 3, '1/2'], [2, 3, '1/2'], [2, 4, '1/2'], [2, 6, '1/2'], [3, 6, '1/2'], [4, 6, '1/2'],
+      [3, 8, '1/2'], [4, 8, '1/2'], [5, 8, '1/2'], [5, 6, '1'], [7, 8, '1']] as const);
     return { prompt: `Is ${f(n, d)} closest to 0, 1/2, 1 or 2?`, right, wrong: ['0', '1/2', '1'].filter((x) => x !== right) as [string, string], extra: '2',
       hint: 'Is it tiny, about half, or almost full?', retry: `${f(n, d)} is closest to ${right}.`, model: bar(n, d) };
   },
   'fraction-magnitude': (r) => {
-    const d = r.pick([5, 6, 7, 8, 9, 10, 12]); const n = d % 2 ? (d - 1) / 2 + r.int(0, 1) : d / 2 + (r.chance() ? 1 : -1);
+    const d = r.pick(G3_DENS); const n = d % 2 ? (d - 1) / 2 + r.int(0, 1) : d / 2 + (r.chance() ? 1 : -1);
     // Far from half: tiny amounts and nearly-whole amounts. Both wrong ones can be on the same side, so the
     // answer is not always the middle-sized choice.
-    const smalls = [f(1, 8), f(1, 10), f(1, 12), f(2, 12)]; const bigs = [f(7, 8), f(9, 10), f(11, 12), f(10, 12)];
+    const smalls = [f(1, 8), f(1, 6)]; const bigs = [f(7, 8), f(5, 6)];
     const mode = r.int(0, 2); const lo = r.pick(smalls); const hi = r.pick(bigs);
     const pair: [string, string] = mode === 0 ? [lo, r.pick(smalls.filter((x) => x !== lo))] : mode === 1 ? [hi, r.pick(bigs.filter((x) => x !== hi))] : [lo, hi];
+    if (r.chance()) {
+      // Two at a time: just off half against a tiny amount or nearly one whole.
+      const [e, step] = r.pick([[6, 1], [8, 1], [8, 2]] as const); const above = r.chance();
+      const near = f(e / 2 + (above ? step : -step), e); const far = f(above ? e - 1 : 1, e);
+      return { prompt: `Which is closer to 1/2: ${either(r, near, far)}?`, right: near, wrong: [far, 'They are equally close'], hint: `Half of ${e} is ${e / 2}. Which numerator is nearer to ${e / 2}?`,
+        retry: `${near} is just ${step === 1 ? 'one part' : 'two parts'} from half.`, ...compareBars([e / 2 + (above ? step : -step), e], [above ? e - 1 : 1, e]) };
+    }
     return { prompt: 'Which is closest to 1/2?', right: f(n, d), wrong: pair, hint: 'Find half of each denominator. Which numerator is nearest to it?', retry: `${f(n, d)} is closer to 1/2 than the others.`, model: half };
   },
   'number-line-basics': (r) => {
-    const d = r.int(3, 10);
+    const d = r.pick([2, ...G3_DENS]);
     return r.chance()
       ? { prompt: `How many equal spaces do you need for ${name(d)}?`, right: String(d), wrong: [String(d - 1), String(d + 1)], hint: 'The denominator tells how many equal spaces go from 0 to 1.', retry: `${d} spaces from 0 to 1.`, model: line(0, 1) } // a plain 0–1 line: the picture must not show the answer
-      : { prompt: `0 to 1 has ${d} equal spaces. What is 1 jump?`, right: f(1, d), wrong: [f(d, 1), f(1, d - 1)], hint: 'Count the spaces from 0 to 1.', retry: `${d} jumps make one whole. So 1 jump is 1/${d}.`, model: line(1, d) };
+      : d > 2 && r.chance()
+        ? (() => { const n = r.int(2, d - 1); return { prompt: `Each jump is 1/${d}. What is ${n} jumps from 0?`, right: f(n, d), wrong: [f(d, n), f(n, d + n)] as [string, string], hint: 'Each jump is the same size. Count the jumps.', retry: `${n} jumps of 1/${d} is ${f(n, d)}.`, model: line(n, d) }; })()
+        : { prompt: `0 to 1 has ${d} equal spaces. What is 1 jump?`, right: f(1, d), wrong: [f(d, 1), f(1, d - 1)], hint: 'Count the spaces from 0 to 1.', retry: `${d} jumps make one whole. So 1 jump is 1/${d}.`, model: line(1, d) };
   },
   'number-line-points': (r) => {
-    const d = r.int(3, 10); const n = r.int(1, d - 1);
+    const d = r.pick(G3_DENS); const n = r.int(1, d - 1);
     return { prompt: 'What fraction is at the dot?', right: f(n, d), wrong: [f(d, n), f(n + 1, d)], hint: 'Count the spaces from 0 to 1. Then count jumps to the dot.', retry: `Each jump is 1/${d}. The dot is ${n} jumps from 0.`, model: line(n, d) };
   },
   'number-line-beyond-one': (r) => {
-    const d = r.int(2, 6); const k = d + r.int(1, Math.max(1, d - 1));
+    const d = r.pick([2, ...G3_DENS]); const k = d + r.int(1, Math.max(1, d - 1));
     return { prompt: `Each jump is ${f(1, d)}. What is ${k} jumps from 0?`, right: f(k, d), wrong: [f(d, k), f(k - d, d)], hint: `${d} jumps reach 1. Keep counting.`, retry: `${k} jumps of 1/${d} is ${f(k, d)}.`, model: line(k, d) };
   },
   'compare-same-denominator': (r) => {
-    const d = r.pick(DENS); const a = r.int(1, d - 2); const b = r.int(a + 1, d - 1); const bigger = r.chance();
+    const d = r.pick(G3_DENS); const a = r.int(1, d - 2); const b = r.int(a + 1, d - 1); const bigger = r.chance();
     return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${either(r, f(a, d), f(b, d))}?`, right: bigger ? f(b, d) : f(a, d), wrong: [bigger ? f(a, d) : f(b, d), 'They are equal'],
       hint: 'Same size parts. Compare the numerators.', retry: bigger ? `${b} parts is more than ${a}.` : `${a} parts is less than ${b}.`, ...compareBars([a, d], [b, d]) };
   },
   'compare-same-numerator': (r) => {
-    const [a, b] = r.pick([[3, 6], [4, 8], [3, 4], [4, 6], [5, 10], [6, 12], [3, 8], [4, 10], [5, 8], [3, 5], [6, 8], [4, 5]] as const); const n = r.int(1, Math.min(4, a - 1)); const bigger = r.chance();
+    const [a, b] = r.pick(G3_PAIRS.filter(([small]) => small > 2)); const n = r.int(1, Math.min(4, a - 1)); const bigger = r.chance();
     return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${either(r, f(n, a), f(n, b))}?`, right: bigger ? f(n, a) : f(n, b), wrong: [bigger ? f(n, b) : f(n, a), 'They are equal'],
       hint: `Both fractions count ${n} part${n === 1 ? '' : 's'} from the same-size whole. A larger denominator makes more equal parts, so each part is smaller.`, retry: `A denominator of ${b} splits the same-size whole into smaller parts than ${a}. With the same ${n} parts counted, ${f(n, a)} is bigger than ${f(n, b)}.`, ...compareBars([n, a], [n, b]) };
   },
   'order-fractions': (r) => {
-    const d = r.pick([5, 6, 8, 10, 12]); const a = r.int(1, d - 3); const b = r.int(a + 1, d - 2); const c = r.int(b + 1, d - 1);
+    const d = r.pick([4, 6, 8]); const a = r.int(1, d - 3); const b = r.int(a + 1, d - 2); const c = r.int(b + 1, d - 1);
     const up = r.chance();
     const small = `${f(a, d)}, ${f(b, d)}, ${f(c, d)}`; const big = `${f(c, d)}, ${f(b, d)}, ${f(a, d)}`; const mixed = `${f(b, d)}, ${f(a, d)}, ${f(c, d)}`;
     return { prompt: `Put ${mixed} in order, ${up ? 'smallest' : 'biggest'} first.`, right: up ? small : big, wrong: [up ? big : small, mixed],
@@ -196,16 +213,17 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       // All three, in the order the question lists them, so the picture doesn't put them in order for the child.
       model: { kind: 'bars', bars: [[b, d], [a, d], [c, d]].map(([numerator, denominator]) => ({ numerator, denominator })), hideLabels: true } };
   },
+  // Equivalent pairs whose denominators both fit the lesson's grade (grade 3: 1/2 = 2/4 = 3/6 = 4/8, 1/3 = 2/6, 3/4 = 6/8).
   'equivalent-models': (r) => {
-    const d = r.int(2, 6); const n = r.int(1, d - 1); const k = d === 5 ? r.pick([2, 4]) : r.int(2, 4); // no fifteenths
+    const [n, d, k] = r.pick(G3_EQUIVALENTS_WIDE);
     return { prompt: `Which is the same as ${f(n, d)}?`, right: f(n * k, d * k), wrong: [f(n, d * k), f(n * k, d)], hint: `Split every part into ${k}.`, retry: `Multiply the numerator and denominator by ${k}: ${f(n * k, d * k)}.`, model: bar(n, d) };
   },
   'build-equivalents': (r) => {
-    const d = r.int(2, 6); const n = r.int(1, d - 1); const k = d === 5 ? r.pick([2, 4]) : r.int(2, 4); // no fifteenths
+    const [n, d, k] = r.pick(equivalentsFor('build-equivalents'));
     return { prompt: `Multiply the numerator and denominator of ${f(n, d)} by ${k}. What do you get?`, right: f(n * k, d * k), wrong: [f(n + k, d + k), f(n * k, d)], hint: 'Do the same thing to the numerator and denominator.', retry: `${n} × ${k} = ${n * k} and ${d} × ${k} = ${d * k}.`, model: bar(n, d) };
   },
   'missing-equivalent': (r) => {
-    const d = r.int(2, 6); const n = r.int(1, d - 1); const k = d === 5 ? r.pick([2, 4]) : r.int(2, 4); // no fifteenths
+    const [n, d, k] = r.pick(equivalentsFor('missing-equivalent'));
     return { prompt: `Fill the blank: ${f(n, d)} = ?/${d * k}`, right: String(n * k), wrong: [String(n + k), String(n * k + 1)], hint: `What times ${d} makes ${d * k}?`, retry: `The denominator was multiplied by ${k}. So the numerator is ${n} × ${k} = ${n * k}.`, model: bar(n, d) };
   },
   'compose-to-one': (r) => {
@@ -217,11 +235,11 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     return { prompt: `Which adds up to ${f(n, d)}?`, right: `${f(first, d)} + ${f(n - first, d)}`, wrong: [`${f(first, d)} + ${f(n - first - 1, d)}`, `${f(n, d)} + ${f(n, d)}`], hint: 'Add the numerators. The denominator stays.', retry: `${first} + ${n - first} = ${n}. So ${f(n, d)}.`, model: bar(n, d) };
   },
   'improper-fractions': (r) => {
-    const d = r.int(2, 8); const left = r.int(1, d - 1);
+    const d = r.pick([2, ...G3_DENS]); const left = r.int(1, d - 1);
     return { prompt: `What is ${f(d + left, d)} as wholes and a fraction?`, right: `1 and ${f(left, d)}`, wrong: [`2 and ${f(left, d)}`, f(left, d)], hint: `${f(d, d)} is one whole.`, retry: `${f(d + left, d)} is ${f(d, d)} and ${f(left, d)}.`, model: line(d + left, d) };
   },
   'mixed-improper': (r) => {
-    const d = r.int(2, 8); const left = r.int(1, d - 1);
+    const d = r.pick([2, ...G3_DENS]); const left = r.int(1, d - 1);
     return { prompt: `What is 1 and ${f(left, d)} as ${name(d)}?`, right: f(d + left, d), wrong: [f(left, d), f(1 + left, d)], hint: `One whole is ${f(d, d)}.`, retry: `${f(d, d)} + ${f(left, d)} = ${f(d + left, d)}.`, model: line(d + left, d) };
   },
   'add-like-denominators': (r) => {
@@ -278,19 +296,21 @@ function safeWrong(right: string, candidates: string[]): [string, string] {
 }
 const POOL: [number, number][] = [[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [4, 5], [1, 6], [5, 6], [3, 8], [5, 8], [7, 8], [3, 10], [7, 10], [5, 12], [7, 12]];
 const SMALL_POOL = POOL.filter(([, d]) => d <= 6);
-const EXACT_PERCENT: [number, number][] = [[1, 2], [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [4, 5], [1, 10], [3, 10], [7, 10], [9, 10], [1, 20], [3, 20], [1, 25],
-  [7, 20], [9, 20], [11, 20], [13, 20], [17, 20], [19, 20], [2, 25], [3, 25], [6, 25]];
+const EXACT_PERCENT: [number, number][] = [[1, 2], [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [4, 5], [1, 10], [3, 10], [7, 10], [9, 10], [1, 20], [3, 20], [4, 100],
+  [7, 20], [9, 20], [11, 20], [13, 20], [17, 20], [19, 20], [8, 100], [12, 100], [24, 100]];
+/** The same amounts with grade 4 denominators: twentieths become hundredths (3/20 → 15/100). */
+const EXACT_DECIMAL: [number, number][] = EXACT_PERCENT.map(([t, b]) => (gradeFits('decimal-fraction-equivalence', b) ? [t, b] : [t * (100 / b), 100]));
 const later = (prompt: string, right: string, wrong: string[], hint: string, retry: string, model: ModelSpec, simpler?: ModelSpec): Item =>
   ({ prompt, right, wrong: safeWrong(right, wrong), hint, retry, model, simpler });
 
 const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'simplify-fractions': (r) => {
-    const [n, d] = r.pick(POOL); const k = r.int(2, d <= 6 ? 4 : 3);
+    const [n, d, k] = r.pick(equivalentsFor('simplify-fractions'));
     return later(`Write ${f(n * k, d * k)} in simplest form.`, f(n, d), [f(n, d * k), f(n * k, d), f(n + 1, d)],
       'Divide the numerator and denominator by the same number.', `Divide both by ${k}: ${f(n, d)}.`, bar(n * k, d * k));
   },
   'equivalent-missing-both': (r) => {
-    const [n, d] = r.pick(SMALL_POOL); const k = r.int(2, 4);
+    const [n, d, k] = r.pick(equivalentsFor('equivalent-missing-both'));
     return r.chance()
       ? later(`Fill the blank: ${f(n, d)} = ?/${d * k}`, String(n * k), [String(n + k), String(n * k + 1), String(n * k - 1)],
         `The denominator was multiplied by ${k}.`, `${n} × ${k} = ${n * k}.`, bar(n, d))
@@ -306,13 +326,14 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
         `Both fractions count ${n} parts. A larger denominator, ${d2}, makes more equal parts, so each part is smaller.`, `Both count ${n} parts. The ${name(d1)} are bigger than the ${name(d2)}, so ${f(n, d1)} is bigger.`, compareBars(x, y).model, compareBars(x, y).simpler);
     }
     if (r.int(0, 5) === 0) {
-      const [n, d] = r.pick(POOL.filter(([, den]) => den <= 6)); const k = r.int(2, 3);
+      const [n, d, k] = r.pick(equivalentsFor('compare-unlike-fractions'));
       const [x, y]: [number, number][] = r.chance() ? [[n, d], [n * k, d * k]] : [[n * k, d * k], [n, d]];
       return later(`Which is bigger, ${f(x[0], x[1])} or ${f(y[0], y[1])}?`, 'They are equal', [f(x[0], x[1]), f(y[0], y[1])],
         'Give both the same denominator. Then compare the numerators.', `${f(n, d)} = ${f(n * k, d * k)}: the same amount.`, compareBars(x, y).model, compareBars(x, y).simpler);
     }
     const a = r.pick(POOL); let b = r.pick(POOL);
-    while (b[1] === a[1] || a[0] * b[1] === b[0] * a[1]) b = r.pick(POOL);
+    // The shared denominator stays a grade 4 one (twelfths at most), so the renaming in the feedback fits too.
+    while (b[1] === a[1] || a[0] * b[1] === b[0] * a[1] || !gradeFits('compare-unlike-fractions', (a[1] * b[1]) / gcd(a[1], b[1]))) b = r.pick(POOL);
     const bigger = a[0] * b[1] > b[0] * a[1] ? a : b; const smaller = bigger === a ? b : a; const m = (a[1] * b[1]) / gcd(a[1], b[1]);
     return later(`Which is bigger, ${f(a[0], a[1])} or ${f(b[0], b[1])}?`, f(bigger[0], bigger[1]), [f(smaller[0], smaller[1]), 'They are equal'],
       'Give both the same denominator. Then compare the numerators.', [a, b].filter((x) => x[1] !== m).map((x) => `${f(x[0], x[1])} = ${f(x[0] * (m / x[1]), m)}.`).join(' ') + ` ${f(bigger[0], bigger[1])} is bigger.`, compareBars(a, b).model, compareBars(a, b).simpler);
@@ -360,12 +381,13 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       'Multiply the numerator. The denominator stays.', `${m} groups of ${f(n, d)} is ${f(m * n, d)}.`, bar(n, d));
   },
   'multiply-fractions': (r) => {
-    const [a, b] = r.pick(SMALL_POOL); const [n, d] = r.pick(SMALL_POOL);
+    // 24 small parts at most, so the bar stays readable.
+    const [a, b] = r.pick(SMALL_POOL); const [n, d] = r.pick(SMALL_POOL.filter(([, den]) => b * den <= 24));
     return later(`What is ${f(a, b)} of ${f(n, d)}?`, f(a * n, b * d), [f(a + n, b + d), f(a * n, b + d), f(a * d, b * n)],
       'Multiply the numerators. Multiply the denominators.', `${a} × ${n} = ${a * n} and ${b} × ${d} = ${b * d}.`, bar(n, d));
   },
   'divide-whole-by-unit-fraction': (r) => {
-    const d = r.int(2, 10); const c = r.int(1, 5);
+    const d = r.pick([2, 3, 4, 5, 6, 8, 9, 10]); const c = r.int(1, 5);
     return later(`How many 1/${d} cup scoops fill ${c} ${c === 1 ? 'cup' : 'cups'}?`, String(c * d), [String(c + d), String(d), String(c * d + d)],
       `How many 1/${d} parts make one whole cup?${c > 1 ? ` Then think about ${c} cups.` : ''}`, `${c} × ${d} = ${c * d} scoops.`, bar(1, d));
   },
@@ -375,18 +397,18 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       `Cut ${len} m into ${d} equal parts. Count ${n}.`, `Each part is ${m} m. ${n} parts is ${n * m} m.`, line(n, d));
   },
   'fractional-measure-addition': (r) => {
-    const b = r.pick([2, 3, 4, 5, 6]); const k = r.pick([2, 3, 4].filter((x) => b * x <= 12)); const e = b * k;
+    const b = r.pick([2, 3, 4, 5, 6]); const k = r.pick([2, 3, 4].filter((x) => gradeFits('fractional-measure-addition', b * x))); const e = b * k;
     const a = r.int(1, b - 1); const c = r.int(1, e - 1);
     return later(`A board is ${f(a, b)} m. Another is ${f(c, e)} m. How long are they together?`, f(a * k + c, e), [f(a + c, b + e), f(a + c, e), f(a * k + c + 1, e)],
       `Change ${f(a, b)} into ${name(e)} first.`, `${f(a, b)} = ${f(a * k, e)}. ${a * k} + ${c} = ${a * k + c}.`, bars2([a, b], [c, e]));
   },
   'fractional-sharing': (r) => {
-    const people = r.int(2, 8); let loaves = r.int(1, 5); if (loaves === people) loaves += 1;
+    const people = r.pick([2, 3, 4, 5, 6, 8]); let loaves = r.int(1, 5); if (loaves === people) loaves += 1;
     return later(`${loaves} ${loaves === 1 ? 'loaf is' : 'loaves are'} shared fairly by ${people} friends. How much does each friend get?`, f(loaves, people), [f(people, loaves), f(1, people), f(loaves, people + loaves)],
       `Cut each loaf into ${people} parts. Each friend gets 1 part of every loaf.`, `${loaves} ÷ ${people} = ${f(loaves, people)}.`, wholes(loaves));
   },
   'fraction-as-division': (r) => {
-    const b = r.int(2, 8); let a = r.int(1, 9); if (a % b === 0) a += 1;
+    const b = r.pick([2, 3, 4, 5, 6, 8]); let a = r.int(1, 9); if (a % b === 0) a += 1;
     return later(r.chance() ? `${a} ÷ ${b} = ?` : `${a} ${a === 1 ? 'pizza is' : 'pizzas are'} shared fairly by ${b} friends. How much does each friend get?`, f(a, b), [f(b, a), f(1, b), f(a, a + b)],
       `Share ${a} ${a === 1 ? 'whole' : 'wholes'} into ${b} equal shares. What fraction is ${a} ÷ ${b}?`, `${a} ÷ ${b} is the fraction ${f(a, b)}. Each friend gets ${f(a, b)}${a > b ? `, or ${mixedName(a, b)}` : ''}.`, wholes(a));
   },
@@ -396,15 +418,15 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       'The numerator is the number of green marbles. The denominator is the total number of marbles.', `${g} green out of ${t}: ${f(g, t)}.`, set(g, t, t));
   },
   'fraction-of-area': (r) => {
-    const d = r.pick([3, 4, 5, 6, 8, 10, 12]); const n = r.int(1, d - 1);
+    const d = r.pick(G3_DENS); const n = r.int(1, d - 1);
     // Circles and the 3-by-4 grid when there's one with that many parts; bars otherwise.
-    const cut = circleCut(d) ?? (d === 12 ? 'grid-3x4' : undefined);
-    const shape = !cut ? 'tile' : cut === 'grid-3x4' ? 'grid' : 'circle';
+    const cut = circleCut(d);
+    const shape = cut ? 'circle' : 'tile';
     return later(`What fraction of the ${shape} is shaded?`, f(n, d), [f(d - n, d), f(n, d + 1), f(d, n)],
       'Count all the equal parts for the denominator. Count the shaded parts for the numerator.', `${n} of ${d} equal parts: ${f(n, d)}.`, cut ? area(cut, shadedFirst(n)) : bar(n, d));
   },
   'equivalent-number-line': (r) => {
-    const [n, d] = r.pick(SMALL_POOL); const k = r.int(2, 3);
+    const [n, d, k] = r.pick(G3_EQUIVALENTS_WIDE);
     return later(`${f(n, d)} is marked on a line. Which fraction with a denominator of ${d * k} is at the same spot?`, f(n * k, d * k), [f(n, d * k), f(n + k, d * k), f(n * k + 1, d * k)],
       `Cut every space into ${k}. There are ${k} times as many spaces and jumps.`, `${n} × ${k} = ${n * k}. So ${f(n * k, d * k)}.`, line(n, d));
   },
@@ -424,7 +446,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       'Percent means out of 100.', `${p}% means ${p} out of 100: ${f(p, 100)}.`, bar(p, 100));
   },
   'decimal-fraction-equivalence': (r) => {
-    const [t, b] = r.pick(EXACT_PERCENT); const dec = String(t / b);
+    const [t, b] = r.pick(EXACT_DECIMAL); const dec = String(t / b);
     return later(`Write ${f(t, b)} as a decimal.`, dec, [...choiceDistractors(dec), `0.${t}${b}`],
       'Change it to tenths or hundredths first.', `${f(t, b)} = ${f((t * 100) / b, 100)} = ${dec}.`, bar(t, b));
   },
@@ -442,7 +464,8 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       n === 1 ? `1 part is ${part}. The pack has ${d} parts.` : `${n} parts are ${part}. Find 1 part first.`, `1 part is ${per}. ${d} parts make ${d * per}.`, bar(n, d));
   },
   'spot-the-mistake': (r) => {
-    const d = r.pick([5, 6, 7, 8, 9, 10]); const a = r.int(1, d - 2); const b = r.int(1, d - 1 - a);
+    // The wrong answer's denominator (2d) stays a grade 4 one.
+    const d = r.pick([3, 4, 5, 6]); const a = r.int(1, d - 2); const b = r.int(1, d - 1 - a);
     return r.chance()
       ? later(`Sam says ${f(a, d)} + ${f(b, d)} = ${f(a + b, d * 2)}. What is the right answer?`, f(a + b, d), [f(a + b, d * 2), f(a * b, d), f(a + b + 1, d)],
         'Same-size parts keep their name. Add only the numerators.', `${a} + ${b} = ${a + b}. So ${f(a + b, d)}.`, bar(a, d))
