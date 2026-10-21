@@ -3115,12 +3115,8 @@ test('a reload or the back button keeps the child’s place in a lesson’s prac
   await expectLessonQuestionProgress(page, 2, 1);
 });
 
-// Lessons whose every question is checked on an iPhone screen. Lesson 1 for now; the rest follow as their pictures are
-// made to fit (bars for amounts over 1 are still too tall).
-const PHONE_FIT_LESSONS = new Set(['equal-parts']);
-
-test('every lesson 1 question fits an iPhone Safari screen: one column of answers and Check, with no scrolling', async ({ page }) => {
-  test.setTimeout(120_000);
+test('every question in every lesson fits an iPhone Safari screen: one column of answers and Check, with no scrolling', async ({ page }) => {
+  test.setTimeout(900_000);
   // An iPhone in Safari shows about 664 points of page between its address bar and toolbar. The phone layout uses no
   // height queries (Safari answers those for its taller, bars-hidden view), so a 390 × 664 window is a faithful iPhone.
   const visible = 664;
@@ -3128,7 +3124,7 @@ test('every lesson 1 question fits an iPhone Safari screen: one column of answer
   await openAsGuest(page);
   const savedStorage = await localStorageSnapshot(page);
   const misfits: string[] = [];
-  for (const mission of MISSIONS.filter((item) => PHONE_FIT_LESSONS.has(item.id))) {
+  for (const mission of MISSIONS) {
     await openDeveloperLesson(page, mission);
     if (PART_FINDER_LESSONS.has(mission.id)) await completePartFinderLesson(page, mission.id);
     else if (mission.id === 'order-unlike-fractions') await completeFractionOrderLesson(page);
@@ -3151,15 +3147,17 @@ test('every lesson 1 question fits an iPhone Safari screen: one column of answer
         const top = (box(document.getElementById('lesson-question-title')) ?? box(document.querySelector('.fq-lesson-app')))?.top ?? 0;
         return {
           picture: box(document.querySelector('[data-testid="question-model-area"]'))?.height ?? 0,
+          shrunk: Number((document.querySelector('[data-testid="question-model-area"]') as HTMLElement | null)?.style.zoom || 1) < 1,
           choices: Math.max(...choices.map((rect) => rect.bottom)) - top,
           columns: new Set(choices.map((rect) => Math.round(rect.left))).size,
           check: (box(document.querySelector('[data-testid="button-check-answer"]'))?.bottom ?? Infinity) - top,
         };
       }, question.id);
       const where = `${mission.id} question ${index + 1} (${question.id})`;
-      // One column of answers, and fitting must not come from shrinking the picture away.
+      // One column of answers, and fitting must not come from shrinking the picture away
       if (fit.columns !== 1) misfits.push(`${where}: answers are in ${fit.columns} columns`);
-      if (fit.picture < 80) misfits.push(`${where}: the picture is only ${Math.round(fit.picture)} points tall`);
+      // (A naturally small picture, like a row of dots, may stay small; a picture shrunk to fit stays at least 80 tall.)
+      if (fit.shrunk && fit.picture < 80) misfits.push(`${where}: the picture was shrunk to only ${Math.round(fit.picture)} points tall`);
       if (fit.choices > visible + 1 || fit.check > visible + 1) {
         misfits.push(`${where}: choices end at ${Math.round(fit.choices)}, Check at ${Math.round(fit.check)}, screen ${visible}`);
       }

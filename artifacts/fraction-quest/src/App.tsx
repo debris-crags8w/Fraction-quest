@@ -1038,7 +1038,8 @@ function PlayView({
   const checkButtonRef = useRef<HTMLButtonElement>(null);
   useRevealWhen(checkButtonRef, selection !== null && feedback === null);
   // Phones: the question, picture, every answer and Check fit the screen Safari actually shows. Only the picture
-  // gives way: it shrinks by as much as the screen overflows (never below 70%, so it stays readable), whatever its kind.
+  // gives way: it shrinks by as much as the screen overflows (never below 60%, 65% for number lines, nor below 82 points tall,
+  // so it stays readable), whatever its kind.
   const modelAreaRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const area = modelAreaRef.current;
@@ -1055,7 +1056,9 @@ function PlayView({
       const overflow = check.getBoundingClientRect().bottom - from.getBoundingClientRect().top + 8 - window.innerHeight;
       if (overflow <= 0) return;
       const height = area.getBoundingClientRect().height;
-      area.style.setProperty('zoom', String(Math.max(0.7, (height - overflow) / height)));
+      // A number line's small labels need a little more size than bars, grids or shapes.
+      const floor = (useSimplerModel ? question?.simplerModel : question?.model)?.kind === 'line' ? 0.65 : 0.6;
+      area.style.setProperty('zoom', String(Math.min(1, Math.max(floor, 82 / height, (height - overflow) / height))));
     };
     fit();
     window.addEventListener('resize', fit);
@@ -1110,13 +1113,15 @@ function PlayView({
             <>
           <p className="fq-play-kicker">
             {question?.storySetup && <span className="fq-story-problem-tag" data-testid="story-problem-tag">Story problem</span>}
+            {/* Phones show the checkpoint here, in the top line, instead of on a row of its own. */}
+            {question?.isMastery && <span className="fq-checkpoint-tag" aria-hidden="true">Checkpoint</span>}
             {isQuickReview
               ? `Quick skill review · ${question?.reviewTopicTitle ?? mission.shortTitle} · Question ${questionIndex + 1} of ${mission.questions.length}`
               : isExtraPractice
                 ? `Practice more · Lesson ${lessonNumber} · Question ${questionIndex + 1} of ${mission.questions.length}`
               : showExample
-                ? `Lesson ${lessonNumber} · ${mission.shortTitle} · See it, then try it · Question ${questionIndex + 1} of ${mission.questions.length}`
-                : `Lesson ${lessonNumber} · ${mission.shortTitle} · Question ${questionIndex + 1} of ${mission.questions.length}`}
+                ? <>Lesson {lessonNumber}<span className="fq-kicker-topic"> · {mission.shortTitle} · See it, then try it</span> · Question {questionIndex + 1} of {mission.questions.length}</>
+                : <>Lesson {lessonNumber}<span className="fq-kicker-topic"> · {mission.shortTitle}</span> · Question {questionIndex + 1} of {mission.questions.length}</>}
           </p>
           {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
             {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
