@@ -70,6 +70,7 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { PrintMenu } from './Printables';
 import { PaperFold } from './PaperFold';
 import { AreaShade, AreaSvg, SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
+import { GardenPlan } from './GardenPlan';
 import { applyPlacement } from './placement';
 import { AccountGate, useAccount, useAccountSync } from './account';
 import LoginPage from './LoginPage';
@@ -444,6 +445,7 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
         </div>
       ); })()}
       {model.kind === 'lineplot' && <LinePlotPicture denominator={model.denominator} wholes={model.wholes} values={model.values} />}
+      {model.kind === 'garden' && <GardenPlan width={model.width} height={model.height} labelParts={model.labelParts} />}
       {model.kind === 'equation' && <div className="fq-model-equation" role="img" aria-label={`Visual equation ${model.text}`}><MathText text={model.text} /></div>}
       {model.kind === 'decimal' && (
         <div className="fq-decimal-model">

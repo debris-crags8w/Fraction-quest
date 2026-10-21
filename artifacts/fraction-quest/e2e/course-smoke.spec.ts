@@ -92,6 +92,26 @@ test('a question that says to color pieces lets the child tap them, then answer'
   await expect(shade.getByTestId('button-area-piece-3')).toHaveAttribute('tabindex', '-1');
 });
 
+test('the garden lesson draws each garden to scale: side lengths outside, part areas only on the worked example', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'multiply-mixed-numbers');
+  if (!mission) throw new Error('Garden lesson is missing');
+  await page.setViewportSize({ width: 390, height: 664 });
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+  await skipIntros(page);
+
+  const example = page.getByTestId('lesson-example').getByTestId('garden-plan');
+  await expect(example).toBeVisible();
+  await expect(example.locator('.fq-garden-part-label')).toHaveCount(4);
+  const question = page.getByTestId('question-model-area').getByTestId('garden-plan');
+  await expect(question).toBeVisible();
+  await expect(question.locator('.fq-garden-part-label')).toHaveCount(0);
+  // 1 1/2 m by 2 1/2 m: the longer side runs across, drawn to scale.
+  await expect(question.getByTestId('garden-width')).toContainText('m');
+  const box = await question.locator('svg').boundingBox();
+  expect(box && box.width / box.height).toBeGreaterThan(1.5);
+});
+
 test('the ordering lesson explains its strategy before showing a distinct worked model', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');

@@ -2450,3 +2450,27 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-lineplot-pic-tick i { width: 3px; height: 12px; background: hsl(var(--foreground)); }
 .fq-lineplot-pic-tick small { font-size: .68rem; font-weight: 800; white-space: nowrap; }
 @media print { .fq-lineplot-pic-tick span { color: #000; } }
+
+/* Garden plan (Multiply mixed numbers): a garden drawn to scale, its four parts in four soft colors. */
+:root {
+  --fq-garden-soil: #8A5A2B; --fq-garden-meter: #3E7A12; --fq-garden-cut: #8DBF63;
+  --fq-garden-ww: #CDEBB0; --fq-garden-wp: #FFE7A8; --fq-garden-pw: #CFE7FF; --fq-garden-pp: #FFD3E4;
+}
+.dark {
+  --fq-garden-soil: #D9A46B; --fq-garden-meter: #A6F07A; --fq-garden-cut: #5E8F3A;
+  --fq-garden-ww: #2E5A17; --fq-garden-wp: #5A4710; --fq-garden-pw: #173F63; --fq-garden-pp: #5C2340;
+}
+.fq-garden { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; gap: 2px 8px; align-items: center; width: min(100%, 300px); margin: 0 auto; }
+.fq-garden-top { grid-column: 2; justify-self: center; font-weight: 700; color: var(--fq-garden-soil); }
+.fq-garden-side { grid-row: 2; font-weight: 700; color: var(--fq-garden-soil); }
+.fq-svg-garden { grid-column: 2; grid-row: 2; display: block; width: 100%; height: auto; }
+.fq-garden-whole-whole { fill: var(--fq-garden-ww); }
+.fq-garden-whole-part { fill: var(--fq-garden-wp); }
+.fq-garden-part-whole { fill: var(--fq-garden-pw); }
+.fq-garden-part-part { fill: var(--fq-garden-pp); }
+.fq-garden-cut { stroke: var(--fq-garden-cut); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.fq-garden-meter { stroke: var(--fq-garden-meter); stroke-width: 3.5; }
+.fq-garden-frame { fill: none; stroke: var(--fq-garden-soil); stroke-width: 5; }
+.fq-garden-part-label, .fq-garden-part-label text { font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; font-weight: 700; fill: hsl(var(--foreground)); text-anchor: middle; dominant-baseline: central; }
+.fq-garden-part-label line { stroke: hsl(var(--foreground)); stroke-width: 2; }
+@media (max-width: 560px) { .fq-garden { width: min(100%, 250px); } }
