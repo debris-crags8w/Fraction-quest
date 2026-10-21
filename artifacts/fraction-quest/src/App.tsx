@@ -89,6 +89,10 @@ import { AppMenu } from './AppMenu';
 const PaperCheck = lazy(() => import('./PaperCheck'));
 const Challenge = lazy(() => import('./Challenge'));
 const ParentView = lazy(() => import('./ParentView'));
+/** The Lesson tester exists on the development server only: production builds drop this import (and the page). */
+const LessonTester = import.meta.env.DEV ? lazy(() => import('./LessonTester')) : null;
+/** `?lessons` in the address opens the Lesson tester (development server only). */
+const lessonsParamPresent = () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('lessons');
 const FractionRace = lazy(() => import('./FractionRace'));
 const CodeQuest = lazy(() => import('./CodeQuest'));
 const PlacementQuiz = lazy(() => import('./PlacementQuiz'));
@@ -125,6 +129,8 @@ type PaperView = { type: 'paper'; missionId: string; /** Opened from the lesson 
 type RedoView = { type: 'redo'; missionId: string };
 type ChallengeView = { type: 'challenge'; unit: number };
 type ParentPage = { type: 'parent' };
+/** Development only: every lesson by unit, each opened as an isolated test. `unit` is brought into view. */
+type TesterView = { type: 'lesson-tester'; unit?: number };
 type GameView = { type: 'race' | 'code'; missionId: string; /** Opened from the Games menu: go back there. */ fromGames?: boolean };
 type PlacementView = { type: 'placement' };
 type SubscribeView = { type: 'subscribe' };
@@ -541,7 +547,7 @@ function storybookChapters(progress: Progress): StorybookChapter[] {
   });
 }
 
-function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement, onStorybook, onStory, onPrologue }: { progress: Progress; onStart: (missionId: string) => void; onStorybook: (tab: StorybookTab, unit?: number) => void; onStory: (missionId: string) => void; onPrologue: () => void; onDeveloperTest: (missionId: string) => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
+function MissionMap({ progress, onStart, onDeveloperTest, onLessonTester, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement, onStorybook, onStory, onPrologue }: { progress: Progress; onStart: (missionId: string) => void; onStorybook: (tab: StorybookTab, unit?: number) => void; onStory: (missionId: string) => void; onPrologue: () => void; onDeveloperTest: (missionId: string) => void; onLessonTester?: () => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
   const account = useAccount();
   const { user } = account;
   const { fun } = useFun();
@@ -624,7 +630,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onOpenLab, onStartRevi
                   : `Course complete · ${totalStars} stars collected`}
               </p>
             </div>
-            <DeveloperChip unitTitles={UNIT_TITLES} onOpen={onDeveloperTest} />
+            <DeveloperChip unitTitles={UNIT_TITLES} onOpen={onDeveloperTest} onOpenTester={onLessonTester} />
           </div>
           <SeasonBanner />
           {storyOn && <StoneBanner completedUnits={completedStoryUnits(progress)} onStorybook={() => onStorybook('story')}
@@ -1321,13 +1327,16 @@ function Game() {
   const [moduleTestActive, setModuleTestActive] = useState(false);
   const originalModuleTestProgress = useRef<Progress | null>(null);
   const originalModuleTestFun = useRef<FunState | null>(null);
-  const [requestedView, setView] = useState<View | LabView | RetentionView | PaperView | RedoView | ChallengeView | ExtraView | ParentPage | GameView | PlacementView>({ type: 'map' });
+  const [requestedView, setView] = useState<View | LabView | RetentionView | PaperView | RedoView | ChallengeView | ExtraView | ParentPage | GameView | PlacementView | TesterView>(
+    () => (import.meta.env.DEV && lessonsParamPresent() ? { type: 'lesson-tester' } : { type: 'map' }));
+  /** A test opened from the Lesson tester goes back there (to this unit) when it ends, not to the map. */
+  const testerReturnUnit = useRef<number | null>(null);
   // In the app (iPhone and Android), lessons need the subscription: a lesson asked for without one shows the
   // subscription flow instead, and opens by itself once the purchase goes through. In a plain browser, lessons after
   // the first point to the app. Developer tests are never locked.
   const subscription = useSubscription();
   const locked = lessonsLocked(subscription) || (!subscription && webLessonsLocked());
-  const view: typeof requestedView | SubscribeView = locked && !moduleTestActive && !isFreeView(requestedView)
+  const view: typeof requestedView | SubscribeView = locked && !moduleTestActive && !isFreeView(requestedView) && !(import.meta.env.DEV && requestedView.type === 'lesson-tester')
     ? { type: 'subscribe' } : requestedView;
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
@@ -1445,7 +1454,7 @@ function Game() {
     consecutiveWrongAnswers.current = 0;
   }, [breakIntervalMinutes]);
 
-  const startMission = (missionId: string, testProgress?: Progress, afterStory = false) => {
+  const startMission = (missionId: string, testProgress?: Progress, afterStory = false, testFromStory = false) => {
     const activeProgress = testProgress ?? progress;
     if (!testProgress && !isMissionUnlocked(activeProgress, missionId)) return;
     const record = getLearningRecord(activeProgress, missionId);
@@ -1461,7 +1470,9 @@ function Game() {
         return;
       }
     }
-    if (!afterStory && !testProgress && storyMode && mission && chapterFor(mission.unit) && !record.practiceDone && !hasLearningGate(activeProgress, missionId)) {
+    if (!afterStory && (!testProgress || testFromStory) && storyMode && mission && chapterFor(mission.unit) && !record.practiceDone && !hasLearningGate(activeProgress, missionId)) {
+      // A Lesson tester test starts at the lesson's own story (the one-time prologue is not part of the lesson).
+      if (testFromStory) { primeReadAloud(); setView({ type: 'story', missionId }); return; }
       // The comic starts reading by itself, so unlock sound while still inside the tap that opened it.
       primeReadAloud();
       // The very first lesson opens with the one-time comic prologue (it introduces the Whole Stone).
@@ -1494,16 +1505,44 @@ function Game() {
       showExample: true,
     });
   };
-  const startDeveloperLessonTest = (missionId: string) => {
-    if (!import.meta.env.DEV || moduleTestActive) return;
-    const previewProgress = createDeveloperLessonProgress(progress, missionId);
-    if (!previewProgress) return;
+  /** Swap in temporary progress for a test; returnToMap puts the real progress (and fun) back, saving nothing. */
+  const beginIsolatedTest = (testProgress: Progress) => {
     originalModuleTestProgress.current = progress;
     originalModuleTestFun.current = fun;
     setFunStorageEnabled(false);
     setModuleTestActive(true);
-    setProgress(previewProgress);
-    startMission(missionId, previewProgress);
+    setProgress(testProgress);
+  };
+  /** `quick`: straight to the questions (the developer dropdown). `start`: from the lesson's story. `lab`: straight into
+      its builds and worksheet, as if its practice were done. */
+  const startDeveloperLessonTest = (missionId: string, mode: 'quick' | 'start' | 'lab' = 'quick', fromTester = false) => {
+    if (!import.meta.env.DEV || moduleTestActive) return;
+    const previewProgress = createDeveloperLessonProgress(progress, missionId);
+    if (!previewProgress) return;
+    testerReturnUnit.current = fromTester ? MISSIONS.find((mission) => mission.id === missionId)?.unit ?? null : null;
+    if (mode === 'lab') {
+      const record = getLearningRecord(previewProgress, missionId);
+      beginIsolatedTest({ ...previewProgress, learning: { ...previewProgress.learning, [missionId]: { ...record, practiceDone: true } } });
+      setView({ type: 'lab', missionId, stars: 1 });
+      return;
+    }
+    beginIsolatedTest(previewProgress);
+    startMission(missionId, previewProgress, false, mode === 'start');
+  };
+  /** A unit's challenge as an isolated test from the Lesson tester (a new best score is not kept). */
+  const startDeveloperChallengeTest = (unit: number) => {
+    if (!import.meta.env.DEV || moduleTestActive) return;
+    testerReturnUnit.current = unit;
+    beginIsolatedTest(progress);
+    setView({ type: 'challenge', unit });
+  };
+  const openLessonTester = () => { if (import.meta.env.DEV) setView({ type: 'lesson-tester' }); };
+  const leaveLessonTester = () => {
+    if (lessonsParamPresent()) {
+      const url = new URL(window.location.href); url.searchParams.delete('lessons');
+      window.history.replaceState(window.history.state, '', url);
+    }
+    returnToMap();
   };
 
   const startReview = () => {
@@ -1593,6 +1632,12 @@ function Game() {
       originalModuleTestFun.current = null;
       setModuleTestActive(false);
     }
+    if (import.meta.env.DEV && testerReturnUnit.current !== null) {
+      const unit = testerReturnUnit.current;
+      testerReturnUnit.current = null;
+      setView({ type: 'lesson-tester', unit });
+      return;
+    }
     setView({ type: 'map' });
   };
   // The browser's back button returns to the map instead of leaving Fraction Quest: opening any screen adds one
@@ -1654,7 +1699,7 @@ function Game() {
         <button type="button" onClick={returnToMap} data-testid="button-exit-developer-test">Exit test</button>
       </div>}
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
-      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onDeveloperTest={startDeveloperLessonTest} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId) && paperCheckOpen(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} onStorybook={(tab, unit) => setView({ type: 'storybook', tab, unit })} onStory={(missionId) => { primeReadAloud(); setView({ type: 'story', missionId, replay: 'map' }); }}
+      {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onDeveloperTest={startDeveloperLessonTest} onLessonTester={import.meta.env.DEV ? openLessonTester : undefined} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId) && paperCheckOpen(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} onStorybook={(tab, unit) => setView({ type: 'storybook', tab, unit })} onStory={(missionId) => { primeReadAloud(); setView({ type: 'story', missionId, replay: 'map' }); }}
         onPrologue={() => {
           // Not seen yet: the same start as the next lesson's (the prologue, then that lesson). Seen: watch it again.
           const next = getNextMission(progress) ?? MISSIONS[0];
@@ -1716,7 +1761,13 @@ function Game() {
           intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} />}
           onExit={returnToMap} onDone={toQuestions} />;
       })()}
-      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onDeveloperTest={startDeveloperLessonTest} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
+      {import.meta.env.DEV && LessonTester && view.type === 'lesson-tester' && (
+        <LessonTester unitTitles={UNIT_TITLES} focusUnit={view.unit} onBack={leaveLessonTester}
+          onStart={(missionId) => startDeveloperLessonTest(missionId, 'start', true)}
+          onLab={(missionId) => startDeveloperLessonTest(missionId, 'lab', true)}
+          onChallenge={startDeveloperChallengeTest} />
+      )}
+      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onDeveloperTest={startDeveloperLessonTest} onOpenLessonTester={import.meta.env.DEV ? openLessonTester : undefined} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);
         const baseIds = base.questions.map((q) => q.id);

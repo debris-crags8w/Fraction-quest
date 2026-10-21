@@ -53,10 +53,12 @@ function DisplaySettings({ preferences, onChange }: { preferences: DisplayPrefer
   );
 }
 
-export default function ParentView({ progress, fun, unitTitles, childName, onBack, onDeveloperTest, onBreakPreferencesChange, onDisplayPreferencesChange }: {
+export default function ParentView({ progress, fun, unitTitles, childName, onBack, onDeveloperTest, onOpenLessonTester, onBreakPreferencesChange, onDisplayPreferencesChange }: {
   progress: Progress; fun: FunState; unitTitles: string[]; childName: string | null; onBack: () => void;
   /** Open a lesson as an isolated developer test (development builds only). */
   onDeveloperTest?: (missionId: string) => void;
+  /** Development server only: opens the Lesson tester. */
+  onOpenLessonTester?: () => void;
   onBreakPreferencesChange: (preferences: BreakPreferences) => void;
   onDisplayPreferencesChange: (preferences: DisplayPreferences) => void;
 }) {
@@ -279,7 +281,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
 
           <FamilyGuide unitTitles={unitTitles} />
 
-          {onDeveloperTest && <DeveloperSettings unitTitles={unitTitles} onOpen={onDeveloperTest} />}
+          {onDeveloperTest && <DeveloperSettings unitTitles={unitTitles} onOpen={onDeveloperTest} onOpenTester={onOpenLessonTester} />}
 
           <footer className="fq-parent-foot">
             <p><b>How to read this.</b> "First try" counts worksheet answers that were right the first time they were checked. "Builds" are the bar and number-line tasks: "On their own" means no hints and no wrong tries. "Remembered" means your child rebuilt it correctly on a later day without help.</p>
