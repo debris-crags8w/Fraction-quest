@@ -62,7 +62,7 @@ export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
       <div className="fq-app"><main className="fq-shell fq-place fq-appear" data-testid="placement-result">
         <section className="fq-place-card">
           <Mascot mood="cheer" size={90} />
-          <h1 data-testid="text-placement-result">{start === 1 ? 'Start at the beginning' : start > PLACEMENT_UNITS ? 'Wow! Start at unit 9' : `Start at unit ${start}`}</h1>
+          <h1 data-testid="text-placement-result">{start === 1 ? 'Start at the beginning' : start > PLACEMENT_UNITS ? `Wow! Start at unit ${start}` : `Start at unit ${start}`}</h1>
           <p>{passed === 0 ? 'Unit 1 is the perfect place to start. Have fun!' : `You already know units 1${passed > 1 ? `–${passed}` : ''}. ${start <= unitTitles.length ? `Next up: ${unitTitles[start - 1]}.` : ''}`}</p>
           {passed > 0 && <p className="fq-place-small">Those lessons stay open if you want to visit them. They won't count as done until you finish them.</p>}
           <div className="fq-reward-actions">

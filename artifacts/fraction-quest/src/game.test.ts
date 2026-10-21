@@ -15,7 +15,7 @@ import { FunContext, splitStory, StoryPrompt } from './fun-ui';
 import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
 import { createNaturalSpeaker, isIOSVoiceDevice, naturalVoicePreference, naturalVoiceStatus, setNaturalEngineForTests, setNaturalVoicePreference } from './lib/natural-voice';
-import { applyPlacement, placementItems, PLACEMENT_UNITS } from './placement';
+import { applyPlacement, placementItems, PLACEMENT_UNITS, startUnit } from './placement';
 import { buildAssessmentItems, getAssessmentDefinitions } from './assessments';
 import { applyAnswer, newRacer, RACE_GOAL, raceStars, ROBOT_LEVELS } from './FractionRace';
 import { makeSprint, SPRINT_ROUNDS } from './CodeSprint';
@@ -3160,6 +3160,19 @@ describe('grid, scaling and share-or-fit lessons', () => {
 });
 
 describe('placement quiz', () => {
+  it('reaches the grade 5 units: a child who knows units 1–12 starts at unit 13, and every question can be answered with what the quiz shows', () => {
+    assert.equal(PLACEMENT_UNITS, 12, 'Find my level covers the grade 5 units 9–12');
+    assert.equal(startUnit(12), 13);
+    for (let unit = 1; unit <= PLACEMENT_UNITS; unit++) for (let seed = 1; seed <= 12; seed++) {
+      for (const item of placementItems(unit, seed)) {
+        const p = item.problem;
+        // The quiz shows bars, number lines, sets and read-only areas: never a ruler, line plot, slider or colouring task.
+        assert.ok(!p.rulerTask && !p.linePlotTask && !p.scaleTask && !p.areaTask, `unit ${unit}: ${p.prompt}`);
+        assert.ok(!/use the ruler|line plot|slider|colou?r the/i.test(p.prompt), `unit ${unit} needs a tool the quiz doesn't show: ${p.prompt}`);
+      }
+    }
+  });
+
   it('asks 3 answerable typed questions for each of units 1–8', () => {
     for (let unit = 1; unit <= PLACEMENT_UNITS; unit++) for (const seed of [1, 2, 3]) {
       const items = placementItems(unit, seed);
