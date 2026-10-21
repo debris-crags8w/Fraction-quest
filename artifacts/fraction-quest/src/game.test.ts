@@ -4205,3 +4205,82 @@ describe('adding and subtracting questions offer real mistakes, not near-miss nu
     assert.deepEqual([...new Set(bad)].slice(0, 15), [], `${bad.length} near-miss choices`);
   });
 });
+
+describe('multiplying and dividing questions offer real mistakes, not near-miss numbers', () => {
+  // Worked out here again, apart from the app: the mistakes a child really makes multiplying or dividing.
+  const N = Number;
+  const mixed = (t: string) => { const m = /^(?:(\d+) )?(\d+)\/(\d+)$/.exec(t)!; return N(m[1] ?? 0) + N(m[2]) / N(m[3]); };
+  // nearOnly: whole-number answers keep wrong choices more than 2 away (misconceptions.ts); only near misses must go.
+  function mistakes(prompt: string): { right: number; slips: number[]; nearOnly?: boolean } | null {
+    let p = prompt.replace(/^Quick review · [^:]+: /, ''); let m: RegExpExecArray | null;
+    let said: number | null = null;
+    if ((m = /^\w+ says (.+) = ([\d /]+)\. What is the right answer\?$/.exec(p))) { p = `${m[1]} = ?`; said = mixed(m[2]); }
+    const extra = (r: { right: number; slips: number[] }) => (said === null ? r : { ...r, slips: [said, ...r.slips] });
+    // A whole number times a fraction, and recipes made several times.
+    if ((m = /^(?:Write )?(\d+) × (\d+)\/(\d+)(?: = \?| as one fraction\.)$|^A recipe uses (\d+)\/(\d+) cup of \w+\. (?:You make (\d+) batches\. How much \w+ do you need|How much \w+ do (\d+) batches need)\?$/.exec(p))) {
+      const [n, a, b] = m[1] ? [N(m[1]), N(m[2]), N(m[3])] : [N(m[6] ?? m[7]), N(m[4]), N(m[5])];
+      return extra({ right: (n * a) / b, slips: [(n * a) / (n * b), (n + a) / b, a / (n * b), a / b, b / (n * a), (n * a) / (b + n)] });
+    }
+    // A fraction of a fraction.
+    if ((m = /^(?:What is )?(\d+)\/(\d+) (?:×|of) (\d+)\/(\d+)(?: = \?|\?)$/.exec(p))) {
+      const [a, b, c, d] = m.slice(1).map(N);
+      return extra({ right: (a * c) / (b * d), slips: [(a + c) / (b + d), (a * c) / d, (a * c) / b, (a + c) / (b * d), (a * c) / (b + d), (a * d) / (b * c), (b * d) / (a * c)] });
+    }
+    // A unit fraction shared: 1/3 ÷ 3.
+    if ((m = /^(\d+) children share 1\/(\d+) of a pan\. 1\/\2 ÷ \1 = \?$/.exec(p))) {
+      const [n, b] = [N(m[1]), N(m[2])];
+      return { right: 1 / (b * n), slips: [n / b, b * n, 1 / (b + n), 1 / b, 2 / (b * n)] };
+    }
+    // Wholes shared, and a ÷ b written as a fraction.
+    if ((m = /^(\d+) loa(?:f is|ves are) shared fairly by (\d+) friends\. How much does each friend get\?$|^(?:Write )?(\d+) ÷ (\d+)(?: = \?| as a fraction\.)$/.exec(p))) {
+      const [n, q] = m[1] ? [N(m[1]), N(m[2])] : [N(m[3]), N(m[4])];
+      return { right: n / q, slips: [q / n, 1 / q, n / (n + q), (n + q) / q, 1 / n] };
+    }
+    // A mixed-number garden: whole × whole plus part × part, the wholes only, the sides added, one side's whole only.
+    if ((m = /^A rectangular garden is (\d+ \d+\/\d+) meters by (\d+ \d+\/\d+) meters\. What is its area\?$/.exec(p))) {
+      const [x, y] = [mixed(m[1]), mixed(m[2])]; const [wx, wy] = [Math.floor(x), Math.floor(y)];
+      return { right: x * y, slips: [wx * wy + (x - wx) * (y - wy), wx * wy, x + y, wx * y, x * wy] };
+    }
+    // The overlap on the 3-by-4 grid: the sides added, one side only, the whole grid, the part not colored, upside down.
+    if ((m = /is (\d+(?:\/\d+)?) units? by (\d+(?:\/\d+)?) units?\. Color the overlapping area/.exec(p))) {
+      const [x, y] = [m[1], m[2]].map((t) => (t.includes('/') ? mixed(t) : N(t)));
+      return { right: x * y, slips: [x + y, x, y, 1, 1 - x * y, 1 / (x * y)] };
+    }
+    // Leveling: the total, the biggest or smallest cup, split 2 ways, the tops shared over the cups.
+    if ((m = /^Three \w+(?: \w+)? hold (\d+)\/(\d+), (\d+)\/\2, (\d+)\/\2 liter\. Share the total equally\./.exec(p))) {
+      const [a, b, c, e] = m.slice(1).map(N); const t = a + c + e;
+      return { right: t / (3 * b), slips: [t / b, Math.max(a, c, e) / b, Math.min(a, c, e) / b, t / (2 * b), t / 3, (t / 3) / (b + 3)] };
+    }
+    // A fraction of a group: one group, the rest, the whole, multiplied, the denominator taken away, the denominator.
+    if ((m = /^What is (\d+)\/(\d+) of (\d+)(?: [a-z]+(?: [a-z]+)?)?\?$/.exec(p))) {
+      const [a, b, n] = m.slice(1).map(N); const right = (n / b) * a;
+      return { right, slips: [n / b, n - right, n, n * a, n * b, n - b, n + b, n - n / b, b], nearOnly: true };
+    }
+    // How many 2/3s… 2/3 ÷ 1/6 = 4: the tops multiplied, how many in one whole, the top or the bottom.
+    if ((m = /^(\d+)\/(\d+) ÷ (\d+)\/(\d+) = \?$/.exec(p))) {
+      const [a, b, c, d] = m.slice(1).map(N);
+      return { right: (a / b) / (c / d), slips: [a * d, d, b, a, (a * c) / (b * d)] };
+    }
+    return null;
+  }
+
+  it('every wrong choice in a lesson, its review and Extra practice is a real mistake', () => {
+    const bad: string[] = []; let checked = 0;
+    const questions = MISSIONS.flatMap((lesson) => [
+      ...lesson.questions,
+      ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
+    ]);
+    for (const question of questions) {
+      const found = mistakes(question.prompt);
+      if (!found || Math.abs(found.right - answerValue(question.choices[question.correctChoice])) > 1e-9) continue;
+      question.choices.forEach((choice, at) => {
+        if (at === question.correctChoice) return;
+        checked++;
+        if (found.nearOnly && Math.abs(answerValue(choice) - found.right) > 2) return;
+        if (!found.slips.some((slip) => Math.abs(slip - answerValue(choice)) < 1e-9)) bad.push(`${question.prompt} → ${choice}`);
+      });
+    }
+    assert.ok(checked > 300, `only ${checked} choices checked`);
+    assert.deepEqual([...new Set(bad)].slice(0, 15), [], `${bad.length} near-miss choices`);
+  });
+});
