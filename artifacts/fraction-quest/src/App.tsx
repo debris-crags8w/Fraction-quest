@@ -27,6 +27,7 @@ import {
   sameFractionValue,
   saveProgress,
   setModelLayout,
+  areaFigures,
   starsFromFirstTryAnswers,
   type Answer,
   type Mission,
@@ -421,7 +422,16 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
           <WholeBracket />
         </div>
       )}
-      {model.kind === 'area' && <div className="fq-area-model"><AreaSvg figure={{ cut: model.cut, shaded: model.shaded }} /></div>}
+      {model.kind === 'area' && (() => { const figures = areaFigures(model); return (
+        <div className={`fq-area-model ${figures.length > 1 ? 'is-several' : ''}`}>
+          {figures.map((figure, index) => (
+            <figure className="fq-area-figure" style={{ '--area-scale': figure.scale ?? 1 } as CSSProperties} key={index}>
+              <AreaSvg figure={{ cut: figure.cut, shaded: figure.shaded }} />
+              {figure.label && <figcaption><MathText text={figure.label} /></figcaption>}
+            </figure>
+          ))}
+        </div>
+      ); })()}
       {model.kind === 'lineplot' && <LinePlotPicture denominator={model.denominator} wholes={model.wholes} values={model.values} />}
       {model.kind === 'equation' && <div className="fq-model-equation" role="img" aria-label={`Visual equation ${model.text}`}><MathText text={model.text} /></div>}
       {model.kind === 'decimal' && (

@@ -9,7 +9,21 @@ export type AreaCut =
   | 'fourths-squares' | 'fourths-strips' | 'fourths-triangles' | 'fourths-mixed'
   | 'fourths-unequal' | 'strips-unequal' | 'quarter-and-triangles' | 'eighths-triangles' | 'halves-triangles'
   | 'rect-halves' | 'rect-thirds' | 'rect-fourths' | 'hexagon-sixths' | 'grid-3x4'
-  | 'circle-halves' | 'circle-thirds' | 'circle-fourths' | 'circle-sixths' | 'circle-eighths' | 'circle-unequal';
+  | 'circle-halves' | 'circle-thirds' | 'circle-fourths' | 'circle-sixths' | 'circle-eighths' | 'circle-tenths' | 'circle-unequal'
+  /** A hundredths grid: 10 columns by 10 rows. */
+  | 'grid-10x10'
+  /** A square cut into columns × rows (multiplying fractions on a grid). Pieces count across each row, top row first. */
+  | GridCut;
+type GridSide = 2 | 3 | 4 | 5 | 6;
+export type GridCut = `grid-${GridSide}x${GridSide}`;
+/** The grid that multiplies a/rows × b/cols: `rows` rows for one fraction, `cols` columns for the other. */
+export const gridCut = (cols: number, rows: number): GridCut => {
+  if (![cols, rows].every((side) => Number.isInteger(side) && side >= 2 && side <= 6)) throw new RangeError(`No ${cols}-by-${rows} grid`);
+  return `grid-${cols}x${rows}` as GridCut;
+};
+/** Piece numbers where the first `shadedRows` rows and first `shadedCols` columns overlap. */
+export const gridOverlap = (cols: number, shadedRows: number, shadedCols: number): number[] =>
+  Array.from({ length: shadedRows * shadedCols }, (_, k) => Math.floor(k / shadedCols) * cols + (k % shadedCols));
 export type AreaFigure = { cut: AreaCut; shaded?: number[] };
 /** Color pieces that add up to n/d of the square. `avoid` pieces can't be used ("color it a different way"). */
 export type AreaTask = { n: number; d: number; avoid?: number[] };
@@ -32,6 +46,9 @@ const wedges = (sizes: number[], vertices = 48): Piece[] => {
   });
 };
 const fan = (parts: number) => wedges(Array.from({ length: parts }, () => 1 / parts));
+/** Equal cells, counted across each row from the top left. */
+const grid = (cols: number, rows: number): Piece[] =>
+  Array.from({ length: cols * rows }, (_, i) => sq((i % cols) / cols, Math.floor(i / cols) / rows, 1 / cols, 1 / rows, cols === rows ? 'square' : 'rect'));
 const hexagonVertices: Point[] = Array.from({ length: 6 }, (_, i) => {
   const angle = -Math.PI / 6 + i * Math.PI / 3;
   return [.5 + .48 * Math.cos(angle), .5 + .48 * Math.sin(angle)];
@@ -74,7 +91,9 @@ export const AREA_CUTS: Record<AreaCut, Piece[]> = {
   // A "pizza" with 4 slices that are not fair: one slice is much bigger.
   'circle-unequal': wedges([.4, .2, .2, .2]),
   'hexagon-sixths': hexagonSixths,
-  'grid-3x4': Array.from({ length: 12 }, (_, i) => sq((i % 3) / 3, Math.floor(i / 3) / 4, 1 / 3, 1 / 4, 'rect')),
+  'circle-tenths': fan(10),
+  'grid-10x10': grid(10, 10),
+  ...(Object.fromEntries(([2, 3, 4, 5, 6] as const).flatMap((cols) => ([2, 3, 4, 5, 6] as const).map((rows) => [`grid-${cols}x${rows}`, grid(cols, rows)]))) as Record<GridCut, Piece[]>),
 };
 
 const circleOutline = Array.from({ length: 48 }, (_, i): Point => {
