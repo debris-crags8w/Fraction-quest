@@ -92,7 +92,8 @@ export const MISSION_STANDARDS: Record<string, StandardId[]> = {
   'fraction-of-quantity': ['5.NF.4a'],
   'mixed-unlike-operations': ['5.NF.1'],
   'estimate-fraction-operations': ['5.NF.2'],
-  'multiply-whole-by-fraction': ['4.NF.4b'],
+  // Its first questions are groups of a unit fraction (3 × 1/3), then of any fraction.
+  'multiply-whole-by-fraction': ['4.NF.4b', '4.NF.4a'],
   'multiply-fractions': ['5.NF.4a'],
   'fraction-times-fraction': ['5.NF.4a'],
   'fraction-of-collection': ['5.NF.4a'],
@@ -102,7 +103,8 @@ export const MISSION_STANDARDS: Record<string, StandardId[]> = {
   'bigger-or-smaller': ['5.NF.5'],
   'multiply-mixed-numbers': ['5.NF.4b', '5.NF.6'],
   'unit-fraction-divided-whole': ['5.NF.7a'],
-  'share-or-fit': ['5.NF.7c'],
+  // Half its stories share a unit fraction (5.NF.7a), half fit unit fractions into wholes (5.NF.7b).
+  'share-or-fit': ['5.NF.7c', '5.NF.7a', '5.NF.7b'],
   'fraction-of-length': ['5.NF.4a'],
   'fractional-measure-addition': ['5.NF.2', '5.NF.1'],
   'ruler-measurement': ['3.MD.4'],
@@ -110,7 +112,8 @@ export const MISSION_STANDARDS: Record<string, StandardId[]> = {
   'read-line-plots': ['4.MD.4'],
   'line-plot-leveling': ['5.MD.2'],
   'measurement-word-problems': ['4.MD.2'],
-  'fractional-unit-conversions': ['5.MD.1'],
+  // A fraction of a unit in a smaller unit (1/2 liter = 500 milliliters) is also the grade 4 measurement skill.
+  'fractional-unit-conversions': ['5.MD.1', '4.MD.2'],
   'fractional-sharing': ['5.NF.3'],
   'fraction-as-division': ['5.NF.3'],
   'fraction-probability': [],
