@@ -151,14 +151,13 @@ const EXPECTED_COURSE: Record<number, string[]> = {
     'hundredths-decimals', 'decimal-fraction-equivalence', 'compare-decimals', 'compare-decimals-grid', 'add-tenths-hundredths',
     'unit-fraction-multiples', 'multiply-whole-by-fraction'],
   9: ['simplify-fractions', 'equivalent-missing-both', 'compare-unlike-fractions', 'order-unlike-fractions', 'read-line-plots',
-    'measurement-word-problems'],
+    'measurement-word-problems', 'fraction-recipes'],
   10: ['add-related-fractions', 'add-unlike-fractions', 'subtract-unlike-fractions', 'mixed-unlike-operations', 'estimate-fraction-operations'],
   11: ['sets-unit-fractions', 'sets-nonunit', 'fraction-of-quantity', 'multiply-fractions', 'fraction-times-fraction',
-    'fraction-of-collection', 'divide-whole-by-unit-fraction', 'multiplication-scaling', 'bigger-or-smaller',
-    'unit-fraction-divided-whole', 'share-or-fit'],
+    'fraction-of-collection', 'multiplication-scaling', 'bigger-or-smaller'],
   12: ['fraction-of-length', 'fractional-measure-addition', 'line-plot-leveling', 'fractional-unit-conversions', 'fractional-sharing',
-    'fraction-as-division'],
-  13: ['fraction-probability', 'fractional-side-area', 'multiply-mixed-numbers', 'fraction-recipes'],
+    'fraction-as-division', 'unit-fraction-divided-whole', 'divide-whole-by-unit-fraction', 'share-or-fit'],
+  13: ['fraction-probability', 'fractional-side-area', 'multiply-mixed-numbers'],
   14: ['fractions-to-percent', 'percent-to-fraction', 'multi-step-fraction-stories'],
   15: ['find-the-whole', 'spot-the-mistake', 'fraction-of-remainder', 'divide-fractions'],
 };
@@ -289,7 +288,7 @@ describe('lesson catalog', () => {
         [...new Set(MISSIONS.map((mission) => mission.unit))]
           .map((unit) => [unit, MISSIONS.filter((mission) => mission.unit === unit).length]),
       ),
-      { 1: 4, 2: 2, 3: 3, 4: 5, 5: 2, 6: 4, 7: 5, 8: 12, 9: 6, 10: 5, 11: 11, 12: 6, 13: 4, 14: 3, 15: 4 },
+      { 1: 4, 2: 2, 3: 3, 4: 5, 5: 2, 6: 4, 7: 5, 8: 12, 9: 7, 10: 5, 11: 8, 12: 9, 13: 3, 14: 3, 15: 4 },
     );
   });
 
@@ -2348,10 +2347,10 @@ describe('unit challenges', () => {
     'u9-c5': ['7/8', '5/6', '9/10', '3/4', '11/12'].sort((a, b) => { const [an, ad] = a.split('/').map(Number); const [bn, bd] = b.split('/').map(Number); return (1 - an / ad) - (1 - bn / bd); })[0],
     'u10-p1': '1/4', 'u10-c1': String(1.5 + 2.5), 'u10-c2': `${3 + 2}/6`, 'u10-c3': '1 1/2',
     'u10-c4': ['1/3 + 1/4', '2/5 + 1/2', '3/8 + 1/2', '5/6 + 1/2'].find((sum) => sum.split(' + ').reduce((total, f) => { const [t, b] = f.split('/').map(Number); return total + t / b; }, 0) > 1)!, 'u10-c5': '1/4 liter',
-    'u11-p1': '6/12', 'u11-c1': String(20 / 4), 'u11-c2': String(4 * 3), 'u11-c3': '6/12', 'u11-c4': String(30 - 30 / 5 - 30 / 3), 'u11-c5': String(3 * 4 - 5),
-    'u12-p1': `${(3 / 4) * 100} cm`, 'u12-c1': '3/4', 'u12-c2': `${(100 / 5) * 3} cm`, 'u12-c3': '1 1/8 m',
+    'u11-p1': '6/12', 'u11-c1': String(20 / 4), 'u11-c2': '2/3 × 12', 'u11-c3': '6/12', 'u11-c4': String(30 - 30 / 5 - 30 / 3), 'u11-c5': String(((24 / 4) * 3) / 2),
+    'u12-p1': `${(3 / 4) * 100} cm`, 'u12-c1': '3/4', 'u12-c2': String(4 * 3), 'u12-c3': '1 1/8 m',
     'u12-c4': ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'][[2 / 5, 3 / 8, 1 / 3, 3 / 10, 1 / 4].indexOf(Math.max(2 / 5, 3 / 8, 1 / 3, 3 / 10, 1 / 4))],
-    'u12-c5': `${(200 / 8) * 5} cm`,
+    'u12-c5': String(3 * 4 - 5),
     'u13-p1': '3/10', 'u13-c1': '3/6', 'u13-c2': `${(3 * 2) / 3} cups`,
     'u13-c3': `${3 * 2}/${4 * 3} square meter`,
     'u13-c4': `${12 - 3 - 4}/12`, 'u13-c5': '1 1/8 cups',
@@ -2419,8 +2418,8 @@ describe('long problems', () => {
       'u7-c5': ['6/3', '8/3', '3'], 'u8-c4': ['5/10 m', '2/10 m'], 'u8-c5': ['3', '5/4', '4 1/4'],
       'u9-c4': ['8/12', '9/12', '10/12'],
       'u10-c3': ['2 5/4', '1 2/4', '1 1/2'], 'u10-c4': ['More than 1/2', 'More than 1'], 'u10-c5': ['10/12', '4/12 and 3/12', '3/12'],
-      'u11-c4': ['6', '10', '14'], 'u11-c5': ['4', '12', '7'],
-      'u12-c3': ['4/8', '2/8', '9/8'], 'u12-c4': ['2/5', '3/8', '2/5'], 'u12-c5': ['200', '25 cm', '125 cm'],
+      'u11-c4': ['6', '10', '14'], 'u11-c5': ['6', '18', '9'],
+      'u12-c3': ['4/8', '2/8', '9/8'], 'u12-c4': ['2/5', '3/8', '2/5'], 'u12-c5': ['4', '12', '7'],
       'u13-c4': ['7', '5', '5/12'], 'u13-c5': ['3/8 cup', '3/4 + 3/8', '9/8'],
       'u14-c3': ['85/100', '85%'], 'u14-c4': ['40%', '30%', '30%'], 'u14-c5': ['7/10', '3/10', '30%'],
       'u15-c3': ['4', '20'], 'u15-c4': ['9', '27', '18'], 'u15-c5': ['6/8', '6'],
@@ -3160,7 +3159,8 @@ describe('grid, scaling and share-or-fit lessons', () => {
     for (const q of times.questions.filter((item) => !item.isReview)) assert.ok(q.model.kind === 'area' && q.model.shaded.length === 0, q.prompt);
 
     const fit = lesson('share-or-fit');
-    assert.equal(MISSIONS.filter((m) => m.unit === 11).at(-1)?.id, 'share-or-fit');
+    // Dividing with unit fractions closes unit 12, after a fraction is a division (5.NF.3).
+    assert.deepEqual(MISSIONS.filter((m) => m.unit === 12).slice(-4).map((m) => m.id), ['fraction-as-division', 'unit-fraction-divided-whole', 'divide-whole-by-unit-fraction', 'share-or-fit']);
     assert.equal(fit.example.prompt, 'How many 1/3-cup servings are in 2 cups?');
     assert.match(fit.example.explanation, /2 ÷ 1\/3 = 6.*Check: 6 × 1\/3 = 2/);
     const clay = fit.questions.find((q) => /How much does each get\?$/.test(q.prompt))!;
@@ -4528,5 +4528,41 @@ describe('the rarer question types offer real mistakes too', () => {
     }
     assert.ok(checked > 150, `only ${checked} choices checked`);
     assert.deepEqual([...new Set(bad)].slice(0, 15), [], `${bad.length} near-miss choices`);
+  });
+});
+
+describe('the November 2026 move (a fraction is division before dividing; recipe stories in grade 4)', () => {
+  const ids = (from: string, to: string) => {
+    const all = MISSIONS.map((m) => m.id);
+    return all.slice(all.indexOf(from), all.indexOf(to) + 1);
+  };
+  const passed = (list: string[]): Progress => ({
+    ...EMPTY_PROGRESS, completedMissionIds: list,
+    learning: Object.fromEntries(list.map((id) => [id, { ...emptyLearningRecord(), completedAt: 1 }])),
+  });
+  const division = ['unit-fraction-divided-whole', 'divide-whole-by-unit-fraction', 'share-or-fit'];
+  const firstTo = (id: string) => ids('equal-parts', id).filter((lesson) => lesson !== 'fraction-recipes');
+
+  it('keeps every lesson open for a learner part way through unit 12 on the old order', () => {
+    // Old order: units 1–11 with the division lessons, then the first lesson of unit 12; recipes were still in unit 13.
+    const progress = passed([...firstTo('bigger-or-smaller'), ...division, 'fraction-of-length']);
+    assert.equal(isMissionUnlocked(progress, 'fractional-measure-addition'), true);
+    for (const id of division) assert.equal(isMissionUnlocked(progress, id), true, id);
+    assert.equal(isMissionUnlocked(progress, 'fraction-recipes'), true, 'the moved lesson is open to do any time');
+  });
+  it('keeps unit 13 open for a learner who finished the old unit 12', () => {
+    const progress = passed([...firstTo('bigger-or-smaller'), ...division, ...ids('fraction-of-length', 'fraction-as-division')]);
+    assert.equal(isMissionUnlocked(progress, 'fraction-probability'), true);
+  });
+  it('keeps unit 11 going for a learner who already did a division lesson there', () => {
+    const progress = passed([...firstTo('fraction-of-collection'), 'divide-whole-by-unit-fraction']);
+    assert.equal(isMissionUnlocked(progress, 'multiplication-scaling'), true);
+    assert.equal(isMissionUnlocked(progress, 'divide-whole-by-unit-fraction'), true);
+  });
+  it('takes a new learner through recipe stories at the end of grade 4, before unit 10', () => {
+    const progress = passed(ids('equal-parts', 'measurement-word-problems'));
+    assert.equal(isMissionUnlocked(progress, 'fraction-recipes'), true);
+    assert.equal(isMissionUnlocked(progress, 'add-related-fractions'), false);
+    assert.equal(isMissionUnlocked(passed(ids('equal-parts', 'fraction-recipes')), 'add-related-fractions'), true);
   });
 });

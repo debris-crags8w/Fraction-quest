@@ -167,23 +167,23 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   11: [
     q('u11-p1', 3, 'The square is one whole. The shaded part is 2/3 of 3/4 of it. What fraction of the whole square is shaded?', ['5/12', '6/12', '5/7', '8/12'], 1, '12 equal parts. 6 are shaded: 2/3 × 3/4 = 6/12.', { kind: 'grid', rows: 3, cols: 4, shaded: [0, 1, 2, 4, 5, 6] }),
     q('u11-c1', 3, 'There are 20 apples. 1/4 of them are red. How many apples are red?', ['4', '5', '8', '10'], 1, '20 in 4 equal groups is 5 each.'),
-    q('u11-c2', 3, 'How many 1/3 cups of rice fill 4 cups?', ['3', '7', '4', '12'], 3, '3 thirds fill 1 cup. 4 cups need 4 × 3 = 12.'),
+    q('u11-c2', 3, 'Without multiplying, which is less than 12?', ['3/2 × 12', '2/3 × 12', '5/4 × 12', '4/4 × 12'], 1, '2/3 is less than 1, so 2/3 × 12 is less than 12.'),
     q('u11-c3', 4, 'What is 3/4 of 2/3?', ['5/7', '6/7', '6/12', '5/12'], 2, 'Multiply the numerators: 3 × 2 = 6. Multiply the denominators: 4 × 3 = 12. So 6/12 (that is 1/2).'),
     q('u11-c4', 4, 'Leo has 30 cards. He gives 1/5 of them to Ana and 1/3 of them to Ben. How many cards does Leo keep?', ['14', '16', '8', '20'], 0, '1/5 of 30 is 6. 1/3 of 30 is 10. 30 − 6 − 10 = 14.', undefined, [
       step('What is 1/5 of 30?', ['5', '25', '6', '10'], 2),
       step('What is 1/3 of 30?', ['10', '3', '20', '15'], 0),
       step('30 − 6 − 10 = ?', ['16', '24', '20', '14'], 3),
     ]),
-    q('u11-c5', 5, 'A ribbon is 3 meters long. Kim cuts it into parts that are each 1/4 meter. She uses 5 parts. How many parts are left?', ['3', '12', '7', '8'], 2, 'Each meter makes 4 parts, so 3 meters make 12. 12 − 5 = 7.', undefined, [
-      step('How many 1/4 meter parts are in 1 meter?', ['4', '2', '1', '3'], 0),
-      step('How many are in 3 meters?', ['7', '12', '4', '34'], 1),
-      step('12 − 5 = ?', ['6', '17', '5', '7'], 3),
+    q('u11-c5', 5, 'A class has 24 students. 3/4 of them like pizza. 1/2 of those like extra cheese. How many like extra cheese?', ['9', '12', '18', '6'], 0, '3/4 of 24 is 18. 1/2 of 18 is 9.', undefined, [
+      step('What is 1/4 of 24?', ['6', '4', '8', '20'], 0),
+      step('What is 3/4 of 24?', ['21', '18', '12', '6'], 1),
+      step('What is 1/2 of 18?', ['36', '8', '9', '16'], 2),
     ]),
   ],
   12: [
     q('u12-p1', 3, 'The line is 1 meter long. A snail crawls from 0 to the dot. How far is that?', ['34 cm', '25 cm', '75 cm', '70 cm'], 2, 'The dot is at 3/4. 1 meter is 100 cm, and 3/4 of 100 is 75 cm.', { kind: 'line', n: 3, d: 4 }),
     q('u12-c1', 3, '3 pizzas are shared fairly by 4 kids. How much pizza does each kid get?', ['4/3', '1/4', '3/4', '3/7'], 2, 'Cut each pizza into 4 parts. Each kid gets 1 part of each pizza: 3/4.'),
-    q('u12-c2', 3, 'How many centimeters is 3/5 of a meter?', ['35 cm', '60 cm', '53 cm', '75 cm'], 1, '100 cm in 5 parts is 20 cm each. 3 parts is 60 cm.'),
+    q('u12-c2', 3, 'How many 1/3 cups of rice fill 4 cups?', ['3', '7', '4', '12'], 3, '3 thirds fill 1 cup. 4 cups need 4 × 3 = 12.'),
     q('u12-c3', 4, 'Three boards are 1/2 m, 3/8 m and 1/4 m long. How long are they together?', ['1 1/8 m', '1 m', '7/8 m', '1 1/4 m'], 0, 'Use eighths: 4/8 + 3/8 + 2/8 = 9/8 = 1 1/8 m.', undefined, [
       step('Change 1/2 to eighths.', ['4/8', '2/8', '1/8', '5/8'], 0),
       step('Change 1/4 to eighths.', ['3/8', '4/8', '2/8', '1/8'], 2),
@@ -194,10 +194,10 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
       step('How much does each kid on Team B get?', ['3/11', '8/3', '3/8', '1/8'], 2),
       step('Use 40ths: 2/5 = 16/40 and 3/8 = 15/40. Which is bigger?', ['3/8', 'Same', '2/5', 'You can\'t tell'], 2),
     ]),
-    q('u12-c5', 5, 'A 2 meter rope is cut into 8 equal parts. 3 parts are used. How long is the rope that is left?', ['100 cm', '150 cm', '75 cm', '125 cm'], 3, '2 m = 200 cm. 200 ÷ 8 = 25 cm each. 5 parts are left: 5 × 25 = 125 cm.', undefined, [
-      step('2 meters is how many centimeters?', ['200', '20', '100', '2000'], 0),
-      step('200 cm in 8 equal parts. How long is each part?', ['20 cm', '1600 cm', '25 cm', '16 cm'], 2),
-      step('8 − 3 = 5 parts are left. 5 × 25 cm = ?', ['100 cm', '75 cm', '30 cm', '125 cm'], 3),
+    q('u12-c5', 5, 'A ribbon is 3 meters long. Kim cuts it into parts that are each 1/4 meter. She uses 5 parts. How many parts are left?', ['3', '12', '7', '8'], 2, 'Each meter makes 4 parts, so 3 meters make 12. 12 − 5 = 7.', undefined, [
+      step('How many 1/4 meter parts are in 1 meter?', ['4', '2', '1', '3'], 0),
+      step('How many are in 3 meters?', ['7', '12', '4', '34'], 1),
+      step('12 − 5 = ?', ['6', '17', '5', '7'], 3),
     ]),
   ],
   13: [

@@ -1116,7 +1116,8 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
 export const EXTENSION_LESSON_IDS: ReadonlySet<string> = new Set(extensionTopics.filter((topic) => !topic.questions).map((topic) => topic.id));
 /**
  * The course order: every lesson's unit, and its place in that unit. This is the one place a lesson's unit is set.
- * Units 1–5 are grade 3; units 6–9 bring in grade 4 (unit 8 holds like-fraction sums, mixed numbers and decimals), and
+ * Units 1–5 are grade 3; units 6–9 bring in grade 4 (unit 8 holds like-fraction sums, mixed numbers and decimals; unit 9
+ * ends with fraction-times-whole recipe stories), and
  * grade 5 starts in unit 10 with adding and subtracting unlike fractions. Enrichment and problem solving close the course.
  */
 export const LESSON_PLAN: Readonly<Record<number, readonly string[]>> = {
@@ -1131,14 +1132,14 @@ export const LESSON_PLAN: Readonly<Record<number, readonly string[]>> = {
     'hundredths-decimals', 'decimal-fraction-equivalence', 'compare-decimals', 'compare-decimals-grid', 'add-tenths-hundredths',
     'unit-fraction-multiples', 'multiply-whole-by-fraction'],
   9: ['simplify-fractions', 'equivalent-missing-both', 'compare-unlike-fractions', 'order-unlike-fractions', 'read-line-plots',
-    'measurement-word-problems'],
+    'measurement-word-problems', 'fraction-recipes'],
   10: ['add-related-fractions', 'add-unlike-fractions', 'subtract-unlike-fractions', 'mixed-unlike-operations', 'estimate-fraction-operations'],
   11: ['sets-unit-fractions', 'sets-nonunit', 'fraction-of-quantity', 'multiply-fractions', 'fraction-times-fraction',
-    'fraction-of-collection', 'divide-whole-by-unit-fraction', 'multiplication-scaling', 'bigger-or-smaller',
-    'unit-fraction-divided-whole', 'share-or-fit'],
+    'fraction-of-collection', 'multiplication-scaling', 'bigger-or-smaller'],
+  // A fraction is a division (5.NF.3) before dividing with unit fractions (5.NF.7a, b, c).
   12: ['fraction-of-length', 'fractional-measure-addition', 'line-plot-leveling', 'fractional-unit-conversions', 'fractional-sharing',
-    'fraction-as-division'],
-  13: ['fraction-probability', 'fractional-side-area', 'multiply-mixed-numbers', 'fraction-recipes'],
+    'fraction-as-division', 'unit-fraction-divided-whole', 'divide-whole-by-unit-fraction', 'share-or-fit'],
+  13: ['fraction-probability', 'fractional-side-area', 'multiply-mixed-numbers'],
   14: ['fractions-to-percent', 'percent-to-fraction', 'multi-step-fraction-stories'],
   15: ['find-the-whole', 'spot-the-mistake', 'fraction-of-remainder', 'divide-fractions'],
 };
@@ -1399,10 +1400,14 @@ export const MOVED_EARLIER_LESSONS: ReadonlySet<string> = new Set([
   'add-mixed-numbers', 'subtract-mixed-numbers', 'decimal-fraction-equivalence', 'compare-decimals', 'read-line-plots', 'measurement-word-problems',
   // New lessons put in front of lessons a learner may already have passed (unit 8 and unit 11).
   'compare-decimals-grid', 'fraction-times-fraction', 'bigger-or-smaller', 'share-or-fit',
+  // Moved from unit 13 to the end of unit 9, so 4.NF.4c is in the grade 4 lessons.
+  'fraction-recipes',
 ]);
 /** Lessons the October 2026 reorder moved to a later unit. A learner who passed one before the move keeps it open, even
     though the lessons now in front of it may be new to them. */
-export const MOVED_LATER_LESSONS: ReadonlySet<string> = new Set(['add-related-fractions', 'fraction-of-quantity', 'multiply-mixed-numbers']);
+export const MOVED_LATER_LESSONS: ReadonlySet<string> = new Set(['add-related-fractions', 'fraction-of-quantity', 'multiply-mixed-numbers',
+  // Moved from unit 11 to the end of unit 12, after "Division is a fraction".
+  'unit-fraction-divided-whole', 'divide-whole-by-unit-fraction', 'share-or-fit']);
 /**
  * Lessons added after learners could already be past them. For a learner who has started units 9–14 they never block
  * later units (they stay open to do any time, and "Continue" still suggests them). New learners take them in order.
