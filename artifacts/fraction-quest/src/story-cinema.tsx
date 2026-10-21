@@ -382,16 +382,17 @@ function GardenArt({ beat }: { beat: number }) {
   );
 }
 
-/** Chapter 14: Bolt turns the fraction dials to unlock the Whole Stone's glass case. */
+/** Chapter 14: the Whole Stone's glass case is empty and locked. Bolt matches the dials (one half, 50 hundredths,
+    50%); the case only opens at the end of the chapter. */
 function LockArt({ beat }: { beat: number }) {
   return (
     <>
-      <span className="fq-cine-lock-room" /><span className={`fq-cine-lock-case ${beat >= 2 ? 'is-open' : ''}`}>
-        <span className="fq-cine-lock-stone" />
-        <span className="fq-cine-lock-dials"><b><Frac n={1} d={2} /></b><b><Frac n={50} d={100} /></b><b>50%</b></span>
+      <span className="fq-cine-lock-room" /><span className="fq-cine-lock-case">
+        <span className="fq-cine-lock-seat" />
+        <span className={`fq-cine-lock-dials ${beat >= 2 ? 'is-matched' : ''}`}><b><Frac n={1} d={2} /></b><b><Frac n={50} d={100} /></b><b>50%</b></span>
       </span>
       <span className="fq-cine-actor" style={pos(8, 32)}><StoryCharacter id="bolt" size={88} happy={beat >= 2} /></span>
-      {beat === 2 && <><span className="fq-cine-flash" /><Confetti /></>}
+      {beat === 2 && <span className="fq-cine-flash" />}
     </>
   );
 }
@@ -462,7 +463,7 @@ const BACKDROPS: Record<ChapterScene, () => ReactNode> = {
   machine: () => <><span className="fq-cine-machine-wall" /><span className="fq-cine-machine-floor" /><span className="fq-cine-machine is-on"><i /><i /><i /></span></>,
   stage: () => <><span className="fq-cine-stage-curtain" /><span className="fq-cine-stage-floor" /><span className="fq-cine-stage-board" /></>,
   garden: () => <><span className="fq-cine-garden-sky" /><span className="fq-cine-garden-bed" /><span className="fq-cine-garden-case" /></>,
-  lock: () => <><span className="fq-cine-lock-room" /><span className="fq-cine-lock-case"><span className="fq-cine-lock-stone" /></span></>,
+  lock: () => <><span className="fq-cine-lock-room" /><span className="fq-cine-lock-case"><span className="fq-cine-lock-seat" /></span></>,
   festival: () => <><span className="fq-cine-festival-sky" /><span className="fq-cine-festival-tent" /></>,
 };
 const isChapterScene = (scene: StoryScene): scene is ChapterScene => scene in BACKDROPS;
