@@ -2186,7 +2186,7 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   .fq-lesson-app .fq-answer-choice { min-height: 56px; }
 }
 /* Phones: a whole question (friend's line, question, picture, all four answers and Check) fits the part of the
-   screen Safari actually shows, about 664 points on an iPhone. These rules don't ask for a short screen: Safari
+   screen Safari actually shows, about 664 points on an iPhone (answers stay in one column). These rules don't ask for a short screen: Safari
    answers height queries for its taller, bars-hidden view, so a height query never sees the real space. */
 @media (max-width: 560px) {
   /* The grade chip is for grown-ups (it's on the map and in the report). */
@@ -2202,9 +2202,18 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   .fq-lesson-app .fq-model-area { margin: 8px 0; }
   .fq-lesson-app .fq-model-area .fq-visual-model { min-height: 0; gap: 6px; padding: 8px 10px; }
   .fq-lesson-app .fq-model-area svg { max-height: 24svh; }
-  /* Four answers in two columns of two. */
-  .fq-lesson-app .fq-answer-choices { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-  .fq-lesson-app .fq-answer-choice { min-height: 56px; padding: 8px 10px; gap: 8px; font-size: 1rem; line-height: 1.25; }
+  /* A review's topic sits as a small tag above the question, so the separate "quick revisit" tag isn't needed. */
+  .fq-lesson-app .fq-review-prefix { display: block; margin-bottom: 2px; color: var(--unit, var(--fq-grape)); font: 900 .78rem var(--app-font-sans); }
+  .fq-lesson-app .fq-review-label.is-revisit { display: none; }
+  /* Story lines are tighter. */
+  .fq-lesson-app .fq-story { gap: 4px; margin: 2px 0 6px; }
+  .fq-lesson-app .fq-story li { gap: 8px; padding: 5px 10px; font-size: .92rem; line-height: 1.3; }
+  .fq-lesson-app .fq-story li > span:first-child { width: 20px; height: 20px; font-size: .72rem; }
+  .fq-lesson-app .fq-inline-check .fq-button { min-height: 46px; }
+  /* Answers stay in one column, each a shorter button. */
+  .fq-lesson-app .fq-answer-choices { grid-template-columns: 1fr; gap: 5px; margin-top: 8px; }
+  .fq-lesson-app .fq-answer-choice .fq-mfrac { font-size: .78em; }
+  .fq-lesson-app .fq-answer-choice { min-height: 44px; padding: 5px 12px; gap: 10px; font-size: 1.02rem; line-height: 1.25; border-bottom-width: 4px; }
   .fq-lesson-app .fq-choice-marker { flex-basis: 26px; width: 26px; height: 26px; font-size: .78rem; }
   .fq-lesson-app .fq-inline-check { margin-top: 10px; }
 }

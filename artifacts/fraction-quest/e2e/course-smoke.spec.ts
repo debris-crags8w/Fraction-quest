@@ -3115,49 +3115,62 @@ test('a reload or the back button keeps the child’s place in a lesson’s prac
   await expectLessonQuestionProgress(page, 2, 1);
 });
 
-test('every lesson 1 question fits an iPhone Safari screen: all choices and the Check button, with no scrolling', async ({ page }) => {
+// Lessons whose every question is checked on an iPhone screen. Lesson 1 for now; the rest follow as their pictures are
+// made to fit (bars for amounts over 1 are still too tall).
+const PHONE_FIT_LESSONS = new Set(['equal-parts']);
+
+test('every lesson 1 question fits an iPhone Safari screen: one column of answers and Check, with no scrolling', async ({ page }) => {
   test.setTimeout(120_000);
-  // An iPhone in Safari shows about 664 points of page between its address bar and toolbar, but lays the page out
-  // (and answers CSS height queries) for the taller view with the bars hidden, about 750. So the page is laid out at
-  // 750 here and every choice and the Check button must still fall within the 664 that is actually visible.
+  // An iPhone in Safari shows about 664 points of page between its address bar and toolbar. The phone layout uses no
+  // height queries (Safari answers those for its taller, bars-hidden view), so a 390 × 664 window is a faithful iPhone.
   const visible = 664;
-  await page.setViewportSize({ width: 390, height: 750 });
-  const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
+  await page.setViewportSize({ width: 390, height: visible });
   await openAsGuest(page);
-  await openDeveloperLesson(page, mission);
-  await completePartFinderLesson(page, mission.id);
-  const questions = [
-    ...mission.questions.slice(0, -1),
-    ...(hasGenerator(mission.id) ? getExtraPractice(mission.id, mission.questions.map((question) => question.id)).slice(0, 4) : []),
-    mission.questions.at(-1)!,
-  ];
+  const savedStorage = await localStorageSnapshot(page);
   const misfits: string[] = [];
-  for (const [index, question] of questions.entries()) {
-    const right = page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`);
-    await expect(right).toBeVisible();
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await right.click();
-    await page.evaluate(() => window.scrollTo(0, 0));
-    const fit = await page.evaluate((id) => {
-      const bottom = (element: Element | null) => (element ? element.getBoundingClientRect().bottom : Infinity);
-      const choices = [...document.querySelectorAll(`[data-testid^="button-answer-${id}-"]`)];
-      // The developer test bar above the lesson is not on a child's screen, so it doesn't count.
-      const bar = document.querySelector('[data-testid="developer-test-banner"]')?.getBoundingClientRect().height ?? 0;
-      const picture = document.querySelector('[data-testid="question-model-area"]')?.getBoundingClientRect().height ?? 0;
-      return { picture, choices: Math.max(...choices.map(bottom)) - bar, check: bottom(document.querySelector('[data-testid="button-check-answer"]')) - bar };
-    }, question.id);
-    const fitScreen = { ...fit, screen: visible };
-    // Fitting must not come from shrinking the picture away.
-    if (fit.picture < 80) misfits.push(`question ${index + 1} (${question.id}): the picture is only ${Math.round(fit.picture)} points tall`);
-    if (fitScreen.choices > fitScreen.screen + 1 || fitScreen.check > fitScreen.screen + 1) {
-      misfits.push(`question ${index + 1} (${question.id}): choices end at ${Math.round(fitScreen.choices)}, Check at ${Math.round(fitScreen.check)}, screen ${fitScreen.screen}`);
+  for (const mission of MISSIONS.filter((item) => PHONE_FIT_LESSONS.has(item.id))) {
+    await openDeveloperLesson(page, mission);
+    if (PART_FINDER_LESSONS.has(mission.id)) await completePartFinderLesson(page, mission.id);
+    else if (mission.id === 'order-unlike-fractions') await completeFractionOrderLesson(page);
+    const questions = [
+      ...mission.questions.slice(0, -1),
+      ...(hasGenerator(mission.id) ? getExtraPractice(mission.id, mission.questions.map((question) => question.id)).slice(0, 4) : []),
+      mission.questions.at(-1)!,
+    ];
+    for (const [index, question] of questions.entries()) {
+      const right = page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`);
+      await expect(right).toBeVisible();
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await right.click();
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const fit = await page.evaluate((id) => {
+        const box = (element: Element | null) => element?.getBoundingClientRect();
+        const choices = [...document.querySelectorAll(`[data-testid^="button-answer-${id}-"]`)].map((element) => element.getBoundingClientRect());
+        // Measured from the top of the lesson screen (the developer test bar above it is not on a child's screen), or
+        // from the question itself when the worked example sits above it on the lesson's first screen.
+        const top = (box(document.getElementById('lesson-question-title')) ?? box(document.querySelector('.fq-lesson-app')))?.top ?? 0;
+        return {
+          picture: box(document.querySelector('[data-testid="question-model-area"]'))?.height ?? 0,
+          choices: Math.max(...choices.map((rect) => rect.bottom)) - top,
+          columns: new Set(choices.map((rect) => Math.round(rect.left))).size,
+          check: (box(document.querySelector('[data-testid="button-check-answer"]'))?.bottom ?? Infinity) - top,
+        };
+      }, question.id);
+      const where = `${mission.id} question ${index + 1} (${question.id})`;
+      // One column of answers, and fitting must not come from shrinking the picture away.
+      if (fit.columns !== 1) misfits.push(`${where}: answers are in ${fit.columns} columns`);
+      if (fit.picture < 80) misfits.push(`${where}: the picture is only ${Math.round(fit.picture)} points tall`);
+      if (fit.choices > visible + 1 || fit.check > visible + 1) {
+        misfits.push(`${where}: choices end at ${Math.round(fit.choices)}, Check at ${Math.round(fit.check)}, screen ${visible}`);
+      }
+      await page.getByTestId('button-check-answer').click();
+      await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+      const moveOn = page.getByTestId(index === questions.length - 1 ? 'button-finish-mission' : 'button-next-question');
+      // After Check, the feedback and its Continue button are in view too (the page may scroll to them).
+      await expect(moveOn).toBeInViewport();
+      await moveOn.click();
     }
-    await page.getByTestId('button-check-answer').click();
-    await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
-    const moveOn = page.getByTestId(index === questions.length - 1 ? 'button-finish-mission' : 'button-next-question');
-    // After Check, the feedback and its Continue button are in view too (the page may scroll to them).
-    await expect(moveOn).toBeInViewport();
-    await moveOn.click();
+    await finishDeveloperLesson(page, savedStorage);
   }
   expect(misfits, 'questions that do not fit the iPhone screen').toEqual([]);
 });
