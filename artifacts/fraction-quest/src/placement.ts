@@ -6,22 +6,28 @@ import { makeRng } from './practice-bank';
    A unit is passed only when every question in it is right. Passing units opens the next unit's lessons;
    it never marks lessons done or gives stars, so the evidence gates stay honest. */
 
-export const PLACEMENT_UNITS = 8;       // grades 3–4; units 9–14 open after unit 8 as usual
+export const PLACEMENT_UNITS = 12;      // grades 3–5: units 13–15 (applying fractions) open after unit 12 as usual
 export const PER_UNIT = 3;
 
 export type PlacementItem = { unit: number; missionId: string; problem: WorksheetProblem };
 
-/** Three questions for a unit: from its first, middle and last lessons. `seed` picks which worksheet rows. */
+/** A worksheet row the quiz can show: bars, number lines, sets and read-only areas, never a ruler, line plot, slider
+    or coloring task. */
+const answerable = (problem: WorksheetProblem) => !problem.areaTask && !problem.rulerTask && !problem.linePlotTask && !problem.scaleTask
+  && !/use the ruler|line plot|slider|colou?r the/i.test(problem.prompt);
+
+/** Three questions for a unit: from its first, middle and last lessons that have rows the quiz can show. `seed` picks
+    which worksheet rows. */
 export function placementItems(unit: number, seed: number): PlacementItem[] {
-  const lessons = MISSIONS.filter((mission) => mission.unit === unit);
+  const lessons = MISSIONS.filter((mission) => mission.unit === unit && getWorksheet(mission.id).some(answerable));
   const picks = [lessons[0], lessons[Math.floor((lessons.length - 1) / 2)], lessons[lessons.length - 1]];
   const rng = makeRng(seed * 31 + unit);
   const asked = new Set<string>(); // lessons can share a question (or the same lesson is picked twice): never ask the same one twice
   return picks.map((mission) => {
-    const sheet = getWorksheet(mission.id);
-    // Prefer rows that need no picture; fall back to any row (the picture is shown, read-only).
+    const sheet = getWorksheet(mission.id).filter(answerable);
+    // Prefer rows that need no picture; fall back to any row (its picture is shown, read-only).
     const plain = sheet.filter((problem) => !problem.model && !problem.area);
-    const pool = plain.length >= 3 ? plain : sheet.filter((problem) => !problem.areaTask); // no coloring tasks in the level quiz
+    const pool = plain.length >= 3 ? plain : sheet;
     const fresh = pool.filter((problem) => !asked.has(`${problem.prompt}|${problem.answer}`));
     const problem = rng.pick(fresh.length ? fresh : pool);
     asked.add(`${problem.prompt}|${problem.answer}`);
