@@ -59,7 +59,7 @@ describe('parent report at a glance', () => {
     assert.match(text, /^Fraction Quest · Sam · week of /);
     assert.match(text, /Learned: Same count, different sizes \(Grade 3, 3\.NF\.3d\); Add same-size parts \(Grade 4, 4\.NF\.3a, 4\.NF\.3d\)\./);
     assert.match(text, /Right the first time: 82%\./);
-    assert.match(text, /Working on: Is it less or more than half\? \(Grade 3, 3\.NF\.3d\)\./);
+    assert.match(text, /Working on: Is it less or more than half\? \(Grade 3, 3\.NF\.3d, 4\.NF\.2\)\./);
     assert.doesNotMatch(glanceShareText({ ...glance, learned: [], focus: null }, null, null, now), /Learned|Working on|Right the first/);
   });
 });
