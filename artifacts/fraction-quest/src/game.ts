@@ -1,7 +1,7 @@
 import { noBeforeYes, orderedWithSigns, withFourthChoice, withSignComparisons } from './fourth-choice';
 import { preferMisconceptions } from './misconceptions';
 import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
-import { gridCut, gridOverlap, type AreaCut } from './area-shapes';
+import { gridCut, gridOverlap, type AreaCut, type AreaTask } from './area-shapes';
 import { amountsIn, autoPicture } from './auto-picture';
 import { asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 import { FRACTION_STANDARDS, standardsForMission, type StandardId } from './standard-catalog';
@@ -75,7 +75,9 @@ export type ModelSpec =
   /** A square, circle or hexagon cut into pieces (see area-shapes.ts); `shaded` lists piece numbers. */
   | { kind: 'area'; cut: AreaCut; shaded: number[]; caption?: string; label?: string; scale?: number;
       /** More wholes drawn beside the first (two hundredths grids to compare). `scale` < 1 draws a smaller whole. */
-      more?: AreaFigureSpec[] }
+      more?: AreaFigureSpec[];
+      /** "Color 2. What fraction is colored?": the child taps pieces to color them before answering. */
+      colorTask?: AreaTask }
   /** A finished line plot to read: one X over each value (tick numbers, counted from 0 in steps of 1/denominator). */
   | { kind: 'lineplot'; denominator: number; wholes: number; values: number[]; caption?: string };
 
@@ -1045,7 +1047,7 @@ export function problemPicture(problem: WorksheetProblem): ModelSpec {
   if (problem.linePlotTask) return { kind: 'lineplot', ...problem.linePlotTask };
   // Ruler questions: a number line marked like the ruler, with the end point (no labels).
   if (problem.rulerTask) return { kind: 'line', numerator: problem.rulerTask.end, denominator: problem.rulerTask.denominator, wholes: problem.rulerTask.wholes, hideLabels: true };
-  if (problem.area) return { kind: 'area', cut: problem.area.cut, shaded: problem.area.shaded ?? [] };
+  if (problem.area) return { kind: 'area', cut: problem.area.cut, shaded: problem.area.shaded ?? [], ...(problem.areaTask ? { colorTask: problem.areaTask } : {}) };
   // A set to share: the groups, none picked yet (picking them is the answer).
   if (m?.kind === 'set' && m.total) return setModel(0, m.total, m.d);
   // A row the child builds: its model is the answer. Show the amounts the question names ("Compare: 0.4 __ 0.35"

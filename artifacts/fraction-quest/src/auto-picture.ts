@@ -71,7 +71,8 @@ export function autoPicture(text: string, caption?: string): ModelSpec | null {
   // "A frog makes 6 jumps. Each jump is 1/4 meter.": the number line to jump along, with no dot (the dot is the answer).
   const hops = /(\d+) jumps?\. Each jump is 1\/(\d+)/.exec(text);
   if (hops) return { kind: 'line', numerator: 0, denominator: Number(hops[2]), wholes: Math.max(1, Math.ceil(Number(hops[1]) / Number(hops[2]))), hideLabels: true };
-  const bars = amountsIn(text).slice(0, MAX_BARS);
+  // "Rename: 3/5 = 6/10 and 1/2 = 5/10. Then 2 3/5 − 1 1/2 = ?": picture the amounts in the sum, not the renaming hint.
+  const bars = amountsIn(text.replace(/^(.*?)Rename: .+?\. Then /, '$1')).slice(0, MAX_BARS);
   if (!bars.length) return storyPicture(text);
   return { kind: 'bars', bars: bars.map(({ numerator, denominator, written }) => ({ numerator, denominator, ...(written ? { named: true } : {}) })), ...(caption ? { caption } : {}) };
 }

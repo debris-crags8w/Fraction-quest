@@ -4044,3 +4044,27 @@ describe('generated practice has exactly one right choice', () => {
     }
   });
 });
+
+describe('question pictures match the question', () => {
+  it('a "Rename: … Then …" question pictures the amounts it adds or subtracts, not the renamed parts', () => {
+    const seen: string[] = [];
+    for (const lesson of MISSIONS) for (const question of lesson.questions) {
+      const sum = /Rename: .+?\. Then (.+)$/.exec(question.prompt);
+      if (!sum || question.model.kind !== 'bars') continue;
+      seen.push(question.prompt);
+      const asked = amountsIn(sum[1]).map(({ numerator, denominator }) => `${numerator}/${denominator}`);
+      assert.deepEqual(question.model.bars.map(({ numerator, denominator }) => `${numerator}/${denominator}`), asked, question.prompt);
+    }
+    assert.ok(seen.some((prompt) => prompt.includes('2 3/5 − 1 1/2')), 'the 2 3/5 − 1 1/2 checkpoint is checked');
+  });
+
+  it('a question that says to color pieces gives the child pieces to tap', () => {
+    const seen: string[] = [];
+    for (const lesson of MISSIONS) for (const question of lesson.questions) {
+      if (!/\bColor\b/.test(question.prompt) || question.model.kind !== 'area') continue;
+      seen.push(question.prompt);
+      assert.ok(question.model.colorTask, `${lesson.id}: ${question.prompt}`);
+    }
+    assert.ok(seen.some((prompt) => prompt.startsWith('Quick review · Equal-area partitions')), 'the unit-size review is checked');
+  });
+});
