@@ -1939,7 +1939,10 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 
 /* ---------- square (area) model: equal parts with different shapes ---------- */
 .fq-svg-area { display: block; width: min(100%, 190px); height: auto; overflow: visible; }
-.fq-area-model { display: flex; justify-content: center; }
+.fq-area-model { display: flex; justify-content: center; align-items: flex-end; flex-wrap: wrap; gap: 14px; }
+.fq-area-figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.fq-area-figure figcaption { font-weight: 700; text-align: center; }
+.fq-area-model.is-several .fq-svg-area { width: calc(min(26vw, 120px) * var(--area-scale, 1)); }
 .fq-area-model .fq-svg-area { width: min(100%, 170px); }
 .fq-race-model .fq-area-model .fq-svg-area { width: min(100%, 120px); }
 .fq-svg-area polygon { stroke: hsl(var(--foreground)); stroke-width: 1.5; stroke-linejoin: round; }

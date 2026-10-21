@@ -1,8 +1,8 @@
-import React, { useEffect, useState, type ReactElement } from 'react';
+import React, { useEffect, useState, type CSSProperties, type ReactElement } from 'react';
 import { LinePlotPicture } from './line-plot-picture';
 import { Printer } from 'lucide-react';
 import { MathText } from './MathText';
-import { getMission, MISSIONS, setModelLayout, type Mission, type ModelSpec } from './game';
+import { areaFigures, getMission, MISSIONS, setModelLayout, type Mission, type ModelSpec } from './game';
 import { getBuildChecks, getWorksheet, paperPrompt, type WorksheetProblem } from './learning-content';
 import { BarSvg, ChallengeFigureView, LineSvg, MODEL_CONCEPTS, ModelPair, ModelTag, SetSvg, SvgWholeBracket } from './models';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
@@ -148,7 +148,12 @@ export function PrintModel({ model, labels = true }: { model: ModelSpec; labels?
           <SvgWholeBracket x={22} width={320} />
         </svg>
       )}
-      {model.kind === 'area' && <AreaSvg figure={{ cut: model.cut, shaded: model.shaded }} />}
+      {model.kind === 'area' && <div className="fq-area-model is-print">{areaFigures(model).map((figure, index) => (
+        <figure className="fq-area-figure" style={{ '--area-scale': figure.scale ?? 1 } as CSSProperties} key={index}>
+          <AreaSvg figure={{ cut: figure.cut, shaded: figure.shaded }} />
+          {labels && figure.label && <figcaption><MathText text={figure.label} /></figcaption>}
+        </figure>
+      ))}</div>}
       {model.kind === 'lineplot' && <LinePlotPicture denominator={model.denominator} wholes={model.wholes} values={model.values} />}
       {model.kind === 'equation' && <p className="fq-print-equation"><MathText text={model.text} /></p>}
       {labels && model.caption && <small><MathText text={model.caption} /></small>}

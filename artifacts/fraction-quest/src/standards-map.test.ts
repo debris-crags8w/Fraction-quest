@@ -82,7 +82,9 @@ describe('standards map', () => {
       'percent-to-fraction', 'decimal-fraction-equivalence', 'compare-decimals', 'multi-step-fraction-stories', 'find-the-whole', 'spot-the-mistake',
       'fraction-of-remainder', 'divide-fractions',
     ];
-    assert.deepEqual([...before].sort(), MISSIONS.map((mission) => mission.id).sort());
+    // Every lesson but the four added after the reorder.
+    const added = ['compare-decimals-grid', 'fraction-times-fraction', 'bigger-or-smaller', 'share-or-fit'];
+    assert.deepEqual([...before, ...added].sort(), MISSIONS.map((mission) => mission.id).sort());
     for (let reached = 1; reached < before.length; reached++) {
       const done = before.slice(0, reached);
       const progress: Progress = { ...EMPTY_PROGRESS, completedMissionIds: done,

@@ -3,7 +3,7 @@ import { preferMisconceptions } from './misconceptions';
 import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { G3_EQUIVALENTS_WIDE, answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, equivalentsFor, getWorksheet, gradeFits, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
-import { circleCut, type AreaCut } from './area-shapes';
+import { circleCut, gridCut, type AreaCut } from './area-shapes';
 
 /* Question generator: every lesson has a recipe that picks numbers within safe limits.
    - "Practice more" uses 12 questions from fixed seeds, so practice repeats.
@@ -388,8 +388,8 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'divide-whole-by-unit-fraction': (r) => {
     const d = r.pick([2, 3, 4, 5, 6, 8, 9, 10]); const c = r.int(1, 5);
-    return later(`How many 1/${d} cup scoops fill ${c} ${c === 1 ? 'cup' : 'cups'}?`, String(c * d), [String(c + d), String(d), String(c * d + d)],
-      `How many 1/${d} parts make one whole cup?${c > 1 ? ` Then think about ${c} cups.` : ''}`, `${c} × ${d} = ${c * d} scoops.`, bar(1, d));
+    return later(`How many 1/${d}-cup scoops fill ${c} ${c === 1 ? 'cup' : 'cups'}? ${c} ÷ 1/${d} = ?`, String(c * d), [String(c + d), String(d), String(c * d + d)],
+      `How many 1/${d} parts make one whole cup?${c > 1 ? ` Then think about ${c} cups.` : ''}`, `${c} × ${d} = ${c * d} scoops. Check: ${c * d} × 1/${d} = ${c}.`, bar(1, d));
   },
   'fraction-of-length': (r) => {
     const d = r.pick([2, 3, 4, 5, 8, 10]); const n = r.int(1, d - 1); const m = r.int(2, 6); const len = d * m;
@@ -408,9 +408,96 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       `Cut each loaf into ${people} parts. Each friend gets 1 part of every loaf.`, `${loaves} ÷ ${people} = ${f(loaves, people)}.`, wholes(loaves));
   },
   'fraction-as-division': (r) => {
-    const b = r.pick([2, 3, 4, 5, 6, 8]); let a = r.int(1, 9); if (a % b === 0) a += 1;
-    return later(r.chance() ? `${a} ÷ ${b} = ?` : `${a} ${a === 1 ? 'pizza is' : 'pizzas are'} shared fairly by ${b} friends. How much does each friend get?`, f(a, b), [f(b, a), f(1, b), f(a, a + b)],
-      `Share ${a} ${a === 1 ? 'whole' : 'wholes'} into ${b} equal shares. What fraction is ${a} ÷ ${b}?`, `${a} ÷ ${b} is the fraction ${f(a, b)}. Each friend gets ${f(a, b)}${a > b ? `, or ${mixedName(a, b)}` : ''}.`, wholes(a));
+    const b = r.pick([2, 3, 4, 5, 6, 8]);
+    if (r.chance()) {
+      let a = r.int(1, 9); if (a % b === 0) a += 1;
+      return later(`${a} ÷ ${b} = ?`, f(a, b), [f(b, a), f(1, b), f(a, a + b)],
+        'The fraction bar means divide. The number you divide goes on top.', `${a} ÷ ${b} = ${f(a, b)}${a > b ? `, or ${mixedName(a, b)}` : ''}.`, wholes(a));
+    }
+    const lo = r.int(1, 3); const a = lo * b + r.int(1, b - 1);
+    return { prompt: `Between which two whole numbers is ${f(a, b)}?`, right: `${lo} and ${lo + 1}`, wrong: [`${lo - 1} and ${lo}`, `${lo + 1} and ${lo + 2}`], extra: `${a} and ${a + 1}`,
+      hint: `${b}/${b} is one whole. How many whole groups of ${b} fit in ${a}?`, retry: `${f(a, b)} = ${a} ÷ ${b} = ${mixedName(a, b)}, between ${lo} and ${lo + 1}.`, model: line(0, b, lo + 1) };
+  },
+  'compare-decimals-grid': (r) => {
+    const show = (h: number) => String(h / 100);
+    const grid = (h: number) => ({ cut: 'grid-10x10' as const, shaded: Array.from({ length: h }, (_, k) => (k % 10) * 10 + Math.floor(k / 10)) });
+    const grids = (...hs: number[]): ModelSpec => ({ kind: 'area', ...grid(hs[0]), more: hs.slice(1).map(grid) });
+    const pool = [5, 9, 25, 30, 40, 45, 50, 55, 60, 6, 75, 8, 80, 7, 70, 99, 90, 12, 2, 20];
+    const kind = r.int(0, 3);
+    if (kind === 0) {
+      const picked: number[] = []; while (picked.length < 3) { const h = r.pick(pool); if (!picked.includes(h)) picked.push(h); }
+      const up = r.chance(); const sorted = [...picked].sort((x, y) => (up ? x - y : y - x));
+      const shown = picked.every((h, k) => h === sorted[k]) ? [sorted[1], sorted[2], sorted[0]] : picked;
+      const order = (list: number[]) => list.map(show).join(', ');
+      return { prompt: `Put ${show(shown[0])}, ${show(shown[1])} and ${show(shown[2])} in order, ${up ? 'smallest' : 'biggest'} first.`, right: order(sorted),
+        wrong: [order([...sorted].reverse()), order([sorted[1], sorted[0], sorted[2]])], extra: order([sorted[0], sorted[2], sorted[1]]),
+        hint: 'Write each one in hundredths. Then order the counts.', retry: `In hundredths: ${sorted.join(', ')}. So ${order(sorted)}.`, model: grids(...shown) };
+    }
+    if (kind === 1) {
+      const a = r.pick(pool); let b = r.pick(pool); while (b === a) b = r.pick(pool);
+      return { prompt: `Which is more: ${show(a)} or ${show(b)}?`, right: show(Math.max(a, b)), wrong: [show(Math.min(a, b)), 'They are equal'], extra: "You can't tell",
+        hint: 'Write both in hundredths. Compare the counts, not how long the numbers look.', retry: `${show(a)} is ${a} hundredths and ${show(b)} is ${b} hundredths.`, model: grids(a, b) };
+    }
+    if (kind === 2) {
+      const [who, other] = r.pick([['Mia', 'Leo'], ['Sam', 'Ana'], ['Kim', 'Ben']] as const); const [a, b] = r.pick([[50, 40], [60, 45], [30, 25], [70, 7], [8, 80], [35, 5]] as const);
+      const same = r.chance(); const circles: ModelSpec = { kind: 'area', cut: 'circle-tenths', shaded: [], ...(same ? {} : { scale: 0.6 }), more: [{ cut: 'circle-tenths', shaded: [] }] };
+      return same
+        ? { prompt: `${who} eats ${show(a)} of a pizza. ${other} eats ${show(b)} of the same size pizza. Who eats more?`, right: a > b ? who : other, wrong: [a > b ? other : who, "You can't tell"], extra: 'They eat the same',
+          hint: 'The pizzas are the same size. Compare the hundredths.', retry: `${show(a)} is ${a} hundredths and ${show(b)} is ${b} hundredths of the same whole.`, model: circles }
+        : { prompt: `${who} eats ${show(a)} of a small pizza. ${other} eats ${show(b)} of a big pizza. Who eats more?`, right: "You can't tell", wrong: [who, other], extra: 'They eat the same',
+          hint: 'Are the two pizzas the same size?', retry: 'The wholes are different sizes, so you can only compare parts of the same whole.', model: circles };
+    }
+    const h = r.pick([35, 45, 25, 75, 62, 48, 40, 60, 30, 90, 70, 20]);
+    return later(`How many hundredths is ${show(h)}?`, String(h), h % 10 === 0 ? [String(h / 10), String(h * 10)] : [String(Math.floor(h / 10)), String(h % 10)],
+      'Two places after the decimal point name hundredths. One tenth is 10 hundredths.', `${show(h)} is ${h} hundredths: ${h} squares of the grid.`, { kind: 'area', cut: 'grid-10x10', shaded: [] });
+  },
+  'fraction-times-fraction': (r) => {
+    const [a, b, c, d] = r.pick([[3, 4, 1, 2], [2, 3, 3, 4], [1, 2, 4, 5], [3, 5, 2, 3], [2, 3, 4, 5], [1, 3, 1, 2], [3, 4, 2, 3], [2, 5, 1, 2], [5, 6, 1, 2], [1, 4, 2, 3],
+      [4, 5, 3, 4], [1, 2, 5, 6], [2, 3, 1, 4], [3, 4, 3, 5], [1, 6, 2, 3], [4, 5, 1, 3], [1, 2, 3, 4], [5, 6, 2, 3], [2, 5, 2, 3], [3, 4, 1, 3]] as const);
+    const right = f(a * c, b * d); const extra = b === d ? f(a + c, b * d) : f(a * c, b);
+    return { ...later(`${f(a, b)} × ${f(c, d)} = ?`, right, [f(a + c, b + d), f(a * c, d), extra], 'Rows for one fraction, columns for the other. Count the overlap.',
+      `${a} of ${b} rows and ${c} of ${d} columns overlap on ${a * c} of ${b * d} squares: ${right}.`, { kind: 'area', cut: gridCut(d, b), shaded: [] }) };
+  },
+  'bigger-or-smaller': (r) => {
+    const factors = [[3, 4], [5, 4], [2, 3], [4, 3], [1, 2], [3, 2], [3, 3], [5, 6], [7, 6], [2, 2], [4, 5], [6, 5], [9, 10], [11, 10], [4, 4]] as const;
+    const kind = r.int(0, 2);
+    if (kind === 2) {
+      const n = r.int(4, 12); const more = r.chance();
+      const target = r.pick(factors.filter(([t, b]) => (more ? t > b : t < b)));
+      const others = factors.filter(([t, b]) => (more ? t <= b : t >= b) && !(t === target[0] && b === target[1]));
+      const picked: (readonly [number, number])[] = []; while (picked.length < 3) { const x = r.pick(others); if (!picked.includes(x)) picked.push(x); }
+      const say = ([t, b]: readonly [number, number]) => `${t}/${b} × ${n}`;
+      return { prompt: `Which one is ${more ? 'more' : 'less'} than ${n}?`, right: say(target), wrong: [say(picked[0]), say(picked[1])], extra: say(picked[2]),
+        hint: 'Compare each fraction with 1.', retry: `${target[0]}/${target[1]} is ${more ? 'more' : 'less'} than 1, so ${say(target)} is ${more ? 'more' : 'less'} than ${n}.`, model: bar(target[0], target[1]) };
+    }
+    // Sign choices write the whole comparison out, so their amounts stay short (no mixed numbers there).
+    const [t, b] = r.pick(factors); const amount = r.pick(kind === 0 ? ['5/6', '3/4', '7/8', '4', '2/3', '9/10', '5', '6'] : ['5/6', '2 1/2', '3/4', '1 1/3', '7/8', '4', '2/3', '3 1/2', '9/10', '5', '1 1/4', '6']);
+    const k = t < b ? 'less' : t > b ? 'more' : 'same';
+    if (kind === 0) {
+      const sign = k === 'less' ? '<' : k === 'more' ? '>' : '=';
+      return { prompt: `Without multiplying, compare ${t}/${b} × ${amount} with ${amount}: __ ${amount}.`, right: sign, wrong: ['<', '=', '>'].filter((x) => x !== sign) as [string, string],
+        hint: 'Is the fraction less than 1, equal to 1, or more than 1?', retry: `${t}/${b} is ${k === 'same' ? 'equal to' : `${k} than`} 1.`, model: bar(t, b) };
+    }
+    const words = { less: `Less than ${amount}`, more: `More than ${amount}`, same: `Equal to ${amount}` };
+    return { prompt: `Is ${t}/${b} × ${amount} more or less than ${amount}?`, right: words[k], wrong: (['less', 'more', 'same'] as const).filter((x) => x !== k).map((x) => words[x]) as [string, string], extra: "You can't tell",
+      hint: 'Is the fraction less than 1, equal to 1, or more than 1?', retry: `${t}/${b} is ${k === 'same' ? 'equal to' : `${k} than`} 1, so the answer is ${words[k].toLowerCase()}.`, model: bar(t, b) };
+  },
+  'share-or-fit': (r) => {
+    const [unit, units, thing, holders] = r.pick([['pound', 'pounds', 'clay', 'bags'], ['cup', 'cups', 'rice', 'scoops'], ['liter', 'liters', 'juice', 'bottles']] as const);
+    const [b, n] = r.pick([[2, 3], [3, 2], [4, 2], [2, 4], [3, 3], [2, 5], [4, 3], [5, 2]] as const);
+    const [d, w] = r.pick([[4, 3], [3, 2], [2, 3], [5, 2], [4, 2], [3, 4], [6, 2], [8, 3]] as const);
+    const share = `1/${b} ${unit} of ${thing} is shared by ${n} friends.`; const fit = `How many 1/${d}-${unit} ${holders} can be filled from ${w} ${units} of ${thing}?`;
+    const kinds = ['Fitting', 'Adding', 'Taking away'];
+    switch (r.int(0, 3)) {
+      case 0: return { prompt: `${share} Is this sharing or fitting?`, right: 'Sharing', wrong: [kinds[0], kinds[1]], extra: kinds[2], hint: 'Is an amount split into equal shares, or do you count pieces that fit?',
+        retry: `The ${thing} is split into ${n} equal shares, so this is sharing.`, model: bar(1, b) };
+      case 1: return { prompt: `${fit} Is this sharing or fitting?`, right: 'Fitting', wrong: ['Sharing', kinds[1]], extra: kinds[2], hint: 'Is an amount split into equal shares, or do you count pieces that fit?',
+        retry: `You count how many 1/${d}-${unit} ${holders} fit, so this is fitting.`, model: wholes(w) };
+      case 2: return later(`${share} How much does each get?`, `1/${b * n} ${unit}`, [`${n}/${b} ${n > b ? units : unit}`, `${b * n} ${units}`, `1/${b + n} ${unit}`],
+        `Sharing: cut the 1/${b} ${unit} into ${n} equal shares.`, `1/${b} ÷ ${n} = 1/${b * n}. Check: ${n} × 1/${b * n} = 1/${b}.`, bar(1, b));
+      default: return later(fit, `${w * d} ${holders}`, [`${w + d} ${holders}`, `${d} ${holders}`, `${w * d + d} ${holders}`],
+        `Fitting: how many 1/${d} ${unit} pieces make 1 ${unit}?`, `${w} ÷ 1/${d} = ${w * d}. Check: ${w * d} × 1/${d} = ${w}.`, wholes(w));
+    }
   },
   'fraction-probability': (r) => {
     const t = r.pick([4, 5, 6, 8, 10, 12]); const g = r.int(1, t - 1);
@@ -496,7 +583,7 @@ for (const topic of MISSIONS.filter((item) => !(item.id in RECIPES))) {
     const problem = r.pick(pool);
     return {
       prompt: asChoicePrompt(problem.prompt), right: problem.answer, wrong: choiceDistractors(problem.answer),
-      hint: problem.hint, retry: problem.hint, model: problemPicture(problem),
+      hint: problem.hint, retry: problem.why ? `${problem.hint} ${problem.why}` : problem.hint, model: problemPicture(problem),
     };
   };
 }
