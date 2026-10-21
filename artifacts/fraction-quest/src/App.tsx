@@ -69,7 +69,7 @@ import { freshSeed, generateQuestions, getExtraPractice, hasGenerator } from './
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { PrintMenu } from './Printables';
 import { PaperFold } from './PaperFold';
-import { AreaSvg, SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
+import { AreaShade, AreaSvg, SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
 import { applyPlacement } from './placement';
 import { AccountGate, useAccount, useAccountSync } from './account';
 import LoginPage from './LoginPage';
@@ -346,7 +346,8 @@ function compareGuide(model: ModelSpec, reveal: boolean): number | undefined {
 /** `reveal`: the question is answered, so every bar shows its fraction label. */
 /** `asked`: the picture belongs to a question, so number-line labels (1/5, 2/5…) and the readout stay hidden until it is answered. */
 /** `walk`: after a miss, a "count with me" walk along the picture (see FractionBar); a new value replays it. */
-function ModelView({ model, compact = false, reveal = false, asked = false, walk = null }: { model: ModelSpec; compact?: boolean; reveal?: boolean; asked?: boolean; walk?: number | null }) {
+const noColorReport = () => {};
+function ModelView({ model, compact = false, reveal = false, asked = false, walk = null, questionId }: { model: ModelSpec; compact?: boolean; reveal?: boolean; asked?: boolean; walk?: number | null; questionId?: string }) {
   const setLayout = model.kind === 'set' ? setModelLayout(model) : null;
   return (
     <div className={`fq-visual-model ${compact ? 'compact' : ''}`} data-testid="visual-fraction-model">
@@ -428,7 +429,11 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
           <WholeBracket />
         </div>
       )}
-      {model.kind === 'area' && (() => { const figures = areaFigures(model); return (
+      {/* "Color 2. What fraction is colored?": the child colors the pieces, then answers (coloring is not checked). */}
+      {model.kind === 'area' && model.colorTask && asked && questionId && (
+        <AreaShade key={questionId} figure={{ cut: model.cut }} task={model.colorTask} disabled={reveal} statusId={`area-status-${questionId}`} onMatchChange={noColorReport} checkIn />
+      )}
+      {model.kind === 'area' && !(model.colorTask && asked && questionId) && (() => { const figures = areaFigures(model); return (
         <div className={`fq-area-model ${figures.length > 1 ? 'is-several' : ''}`}>
           {figures.map((figure, index) => (
             <figure className="fq-area-figure" style={{ '--area-scale': figure.scale ?? 1 } as CSSProperties} key={index}>
@@ -1141,7 +1146,7 @@ function PlayView({
               {question.isReview && <div className={`fq-review-label ${question.isOptionalReview ? '' : 'is-revisit'}`}><RotateCcw size={15} />{question.isOptionalReview ? `${isQuickReview ? 'Due skill' : 'Optional review'} · ${question.reviewTopicTitle}` : ' A quick revisit to help it stick'}</div>}
               {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint<span className="fq-mastery-more"> · Models and worksheet come next</span></div>}
               <div ref={modelAreaRef} className="fq-model-area" data-testid="question-model-area">
-                <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} />
+                <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} questionId={question.id} />
               </div>
               {hintOpen && attempts < 2 && <div ref={hintRef} key={`hint-${hintFlash}`} className="fq-hint fq-hint-flash" data-testid="text-question-hint"><Lightbulb size={18} /> <span className="fq-hint-copy"><strong>Try this idea:</strong> <LearningListenButton text={question.hint} label="Listen to the hint" /><span><LearningText text={question.hint} /></span></span></div>}
               {attempts >= 2 && (

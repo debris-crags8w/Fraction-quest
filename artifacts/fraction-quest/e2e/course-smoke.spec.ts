@@ -68,6 +68,30 @@ async function localStorageSnapshot(page: import('@playwright/test').Page) {
   });
 }
 
+test('a question that says to color pieces lets the child tap them, then answer', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'fraction-of-area');
+  if (!mission) throw new Error('Equal-area lesson is missing');
+  const question = mission.questions[0];
+  expect(question.prompt).toContain('Color 2');
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+  await skipIntros(page);
+
+  const shade = page.getByTestId('question-model-area').getByTestId('area-shade');
+  await expect(shade).toBeVisible();
+  await shade.getByTestId('button-area-piece-1').click();
+  await shade.getByTestId('button-area-piece-2').click();
+  await expect(shade.getByTestId('button-area-piece-2')).toHaveAttribute('aria-pressed', 'true');
+  await expect(shade.getByTestId('status-area')).toHaveText('2 pieces colored.');
+
+  await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
+  await page.getByTestId('button-check-answer').click();
+  await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+  // The coloring stays, and is locked once the question is answered.
+  await expect(shade.getByTestId('button-area-piece-1')).toHaveAttribute('aria-pressed', 'true');
+  await expect(shade.getByTestId('button-area-piece-3')).toHaveAttribute('tabindex', '-1');
+});
+
 test('the ordering lesson explains its strategy before showing a distinct worked model', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
