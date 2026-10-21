@@ -1,12 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /** Open chapter 2 in the Storybook with the given lessons finished. */
-async function openChapterTwo(page: Page, done: string[]) {
+async function openChapterTwo(page: Page, done: string[], reducedMotion = false) {
   const progress = { completedMissionIds: done, starsByMission: {}, reviewQueue: [], assessments: [],
     learning: Object.fromEntries(done.map((id) => [id, { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {}, completedAt: 1 }])) };
   const fun = { xp: 0, day: '2026-10-20', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: false,
     story: { prologueSeen: true, choices: { '1': 0, '2': 0 } },
-    displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: false, storyMode: true } };
+    displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion, seasonalThemes: false, storyMode: true } };
   await page.addInitScript(({ savedProgress, savedFun }) => {
     localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(savedProgress));
     localStorage.setItem('fraction-quest-fun-v1', JSON.stringify(savedFun));
@@ -34,6 +34,23 @@ test('chapter 2 film shows more equal parts making smaller parts, not equal grou
   const half = await stage.locator('.fq-cine-cutbar.is-halves i').first().boundingBox();
   const fourth = await stage.locator('.fq-cine-cutbar.is-fourths i').first().boundingBox();
   expect(half!.width / fourth!.width).toBeGreaterThan(1.9);
+});
+
+test('the grown-ups\' Reduce motion setting keeps the film camera still and hides flashes and drifting motes', async ({ page }) => {
+  await openChapterTwo(page, unitOne, true);
+  await expect(page.locator('html')).toHaveClass(/fq-reduced-motion/);
+  await page.getByRole('button', { name: /Chapter start · More parts, smaller parts/ }).click();
+  const film = page.getByTestId('story-panels');
+  const camera = film.locator('.fq-cine-cam').first();
+  await expect(camera).toBeAttached();
+  // Through several shots, the camera never pushes in or pans (each shot sets a transform on it otherwise).
+  for (let shot = 0; shot < 3; shot++) {
+    await page.waitForTimeout(900);
+    expect(await camera.evaluate((el) => getComputedStyle(el).transform)).toBe('none');
+  }
+  for (const still of await film.locator('.fq-cine-ambient, .fq-cine-flash').all()) {
+    expect(await still.evaluate((el) => getComputedStyle(el).display)).toBe('none');
+  }
 });
 
 test('lesson 2 plays in the chapter\'s place with the speakers, and no story props', async ({ page }) => {

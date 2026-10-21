@@ -161,6 +161,30 @@ test('a story is read aloud as "friend", never with the child\'s name, so it pla
   }
 });
 
+test('every lesson film, not only a chapter\'s first, reads lines that are in the voice pack', async () => {
+  const { voiceSentences } = await import('../scripts/voice-sentences');
+  const { CHAPTERS, CHAPTER_SCENES, lessonComic, withName } = await import('./story');
+  const { MISSIONS } = await import('./game');
+  const { sentences, spokenText } = await import('./lib/voice');
+  const packed = new Set(voiceSentences().map((entry) => entry.text));
+  const missing: string[] = []; let films = 0;
+  for (const chapter of CHAPTERS) {
+    if (!CHAPTER_SCENES[chapter.unit]) continue;
+    // A chapter with a scene films every lesson's comic (later lessons in the chapter's place), line by line.
+    MISSIONS.filter((mission) => mission.unit === chapter.unit).forEach((mission, index) => {
+      films++;
+      for (const theme of ['everyday', 'halloween', 'christmas'] as const) {
+        for (const panel of lessonComic(chapter, mission, index)) for (const sentence of sentences(spokenText(withName(panel.text, null, theme)))) {
+          const clean = cleanSentence(sentence);
+          if (/[a-z]{2}/i.test(clean) && !packed.has(clean)) missing.push(`${mission.id} (${theme}): ${clean}`);
+        }
+      }
+    });
+  }
+  assert.ok(films > 60, `only ${films} lesson films`);
+  assert.deepEqual([...new Set(missing)].slice(0, 8), [], `${new Set(missing).size} film lines are not in the pack`);
+});
+
 test('the detective quest lines are in the voice pack too', async () => {
   const { voiceSentences } = await import('../scripts/voice-sentences');
   const { suspectReply } = await import('./story');

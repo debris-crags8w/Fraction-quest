@@ -394,6 +394,21 @@
   .fq-cine-machine.is-on i, .fq-cine-whole-stone i, .fq-cine-gear.is-turning, .fq-cine-boots.is-lit { animation: none; }
   .fq-cine-caption, .fq-cine-rise, .fq-cine-bang, .fq-cine-flag, .fq-cine-tick, .fq-cine-card small, .fq-cine-card strong { animation: fq-cine-fade .3s ease both; }
 }
+/* The grown-ups' Reduce motion setting holds the films still too, as the system setting does. */
+:root.fq-reduced-motion .fq-cine-cam { transform: none !important; }
+:root.fq-reduced-motion .fq-cine-set, :root.fq-reduced-motion .fq-cine-set.is-shaking, :root.fq-reduced-motion .fq-cine-face.is-talking, :root.fq-reduced-motion .fq-cine-actor > *, :root.fq-reduced-motion .fq-cine-actor.is-buzzing, :root.fq-reduced-motion .fq-cine-star, :root.fq-reduced-motion .fq-cine-cloud, :root.fq-reduced-motion .fq-cine-case.is-glowing, :root.fq-reduced-motion .fq-cine-glint, :root.fq-reduced-motion .fq-cine-piece.is-landed, :root.fq-reduced-motion .fq-cine-tower.is-wobbling, :root.fq-reduced-motion .fq-cine-sparkle, :root.fq-reduced-motion .fq-cine-pulse, :root.fq-reduced-motion .fq-cine-map.is-falling, :root.fq-reduced-motion .fq-cine-enter-left, :root.fq-reduced-motion .fq-cine-bakery-enter { animation: none; }
+:root.fq-reduced-motion .fq-cine-confetti, :root.fq-reduced-motion .fq-cine-knife, :root.fq-reduced-motion .fq-cine-falling, :root.fq-reduced-motion .fq-cine-splash, :root.fq-reduced-motion .fq-cine-crumb { display: none; }
+:root.fq-reduced-motion .fq-cine-plank.is-falling { animation: none; visibility: hidden; }
+:root.fq-reduced-motion .fq-cine-piece, :root.fq-reduced-motion .fq-cine-actor, :root.fq-reduced-motion .fq-cine-snack, :root.fq-reduced-motion .fq-cine-treat, :root.fq-reduced-motion .fq-cine-slice { transition: none; }
+:root.fq-reduced-motion .fq-cine-screen::before, :root.fq-reduced-motion .fq-cine-screen.is-bridge .fq-cine-set::after, :root.fq-reduced-motion .fq-cine-pond::after, :root.fq-reduced-motion .fq-cine-river::after, :root.fq-reduced-motion .fq-cine-flash::after { animation: none; }
+:root.fq-reduced-motion .fq-cine-ambient { animation: none; display: none; }
+:root.fq-reduced-motion .fq-cine-screen.is-rolling .fq-cine-bar { animation: none; height: 30px; }
+:root.fq-reduced-motion .fq-cine-hops path { animation: none; stroke-dashoffset: 0; }
+:root.fq-reduced-motion .fq-cine-card, :root.fq-reduced-motion .fq-cine-end, :root.fq-reduced-motion .fq-cine-end strong, :root.fq-reduced-motion .fq-cine-spot { animation: fq-cine-fade .3s ease both; }
+:root.fq-reduced-motion .fq-cine-flash, :root.fq-reduced-motion .fq-cine-flash::after { display: none; }
+:root.fq-reduced-motion .fq-cine-machine.is-on i, :root.fq-reduced-motion .fq-cine-whole-stone i, :root.fq-reduced-motion .fq-cine-gear.is-turning, :root.fq-reduced-motion .fq-cine-boots.is-lit { animation: none; }
+:root.fq-reduced-motion .fq-cine-caption, :root.fq-reduced-motion .fq-cine-rise, :root.fq-reduced-motion .fq-cine-bang, :root.fq-reduced-motion .fq-cine-flag, :root.fq-reduced-motion .fq-cine-tick, :root.fq-reduced-motion .fq-cine-card small, :root.fq-reduced-motion .fq-cine-card strong { animation: fq-cine-fade .3s ease both; }
+
 
 /* The finished film holds still: no drifting motes or breathing light. */
 .fq-cine-comic.is-done .fq-cine-ambient { display: none; }
