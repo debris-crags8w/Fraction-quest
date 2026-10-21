@@ -3096,9 +3096,11 @@ describe('placement quiz', () => {
   });
 });
 describe('saved challenge scores', () => {
-  it('keeps unit 9–14 challenge bests after a reload', () => {
-    saveProgress({ ...EMPTY_PROGRESS, challengeBest: { 1: 20, 12: 17, 14: 22 } });
-    assert.deepEqual(loadProgress().challengeBest, { 1: 20, 12: 17, 14: 22 });
+  it('keeps unit 9–15 challenge bests after a reload', () => {
+    saveProgress({ ...EMPTY_PROGRESS, challengeBest: { 1: 20, 12: 17, 14: 22, 15: 19 } });
+    assert.deepEqual(loadProgress().challengeBest, { 1: 20, 12: 17, 14: 22, 15: 19 });
+    saveProgress({ ...EMPTY_PROGRESS, challengeBest: { 16: 10 } });
+    assert.equal(loadProgress().challengeBest?.['16'], undefined, 'there is no unit 16');
   });
 });
 

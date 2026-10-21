@@ -10,7 +10,7 @@ function learner(i: number, over: Partial<AccountRow> & { progress?: object; fun
   return {
     username: `kid${i}`, createdAt: new Date(NOW - 40 * 864e5), hasConsent: true, hasRecoveryCode: true,
     progress: {
-      completedMissionIds: ["equal-parts", "fraction-names", "unit-fractions"],
+      completedMissionIds: ["equal-parts", "fraction-names", "unit-fractions", "fraction-of-area"],
       starsByMission: { "equal-parts": 3, "fraction-names": 2, "unit-fractions": 1 },
       reviewQueue: [{ missionId: "unit-size" }],
       learning: { "equal-parts": { checks: { a: { attempts: 1 } }, helpUses: 1, misconceptions: { "part-count": 2 } } },
@@ -24,9 +24,11 @@ function learner(i: number, over: Partial<AccountRow> & { progress?: object; fun
 describe("LESSON_UNITS", () => {
   it("matches every lesson id and unit in the web app curriculum", () => {
     const source = readFileSync(new URL("../../fraction-quest/src/game.ts", import.meta.url), "utf8");
-    const found = [...source.matchAll(/id: '([a-z0-9-]+)', unit: (\d+)/g)].map((m) => [m[1], Number(m[2])] as const);
+    const plan = /export const LESSON_PLAN[^=]*= \{([\s\S]*?)\n\};/.exec(source)?.[1] ?? "";
+    const found = [...plan.matchAll(/(\d+): \[([^\]]*)\]/g)]
+      .flatMap((m) => [...m[2].matchAll(/'([a-z0-9-]+)'/g)].map((id) => [id[1], Number(m[1])] as const));
     assert.ok(found.length > 0);
-    assert.deepEqual(Object.fromEntries(found), LESSON_UNITS);
+    assert.deepEqual(found, Object.entries(LESSON_UNITS), "same lessons, units and order");
   });
 });
 

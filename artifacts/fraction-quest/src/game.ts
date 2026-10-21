@@ -1003,6 +1003,8 @@ export const LESSON_PLAN: Readonly<Record<number, readonly string[]>> = {
   14: ['fractions-to-percent', 'percent-to-fraction', 'multi-step-fraction-stories'],
   15: ['find-the-whole', 'spot-the-mistake', 'fraction-of-remainder', 'divide-fractions'],
 };
+/** How many units the course has (each one has a story chapter, a Unit challenge and Check-ins). */
+export const UNIT_COUNT = Object.keys(LESSON_PLAN).length;
 const planPlace = new Map(Object.entries(LESSON_PLAN).flatMap(([unit, ids]) => ids.map((id, at) => [id, { unit: Number(unit), at }] as const)));
 function placeOf(id: string): { unit: number; at: number } {
   const place = planPlace.get(id);
@@ -1299,6 +1301,12 @@ export function completeMission(progress: Progress, missionId: string, stars: nu
   };
 }
 
+/** A Check-in id this course can have: unit-<1 to UNIT_COUNT>-pre/mid/end, or a grade check. */
+function knownAssessmentId(id: string): boolean {
+  const unit = /^unit-([1-9]\d?)-(?:pre|mid|end)$/.exec(id)?.[1];
+  return unit ? Number(unit) <= UNIT_COUNT : /^grade-[3-5]-(?:beginning|middle|end)$/.test(id);
+}
+
 export function loadProgress(): Progress {
   try {
     const stored = window.localStorage.getItem(scopedStorageKey(STORAGE_KEY));
@@ -1327,7 +1335,7 @@ export function loadProgress(): Progress {
     if (value.challengeBest && typeof value.challengeBest === 'object') {
       for (const [rawUnit, rawScore] of Object.entries(value.challengeBest)) {
         const unit = Number(rawUnit);
-        if (!Number.isInteger(unit) || unit < 1 || unit > 14 || typeof rawScore !== 'number' || !Number.isFinite(rawScore)) continue;
+        if (!Number.isInteger(unit) || unit < 1 || unit > UNIT_COUNT || typeof rawScore !== 'number' || !Number.isFinite(rawScore)) continue;
         challengeBest[String(unit)] = Math.max(0, Math.min(22, Math.floor(rawScore)));
       }
     }
@@ -1467,7 +1475,7 @@ export function loadProgress(): Progress {
       const attempt = rawAttempt as Partial<AssessmentAttempt>;
       if (
         typeof attempt.assessmentId !== 'string'
-        || !/^(unit-(?:[1-9]|1[0-4])-(?:pre|mid|end)|grade-[3-5]-(?:beginning|middle|end))$/.test(attempt.assessmentId)
+        || !knownAssessmentId(attempt.assessmentId)
         || typeof attempt.seed !== 'number' || !Number.isSafeInteger(attempt.seed)
         || typeof attempt.startedAt !== 'number' || !Number.isFinite(attempt.startedAt)
         || typeof attempt.completedAt !== 'number' || !Number.isFinite(attempt.completedAt)
