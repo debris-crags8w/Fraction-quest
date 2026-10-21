@@ -3161,3 +3161,37 @@ test('every lesson 1 question fits an iPhone Safari screen: all choices and the 
   }
   expect(misfits, 'questions that do not fit the iPhone screen').toEqual([]);
 });
+
+test('a Build check keeps its question in view and says what to show in each part', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 390, height: 664 });
+  const mission = MISSIONS.find(({ id }) => id === 'equal-parts')!;
+  await openAsGuest(page);
+  await page.evaluate((progress) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+  }, progressBefore(mission));
+  await page.reload();
+  await expectMissionStart(page, mission.id, true);
+  await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await passStory(page);
+  const check = getBuildChecks(mission.id)[0];
+  const card = page.getByTestId(`check-${check.id}`);
+  await skipIntros(page);
+  // The question is a "Your task" card.
+  const task = card.getByTestId(`task-${check.id}`);
+  await expect(task).toContainText('Your task');
+  await expect(task).toContainText(check.prompt.replace(/\s*\d+\/\d+.*$/, '').slice(0, 20));
+  await enterModel(page, check.id, 'a', check.target);
+
+  // Part 2 names the amount (stacked), not "it" or "the same amount".
+  const amount = `${check.target.n} over ${check.target.d}`;
+  const part2 = card.locator('.fq-ll-translate');
+  await expect(part2.locator('strong').getByRole('math', { name: amount })).toBeVisible();
+  await expect(part2.locator('strong')).not.toContainText('show it');
+  await skipIntros(page);
+  await expect(card.getByTestId(`model-${check.id}-b`).locator('h4').getByRole('math', { name: amount })).toBeVisible();
+
+  // While the child works on part 2, the question is still on screen.
+  await card.getByTestId(`model-${check.id}-b`).scrollIntoViewIfNeeded();
+  await expect(task).toBeInViewport();
+});
