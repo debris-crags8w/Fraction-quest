@@ -1409,10 +1409,10 @@ function Game() {
       const chapter = next && chapterFor(next.unit);
       if (!next || !chapter) return;
       const index = MISSIONS.filter((item) => item.unit === next.unit).indexOf(next);
-      // Filmed comics (the prologue, chapter openings with a scene) read just the lines; plain ones say who speaks.
+      // Filmed comics (the prologue, and every lesson in a chapter with a scene) read just the lines; plain ones say who speaks.
       if (!prologueSeen) prefetchReading(filmedLines(PROLOGUE, storyTheme).join(' '));
       const panels = lessonComic(chapter, next, index);
-      prefetchReading(index === 0 && CHAPTER_SCENES[chapter.unit] ? filmedLines(panels, storyTheme).join(' ') : storyScript(panels, storyTheme));
+      prefetchReading(CHAPTER_SCENES[chapter.unit] ? filmedLines(panels, storyTheme).join(' ') : storyScript(panels, storyTheme));
     }, 1500);
     return () => clearTimeout(timer);
   }, [onMap, progress, storyMode, fun.sound, prologueSeen, storyTheme]);

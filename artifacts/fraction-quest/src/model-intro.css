@@ -80,6 +80,10 @@
   .is-tapped::after, .fq-ll-step.is-hot, .fq-mi-demo-line i, .fq-mi-demo-line em, .fq-mi-caption { animation: none; }
   .fq-mi-demo-bar span, .fq-mi-walked, .fq-mi-frog, .fq-mi-bar button, .fq-mi-dots li { transition: none; }
 }
+/* The grown-ups' Reduce motion setting does the same as the system setting. */
+:root.fq-reduced-motion .is-tapped::after, :root.fq-reduced-motion .fq-ll-step.is-hot, :root.fq-reduced-motion .fq-mi-demo-line i, :root.fq-reduced-motion .fq-mi-demo-line em, :root.fq-reduced-motion .fq-mi-caption { animation: none; }
+:root.fq-reduced-motion .fq-mi-demo-bar span, :root.fq-reduced-motion .fq-mi-walked, :root.fq-reduced-motion .fq-mi-frog, :root.fq-reduced-motion .fq-mi-bar button, :root.fq-reduced-motion .fq-mi-dots li { transition: none; }
+
 
 /* The lesson Helper. */
 .fq-mi-helper-button { gap: 6px; }

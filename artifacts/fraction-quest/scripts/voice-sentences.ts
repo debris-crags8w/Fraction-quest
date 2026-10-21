@@ -164,7 +164,8 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
   const filmed: Panel[][] = [PROLOGUE, EPILOGUE, ...CHAPTERS.map(chapterEnd)];
   for (const chapter of CHAPTERS) {
     const lessons = MISSIONS.filter((mission) => mission.unit === chapter.unit);
-    lessons.forEach((mission, index) => (index === 0 && CHAPTER_SCENES[chapter.unit] ? filmed : scripts).push(lessonComic(chapter, mission, index)));
+    // A chapter with a scene films every lesson's comic (later lessons in the chapter's place), so each reads just its lines.
+    lessons.forEach((mission, index) => (CHAPTER_SCENES[chapter.unit] ? filmed : scripts).push(lessonComic(chapter, mission, index)));
     scripts.push(chapter.choice.map((option) => option.reply));
   }
 
