@@ -6,6 +6,7 @@ import { ArrowRight, Check, LifeBuoy, Minus, Plus, RotateCcw } from 'lucide-reac
 import { playHaptic } from './lib/fun';
 import type { IntroKind } from './lib/fun';
 import { LearningListenButton } from './LearningText';
+import { TickLabel } from './fraction-ui';
 import { HELPER_PICKS, HELPER_PICK_SPEECH, INTRO_DEMOS, INTRO_TEXT, INTRO_TRIES, introHint } from './intro-copy';
 import './model-intro.css';
 
@@ -66,7 +67,7 @@ export function ModelIntro({ kind, onDone, onSkip, helper = false }: {
   const demo = shots[shot];
   const atPhase = PHASES.indexOf(phase);
   // The header's Listen reads the step on screen: the demo's captions, the try and its live hint, or the ready text.
-  const stepSpeech = phase === 'watch' ? [text.title, ...shots.map((item) => item.caption)].join(' ')
+  const stepSpeech = phase === 'watch' ? shots.map((item) => item.caption).join(' ')
     : phase === 'try' ? `${text.build} ${target.word}. ${hint.text}`
     : `${text.ready} ${text.readyBody}`;
 
@@ -115,7 +116,8 @@ export function ModelIntro({ kind, onDone, onSkip, helper = false }: {
                 {Array.from({ length: demo.parts + 1 }, (_, i) => <i key={`${demo.parts}-${i}`} style={{ left: `${(i / demo.parts) * 100}%` }} />)}
                 {Array.from({ length: demo.count }, (_, i) => <em key={i} style={{ left: `${(i / demo.parts) * 100}%`, width: `${100 / demo.parts}%` }} />)}
                 <span className="fq-mi-frog" style={{ left: `${(demo.count / demo.parts) * 100}%` } as CSSProperties} />
-                <small style={{ left: 0 }}>0</small><small style={{ left: '100%' }}>1</small>
+                {/* Every mark is named: 0 and 1 at the ends, and 1/4, 2/4… at the jumps in between. */}
+                {Array.from({ length: demo.parts + 1 }, (_, i) => <small key={`label-${demo.parts}-${i}`} style={{ left: `${(i / demo.parts) * 100}%` }}><TickLabel i={i} d={demo.parts} /></small>)}
               </div>
             )}
             <div className="fq-mi-readout">
@@ -161,7 +163,8 @@ export function ModelIntro({ kind, onDone, onSkip, helper = false }: {
                 <button key={i} type="button" className={i === count ? 'is-on' : ''} style={{ left: `${(i / parts) * 100}%` }} aria-pressed={i === count}
                   aria-label={i === 0 ? 'Zero' : i === parts ? 'One' : `${i} ${i === 1 ? 'jump' : 'jumps'} from 0`}
                   onClick={() => { playHaptic('selection'); setCount(i); }} data-testid={`intro-tick-${i}`}>
-                  <i />{(i === 0 || i === parts) && <small>{i === 0 ? '0' : '1'}</small>}
+                  {/* Named for the spaces the child chose: 3 spaces read 1/3 and 2/3, so the labels follow their cuts. */}
+                  <i /><small><TickLabel i={i} d={parts} /></small>
                 </button>
               ))}
             </div>

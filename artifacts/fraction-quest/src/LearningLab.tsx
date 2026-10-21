@@ -2,7 +2,7 @@ import { type CSSProperties, Fragment, type ReactNode, type RefObject, useEffect
 import { playHaptic, recordIntro, type IntroKind } from './lib/fun';
 import { useOptionalFun } from './fun-ui';
 import { ModelIntro, useLessonHelper } from './model-intro';
-import { LearningListenButton, LearningText } from './LearningText';
+import { LearningListenButton, LearningText, spokenLearningText } from './LearningText';
 import { BUILD_ERROR_HEADINGS, BUILD_SLIPS as M, LAB_SECTION_SPEECH, buildErrors, buildHints, worksheetSpeech } from './lab-copy';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw, Star } from 'lucide-react';
 import { getMission, numberLineWholeCount, type Progress } from './game';
@@ -44,14 +44,15 @@ function namesItsBar(p: WorksheetProblem): boolean {
     && amountsIn(p.prompt).some((a) => a.numerator === p.model!.n && a.denominator === p.model!.d);
 }
 
-function SectionListenHeader({ children, text, label, className = '' }: {
+function SectionListenHeader({ children, text, label, className = '', testId }: {
   children: ReactNode;
   text: string;
   label: string;
   className?: string;
+  testId?: string;
 }) {
   return (
-    <header className={`fq-ll-section-header ${className}`.trim()}>
+    <header className={`fq-ll-section-header ${className}`.trim()} data-testid={testId}>
       {children}
       <LearningListenButton text={text} label={label} />
     </header>
@@ -230,10 +231,10 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
   const per = kind === 'set' && st.d && total ? total / st.d : 0;
   const wrap = st.d > 12;
   return (
-    <section className={`fq-ll-builder kind-${kind}`} aria-label={title} data-testid={'model-' + id}>
+    <section className={`fq-ll-builder kind-${kind}`} aria-label={spokenLearningText(title)} data-testid={'model-' + id}>
       <header className="fq-ll-model-head">
         <ModelTag kind={kind} />
-        <h4>{title}</h4>
+        <h4><LearningText text={title} interactiveTerms={false} /></h4>
         <p>{MODEL_CONCEPTS[kind]}</p>
       </header>
       <div className="fq-ll-controls">
@@ -317,7 +318,9 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
   const stage = getBuildCheckStage(primaryReady, secondaryReady);
   const sig = JSON.stringify([a, b, reason]);
   const locked = failedSig === sig;
-  const transLabel = tk === 'line' ? 'Now show it on a number line' : 'Now show it with a bar';
+  // Part 2 names the amount the child just built (shown stacked), so "show it" is never a guess.
+  const amount = `${t.n}/${t.d}`;
+  const transLabel = tk === 'line' ? `Now show ${amount} on a number line` : `Now show ${amount} with a bar`;
   const hintTexts = buildHints(t, k);
 
   // Once a build passes, it stays as built: editing it used to hide Next, and a later wrong check undid the pass.
@@ -359,7 +362,10 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
   return (
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
       <p className="fq-ll-kicker">{review ? 'Review' : check.stepLabel ?? (check.transfer ? 'Step 2 · On your own' : 'Step 1 · Build it')}</p>
-       <SectionListenHeader text={check.prompt} label="Listen to the question" className="fq-ll-check-heading">
+       {/* The question is a "Your task" card that stays at the top of the screen while the child builds, so every
+           part of the check (build, show it again, explain) has the question in view. */}
+       <SectionListenHeader text={check.prompt} label="Listen to the question" className="fq-ll-check-heading fq-task-card" testId={`task-${check.id}`}>
+         <span className="fq-task-label">Your task</span>
          <h3 ref={headingRef} tabIndex={-1}><LearningText text={check.prompt} /></h3>
        </SectionListenHeader>
         {!restoredPassed && <>
@@ -376,11 +382,11 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
            </div>}
           {stage !== 'primary' && <>
             <div className="fq-ll-translate">
-              <strong><span className="fq-ll-response-step">Part 2 of 3 · </span>{transLabel}</strong>
-              <span>Show the same amount with a new model.</span>
+              <strong><span className="fq-ll-response-step">Part 2 of 3 · </span><LearningText text={transLabel} interactiveTerms={false} /></strong>
+              <span><LearningText text={`Your first model shows ${amount}. Show the same amount ${tk === 'line' ? 'on the number line' : 'with the bar'}.`} interactiveTerms={false} /></span>
             </div>
             {tk === 'line' && lineIntro ? <ModelIntro kind="line" onDone={lineIntro.onDone} onSkip={lineIntro.onDone} />
-              : <Builder kind={tk} st={b} set={updateSecondary} id={`${check.id}-b`} title={`Show the same amount ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />}
+              : <Builder kind={tk} st={b} set={updateSecondary} id={`${check.id}-b`} title={`Show ${amount} ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />}
             {!secondaryReady && b.d > 0 && secondaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-secondary-${check.id}`}>{secondaryValidation.msgs[0]}</p>}
              {secondaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-secondary-${check.id}`}>
                <Check size={18} />

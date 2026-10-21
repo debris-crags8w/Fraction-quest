@@ -246,7 +246,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
           <div className="fq-pf-heading">
             <div className="fq-listen-row">
               <h1 id="pf-title" tabIndex={-1}>{words(round.title)}</h1>
-              <LearningListenButton text={`${round.title}. ${round.prompt} ${instruction}${sorting ? ' Who gets the next pieces you tap?' : ''}`} label="Listen to this cake's task" compact />
+              <LearningListenButton text={`${round.prompt} ${instruction}${sorting ? ' Who gets the next pieces you tap?' : ''}`} label="Listen to this cake's task" compact />
             </div>
             <p className="fq-pf-prompt"><MathText text={words(round.prompt)} /></p>
           </div>

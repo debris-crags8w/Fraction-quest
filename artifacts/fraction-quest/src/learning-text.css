@@ -2,6 +2,11 @@
   display: inline;
 }
 
+/* A highlighted word and the punctuation after it stay on one line. */
+.fq-glue {
+  white-space: nowrap;
+}
+
 .fq-vocab {
   position: relative;
   display: inline-block;
@@ -122,9 +127,8 @@
   cursor: pointer;
 }
 
+/* A Listen button in a tight spot keeps its size, but still says "Listen" like every other one. */
 .fq-learning-listen.is-compact {
-  width: 34px;
-  padding: 0;
   flex: none;
 }
 

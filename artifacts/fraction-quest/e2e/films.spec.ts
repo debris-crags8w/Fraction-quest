@@ -46,3 +46,98 @@ test('lesson 2 plays in the chapter\'s place with the speakers, and no story pro
   await page.getByTestId('button-story-skip').click();
   await expect(page.getByTestId('button-story-go')).toBeVisible();
 });
+
+test('the Voice button decides whether the film is heard, right away, and is remembered', async ({ page }) => {
+  // The device voice (the natural voice is off here) is recorded instead of spoken: each sentence takes 0.4 s.
+  await page.addInitScript(() => {
+    localStorage.setItem('fraction-quest-natural-voice', 'off');
+    const spoken: string[] = [];
+    (window as unknown as { spoken: string[] }).spoken = spoken;
+    let queue: { text: string; onstart?: () => void; onend?: () => void }[] = [];
+    const next = () => { const item = queue[0]; if (!item) return; setTimeout(() => { item.onstart?.(); spoken.push(item.text); setTimeout(() => { if (queue[0] === item) { queue.shift(); item.onend?.(); next(); } }, 400); }, 10); };
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
+      getVoices: () => [{ name: 'Test', lang: 'en-US', voiceURI: 'Test', default: true }],
+      speak(utterance: { text: string }) { queue.push(utterance); if (queue.length === 1) next(); },
+      cancel() { queue = []; }, addEventListener() {}, removeEventListener() {}, pause() {}, resume() {},
+    } });
+    (window as unknown as { SpeechSynthesisUtterance: unknown }).SpeechSynthesisUtterance = function (this: { text: string }, text: string) { this.text = text; };
+  });
+  await openChapterTwo(page, [...unitOne, 'unit-size']);
+  // Words only: a blank utterance unlocks audio on a tap (iPhone) and is not part of the film.
+  const spoken = () => page.evaluate(() => (window as unknown as { spoken: string[] }).spoken.filter((text) => text.trim()).length);
+  // Sounds are off for this learner, so the film starts quiet.
+  await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
+  const voice = page.getByTestId('button-story-voice');
+  await expect(voice).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId('story-panel-0')).toBeVisible();
+  expect(await spoken()).toBe(0);
+  // Voice on: the line on screen is read at once.
+  await voice.click();
+  await expect(voice).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(spoken).toBeGreaterThan(0);
+  // Voice off: nothing more is read.
+  await voice.click();
+  const heard = await spoken();
+  await page.waitForTimeout(1500);
+  expect(await spoken()).toBe(heard);
+  // The choice is kept for the next film.
+  expect(await page.evaluate(() => localStorage.getItem('fraction-quest-film-voice'))).toBe('off');
+});
+
+test('a film starts with the voice the learner chose last time, even when sounds are off', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('fraction-quest-film-voice', 'on'));
+  await openChapterTwo(page, [...unitOne, 'unit-size']);
+  await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
+  await expect(page.getByTestId('button-story-voice')).toHaveAttribute('aria-pressed', 'true');
+});
+
+/** A short silent WAV clip: what the natural voice "plays" in these tests. */
+function silentWav(seconds = 0.3) {
+  const rate = 8000; const samples = Math.round(rate * seconds); const data = Buffer.alloc(samples * 2);
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0); header.writeUInt32LE(36 + data.length, 4); header.write('WAVE', 8); header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16); header.writeUInt16LE(1, 20); header.writeUInt16LE(1, 22); header.writeUInt32LE(rate, 24);
+  header.writeUInt32LE(rate * 2, 28); header.writeUInt16LE(2, 32); header.writeUInt16LE(16, 34); header.write('data', 36); header.writeUInt32LE(data.length, 40);
+  return Buffer.concat([header, data]);
+}
+
+test('when the natural voice fails during a film, the device voice never takes over or replays the dialogue', async ({ page }) => {
+  test.setTimeout(90_000);
+  // The device voice is recorded instead of spoken. The natural voice is on (the default) and the film's voice is on.
+  await page.addInitScript(() => {
+    localStorage.setItem('fraction-quest-film-voice', 'on');
+    const spoken: string[] = [];
+    (window as unknown as { spoken: string[] }).spoken = spoken;
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
+      getVoices: () => [{ name: 'Device', lang: 'en-US', voiceURI: 'Device', default: true }],
+      speak(utterance: { text: string; onend?: () => void }) { spoken.push(utterance.text); setTimeout(() => utterance.onend?.(), 50); },
+      cancel() {}, addEventListener() {}, removeEventListener() {}, pause() {}, resume() {},
+    } });
+    (window as unknown as { SpeechSynthesisUtterance: unknown }).SpeechSynthesisUtterance = function (this: { text: string }, text: string) { this.text = text; };
+  });
+  await openChapterTwo(page, [...unitOne, 'unit-size']);
+  // Natural-voice clips play, except one sentence that fails every time it is asked for, from the pack and from the
+  // voice server alike (a broken connection for that clip).
+  let clips = 0;
+  let broken: string | null = null;
+  const clip = (route: import('@playwright/test').Route) => {
+    clips += 1;
+    const url = route.request().url();
+    const sentence = /text=([^&]+)/.exec(url)?.[1] ?? url.split('/').pop()!;
+    if (broken === null && clips === 3) broken = sentence;
+    return clips >= 3 && (sentence === broken || /\/voice\/speech/.test(url))
+      ? route.fulfill({ status: 500, body: 'voice failed' })
+      : route.fulfill({ status: 200, contentType: 'audio/wav', body: silentWav() });
+  };
+  await page.route('**/api/storage/public-objects/voice/**', clip);
+  await page.route('**/api/voice/speech**', clip);
+  await page.route('**/api/voice/status', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{"state":"ready"}' }));
+
+  await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
+  await expect(page.getByTestId('button-story-voice')).toHaveAttribute('aria-pressed', 'true');
+  // The film still plays to its end, with its captions.
+  await expect(page.getByTestId('button-story-go')).toBeVisible({ timeout: 60_000 });
+  expect(clips, 'the natural voice was asked for its clips').toBeGreaterThanOrEqual(3);
+  const words = await page.evaluate(() => (window as unknown as { spoken: string[] }).spoken.filter((text) => text.trim()));
+  expect(words, 'the device voice must not read the film').toEqual([]);
+});

@@ -20,13 +20,13 @@
 .fq-mi-demo-bar span { flex: 1; transition: background .35s; }
 .fq-mi-demo-bar span + span { border-left: 3px solid #2B2D42; }
 .fq-mi-demo-bar span.is-on { background: var(--fq-grape, #6D4BD8); }
-.fq-mi-demo-line { position: relative; height: 74px; margin: 0 14px; }
+.fq-mi-demo-line { position: relative; height: 94px; margin: 0 14px; }
 .fq-mi-demo-line::before { content: ''; position: absolute; left: 0; right: 0; top: 46px; height: 4px; border-radius: 2px; background: #D8D9EA; }
 .fq-mi-walked { position: absolute; left: 0; top: 46px; height: 4px; border-radius: 2px; background: #FFC800; transition: width .55s; }
-.fq-mi-demo-line i { position: absolute; top: 37px; width: 4px; height: 22px; margin-left: -2px; border-radius: 2px; background: #fff; animation: fq-mi-pop .35s ease both; }
-.fq-mi-demo-line em { position: absolute; top: 22px; height: 22px; box-sizing: border-box; border: 3px solid #FFC800; border-bottom: 0; border-radius: 50% 50% 0 0 / 100% 100% 0 0; animation: fq-mi-pop .4s ease both; }
+.fq-mi-demo-line > i { position: absolute; top: 37px; width: 4px; height: 22px; margin-left: -2px; border-radius: 2px; background: #fff; animation: fq-mi-pop .35s ease both; }
+.fq-mi-demo-line > em { position: absolute; top: 22px; height: 22px; box-sizing: border-box; border: 3px solid #FFC800; border-bottom: 0; border-radius: 50% 50% 0 0 / 100% 100% 0 0; animation: fq-mi-pop .4s ease both; }
 .fq-mi-frog { position: absolute; top: 14px; width: 30px; height: 26px; margin-left: -15px; border-radius: 50% 50% 45% 45%; background: #5FB872; box-shadow: inset 0 -4px 0 #3E8E52; transition: left .55s cubic-bezier(.3, 1.4, .4, 1); }
-.fq-mi-demo-line small { position: absolute; top: 60px; margin-left: -4px; font-weight: 900; }
+.fq-mi-demo-line small { position: absolute; top: 62px; transform: translateX(-50%); font-weight: 900; }
 .fq-mi-readout { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; font-weight: 800; }
 .fq-mi-readout .fq-mi-frac { color: #FFC800; font-size: 1.6rem; }
 .fq-mi-caption { margin: 0; padding: 10px 12px; border-radius: 14px; background: rgb(255 255 255 / .1); font-size: 1rem; font-weight: 800; line-height: 1.35; animation: fq-mi-rise .45s ease both; }
@@ -53,12 +53,12 @@
 .fq-mi-bar button { flex: 1; min-width: 0; border: 0; background: transparent; cursor: pointer; transition: background .3s; }
 .fq-mi-bar button + button { border-left: 3px solid hsl(var(--foreground)); }
 .fq-mi-bar button.is-on { background: var(--fq-grape, #6D4BD8); }
-.fq-mi-line { position: relative; height: 70px; margin: 0 22px; }
+.fq-mi-line { position: relative; height: 86px; margin: 0 22px; }
 .fq-mi-line::before { content: ''; position: absolute; left: 0; right: 0; top: 33px; height: 4px; border-radius: 2px; background: hsl(var(--foreground)); }
-.fq-mi-line button { position: absolute; top: 0; width: 44px; height: 70px; margin-left: -22px; border: 0; background: transparent; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
-.fq-mi-line button i { display: block; width: 4px; height: 22px; margin-top: 24px; border-radius: 2px; background: hsl(var(--foreground)); }
-.fq-mi-line button.is-on i { background: var(--fq-grape, #6D4BD8); box-shadow: 0 0 0 5px color-mix(in srgb, var(--fq-grape, #6D4BD8) 30%, transparent); }
-.fq-mi-line button small { margin-top: 4px; font-weight: 900; }
+.fq-mi-line button { position: absolute; top: 0; width: 44px; height: 86px; margin-left: -22px; border: 0; background: transparent; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+.fq-mi-line button > i { display: block; width: 4px; height: 22px; margin-top: 24px; border-radius: 2px; background: hsl(var(--foreground)); }
+.fq-mi-line button.is-on > i { background: var(--fq-grape, #6D4BD8); box-shadow: 0 0 0 5px color-mix(in srgb, var(--fq-grape, #6D4BD8) 30%, transparent); }
+.fq-mi-line button > small { margin-top: 4px; font-weight: 900; }
 .fq-mi-bar.is-hot, .fq-mi-line.is-hot { border-radius: 12px; box-shadow: 0 0 0 4px rgb(255 200 0 / .45); }
 .fq-mi-hint { margin: 0; min-height: 44px; padding: 11px 13px; border-radius: 14px; color: #5A4500; background: #FFF6D6; font-weight: 900; }
 .fq-mi-hint.is-done { color: hsl(var(--secondary)); background: hsl(var(--secondary) / .12); }
@@ -92,3 +92,5 @@
 .fq-mi-helper-pick span { color: hsl(var(--muted-foreground)); font-size: .88rem; font-weight: 700; }
 .fq-mi-helper-pick:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 2px; }
 .fq-mi-helper .fq-mi { margin: 0; }
+/* The demo screen is dark: its mark labels are white so they read as clearly as the line. */
+.fq-mi-demo-line .fq-nl-label, .fq-mi-demo-line .fq-nl-frac > b:first-child, .fq-mi-demo-line .fq-nl-frac > b:last-child { color: #fff; }

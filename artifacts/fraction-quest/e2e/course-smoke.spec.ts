@@ -1959,6 +1959,23 @@ test('the model intros: watch, two guided tries, then build; the number line int
   await enterModel(page, check.id, 'a', check.target);
   await expect(page.getByTestId('intro-line')).toBeVisible();
   await expect(page.getByTestId('intro-line').locator('.fq-mi-caption')).toContainText('This line goes from 0 to 1.');
+  // Every mark on the line is labeled: the demo names its jumps (1/4, 2/4…) as it cuts the line.
+  await expect(page.getByTestId('intro-demo-line').locator('.fq-nl-frac').first()).toBeVisible({ timeout: 15_000 });
+  // In a try, the marks are named for the spaces the child chose: 3 spaces read 1/3 and 2/3.
+  await page.getByTestId('button-intro-your-turn').click();
+  await page.getByTestId('button-intro-plus').click();
+  await page.getByTestId('button-intro-plus').click();
+  await expect(page.getByTestId('value-intro-parts')).toHaveText('3');
+  await expect(page.getByTestId('intro-tick-1').getByLabel('1 over 3')).toBeVisible();
+  await expect(page.getByTestId('intro-tick-2').getByLabel('2 over 3')).toBeVisible();
+  await expect(page.getByTestId('intro-tick-3')).toContainText('1');
+  // Each label sits under its mark and stays small (a stacked fraction, not a block that covers the line).
+  for (const tick of [1, 2]) {
+    const mark = (await page.getByTestId(`intro-tick-${tick}`).locator('> i').boundingBox())!;
+    const label = (await page.getByTestId(`intro-tick-${tick}`).locator('.fq-nl-label').boundingBox())!;
+    expect(label.y, `label ${tick} is under its mark`).toBeGreaterThanOrEqual(mark.y + mark.height - 1);
+    expect(label.height, `label ${tick} is a small stacked fraction`).toBeLessThan(40);
+  }
   await page.getByTestId('button-intro-skip').click();
   await expect(page.getByTestId(`model-${check.id}-b`)).toBeVisible();
 
@@ -3096,4 +3113,98 @@ test('a reload or the back button keeps the child’s place in a lesson’s prac
   if (await guest.isVisible().catch(() => false)) await guest.click();
   await startSecond();
   await expectLessonQuestionProgress(page, 2, 1);
+});
+
+// Lessons whose every question is checked on an iPhone screen. Lesson 1 for now; the rest follow as their pictures are
+// made to fit (bars for amounts over 1 are still too tall).
+const PHONE_FIT_LESSONS = new Set(['equal-parts']);
+
+test('every lesson 1 question fits an iPhone Safari screen: one column of answers and Check, with no scrolling', async ({ page }) => {
+  test.setTimeout(120_000);
+  // An iPhone in Safari shows about 664 points of page between its address bar and toolbar. The phone layout uses no
+  // height queries (Safari answers those for its taller, bars-hidden view), so a 390 × 664 window is a faithful iPhone.
+  const visible = 664;
+  await page.setViewportSize({ width: 390, height: visible });
+  await openAsGuest(page);
+  const savedStorage = await localStorageSnapshot(page);
+  const misfits: string[] = [];
+  for (const mission of MISSIONS.filter((item) => PHONE_FIT_LESSONS.has(item.id))) {
+    await openDeveloperLesson(page, mission);
+    if (PART_FINDER_LESSONS.has(mission.id)) await completePartFinderLesson(page, mission.id);
+    else if (mission.id === 'order-unlike-fractions') await completeFractionOrderLesson(page);
+    const questions = [
+      ...mission.questions.slice(0, -1),
+      ...(hasGenerator(mission.id) ? getExtraPractice(mission.id, mission.questions.map((question) => question.id)).slice(0, 4) : []),
+      mission.questions.at(-1)!,
+    ];
+    for (const [index, question] of questions.entries()) {
+      const right = page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`);
+      await expect(right).toBeVisible();
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await right.click();
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const fit = await page.evaluate((id) => {
+        const box = (element: Element | null) => element?.getBoundingClientRect();
+        const choices = [...document.querySelectorAll(`[data-testid^="button-answer-${id}-"]`)].map((element) => element.getBoundingClientRect());
+        // Measured from the top of the lesson screen (the developer test bar above it is not on a child's screen), or
+        // from the question itself when the worked example sits above it on the lesson's first screen.
+        const top = (box(document.getElementById('lesson-question-title')) ?? box(document.querySelector('.fq-lesson-app')))?.top ?? 0;
+        return {
+          picture: box(document.querySelector('[data-testid="question-model-area"]'))?.height ?? 0,
+          choices: Math.max(...choices.map((rect) => rect.bottom)) - top,
+          columns: new Set(choices.map((rect) => Math.round(rect.left))).size,
+          check: (box(document.querySelector('[data-testid="button-check-answer"]'))?.bottom ?? Infinity) - top,
+        };
+      }, question.id);
+      const where = `${mission.id} question ${index + 1} (${question.id})`;
+      // One column of answers, and fitting must not come from shrinking the picture away.
+      if (fit.columns !== 1) misfits.push(`${where}: answers are in ${fit.columns} columns`);
+      if (fit.picture < 80) misfits.push(`${where}: the picture is only ${Math.round(fit.picture)} points tall`);
+      if (fit.choices > visible + 1 || fit.check > visible + 1) {
+        misfits.push(`${where}: choices end at ${Math.round(fit.choices)}, Check at ${Math.round(fit.check)}, screen ${visible}`);
+      }
+      await page.getByTestId('button-check-answer').click();
+      await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+      const moveOn = page.getByTestId(index === questions.length - 1 ? 'button-finish-mission' : 'button-next-question');
+      // After Check, the feedback and its Continue button are in view too (the page may scroll to them).
+      await expect(moveOn).toBeInViewport();
+      await moveOn.click();
+    }
+    await finishDeveloperLesson(page, savedStorage);
+  }
+  expect(misfits, 'questions that do not fit the iPhone screen').toEqual([]);
+});
+
+test('a Build check keeps its question in view and says what to show in each part', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 390, height: 664 });
+  const mission = MISSIONS.find(({ id }) => id === 'equal-parts')!;
+  await openAsGuest(page);
+  await page.evaluate((progress) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+  }, progressBefore(mission));
+  await page.reload();
+  await expectMissionStart(page, mission.id, true);
+  await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await passStory(page);
+  const check = getBuildChecks(mission.id)[0];
+  const card = page.getByTestId(`check-${check.id}`);
+  await skipIntros(page);
+  // The question is a "Your task" card.
+  const task = card.getByTestId(`task-${check.id}`);
+  await expect(task).toContainText('Your task');
+  await expect(task).toContainText(check.prompt.replace(/\s*\d+\/\d+.*$/, '').slice(0, 20));
+  await enterModel(page, check.id, 'a', check.target);
+
+  // Part 2 names the amount (stacked), not "it" or "the same amount".
+  const amount = `${check.target.n} over ${check.target.d}`;
+  const part2 = card.locator('.fq-ll-translate');
+  await expect(part2.locator('strong').getByRole('math', { name: amount })).toBeVisible();
+  await expect(part2.locator('strong')).not.toContainText('show it');
+  await skipIntros(page);
+  await expect(card.getByTestId(`model-${check.id}-b`).locator('h4').getByRole('math', { name: amount })).toBeVisible();
+
+  // While the child works on part 2, the question is still on screen.
+  await card.getByTestId(`model-${check.id}-b`).scrollIntoViewIfNeeded();
+  await expect(task).toBeInViewport();
 });

@@ -734,7 +734,9 @@ function MissionMap({ progress, onStart, onDeveloperTest, onLessonTester, onOpen
                                   ? <>Finish the lessons before this one to open it.</>
                                   : learning.practiceDone
                                     ? <>Builds: {buildsPassed} of {buildsNeeded}. Worksheet: {worksheetCount(learning, mission.id)} of {worksheetLength(mission.id)}.</>
-                                    : <>Practice, build it, then do the worksheet.</>}
+                                    : learning.practiceAt
+                                      ? <>Pick up where you left off.</>
+                                      : <>Practice, build it, then do the worksheet.</>}
                               {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Your work is saved. A few new steps are waiting.</>}
                             </p>
                             <button
@@ -743,7 +745,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onLessonTester, onOpen
                               disabled={!unlocked}
                               data-testid={`button-start-mission-${mission.id}`}
                             >
-                              {completed ? 'Practice again' : unlocked ? learning.practiceDone ? 'Resume worksheet & models' : 'Start lesson' : 'Finish earlier lessons first'}
+                              {completed ? 'Practice again' : unlocked ? learning.practiceDone ? 'Resume worksheet & models' : learning.practiceAt ? 'Resume lesson' : 'Start lesson' : 'Finish earlier lessons first'}
                               {unlocked && <ArrowRight size={16} />}
                             </button>
                             {completed && (
@@ -1035,6 +1037,30 @@ function PlayView({
   // On a short phone the choices can push Check below the screen: once an answer is picked, bring it into view.
   const checkButtonRef = useRef<HTMLButtonElement>(null);
   useRevealWhen(checkButtonRef, selection !== null && feedback === null);
+  // Phones: the question, picture, every answer and Check fit the screen Safari actually shows. Only the picture
+  // gives way: it shrinks by as much as the screen overflows (never below 70%, so it stays readable), whatever its kind.
+  const modelAreaRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const area = modelAreaRef.current;
+    if (!area || typeof window === 'undefined') return;
+    const fit = () => {
+      area.style.removeProperty('zoom');
+      const check = checkButtonRef.current;
+      if (window.innerWidth > 560 || !check) return;
+      // From the top of the lesson screen, or from the question itself when the worked example sits above it.
+      const from = showExample
+        ? document.getElementById('lesson-question-title')
+        : area.closest('.fq-lesson-app');
+      if (!from) return;
+      const overflow = check.getBoundingClientRect().bottom - from.getBoundingClientRect().top + 8 - window.innerHeight;
+      if (overflow <= 0) return;
+      const height = area.getBoundingClientRect().height;
+      area.style.setProperty('zoom', String(Math.max(0.7, (height - overflow) / height)));
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [question?.id, showExample, useSimplerModel, reviewingPastIndex]);
   const helper = useLessonHelper({ compact: true });
   // Screen readers: after Check, focus moves to the next step (Continue or Try again) instead of falling to the page,
   // and each new question's heading takes focus so the question is read.
@@ -1107,9 +1133,9 @@ function PlayView({
             <>
               {actionFirst && <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} result={feedback} setup={question.storySetup ?? lessonAsk(mission)} />}
               {showExample && <StoryPrompt prompt={question.prompt} id="lesson-question-title" />}
-              {question.isReview && <div className="fq-review-label"><RotateCcw size={15} />{question.isOptionalReview ? `${isQuickReview ? 'Due skill' : 'Optional review'} · ${question.reviewTopicTitle}` : ' A quick revisit to help it stick'}</div>}
-              {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint · Models and worksheet come next</div>}
-              <div className="fq-model-area" data-testid="question-model-area">
+              {question.isReview && <div className={`fq-review-label ${question.isOptionalReview ? '' : 'is-revisit'}`}><RotateCcw size={15} />{question.isOptionalReview ? `${isQuickReview ? 'Due skill' : 'Optional review'} · ${question.reviewTopicTitle}` : ' A quick revisit to help it stick'}</div>}
+              {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint<span className="fq-mastery-more"> · Models and worksheet come next</span></div>}
+              <div ref={modelAreaRef} className="fq-model-area" data-testid="question-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} />
               </div>
               {hintOpen && attempts < 2 && <div ref={hintRef} key={`hint-${hintFlash}`} className="fq-hint fq-hint-flash" data-testid="text-question-hint"><Lightbulb size={18} /> <span className="fq-hint-copy"><strong>Try this idea:</strong> <LearningListenButton text={question.hint} label="Listen to the hint" /><span><LearningText text={question.hint} /></span></span></div>}

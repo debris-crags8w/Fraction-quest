@@ -421,7 +421,10 @@ export function splitStory(prompt: string): { lines: string[]; question: string 
 
 /** Shows a long problem as numbered story lines with the question underneath. */
 export function StoryPrompt({ prompt, id }: { prompt: string; id: string }) {
-  const { lines, question } = splitStory(prompt);
+  // A review question starts "Quick review · Topic: …": the topic shows as a small tag above the question, so the
+  // heading is just the question (Listen still reads the whole prompt).
+  const review = /^(Quick review · [^:]+):\s+(.+)$/s.exec(prompt);
+  const { lines, question } = splitStory(review ? review[2] : prompt);
   return (
     <div className="fq-story-prompt">
       {lines.length > 0 && (
@@ -430,7 +433,7 @@ export function StoryPrompt({ prompt, id }: { prompt: string; id: string }) {
         </ol>
       )}
       <div className="fq-story-question-heading">
-        <h1 id={id} className="fq-question-text"><LearningText text={question} emphasize /></h1>
+        <h1 id={id} className="fq-question-text">{review && <span className="fq-review-prefix">{review[1]}</span>}<LearningText text={question} emphasize /></h1>
         <LearningListenButton text={prompt} label="Listen to the question" />
       </div>
     </div>

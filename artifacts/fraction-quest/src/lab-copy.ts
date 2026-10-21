@@ -7,10 +7,10 @@ import type { guideForUnit } from './teaching-guide-data';
 type Guide = NonNullable<ReturnType<typeof guideForUnit>>;
 
 export const LAB_SECTION_SPEECH = {
-  redo: 'Do it again. Want more practice? Try a part again with new numbers. Your lesson stays finished.',
-  buildPractice: 'More build practice. Try 10 new, optional questions with this lesson’s ideas. Extra practice does not change lesson completion.',
-  sameSize: 'Same size, different shapes. Each square shows 1/4. The shapes look different, but each colored part is the same size: 4 of them fill the square. Equal parts are the same size, not always the same shape.',
-  reteach: 'Make this idea clearer. One idea has been tricky more than once: use each new model, then enter the answer. These extra checks help make the idea stick.',
+  redo: 'Want more practice? Try a part again with new numbers. Your lesson stays finished.',
+  buildPractice: 'Try 10 new, optional questions with this lesson’s ideas. Extra practice does not change lesson completion.',
+  sameSize: 'Each square shows 1/4. The shapes look different, but each colored part is the same size: 4 of them fill the square. Equal parts are the same size, not always the same shape.',
+  reteach: 'One idea has been tricky more than once: use each new model, then enter the answer. These extra checks help make the idea stick.',
 };
 
 /** Said once as a folded strip opens. */
@@ -66,21 +66,20 @@ export function buildErrors(kind: BuildKind, t: BuildTarget, s: { d: number; cou
 /** The headings read before a build's mistakes. */
 export const BUILD_ERROR_HEADINGS = ['Not yet! Fix these, then check again.', 'Changed something? Check again.'];
 
-/** Several sections read as one: each heading is its own short sentence ("Question."), so every sentence is one the
-    voice pack lists. */
+/** Several sections read as one. Listen goes straight to the words: the headings on screen are not read aloud. */
 export const sectionsScript = (sections: { heading: string; text: string }[]) =>
-  sections.map(({ heading, text }) => `${heading}. ${/[.!?]$/.test(text.trim()) ? text.trim() : `${text.trim()}.`}`).join(' ');
+  sections.map(({ text }) => (/[.!?]$/.test(text.trim()) ? text.trim() : `${text.trim()}.`)).join(' ');
 
 export const worksheetSpeech = (questions: number) =>
-  `Worksheet. Answer all ${questions} questions to finish the lesson. Print the worksheet to hand in, then enter your answers here or with Check my paper.`;
+  `Answer all ${questions} questions to finish the lesson. Print the worksheet to hand in, then enter your answers here or with Check my paper.`;
 
 /** The warm-up panel's cards, as read aloud. */
 export const supportSpeech = (guide: Guide, mission: Pick<Mission, 'explainPrompt'>) => ({
-  warmup: `Quick warm-up. ${guide.warmup.prompt}`,
-  words: `Words to know. ${guide.vocabulary.map(({ term, meaning }) => `${term}: ${meaning}`).join(' ')}`,
-  explain: `Explain your thinking. ${mission.explainPrompt ?? guide.explainFrame}`,
-  teacher: `Be the teacher. ${guide.errorAnalysis.claim}`,
-  stretch: `Stretch your thinking. ${guide.enrichment}`,
+  warmup: guide.warmup.prompt,
+  words: `${guide.vocabulary.map(({ term, meaning }) => `${term}: ${meaning}`).join(' ')}`,
+  explain: mission.explainPrompt ?? guide.explainFrame,
+  teacher: guide.errorAnalysis.claim,
+  stretch: guide.enrichment,
 });
 
 type Point = { numerator: number; denominator: number };
