@@ -1959,6 +1959,23 @@ test('the model intros: watch, two guided tries, then build; the number line int
   await enterModel(page, check.id, 'a', check.target);
   await expect(page.getByTestId('intro-line')).toBeVisible();
   await expect(page.getByTestId('intro-line').locator('.fq-mi-caption')).toContainText('This line goes from 0 to 1.');
+  // Every mark on the line is labeled: the demo names its jumps (1/4, 2/4…) as it cuts the line.
+  await expect(page.getByTestId('intro-demo-line').locator('.fq-nl-frac').first()).toBeVisible({ timeout: 15_000 });
+  // In a try, the marks are named for the spaces the child chose: 3 spaces read 1/3 and 2/3.
+  await page.getByTestId('button-intro-your-turn').click();
+  await page.getByTestId('button-intro-plus').click();
+  await page.getByTestId('button-intro-plus').click();
+  await expect(page.getByTestId('value-intro-parts')).toHaveText('3');
+  await expect(page.getByTestId('intro-tick-1').getByLabel('1 over 3')).toBeVisible();
+  await expect(page.getByTestId('intro-tick-2').getByLabel('2 over 3')).toBeVisible();
+  await expect(page.getByTestId('intro-tick-3')).toContainText('1');
+  // Each label sits under its mark and stays small (a stacked fraction, not a block that covers the line).
+  for (const tick of [1, 2]) {
+    const mark = (await page.getByTestId(`intro-tick-${tick}`).locator('> i').boundingBox())!;
+    const label = (await page.getByTestId(`intro-tick-${tick}`).locator('.fq-nl-label').boundingBox())!;
+    expect(label.y, `label ${tick} is under its mark`).toBeGreaterThanOrEqual(mark.y + mark.height - 1);
+    expect(label.height, `label ${tick} is a small stacked fraction`).toBeLessThan(40);
+  }
   await page.getByTestId('button-intro-skip').click();
   await expect(page.getByTestId(`model-${check.id}-b`)).toBeVisible();
 
