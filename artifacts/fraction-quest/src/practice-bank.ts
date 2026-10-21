@@ -257,20 +257,20 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'tenths-decimals': (r) => {
     const n = r.int(1, 9);
     return r.chance()
-      ? { prompt: `What fraction is 0.${n}?`, right: f(n, 10), wrong: [f(n, 100), f(1, n === 1 ? 2 : n)], hint: 'The number right after the dot is tenths.', retry: `0.${n} means ${n} ${n === 1 ? 'tenth' : 'tenths'}.`, model: { kind: 'decimal', tenths: n, hideLabels: true } }
-      : { prompt: `Write ${f(n, 10)} as a decimal.`, right: `0.${n}`, wrong: [`${n}.0`, `0.0${n}`], hint: 'Tenths go right after the dot.', retry: `${n} ${n === 1 ? 'tenth is' : 'tenths is'} 0.${n}.`, model: { kind: 'decimal', tenths: n, hideLabels: true } };
+      ? { prompt: `What fraction is 0.${n}?`, right: f(n, 10), wrong: [f(n, 100), f(1, n === 1 ? 2 : n)], hint: 'The number right after the decimal point is tenths.', retry: `0.${n} means ${n} ${n === 1 ? 'tenth' : 'tenths'}.`, model: { kind: 'decimal', tenths: n, hideLabels: true } }
+      : { prompt: `Write ${f(n, 10)} as a decimal.`, right: `0.${n}`, wrong: [`${n}.0`, `0.0${n}`], hint: 'Tenths go right after the decimal point.', retry: `${n} ${n === 1 ? 'tenth is' : 'tenths is'} 0.${n}.`, model: { kind: 'decimal', tenths: n, hideLabels: true } };
   },
   'add-tenths-hundredths': (r) => {
     const a = r.int(1, 8); const b = r.int(1, Math.min(49, 99 - 10 * a)); const sum = 10 * a + b;
     return r.chance()
       ? { prompt: `${f(a, 10)} + ${f(b, 100)} = ?`, right: f(sum, 100), wrong: [f(a + b, 110), f(a + b, 100)], hint: `Change ${f(a, 10)} into hundredths first.`, retry: `${f(a, 10)} = ${f(10 * a, 100)}. ${10 * a} + ${b} = ${sum}. So ${f(sum, 100)}.`, model: bars2([a, 10], [b, 100]) }
-      : { prompt: `Write ${f(a, 10)} + ${f(b, 100)} as a decimal.`, right: (sum / 100).toFixed(2), wrong: [((a + b) / 100).toFixed(2), (sum / 10).toFixed(1)], hint: 'Change the tenths to hundredths, add, then write 2 places after the dot.', retry: `${f(10 * a, 100)} + ${f(b, 100)} = ${f(sum, 100)} = ${(sum / 100).toFixed(2)}.`, model: bars2([a, 10], [b, 100]) };
+      : { prompt: `Write ${f(a, 10)} + ${f(b, 100)} as a decimal.`, right: (sum / 100).toFixed(2), wrong: [((a + b) / 100).toFixed(2), (sum / 10).toFixed(1)], hint: 'Change the tenths to hundredths, add, then write 2 places after the decimal point.', retry: `${f(10 * a, 100)} + ${f(b, 100)} = ${f(sum, 100)} = ${(sum / 100).toFixed(2)}.`, model: bars2([a, 10], [b, 100]) };
   },
   'hundredths-decimals': (r) => {
     const n = r.int(1, 99); const dec = (n / 100).toFixed(2);
     return r.chance()
-      ? { prompt: `What fraction is ${dec}?`, right: f(n, 100), wrong: [f(n, 10), n === 1 ? f(1, 2) : n === 10 ? f(10, 10) : f(1, n)], hint: '2 places after the dot means hundredths.', retry: `${dec} means ${n} hundredths.`, model: bar(n, 100) }
-      : { prompt: `Write ${f(n, 100)} as a decimal.`, right: dec, wrong: [(n / 10).toFixed(1), `${n}.0`], hint: 'Hundredths need 2 places after the dot.', retry: `${n} hundredths is ${dec}.`, model: bar(n, 100) };
+      ? { prompt: `What fraction is ${dec}?`, right: f(n, 100), wrong: [f(n, 10), n === 1 ? f(1, 2) : n === 10 ? f(10, 10) : f(1, n)], hint: '2 places after the decimal point means hundredths.', retry: `${dec} means ${n} hundredths.`, model: bar(n, 100) }
+      : { prompt: `Write ${f(n, 100)} as a decimal.`, right: dec, wrong: [(n / 10).toFixed(1), `${n}.0`], hint: 'Hundredths need 2 places after the decimal point.', retry: `${n} hundredths is ${dec}.`, model: bar(n, 100) };
   },
 };
 

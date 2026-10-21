@@ -20,6 +20,7 @@ const VOCABULARY: VocabularyEntry[] = [
   { pattern: 'number\\s+lines?', definition: 'A number line shows numbers in order, using equal spaces.' },
   { pattern: 'denominators?', definition: 'The denominator is the bottom number: the total number of equal parts in one whole.' },
   { pattern: 'numerators?', definition: 'The numerator is the top number: how many of those parts are selected (shaded or counted).' },
+  { pattern: 'decimal\\s+points?', definition: 'The decimal point is the dot in a decimal. Digits after it show tenths and hundredths.' },
   { pattern: 'benchmarks?', definition: 'A benchmark is an easy number like 0, 1/2 or 1 that helps you compare.' },
   { pattern: 'wholes?', definition: 'A whole is the full shape or amount.' },
 ];

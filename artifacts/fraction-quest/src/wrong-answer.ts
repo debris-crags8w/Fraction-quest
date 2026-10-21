@@ -25,7 +25,7 @@ export const SLIPS = {
   allParts: 'The denominator is all the equal parts, not parts plus shaded. Count all the parts.',
   recountParts: 'Count all the equal parts again, one at a time.',
   recountShaded: 'Count the parts again, one at a time.',
-  places: 'Check the places. Tenths are 1 place after the dot. Hundredths are 2 places.',
+  places: 'Check the places. Tenths are 1 place after the decimal point. Hundredths are 2 places.',
   tooSmall: 'That one is smaller. Look for the one that covers more.',
   tooBig: 'That one is bigger. Look for the one that covers less.',
 };

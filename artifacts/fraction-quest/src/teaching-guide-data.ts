@@ -133,7 +133,7 @@ export const UNIT_TEACHING_GUIDES: UnitTeachingGuide[] = [
   {
     unit: 8, objective: 'Solve fraction and decimal problems with models, estimates, and clear step-by-step reasoning.',
     warmup: { prompt: 'Which is closer to one: 7/8 or 3/8? How can you tell?', reveal: '7/8 is closer because it is one eighth away from one.' },
-    vocabulary: [{ term: 'estimate', meaning: 'Find a close value to check whether an answer makes sense.' }, { term: 'decimal', meaning: 'A number written with a dot to show parts of a whole.' }, { term: 'tenths', meaning: 'Ten equal parts of one whole.' }],
+    vocabulary: [{ term: 'estimate', meaning: 'Find a close value to check whether an answer makes sense.' }, { term: 'decimal', meaning: 'A number written with a decimal point to show parts of a whole.' }, { term: 'tenths', meaning: 'Ten equal parts of one whole.' }],
     explainFrame: 'My answer makes sense because it is ___ than one and the model shows ___.',
     errorAnalysis: { claim: '“When adding fractions, add the numerators and denominators.”', correction: 'Use the same-size parts first. Rename if needed, then combine the counts.' },
     materials: ['Tenths grids', 'Fraction strips', 'Measuring cups'],
@@ -223,7 +223,7 @@ export const UNIT_TEACHING_GUIDES: UnitTeachingGuide[] = [
   {
     unit: 14, objective: 'Connect fractions to decimals and use place value and estimates in real-world problems.',
     warmup: { prompt: 'If one whole is split into 10 equal parts, what decimal names 7 of those parts?', reveal: 'Seven tenths is 0.7.' },
-    vocabulary: [{ term: 'dot', meaning: 'The mark that separates whole numbers from fractional place values.' }, { term: 'tenths', meaning: 'Ten equal parts of one whole.' }, { term: 'hundredths', meaning: 'One hundred equal parts of one whole.' }],
+    vocabulary: [{ term: 'decimal point', meaning: 'The dot that separates whole numbers from tenths and hundredths.' }, { term: 'tenths', meaning: 'Ten equal parts of one whole.' }, { term: 'hundredths', meaning: 'One hundred equal parts of one whole.' }],
     explainFrame: '___ tenths is ___ because the model has ___ shaded parts out of ___.',
     errorAnalysis: { claim: '“0.4 is greater than 0.35 because 4 is greater than 35.”', correction: 'Rename 0.4 as 0.40. Compare 40 hundredths with 35 hundredths.' },
     materials: ['Tenths and hundredths grids', 'Base-ten blocks', 'Price tags or score cards'],
