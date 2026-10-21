@@ -5,6 +5,7 @@
    app's answer, so a question it misreads is left as it is. Counting questions ("how many spaces for thirds?")
    keep their near misses: being off by one is the real mistake there. */
 import { answerValue } from './learning-content';
+import { fractionMistakes } from './fraction-slips';
 
 const N = Number;
 const PER: Record<string, number> = { 'inches/foot': 12, 'minutes/hour': 60, 'seconds/minute': 60, 'hours/day': 24, 'milliliters/liter': 1000,
@@ -101,19 +102,23 @@ export function misconceptionWrongs(prompt: string, answer: string): string[] {
   return [...new Set(wrongs.filter((v) => Number.isInteger(v) && v >= 0 && v !== right && v <= 10_000))].map((v) => `${v}${suffix}`);
 }
 
-/** Swap near-miss wrong choices (within 2 of a whole-number answer) for slips from real mistakes. The right answer
-    keeps its place, other wrong choices stay, and no choice is ever repeated. */
+/** Swap near-miss wrong choices for slips from real mistakes: within 2 of a whole-number answer, and for a fraction
+    or mixed-number answer (fraction-slips.ts) every wrong choice that isn't one. The right answer keeps its place,
+    real mistakes already there stay, and no choice is ever repeated. */
 export function preferMisconceptions<T extends { prompt: string; choices: string[]; correctChoice: number }>(question: T): T {
   const answer = question.choices[question.correctChoice];
-  const wrongs = misconceptionWrongs(question.prompt, answer);
+  const whole = misconceptionWrongs(question.prompt, answer);
+  const fractions = whole.length ? [] : fractionMistakes(question.prompt, answer);
+  const wrongs = whole.length ? whole : fractions;
   if (!wrongs.length) return question;
   const right = answerValue(answer);
+  const isSlip = (v: number) => fractions.some((slip) => Math.abs(answerValue(slip) - v) < 1e-9);
   const used = new Set(question.choices.map((choice) => answerValue(choice)));
   const fresh = wrongs.filter((wrong) => !used.has(answerValue(wrong)));
   const choices = question.choices.map((choice, index) => {
     if (index === question.correctChoice) return choice;
     const v = answerValue(choice);
-    if (Number.isFinite(v) && Math.abs(v - right) > 2) return choice;
+    if (fractions.length ? isSlip(v) : Number.isFinite(v) && Math.abs(v - right) > 2) return choice;
     return fresh.shift() ?? choice;
   });
   return choices.every((choice, index) => choice === question.choices[index]) ? question : { ...question, choices };
