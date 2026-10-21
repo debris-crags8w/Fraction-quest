@@ -15,6 +15,7 @@ import { BUILD_ERROR_HEADINGS, LAB_SECTION_SPEECH, buildErrors, buildHints, fold
 import { getModelFeedback, type LearningModel } from '../src/learning-content';
 import { CHALLENGES } from '../src/challenges';
 import { OPENERS, SLIPS } from '../src/wrong-answer';
+import { WHY } from '../src/slip-reasons';
 import { getCodeLevels, goal, sprintTargets } from '../src/code-quest';
 import { dailyBuildSpeech } from '../src/daily-practice';
 import { HELPER_PICK_SPEECH, introSpeech } from '../src/intro-copy';
@@ -40,7 +41,7 @@ const EXTRA_BY_SOURCE: Record<VoiceSentenceSource, string[]> = {
   worksheet: [],
   practice: [
     'Pick the sentence that matches your model.', 'Good try. Look at the models and choose again.',
-    'Your reason is right! Now fix the model above.', ...OPENERS, ...Object.values(SLIPS),
+    'Your reason is right! Now fix the model above.', ...OPENERS, ...Object.values(SLIPS), ...Object.values(WHY),
   ],
   games: [
     'Every symbol card has a bar card partner. Match by the amount shaded, not by the printed numbers.',

@@ -1,4 +1,6 @@
 import { answerValue } from './learning-content';
+import { slipReason } from './misconceptions';
+import { WHY } from './slip-reasons';
 
 /* What to say after a wrong tap: a kind opener, then (when we can tell) the exact slip behind the choice the
    child picked ("You flipped it"), so the help is about their thinking. It never names the right answer. */
@@ -67,6 +69,70 @@ export function wrongChoiceReason(prompt: string, choices: string[], correct: nu
   if (Number.isFinite(pv) && Number.isFinite(rv) && /\bwhich\b/.test(p) && !/(?:more|less) than/.test(p)) {
     if (/\b(?:bigger|biggest|greater|larger|more)\b/.test(p) && pv < rv) return SLIPS.tooSmall;
     if (/\b(?:smaller|smallest|less|fewer)\b/.test(p) && pv > rv) return SLIPS.tooBig;
+  }
+  const compared = comparisonReason(prompt, pick, right);
+  if (compared) return compared;
+  // A real mistake the question's wrong choices were made from (misconceptions.ts, fraction-slips.ts).
+  const why = slipReason(prompt, right, pick);
+  return why ? WHY[why] : null;
+}
+
+const SIGN = /^(.+?) ([<>=]) (.+?)(?: ([<>=]) (.+))?$/;
+/** "a < b" and "b > a" say the same thing: as [smaller-or-equal side, sign, other side] with the sign < or =. */
+function claim(text: string): [string, string, string] | null {
+  const m = SIGN.exec(text);
+  if (!m || m[4]) return null;
+  return m[2] === '>' ? [m[3], '<', m[1]] : [m[1], m[2], m[3]];
+}
+const isDecimal = (text: string) => /^\d*\.\d+$/.test(text);
+const unitTop = (text: string) => /^(\d+)\/(\d+)$/.exec(text);
+
+/** Comparing, ordering and benchmark questions: the slip behind the picked sign, order or amount. */
+function comparisonReason(prompt: string, pick: string, right: string): string | null {
+  const p = prompt.toLowerCase();
+  // Orders: "1/3 < 2/3 < 3/3".
+  const [po, ro] = [SIGN.exec(pick), SIGN.exec(right)];
+  if (po?.[4] && ro?.[4]) {
+    const items = (m: RegExpExecArray) => [m[1], m[3], m[5]];
+    const [pi, ri] = [items(po), items(ro)];
+    const sameWay = po[2] === ro[2];
+    return (sameWay ? pi.join() === [...ri].reverse().join() : pi.join() === ri.join()) ? WHY.backwards : WHY.orderPair;
+  }
+  // Signs: "1/6 < 1/4", "3/4 + 1/2 > 1", "3/2 × 12 > 12".
+  const [pc, rc] = [claim(pick), claim(right)];
+  if (pc && rc) {
+    if (pc[1] === '=') return SLIPS.notSame;
+    if (/ × /.test(pick)) return WHY.scaleCompare;
+    if (/ \+ /.test(pick)) return WHY.benchmarkSum;
+    if (rc[1] === '=') return SLIPS.notSame;
+    // The child says pc[0] is the smaller one.
+    const [small, big] = [pc[0], pc[2]];
+    const [su, bu] = [unitTop(small), unitTop(big)];
+    if (su && bu && su[1] === bu[1] && Number(su[2]) < Number(bu[2])) return WHY.bigBottom;
+    if (isDecimal(small) && isDecimal(big) && small.split('.')[1].length < big.split('.')[1].length) return WHY.moreDigits;
+    return WHY.signWay;
+  }
+  if (/^which (?:sum|adds up)/.test(p) && / \+ /.test(pick)) return WHY.sumCheck;
+  if (/^between which two whole numbers/.test(p)) return WHY.betweenWholes;
+  if (/line plot.*how many/.test(p) && /^\d+$/.test(pick)) return WHY.countMarks;
+  // Benchmarks: "Which is closest to 1/2?", "Which is more than 1/2?", "Which fits between 2/8 and 6/8?"
+  const v = answerValue(pick);
+  if (!/^which\b/.test(p) || !Number.isFinite(v)) return null;
+  const amount = (text: string) => answerValue(text.replace(/^one whole$|^one$/, '1'));
+  const between = /between (\S+) and (\S+?)\?$/.exec(p);
+  if (between) {
+    const [lo, hi] = [amount(between[1]), amount(between[2])];
+    return Number.isFinite(lo) && Number.isFinite(hi) && (v <= lo || v >= hi) ? WHY.outside : null;
+  }
+  const near = /(?:closest|closer|nearest) to (.+?)\?$/.exec(p);
+  if (near) return Number.isFinite(amount(near[1])) ? WHY.farther : null;
+  const side = /(more|less) than (.+?)\?$/.exec(p);
+  if (side) {
+    const target = amount(side[2]);
+    if (!Number.isFinite(target)) return null;
+    if (side[1] === 'more' && v <= target) return WHY.notMore;
+    if (side[1] === 'less' && v >= target) return WHY.notLess;
+    return /a little/.test(p) ? WHY.farther : null;
   }
   return null;
 }

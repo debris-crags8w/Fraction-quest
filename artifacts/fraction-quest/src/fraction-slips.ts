@@ -7,6 +7,7 @@
 /** An amount as numerator and denominator (2 3/5 is 13/5). */
 type Amount = [number, number];
 import { answerValue } from './learning-content';
+import type { Why } from './slip-reasons';
 
 const N = Number;
 const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : Math.abs(a));
@@ -18,9 +19,11 @@ function amount(text: string): Amount | null {
   return /^\d+$/.test(text.trim()) ? [N(text), 1] : null;
 }
 
-/** The right amount the rule worked out, and each slip: [numerator, denominator] as a child would write it, its value
-    (written over the answer's denominator), or a decimal or percent already written out. */
-type Found = { right: number; slips: (Amount | number | string)[] };
+/** A slip and why it is wrong: [numerator, denominator] as a child would write it, its value (written over the
+    answer's denominator), or a decimal or percent already written out. */
+type Slip = [Why, Amount | number | string];
+/** The right amount the rule worked out, and each slip. */
+type Found = { right: number; slips: Slip[] };
 
 /** The slips for x ± y, written over the denominators a child would use. */
 function addOrSubtract(x: Amount, y: Amount, add: boolean): Found {
@@ -30,21 +33,23 @@ function addOrSubtract(x: Amount, y: Amount, add: boolean): Found {
   const sign = add ? 1 : -1; const wholes = w1 + sign * w2;
   /** wholes + top/bottom, over `bottom`. */
   const over = (top: number, bottom: number): Amount => [wholes * bottom + top, bottom];
-  const slips: Amount[] = [
-    [add ? xs - ys : xs + ys, L], // the other operation
-    add ? over(a + c, b + d) : over(Math.abs(a - c), Math.abs(b - d) || b), // straight across
-    over(add ? a + c : Math.abs(a - c), Math.max(b, d)), // kept one denominator
-    over(add ? a * (L / b) + c : Math.abs(a * (L / b) - c), L), // renamed only the first fraction
-    over(add ? a + c * (L / d) : Math.abs(a - c * (L / d)), L), // renamed only the second
-    x, y, // left one part out
+  const slips: Slip[] = [
+    [add ? 'otherOpAdd' : 'otherOpTake', [add ? xs - ys : xs + ys, L]], // the other operation
+    // Straight across (with one denominator, taking away is "the smaller from the bigger").
+    [add ? 'acrossAdd' : b === d ? 'smallerFromBigger' : 'acrossTake', add ? over(a + c, b + d) : over(Math.abs(a - c), Math.abs(b - d) || b)],
+    [b === d ? 'sameBottom' : 'keptOne', over(add ? a + c : Math.abs(a - c), Math.max(b, d))], // kept one denominator
+    ['renamedOne', over(add ? a * (L / b) + c : Math.abs(a * (L / b) - c), L)], // renamed only the first fraction
+    ['renamedOne', over(add ? a + c * (L / d) : Math.abs(a - c * (L / d)), L)], // renamed only the second
+    [add ? 'oneAmount' : 'startAmount', x], [add ? 'oneAmount' : 'takenAmount', y], // left one part out
     // Forgot to carry the whole, or to take away the traded whole (only when there is one).
-    ...((add ? a * (L / b) + c * (L / d) >= L : a * (L / b) < c * (L / d)) ? [[add ? xs + ys - L : xs - ys + L, L] as Amount] : []),
-    add ? [w1 * L + a * (L / b) + c * (L / d), L] : over(Math.abs(a * (L / b) - c * (L / d)), L), // dropped a whole; or took the smaller part from the bigger
-    add && b === d ? over(a * c, b) : over(a + c, 2 * b), // multiplied the tops; or added the bottoms
-    add ? over(a + c, 2 * b) : [b - (a - c), b], // added the bottoms; or found what's left of the whole
-    over(add ? a + c : Math.abs(a - c), b * d), // multiplied the bottoms
-    over(a * (L / b), L), over(c * (L / d), L), // worked the wholes and kept only one fraction part
-    ...(wholes === 0 && (add ? xs + ys : xs - ys) > 0 ? [[L, add ? xs + ys : xs - ys] as Amount] : []), // upside down
+    ...((add ? a * (L / b) + c * (L / d) >= L : a * (L / b) < c * (L / d)) ? [[add ? 'carry' : 'trade', [add ? xs + ys - L : xs - ys + L, L]] as Slip] : []),
+    // Dropped a whole; or took the smaller part from the bigger.
+    add ? ['dropWhole', [w1 * L + a * (L / b) + c * (L / d), L]] : ['smallerFromBigger', over(Math.abs(a * (L / b) - c * (L / d)), L)],
+    add && b === d ? ['timesTops', over(a * c, b)] : [add ? 'acrossAdd' : 'otherOpTake', over(a + c, 2 * b)], // multiplied the tops; or added the bottoms
+    add ? ['acrossAdd', over(a + c, 2 * b)] : ['complement', [b - (a - c), b]], // added the bottoms; or found what's left of the whole
+    [b === d ? 'sameBottom' : 'timesBottoms', over(add ? a + c : Math.abs(a - c), b * d)], // multiplied the bottoms
+    ['oneFraction', over(a * (L / b), L)], ['oneFraction', over(c * (L / d), L)], // worked the wholes and kept only one fraction part
+    ...(wholes === 0 && (add ? xs + ys : xs - ys) > 0 ? [['upsideDown', [L, add ? xs + ys : xs - ys]] as Slip] : []), // upside down
   ];
   return { right: (add ? xs + ys : xs - ys) / L, slips };
 }
@@ -52,7 +57,7 @@ function addOrSubtract(x: Amount, y: Amount, add: boolean): Found {
 /** What is left of one whole after x and then y (same denominator): what was used, one part forgotten, the bottoms
     added, or the second part added back instead of taken away. */
 function leftOver([a, b]: Amount, [c]: Amount): Found {
-  return { right: (b - a - c) / b, slips: [[a + c, b], [b - a, b], [b - c, b], [b - a - c, 2 * b], [b - a + c, b]] };
+  return { right: (b - a - c) / b, slips: [['used', [a + c, b]], ['oneTaken', [b - a, b]], ['oneTaken', [b - c, b]], ['sameBottom', [b - a - c, 2 * b]], ['addedBack', [b - a + c, b]]] };
 }
 
 const SUM_WORDS = /^A (?:board|jug) (?:is|has) (\d+\/\d+) (?:meter|liter)\. (?:Another is|You add) (\d+\/\d+) (?:meter|liter)\. How many (?:meters in all|liters now)\?$|^\w+ walked (\d+\/\d+) mile, then (\d+\/\d+) mile\. How far in all\?$|^A recipe uses (\d+\/\d+) cup, then (\d+\/\d+) cup more\. How much in all\?$/;
@@ -68,52 +73,52 @@ function timesOrShare(p: string): Found | null {
   // both parts multiplied, added, the bottom multiplied, one batch, upside down, the tops multiplied and the bottoms added.
   if ((m = /^(?:Write )?(\d+) × (\d+)\/(\d+)(?: = \?| as one fraction\.)$|^A recipe uses (\d+)\/(\d+) cup of \w+\. (?:You make (\d+) batches\. How much \w+ do you need|How much \w+ do (\d+) batches need)\?$/.exec(p))) {
     const [n, a, b] = m[1] ? [N(m[1]), N(m[2]), N(m[3])] : [N(m[6] ?? m[7]), N(m[4]), N(m[5])];
-    return { right: (n * a) / b, slips: [[n * a, n * b], [n + a, b], [a, n * b], [a, b], [b, n * a], [n * a, b + n]] };
+    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['addedNotTimes', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['oneGroup', [a, b]], ['upsideDown', [b, n * a]], ['onlyTop', [n * a, b + n]]] };
   }
   // "3/4 × 1/2", "What is 1/3 of 1/3?": added across, kept one denominator, added the tops, added the bottoms, crossed, upside down.
   if ((m = /^(?:What is )?(\d+)\/(\d+) (?:×|of) (\d+)\/(\d+)(?: = \?|\?)$/.exec(p))) {
     const [a, b, c, d] = m.slice(1).map(N);
-    return { right: (a * c) / (b * d), slips: [[a + c, b + d], [a * c, d], [a * c, b], [a + c, b * d], [a * c, b + d], [a * d, b * c], [b * d, a * c]] };
+    return { right: (a * c) / (b * d), slips: [['addedAcross', [a + c, b + d]], ['bottomsToo', [a * c, d]], ['bottomsToo', [a * c, b]], ['topsToo', [a + c, b * d]], ['bottomsToo', [a * c, b + d]], ['crossed', [a * d, b * c]], ['upsideDown', [b * d, a * c]]] };
   }
   // "3 children share 1/3 of a pan. 1/3 ÷ 3 = ?": multiplied, upside down, added, not split, two shares.
   if ((m = /^(\d+) children share 1\/(\d+) of a pan\. 1\/\2 ÷ \1 = \?$/.exec(p))) {
     const [n, b] = [N(m[1]), N(m[2])];
-    return { right: 1 / (b * n), slips: [[n, b], [b * n, 1], [1, b + n], [1, b], [2, b * n]] };
+    return { right: 1 / (b * n), slips: [['timesNotShare', [n, b]], ['upsideDown', [b * n, 1]], ['addedForShare', [1, b + n]], ['notSplit', [1, b]], ['twoShares', [2, b * n]]] };
   }
   // "2 loaves are shared fairly by 3 friends", "5 ÷ 4", "Write 3 ÷ 8 as a fraction.": upside down, one loaf, added, one more part.
   if ((m = /^(\d+) loa(?:f is|ves are) shared fairly by (\d+) friends\. How much does each friend get\?$|^(?:Write )?(\d+) ÷ (\d+)(?: = \?| as a fraction\.)$/.exec(p))) {
     const [n, q] = m[1] ? [N(m[1]), N(m[2])] : [N(m[3]), N(m[4])];
-    return { right: n / q, slips: [[q, n], [1, q], [n, n + q], [n + q, q], [1, n]] };
+    return { right: n / q, slips: [['shareFlip', [q, n]], ['shareOne', [1, q]], ['addedForShare', [n, n + q]], ['addedForShare', [n + q, q]], ['shareFlip', [1, n]]] };
   }
   // Share or fit: "1/2 pound of clay is shared by 3 friends. How much does each get?" (multiplied, flipped, added, not
   // split) and "How many 1/3-cup scoops can be filled from 2 cups of rice?" (added, one whole's worth, multiplied, the wholes).
   if ((m = /^1\/(\d+) \w+ of \w+ is shared by (\d+) friends\. How much does each get\?$/.exec(p))) {
     const [b, n] = [N(m[1]), N(m[2])];
-    return { right: 1 / (b * n), slips: [[n, b], [b * n, 1], [1, b + n], [1, b]] };
+    return { right: 1 / (b * n), slips: [['timesNotShare', [n, b]], ['upsideDown', [b * n, 1]], ['addedForShare', [1, b + n]], ['notSplit', [1, b]]] };
   }
   if ((m = /^How many 1\/(\d+)-\w+ \w+ can be filled from (\d+) \w+ of \w+\?$/.exec(p))) {
     const [d, w] = [N(m[1]), N(m[2])];
-    return { right: w * d, slips: [w + d, d, [w, d], w] };
+    return { right: w * d, slips: [['addedForFit', w + d], ['oneWhole', d], ['fitFlip', [w, d]], ['wholesOnly', w]] };
   }
   // A mixed-number garden: whole × whole plus part × part, the wholes only, the sides added, one side's whole only.
   if ((m = /^A rectangular garden is (\d+ \d+\/\d+) meters by (\d+ \d+\/\d+) meters\. What is its area\?$/.exec(p))) {
     const [x, y] = [value(m[1]), value(m[2])]; const [wx, wy] = [Math.floor(x), Math.floor(y)];
-    return { right: x * y, slips: [wx * wy + (x - wx) * (y - wy), wx * wy, x + y, wx * y, x * wy] };
+    return { right: x * y, slips: [['missedAreas', wx * wy + (x - wx) * (y - wy)], ['missedAreas', wx * wy], ['addedSides', x + y], ['missedAreas', wx * y], ['missedAreas', x * wy]] };
   }
   // The overlap on the 3-by-4 grid: the sides added, one side only, the whole grid, the part not colored, upside down.
   if ((m = /is (\d+(?:\/\d+)?) units? by (\d+(?:\/\d+)?) units?\. Color the overlapping area/.exec(p))) {
     const [x, y] = [value(m[1]), value(m[2])];
-    return { right: x * y, slips: [x + y, x, y, 1, 1 - x * y, 1 / (x * y)] };
+    return { right: x * y, slips: [['addedSides', x + y], ['oneSide', x], ['oneSide', y], ['wholeGrid', 1], ['notColored', 1 - x * y], ['upsideDown', 1 / (x * y)]] };
   }
   // Leveling three cups: the total, the biggest or smallest cup, split 2 ways, the tops shared over the cups.
   if ((m = /^Three \w+(?: \w+)? hold (\d+)\/(\d+), (\d+)\/\2, (\d+)\/\2 liter\. Share the total equally\./.exec(p))) {
     const [a, b, c, e] = m.slice(1).map(N); const t = a + c + e;
-    return { right: t / (3 * b), slips: [[t, b], [Math.max(a, c, e), b], [Math.min(a, c, e), b], [t, 2 * b], [t, 3], [t / 3, b + 3]] };
+    return { right: t / (3 * b), slips: [['total', [t, b]], ['oneCup', [Math.max(a, c, e), b]], ['oneCup', [Math.min(a, c, e), b]], ['allCups', [t, 2 * b]], ['sharePieces', [t, 3]], ['sharePieces', [t / 3, b + 3]]] };
   }
   // "2/3 ÷ 1/6 = ?": the tops multiplied, how many fit in one whole, the top or the bottom, multiplied instead.
   if ((m = /^(\d+)\/(\d+) ÷ (\d+)\/(\d+) = \?$/.exec(p))) {
     const [a, b, c, d] = m.slice(1).map(N);
-    return { right: (a / b) / (c / d), slips: [a * d, d, b, a, [a * c, b * d]] };
+    return { right: (a / b) / (c / d), slips: [['fitWhole', a * d], ['oneWhole', d], ['justNumber', b], ['justNumber', a], ['timesNotDivide', [a * c, b * d]]] };
   }
   return null;
 }
@@ -128,89 +133,91 @@ function equivalence(p: string, right: Amount | null): Found | null {
   // numbers written as they are, the remainder over the top, the wholes only, the denominator as the wholes.
   if ((m = /^What is (\d+)\/(\d+) as wholes and a fraction\?$/.exec(p))) {
     const [n, d] = [N(m[1]), N(m[2])]; const [w, r] = [Math.floor(n / d), n % d];
-    return { right: n / d, slips: [`${r} and ${w}/${d}`, `${n} and ${d}`, `${w} and ${r}/${n}`, String(w), `${d} and ${r}/${d}`] };
+    return { right: n / d, slips: [['andSwap', `${r} and ${w}/${d}`], ['andDigits', `${n} and ${d}`], ['andBottom', `${w} and ${r}/${n}`], ['andDropped', String(w)], ['andWholes', `${d} and ${r}/${d}`]] };
   }
   // Any other fraction as a decimal ("Write 1/4 as a decimal."): the digits side by side (1.4, 0.14), the bottom or the
   // top as tenths, the denominator divided by the numerator.
   if ((m = /^Write (\d+)\/(\d+) as a decimal\.$/.exec(p)) && !['10', '100'].includes(m[2])) {
     const [a, b] = [m[1], m[2]];
-    return { right: N(a) / N(b), slips: [`${a}.${b}`, `0.${a}${b}`, `0.${b}`, `0.${a}`, String(N(b) / N(a))] };
+    return { right: N(a) / N(b), slips: [['decSideBySide', `${a}.${b}`], ['decSideBySide', `0.${a}${b}`], ['decRename', `0.${b}`], ['decRename', `0.${a}`], ['upsideDown', String(N(b) / N(a))]] };
   }
   // Part of what is left ("Max eats 1/3 of a pizza. Then he eats 1/2 of what is left."): what was left after the first
   // part, the second part eaten, both parts taken from the whole, both parts added, the parts multiplied.
   if ((m = /eats (\d+)\/(\d+) of a pizza\. Then (?:he|she) eats (\d+)\/(\d+) of what is left\. What fraction of the pizza is left(?: now)?\?$/.exec(p))) {
     const [a, b, c, d] = m.slice(1).map(N); const rest = 1 - a / b;
-    return { right: rest - rest * (c / d), slips: [rest, rest * (c / d), 1 - a / b - c / d, a / b + c / d, (c / d) * (a / b)] };
+    return { right: rest - rest * (c / d), slips: [['firstOnly', rest], ['eatenSecond', rest * (c / d)], ['ofRest', 1 - a / b - c / d], ['eatenBoth', a / b + c / d], ['ofRest', (c / d) * (a / b)]] };
   }
   // One part of a whole, what is colored or shaded: upside down, part to part, the rest, one piece, shaded out of all
   // the pieces counted again with the shaded ones. (Not "of the square": a square can be cut into pieces of
   // different sizes, and counting pieces, 2/7 for two triangles of a square cut into 7, is the mistake there.)
   if (right && /^(?:A|The) \w+ (?:is cut into|has) \d+ equal parts\.(?: \d+ is colored\.)? What (?:is 1 part|fraction is colored)\?$|^What fraction (?:is 1 of \d+ equal tiles|is shaded|of the (?!square)\w+ is shaded)\?$|shaded slice\?$|^A tray has \d+ spaces\. \d+ have a \w+\. What fraction have a \w+\?$|this \w+ is split into \d+ equal-area [\w ]+\. Color \d+\. What fraction of the whole is colored\?$/.test(p)) {
-    return { right: answer, slips: [[y, x], [x, y - x], [y - x, y], [1, y], [x, y + x]] };
+    return { right: answer, slips: [['upsideDown', [y, x]], ['partToPart', [x, y - x]], ['otherParts', [y - x, y]], ['onePart', [1, y]], ['countOnce', [x, y + x]]] };
   }
   // A chance: green to the rest, the rest, upside down, green out of more, one marble.
   if (right && (m = /^A bag has (\d+) marbles\. (\d+) (?:is|are) green\./.exec(p))) {
     const [t, g] = [N(m[1]), N(m[2])];
-    return { right: g / t, slips: [[g, t - g], [t - g, t], [t, g], [g, t + g], [1, t]] };
+    return { right: g / t, slips: [['partToPart', [g, t - g]], ['otherParts', [t - g, t]], ['upsideDown', [t, g]], ['countOnce', [g, t + g]], ['onePart', [1, t]]] };
   }
   // A dot or jumps on a number line: counted the tick marks, upside down, one jump, counted the 0 tick, the rest.
   if (right && /^What fraction is at the dot\?$|jumps? from 0\?$|^Each jump is 1\/\d+\. What is \d+ jumps? from 0\?$|^0 to 1 has \d+ equal spaces\. What is \d+ jumps?\?$|^A line has \d+ spaces\. The point is \d+ jumps from 0\. What is it\?$/.test(p)) {
-    return { right: answer, slips: [[x, y + 1], [y, x], [1, y], [x + 1, y], [y - x, y]] };
+    return { right: answer, slips: [['ticks', [x, y + 1]], ['upsideDown', [y, x]], ['oneJump', [1, y]], ['zeroTick', [x + 1, y]], ['fromOne', [y - x, y]]] };
   }
   // The same amount with another denominator: kept the top, added the same number to both, multiplied only the top,
   // upside down, one part (2/2 as eighths: 1/8).
   if (right && (m = /^(\d+)\/(\d+) is marked on a line\. Which fraction with a denominator of \d+ is at the same spot\?$|^Write (\d+)\/(\d+) with a denominator of \d+\.$|^Which is the same as (\d+)\/(\d+)\?$|^Change (\d+)\/(\d+) into hundredths\.$|^Which fraction covers the same amount as (\d+)\/(\d+)\?$/.exec(p))) {
     const [a, b] = m.slice(1).filter(Boolean).map(N);
-    return { right: a / b, slips: [[a, y], ...(a + y - b > 0 ? [[a + y - b, y] as Amount] : []), [x, b], [y, x], [1, y]] };
+    return { right: a / b, slips: [['keptTop', [a, y]], ...(a + y - b > 0 ? [['addedSame', [a + y - b, y]] as Slip] : []), ['keptBottom', [x, b]], ['upsideDown', [y, x]], ['onePart', [1, y]]] };
   }
   // "Multiply (Divide, Double) the numerator and denominator of 1/4 by 3": only the top, only the bottom, added
   // (taken away) the same number, upside down.
   if (right && (m = /^(Multiply|Divide|Double) the numerator and denominator of (\d+)\/(\d+)(?: by (\d+))?\. What do you get\?$/.exec(p))) {
     const [a, b, k] = [N(m[2]), N(m[3]), m[1] === 'Double' ? 2 : N(m[4])];
-    const slips: Amount[] = m[1] === 'Divide' ? [[a / k, b], [a, b / k], [a - k, b - k], [y, x], [a, b - k]] : [[a * k, b], [a, b * k], [a + k, b + k], [y, x], [a, b + k]];
+    const slips: Slip[] = m[1] === 'Divide'
+      ? [['keptBottom', [a / k, b]], ['keptTop', [a, b / k]], ['addedSame', [a - k, b - k]], ['upsideDown', [y, x]], ['keptTop', [a, b - k]]]
+      : [['keptBottom', [a * k, b]], ['keptTop', [a, b * k]], ['addedSame', [a + k, b + k]], ['upsideDown', [y, x]], ['keptTop', [a, b + k]]];
     return { right: a / b, slips };
   }
   // Simplest form: only the top divided, only the bottom, upside down, part of the way, one taken off each.
   if (right && (m = /^Write (\d+)\/(\d+) in simplest form\.$/.exec(p))) {
     const [n, d] = [N(m[1]), N(m[2])]; const g = gcd(n, d);
-    const partWay = [2, 3, 4].filter((f) => f < g && g % f === 0).map((f): Amount => [n / f, d / f]);
-    return { right: n / d, slips: [[n / g, d], [n, d / g], [d / g, n / g], ...partWay, [n - 1, d - 1]] };
+    const partWay = [2, 3, 4].filter((f) => f < g && g % f === 0).map((f): Slip => ['partWay', [n / f, d / f]]);
+    return { right: n / d, slips: [['keptBottom', [n / g, d]], ['keptTop', [n, d / g]], ['upsideDown', [d / g, n / g]], ...partWay, ['addedSame', [n - 1, d - 1]]] };
   }
   // "What is 1 and 2/3 as thirds?": whole added to the top, the fraction part only, the whole only, all multiplied,
   // one whole counted twice.
   if (right && (m = /^What (?:is|fraction is the same as) (\d+) and (\d+)\/(\d+)(?: as \w+)?\?$/.exec(p))) {
     const [w, a, b] = m.slice(1).map(N);
-    return { right: w + a / b, slips: [[w + a, b], [a, b], [w * b, b], [w * b * a, b], [w * b + a + b, b]] };
+    return { right: w + a / b, slips: [['wholeAsOne', [w + a, b]], ['leftWholes', [a, b]], ['leftFraction', [w * b, b]], ['timesParts', [w * b * a, b]], ['extraWhole', [w * b + a + b, b]]] };
   }
   // A line plot's longest minus shortest: the longest, the shortest, the two added, the bottoms added, the wrong mark.
   if (right && (m = /^The line plot shows these [\w ]+ lengths in eighths: ([\d/, ]+) inch\. What is the difference between the longest and shortest\?$/.exec(p))) {
     const tops = m[1].split(', ').map((t) => N(t.split('/')[0])).sort((u, v) => u - v);
     const [lo, lo2, hi2, hi] = [tops[0], tops[1], tops[tops.length - 2], tops[tops.length - 1]];
-    return { right: (hi - lo) / 8, slips: [[hi, 8], [lo, 8], [hi + lo, 8], [hi - lo, 16], [hi2 - lo, 8], [hi - lo2, 8]] };
+    return { right: (hi - lo) / 8, slips: [['oneLength', [hi, 8]], ['oneLength', [lo, 8]], ['addedLengths', [hi + lo, 8]], ['sameBottom', [hi - lo, 16]], ['wrongMark', [hi2 - lo, 8]], ['wrongMark', [hi - lo2, 8]]] };
   }
   // Decimals: the point a place too far either way, the digits written out ("9.10"), tenths read as hundredths.
   if ((m = /^(?:Write (\d+)\/(10|100) as a decimal\.|Which decimal equals (\d+)\/(10|100)\?)$/.exec(p))) {
     const [n, d] = m.slice(1).filter(Boolean).map(N);
-    return { right: n / d, slips: [String(n / (d * 10)), String(n / (d / 10)), `${n}.0`, `${n}.${d}`, String(n / 10), String(n / 100)] };
+    return { right: n / d, slips: [['places', String(n / (d * 10))], ['places', String(n / (d / 10))], ['decWhole', `${n}.0`], ['decSideBySide', `${n}.${d}`], ['places', String(n / 10)], ['places', String(n / 100)]] };
   }
   if ((m = /^Write (\d+)\/10 \+ (\d+)\/100 as a decimal\.$/.exec(p))) {
     const [a, b] = m.slice(1).map(N);
-    return { right: (10 * a + b) / 100, slips: [String((a + b) / 100), String((a + b) / 10), String((10 * a + b) / 1000)] };
+    return { right: (10 * a + b) / 100, slips: [['tenthsAsHundredths', String((a + b) / 100)], ['tenthsAsHundredths', String((a + b) / 10)], ['places', String((10 * a + b) / 1000)]] };
   }
   // "What fraction is 0.3?": hundredths for tenths, the digit alone, one over the digit, the other place, upside down.
   if (right && (m = /^What fraction is 0\.(\d+)\?$|^A strip is 0\.(\d+) colored\. What fraction is that\?$/.exec(p))) {
     const n = N(m[1] ?? m[2]);
-    return { right: answer, slips: [[n, y * 10], [n, 1], [1, n], [n, y / 10], [y, n]] };
+    return { right: answer, slips: [['places', [n, y * 10]], ['decWhole', [n, 1]], ['digitTop', [1, n]], ['places', [n, y / 10]], ['upsideDown', [y, n]]] };
   }
   // Percents: the numerator or denominator as the percent, both side by side ("14%" for 1/4), the rest.
   if ((m = /^Write (\d+)\/(\d+) as a percent\.$/.exec(p))) {
     const [a, b] = m.slice(1).map(N);
-    return { right: a / b, slips: [`${a}%`, `${b}%`, `${a}${b}%`, `${100 - (a / b) * 100}%`] };
+    return { right: a / b, slips: [['percentRename', `${a}%`], ['percentRename', `${b}%`], ['percentRename', `${a}${b}%`], ['otherParts', `${100 - (a / b) * 100}%`]] };
   }
   // And back: over 10, upside down, the rest, over 1.
   if (right && (m = /^Write (\d+)% as a fraction(?: with a denominator of 100)?\.$/.exec(p))) {
     const v = N(m[1]);
-    return { right: v / 100, slips: [[v, 10], [100, v], [100 - v, 100], [v, 1]] };
+    return { right: v / 100, slips: [['percent100', [v, 10]], ['upsideDown', [100, v]], ['otherParts', [100 - v, 100]], ['percent100', [v, 1]]] };
   }
   return null;
 }
@@ -235,7 +242,7 @@ function found(prompt: string, right: Amount | null): Found | null {
   // "Fill the blank: 3/4 + ? = 1": the same part again, both added, upside down, or one more piece.
   if ((m = /^Fill the blank: (\d+)\/(\d+) \+ \? = 1$/.exec(p))) {
     const [a, b] = [N(m[1]), N(m[2])];
-    return { right: (b - a) / b, slips: [[a, b], [a + b, b], [b, b - a], [b - a, 2 * b], [1, b]] };
+    return { right: (b - a) / b, slips: [['sameAgain', [a, b]], ['addedWhole', [a + b, b]], ['upsideDown', [b, b - a]], ['sameBottom', [b - a, 2 * b]], ['onePart', [1, b]]] };
   }
   // "Sam says 2/4 − 1/4 = 1/8. What is the right answer?": the answer Sam gave is the first slip.
   const said = /^\w+ says (.+) = ([\d /]+)\. What is the right answer\?$/.exec(p);
@@ -244,7 +251,7 @@ function found(prompt: string, right: Amount | null): Found | null {
   const result = m ? addOrSubtract(amount(m[1])!, amount(m[3])!, m[2] === '+') : timesOrShare(p);
   if (!result) return null;
   const claimed = said && amount(said[2]);
-  return claimed ? { ...result, slips: [claimed, ...result.slips] } : result;
+  return claimed ? { ...result, slips: [['samSlip', claimed], ...result.slips] } : result;
 }
 
 /** Write a slip the way the answer is written: a fraction ("22/18"), a mixed number ("2 7/8") or a whole number when
@@ -277,6 +284,11 @@ function unitFor(unit: string, value: number): string {
 /** Real mistakes for this question, written like its answer; empty when no rule knows the question or a rule's
     own working disagrees with the app's answer. */
 export function fractionMistakes(prompt: string, writtenAnswer: string): string[] {
+  return fractionMistakesWithWhy(prompt, writtenAnswer).map(([text]) => text);
+}
+
+/** The same mistakes, each with why it is wrong. */
+export function fractionMistakesWithWhy(prompt: string, writtenAnswer: string): [string, Why][] {
   // An answer with a unit ("65/100 m", "3/4 meter"): the slips carry the same unit.
   const unit = / [a-z]+$/i.exec(writtenAnswer.trim())?.[0] ?? '';
   const answer = writtenAnswer.trim().slice(0, writtenAnswer.trim().length - unit.length);
@@ -284,13 +296,13 @@ export function fractionMistakes(prompt: string, writtenAnswer: string): string[
   const right = amount(answer.replace(' and ', ' ')); const target = right ? right[0] / right[1] : answerValue(answer);
   const result = found(prompt, right);
   if (!Number.isFinite(target) || !result || Math.abs(result.right - target) > 1e-9) return [];
-  const out: string[] = []; const values = new Set([target]);
-  for (const slip of result.slips) {
+  const out: [string, Why][] = []; const values = new Set([target]);
+  for (const [why, slip] of result.slips) {
     const text = written(slip, answer, right?.[1] ?? 1);
     const value = typeof slip === 'string' ? (amount(slip.replace(' and ', ' ')) ? valueOf(slip.replace(' and ', ' ')) : answerValue(slip)) : typeof slip === 'number' ? slip : slip[0] / slip[1];
     // A choice of 0 ("0/3") is never a believable answer to these questions.
     if (!text || !Number.isFinite(value) || value === 0 || [...values].some((v) => Math.abs(v - value) < 1e-9)) continue;
-    values.add(value); out.push(text + unitFor(unit, value));
+    values.add(value); out.push([text + unitFor(unit, value), why]);
   }
   return out;
 }
