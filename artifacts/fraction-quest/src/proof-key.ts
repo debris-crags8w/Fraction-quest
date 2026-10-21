@@ -217,9 +217,13 @@ export const PROOF_KEY: Record<string, string> = {
   "The baker’s tray Christmas cake is split into 3 equal-area strips. Color 1. What fraction of the whole is colored?": "1/3",
   "Bea’s garden plot is 1 unit by 3/4 unit. Color the overlapping area on the 3-by-4 grid. What is its area in square units?": "9/12",
   "A honey jar sits at 3/4 of Bea’s shelf. Which fraction with a denominator of 8 is at the same spot?": "6/8",
-  "Bea’s cake recipe uses 5/12 cup of flour. She makes 2 batches. How much flour does she need?": "10/12",
-  "Bea’s pumpkin pie recipe uses 5/12 cup of flour. She makes 2 batches. How much flour does she need?": "10/12",
-  "Bea’s Christmas cake recipe uses 5/12 cup of flour. She makes 2 batches. How much flour does she need?": "10/12",
+  "Tilly’s cake recipe uses 5/12 cup of flour. She makes 2 batches. How much flour does she need?": "10/12",
+  "Tilly’s pumpkin pie recipe uses 5/12 cup of flour. She makes 2 batches. How much flour does she need?": "10/12",
+  "Tilly’s Christmas cake recipe uses 5/12 cup of flour. She makes 2 batches. How much flour does she need?": "10/12",
+  // 2/3 is less than 1, so 2/3 × 12 is the only choice less than 12 (3/2 and 5/4 are more than 1, 4/4 is 1).
+  "Without multiplying, which is less than 12?": "2/3 × 12",
+  // 3/4 of 24 is 18; 1/2 of 18 is 9.
+  "A class has 24 students. 3/4 of them like pizza. 1/2 of those like extra cheese. How many like extra cheese?": "9",
   "The last code: 2/6 of Bea’s garden is planted. Then 3/6 more is planted. How much is still empty?": "1/6",
   "Chomp’s riddle: a piece of ribbon is 10 meters long. It is 5/6 of the whole ribbon. How long is the whole ribbon?": "12",
   "Chomp has 50 snacks. He gives 1/5 of them to Pip. Then he gives 1/2 of the rest to Bea. How many does Chomp have now?": "20",
