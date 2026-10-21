@@ -1,5 +1,6 @@
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { WHY } from './slip-reasons';
+import { REASON_SLIPS } from './reason-slips';
 import { misconceptionWrongs } from './misconceptions';
 import { fractionMistakes } from './fraction-slips';
 import { fourthChoice, noBeforeYes, withSignComparisons } from './fourth-choice';
@@ -2706,11 +2707,31 @@ describe('quality audit fixes', () => {
     assert.equal(spots.size, 3);
     for (const mission of MISSIONS) for (const check of getBuildChecks(mission.id)) assert.equal(check.reasons[check.correctReason], REASON_IDEAS[mission.id], mission.id);
   });
+  it('offers each lesson’s own wrong reasons, a different pair at each step', () => {
+    for (const mission of MISSIONS) {
+      const slips = REASON_SLIPS[mission.id];
+      assert.ok(slips, `${mission.id} needs its own wrong reasons`);
+      assert.equal(new Set(slips).size, 3, `${mission.id}: three different wrong reasons`);
+      assert.ok(!slips.includes(REASON_IDEAS[mission.id]), `${mission.id}: a wrong reason is the right one`);
+      for (const r of slips) assert.ok(r.split(/\s+/).length <= 6, `${mission.id}: "${r}" is too long`);
+      const checks = [...getBuildChecks(mission.id), ...[0, 1, 2].map((round) => getReviewCheck(mission.id, round))];
+      for (const check of checks) {
+        const wrong = check.reasons.filter((_, i) => i !== check.correctReason);
+        for (const r of wrong) assert.ok(slips.includes(r), `${mission.id}: "${r}" is not one of the lesson's own mistakes`);
+      }
+      // Build it, On your own and Apply it each show a different pair.
+      const pairs = getBuildChecks(mission.id).map((check) => check.reasons.filter((_, i) => i !== check.correctReason).sort().join(' | '));
+      assert.equal(new Set(pairs).size, 3, `${mission.id}: the same wrong reasons at every step`);
+    }
+    // The old stock reasons are gone.
+    const all = Object.values(REASON_SLIPS).flat();
+    for (const stock of ['Bigger numbers mean a bigger fraction', 'Only shaded parts must be equal', 'Count the tick marks only']) assert.ok(!all.includes(stock));
+  });
   it('keeps every "which idea explains why?" choice short, with the right one no longer than the others', () => {
     const words = (t: string) => t.trim().split(/\s+/).length;
     for (const mission of MISSIONS) {
       assert.ok(REASON_IDEAS[mission.id], `${mission.id} needs a short key idea`);
-      const checks = [...getBuildChecks(mission.id), getReviewCheck(mission.id, 0), getReviewCheck(mission.id, 1)];
+      const checks = [...getBuildChecks(mission.id), ...[0, 1, 2].map((round) => getReviewCheck(mission.id, round))];
       for (const check of checks) {
         for (const r of check.reasons) assert.ok(words(r) <= 6, `${mission.id}: "${r}" is too long`);
         const right = words(check.reasons[check.correctReason]);
