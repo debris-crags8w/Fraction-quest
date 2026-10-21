@@ -3097,3 +3097,50 @@ test('a reload or the back button keeps the child’s place in a lesson’s prac
   await startSecond();
   await expectLessonQuestionProgress(page, 2, 1);
 });
+
+test('every lesson 1 question fits an iPhone Safari screen: all choices and the Check button, with no scrolling', async ({ page }) => {
+  test.setTimeout(120_000);
+  // An iPhone in Safari shows about 664 points of page between its address bar and toolbar, but lays the page out
+  // (and answers CSS height queries) for the taller view with the bars hidden, about 750. So the page is laid out at
+  // 750 here and every choice and the Check button must still fall within the 664 that is actually visible.
+  const visible = 664;
+  await page.setViewportSize({ width: 390, height: 750 });
+  const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+  await completePartFinderLesson(page, mission.id);
+  const questions = [
+    ...mission.questions.slice(0, -1),
+    ...(hasGenerator(mission.id) ? getExtraPractice(mission.id, mission.questions.map((question) => question.id)).slice(0, 4) : []),
+    mission.questions.at(-1)!,
+  ];
+  const misfits: string[] = [];
+  for (const [index, question] of questions.entries()) {
+    const right = page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`);
+    await expect(right).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await right.click();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const fit = await page.evaluate((id) => {
+      const bottom = (element: Element | null) => (element ? element.getBoundingClientRect().bottom : Infinity);
+      const choices = [...document.querySelectorAll(`[data-testid^="button-answer-${id}-"]`)];
+      // The developer test bar above the lesson is not on a child's screen, so it doesn't count.
+      const bar = document.querySelector('[data-testid="developer-test-banner"]')?.getBoundingClientRect().height ?? 0;
+      const picture = document.querySelector('[data-testid="question-model-area"]')?.getBoundingClientRect().height ?? 0;
+      return { picture, choices: Math.max(...choices.map(bottom)) - bar, check: bottom(document.querySelector('[data-testid="button-check-answer"]')) - bar };
+    }, question.id);
+    const fitScreen = { ...fit, screen: visible };
+    // Fitting must not come from shrinking the picture away.
+    if (fit.picture < 80) misfits.push(`question ${index + 1} (${question.id}): the picture is only ${Math.round(fit.picture)} points tall`);
+    if (fitScreen.choices > fitScreen.screen + 1 || fitScreen.check > fitScreen.screen + 1) {
+      misfits.push(`question ${index + 1} (${question.id}): choices end at ${Math.round(fitScreen.choices)}, Check at ${Math.round(fitScreen.check)}, screen ${fitScreen.screen}`);
+    }
+    await page.getByTestId('button-check-answer').click();
+    await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+    const moveOn = page.getByTestId(index === questions.length - 1 ? 'button-finish-mission' : 'button-next-question');
+    // After Check, the feedback and its Continue button are in view too (the page may scroll to them).
+    await expect(moveOn).toBeInViewport();
+    await moveOn.click();
+  }
+  expect(misfits, 'questions that do not fit the iPhone screen').toEqual([]);
+});

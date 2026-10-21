@@ -1094,7 +1094,7 @@ function PlayView({
               {actionFirst && <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} result={feedback} setup={question.storySetup ?? lessonAsk(mission)} />}
               {showExample && <StoryPrompt prompt={question.prompt} id="lesson-question-title" />}
               {question.isReview && <div className="fq-review-label"><RotateCcw size={15} />{question.isOptionalReview ? `${isQuickReview ? 'Due skill' : 'Optional review'} · ${question.reviewTopicTitle}` : ' A quick revisit to help it stick'}</div>}
-              {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint · Models and worksheet come next</div>}
+              {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint<span className="fq-mastery-more"> · Models and worksheet come next</span></div>}
               <div className="fq-model-area" data-testid="question-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} />
               </div>
