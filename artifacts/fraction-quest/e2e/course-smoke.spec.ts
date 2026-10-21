@@ -1278,7 +1278,7 @@ const unitRepresentativeIds = [
   'mixed-improper',
   'multiply-whole-by-fraction',
   'order-unlike-fractions',
-  'fraction-of-quantity',
+  'subtract-unlike-fractions',
   'divide-whole-by-unit-fraction',
   'fraction-as-division',
   'fraction-recipes',
@@ -2688,7 +2688,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   const chapterOne = page.getByTestId('chapter-banner-1');
   await expect(chapterOne).toContainText('Chapter 1 · with Chomp');
   await expect(chapterOne.getByRole('heading', { name: 'The bakery mix-up' })).toBeVisible();
-  await expect(chapterOne).toContainText('0 of 3 lessons');
+  await expect(chapterOne).toContainText(`0 of ${MISSIONS.filter((mission) => mission.unit === 1).length} lessons`);
   await expect(page.getByTestId('stone-teaser')).toContainText('The Whole Stone just cracked.');
   await expect(page.getByTestId('button-map-prologue')).toContainText('Watch the prologue');
   await expect(page.getByTestId(`button-start-mission-${MISSIONS[0].id}`)).toContainText('Start lesson');

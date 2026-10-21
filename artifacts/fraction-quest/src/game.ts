@@ -979,7 +979,8 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
 export const EXTENSION_LESSON_IDS: ReadonlySet<string> = new Set(extensionTopics.map((topic) => topic.id));
 /**
  * The course order: every lesson's unit, and its place in that unit. This is the one place a lesson's unit is set.
- * Units 1–7 are grade 3 (and grade-4 decimals and like-fraction sums close unit 8), unlike denominators start in unit 9.
+ * Units 1–5 are grade 3; units 6–9 bring in grade 4 (unit 8 holds like-fraction sums, mixed numbers and decimals), and
+ * grade 5 starts in unit 10 with adding and subtracting unlike fractions. Enrichment and problem solving close the course.
  */
 export const LESSON_PLAN: Readonly<Record<number, readonly string[]>> = {
   1: ['equal-parts', 'fraction-names', 'unit-fractions', 'fraction-of-area'],
