@@ -4351,3 +4351,77 @@ describe('equivalence, decimal, percent and picture questions offer real mistake
     assert.deepEqual([...new Set(bad)].slice(0, 15), [], `${bad.length} near-miss choices`);
   });
 });
+
+describe('the rarer question types offer real mistakes too', () => {
+  // Worked out here again, apart from the app.
+  const N = Number;
+  const v = (t: string) => { const m = /^(?:(\d+) )?(\d+)\/(\d+)$/.exec(t.trim()); return m ? N(m[1] ?? 0) + N(m[2]) / N(m[3]) : N(t); };
+  // A slip is a value, or (for "1 and 2/3" answers) the choice exactly as written.
+  function mistakes(prompt: string, answer: string): (number | string)[] | null {
+    const p = prompt.replace(/^Quick review · [^:]+: /, ''); let m: RegExpExecArray | null;
+    const frac = /^(\d+)\/(\d+)(?: [a-z]+)?$/.exec(answer.trim()); const [x, y] = frac ? [N(frac[1]), N(frac[2])] : [NaN, NaN];
+    // Sums and differences in other words: the other operation, across, one part left out, the bottoms added.
+    if ((m = /^A (?:board|jug) (?:is|has) (\d+\/\d+) (?:meter|liter)\. (?:Another is|You add) (\d+\/\d+) (?:meter|liter)\. How many (?:meters in all|liters now)\?$|^\w+ walked (\d+\/\d+) mile, then (\d+\/\d+) mile\. How far in all\?$|^A recipe uses (\d+\/\d+) cup, then (\d+\/\d+) cup more\. How much in all\?$/.exec(p))) {
+      const [a, b] = m.slice(1).filter(Boolean); const [[p1, q1], [p2, q2]] = [a, b].map((t) => t.split('/').map(N));
+      const sum = v(a) + v(b);
+      return [(p1 + p2) / (q1 + q2), v(a), v(b), Math.abs(v(a) - v(b)), (p1 + p2) / Math.max(q1, q2), (p1 * p2) / q1, (p1 + p2) / (q1 * q2), sum - 1, 1 / sum];
+    }
+    if ((m = /^A jug is (\d+)\/(\d+) full\. You pour out (\d+)\/\2\. How much is left\?$|^(\d+)\/(\d+) = (\d+)\/\5 \+ what\?$/.exec(p))) {
+      const [a, b, c] = m.slice(1).filter(Boolean).map(N);
+      return [(a + c) / b, a / b, c / b, (a + c) / (2 * b), (a - c) / (b * b), (b - a + c) / b];
+    }
+    // Wholes and a fraction: swapped, the two numbers, the remainder over the top, just the wholes.
+    if ((m = /^What is (\d+)\/(\d+) as wholes and a fraction\?$/.exec(p))) {
+      const [n, d] = m.slice(1).map(N); const [w, r] = [Math.floor(n / d), n % d];
+      return [`${r} and ${w}/${d}`, `${n} and ${d}`, `${w} and ${r}/${n}`, String(w), `${d} and ${r}/${d}`];
+    }
+    // A fraction as a decimal: the digits side by side, the bottom or top as tenths.
+    if ((m = /^Write (\d+)\/(\d+) as a decimal\.$/.exec(p)) && !['10', '100'].includes(m[2])) {
+      const [a, b] = m.slice(1).map(N); return [N(`${a}.${b}`), N(`0.${a}${b}`), N(`0.${b}`), N(`0.${a}`), b / a];
+    }
+    // Another denominator in other words.
+    if (frac && (m = /^Change (\d+)\/(\d+) into hundredths\.$|^Which fraction covers the same amount as (\d+)\/(\d+)\?$/.exec(p))) {
+      const [a, b] = m.slice(1).filter(Boolean).map(N); return [a / y, (a + y - b) / y, x / b, y / x, 1 / y];
+    }
+    if (frac && (m = /^A strip is 0\.(\d+) colored\. What fraction is that\?$/.exec(p))) { const n = N(m[1]); return [n / (y * 10), n, 1 / n, n / (y / 10), y / n]; }
+    // Parts named in other words.
+    if (frac && /^A line has \d+ spaces\. The point is \d+ jumps from 0\. What is it\?$/.test(p)) return [x / (y + 1), y / x, 1 / y, (x + 1) / y, (y - x) / y];
+    if (frac && /^A tray has \d+ spaces\. \d+ have a \w+\. What fraction have a \w+\?$|this \w+ is split into \d+ equal-area [\w ]+\. Color \d+\. What fraction of the whole is colored\?$/.test(p)) return [y / x, x / (y - x), (y - x) / y, 1 / y, x / (y + x)];
+    // Part of what is left: what is left after the first part, the second part, both taken from the whole, both eaten.
+    if ((m = /eats (\d+)\/(\d+) of a pizza\. Then (?:he|she) eats (\d+)\/(\d+) of what is left\. What fraction of the pizza is left(?: now)?\?$/.exec(p))) {
+      const [a, b, c, d] = m.slice(1).map(N); const rest = 1 - a / b;
+      return [rest, rest * (c / d), 1 - a / b - c / d, a / b + c / d, (c / d) * (a / b)];
+    }
+    // Sharing in Share or fit lessons: multiplied, flipped, added, not split.
+    if ((m = /^1\/(\d+) \w+ of \w+ is shared by (\d+) friends\. How much does each get\?$/.exec(p))) { const [b, n] = m.slice(1).map(N); return [n / b, b * n, 1 / (b + n), 1 / b]; }
+    if ((m = /^How many 1\/(\d+)-\w+ \w+ can be filled from (\d+) \w+ of \w+\?$/.exec(p))) { const [d, w] = m.slice(1).map(N); return [w + d, d, w / d, w]; }
+    // Units: one whole unit, double it, the rest, one and a half, split one part too many.
+    if ((m = /^How many (\w+) are in 1\/(\d+) (\w+)\?$/.exec(p))) {
+      const PER: Record<string, number> = { 'minutes/hour': 60, 'seconds/minute': 60, 'hours/day': 24, 'inches/foot': 12, 'centimeters/meter': 100, 'milliliters/liter': 1000, 'grams/kilogram': 1000, 'ounces/pound': 16, 'cents/dollar': 100 };
+      const per = PER[`${m[1]}/${m[3]}`]; const b = N(m[2]); if (!per) return null;
+      return [per, per * b, per - per / b, per + per / b, per / (b + 1)];
+    }
+    return null;
+  }
+
+  it('every wrong choice in a lesson, its review and Extra practice is a real mistake', () => {
+    const bad: string[] = []; let checked = 0;
+    const questions = MISSIONS.flatMap((lesson) => [
+      ...lesson.questions,
+      ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
+    ]);
+    for (const question of questions) {
+      const answer = question.choices[question.correctChoice];
+      const slips = mistakes(question.prompt, answer);
+      if (!slips) continue;
+      question.choices.forEach((choice, at) => {
+        if (at === question.correctChoice) return;
+        checked++;
+        const value = answerValue(choice);
+        if (!slips.some((slip) => (typeof slip === 'string' ? slip === choice : Math.abs(slip - value) < 1e-9))) bad.push(`${question.prompt} → ${choice} (✓ ${answer})`);
+      });
+    }
+    assert.ok(checked > 150, `only ${checked} choices checked`);
+    assert.deepEqual([...new Set(bad)].slice(0, 15), [], `${bad.length} near-miss choices`);
+  });
+});

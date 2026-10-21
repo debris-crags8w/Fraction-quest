@@ -62,7 +62,8 @@ function slips(prompt: string): [number, number[]] | null {
   if ((m = /How many (\w+) are in (\d+)\/(\d+) (\w+)\?/.exec(p)) && PER[`${m[1]}/${m[4]}`]) {
     const per = PER[`${m[1]}/${m[4]}`]; const [a, b] = [N(m[2]), N(m[3])];
     const right = (per / b) * a;
-    return [right, [a > 1 ? per / b : per * a, per - right, per, a > 1 ? per * a : per * b]];
+    // One part, the rest, a whole unit, multiplied, one and a half (90 minutes for 1/2 hour), split one part too many.
+    return [right, [a > 1 ? per / b : per * a, per - right, per, a > 1 ? per * a : per * b, per + right, per / (b + 1)]];
   }
   if ((m = /(?:A (?:bottle has|bag weighs) (\d+)\/(\d+) (liter|kilogram)|A (\d+)-(liter|kilogram)[\w ]* is (\d+)\/(\d+) full)\./.exec(p))) {
     const [a, b, unit, wholes] = m[1] ? [N(m[1]), N(m[2]), m[3], 1] : [N(m[6]), N(m[7]), m[5], N(m[4])];
@@ -114,13 +115,14 @@ export function preferMisconceptions<T extends { prompt: string; choices: string
   const wrongs = whole.length ? whole : fractions;
   if (!wrongs.length) return question;
   const right = answerValue(answer);
-  const isSlip = (v: number) => wrongs.some((slip) => Math.abs(answerValue(slip) - v) < 1e-9);
+  // A "1 and 2/3" choice is a slip only as written ("1 and 2/6" is not "1 and 3/9"); other choices by their value.
+  const isSlip = (choice: string, v: number) => wrongs.some((slip) => (/ and /.test(slip) ? slip === choice : Math.abs(answerValue(slip) - v) < 1e-9));
   const used = new Set(question.choices.map((choice) => answerValue(choice)));
-  const fresh = wrongs.filter((wrong) => !used.has(answerValue(wrong)));
+  const fresh = wrongs.filter((wrong) => !used.has(answerValue(wrong)) && !question.choices.includes(wrong));
   const choices = question.choices.map((choice, index) => {
     if (index === question.correctChoice) return choice;
     const v = answerValue(choice);
-    if (isSlip(v) || (!fractions.length && Number.isFinite(v) && Math.abs(v - right) > 2)) return choice;
+    if (isSlip(choice, v) || (!fractions.length && Number.isFinite(v) && Math.abs(v - right) > 2)) return choice;
     return fresh.shift() ?? choice;
   });
   return choices.every((choice, index) => choice === question.choices[index]) ? question : { ...question, choices };
