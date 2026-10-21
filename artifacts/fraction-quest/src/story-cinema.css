@@ -405,4 +405,5 @@
 .fq-cine-head-tools { display: flex; align-items: center; gap: 6px; }
 .fq-cine-head-tools .fq-learning-listen { margin: 0; }
 .fq-story-choice legend { display: flex; align-items: center; gap: 8px; }
-.fq-story-choice .fq-learning-listen.is-compact, .fq-story-reply .fq-learning-listen.is-compact { display: inline-flex; flex: none; min-height: 34px; margin: 0; border-width: 2px; border-radius: 999px; box-shadow: none; }
+/* The choice buttons' own style must not reach the Listen buttons beside them: they look like every other Listen. */
+.fq-story-choice .fq-learning-listen.is-compact, .fq-story-reply .fq-learning-listen.is-compact { display: inline-flex; flex: none; gap: 5px; min-height: 34px; margin: 0; padding: 3px 10px; border: 2px solid hsl(var(--secondary) / 0.35); border-radius: 999px; color: #2f6f06; background: hsl(var(--secondary) / 0.1); box-shadow: none; }
