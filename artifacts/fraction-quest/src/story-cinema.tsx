@@ -38,6 +38,14 @@ function titleFontReady(): Promise<void> {
   ]);
 }
 const END_MS = 1800;       // the "to be continued" card
+const FILM_VOICE_KEY = 'fraction-quest-film-voice';
+/** The Voice on/off choice carries over to the next film (null: not chosen yet, so sounds decide). */
+function savedFilmVoice(): boolean | null {
+  try { const saved = globalThis.localStorage?.getItem(FILM_VOICE_KEY); return saved === 'on' ? true : saved === 'off' ? false : null; } catch { return null; }
+}
+function saveFilmVoice(on: boolean) {
+  try { globalThis.localStorage?.setItem(FILM_VOICE_KEY, on ? 'on' : 'off'); } catch { /* the choice still holds for this film */ }
+}
 const VOICE_GIVE_UP_MS = 15_000; // the first shot waits at least this long for the voice to start
 const VOICE_CPS = 10;      // a generous reading pace (characters a second): slower than any voice reads, "says:" included
 const VOICE_SLACK_MS = 4000; // beyond that pace, how long a shot waits for a late voice before the film moves on
@@ -506,7 +514,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const Art = useMemo(() => (lessonSet
     ? (props: { beat: number; unit?: number; speaker?: Panel['speaker'] }) => <SetArt scene={lessonSet} {...props} />
     : ART[scene]), [lessonSet, scene]);
-  const [voiceOn, setVoiceOn] = useState(fun.sound !== false);
+  const [voiceOn, setVoiceOn] = useState(() => savedFilmVoice() ?? fun.sound !== false);
   const [beat, setBeat] = useState(-1);
   const [chars, setChars] = useState(0);
   const [ending, setEnding] = useState(false);
@@ -563,13 +571,14 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     tick(0);
   };
 
-  /** After the title card: the voice drives the shots, or a timer does. */
-  const roll = () => {
+  /** Read the film aloud from shot `from` on (the start, or the shot on screen when the voice is turned on). */
+  const speakFrom = (from: number) => {
     voiceDriving.current = voiceRef.current && reader.supported;
-    if (!voiceDriving.current) { showBeat(0); return; }
-    reader.speak(spoken.join(' '), {
+    if (!voiceDriving.current) return;
+    const first = Math.max(0, sentenceToPanel.indexOf(from));
+    reader.speak(spoken.slice(from).join(' '), {
       onPart: (index) => {
-        const panel = sentenceToPanel[index] ?? 0;
+        const panel = sentenceToPanel[first + index] ?? from;
         if (panel > beatRef.current) showBeat(panel);
       },
       onEnd: () => {
@@ -579,6 +588,11 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
         if (typedRef.current) later(() => showBeat(beatRef.current + 1), beatRef.current >= lines.length - 1 ? 600 : PAUSE_MS);
       },
     });
+  };
+
+  /** After the title card: the voice drives the shots, or a timer does. */
+  const roll = () => {
+    speakFrom(0);
     showBeat(0);
   };
 
@@ -612,13 +626,21 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per shot
   }, [beat, take]);
 
+  // The button decides whether the film is heard, right away: off silences it, on reads from the shot on screen.
   const toggleVoice = () => {
     const next = !voiceOn;
     setVoiceOn(next); voiceRef.current = next;
+    saveFilmVoice(next);
     if (!next) {
       clearTimeout(stall.current); reader.stop(); voiceDriving.current = false;
       if (!done && beatRef.current >= 0 && typedRef.current) later(() => showBeat(beatRef.current + 1), PAUSE_MS);
+    } else if (!done && beatRef.current >= 0) {
+      const shot = beatRef.current;
+      prefetchReading(spoken.slice(shot).join(' '));
+      speakFrom(shot);
+      showBeat(shot); // the line on screen starts again, read aloud this time
     }
+    // Before the first shot (the title card), the film simply starts with the new setting.
   };
 
   const titleCard = !done && beat < 0;

@@ -46,3 +46,47 @@ test('lesson 2 plays in the chapter\'s place with the speakers, and no story pro
   await page.getByTestId('button-story-skip').click();
   await expect(page.getByTestId('button-story-go')).toBeVisible();
 });
+
+test('the Voice button decides whether the film is heard, right away, and is remembered', async ({ page }) => {
+  // The device voice (the natural voice is off here) is recorded instead of spoken: each sentence takes 0.4 s.
+  await page.addInitScript(() => {
+    localStorage.setItem('fraction-quest-natural-voice', 'off');
+    const spoken: string[] = [];
+    (window as unknown as { spoken: string[] }).spoken = spoken;
+    let queue: { text: string; onstart?: () => void; onend?: () => void }[] = [];
+    const next = () => { const item = queue[0]; if (!item) return; setTimeout(() => { item.onstart?.(); spoken.push(item.text); setTimeout(() => { if (queue[0] === item) { queue.shift(); item.onend?.(); next(); } }, 400); }, 10); };
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
+      getVoices: () => [{ name: 'Test', lang: 'en-US', voiceURI: 'Test', default: true }],
+      speak(utterance: { text: string }) { queue.push(utterance); if (queue.length === 1) next(); },
+      cancel() { queue = []; }, addEventListener() {}, removeEventListener() {}, pause() {}, resume() {},
+    } });
+    (window as unknown as { SpeechSynthesisUtterance: unknown }).SpeechSynthesisUtterance = function (this: { text: string }, text: string) { this.text = text; };
+  });
+  await openChapterTwo(page, [...unitOne, 'unit-size']);
+  // Words only: a blank utterance unlocks audio on a tap (iPhone) and is not part of the film.
+  const spoken = () => page.evaluate(() => (window as unknown as { spoken: string[] }).spoken.filter((text) => text.trim()).length);
+  // Sounds are off for this learner, so the film starts quiet.
+  await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
+  const voice = page.getByTestId('button-story-voice');
+  await expect(voice).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId('story-panel-0')).toBeVisible();
+  expect(await spoken()).toBe(0);
+  // Voice on: the line on screen is read at once.
+  await voice.click();
+  await expect(voice).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(spoken).toBeGreaterThan(0);
+  // Voice off: nothing more is read.
+  await voice.click();
+  const heard = await spoken();
+  await page.waitForTimeout(1500);
+  expect(await spoken()).toBe(heard);
+  // The choice is kept for the next film.
+  expect(await page.evaluate(() => localStorage.getItem('fraction-quest-film-voice'))).toBe('off');
+});
+
+test('a film starts with the voice the learner chose last time, even when sounds are off', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('fraction-quest-film-voice', 'on'));
+  await openChapterTwo(page, [...unitOne, 'unit-size']);
+  await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
+  await expect(page.getByTestId('button-story-voice')).toHaveAttribute('aria-pressed', 'true');
+});
