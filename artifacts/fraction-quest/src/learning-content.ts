@@ -1,4 +1,5 @@
 import { circleCut, gridCut, type AreaFigure, type AreaTask } from './area-shapes';
+import { wrongReasons } from './reason-slips';
 import { standardsForMission } from './standard-catalog';
 import { autoPicture } from './auto-picture';
 import { execAll } from './lib/regexp';
@@ -461,6 +462,11 @@ function arrangeReasons(key: string, right: string, wrong: [string, string]): { 
   reasons.splice(correctReason, 0, right);
   return { reasons, correctReason };
 }
+/** The check's reasons with its wrong ones swapped for `wrong`; the right reason keeps its spot. */
+function withWrong(check: BuildCheck, wrong: [string, string]): string[] {
+  let next = 0;
+  return check.reasons.map((reason, i) => (i === check.correctReason ? reason : wrong[next++]));
+}
 /** Step 3 ("Apply it") for lessons whose worksheet rows can't become a Build: the lesson's own idea with new numbers. */
 const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reason: string; kind?: LearningModel['kind']; total?: number }> = {
   'equal-parts': { n: 1, d: 4, prompt: 'Cut a pizza into 4 equal slices. Shade 1.', reason: '4 equal slices. 1 of them is 1/4.' },
@@ -518,14 +524,14 @@ export function getBuildChecks(id: string): BuildCheck[] {
   const [n, d, kind, prompt, explanation, total] = seed;
   const transfer = transferTarget(id, n, d, kind);
   const primary: BuildCheck = { id: 'build', prompt, target: model(n, d, kind, total), explanation, transfer: false, stepLabel: 'Step 1 · Build it',
-    ...arrangeReasons(`${id}:build`, idea(id, explanation), ['Bigger numbers mean a bigger fraction', 'Only shaded parts must be equal']) };
+    ...arrangeReasons(`${id}:build`, idea(id, explanation), wrongReasons(id, 0)) };
   const independent: BuildCheck = { id: 'transfer', prompt: transfer.prompt, target: transfer.target, explanation: transfer.reason, transfer: true, stepLabel: 'Step 2 · On your own',
-    ...arrangeReasons(`${id}:transfer`, idea(id, transfer.reason), ['Change only the denominator', 'Count the tick marks only']) };
+    ...arrangeReasons(`${id}:transfer`, idea(id, transfer.reason), wrongReasons(id, 1)) };
   const used = new Set([primary, independent].map(check => JSON.stringify(check.target)));
   const authored = APPLY_CHECKS[id];
   let apply: BuildCheck | null = authored ? {
     id: 'apply', prompt: authored.prompt, target: model(authored.n, authored.d, authored.kind ?? 'bar', authored.total), explanation: authored.reason, transfer: true,
-    ...arrangeReasons(`${id}:apply`, idea(id, authored.reason), ['Change only the denominator', 'Count the tick marks only']),
+    ...arrangeReasons(`${id}:apply`, idea(id, authored.reason), wrongReasons(id, 2)),
   } : null;
   for (let serial = 0; serial < 12 * 12 && !apply; serial++) {
     const candidate = worksheetBuildCheck(id, serial, 'apply');
@@ -539,7 +545,8 @@ export function getBuildChecks(id: string): BuildCheck[] {
   return [
     primary,
     independent,
-    { ...apply, id: 'apply', transfer: true, stepLabel: 'Step 3 · Apply it' },
+    // Apply it always shows the lesson's third pair of wrong reasons, wherever its question came from.
+    { ...apply, id: 'apply', transfer: true, stepLabel: 'Step 3 · Apply it', reasons: withWrong(apply, wrongReasons(id, 2)) },
   ];
 }
 
@@ -567,7 +574,7 @@ function worksheetBuildCheck(id: string, serial: number, checkId: string): Build
   const explanation = problem.hint;
   return {
     id: checkId, prompt, target: model(value.n, value.d, kind, total), explanation, transfer: true,
-    ...arrangeReasons(`${id}:${checkId}:${serial}`, idea(id, problem.hint), ['Change only the denominator', 'Count the tick marks only']),
+    ...arrangeReasons(`${id}:${checkId}:${serial}`, idea(id, problem.hint), wrongReasons(id, serial)),
   };
 }
 
@@ -772,7 +779,7 @@ function lessonBuildCheck(id: string, serial: number, checkId: string): BuildChe
   const kind = flip && made === 'bar' ? 'line' : flip && made === 'line' ? 'bar' : made;
   return {
     id: checkId, prompt, target: model(n, d, kind, total), explanation, transfer: true,
-    ...arrangeReasons(`${id}:${checkId}:lesson:${serial}`, idea(id, explanation), ['Change only the denominator', 'Count the tick marks only']),
+    ...arrangeReasons(`${id}:${checkId}:lesson:${serial}`, idea(id, explanation), wrongReasons(id, serial)),
   };
 }
 
@@ -792,7 +799,7 @@ function seededBuildCheck(id: string, serial: number, checkId: string): BuildChe
       ? `Build ${n}/${d} of ${d * 4} counters. Make ${d} equal groups.`
       : `Build ${n}/${d}. Show the same amount with a bar and a number line.`,
     target, explanation, transfer: true,
-    ...arrangeReasons(`${id}:${checkId}:seed:${serial}`, idea(id, explanation), ['Change only the denominator', 'Count the tick marks only']),
+    ...arrangeReasons(`${id}:${checkId}:seed:${serial}`, idea(id, explanation), wrongReasons(id, serial)),
   };
 }
 
@@ -1892,27 +1899,27 @@ export function getReviewCheck(id: string, round: number): BuildCheck {
     const builds = getBuildChecks(id);
     const check = builds[round % builds.length];
     return { ...check, id: 'retention', transfer: true,
-      ...arrangeReasons(`${id}:review:${round % builds.length}`, idea(id, check.explanation), ['Only the numerator matters', 'Bigger numbers mean a bigger fraction']) };
+      ...arrangeReasons(`${id}:review:${round % builds.length}`, idea(id, check.explanation), wrongReasons(id, round)) };
   }
   if (id === 'order-fractions') {
     // Grade 3 parts: sixths, eighths, then eighths again with other numerators.
     const [d, low, high] = ([[6, 2, 4], [8, 2, 4], [8, 3, 6]] as const)[round % 3];
     const reason = 'Same size parts. The most parts is the biggest.';
     return { id: 'retention', transfer: true, prompt: `Which is longest: ${low}/${d}, ${high}/${d} or ${low + 1}/${d}? Make it.`,
-      target: model(high, d), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['The smallest numerator wins', 'Shade the denominator of parts']), explanation: reason };
+      target: model(high, d), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), wrongReasons(id, round)), explanation: reason };
   }
   if (id.includes('equivalent')) {
     // Both denominators fit the grade (grade 3: 2/3 = 4/6, 3/4 = 6/8, 1/2 = 3/6).
     const [n, d, factor] = (lessonGrade(id) === 3 ? [[2, 3, 2], [3, 4, 2], [1, 2, 3]] : [[2, 3, 2], [3, 4, 3], [4, 5, 2]])[round % 3];
     const reason = `Split every part into ${factor}. Multiply the numerator and denominator by ${factor}.`;
     return { id: 'retention', transfer: true, prompt: `A ribbon is ${n}/${d} colored. Show it with a denominator of ${d * factor}.`,
-      target: model(n * factor, d * factor), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['Change only the denominator', 'A bigger bottom always means more']), explanation: reason };
+      target: model(n * factor, d * factor), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), wrongReasons(id, round)), explanation: reason };
   }
   if (id.startsWith('sets-')) {
     const d = [4, 5, 6][round % 3]; const n = id === 'sets-unit-fractions' ? 1 : 2; const total = d * 4;
     const reason = `Put ${total} in ${d} equal groups. Pick ${n}.`;
     return { id: 'retention', transfer: true, prompt: `Put ${total} shells in ${d} equal groups. Pick ${n} of the groups.`, target: model(n, d, 'set', total),
-      ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), ['Make groups equal to the numerator', 'Pick the denominator of shells']), explanation: reason };
+      ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), wrongReasons(id, round)), explanation: reason };
   }
   // Review is built from scratch with no picture, so skip questions that need one, already show
   // the answer (unless picking it is the skill: "Which is bigger…"), or ask for a symbol, decimal or order.
@@ -1936,6 +1943,6 @@ export function getReviewCheck(id: string, round: number): BuildCheck {
   const prompt = /^Make .+\.$/.test(ask) ? ask.replace(/\.$/, ' two ways.') : `${ask} Build the answer two ways.`;
   return { id: 'retention', transfer: true, prompt,
     target: model(value.n, value.d, id.startsWith('number-line') ? 'line' : 'bar'),
-    ...arrangeReasons(`${id}:review:${round % variants.length}`, idea(id, reason), ['Count the tick marks only', 'Only shaded parts must be equal']),
+    ...arrangeReasons(`${id}:review:${round % variants.length}`, idea(id, reason), wrongReasons(id, round)),
     explanation: reason };
 }
