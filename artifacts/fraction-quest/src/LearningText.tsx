@@ -806,6 +806,12 @@ const KEY_PATTERN = new RegExp([
   String.raw`\b(?:equal|same|not|bigger|biggest|smaller|smallest|greater|more|less|closest|closer|fair|left)\b`,
 ].join('|'), 'gi');
 
+/** The punctuation right after a highlighted word ("parts." or "fourths?"). It is kept with the word so a line never
+    starts with a lone full stop: a highlighted word is its own box, and a line may otherwise break just after it. */
+function trailingPunctuation(text: string, from: number): string {
+  return /^[.,!?;:)’”]+/.exec(text.slice(from))?.[0] ?? '';
+}
+
 /** Plain text with its key points underlined (fractions inside still render as math). */
 function EmphasizedText({ text }: { text: string }) {
   const parts: ReactNode[] = [];
@@ -813,8 +819,10 @@ function EmphasizedText({ text }: { text: string }) {
   for (const match of execAll(text, KEY_PATTERN)) {
     const at = match.index ?? 0;
     if (at > last) parts.push(<MathText key={`t-${last}`} text={text.slice(last, at)} />);
-    parts.push(<span key={`k-${at}`} className="fq-key">{match[0]}</span>);
-    last = at + match[0].length;
+    const key = <span key={`k-${at}`} className="fq-key">{match[0]}</span>;
+    const stop = trailingPunctuation(text, at + match[0].length);
+    parts.push(stop ? <span key={`k-${at}`} className="fq-glue">{key}{stop}</span> : key);
+    last = at + match[0].length + stop.length;
   }
   if (last < text.length) parts.push(<MathText key={`t-${last}`} text={text.slice(last)} />);
   return <>{parts}</>;
@@ -841,10 +849,10 @@ export function LearningText({
     const entry = entryFor(word);
     if (!entry) continue;
     if (at > last) parts.push(plain(text.slice(last, at), `text-${last}`));
-    parts.push(
-      <VocabularyTerm key={`term-${at}`} text={word} definition={entry.definition} interactive={interactiveTerms} />,
-    );
-    last = at + word.length;
+    const term = <VocabularyTerm key={`term-${at}`} text={word} definition={entry.definition} interactive={interactiveTerms} />;
+    const stop = trailingPunctuation(text, at + word.length);
+    parts.push(stop ? <span key={`term-${at}`} className="fq-glue">{term}{stop}</span> : term);
+    last = at + word.length + stop.length;
   }
   if (last < text.length || parts.length === 0) {
     parts.push(plain(text.slice(last), `text-${last}`));

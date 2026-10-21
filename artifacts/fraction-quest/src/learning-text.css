@@ -2,6 +2,11 @@
   display: inline;
 }
 
+/* A highlighted word and the punctuation after it stay on one line. */
+.fq-glue {
+  white-space: nowrap;
+}
+
 .fq-vocab {
   position: relative;
   display: inline-block;
