@@ -4139,3 +4139,69 @@ describe('Extra practice in the new lessons offers real mistakes, not near-miss 
     });
   }
 });
+
+describe('adding and subtracting questions offer real mistakes, not near-miss numbers', () => {
+  // Worked out here again, apart from the app: the mistakes a child really makes adding or subtracting fractions.
+  const N = Number;
+  const amount = (text: string): [number, number] | null => {
+    const m = /^(?:(\d+) )?(\d+)\/(\d+)$/.exec(text.trim()) ?? /^(\d+)()()$/.exec(text.trim());
+    if (!m) return null;
+    const [w, a, b] = [N(m[1] ?? 0), N(m[2] || 0), N(m[3] || 1)];
+    return m[3] ? [w * b + a, b] : [N(m[1]), 1];
+  };
+  const lcm = (x: number, y: number) => { let a = x, b = y; while (b) [a, b] = [b, a % b]; return (x * y) / a; };
+  function mistakes(prompt: string): { right: number; slips: number[] } | null {
+    let p = prompt.replace(/^Quick review · [^:]+: /, '').replace(/^Rename: .+?\. Then /, '');
+    const said = /^\w+ says (.+) = ([\d /]+)\. What is the right answer\?$/.exec(p);
+    if (said) p = `${said[1]} = ?`;
+    const length = /^(?:A|One) (?:board|ribbon) is ([\d /]+?)(?: m| meters?)?(?:\.| and) [Aa]nother is ([\d /]+?)(?: m| meters?)?\. How (?:many meters )?long (?:are they )?together\?$/.exec(p);
+    if (length) p = `${length[1]} + ${length[2]} = ?`;
+    const left = /(\d+)\/(\d+) (?:of a book on \w+ and|of a garden is planted\. Then) (\d+)\/\2 (?:on \w+\. How much is left to read|more is planted\. How much is still empty)\?$/.exec(p);
+    if (left) { const [a, b, c] = left.slice(1).map(N); return { right: (b - a - c) / b, slips: [(a + c) / b, (b - a) / b, (b - c) / b, (b - a - c) / (2 * b), (b - a + c) / b] }; }
+    const blank = /^Fill the blank: (\d+)\/(\d+) \+ \? = 1$/.exec(p);
+    if (blank) { const [a, b] = blank.slice(1).map(N); return { right: (b - a) / b, slips: [a / b, (a + b) / b, b / (b - a), (b - a) / (2 * b), 1 / b] }; }
+    const m = /^(?:What is )?((?:\d+ )?\d+\/\d+) ([+−]) ((?:\d+ )?\d+\/\d+)(?: = \?|\?)$/.exec(p);
+    if (!m) return null;
+    const x = amount(m[1])!, y = amount(m[3])!; const add = m[2] === '+';
+    const L = lcm(x[1], y[1]); const xs = x[0] * (L / x[1]), ys = y[0] * (L / y[1]);
+    const right = (add ? xs + ys : xs - ys) / L;
+    const [a, b] = [x[0] % x[1], x[1]], [c, d] = [y[0] % y[1], y[1]];
+    const [w1, w2] = [Math.floor(x[0] / x[1]), Math.floor(y[0] / y[1])];
+    const slips = [
+      add ? (xs - ys) / L : (xs + ys) / L, // the other operation
+      w1 + w2 * (add ? 1 : -1) + (add ? (a + c) / (b + d) : Math.abs(a - c) / Math.max(1, Math.abs(b - d) || b)), // across
+      w1 + (add ? 1 : -1) * w2 + (add ? a + c : Math.abs(a - c)) / Math.max(b, d), // keep one denominator
+      w1 + (add ? 1 : -1) * w2 + (add ? a * (L / b) + c : Math.abs(a * (L / b) - c)) / L, // rename only the first
+      w1 + (add ? 1 : -1) * w2 + (add ? a + c * (L / d) : Math.abs(a - c * (L / d))) / L, // rename only the second
+      x[0] / x[1], y[0] / y[1], // left one out
+      add ? right - 1 : right + 1, // forgot to carry, or to take the traded whole away
+      add ? w1 + (a * (L / b) + c * (L / d)) / L : w1 - w2 + Math.abs(a * (L / b) - c * (L / d)) / L, // dropped a whole; or took the smaller part from the bigger
+      w1 + (add ? 1 : -1) * w2 + (add && b === d ? (a * c) / b : (a + c) / (2 * b)), // multiplied the tops; or added the bottoms
+      add ? (a + c) / (2 * b) : (b - (a - c)) / b, // added the bottoms; or found what's left of the whole
+      w1 + (add ? 1 : -1) * w2 + (add ? a + c : Math.abs(a - c)) / (b * d), // multiplied the bottoms
+      1 / right, // upside down
+      w1 + (add ? 1 : -1) * w2 + a / b, w1 + (add ? 1 : -1) * w2 + c / d, // kept only one fraction part
+    ];
+    if (said) slips.push(amount(said[2])![0] / amount(said[2])![1]);
+    return { right, slips };
+  }
+
+  it('every wrong choice in a lesson, its review and Extra practice is a real mistake', () => {
+    const bad: string[] = []; let checked = 0;
+    const questions = MISSIONS.flatMap((lesson) => [
+      ...lesson.questions,
+      ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
+    ]);
+    for (const question of questions) {
+      const found = mistakes(question.prompt);
+      if (!found || Math.abs(found.right - answerValue(question.choices[question.correctChoice])) > 1e-9) continue;
+      question.choices.forEach((choice, at) => {
+        if (at === question.correctChoice) return;
+        checked++;
+        if (!found.slips.some((slip) => Math.abs(slip - answerValue(choice)) < 1e-9)) bad.push(`${question.prompt} → ${choice}`);
+      });
+    }
+    assert.ok(checked > 300, `only ${checked} choices checked`);
+    assert.deepEqual([...new Set(bad)].slice(0, 15), [], `${bad.length} near-miss choices`);
+  });
+});
