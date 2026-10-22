@@ -37,8 +37,8 @@ async function openAsGuest(page: import('@playwright/test').Page) {
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
 }
 
-async function openLesson(page: import('@playwright/test').Page, resumeWorksheet = false) {
-  const missionIndex = MISSIONS.indexOf(lesson);
+async function openLesson(page: import('@playwright/test').Page, resumeWorksheet = false, target = lesson!) {
+  const missionIndex = MISSIONS.indexOf(target);
   const earlierLessons = MISSIONS.slice(0, missionIndex);
   const masteredRecord = (missionId: string) => ({
     practiceDone: true,
@@ -54,9 +54,9 @@ async function openLesson(page: import('@playwright/test').Page, resumeWorksheet
     misconceptions: {},
   });
   const learning = Object.fromEntries(earlierLessons.map((mission) => [mission.id, masteredRecord(mission.id)]));
-  learning[lesson.id] = {
+  learning[target.id] = {
     practiceDone: resumeWorksheet,
-    checks: Object.fromEntries(getBuildChecks(lesson.id).map((check) => [
+    checks: Object.fromEntries(getBuildChecks(target.id).map((check) => [
       check.id,
       { passed: true, supported: false, attempts: 1 },
     ])),
@@ -76,11 +76,11 @@ async function openLesson(page: import('@playwright/test').Page, resumeWorksheet
   }, { completedMissionIds: earlierLessons.map((mission) => mission.id), learning });
 
   await openAsGuest(page);
-  const node = page.getByTestId(`button-node-${lesson.id}`);
+  const node = page.getByTestId(`button-node-${target.id}`);
   await node.click({ force: true });
   if (await node.getAttribute('aria-expanded') !== 'true') await node.click({ force: true });
   await expect(node).toHaveAttribute('aria-expanded', 'true');
-  await page.getByTestId(`button-start-mission-${lesson.id}`).click();
+  await page.getByTestId(`button-start-mission-${target.id}`).click();
   await passStory(page);
   if (resumeWorksheet) {
     await expect(page.getByTestId('learning-lab')).toBeVisible();
@@ -175,13 +175,17 @@ test('phone Safari opens a lesson, accepts its first tap answer, and advances', 
 });
 
 test('phone Safari can enter a lesson worksheet number with the keyboard-operable digit tiles', async ({ page }) => {
-  const worksheetProblem = getWorksheet(lesson.id).find((problem) => {
+  // The first lesson from the representative one on whose worksheet a number is typed with the digit tiles (a
+  // lesson whose worksheet only compares or picks has none).
+  const typed = (problem: ReturnType<typeof getWorksheet>[number]) => {
     const shape = answerShape(problem);
     return shape.kind === 'number' || shape.kind === 'fraction' || shape.kind === 'mixed' || shape.kind === 'decimal';
-  });
-  if (!worksheetProblem) throw new Error(`Lesson ${lesson.id} has no numeric worksheet answer`);
+  };
+  const target = MISSIONS.slice(MISSIONS.indexOf(lesson!)).find((mission) => getWorksheet(mission.id).some(typed));
+  const worksheetProblem = target && getWorksheet(target.id).find(typed);
+  if (!target || !worksheetProblem) throw new Error('No lesson has a numeric worksheet answer');
 
-  await openLesson(page, true);
+  await openLesson(page, true, target);
   await expectNoHorizontalOverflow(page);
   // The steps are shortcuts: the Worksheet step jumps to the worksheet, which reads itself aloud on request.
   await page.getByTestId('button-go-worksheet').tap();
@@ -189,7 +193,7 @@ test('phone Safari can enter a lesson worksheet number with the keyboard-operabl
   await expect(page.getByTestId('section-worksheet').getByRole('button', { name: 'Listen to the worksheet steps' })).toBeVisible();
   // Finished builds stay on the page, folded to one line; a green step goes back up and opens one in place, with a
   // practice-only "Build it again". The steps scroll sideways on a phone.
-  const firstBuild = getBuildChecks(lesson.id)[0];
+  const firstBuild = getBuildChecks(target.id)[0];
   const card = page.getByTestId(`section-done-${firstBuild.id}`);
   await expect(card).toBeVisible();
   await expect(card).not.toHaveAttribute('open', '');

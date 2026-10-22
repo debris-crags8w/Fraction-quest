@@ -103,3 +103,34 @@ test('ruler questions show a ruler with the blue strip they talk about', () => {
     assert.equal(q.model.kind, 'ruler', q.prompt);
   }
 });
+
+test('practice reaches each lesson’s own skill (teacher review, PR 4)', () => {
+  // Fractions in shapes: equal parts with different shapes are practised, not only identical pieces.
+  assert.ok(getWorksheet('fraction-of-area').some((row) => row.area?.cut === 'fourths-mixed'));
+  // Build a line plot: the child places the Xs in the lesson questions, and the builds stay on the line.
+  for (const q of MISSIONS.find((m) => m.id === 'build-line-plots')!.questions.filter((q) => /^Plot /.test(q.prompt))) {
+    assert.ok(q.model.kind === 'lineplot' && q.model.plotTask, q.prompt);
+  }
+  for (const check of getBuildPracticeChecks('build-line-plots', 0)) assert.equal(check.target.kind, 'line', check.prompt);
+  // Read a line plot: the values are only in the plot.
+  for (const row of getWorksheet('read-line-plots')) {
+    assert.equal(row.picture?.kind, 'lineplot', row.prompt);
+    assert.doesNotMatch(row.prompt.replace(/(?:are|all the) \d+\/8 inch/, ''), /\d\/8/, row.prompt);
+  }
+  // Break apart: another way, and unit fractions.
+  assert.ok(MISSIONS.find((m) => m.id === 'decompose-fractions')!.questions.some((q) => /another way/.test(q.prompt)));
+  // A fraction of a number is written with × too.
+  assert.ok(MISSIONS.find((m) => m.id === 'fraction-of-quantity')!.questions.some((q) => /^\d+\/\d+ × \d+ = \?$/.test(q.prompt)));
+  // Estimates: never a sum the benchmarks can't decide (one part above 1/2, the other below).
+  for (const variant of [0, 1, 2]) for (const row of getWorksheet('estimate-fraction-operations', variant)) {
+    const m = /compare (\d+)\/(\d+) \+ (\d+)\/(\d+) with 1/.exec(row.prompt);
+    if (m) assert.ok((Number(m[1]) / Number(m[2]) - 0.5) * (Number(m[3]) / Number(m[4]) - 0.5) >= 0, row.prompt);
+  }
+  // Mixed numbers with unlike parts: the builds have mixed numbers.
+  assert.ok(getBuildPracticeChecks('mixed-unlike-operations', 0).every((check) => /\d \d+\/\d+/.test(check.prompt)));
+  // Find the whole: builds check the total.
+  for (const check of getBuildChecks('find-the-whole')) assert.ok(check.target.kind === 'set' && check.target.total, check.prompt);
+  // Two-step stories have more than one shape.
+  const shapes = new Set(getWorksheet('multi-step-fraction-stories').map((row) => /jug|farther|left|empty/.exec(row.prompt)?.[0]));
+  assert.ok(shapes.has('jug') && shapes.has('farther'));
+});

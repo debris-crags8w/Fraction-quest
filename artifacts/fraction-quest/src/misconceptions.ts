@@ -36,6 +36,14 @@ function slips(prompt: string): [number, [Why, number][]] | null {
     const rest = t - (t / b) * a; const right = rest - (rest / e) * c;
     return [right, [['firstOnly', rest], ['ofRest', t - (t / b) * a - (t / e) * c], ['given', (t / b) * a], ['given', (rest / e) * c]]];
   }
+  // The same written with ×: "3/4 × 12 = ?" (the same slips as "3/4 of 12").
+  if ((m = /^(\d+)\/(\d+) × (\d+) = \?$/.exec(p))) {
+    const [a, b, n] = [N(m[1]), N(m[2]), N(m[3])];
+    if (n % b === 0) {
+      const right = (n / b) * a;
+      return [right, [['oneGroup', a > 1 ? n / b : NaN], ['leftPart', n - right], ['whole', n], ['timesWhole', n * a], ['justNumber', b]]];
+    }
+  }
   // A fraction of a group or a length: "What is 2/3 of 9 pencils?", "40 snacks … What is 2/10 of the snacks?",
   // "A box has 6 buttons. How many … in 1/3 of the box?", "A ribbon is 6 m long. How long is 1/3 of it?"
   if ((m = /(\d+)\/(\d+) of (?:the |a )?(\d+)?/.exec(p)) && /\bof\b/.test(p)) {

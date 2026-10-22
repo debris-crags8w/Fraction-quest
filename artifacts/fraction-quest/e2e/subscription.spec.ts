@@ -52,7 +52,7 @@ test('in the app without a subscription, lesson 2 asks for a grown-up and opens 
   await page.getByTestId('button-start-mission-fraction-names').click();
 
   await page.getByTestId('button-get-grown-up').click();
-  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
@@ -86,7 +86,7 @@ test('the paywall offers the yearly plan first, and buys the plan the grown-up p
   await openInApp(page, { state: 'none', price: '$4.99', plans }, ['equal-parts']);
   await page.getByTestId('button-start-mission-fraction-names').click();
   await page.getByTestId('button-get-grown-up').click();
-  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
@@ -124,7 +124,7 @@ test('the grown-ups page shows the subscription and opens the store to manage it
   await openInApp(page, { state: 'active', renewsAt: new Date(2026, 10, 3).getTime() });
   await page.getByTestId('button-app-menu').click();
   await page.getByTestId('button-open-parent').click();
-  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
@@ -142,7 +142,7 @@ test('in a browser there is no subscription: with the website limit off, lessons
   await page.goto('/');
   await page.getByTestId('button-app-menu').click();
   await page.getByTestId('button-open-parent').click();
-  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();

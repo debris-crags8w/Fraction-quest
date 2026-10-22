@@ -6,7 +6,7 @@ import { PART_FINDER_LESSONS } from '../src/part-finder';
 async function openDeveloperTesting(page: import('@playwright/test').Page) {
   await page.getByTestId('button-app-menu').click();
   await page.getByTestId('button-open-parent').click();
-  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();

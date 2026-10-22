@@ -72,17 +72,17 @@ test('a question that says to color pieces lets the child tap them, then answer'
   const mission = MISSIONS.find(({ id }) => id === 'fraction-of-area');
   if (!mission) throw new Error('Equal-area lesson is missing');
   const question = mission.questions[0];
-  expect(question.prompt).toContain('Color 2');
+  const count = Number(/Color (\d+) parts?\./.exec(question.prompt)?.[1]);
+  expect(count).toBeGreaterThan(0);
   await openAsGuest(page);
   await openDeveloperLesson(page, mission);
   await skipIntros(page);
 
   const shade = page.getByTestId('question-model-area').getByTestId('area-shade');
   await expect(shade).toBeVisible();
-  await shade.getByTestId('button-area-piece-1').click();
-  await shade.getByTestId('button-area-piece-2').click();
-  await expect(shade.getByTestId('button-area-piece-2')).toHaveAttribute('aria-pressed', 'true');
-  await expect(shade.getByTestId('status-area')).toHaveText('2 pieces colored.');
+  for (let piece = 1; piece <= count; piece++) await shade.getByTestId(`button-area-piece-${piece}`).click();
+  await expect(shade.getByTestId(`button-area-piece-${count}`)).toHaveAttribute('aria-pressed', 'true');
+  await expect(shade.getByTestId('status-area')).toHaveText(`${count} ${count === 1 ? 'piece' : 'pieces'} colored.`);
 
   await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
   await page.getByTestId('button-check-answer').click();
@@ -738,7 +738,7 @@ async function completeQuestionSequence(
 /** Developer testing lives with the grown-ups' settings: open them through the grown-up check. */
 async function openDeveloperTesting(page: import('@playwright/test').Page) {
   await openMenuItem(page, 'button-open-parent');
-  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
@@ -1826,7 +1826,7 @@ test('daily practice resumes its checked scaffold and parent report after reload
 
   await page.getByTestId('button-daily-back').click();
   await openMenuItem(page, 'button-open-parent');
-  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge?.match(/(\d+)\s×\s(\d+)/);
   expect(factors).not.toBeNull();
   await page.getByTestId('input-parent-gate').fill(String(Number(factors![1]) * Number(factors![2])));
@@ -1997,7 +1997,7 @@ test('an adult progress report can invoke browser printing', async ({ page }) =>
   });
   await openAsGuest(page);
   await openMenuItem(page, 'button-open-parent');
-  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge?.match(/(\d+)\s×\s(\d+)/);
   expect(factors).not.toBeNull();
   await page.getByRole('textbox').fill(String(Number(factors![1]) * Number(factors![2])));
@@ -2238,7 +2238,7 @@ test('inside the Expo iPhone app, answer and result haptics work with sound off,
   // Printing the progress report hands the page to the native print sheet (not the web view's print, which does nothing).
   await page.getByTestId('button-back-map').click();
   await openMenuItem(page, 'button-open-parent');
-  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByRole('textbox').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByRole('button', { name: 'Continue' }).click();
@@ -2732,7 +2732,7 @@ test('Halloween: the night map, costumes earned by finishing lessons, candy poin
   // A grown-up can turn seasonal themes off; lessons and points stay the same.
   await page.goto('/');
   await openMenuItem(page, 'button-open-parent');
-  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
@@ -3005,7 +3005,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   // A grown-up can turn story mode off: no quest banner or chapter banners, and no comics.
   await page.goto('/');
   await openMenuItem(page, 'button-open-parent');
-  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
