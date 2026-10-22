@@ -72,6 +72,9 @@ const UNIT_NAMES: Record<number, string> = { 2: 'halves', 3: 'thirds', 4: 'fourt
 const unitName = (d: number) => UNIT_NAMES[d] ?? `${d}ths`;
 /** One piece's name: "half", "third", "eighth". */
 const unitPiece = (d: number) => (d === 2 ? 'half' : unitName(d).replace(/s$/, ''));
+const dimeWord = (n: number) => `${n} ${n === 1 ? 'dime' : 'dimes'}`;
+const pennyWord = (n: number) => `${n} ${n === 1 ? 'penny' : 'pennies'}`;
+const tenthWord = (n: number) => `${n} ${n === 1 ? 'tenth' : 'tenths'}`;
 
 /** Exact decimal/fraction arithmetic: never silently round a student's answer. */
 export function parseAnswer(raw: string): Rational | null {
@@ -275,6 +278,14 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
 };
 
 const EXTENSION_TRANSFERS: Record<string, { n: number; d: number; prompt: string; reason: string; kind?: LearningModel['kind']; total?: number }> = {
+  'decompose-fractions': { n: 5, d: 8, prompt: 'Make 5/8 as 2/8 + 3/8.', reason: '2 eighths and 3 eighths make 5 eighths: 5/8.' },
+  'improper-fractions': { n: 7, d: 3, prompt: 'Pip pours 7 one-third cups of water. Build how much that is.', reason: '7 thirds is 7/3. 3/3 is one cup, so it is 2 cups and 1 third more.' },
+  'mixed-improper': { n: 11, d: 4, prompt: 'Make 2 and 3/4 using fourths.', reason: 'Each whole is 4/4. 2 wholes are 8/4. 3 more fourths make 11/4.' },
+  'dimes-and-pennies': { n: 23, d: 100, prompt: 'Make 2 dimes and 3 pennies as hundredths of a dollar.', reason: '2 dimes are 20/100. 3 pennies are 3/100. Together: 23/100.' },
+  'plot-in-eighths': { n: 3, d: 8, kind: 'line', prompt: 'A bug crawls 3/8 inch. Show it on a line marked in eighths.', reason: 'Split 1 inch into 8 equal spaces. Count 3 spaces from 0.' },
+  'party-portions': { n: 9, d: 4, prompt: 'Each child eats 3/4 of a sandwich. 3 children come. Build the total.', reason: '3 groups of 3 fourths is 9 fourths: 9/4 sandwiches, between 2 and 3.' },
+  'line-plot-totals': { n: 5, d: 4, kind: 'line', prompt: 'Snails crawl 1/4, 2/4 and 2/4 inch. Show the total on a line.', reason: '1 + 2 + 2 = 5 fourths: 5/4 inches.' },
+  'two-step-conversions': { n: 9, d: 12, prompt: 'A pencil is 3/4 foot long. Show it in inches, 12 to a foot.', reason: '1/4 foot is 3 inches. 3/4 foot is 9 inches, so 9/12 of a foot.' },
   'whole-numbers-as-fractions': { n: 8, d: 4, prompt: 'Build 8/4. How many whole bars does it fill?', reason: 'Four fourths fill each whole. Eight fourths fill 2 wholes.' },
   'compare-decimals': { n: 25, d: 100, prompt: 'Build 0.25 with hundredths. Compare it to 0.3.', reason: '0.25 is 25 hundredths. 0.3 is 30 hundredths, so 0.25 is smaller.' },
   'compare-decimals-grid': { n: 45, d: 100, prompt: 'Build 0.45 with hundredths. Then compare it to 0.5.', reason: '0.45 is 45 hundredths. 0.5 is 50 hundredths, so 0.45 is less.' },
@@ -717,7 +728,7 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
   'equivalent-missing-both': (s) => LESSON_BUILDS['missing-equivalent'](s + 3),
   'equivalent-number-line': (s) => { const [a, b, c] = at([...EQUIV_PAIRS[3], [2, 4, 2], [4, 8, 2], [2, 6, 3], [4, 6, 3], [6, 8, 4], [2, 8, 4], [3, 6, 2], [4, 8, 4]] as const, s); return [`${a}/${b} = ?/${c}. Make it.`, (a * c) / b, c, `The same spot on the line: ${a}/${b} = ${(a * c) / b}/${c}.`, 'line']; },
   'simplify-fractions': (s) => { const [a, b, c] = at(EQUIV_PAIRS[4], s); return [`${(a * c) / b}/${c} = ?/${b}. Make it.`, a, b, `Divide the numerator and denominator by ${c / b}: ${(a * c) / b}/${c} = ${a}/${b}.`]; },
-  'improper-fractions': (s) => { const d = at([2, 3, 4, 6], s); const n = d + 1 + (s % (d - 1 || 1)); return [`Make ${n}/${d}.`, n, d, `${d}/${d} is one whole. ${n - d} more ${n - d === 1 ? unitPiece(d) : unitWord(d)} go past it.`]; },
+  'improper-fractions': (s) => { const d = at([2, 3, 4, 6], s); const n = d + 1 + (s % (d - 1 || 1)); return [`Make ${n}/${d}.`, n, d, `${d}/${d} is one whole. ${n - d} more ${n - d === 1 ? `${unitPiece(d)} goes` : `${unitWord(d)} go`} past it.`]; },
   'whole-numbers-as-fractions': (s) => { const d = at([2, 3, 4, 6, 8], s); const w = 1 + (Math.floor(s / 5) % 3); return [`Make ${w * d}/${d}.`, w * d, d, `${d}/${d} is one whole, so ${w * d}/${d} is ${w} ${w === 1 ? 'whole' : 'wholes'}.`]; },
   'mixed-improper': (s) => { const d = at([2, 3, 4, 6, 8], s); const r = 1 + (s % (d - 1)); return [`Walk 1 ${r}/${d} km, then 0/${d} km more. Make the total.`, d + r, d, `1 whole is ${d}/${d}. Add ${r}/${d}: ${d + r}/${d}.`]; },
   'add-mixed-numbers': (s) => { const d = at([3, 4, 5, 6, 8], s); const a = 1 + (s % (d - 1)); const b = 1 + ((s + 1) % (d - 1));
@@ -778,7 +789,7 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
       ? [`Share 1/${b} of a pan among ${n} children. Build one share.`, 1, b * n, `Sharing: 1/${b} ÷ ${n} = 1/${b * n}. Check: ${n} × 1/${b * n} = 1/${b}.`]
       : [`How many 1/${d}-cup scoops fill ${w} ${w === 1 ? 'cup' : 'cups'}? Make it in ${unitWord(d)}.`, w * d, d, `Fitting: ${w} ÷ 1/${d} = ${w * d}. Check: ${w * d} × 1/${d} = ${w}.`]; },
   'dimes-and-pennies': (s) => { const [dimes, pennies] = at([[2, 3], [5, 1], [1, 7], [6, 4], [3, 9], [8, 2], [4, 5], [7, 6], [2, 8], [9, 1]] as const, s);
-    return [`Make ${dimes} dimes and ${pennies} pennies as hundredths of a dollar.`, 10 * dimes + pennies, 100, `${dimes} dimes are ${10 * dimes}/100. ${pennies} pennies are ${pennies}/100. Together: ${10 * dimes + pennies}/100.`]; },
+    return [`Make ${dimeWord(dimes)} and ${pennyWord(pennies)} as hundredths of a dollar.`, 10 * dimes + pennies, 100, `${dimeWord(dimes)} ${dimes === 1 ? 'is' : 'are'} ${10 * dimes}/100. ${pennyWord(pennies)} ${pennies === 1 ? 'is' : 'are'} ${pennies}/100. Together: ${10 * dimes + pennies}/100.`]; },
   'plot-in-eighths': (s) => { const [a, b] = at([[1, 1], [1, 2], [1, 3], [2, 3], [2, 4], [3, 4], [3, 5], [4, 5], [4, 6], [5, 6], [5, 7], [6, 7]] as const, s);
     return [`Two pebbles are ${a}/8 and ${b}/8 inch. Show how long they are together.`, a + b, 8, `${a}/8 + ${b}/8 = ${a + b}/8 inch. Same-size parts: add the numerators.`, 'line']; },
   'party-portions': (s) => { const [n, a, b] = at([[3, 3, 4], [4, 2, 3], [5, 3, 8], [2, 5, 6], [2, 3, 4], [3, 2, 5], [2, 5, 8], [3, 4, 5], [4, 3, 8], [2, 4, 5], [3, 5, 6], [2, 7, 8]] as const, s);
@@ -1332,7 +1343,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         prompt = i % 3 === 0 ? `${f(a, 10)} + ${f(b, 100)} = ?` : i % 3 === 1 ? `Change ${f(a, 10)} into hundredths.` : `Write ${f(a, 10)} + ${f(b, 100)} as a decimal.`;
         answer = i % 3 === 0 ? f(10 * a + b, 100) : i % 3 === 1 ? f(10 * a, 100) : ((10 * a + b) / 100).toFixed(2);
         denominator = i % 3 === 1 ? 100 : undefined; form = i % 3 === 2 ? 'decimal' : undefined;
-        hint = i % 3 === 1 ? `Each tenth is 10 hundredths. How many hundredths are in ${a} tenths?` : `Each tenth is 10 hundredths, so ${f(a, 10)} = ${f(10 * a, 100)}.`; break;
+        hint = i % 3 === 1 ? `Each tenth is 10 hundredths. How many hundredths are in ${tenthWord(a)}?` : `Each tenth is 10 hundredths, so ${f(a, 10)} = ${f(10 * a, 100)}.`; break;
       }
       case 'tenths-decimals':
       case 'hundredths-decimals': {
@@ -1630,7 +1641,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const left = String(a / 100); const right = String(b / 100);
         prompt = `Compare: ${left} __ ${right}.`; answer = a > b ? '>' : a < b ? '<' : '='; form = 'symbol';
         visual = model(a, 100); modelRequired = true;
-        hint = 'Write both in hundredths: 0.4 is 40 hundredths. Then compare how many hundredths, not how long the number looks.'; break;
+        hint = `Write both in hundredths: ${left} is ${a} hundredths. How many hundredths is ${right}? Compare the counts, not how long the numbers look.`; break;
       }
       case 'unit-multiples': {
         const bottom = [2, 3, 4, 5, 6, 8, 4, 5, 6, 8, 5, 6][tr]; const groups = 3 + (i % 5);
@@ -1710,7 +1721,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           { prompt: 'How many minutes are in 3/4 hour?', answer: '45', hint: 'An hour is 60 minutes. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
           { prompt: 'A bottle has 1/2 liter. How many milliliters is that?', answer: '500', hint: 'A liter is 1000 milliliters. Find half of 1000.', numerator: 1, denominator: 2 },
           { prompt: 'A bag weighs 1/4 kilogram. How many grams is that?', answer: '250', hint: 'A kilogram is 1000 grams. Find one fourth of 1000.', numerator: 1, denominator: 4 },
-          { prompt: 'A board is 3/4 meter. Another is 1/4 meter. How many meters in all?', answer: '1', hint: 'Both are fourths. Add the fourths. How many fourths make 1 meter?', numerator: 4, denominator: 4 },
+          { prompt: 'A board is 3/4 meter. Another is 1/4 meter. How many meters in all?', answer: '1', hint: 'Both are fourths. Add the numerators. How many fourths make a whole?', numerator: 4, denominator: 4 },
           { prompt: 'How many cents are in 3/4 dollar?', answer: '75', hint: 'A dollar is 100 cents. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
           { prompt: 'A 2-liter jug is 1/4 full. How many milliliters are inside?', answer: '500', hint: '2 liters is 2000 milliliters. Find one fourth of 2000.', numerator: 1, denominator: 4 },
           { prompt: 'How many hours are in 1/2 day?', answer: '12', hint: 'A day is 24 hours. Split 24 into 2 equal groups.', numerator: 1, denominator: 2 },
@@ -1979,7 +1990,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           const up = Math.floor(i / 4) % 2 === 0;
           prompt = `Put ${show(trio[0])}, ${show(trio[1])} and ${show(trio[2])} in order, ${up ? 'smallest' : 'biggest'} first.`;
           answer = [...trio].sort((x, y) => (up ? x - y : y - x)).map(show).join(', '); form = 'ordered';
-          picture = grids(...trio); hint = 'Write each one in hundredths: 0.5 is 50 hundredths. Then order the counts.'; break;
+          picture = grids(...trio); hint = `Write each one in hundredths: ${show(trio[0])} is ${trio[0]} hundredths. Then order the counts.`; break;
         }
         if (i % 4 === 2) {
           const [a, b] = pick([[30, 25], [7, 70], [45, 5], [60, 59], [8, 80], [12, 2], [40, 4], [99, 9], [5, 50], [66, 6], [20, 19], [1, 10]] as const);
@@ -2041,13 +2052,13 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         if (i % 3 === 1) {
           prompt = `Write ${f(dimes, 10)} of a dollar in hundredths.`; answer = f(10 * dimes, 100); denominator = 100;
           picture = { kind: 'bars', bars: [{ numerator: dimes, denominator: 10 }], hideLabels: true };
-          hint = `${f(dimes, 10)} is ${dimes} dimes. Each dime is 10 hundredths.`; break;
+          hint = `${f(dimes, 10)} is ${dimeWord(dimes)}. Each dime is 10 hundredths.`; break;
         }
-        const coins = `${dimes} ${dimes === 1 ? 'dime' : 'dimes'} and ${pennies} ${pennies === 1 ? 'penny' : 'pennies'}`;
+        const coins = `${dimeWord(dimes)} and ${pennyWord(pennies)}`;
         prompt = i % 3 === 0 ? `${coins}. What part of a dollar is that?` : `${f(dimes, 10)} + ${f(pennies, 100)} of a dollar. How much is that in hundredths?`;
         answer = f(10 * dimes + pennies, 100); denominator = 100;
         picture = { kind: 'coins', dimes, pennies };
-        hint = `${dimes} dimes are ${10 * dimes} hundredths. Then add the ${pennies} pennies.`; break;
+        hint = `${dimeWord(dimes)} ${dimes === 1 ? 'is' : 'are'} ${10 * dimes} hundredths. Then add the ${pennyWord(pennies)}.`; break;
       }
       case 'plot-eighths': {
         // The child plots the lengths (in eighths), then uses the plot: how many more, how many longer, two shortest together.

@@ -3,6 +3,11 @@
    (October 2026). When one of these questions changes, its entry stops matching and the proof test fails until
    someone works the new question out again and updates the entry. Keys are prompts as proof.ts normalizes them. */
 export const PROOF_KEY: Record<string, string> = {
+  "Make 5/8 as 2/8 + 3/8.": "5/8",
+  "Pip pours 7 one-third cups of water. Build how much that is.": "7/3",
+  "A bug crawls 3/8 inch. Show it on a line marked in eighths.": "3/8",
+  "Snails crawl 1/4, 2/4 and 2/4 inch. Show the total on a line.": "5/4",
+  "A pencil is 3/4 foot long. Show it in inches, 12 to a foot.": "9/12",
   "A sandwich is cut into 4 equal parts. What is 1 part?": "1/4",
   "This ribbon is cut into 2 parts. Are the parts equal halves?": "Yes, same-size parts",
   "A strip has 3 equal parts. What is 1 part?": "one third",

@@ -1,4 +1,5 @@
 import { fourthChoice, noBeforeYes, orderedWithSigns, withSignComparisons } from './fourth-choice';
+import { withUnits } from './measure-units';
 import { preferMisconceptions } from './misconceptions';
 import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { G3_EQUIVALENTS_WIDE, answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, equivalentsFor, getWorksheet, gradeFits, parseAnswer } from './learning-content';
@@ -685,9 +686,13 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
     const rng = makeRng(hash(`${missionId}:${seed}:${i}`));
     const item = recipe(rng);
     const key = `${item.prompt}|${item.right}`;
-    const question = {
+    const placed = {
       prompt: oneIsSingular(item.prompt),
       ...noBeforeYes(signedOrder(item.prompt, slipChoices(item.prompt, withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3))))),
+    };
+    const question = {
+      ...placed,
+      choices: withUnits(placed.prompt, placed.choices),
       hint: oneIsSingular(item.hint),
       retryFeedback: oneIsSingular(item.retry),
       model: nameBars(item.model, item.prompt),

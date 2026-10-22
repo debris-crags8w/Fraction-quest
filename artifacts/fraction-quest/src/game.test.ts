@@ -1,3 +1,4 @@
+import { withoutUnit } from './measure-units';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { WHY } from './slip-reasons';
 import { LESSON_INTROS } from './lesson-intros';
@@ -578,7 +579,7 @@ describe('lesson catalog', () => {
       const worksheetQuestion = getWorksheet(mission.id)[1];
       // Ordering answers show < or > instead of commas on tap questions; the worksheet keeps its typed form.
       const sameOrder = (text: string) => text.split(/\s*[,<>]\s*/).join(',');
-      assert.equal(sameOrder(signOnly(question.choices[question.correctChoice], worksheetQuestion.answer)), sameOrder(worksheetQuestion.answer), `${mission.id} answer key must match its source worksheet`);
+      assert.equal(sameOrder(signOnly(withoutUnit(question.choices[question.correctChoice]), worksheetQuestion.answer)), sameOrder(worksheetQuestion.answer), `${mission.id} answer key must match its source worksheet`);
       assert.equal(new Set(question.choices).size, question.choices.length, `${mission.id} has duplicate answer choices`);
     });
   });
@@ -2472,8 +2473,9 @@ describe('long problems', () => {
 });
 
 describe('question generator', () => {
-  const fractionValue = (text: string) => {
-    // "3/4" or a mixed number, "1 1/4".
+  const fractionValue = (raw: string) => {
+    // "3/4" or a mixed number, "1 1/4", maybe with its unit ("3/4 liter").
+    const text = withoutUnit(raw);
     const [whole, part] = text.includes(' ') ? text.split(' ') : ['0', text];
     const [n, d] = part.split('/').map(Number);
     return Number(whole) + n / d;
@@ -2481,7 +2483,7 @@ describe('question generator', () => {
   const ids = (id: string) => getMission(id).questions.map((question) => question.id);
   // Units 9–14: every generated question type is re-solved here from its own numbers.
   const num = (text: string): number => {
-    const t = text.replace(/ (m|cups?|liters?)$/, '');
+    const t = withoutUnit(text).replace(/ (m|cups?|liters?)$/, '');
     if (t.endsWith('%')) return Number(t.slice(0, -1)) / 100;
     const mixed = /^(\d+) (\d+)\/(\d+)$/.exec(t); if (mixed) return Number(mixed[1]) + Number(mixed[2]) / Number(mixed[3]);
     const frac = /^(\d+)\/(\d+)$/.exec(t); if (frac) return Number(frac[1]) / Number(frac[2]);
@@ -2678,7 +2680,7 @@ describe('question generator', () => {
       ? [0, 1, 2, 3, 4].flatMap((variant) => getWorksheet(sourceMission.id, variant)).filter((problem) => asChoicePrompt(problem.prompt) === question.prompt)
       : [];
     if (sources.length) {
-      const key = (text: string) => text.split(/\s*[,<>]\s*/).join(',');
+      const key = (text: string) => withoutUnit(text).split(/\s*[,<>]\s*/).join(',');
       assert.ok(sources.some((problem) => key(signOnly(answer, problem.answer)) === key(problem.answer)), `${question.id} should preserve its worksheet answer key: ${answer}`);
       return true;
     }

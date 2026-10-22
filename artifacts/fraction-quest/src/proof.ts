@@ -1,3 +1,4 @@
+import { withoutUnit } from './measure-units';
 /* The accuracy proof engine. Every question the app can ask is solved here again, from its words (and its
    picture), without using the code that wrote it. The tests in proof.test.ts run this over every lesson,
    worksheet, redo sheet, practice set, build, review, Check-in, Find my level and challenge, and fail on any
@@ -561,7 +562,9 @@ export function normalizePrompt(prompt: string): string {
   return p;
 }
 
-const answerText = (item: ProofItem) => item.answer ?? (item.choices && item.correct !== undefined ? item.choices[item.correct] : undefined);
+const rawAnswer = (item: ProofItem) => item.answer ?? (item.choices && item.correct !== undefined ? item.choices[item.correct] : undefined);
+// Measurement choices carry their unit ("15 minutes"); rules and keys check the amount.
+const answerText = (item: ProofItem) => { const raw = rawAnswer(item); return raw === undefined ? raw : withoutUnit(raw); };
 
 function check(expect: Expect, item: ProofItem, rule: string): ProofResult {
   const fail = (why: string): ProofResult => ({ ok: false, rule, why });
@@ -631,7 +634,7 @@ export function prove(item: ProofItem): ProofResult {
   const key = PROOF_KEY[prompt];
   if (key !== undefined) {
     const answer = answerText(item) ?? (item.target ? `${item.target.n}/${item.target.d}` : undefined);
-    return answer === key ? { ok: true, rule: 'hand-checked key' } : { ok: false, rule: 'hand-checked key', why: `answer "${answer}", the key says "${key}"` };
+    return answer === key || answer === withoutUnit(key) ? { ok: true, rule: 'hand-checked key' } : { ok: false, rule: 'hand-checked key', why: `answer "${answer}", the key says "${key}"` };
   }
   return null;
 }
