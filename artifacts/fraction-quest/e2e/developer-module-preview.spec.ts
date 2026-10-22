@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { MISSIONS } from '../src/game';
 import { PART_FINDER_LESSONS } from '../src/part-finder';
 

@@ -662,6 +662,20 @@
 .fq-example-intro > h3 { margin: 0; color: var(--fq-grape); font-size: 1.05rem; }
 .fq-example-intro .fq-example-section { margin: 0; }
 .fq-example-intro .fq-example-section > p { margin: 0; line-height: 1.45; }
+/* Teach first: the lesson's goal, steps and why, before the worked example (and under "How it works" after). */
+.fq-teach-shell { display: flex; flex-direction: column; gap: 12px; min-height: 100dvh; box-sizing: border-box; padding-bottom: 20px; }
+.fq-teach-shell .fq-play-kicker { margin: 0; }
+.fq-teach-title { margin: -6px 0 0; font-size: 1.6rem; line-height: 1.15; }
+.fq-teach-card { gap: 12px; }
+.fq-teach-card h2 { margin: 0; color: var(--fq-grape); font-size: 1.1rem; }
+.fq-teach-card .fq-example-section > p { font-size: 1.05rem; }
+.fq-teach-card .fq-example-section:first-of-type > p { font-size: 1.12rem; }
+.fq-teach-steps { margin: 6px 0 0; padding-left: 1.6em; display: grid; gap: 6px; list-style: decimal; font-size: 1.05rem; line-height: 1.4; }
+.fq-teach-steps li { display: list-item; }
+.fq-teach-steps li::marker { color: var(--fq-grape); font-weight: 900; }
+.fq-teach-next { margin-top: auto; min-height: 56px; width: 100%; justify-content: center; font-size: 1.1rem; }
+.fq-how-it-works { display: grid; gap: 10px; justify-items: start; }
+.fq-how-it-works .fq-teach-card { justify-self: stretch; }
 .fq-example-section-header .fq-learning-listen,
 .fq-skill-header .fq-learning-listen,
 .fq-story-question-heading .fq-learning-listen { flex: none; margin: 0; }

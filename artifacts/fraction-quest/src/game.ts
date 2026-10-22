@@ -146,7 +146,6 @@ export type Mission = {
   description: string;
   skill: string;
   explainPrompt?: string;
-  learningIntro?: { goal: string; process: string; why: string };
   unit: number;
   gradeBand?: 3 | 4 | 5;
   standards?: string[];
@@ -840,7 +839,6 @@ type ExtensionTopic = {
   id: string; title: string; shortTitle: string; description: string; skill: string;
   mode: ExtensionMode; n: number; d: number; context: string;
   gradeBand?: 3 | 4 | 5; standards?: string[]; enrichment?: boolean;
-  learningIntro?: Mission['learningIntro'];
   /** A worked example of its own, when the lesson's first build ("make the whole") would not show the answer. */
   example?: Mission['example'];
   /** Questions written for the lesson (its approved first question and its mix of kinds). Without them, practice is
@@ -878,11 +876,7 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'whole-numbers-as-fractions', title: 'Wholes as fractions', shortTitle: 'Whole numbers as fractions', description: 'Build one or more wholes from unit fractions.', skill: 'The denominator tells how many parts fill one whole. Count that many parts for each whole.', mode: 'whole-fraction', n: 6, d: 3, context: 'fraction bars', gradeBand: 3, standards: ['3.NF.3c'] },
   { id: 'compare-unlike-fractions', title: 'Compare different parts', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the denominators differ?', skill: 'Make the parts the same size by using a common denominator. Then compare how many parts each fraction has.', mode: 'compare', n: 2, d: 3, context: 'race track',
     example: { prompt: 'Which is bigger, 3/4 or 5/6?', answer: '5/6', explanation: 'Use twelfths for both: 3/4 = 9/12 and 5/6 = 10/12. 10 twelfths is more than 9 twelfths, so 5/6 is bigger.', model: bars({ numerator: 3, denominator: 4, named: true }, { numerator: 5, denominator: 6, named: true }) } },
-  { id: 'order-unlike-fractions', title: 'Order different parts', shortTitle: 'Order unlike parts', description: 'Put 3 fractions in order.', skill: 'Use 1/2 as a benchmark or rename the fractions with the same denominator. Then order their amounts.', learningIntro: {
-      goal: 'Put fractions from smallest to biggest or biggest to smallest.',
-      process: 'First compare each fraction to 1/2. If that is not enough, rename them with the same denominator, then compare the numerators.',
-      why: 'The same denominator means equal-size parts. More of those parts makes a greater amount.',
-    },
+  { id: 'order-unlike-fractions', title: 'Order different parts', shortTitle: 'Order unlike parts', description: 'Put 3 fractions in order.', skill: 'Use 1/2 as a benchmark or rename the fractions with the same denominator. Then order their amounts.',
     example: {
       prompt: 'Order 1/4, 3/8 and 5/8 from smallest to biggest.',
       answer: '1/4 < 3/8 < 5/8',
@@ -1211,7 +1205,6 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
   const t = build.target;
   return {
     id: topic.id, title: topic.title, shortTitle: topic.shortTitle, description: topic.description, skill: topic.skill,
-    learningIntro: topic.learningIntro,
     gradeBand: topic.gradeBand, standards: topic.standards, enrichment: topic.enrichment,
     example: topic.example ?? {
       prompt: build.prompt,

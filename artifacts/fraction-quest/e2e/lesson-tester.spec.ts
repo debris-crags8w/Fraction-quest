@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { MISSIONS } from '../src/game';
 import { CHALLENGES } from '../src/challenges';
 

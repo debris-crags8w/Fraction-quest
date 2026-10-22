@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 /** Open the map as a guest with this saved progress. */
 async function openMap(page: import('@playwright/test').Page, learning: Record<string, unknown>) {

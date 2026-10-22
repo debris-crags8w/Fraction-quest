@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { MISSIONS } from '../src/game';
 import { answerShape, slotsFromAnswer, SLOTS } from '../src/answer-shape';
 import { getBuildChecks, getWorksheet } from '../src/learning-content';
