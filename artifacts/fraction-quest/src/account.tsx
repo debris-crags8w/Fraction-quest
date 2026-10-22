@@ -53,6 +53,18 @@ export function errorMessage(error: unknown, fallback: string): string {
 }
 const statusOf = (error: unknown) => (error as { status?: number } | null)?.status;
 
+/** The signed-in account and its learner profiles, kept on this device so the family can open the app offline. */
+const OFFLINE_ACCOUNT_KEY = 'fraction-quest-offline-account';
+type OfflineAccount = { user: User; profiles: LearnerProfile[] };
+const saveOfflineAccount = (account: OfflineAccount) => { try { window.localStorage.setItem(OFFLINE_ACCOUNT_KEY, JSON.stringify(account)); } catch { /* storage blocked */ } };
+const forgetOfflineAccount = () => { try { window.localStorage.removeItem(OFFLINE_ACCOUNT_KEY); } catch { /* storage blocked */ } };
+export function readOfflineAccount(): OfflineAccount | null {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(OFFLINE_ACCOUNT_KEY) ?? 'null') as Partial<OfflineAccount> | null;
+    return saved && typeof saved.user?.id === 'number' && Array.isArray(saved.profiles) && saved.profiles.length ? saved as OfflineAccount : null;
+  } catch { return null; }
+}
+
 const isGuest = () => { try { return window.localStorage.getItem(GUEST_KEY) === '1'; } catch { return false; } };
 const setGuest = (on: boolean) => { try { if (on) window.localStorage.setItem(GUEST_KEY, '1'); else window.localStorage.removeItem(GUEST_KEY); } catch { /* storage blocked */ } };
 const currentBundle = (): AccountBundle => ({ progress: loadProgress(), fun: loadFun() });
@@ -188,6 +200,7 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
     setState({ kind: 'loading' });
     try {
       const profiles = await listLearnerProfiles();
+      saveOfflineAccount({ user, profiles });
       const loaded = await loadProfileBundle(user, profiles, preferProfileId);
       setState({ kind: 'ready', user, profiles, profileId: loaded.profile.id, bundle: loaded.bundle });
     } catch (err) {
@@ -218,6 +231,16 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
       })
       .catch((error) => {
         if (cancelled) return;
+        // Offline (or the server is down), not signed out: open the account last used here, from this device's copy.
+        // Saves wait in the profile's queue and go up when the connection is back.
+        const offline = statusOf(error) !== 401 ? readOfflineAccount() : null;
+        if (offline && !isGuest()) {
+          void loadProfileBundle(offline.user, offline.profiles)
+            .then((loaded) => { if (!cancelled) setState({ kind: 'ready', user: offline.user, profiles: offline.profiles, profileId: loaded.profile.id, bundle: loaded.bundle }); })
+            .catch(() => { if (!cancelled) setState({ kind: 'signed-out', notice: "Can't reach the Fraction Quest server right now. You can still play as a guest." }); });
+          return;
+        }
+        if (statusOf(error) === 401) forgetOfflineAccount();
         if (isGuest()) {
           setLearnerStorageScope('guest');
           setState({ kind: 'guest' });
@@ -246,6 +269,7 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
         }
         activeScope = null;
         activeQueue = null;
+        forgetOfflineAccount();
         setGuest(false);
         setState({ kind: 'signed-out' });
       });
@@ -269,6 +293,7 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
     activeQueue = null;
     setGuest(false);
     setAccountError(null);
+    forgetOfflineAccount();
     setState({ kind: 'signed-out', notice: 'The account and everything saved with it were deleted.' });
   }, [state]);
 
@@ -290,6 +315,7 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
     if (state.kind !== 'ready') return;
     const profiles = await listLearnerProfiles();
     if (!profiles.length) throw new Error('The account needs at least one learner profile.');
+    saveOfflineAccount({ user: state.user, profiles });
     const target = profiles.some((profile) => profile.id === (preferProfileId ?? state.profileId))
       ? (preferProfileId ?? state.profileId)
       : profiles[0].id;

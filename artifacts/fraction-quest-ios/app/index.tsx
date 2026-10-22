@@ -97,6 +97,9 @@ export default function FractionQuestShell() {
           // Read-aloud: let the natural voice and the device voice play inside the app.
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
+          // The web app's domain is the app's own (app.config.ts), so iOS lets its service worker run: the app then
+          // opens and plays offline after its first visit. Other sites already open in Safari (onNavigate).
+          limitsNavigationsToAppBoundDomains={Platform.OS === 'ios'}
           // Keep the family signed in and progress saved between launches.
           sharedCookiesEnabled
           domStorageEnabled
