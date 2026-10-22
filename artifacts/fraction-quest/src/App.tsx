@@ -1,5 +1,6 @@
 import { type CSSProperties, type ReactNode, Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LinePlotPicture } from './line-plot-picture';
+import { CoinsPicture } from './coins-picture';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, BarChart3, BookOpen, Check, ClipboardCheck, Code2, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { MathText } from './MathText';
@@ -41,7 +42,7 @@ import { DeveloperChip } from './DeveloperTesting';
 import { saveAssessmentAttempt } from './assessments';
 import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
-import LearningLab, { RedoLab } from './LearningLab';
+import LearningLab, { LinePlotInteraction, RedoLab } from './LearningLab';
 import { useLessonHelper } from './model-intro';
 import { LearningListenButton, LearningText, LearningTextSection, prefetchReading, primeReadAloud, sectionsScript, useReadAloud } from './LearningText';
 import { numberLineDescription } from './lab-copy';
@@ -444,7 +445,14 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
           ))}
         </div>
       ); })()}
-      {model.kind === 'lineplot' && <LinePlotPicture denominator={model.denominator} wholes={model.wholes} values={model.values} />}
+      {/* "Plot them, then answer": the child taps the Xs on (not checked), and sees the finished plot once answered. */}
+      {model.kind === 'lineplot' && model.plotTask && asked && questionId && !reveal && (
+        <LinePlotInteraction key={questionId} task={{ denominator: model.denominator, wholes: model.wholes, values: model.values }} disabled={false} onReady={noColorReport} checkIn />
+      )}
+      {model.kind === 'lineplot' && !(model.plotTask && asked && questionId && !reveal) && (
+        <LinePlotPicture denominator={model.denominator} wholes={model.wholes} values={model.plotTask && !reveal ? [] : model.values} />
+      )}
+      {model.kind === 'coins' && <CoinsPicture dimes={model.dimes} pennies={model.pennies} />}
       {model.kind === 'garden' && <GardenPlan width={model.width} height={model.height} labelParts={model.labelParts} />}
       {model.kind === 'equation' && <div className="fq-model-equation" role="img" aria-label={`Visual equation ${model.text}`}><MathText text={model.text} /></div>}
       {model.kind === 'decimal' && (

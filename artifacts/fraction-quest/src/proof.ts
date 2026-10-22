@@ -208,10 +208,38 @@ const RULES: Rule[] = [
   { name: 'jumps of a unit', re: /^(?:(\d+) jumps of 1\/(\d+) make what fraction\?|Each jump is 1\/(\d+)\. What is (\d+) jumps from 0\?)$/,
     solve: (m) => (m[1] ? { value: N(m[1]) / N(m[2]) } : { value: N(m[4]) / N(m[3]) }) },
   { name: 'unit parts together', re: /^Put (\d+) parts of 1\/(\d+) together\. Build the total\.$/, solve: (m) => ({ value: N(m[1]) / N(m[2]) }) },
+  // Coins: a dime is 1/10 (10/100) of a dollar, a penny 1/100.
+  { name: 'dimes and pennies', re: /^(?:\w+ has )?(\d+) dimes?(?: and (\d+) penn(?:y|ies))?\. What part of a dollar is that(?:, in hundredths)?\?$/,
+    solve: (m) => ({ value: (10 * N(m[1]) + N(m[2] ?? 0)) / 100, denominator: 100 }) },
+  { name: 'tenths of a dollar in hundredths', re: /^Write (\d+)\/10 of a dollar in hundredths\.$/, solve: (m) => ({ value: N(m[1]) / 10, denominator: 100 }) },
+  { name: 'tenths and hundredths of a dollar', re: /^(\d+)\/10 \+ (\d+)\/100 of a dollar\. How much is that in hundredths\?$/,
+    solve: (m) => ({ value: N(m[1]) / 10 + N(m[2]) / 100, denominator: 100 }) },
+  { name: 'coins as hundredths (build)', re: /^Make (\d+) dimes?(?: and (\d+) penn(?:y|ies))? as hundredths of a dollar\.$/,
+    solve: (m) => ({ value: (10 * N(m[1]) + N(m[2] ?? 0)) / 100 }) },
+  // Equal portions: n groups of a/b, how much in all and which whole numbers the total is between.
+  { name: 'equal portions', re: /^Each \w+ (?:drinks|eats|gets|uses) (\d+\/\d+)(?: (?!of )\w+)?(?: of [\w ]+)?\. (\d+) \w+(?: come)?\. (?:How (?:much|many \w+) in all\?|Build the total\.)$/,
+    solve: (m) => ({ value: N(m[2]) * frac(m[1]) }) },
+  { name: 'equal portions between wholes', re: /^Each \w+ (?:drinks|eats|gets|uses) (\d+\/\d+)(?: (?!of )\w+)?(?: of [\w ]+)?\. (\d+) \w+\. (?:Between which two whole numbers is the total\?|The total is between two whole numbers\. What is the bigger one\?)$/,
+    solve: (m) => { const t = N(m[2]) * frac(m[1]); if (near(t, Math.round(t))) return 'the total is a whole number';
+      return m[0].endsWith('bigger one?') ? { value: Math.ceil(t) } : { text: `${Math.floor(t)} and ${Math.floor(t) + 1}` }; } },
+  // A length on a line marked in eighths, and two lengths together.
+  { name: 'length on an eighths line (build)', re: /^A \w+ is (\d+\/\d+) inch long\. Show it on a line marked in eighths\.$/, solve: (m) => ({ value: frac(m[1]) }) },
+  { name: 'two lengths together (build)', re: /^Two \w+ are (\d+\/\d+) and (\d+\/\d+) inch\. Show how long they are together\.$/, solve: (m) => ({ value: frac(m[1]) + frac(m[2]) }) },
   { name: 'line plot count', re: /^(?:Plot these|The line plot shows these) ribbon lengths: (.+) inch\. How many ribbons are (\d+\/\d+) inch long\?$/,
     solve: (m) => ({ value: m[1].split(', ').filter((x) => near(frac(x), frac(m[2]))).length }) },
   { name: 'line plot difference', re: /^(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths: (.+) inch\. What is the difference between the longest and shortest\?$/,
     solve: (m) => { const v = m[1].split(', ').map(frac); return { value: Math.max(...v) - Math.min(...v) }; } },
+  // Plot in eighths: the lengths are in the question, so the plot is worked out from them.
+  { name: 'line plot how many more', re: /^(?:(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths|[A-Z]\w+): (.+) inch\. (?:Plot them\. )?How many (?:\w+ )?more are (\d+\/\d+) inch than (\d+\/\d+) inch\?$/,
+    solve: (m) => { const v = m[1].split(', ').map(frac); const at = (x: string) => v.filter((y) => near(y, frac(x))).length; return { value: at(m[2]) - at(m[3]) }; } },
+  { name: 'line plot longer than', re: /^(?:(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths|[A-Z]\w+): (.+) inch\. (?:Plot them\. )?How many (?:\w+ )?are longer than (\d+\/\d+) inch\?$/,
+    solve: (m) => ({ value: m[1].split(', ').map(frac).filter((y) => y > frac(m[2]) && !near(y, frac(m[2]))).length }) },
+  { name: 'line plot two shortest', re: /^(?:(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths|[A-Z]\w+): (.+) inch\. (?:Plot them\. )?How long are the two shortest together\?$/,
+    solve: (m) => { const v = m[1].split(', ').map(frac).sort((a, b) => a - b); return { value: v[0] + v[1] }; } },
+  { name: 'line plot most marks', re: /^[A-Z]\w+: (.+) inch\. Plot them\. Which length has the most Xs\?$/,
+    solve: (m) => { const v = m[1].split(', '); const count = (x: string) => v.filter((y) => near(frac(y), frac(x))).length;
+      const top = Math.max(...v.map(count)); const most = [...new Set(v)].filter((x) => count(x) === top);
+      return most.length === 1 ? { value: frac(most[0]) } : 'two lengths tie for the most Xs'; } },
   { name: 'line plot level', re: /^Three [\w ]+ hold (.+) liter\. (?:Plot them, then share|Share) the total equally\. How many liters go in each\?$/,
     solve: (m) => { const v = m[1].split(', ').map(frac); return { value: v.reduce((a, b) => a + b, 0) / 3 }; } },
 

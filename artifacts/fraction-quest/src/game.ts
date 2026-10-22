@@ -79,8 +79,11 @@ export type ModelSpec =
       more?: AreaFigureSpec[];
       /** "Color 2. What fraction is colored?": the child taps pieces to color them before answering. */
       colorTask?: AreaTask }
-  /** A finished line plot to read: one X over each value (tick numbers, counted from 0 in steps of 1/denominator). */
-  | { kind: 'lineplot'; denominator: number; wholes: number; values: number[]; caption?: string }
+  /** A finished line plot to read: one X over each value (tick numbers, counted from 0 in steps of 1/denominator).
+      With `plotTask` the plot starts empty and the child taps the Xs on before answering (the values are in the question). */
+  | { kind: 'lineplot'; denominator: number; wholes: number; values: number[]; caption?: string; plotTask?: boolean }
+  /** Coins: dimes (a tenth of a dollar) and pennies (a hundredth). */
+  | { kind: 'coins'; dimes: number; pennies: number; caption?: string }
   /** A rectangular garden drawn to scale: thick lines at each whole meter, dashed lines at each small part, and the four
       parts (whole × whole, whole × part, part × whole, part × part) in four colors. `labelParts` writes each part's area
       on it (worked examples only: in a question that would be the answer). */
@@ -832,7 +835,7 @@ type ExtensionMode =
   | 'line-plot' | 'line-plot-read' | 'line-plot-level' | 'measure-context' | 'add-unlike' | 'mixed-unlike'
   | 'estimate' | 'fractional-area' | 'scaling' | 'mixed-multiply' | 'unit-divided-whole' | 'unit-conversion'
   | 'whole-from-part' | 'mistake' | 'remainder' | 'divide-fractions'
-  | 'decimal-grid' | 'bigger-smaller' | 'times-grid' | 'share-or-fit';
+  | 'decimal-grid' | 'bigger-smaller' | 'times-grid' | 'share-or-fit' | 'coins' | 'plot-eighths' | 'portions';
 type ExtensionTopic = {
   id: string; title: string; shortTitle: string; description: string; skill: string;
   mode: ExtensionMode; n: number; d: number; context: string;
@@ -851,6 +854,9 @@ const hundredthsGrid = (h: number, label?: string, scale?: number) => ({
   ...(label ? { label } : {}), ...(scale ? { scale } : {}),
 });
 const grids = (...figures: ReturnType<typeof hundredthsGrid>[]): ModelSpec => ({ kind: 'area', ...figures[0], more: figures.slice(1) });
+const coins = (dimes: number, pennies: number): ModelSpec => ({ kind: 'coins', dimes, pennies });
+/** An empty eighths line plot the child fills in before answering (the measurements are in the question). */
+const plotTask = (values: number[]): ModelSpec => ({ kind: 'lineplot', denominator: 8, wholes: 1, values, plotTask: true });
 /** The square to cut for a/rows × b/cols: `rows` rows by `cols` columns. Nothing is shaded, so the overlap stays the child's to find. */
 const timesGrid = (rows: number, cols: number, shadeRows = 0, shadeCols = 0): ModelSpec =>
   ({ kind: 'area', cut: gridCut(cols, rows), shaded: shadeRows && shadeCols ? gridOverlap(cols, shadeRows, shadeCols) : [] });
@@ -1040,6 +1046,67 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'spot-the-mistake', title: 'Spot the mistake', shortTitle: 'Spot the mistake', description: 'Is Sam right? Fix it.', skill: 'Check whether each step uses the right fraction rule. Find the first wrong step and correct it.', mode: 'mistake', n: 3, d: 4, context: 'homework check', gradeBand: 4, standards: ['4.NF.3a', '4.NF.2'] },
   { id: 'fraction-of-remainder', title: 'Fraction of the rest', shortTitle: 'Fraction of the rest', description: 'Spend 1/3. Then spend 1/2 of the rest.', skill: 'First find how much is left. Then split that remaining amount and find the fraction asked for.', mode: 'remainder', n: 1, d: 3, context: 'pocket money', gradeBand: 5, standards: ['5.NF.6', '5.NF.2'] },
   { id: 'divide-fractions', title: 'Bonus: Divide by a fraction', shortTitle: 'Bonus fraction ÷ fraction', description: 'How many 1/8s fit in 3/4?', skill: 'Division asks how many groups fit. Count how many parts of the given fraction fit in the amount.', example: { prompt: 'How many eighths fit in 3/4?', answer: '6 eighths', explanation: '3/4 is the same amount as 6/8. Each eighth is one of those parts. So 6 eighths fit in 3/4.', model: bars({ numerator: 3, denominator: 4, named: true }, { numerator: 6, denominator: 8 }) }, mode: 'divide-fractions', n: 3, d: 4, context: 'measuring scoops', enrichment: true },
+  // Second lessons for standards that had one (approved mockups, November 2026).
+  { id: 'dimes-and-pennies', title: 'Dimes and pennies', shortTitle: 'Dimes and pennies', description: 'Write dimes and pennies as hundredths of a dollar.',
+    skill: 'A dime is 1/10 of a dollar, which is 10 hundredths. A penny is 1/100. Write dimes as hundredths, then add the pennies.',
+    example: { prompt: '3 dimes and 4 pennies. What part of a dollar is that?', answer: '34/100',
+      explanation: '3 dimes fill 3 columns: 30/100. 4 pennies fill 4 more squares: 4/100. Together: 34/100 of a dollar.',
+      model: grids(hundredthsGrid(34, '3 dimes and 4 pennies')) },
+    mode: 'coins', n: 34, d: 100, context: 'coins', gradeBand: 4, standards: ['4.NF.5'],
+    questions: [
+      practice('Chomp has 6 dimes. What part of a dollar is that, in hundredths?', ['60/100', '6/100', '16/100', '600/100'], 0, coins(6, 0),
+        'A dime is 10 pennies. How many pennies are 6 dimes?',
+        'Each dime is 10 hundredths of a dollar. 6 dimes are 60 hundredths: 60/100.', grids(hundredthsGrid(60))),
+      practice('2 dimes and 5 pennies. What part of a dollar is that?', ['25/100', '7/100', '205/100', '52/100'], 0, coins(2, 5),
+        'Change the dimes to hundredths first. Then add the pennies.',
+        '2 dimes are 20/100. 5 pennies are 5/100. Together: 25/100.', grids(hundredthsGrid(25))),
+      practice('Write 4/10 of a dollar in hundredths.', ['40/100', '4/100', '14/100', '40/10'], 0, bars({ numerator: 4, denominator: 10 }),
+        'Each tenth is 10 hundredths. How many hundredths are 4 tenths?',
+        '4/10 is 4 dimes. Each dime is 10 hundredths, so 4/10 = 40/100.', grids(hundredthsGrid(40))),
+      practice('3/10 + 8/100 of a dollar. How much is that in hundredths?', ['38/100', '11/100', '11/110', '8/100'], 0, coins(3, 8),
+        'Change 3/10 to hundredths first. Then add 8/100.',
+        '3/10 = 30/100. 30/100 + 8/100 = 38/100.', grids(hundredthsGrid(38))),
+    ] },
+  { id: 'plot-in-eighths', title: 'Plot in eighths', shortTitle: 'Plot in eighths', description: 'Make a line plot in eighths, then use it.',
+    skill: 'Put one X above each measurement. Lengths that match stack on the same spot. Then read the plot to answer.',
+    example: { prompt: 'Pins: 2/8, 4/8, 4/8 and 7/8 inch. Make a line plot.', answer: '2 Xs at 4/8',
+      explanation: 'One X for each pin. Two pins are 4/8 inch, so 2 Xs stack there. One X goes at 2/8 and one at 7/8.',
+      model: { kind: 'lineplot', denominator: 8, wholes: 1, values: [2, 4, 4, 7] } },
+    mode: 'plot-eighths', n: 5, d: 8, context: 'pebbles', gradeBand: 4, standards: ['4.MD.4'],
+    questions: [
+      practice('Pebbles: 1/8, 3/8, 3/8, 5/8, 5/8, 5/8 inch. Plot them. How many more are 5/8 inch than 1/8 inch?', ['2', '1', '3', '4'], 0,
+        plotTask([1, 3, 3, 5, 5, 5]), 'Count the Xs at 5/8. Count the Xs at 1/8. How many more?',
+        'There are 3 Xs at 5/8 and 1 X at 1/8. 3 − 1 = 2 more.', { kind: 'lineplot', denominator: 8, wholes: 1, values: [1, 3, 3, 5, 5, 5] }),
+      practice('Shells: 2/8, 2/8, 6/8, 7/8, 7/8 inch. Plot them. How many shells are longer than 4/8 inch?', ['3', '2', '4', '5'], 0,
+        plotTask([2, 2, 6, 7, 7]), 'Find 4/8 on the plot. Count the Xs to its right.',
+        '6/8, 7/8 and 7/8 are past 4/8. That is 3 shells.', { kind: 'lineplot', denominator: 8, wholes: 1, values: [2, 2, 6, 7, 7] }),
+      practice('Twigs: 3/8, 4/8, 4/8, 8/8 inch. Plot them. How long are the two shortest together?', ['7/8 inch', '7/16 inch', '1/8 inch', '12/8 inches'], 0,
+        plotTask([3, 4, 4, 8]), 'Find the two Xs farthest left. Add their lengths.',
+        'The two shortest are 3/8 and 4/8 inch. 3/8 + 4/8 = 7/8 inch.', { kind: 'lineplot', denominator: 8, wholes: 1, values: [3, 4, 4, 8] }),
+      practice('Leaves: 1/8, 1/8, 4/8, 6/8, 6/8, 6/8 inch. Plot them. Which length has the most Xs?', ['6/8 inch', '1/8 inch', '4/8 inch', '3/8 inch'], 0,
+        plotTask([1, 1, 4, 6, 6, 6]), 'Look for the tallest stack of Xs.',
+        '3 Xs stack at 6/8. That is the most.', { kind: 'lineplot', denominator: 8, wholes: 1, values: [1, 1, 4, 6, 6, 6] }),
+    ] },
+  { id: 'party-portions', title: 'Party portions', shortTitle: 'Party portions', description: 'Equal portions for every guest: a fraction times a whole number.',
+    skill: 'Equal groups of the same fraction: count the parts and keep the part size. Then find which two whole numbers the total is between.',
+    example: { prompt: 'Each guest eats 3/8 pound. 5 guests come. How much in all?', answer: '15/8 pounds',
+      explanation: '5 groups of 3 eighths is 15 eighths: 15/8 pounds. 15/8 is 1 and 7/8, so it is between 1 and 2 pounds.',
+      model: line(15, 8, 2) },
+    mode: 'portions', n: 15, d: 8, context: 'party food', gradeBand: 4, standards: ['4.NF.4c'],
+    questions: [
+      practice('Each racer drinks 2/3 cup. 4 racers. Between which two whole numbers is the total?', ['2 and 3', '1 and 2', '3 and 4', '8 and 9'], 0,
+        bars(...Array.from({ length: 4 }, () => ({ numerator: 2, denominator: 3 }))), 'Count all the thirds. How many thirds make one whole?',
+        '4 groups of 2 thirds is 8 thirds. 6 thirds make 2 wholes, and 9 thirds make 3. So 8/3 is between 2 and 3.', line(8, 3, 3)),
+      practice('Each racer eats 3/8 pound. 5 racers. How much in all?', ['15/8 pounds', '15/40 pound', '8/8 pound', '3/40 pound'], 0,
+        bars(...Array.from({ length: 5 }, () => ({ numerator: 3, denominator: 8 }))), 'Count the eighths in all 5 groups. The part size stays eighths.',
+        '5 groups of 3 eighths is 15 eighths: 15/8 pounds.', line(15, 8, 2)),
+      practice('Each friend gets 3/4 of a sandwich. 6 friends. Between which two whole numbers is the total?', ['4 and 5', '3 and 4', '5 and 6', '18 and 19'], 0,
+        bars(...Array.from({ length: 6 }, () => ({ numerator: 3, denominator: 4 }))), 'Count all the fourths. How many fourths make one whole?',
+        '6 groups of 3 fourths is 18 fourths. 16 fourths make 4 wholes, and 20 make 5. So 18/4 is between 4 and 5.', line(18, 4, 5)),
+      practice('Each runner drinks 5/6 liter. 3 runners. How much in all?', ['15/6 liters', '15/18 liter', '8/6 liters', '5/18 liter'], 0,
+        bars(...Array.from({ length: 3 }, () => ({ numerator: 5, denominator: 6 }))), 'Count the sixths in all 3 groups. The part size stays sixths.',
+        '3 groups of 5 sixths is 15 sixths: 15/6 liters.', line(15, 6, 3)),
+    ] },
 ];
 
 const picture = (top: number, bottom: number): ModelSpec => ({ kind: 'bars', bars: [{ numerator: top, denominator: bottom }], hideLabels: true });
@@ -1130,9 +1197,9 @@ export const LESSON_PLAN: Readonly<Record<number, readonly string[]>> = {
   7: ['compose-to-one', 'decompose-fractions', 'whole-numbers-as-fractions', 'improper-fractions', 'mixed-improper'],
   8: ['add-like-denominators', 'subtract-like-denominators', 'add-mixed-numbers', 'subtract-mixed-numbers', 'tenths-decimals',
     'hundredths-decimals', 'decimal-fraction-equivalence', 'compare-decimals', 'compare-decimals-grid', 'add-tenths-hundredths',
-    'unit-fraction-multiples', 'multiply-whole-by-fraction'],
-  9: ['simplify-fractions', 'equivalent-missing-both', 'compare-unlike-fractions', 'order-unlike-fractions', 'read-line-plots',
-    'measurement-word-problems', 'fraction-recipes'],
+    'dimes-and-pennies', 'unit-fraction-multiples', 'multiply-whole-by-fraction'],
+  9: ['simplify-fractions', 'equivalent-missing-both', 'compare-unlike-fractions', 'order-unlike-fractions', 'plot-in-eighths', 'read-line-plots',
+    'measurement-word-problems', 'fraction-recipes', 'party-portions'],
   10: ['add-related-fractions', 'add-unlike-fractions', 'subtract-unlike-fractions', 'mixed-unlike-operations', 'estimate-fraction-operations'],
   11: ['sets-unit-fractions', 'sets-nonunit', 'fraction-of-quantity', 'multiply-fractions', 'fraction-times-fraction',
     'fraction-of-collection', 'multiplication-scaling', 'bigger-or-smaller'],
@@ -1426,6 +1493,8 @@ export const LATE_ADDED_LESSONS: ReadonlySet<string> = new Set([
   'compare-decimals',
   // Grids, scaling and division lessons added to units 8 and 11.
   'compare-decimals-grid', 'fraction-times-fraction', 'bigger-or-smaller', 'share-or-fit',
+  // Second lessons for standards that had one (units 8 and 9).
+  'dimes-and-pennies', 'plot-in-eighths', 'party-portions',
 ]);
 
 export function completeMission(progress: Progress, missionId: string, stars: number): Progress {

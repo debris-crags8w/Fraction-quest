@@ -115,6 +115,11 @@ function timesOrShare(p: string): Found | null {
     const [a, b, c, e] = m.slice(1).map(N); const t = a + c + e;
     return { right: t / (3 * b), slips: [['total', [t, b]], ['oneCup', [Math.max(a, c, e), b]], ['oneCup', [Math.min(a, c, e), b]], ['allCups', [t, 2 * b]], ['sharePieces', [t, 3]], ['sharePieces', [t / 3, b + 3]]] };
   }
+  // Equal portions: "Each runner drinks 5/6 liter. 3 runners. How much in all?" has the slips of 3 × 5/6.
+  if ((m = /^Each \w+ (?:drinks|eats|gets|uses) (\d+)\/(\d+)(?: (?!of )\w+)?(?: of [\w ]+)?\. (\d+) \w+\. How (?:much|many \w+) in all\?$/.exec(p))) {
+    const [a, b, n] = m.slice(1).map(N);
+    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['addedNotTimes', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['oneGroup', [a, b]], ['upsideDown', [b, n * a]]] };
+  }
   // "2/3 ÷ 1/6 = ?": the tops multiplied, how many fit in one whole, the top or the bottom, multiplied instead.
   if ((m = /^(\d+)\/(\d+) ÷ (\d+)\/(\d+) = \?$/.exec(p))) {
     const [a, b, c, d] = m.slice(1).map(N);
@@ -194,6 +199,26 @@ function equivalence(p: string, right: Amount | null): Found | null {
     const tops = m[1].split(', ').map((t) => N(t.split('/')[0])).sort((u, v) => u - v);
     const [lo, lo2, hi2, hi] = [tops[0], tops[1], tops[tops.length - 2], tops[tops.length - 1]];
     return { right: (hi - lo) / 8, slips: [['oneLength', [hi, 8]], ['oneLength', [lo, 8]], ['addedLengths', [hi + lo, 8]], ['sameBottom', [hi - lo, 16]], ['wrongMark', [hi2 - lo, 8]], ['wrongMark', [hi - lo2, 8]]] };
+  }
+  // Coins: "6 dimes", "2 dimes and 5 pennies", "3/10 + 8/100 of a dollar": a dime counted as a penny or as a dollar, the
+  // coins swapped, tenths and hundredths added as they are.
+  if ((m = /(?:has (\d+) dimes\. What part of a dollar is that, in hundredths\?|^(\d+) dimes and (\d+) pennies\. What part of a dollar is that\?)$/.exec(p))) {
+    const [d, c] = m[1] ? [N(m[1]), 0] : [N(m[2]), N(m[3])];
+    return { right: (10 * d + c) / 100, slips: [['dimeOne', [d + c, 100]], ['dimeDollar', [100 * d + c, 100]], ...(c ? [['coinSwap', [10 * c + d, 100]] as Slip] : []), ['keptBottom', [10 * d + c, 10]]] };
+  }
+  if ((m = /^(\d+)\/10 \+ (\d+)\/100 of a dollar\. How much is that in hundredths\?$/.exec(p))) {
+    const [a, b] = m.slice(1).map(N);
+    return { right: (10 * a + b) / 100, slips: [['tenthsAsHundredths', [a + b, 100]], ['acrossAdd', [a + b, 110]], ['oneAmount', [b, 100]], ['coinSwap', [10 * b + a, 100]]] };
+  }
+  if ((m = /^Write (\d+)\/10 of a dollar in hundredths\.$/.exec(p))) {
+    const a = N(m[1]);
+    return { right: a / 10, slips: [['keptTop', [a, 100]], ['addedSame', [a + 10, 100]], ['keptBottom', [10 * a, 10]]] };
+  }
+  // A line plot's two shortest together: the bottoms added, the shortest alone, the two longest, the difference.
+  if ((m = /lengths in eighths: ([\d/, ]+) inch\. How long are the two shortest together\?$|^\w+: ([\d/, ]+) inch\. Plot them\. How long are the two shortest together\?$/.exec(p))) {
+    const tops = (m[1] ?? m[2]).split(', ').map((t) => N(t.split('/')[0])).sort((u, v) => u - v);
+    const [a, b] = tops; const [y, z] = tops.slice(-2);
+    return { right: (a + b) / 8, slips: [['sameBottom', [a + b, 16]], ['oneAmount', [a, 8]], ['twoLongest', [y + z, 8]], ['otherOpAdd', [b - a, 8]]] };
   }
   // Decimals: the point a place too far either way, the digits written out ("9.10"), tenths read as hundredths.
   if ((m = /^(?:Write (\d+)\/(10|100) as a decimal\.|Which decimal equals (\d+)\/(10|100)\?)$/.exec(p))) {
@@ -277,8 +302,9 @@ function written(slip: Amount | number | string, answer: string, over: number): 
 /** The answer's unit, made to agree with the amount: "3/2 pounds", "1/6 pound" ("m" stays as it is). */
 function unitFor(unit: string, value: number): string {
   if (unit.trim().length < 2) return unit;
-  const one = unit.endsWith('s') ? unit.slice(0, -1) : unit;
-  return value > 1 ? `${one}s` : one;
+  // "inches" ↔ "inch"; other units add or drop an "s".
+  const one = unit.endsWith('ches') ? unit.slice(0, -2) : unit.endsWith('s') ? unit.slice(0, -1) : unit;
+  return value > 1 ? (one.endsWith('ch') ? `${one}es` : `${one}s`) : one;
 }
 
 /** Real mistakes for this question, written like its answer; empty when no rule knows the question or a rule's

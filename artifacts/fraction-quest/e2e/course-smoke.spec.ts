@@ -112,6 +112,43 @@ test('the garden lesson draws each garden to scale: side lengths outside, part a
   expect(box && box.width / box.height).toBeGreaterThan(1.5);
 });
 
+test('a question that says to plot lets the child tap the Xs on, then shows the finished plot once answered', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'plot-in-eighths');
+  if (!mission) throw new Error('Plot in eighths lesson is missing');
+  const question = mission.questions[0];
+  expect(question.prompt).toContain('Plot them');
+  await page.setViewportSize({ width: 390, height: 664 });
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+  await skipIntros(page);
+
+  const plot = page.getByTestId('question-model-area').getByTestId('line-plot-model');
+  await expect(plot).toBeVisible();
+  const ticks = plot.locator('.fq-lineplot-tick');
+  await expect(ticks).toHaveCount(9);
+  // 1/8 once, 3/8 twice, 5/8 three times.
+  for (const [tick, times] of [[1, 1], [3, 2], [5, 3]] as const) for (let k = 0; k < times; k++) await ticks.nth(tick).click();
+  await expect(plot.getByRole('status')).toHaveText('6 X marks placed.');
+  await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
+  await page.getByTestId('button-check-answer').click();
+  await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+  await expect(page.getByTestId('question-model-area').getByTestId('line-plot-picture')).toHaveAttribute('aria-label', 'Line plot: 1 at 1/8, 2 at 3/8, 3 at 5/8');
+});
+
+test('the dimes and pennies lesson teaches on a hundredths grid, then asks about coins', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'dimes-and-pennies');
+  if (!mission) throw new Error('Dimes and pennies lesson is missing');
+  await page.setViewportSize({ width: 390, height: 664 });
+  await openAsGuest(page);
+  await openDeveloperLesson(page, mission);
+  await skipIntros(page);
+
+  await expect(page.getByTestId('lesson-example').locator('.fq-area-figure')).toHaveCount(1);
+  const coins = page.getByTestId('question-model-area').getByTestId('coins-picture');
+  await expect(coins).toHaveAttribute('aria-label', '6 dimes');
+  await expect(coins.locator('.fq-coin.is-dime')).toHaveCount(6);
+});
+
 test('the ordering lesson explains its strategy before showing a distinct worked model', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');

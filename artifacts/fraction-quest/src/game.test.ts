@@ -149,9 +149,9 @@ const EXPECTED_COURSE: Record<number, string[]> = {
   7: ['compose-to-one', 'decompose-fractions', 'whole-numbers-as-fractions', 'improper-fractions', 'mixed-improper'],
   8: ['add-like-denominators', 'subtract-like-denominators', 'add-mixed-numbers', 'subtract-mixed-numbers', 'tenths-decimals',
     'hundredths-decimals', 'decimal-fraction-equivalence', 'compare-decimals', 'compare-decimals-grid', 'add-tenths-hundredths',
-    'unit-fraction-multiples', 'multiply-whole-by-fraction'],
-  9: ['simplify-fractions', 'equivalent-missing-both', 'compare-unlike-fractions', 'order-unlike-fractions', 'read-line-plots',
-    'measurement-word-problems', 'fraction-recipes'],
+    'dimes-and-pennies', 'unit-fraction-multiples', 'multiply-whole-by-fraction'],
+  9: ['simplify-fractions', 'equivalent-missing-both', 'compare-unlike-fractions', 'order-unlike-fractions', 'plot-in-eighths', 'read-line-plots',
+    'measurement-word-problems', 'fraction-recipes', 'party-portions'],
   10: ['add-related-fractions', 'add-unlike-fractions', 'subtract-unlike-fractions', 'mixed-unlike-operations', 'estimate-fraction-operations'],
   11: ['sets-unit-fractions', 'sets-nonunit', 'fraction-of-quantity', 'multiply-fractions', 'fraction-times-fraction',
     'fraction-of-collection', 'multiplication-scaling', 'bigger-or-smaller'],
@@ -227,6 +227,10 @@ function assertModel(model: ModelSpec, location: string): void {
       assert.ok(model.cut in AREA_CUTS, `${location} has an unknown area cut`);
       assert.ok(model.shaded.every((piece) => Number.isInteger(piece) && piece >= 0 && piece < AREA_CUTS[model.cut].length), `${location} shades a missing piece`);
       return;
+    case 'coins':
+      assert.ok([model.dimes, model.pennies].every((count) => Number.isInteger(count) && count >= 0 && count <= 9), `${location} needs 0 to 9 of each coin`);
+      assert.ok(model.dimes + model.pennies > 0, `${location} shows no coins`);
+      return;
     case 'garden':
       for (const side of [model.width, model.height]) {
         assert.ok(Number.isInteger(side.whole) && side.whole >= 1, `${location} needs a whole meter on each side`);
@@ -277,8 +281,8 @@ describe('lesson catalog', () => {
     }
   });
 
-  it('covers 76 sequenced lessons in the expected sequence and unit groups', () => {
-    assert.equal(MISSIONS.length, 76);
+  it('covers 79 sequenced lessons in the expected sequence and unit groups', () => {
+    assert.equal(MISSIONS.length, 79);
     assert.deepEqual(MISSIONS.map((mission) => mission.id), Object.values(EXPECTED_COURSE).flat());
     for (const [unit, ids] of Object.entries(EXPECTED_COURSE)) {
       assert.deepEqual(MISSIONS.filter((mission) => mission.unit === Number(unit)).map((mission) => mission.id), ids, `unit ${unit}`);
@@ -288,7 +292,7 @@ describe('lesson catalog', () => {
         [...new Set(MISSIONS.map((mission) => mission.unit))]
           .map((unit) => [unit, MISSIONS.filter((mission) => mission.unit === unit).length]),
       ),
-      { 1: 4, 2: 2, 3: 3, 4: 5, 5: 2, 6: 4, 7: 5, 8: 12, 9: 7, 10: 5, 11: 8, 12: 9, 13: 3, 14: 3, 15: 4 },
+      { 1: 4, 2: 2, 3: 3, 4: 5, 5: 2, 6: 4, 7: 5, 8: 13, 9: 9, 10: 5, 11: 8, 12: 9, 13: 3, 14: 3, 15: 4 },
     );
   });
 
@@ -4564,5 +4568,38 @@ describe('the November 2026 move (a fraction is division before dividing; recipe
     assert.equal(isMissionUnlocked(progress, 'fraction-recipes'), true);
     assert.equal(isMissionUnlocked(progress, 'add-related-fractions'), false);
     assert.equal(isMissionUnlocked(passed(ids('equal-parts', 'fraction-recipes')), 'add-related-fractions'), true);
+  });
+});
+
+describe('second lessons (grade 4): dimes and pennies, plot in eighths, party portions', () => {
+  const lesson = (id: string) => MISSIONS.find((m) => m.id === id)!;
+  const before = (id: string) => MISSIONS[MISSIONS.indexOf(lesson(id)) - 1].id;
+  it('sit next to the lesson they build on', () => {
+    assert.equal(before('dimes-and-pennies'), 'add-tenths-hundredths');
+    assert.equal(before('read-line-plots'), 'plot-in-eighths');
+    assert.equal(before('party-portions'), 'fraction-recipes');
+    for (const id of ['dimes-and-pennies', 'plot-in-eighths', 'party-portions']) assert.equal(lesson(id).gradeBand, 4, id);
+  });
+  it('ask the approved first questions with pictures that set up the problem without the answer', () => {
+    const [coins] = lesson('dimes-and-pennies').questions;
+    assert.equal(coins.prompt, 'Chomp has 6 dimes. What part of a dollar is that, in hundredths?');
+    assert.deepEqual(coins.model, { kind: 'coins', dimes: 6, pennies: 0 });
+    assert.equal(coins.choices[coins.correctChoice], '60/100');
+    const [plot] = lesson('plot-in-eighths').questions;
+    assert.match(plot.prompt, /Plot them\. How many more are 5\/8 inch than 1\/8 inch\?$/);
+    assert.ok(plot.model.kind === 'lineplot' && plot.model.plotTask, 'the child plots the Xs');
+    assert.equal(plot.choices[plot.correctChoice], '2');
+    const [portions] = lesson('party-portions').questions;
+    assert.equal(portions.prompt, 'Each racer drinks 2/3 cup. 4 racers. Between which two whole numbers is the total?');
+    assert.equal(portions.choices[portions.correctChoice], '2 and 3');
+    assert.ok(portions.model.kind === 'bars' && portions.model.bars.length === 4, 'four racers, four bars');
+  });
+  it('say why each coin and portion mistake is wrong', () => {
+    const why = (prompt: string, right: string, pick: string) => wrongChoiceReason(prompt, [right, pick], 0, 1);
+    assert.equal(why('Chomp has 6 dimes. What part of a dollar is that, in hundredths?', '60/100', '6/100'), WHY.dimeOne);
+    assert.equal(why('2 dimes and 5 pennies. What part of a dollar is that?', '25/100', '52/100'), WHY.coinSwap);
+    assert.equal(why('Each runner drinks 5/6 liter. 3 runners. How much in all?', '15/6 liters', '15/18 liter'), WHY.onlyTop);
+    assert.equal(why('Twigs: 3/8, 4/8, 4/8, 8/8 inch. Plot them. How long are the two shortest together?', '7/8 inch', '12/8 inches'), WHY.twoLongest);
+    assert.equal(why('Each racer drinks 2/3 cup. 4 racers. Between which two whole numbers is the total?', '2 and 3', '8 and 9'), WHY.betweenWholes);
   });
 });
