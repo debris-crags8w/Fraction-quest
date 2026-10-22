@@ -129,7 +129,16 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright Chromium
-        run: pnpm --filter @workspace/fraction-quest exec playwright install --with-deps chromium
+        # The runner's Microsoft apt source has answered 403 ("no longer signed") and stalled installs past the job
+        # limit; the browser's packages don't need it. A capped install, tried twice, fails fast instead.
+        timeout-minutes: 10
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
+          for try in 1 2; do
+            timeout 270 pnpm --filter @workspace/fraction-quest exec playwright install --with-deps chromium && exit 0
+            echo "Install attempt $try did not finish; trying again."
+          done
+          exit 1
 
       - name: Open every lesson and answer its first question
         run: pnpm --filter @workspace/fraction-quest test:e2e:all-lessons
@@ -160,7 +169,16 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright WebKit
-        run: pnpm --filter @workspace/fraction-quest exec playwright install --with-deps webkit
+        # The runner's Microsoft apt source has answered 403 ("no longer signed") and stalled installs past the job
+        # limit; the browser's packages don't need it. A capped install, tried twice, fails fast instead.
+        timeout-minutes: 10
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
+          for try in 1 2; do
+            timeout 270 pnpm --filter @workspace/fraction-quest exec playwright install --with-deps webkit && exit 0
+            echo "Install attempt $try did not finish; trying again."
+          done
+          exit 1
 
       - name: Open lessons and answer questions at an iPhone viewport
         run: pnpm --filter @workspace/fraction-quest test:e2e:iphone-safari
