@@ -390,7 +390,7 @@ const EXTENSION_WORKSHEETS: Record<string, { mode: ExtensionWorksheetMode; conte
 /** The right answer to "Both models match. Which idea explains why?": the lesson's key idea in a few words, as short as
     the wrong choices so length gives nothing away. The full explanation shows after the build passes. */
 export const REASON_IDEAS: Record<string, string> = {
-  'equal-parts': 'Equal parts and same number shaded',
+  'equal-parts': 'Equal parts first, then shade',
   'fraction-names': 'Denominator: all parts. Numerator: counted',
   'unit-fractions': 'A unit fraction is 1 part',
   'unit-size': 'Larger denominator: smaller parts',
@@ -689,7 +689,10 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
     // Grade 3 has few unit fractions, so some builds share a set: more friends sharing means a smaller share.
     if (Math.floor(s / 8) % 3 === 2) { const d = big ? a : b; const total = d * (2 + (s % 3));
       return [`Share ${total} stickers among ${d} friends. Pick 1 share.`, 1, d, `${d} equal shares: 1 share is 1/${d}. More friends means each share is smaller.`, 'set', total]; }
-    return [`Which is ${big ? 'bigger' : 'smaller'}, 1/${a} or 1/${b}?`, 1, big ? a : b, `${unitWord(b)} cut the same whole into more parts, so 1/${b} is smaller than 1/${a}.`]; },
+    const cap = (w: string) => w[0].toUpperCase() + w.slice(1);
+    return [`Which is ${big ? 'bigger' : 'smaller'}, 1/${a} or 1/${b}?`, 1, big ? a : b, big
+      ? `${cap(unitWord(a))} cut the same whole into fewer parts, so 1/${a} is bigger than 1/${b}.`
+      : `${cap(unitWord(b))} cut the same whole into more parts, so 1/${b} is smaller than 1/${a}.`]; },
   'order-fractions': (s) => { const d = at([4, 6, 8], s); const a = 1 + (Math.floor(s / 3) % (d - 2)); const b = a + 1 + (s % 2 && a + 2 < d ? 1 : 0); const big = s % 2 === 0;
     return [`Which is ${big ? 'bigger' : 'smaller'}, ${a}/${d} or ${b}/${d}?`, big ? b : a, d, `Same-size parts: ${b} parts is more than ${a}.`]; },
   'compare-unlike-fractions': (s) => { const [a, b, c, d] = at(UNLIKE_PAIRS, s); const big = a * d > c * b ? [a, b] : [c, d];
@@ -837,7 +840,10 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
     return [`Eat ${a}/${b} of a pizza. Then eat ${c}/${e} of the rest. Make what is left.`, left, den, `First ${b - a}/${b} is left. Then ${e - c}/${e} of that is left: ${left}/${den}.`]; },
 };
 
+// Builds whose words name the ruler or the plot always start on the line. Builds that say "Shade 3" or "Plant 4" are
+// worded for the number line when they start on it.
 const LINE_ONLY_BUILDS = new Set(['build-line-plots', 'ruler-measurement']);
+const BAR_WORDED_BUILDS = new Set(['equal-parts', 'fraction-of-area']);
 /** One extra build for lesson `id` from its own family, or null when the lesson has none. */
 function lessonBuildCheck(id: string, serial: number, checkId: string): BuildCheck | null {
   const make = LESSON_BUILDS[id];
@@ -849,8 +855,9 @@ function lessonBuildCheck(id: string, serial: number, checkId: string): BuildChe
   // Line plots stay on the line: a bar is not a line plot.
   const flip = Math.floor(serial / 10) % 2 === 1 && !LINE_ONLY_BUILDS.has(id);
   const kind = flip && made === 'bar' ? 'line' : flip && made === 'line' ? 'bar' : made;
+  const words = kind === 'line' && BAR_WORDED_BUILDS.has(id) ? `Cut 0 to 1 into ${d} equal spaces. Make ${n} ${n === 1 ? 'jump' : 'jumps'}.` : prompt;
   return {
-    id: checkId, prompt, target: model(n, d, kind, total), explanation, transfer: true,
+    id: checkId, prompt: words, target: model(n, d, kind, total), explanation, transfer: true,
     ...arrangeReasons(`${id}:${checkId}:lesson:${serial}`, idea(id, explanation), wrongReasons(id, serial)),
   };
 }
@@ -1023,6 +1030,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
     // The intro list repeats every 5, so its shift cycles 1–4 (never a multiple of 5) and back-to-back redos differ.
     // Equal parts keeps to 6 parts or fewer (its four-number list still moves on with every redo).
     const introShift = variant ? (variant - 1) % 4 + 1 : 0;
+    // Equal parts: the denominator moves on a step every 4 rows, so no two rows ask the same thing.
     const d = id === 'equal-parts' ? [3, 4, 6, 2][(i + introShift) % 4] : isIntroTopic ? [3, 4, 8, 6, 2, 3, 4, 8, 6, 2, 3, 4][(i + introShift) % 12] : table[t];
     const n = 1 + (i + variant) % (d - 1);
     const value = f(n, d);
@@ -1034,9 +1042,11 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
       case 'equal-parts': {
         // Shading only appears when it means something (the part being named, or parts the child marks).
         const kind = i % 4; const later = i >= 4; // second half (rows 5 to 8): same ideas, new words
+        // ...and new numbers: row 5 would otherwise count the same parts as row 1, and row 7 name the same part as row 3.
+        const dd = later ? ({ 3: 6, 4: 8, 6: 3, 2: 4 } as Record<number, number>)[d] ?? d : d;
         if (kind === 0) {
           prompt = later ? 'Tap each part to count it. How many equal parts make the whole bar?' : 'Tap each part to count it. How many equal parts is this bar cut into?';
-          answer = String(d); visual = model(0, d); task = { kind: 'count', n: d };
+          answer = String(dd); visual = model(0, dd); task = { kind: 'count', n: dd };
           hint = 'Count every part, one at a time.';
         } else if (kind === 1) {
           // Sometimes fair, sometimes one piece is clearly bigger.
@@ -1047,7 +1057,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           hint = 'Equal parts are all the same size. Compare the parts.';
         } else if (kind === 2) {
           prompt = later ? 'The shaded part is 1 of the equal parts. What fraction of the bar is shaded?' : 'One part is shaded. What fraction of the whole bar is it?';
-          answer = f(1, d); visual = model(1, d); task = { kind: 'copy', n: 1 };
+          answer = f(1, dd); visual = model(1, dd); task = { kind: 'copy', n: 1 };
           hint = 'The denominator is how many equal parts. The shaded part is 1 of them.';
         } else {
           prompt = later ? 'Color 1 equal part of this bar. What fraction did you color?' : 'Shade 1 part of this bar. What fraction of the bar did you shade?';

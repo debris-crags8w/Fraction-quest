@@ -99,7 +99,9 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       const yes = 'Yes, same-size parts'; const bigger = 'No, some parts are bigger'; const shapes = 'No, the shapes are different';
       return { prompt: `Is this ${whole} cut into equal parts?`, right: fair ? yes : bigger, wrong: fair ? [bigger, shapes] : [yes, shapes], extra: 'Yes, it is cut into parts',
         hint: 'Equal parts are the same size. They do not have to be the same shape.',
-        retry: fair ? 'Every part takes up the same amount of space, so the parts are equal, even if their shapes are different.' : 'Compare the sizes: one part is bigger than another, so the parts are not equal.',
+        retry: !fair ? 'Compare the sizes: one part is bigger than another, so the parts are not equal.'
+          : cut === 'fourths-mixed' ? 'Every part takes up the same amount of space, so the parts are equal, even if their shapes are different.'
+          : 'Every part is the same size, so the parts are equal.',
         model: area(cut) };
     }
     // The picture is the puzzle: the strip may be fair, have unequal pieces, or have the wrong number of pieces.
@@ -162,7 +164,8 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     // Grade 3 parts with one clear nearest benchmark (1/4 sits halfway between 0 and 1/2).
     const [n, d, right] = r.pick([[1, 6, '0'], [1, 8, '0'], [1, 3, '1/2'], [2, 3, '1/2'], [2, 4, '1/2'], [2, 6, '1/2'], [3, 6, '1/2'], [4, 6, '1/2'],
       [3, 8, '1/2'], [4, 8, '1/2'], [5, 8, '1/2'], [5, 6, '1'], [7, 8, '1']] as const);
-    return { prompt: `Is ${f(n, d)} closest to 0, 1/2, 1 or 2?`, right, wrong: ['0', '1/2', '1'].filter((x) => x !== right) as [string, string], extra: '2',
+    // Only the taught benchmarks (0, 1/2 and 1), not a made-up "2"; the fourth choice is the "can't tell" slip.
+    return { prompt: `Is ${f(n, d)} closest to 0, 1/2 or 1?`, right, wrong: ['0', '1/2', '1'].filter((x) => x !== right) as [string, string], extra: "You can't tell",
       hint: 'Is it tiny, about half, or almost full?', retry: `${f(n, d)} is closest to ${right}.`, model: bar(n, d) };
   },
   'fraction-magnitude': (r) => {

@@ -520,7 +520,7 @@ const curriculum: MissionSeed[] = [
       practice('Which amount is closest to 0?', ['1/8', '3/4', '7/8'], 0, bars({ numerator: 1, denominator: 8 }, { numerator: 3, denominator: 4 }, { numerator: 7, denominator: 8 }), 'The smallest shaded part is closest to 0.', '1/8 is the smallest amount. It is closest to 0.', bars({ numerator: 1, denominator: 4 })),
       practice('Which fraction is closest to one whole?', ['2/6', '5/6', '3/6'], 1, bars({ numerator: 2, denominator: 6 }, { numerator: 5, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Which one is missing just 1 part?', '5/6 is just 1 part away from one whole.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is between 1/2 and 1?', ['3/8', '3/4', '1/4'], 1, bars({ numerator: 3, denominator: 4 }), 'Find one past half but not full.', '3/4 is more than half but less than 1.', bars({ numerator: 1, denominator: 2 })),
-      practice('A plant grew 7/8 of a meter. Is that near 0, 1/2 or 1 meter?', ['0 meters', '1 meter', 'Exactly halfway', '7 meters'], 1, bars({ numerator: 7, denominator: 8 }), 'Just 1 eighth is missing.', '7/8 is almost one whole meter.', bars({ numerator: 1, denominator: 2 })),
+      practice('A plant grew 7/8 of a meter. Is that near 0, 1/2 or 1 meter?', ['0 meters', '1 meter', '1/2 meter', '7 meters'], 1, bars({ numerator: 7, denominator: 8 }), 'Just 1 eighth is missing.', '7/8 is almost one whole meter.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
