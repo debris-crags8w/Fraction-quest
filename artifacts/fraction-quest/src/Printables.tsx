@@ -1,6 +1,7 @@
 import React, { useEffect, useState, type CSSProperties, type ReactElement } from 'react';
 import { LinePlotPicture } from './line-plot-picture';
 import { CoinsPicture } from './coins-picture';
+import { RulerPicture } from './ruler-picture';
 import { GardenPlan } from './GardenPlan';
 import { Printer } from 'lucide-react';
 import { MathText } from './MathText';
@@ -31,7 +32,7 @@ function ProblemModel({ problem }: { problem: WorksheetProblem }) {
   if (problem.area) return <div className="fq-print-model"><span className="fq-model-tag kind-area">{areaWhole(problem.area.cut)[0].toUpperCase() + areaWhole(problem.area.cut).slice(1)} model</span><AreaSvg figure={problem.area} /></div>;
   // Line plots and rulers on paper: an empty plot to mark the Xs on, and the ruler with the strip's end.
   if (problem.linePlotTask) return <div className="fq-print-model"><LinePlotPicture denominator={problem.linePlotTask.denominator} wholes={problem.linePlotTask.wholes} values={[]} /></div>;
-  if (problem.rulerTask) return <div className="fq-print-model"><ModelTag kind="line" /><LineSvg n={problem.rulerTask.end} d={problem.rulerTask.denominator} wholes={problem.rulerTask.wholes} /></div>;
+  if (problem.rulerTask) return <div className="fq-print-model"><RulerPicture {...problem.rulerTask} /></div>;
   if (!m) return problem.picture ? <PrintModel model={problem.picture} labels={false} /> : null;
   return (
     <div className="fq-print-model">
@@ -159,6 +160,7 @@ export function PrintModel({ model, labels = true }: { model: ModelSpec; labels?
       {/* On paper, a plot the child makes is printed empty: they draw the Xs. */}
       {model.kind === 'lineplot' && <LinePlotPicture denominator={model.denominator} wholes={model.wholes} values={model.plotTask ? [] : model.values} />}
       {model.kind === 'coins' && <CoinsPicture dimes={model.dimes} pennies={model.pennies} />}
+      {model.kind === 'ruler' && <RulerPicture denominator={model.denominator} wholes={model.wholes} end={model.end} />}
       {model.kind === 'garden' && <GardenPlan width={model.width} height={model.height} labelParts={model.labelParts} />}
       {model.kind === 'equation' && <p className="fq-print-equation"><MathText text={model.text} /></p>}
       {labels && model.caption && <small><MathText text={model.caption} /></small>}

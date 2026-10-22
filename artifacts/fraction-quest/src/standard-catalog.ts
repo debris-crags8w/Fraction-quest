@@ -132,7 +132,8 @@ export const MISSION_STANDARDS: Record<string, StandardId[]> = {
   'compare-decimals': ['4.NF.7'],
   'compare-decimals-grid': ['4.NF.7'],
   'multi-step-fraction-stories': ['4.NF.3d'],
-  'find-the-whole': ['5.NF.6'],
+  // Unit-fraction parts (3 is 1/4 of it) are 3 ÷ 1/4; the non-unit rows are stretch questions (6.NS.1).
+  'find-the-whole': ['5.NF.7b'],
   'spot-the-mistake': ['4.NF.3a', '4.NF.2'],
   'fraction-of-remainder': ['5.NF.6', '5.NF.2'],
   'divide-fractions': [],

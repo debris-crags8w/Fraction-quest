@@ -1,6 +1,7 @@
 import { type CSSProperties, type ReactNode, Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LinePlotPicture } from './line-plot-picture';
 import { CoinsPicture } from './coins-picture';
+import { RulerPicture } from './ruler-picture';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, BarChart3, BookOpen, Check, ClipboardCheck, Code2, Compass, Dumbbell, Flame, Lightbulb, Map as MapIcon, RotateCcw, Sparkles, Star, Trophy, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { MathText } from './MathText';
@@ -460,6 +461,7 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
         <LinePlotPicture denominator={model.denominator} wholes={model.wholes} values={model.plotTask && !reveal ? [] : model.values} />
       )}
       {model.kind === 'coins' && <CoinsPicture dimes={model.dimes} pennies={model.pennies} />}
+      {model.kind === 'ruler' && <RulerPicture denominator={model.denominator} wholes={model.wholes} end={model.end} />}
       {model.kind === 'garden' && <GardenPlan width={model.width} height={model.height} labelParts={model.labelParts} />}
       {model.kind === 'equation' && <div className="fq-model-equation" role="img" aria-label={`Visual equation ${model.text}`}><MathText text={model.text} /></div>}
       {model.kind === 'decimal' && (

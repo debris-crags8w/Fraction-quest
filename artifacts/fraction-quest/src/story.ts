@@ -546,8 +546,8 @@ export const STORY_PROBLEMS: Record<string, StoryProblem> = {
     result: '1/6 is still empty. Click! The case opens!' },
   // Chapter 15 · The Fraction Festival
   'find-the-whole': { setup: 'Can you solve my first riddle?',
-    prompt: 'Chomp’s riddle: a piece of ribbon is 10 meters long. It is 5/6 of the whole ribbon. How long is the whole ribbon?',
-    result: 'The whole ribbon is 12 meters. Riddle solved!' },
+    prompt: 'Chomp’s riddle: a piece of ribbon is 5 meters long. It is 1/4 of the whole ribbon. How long is the whole ribbon?',
+    result: 'The whole ribbon is 20 meters. Riddle solved!' },
   'spot-the-mistake': { setup: 'My riddle has a mistake in it. Can you spot it?',
     prompt: 'Chomp says 2/3 = 3/4 because he added 1 to the numerator and denominator. Which fraction in sixths is really equal to 2/3?',
     result: '2/3 = 4/6. Chomp made that mistake on purpose. Sneaky!' },

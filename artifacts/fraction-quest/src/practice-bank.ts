@@ -239,7 +239,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'improper-fractions': (r) => {
     const d = r.pick([2, ...G3_DENS]); const left = r.int(1, d - 1);
-    return { prompt: `What is ${f(d + left, d)} as wholes and a fraction?`, right: `1 and ${f(left, d)}`, wrong: [`2 and ${f(left, d)}`, f(left, d)], hint: `${f(d, d)} is one whole.`, retry: `${f(d + left, d)} is ${f(d, d)} and ${f(left, d)}.`, model: line(d + left, d) };
+    return { prompt: `How many ${name(d)} past one whole is ${f(d + left, d)}?`, right: String(left), wrong: [String(d + left), String(d)], hint: `${f(d, d)} is one whole. Count the jumps after it.`, retry: `${f(d + left, d)} is ${f(d, d)} and ${left} more ${left === 1 ? name(d).replace(/s$/, '') : name(d)}.`, model: line(d + left, d) };
   },
   'mixed-improper': (r) => {
     const d = r.pick([2, ...G3_DENS]); const left = r.int(1, d - 1);

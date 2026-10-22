@@ -232,6 +232,10 @@ function assertModel(model: ModelSpec, location: string): void {
       assert.ok([model.dimes, model.pennies].every((count) => Number.isInteger(count) && count >= 0 && count <= 9), `${location} needs 0 to 9 of each coin`);
       assert.ok(model.dimes + model.pennies > 0, `${location} shows no coins`);
       return;
+    case 'ruler':
+      assert.ok(Number.isInteger(model.denominator) && model.denominator > 1 && model.wholes >= 1, `${location} has an invalid ruler`);
+      assert.ok(Number.isInteger(model.end) && model.end > 0 && model.end <= model.denominator * model.wholes, `${location} has a strip off the ruler`);
+      return;
     case 'garden':
       for (const side of [model.width, model.height]) {
         assert.ok(Number.isInteger(side.whole) && side.whole >= 1, `${location} needs a whole meter on each side`);
@@ -1683,7 +1687,7 @@ describe('entered-answer worksheets and evidence gates', () => {
   it('checks independently calculated keys across every curriculum topic', () => {
     const expected: Record<string, string> = {
       'equal-parts': '3', 'fraction-names': '1', 'unit-fractions': '3', 'unit-size': '1/2', 'sets-unit-fractions': '2', 'sets-nonunit': '4',
-      'benchmark-half': '1/4', 'benchmarks-zero-one': '1/3', 'fraction-magnitude': '3/4', 'number-line-basics': '3', 'number-line-points': '1/3',
+      'benchmark-half': '1/4', 'benchmarks-zero-one': '1/3', 'fraction-magnitude': '5/6', 'number-line-basics': '3', 'number-line-points': '1/3',
       'number-line-beyond-one': '4/3', 'compare-same-denominator': '2/3', 'compare-same-numerator': '2/3', 'order-fractions': '1/3, 2/3, 3/3',
       'equivalent-models': '2', 'build-equivalents': '2/6', 'missing-equivalent': '2', 'compose-to-one': '2/3', 'decompose-fractions': '2',
       'improper-fractions': '>', 'mixed-improper': '4/3', 'add-like-denominators': '2/3', 'subtract-like-denominators': '1/3',
@@ -2460,8 +2464,10 @@ describe('long problems', () => {
 
 describe('question generator', () => {
   const fractionValue = (text: string) => {
-    const [n, d] = text.split('/').map(Number);
-    return n / d;
+    // "3/4" or a mixed number, "1 1/4".
+    const [whole, part] = text.includes(' ') ? text.split(' ') : ['0', text];
+    const [n, d] = part.split('/').map(Number);
+    return Number(whole) + n / d;
   };
   const ids = (id: string) => getMission(id).questions.map((question) => question.id);
   // Units 9–14: every generated question type is re-solved here from its own numbers.

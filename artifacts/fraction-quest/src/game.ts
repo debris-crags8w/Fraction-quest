@@ -84,6 +84,8 @@ export type ModelSpec =
   | { kind: 'lineplot'; denominator: number; wholes: number; values: number[]; caption?: string; plotTask?: boolean }
   /** Coins: dimes (a tenth of a dollar) and pennies (a hundredth). */
   | { kind: 'coins'; dimes: number; pennies: number; caption?: string }
+  /** A ruler marked in inches with a blue strip from 0 to tick `end` (ticks counted in steps of 1/denominator). */
+  | { kind: 'ruler'; denominator: number; wholes: number; end: number; caption?: string }
   /** A rectangular garden drawn to scale: thick lines at each whole meter, dashed lines at each small part, and the four
       parts (whole × whole, whole × part, part × whole, part × part) in four colors. `labelParts` writes each part's area
       on it (worked examples only: in a question that would be the answer). */
@@ -706,15 +708,16 @@ const curriculum: MissionSeed[] = [
   {
     id: 'improper-fractions', title: 'More than one whole', shortTitle: 'Past a whole', skill: 'When the numerator is greater than the denominator, the fraction is at least one whole. It may have extra parts too.',
     description: 'Keep counting parts past one whole.', example: {
-      prompt: 'What is 7/4 as wholes and a fraction?',
-      answer: '1 and 3/4.',
-      explanation: '4/4 is one whole. 3/4 is left over.',
+      prompt: 'How many fourths past one whole is 7/4?',
+      answer: '3 fourths.',
+      explanation: '4/4 is one whole. Keep counting: 5/4, 6/4, 7/4. That is 3 fourths past one whole.',
       model: { kind: 'bars', bars: [{ numerator: 4, denominator: 4 }, { numerator: 3, denominator: 4 }], caption: '7/4 is one whole and 3/4' },
     },
     questions: [
-      practice('What is 5/3 as wholes and a fraction?', ['1 and 2/3', '2 and 1/3', '5 and 3', '2 and 2/3'], 0, line(5, 3, 2), '3/3 is one whole. How many are left?', '5/3 is 3/3 and 2/3. That is 1 and 2/3.', line(3, 3, 2)),
-      practice('What is 2 and 1/4 as fourths?', ['9/4', '6/4', '2/4'], 0, line(9, 4, 3), '2 wholes is 8/4. Add 1 more.', '8/4 + 1/4 = 9/4.', line(4, 4, 2)),
-      practice('What is 1 and 2/4 as fourths?', ['6/4', '3/4', '4/6'], 0, line(6, 4, 2), 'One whole is 4/4. Add 2 more.', '4 + 2 = 6. So 6/4.', line(4, 4, 2)),
+      // Grade 3 (3.NF.2b, 3.NF.3c): count parts past one whole on the line. Naming mixed numbers is the next lesson (4.NF.3).
+      practice('How many thirds past one whole is 5/3?', ['2', '5', '3'], 0, line(5, 3, 2), '3/3 is one whole. Count the jumps after it.', '5/3 is 3/3 and 2 more thirds.', line(3, 3, 2)),
+      practice('Where is 9/4 on the number line?', ['Between 2 and 3', 'Between 1 and 2', 'Between 0 and 1', 'Between 3 and 4'], 0, line(0, 4, 3), '4/4 is 1 and 8/4 is 2. Is 9/4 past 8/4?', '9/4 is 1 jump past 8/4, so it is between 2 and 3.', line(8, 4, 3)),
+      practice('How many fourths make 2 wholes?', ['8', '4', '2'], 0, line(0, 4, 2), 'One whole is 4 fourths. Count the spaces to 2.', '4 + 4 = 8 fourths. So 8/4 = 2.', line(4, 4, 2)),
       practice('Which is more than one whole?', ['9/8', '7/8', '1/8'], 0, line(0, 8, 2), '8/8 is exactly one whole.', '9/8 is 1 part more than a whole.', line(8, 8, 2)),
     ],
   },
@@ -1040,7 +1043,7 @@ const extensionTopics: ExtensionTopic[] = [
     ] },
   { id: 'multi-step-fraction-stories', title: 'Two-step stories', shortTitle: 'Fraction stories', description: 'Solve a story in 2 steps.', skill: 'Find what the story asks first. Solve that step, then use the answer in the next step.', mode: 'story', n: 2, d: 5, context: 'community garden' },
   // Unit 15 · Problem solving: the reasoning that Singapore, Beast Academy and Eureka lean on and quizzes skip.
-  { id: 'find-the-whole', title: 'Find the whole', shortTitle: 'Find the whole', description: '3 is 1/4 of it. What is the whole?', skill: 'The known amount is some of the equal parts. Divide it by the numerator to find 1 part. Then multiply by the denominator to make the whole.', mode: 'whole-from-part', n: 1, d: 4, context: 'sticker packs', gradeBand: 5, standards: ['5.NF.6'],
+  { id: 'find-the-whole', title: 'Find the whole', shortTitle: 'Find the whole', description: '3 is 1/4 of it. What is the whole?', skill: 'The known amount is some of the equal parts. Divide it by the numerator to find 1 part. Then multiply by the denominator to make the whole.', mode: 'whole-from-part', n: 1, d: 4, context: 'sticker packs', gradeBand: 5, standards: ['5.NF.7b'],
     example: { prompt: '3 stickers are 1/4 of a pack. How many stickers are in the pack?', answer: '12 stickers', explanation: '1/4 is 1 of 4 equal parts. Each part is 3. 4 parts of 3 is 12.', model: setModel(3, 12, 4) } },
   { id: 'spot-the-mistake', title: 'Spot the mistake', shortTitle: 'Spot the mistake', description: 'Is Sam right? Fix it.', skill: 'Check whether each step uses the right fraction rule. Find the first wrong step and correct it.', mode: 'mistake', n: 3, d: 4, context: 'homework check', gradeBand: 4, standards: ['4.NF.3a', '4.NF.2'] },
   { id: 'fraction-of-remainder', title: 'Fraction of the rest', shortTitle: 'Fraction of the rest', description: 'Spend 1/3. Then spend 1/2 of the rest.', skill: 'First find how much is left. Then split that remaining amount and find the fraction asked for.', mode: 'remainder', n: 1, d: 3, context: 'pocket money', gradeBand: 5, standards: ['5.NF.6', '5.NF.2'] },
@@ -1158,8 +1161,8 @@ export function problemPicture(problem: WorksheetProblem): ModelSpec {
   if (problem.linePlotTask) return { kind: 'lineplot', ...problem.linePlotTask };
   // A garden question: the garden drawn to scale (its bars would only show the two side lengths, not the area).
   if (problem.picture?.kind === 'garden') return problem.picture;
-  // Ruler questions: a number line marked like the ruler, with the end point (no labels).
-  if (problem.rulerTask) return { kind: 'line', numerator: problem.rulerTask.end, denominator: problem.rulerTask.denominator, wholes: problem.rulerTask.wholes, hideLabels: true };
+  // Ruler questions: the ruler and the blue strip the question talks about.
+  if (problem.rulerTask) return { kind: 'ruler', ...problem.rulerTask };
   if (problem.area) return { kind: 'area', cut: problem.area.cut, shaded: problem.area.shaded ?? [], ...(problem.areaTask ? { colorTask: problem.areaTask } : {}) };
   // A chance question (one marble per group): the story says how many are green, so the picture shows them.
   if (m?.kind === 'set' && m.total && m.d === m.total) return setModel(m.n, m.total, m.d);
@@ -1191,9 +1194,17 @@ export function nameBars(model: ModelSpec, prompt: string): ModelSpec {
   return { ...model, bars: model.bars.map((bar) => (named.has(`${bar.numerator}/${bar.denominator}`) && bar.numerator > 0 ? { ...bar, named: true } : bar)) };
 }
 
+/** Wrong lengths a child really reads off a ruler: one space short, or one long (counting the tick marks, not the
+    spaces). In the ruler's own parts, never eighths or sixteenths on a fourths ruler. */
+function rulerDistractors({ end, denominator: d }: { end: number; denominator: number }): string[] {
+  const name = (ticks: number) => { const whole = Math.floor(ticks / d); const part = ticks % d;
+    return whole && part ? `${whole} ${part}/${d}` : whole ? String(whole) : `${part}/${d}`; };
+  return [end + 1, end > 1 ? end - 1 : end + 2].map(name);
+}
+
 /** A tap question made from a worksheet problem, with the right answer at `position`. */
 export function problemQuestion(problem: WorksheetProblem, position: number): PracticeSeed {
-  const choices = [...choiceDistractors(problem.answer)];
+  const choices = problem.rulerTask ? rulerDistractors(problem.rulerTask) : [...choiceDistractors(problem.answer)];
   choices.splice(position % 3, 0, problem.answer);
   const model = problemPicture(problem);
   const simpler = 'hideLabels' in model ? { ...model, hideLabels: false } : model;
