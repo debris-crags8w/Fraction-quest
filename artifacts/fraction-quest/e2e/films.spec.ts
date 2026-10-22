@@ -158,3 +158,30 @@ test('when the natural voice fails during a film, the device voice never takes o
   const words = await page.evaluate(() => (window as unknown as { spoken: string[] }).spoken.filter((text) => text.trim()));
   expect(words, 'the device voice must not read the film').toEqual([]);
 });
+
+test('the finale ends with Hoot pointing to the daily riddle', async ({ page }) => {
+  const { MISSIONS } = await import('../src/game');
+  const { getBuildChecks, getWorksheet } = await import('../src/learning-content');
+  // Every lesson finished: practice, each build and the whole worksheet, so all 15 pieces are found.
+  const learning = Object.fromEntries(MISSIONS.map((mission) => [mission.id, {
+    practiceDone: true, helpUses: 0, misconceptions: {}, completedAt: 1,
+    checks: Object.fromEntries(getBuildChecks(mission.id).map((check) => [check.id, { passed: true }])),
+    worksheet: Object.fromEntries(getWorksheet(mission.id).map((row) => [row.id, { draft: row.answer, checkedValue: row.answer }])),
+  }]));
+  const progress = { completedMissionIds: MISSIONS.map((mission) => mission.id), starsByMission: {}, reviewQueue: [], assessments: [], learning };
+  const fun = { xp: 0, day: '2026-10-20', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: false, story: { prologueSeen: true, choices: {} },
+    displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: false, storyMode: true } };
+  await page.addInitScript(({ savedProgress, savedFun }) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(savedProgress));
+    localStorage.setItem('fraction-quest-fun-v1', JSON.stringify(savedFun));
+  }, { savedProgress: progress, savedFun: fun });
+  await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByTestId('button-play-guest').click();
+  await page.getByRole('button', { name: /Chapter 2, Pond/ }).click();
+  await page.getByTestId('storybook-finale').click();
+  await page.getByTestId('button-story-skip').click();
+  await expect(page.getByText('Every day, a new riddle waits by the stone. Keep your lantern lit, Keeper!').first()).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('finale.png') });
+});

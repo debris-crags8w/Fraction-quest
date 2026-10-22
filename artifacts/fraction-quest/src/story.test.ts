@@ -183,6 +183,20 @@ test('the storyline holds together: the opening sets up the case and pieces, eve
   assert.ok(EPILOGUE.some((panel) => panel.speaker === 'bolt'), 'Bolt says sorry at the festival');
 });
 
+test('chapters 8 and 11 keep a thread going after their reveal, and the ending points to the daily riddle', () => {
+  // Chapter 8: Chomp's confession opens it, then Bolt's beep note is read line by line and ends where chapter 9 starts.
+  const den = chapterFor(8)!.cliffs;
+  assert.ok(den.filter((line) => /note|[Ll]ine (?:one|two)|[Ll]ast line/.test(line)).length >= 6, 'the beep note runs through chapter 8');
+  assert.match(den[0], /stone piece/);
+  assert.match(den[den.length - 1], /races start/);
+  // Chapter 11: Bolt owns up first, then his scaling machine goes wrong and is put right.
+  const machine = chapterFor(11)!.cliffs;
+  assert.ok(machine.filter((line) => /rattles|jam|too big|stuck/.test(line)).length >= 3, 'the machine goes wrong in chapter 11');
+  assert.ok(machine.some((line) => /stone piece/.test(line)));
+  assert.match(EPILOGUE[EPILOGUE.length - 1].text, /riddle/);
+  assert.equal(EPILOGUE[EPILOGUE.length - 1].speaker, 'hoot');
+});
+
 test('chapters 1 to 14 each find their stone piece, and chapter 15 brings back the last one', () => {
   for (const chapter of CHAPTERS.slice(0, 14)) {
     assert.ok([...chapter.cliffs, chapter.cliff, chapter.done].some((line) => /stone piece/.test(line)), `${chapter.title}: the stone piece is found`);
