@@ -19,9 +19,10 @@ export type TimeLimit = { minutes: TimeLimitMinutes; extra?: { day: string; minu
 export const ADD_MINUTES = 10;
 export type DisplayPreferences = { textSize: 'standard' | 'large'; highContrast: boolean; reducedMotion: boolean;
   /** Holiday looks like Halloween (on unless a grown-up turns them off). */ seasonalThemes?: boolean;
-  /** Story comics with Numi's friends around lessons (on unless a grown-up turns them off). */ storyMode?: boolean };
+  /** Story comics with Numi's friends around lessons (on unless a grown-up turns them off). */ storyMode?: boolean;
+  /** Quiet music under the story films (on unless a grown-up turns it off; never with sounds off). */ storyMusic?: boolean };
 const DEFAULT_BREAK_PREFERENCES: BreakPreferences = { intervalMinutes: 15, quietMode: false };
-const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: true, storyMode: true };
+const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: true, storyMode: true, storyMusic: true };
 
 export type FunState = {
   xp: number;
@@ -104,6 +105,7 @@ function cleanDisplayPreferences(value: unknown): DisplayPreferences {
     reducedMotion: preferences.reducedMotion === true,
     seasonalThemes: preferences.seasonalThemes !== false,
     storyMode: preferences.storyMode !== false,
+    storyMusic: preferences.storyMusic !== false,
   };
 }
 
@@ -469,6 +471,14 @@ export function resetMissionGameProgress(state: FunState, missionIds: ReadonlySe
 }
 
 let audio: AudioContext | null = null;
+/** The one audio context the app's sounds share (cues and story music), made on first use; null without Web Audio. */
+export function audioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctx) return null;
+  audio ??= new Ctx();
+  return audio;
+}
 type Cue = 'correct' | 'retry' | 'star' | 'complete' | 'impact';
 const CUES: Record<Cue, number[]> = {
   correct: [660, 880],
@@ -483,10 +493,8 @@ export function playCue(cue: Cue, enabled: boolean) {
   playHaptic(cue);
   if (!enabled || typeof window === 'undefined') return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return;
-    audio ??= new Ctx();
-    const start = audio.currentTime;
+    if (!audioContext()) return;
+    const start = audio!.currentTime;
     CUES[cue].forEach((freq, index) => {
       const osc = audio!.createOscillator();
       const gain = audio!.createGain();
