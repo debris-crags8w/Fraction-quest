@@ -778,8 +778,9 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
   'multiplication-scaling': (s) => { const d = at([3, 4, 5, 6], s); const n = 1 + (Math.floor(s / 4) % (d - 1)); const total = d * (2 + (Math.floor(s / 12) % 3));
     return [`Build ${n}/${d} of ${total} counters. Make ${d} equal groups.`, n, d, `${n}/${d} of ${total} is less than ${total}: part of a group is less.`, 'set', total]; },
   'multiply-fractions': (s) => { const [a, b, c, d] = at([[1, 2, 3, 4], [2, 3, 1, 2], [1, 3, 3, 4], [2, 3, 3, 4], [1, 2, 1, 3], [3, 4, 1, 3], [1, 2, 1, 4], [2, 3, 2, 3], [1, 4, 3, 4], [1, 2, 2, 3], [3, 4, 3, 4], [1, 3, 1, 2]] as const, s);
-    return [`A rectangle is ${a}/${b} unit by ${c}/${d} unit. Find its area.`, a * c, b * d, `Cut the unit square into ${b * d} small parts. ${a * c} of them are covered: ${a * c}/${b * d}.`]; },
-  'fraction-times-fraction': (s) => { const [a, b, c, d] = at([[2, 3, 4, 5], [3, 4, 1, 2], [1, 2, 2, 3], [3, 5, 2, 3], [2, 5, 3, 4], [1, 3, 3, 5], [5, 6, 1, 2], [3, 4, 2, 5], [1, 4, 2, 3], [2, 3, 5, 6], [4, 5, 1, 2], [1, 6, 3, 4]] as const, s);
+    // A part of a part, before the area grid (next lesson): split each part again.
+    return [`Make ${a}/${b} of ${c}/${d}.`, a * c, b * d, `Split each of the ${d} parts into ${b}: ${b * d} small parts in all. ${a}/${b} of ${c} parts is ${a * c} small parts: ${a * c}/${b * d}.`]; },
+  'fraction-times-fraction': (s) => { const [a, b, c, d] = at([[2, 3, 4, 5], [3, 4, 1, 2], [1, 2, 2, 3], [3, 5, 2, 3], [2, 5, 3, 4], [1, 3, 3, 5], [5, 6, 1, 2], [3, 4, 3, 5], [1, 4, 2, 3], [2, 3, 5, 6], [4, 5, 1, 2], [1, 6, 3, 4], [1, 2, 3, 5], [1, 3, 1, 4], [2, 5, 1, 2], [3, 8, 2, 3]] as const, s);
     return [`Make ${a}/${b} × ${c}/${d}.`, a * c, b * d, `${a} of ${b} rows and ${c} of ${d} columns overlap on ${a * c} of ${b * d} parts: ${a * c}/${b * d}.`]; },
   'bigger-or-smaller': (s) => { const [a, b, c, d] = at([[3, 4, 2, 1], [5, 4, 2, 1], [2, 3, 3, 1], [4, 3, 1, 2], [1, 2, 3, 4], [3, 2, 2, 3], [3, 3, 3, 4], [5, 6, 2, 1], [7, 6, 1, 2], [2, 2, 5, 6], [4, 5, 2, 1], [6, 5, 1, 2]] as const, s);
     const amount = d === 1 ? String(c) : `${c}/${d}`; const way = a < b ? 'less than' : a > b ? 'more than' : 'the same as';
@@ -796,12 +797,12 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
     return [`Each guest eats ${a}/${b} pound. ${n} guests come. Build the total.`, n * a, b, `${n} groups of ${a} ${unitWord(b)} is ${n * a} ${unitWord(b)}: ${n * a}/${b}.`]; },
   'two-step-conversions': (s) => { const [w, part, word] = at([[1, 6, '1/2'], [1, 3, '1/4'], [2, 4, '1/3'], [1, 9, '3/4'], [2, 6, '1/2'], [1, 8, '2/3'], [2, 3, '1/4'], [1, 4, '1/3'], [2, 9, '3/4'], [1, 10, '5/6'], [2, 8, '2/3'], [1, 2, '1/6']] as const, s);
     return [`A rope is ${w} ${word} feet long. Show it in inches, 12 to a foot.`, 12 * w + part, 12, `${w} ${w === 1 ? 'foot is' : 'feet are'} ${12 * w} inches. ${word} foot is ${part} more: ${12 * w + part} inches.`]; },
-  'line-plot-totals': (s) => { const values = at([[1, 2, 2], [1, 1, 3], [2, 3, 3], [1, 3, 4], [2, 2, 5], [1, 4, 4], [3, 3, 5], [1, 2, 6], [2, 4, 4], [1, 5, 5], [2, 3, 6], [3, 4, 4]] as const, s);
+  'line-plot-totals': (s) => { const values = at([[1, 1, 2], [1, 2, 2], [1, 1, 4], [2, 2, 3], [1, 3, 4], [2, 3, 4], [2, 3, 5], [2, 4, 5], [3, 4, 5], [3, 4, 6], [3, 5, 6], [4, 5, 6]] as const, s);
     const total = values.reduce((sum, v) => sum + v, 0);
     return [`Cups hold ${values.map((v) => `${v}/8`).join(', ')} liter. Show the total on a line.`, total, 8, `${values.join(' + ')} = ${total} eighths: ${total}/8 liters.`, 'line']; },
-  'fractional-side-area': (s) => { const [a, c] = at([[1, 1], [1, 2], [2, 1], [2, 3], [1, 3], [2, 2], [3, 1], [3, 2], [3, 3], [2, 4], [1, 4], [3, 4]] as const, s);
-    return [`A rectangle is ${a}/3 unit by ${c}/4 unit. Find its area.`, a * c, 12, `${a} columns by ${c} rows cover ${a * c} of 12 equal squares.`]; },
-  'multiply-mixed-numbers': (s) => { const [a, b, c, d] = at([[3, 2, 4, 3], [3, 2, 3, 2], [5, 4, 4, 3], [5, 4, 3, 2], [4, 3, 5, 4], [7, 4, 4, 3], [5, 3, 3, 2], [3, 2, 5, 4], [3, 2, 5, 3], [4, 3, 4, 3], [5, 4, 5, 4], [7, 6, 3, 2]] as const, s);
+  'fractional-side-area': (s) => { const [a, b, c, d] = at([[1, 3, 1, 4], [1, 2, 1, 3], [2, 3, 3, 4], [1, 2, 3, 4], [2, 3, 1, 2], [3, 4, 3, 4], [1, 3, 2, 3], [1, 2, 1, 4], [2, 3, 2, 3], [1, 4, 3, 4], [2, 5, 1, 2], [3, 5, 1, 2]] as const, s);
+    return [`A rectangle is ${a}/${b} unit by ${c}/${d} unit. Find its area.`, a * c, b * d, `${a} of ${b} columns by ${c} of ${d} rows cover ${a * c} of ${b * d} equal squares.`]; },
+  'multiply-mixed-numbers': (s) => { const [a, b, c, d] = at([[3, 2, 4, 3], [3, 2, 3, 2], [5, 4, 4, 3], [5, 4, 3, 2], [7, 4, 4, 3], [5, 3, 3, 2], [4, 3, 4, 3], [5, 4, 5, 4], [7, 6, 3, 2], [5, 4, 6, 5], [7, 4, 5, 4], [4, 3, 5, 3], [7, 4, 3, 2], [5, 3, 5, 4], [7, 6, 4, 3]] as const, s);
     return [`A rectangle is ${a}/${b} unit by ${c}/${d} unit. Find its area.`, a * c, b * d, `Multiply the sides: ${a}/${b} × ${c}/${d} = ${a * c}/${b * d}.`]; },
   'divide-whole-by-unit-fraction': (s) => { const d = at([2, 3, 4, 6], s); const w = 1 + (s % 3);
     return [`How many 1/${d}-cup scoops fill ${w} ${w === 1 ? 'cup' : 'cups'}? Make it.`, w * d, d, `Each cup holds ${d} scoops of 1/${d}. ${w} ${w === 1 ? 'cup holds' : 'cups hold'} ${w * d}.`]; },
@@ -864,7 +865,9 @@ function lessonBuildCheck(id: string, serial: number, checkId: string): BuildChe
   // Every other run of builds starts on the other model (each build asks for a bar and a number line), so a story can
   // come back as a new build.
   // Line plots stay on the line: a bar is not a line plot.
-  const flip = Math.floor(serial / 10) % 2 === 1 && !LINE_ONLY_BUILDS.has(id);
+  // So does a build whose words name its model ("on a line", "jumps", an area or a product).
+  const named = /\bline\b|\bjumps?\b|\bspaces\b/i.test(prompt) || /\barea\b|\brectangle\b|\bbars?\b|×/i.test(prompt);
+  const flip = Math.floor(serial / 10) % 2 === 1 && !LINE_ONLY_BUILDS.has(id) && !named;
   const kind = flip && made === 'bar' ? 'line' : flip && made === 'line' ? 'bar' : made;
   const words = kind === 'line' && BAR_WORDED_BUILDS.has(id) ? `Cut 0 to 1 into ${d} equal spaces. Make ${n} ${n === 1 ? 'jump' : 'jumps'}.` : prompt;
   return {
