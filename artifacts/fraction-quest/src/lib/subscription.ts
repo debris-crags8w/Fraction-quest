@@ -80,12 +80,15 @@ export function perMonth(offer: PlanOffer): string | null {
     yet) leaves them open, so a child is never stuck because of the store. */
 export const lessonsLocked = (subscription: Subscription | null): boolean => subscription?.state === 'none';
 
-/** In a plain browser (not the app), lessons after the first point to the app. A build with VITE_WEB_LESSONS_OPEN=1
-    (the browser tests) keeps them open, unless a test turns the browser limit back on with `__fqWebLimit`. */
-export function webLessonsLocked(): boolean {
+type BuildEnv = { DEV?: boolean; VITE_WEB_LESSONS_OPEN?: string };
+
+/** In a plain browser (not the app), lessons after the first point to the app: on the published website only. The
+    development server (`vite` dev, such as the Replit preview) and a build with VITE_WEB_LESSONS_OPEN=1 (the browser
+    tests) keep them open, unless a test turns the browser limit back on with `__fqWebLimit`. */
+export function webLessonsLocked(env: BuildEnv = (import.meta.env ?? {}) as BuildEnv): boolean {
   const scope = globalThis as { fractionQuestShell?: unknown; ReactNativeWebView?: unknown; __fqWebLimit?: boolean };
   if (scope.fractionQuestShell || scope.ReactNativeWebView) return false;
-  const open = String(import.meta.env?.VITE_WEB_LESSONS_OPEN ?? '') === '1';
+  const open = env.DEV === true || String(env.VITE_WEB_LESSONS_OPEN ?? '') === '1';
   return !open || scope.__fqWebLimit === true;
 }
 

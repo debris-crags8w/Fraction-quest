@@ -36,6 +36,13 @@ test('in a plain browser lessons after the first point to the app; inside the ap
   withShell({ platform: 'ios', wifi: true }, () => assert.equal(webLessonsLocked(), false));
 });
 
+test('the development server keeps every lesson open; the published website keeps the limit', () => {
+  // Reported: the "rest of the adventure is in the app" screen showed on the Replit development URL.
+  assert.equal(webLessonsLocked({ DEV: true }), false);
+  assert.equal(webLessonsLocked({ DEV: false }), true);
+  assert.equal(webLessonsLocked({ VITE_WEB_LESSONS_OPEN: '1' }), false);
+});
+
 test('the page reads the plans the store has for sale, yearly first, and drops anything malformed', () => {
   const plans = [
     { plan: 'monthly', price: '$4.99', amount: 4.99, currency: 'USD' },
