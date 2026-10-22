@@ -2541,8 +2541,8 @@ describe('question generator', () => {
     } else if ((m = /^Is (\d+)\/(\d+) × (.+) more or less than \3\?$/.exec(p))) { assert.equal(answer, factorWords(N(m[1]) / N(m[2]), m[3]), p); return true; }
     else if ((m = /^Without multiplying, compare (\d+)\/(\d+) × (.+) with \3: __ \3\.$/.exec(p))) {
       const k = N(m[1]) / N(m[2]); assert.equal(answer, `${m[1]}/${m[2]} × ${m[3]} ${near(k, 1) ? '=' : k < 1 ? '<' : '>'} ${m[3]}`, p); return true;
-    } else if ((m = /^1\/(\d+) \w+ of \w+ is shared by (\d+) friends\. Is this sharing or fitting\?$/.exec(p))) { assert.equal(answer, 'Sharing', p); return true; }
-    else if ((m = /^How many 1\/\d+-\w+ \w+ can be filled from \d+ \w+ of \w+\? Is this sharing or fitting\?$/.exec(p))) { assert.equal(answer, 'Fitting', p); return true; }
+    } else if ((m = /^Pip has 1\/(\d+) \w+ of \w+ for (\d+) friends\. Each friend gets the same amount\. Is this sharing or fitting\?$/.exec(p))) { assert.equal(answer, 'Sharing', p); return true; }
+    else if ((m = /^Pip has \d+ \w+ of \w+\. Each \w+ holds 1\/\d+ \w+\. Is this sharing or fitting\?$/.exec(p))) { assert.equal(answer, 'Fitting', p); return true; }
     else if ((m = /^1\/(\d+) \w+ of \w+ is shared by (\d+) friends\. How much does each get\?$/.exec(p))) { assert.ok(near(amountOf(answer), 1 / N(m[1]) / N(m[2])), p); return true; }
     else if ((m = /^How many 1\/(\d+)-\w+ \w+ can be filled from (\d+) \w+ of \w+\?$/.exec(p))) { assert.ok(near(amountOf(answer), N(m[1]) * N(m[2])), p); return true; }
     if (expected === null) return false;
@@ -4605,7 +4605,7 @@ describe('second lessons (grade 4): dimes and pennies, plot in eighths, party po
     assert.deepEqual(coins.model, { kind: 'coins', dimes: 6, pennies: 0 });
     assert.equal(coins.choices[coins.correctChoice], '60/100');
     const [plot] = lesson('plot-in-eighths').questions;
-    assert.match(plot.prompt, /Plot them\. How many more are 5\/8 inch than 1\/8 inch\?$/);
+    assert.match(plot.prompt, /Plot them\. How many more Xs are at 5\/8 than at 1\/8\?$/);
     assert.ok(plot.model.kind === 'lineplot' && plot.model.plotTask, 'the child plots the Xs');
     assert.equal(plot.choices[plot.correctChoice], '2');
     const [portions] = lesson('party-portions').questions;

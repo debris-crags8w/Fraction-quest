@@ -309,7 +309,7 @@ export const STORY_PROBLEMS: Record<string, StoryProblem> = {
     prompt: 'The {cake} has 6 equal pieces. Chomp takes 1 piece. What fraction is that?',
     result: 'Chomp took just 1/6. There is plenty left for everyone!' },
   'fraction-of-area': { setup: 'This tray {cake} is cut in long strips. Are they fair?',
-    prompt: 'The baker’s tray {cake} is split into 3 equal-area strips. Color 1. What fraction of the whole is colored?',
+    prompt: 'The baker’s tray {cake} is cut into equal strips. Color 1 part. What fraction of the {cake} is colored?',
     result: '1/3 of the {cake} gets frosting. Fair strips, Chomp!' },
   // Chapter 2 · Pip’s pond party
   'unit-size': { setup: 'Two {bars} the same size! Which piece should the tiny guests get?',

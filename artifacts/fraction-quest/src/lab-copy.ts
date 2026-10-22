@@ -18,7 +18,7 @@ export const foldSpeech = (folds: number, pieces: number) =>
   `${folds} ${folds === 1 ? 'fold' : 'folds'}. ${pieces} equal parts. Each part is 1/${pieces}.`;
 
 type BuildKind = 'bar' | 'line' | 'set';
-type BuildTarget = { n: number; d: number; wholes: number; total?: number };
+type BuildTarget = { n: number; d: number; wholes: number; total?: number; anyName?: boolean };
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** The two Build hints: first how to split the whole, then how many to shade, mark or select. */
@@ -50,6 +50,12 @@ export function buildErrors(kind: BuildKind, t: BuildTarget, s: { d: number; cou
   if (kind === 'set') {
     const total = t.total ?? 0;
     if (total % s.d !== 0) { msgs.push(`${label}: ${total} can't split into ${s.d} equal groups. Try another number.`); keys.push(BUILD_SLIPS.parts); }
+  }
+  // Where any name is right (6/12 for 1/2), an equal fraction is built correctly.
+  const sameAmount = Boolean(t.anyName) && s.d > 0 && s.count * t.d === t.n * s.d;
+  if (sameAmount) {
+    if (kind === 'bar' && s.wholes !== t.wholes) { msgs.push(`${label}: use ${t.wholes} whole ${t.wholes === 1 ? 'bar' : 'bars'}.`); keys.push(BUILD_SLIPS.wholes); }
+    return { msgs, keys };
   }
   // Point at the part of the fraction to check, without saying the number (that would build it for the child).
   if (s.d !== t.d && !msgs.length) { msgs.push(`${label}: not yet. Look at the denominator: how many equal ${unit} make one whole?`); keys.push(BUILD_SLIPS.parts); }

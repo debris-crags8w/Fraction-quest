@@ -234,7 +234,7 @@ const RULES: Rule[] = [
   { name: 'line plot difference', re: /^(?:(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths|Rain fell on \d+ days): (.+) inch\. (?:What is the difference between the longest and shortest|How much more rain fell on the wettest day than the driest)\?$/,
     solve: (m) => { const v = m[1].split(', ').map(frac); return { value: Math.max(...v) - Math.min(...v) }; } },
   // Plot in eighths: the lengths are in the question, so the plot is worked out from them.
-  { name: 'line plot how many more', re: /^(?:(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths|[A-Z]\w+): (.+) inch\. (?:Plot them\. )?How many (?:\w+ )?more are (\d+\/\d+) inch than (\d+\/\d+) inch\?$/,
+  { name: 'line plot how many more', re: /^(?:(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths|[A-Z]\w+): (.+) inch\. (?:Plot them\. )?How many more Xs are at (\d+\/\d+) than at (\d+\/\d+)\?$/,
     solve: (m) => { const v = m[1].split(', ').map(frac); const at = (x: string) => v.filter((y) => near(y, frac(x))).length; return { value: at(m[2]) - at(m[3]) }; } },
   { name: 'line plot longer than (quarters)', re: /^The line plot shows \w+ lengths: ([\d/ ,]+) inches\. How many \w+ are longer than ([\d/ ]+) inches\?$/,
     solve: (m) => ({ value: m[1].split(', ').map(valueOf).filter((y) => y > valueOf(m[2]) && !near(y, valueOf(m[2]))).length }) },
@@ -251,7 +251,7 @@ const RULES: Rule[] = [
     solve: (m) => ({ value: m[1].split(/, | and /).map(frac).reduce((a, b) => a + b, 0) }) },
   { name: 'line plot total (build)', re: /^(?:Beakers|Cups) hold (.+) liter\. Show the total on a line\.$/,
     solve: (m) => ({ value: m[1].split(/, | and /).map(frac).reduce((a, b) => a + b, 0) }) },
-  { name: 'line plot stack difference', re: /^(?:The line plot shows [\w ]+ in \d+ \w+|Plot these \w+ in eighths of a liter): (.+) liter\. How much more do the (\d+\/\d+) \w+ hold than the (\d+\/\d+) \w+\?$/,
+  { name: 'line plot stack difference', re: /^(?:The line plot shows [\w ]+ in \d+ \w+|Plot these \w+ in eighths of a liter): (.+) liter\. How much more do all the (\d+\/\d+) \w+ hold together than all the (\d+\/\d+) \w+ together\?$/,
     solve: (m) => { const v = m[1].split(', ').map(frac); const stack = (x: string) => v.filter((y) => near(y, frac(x))).reduce((a, b) => a + b, 0);
       return { value: stack(m[2]) - stack(m[3]) }; } },
   // Two-step conversions: a mixed number of big units in small units, then take away or add.
@@ -327,7 +327,9 @@ const RULES: Rule[] = [
   { name: 'fitting story', re: new RegExp(String.raw`^How many (\d+\/\d+)-\w+ \w+ (?:can be filled from (${TERM}) \w+ of [\w ]+|do (${TERM}) \w+ of \w+ fill)\?$`),
     solve: (m) => ({ value: valueOf(m[2] ?? m[3]) / frac(m[1]) }) },
   { name: 'sharing or fitting', re: /^(.+[.?]) Is this sharing or fitting\?$/,
-    solve: (m) => (/\bshared?\b/.test(m[1]) ? { text: 'Sharing' } : /^How many\b/.test(m[1]) ? { text: 'Fitting' } : 'the story is neither sharing nor fitting') },
+    // Sharing: an amount split among friends; fitting: how many pieces of a size the amount holds.
+    solve: (m) => (/\bshared?\b|\bEach friend gets the same amount\b/.test(m[1]) ? { text: 'Sharing' }
+      : /^How many\b|\bEach \w+ holds \d+\/\d+\b/.test(m[1]) ? { text: 'Fitting' } : 'the story is neither sharing nor fitting') },
 
   // --- decimals on a grid, and comparing parts of the same whole
   { name: 'hundredths in a decimal', re: /^How many hundredths is (\d*\.\d{1,2})\?$/, solve: (m) => ({ value: Math.round(N(m[1]) * 100), form: 'whole' }) },
@@ -492,6 +494,11 @@ const PICTURE_RULES: Rule[] = [
       if (!piece.every((x) => near(x, piece[0]))) return `the ${kind}s are not all the same size`;
       const space = /one half/.test(item.prompt) ? 0.5 : pieceArea(pieces.find((x) => x.shape === 'square')!);
       return { value: space / piece[0] }; } },
+  { name: 'picture: color parts of a shape', re: /^(?:This (\w+) is on a [\w ]+|The baker’s tray [\w ]+ is cut into equal strips)\. Color (\d+) parts?\. What fraction of the (?:\1|[\w ]+) is colored\?$/,
+    solve: (m, item) => { const p = (item.pictures ?? []).find((x) => x.kind === 'area'); if (!p || p.kind !== 'area') return 'no shape';
+      const areas = AREA_CUTS[p.cut].map(pieceArea);
+      if (!areas.every((x) => near(x, areas[0]))) return 'the parts are not equal';
+      return { value: N(m[2]) / areas.length }; } },
   { name: 'picture: count the parts', re: /^Tap each part to count it\. How many equal parts (?:is this bar cut into|make the whole bar)\?$/,
     solve: (_m, item) => { const p = (item.pictures ?? []).find((x) => partCount(x) !== null); if (!p) return 'no bar to count'; return { value: partCount(p)! }; } },
   { name: 'picture: dot on a line', re: /^(?:Each whole has (\d+) equal spaces\. )?What fraction is at the dot\?$/,

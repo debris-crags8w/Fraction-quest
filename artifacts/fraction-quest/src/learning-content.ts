@@ -7,7 +7,8 @@ import type { ModelSpec } from './game';
 import { gardenModel } from './garden';
 export type Rational = { n: number; d: number };
 /** `sizes` (bars only) draws pieces of different widths, for "Is this cut into equal parts?" pictures. */
-export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number; wholes: number; total?: number; sizes?: number[] };
+export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number; wholes: number; total?: number; sizes?: number[];
+  /** Any fraction equal to n/d is right (6/12 for 1/2), where the lesson isn't about naming it one way. */ anyName?: boolean };
 /** What the child does on the bar before typing: copy the shaded bar, tap each part to count it, or shade `n` parts. */
 /** `say`: the instruction to show instead of "Shade n parts", when n itself would be the answer. */
 export type BarTask = { kind: 'copy' | 'count' | 'shade'; n: number; say?: string };
@@ -539,7 +540,14 @@ const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reaso
   'fraction-of-remainder': { n: 3, d: 8, prompt: 'Pour out 1/2 of a jug. Then pour out 1/4 of the rest. Make what is left.', reason: '1/2 is left. 1/4 of that is 1/8. 1/2 − 1/8 = 3/8.' },
   'divide-fractions': { n: 4, d: 10, prompt: 'How many 1/10s fit in 2/5? Make 2/5 in tenths.', reason: '2/5 = 4/10. So 4 tenths fit.' },
 };
+/** Lessons whose builds accept any equal fraction: an area or what's left can be named in more than one way. */
+const ANY_NAME_LESSONS = new Set(['fractional-side-area', 'multiply-mixed-numbers', 'fraction-of-remainder']);
+const acceptAnyName = (id: string, check: BuildCheck): BuildCheck => (ANY_NAME_LESSONS.has(id) ? { ...check, target: { ...check.target, anyName: true } } : check);
+
 export function getBuildChecks(id: string): BuildCheck[] {
+  return buildChecksFor(id).map((check) => acceptAnyName(id, check));
+}
+function buildChecksFor(id: string): BuildCheck[] {
   const seed = CHECKS[id]; if (!seed) throw new Error(`Missing learning checks: ${id}`);
   const [n, d, kind, prompt, explanation, total] = seed;
   const transfer = transferTarget(id, n, d, kind);
@@ -843,7 +851,7 @@ export function getBuildPracticeChecks(id: string, batch = 0, count = 10): Build
   const cached = BUILD_PRACTICE_CACHE.get(cacheKey);
   if (cached) return cached;
 
-  const required = getBuildChecks(id);
+  const required = buildChecksFor(id);
   const excludedTargets = new Set(required.map(targetKey));
   const all: BuildCheck[] = [];
   const seenTargets = new Set<string>([...excludedTargets, ...required.map((check) => check.prompt)]);
@@ -877,7 +885,7 @@ export function getBuildPracticeChecks(id: string, batch = 0, count = 10): Build
   }
   if (!all.length) throw new Error(`No optional Build practice questions available for ${id}`);
   while (all.length < (batch + 1) * count) all.push(all[all.length % Math.max(1, all.length)]);
-  const selected = all.slice(batch * count, (batch + 1) * count).map((check, index) => ({
+  const selected = all.slice(batch * count, (batch + 1) * count).map((check, index) => acceptAnyName(id, {
     ...check, id: `practice-${batch + 1}-${index + 1}`, stepLabel: `Extra build ${index + 1} of ${count}`,
   }));
   BUILD_PRACTICE_CACHE.set(cacheKey, selected);
@@ -1388,7 +1396,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const total = bottom * (sets ? 3 + (i + 1) % 4 : 2 + i % 4); const groups = 1 + (sets ? (i + 1) : i) % (bottom - 1 || 1);
         prompt = `What is ${f(groups, bottom)} of ${total} ${spec.mode === 'sets' ? 'cards' : 'pencils'}?`;
         // The groups, none picked: picking them is the answer.
-        answer = String(total / bottom * groups); visual = i % 3 === 2 ? model(0, bottom, 'set', total) : undefined;
+        answer = String(total / bottom * groups); visual = model(0, bottom, 'set', total);
         hint = `Make ${bottom} equal groups. Count ${groups} of them.`; break;
       }
       case 'share': {
@@ -1470,11 +1478,11 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           hint = 'Count the parts, then compare their areas. Four parts are not always fourths.';
         } else {
           const shape = cuts[tr % cuts.length]; const shaded = 1 + (i % (shape.parts - 1));
-          const partition = shape.cut === 'fourths-squares' ? 'small squares' : shape.whole === 'circle' ? 'circle wedges' : shape.cut === 'hexagon-sixths' ? 'triangles' : shape.cut === 'rect-thirds' ? 'strips' : 'triangles';
           const setting = ['paper design', 'classroom poster', 'garden map', 'window panel', 'quilt square', 'tile pattern', 'greeting card', 'floor plan', 'art print', 'flag design', 'mosaic panel', 'shape puzzle'][i];
-          prompt = `On the ${setting}, this ${shape.whole} is split into ${shape.parts} equal-area ${partition}. Color ${shaded}. What fraction of the whole is colored?`;
+          // The child counts the parts in the picture: the words never say how many there are.
+          prompt = `This ${shape.whole} is on a ${setting}. Color ${shaded} ${shaded === 1 ? 'part' : 'parts'}. What fraction of the ${shape.whole} is colored?`;
           answer = f(shaded, shape.parts); area = { cut: shape.cut }; areaTask = { n: shaded, d: shape.parts };
-          hint = 'The denominator counts all equal-area parts. The numerator counts the parts you colored.';
+          hint = 'Count all the equal parts first. Then count the parts you colored.';
         }
         break;
       }
@@ -1932,7 +1940,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const most = [...new Set(values)].sort((a, b) => count(b) - count(a) || a - b)[0];
         const least = Math.min(...values);
         if (i % 3 === 0 && count(most) !== count(least)) {
-          prompt = `Plot these ${object} lengths in eighths: ${list}. How many more are ${f(most, 8)} inch than ${f(least, 8)} inch?`;
+          prompt = `Plot these ${object} lengths in eighths: ${list}. How many more Xs are at ${f(most, 8)} than at ${f(least, 8)}?`;
           answer = String(count(most) - count(least));
           hint = `Count the Xs at ${f(most, 8)}. Count the Xs at ${f(least, 8)}. Take away.`; break;
         }
@@ -1998,7 +2006,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const tall = [...new Set(values)].sort((x, y) => count(y) - count(x) || y - x)[0];
         const low = Math.min(...values);
         if (i % 2 === 1 && tall !== low && count(tall) * tall > count(low) * low) {
-          prompt = `Plot these ${context} in eighths of a liter: ${list}. How much more do the ${f(tall, 8)} ${context} hold than the ${f(low, 8)} ${context}?`;
+          prompt = `Plot these ${context} in eighths of a liter: ${list}. How much more do all the ${f(tall, 8)} ${context} hold together than all the ${f(low, 8)} ${context} together?`;
           answer = f(count(tall) * tall - count(low) * low, 8); denominator = 8;
           hint = `Add up each stack first: ${count(tall)} × ${f(tall, 8)} and ${count(low)} × ${f(low, 8)}. Then take away.`; break;
         }
@@ -2025,6 +2033,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
 }
 
 export function getReviewCheck(id: string, round: number): BuildCheck {
+  return acceptAnyName(id, reviewCheckFor(id, round));
+}
+function reviewCheckFor(id: string, round: number): BuildCheck {
   if (EXTENSION_WORKSHEETS[id]) {
     // A later review is the lesson's own kind of build with new numbers; without one, it rotates through all three builds.
     const fresh = lessonBuildCheck(id, 40 + round, 'retention');

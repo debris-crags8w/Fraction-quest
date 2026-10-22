@@ -23,7 +23,8 @@ export function amountsIn(text: string): Amount[] {
   // Mixed numbers first ("1 2/3", "2 and 1/4"), then plain fractions, decimals and percents.
   for (const m of execAll(text, /\b(\d+)\s+(?:and\s+)?(\d+)\/(\d+)\b/g)) {
     const [whole, n, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
-    if (d > 0 && n < d) take(m as RegExpExecArray, { numerator: whole * d + n, denominator: d, written: true });
+    // Not marked as written: its label would print the single fraction the question asks for.
+    if (d > 0 && n < d) take(m as RegExpExecArray, { numerator: whole * d + n, denominator: d });
   }
   for (const m of execAll(text, /\b(\d+)\/(\d+)\b/g)) take(m, { numerator: Number(m[1]), denominator: Number(m[2]), written: true });
   for (const m of execAll(text, /\b(\d*)\.(\d{1,2})\b/g)) {
