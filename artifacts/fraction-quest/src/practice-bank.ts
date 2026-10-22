@@ -377,12 +377,12 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'fraction-of-quantity': (r) => {
     const d = r.pick([2, 3, 4, 5, 6, 8, 10]); const n = r.int(1, d - 1); const per = r.int(2, 9); const t = d * per;
-    return later(`What is ${f(n, d)} of ${t}?`, String(n * per), [String(per), String(t - n * per), String(n * per + per)],
-      `Make ${d} equal groups. Count ${n} of them.`, `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, bar(n, d));
+    return later(`${f(n, d)} × ${t} = ?`, String(n * per), [String(per), String(t - n * per), String(n * per + per)],
+      `${t} ÷ ${d} is one group. Then take ${n} groups.`, `${t} ÷ ${d} = ${per}. ${n} × ${per} = ${n * per}.`, set(0, t, d));
   },
   'fraction-of-collection': (r) => {
     const d = r.pick([2, 3, 4, 5, 6]); const n = r.int(1, d - 1); const per = r.int(2, 5); const t = d * per;
-    return later(`What is ${f(n, d)} of ${t} cards?`, String(n * per), [String(per), String(t - n * per), String(n * per + 1)],
+    return later(`${f(n, d)} of ${t} cards are blue. Solve ${f(n, d)} × ${t} to find how many are blue.`, String(n * per), [String(per), String(t - n * per), String(n * per + 1)],
       `Make ${d} equal groups. Count ${n} of them.`, `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, set(0, t, d));
   },
   'multiply-whole-by-fraction': (r) => {
@@ -525,10 +525,12 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'fraction-of-area': (r) => {
     const d = r.pick(G3_DENS); const n = r.int(1, d - 1);
-    // Circles and the 3-by-4 grid when there's one with that many parts; bars otherwise.
-    const cut = circleCut(d);
-    const shape = cut ? 'circle' : 'tile';
-    return later(`What fraction of the ${shape} is shaded?`, f(n, d), [f(d - n, d), f(n, d + 1), f(d, n)],
+    // Fourths are often squares and triangles together (equal parts, different shapes); else circles when there's one
+    // with that many parts, bars otherwise.
+    const cut: AreaCut | undefined = d === 4 && r.int(0, 1) ? 'fourths-mixed' : circleCut(d);
+    const shape = cut === 'fourths-mixed' ? 'square' : cut ? 'circle' : 'tile';
+    // Real slips: shaded over unshaded, the unshaded parts, and the numbers flipped.
+    return later(`What fraction of the ${shape} is shaded?`, f(n, d), [f(n, d - n), f(d - n, d), f(d, n)],
       'Count all the equal parts for the denominator. Count the shaded parts for the numerator.', `${n} of ${d} equal parts: ${f(n, d)}.`, cut ? area(cut, shadedFirst(n)) : bar(n, d));
   },
   'equivalent-number-line': (r) => {
@@ -558,6 +560,13 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'multi-step-fraction-stories': (r) => {
     const d = r.pick([4, 5, 6, 8, 10, 12]); const a = r.int(1, d - 2); const b = r.int(1, d - 1 - a);
+    // A third of the stories take away first, then add (not every story is "add, then take from a whole").
+    if (r.int(0, 2) === 0) {
+      const start = d - 1;
+      return later(`A jug has ${f(start, d)} liter. Sam drinks ${f(a, d)} liter, then adds ${f(b, d)} liter. How much is in the jug now?`, f(start - a + b, d),
+        [f(start - a, d), f(start + b, d), f(start - a - b, d)], `First take away what Sam drinks. Then add what he pours in.`,
+        `${f(start, d)} − ${f(a, d)} = ${f(start - a, d)}. ${f(start - a, d)} + ${f(b, d)} = ${f(start - a + b, d)}.`, bar(start, d));
+    }
     const story = r.chance()
       ? `${f(a, d)} of a garden is planted. Then ${f(b, d)} more is planted. How much is still empty?`
       : `Mia reads ${f(a, d)} of a book on Monday and ${f(b, d)} on Tuesday. How much is left to read?`;
@@ -598,7 +607,8 @@ Object.assign(RECIPES, LATER_RECIPES);
 for (const topic of MISSIONS.filter((item) => !(item.id in RECIPES))) {
   let pool: ReturnType<typeof getWorksheet> | null = null;
   RECIPES[topic.id] = (r) => {
-    pool ??= [1, 2, 3, 4].flatMap((variant) => getWorksheet(topic.id, variant));
+    // Yes/no rows stay on the worksheet: a tap question needs number answers to make wrong choices from.
+    pool ??= [1, 2, 3, 4].flatMap((variant) => getWorksheet(topic.id, variant)).filter((problem) => problem.form !== 'word');
     const problem = r.pick(pool);
     return {
       prompt: asChoicePrompt(problem.prompt), right: problem.answer, wrong: choiceDistractors(problem.answer),
