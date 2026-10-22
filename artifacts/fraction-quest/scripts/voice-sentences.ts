@@ -77,7 +77,14 @@ const EXTRA_BY_SOURCE: Record<VoiceSentenceSource, string[]> = {
 const isProse = (value: string) => !/^[\w-]+$/.test(value) && !/^#|^https?:/.test(value) && /[a-z]/i.test(spokenText(value)) && /\s/.test(value.trim());
 
 function collect(value: unknown, out: Set<string>, seen = new Set<unknown>()) {
-  if (typeof value === 'string') { if (isProse(value)) out.add(value); return; }
+  if (typeof value === 'string') {
+    if (!isProse(value)) return;
+    out.add(value);
+    // A review question's Listen reads it without its "Quick review · Topic:" tag (see promptListenText in fun-ui).
+    const untagged = /^Quick review · [^:]+:\s+(.+)$/s.exec(value)?.[1];
+    if (untagged) out.add(untagged);
+    return;
+  }
   if (!value || typeof value !== 'object' || seen.has(value)) return;
   seen.add(value);
   for (const item of Array.isArray(value) ? value : Object.values(value)) collect(item, out, seen);

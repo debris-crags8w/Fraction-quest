@@ -420,10 +420,15 @@ export function splitStory(prompt: string): { lines: string[]; question: string 
 }
 
 /** Shows a long problem as numbered story lines with the question underneath. */
+const REVIEW_TAG = /^(Quick review · [^:]+):\s+(.+)$/s;
+
+/** What the question's Listen reads: the story lines and the question, never the "Quick review · Topic" tag. */
+export const promptListenText = (prompt: string) => REVIEW_TAG.exec(prompt)?.[2] ?? prompt;
+
 export function StoryPrompt({ prompt, id }: { prompt: string; id: string }) {
   // A review question starts "Quick review · Topic: …": the topic shows as a small tag above the question, so the
-  // heading is just the question (Listen still reads the whole prompt).
-  const review = /^(Quick review · [^:]+):\s+(.+)$/s.exec(prompt);
+  // heading is just the question, and Listen reads the story lines and the question without the tag.
+  const review = REVIEW_TAG.exec(prompt);
   const { lines, question } = splitStory(review ? review[2] : prompt);
   return (
     <div className="fq-story-prompt">
@@ -434,7 +439,7 @@ export function StoryPrompt({ prompt, id }: { prompt: string; id: string }) {
       )}
       <div className="fq-story-question-heading">
         <h1 id={id} className="fq-question-text">{review && <span className="fq-review-prefix">{review[1]}</span>}<LearningText text={question} emphasize /></h1>
-        <LearningListenButton text={prompt} label="Listen to the question" />
+        <LearningListenButton text={promptListenText(prompt)} label="Listen to the question" />
       </div>
     </div>
   );
