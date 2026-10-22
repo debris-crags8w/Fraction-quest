@@ -51,6 +51,10 @@ function DisplaySettings({ preferences, onChange }: { preferences: DisplayPrefer
         <span><strong>Story mode</strong><small>Short comics with Numi’s friends before and after lessons. Lessons and answers stay the same.</small></span>
         <input type="checkbox" checked={preferences.storyMode !== false} onChange={(event) => onChange({ ...preferences, storyMode: event.target.checked })} data-testid="checkbox-story-mode" />
       </label>
+      <label className="fq-display-setting">
+        <span><strong>Story music</strong><small>Quiet music under the story films: calm, worried when something goes wrong, happy when a piece is found. It gets softer while a character speaks. Only in films, and off when the app’s sound is off.</small></span>
+        <input type="checkbox" checked={preferences.storyMusic !== false} onChange={(event) => onChange({ ...preferences, storyMusic: event.target.checked })} data-testid="checkbox-story-music" />
+      </label>
     </section>
   );
 }

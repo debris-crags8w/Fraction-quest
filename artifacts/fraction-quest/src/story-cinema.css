@@ -2,6 +2,11 @@
 .fq-cine .fq-story-comic { gap: 10px; }
 .fq-cine-voice { display: inline-flex; flex: none; white-space: nowrap; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border: 2px solid #BDE3A8; border-radius: 999px; color: #2F6B12; background: #E7F8DC; font: inherit; font-size: .85rem; font-weight: 900; cursor: pointer; }
 .fq-cine-voice[aria-pressed="false"] { color: #5E5A78; background: #F1EEFA; border-color: #D9D2F2; }
+.fq-cine-music[aria-pressed="true"] { color: #43299E; background: #F0EBFF; border-color: #B8A6F0; }
+.fq-cine-voice-wait { display: inline-flex; align-items: center; gap: 8px; color: #D8D2F0; }
+.fq-cine-wait-dots { display: inline-flex; gap: 4px; }
+.fq-cine-wait-dots i { width: 7px; height: 7px; border-radius: 50%; background: #FFC800; animation: fq-cine-pulse 1s ease-in-out infinite; }
+.fq-cine-wait-dots i:nth-child(2) { animation-delay: .2s; } .fq-cine-wait-dots i:nth-child(3) { animation-delay: .4s; }
 
 /* The screen: tall while the story plays, and it stays on the last picture afterwards. With a choice to make it
    shrinks so the picture, the choice and the buttons fit a phone. Each scene keeps its action in the top 60%, above

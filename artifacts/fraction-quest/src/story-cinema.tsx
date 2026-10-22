@@ -8,11 +8,12 @@
    Scenes: the prologue, every chapter opening, completed chapter endings and the finale. */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowRight, RotateCcw, Search, Volume2, VolumeX } from 'lucide-react';
+import { ArrowRight, Music, RotateCcw, Search, Volume2, VolumeX } from 'lucide-react';
 import { StoryCharacter } from './characters';
 import { LearningListenButton, LearningText, prefetchReading, useFollowedReading } from './LearningText';
 import { useFun, useSeason } from './fun-ui';
 import { playCue } from './lib/fun';
+import { filmMood, StoryMusic } from './lib/story-music';
 import { sentences, spokenText } from './lib/voice';
 import { CHAPTERS, CHARACTERS, propTheme, withName, type Panel, type StoryChoice, type StoryScene } from './story';
 import { TaskBar } from './TaskBar';
@@ -45,6 +46,14 @@ function savedFilmVoice(): boolean | null {
 }
 function saveFilmVoice(on: boolean) {
   try { globalThis.localStorage?.setItem(FILM_VOICE_KEY, on ? 'on' : 'off'); } catch { /* the choice still holds for this film */ }
+}
+const FILM_MUSIC_KEY = 'fraction-quest-film-music';
+/** The film's Music button carries over to the next film (null: not chosen, so the music plays when allowed). */
+function savedFilmMusic(): boolean | null {
+  try { const saved = globalThis.localStorage?.getItem(FILM_MUSIC_KEY); return saved === 'on' ? true : saved === 'off' ? false : null; } catch { return null; }
+}
+function saveFilmMusic(on: boolean) {
+  try { globalThis.localStorage?.setItem(FILM_MUSIC_KEY, on ? 'on' : 'off'); } catch { /* the choice still holds for this film */ }
 }
 const VOICE_GIVE_UP_MS = 15_000; // the first shot waits at least this long for the voice to start
 const VOICE_CPS = 10;      // a generous reading pace (characters a second): slower than any voice reads, "says:" included
@@ -516,6 +525,13 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     ? (props: { beat: number; unit?: number; speaker?: Panel['speaker'] }) => <SetArt scene={lessonSet} {...props} />
     : ART[scene]), [lessonSet, scene]);
   const [voiceOn, setVoiceOn] = useState(() => savedFilmVoice() ?? fun.sound !== false);
+  // Story music: a grown-up allows it (on unless turned off, and only with sounds on); the film's button turns it off.
+  const musicAllowed = fun.sound !== false && fun.displayPreferences?.storyMusic !== false;
+  const [musicOn, setMusicOn] = useState(() => savedFilmMusic() ?? true);
+  const music = useRef<StoryMusic | null>(null);
+  // While the voice is on its way (a clip still downloading), the caption says so; while it speaks, the music is softer.
+  const [voiceWaiting, setVoiceWaiting] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const [beat, setBeat] = useState(-1);
   const [chars, setChars] = useState(0);
   const [ending, setEnding] = useState(false);
@@ -539,7 +555,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const dropVoice = () => {
     clearTimeout(stall.current);
     if (!voiceDriving.current) return;
-    voiceDriving.current = false; reader.stop();
+    voiceDriving.current = false; reader.stop(); setVoiceWaiting(false); setSpeaking(false);
     if (typedRef.current) later(() => showBeat(beatRef.current + 1), PAUSE_MS); // a caption still typing moves on by itself
   };
   /** While the voice leads, each shot waits only as long as its line could take to read. */
@@ -576,15 +592,20 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const speakFrom = (from: number) => {
     voiceDriving.current = voiceRef.current && reader.supported;
     if (!voiceDriving.current) return;
+    setVoiceWaiting(true);
+    let heard = false;
     const first = Math.max(0, sentenceToPanel.indexOf(from));
     reader.speak(spoken.slice(from).join(' '), {
       onPart: (index) => {
         const panel = sentenceToPanel[first + index] ?? from;
+        setSpeaking(true);
+        // The voice has arrived: the line it starts on types again in step with it.
+        if (!heard) { heard = true; setVoiceWaiting(false); if (panel === beatRef.current) { showBeat(panel); return; } }
         if (panel > beatRef.current) showBeat(panel);
       },
       onEnd: () => {
         clearTimeout(stall.current);
-        voiceDriving.current = false;
+        voiceDriving.current = false; setVoiceWaiting(false); setSpeaking(false);
         // No voice, or it stopped early: the timer carries on from here (a caption still typing moves on by itself).
         if (typedRef.current) later(() => showBeat(beatRef.current + 1), beatRef.current >= lines.length - 1 ? 600 : PAUSE_MS);
       },
@@ -598,7 +619,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   };
 
   const play = (replay = false) => {
-    clearTimers(); clearTimeout(stall.current); reader.stop(); voiceDriving.current = false;
+    clearTimers(); clearTimeout(stall.current); reader.stop(); voiceDriving.current = false; setVoiceWaiting(false); setSpeaking(false);
     setDone(false); setEnding(false); setBeat(-1); beatRef.current = -1; typedRef.current = false;
     // A replay remounts the screen so the title card and entrances play again; the first play must not (it would
     // restart every animation a frame after they began).
@@ -607,7 +628,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   };
 
   const showAll = () => {
-    clearTimers(); clearTimeout(stall.current); reader.stop(); voiceDriving.current = false;
+    clearTimers(); clearTimeout(stall.current); reader.stop(); voiceDriving.current = false; setVoiceWaiting(false); setSpeaking(false);
     setBeat(lines.length - 1); beatRef.current = lines.length - 1; setEnding(false); setDone(true);
   };
 
@@ -633,7 +654,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     setVoiceOn(next); voiceRef.current = next;
     saveFilmVoice(next);
     if (!next) {
-      clearTimeout(stall.current); reader.stop(); voiceDriving.current = false;
+      clearTimeout(stall.current); reader.stop(); voiceDriving.current = false; setVoiceWaiting(false); setSpeaking(false);
       if (!done && beatRef.current >= 0 && typedRef.current) later(() => showBeat(beatRef.current + 1), PAUSE_MS);
     } else if (!done && beatRef.current >= 0) {
       const shot = beatRef.current;
@@ -649,7 +670,23 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const current = !ending && beat >= 0 ? lines[done ? lines.length - 1 : beat] : null;
   const [camera, origin] = filming.shots[done || ending ? filming.shots.length - 1 : beat + 1] ?? filming.shots[0];
   const cold = filming.coldFrom !== undefined && (done || beat >= filming.coldFrom);
+  const waitingCaption = voiceWaiting && !done && beat >= 0;
   const reply = choice && picked !== null ? choice[picked].reply : null;
+
+  // The music starts with the film, follows its mood, gets softer under the voice, and fades out when it closes.
+  const playMusic = musicAllowed && musicOn && started;
+  const mood = filmMood({ cold, finished: done || ending });
+  useEffect(() => {
+    if (!playMusic) return;
+    const player = new StoryMusic();
+    music.current = player;
+    player.start(mood);
+    return () => { player.stop(); music.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- started once; the mood follows below
+  }, [playMusic]);
+  useEffect(() => { music.current?.setMood(mood); }, [mood]);
+  useEffect(() => { music.current?.duck(speaking); }, [speaking]);
+  const toggleMusic = () => { const next = !musicOn; setMusicOn(next); saveFilmMusic(next); };
 
   return (
     <div className="fq-app fq-story-app">
@@ -663,6 +700,12 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
               aria-label={voiceOn ? 'Turn the story voice off' : 'Turn the story voice on'} data-testid="button-story-voice">
               {voiceOn ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />} {voiceOn ? 'Voice on' : 'Voice off'}
             </button>
+            {musicAllowed && (
+              <button type="button" className="fq-cine-voice fq-cine-music" aria-pressed={musicOn} onClick={toggleMusic}
+                aria-label={musicOn ? 'Turn the story music off' : 'Turn the story music on'} data-testid="button-story-music">
+                <Music size={16} aria-hidden="true" /> {musicOn ? 'Music on' : 'Music off'}
+              </button>
+            )}
             </span>
           </div>
           <button type="button" key={take} className={`fq-cine-screen is-${scene} ${done ? '' : 'is-rolling'}`} data-testid="story-panels"
@@ -692,7 +735,9 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
                   <span className="fq-cine-line">
                     {/* The full line, hidden, holds the caption's size so it doesn't grow or re-wrap as it types. */}
                     {!done && <span className="fq-cine-line-space" aria-hidden="true"><LearningText text={current.text} emphasize interactiveTerms={false} /></span>}
-                    <span><LearningText text={done ? current.text : current.text.slice(0, chars)} emphasize interactiveTerms={false} />{typing && <i className="fq-cine-caret" aria-hidden="true" />}</span>
+                    {waitingCaption
+                      ? <span className="fq-cine-voice-wait" data-testid="story-voice-waiting"><span className="fq-cine-wait-dots" aria-hidden="true"><i /><i /><i /></span>Getting {CHARACTERS[current.speaker].name}’s voice ready…</span>
+                      : <span><LearningText text={done ? current.text : current.text.slice(0, chars)} emphasize interactiveTerms={false} />{typing && <i className="fq-cine-caret" aria-hidden="true" />}</span>}
                   </span>
                 </span>
               </span>
