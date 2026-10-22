@@ -3619,6 +3619,31 @@ describe('natural read-aloud voice', () => {
     assert.deepEqual(spoken, [['Chomp cut the pie.']]);
     c2.dispose();
   });
+  it('a Listen tap waits a moment for the natural voice while it connects, and only then falls back to the device voice', async () => {
+    // Reported: the Teach first Listen button read in the device voice although the natural voice was on.
+    const waiting = device();
+    let ready = false; const spoken: string[][] = [];
+    const connecting = {
+      ready: () => ready, chosen: () => true,
+      whenReady: async () => { ready = true; return true; },
+      speak(parts: string[], done: (ok: boolean) => void) { spoken.push(parts); done(true); },
+      stop() {}, warmUp() {},
+    };
+    const c1 = createLearningSpeechController(waiting.synthesis, () => undefined, makeTestSpeechUtterance, 0, () => null, connecting);
+    c1.speak('Look at the denominators.', 'en-US');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(waiting.utterances.length, 0, 'the device voice did not start while the natural voice connected');
+    assert.deepEqual(spoken, [['Look at the denominators.']]);
+    c1.dispose();
+
+    const slow = device();
+    const neverReady = { ready: () => false, chosen: () => true, whenReady: async () => false, speak() {}, stop() {}, warmUp() {} };
+    const c2 = createLearningSpeechController(slow.synthesis, () => undefined, makeTestSpeechUtterance, 0, () => null, neverReady);
+    c2.speak('Look at the denominators.', 'en-US');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(slow.utterances.length, 1, 'still read aloud, in the device voice, when the natural voice cannot connect');
+    c2.dispose();
+  });
   it('plays natural audio when a mobile browser returns no promise from audio.play()', async () => {
     setNaturalVoicePreference('af_heart');
     setNaturalEngineForTests({
