@@ -186,6 +186,76 @@ test('the finale ends with Hoot pointing to the daily riddle', async ({ page }) 
   await page.screenshot({ path: test.info().outputPath('finale.png') });
 });
 
+/** Open a chapter's opening film from the Storybook with every lesson finished, and skip to its last picture. */
+async function openChapterStart(page: Page, unit: number, reducedMotion = false) {
+  const { MISSIONS } = await import('../src/game');
+  const ids = MISSIONS.map((mission) => mission.id);
+  const progress = { completedMissionIds: ids, starsByMission: {}, reviewQueue: [], assessments: [],
+    learning: Object.fromEntries(ids.map((id) => [id, { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {}, completedAt: 1 }])) };
+  const fun = { xp: 0, day: '2026-10-20', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: false, story: { prologueSeen: true, choices: {} },
+    displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion, seasonalThemes: false, storyMode: true } };
+  await page.addInitScript(({ savedProgress, savedFun }) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(savedProgress));
+    localStorage.setItem('fraction-quest-fun-v1', JSON.stringify(savedFun));
+  }, { savedProgress: progress, savedFun: fun });
+  await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
+  await page.goto('/');
+  await page.getByTestId('button-play-guest').click();
+  await page.getByRole('button', { name: new RegExp(`^Chapter ${unit},`) }).first().click();
+  await page.getByRole('button', { name: /Chapter start/ }).first().click();
+  await page.getByTestId('button-story-skip').click();
+  return page.getByTestId('story-stage');
+}
+
+const CHAPTER_FILM_CHECKS: Record<number, (stage: ReturnType<Page['getByTestId']>) => Promise<void>> = {
+  7: async (stage) => { await expect(stage.getByRole('img', { name: 'Three thirds join to make one whole wheel' })).toBeAttached(); await expect(stage.locator('.fq-cine-wheel i')).toHaveCount(3); },
+  8: async (stage) => { await expect(stage.locator('.fq-cine-boot-shadow')).toHaveClass(/is-tall/); },
+  9: async (stage) => { await expect(stage.getByRole('img', { name: /one half: the same spot as two fourths/ })).toHaveClass(/is-flipped/); },
+  10: async (stage) => {
+    await expect(stage.getByRole('img', { name: /two fourths, and with the other fourth that makes three fourths/ })).toBeAttached();
+    // Three same-size fourths side by side: each is half the half sandwich it was cut from.
+    const widths = await stage.locator('.fq-cine-sandwiches i').evaluateAll((pieces) => pieces.map((piece) => piece.getBoundingClientRect().width));
+    expect(new Set(widths.map((width) => Math.round(width))).size).toBe(1);
+  },
+  11: async (stage) => {
+    await expect(stage.getByRole('img', { name: /came out 2 times as long/ })).toBeAttached();
+    const [short, long] = await Promise.all([stage.locator('.fq-cine-machine-in').boundingBox(), stage.locator('.fq-cine-machine-plank').boundingBox()]);
+    expect(long!.width / short!.width).toBeCloseTo(2, 1);
+  },
+  12: async (stage) => {
+    await expect(stage.getByRole('img', { name: 'The board is split into 4 equal pieces' })).toBeAttached();
+    const widths = await stage.locator('.fq-cine-measure-board i').evaluateAll((parts) => parts.map((part) => Math.round(part.getBoundingClientRect().width)));
+    expect(widths).toHaveLength(4);
+    expect(new Set(widths).size).toBe(1);
+  },
+  13: async (stage) => {
+    await expect(stage.getByRole('img', { name: /One sunflower seed out of 4 seeds/ })).toBeAttached();
+    await expect(stage.locator('.fq-cine-seed-bag i')).toHaveCount(4);
+    await expect(stage.locator('.fq-cine-chance [aria-label="1 over 4"]')).toBeAttached();
+    await expect(stage.locator('.fq-cine-garden-plot.is-grown')).toHaveCount(4);
+  },
+  14: async (stage) => { await expect(stage.getByRole('img', { name: 'The dials show one half, 50 hundredths and 50 percent' })).toContainText('50%'); },
+  15: async (stage) => {
+    await expect(stage.getByRole('img', { name: /14 of the 15 pieces/ })).toBeAttached();
+    await expect(stage.locator('.fq-cine-festival-stone i')).toHaveCount(15);
+    await expect(stage.locator('.fq-cine-festival-stone i.is-empty')).toHaveCount(1);
+  },
+};
+for (const [unit, check] of Object.entries(CHAPTER_FILM_CHECKS)) {
+  test(`chapter ${unit} opens on a film that shows the chapter’s fraction idea`, async ({ page }) => {
+    const stage = await openChapterStart(page, Number(unit));
+    await page.waitForTimeout(3500); // the last picture's movements settle
+    await check(stage);
+  });
+}
+
+test('with Reduce motion, the new chapter films show where things end up without moving them', async ({ page }) => {
+  const stage = await openChapterStart(page, 11, true);
+  const plank = stage.locator('.fq-cine-machine-plank');
+  await expect(plank).toHaveClass(/is-built/);
+  expect(await plank.evaluate((el) => [getComputedStyle(el).animationName, getComputedStyle(el).opacity])).toEqual(['none', '1']);
+});
+
 test('while the voice is on its way, the caption says so, then the line types with the voice', async ({ page }) => {
   // The device voice (the natural voice is off) takes 2.5 seconds to start its first sentence.
   await page.addInitScript(() => {
