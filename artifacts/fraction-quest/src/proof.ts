@@ -17,7 +17,8 @@ export type ProofPicture =
   | { kind: 'equation'; text: string }
   | { kind: 'grid' | 'dots'; rows: number; cols: number; shaded: number[] }
   | { kind: 'fold'; folds: number[] }
-  | { kind: 'ruler'; denominator: number; wholes: number; end: number };
+  | { kind: 'ruler'; denominator: number; wholes: number; end: number }
+  | { kind: 'lineplot'; denominator: number; wholes: number; values: number[] };
 
 export type ProofItem = {
   source: string; lesson: string; prompt: string;
@@ -132,6 +133,7 @@ const RULES: Rule[] = [
       const dist = marks.map((x) => Math.abs(x - v)); const best = Math.min(...dist);
       if (dist.filter((x) => near(x, best)).length > 1) return `${m[1]} is halfway between two benchmarks`;
       return { value: marks[dist.indexOf(best)] }; } },
+  { name: 'make it, then place it', re: /^Make (\d+\/\d+)\. Is it near 0, 1\/2 or 1\?$/, solve: (m) => ({ value: frac(m[1]) }) },
   { name: 'more or less than half (pick)', re: /^Which is (more|less) than 1\/2: (\d+\/\d+) or (\d+\/\d+)\?(?: Make it\.)?$/,
     solve: (m) => { const fit = [m[2], m[3]].filter((x) => (m[1] === 'more' ? frac(x) > 0.5 : frac(x) < 0.5));
       if (fit.length !== 1) return `${fit.length} of the two are ${m[1]} than 1/2`; return { value: frac(fit[0]) }; } },
@@ -153,8 +155,8 @@ const RULES: Rule[] = [
     solve: (m) => ({ yes: frac(m[1]) > frac(m[2]) }) },
   { name: 'spot the mistake: equal claim', re: /^\w+ says (\d+\/\d+) = (\d+\/\d+)\. Is that right\?(?: Answer yes or no\.)?$/,
     solve: (m) => ({ yes: near(frac(m[1]), frac(m[2])) }) },
-  { name: 'spot the mistake: sum claim', re: /^\w+ says (\d+\/\d+) ([+−]) (\d+\/\d+) = (\d+\/\d+)\. Is that right\?(?: Answer yes or no\.)?$/,
-    solve: (m) => ({ yes: near(frac(m[1]) + (m[2] === '+' ? 1 : -1) * frac(m[3]), frac(m[4])) }) },
+  { name: 'spot the mistake: sum claim', re: /^\w+ says (\d+\/\d+) ([+−]) (\d+\/\d+) = (\d+ \d+\/\d+|\d+\/\d+)\. (?:Is that right|Does that make sense)\?(?: Answer yes or no\.)?$/,
+    solve: (m) => ({ yes: near(frac(m[1]) + (m[2] === '+' ? 1 : -1) * frac(m[3]), valueOf(m[4])) }) },
 
   // --- adding, subtracting, multiplying, dividing
   { name: 'add/subtract', re: /^(?:Rename: .+?\. Then )?(?:What is )?(\d+\/\d+) ([+−]) (\d+\/\d+)(?: = \?|\?)$/,
@@ -180,6 +182,7 @@ const RULES: Rule[] = [
   { name: 'scoops into cups', re: /^How many 1\/(\d+) cup scoops fill (\d+) cups?\?$/, solve: (m) => ({ value: N(m[1]) * N(m[2]) }) },
   { name: 'scoops into a fraction of a cup', re: /^How many (\d+\/\d+) cup scoops fill (\d+\/\d+) cup\?$/, solve: (m) => ({ value: frac(m[2]) / frac(m[1]) }) },
   { name: 'parts past one whole', re: /^How many (\w+) past one whole is (\d+)\/(\d+)\?$/, solve: (m) => ({ value: N(m[2]) - N(m[3]) }) },
+  { name: 'another way to make it', re: /^Is ((?:\d+\/\d+)(?: \+ \d+\/\d+)+) another way to make (\d+\/\d+)\?(?: Answer yes or no\.)?$/, solve: (m) => ({ yes: near(sumOf(m[1]), frac(m[2])) }) },
   { name: 'unit parts in a fraction', re: /^How many 1\/(\d+) parts make (\d+)\/\1\?$/, solve: (m) => ({ value: N(m[2]) }) },
   { name: 'garden area', re: /^(?:A rectangular garden is|Build) (\d+) (\d+\/\d+)(?: meters by | × )(\d+) (\d+\/\d+)(?: meters\. What is its area\?| square units\.)$/,
     solve: (m) => ({ value: (N(m[1]) + frac(m[2])) * (N(m[3]) + frac(m[4])) }) },
@@ -189,6 +192,8 @@ const RULES: Rule[] = [
     solve: (m) => ({ value: 1 / N(m[2]) / N(m[1]) }) },
 
   // --- fractions of amounts and stories
+  { name: 'fraction × whole', re: /^(\d+\/\d+) × (\d+) = \?$/, solve: (m) => ({ value: frac(m[1]) * N(m[2]) }) },
+  { name: 'fraction of a group, written with ×', re: /^(\d+\/\d+) of (\d+) \w+ are \w+\. Solve \1 × \2 to find how many are \w+\.$/, solve: (m) => ({ value: frac(m[1]) * N(m[2]) }) },
   { name: 'fraction of a number', re: /^What is (\d+)\/(\d+) of (\d+)(?: [a-z]+)?\?$/, solve: (m) => ({ value: N(m[3]) / N(m[2]) * N(m[1]) }) },
   { name: 'cut a length and pick parts (build)', re: /^A (?:ribbon|rope) is (\d+) meters long\. (?:Cut it into (\d+) equal parts\. Pick (\d+) parts|Show (\d+)\/(\d+) of it)\.$/,
     solve: (m, item) => { if (item.target?.total !== undefined && item.target.total !== N(m[1])) return `the set has ${item.target.total}, not ${m[1]}`;
@@ -205,6 +210,10 @@ const RULES: Rule[] = [
   { name: 'friends share a bar', re: /^(\d+) friends share this bar fairly\. Shade one friend's share\. What fraction is it\?$/, solve: (m) => ({ value: 1 / N(m[1]) }) },
   { name: 'chance', re: /^A bag has (\d+) marbles\. (\d+) (?:is|are) green\. What is the chance of picking green\?$/, solve: (m) => ({ value: N(m[2]) / N(m[1]), denominator: N(m[1]) }) },
   { name: 'spinner chance', re: /^A spinner has (\d+) equal parts\. (\d+) (?:is|are) \w+\. Make the chance of \w+\.$/, solve: (m) => ({ value: N(m[2]) / N(m[1]) }) },
+  { name: 'take away, then add', re: /^A jug has (\d+\/\d+) liter\. Sam drinks (\d+\/\d+) liter, then adds (\d+\/\d+) liter\. (?:How much is in the jug now\?|Make what is in the jug now\.)$/,
+    solve: (m) => ({ value: frac(m[1]) - frac(m[2]) + frac(m[3]) }) },
+  { name: 'add, then compare', re: /^Ana ran (\d+\/\d+) mile and then (\d+\/\d+) mile\. Ben ran (\d+\/\d+) mile\. How much farther did Ana run\?$/,
+    solve: (m) => ({ value: frac(m[1]) + frac(m[2]) - frac(m[3]) }) },
   { name: 'what is left (two parts)', re: /^(?:(\d+\/\d+) of a garden is planted\. Then (\d+\/\d+) more is planted\. How much is still empty\?|Mia reads (\d+\/\d+) of a book on Monday and (\d+\/\d+) on Tuesday\. How much is left to read\?)$/,
     solve: (m) => ({ value: 1 - frac(m[1] ?? m[3]) - frac(m[2] ?? m[4]) }) },
   { name: 'not painted yet', re: /^(\d+\/\d+) of a (?:box|wall|fence|room) is painted\. What fraction is not painted yet\?$/, solve: (m) => ({ value: 1 - frac(m[1]) }) },
@@ -218,8 +227,8 @@ const RULES: Rule[] = [
     solve: (m) => ({ value: frac(m[1]) * N(m[2] ?? m[3]) }) },
   { name: 'two amounts together', re: /^(?:A (?:board|ribbon) is (\d+\/\d+) (?:meter|m)\.? (?:Another is|and another is) (\d+\/\d+) (?:meter|m)\. How (?:long are they together|many meters (?:long together|in all))\?|A recipe uses (\d+\/\d+) cup and another (\d+\/\d+) cup\. How much in all\?|Sam walks (\d+\/\d+) mile, then (\d+\/\d+) mile more\. How far in all\?|A jug has (\d+\/\d+) liter\. You add (\d+\/\d+) liter\. How many liters now\?|Make (\d+\/\d+) meter \+ (\d+\/\d+) meter\.)$/,
     solve: (m) => { const v = m.slice(1).filter(Boolean); return { value: frac(v[0]) + frac(v[1]) }; } },
-  { name: 'add or cut a length', re: /^A (?:piece of tape|paper strip|ribbon|rope) is (\d+\/\d+) meter long\. (Add|Cut off) (\d+\/\d+) meter(?: more)?\. How (?:long is it now|much is left)\?$/,
-    solve: (m) => ({ value: frac(m[1]) + (m[2] === 'Add' ? 1 : -1) * frac(m[3]) }) },
+  { name: 'add or cut a length', re: /^A (?:piece of tape|paper strip|ribbon|rope) is (\d+ \d+\/\d+|\d+\/\d+) meters? long\. (Add|Cut off) (\d+\/\d+) meter(?: more)?\. How (?:long is it now|much is left)\?$/,
+    solve: (m) => ({ value: valueOf(m[1]) + (m[2] === 'Add' ? 1 : -1) * frac(m[3]) }) },
   { name: 'frog jumps', re: /^A frog makes (\d+) jumps?\. Each jump is (\d+\/\d+) meter\. How far did it go\?$/, solve: (m) => ({ value: N(m[1]) * frac(m[2]) }) },
   { name: 'jumps of a unit', re: /^(?:(\d+) jumps of 1\/(\d+) make what fraction\?|Each jump is 1\/(\d+)\. What is (\d+) jumps from 0\?)$/,
     solve: (m) => (m[1] ? { value: N(m[1]) / N(m[2]) } : { value: N(m[4]) / N(m[3]) }) },
@@ -243,6 +252,14 @@ const RULES: Rule[] = [
   { name: 'two lengths together (build)', re: /^Two \w+ are (\d+\/\d+) and (\d+\/\d+) inch\. Show how long they are together\.$/, solve: (m) => ({ value: frac(m[1]) + frac(m[2]) }) },
   { name: 'line plot count', re: /^(?:Plot these|The line plot shows these) ribbon lengths: (.+) inch\. How many ribbons are (\d+\/\d+) inch long\?$/,
     solve: (m) => ({ value: m[1].split(', ').filter((x) => near(frac(x), frac(m[2]))).length }) },
+  // Read a line plot: the values are only in the picture.
+  { name: 'line plot read (picture)', re: /^The line plot (?:on [\w’ ]+ )?shows [\w ]+ lengths in eighths of an inch\. (?:What is the difference between the longest and shortest|How many [\w ]+ are (\d+\/\d+) inch long|How long are all the (\d+\/\d+) inch [\w ]+ together)\?$/,
+    solve: (m, item) => { const plot = (item.pictures ?? []).find((x) => x.kind === 'lineplot');
+      if (!plot || plot.kind !== 'lineplot') return 'no line plot';
+      const v = plot.values.map((t) => t / plot.denominator); const at = (x: string) => v.filter((y) => near(y, frac(x))).length;
+      if (m[1]) return { value: at(m[1]) };
+      if (m[2]) return { value: at(m[2]) * frac(m[2]) };
+      return { value: Math.max(...v) - Math.min(...v) }; } },
   { name: 'line plot difference', re: /^(?:(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths|Rain fell on \d+ days): (.+) inch\. (?:What is the difference between the longest and shortest|How much more rain fell on the wettest day than the driest)\?$/,
     solve: (m) => { const v = m[1].split(', ').map(frac); return { value: Math.max(...v) - Math.min(...v) }; } },
   // Plot in eighths: the lengths are in the question, so the plot is worked out from them.
@@ -431,7 +448,7 @@ const RULES: Rule[] = [
     solve: (m) => ({ value: Math.max(frac(m[2]), frac(m[3])) }) },
   { name: 'missing numerator (build)', re: /^(\d+)\/(\d+) = \?\/(\d+)\. Make it\.$/, solve: (m) => ({ value: N(m[1]) / N(m[2]), denominator: N(m[3]) }) },
   { name: 'line plot difference (build)', re: /^The shortest (?:mark|bug|pencil) is (\d+\/\d+) inch and the longest is (\d+\/\d+) inch\. Find their difference\.$/, solve: (m) => ({ value: frac(m[2]) - frac(m[1]) }) },
-  { name: 'line plot mode (build)', re: /^(?:Plot the measurements (.+) inch(?:es)?|[A-Z]\w+ are (.+) inch long\. Mark where 2 Xs go)\.$/,
+  { name: 'line plot mode (build)', re: /^(?:Plot the measurements (.+) inch(?:es)?|[A-Z]\w+ are (.+) inch(?:es)? long\. Mark where 2 Xs go)\.$/,
     solve: (m) => { const v = (m[1] ?? m[2]).replace(/,? and /, ', ').split(', '); const counts = new Map<string, number>(); for (const x of v) counts.set(x, (counts.get(x) ?? 0) + 1);
       const top = [...counts.entries()].filter(([, c]) => c >= 2); if (top.length !== 1) return 'no single value with 2 Xs'; return { value: valueOf(top[0][0]) }; } },
   { name: 'share equally (build)', re: /^(?:Three beakers hold (.+) liters?\. Share the total equally|Share (\d+(?: \d+\/\d+)?) liters? equally among 3 cups\. Show one cup)\.$/,
@@ -468,7 +485,7 @@ const PICTURE_RULES: Rule[] = [
   { name: 'picture: what fraction is shaded', re: /^(?:What fraction (?:of (?:this bar model|the (?:circle|grid|tile|square|bar)|this circle) )?is shaded\?(?: Each bar is one whole\.)?|One (?:part|slice) of this (?:bar|pizza) is shaded\..*|One part is shaded\. What fraction of the whole bar is it\?|The shaded part is 1 of the equal parts\. What fraction of the bar is shaded\?|All the slices are the same size\. What fraction of the pizza is the shaded slice\?|One triangle is colored\. What fraction of the square is it\?|What fraction of the square (?:is the shaded (?:triangle|small square)|do the 2 shaded triangles cover)\?)$/,
     solve: (_m, item) => { const p = (item.pictures ?? []).map(barValue).find((v) => v !== null);
       if (p === undefined || p === null) return 'no shaded picture to read'; return { value: p }; } },
-  { name: 'picture: equal parts?', re: /^(?:Is this (?:bar|strip|square|pizza|hexagon|circle) cut into (?:equal (?:parts|\w+)|(\d+) equal (?:slices|strips)|\w+)\?|Are all the parts of this bar the same size\?|On this tile pattern, are the 4 parts of the square equal in area\?|This pizza is cut into 4 slices\. Are the slices equal in area\?|These strips are long and thin\. Are they still fourths\?|Are all 4 parts of this square the same size\?)(?: Answer yes or no\.)?$/,
+  { name: 'picture: equal parts?', re: /^(?:Is this (?:bar|strip|square|pizza|hexagon|circle) cut into (?:equal (?:parts|\w+)|(\d+) equal (?:slices|strips)|\w+)\?|Are all the parts of this bar the same size\?|On this tile pattern, are the 4 parts of the square equal in area\?|Two small squares and two triangles fill this square\. Are all 4 parts equal in area\?|This pizza is cut into 4 slices\. Are the slices equal in area\?|These strips are long and thin\. Are they still fourths\?|Are all 4 parts of this square the same size\?)(?: Answer yes or no\.)?$/,
     solve: (m, item) => { const p = (item.pictures ?? []).find((x) => equalParts(x) !== null); if (!p) return 'no partition picture to read';
       const word = /cut into (?:equal )?(\w+)\?/.exec(item.prompt)?.[1]; const wanted = m[1] ? N(m[1]) : word && UNIT_WORD[word] ? UNIT_WORD[word] : /fourths/.test(item.prompt) ? 4 : null;
       const equal = equalParts(p)!; const count = partCount(p)!;
@@ -506,7 +523,7 @@ const PICTURE_RULES: Rule[] = [
       if (!piece.every((x) => near(x, piece[0]))) return `the ${kind}s are not all the same size`;
       const space = /one half/.test(item.prompt) ? 0.5 : pieceArea(pieces.find((x) => x.shape === 'square')!);
       return { value: space / piece[0] }; } },
-  { name: 'picture: color parts of a shape', re: /^(?:This (\w+) is on a [\w ]+|The baker’s tray [\w ]+ is cut into equal strips)\. Color (\d+) parts?\. What fraction of the (?:\1|[\w ]+) is colored\?$/,
+  { name: 'picture: color parts of a shape', re: /^(?:This (\w+) is on a [\w ]+|The baker’s (?:tray|round) [\w ]+ is cut into equal (?:strips|slices))\. Color (\d+) parts?\. What fraction of the (?:\1|[\w ]+) is colored\?$/,
     solve: (m, item) => { const p = (item.pictures ?? []).find((x) => x.kind === 'area'); if (!p || p.kind !== 'area') return 'no shape';
       const areas = AREA_CUTS[p.cut].map(pieceArea);
       if (!areas.every((x) => near(x, areas[0]))) return 'the parts are not equal';

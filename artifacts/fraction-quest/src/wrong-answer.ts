@@ -26,6 +26,8 @@ export const SLIPS = {
   takeTops: 'Take away only the numerators. The pieces stay the same size, so the denominator stays the same.',
   allParts: 'The denominator is all the equal parts, not parts plus shaded. Count all the parts.',
   recountParts: 'Count all the equal parts again, one at a time.',
+  rulerLong: 'That counts the tick marks. Count the spaces between them, starting at 0.',
+  rulerShort: 'Count every space up to the very end of the strip.',
   recountShaded: 'Count the parts again, one at a time.',
   places: 'Check the places. Tenths are 1 place after the decimal point. Hundredths are 2 places.',
   tooSmall: 'That one is smaller. Look for the one that covers more.',
@@ -41,6 +43,14 @@ export function wrongChoiceReason(prompt: string, choices: string[], correct: nu
 
   if (/^you can'?t tell$/i.test(pick)) return SLIPS.canTell;
   if (/^they (?:are|match|cover)|^they are the same|equally/i.test(pick)) return SLIPS.notSame;
+
+  // Reading a ruler: one space long (counting the ticks, not the spaces) or one space short.
+  if (/use the ruler\. how long/.test(p)) {
+    const [pv, rv] = [answerValue(pick), answerValue(right)];
+    const space = Math.max(...[pick, right].map((x) => Number(/\/(\d+)$/.exec(x)?.[1] ?? 4)));
+    if (Math.abs(pv - rv - 1 / space) < 1e-9) return SLIPS.rulerLong;
+    if (Math.abs(rv - pv - 1 / space) < 1e-9) return SLIPS.rulerShort;
+  }
 
   const f = FRACTION.exec(pick);
   const r = FRACTION.exec(right);
