@@ -1023,7 +1023,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('Put 0.5, 0.45 and 0.6 in order, smallest first.', ['0.5, 0.45, 0.6', '0.45, 0.5, 0.6', '0.6, 0.5, 0.45', '0.45, 0.6, 0.5'], 1,
         grids(hundredthsGrid(50), hundredthsGrid(45), hundredthsGrid(60)),
         'Write each one in hundredths: 0.5 is 50 hundredths. Count the shaded squares on each grid.',
-        '0.5 = 50, 0.45 = 45 and 0.6 = 60 hundredths. 45 < 50 < 60, so 0.45 < 0.5 < 0.6.', grids(hundredthsGrid(50), hundredthsGrid(45), hundredthsGrid(60))),
+        '0.5 = 50 hundredths, 0.45 = 45 hundredths and 0.6 = 60 hundredths. 45 < 50 < 60, so 0.45 < 0.5 < 0.6.', grids(hundredthsGrid(50), hundredthsGrid(45), hundredthsGrid(60))),
       practice('Mia eats 0.5 of a small pizza. Leo eats 0.4 of a big pizza. Who eats more?', ['Mia', 'Leo', 'They eat the same', "You can't tell"], 3,
         { kind: 'area', cut: 'circle-halves', shaded: [], scale: 0.6, more: [{ cut: 'circle-tenths', shaded: [] }] },
         'Look at the two wholes. Are the pizzas the same size?',
@@ -1036,7 +1036,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('Put 0.8, 0.75 and 0.09 in order, biggest first.', ['0.8, 0.75, 0.09', '0.75, 0.8, 0.09', '0.09, 0.75, 0.8', '0.8, 0.09, 0.75'], 0,
         grids(hundredthsGrid(80), hundredthsGrid(75), hundredthsGrid(9)),
         'Write each one in hundredths. Which grid has the most squares shaded?',
-        '0.8 = 80, 0.75 = 75 and 0.09 = 9 hundredths. 80 > 75 > 9, so 0.8 > 0.75 > 0.09.', grids(hundredthsGrid(80), hundredthsGrid(75), hundredthsGrid(9))),
+        '0.8 = 80 hundredths, 0.75 = 75 hundredths and 0.09 = 9 hundredths. 80 > 75 > 9, so 0.8 > 0.75 > 0.09.', grids(hundredthsGrid(80), hundredthsGrid(75), hundredthsGrid(9))),
     ] },
   { id: 'multi-step-fraction-stories', title: 'Two-step stories', shortTitle: 'Fraction stories', description: 'Solve a story in 2 steps.', skill: 'Find what the story asks first. Solve that step, then use the answer in the next step.', mode: 'story', n: 2, d: 5, context: 'community garden' },
   // Unit 15 · Problem solving: the reasoning that Singapore, Beast Academy and Eureka lean on and quizzes skip.

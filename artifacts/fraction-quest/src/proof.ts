@@ -69,13 +69,15 @@ type Rule = { name: string; re: RegExp; solve: (m: RegExpExecArray, item: ProofI
 /** One amount as written: 1 3/4, 1 and 3/4, 3/4, 0.35, 45%, 7. */
 const TERM = String.raw`\d+ (?:and )?\d+\/\d+|\d+\/\d+|\d*\.\d+|\d+%|\d+`;
 const EXPR = String.raw`(?:${TERM})(?: [+−×] (?:${TERM}))+`;
-/** Evaluate a + b − c × d left to right with × first (all the app writes). */
+/** Evaluate a + b − c × d ÷ e left to right with × and ÷ first (all the app writes). */
 const evaluate = (expr: string): number => {
-  const tokens = expr.split(/ ([+−×]) /);
+  const tokens = expr.split(/ ([+−×÷]) /);
   const values: number[] = []; const ops: string[] = [];
   for (let i = 0; i < tokens.length; i += 2) {
     const v = valueOf(tokens[i]);
-    if (i > 0 && tokens[i - 1] === '×') values[values.length - 1] *= v; else { values.push(v); if (i > 0) ops.push(tokens[i - 1]); }
+    if (i > 0 && tokens[i - 1] === '×') values[values.length - 1] *= v;
+    else if (i > 0 && tokens[i - 1] === '÷') values[values.length - 1] /= v;
+    else { values.push(v); if (i > 0) ops.push(tokens[i - 1]); }
   }
   return values.slice(1).reduce((sum, v, k) => sum + (ops[k] === '+' ? v : -v), values[0]);
 };
@@ -596,4 +598,32 @@ export function prove(item: ProofItem): ProofResult {
     return answer === key ? { ok: true, rule: 'hand-checked key' } : { ok: false, rule: 'hand-checked key', why: `answer "${answer}", the key says "${key}"` };
   }
   return null;
+}
+
+// ---------------------------------------------------------------------------------------------- written claims
+
+/* Explanations, hints and feedback state sums as they go ("3/4 = 9/12", "8 − 1 − 2 = 5", "3 × 2/3 = 6/3 = 2").
+   Every one is worked out again: each side of each "=" must be the same amount. Words ("3 fourths") are left alone. */
+const CLAIM = new RegExp(String.raw`(?<![\d/]|\d\.)(?:${TERM})(?: [+−×÷] (?:${TERM}))*(?: = (?:${TERM})(?: [+−×÷] (?:${TERM}))*)+(?![\d/]|\.\d)`, 'g');
+
+/** Every written sum in a text ("3/4 = 9/12"), as written. */
+export const writtenClaims = (text: string): string[] => [...text.matchAll(CLAIM)].map((m) => m[0]);
+/** A count of parts after the last side ("= 70 hundredths"): the side is that many of those parts. */
+const partsAfter = (text: string, end: number): number => {
+  const word = /^ ([a-z]+)\b/.exec(text.slice(end))?.[1];
+  return word && word in UNIT_WORD ? UNIT_WORD[word] : 1;
+};
+
+/** The written sums in a text that are not true, quoted. */
+export function falseClaims(text: string): string[] {
+  const wrong: string[] = [];
+  for (const m of text.matchAll(CLAIM)) {
+    const claim = m[0];
+    const sides = claim.split(' = ').map(evaluate);
+    // "0.7 = 70 hundredths" names parts on the last side only; "1 + 2 = 3 fourths" counts the same parts all through.
+    if (/[./%]/.test(claim.split(' = ')[0])) sides[sides.length - 1] /= partsAfter(text, (m.index ?? 0) + claim.length);
+    if (sides.some((side) => !Number.isFinite(side))) continue;
+    if (sides.some((side) => !near(side, sides[0]))) wrong.push(claim);
+  }
+  return wrong;
 }

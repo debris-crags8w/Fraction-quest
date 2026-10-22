@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { prove, type ProofItem } from './proof';
-import { allProofItems } from './proof-items';
+import { falseClaims, prove, writtenClaims, type ProofItem } from './proof';
+import { allProofItems, allWrittenTexts, exampleAnswer, gameProofItems } from './proof-items';
+import { AREA_CUTS, pieceArea } from './area-shapes';
+import { PART_FINDER_ROUNDS } from './part-finder';
 
 describe('accuracy proof engine', () => {
   it('solves every question the app can ask again, and agrees with every answer', () => {
@@ -25,6 +27,55 @@ describe('accuracy proof engine', () => {
       const where = `${item.source} · ${item.lesson}: ${item.prompt}`;
       assert.equal(new Set(item.choices.map((c) => c.trim())).size, item.choices.length, `${where}: a choice is repeated`);
       assert.ok(item.correct !== undefined && item.correct >= 0 && item.correct < item.choices.length, `${where}: no right choice`);
+    }
+  });
+
+  it('checks every sum written in an explanation, hint, feedback line, intro or story', () => {
+    const texts = allWrittenTexts();
+    const claims = texts.reduce((count, { text }) => count + writtenClaims(text).length, 0);
+    assert.ok(claims > 4000, `only ${claims} written sums found`);
+    const wrong = texts.flatMap(({ where, text }) => falseClaims(text).map((claim) => `${where}: ${claim} («${text}»)`));
+    assert.deepEqual([...new Set(wrong)], [], 'written sums that are not true');
+  });
+
+  it('reads written sums the way a child does (the claim checker itself is checked)', () => {
+    assert.deepEqual(falseClaims('1/4 + 2/4 = 3/8.'), ['1/4 + 2/4 = 3/8']);
+    assert.deepEqual(falseClaims('So 2 × 3 = 7 cakes.'), ['2 × 3 = 7']);
+    assert.deepEqual(falseClaims('0.5 = 5 hundredths.'), ['0.5 = 5']);
+    assert.deepEqual(falseClaims('3/4 × 2/3 = 6/12 = 2/3'), ['3/4 × 2/3 = 6/12 = 2/3']);
+    for (const right of ['3/4 = 9/12 and 5/6 = 10/12.', '8 − 1 − 2 = 5 slices left.', '0.7 = 70 hundredths.', '1 + 1 + 2 + 3 = 7 fourths.',
+      '2/5 = 40% and 0.3 = 30%. 100% − 40% − 30% = 30%.', '12 ÷ 4 = 3.', '7/4 = 1 3/4.', '1 and 3/4 = 7/4.']) assert.deepEqual(falseClaims(right), [], right);
+    // A sum at the end of a sentence is still read, not skipped.
+    assert.deepEqual(writtenClaims('That is 3 × 2/3 = 6/3. So 2 cups.'), ['3 × 2/3 = 6/3']);
+    assert.deepEqual(writtenClaims('1 fourth + 2 fourths = 3 fourths.'), [], 'words are left alone');
+  });
+
+  it('turns each game round into its question with the game\'s own answer', () => {
+    const games = gameProofItems();
+    for (const source of ['Fraction War', 'Fraction Line-Up', 'Frog Hop', 'Stack Tower']) assert.ok(games.some((item) => item.source === source), source);
+    assert.ok(games.every((item) => !/orders accepted/.test(item.answer ?? '')), 'every Line-Up round has exactly one right order');
+    assert.equal(exampleAnswer('Which is bigger, 1/3 or 1/8?', '1/3 is bigger.'), '1/3');
+    assert.equal(exampleAnswer('Each jump is 1/4. What is 7 jumps from 0?', '7/4, or 1 and 3/4.'), '7/4');
+    assert.equal(exampleAnswer('Fill the blank: 2/3 = ?/6', '4/6'), '4');
+  });
+
+  it('checks that every Part Finder cake can really be shared, matched and tiled', () => {
+    const near = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+    for (const round of PART_FINDER_ROUNDS) {
+      const areas = AREA_CUTS[round.cut].map(pieceArea);
+      assert.ok(near(areas.reduce((a, b) => a + b, 0), 1), `${round.id}: the pieces make one whole cake`);
+      if (round.mode === 'sort') {
+        // Put the pieces into round.shares equal shares (a search over every way to deal them out).
+        const shares = round.shares!; const goal = 1 / shares;
+        const deal = (i: number, totals: number[]): boolean => i === areas.length ? totals.every((t) => near(t, goal))
+          : totals.some((t, s) => t + areas[i] <= goal + 1e-9 && deal(i + 1, totals.map((u, k) => (k === s ? u + areas[i] : u))));
+        assert.ok(near(round.targetArea, goal) && deal(0, Array(shares).fill(0)), `${round.id}: ${shares} equal shares exist`);
+      } else if (round.mode === 'tile') {
+        for (const area of areas) assert.ok(near(area * Math.round(1 / area), 1), `${round.id}: a piece of ${area} tiles the cake`);
+      } else {
+        const sums = areas.reduce((set, area) => new Set([...set, ...[...set].map((t) => t + area)]), new Set([0]));
+        assert.ok([...sums].some((t) => near(t, round.targetArea)), `${round.id}: some pieces make ${round.targetArea}`);
+      }
     }
   });
 
