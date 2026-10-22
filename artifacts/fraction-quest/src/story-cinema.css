@@ -230,17 +230,12 @@
 .fq-cine-machine i { width: 30px; height: 30px; border: 5px solid #BDE6FF; border-radius: 50%; background: #4CC9F0; }
 .fq-cine-machine.is-on { box-shadow: 0 0 30px 10px rgb(76 201 240 / .7); }
 .fq-cine-machine.is-on i { background: #FFC800; animation: fq-cine-pulse .7s ease-in-out infinite; }
-.fq-cine-machine-plank { left: 44%; top: 68%; z-index: 3; width: 35%; height: 14px; border-radius: 3px; background: #B98552; opacity: 0; }
-.fq-cine-machine-plank.is-built { opacity: 1; animation: fq-cine-fade .8s ease both; }
 
 /* Chapter 12: a measured board becomes the festival stage. */
 .fq-cine-screen.is-stage .fq-cine-set { background: linear-gradient(#392C5E, #6D4BD8 68%, #805E43 69%); }
 .fq-cine-stage-curtain { inset: 0 0 32%; background: repeating-linear-gradient(90deg, #A6467B 0 28px, #D55C85 28px 55px); clip-path: polygon(0 0, 100% 0, 90% 100%, 10% 100%); }
 .fq-cine-stage-floor { left: 10%; right: 10%; bottom: 17%; height: 22%; border: 7px solid #C99A6E; background: #B98552; box-shadow: 0 12px 0 #805E43; }
 .fq-cine-stage-board { left: 34%; bottom: 42%; width: 46%; height: 14px; background: #C99A6E; transform: rotate(-3deg); }
-.fq-cine-ruler { z-index: 3; display: flex; justify-content: space-around; width: 52%; height: 18px; padding-top: 2px; background: #FFC800; transform: rotate(-3deg); }
-.fq-cine-ruler i { width: 2px; height: 7px; background: #2B2D42; }
-.fq-cine-ruler i:nth-child(2n) { height: 12px; }
 
 /* Chapter 13: a fair festival garden with four equal plots. */
 .fq-cine-screen.is-garden .fq-cine-set { background: linear-gradient(#9EDCFF 0 48%, #5FB872 49%); }
@@ -270,6 +265,85 @@
 .fq-cine-festival-stone { left: 63%; top: 34%; z-index: 2; display: grid; grid-template-columns: repeat(5, 1fr); width: 70px; height: 44px; border: 4px solid #FFF4D6; border-radius: 7px; background: #5A4A2E; box-shadow: 0 0 25px 8px rgb(255 200 0 / .65); }
 .fq-cine-festival-stone i { background: #FFC800; border-right: 1px solid #5A4A2E; }
 .fq-cine-festival-riddle { left: 58%; top: 14%; z-index: 4; color: #FFC800; font-family: var(--app-font-display); font-size: 1.7rem; font-weight: 1000; text-shadow: 0 3px #9A4E00; }
+
+/* Chapter openings 7 to 15: each film shows its chapter's fraction idea. Every moving part carries fq-cine-move, so
+   Reduce motion shows where it ends up without the movement. */
+.fq-cine-wheel { left: 40%; top: 46%; z-index: 3; width: 64px; height: 64px; }
+.fq-cine-wheel i { position: absolute; inset: 0; border-radius: 50%; background: #FFC800; box-shadow: inset 0 0 0 4px #2B2D42; transition: transform 1.2s cubic-bezier(.3, .8, .3, 1); }
+.fq-cine-wheel i:nth-child(2) { background: #F6A55B; } .fq-cine-wheel i:nth-child(3) { background: #FFE066; }
+.fq-cine-wheel.is-apart i:nth-child(1) { transform: translate(34px, -6px) rotate(24deg); }
+.fq-cine-wheel.is-apart i:nth-child(2) { transform: translate(8px, 26px) rotate(-18deg); }
+.fq-cine-wheel.is-apart i:nth-child(3) { transform: translate(-30px, -2px) rotate(14deg); }
+.fq-cine-wheel.is-joined { filter: drop-shadow(0 0 10px rgb(255 200 0 / .7)); }
+.fq-cine-wheel.is-rolling { animation: fq-cine-roll 2s .5s ease-in-out both; }
+.fq-cine-workshop-box.is-rattling { animation: fq-cine-wobble .45s ease-in-out infinite; }
+.fq-cine-workshop-heel { left: 70%; bottom: 55%; z-index: 3; width: 22px; height: 16px; border: 3px solid #2B2D42; border-radius: 8px 8px 3px 3px; background: #4CC9F0; animation: fq-cine-up .6s ease-out both; }
+
+.fq-cine-lantern { left: 30%; top: 0; z-index: 3; width: 2px; height: 20%; background: #2B2D42; transform-origin: 50% 0; animation: fq-cine-swing 3s ease-in-out infinite alternate; }
+.fq-cine-lantern i { position: absolute; left: -9px; bottom: -20px; width: 20px; height: 22px; border-radius: 6px; background: #FFC800; box-shadow: 0 0 22px 10px rgb(255 200 0 / .45); }
+.fq-cine-boot-shadow { left: 60%; bottom: 52%; display: flex; align-items: flex-end; gap: 8px; padding: 18px 22px 6px; border-radius: 50%; background: radial-gradient(ellipse, rgb(255 190 120 / .5), transparent 70%); transform: scale(.75); transform-origin: 50% 100%; transition: transform 1.6s ease-out; }
+.fq-cine-boot-shadow i { width: 26px; height: 44px; border-radius: 9px 9px 4px 4px; background: rgb(25 12 30 / .85); filter: blur(1.5px); }
+.fq-cine-boot-shadow.is-tall { transform: scale(1.35); }
+
+.fq-cine-flipcard { z-index: 3; width: 42px; height: 52px; transform-style: preserve-3d; transition: transform .9s cubic-bezier(.3, .8, .3, 1); }
+.fq-cine-flipcard > b { position: absolute; inset: 0; display: grid; place-items: center; border: 4px solid #8D6E63; border-radius: 7px; background: #FFF4D6; color: #2B2D42; font-size: .95rem; backface-visibility: hidden; }
+.fq-cine-flipcard > b:last-child { transform: rotateY(180deg); }
+.fq-cine-flipcard.is-flipped { transform: rotateY(180deg); }
+
+.fq-cine-sandwiches { z-index: 3; width: 100px; height: 64px; }
+.fq-cine-sandwiches i { position: absolute; top: 0; width: 22px; height: 26px; box-sizing: border-box; border: 3px solid #A8702F; background: linear-gradient(#F6D28B 0 40%, #7BD389 40% 55%, #F6D28B 55%); transition: left 1.1s .6s cubic-bezier(.3, .8, .3, 1); }
+.fq-cine-sandwiches i:nth-child(1) { left: 0; border-right-width: 0; } .fq-cine-sandwiches i:nth-child(2) { left: 22px; border-left-width: 0; } .fq-cine-sandwiches i:nth-child(3) { left: 70px; }
+.fq-cine-sandwiches.is-cut i:nth-child(1) { left: 26px; border-right-width: 3px; } .fq-cine-sandwiches.is-cut i:nth-child(2) { left: 48px; border-left-width: 3px; }
+.fq-cine-sandwich-cut { left: 21px; top: -4px; height: 34px; border-left: 3px dashed #2B2D42; opacity: 0; transform-origin: 50% 0; }
+.fq-cine-sandwiches.is-cut .fq-cine-sandwich-cut { animation: fq-cine-knife-down .6s ease-out both; }
+.fq-cine-sandwich-label { position: absolute; top: 31px; padding: 1px 4px; border-radius: 4px; background: #FFF4D6; color: #2B2D42; font-size: .78rem; transition: opacity .4s; }
+.fq-cine-sandwich-label.is-half { left: 12px; } .fq-cine-sandwich-label.is-fourth { left: 72px; }
+.fq-cine-sandwich-label.is-sum { left: 50px; opacity: 0; }
+.fq-cine-sandwiches.is-cut .is-half, .fq-cine-sandwiches.is-cut .is-fourth { opacity: 0; }
+.fq-cine-sandwiches.is-cut .is-sum { opacity: 1; transition-delay: 1.6s; }
+
+.fq-cine-machine b { color: #FFE066; font-family: var(--app-font-display); font-size: 1.1rem; }
+.fq-cine-machine-river { left: 72%; right: 0; bottom: 0; height: 30%; background: linear-gradient(#4CC9F0, #2F8FBF); }
+.fq-cine-machine-in { left: 30%; top: 66%; z-index: 3; width: 12%; height: 12px; box-sizing: border-box; border: 2px solid #5A3E28; border-radius: 3px; background: #B98552; }
+.fq-cine-machine-in.is-fed { opacity: 0; animation: fq-cine-feed 1s ease-in both; }
+.fq-cine-machine-plank { left: 70%; top: 68%; z-index: 3; width: 24%; height: 12px; box-sizing: border-box; border: 2px solid #5A3E28; border-radius: 3px; background: #B98552; opacity: 0; }
+.fq-cine-machine-plank.is-built { opacity: 1; animation: fq-cine-eject 1s .9s ease-out both; }
+.fq-cine-actor.is-crossing { transition-delay: 2s; }
+.fq-cine-cracked-boot { z-index: 3; width: 30px; height: 22px; border: 3px solid #2B2D42; border-radius: 8px 8px 3px 3px; background: #4CC9F0; }
+.fq-cine-cracked-boot::after { content: ''; position: absolute; left: 12px; top: -2px; width: 3px; height: 20px; background: #FFF4D6; transform: rotate(18deg); }
+
+.fq-cine-measure { left: 30%; bottom: 40%; z-index: 2; width: 56%; height: 46px; transform: rotate(-3deg); }
+.fq-cine-measure-board { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 0; height: 16px; transition: gap .8s .3s; }
+.fq-cine-measure-board i { flex: 1; background: #C99A6E; box-shadow: inset -2px 0 #805E43; }
+.fq-cine-measure.is-split .fq-cine-measure-board { gap: 7px; }
+.fq-cine-measure-tape { position: absolute; left: 0; right: 0; bottom: 16px; height: 9px; background: #FFC800; transform-origin: 0 50%; animation: fq-cine-grow 1.4s .3s ease-out both; }
+.fq-cine-measure-mark { position: absolute; bottom: 27px; color: #FFF4D6; font-size: .9rem; opacity: 0; transform: translateX(-50%); transition: opacity .4s; }
+.fq-cine-measure-mark::after { content: ''; position: absolute; left: 50%; top: 100%; width: 2px; height: 10px; background: #2B2D42; }
+.fq-cine-measure-mark.is-1 { left: 25%; } .fq-cine-measure-mark.is-2 { left: 50%; } .fq-cine-measure-mark.is-3 { left: 75%; }
+.fq-cine-measure.is-marked .fq-cine-measure-mark { opacity: 1; }
+.fq-cine-measure.is-marked .is-2 { transition-delay: .5s; } .fq-cine-measure.is-marked .is-3 { transition-delay: 1s; }
+
+.fq-cine-garden-plot.fq-cine-move { transform-origin: 50% 100%; transform: scaleY(.15); opacity: .5; transition: transform .7s cubic-bezier(.3, 1.4, .5, 1), opacity .7s; }
+.fq-cine-garden-plot.fq-cine-move.is-grown { transform: none; opacity: 1; }
+.fq-cine-garden-plot.is-1.is-grown { transition-delay: .35s; } .fq-cine-garden-plot.is-2.is-grown { transition-delay: .7s; } .fq-cine-garden-plot.is-3.is-grown { transition-delay: 1.05s; }
+.fq-cine-seed-bag { z-index: 3; display: flex; justify-content: center; gap: 4px; width: 62px; height: 46px; box-sizing: border-box; padding-top: 8px; border: 3px solid #5A3E28; border-radius: 10px 10px 22px 22px; background: #C98A4B; }
+.fq-cine-seed-bag i { width: 11px; height: 11px; border: 2px solid #2B2D42; border-radius: 50%; background: #FF7EA8; }
+.fq-cine-seed-bag i:first-child { background: #FFC800; transition: transform 1s cubic-bezier(.3, .8, .3, 1); }
+.fq-cine-seed-bag i.is-picked { transform: translateY(-48px) scale(1.4); box-shadow: 0 0 14px 4px rgb(255 200 0 / .7); }
+.fq-cine-chance { z-index: 4; padding: 4px 9px; border: 3px solid #2B2D42; border-radius: 10px; background: #fff; color: #2B2D42; font-size: 1.15rem; animation-delay: .8s; }
+
+.fq-cine-lock-dials.is-spinning b { animation: fq-cine-dial .3s linear infinite; }
+.fq-cine-lock-lights { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; justify-content: center; gap: 12px; }
+.fq-cine-lock-lights i { width: 12px; height: 12px; border-radius: 50%; background: #3A3355; transition: background .3s, box-shadow .3s; }
+.fq-cine-lock-lights.is-on i { background: #7BD389; box-shadow: 0 0 10px 3px rgb(123 211 137 / .8); }
+.fq-cine-lock-lights.is-on i:nth-child(1) { transition-delay: .3s; } .fq-cine-lock-lights.is-on i:nth-child(2) { transition-delay: .7s; } .fq-cine-lock-lights.is-on i:nth-child(3) { transition-delay: 1.1s; }
+
+.fq-cine-lanterns { left: 66%; right: 5%; top: 12%; z-index: 3; display: flex; justify-content: space-between; }
+.fq-cine-lanterns i { width: 12px; height: 16px; border-radius: 5px; background: #FFC800; box-shadow: 0 0 12px 4px rgb(255 200 0 / .55); animation: fq-cine-lantern .5s ease-out both; }
+.fq-cine-festival-stone.fq-cine-move i { background: transparent; }
+.fq-cine-festival-stone.fq-cine-move.is-filling i:not(.is-empty) { background: #FFC800; animation: fq-cine-fly-in .5s ease-out both; }
+.fq-cine-festival-stone.fq-cine-move i.is-empty { outline: 2px dashed #FFF4D6; outline-offset: -3px; }
+.fq-cine-festival-stone.fq-cine-move.is-filling i.is-empty { animation: fq-cine-pulse 1s ease-in-out infinite; }
 .fq-cine-epilogue-riddle { left: 50%; transform: translateX(-50%); white-space: nowrap; }
 .fq-cine-screen.is-chapter-end .fq-cine-set { background: linear-gradient(#9EDCFF, #FFF4D6 65%, #7BD389); }
 .fq-cine-end-horizon { inset: 0; background: radial-gradient(circle at 84% 16%, #FFE066 0 24px, transparent 25px); }
@@ -378,6 +452,14 @@
 @keyframes fq-cine-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes fq-cine-flutter { 0% { translate: -120px -300px; rotate: -30deg; } 30% { translate: -40px -200px; rotate: 20deg; } 60% { translate: -90px -100px; rotate: -15deg; } 100% { translate: 0 0; rotate: 0deg; } }
 
+@keyframes fq-cine-roll { from { transform: none; } to { transform: translateX(120px) rotate(360deg); } }
+@keyframes fq-cine-swing { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
+@keyframes fq-cine-feed { from { opacity: 1; transform: none; } 75% { opacity: 1; } to { opacity: 0; transform: translateX(80px); } }
+@keyframes fq-cine-eject { from { opacity: 0; transform: translateX(-40px) scaleX(.5); } to { opacity: 1; transform: none; } }
+@keyframes fq-cine-dial { 0% { transform: translateY(-3px); } 50% { transform: translateY(3px); } 100% { transform: translateY(-3px); } }
+@keyframes fq-cine-lantern { from { background: #5A4A2E; box-shadow: none; } }
+@keyframes fq-cine-fly-in { from { opacity: 0; transform: translateY(-30px) scale(.4); } to { opacity: 1; transform: none; } }
+
 @media (prefers-reduced-motion: reduce) {
   .fq-cine-cam { transform: none !important; }
   .fq-cine-set, .fq-cine-set.is-shaking, .fq-cine-face.is-talking, .fq-cine-actor > *, .fq-cine-actor.is-buzzing, .fq-cine-star, .fq-cine-cloud,
@@ -394,6 +476,7 @@
   .fq-cine-flash, .fq-cine-flash::after { display: none; }
   .fq-cine-machine.is-on i, .fq-cine-whole-stone i, .fq-cine-gear.is-turning, .fq-cine-boots.is-lit { animation: none; }
   .fq-cine-caption, .fq-cine-rise, .fq-cine-bang, .fq-cine-flag, .fq-cine-tick, .fq-cine-card small, .fq-cine-card strong { animation: fq-cine-fade .3s ease both; }
+  .fq-cine-move, .fq-cine-move * { animation: none !important; transition: none !important; }
 }
 /* The grown-ups' Reduce motion setting holds the films still too, as the system setting does. */
 :root.fq-reduced-motion .fq-cine-cam { transform: none !important; }
@@ -408,6 +491,7 @@
 :root.fq-reduced-motion .fq-cine-card, :root.fq-reduced-motion .fq-cine-end, :root.fq-reduced-motion .fq-cine-end strong, :root.fq-reduced-motion .fq-cine-spot { animation: fq-cine-fade .3s ease both; }
 :root.fq-reduced-motion .fq-cine-flash, :root.fq-reduced-motion .fq-cine-flash::after { display: none; }
 :root.fq-reduced-motion .fq-cine-machine.is-on i, :root.fq-reduced-motion .fq-cine-whole-stone i, :root.fq-reduced-motion .fq-cine-gear.is-turning, :root.fq-reduced-motion .fq-cine-boots.is-lit { animation: none; }
+:root.fq-reduced-motion .fq-cine-move, :root.fq-reduced-motion .fq-cine-move * { animation: none !important; transition: none !important; }
 :root.fq-reduced-motion .fq-cine-caption, :root.fq-reduced-motion .fq-cine-rise, :root.fq-reduced-motion .fq-cine-bang, :root.fq-reduced-motion .fq-cine-flag, :root.fq-reduced-motion .fq-cine-tick, :root.fq-reduced-motion .fq-cine-card small, :root.fq-reduced-motion .fq-cine-card strong { animation: fq-cine-fade .3s ease both; }
 
 
