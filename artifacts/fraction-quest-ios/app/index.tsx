@@ -7,13 +7,15 @@ import { ActivityIndicator, Linking, Platform, Pressable, StatusBar, StyleSheet,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react-native-webview';
 import { useStoreSubscription } from '@/lib/store';
+import { useReminders } from '@/lib/use-reminders';
 import { isAppPage, parseShellMessage, shellInfoScript, webAppUrl } from '@/lib/web-app';
 
 /* Fraction Quest on iPhone: a native shell around the live web app. Every lesson and screen comes from the web app,
    so a change there shows up here on the next launch (no app rebuild). The shell adds what a website can't do on
    its own: the iPhone print sheet, a gentle haptic tap on answers, links to other sites opening in Safari, and
    telling the page when the phone is on Wi-Fi (the page then keeps the whole voice pack on the phone), and the
-   yearly or monthly subscription through Apple or Google (the page asks to buy, restore or manage; the shell reports back). */
+   yearly or monthly subscription through Apple or Google (the page asks to buy, restore or manage; the shell reports back),
+   and the grown-up's practice reminder (kept on this phone; tapping it opens today's practice). */
 
 const BACKGROUND = '#F5F3FF';
 const APP_URL = webAppUrl();
@@ -33,7 +35,11 @@ export default function FractionQuestShell() {
     return () => subscription.remove();
   }, []);
   const [subscription, subscriptionAction] = useStoreSubscription();
-  const tellPage = useCallback(() => { web.current?.injectJavaScript(shellInfoScript(Platform.OS, wifi, subscription)); }, [wifi, subscription]);
+  const [reminder, reminderAction, openPractice] = useReminders();
+  const extras = { reminder, openPractice };
+  const tellPage = useCallback(() => {
+    web.current?.injectJavaScript(shellInfoScript(Platform.OS, wifi, subscription, { reminder, openPractice }));
+  }, [wifi, subscription, reminder, openPractice]);
   useEffect(() => { if (!loading) tellPage(); }, [loading, tellPage]);
 
   // On the web (Expo's browser preview) there is nothing to wrap: go straight to the web app.
@@ -59,8 +65,10 @@ export default function FractionQuestShell() {
       void Print.printAsync({ html: message.html }).catch(() => { /* the child closed the sheet */ });
     } else if (message.type === 'subscription') {
       subscriptionAction(message.action, message.plan);
+    } else if (message.type === 'reminder') {
+      reminderAction(message);
     }
-  }, [subscriptionAction]);
+  }, [subscriptionAction, reminderAction]);
 
   const onNavigate = useCallback((request: WebViewNavigation) => {
     if (!APP_URL || isAppPage(request.url, APP_URL)) return true;
@@ -89,7 +97,7 @@ export default function FractionQuestShell() {
           style={styles.web}
           originWhitelist={['*']}
           onMessage={onMessage}
-          injectedJavaScriptBeforeContentLoaded={shellInfoScript(Platform.OS, wifi, subscription)}
+          injectedJavaScriptBeforeContentLoaded={shellInfoScript(Platform.OS, wifi, subscription, extras)}
           onShouldStartLoadWithRequest={onNavigate}
           onLoadEnd={() => { setLoading(false); tellPage(); }}
           onError={() => setFailed(true)}

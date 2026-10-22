@@ -20,6 +20,8 @@ export function isAppPage(url: string, appUrl: string): boolean {
   }
 }
 
+import { parseReminderMessage, type ReminderMessage, type ReminderSettings } from './reminders';
+
 export type SubscriptionAction = 'status' | 'buy' | 'restore' | 'manage';
 export type Plan = 'yearly' | 'monthly';
 export const PLANS: readonly Plan[] = ['yearly', 'monthly'];
@@ -28,7 +30,8 @@ export type PlanOffer = { plan: Plan; price: string; amount?: number | null; cur
 export type ShellMessage =
   | { type: 'haptic'; cue: 'selection' | 'correct' | 'retry' | 'star' | 'complete' | 'impact' }
   | { type: 'print'; jobName?: string; html: string }
-  | { type: 'subscription'; action: SubscriptionAction; plan?: Plan };
+  | { type: 'subscription'; action: SubscriptionAction; plan?: Plan }
+  | ReminderMessage;
 
 /** What the page is told about the subscription. `unavailable`: the store could not be reached or the
     subscription is not set up yet, so the page cannot know (it then leaves lessons open). */
@@ -46,6 +49,11 @@ export type SubscriptionStatus = {
   error?: string | null;
 };
 
+/** What the page is told about the practice reminder on this phone, and whether the phone lets it notify. */
+export type ReminderStatus = ReminderSettings & { permission: 'granted' | 'denied' | 'undetermined' };
+/** More for the page: the reminder settings, and when a reminder was tapped (the page then opens today's practice). */
+export type ShellExtras = { reminder?: ReminderStatus | null; openPractice?: number | null };
+
 export function parseShellMessage(data: string): ShellMessage | null {
   try {
     const message = JSON.parse(data) as { type?: unknown; cue?: unknown; html?: unknown; jobName?: unknown };
@@ -58,13 +66,21 @@ export function parseShellMessage(data: string): ShellMessage | null {
       const plan = PLANS.find((name) => name === request.plan);
       return { type: 'subscription', action: request.action as SubscriptionAction, ...(plan ? { plan } : {}) };
     }
+    const reminder = parseReminderMessage(message as Parameters<typeof parseReminderMessage>[0]);
+    if (reminder) return reminder;
   } catch { /* not ours */ }
   return null;
 }
 
-/** Script that tells the page it runs inside the app, whether the phone is on Wi-Fi, and the subscription status
+/** Script that tells the page it runs inside the app, whether the phone is on Wi-Fi, the subscription status, the
+    practice reminder and a reminder tap
     (`window.fractionQuestShell`, plus a 'fraction-quest-shell' event so the page can react to changes). */
-export function shellInfoScript(platform: string, wifi: boolean, subscription?: SubscriptionStatus | null): string {
-  const info = JSON.stringify(subscription ? { platform, wifi, subscription } : { platform, wifi });
+export function shellInfoScript(platform: string, wifi: boolean, subscription?: SubscriptionStatus | null, extras: ShellExtras = {}): string {
+  const info = JSON.stringify({
+    platform, wifi,
+    ...(subscription ? { subscription } : {}),
+    ...(extras.reminder ? { reminder: extras.reminder } : {}),
+    ...(extras.openPractice ? { openPractice: extras.openPractice } : {}),
+  });
   return `window.fractionQuestShell = ${info}; window.dispatchEvent(new Event('fraction-quest-shell')); true;`;
 }

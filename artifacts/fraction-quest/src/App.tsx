@@ -67,6 +67,7 @@ import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, ch
 import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
 import { LanternIcon, OilNoticeCard } from './riddle-ui';
 import { SubscribeFlow, WebAppOnlyFlow } from './Subscribe';
+import { readOpenPractice, takeReminderTap, tellPractised } from './lib/reminder';
 import { lessonsLocked, subscribedBefore, useSubscription, webLessonsLocked } from './lib/subscription';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
@@ -1730,6 +1731,15 @@ function Game() {
     || (view.type === 'story' && view.replay === 'storybook') || (view.type === 'suspects' && view.from === 'storybook');
   const inLesson = activeStudyView || view.type === 'teach' || view.type === 'hands-on' || view.type === 'fraction-sort';
   const showTimeUp = timeUsedUp && !timeStillOpen && (!inLesson || answeredToday > (answeredAtTimeUp.current ?? answeredToday));
+  // The practice reminder (in the app): no reminder today once the child has a right answer today, and a tapped
+  // reminder opens today's practice from the map.
+  const practisedToday = answeredToday > 0;
+  useEffect(() => { if (practisedToday && !moduleTestActive) tellPractised(today()); }, [practisedToday, moduleTestActive]);
+  const [reminderTap, setReminderTap] = useState(readOpenPractice);
+  useEffect(() => onAppShellChange(() => setReminderTap(readOpenPractice())), []);
+  useEffect(() => {
+    if (reminderTap && view.type === 'map' && !moduleTestActive && !timeUsedUp && takeReminderTap()) startDailyPractice();
+  });
   if (showTimeUp) {
     return (
       <FunContext.Provider value={{ fun, setFun }}>

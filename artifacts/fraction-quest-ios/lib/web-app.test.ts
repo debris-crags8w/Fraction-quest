@@ -22,4 +22,12 @@ test('the app tells the page its subscription status, and leaves it out when the
   };
   assert.deepEqual(run(shellInfoScript('ios', true, { state: 'none', price: '$4.99' })), { platform: 'ios', wifi: true, subscription: { state: 'none', price: '$4.99' } });
   assert.deepEqual(run(shellInfoScript('android', false)), { platform: 'android', wifi: false });
+  const reminder = { time: '16:00', days: [1, 2], permission: 'granted' as const };
+  assert.deepEqual(run(shellInfoScript('ios', true, null, { reminder, openPractice: 5 })), { platform: 'ios', wifi: true, reminder, openPractice: 5 });
+});
+
+test('the app accepts the reminder settings and the practised day from the page', () => {
+  assert.deepEqual(parseShellMessage(JSON.stringify({ type: 'reminder', action: 'set', time: '17:00', days: [6, 0] })), { type: 'reminder', action: 'set', time: '17:00', days: [0, 6] });
+  assert.deepEqual(parseShellMessage(JSON.stringify({ type: 'reminder', action: 'practised', day: '2026-10-22' })), { type: 'reminder', action: 'practised', day: '2026-10-22' });
+  assert.equal(parseShellMessage(JSON.stringify({ type: 'reminder', action: 'spam' })), null);
 });
