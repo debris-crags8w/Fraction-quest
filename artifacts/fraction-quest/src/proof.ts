@@ -1,3 +1,4 @@
+import { withoutUnit } from './measure-units';
 /* The accuracy proof engine. Every question the app can ask is solved here again, from its words (and its
    picture), without using the code that wrote it. The tests in proof.test.ts run this over every lesson,
    worksheet, redo sheet, practice set, build, review, Check-in, Find my level and challenge, and fail on any
@@ -184,7 +185,7 @@ const RULES: Rule[] = [
   { name: 'parts past one whole', re: /^How many (\w+) past one whole is (\d+)\/(\d+)\?$/, solve: (m) => ({ value: N(m[2]) - N(m[3]) }) },
   { name: 'another way to make it', re: /^Is ((?:\d+\/\d+)(?: \+ \d+\/\d+)+) another way to make (\d+\/\d+)\?(?: Answer yes or no\.)?$/, solve: (m) => ({ yes: near(sumOf(m[1]), frac(m[2])) }) },
   { name: 'unit parts in a fraction', re: /^How many 1\/(\d+) parts make (\d+)\/\1\?$/, solve: (m) => ({ value: N(m[2]) }) },
-  { name: 'garden area', re: /^(?:A rectangular garden is|Build) (\d+) (\d+\/\d+)(?: meters by | × )(\d+) (\d+\/\d+)(?: meters\. What is its area\?| square units\.)$/,
+  { name: 'garden area', re: /^(?:A rectangular garden is|Build|A rectangle is) (\d+) (\d+\/\d+)(?: meters by | × | units by )(\d+) (\d+\/\d+)(?: meters\. What is its area\?| square units\.| units\. Build its area\.)$/,
     solve: (m) => ({ value: (N(m[1]) + frac(m[2])) * (N(m[3]) + frac(m[4])) }) },
   { name: 'grid overlap area', re: /^A rectangular [\w ]+ is (1|\d\/3) unit by (\d)\/4 unit\. Color the overlapping area on the 3-by-4 grid\. What is its area in square units\?$/,
     solve: (m) => ({ value: (m[1] === '1' ? 1 : frac(m[1])) * N(m[2]) / 4, denominator: 12 }) },
@@ -289,6 +290,8 @@ const RULES: Rule[] = [
       return { value: m[3] === 'adds' ? start + N(m[4]) : start - N(m[4]) }; } },
   { name: 'feet in inches (build)', re: /^A (?:ribbon|rope) is (\d+ \d+\/\d+) feet long\. Show it in inches(?:, 12 to a foot|: each bar is 1 foot of 12 inches)\.$/,
     solve: (m) => ({ value: valueOf(m[1]) }) },
+  { name: 'feet in inches, then cut (build)', re: /^A rope is (\d+ \d+\/\d+) feet long\. Pip cuts off (\d+) inch(?:es)?\. Show what is left in inches, 12 to a foot\.$/,
+    solve: (m) => ({ value: valueOf(m[1]) - N(m[2]) / 12, denominator: 12 }) },
   { name: 'line plot level', re: /^(Three|Six) [\w ]+ hold (.+) liter\. (?:Plot them, then share|Share) the total equally\. How many liters go in each\?$/,
     solve: (m) => { const v = m[2].split(', ').map(frac); const n = m[1] === 'Six' ? 6 : 3;
       return v.length === n ? { value: v.reduce((a, b) => a + b, 0) / n } : `${m[1].toLowerCase()} amounts named but ${v.length} listed`; } },
@@ -353,7 +356,7 @@ const RULES: Rule[] = [
     solve: (m) => { const low = Math.floor(N(m[1]) / N(m[2])); return N(m[1]) % N(m[2]) === 0 ? `${m[1]}/${m[2]} is a whole number` : { text: `${low} and ${low + 1}` }; } },
   { name: 'sharing story', re: new RegExp(String.raw`^(${TERM}) (?:pounds?|cups?|liters?) of [\w ]+ (?:is|are) shared by (\d+) friends\. (?:What fraction of an? \w+ does each get|How much does each get)\?$`),
     solve: (m) => ({ value: valueOf(m[1]) / N(m[2]) }) },
-  { name: 'fitting story', re: new RegExp(String.raw`^How many (\d+\/\d+)-\w+ \w+ (?:can be filled from (${TERM}) \w+ of [\w ]+|do (${TERM}) \w+ of \w+ fill)\?$`),
+  { name: 'fitting story', re: new RegExp(String.raw`^How many (\d+\/\d+)-\w+ \w+ (?:can be filled from (${TERM}) \w+ of [\w ]+|(?:do|does) (${TERM}) \w+ of \w+ fill)\?$`),
     solve: (m) => ({ value: valueOf(m[2] ?? m[3]) / frac(m[1]) }) },
   { name: 'sharing or fitting', re: /^(.+[.?]) Is this sharing or fitting\?$/,
     // Sharing: an amount split among friends; fitting: how many pieces of a size the amount holds.
@@ -392,6 +395,8 @@ const RULES: Rule[] = [
 
     // --- building (the target is the answer)
   { name: 'build a fraction', re: /^(?:Build|Make) (\d+\/\d+)(?: two ways)?\.(?: Show the same amount with a bar and a number line\.)?$/, solve: (m) => ({ value: frac(m[1]) }) },
+  { name: 'scale by 1 (build)', re: /^Build (\d+)\/\1 of (\d+) counters\. Is it less, the same or more\?$/, solve: () => ({ value: 1 }) },
+  { name: 'scale above 1 (build)', re: /^Build (\d+\/\d+) of 1 bar\. Is it more or less than 1 bar\?$/, solve: (m) => ({ value: frac(m[1]) }) },
   { name: 'build part of a set', re: /^(?:Build (\d+)\/(\d+) of (\d+) counters\. Make \2 equal groups\.|Put (\d+) \w+ in (\d+) equal groups\. Pick (?:1\/\5|(\d+) (?:of the )?groups)\.)$/,
     solve: (m, item) => { if (m[1]) return { value: N(m[1]) / N(m[2]) }; const groups = N(m[5]); const picked = m[6] ? N(m[6]) : 1;
       if (item.target && item.target.total !== N(m[4])) return `the set has ${item.target.total} objects, not ${m[4]}`; return { value: picked / groups }; } },
@@ -439,7 +444,7 @@ const RULES: Rule[] = [
   { name: 'percent (build)', re: /^(?:(\d+) out of 100 kids said yes\. Make it|A score is (\d+)%\. Make it as a fraction|A phone is (\d+)% charged\. Make it|Make (\d+)% as a fraction)\.$/,
     solve: (m) => ({ value: N(m[1] ?? m[2] ?? m[3] ?? m[4]) / 100, denominator: 100 }) },
   { name: 'decimal (build)', re: /^(?:A battery shows|A jar is) ([\d.]+)(?: full)?\. Make it in (\w+)\.$/, solve: (m) => ({ value: N(m[1]), denominator: UNIT_WORD[m[2]] }) },
-  { name: 'chance (build)', re: /^A bag has (\d+) marbles\. (\d+) are green\. Make the chance of green\.$/, solve: (m) => ({ value: N(m[2]) / N(m[1]) }) },
+  { name: 'chance (build)', re: /^A bag has (\d+) marbles\. (\d+) (?:is|are) green\. Make the chance of green\.$/, solve: (m) => ({ value: N(m[2]) / N(m[1]) }) },
   { name: 'unit conversion (build)', re: /^Show why (\d+\/\d+) (\w+) is (\d+) (\w+)\.$/,
     solve: (m) => { const per = PER[`${m[4]}/${m[2]}`]; if (!per) return `no unit table for ${m[4]}/${m[2]}`; if (!near(per * frac(m[1]), N(m[3]))) return `${m[1]} ${m[2]} is not ${m[3]} ${m[4]}`; return { value: frac(m[1]) }; } },
   { name: 'rectangle area (build)', re: /^(?:Build the area of a rectangle that is|A rectangle is) (\d+\/\d+) unit by (\d+\/\d+) unit\.(?: Find its area\.)?$/, solve: (m) => ({ value: frac(m[1]) * frac(m[2]) }) },
@@ -561,7 +566,9 @@ export function normalizePrompt(prompt: string): string {
   return p;
 }
 
-const answerText = (item: ProofItem) => item.answer ?? (item.choices && item.correct !== undefined ? item.choices[item.correct] : undefined);
+const rawAnswer = (item: ProofItem) => item.answer ?? (item.choices && item.correct !== undefined ? item.choices[item.correct] : undefined);
+// Measurement choices carry their unit ("15 minutes"); rules and keys check the amount.
+const answerText = (item: ProofItem) => { const raw = rawAnswer(item); return raw === undefined ? raw : withoutUnit(raw); };
 
 function check(expect: Expect, item: ProofItem, rule: string): ProofResult {
   const fail = (why: string): ProofResult => ({ ok: false, rule, why });
@@ -631,7 +638,7 @@ export function prove(item: ProofItem): ProofResult {
   const key = PROOF_KEY[prompt];
   if (key !== undefined) {
     const answer = answerText(item) ?? (item.target ? `${item.target.n}/${item.target.d}` : undefined);
-    return answer === key ? { ok: true, rule: 'hand-checked key' } : { ok: false, rule: 'hand-checked key', why: `answer "${answer}", the key says "${key}"` };
+    return answer === key || answer === withoutUnit(key) ? { ok: true, rule: 'hand-checked key' } : { ok: false, rule: 'hand-checked key', why: `answer "${answer}", the key says "${key}"` };
   }
   return null;
 }

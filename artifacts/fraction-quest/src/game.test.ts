@@ -1,3 +1,4 @@
+import { withoutUnit } from './measure-units';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { WHY } from './slip-reasons';
 import { LESSON_INTROS } from './lesson-intros';
@@ -578,7 +579,7 @@ describe('lesson catalog', () => {
       const worksheetQuestion = getWorksheet(mission.id)[1];
       // Ordering answers show < or > instead of commas on tap questions; the worksheet keeps its typed form.
       const sameOrder = (text: string) => text.split(/\s*[,<>]\s*/).join(',');
-      assert.equal(sameOrder(signOnly(question.choices[question.correctChoice], worksheetQuestion.answer)), sameOrder(worksheetQuestion.answer), `${mission.id} answer key must match its source worksheet`);
+      assert.equal(sameOrder(signOnly(withoutUnit(question.choices[question.correctChoice]), worksheetQuestion.answer)), sameOrder(worksheetQuestion.answer), `${mission.id} answer key must match its source worksheet`);
       assert.equal(new Set(question.choices).size, question.choices.length, `${mission.id} has duplicate answer choices`);
     });
   });
@@ -2472,8 +2473,9 @@ describe('long problems', () => {
 });
 
 describe('question generator', () => {
-  const fractionValue = (text: string) => {
-    // "3/4" or a mixed number, "1 1/4".
+  const fractionValue = (raw: string) => {
+    // "3/4" or a mixed number, "1 1/4", maybe with its unit ("3/4 liter").
+    const text = withoutUnit(raw);
     const [whole, part] = text.includes(' ') ? text.split(' ') : ['0', text];
     const [n, d] = part.split('/').map(Number);
     return Number(whole) + n / d;
@@ -2481,7 +2483,7 @@ describe('question generator', () => {
   const ids = (id: string) => getMission(id).questions.map((question) => question.id);
   // Units 9–14: every generated question type is re-solved here from its own numbers.
   const num = (text: string): number => {
-    const t = text.replace(/ (m|cups?|liters?)$/, '');
+    const t = withoutUnit(text).replace(/ (m|cups?|liters?)$/, '');
     if (t.endsWith('%')) return Number(t.slice(0, -1)) / 100;
     const mixed = /^(\d+) (\d+)\/(\d+)$/.exec(t); if (mixed) return Number(mixed[1]) + Number(mixed[2]) / Number(mixed[3]);
     const frac = /^(\d+)\/(\d+)$/.exec(t); if (frac) return Number(frac[1]) / Number(frac[2]);
@@ -2678,7 +2680,7 @@ describe('question generator', () => {
       ? [0, 1, 2, 3, 4].flatMap((variant) => getWorksheet(sourceMission.id, variant)).filter((problem) => asChoicePrompt(problem.prompt) === question.prompt)
       : [];
     if (sources.length) {
-      const key = (text: string) => text.split(/\s*[,<>]\s*/).join(',');
+      const key = (text: string) => withoutUnit(text).split(/\s*[,<>]\s*/).join(',');
       assert.ok(sources.some((problem) => key(signOnly(answer, problem.answer)) === key(problem.answer)), `${question.id} should preserve its worksheet answer key: ${answer}`);
       return true;
     }
@@ -4044,7 +4046,7 @@ describe('wrong-answer help', () => {
     assert.equal(why('A bag has 8 marbles. 5 are green. What is the chance of picking green?', '5/8', '3/8'), WHY.otherParts);
     assert.equal(why('Which is the same as 3/4?', '6/8', '3/8'), WHY.keptTop);
     assert.equal(why('What is 5/3 as wholes and a fraction?', '1 and 2/3', '2 and 1/3'), WHY.andSwap);
-    assert.equal(why('Write 1/4 as a percent.', '25%', '14%'), WHY.percentRename);
+    assert.equal(why('Write 9/20 as a percent.', '45%', '18%'), WHY.percentRename);
     assert.equal(why('Max eats 1/3 of a pizza. Then he eats 1/2 of what is left. What fraction of the pizza is left now?', '1/3', '1/6'), WHY.ofRest);
   });
   it('matches a slip only as written: the same amount written another way came from somewhere else', () => {
@@ -4513,7 +4515,7 @@ describe('equivalence, decimal, percent and picture questions offer real mistake
     if ((m = /^Write (\d+)\/10 \+ (\d+)\/100 as a decimal\.$/.exec(p))) { const [a, b] = m.slice(1).map(N); return [(a + b) / 100, (a + b) / 10, (10 * a + b) / 1000]; }
     if (frac && (m = /^What fraction is 0\.(\d+)\?$/.exec(p))) { const n = N(m[1]); return [n / (y * 10), n, 1 / n, n / (y / 10), y / n]; }
     // Percents: the numerator or denominator as the percent, both written side by side, the rest; and back again.
-    if ((m = /^Write (\d+)\/(\d+) as a percent\.$/.exec(p))) { const [a, b] = m.slice(1).map(N); const pct = (a / b) * 100; return [a, b, N(`${a}${b}`), 100 - pct].map((v) => v / 100); }
+    if ((m = /^Write (\d+)\/(\d+) as a percent\.$/.exec(p))) { const [a, b] = m.slice(1).map(N); const pct = (a / b) * 100; return [a, b, a * 2, 100 - pct, a * 10].map((v) => v / 100); }
     if (frac && (m = /^Write (\d+)% as a fraction(?: with a denominator of 100)?\.$/.exec(p))) { const v = N(m[1]); return [v / 10, 100 / v, (100 - v) / 100, v]; }
     return null;
   }

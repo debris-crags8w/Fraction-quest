@@ -1,3 +1,4 @@
+import { withoutUnit } from './measure-units';
 import { answerValue } from './learning-content';
 import { slipReason } from './misconceptions';
 import { WHY } from './slip-reasons';
@@ -37,8 +38,9 @@ export const SLIPS = {
 /** The slip behind a wrong choice, in one short sentence, or null when it is not one we can name. */
 export function wrongChoiceReason(prompt: string, choices: string[], correct: number, chosen: number): string | null {
   if (chosen === correct || !choices[chosen]) return null;
-  const pick = choices[chosen].trim();
-  const right = choices[correct].trim();
+  // Measurement choices carry their unit ("3/4 liter"); the slips are about the amount.
+  const pick = withoutUnit(choices[chosen].trim());
+  const right = withoutUnit(choices[correct].trim());
   const p = prompt.toLowerCase();
 
   if (/^you can'?t tell$/i.test(pick)) return SLIPS.canTell;

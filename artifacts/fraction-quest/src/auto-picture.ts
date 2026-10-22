@@ -33,8 +33,9 @@ export function amountsIn(text: string): Amount[] {
   }
   for (const m of execAll(text, /\b(\d{1,3})%/g)) take(m, { numerator: Number(m[1]), denominator: 100 });
   const seen = new Set<string>();
-  // "1/3 + 1/3" adds the same amount twice: two bars.
-  const sum = /\b(\d+\/\d+)\s*\+\s*\1\b/.test(text);
+  // "1/3 + 1/3" adds the same amount twice: two bars. So do "Then 1/4 more" and "1/4 on Monday and 1/4 on Tuesday".
+  const sum = /\b(\d+\/\d+)\s*\+\s*\1\b/.test(text) || /\b(\d+\/\d+)\b.*\b(?:[Tt]hen|and) \1 more\b/.test(text)
+    || /\b(\d+\/\d+) on \w+ and \1 on \w+/.test(text);
   return found.sort((a, b) => a.at - b.at).map((item) => item.amount)
     .filter(({ numerator, denominator }) => {
       const key = `${numerator}/${denominator}`;

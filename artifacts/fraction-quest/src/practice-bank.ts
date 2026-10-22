@@ -1,5 +1,6 @@
 import { fourthChoice, noBeforeYes, orderedWithSigns, withSignComparisons } from './fourth-choice';
-import { preferMisconceptions } from './misconceptions';
+import { withUnits } from './measure-units';
+import { preferMisconceptions, withoutOverOne } from './misconceptions';
 import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { G3_EQUIVALENTS_WIDE, answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, equivalentsFor, getWorksheet, gradeFits, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
@@ -99,7 +100,9 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       const yes = 'Yes, same-size parts'; const bigger = 'No, some parts are bigger'; const shapes = 'No, the shapes are different';
       return { prompt: `Is this ${whole} cut into equal parts?`, right: fair ? yes : bigger, wrong: fair ? [bigger, shapes] : [yes, shapes], extra: 'Yes, it is cut into parts',
         hint: 'Equal parts are the same size. They do not have to be the same shape.',
-        retry: fair ? 'Every part takes up the same amount of space, so the parts are equal, even if their shapes are different.' : 'Compare the sizes: one part is bigger than another, so the parts are not equal.',
+        retry: !fair ? 'Compare the sizes: one part is bigger than another, so the parts are not equal.'
+          : cut === 'fourths-mixed' ? 'Every part takes up the same amount of space, so the parts are equal, even if their shapes are different.'
+          : 'Every part is the same size, so the parts are equal.',
         model: area(cut) };
     }
     // The picture is the puzzle: the strip may be fair, have unequal pieces, or have the wrong number of pieces.
@@ -162,7 +165,8 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     // Grade 3 parts with one clear nearest benchmark (1/4 sits halfway between 0 and 1/2).
     const [n, d, right] = r.pick([[1, 6, '0'], [1, 8, '0'], [1, 3, '1/2'], [2, 3, '1/2'], [2, 4, '1/2'], [2, 6, '1/2'], [3, 6, '1/2'], [4, 6, '1/2'],
       [3, 8, '1/2'], [4, 8, '1/2'], [5, 8, '1/2'], [5, 6, '1'], [7, 8, '1']] as const);
-    return { prompt: `Is ${f(n, d)} closest to 0, 1/2, 1 or 2?`, right, wrong: ['0', '1/2', '1'].filter((x) => x !== right) as [string, string], extra: '2',
+    // Only the taught benchmarks (0, 1/2 and 1), not a made-up "2"; the fourth choice is the "can't tell" slip.
+    return { prompt: `Is ${f(n, d)} closest to 0, 1/2 or 1?`, right, wrong: ['0', '1/2', '1'].filter((x) => x !== right) as [string, string], extra: "You can't tell",
       hint: 'Is it tiny, about half, or almost full?', retry: `${f(n, d)} is closest to ${right}.`, model: bar(n, d) };
   },
   'fraction-magnitude': (r) => {
@@ -219,7 +223,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   // Equivalent pairs whose denominators both fit the lesson's grade (grade 3: 1/2 = 2/4 = 3/6 = 4/8, 1/3 = 2/6, 3/4 = 6/8).
   'equivalent-models': (r) => {
     const [n, d, k] = r.pick(G3_EQUIVALENTS_WIDE);
-    return { prompt: `Which is the same as ${f(n, d)}?`, right: f(n * k, d * k), wrong: [f(n, d * k), f(n * k, d)], hint: `Split every part into ${k}.`, retry: `Multiply the numerator and denominator by ${k}: ${f(n * k, d * k)}.`, model: bar(n, d) };
+    return { prompt: `Which is the same as ${f(n, d)}?`, right: f(n * k, d * k), wrong: [f(n, d * k), f(n * k, d)], hint: `Split every part into ${k}.`, retry: `Split every part into ${k}. Now ${n * k} of ${d * k} parts are shaded: ${f(n * k, d * k)}.`, model: bar(n, d) };
   },
   'build-equivalents': (r) => {
     const [n, d, k] = r.pick(equivalentsFor('build-equivalents'));
@@ -321,11 +325,15 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'equivalent-missing-both': (r) => {
     const [n, d, k] = r.pick(equivalentsFor('equivalent-missing-both'));
-    return r.chance()
-      ? later(`Fill the blank: ${f(n, d)} = ?/${d * k}`, String(n * k), [String(n + k), String(n * k + 1), String(n * k - 1)],
-        `The denominator was multiplied by ${k}.`, `${n} × ${k} = ${n * k}.`, bar(n, d))
-      : later(`Fill the blank: ${f(n, d)} = ${n * k}/?`, String(d * k), [String(d + k), String(d * k + 1), String(d * k - 1)],
-        `The numerator was multiplied by ${k}.`, `${d} × ${k} = ${d * k}.`, bar(n, d));
+    // A blank on top or on the bottom, by multiplying or dividing. The hint asks for the factor instead of naming it.
+    switch (r.int(0, 2)) {
+      case 0: return later(`Fill the blank: ${f(n, d)} = ?/${d * k}`, String(n * k), [String(n + k), String(n * k + 1), String(n * k - 1)],
+        `What was ${d} multiplied by to make ${d * k}?`, `${d} × ${k} = ${d * k}, so ${n} × ${k} = ${n * k}.`, bar(n, d));
+      case 1: return later(`Fill the blank: ${f(n, d)} = ${n * k}/?`, String(d * k), [String(d + k), String(d * k + 1), String(d * k - 1)],
+        `What was ${n} multiplied by to make ${n * k}?`, `${n} × ${k} = ${n * k}, so ${d} × ${k} = ${d * k}.`, bar(n, d));
+      default: return later(`Fill the blank: ${f(n * k, d * k)} = ?/${d}`, String(n), [...new Set([n * k, n * k - k, n + 1, n * k + 1].filter((x) => x !== n && x > 0).map(String))].slice(0, 3),
+        `What was ${d * k} divided by to make ${d}?`, `${d * k} ÷ ${k} = ${d}, so ${n * k} ÷ ${k} = ${n}.`, bar(n * k, d * k));
+    }
   },
   'compare-unlike-fractions': (r) => {
     // About 1 in 4 pairs share a numerator (3/4 vs 3/8), so that strategy keeps coming back.
@@ -546,7 +554,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'fractions-to-percent': (r) => {
     const [t, b] = r.pick(EXACT_PERCENT); const p = (t * 100) / b;
     return later(`Write ${f(t, b)} as a percent.`, `${p}%`, [`${t}%`, `${b}%`, `${p + 10}%`],
-      `Percent means out of 100. Change ${f(t, b)} to hundredths.`, `${f(t, b)} = ${f(p, 100)} = ${p}%.`, bar(t, b));
+      b === 100 ? 'It is already out of 100. The numerator is the percent.' : `Percent means out of 100. Change ${f(t, b)} to hundredths.`, b === 100 ? `${f(t, b)} means ${t} out of 100: ${p}%.` : `${f(t, b)} = ${f(p, 100)} = ${p}%.`, bar(t, b));
   },
   'percent-to-fraction': (r) => {
     const p = 5 * r.int(1, 19);
@@ -682,9 +690,13 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
     const rng = makeRng(hash(`${missionId}:${seed}:${i}`));
     const item = recipe(rng);
     const key = `${item.prompt}|${item.right}`;
-    const question = {
+    const placed = {
       prompt: oneIsSingular(item.prompt),
       ...noBeforeYes(signedOrder(item.prompt, slipChoices(item.prompt, withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3))))),
+    };
+    const question = {
+      ...placed,
+      choices: withUnits(placed.prompt, withoutOverOne(placed.prompt, placed.choices, placed.correctChoice)),
       hint: oneIsSingular(item.hint),
       retryFeedback: oneIsSingular(item.retry),
       model: nameBars(item.model, item.prompt),
