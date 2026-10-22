@@ -1,12 +1,12 @@
 import { expect, test, type Page } from './fixtures';
 
 /** Open chapter 2 in the Storybook with the given lessons finished. */
-async function openChapterTwo(page: Page, done: string[], reducedMotion = false) {
+async function openChapterTwo(page: Page, done: string[], reducedMotion = false, funChanges: Record<string, unknown> = {}) {
   const progress = { completedMissionIds: done, starsByMission: {}, reviewQueue: [], assessments: [],
     learning: Object.fromEntries(done.map((id) => [id, { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {}, completedAt: 1 }])) };
   const fun = { xp: 0, day: '2026-10-20', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: false,
     story: { prologueSeen: true, choices: { '1': 0, '2': 0 } },
-    displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion, seasonalThemes: false, storyMode: true } };
+    displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion, seasonalThemes: false, storyMode: true }, ...funChanges };
   await page.addInitScript(({ savedProgress, savedFun }) => {
     localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(savedProgress));
     localStorage.setItem('fraction-quest-fun-v1', JSON.stringify(savedFun));
@@ -254,4 +254,65 @@ test('with Reduce motion, the new chapter films show where things end up without
   const plank = stage.locator('.fq-cine-machine-plank');
   await expect(plank).toHaveClass(/is-built/);
   expect(await plank.evaluate((el) => [getComputedStyle(el).animationName, getComputedStyle(el).opacity])).toEqual(['none', '1']);
+});
+
+test('while the voice is on its way, the caption says so, then the line types with the voice', async ({ page }) => {
+  // The device voice (the natural voice is off) takes 2.5 seconds to start its first sentence.
+  await page.addInitScript(() => {
+    localStorage.setItem('fraction-quest-natural-voice', 'off');
+    localStorage.setItem('fraction-quest-film-voice', 'on');
+    // Sentences are spoken one after another; the first one with words starts late.
+    let queue: { text: string; onstart?: () => void; onend?: () => void }[] = [];
+    let first = true;
+    const next = () => {
+      const item = queue[0]; if (!item) return;
+      const wait = item.text.trim() && first ? 2500 : 10;
+      if (item.text.trim()) first = false;
+      setTimeout(() => { item.onstart?.(); setTimeout(() => { if (queue[0] === item) { queue.shift(); item.onend?.(); next(); } }, 600); }, wait);
+    };
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
+      getVoices: () => [{ name: 'Test', lang: 'en-US', voiceURI: 'Test', default: true }],
+      speak(utterance: { text: string }) { queue.push(utterance); if (queue.length === 1) next(); },
+      cancel() { queue = []; }, addEventListener() {}, removeEventListener() {}, pause() {}, resume() {},
+    } });
+    (window as unknown as { SpeechSynthesisUtterance: unknown }).SpeechSynthesisUtterance = function (this: { text: string }, text: string) { this.text = text; };
+  });
+  await openChapterTwo(page, [...unitOne, 'unit-size']);
+  await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
+  const waiting = page.getByTestId('story-voice-waiting');
+  await expect(waiting).toBeVisible();
+  await expect(waiting).toHaveText(/^Getting .+’s voice ready…$/);
+  await expect(waiting).toHaveCount(0, { timeout: 8000 });
+  await expect(page.getByTestId('story-panel-0').locator('.fq-cine-line')).not.toBeEmpty();
+});
+
+test('story music plays under the film when sounds are on, and the Music button turns it off and is remembered', async ({ page }) => {
+  // Count the notes the music schedules.
+  await page.addInitScript(() => {
+    const scope = window as unknown as { notes: number; AudioContext: typeof AudioContext };
+    scope.notes = 0;
+    const Real = scope.AudioContext;
+    scope.AudioContext = class extends Real {
+      createOscillator() { scope.notes += 1; return super.createOscillator(); }
+    } as typeof AudioContext;
+  });
+  await openChapterTwo(page, [...unitOne, 'unit-size'], false, { sound: true });
+  await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
+  const music = page.getByTestId('button-story-music');
+  await expect(music).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => page.evaluate(() => (window as unknown as { notes: number }).notes)).toBeGreaterThan(3);
+  await music.click();
+  await expect(music).toHaveText(/Music off/);
+  const notes = await page.evaluate(() => (window as unknown as { notes: number }).notes);
+  await page.waitForTimeout(1500);
+  expect(await page.evaluate(() => (window as unknown as { notes: number }).notes)).toBe(notes);
+  expect(await page.evaluate(() => localStorage.getItem('fraction-quest-film-music'))).toBe('off');
+});
+
+test('with sounds off, or story music turned off by a grown-up, the film has no music and no Music button', async ({ page }) => {
+  await openChapterTwo(page, [...unitOne, 'unit-size'], false, { sound: true,
+    displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: false, storyMode: true, storyMusic: false } });
+  await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
+  await expect(page.getByTestId('story-panel-0')).toBeVisible();
+  await expect(page.getByTestId('button-story-music')).toHaveCount(0);
 });
