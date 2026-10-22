@@ -42,6 +42,8 @@ export function AreaShade({ figure, task, disabled, statusId, onMatchChange, che
   figure: AreaFigure; task: AreaTask; disabled: boolean; statusId: string; onMatchChange: (ready: boolean, correct?: boolean) => void; checkIn?: boolean;
 }) {
   const [shaded, setShaded] = useState<number[]>([]);
+  // The piece with focus gets its own outline drawn on top (the browser's focus box would cover its neighbours).
+  const [focused, setFocused] = useState<number | null>(null);
   const done = areaTaskDone(figure.cut, task, shaded);
   const ready = checkIn ? shaded.length > 0 : done;
   useEffect(() => { onMatchChange(ready, done); }, [ready, done, onMatchChange]);
@@ -61,9 +63,11 @@ export function AreaShade({ figure, task, disabled, statusId, onMatchChange, che
             className={`${shaded.includes(i) ? 'shaded' : 'empty'} ${task.avoid?.includes(i) ? 'avoid' : ''}`}
             aria-pressed={shaded.includes(i)} aria-label={`${piece.shape === 'rect' ? 'rectangle' : piece.shape} piece ${i + 1}`}
             onClick={() => toggle(i)} onKeyDown={(e) => onKey(e, i)} data-testid={`button-area-piece-${i + 1}`}
+            onFocus={() => setFocused(i)} onBlur={() => setFocused((f) => (f === i ? null : f))}
           />
         ))}
          <polygon className="frame" points={outline(figure)} fill="none" pointerEvents="none" />
+        {focused !== null && !disabled && <polygon className="focus-ring" points={pts(AREA_CUTS[figure.cut][focused].points)} pointerEvents="none" data-testid="area-piece-focus" />}
       </svg>
       <p id={statusId} className={`fq-ll-copy-status ${done && !checkIn ? 'matched' : ''}`} role="status" aria-live="polite" data-testid="status-area">
         {checkIn ? `${shaded.length} ${shaded.length === 1 ? 'piece' : 'pieces'} colored.` : <MathText text={areaFeedback(figure.cut, task, shaded)} />}
