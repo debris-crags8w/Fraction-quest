@@ -16,7 +16,7 @@ import * as React from 'react';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
-import { FunContext, splitStory, StoryPrompt } from './fun-ui';
+import { FunContext, promptListenText, splitStory, StoryPrompt } from './fun-ui';
 import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
 import { createNaturalSpeaker, isIOSVoiceDevice, naturalVoicePreference, naturalVoiceStatus, setNaturalEngineForTests, setNaturalVoicePreference } from './lib/natural-voice';
@@ -2422,6 +2422,13 @@ describe('long problems', () => {
     );
     assert.deepEqual(splitStory('Which is bigger, 0.4 or 0.35?'), { lines: [], question: 'Which is bigger, 0.4 or 0.35?' });
     assert.equal(splitStory('3/5 = 12/?. What is the missing number?').lines.length, 0);
+  });
+
+  it('the question Listen reads the story lines and the question, never the quick review tag', () => {
+    // Reported: "Quick review · Equal-area partitions" was read aloud before "This circle is on a classroom poster."
+    const prompt = 'Quick review · Equal-area partitions: This circle is on a classroom poster. Color 2 parts. What fraction of the circle is colored?';
+    assert.equal(promptListenText(prompt), 'This circle is on a classroom poster. Color 2 parts. What fraction of the circle is colored?');
+    assert.equal(promptListenText('Color 2 parts. What fraction is colored?'), 'Color 2 parts. What fraction is colored?');
   });
 
   it('places one question Listen control beside the heading for the whole story', () => {
