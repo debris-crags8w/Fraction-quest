@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { legalUrl } from './lib/legal';
 import { ArrowRight, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
 import { login, recoverAccount, signup, type User, type UserWithRecoveryCode } from '@workspace/api-client-react';
 import { RecoveryCodeCard } from './RecoveryCode';
@@ -146,7 +147,7 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
           {creating && (
             <fieldset className="fq-privacy-consent">
               <legend>For a parent or caregiver</legend>
-              <p>Fraction Quest saves the account username and display name, learner nicknames, lesson answers and progress, and app preferences so learning can continue on another device. Class reports use a learner code, not the learner’s nickname. We do not ask for email or record audio.</p>
+              <p>Fraction Quest saves the account username and display name, learner nicknames, lesson answers and progress, and app preferences so learning can continue on another device. Class reports use a learner code, not the learner’s nickname. We do not ask for email or record audio. <a href={legalUrl('privacy')} target="_blank" rel="noreferrer" data-testid="link-privacy">Read the full privacy notice</a></p>
               <label className="fq-privacy-consent-check">
                 <input type="checkbox" checked={parentConsent} onChange={(event) => setParentConsent(event.target.checked)} />
                 <span>I am a parent or caregiver. I reviewed this notice and agree to save this account’s learning data online.</span>

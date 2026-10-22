@@ -1,0 +1,15 @@
+/* The privacy and terms pages: plain, readable on a phone, in the app's colors. */
+:root { --ink: #241b3d; --muted: #5d5575; --grape: #5b3fd6; --paper: #fbf8f3; --line: #e4def3; }
+@media (prefers-color-scheme: dark) { :root { --ink: #f1edfb; --muted: #b9b1cf; --grape: #b7a6ff; --paper: #17132a; --line: #3a3156; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 680px; margin: 0 auto; padding: 20px 16px 48px; }
+h1 { margin: 8px 0 4px; font-size: 2rem; }
+h2 { margin: 28px 0 6px; font-size: 1.2rem; color: var(--grape); }
+p, li { margin: 0 0 10px; }
+ul { padding-left: 1.3em; }
+a { color: var(--grape); font-weight: 700; }
+.back a, .links a { text-decoration: none; display: inline-block; padding: 10px 0; }
+.updated { color: var(--muted); font-size: .9rem; }
+.lead { font-size: 1.08rem; font-weight: 600; padding: 14px 16px; border: 2px solid var(--line); border-radius: 16px; }
+.links { margin-top: 32px; border-top: 2px solid var(--line); }

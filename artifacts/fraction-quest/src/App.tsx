@@ -53,6 +53,7 @@ import { getWorksheet } from './learning-content';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requiredBuildChecks, resetUnitLearningProgress, worksheetCount, startRedo, updateLearning, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
+import { legalUrl } from './lib/legal';
 import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordLessonIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
@@ -797,7 +798,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onLessonTester, onOpen
           </div>
           <div className="fq-trail-note"><Lightbulb size={17} color="hsl(var(--accent-foreground))" /><span>No timer, no traps. Use a hint, try a simpler model, and keep going.</span></div>
         </section>
-        <footer className="fq-footer"><span>Made for curious minds, ages 8–10. {user ? 'Progress is saved to this family account.' : 'Progress stays on this device.'}</span><button onClick={onReset} data-testid="button-reset-progress-footer">{user ? 'Reset this learner’s progress' : "Reset this device's progress"}</button></footer>
+        <footer className="fq-footer"><span>Made for curious minds, ages 8–10. {user ? 'Progress is saved to this family account.' : 'Progress stays on this device.'} <a href={legalUrl('privacy')} data-testid="link-privacy">Privacy</a> · <a href={legalUrl('terms')} data-testid="link-terms">Terms</a></span><button onClick={onReset} data-testid="button-reset-progress-footer">{user ? 'Reset this learner’s progress' : "Reset this device's progress"}</button></footer>
       </main>
     </div>
   );

@@ -64,3 +64,20 @@ test('on the website the Storybook stays open after a later lesson points to the
   await storybook.click();
   await expect(page.getByTestId('web-app-only')).toHaveCount(0);
 });
+
+test('the privacy and terms pages open from the map without signing in, and fit a phone', async ({ page }) => {
+  await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByTestId('button-play-guest').click();
+  await page.getByTestId('link-privacy').first().click();
+  await expect(page.getByRole('heading', { name: 'Privacy', level: 1 })).toBeVisible();
+  await expect(page.getByText(/don’t show ads, sell data or track children/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Seeing and deleting your data' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.getByRole('link', { name: 'Terms' }).click();
+  await expect(page.getByRole('heading', { name: 'Terms', level: 1 })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'standard licence' })).toHaveAttribute('href', /apple\.com\/legal/);
+  await page.getByRole('link', { name: '← Back to Fraction Quest' }).click();
+  await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+});

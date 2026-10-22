@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { legalUrl } from './lib/legal';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useListLearnerProfiles,
@@ -265,6 +266,7 @@ export default function FamilyControls({ unitTitles }: FamilyControlsProps) {
           <Shield size={20} aria-hidden="true" />
           <strong>Privacy, plainly</strong>
           <p>The adult gate is a reminder, not identity proof. Educator reports use learner codes, never student names. Guest progress stays local.</p>
+          <p><a href={legalUrl('privacy')} target="_blank" rel="noreferrer" data-testid="link-privacy">Privacy notice</a> · <a href={legalUrl('terms')} target="_blank" rel="noreferrer" data-testid="link-terms">Terms</a></p>
         </aside>
       </header>
 
