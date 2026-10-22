@@ -250,10 +250,10 @@ function equivalence(p: string, right: Amount | null): Found | null {
     const n = N(m[1] ?? m[2]);
     return { right: answer, slips: [['places', [n, y * 10]], ['decWhole', [n, 1]], ['digitTop', [1, n]], ['places', [n, y / 10]], ['upsideDown', [y, n]]] };
   }
-  // Percents: the numerator or denominator as the percent, both side by side ("14%" for 1/4), the rest.
+  // Percents: the numerator or denominator as the percent, a wrong scale factor (9/20 as 18%: times 2, not 5), the rest, out of 10.
   if ((m = /^Write (\d+)\/(\d+) as a percent\.$/.exec(p))) {
     const [a, b] = m.slice(1).map(N);
-    return { right: a / b, slips: [['percentRename', `${a}%`], ['percentRename', `${b}%`], ['percentRename', `${a}${b}%`], ['otherParts', `${100 - (a / b) * 100}%`]] };
+    return { right: a / b, slips: [['percentRename', `${a}%`], ['percentRename', `${b}%`], ['percentRename', `${a * 2}%`], ['otherParts', `${100 - (a / b) * 100}%`], ['percentRename', `${a * 10}%`]] };
   }
   // And back: over 10, upside down, the rest, over 1.
   if (right && (m = /^Write (\d+)% as a fraction(?: with a denominator of 100)?\.$/.exec(p))) {

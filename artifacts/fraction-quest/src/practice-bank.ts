@@ -554,7 +554,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'fractions-to-percent': (r) => {
     const [t, b] = r.pick(EXACT_PERCENT); const p = (t * 100) / b;
     return later(`Write ${f(t, b)} as a percent.`, `${p}%`, [`${t}%`, `${b}%`, `${p + 10}%`],
-      `Percent means out of 100. Change ${f(t, b)} to hundredths.`, `${f(t, b)} = ${f(p, 100)} = ${p}%.`, bar(t, b));
+      b === 100 ? 'It is already out of 100. The numerator is the percent.' : `Percent means out of 100. Change ${f(t, b)} to hundredths.`, b === 100 ? `${f(t, b)} means ${t} out of 100: ${p}%.` : `${f(t, b)} = ${f(p, 100)} = ${p}%.`, bar(t, b));
   },
   'percent-to-fraction': (r) => {
     const p = 5 * r.int(1, 19);

@@ -243,7 +243,7 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'fractional-side-area': [1, 2, 'bar', 'Build the area of a rectangle that is 2/3 unit by 3/4 unit.', 'Two columns by three rows cover 6 of 12 equal squares. 6/12 is 1/2 square unit.'],
   'multiplication-scaling': [3, 4, 'set', 'Build 3/4 of 12. Is the answer less or more than 12?', 'Three of four equal groups is 9. Multiplying 12 by 3/4 makes a smaller amount. ', 12],
   'bigger-or-smaller': [10, 4, 'bar', 'Make 5/4 × 2. Is it more or less than 2?', '5/4 is more than 1, so 5/4 × 2 is more than 2. It is 10/4.'],
-  'multiply-mixed-numbers': [12, 6, 'bar', 'Build 1 1/2 × 1 1/3 square units.', 'The rectangle has 3 half-unit rows and 4 third-unit columns: 12 sixths, or 2 square units.'],
+  'multiply-mixed-numbers': [12, 6, 'bar', 'A rectangle is 1 1/2 units by 1 1/3 units. Build its area.', 'The rectangle has 3 half-unit rows and 4 third-unit columns: 12 sixths, or 2 square units.'],
   'fraction-of-collection': [3, 4, 'set', 'Put 16 cards in 4 equal groups. Pick 3 groups.', '16 in 4 groups is 4 each. 3 groups is 12.', 16],
   'divide-whole-by-unit-fraction': [4, 4, 'bar', 'How many 1/4-cup scoops fill 1 cup? Make it.', '4 fourths make one whole. So 4 scoops of 1/4 cup fill 1 cup.'],
   'unit-fraction-divided-whole': [1, 12, 'bar', 'Share 1/3 of a pan equally among 4 children. Build one share.', 'Split each third into 4 equal parts. One share is 1/12 of the whole pan.'],
@@ -303,7 +303,7 @@ const EXTENSION_TRANSFERS: Record<string, { n: number; d: number; prompt: string
   'estimate-fraction-operations': { n: 7, d: 12, kind: 'line', prompt: 'Estimate 1/4 + 1/3. Is it more or less than 1?', reason: 'Both parts are less than 1/2, and two halves make 1. So the sum is less than 1.' },
   'fractional-side-area': { n: 3, d: 8, prompt: 'A rectangle is 3/4 unit by 1/2 unit. Find its area.', reason: 'Three fourths times one half is 3/8 square unit.' },
   'multiplication-scaling': { n: 2, d: 3, kind: 'set', total: 18, prompt: 'Build 2/3 of 18. Is it less than or more than 18?', reason: 'Two of three equal groups is 12, less than 18.' },
-  'multiply-mixed-numbers': { n: 15, d: 6, prompt: 'Build 1 1/2 × 1 2/3 square units.', reason: '3/2 × 5/3 = 15/6, or 2 1/2 square units.' },
+  'multiply-mixed-numbers': { n: 15, d: 6, prompt: 'A rectangle is 1 1/2 units by 1 2/3 units. Build its area.', reason: '3/2 × 5/3 = 15/6, or 2 1/2 square units.' },
   'unit-fraction-divided-whole': { n: 1, d: 15, prompt: 'Share 1/5 of a tray among 3 children. Build one share.', reason: 'Split each fifth into 3 equal parts. One share is 1/15 of the tray.' },
   'fractional-unit-conversions': { n: 1, d: 2, kind: 'line', prompt: 'Show why 1/2 foot is 6 inches.', reason: 'One foot is 12 inches. Half of 12 inches is 6 inches.' },
   'simplify-fractions': { n: 2, d: 3, prompt: 'A strip is 8/12 colored. Make it in simplest form.', reason: 'Divide the numerator and denominator by 4. 8/12 = 2/3.' },
@@ -523,7 +523,7 @@ const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reaso
   'fraction-of-collection': { n: 2, d: 3, kind: 'set', total: 15, prompt: 'Put 15 cards in 3 equal groups. Pick 2 groups.', reason: '15 in 3 equal groups is 5 each. 2 groups is 10 cards.' },
   'divide-whole-by-unit-fraction': { n: 6, d: 3, prompt: 'How many 1/3-cup scoops fill 2 cups? Make it in thirds.', reason: 'Each cup holds 3 thirds. 2 cups hold 6.' },
   'multiplication-scaling': { n: 3, d: 5, kind: 'set', total: 20, prompt: 'Build 3/5 of 20. Is it less than or more than 20?', reason: '3/5 is less than one whole, so 3/5 of 20 is less than 20. It is 12.' },
-  'multiply-mixed-numbers': { n: 9, d: 4, prompt: 'Build 1 1/2 × 1 1/2 square units.', reason: 'Cut each side into halves. 9 small squares are 9/4, or 2 1/4.' },
+  'multiply-mixed-numbers': { n: 9, d: 4, prompt: 'A rectangle is 1 1/2 units by 1 1/2 units. Build its area.', reason: 'Cut each side into halves. 9 small squares are 9/4, or 2 1/4.' },
   'unit-fraction-divided-whole': { n: 1, d: 8, prompt: 'Share 1/4 of a cake equally among 2 children. Build one share.', reason: 'Split the fourth into 2 equal shares. Each share is 1/8.' },
   'fraction-of-length': { n: 2, d: 3, kind: 'line', prompt: 'Mark 2/3 of a mile on the line.', reason: 'Split the line into 3 equal spaces. Count 2.' },
   'ruler-measurement': { n: 3, d: 4, kind: 'line', prompt: 'A crayon is 3/4 inch long. Mark it on the ruler.', reason: 'Each inch has 4 small spaces. 3 of them make 3/4 inch.' },
@@ -839,7 +839,7 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
       ['2/3', 'hour', 40, 'minutes', 60], ['1/6', 'hour', 10, 'minutes', 60], ['1/8', 'pound', 2, 'ounces', 16], ['3/8', 'pound', 6, 'ounces', 16], ['1/10', 'meter', 10, 'centimeters', 100], ['3/10', 'meter', 30, 'centimeters', 100], ['1/12', 'foot', 1, 'inches', 12], ['5/12', 'foot', 5, 'inches', 12],
       ['1/2', 'foot', 6, 'inches', 12], ['3/4', 'foot', 9, 'inches', 12], ['1/4', 'dollar', 25, 'cents', 100], ['3/4', 'dollar', 75, 'cents', 100], ['1/2', 'day', 12, 'hours', 24], ['1/4', 'day', 6, 'hours', 24], ['1/2', 'liter', 500, 'milliliters', 1000], ['1/4', 'kilogram', 250, 'grams', 1000]] as const, s);
     const [n, d] = frac.split('/').map(Number); return [`Show why ${frac} ${unit} is ${val} ${small}.`, n, d, `${/^(a|e|i|o|u|hour)/i.test(unit) ? 'An' : 'A'} ${unit} is ${per} ${small}. ${frac} of ${per} is ${val}.`]; },
-  'fraction-probability': (s) => { const total = at([4, 5, 6, 8, 10], s); const g = 1 + (s % (total - 1)); return [`A bag has ${total} marbles. ${g} are green. Make the chance of green.`, g, total, `${g} green out of ${total} marbles is ${g}/${total}.`]; },
+  'fraction-probability': (s) => { const total = at([4, 5, 6, 8, 10], s); const g = 1 + (s % (total - 1)); return [`A bag has ${total} marbles. ${g} ${g === 1 ? 'is' : 'are'} green. Make the chance of green.`, g, total, `${g} green out of ${total} marbles is ${g}/${total}.`]; },
   'fractions-to-percent': (s) => { const p = at([25, 50, 75, 20, 40, 60, 10, 30], s); return [`Make ${p}% as a fraction.`, p, 100, `${p}% means ${p} out of 100: ${p}/100.`]; },
   'percent-to-fraction': (s) => LESSON_BUILDS['fractions-to-percent'](s + 3),
   'estimate-fraction-operations': (s) => { const [a, b, c, d] = at([[1, 2, 1, 3], [3, 4, 1, 2], [1, 4, 1, 3], [2, 3, 1, 2], [1, 5, 1, 4], [1, 6, 1, 3], [3, 8, 1, 2], [2, 3, 3, 4], [1, 2, 1, 4], [4, 5, 1, 2], [1, 3, 1, 6], [5, 8, 3, 4]] as const, s); const [n, den] = sumIn(a, b, c, d);
@@ -849,7 +849,7 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
   'multi-step-fraction-stories': (s) => { const d = at([5, 6, 8, 10], s); const a = 1 + (s % (d - 3)); const b = 1 + ((s + 1) % (d - a - 1));
     // Every other build takes away first, then adds.
     if (s % 2) return [`A jug has ${d - 1}/${d} liter. Sam drinks ${a}/${d} liter, then adds ${b}/${d} liter. Make what is in the jug now.`, d - 1 - a + b, d, `First ${d - 1} − ${a} = ${d - 1 - a}. Then ${d - 1 - a} + ${b} = ${d - 1 - a + b}. So ${d - 1 - a + b}/${d} liter.`];
-    return [`A garden is ${a}/${d} planted. Plant ${b}/${d} more. Make the part still empty.`, d - a - b, d, `First ${a} + ${b} = ${a + b} parts are planted. Then ${d} − ${a + b} = ${d - a - b} parts are empty.`]; },
+    return [`A garden is ${a}/${d} planted. Plant ${b}/${d} more. Make the part still empty.`, d - a - b, d, `First ${a} + ${b} = ${a + b} parts are planted. Then ${d} − ${a + b} = ${d - a - b} ${d - a - b === 1 ? 'part is' : 'parts are'} empty.`]; },
   'find-the-whole': (s) => { const [n, d] = at([[3, 4], [2, 5], [4, 3], [3, 6], [5, 2], [2, 8], [4, 4], [3, 3], [2, 6], [5, 3], [6, 2], [3, 5], [2, 4], [4, 2], [2, 3], [5, 4]] as const, s);
     return [`${n} stickers are 1/${d} of a pack. Build the whole pack.`, d, d, `Each part is ${n}. ${d} parts make the whole pack: ${n * d} stickers.`, 'set', n * d]; },
   // The wrong sum's denominator (2d) stays a grade 4 one.
@@ -1618,7 +1618,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       case 'percent': {
         const [t, b] = pick(EXACT);
         prompt = `Write ${f(t, b)} as a percent.`; answer = `${(t * 100) / b}%`;
-        hint = `Percent means out of 100. Change ${f(t, b)} to hundredths.`; break;
+        hint = b === 100 ? 'It is already out of 100. The numerator is the percent.' : `Percent means out of 100. Change ${f(t, b)} to hundredths.`; break;
       }
       case 'percent-inverse': {
         const percent = pick(PERCENTS);
@@ -1957,7 +1957,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           ['Leo says 7/10 − 4/10 = 3/0.', '3/10', 'Tenths minus tenths leave tenths. Keep the denominator.'],
           ['Ivy says 3/4 + 2/4 = 5/8.', '5/4', 'Fourths plus fourths make fourths. 5 fourths is more than one whole.', 4],
           ['Gus says 9/4 = 2 1/2.', '2 1/4', '8 fourths make 2 wholes. Count the fourths left over.', undefined, 'mixed'],
-          ['Nia says 3/5 = 4/6 because she added 1 to the numerator and denominator.', '6/10', 'Multiply the numerator and denominator by the same number.', 10],
+          ['Nia says 3/5 = 4/6 because she added 1 to the numerator and denominator. Which fraction in tenths is really equal to 3/5?', '6/10', 'Multiply the numerator and denominator by the same number.', 10],
           ['Sid says 4 × 1/3 = 4/12.', '4/3', 'Multiply only the numerator. The parts stay thirds.'],
         ];
         if (i % 3 === 0) {

@@ -4046,7 +4046,7 @@ describe('wrong-answer help', () => {
     assert.equal(why('A bag has 8 marbles. 5 are green. What is the chance of picking green?', '5/8', '3/8'), WHY.otherParts);
     assert.equal(why('Which is the same as 3/4?', '6/8', '3/8'), WHY.keptTop);
     assert.equal(why('What is 5/3 as wholes and a fraction?', '1 and 2/3', '2 and 1/3'), WHY.andSwap);
-    assert.equal(why('Write 1/4 as a percent.', '25%', '14%'), WHY.percentRename);
+    assert.equal(why('Write 9/20 as a percent.', '45%', '18%'), WHY.percentRename);
     assert.equal(why('Max eats 1/3 of a pizza. Then he eats 1/2 of what is left. What fraction of the pizza is left now?', '1/3', '1/6'), WHY.ofRest);
   });
   it('matches a slip only as written: the same amount written another way came from somewhere else', () => {
@@ -4515,7 +4515,7 @@ describe('equivalence, decimal, percent and picture questions offer real mistake
     if ((m = /^Write (\d+)\/10 \+ (\d+)\/100 as a decimal\.$/.exec(p))) { const [a, b] = m.slice(1).map(N); return [(a + b) / 100, (a + b) / 10, (10 * a + b) / 1000]; }
     if (frac && (m = /^What fraction is 0\.(\d+)\?$/.exec(p))) { const n = N(m[1]); return [n / (y * 10), n, 1 / n, n / (y / 10), y / n]; }
     // Percents: the numerator or denominator as the percent, both written side by side, the rest; and back again.
-    if ((m = /^Write (\d+)\/(\d+) as a percent\.$/.exec(p))) { const [a, b] = m.slice(1).map(N); const pct = (a / b) * 100; return [a, b, N(`${a}${b}`), 100 - pct].map((v) => v / 100); }
+    if ((m = /^Write (\d+)\/(\d+) as a percent\.$/.exec(p))) { const [a, b] = m.slice(1).map(N); const pct = (a / b) * 100; return [a, b, a * 2, 100 - pct, a * 10].map((v) => v / 100); }
     if (frac && (m = /^Write (\d+)% as a fraction(?: with a denominator of 100)?\.$/.exec(p))) { const v = N(m[1]); return [v / 10, 100 / v, (100 - v) / 100, v]; }
     return null;
   }

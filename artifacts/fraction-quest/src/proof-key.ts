@@ -3,6 +3,7 @@
    (October 2026). When one of these questions changes, its entry stops matching and the proof test fails until
    someone works the new question out again and updates the entry. Keys are prompts as proof.ts normalizes them. */
 export const PROOF_KEY: Record<string, string> = {
+  "Nia says 3/5 = 4/6 because she added 1 to the numerator and denominator. Which fraction in tenths is really equal to 3/5?": "6/10",
   "Make 5/8 as 2/8 + 3/8.": "5/8",
   "Pip pours 7 one-third cups of water. Build how much that is.": "7/3",
   "A bug crawls 3/8 inch. Show it on a line marked in eighths.": "3/8",
