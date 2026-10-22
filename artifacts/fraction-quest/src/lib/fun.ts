@@ -50,6 +50,8 @@ export type FunState = {
   story?: StoryState;
   /** The model intros (how to build, how a number line works) already watched, so they open by themselves once. */
   introsSeen?: Partial<Record<IntroKind, true>>;
+  /** Lessons whose Teach first screen was read (Next tapped), so it opens by itself only the first time. */
+  lessonIntrosSeen?: string[];
   /** Spare oil (story mode) or streak savers: each covers one missed day so the streak keeps going. Up to SPARE_OIL_MAX. */
   spareOil?: number;
   /** Missed days a drop covered (last 35 days). They keep the streak going but do not add to it, and are not activity. */
@@ -189,6 +191,9 @@ function cleanIntros(value: unknown): Partial<Record<IntroKind, true>> {
   return { ...(raw.builder === true ? { builder: true } : {}), ...(raw.line === true ? { line: true } : {}) } as Partial<Record<IntroKind, true>>;
 }
 
+const cleanLessonIntros = (value: unknown): string[] =>
+  Array.isArray(value) ? [...new Set(value.filter((id): id is string => typeof id === 'string' && /^[a-z0-9-]{1,60}$/.test(id)))] : [];
+
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 /** Spare oil from saved data: a count in range, recent well-formed days, and a notice that makes sense. */
 function cleanOil(saved: Partial<FunState>, now = new Date()): Pick<FunState, 'spareOil' | 'savedDays' | 'streakKeptUntil' | 'oilNotice'> {
@@ -264,6 +269,7 @@ export function loadFun(): FunState {
       seasonLessons: cleanSeasonLessons(parsed.seasonLessons),
       story: cleanStory(parsed.story),
       introsSeen: cleanIntros(parsed.introsSeen),
+      lessonIntrosSeen: cleanLessonIntros(parsed.lessonIntrosSeen),
       ...cleanOil(parsed),
       activity: cleanActivity(parsed.activity),
       ...cleanGames(parsed),
@@ -378,6 +384,11 @@ export function recordIntro(state: FunState, kind: IntroKind): FunState {
   return saveFun({ ...state, introsSeen: { ...cleanIntros(state.introsSeen), [kind]: true } });
 }
 
+/** Remember a lesson's Teach first screen was read: it stays a tap away ("How it works") but won't open by itself. */
+export function recordLessonIntro(state: FunState, missionId: string): FunState {
+  return saveFun({ ...state, lessonIntrosSeen: cleanLessonIntros([...(state.lessonIntrosSeen ?? []), missionId]) });
+}
+
 /** Remember story progress (the prologue, a chapter's choice). It never touches lesson progress. */
 export function recordStory(state: FunState, update: { prologueSeen?: true; unit?: number; choice?: 0 | 1; board?: 1 | 2; suspect?: string }): FunState {
   const story = cleanStory(state.story);
@@ -476,6 +487,7 @@ export function replaceFun(saved: Partial<FunState>): FunState {
     seasonLessons: cleanSeasonLessons(saved.seasonLessons),
     story: cleanStory(saved.story),
     introsSeen: cleanIntros(saved.introsSeen),
+    lessonIntrosSeen: cleanLessonIntros(saved.lessonIntrosSeen),
     ...cleanOil(saved),
     sound: loadFun().sound,
     activity: cleanActivity(saved.activity),

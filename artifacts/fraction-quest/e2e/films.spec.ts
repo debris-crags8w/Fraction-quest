@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 
 /** Open chapter 2 in the Storybook with the given lessons finished. */
 async function openChapterTwo(page: Page, done: string[], reducedMotion = false) {

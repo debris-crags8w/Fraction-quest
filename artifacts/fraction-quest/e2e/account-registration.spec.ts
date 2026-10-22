@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('duplicate sign-up can switch to sign-in and a missing session explains how to recover', async ({ page }) => {
   await page.route('**/api/**', async (route) => {

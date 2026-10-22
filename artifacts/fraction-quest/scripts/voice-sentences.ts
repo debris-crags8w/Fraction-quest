@@ -3,6 +3,7 @@
    tsx scripts/voice-sentences.ts > sentences.json. Not part of the app bundle. */
 
 import { MISSIONS } from '../src/game';
+import { LESSON_INTROS, lessonIntroScript } from '../src/lesson-intros';
 import { getBuildChecks, getBuildPracticeChecks, getReviewCheck, getWorksheet } from '../src/learning-content';
 import { getExtraPractice } from '../src/practice-bank';
 import { partFinderRoundsFor, PART_FINDER_ROUNDS } from '../src/part-finder';
@@ -121,11 +122,9 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
       { heading: 'Worked answer', text: mission.example.answer },
       { heading: 'Explanation', text: mission.example.explanation },
     ]));
-    if (mission.learningIntro) addLine('lesson', sectionsScript([
-      { heading: 'Goal', text: mission.learningIntro.goal },
-      { heading: 'Process', text: mission.learningIntro.process },
-      { heading: 'Why it works', text: mission.learningIntro.why },
-    ]));
+    // The Teach first screen (and "How it works"): the goal, the steps and why, read as one.
+    const intro = LESSON_INTROS[mission.id];
+    if (intro) addLine('lesson', lessonIntroScript(intro));
     const line = mission.example.numberLine;
     if (line) addLine('lesson', numberLineDescription(line.points, line.benchmark, line.equivalentNames));
     // Lab: model feedback, hints and what is still wrong, for each required and optional Build target.

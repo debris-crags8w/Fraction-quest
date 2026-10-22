@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { CHALLENGES } from '../src/challenges';
 import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, getDueSkillReviewQuestions, MISSIONS } from '../src/game';
 import { compareFractions, WAR_ROUNDS, warHint } from '../src/concept-games';
@@ -155,6 +155,8 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   await openAsGuest(page);
   await openDeveloperLesson(page, mission);
 
+  // The strategy opened first on Teach first; on the worked example it is one tap away.
+  await page.getByTestId('button-how-it-works').click();
   const intro = page.getByTestId('lesson-introduction');
   await expect(intro).toBeVisible();
   await expect(intro).toContainText('smallest to biggest');
@@ -761,6 +763,9 @@ async function openDeveloperLesson(page: import('@playwright/test').Page, missio
     if (!document.querySelector('[data-testid="developer-test-banner"]')) {
       throw new Error('The isolated developer test did not start');
     }
+    // A lesson's one-time Teach first screen comes before its worked example.
+    const teachNext = document.querySelector<HTMLButtonElement>('[data-testid="button-teach-next"]');
+    if (teachNext) { teachNext.click(); await settleReactUpdate(); }
 
     const titleSelector = isPartFinder
       ? '.fq-pf-lesson-example .fq-example-heading'

@@ -53,12 +53,14 @@ import { getWorksheet } from './learning-content';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requiredBuildChecks, resetUnitLearningProgress, worksheetCount, startRedo, updateLearning, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
-import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
+import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordLessonIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
 import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
+import { LessonIntroCard, TeachFirst } from './lesson-intro';
+import { LESSON_INTROS } from './lesson-intros';
 import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
 import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
 import { LanternIcon, OilNoticeCard } from './riddle-ui';
@@ -107,6 +109,8 @@ const queryClient = new QueryClient();
 type View =
   | { type: 'map' }
   | { type: 'play'; missionId: string; questionIndex: number; firstTryAnswers: number; reviewQuestions: PracticeQuestion[]; showExample?: boolean }
+  /** A lesson's Teach first screen (goal, steps, why), the first time it starts; Next opens the lesson's first step. */
+  | { type: 'teach'; missionId: string; then: 'play' | 'hands-on' | 'fraction-sort'; reviewQuestions: PracticeQuestion[] }
   | { type: 'review'; questionIndex: number; reviewQuestions: PracticeQuestion[] }
   | { type: 'review-complete'; reviewedCount: number }
   | { type: 'daily' }
@@ -800,6 +804,7 @@ function MissionMap({ progress, onStart, onDeveloperTest, onLessonTester, onOpen
 }
 
 function GuidedExample({ mission, title, lessonLabel, hideMascot = false, withTap = true }: { mission: Mission; title?: string; lessonLabel?: string; /** Numi already introduced this screen. */ hideMascot?: boolean; /** The "Your turn" tap model. Off when a graded question sits on the same screen, so there is one thing to do. */ withTap?: boolean }) {
+  const [howOpen, setHowOpen] = useState(false);
   return (
     <div className="fq-example" data-testid="lesson-example">
       {lessonLabel && <p className="fq-play-kicker">{lessonLabel} · See it first</p>}
@@ -816,38 +821,13 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false, withTa
       </div>
       {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
       {SHAPE_LESSONS.includes(mission.id) && <SameSizeIdea />}
-      {mission.learningIntro && (
-        <section className="fq-example-intro" aria-label="How to order fractions" data-testid="lesson-introduction">
-          <div className="fq-example-card-head">
-            <h3>How to order fractions</h3>
-            <LearningListenButton text={sectionsScript([
-              { heading: 'Goal', text: mission.learningIntro.goal },
-              { heading: 'Process', text: mission.learningIntro.process },
-              { heading: 'Why it works', text: mission.learningIntro.why },
-            ])} label="Listen to how to order fractions" prefetch />
-          </div>
-          <LearningTextSection
-            id="lesson-intro-goal"
-            heading="Goal"
-            text={mission.learningIntro.goal}
-            className="fq-example-section"
-            listen={false}
-          />
-          <LearningTextSection
-            id="lesson-intro-process"
-            heading="Process"
-            text={mission.learningIntro.process}
-            className="fq-example-section"
-            listen={false}
-          />
-          <LearningTextSection
-            id="lesson-intro-why"
-            heading="Why it works"
-            text={mission.learningIntro.why}
-            className="fq-example-section"
-            listen={false}
-          />
-        </section>
+      {LESSON_INTROS[mission.id] && (
+        <div className="fq-how-it-works">
+          <button type="button" className="fq-button ghost" aria-expanded={howOpen} onClick={() => setHowOpen((open) => !open)} data-testid="button-how-it-works">
+            <Lightbulb size={17} aria-hidden="true" /> {howOpen ? 'Hide how it works' : 'How it works'}
+          </button>
+          {howOpen && <LessonIntroCard intro={LESSON_INTROS[mission.id]} />}
+        </div>
       )}
       <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
       {mission.example.numberLine && (
@@ -1534,22 +1514,18 @@ function Game() {
       return;
     }
     const reviewQuestions = getDelayedReviewQuestions(activeProgress, missionId);
-    if (missionId === 'order-unlike-fractions') {
-      setView({ type: 'fraction-sort', missionId, reviewQuestions });
+    const first = missionId === 'order-unlike-fractions' ? 'fraction-sort' : PART_FINDER_LESSONS.has(missionId) ? 'hands-on' : 'play';
+    // The first time a lesson starts, it teaches first: the goal, the steps and why. Later it stays under "How it works".
+    if (!fun.lessonIntrosSeen?.includes(missionId)) {
+      setView({ type: 'teach', missionId, then: first, reviewQuestions });
       return;
     }
-    if (PART_FINDER_LESSONS.has(missionId)) {
-      setView({ type: 'hands-on', missionId, reviewQuestions });
-      return;
-    }
-    setView({
-      type: 'play',
-      missionId,
-      questionIndex: 0,
-      firstTryAnswers: 0,
-      reviewQuestions,
-      showExample: true,
-    });
+    openLessonStart(missionId, first, reviewQuestions);
+  };
+  /** A lesson's first step: the ordering cards, the hands-on rounds, or the worked example with question 1. */
+  const openLessonStart = (missionId: string, first: 'play' | 'hands-on' | 'fraction-sort', reviewQuestions: PracticeQuestion[]) => {
+    if (first === 'play') setView({ type: 'play', missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions, showExample: true });
+    else setView({ type: first, missionId, reviewQuestions });
   };
   /** Swap in temporary progress for a test; returnToMap puts the real progress (and fun) back, saving nothing. */
   const beginIsolatedTest = (testProgress: Progress) => {
@@ -1782,6 +1758,11 @@ function Game() {
       {view.type === 'code' && (
         <CodeQuest key={view.missionId} mission={getMission(view.missionId)} solved={fun.codeLevels?.[view.missionId] ?? 0}
           onExit={exitGame} onSolved={(level) => setFun((current) => recordCodeLevel(current, view.missionId, level))} />
+      )}
+      {view.type === 'teach' && (
+        <TeachFirst key={view.missionId} mission={getMission(view.missionId)} lessonNumber={MISSIONS.findIndex((mission) => mission.id === view.missionId) + 1}
+          onExit={returnToMap}
+          onNext={() => { setFun((current) => recordLessonIntro(current, view.missionId)); openLessonStart(view.missionId, view.then, view.reviewQuestions); }} />
       )}
       {view.type === 'hands-on' && (() => {
         const mission = getMission(view.missionId);

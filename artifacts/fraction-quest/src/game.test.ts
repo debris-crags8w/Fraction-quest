@@ -1,5 +1,6 @@
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { WHY } from './slip-reasons';
+import { LESSON_INTROS } from './lesson-intros';
 import { REASON_SLIPS } from './reason-slips';
 import { misconceptionWrongs } from './misconceptions';
 import { fractionMistakes } from './fraction-slips';
@@ -318,11 +319,11 @@ describe('lesson catalog', () => {
     assert.match(sameNumerator.example.explanation, /(?:8 equal parts|eighths).*smaller/i);
     assert.match(sameNumerator.example.explanation, /3\/8 (?:is )?(?:less|smaller) than 3\/4/i);
 
-    const unlikeOrdering = MISSIONS.find((mission) => mission.id === 'order-unlike-fractions')!;
-    assert.ok(unlikeOrdering.learningIntro, 'fraction ordering explains the goal, steps, and why the method works');
-    assert.match(unlikeOrdering.learningIntro.goal, /smallest to biggest.*biggest to smallest/);
-    assert.match(unlikeOrdering.learningIntro.process, /1\/2.*same denominator.*compare the (?:top numbers|numerators)/);
-    assert.match(unlikeOrdering.learningIntro.why, /same denominator.*equal-size parts.*greater amount/);
+    const unlikeOrdering = LESSON_INTROS['order-unlike-fractions'];
+    assert.ok(unlikeOrdering, 'fraction ordering explains the goal, steps, and why the method works');
+    assert.match(unlikeOrdering.goal, /smallest to biggest.*biggest to smallest/);
+    assert.match(unlikeOrdering.steps.join(' '), /1\/2.*same denominator.*compare the (?:top numbers|numerators)/);
+    assert.match(unlikeOrdering.why, /same denominator.*equal-size parts.*greater amount/);
   });
 
   it('keeps the same-numerator explanation clear in the build, worksheet, and generated practice', () => {
@@ -429,10 +430,6 @@ describe('lesson catalog', () => {
       assert.ok(mission.example.prompt.trim() && mission.example.answer.trim() && mission.example.explanation.trim());
       assertModel(mission.example.model, `${mission.id} worked example`);
       if (mission.id === 'order-unlike-fractions') {
-        assert.ok(mission.learningIntro);
-        assert.match(mission.learningIntro.goal, /smallest to biggest.*biggest to smallest/);
-        assert.match(mission.learningIntro.process, /(?:one half|1\/2).*same denominator.*(?:numerators|top numbers)/i);
-        assert.match(mission.learningIntro.why, /(?:same|equal)-size parts/i);
         assert.match(mission.example.prompt, /1\/4, 3\/8 and 5\/8/);
         assert.notEqual(mission.example.prompt, mission.questions[0].prompt);
         assert.doesNotMatch(mission.example.prompt, /1\/2|2\/3|3\/4/);
