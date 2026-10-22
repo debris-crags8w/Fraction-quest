@@ -158,6 +158,8 @@ export function subscribeToSpeechVoices(
 const VOICE_LIST_WAIT_MS = 500;
 /** How long a story comic waits for the natural voice to connect before it plays with captions alone. */
 const NATURAL_WAIT_MS = 5000;
+/** How long a Listen tap waits for the natural voice to connect before reading in the device voice. */
+const LISTEN_WAIT_MS = 3000;
 
 /**
  * Owns a single read-aloud session. The short voice-list wait lets browsers
@@ -261,14 +263,17 @@ export function createLearningSpeechController(
       // The natural voice reads English when it's ready; otherwise this playback uses the device voice
       // while the natural voice connects in the background for next time.
       if (natural.ready() && english) { readNaturally(); return; }
-      if (oneVoice && natural.whenReady) {
-        // A comic waits a moment for the natural voice to connect rather than starting in the device voice.
+      // While the natural voice is on but still connecting (the first Listen after opening the app), wait a moment
+      // for it rather than starting in the device voice. A comic waits longer and stays silent if it never comes;
+      // any other Listen then reads in the device voice.
+      if (english && natural.whenReady && (natural.chosen?.() ?? false)) {
         setSpeaking(true);
-        natural.whenReady(NATURAL_WAIT_MS).then((ready) => {
+        const fallBack = () => { if (playback !== generation || disposed) return; if (oneVoice) silent(); else startDevice(0); };
+        natural.whenReady(oneVoice ? NATURAL_WAIT_MS : LISTEN_WAIT_MS).then((ready) => {
           if (playback !== generation || disposed) return;
           if (ready && natural.ready()) readNaturally();
-          else silent();
-        }, () => { if (playback === generation && !disposed) silent(); });
+          else fallBack();
+        }, fallBack);
         return;
       }
       natural.warmUp();
