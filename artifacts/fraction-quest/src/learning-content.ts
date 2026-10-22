@@ -244,6 +244,8 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'dimes-and-pennies': [46, 100, 'bar', 'Make 4 dimes and 6 pennies as hundredths of a dollar.', '4 dimes are 40/100. 6 pennies are 6/100. 40 + 6 = 46, so 46/100.'],
   'plot-in-eighths': [5, 8, 'line', 'A leaf is 5/8 inch long. Show it on a line marked in eighths.', 'Split 1 inch into 8 equal spaces. Count 5 spaces from 0.'],
   'party-portions': [15, 8, 'bar', 'Each guest eats 3/8 pound. 5 guests come. Build the total.', '5 groups of 3 eighths is 15 eighths: 15/8 pounds. That is between 1 and 2.'],
+  'two-step-conversions': [18, 12, 'bar', 'A ribbon is 1 1/2 feet long. Show it in inches: each bar is 1 foot of 12 inches.', '1 foot is 12 inches. 1 1/2 feet is 12 + 6 = 18 inches.'],
+  'line-plot-totals': [7, 4, 'line', 'Beakers hold 1/4, 1/4, 2/4 and 3/4 liter. Show the total on a line.', '1 + 1 + 2 + 3 = 7 fourths: 7/4 liters.'],
   'share-or-fit': [1, 6, 'bar', 'Share 1/2 of a pan among 3 children. Build one share.', 'Sharing: split the half into 3 equal shares. Each share is 1/6 of the pan. Check: 3 × 1/6 = 1/2.'],
   'fraction-of-length': [3, 8, 'line', 'Mark 3/8 of a meter on the line.', 'Each space is 1/8 meter. Count 3 spaces.'],
   'ruler-measurement': [5, 4, 'line', 'Mark a length of 1 1/4 inches on a ruler.', 'Each small space is 1/4 inch. Five quarter-inch spaces make 1 1/4 inches.'],
@@ -326,7 +328,7 @@ type ExtensionWorksheetMode = 'simplify' | 'equivalent' | 'compare' | 'order' | 
   | 'whole-fraction' | 'decimal-compare' | 'unit-multiples' | 'ruler' | 'line-plot' | 'line-plot-read' | 'line-plot-level'
   | 'measure-context' | 'add-unlike' | 'mixed-unlike' | 'estimate' | 'fractional-area' | 'scaling' | 'mixed-multiply'
   | 'unit-divided-whole' | 'unit-conversion' | 'whole-from-part' | 'mistake' | 'remainder' | 'divide-fractions'
-  | 'decimal-grid' | 'bigger-smaller' | 'times-grid' | 'share-or-fit' | 'coins' | 'plot-eighths' | 'portions';
+  | 'decimal-grid' | 'bigger-smaller' | 'times-grid' | 'share-or-fit' | 'coins' | 'plot-eighths' | 'portions' | 'two-step-convert' | 'plot-totals';
 const EXTENSION_WORKSHEETS: Record<string, { mode: ExtensionWorksheetMode; context: string; n: number; d: number }> = {
   'simplify-fractions': { mode: 'simplify', context: 'paper strip', n: 3, d: 4 },
   'equivalent-missing-both': { mode: 'equivalent', context: 'recipe card', n: 2, d: 5 },
@@ -361,6 +363,8 @@ const EXTENSION_WORKSHEETS: Record<string, { mode: ExtensionWorksheetMode; conte
   'dimes-and-pennies': { mode: 'coins', context: 'coins', n: 34, d: 100 },
   'plot-in-eighths': { mode: 'plot-eighths', context: 'pebbles', n: 5, d: 8 },
   'party-portions': { mode: 'portions', context: 'party food', n: 15, d: 8 },
+  'two-step-conversions': { mode: 'two-step-convert', context: 'stage ribbon', n: 30, d: 12 },
+  'line-plot-totals': { mode: 'plot-totals', context: 'beakers', n: 7, d: 4 },
   'unit-fraction-multiples': { mode: 'unit-multiples', context: 'paper strips', n: 5, d: 4 },
   'ruler-measurement': { mode: 'ruler', context: 'ruler', n: 5, d: 4 },
   'build-line-plots': { mode: 'line-plot', context: 'ribbon lengths', n: 3, d: 4 },
@@ -457,6 +461,8 @@ export const REASON_IDEAS: Record<string, string> = {
   'dimes-and-pennies': 'A dime is 10 hundredths',
   'plot-in-eighths': 'Same length, same spot',
   'party-portions': 'Count the parts, keep the size',
+  'two-step-conversions': 'Change to the small unit first',
+  'line-plot-totals': 'Add the amount of every X',
   'multi-step-fraction-stories': 'One step at a time',
   'find-the-whole': 'All the parts make the whole',
   'spot-the-mistake': 'Same-size parts keep their name',
@@ -525,6 +531,8 @@ const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reaso
   'bigger-or-smaller': { n: 12, d: 20, prompt: 'Make 4/4 × 3/5. Is it more or less than 3/5?', reason: '4/4 is 1, so the amount stays the same: 12/20 is 3/5.' },
   'dimes-and-pennies': { n: 70, d: 100, prompt: 'Make 7 dimes as hundredths of a dollar.', reason: 'Each dime is 10 hundredths. 7 dimes are 70/100.' },
   'plot-in-eighths': { n: 7, d: 8, kind: 'line', prompt: 'Two pins are 3/8 and 4/8 inch. Show how long they are together.', reason: '3/8 + 4/8 = 7/8 inch.' },
+  'two-step-conversions': { n: 30, d: 12, prompt: 'A ribbon is 2 1/2 feet long. Show it in inches, 12 to a foot.', reason: '2 feet is 24 inches. Half a foot is 6 more: 30 inches.' },
+  'line-plot-totals': { n: 13, d: 8, kind: 'line', prompt: 'Cups hold 1/8, 3/8, 4/8 and 5/8 liter. Show the total on a line.', reason: '1 + 3 + 4 + 5 = 13 eighths: 13/8 liters.' },
   'party-portions': { n: 8, d: 3, prompt: 'Each racer drinks 2/3 cup. 4 racers. Build the total.', reason: '4 groups of 2 thirds is 8 thirds: 8/3 cups, between 2 and 3.' },
   'share-or-fit': { n: 1, d: 12, prompt: 'Share 1/4 of a cake among 3 children. Build one share.', reason: 'Sharing: 1/4 ÷ 3 = 1/12. Check: 3 × 1/12 = 1/4.' },
   'find-the-whole': { n: 5, d: 5, prompt: '2 beads are 1/5 of a string. Shade all the parts of the whole string.', reason: 'The whole is 5 fifths. 5 × 2 = 10 beads.' },
@@ -742,6 +750,11 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
     return [`Two pebbles are ${a}/8 and ${b}/8 inch. Show how long they are together.`, a + b, 8, `${a}/8 + ${b}/8 = ${a + b}/8 inch. Same-size parts: add the numerators.`, 'line']; },
   'party-portions': (s) => { const [n, a, b] = at([[3, 3, 4], [4, 2, 3], [5, 3, 8], [2, 5, 6], [2, 3, 4], [3, 2, 5], [2, 5, 8], [3, 4, 5], [4, 3, 8], [2, 4, 5], [3, 5, 6], [2, 7, 8]] as const, s);
     return [`Each guest eats ${a}/${b} pound. ${n} guests come. Build the total.`, n * a, b, `${n} groups of ${a} ${unitWord(b)} is ${n * a} ${unitWord(b)}: ${n * a}/${b}.`]; },
+  'two-step-conversions': (s) => { const [w, part, word] = at([[1, 6, '1/2'], [1, 3, '1/4'], [2, 4, '1/3'], [1, 9, '3/4'], [2, 6, '1/2'], [1, 8, '2/3'], [2, 3, '1/4'], [1, 4, '1/3'], [2, 9, '3/4'], [1, 10, '5/6'], [2, 8, '2/3'], [1, 2, '1/6']] as const, s);
+    return [`A rope is ${w} ${word} feet long. Show it in inches, 12 to a foot.`, 12 * w + part, 12, `${w} ${w === 1 ? 'foot is' : 'feet are'} ${12 * w} inches. ${word} foot is ${part} more: ${12 * w + part} inches.`]; },
+  'line-plot-totals': (s) => { const values = at([[1, 2, 2], [1, 1, 3], [2, 3, 3], [1, 3, 4], [2, 2, 5], [1, 4, 4], [3, 3, 5], [1, 2, 6], [2, 4, 4], [1, 5, 5], [2, 3, 6], [3, 4, 4]] as const, s);
+    const total = values.reduce((sum, v) => sum + v, 0);
+    return [`Cups hold ${values.map((v) => `${v}/8`).join(', ')} liter. Show the total on a line.`, total, 8, `${values.join(' + ')} = ${total} eighths: ${total}/8 liters.`, 'line']; },
   'fractional-side-area': (s) => { const [a, c] = at([[1, 1], [1, 2], [2, 1], [2, 3], [1, 3], [2, 2], [3, 1], [3, 2], [3, 3], [2, 4], [1, 4], [3, 4]] as const, s);
     return [`A rectangle is ${a}/3 unit by ${c}/4 unit. Find its area.`, a * c, 12, `${a} columns by ${c} rows cover ${a * c} of 12 equal squares.`]; },
   'multiply-mixed-numbers': (s) => { const [a, b, c, d] = at([[3, 2, 4, 3], [3, 2, 3, 2], [5, 4, 4, 3], [5, 4, 3, 2], [4, 3, 5, 4], [7, 4, 4, 3], [5, 3, 3, 2], [3, 2, 5, 4], [3, 2, 5, 3], [4, 3, 4, 3], [5, 4, 5, 4], [7, 6, 3, 2]] as const, s);
@@ -1948,6 +1961,50 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         prompt = `${each} ${n} ${who}s. How many ${unit}s in all?`;
         answer = f(n * a, b); denominator = b;
         hint = `${n} groups of ${a} ${unitWord(b)}. Multiply the numerator by ${n}. The part size stays ${unitWord(b)}.`; break;
+      }
+      case 'two-step-convert': {
+        // Change a mixed number of big units to small units, then take away or add.
+        // Answers stay under 1000, so the tiles can build them (meters and centimeters, not liters and milliliters).
+        const [w, a, b, big, per, n, take] = pick([
+          [2, 1, 2, 'feet', 12, 8, true], [1, 1, 4, 'hours', 60, 20, true], [1, 1, 2, 'meters', 100, 40, true], [2, 1, 4, 'pounds', 16, 6, false],
+          [1, 1, 3, 'feet', 12, 5, true], [2, 1, 2, 'hours', 60, 45, true], [2, 1, 4, 'meters', 100, 30, false], [1, 1, 2, 'pounds', 16, 10, true],
+          [3, 1, 4, 'feet', 12, 9, false], [1, 3, 4, 'hours', 60, 25, false], [1, 3, 4, 'meters', 100, 60, true], [1, 3, 4, 'pounds', 16, 4, false],
+          [1, 2, 3, 'feet', 12, 7, true], [2, 1, 3, 'hours', 60, 30, true], [3, 1, 2, 'meters', 100, 75, true], [3, 1, 2, 'pounds', 16, 9, true],
+          [2, 3, 4, 'feet', 12, 10, false], [1, 1, 2, 'hours', 60, 35, true], [1, 1, 4, 'meters', 100, 50, false], [2, 3, 4, 'pounds', 16, 12, true],
+          [1, 1, 6, 'feet', 12, 3, false], [2, 1, 4, 'hours', 60, 50, true], [2, 1, 2, 'meters', 100, 80, true], [1, 1, 4, 'pounds', 16, 7, false],
+        ] as const);
+        const small = ({ feet: 'inches', hours: 'minutes', meters: 'centimeters', pounds: 'ounces' } as const)[big];
+        const total = w * per + (a * per) / b;
+        prompt = big === 'feet' ? `A ribbon is ${w} ${a}/${b} feet long. Pip ${take ? 'cuts off' : 'adds'} ${n} inches. How many inches ${take ? 'are left' : 'long is it now'}?`
+          : big === 'hours' ? `A race is ${w} ${a}/${b} hours long. The first part takes ${n} minutes. How many minutes are left?`
+          : big === 'meters' ? `A rope is ${w} ${a}/${b} meters long. Pip ${take ? 'cuts off' : 'adds'} ${n} centimeters. How many centimeters ${take ? 'are left' : 'long is it now'}?`
+          : `A bag holds ${w} ${a}/${b} pounds of sand. Pip ${take ? 'takes out' : 'adds'} ${n} ounces. How many ounces ${take ? 'are left' : 'are in the bag now'}?`;
+        // "The first part takes 20 minutes" always takes away.
+        answer = String(big === 'hours' || take ? total - n : total + n);
+        picture = { kind: 'bars', bars: [...Array.from({ length: w }, () => ({ numerator: b, denominator: b })), { numerator: a, denominator: b }], hideLabels: true };
+        hint = `Change ${w} ${a}/${b} ${big} to ${small} first: 1 ${big.replace(/s$/, '').replace('feet', 'foot')} is ${per} ${small}.`; break;
+      }
+      case 'plot-totals': {
+        // Plot the amounts in eighths of a liter, then add every X, or find how much more one stack holds than another.
+        const dataSets = [
+          [1, 3, 3, 4, 4, 6], [2, 2, 5, 5, 5, 8], [1, 1, 2, 6, 6], [3, 3, 3, 5, 7], [2, 4, 4, 4, 6], [1, 2, 2, 7, 7, 7],
+          [1, 5, 5, 6], [2, 3, 3, 3, 8], [4, 4, 6, 6, 6, 7], [1, 1, 1, 4, 5], [3, 5, 5, 6, 6], [2, 2, 4, 7, 7, 8],
+        ];
+        const values = dataSets[tr % dataSets.length];
+        const context = ['beakers', 'cups', 'jars', 'bottles', 'flasks', 'glasses', 'mugs', 'vases', 'tubs', 'pails', 'bowls', 'cans'][i];
+        linePlotTask = { denominator: 8, wholes: 1, values };
+        const list = `${values.map((value) => f(value, 8)).join(', ')} liter`;
+        const count = (v: number) => values.filter((value) => value === v).length;
+        const tall = [...new Set(values)].sort((x, y) => count(y) - count(x) || y - x)[0];
+        const low = Math.min(...values);
+        if (i % 2 === 1 && tall !== low && count(tall) * tall > count(low) * low) {
+          prompt = `Plot these ${context} in eighths of a liter: ${list}. How much more do the ${f(tall, 8)} ${context} hold than the ${f(low, 8)} ${context}?`;
+          answer = f(count(tall) * tall - count(low) * low, 8); denominator = 8;
+          hint = `Add up each stack first: ${count(tall)} × ${f(tall, 8)} and ${count(low)} × ${f(low, 8)}. Then take away.`; break;
+        }
+        prompt = `Plot these ${context} in eighths of a liter: ${list}. How much water in all?`;
+        answer = f(values.reduce((sum, v) => sum + v, 0), 8); denominator = 8;
+        hint = 'Add the eighths for every X. Two Xs at one spot count twice.'; break;
       }
       case 'story': {
         const [bottom, a, b] = ([[4, 1, 1], [5, 2, 1], [6, 3, 1], [8, 4, 2], [10, 5, 1], [5, 1, 2], [6, 1, 2], [8, 3, 2], [10, 2, 3], [4, 1, 2], [6, 2, 3], [12, 3, 2]] as const)[tr];

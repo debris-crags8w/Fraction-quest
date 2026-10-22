@@ -86,6 +86,14 @@ function slips(prompt: string): [number, [Why, number][]] | null {
     const at = N(m[4]);
     return [count((v) => v > at), [['otherSide', count((v) => v < at)], ['allXs', values.length], ['otherSide', count((v) => v >= at)]]];
   }
+  // Two-step conversions: "A ribbon is 2 1/2 feet long. Pip cuts off 8 inches. How many inches are left?" The start in small
+  // units, the other operation, the wrong number of small units in a big one, the fraction part left out.
+  if ((m = /^A \w+ (?:is|holds) (\d+) (\d+)\/(\d+) (feet|hours|liters|meters|pounds)(?: long| of \w+)?\. (?:Pip|The first part) (cuts off|takes out|takes|pours out|adds) (\d+) (?:inches|minutes|milliliters|centimeters|ounces)\. How many \w+ (?:are left|long is it now|are in the \w+ now)\?$/.exec(p))) {
+    const [w, a, b] = [N(m[1]), N(m[2]), N(m[3])]; const n = N(m[6]); const take = m[5] !== 'adds';
+    const per = { feet: 12, hours: 60, liters: 1000, meters: 100, pounds: 16 }[m[4] as 'feet']; const wrong = { feet: 10, hours: 100, liters: 100, meters: 10, pounds: 12 }[m[4] as 'feet'];
+    const total = w * per + (a * per) / b; const go = (x: number) => (take ? x - n : x + n);
+    return [go(total), [[take ? 'startAmount' : 'oneAmount', total], [take ? 'otherOpTake' : 'otherOpAdd', take ? total + n : total - n], ['wrongPer', go(w * wrong + (a * wrong) / b)], ['leftFraction', go(w * per)]]];
+  }
   // Wholes: "How many wholes are 9/3?", "Write 4/4 as a whole number."
   if ((m = /How many wholes are (\d+)\/(\d+)\?/.exec(p))) {
     const [n, d] = [N(m[1]), N(m[2])];

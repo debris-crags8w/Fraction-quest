@@ -214,6 +214,21 @@ function equivalence(p: string, right: Amount | null): Found | null {
     const a = N(m[1]);
     return { right: a / 10, slips: [['keptTop', [a, 100]], ['addedSame', [a + 10, 100]], ['keptBottom', [10 * a, 10]]] };
   }
+  // Line plot totals: "The line plot shows water in 6 beakers: 1/8, 3/8, … liter. How much water in all?" Each spot added once,
+  // the Xs counted, the tops and bottoms added, the tops kept over one denominator.
+  if ((m = /^(?:The line plot shows [\w ]+ (?:in|on) \d+ \w+|Plot these \w+ in eighths of a liter): ([\d/, ]+) (?:liter|inch)\. How much [\w ]+ in all\?$/.exec(p))) {
+    const amounts = m[1].split(', ').map((t) => t.split('/').map(N) as Amount); const L = amounts.reduce((l, [, d]) => lcm(l, d), 1);
+    const sum = (list: Amount[]) => list.reduce((t, [a, d]) => t + a * (L / d), 0);
+    const once = amounts.filter(([a, d], k) => amounts.findIndex(([x, y]) => x * d === a * y) === k);
+    return { right: sum(amounts) / L, slips: [['eachSpotOnce', [sum(once), L]], ['countedXs', [amounts.length, L]],
+      ['acrossAdd', [amounts.reduce((t, [a]) => t + a, 0), amounts.reduce((t, [, d]) => t + d, 0)]], ['keptOne', [amounts.reduce((t, [a]) => t + a, 0), L]]] };
+  }
+  // "How much more do the 5/8 beakers hold than the 2/8 beakers?": one of each, the Xs counted, both stacks added.
+  if ((m = /: ([\d/, ]+) liter\. How much more do the (\d+)\/8 \w+ hold than the (\d+)\/8 \w+\?$/.exec(p))) {
+    const tops = m[1].split(', ').map((t) => N(t.split('/')[0])); const [x, y] = [N(m[2]), N(m[3])];
+    const [cx, cy] = [tops.filter((t) => t === x).length, tops.filter((t) => t === y).length];
+    return { right: (cx * x - cy * y) / 8, slips: [['oneEach', [x - y, 8]], ['countedXs', [cx - cy, 8]], ['addedLengths', [cx * x + cy * y, 8]]] };
+  }
   // A line plot's two shortest together: the bottoms added, the shortest alone, the two longest, the difference.
   if ((m = /lengths in eighths: ([\d/, ]+) inch\. How long are the two shortest together\?$|^\w+: ([\d/, ]+) inch\. Plot them\. How long are the two shortest together\?$/.exec(p))) {
     const tops = (m[1] ?? m[2]).split(', ').map((t) => N(t.split('/')[0])).sort((u, v) => u - v);
