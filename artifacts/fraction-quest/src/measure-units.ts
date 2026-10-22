@@ -2,8 +2,8 @@
    in your answer." A question that asks for an amount of something measured gets the unit on every bare-number choice. */
 
 const UNITS = ['minute', 'hour', 'day', 'cent', 'gram', 'kilogram', 'milliliter', 'liter', 'inch', 'foot', 'yard',
-  'ounce', 'pound', 'centimeter', 'meter', 'kilometer', 'mile', 'cup'] as const;
-const PLURAL: Record<string, string> = { inch: 'inches', foot: 'feet' };
+  'ounce', 'pound', 'centimeter', 'meter', 'kilometer', 'mile', 'cup', 'loaf', 'm'] as const;
+const PLURAL: Record<string, string> = { inch: 'inches', foot: 'feet', loaf: 'loaves', m: 'm' };
 const plural = (unit: string) => PLURAL[unit] ?? `${unit}s`;
 const SINGULAR = new Map<string, string>(UNITS.flatMap((unit) => [[unit, unit], [plural(unit), unit]] as [string, string][]));
 const BARE_AMOUNT = /^(\d+)(?: (\d+))?(?:\/(\d+))?$/;

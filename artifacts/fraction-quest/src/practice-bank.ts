@@ -1,6 +1,6 @@
 import { fourthChoice, noBeforeYes, orderedWithSigns, withSignComparisons } from './fourth-choice';
 import { withUnits } from './measure-units';
-import { preferMisconceptions } from './misconceptions';
+import { preferMisconceptions, withoutOverOne } from './misconceptions';
 import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { G3_EQUIVALENTS_WIDE, answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, equivalentsFor, getWorksheet, gradeFits, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
@@ -696,7 +696,7 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
     };
     const question = {
       ...placed,
-      choices: withUnits(placed.prompt, placed.choices),
+      choices: withUnits(placed.prompt, withoutOverOne(placed.prompt, placed.choices, placed.correctChoice)),
       hint: oneIsSingular(item.hint),
       retryFeedback: oneIsSingular(item.retry),
       model: nameBars(item.model, item.prompt),

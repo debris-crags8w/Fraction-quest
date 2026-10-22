@@ -1,5 +1,5 @@
 import { noBeforeYes, orderedWithSigns, withFourthChoice, withSignComparisons } from './fourth-choice';
-import { preferMisconceptions } from './misconceptions';
+import { preferMisconceptions, withoutOverOne } from './misconceptions';
 import { withUnits } from './measure-units';
 import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './learning';
 import { gridCut, gridOverlap, type AreaCut, type AreaTask } from './area-shapes';
@@ -391,7 +391,7 @@ function mission(seed: MissionSeed & { unit: number }): Mission {
   const standards = standardsForMission(seed.id);
   const questions = seed.questions.map((question, index) => noBeforeYes(spreadAnswer({
     ...question,
-    choices: withUnits(question.prompt, question.choices),
+    choices: withUnits(question.prompt, withoutOverOne(question.prompt, question.choices, question.correctChoice)),
     id: `${seed.id}-q${index + 1}`,
     isMastery: index === seed.questions.length - 1,
     standards: [...standards],

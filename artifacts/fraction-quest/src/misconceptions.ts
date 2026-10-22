@@ -182,3 +182,23 @@ export function preferMisconceptions<T extends { prompt: string; choices: string
   });
   return choices.every((choice, index) => choice === question.choices[index]) ? question : { ...question, choices };
 }
+
+const OVER_ONE = /^\d+\/1(?: [a-z]+)?$/i;
+const sameText = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
+/** A wrong choice like "6/1" reads as a joke, not a slip a child would make: swap it for a real mistake (or another
+    wrong answer of the same kind). Left alone when the right answer is itself over 1 (wholes as fractions). */
+export function withoutOverOne(prompt: string, choices: string[], correct: number): string[] {
+  const right = choices[correct];
+  if (!right || OVER_ONE.test(right.trim())) return choices;
+  const used = new Set(choices.map(sameText));
+  const rightValue = answerValue(right);
+  const candidates = [...misconceptionWrongs(prompt, right), ...fractionMistakes(prompt, right)];
+  return choices.map((choice, index) => {
+    if (index === correct || !OVER_ONE.test(choice.trim())) return choice;
+    const swap = candidates.find((wrong) => !OVER_ONE.test(wrong.trim()) && !used.has(sameText(wrong))
+      && answerValue(wrong) > 0 && Math.abs(answerValue(wrong) - rightValue) > 1e-9);
+    if (!swap) return choice;
+    used.add(sameText(swap));
+    return swap;
+  });
+}
