@@ -120,6 +120,15 @@ export const WHY = {
   wholePlusPart: 'That adds the part on again. The whole already has it.',
   justNumber: 'That is a number from the question. Work out what it asks.',
   oneOfMany: 'That is a part of only one whole. Use all of the wholes.',
+  // Coins and line plots
+  dimeOne: 'A dime is ten pennies. Each dime is ten hundredths.',
+  dimeDollar: 'A dime is a tenth of a dollar, not a whole dollar.',
+  coinSwap: 'Dimes are worth ten cents each. Pennies are worth one.',
+  oneStack: 'That is just one stack. Take away to find how many more.',
+  otherSide: 'That counts the shorter ones. Count the Xs to the right.',
+  allXs: 'That counts every X. Count only the ones asked about.',
+  twoLongest: 'Those are the longest. Use the two shortest.',
+  mostXs: 'Look for the tallest stack of Xs.',
   // Comparing and ordering
   signWay: 'That sign points the wrong way. The open side faces the bigger amount.',
   bigBottom: 'A bigger denominator means more pieces, so each piece is smaller.',

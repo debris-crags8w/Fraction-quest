@@ -74,6 +74,18 @@ function slips(prompt: string): [number, [Why, number][]] | null {
     return [right, [wholes > 1 ? ['oneOfMany', (BIG[unit][1] / b) * a] : a > 1 ? ['oneGroup', per / b] : ['whole', per * a], ['leftPart', per - right], ['whole', per],
       ['timesWhole', a > 1 ? per * a : per * b]]];
   }
+  // Line plots: "How many more are 5/8 inch than 1/8 inch?" (one stack, or both added) and "How many are longer than 4/8
+  // inch?" (the Xs at 4/8 counted too, the shorter ones, or every X).
+  if ((m = /: ([\d/, ]+) inch\. (?:Plot them\. )?How many (?:\w+ )?(?:more are (\d+)\/8 inch than (\d+)\/8 inch|are longer than (\d+)\/8 inch)\?$/.exec(p))) {
+    const values = m[1].split(', ').map((t) => N(t.split('/')[0]));
+    const count = (keep: (v: number) => boolean) => values.filter(keep).length;
+    if (m[2]) {
+      const [x, y] = [count((v) => v === N(m![2])), count((v) => v === N(m![3]))];
+      return [x - y, [['oneStack', x], ['oneStack', y], ['addedLengths', x + y]]];
+    }
+    const at = N(m[4]);
+    return [count((v) => v > at), [['otherSide', count((v) => v < at)], ['allXs', values.length], ['otherSide', count((v) => v >= at)]]];
+  }
   // Wholes: "How many wholes are 9/3?", "Write 4/4 as a whole number."
   if ((m = /How many wholes are (\d+)\/(\d+)\?/.exec(p))) {
     const [n, d] = [N(m[1]), N(m[2])];

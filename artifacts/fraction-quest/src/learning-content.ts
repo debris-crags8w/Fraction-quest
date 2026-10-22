@@ -241,6 +241,9 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'fraction-of-collection': [3, 4, 'set', 'Put 16 cards in 4 equal groups. Pick 3 groups.', '16 in 4 groups is 4 each. 3 groups is 12.', 16],
   'divide-whole-by-unit-fraction': [4, 4, 'bar', 'How many 1/4-cup scoops fill 1 cup? Make it.', '4 fourths make one whole. So 4 scoops of 1/4 cup fill 1 cup.'],
   'unit-fraction-divided-whole': [1, 12, 'bar', 'Share 1/3 of a pan equally among 4 children. Build one share.', 'Split each third into 4 equal parts. One share is 1/12 of the whole pan.'],
+  'dimes-and-pennies': [46, 100, 'bar', 'Make 4 dimes and 6 pennies as hundredths of a dollar.', '4 dimes are 40/100. 6 pennies are 6/100. 40 + 6 = 46, so 46/100.'],
+  'plot-in-eighths': [5, 8, 'line', 'A leaf is 5/8 inch long. Show it on a line marked in eighths.', 'Split 1 inch into 8 equal spaces. Count 5 spaces from 0.'],
+  'party-portions': [15, 8, 'bar', 'Each guest eats 3/8 pound. 5 guests come. Build the total.', '5 groups of 3 eighths is 15 eighths: 15/8 pounds. That is between 1 and 2.'],
   'share-or-fit': [1, 6, 'bar', 'Share 1/2 of a pan among 3 children. Build one share.', 'Sharing: split the half into 3 equal shares. Each share is 1/6 of the pan. Check: 3 × 1/6 = 1/2.'],
   'fraction-of-length': [3, 8, 'line', 'Mark 3/8 of a meter on the line.', 'Each space is 1/8 meter. Count 3 spaces.'],
   'ruler-measurement': [5, 4, 'line', 'Mark a length of 1 1/4 inches on a ruler.', 'Each small space is 1/4 inch. Five quarter-inch spaces make 1 1/4 inches.'],
@@ -323,7 +326,7 @@ type ExtensionWorksheetMode = 'simplify' | 'equivalent' | 'compare' | 'order' | 
   | 'whole-fraction' | 'decimal-compare' | 'unit-multiples' | 'ruler' | 'line-plot' | 'line-plot-read' | 'line-plot-level'
   | 'measure-context' | 'add-unlike' | 'mixed-unlike' | 'estimate' | 'fractional-area' | 'scaling' | 'mixed-multiply'
   | 'unit-divided-whole' | 'unit-conversion' | 'whole-from-part' | 'mistake' | 'remainder' | 'divide-fractions'
-  | 'decimal-grid' | 'bigger-smaller' | 'times-grid' | 'share-or-fit';
+  | 'decimal-grid' | 'bigger-smaller' | 'times-grid' | 'share-or-fit' | 'coins' | 'plot-eighths' | 'portions';
 const EXTENSION_WORKSHEETS: Record<string, { mode: ExtensionWorksheetMode; context: string; n: number; d: number }> = {
   'simplify-fractions': { mode: 'simplify', context: 'paper strip', n: 3, d: 4 },
   'equivalent-missing-both': { mode: 'equivalent', context: 'recipe card', n: 2, d: 5 },
@@ -355,6 +358,9 @@ const EXTENSION_WORKSHEETS: Record<string, { mode: ExtensionWorksheetMode; conte
   'fraction-times-fraction': { mode: 'times-grid', context: 'square grid', n: 8, d: 15 },
   'bigger-or-smaller': { mode: 'bigger-smaller', context: 'scaling machine', n: 5, d: 4 },
   'share-or-fit': { mode: 'share-or-fit', context: 'clay and cups', n: 1, d: 6 },
+  'dimes-and-pennies': { mode: 'coins', context: 'coins', n: 34, d: 100 },
+  'plot-in-eighths': { mode: 'plot-eighths', context: 'pebbles', n: 5, d: 8 },
+  'party-portions': { mode: 'portions', context: 'party food', n: 15, d: 8 },
   'unit-fraction-multiples': { mode: 'unit-multiples', context: 'paper strips', n: 5, d: 4 },
   'ruler-measurement': { mode: 'ruler', context: 'ruler', n: 5, d: 4 },
   'build-line-plots': { mode: 'line-plot', context: 'ribbon lengths', n: 3, d: 4 },
@@ -448,6 +454,9 @@ export const REASON_IDEAS: Record<string, string> = {
   'fraction-times-fraction': 'Overlap of rows and columns',
   'bigger-or-smaller': 'Compare the factor with 1',
   'share-or-fit': 'Share splits, fit counts pieces',
+  'dimes-and-pennies': 'A dime is 10 hundredths',
+  'plot-in-eighths': 'Same length, same spot',
+  'party-portions': 'Count the parts, keep the size',
   'multi-step-fraction-stories': 'One step at a time',
   'find-the-whole': 'All the parts make the whole',
   'spot-the-mistake': 'Same-size parts keep their name',
@@ -514,6 +523,9 @@ const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reaso
   'compare-decimals-grid': { n: 9, d: 100, prompt: 'Build 0.09 with hundredths. Then compare it to 0.9.', reason: '0.09 is 9 hundredths. 0.9 is 90 hundredths, so 0.09 is much less.' },
   'fraction-times-fraction': { n: 2, d: 6, prompt: 'Make 1/2 × 2/3.', reason: '1 × 2 = 2 and 2 × 3 = 6, so 2/6.' },
   'bigger-or-smaller': { n: 12, d: 20, prompt: 'Make 4/4 × 3/5. Is it more or less than 3/5?', reason: '4/4 is 1, so the amount stays the same: 12/20 is 3/5.' },
+  'dimes-and-pennies': { n: 70, d: 100, prompt: 'Make 7 dimes as hundredths of a dollar.', reason: 'Each dime is 10 hundredths. 7 dimes are 70/100.' },
+  'plot-in-eighths': { n: 7, d: 8, kind: 'line', prompt: 'Two pins are 3/8 and 4/8 inch. Show how long they are together.', reason: '3/8 + 4/8 = 7/8 inch.' },
+  'party-portions': { n: 8, d: 3, prompt: 'Each racer drinks 2/3 cup. 4 racers. Build the total.', reason: '4 groups of 2 thirds is 8 thirds: 8/3 cups, between 2 and 3.' },
   'share-or-fit': { n: 1, d: 12, prompt: 'Share 1/4 of a cake among 3 children. Build one share.', reason: 'Sharing: 1/4 ÷ 3 = 1/12. Check: 3 × 1/12 = 1/4.' },
   'find-the-whole': { n: 5, d: 5, prompt: '2 beads are 1/5 of a string. Shade all the parts of the whole string.', reason: 'The whole is 5 fifths. 5 × 2 = 10 beads.' },
   'fraction-of-remainder': { n: 3, d: 8, prompt: 'Pour out 1/2 of a jug. Then pour out 1/4 of the rest. Make what is left.', reason: '1/2 is left. 1/4 of that is 1/8. 1/2 − 1/8 = 3/8.' },
@@ -724,6 +736,12 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
     return s % 2 === 0
       ? [`Share 1/${b} of a pan among ${n} children. Build one share.`, 1, b * n, `Sharing: 1/${b} ÷ ${n} = 1/${b * n}. Check: ${n} × 1/${b * n} = 1/${b}.`]
       : [`How many 1/${d}-cup scoops fill ${w} ${w === 1 ? 'cup' : 'cups'}? Make it in ${unitWord(d)}.`, w * d, d, `Fitting: ${w} ÷ 1/${d} = ${w * d}. Check: ${w * d} × 1/${d} = ${w}.`]; },
+  'dimes-and-pennies': (s) => { const [dimes, pennies] = at([[2, 3], [5, 1], [1, 7], [6, 4], [3, 9], [8, 2], [4, 5], [7, 6], [2, 8], [9, 1]] as const, s);
+    return [`Make ${dimes} dimes and ${pennies} pennies as hundredths of a dollar.`, 10 * dimes + pennies, 100, `${dimes} dimes are ${10 * dimes}/100. ${pennies} pennies are ${pennies}/100. Together: ${10 * dimes + pennies}/100.`]; },
+  'plot-in-eighths': (s) => { const [a, b] = at([[1, 1], [1, 2], [1, 3], [2, 3], [2, 4], [3, 4], [3, 5], [4, 5], [4, 6], [5, 6], [5, 7], [6, 7]] as const, s);
+    return [`Two pebbles are ${a}/8 and ${b}/8 inch. Show how long they are together.`, a + b, 8, `${a}/8 + ${b}/8 = ${a + b}/8 inch. Same-size parts: add the numerators.`, 'line']; },
+  'party-portions': (s) => { const [n, a, b] = at([[3, 3, 4], [4, 2, 3], [5, 3, 8], [2, 5, 6], [2, 3, 4], [3, 2, 5], [2, 5, 8], [3, 4, 5], [4, 3, 8], [2, 4, 5], [3, 5, 6], [2, 7, 8]] as const, s);
+    return [`Each guest eats ${a}/${b} pound. ${n} guests come. Build the total.`, n * a, b, `${n} groups of ${a} ${unitWord(b)} is ${n * a} ${unitWord(b)}: ${n * a}/${b}.`]; },
   'fractional-side-area': (s) => { const [a, c] = at([[1, 1], [1, 2], [2, 1], [2, 3], [1, 3], [2, 2], [3, 1], [3, 2], [3, 3], [2, 4], [1, 4], [3, 4]] as const, s);
     return [`A rectangle is ${a}/3 unit by ${c}/4 unit. Find its area.`, a * c, 12, `${a} columns by ${c} rows cover ${a * c} of 12 equal squares.`]; },
   'multiply-mixed-numbers': (s) => { const [a, b, c, d] = at([[3, 2, 4, 3], [3, 2, 3, 2], [5, 4, 4, 3], [5, 4, 3, 2], [4, 3, 5, 4], [7, 4, 4, 3], [5, 3, 3, 2], [3, 2, 5, 4], [3, 2, 5, 3], [4, 3, 4, 3], [5, 4, 5, 4], [7, 6, 3, 2]] as const, s);
@@ -1872,6 +1890,64 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         answer = String(w * d); visual = { kind: 'bar', n: 0, d: 1, wholes: w };
         why = `Check: ${w * d} × 1/${d} = ${w}.`;
         hint = `Fitting: how many 1/${d} pieces fit in one whole? Then count them in ${w}.`; break;
+      }
+      case 'coins': {
+        // Dimes are tenths of a dollar (10 hundredths each), pennies are hundredths: three ways of asking.
+        const [dimes, pennies] = pick([[3, 4], [6, 2], [1, 8], [5, 5], [2, 9], [7, 3], [4, 1], [8, 6], [9, 7], [2, 4], [5, 8], [6, 9]] as const);
+        if (i % 3 === 1) {
+          prompt = `Write ${f(dimes, 10)} of a dollar in hundredths.`; answer = f(10 * dimes, 100); denominator = 100;
+          picture = { kind: 'bars', bars: [{ numerator: dimes, denominator: 10 }], hideLabels: true };
+          hint = `${f(dimes, 10)} is ${dimes} dimes. Each dime is 10 hundredths.`; break;
+        }
+        const coins = `${dimes} ${dimes === 1 ? 'dime' : 'dimes'} and ${pennies} ${pennies === 1 ? 'penny' : 'pennies'}`;
+        prompt = i % 3 === 0 ? `${coins}. What part of a dollar is that?` : `${f(dimes, 10)} + ${f(pennies, 100)} of a dollar. How much is that in hundredths?`;
+        answer = f(10 * dimes + pennies, 100); denominator = 100;
+        picture = { kind: 'coins', dimes, pennies };
+        hint = `${dimes} dimes are ${10 * dimes} hundredths. Then add the ${pennies} pennies.`; break;
+      }
+      case 'plot-eighths': {
+        // The child plots the lengths (in eighths), then uses the plot: how many more, how many longer, two shortest together.
+        const dataSets = [
+          [1, 3, 3, 5, 5, 5], [2, 2, 4, 6, 7], [1, 2, 2, 2, 6], [3, 4, 4, 7, 7, 7], [1, 1, 5, 6, 6], [2, 3, 3, 3, 8],
+          [1, 4, 4, 6, 6, 6], [2, 5, 5, 7], [3, 3, 6, 6, 6, 8], [1, 2, 6, 6, 7], [2, 2, 2, 5, 7], [1, 3, 5, 5, 5, 7],
+        ];
+        const values = dataSets[tr % dataSets.length];
+        const object = ['pebble', 'shell', 'twig', 'pin', 'leaf', 'bead', 'seed', 'feather', 'straw', 'button', 'crayon', 'ribbon'][i];
+        linePlotTask = { denominator: 8, wholes: 1, values };
+        const list = `${values.map((value) => f(value, 8)).join(', ')} inch`;
+        const count = (v: number) => values.filter((value) => value === v).length;
+        const most = [...new Set(values)].sort((a, b) => count(b) - count(a) || a - b)[0];
+        const least = Math.min(...values);
+        if (i % 3 === 0 && count(most) !== count(least)) {
+          prompt = `Plot these ${object} lengths in eighths: ${list}. How many more are ${f(most, 8)} inch than ${f(least, 8)} inch?`;
+          answer = String(count(most) - count(least));
+          hint = `Count the Xs at ${f(most, 8)}. Count the Xs at ${f(least, 8)}. Take away.`; break;
+        }
+        if (i % 3 === 1) {
+          prompt = `Plot these ${object} lengths in eighths: ${list}. How many are longer than 4/8 inch?`;
+          answer = String(values.filter((value) => value > 4).length);
+          hint = 'Find 4/8 on the plot. Count the Xs to its right.'; break;
+        }
+        const [a, b] = [...values].sort((x, y) => x - y);
+        prompt = `Plot these ${object} lengths in eighths: ${list}. How long are the two shortest together?`;
+        answer = f(a + b, 8); denominator = 8;
+        hint = 'Find the two Xs farthest left. Add their lengths.'; break;
+      }
+      case 'portions': {
+        // Equal portions: a fraction times a whole number, and which whole numbers the total is between.
+        const [n, a, b] = pick([[5, 3, 8], [4, 2, 3], [6, 3, 4], [3, 5, 6], [4, 3, 5], [5, 2, 3], [3, 3, 4], [7, 3, 8], [4, 5, 6], [6, 2, 5], [3, 4, 5], [5, 5, 8]] as const);
+        const [who, food] = pick([['guest', 'pound of pasta'], ['racer', 'cup of juice'], ['friend', 'pound of grapes'], ['runner', 'liter of water']] as const);
+        const unit = food.split(' ')[0];
+        const each = `Each ${who} gets ${f(a, b)} ${unit}${food.slice(unit.length)}.`;
+        visual = { kind: 'bar', n: 0, d: b, wholes: Math.ceil((n * a) / b) };
+        if (i % 2 === 1 && (n * a) % b !== 0) {
+          prompt = `${each} ${n} ${who}s. The total is between two whole numbers. What is the bigger one?`;
+          answer = String(Math.ceil((n * a) / b));
+          hint = `Count all the ${unitWord(b)}: ${n} × ${a}. Then see how many wholes of ${b} ${unitWord(b)} fit.`; break;
+        }
+        prompt = `${each} ${n} ${who}s. How many ${unit}s in all?`;
+        answer = f(n * a, b); denominator = b;
+        hint = `${n} groups of ${a} ${unitWord(b)}. Multiply the numerator by ${n}. The part size stays ${unitWord(b)}.`; break;
       }
       case 'story': {
         const [bottom, a, b] = ([[4, 1, 1], [5, 2, 1], [6, 3, 1], [8, 4, 2], [10, 5, 1], [5, 1, 2], [6, 1, 2], [8, 3, 2], [10, 2, 3], [4, 1, 2], [6, 2, 3], [12, 3, 2]] as const)[tr];

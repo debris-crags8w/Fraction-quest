@@ -149,7 +149,9 @@ export function LinePlotInteraction({ task, onReady, disabled, checkIn = false }
   return (
     <div className="fq-ll-custom-model fq-lineplot" data-testid="line-plot-model">
       <p>Tap the tick for each measurement to stack its X. Tap again to remove an X.</p>
-      <div className="fq-lineplot-grid" role="group" aria-label={`Line plot with ${task.denominator} equal spaces per whole`}>
+      {/* One column per tick, so a phone keeps the whole line on one row (very long lines still scroll). */}
+      <div className="fq-lineplot-grid" role="group" aria-label={`Line plot with ${task.denominator} equal spaces per whole`}
+        style={tickCount < 12 ? { gridTemplateColumns: `repeat(${tickCount + 1}, minmax(0, 1fr))` } : undefined}>
         {Array.from({ length: tickCount + 1 }, (_, i) => (
           <button type="button" key={i} className="fq-lineplot-tick" aria-label={`${rulerLabel(i, task.denominator)}, ${marks[i]} X marks. Add or remove one.`}
             aria-pressed={checkIn ? marks[i] > 0 : marks[i] === expected[i]} disabled={disabled}

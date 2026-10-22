@@ -17,7 +17,7 @@ describe('standards map', () => {
     }
   });
 
-  it('teaches every standard in at least two lessons, except the five whose second lesson is still to come', () => {
+  it('teaches every standard in at least two lessons, except the two whose second lesson is still to come', () => {
     const lessonsFor = (id: string) => MISSIONS.filter((mission) => mission.standards?.includes(id) && !mission.enrichment).map((mission) => mission.id);
     // Lessons that also practise a second standard: groups of a unit fraction (3 × 1/3), sharing and fitting unit
     // fractions, and a fraction of a unit in a smaller unit.
@@ -26,7 +26,7 @@ describe('standards map', () => {
     assert.ok(lessonsFor('5.NF.7b').includes('share-or-fit'));
     assert.ok(lessonsFor('4.MD.2').includes('fractional-unit-conversions'));
     const single = FRACTION_STANDARDS.filter((standard) => lessonsFor(standard.id).length < 2).map((standard) => standard.id);
-    assert.deepEqual(single, ['4.NF.4c', '4.NF.5', '4.MD.4', '5.MD.1', '5.MD.2'], 'take a standard off this list when its second lesson is added');
+    assert.deepEqual(single, ['5.MD.1', '5.MD.2'], 'take a standard off this list when its second lesson is added');
   });
 
   it('tags lessons only with catalogued standards, and keeps each lesson at or above its grade', () => {
@@ -94,8 +94,8 @@ describe('standards map', () => {
       'percent-to-fraction', 'decimal-fraction-equivalence', 'compare-decimals', 'multi-step-fraction-stories', 'find-the-whole', 'spot-the-mistake',
       'fraction-of-remainder', 'divide-fractions',
     ];
-    // Every lesson but the four added after the reorder.
-    const added = ['compare-decimals-grid', 'fraction-times-fraction', 'bigger-or-smaller', 'share-or-fit'];
+    // Every lesson but the ones added after the reorder.
+    const added = ['compare-decimals-grid', 'fraction-times-fraction', 'bigger-or-smaller', 'share-or-fit', 'dimes-and-pennies', 'plot-in-eighths', 'party-portions'];
     assert.deepEqual([...before, ...added].sort(), MISSIONS.map((mission) => mission.id).sort());
     for (let reached = 1; reached < before.length; reached++) {
       const done = before.slice(0, reached);

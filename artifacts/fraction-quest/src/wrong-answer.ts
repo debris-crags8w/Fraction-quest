@@ -113,7 +113,8 @@ function comparisonReason(prompt: string, pick: string, right: string): string |
     return WHY.signWay;
   }
   if (/^which (?:sum|adds up)/.test(p) && / \+ /.test(pick)) return WHY.sumCheck;
-  if (/^between which two whole numbers/.test(p)) return WHY.betweenWholes;
+  if (/between which two whole numbers/.test(p)) return WHY.betweenWholes;
+  if (/which length has the most xs\?$/.test(p)) return WHY.mostXs;
   if (/line plot.*how many/.test(p) && /^\d+$/.test(pick)) return WHY.countMarks;
   // Benchmarks: "Which is closest to 1/2?", "Which is more than 1/2?", "Which fits between 2/8 and 6/8?"
   const v = answerValue(pick);

@@ -46,12 +46,15 @@ export const REASON_SLIPS: Record<string, [string, string, string]> = {
   'compare-decimals-grid': ['More digits always means bigger', 'Count only the shaded columns', 'Each square is one tenth'],
   'add-tenths-hundredths': ['Add the digits as they are', 'A tenth is one hundredth', 'Add the denominators too'],
   'unit-fraction-multiples': ['Multiply the denominator too', 'Copies make the parts bigger', 'Add the denominators each time'],
+  'dimes-and-pennies': ['A dime is 1 hundredth', 'A dime is a whole dollar', 'Add ten for every dime'],
   'multiply-whole-by-fraction': ['Each group gets a bigger part', 'Multiply the denominator too', 'Add the whole to the numerator'],
   // Unit 9 · Rename, compare, line plots
   'simplify-fractions': ['Divide only the numerator', 'Take 1 from top and bottom', 'Simplest form is a smaller amount'],
   'equivalent-missing-both': ['Add the same number to both', 'Change only the denominator', 'Copy the numerator across'],
   'compare-unlike-fractions': ['Bigger denominator: bigger fraction', 'Compare numerators only', 'Different parts can’t be compared'],
   'order-unlike-fractions': ['Put them in order by numerators', 'Put them in order by denominators', 'Bigger numbers always mean bigger'],
+  'plot-in-eighths': ['Each length gets one X only', 'Put the Xs in measuring order', 'Count the tick marks to plot'],
+  'party-portions': ['Multiply the denominator too', 'Add the guests to the top', 'The total is one portion'],
   'read-line-plots': ['Add the longest and shortest', 'Count the Xs at one spot', 'Use the tallest stack'],
   'measurement-word-problems': ['Add the denominators too', 'The whole unit is the answer', 'Add the numbers you see'],
   // Unit 10 · Unlike fractions

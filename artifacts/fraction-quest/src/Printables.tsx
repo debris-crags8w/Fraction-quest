@@ -1,5 +1,6 @@
 import React, { useEffect, useState, type CSSProperties, type ReactElement } from 'react';
 import { LinePlotPicture } from './line-plot-picture';
+import { CoinsPicture } from './coins-picture';
 import { GardenPlan } from './GardenPlan';
 import { Printer } from 'lucide-react';
 import { MathText } from './MathText';
@@ -155,7 +156,9 @@ export function PrintModel({ model, labels = true }: { model: ModelSpec; labels?
           {labels && figure.label && <figcaption><MathText text={figure.label} /></figcaption>}
         </figure>
       ))}</div>}
-      {model.kind === 'lineplot' && <LinePlotPicture denominator={model.denominator} wholes={model.wholes} values={model.values} />}
+      {/* On paper, a plot the child makes is printed empty: they draw the Xs. */}
+      {model.kind === 'lineplot' && <LinePlotPicture denominator={model.denominator} wholes={model.wholes} values={model.plotTask ? [] : model.values} />}
+      {model.kind === 'coins' && <CoinsPicture dimes={model.dimes} pennies={model.pennies} />}
       {model.kind === 'garden' && <GardenPlan width={model.width} height={model.height} labelParts={model.labelParts} />}
       {model.kind === 'equation' && <p className="fq-print-equation"><MathText text={model.text} /></p>}
       {labels && model.caption && <small><MathText text={model.caption} /></small>}

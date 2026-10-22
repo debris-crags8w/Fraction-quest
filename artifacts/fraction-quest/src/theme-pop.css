@@ -2474,3 +2474,9 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-garden-part-label, .fq-garden-part-label text { font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; font-weight: 700; fill: hsl(var(--foreground)); text-anchor: middle; dominant-baseline: central; }
 .fq-garden-part-label line { stroke: hsl(var(--foreground)); stroke-width: 2; }
 @media (max-width: 560px) { .fq-garden { width: min(100%, 250px); } }
+
+/* Coins (dimes and pennies): a dime is the bigger silver coin, a penny the smaller copper one. */
+.fq-coins { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; max-width: 520px; margin: 0 auto; padding: 6px 0; }
+.fq-coin { display: grid; place-items: center; border-radius: 50%; font-weight: 800; font-size: .8rem; border: 3px solid; box-shadow: inset 0 -3px 0 rgb(0 0 0 / .12); }
+.fq-coin.is-dime { width: 46px; height: 46px; background: #D7DCE4; border-color: #8E96A6; color: #2F3542; }
+.fq-coin.is-penny { width: 36px; height: 36px; background: #E9A86B; border-color: #A8622A; color: #3B1F08; font-size: .7rem; }
