@@ -155,8 +155,8 @@ const EXPECTED_COURSE: Record<number, string[]> = {
   10: ['add-related-fractions', 'add-unlike-fractions', 'subtract-unlike-fractions', 'mixed-unlike-operations', 'estimate-fraction-operations'],
   11: ['sets-unit-fractions', 'sets-nonunit', 'fraction-of-quantity', 'multiply-fractions', 'fraction-times-fraction',
     'fraction-of-collection', 'multiplication-scaling', 'bigger-or-smaller'],
-  12: ['fraction-of-length', 'fractional-measure-addition', 'line-plot-leveling', 'fractional-unit-conversions', 'fractional-sharing',
-    'fraction-as-division', 'unit-fraction-divided-whole', 'divide-whole-by-unit-fraction', 'share-or-fit'],
+  12: ['fraction-of-length', 'fractional-measure-addition', 'line-plot-leveling', 'line-plot-totals', 'fractional-unit-conversions', 'two-step-conversions',
+    'fractional-sharing', 'fraction-as-division', 'unit-fraction-divided-whole', 'divide-whole-by-unit-fraction', 'share-or-fit'],
   13: ['fraction-probability', 'fractional-side-area', 'multiply-mixed-numbers'],
   14: ['fractions-to-percent', 'percent-to-fraction', 'multi-step-fraction-stories'],
   15: ['find-the-whole', 'spot-the-mistake', 'fraction-of-remainder', 'divide-fractions'],
@@ -281,8 +281,8 @@ describe('lesson catalog', () => {
     }
   });
 
-  it('covers 79 sequenced lessons in the expected sequence and unit groups', () => {
-    assert.equal(MISSIONS.length, 79);
+  it('covers 81 sequenced lessons in the expected sequence and unit groups', () => {
+    assert.equal(MISSIONS.length, 81);
     assert.deepEqual(MISSIONS.map((mission) => mission.id), Object.values(EXPECTED_COURSE).flat());
     for (const [unit, ids] of Object.entries(EXPECTED_COURSE)) {
       assert.deepEqual(MISSIONS.filter((mission) => mission.unit === Number(unit)).map((mission) => mission.id), ids, `unit ${unit}`);
@@ -292,7 +292,7 @@ describe('lesson catalog', () => {
         [...new Set(MISSIONS.map((mission) => mission.unit))]
           .map((unit) => [unit, MISSIONS.filter((mission) => mission.unit === unit).length]),
       ),
-      { 1: 4, 2: 2, 3: 3, 4: 5, 5: 2, 6: 4, 7: 5, 8: 13, 9: 9, 10: 5, 11: 8, 12: 9, 13: 3, 14: 3, 15: 4 },
+      { 1: 4, 2: 2, 3: 3, 4: 5, 5: 2, 6: 4, 7: 5, 8: 13, 9: 9, 10: 5, 11: 8, 12: 11, 13: 3, 14: 3, 15: 4 },
     );
   });
 
@@ -4601,5 +4601,33 @@ describe('second lessons (grade 4): dimes and pennies, plot in eighths, party po
     assert.equal(why('Each runner drinks 5/6 liter. 3 runners. How much in all?', '15/6 liters', '15/18 liter'), WHY.onlyTop);
     assert.equal(why('Twigs: 3/8, 4/8, 4/8, 8/8 inch. Plot them. How long are the two shortest together?', '7/8 inch', '12/8 inches'), WHY.twoLongest);
     assert.equal(why('Each racer drinks 2/3 cup. 4 racers. Between which two whole numbers is the total?', '2 and 3', '8 and 9'), WHY.betweenWholes);
+  });
+});
+
+describe('second lessons (grade 5): line plot totals, two-step conversions', () => {
+  const lesson = (id: string) => MISSIONS.find((m) => m.id === id)!;
+  const before = (id: string) => MISSIONS[MISSIONS.indexOf(lesson(id)) - 1].id;
+  it('sit next to the lesson they build on, in unit 12', () => {
+    assert.equal(before('line-plot-totals'), 'line-plot-leveling');
+    assert.equal(before('two-step-conversions'), 'fractional-unit-conversions');
+    for (const id of ['line-plot-totals', 'two-step-conversions']) assert.equal(lesson(id).unit, 12, id);
+  });
+  it('ask the approved first questions', () => {
+    const [totals] = lesson('line-plot-totals').questions;
+    assert.match(totals.prompt, /water in 6 beakers: 1\/8, 3\/8, 3\/8, 4\/8, 4\/8, 6\/8 liter\. How much water in all\?$/);
+    assert.equal(totals.choices[totals.correctChoice], '2 5/8 liters');
+    assert.ok(totals.model.kind === 'lineplot' && !totals.model.plotTask, 'a finished plot to read');
+    const [ribbon] = lesson('two-step-conversions').questions;
+    assert.equal(ribbon.prompt, 'A ribbon is 2 1/2 feet long. Pip cuts off 8 inches. How many inches are left?');
+    assert.equal(ribbon.choices[ribbon.correctChoice], '22 inches');
+    assert.deepEqual(ribbon.model, { kind: 'line', numerator: 30, denominator: 12, wholes: 3, hideLabels: true }, 'the ribbon on a line marked in inches, 12 to a foot');
+  });
+  it('say why each conversion and line-plot mistake is wrong', () => {
+    const why = (prompt: string, right: string, pick: string) => wrongChoiceReason(prompt, [right, pick], 0, 1);
+    assert.equal(why('A ribbon is 2 1/2 feet long. Pip cuts off 8 inches. How many inches are left?', '22 inches', '17 inches'), WHY.wrongPer);
+    assert.equal(why('A ribbon is 2 1/2 feet long. Pip cuts off 8 inches. How many inches are left?', '22 inches', '30 inches'), WHY.startAmount);
+    assert.equal(why('A bag holds 2 1/4 pounds of sand. Pip adds 6 ounces. How many ounces are in the bag now?', '42 ounces', '36 ounces'), WHY.oneAmount);
+    assert.equal(why('The line plot shows water in 6 beakers: 1/8, 3/8, 3/8, 4/8, 4/8, 6/8 liter. How much water in all?', '2 5/8 liters', '1 6/8 liters'), WHY.eachSpotOnce);
+    assert.equal(why('The line plot shows water in 6 beakers: 2/8, 2/8, 5/8, 5/8, 5/8, 8/8 liter. How much more do the 5/8 beakers hold than the 2/8 beakers?', '1 3/8 liters', '3/8 liter'), WHY.oneEach);
   });
 });

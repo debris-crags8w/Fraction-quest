@@ -95,6 +95,8 @@ export const MISSION_STANDARDS: Record<string, StandardId[]> = {
   'dimes-and-pennies': ['4.NF.5'],
   'plot-in-eighths': ['4.MD.4'],
   'party-portions': ['4.NF.4c'],
+  'two-step-conversions': ['5.MD.1'],
+  'line-plot-totals': ['5.MD.2'],
   // Its first questions are groups of a unit fraction (3 × 1/3), then of any fraction.
   'multiply-whole-by-fraction': ['4.NF.4b', '4.NF.4a'],
   'multiply-fractions': ['5.NF.4a'],

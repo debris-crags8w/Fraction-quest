@@ -17,7 +17,7 @@ describe('standards map', () => {
     }
   });
 
-  it('teaches every standard in at least two lessons, except the two whose second lesson is still to come', () => {
+  it('teaches every standard in at least two lessons', () => {
     const lessonsFor = (id: string) => MISSIONS.filter((mission) => mission.standards?.includes(id) && !mission.enrichment).map((mission) => mission.id);
     // Lessons that also practise a second standard: groups of a unit fraction (3 × 1/3), sharing and fitting unit
     // fractions, and a fraction of a unit in a smaller unit.
@@ -26,7 +26,7 @@ describe('standards map', () => {
     assert.ok(lessonsFor('5.NF.7b').includes('share-or-fit'));
     assert.ok(lessonsFor('4.MD.2').includes('fractional-unit-conversions'));
     const single = FRACTION_STANDARDS.filter((standard) => lessonsFor(standard.id).length < 2).map((standard) => standard.id);
-    assert.deepEqual(single, ['5.MD.1', '5.MD.2'], 'take a standard off this list when its second lesson is added');
+    assert.deepEqual(single, [], 'every standard has a second lesson');
   });
 
   it('tags lessons only with catalogued standards, and keeps each lesson at or above its grade', () => {
@@ -95,7 +95,8 @@ describe('standards map', () => {
       'fraction-of-remainder', 'divide-fractions',
     ];
     // Every lesson but the ones added after the reorder.
-    const added = ['compare-decimals-grid', 'fraction-times-fraction', 'bigger-or-smaller', 'share-or-fit', 'dimes-and-pennies', 'plot-in-eighths', 'party-portions'];
+    const added = ['compare-decimals-grid', 'fraction-times-fraction', 'bigger-or-smaller', 'share-or-fit', 'dimes-and-pennies', 'plot-in-eighths', 'party-portions',
+      'line-plot-totals', 'two-step-conversions'];
     assert.deepEqual([...before, ...added].sort(), MISSIONS.map((mission) => mission.id).sort());
     for (let reached = 1; reached < before.length; reached++) {
       const done = before.slice(0, reached);

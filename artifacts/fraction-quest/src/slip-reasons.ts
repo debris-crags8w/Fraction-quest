@@ -129,6 +129,10 @@ export const WHY = {
   allXs: 'That counts every X. Count only the ones asked about.',
   twoLongest: 'Those are the longest. Use the two shortest.',
   mostXs: 'Look for the tallest stack of Xs.',
+  wrongPer: 'Check how many small units are in one big unit.',
+  eachSpotOnce: 'Each X counts. Add the amount again for every X in a stack.',
+  countedXs: 'That counts the Xs. Add the amounts they stand for.',
+  oneEach: 'That compares one of each. Use every X in both stacks.',
   // Comparing and ordering
   signWay: 'That sign points the wrong way. The open side faces the bigger amount.',
   bigBottom: 'A bigger denominator means more pieces, so each piece is smaller.',

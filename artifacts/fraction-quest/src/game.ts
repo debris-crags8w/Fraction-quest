@@ -835,7 +835,7 @@ type ExtensionMode =
   | 'line-plot' | 'line-plot-read' | 'line-plot-level' | 'measure-context' | 'add-unlike' | 'mixed-unlike'
   | 'estimate' | 'fractional-area' | 'scaling' | 'mixed-multiply' | 'unit-divided-whole' | 'unit-conversion'
   | 'whole-from-part' | 'mistake' | 'remainder' | 'divide-fractions'
-  | 'decimal-grid' | 'bigger-smaller' | 'times-grid' | 'share-or-fit' | 'coins' | 'plot-eighths' | 'portions';
+  | 'decimal-grid' | 'bigger-smaller' | 'times-grid' | 'share-or-fit' | 'coins' | 'plot-eighths' | 'portions' | 'two-step-convert' | 'plot-totals';
 type ExtensionTopic = {
   id: string; title: string; shortTitle: string; description: string; skill: string;
   mode: ExtensionMode; n: number; d: number; context: string;
@@ -857,6 +857,11 @@ const grids = (...figures: ReturnType<typeof hundredthsGrid>[]): ModelSpec => ({
 const coins = (dimes: number, pennies: number): ModelSpec => ({ kind: 'coins', dimes, pennies });
 /** An empty eighths line plot the child fills in before answering (the measurements are in the question). */
 const plotTask = (values: number[]): ModelSpec => ({ kind: 'lineplot', denominator: 8, wholes: 1, values, plotTask: true });
+/** A length in feet on a line marked in inches (12 to a foot), nothing labelled but the feet: [12, 12, 6] is 2 1/2 feet. */
+const inFeet = (inches: number[]): ModelSpec => {
+  const total = inches.reduce((sum, part) => sum + part, 0);
+  return { kind: 'line', numerator: total, denominator: 12, wholes: Math.ceil(total / 12), hideLabels: true };
+};
 /** The square to cut for a/rows × b/cols: `rows` rows by `cols` columns. Nothing is shaded, so the overlap stays the child's to find. */
 const timesGrid = (rows: number, cols: number, shadeRows = 0, shadeCols = 0): ModelSpec =>
   ({ kind: 'area', cut: gridCut(cols, rows), shaded: shadeRows && shadeCols ? gridOverlap(cols, shadeRows, shadeCols) : [] });
@@ -1107,6 +1112,46 @@ const extensionTopics: ExtensionTopic[] = [
         bars(...Array.from({ length: 3 }, () => ({ numerator: 5, denominator: 6 }))), 'Count the sixths in all 3 groups. The part size stays sixths.',
         '3 groups of 5 sixths is 15 sixths: 15/6 liters.', line(15, 6, 3)),
     ] },
+  { id: 'two-step-conversions', title: 'Two-step conversions', shortTitle: 'Two-step conversions', description: 'Change units, then add or take away.',
+    skill: 'Change to the smaller unit first. Then add or take away.',
+    example: { prompt: 'A ribbon is 1 1/2 feet long. Pip cuts off 4 inches. How many inches are left?', answer: '14 inches',
+      explanation: '1 foot is 12 inches, so 1 1/2 feet is 12 + 6 = 18 inches. 18 − 4 = 14 inches are left.',
+      model: line(18, 12, 2) },
+    mode: 'two-step-convert', n: 30, d: 12, context: 'stage ribbon', gradeBand: 5, standards: ['5.MD.1'],
+    questions: [
+      practice('A ribbon is 2 1/2 feet long. Pip cuts off 8 inches. How many inches are left?', ['22 inches', '17 inches', '30 inches', '38 inches'], 0,
+        inFeet([12, 12, 6]), 'Change 2 1/2 feet to inches first: each foot is 12 inches.',
+        '2 1/2 feet is 12 + 12 + 6 = 30 inches. 30 − 8 = 22 inches are left.', inFeet([12, 12, 6])),
+      practice('A race is 1 1/4 hours long. The first part takes 20 minutes. How many minutes are left?', ['55 minutes', '95 minutes', '75 minutes', '105 minutes'], 0,
+        bars({ numerator: 4, denominator: 4 }, { numerator: 1, denominator: 4 }), 'Change 1 1/4 hours to minutes first: an hour is 60 minutes.',
+        '1 1/4 hours is 60 + 15 = 75 minutes. 75 − 20 = 55 minutes are left.', bars({ numerator: 4, denominator: 4 }, { numerator: 1, denominator: 4 })),
+      practice('A jug holds 1 1/2 liters. Pip pours out 400 milliliters. How many milliliters are left?', ['1100 milliliters', '1900 milliliters', '1500 milliliters', '600 milliliters'], 0,
+        bars({ numerator: 2, denominator: 2 }, { numerator: 1, denominator: 2 }), 'Change 1 1/2 liters to milliliters first: a liter is 1000 milliliters.',
+        '1 1/2 liters is 1000 + 500 = 1500 milliliters. 1500 − 400 = 1100 milliliters are left.', bars({ numerator: 2, denominator: 2 }, { numerator: 1, denominator: 2 })),
+      practice('A bag holds 2 1/4 pounds of sand. Pip adds 6 ounces. How many ounces are in the bag now?', ['42 ounces', '30 ounces', '36 ounces', '33 ounces'], 0,
+        bars({ numerator: 4, denominator: 4 }, { numerator: 4, denominator: 4 }, { numerator: 1, denominator: 4 }), 'Change 2 1/4 pounds to ounces first: a pound is 16 ounces.',
+        '2 1/4 pounds is 16 + 16 + 4 = 36 ounces. 36 + 6 = 42 ounces.', bars({ numerator: 4, denominator: 4 }, { numerator: 4, denominator: 4 }, { numerator: 1, denominator: 4 })),
+    ] },
+  { id: 'line-plot-totals', title: 'Line plot totals', shortTitle: 'Line plot totals', description: 'Add every X on a line plot to find a total or a difference.',
+    skill: 'Add the amount for every X. The parts are the same size, so add the numerators.',
+    example: { prompt: 'The line plot shows water in 4 beakers: 1/4, 1/4, 2/4, 3/4 liter. How much water in all?', answer: '7/4 liters',
+      explanation: '1 + 1 + 2 + 3 = 7 fourths. That is 7/4 liters, or 1 3/4 liters.',
+      model: { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 1, 2, 3] } },
+    mode: 'plot-totals', n: 7, d: 4, context: 'beakers', gradeBand: 5, standards: ['5.MD.2'],
+    questions: [
+      practice('The line plot shows water in 6 beakers: 1/8, 3/8, 3/8, 4/8, 4/8, 6/8 liter. How much water in all?', ['2 5/8 liters', '1 6/8 liters', '6/8 liter', '21/48 liter'], 0,
+        { kind: 'lineplot', denominator: 8, wholes: 1, values: [1, 3, 3, 4, 4, 6] }, 'Add the amount for every X. Two Xs at one spot count twice.',
+        '1 + 3 + 3 + 4 + 4 + 6 = 21 eighths: 21/8, or 2 5/8 liters.', { kind: 'lineplot', denominator: 8, wholes: 1, values: [1, 3, 3, 4, 4, 6] }),
+      practice('The line plot shows juice in 5 cups: 1/4, 2/4, 2/4, 3/4, 4/4 liter. How much juice in all?', ['3 liters', '12/20 liter', '2 2/4 liters', '1 1/4 liters'], 0,
+        { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 2, 2, 3, 4] }, 'Add the fourths for every X. How many fourths make a liter?',
+        '1 + 2 + 2 + 3 + 4 = 12 fourths. 12/4 is 3 liters.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 2, 2, 3, 4] }),
+      practice('The line plot shows water in 6 beakers: 2/8, 2/8, 5/8, 5/8, 5/8, 8/8 liter. How much more do the 5/8 beakers hold than the 2/8 beakers?', ['1 3/8 liters', '3/8 liter', '1/8 liter', '2 3/8 liters'], 0,
+        { kind: 'lineplot', denominator: 8, wholes: 1, values: [2, 2, 5, 5, 5, 8] }, 'Add up each stack first. Then take away.',
+        'The three 5/8 beakers hold 15/8. The two 2/8 beakers hold 4/8. 15/8 − 4/8 = 11/8, or 1 3/8 liters.', { kind: 'lineplot', denominator: 8, wholes: 1, values: [2, 2, 5, 5, 5, 8] }),
+      practice('The line plot shows rain on 4 days: 1/2, 1/2, 3/4, 1/4 inch. How much rain in all?', ['2 inches', '6/12 inch', '1 2/4 inches', '1 inch'], 0,
+        { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 2, 3, 1] }, 'Change the halves to fourths. Then add every X.',
+        '1/2 = 2/4. 2 + 2 + 3 + 1 = 8 fourths. 8/4 is 2 inches.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 2, 3, 1] }),
+    ] },
 ];
 
 const picture = (top: number, bottom: number): ModelSpec => ({ kind: 'bars', bars: [{ numerator: top, denominator: bottom }], hideLabels: true });
@@ -1204,8 +1249,8 @@ export const LESSON_PLAN: Readonly<Record<number, readonly string[]>> = {
   11: ['sets-unit-fractions', 'sets-nonunit', 'fraction-of-quantity', 'multiply-fractions', 'fraction-times-fraction',
     'fraction-of-collection', 'multiplication-scaling', 'bigger-or-smaller'],
   // A fraction is a division (5.NF.3) before dividing with unit fractions (5.NF.7a, b, c).
-  12: ['fraction-of-length', 'fractional-measure-addition', 'line-plot-leveling', 'fractional-unit-conversions', 'fractional-sharing',
-    'fraction-as-division', 'unit-fraction-divided-whole', 'divide-whole-by-unit-fraction', 'share-or-fit'],
+  12: ['fraction-of-length', 'fractional-measure-addition', 'line-plot-leveling', 'line-plot-totals', 'fractional-unit-conversions', 'two-step-conversions',
+    'fractional-sharing', 'fraction-as-division', 'unit-fraction-divided-whole', 'divide-whole-by-unit-fraction', 'share-or-fit'],
   13: ['fraction-probability', 'fractional-side-area', 'multiply-mixed-numbers'],
   14: ['fractions-to-percent', 'percent-to-fraction', 'multi-step-fraction-stories'],
   15: ['find-the-whole', 'spot-the-mistake', 'fraction-of-remainder', 'divide-fractions'],
@@ -1495,6 +1540,8 @@ export const LATE_ADDED_LESSONS: ReadonlySet<string> = new Set([
   'compare-decimals-grid', 'fraction-times-fraction', 'bigger-or-smaller', 'share-or-fit',
   // Second lessons for standards that had one (units 8 and 9).
   'dimes-and-pennies', 'plot-in-eighths', 'party-portions',
+  // And in unit 12.
+  'line-plot-totals', 'two-step-conversions',
 ]);
 
 export function completeMission(progress: Progress, missionId: string, stars: number): Progress {

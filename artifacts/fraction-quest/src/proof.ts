@@ -240,6 +240,20 @@ const RULES: Rule[] = [
     solve: (m) => { const v = m[1].split(', '); const count = (x: string) => v.filter((y) => near(frac(y), frac(x))).length;
       const top = Math.max(...v.map(count)); const most = [...new Set(v)].filter((x) => count(x) === top);
       return most.length === 1 ? { value: frac(most[0]) } : 'two lengths tie for the most Xs'; } },
+  // Line plot totals: every X's amount added, or one stack's total minus another's.
+  { name: 'line plot total', re: /^(?:The line plot shows [\w ]+ (?:in|on) \d+ \w+|Plot these \w+ in eighths of a liter|(?:Beakers|Cups) hold): (.+) (?:liter|inch)\. (?:How much [\w ]+ in all\?|Show the total on a line\.)$/,
+    solve: (m) => ({ value: m[1].split(/, | and /).map(frac).reduce((a, b) => a + b, 0) }) },
+  { name: 'line plot total (build)', re: /^(?:Beakers|Cups) hold (.+) liter\. Show the total on a line\.$/,
+    solve: (m) => ({ value: m[1].split(/, | and /).map(frac).reduce((a, b) => a + b, 0) }) },
+  { name: 'line plot stack difference', re: /^(?:The line plot shows [\w ]+ in \d+ \w+|Plot these \w+ in eighths of a liter): (.+) liter\. How much more do the (\d+\/\d+) \w+ hold than the (\d+\/\d+) \w+\?$/,
+    solve: (m) => { const v = m[1].split(', ').map(frac); const stack = (x: string) => v.filter((y) => near(y, frac(x))).reduce((a, b) => a + b, 0);
+      return { value: stack(m[2]) - stack(m[3]) }; } },
+  // Two-step conversions: a mixed number of big units in small units, then take away or add.
+  { name: 'convert, then add or take away', re: /^A \w+ (?:is|holds) (\d+ \d+\/\d+) (feet|hours|liters|meters|pounds)(?: long| of \w+)?\. (?:Pip|The first part) (cuts off|takes out|takes|pours out|adds) (\d+) (inches|minutes|milliliters|centimeters|ounces)\. How many \5 (?:are left|long is it now|are in the \w+ now)\?$/,
+    solve: (m) => { const per = { feet: 12, hours: 60, liters: 1000, meters: 100, pounds: 16 }[m[2] as 'feet']; const start = valueOf(m[1]) * per;
+      return { value: m[3] === 'adds' ? start + N(m[4]) : start - N(m[4]) }; } },
+  { name: 'feet in inches (build)', re: /^A (?:ribbon|rope) is (\d+ \d+\/\d+) feet long\. Show it in inches(?:, 12 to a foot|: each bar is 1 foot of 12 inches)\.$/,
+    solve: (m) => ({ value: valueOf(m[1]) }) },
   { name: 'line plot level', re: /^Three [\w ]+ hold (.+) liter\. (?:Plot them, then share|Share) the total equally\. How many liters go in each\?$/,
     solve: (m) => { const v = m[1].split(', ').map(frac); return { value: v.reduce((a, b) => a + b, 0) / 3 }; } },
 

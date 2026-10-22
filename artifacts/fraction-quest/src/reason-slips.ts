@@ -55,6 +55,8 @@ export const REASON_SLIPS: Record<string, [string, string, string]> = {
   'order-unlike-fractions': ['Put them in order by numerators', 'Put them in order by denominators', 'Bigger numbers always mean bigger'],
   'plot-in-eighths': ['Each length gets one X only', 'Put the Xs in measuring order', 'Count the tick marks to plot'],
   'party-portions': ['Multiply the denominator too', 'Add the guests to the top', 'The total is one portion'],
+  'two-step-conversions': ['Add or take away first', 'Every unit has ten small parts', 'Keep the two units apart'],
+  'line-plot-totals': ['Add each spot only once', 'Count the Xs, not their amounts', 'Add the denominators too'],
   'read-line-plots': ['Add the longest and shortest', 'Count the Xs at one spot', 'Use the tallest stack'],
   'measurement-word-problems': ['Add the denominators too', 'The whole unit is the answer', 'Add the numbers you see'],
   // Unit 10 · Unlike fractions
