@@ -182,6 +182,10 @@ const RULES: Rule[] = [
 
   // --- fractions of amounts and stories
   { name: 'fraction of a number', re: /^What is (\d+)\/(\d+) of (\d+)(?: [a-z]+)?\?$/, solve: (m) => ({ value: N(m[3]) / N(m[2]) * N(m[1]) }) },
+  { name: 'cut a length and pick parts (build)', re: /^A (?:ribbon|rope) is (\d+) meters long\. (?:Cut it into (\d+) equal parts\. Pick (\d+) parts|Show (\d+)\/(\d+) of it)\.$/,
+    solve: (m, item) => { if (item.target?.total !== undefined && item.target.total !== N(m[1])) return `the set has ${item.target.total}, not ${m[1]}`;
+      return { value: m[2] ? N(m[3]) / N(m[2]) : N(m[4]) / N(m[5]) }; } },
+  { name: 'write in hundredths (build)', re: /^Write (\d+\/\d+) in hundredths(?: to find its percent)?\. Make it\.$/, solve: (m) => ({ value: frac(m[1]), denominator: 100 }) },
   { name: 'fraction of a box', re: /^A box has (\d+) (\w+)\. How many \2 are in (\d+)\/(\d+) of the box\?$/, solve: (m) => ({ value: N(m[1]) / N(m[4]) * N(m[3]) }) },
   { name: 'equal groups', re: /^(\d+) (\w+) are shared into (\d+) equal groups\. How many \2 are in (one|\d+) groups?\?$/,
     solve: (m) => ({ value: N(m[1]) / N(m[3]) * (m[4] === 'one' ? 1 : N(m[4])) }) },

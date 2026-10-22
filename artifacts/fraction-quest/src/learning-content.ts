@@ -202,7 +202,7 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'number-line-points': [4, 6, 'line', 'Mark 4/6 on the number line.', 'The denominator is 6 equal spaces in one whole. The numerator is 4 jumps from zero.'],
   'number-line-beyond-one': [7, 4, 'line', 'Mark 1 and 3/4 on the number line.', '4/4 is one whole. 3 more fourths makes 7/4.'],
   'compare-same-denominator': [5, 8, 'bar', 'Which is bigger, 3/8 or 5/8? Make it.', 'Same size parts. 5 is more than 3.'],
-  'compare-same-numerator': [3, 4, 'bar', 'Which is bigger, 3/4 or 3/8? Make it.', 'Both same-size wholes count 3 parts. Eighths are smaller because the whole is cut into more parts. So 3/8 is smaller than 3/4.'],
+  'compare-same-numerator': [3, 4, 'bar', 'Which is bigger, 3/4 or 3/8? Make it.', 'Both same-size wholes count 3 parts. Eighths are smaller because the whole is cut into more parts. So 3/8 is smaller than 3/4, and 3/4 > 3/8.'],
   'order-fractions': [3, 4, 'bar', 'Which is biggest: 1/4, 1/2 or 3/4? Make it.', '3/4 is more than half.'],
   'equivalent-models': [2, 4, 'bar', 'Show 1/2 using fourths. Split every part.', 'Split each half in 2. So 1/2 = 2/4.'],
   'build-equivalents': [4, 6, 'bar', 'Show 2/3 using sixths.', 'Split each third in 2. So 2/3 = 4/6.'],
@@ -248,7 +248,7 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'two-step-conversions': [18, 12, 'bar', 'A ribbon is 1 1/2 feet long. Show it in inches: each bar is 1 foot of 12 inches.', '1 foot is 12 inches. 1 1/2 feet is 12 + 6 = 18 inches.'],
   'line-plot-totals': [7, 4, 'line', 'Beakers hold 1/4, 1/4, 2/4 and 3/4 liter. Show the total on a line.', '1 + 1 + 2 + 3 = 7 fourths: 7/4 liters.'],
   'share-or-fit': [1, 6, 'bar', 'Share 1/2 of a pan among 3 children. Build one share.', 'Sharing: split the half into 3 equal shares. Each share is 1/6 of the pan. Check: 3 × 1/6 = 1/2.'],
-  'fraction-of-length': [3, 8, 'line', 'Mark 3/8 of a meter on the line.', 'Each space is 1/8 meter. Count 3 spaces.'],
+  'fraction-of-length': [3, 4, 'set', 'A ribbon is 12 meters long. Cut it into 4 equal parts. Pick 3 parts.', '12 ÷ 4 = 3 meters in each part. 3 parts is 9 meters.', 12],
   'ruler-measurement': [5, 4, 'line', 'Mark a length of 1 1/4 inches on a ruler.', 'Each small space is 1/4 inch. Five quarter-inch spaces make 1 1/4 inches.'],
   'build-line-plots': [3, 4, 'line', 'Ribbons are 1/4, 3/4 and 3/4 inch long. Mark where 2 Xs go.', 'Put one X above the tick for each measurement. Two ribbons are 3/4 inch, so 3/4 gets 2 Xs.'],
   'read-line-plots': [5, 8, 'line', 'The shortest pencil is 1/8 inch and the longest is 6/8 inch. Find their difference.', 'Read the two endpoints on the plot and subtract their lengths: 6/8 − 1/8 = 5/8.'],
@@ -262,9 +262,9 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'fraction-of-area': [3, 8, 'bar', 'A tile has 8 equal parts. Shade 3.', '8 equal parts. 3 shaded is 3/8.'],
   'equivalent-number-line': [2, 3, 'line', 'Mark 2/3 on the line. 4/6 lands on the same spot.', 'Each third is 2 sixths. So 2/3 = 4/6.'],
   'fraction-recipes': [6, 8, 'bar', 'A recipe uses 3/8 cup of milk. Double it. Make it in eighths.', '3/8 + 3/8 = 6/8 cup.'],
-  'fractions-to-percent': [75, 100, 'bar', 'Make 75%.', 'Percent means out of 100. 75% = 75/100.'],
+  'fractions-to-percent': [75, 100, 'bar', 'Write 3/4 in hundredths to find its percent. Make it.', '4 × 25 = 100, so 3 × 25 = 75. 3/4 = 75/100 = 75%.'],
   'percent-to-fraction': [60, 100, 'bar', 'Make 60% as a fraction.', '60% means 60 out of 100: 60/100.'],
-  'decimal-fraction-equivalence': [7, 10, 'bar', 'Make 0.7 using tenths.', '0.7 means 7 tenths. That is also 70/100.'],
+  'decimal-fraction-equivalence': [25, 100, 'bar', 'Write 1/4 in hundredths. Make it.', 'Multiply top and bottom by 25: 1/4 = 25/100. 25 hundredths is 0.25.'],
   'multi-step-fraction-stories': [2, 5, 'bar', 'A garden is 2/5 planted. Plant 1/5 more. Make the part still empty.', '2/5 + 1/5 = 3/5 planted. 5/5 − 3/5 = 2/5 empty.'],
   'find-the-whole': [4, 4, 'bar', '3 stickers are 1/4 of a pack. Shade all the parts of the whole pack.', 'The whole is 4 fourths. 4 groups of 3 is 12 stickers.'],
   'spot-the-mistake': [3, 4, 'bar', 'Sam says 1/4 + 2/4 = 3/8. Make the right answer.', 'Fourths plus fourths make fourths. 1/4 + 2/4 = 3/4.'],
@@ -305,7 +305,7 @@ const EXTENSION_TRANSFERS: Record<string, { n: number; d: number; prompt: string
   'multiply-fractions': { n: 6, d: 20, prompt: 'Make 2/5 of 3/4.', reason: 'The numerator is 2 times 3, which is 6. The denominator is 5 times 4, which is 20. So the answer is 6/20.' },
   'fraction-of-collection': { n: 2, d: 5, total: 20, kind: 'set', prompt: 'Put 20 cards in 5 equal groups. Pick 2 groups.', reason: '20 in 5 groups is 4 each. 2 groups is 8.' },
   'divide-whole-by-unit-fraction': { n: 10, d: 5, prompt: 'How many 1/5 cups fill 2 cups? Make it in fifths.', reason: 'Each cup is 5 fifths. 2 cups is 10 fifths.' },
-  'fraction-of-length': { n: 5, d: 8, kind: 'line', prompt: 'Mark 5/8 of a kilometer on the line.', reason: 'Each space is 1/8. Count 5 spaces.' },
+  'fraction-of-length': { n: 2, d: 3, kind: 'set', total: 9, prompt: 'A rope is 9 meters long. Show 2/3 of it.', reason: '9 ÷ 3 = 3 meters in each part. 2 parts is 6 meters.' },
   'fractional-measure-addition': { n: 3, d: 6, prompt: 'Make 1/3 meter + 1/6 meter.', reason: '1/3 = 2/6. 2/6 + 1/6 = 3/6.' },
   'fractional-sharing': { n: 5, d: 4, prompt: '5 loaves are shared fairly by 4 friends. Build how much one friend gets.', reason: 'Each friend gets 5/4, or 1 1/4 loaves.' },
   'fraction-as-division': { n: 7, d: 3, prompt: 'Make 7 ÷ 3 as a fraction.', reason: '7 ÷ 3 = 7/3. That is 2 1/3.' },
@@ -1427,7 +1427,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       case 'measure': {
         const length = d * (2 + i % 3);
         prompt = `A ribbon is ${length} meters long. How long is ${f(n, d)} of it?`; answer = String(length / d * n);
-        visual = model(n, d, 'line'); hint = `Cut ${length} meters into ${d} equal parts. Count ${n} ${n === 1 ? 'part' : 'parts'}.`; break;
+        visual = model(0, d, 'set', length); hint = `Cut ${length} meters into ${d} equal parts. Count ${n} ${n === 1 ? 'part' : 'parts'}.`; break;
       }
       case 'measure-add': {
         const [a, b, c, e] = pick([[1, 2, 1, 4], [1, 3, 1, 6], [1, 4, 1, 8], [1, 2, 1, 8], [2, 3, 1, 6], [1, 5, 1, 10], [1, 2, 1, 6], [3, 4, 1, 8], [1, 3, 1, 12], [2, 5, 1, 10], [1, 2, 3, 8], [1, 4, 1, 12],
@@ -1514,7 +1514,10 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         // Twentieths are not a grade 4 denominator: those rows ask about the same amount in hundredths.
         const [top, bottom] = pick(EXACT); const [t, b] = gradeFits(id, bottom) ? [top, bottom] : [top * (100 / bottom), 100];
         prompt = `Write ${f(t, b)} as a decimal.`; answer = String(t / b); form = 'decimal';
-        hint = `Change ${f(t, b)} to tenths or hundredths first.`; break;
+        const target = 10 % b === 0 ? 10 : 100;
+        hint = b === target
+          ? `${f(t, b)} is already in ${unitName(b)}. Write ${unitName(b)} with ${b === 10 ? 'one decimal place' : 'two decimal places'}.`
+          : `Multiply top and bottom of ${f(t, b)} by ${target / b} to make ${target} on the bottom.`; break;
       }
       case 'whole-fraction': {
         const examples: { kind: 'write' | 'count' | 'one'; numerator: number; denominator: number }[] = [
@@ -1647,10 +1650,14 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const [a, b, c, e, op] = pick(examples); const common = lcm(b, e);
         const top = a * (common / b) + (op === '+' ? 1 : -1) * c * (common / e);
         const renames = [[a, b], [c, e]].filter(([, bottom]) => bottom !== common).map(([top, bottom]) => `${f(top, bottom)} = ${f(top * (common / bottom), common)}`);
-        prompt = `${renames.length ? `Rename: ${renames.join(' and ')}. Then ` : ''}${f(a, b)} ${op} ${f(c, e)} = ?`;
+        // The renaming step is written out on the first 6 rows only, then the child finds the common denominator alone.
+        const scaffold = i < 6;
+        prompt = `${scaffold && renames.length ? `Rename: ${renames.join(' and ')}. Then ` : ''}${f(a, b)} ${op} ${f(c, e)} = ?`;
         answer = mixedName(top, common); form = answer.includes(' ') ? 'mixed' : undefined;
         visual = model(a * (common / b), common); modelRequired = true;
-        hint = `Make both fractions ${unitName(common)} first. Then ${op === '+' ? 'add' : 'subtract'} the numerators.`; break;
+        hint = scaffold
+          ? `Make both fractions ${unitName(common)} first. Then ${op === '+' ? 'add' : 'subtract'} the numerators.`
+          : `List multiples of ${b} and ${e}. Which number is in both lists? Rename both fractions with it, then ${op === '+' ? 'add' : 'subtract'}.`; break;
       }
       case 'mixed-unlike': {
         const examples: [number, number, number, number, number, number, '+' | '−'][] = [
@@ -1667,10 +1674,11 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const a = wholeA * bottomA + topA; const b = bottomA; const c = wholeB * bottomB + topB; const e = bottomB;
         const common = lcm(b, e); const result = a * (common / b) + (op === '+' ? 1 : -1) * c * (common / e);
         const renames = [[topA, bottomA], [topB, bottomB]].filter(([, bottom]) => bottom !== common).map(([top, bottom]) => `${f(top, bottom)} = ${f(top * (common / bottom), common)}`);
-        prompt = `${renames.length ? `Rename: ${renames.join(' and ')}. Then ` : ''}${wholeA} ${f(topA, bottomA)} ${op} ${wholeB ? `${wholeB} ` : ''}${f(topB, bottomB)} = ?`;
+        const scaffold = i < 6;
+        prompt = `${scaffold && renames.length ? `Rename: ${renames.join(' and ')}. Then ` : ''}${wholeA} ${f(topA, bottomA)} ${op} ${wholeB ? `${wholeB} ` : ''}${f(topB, bottomB)} = ?`;
         answer = mixedName(result, common); form = answer.includes(' ') ? 'mixed' : undefined;
         visual = model(a * (common / b), common); modelRequired = true;
-        hint = `${op === '+' ? 'Rename both fractional parts' : 'Rename both numbers'} with the same denominator, then ${op === '+' ? 'add' : 'subtract'}.${op === '−' && topA * (common / bottomA) < topB * (common / bottomB) ? ` The first part is too small to take away from: trade 1 whole for ${f(common, common)} first.` : ''}`; break;
+        hint = `${scaffold ? '' : `List multiples of ${bottomA} and ${bottomB} to find a denominator they share. `}${op === '+' ? 'Rename both fractional parts' : 'Rename both numbers'} with the same denominator, then ${op === '+' ? 'add' : 'subtract'}.${op === '−' && topA * (common / bottomA) < topB * (common / bottomB) ? ` The first part is too small to take away from: trade 1 whole for ${f(common, common)} first.` : ''}`; break;
       }
       case 'estimate': {
         const examples: [number, number, number, number, '+' | '−'][] = [
@@ -1719,7 +1727,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         answer = mixedName(top, bottom); form = answer.includes(' ') ? 'mixed' : undefined;
         visual = model(wa * da + na, da); modelRequired = true;
         picture = gardenModel({ whole: wa, numerator: na, denominator: da }, { whole: wb, numerator: nb, denominator: db });
-        hint = 'Change each mixed number to an improper fraction. Multiply the numerators and multiply the denominators.'; break;
+        hint = 'Split the rectangle at the whole units. Find the area of each part, then add them.'; break;
       }
       case 'unit-divided-whole': {
         // One kind of question: each redo takes the other half of the list, so back-to-back sheets share no row.

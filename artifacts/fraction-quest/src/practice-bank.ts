@@ -179,7 +179,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       return { prompt: `Which is closer to 1/2: ${either(r, near, far)}?`, right: near, wrong: [far, 'They are equally close'], hint: `Half of ${e} is ${e / 2}. Which numerator is nearer to ${e / 2}?`,
         retry: `${near} is just ${step === 1 ? 'one part' : 'two parts'} from half.`, ...compareBars([e / 2 + (above ? step : -step), e], [above ? e - 1 : 1, e]) };
     }
-    return { prompt: 'Which is closest to 1/2?', right: f(n, d), wrong: pair, hint: 'Find half of each denominator. Which numerator is nearest to it?', retry: `${f(n, d)} is closer to 1/2 than the others.`, model: half };
+    return { prompt: 'Which is closest to 1/2?', right: f(n, d), wrong: pair, hint: 'Picture each one on the same bar. Which one ends nearest the middle?', retry: `${f(n, d)} is closer to 1/2 than the others.`, model: half };
   },
   'number-line-basics': (r) => {
     const d = r.pick([2, ...G3_DENS]);

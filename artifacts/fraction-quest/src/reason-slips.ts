@@ -87,7 +87,7 @@ export const REASON_SLIPS: Record<string, [string, string, string]> = {
   // Unit 13 · Chance and area
   'fraction-probability': ['Wanted ones out of the rest', 'All out of the wanted ones', 'One out of the total'],
   'fractional-side-area': ['Add the two side lengths', 'Area is one side only', 'Area is always bigger'],
-  'multiply-mixed-numbers': ['Multiply the wholes only', 'Add the side lengths', 'Multiply wholes and parts apart'],
+  'multiply-mixed-numbers': ['Multiply the wholes only', 'Add the side lengths', 'Multiply the parts only'],
   'fraction-recipes': ['Double the denominator too', 'Add the batches to the top', 'Doubling halves the amount'],
   // Unit 14 · Percent and stories
   'fractions-to-percent': ['Percent means out of 10', 'Write the digits side by side', 'The denominator is the percent'],
