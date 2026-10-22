@@ -23,20 +23,26 @@ export function isAppPage(url: string, appUrl: string): boolean {
 import { parseReminderMessage, type ReminderMessage, type ReminderSettings } from './reminders';
 
 export type SubscriptionAction = 'status' | 'buy' | 'restore' | 'manage';
+export type Plan = 'yearly' | 'monthly';
+export const PLANS: readonly Plan[] = ['yearly', 'monthly'];
+/** A plan the store has for sale: its price text, and the number and currency so the page can show the saving. */
+export type PlanOffer = { plan: Plan; price: string; amount?: number | null; currency?: string | null };
 export type ShellMessage =
   | { type: 'haptic'; cue: 'selection' | 'correct' | 'retry' | 'star' | 'complete' | 'impact' }
   | { type: 'print'; jobName?: string; html: string }
-  | { type: 'subscription'; action: SubscriptionAction }
+  | { type: 'subscription'; action: SubscriptionAction; plan?: Plan }
   | ReminderMessage;
 
-/** What the page is told about the monthly subscription. `unavailable`: the store could not be reached or the
+/** What the page is told about the subscription. `unavailable`: the store could not be reached or the
     subscription is not set up yet, so the page cannot know (it then leaves lessons open). */
 export type SubscriptionStatus = {
   state: 'active' | 'none' | 'unavailable';
   /** When the current period (or the free trial) ends, in milliseconds, when the store says. */
   renewsAt?: number | null;
-  /** The store's price text, such as "$4.99". */
+  /** The store's monthly price text, such as "$4.99". */
   price?: string | null;
+  /** The plans the store has for sale, yearly first. Left out by older apps, which sell only the monthly plan. */
+  plans?: PlanOffer[];
   /** A purchase or restore is in progress. */
   busy?: boolean;
   /** A short message for the grown-up when something went wrong (never for a cancelled purchase). */
@@ -55,8 +61,10 @@ export function parseShellMessage(data: string): ShellMessage | null {
       return message as ShellMessage;
     }
     if (message?.type === 'print' && typeof (message as { html?: unknown }).html === 'string') return message as ShellMessage;
-    if (message?.type === 'subscription' && ['status', 'buy', 'restore', 'manage'].includes(String((message as { action?: unknown }).action))) {
-      return message as ShellMessage;
+    const request = message as { action?: unknown; plan?: unknown };
+    if (message?.type === 'subscription' && ['status', 'buy', 'restore', 'manage'].includes(String(request.action))) {
+      const plan = PLANS.find((name) => name === request.plan);
+      return { type: 'subscription', action: request.action as SubscriptionAction, ...(plan ? { plan } : {}) };
     }
     const reminder = parseReminderMessage(message as Parameters<typeof parseReminderMessage>[0]);
     if (reminder) return reminder;

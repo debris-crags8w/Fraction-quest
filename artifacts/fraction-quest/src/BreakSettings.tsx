@@ -1,5 +1,6 @@
 import { useId } from 'react';
-import { Bell, VolumeX } from 'lucide-react';
+import { Bell, Hourglass, VolumeX } from 'lucide-react';
+import { TIME_LIMIT_CHOICES, type TimeLimitMinutes } from './lib/fun';
 import './brain-break.css';
 
 export type BreakSettingsValue = { intervalMinutes: 0 | 10 | 15 | 20; quietMode: boolean };
@@ -22,5 +23,23 @@ export function BreakSettings({ intervalMinutes, quietMode, onChange }: {
       <label htmlFor={quietId}><strong><VolumeX size={17} aria-hidden="true" /> Quiet mode</strong><small>Offer breathing, eye rest, stretches, and calm pauses only.</small></label>
       <button id={quietId} className={`fq-break-switch ${quietMode ? 'on' : ''}`} type="button" role="switch" aria-checked={quietMode} aria-label="Quiet mode" onClick={() => onChange({ intervalMinutes, quietMode: !quietMode })} data-testid="switch-break-quiet-mode"><span /></button>
     </div>
+  </section>;
+}
+
+/** The grown-up's daily time limit: when it is used up, the child finishes the question they are on, then Hoot says
+    "See you tomorrow". Shows today's minutes against the limit. */
+export function TimeLimitSettings({ minutes, used, allowed, onChange }: {
+  minutes: TimeLimitMinutes; used: number; allowed: number | null; onChange: (minutes: TimeLimitMinutes) => void;
+}) {
+  return <section className="fq-break-settings" aria-labelledby="time-limit-title" data-testid="section-time-limit">
+    <div className="fq-break-settings-head"><span className="fq-break-settings-icon"><Hourglass size={20} aria-hidden="true" /></span><div><h2 id="time-limit-title">Daily time limit</h2><p>When time is up, your child finishes the question they’re on, then sees “See you tomorrow”.</p></div></div>
+    <div className="fq-time-limit-choices" role="group" aria-label="Daily time limit">
+      {TIME_LIMIT_CHOICES.map((choice) => (
+        <button key={choice} type="button" aria-pressed={minutes === choice} onClick={() => onChange(choice)} data-testid={`time-limit-${choice}`}>
+          {choice ? `${choice} min` : 'Off'}
+        </button>
+      ))}
+    </div>
+    <p className="fq-time-limit-today" data-testid="time-limit-today">{allowed ? `Today: ${Math.min(used, allowed)} of ${allowed} minutes used` : `Today: ${used} ${used === 1 ? 'minute' : 'minutes'} so far`}</p>
   </section>;
 }

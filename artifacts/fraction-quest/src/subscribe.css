@@ -15,13 +15,22 @@
 .fq-subscribe-actions .fq-button.fq-subscribe-go { color: #fff; background: #FF8A1F; box-shadow: 0 4px 0 #B95300; }
 .fq-app.fq-subscribe-night { background: #1E1838; }
 
-.fq-paywall { min-height: 100dvh; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; max-width: 520px; padding: 20px 16px; }
+.fq-paywall { min-height: 100dvh; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; max-width: 520px; padding: 16px 16px; }
 .fq-paywall-top { display: flex; justify-content: space-between; align-items: center; color: hsl(var(--muted-foreground)); font-weight: 700; font-size: .9rem; }
 .fq-paywall h1 { margin: 0; font-size: clamp(1.5rem, 6.5vw, 1.8rem); line-height: 1.15; }
 .fq-paywall > p { margin: 0; line-height: 1.45; }
-.fq-paywall-list { display: grid; gap: 10px; margin: 0; padding: 16px; list-style: none; border-radius: 18px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); }
+.fq-paywall-list { display: grid; gap: 8px; margin: 0; padding: 12px 14px; list-style: none; border-radius: 18px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); }
 .fq-paywall-list li { display: flex; gap: 10px; line-height: 1.4; }
 .fq-paywall-list svg { flex: none; width: 22px; height: 22px; padding: 3px; box-sizing: border-box; border-radius: 50%; background: #2E8A50; color: #fff; }
+.fq-paywall-plans { display: grid; gap: 10px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.fq-paywall-plans legend { margin-bottom: 6px; padding: 0; font-weight: 900; }
+.fq-paywall-plan { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 14px; border-radius: 16px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); cursor: pointer; }
+.fq-paywall-plan[data-chosen="true"] { box-shadow: 0 0 0 3px var(--fq-grape); background: color-mix(in srgb, var(--fq-grape) 8%, hsl(var(--card))); }
+.fq-paywall-plan input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--fq-grape); }
+.fq-paywall-plan-text { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.fq-paywall-plan-text strong { font-size: 1.05rem; }
+.fq-paywall-plan-text span { font-size: .88rem; color: hsl(var(--muted-foreground)); }
+.fq-paywall-save { flex: none; padding: 4px 10px; border-radius: 12px; background: #2E7A12; color: #fff; font-size: .8rem; font-weight: 900; }
 .fq-paywall-terms { display: grid; gap: 4px; text-align: center; }
 .fq-paywall-terms strong { font-size: 1.1rem; }
 .fq-paywall-terms span { font-size: .88rem; color: hsl(var(--muted-foreground)); }

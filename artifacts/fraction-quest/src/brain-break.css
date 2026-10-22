@@ -53,3 +53,8 @@
 .fq-reminder-days:disabled button { opacity:.5; cursor:default; }
 .fq-reminder-note { margin:12px 0 0; color:hsl(var(--muted-foreground)); font-size:.84rem; }
 .fq-reminder-note.warn { color:#8E1F1F; font-weight:800; }
+
+.fq-time-limit-choices { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; padding-top:15px; border-top:1px solid var(--fq-edge,hsl(var(--border))); }
+.fq-time-limit-choices button { min-height:44px; padding:0 4px; border:2px solid var(--fq-edge,hsl(var(--border))); border-radius:12px; color:hsl(var(--foreground)); background:hsl(var(--background)); font:inherit; font-size:.88rem; font-weight:900; cursor:pointer; }
+.fq-time-limit-choices button[aria-pressed="true"] { border-color:var(--fq-grape,#7c4dff); color:#fff; background:var(--fq-grape,#7c4dff); }
+.fq-time-limit-today { margin:12px 0 0; font-size:.9rem; font-weight:800; }
