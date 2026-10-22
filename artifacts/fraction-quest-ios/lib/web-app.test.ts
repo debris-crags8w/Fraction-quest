@@ -6,6 +6,9 @@ test('the app accepts only the four subscription requests from the page', () => 
   for (const action of ['status', 'buy', 'restore', 'manage']) {
     assert.deepEqual(parseShellMessage(JSON.stringify({ type: 'subscription', action })), { type: 'subscription', action });
   }
+  assert.deepEqual(parseShellMessage(JSON.stringify({ type: 'subscription', action: 'buy', plan: 'yearly' })), { type: 'subscription', action: 'buy', plan: 'yearly' });
+  // An unknown plan is dropped (the monthly plan is bought), and nothing else rides along.
+  assert.deepEqual(parseShellMessage(JSON.stringify({ type: 'subscription', action: 'buy', plan: 'lifetime', extra: 1 })), { type: 'subscription', action: 'buy' });
   assert.equal(parseShellMessage(JSON.stringify({ type: 'subscription', action: 'refund' })), null);
   assert.equal(parseShellMessage(JSON.stringify({ type: 'subscription' })), null);
   assert.equal(parseShellMessage('not json'), null);

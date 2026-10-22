@@ -80,6 +80,34 @@ test('in the app without a subscription, lesson 2 asks for a grown-up and opens 
   await expect(page.getByTestId('subscribe-ask')).toHaveCount(0);
 });
 
+test('the paywall offers the yearly plan first, and buys the plan the grown-up picks', async ({ page }) => {
+  const plans = [{ plan: 'yearly', price: '$39.99', amount: 39.99, currency: 'USD' }, { plan: 'monthly', price: '$4.99', amount: 4.99, currency: 'USD' }];
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openInApp(page, { state: 'none', price: '$4.99', plans }, ['equal-parts']);
+  await page.getByTestId('button-start-mission-fraction-names').click();
+  await page.getByTestId('button-get-grown-up').click();
+  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+
+  const paywall = page.getByTestId('paywall');
+  await expect(paywall).toContainText('81 lessons');
+  await expect(page.getByTestId('plan-yearly')).toContainText('$39.99 a year, about $3.33 a month');
+  await expect(page.getByTestId('plan-yearly')).toContainText('Save 33%');
+  await expect(page.getByTestId('plan-yearly').getByRole('radio')).toBeChecked();
+  await expect(page.getByTestId('paywall-price')).toHaveText('7 days free, then $39.99 a year');
+  // The whole paywall fits a phone screen.
+  await page.screenshot({ path: test.info().outputPath('paywall.png') });
+  expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(0);
+  await page.getByTestId('button-start-trial').click();
+
+  await page.getByTestId('plan-monthly').click();
+  await expect(page.getByTestId('paywall-price')).toHaveText('7 days free, then $4.99 a month');
+  await page.getByTestId('button-start-trial').click();
+  expect(await asked(page)).toEqual([{ type: 'subscription', action: 'buy', plan: 'yearly' }, { type: 'subscription', action: 'buy', plan: 'monthly' }]);
+});
+
 test('after a subscription ends, the child is told their progress is saved and can open the Storybook', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('fraction-quest-subscribed-once', '1'));
   await openInApp(page, { state: 'none' }, ['equal-parts']);
