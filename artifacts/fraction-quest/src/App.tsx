@@ -54,7 +54,7 @@ import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requi
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { legalUrl } from './lib/legal';
-import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordLessonIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
+import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordLessonIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, today, type FunState } from './lib/fun';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
@@ -66,6 +66,7 @@ import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, ch
 import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
 import { LanternIcon, OilNoticeCard } from './riddle-ui';
 import { SubscribeFlow, WebAppOnlyFlow } from './Subscribe';
+import { readOpenPractice, takeReminderTap, tellPractised } from './lib/reminder';
 import { lessonsLocked, subscribedBefore, useSubscription, webLessonsLocked } from './lib/subscription';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
@@ -1713,6 +1714,16 @@ function Game() {
       setBreakReason('mistakes');
     }
   };
+
+  // The practice reminder (in the app): no reminder today once the child has a right answer today, and a tapped
+  // reminder opens today's practice from the map.
+  const practisedToday = (fun.activity?.[today()]?.answered ?? 0) > 0;
+  useEffect(() => { if (practisedToday && !moduleTestActive) tellPractised(today()); }, [practisedToday, moduleTestActive]);
+  const [reminderTap, setReminderTap] = useState(readOpenPractice);
+  useEffect(() => onAppShellChange(() => setReminderTap(readOpenPractice())), []);
+  useEffect(() => {
+    if (reminderTap && view.type === 'map' && !moduleTestActive && takeReminderTap()) startDailyPractice();
+  });
 
   return (
     <FunContext.Provider value={{ fun, setFun }}>

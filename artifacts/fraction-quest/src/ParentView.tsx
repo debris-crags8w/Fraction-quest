@@ -10,6 +10,7 @@ import { AnswerKey } from './Printables';
 import { LearningVoicePicker } from './LearningText';
 import { FamilyGuide } from './FamilyGuide';
 import { BreakSettings } from './BreakSettings';
+import { ReminderSettings } from './ReminderSettings';
 import type { BreakPreferences } from './lib/fun';
 import type { DisplayPreferences } from './lib/fun';
 import FamilyControls from './FamilyControls';
@@ -125,6 +126,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
 
           <p className="fq-parent-refs">Topic-scope references: <a href="https://webassets.zearn.org/resources/G03_Course_Guide_Z1.pdf" target="_blank" rel="noreferrer">Zearn Grade 3 Course Guide</a> and <a href="https://www.dreambox.com/math/skills/fractions" target="_blank" rel="noreferrer">DreamBox fractions overview</a>.</p>
 
+          <ReminderSettings />
           <BreakSettings
             intervalMinutes={fun.breakPreferences?.intervalMinutes ?? 15}
             quietMode={fun.breakPreferences?.quietMode ?? false}

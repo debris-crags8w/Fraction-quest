@@ -45,3 +45,11 @@
 @media(max-width:500px) { .fq-break-options { grid-template-columns:1fr; } .fq-break-skip { margin-left:0; } }
 @media(max-width:560px) { .fq-break-settings { padding:18px; } .fq-break-settings-row { align-items:flex-start; flex-direction:column; padding:14px 0; gap:9px; } .fq-break-settings-row select { width:100%; max-width:none; } .fq-break-settings-row.quiet { align-items:center; flex-direction:row; } }
 @media(prefers-reduced-motion:reduce) { .fq-break-card { animation:none; } .fq-break-switch span { transition:none; } }
+.fq-reminder-days { margin:0; padding:12px 0 0; border:0; border-top:1px solid var(--fq-edge,hsl(var(--border))); min-width:0; }
+.fq-reminder-days legend { float:left; width:100%; margin-bottom:8px; padding:0; font-size:.95rem; font-weight:800; }
+.fq-reminder-days > div { clear:both; display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; }
+.fq-reminder-days button { min-height:44px; padding:0; border:2px solid var(--fq-edge,hsl(var(--border))); border-radius:12px; color:hsl(var(--muted-foreground)); background:hsl(var(--background)); font:inherit; font-weight:900; cursor:pointer; }
+.fq-reminder-days button[aria-pressed="true"] { border-color:var(--fq-grape,#7c4dff); color:#fff; background:var(--fq-grape,#7c4dff); }
+.fq-reminder-days:disabled button { opacity:.5; cursor:default; }
+.fq-reminder-note { margin:12px 0 0; color:hsl(var(--muted-foreground)); font-size:.84rem; }
+.fq-reminder-note.warn { color:#8E1F1F; font-weight:800; }
