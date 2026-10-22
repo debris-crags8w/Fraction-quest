@@ -694,7 +694,7 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
       ? `${cap(unitWord(a))} cut the same whole into fewer parts, so 1/${a} is bigger than 1/${b}.`
       : `${cap(unitWord(b))} cut the same whole into more parts, so 1/${b} is smaller than 1/${a}.`]; },
   'order-fractions': (s) => { const d = at([4, 6, 8], s); const a = 1 + (Math.floor(s / 3) % (d - 2)); const b = a + 1 + (s % 2 && a + 2 < d ? 1 : 0); const big = s % 2 === 0;
-    return [`Which is ${big ? 'bigger' : 'smaller'}, ${a}/${d} or ${b}/${d}?`, big ? b : a, d, `Same-size parts: ${b} parts is more than ${a}.`]; },
+    return [`Which is ${big ? 'bigger' : 'smaller'}, ${a}/${d} or ${b}/${d}?`, big ? b : a, d, big ? `Same-size parts: ${b} parts is more than ${a}.` : `Same-size parts: ${a} parts is less than ${b}.`]; },
   'compare-unlike-fractions': (s) => { const [a, b, c, d] = at(UNLIKE_PAIRS, s); const big = a * d > c * b ? [a, b] : [c, d];
     return [`Which is bigger, ${a}/${b} or ${c}/${d}?`, big[0], big[1], `Rename both with the same denominator, then compare the numerators.`]; },
   'order-unlike-fractions': (s) => LESSON_BUILDS['compare-unlike-fractions'](s + 3),
@@ -1267,7 +1267,8 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           prompt = i % 3 === 0 ? `Fill the missing numerator: ${small} = ?/${bottom * factor}.` :
             i % 3 === 1 ? `Fill the missing denominator: ${small} = ${top * factor}/?.` : `Fill the missing numerator: ?/${bottom} = ${big}.`;
           answer = String(i % 3 === 0 ? top * factor : i % 3 === 1 ? bottom * factor : top);
-          hint = i % 3 === 2 ? `The denominator was divided by ${factor}. Divide the numerator too.` : `Do the same thing to the numerator and denominator: times ${factor}.`;
+          // The hint asks for the factor instead of naming it: finding it is the task.
+          hint = i % 3 === 2 ? `What number divides ${bottom * factor} to make ${bottom}? Divide the numerator by it too.` : `What times ${bottom} makes ${bottom * factor}? Do the same to the numerator.`;
         }
         break;
       }
@@ -2192,7 +2193,10 @@ function reviewCheckFor(id: string, round: number): BuildCheck {
   if (id.includes('equivalent')) {
     // Both denominators fit the grade (grade 3: 2/3 = 4/6, 3/4 = 6/8, 1/2 = 3/6).
     const [n, d, factor] = (lessonGrade(id) === 3 ? [[2, 3, 2], [3, 4, 2], [1, 2, 3]] : [[2, 3, 2], [3, 4, 3], [4, 5, 2]])[round % 3];
-    const reason = `Split every part into ${factor}. Multiply the numerator and denominator by ${factor}.`;
+    // Grade 3 splits parts (3.NF.3); multiplying top and bottom is the grade 4 rule (4.NF.1).
+    const reason = lessonGrade(id) === 3
+      ? `Split every part into ${factor}. Now ${n * factor} of ${d * factor} parts are colored.`
+      : `Split every part into ${factor}. Multiply the numerator and denominator by ${factor}.`;
     return { id: 'retention', transfer: true, prompt: `A ribbon is ${n}/${d} colored. Show it with a denominator of ${d * factor}.`,
       target: model(n * factor, d * factor), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), wrongReasons(id, round)), explanation: reason };
   }

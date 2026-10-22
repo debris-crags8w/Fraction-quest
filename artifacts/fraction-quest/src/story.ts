@@ -336,7 +336,7 @@ export const STORY_PROBLEMS: Record<string, StoryProblem> = {
     prompt: 'The bridge has 8 equal spaces. Pip’s {snack} is 5 jumps from 0. What fraction is that?',
     result: 'Found it at 5/8! Pip saves his {snack} for later.' },
   'number-line-beyond-one': { setup: 'My house is past the end of the bridge. Keep counting with me!',
-    prompt: 'Pip takes 10 hops of 1/6 each. How far is that?',
+    prompt: 'Pip takes 10 hops. Each hop is 1/6 mile. How far is that?',
     result: 'Pip hopped 10/6, which is 1 and 4/6. He is home!' },
   'ruler-measurement': { setup: 'This reed could patch the bridge. Help me measure it!',
     prompt: 'Pip’s blue reed starts at zero and ends at a tick with no number. Use the ruler. How long is it in inches?',

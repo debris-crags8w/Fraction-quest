@@ -222,7 +222,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   // Equivalent pairs whose denominators both fit the lesson's grade (grade 3: 1/2 = 2/4 = 3/6 = 4/8, 1/3 = 2/6, 3/4 = 6/8).
   'equivalent-models': (r) => {
     const [n, d, k] = r.pick(G3_EQUIVALENTS_WIDE);
-    return { prompt: `Which is the same as ${f(n, d)}?`, right: f(n * k, d * k), wrong: [f(n, d * k), f(n * k, d)], hint: `Split every part into ${k}.`, retry: `Multiply the numerator and denominator by ${k}: ${f(n * k, d * k)}.`, model: bar(n, d) };
+    return { prompt: `Which is the same as ${f(n, d)}?`, right: f(n * k, d * k), wrong: [f(n, d * k), f(n * k, d)], hint: `Split every part into ${k}.`, retry: `Split every part into ${k}. Now ${n * k} of ${d * k} parts are shaded: ${f(n * k, d * k)}.`, model: bar(n, d) };
   },
   'build-equivalents': (r) => {
     const [n, d, k] = r.pick(equivalentsFor('build-equivalents'));

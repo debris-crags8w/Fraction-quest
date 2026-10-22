@@ -550,7 +550,7 @@ const curriculum: MissionSeed[] = [
       practice('0 to 1 has 8 equal spaces. What is 1 jump?', ['1/8', '1/7', '8/1'], 0, line(1, 8), 'Count the spaces from 0 to 1.', '8 jumps make one whole. So 1 jump is 1/8.', line(1, 2)),
       practice('How many spaces do you need for fourths?', ['4 spaces', '3 spaces', '5 spaces'], 0, { kind: 'line', numerator: 0, denominator: 1, wholes: 1, hideLabels: true }, 'The denominator tells how many equal spaces go from 0 to 1.', 'Fourths need 4 spaces from 0 to 1.', line(1, 2)),
       practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps past 1', '5 jumps from 0'], 0, line(0, 8), 'The numerator tells how many jumps from 0.', 'The numerator 3 means 3 jumps.', line(1, 4)),
-      practice('0 to 1 has 6 equal spaces. What is 5 jumps?', ['5/6', '6/5', '1/5'], 0, line(5, 6), 'Count 5 jumps from 0.', '5 jumps of 1/6 is 5/6.', line(2, 4)),
+      practice('0 to 1 has 6 equal spaces. Where do 5 jumps land?', ['5/6', '6/5', '1/5'], 0, line(5, 6), 'Count 5 jumps from 0.', '5 jumps of 1/6 is 5/6.', line(2, 4)),
     ],
   },
   {
@@ -578,9 +578,9 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('Each jump is 1/4. What is 5 jumps from 0?', ['5/4', '4/5', '1/4'], 0, line(5, 4, 2), '4 jumps reach 1. Then 1 more.', '5 jumps is 5/4. That is 1 and 1/4.', line(3, 4)),
-      practice('Each jump is 1/3. Which point is just past 1?', ['2/3', '4/3', '1/3', '3/3'], 1, line(4, 3, 2), '3 jumps of 1/3 reach 1. Take 1 more jump.', '4/3 is 1 and 1/3, just past 1.', line(2, 3)),
+      practice('Each jump is 1/3. Which point is just past 1?', ['4/3', '5/3', '3/3', '2/3'], 0, line(4, 3, 2), '3 jumps of 1/3 reach 1. Take 1 more jump.', '4/3 is 1 and 1/3, just past 1.', line(2, 3)),
       practice('What fraction is the same as 1 and 2/6?', ['8/6', '6/8', '2/6'], 0, line(8, 6, 2), 'One whole is 6/6. Add 2 more.', '6/6 + 2/6 = 8/6.', line(6, 6)),
-      practice('A runner takes 10 steps of 1/6. How far is that?', ['1 and 3/6', '1 and 4/6', '4/6'], 1, line(10, 6, 2), '6 steps make one whole. How many are left?', '10/6 is 6/6 and 4/6. That is 1 and 4/6.', line(6, 6)),
+      practice('A runner takes 10 steps. Each step is 1/6 mile. How far is that?', ['1 and 3/6 miles', '1 and 4/6 miles', '4/6 mile'], 1, line(10, 6, 2), '6 steps make one whole. How many are left?', '10/6 is 6/6 and 4/6. That is 1 and 4/6.', line(6, 6)),
     ],
   },
   {
@@ -641,7 +641,7 @@ const curriculum: MissionSeed[] = [
       practice('Which fraction covers the same amount as 1/2?', ['2/4', '1/4', '3/4'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Cut the half into 2 equal parts. How many fourths is that?', '2/4 covers the same as 1/2.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 2/3?', ['4/6', '3/6', '2/6'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }), 'Cut each third into 2 parts.', 'Each third became 2 sixths, so 2 thirds is 4 sixths: 2/3 = 4/6.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 3/4?', ['6/8', '3/8', '4/8'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'Cut each fourth into 2 parts.', '3/4 and 6/8 are the same amount.', bars({ numerator: 1, denominator: 2 })),
-      practice('Fold a strip in half. Shade one half. Now fold it in half again. How many fourths are shaded?', ['2/4', '1/4', '1/3'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4, untilAnswered: true }), 'Folding again cuts each half into 2 equal parts. How many fourths are shaded?', 'The second fold cuts the shaded half into 2 fourths: 1/2 = 2/4.', bars({ numerator: 1, denominator: 2 })),
+      practice('Fold a strip in half. Shade one half. Now fold it in half again. What fraction is shaded now?', ['2/4', '1/4', '1/3'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4, untilAnswered: true }), 'Folding again cuts each half into 2 equal parts. How many fourths are shaded?', 'The second fold cuts the shaded half into 2 fourths: 1/2 = 2/4.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 1/3?', ['2/6', '1/6', '3/1'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 6 }), 'Cut each third into 2 equal parts. Count the shaded parts now.', 'Each third became 2 sixths, so 1 third is 2 sixths: 1/3 = 2/6.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
