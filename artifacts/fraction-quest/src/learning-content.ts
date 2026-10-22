@@ -770,12 +770,15 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
     return [`${k} cups each hold ${a}/${d} cup of juice. Make the total.`, k * a, d, `${k} groups of ${a}/${d} is ${k * a}/${d}. The parts stay ${unitWord(d)}.`]; },
   'fraction-recipes': (s) => { const [a, b] = at([[2, 3], [3, 4], [1, 2], [3, 8], [2, 5], [5, 6]] as const, s); return [`A recipe uses ${a}/${b} cup of flour. Double it. Make it in ${unitWord(b)}.`, 2 * a, b, `Double ${a}/${b}: ${a}/${b} + ${a}/${b} = ${2 * a}/${b}.`]; },
   'fraction-of-quantity': (s) => { const d = at([3, 4, 5, 6], s); const n = 1 + (s % (d - 1)); const total = d * (2 + (s % 3));
-    return [`Put ${total} shells in ${d} equal groups. Pick ${n} of the groups.`, n, d, `${total} in ${d} groups is ${total / d} each. ${n} groups is ${n}/${d}.`, 'set', total]; },
+    return [`Put ${total} shells in ${d} equal groups. Pick ${n} of the groups.`, n, d, `${total} in ${d} groups is ${total / d} each. ${n} ${n === 1 ? 'group' : 'groups'} is ${n}/${d}.`, 'set', total]; },
   'sets-unit-fractions': (s) => { const d = at([2, 3, 4, 6, 8], s); const total = d * (2 + (Math.floor(s / 5) % 5));
     return [`Put ${total} shells in ${d} equal groups. Pick 1 of the groups.`, 1, d, `${total} in ${d} groups is ${total / d} each. 1 group is 1/${d}.`, 'set', total]; },
   'sets-nonunit': (s) => LESSON_BUILDS['fraction-of-quantity'](s + 1),
   'fraction-of-collection': (s) => LESSON_BUILDS['fraction-of-quantity'](s + 2),
   'multiplication-scaling': (s) => { const d = at([3, 4, 5, 6], s); const n = 1 + (Math.floor(s / 4) % (d - 1)); const total = d * (2 + (Math.floor(s / 12) % 3));
+    // Factors below 1 shrink, a factor of 1 keeps and a factor above 1 grows: every third build is one of the last two.
+    if (s % 3 === 2 && Math.floor(s / 3) % 2 === 0) return [`Build ${d}/${d} of ${total} counters. Is it less, the same or more?`, d, d, `${d}/${d} is 1 whole, so ${d}/${d} of ${total} is ${total}: the same.`, 'set', total];
+    if (s % 3 === 2) return [`Build ${d + n}/${d} of 1 bar. Is it more or less than 1 bar?`, d + n, d, `${d + n}/${d} is more than ${d}/${d}, so it is more than 1 bar: a factor above 1 makes it bigger.`];
     return [`Build ${n}/${d} of ${total} counters. Make ${d} equal groups.`, n, d, `${n}/${d} of ${total} is less than ${total}: part of a group is less.`, 'set', total]; },
   'multiply-fractions': (s) => { const [a, b, c, d] = at([[1, 2, 3, 4], [2, 3, 1, 2], [1, 3, 3, 4], [2, 3, 3, 4], [1, 2, 1, 3], [3, 4, 1, 3], [1, 2, 1, 4], [2, 3, 2, 3], [1, 4, 3, 4], [1, 2, 2, 3], [3, 4, 3, 4], [1, 3, 1, 2]] as const, s);
     // A part of a part, before the area grid (next lesson): split each part again.
@@ -796,7 +799,12 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
   'party-portions': (s) => { const [n, a, b] = at([[3, 3, 4], [4, 2, 3], [5, 3, 8], [2, 5, 6], [2, 3, 4], [3, 2, 5], [2, 5, 8], [3, 4, 5], [4, 3, 8], [2, 4, 5], [3, 5, 6], [2, 7, 8]] as const, s);
     return [`Each guest eats ${a}/${b} pound. ${n} guests come. Build the total.`, n * a, b, `${n} groups of ${a} ${unitWord(b)} is ${n * a} ${unitWord(b)}: ${n * a}/${b}.`]; },
   'two-step-conversions': (s) => { const [w, part, word] = at([[1, 6, '1/2'], [1, 3, '1/4'], [2, 4, '1/3'], [1, 9, '3/4'], [2, 6, '1/2'], [1, 8, '2/3'], [2, 3, '1/4'], [1, 4, '1/3'], [2, 9, '3/4'], [1, 10, '5/6'], [2, 8, '2/3'], [1, 2, '1/6']] as const, s);
-    return [`A rope is ${w} ${word} feet long. Show it in inches, 12 to a foot.`, 12 * w + part, 12, `${w} ${w === 1 ? 'foot is' : 'feet are'} ${12 * w} inches. ${word} foot is ${part} more: ${12 * w + part} inches.`]; },
+    const inches = `${w} ${w === 1 ? 'foot is' : 'feet are'} ${12 * w} inches. ${word} foot is ${part} more: ${12 * w + part} inches.`;
+    // Every other build has a second step: change to inches, then take some away.
+    const cut = s % 2 ? 1 + (s % part) : 0;
+    return cut
+      ? [`A rope is ${w} ${word} feet long. Pip cuts off ${cut} ${cut === 1 ? 'inch' : 'inches'}. Show what is left in inches, 12 to a foot.`, 12 * w + part - cut, 12, `${inches} Take away ${cut}: ${12 * w + part - cut} inches.`]
+      : [`A rope is ${w} ${word} feet long. Show it in inches, 12 to a foot.`, 12 * w + part, 12, inches]; },
   'line-plot-totals': (s) => { const values = at([[1, 1, 2], [1, 2, 2], [1, 1, 4], [2, 2, 3], [1, 3, 4], [2, 3, 4], [2, 3, 5], [2, 4, 5], [3, 4, 5], [3, 4, 6], [3, 5, 6], [4, 5, 6]] as const, s);
     const total = values.reduce((sum, v) => sum + v, 0);
     return [`Cups hold ${values.map((v) => `${v}/8`).join(', ')} liter. Show the total on a line.`, total, 8, `${values.join(' + ')} = ${total} eighths: ${total}/8 liters.`, 'line']; },
@@ -814,7 +822,7 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
     return [`${a} pizzas are shared fairly by ${b} tables. Build how much one table gets.`, a, b, `${a} ÷ ${b} = ${a}/${b}. Each table gets ${a}/${b} of a pizza.`]; },
   'fraction-as-division': (s) => { const [a, b] = at([[5, 4], [7, 3], [3, 8], [9, 4], [2, 5], [7, 4], [5, 6], [5, 3], [4, 3], [3, 5], [8, 3], [5, 2]] as const, s);
     return [`Make ${a} ÷ ${b} as a fraction.`, a, b, `${a} ÷ ${b} = ${a}/${b}. The fraction bar means divide.`]; },
-  'fraction-of-length': (s) => { const d = at([4, 8, 3, 6], s); const n = 1 + (s % (d - 1)); return [`Cut 0 to 1 into ${d} equal spaces. Make ${n} ${n === 1 ? 'jump' : 'jumps'}.`, n, d, `Each space is 1/${d}. ${n} ${n === 1 ? 'jump is' : 'jumps is'} ${n}/${d}.`, 'line']; },
+  'fraction-of-length': (s) => { const d = at([4, 8, 3, 6], s); const n = 1 + (s % (d - 1)); return [`Cut 0 to 1 into ${d} equal spaces. Make ${n} ${n === 1 ? 'jump' : 'jumps'}.`, n, d, `Each space is 1/${d}. ${n} ${n === 1 ? 'jump is' : 'jumps make'} ${n}/${d}.`, 'line']; },
   // Grade 3 measures to the nearest half or fourth inch (3.MD.4).
   'ruler-measurement': (s) => { const k = s % 14; const d = k < 11 ? 4 : 2; const n = k < 11 ? k + 1 : k - 10; return [`Mark ${mixedName(n, d)} ${n > d ? 'inches' : 'inch'} on the ruler.`, n, d, `Each small ruler space is 1/${d} inch. ${n} ${n === 1 ? 'space is' : 'spaces are'} ${mixedName(n, d)} ${n > d ? 'inches' : 'inch'}.`, 'line']; },
   // Grade 3 line plots use halves and fourths of an inch, up to 3 inches (3.MD.4): 11 fourths, then 3 halves.
@@ -830,7 +838,7 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
   'fractional-unit-conversions': (s) => { const [frac, unit, val, small, per] = at([['1/4', 'hour', 15, 'minutes', 60], ['1/2', 'hour', 30, 'minutes', 60], ['3/4', 'hour', 45, 'minutes', 60], ['1/3', 'hour', 20, 'minutes', 60],
       ['2/3', 'hour', 40, 'minutes', 60], ['1/6', 'hour', 10, 'minutes', 60], ['1/8', 'pound', 2, 'ounces', 16], ['3/8', 'pound', 6, 'ounces', 16], ['1/10', 'meter', 10, 'centimeters', 100], ['3/10', 'meter', 30, 'centimeters', 100], ['1/12', 'foot', 1, 'inches', 12], ['5/12', 'foot', 5, 'inches', 12],
       ['1/2', 'foot', 6, 'inches', 12], ['3/4', 'foot', 9, 'inches', 12], ['1/4', 'dollar', 25, 'cents', 100], ['3/4', 'dollar', 75, 'cents', 100], ['1/2', 'day', 12, 'hours', 24], ['1/4', 'day', 6, 'hours', 24], ['1/2', 'liter', 500, 'milliliters', 1000], ['1/4', 'kilogram', 250, 'grams', 1000]] as const, s);
-    const [n, d] = frac.split('/').map(Number); return [`Show why ${frac} ${unit} is ${val} ${small}.`, n, d, `A ${unit} is ${per} ${small}. ${frac} of ${per} is ${val}.`]; },
+    const [n, d] = frac.split('/').map(Number); return [`Show why ${frac} ${unit} is ${val} ${small}.`, n, d, `${/^(a|e|i|o|u|hour)/i.test(unit) ? 'An' : 'A'} ${unit} is ${per} ${small}. ${frac} of ${per} is ${val}.`]; },
   'fraction-probability': (s) => { const total = at([4, 5, 6, 8, 10], s); const g = 1 + (s % (total - 1)); return [`A bag has ${total} marbles. ${g} are green. Make the chance of green.`, g, total, `${g} green out of ${total} marbles is ${g}/${total}.`]; },
   'fractions-to-percent': (s) => { const p = at([25, 50, 75, 20, 40, 60, 10, 30], s); return [`Make ${p}% as a fraction.`, p, 100, `${p}% means ${p} out of 100: ${p}/100.`]; },
   'percent-to-fraction': (s) => LESSON_BUILDS['fractions-to-percent'](s + 3),
@@ -2057,7 +2065,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         }
         const [d, w] = pick([[4, 3], [3, 2], [2, 4], [6, 1], [5, 2], [4, 2], [3, 4], [8, 1], [2, 3], [6, 2], [4, 1], [3, 3]] as const);
         prompt = i % 4 === 1
-          ? `How many 1/${d}-${unit} ${holders} do ${w} ${w === 1 ? unit : units} of ${thing} fill?`
+          ? `How many 1/${d}-${unit} ${holders} ${w === 1 ? 'does' : 'do'} ${w} ${w === 1 ? unit : units} of ${thing} fill?`
           : `${w} ÷ 1/${d} = ?`;
         answer = String(w * d); visual = { kind: 'bar', n: 0, d: 1, wholes: w };
         why = `Check: ${w * d} × 1/${d} = ${w}.`;

@@ -290,6 +290,8 @@ const RULES: Rule[] = [
       return { value: m[3] === 'adds' ? start + N(m[4]) : start - N(m[4]) }; } },
   { name: 'feet in inches (build)', re: /^A (?:ribbon|rope) is (\d+ \d+\/\d+) feet long\. Show it in inches(?:, 12 to a foot|: each bar is 1 foot of 12 inches)\.$/,
     solve: (m) => ({ value: valueOf(m[1]) }) },
+  { name: 'feet in inches, then cut (build)', re: /^A rope is (\d+ \d+\/\d+) feet long\. Pip cuts off (\d+) inch(?:es)?\. Show what is left in inches, 12 to a foot\.$/,
+    solve: (m) => ({ value: valueOf(m[1]) - N(m[2]) / 12, denominator: 12 }) },
   { name: 'line plot level', re: /^(Three|Six) [\w ]+ hold (.+) liter\. (?:Plot them, then share|Share) the total equally\. How many liters go in each\?$/,
     solve: (m) => { const v = m[2].split(', ').map(frac); const n = m[1] === 'Six' ? 6 : 3;
       return v.length === n ? { value: v.reduce((a, b) => a + b, 0) / n } : `${m[1].toLowerCase()} amounts named but ${v.length} listed`; } },
@@ -354,7 +356,7 @@ const RULES: Rule[] = [
     solve: (m) => { const low = Math.floor(N(m[1]) / N(m[2])); return N(m[1]) % N(m[2]) === 0 ? `${m[1]}/${m[2]} is a whole number` : { text: `${low} and ${low + 1}` }; } },
   { name: 'sharing story', re: new RegExp(String.raw`^(${TERM}) (?:pounds?|cups?|liters?) of [\w ]+ (?:is|are) shared by (\d+) friends\. (?:What fraction of an? \w+ does each get|How much does each get)\?$`),
     solve: (m) => ({ value: valueOf(m[1]) / N(m[2]) }) },
-  { name: 'fitting story', re: new RegExp(String.raw`^How many (\d+\/\d+)-\w+ \w+ (?:can be filled from (${TERM}) \w+ of [\w ]+|do (${TERM}) \w+ of \w+ fill)\?$`),
+  { name: 'fitting story', re: new RegExp(String.raw`^How many (\d+\/\d+)-\w+ \w+ (?:can be filled from (${TERM}) \w+ of [\w ]+|(?:do|does) (${TERM}) \w+ of \w+ fill)\?$`),
     solve: (m) => ({ value: valueOf(m[2] ?? m[3]) / frac(m[1]) }) },
   { name: 'sharing or fitting', re: /^(.+[.?]) Is this sharing or fitting\?$/,
     // Sharing: an amount split among friends; fitting: how many pieces of a size the amount holds.
@@ -393,6 +395,8 @@ const RULES: Rule[] = [
 
     // --- building (the target is the answer)
   { name: 'build a fraction', re: /^(?:Build|Make) (\d+\/\d+)(?: two ways)?\.(?: Show the same amount with a bar and a number line\.)?$/, solve: (m) => ({ value: frac(m[1]) }) },
+  { name: 'scale by 1 (build)', re: /^Build (\d+)\/\1 of (\d+) counters\. Is it less, the same or more\?$/, solve: () => ({ value: 1 }) },
+  { name: 'scale above 1 (build)', re: /^Build (\d+\/\d+) of 1 bar\. Is it more or less than 1 bar\?$/, solve: (m) => ({ value: frac(m[1]) }) },
   { name: 'build part of a set', re: /^(?:Build (\d+)\/(\d+) of (\d+) counters\. Make \2 equal groups\.|Put (\d+) \w+ in (\d+) equal groups\. Pick (?:1\/\5|(\d+) (?:of the )?groups)\.)$/,
     solve: (m, item) => { if (m[1]) return { value: N(m[1]) / N(m[2]) }; const groups = N(m[5]); const picked = m[6] ? N(m[6]) : 1;
       if (item.target && item.target.total !== N(m[4])) return `the set has ${item.target.total} objects, not ${m[4]}`; return { value: picked / groups }; } },
