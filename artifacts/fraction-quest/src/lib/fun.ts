@@ -12,6 +12,11 @@ export const DAILY_GOAL = 10;
 
 export type BreakIntervalMinutes = 0 | 10 | 15 | 20;
 export type BreakPreferences = { intervalMinutes: BreakIntervalMinutes; quietMode: boolean };
+/** A grown-up's daily limit on active minutes (0 is off), and minutes a grown-up added for one day. */
+export type TimeLimitMinutes = 0 | 15 | 20 | 30 | 45;
+export const TIME_LIMIT_CHOICES: readonly TimeLimitMinutes[] = [0, 15, 20, 30, 45];
+export type TimeLimit = { minutes: TimeLimitMinutes; extra?: { day: string; minutes: number } };
+export const ADD_MINUTES = 10;
 export type DisplayPreferences = { textSize: 'standard' | 'large'; highContrast: boolean; reducedMotion: boolean;
   /** Holiday looks like Halloween (on unless a grown-up turns them off). */ seasonalThemes?: boolean;
   /** Story comics with Numi's friends around lessons (on unless a grown-up turns them off). */ storyMode?: boolean };
@@ -42,6 +47,8 @@ export type FunState = {
   preferredLearningVoiceId?: string;
   /** Optional break reminders; kept with preferences, separate from all lesson evidence. */
   breakPreferences?: BreakPreferences;
+  /** A grown-up's daily time limit, synced with this learner profile. */
+  timeLimit?: TimeLimit;
   /** Adult-configured display and motion preferences, synced with this learner profile. */
   displayPreferences?: DisplayPreferences;
   /** Lessons finished during each seasonal theme (key like "halloween-2026"), for costume unlocks only. */
@@ -78,6 +85,15 @@ function cleanBreakPreferences(value: unknown): BreakPreferences {
     ? preferences.intervalMinutes as BreakIntervalMinutes
     : DEFAULT_BREAK_PREFERENCES.intervalMinutes;
   return { intervalMinutes, quietMode: typeof preferences.quietMode === 'boolean' ? preferences.quietMode : DEFAULT_BREAK_PREFERENCES.quietMode };
+}
+function cleanTimeLimit(value: unknown, now = new Date()): TimeLimit {
+  if (!value || typeof value !== 'object') return { minutes: 0 };
+  const { minutes, extra } = value as Partial<TimeLimit>;
+  const limit: TimeLimit = { minutes: TIME_LIMIT_CHOICES.includes(minutes as TimeLimitMinutes) ? minutes as TimeLimitMinutes : 0 };
+  if (extra && typeof extra === 'object' && extra.day === today(now) && typeof extra.minutes === 'number' && Number.isFinite(extra.minutes)) {
+    limit.extra = { day: extra.day, minutes: Math.max(0, Math.min(240, Math.floor(extra.minutes))) };
+  }
+  return limit;
 }
 function cleanDisplayPreferences(value: unknown): DisplayPreferences {
   if (!value || typeof value !== 'object') return { ...DEFAULT_DISPLAY_PREFERENCES };
@@ -266,6 +282,7 @@ export function loadFun(): FunState {
       preferredLearningVoiceId: cleanLearningVoicePreference(parsed.preferredLearningVoiceId),
       breakPreferences: cleanBreakPreferences(parsed.breakPreferences),
       displayPreferences: cleanDisplayPreferences(parsed.displayPreferences),
+      timeLimit: cleanTimeLimit(parsed.timeLimit),
       seasonLessons: cleanSeasonLessons(parsed.seasonLessons),
       story: cleanStory(parsed.story),
       introsSeen: cleanIntros(parsed.introsSeen),
@@ -373,6 +390,27 @@ export function setSound(state: FunState, sound: boolean): FunState {
 /** Save adult-configured reminders without touching lesson, reward, or game progress. */
 export function setBreakPreferences(state: FunState, preferences: BreakPreferences): FunState {
   return saveFun({ ...state, breakPreferences: cleanBreakPreferences(preferences) });
+}
+
+/** A grown-up sets the daily limit (today's added minutes stay). */
+export function setTimeLimit(state: FunState, minutes: TimeLimitMinutes): FunState {
+  return saveFun({ ...state, timeLimit: cleanTimeLimit({ ...state.timeLimit, minutes }) });
+}
+
+/** A grown-up gives ten more minutes, for today only. */
+export function addMinutesToday(state: FunState, minutes = ADD_MINUTES): FunState {
+  const current = cleanTimeLimit(state.timeLimit);
+  return saveFun({ ...state, timeLimit: { ...current, extra: { day: today(), minutes: (current.extra?.minutes ?? 0) + minutes } } });
+}
+
+/** Today's active minutes against the limit (with any added minutes), or null when there is no limit. */
+export function timeToday(state: FunState, now = new Date()): { used: number; allowed: number; up: boolean } | null {
+  const limit = cleanTimeLimit(state.timeLimit, now);
+  if (!limit.minutes) return null;
+  const day = today(now);
+  const used = cleanActivity(state.activity, now)[day]?.minutes ?? 0;
+  const allowed = limit.minutes + (limit.extra?.minutes ?? 0);
+  return { used, allowed, up: used >= allowed };
 }
 
 export function setDisplayPreferences(state: FunState, preferences: DisplayPreferences): FunState {
@@ -484,6 +522,7 @@ export function replaceFun(saved: Partial<FunState>): FunState {
     preferredLearningVoiceId: cleanLearningVoicePreference(saved.preferredLearningVoiceId),
     breakPreferences: cleanBreakPreferences(saved.breakPreferences),
     displayPreferences: cleanDisplayPreferences(saved.displayPreferences),
+    timeLimit: cleanTimeLimit(saved.timeLimit),
     seasonLessons: cleanSeasonLessons(saved.seasonLessons),
     story: cleanStory(saved.story),
     introsSeen: cleanIntros(saved.introsSeen),

@@ -21,6 +21,7 @@ import { getCodeLevels, goal, sprintTargets } from '../src/code-quest';
 import { dailyBuildSpeech } from '../src/daily-practice';
 import { HELPER_PICK_SPEECH, introSpeech } from '../src/intro-copy';
 import { guideForUnit } from '../src/teaching-guide-data';
+import { TIME_UP_SPEECH } from '../src/time-up-copy';
 
 export const VOICE_SENTENCE_THEMES: readonly PropTheme[] = ['everyday', 'halloween', 'christmas'];
 export const VOICE_SENTENCE_SOURCES = ['lesson', 'worksheet', 'practice', 'games', 'story', 'shared'] as const;
@@ -67,7 +68,7 @@ const EXTRA_BY_SOURCE: Record<VoiceSentenceSource, string[]> = {
   shared: [
     'Hi there! I can read your fraction lessons to you.',
     'Let\'s make it simpler.', 'Not yet.', 'Hint.', 'Choose yes or no.',
-    ...HELPER_PICK_SPEECH,
+    ...HELPER_PICK_SPEECH, TIME_UP_SPEECH,
   ],
 };
 

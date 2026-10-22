@@ -9,9 +9,10 @@ import './parent-glance.css';
 import { AnswerKey } from './Printables';
 import { LearningVoicePicker } from './LearningText';
 import { FamilyGuide } from './FamilyGuide';
-import { BreakSettings } from './BreakSettings';
+import { BreakSettings, TimeLimitSettings } from './BreakSettings';
 import type { BreakPreferences } from './lib/fun';
 import type { DisplayPreferences } from './lib/fun';
+import { timeToday, today, type TimeLimitMinutes } from './lib/fun';
 import FamilyControls from './FamilyControls';
 import { printPage } from './lib/print';
 import { DeveloperSettings } from './DeveloperTesting';
@@ -53,13 +54,14 @@ function DisplaySettings({ preferences, onChange }: { preferences: DisplayPrefer
   );
 }
 
-export default function ParentView({ progress, fun, unitTitles, childName, onBack, onDeveloperTest, onOpenLessonTester, onBreakPreferencesChange, onDisplayPreferencesChange }: {
+export default function ParentView({ progress, fun, unitTitles, childName, onBack, onDeveloperTest, onOpenLessonTester, onBreakPreferencesChange, onTimeLimitChange, onDisplayPreferencesChange }: {
   progress: Progress; fun: FunState; unitTitles: string[]; childName: string | null; onBack: () => void;
   /** Open a lesson as an isolated developer test (development builds only). */
   onDeveloperTest?: (missionId: string) => void;
   /** Development server only: opens the Lesson tester. */
   onOpenLessonTester?: () => void;
   onBreakPreferencesChange: (preferences: BreakPreferences) => void;
+  onTimeLimitChange: (minutes: TimeLimitMinutes) => void;
   onDisplayPreferencesChange: (preferences: DisplayPreferences) => void;
 }) {
   const [unlocked, setUnlocked] = useState(false);
@@ -129,6 +131,12 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
             intervalMinutes={fun.breakPreferences?.intervalMinutes ?? 15}
             quietMode={fun.breakPreferences?.quietMode ?? false}
             onChange={onBreakPreferencesChange}
+          />
+          <TimeLimitSettings
+            minutes={fun.timeLimit?.minutes ?? 0}
+            used={fun.activity?.[today()]?.minutes ?? 0}
+            allowed={timeToday(fun)?.allowed ?? null}
+            onChange={onTimeLimitChange}
           />
           <DisplaySettings
             preferences={fun.displayPreferences ?? { textSize: 'standard', highContrast: false, reducedMotion: false }}

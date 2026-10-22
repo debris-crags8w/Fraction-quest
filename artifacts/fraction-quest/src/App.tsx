@@ -54,7 +54,8 @@ import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requi
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { legalUrl } from './lib/legal';
-import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordLessonIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, type FunState } from './lib/fun';
+import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordLessonIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, setTimeLimit, addMinutesToday, timeToday, today, type FunState } from './lib/fun';
+import { TimeUp } from './time-up';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
@@ -1377,10 +1378,17 @@ function Game() {
   const [breakReason, setBreakReason] = useState<'interval' | 'mistakes' | 'lesson-part' | null>(null);
   const activeStudyMilliseconds = useRef(0);
   const consecutiveWrongAnswers = useRef(0);
+  /** Right answers today when the daily time ran out, so the question in progress can be finished first. */
+  const answeredAtTimeUp = useRef<number | null>(null);
   const breakIntervalMinutes = fun.breakPreferences?.intervalMinutes ?? 15;
   const quietBreaks = fun.breakPreferences?.quietMode ?? false;
   const activeStudyView = ['play', 'review', 'daily', 'lab', 'redo', 'extra', 'retention'].includes(view.type);
   useAccountSync(progress, fun, !moduleTestActive);
+  const timeUpNow = !!timeToday(fun)?.up;
+  useEffect(() => {
+    answeredAtTimeUp.current = timeUpNow ? (fun.activity?.[today()]?.answered ?? 0) : null;
+    // Only when the time runs out (or is added back), not on each answer.
+  }, [timeUpNow]);
   const openResetDialog = () => {
     if (moduleTestActive) { returnToMap(); return; }
     setResetAllConfirm(false);
@@ -1714,6 +1722,23 @@ function Game() {
     }
   };
 
+  // The grown-up's daily time limit: once it is used up, a question in progress is finished (the next right answer),
+  // then Hoot says goodbye for today. The Storybook and the grown-ups' page stay open.
+  const timeUsedUp = !moduleTestActive && !!timeToday(fun)?.up;
+  const answeredToday = fun.activity?.[today()]?.answered ?? 0;
+  const timeStillOpen = view.type === 'storybook' || view.type === 'parent'
+    || (view.type === 'story' && view.replay === 'storybook') || (view.type === 'suspects' && view.from === 'storybook');
+  const inLesson = activeStudyView || view.type === 'teach' || view.type === 'hands-on' || view.type === 'fraction-sort';
+  const showTimeUp = timeUsedUp && !timeStillOpen && (!inLesson || answeredToday > (answeredAtTimeUp.current ?? answeredToday));
+  if (showTimeUp) {
+    return (
+      <FunContext.Provider value={{ fun, setFun }}>
+        <TimeUp answeredToday={answeredToday} onStorybook={() => setView({ type: 'storybook', tab: 'story' })}
+          onAddMinutes={() => { setFun((current) => addMinutesToday(current)); returnToMap(); }} />
+      </FunContext.Provider>
+    );
+  }
+
   return (
     <FunContext.Provider value={{ fun, setFun }}>
       <Suspense fallback={<main className="fq-app fq-lazy-loading" role="status" aria-live="polite">Loading…</main>}>
@@ -1795,7 +1820,7 @@ function Game() {
           onLab={(missionId) => startDeveloperLessonTest(missionId, 'lab', true)}
           onChallenge={startDeveloperChallengeTest} />
       )}
-      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onDeveloperTest={startDeveloperLessonTest} onOpenLessonTester={import.meta.env.DEV ? openLessonTester : undefined} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
+      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onDeveloperTest={startDeveloperLessonTest} onOpenLessonTester={import.meta.env.DEV ? openLessonTester : undefined} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onTimeLimitChange={(minutes) => setFun((current) => setTimeLimit(current, minutes))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);
         const baseIds = base.questions.map((q) => q.id);
