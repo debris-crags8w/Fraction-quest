@@ -449,7 +449,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
         hint: 'Write both in hundredths. Compare the counts, not how long the numbers look.', retry: `${show(a)} is ${a} hundredths and ${show(b)} is ${b} hundredths.`, model: grids(a, b) };
     }
     if (kind === 2) {
-      const [who, other] = r.pick([['Mia', 'Leo'], ['Sam', 'Ana'], ['Kim', 'Ben']] as const); const [a, b] = r.pick([[50, 40], [60, 45], [30, 25], [70, 7], [8, 80], [35, 5]] as const);
+      const [who, other] = r.pick([['Mia', 'Leo'], ['Sam', 'Ana'], ['Kim', 'Ben']] as const); const [a, b] = r.pick([[50, 40], [60, 45], [30, 25], [70, 7], [35, 5]] as const);
       const same = r.chance(); const circles: ModelSpec = { kind: 'area', cut: 'circle-tenths', shaded: [], ...(same ? {} : { scale: 0.6 }), more: [{ cut: 'circle-tenths', shaded: [] }] };
       return same
         ? { prompt: `${who} eats ${show(a)} of a pizza. ${other} eats ${show(b)} of the same size pizza. Who eats more?`, right: a > b ? who : other, wrong: [a > b ? other : who, "You can't tell"], extra: 'They eat the same',
@@ -497,15 +497,18 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       hint: 'Is the fraction less than 1, equal to 1, or more than 1?', retry: `${t}/${b} is ${k === 'same' ? 'equal to' : `${k} than`} 1, so the answer is ${words[k].toLowerCase()}.`, model: bar(t, b) };
   },
   'share-or-fit': (r) => {
-    const [unit, units, thing, holders] = r.pick([['pound', 'pounds', 'clay', 'bags'], ['cup', 'cups', 'rice', 'scoops'], ['liter', 'liters', 'juice', 'bottles']] as const);
+    const [unit, units, thing, holders, holder] = r.pick([['pound', 'pounds', 'clay', 'bags', 'bag'], ['cup', 'cups', 'rice', 'scoops', 'scoop'], ['liter', 'liters', 'juice', 'bottles', 'bottle']] as const);
     const [b, n] = r.pick([[2, 3], [3, 2], [4, 2], [2, 4], [3, 3], [2, 5], [4, 3], [5, 2]] as const);
     const [d, w] = r.pick([[4, 3], [3, 2], [2, 3], [5, 2], [4, 2], [3, 4], [6, 2], [8, 3]] as const);
     const share = `1/${b} ${unit} of ${thing} is shared by ${n} friends.`; const fit = `How many 1/${d}-${unit} ${holders} can be filled from ${w} ${units} of ${thing}?`;
+    // The same frame for both kinds, so the words "shared" and "filled" don't give the answer.
+    const shareStory = `Pip has 1/${b} ${unit} of ${thing} for ${n} friends. Each friend gets the same amount.`;
+    const fitStory = `Pip has ${w} ${units} of ${thing}. Each ${holder} holds 1/${d} ${unit}.`;
     const kinds = ['Fitting', 'Adding', 'Taking away'];
     switch (r.int(0, 3)) {
-      case 0: return { prompt: `${share} Is this sharing or fitting?`, right: 'Sharing', wrong: [kinds[0], kinds[1]], extra: kinds[2], hint: 'Is an amount split into equal shares, or do you count pieces that fit?',
+      case 0: return { prompt: `${shareStory} Is this sharing or fitting?`, right: 'Sharing', wrong: [kinds[0], kinds[1]], extra: kinds[2], hint: 'Is an amount split into equal shares, or do you count pieces that fit?',
         retry: `The ${thing} is split into ${n} equal shares, so this is sharing.`, model: bar(1, b) };
-      case 1: return { prompt: `${fit} Is this sharing or fitting?`, right: 'Fitting', wrong: ['Sharing', kinds[1]], extra: kinds[2], hint: 'Is an amount split into equal shares, or do you count pieces that fit?',
+      case 1: return { prompt: `${fitStory} Is this sharing or fitting?`, right: 'Fitting', wrong: ['Sharing', kinds[1]], extra: kinds[2], hint: 'Is an amount split into equal shares, or do you count pieces that fit?',
         retry: `You count how many 1/${d}-${unit} ${holders} fit, so this is fitting.`, model: wholes(w) };
       // Real mistakes: multiply, flip, add, or forget to split.
       case 2: return fromSlips(`${share} How much does each get?`, `1/${b * n} ${unit}`, [`${n}/${b} ${n > b ? units : unit}`, `${b * n} ${units}`, `1/${b + n} ${unit}`, `1/${b} ${unit}`],

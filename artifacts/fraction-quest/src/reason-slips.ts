@@ -21,7 +21,7 @@ export const REASON_SLIPS: Record<string, [string, string, string]> = {
   'ruler-measurement': ['Start at the ruler’s end', 'Count the tick marks', 'Each small space is one inch'],
   'build-line-plots': ['One X for each size only', 'Each X gets its own spot', 'Make one X for the longest'],
   // Unit 5 · Compare and order
-  'compare-same-denominator': ['Fewer parts is bigger', 'Same denominator means same size', 'Compare the denominators'],
+  'compare-same-denominator': ['Fewer parts is bigger', 'Bigger denominator: bigger fraction', 'Compare the denominators'],
   'order-fractions': ['Biggest denominator goes last', 'Order by denominators only', 'Smallest numerator wins'],
   // Unit 6 · Equivalent fractions
   'equivalent-models': ['A new name changes the size', 'Change only the denominator', 'Add the same number to both'],
@@ -60,10 +60,10 @@ export const REASON_SLIPS: Record<string, [string, string, string]> = {
   'read-line-plots': ['Add the longest and shortest', 'Count the Xs at one spot', 'Use the tallest stack'],
   'measurement-word-problems': ['Add the denominators too', 'The whole unit is the answer', 'Add the numbers you see'],
   // Unit 10 · Unlike fractions
-  'add-related-fractions': ['Add the denominators too', 'Add the numerators as they are', 'Rename only one fraction'],
-  'add-unlike-fractions': ['Add across, top and bottom', 'Add the numerators as they are', 'Rename only one fraction'],
-  'subtract-unlike-fractions': ['Subtract across, top and bottom', 'Take the numerators as they are', 'Rename only one fraction'],
-  'mixed-unlike-operations': ['Add the denominators too', 'Keep both denominators', 'Rename only one fraction'],
+  'add-related-fractions': ['Add the denominators too', 'Add the numerators as they are', 'Rename only the numerator'],
+  'add-unlike-fractions': ['Add across, top and bottom', 'Add the numerators as they are', 'Rename only the numerator'],
+  'subtract-unlike-fractions': ['Subtract across, top and bottom', 'Take the numerators as they are', 'Rename only the numerator'],
+  'mixed-unlike-operations': ['Add the denominators too', 'Keep both denominators', 'Rename only the numerator'],
   'estimate-fraction-operations': ['Big numbers mean a big sum', 'Add the denominators to check', 'Estimates must be exact'],
   // Unit 11 · Multiply and divide
   'sets-unit-fractions': ['Make groups equal to the numerator', 'Pick the denominator of objects', 'Groups can be different sizes'],

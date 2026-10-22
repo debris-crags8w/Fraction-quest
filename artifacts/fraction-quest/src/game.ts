@@ -715,7 +715,7 @@ const curriculum: MissionSeed[] = [
       practice('What is 5/3 as wholes and a fraction?', ['1 and 2/3', '2 and 1/3', '5 and 3', '2 and 2/3'], 0, line(5, 3, 2), '3/3 is one whole. How many are left?', '5/3 is 3/3 and 2/3. That is 1 and 2/3.', line(3, 3, 2)),
       practice('What is 2 and 1/4 as fourths?', ['9/4', '6/4', '2/4'], 0, line(9, 4, 3), '2 wholes is 8/4. Add 1 more.', '8/4 + 1/4 = 9/4.', line(4, 4, 2)),
       practice('What is 1 and 2/4 as fourths?', ['6/4', '3/4', '4/6'], 0, line(6, 4, 2), 'One whole is 4/4. Add 2 more.', '4 + 2 = 6. So 6/4.', line(4, 4, 2)),
-      practice('Which is more than one whole?', ['9/8', '7/8', '1/8'], 0, line(9, 8, 2), '8/8 is exactly one whole.', '9/8 is 1 part more than a whole.', line(8, 8, 2)),
+      practice('Which is more than one whole?', ['9/8', '7/8', '1/8'], 0, line(0, 8, 2), '8/8 is exactly one whole.', '9/8 is 1 part more than a whole.', line(8, 8, 2)),
     ],
   },
   {
@@ -964,13 +964,13 @@ const extensionTopics: ExtensionTopic[] = [
       model: bars({ numerator: 3, denominator: 3 }, { numerator: 3, denominator: 3 }) },
     mode: 'share-or-fit', n: 1, d: 6, context: 'clay and cups', gradeBand: 5, standards: ['5.NF.7c', '5.NF.7a', '5.NF.7b'],
     questions: [
-      practice('1/2 pound of clay is shared by 3 friends. Is this sharing or fitting?', SHARE_OR_FIT, 0, bars({ numerator: 1, denominator: 2 }),
+      practice('Pip has 1/2 pound of clay for 3 friends. Each friend gets the same amount. Is this sharing or fitting?', SHARE_OR_FIT, 0, bars({ numerator: 1, denominator: 2 }),
         'Is an amount split among friends, or do you count how many pieces fit?',
         'The clay is split into 3 equal shares, so this is sharing.', bars({ numerator: 1, denominator: 2 })),
       practice('1/2 pound of clay is shared by 3 friends. How much does each get?', ['3/2 pounds', '1/6 pound', '6 pounds', '1/5 pound'], 1, bars({ numerator: 1, denominator: 2 }),
         'Cut the half pound into 3 equal shares. How big is one share of the whole pound?',
         '1/2 ÷ 3 = 1/6 pound. Check: 3 × 1/6 = 1/2.', bars({ numerator: 1, denominator: 6 })),
-      practice('How many 1/4-pound bags can be filled from 3 pounds of clay? Is this sharing or fitting?', SHARE_OR_FIT, 1, emptyWholes(3),
+      practice('Pip has 3 pounds of clay. Each bag holds 1/4 pound. Is this sharing or fitting?', SHARE_OR_FIT, 1, emptyWholes(3),
         'Are you splitting the clay among people, or counting how many bags fit?',
         'You count how many 1/4-pound bags fit in 3 pounds, so this is fitting.', emptyWholes(3)),
       practice('How many 1/4-pound bags can be filled from 3 pounds of clay?', ['12 bags', '3/4 bag', '7 bags', '4 bags'], 0, emptyWholes(3),
@@ -1073,7 +1073,7 @@ const extensionTopics: ExtensionTopic[] = [
       model: { kind: 'lineplot', denominator: 8, wholes: 1, values: [2, 4, 4, 7] } },
     mode: 'plot-eighths', n: 5, d: 8, context: 'pebbles', gradeBand: 4, standards: ['4.MD.4'],
     questions: [
-      practice('Pebbles: 1/8, 3/8, 3/8, 5/8, 5/8, 5/8 inch. Plot them. How many more are 5/8 inch than 1/8 inch?', ['2', '1', '3', '4'], 0,
+      practice('Pebbles: 1/8, 3/8, 3/8, 5/8, 5/8, 5/8 inch. Plot them. How many more Xs are at 5/8 than at 1/8?', ['2', '1', '3', '4'], 0,
         plotTask([1, 3, 3, 5, 5, 5]), 'Count the Xs at 5/8. Count the Xs at 1/8. How many more?',
         'There are 3 Xs at 5/8 and 1 X at 1/8. 3 − 1 = 2 more.', { kind: 'lineplot', denominator: 8, wholes: 1, values: [1, 3, 3, 5, 5, 5] }),
       practice('Shells: 2/8, 2/8, 6/8, 7/8, 7/8 inch. Plot them. How many shells are longer than 4/8 inch?', ['3', '2', '4', '5'], 0,
@@ -1139,7 +1139,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('The line plot shows juice in 5 cups: 1/4, 2/4, 2/4, 3/4, 4/4 liter. How much juice in all?', ['3 liters', '12/20 liter', '2 2/4 liters', '1 1/4 liters'], 0,
         { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 2, 2, 3, 4] }, 'Add the fourths for every X. How many fourths make a liter?',
         '1 + 2 + 2 + 3 + 4 = 12 fourths. 12/4 is 3 liters.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 2, 2, 3, 4] }),
-      practice('The line plot shows water in 6 beakers: 2/8, 2/8, 5/8, 5/8, 5/8, 8/8 liter. How much more do the 5/8 beakers hold than the 2/8 beakers?', ['1 3/8 liters', '3/8 liter', '1/8 liter', '2 3/8 liters'], 0,
+      practice('The line plot shows water in 6 beakers: 2/8, 2/8, 5/8, 5/8, 5/8, 8/8 liter. How much more do all the 5/8 beakers hold together than all the 2/8 beakers together?', ['1 3/8 liters', '3/8 liter', '1/8 liter', '2 3/8 liters'], 0,
         { kind: 'lineplot', denominator: 8, wholes: 1, values: [2, 2, 5, 5, 5, 8] }, 'Add up each stack first. Then take away.',
         'The three 5/8 beakers hold 15/8. The two 2/8 beakers hold 4/8. 15/8 − 4/8 = 11/8, or 1 3/8 liters.', { kind: 'lineplot', denominator: 8, wholes: 1, values: [2, 2, 5, 5, 5, 8] }),
       practice('The line plot shows rain on 4 days: 1/2, 1/2, 3/4, 1/4 inch. How much rain in all?', ['2 inches', '6/12 inch', '1 2/4 inches', '1 inch'], 0,
@@ -1161,13 +1161,16 @@ export function problemPicture(problem: WorksheetProblem): ModelSpec {
   // Ruler questions: a number line marked like the ruler, with the end point (no labels).
   if (problem.rulerTask) return { kind: 'line', numerator: problem.rulerTask.end, denominator: problem.rulerTask.denominator, wholes: problem.rulerTask.wholes, hideLabels: true };
   if (problem.area) return { kind: 'area', cut: problem.area.cut, shaded: problem.area.shaded ?? [], ...(problem.areaTask ? { colorTask: problem.areaTask } : {}) };
+  // A chance question (one marble per group): the story says how many are green, so the picture shows them.
+  if (m?.kind === 'set' && m.total && m.d === m.total) return setModel(m.n, m.total, m.d);
   // A set to share: the groups, none picked yet (picking them is the answer).
   if (m?.kind === 'set' && m.total) return setModel(0, m.total, m.d);
   // A row the child builds: its model is the answer. Show the amounts the question names ("Compare: 0.4 __ 0.35"
   // shows both), or else the empty bars to build on.
   const named = m && problem.task ? autoPicture(problem.prompt) : null;
   if (named?.kind === 'bars' && named.bars.length > 1) return named;
-  if (m && problem.task) return { kind: 'bars', bars: Array.from({ length: Math.max(1, Math.ceil(m.n / m.d)) }, () => ({ numerator: 0, denominator: m.d })), hideLabels: true };
+  // One spare bar past a whole number of wholes, so the count of bars never answers "how many wholes?".
+  if (m && problem.task) return { kind: 'bars', bars: Array.from({ length: Math.max(1, Math.ceil(m.n / m.d)) + (m.n >= m.d ? 1 : 0) }, () => ({ numerator: 0, denominator: m.d })), hideLabels: true };
   if (m?.kind === 'line') return { kind: 'line', numerator: m.n, denominator: m.d, wholes: numberLineWholeCount(m.n, m.d), hideLabels: true };
   if (m) return picture(m.n, m.d);
   // Every amount the question names ("Pick the sign: 4/5 __ 3/4" shows both), not just the first.
