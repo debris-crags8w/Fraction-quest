@@ -13,7 +13,7 @@ import { isAppPage, parseShellMessage, shellInfoScript, webAppUrl } from '@/lib/
    so a change there shows up here on the next launch (no app rebuild). The shell adds what a website can't do on
    its own: the iPhone print sheet, a gentle haptic tap on answers, links to other sites opening in Safari, and
    telling the page when the phone is on Wi-Fi (the page then keeps the whole voice pack on the phone), and the
-   monthly subscription through Apple or Google (the page asks to buy, restore or manage; the shell reports back). */
+   yearly or monthly subscription through Apple or Google (the page asks to buy, restore or manage; the shell reports back). */
 
 const BACKGROUND = '#F5F3FF';
 const APP_URL = webAppUrl();
@@ -58,7 +58,7 @@ export default function FractionQuestShell() {
     } else if (message.type === 'print') {
       void Print.printAsync({ html: message.html }).catch(() => { /* the child closed the sheet */ });
     } else if (message.type === 'subscription') {
-      subscriptionAction(message.action);
+      subscriptionAction(message.action, message.plan);
     }
   }, [subscriptionAction]);
 
