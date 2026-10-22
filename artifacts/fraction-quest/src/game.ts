@@ -606,7 +606,7 @@ const curriculum: MissionSeed[] = [
     description: 'Compare fractions with the same numerator.', example: {
       prompt: 'Which is bigger, 3/4 or 3/8?',
       answer: '3/4.',
-      explanation: 'Both same-size bars count 3 parts. Splitting the whole into 8 equal parts makes smaller parts than splitting it into 4, so 3/8 is less than 3/4.',
+      explanation: 'Both same-size bars count 3 parts. Splitting the whole into 8 equal parts makes smaller parts than splitting it into 4, so 3/8 is less than 3/4. With a sign: 3/4 > 3/8.',
       model: bars({ numerator: 3, denominator: 4 }, { numerator: 3, denominator: 8 }),
     },
     questions: [
