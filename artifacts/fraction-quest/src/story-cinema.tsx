@@ -78,7 +78,7 @@ const FILMING: Record<StoryScene, { shots: Shot[]; impact?: number; coldFrom?: n
   lock: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.28)', '32% 48%'), shot('scale(1.18)', '34% 48%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
   festival: { shots: [shot('scale(1.05)', '9% 29%'), shot('scale(1.2)', '9% 29%'), shot('scale(1.3)', '9% 29%'), shot('scale(1.05)', '9% 29%')] },
   'chapter-end': { shots: [shot('scale(1.1)', '50% 42%'), shot('scale(1.3)', '50% 45%'), shot('scale(1.05)', '50% 42%')], impact: 1 },
-  epilogue: { shots: [shot('scale(1.05)', '11% 30%'), shot('scale(1.15)', '11% 30%'), shot('scale(1.15)', '11% 30%'), shot('scale(1.05)', '11% 30%')], impact: 2 },
+  epilogue: { shots: [shot('scale(1.05)', '11% 30%'), shot('scale(1.15)', '11% 30%'), shot('scale(1.15)', '11% 30%'), shot('scale(1.1)', '11% 30%'), shot('scale(1.2)', '11% 30%'), shot('scale(1.05)', '11% 30%')], impact: 2 },
 };
 
 /** A fraction written the school way, one number over the other. */
