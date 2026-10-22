@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { cleanSentence, PACK_INDEX_TIMEOUT_MS, PACK_VOICES, preferredPackFormat, resetVoicePackForTests, voiceKey, voicePackIndexPath, voicePackUrl } from './lib/voice-pack';
 import { NATURAL_VOICES } from './lib/natural-voice';
+import { CAST_VOICE_IDS, CAST_VOICES, speakerVoice, voiceSpeed } from './lib/cast-voices';
+import { sentences, spokenText } from './lib/voice';
 
 test('a sentence has one stable file name, the same however its spaces were typed', () => {
   assert.equal(voiceKey('One half.'), voiceKey('  One   half. '));
@@ -119,12 +121,16 @@ test('the voice sentence list covers lessons, story and seasons with unique keys
   const { VOICE_SENTENCE_SOURCES, VOICE_SENTENCE_THEMES, voiceSentenceGroups, voiceSentences } = await import('../scripts/voice-sentences');
   const list = voiceSentences();
   const texts = new Set(list.map((entry) => entry.text));
-  assert.equal(new Set(list.map((entry) => entry.key)).size, list.length);
+  // One entry per sentence and voice: a friend's film line is listed for Heart and for that friend.
+  const id = (entry: { key: string; voice?: string }) => `${entry.voice ?? ''}/${entry.key}`;
+  assert.equal(new Set(list.map(id)).size, list.length);
   for (const entry of list) assert.equal(entry.key, voiceKey(entry.text));
+  const heartKeys = new Set(list.filter((entry) => !entry.voice).map((entry) => entry.key));
+  for (const entry of list) if (entry.voice) assert.ok(heartKeys.has(entry.key), `a friend's line also plays in Heart: ${entry.text}`);
   const groups = voiceSentenceGroups();
-  const groupedKeys = new Set(groups.flatMap((group) => group.sentences.map((entry) => entry.key)));
+  const groupedKeys = new Set(groups.flatMap((group) => group.sentences.map(id)));
   assert.equal(groups.length, VOICE_SENTENCE_SOURCES.length * VOICE_SENTENCE_THEMES.length);
-  assert.deepEqual([...groupedKeys].sort(), list.map((entry) => entry.key).sort());
+  assert.deepEqual([...groupedKeys].sort(), list.map(id).sort());
   assert.ok(texts.has('Hi there!'));
   assert.ok([...texts].some((text) => /pumpkin/i.test(text)), 'Halloween words');
   assert.ok([...texts].some((text) => /gingerbread/i.test(text)), 'Christmas words');
@@ -137,7 +143,37 @@ test('the voice index is built from the app\'s own text, so it always matches th
   const index = buildVoicePackIndex([{ key: 'bbbbbbbbbbbbbbbb' }, { key: 'aaaaaaaaaaaaaaaa' }, { key: 'bbbbbbbbbbbbbbbb' }]);
   assert.deepEqual(index, { version: 1, voices: [...PACK_VOICES], keys: ['aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb'] });
   const { voiceSentences } = await import('../scripts/voice-sentences');
-  assert.equal(buildVoicePackIndex(voiceSentences()).keys.length, new Set(voiceSentences().map((sentence) => sentence.key)).size);
+  const all = voiceSentences();
+  const built = buildVoicePackIndex(all);
+  assert.equal(built.keys.length, all.filter((sentence) => !sentence.voice).length);
+  // Each story friend's film lines are listed by voice, in their own voice.
+  assert.deepEqual(Object.keys(built.cast ?? {}).sort(), [...CAST_VOICE_IDS].sort());
+  for (const [voice, keys] of Object.entries(built.cast ?? {})) assert.equal(keys.length, all.filter((sentence) => sentence.voice === voice).length);
+});
+
+test('a friend\'s film line is made in their own voice, at their own speed, and the server table matches', async () => {
+  const { voiceSentences } = await import('../scripts/voice-sentences');
+  const { readFileSync } = await import('node:fs');
+  const { PROLOGUE, withName } = await import('./story');
+  const hootLine = cleanSentence(withName(PROLOGUE.find((panel) => panel.speaker === 'hoot')!.text, null, 'everyday'));
+  const first = sentences(spokenText(hootLine))[0]!;
+  const entries = voiceSentences().filter((entry) => entry.text === cleanSentence(first));
+  assert.deepEqual(entries.map((entry) => entry.voice ?? 'af_heart').sort(), ['af_heart', 'bm_george']);
+  assert.equal(speakerVoice('numi'), 'af_heart');
+  assert.equal(voiceSpeed('bf_emma'), CAST_VOICES.tilly.speed);
+  // api-server/src/lib/cast-voices.ts renders the clips: the same voices at the same speeds.
+  const server = readFileSync(new URL('../../api-server/src/lib/cast-voices.ts', import.meta.url), 'utf8');
+  for (const { voice, speed } of Object.values(CAST_VOICES)) assert.match(server, new RegExp(`\\b${voice}: ${String(speed).replace('.', '\\.')}(?:\\.0)?,`));
+});
+
+test('a friend\'s line plays from their own clips, and in Heart when they have none yet', async () => {
+  resetVoicePackForTests();
+  const index = { version: 1, voices: ['af_heart'], keys: [voiceKey('Hello.')], cast: { bm_george: [voiceKey('Hello.')] } };
+  const fetchFn = (async () => new Response(JSON.stringify(index))) as unknown as typeof fetch;
+  assert.match((await voicePackUrl('bm_george', 'Hello.', fetchFn, 'mp3'))!, /voice\/bm_george\/[0-9a-f]{16}\.mp3$/);
+  assert.equal(await voicePackUrl('am_onyx', 'Hello.', fetchFn, 'mp3'), null);
+  assert.equal(await voicePackUrl('bm_george', 'Goodbye.', fetchFn, 'mp3'), null);
+  resetVoicePackForTests();
 });
 
 test('a story is read aloud as "friend", never with the child\'s name, so it plays from the pack', async () => {
@@ -262,5 +298,42 @@ test('the whole-pack download skips a clip App Storage does not have yet, and tr
   } finally {
     Object.assign(g, original);
     resetVoicePackForTests(); setNaturalEngineForTests(null);
+  }
+});
+
+test('a friend\'s missing clip plays in Heart, never asks the server for the friend\'s voice, and each part keeps its voice', async () => {
+  resetVoicePackForTests();
+  const { createNaturalSpeaker, serverEngine, setNaturalEngineForTests, setNaturalVoicePreference } = await import('./lib/natural-voice');
+  const originalFetch = globalThis.fetch;
+  const asked: string[] = [];
+  globalThis.fetch = (async (url: string) => {
+    asked.push(url);
+    if (url === '/voice/index.json') {
+      return new Response(JSON.stringify({ version: 1, voices: ['af_heart'], keys: [voiceKey('Hoo hoo.'), voiceKey('Snap.')], cast: { bm_george: [voiceKey('Hoo hoo.')] } }));
+    }
+    return new Response(new Blob([new Uint8Array([73, 68, 51])], { type: 'audio/mpeg' }));
+  }) as typeof fetch;
+  try {
+    setNaturalEngineForTests(null); setNaturalVoicePreference('af_heart');
+    await serverEngine.generate('Hoo hoo.', { voice: 'bm_george', speed: 1 });
+    assert.ok(asked.some((url) => url.endsWith(`/voice/bm_george/${voiceKey('Hoo hoo.')}.${preferredPackFormat()}`)), 'Hoot\'s own clip');
+    await serverEngine.generate('Snap.', { voice: 'am_onyx', speed: 1 });
+    assert.ok(asked.some((url) => url.endsWith(`/voice/af_heart/${voiceKey('Snap.')}.${preferredPackFormat()}`)), 'Chomp\'s line falls back to Heart');
+    assert.ok(!asked.some((url) => url.includes('voice=am_onyx') || url.includes('voice=bm_george')), 'the server is never asked for a friend\'s voice');
+
+    // The speaker makes each sentence in the voice it is given.
+    const used: string[] = [];
+    setNaturalEngineForTests({ generate: async (_text, { voice }) => { used.push(voice); return { toBlob: () => new Blob(['x']) }; } });
+    const audio = { play: () => { setTimeout(() => audio.onended?.(), 0); return Promise.resolve(); }, pause: () => undefined, onended: null as null | (() => void) } as unknown as HTMLAudioElement;
+    const originalUrl = URL.createObjectURL;
+    URL.createObjectURL = () => 'blob:x';
+    try {
+      await new Promise<void>((resolve) => createNaturalSpeaker(() => audio).speak(['One.', 'Two.', 'Three.'], () => resolve(), undefined, undefined, undefined, ['bm_george', undefined, 'af_nova']));
+    } finally { URL.createObjectURL = originalUrl; }
+    assert.deepEqual(used, ['bm_george', 'af_heart', 'af_nova']);
+  } finally {
+    globalThis.fetch = originalFetch;
+    setNaturalEngineForTests(null);
+    resetVoicePackForTests();
   }
 });

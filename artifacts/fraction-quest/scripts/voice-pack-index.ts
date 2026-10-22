@@ -9,8 +9,14 @@ import path from 'node:path';
 import { PACK_VOICES, type VoicePackIndex } from '../src/lib/voice-pack';
 import { voiceSentences } from './voice-sentences';
 
-export function buildVoicePackIndex(sentences: { key: string }[]): VoicePackIndex {
-  return { version: 1, voices: [...PACK_VOICES], keys: [...new Set(sentences.map((sentence) => sentence.key))].sort() };
+/** Heart's keys, plus each story friend's film lines by voice (`cast`). */
+export function buildVoicePackIndex(sentences: { key: string; voice?: string }[]): VoicePackIndex {
+  const sorted = (list: { key: string }[]) => [...new Set(list.map((sentence) => sentence.key))].sort();
+  const cast: Record<string, string[]> = {};
+  for (const voice of [...new Set(sentences.flatMap((sentence) => (sentence.voice ? [sentence.voice] : [])))].sort()) {
+    cast[voice] = sorted(sentences.filter((sentence) => sentence.voice === voice));
+  }
+  return { version: 1, voices: [...PACK_VOICES], keys: sorted(sentences.filter((sentence) => !sentence.voice)), ...(Object.keys(cast).length ? { cast } : {}) };
 }
 
 if (process.argv[1]?.endsWith('voice-pack-index.ts')) {
@@ -18,5 +24,5 @@ if (process.argv[1]?.endsWith('voice-pack-index.ts')) {
   const index = buildVoicePackIndex(voiceSentences());
   mkdirSync(path.dirname(out), { recursive: true });
   writeFileSync(out, `${JSON.stringify(index)}\n`);
-  console.log(`Voice pack index: ${index.keys.length} sentences.`);
+  console.log(`Voice pack index: ${index.keys.length} sentences, ${Object.values(index.cast ?? {}).reduce((total, keys) => total + keys.length, 0)} story friend lines.`);
 }

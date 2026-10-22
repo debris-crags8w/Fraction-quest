@@ -5,6 +5,7 @@ import { appStorageVoicePack, checkVoicePack, isPackVoice, parseVoiceFileName, V
 import { cleanVoiceText } from "../lib/voice";
 import { generateMissingVoicePack, VoicePackSyncLimitError, voicePackSentenceKey } from "../lib/voice-pack-sync";
 import type { PackSentence } from "../lib/voice-pack-render";
+import { isCastVoice } from "../lib/cast-voices";
 
 /* The Voice pack workflow sends the current sentence manifest here. Replit checks and writes audio directly to App
    Storage; GitHub Actions never renders or uploads clips. The authenticated routes are off (404) until the token is set. */
@@ -38,7 +39,7 @@ export function createVoicePackUploadRouter(
   router.put("/voice-pack/files/:voice/:fileName", requireUploadToken, express.raw({ type: Object.values(VOICE_FORMATS), limit: "2mb" }), async (req, res) => {
     const { voice, fileName } = req.params as { voice: string; fileName: string };
     const parsed = parseVoiceFileName(fileName);
-    if (!isPackVoice(voice) || !parsed) { res.status(400).json({ error: "Not a voice pack file name." }); return; }
+    if (!(isPackVoice(voice) || isCastVoice(voice)) || !parsed) { res.status(400).json({ error: "Not a voice pack file name." }); return; }
     if (!Buffer.isBuffer(req.body) || req.body.length === 0 || req.get("content-type") !== VOICE_FORMATS[parsed.format]) {
       res.status(400).json({ error: `Send the clip as ${VOICE_FORMATS[parsed.format]}.` });
       return;
@@ -50,13 +51,18 @@ export function createVoicePackUploadRouter(
   // The body is the voice index itself (index.json), sent as text: larger than the server's JSON limit.
   router.post("/voice-pack/check", requireUploadToken, express.text({ type: "text/plain", limit: "8mb" }), async (req, res) => {
     let keys: unknown;
-    try { keys = (JSON.parse(String(req.body)) as { keys?: unknown }).keys; } catch { keys = null; }
-    if (!Array.isArray(keys) || keys.some((key) => typeof key !== "string" || !VOICE_KEY.test(key))) {
+    let cast: unknown;
+    try { ({ keys, cast = {} } = JSON.parse(String(req.body)) as { keys?: unknown; cast?: unknown }); } catch { keys = null; }
+    const validKeys = (list: unknown) => Array.isArray(list) && list.every((key) => typeof key === "string" && VOICE_KEY.test(key));
+    // `cast` (optional): the story friends' film lines, by voice.
+    const castOk = !!cast && typeof cast === "object" && !Array.isArray(cast)
+      && Object.entries(cast).every(([voice, list]) => isCastVoice(voice) && validKeys(list));
+    if (!validKeys(keys) || !castOk) {
       res.status(400).json({ error: "Send the voice index (index.json) as text/plain." });
       return;
     }
     // Removing unused files is only safe once the app's live index no longer lists them (after the merge).
-    const result = await checkVoicePack(store(), keys as string[], req.query.prune === "1");
+    const result = await checkVoicePack(store(), keys as string[], req.query.prune === "1", cast as Record<string, string[]>);
     // With ?list=1, also every sentence key that lacks a file, so the workflow makes exactly those.
     const missingKeys = req.query.list === "1" ? [...new Set(result.missing.map((name) => name.slice(name.indexOf("/") + 1, name.lastIndexOf("."))))] : undefined;
     res.json({ ...result, missing: result.missing.length, firstMissing: result.missing.slice(0, 10), ...(missingKeys ? { missingKeys } : {}) });
@@ -67,20 +73,25 @@ export function createVoicePackUploadRouter(
     let body: unknown;
     try { body = JSON.parse(String(req.body)); } catch { body = null; }
     const values = (body as { sentences?: unknown } | null)?.sentences;
-    if (!Array.isArray(values) || values.length > 10_000) {
+    if (!Array.isArray(values) || values.length > 40_000) {
       res.status(400).json({ error: "Send the current voice sentences as JSON text." }); return;
     }
     const sentences: PackSentence[] = [];
     const seen = new Set<string>();
     for (const value of values) {
       if (!value || typeof value !== "object") { res.status(400).json({ error: "A sentence entry is invalid." }); return; }
-      const { key, text } = value as { key?: unknown; text?: unknown };
+      const { key, text, voice } = value as { key?: unknown; text?: unknown; voice?: unknown };
       const clean = cleanVoiceText(text);
-      if (typeof key !== "string" || !VOICE_KEY.test(key) || !clean || clean !== text || voicePackSentenceKey(clean) !== key || seen.has(key)) {
+      // `voice` marks a story friend's film line (made in that voice); unset means Heart.
+      if (voice !== undefined && (typeof voice !== "string" || !isCastVoice(voice))) {
+        res.status(400).json({ error: "A sentence names a voice the pack is not made in." }); return;
+      }
+      const id = `${voice ?? ""}/${key}`;
+      if (typeof key !== "string" || !VOICE_KEY.test(key) || !clean || clean !== text || voicePackSentenceKey(clean) !== key || seen.has(id)) {
         res.status(400).json({ error: "Sentence keys must match unique, clean sentence text." }); return;
       }
-      seen.add(key);
-      sentences.push({ key, text: clean });
+      seen.add(id);
+      sentences.push(voice === undefined ? { key, text: clean } : { key, text: clean, voice });
     }
     if (syncRunning) { res.setHeader("Retry-After", "10"); res.status(409).json({ error: "A voice sync is already running. Retry after it finishes." }); return; }
     syncRunning = true;

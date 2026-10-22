@@ -167,18 +167,22 @@ export type VoicePackCheck = { sentences: number; missing: string[]; removed: nu
 
 /** Is every indexed sentence stored in every voice and format? With `prune`, and only then, remove files the
     index no longer lists (sentences it dropped, retired voices). */
-export async function checkVoicePack(store: VoicePackStore, keys: string[], prune = false): Promise<VoicePackCheck> {
+/** `cast` lists each story friend's film lines, by voice (the index's `cast`); their files are checked and kept too. */
+export async function checkVoicePack(store: VoicePackStore, keys: string[], prune = false, cast: Record<string, string[]> = {}): Promise<VoicePackCheck> {
   const stored = await store.list();
   const have = new Set(stored.map(({ voice, key, format }) => `${voice}/${key}.${format}`));
   const formats = Object.keys(VOICE_FORMATS) as VoiceFormat[];
-  const missing = keys.flatMap((key) => PACK_VOICES.flatMap((voice) => formats.map((format) => `${voice}/${key}.${format}`)))
-    .filter((name) => !have.has(name));
+  const wanted = [
+    ...keys.flatMap((key) => PACK_VOICES.map((voice) => `${voice}/${key}`)),
+    ...Object.entries(cast).flatMap(([voice, castKeys]) => castKeys.map((key) => `${voice}/${key}`)),
+  ];
+  const missing = wanted.flatMap((name) => formats.map((format) => `${name}.${format}`)).filter((name) => !have.has(name));
   let removed = 0;
   if (prune && missing.length === 0) {
-    const listed = new Set(keys);
-    const stale = stored.filter(({ voice, key }) => !isPackVoice(voice) || !listed.has(key));
+    const listed = new Set(wanted);
+    const stale = stored.filter(({ voice, key }) => !listed.has(`${voice}/${key}`));
     for (let i = 0; i < stale.length; i += 12) await Promise.all(stale.slice(i, i + 12).map((file) => store.remove(file)));
     removed = stale.length;
   }
-  return { sentences: keys.length, missing, removed };
+  return { sentences: wanted.length, missing, removed };
 }
