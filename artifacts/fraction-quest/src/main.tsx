@@ -13,6 +13,13 @@ import './answer-tiles.css';
 // Inside the app (iPhone and Android) the page needs no room for a browser toolbar (see theme-pop.css).
 if (inExpoShell()) document.documentElement.classList.add('fq-in-app');
 
+// The published app saves itself on the device (src/sw.ts), so it opens and plays without a connection.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL }).catch(() => undefined);
+  });
+}
+
 createRoot(document.getElementById('root')!, {
   // Keeps caught errors off reportError(), which would raise the dev overlay.
   onCaughtError: (error, errorInfo) => {
