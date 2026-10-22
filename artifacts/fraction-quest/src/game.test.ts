@@ -258,7 +258,7 @@ describe('lesson catalog', () => {
     };
     assert.deepEqual(shown('Fill the blank: 3/4 = 6/?'), ['3/4'], 'the 6/8 bar would show the missing 8');
     assert.deepEqual(shown('Which is the same as 2/3?'), ['2/3']);
-    assert.deepEqual(shown('Which sum equals 4/6?'), ['4/6'], 'the two parts of the answer wait; the named total shows');
+    assert.deepEqual(shown('2/8 + 3/8 makes 5/8. Which is another way to make 5/8?'), ['5/8'], 'only the total shows, not the parts of the answer');
     assert.deepEqual(shown('7/10 = 5/10 + what?'), ['7/10', '5/10']);
     // Pictures that draw every choice, or the fractions being put in order, stay as they are; a picture of every
     // choice also draws the added fourth choice (6/8 here), so the child can check that one too.
@@ -616,7 +616,9 @@ describe('lesson catalog', () => {
       const worksheet = getWorksheet(id);
       assert.equal(worksheet.length, 12, `${id} worksheet length`);
       assert.ok(worksheet.every((problem) =>
-        problem.modelRequired || problem.areaTask || problem.rulerTask || problem.linePlotTask || problem.scaleTask,
+        problem.modelRequired || problem.areaTask || problem.rulerTask || problem.linePlotTask || problem.scaleTask
+        // Reading a line plot: the values are only in the plot, so the answer has to be read off it.
+        || problem.picture?.kind === 'lineplot',
       ), `${id} must require a model interaction before each answer`);
     }
     const shapePartitions = MISSIONS.find((item) => item.id === 'fraction-of-area');
@@ -2569,6 +2571,23 @@ describe('question generator', () => {
     if (match) {
       const result = Number(match[1]) / Number(match[2]) + (match[3] === '+' ? 1 : -1) * Number(match[4]) / Number(match[5]);
       assert.ok(Math.abs(fractionValue(answer) - result) < 1e-9, question.prompt);
+      return true;
+    }
+    // Two-step stories: take away then add, and add then compare.
+    match = /^A jug has (\d+)\/(\d+) liter\. Sam drinks (\d+)\/\2 liter, then adds (\d+)\/\2 liter\. How much is in the jug now\?$/.exec(question.prompt);
+    if (match) {
+      assert.equal(fractionValue(answer), (Number(match[1]) - Number(match[3]) + Number(match[4])) / Number(match[2]), question.prompt);
+      return true;
+    }
+    match = /^Ana ran (\d+)\/(\d+) mile and then (\d+)\/\2 mile\. Ben ran (\d+)\/\2 mile\. How much farther did Ana run\?$/.exec(question.prompt);
+    if (match) {
+      assert.equal(fractionValue(answer), (Number(match[1]) + Number(match[3]) - Number(match[4])) / Number(match[2]), question.prompt);
+      return true;
+    }
+    // A fraction of a number written with × ("3/4 × 12 = ?", or the story with "Solve 3/4 × 12").
+    match = /^(\d+)\/(\d+) × (\d+) = \?$/.exec(question.prompt) ?? /Solve (\d+)\/(\d+) × (\d+) to find/.exec(question.prompt);
+    if (match) {
+      assert.equal(Number(answer), (Number(match[3]) / Number(match[2])) * Number(match[1]), question.prompt);
       return true;
     }
     match = /^What is (\d+)\/(\d+) of (\d+)\?$/.exec(question.prompt);

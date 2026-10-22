@@ -35,7 +35,7 @@ test('the grown-ups report opens with the week at a glance, a lesson to help wit
   await page.getByTestId('button-play-guest').click();
   await page.getByTestId('button-app-menu').click();
   await page.getByTestId('button-open-parent').click();
-  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();

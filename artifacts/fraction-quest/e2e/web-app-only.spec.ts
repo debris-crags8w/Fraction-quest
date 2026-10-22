@@ -40,7 +40,7 @@ test('on the website, lesson 2 sends the family to the app, with the store links
   await page.getByTestId('button-subscribe-back').click();
   await page.getByTestId('button-start-mission-fraction-names').click();
   await page.getByTestId('button-get-grown-up').click();
-  const challenge = await page.getByText(/\d+\s×\s\d+\s=/).textContent();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
