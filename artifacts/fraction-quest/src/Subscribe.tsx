@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { legalUrl } from './lib/legal';
 import { Check, X } from 'lucide-react';
 import { StoryCharacter } from './characters';
 import { GrownUpGate } from './GrownUpGate';
@@ -12,7 +13,6 @@ import './subscribe.css';
    Apple's or Google's own sheet; when it goes through, the lesson that was asked for opens by itself. */
 
 /** Apple's standard licence agreement, used as the Terms of Use until Fraction Quest has its own. */
-const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 /** Where the app is listed; set for the published website once the store listings are live. */
 const APP_STORE_URL = String(import.meta.env?.VITE_APP_STORE_URL ?? '').trim();
 const GOOGLE_PLAY_URL = String(import.meta.env?.VITE_GOOGLE_PLAY_URL ?? '').trim();
@@ -152,7 +152,7 @@ function Paywall({ subscription, onClose }: { subscription: Subscription; onClos
         </button>
         <div className="fq-paywall-links">
           <button className="fq-paywall-restore" onClick={() => askShell('restore')} disabled={subscription.busy} data-testid="button-restore">Restore purchase</button>
-          <span><a href={TERMS_URL} target="_blank" rel="noreferrer">Terms</a> · <details className="fq-paywall-privacy"><summary>Privacy</summary><p>{PRIVACY}</p></details></span>
+          <span><a href={legalUrl('terms')} target="_blank" rel="noreferrer" data-testid="link-terms">Terms</a> · <details className="fq-paywall-privacy"><summary>Privacy</summary><p>{PRIVACY} <a href={legalUrl('privacy')} target="_blank" rel="noreferrer" data-testid="link-privacy">Read the full privacy notice</a></p></details></span>
         </div>
       </main>
     </div>
