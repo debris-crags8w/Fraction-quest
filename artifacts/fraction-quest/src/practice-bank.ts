@@ -325,11 +325,15 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'equivalent-missing-both': (r) => {
     const [n, d, k] = r.pick(equivalentsFor('equivalent-missing-both'));
-    return r.chance()
-      ? later(`Fill the blank: ${f(n, d)} = ?/${d * k}`, String(n * k), [String(n + k), String(n * k + 1), String(n * k - 1)],
-        `The denominator was multiplied by ${k}.`, `${n} × ${k} = ${n * k}.`, bar(n, d))
-      : later(`Fill the blank: ${f(n, d)} = ${n * k}/?`, String(d * k), [String(d + k), String(d * k + 1), String(d * k - 1)],
-        `The numerator was multiplied by ${k}.`, `${d} × ${k} = ${d * k}.`, bar(n, d));
+    // A blank on top or on the bottom, by multiplying or dividing. The hint asks for the factor instead of naming it.
+    switch (r.int(0, 2)) {
+      case 0: return later(`Fill the blank: ${f(n, d)} = ?/${d * k}`, String(n * k), [String(n + k), String(n * k + 1), String(n * k - 1)],
+        `What was ${d} multiplied by to make ${d * k}?`, `${d} × ${k} = ${d * k}, so ${n} × ${k} = ${n * k}.`, bar(n, d));
+      case 1: return later(`Fill the blank: ${f(n, d)} = ${n * k}/?`, String(d * k), [String(d + k), String(d * k + 1), String(d * k - 1)],
+        `What was ${n} multiplied by to make ${n * k}?`, `${n} × ${k} = ${n * k}, so ${d} × ${k} = ${d * k}.`, bar(n, d));
+      default: return later(`Fill the blank: ${f(n * k, d * k)} = ?/${d}`, String(n), [...new Set([n * k, n * k - k, n + 1, n * k + 1].filter((x) => x !== n && x > 0).map(String))].slice(0, 3),
+        `What was ${d * k} divided by to make ${d}?`, `${d * k} ÷ ${k} = ${d}, so ${n * k} ÷ ${k} = ${n}.`, bar(n * k, d * k));
+    }
   },
   'compare-unlike-fractions': (r) => {
     // About 1 in 4 pairs share a numerator (3/4 vs 3/8), so that strategy keeps coming back.

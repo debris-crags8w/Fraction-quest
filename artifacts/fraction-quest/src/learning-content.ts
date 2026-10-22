@@ -1412,9 +1412,23 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       }
       case 'equivalent': {
         const [top, bottom, times] = pairs[(i * 5 + variant * 7) % pairs.length];
-        prompt = i % 2 ? `Write ${f(top, bottom)} with a denominator of ${bottom * times}.` : `Fill the missing numerator: ${f(top, bottom)} = ?/${bottom * times}.`;
-        answer = i % 2 ? f(top * times, bottom * times) : String(top * times); denominator = i % 2 ? bottom * times : undefined;
-        hint = `The denominator was multiplied by ${times}. Multiply the numerator by ${times} too.`; break;
+        // A blank on top or on the bottom, by multiplying or dividing. Rows 1, 4, 7 and 10 keep their kinds (story checkpoints).
+        const kind = (['top', 'write', 'bottom', 'divide', 'top', 'bottom', 'divide', 'write', 'bottom', 'divide', 'top', 'divide'] as const)[i % 12];
+        // The hints ask for the factor instead of naming it: finding it is the task.
+        if (kind === 'write') {
+          prompt = `Write ${f(top, bottom)} with a denominator of ${bottom * times}.`; answer = f(top * times, bottom * times); denominator = bottom * times;
+          hint = `What was ${bottom} multiplied by to make ${bottom * times}? Multiply the numerator by the same number.`;
+        } else if (kind === 'top') {
+          prompt = `Fill the missing numerator: ${f(top, bottom)} = ?/${bottom * times}.`; answer = String(top * times);
+          hint = `What was ${bottom} multiplied by to make ${bottom * times}? Multiply the numerator by the same number.`;
+        } else if (kind === 'bottom') {
+          prompt = `Fill the missing denominator: ${f(top, bottom)} = ${top * times}/?.`; answer = String(bottom * times);
+          hint = `What was ${top} multiplied by to make ${top * times}? Multiply the denominator by the same number.`;
+        } else {
+          prompt = `Fill the missing numerator: ${f(top * times, bottom * times)} = ?/${bottom}.`; answer = String(top);
+          hint = `What was ${bottom * times} divided by to make ${bottom}? Divide the numerator by the same number.`;
+        }
+        break;
       }
       case 'compare': {
         const [a, b, c, e] = pick([[1, 2, 2, 5], [4, 5, 3, 4], [3, 4, 2, 3], [1, 3, 2, 6], [3, 5, 3, 4], [5, 6, 5, 8], [2, 5, 1, 3], [1, 2, 3, 8], [4, 6, 2, 3], [7, 10, 3, 5], [2, 5, 2, 3], [5, 8, 3, 4],
