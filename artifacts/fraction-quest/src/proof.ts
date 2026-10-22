@@ -16,7 +16,8 @@ export type ProofPicture =
   | { kind: 'area'; cut: AreaCut; shaded?: number[] }
   | { kind: 'equation'; text: string }
   | { kind: 'grid' | 'dots'; rows: number; cols: number; shaded: number[] }
-  | { kind: 'fold'; folds: number[] };
+  | { kind: 'fold'; folds: number[] }
+  | { kind: 'ruler'; denominator: number; wholes: number; end: number };
 
 export type ProofItem = {
   source: string; lesson: string; prompt: string;
@@ -131,7 +132,13 @@ const RULES: Rule[] = [
       const dist = marks.map((x) => Math.abs(x - v)); const best = Math.min(...dist);
       if (dist.filter((x) => near(x, best)).length > 1) return `${m[1]} is halfway between two benchmarks`;
       return { value: marks[dist.indexOf(best)] }; } },
-  { name: 'closer to half', re: /^Which is closer to 1\/2: (\d+\/\d+) or (\d+\/\d+)\?$/,
+  { name: 'more or less than half (pick)', re: /^Which is (more|less) than 1\/2: (\d+\/\d+) or (\d+\/\d+)\?(?: Make it\.)?$/,
+    solve: (m) => { const fit = [m[2], m[3]].filter((x) => (m[1] === 'more' ? frac(x) > 0.5 : frac(x) < 0.5));
+      if (fit.length !== 1) return `${fit.length} of the two are ${m[1]} than 1/2`; return { value: frac(fit[0]) }; } },
+  { name: 'closer to 0 or 1', re: /^Which is closer to (0|1): (\d+\/\d+) or (\d+\/\d+)\?$/,
+    solve: (m) => { const t = N(m[1]); const [a, b] = [frac(m[2]), frac(m[3])];
+      if (near(Math.abs(a - t), Math.abs(b - t))) return 'both are equally close'; return { value: Math.abs(a - t) < Math.abs(b - t) ? a : b }; } },
+  { name: 'closer to half', re: /^Which is closer to 1\/2: (\d+\/\d+) or (\d+\/\d+)\?(?: Make it\.)?$/,
     solve: (m) => { const [a, b] = [frac(m[1]), frac(m[2])]; const [da, db] = [Math.abs(a - 0.5), Math.abs(b - 0.5)];
       if (near(da, db)) return 'both are equally close'; return { value: da < db ? a : b }; } },
   { name: 'closest to half (choices)', re: /^Which is closest to 1\/2\?$/,
@@ -172,6 +179,7 @@ const RULES: Rule[] = [
   { name: 'whole ÷ whole', re: /^(\d+) ÷ (\d+) = \?$/, solve: (m) => ({ value: N(m[1]) / N(m[2]) }) },
   { name: 'scoops into cups', re: /^How many 1\/(\d+) cup scoops fill (\d+) cups?\?$/, solve: (m) => ({ value: N(m[1]) * N(m[2]) }) },
   { name: 'scoops into a fraction of a cup', re: /^How many (\d+\/\d+) cup scoops fill (\d+\/\d+) cup\?$/, solve: (m) => ({ value: frac(m[2]) / frac(m[1]) }) },
+  { name: 'parts past one whole', re: /^How many (\w+) past one whole is (\d+)\/(\d+)\?$/, solve: (m) => ({ value: N(m[2]) - N(m[3]) }) },
   { name: 'unit parts in a fraction', re: /^How many 1\/(\d+) parts make (\d+)\/\1\?$/, solve: (m) => ({ value: N(m[2]) }) },
   { name: 'garden area', re: /^(?:A rectangular garden is|Build) (\d+) (\d+\/\d+)(?: meters by | × )(\d+) (\d+\/\d+)(?: meters\. What is its area\?| square units\.)$/,
     solve: (m) => ({ value: (N(m[1]) + frac(m[2])) * (N(m[3]) + frac(m[4])) }) },
@@ -381,8 +389,8 @@ const RULES: Rule[] = [
   { name: 'show in other units', re: /^(?:Show|Make) (\d+\/\d+) (?:using|in) (\w+)\.(?: Split every part\.)?$|^A ribbon is (\d+\/\d+) colored\. Show it in (\w+)\.$/,
     solve: (m) => ({ value: frac(m[1] ?? m[3]), denominator: UNIT_WORD[m[2] ?? m[4]] }) },
   { name: 'wholes in units', re: /^Build (\d+) wholes using (\w+)\.$/, solve: (m) => ({ value: N(m[1]), denominator: UNIT_WORD[m[2]] }) },
-  { name: 'mark a length', re: /^(?:Mark (\d+\/\d+) of a \w+ on the line|Mark a length of (\d+ \d+\/\d+) inches on a ruler|A [\w ]+ is (\d+ \d+\/\d+) inches long\. Mark it on the ruler|Mark (\d+ and \d+\/\d+) on the number line)\.$/,
-    solve: (m) => ({ value: valueOf(m[1] ?? m[2] ?? m[3] ?? m[4]) }) },
+  { name: 'mark a length', re: /^(?:Mark (\d+\/\d+) of a \w+ on the line|Mark a length of (\d+ \d+\/\d+) inches on a ruler|A [\w ]+ is (\d+ \d+\/\d+|\d+\/\d+) inch(?:es)? long\. Mark it on the ruler|Mark (\d+ and \d+\/\d+) on the number line|Mark (\d+ \d+\/\d+|\d+\/\d+|\d+) inch(?:es)? on the ruler)\.$/,
+    solve: (m) => ({ value: valueOf(m[1] ?? m[2] ?? m[3] ?? m[4] ?? m[5]) }) },
   { name: 'distance from a benchmark (build)', re: /^(?:Use (\w+)\. )?Make (?:a fraction )?(\d+\/\d+) less than (half|one whole)\.$/,
     solve: (m) => ({ value: (m[3] === 'half' ? 0.5 : 1) - frac(m[2]), denominator: m[1] ? UNIT_WORD[m[1]] : undefined }) },
   { name: 'away from full', re: /^A jug is (\d+\/\d+) away from full\. Show how full it is\.$/, solve: (m) => ({ value: 1 - frac(m[1]) }) },
@@ -423,9 +431,9 @@ const RULES: Rule[] = [
     solve: (m) => ({ value: Math.max(frac(m[2]), frac(m[3])) }) },
   { name: 'missing numerator (build)', re: /^(\d+)\/(\d+) = \?\/(\d+)\. Make it\.$/, solve: (m) => ({ value: N(m[1]) / N(m[2]), denominator: N(m[3]) }) },
   { name: 'line plot difference (build)', re: /^The shortest (?:mark|bug|pencil) is (\d+\/\d+) inch and the longest is (\d+\/\d+) inch\. Find their difference\.$/, solve: (m) => ({ value: frac(m[2]) - frac(m[1]) }) },
-  { name: 'line plot mode (build)', re: /^(?:Plot the measurements (.+) inch|[A-Z]\w+ are (.+) inch long\. Mark where 2 Xs go)\.$/,
+  { name: 'line plot mode (build)', re: /^(?:Plot the measurements (.+) inch(?:es)?|[A-Z]\w+ are (.+) inch long\. Mark where 2 Xs go)\.$/,
     solve: (m) => { const v = (m[1] ?? m[2]).replace(/,? and /, ', ').split(', '); const counts = new Map<string, number>(); for (const x of v) counts.set(x, (counts.get(x) ?? 0) + 1);
-      const top = [...counts.entries()].filter(([, c]) => c >= 2); if (top.length !== 1) return 'no single value with 2 Xs'; return { value: frac(top[0][0]) }; } },
+      const top = [...counts.entries()].filter(([, c]) => c >= 2); if (top.length !== 1) return 'no single value with 2 Xs'; return { value: valueOf(top[0][0]) }; } },
   { name: 'share equally (build)', re: /^(?:Three beakers hold (.+) liters?\. Share the total equally|Share (\d+(?: \d+\/\d+)?) liters? equally among 3 cups\. Show one cup)\.$/,
     solve: (m) => { const total = m[1] ? m[1].replace(/,? and /, ', ').split(', ').reduce((s, x) => s + valueOf(x), 0) : valueOf(m[2]); return { value: total / 3 }; } },
 
@@ -523,8 +531,8 @@ const PICTURE_RULES: Rule[] = [
       return { value: frac(m[1]) / piece }; } },
   { name: 'picture: ruler', re: /^The blue [\w ]+ starts at zero(?: and ends at a tick with no number)?\. Use the ruler\. How long is it in inches\?$/,
     solve: (_m, item) => { if (item.rulerEnd) return { value: item.rulerEnd.end / item.rulerEnd.denominator };
-      const line = (item.pictures ?? []).find((x) => x.kind === 'line' && 'numerator' in x) as { numerator: number; denominator: number } | undefined;
-      return line ? { value: line.numerator / line.denominator } : 'no ruler'; } },
+      const ruler = (item.pictures ?? []).find((x) => x.kind === 'ruler');
+      return ruler && ruler.kind === 'ruler' ? { value: ruler.end / ruler.denominator } : 'no ruler'; } },
 ];
 
 // ---------------------------------------------------------------------------------------------- checking

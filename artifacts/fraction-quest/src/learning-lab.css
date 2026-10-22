@@ -52,6 +52,10 @@
 .fq-ruler-tick.inch i { height: 25px; width: 3px; background: hsl(var(--foreground)); }
 .fq-ruler-tick span { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); font-size: .75rem; font-weight: 900; }
 .fq-ruler-tick.selected i { background: var(--fq-grape); width: 4px; }
+.fq-ruler-picture { width: 100%; align-self: stretch; }
+.fq-ruler-picture .fq-ruler-track { display: block; height: 64px; background: none; }
+.fq-ruler-picture .fq-ruler-tick { cursor: default; }
+.fq-ruler-picture .fq-ruler-track { margin-bottom: 26px; }
 .fq-ruler-tick:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: -2px; border-radius: 8px; }
 .fq-lineplot { overflow-x: auto; }
 .fq-lineplot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(48px, 1fr)); min-width: min(100%, 520px); border-bottom: 3px solid hsl(var(--foreground)); }

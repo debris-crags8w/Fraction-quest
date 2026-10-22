@@ -17,6 +17,8 @@ export const PROOF_KEY: Record<string, string> = {
   "A plant grew 7/8 of a meter. Is that near 0, 1/2 or 1 meter?": "1 meter",
   "About how much is 1/8 + 1/8 + 1/8 + 1/8?": "About 1/2",
   "Four 1/8 parts make what?": "Exactly 1/2",
+  "Where is 9/4 on the number line?": "Between 2 and 3",
+  "How many fourths make 2 wholes?": "8",
   "How many spaces do you need for fourths?": "4 spaces",
   "A line has 8 equal spaces. Where is 3/8?": "3 jumps from 0",
   "0 to 1 has 6 equal spaces. What is 5 jumps?": "5/6",
@@ -226,7 +228,7 @@ export const PROOF_KEY: Record<string, string> = {
   // 3/4 of 24 is 18; 1/2 of 18 is 9.
   "A class has 24 students. 3/4 of them like pizza. 1/2 of those like extra cheese. How many like extra cheese?": "9",
   "The last code: 2/6 of Bea’s garden is planted. Then 3/6 more is planted. How much is still empty?": "1/6",
-  "Chomp’s riddle: a piece of ribbon is 10 meters long. It is 5/6 of the whole ribbon. How long is the whole ribbon?": "12",
+  "Chomp’s riddle: a piece of ribbon is 5 meters long. It is 1/4 of the whole ribbon. How long is the whole ribbon?": "20",
   "Chomp has 50 snacks. He gives 1/5 of them to Pip. Then he gives 1/2 of the rest to Bea. How many does Chomp have now?": "20",
   "Chomp has 50 candies. He gives 1/5 of them to Pip. Then he gives 1/2 of the rest to Bea. How many does Chomp have now?": "20",
   "Chomp has 50 candy canes. He gives 1/5 of them to Pip. Then he gives 1/2 of the rest to Bea. How many does Chomp have now?": "20",

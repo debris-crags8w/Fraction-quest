@@ -64,3 +64,42 @@ test('the lessons the review found teaching too little now show each step before
   assert.equal(length.target.kind, 'set');
   assert.equal(length.target.total, 12);
 });
+
+test('grade 3 and 4 lessons ask on-grade questions (teacher review, grade fit)', () => {
+  // Grade 3 compares with half; adding to or taking from half (1/2 + 1/8) is grade 5.
+  for (const id of ['benchmark-half', 'fraction-magnitude']) for (const variant of [0, 1, 2]) for (const row of getWorksheet(id, variant)) {
+    assert.doesNotMatch(row.prompt, /more than 1\/2\?$|less than 1\/2\?$|reach half/, `${id}: ${row.prompt}`);
+  }
+  // Grade 3 measures in halves and fourths of an inch, never eighths or sixteenths.
+  for (const id of ['ruler-measurement', 'build-line-plots']) {
+    const prompts = [...getWorksheet(id).map((row) => row.prompt), ...getBuildChecks(id).map((check) => check.prompt),
+      ...getBuildPracticeChecks(id, 0).map((check) => check.prompt), ...getExtraPractice(id, []).flatMap((q) => [q.prompt, ...q.choices])];
+    for (const text of prompts) assert.doesNotMatch(text, /\/(8|16)\b/, `${id}: ${text}`);
+  }
+  // Grade 4 adds and subtracts like denominators only; unlike ones are grade 5.
+  // Only the sum asked about (left of =): a spot-the-mistake claim's wrong answer may have a wrong denominator on purpose.
+  const unlike = (text: string) => { const bottoms = [...text.split('=')[0].matchAll(/\d+\/(\d+)/g)].map((m) => m[1]); return new Set(bottoms).size > 1; };
+  for (const id of ['add-mixed-numbers', 'subtract-mixed-numbers', 'spot-the-mistake']) {
+    for (const check of getBuildChecks(id)) assert.ok(!unlike(check.prompt), `${id}: ${check.prompt}`);
+    for (const row of getWorksheet(id)) if (/[+−]/.test(row.prompt)) assert.ok(!unlike(row.prompt), `${id}: ${row.prompt}`);
+  }
+  // Adding unlike fractions only adds: taking away is the next lesson.
+  for (const row of getWorksheet('add-unlike-fractions')) assert.doesNotMatch(row.prompt, /−/);
+  // Grade 3 counts past one whole; naming mixed numbers is grade 4.
+  for (const q of MISSIONS.find((m) => m.id === 'improper-fractions')!.questions) assert.doesNotMatch(q.prompt, /wholes and a fraction|\d and \d/);
+});
+
+test('find the whole is 5.NF.7b, its practice questions use unit fractions, and the other rows are marked stretch', () => {
+  const lesson = MISSIONS.find((m) => m.id === 'find-the-whole')!;
+  assert.deepEqual(lesson.standards, ['5.NF.7b']);
+  for (const q of lesson.questions.filter((q) => !q.prompt.startsWith('Quick review'))) assert.match(q.prompt, / 1\/\d+ of /, q.prompt);
+  for (const row of getWorksheet('find-the-whole')) {
+    if (!/ 1\/\d+ of /.test(row.prompt)) assert.match(row.hint, /^A stretch question!/, row.prompt);
+  }
+});
+
+test('ruler questions show a ruler with the blue strip they talk about', () => {
+  for (const q of MISSIONS.find((m) => m.id === 'ruler-measurement')!.questions.filter((q) => /blue/.test(q.prompt))) {
+    assert.equal(q.model.kind, 'ruler', q.prompt);
+  }
+});
