@@ -1966,6 +1966,10 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-svg-area polygon.frame { stroke: hsl(var(--foreground)); stroke-width: 3.5; fill: none; pointer-events: none; }
 .fq-svg-area.interactive { width: min(100%, 230px); margin: 4px auto; }
 .fq-svg-area.interactive polygon { cursor: pointer; transition: fill 120ms ease; }
+/* Focus outlines the piece itself, drawn on top of the picture, not the box around it (a wedge's box covers its
+   neighbours). */
+.fq-svg-area.interactive polygon:focus { outline: none; }
+.fq-svg-area.interactive polygon.focus-ring { fill: none; stroke: var(--fq-sky); stroke-width: 5; stroke-linejoin: round; pointer-events: none; }
 .fq-svg-area.interactive polygon.empty:hover { fill: color-mix(in srgb, var(--fq-grape) 18%, hsl(var(--card))); }
 .fq-svg-area.interactive polygon:focus-visible { outline: none; stroke: hsl(var(--ring)); stroke-width: 4; }
 .fq-area-preview { display: flex; justify-content: center; }
