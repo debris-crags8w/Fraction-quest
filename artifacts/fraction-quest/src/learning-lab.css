@@ -55,9 +55,9 @@
 .fq-ruler-tick:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: -2px; border-radius: 8px; }
 .fq-lineplot { overflow-x: auto; }
 .fq-lineplot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(48px, 1fr)); min-width: min(100%, 520px); border-bottom: 3px solid hsl(var(--foreground)); }
-.fq-lineplot-tick { display: grid; grid-template-rows: 80px 14px 22px; justify-items: center; align-items: end; min-width: 0; min-height: 44px; padding: 0 2px; border: 0; border-right: 1px solid hsl(var(--foreground) / .14); background: transparent; color: hsl(var(--foreground)); cursor: pointer; touch-action: manipulation; }
+.fq-lineplot-tick { display: grid; grid-template-rows: 80px 14px 34px; justify-items: center; align-items: end; min-width: 0; min-height: 44px; padding: 0 2px; border: 0; border-right: 1px solid hsl(var(--foreground) / .14); background: transparent; color: hsl(var(--foreground)); cursor: pointer; touch-action: manipulation; }
 .fq-lineplot-tick i { width: 3px; height: 14px; background: hsl(var(--foreground)); }
-.fq-lineplot-tick small { font-size: .72rem; font-weight: 800; white-space: nowrap; }
+.fq-lineplot-tick small { align-self: start; padding-top: 3px; font-size: .9rem; font-weight: 800; white-space: nowrap; }
 .fq-lineplot-xs { display: flex; flex-direction: column-reverse; align-items: center; gap: 1px; min-height: 10px; color: var(--fq-grape); font-size: 1.05rem; line-height: .9; }
 .fq-lineplot-tick:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: -3px; border-radius: 8px; }
 .fq-scale-model input[type="range"] { width: 100%; accent-color: var(--fq-grape); min-height: 36px; }

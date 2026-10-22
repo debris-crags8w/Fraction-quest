@@ -92,8 +92,8 @@ function timesOrShare(p: string): Found | null {
   }
   // Share or fit: "1/2 pound of clay is shared by 3 friends. How much does each get?" (multiplied, flipped, added, not
   // split) and "How many 1/3-cup scoops can be filled from 2 cups of rice?" (added, one whole's worth, multiplied, the wholes).
-  if ((m = /^1\/(\d+) \w+ of \w+ is shared by (\d+) friends\. How much does each get\?$/.exec(p))) {
-    const [b, n] = [N(m[1]), N(m[2])];
+  if ((m = /^1\/(\d+) (?:\w+ of \w+ is shared by (\d+) friends\. How much does each get|of a (\w+) is shared fairly by (\d+) friends\. What part of the whole \3 does each friend get)\?$/.exec(p))) {
+    const [b, n] = [N(m[1]), N(m[2] ?? m[4])];
     return { right: 1 / (b * n), slips: [['timesNotShare', [n, b]], ['upsideDown', [b * n, 1]], ['addedForShare', [1, b + n]], ['notSplit', [1, b]]] };
   }
   if ((m = /^How many 1\/(\d+)-\w+ \w+ can be filled from (\d+) \w+ of \w+\?$/.exec(p))) {
@@ -110,10 +110,11 @@ function timesOrShare(p: string): Found | null {
     const [x, y] = [value(m[1]), value(m[2])];
     return { right: x * y, slips: [['addedSides', x + y], ['oneSide', x], ['oneSide', y], ['wholeGrid', 1], ['notColored', 1 - x * y], ['upsideDown', 1 / (x * y)]] };
   }
-  // Leveling three cups: the total, the biggest or smallest cup, split 2 ways, the tops shared over the cups.
-  if ((m = /^Three \w+(?: \w+)? hold (\d+)\/(\d+), (\d+)\/\2, (\d+)\/\2 liter\. Share the total equally\./.exec(p))) {
-    const [a, b, c, e] = m.slice(1).map(N); const t = a + c + e;
-    return { right: t / (3 * b), slips: [['total', [t, b]], ['oneCup', [Math.max(a, c, e), b]], ['oneCup', [Math.min(a, c, e), b]], ['allCups', [t, 2 * b]], ['sharePieces', [t, 3]], ['sharePieces', [t / 3, b + 3]]] };
+  // Leveling three or six cups: the total, the biggest or smallest cup, split one way too few, the tops shared over the cups.
+  if ((m = /^(Three|Six) \w+(?: \w+)? hold ((?:\d+\/(\d+), )+\d+\/\3) liter\. Share the total equally\./.exec(p))) {
+    const b = N(m[3]); const tops = m[2].split(', ').map((t) => N(t.split('/')[0])); const n = tops.length; const t = tops.reduce((x, y) => x + y, 0);
+    if (n !== (m[1] === 'Six' ? 6 : 3) || m[2].split(', ').some((x) => !x.endsWith(`/${b}`))) return null;
+    return { right: t / (n * b), slips: [['total', [t, b]], ['oneCup', [Math.max(...tops), b]], ['oneCup', [Math.min(...tops), b]], ['allCups', [t, (n - 1) * b]], ['sharePieces', [t, n]], ['sharePieces', [t / n, b + n]]] };
   }
   // Equal portions: "Each runner drinks 5/6 liter. 3 runners. How much in all?" has the slips of 3 × 5/6.
   if ((m = /^Each \w+ (?:drinks|eats|gets|uses) (\d+)\/(\d+)(?: (?!of )\w+)?(?: of [\w ]+)?\. (\d+) \w+\. How (?:much|many \w+) in all\?$/.exec(p))) {
@@ -195,7 +196,7 @@ function equivalence(p: string, right: Amount | null): Found | null {
     return { right: w + a / b, slips: [['wholeAsOne', [w + a, b]], ['leftWholes', [a, b]], ['leftFraction', [w * b, b]], ['timesParts', [w * b * a, b]], ['extraWhole', [w * b + a + b, b]]] };
   }
   // A line plot's longest minus shortest: the longest, the shortest, the two added, the bottoms added, the wrong mark.
-  if (right && (m = /^The line plot shows these [\w ]+ lengths in eighths: ([\d/, ]+) inch\. What is the difference between the longest and shortest\?$/.exec(p))) {
+  if (right && (m = /^(?:The line plot shows these [\w ]+ lengths in eighths|Rain fell on \d+ days): ([\d/, ]+) inch\. (?:What is the difference between the longest and shortest|How much more rain fell on the wettest day than the driest)\?$/.exec(p))) {
     const tops = m[1].split(', ').map((t) => N(t.split('/')[0])).sort((u, v) => u - v);
     const [lo, lo2, hi2, hi] = [tops[0], tops[1], tops[tops.length - 2], tops[tops.length - 1]];
     return { right: (hi - lo) / 8, slips: [['oneLength', [hi, 8]], ['oneLength', [lo, 8]], ['addedLengths', [hi + lo, 8]], ['sameBottom', [hi - lo, 16]], ['wrongMark', [hi2 - lo, 8]], ['wrongMark', [hi - lo2, 8]]] };
@@ -283,6 +284,11 @@ function found(prompt: string, right: Amount | null): Found | null {
   if ((m = /^Fill the blank: (\d+)\/(\d+) \+ \? = 1$/.exec(p))) {
     const [a, b] = [N(m[1]), N(m[2])];
     return { right: (b - a) / b, slips: [['sameAgain', [a, b]], ['addedWhole', [a + b, b]], ['upsideDown', [b, b - a]], ['sameBottom', [b - a, 2 * b]], ['onePart', [1, b]]] };
+  }
+  // "3/10 + 25/100 = ?": the tenths added as hundredths, the denominators added too, or one amount only.
+  if ((m = /^(\d+)\/10 \+ (\d+)\/100 = \?$/.exec(p))) {
+    const [a, b] = [N(m[1]), N(m[2])];
+    return { right: (10 * a + b) / 100, slips: [['tenthsAsHundredths', [a + b, 100]], ['acrossAdd', [a + b, 110]], ['oneAmount', [b, 100]], ['oneAmount', [10 * a, 100]]] };
   }
   // "Sam says 2/4 − 1/4 = 1/8. What is the right answer?": the answer Sam gave is the first slip.
   const said = /^\w+ says (.+) = ([\d /]+)\. What is the right answer\?$/.exec(p);

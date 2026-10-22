@@ -2338,23 +2338,23 @@ describe('unit challenges', () => {
       return value(an, ad) - value(bn, bd);
     })[0],
     'u3-c4': '1/8', 'u3-c5': '9/18',
-    'u4-c1': '3/4', 'u4-c2': '6', 'u4-c3': '5/4', 'u4-c4': '2/5', 'u4-c5': '3',
+    'u4-c1': '3/4', 'u4-c2': '6', 'u4-c3': String([5, 6, 6, 7, 7, 8].filter((q) => q / 4 > 1.5).length), 'u4-c4': '2/5', 'u4-c5': '3',
     'u5-c1': '7/10', 'u5-c2': '2/9', 'u5-c3': '7/8', 'u5-c4': 'Cara', 'u5-c5': '2',
     'u6-c1': '3/6', 'u6-c2': '8', 'u6-c3': '5/14', 'u6-c4': '2', 'u6-c5': '20',
     'u7-c1': '1', 'u7-c2': '2 and 1/4', 'u7-c3': '12', 'u7-c4': '3/8 + 4/8', 'u7-c5': '3',
-    'u8-c1': '7/8', 'u8-c2': '0.3', 'u8-c3': '0.5', 'u8-c4': '2/10 m', 'u8-c5': `${2 + 1 + 1} ${3 + 2 - 4}/4`,
+    'u8-c1': `${30 + 25}/100`, 'u8-c2': '0.3', 'u8-c3': '0.5', 'u8-c4': '2/10 m', 'u8-c5': `${2 + 1 + 1} ${3 + 2 - 4}/4`,
     // Units 9–14: worked out here, not copied from the challenge text.
     'u9-p1': '2/3', 'u9-c1': ['2/4', '3/6', '4/9', '5/10', '6/12'].find((f) => { const [t, b] = f.split('/').map(Number); return t * 2 !== b; })!,
     'u9-c2': String((3 * 20) / 4),
     'u9-c3': ['2/5', '3/7', '4/9', '5/8', '1/3'].find((f) => { const [t, b] = f.split('/').map(Number); return t / b > 0.5 && t / b < 1; })!,
     'u9-c4': ['Ana', 'Ben', 'Cal'][[2 / 3, 3 / 4, 5 / 6].indexOf(Math.max(2 / 3, 3 / 4, 5 / 6))],
-    'u9-c5': ['7/8', '5/6', '9/10', '3/4', '11/12'].sort((a, b) => { const [an, ad] = a.split('/').map(Number); const [bn, bd] = b.split('/').map(Number); return (1 - an / ad) - (1 - bn / bd); })[0],
+    'u9-c5': `${7 - 1}/8`,
     'u10-p1': '1/4', 'u10-c1': String(1.5 + 2.5), 'u10-c2': `${3 + 2}/6`, 'u10-c3': '1 1/2',
     'u10-c4': ['1/3 + 1/4', '2/5 + 1/2', '3/8 + 1/2', '5/6 + 1/2'].find((sum) => sum.split(' + ').reduce((total, f) => { const [t, b] = f.split('/').map(Number); return total + t / b; }, 0) > 1)!, 'u10-c5': '1/4 liter',
     'u11-p1': '6/12', 'u11-c1': String(20 / 4), 'u11-c2': '2/3 × 12', 'u11-c3': '6/12', 'u11-c4': String(30 - 30 / 5 - 30 / 3), 'u11-c5': String(((24 / 4) * 3) / 2),
-    'u12-p1': `${(3 / 4) * 100} cm`, 'u12-c1': '3/4', 'u12-c2': String(4 * 3), 'u12-c3': '1 1/8 m',
+    'u12-p1': `${(3 / 4) * 100} cm`, 'u12-c1': `1/${2 * 4}`, 'u12-c2': String(4 * 3), 'u12-c3': '1 1/8 m',
     'u12-c4': ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'][[2 / 5, 3 / 8, 1 / 3, 3 / 10, 1 / 4].indexOf(Math.max(2 / 5, 3 / 8, 1 / 3, 3 / 10, 1 / 4))],
-    'u12-c5': String(3 * 4 - 5),
+    'u12-c5': `${(1 + 1 + 2 + 4 + 4 + 6) / 6}/8`,
     'u13-p1': '3/10', 'u13-c1': '3/6', 'u13-c2': `${(3 * 2) / 3} cups`,
     'u13-c3': `${3 * 2}/${4 * 3} square meter`,
     'u13-c4': `${12 - 3 - 4}/12`, 'u13-c5': '1 1/8 cups',
@@ -2368,6 +2368,28 @@ describe('unit challenges', () => {
       assert.ok(CHALLENGES[unit][0].figure, `unit ${unit} starts with a picture puzzle`);
       assert.equal(challengeMaxPoints(unit), 22);
     }
+  });
+
+  it('says why each wrong choice is wrong in the line plot, tenths and hundredths, and sharing puzzles', () => {
+    const why = (id: string, choice: string) => {
+      const item = Object.values(CHALLENGES).flat().find((puzzle) => puzzle.id === id)!;
+      return wrongChoiceReason(item.prompt, item.choices, item.correct, item.choices.indexOf(choice));
+    };
+    assert.equal(why('u4-c3', '1'), WHY.otherSide);
+    assert.equal(why('u4-c3', '5'), WHY.onTheLength);
+    assert.equal(why('u4-c3', '6'), WHY.allXs);
+    assert.equal(why('u8-c1', '28/110'), WHY.acrossAdd);
+    assert.equal(why('u8-c1', '28/100'), WHY.tenthsAsHundredths);
+    assert.equal(why('u8-c1', '25/100'), WHY.oneAmount);
+    assert.equal(why('u9-c5', '8/8'), WHY.addedLengths);
+    assert.equal(why('u9-c5', '7/8'), WHY.oneLength);
+    assert.equal(why('u9-c5', '4/8'), WHY.wrongMark);
+    assert.equal(why('u12-c1', '1/6'), WHY.addedForShare);
+    assert.equal(why('u12-c1', '1/2'), WHY.notSplit);
+    assert.equal(why('u12-c1', '4/2'), WHY.timesNotShare);
+    assert.equal(why('u12-c5', '18/8'), WHY.total);
+    assert.equal(why('u12-c5', '6/8'), WHY.oneCup);
+    assert.equal(why('u12-c5', '1/8'), WHY.oneCup);
   });
 
   it('marks independently computed answers as correct', () => {
@@ -2420,10 +2442,10 @@ describe('long problems', () => {
       'u2-c5': ['3/6', '3/4', '3/4'], 'u4-c5': ['6/8 m', '9/8 m', 'Yes'],
       'u5-c4': ['1/4', '1/6', '1/6'], 'u6-c4': ['1/4', '2'],
       'u7-c5': ['6/3', '8/3', '3'], 'u8-c4': ['5/10 m', '2/10 m'], 'u8-c5': ['3', '5/4', '4 1/4'],
-      'u9-c4': ['8/12', '9/12', '10/12'],
+      'u9-c4': ['8/12', '9/12', '10/12'], 'u9-c5': ['7/8', '1/8', '6/8'],
       'u10-c3': ['2 5/4', '1 2/4', '1 1/2'], 'u10-c4': ['More than 1/2', 'More than 1'], 'u10-c5': ['10/12', '4/12 and 3/12', '3/12'],
       'u11-c4': ['6', '10', '14'], 'u11-c5': ['6', '18', '9'],
-      'u12-c3': ['4/8', '2/8', '9/8'], 'u12-c4': ['2/5', '3/8', '2/5'], 'u12-c5': ['4', '12', '7'],
+      'u12-c3': ['4/8', '2/8', '9/8'], 'u12-c4': ['2/5', '3/8', '2/5'], 'u12-c5': ['18/8', '3/8'],
       'u13-c4': ['7', '5', '5/12'], 'u13-c5': ['3/8 cup', '3/4 + 3/8', '9/8'],
       'u14-c3': ['85/100', '85%'], 'u14-c4': ['40%', '30%', '30%'], 'u14-c5': ['7/10', '3/10', '30%'],
       'u15-c3': ['4', '20'], 'u15-c4': ['9', '27', '18'], 'u15-c5': ['6/8', '6'],

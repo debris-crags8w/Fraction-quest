@@ -144,26 +144,28 @@ export const gradeForStandard = (standard: string): 3 | 4 | 5 | null => {
   return grade === 3 || grade === 4 || grade === 5 ? grade : null;
 };
 
-/** Challenge questions are tagged with the standards their unit's puzzles practise; they do not alone establish mastery. */
-export const UNIT_CHALLENGE_STANDARDS: Record<number, StandardId[]> = {
-  1: ['3.NF.1', '3.G.2'],
-  2: ['3.NF.3d'],
-  3: ['3.NF.3d'],
-  4: ['3.NF.2a', '3.NF.2b'],
-  5: ['3.NF.3d', '4.NF.2'],
-  6: ['3.NF.3a', '3.NF.3b', '4.NF.1'],
-  7: ['3.NF.3c', '4.NF.3b', '4.NF.3c'],
-  8: ['4.NF.3a', '4.NF.3c', '4.NF.3d', '4.NF.6', '4.NF.7'],
-  9: ['4.NF.1', '4.NF.2'],
-  10: ['4.NF.3c', '5.NF.1', '5.NF.2'],
-  11: ['5.NF.4a', '5.NF.5', '5.NF.6'],
-  12: ['5.MD.1', '5.NF.1', '5.NF.2', '5.NF.3', '5.NF.7b', '5.NF.7c'],
-  13: ['4.NF.4b', '4.NF.4c', '5.NF.4b', '5.NF.6'],
-  14: ['4.NF.3d', '4.NF.6', '4.NF.7'],
-  15: ['4.NF.3a', '5.NF.2', '5.NF.6'],
+/** What each Unit challenge puzzle asks about, puzzle by puzzle, from what the course has taught by the end of its unit.
+    The chance puzzles (u13) go past the grade 3–5 fraction standards, so they carry none. A puzzle alone does not establish mastery. */
+export const CHALLENGE_STANDARDS: Record<string, StandardId[]> = {
+  'u1-p1': ['3.NF.1', '3.G.2'], 'u1-c1': ['3.NF.1'], 'u1-c2': ['3.NF.1'], 'u1-c3': ['3.NF.1'], 'u1-c4': ['3.NF.1'], 'u1-c5': ['3.NF.1'],
+  'u2-p1': ['3.NF.1'], 'u2-c1': ['3.NF.3d'], 'u2-c2': ['3.NF.3d'], 'u2-c3': ['3.NF.3d'], 'u2-c4': ['3.NF.3d'], 'u2-c5': ['3.NF.3d'],
+  'u3-p1': ['3.NF.3d', '4.NF.2'], 'u3-c1': ['4.NF.2'], 'u3-c2': ['4.NF.2'], 'u3-c3': ['4.NF.2'], 'u3-c4': ['4.NF.2'], 'u3-c5': ['4.NF.2'],
+  'u4-p1': ['3.NF.2a'], 'u4-c1': ['3.NF.2a'], 'u4-c2': ['3.NF.2b'], 'u4-c3': ['3.MD.4'], 'u4-c4': ['3.NF.2a'], 'u4-c5': ['3.NF.2b'],
+  'u5-p1': ['3.NF.3d'], 'u5-c1': ['3.NF.3d'], 'u5-c2': ['3.NF.3d'], 'u5-c3': ['4.NF.2'], 'u5-c4': ['4.NF.2'], 'u5-c5': ['3.NF.3d', '4.NF.2'],
+  'u6-p1': ['3.NF.3b'], 'u6-c1': ['3.NF.3a'], 'u6-c2': ['4.NF.1'], 'u6-c3': ['3.NF.3a', '4.NF.1'], 'u6-c4': ['3.NF.3b'], 'u6-c5': ['4.NF.1'],
+  'u7-p1': ['4.NF.3b'], 'u7-c1': ['4.NF.3b'], 'u7-c2': ['4.NF.3b'], 'u7-c3': ['3.NF.3c'], 'u7-c4': ['4.NF.3b'], 'u7-c5': ['4.NF.3b'],
+  'u8-p1': ['4.NF.6'], 'u8-c1': ['4.NF.5'], 'u8-c2': ['4.NF.6'], 'u8-c3': ['4.NF.7'], 'u8-c4': ['4.NF.3d'], 'u8-c5': ['4.NF.3c'],
+  'u9-p1': ['4.NF.1'], 'u9-c1': ['4.NF.1'], 'u9-c2': ['4.NF.1'], 'u9-c3': ['4.NF.2'], 'u9-c4': ['4.NF.2'], 'u9-c5': ['4.MD.4'],
+  'u10-p1': ['5.NF.1'], 'u10-c1': ['4.NF.3c'], 'u10-c2': ['5.NF.1'], 'u10-c3': ['4.NF.3c'], 'u10-c4': ['5.NF.2'], 'u10-c5': ['5.NF.2', '4.MD.2'],
+  'u11-p1': ['5.NF.4a'], 'u11-c1': ['5.NF.4a'], 'u11-c2': ['5.NF.5'], 'u11-c3': ['5.NF.4a'], 'u11-c4': ['5.NF.4a'], 'u11-c5': ['5.NF.4a'],
+  'u12-p1': ['5.MD.1'], 'u12-c1': ['5.NF.7a'], 'u12-c2': ['5.NF.7b', '5.NF.7c'], 'u12-c3': ['5.NF.1', '4.MD.2'], 'u12-c4': ['5.NF.3'], 'u12-c5': ['5.MD.2'],
+  'u13-p1': [], 'u13-c1': [], 'u13-c2': ['4.NF.4b', '4.NF.4c'], 'u13-c3': ['5.NF.4b'], 'u13-c4': [], 'u13-c5': ['5.NF.6'],
+  'u14-p1': ['4.NF.6'], 'u14-c1': ['4.NF.1'], 'u14-c2': ['4.NF.7'], 'u14-c3': ['4.NF.1'], 'u14-c4': ['4.NF.3d', '4.NF.6'], 'u14-c5': ['4.NF.3d'],
+  'u15-p1': ['5.NF.6'], 'u15-c1': ['5.NF.6'], 'u15-c2': ['4.NF.3a'], 'u15-c3': ['5.NF.6'], 'u15-c4': ['5.NF.6', '5.NF.2'], 'u15-c5': ['4.NF.1', '4.NF.4a'],
 };
 
 export const standardsForChallenge = (challengeId: string): StandardId[] => {
-  const unit = Number(/^u(\d+)-/.exec(challengeId)?.[1]);
-  return UNIT_CHALLENGE_STANDARDS[unit] ?? [];
+  const standards = CHALLENGE_STANDARDS[challengeId];
+  if (!standards) throw new Error(`Missing challenge standards: ${challengeId}`);
+  return standards;
 };
