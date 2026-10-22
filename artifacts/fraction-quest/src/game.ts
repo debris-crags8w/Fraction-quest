@@ -413,7 +413,7 @@ const curriculum: MissionSeed[] = [
       practice('Is this strip cut into thirds?', ['Yes, 3 equal parts', 'No, the parts are unequal', 'No, there are 2 parts', 'Yes, there are 3 parts'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Thirds are 3 parts, all the same size. Compare the parts.', 'One part is twice as big as the others, so these are not thirds.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
       practice('A sandwich is cut into 4 equal parts. What is 1 part?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), 'Count all the equal parts for the denominator.', 'The denominator is all 4 parts. You have 1.', bars({ numerator: 1, denominator: 2 })),
       practice('This ribbon is cut into 2 parts. Are the parts equal halves?', ['Yes, same-size parts', 'No, one part is bigger', 'No, halves need 3 parts', 'No, they are different colors'], 0, { kind: 'partition', parts: [50, 50] }, 'Halves are 2 parts of the same size.', '2 parts are halves only if they are the same size. These are.', { kind: 'partition', parts: [50, 50] }),
-      practice('A strip has 3 equal parts. What is 1 part?', ['one third', 'one half', 'three wholes', 'one fourth'], 0, bars({ numerator: 1, denominator: 3 }), '1 part out of 3 equal parts.', '1 of 3 equal parts is one third, or 1/3.', bars({ numerator: 1, denominator: 2 })),
+      practice('A strip has 3 equal parts. What is 1 part?', ['one third', 'one half', 'three wholes', 'one fourth'], 0, bars({ numerator: 1, denominator: 3 }), 'How many equal parts make the strip?', '1 of 3 equal parts is one third, or 1/3.', bars({ numerator: 1, denominator: 2 })),
     ],
   },
   {
@@ -428,7 +428,7 @@ const curriculum: MissionSeed[] = [
       practice('In 2/6, what does the 6 mean?', ['6 equal parts in all', '6 parts are shaded', '6 wholes', '6 parts not shaded'], 0, bars({ numerator: 2, denominator: 6 }), 'Look at the denominator.', 'The denominator is the number of equal parts in all.', bars({ numerator: 1, denominator: 3 })),
       practice('A tray has 6 spaces. 4 have a snack. What fraction have a snack?', ['6/4', '4/6', '4/4'], 1, bars({ numerator: 4, denominator: 6 }), 'The numerator is the number of spaces with a snack. The denominator is the number of spaces in all.', 'The numerator is 4 spaces with a snack. The denominator is 6 spaces in all.', bars({ numerator: 1, denominator: 2 })),
       practice('In 5/8, how many parts are counted?', ['8', '5', '13'], 1, bars({ numerator: 5, denominator: 8 }), 'Look at the numerator.', 'The numerator is 5. So 5 parts are counted.', bars({ numerator: 2, denominator: 4 })),
-      practice('A shape has 8 equal parts. 1 is colored. What fraction is colored?', ['1/8', '8/1', '1/7'], 0, bars({ numerator: 1, denominator: 8 }), '1 colored part out of 8.', 'The denominator is all 8 equal parts. The numerator is the 1 colored part.', bars({ numerator: 1, denominator: 4 })),
+      practice('A shape has 8 equal parts. 1 is colored. What fraction is colored?', ['1/8', '8/1', '1/7'], 0, bars({ numerator: 1, denominator: 8 }), 'Count all the equal parts first.', 'The denominator is all 8 equal parts. The numerator is the 1 colored part.', bars({ numerator: 1, denominator: 4 })),
     ],
   },
   {
@@ -500,7 +500,7 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 3, denominator: 8 }, { numerator: 1, denominator: 2 }),
     },
     questions: [
-      practice('Which is more than 1/2?', ['2/6', '3/4', '1/4'], 1, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 2, denominator: 6, named: true }, { numerator: 3, denominator: 4, named: true }, { numerator: 1, denominator: 4, named: true }), 'Half of 4 is 2. Is 3 more than 2?', '3/4 is more than half. The others are less.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is more than 1/2?', ['2/6', '3/4', '1/4'], 1, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 2, denominator: 6, named: true }, { numerator: 3, denominator: 4, named: true }, { numerator: 1, denominator: 4, named: true }), 'Find half of each denominator. Which numerator is bigger than that?', '3/4 is more than half. The others are less.', bars({ numerator: 1, denominator: 2 })),
       practice('Is 1/3 more or less than 1/2?', ['Less than 1/2', 'Equal to 1/2', 'More than 1/2'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 2 }), 'Half of 3 is 1 and a half.', '1 is less than 1 and a half. So 1/3 is less than half.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is closest to 1/2?', ['5/8', '1/6', '7/8'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 5, denominator: 8 }, { numerator: 1, denominator: 6 }, { numerator: 7, denominator: 8 }), 'Half of 8 is 4. Which is nearest to half?', '5/8 is just over half. The others are farther from half.', bars({ numerator: 1, denominator: 2 })),
       practice('A jug is 4/6 full. Is that more or less than half?', ['More than half', 'Less than half', 'Exactly half'], 0, bars({ numerator: 4, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Half of 6 is 3.', '4 is more than 3. So 4/6 is more than half.', bars({ numerator: 1, denominator: 2 })),
@@ -530,10 +530,10 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 2, denominator: 6 }, { numerator: 1, denominator: 2 }),
     },
     questions: [
-      practice('Which is just a little less than 1/2?', ['3/8', '1/8', '7/8'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 3, denominator: 8, named: true }, { numerator: 1, denominator: 8, named: true }, { numerator: 7, denominator: 8, named: true }), 'Half of 8 is 4. 3 is close.', '3/8 is just under half.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is just a little less than 1/2?', ['3/8', '1/8', '7/8'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 3, denominator: 8, named: true }, { numerator: 1, denominator: 8, named: true }, { numerator: 7, denominator: 8, named: true }), 'Half of 8 is 4. Which numerator is just under 4?', '3/8 is just under half.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fraction is a little more than 1/2?', ['3/8', '5/8', '1/6'], 1, bars({ numerator: 5, denominator: 8 }, { numerator: 1, denominator: 2 }), 'Half of 8 is 4. Which is a bit more?', '5/8 is just over half. The others are under.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fraction is closest to 1?', ['7/8', '2/8', '3/8'], 0, bars({ numerator: 7, denominator: 8 }, { numerator: 2, denominator: 8 }, { numerator: 3, denominator: 8 }), 'Which numerator is closest to 8?', '7/8 is just 1 part away from one whole.', bars({ numerator: 1, denominator: 2 })),
-      practice('About how much is 1/8 + 1/8 + 1/8 + 1/8?', ['About 1/2', 'About 1/4', 'About one whole', 'About 4 wholes'], 0, bars({ numerator: 4, denominator: 8 }), '4 eighths is halfway.', '4/8 is the same as 1/2.', bars({ numerator: 2, denominator: 4 })),
+      practice('Four 1/8 parts make what?', ['Exactly 1/2', 'Exactly 1/4', 'One whole', '4 wholes'], 0, bars({ numerator: 4, denominator: 8 }), 'How many eighths make half of 8 eighths?', '4/8 is the same as 1/2.', bars({ numerator: 2, denominator: 4 })),
     ],
   },
   {

@@ -2801,7 +2801,9 @@ describe('quality audit fixes', () => {
       const mixedInPrompt = [...p.prompt.matchAll(/(\d+) (\d+)\/(\d+)/g)].some(([, w, t, b]) => (Number(w) * Number(b) + Number(t)) * p.model!.d === p.model!.n * Number(b));
       // A decimal in the question drawn as hundredths (0.3 shown as 30/100) also matches.
       const decimalInPrompt = [...p.prompt.matchAll(/\d*\.\d+/g)].some(([text]) => Math.abs(Number(text) - p.model!.n / p.model!.d) < 1e-9);
-      const mentioned = p.prompt.includes(shown) || sameValue || mixedInPrompt || decimalInPrompt || /this|dot|shaded|of \d+/i.test(p.prompt) || p.model.kind === 'set';
+      // A fraction in the question drawn in the shared parts (2/5 shown as 6/15 to add to 1/3) also matches.
+      const renamedInPrompt = [...p.prompt.matchAll(/(?<![\d ])(\d+)\/(\d+)/g)].some(([, t, b]) => Number(t) * p.model!.d === p.model!.n * Number(b));
+      const mentioned = p.prompt.includes(shown) || sameValue || renamedInPrompt || mixedInPrompt || decimalInPrompt || /this|dot|shaded|of \d+/i.test(p.prompt) || p.model.kind === 'set';
       assert.ok(mentioned, `${mission.id}/${p.id}: picture ${shown} does not match "${p.prompt}"`);
     }
   });
@@ -4189,7 +4191,7 @@ describe('question pictures match the question', () => {
       const asked = amountsIn(sum[1]).map(({ numerator, denominator }) => `${numerator}/${denominator}`);
       assert.deepEqual(question.model.bars.map(({ numerator, denominator }) => `${numerator}/${denominator}`), asked, question.prompt);
     }
-    assert.ok(seen.some((prompt) => prompt.includes('2 3/5 − 1 1/2')), 'the 2 3/5 − 1 1/2 checkpoint is checked');
+    assert.ok(seen.some((prompt) => /Then \d+ \d+\/\d+ [+−]/.test(prompt)), 'a mixed-number renaming question is checked');
   });
 
   it('a question that says to color pieces gives the child pieces to tap', () => {

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildErrors } from './lab-copy';
-import { getBuildChecks, getBuildPracticeChecks } from './learning-content';
+import { getBuildChecks, getBuildPracticeChecks, getWorksheet } from './learning-content';
+import { LESSON_INTROS } from './lesson-intros';
 import { REASON_SLIPS } from './reason-slips';
 import { getExtraPractice } from './practice-bank';
 import { MISSIONS } from './game';
@@ -40,4 +41,26 @@ test('"You can\'t tell" is only the answer when the bigger share is of the small
       assert.ok(Number(m[1]) > Number(m[2]), q.prompt);
     }
   }
+});
+
+test('adding unlike fractions fades the renaming step: written out early, found by the child later', () => {
+  for (const id of ['add-unlike-fractions', 'mixed-unlike-operations']) {
+    const sheet = getWorksheet(id);
+    assert.ok(sheet.slice(0, 6).some((row) => row.prompt.startsWith('Rename:')), `${id}: early rows show the renaming`);
+    for (const row of sheet.slice(6)) {
+      assert.doesNotMatch(row.prompt, /Rename:/, `${id}: ${row.prompt}`);
+      assert.match(row.hint, /List multiples/, `${id}: ${row.hint}`);
+    }
+    // The lesson's last question (its checkpoint) asks without the renaming written out.
+    const lesson = MISSIONS.find((mission) => mission.id === id)!;
+    assert.doesNotMatch(lesson.questions[lesson.questions.length - 1].prompt, /Rename:/, id);
+  }
+});
+
+test('the lessons the review found teaching too little now show each step before asking', () => {
+  assert.ok(LESSON_INTROS['fraction-of-length'].steps.some((step) => /12 ÷ 4/.test(step)));
+  assert.ok(LESSON_INTROS['ruler-measurement'].steps.some((step) => /Past 1 inch/.test(step)));
+  const [length] = getBuildChecks('fraction-of-length');
+  assert.equal(length.target.kind, 'set');
+  assert.equal(length.target.total, 12);
 });
