@@ -184,6 +184,8 @@ const RULES: Rule[] = [
   { name: 'equal groups', re: /^(\d+) (\w+) are shared into (\d+) equal groups\. How many \2 are in (one|\d+) groups?\?$/,
     solve: (m) => ({ value: N(m[1]) / N(m[3]) * (m[4] === 'one' ? 1 : N(m[4])) }) },
   { name: 'ribbon fraction of length', re: /^A ribbon is (\d+) (?:meters|m) long\. How long is (\d+)\/(\d+) of it\?$/, solve: (m) => ({ value: N(m[1]) / N(m[3]) * N(m[2]) }) },
+  { name: 'share part of a thing', re: /^(\d+\/\d+) of a (\w+) is shared fairly by (\d+) friends\. What part of the whole \2 does each friend get\?$/,
+    solve: (m) => ({ value: frac(m[1]) / N(m[3]) }) },
   { name: 'fair share', re: /^(\d+) (?:loaf is|loaves are|pizza is|pizzas are) shared fairly by (\d+) friends\. (?:How much (?:pizza )?does each friend get\?|Build how much one friend gets\.)$/,
     solve: (m) => ({ value: N(m[1]) / N(m[2]) }) },
   { name: 'friends share a bar', re: /^(\d+) friends share this bar fairly\. Shade one friend's share\. What fraction is it\?$/, solve: (m) => ({ value: 1 / N(m[1]) }) },
@@ -227,11 +229,13 @@ const RULES: Rule[] = [
   { name: 'two lengths together (build)', re: /^Two \w+ are (\d+\/\d+) and (\d+\/\d+) inch\. Show how long they are together\.$/, solve: (m) => ({ value: frac(m[1]) + frac(m[2]) }) },
   { name: 'line plot count', re: /^(?:Plot these|The line plot shows these) ribbon lengths: (.+) inch\. How many ribbons are (\d+\/\d+) inch long\?$/,
     solve: (m) => ({ value: m[1].split(', ').filter((x) => near(frac(x), frac(m[2]))).length }) },
-  { name: 'line plot difference', re: /^(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths: (.+) inch\. What is the difference between the longest and shortest\?$/,
+  { name: 'line plot difference', re: /^(?:(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths|Rain fell on \d+ days): (.+) inch\. (?:What is the difference between the longest and shortest|How much more rain fell on the wettest day than the driest)\?$/,
     solve: (m) => { const v = m[1].split(', ').map(frac); return { value: Math.max(...v) - Math.min(...v) }; } },
   // Plot in eighths: the lengths are in the question, so the plot is worked out from them.
   { name: 'line plot how many more', re: /^(?:(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths|[A-Z]\w+): (.+) inch\. (?:Plot them\. )?How many (?:\w+ )?more are (\d+\/\d+) inch than (\d+\/\d+) inch\?$/,
     solve: (m) => { const v = m[1].split(', ').map(frac); const at = (x: string) => v.filter((y) => near(y, frac(x))).length; return { value: at(m[2]) - at(m[3]) }; } },
+  { name: 'line plot longer than (quarters)', re: /^The line plot shows \w+ lengths: ([\d/ ,]+) inches\. How many \w+ are longer than ([\d/ ]+) inches\?$/,
+    solve: (m) => ({ value: m[1].split(', ').map(valueOf).filter((y) => y > valueOf(m[2]) && !near(y, valueOf(m[2]))).length }) },
   { name: 'line plot longer than', re: /^(?:(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths|[A-Z]\w+): (.+) inch\. (?:Plot them\. )?How many (?:\w+ )?are longer than (\d+\/\d+) inch\?$/,
     solve: (m) => ({ value: m[1].split(', ').map(frac).filter((y) => y > frac(m[2]) && !near(y, frac(m[2]))).length }) },
   { name: 'line plot two shortest', re: /^(?:(?:Plot these|The line plot shows these) [\w ]+ lengths in eighths|[A-Z]\w+): (.+) inch\. (?:Plot them\. )?How long are the two shortest together\?$/,
@@ -254,8 +258,9 @@ const RULES: Rule[] = [
       return { value: m[3] === 'adds' ? start + N(m[4]) : start - N(m[4]) }; } },
   { name: 'feet in inches (build)', re: /^A (?:ribbon|rope) is (\d+ \d+\/\d+) feet long\. Show it in inches(?:, 12 to a foot|: each bar is 1 foot of 12 inches)\.$/,
     solve: (m) => ({ value: valueOf(m[1]) }) },
-  { name: 'line plot level', re: /^Three [\w ]+ hold (.+) liter\. (?:Plot them, then share|Share) the total equally\. How many liters go in each\?$/,
-    solve: (m) => { const v = m[1].split(', ').map(frac); return { value: v.reduce((a, b) => a + b, 0) / 3 }; } },
+  { name: 'line plot level', re: /^(Three|Six) [\w ]+ hold (.+) liter\. (?:Plot them, then share|Share) the total equally\. How many liters go in each\?$/,
+    solve: (m) => { const v = m[2].split(', ').map(frac); const n = m[1] === 'Six' ? 6 : 3;
+      return v.length === n ? { value: v.reduce((a, b) => a + b, 0) / n } : `${m[1].toLowerCase()} amounts named but ${v.length} listed`; } },
 
   // --- naming, renaming and equivalence
   { name: 'simplest form', re: /^Write (\d+\/\d+) in simplest form\.$/, solve: (m) => ({ value: frac(m[1]), simplest: true }) },

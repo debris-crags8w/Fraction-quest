@@ -163,7 +163,7 @@ export function LinePlotInteraction({ task, onReady, disabled, checkIn = false }
              }}>
             <span className="fq-lineplot-xs" aria-hidden="true">{Array.from({ length: marks[i] }, (_, j) => <b key={j}>×</b>)}</span>
             <i />
-            <small>{rulerLabel(i, task.denominator)}</small>
+            <small><MathText text={rulerLabel(i, task.denominator)} /></small>
           </button>
         ))}
       </div>

@@ -1,6 +1,7 @@
 import React, { type CSSProperties, type ReactNode } from 'react';
 import type { ChallengeFigure } from './challenges';
 import { FoldIllustration } from './PaperFold';
+import { LinePlotPicture } from './line-plot-picture';
 import { sayFraction } from './lib/voice';
 
 /* Shared drawings for the two core fraction models (plus sets), used on screen and on paper.
@@ -210,6 +211,7 @@ export function ChallengeFigureView({ figure }: { figure: ChallengeFigure }) {
   }
   if (figure.kind === 'line') return <LineSvg n={figure.n} d={figure.d} jumps={false} label="Number line from 0 to 1 with a dot" />;
   if (figure.kind === 'fold') return <FoldIllustration folds={figure.folds} />;
+  if (figure.kind === 'lineplot') return <LinePlotPicture denominator={figure.denominator} wholes={figure.wholes} values={figure.values} />;
   return (
     <div className="fq-figure-bars">
       {figure.bars.map((bar, i) => (

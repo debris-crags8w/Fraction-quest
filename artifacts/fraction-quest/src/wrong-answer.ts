@@ -74,7 +74,9 @@ export function wrongChoiceReason(prompt: string, choices: string[], correct: nu
   if (compared) return compared;
   // A real mistake the question's wrong choices were made from (misconceptions.ts, fraction-slips.ts).
   const why = slipReason(prompt, right, pick);
-  return why ? WHY[why] : null;
+  if (why) return WHY[why];
+  // A line plot count with no known slip behind it: count again.
+  return /line plot.*how many/.test(p) && /^\d+$/.test(pick) ? WHY.countMarks : null;
 }
 
 const SIGN = /^(.+?) ([<>=]) (.+?)(?: ([<>=]) (.+))?$/;
@@ -115,7 +117,6 @@ function comparisonReason(prompt: string, pick: string, right: string): string |
   if (/^which (?:sum|adds up)/.test(p) && / \+ /.test(pick)) return WHY.sumCheck;
   if (/between which two whole numbers/.test(p)) return WHY.betweenWholes;
   if (/which length has the most xs\?$/.test(p)) return WHY.mostXs;
-  if (/line plot.*how many/.test(p) && /^\d+$/.test(pick)) return WHY.countMarks;
   // Benchmarks: "Which is closest to 1/2?", "Which is more than 1/2?", "Which fits between 2/8 and 6/8?"
   const v = answerValue(pick);
   if (!/^which\b/.test(p) || !Number.isFinite(v)) return null;

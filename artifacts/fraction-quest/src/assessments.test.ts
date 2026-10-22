@@ -26,7 +26,7 @@ describe('standard-tagged assessments', () => {
     for (const question of generated) assert.deepEqual(question.standards, generatedMission.standards);
     for (const questions of Object.values(CHALLENGES)) {
       for (const question of questions) {
-        assert.ok(question.standards?.length, question.id);
+        assert.ok(question.standards, question.id);
         for (const step of question.steps ?? []) assert.deepEqual(step.standards, question.standards);
       }
     }

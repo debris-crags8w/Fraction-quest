@@ -8,7 +8,8 @@ export type ChallengeFigure =
   | { kind: 'dots'; rows: number; cols: number; shaded: number[] }
   | { kind: 'bars'; bars: { n: number; d: number; label?: string }[] }
   | { kind: 'line'; n: number; d: number }
-  | { kind: 'fold'; folds: number[] };
+  | { kind: 'fold'; folds: number[] }
+  | { kind: 'lineplot'; denominator: number; wholes: number; values: number[] };
 
 /** One small step of a guided walk-through for a long word problem. */
 export type ChallengeStep = { prompt: string; choices: [string, string, string, string]; correct: number; standards?: string[] };
@@ -75,7 +76,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u4-p1', 3, 'What fraction is at the dot?', ['2/5', '3/5', '3/4', '4/5'], 1, '0 to 1 has 5 equal spaces. The dot is 3 spaces from 0.', { kind: 'line', n: 3, d: 5 }),
     q('u4-c1', 3, 'The line from 0 to 1 has 4 equal jumps. You make 3 jumps from 0. Where do you land?', ['1/4', '3/4', '4/3', '3'], 1, 'Each jump is 1/4. 3 jumps is 3/4.'),
     q('u4-c2', 3, 'A frog jumps 1/3 each time. How many jumps to get from 0 to 2?', ['2', '3', '5', '6'], 3, '3 jumps reach 1. 3 more reach 2. That is 6.'),
-    q('u4-c3', 4, 'Which fraction is between 1 and 2 on the number line?', ['3/4', '4/4', '5/4', '8/4'], 2, '4/4 is 1 and 8/4 is 2. 5/4 is in between.'),
+    q('u4-c3', 4, 'The line plot shows leaf lengths: 1 1/4, 1 2/4, 1 2/4, 1 3/4, 1 3/4, 2 inches. How many leaves are longer than 1 2/4 inches?', ['1', '3', '5', '6'], 1, '1 3/4, 1 3/4 and 2 are longer than 1 2/4. That is 3 leaves.', { kind: 'lineplot', denominator: 4, wholes: 2, values: [5, 6, 6, 7, 7, 8] }),
     q('u4-c4', 4, 'Point A is at 2/5. Point B is at 4/5. How far apart are they?', ['1/5', '2/5', '3/5', '4/5'], 1, 'From 2/5 to 4/5 is 2 jumps of 1/5.'),
     q('u4-c5', 5, 'A snail climbs 3/8 m each day. After how many days has it climbed more than 1 m?', ['2', '3', '4', '5'], 1, 'Day 2: 6/8. Day 3: 9/8. 9/8 is more than 1.', undefined, [
       step('The snail climbs 3/8 m a day. How far after 2 days?', ['3/8 m', '6/8 m', '5/8 m', '9/8 m'], 1),
@@ -120,7 +121,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   ],
   8: [
     q('u8-p1', 3, 'The big square is one whole. What decimal shows the shaded part?', ['0.035', '0.35', '3.5', '35'], 1, '35 of 100 small squares are shaded. That is 0.35.', { kind: 'grid', rows: 10, cols: 10, shaded: Array.from({ length: 35 }, (_, i) => i) }),
-    q('u8-c1', 3, '3/8 + 4/8 = ?', ['7/16', '7/8', '1/8', '12/8'], 1, '3 + 4 = 7. The denominator stays 8.'),
+    q('u8-c1', 3, '3/10 + 25/100 = ?', ['28/110', '55/100', '28/100', '25/100'], 1, '3/10 is 30/100. 30/100 + 25/100 = 55/100.'),
     q('u8-c2', 3, 'Which decimal is the same as 3/10?', ['3.0', '0.03', '0.13', '0.3'], 3, '3 tenths is 0.3.'),
     q('u8-c3', 4, 'Which number is the biggest?', ['0.5', '0.45', '0.4', '0.38'], 0, '0.5 is 0.50. 50 hundredths is the most.'),
     q('u8-c4', 4, 'A ribbon is 9/10 m long. You cut off 4/10 m. Then you cut off 3/10 m. How much is left?', ['1/10 m', '2/10 m', '3/10 m', '5/10 m'], 1, '9 − 4 − 3 = 2. So 2/10 m.', undefined, [
@@ -143,7 +144,11 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
       step('Change 3/4 to twelfths.', ['3/12', '4/12', '9/12', '7/12'], 2),
       step('Change 5/6 to twelfths.', ['5/12', '11/12', '6/12', '10/12'], 3),
     ]),
-    q('u9-c5', 5, 'Which fraction is closest to 1?', ['7/8', '5/6', '9/10', '11/12'], 3, 'Each one is 1 part short of one whole. The smallest part is 1/12, so 11/12 is closest.'),
+    q('u9-c5', 5, 'Rain fell on 6 days: 1/8, 3/8, 3/8, 5/8, 7/8, 7/8 inch. How much more rain fell on the wettest day than the driest?', ['8/8', '7/8', '6/8', '4/8'], 2, 'The wettest day had 7/8 inch and the driest had 1/8 inch. 7/8 − 1/8 = 6/8 inch.', { kind: 'lineplot', denominator: 8, wholes: 1, values: [1, 3, 3, 5, 7, 7] }, [
+      step('What is the most rain on one day?', ['5/8', '1/8', '7/8', '6/8'], 2),
+      step('What is the least rain on one day?', ['1/8', '3/8', '0', '7/8'], 0),
+      step('7/8 − 1/8 = ?', ['8/8', '6/8', '6/16', '7/8'], 1),
+    ]),
   ],
   10: [
     q('u10-p1', 3, 'Bar A shows 3/4. Bar B shows 1/2. How much more of bar A is shaded?', ['1/4', '2/6', '1/8', '3/8'], 0, '1/2 = 2/4. 3/4 − 2/4 = 1/4.', { kind: 'bars', bars: [{ n: 3, d: 4, label: 'A' }, { n: 1, d: 2, label: 'B' }] }),
@@ -182,7 +187,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   ],
   12: [
     q('u12-p1', 3, 'The line is 1 meter long. A snail crawls from 0 to the dot. How far is that?', ['34 cm', '25 cm', '75 cm', '70 cm'], 2, 'The dot is at 3/4. 1 meter is 100 cm, and 3/4 of 100 is 75 cm.', { kind: 'line', n: 3, d: 4 }),
-    q('u12-c1', 3, '3 pizzas are shared fairly by 4 kids. How much pizza does each kid get?', ['4/3', '1/4', '3/4', '3/7'], 2, 'Cut each pizza into 4 parts. Each kid gets 1 part of each pizza: 3/4.'),
+    q('u12-c1', 3, '1/2 of a pizza is shared fairly by 4 friends. What part of the whole pizza does each friend get?', ['1/6', '1/8', '1/2', '4/2'], 1, 'Split the half into 4 equal shares. Each share is 1/8 of the whole pizza.'),
     q('u12-c2', 3, 'How many 1/3 cups of rice fill 4 cups?', ['3', '7', '4', '12'], 3, '3 thirds fill 1 cup. 4 cups need 4 × 3 = 12.'),
     q('u12-c3', 4, 'Three boards are 1/2 m, 3/8 m and 1/4 m long. How long are they together?', ['1 1/8 m', '1 m', '7/8 m', '1 1/4 m'], 0, 'Use eighths: 4/8 + 3/8 + 2/8 = 9/8 = 1 1/8 m.', undefined, [
       step('Change 1/2 to eighths.', ['4/8', '2/8', '1/8', '5/8'], 0),
@@ -194,10 +199,9 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
       step('How much does each kid on Team B get?', ['3/11', '8/3', '3/8', '1/8'], 2),
       step('Use 40ths: 2/5 = 16/40 and 3/8 = 15/40. Which is bigger?', ['3/8', 'Same', '2/5', 'You can\'t tell'], 2),
     ]),
-    q('u12-c5', 5, 'A ribbon is 3 meters long. Kim cuts it into parts that are each 1/4 meter. She uses 5 parts. How many parts are left?', ['3', '12', '7', '8'], 2, 'Each meter makes 4 parts, so 3 meters make 12. 12 − 5 = 7.', undefined, [
-      step('How many 1/4 meter parts are in 1 meter?', ['4', '2', '1', '3'], 0),
-      step('How many are in 3 meters?', ['7', '12', '4', '34'], 1),
-      step('12 − 5 = ?', ['6', '17', '5', '7'], 3),
+    q('u12-c5', 5, 'Six beakers hold 1/8, 1/8, 2/8, 4/8, 4/8, 6/8 liter. Share the total equally. How many liters go in each?', ['18/8', '3/8', '6/8', '1/8'], 1, 'Together they hold 18/8 liter. 18/8 shared by 6 beakers is 3/8 liter in each.', { kind: 'lineplot', denominator: 8, wholes: 1, values: [1, 1, 2, 4, 4, 6] }, [
+      step('Add all six amounts. What is the total?', ['12/8', '18/8', '6/8', '18/48'], 1),
+      step('Share 18/8 liter among 6 beakers. How much goes in each?', ['3/8', '18/8', '12/8', '3/48'], 0),
     ]),
   ],
   13: [

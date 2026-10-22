@@ -4,7 +4,9 @@ import { getAssessmentDefinitions } from './assessments';
 import { EMPTY_PROGRESS, isMissionUnlocked, MISSIONS, type Progress } from './game';
 import { getWorksheet } from './learning-content';
 import { emptyLearningRecord } from './learning';
-import { FRACTION_STANDARDS, UNIT_CHALLENGE_STANDARDS } from './standard-catalog';
+import { CHALLENGES } from './challenges';
+import { answerValue } from './learning-content';
+import { CHALLENGE_STANDARDS, FRACTION_STANDARDS } from './standard-catalog';
 
 describe('standards map', () => {
   it('teaches, practices and checks every grade 3–5 fraction standard', () => {
@@ -40,12 +42,36 @@ describe('standards map', () => {
     }
   });
 
-  it('tags each unit challenge set with what that unit teaches, and gives every lesson its own name', () => {
-    for (const [unit, standards] of Object.entries(UNIT_CHALLENGE_STANDARDS)) {
-      // Challenges may stretch past the unit, but each unit's set must name something its own lessons teach.
-      const taught = MISSIONS.filter((mission) => mission.unit === Number(unit)).flatMap((mission) => mission.standards ?? []);
-      assert.ok(standards.some((standard) => taught.includes(standard)), `unit ${unit} challenges: ${standards.join(', ')}; its lessons teach ${taught.join(', ')}`);
+  it('asks about every standard in the Unit challenges, and tags each puzzle with what it asks', () => {
+    const puzzles = Object.values(CHALLENGES).flat();
+    assert.deepEqual(Object.keys(CHALLENGE_STANDARDS).sort(), puzzles.map((puzzle) => puzzle.id).sort(), 'one tag list per puzzle');
+    const known = new Set(FRACTION_STANDARDS.map((standard) => standard.id));
+    for (const puzzle of puzzles) for (const standard of puzzle.standards ?? []) assert.ok(known.has(standard as never), `${puzzle.id}: ${standard}`);
+    // Only the chance puzzles go past the grade 3–5 standards.
+    assert.deepEqual(puzzles.filter((puzzle) => !puzzle.standards?.length).map((puzzle) => puzzle.id), ['u13-p1', 'u13-c1', 'u13-c4']);
+    const asked = new Set(puzzles.flatMap((puzzle) => puzzle.standards ?? []));
+    assert.deepEqual(FRACTION_STANDARDS.filter((standard) => !asked.has(standard.id)).map((standard) => standard.id), [], 'standards no challenge asks about');
+    // A puzzle only asks about what the course has taught by the end of its unit.
+    const missing: string[] = [];
+    for (const puzzle of puzzles) {
+      const unit = Number(/^u(\d+)-/.exec(puzzle.id)![1]);
+      const taught = new Set(MISSIONS.filter((mission) => mission.unit <= unit).flatMap((mission) => mission.standards ?? []));
+      for (const standard of puzzle.standards ?? []) if (!taught.has(standard)) missing.push(`${puzzle.id}: ${standard}`);
     }
+    assert.deepEqual(missing, [], 'tags not yet taught by the puzzle\'s unit');
+  });
+
+  it('draws each challenge line plot from the numbers in its puzzle', () => {
+    const plots = Object.values(CHALLENGES).flat().filter((puzzle) => puzzle.figure?.kind === 'lineplot');
+    assert.deepEqual(plots.map((puzzle) => puzzle.id), ['u4-c3', 'u9-c5', 'u12-c5']);
+    for (const puzzle of plots) {
+      if (puzzle.figure?.kind !== 'lineplot') continue;
+      const listed = /(?:: | hold )([\d/ ,]+) (?:inch|inches|liter)\./.exec(puzzle.prompt)![1].split(', ').map(answerValue);
+      assert.deepEqual(puzzle.figure.values.map((tick) => tick / puzzle.figure!.denominator as number), listed, puzzle.id);
+    }
+  });
+
+  it('gives every lesson its own name', () => {
     const titles = MISSIONS.map((mission) => mission.title);
     assert.deepEqual(titles.filter((title, index) => titles.indexOf(title) !== index), [], 'two lessons share a name');
   });

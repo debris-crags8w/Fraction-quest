@@ -74,8 +74,15 @@ function slips(prompt: string): [number, [Why, number][]] | null {
     return [right, [wholes > 1 ? ['oneOfMany', (BIG[unit][1] / b) * a] : a > 1 ? ['oneGroup', per / b] : ['whole', per * a], ['leftPart', per - right], ['whole', per],
       ['timesWhole', a > 1 ? per * a : per * b]]];
   }
+  // A line plot in quarter inches: "How many leaves are longer than 1 1/2 inches?" (the shorter ones, those at that length
+  // too, or every X).
+  if ((m = /^The line plot shows \w+ lengths: ([\d/, ]+) inches\. How many \w+ are longer than ([\d/ ]+) inches\?$/.exec(p))) {
+    const values = m[1].split(', ').map(answerValue); const at = answerValue(m[2]);
+    const count = (keep: (v: number) => boolean) => values.filter(keep).length;
+    return [count((v) => v > at), [['otherSide', count((v) => v < at)], ['allXs', values.length], ['onTheLength', count((v) => v >= at)]]];
+  }
   // Line plots: "How many more are 5/8 inch than 1/8 inch?" (one stack, or both added) and "How many are longer than 4/8
-  // inch?" (the Xs at 4/8 counted too, the shorter ones, or every X).
+  // inch?" (the shorter ones, every X, or the Xs at 4/8 counted too).
   if ((m = /: ([\d/, ]+) inch\. (?:Plot them\. )?How many (?:\w+ )?(?:more are (\d+)\/8 inch than (\d+)\/8 inch|are longer than (\d+)\/8 inch)\?$/.exec(p))) {
     const values = m[1].split(', ').map((t) => N(t.split('/')[0]));
     const count = (keep: (v: number) => boolean) => values.filter(keep).length;
@@ -84,7 +91,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
       return [x - y, [['oneStack', x], ['oneStack', y], ['addedLengths', x + y]]];
     }
     const at = N(m[4]);
-    return [count((v) => v > at), [['otherSide', count((v) => v < at)], ['allXs', values.length], ['otherSide', count((v) => v >= at)]]];
+    return [count((v) => v > at), [['otherSide', count((v) => v < at)], ['allXs', values.length], ['onTheLength', count((v) => v >= at)]]];
   }
   // Two-step conversions: "A ribbon is 2 1/2 feet long. Pip cuts off 8 inches. How many inches are left?" The start in small
   // units, the other operation, the wrong number of small units in a big one, the fraction part left out.

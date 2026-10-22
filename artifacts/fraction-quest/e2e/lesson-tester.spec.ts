@@ -73,6 +73,27 @@ test('Unit challenge opens the challenge in an isolated test', async ({ page }) 
   await expect(page.getByTestId('tester-unit-12')).toBeInViewport();
 });
 
+test('a Unit challenge line plot puzzle shows its plot and says why a wrong count is wrong', async ({ page }) => {
+  await openTester(page);
+  await page.getByTestId('button-tester-challenge-4').click();
+  const letters = ['A', 'B', 'C', 'D'];
+  for (const item of CHALLENGES[4].slice(0, 3)) {
+    await page.getByTestId(`button-challenge-${item.id}-${letters[item.correct]}`).click();
+    await page.getByTestId('button-challenge-check').click();
+    await page.getByTestId('button-challenge-next').click();
+  }
+  const plot = page.getByTestId('line-plot-picture');
+  await expect(plot).toHaveAttribute('aria-label', 'Line plot: 1 at 1 1/4, 2 at 1 2/4, 2 at 1 3/4, 1 at 2');
+  // Picking 5 counts the leaves right on 1 2/4 inches too.
+  await page.getByTestId('button-challenge-u4-c3-C').click();
+  await page.getByTestId('button-challenge-check').click();
+  await expect(page.getByTestId('status-challenge-feedback')).toContainText('Longer than means past that length.');
+  await page.setViewportSize({ width: 390, height: 844 });
+  const box = await plot.boundingBox();
+  expect(box && box.x >= 0 && box.x + box.width <= 390).toBeTruthy();
+  await page.screenshot({ path: test.info().outputPath('challenge-line-plot.png') });
+});
+
 test('a Tested tick stays after a reload and updates the unit count; Clear ticks resets them', async ({ page }) => {
   await openTester(page);
   const total = MISSIONS.filter((m) => m.unit === 9).length;

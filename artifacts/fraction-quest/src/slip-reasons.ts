@@ -129,6 +129,7 @@ export const WHY = {
   allXs: 'That counts every X. Count only the ones asked about.',
   twoLongest: 'Those are the longest. Use the two shortest.',
   mostXs: 'Look for the tallest stack of Xs.',
+  onTheLength: 'Longer than means past that length. Leave out the Xs right on it.',
   wrongPer: 'Check how many small units are in one big unit.',
   eachSpotOnce: 'Each X counts. Add the amount again for every X in a stack.',
   countedXs: 'That counts the Xs. Add the amounts they stand for.',

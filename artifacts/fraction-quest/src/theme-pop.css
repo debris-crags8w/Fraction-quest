@@ -2444,12 +2444,12 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-lineplot-pic { width: 100%; max-width: 520px; margin: 0 auto; }
 .fq-lineplot-pic-grid { position: relative; display: grid; }
 /* The number line runs along the foot of the tick marks, above the labels. */
-.fq-lineplot-pic-grid::after { content: ''; position: absolute; left: 0; right: 0; bottom: 20px; height: 3px; background: hsl(var(--foreground)); }
-.fq-lineplot-pic-tick { display: grid; grid-template-rows: 76px 12px 20px; justify-items: center; align-items: end; min-width: 0; }
-.fq-lineplot-pic-tick span { display: flex; flex-direction: column-reverse; align-items: center; gap: 2px; padding-bottom: 2px; color: var(--fq-grape); font-size: 1.2rem; font-weight: 800; line-height: .85; }
+.fq-lineplot-pic-grid::after { content: ''; position: absolute; left: 0; right: 0; bottom: 34px; height: 3px; background: hsl(var(--foreground)); }
+.fq-lineplot-pic-tick { display: grid; grid-template-rows: 76px 12px 34px; justify-items: center; align-items: end; min-width: 0; }
+.fq-lineplot-pic-tick > span { display: flex; flex-direction: column-reverse; align-items: center; gap: 2px; padding-bottom: 2px; color: var(--fq-grape); font-size: 1.2rem; font-weight: 800; line-height: .85; }
 .fq-lineplot-pic-tick i { width: 3px; height: 12px; background: hsl(var(--foreground)); }
-.fq-lineplot-pic-tick small { font-size: .68rem; font-weight: 800; white-space: nowrap; }
-@media print { .fq-lineplot-pic-tick span { color: #000; } }
+.fq-lineplot-pic-tick small { align-self: start; padding-top: 3px; font-size: .9rem; font-weight: 800; white-space: nowrap; }
+@media print { .fq-lineplot-pic-tick > span { color: #000; } }
 
 /* Garden plan (Multiply mixed numbers): a garden drawn to scale, its four parts in four soft colors. */
 :root {

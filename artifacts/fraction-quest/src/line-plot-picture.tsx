@@ -1,3 +1,5 @@
+import React from 'react';
+import { MathText } from './MathText';
 // Styles: .fq-lineplot-pic in theme-pop.css (loaded for every page, so tests can import this file).
 
 /* A finished line plot to read (a picture, not the tap-to-plot task): one X stacked over each measurement. Line-plot
@@ -19,7 +21,7 @@ export function LinePlotPicture({ denominator, wholes, values }: { denominator: 
           <div className="fq-lineplot-pic-tick" key={tick}>
             <span aria-hidden="true">{Array.from({ length: count }, (_, j) => <b key={j}>×</b>)}</span>
             <i />
-            <small>{tickLabel(tick, denominator)}</small>
+            <small><MathText text={tickLabel(tick, denominator)} /></small>
           </div>
         ))}
       </div>
