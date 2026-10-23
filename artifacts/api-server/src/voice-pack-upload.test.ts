@@ -103,14 +103,14 @@ describe("voice pack uploads from the workflow", () => {
     assert.equal((await put("af_heart", KEY_A, "mp3", "x".repeat(TOKEN.length))).status, 401);
     assert.equal((await put("af_heart", KEY_A, "caf", TOKEN, "audio/mpeg")).status, 400); // type must match the format
     assert.equal((await put("af_bella", KEY_A)).status, 400);
-    assert.equal((await put("bf_emma", KEY_A)).status, 400); // retired
+    assert.equal((await put("af_sky", KEY_A)).status, 400); // not a pack or story voice
     assert.equal((await put("am_michael", KEY_A)).status, 400); // retired
     assert.equal((await put("af_heart", "not-a-key")).status, 400);
     assert.equal(stored.size, 0);
   });
   it("stores uploads, reports what the index still lacks, and prunes only a complete pack", async () => {
     assert.deepEqual(await putBoth("af_heart", KEY_A), [204, 204]);
-    stored.set(`bf_emma/${KEY_A}.mp3`, Buffer.from("retired voice"));
+    stored.set(`bf_lily/${KEY_A}.mp3`, Buffer.from("retired voice"));
     stored.set(`am_michael/${KEY_A}.mp3`, Buffer.from("retired voice"));
 
     // KEY_B has only its MP3 so far: its Opus file is missing, and nothing is pruned.
@@ -163,5 +163,26 @@ describe("voice pack uploads from the workflow", () => {
     });
     assert.equal(response.status, 400);
     assert.equal(syncCalls.length, 0);
+  });
+  it("takes a story friend's film lines in their own voice, serves them, and refuses a voice outside the cast", async () => {
+    const key = voicePackSentenceKey("One half.");
+    const send = (sentences: unknown[]) => fetch(`${base}/api/voice-pack/sync`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${TOKEN}`, "content-type": "text/plain" },
+      body: JSON.stringify({ sentences }),
+    });
+    const both = [{ key, text: "One half." }, { key, text: "One half.", voice: "bm_george" }];
+    assert.equal((await send(both)).status, 200);
+    assert.deepEqual(syncCalls, [both]);
+    assert.equal((await send([{ key, text: "One half.", voice: "af_sky" }])).status, 400);
+    assert.deepEqual(await putBoth("bm_george", KEY_A), [204, 204]);
+    assert.equal((await fetch(`${base}/api/storage/public-objects/voice/bm_george/${KEY_A}.mp3`)).status, 200);
+    const checked = await fetch(`${base}/api/voice-pack/check`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${TOKEN}`, "content-type": "text/plain" },
+      body: JSON.stringify({ version: 1, voices: ["af_heart"], keys: [], cast: { bm_george: [KEY_A], af_nova: [KEY_A] } }),
+    });
+    const result = await checked.json() as { missing: number; firstMissing: string[] };
+    assert.deepEqual(result.firstMissing.sort(), [`af_nova/${KEY_A}.caf`, `af_nova/${KEY_A}.mp3`]);
   });
 });

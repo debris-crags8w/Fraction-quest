@@ -15,6 +15,7 @@ import { useFun, useSeason } from './fun-ui';
 import { playCue } from './lib/fun';
 import { filmMood, StoryMusic } from './lib/story-music';
 import { sentences, spokenText } from './lib/voice';
+import { speakerVoice } from './lib/cast-voices';
 import { CHAPTERS, CHARACTERS, propTheme, withName, type Panel, type StoryChoice, type StoryScene } from './story';
 import { TaskBar } from './TaskBar';
 import './story-cinema.css';
@@ -570,6 +571,9 @@ const ART: Record<StoryScene, (props: { beat: number; unit?: number; speaker?: P
     caption shows who is speaking, so the voice doesn't say it (plain comics read "Hoot says: ..." via storyScript). */
 export const filmedLines = (panels: Panel[], theme: ReturnType<typeof propTheme>) =>
   panels.map((panel) => withName(panel.text, null, theme));
+/** The voice for each sentence of `filmedLines`: every friend reads their own lines (Numi reads in Heart). */
+export const filmedVoices = (panels: Panel[], theme: ReturnType<typeof propTheme>) =>
+  filmedLines(panels, theme).flatMap((line, index) => sentences(spokenText(line)).map(() => speakerVoice(panels[index]!.speaker)));
 
 export function CinematicComic({ scene, title, kicker, panels, name, choice, picked: saved, choiceNotes, note, goLabel, onGo, onBack, unit, setOnly = false }: {
   scene: StoryScene; title: string; kicker: string; panels: Panel[]; name: string | null; unit?: number;
@@ -611,6 +615,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   // What is read aloud says "friend", never the child's name; each panel is one or more of its sentences.
   const spoken = useMemo(() => filmedLines(panels, theme), [panels, theme]);
   const sentenceToPanel = useMemo(() => spoken.flatMap((line, index) => sentences(spokenText(line)).map(() => index)), [spoken]);
+  const sentenceVoices = useMemo(() => sentenceToPanel.map((panel) => speakerVoice(panels[panel]!.speaker)), [sentenceToPanel, panels]);
 
   const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
   /** The voice is late (a clip is still downloading or being made): the film keeps its pace without it. */
@@ -658,6 +663,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     let heard = false;
     const first = Math.max(0, sentenceToPanel.indexOf(from));
     reader.speak(spoken.slice(from).join(' '), {
+      voices: sentenceVoices.slice(first),
       onPart: (index) => {
         const panel = sentenceToPanel[first + index] ?? from;
         setSpeaking(true);
@@ -697,7 +703,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   // The comic starts by itself (the tap that opened it unlocked the sound).
   useEffect(() => {
     // Start fetching the voice now: the title card gives the first clips a head start.
-    if (voiceOn) prefetchReading(spoken.join(' '));
+    if (voiceOn) prefetchReading(spoken.join(' '), sentenceVoices);
     let live = true;
     titleFontReady().then(() => { if (live) { setStarted(true); play(); } });
     return () => { live = false; clearTimers(); clearTimeout(stall.current); reader.stop(); };

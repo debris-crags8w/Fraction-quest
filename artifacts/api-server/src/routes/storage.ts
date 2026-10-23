@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { isCastVoice } from "../lib/cast-voices";
 import { appStorageVoicePack, isPackVoice, parseVoiceFileName, VOICE_CACHE_CONTROL, VOICE_FORMATS, type VoicePackStore } from "../lib/voice-pack-store";
 
 /* This public endpoint is intentionally restricted to the pre-generated voice pack. It streams straight from App
@@ -9,7 +10,7 @@ export function createStorageRouter(store: () => VoicePackStore = appStorageVoic
   router.get("/storage/public-objects/voice/:voice/:fileName", (req, res) => {
     const { voice, fileName } = req.params;
     const parsed = parseVoiceFileName(fileName);
-    if (!isPackVoice(voice) || !parsed) {
+    if (!(isPackVoice(voice) || isCastVoice(voice)) || !parsed) {
       res.status(404).json({ error: "Object not found." });
       return;
     }

@@ -258,7 +258,7 @@ export function createLearningSpeechController(
           else if (oneVoice) silent();
           // Pick up where the natural voice stopped, never from the start again.
           else startDevice(Math.max(reached, 0));
-        }, undefined, undefined, (index) => { reached = index; if (playback === generation) follower?.onPart?.(index); });
+        }, undefined, undefined, (index) => { reached = index; if (playback === generation) follower?.onPart?.(index); }, follower?.voices);
       };
       // The natural voice reads English when it's ready; otherwise this playback uses the device voice
       // while the natural voice connects in the background for next time.
@@ -328,7 +328,11 @@ export function createLearningSpeechController(
 }
 
 /** Follows a reading sentence by sentence (the sentences are `sentences(spokenLearningText(text))`). */
-export type SpeechFollower = { onPart?: (index: number) => void; onEnd?: () => void };
+export type SpeechFollower = {
+  onPart?: (index: number) => void; onEnd?: () => void;
+  /** The natural voice for each sentence (a story friend's film line), else the chosen voice. */
+  voices?: readonly (string | undefined)[];
+};
 
 /** What the controller needs from the natural voice (injectable for tests). */
 export type NaturalReader = {
@@ -337,7 +341,7 @@ export type NaturalReader = {
   chosen?(): boolean;
   /** Resolves true once the natural voice is ready, or false after `ms`. */
   whenReady?(ms: number): Promise<boolean>;
-  speak(parts: string[], onDone: (ok: boolean) => void, onPhase?: (phase: NaturalVoicePhase) => void, onFailure?: (stage: 'generating' | 'playing', error: unknown) => void, onPart?: (index: number) => void): void; stop(): void; warmUp(): void };
+  speak(parts: string[], onDone: (ok: boolean) => void, onPhase?: (phase: NaturalVoicePhase) => void, onFailure?: (stage: 'generating' | 'playing', error: unknown) => void, onPart?: (index: number) => void, voices?: readonly (string | undefined)[]): void; stop(): void; warmUp(): void };
 function defaultNaturalReader(): NaturalReader {
   const speaker = createNaturalSpeaker();
   return {
@@ -619,11 +623,11 @@ export function useReadAloud(text: string | null, key: string | number | null = 
 }
 
 /** Fetch a reading's natural-voice audio in the background (the next story comic), so it starts at once later. */
-export function prefetchReading(text: string): void {
+export function prefetchReading(text: string, voices?: readonly (string | undefined)[]): void {
   void warmUpNaturalVoice().then((engine) => {
     const voice = naturalVoiceId();
     if (!engine || !voice) return;
-    return prefetchNaturalVoice(voice, sentences(spokenLearningText(text)), () => naturalVoiceId() === voice);
+    return prefetchNaturalVoice(voice, sentences(spokenLearningText(text)), () => naturalVoiceId() === voice, voices);
   });
 }
 

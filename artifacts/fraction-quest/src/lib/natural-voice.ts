@@ -4,6 +4,7 @@
    model in the browser crashed iPhone Safari.) Only the lesson sentence is sent, never a child's answers. When
    neither can play, Listen uses the device's own voice. */
 import { loadVoicePack, preferredPackFormat, voicePackHasVoice, voicePackPath, voicePackUrl } from './voice-pack';
+import { HEART_VOICE, isCastVoice } from './cast-voices';
 
 /** The one pack voice, Heart. A saved choice of an older voice (Michael, Emma, ...) falls back to it. */
 export type NaturalVoiceId = 'af_heart';
@@ -19,7 +20,7 @@ export const speechUrl = (voice: NaturalVoiceId, text: string) =>
 const SPEECH_BLOB_CACHE_LIMIT = 48;
 const speechBlobCache = new Map<string, Blob>();
 const speechBlobRequests = new Map<string, Promise<Blob>>();
-const speechBlobKey = (voice: NaturalVoiceId, text: string) => `${voice}\u0000${text}`;
+const speechBlobKey = (voice: string, text: string) => `${voice}\u0000${text}`;
 
 export type NaturalVoiceState = 'off' | 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
 export type NaturalVoiceStatus = { state: NaturalVoiceState; progress?: number };
@@ -115,7 +116,9 @@ export async function downloadWholeVoicePack(
   const [pack, store] = await Promise.all([loadVoicePack(), openPackCache()]);
   if (!pack?.voices.has(voice) || !store) return null;
   const format = preferredPackFormat();
-  const keys = [...pack.keys].sort();
+  // Heart's clips, then the story friends' film lines in their own voices.
+  const keys = [...[...pack.keys].sort().map((key) => `${voice}/${key}`),
+    ...[...pack.cast].sort(([a], [b]) => (a < b ? -1 : 1)).flatMap(([castVoice, castKeys]) => [...castKeys].sort().map((key) => `${castVoice}/${key}`))];
   const marker = `${voice}:${format}:${keys.length}:${keys[0] ?? ''}:${keys[keys.length - 1] ?? ''}`;
   try { if (globalThis.localStorage?.getItem(WHOLE_PACK_MARKER) === marker) return keys.length; } catch { /* check the cache instead */ }
   let next = 0;
@@ -124,7 +127,7 @@ export async function downloadWholeVoicePack(
   let absent = 0; // not in App Storage yet (a brand-new sentence): skipped, tried again next launch
   await Promise.all(Array.from({ length: WHOLE_PACK_PARALLEL }, async () => {
     while (next < keys.length && shouldContinue()) {
-      const url = voicePackPath(`${voice}/${keys[next++]}.${format}`);
+      const url = voicePackPath(`${keys[next++]}.${format}`);
       try {
         if (!(await store.match(url))) {
           const response = await fetch(url);
@@ -146,7 +149,7 @@ export async function downloadWholeVoicePack(
   return saved;
 }
 
-async function fetchSpeechBlob(voice: NaturalVoiceId, text: string): Promise<Blob> {
+async function fetchSpeechBlob(voice: string, text: string): Promise<Blob> {
   const key = speechBlobKey(voice, text);
   const cached = speechBlobCache.get(key);
   if (cached) {
@@ -168,7 +171,9 @@ async function fetchSpeechBlob(voice: NaturalVoiceId, text: string): Promise<Blo
         }
       } catch { /* the server can still make it */ }
     }
-    const response = await fetch(speechUrl(voice, text));
+    // A story friend's line the pack doesn't have yet plays in Heart (the server only reads in Heart).
+    if (isCastVoice(voice)) return fetchSpeechBlob(HEART_VOICE, text);
+    const response = await fetch(speechUrl(voice as NaturalVoiceId, text));
     if (!response.ok) throw new Error(`The voice server answered ${response.status}`);
     const blob = await response.blob();
     if (!blob.size) throw new Error('The voice server returned an empty audio clip');
@@ -186,7 +191,7 @@ async function fetchSpeechBlob(voice: NaturalVoiceId, text: string): Promise<Blo
 /** Fetches one sentence's audio from the server. */
 export const serverEngine: NaturalEngine = {
   async generate(text, { voice }) {
-    const blob = await fetchSpeechBlob(voice as NaturalVoiceId, text);
+    const blob = await fetchSpeechBlob(voice, text);
     return { toBlob: () => blob };
   },
 };
@@ -200,13 +205,16 @@ export async function prefetchNaturalVoice(
   voice: NaturalVoiceId,
   parts: readonly string[],
   shouldContinue: () => boolean = () => true,
+  /** The voice for each part (a story friend's line), else `voice`. */
+  voices?: readonly (string | undefined)[],
 ): Promise<void> {
-  const queue = parts.filter((text) => text.trim());
+  const queue = parts.map((text, index) => ({ text, voice: voices?.[index] ?? voice })).filter(({ text }) => text.trim());
   let next = 0;
   await Promise.all(Array.from({ length: Math.min(PREFETCH_PARALLEL, queue.length) }, async () => {
     while (next < queue.length && currentChoice() === voice && shouldContinue()) {
+      const part = queue[next++]!;
       try {
-        await fetchSpeechBlob(voice, queue[next++]!);
+        await fetchSpeechBlob(part.voice, part.text);
       } catch { /* skipped: the next sentence still loads */ }
     }
   }));
@@ -392,6 +400,8 @@ export function createNaturalSpeaker(
       onFailure?: (stage: NaturalVoiceFailureStage, error: unknown) => void,
       /** Sentence `index` starts playing (a story comic follows along). */
       onPart?: (index: number) => void,
+      /** The voice for each sentence (a story friend's line), else the chosen voice. */
+      voices?: readonly (string | undefined)[],
     ) {
       const mine = ++playback; cleanUp();
       if (makeAudio === sharedAudio) unlockAudioPlayback(); // still inside the tap that asked to listen
@@ -399,9 +409,9 @@ export function createNaturalSpeaker(
       if (!engine || !voice || !parts.length) { onDone(!parts.length); return; }
       onPhase?.('preparing');
       const ready = engine;
-      const make = (text: string) => {
+      const make = (text: string, index: number) => {
         onPhase?.('generating');
-        return withTimeout(ready.generate(text, { voice, speed: NATURAL_VOICE_SPEED }),
+        return withTimeout(ready.generate(text, { voice: voices?.[index] ?? voice, speed: NATURAL_VOICE_SPEED }),
           GENERATION_TIMEOUT_MS, 'Voice generation timed out')
           .catch((error) => { throw speakerFailure('generating', error); });
       };

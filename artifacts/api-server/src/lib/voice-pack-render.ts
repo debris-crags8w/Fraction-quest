@@ -6,9 +6,10 @@
 import { spawn } from "node:child_process";
 import { access, mkdir, rename } from "node:fs/promises";
 import path from "node:path";
-import { encodeWav, VOICE_SPEED, type VoiceEngine } from "./voice";
+import { encodeWav, speedFor, type VoiceEngine } from "./voice";
 
-export type PackSentence = { key: string; text: string };
+/** One sentence to read. `voice` is set for a story friend's film line (made in that voice); unset means Heart. */
+export type PackSentence = { key: string; text: string; voice?: string };
 
 /** The two encodings, by file extension: ffmpeg output options for each. */
 export const PACK_FORMATS = {
@@ -47,7 +48,7 @@ export async function renderVoicePack(engine: VoiceEngine, voice: string, senten
     const missing = [];
     for (const entry of files) if (!(await exists(entry.file))) missing.push(entry);
     if (!missing.length) { skipped++; continue; }
-    const clip = await engine.generate(sentence.text, { voice, speed: VOICE_SPEED });
+    const clip = await engine.generate(sentence.text, { voice, speed: speedFor(voice) });
     const wav = encodeWav(clip.audio, clip.sampling_rate);
     // Write beside it, then move into place, so a stopped run never leaves half a file that later runs would skip.
     for (const { format, file } of missing) {

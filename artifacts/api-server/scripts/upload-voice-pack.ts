@@ -16,7 +16,8 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const PACK_VOICES = ["af_heart"];
+// Heart and the story cast (src/lib/cast-voices.ts): every voice a clip may be uploaded in.
+const PACK_VOICES = ["af_heart", "bm_george", "am_onyx", "am_puck", "bf_emma", "am_echo", "af_nova"];
 const PARALLEL = 8;
 
 const [command, target, ...rest] = process.argv.slice(2);

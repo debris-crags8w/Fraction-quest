@@ -12,6 +12,7 @@ import { CHAPTER_SCENES, CHAPTERS, DETECTIVE_NOTES, EPILOGUE, HANDS_ON_ASKS, PRO
 import { seasonalWords } from '../src/seasonal-words';
 import { sentences, spokenText } from '../src/lib/voice';
 import { cleanSentence, voiceKey } from '../src/lib/voice-pack';
+import { HEART_VOICE, speakerVoice } from '../src/lib/cast-voices';
 import { BUILD_ERROR_HEADINGS, LAB_SECTION_SPEECH, buildErrors, buildHints, foldSpeech, numberLineDescription, sectionsScript, supportSpeech, worksheetSpeech } from '../src/lab-copy';
 import { getModelFeedback, type LearningModel } from '../src/learning-content';
 import { CHALLENGES } from '../src/challenges';
@@ -27,7 +28,8 @@ export const VOICE_SENTENCE_THEMES: readonly PropTheme[] = ['everyday', 'hallowe
 export const VOICE_SENTENCE_SOURCES = ['lesson', 'worksheet', 'practice', 'games', 'story', 'shared'] as const;
 export type VoiceSentenceSource = (typeof VOICE_SENTENCE_SOURCES)[number];
 export type VoiceSentenceTheme = (typeof VOICE_SENTENCE_THEMES)[number];
-export type VoiceSentenceEntry = { key: string; text: string };
+/** One sentence. `voice` is set for a story friend's film line, also made in that friend's voice; unset means Heart. */
+export type VoiceSentenceEntry = { key: string; text: string; voice?: string };
 export type VoiceSentenceGroup = {
   source: VoiceSentenceSource;
   theme: VoiceSentenceTheme;
@@ -178,7 +180,7 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
   }
 
   const grouped = new Map<string, Map<string, VoiceSentenceEntry>>();
-  const addSpoken = (source: VoiceSentenceSource, theme: VoiceSentenceTheme, text: string) => {
+  const addSpoken = (source: VoiceSentenceSource, theme: VoiceSentenceTheme, text: string, voice?: string) => {
     const groupKey = `${source}/${theme}`;
     let group = grouped.get(groupKey);
     if (!group) { group = new Map(); grouped.set(groupKey, group); }
@@ -186,7 +188,7 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
       const clean = cleanSentence(part);
       if (/[a-z]{2}/i.test(clean)) {
         const key = voiceKey(clean);
-        group.set(key, { key, text: clean });
+        group.set(`${voice ?? ''}/${key}`, voice ? { key, text: clean, voice } : { key, text: clean });
       }
     }
   };
@@ -198,11 +200,16 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
     }
     for (const text of story) addSpoken('story', theme, withName(text, null, theme));
     for (const panels of scripts) addSpoken('story', theme, storyScript(panels, theme));
-    for (const panels of filmed) for (const panel of panels) addSpoken('story', theme, withName(panel.text, null, theme));
+    for (const panels of filmed) for (const panel of panels) {
+      // Every film line in Heart (the fallback), and a friend's lines in their own voice too.
+      const line = withName(panel.text, null, theme);
+      addSpoken('story', theme, line);
+      const voice = speakerVoice(panel.speaker);
+      if (voice !== HEART_VOICE) addSpoken('story', theme, line, voice);
+    }
   }
   return VOICE_SENTENCE_SOURCES.flatMap((source) => VOICE_SENTENCE_THEMES.map((theme) => {
-    const sentences = [...(grouped.get(`${source}/${theme}`)?.values() ?? [])]
-      .sort((left, right) => left.text < right.text ? -1 : left.text > right.text ? 1 : 0);
+    const sentences = [...(grouped.get(`${source}/${theme}`)?.values() ?? [])].sort(byVoiceAndText);
     return { source, theme, sentences };
   }));
 }
@@ -210,9 +217,16 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
 export function voiceSentences(): VoiceSentenceEntry[] {
   const all = new Map<string, VoiceSentenceEntry>();
   for (const group of voiceSentenceGroups()) {
-    for (const sentence of group.sentences) all.set(sentence.key, sentence);
+    for (const sentence of group.sentences) all.set(`${sentence.voice ?? ''}/${sentence.key}`, sentence);
   }
-  return [...all.values()].sort((left, right) => left.text < right.text ? -1 : left.text > right.text ? 1 : 0);
+  return [...all.values()].sort(byVoiceAndText);
+}
+
+/** Heart's sentences first (by text), then each friend's. */
+function byVoiceAndText(left: VoiceSentenceEntry, right: VoiceSentenceEntry): number {
+  const [a, b] = [left.voice ?? '', right.voice ?? ''];
+  if (a !== b) return a < b ? -1 : 1;
+  return left.text < right.text ? -1 : left.text > right.text ? 1 : 0;
 }
 
 if (process.argv[1]?.endsWith('voice-sentences.ts')) process.stdout.write(`${JSON.stringify(voiceSentences(), null, 0)}\n`);

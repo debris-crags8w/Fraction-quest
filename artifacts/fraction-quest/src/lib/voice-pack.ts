@@ -38,7 +38,9 @@ export function voiceKey(sentence: string): string {
   return hash.toString(16).padStart(16, '0');
 }
 
-export type VoicePackIndex = { version: 1; voices: string[]; keys: string[] };
+/** `cast`: each story friend's film lines, by voice (made in that voice as well as in Heart). */
+export type VoicePackIndex = { version: 1; voices: string[]; keys: string[]; cast?: Record<string, string[]> };
+export type LoadedVoicePack = { voices: Set<string>; keys: Set<string>; cast: Map<string, Set<string>> };
 
 const base = () => {
   try { return (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/'; } catch { return '/'; }
@@ -47,7 +49,7 @@ const base = () => {
 export const voicePackIndexPath = () => `${base().replace(/\/?$/, '/')}voice/index.json`;
 export const voicePackPath = (path: string) => `/api/storage/public-objects/voice/${path}`;
 
-let index: Promise<{ voices: Set<string>; keys: Set<string> } | null> | null = null;
+let index: Promise<LoadedVoicePack | null> | null = null;
 /** When the last index fetch came back empty (null while the pack is loaded or still loading). */
 let missedAt: number | null = null;
 
@@ -58,10 +60,10 @@ const PACK_RETRY_MS = 30_000;
 /** Load the pack's index once. No pack yet (or offline): null, and Listen uses the voice server as before.
     A miss (offline, a slow network, an error) is only remembered for a short while, so the pack is found once the
     connection comes back. */
-export function loadVoicePack(fetchFn: typeof fetch = fetch): Promise<{ voices: Set<string>; keys: Set<string> } | null> {
+export function loadVoicePack(fetchFn: typeof fetch = fetch): Promise<LoadedVoicePack | null> {
   if (index && !(missedAt !== null && Date.now() - missedAt > PACK_RETRY_MS)) return index;
   missedAt = null;
-  const attempt: Promise<{ voices: Set<string>; keys: Set<string> } | null> = (async () => {
+  const attempt: Promise<LoadedVoicePack | null> = (async () => {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort(), PACK_INDEX_TIMEOUT_MS) : null;
     try {
@@ -69,7 +71,11 @@ export function loadVoicePack(fetchFn: typeof fetch = fetch): Promise<{ voices: 
       if (!response.ok) return null;
       const data = await response.json() as Partial<VoicePackIndex>;
       if (data.version !== 1 || !Array.isArray(data.voices) || !Array.isArray(data.keys)) return null;
-      return { voices: new Set(data.voices), keys: new Set(data.keys) };
+      const cast = new Map<string, Set<string>>();
+      if (data.cast && typeof data.cast === 'object') {
+        for (const [voice, keys] of Object.entries(data.cast)) if (Array.isArray(keys)) cast.set(voice, new Set(keys));
+      }
+      return { voices: new Set(data.voices), keys: new Set(data.keys), cast };
     } catch {
       return null;
     } finally {
@@ -90,9 +96,8 @@ export async function voicePackHasVoice(voice: string, fetchFn?: typeof fetch): 
 export async function voicePackUrl(voice: string, sentence: string, fetchFn?: typeof fetch, fileFormat: PackFormat = preferredPackFormat()): Promise<string | null> {
   const pack = await loadVoicePack(fetchFn);
   const key = voiceKey(sentence);
-  return PACK_VOICES.includes(voice as PackVoice) && pack?.voices.has(voice) && pack.keys.has(key)
-    ? voicePackPath(`${voice}/${key}.${fileFormat}`)
-    : null;
+  const listed = PACK_VOICES.includes(voice as PackVoice) ? pack?.voices.has(voice) && pack.keys.has(key) : pack?.cast.get(voice)?.has(key);
+  return listed ? voicePackPath(`${voice}/${key}.${fileFormat}`) : null;
 }
 
 /** Tests only: forget the loaded index (and the chosen format). */

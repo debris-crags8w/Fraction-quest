@@ -1,0 +1,68 @@
+/* The animated Teach first (TeachScene.tsx). Frames change classes and sizes; transitions do the moving. */
+.fq-ts-card { gap: 10px; }
+.fq-ts-progress { display: flex; align-items: center; gap: 10px; }
+.fq-ts-step-label { font-weight: 800; font-size: 0.95rem; color: color-mix(in srgb, currentColor 72%, transparent); }
+.fq-ts-dots { display: flex; gap: 6px; }
+.fq-ts-dots span { display: block; width: 10px; height: 10px; border-radius: 5px; background: var(--fq-edge); transition: width .3s, background .3s; }
+.fq-ts-dots span.is-done { background: color-mix(in srgb, var(--fq-grape) 45%, transparent); }
+.fq-ts-dots span.is-on { width: 26px; background: var(--fq-grape); }
+.fq-ts-goal { margin: 0; font-size: 1rem; color: color-mix(in srgb, currentColor 80%, transparent); }
+.fq-ts-step { margin: 0; font-size: 1.2rem; font-weight: 800; line-height: 1.35; min-height: 2.7em; }
+
+.fq-ts-stage { --ts-ink: #3A2E6B; --ts-whole: #E2A76A; --ts-shade: var(--fq-grape); --ts-glow: #F09A55; --ts-check: #2F6FDB;
+  display: flex; flex-direction: column; justify-content: center; gap: 18px; min-height: 236px; box-sizing: border-box;
+  padding: 26px 18px 16px; border-radius: 18px; background: color-mix(in srgb, var(--fq-sun) 8%, Canvas); border: 2px solid var(--fq-edge); }
+.fq-ts-row { display: flex; flex-direction: column; gap: 6px; transition: opacity .45s ease, transform .45s ease; }
+.fq-ts-row.is-hidden, .fq-ts-text.is-hidden, .fq-ts-pair.is-hidden { opacity: 0; transform: translateX(-24px); }
+.fq-ts-label { font-weight: 800; font-size: 0.95rem; }
+.fq-ts-label.is-fair { color: var(--ts-check); }
+.fq-ts-label.is-unfair { color: #A4520F; }
+
+.fq-ts-bar { position: relative; display: flex; height: 56px; border: 3px solid var(--ts-ink); border-radius: 10px; background: var(--ts-whole); }
+.fq-ts-part { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0;
+  border-left: 3px solid transparent; transition: background .35s, border-color .35s, flex-grow .4s; }
+.fq-ts-part:first-child { border-radius: 7px 0 0 7px; }
+.fq-ts-part:nth-last-child(2) { border-radius: 0 7px 7px 0; }
+.fq-ts-part.is-cut { border-left-color: var(--ts-ink); }
+.fq-ts-part.is-shaded { background: var(--ts-shade); }
+.fq-ts-part.is-counted:not(.is-shaded) { background: color-mix(in srgb, var(--ts-shade) 28%, #fff); }
+.fq-ts-part.is-glow { animation: fq-ts-glow 1s ease-in-out 2; background: var(--ts-glow); }
+.fq-ts-count { font-weight: 900; font-size: 1.25rem; color: #fff; text-shadow: 0 1px 0 var(--ts-ink); }
+.fq-ts-part:not(.is-shaded) .fq-ts-count { color: var(--ts-ink); text-shadow: none; }
+.fq-ts-tick { position: absolute; width: 28px; height: 28px; color: var(--ts-check); transform: scale(0); transition: transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+.fq-ts-tick.is-on { transform: scale(1); }
+.fq-ts-checker { position: absolute; top: -6px; bottom: -6px; box-sizing: border-box; border: 3px dashed var(--ts-check); border-radius: 8px;
+  opacity: 0; transition: left .5s ease-in-out, width .4s, opacity .3s; pointer-events: none; }
+.fq-ts-checker.is-on { opacity: 1; }
+.fq-ts-bracket { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.fq-ts-bracket-line { width: 100%; height: 12px; box-sizing: border-box; border: 3px solid var(--fq-grape); border-top: none; border-radius: 0 0 8px 8px;
+  transform: scaleX(0); transform-origin: left; transition: transform .7s ease-out; }
+.fq-ts-bracket.is-on .fq-ts-bracket-line { transform: scaleX(1); }
+.fq-ts-bracket-label { min-height: 1.4em; font-weight: 900; font-size: 1.15rem; color: var(--fq-grape); opacity: 0; transition: opacity .4s .5s; }
+.fq-ts-bracket.is-on .fq-ts-bracket-label { opacity: 1; }
+.fq-ts-bracket:not(.is-on) { height: 0; overflow: hidden; }
+
+.fq-ts-area-row { align-items: center; }
+.fq-ts-area { width: 150px; height: 150px; overflow: visible; }
+.fq-ts-area.is-small { width: 112px; height: 112px; }
+.fq-ts-piece { fill: var(--ts-whole); stroke: transparent; stroke-width: 2.5; stroke-linejoin: round; transition: fill .35s, stroke .35s; }
+.fq-ts-piece.is-cut { stroke: var(--ts-ink); }
+.fq-ts-piece.is-counted:not(.is-shaded) { fill: color-mix(in srgb, var(--ts-shade) 28%, #fff); }
+.fq-ts-piece.is-shaded { fill: var(--ts-shade); }
+.fq-ts-piece.is-glow { fill: var(--ts-glow); }
+.fq-ts-outline { fill: none; stroke: var(--ts-ink); stroke-width: 3.5; stroke-linejoin: round; }
+.fq-ts-piece-count { font-weight: 900; font-size: 15px; fill: var(--ts-ink); text-anchor: middle; dominant-baseline: central; }
+.fq-ts-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; transition: opacity .45s, transform .45s; }
+.fq-ts-text { margin: 0; font-size: 1.05rem; font-weight: 700; line-height: 1.4; transition: opacity .45s, transform .45s; }
+
+.fq-ts-nav { display: flex; gap: 10px; }
+.fq-ts-nav .fq-button { min-height: 52px; }
+.fq-ts-back { flex: 0 0 auto; }
+.fq-ts-back:disabled { opacity: 0.45; }
+.fq-ts-replay { flex: 0 0 52px; padding: 0; justify-content: center; }
+.fq-ts-next { flex: 1 1 auto; justify-content: center; font-size: 1.1rem; }
+
+@keyframes fq-ts-glow { 50% { background: #F6C49A; } }
+/* Reduced motion: frames still change (the last one shows at once), but nothing slides. */
+.fq-reduced-motion .fq-ts-stage *, .fq-reduced-motion .fq-ts-stage { transition: none !important; animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .fq-ts-stage, .fq-ts-stage * { transition: none !important; animation: none !important; } }
