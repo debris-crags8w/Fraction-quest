@@ -111,7 +111,8 @@
 .fq-ts-groups { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .fq-ts-group { display: grid; gap: 5px; padding: 8px; border: 3px dashed var(--ts-ink); border-radius: 14px; transition: background .35s, border-color .35s; }
 .fq-ts-group.is-shaded { background: color-mix(in srgb, var(--ts-shade) 14%, transparent); border-style: solid; border-color: var(--ts-shade); }
-.fq-ts-group.is-glow { animation: fq-ts-glow 1s ease-in-out 2; }
+.fq-ts-group.is-glow { border-style: solid; border-color: #A4520F; background: color-mix(in srgb, var(--ts-glow) 30%, transparent); }
+.fq-ts-group.is-glow .fq-ts-counter.is-on { background: var(--ts-glow); }
 .fq-ts-counter { position: relative; display: flex; align-items: center; justify-content: center; width: var(--ts-counter); height: var(--ts-counter);
   box-sizing: border-box; border-radius: 50%; background: var(--ts-whole); border: 2.5px solid var(--ts-ink); transition: background .35s; }
 .fq-ts-counter.is-on { animation: fq-ts-pop .3s ease-out both; }
