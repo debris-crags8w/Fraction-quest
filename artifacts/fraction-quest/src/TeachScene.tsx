@@ -104,13 +104,13 @@ function NumberLine({ row }: { row: LineRow }) {
       {row.label && <span className={`fq-ts-label is-${row.tone ?? 'plain'}`}><MathText text={row.label} /></span>}
       <div className={`fq-ts-line ${row.ruler ? 'is-ruler' : ''} ${row.xs ? 'has-xs' : ''}`} data-testid="teach-scene-line" role="img"
         aria-label={`A number line from 0 to ${row.max}${row.cut ? `, cut into ${row.spaces} equal spaces in each whole` : ''}`}>
-        <span className="fq-ts-stretch" style={{ left: at(0), width: `${(92 * (row.stretch ?? 0)) / total}%`, opacity: row.stretch ? 1 : 0 }} />
+        <span className="fq-ts-stretch" style={{ left: at(row.stretchFrom ?? 0), width: `${(92 * Math.max(0, (row.stretch ?? 0) - (row.stretchFrom ?? 0))) / total}%`, opacity: row.stretch ? 1 : 0 }} />
         <span className="fq-ts-axis" style={{ left: at(0), right: '4%' }} />
         {ticks.map((k) => {
           const whole = k % row.spaces === 0;
           return (
             <span key={k} className={`fq-ts-tick-mark ${whole ? 'is-whole' : ''} ${whole || (row.cut && k % (row.group ?? 1) === 0) ? 'is-on' : ''}`} style={{ left: at(k) }}>
-              {whole && <span className="fq-ts-whole-label">{k / row.spaces}{row.ruler && k > 0 ? ' in' : ''}</span>}
+              {whole && <span className="fq-ts-whole-label">{k / row.spaces}{k > 0 && (row.unit ?? (row.ruler ? 'in' : '')) ? ` ${row.unit ?? 'in'}` : ''}</span>}
             </span>
           );
         })}
@@ -170,7 +170,7 @@ export function AnimatedLessonIntro({ intro, scene, onFinish }: { intro: LessonI
   // The first step also says what the lesson is for.
   const listen = page === 0 ? `${intro.goal} ${current.text}` : current.text;
   return (
-    <section className="fq-example-intro fq-teach-card fq-ts-card" aria-labelledby="lesson-intro-heading" data-testid="lesson-introduction">
+    <section className="fq-example-intro fq-teach-card fq-ts-card" aria-labelledby="lesson-intro-heading" data-testid="lesson-introduction" data-teach-first={onFinish ? '' : undefined}>
       <div className="fq-example-card-head">
         <h2 id="lesson-intro-heading">{intro.heading}</h2>
         <LearningListenButton key={page} text={listen} label={`Listen to ${current.label.toLowerCase()}`} prefetch />

@@ -68,6 +68,10 @@ export type LineRow = {
   marks?: { at: number; label: string }[];
   /** A colored stretch from 0 to this many spaces (something being measured). */
   stretch?: number;
+  /** Where the stretch starts instead of 0 (the gap between two lengths). */
+  stretchFrom?: number;
+  /** A unit after each whole number but 0 ("1 hour"). */
+  unit?: string;
   /** Xs stacked above ticks: [space, how many]. */
   xs?: [number, number][];
   /** Draw it as a ruler (inches under the whole numbers). */
@@ -116,6 +120,7 @@ const jumpUp = (row: number, n: number, ms = 380, from = 0): [number, Patch][] =
 const halfMarks = (spaces: number) => [{ at: spaces / 2, label: '1/2' }];
 /** The first n hundredths of a 10-by-10 grid, a column (one tenth) at a time. `from` skips the first ones. */
 const gridFill = (n: number, from = 0) => range(n).map((k) => ((from + k) % 10) * 10 + Math.floor((from + k) / 10));
+const eighthMarks = [1, 2, 3, 4, 5, 6, 7].map((at) => ({ at, label: `${at}/8` }));
 const fourthMarks = [{ at: 1, label: '1/4' }, { at: 2, label: '2/4' }, { at: 3, label: '3/4' }];
 
 export const LESSON_SCENES: Record<string, LessonScene> = {
@@ -991,5 +996,221 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
       [450, { 0: { jumps: 4 } }],
       [450, { 0: { jumps: 6, point: 6, pointLabel: '6/5' } }],
       [400, { 1: { hidden: false } }]),
+  },
+  // Unit 9 · Simplify, unlike fractions, line plots, measurement
+  'simplify-fractions': {
+    steps: [
+      // A number that divides top and bottom.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: '6/8' }, { kind: 'text', text: '2 divides both 6 and 8.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+      // Divide both: parts join into bigger parts.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: '6/8' }, { kind: 'text', text: '6 ÷ 2 = 3 and 8 ÷ 2 = 4: 3/4.', hidden: true }],
+        [800, { 0: { group: 2, label: '3/4' } }],
+        [500, { 1: { hidden: false } }]),
+      // Until no number but 1 divides both.
+      play([{ kind: 'bar', parts: ones(8), group: 2, cut: true, shaded: range(6), label: '3/4' }, { kind: 'text', text: 'Only 1 divides 3 and 4: 3/4 is in simplest form.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+    ],
+    why: play([
+      { kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: '6/8', hidden: true },
+      { kind: 'bar', parts: ones(8), group: 2, cut: true, shaded: range(6), label: '3/4', hidden: true },
+      { kind: 'text', text: 'Fewer, bigger parts: the same amount.', hidden: true },
+    ],
+    [400, { 0: { hidden: false } }],
+    [400, { 1: { hidden: false } }],
+    [400, { 2: { hidden: false } }]),
+  },
+
+  'equivalent-missing-both': {
+    steps: [
+      // What was the denominator multiplied by?
+      play([{ kind: 'bar', parts: ones(10), group: 2, cut: true, shaded: range(4), label: '2/5 = ?/10' }, { kind: 'text', text: '5 × 2 = 10.', hidden: true }],
+        [700, { 0: { group: 1 } }],
+        [500, { 1: { hidden: false } }]),
+      // The same to the numerator.
+      play([{ kind: 'bar', parts: ones(10), cut: true, shaded: range(4), label: '2/5 = ?/10' }, { kind: 'text', text: '2 × 2 = 4: 2/5 = 4/10.', hidden: true }],
+        ...countUp(0, 4, 420),
+        [500, { 1: { hidden: false } }]),
+      // The same amount.
+      play([
+        { kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1], label: '2/5', hidden: true },
+        { kind: 'bar', parts: ones(10), cut: true, shaded: range(4), label: '4/10', hidden: true },
+      ],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+    ],
+    // Why: dividing works the same way.
+    why: play([{ kind: 'bar', parts: ones(10), cut: true, shaded: range(4), label: '4/10' }, { kind: 'text', text: 'Divide both by 2: 4/10 = 2/5.', hidden: true }],
+      [800, { 0: { group: 2, label: '2/5' } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'compare-unlike-fractions': {
+    steps: [
+      // A common denominator: thirds and fourths both fit twelfths.
+      play([
+        { kind: 'bar', parts: ones(12), group: 4, cut: true, shaded: range(8), label: '2/3' },
+        { kind: 'bar', parts: ones(12), group: 3, cut: true, shaded: range(9), label: '3/4' },
+        { kind: 'text', text: '3 × 4 = 12: both can be twelfths.', hidden: true },
+      ],
+      [600, { 2: { hidden: false } }]),
+      // Rename both.
+      play([
+        { kind: 'bar', parts: ones(12), group: 4, cut: true, shaded: range(8), label: '2/3' },
+        { kind: 'bar', parts: ones(12), group: 3, cut: true, shaded: range(9), label: '3/4' },
+      ],
+      [800, { 0: { group: 1, label: '8/12' }, 1: { group: 1, label: '9/12' } }]),
+      // Compare the numerators.
+      play([
+        { kind: 'bar', parts: ones(12), cut: true, shaded: range(8), label: '8/12' },
+        { kind: 'bar', parts: ones(12), cut: true, shaded: range(9), label: '9/12' },
+        { kind: 'text', text: '9 > 8, so 3/4 > 2/3.', hidden: true },
+      ],
+      [500, { 1: { glow: [8] } }],
+      [600, { 1: { glow: [] }, 2: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'text', text: 'Same-size parts: more parts means more.', hidden: true }, { kind: 'bar', parts: ones(12), cut: true, shaded: range(9), label: '9/12' }],
+      [400, { 0: { hidden: false } }]),
+  },
+
+  'order-unlike-fractions': {
+    steps: [
+      // Compare each with 1/2.
+      play([
+        { kind: 'bar', parts: ones(3), cut: true, shaded: [0], label: '1/3: less than half', hidden: true },
+        { kind: 'bar', parts: ones(8), cut: true, shaded: range(5), label: '5/8: more than half', hidden: true },
+        { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2: exactly half', hidden: true },
+      ],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }],
+      [400, { 2: { hidden: false } }]),
+      // If that is not enough, rename.
+      play([
+        { kind: 'bar', parts: ones(8), group: 2, cut: true, shaded: range(6), label: '3/4' },
+        { kind: 'bar', parts: ones(8), cut: true, shaded: range(5), label: '5/8' },
+        { kind: 'text', text: 'Both more than half? Rename: 3/4 = 6/8.', hidden: true },
+      ],
+      [800, { 0: { group: 1, label: '6/8' } }],
+      [500, { 2: { hidden: false } }]),
+      // Then compare and order.
+      play([
+        { kind: 'bar', parts: ones(3), cut: true, shaded: [0], label: '1/3', hidden: true },
+        { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2', hidden: true },
+        { kind: 'bar', parts: ones(8), cut: true, shaded: range(5), label: '5/8', hidden: true },
+      ],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }],
+      [400, { 2: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 24, marks: [{ at: 8, label: '1/3' }, { at: 12, label: '1/2' }, { at: 15, label: '5/8' }], hidden: true }, { kind: 'text', text: 'In order on the line: 1/3, 1/2, 5/8.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'plot-in-eighths': {
+    steps: [
+      // Find each length: 3/8, 5/8, 5/8 and 7/8 inch.
+      play([{ kind: 'line', max: 1, spaces: 8, cut: true, xs: [], marks: eighthMarks }, { kind: 'text', text: 'Pebbles: 3/8, 5/8, 5/8 and 7/8 inch.', hidden: true }],
+        [400, { 1: { hidden: false } }],
+        [500, { 0: { point: 3 } }],
+        [500, { 0: { point: 5 } }],
+        [500, { 0: { point: 7 } }]),
+      // One X above each.
+      play([{ kind: 'line', max: 1, spaces: 8, cut: true, xs: [], marks: eighthMarks }],
+        [500, { 0: { xs: [[3, 1]] } }],
+        [500, { 0: { xs: [[3, 1], [5, 1]] } }],
+        [500, { 0: { xs: [[3, 1], [5, 1], [7, 1]] } }]),
+      // Stack matching lengths.
+      play([{ kind: 'line', max: 1, spaces: 8, cut: true, xs: [[3, 1], [5, 1], [7, 1]], marks: eighthMarks }, { kind: 'text', text: 'Two pebbles are 5/8 inch: two Xs.', hidden: true }],
+        [600, { 0: { xs: [[3, 1], [5, 2], [7, 1]] } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 8, cut: true, xs: [[3, 1], [5, 2], [7, 1]], marks: eighthMarks }, { kind: 'text', text: '4 Xs for 4 pebbles: count them at a glance.', hidden: true }],
+      [500, { 1: { hidden: false } }]),
+  },
+
+  'read-line-plots': {
+    steps: [
+      // Read the label under each stack.
+      play([{ kind: 'line', max: 1, spaces: 8, cut: true, xs: [[2, 1], [3, 3], [5, 2]], marks: eighthMarks }, { kind: 'text', text: 'Stacks at 2/8, 3/8 and 5/8 inch.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+      // Count the Xs in a stack.
+      play([{ kind: 'line', max: 1, spaces: 8, cut: true, xs: [[2, 1], [3, 3], [5, 2]], marks: eighthMarks, point: null }, { kind: 'text', text: '3 crayons are 3/8 inch long.', hidden: true }],
+        [600, { 0: { point: 3 } }],
+        [500, { 1: { hidden: false } }]),
+      // Compare or subtract.
+      play([{ kind: 'line', max: 1, spaces: 8, cut: true, xs: [[2, 1], [3, 3], [5, 2]], marks: eighthMarks }, { kind: 'text', text: 'Longest − shortest: 5/8 − 2/8 = 3/8 inch.', hidden: true }],
+        [600, { 0: { stretchFrom: 2, stretch: 5 } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 8, cut: true, xs: [[2, 1], [3, 3], [5, 2]], marks: eighthMarks }, { kind: 'text', text: 'Each X is one crayon; its place is its length.', hidden: true }],
+      [500, { 1: { hidden: false } }]),
+  },
+
+  'measurement-word-problems': {
+    steps: [
+      // The amounts and their unit.
+      play([{ kind: 'line', max: 1, spaces: 4, unit: 'hour' }, { kind: 'text', text: '1 hour is 60 minutes.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+      // Split it equally: 60 ÷ 4 = 15.
+      play([{ kind: 'line', max: 1, spaces: 4, unit: 'hour', marks: [{ at: 1, label: '15 min' }, { at: 2, label: '30 min' }, { at: 3, label: '45 min' }] }, { kind: 'text', text: '4 equal parts: 60 ÷ 4 = 15 minutes each.', hidden: true }],
+        [600, { 0: { cut: true } }],
+        [500, { 1: { hidden: false } }]),
+      // Solve and keep the unit.
+      play([{ kind: 'line', max: 1, spaces: 4, unit: 'hour', cut: true, marks: [{ at: 1, label: '15 min' }] }, { kind: 'text', text: '1/4 hour = 15 minutes.', hidden: true }],
+        [600, { 0: { stretch: 1 } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'text', text: 'Change to the same unit before you add or compare: 1/4 hour + 10 minutes = 25 minutes.', hidden: true }, { kind: 'line', max: 1, spaces: 12, unit: 'hour', cut: true, group: 3, marks: [{ at: 3, label: '15' }, { at: 5, label: '25 min' }] }],
+      [400, { 0: { hidden: false } }],
+      [500, { 1: { stretch: 3 } }],
+      [500, { 1: { stretch: 5 } }]),
+  },
+
+  'fraction-recipes': {
+    steps: [
+      // The amount: 2/3 cup.
+      play([{ kind: 'bar', parts: ones(3), cut: true, label: '1 batch: 2/3 cup' }],
+        [600, { 0: { shaded: [0, 1] } }]),
+      // Numerator times batches: 3 batches.
+      play([
+        { kind: 'bar', parts: ones(3), cut: true, shaded: [0, 1] },
+        { kind: 'bar', parts: ones(3), cut: true, shaded: [0, 1], countFrom: 3 },
+        { kind: 'bar', parts: ones(3), cut: true, shaded: [0, 1], countFrom: 5 },
+        { kind: 'text', text: '2 × 3 = 6 thirds.', hidden: true },
+      ],
+      [450, { 0: { counted: [0, 1] } }],
+      [450, { 1: { counted: [0, 1] } }],
+      [450, { 2: { counted: [0, 1] } }],
+      [500, { 3: { hidden: false } }]),
+      // Keep the denominator.
+      play([{ kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'text', text: '6/3 cups = 2 cups.', hidden: true }],
+        [600, { 2: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 2, spaces: 3, cut: true, hidden: true }, { kind: 'text', text: 'Add 2/3 once for every batch.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [450, { 0: { jumps: 2 } }],
+      [450, { 0: { jumps: 4 } }],
+      [450, { 0: { jumps: 6, point: 6, pointLabel: '6/3' } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'party-portions': {
+    steps: [
+      // Numerator times people: 5 guests eat 3/8 pound each.
+      play([{ kind: 'bar', parts: ones(8), cut: true, label: '5 guests × 3/8 pound' }, { kind: 'bar', parts: ones(8), cut: true, countFrom: 9 }, { kind: 'text', text: '3 × 5 = 15 eighths.', hidden: true }],
+        ...countUp(0, 8, 260, true),
+        ...countUp(1, 7, 260, true),
+        [500, { 2: { hidden: false } }]),
+      // Keep the denominator.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(8) }, { kind: 'bar', parts: ones(8), cut: true, shaded: range(7) }, { kind: 'text', text: '15/8 pounds.', hidden: true }],
+        [600, { 2: { hidden: false } }]),
+      // Between which whole numbers?
+      play([{ kind: 'line', max: 2, spaces: 8, cut: true, group: 1, pointLabel: '15/8' }, { kind: 'text', text: '15/8 is between 1 and 2 pounds.', hidden: true }],
+        [600, { 0: { point: 15 } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(3), shaded2: [3, 4, 5], label: 'Each guest gets the same 3/8.', hidden: true }],
+      [400, { 0: { hidden: false } }]),
   },
 };

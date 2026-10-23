@@ -160,11 +160,14 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   const intro = page.getByTestId('lesson-introduction');
   await expect(intro).toBeVisible();
   await expect(intro).toContainText('smallest to biggest');
+  // The strategy plays one step at a time: rename with the same denominator, then compare the numerators.
+  await intro.getByTestId('button-teach-step-next').click();
   await expect(intro).toContainText('same denominator');
+  await intro.getByTestId('button-teach-step-next').click();
   await expect(intro).toContainText(/top numbers|numerators/);
-  // One Listen button per card reads all of its sections in order.
+  // One Listen button reads the step on screen.
   await expect(intro.getByRole('button', { name: /Listen/ })).toHaveCount(1);
-  await expect(intro.getByRole('button', { name: 'Listen to how to order fractions' })).toBeVisible();
+  await expect(intro.getByRole('button', { name: 'Listen to step 3 of 3' })).toBeVisible();
   const workedExample = page.getByTestId('lesson-example');
   const thinkItThrough = workedExample.locator('.fq-example-answer');
   await expect(thinkItThrough.getByRole('button', { name: /Listen/ })).toHaveCount(1);

@@ -6,10 +6,11 @@ export * from '@playwright/test';
 
 export const test = base.extend({
   page: async ({ page }, use) => {
-    // An animated Teach first has a Next on every step: tap through them, then its last Next.
-    const teach = page.getByTestId('button-teach-next').or(page.getByTestId('button-teach-step-next'));
+    // An animated Teach first has a Next on every step: tap through them, then its last Next. A card reopened from
+    // "How it works" has no last Next and is left for the test to read.
+    const step = page.locator('[data-teach-first] [data-testid="button-teach-step-next"]');
+    const teach = page.getByTestId('button-teach-next').or(step);
     await page.addLocatorHandler(teach, async () => {
-      const step = page.getByTestId('button-teach-step-next');
       for (let i = 0; i < 8 && await step.isVisible(); i++) await step.click();
       await page.getByTestId('button-teach-next').click();
     });
