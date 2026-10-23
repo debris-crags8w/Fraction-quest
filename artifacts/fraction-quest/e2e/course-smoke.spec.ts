@@ -764,6 +764,11 @@ async function openDeveloperLesson(page: import('@playwright/test').Page, missio
       throw new Error('The isolated developer test did not start');
     }
     // A lesson's one-time Teach first screen comes before its worked example.
+    for (let i = 0; i < 8; i++) {
+      const stepNext = document.querySelector<HTMLButtonElement>('[data-testid="button-teach-step-next"]');
+      if (!stepNext) break;
+      stepNext.click(); await settleReactUpdate();
+    }
     const teachNext = document.querySelector<HTMLButtonElement>('[data-testid="button-teach-next"]');
     if (teachNext) { teachNext.click(); await settleReactUpdate(); }
 

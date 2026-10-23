@@ -831,7 +831,7 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false, withTa
           <button type="button" className="fq-button ghost" aria-expanded={howOpen} onClick={() => setHowOpen((open) => !open)} data-testid="button-how-it-works">
             <Lightbulb size={17} aria-hidden="true" /> {howOpen ? 'Hide how it works' : 'How it works'}
           </button>
-          {howOpen && <LessonIntroCard intro={LESSON_INTROS[mission.id]} />}
+          {howOpen && <LessonIntroCard intro={LESSON_INTROS[mission.id]} missionId={mission.id} />}
         </div>
       )}
       <div className="fq-model-area"><ModelView model={mission.example.model} /></div>

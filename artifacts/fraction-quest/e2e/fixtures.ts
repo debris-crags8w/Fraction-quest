@@ -6,7 +6,13 @@ export * from '@playwright/test';
 
 export const test = base.extend({
   page: async ({ page }, use) => {
-    await page.addLocatorHandler(page.getByTestId('button-teach-next'), async (next) => { await next.click(); });
+    // An animated Teach first has a Next on every step: tap through them, then its last Next.
+    const teach = page.getByTestId('button-teach-next').or(page.getByTestId('button-teach-step-next'));
+    await page.addLocatorHandler(teach, async () => {
+      const step = page.getByTestId('button-teach-step-next');
+      for (let i = 0; i < 8 && await step.isVisible(); i++) await step.click();
+      await page.getByTestId('button-teach-next').click();
+    });
     await use(page);
   },
 });
