@@ -170,7 +170,7 @@ export function AnimatedLessonIntro({ intro, scene, onFinish }: { intro: LessonI
   // The first step also says what the lesson is for.
   const listen = page === 0 ? `${intro.goal} ${current.text}` : current.text;
   return (
-    <section className="fq-example-intro fq-teach-card fq-ts-card" aria-labelledby="lesson-intro-heading" data-testid="lesson-introduction">
+    <section className="fq-example-intro fq-teach-card fq-ts-card" aria-labelledby="lesson-intro-heading" data-testid="lesson-introduction" data-teach-first={onFinish ? '' : undefined}>
       <div className="fq-example-card-head">
         <h2 id="lesson-intro-heading">{intro.heading}</h2>
         <LearningListenButton key={page} text={listen} label={`Listen to ${current.label.toLowerCase()}`} prefetch />
