@@ -810,7 +810,7 @@ export { sectionsScript } from './lab-copy';
 /* Key points in a question get a solid underline: amounts ("2 pieces", "4 friends"), fraction names (halves, eighths)
    and the words that decide the answer (equal, same, not, bigger, smaller…). Glossary words keep their dotted underline. */
 const KEY_PATTERN = new RegExp([
-  String.raw`\b\d+ (?:equal |same-size |fair )?(?:pieces?|parts?|slices?|spaces?|jumps?|groups?|friends?|kids?|wholes?|bars?|strips?|triangles?|squares?|loaves|pizzas?|cups?|beads?|marbles?|counters?)\b`,
+  String.raw`(?<![\d/])\b\d+ (?:equal |same-size |fair )?(?:pieces?|parts?|slices?|spaces?|jumps?|groups?|friends?|kids?|wholes?|bars?|strips?|triangles?|squares?|loaves|pizzas?|cups?|beads?|marbles?|counters?)\b`,
   String.raw`\b(?:halves|thirds|fourths|fifths|sixths|sevenths|eighths|ninths|tenths|elevenths|twelfths|hundredths)\b`,
   String.raw`\b(?:equal|same|not|bigger|biggest|smaller|smallest|greater|more|less|closest|closer|fair|left)\b`,
 ].join('|'), 'gi');

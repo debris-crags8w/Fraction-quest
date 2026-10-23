@@ -16,4 +16,9 @@ describe('learning text wrapping', () => {
     const markup = renderToStaticMarkup(createElement(LearningText, { text: 'The equal parts are thirds' }));
     assert.doesNotMatch(markup, /fq-glue/);
   });
+  it('never underlines an amount out of the middle of a fraction ("6/3 cups" stays a stacked 6/3)', () => {
+    const markup = renderToStaticMarkup(createElement(LearningText, { text: '6/3 cups = 2 cups.', emphasize: true }));
+    assert.doesNotMatch(markup, /fq-key">3 cups/);
+    assert.match(markup, /fq-key">2 cups/);
+  });
 });
