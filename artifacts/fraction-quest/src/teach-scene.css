@@ -100,3 +100,23 @@
 .fq-ts-line.has-xs .fq-ts-mark { top: 102px; }
 .fq-ts-line.has-xs .fq-ts-whole-label { top: 30px; }
 @keyframes fq-ts-pop { from { transform: scale(0); } to { transform: scale(1); } }
+
+/* Where the rows and the columns overlap on a multiplying grid: the part of a part. */
+.fq-ts-piece.is-shaded.is-shaded2 { fill: color-mix(in srgb, var(--ts-shade) 70%, #120a3a); }
+
+/* A set of counters shared into equal groups. */
+.fq-ts-set-row { align-items: center; }
+.fq-ts-set { --ts-counter: 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.fq-ts-pile { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; max-width: 260px; }
+.fq-ts-groups { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.fq-ts-group { display: grid; gap: 5px; padding: 8px; border: 3px dashed var(--ts-ink); border-radius: 14px; transition: background .35s, border-color .35s; }
+.fq-ts-group.is-shaded { background: color-mix(in srgb, var(--ts-shade) 14%, transparent); border-style: solid; border-color: var(--ts-shade); }
+.fq-ts-group.is-glow { animation: fq-ts-glow 1s ease-in-out 2; }
+.fq-ts-counter { position: relative; display: flex; align-items: center; justify-content: center; width: var(--ts-counter); height: var(--ts-counter);
+  box-sizing: border-box; border-radius: 50%; background: var(--ts-whole); border: 2.5px solid var(--ts-ink); transition: background .35s; }
+.fq-ts-counter.is-on { animation: fq-ts-pop .3s ease-out both; }
+.fq-ts-counter.is-slot { background: transparent; border: 2px dashed color-mix(in srgb, var(--ts-ink) 35%, transparent); }
+.fq-ts-group.is-shaded .fq-ts-counter.is-on { background: var(--ts-shade); }
+.fq-ts-counter .fq-ts-count { font-size: 0.8rem; font-weight: 900; color: var(--ts-ink); text-shadow: none; }
+.fq-ts-group.is-shaded .fq-ts-counter .fq-ts-count { color: #fff; }
+.fq-ts-piece-count.is-on-dark { fill: #fff; }
