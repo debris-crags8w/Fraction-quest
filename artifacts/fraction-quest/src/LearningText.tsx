@@ -823,12 +823,14 @@ function trailingPunctuation(text: string, from: number): string {
 
 /** Plain text with its key points underlined (fractions inside still render as math). */
 function EmphasizedText({ text }: { text: string }) {
+  // An underlined amount ("3 pizzas") takes the season's words like the plain text around it does.
+  const words = useSeasonalWords();
   const parts: ReactNode[] = [];
   let last = 0;
   for (const match of execAll(text, KEY_PATTERN)) {
     const at = match.index ?? 0;
     if (at > last) parts.push(<MathText key={`t-${last}`} text={text.slice(last, at)} />);
-    const key = <span key={`k-${at}`} className="fq-key">{match[0]}</span>;
+    const key = <span key={`k-${at}`} className="fq-key">{words(match[0])}</span>;
     const stop = trailingPunctuation(text, at + match[0].length);
     parts.push(stop ? <span key={`k-${at}`} className="fq-glue">{key}{stop}</span> : key);
     last = at + match[0].length + stop.length;

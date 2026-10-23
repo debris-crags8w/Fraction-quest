@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { describe, it, mock } from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { FunContext } from './fun-ui';
 import { LearningText } from './LearningText';
 
 describe('learning text wrapping', () => {
@@ -20,5 +21,17 @@ describe('learning text wrapping', () => {
     const markup = renderToStaticMarkup(createElement(LearningText, { text: '6/3 cups = 2 cups.', emphasize: true }));
     assert.doesNotMatch(markup, /fq-key">3 cups/);
     assert.match(markup, /fq-key">2 cups/);
+  });
+  it('an underlined amount follows the season like the words around it ("3 pizzas" at Halloween)', () => {
+    mock.timers.enable({ apis: ['Date'], now: new Date('2026-10-23T12:00:00Z') });
+    try {
+      const fun = { xp: 0, day: '2026-10-23', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: false };
+      const markup = renderToStaticMarkup(createElement(FunContext.Provider, { value: { fun, setFun: () => {} } },
+        createElement(LearningText, { text: '3 pizzas shared by 4 friends: 3/4 of a pizza each.', emphasize: true })));
+      assert.match(markup, /fq-key">3 pumpkin pies/);
+      assert.doesNotMatch(markup, /pizza/);
+    } finally {
+      mock.timers.reset();
+    }
   });
 });
