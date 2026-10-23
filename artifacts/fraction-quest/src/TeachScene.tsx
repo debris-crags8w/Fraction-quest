@@ -7,7 +7,7 @@ import { AREA_CUTS, areaOutline, type Point } from './area-shapes';
 import type { LessonIntro } from './lesson-intros';
 import { LearningListenButton, LearningText } from './LearningText';
 import { MathText } from './MathText';
-import type { AreaRow, BarRow, LessonScene, LineRow, SceneRow, SetRow, StepScene } from './teach-scenes';
+import { teachPageScript, type AreaRow, type BarRow, type LessonScene, type LineRow, type SceneRow, type SetRow, type StepScene } from './teach-scenes';
 import './teach-scene.css';
 
 /** Is motion turned down (the grown-ups' setting, or the device's)? */
@@ -208,8 +208,8 @@ export function AnimatedLessonIntro({ intro, scene, onFinish }: { intro: LessonI
   const current = pages[page]!;
   const last = page === pages.length - 1;
   const go = (next: number) => { setPage(next); setTake((count) => count + 1); };
-  // The first step also says what the lesson is for.
-  const listen = page === 0 ? `${intro.goal} ${current.text}` : current.text;
+  // The step (the first also says what the lesson is for), then the worked numbers under its picture.
+  const listen = teachPageScript(intro, scene, page);
   return (
     <section className="fq-example-intro fq-teach-card fq-ts-card" aria-labelledby="lesson-intro-heading" data-testid="lesson-introduction" data-teach-first={onFinish ? '' : undefined}>
       <div className="fq-example-card-head">
