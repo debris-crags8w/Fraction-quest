@@ -51,8 +51,8 @@ function Bar({ row }: { row: BarRow }) {
       <div className="fq-ts-bar" data-testid="teach-scene-bar">
         {row.parts.map((part, i) => (
           <span key={i} style={{ flexGrow: part }}
-            className={`fq-ts-part ${i > 0 && row.cut ? 'is-cut' : ''} ${has(row.shaded, i) ? 'is-shaded' : ''} ${has(row.counted, i) ? 'is-counted' : ''} ${has(row.glow, i) ? 'is-glow' : ''}`}>
-            <span className="fq-ts-count" aria-hidden="true">{has(row.counted, i) ? row.counted!.indexOf(i) + 1 : ''}</span>
+            className={`fq-ts-part ${i > 0 && row.cut && i % (row.group ?? 1) === 0 ? 'is-cut' : ''} ${has(row.shaded, i) ? 'is-shaded' : ''} ${has(row.shaded2, i) ? 'is-shaded2' : ''} ${has(row.counted, i) ? 'is-counted' : ''} ${has(row.glow, i) ? 'is-glow' : ''}`}>
+            <span className="fq-ts-count" aria-hidden="true">{has(row.counted, i) ? row.counted!.indexOf(i) + (row.countFrom ?? 1) : ''}</span>
             <span className={`fq-ts-tick ${has(row.ticks, i) ? 'is-on' : ''}`}><Tick /></span>
           </span>
         ))}
@@ -76,10 +76,10 @@ function Area({ row, small = false }: { row: AreaRow; small?: boolean }) {
   const has = (list: number[] | undefined, i: number) => !!list?.includes(i);
   return (
     <div className={`fq-ts-row fq-ts-area-row ${row.hidden ? 'is-hidden' : ''}`}>
-      <svg className={`fq-ts-area ${small ? 'is-small' : ''}`} viewBox="-3 -3 106 106" role="img" aria-label={row.label ?? 'A shape cut into parts'}>
+      <svg className={`fq-ts-area ${small ? 'is-small' : ''} ${pieces.length > 30 ? 'is-fine' : ''}`} viewBox="-3 -3 106 106" role="img" aria-label={row.label ?? 'A shape cut into parts'}>
         {pieces.map((piece, i) => (
           <polygon key={i} points={pointsOf(piece.points, size)}
-            className={`fq-ts-piece ${row.edges ? 'is-cut' : ''} ${has(row.shaded, i) ? 'is-shaded' : ''} ${has(row.counted, i) ? 'is-counted' : ''} ${has(row.glow, i) ? 'is-glow' : ''}`} />
+            className={`fq-ts-piece ${row.edges ? 'is-cut' : ''} ${has(row.shaded, i) ? 'is-shaded' : ''} ${has(row.shaded2, i) ? 'is-shaded2' : ''} ${has(row.counted, i) ? 'is-counted' : ''} ${has(row.glow, i) ? 'is-glow' : ''}`} />
         ))}
         <polygon points={pointsOf(areaOutline(row.cut), size)} className="fq-ts-outline" />
         {pieces.map((piece, i) => {
@@ -109,7 +109,7 @@ function NumberLine({ row }: { row: LineRow }) {
         {ticks.map((k) => {
           const whole = k % row.spaces === 0;
           return (
-            <span key={k} className={`fq-ts-tick-mark ${whole ? 'is-whole' : ''} ${whole || row.cut ? 'is-on' : ''}`} style={{ left: at(k) }}>
+            <span key={k} className={`fq-ts-tick-mark ${whole ? 'is-whole' : ''} ${whole || (row.cut && k % (row.group ?? 1) === 0) ? 'is-on' : ''}`} style={{ left: at(k) }}>
               {whole && <span className="fq-ts-whole-label">{k / row.spaces}{row.ruler && k > 0 ? ' in' : ''}</span>}
             </span>
           );

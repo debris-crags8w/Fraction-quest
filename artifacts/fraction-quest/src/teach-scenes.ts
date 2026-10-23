@@ -10,8 +10,14 @@ export type BarRow = {
   parts: number[];
   /** The cut lines show (before this, it is one uncut bar). */
   cut?: boolean;
+  /** Only every `group`-th cut shows: 6 parts with group 2 look like thirds until group becomes 1. */
+  group?: number;
   /** Parts colored in (the fraction's parts). */
   shaded?: number[];
+  /** Parts colored in a second color (one of two addends). */
+  shaded2?: number[];
+  /** The first counted part shows this number (a second bar carries on the count). */
+  countFrom?: number;
   /** Parts counted so far: each shows its number. */
   counted?: number[];
   /** Parts that glow orange (the part that is too big). */
@@ -36,6 +42,8 @@ export type AreaRow = {
   /** The inside edges show. */
   edges?: boolean;
   shaded?: number[];
+  /** Pieces colored in a second color (one of two addends). */
+  shaded2?: number[];
   counted?: number[];
   glow?: number[];
   label?: string;
@@ -49,6 +57,8 @@ export type LineRow = {
   spaces: number;
   /** The inside tick marks show (before this, only the whole numbers). */
   cut?: boolean;
+  /** Only every `group`-th tick shows: 8 spaces with group 2 look like fourths until group becomes 1. */
+  group?: number;
   /** Jump arcs drawn from 0, one per space. */
   jumps?: number;
   /** A dot at this many spaces from 0, with an optional label above it. */
@@ -104,6 +114,8 @@ const jumpUp = (row: number, n: number, ms = 380, from = 0): [number, Patch][] =
   range(n - from).map((i): [number, Patch] => [ms, { [row]: { jumps: from + i + 1 } }]);
 /** The 1/2 label under a 0-to-1 line (0 and 1 are already labeled). */
 const halfMarks = (spaces: number) => [{ at: spaces / 2, label: '1/2' }];
+/** The first n hundredths of a 10-by-10 grid, a column (one tenth) at a time. `from` skips the first ones. */
+const gridFill = (n: number, from = 0) => range(n).map((k) => ((from + k) % 10) * 10 + Math.floor((from + k) / 10));
 const fourthMarks = [{ at: 1, label: '1/4' }, { at: 2, label: '2/4' }, { at: 3, label: '3/4' }];
 
 export const LESSON_SCENES: Record<string, LessonScene> = {
@@ -499,5 +511,485 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
     ],
     why: play([{ kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1], label: '2/4 of a bar' }, { kind: 'text', text: 'Compare parts of the same-size whole.', hidden: true }],
       [500, { 1: { hidden: false } }]),
+  },
+  // Unit 6 · Equivalent fractions
+  'equivalent-models': {
+    steps: [
+      // Start with one fraction on a bar: 2/3.
+      play([{ kind: 'bar', parts: ones(6), group: 2, label: '2/3' }],
+        [500, { 0: { cut: true } }],
+        [600, { 0: { shaded: range(4) } }]),
+      // Split every part the same way: each third into 2.
+      play([{ kind: 'bar', parts: ones(6), group: 2, cut: true, shaded: range(4), label: 'Thirds' }, { kind: 'text', text: 'Each third splits into 2 sixths.', hidden: true }],
+        [700, { 0: { group: 1, label: 'Sixths' } }],
+        [600, { 1: { hidden: false } }]),
+      // Count the new parts: the shaded amount has not changed.
+      play([{ kind: 'bar', parts: ones(6), cut: true, shaded: range(4), label: '4/6' }, { kind: 'text', text: '4/6 = 2/3: the same amount.', hidden: true }],
+        ...countUp(0, 4),
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([
+      { kind: 'bar', parts: ones(6), group: 2, cut: true, shaded: range(4), label: '2/3', hidden: true },
+      { kind: 'bar', parts: ones(6), cut: true, shaded: range(4), label: '4/6', hidden: true },
+      { kind: 'text', text: 'New name, same amount.', hidden: true },
+    ],
+    [400, { 0: { hidden: false } }],
+    [400, { 1: { hidden: false } }],
+    [400, { 2: { hidden: false } }]),
+  },
+
+  'equivalent-number-line': {
+    steps: [
+      // Mark the first fraction: 2/4.
+      play([{ kind: 'line', max: 1, spaces: 8, group: 2, cut: true, pointLabel: '2/4' }],
+        [600, { 0: { point: 4 } }]),
+      // Split every space the same way.
+      play([{ kind: 'line', max: 1, spaces: 8, group: 2, cut: true, point: 4, pointLabel: '2/4' }, { kind: 'text', text: 'Each fourth splits into 2 eighths.', hidden: true }],
+        [700, { 0: { group: 1 } }],
+        [500, { 1: { hidden: false } }]),
+      // Count the jumps to the same point.
+      play([{ kind: 'line', max: 1, spaces: 8, cut: true, point: 4, pointLabel: '2/4' }, { kind: 'text', text: '4 jumps of 1/8: 4/8 = 2/4.', hidden: true }],
+        ...jumpUp(0, 4, 420),
+        [500, { 0: { pointLabel: '4/8' }, 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 8, cut: true, point: 4, pointLabel: '2/4 = 4/8', marks: halfMarks(8) }, { kind: 'text', text: 'The point did not move.', hidden: true }],
+      [500, { 1: { hidden: false } }]),
+  },
+
+  'build-equivalents': {
+    steps: [
+      // Multiply top and bottom by the same number.
+      play([{ kind: 'bar', parts: ones(6), group: 2, cut: true, shaded: [0, 1], label: '1/3' }, { kind: 'text', text: '1 × 2 = 2 and 3 × 2 = 6: 1/3 = 2/6.', hidden: true }],
+        [800, { 0: { group: 1, label: '2/6' } }],
+        [500, { 1: { hidden: false } }]),
+      // Or divide both: parts join into bigger parts.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(4), label: '4/8' }, { kind: 'text', text: '4 ÷ 2 = 2 and 8 ÷ 2 = 4: 4/8 = 2/4.', hidden: true }],
+        [800, { 0: { group: 2, label: '2/4' } }],
+        [500, { 1: { hidden: false } }]),
+      // Check both show the same amount.
+      play([
+        { kind: 'bar', parts: ones(6), group: 2, cut: true, shaded: [0, 1], label: '1/3', hidden: true },
+        { kind: 'bar', parts: ones(6), cut: true, shaded: [0, 1], label: '2/6', hidden: true },
+      ],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: ones(6), group: 2, cut: true, shaded: [0, 1] }, { kind: 'text', text: 'More, smaller parts: count more of them.', hidden: true }],
+      [700, { 0: { group: 1 } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'missing-equivalent': {
+    steps: [
+      // What was the bottom multiplied by?
+      play([{ kind: 'bar', parts: ones(8), group: 2, cut: true, shaded: range(6), label: '3/4 = ?/8' }, { kind: 'text', text: '4 × 2 = 8.', hidden: true }],
+        [700, { 0: { group: 1 } }],
+        [500, { 1: { hidden: false } }]),
+      // Do the same to the top.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: '3/4 = ?/8' }, { kind: 'text', text: '3 × 2 = 6.', hidden: true }],
+        ...countUp(0, 6, 380),
+        [500, { 1: { hidden: false } }]),
+      // Check the amount.
+      play([
+        { kind: 'bar', parts: four, cut: true, shaded: range(3), label: '3/4', hidden: true },
+        { kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: '6/8', hidden: true },
+      ],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: ones(8), group: 2, cut: true, shaded: range(6), label: '3/4' }, { kind: 'text', text: 'Times 2 on the bottom, times 2 on the top: 3/4 = 6/8.', hidden: true }],
+      [700, { 0: { group: 1, label: '6/8' } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  // Unit 7 · Wholes, parts and mixed numbers
+  'compose-to-one': {
+    steps: [
+      // Same-size parts.
+      play([{ kind: 'bar', parts: ones(5) }, { kind: 'text', text: 'Fifths: all the parts are the same size.', hidden: true }],
+        [500, { 0: { cut: true } }],
+        [500, { 1: { hidden: false } }]),
+      // Add the numerators: 2/5 + 3/5.
+      play([{ kind: 'bar', parts: ones(5), cut: true, label: '2/5 + 3/5' }],
+        [500, { 0: { shaded: [0, 1] } }],
+        [600, { 0: { shaded2: [2, 3, 4] } }],
+        [500, { 0: { counted: range(5) } }]),
+      // The numerator equals the denominator: one whole.
+      play([{ kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1], shaded2: [2, 3, 4] }, { kind: 'text', text: '5/5 is one whole.', hidden: true }],
+        [600, { 0: { bracket: '1 whole' } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: four, cut: true, shaded: range(4), bracket: '4/4 = 1 whole', hidden: true }],
+      [400, { 0: { hidden: false } }]),
+  },
+
+  'decompose-fractions': {
+    steps: [
+      // Keep the denominator.
+      play([{ kind: 'bar', parts: ones(8), cut: true, label: '5/8' }],
+        [600, { 0: { shaded: range(5) } }]),
+      // Split the numerator: 5 = 2 + 3.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(5), label: '5/8' }, { kind: 'text', text: '5/8 = 2/8 + 3/8.', hidden: true }],
+        [700, { 0: { shaded: [0, 1], shaded2: [2, 3, 4] } }],
+        [500, { 1: { hidden: false } }]),
+      // Check they add back.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: [0, 1], shaded2: [2, 3, 4] }, { kind: 'text', text: '2 + 3 = 5, so it is still 5/8.', hidden: true }],
+        ...countUp(0, 5, 380),
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: [0], shaded2: [1, 2, 3, 4], label: '1/8 + 4/8 is also 5/8', hidden: true }],
+      [400, { 0: { hidden: false } }]),
+  },
+
+  'whole-numbers-as-fractions': {
+    steps: [
+      // The denominator: the parts in one whole.
+      play([{ kind: 'bar', parts: ones(3), label: 'Thirds: 3 parts in one whole' }],
+        [600, { 0: { cut: true } }]),
+      // Count that many parts for each whole.
+      play([{ kind: 'bar', parts: ones(3), cut: true, label: '1 whole' }, { kind: 'bar', parts: ones(3), cut: true, countFrom: 4, label: '2 wholes' }],
+        ...countUp(0, 3, 380, true),
+        ...countUp(1, 3, 380, true)),
+      // The total on top.
+      play([{ kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'text', text: '2 wholes = 6/3.', hidden: true }],
+        [600, { 2: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: four, cut: true, shaded: range(4), bracket: '1 = 4/4', hidden: true }],
+      [400, { 0: { hidden: false } }]),
+  },
+
+  'improper-fractions': {
+    steps: [
+      // Compare the numerator with the denominator.
+      play([{ kind: 'text', text: '7/4: 7 parts, but only 4 fit in one whole.', hidden: true }, { kind: 'bar', parts: four, cut: true }, { kind: 'bar', parts: four, cut: true, countFrom: 5 }],
+        [400, { 0: { hidden: false } }],
+        ...countUp(1, 4, 380, true),
+        ...countUp(2, 3, 380, true)),
+      // Each full denominator makes one whole.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: range(4) }, { kind: 'bar', parts: four, cut: true, shaded: range(3) }],
+        [600, { 0: { bracket: '4/4 = 1 whole' } }]),
+      // The leftover parts.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: range(4), bracket: '1 whole' }, { kind: 'bar', parts: four, cut: true, shaded: range(3) }, { kind: 'text', text: '3/4 left over: 7/4 = 1 3/4.', hidden: true }],
+        [500, { 1: { glow: range(3) } }],
+        [600, { 1: { glow: [] }, 2: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 2, spaces: 4, cut: true, jumps: 7, point: 7, pointLabel: '7/4', hidden: true }, { kind: 'text', text: 'Past 4/4, the parts start the next whole.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'mixed-improper': {
+    steps: [
+      // Wholes times the denominator: 2 wholes of thirds.
+      play([{ kind: 'text', text: '2 1/3: 2 wholes and 1 third.', hidden: true }, { kind: 'bar', parts: ones(3), cut: true }, { kind: 'bar', parts: ones(3), cut: true, countFrom: 4 }],
+        [400, { 0: { hidden: false } }],
+        ...countUp(1, 3, 360, true),
+        ...countUp(2, 3, 360, true)),
+      // Add the extra parts.
+      play([{ kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'bar', parts: ones(3), cut: true, countFrom: 7 }, { kind: 'text', text: '6 + 1 = 7 thirds.', hidden: true }],
+        [600, { 2: { shaded: [0], counted: [0] } }],
+        [500, { 3: { hidden: false } }]),
+      // Keep the denominator.
+      play([{ kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'bar', parts: ones(3), cut: true, shaded: [0] }, { kind: 'text', text: '2 1/3 = 7/3.', hidden: true }],
+        [600, { 3: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: ones(3), cut: true, shaded: range(3), bracket: '1 whole = 3/3', hidden: true }],
+      [400, { 0: { hidden: false } }]),
+  },
+  // Unit 8 · Add, subtract, decimals, multiply
+  'add-like-denominators': {
+    steps: [
+      // The denominators match.
+      play([{ kind: 'bar', parts: ones(6), cut: true, shaded: [0, 1], label: '2/6', hidden: true }, { kind: 'bar', parts: ones(6), cut: true, shaded2: [0, 1, 2], label: '3/6', hidden: true }, { kind: 'text', text: 'Both are sixths.', hidden: true }],
+        [400, { 0: { hidden: false } }],
+        [400, { 1: { hidden: false } }],
+        [400, { 2: { hidden: false } }]),
+      // Add the numerators: put them together.
+      play([{ kind: 'bar', parts: ones(6), cut: true, label: '2/6 + 3/6' }, { kind: 'text', text: '2 + 3 = 5.', hidden: true }],
+        [500, { 0: { shaded: [0, 1] } }],
+        [600, { 0: { shaded2: [2, 3, 4] } }],
+        [500, { 0: { counted: range(5) } }],
+        [500, { 1: { hidden: false } }]),
+      // Keep the denominator.
+      play([{ kind: 'bar', parts: ones(6), cut: true, shaded: [0, 1], shaded2: [2, 3, 4], label: '5/6' }, { kind: 'text', text: 'Still sixths: 2/6 + 3/6 = 5/6.', hidden: true }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: ones(6), cut: true, shaded: [0, 1], shaded2: [2, 3, 4] }, { kind: 'text', text: 'The parts stay the same size; you just count more of them.', hidden: true }],
+      [500, { 1: { hidden: false } }]),
+  },
+
+  'subtract-like-denominators': {
+    steps: [
+      // The denominators match.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(5), label: '5/8 − 2/8' }, { kind: 'text', text: 'Both are eighths.', hidden: true }],
+        [500, { 1: { hidden: false } }]),
+      // Take the parts away.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(5), label: '5/8 − 2/8' }, { kind: 'text', text: '5 − 2 = 3.', hidden: true }],
+        [600, { 0: { glow: [3, 4] } }],
+        [700, { 0: { glow: [], shaded: range(3) } }],
+        [500, { 0: { counted: range(3) } }],
+        [500, { 1: { hidden: false } }]),
+      // Keep the denominator.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8' }, { kind: 'text', text: 'Still eighths: 5/8 − 2/8 = 3/8.', hidden: true }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8' }, { kind: 'text', text: 'Fewer parts, same size parts.', hidden: true }],
+      [500, { 1: { hidden: false } }]),
+  },
+
+  'add-mixed-numbers': {
+    steps: [
+      // Add the wholes.
+      play([{ kind: 'text', text: '1 2/4 + 1 3/4', hidden: true }, { kind: 'bar', parts: [1], shaded: [0], label: '1' }, { kind: 'bar', parts: [1], shaded2: [0], label: '1' }, { kind: 'text', text: '1 + 1 = 2 wholes.', hidden: true }],
+        [400, { 0: { hidden: false } }],
+        [700, { 3: { hidden: false } }]),
+      // Add the parts.
+      play([{ kind: 'bar', parts: four, cut: true, label: '2/4 + 3/4' }, { kind: 'bar', parts: four, cut: true, countFrom: 5 }, { kind: 'text', text: '2/4 + 3/4 = 5/4.', hidden: true }],
+        [500, { 0: { shaded: [0, 1] } }],
+        [600, { 0: { shaded2: [2, 3] }, 1: { shaded2: [0] } }],
+        [500, { 0: { counted: range(4) }, 1: { counted: [0] } }],
+        [500, { 2: { hidden: false } }]),
+      // The parts make one more whole.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: [0, 1], shaded2: [2, 3] }, { kind: 'bar', parts: four, cut: true, shaded2: [0] }, { kind: 'text', text: '4/4 is 1 more whole: 2 + 1 + 1/4 = 3 1/4.', hidden: true }],
+        [600, { 0: { bracket: '1 more whole' } }],
+        [500, { 2: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: four, cut: true, shaded: [0, 1], shaded2: [2, 3], bracket: '4/4 = 1 whole', hidden: true }, { kind: 'text', text: 'Parts that fill a whole become one more whole.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'subtract-mixed-numbers': {
+    steps: [
+      // Enough parts? 3 1/4 − 1 3/4.
+      play([{ kind: 'text', text: '3 1/4 − 1 3/4', hidden: true }, { kind: 'bar', parts: four, cut: true, shaded: [0], label: '1/4' }, { kind: 'text', text: 'Only 1 fourth: not enough to take away 3 fourths.', hidden: true }],
+        [400, { 0: { hidden: false } }],
+        [500, { 1: { glow: [0] } }],
+        [500, { 1: { glow: [] }, 2: { hidden: false } }]),
+      // Trade one whole for parts.
+      play([{ kind: 'bar', parts: four, shaded: range(4), label: '1 whole' }, { kind: 'bar', parts: four, cut: true, shaded: [0] }, { kind: 'text', text: '1 whole = 4/4. Now there are 5/4 and 2 wholes.', hidden: true }],
+        [700, { 0: { cut: true, label: '4/4' } }],
+        [500, { 0: { counted: range(4) }, 1: { counted: [0], countFrom: 5 } }],
+        [500, { 2: { hidden: false } }]),
+      // Subtract the parts, then the wholes.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: range(4) }, { kind: 'bar', parts: four, cut: true, shaded: [0] }, { kind: 'text', text: '5/4 − 3/4 = 2/4, and 2 − 1 = 1: the answer is 1 2/4.', hidden: true }],
+        [600, { 0: { glow: [1, 2] }, 1: { glow: [0] } }],
+        [700, { 0: { glow: [], shaded: [0, 1] }, 1: { glow: [], shaded: [] } }],
+        [500, { 2: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: four, cut: true, shaded: range(4), bracket: '1 whole = 4/4', hidden: true }, { kind: 'text', text: 'Trading never changes the amount.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'tenths-decimals': {
+    steps: [
+      // Find the tenths.
+      play([{ kind: 'bar', parts: ones(10), cut: true, label: '7/10' }],
+        ...countUp(0, 7, 300, true)),
+      // 0 and the decimal point.
+      play([{ kind: 'bar', parts: ones(10), cut: true, shaded: range(7) }, { kind: 'text', text: 'Less than one whole: write 0 and the point, 0.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+      // The tenths go right after the point.
+      play([{ kind: 'bar', parts: ones(10), cut: true, shaded: range(7), label: '0.7' }, { kind: 'text', text: '7 tenths: 7/10 = 0.7.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 10, cut: true, point: 7, pointLabel: '0.7', hidden: true }, { kind: 'text', text: 'The first place after the point counts tenths.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'hundredths-decimals': {
+    steps: [
+      // Find the hundredths: 23 small squares.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true }, { kind: 'text', text: '23 of 100 squares: 23/100.', hidden: true }],
+        [600, { 0: { shaded: gridFill(10) } }],
+        [600, { 0: { shaded: gridFill(20) } }],
+        [600, { 0: { shaded: gridFill(23) } }],
+        [500, { 1: { hidden: false } }]),
+      // 0 and the point.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(23) }, { kind: 'text', text: 'Less than one whole: 0 and the point, 0.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+      // Two places after the point.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(23), label: '0.23' }, { kind: 'text', text: '2 tenths and 3 hundredths: 23/100 = 0.23.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(20), shaded2: gridFill(3, 20) }, { kind: 'text', text: 'Columns are tenths; single squares are hundredths.', hidden: true }],
+      [500, { 1: { hidden: false } }]),
+  },
+
+  'decimal-fraction-equivalence': {
+    steps: [
+      // Rename in tenths: 3/5 = 6/10.
+      play([{ kind: 'bar', parts: ones(10), group: 2, cut: true, shaded: range(6), label: '3/5' }, { kind: 'text', text: 'Split each fifth in 2: 3/5 = 6/10.', hidden: true }],
+        [700, { 0: { group: 1, label: '6/10' } }],
+        [500, { 1: { hidden: false } }]),
+      // Tenths: one place.
+      play([{ kind: 'bar', parts: ones(10), cut: true, shaded: range(6), label: '6/10' }, { kind: 'text', text: '6 tenths: 0.6.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+      // Hundredths: two places.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true }, { kind: 'text', text: '60 hundredths: 60/100 = 0.60, the same as 0.6.', hidden: true }],
+        [700, { 0: { shaded: gridFill(60) } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 10, cut: true, point: 6, pointLabel: '6/10 = 0.6', hidden: true }, { kind: 'text', text: 'A decimal is a fraction out of 10 or 100.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'compare-decimals': {
+    steps: [
+      // The same number of places.
+      play([{ kind: 'text', text: '0.4 or 0.35? Write 0.4 as 0.40.', hidden: true }, { kind: 'pair', items: [
+        { kind: 'area', cut: 'grid-10x10', edges: true, label: '0.40' },
+        { kind: 'area', cut: 'grid-10x10', edges: true, label: '0.35' },
+      ] }],
+      [400, { 0: { hidden: false } }],
+      [700, { 1: { items: [
+        { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(40), label: '0.40' },
+        { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(35), label: '0.35' },
+      ] } }]),
+      // Compare the tenths first.
+      play([{ kind: 'pair', items: [
+        { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(40), label: '4 tenths' },
+        { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(35), label: '3 tenths' },
+      ] }, { kind: 'text', text: '4 tenths is more than 3 tenths.', hidden: true }],
+      [600, { 1: { hidden: false } }]),
+      // Hundredths only if the tenths match.
+      play([{ kind: 'pair', items: [
+        { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(40), label: '0.4' },
+        { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(35), label: '0.35' },
+      ] }, { kind: 'text', text: '0.4 > 0.35. More digits does not mean bigger.', hidden: true }],
+      [600, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'pair', hidden: true, items: [
+      { kind: 'bar', parts: ones(10), cut: true, shaded: range(4), label: '0.4' },
+      { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(40), label: '0.40' },
+    ] }, { kind: 'text', text: 'Same amount: 4 tenths is 40 hundredths.', hidden: true }],
+    [400, { 0: { hidden: false } }],
+    [400, { 1: { hidden: false } }]),
+  },
+
+  'compare-decimals-grid': {
+    steps: [
+      // Write both in hundredths.
+      play([{ kind: 'pair', items: [
+        { kind: 'bar', parts: ones(10), cut: true, shaded: range(6), label: '0.6 = 6 tenths' },
+        { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(60), label: '= 60 hundredths' },
+      ] }, { kind: 'text', text: '0.6 = 0.60 = 60 hundredths. 0.58 = 58 hundredths.', hidden: true }],
+      [500, { 1: { hidden: false } }]),
+      // Shade the squares.
+      play([{ kind: 'pair', items: [
+        { kind: 'area', cut: 'grid-10x10', edges: true, label: '0.6' },
+        { kind: 'area', cut: 'grid-10x10', edges: true, label: '0.58' },
+      ] }],
+      [700, { 0: { items: [
+        { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(60), label: '0.6' },
+        { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(58), label: '0.58' },
+      ] } }]),
+      // More squares is bigger.
+      play([{ kind: 'pair', items: [
+        { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(60), label: '60' },
+        { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(58), label: '58' },
+      ] }, { kind: 'text', text: '60 > 58, so 0.6 > 0.58.', hidden: true }],
+      [600, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'area', cut: 'grid-10x10', edges: true, label: '1 square = 1/100' }, { kind: 'text', text: '100 squares make one whole.', hidden: true }],
+      [500, { 0: { glow: [0] } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'add-tenths-hundredths': {
+    steps: [
+      // Rename the tenths as hundredths.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, label: '3/10' }, { kind: 'text', text: '3 tenths = 30 hundredths.', hidden: true }],
+        [700, { 0: { shaded: gridFill(30), label: '30/100' } }],
+        [500, { 1: { hidden: false } }]),
+      // Add the hundredths.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(30), label: '30/100 + 25/100' }],
+        [800, { 0: { shaded2: gridFill(25, 30) } }]),
+      // The total in hundredths.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(30), shaded2: gridFill(25, 30), label: '55/100' }, { kind: 'text', text: '30 + 25 = 55: 3/10 + 25/100 = 55/100.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'pair', hidden: true, items: [
+      { kind: 'bar', parts: ones(10), cut: true, shaded: [0], label: '1/10' },
+      { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(10), label: '10/100' },
+    ] }, { kind: 'text', text: 'One tenth is ten hundredths.', hidden: true }],
+    [400, { 0: { hidden: false } }],
+    [400, { 1: { hidden: false } }]),
+  },
+
+  'dimes-and-pennies': {
+    steps: [
+      // Each dime is 10 hundredths.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, label: '2 dimes' }, { kind: 'text', text: '2 dimes = 20 hundredths of a dollar.', hidden: true }],
+        [600, { 0: { shaded: gridFill(10) } }],
+        [600, { 0: { shaded: gridFill(20) } }],
+        [500, { 1: { hidden: false } }]),
+      // Each penny is 1 hundredth.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(20), label: '2 dimes and 3 pennies' }, { kind: 'text', text: '3 pennies = 3 hundredths.', hidden: true }],
+        [500, { 0: { shaded2: gridFill(1, 20) } }],
+        [400, { 0: { shaded2: gridFill(2, 20) } }],
+        [400, { 0: { shaded2: gridFill(3, 20) } }],
+        [500, { 1: { hidden: false } }]),
+      // Add them.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(20), shaded2: gridFill(3, 20), label: '23/100' }, { kind: 'text', text: '20 + 3 = 23: 23/100 of a dollar.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(10), shaded2: gridFill(1, 10), label: 'A dime: 1/10. A penny: 1/100.', hidden: true }],
+      [400, { 0: { hidden: false } }]),
+  },
+
+  'unit-fraction-multiples': {
+    steps: [
+      // Count the copies: 4 copies of 1/5.
+      play([{ kind: 'bar', parts: ones(5), cut: true, label: '4 × 1/5' }],
+        ...countUp(0, 4, 450, true)),
+      // That number on top.
+      play([{ kind: 'bar', parts: ones(5), cut: true, shaded: range(4), counted: range(4) }, { kind: 'text', text: '4 copies: 4 on top.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+      // Keep the denominator.
+      play([{ kind: 'bar', parts: ones(5), cut: true, shaded: range(4), label: '4/5' }, { kind: 'text', text: '4 × 1/5 = 4/5.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 5, cut: true, hidden: true }, { kind: 'text', text: 'Each copy adds one more fifth.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      ...jumpUp(0, 4, 350),
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'multiply-whole-by-fraction': {
+    steps: [
+      // Groups times the numerator: 3 groups of 2/5.
+      play([
+        { kind: 'bar', parts: ones(5), cut: true, label: '3 groups of 2/5' },
+        { kind: 'bar', parts: ones(5), cut: true },
+        { kind: 'bar', parts: ones(5), cut: true },
+      ],
+      [500, { 0: { shaded: [0, 1] } }],
+      [500, { 1: { shaded: [0, 1] } }],
+      [500, { 2: { shaded: [0, 1] } }]),
+      // Keep the denominator.
+      play([
+        { kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1] },
+        { kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1], countFrom: 3 },
+        { kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1], countFrom: 5 },
+        { kind: 'text', text: '3 × 2 = 6 fifths: 6/5.', hidden: true },
+      ],
+      [450, { 0: { counted: [0, 1] } }],
+      [450, { 1: { counted: [0, 1] } }],
+      [450, { 2: { counted: [0, 1] } }],
+      [500, { 3: { hidden: false } }]),
+      // Six fifths is six of 1/5.
+      play([{ kind: 'bar', parts: ones(5), cut: true, shaded: range(5) }, { kind: 'bar', parts: ones(5), cut: true, shaded: [0] }, { kind: 'text', text: '6/5 = 6 × 1/5.', hidden: true }],
+        [600, { 2: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 2, spaces: 5, cut: true, hidden: true }, { kind: 'text', text: 'Three jumps of 2/5 land on 6/5.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [450, { 0: { jumps: 2 } }],
+      [450, { 0: { jumps: 4 } }],
+      [450, { 0: { jumps: 6, point: 6, pointLabel: '6/5' } }],
+      [400, { 1: { hidden: false } }]),
   },
 };
