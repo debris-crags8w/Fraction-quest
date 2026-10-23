@@ -337,3 +337,21 @@ test('a friend\'s missing clip plays in Heart, never asks the server for the fri
     resetVoicePackForTests();
   }
 });
+
+test('everything Listen reads on an animated Teach first page is in the voice pack', async () => {
+  const { voiceSentences } = await import('../scripts/voice-sentences');
+  const { LESSON_INTROS } = await import('./lesson-intros');
+  const { LESSON_SCENES, teachPageScript } = await import('./teach-scenes');
+  const keys = new Set(voiceSentences().filter((entry) => !entry.voice).map((entry) => entry.key));
+  const missing: string[] = [];
+  for (const [id, scene] of Object.entries(LESSON_SCENES)) {
+    const intro = LESSON_INTROS[id]!;
+    for (let page = 0; page <= intro.steps.length; page++) {
+      for (const part of sentences(spokenText(teachPageScript(intro, scene, page)))) {
+        const clean = cleanSentence(part);
+        if (/[a-z]{2}/i.test(clean) && !keys.has(voiceKey(clean))) missing.push(`${id} page ${page + 1}: ${clean}`);
+      }
+    }
+  }
+  assert.deepEqual(missing.slice(0, 5), [], `${missing.length} Teach first sentences have no clip`);
+});

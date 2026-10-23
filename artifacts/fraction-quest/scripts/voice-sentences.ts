@@ -4,6 +4,7 @@
 
 import { MISSIONS } from '../src/game';
 import { LESSON_INTROS, lessonIntroScript } from '../src/lesson-intros';
+import { LESSON_SCENES, teachPageScript } from '../src/teach-scenes';
 import { getBuildChecks, getBuildPracticeChecks, getReviewCheck, getWorksheet } from '../src/learning-content';
 import { getExtraPractice } from '../src/practice-bank';
 import { partFinderRoundsFor, PART_FINDER_ROUNDS } from '../src/part-finder';
@@ -135,6 +136,9 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
     // The Teach first screen (and "How it works"): the goal, the steps and why, read as one.
     const intro = LESSON_INTROS[mission.id];
     if (intro) addLine('lesson', lessonIntroScript(intro));
+    // The animated Teach first reads each page with the sentences under its picture.
+    const scene = LESSON_SCENES[mission.id];
+    if (intro && scene) for (let page = 0; page <= intro.steps.length; page++) addLine('lesson', teachPageScript(intro, scene, page));
     const line = mission.example.numberLine;
     if (line) addLine('lesson', numberLineDescription(line.points, line.benchmark, line.equivalentNames));
     // Lab: model feedback, hints and what is still wrong, for each required and optional Build target.

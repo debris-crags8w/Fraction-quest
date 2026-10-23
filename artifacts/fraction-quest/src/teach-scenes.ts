@@ -123,6 +123,19 @@ export function play(start: SceneRow[], ...beats: [number, Patch][]): StepScene 
   return frames;
 }
 
+/** The sentences shown under a step's picture once it has played (its worked numbers). */
+export const sceneSentences = (scene: StepScene): string[] =>
+  (scene[scene.length - 1]?.rows ?? []).flatMap((row) => (row.kind === 'text' ? [row.text] : []));
+
+/** What Listen reads on a Teach first page: the step (the first also says the goal), then the sentences under its
+    picture, so a child who listens hears the worked example too. `page` counts the steps, then "Why it works". */
+export function teachPageScript(intro: { goal: string; steps: string[]; why: string }, scene: LessonScene, page: number): string {
+  const said = page < intro.steps.length ? intro.steps[page]! : intro.why;
+  const opening = page === 0 ? `${intro.goal} ${said}` : said;
+  const picture = page < scene.steps.length ? scene.steps[page]! : scene.why;
+  return [opening, ...sceneSentences(picture)].join(' ');
+}
+
 /** How long a scene takes to reach its last frame. */
 export const sceneLength = (scene: StepScene) => scene.reduce((total, frame) => total + frame.ms, 0);
 
