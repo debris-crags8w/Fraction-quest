@@ -71,3 +71,12 @@ test('a fraction a picture names matches its shaded parts', () => {
     }
   }
 });
+
+test('every step and every why has a picture, not just words', () => {
+  for (const [id, scene] of Object.entries(LESSON_SCENES)) {
+    [...scene.steps, scene.why].forEach((step, index) => {
+      const last = step[step.length - 1]!.rows;
+      assert.ok(last.some((row) => row.kind !== 'text'), `${id} ${index < scene.steps.length ? `step ${index + 1}` : 'why'} needs a picture`);
+    });
+  }
+});
