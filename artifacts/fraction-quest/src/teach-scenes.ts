@@ -1560,4 +1560,240 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
     [400, { 0: { hidden: false } }],
     [400, { 1: { hidden: false } }]),
   },
+  // Unit 12 · Measure and share
+  'fraction-of-length': {
+    steps: [
+      // Split the length into equal parts.
+      play([{ kind: 'bar', parts: four, bracket: '12 meters' }, { kind: 'text', text: '3/4 of 12 meters: 4 equal parts.', hidden: true }],
+        [700, { 0: { cut: true } }],
+        [500, { 1: { hidden: false } }]),
+      // Find one part.
+      play([{ kind: 'bar', parts: four, cut: true, bracket: '12 meters' }, { kind: 'text', text: '12 ÷ 4 = 3 meters in one part.', hidden: true }],
+        [600, { 0: { glow: [0], label: 'One part: 3 meters' } }],
+        [500, { 1: { hidden: false } }]),
+      // Count parts using the numerator.
+      play([{ kind: 'bar', parts: four, cut: true, bracket: '12 meters' }, { kind: 'text', text: '3 parts: 3 × 3 = 9 meters.', hidden: true }],
+        ...countUp(0, 3, 450, true),
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: four, cut: true, shaded: range(3), bracket: '12 meters', label: '3/4' }, { kind: 'text', text: 'Each equal part is one piece of the 12 meters.', hidden: true }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'fractional-measure-addition': {
+    steps: [
+      // Rename as same-size parts.
+      play([
+        { kind: 'bar', parts: four, group: 2, cut: true, shaded: [0, 1], label: '1/2 meter' },
+        { kind: 'bar', parts: four, cut: true, shaded2: [0], label: '1/4 meter' },
+        { kind: 'text', text: 'Fourths fit both: 1/2 meter = 2/4 meter.', hidden: true },
+      ],
+      [800, { 0: { group: 1, label: '2/4 meter' } }],
+      [500, { 2: { hidden: false } }]),
+      // Add the numerators.
+      play([{ kind: 'line', max: 1, spaces: 4, cut: true, unit: 'm', pointLabel: '3/4' }, { kind: 'text', text: '2/4 + 1/4: 2 + 1 = 3.', hidden: true }],
+        ...jumpUp(0, 2, 450),
+        [500, { 0: { jumps: 3, point: 3 } }],
+        [500, { 1: { hidden: false } }]),
+      // Keep the unit.
+      play([{ kind: 'line', max: 1, spaces: 4, cut: true, unit: 'm', jumps: 3, pointLabel: '3/4 meter' }, { kind: 'text', text: 'The answer is 3/4 meter, not just 3/4.', hidden: true }],
+        [600, { 0: { point: 3 } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 4, cut: true, unit: 'm', jumps: 3 }, { kind: 'text', text: 'Same unit, same-size parts: just count them.', hidden: true }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'line-plot-leveling': {
+    steps: [
+      // Add every amount.
+      play([{ kind: 'line', max: 1, spaces: 8, cut: true, xs: [[2, 1], [3, 1], [7, 1]], marks: eighthMarks }, { kind: 'text', text: '2/8 + 3/8 + 7/8 = 12/8 liter.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+      // Divide by the number of cups.
+      play([{ kind: 'bar', parts: ones(12), cut: true, shaded: range(12), label: '12/8 liter shared by 3 cups' }, { kind: 'text', text: '12 eighths ÷ 3 cups = 4 eighths each.', hidden: true }],
+        [800, { 0: { group: 4 } }],
+        [500, { 1: { hidden: false } }]),
+      // Each cup's share.
+      play([{ kind: 'line', max: 1, spaces: 8, cut: true, xs: [[2, 1], [3, 1], [7, 1]], marks: eighthMarks }, { kind: 'text', text: 'Level them: every cup gets 4/8 liter.', hidden: true }],
+        [800, { 0: { xs: [[4, 3]] } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 8, cut: true, xs: [[4, 3]], marks: eighthMarks }, { kind: 'text', text: 'The total stays 12/8; now every share is equal.', hidden: true }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'line-plot-totals': {
+    steps: [
+      // Read the amount under each stack.
+      play([{ kind: 'line', max: 1, spaces: 4, cut: true, xs: [[1, 2], [3, 3]], marks: fourthMarks }, { kind: 'text', text: 'Stacks at 1/4 and 3/4 cup.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+      // Add it once for every X.
+      play([{ kind: 'line', max: 1, spaces: 4, cut: true, xs: [[1, 2], [3, 3]], marks: fourthMarks }, { kind: 'text', text: '1/4 + 1/4, and 3/4 + 3/4 + 3/4.', hidden: true }],
+        [600, { 0: { point: 1 } }],
+        [600, { 0: { point: 3 } }],
+        [500, { 1: { hidden: false } }]),
+      // Add the numerators.
+      play([{ kind: 'text', text: '1 + 1 + 3 + 3 + 3 = 11: 11/4 cups.', hidden: true }, { kind: 'bar', parts: four, cut: true, countFrom: 1 }, { kind: 'bar', parts: four, cut: true, countFrom: 5 }, { kind: 'bar', parts: four, cut: true, countFrom: 9 }],
+        ...countUp(1, 4, 220, true),
+        ...countUp(2, 4, 220, true),
+        ...countUp(3, 3, 220, true),
+        [500, { 0: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 4, cut: true, xs: [[1, 2], [3, 3]], marks: fourthMarks }, { kind: 'text', text: '5 Xs, so 5 amounts are added.', hidden: true }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'fractional-unit-conversions': {
+    steps: [
+      // Small units in one big unit.
+      play([{ kind: 'line', max: 1, spaces: 4, unit: 'hour', marks: [] }, { kind: 'text', text: '3/4 of an hour: 1 hour is 60 minutes.', hidden: true }],
+        [600, { 0: { stretch: 4 } }],
+        [500, { 1: { hidden: false } }]),
+      // Divide by the denominator.
+      play([{ kind: 'line', max: 1, spaces: 4, unit: 'hour', marks: [{ at: 1, label: '15 min' }] }, { kind: 'text', text: '60 ÷ 4 = 15 minutes in one part.', hidden: true }],
+        [600, { 0: { cut: true } }],
+        [500, { 0: { stretch: 1 } }],
+        [500, { 1: { hidden: false } }]),
+      // Multiply by the numerator.
+      play([{ kind: 'line', max: 1, spaces: 4, unit: 'hour', cut: true, marks: [{ at: 1, label: '15' }, { at: 2, label: '30' }, { at: 3, label: '45 min' }] }, { kind: 'text', text: '3 × 15 = 45: 3/4 of an hour is 45 minutes.', hidden: true }],
+        ...jumpUp(0, 3, 450),
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 4, unit: 'hour', cut: true, stretch: 3, marks: [{ at: 3, label: '45 min' }] }, { kind: 'text', text: 'It is 3/4 of a number: the 60 minutes in an hour.', hidden: true }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'two-step-conversions': {
+    steps: [
+      // Change to the smaller unit.
+      play([{ kind: 'line', max: 1, spaces: 4, unit: 'foot', cut: true, marks: [{ at: 1, label: '3 in' }, { at: 2, label: '6 in' }, { at: 3, label: '9 in' }] }, { kind: 'text', text: '1 foot = 12 inches, so 1/4 foot = 3 inches.', hidden: true }],
+        [600, { 0: { stretch: 1 } }],
+        [500, { 1: { hidden: false } }]),
+      // Then add or take away.
+      play([{ kind: 'line', max: 1, spaces: 12, unit: 'foot', group: 3, cut: true, stretch: 3, marks: [{ at: 3, label: '3 in' }, { at: 8, label: '8 in' }] }, { kind: 'text', text: '3 inches + 5 inches = 8 inches.', hidden: true }],
+        [800, { 0: { stretch: 8 } }],
+        [500, { 1: { hidden: false } }]),
+      // Keep the small unit.
+      play([{ kind: 'line', max: 1, spaces: 12, unit: 'foot', group: 3, cut: true, pointLabel: '8 inches' }, { kind: 'text', text: 'The answer is in inches: 8 inches.', hidden: true }],
+        [600, { 0: { point: 8 } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 12, unit: 'foot', group: 3, cut: true, stretch: 8, marks: [{ at: 3, label: '3 in' }] }, { kind: 'text', text: 'Feet and inches only add once both are inches.', hidden: true }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'fractional-sharing': {
+    steps: [
+      // Cut each thing into as many parts as friends: 3 pizzas, 4 friends.
+      play([
+        { kind: 'bar', parts: four, label: 'Pizza 1' },
+        { kind: 'bar', parts: four, label: 'Pizza 2' },
+        { kind: 'bar', parts: four, label: 'Pizza 3' },
+        { kind: 'text', text: '4 friends: cut each one into 4.', hidden: true },
+      ],
+      [700, { 0: { cut: true }, 1: { cut: true }, 2: { cut: true } }],
+      [500, { 3: { hidden: false } }]),
+      // Give each friend one part of each thing.
+      play([
+        { kind: 'bar', parts: four, cut: true, label: 'Pizza 1' },
+        { kind: 'bar', parts: four, cut: true, label: 'Pizza 2' },
+        { kind: 'bar', parts: four, cut: true, label: 'Pizza 3' },
+        { kind: 'text', text: 'One friend gets a piece of each.', hidden: true },
+      ],
+      [500, { 0: { shaded: [0] } }],
+      [500, { 1: { shaded: [0] } }],
+      [500, { 2: { shaded: [0] } }],
+      [500, { 3: { hidden: false } }]),
+      // Count one friend's parts.
+      play([{ kind: 'bar', parts: four, cut: true, label: 'One friend’s pieces' }, { kind: 'text', text: '3 pieces of 1/4: 3/4 of a pizza each.', hidden: true }],
+        ...countUp(0, 3, 450, true),
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: four, cut: true, shaded: range(3), label: '3/4' }, { kind: 'text', text: '3 pizzas, so 3 pieces each: 3 ÷ 4 = 3/4.', hidden: true }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'fraction-as-division': {
+    steps: [
+      // The number shared goes on top.
+      play([{ kind: 'set', count: 5, label: '5 ÷ 4: 5 cookies, 4 friends', hidden: true }, { kind: 'text', text: '5 things are shared: 5 goes on top.', hidden: true }],
+        [500, { 0: { hidden: false } }],
+        [600, { 1: { hidden: false } }]),
+      // The number of shares on the bottom.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: range(4) }, { kind: 'bar', parts: four, cut: true, shaded: [0] }, { kind: 'text', text: '4 shares: each share is 5 fourths, 5/4.', hidden: true }],
+        [500, { 0: { counted: range(4) } }],
+        [500, { 1: { counted: [0], countFrom: 5 } }],
+        [500, { 2: { hidden: false } }]),
+      // A mixed number too.
+      play([{ kind: 'line', max: 2, spaces: 4, cut: true, pointLabel: '5/4' }, { kind: 'text', text: '5/4 is 1 whole and 1/4 more.', hidden: true }],
+        ...jumpUp(0, 5, 300),
+        [500, { 0: { point: 5 } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'text', text: 'The fraction bar means divide: 5/4 = 5 ÷ 4.', hidden: true }, { kind: 'bar', parts: four, cut: true, shaded: range(4), bracket: '4 shares of one whole' }],
+      [400, { 0: { hidden: false } }]),
+  },
+
+  'unit-fraction-divided-whole': {
+    steps: [
+      // Cut the unit fraction into pieces.
+      play([{ kind: 'bar', parts: ones(12), group: 4, cut: true, shaded: range(4), label: '1/3' }, { kind: 'text', text: '1/3 ÷ 4: cut the third into 4 pieces.', hidden: true }],
+        [800, { 0: { group: 1, counted: range(4), label: '1/3 cut into 4' } }],
+        [500, { 1: { hidden: false } }]),
+      // What part of the whole one piece is.
+      play([{ kind: 'bar', parts: ones(12), cut: true, shaded: [0], label: 'One piece' }, { kind: 'text', text: 'Pieces that size fill the whole 12 times: 1/12.', hidden: true }],
+        [700, { 0: { counted: range(12) } }],
+        [500, { 1: { hidden: false } }]),
+      // Multiply the denominator.
+      play([{ kind: 'bar', parts: ones(12), cut: true, shaded: [0], label: '1/12' }, { kind: 'text', text: '3 × 4 = 12: 1/3 ÷ 4 = 1/12.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+    ],
+    why: play([
+      { kind: 'bar', parts: ones(12), group: 4, cut: true, shaded: range(4), label: '1/3', hidden: true },
+      { kind: 'bar', parts: ones(12), cut: true, shaded: [0], label: '1/12: a smaller share', hidden: true },
+    ],
+    [400, { 0: { hidden: false } }],
+    [400, { 1: { hidden: false } }]),
+  },
+
+  'divide-whole-by-unit-fraction': {
+    steps: [
+      // How many parts fit in one whole.
+      play([{ kind: 'bar', parts: four, cut: true, bracket: '1 whole' }, { kind: 'text', text: '2 ÷ 1/4: four 1/4s fit in 1 whole.', hidden: true }],
+        ...countUp(0, 4, 380),
+        [500, { 1: { hidden: false } }]),
+      // Multiply by the number of wholes.
+      play([{ kind: 'bar', parts: four, cut: true, counted: range(4) }, { kind: 'bar', parts: four, cut: true, countFrom: 5 }, { kind: 'text', text: '2 wholes: 2 × 4.', hidden: true }],
+        ...countUp(1, 4, 380),
+        [500, { 2: { hidden: false } }]),
+      // That is how many fit.
+      play([{ kind: 'line', max: 2, spaces: 4, cut: true }, { kind: 'text', text: '8 fourths fit: 2 ÷ 1/4 = 8.', hidden: true }],
+        ...jumpUp(0, 8, 260),
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: four, cut: true, counted: range(4) }, { kind: 'text', text: 'The denominator says how many parts fill one whole.', hidden: true }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'share-or-fit': {
+    steps: [
+      // Shares or pieces?
+      play([
+        { kind: 'bar', parts: [1, 1], cut: true, label: 'Share 1/2 pizza with 2: shares', hidden: true },
+        { kind: 'bar', parts: four, cut: true, label: 'How many 1/4s in 1? Pieces', hidden: true },
+      ],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+      // Sharing makes each share smaller.
+      play([{ kind: 'bar', parts: four, group: 2, cut: true, shaded: [0, 1], label: '1/2 ÷ 2' }, { kind: 'text', text: 'Each share is 1/4: smaller than 1/2.', hidden: true }],
+        [800, { 0: { group: 1, shaded: [0], label: 'One share: 1/4' } }],
+        [500, { 1: { hidden: false } }]),
+      // Fitting counts pieces; check with ×.
+      play([{ kind: 'bar', parts: four, cut: true, label: '1 ÷ 1/4' }, { kind: 'text', text: '4 pieces fit. Check: 4 × 1/4 = 1.', hidden: true }],
+        ...countUp(0, 4, 400),
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'text', text: 'Both are division. Multiply the answer back to check.', hidden: true }, { kind: 'bar', parts: four, cut: true, shaded: range(4), bracket: '4 × 1/4 = 1' }],
+      [400, { 0: { hidden: false } }]),
+  },
 };
