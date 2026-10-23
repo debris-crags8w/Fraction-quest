@@ -1213,4 +1213,147 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
     why: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(3), shaded2: [3, 4, 5], label: 'Each guest gets the same 3/8.', hidden: true }],
       [400, { 0: { hidden: false } }]),
   },
+  // Unit 10 · Unlike fractions
+  'add-related-fractions': {
+    steps: [
+      // Rename halves into fourths.
+      play([
+        { kind: 'bar', parts: four, group: 2, cut: true, shaded: [0, 1], label: '1/2' },
+        { kind: 'bar', parts: four, cut: true, shaded2: [0], label: '1/4' },
+        { kind: 'text', text: 'Cut each half in two: 1/2 = 2/4.', hidden: true },
+      ],
+      [800, { 0: { group: 1, label: '2/4' } }],
+      [500, { 2: { hidden: false } }]),
+      // Add the numerators.
+      play([{ kind: 'bar', parts: four, cut: true, label: '2/4 + 1/4' }, { kind: 'text', text: '2 + 1 = 3.', hidden: true }],
+        [500, { 0: { shaded: [0, 1] } }],
+        [600, { 0: { shaded2: [2] } }],
+        [500, { 0: { counted: range(3) } }],
+        [500, { 1: { hidden: false } }]),
+      // Keep the shared denominator.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: [0, 1], shaded2: [2], label: '3/4' }, { kind: 'text', text: 'Still fourths: 1/2 + 1/4 = 3/4.', hidden: true }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([
+      { kind: 'bar', parts: [2, 1, 1], cut: true, shaded: [0], shaded2: [1], label: 'A half and a fourth: different sizes', tone: 'unfair', hidden: true },
+      { kind: 'bar', parts: four, cut: true, shaded: [0, 1], shaded2: [2], label: '2 fourths and 1 fourth: count them', tone: 'fair', hidden: true },
+    ],
+    [400, { 0: { hidden: false } }],
+    [500, { 1: { hidden: false } }]),
+  },
+
+  'add-unlike-fractions': {
+    steps: [
+      // A common denominator: 3 × 4 = 12.
+      play([
+        { kind: 'bar', parts: ones(12), group: 4, cut: true, shaded: range(4), label: '1/3' },
+        { kind: 'bar', parts: ones(12), group: 3, cut: true, shaded2: range(3), label: '1/4' },
+        { kind: 'text', text: '3 × 4 = 12: both can be twelfths.', hidden: true },
+      ],
+      [600, { 2: { hidden: false } }]),
+      // Rename both.
+      play([
+        { kind: 'bar', parts: ones(12), group: 4, cut: true, shaded: range(4), label: '1/3' },
+        { kind: 'bar', parts: ones(12), group: 3, cut: true, shaded2: range(3), label: '1/4' },
+      ],
+      [800, { 0: { group: 1, label: '4/12' } }],
+      [800, { 1: { group: 1, label: '3/12' } }]),
+      // Add the numerators, keep the denominator.
+      play([{ kind: 'bar', parts: ones(12), cut: true, shaded: range(4), label: '4/12 + 3/12' }, { kind: 'text', text: '4 + 3 = 7: 7/12.', hidden: true }],
+        [600, { 0: { shaded2: [4, 5, 6] } }],
+        [500, { 0: { counted: range(7) } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: ones(12), group: 4, cut: true, shaded: range(4), label: '1/3' }, { kind: 'text', text: 'Finer cuts, same amount: 1/3 = 4/12.', hidden: true }],
+      [800, { 0: { group: 1, label: '4/12' } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'subtract-unlike-fractions': {
+    steps: [
+      // A common denominator: halves fit into fourths.
+      play([
+        { kind: 'bar', parts: four, cut: true, shaded: range(3), label: '3/4' },
+        { kind: 'bar', parts: four, group: 2, cut: true, shaded: [0, 1], label: '1/2' },
+      ],
+      [600, { 1: { label: '1/2: halves fit into fourths' } }]),
+      // Rename: 1/2 = 2/4 (3/4 already is fourths).
+      play([
+        { kind: 'bar', parts: four, cut: true, shaded: range(3), label: '3/4' },
+        { kind: 'bar', parts: four, group: 2, cut: true, shaded: [0, 1], label: '1/2' },
+        { kind: 'text', text: '3/4 stays. 1/2 = 2/4.', hidden: true },
+      ],
+      [800, { 1: { group: 1, label: '2/4' } }],
+      [500, { 2: { hidden: false } }]),
+      // Take the parts away.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: range(3), label: '3/4 − 2/4' }, { kind: 'text', text: '3 − 2 = 1: 1/4.', hidden: true }],
+        [600, { 0: { glow: [1, 2] } }],
+        [700, { 0: { glow: [], shaded: [0] } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([
+      { kind: 'bar', parts: four, group: 2, cut: true, shaded: [0, 1], label: '1/2: not the same size as fourths', tone: 'unfair' },
+      { kind: 'text', text: 'Now the parts match, so you can take 2 fourths away.', hidden: true },
+    ],
+    [800, { 0: { group: 1, label: '2/4: the same size as fourths', tone: 'fair' } }],
+    [500, { 1: { hidden: false } }]),
+  },
+
+  'mixed-unlike-operations': {
+    steps: [
+      // Rename the fraction parts: 2 1/2 + 1 3/4.
+      play([
+        { kind: 'bar', parts: four, group: 2, cut: true, shaded: [0, 1], label: '2 1/2: the 1/2' },
+        { kind: 'bar', parts: four, cut: true, shaded2: range(3), label: '1 3/4: the 3/4' },
+      ],
+      [800, { 0: { group: 1, label: '2 1/2 = 2 2/4' } }]),
+      // Add the parts: 5 fourths make a whole and 1/4.
+      play([
+        { kind: 'bar', parts: four, cut: true, shaded: [0, 1] },
+        { kind: 'bar', parts: four, cut: true },
+        { kind: 'text', text: '2/4 + 3/4 = 5/4: 1 whole and 1/4.', hidden: true },
+      ],
+      [600, { 0: { shaded2: [2, 3] }, 1: { shaded2: [0], countFrom: 5 } }],
+      [500, { 0: { counted: range(4) }, 1: { counted: [0] } }],
+      [500, { 0: { bracket: '1 whole' }, 2: { hidden: false } }]),
+      // Then add the wholes.
+      play([{ kind: 'line', max: 5, spaces: 4, pointLabel: '4 1/4' }, { kind: 'text', text: '2 + 1 + 1 = 4 wholes, and 1/4: 4 1/4.', hidden: true }],
+        [500, { 0: { stretch: 8 } }],
+        [500, { 0: { stretch: 12 } }],
+        [500, { 0: { stretch: 16 } }],
+        [500, { 0: { cut: true, stretch: 17, point: 17 } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: four, cut: true, shaded: range(4) }, { kind: 'text', text: 'A full set of 4 fourths is 1 whole, so you can trade either way.', hidden: true }],
+      [600, { 0: { bracket: '4/4 = 1 whole' } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'estimate-fraction-operations': {
+    steps: [
+      // Compare each with 0, 1/2 or 1.
+      play([
+        { kind: 'line', max: 1, spaces: 8, cut: true, marks: halfMarks(8), pointLabel: '7/8', hidden: true },
+        { kind: 'line', max: 1, spaces: 18, group: 2, cut: true, marks: halfMarks(18), pointLabel: '4/9', hidden: true },
+        { kind: 'text', text: 'Close to 1, and close to 1/2.', hidden: true },
+      ],
+      [400, { 0: { hidden: false } }],
+      [500, { 0: { point: 7 } }],
+      [400, { 1: { hidden: false } }],
+      [500, { 1: { point: 8 } }],
+      [500, { 2: { hidden: false } }]),
+      // Add the easy amounts.
+      play([{ kind: 'line', max: 2, spaces: 2, marks: [{ at: 3, label: '1 1/2' }] }, { kind: 'text', text: '1 + 1/2 = 1 1/2.', hidden: true }],
+        [500, { 0: { jumps: 2 } }],
+        [500, { 0: { jumps: 3, stretch: 3 } }],
+        [500, { 1: { hidden: false } }]),
+      // Is the answer close?
+      play([{ kind: 'line', max: 2, spaces: 2, marks: [{ at: 3, label: '1 1/2' }], pointLabel: '11/17' }, { kind: 'text', text: 'Did someone get 11/17? That is less than 1: far from 1 1/2, so check again.', hidden: true }],
+        [600, { 0: { point: 1.3 } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 2, cut: true, marks: halfMarks(2), hidden: true }, { kind: 'text', text: '0, 1/2 and 1 are easy to add, so a wrong answer stands out.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
 };
