@@ -66,3 +66,33 @@
 /* Reduced motion: frames still change (the last one shows at once), but nothing slides. */
 .fq-reduced-motion .fq-ts-stage *, .fq-reduced-motion .fq-ts-stage { transition: none !important; animation: none !important; }
 @media (prefers-reduced-motion: reduce) { .fq-ts-stage, .fq-ts-stage * { transition: none !important; animation: none !important; } }
+
+/* Number lines (and rulers, and line plots). Everything is placed in % along the line. */
+.fq-ts-line { position: relative; height: 112px; }
+.fq-ts-line.has-xs { height: 132px; }
+.fq-ts-axis { position: absolute; top: 62px; height: 4px; border-radius: 2px; background: var(--ts-ink); }
+.fq-ts-tick-mark { position: absolute; top: 55px; width: 3px; height: 18px; margin-left: -1.5px; background: var(--ts-ink); border-radius: 2px;
+  opacity: 0; transform: scaleY(0); transition: opacity .3s, transform .35s; }
+.fq-ts-tick-mark.is-whole { top: 50px; height: 28px; }
+.fq-ts-tick-mark.is-on { opacity: 1; transform: scaleY(1); }
+.fq-ts-whole-label { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); font-weight: 900; font-size: 1.05rem; white-space: nowrap; color: var(--ts-ink); }
+.fq-ts-mark { position: absolute; top: 82px; transform: translateX(-50%); font-weight: 900; font-size: 0.95rem; color: var(--fq-grape); }
+.fq-ts-jump { position: absolute; top: 34px; height: 24px; box-sizing: border-box; border: 3px solid var(--fq-grape); border-bottom: none;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0; opacity: 0; transform: translateY(6px); transition: opacity .3s, transform .3s; }
+.fq-ts-jump.is-on { opacity: 1; transform: none; }
+.fq-ts-point { position: absolute; top: 55px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: var(--fq-tangerine);
+  border: 3px solid var(--ts-ink); box-sizing: border-box; transform: scale(0); transition: transform .35s cubic-bezier(.3, 1.6, .5, 1), left .5s ease-in-out; }
+.fq-ts-point.is-on { transform: scale(1); }
+.fq-ts-point-label { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); font-weight: 900; font-size: 1rem; color: #A4520F; white-space: nowrap; }
+.fq-ts-stretch { position: absolute; top: 12px; height: 14px; border-radius: 6px; background: var(--ts-whole); border: 2px solid var(--ts-ink); box-sizing: border-box;
+  transition: width .7s ease-out, opacity .3s; }
+.fq-ts-xs { position: absolute; bottom: 72px; transform: translateX(-50%); display: flex; flex-direction: column-reverse; align-items: center;
+  font-weight: 900; font-size: 1.1rem; line-height: 1.05; color: var(--fq-grape); }
+.fq-ts-xs span { animation: fq-ts-pop .3s ease-out both; }
+.fq-ts-line.has-xs .fq-ts-axis { top: 82px; }
+.fq-ts-line.has-xs .fq-ts-tick-mark { top: 75px; }
+.fq-ts-line.has-xs .fq-ts-tick-mark.is-whole { top: 70px; }
+.fq-ts-line.has-xs .fq-ts-xs { bottom: 52px; }
+.fq-ts-line.has-xs .fq-ts-mark { top: 102px; }
+.fq-ts-line.has-xs .fq-ts-whole-label { top: 30px; }
+@keyframes fq-ts-pop { from { transform: scale(0); } to { transform: scale(1); } }

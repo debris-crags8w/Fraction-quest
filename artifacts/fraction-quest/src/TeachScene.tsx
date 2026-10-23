@@ -7,7 +7,7 @@ import { AREA_CUTS, areaOutline, type Point } from './area-shapes';
 import type { LessonIntro } from './lesson-intros';
 import { LearningListenButton, LearningText } from './LearningText';
 import { MathText } from './MathText';
-import type { AreaRow, BarRow, LessonScene, SceneRow, StepScene } from './teach-scenes';
+import type { AreaRow, BarRow, LessonScene, LineRow, SceneRow, StepScene } from './teach-scenes';
 import './teach-scene.css';
 
 /** Is motion turned down (the grown-ups' setting, or the device's)? */
@@ -94,7 +94,47 @@ function Area({ row, small = false }: { row: AreaRow; small?: boolean }) {
   );
 }
 
+function NumberLine({ row }: { row: LineRow }) {
+  const total = row.max * row.spaces;
+  const at = (space: number) => `${4 + (92 * space) / total}%`;
+  const ticks = Array.from({ length: total + 1 }, (_, k) => k);
+  const xs = new Map(row.xs ?? []);
+  return (
+    <div className={`fq-ts-row ${row.hidden ? 'is-hidden' : ''}`}>
+      {row.label && <span className={`fq-ts-label is-${row.tone ?? 'plain'}`}><MathText text={row.label} /></span>}
+      <div className={`fq-ts-line ${row.ruler ? 'is-ruler' : ''} ${row.xs ? 'has-xs' : ''}`} data-testid="teach-scene-line" role="img"
+        aria-label={`A number line from 0 to ${row.max}${row.cut ? `, cut into ${row.spaces} equal spaces in each whole` : ''}`}>
+        <span className="fq-ts-stretch" style={{ left: at(0), width: `${(92 * (row.stretch ?? 0)) / total}%`, opacity: row.stretch ? 1 : 0 }} />
+        <span className="fq-ts-axis" style={{ left: at(0), right: '4%' }} />
+        {ticks.map((k) => {
+          const whole = k % row.spaces === 0;
+          return (
+            <span key={k} className={`fq-ts-tick-mark ${whole ? 'is-whole' : ''} ${whole || row.cut ? 'is-on' : ''}`} style={{ left: at(k) }}>
+              {whole && <span className="fq-ts-whole-label">{k / row.spaces}{row.ruler && k > 0 ? ' in' : ''}</span>}
+            </span>
+          );
+        })}
+        {ticks.slice(1).map((k) => (
+          <span key={`j${k}`} className={`fq-ts-jump ${k <= (row.jumps ?? 0) ? 'is-on' : ''}`} style={{ left: at(k - 1), width: `${92 / total}%` }} />
+        ))}
+        {[...xs].map(([k, n]) => (
+          <span key={`x${k}`} className="fq-ts-xs" style={{ left: at(k) }} aria-hidden="true">
+            {Array.from({ length: n }, (_, i) => <span key={i}>X</span>)}
+          </span>
+        ))}
+        <span className={`fq-ts-point ${row.point == null ? '' : 'is-on'}`} style={{ left: at(row.point ?? 0) }}>
+          {row.pointLabel && <span className="fq-ts-point-label"><MathText text={row.pointLabel} /></span>}
+        </span>
+        {(row.marks ?? []).map((mark) => (
+          <span key={`m${mark.at}`} className="fq-ts-mark" style={{ left: at(mark.at) }}><MathText text={mark.label} /></span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Row({ row }: { row: SceneRow }) {
+  if (row.kind === 'line') return <NumberLine row={row} />;
   if (row.kind === 'bar') return <Bar row={row} />;
   if (row.kind === 'area') return <Area row={row} />;
   if (row.kind === 'text') return <p className={`fq-ts-text ${row.hidden ? 'is-hidden' : ''}`}><LearningText text={row.text} emphasize /></p>;

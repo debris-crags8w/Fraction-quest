@@ -35,6 +35,13 @@ test('every picture is short, keeps its rows, ends with everything shown, and po
       for (const row of step[step.length - 1]!.rows) assert.ok(!row.hidden, `${where}: the last frame shows everything`);
       for (const frame of step) for (const row of frame.rows) for (const picture of pictures(row)) {
         if (picture.kind === 'text') continue;
+        if (picture.kind === 'line') {
+          const spaces = picture.max * picture.spaces;
+          for (const value of [picture.point ?? 0, picture.jumps ?? 0, picture.stretch ?? 0, ...(picture.marks ?? []).map((mark) => mark.at), ...(picture.xs ?? []).map(([at]) => at)]) {
+            assert.ok(value >= 0 && value <= spaces, `${where}: ${value} is on a line of ${spaces} spaces`);
+          }
+          continue;
+        }
         const count = picture.kind === 'bar' ? picture.parts.length : AREA_CUTS[picture.cut].length;
         for (const list of [picture.shaded, picture.counted, picture.glow, picture.kind === 'bar' ? picture.ticks : undefined]) {
           for (const part of list ?? []) assert.ok(part >= 0 && part < count, `${where}: part ${part} of ${count}`);
