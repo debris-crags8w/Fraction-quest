@@ -2929,7 +2929,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   const breakOverlay = page.getByTestId('brain-break-overlay');
   if (await breakOverlay.isVisible()) await page.getByTestId('button-break-skip').click();
   const payoff = page.getByTestId('story-payoff');
-  await expect(payoff).toContainText('Best party ever! And we found the stone piece!');
+  await expect(payoff).toContainText('Best party ever! The bigger piece was hiding the stone piece!');
   // The story problem changed the story: its picture and what the answer did.
   await expect(payoff.getByTestId('story-problem-result')).toContainText('covers more, so the hungriest frog gets it. Ribbit!');
   // The stone question comes first: a miss gets a kind nudge, the right fraction shows the piece.
@@ -2984,7 +2984,8 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.getByTestId('button-storybook-end-2').click();
   await expect(page.getByTestId('story-panel-0')).toContainText('Best party ever!');
   await expect(page.getByTestId('story-panel-1')).toContainText('A big green tail by the pond');
-  await expect(page.getByTestId('story-panel-2')).toContainText('Tilly calls from the hill');
+  await expect(page.getByTestId('story-panel-2')).toContainText('How the math won it: Thirds are bigger than eighths');
+  await expect(page.getByTestId('story-panel-3')).toContainText('Tilly calls from the hill');
   await page.getByTestId('button-story-go').click();
   await expect(page.getByTestId('button-storybook-end-3')).toBeDisabled();
   await expect(page.getByTestId('storybook-finale')).toBeDisabled();
