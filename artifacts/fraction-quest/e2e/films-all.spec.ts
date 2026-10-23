@@ -65,10 +65,11 @@ for (const reducedMotion of [false, true]) {
       });
       await expect.poll(() => inReach('button-story-skip'), { message: `${name}: Skip is on screen` }).toBe(true);
       if (reducedMotion) {
-        // Motion means something moving or growing: any keyframe animation, or a transition of place or size. A short
-        // fade is fine.
+        // Motion means anything changing but opacity: Reduce motion swaps the film's movement for short fades, which
+        // are fine.
         const running = await page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === 'running')
-          .filter((animation) => 'animationName' in animation || /transform|left|top|right|bottom|width|height|translate|scale|rotate/.test((animation as CSSTransition).transitionProperty))
+          .filter((animation) => ((animation.effect as KeyframeEffect | null)?.getKeyframes() ?? [])
+            .some((frame) => Object.keys(frame).some((property) => !['offset', 'computedOffset', 'easing', 'composite', 'opacity'].includes(property))))
           .map((animation) => `${(animation as CSSAnimation).animationName ?? (animation as CSSTransition).transitionProperty} on ${((animation.effect as KeyframeEffect).target as Element)?.className}`));
         expect(running, `${name}: nothing moves with Reduce motion`).toEqual([]);
       }
