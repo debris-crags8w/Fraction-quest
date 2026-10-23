@@ -17,14 +17,15 @@ test.describe('the published app', () => {
     test.setTimeout(240_000);
     const env = { ...process.env, PORT: String(PORT), BASE_PATH: '/', NODE_ENV: 'production' };
     execFileSync('npx', ['vite', 'build', '--config', 'vite.config.ts', '--logLevel', 'error'], { cwd: appDir, env, stdio: 'inherit' });
-    server = spawn('npx', ['vite', 'preview', '--config', 'vite.config.ts', '--port', String(PORT), '--strictPort', '--host', '127.0.0.1'], { cwd: appDir, env, stdio: 'ignore' });
+    server = spawn('npx', ['vite', 'preview', '--config', 'vite.config.ts', '--port', String(PORT), '--strictPort', '--host', '127.0.0.1'], { cwd: appDir, env, stdio: 'ignore', detached: true });
     for (let tries = 0; tries < 60; tries++) {
       try { if ((await fetch(ORIGIN)).ok) return; } catch { /* starting */ }
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
     throw new Error('The preview server did not start');
   });
-  test.afterAll(() => { server?.kill(); });
+  // npx starts vite as its own child: stop the whole group, or a leftover preview keeps the port with an old build.
+  test.afterAll(() => { if (server?.pid) { try { process.kill(-server.pid); } catch { server.kill(); } } });
 
   test('opens and plays a lesson with no connection after one visit', async ({ context, page }) => {
     await context.addInitScript((fun) => { if (!localStorage.getItem('fraction-quest-fun-v1')) localStorage.setItem('fraction-quest-fun-v1', fun); }, freshFun);
@@ -42,6 +43,7 @@ test.describe('the published app', () => {
     await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
     await page.getByTestId('button-start-mission-equal-parts').click();
     await expect(page.getByTestId('teach-first')).toBeVisible();
+    for (let i = 0; i < 3; i++) await page.getByTestId('button-teach-step-next').click();
     await page.getByTestId('button-teach-next').click();
     await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
   });
