@@ -51,8 +51,8 @@ function Bar({ row }: { row: BarRow }) {
       <div className="fq-ts-bar" data-testid="teach-scene-bar">
         {row.parts.map((part, i) => (
           <span key={i} style={{ flexGrow: part }}
-            className={`fq-ts-part ${i > 0 && row.cut ? 'is-cut' : ''} ${has(row.shaded, i) ? 'is-shaded' : ''} ${has(row.counted, i) ? 'is-counted' : ''} ${has(row.glow, i) ? 'is-glow' : ''}`}>
-            <span className="fq-ts-count" aria-hidden="true">{has(row.counted, i) ? row.counted!.indexOf(i) + 1 : ''}</span>
+            className={`fq-ts-part ${i > 0 && row.cut && i % (row.group ?? 1) === 0 ? 'is-cut' : ''} ${has(row.shaded, i) ? 'is-shaded' : ''} ${has(row.shaded2, i) ? 'is-shaded2' : ''} ${has(row.counted, i) ? 'is-counted' : ''} ${has(row.glow, i) ? 'is-glow' : ''}`}>
+            <span className="fq-ts-count" aria-hidden="true">{has(row.counted, i) ? row.counted!.indexOf(i) + (row.countFrom ?? 1) : ''}</span>
             <span className={`fq-ts-tick ${has(row.ticks, i) ? 'is-on' : ''}`}><Tick /></span>
           </span>
         ))}
@@ -109,7 +109,7 @@ function NumberLine({ row }: { row: LineRow }) {
         {ticks.map((k) => {
           const whole = k % row.spaces === 0;
           return (
-            <span key={k} className={`fq-ts-tick-mark ${whole ? 'is-whole' : ''} ${whole || row.cut ? 'is-on' : ''}`} style={{ left: at(k) }}>
+            <span key={k} className={`fq-ts-tick-mark ${whole ? 'is-whole' : ''} ${whole || (row.cut && k % (row.group ?? 1) === 0) ? 'is-on' : ''}`} style={{ left: at(k) }}>
               {whole && <span className="fq-ts-whole-label">{k / row.spaces}{row.ruler && k > 0 ? ' in' : ''}</span>}
             </span>
           );

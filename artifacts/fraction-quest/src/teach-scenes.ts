@@ -10,8 +10,14 @@ export type BarRow = {
   parts: number[];
   /** The cut lines show (before this, it is one uncut bar). */
   cut?: boolean;
+  /** Only every `group`-th cut shows: 6 parts with group 2 look like thirds until group becomes 1. */
+  group?: number;
   /** Parts colored in (the fraction's parts). */
   shaded?: number[];
+  /** Parts colored in a second color (one of two addends). */
+  shaded2?: number[];
+  /** The first counted part shows this number (a second bar carries on the count). */
+  countFrom?: number;
   /** Parts counted so far: each shows its number. */
   counted?: number[];
   /** Parts that glow orange (the part that is too big). */
@@ -49,6 +55,8 @@ export type LineRow = {
   spaces: number;
   /** The inside tick marks show (before this, only the whole numbers). */
   cut?: boolean;
+  /** Only every `group`-th tick shows: 8 spaces with group 2 look like fourths until group becomes 1. */
+  group?: number;
   /** Jump arcs drawn from 0, one per space. */
   jumps?: number;
   /** A dot at this many spaces from 0, with an optional label above it. */
@@ -499,5 +507,188 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
     ],
     why: play([{ kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1], label: '2/4 of a bar' }, { kind: 'text', text: 'Compare parts of the same-size whole.', hidden: true }],
       [500, { 1: { hidden: false } }]),
+  },
+  // Unit 6 · Equivalent fractions
+  'equivalent-models': {
+    steps: [
+      // Start with one fraction on a bar: 2/3.
+      play([{ kind: 'bar', parts: ones(6), group: 2, label: '2/3' }],
+        [500, { 0: { cut: true } }],
+        [600, { 0: { shaded: range(4) } }]),
+      // Split every part the same way: each third into 2.
+      play([{ kind: 'bar', parts: ones(6), group: 2, cut: true, shaded: range(4), label: 'Thirds' }, { kind: 'text', text: 'Each third splits into 2 sixths.', hidden: true }],
+        [700, { 0: { group: 1, label: 'Sixths' } }],
+        [600, { 1: { hidden: false } }]),
+      // Count the new parts: the shaded amount has not changed.
+      play([{ kind: 'bar', parts: ones(6), cut: true, shaded: range(4), label: '4/6' }, { kind: 'text', text: '4/6 = 2/3: the same amount.', hidden: true }],
+        ...countUp(0, 4),
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([
+      { kind: 'bar', parts: ones(6), group: 2, cut: true, shaded: range(4), label: '2/3', hidden: true },
+      { kind: 'bar', parts: ones(6), cut: true, shaded: range(4), label: '4/6', hidden: true },
+      { kind: 'text', text: 'New name, same amount.', hidden: true },
+    ],
+    [400, { 0: { hidden: false } }],
+    [400, { 1: { hidden: false } }],
+    [400, { 2: { hidden: false } }]),
+  },
+
+  'equivalent-number-line': {
+    steps: [
+      // Mark the first fraction: 2/4.
+      play([{ kind: 'line', max: 1, spaces: 8, group: 2, cut: true, pointLabel: '2/4' }],
+        [600, { 0: { point: 4 } }]),
+      // Split every space the same way.
+      play([{ kind: 'line', max: 1, spaces: 8, group: 2, cut: true, point: 4, pointLabel: '2/4' }, { kind: 'text', text: 'Each fourth splits into 2 eighths.', hidden: true }],
+        [700, { 0: { group: 1 } }],
+        [500, { 1: { hidden: false } }]),
+      // Count the jumps to the same point.
+      play([{ kind: 'line', max: 1, spaces: 8, cut: true, point: 4, pointLabel: '2/4' }, { kind: 'text', text: '4 jumps of 1/8: 4/8 = 2/4.', hidden: true }],
+        ...jumpUp(0, 4, 420),
+        [500, { 0: { pointLabel: '4/8' }, 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 1, spaces: 8, cut: true, point: 4, pointLabel: '2/4 = 4/8', marks: halfMarks(8) }, { kind: 'text', text: 'The point did not move.', hidden: true }],
+      [500, { 1: { hidden: false } }]),
+  },
+
+  'build-equivalents': {
+    steps: [
+      // Multiply top and bottom by the same number.
+      play([{ kind: 'bar', parts: ones(6), group: 2, cut: true, shaded: [0, 1], label: '1/3' }, { kind: 'text', text: '1 × 2 = 2 and 3 × 2 = 6: 1/3 = 2/6.', hidden: true }],
+        [800, { 0: { group: 1, label: '2/6' } }],
+        [500, { 1: { hidden: false } }]),
+      // Or divide both: parts join into bigger parts.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(4), label: '4/8' }, { kind: 'text', text: '4 ÷ 2 = 2 and 8 ÷ 2 = 4: 4/8 = 2/4.', hidden: true }],
+        [800, { 0: { group: 2, label: '2/4' } }],
+        [500, { 1: { hidden: false } }]),
+      // Check both show the same amount.
+      play([
+        { kind: 'bar', parts: ones(6), group: 2, cut: true, shaded: [0, 1], label: '1/3', hidden: true },
+        { kind: 'bar', parts: ones(6), cut: true, shaded: [0, 1], label: '2/6', hidden: true },
+      ],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: ones(6), group: 2, cut: true, shaded: [0, 1] }, { kind: 'text', text: 'More, smaller parts: count more of them.', hidden: true }],
+      [700, { 0: { group: 1 } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'missing-equivalent': {
+    steps: [
+      // What was the bottom multiplied by?
+      play([{ kind: 'bar', parts: ones(8), group: 2, cut: true, shaded: range(6), label: '3/4 = ?/8' }, { kind: 'text', text: '4 × 2 = 8.', hidden: true }],
+        [700, { 0: { group: 1 } }],
+        [500, { 1: { hidden: false } }]),
+      // Do the same to the top.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: '3/4 = ?/8' }, { kind: 'text', text: '3 × 2 = 6.', hidden: true }],
+        ...countUp(0, 6, 380),
+        [500, { 1: { hidden: false } }]),
+      // Check the amount.
+      play([
+        { kind: 'bar', parts: four, cut: true, shaded: range(3), label: '3/4', hidden: true },
+        { kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: '6/8', hidden: true },
+      ],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'text', text: 'Times 2 on the bottom, times 2 on the top: 3/4 = 6/8.', hidden: true }],
+      [400, { 0: { hidden: false } }]),
+  },
+
+  // Unit 7 · Wholes, parts and mixed numbers
+  'compose-to-one': {
+    steps: [
+      // Same-size parts.
+      play([{ kind: 'bar', parts: ones(5) }, { kind: 'text', text: 'Fifths: all the parts are the same size.', hidden: true }],
+        [500, { 0: { cut: true } }],
+        [500, { 1: { hidden: false } }]),
+      // Add the numerators: 2/5 + 3/5.
+      play([{ kind: 'bar', parts: ones(5), cut: true, label: '2/5 + 3/5' }],
+        [500, { 0: { shaded: [0, 1] } }],
+        [600, { 0: { shaded2: [2, 3, 4] } }],
+        [500, { 0: { counted: range(5) } }]),
+      // The numerator equals the denominator: one whole.
+      play([{ kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1], shaded2: [2, 3, 4] }, { kind: 'text', text: '5/5 is one whole.', hidden: true }],
+        [600, { 0: { bracket: '1 whole' } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: four, cut: true, shaded: range(4), bracket: '4/4 = 1 whole', hidden: true }],
+      [400, { 0: { hidden: false } }]),
+  },
+
+  'decompose-fractions': {
+    steps: [
+      // Keep the denominator.
+      play([{ kind: 'bar', parts: ones(8), cut: true, label: '5/8' }],
+        [600, { 0: { shaded: range(5) } }]),
+      // Split the numerator: 5 = 2 + 3.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(5), label: '5/8' }, { kind: 'text', text: '5/8 = 2/8 + 3/8.', hidden: true }],
+        [700, { 0: { shaded: [0, 1], shaded2: [2, 3, 4] } }],
+        [500, { 1: { hidden: false } }]),
+      // Check they add back.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: [0, 1], shaded2: [2, 3, 4] }, { kind: 'text', text: '2 + 3 = 5, so it is still 5/8.', hidden: true }],
+        ...countUp(0, 5, 380),
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: [0], shaded2: [1, 2, 3, 4], label: '1/8 + 4/8 is also 5/8', hidden: true }],
+      [400, { 0: { hidden: false } }]),
+  },
+
+  'whole-numbers-as-fractions': {
+    steps: [
+      // The denominator: the parts in one whole.
+      play([{ kind: 'bar', parts: ones(3), label: 'Thirds: 3 parts in one whole' }],
+        [600, { 0: { cut: true } }]),
+      // Count that many parts for each whole.
+      play([{ kind: 'bar', parts: ones(3), cut: true, label: '1 whole' }, { kind: 'bar', parts: ones(3), cut: true, countFrom: 4, label: '2 wholes' }],
+        ...countUp(0, 3, 380, true),
+        ...countUp(1, 3, 380, true)),
+      // The total on top.
+      play([{ kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'text', text: '2 wholes = 6/3.', hidden: true }],
+        [600, { 2: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: four, cut: true, shaded: range(4), bracket: '1 = 4/4', hidden: true }],
+      [400, { 0: { hidden: false } }]),
+  },
+
+  'improper-fractions': {
+    steps: [
+      // Compare the numerator with the denominator.
+      play([{ kind: 'text', text: '7/4: 7 parts, but only 4 fit in one whole.', hidden: true }, { kind: 'bar', parts: four, cut: true }, { kind: 'bar', parts: four, cut: true, countFrom: 5 }],
+        [400, { 0: { hidden: false } }],
+        ...countUp(1, 4, 380, true),
+        ...countUp(2, 3, 380, true)),
+      // Each full denominator makes one whole.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: range(4) }, { kind: 'bar', parts: four, cut: true, shaded: range(3) }],
+        [600, { 0: { bracket: '4/4 = 1 whole' } }]),
+      // The leftover parts.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: range(4), bracket: '1 whole' }, { kind: 'bar', parts: four, cut: true, shaded: range(3) }, { kind: 'text', text: '3/4 left over: 7/4 = 1 3/4.', hidden: true }],
+        [500, { 1: { glow: range(3) } }],
+        [600, { 1: { glow: [] }, 2: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'line', max: 2, spaces: 4, cut: true, jumps: 7, point: 7, pointLabel: '7/4', hidden: true }, { kind: 'text', text: 'Past 4/4, the parts start the next whole.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'mixed-improper': {
+    steps: [
+      // Wholes times the denominator: 2 wholes of thirds.
+      play([{ kind: 'text', text: '2 1/3: 2 wholes and 1 third.', hidden: true }, { kind: 'bar', parts: ones(3), cut: true }, { kind: 'bar', parts: ones(3), cut: true, countFrom: 4 }],
+        [400, { 0: { hidden: false } }],
+        ...countUp(1, 3, 360, true),
+        ...countUp(2, 3, 360, true)),
+      // Add the extra parts.
+      play([{ kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'bar', parts: ones(3), cut: true, countFrom: 7 }, { kind: 'text', text: '6 + 1 = 7 thirds.', hidden: true }],
+        [600, { 2: { shaded: [0], counted: [0] } }],
+        [500, { 3: { hidden: false } }]),
+      // Keep the denominator.
+      play([{ kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'bar', parts: ones(3), cut: true, shaded: range(3) }, { kind: 'bar', parts: ones(3), cut: true, shaded: [0] }, { kind: 'text', text: '2 1/3 = 7/3.', hidden: true }],
+        [600, { 3: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: ones(3), cut: true, shaded: range(3), bracket: '1 whole = 3/3', hidden: true }],
+      [400, { 0: { hidden: false } }]),
   },
 };

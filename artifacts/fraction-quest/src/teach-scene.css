@@ -25,7 +25,9 @@
 .fq-ts-part:nth-last-child(2) { border-radius: 0 7px 7px 0; }
 .fq-ts-part.is-cut { border-left-color: var(--ts-ink); }
 .fq-ts-part.is-shaded { background: var(--ts-shade); }
-.fq-ts-part.is-counted:not(.is-shaded) { background: color-mix(in srgb, var(--ts-shade) 28%, #fff); }
+.fq-ts-part.is-shaded2 { background: var(--fq-sky); }
+.fq-ts-part.is-shaded2 .fq-ts-count { color: var(--ts-ink); text-shadow: none; }
+.fq-ts-part.is-counted:not(.is-shaded):not(.is-shaded2) { background: color-mix(in srgb, var(--ts-shade) 28%, #fff); }
 .fq-ts-part.is-glow { animation: fq-ts-glow 1s ease-in-out 2; background: var(--ts-glow); }
 .fq-ts-count { font-weight: 900; font-size: 1.25rem; color: #fff; text-shadow: 0 1px 0 var(--ts-ink); }
 .fq-ts-part:not(.is-shaded) .fq-ts-count { color: var(--ts-ink); text-shadow: none; }

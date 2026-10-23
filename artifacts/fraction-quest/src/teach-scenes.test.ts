@@ -61,8 +61,11 @@ test('a fraction a picture names matches its shaded parts', () => {
       for (const row of bars) {
         const named = row.kind === 'bar' && row.label ? /^(\d+)\/(\d+)$/.exec(row.label) : null;
         if (named && row.kind === 'bar') {
-          assert.equal(row.parts.length, Number(named[2]), `${id}: ${row.label}`);
-          assert.equal(row.shaded?.length ?? 0, Number(named[1]), `${id}: ${row.label}`);
+          // A bar showing every `group`-th cut reads as parts.length / group parts.
+          const group = row.group ?? 1;
+          const shaded = (row.shaded?.length ?? 0) + (row.shaded2?.length ?? 0);
+          assert.equal(row.parts.length, Number(named[2]) * group, `${id}: ${row.label}`);
+          assert.equal(shaded, Number(named[1]) * group, `${id}: ${row.label}`);
         }
       }
     }
