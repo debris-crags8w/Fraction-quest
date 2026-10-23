@@ -89,3 +89,8 @@ test('every step and every why has a picture, not just words', () => {
     });
   }
 });
+
+test('every lesson with a Teach first card plays it as pictures', () => {
+  const missing = Object.keys(LESSON_INTROS).filter((id) => !LESSON_SCENES[id]);
+  assert.deepEqual(missing, []);
+});

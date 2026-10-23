@@ -1796,4 +1796,200 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
     why: play([{ kind: 'text', text: 'Both are division. Multiply the answer back to check.', hidden: true }, { kind: 'bar', parts: four, cut: true, shaded: range(4), bracket: '4 × 1/4 = 1' }],
       [400, { 0: { hidden: false } }]),
   },
+  // Unit 13 · Chance and area
+  'fraction-probability': {
+    steps: [
+      // Count all the equally likely outcomes.
+      play([{ kind: 'area', cut: 'circle-eighths', edges: true, shaded: [0, 1, 2], label: 'A spinner with 8 equal parts' }, { kind: 'text', text: '8 outcomes, all equally likely: 8 on the bottom.', hidden: true }],
+        [800, { 0: { counted: range(8) } }],
+        [500, { 1: { hidden: false } }]),
+      // Count the ones you want.
+      play([{ kind: 'area', cut: 'circle-eighths', edges: true, shaded: [0, 1, 2], label: 'Landing on purple' }, { kind: 'text', text: '3 purple parts: 3 on top.', hidden: true }],
+        [700, { 0: { counted: [0, 1, 2] } }],
+        [500, { 1: { hidden: false } }]),
+      // Wanted over all.
+      play([{ kind: 'area', cut: 'circle-eighths', edges: true, shaded: [0, 1, 2], counted: [0, 1, 2] }, { kind: 'text', text: 'The chance of purple is 3/8.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'area', cut: 'circle-eighths', edges: true, shaded: [0, 1, 2], label: '3/8 of the spinner', hidden: true }, { kind: 'text', text: 'A chance is a part of all the outcomes.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'fractional-side-area': {
+    steps: [
+      // Multiply the side lengths: 2/3 m by 3/4 m in a 1-meter square.
+      play([{ kind: 'area', cut: 'grid-4x3', label: 'A 1-meter square' }, { kind: 'text', text: 'Sides 2/3 m and 3/4 m: 2/3 × 3/4.', hidden: true }],
+        [700, { 0: { edges: true } }],
+        [600, { 0: { shaded2: range(8) } }],
+        [600, { 0: { shaded: gridOverlap(4, 3, 3) } }],
+        [500, { 1: { hidden: false } }]),
+      // Multiply the numerators.
+      play([{ kind: 'area', cut: 'grid-4x3', edges: true, shaded2: range(8), shaded: gridOverlap(4, 3, 3) }, { kind: 'text', text: '2 rows × 3 columns = 6 boxes in the rectangle.', hidden: true }],
+        [800, { 0: { counted: gridOverlap(4, 2, 3) } }],
+        [500, { 1: { hidden: false } }]),
+      // Multiply the denominators.
+      play([{ kind: 'area', cut: 'grid-4x3', edges: true, shaded2: range(8), shaded: gridOverlap(4, 3, 3) }, { kind: 'text', text: '3 × 4 = 12 boxes in the square: 6/12 square meter.', hidden: true }],
+        [800, { 0: { counted: range(12) } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'area', cut: 'grid-4x3', edges: true, shaded2: range(8), shaded: gridOverlap(4, 3, 3), hidden: true }, { kind: 'text', text: 'Area is rows times columns, even in parts of a meter.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'multiply-mixed-numbers': {
+    steps: [
+      // Split each side into wholes and parts: 2 1/2 by 1 1/3, in boxes of 1/6.
+      play([{ kind: 'area', cut: 'grid-5x4', edges: true, label: '2 1/2 by 1 1/3' }, { kind: 'text', text: '2 1/2 = 2 + 1/2, and 1 1/3 = 1 + 1/3.', hidden: true }],
+        [700, { 0: { shaded: [0, 1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 13] } }],
+        [500, { 1: { hidden: false } }]),
+      // Every part by every part.
+      play([{ kind: 'area', cut: 'grid-5x4', edges: true, shaded: [0, 1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 13] }, { kind: 'text', text: '2 × 1 = 2, 2 × 1/3 = 2/3, 1/2 × 1 = 1/2, 1/2 × 1/3 = 1/6.', hidden: true }],
+        [600, { 0: { shaded2: [15, 16, 17, 18] } }],
+        [600, { 0: { glow: [4, 9, 14] } }],
+        [600, { 0: { counted: [19] } }],
+        [500, { 1: { hidden: false } }]),
+      // Add all the areas.
+      play([{ kind: 'area', cut: 'grid-5x4', edges: true, shaded: [0, 1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 13], shaded2: [15, 16, 17, 18], glow: [4, 9, 14] }, { kind: 'text', text: '2 + 2/3 + 1/2 + 1/6 = 3 1/3.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'area', cut: 'grid-5x4', edges: true, shaded: [0, 1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 13], shaded2: [15, 16, 17, 18], glow: [4, 9, 14], hidden: true }, { kind: 'text', text: 'Four smaller rectangles add up to the whole area.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  // Unit 14 · Percent and stories
+  'fractions-to-percent': {
+    steps: [
+      // Rename in hundredths.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, label: '3/4 of 100 squares' }, { kind: 'text', text: '100 ÷ 4 = 25, and 3 × 25 = 75: 3/4 = 75/100.', hidden: true }],
+        [800, { 0: { shaded: gridFill(75) } }],
+        [500, { 1: { hidden: false } }]),
+      // The numerator is the percent.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(75), label: '75 out of 100' }, { kind: 'text', text: '75 of the 100 squares.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+      // Add the % sign.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(75), label: '75%' }, { kind: 'text', text: '3/4 = 75%.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(75), hidden: true }, { kind: 'text', text: 'Percent means out of 100.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'percent-to-fraction': {
+    steps: [
+      // The percent on top.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, label: '40%' }, { kind: 'text', text: '40% is 40 out of 100: 40 on top.', hidden: true }],
+        [800, { 0: { shaded: gridFill(40) } }],
+        [500, { 1: { hidden: false } }]),
+      // 100 on the bottom.
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(40), label: '40/100' }, { kind: 'text', text: '100 squares in all: 40% = 40/100.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(40), hidden: true }, { kind: 'text', text: 'Out of 100 means the denominator is 100.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'multi-step-fraction-stories': {
+    steps: [
+      // What the story asks.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: range(3), label: 'A 3/4 meter ribbon' }, { kind: 'text', text: 'Cut off 1/4 meter, twice. How much is left?', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+      // The first step.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: range(3), label: 'First cut' }, { kind: 'text', text: '3/4 − 1/4 = 2/4.', hidden: true }],
+        [600, { 0: { glow: [2] } }],
+        [700, { 0: { glow: [], shaded: [0, 1] } }],
+        [500, { 1: { hidden: false } }]),
+      // Use that answer for the second step.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: [0, 1], label: 'Second cut' }, { kind: 'text', text: '2/4 − 1/4 = 1/4 meter left.', hidden: true }],
+        [600, { 0: { glow: [1] } }],
+        [700, { 0: { glow: [], shaded: [0] } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: four, cut: true, shaded: [0, 1], label: '2/4: the end of step 1, the start of step 2' }, { kind: 'text', text: 'The first answer starts the second step.', hidden: true }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  // Unit 15 · Problem solving
+  'find-the-whole': {
+    steps: [
+      // Divide the known amount by the numerator.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: range(3), label: '3/4 of the pack is 6' }, { kind: 'text', text: '6 ÷ 3 = 2 in one part.', hidden: true }],
+        [600, { 0: { glow: [0] } }],
+        [500, { 1: { hidden: false } }]),
+      // Multiply one part by the denominator.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: range(3), label: 'One part is 2' }, { kind: 'text', text: '4 parts: 2 × 4 = 8.', hidden: true }],
+        ...countUp(0, 4, 400),
+        [500, { 1: { hidden: false } }]),
+      // That is the whole.
+      play([{ kind: 'bar', parts: four, cut: true, shaded: range(3) }, { kind: 'text', text: 'The whole pack is 8.', hidden: true }],
+        [700, { 0: { bracket: '8 in the pack' } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: four, cut: true, shaded: range(3), bracket: '4 equal parts make the whole' }, { kind: 'text', text: 'The denominator says how many equal parts.', hidden: true }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'spot-the-mistake': {
+    steps: [
+      // Check each step against the rule.
+      play([{ kind: 'text', text: 'Sam wrote 1/4 + 2/4 = 3/8.' }, { kind: 'text', text: 'Rule: add the numerators, keep the denominator.', hidden: true }, { kind: 'bar', parts: four, cut: true, shaded: [0], shaded2: [1, 2], label: '1/4 + 2/4' }],
+        [600, { 1: { hidden: false } }]),
+      // The first wrong step.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8: the denominator changed', tone: 'unfair' }, { kind: 'text', text: 'Adding 4 + 4 made the parts smaller: wrong.', hidden: true }],
+        [600, { 0: { glow: range(3) } }],
+        [500, { 1: { hidden: false } }]),
+      // Fix it.
+      play([{ kind: 'bar', parts: four, cut: true, label: 'Fixed: 1/4 + 2/4 = 3/4', tone: 'fair' }, { kind: 'text', text: 'Still fourths: 3/4.', hidden: true }],
+        [600, { 0: { shaded: [0], shaded2: [1, 2] } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([
+      { kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8', tone: 'unfair', hidden: true },
+      { kind: 'bar', parts: four, cut: true, shaded: range(3), label: '3/4', tone: 'fair', hidden: true },
+    ],
+    [400, { 0: { hidden: false } }],
+    [400, { 1: { hidden: false } }]),
+  },
+
+  'fraction-of-remainder': {
+    steps: [
+      // What is left after the first part.
+      play([{ kind: 'set', count: 12, groups: 3 }, { kind: 'text', text: '12 stickers: give 1/3 away. 4 go, 8 are left.', hidden: true }],
+        [700, { 0: { glow: [0], label: '1/3 given away' } }],
+        [500, { 1: { hidden: false } }]),
+      // The second fraction of that amount.
+      play([{ kind: 'set', count: 8, groups: 2, label: 'The 8 left' }, { kind: 'text', text: 'Then give 1/2 of the rest: 1/2 of 8 is 4.', hidden: true }],
+        [700, { 0: { glow: [0] } }],
+        [500, { 1: { hidden: false } }]),
+      // What is left at the end.
+      play([{ kind: 'set', count: 8, groups: 2, glow: [0] }, { kind: 'text', text: '8 − 4 = 4 stickers left at the end.', hidden: true }],
+        [600, { 0: { shaded: [1], counted: [1] } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'set', count: 8, groups: 2, glow: [0], label: '1/2 of what is left, not of 12', hidden: true }, { kind: 'text', text: 'The second fraction is of the rest.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'divide-fractions': {
+    steps: [
+      // Rename with the same denominator.
+      play([{ kind: 'bar', parts: ones(8), group: 2, cut: true, shaded: range(6), label: '3/4 ÷ 1/8' }, { kind: 'text', text: '3/4 = 6/8.', hidden: true }],
+        [800, { 0: { group: 1, label: '6/8' } }],
+        [500, { 1: { hidden: false } }]),
+      // Count the small parts that fit.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: 'How many 1/8s?' }, { kind: 'text', text: 'Six 1/8s fit.', hidden: true }],
+        ...countUp(0, 6, 380),
+        [500, { 1: { hidden: false } }]),
+      // That count is the answer.
+      play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(6), counted: range(6) }, { kind: 'text', text: '3/4 ÷ 1/8 = 6.', hidden: true }],
+        [600, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(6), counted: range(6) }, { kind: 'text', text: 'Same-size parts make the counting easy.', hidden: true }],
+      [400, { 1: { hidden: false } }]),
+  },
 };
