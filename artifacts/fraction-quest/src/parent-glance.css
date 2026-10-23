@@ -25,3 +25,83 @@
 .fq-glance-card .fq-button { justify-self: stretch; gap: 8px; }
 .fq-glance-full { margin: 6px 0 10px; font-size: 1.2rem; }
 @media print { .fq-glance-card .fq-button, .fq-glance-card [role="status"] { display: none; } }
+
+/* Report and Settings tabs */
+.fq-parent-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; margin: 0 0 14px; border-radius: 14px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); }
+.fq-parent-tabs button { min-height: 40px; border: 0; border-radius: 11px; background: none; color: hsl(var(--muted-foreground)); font: inherit; font-weight: 800; cursor: pointer; }
+.fq-parent-tabs button.is-on { background: var(--fq-grape); color: #fff; }
+.fq-parent-tabs button:focus-visible { outline: 3px solid var(--fq-grape); outline-offset: 2px; }
+.fq-parent-settings { display: grid; gap: 8px; }
+.fq-settings-row { border-radius: 16px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); }
+.fq-settings-row > summary { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 48px; padding: 10px 14px; cursor: pointer; list-style: none; }
+.fq-settings-row > summary::-webkit-details-marker { display: none; }
+.fq-settings-row > summary::after { content: '›'; font-size: 1.4rem; line-height: 1; color: hsl(var(--muted-foreground)); transition: transform .15s; }
+.fq-settings-row[open] > summary::after { transform: rotate(90deg); }
+.fq-settings-row > summary small { margin-left: auto; color: hsl(var(--muted-foreground)); font-weight: 700; text-align: right; }
+.fq-settings-body { padding: 0 6px 6px; }
+/* The row already names the group, so the section's own heading goes. */
+.fq-settings-body > section > h2:first-child, .fq-settings-body > div > section > h2:first-child { display: none; }
+
+/* Skills by standard */
+.fq-skills-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.fq-skills-head small, .fq-skills-other summary small { color: hsl(var(--muted-foreground)); font-weight: 700; font-size: .85rem; }
+.fq-skills-key { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; font-size: .78rem; font-weight: 800; color: hsl(var(--muted-foreground)); }
+.fq-skills-key span { display: inline-flex; align-items: center; gap: 5px; }
+.fq-skills-key i { width: 10px; height: 10px; border-radius: 3px; }
+.fq-skills { display: grid; margin: 0; padding: 0; list-style: none; }
+.fq-skill + .fq-skill { border-top: 1.5px solid var(--fq-edge); }
+.fq-skill-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; align-items: center; width: 100%; padding: 9px 2px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.fq-skill-row:focus-visible { outline: 3px solid var(--fq-grape); outline-offset: 2px; border-radius: 10px; }
+.fq-skill-words strong { display: block; font-size: .95rem; line-height: 1.35; }
+.fq-skill-words small { font-size: .75rem; font-weight: 800; letter-spacing: .03em; color: hsl(var(--muted-foreground)); }
+.fq-skill-steps { display: grid; grid-template-columns: repeat(3, 14px); gap: 3px; }
+.fq-skill-steps i, .fq-skills-key i { display: block; height: 14px; border-radius: 4px; background: color-mix(in srgb, var(--fq-grape) 12%, transparent); }
+.fq-skills-key i { height: 10px; }
+.fq-skill-steps.s1 i:first-child, .fq-skills-key i.s1 { background: #2F6FD6; }
+.fq-skill-steps.s2 i:nth-child(-n+2), .fq-skills-key i.s2 { background: var(--fq-grape); }
+.fq-skill-steps.s3 i, .fq-skills-key i.s3 { background: #2E8A50; }
+.fq-skill-state { grid-column: 1 / -1; font-size: .8rem; font-weight: 800; color: hsl(var(--muted-foreground)); }
+.fq-skill-state.s1 { color: #2F6FD6; } .fq-skill-state.s2 { color: var(--fq-grape); } .fq-skill-state.s3 { color: #2E8A50; }
+.fq-skill.is-open { border-radius: 14px; background: color-mix(in srgb, var(--fq-grape) 8%, transparent); }
+.fq-skill.is-open .fq-skill-row { padding-inline: 10px; }
+.fq-skill-detail { display: grid; gap: 8px; padding: 0 10px 12px; }
+.fq-skill-lessons { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: .88rem; }
+.fq-skill-lessons li { display: flex; justify-content: space-between; gap: 10px; }
+.fq-skill-ok { color: #2E8A50; font-weight: 800; white-space: nowrap; }
+.fq-skill-mid { color: #2F6FD6; font-weight: 800; white-space: nowrap; }
+.fq-skill-no { color: hsl(var(--muted-foreground)); font-weight: 700; white-space: nowrap; }
+.fq-skills-other { border-radius: 14px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); }
+.fq-skills-other > summary { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 46px; padding: 8px 14px; font-weight: 800; cursor: pointer; }
+.fq-skills-other > .fq-skills { padding: 0 12px 8px; }
+.fq-glance-card .fq-button:disabled { opacity: 1; background: #E3F4E8; color: #1F6B3A; box-shadow: none; cursor: default; }
+
+/* What to practice */
+.fq-tips { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.fq-tip { display: grid; gap: 8px; }
+.fq-tip + .fq-tip { padding-top: 12px; border-top: 1.5px solid var(--fq-edge); }
+.fq-tip-head { display: flex; gap: 10px; align-items: flex-start; }
+.fq-tip-head p { margin: 0; }
+.fq-tip-head strong { display: block; line-height: 1.35; }
+.fq-tip-head small { color: hsl(var(--muted-foreground)); font-size: .82rem; font-weight: 700; }
+.fq-tip-num { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #FFF3E3; color: #9A4A00; font-weight: 900; font-size: .9rem; }
+.fq-tip-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fq-glance-card .fq-tip-actions .fq-button { justify-self: stretch; min-width: 0; }
+
+/* The last 4 weeks */
+.fq-month-chart { display: block; width: 100%; height: auto; }
+.fq-month-chart text { fill: hsl(var(--muted-foreground)); font: 700 11px var(--app-font-body, system-ui), system-ui, sans-serif; }
+.fq-month-chart .val { fill: currentColor; font-weight: 900; }
+.fq-month-chart .grid { stroke: var(--fq-edge); stroke-width: 1; }
+.fq-month-chart .bar { fill: var(--fq-grape); }
+.fq-month-chart .bar.now { fill: #2E8A50; }
+.fq-month-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.fq-month-facts div { display: grid; align-content: start; gap: 1px; padding: 8px; border-radius: 12px; background: color-mix(in srgb, var(--fq-grape) 7%, transparent); }
+.fq-month-facts strong { font-family: var(--app-font-display); font-size: 1.25rem; line-height: 1.1; color: var(--fq-grape); }
+.fq-month-facts span { font-size: .76rem; font-weight: 700; line-height: 1.25; color: hsl(var(--muted-foreground)); }
+
+/* Lessons fold by unit */
+.fq-parent-unit > summary { cursor: pointer; }
+.fq-parent-unit > summary h3 { display: inline; }
+@media print {
+  .fq-parent-tabs, .fq-tip-actions, .fq-skill-detail .fq-button, .fq-skills-key, [data-testid="button-skills-all"] { display: none !important; }
+}

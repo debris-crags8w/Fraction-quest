@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, openSettings, test } from './fixtures';
 import { MISSIONS } from '../src/game';
 import { PART_FINDER_LESSONS } from '../src/part-finder';
 
@@ -10,6 +10,7 @@ async function openDeveloperTesting(page: import('@playwright/test').Page) {
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
+  await openSettings(page, 'Developer');
   await expect(page.getByTestId('section-developer-testing')).toBeVisible();
 }
 

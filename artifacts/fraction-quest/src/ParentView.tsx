@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowLeft, Printer } from 'lucide-react';
-import { getMission, MISSIONS, type Progress } from './game';
+import { getMission, MISSIONS, type GrownUpPick, type Progress } from './game';
 import type { FunState } from './lib/fun';
 import { buildParentReport, type LessonRow } from './parent-report';
-import { ParentGlance } from './ParentGlance';
+import { ParentGlance, ShareCard } from './ParentGlance';
+import { MonthCard, PracticeCard, SkillsCard } from './ParentSkills';
 import { GrownUpGate } from './GrownUpGate';
 import './parent-glance.css';
 import { AnswerKey } from './Printables';
@@ -18,11 +19,22 @@ import FamilyControls from './FamilyControls';
 import { printPage } from './lib/print';
 import { DeveloperSettings } from './DeveloperTesting';
 import { SubscriptionSettings } from './Subscribe';
+import { timeLabel, useReminder } from './lib/reminder';
+import { useSubscription } from './lib/subscription';
 
 const STATUS: Record<LessonRow['status'], string> = { done: 'Done', started: 'In progress', skipped: 'Skipped by quiz', open: 'Open', locked: 'Locked' };
 
 const percent = (value: number | null) => (value === null ? '—' : `${value}%`);
-const MASTERY_LABEL = { mastered: 'Mastered', developing: 'Developing', 'not-yet': 'Not yet assessed' } as const;
+
+/** One settings group: a row with its current value that opens the existing controls. */
+function SettingsRow({ title, value, children }: { title: string; value: string; children: ReactNode }) {
+  return (
+    <details className="fq-settings-row" data-testid={`settings-${title.toLowerCase().replace(/[^a-z]+/g, '-')}`}>
+      <summary><strong>{title}</strong><small>{value}</small></summary>
+      <div className="fq-settings-body">{children}</div>
+    </details>
+  );
+}
 
 function DisplaySettings({ preferences, onChange }: { preferences: DisplayPreferences; onChange: (next: DisplayPreferences) => void }) {
   return (
@@ -59,8 +71,10 @@ function DisplaySettings({ preferences, onChange }: { preferences: DisplayPrefer
   );
 }
 
-export default function ParentView({ progress, fun, unitTitles, childName, onBack, onDeveloperTest, onOpenLessonTester, onBreakPreferencesChange, onTimeLimitChange, onDisplayPreferencesChange }: {
+export default function ParentView({ progress, fun, unitTitles, childName, onBack, onPick, onDeveloperTest, onOpenLessonTester, onBreakPreferencesChange, onTimeLimitChange, onDisplayPreferencesChange }: {
   progress: Progress; fun: FunState; unitTitles: string[]; childName: string | null; onBack: () => void;
+  /** "Practice now" and "Add a Check-in": a card on the child's map. */
+  onPick: (kind: GrownUpPick['kind'], id: string) => void;
   /** Open a lesson as an isolated developer test (development builds only). */
   onDeveloperTest?: (missionId: string) => void;
   /** Development server only: opens the Lesson tester. */
@@ -70,6 +84,10 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
   onDisplayPreferencesChange: (preferences: DisplayPreferences) => void;
 }) {
   const [unlocked, setUnlocked] = useState(false);
+  const [tab, setTab] = useState<'report' | 'settings'>('report');
+  // Reminders and the subscription exist only in the app (iPhone and Android).
+  const reminder = useReminder();
+  const subscription = useSubscription();
   const [answerKeyLessonId, setAnswerKeyLessonId] = useState(MISSIONS[0].id);
   const [printKeyLessonId, setPrintKeyLessonId] = useState<string | null>(null);
   const report = useMemo(() => buildParentReport(progress, fun, unitTitles), [progress, fun, unitTitles]);
@@ -83,6 +101,12 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
       window.removeEventListener('afterprint', returnToReport);
     };
   }, [printKeyLessonId]);
+  // Folded units and grades print open.
+  useEffect(() => {
+    const openAll = () => document.querySelectorAll<HTMLDetailsElement>('.fq-parent-report details').forEach((item) => { item.open = true; });
+    window.addEventListener('beforeprint', openAll);
+    return () => window.removeEventListener('beforeprint', openAll);
+  }, []);
   if (!unlocked) return <div className="fq-app"><GrownUpGate onPass={() => setUnlocked(true)} onBack={onBack} /></div>;
   if (printKeyLessonId) {
     return (
@@ -101,22 +125,78 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
   const printedOn = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   const activeUnits = report.units.filter((unit) => unit.lessons.some((row) => row.status === 'done' || row.status === 'started' || row.status === 'skipped'));
   const laterUnits = report.units.filter((unit) => !activeUnits.includes(unit));
+  const picks = progress.grownUpPicks ?? [];
+  const showLesson = (missionId: string) => {
+    const row = document.querySelector<HTMLElement>(`[data-testid="parent-row-${missionId}"]`);
+    const unit = row?.closest('details');
+    if (unit) unit.open = true;
+    row?.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    row?.focus({ preventScroll: true });
+  };
+  const display = fun.displayPreferences ?? { textSize: 'standard', highContrast: false, reducedMotion: false };
+  const limit = fun.timeLimit?.minutes ?? 0;
 
   return (
     <div className="fq-app">
       <main className="fq-shell fq-parent fq-appear">
         <div className="fq-parent-actions">
           <button className="fq-back" onClick={onBack} data-testid="button-parent-back"><ArrowLeft size={17} /> Back to the map</button>
-          <button className="fq-button secondary" onClick={() => { void printPage('Fraction Quest progress report'); }} data-testid="button-parent-print"><Printer size={17} /> Print report</button>
+          {tab === 'report' && <button className="fq-button secondary" onClick={() => { void printPage('Fraction Quest progress report'); }} data-testid="button-parent-print"><Printer size={17} /> Print report</button>}
+        </div>
+        <div className="fq-parent-tabs" role="tablist" aria-label="Grown-ups">
+          {(['report', 'settings'] as const).map((id) => (
+            <button key={id} type="button" role="tab" id={`tab-parent-${id}`} aria-selected={tab === id} aria-controls={`panel-parent-${id}`}
+              className={tab === id ? 'is-on' : ''} onClick={() => setTab(id)} data-testid={`tab-parent-${id}`}>{id === 'report' ? 'Report' : 'Settings'}</button>
+          ))}
         </div>
 
-        <article className="fq-parent-report fq-print fq-print-live" data-testid="parent-report">
+        {tab === 'settings' ? (
+          <section className="fq-parent-settings" role="tabpanel" id="panel-parent-settings" aria-labelledby="tab-parent-settings" data-testid="parent-settings">
+            {reminder && <SettingsRow title="Reminders" value={reminder.time ? timeLabel(reminder.time) : 'Off'}><ReminderSettings /></SettingsRow>}
+            <SettingsRow title="Breaks" value={fun.breakPreferences?.quietMode ? 'Quiet' : `Every ${fun.breakPreferences?.intervalMinutes ?? 15} min`}>
+              <BreakSettings intervalMinutes={fun.breakPreferences?.intervalMinutes ?? 15} quietMode={fun.breakPreferences?.quietMode ?? false} onChange={onBreakPreferencesChange} />
+            </SettingsRow>
+            <SettingsRow title="Daily time limit" value={limit ? `${limit} min` : 'Off'}>
+              <TimeLimitSettings minutes={limit} used={fun.activity?.[today()]?.minutes ?? 0} allowed={timeToday(fun)?.allowed ?? null} onChange={onTimeLimitChange} />
+            </SettingsRow>
+            <SettingsRow title="Reading and display" value={`Story mode ${display.storyMode === false ? 'off' : 'on'}`}>
+              <DisplaySettings preferences={display} onChange={onDisplayPreferencesChange} />
+            </SettingsRow>
+            <SettingsRow title="Voice" value="Who reads aloud"><LearningVoicePicker /></SettingsRow>
+            <SettingsRow title="Family and profiles" value="Learners, backup, sign-in"><FamilyControls unitTitles={unitTitles} /></SettingsRow>
+            <SettingsRow title="Answer keys" value="Print any lesson">
+              <section className="fq-parent-section fq-parent-answer-keys" data-testid="parent-answer-keys">
+                <h2>Answer keys for grown-ups</h2>
+                <p>Choose a lesson to print its solutions. Answer keys are not included in student printouts.</p>
+                <div className="fq-parent-answer-key-controls">
+                  <label htmlFor="parent-answer-key-lesson">Lesson</label>
+                  <select id="parent-answer-key-lesson" value={answerKeyLessonId} onChange={(event) => setAnswerKeyLessonId(event.target.value)} data-testid="select-parent-answer-key-lesson">
+                    {MISSIONS.map((mission, index) => <option key={mission.id} value={mission.id}>Lesson {index + 1}: {mission.title}</option>)}
+                  </select>
+                  <button type="button" className="fq-button" onClick={() => setPrintKeyLessonId(answerKeyLessonId)} data-testid="button-parent-print-answer-key">
+                    <Printer size={17} /> Print answer key
+                  </button>
+                </div>
+              </section>
+            </SettingsRow>
+            {subscription && <SettingsRow title="Subscription" value={subscription.state === 'active' ? 'On' : 'Plan and restore'}><SubscriptionSettings /></SettingsRow>}
+            <SettingsRow title="Teaching guide" value="By unit"><FamilyGuide unitTitles={unitTitles} /></SettingsRow>
+            {onDeveloperTest && <SettingsRow title="Developer" value="Test builds only"><DeveloperSettings unitTitles={unitTitles} onOpen={onDeveloperTest} onOpenTester={onOpenLessonTester} /></SettingsRow>}
+          </section>
+        ) : (
+        <article className="fq-parent-report fq-print fq-print-live" role="tabpanel" id="panel-parent-report" aria-labelledby="tab-parent-report" data-testid="parent-report">
           <header className="fq-parent-head">
             <p className="fq-print-kicker">Fraction Quest · Progress report · {printedOn}</p>
             <h1>{childName ? `${childName}'s progress` : 'Progress on this device'}</h1>
           </header>
 
           <ParentGlance glance={report.glance} firstTryRate={report.firstTryRate} childName={childName} />
+          <div className="fq-glance">
+            <SkillsCard skills={report.skills} grade={report.grade} childName={childName} picks={picks} onPick={onPick} />
+            <PracticeCard tips={report.toPractice} strengths={report.strengths} childName={childName} picks={picks} onPick={onPick} onShowLesson={showLesson} />
+            <MonthCard month={report.month} />
+            <ShareCard glance={report.glance} firstTryRate={report.firstTryRate} childName={childName} skills={report.skills} />
+          </div>
 
           <h2 className="fq-glance-full">Full report</h2>
           <section className="fq-parent-stats" aria-label="Summary">
@@ -125,75 +205,6 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
             <div data-testid="stat-first-try"><strong>{percent(report.firstTryRate)}</strong><span>Worksheet answers right the first time</span></div>
             <div data-testid="stat-on-own"><strong>{percent(report.onOwnRate)}</strong><span>Builds done without help</span></div>
             <div data-testid="stat-streak"><strong>{report.streak}</strong><span>Day streak{report.savedDays > 0 ? ` (${report.savedDays} ${report.savedDays === 1 ? 'day' : 'days'} saved by spare oil)` : ''}</span></div>
-            <div><strong>{report.stars}</strong><span>Stars</span></div>
-          </section>
-
-          <LearningVoicePicker />
-
-          <p className="fq-parent-refs">Topic-scope references: <a href="https://webassets.zearn.org/resources/G03_Course_Guide_Z1.pdf" target="_blank" rel="noreferrer">Zearn Grade 3 Course Guide</a> and <a href="https://www.dreambox.com/math/skills/fractions" target="_blank" rel="noreferrer">DreamBox fractions overview</a>.</p>
-
-          <ReminderSettings />
-          <BreakSettings
-            intervalMinutes={fun.breakPreferences?.intervalMinutes ?? 15}
-            quietMode={fun.breakPreferences?.quietMode ?? false}
-            onChange={onBreakPreferencesChange}
-          />
-          <TimeLimitSettings
-            minutes={fun.timeLimit?.minutes ?? 0}
-            used={fun.activity?.[today()]?.minutes ?? 0}
-            allowed={timeToday(fun)?.allowed ?? null}
-            onChange={onTimeLimitChange}
-          />
-          <DisplaySettings
-            preferences={fun.displayPreferences ?? { textSize: 'standard', highContrast: false, reducedMotion: false }}
-            onChange={onDisplayPreferencesChange}
-          />
-          <FamilyControls unitTitles={unitTitles} />
-
-          <section className="fq-parent-section fq-parent-code-progress" data-testid="parent-code-progress">
-            <h2>Coding levels passed</h2>
-            <p className="fq-parent-note">Coding progress is separate from fraction lesson mastery. A level counts when its robot program reaches the mission target.</p>
-            <div className="fq-parent-code-summary">
-              <strong>{report.codeLevelsPassed}<small> / {report.codeLevelsTotal}</small></strong>
-              <span>levels passed across {report.codeMissionsStarted} missions · {report.codeMissionsComplete} missions with all 3 levels passed</span>
-            </div>
-            {report.codeMissionRows.length > 0 ? (
-              <ul className="fq-parent-code-list">
-                {report.codeMissionRows.map((row) => <li key={row.id} data-testid={`parent-code-${row.id}`}><span>{row.title}</span><strong>{row.levelsPassed} / 3 levels passed</strong></li>)}
-              </ul>
-            ) : <p className="fq-parent-code-empty">No coding levels passed yet. Each mission has three: fill in numbers, build blocks, and fix a bug.</p>}
-          </section>
-
-          <section className="fq-parent-section fq-parent-standard-mastery" data-testid="parent-standard-mastery">
-            <h2>Fraction standards</h2>
-            <p className="fq-parent-note">
-              {report.assessmentChecksCompleted} non-diagnostic check-ins completed. Mastery requires at least 80% accuracy,
-              three correct model-and-answer items, and evidence from two different checks at least a day apart. Before-you-start checks are diagnostic only.
-            </p>
-            {([3, 4, 5] as const).map(grade => {
-              const rows = report.standardMastery.filter(row => row.grade === grade);
-              if (!rows.length) return null;
-              return (
-                <div key={grade} className="fq-parent-mastery-grade">
-                  <h3>Grade {grade}</h3>
-                  <div className="fq-parent-table-wrap" tabIndex={0} role="region" aria-label={`Grade ${grade} standards`}>
-                    <table className="fq-parent-table">
-                      <thead><tr><th>Standard</th><th>Evidence</th><th>Status</th></tr></thead>
-                      <tbody>
-                        {rows.map(row => (
-                          <tr key={row.standard} data-testid={`parent-standard-${row.standard}`}>
-                            <td><b>{row.standard}</b> · {row.title}</td>
-                            <td>{row.attempted ? `${row.correct}/${row.attempted} correct · ${row.assessmentCount} checks` : 'No eligible check-in yet'}</td>
-                            <td><span className={`fq-mastery-status status-${row.status}`}>{MASTERY_LABEL[row.status]}</span></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              );
-            })}
-            <p className="fq-parent-note">Only the latest result for each check-in counts. Lesson completion, placement results, and game scores do not establish standard mastery.</p>
           </section>
 
           <section className="fq-parent-section">
@@ -212,96 +223,51 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
               {report.week.some((day) => day.saved) && <> “Saved” marks a day with no practice: a drop of spare oil kept the streak going. A drop is earned for every 7 days in a row, and up to 2 are kept.</>}</p>
           </section>
 
-          <div className="fq-parent-grid">
-            <section className="fq-parent-section" data-testid="parent-next">
-              <h2>Next up</h2>
-              <p>{report.nextLesson ?? 'Every lesson is done. Replay any one, or try a Unit challenge.'}</p>
-              {report.dueReviews.length > 0 && <p className="fq-parent-note">Ready for a quick review: {report.dueReviews.join(', ')}.</p>}
-              {report.placement && <p className="fq-parent-note" data-testid="parent-placement">Level quiz on {report.placement.date}: started at unit {report.placement.unit}. Earlier lessons are open but not counted as done.</p>}
-            </section>
-            <section className="fq-parent-section" data-testid="parent-practice">
-              <h2>Worth practicing</h2>
-              {report.toPractice.length ? (
-                <ul className="fq-parent-list">
-                  {report.toPractice.map((tip) => <li key={tip.idea}><b>{tip.idea}</b><span>{tip.count}×{tip.inRedos ? ` (${tip.inRedos} in redos)` : ''} · {tip.lessons.join(', ')}</span></li>)}
-                </ul>
-              ) : <p>Nothing stands out yet.</p>}
-            </section>
-            <section className="fq-parent-section" data-testid="parent-adaptation-reasons">
-              <h2>Adaptive changes</h2>
-              {report.adaptationReasons.length ? (
-                <ul className="fq-parent-list">
-                  {report.adaptationReasons.map((item, index) => (
-                    <li key={`${item.day}:${item.lesson}:${index}`}>
-                      <b>{item.reason}</b><span>{item.lesson} · {item.day}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : <p>No adaptive shifts recorded yet.</p>}
-            </section>
-            <section className="fq-parent-section" data-testid="parent-strengths">
-              <h2>Going well</h2>
-              {report.strengths.length ? <ul className="fq-parent-list">{report.strengths.map((title) => <li key={title}><b>{title}</b></li>)}</ul>
-                : <p>Finish a lesson without hints to see strengths here.</p>}
-            </section>
-          </div>
+          <section className="fq-parent-section" data-testid="parent-next">
+            <h2>Next up</h2>
+            <p>{report.nextLesson ?? 'Every lesson is done. Replay any one, or try a Unit challenge.'}</p>
+            {report.dueReviews.length > 0 && <p className="fq-parent-note">Ready for a quick review: {report.dueReviews.join(', ')}.</p>}
+            {report.placement && <p className="fq-parent-note" data-testid="parent-placement">Level quiz on {report.placement.date}: started at unit {report.placement.unit}. Earlier lessons are open but not counted as done.</p>}
+          </section>
 
-          <section className="fq-parent-section">
+          <section className="fq-parent-section" data-testid="parent-lessons">
             <h2>Lessons</h2>
             {activeUnits.length === 0 && <p>No lessons started yet.</p>}
-            {activeUnits.map((unit) => (
-              <div key={unit.number} className="fq-parent-unit">
-                <h3>Unit {unit.number}: {unit.title} <span>{unit.done}/{unit.total} done{unit.challengeBest !== null ? ` · challenge ${unit.challengeBest}/${unit.challengeMax}` : ''}</span></h3>
-                <div className="fq-parent-table-wrap" tabIndex={0} role="region" aria-label={`Unit ${unit.number} lessons`}>
-                  <table className="fq-parent-table">
-                    <thead><tr><th>Lesson</th><th>Status</th><th>Worksheet</th><th>First try</th><th>Builds</th><th>Remembered</th></tr></thead>
-                    <tbody>
-                      {unit.lessons.map((row) => (
-                        <tr key={row.id} className={`status-${row.status}`} data-testid={`parent-row-${row.id}`}>
-                          <td>{row.number}. {row.title}</td><td>{STATUS[row.status]}</td><td>{row.worksheet}/12</td>
-                          <td>{percent(row.firstTry)}</td><td>{row.builds}</td><td>{row.remembered}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ))}
+            {activeUnits.map((unit) => {
+              const changes = report.adaptationReasons.filter((item) => item.unit === unit.number);
+              return (
+                <details key={unit.number} className="fq-parent-unit" open={changes.length > 0 || unit.lessons.some((row) => row.status === 'started')}>
+                  <summary><h3>Unit {unit.number}: {unit.title} <span>{unit.done}/{unit.total} done{unit.challengeBest !== null ? ` · challenge ${unit.challengeBest}/${unit.challengeMax}` : ''}</span></h3></summary>
+                  <div className="fq-parent-table-wrap" tabIndex={0} role="region" aria-label={`Unit ${unit.number} lessons`}>
+                    <table className="fq-parent-table">
+                      <thead><tr><th>Lesson</th><th>Status</th><th>Worksheet</th><th>First try</th><th>Builds</th><th>Remembered</th></tr></thead>
+                      <tbody>
+                        {unit.lessons.map((row) => (
+                          <tr key={row.id} className={`status-${row.status}`} data-testid={`parent-row-${row.id}`} tabIndex={-1}>
+                            <td>{row.number}. {row.title}</td><td>{STATUS[row.status]}</td><td>{row.worksheet}/12</td>
+                            <td>{percent(row.firstTry)}</td><td>{row.builds}</td><td>{row.remembered}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {changes.length > 0 && <ul className="fq-parent-list" data-testid="parent-adaptation-reasons">
+                    {changes.map((item, index) => <li key={`${item.day}:${item.lesson}:${index}`}><b>Why {item.lesson} changed: {item.reason}</b><span>{item.day}</span></li>)}
+                  </ul>}
+                </details>
+              );
+            })}
             {laterUnits.length > 0 && <p className="fq-parent-note">Not started yet: {laterUnits.map((unit) => `Unit ${unit.number} (${unit.title})`).join(', ')}.</p>}
+            <p className="fq-parent-note" data-testid="parent-code-progress">Coding, separate from the fraction lessons: {report.codeLevelsPassed} of {report.codeLevelsTotal} robot levels passed
+              {report.codeMissionsStarted ? ` across ${report.codeMissionsStarted} ${report.codeMissionsStarted === 1 ? 'lesson' : 'lessons'}` : ''}.</p>
           </section>
-
-          <section className="fq-parent-section fq-parent-answer-keys" data-testid="parent-answer-keys">
-            <h2>Answer keys for grown-ups</h2>
-            <p>Choose a lesson to print its solutions. Answer keys are not included in student printouts.</p>
-            <div className="fq-parent-answer-key-controls">
-              <label htmlFor="parent-answer-key-lesson">Lesson</label>
-              <select
-                id="parent-answer-key-lesson"
-                value={answerKeyLessonId}
-                onChange={(event) => setAnswerKeyLessonId(event.target.value)}
-                data-testid="select-parent-answer-key-lesson"
-              >
-                {MISSIONS.map((mission, index) => (
-                  <option key={mission.id} value={mission.id}>Lesson {index + 1}: {mission.title}</option>
-                ))}
-              </select>
-              <button type="button" className="fq-button" onClick={() => setPrintKeyLessonId(answerKeyLessonId)} data-testid="button-parent-print-answer-key">
-                <Printer size={17} /> Print answer key
-              </button>
-            </div>
-          </section>
-
-          <SubscriptionSettings />
-
-          <FamilyGuide unitTitles={unitTitles} />
-
-          {onDeveloperTest && <DeveloperSettings unitTitles={unitTitles} onOpen={onDeveloperTest} onOpenTester={onOpenLessonTester} />}
 
           <footer className="fq-parent-foot">
             <p><b>How to read this.</b> "First try" counts worksheet answers that were right the first time they were checked. "Builds" are the bar and number-line tasks: "On their own" means no hints and no wrong tries. "Remembered" means your child rebuilt it correctly on a later day without help.</p>
-            <p><b>Helping at home.</b> Ask your child to show you a fraction with paper strips or on a drawn line, and to explain why. Use the answer-key section above when you need lesson solutions.</p>
+            <p><b>Helping at home.</b> Ask your child to show you a fraction with paper strips or on a drawn line, and to explain why. Answer keys are in Settings.</p>
           </footer>
         </article>
+        )}
       </main>
     </div>
   );

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './fixtures';
+import { expect, openSettings, test, type Page } from './fixtures';
 import { MISSIONS } from '../src/game';
 import { CHALLENGES } from '../src/challenges';
 
@@ -119,6 +119,7 @@ test('the grown-ups Developer testing section and the map Dev chip open the test
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
+  await openSettings(page, 'Developer');
   await page.getByTestId('checkbox-developer-mode').check();
   await page.getByTestId('button-open-lesson-tester').click();
   await expect(page.getByTestId('lesson-tester')).toBeVisible();

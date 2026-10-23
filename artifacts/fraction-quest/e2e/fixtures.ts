@@ -17,3 +17,10 @@ export const test = base.extend({
     await use(page);
   },
 });
+
+/** In the grown-ups' area: the Settings tab, with one settings row (by its title) opened. */
+export async function openSettings(page: import('@playwright/test').Page, row: string) {
+  await page.getByTestId('tab-parent-settings').click();
+  const details = page.getByTestId(`settings-${row.toLowerCase().replace(/[^a-z]+/g, '-')}`);
+  if (!(await details.evaluate((node) => (node as HTMLDetailsElement).open))) await details.locator('summary').click();
+}

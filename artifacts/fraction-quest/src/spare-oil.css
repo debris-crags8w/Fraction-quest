@@ -48,3 +48,16 @@
 .fq-tonight.is-story .fq-learning-listen { background: rgb(255 255 255 / .12); border-color: rgb(255 255 255 / .55); color: #fff; }
 .fq-tonight.is-story .fq-learning-listen svg { color: #FFE27A; }
 .fq-tonight-go { min-height: 46px; padding-block: 8px; }
+
+/* "Picked for you": practice a grown-up chose in the report. */
+.fq-picked { display: grid; gap: 8px; margin: 0 0 12px; padding: 12px 14px; border-radius: 20px; background: #fff; border: 2px solid #E2DDF2; color: var(--fq-ink, #2B2350); }
+.fq-picked-head { display: flex; align-items: center; gap: 10px; }
+.fq-picked-icon { flex: none; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: #ECE6FF; color: var(--fq-grape, #6F3FF5); }
+.fq-picked-words { flex: 1; min-width: 0; }
+.fq-picked h2 { margin: 0; font-size: 1.15rem; line-height: 1.2; }
+.fq-picked-words p { margin: 2px 0 0; color: #6A6390; font-size: .9rem; line-height: 1.3; }
+.fq-picked-go { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 14px; border: 0; border-radius: 14px; background: var(--fq-grape, #6F3FF5); color: #fff; font: inherit; text-align: left; box-shadow: 0 3px 0 #4B26B8; cursor: pointer; }
+.fq-picked-go span { display: grid; min-width: 0; }
+.fq-picked-go strong { font-weight: 900; }
+.fq-picked-go small { color: #E4DAFF; font-weight: 700; }
+.fq-picked-go:focus-visible { outline: 3px solid var(--fq-ink, #2B2350); outline-offset: 2px; }
