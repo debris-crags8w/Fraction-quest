@@ -42,6 +42,15 @@ test('every picture is short, keeps its rows, ends with everything shown, and po
           }
           continue;
         }
+        if (picture.kind === 'set') {
+          const groups = picture.groups ?? 0;
+          assert.ok((picture.dealt ?? 0) <= picture.count, `${where}: dealt`);
+          if (groups) assert.equal(picture.count % groups, 0, `${where}: ${picture.count} shares equally into ${groups}`);
+          for (const list of [picture.shaded, picture.counted, picture.glow]) {
+            for (const group of list ?? []) assert.ok(group >= 0 && group < groups, `${where}: group ${group} of ${groups}`);
+          }
+          continue;
+        }
         const count = picture.kind === 'bar' ? picture.parts.length : AREA_CUTS[picture.cut].length;
         for (const list of [picture.shaded, picture.counted, picture.glow, picture.kind === 'bar' ? picture.ticks : undefined]) {
           for (const part of list ?? []) assert.ok(part >= 0 && part < count, `${where}: part ${part} of ${count}`);

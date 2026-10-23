@@ -7,7 +7,7 @@ import { AREA_CUTS, areaOutline, type Point } from './area-shapes';
 import type { LessonIntro } from './lesson-intros';
 import { LearningListenButton, LearningText } from './LearningText';
 import { MathText } from './MathText';
-import type { AreaRow, BarRow, LessonScene, LineRow, SceneRow, StepScene } from './teach-scenes';
+import type { AreaRow, BarRow, LessonScene, LineRow, SceneRow, SetRow, StepScene } from './teach-scenes';
 import './teach-scene.css';
 
 /** Is motion turned down (the grown-ups' setting, or the device's)? */
@@ -85,7 +85,7 @@ function Area({ row, small = false }: { row: AreaRow; small?: boolean }) {
         {pieces.map((piece, i) => {
           const [x, y] = centerOf(piece.points);
           return has(row.counted, i)
-            ? <text key={`n${i}`} x={x * size} y={y * size} className="fq-ts-piece-count" aria-hidden="true">{row.counted!.indexOf(i) + 1}</text>
+            ? <text key={`n${i}`} x={x * size} y={y * size} className={`fq-ts-piece-count ${has(row.shaded, i) ? 'is-on-dark' : ''}`} aria-hidden="true">{row.counted!.indexOf(i) + 1}</text>
             : null;
         })}
       </svg>
@@ -133,8 +133,49 @@ function NumberLine({ row }: { row: LineRow }) {
   );
 }
 
+function CounterSet({ row }: { row: SetRow }) {
+  const groups = row.groups ?? 0;
+  const dealt = groups ? Math.min(row.dealt ?? row.count, row.count) : 0;
+  const perGroup = groups ? Math.ceil(row.count / groups) : 0;
+  const has = (list: number[] | undefined, i: number) => !!list?.includes(i);
+  // Numbers run through the counted groups in order when they count on, else start at 1 in each group.
+  const countStart = (group: number) => (row.countOn ? (row.counted ?? []).filter((g) => g < group).length * perGroup : 0);
+  return (
+    <div className={`fq-ts-row fq-ts-set-row ${row.hidden ? 'is-hidden' : ''}`}>
+      {row.label && <span className={`fq-ts-label is-${row.tone ?? 'plain'}`}><MathText text={row.label} /></span>}
+      <div className="fq-ts-set" data-testid="teach-scene-set" role="img"
+        aria-label={groups ? `${row.count} things shared into ${groups} equal groups` : `${row.count} things`}>
+        {row.count - dealt > 0 && (
+          <div className="fq-ts-pile">
+            {Array.from({ length: row.count - dealt }, (_, i) => <span key={i} className="fq-ts-counter" />)}
+          </div>
+        )}
+        {groups > 0 && (
+          <div className="fq-ts-groups">
+            {Array.from({ length: groups }, (_, g) => {
+              // Counters go round the groups in turn: group g holds counters g, g + groups, g + 2 × groups ...
+              const filled = Array.from({ length: perGroup }, (_, k) => g + k * groups < dealt);
+              return (
+                <div key={g} className={`fq-ts-group ${has(row.shaded, g) ? 'is-shaded' : ''} ${has(row.glow, g) ? 'is-glow' : ''}`}
+                  style={{ gridTemplateColumns: `repeat(${Math.min(perGroup, perGroup > 4 ? 3 : 2)}, var(--ts-counter))` }}>
+                  {filled.map((on, k) => (
+                    <span key={k} className={`fq-ts-counter ${on ? 'is-on' : 'is-slot'}`}>
+                      {on && has(row.counted, g) && <span className="fq-ts-count">{countStart(g) + k + 1}</span>}
+                    </span>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Row({ row }: { row: SceneRow }) {
   if (row.kind === 'line') return <NumberLine row={row} />;
+  if (row.kind === 'set') return <CounterSet row={row} />;
   if (row.kind === 'bar') return <Bar row={row} />;
   if (row.kind === 'area') return <Area row={row} />;
   if (row.kind === 'text') return <p className={`fq-ts-text ${row.hidden ? 'is-hidden' : ''}`}><LearningText text={row.text} emphasize /></p>;

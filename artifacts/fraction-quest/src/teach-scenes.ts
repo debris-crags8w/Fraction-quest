@@ -2,7 +2,7 @@
    on its last frame. A step is a list of frames; each frame is the whole picture, and the screen slides from one to
    the next (bars cut, a checker moves, parts light up). Pure data, so every scene is checked by tests. Lessons
    without a scene keep the text card. */
-import type { AreaCut } from './area-shapes';
+import { gridOverlap, type AreaCut } from './area-shapes';
 
 /** One bar, cut into parts of these relative widths. */
 export type BarRow = {
@@ -80,11 +80,30 @@ export type LineRow = {
   tone?: 'fair' | 'unfair';
   hidden?: boolean;
 };
+/** A set of counters (cards, apples) shared out into equal groups. */
+export type SetRow = {
+  kind: 'set';
+  count: number;
+  /** The equal groups the counters are shared into (none: one loose pile). */
+  groups?: number;
+  /** Counters dealt so far, one to each group in turn; the rest wait in the pile above (default: all). */
+  dealt?: number;
+  /** Groups taken (the numerator's groups): their counters are colored in. */
+  shaded?: number[];
+  /** Groups whose counters show 1, 2, 3 ... */
+  counted?: number[];
+  /** The counted numbers carry on from one group to the next (counting all the taken things). */
+  countOn?: boolean;
+  glow?: number[];
+  label?: string;
+  tone?: 'fair' | 'unfair';
+  hidden?: boolean;
+};
 /** A sentence under the picture; fractions in it are shown stacked. */
 export type TextRow = { kind: 'text'; text: string; hidden?: boolean };
 /** Two pictures side by side. */
 export type PairRow = { kind: 'pair'; items: [BarRow | AreaRow, BarRow | AreaRow]; hidden?: boolean };
-export type SceneRow = BarRow | AreaRow | LineRow | TextRow | PairRow;
+export type SceneRow = BarRow | AreaRow | LineRow | SetRow | TextRow | PairRow;
 
 /** One frame: the whole picture, held for `ms` before the next one (the last frame stays). */
 export type SceneFrame = { rows: SceneRow[]; ms: number };
@@ -120,6 +139,9 @@ const jumpUp = (row: number, n: number, ms = 380, from = 0): [number, Patch][] =
 const halfMarks = (spaces: number) => [{ at: spaces / 2, label: '1/2' }];
 /** The first n hundredths of a 10-by-10 grid, a column (one tenth) at a time. `from` skips the first ones. */
 const gridFill = (n: number, from = 0) => range(n).map((k) => ((from + k) % 10) * 10 + Math.floor((from + k) / 10));
+/** Beats that deal a set's counters into its groups, one round (a counter to every group) at a time. */
+const dealRounds = (row: number, count: number, groups: number, ms = 420): [number, Patch][] =>
+  range(count / groups).map((k): [number, Patch] => [ms, { [row]: { dealt: (k + 1) * groups } }]);
 const eighthMarks = [1, 2, 3, 4, 5, 6, 7].map((at) => ({ at, label: `${at}/8` }));
 const fourthMarks = [{ at: 1, label: '1/4' }, { at: 2, label: '2/4' }, { at: 3, label: '3/4' }];
 
@@ -1355,5 +1377,187 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
     why: play([{ kind: 'line', max: 1, spaces: 2, cut: true, marks: halfMarks(2), hidden: true }, { kind: 'text', text: '0, 1/2 and 1 are easy to add, so a wrong answer stands out.', hidden: true }],
       [400, { 0: { hidden: false } }],
       [400, { 1: { hidden: false } }]),
+  },
+  // Unit 11 · Multiply and divide
+  'sets-unit-fractions': {
+    steps: [
+      // The denominator says how many equal groups.
+      play([{ kind: 'set', count: 12 }, { kind: 'text', text: '1/3 of 12: 3 equal groups.', hidden: true }],
+        [700, { 0: { groups: 3, dealt: 0 } }],
+        [500, { 1: { hidden: false } }]),
+      // Share them out evenly.
+      play([{ kind: 'set', count: 12, groups: 3, dealt: 0 }, { kind: 'text', text: 'One to each group, again and again.', hidden: true }],
+        ...dealRounds(0, 12, 3, 520),
+        [500, { 1: { hidden: false } }]),
+      // Count one group.
+      play([{ kind: 'set', count: 12, groups: 3 }, { kind: 'text', text: '4 in one group: 1/3 of 12 is 4.', hidden: true }],
+        [600, { 0: { shaded: [0] } }],
+        [600, { 0: { shaded: [0], counted: [0] } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'set', count: 12, groups: 3, shaded: [0], label: '1 of 3 equal groups', hidden: true }, { kind: 'text', text: 'One group is one part: 1/3.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'sets-nonunit': {
+    steps: [
+      // The denominator makes 5 equal groups.
+      play([{ kind: 'set', count: 15 }, { kind: 'text', text: '2/5 of 15: 5 equal groups.', hidden: true }],
+        [600, { 0: { groups: 5, dealt: 0 } }],
+        ...dealRounds(0, 15, 5),
+        [500, { 1: { hidden: false } }]),
+      // Count one group.
+      play([{ kind: 'set', count: 15, groups: 5 }, { kind: 'text', text: '3 in one group.', hidden: true }],
+        [600, { 0: { counted: [0] } }],
+        [500, { 1: { hidden: false } }]),
+      // Take as many groups as the numerator.
+      play([{ kind: 'set', count: 15, groups: 5, countOn: true }, { kind: 'text', text: '2 groups: 2/5 of 15 is 6.', hidden: true }],
+        [600, { 0: { shaded: [0], counted: [0] } }],
+        [600, { 0: { shaded: [0, 1], counted: [0, 1] } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'set', count: 15, groups: 5, shaded: [0, 1], label: '2 of 5 groups', hidden: true }, { kind: 'text', text: 'Each group is 1/5. The numerator counts 2 of them.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'fraction-of-quantity': {
+    steps: [
+      // Divide by the denominator.
+      play([{ kind: 'bar', parts: ones(5), bracket: '20' }, { kind: 'text', text: '3/5 of 20: 20 ÷ 5 = 4.', hidden: true }],
+        [700, { 0: { cut: true } }],
+        [500, { 1: { hidden: false } }]),
+      // That is one part.
+      play([{ kind: 'bar', parts: ones(5), cut: true, bracket: '20' }, { kind: 'text', text: 'Each part is 4.', hidden: true }],
+        [600, { 0: { glow: [0], label: 'One part: 4' } }],
+        [500, { 1: { hidden: false } }]),
+      // Multiply by the numerator.
+      play([{ kind: 'bar', parts: ones(5), cut: true, bracket: '20' }, { kind: 'text', text: '3 × 4 = 12: 3/5 of 20 is 12.', hidden: true }],
+        ...countUp(0, 3, 450, true),
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'bar', parts: ones(5), cut: true, shaded: range(3), bracket: '20', label: '3/5', hidden: true }, { kind: 'text', text: 'Divide to find one part. The numerator says how many parts.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'multiply-fractions': {
+    steps: [
+      // Cut each part into smaller equal parts.
+      play([{ kind: 'area', cut: 'grid-4x2', edges: true, shaded: [0, 1, 2, 4, 5, 6], label: '3/4' }, { kind: 'text', text: '1/2 of 3/4: cut each fourth in half.', hidden: true }],
+        [600, { 0: { label: 'Each fourth cut in 2' } }],
+        [500, { 1: { hidden: false } }]),
+      // Multiply the denominators.
+      play([{ kind: 'area', cut: 'grid-4x2', edges: true, shaded: [0, 1, 2, 4, 5, 6] }, { kind: 'text', text: '4 × 2 = 8 small parts: eighths.', hidden: true }],
+        [700, { 0: { counted: range(8) } }],
+        [500, { 1: { hidden: false } }]),
+      // Multiply the numerators.
+      play([{ kind: 'area', cut: 'grid-4x2', edges: true, shaded: [0, 1, 2, 4, 5, 6] }, { kind: 'text', text: 'Take half: 1 × 3 = 3. 1/2 of 3/4 is 3/8.', hidden: true }],
+        [700, { 0: { shaded2: [0, 1, 2, 3] } }],
+        [600, { 0: { counted: [0, 1, 2] } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'area', cut: 'grid-4x2', edges: true, shaded: [0, 1, 2, 4, 5, 6], shaded2: [0, 1, 2, 3], hidden: true }, { kind: 'text', text: 'Cutting again makes eighths. Half of each fourth takes 3 of them.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'fraction-times-fraction': {
+    steps: [
+      // Rows for one fraction, columns for the other.
+      play([{ kind: 'area', cut: 'grid-5x3', label: '2/3 × 4/5' }, { kind: 'text', text: '3 rows for thirds, 5 columns for fifths.', hidden: true }],
+        [700, { 0: { edges: true } }],
+        [500, { 1: { hidden: false } }]),
+      // Shade where they overlap.
+      play([{ kind: 'area', cut: 'grid-5x3', edges: true }, { kind: 'text', text: '2 rows, and 4 columns: the dark part is both.', hidden: true }],
+        [700, { 0: { shaded2: range(10) } }],
+        [700, { 0: { shaded: gridOverlap(5, 3, 4) } }],
+        [500, { 1: { hidden: false } }]),
+      // Count the overlap over all the boxes.
+      play([{ kind: 'area', cut: 'grid-5x3', edges: true, shaded2: range(10), shaded: gridOverlap(5, 3, 4) }, { kind: 'text', text: '8 of 15 boxes: 2/3 × 4/5 = 8/15.', hidden: true }],
+        [800, { 0: { counted: gridOverlap(5, 2, 4) } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'area', cut: 'grid-5x3', edges: true, shaded2: range(10), shaded: gridOverlap(5, 3, 4), hidden: true }, { kind: 'text', text: '3 × 5 = 15 boxes in all. 2 × 4 = 8 in the overlap.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'fraction-of-collection': {
+    steps: [
+      // As many equal groups as the denominator.
+      play([{ kind: 'set', count: 16 }, { kind: 'text', text: '3/4 of 16 cards: 4 equal groups.', hidden: true }],
+        [600, { 0: { groups: 4, dealt: 0 } }],
+        ...dealRounds(0, 16, 4, 380),
+        [500, { 1: { hidden: false } }]),
+      // Count one group.
+      play([{ kind: 'set', count: 16, groups: 4 }, { kind: 'text', text: '4 cards in one group.', hidden: true }],
+        [600, { 0: { counted: [0] } }],
+        [500, { 1: { hidden: false } }]),
+      // Take as many groups as the numerator.
+      play([{ kind: 'set', count: 16, groups: 4, countOn: true }, { kind: 'text', text: '3 groups: 3/4 of 16 is 12 cards.', hidden: true }],
+        [500, { 0: { shaded: [0], counted: [0] } }],
+        [500, { 0: { shaded: [0, 1], counted: [0, 1] } }],
+        [500, { 0: { shaded: [0, 1, 2], counted: [0, 1, 2] } }],
+        [500, { 1: { hidden: false } }]),
+    ],
+    why: play([{ kind: 'set', count: 16, groups: 4, shaded: [0, 1, 2], label: '3 of 4 fair groups', hidden: true }, { kind: 'text', text: 'Equal groups make fair parts. The numerator counts them.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'multiplication-scaling': {
+    steps: [
+      // Compare the fraction with 1.
+      play([{ kind: 'line', max: 2, spaces: 4, cut: true, marks: [{ at: 3, label: '3/4' }, { at: 5, label: '5/4' }] }, { kind: 'text', text: '3/4 is less than 1. 5/4 is more than 1.', hidden: true }],
+        [600, { 0: { point: 3 } }],
+        [600, { 0: { point: 5 } }],
+        [500, { 1: { hidden: false } }]),
+      // Less than 1: smaller.
+      play([
+        { kind: 'line', max: 2, spaces: 4, cut: true, stretch: 4, label: '1 × 8 = 8: one whole copy' },
+        { kind: 'line', max: 2, spaces: 4, cut: true, label: '3/4 × 8 = 6: part of a copy' },
+      ],
+      [700, { 1: { stretch: 3 } }]),
+      // More than 1: bigger.
+      play([
+        { kind: 'line', max: 2, spaces: 4, cut: true, stretch: 4, label: '1 × 8 = 8: one whole copy' },
+        { kind: 'line', max: 2, spaces: 4, cut: true, label: '5/4 × 8 = 10: more than a copy' },
+      ],
+      [700, { 1: { stretch: 5 } }]),
+    ],
+    why: play([{ kind: 'line', max: 2, spaces: 4, cut: true, stretch: 4, label: '1 × 8: the same 8', hidden: true }, { kind: 'text', text: 'Times 1 keeps the amount. Less than 1 copy is less; more is more.', hidden: true }],
+      [400, { 0: { hidden: false } }],
+      [400, { 1: { hidden: false } }]),
+  },
+
+  'bigger-or-smaller': {
+    steps: [
+      // Look at the factor.
+      play([{ kind: 'text', text: '2/3 × 9' }, { kind: 'line', max: 2, spaces: 3, cut: true, pointLabel: '2/3' }],
+        [700, { 1: { point: 2 } }]),
+      // Compare it with 1.
+      play([{ kind: 'line', max: 2, spaces: 3, cut: true, pointLabel: '2/3' }, { kind: 'text', text: '2/3 is less than 1.', hidden: true }],
+        [600, { 0: { point: 2 } }],
+        [500, { 1: { hidden: false } }]),
+      // Less, more or the same.
+      play([
+        { kind: 'line', max: 2, spaces: 3, cut: true, label: '2/3 × 9 = 6: less than 9', hidden: true },
+        { kind: 'line', max: 2, spaces: 3, cut: true, label: '4/3 × 9 = 12: more than 9', hidden: true },
+        { kind: 'text', text: 'And 3/3 is 1, so 3/3 × 9 = 9.', hidden: true },
+      ],
+      [400, { 0: { hidden: false } }],
+      [500, { 0: { stretch: 2 } }],
+      [400, { 1: { hidden: false } }],
+      [500, { 1: { stretch: 4 } }],
+      [500, { 2: { hidden: false } }]),
+    ],
+    why: play([
+      { kind: 'line', max: 2, spaces: 3, cut: true, stretch: 3, label: 'One copy of 9', marks: [{ at: 2, label: '2/3' }, { at: 4, label: '4/3' }], hidden: true },
+      { kind: 'text', text: 'Part of a copy is less. More than a copy is more.', hidden: true },
+    ],
+    [400, { 0: { hidden: false } }],
+    [400, { 1: { hidden: false } }]),
   },
 };
