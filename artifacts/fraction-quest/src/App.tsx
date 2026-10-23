@@ -47,7 +47,7 @@ import LearningLab, { LinePlotInteraction, RedoLab } from './LearningLab';
 import { useLessonHelper } from './model-intro';
 import { LearningListenButton, LearningText, LearningTextSection, prefetchReading, primeReadAloud, sectionsScript, useReadAloud } from './LearningText';
 import { numberLineDescription } from './lab-copy';
-import { CHAPTER_SCENES, filmedLines } from './story-cinema';
+import { CHAPTER_SCENES, filmedLines, filmedVoices } from './story-cinema';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
 import { getWorksheet } from './learning-content';
@@ -1410,9 +1410,10 @@ function Game() {
       if (!next || !chapter) return;
       const index = MISSIONS.filter((item) => item.unit === next.unit).indexOf(next);
       // Filmed comics (the prologue, and every lesson in a chapter with a scene) read just the lines; plain ones say who speaks.
-      if (!prologueSeen) prefetchReading(filmedLines(PROLOGUE, storyTheme).join(' '));
+      if (!prologueSeen) prefetchReading(filmedLines(PROLOGUE, storyTheme).join(' '), filmedVoices(PROLOGUE, storyTheme));
       const panels = lessonComic(chapter, next, index);
-      prefetchReading(CHAPTER_SCENES[chapter.unit] ? filmedLines(panels, storyTheme).join(' ') : storyScript(panels, storyTheme));
+      if (CHAPTER_SCENES[chapter.unit]) prefetchReading(filmedLines(panels, storyTheme).join(' '), filmedVoices(panels, storyTheme));
+      else prefetchReading(storyScript(panels, storyTheme));
     }, 1500);
     return () => clearTimeout(timer);
   }, [onMap, progress, storyMode, fun.sound, prologueSeen, storyTheme]);

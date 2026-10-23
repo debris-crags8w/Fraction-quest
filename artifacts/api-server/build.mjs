@@ -9,7 +9,8 @@ import { copyFile, mkdir, rm } from "node:fs/promises";
 globalThis.require = createRequire(import.meta.url);
 
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
-const kokoroVoices = ["af_heart", "am_michael"];
+// Heart, plus the story cast's voices (src/lib/cast-voices.ts), which the voice backfill renders on the server.
+const kokoroVoices = ["af_heart", "am_michael", "bm_george", "am_onyx", "am_puck", "bf_emma", "am_echo", "af_nova"];
 
 async function copyKokoroVoiceAssets() {
   const requireFromArtifact = createRequire(import.meta.url);

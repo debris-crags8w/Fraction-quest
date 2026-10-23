@@ -20,6 +20,8 @@ type VoicePackIndex = {
   version: 1;
   voices: string[];
   keys: string[];
+  /** The story friends' film lines, by voice: kept when pruning. */
+  cast?: Record<string, string[]>;
 };
 
 type Upload = { voice: (typeof PACK_VOICES)[number]; key: string; localPath: string };
@@ -128,6 +130,7 @@ async function syncVoicePackUnlocked(root: string, lock: { renew(): Promise<void
   for (const file of storedFiles) {
     const parsed = parseStoredVoiceFile(file.name, prefix);
     if (!parsed) continue;
+    if (index.cast?.[parsed.voice]?.includes(parsed.key)) continue; // a story friend's line
     if (!PACK_VOICES.includes(parsed.voice as (typeof PACK_VOICES)[number]) || !indexedKeys.has(parsed.key)) {
       staleFiles.push(file);
       continue;

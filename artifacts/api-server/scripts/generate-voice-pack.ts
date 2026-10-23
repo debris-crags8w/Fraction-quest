@@ -1,13 +1,13 @@
 import { voiceSentences } from "../../fraction-quest/scripts/voice-sentences";
-import { appStorageVoicePack, isPackVoice } from "../src/lib/voice-pack-store";
-import { generateMissingVoicePack } from "../src/lib/voice-pack-sync";
+import { appStorageVoicePack } from "../src/lib/voice-pack-store";
+import { generateMissingVoicePack, RENDER_VOICES } from "../src/lib/voice-pack-sync";
 
 const args = process.argv.slice(2);
 const apply = args.includes("--apply");
 const voiceIndex = args.indexOf("--voice");
 const requestedVoice = voiceIndex === -1 ? undefined : args[voiceIndex + 1];
-if (voiceIndex !== -1 && (!requestedVoice || !isPackVoice(requestedVoice))) {
-  throw new Error(`Use --voice with a configured voice: af_heart.`);
+if (voiceIndex !== -1 && (!requestedVoice || !RENDER_VOICES.includes(requestedVoice))) {
+  throw new Error(`Use --voice with a configured voice: ${RENDER_VOICES.join(", ")}.`);
 }
 const voices = requestedVoice ? [requestedVoice] : undefined;
 if (voices) console.log(`Selected voice: ${voices[0]}`);

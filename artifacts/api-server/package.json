@@ -12,7 +12,8 @@
     "sync-voice-pack": "tsx scripts/sync-voice-pack.ts",
     "generate-voice-pack": "tsx scripts/generate-voice-pack.ts",
     "audit-voice-pack": "tsx scripts/audit-voice-pack.ts",
-    "daily-voice-backfill": "tsx scripts/daily-voice-backfill.ts"
+    "daily-voice-backfill": "tsx scripts/daily-voice-backfill.ts",
+    "voice-samples": "tsx scripts/voice-samples.ts"
   },
   "dependencies": {
     "@google-cloud/storage": "^8.4.0",

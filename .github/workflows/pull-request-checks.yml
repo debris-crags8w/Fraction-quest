@@ -109,7 +109,7 @@ jobs:
   all-lessons-e2e:
     name: All lessons Playwright smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -131,12 +131,17 @@ jobs:
       - name: Install Playwright Chromium
         # The runner's Microsoft apt source has answered 403 ("no longer signed") and stalled installs past the job
         # limit; the browser's packages don't need it. A capped install, tried twice, fails fast instead.
-        timeout-minutes: 10
+        timeout-minutes: 13
         run: |
           sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
           for try in 1 2; do
-            timeout 270 pnpm --filter @workspace/fraction-quest exec playwright install --with-deps chromium && exit 0
+            timeout 330 pnpm --filter @workspace/fraction-quest exec playwright install --with-deps chromium && exit 0
             echo "Install attempt $try did not finish; trying again."
+            # A stopped install can leave apt-get running and holding the package lock: stop it, wait for the lock,
+            # and finish any half-configured packages. Downloaded packages stay cached, so the retry is quicker.
+            sudo pkill -x apt-get || true
+            for wait in $(seq 1 30); do sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock >/dev/null 2>&1 || break; sleep 2; done
+            sudo dpkg --configure -a || true
           done
           exit 1
 
@@ -149,7 +154,7 @@ jobs:
   iphone-safari-e2e:
     name: iPhone Safari lesson smoke (WebKit)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -171,12 +176,17 @@ jobs:
       - name: Install Playwright WebKit
         # The runner's Microsoft apt source has answered 403 ("no longer signed") and stalled installs past the job
         # limit; the browser's packages don't need it. A capped install, tried twice, fails fast instead.
-        timeout-minutes: 10
+        timeout-minutes: 13
         run: |
           sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
           for try in 1 2; do
-            timeout 270 pnpm --filter @workspace/fraction-quest exec playwright install --with-deps webkit && exit 0
+            timeout 330 pnpm --filter @workspace/fraction-quest exec playwright install --with-deps webkit && exit 0
             echo "Install attempt $try did not finish; trying again."
+            # A stopped install can leave apt-get running and holding the package lock: stop it, wait for the lock,
+            # and finish any half-configured packages. Downloaded packages stay cached, so the retry is quicker.
+            sudo pkill -x apt-get || true
+            for wait in $(seq 1 30); do sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock >/dev/null 2>&1 || break; sleep 2; done
+            sudo dpkg --configure -a || true
           done
           exit 1
 

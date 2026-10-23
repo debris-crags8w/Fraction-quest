@@ -1,9 +1,16 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { PACK_VOICES, VOICE_FORMATS, VoicePackSyncInProgressError, type PackVoice, type VoicePackStore, type VoicePackSyncLock } from "./voice-pack-store";
+import { PACK_VOICES, VOICE_FORMATS, VoicePackSyncInProgressError, type VoicePackStore, type VoicePackSyncLock } from "./voice-pack-store";
 import { cleanVoiceText, loadVoiceEngine, type VoiceEngine } from "./voice";
 import { renderVoicePack, type PackSentence } from "./voice-pack-render";
+import { CAST_VOICES, isCastVoice } from "./cast-voices";
+
+/** Every voice the pack is made in: Heart for every sentence, and each story friend for their own film lines. */
+export const RENDER_VOICES: readonly string[] = [...PACK_VOICES, ...CAST_VOICES];
+/** The sentences one voice reads: Heart reads every sentence without a voice; a friend reads the lines marked for them. */
+export const sentencesFor = (sentences: PackSentence[], voice: string) =>
+  sentences.filter((sentence) => (isCastVoice(voice) ? sentence.voice === voice : !sentence.voice));
 
 const BATCH_SIZE = 40;
 type PackFile = { voice: string; key: string; format: keyof typeof VOICE_FORMATS };
@@ -26,7 +33,7 @@ export class VoicePackSyncLimitError extends Error {
     readonly missingFiles: number,
     readonly limit: number,
   ) {
-    super(`Checked ${checkedSentences} sentences (${checkedFiles} audio files); ${missingFiles} files are missing across ${missingSentences} sentences, above the automatic limit of ${limit}. No audio was generated. For an intentional manual batch, run "pnpm --filter @workspace/api-server run generate-voice-pack -- --voice af_heart --apply".`);
+    super(`Checked ${checkedSentences} sentences (${checkedFiles} audio files); ${missingFiles} files are missing across ${missingSentences} sentences, above the automatic limit of ${limit}. No audio was generated. For an intentional manual batch, run "pnpm --filter @workspace/api-server run generate-voice-pack -- --apply".`);
     this.name = "VoicePackSyncLimitError";
   }
 }
@@ -46,7 +53,7 @@ export function voicePackSentenceKey(text: string): string {
 export async function generateMissingVoicePack(
   store: VoicePackStore,
   sentences: PackSentence[],
-  options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void; maxMissingSentences?: number; maxSentencesPerRun?: number; voices?: readonly PackVoice[] } = {},
+  options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void; maxMissingSentences?: number; maxSentencesPerRun?: number; voices?: readonly string[] } = {},
 ): Promise<SyncResult> {
   const lock = options.apply ? await store.acquireSyncLock?.() : undefined;
   try {
@@ -59,18 +66,18 @@ export async function generateMissingVoicePack(
 async function generateMissingVoicePackUnlocked(
   store: VoicePackStore,
   sentences: PackSentence[],
-  options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void; maxMissingSentences?: number; maxSentencesPerRun?: number; voices?: readonly PackVoice[] },
+  options: { apply?: boolean; engine?: VoiceEngine; log?: (message: string) => void; maxMissingSentences?: number; maxSentencesPerRun?: number; voices?: readonly string[] },
   lock?: VoicePackSyncLock,
 ): Promise<SyncResult> {
   const log = options.log ?? (() => undefined);
-  const voices = options.voices ?? PACK_VOICES;
-  if (voices.length === 0 || voices.some((voice) => !PACK_VOICES.includes(voice))) {
+  const voices = options.voices ?? RENDER_VOICES;
+  if (voices.length === 0 || voices.some((voice) => !RENDER_VOICES.includes(voice))) {
     throw new Error("Choose at least one configured voice.");
   }
   const stored = new Set((await store.list()).map(({ voice, key, format }) => `${voice}/${key}.${format}`));
   const missing: PackFile[] = [];
-  for (const sentence of sentences) {
-    for (const voice of voices) {
+  for (const voice of voices) {
+    for (const sentence of sentencesFor(sentences, voice)) {
       for (const format of Object.keys(VOICE_FORMATS) as PackFile["format"][]) {
         const id = `${voice}/${sentence.key}.${format}`;
         if (!stored.has(id)) missing.push({ voice, key: sentence.key, format });
@@ -79,7 +86,7 @@ async function generateMissingVoicePackUnlocked(
   }
 
   const missingSentences = new Set(missing.map(({ voice, key }) => `${voice}/${key}`)).size;
-  const checkedSentences = sentences.length * voices.length;
+  const checkedSentences = voices.reduce((total, voice) => total + sentencesFor(sentences, voice).length, 0);
   const checkedFiles = checkedSentences * Object.keys(VOICE_FORMATS).length;
   log(`Checked ${checkedSentences} sentences (${checkedFiles} audio files); missing ${missing.length} files across ${missingSentences} sentences.`);
   if (options.maxMissingSentences !== undefined && missingSentences > options.maxMissingSentences) {
@@ -112,7 +119,7 @@ async function generateMissingVoicePackUnlocked(
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "fraction-quest-voice-pack-"));
   try {
     for (const voice of voices) {
-      const voiceSentences = sentences.filter((sentence) =>
+      const voiceSentences = sentencesFor(sentences, voice).filter((sentence) =>
         needsRender.has(`${voice}/${sentence.key}`),
       );
       for (let start = 0; start < voiceSentences.length; start += BATCH_SIZE) {
@@ -169,7 +176,7 @@ export async function runDailyVoiceBackfill(
     const result = await generateMissingVoicePack(store, sentences, {
       apply: true,
       engine: options.engine,
-      voices: ["af_heart"],
+      voices: RENDER_VOICES,
       maxSentencesPerRun: DAILY_VOICE_BACKFILL_LIMIT,
       log,
     });

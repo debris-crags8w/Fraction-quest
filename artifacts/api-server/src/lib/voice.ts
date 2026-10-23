@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { CAST_VOICE_SPEEDS, isCastVoice } from "./cast-voices";
 
 /** The app's voice, Heart (the one the pre-made voice pack is made for). */
 export const VOICES = ["af_heart"] as const;
@@ -66,6 +67,10 @@ export function cleanVoiceText(raw: unknown): string | null {
   return text && text.length <= MAX_TEXT_LENGTH ? text : null;
 }
 export const isVoiceId = (value: unknown): value is VoiceId => VOICES.includes(value as VoiceId);
+/** A voice the pre-made pack is rendered in: Heart, or one of the story cast's (never served live). */
+export const isRenderVoice = (value: unknown): value is string => isVoiceId(value) || (typeof value === "string" && isCastVoice(value));
+/** The speed a voice's clips are made at: the cast's own, else Heart's. */
+export const speedFor = (voice: string): number => (isCastVoice(voice) ? CAST_VOICE_SPEEDS[voice] : VOICE_SPEED);
 
 /** 16-bit PCM mono WAV: plays everywhere, including iPhone Safari. */
 export function encodeWav(samples: Float32Array, sampleRate: number): Buffer {
