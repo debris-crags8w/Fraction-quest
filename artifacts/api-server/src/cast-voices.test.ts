@@ -26,7 +26,7 @@ test("the cast's voices and speeds match the app's table", () => {
   const app = readFileSync(new URL("../../fraction-quest/src/lib/cast-voices.ts", import.meta.url), "utf8");
   const listed = [...app.matchAll(/voice: '([a-z_]+)', speed: ([\d.]+)/g)].map(([, voice, speed]) => [voice, Number(speed)]);
   assert.deepEqual(Object.fromEntries(listed), CAST_VOICE_SPEEDS);
-  assert.equal(speedFor("bf_emma"), 0.8);
+  assert.equal(speedFor("bf_emma"), 0.7);
   assert.equal(speedFor("af_heart"), VOICE_SPEED);
 });
 

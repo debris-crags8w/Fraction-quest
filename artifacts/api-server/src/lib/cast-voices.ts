@@ -4,7 +4,7 @@ export const CAST_VOICE_SPEEDS = {
   bm_george: 0.85,
   am_onyx: 0.9,
   am_puck: 1.0,
-  bf_emma: 0.8,
+  bf_emma: 0.7,
   am_echo: 0.9,
   af_nova: 1.05,
 } as const;

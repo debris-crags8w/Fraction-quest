@@ -10,7 +10,7 @@ export const CAST_VOICES = {
   hoot: { voice: 'bm_george', speed: 0.85 }, // the fix-it owl: older, calm, wise
   chomp: { voice: 'am_onyx', speed: 0.9 }, // the crocodile: big and rumbly
   pip: { voice: 'am_puck', speed: 1.0 }, // the frog: bouncy and playful
-  tilly: { voice: 'bf_emma', speed: 0.8 }, // the turtle: slow and gentle
+  tilly: { voice: 'bf_emma', speed: 0.7 }, // the turtle: slow and gentle
   bolt: { voice: 'am_echo', speed: 0.9 }, // the robot: even and steady
   bea: { voice: 'af_nova', speed: 1.05 }, // the honeybee: quick and bright
 } as const satisfies Record<string, { voice: string; speed: number }>;
