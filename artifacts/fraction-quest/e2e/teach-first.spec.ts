@@ -93,6 +93,8 @@ test('with reduced motion, each Teach first step opens on its last frame', async
 
 test('every step of every animated Teach first fits a phone', async ({ page }) => {
   const { LESSON_SCENES } = await import('../src/teach-scenes');
+  // It walks every step of every animated lesson, so it gets time for each lesson.
+  test.setTimeout(20_000 + Object.keys(LESSON_SCENES).length * 1_500);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addInitScript(() => localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 0, day: '2026-10-20', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: false,
     story: { prologueSeen: true, choices: {} }, displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: true, seasonalThemes: false, storyMode: false } })));
