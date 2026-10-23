@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { SECRETS, dailySecret, lanternWeek, riddleReaction, riddleSetup } from './riddles';
+import { LANTERN_CARD_SPOKEN, SECRETS, dailySecret, lanternCard, lanternWeek, riddleReaction, riddleSetup } from './riddles';
 
 test('Chomp’s set-up lines use words only, and the last question always gets the last riddle line', () => {
   for (let index = 0; index < 5; index++) assert.doesNotMatch(riddleSetup(index, 5), /\d/);
@@ -34,4 +34,44 @@ test('Chomp reacts to a checked riddle with words only', () => {
     assert.ok(riddleReaction(result, index).length <= 40);
   }
   assert.notEqual(riddleReaction('correct', 0), riddleReaction('retry', 0));
+});
+
+test('Tonight’s lantern on the map: light it, lit, or a first lantern, in Hoot’s words or plain', () => {
+  const waiting = lanternCard({ streak: 5, oil: 1, litToday: false, dailyDone: false, storyOn: true });
+  assert.equal(waiting.state, 'waiting');
+  assert.equal(waiting.title, 'Tonight’s lantern');
+  assert.equal(waiting.button, 'Light it: Chomp’s 5 riddles');
+  assert.deepEqual(waiting.facts, ['5 nights in a row', '1 spare drop of oil']);
+
+  const first = lanternCard({ streak: 0, oil: 0, litToday: false, dailyDone: false, storyOn: true });
+  assert.equal(first.state, 'first');
+  assert.equal(first.title, 'Light your first lantern');
+  assert.deepEqual(first.facts, []);
+
+  // Lit by today's riddles: no button, tomorrow's riddle, and how far the next drop of oil is (7 nights earn one).
+  const lit = lanternCard({ streak: 6, oil: 1, litToday: true, dailyDone: true, storyOn: true });
+  assert.equal(lit.state, 'lit');
+  assert.equal(lit.button, undefined);
+  assert.deepEqual(lit.notes, ['Chomp has a new riddle tomorrow.', '1 more night to earn a spare drop of oil.']);
+  assert.deepEqual(lanternCard({ streak: 7, oil: 0, litToday: true, dailyDone: true, storyOn: true }).notes.slice(1), ['7 more nights to earn a spare drop of oil.']);
+  // A full jar: nothing more to earn, so no oil line.
+  assert.deepEqual(lanternCard({ streak: 9, oil: 2, litToday: true, dailyDone: true, storyOn: true }).notes, ['Chomp has a new riddle tomorrow.']);
+  // Lit by a lesson, riddles not done yet: the riddles stay one tap away.
+  assert.equal(lanternCard({ streak: 3, oil: 0, litToday: true, dailyDone: false, storyOn: true }).button, 'Chomp’s 5 riddles');
+
+  // Story mode off: plain words, days not nights, no Hoot.
+  const plain = lanternCard({ streak: 5, oil: 1, litToday: false, dailyDone: false, storyOn: false });
+  assert.equal(plain.title, 'Today’s practice');
+  assert.equal(plain.speaker, null);
+  assert.equal(plain.button, 'Start: 5 review questions');
+  assert.deepEqual(plain.facts, ['5 days in a row']);
+});
+
+test('Listen on Tonight’s lantern reads only fixed lines, so every one can come from the voice pack', () => {
+  for (const storyOn of [true, false]) for (const litToday of [true, false]) for (const dailyDone of [true, false])
+    for (let streak = 0; streak <= 30; streak++) for (let oil = 0; oil <= 2; oil++) {
+      const card = lanternCard({ streak, oil, litToday, dailyDone, storyOn });
+      assert.ok(LANTERN_CARD_SPOKEN.includes(card.spoken), card.spoken);
+    }
+  assert.ok(LANTERN_CARD_SPOKEN.length < 80);
 });

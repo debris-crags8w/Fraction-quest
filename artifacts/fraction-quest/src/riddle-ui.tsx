@@ -1,10 +1,11 @@
 import { StoryCharacter } from './characters';
-import { dailySecret, lanternWeek, oilNoticeWords, oilWordsText, riddleReaction, riddleSetup } from './riddles';
+import { Flame } from 'lucide-react';
+import { dailySecret, lanternCard, lanternWeek, oilNoticeWords, oilWordsText, riddleReaction, riddleSetup } from './riddles';
 import { LearningListenButton } from './LearningText';
 import './spare-oil.css';
 import { withName } from './story';
 import { useStoryTheme } from './story-ui';
-import { SPARE_OIL_MAX, type DayActivity, type OilNotice } from './lib/fun';
+import { SPARE_OIL_MAX, today, type DayActivity, type OilNotice } from './lib/fun';
 
 /** Hoot's lantern: lit for a night with a right answer, orange with a drop when spare oil kept it lit, dashed for tonight while it waits. */
 export function LanternIcon({ lit, saved = false, waiting = false, size = 24 }: { lit: boolean; saved?: boolean; waiting?: boolean; size?: number }) {
@@ -108,5 +109,43 @@ export function OilNoticeCard({ notice, storyOn, streak, onNext }: { notice: Oil
         <button className="fq-button fq-oil-next" onClick={onNext} data-testid="button-oil-next" autoFocus>Next</button>
       </section>
     </div>
+  );
+}
+
+/** Tonight's lantern, on the map: the week of lanterns and today's one task (Chomp's riddles). Once today's riddles
+    are done the button goes, and the card says what comes tomorrow. Plain words, and dots, with the story off. */
+export function TonightsLantern({ activity, streak, oil, savedDays, dailyDone, storyOn, onStart }: {
+  activity?: Record<string, DayActivity>; streak: number; oil: number; savedDays?: string[]; dailyDone: boolean; storyOn: boolean; onStart: () => void;
+}) {
+  const nights = lanternWeek(activity, new Date(), savedDays);
+  const litToday = (activity?.[today()]?.answered ?? 0) > 0;
+  const card = lanternCard({ streak, oil, litToday, dailyDone, storyOn });
+  return (
+    <section className={`fq-tonight ${storyOn ? 'is-story' : 'is-plain'} is-${card.state}`} aria-labelledby="tonight-title" data-testid="tonights-lantern" data-state={card.state}>
+      <div className="fq-tonight-head">
+        {storyOn ? <StoryCharacter id="hoot" size={42} happy={card.state === 'lit'} /> : <span className="fq-tonight-flame" aria-hidden="true"><Flame size={22} /></span>}
+        <div className="fq-tonight-words">
+          <h2 id="tonight-title">{card.title}</h2>
+          <p>{card.speaker && <b>{card.speaker}: </b>}{card.line}</p>
+        </div>
+        <LearningListenButton text={card.spoken} label="Listen to tonight’s lantern" compact />
+      </div>
+      <ol className="fq-tonight-week" role="img" aria-label={`${nights.filter((night) => night.lit).length} of the last 7 ${storyOn ? 'nights' : 'days'} lit`}>
+        {nights.map((night) => (
+          <li key={night.day} className={night.today ? 'today' : night.saved ? 'saved' : ''} data-lit={night.lit}>
+            {storyOn ? <LanternIcon lit={night.lit} saved={night.saved} waiting={night.today && !night.lit} size={21} />
+              : <span className={`fq-tonight-dot ${night.lit ? 'lit' : ''} ${night.today && !night.lit ? 'waiting' : ''}`} aria-hidden="true" />}
+            <span>{night.label}</span>
+          </li>
+        ))}
+      </ol>
+      {card.facts.length > 0 && <p className="fq-tonight-facts">{card.facts.map((fact) => <span key={fact}>{fact}</span>)}</p>}
+      {card.notes.length > 0 && <p className="fq-tonight-notes" data-testid="tonights-lantern-notes">{card.notes.map((note) => <span key={note}>{note}</span>)}</p>}
+      {card.button && (
+        <button type="button" className="fq-tonight-go" onClick={onStart} data-testid="button-tonights-lantern">
+          <strong>{card.button}</strong><small>about 5 min</small>
+        </button>
+      )}
+    </section>
   );
 }

@@ -17,3 +17,34 @@
 @keyframes fq-oil-glow { 50% { transform: scale(1.04); } }
 .fq-oil-say > svg { flex: none; }
 .fq-oil-notice .fq-learning-listen { margin: 0; min-height: 44px; padding: 3px 14px; color: #FFE27A; border-color: #6B5DB0; background: transparent; }
+
+/* Tonight's lantern on the map: today's one task, under the Whole Stone. */
+.fq-tonight { display: grid; gap: 8px; margin: 0 0 12px; padding: 12px 14px; border-radius: 20px; color: #fff; background: radial-gradient(circle at 15% 0%, #3A3180 0%, #1E1846 62%); box-shadow: 0 4px 0 #120E30; }
+.fq-tonight-head { display: flex; align-items: center; gap: 10px; }
+.fq-tonight-head .fq-character { flex: none; }
+.fq-tonight-words { flex: 1; min-width: 0; }
+.fq-tonight h2 { margin: 0; color: #FFE27A; font-size: 1.15rem; line-height: 1.2; }
+.fq-tonight-words p { margin: 2px 0 0; color: #DCD7FF; font-size: .9rem; line-height: 1.3; }
+.fq-tonight-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; text-align: center; }
+.fq-tonight-week li { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: .72rem; font-weight: 800; color: #B9B3E8; }
+.fq-tonight-week li.today { color: #FFE27A; }
+.fq-tonight-week li.saved { color: #FFB866; }
+.fq-tonight-facts, .fq-tonight-notes { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; font-weight: 800; font-size: .88rem; }
+.fq-tonight-notes { flex-direction: column; padding: 9px 12px; border-radius: 12px; background: rgb(255 255 255 / .1); font-weight: 700; }
+.fq-tonight-go { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 10px 14px; border: 0; border-radius: 14px; background: #FFC93C; color: #2B1E00; font: inherit; font-weight: 900; text-align: left; box-shadow: 0 3px 0 #C98E00; cursor: pointer; }
+.fq-tonight-go small { flex: none; font-weight: 700; color: #5A4300; }
+.fq-tonight-go:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.fq-tonight.is-plain { color: var(--fq-ink, #2B2350); background: #fff; border: 2px solid #E2DDF2; box-shadow: none; }
+.fq-tonight.is-plain h2 { color: inherit; }
+.fq-tonight.is-plain .fq-tonight-words p, .fq-tonight.is-plain .fq-tonight-week li { color: #6A6390; }
+.fq-tonight.is-plain .fq-tonight-week li.today { color: inherit; }
+.fq-tonight.is-plain .fq-tonight-notes { background: #F3F0FF; }
+.fq-tonight.is-plain .fq-tonight-go { background: var(--fq-grape, #6F3FF5); color: #fff; box-shadow: 0 3px 0 #4B26B8; }
+.fq-tonight.is-plain .fq-tonight-go small { color: #E4DAFF; }
+.fq-tonight-flame { flex: none; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: #FFE3D6; color: #F2622E; }
+.fq-tonight-dot { display: block; width: 18px; height: 18px; border-radius: 50%; background: #E2DDF2; }
+.fq-tonight-dot.lit { background: #F2622E; }
+.fq-tonight-dot.waiting { background: transparent; border: 2px dashed #F2622E; }
+.fq-tonight.is-story .fq-learning-listen { background: rgb(255 255 255 / .12); border-color: rgb(255 255 255 / .55); color: #fff; }
+.fq-tonight.is-story .fq-learning-listen svg { color: #FFE27A; }
+.fq-tonight-go { min-height: 46px; padding-block: 8px; }

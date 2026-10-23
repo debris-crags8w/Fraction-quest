@@ -67,7 +67,7 @@ import { LESSON_INTROS } from './lesson-intros';
 import { StoryCharacter } from './characters';
 import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, hintLead, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
 import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
-import { LanternIcon, OilNoticeCard } from './riddle-ui';
+import { LanternIcon, OilNoticeCard, TonightsLantern } from './riddle-ui';
 import { SubscribeFlow, WebAppOnlyFlow } from './Subscribe';
 import { readOpenPractice, takeReminderTap, tellPractised } from './lib/reminder';
 import { lessonsLocked, subscribedBefore, useSubscription, webLessonsLocked } from './lib/subscription';
@@ -662,6 +662,9 @@ function MissionMap({ progress, onStart, onDeveloperTest, onLessonTester, onOpen
             town={<TownMap completedUnits={completedStoryUnits(progress)} currentUnit={nextMission?.unit}
               reachedUnits={new Set(CHAPTERS.filter((chapter) => MISSIONS.some((item) => item.unit === chapter.unit && isMissionUnlocked(progress, item.id))).map((chapter) => chapter.unit))}
               onPlace={(unit) => onStorybook('story', unit)} />} />}
+          {/* Today's one task first, once the first lesson is done: Chomp's riddles light tonight's lantern. */}
+          {firstLessonDone && <TonightsLantern activity={fun.activity} streak={shownStreak(fun)} oil={fun.spareOil ?? 0} savedDays={fun.savedDays}
+            dailyDone={dailyDone} storyOn={storyOn} onStart={onStartDaily} />}
           {assignedUnits.length > 0 && <p className="fq-assigned-units" role="note" data-testid="text-assigned-units">
             Your teacher suggested: {assignedUnits.map((unit) => `Unit ${unit}: ${UNIT_TITLES[unit - 1]}`).join(' · ')}.
             These suggestions do not change which lessons are unlocked.

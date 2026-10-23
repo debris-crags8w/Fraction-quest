@@ -355,3 +355,11 @@ test('everything Listen reads on an animated Teach first page is in the voice pa
   }
   assert.deepEqual(missing.slice(0, 5), [], `${missing.length} Teach first sentences have no clip`);
 });
+
+test('everything Listen reads on Tonight’s lantern is in the voice pack', async () => {
+  const { voiceSentences } = await import('../scripts/voice-sentences');
+  const { LANTERN_CARD_SPOKEN } = await import('./riddles');
+  const keys = new Set(voiceSentences().filter((entry) => !entry.voice).map((entry) => entry.key));
+  const missing = LANTERN_CARD_SPOKEN.flatMap((line) => sentences(spokenText(line)).map(cleanSentence)).filter((clean) => /[a-z]{2}/i.test(clean) && !keys.has(voiceKey(clean)));
+  assert.deepEqual(missing, []);
+});
