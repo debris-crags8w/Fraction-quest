@@ -3038,7 +3038,9 @@ test('the hint bulb always shows its help: it scrolls the hint into view, and af
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.getByTestId('button-show-hint').click();
   await expect(page.getByTestId('text-question-hint')).toBeInViewport();
-  await expect(page.getByTestId('text-question-hint')).toContainText('Try this idea:');
+  // Story mode is on, so the chapter's friend (Tilly, on her hill) gives the hint.
+  await expect(page.getByTestId('text-question-hint')).toContainText('Tilly’s idea:');
+  await expect(page.getByTestId('text-question-hint').locator('svg').first()).toBeVisible();
 
   // Two misses replace the hint with "Let's make it simpler"; the bulb now brings that into view.
   const wrong = [0, 1, 2].filter((index) => index !== question.correctChoice).slice(0, 2);

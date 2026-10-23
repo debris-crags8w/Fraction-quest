@@ -64,7 +64,8 @@ import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, Le
 import { activeSeason } from './seasons';
 import { LessonIntroCard, TeachFirst } from './lesson-intro';
 import { LESSON_INTROS } from './lesson-intros';
-import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
+import { StoryCharacter } from './characters';
+import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, hintLead, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
 import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
 import { LanternIcon, OilNoticeCard } from './riddle-ui';
 import { SubscribeFlow, WebAppOnlyFlow } from './Subscribe';
@@ -937,6 +938,8 @@ function PlayView({
   // A lesson's first question teaches first: the idea and a worked example, then (in story mode) the friend asks and
   // the child tries.
   const actionFirst = showExample && storyOn && !!chapterFor(mission.unit);
+  // In story mode the chapter's friend gives the hints.
+  const hintFriend = storyOn ? chapterFor(mission.unit)?.character : undefined;
   const seasonOn = !!useSeason().season;
   const question: PracticeQuestion | null = mission.questions[questionIndex] ?? null;
   const isLastQuestion = question ? questionIndex === mission.questions.length - 1 : false;
@@ -1143,7 +1146,7 @@ function PlayView({
               <div ref={modelAreaRef} className="fq-model-area" data-testid="question-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} questionId={question.id} />
               </div>
-              {hintOpen && attempts < 2 && <div ref={hintRef} key={`hint-${hintFlash}`} className="fq-hint fq-hint-flash" data-testid="text-question-hint"><Lightbulb size={18} /> <span className="fq-hint-copy"><strong>Try this idea:</strong> <LearningListenButton text={question.hint} label="Listen to the hint" /><span><LearningText text={question.hint} /></span></span></div>}
+              {hintOpen && attempts < 2 && <div ref={hintRef} key={`hint-${hintFlash}`} className="fq-hint fq-hint-flash" data-testid="text-question-hint">{hintFriend ? <StoryCharacter id={hintFriend} size={36} /> : <Lightbulb size={18} />} <span className="fq-hint-copy"><strong>{hintLead(hintFriend)}</strong> <LearningListenButton text={question.hint} label="Listen to the hint" /><span><LearningText text={question.hint} /></span></span></div>}
               {attempts >= 2 && (
                 <div ref={remediationRef} key={`remediation-${hintFlash}`} className={`fq-remediation ${hintFlash ? 'fq-hint-flash' : ''}`} role="note" data-testid="status-remediation">
                   <div className="fq-remediation-heading"><strong>Let's make it simpler.</strong><LearningListenButton text={question.hint} label="Listen to the simpler explanation" /></div>
