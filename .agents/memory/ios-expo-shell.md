@@ -10,3 +10,11 @@ The Capacitor iOS project (`artifacts/fraction-quest/ios`, `capacitor.config.ts`
 **Why:** A voice-bundling change was built for the Capacitor project and had to be reworked, because the real iOS app never runs Capacitor code.
 
 **How to apply:** Say "the app (iPhone and Android)", not "the iPhone app": nothing in the shell or the page checks the platform except the audio format (Opus where it plays, MP3 elsewhere). The user wants both platforms (iOS is the current focus). For anything "in the app", change the website (it runs inside the shell), and detect the app with `appShell()` (`src/lib/app-shell.ts`), never Capacitor. Native-only needs go in the Expo shell (`app/index.tsx`), and new native modules need an Expo build. The app needs a network connection to load lessons; making it work offline would mean bundling the website into the shell, which is a separate project.
+
+## Expo dependency recovery
+
+When Expo reports a declared package missing from the artifact's local `node_modules` even though it is in the lockfile, restore the workspace install with `pnpm install --filter @workspace/fraction-quest-ios... --frozen-lockfile` before editing package versions. Then rerun Expo's compatibility checks from the app directory.
+
+**Why:** The lockfile can be correct while an artifact-local package link is missing, which breaks Expo config or Metro startup. Expo may also recommend a just-published SDK patch that the package registry's minimum-release-age guard has not admitted yet.
+
+**How to apply:** Restore from the lockfile, restart the managed Expo workflow, and verify the preview. Do not bypass the release-age guard to silence a patch warning; report that warning separately if the app starts with the currently installed versions.
