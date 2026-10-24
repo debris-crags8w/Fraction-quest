@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import { ArrowRight, Music, RotateCcw, Search, Volume2, VolumeX } from 'lucide-react';
 import { StoryCharacter } from './characters';
 import { LearningListenButton, LearningText, prefetchReading, useFollowedReading } from './LearningText';
+import { logVoice } from './lib/natural-voice';
 import { useFun, useSeason } from './fun-ui';
 import { playCue } from './lib/fun';
 import { filmMood, StoryMusic } from './lib/story-music';
@@ -59,6 +60,8 @@ function saveFilmMusic(on: boolean) {
 const VOICE_GIVE_UP_MS = 15_000; // the first shot waits at least this long for the voice to start
 const VOICE_CPS = 10;      // a generous reading pace (characters a second): slower than any voice reads, "says:" included
 const VOICE_SLACK_MS = 4000; // beyond that pace, how long a shot waits for a late voice before the film moves on
+/** A voice that is late or stops early (Safari refusing a clip) picks up again at the next shot, this many times a film. */
+const VOICE_RETRIES = 3;
 
 /** A camera position: what to scale and move, and the point it zooms towards. */
 type Shot = [transform: string, origin: string];
@@ -611,6 +614,14 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const beatRef = useRef(-1);
   const typedRef = useRef(false);
   const stall = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  /** The shot where a dropped voice picks up again, and how many times it already has this film. */
+  const resumeAt = useRef<number | null>(null);
+  const retries = useRef(0);
+  const resumeLater = (why: string) => {
+    if (!voiceRef.current || retries.current >= VOICE_RETRIES || beatRef.current + 1 >= lines.length) return;
+    resumeAt.current = beatRef.current + 1;
+    logVoice('film voice', `${why}; it picks up again at shot ${resumeAt.current + 1}`);
+  };
   const lines = useMemo(() => panels.map((panel) => ({ ...panel, text: withName(panel.text, name, theme) })), [panels, name, theme]);
   // What is read aloud says "friend", never the child's name; each panel is one or more of its sentences.
   const spoken = useMemo(() => filmedLines(panels, theme), [panels, theme]);
@@ -623,6 +634,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     clearTimeout(stall.current);
     if (!voiceDriving.current) return;
     voiceDriving.current = false; reader.stop(); setVoiceWaiting(false); setSpeaking(false);
+    resumeLater(`the voice was late on shot ${beatRef.current + 1}`);
     if (typedRef.current) later(() => showBeat(beatRef.current + 1), PAUSE_MS); // a caption still typing moves on by itself
   };
   /** While the voice leads, each shot waits only as long as its line could take to read. */
@@ -645,6 +657,10 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     if (next >= lines.length) { finish(); return; }
     beatRef.current = next; typedRef.current = false;
     setBeat(next); setChars(0);
+    if (resumeAt.current !== null && next >= resumeAt.current) {
+      resumeAt.current = null; retries.current += 1;
+      speakFrom(next);
+    }
     watchVoice(next);
     const length = lines[next].text.length;
     const tick = (count: number) => {
@@ -661,10 +677,12 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     if (!voiceDriving.current) return;
     setVoiceWaiting(true);
     let heard = false;
+    let reached = -1;
     const first = Math.max(0, sentenceToPanel.indexOf(from));
     reader.speak(spoken.slice(from).join(' '), {
       voices: sentenceVoices.slice(first),
       onPart: (index) => {
+        reached = first + index;
         const panel = sentenceToPanel[first + index] ?? from;
         setSpeaking(true);
         // The voice has arrived: the line it starts on types again in step with it.
@@ -674,6 +692,8 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
       onEnd: () => {
         clearTimeout(stall.current);
         voiceDriving.current = false; setVoiceWaiting(false); setSpeaking(false);
+        // Stopped before the last sentence (a clip Safari wouldn't play): the voice picks up again at the next shot.
+        if (reached < sentenceToPanel.length - 1) resumeLater(`the voice stopped after sentence ${reached + 1}`);
         // No voice, or it stopped early: the timer carries on from here (a caption still typing moves on by itself).
         if (typedRef.current) later(() => showBeat(beatRef.current + 1), beatRef.current >= lines.length - 1 ? 600 : PAUSE_MS);
       },
@@ -688,6 +708,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
 
   const play = (replay = false) => {
     clearTimers(); clearTimeout(stall.current); reader.stop(); voiceDriving.current = false; setVoiceWaiting(false); setSpeaking(false);
+    resumeAt.current = null; retries.current = 0;
     setDone(false); setEnding(false); setBeat(-1); beatRef.current = -1; typedRef.current = false;
     // A replay remounts the screen so the title card and entrances play again; the first play must not (it would
     // restart every animation a frame after they began).
@@ -722,7 +743,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     setVoiceOn(next); voiceRef.current = next;
     saveFilmVoice(next);
     if (!next) {
-      clearTimeout(stall.current); reader.stop(); voiceDriving.current = false; setVoiceWaiting(false); setSpeaking(false);
+      clearTimeout(stall.current); reader.stop(); voiceDriving.current = false; setVoiceWaiting(false); setSpeaking(false); resumeAt.current = null;
       if (!done && beatRef.current >= 0 && typedRef.current) later(() => showBeat(beatRef.current + 1), PAUSE_MS);
     } else if (!done && beatRef.current >= 0) {
       const shot = beatRef.current;

@@ -43,6 +43,10 @@ test('Apple browsers (the iPhone app included) stream the smaller Opus clip; oth
     Object.defineProperty(globalThis, 'document', { configurable: true, value: { createElement: () => ({ canPlayType: () => answer }) } });
     assert.equal(preferredPackFormat(), expected);
   }
+  // An older Safari plays CAF files but not Opus inside them: MP3.
+  resetVoicePackForTests();
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: { createElement: () => ({ canPlayType: (type: string) => (type === 'audio/x-caf' ? 'maybe' : '') }) } });
+  assert.equal(preferredPackFormat(), 'mp3', 'CAF without Opus');
   if (original) Object.defineProperty(globalThis, 'document', original); else Reflect.deleteProperty(globalThis, 'document');
   resetVoicePackForTests();
   assert.equal(preferredPackFormat(), 'mp3', 'no browser: MP3');
@@ -364,4 +368,105 @@ test('everything Listen reads on Tonight’s lantern and Picked for you is in th
   const keys = new Set(voiceSentences().filter((entry) => !entry.voice).map((entry) => entry.key));
   const missing = LANTERN_CARD_SPOKEN.flatMap((line) => sentences(spokenText(line)).map(cleanSentence)).filter((clean) => /[a-z]{2}/i.test(clean) && !keys.has(voiceKey(clean)));
   assert.deepEqual(missing, []);
+});
+
+test('when Safari pauses the voice partway through a clip, it plays on to the end of the reading', async () => {
+  const { createNaturalSpeaker, setNaturalEngineForTests, setNaturalVoicePreference } = await import('./lib/natural-voice');
+  setNaturalVoicePreference('af_heart');
+  setNaturalEngineForTests({ generate: async () => ({ toBlob: () => new Blob(['x']) }) });
+  const played: string[] = [];
+  let paused = false;
+  // A clip ends a moment after play; the second clip is paused by "Safari" the first time, with no ended event.
+  const audio = {
+    src: '', paused: true, ended: false, onended: null as null | (() => void), onpause: null as null | (() => void),
+    addEventListener(type: string, listener: () => void) { if (type === 'pause') this.pauseListeners.push(listener); },
+    removeEventListener(type: string, listener: () => void) { if (type === 'pause') this.pauseListeners = this.pauseListeners.filter((item: () => void) => item !== listener); },
+    pauseListeners: [] as (() => void)[],
+    play() {
+      played.push(this.src); this.paused = false;
+      const src = this.src;
+      if (played.length === 2 && !paused) {
+        paused = true;
+        setTimeout(() => { this.paused = true; this.pauseListeners.forEach((listener) => listener()); this.onpause?.(); }, 5);
+      } else setTimeout(() => { if (this.src === src) { this.paused = true; this.onended?.(); } }, 5);
+      return Promise.resolve();
+    },
+    pause() { this.paused = true; },
+  };
+  let n = 0;
+  const originalUrl = URL.createObjectURL;
+  URL.createObjectURL = () => `blob:${++n}`;
+  try {
+    const ok = await Promise.race([
+      new Promise<boolean>((resolve) => createNaturalSpeaker((url) => { audio.src = url; return audio as unknown as HTMLAudioElement; }).speak(['One.', 'Two.', 'Three.'], resolve)),
+      new Promise<string>((resolve) => setTimeout(() => resolve('stuck'), 2000)),
+    ]);
+    assert.equal(ok, true, 'the reading finished');
+    assert.deepEqual([...new Set(played)], ['blob:1', 'blob:2', 'blob:3']);
+  } finally {
+    URL.createObjectURL = originalUrl;
+    setNaturalEngineForTests(null);
+  }
+});
+
+test('leaving a screen while its voice is reading silences it, and no later sentence starts', async () => {
+  const { createNaturalSpeaker, setNaturalEngineForTests, setNaturalVoicePreference } = await import('./lib/natural-voice');
+  const { createLearningSpeechController } = await import('./LearningText');
+  setNaturalVoicePreference('af_heart');
+  setNaturalEngineForTests({ generate: async () => ({ toBlob: () => new Blob(['x']) }) });
+  const events: string[] = [];
+  // Each clip plays for 40 ms.
+  const audio = {
+    src: '', paused: true, ended: false, onended: null as null | (() => void), onpause: null as null | (() => void),
+    play() { events.push(`play ${this.src}`); this.paused = false; const src = this.src; setTimeout(() => { if (this.src === src && !this.paused) { this.paused = true; this.onended?.(); } }, 40); return Promise.resolve(); },
+    pause() { if (!this.paused) events.push('pause'); this.paused = true; this.onpause?.(); },
+  };
+  let n = 0;
+  const originalUrl = URL.createObjectURL;
+  URL.createObjectURL = () => `blob:${++n}`;
+  const speaker = createNaturalSpeaker((url) => { audio.src = url; return audio as unknown as HTMLAudioElement; });
+  const synthesis = { speak() {}, cancel() {}, getVoices: () => [], addEventListener() {}, removeEventListener() {} } as unknown as SpeechSynthesis;
+  const controller = createLearningSpeechController(synthesis, () => undefined, undefined, undefined, () => null,
+    { ready: () => true, chosen: () => true, speak: speaker.speak, stop: speaker.stop, warmUp() {} });
+  try {
+    controller.speak('One. Two. Three.', 'en-US');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.deepEqual(events, ['play blob:1']);
+    controller.dispose(); // the screen goes
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    assert.deepEqual(events, ['play blob:1', 'pause'], 'paused at once, and nothing else played');
+    assert.equal(audio.paused, true);
+  } finally {
+    URL.createObjectURL = originalUrl;
+    setNaturalEngineForTests(null);
+  }
+});
+
+test('with the device voice, leaving a screen stops the reading even where cancel only stops the current sentence (Safari)', async () => {
+  const { createLearningSpeechController } = await import('./LearningText');
+  const spoken: string[] = [];
+  // Safari: cancel() stops the sentence being spoken, but sentences already queued still play.
+  let queue: { text: string; onend?: (() => void) | null; onstart?: (() => void) | null }[] = [];
+  let speaking = false;
+  const next = () => {
+    const item = queue.shift();
+    if (!item) { speaking = false; return; }
+    speaking = true; spoken.push(item.text); item.onstart?.();
+    setTimeout(() => { item.onend?.(); next(); }, 20);
+  };
+  const synthesis = {
+    speak(utterance: { text: string }) { queue.push(utterance); if (!speaking) next(); },
+    cancel() { /* the current sentence stops; the queue stays */ },
+    getVoices: () => [{ name: 'Device', lang: 'en-US', voiceURI: 'Device', default: true }],
+    addEventListener() {}, removeEventListener() {},
+  } as unknown as SpeechSynthesis;
+  const makeUtterance = (text: string) => ({ text, onend: null, onstart: null, onerror: null }) as unknown as SpeechSynthesisUtterance;
+  const controller = createLearningSpeechController(synthesis, () => undefined, makeUtterance, 0, () => null,
+    { ready: () => false, chosen: () => false, speak() {}, stop() {}, warmUp() {} });
+  controller.speak('One. Two. Three. Four.', 'en-US');
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  controller.dispose();
+  queue = queue.filter(() => true);
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  assert.deepEqual(spoken, ['One.'], 'no sentence after the screen went');
 });

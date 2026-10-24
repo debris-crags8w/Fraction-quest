@@ -364,8 +364,7 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
   return (
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
       <p className="fq-ll-kicker">{review ? 'Review' : check.stepLabel ?? (check.transfer ? 'Step 2 · On your own' : 'Step 1 · Build it')}</p>
-       {/* The question is a "Your task" card that stays at the top of the screen while the child builds, so every
-           part of the check (build, show it again, explain) has the question in view. */}
+       {/* The question is a "Your task" card at the top of the check. */}
        <SectionListenHeader text={check.prompt} label="Listen to the question" className="fq-ll-check-heading fq-task-card" testId={`task-${check.id}`}>
          <span className="fq-task-label">Your task</span>
          <h3 ref={headingRef} tabIndex={-1}><LearningText text={check.prompt} /></h3>

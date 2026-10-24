@@ -325,3 +325,5 @@
 .fq-listen-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .fq-listen-row > :first-child { flex: 1 1 auto; min-width: 0; }
 .fq-listen-row > .fq-learning-listen { flex: none; }
+.fq-voice-log { display: grid; gap: 8px; margin-top: 12px; }
+.fq-voice-log pre { margin: 0; max-height: 260px; overflow: auto; padding: 10px; border-radius: 10px; background: color-mix(in srgb, var(--fq-grape, #6F3FF5) 6%, transparent); font-size: .78rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }

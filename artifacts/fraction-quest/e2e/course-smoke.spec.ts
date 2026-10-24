@@ -3273,7 +3273,7 @@ test('every question in every lesson fits an iPhone Safari screen: one column of
   expect(misfits, 'questions that do not fit the iPhone screen').toEqual([]);
 });
 
-test('a Build check keeps its question in view and says what to show in each part', async ({ page }) => {
+test('a Build check shows its question as a task card that scrolls with the page, and says what to show in each part', async ({ page }) => {
   test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 664 });
   const mission = MISSIONS.find(({ id }) => id === 'equal-parts')!;
@@ -3302,7 +3302,6 @@ test('a Build check keeps its question in view and says what to show in each par
   await skipIntros(page);
   await expect(card.getByTestId(`model-${check.id}-b`).locator('h4').getByRole('math', { name: amount })).toBeVisible();
 
-  // While the child works on part 2, the question is still on screen.
-  await card.getByTestId(`model-${check.id}-b`).scrollIntoViewIfNeeded();
-  await expect(task).toBeInViewport();
+  // The task card scrolls with the page like everything else (it used to stick to the top of the screen).
+  expect(await task.evaluate((node) => getComputedStyle(node).position)).not.toBe('sticky');
 });

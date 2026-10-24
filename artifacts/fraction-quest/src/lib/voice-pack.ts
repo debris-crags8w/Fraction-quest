@@ -11,12 +11,13 @@ export const PACK_FORMATS = ['mp3', 'caf'] as const;
 export type PackFormat = (typeof PACK_FORMATS)[number];
 
 let format: PackFormat | null = null;
-/** Opus where this browser can play it (Safari and every iPhone web view), MP3 everywhere else. */
+/** Opus where this browser can play it (Safari and every iPhone and iPad web view), MP3 everywhere else. Only a
+    browser that says it plays Opus inside CAF gets it: an older Safari plays CAF files but can't decode Opus. */
 export function preferredPackFormat(): PackFormat {
   if (format) return format;
   try {
     const probe = typeof document === 'undefined' ? null : document.createElement('audio');
-    format = probe && (probe.canPlayType('audio/x-caf; codecs=opus') || probe.canPlayType('audio/x-caf')) ? 'caf' : 'mp3';
+    format = probe && probe.canPlayType('audio/x-caf; codecs=opus') ? 'caf' : 'mp3';
   } catch {
     format = 'mp3';
   }

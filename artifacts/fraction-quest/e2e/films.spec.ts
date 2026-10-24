@@ -159,6 +159,38 @@ test('when the natural voice fails during a film, the device voice never takes o
   expect(words, 'the device voice must not read the film').toEqual([]);
 });
 
+test('in Safari, a paused or refused clip does not silence the rest of the film', async ({ page }) => {
+  test.setTimeout(120_000);
+  // Safari can pause the voice partway through a clip (when other audio starts), and can refuse to start a clip.
+  // Here the second clip is paused once, and the fourth refuses to play once. Every clip the film plays is counted.
+  await page.addInitScript(() => {
+    localStorage.setItem('fraction-quest-film-voice', 'on');
+    const scope = window as unknown as { clipsPlayed: string[] };
+    scope.clipsPlayed = [];
+    const play = HTMLMediaElement.prototype.play;
+    let blobPlays = 0;
+    HTMLMediaElement.prototype.play = function (this: HTMLMediaElement) {
+      if (!this.src.startsWith('blob:')) return play.call(this);
+      blobPlays += 1;
+      if (blobPlays === 4) return Promise.reject(new DOMException('Refused', 'NotAllowedError'));
+      if (!scope.clipsPlayed.includes(this.src)) scope.clipsPlayed.push(this.src);
+      const started = play.call(this);
+      if (blobPlays === 2) setTimeout(() => this.pause(), 60);
+      return started;
+    };
+  });
+  await openChapterTwo(page, [...unitOne, 'unit-size']);
+  const clip = (route: import('@playwright/test').Route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: silentWav(0.4) });
+  await page.route('**/api/storage/public-objects/voice/**', clip);
+  await page.route('**/api/voice/speech**', clip);
+  await page.route('**/api/voice/status', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{"state":"ready"}' }));
+
+  await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
+  await expect(page.getByTestId('button-story-go')).toBeVisible({ timeout: 90_000 });
+  const played = await page.evaluate(() => (window as unknown as { clipsPlayed: string[] }).clipsPlayed.length);
+  expect(played, 'the voice carried on after Safari paused it and after a clip was refused').toBeGreaterThanOrEqual(5);
+});
+
 test('the finale ends with Hoot pointing to the daily riddle', async ({ page }) => {
   const { MISSIONS } = await import('../src/game');
   const { getBuildChecks, getWorksheet } = await import('../src/learning-content');

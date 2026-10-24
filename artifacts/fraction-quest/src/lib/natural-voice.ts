@@ -17,6 +17,18 @@ const STATUS_URL = '/api/voice/status';
 const HEALTH_URL = '/api/healthz';
 export const speechUrl = (voice: NaturalVoiceId, text: string) =>
   `/api/voice/speech?voice=${encodeURIComponent(voice)}&text=${encodeURIComponent(text)}`;
+/* A short record of how each clip arrived and played, for the grown-ups' voice self-test (?voicetest). It stays in
+   memory on this device only. */
+export type VoiceLogEntry = { at: number; event: string; detail: string };
+const VOICE_LOG_LIMIT = 80;
+const voiceLog: VoiceLogEntry[] = [];
+export function logVoice(event: string, detail: string): void {
+  voiceLog.push({ at: Date.now(), event, detail });
+  if (voiceLog.length > VOICE_LOG_LIMIT) voiceLog.splice(0, voiceLog.length - VOICE_LOG_LIMIT);
+}
+export const voiceLogEntries = (): readonly VoiceLogEntry[] => [...voiceLog];
+const shortName = (url: string) => url.split('/').slice(-2).join('/');
+
 const SPEECH_BLOB_CACHE_LIMIT = 48;
 const speechBlobCache = new Map<string, Blob>();
 const speechBlobRequests = new Map<string, Promise<Blob>>();
@@ -90,10 +102,12 @@ const openPackCache = () => packCache ??= (typeof caches === 'undefined'
   : caches.open(PACK_CACHE).catch(() => null));
 
 async function fetchPackFile(url: string): Promise<Blob | null> {
+  const started = Date.now();
   const store = await openPackCache();
   const saved = await store?.match(url).catch(() => undefined);
-  if (saved) return saved.blob();
+  if (saved) { logVoice('clip', `${shortName(url)} from this device, ${Date.now() - started} ms`); return saved.blob(); }
   const response = await fetch(url);
+  logVoice(response.ok ? 'clip' : 'clip failed', `${shortName(url)} from the website${response.ok ? '' : ` (${response.status})`}, ${Date.now() - started} ms`);
   if (!response.ok) return null;
   if (store) {
     try { await store.put(url, response.clone()); } catch { /* storage full or blocked: still play it */ }
@@ -173,7 +187,9 @@ async function fetchSpeechBlob(voice: string, text: string): Promise<Blob> {
     }
     // A story friend's line the pack doesn't have yet plays in Heart (the server only reads in Heart).
     if (isCastVoice(voice)) return fetchSpeechBlob(HEART_VOICE, text);
+    const started = Date.now();
     const response = await fetch(speechUrl(voice as NaturalVoiceId, text));
+    logVoice(response.ok ? 'made' : 'made failed', `"${text.slice(0, 40)}" by the voice server${response.ok ? '' : ` (${response.status})`}, ${Date.now() - started} ms`);
     if (!response.ok) throw new Error(`The voice server answered ${response.status}`);
     const blob = await response.blob();
     if (!blob.size) throw new Error('The voice server returned an empty audio clip');
@@ -197,7 +213,7 @@ export const serverEngine: NaturalEngine = {
 };
 
 /** Prepare the selected voice's section audio before Listen is tapped. Failures stay silent; Listen can retry. */
-const PREFETCH_PARALLEL = 4;
+const PREFETCH_PARALLEL = 6; // what Safari opens to one website at once
 
 /** Fetches a reading's sentences ahead of time, a few at once and in reading order. A sentence that fails (the server
     is slow or busy) is skipped, so it never holds up the ones after it; reading it later simply tries again. */
@@ -342,9 +358,13 @@ export function createNaturalSpeaker(
   // Every sentence is made before the first one plays, so the reading never stalls mid-story. If they aren't all
   // ready by then (a slow server and no voice pack file), the caller reads it with the device voice instead.
   const ALL_READY_WAIT_MS = allReadyWaitMs;
+  /** Safari can pause a clip on its own (other audio starting, the tab briefly in the background). The clip is
+      started again from where it stopped, a few times; a pause from stop() is not one of these. */
+  const SAFARI_RESUMES = 3;
   const waitForPlayback = (audio: HTMLAudioElement, onPlaying?: () => void) => new Promise<void>((resolve, reject) => {
     let settled = false;
     let started = false;
+    let resumes = 0;
     let timer: ReturnType<typeof setTimeout>;
     const markStarted = () => {
       if (started) return;
@@ -360,6 +380,7 @@ export function createNaturalSpeaker(
       audio.onabort = null;
       audio.onplaying = null;
       audio.onloadedmetadata = null;
+      audio.onpause = null;
       if (error) reject(error);
       else resolve();
     };
@@ -378,18 +399,28 @@ export function createNaturalSpeaker(
     audio.onabort = () => { if (started) finish(new Error('Audio playback was interrupted')); };
     audio.onplaying = markStarted;
     audio.onloadedmetadata = setWatchdog;
-    setWatchdog();
-    try {
-      // Some embedded and older mobile browsers start playback but return no
-      // promise from play(). Only attach a rejection handler when one exists.
-      const result = audio.play() as unknown;
-      if (result && (typeof result === 'object' || typeof result === 'function')
-        && typeof (result as { then?: unknown }).then === 'function') {
-        (result as Promise<void>).then(undefined, finish);
+    audio.onpause = () => {
+      if (settled || current !== audio || audio.ended) return;
+      if (resumes >= SAFARI_RESUMES) { finish(new Error('Audio playback kept pausing')); return; }
+      resumes += 1;
+      logVoice('resumed', `the browser paused a clip; playing it on (${resumes})`);
+      setTimeout(() => { if (!settled && current === audio) start(); }, 120);
+    };
+    const start = () => {
+      try {
+        // Some embedded and older mobile browsers start playback but return no
+        // promise from play(). Only attach a rejection handler when one exists.
+        const result = audio.play() as unknown;
+        if (result && (typeof result === 'object' || typeof result === 'function')
+          && typeof (result as { then?: unknown }).then === 'function') {
+          (result as Promise<void>).then(undefined, (error) => { logVoice('play failed', String((error as Error)?.name ?? error)); finish(error); });
+        }
+      } catch (error) {
+        finish(error);
       }
-    } catch (error) {
-      finish(error);
-    }
+    };
+    setWatchdog();
+    start();
   });
   return {
     /** Speak `parts`; `onDone` runs once at the end (or on failure: then the caller can fall back). */
