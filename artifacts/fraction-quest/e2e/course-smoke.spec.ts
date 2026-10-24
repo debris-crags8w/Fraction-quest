@@ -808,12 +808,8 @@ async function finishDeveloperLesson(page: import('@playwright/test').Page, save
     };
     const lab = document.querySelector('[data-testid="learning-lab"]');
     if (!lab) throw new Error('Finishing the questions did not open the learning lab');
-    const requirements = document.querySelector('[data-testid="list-requirements"]');
-    const practice = requirements && Array.from(requirements.querySelectorAll<HTMLElement>('*'))
-      .find((element) => element.textContent?.trim() === 'Practice');
-    if (!practice?.classList.contains('done')) throw new Error('The lesson practice requirement was not saved');
-    const finish = document.querySelector<HTMLButtonElement>('[data-testid="button-lab-finish"]');
-    if (!finish?.disabled) throw new Error('The lesson unlocked before its other required work was complete');
+    // The lab opens only once the practice is saved; Finish appears only when every step is done.
+    if (document.querySelector('[data-testid="button-lab-finish"]')) throw new Error('The lesson unlocked before its other required work was complete');
 
     const breakOverlay = document.querySelector<HTMLElement>('[data-testid="brain-break-overlay"]');
     const visible = !!breakOverlay
@@ -1409,7 +1405,12 @@ for (const missionId of unitRepresentativeIds) {
 
     await completeBuilds(page, mission.id);
     await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuenow', '0');
-    await expect(page.getByTestId('button-lab-finish')).toBeDisabled();
+    await expect(page.getByTestId('button-lab-finish')).toHaveCount(0);
+    // No progress box at the bottom: after the questions, one button goes to the first open question.
+    await expect(page.getByTestId('section-learning-summary')).toHaveCount(0);
+    await expect(page.getByTestId('button-lab-continue')).toHaveText(/Continue: Worksheet question 1/);
+    await page.getByTestId('button-lab-continue').click();
+    await expect(page.getByTestId(`row-worksheet-${getWorksheet(mission.id)[0].id}`)).toBeInViewport();
 
     // Passing the two model checks alone is not enough to open the next lesson.
     await page.getByTestId('button-lab-back').click();
@@ -1436,7 +1437,7 @@ for (const missionId of unitRepresentativeIds) {
       const retryMarker = page.getByTestId(`worksheet-progress-${problem.id}`);
       await expect(retryMarker).toHaveClass(/retry/);
       await expect(retryMarker).toContainText('Needs another try');
-      await expect(page.getByTestId('button-lab-finish')).toBeDisabled();
+      await expect(page.getByTestId('button-lab-finish')).toHaveCount(0);
 
       // A wrong attempt remains marked for retry after the learner leaves and reopens the lesson.
       await page.reload();
@@ -1454,15 +1455,15 @@ for (const missionId of unitRepresentativeIds) {
       await enterWorksheetAnswer(page, problem, problem.answer);
       await expect(page.getByTestId(`status-worksheet-${problem.id}`)).toContainText('Correct!');
       if (index < worksheet.length - 1) {
-        await expect(page.getByTestId('button-lab-finish')).toBeDisabled();
+        await expect(page.getByTestId('button-lab-finish')).toHaveCount(0);
         await expect(page.getByTestId('callout-lab-finish')).toHaveCount(0);
       }
     }
     await expect(page.getByTestId('progress-worksheet')).toHaveAttribute('aria-valuenow', '12');
     await expect(problemProgress.locator(':scope > li.complete')).toHaveCount(12);
-    await expect(page.getByTestId('text-next-level')).toHaveText('All done! You can finish this lesson.');
+    await expect(page.getByTestId('callout-lab-finish')).toContainText('You did it!');
     await expect(page.getByTestId('button-lab-finish')).toBeEnabled();
-    await expect(page.getByTestId('callout-lab-finish')).toBeVisible();
+    await expect(page.getByTestId('button-lab-continue')).toHaveCount(0);
 
     await page.getByTestId('button-lab-finish').click();
     const breakOverlay = page.getByTestId('brain-break-overlay');
