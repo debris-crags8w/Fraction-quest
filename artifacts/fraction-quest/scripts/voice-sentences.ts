@@ -10,6 +10,8 @@ import { getExtraPractice } from '../src/practice-bank';
 import { partFinderRoundsFor, PART_FINDER_ROUNDS } from '../src/part-finder';
 import { getAssessmentDefinitions } from '../src/assessments';
 import { CHAPTER_SCENES, CHAPTERS, DETECTIVE_NOTES, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, SUSPECTS, WHOLE_STONE_OPENING, chapterEnd, choiceNotes, suspectReply, REACTIONS, STORY_PROBLEMS, lessonComic, storyScript, withName, type Panel, type PropTheme } from '../src/story';
+import { LANTERN_CARD_SPOKEN } from '../src/riddles';
+import { PICKED_FOR_YOU_SPOKEN } from '../src/game';
 import { seasonalWords } from '../src/seasonal-words';
 import { sentences, spokenText } from '../src/lib/voice';
 import { cleanSentence, voiceKey } from '../src/lib/voice-pack';
@@ -170,6 +172,10 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
 
   const story = content.story;
   collect([WHOLE_STONE_OPENING, PROLOGUE, CHAPTERS, STORY_PROBLEMS, REACTIONS, DETECTIVE_NOTES, HANDS_ON_ASKS, CHAPTERS.map(choiceNotes)], story);
+  // Tonight's lantern on the map: every line its Listen button can read.
+  for (const line of LANTERN_CARD_SPOKEN) story.add(line);
+  // The map's "Picked for you" card.
+  story.add(PICKED_FOR_YOU_SPOKEN);
   // The choice Listen button reads "label. detail." for each option.
   for (const chapter of CHAPTERS) for (const option of chapter.choice) story.add(`${option.label}. ${option.detail}.`);
   for (const board of [1, 2] as const) for (const suspect of SUSPECTS[board]) story.add(suspectReply(board, suspect).text);

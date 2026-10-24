@@ -2498,3 +2498,4 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-coin { display: grid; place-items: center; border-radius: 50%; font-weight: 800; font-size: .8rem; border: 3px solid; box-shadow: inset 0 -3px 0 rgb(0 0 0 / .12); }
 .fq-coin.is-dime { width: 46px; height: 46px; background: #D7DCE4; border-color: #8E96A6; color: #2F3542; }
 .fq-coin.is-penny { width: 36px; height: 36px; background: #E9A86B; border-color: #A8622A; color: #3B1F08; font-size: .7rem; }
+.fq-hint > svg.fq-character, .fq-hint > .fq-character { flex: none; margin-top: 0; }

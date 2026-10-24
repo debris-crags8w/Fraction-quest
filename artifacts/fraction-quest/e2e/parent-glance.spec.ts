@@ -7,7 +7,7 @@ const dayKey = (daysAgo: number) => {
 };
 const record = (extra: Record<string, unknown> = {}) => ({ practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {}, ...extra });
 
-test('the grown-ups report opens with the week at a glance, a lesson to help with at home, and a summary to share', async ({ page }) => {
+test('the grown-ups report shows the week, skills by standard, what to practice, the last 4 weeks, and a summary to share', async ({ page }) => {
   const finished = ['equal-parts', 'fraction-names', 'unit-fractions', 'unit-size'];
   const progress = {
     completedMissionIds: finished, starsByMission: {}, reviewQueue: [], assessments: [],
@@ -45,16 +45,72 @@ test('the grown-ups report opens with the week at a glance, a lesson to help wit
   await expect(page.getByTestId('glance-summary')).toContainText('practiced on 3 of the last 7 days (38 minutes) and finished 2 lessons.');
   await expect(glance.getByRole('heading', { name: 'Learned this week' })).toBeVisible();
   await expect(glance.getByRole('listitem')).toHaveCount(2);
-  await expect(page.getByTestId('glance-grade-3')).toContainText('Not started yet');
-  await expect(page.getByTestId('glance-focus')).toContainText('3 wrong tries');
-  await expect(page.getByTestId('glance-focus')).toContainText('Try at home');
+  // Skills by standard for the grade the child is in, with the lesson steps.
+  const skills = page.getByTestId('parent-skills');
+  await expect(skills.getByRole('heading', { name: 'Grade 3 skills' })).toBeVisible();
+  await expect(page.getByTestId('parent-skill-3.NF.1')).toHaveAttribute('data-step', '1');
+  await expect(page.getByTestId('parent-skill-3.NF.1')).toContainText('Splits a whole into equal parts and names them');
+  await page.getByTestId('parent-skill-3.NF.1').getByRole('button').click();
+  await expect(page.getByTestId('parent-skill-3.NF.1')).toContainText('1. ');
+  await expect(page.getByTestId('parent-skills-grade-4')).toContainText('Not started · 14 skills');
+  // What to practice, with an idea for home.
+  await expect(page.getByTestId('parent-tip-0')).toContainText('More parts, smaller parts');
+  await expect(page.getByTestId('parent-tip-0')).toContainText('3 wrong tries');
+  await expect(page.getByTestId('parent-tip-0')).toContainText('5 minutes at home');
+  // The last 4 weeks.
+  await expect(page.getByTestId('parent-month')).toContainText('4lessons finished');
+  await expect(page.getByTestId('parent-month-first-try')).toContainText('shown after two weeks');
   await expect(page.getByTestId('glance-share-text')).toContainText('Practiced 3 of 7 days (38 min). Finished 2 lessons.');
 
   await page.getByTestId('button-share-week').click();
   await expect(page.getByRole('status').filter({ hasText: 'Shared.' })).toBeVisible();
   const shared = await page.evaluate(() => (window as Window & { __shared?: string }).__shared);
   expect(shared).toContain('Working on: More parts, smaller parts (Grade 3, 3.NF.3d).');
-  // The full report is still there below.
+  // The full report is still there below; settings are in their own tab.
   await expect(page.getByRole('heading', { name: 'Full report' })).toBeVisible();
   await expect(page.getByTestId('stat-lessons')).toBeVisible();
+  await expect(page.getByTestId('section-break-settings')).toHaveCount(0);
+  await page.getByTestId('tab-parent-settings').click();
+  await expect(page.getByTestId('parent-report')).toHaveCount(0);
+  await expect(page.getByTestId('settings-breaks')).toContainText('Every 15 min');
+  await expect(page.getByTestId('settings-reminders')).toHaveCount(0);
+});
+
+test('Practice now and Add a Check-in put a card on the child\'s map, and it opens the practice', async ({ page }) => {
+  const lessons = ['equal-parts', 'fraction-names', 'unit-fractions'];
+  const progress = {
+    completedMissionIds: lessons, starsByMission: {}, reviewQueue: [], assessments: [],
+    grownUpPicks: [{ kind: 'checkin', id: 'unit-1-end', at: Date.now() }],
+    learning: Object.fromEntries(lessons.map((id, i) => [id, record({ completedAt: Date.now() - (i + 1) * 86_400_000, misconceptions: i === 1 ? { 'Count all the equal parts first.': 2 } : {} })])),
+  };
+  await page.addInitScript((savedProgress) => {
+    if (!localStorage.getItem('fraction-quest-fun-v1:guest')) {
+      localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(savedProgress));
+      localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 0, day: '2026-01-01', answeredToday: 0, dayStreak: 0, lastActiveDay: '2026-01-01', sound: false, story: { prologueSeen: true } }));
+    }
+  }, progress);
+  await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Not signed in.' }) }));
+  await page.goto('/');
+  await page.getByTestId('button-play-guest').click();
+  // A Check-in picked earlier is waiting on the map, and opens the Check-in.
+  await page.getByTestId('button-picked-checkin-unit-1-end').click();
+  await expect(page.getByTestId('assessment-runner')).toBeVisible();
+  await page.goto('/');
+  await page.getByTestId('button-app-menu').click();
+  await page.getByTestId('button-open-parent').click();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+
+  await page.getByTestId('button-pick-practice-0').click();
+  await expect(page.getByTestId('button-pick-practice-0')).toHaveText(/On your child’s map/);
+  await expect(page.getByTestId('button-pick-practice-0')).toBeDisabled();
+  await page.getByTestId('button-parent-back').click();
+
+  const card = page.getByTestId('picked-for-you');
+  await expect(card).toContainText('A grown-up picked this practice for you.');
+  await expect(card.getByRole('button')).toHaveCount(3); // Listen, the Check-in, and the new practice
+  await card.getByTestId('button-picked-practice-fraction-names').click();
+  await expect(page.locator('.fq-play-kicker')).toContainText('Question 1 of 5');
 });

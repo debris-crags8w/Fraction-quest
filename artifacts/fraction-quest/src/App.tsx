@@ -21,6 +21,10 @@ import {
   isCorrectAnswer,
   isMissionUnlocked,
   loadProgress,
+  addGrownUpPick,
+  clearGrownUpPick,
+  GROWN_UP_PRACTICE_COUNT,
+  type GrownUpPick,
   FRACTION_ORDER_ROUNDS,
   MISSIONS,
   numberLineWholeCount,
@@ -40,7 +44,8 @@ import {
 import { createDeveloperLessonProgress } from './developer-test';
 import { BOARD_AFTER, SuspectBoardView, TownMap, lessonSticker, thanksSticker, type SuspectBoard } from './quest';
 import { DeveloperChip } from './DeveloperTesting';
-import { saveAssessmentAttempt } from './assessments';
+import { getAssessmentDefinitions, saveAssessmentAttempt } from './assessments';
+import { PickedForYou } from './PickedForYou';
 import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
 import LearningLab, { LinePlotInteraction, RedoLab } from './LearningLab';
@@ -64,9 +69,10 @@ import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, Le
 import { activeSeason } from './seasons';
 import { LessonIntroCard, TeachFirst } from './lesson-intro';
 import { LESSON_INTROS } from './lesson-intros';
-import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
+import { StoryCharacter } from './characters';
+import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, hintLead, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
 import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
-import { LanternIcon, OilNoticeCard } from './riddle-ui';
+import { LanternIcon, OilNoticeCard, TonightsLantern } from './riddle-ui';
 import { SubscribeFlow, WebAppOnlyFlow } from './Subscribe';
 import { readOpenPractice, takeReminderTap, tellPractised } from './lib/reminder';
 import { lessonsLocked, subscribedBefore, useSubscription, webLessonsLocked } from './lib/subscription';
@@ -151,7 +157,8 @@ const isFreeView = (view: { type: string; missionId?: string; prologue?: boolean
   || (view.type === 'story' && (!!view.prologue || !!view.replay || !!view.part))
   || (view.missionId === MISSIONS[0].id && (!view.nextView || isFreeView(view.nextView)));
 // seed 0 = the fixed 12 "Practice more" questions; any other seed = freshly generated questions.
-type ExtraView = { type: 'extra'; missionId: string; seed: number; questionIndex: number; firstTry: number } | { type: 'extra-done'; missionId: string; seed: number; firstTry: number; total: number };
+/** `picked`: the 5 questions a grown-up chose in the report. */
+type ExtraView = { type: 'extra'; missionId: string; seed: number; questionIndex: number; firstTry: number; picked?: boolean } | { type: 'extra-done'; missionId: string; seed: number; firstTry: number; total: number };
 const FRESH_ROUND = 10;
 const worksheetLength = (missionId: string) => getWorksheet(missionId).length;
 /** Paper answers count once the lesson's worked example, hands-on step and questions are done in the app,
@@ -571,7 +578,7 @@ function storybookChapters(progress: Progress): StorybookChapter[] {
   });
 }
 
-function MissionMap({ progress, onStart, onDeveloperTest, onLessonTester, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement, onStorybook, onStory, onPrologue }: { progress: Progress; onStart: (missionId: string) => void; onStorybook: (tab: StorybookTab, unit?: number) => void; onStory: (missionId: string) => void; onPrologue: () => void; onDeveloperTest: (missionId: string) => void; onLessonTester?: () => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
+function MissionMap({ progress, onPicked, onStart, onDeveloperTest, onLessonTester, onOpenLab, onStartReview, onStartDaily, onConceptGames, onAssessments, onReset, onPaper, onChallenge, onExtra, onParent, onGame, onPlacement, onStorybook, onStory, onPrologue }: { progress: Progress; onPicked: (pick: GrownUpPick) => void; onStart: (missionId: string) => void; onStorybook: (tab: StorybookTab, unit?: number) => void; onStory: (missionId: string) => void; onPrologue: () => void; onDeveloperTest: (missionId: string) => void; onLessonTester?: () => void; onOpenLab: (missionId: string) => void; onStartReview: () => void; onStartDaily: () => void; onConceptGames: () => void; onAssessments: () => void; onReset: () => void; onPaper: (missionId: string) => void; onChallenge: (unit: number) => void; onExtra: (missionId: string) => void; onParent: () => void; onGame: (type: 'race' | 'code', missionId: string) => void; onPlacement: () => void }) {
   const account = useAccount();
   const { user } = account;
   const { fun } = useFun();
@@ -661,6 +668,10 @@ function MissionMap({ progress, onStart, onDeveloperTest, onLessonTester, onOpen
             town={<TownMap completedUnits={completedStoryUnits(progress)} currentUnit={nextMission?.unit}
               reachedUnits={new Set(CHAPTERS.filter((chapter) => MISSIONS.some((item) => item.unit === chapter.unit && isMissionUnlocked(progress, item.id))).map((chapter) => chapter.unit))}
               onPlace={(unit) => onStorybook('story', unit)} />} />}
+          {/* Today's one task first, once the first lesson is done: Chomp's riddles light tonight's lantern. */}
+          {firstLessonDone && <TonightsLantern activity={fun.activity} streak={shownStreak(fun)} oil={fun.spareOil ?? 0} savedDays={fun.savedDays}
+            dailyDone={dailyDone} storyOn={storyOn} onStart={onStartDaily} />}
+          {(progress.grownUpPicks?.length ?? 0) > 0 && <PickedForYou picks={progress.grownUpPicks!} onOpen={onPicked} />}
           {assignedUnits.length > 0 && <p className="fq-assigned-units" role="note" data-testid="text-assigned-units">
             Your teacher suggested: {assignedUnits.map((unit) => `Unit ${unit}: ${UNIT_TITLES[unit - 1]}`).join(' · ')}.
             These suggestions do not change which lessons are unlocked.
@@ -937,6 +948,8 @@ function PlayView({
   // A lesson's first question teaches first: the idea and a worked example, then (in story mode) the friend asks and
   // the child tries.
   const actionFirst = showExample && storyOn && !!chapterFor(mission.unit);
+  // In story mode the chapter's friend gives the hints.
+  const hintFriend = storyOn ? chapterFor(mission.unit)?.character : undefined;
   const seasonOn = !!useSeason().season;
   const question: PracticeQuestion | null = mission.questions[questionIndex] ?? null;
   const isLastQuestion = question ? questionIndex === mission.questions.length - 1 : false;
@@ -1143,7 +1156,7 @@ function PlayView({
               <div ref={modelAreaRef} className="fq-model-area" data-testid="question-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} questionId={question.id} />
               </div>
-              {hintOpen && attempts < 2 && <div ref={hintRef} key={`hint-${hintFlash}`} className="fq-hint fq-hint-flash" data-testid="text-question-hint"><Lightbulb size={18} /> <span className="fq-hint-copy"><strong>Try this idea:</strong> <LearningListenButton text={question.hint} label="Listen to the hint" /><span><LearningText text={question.hint} /></span></span></div>}
+              {hintOpen && attempts < 2 && <div ref={hintRef} key={`hint-${hintFlash}`} className="fq-hint fq-hint-flash" data-testid="text-question-hint">{hintFriend ? <StoryCharacter id={hintFriend} size={36} /> : <Lightbulb size={18} />} <span className="fq-hint-copy"><strong>{hintLead(hintFriend)}</strong> <LearningListenButton text={question.hint} label="Listen to the hint" /><span><LearningText text={question.hint} /></span></span></div>}
               {attempts >= 2 && (
                 <div ref={remediationRef} key={`remediation-${hintFlash}`} className={`fq-remediation ${hintFlash ? 'fq-hint-flash' : ''}`} role="note" data-testid="status-remediation">
                   <div className="fq-remediation-heading"><strong>Let's make it simpler.</strong><LearningListenButton text={question.hint} label="Listen to the simpler explanation" /></div>
@@ -1588,6 +1601,15 @@ function Game() {
     setView({ type: 'review', questionIndex: 0, reviewQuestions });
   };
 
+  const openPick = (pick: GrownUpPick) => {
+    if (pick.kind === 'practice') {
+      if (isMissionUnlocked(progress, pick.id)) setView({ type: 'extra', missionId: pick.id, seed: freshSeed(), questionIndex: 0, firstTry: 0, picked: true });
+      return;
+    }
+    const definition = getAssessmentDefinitions().find((item) => item.id === pick.id);
+    if (definition) setView({ type: 'assessment', definition, seed: freshSeed() });
+  };
+
   const startDailyPractice = () => {
     const saved = progress.dailyPractice;
     const session = saved?.day === dailyPracticeDay() ? saved : createDailyPractice(progress);
@@ -1761,6 +1783,7 @@ function Game() {
       </div>}
       {saveError && <div className="fq-feedback retry fq-shell" role="alert" data-testid="status-save-error">This browser could not save your work. Keep this tab open; worksheet answers may be lost on reload. Enable browser storage to save progress.</div>}
       {view.type === 'map' && <MissionMap progress={progress} onStart={startMission} onDeveloperTest={startDeveloperLessonTest} onLessonTester={import.meta.env.DEV ? openLessonTester : undefined} onOpenLab={(missionId) => { if (hasLearningGate(progress, missionId)) setView({ type: 'lab', missionId, stars: progress.starsByMission[missionId] ?? 1 }); }} onStartReview={startReview} onStartDaily={startDailyPractice} onConceptGames={() => setView({ type: 'concept-games' })} onAssessments={() => setView({ type: 'assessments' })} onReset={openResetDialog} onPaper={(missionId) => { if (isMissionUnlocked(progress, missionId) && paperCheckOpen(progress, missionId)) setView({ type: 'paper', missionId }); }} onChallenge={(unit) => setView({ type: 'challenge', unit })} onExtra={(missionId) => { if (isMissionUnlocked(progress, missionId) && hasGenerator(missionId)) setView({ type: 'extra', missionId, seed: 0, questionIndex: 0, firstTry: 0 }); }} onParent={() => setView({ type: 'parent' })} onGame={(type, missionId) => { if (isMissionUnlocked(progress, missionId)) setView({ type, missionId }); }} onPlacement={() => setView({ type: 'placement' })} onStorybook={(tab, unit) => setView({ type: 'storybook', tab, unit })} onStory={(missionId) => { primeReadAloud(); setView({ type: 'story', missionId, replay: 'map' }); }}
+        onPicked={openPick}
         onPrologue={() => {
           // Not seen yet: the same start as the next lesson's (the prologue, then that lesson). Seen: watch it again.
           const next = getNextMission(progress) ?? MISSIONS[0];
@@ -1781,7 +1804,7 @@ function Game() {
       })()}
       {view.type === 'assessments' && <AssessmentHub attempts={progress.assessments ?? []} onStart={definition => setView({ type: 'assessment', definition, seed: freshSeed() })} onBack={returnToMap} />}
       {view.type === 'assessment' && <AssessmentRunner key={`${view.definition.id}:${view.seed}`} definition={view.definition} seed={view.seed}
-        onComplete={attempt => persistProgress(saveAssessmentAttempt(progress, attempt))} onExit={() => setView({ type: 'assessments' })} />}
+        onComplete={attempt => persistProgress(clearGrownUpPick(saveAssessmentAttempt(progress, attempt), 'checkin', attempt.assessmentId))} onExit={() => setView({ type: 'assessments' })} />}
       {view.type === 'subscribe' && !subscription && <WebAppOnlyFlow onBack={() => setView({ type: 'map' })} />}
       {view.type === 'subscribe' && subscription && (
         <SubscribeFlow subscription={subscription} lapsed={subscribedBefore()} lessonsDone={progress.completedMissionIds.length}
@@ -1833,11 +1856,11 @@ function Game() {
           onLab={(missionId) => startDeveloperLessonTest(missionId, 'lab', true)}
           onChallenge={startDeveloperChallengeTest} />
       )}
-      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onDeveloperTest={startDeveloperLessonTest} onOpenLessonTester={import.meta.env.DEV ? openLessonTester : undefined} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onTimeLimitChange={(minutes) => setFun((current) => setTimeLimit(current, minutes))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
+      {view.type === 'parent' && <ParentView progress={progress} fun={fun} unitTitles={UNIT_TITLES} childName={account.activeProfile?.displayName ?? null} onBack={returnToMap} onPick={(kind, id) => persistProgress(addGrownUpPick(progress, kind, id))} onDeveloperTest={startDeveloperLessonTest} onOpenLessonTester={import.meta.env.DEV ? openLessonTester : undefined} onBreakPreferencesChange={(preferences) => setFun((current) => setBreakPreferences(current, preferences))} onTimeLimitChange={(minutes) => setFun((current) => setTimeLimit(current, minutes))} onDisplayPreferencesChange={(preferences) => setFun((current) => setDisplayPreferences(current, preferences))} />}
       {view.type === 'extra' && (() => {
         const base = getMission(view.missionId);
         const baseIds = base.questions.map((q) => q.id);
-        const practiceMission = { ...base, questions: view.seed ? generateQuestions(base.id, baseIds, view.seed, FRESH_ROUND) : getExtraPractice(base.id, baseIds) };
+        const practiceMission = { ...base, questions: view.seed ? generateQuestions(base.id, baseIds, view.seed, view.picked ? GROWN_UP_PRACTICE_COUNT : FRESH_ROUND) : getExtraPractice(base.id, baseIds) };
         return (
           <PlayView
             key={`extra-${view.missionId}-${view.seed}-${view.questionIndex}`}
@@ -1848,8 +1871,11 @@ function Game() {
             onBack={returnToMap}
             onCorrect={onPracticeCorrect}
             onWrong={onPracticeWrong}
-            onNext={(firstTry) => setView({ type: 'extra', missionId: view.missionId, seed: view.seed, questionIndex: view.questionIndex + 1, firstTry })}
-            onFinish={(_stars, firstTry) => setView({ type: 'extra-done', missionId: view.missionId, seed: view.seed, firstTry, total: practiceMission.questions.length })}
+            onNext={(firstTry) => setView({ ...view, questionIndex: view.questionIndex + 1, firstTry })}
+            onFinish={(_stars, firstTry) => {
+              persistProgress(clearGrownUpPick(progress, 'practice', view.missionId));
+              setView({ type: 'extra-done', missionId: view.missionId, seed: view.seed, firstTry, total: practiceMission.questions.length });
+            }}
             onMissed={(missionId, questionId) => persistProgress(recordMissedSkill(progress, missionId, questionId))}
             onReviewCompleted={() => {}}
             onReviewDeferred={() => {}}

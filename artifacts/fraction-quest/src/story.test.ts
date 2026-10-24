@@ -3,7 +3,7 @@ import test from 'node:test';
 import { MISSIONS } from './game';
 import { SECRETS } from './riddles';
 import { recordStory, type FunState } from './lib/fun';
-import { CHAPTERS, CHAPTER_SCENES, CHARACTERS, EPILOGUE, PROLOGUE, chapterEnd, PROPS, REACTIONS, STONE_PIECES, STORY_PROBLEMS, WHOLE_STONE_OPENING, chapterFor, lessonCliff, lessonComic, stoneQuestion, storyAsk, storyReaction, withName, type PropTheme } from './story';
+import { CHAPTERS, CHAPTER_SCENES, CHARACTERS, EPILOGUE, PROLOGUE, chapterEnd, PROPS, REACTIONS, STONE_PIECES, STORY_PROBLEMS, WHOLE_STONE_OPENING, chapterFor, hintLead, lessonCliff, lessonComic, stoneQuestion, storyAsk, storyReaction, withName, type PropTheme } from './story';
 
 const lessonsIn = (unit: number) => MISSIONS.filter((mission) => mission.unit === unit);
 
@@ -167,9 +167,12 @@ test('the storyline holds together: the opening sets up the case and pieces, eve
   CHAPTERS.forEach((chapter, index) => {
     assert.equal(chapter.unit, index + 1);
     const end = chapterEnd(chapter);
-    assert.equal(end.length, 3);
+    assert.equal(end.length, 4);
     assert.equal(end[0].speaker, chapter.character);
     assert.match(end[1].text, new RegExp(chapter.clue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    // The story bible's check: Hoot says how the chapter's math won its stone piece, never luck.
+    assert.equal(end[2].speaker, 'hoot');
+    assert.match(end[2].text, /^How the math won it: .+\.$/);
   });
   // The glass case snapped shut in the prologue, so chapters 13 and 14 open it to put the pieces back.
   assert.match(chapterFor(13)!.cliff, /glass case/);
@@ -223,4 +226,25 @@ test('each chapter’s lines match the math of the lesson they come before', () 
   // Chapter 15: the stories give things away as well as eat them.
   assert.match(questions('fraction-of-remainder'), /gives/);
   assert.doesNotMatch(comicFor('fraction-of-remainder'), /eaten/);
+});
+
+test('every stone piece is won with its chapter\'s math, not found by luck', () => {
+  // Each "won" line names a number or fraction from the chapter's own math.
+  for (const chapter of CHAPTERS) assert.match(chapter.won, /\d|half|whole|thirds|eighths|fifteenths|order|benchmarks|equal|percents|routes|part of a part/i, `chapter ${chapter.unit}`);
+  assert.equal(new Set(CHAPTERS.map((chapter) => chapter.won)).size, CHAPTERS.length);
+  // The seven chapters that used to find their piece by luck now tie it to the math.
+  const lines = (unit: number) => { const c = chapterFor(unit)!; return [...c.intro.map((p) => p.text), ...c.cliffs, c.done].join(' '); };
+  assert.match(lines(2), /thirds/);
+  assert.match(lines(4), /past 1 whole/);
+  assert.match(lines(6), /2\/4 jar/);
+  assert.match(lines(7), /parts make 1/);
+  assert.match(lines(10), /1\/2 \+ 1\/4/);
+  assert.match(lines(12), /3\/4 of 12 feet/);
+  assert.match(lines(13), /1\/2 square meter/);
+});
+
+test('in story mode the chapter friend gives the hint; with the story off it stays plain', () => {
+  assert.equal(hintLead('tilly'), 'Tilly’s idea:');
+  assert.equal(hintLead('bolt'), 'Bolt’s idea:');
+  assert.equal(hintLead(undefined), 'Try this idea:');
 });

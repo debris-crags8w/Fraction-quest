@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, openSettings, test } from './fixtures';
 import { CHALLENGES } from '../src/challenges';
 import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, getDueSkillReviewQuestions, MISSIONS } from '../src/game';
 import { compareFractions, WAR_ROUNDS, warHint } from '../src/concept-games';
@@ -745,6 +745,7 @@ async function openDeveloperTesting(page: import('@playwright/test').Page) {
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
+  await openSettings(page, 'Developer');
   await page.getByTestId('section-developer-testing').waitFor();
 }
 
@@ -2744,6 +2745,7 @@ test('Halloween: the night map, costumes earned by finishing lessons, candy poin
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
+  await openSettings(page, 'Reading and display');
   await page.getByTestId('checkbox-seasonal-themes').uncheck();
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
@@ -2929,7 +2931,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   const breakOverlay = page.getByTestId('brain-break-overlay');
   if (await breakOverlay.isVisible()) await page.getByTestId('button-break-skip').click();
   const payoff = page.getByTestId('story-payoff');
-  await expect(payoff).toContainText('Best party ever! And we found the stone piece!');
+  await expect(payoff).toContainText('Best party ever! The bigger piece was hiding the stone piece!');
   // The story problem changed the story: its picture and what the answer did.
   await expect(payoff.getByTestId('story-problem-result')).toContainText('covers more, so the hungriest frog gets it. Ribbit!');
   // The stone question comes first: a miss gets a kind nudge, the right fraction shows the piece.
@@ -2984,7 +2986,8 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.getByTestId('button-storybook-end-2').click();
   await expect(page.getByTestId('story-panel-0')).toContainText('Best party ever!');
   await expect(page.getByTestId('story-panel-1')).toContainText('A big green tail by the pond');
-  await expect(page.getByTestId('story-panel-2')).toContainText('Tilly calls from the hill');
+  await expect(page.getByTestId('story-panel-2')).toContainText('How the math won it: Thirds are bigger than eighths');
+  await expect(page.getByTestId('story-panel-3')).toContainText('Tilly calls from the hill');
   await page.getByTestId('button-story-go').click();
   await expect(page.getByTestId('button-storybook-end-3')).toBeDisabled();
   await expect(page.getByTestId('storybook-finale')).toBeDisabled();
@@ -3017,6 +3020,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
+  await openSettings(page, 'Reading and display');
   await page.getByTestId('checkbox-story-mode').uncheck();
   await page.goto('/');
   await expect(page.getByTestId('stone-banner')).toHaveCount(0);
@@ -3038,7 +3042,9 @@ test('the hint bulb always shows its help: it scrolls the hint into view, and af
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.getByTestId('button-show-hint').click();
   await expect(page.getByTestId('text-question-hint')).toBeInViewport();
-  await expect(page.getByTestId('text-question-hint')).toContainText('Try this idea:');
+  // Story mode is on, so the chapter's friend (Tilly, on her hill) gives the hint.
+  await expect(page.getByTestId('text-question-hint')).toContainText('Tilly’s idea:');
+  await expect(page.getByTestId('text-question-hint').locator('svg').first()).toBeVisible();
 
   // Two misses replace the hint with "Let's make it simpler"; the bulb now brings that into view.
   const wrong = [0, 1, 2].filter((index) => index !== question.correctChoice).slice(0, 2);

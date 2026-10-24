@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './fixtures';
+import { expect, openSettings, test, type Page } from './fixtures';
 
 const dayKey = () => {
   const date = new Date();
@@ -128,6 +128,7 @@ test('the grown-ups page shows the subscription and opens the store to manage it
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
+  await openSettings(page, 'Subscription');
   await expect(page.getByTestId('subscription-status')).toContainText('Fraction Quest is on. It renews on November 3, 2026.');
   await page.getByTestId('button-manage-subscription').click();
   await page.getByTestId('button-parent-restore').click();

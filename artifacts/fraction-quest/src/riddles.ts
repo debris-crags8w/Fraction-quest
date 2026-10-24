@@ -1,7 +1,7 @@
 /* Chomp's daily riddles: daily practice told as a story. Chomp sets up each question (never a hint, never a
    number), and finishing earns his secret of the day. Hoot's lantern shows the streak as a week of nights. */
 
-import { today, type DayActivity, type OilNotice } from './lib/fun';
+import { SPARE_OIL_EVERY, SPARE_OIL_MAX, today, type DayActivity, type OilNotice } from './lib/fun';
 
 /** Chomp's set-up line for the question at `index` (words only, so it cannot hint at an answer). */
 const SETUPS = [
@@ -84,3 +84,57 @@ export const riddleReaction = (result: 'correct' | 'retry', index: number) =>
   result === 'correct'
     ? ['Grr! You solved it!', 'What? How did you know?', 'Okay, you’re good at this.'][index % 3]
     : ['Tricky one, right? Try again!', 'Not yet! Have another go.', 'Hmm. Look one more time.'][index % 3];
+
+/* ---------- Tonight's lantern: today's task on the map ---------- */
+
+export type LanternCardInput = { streak: number; oil: number; litToday: boolean; dailyDone: boolean; storyOn: boolean };
+export type LanternCard = {
+  state: 'waiting' | 'lit' | 'first';
+  title: string;
+  /** Who says the line (Hoot in story mode; null when it is plain). */
+  speaker: 'Hoot' | null;
+  line: string;
+  /** Shown, not read: the streak and the spare oil. */
+  facts: string[];
+  /** Short lines under a lit lantern: tomorrow's riddle and the next drop of oil. */
+  notes: string[];
+  /** The button's words, or none once today's riddles are done. */
+  button?: string;
+  /** What Listen reads: the title, the line and the notes. No streak numbers, so it plays from the voice pack. */
+  spoken: string;
+};
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const sentence = (text: string) => (/[.!?]$/.test(text) ? text : `${text}.`);
+
+/** The card for today: a lantern still to light (or a first one, when there is no streak), or one already lit. */
+export function lanternCard({ streak, oil, litToday, dailyDone, storyOn }: LanternCardInput): LanternCard {
+  const state = litToday ? 'lit' : streak > 0 ? 'waiting' : 'first';
+  const toOil = SPARE_OIL_EVERY - (streak % SPARE_OIL_EVERY);
+  const card: Omit<LanternCard, 'spoken'> = storyOn
+    ? {
+      state,
+      title: state === 'lit' ? 'Tonight’s lantern is lit!' : state === 'waiting' ? 'Tonight’s lantern' : 'Light your first lantern',
+      speaker: 'Hoot',
+      line: state === 'lit' ? 'Hoo-ray! See you tomorrow.' : state === 'waiting' ? 'Light it to keep your streak glowing!' : 'One right answer a day keeps it glowing.',
+      facts: [...(streak > 0 ? [`${plural(streak, 'night', 'nights')} in a row`] : []), ...(oil > 0 ? [`${plural(oil, 'spare drop', 'spare drops')} of oil`] : [])],
+      notes: state === 'lit'
+        ? [...(dailyDone ? ['Chomp has a new riddle tomorrow.'] : []), ...(oil < SPARE_OIL_MAX ? [`${plural(toOil, 'more night', 'more nights')} to earn a spare drop of oil.`] : [])]
+        : [],
+      button: state !== 'lit' ? 'Light it: Chomp’s 5 riddles' : dailyDone ? undefined : 'Chomp’s 5 riddles',
+    }
+    : {
+      state,
+      title: state === 'lit' ? 'Your streak is safe today' : 'Today’s practice',
+      speaker: null,
+      line: state === 'lit' ? 'See you tomorrow.' : state === 'waiting' ? 'Keep your streak going.' : 'Get one answer right to start a streak.',
+      facts: streak > 0 ? [`${plural(streak, 'day', 'days')} in a row`] : [],
+      notes: state === 'lit' && dailyDone ? ['New questions tomorrow.'] : [],
+      button: dailyDone ? undefined : 'Start: 5 review questions',
+    };
+  return { ...card, spoken: [sentence(card.title), card.line, ...card.notes].join(' ') };
+}
+
+/** Every line Listen can read on the card (the oil line repeats every 7 nights), for the voice pack. */
+export const LANTERN_CARD_SPOKEN: string[] = [...new Set([true, false].flatMap((storyOn) => [true, false].flatMap((litToday) => [true, false].flatMap((dailyDone) =>
+  Array.from({ length: SPARE_OIL_EVERY * 2 }, (_, streak) => [0, 1, 2].map((oil) => lanternCard({ streak, oil, litToday, dailyDone, storyOn }).spoken)).flat()))))];

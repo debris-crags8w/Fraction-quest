@@ -168,6 +168,8 @@ export type Progress = {
   adaptationLog?: AdaptationEvent[];
   /** Placement quiz result: lessons in units before `unit` are open (not marked done). */
   placement?: { unit: number; at: number };
+  /** Practice a grown-up chose in the report. Each shows as a card on the child's map until it is done. */
+  grownUpPicks?: GrownUpPick[];
   /** Completed checks are saved with the rest of progress and never change lesson unlocks. */
   assessments?: AssessmentAttempt[];
 };
@@ -242,6 +244,27 @@ export type DailyPracticeSession = {
   attempts: Record<string, DailyPracticeAttempt>;
   completedAt?: number;
 };
+
+/** `practice`: 5 new questions from a lesson (`id` is the lesson). `checkin`: a Check-in (`id` is the Check-in). */
+export type GrownUpPick = { kind: 'practice' | 'checkin'; id: string; at: number };
+export const MAX_GROWN_UP_PICKS = 3;
+export const GROWN_UP_PRACTICE_COUNT = 5;
+/** What Listen reads on the map's "Picked for you" card. */
+export const PICKED_FOR_YOU_SPOKEN = 'Picked for you. A grown-up picked this practice for you. Tap one to start.';
+
+/** Add a pick, or move an existing one to the end. Only the newest few are kept. */
+export function addGrownUpPick(progress: Progress, kind: GrownUpPick['kind'], id: string, now = Date.now()): Progress {
+  const others = (progress.grownUpPicks ?? []).filter((pick) => !(pick.kind === kind && pick.id === id));
+  return { ...progress, grownUpPicks: [...others, { kind, id, at: now }].slice(-MAX_GROWN_UP_PICKS) };
+}
+
+export function clearGrownUpPick(progress: Progress, kind: GrownUpPick['kind'], id: string): Progress {
+  const picks = progress.grownUpPicks ?? [];
+  if (!picks.some((pick) => pick.kind === kind && pick.id === id)) return progress;
+  const grownUpPicks = picks.filter((pick) => !(pick.kind === kind && pick.id === id));
+  const { grownUpPicks: _old, ...rest } = progress;
+  return grownUpPicks.length ? { ...rest, grownUpPicks } : rest;
+}
 
 export type SkillReview = {
   missionId: string;
@@ -1777,6 +1800,14 @@ export function loadProgress(): Progress {
         completedAt: attempt.completedAt, responses,
       });
     }
+    const grownUpPicks: GrownUpPick[] = [];
+    if (Array.isArray(value.grownUpPicks)) {
+      for (const raw of value.grownUpPicks.slice(-MAX_GROWN_UP_PICKS)) {
+        if (!raw || typeof raw !== 'object' || typeof raw.at !== 'number' || !Number.isFinite(raw.at)) continue;
+        const valid = raw.kind === 'practice' ? validIds.has(raw.id) : raw.kind === 'checkin' && typeof raw.id === 'string' && knownAssessmentId(raw.id);
+        if (valid && !grownUpPicks.some((pick) => pick.kind === raw.kind && pick.id === raw.id)) grownUpPicks.push({ kind: raw.kind, id: raw.id, at: raw.at });
+      }
+    }
     return {
       completedMissionIds: [...completed],
       starsByMission,
@@ -1789,6 +1820,7 @@ export function loadProgress(): Progress {
       assessments,
       ...(value.placement && typeof value.placement === 'object' && Number.isInteger(value.placement.unit) && value.placement.unit >= 2 && value.placement.unit <= 9
         && typeof value.placement.at === 'number' && Number.isFinite(value.placement.at) ? { placement: { unit: value.placement.unit, at: value.placement.at } } : {}),
+      ...(grownUpPicks.length ? { grownUpPicks } : {}),
     };
   } catch {
     return EMPTY_PROGRESS;
