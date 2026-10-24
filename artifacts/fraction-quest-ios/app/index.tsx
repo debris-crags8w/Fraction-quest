@@ -21,7 +21,9 @@ const BACKGROUND = '#F5F3FF';
 const APP_URL = webAppUrl();
 
 export default function FractionQuestShell() {
-  const web = useRef<WebView>(null);
+  // react-native-webview 14's types default the extra-props parameter to `undefined`, which makes every prop
+  // `never`; naming it (no extra props) restores the real props.
+  const web = useRef<WebView<object>>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [wifi, setWifi] = useState(false);
@@ -87,11 +89,12 @@ export default function FractionQuestShell() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={BACKGROUND} />
+      {/* Android draws under the status bar now (edge to edge), so it has no colour of its own. */}
+      <StatusBar barStyle="dark-content" />
       {failed ? (
         <Message icon="wifi-off" title="Can't reach Fraction Quest" body="Check the internet connection, then try again." action="Try again" onAction={retry} />
       ) : (
-        <WebView
+        <WebView<object>
           ref={web}
           source={{ uri: APP_URL }}
           style={styles.web}
