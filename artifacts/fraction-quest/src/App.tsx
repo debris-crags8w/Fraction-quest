@@ -1431,6 +1431,18 @@ function Game() {
     return () => clearTimeout(timer);
   }, [onMap, progress, storyMode, fun.sound, prologueSeen, storyTheme]);
 
+  // After a lesson, the chapter's ending film may be next (and it is in the Storybook): fetch its voice while the
+  // reward shows, so it starts at once too.
+  const rewardMissionId = view.type === 'reward' ? view.missionId : null;
+  useEffect(() => {
+    if (!rewardMissionId || !storyMode || fun.sound === false) return;
+    const mission = MISSIONS.find((item) => item.id === rewardMissionId);
+    const chapter = mission && chapterFor(mission.unit);
+    if (!chapter || !MISSIONS.filter((item) => item.unit === chapter.unit).every((item) => hasLearningGate(progress, item.id))) return;
+    const timer = setTimeout(() => prefetchReading(filmedLines(chapterEnd(chapter), storyTheme).join(' '), filmedVoices(chapterEnd(chapter), storyTheme)), 1500);
+    return () => clearTimeout(timer);
+  }, [rewardMissionId, progress, storyMode, fun.sound, storyTheme]);
+
   // Inside the app (iPhone and Android), on Wi-Fi, keep the whole voice pack on the phone so every sentence plays at once. It
   // pauses when Wi-Fi drops or the app goes to the background, and picks up where it left off.
   useEffect(() => {

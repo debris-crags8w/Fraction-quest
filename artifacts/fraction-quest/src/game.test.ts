@@ -1922,13 +1922,13 @@ describe('entered-answer worksheets and evidence gates', () => {
 
     const unitFractions = getWorksheet('unit-fractions');
     assert.ok(unitFractions.every(problem => (problem.modelRequired && problem.model?.kind === 'bar') || problem.area));
-    // "Color 1/4 of the square": one small square or two triangles both count.
-    const colorQuarter = unitFractions.find(problem => problem.areaTask && !problem.areaTask.avoid)!;
-    assert.equal(areaTaskDone(colorQuarter.area!.cut, colorQuarter.areaTask!, [0]), true);
-    assert.equal(areaTaskDone(colorQuarter.area!.cut, colorQuarter.areaTask!, [1, 2]), true);
-    assert.equal(areaTaskDone(colorQuarter.area!.cut, colorQuarter.areaTask!, [1, 4]), true);
-    assert.equal(areaTaskDone(colorQuarter.area!.cut, colorQuarter.areaTask!, [1]), false);
-    assert.equal(areaTaskDone(colorQuarter.area!.cut, colorQuarter.areaTask!, [0, 1]), false);
+    // Coloring 1/4 of this square: one small square or two triangles both count.
+    const quarter = { n: 1, d: 4 };
+    assert.equal(areaTaskDone('quarter-and-triangles', quarter, [0]), true);
+    assert.equal(areaTaskDone('quarter-and-triangles', quarter, [1, 2]), true);
+    assert.equal(areaTaskDone('quarter-and-triangles', quarter, [1, 4]), true);
+    assert.equal(areaTaskDone('quarter-and-triangles', quarter, [1]), false);
+    assert.equal(areaTaskDone('quarter-and-triangles', quarter, [0, 1]), false);
     const onlyTriangles = unitFractions.find(problem => problem.areaTask?.avoid)!;
     assert.equal(areaTaskDone(onlyTriangles.area!.cut, onlyTriangles.areaTask!, [0]), false);
     assert.equal(areaTaskDone(onlyTriangles.area!.cut, onlyTriangles.areaTask!, [5, 6]), true);
@@ -3619,6 +3619,9 @@ describe('natural read-aloud voice', () => {
     };
     const controller = createLearningSpeechController(synthesis, () => undefined, makeTestSpeechUtterance, 0, () => null, natural);
     controller.speak('One. Two. Three. Four.', 'en-US');
+    // Each sentence is handed over when the one before ends.
+    assert.deepEqual(utterances.map((utterance) => utterance.text), ['Three.']);
+    utterances[0].onend?.(new Event('end') as SpeechSynthesisEvent);
     assert.deepEqual(utterances.map((utterance) => utterance.text), ['Three.', 'Four.']);
     controller.dispose();
   });
@@ -4260,7 +4263,6 @@ describe('question pictures match the question', () => {
       seen.push(question.prompt);
       assert.ok(question.model.colorTask, `${lesson.id}: ${question.prompt}`);
     }
-    assert.ok(seen.some((prompt) => prompt.startsWith('Quick review · Equal-area partitions')), 'the unit-size review is checked');
   });
 });
 

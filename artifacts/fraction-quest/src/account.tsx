@@ -47,9 +47,11 @@ export const AccountContext = createContext<AccountValue>({
 });
 export const useAccount = () => useContext(AccountContext);
 
+/** The server's own message (`{ error }`), or the fallback. Never the raw response: when the server can't be reached,
+    the address can answer with a web page (a 404 from the host), and that text must not reach the screen. */
 export function errorMessage(error: unknown, fallback: string): string {
   const data = (error as { data?: { error?: unknown } } | null)?.data;
-  return typeof data?.error === 'string' ? data.error : fallback;
+  return typeof data?.error === 'string' && !/[<>]/.test(data.error) ? data.error : fallback;
 }
 const statusOf = (error: unknown) => (error as { status?: number } | null)?.status;
 
@@ -204,7 +206,7 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
       const loaded = await loadProfileBundle(user, profiles, preferProfileId);
       setState({ kind: 'ready', user, profiles, profileId: loaded.profile.id, bundle: loaded.bundle });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Signed in, but learner profiles could not be loaded. Please try again.';
+      const message = errorMessage(err, 'Signed in, but learner profiles could not be loaded. Please try again.');
       const failure = accountEntryFailure(statusOf(err), message);
       if (failure.kind === 'signed-out') {
         setState(failure);
@@ -274,7 +276,7 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
         setState({ kind: 'signed-out' });
       });
     } catch (error) {
-      setAccountError(error instanceof Error ? error.message : "Your work is still here, but you couldn't be signed out. Please try again.");
+      setAccountError(errorMessage(error, "Your work is still here, but you couldn't be signed out. Please try again."));
     }
   }, [state]);
 
@@ -307,7 +309,7 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
       setState({ ...state, profileId, bundle: loaded.bundle });
     } catch (err) {
       setState({ ...state, bundle: currentBundle() });
-      setAccountError(err instanceof Error ? err.message : 'That learner profile could not be loaded.');
+      setAccountError(errorMessage(err, 'That learner profile could not be loaded.'));
     }
   }, [state]);
 

@@ -260,9 +260,6 @@
 .fq-unit { padding-top: 0; border-top: 0; }
 
 .fq-unit-heading {
-  position: sticky;
-  top: 8px;
-  z-index: 3;
   align-items: center;
   padding: 16px 18px;
   border-radius: 20px;
@@ -2207,6 +2204,11 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 /* Phones: a whole question (friend's line, question, picture, all four answers and Check) fits the part of the
    screen Safari actually shows, about 664 points on an iPhone (answers stay in one column). These rules don't ask for a short screen: Safari
    answers height queries for its taller, bars-hidden view, so a height query never sees the real space. */
+/* A review's topic sits as a small tag above the question on every screen size, so the separate "quick revisit"
+   tag isn't needed. */
+.fq-review-prefix { display: block; margin-bottom: 2px; color: var(--unit, var(--fq-grape)); font: 900 .78rem var(--app-font-sans); letter-spacing: .02em; }
+.fq-lesson-app .fq-review-label.is-revisit { display: none; }
+
 @media (max-width: 560px) {
   /* The grade chip is for grown-ups (it's on the map and in the report). */
   .fq-lesson-app.has-inline-check .fq-node-standard { display: none; }
@@ -2221,9 +2223,6 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   .fq-lesson-app .fq-model-area { margin: 8px 0; }
   .fq-lesson-app .fq-model-area .fq-visual-model { min-height: 0; gap: 6px; padding: 8px 10px; }
   .fq-lesson-app .fq-model-area svg { max-height: 24svh; }
-  /* A review's topic sits as a small tag above the question, so the separate "quick revisit" tag isn't needed. */
-  .fq-lesson-app .fq-review-prefix { display: block; margin-bottom: 2px; color: var(--unit, var(--fq-grape)); font: 900 .78rem var(--app-font-sans); }
-  .fq-lesson-app .fq-review-label.is-revisit { display: none; }
   /* Story lines are tighter. */
   .fq-lesson-app .fq-story { gap: 4px; margin: 2px 0 6px; }
   .fq-lesson-app .fq-story li { gap: 8px; padding: 4px 10px; font-size: .9rem; line-height: 1.3; }

@@ -1,4 +1,4 @@
-import { type CSSProperties, Fragment, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, Fragment, type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { playHaptic, recordIntro, type IntroKind } from './lib/fun';
 import { useOptionalFun } from './fun-ui';
 import { ModelIntro, useLessonHelper } from './model-intro';
@@ -12,7 +12,7 @@ import {
   redoWorksheetCount, startRedo, targetedPracticeCount, targetedPracticePlans, updateLearning, worksheetProblemProgress, type LearningRecord, type RedoAttempt, type RedoPart,
 } from './learning';
 import { denomColor } from './fun-ui';
-import { BarSvg, MODEL_CONCEPTS, ModelPair, ModelTag, WholeBracket } from './models';
+import { BarSvg, MODEL_CONCEPTS, ModelTag, WholeBracket } from './models';
 import { canEnterWorksheetAnswer, WorksheetBarCopy } from './WorksheetBarCopy';
 import { AreaShade, AreaSvg } from './AreaModel';
 import { PrintMenu, PrintModel } from './Printables';
@@ -364,8 +364,7 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
   return (
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
       <p className="fq-ll-kicker">{review ? 'Review' : check.stepLabel ?? (check.transfer ? 'Step 2 · On your own' : 'Step 1 · Build it')}</p>
-       {/* The question is a "Your task" card that stays at the top of the screen while the child builds, so every
-           part of the check (build, show it again, explain) has the question in view. */}
+       {/* The question is a "Your task" card at the top of the check. */}
        <SectionListenHeader text={check.prompt} label="Listen to the question" className="fq-ll-check-heading fq-task-card" testId={`task-${check.id}`}>
          <span className="fq-task-label">Your task</span>
          <h3 ref={headingRef} tabIndex={-1}><LearningText text={check.prompt} /></h3>
@@ -436,7 +435,7 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
              </details>
            </div>
          </div>}
-      {/* Next sits right under "Correct!", above the summary of both models, so it is on screen on a phone. */}
+      {/* Next sits right under "Correct!", so it is on screen on a phone. */}
       {done ? (
         <>
         <div ref={passedActionsRef} className="fq-ll-actions fq-ll-actions-complete">
@@ -444,7 +443,6 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
           {onNext && <button type="button" className="fq-button fq-ll-finish" data-testid={`button-next-${check.id}`} onClick={onNext}>{nextLabel ?? 'Next'} <ArrowRight size={17} /></button>}
           {!onNext && review && <button type="button" className="fq-button secondary fq-ll-finish" data-testid="button-review-finish" onClick={() => onPass({ supported, attempts: -1 })}>Finish review</button>}
         </div>
-        <ModelPair n={t.n} d={t.d} />
         </>
       ) : (
         <div className="fq-ll-actions">
@@ -480,12 +478,17 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
   const promptId = `ws-prompt-${p.id}`;
   const targetBar = p.modelRequired && p.model?.kind === 'bar' ? p.model : null;
   const gated = !!targetBar || !!(p.area && p.areaTask) || !!p.rulerTask || !!p.linePlotTask || !!p.scaleTask;
-  const [modelReady, setModelReady] = useState(!gated);
+  // Once the model matches, the answer tiles stay open for this question: tapping the model again afterwards doesn't
+  // lock an answer already built. A question with a saved answer (coming back to it) opens unlocked too.
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const [modelReady, setModelReady] = useState(!gated || !!draft.trim());
+  const openModel = useCallback((ready: boolean) => { if (ready) setModelReady(true); }, []);
   const answerEnabled = canEnterWorksheetAnswer(gated, modelReady);
   const modelStatusId = `ws-model-status-${p.id}`;
   const modelKey = JSON.stringify([p.rulerTask, p.linePlotTask, p.scaleTask, p.areaTask]);
   useEffect(() => {
-    setModelReady(!gated);
+    setModelReady(!gated || !!draftRef.current.trim());
     setWrong(null);
     setOpen(false);
   }, [gated, modelKey, p.answer, p.prompt]);
@@ -516,12 +519,12 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
         {p.model && (!p.task || p.task.kind === 'copy') && <Preview m={p.model} named={namesItsBar(p) || ok} />}
         {!p.model && p.picture && <div className="fq-ll-preview-wrap fq-ll-auto-picture"><PrintModel model={p.picture} labels={false} /></div>}
         {p.area && (p.areaTask
-          ? <AreaShade figure={p.area} task={p.areaTask} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />
+          ? <AreaShade figure={p.area} task={p.areaTask} disabled={ok} statusId={modelStatusId} onMatchChange={openModel} />
           : <div className="fq-ll-preview fq-area-preview"><AreaSvg figure={p.area} /></div>)}
-        {p.rulerTask && <RulerInteraction key={modelKey} task={p.rulerTask} disabled={ok} onReady={setModelReady} />}
-        {p.linePlotTask && <LinePlotInteraction key={modelKey} task={p.linePlotTask} disabled={ok} onReady={setModelReady} />}
-        {p.scaleTask && <ScaleInteraction key={modelKey} id={p.id} task={p.scaleTask} disabled={ok} onReady={setModelReady} />}
-        {targetBar && <WorksheetBarCopy target={targetBar} task={p.task} disabled={ok} statusId={modelStatusId} onMatchChange={setModelReady} />}
+        {p.rulerTask && <RulerInteraction key={modelKey} task={p.rulerTask} disabled={ok} onReady={openModel} />}
+        {p.linePlotTask && <LinePlotInteraction key={modelKey} task={p.linePlotTask} disabled={ok} onReady={openModel} />}
+        {p.scaleTask && <ScaleInteraction key={modelKey} id={p.id} task={p.scaleTask} disabled={ok} onReady={openModel} />}
+        {targetBar && <WorksheetBarCopy target={targetBar} task={p.task} disabled={ok} statusId={modelStatusId} onMatchChange={openModel} />}
         {yesNo && <YesNoCards
           value={draft}
           onChange={value => { setWrong(null); onEdit(value); }}
