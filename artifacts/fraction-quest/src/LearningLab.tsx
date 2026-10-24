@@ -2,7 +2,7 @@ import { type CSSProperties, Fragment, type ReactNode, type RefObject, useCallba
 import { playHaptic, recordIntro, type IntroKind } from './lib/fun';
 import { useOptionalFun } from './fun-ui';
 import { ModelIntro, useLessonHelper } from './model-intro';
-import { LearningListenButton, LearningText, spokenLearningText } from './LearningText';
+import { LearningListenButton, LearningText, spokenLearningText, useReadAloud } from './LearningText';
 import { BUILD_ERROR_HEADINGS, BUILD_SLIPS as M, LAB_SECTION_SPEECH, buildErrors, buildHints, worksheetSpeech } from './lab-copy';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw, Star } from 'lucide-react';
 import { getMission, numberLineWholeCount, type Progress } from './game';
@@ -360,6 +360,9 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
   const secondaryFeedback = getModelFeedback(t, tk);
   const errorHeading = BUILD_ERROR_HEADINGS[locked ? 0 : 1];
   const errorSpeechText = `${errorHeading} ${errs.join(' ')}`;
+  // After a wrong check, what to fix is read aloud (with sound on), as in the game's questions.
+  const sound = useOptionalFun()?.fun.sound ?? false;
+  useReadAloud(sound && errs.length > 0 ? errorSpeechText : null, errs.length > 0 ? `${check.id}:${attempts}` : null);
 
   return (
     <div className="fq-ll-check" data-testid={`check-${check.id}`}>
@@ -462,6 +465,10 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
   const ok = !!e && e.checkedValue === e.draft && answerMatches(p, draft);
   const [open, setOpen] = useState(false);
   const [wrong, setWrong] = useState<string | null>(null);
+  const [misses, setMisses] = useState(0);
+  // After a wrong answer, the reason is read aloud (with sound on), as in the game's questions.
+  const sound = useOptionalFun()?.fun.sound ?? false;
+  useReadAloud(sound && !ok && wrong !== null && wrong === draft ? `Not yet. ${p.hint}` : null, wrong !== null && wrong === draft ? `${p.id}:${misses}` : null);
   const yesNo = isYesNoProblem(p);
   const promptText = yesNo ? yesNoPrompt(p) : p.prompt;
   const problemNumber = numberLabel ?? p.id.slice(1);
@@ -497,6 +504,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
     if (!draft.trim() || !answerEnabled) return;
     const correct = answerMatches(p, draft);
     setWrong(correct ? null : draft);
+    if (!correct) setMisses(n => n + 1);
     playHaptic(correct ? 'correct' : 'retry');
     if (correct) onSuccess?.();
     else onWrong?.();
@@ -892,7 +900,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
               )}
               <Row p={p} rec={rec} numberLabel={String(index + 1)}
                 sequenceLabel={`Question ${index + 1} of ${sheet.length} · ${problemProgress[index].status === 'complete' ? 'Complete' : problemProgress[index].status === 'retry' ? 'Needs another try' : problemProgress[index].status === 'current' ? 'Up next' : 'Not started'}`}
-                onEdit={v => save(editWorksheet(cur(), p.id, v))}
+                onEdit={v => save(editWorksheet(cur(), p.id, v, p.answer))}
                 onCheck={() => save(checkLessonWorksheet(cur(), p, missionId))}
                 onWrong={onWrong}
                 onSuccess={() => { onSuccess?.(); onWorksheetCorrect?.(missionId, p.id); }}
@@ -930,7 +938,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
                 {plan.problems.map((problem, problemIndex) => (
                   <Row key={problem.id} p={problem} rec={rec} numberLabel={`R${problemIndex + 1}`}
                     sequenceLabel={`Extra practice ${problemIndex + 1} of ${plan.problems.length}`}
-                    onEdit={value => save(editWorksheet(cur(), problem.id, value))}
+                    onEdit={value => save(editWorksheet(cur(), problem.id, value, problem.answer))}
                     onCheck={() => save(checkWorksheet(cur(), problem, false))}
                     onWrong={onWrong}
                     onSuccess={() => { onSuccess?.(); onWorksheetCorrect?.(missionId, problem.id); }}
@@ -1031,7 +1039,7 @@ export function RedoLab({ missionId, progress, onChange, onBack, onWrong, onSucc
             {rows.map((p, index) => (
               <Row key={`${p.id}-${redo.round}-${redo.rowRounds[p.id] ?? 0}`} p={p} rec={asRecord(redo.worksheet)}
                 numberLabel={String(index + 1)} sequenceLabel={`Question ${index + 1} of ${rows.length} · Redo practice`}
-                onEdit={v => change(r => ({ ...r, worksheet: editWorksheet(asRecord(r.worksheet), p.id, v).worksheet }))}
+                onEdit={v => change(r => ({ ...r, worksheet: editWorksheet(asRecord(r.worksheet), p.id, v, p.answer).worksheet }))}
                 onCheck={() => { const r = cur(); const next = checkRedoRow(r, p); if (next.redo) save(redoDone(missionId, next.redo) ? finishRedo(next) : next); }}
                 onWrong={onWrong}
                 onSuccess={() => {

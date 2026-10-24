@@ -167,7 +167,7 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
           {sheet.map((p, index) => (
             <Row key={p.id} p={p} rec={rec} numberLabel={String(index + 1)}
               sequenceLabel={`Question ${index + 1} of ${sheet.length} · ${worksheetProgress[index].status === 'complete' ? 'Complete' : worksheetProgress[index].status === 'retry' ? 'Needs another try' : worksheetProgress[index].status === 'current' ? 'Up next' : 'Not started'}`}
-              onEdit={(v) => save(editWorksheet(cur(), p.id, v))}
+              onEdit={(v) => save(editWorksheet(cur(), p.id, v, p.answer))}
               onCheck={() => save(checkLessonWorksheet(cur(), p, missionId))}
               onSuccess={() => onWorksheetCorrect?.(missionId, p.id)}
               onHint={() => { const r = cur(); const e = r.worksheet[p.id] ?? { draft: '', attempts: 0, supported: false };

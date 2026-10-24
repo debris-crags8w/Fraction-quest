@@ -4,6 +4,7 @@ import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, getDueSkillReviewQuestions
 import { compareFractions, WAR_ROUNDS, warHint } from '../src/concept-games';
 import { getCodeLevels } from '../src/code-quest';
 import { getBuildChecks, getReviewCheck, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
+import { BUILD_ERROR_HEADINGS } from '../src/lab-copy';
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
 import { AREA_CUTS, areaTaskDone, pieceArea } from '../src/area-shapes';
 import { generateQuestions, getExtraPractice, hasGenerator } from '../src/practice-bank';
@@ -2211,6 +2212,41 @@ test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried 
   await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.join(' | '))).toMatch(/Good try|Almost|look together|Keep going|Nice effort/);
   await page.getByTestId('button-try-again').click();
   await expect(page.getByTestId(`button-answer-${question.id}-${wrong}`)).toBeDisabled();
+});
+
+test('in a lesson, a wrong build or worksheet answer reads its reason aloud', async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.addInitScript(() => {
+    localStorage.setItem('fraction-quest-natural-voice', 'off');
+    const spoken: string[] = [];
+    (window as unknown as { __spoken: string[] }).__spoken = spoken;
+    class FakeUtterance { text: string; voice = null; lang = ''; rate = 1; pitch = 1; volume = 1; onend: (() => void) | null = null; onerror: (() => void) | null = null; constructor(text: string) { this.text = text; } }
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
+      speaking: false, pending: false, paused: false,
+      getVoices: () => [{ name: 'Test voice', lang: 'en-US', default: true, localService: true, voiceURI: 'test' }],
+      speak: (u: FakeUtterance) => { if (u.text.trim()) spoken.push(u.text); setTimeout(() => u.onend?.(), 10); },
+      cancel: () => {}, pause: () => {}, resume: () => {}, addEventListener: () => {}, removeEventListener: () => {},
+    } });
+    Object.defineProperty(window, 'SpeechSynthesisUtterance', { value: FakeUtterance, configurable: true });
+  });
+  const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
+  await page.addInitScript((progress) => localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress)), progressBefore(mission));
+  await openAsGuest(page);
+  const soundToggle = page.getByTestId('button-toggle-sound');
+  if (await soundToggle.getAttribute('aria-label') === 'Turn sound on') await soundToggle.click();
+  await expect(soundToggle).toHaveAttribute('aria-label', 'Turn sound off');
+  await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await passStory(page);
+  await expect(page.getByTestId('learning-lab')).toBeVisible();
+  // Read sentence by sentence: join them back into one string.
+  const spoken = () => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.join(' '));
+  // completeBuilds checks a wrong reason first on the first build.
+  await completeBuilds(page, mission.id);
+  await expect.poll(spoken).toContain(BUILD_ERROR_HEADINGS[0]);
+  const problem = getWorksheet(mission.id).find((row) => !row.modelRequired && !row.areaTask)!;
+  await enterWorksheetAnswer(page, problem, wrongTileAnswer(problem));
+  await expect(page.getByTestId(`status-worksheet-${problem.id}`)).toContainText('Not yet.');
+  await expect.poll(spoken).toContain(`Not yet. ${problem.hint}`);
 });
 
 test('inside the Expo iPhone app, answer and result haptics work with sound off, and printing uses the native print sheet', async ({ page }) => {
