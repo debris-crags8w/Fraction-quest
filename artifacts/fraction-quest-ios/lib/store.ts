@@ -99,7 +99,7 @@ export function useStoreSubscription(): [SubscriptionStatus | null, (action: Sub
     // A parent may subscribe, cancel or renew in Settings: check again whenever the app comes back.
     const foreground = AppState.addEventListener('change', (state) => { if (state === 'active') void refresh(); });
     return () => {
-      live = false; updated.remove(); failed.remove(); foreground.remove();
+      live = false; updated?.remove(); failed?.remove(); foreground.remove();
       storeApi.current = null;
       connected.current = false;
       void api?.endConnection().catch(() => undefined);
