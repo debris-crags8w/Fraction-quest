@@ -56,8 +56,9 @@ export type FunState = {
   seasonLessons?: Record<string, string[]>;
   /** The Whole Stone story: whether the prologue was shown, and the choice made when each chapter opened (unit → 0 or 1). */
   story?: StoryState;
-  /** The model intros (how to build, how a number line works) already watched, so they open by themselves once. */
-  introsSeen?: Partial<Record<IntroKind, true>>;
+  /** The model intros (how to build, how a number line works): 'watched' after the Watch step, true once Try is done
+      (or both were skipped). They open by themselves only until done. */
+  introsSeen?: Partial<Record<IntroKind, IntroStage>>;
   /** Lessons whose Teach first screen was read (Next tapped), so it opens by itself only the first time. */
   lessonIntrosSeen?: string[];
   /** Spare oil (story mode) or streak savers: each covers one missed day so the streak keeps going. Up to SPARE_OIL_MAX. */
@@ -74,6 +75,7 @@ export type OilNotice = { kind: 'used'; days: string[] } | { kind: 'earned'; str
 export const SPARE_OIL_EVERY = 7;
 export const SPARE_OIL_MAX = 2;
 export type IntroKind = 'builder' | 'line';
+export type IntroStage = 'watched' | true;
 export type StoryState = { prologueSeen?: boolean; choices?: Record<string, 0 | 1>; /** Suspect board guesses: board number → suspect id. */ guesses?: Record<string, string> };
 const SUSPECT_IDS = ['chomp', 'pip', 'tilly', 'bolt', 'bea'];
 export type DayActivity = { minutes: number; answered: number };
@@ -203,10 +205,12 @@ function cleanSeasonLessons(value: unknown): Record<string, string[]> {
   }
   return out;
 }
-function cleanIntros(value: unknown): Partial<Record<IntroKind, true>> {
+function cleanIntros(value: unknown): Partial<Record<IntroKind, IntroStage>> {
   if (!value || typeof value !== 'object') return {};
   const raw = value as Record<string, unknown>;
-  return { ...(raw.builder === true ? { builder: true } : {}), ...(raw.line === true ? { line: true } : {}) } as Partial<Record<IntroKind, true>>;
+  const out: Partial<Record<IntroKind, IntroStage>> = {};
+  for (const kind of ['builder', 'line'] as const) if (raw[kind] === true || raw[kind] === 'watched') out[kind] = raw[kind] as IntroStage;
+  return out;
 }
 
 const cleanLessonIntros = (value: unknown): string[] =>
@@ -419,9 +423,12 @@ export function setDisplayPreferences(state: FunState, preferences: DisplayPrefe
   return saveFun({ ...state, displayPreferences: cleanDisplayPreferences(preferences) });
 }
 
-/** Remember a model intro was watched (or skipped): it won't open by itself again. Helper still has it. */
-export function recordIntro(state: FunState, kind: IntroKind): FunState {
-  return saveFun({ ...state, introsSeen: { ...cleanIntros(state.introsSeen), [kind]: true } });
+/** Remember a model intro's step: 'watched' after Watch, true after Try (or a skip). Done, it won't open by itself
+    again (a later Watch never undoes a finished Try). The Helper still has both. */
+export function recordIntro(state: FunState, kind: IntroKind, stage: IntroStage = true): FunState {
+  const seen = cleanIntros(state.introsSeen);
+  if (seen[kind] === true) return state;
+  return saveFun({ ...state, introsSeen: { ...seen, [kind]: stage } });
 }
 
 /** Remember a lesson's Teach first screen was read: it stays a tap away ("How it works") but won't open by itself. */

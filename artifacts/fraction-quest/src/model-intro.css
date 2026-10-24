@@ -3,10 +3,6 @@
 .fq-mi-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .fq-mi-head h3 { margin: 2px 0 0; font-family: var(--app-font-display); font-size: 1.35rem; line-height: 1.1; }
 .fq-mi-kicker { color: var(--fq-grape, #6D4BD8); font-size: .8rem; font-weight: 900; }
-.fq-mi-phases { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.fq-mi-phases li { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px; border: 2px solid hsl(var(--border)); border-radius: 999px; color: hsl(var(--muted-foreground)); background: hsl(var(--card)); font-size: .8rem; font-weight: 900; }
-.fq-mi-phases li.is-on { border-color: var(--fq-grape, #6D4BD8); color: #fff; background: var(--fq-grape, #6D4BD8); }
-.fq-mi-phases li.is-done { border-color: hsl(var(--secondary)); color: hsl(var(--secondary)); background: hsl(var(--secondary) / .1); }
 
 /* The "video": a dark screen showing the model as the finger works it. */
 .fq-mi-screen { position: relative; display: grid; gap: 14px; padding: 16px 18px 14px; border-radius: 18px; color: #fff; background: #1E1838; box-shadow: 0 5px 0 #14102A; overflow: hidden; }
@@ -62,12 +58,7 @@
 .fq-mi-bar.is-hot, .fq-mi-line.is-hot { border-radius: 12px; box-shadow: 0 0 0 4px rgb(255 200 0 / .45); }
 .fq-mi-hint { margin: 0; min-height: 44px; padding: 11px 13px; border-radius: 14px; color: #5A4500; background: #FFF6D6; font-weight: 900; }
 .fq-mi-hint.is-done { color: hsl(var(--secondary)); background: hsl(var(--secondary) / .12); }
-.fq-mi-try > .fq-button, .fq-mi-ready .fq-button { justify-content: center; }
-.fq-mi-ready { display: grid; justify-items: center; gap: 10px; padding: 8px 0; text-align: center; }
-.fq-mi-ready-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: hsl(var(--secondary)); background: hsl(var(--secondary) / .15); }
-.fq-mi-ready strong { font-family: var(--app-font-display); font-size: 1.3rem; }
-.fq-mi-ready p { margin: 0; font-weight: 800; line-height: 1.4; }
-.fq-mi-ready .fq-button { width: 100%; }
+.fq-mi-try > .fq-button { justify-content: center; }
 .fq-mi-skip { justify-self: center; min-height: 40px; padding: 0 12px; border: 0; color: hsl(var(--muted-foreground)); background: none; font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
 .fq-mi-frac { display: inline-grid; justify-items: center; line-height: 1; font-family: var(--app-font-display); font-weight: 700; }
 .fq-mi-frac b + b { padding-top: 2px; border-top: 3px solid currentColor; }
@@ -92,9 +83,10 @@
 .fq-mi-helper-head h2 { margin: 0; font-family: var(--app-font-display); font-size: 1.3rem; }
 .fq-mi-helper-picks { display: grid; gap: 8px; }
 .fq-mi-helper-picks p { margin: 0; font-weight: 800; }
-.fq-mi-helper-pick { display: grid; gap: 2px; padding: 12px 14px; border: 2px solid hsl(var(--border)); border-radius: 16px; color: hsl(var(--foreground)); background: color-mix(in srgb, var(--fq-grape, #6D4BD8) 5%, hsl(var(--card))); font: inherit; text-align: left; cursor: pointer; }
+.fq-mi-helper-pick { display: grid; gap: 2px; padding: 12px 14px; border: 2px solid hsl(var(--border)); border-radius: 16px; color: hsl(var(--foreground)); background: color-mix(in srgb, var(--fq-grape, #6D4BD8) 5%, hsl(var(--card))); font: inherit; text-align: left; }
 .fq-mi-helper-pick span { color: hsl(var(--muted-foreground)); font-size: .88rem; font-weight: 700; }
-.fq-mi-helper-pick:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 2px; }
+.fq-mi-helper-pick-buttons { display: flex; gap: 8px; margin-top: 8px; }
+.fq-mi-helper-pick-buttons .fq-button { flex: 1; justify-content: center; }
 .fq-mi-helper .fq-mi { margin: 0; }
 /* The demo screen is dark: its mark labels are white so they read as clearly as the line. */
 .fq-mi-demo-line .fq-nl-label, .fq-mi-demo-line .fq-nl-frac > b:first-child, .fq-mi-demo-line .fq-nl-frac > b:last-child { color: #fff; }

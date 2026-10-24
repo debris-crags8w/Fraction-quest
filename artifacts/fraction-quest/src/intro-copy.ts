@@ -30,17 +30,9 @@ export const INTRO_TRIES: Record<IntroKind, [IntroTry, IntroTry]> = {
   line: [{ n: 2, d: 3, word: 'two thirds' }, { n: 3, d: 4, word: 'three fourths' }],
 };
 
-export const INTRO_TEXT: Record<IntroKind, { kicker: string; title: string; build: string; ready: string; readyBody: string; go: string }> = {
-  builder: {
-    kicker: 'Before you build', title: 'How to build a fraction', build: 'Build',
-    ready: 'You know how to build!', readyBody: 'Split the whole into equal parts. Then shade the parts the fraction counts.',
-    go: 'Start building',
-  },
-  line: {
-    kicker: 'New: number lines', title: 'How a number line works', build: 'Find',
-    ready: 'You can read a number line!', readyBody: 'Cut 0 to 1 into equal spaces. Count the jumps from 0. Where you land is the fraction.',
-    go: 'Keep going',
-  },
+export const INTRO_TEXT: Record<IntroKind, { kicker: string; title: string; build: string }> = {
+  builder: { kicker: 'Before you build', title: 'How to build a fraction', build: 'Build' },
+  line: { kicker: 'New: number lines', title: 'How a number line works', build: 'Find' },
 };
 
 const unit = (kind: IntroKind, count: number) => kind === 'builder' ? (count === 1 ? 'part' : 'parts') : (count === 1 ? 'jump' : 'jumps');
@@ -54,9 +46,9 @@ export function introHint(kind: IntroKind, target: IntroTry, parts: number, coun
   return { done: false, text: kind === 'builder' ? `Now shade ${target.n} ${unit(kind, target.n)}.` : `Now count ${target.n} ${unit(kind, target.n)} from 0 and tap where you land.` };
 }
 
-/** Everything an intro can read aloud: the demo, every nudge of both tries, and the last card. */
+/** Everything an intro can read aloud: the demo and every nudge of both tries. */
 export function introSpeech(kind: IntroKind): string[] {
-  const lines = [INTRO_TEXT[kind].title, ...INTRO_DEMOS[kind].map((shot) => shot.caption), INTRO_TEXT[kind].ready, INTRO_TEXT[kind].readyBody];
+  const lines = [INTRO_TEXT[kind].title, ...INTRO_DEMOS[kind].map((shot) => shot.caption)];
   for (const target of INTRO_TRIES[kind]) {
     lines.push(`${INTRO_TEXT[kind].build} ${target.word}.`);
     lines.push(introHint(kind, target, target.d, target.n).text, introHint(kind, target, 0, 0).text, introHint(kind, target, target.d, 0).text);
