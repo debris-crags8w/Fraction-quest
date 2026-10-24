@@ -8,7 +8,7 @@ import { LearningListenButton } from './LearningText';
 export function PickedForYou({ picks, onOpen }: { picks: GrownUpPick[]; onOpen: (pick: GrownUpPick) => void }) {
   const definitions = getAssessmentDefinitions();
   const items = picks.flatMap((pick) => {
-    if (pick.kind === 'practice') return [{ pick, label: `${GROWN_UP_PRACTICE_COUNT} questions`, title: getMission(pick.id).shortTitle }];
+    if (pick.kind === 'practice') return [{ pick, label: pick.index ? `Question ${pick.index + 1} of ${GROWN_UP_PRACTICE_COUNT}` : `${GROWN_UP_PRACTICE_COUNT} questions`, title: getMission(pick.id).shortTitle }];
     const definition = definitions.find((item) => item.id === pick.id);
     return definition ? [{ pick, label: 'Check-in', title: definition.title }] : [];
   });

@@ -23,6 +23,9 @@ import {
   loadProgress,
   addGrownUpPick,
   clearGrownUpPick,
+  updateGrownUpPick,
+  saveAssessmentDraft,
+  clearAssessmentDraft,
   GROWN_UP_PRACTICE_COUNT,
   type GrownUpPick,
   FRACTION_ORDER_ROUNDS,
@@ -1615,12 +1618,24 @@ function Game() {
 
   const openPick = (pick: GrownUpPick) => {
     if (pick.kind === 'practice') {
-      if (isMissionUnlocked(progress, pick.id)) setView({ type: 'extra', missionId: pick.id, seed: freshSeed(), questionIndex: 0, firstTry: 0, picked: true });
+      if (!isMissionUnlocked(progress, pick.id)) return;
+      // Left partway: the same questions, at the same place.
+      const seed = pick.seed ?? freshSeed();
+      if (pick.seed === undefined) persistProgress(updateGrownUpPick(progress, 'practice', pick.id, { seed, index: 0, firstTry: 0 }));
+      setView({ type: 'extra', missionId: pick.id, seed, questionIndex: pick.index ?? 0, firstTry: pick.firstTry ?? 0, picked: true });
       return;
     }
     const definition = getAssessmentDefinitions().find((item) => item.id === pick.id);
-    if (definition) setView({ type: 'assessment', definition, seed: freshSeed() });
+    if (definition) openCheckin(definition);
   };
+
+  /** A Check-in left partway picks up at its next question (same questions); `fresh` starts it again. */
+  function openCheckin(definition: AssessmentDefinition, fresh = false) {
+    const draft = progress.assessmentDraft;
+    if (!fresh && draft?.assessmentId === definition.id) { setView({ type: 'assessment', definition, seed: draft.seed }); return; }
+    if (draft?.assessmentId === definition.id) persistProgress(clearAssessmentDraft(progress, definition.id));
+    setView({ type: 'assessment', definition, seed: freshSeed() });
+  }
 
   const startDailyPractice = () => {
     const saved = progress.dailyPractice;
@@ -1814,9 +1829,10 @@ function Game() {
         ];
         return <ConceptGames onExit={returnToMap} lessonGames={games} />;
       })()}
-      {view.type === 'assessments' && <AssessmentHub attempts={progress.assessments ?? []} onStart={definition => setView({ type: 'assessment', definition, seed: freshSeed() })} onBack={returnToMap} />}
+      {view.type === 'assessments' && <AssessmentHub attempts={progress.assessments ?? []} draft={progress.assessmentDraft} onStart={openCheckin} onBack={returnToMap} />}
       {view.type === 'assessment' && <AssessmentRunner key={`${view.definition.id}:${view.seed}`} definition={view.definition} seed={view.seed}
-        onComplete={attempt => persistProgress(clearGrownUpPick(saveAssessmentAttempt(progress, attempt), 'checkin', attempt.assessmentId))} onExit={() => setView({ type: 'assessments' })} />}
+        resume={progress.assessmentDraft} onProgress={(draft) => persistProgress(saveAssessmentDraft(progress, draft))}
+        onComplete={attempt => persistProgress(clearAssessmentDraft(clearGrownUpPick(saveAssessmentAttempt(progress, attempt), 'checkin', attempt.assessmentId), attempt.assessmentId))} onExit={() => setView({ type: 'assessments' })} />}
       {view.type === 'subscribe' && !subscription && <WebAppOnlyFlow onBack={() => setView({ type: 'map' })} />}
       {view.type === 'subscribe' && subscription && (
         <SubscribeFlow subscription={subscription} lapsed={subscribedBefore()} lessonsDone={progress.completedMissionIds.length}
@@ -1883,7 +1899,10 @@ function Game() {
             onBack={returnToMap}
             onCorrect={onPracticeCorrect}
             onWrong={onPracticeWrong}
-            onNext={(firstTry) => setView({ ...view, questionIndex: view.questionIndex + 1, firstTry })}
+            onNext={(firstTry) => {
+              if (view.picked) persistProgress(updateGrownUpPick(progress, 'practice', view.missionId, { seed: view.seed, index: view.questionIndex + 1, firstTry }));
+              setView({ ...view, questionIndex: view.questionIndex + 1, firstTry });
+            }}
             onFinish={(_stars, firstTry) => {
               persistProgress(clearGrownUpPick(progress, 'practice', view.missionId));
               setView({ type: 'extra-done', missionId: view.missionId, seed: view.seed, firstTry, total: practiceMission.questions.length });

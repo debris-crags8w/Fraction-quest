@@ -170,6 +170,8 @@ export type Progress = {
   placement?: { unit: number; at: number };
   /** Practice a grown-up chose in the report. Each shows as a card on the child's map until it is done. */
   grownUpPicks?: GrownUpPick[];
+  /** A Check-in left partway (one at a time). */
+  assessmentDraft?: AssessmentDraft;
   /** Completed checks are saved with the rest of progress and never change lesson unlocks. */
   assessments?: AssessmentAttempt[];
 };
@@ -206,6 +208,18 @@ export type AssessmentAttempt = {
   completedAt: number;
   responses: AssessmentResponse[];
 };
+
+/** A Check-in left partway: its questions (by seed) and the answers so far, so it picks up at the next question. */
+export type AssessmentDraft = { assessmentId: string; seed: number; startedAt: number; responses: AssessmentResponse[] };
+
+export function saveAssessmentDraft(progress: Progress, draft: AssessmentDraft): Progress {
+  return { ...progress, assessmentDraft: draft };
+}
+export function clearAssessmentDraft(progress: Progress, assessmentId: string): Progress {
+  if (progress.assessmentDraft?.assessmentId !== assessmentId) return progress;
+  const { assessmentDraft: _done, ...rest } = progress;
+  return rest;
+}
 
 export type DailyPracticeQuestion = {
   id: string;
@@ -246,7 +260,11 @@ export type DailyPracticeSession = {
 };
 
 /** `practice`: 5 new questions from a lesson (`id` is the lesson). `checkin`: a Check-in (`id` is the Check-in). */
-export type GrownUpPick = { kind: 'practice' | 'checkin'; id: string; at: number };
+export type GrownUpPick = {
+  kind: 'practice' | 'checkin'; id: string; at: number;
+  /** Practice left partway: its questions (by seed), the next question and right-first-time answers so far. */
+  seed?: number; index?: number; firstTry?: number;
+};
 export const MAX_GROWN_UP_PICKS = 3;
 export const GROWN_UP_PRACTICE_COUNT = 5;
 /** What Listen reads on the map's "Picked for you" card. */
@@ -256,6 +274,13 @@ export const PICKED_FOR_YOU_SPOKEN = 'Picked for you. A grown-up picked this pra
 export function addGrownUpPick(progress: Progress, kind: GrownUpPick['kind'], id: string, now = Date.now()): Progress {
   const others = (progress.grownUpPicks ?? []).filter((pick) => !(pick.kind === kind && pick.id === id));
   return { ...progress, grownUpPicks: [...others, { kind, id, at: now }].slice(-MAX_GROWN_UP_PICKS) };
+}
+
+/** Remember how far a picked practice has got, so leaving it picks up at the same question. */
+export function updateGrownUpPick(progress: Progress, kind: GrownUpPick['kind'], id: string, changes: Pick<GrownUpPick, 'seed' | 'index' | 'firstTry'>): Progress {
+  const picks = progress.grownUpPicks ?? [];
+  if (!picks.some((pick) => pick.kind === kind && pick.id === id)) return progress;
+  return { ...progress, grownUpPicks: picks.map((pick) => pick.kind === kind && pick.id === id ? { ...pick, ...changes } : pick) };
 }
 
 export function clearGrownUpPick(progress: Progress, kind: GrownUpPick['kind'], id: string): Progress {
@@ -1771,6 +1796,21 @@ export function loadProgress(): Progress {
     }
     const dailyPractice = readDailyPractice(value.dailyPractice, validIds);
     const knownStandards = new Set<string>(FRACTION_STANDARDS.map(item => item.id));
+    const readResponses = (raw: unknown[]): AssessmentResponse[] => {
+      const responses: AssessmentResponse[] = [];
+      for (const rawResponse of raw) {
+        if (!rawResponse || typeof rawResponse !== 'object') continue;
+        const response = rawResponse as Partial<AssessmentResponse>;
+        if (typeof response.itemId !== 'string' || response.itemId.length > 180
+          || typeof response.modelBuilt !== 'boolean' || typeof response.correct !== 'boolean'
+          || !Array.isArray(response.standards)) continue;
+        const standards = [...new Set(response.standards.filter((standard): standard is string =>
+          typeof standard === 'string' && knownStandards.has(standard)))];
+        if (!standards.length) continue;
+        responses.push({ itemId: response.itemId, standards, modelBuilt: response.modelBuilt, correct: response.correct && response.modelBuilt });
+      }
+      return responses;
+    };
     const assessments: AssessmentAttempt[] = [];
     if (Array.isArray(value.assessments)) for (const rawAttempt of value.assessments.slice(-90)) {
       if (!rawAttempt || typeof rawAttempt !== 'object') continue;
@@ -1783,29 +1823,31 @@ export function loadProgress(): Progress {
         || typeof attempt.completedAt !== 'number' || !Number.isFinite(attempt.completedAt)
         || !Array.isArray(attempt.responses) || attempt.responses.length < 10 || attempt.responses.length > 15
       ) continue;
-      const responses: AssessmentResponse[] = [];
-      for (const rawResponse of attempt.responses) {
-        if (!rawResponse || typeof rawResponse !== 'object') continue;
-        const response = rawResponse as Partial<AssessmentResponse>;
-        if (typeof response.itemId !== 'string' || response.itemId.length > 180
-          || typeof response.modelBuilt !== 'boolean' || typeof response.correct !== 'boolean'
-          || !Array.isArray(response.standards)) continue;
-        const standards = [...new Set(response.standards.filter((standard): standard is string =>
-          typeof standard === 'string' && knownStandards.has(standard)))];
-        if (!standards.length) continue;
-        responses.push({ itemId: response.itemId, standards, modelBuilt: response.modelBuilt, correct: response.correct && response.modelBuilt });
-      }
+      const responses = readResponses(attempt.responses);
       if (responses.length >= 10) assessments.push({
         assessmentId: attempt.assessmentId, seed: attempt.seed, startedAt: attempt.startedAt,
         completedAt: attempt.completedAt, responses,
       });
+    }
+    let assessmentDraft: AssessmentDraft | null = null;
+    const draft = value.assessmentDraft as Partial<AssessmentDraft> | undefined;
+    if (draft && typeof draft === 'object' && typeof draft.assessmentId === 'string' && knownAssessmentId(draft.assessmentId)
+      && typeof draft.seed === 'number' && Number.isSafeInteger(draft.seed) && typeof draft.startedAt === 'number' && Number.isFinite(draft.startedAt)
+      && Array.isArray(draft.responses) && draft.responses.length > 0 && draft.responses.length < 15) {
+      const responses = readResponses(draft.responses);
+      if (responses.length === draft.responses.length) assessmentDraft = { assessmentId: draft.assessmentId, seed: draft.seed, startedAt: draft.startedAt, responses };
     }
     const grownUpPicks: GrownUpPick[] = [];
     if (Array.isArray(value.grownUpPicks)) {
       for (const raw of value.grownUpPicks.slice(-MAX_GROWN_UP_PICKS)) {
         if (!raw || typeof raw !== 'object' || typeof raw.at !== 'number' || !Number.isFinite(raw.at)) continue;
         const valid = raw.kind === 'practice' ? validIds.has(raw.id) : raw.kind === 'checkin' && typeof raw.id === 'string' && knownAssessmentId(raw.id);
-        if (valid && !grownUpPicks.some((pick) => pick.kind === raw.kind && pick.id === raw.id)) grownUpPicks.push({ kind: raw.kind, id: raw.id, at: raw.at });
+        if (!valid || grownUpPicks.some((pick) => pick.kind === raw.kind && pick.id === raw.id)) continue;
+        const whole = (value: unknown, max: number) => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= max;
+        grownUpPicks.push({ kind: raw.kind, id: raw.id, at: raw.at,
+          ...(whole(raw.seed, Number.MAX_SAFE_INTEGER) ? { seed: raw.seed } : {}),
+          ...(whole(raw.index, GROWN_UP_PRACTICE_COUNT - 1) ? { index: raw.index } : {}),
+          ...(whole(raw.firstTry, GROWN_UP_PRACTICE_COUNT) ? { firstTry: raw.firstTry } : {}) });
       }
     }
     return {
@@ -1821,6 +1863,7 @@ export function loadProgress(): Progress {
       ...(value.placement && typeof value.placement === 'object' && Number.isInteger(value.placement.unit) && value.placement.unit >= 2 && value.placement.unit <= 9
         && typeof value.placement.at === 'number' && Number.isFinite(value.placement.at) ? { placement: { unit: value.placement.unit, at: value.placement.at } } : {}),
       ...(grownUpPicks.length ? { grownUpPicks } : {}),
+      ...(assessmentDraft ? { assessmentDraft } : {}),
     };
   } catch {
     return EMPTY_PROGRESS;

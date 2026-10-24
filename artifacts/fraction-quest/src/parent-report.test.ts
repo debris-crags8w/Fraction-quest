@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 import {
-  addGrownUpPick, clearGrownUpPick, EMPTY_PROGRESS, loadProgress, MAX_GROWN_UP_PICKS, MISSIONS, saveProgress,
+  addGrownUpPick, clearAssessmentDraft, clearGrownUpPick, saveAssessmentDraft, updateGrownUpPick, EMPTY_PROGRESS, loadProgress, MAX_GROWN_UP_PICKS, MISSIONS, saveProgress,
   type AssessmentAttempt, type Progress,
 } from './game';
 import { emptyLearningRecord, type LearningRecord } from './learning';
@@ -202,5 +202,49 @@ describe('grown-up picks', () => {
     ] });
     assert.deepEqual(loadProgress().grownUpPicks, [{ kind: 'checkin', id: 'grade-4-end', at: 8 }],
       'only the newest three are read, and the bad ones among them are dropped');
+  });
+});
+
+describe('leaving partway and coming back', () => {
+  const memory = new Map<string, string>();
+  beforeEach(() => {
+    memory.clear();
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: { localStorage: { getItem: (key: string) => memory.get(key) ?? null, setItem: (key: string, value: string) => memory.set(key, value), removeItem: (key: string) => memory.delete(key) } },
+    });
+  });
+  const response = (i: number) => ({ itemId: `unit-1-end-${i}`, standards: ['3.NF.1'], modelBuilt: true, correct: i % 2 === 0 });
+
+  it('keeps a Check-in left partway, with its questions and answers, through a reload', () => {
+    const draft = { assessmentId: 'unit-1-end', seed: 1234, startedAt: 5, responses: [response(0), response(1), response(2)] };
+    saveProgress(saveAssessmentDraft(EMPTY_PROGRESS, draft));
+    assert.deepEqual(loadProgress().assessmentDraft, draft);
+  });
+
+  it('drops the draft once that Check-in is finished, but not for another one', () => {
+    const progress = saveAssessmentDraft(EMPTY_PROGRESS, { assessmentId: 'unit-1-end', seed: 1, startedAt: 1, responses: [response(0)] });
+    assert.equal(clearAssessmentDraft(progress, 'unit-2-end'), progress);
+    assert.equal('assessmentDraft' in clearAssessmentDraft(progress, 'unit-1-end'), false);
+  });
+
+  it('reads no draft that is unknown, empty or already complete', () => {
+    for (const assessmentDraft of [
+      { assessmentId: 'unit-99-end', seed: 1, startedAt: 1, responses: [response(0)] },
+      { assessmentId: 'unit-1-end', seed: 1, startedAt: 1, responses: [] },
+      { assessmentId: 'unit-1-end', seed: 1, startedAt: 1, responses: Array.from({ length: 15 }, (_, i) => response(i)) },
+    ]) {
+      memory.set('fraction-quest-progress-v1', JSON.stringify({ ...EMPTY_PROGRESS, assessmentDraft }));
+      saveProgress({ ...EMPTY_PROGRESS, assessmentDraft } as Progress);
+      assert.equal(loadProgress().assessmentDraft, undefined, assessmentDraft.assessmentId);
+    }
+  });
+
+  it('keeps a picked practice\'s questions and place through a reload', () => {
+    let progress = addGrownUpPick(EMPTY_PROGRESS, 'practice', MISSIONS[1].id, 3);
+    progress = updateGrownUpPick(progress, 'practice', MISSIONS[1].id, { seed: 987, index: 2, firstTry: 1 });
+    saveProgress(progress);
+    assert.deepEqual(loadProgress().grownUpPicks, [{ kind: 'practice', id: MISSIONS[1].id, at: 3, seed: 987, index: 2, firstTry: 1 }]);
+    assert.equal(updateGrownUpPick(progress, 'practice', 'not-picked', { index: 1 }), progress);
   });
 });
