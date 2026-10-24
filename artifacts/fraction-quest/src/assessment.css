@@ -441,3 +441,4 @@
     display: none !important;
   }
 }
+.fq-assessment-resume { display: grid; gap: 6px; justify-items: center; }
