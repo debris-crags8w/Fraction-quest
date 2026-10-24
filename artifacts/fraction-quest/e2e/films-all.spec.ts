@@ -66,8 +66,10 @@ for (const reducedMotion of [false, true]) {
       await expect.poll(() => inReach('button-story-skip'), { message: `${name}: Skip is on screen` }).toBe(true);
       if (reducedMotion) {
         // Motion means anything changing but opacity: Reduce motion swaps the film's movement for short fades, which
-        // are fine.
+        // are fine. Reduce motion also cuts every other animation to 0.01 ms (it can't be seen), so one caught in that
+        // instant (a button's hover under the pointer) doesn't count.
         const running = await page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === 'running')
+          .filter((animation) => Number(animation.effect?.getComputedTiming().duration ?? 0) > 1)
           .filter((animation) => ((animation.effect as KeyframeEffect | null)?.getKeyframes() ?? [])
             .some((frame) => Object.keys(frame).some((property) => !['offset', 'computedOffset', 'easing', 'composite', 'opacity'].includes(property))))
           .map((animation) => `${(animation as CSSAnimation).animationName ?? (animation as CSSTransition).transitionProperty} on ${((animation.effect as KeyframeEffect).target as Element)?.className}`));
