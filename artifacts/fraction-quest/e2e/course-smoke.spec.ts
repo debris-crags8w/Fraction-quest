@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, openSettings, test } from './fixtures';
 import { CHALLENGES } from '../src/challenges';
 import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, getDueSkillReviewQuestions, MISSIONS } from '../src/game';
 import { compareFractions, WAR_ROUNDS, warHint } from '../src/concept-games';
@@ -745,6 +745,7 @@ async function openDeveloperTesting(page: import('@playwright/test').Page) {
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
+  await openSettings(page, 'Developer');
   await page.getByTestId('section-developer-testing').waitFor();
 }
 
@@ -2744,6 +2745,7 @@ test('Halloween: the night map, costumes earned by finishing lessons, candy poin
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
+  await openSettings(page, 'Reading and display');
   await page.getByTestId('checkbox-seasonal-themes').uncheck();
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
@@ -3018,6 +3020,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
   await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
   await page.getByTestId('button-parent-gate').click();
+  await openSettings(page, 'Reading and display');
   await page.getByTestId('checkbox-story-mode').uncheck();
   await page.goto('/');
   await expect(page.getByTestId('stone-banner')).toHaveCount(0);

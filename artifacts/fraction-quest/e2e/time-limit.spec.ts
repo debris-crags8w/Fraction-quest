@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './fixtures';
+import { expect, openSettings, test, type Page } from './fixtures';
 
 const dayKey = () => {
   const date = new Date();
@@ -73,6 +73,7 @@ test('the grown-ups page sets the daily limit and shows today’s minutes', asyn
   await page.getByTestId('button-app-menu').click();
   await page.getByTestId('button-open-parent').click();
   await passGate(page);
+  await openSettings(page, 'Daily time limit');
   const section = page.getByTestId('section-time-limit');
   await expect(section.getByTestId('time-limit-0')).toHaveAttribute('aria-pressed', 'true');
   await expect(section.getByTestId('time-limit-today')).toHaveText('Today: 12 minutes so far');

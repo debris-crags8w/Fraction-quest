@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './fixtures';
+import { expect, openSettings, test, type Page } from './fixtures';
 
 const dayKey = () => {
   const date = new Date();
@@ -41,6 +41,7 @@ async function openGrownUps(page: Page) {
 test('a grown-up sets the practice reminder on this phone', async ({ page }) => {
   await openInApp(page, { reminder: { time: null, days: [1, 2, 3, 4, 5], permission: 'undetermined' } });
   await openGrownUps(page);
+  await openSettings(page, 'Reminders');
   const section = page.getByTestId('section-reminder');
   await expect(section).toContainText('Nothing is sent to us.');
   await expect(section.getByTestId('reminder-day-1')).toBeDisabled();
@@ -84,6 +85,7 @@ test('tapping the reminder opens today’s practice, once', async ({ page }) => 
 test('in a browser there is no reminder section', async ({ page }) => {
   await openInApp(page, null);
   await openGrownUps(page);
+  await openSettings(page, 'Breaks');
   await expect(page.getByTestId('section-break-settings')).toBeVisible();
   await expect(page.getByTestId('section-reminder')).toHaveCount(0);
 });
