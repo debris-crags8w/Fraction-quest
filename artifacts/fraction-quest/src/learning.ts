@@ -3,7 +3,9 @@ import { answerMatches, getBuildChecks, getBuildPracticeChecks, getWorksheet, ty
 
 /** `wrongValue`: the answer last checked and found wrong. Checking that same answer again doesn't count as another
     mistake (a double tap on Check used to add extra reteach questions). */
-export type WorksheetEntry = { draft: string; checkedValue?: string; wrongValue?: string; attempts: number; supported: boolean };
+/** `for`: the answer of the question this was saved for. Rows are stored by number, so when a lesson's questions
+    change, an answer saved for the old question is dropped on loading instead of showing under the new one. */
+export type WorksheetEntry = { draft: string; checkedValue?: string; wrongValue?: string; attempts: number; supported: boolean; for?: string };
 export type CheckEvidence = { passed: boolean; supported: boolean; attempts: number };
 export type LearningRecord = {
   practiceDone?: boolean; checks: Record<string, CheckEvidence>; worksheet: Record<string, WorksheetEntry>;
@@ -167,9 +169,9 @@ export function lessonSteps(progress: Progress, id: string): { done: number; tot
   const done = checks.filter(check => record.checks[check.id]?.passed).length + (requiredWorksheetDone(record, id) ? 1 : 0);
   return { done: Math.min(done, total - 1), total };
 }
-export function editWorksheet(record: LearningRecord, problemId: string, draft: string): LearningRecord {
+export function editWorksheet(record: LearningRecord, problemId: string, draft: string, answer?: string): LearningRecord {
   const old = record.worksheet[problemId] ?? { draft: '', attempts: 0, supported: false };
-  return { ...record, worksheet: { ...record.worksheet, [problemId]: { ...old, draft, checkedValue: undefined, wrongValue: undefined } }, confirmedAt: undefined };
+  return { ...record, worksheet: { ...record.worksheet, [problemId]: { ...old, draft, checkedValue: undefined, wrongValue: undefined, ...(answer !== undefined ? { for: answer } : {}) } }, confirmedAt: undefined };
 }
 export function checkWorksheet(record: LearningRecord, problem: WorksheetProblem, trackMisconception = true): LearningRecord {
   const old = record.worksheet[problem.id] ?? { draft: '', attempts: 0, supported: false };
@@ -178,7 +180,7 @@ export function checkWorksheet(record: LearningRecord, problem: WorksheetProblem
   return { ...record,
     misconceptions: correct || !trackMisconception ? record.misconceptions : { ...record.misconceptions, [problem.hint]: (record.misconceptions[problem.hint] ?? 0) + 1 },
     worksheet: { ...record.worksheet, [problem.id]: { ...old, attempts: old.attempts + 1, supported: old.supported || !correct,
-      checkedValue: correct ? old.draft : undefined, wrongValue: correct ? undefined : old.draft } } };
+      checkedValue: correct ? old.draft : undefined, wrongValue: correct ? undefined : old.draft, for: problem.answer } } };
 }
 /** Check a lesson worksheet row. Every row is required, so every miss counts toward reteach practice. */
 export function checkLessonWorksheet(record: LearningRecord, problem: WorksheetProblem, _missionId: string): LearningRecord {

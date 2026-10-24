@@ -5,7 +5,7 @@ import { hasLearningGate, targetedPracticePlans, type LearningRecord } from './l
 import { gridCut, gridOverlap, type AreaCut, type AreaTask } from './area-shapes';
 import { amountsIn, autoPicture } from './auto-picture';
 import { gardenModel, type GardenSide } from './garden';
-import { asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
+import { answerMatches, asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 import { FRACTION_STANDARDS, standardsForMission, type StandardId } from './standard-catalog';
 import { scopedStorageKey } from './storage-scope';
 
@@ -1535,6 +1535,13 @@ function readRedo(raw: Partial<LearningRecord>): Pick<LearningRecord, 'redo' | '
 
 /** A saved answer left from an older version of the question: a fraction where the question now wants yes/no
     or a whole number. It is dropped so the child sees an empty box, not an old answer marked wrong. */
+/** The row's question changed since this answer was saved (a lesson update gave it new numbers): the answer was
+    saved for a different answer, or (saved before answers remembered that) it was checked right but the question
+    now marks it wrong. Such an answer is dropped, so the row starts blank. */
+export function changedQuestion(problem: WorksheetProblem, entry: { draft: string; checkedValue?: unknown; for?: unknown }): boolean {
+  if (typeof entry.for === 'string') return entry.for !== problem.answer;
+  return typeof entry.checkedValue === 'string' && entry.checkedValue === entry.draft && !!entry.draft.trim() && !answerMatches(problem, entry.draft);
+}
 export function staleDraft(problem: WorksheetProblem, draft: string): boolean {
   const said = draft.trim().toLowerCase();
   if (!said) return false;
@@ -1708,10 +1715,11 @@ export function loadProgress(): Progress {
         const worksheet: LearningRecord['worksheet'] = {};
         for (const problem of getWorksheet(id)) {
           const entry = raw.worksheet?.[problem.id];
-          if (entry && typeof entry.draft === 'string' && !staleDraft(problem, entry.draft)) worksheet[problem.id] = {
+          if (entry && typeof entry.draft === 'string' && !staleDraft(problem, entry.draft) && !changedQuestion(problem, entry)) worksheet[problem.id] = {
             draft: entry.draft.slice(0, 200), checkedValue: typeof entry.checkedValue === 'string' ? entry.checkedValue.slice(0, 200) : undefined,
             wrongValue: typeof entry.wrongValue === 'string' ? entry.wrongValue.slice(0, 200) : undefined,
             attempts: safeCount(entry.attempts), supported: entry.supported !== false,
+            ...(typeof entry.for === 'string' ? { for: entry.for.slice(0, 200) } : {}),
           };
         }
         const misconceptions: Record<string, number> = {};
@@ -1723,10 +1731,11 @@ export function loadProgress(): Progress {
         };
         for (const plan of targetedPracticePlans(id, baseRecord)) for (const problem of plan.problems) {
           const entry = raw.worksheet?.[problem.id];
-          if (entry && typeof entry.draft === 'string' && !staleDraft(problem, entry.draft)) worksheet[problem.id] = {
+          if (entry && typeof entry.draft === 'string' && !staleDraft(problem, entry.draft) && !changedQuestion(problem, entry)) worksheet[problem.id] = {
             draft: entry.draft.slice(0, 200), checkedValue: typeof entry.checkedValue === 'string' ? entry.checkedValue.slice(0, 200) : undefined,
             wrongValue: typeof entry.wrongValue === 'string' ? entry.wrongValue.slice(0, 200) : undefined,
             attempts: safeCount(entry.attempts), supported: entry.supported !== false,
+            ...(typeof entry.for === 'string' ? { for: entry.for.slice(0, 200) } : {}),
           };
         }
         learning[id] = {

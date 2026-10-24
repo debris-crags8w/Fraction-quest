@@ -248,3 +248,36 @@ describe('leaving partway and coming back', () => {
     assert.equal(updateGrownUpPick(progress, 'practice', 'not-picked', { index: 1 }), progress);
   });
 });
+
+describe('saved worksheet answers after a lesson is updated', () => {
+  const memory = new Map<string, string>();
+  beforeEach(() => {
+    memory.clear();
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: { localStorage: { getItem: (key: string) => memory.get(key) ?? null, setItem: (key: string, value: string) => memory.set(key, value), removeItem: (key: string) => memory.delete(key) } },
+    });
+  });
+  const row = getWorksheet('equal-parts').find((problem) => /\//.test(problem.answer))!;
+  const other = row.answer === '1/4' ? '1/3' : '1/4';
+  const save = (entry: Record<string, unknown>) => saveProgress({ ...EMPTY_PROGRESS,
+    learning: { 'equal-parts': { ...emptyLearningRecord(), practiceDone: true, worksheet: { [row.id]: entry } } } } as Progress);
+  const loaded = () => loadProgress().learning?.['equal-parts']?.worksheet[row.id];
+
+  it('drops an answer checked right for the old question that the new question marks wrong', () => {
+    save({ draft: other, checkedValue: other, attempts: 1, supported: false });
+    assert.equal(loaded(), undefined);
+  });
+
+  it('drops any answer saved for a different question (it remembers the answer it was given for)', () => {
+    save({ draft: '1/2', attempts: 0, supported: false, for: other });
+    assert.equal(loaded(), undefined);
+  });
+
+  it('keeps answers for the same question, wrong ones included', () => {
+    save({ draft: '1/2', wrongValue: '1/2', attempts: 1, supported: true, for: row.answer });
+    assert.equal(loaded()?.draft, '1/2');
+    save({ draft: row.answer, checkedValue: row.answer, attempts: 1, supported: false });
+    assert.equal(loaded()?.draft, row.answer);
+  });
+});
