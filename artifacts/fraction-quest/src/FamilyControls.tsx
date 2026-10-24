@@ -34,10 +34,8 @@ const titleFor = (unitId: string, titles?: string[]) => {
   const number = Number(unitId.replace(/\D/g, ''));
   return titles?.[number - 1] ? `Unit ${number} · ${titles[number - 1]}` : `Unit ${number || unitId.replace('unit-', '')}`;
 };
-const errorText = (error: unknown, fallback: string) => {
-  const data = (error as { data?: { error?: unknown } } | null)?.data;
-  return typeof data?.error === 'string' ? data.error : error instanceof Error ? error.message : fallback;
-};
+/** The server's own message, or the fallback (never a raw response: see errorMessage). */
+const errorText = errorMessage;
 
 export default function FamilyControls({ unitTitles }: FamilyControlsProps) {
   const account = useAccount();

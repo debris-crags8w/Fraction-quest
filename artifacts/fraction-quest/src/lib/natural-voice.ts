@@ -334,11 +334,11 @@ function withTimeout<T>(operation: Promise<T>, timeoutMs: number, message: strin
   });
 }
 
-/** Reads sentences one after another. All of them are made first, so playback never waits mid-reading. */
+/** Reads sentences one after another. It starts once the first two are ready; the rest keep loading meanwhile. */
 export function createNaturalSpeaker(
   makeAudio: (url: string) => HTMLAudioElement = sharedAudio,
   voiceOverride?: NaturalVoiceId,
-  /** How long to wait for every sentence to be ready (tests use a short wait). */
+  /** How long to wait for the first sentences, and then for each one after (tests use a short wait). */
   allReadyWaitMs = 12_000,
 ) {
   let playback = 0;
@@ -355,9 +355,11 @@ export function createNaturalSpeaker(
   };
   const GENERATION_TIMEOUT_MS = 30_000; // a new sentence on a busy server; cached ones are instant
   const PLAYBACK_TIMEOUT_MS = 45_000;
-  // Every sentence is made before the first one plays, so the reading never stalls mid-story. If they aren't all
-  // ready by then (a slow server and no voice pack file), the caller reads it with the device voice instead.
+  // The reading starts once its first two sentences are ready, while the rest keep loading. Waiting for every one
+  // first kept a long film silent on a slow connection (the iPad website). A sentence still not ready this long
+  // after its turn ends the reading, and the caller carries on without it.
   const ALL_READY_WAIT_MS = allReadyWaitMs;
+  const LEAD = 2;
   /** Safari can pause a clip on its own (other audio starting, the tab briefly in the background). The clip is
       started again from where it stopped, a few times; a pause from stop() is not one of these. */
   const SAFARI_RESUMES = 3;
@@ -448,11 +450,16 @@ export function createNaturalSpeaker(
       };
       (async () => {
         try {
-          const clips = await withTimeout(Promise.all(parts.map(make)), ALL_READY_WAIT_MS, 'The voice took too long to get ready')
+          const pending = parts.map(make);
+          pending.forEach((clip) => { clip.catch(() => undefined); }); // a failure is reported when its turn comes
+          const arrive = (clips: Promise<Clip>[]) => withTimeout(Promise.all(clips), ALL_READY_WAIT_MS, 'The voice took too long to get ready')
             .catch((error) => { throw isSpeakerFailure(error) ? error : speakerFailure('generating', error); });
+          await arrive(pending.slice(0, LEAD));
           for (let i = 0; i < parts.length; i++) {
             if (mine !== playback) return;
-            const url = URL.createObjectURL(clips[i].toBlob()); urls.push(url);
+            const [clip] = await arrive([pending[i]]);
+            if (mine !== playback) return;
+            const url = URL.createObjectURL(clip.toBlob()); urls.push(url);
             const audio = makeAudio(url); current = audio;
             try {
               await waitForPlayback(audio, () => { onPhase?.('playing'); try { onPart?.(i); } catch { /* a follower must not stop the reading */ } });

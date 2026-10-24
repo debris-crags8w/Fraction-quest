@@ -470,3 +470,31 @@ test('with the device voice, leaving a screen stops the reading even where cance
   await new Promise((resolve) => setTimeout(resolve, 150));
   assert.deepEqual(spoken, ['One.'], 'no sentence after the screen went');
 });
+
+test('on a slow connection the voice starts once the first sentences are ready, while the rest still load', async () => {
+  const { createNaturalSpeaker, setNaturalEngineForTests, setNaturalVoicePreference } = await import('./lib/natural-voice');
+  setNaturalVoicePreference('af_heart');
+  // The first two clips come at once; the last one takes 180 ms, longer than the 150 ms wait for "ready".
+  setNaturalEngineForTests({ generate: (text) => new Promise((resolve) => setTimeout(() => resolve({ toBlob: () => new Blob([text]) }), text === 'Three.' ? 180 : 5)) });
+  const played: string[] = [];
+  const audio = {
+    src: '', paused: true, ended: false, onended: null as null | (() => void), onpause: null as null | (() => void),
+    play() { played.push(this.src); const src = this.src; setTimeout(() => { if (this.src === src) this.onended?.(); }, 40); return Promise.resolve(); },
+    pause() { this.paused = true; },
+  };
+  let n = 0;
+  const originalUrl = URL.createObjectURL;
+  URL.createObjectURL = () => `blob:${++n}`;
+  try {
+    const started = Date.now();
+    let firstAt = 0;
+    const ok = await new Promise<boolean>((resolve) => createNaturalSpeaker((url) => { audio.src = url; return audio as unknown as HTMLAudioElement; }, undefined, 150)
+      .speak(['One.', 'Two.', 'Three.'], resolve, undefined, undefined, (index) => { if (index === 0) firstAt = Date.now() - started; }));
+    assert.equal(ok, true, 'the whole reading played');
+    assert.deepEqual(played, ['blob:1', 'blob:2', 'blob:3']);
+    assert.ok(firstAt < 150, `the first sentence started at ${firstAt} ms, before the slow clip arrived`);
+  } finally {
+    URL.createObjectURL = originalUrl;
+    setNaturalEngineForTests(null);
+  }
+});

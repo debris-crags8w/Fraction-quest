@@ -1121,9 +1121,9 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         if (i >= 9 && variant % 2 === 1) {
           visual = undefined; task = undefined; modelRequired = false;
           if (i === 9) {
-            prompt = 'Color 2 of the 4 triangles. What fraction of the square did you color?'; answer = '2/4';
-            area = { cut: 'fourths-triangles' }; areaTask = { n: 2, d: 4 };
-            hint = 'The 4 triangles are the same size. Count the ones you colored.';
+            prompt = 'What fraction of the square is shaded?'; answer = '2/4';
+            area = { cut: 'fourths-triangles', shaded: [0, 1] };
+            hint = 'The 4 triangles are the same size. Count all of them, then the shaded ones.';
           } else if (i === 10) {
             prompt = 'What fraction of the square do the 2 shaded triangles cover?'; answer = '1/4';
             area = { cut: 'quarter-and-triangles', shaded: [1, 2] };
@@ -1134,9 +1134,10 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
             hint = 'Look at the left half and the right half. How is each half cut?'; why = MIXED_FOURTHS_WHY;
           }
         } else if (i === 9) {
-          prompt = 'Color 1/4 of the square. Any way that works is fine. What fraction did you color?'; answer = '1/4';
-          area = { cut: 'quarter-and-triangles' }; areaTask = { n: 1, d: 4 }; visual = undefined; task = undefined; modelRequired = false;
-          hint = 'The small square is 1/4. Two triangles together are also 1/4.';
+          // The picture is shaded already: telling the child what to color and then asking what they colored gives it away.
+          prompt = 'What fraction of the square is the shaded small square?'; answer = '1/4';
+          area = { cut: 'quarter-and-triangles', shaded: [0] }; visual = undefined; task = undefined; modelRequired = false;
+          hint = 'How many small squares this size would fill the whole square? Two triangles fill one of them.';
         } else if (i === 10) {
           prompt = 'Color 1/4 of the square using only triangles. How many triangles did you color?'; answer = '2';
           area = { cut: 'quarter-and-triangles' }; areaTask = { n: 1, d: 4, avoid: [0] }; visual = undefined; task = undefined; modelRequired = false;
@@ -1153,6 +1154,8 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           'What fraction of this bar model is shaded?';
         answer = i % 3 === 0 ? String(n) : i % 3 === 1 ? String(d) : value;
         visual = model(n, d); modelRequired = true;
+        // "How many equal parts make one whole?" counts every part (copying the shading would answer a different question).
+        if (i % 3 === 1) task = { kind: 'count', n: d };
         // The last one uses a circle: fractions name parts of any whole, not only bars.
         if (i === 11 && circleCut(d) && n < d) {
           prompt = 'What fraction of this circle is shaded?'; visual = undefined; modelRequired = false;
@@ -1594,10 +1597,10 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           // Practice uses rows 1, 4, 7 and 10: these steps give them four different shapes and amounts.
           const shape = cuts[(tr * 2 + Math.floor(tr / 3)) % cuts.length]; const shaded = 1 + (Math.floor(i / 3) % (shape.parts - 1));
           const setting = ['paper design', 'classroom poster', 'garden map', 'window panel', 'quilt square', 'tile pattern', 'greeting card', 'floor plan', 'art print', 'flag design', 'mosaic panel', 'shape puzzle'][i];
-          // The child counts the parts in the picture: the words never say how many there are.
-          prompt = `This ${shape.whole} is on a ${setting}. Color ${shaded} ${shaded === 1 ? 'part' : 'parts'}. What fraction of the ${shape.whole} is colored?`;
-          answer = f(shaded, shape.parts); area = { cut: shape.cut }; areaTask = { n: shaded, d: shape.parts };
-          hint = 'Count all the equal parts first. Then count the parts you colored.';
+          // The child counts the parts in the picture: the words never say how many there are, or how many are colored.
+          prompt = `This ${shape.whole} is on a ${setting}. What fraction of the ${shape.whole} is colored?`;
+          answer = f(shaded, shape.parts); area = { cut: shape.cut, shaded: Array.from({ length: shaded }, (_, k) => k) };
+          hint = 'Count all the equal parts first. Then count the colored parts.';
         }
         break;
       }

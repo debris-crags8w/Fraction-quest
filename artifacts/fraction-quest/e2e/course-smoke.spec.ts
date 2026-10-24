@@ -68,28 +68,23 @@ async function localStorageSnapshot(page: import('@playwright/test').Page) {
   });
 }
 
-test('a question that says to color pieces lets the child tap them, then answer', async ({ page }) => {
+test('a "what fraction is colored" question shows the colored parts, so the child counts them before answering', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'fraction-of-area');
   if (!mission) throw new Error('Equal-area lesson is missing');
   const question = mission.questions[0];
-  const count = Number(/Color (\d+) parts?\./.exec(question.prompt)?.[1]);
-  expect(count).toBeGreaterThan(0);
+  // The words never say how many parts to color: that would give the answer away.
+  expect(question.prompt).not.toMatch(/\bColor \d/);
+  expect(question.model.kind).toBe('area');
   await openAsGuest(page);
   await openDeveloperLesson(page, mission);
   await skipIntros(page);
 
-  const shade = page.getByTestId('question-model-area').getByTestId('area-shade');
-  await expect(shade).toBeVisible();
-  for (let piece = 1; piece <= count; piece++) await shade.getByTestId(`button-area-piece-${piece}`).click();
-  await expect(shade.getByTestId(`button-area-piece-${count}`)).toHaveAttribute('aria-pressed', 'true');
-  await expect(shade.getByTestId('status-area')).toHaveText(`${count} ${count === 1 ? 'piece' : 'pieces'} colored.`);
-
+  const picture = page.getByTestId('question-model-area');
+  await expect(picture).toBeVisible();
+  await expect(picture.getByTestId('area-shade')).toHaveCount(0);
   await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
   await page.getByTestId('button-check-answer').click();
   await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
-  // The coloring stays, and is locked once the question is answered.
-  await expect(shade.getByTestId('button-area-piece-1')).toHaveAttribute('aria-pressed', 'true');
-  await expect(shade.getByTestId('button-area-piece-3')).toHaveAttribute('tabindex', '-1');
 });
 
 test('the garden lesson draws each garden to scale: side lengths outside, part areas only on the worked example', async ({ page }) => {
@@ -3304,4 +3299,51 @@ test('a Build check shows its question as a task card that scrolls with the page
 
   // The task card scrolls with the page like everything else (it used to stick to the top of the screen).
   expect(await task.evaluate((node) => getComputedStyle(node).position)).not.toBe('sticky');
+});
+
+test('once a worksheet bar matches, the answer tiles stay open, and a bar that stops matching says why', async ({ page }) => {
+  test.setTimeout(90_000);
+  const mission = MISSIONS.find((item) => item.id === 'fraction-names')!;
+  await page.addInitScript((progress) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+  }, progressBefore(mission));
+  await openAsGuest(page);
+  await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await passStory(page);
+  await expect(page.getByTestId('learning-lab')).toBeVisible();
+  await completeBuilds(page, mission.id);
+  const [first, second] = getWorksheet(mission.id);
+  const row = page.getByTestId(`row-worksheet-${first.id}`);
+  await buildWorksheetModel(page, first);
+  await row.getByTestId(`tile-ws-${first.id}-digit-1`).click();
+  // One part too many: the bar no longer matches, but the tiles and the answer stay usable.
+  await row.getByTestId('button-copy-part-2').click();
+  await expect(row.getByTestId('status-copy-model')).toContainText('Your bar has 2 colored parts. The bar above has 1.');
+  await expect(row.getByTestId(`tile-ws-${first.id}-digit-2`)).toBeEnabled();
+  await expect(row.getByTestId(`button-check-worksheet-${first.id}`)).toBeEnabled();
+
+  // "How many equal parts make one whole?": counting every part opens the tiles.
+  expect(second.task?.kind).toBe('count');
+  const next = page.getByTestId(`row-worksheet-${second.id}`);
+  await expect(next.getByTestId(`tile-ws-${second.id}-digit-4`)).toBeDisabled();
+  await buildWorksheetModel(page, second);
+  await expect(next.getByTestId(`tile-ws-${second.id}-digit-4`)).toBeEnabled();
+});
+
+test('on a tablet, a review question shows its topic as a small tag above the question, not run into it', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await openAsGuest(page);
+  // The review heading, drawn the way a lesson question draws it.
+  await page.evaluate(() => {
+    const heading = document.createElement('h1');
+    heading.className = 'fq-question-text';
+    heading.innerHTML = '<span class="fq-review-prefix">Quick review · Equal-area partitions</span>What fraction of the hexagon is colored?';
+    const app = document.createElement('div'); app.className = 'fq-app fq-lesson-app'; app.append(heading);
+    document.body.append(app);
+  });
+  const prefix = page.locator('.fq-review-prefix').last();
+  expect(await prefix.evaluate((node) => getComputedStyle(node).display)).toBe('block');
+  const tag = await prefix.evaluate((node) => parseFloat(getComputedStyle(node).fontSize));
+  const title = await page.locator('h1.fq-question-text').last().evaluate((node) => parseFloat(getComputedStyle(node).fontSize));
+  expect(tag).toBeLessThan(title * 0.75);
 });
