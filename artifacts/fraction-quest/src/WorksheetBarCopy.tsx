@@ -25,6 +25,20 @@ const STATUS: Record<BarTask['kind'], [string, string]> = {
   shade: ['Shade the parts to open the answer tiles.', 'Nice shading! Now build your answer.'],
 };
 
+/** What the status line says while the bar doesn't match yet: what is different, not only what to do. */
+export function barTaskStatus(task: BarTask, target: LearningModel, shaded: boolean[], touched: boolean): string {
+  const k = shaded.filter(Boolean).length;
+  const parts = (count: number) => `${count} colored ${count === 1 ? 'part' : 'parts'}`;
+  if (!touched) return STATUS[task.kind][0];
+  if (task.kind === 'copy') {
+    if (target.kind !== 'bar') return STATUS.copy[0];
+    return k === target.n ? 'Same number of parts. Now color them from the left, like the bar above.'
+      : `Your bar has ${parts(k)}. The bar above has ${target.n}.`;
+  }
+  if (task.kind === 'shade') return `You shaded ${k}. Shade ${task.n}.`;
+  return STATUS.count[0];
+}
+
 export function canEnterWorksheetAnswer(modelRequired: boolean, modelMatches: boolean): boolean {
   return !modelRequired || modelMatches;
 }
@@ -83,7 +97,7 @@ export function WorksheetBarCopy({ target, task = { kind: 'copy', n: target.n },
         ))}
       </div>
       <p id={statusId} className={`fq-ll-copy-status ${matches ? 'matched' : ''}`} role="status" aria-live="polite" data-testid="status-copy-model">
-        {task.kind === 'count' && !matches && order.length ? `Counted ${order.length}. ` : ''}{STATUS[task.kind][matches ? 1 : 0]}
+        {task.kind === 'count' && !matches && order.length ? `Counted ${order.length}. ` : ''}{matches ? STATUS[task.kind][1] : barTaskStatus(task, target, shaded, touched)}
       </p>
     </section>
   );

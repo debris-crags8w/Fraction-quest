@@ -134,3 +134,23 @@ test('practice reaches each lesson’s own skill (teacher review, PR 4)', () => 
   const shapes = new Set(getWorksheet('multi-step-fraction-stories').map((row) => /jug|farther|left|empty/.exec(row.prompt)?.[0]));
   assert.ok(shapes.has('jug') && shapes.has('farther'));
 });
+
+test('a bar step fits its question: "how many equal parts make one whole?" counts every part, it does not copy the shading', () => {
+  for (const mission of MISSIONS) for (const variant of [0, 1, 2, 3]) for (const problem of getWorksheet(mission.id, variant)) {
+    if (!/how many equal parts make one whole/i.test(problem.prompt) || !problem.task) continue;
+    const parts = problem.model && 'd' in problem.model ? (problem.model as { d: number; wholes: number }).d * (problem.model as { d: number; wholes: number }).wholes : 0;
+    assert.deepEqual([problem.task.kind, problem.task.n], ['count', parts], `${mission.id} ${problem.id} (variant ${variant}): ${problem.prompt}`);
+  }
+});
+
+test('no question tells the child how many parts to color and then asks what fraction is colored (that gives the answer away)', async () => {
+  const { STORY_PROBLEMS } = await import('./story');
+  const giveaway = /\bColou?r (\d+|one|two|three)\b(?! of the square)[^.]*\.[^?]*What fraction[^?]*(colou?red|did you colou?r)\?/i;
+  const prompts: [string, string][] = [];
+  for (const mission of MISSIONS) {
+    for (const question of mission.questions) prompts.push([`${mission.id} practice`, question.prompt]);
+    for (const variant of [0, 1, 2, 3]) for (const problem of getWorksheet(mission.id, variant)) prompts.push([`${mission.id} ${problem.id} v${variant}`, problem.prompt]);
+  }
+  for (const [id, problem] of Object.entries(STORY_PROBLEMS)) prompts.push([`story ${id}`, (problem as { prompt: string }).prompt]);
+  assert.deepEqual(prompts.filter(([, prompt]) => giveaway.test(prompt)).map(([where, prompt]) => `${where}: ${prompt}`), []);
+});

@@ -97,3 +97,23 @@ test('new account shows session recovery guidance after the recovery code is sav
   await expect(page.getByTestId('text-login-error')).toHaveCount(0);
   await expect(page.getByTestId('recovery-code-card')).toHaveCount(0);
 });
+
+test('when the sign-in server is not reachable (a web page comes back instead), the child sees a plain message, never the page itself', async ({ page }) => {
+  await page.route('**/api/**', async (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (pathname === '/api/auth/login') {
+      await route.fulfill({ status: 404, contentType: 'text/html', body: '<!DOCTYPE html><html lang="en"><head><title>Run this app to see the results here.</title></head><body></body></html>' });
+      return;
+    }
+    await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Not signed in.' }) });
+  });
+  await page.goto('/');
+  await page.getByTestId('tab-sign-in').click();
+  await page.getByTestId('input-username').fill('goldenlobster');
+  await page.getByTestId('input-password').fill('x');
+  await page.getByTestId('button-login-submit').click();
+  const error = page.getByTestId('text-login-error');
+  await expect(error).toHaveText("Couldn't reach Fraction Quest to sign in. Check your connection and try again in a minute.");
+  await expect(error).not.toContainText('HTTP');
+  await expect(error).not.toContainText('<');
+});

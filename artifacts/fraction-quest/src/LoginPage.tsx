@@ -59,10 +59,12 @@ export default function LoginPage({ notice, onSignedIn, onGuest }: { notice?: st
       if (creating && 'recoveryCode' in user && typeof user.recoveryCode === 'string') { setCodeToSave(user as UserWithRecoveryCode); setBusy(false); return; }
       await onSignedIn(user);
     } catch (err) {
-      const fallback = creating ? "Couldn't create the account. Check your connection and try again." : "Couldn't sign in. Check your connection and try again.";
+      // Only the server's own message is shown; anything else (no connection, the server not running) gets a plain one.
+      const fallback = creating ? "Couldn't reach Fraction Quest to create the account. Check your connection and try again in a minute."
+        : "Couldn't reach Fraction Quest to sign in. Check your connection and try again in a minute.";
       const status = (err as { status?: unknown } | null)?.status;
       setUsernameAlreadyExists(creating && status === 409);
-      setError(errorMessage(err, '') || (err instanceof Error && err.message ? err.message : fallback));
+      setError(errorMessage(err, fallback));
       setBusy(false);
     }
   };

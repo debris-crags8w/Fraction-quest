@@ -6,7 +6,7 @@ import { KokoroDiagnostic, showVoiceSelfTest } from './KokoroDiagnostic';
 import { MathText } from './MathText';
 import { execAll } from './lib/regexp';
 import { selectLearningVoice as selectGentleVoice, sentences, spokenText, VOICE_PITCH, VOICE_RATE } from './lib/voice';
-import { createNaturalSpeaker, NATURAL_VOICES, naturalVoiceId, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, prefetchNaturalVoice, setNaturalVoicePreference, unlockAudioPlayback, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoicePhase, type NaturalVoiceStatus } from './lib/natural-voice';
+import { createNaturalSpeaker, voiceLogEntries, NATURAL_VOICES, naturalVoiceId, naturalVoicePreference, naturalVoiceReady, naturalVoiceStatus, onNaturalVoiceStatus, prefetchNaturalVoice, setNaturalVoicePreference, unlockAudioPlayback, warmUpNaturalVoice, type NaturalVoiceId, type NaturalVoicePhase, type NaturalVoiceStatus } from './lib/natural-voice';
 
 type VocabularyEntry = { pattern: string; definition: string };
 
@@ -217,24 +217,28 @@ export function createLearningSpeechController(
     const finish = () => {
       if (playback === generation) { setSpeaking(false); following?.onEnd?.(); }
     };
-    // One utterance per sentence: the voice pauses between them, and Chrome doesn't cut off long readings.
-    try {
-      setSpeaking(true);
-      parts.forEach((part, index) => {
-        const utterance = makeUtterance(part);
+    // One utterance per sentence: the voice pauses between them, and Chrome doesn't cut off long readings. Each one
+    // is handed over only when the one before ends: Safari's cancel() stops the sentence being read but not ones
+    // already queued, so a reading queued all at once went on after its screen had closed.
+    const say = (index: number) => {
+      if (disposed || playback !== generation) return;
+      if (index >= parts.length) { finish(); return; }
+      try {
+        const utterance = makeUtterance(parts[index]);
         if (voice) utterance.voice = voice;
         utterance.lang = voice?.lang || language;
         utterance.rate = VOICE_RATE;
         utterance.pitch = VOICE_PITCH;
-        if (index === parts.length - 1) utterance.onend = finish;
+        utterance.onend = () => say(index + 1);
         if (following?.onPart) utterance.onstart = () => { if (playback === generation) following.onPart?.(offset + index); };
         utterance.onerror = finish;
         synthesis.speak(utterance);
-      });
-      if (!parts.length) finish();
-    } catch {
-      finish();
-    }
+      } catch {
+        finish();
+      }
+    };
+    setSpeaking(true);
+    say(0);
   };
 
   return {
@@ -425,6 +429,7 @@ function NaturalVoiceSettings() {
       )}
       <p className="fq-parent-note" role="status" data-testid="status-natural-voice">{statusText}</p>
       {showVoiceSelfTest() && <KokoroDiagnostic />}
+      {showVoiceSelfTest() && <VoiceLog />}
       {(
         <div className="fq-natural-voice-actions">
           {(status.state === 'idle' || status.state === 'error') && <button type="button" className="fq-button ghost" onClick={() => { void warmUpNaturalVoice(); }} data-testid="button-download-natural-voice">Connect now</button>}
@@ -437,6 +442,25 @@ function NaturalVoiceSettings() {
           : 'Preparing your voice preview…'}
       </p>}
       {previewMessage && <p className="fq-learning-voice-fallback" role="alert" data-testid="status-natural-voice-preview">{previewMessage}</p>}
+    </div>
+  );
+}
+
+/** The voice self-test's record of how each clip arrived and played on this device (newest last). */
+function VoiceLog() {
+  const [entries, setEntries] = useState(voiceLogEntries);
+  const [copied, setCopied] = useState(false);
+  const text = entries.map((entry) => `${new Date(entry.at).toLocaleTimeString()} ${entry.event}: ${entry.detail}`).join('\n');
+  const copy = async () => { try { await navigator.clipboard.writeText(text); setCopied(true); } catch { setCopied(false); } };
+  return (
+    <div className="fq-voice-log" data-testid="voice-log">
+      <h3 className="fq-learning-voice-subhead">Voice log</h3>
+      <p className="fq-parent-note">Watch a film, then come back here. Each line shows where a clip came from and how long it took, and any clip the browser paused or refused.</p>
+      <pre data-testid="voice-log-text">{text || 'Nothing yet.'}</pre>
+      <div className="fq-natural-voice-actions">
+        <button type="button" className="fq-button ghost" onClick={() => { setEntries(voiceLogEntries()); setCopied(false); }}>Refresh</button>
+        <button type="button" className="fq-button ghost" onClick={copy} disabled={!text}>{copied ? 'Copied' : 'Copy'}</button>
+      </div>
     </div>
   );
 }

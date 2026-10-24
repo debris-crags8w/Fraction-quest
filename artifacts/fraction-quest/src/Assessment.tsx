@@ -16,13 +16,16 @@ import {
   assessmentResponse, buildAssessmentItems, getAssessmentDefinitions, ASSESSMENT_ITEM_COUNT,
   type AssessmentDefinition, type AssessmentItem,
 } from './assessments';
-import type { AssessmentAttempt } from './game';
+import type { AssessmentAttempt, AssessmentDraft } from './game';
 import { LearningListenButton, LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
 
-export function AssessmentHub({ attempts, onStart, onBack }: {
+export function AssessmentHub({ attempts, draft, onStart, onBack }: {
   attempts: AssessmentAttempt[];
-  onStart: (definition: AssessmentDefinition) => void;
+  /** A Check-in left partway: its card offers to pick up where the child stopped. */
+  draft?: AssessmentDraft;
+  /** `fresh`: start again with new questions instead of resuming. */
+  onStart: (definition: AssessmentDefinition, fresh?: boolean) => void;
   onBack: () => void;
 }) {
   const definitions = useMemo(getAssessmentDefinitions, []);
@@ -45,9 +48,18 @@ export function AssessmentHub({ attempts, onStart, onBack }: {
           {latest && <p className="fq-assessment-last">Most recent: {correct} of {checked} correct · {new Date(latest.completedAt).toLocaleDateString()}</p>}
           <small>{definition.standards.length} standards · {ASSESSMENT_ITEM_COUNT} model-and-answer questions</small>
         </div>
-        <button className="fq-button" onClick={() => onStart(definition)} data-testid={`button-start-${definition.id}`}>
-          {latest ? 'Try again' : 'Start'} {latest ? <RotateCcw size={16} /> : <ArrowRight size={16} />}
-        </button>
+        {draft?.assessmentId === definition.id ? (
+          <div className="fq-assessment-resume">
+            <button className="fq-button" onClick={() => onStart(definition)} data-testid={`button-resume-${definition.id}`}>
+              Resume · question {draft.responses.length + 1} of {ASSESSMENT_ITEM_COUNT} <ArrowRight size={16} />
+            </button>
+            <button type="button" className="fq-link-button" onClick={() => onStart(definition, true)} data-testid={`button-restart-${definition.id}`}>Start over</button>
+          </div>
+        ) : (
+          <button className="fq-button" onClick={() => onStart(definition)} data-testid={`button-start-${definition.id}`}>
+            {latest ? 'Try again' : 'Start'} {latest ? <RotateCcw size={16} /> : <ArrowRight size={16} />}
+          </button>
+        )}
       </article>
     );
   });
@@ -166,20 +178,26 @@ function ReadOnlyArea({ figure, onReady }: { figure: NonNullable<AssessmentItem[
   return <section className="fq-assessment-model fq-assessment-picture"><AreaSvg figure={figure} /></section>;
 }
 
-export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
-  definition: AssessmentDefinition; seed: number; onComplete: (attempt: AssessmentAttempt) => void; onExit: () => void;
+export function AssessmentRunner({ definition, seed, resume, onProgress, onComplete, onExit }: {
+  definition: AssessmentDefinition; seed: number;
+  /** Picking up a Check-in left partway: the answers so far (same seed, so the same questions). */
+  resume?: AssessmentDraft;
+  /** After each answer but the last: saved, so leaving picks up at the next question. */
+  onProgress?: (draft: AssessmentDraft) => void;
+  onComplete: (attempt: AssessmentAttempt) => void; onExit: () => void;
 }) {
   const items = useMemo(() => buildAssessmentItems(definition, seed), [definition, seed]);
-  const [index, setIndex] = useState(0);
+  const resumed = resume && resume.assessmentId === definition.id && resume.seed === seed && resume.responses.length < items.length ? resume : null;
+  const [index, setIndex] = useState(resumed?.responses.length ?? 0);
   useScrollTopOn(index);
   const [answer, setAnswer] = useState('');
   const submitRef = useRef<HTMLButtonElement>(null);
   useRevealWhen(submitRef, !!answer.trim());
   const [modelBuilt, setModelBuilt] = useState(false);
   const [modelCorrect, setModelCorrect] = useState(false);
-  const [responses, setResponses] = useState<AssessmentAttempt['responses']>([]);
+  const [responses, setResponses] = useState<AssessmentAttempt['responses']>(resumed?.responses ?? []);
   const [result, setResult] = useState<AssessmentAttempt | null>(null);
-  const [startedAt] = useState(() => Date.now());
+  const [startedAt] = useState(() => resumed?.startedAt ?? Date.now());
   const item = items[index];
   const modelReady = useCallback((ready: boolean, correct = ready) => { setModelBuilt(ready); setModelCorrect(correct); }, []);
   if (result) {
@@ -215,6 +233,7 @@ export function AssessmentRunner({ definition, seed, onComplete, onExit }: {
       return;
     }
     setResponses(nextResponses);
+    onProgress?.({ assessmentId: definition.id, seed, startedAt, responses: nextResponses });
     setIndex(current => current + 1);
     setAnswer('');
     setModelBuilt(false);
