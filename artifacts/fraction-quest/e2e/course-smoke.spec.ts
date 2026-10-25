@@ -147,6 +147,47 @@ test('the dimes and pennies lesson teaches on a hundredths grid, then asks about
   await expect(coins.locator('.fq-coin.is-dime')).toHaveCount(6);
 });
 
+/** A lesson with ideas keeps its worked example under "How it works" on the lesson page: open the page as a returning
+    child (earlier lessons done, the model intros seen, practice done) and unfold it. */
+async function openLessonPageWorkedExample(page: import('@playwright/test').Page, mission: Mission) {
+  await page.addInitScript((progress) => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+    localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ introsSeen: { builder: true, line: true }, fractionWordsSeen: true }));
+  }, progressBefore(mission));
+  await openAsGuest(page);
+  await expectMissionStart(page, mission.id, true);
+  await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await passStory(page);
+  await expect(page.getByTestId('learning-lab')).toBeVisible();
+  await page.getByTestId('button-how-it-works').click();
+  await page.getByTestId('button-worked-example').click();
+  await expect(page.getByTestId('lesson-example').locator('.fq-model-area')).toBeVisible();
+}
+
+test('a lesson with ideas keeps its Learn pictures and worked example under "How it works" on the lesson page', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mission = MISSIONS[0];
+  expect(lessonIdeas(mission.id)).toBeTruthy();
+  await openLessonPageWorkedExample(page, mission);
+  const pageWidth = () => page.evaluate(() => document.documentElement.scrollWidth);
+  const how = page.getByTestId('lesson-how-it-works');
+  await expect(how.getByTestId('button-how-it-works')).toHaveAttribute('aria-expanded', 'true');
+  const example = how.getByTestId('lesson-example');
+  await expect(example).toContainText('When are they fourths?');
+  await expect(example.locator('.fq-example-answer').getByRole('button', { name: 'Listen to the whole example' })).toBeVisible();
+  // The Learn pictures are folded beside it, and play the lesson's steps.
+  const learn = how.getByTestId('how-learn-pictures');
+  await learn.locator('summary').click();
+  await expect(learn.getByTestId('lesson-introduction')).toBeVisible();
+  // Opened, it makes the page no wider on a phone. Folding it again leaves the lesson page as it was.
+  const openWidth = await pageWidth();
+  await how.getByTestId('button-how-it-works').click();
+  await expect(how.getByTestId('lesson-example')).toHaveCount(0);
+  expect(openWidth).toBeLessThanOrEqual(await pageWidth());
+});
+
 test('the ordering lesson explains its strategy before showing a distinct worked model', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
