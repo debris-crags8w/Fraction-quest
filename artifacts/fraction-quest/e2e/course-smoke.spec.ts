@@ -97,7 +97,7 @@ test('a "what fraction is colored" question shows the colored parts, so the chil
   await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
 });
 
-test('the garden lesson draws each garden to scale: side lengths outside, part areas only on the worked example', async ({ page }) => {
+test('the garden lesson draws each garden to scale: side lengths outside, no part areas in a question', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'multiply-mixed-numbers');
   if (!mission) throw new Error('Garden lesson is missing');
   await page.setViewportSize({ width: 390, height: 664 });
@@ -105,13 +105,14 @@ test('the garden lesson draws each garden to scale: side lengths outside, part a
   await openDeveloperLesson(page, mission);
   await skipIntros(page);
 
-  const example = page.getByTestId('lesson-example').getByTestId('garden-plan');
-  await expect(example).toBeVisible();
-  await expect(example.locator('.fq-garden-part-label')).toHaveCount(4);
+  // Idea 1's Learn pages, then its first practice: a garden question.
+  for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
+  expect(ideaQuestion(mission, 'multiply-mixed-numbers-p1')!.model.kind).toBe('garden');
   const question = page.getByTestId('question-model-area').getByTestId('garden-plan');
   await expect(question).toBeVisible();
   await expect(question.locator('.fq-garden-part-label')).toHaveCount(0);
-  // 1 1/2 m by 2 1/2 m: the longer side runs across, drawn to scale.
+  // 2 1/3 m by 1 1/4 m: the longer side runs across, drawn to scale.
   await expect(question.getByTestId('garden-width')).toContainText('m');
   const box = await question.locator('svg').boundingBox();
   expect(box && box.width / box.height).toBeGreaterThan(1.5);
