@@ -15,8 +15,16 @@
 .fq-ts-row { display: flex; flex-direction: column; gap: 6px; transition: opacity .45s ease, transform .45s ease; }
 .fq-ts-row.is-hidden, .fq-ts-text.is-hidden, .fq-ts-pair.is-hidden { opacity: 0; transform: translateX(-24px); }
 .fq-ts-label { font-weight: 800; font-size: 0.95rem; }
-.fq-ts-label.is-fair { color: var(--ts-check); }
-.fq-ts-label.is-unfair { color: #A4520F; }
+.fq-ts-label.is-fair { color: #23700F; }
+.fq-ts-label.is-unfair { color: #B42318; }
+.fq-ts-tone-mark { display: inline-flex; vertical-align: -3px; margin-right: 6px; }
+/* Unfair or wrong pictures are crossed out and faded; fair or right ones get a green ring, so the right answer stands out. */
+.fq-ts-cross { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); z-index: 2; pointer-events: none; overflow: visible; }
+.fq-ts-cross line { stroke: #D92D20; stroke-width: 5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.fq-ts-row.is-unfair .fq-ts-bar > :not(.fq-ts-cross), .fq-ts-row.is-unfair .fq-ts-area { opacity: .5; }
+.fq-ts-row.is-fair .fq-ts-bar { box-shadow: 0 0 0 4px color-mix(in srgb, #2F9E44 55%, transparent); }
+.fq-ts-row.is-fair .fq-ts-area { filter: drop-shadow(0 0 3px #2F9E44) drop-shadow(0 0 1px #2F9E44); }
+.fq-ts-area-wrap { position: relative; display: inline-flex; }
 
 .fq-ts-bar { position: relative; display: flex; height: 56px; border: 3px solid var(--ts-ink); border-radius: 10px; background: var(--ts-whole); }
 .fq-ts-part { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0;

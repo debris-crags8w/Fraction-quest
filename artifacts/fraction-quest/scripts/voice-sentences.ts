@@ -6,6 +6,7 @@ import { MISSIONS } from '../src/game';
 import { LESSON_INTROS, lessonIntroScript } from '../src/lesson-intros';
 import { LESSON_SCENES, sceneSentences, teachPageScript } from '../src/teach-scenes';
 import { TEACH_EXTRAS, wordsScript } from '../src/teach-extras';
+import { LESSON_IDEAS, learnScript } from '../src/lesson-ideas';
 import { getBuildChecks, getBuildPracticeChecks, getReviewCheck, getWorksheet } from '../src/learning-content';
 import { getExtraPractice } from '../src/practice-bank';
 import { partFinderRoundsFor, PART_FINDER_ROUNDS } from '../src/part-finder';
@@ -146,6 +147,10 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
     const extras = TEACH_EXTRAS[mission.id];
     if (intro && extras?.words?.length) addLine('lesson', `${intro.goal} ${wordsScript(extras.words)}`);
     for (const example of extras?.examples ?? []) addLine('lesson', [`${example.title}.`, ...sceneSentences(example.picture)].join(' '));
+    // Learn one idea, practise it three times: each Learn page (the first idea's first page also says the goal).
+    (LESSON_IDEAS[mission.id] ?? []).forEach((idea, i) => idea.learn.forEach((page, p) => {
+      addLine('lesson', i === 0 && p === 0 && intro ? `${intro.goal} ${learnScript(page)}` : learnScript(page));
+    }));
     const line = mission.example.numberLine;
     if (line) addLine('lesson', numberLineDescription(line.points, line.benchmark, line.equivalentNames));
     // Lab: model feedback, hints and what is still wrong, for each required and optional Build target.

@@ -70,7 +70,8 @@ import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
 import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
-import { LessonIntroCard, TeachFirst } from './lesson-intro';
+import { IdeaLearn, LessonIntroCard, TeachFirst } from './lesson-intro';
+import { ideaPracticeQuestions, ideaSteps, lessonIdeas } from './lesson-ideas';
 import { LESSON_INTROS } from './lesson-intros';
 import { StoryCharacter } from './characters';
 import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, hintLead, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
@@ -94,7 +95,7 @@ import { getRouterBasePath } from './app-routing';
 import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyPracticeDay, recordDailyPracticeStart } from './daily-practice';
 import PartFinder from './PartFinder';
 import FractionSortActivity from './FractionSortActivity';
-import { PART_FINDER_LESSONS, partFinderRoundsFor } from './part-finder';
+import { PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderRoundsFor } from './part-finder';
 import type { LessonGame } from './ConceptGames';
 import { BrainBreakOffer } from './BrainBreakOffer';
 import { downloadWholeVoicePack, naturalVoiceId, warmUpNaturalVoice } from './lib/natural-voice';
@@ -121,7 +122,8 @@ const queryClient = new QueryClient();
 
 type View =
   | { type: 'map' }
-  | { type: 'play'; missionId: string; questionIndex: number; firstTryAnswers: number; reviewQuestions: PracticeQuestion[]; showExample?: boolean }
+  | { type: 'play'; missionId: string; questionIndex: number; firstTryAnswers: number; reviewQuestions: PracticeQuestion[]; showExample?: boolean;
+      /** A lesson with ideas: this idea's Learn page was read (its first practice shows next). */ learned?: boolean }
   /** A lesson's Teach first screen (goal, steps, why), the first time it starts; Next opens the lesson's first step. */
   | { type: 'teach'; missionId: string; then: 'play' | 'hands-on' | 'fraction-sort'; reviewQuestions: PracticeQuestion[] }
   | { type: 'intro-steps'; missionId: string; then: 'play' | 'hands-on' | 'fraction-sort'; reviewQuestions: PracticeQuestion[] }
@@ -915,6 +917,7 @@ function PlayView({
   isExtraPractice = false,
   starEligibleQuestionIds,
   onFinishReview,
+  kicker,
 }: {
   mission: Mission;
   questionIndex: number;
@@ -934,6 +937,8 @@ function PlayView({
   isExtraPractice?: boolean;
   starEligibleQuestionIds?: string[];
   onFinishReview?: () => void;
+  /** A lesson with ideas: "Lesson 01 · Idea 2 of 4 · Practise 1 of 3" instead of the question count. */
+  kicker?: ReactNode;
 }) {
   const [selection, setSelection] = useState<Answer | null>(null);
   const [feedback, setFeedback] = useState<'correct' | 'retry' | null>(null);
@@ -1103,7 +1108,9 @@ function PlayView({
         <div className="fq-lesson-top">
           <button className="fq-icon-button fq-lesson-close" onClick={onBack} aria-label="Back to learning map" data-testid="button-back-map"><X size={22} strokeWidth={3} /></button>
           <div className="fq-segments" role="group" aria-label={`Lesson question progress: ${doneSteps} of ${steps} completed`} data-testid="status-lesson-progress">
-            {Array.from({ length: steps }, (_, index) => index < doneSteps
+            {Array.from({ length: steps }, (_, index) => index < doneSteps && !mission.questions[index]?.choices.length
+              ? <span key={index} className="fq-segment on" aria-hidden="true" />
+              : index < doneSteps
               ? <button key={index} type="button" className="fq-segment on" onClick={() => setReviewingPastIndex(index)} aria-label={`Review completed question ${index + 1}`} title={`Review question ${index + 1}`} data-testid={`button-review-question-${index + 1}`} />
               : <span key={index} className={`fq-segment ${index === doneSteps ? 'now' : ''}`} aria-hidden="true" />)}
             <span className="fq-sr" aria-live="polite">Question {Math.min(questionIndex + 1, steps)} of {steps}; {doneSteps} completed.</span>
@@ -1132,13 +1139,13 @@ function PlayView({
             {question?.storySetup && <span className="fq-story-problem-tag" data-testid="story-problem-tag">Story problem</span>}
             {/* Phones show the checkpoint here, in the top line, instead of on a row of its own. */}
             {question?.isMastery && <span className="fq-checkpoint-tag" aria-hidden="true">Checkpoint</span>}
-            {isQuickReview
+            {kicker ?? (isQuickReview
               ? `Quick skill review · ${question?.reviewTopicTitle ?? mission.shortTitle} · Question ${questionIndex + 1} of ${mission.questions.length}`
               : isExtraPractice
                 ? `Practice more · Lesson ${lessonNumber} · Question ${questionIndex + 1} of ${mission.questions.length}`
               : showExample
                 ? <>Lesson {lessonNumber}<span className="fq-kicker-topic"> · {mission.shortTitle} · See it, then try it</span> · Question {questionIndex + 1} of {mission.questions.length}</>
-                : <>Lesson {lessonNumber}<span className="fq-kicker-topic"> · {mission.shortTitle}</span> · Question {questionIndex + 1} of {mission.questions.length}</>}
+                : <>Lesson {lessonNumber}<span className="fq-kicker-topic"> · {mission.shortTitle}</span> · Question {questionIndex + 1} of {mission.questions.length}</>)}
           </p>
           {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
             {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
@@ -1266,6 +1273,21 @@ function PastQuestionReview({
       </button>
     </div>
   );
+}
+
+/** A lesson's practice: its questions (the last told as its story problem), up to 4 extra ones and the review. A lesson
+    with ideas has each idea's 3 practices instead, then the review and (in story mode) its story problem. */
+function lessonPlayQuestions(mission: Mission, reviewQuestions: PracticeQuestion[], storyOn: boolean, theme: PropTheme): PracticeQuestion[] {
+  const last = mission.questions[mission.questions.length - 1]!;
+  const story = storyQuestion(mission, last, storyOn, theme);
+  // Its last question was already asked in an idea, so the story problem gets its own id (stars count each question once).
+  if (lessonIdeas(mission.id)) return [...ideaPracticeQuestions(mission), ...reviewQuestions, ...(story === last ? [] : [{ ...story, id: `${last.id}-story`, reviewQuestionId: last.id }])];
+  return [
+    ...mission.questions.slice(0, -1),
+    ...(hasGenerator(mission.id) ? getExtraPractice(mission.id, mission.questions.map((q) => q.id)).slice(0, EXTRA_IN_LESSON) : []),
+    ...reviewQuestions,
+    story,
+  ];
 }
 
 /** A lesson's last question as its story problem (story mode): same model, answer and numbers, told in the chapter
@@ -1532,8 +1554,7 @@ function Game() {
     const at = record.practiceAt;
     if (!testProgress && !record.practiceDone && at && at.index > 0 && mission) {
       const reviewQuestions = getDelayedReviewQuestions(activeProgress, missionId);
-      const extra = hasGenerator(missionId) ? getExtraPractice(missionId, mission.questions.map((q) => q.id)).slice(0, EXTRA_IN_LESSON).length : 0;
-      if (at.index < mission.questions.length + extra + reviewQuestions.length) {
+      if (at.index < lessonPlayQuestions(mission, reviewQuestions, storyMode, propTheme(activeSeason(fun)?.id)).length) {
         setView({ type: 'play', missionId, questionIndex: at.index, firstTryAnswers: at.firstTry, reviewQuestions });
         return;
       }
@@ -1556,7 +1577,15 @@ function Game() {
       return;
     }
     const reviewQuestions = getDelayedReviewQuestions(activeProgress, missionId);
-    const first = missionId === 'order-unlike-fractions' ? 'fraction-sort' : PART_FINDER_LESSONS.has(missionId) ? 'hands-on' : 'play';
+    // A lesson with ideas teaches each idea right before its practice (its hands-on rounds are practices of an idea).
+    const first = lessonIdeas(missionId) ? 'play' : missionId === 'order-unlike-fractions' ? 'fraction-sort' : PART_FINDER_LESSONS.has(missionId) ? 'hands-on' : 'play';
+    if (lessonIdeas(missionId)) {
+      if (!fun.lessonIntrosSeen?.includes(missionId)) setFun((current) => recordLessonIntro(current, missionId));
+      // A child's first lesson: how the models work and their names (Watch, Words, Try) come before idea 1.
+      if (introsDue(fun.introsSeen).toTry.length || !fun.fractionWordsSeen) setView({ type: 'intro-steps', missionId, then: first, reviewQuestions });
+      else openLessonStart(missionId, first, reviewQuestions);
+      return;
+    }
     // The first time a lesson starts, it teaches first: the goal, the steps and why. Later it stays under "How it works".
     if (!fun.lessonIntrosSeen?.includes(missionId)) {
       setView({ type: 'teach', missionId, then: first, reviewQuestions });
@@ -1566,7 +1595,7 @@ function Game() {
   };
   /** A lesson's first step: the ordering cards, the hands-on rounds, or the worked example with question 1. */
   const openLessonStart = (missionId: string, first: 'play' | 'hands-on' | 'fraction-sort', reviewQuestions: PracticeQuestion[]) => {
-    if (first === 'play') setView({ type: 'play', missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions, showExample: true });
+    if (first === 'play') setView({ type: 'play', missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions, showExample: !lessonIdeas(missionId) });
     else setView({ type: first, missionId, reviewQuestions });
   };
   /** Swap in temporary progress for a test; returnToMap puts the real progress (and fun) back, saving nothing. */
@@ -1683,15 +1712,7 @@ function Game() {
       ? getMission(view.reviewQuestions[0].reviewMissionId!)
       : null;
   const activeMission = view.type === 'play' && baseMission
-    ? {
-        ...baseMission,
-        questions: [
-          ...baseMission.questions.slice(0, -1),
-          ...(hasGenerator(baseMission.id) ? getExtraPractice(baseMission.id, baseMission.questions.map((q) => q.id)).slice(0, EXTRA_IN_LESSON) : []),
-          ...view.reviewQuestions,
-          storyQuestion(baseMission, baseMission.questions[baseMission.questions.length - 1], storyMode, propTheme(activeSeason(fun)?.id)),
-        ],
-      }
+    ? { ...baseMission, questions: lessonPlayQuestions(baseMission, view.reviewQuestions, storyMode, propTheme(activeSeason(fun)?.id)) }
     : view.type === 'review' && baseMission
       ? { ...baseMission, questions: view.reviewQuestions }
       : baseMission;
@@ -1948,43 +1969,70 @@ function Game() {
           onWorksheetCorrect={onWorksheetAnswerCorrect}
           onLab={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? getLearningRecord(progress, view.missionId).practiceStars ?? 1 })} />
       )}
-      {(view.type === 'play' || view.type === 'review') && activeMission && (
+      {(view.type === 'play' || view.type === 'review') && activeMission && (() => {
+        // A lesson with ideas: an idea's Learn page comes before its first practice, and a hands-on practice is a cake round.
+        const ideas = view.type === 'play' ? lessonIdeas(view.missionId) : undefined;
+        const steps = view.type === 'play' ? ideaSteps(view.missionId) : [];
+        const ideaCount = steps.length;
+        const ideaStep = view.type === 'play' ? steps[view.questionIndex] : undefined;
+        const lessonLabel = String(MISSIONS.findIndex((mission) => mission.id === activeMission.id) + 1).padStart(2, '0');
+        const starIds = ideas
+          ? activeMission.questions.filter((question, i) => !(steps[i] && 'handsOn' in steps[i]!.item) && !question.isOptionalReview && !question.isReview).map((question) => question.id)
+          : baseMission?.questions.map((question) => question.id) ?? [];
+        const finishPlay = (stars: number) => {
+          const record = getLearningRecord(progress, activeMission.id);
+          persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceDone: true, practiceAt: undefined, practiceStars: Math.max(stars, record.practiceStars ?? 0) }));
+          setView({ type: 'lab', missionId: activeMission.id, stars });
+          if (breakIntervalMinutes > 0) setBreakReason('lesson-part');
+        };
+        const nextPlay = (firstTryAnswers: number) => {
+          if (view.type !== 'play') return;
+          if (view.questionIndex + 1 >= activeMission.questions.length) { finishPlay(starsFromFirstTryAnswers(firstTryAnswers, starIds.length)); return; }
+          // Remember the place, so a reload or the back button comes back to this question.
+          if (!moduleTestActive) {
+            const record = getLearningRecord(progress, activeMission.id);
+            if (!record.practiceDone) persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceAt: { index: view.questionIndex + 1, firstTry: firstTryAnswers } }));
+          }
+          setView({ type: 'play', missionId: activeMission.id, questionIndex: view.questionIndex + 1, firstTryAnswers, reviewQuestions: view.reviewQuestions });
+        };
+        if (view.type === 'play' && ideas && ideaStep && ideaStep.practice === 0 && !view.learned) {
+          return <IdeaLearn key={`${activeMission.id}-learn-${ideaStep.idea}`} mission={activeMission} lessonNumber={Number(lessonLabel)} idea={ideas[ideaStep.idea]!}
+            ideaIndex={ideaStep.idea} ideaCount={ideas.length} onExit={returnToMap} onPractise={() => setView({ ...view, learned: true })} />;
+        }
+        if (view.type === 'play' && ideas && ideaStep && 'handsOn' in ideaStep.item) {
+          const round = partFinderRoundsFor(activeMission.id).find((item) => item.id === (ideaStep.item as { handsOn: string }).handsOn)
+            ?? PART_FINDER_ROUNDS.find((item) => item.id === (ideaStep.item as { handsOn: string }).handsOn)!;
+          const chapter = chapterFor(activeMission.unit);
+          const idea = ideas[ideaStep.idea]!;
+          return <PartFinder key={`${activeMission.id}-${view.questionIndex}`} rounds={[round]} lessonLabel={`Lesson ${lessonLabel}`} activityTitle={idea.title}
+            progress={{ step: ideaStep.practice + 1, total: idea.practice.length, label: 'Practise', kicker: `Lesson ${lessonLabel} · Idea ${ideaStep.idea + 1} of ${ideas.length} · Practise ${ideaStep.practice + 1} of ${idea.practice.length}` }}
+            onExit={returnToMap} onDone={() => nextPlay(view.firstTryAnswers)}
+            onSkip={progress.completedMissionIds.includes(activeMission.id) || hasLearningGate(progress, activeMission.id) ? () => nextPlay(view.firstTryAnswers) : undefined}
+            {...(storyMode && chapter ? {
+              friends: storyCast(chapter),
+              storyLine: (result: 'correct' | 'retry' | null) => <StorySay chapter={chapter} questionId={`${activeMission.id}-hands-on-${round.id}`} result={result} setup={HANDS_ON_ASKS[round.id]} />,
+            } : {})} />;
+        }
+        return (
         <PlayView
           key={`${activeMission.id}-${view.questionIndex}`}
           mission={activeMission}
-          starEligibleQuestionIds={view.type === 'play' && baseMission ? baseMission.questions.map((question) => question.id) : undefined}
+          starEligibleQuestionIds={view.type === 'play' && baseMission ? starIds : undefined}
           questionIndex={view.questionIndex}
           showExample={view.type === 'play' && view.showExample}
           firstTryAnswers={view.type === 'play' ? view.firstTryAnswers : 0}
           isQuickReview={view.type === 'review'}
           combo={combo}
           onBack={returnToMap}
+          kicker={ideaStep && ideas ? <><span className="fq-kicker-topic">Lesson {lessonLabel} · </span>Idea {ideaStep.idea + 1} of {ideas.length} · Practise {ideaStep.practice + 1} of {ideas[ideaStep.idea]!.practice.length}</>
+            : ideas && view.type === 'play' ? <>Lesson {lessonLabel} · Put it together · Question {view.questionIndex - ideaCount + 1} of {activeMission.questions.length - ideaCount}</> : undefined}
           onCorrect={onPracticeCorrect}
           onWrong={onPracticeWrong}
           onNext={(firstTryAnswers) => {
-            if (view.type === 'review') {
-              nextReviewView({ type: 'review', questionIndex: view.questionIndex + 1, reviewQuestions: view.reviewQuestions });
-            } else {
-              // Remember the place, so a reload or the back button comes back to this question.
-              if (!moduleTestActive) {
-                const record = getLearningRecord(progress, activeMission.id);
-                if (!record.practiceDone) persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceAt: { index: view.questionIndex + 1, firstTry: firstTryAnswers } }));
-              }
-              setView({
-                type: 'play',
-                missionId: activeMission.id,
-                questionIndex: view.questionIndex + 1,
-                firstTryAnswers,
-                reviewQuestions: view.reviewQuestions,
-              });
-            }
+            if (view.type === 'review') nextReviewView({ type: 'review', questionIndex: view.questionIndex + 1, reviewQuestions: view.reviewQuestions });
+            else nextPlay(firstTryAnswers);
           }}
-          onFinish={(stars) => {
-            const record = getLearningRecord(progress, activeMission.id);
-            persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceDone: true, practiceAt: undefined, practiceStars: Math.max(stars, record.practiceStars ?? 0) }));
-            setView({ type: 'lab', missionId: activeMission.id, stars });
-            if (breakIntervalMinutes > 0) setBreakReason('lesson-part');
-          }}
+          onFinish={finishPlay}
           onFinishReview={view.type === 'review' ? () => nextReviewView({ type: 'review-complete', reviewedCount: view.reviewQuestions.length }) : undefined}
           onMissed={(missionId, questionId) => persistProgress(recordMissedSkill(progress, missionId, questionId))}
           onReviewCompleted={(missionId) => {
@@ -2000,7 +2048,8 @@ function Game() {
               misconceptions: misconception ? { ...record.misconceptions, [misconception]: (record.misconceptions[misconception] ?? 0) + 1 } : record.misconceptions }));
           }}
         />
-      )}
+      );
+      })()}
       {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId, fromLab: true })} onRedo={(part) => startRedoPart(view.missionId, part)} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
       {view.type === 'redo' && <RedoLab missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? 1 })} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
       {view.type === 'retention' && <LearningLab key={`retention-${view.startedAt}`} review missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onFinish={(updated) => {

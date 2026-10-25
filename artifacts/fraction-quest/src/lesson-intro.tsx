@@ -4,7 +4,8 @@ import type { Mission } from './game';
 import { LESSON_INTROS, lessonIntroScript, type LessonIntro } from './lesson-intros';
 import { LearningListenButton, LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
-import { AnimatedLessonIntro } from './TeachScene';
+import { AnimatedLessonIntro, IdeaLearnCard } from './TeachScene';
+import type { LessonIdea } from './lesson-ideas';
 import { LESSON_SCENES } from './teach-scenes';
 
 /** The goal, the steps and why the method works: on the Teach first screen, and under "How it works" later. A lesson
@@ -52,6 +53,23 @@ export function TeachFirst({ mission, lessonNumber, onNext, onExit }: { mission:
             Next: see it <ArrowRight size={18} aria-hidden="true" />
           </button>
         )}
+      </main>
+    </div>
+  );
+}
+
+/** An idea's Learn page, right before its 3 practices: "Lesson 01 · Idea 2 of 4 · Learn", the idea, its pictures. */
+export function IdeaLearn({ mission, lessonNumber, idea, ideaIndex, ideaCount, onPractise, onExit }: {
+  mission: Mission; lessonNumber: number; idea: LessonIdea; ideaIndex: number; ideaCount: number; onPractise: () => void; onExit: () => void;
+}) {
+  return (
+    <div className="fq-app">
+      <main className="fq-shell fq-teach-shell" data-testid="idea-learn-screen">
+        <TaskBar onBack={onExit} backLabel="Map" backAriaLabel={`Back to the map (leaves Lesson ${String(lessonNumber).padStart(2, '0')})`} testId="button-idea-exit"
+          title={mission.title} step={ideaIndex + 1} total={ideaCount} done={ideaIndex} sequenceLabel="Idea" />
+        <p className="fq-play-kicker" data-testid="idea-kicker">Lesson {String(lessonNumber).padStart(2, '0')} · Idea {ideaIndex + 1} of {ideaCount} · Learn</p>
+        <h1 className="fq-teach-title">{idea.title}</h1>
+        <IdeaLearnCard key={ideaIndex} pages={idea.learn} goal={ideaIndex === 0 ? LESSON_INTROS[mission.id]?.goal : undefined} onPractise={onPractise} />
       </main>
     </div>
   );

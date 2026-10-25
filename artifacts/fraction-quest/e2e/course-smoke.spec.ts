@@ -8,7 +8,9 @@ import { BUILD_ERROR_HEADINGS } from '../src/lab-copy';
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
 import { AREA_CUTS, areaTaskDone, pieceArea } from '../src/area-shapes';
 import { generateQuestions, getExtraPractice, hasGenerator } from '../src/practice-bank';
-import { isPartFinderAnswer, PART_FINDER_LESSONS, partFinderRoundsFor, type PartFinderRound } from '../src/part-finder';
+import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderRoundsFor, type PartFinderRound } from '../src/part-finder';
+import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
+import { STORY_PROBLEMS, chapterFor } from '../src/story';
 import { makeSprint } from '../src/CodeSprint';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
@@ -747,7 +749,7 @@ async function openDeveloperTesting(page: import('@playwright/test').Page) {
 
 async function openDeveloperLesson(page: import('@playwright/test').Page, mission: Mission) {
   await openDeveloperTesting(page);
-  await page.evaluate(async ({ id, title, isPartFinder, isFractionOrder }) => {
+  await page.evaluate(async ({ id, title, isPartFinder, isFractionOrder, isIdeas }) => {
     const settleReactUpdate = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
     const selector = document.querySelector<HTMLSelectElement>('[data-testid="select-developer-lesson"]');
     if (!selector) throw new Error('The developer lesson selector is missing');
@@ -775,6 +777,12 @@ async function openDeveloperLesson(page: import('@playwright/test').Page, missio
     const introSkip = document.querySelector<HTMLButtonElement>('[data-testid="intro-steps"] [data-testid="button-intro-skip"]');
     if (introSkip) { introSkip.click(); await settleReactUpdate(); }
 
+    // A lesson with ideas opens on its first idea's Learn page (the lesson's name is in the bar).
+    if (isIdeas) {
+      if (!document.querySelector('[data-testid="idea-learn-screen"]')) throw new Error(`${title} did not open on its first idea`);
+      if (document.querySelector<HTMLElement>('.fq-taskbar-title')?.textContent?.trim() !== title) throw new Error(`Expected to open ${title}`);
+      return;
+    }
     const titleSelector = isPartFinder
       ? '.fq-pf-lesson-example .fq-example-heading'
       : isFractionOrder
@@ -794,6 +802,7 @@ async function openDeveloperLesson(page: import('@playwright/test').Page, missio
     title: mission.title,
     isPartFinder: PART_FINDER_LESSONS.has(mission.id),
     isFractionOrder: mission.id === 'order-unlike-fractions',
+    isIdeas: !!lessonIdeas(mission.id),
   });
 }
 
@@ -876,42 +885,64 @@ function partFinderSolution(round: PartFinderRound): { assignment?: number[]; se
 }
 
 async function completePartFinderLesson(page: import('@playwright/test').Page, missionId: string) {
-  if (missionId === 'equal-parts') {
-    const introduction = page.getByTestId('first-fraction-introduction');
-    await expect(introduction).toBeVisible();
-    await expect(introduction.getByRole('heading', { name: 'Meet fractions with Numi' })).toBeVisible();
-    await expect(page.getByTestId('first-fraction-intro-model').getByRole('img', { name: 'One whole divided into four equal-size parts' })).toBeVisible();
-    await expect(introduction.getByTestId('button-listen-learning-text')).toBeVisible();
+  await expect(page.getByTestId('first-fraction-introduction')).toHaveCount(0);
+  for (const round of partFinderRoundsFor(missionId)) await solvePartFinderRound(page, round);
+}
+
+async function solvePartFinderRound(page: import('@playwright/test').Page, round: PartFinderRound) {
+  const solution = partFinderSolution(round);
+  if (solution.assignment) {
+    for (const [index, share] of solution.assignment.entries()) {
+      if (share > 0) await page.getByTestId(`button-part-finder-share-${share + 1}`).click();
+      const piece = page.getByTestId(`button-part-finder-piece-${index + 1}`);
+      await piece.focus();
+      await piece.press('Enter');
+    }
   } else {
-    await expect(page.getByTestId('first-fraction-introduction')).toHaveCount(0);
-  }
-  for (const round of partFinderRoundsFor(missionId)) {
-    const solution = partFinderSolution(round);
-    if (solution.assignment) {
-      for (const [index, share] of solution.assignment.entries()) {
-        if (share > 0) await page.getByTestId(`button-part-finder-share-${share + 1}`).click();
-        const piece = page.getByTestId(`button-part-finder-piece-${index + 1}`);
-        await piece.focus();
-        await piece.press('Enter');
-      }
-    } else {
-      for (const index of solution.selected) {
-        const piece = page.getByTestId(`button-part-finder-piece-${index + 1}`);
-        await piece.focus();
-        await piece.press('Enter');
-      }
-      if (solution.tileCount !== undefined) {
-        await page.getByTestId('slot-part-finder-tile-count-n').click();
-        for (const digit of String(solution.tileCount)) {
-          await page.getByTestId(`tile-part-finder-tile-count-digit-${digit}`).click();
-        }
+    for (const index of solution.selected) {
+      const piece = page.getByTestId(`button-part-finder-piece-${index + 1}`);
+      await piece.focus();
+      await piece.press('Enter');
+    }
+    if (solution.tileCount !== undefined) {
+      await page.getByTestId('slot-part-finder-tile-count-n').click();
+      for (const digit of String(solution.tileCount)) {
+        await page.getByTestId(`tile-part-finder-tile-count-digit-${digit}`).click();
       }
     }
-    await page.getByTestId('button-part-finder-check').click();
-    await expect(page.getByTestId('part-finder-feedback')).toContainText('That fits!');
-    await page.getByTestId('button-part-finder-next').click();
+  }
+  await page.getByTestId('button-part-finder-check').click();
+  await expect(page.getByTestId('part-finder-feedback')).toContainText('That fits!');
+  await page.getByTestId('button-part-finder-next').click();
+}
+
+/** A lesson with ideas: each idea's Learn pages, then its 3 practices (questions answered right, cake rounds solved). */
+async function completeIdeas(page: import('@playwright/test').Page, mission: Mission, { beforeRound, until }: { beforeRound?: () => Promise<void>; until?: number } = {}) {
+  const steps = ideaSteps(mission.id);
+  const ideas = lessonIdeas(mission.id)!;
+  for (const [index, { idea, practice, item }] of steps.entries()) {
+    if (index === until) return;
+    if (practice === 0) {
+      await expect(page.getByTestId('idea-kicker')).toHaveText(`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')} · Idea ${idea + 1} of ${ideas.length} · Learn`);
+      for (let p = 1; p < ideas[idea]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+      await page.getByTestId('button-idea-practise').click();
+    }
+    await expect(page.getByTestId('idea-kicker').or(page.locator('.fq-play-kicker')).first()).toContainText(`Idea ${idea + 1} of ${ideas.length}`);
+    if ('handsOn' in item) {
+      await beforeRound?.();
+      await solvePartFinderRound(page, PART_FINDER_ROUNDS.find((round) => round.id === item.handsOn)!);
+      continue;
+    }
+    const question = ideaQuestion(mission, item.question)!;
+    await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
+    await page.getByTestId('button-check-answer').click();
+    await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+    await page.getByTestId(index === steps.length - 1 && !hasStoryAfterIdeas(mission) ? 'button-finish-mission' : 'button-next-question').click();
   }
 }
+
+/** Story mode tells a lesson's last question as its story problem; a lesson with ideas asks it after them. */
+const hasStoryAfterIdeas = (mission: Mission) => !!STORY_PROBLEMS[mission.id] && !!chapterFor(mission.unit);
 
 async function completeFractionOrderLesson(page: import('@playwright/test').Page) {
   const firstRound = FRACTION_ORDER_ROUNDS[0];
@@ -1496,34 +1527,32 @@ test('a new learner can start a lesson from the top of the course', async ({ pag
 
   await page.getByTestId(`button-start-mission-${MISSIONS[0].id}`).click();
   await passStory(page);
-  await expect(page.locator('.fq-taskbar-title')).toHaveText('Make fair shares');
-  const firstIntro = page.getByTestId('first-fraction-introduction');
-  await expect(firstIntro).toBeVisible();
-  await expect(firstIntro.getByRole('heading', { name: 'Meet fractions with Numi' })).toBeVisible();
-  await expect(firstIntro.getByText(/A fraction shows equal parts of one whole/)).toBeVisible();
-  await expect(page.getByTestId('first-fraction-intro-model').getByRole('img', { name: 'One whole divided into four equal-size parts' })).toBeVisible();
-  await expect(firstIntro.getByTestId('button-listen-learning-text')).toBeVisible();
-  await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
-  await expect(page.locator('.fq-pf-lesson-example .fq-example-heading')).toHaveText(MISSIONS[0].title);
-  await expect(page.getByTestId('button-listen-learning-text').first()).toBeVisible();
-  await expect(page.locator('.fq-pf-intro-part').first()).toHaveCSS('animation-name', 'fq-pf-piece-reveal');
+  // Learn one idea, practise it three times: lesson 1 opens on its first idea's Learn page.
+  await expect(page.locator('.fq-taskbar-title')).toHaveText(MISSIONS[0].title);
+  await expect(page.getByTestId('idea-kicker')).toHaveText('Lesson 01 · Idea 1 of 4 · Learn');
+  await expect(page.getByRole('heading', { name: 'Equal parts are the same size' })).toBeVisible();
+  await expect(page.locator('.fq-ts-goal')).toContainText('Tell when the parts of a whole');
+  await expect(page.getByTestId('teach-step-text')).toContainText('Look at one whole');
+  await expect(page.getByTestId('idea-learn').getByTestId('button-listen-learning-text')).toBeVisible();
+  await expect(page.getByTestId('teach-scene')).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(100);
 });
 
-test('the first fraction introduction stays complete when reduced motion is enabled', async ({ page }) => {
+test('an idea’s Learn picture opens complete when reduced motion is enabled', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openAsGuest(page);
   await page.getByTestId(`button-start-mission-${MISSIONS[0].id}`).click();
   await passStory(page);
-
-  await expect(page.getByTestId('first-fraction-introduction')).toBeVisible();
-  await expect(page.getByTestId('first-fraction-intro-model').getByRole('img', { name: 'One whole divided into four equal-size parts' })).toBeVisible();
-  await expect(page.locator('.fq-pf-intro-part')).toHaveCount(4);
-  await expect(page.locator('.fq-pf-intro-part').first()).toHaveCSS('animation-name', 'none');
-  await expect(page.getByTestId('button-part-finder-exit')).toBeVisible();
+  await page.getByTestId('button-teach-step-next').click();
+  const scene = page.getByTestId('teach-scene');
+  await expect.poll(async () => Number(await scene.getAttribute('data-frame')) + 1).toBe(Number(await scene.getAttribute('data-frames')));
+  // The unfair bar is crossed out; the fair one has its tick.
+  await expect(scene.getByTestId('teach-scene-cross')).toHaveCount(1);
+  await expect(scene.locator('.fq-ts-label.is-fair .fq-ts-tone-mark')).toHaveAttribute('data-mark', 'tick');
+  await expect(scene.locator('.fq-ts-label.is-unfair .fq-ts-tone-mark')).toHaveAttribute('data-mark', 'cross');
 });
 
-test('replaying the first lesson and skipping its hands-on rounds preserves saved progress', async ({ page }) => {
+test('replaying the first lesson and leaving it preserves saved progress', async ({ page }) => {
   const savedProgress = {
     completedMissionIds: ['equal-parts'],
     starsByMission: { 'equal-parts': 2 },
@@ -1539,9 +1568,9 @@ test('replaying the first lesson and skipping its hands-on rounds preserves save
   await page.getByTestId('button-start-mission-equal-parts').click();
   await passStory(page);
 
-  await expect(page.locator('.fq-taskbar-title')).toHaveText('Make fair shares');
-  await expect(page.getByTestId('first-fraction-introduction')).toBeVisible();
-  await page.getByTestId('button-hands-on-skip').click();
+  await expect(page.getByTestId('idea-kicker')).toHaveText('Lesson 01 · Idea 1 of 4 · Learn');
+  for (let p = 1; p < lessonIdeas('equal-parts')![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
   await expectLessonQuestionProgress(page, 1, 0);
   await page.getByTestId('button-back-map').click();
 
@@ -1557,38 +1586,31 @@ test('a lesson ends with its story problem, told with the season’s props (pump
   await openAsGuest(page);
   const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
   await openDeveloperLesson(page, mission);
-  // The lesson itself follows the season too: the Make fair shares cake is a pumpkin cake, and models wear Halloween colors.
-  await expect(page.locator('#pf-title')).toContainText('pumpkin cake');
   await expect(page.locator('html')).toHaveAttribute('data-fq-season', 'halloween');
-  if (PART_FINDER_LESSONS.has(mission.id)) await completePartFinderLesson(page, mission.id);
-  const before = [
-    ...mission.questions.slice(0, -1),
-    ...(hasGenerator(mission.id) ? getExtraPractice(mission.id, mission.questions.map((question) => question.id)).slice(0, 4) : []),
-  ];
-  for (const question of before) {
-    await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
-    await page.getByTestId('button-check-answer').click();
-    await page.getByTestId('button-next-question').click();
-  }
+  // The lesson itself follows the season too: its cake rounds (idea 3 and 4 practices) are pumpkin cakes.
+  await completeIdeas(page, mission, { beforeRound: () => expect(page.locator('.fq-pf-card')).toContainText('pumpkin') });
+  await expect(page.locator('.fq-play-kicker')).toContainText('Put it together');
   const last = mission.questions.at(-1)!;
   await expect(page.getByTestId('story-problem-tag')).toHaveText('Story problem');
   await expect(page.getByTestId('story-line')).toContainText('The baker gave me a pumpkin pie to share.');
   await expect(page.locator('#lesson-title')).toContainText('Chomp cut a pumpkin pie into 3 equal pieces. What is 1 piece?');
-  await page.getByTestId(`button-answer-${last.id}-${last.correctChoice}`).click();
+  await page.getByTestId(`button-answer-${last.id}-story-${last.correctChoice}`).click();
   await page.getByTestId('button-check-answer').click();
   await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
 });
 
-test('the first fraction introduction uses natural read-aloud language', async ({ page }) => {
+test('an idea is taught right before its practice, and the practice says which idea it is', async ({ page }) => {
   await openAsGuest(page);
   const firstLesson = MISSIONS.find((mission) => mission.id === 'equal-parts')!;
   await openDeveloperLesson(page, firstLesson);
-
-  const introduction = page.getByTestId('first-fraction-introduction');
-  await expect(introduction.locator('p')).toHaveText(
-    'A fraction shows equal parts of one whole. First look at the whole. Then split it into equal pieces and share them fairly.',
-  );
-  await expect(introduction.getByTestId('button-listen-learning-text')).toBeVisible();
+  await completeIdeas(page, firstLesson, { until: 3 });
+  // Idea 2's Learn page comes right after idea 1's third practice.
+  await expect(page.getByTestId('idea-kicker')).toHaveText('Lesson 01 · Idea 2 of 4 · Learn');
+  await expect(page.getByRole('heading', { name: 'Count the equal parts to name one part' })).toBeVisible();
+  await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
+  await expect(page.locator('.fq-play-kicker')).toContainText('Idea 2 of 4');
+  await expect(page.locator('.fq-play-kicker')).toContainText('Practise 1 of 3');
 });
 
 test.describe('all-lesson required-question smoke', () => {
@@ -1601,6 +1623,17 @@ test.describe('all-lesson required-question smoke', () => {
       await test.step(`${mission.id}: ${mission.title}`, async () => {
         await openDeveloperLesson(page, mission);
 
+        if (lessonIdeas(mission.id)) {
+          await completeIdeas(page, mission);
+          if (hasStoryAfterIdeas(mission)) {
+            const last = mission.questions.at(-1)!;
+            await page.getByTestId(`button-answer-${last.id}-story-${last.correctChoice}`).click();
+            await page.getByTestId('button-check-answer').click();
+            await page.getByTestId('button-finish-mission').click();
+          }
+          await finishDeveloperLesson(page, savedStorage);
+          return;
+        }
         if (PART_FINDER_LESSONS.has(mission.id)) {
           await completePartFinderLesson(page, mission.id);
         } else if (mission.id === 'order-unlike-fractions') {
@@ -1625,7 +1658,7 @@ test('learners can correct a wrong answer across every lesson model type', async
   test.setTimeout(60_000);
   const modelKinds = ['area', 'bars', 'decimal', 'line', 'partition', 'set'] as const;
   const representativeMissions = modelKinds.map((kind) =>
-    MISSIONS.find((mission) => mission.questions[0]?.model.kind === kind),
+    MISSIONS.find((mission) => mission.questions[0]?.model.kind === kind && !lessonIdeas(mission.id)) ?? MISSIONS.find((mission) => mission.questions[0]?.model.kind === kind),
   );
   expect(representativeMissions.every(Boolean)).toBe(true);
 
@@ -1646,10 +1679,16 @@ test('learners can correct a wrong answer across every lesson model type', async
     await page.getByTestId(`button-node-${mission.id}`).click();
     await page.getByTestId(`button-start-mission-${mission.id}`).click();
     await passStory(page);
-    if (PART_FINDER_LESSONS.has(mission.id)) await page.getByTestId('button-hands-on-skip').click();
+    // A lesson with ideas opens on idea 1's Learn page; its first practice is the first question of that idea.
+    const ideas = lessonIdeas(mission.id);
+    if (ideas) {
+      for (let p = 1; p < ideas[0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+      await page.getByTestId('button-idea-practise').click();
+    } else if (PART_FINDER_LESSONS.has(mission.id)) await page.getByTestId('button-hands-on-skip').click();
     else await expect(page.getByTestId('lesson-example')).toBeVisible();
 
-    const question = mission.questions[0];
+    const first = ideaSteps(mission.id)[0]?.item;
+    const question = first && 'question' in first ? ideaQuestion(mission, first.question)! : mission.questions[0];
     await expect(page.getByTestId('question-model-area')).toBeVisible();
     await retryLessonQuestion(page, question);
     await page.getByTestId('button-next-question').click();
@@ -1847,7 +1886,7 @@ test('daily practice resumes its checked scaffold and parent report after reload
   await expect(adaptations.getByRole('listitem')).toHaveCount(started.adaptationLog.length);
 });
 
-test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, then mixed shapes', async ({ page }) => {
+test('lesson 1 shares cakes in its last idea: equal pieces, then mixed shapes', async ({ page }) => {
   // Outside a seasonal theme, so the cake is a plain cake (in October it is a pumpkin cake).
   await page.clock.setFixedTime(new Date(2026, 2, 10, 10, 0, 0));
   await page.addInitScript(() => {
@@ -1858,9 +1897,13 @@ test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, 
   await openAsGuest(page);
   await page.getByTestId(`button-start-mission-${MISSIONS[0].id}`).click();
   await passStory(page);
+  // Idea 4, "Share fairly": its Learn page, then the two cake rounds are its first two practices.
+  const sortAt = ideaSteps('equal-parts').findIndex(({ item }) => 'handsOn' in item && item.handsOn === 'sort');
+  await completeIdeas(page, MISSIONS[0], { until: sortAt });
+  await expect(page.getByTestId('idea-kicker')).toHaveText('Lesson 01 · Idea 4 of 4 · Learn');
+  await page.getByTestId('button-idea-practise').click();
+  await expect(page.getByTestId('idea-kicker')).toHaveText('Lesson 01 · Idea 4 of 4 · Practise 1 of 3');
   await expect(page.getByTestId('button-hands-on-skip')).toHaveCount(0);
-  await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
-  await expect(page.locator('.fq-pf-lesson-example .fq-example-heading')).toHaveText(MISSIONS[0].title);
 
   await expect(page.getByRole('heading', { name: 'Share a cake cut into equal pieces' })).toBeVisible();
   await expect(page.getByText(/4 friends share this square cake\. It is cut into 8 equal pieces\./)).toBeVisible();
@@ -1873,10 +1916,14 @@ test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, 
     await piece.focus();
     await piece.press('Enter');
   };
+  // Earlier practices tapped too: count this round's selection taps from here.
+  const tapsBefore = await page.evaluate(() => (window as unknown as { __shell: string[] }).__shell
+    .map((message) => JSON.parse(message) as { type: string; cue?: string })
+    .filter((message) => message.type === 'haptic' && message.cue === 'selection').length);
   await assignPiece(1);
   await expect.poll(() => page.evaluate(() => (window as unknown as { __shell: string[] }).__shell
     .map((message) => JSON.parse(message) as { type: string; cue?: string })
-    .filter((message) => message.type === 'haptic' && message.cue === 'selection').length)).toBe(1);
+    .filter((message) => message.type === 'haptic' && message.cue === 'selection').length)).toBe(tapsBefore + 1);
   await assignPiece(2);
   await page.getByTestId('button-part-finder-share-2').click();
   await assignPiece(3);
@@ -1915,7 +1962,7 @@ test('lesson 1 has hands-on cake rounds after the worked example: equal pieces, 
   await page.getByTestId('button-part-finder-check').click();
   await expect(page.getByTestId('part-finder-feedback')).toContainText('Every friend gets 14 of the cake.');
   await page.getByTestId('button-part-finder-next').click();
-  await expectLessonQuestionProgress(page, 1, 0);
+  await expect(page.locator('.fq-play-kicker')).toContainText('Practise 3 of 3');
 });
 
 test('daily bar builder explains the denominator as total equal parts in one whole', async ({ page }) => {
@@ -3006,11 +3053,12 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.getByTestId('button-story-choice-1').click();
   await page.getByTestId('button-story-go').click();
   await expect(page.getByTestId('story-comic')).toHaveCount(0);
-  // The lesson teaches first (Numi's introduction and the worked example), then Chomp asks and the cast shares the cake.
-  const teaching = page.getByTestId('lesson-example').or(page.getByTestId('first-fraction-introduction')).first();
-  await expect(teaching).toBeVisible();
+  // The lesson teaches first (idea 1's Learn page). Later, in idea 4, Chomp asks and the cast shares the cake.
+  await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
+  const sortAt = ideaSteps('equal-parts').findIndex(({ item }) => 'handsOn' in item && item.handsOn === 'sort');
+  await completeIdeas(page, MISSIONS[0], { until: sortAt });
+  await page.getByTestId('button-idea-practise').click();
   await expect(page.getByTestId('story-line')).toContainText('Help me share it fairly');
-  expect((await teaching.boundingBox())!.y).toBeLessThan((await page.getByTestId('story-line').boundingBox())!.y);
   await expect(page.getByTestId('button-part-finder-share-1')).toContainText('Chomp');
   await expect(page.getByTestId('button-part-finder-share-4')).toContainText('Pip');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}').story);

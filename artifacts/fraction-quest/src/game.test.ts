@@ -4483,8 +4483,9 @@ describe('equivalence, decimal, percent and picture questions offer real mistake
   function mistakes(prompt: string, answer: string): number[] | null {
     const p = prompt.replace(/^Quick review · [^:]+: /, ''); let m: RegExpExecArray | null;
     const frac = /^(\d+)\/(\d+)$/.exec(answer.trim()); const [x, y] = frac ? [N(frac[1]), N(frac[2])] : [NaN, NaN];
-    // One part of a whole, what's colored, a dot, a chance: upside down, part to part, the rest (and counted ticks on a line).
-    if (frac && (/^(?:A|The) \w+ (?:is cut into|has) \d+ equal parts\.(?: \d+ is colored\.)? What (?:is 1 part|fraction is colored)\?$|^What fraction (?:is 1 of \d+ equal tiles|is shaded|of the (?!square)\w+ is shaded)\?$|shaded slice\?$/.test(p))) return [y / x, x / (y - x), (y - x) / y, 1 / y, x / (y + x)];
+    // One part of a whole, what's colored, a dot, a chance: upside down, part to part, the rest (and counted ticks on a line),
+    // and calling any one part "a half" (lesson 1 asks about one part before 3/4-style answers are taught).
+    if (frac && (/^(?:A|The) \w+ (?:is cut into|has) \d+ equal parts\.(?: \d+ is colored\.)? What (?:is 1 part|fraction is colored)\?$|^What fraction (?:is 1 of \d+ equal tiles|is shaded|of the (?!square)\w+ is shaded)\?$|shaded slice\?$/.test(p))) return [y / x, x / (y - x), (y - x) / y, 1 / y, x / (y + x), ...(x === 1 ? [1 / 2] : [])];
     if (frac && (m = /^A bag has (\d+) marbles\. (\d+) (?:is|are) green\./.exec(p))) { const [t, g] = [N(m[1]), N(m[2])]; return [g / (t - g), (t - g) / t, t / g, g / (t + g), 1 / t]; }
     if (frac && /^What fraction is at the dot\?$|jumps? from 0\?$|^Each jump is 1\/\d+\. What is \d+ jumps? from 0\?$|^0 to 1 has \d+ equal spaces\. What is \d+ jumps?\?$/.test(p)) return [x / (y + 1), y / x, 1 / y, (x + 1) / y, (y - x) / y];
     // The same amount with another denominator: kept the top, added the same number, only the top, upside down.
