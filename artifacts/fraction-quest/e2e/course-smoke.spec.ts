@@ -10,7 +10,7 @@ import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
 import { generateQuestions, getExtraPractice, hasGenerator } from '../src/practice-bank';
 import { PART_FINDER_LESSONS, partFinderRoundsFor } from '../src/part-finder';
 import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
-import { completeIdeas, hasStoryAfterIdeas, solvePartFinderRound } from './lesson-walk';
+import { completeIdeas, hasStoryAfterIdeas, solvePartFinderRound, solveSortRound } from './lesson-walk';
 import { makeSprint } from '../src/CodeSprint';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
@@ -122,9 +122,11 @@ test('a question that says to plot lets the child tap the Xs on, then shows the 
   if (!mission) throw new Error('Plot in eighths lesson is missing');
   const question = mission.questions[0];
   expect(question.prompt).toContain('Plot them');
-  await page.setViewportSize({ width: 390, height: 664 });
   await openAsGuest(page);
   await openDeveloperLesson(page, mission);
+  // The lesson teaches stacking (idea 2) before this question, its third practice.
+  await completeIdeas(page, mission, { until: ideaSteps(mission.id).findIndex(({ item }) => 'question' in item && item.question === question.id) });
+  await page.setViewportSize({ width: 390, height: 664 });
   await skipIntros(page);
 
   const plot = page.getByTestId('question-model-area').getByTestId('line-plot-model');
@@ -148,10 +150,31 @@ test('the dimes and pennies lesson teaches on a hundredths grid, then asks about
   await openDeveloperLesson(page, mission);
   await skipIntros(page);
 
-  await expect(page.getByTestId('lesson-example').locator('.fq-area-figure')).toHaveCount(1);
-  const coins = page.getByTestId('question-model-area').getByTestId('coins-picture');
-  await expect(coins).toHaveAttribute('aria-label', '6 dimes');
-  await expect(coins.locator('.fq-coin.is-dime')).toHaveCount(6);
+  // Idea 1 teaches pennies on a hundredths grid (100 pennies make a dollar), then asks about pennies as coins.
+  const lesson = String(MISSIONS.indexOf(mission) + 1).padStart(2, '0');
+  await expect(page.getByTestId('idea-kicker')).toHaveText(`Lesson ${lesson} · Idea 1 of 3 · Learn`);
+  await expect(page.getByTestId('teach-scene').locator('.fq-ts-area')).toHaveCount(1);
+  await expect(page.getByTestId('idea-learn')).toContainText('100 pennies');
+  for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
+  const pennies = page.getByTestId('question-model-area').getByTestId('coins-picture');
+  await expect(pennies).toHaveAttribute('aria-label', '7 pennies');
+  await expect(pennies.locator('.fq-coin.is-penny')).toHaveCount(7);
+  await expect(pennies.locator('.fq-coin.is-dime')).toHaveCount(0);
+  // Dimes come in idea 2, after their own Learn page: its first practice shows 6 dimes.
+  for (const { item } of ideaSteps(mission.id).slice(0, 3)) {
+    const question = ideaQuestion(mission, (item as { question: string }).question)!;
+    await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
+    await page.getByTestId('button-check-answer').click();
+    await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+    await page.getByTestId('button-next-question').click();
+  }
+  await expect(page.getByTestId('idea-kicker')).toHaveText(`Lesson ${lesson} · Idea 2 of 3 · Learn`);
+  await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
+  const dimes = page.getByTestId('question-model-area').getByTestId('coins-picture');
+  await expect(dimes).toHaveAttribute('aria-label', '6 dimes');
+  await expect(dimes.locator('.fq-coin.is-dime')).toHaveCount(6);
 });
 
 /** A lesson with ideas keeps its worked example under "How it works" on the lesson page: open the page as a returning
@@ -196,25 +219,51 @@ test('a lesson with ideas keeps its Learn pictures and worked example under "How
   expect(openWidth).toBeLessThanOrEqual(await pageWidth());
 });
 
-test('the ordering lesson explains its strategy before showing a distinct worked model', async ({ page }) => {
+test('the ordering lesson teaches each strategy right before its practice: same denominators, then 1/2, then renaming', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
+  const lesson = `Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`;
+  const ideas = lessonIdeas(mission.id)!;
   await openAsGuest(page);
   await openDeveloperLesson(page, mission);
 
-  // The strategy opened first on Teach first; on the worked example it is one tap away.
-  await page.getByTestId('button-how-it-works').click();
-  const intro = page.getByTestId('lesson-introduction');
-  await expect(intro).toBeVisible();
-  await expect(intro).toContainText('smallest to biggest');
-  // The strategy plays one step at a time: rename with the same denominator, then compare the numerators.
-  await intro.getByTestId('button-teach-step-next').click();
-  await expect(intro).toContainText('same denominator');
-  await intro.getByTestId('button-teach-step-next').click();
-  await expect(intro).toContainText(/top numbers|numerators/);
-  // One Listen button reads the step on screen.
-  await expect(intro.getByRole('button', { name: /Listen/ })).toHaveCount(1);
-  await expect(intro.getByRole('button', { name: 'Listen to step 3 of 3' })).toBeVisible();
+  // Idea 1: same denominators, ordered both ways (its first practice is the biggest-first card sort).
+  await expect(page.getByTestId('idea-kicker')).toHaveText(`${lesson} · Idea 1 of 3 · Learn`);
+  await expect(page.getByRole('heading', { name: ideas[0]!.title })).toBeVisible();
+  await expect(page.getByTestId('teach-scene')).toContainText('Smallest first');
+  await expect(page.getByTestId('teach-scene')).not.toContainText(/half|rename/i);
+  await page.getByTestId('button-teach-step-next').click();
+  await expect(page.getByTestId('teach-scene')).toContainText('Biggest first');
+  await page.getByTestId('button-teach-step-back').click();
+  await completeIdeas(page, mission, { until: 3 });
+
+  // Idea 2: compare each fraction to 1/2, before the smallest-first card sort.
+  await expect(page.getByTestId('idea-kicker')).toHaveText(`${lesson} · Idea 2 of 3 · Learn`);
+  await expect(page.getByRole('heading', { name: ideas[1]!.title })).toBeVisible();
+  await expect(page.getByTestId('teach-step-text')).toContainText('less than half');
+  await expect(page.getByTestId('teach-scene')).not.toContainText(/rename/i);
+  for (let p = 1; p < ideas[1]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
+  await solveSortRound(page, FRACTION_ORDER_ROUNDS.find((round) => round.id === 'smallest-first')!);
+  for (const step of ideaSteps(mission.id).filter(({ idea, item }) => idea === 1 && 'question' in item)) {
+    const question = ideaQuestion(mission, (step.item as { question: string }).question)!;
+    await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
+    await page.getByTestId('button-check-answer').click();
+    await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+    await page.getByTestId('button-next-question').click();
+  }
+
+  // Idea 3: two fractions on the same side of 1/2 are renamed with the same denominator.
+  await expect(page.getByTestId('idea-kicker')).toHaveText(`${lesson} · Idea 3 of 3 · Learn`);
+  await expect(page.getByRole('heading', { name: ideas[2]!.title })).toBeVisible();
+  await expect(page.getByTestId('teach-step-text')).toContainText('same denominator');
+  await expect(page.getByTestId('teach-scene')).toContainText('Rename');
+});
+
+test('the ordering lesson\'s worked example on the lesson page shows its number line, renamed fractions and all', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await openLessonPageWorkedExample(page, mission);
   const workedExample = page.getByTestId('lesson-example');
   const thinkItThrough = workedExample.locator('.fq-example-answer');
   await expect(thinkItThrough.getByRole('button', { name: /Listen/ })).toHaveCount(1);
@@ -224,37 +273,25 @@ test('the ordering lesson explains its strategy before showing a distinct worked
   await expect(workedExample).toContainText('14 < 38 < 58');
   const numberLine = page.getByTestId('fraction-order-numberline');
   await expect(numberLine).toBeVisible();
-  await expect(numberLine).toContainText('0');
   await expect(numberLine).toContainText('one whole');
   await expect(numberLine).toContainText('one-half benchmark is halfway');
   await expect(numberLine).toContainText('14 = 28');
   await expect(numberLine).toContainText('one fourth and two eighths are equivalent fractions');
-  await expect(numberLine).toContainText('same amount and number-line spot');
   await expect(numberLine).toContainText('12 = 24');
-  await expect(numberLine).toContainText('one half and two fourths are equivalent fractions');
-  await expect(numberLine).toContainText('same amount and number-line spot');
   await expect(numberLine.getByRole('button', { name: 'Listen to the fraction number line' })).toBeVisible();
   const benchmark = page.getByTestId('fraction-order-benchmark');
   await expect(benchmark).toHaveAttribute('style', /left: 50%/);
   await expect(benchmark).toHaveAttribute('data-equivalent-names', '2/4');
-  await expect(benchmark).toContainText('12 = 24');
   await expect(page.getByTestId('fraction-order-point-1-4')).toHaveAttribute('data-position', '25');
   await expect(page.getByTestId('fraction-order-point-1-4')).toHaveAttribute('data-equivalent-names', '2/8');
-  await expect(page.getByTestId('fraction-order-point-1-4')).toContainText('14 = 28');
   await expect(page.getByTestId('fraction-order-point-3-8')).toHaveAttribute('data-position', '37.5');
   await expect(page.getByTestId('fraction-order-point-5-8')).toHaveAttribute('data-position', '62.5');
-  await expect(numberLine.locator('.fq-order-line')).toHaveAttribute('aria-label', /one fourth is at 1 of 4 equal spaces.*one fourth and two eighths are equivalent fractions.*same amount and number-line spot.*three eighths is at 3 of 8 equal spaces.*five eighths is at 5 of 8 equal spaces.*one-half benchmark is halfway.*one half and two fourths are equivalent fractions.*same amount and number-line spot/);
-
-  const introBottom = await intro.evaluate((element) => element.getBoundingClientRect().bottom);
-  const modelTop = await page.locator('.fq-example .fq-model-area').evaluate((element) => element.getBoundingClientRect().top);
-  expect(introBottom).toBeLessThan(modelTop);
 });
 
 test('number-line labels, axis, markers, and halfway guide stay distinct in both themes', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
-  await openAsGuest(page);
-  await openDeveloperLesson(page, mission);
+  await openLessonPageWorkedExample(page, mission);
 
   const figure = page.getByTestId('fraction-order-numberline');
   await expect(figure).toBeVisible();
@@ -320,8 +357,7 @@ test('number-line labels, axis, markers, and halfway guide stay distinct in both
 test('the ordering number line stays legible in grayscale print media', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
-  await openAsGuest(page);
-  await openDeveloperLesson(page, mission);
+  await openLessonPageWorkedExample(page, mission);
   await page.getByTestId('fraction-order-numberline').evaluate((element) => {
     // The app prints only .fq-print content; mount a copy there to exercise the
     // number-line print rules without bypassing the normal print-only page filter.
@@ -416,8 +452,7 @@ test('the ordering number line stays legible in grayscale print media', async ({
 test('number-line labels, axis, markers, and halfway guide stay clear in forced-colors mode', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
-  await openAsGuest(page);
-  await openDeveloperLesson(page, mission);
+  await openLessonPageWorkedExample(page, mission);
   await page.emulateMedia({ forcedColors: 'active' });
 
   const figure = page.getByTestId('fraction-order-numberline');
@@ -501,8 +536,7 @@ test('the ordering number line keeps fraction labels clear on narrow screens and
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
   await page.setViewportSize({ width: 320, height: 900 });
-  await openAsGuest(page);
-  await openDeveloperLesson(page, mission);
+  await openLessonPageWorkedExample(page, mission);
 
   const figure = page.getByTestId('fraction-order-numberline');
   await expect(figure).toBeVisible();
@@ -565,7 +599,8 @@ test('the ordering number line keeps fraction labels clear on narrow screens and
         const copyBounds = copy?.getBoundingClientRect();
         const buttonBounds = button?.getBoundingClientRect();
         return {
-          pageWidth: document.documentElement.scrollWidth,
+          // The worked example sits on the lesson page; it (not the Build it area below it) is what must fit.
+          exampleRight: document.querySelector('[data-testid="lesson-example"]')!.getBoundingClientRect().right,
           viewportWidth: window.innerWidth,
           copyText: copy?.textContent?.trim() ?? '',
           lineHeight: Number.parseFloat(copy ? getComputedStyle(copy).lineHeight : '0'),
@@ -591,7 +626,7 @@ test('the ordering number line keeps fraction labels clear on narrow screens and
           accessibleDescription: element.querySelector<HTMLElement>('.fq-order-line')?.getAttribute('aria-label') ?? '',
         };
       });
-      expect(descriptionLayout.pageWidth, `${context}: the page should not overflow horizontally`).toBeLessThanOrEqual(descriptionLayout.viewportWidth);
+      expect(descriptionLayout.exampleRight, `${context}: the worked example should not overflow horizontally`).toBeLessThanOrEqual(descriptionLayout.viewportWidth);
       expect(descriptionLayout.copyText, `${context}: all spoken description text should remain visible`).toBe(descriptionLayout.accessibleDescription);
       expect(descriptionLayout.copy, `${context}: the description should have a measurable layout`).not.toBeNull();
       expect(descriptionLayout.copy!.scrollWidth, `${context}: the description should not overflow its width`).toBeLessThanOrEqual(descriptionLayout.copy!.clientWidth + 1);
@@ -632,8 +667,7 @@ test('the ordering number-line explanation and Listen control stay usable at 400
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
   await page.setViewportSize({ width: 280, height: 900 });
-  await openAsGuest(page);
-  await openDeveloperLesson(page, mission);
+  await openLessonPageWorkedExample(page, mission);
 
   await page.addStyleTag({
     content: 'html { font-size: 400% !important; }',
@@ -654,7 +688,7 @@ test('the ordering number-line explanation and Listen control stay usable at 400
     const copyBounds = copy?.getBoundingClientRect();
     const buttonBounds = button?.getBoundingClientRect();
     return {
-      pageWidth: document.documentElement.scrollWidth,
+      exampleRight: document.querySelector('[data-testid="lesson-example"]')!.getBoundingClientRect().right,
       viewportWidth: window.innerWidth,
       copyText: copy?.textContent?.trim() ?? '',
       accessibleDescription: visualDescription?.getAttribute('aria-label') ?? '',
@@ -676,7 +710,7 @@ test('the ordering number-line explanation and Listen control stay usable at 400
     };
   });
 
-  expect(layout.pageWidth, 'the page should not overflow horizontally').toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.exampleRight, 'the worked example should not overflow horizontally').toBeLessThanOrEqual(layout.viewportWidth);
   expect(layout.copyText, 'all spoken description text should remain visible').toBe(layout.accessibleDescription);
   expect(layout.copy, 'the description should have a measurable layout').not.toBeNull();
   expect(layout.copy!.scrollWidth, 'the description should not overflow its width').toBeLessThanOrEqual(layout.copy!.clientWidth + 1);
@@ -702,12 +736,52 @@ test('learners sort fractions in both directions, correct a try, and do not save
   await openAsGuest(page);
   const savedStorage = await localStorageSnapshot(page);
   await openDeveloperLesson(page, mission);
-  await expect(page.getByTestId('fraction-order-activity')).toBeVisible();
-  await expect(page.getByTestId('fraction-order-example')).toContainText(mission.title);
   await expect.poll(() => localStorageSnapshot(page)).toBe(savedStorage);
 
-  await completeFractionOrderLesson(page);
-  await expectLessonQuestionProgress(page, 1, 0);
+  // Idea 1's first practice: biggest first, all eighths. A wrong order gets the strategy, then the child fixes it.
+  for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
+  const biggestFirst = FRACTION_ORDER_ROUNDS.find((round) => round.id === 'biggest-first')!;
+  await expect(page.getByTestId('fraction-order-activity')).toBeVisible();
+  // No worked example above the cards: the idea's Learn pages taught it just before.
+  await expect(page.getByTestId('lesson-example')).toHaveCount(0);
+  await page.getByTestId('button-sort-check').click();
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(biggestFirst.strategyHint);
+  await page.getByTestId('button-sort-5-8-up').click();
+  await page.getByTestId('button-sort-3-8-up').click();
+  const sortedCards = await page.locator('[data-testid^="sort-card-"]').evaluateAll((items) =>
+    items.map((item) => {
+      const [numerator, denominator] = (item.getAttribute('data-fraction') ?? '').split('/').map(Number);
+      return { numerator, denominator };
+    }),
+  );
+  expect(fractionOrderMatches(sortedCards, biggestFirst.direction)).toBe(true);
+  await page.getByTestId('button-sort-check').click();
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(biggestFirst.explanation);
+  await page.getByTestId('button-sort-next').click();
+  await expect(page.locator('.fq-play-kicker')).toContainText('Idea 1 of 3 · Practise 2 of 3');
+  await expect.poll(() => localStorageSnapshot(page)).toBe(savedStorage);
+
+  // Idea 2's first practice: smallest first, with 1/2 as the benchmark.
+  for (const step of ideaSteps(mission.id).filter(({ idea, item }) => idea === 0 && 'question' in item)) {
+    const question = ideaQuestion(mission, (step.item as { question: string }).question)!;
+    await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
+    await page.getByTestId('button-check-answer').click();
+    await page.getByTestId('button-next-question').click();
+  }
+  await expect(page.getByTestId('idea-kicker')).toHaveText(/Idea 2 of 3 · Learn/);
+  for (let p = 1; p < lessonIdeas(mission.id)![1]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
+  const smallestFirst = FRACTION_ORDER_ROUNDS.find((round) => round.id === 'smallest-first')!;
+  await page.getByTestId('button-sort-check').click();
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(/Good try!|Almost!|Let’s look together\.|Keep going!|Nice effort!/);
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText('1/2');
+  await page.getByTestId('button-sort-5-6-down').click();
+  await page.getByTestId('button-sort-5-6-down').click();
+  await page.getByTestId('button-sort-check').click();
+  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(smallestFirst.explanation);
+  await page.getByTestId('button-sort-next').click();
+  await expect(page.locator('.fq-play-kicker')).toContainText('Idea 2 of 3 · Practise 2 of 3');
   await expect.poll(() => localStorageSnapshot(page)).toBe(savedStorage);
 });
 

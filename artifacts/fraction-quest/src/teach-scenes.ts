@@ -852,7 +852,7 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
       play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(23) }, { kind: 'text', text: 'Less than one whole: 0 and the point, 0.', hidden: true }],
         [600, { 1: { hidden: false } }]),
       // Two places after the point.
-      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(23), label: '0.23' }, { kind: 'text', text: '2 tenths and 3 hundredths: 23/100 = 0.23.', hidden: true }],
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(23), label: '0.23' }, { kind: 'text', text: '23 hundredths: two places after the point. 23/100 = 0.23.', hidden: true }],
         [600, { 1: { hidden: false } }]),
     ],
     why: play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(20), shaded2: gridFill(3, 20) }, { kind: 'text', text: 'Columns are tenths; single squares are hundredths.', hidden: true }],
@@ -1578,7 +1578,7 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
   'fraction-of-length': {
     steps: [
       // Split the length into equal parts.
-      play([{ kind: 'bar', parts: four, bracket: '12 meters' }, { kind: 'text', text: '3/4 of 12 meters: 4 equal parts.', hidden: true }],
+      play([{ kind: 'bar', parts: four, bracket: '12 meters' }, { kind: 'text', text: 'Cut 12 meters into 4 equal parts.', hidden: true }],
         [700, { 0: { cut: true } }],
         [500, { 1: { hidden: false } }]),
       // Find one part.
@@ -1660,7 +1660,7 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
   'fractional-unit-conversions': {
     steps: [
       // Small units in one big unit.
-      play([{ kind: 'line', max: 1, spaces: 4, unit: 'hour', marks: [] }, { kind: 'text', text: '3/4 of an hour: 1 hour is 60 minutes.', hidden: true }],
+      play([{ kind: 'line', max: 1, spaces: 4, unit: 'hour', marks: [] }, { kind: 'text', text: 'Start with one whole hour: 1 hour is 60 minutes.', hidden: true }],
         [600, { 0: { stretch: 4 } }],
         [500, { 1: { hidden: false } }]),
       // Divide by the denominator.
