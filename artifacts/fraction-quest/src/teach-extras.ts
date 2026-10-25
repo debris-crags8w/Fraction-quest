@@ -318,6 +318,136 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       },
     ],
   },
+  // Lessons 21–30: each idea's Learn pages (ideas/lessons-21-30.ts) use these where Teach first has no picture for it.
+  'compose-to-one': {
+    words: [
+      { term: '+', meaning: '+ means put together. 2/5 + 3/5 puts 2 fifths and 3 fifths together.' },
+      { term: 'sum', meaning: 'The sum is the amount you get when you put the parts together. The sum of 2/5 + 3/5 is 5/5.' },
+    ],
+    examples: [
+      {
+        title: 'Count the parts to one whole',
+        picture: play([{ kind: 'bar', parts: ones(6), cut: true, bracket: '1 whole' }, { ...say('Count the sixths: 1/6, 2/6, 3/6, 4/6, 5/6, 6/6. 6 sixths make one whole: 6/6 = 1.'), hidden: true }],
+          ...range(6).map((i): [number, Record<number, Partial<SceneRow>>] => [420, { 0: { counted: range(i + 1), shaded: range(i + 1) } }]),
+          [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: '+ means put together',
+        picture: play([{ kind: 'bar', parts: ones(8), cut: true }, { ...say('3/8 + 4/8: 3 eighths and 4 more eighths. Add the numerators: 3 + 4 = 7. They are still eighths, so the sum is 7/8.'), hidden: true }],
+          [500, { 0: { shaded: [0, 1, 2] } }], [600, { 0: { shaded2: [3, 4, 5, 6] } }], [500, { 0: { counted: range(7) } }], [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Find the missing part',
+        picture: play([{ kind: 'bar', parts: ones(3), cut: true, shaded: [0], bracket: '1 whole' }, { ...say('1/3 + ? = 1. The ? is the missing part. One whole is 3/3, so 2 more thirds fill it: 1/3 + 2/3 = 3/3.'), hidden: true }],
+          [700, { 0: { shaded2: [1, 2] } }], [600, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'decompose-fractions': {
+    examples: [
+      {
+        title: 'Break it into unit fractions',
+        picture: play([{ kind: 'bar', parts: ones(5), cut: true, shaded: range(3), label: '3/5' }, { ...say('A unit fraction is one part, like 1/5. 3/5 is 3 unit fractions: 1/5 + 1/5 + 1/5.'), hidden: true }],
+          ...range(3).map((i): [number, Record<number, Partial<SceneRow>>] => [450, { 0: { counted: range(i + 1) } }]),
+          [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Find the missing number',
+        picture: play([{ kind: 'bar', parts: ones(6), cut: true, shaded: [0] }, { ...say('5/6 = 1/6 + ?/6. The ? is the missing number. 5 take away 1 is 4, so 5/6 = 1/6 + 4/6.'), hidden: true }],
+          [700, { 0: { shaded2: [1, 2, 3, 4] } }], [600, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'whole-numbers-as-fractions': {
+    words: [{ term: 'whole number', meaning: 'A whole number is a counting number, like 1, 2 or 3.' }],
+    examples: [{
+      title: 'Wholes with a denominator of 1',
+      picture: reveal([
+        { kind: 'bar', parts: [1], shaded: [0], label: '1/1' },
+        { kind: 'bar', parts: [1], shaded: [0], label: '1/1' },
+        say('A bar that is not cut is 1 part: 1/1. So 2 whole bars are 2/1, and the whole number 2 = 2/1.'),
+      ], 450),
+    }],
+  },
+  'improper-fractions': {
+    examples: [{
+      title: 'Less than, equal to or more than one whole',
+      picture: reveal([
+        { kind: 'line', max: 2, spaces: 4, cut: true, marks: [{ at: 3, label: '3/4' }, { at: 4, label: '4/4' }, { at: 5, label: '5/4' }] },
+        say('3/4: 3 parts is less than 4, so it is less than one whole. 4/4 is exactly one whole. 5/4: 5 parts is more than 4, so it is more than one whole.'),
+      ]),
+    }, {
+      title: 'Count to 2 wholes',
+      picture: play([{ kind: 'line', max: 2, spaces: 3, cut: true }, { ...say('3/3 is 1 whole. Count 3 more thirds: 6/3 is 2 wholes. Every 3 thirds fill one more whole.'), hidden: true }],
+        ...range(6).map((i): [number, Record<number, Partial<SceneRow>>] => [380, { 0: { jumps: i + 1, point: i + 1 } }]),
+        [600, { 1: { hidden: false } }]),
+    }],
+  },
+  'mixed-improper': {
+    words: [{
+      term: 'mixed number', meaning: 'A mixed number, like 1 3/4, has a whole number and a fraction. 1 3/4 means 1 and 3/4.',
+      picture: still([{ kind: 'bar', parts: ones(4), cut: true, shaded: range(4), bracket: '1 whole' }, { kind: 'bar', parts: ones(4), cut: true, shaded: range(3), label: '3/4' }]),
+    }],
+    examples: [
+      {
+        title: 'Turn parts back into wholes',
+        picture: play([
+          { kind: 'bar', parts: ones(3), cut: true, shaded: range(3) },
+          { kind: 'bar', parts: ones(3), cut: true, shaded: range(3) },
+          { kind: 'bar', parts: ones(3), cut: true, shaded: [0] },
+          { ...say('7/3: every 3/3 makes one whole. 6/3 is 2 wholes, and 1/3 is left. So 7/3 = 2 1/3, 2 and 1/3.'), hidden: true },
+        ], [600, { 0: { bracket: '1 whole' } }], [500, { 1: { bracket: '1 whole' } }], [500, { 2: { glow: [0] } }], [600, { 3: { hidden: false } }]),
+      },
+    ],
+  },
+  'add-like-denominators': {
+    examples: [{
+      title: 'Add in a story',
+      picture: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: [0, 1, 2] }, { ...say('A ribbon is 3/8 meter long. Add 2/8 meter more. 3 + 2 = 5, and they are still eighths. It is 5/8 meter long now.'), hidden: true }],
+        [700, { 0: { shaded2: [3, 4] } }], [600, { 1: { hidden: false } }]),
+    }],
+  },
+  'subtract-like-denominators': {
+    examples: [{
+      title: 'Take away in a story',
+      picture: play([{ kind: 'bar', parts: ones(10), cut: true, shaded: range(8) }, { ...say('A jar is 8/10 full. Pour out 3/10. 8 − 3 = 5, and they are still tenths. 5/10 is left.'), hidden: true }],
+        [700, { 0: { glow: [5, 6, 7] } }], [700, { 0: { glow: [], shaded: range(5) } }], [600, { 1: { hidden: false } }]),
+    }],
+  },
+  'add-mixed-numbers': {
+    examples: [{
+      title: 'Wholes, then parts',
+      picture: play([{ kind: 'bar', parts: ones(4), cut: true, shaded: [0] }, { ...say('1 1/4 + 1 2/4. Add the wholes: 1 + 1 = 2. Add the fraction parts: 1/4 + 2/4 = 3/4. So the answer is 2 3/4.'), hidden: true }],
+        [700, { 0: { shaded2: [1, 2] } }], [600, { 1: { hidden: false } }]),
+    }, {
+      title: 'Parts that make a new whole',
+      picture: play([{ kind: 'bar', parts: ones(3), cut: true, shaded: [0, 1] }, { kind: 'bar', parts: ones(3), cut: true }, { ...say('2 2/3 + 2/3. Add the parts: 2/3 + 2/3 = 4/3. 3/3 is a new whole, and 1/3 is left. So 2 + 1 = 3 wholes and 1/3: 3 1/3.'), hidden: true }],
+        [700, { 0: { shaded2: [2] }, 1: { shaded2: [0] } }], [600, { 0: { bracket: '1 new whole' } }], [600, { 2: { hidden: false } }]),
+    }],
+  },
+  'subtract-mixed-numbers': {
+    examples: [{
+      title: 'Parts, then wholes',
+      picture: play([{ kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2] }, { ...say('3 3/4 − 1 1/4. Take away the parts: 3/4 − 1/4 = 2/4. Then the wholes: 3 − 1 = 2. The answer is 2 2/4.'), hidden: true }],
+        [700, { 0: { glow: [2] } }], [700, { 0: { glow: [], shaded: [0, 1] } }], [600, { 1: { hidden: false } }]),
+    }],
+  },
+  'tenths-decimals': {
+    words: [
+      {
+        term: 'decimal', meaning: 'A decimal is another way to write tenths: 7/10 is the decimal 0.7.',
+        picture: still([{ kind: 'bar', parts: ones(10), cut: true, shaded: range(7), label: '7/10' }]),
+      },
+      { term: 'decimal point', meaning: 'The dot in 0.7 is the decimal point. The tenths go right after it.' },
+      { term: 'digit', meaning: 'A digit is one of the numbers 0 to 9 that we write numbers with. 0.7 has the digits 0 and 7.' },
+    ],
+    examples: [
+      {
+        title: 'Read a decimal as tenths',
+        picture: reveal([{ kind: 'bar', parts: ones(10), cut: true, shaded: [0, 1], label: '0.2' }, say('0.2: the digit 2 is right after the decimal point, so it counts tenths. 0.2 = 2/10.')]),
+      },
+    ],
+  },
 };
 
 /** The pages a lesson's Teach first adds: Words to know first (if any), then the extra examples after Why. */
@@ -340,4 +470,10 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string }[] = [
   { term: 'quarter', pattern: /\bquarters?\b/i, lesson: 'ruler-measurement' },
   { term: 'the ? box', pattern: /\?\/\d|\d\/\?/, lesson: 'equivalent-models' },
   { term: 'factor', pattern: /\bfactors?\b/i, lesson: 'missing-equivalent' },
+  // Lessons 21–30 (compose-to-one … tenths-decimals). (+ is used in lesson 12 before lesson 21 defines it, so it is not listed.)
+  { term: 'sum', pattern: /\bsums?\b/i, lesson: 'compose-to-one' },
+  { term: 'whole number', pattern: /\bwhole numbers?\b/i, lesson: 'whole-numbers-as-fractions' },
+  { term: 'mixed number', pattern: /\bmixed numbers?\b/i, lesson: 'mixed-improper' },
+  { term: 'decimal', pattern: /\bdecimals?\b/i, lesson: 'tenths-decimals' },
+  { term: 'digit', pattern: /\bdigits?\b/i, lesson: 'tenths-decimals' },
 ];
