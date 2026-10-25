@@ -70,6 +70,9 @@ export function buildErrors(kind: BuildKind, t: BuildTarget, s: { d: number; cou
 }
 
 /** The headings read before a build's mistakes. */
+/** The first line of a build Part's green check ("Your bar is right."); the model feedback follows it. */
+export const PART_CHECK_OPENERS = { bar: 'Your bar is right.', line: 'Your number line is right.', set: 'Your model is right.' } as const;
+
 export const BUILD_ERROR_HEADINGS = ['Not yet! Fix these, then check again.', 'Changed something? Check again.'];
 
 /** Several sections read as one. Listen goes straight to the words: the headings on screen are not read aloud. */

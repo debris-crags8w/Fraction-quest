@@ -297,3 +297,16 @@
 .fq-task-card .fq-task-label { grid-column: 1; grid-row: 1; color: #8A5A00; font: 900 .78rem var(--app-font-sans); letter-spacing: .02em; text-transform: uppercase; }
 .fq-task-card .fq-learning-listen { grid-column: 2; grid-row: 1; min-height: 32px; }
 .fq-task-card h3 { grid-column: 1 / -1; grid-row: 2; font-size: 1.4rem; font-weight: 900; line-height: 1.3; color: #2A2140; }
+
+/* A build's three parts: each its own card with a number and a title; a done part's number turns into a check. */
+.fq-ll-part { display: grid; gap: 12px; padding: 14px; border: 2px solid hsl(var(--foreground) / .12); border-radius: 20px; background: hsl(var(--card)); }
+.fq-ll-part-head { display: flex; align-items: center; gap: 10px; }
+.fq-ll-part-head small { display: block; color: hsl(var(--muted-foreground)); font-size: .78rem; font-weight: 800; }
+.fq-ll-part-head h4 { margin: 0; font-size: 1.05rem; font-weight: 900; line-height: 1.3; }
+.fq-ll-part-num { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; color: #fff; background: var(--fq-grape, #6D4BD8); font-weight: 900; }
+.fq-ll-part.is-done .fq-ll-part-num { background: hsl(173 45% 32%); }
+.fq-ll-part.is-locked { opacity: .6; }
+.fq-ll-part.is-locked .fq-ll-part-num { color: hsl(var(--muted-foreground)); background: hsl(var(--muted)); }
+.fq-ll-part-locked, .fq-ll-part-lead, .fq-ll-model-how { margin: 0; color: hsl(var(--muted-foreground)); font-weight: 700; line-height: 1.4; }
+.fq-ll-part .fq-ll-builder.is-in-part { padding: 0; border: 0; background: none; }
+.fq-ll-part .fq-ll-model-status.success { align-items: center; }
