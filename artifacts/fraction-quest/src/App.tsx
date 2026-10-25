@@ -851,6 +851,16 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false, withTa
           {howOpen && <LessonIntroCard intro={LESSON_INTROS[mission.id]} missionId={mission.id} />}
         </div>
       )}
+      <WorkedExample mission={mission} />
+      {withTap && <TapModel model={mission.example.model} />}
+    </div>
+  );
+}
+
+/** The lesson's worked example: its picture (and number line), then the question, worked answer and explanation. */
+function WorkedExample({ mission }: { mission: Mission }) {
+  return (
+    <>
       <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
       {mission.example.numberLine && (
         <OrderNumberLine
@@ -893,8 +903,31 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false, withTa
           listen={false}
         />
       </div>
-      {withTap && <TapModel model={mission.example.model} />}
-    </div>
+    </>
+  );
+}
+
+/** The lesson page's "How it works" for a lesson with ideas: its Learn pictures and its worked example, there to look back
+    at during Build it and the worksheet. (A lesson without ideas shows the same before question 1.) */
+function LessonHowItWorks({ mission }: { mission: Mission }) {
+  const [open, setOpen] = useState(false);
+  const intro = LESSON_INTROS[mission.id];
+  return (
+    <section className="fq-how-it-works fq-ll-how" aria-label="How it works" data-testid="lesson-how-it-works">
+      <button type="button" className="fq-button ghost" aria-expanded={open} onClick={() => setOpen((was) => !was)} data-testid="button-how-it-works">
+        <Lightbulb size={17} aria-hidden="true" /> {open ? 'Hide how it works' : 'How it works'}
+      </button>
+      {open && <>
+        {intro && <details className="fq-how-part" data-testid="how-learn-pictures">
+          <summary>Learn pictures, idea by idea</summary>
+          <LessonIntroCard intro={intro} missionId={mission.id} />
+        </details>}
+        <details className="fq-how-part">
+          <summary data-testid="button-worked-example">Worked example</summary>
+          <div className="fq-example fq-how-example" data-testid="lesson-example"><WorkedExample mission={mission} /></div>
+        </details>
+      </>}
+    </section>
   );
 }
 
@@ -2059,7 +2092,7 @@ function Game() {
         />
       );
       })()}
-      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId, fromLab: true })} onRedo={(part) => startRedoPart(view.missionId, part)} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
+      {view.type === 'lab' && <LearningLab missionId={view.missionId} howItWorks={lessonIdeas(view.missionId) ? <LessonHowItWorks mission={getMission(view.missionId)} /> : undefined} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId, fromLab: true })} onRedo={(part) => startRedoPart(view.missionId, part)} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
       {view.type === 'redo' && <RedoLab missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? 1 })} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
       {view.type === 'retention' && <LearningLab key={`retention-${view.startedAt}`} review missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onFinish={(updated) => {
         const latest = updated ?? progress;

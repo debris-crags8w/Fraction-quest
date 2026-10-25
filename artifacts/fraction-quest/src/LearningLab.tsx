@@ -593,8 +593,11 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
   );
 }
 
-export default function LearningLab({ missionId, progress, onChange, onFinish, onBack, onPaper, onRedo, review = false, onWrong, onSuccess, onWorksheetCorrect }: {
-  missionId: string; progress: Progress; onChange: (progress: Progress) => void; onFinish: (nextProgress?: Progress) => void; onBack: () => void; onPaper?: () => void;
+export default function LearningLab({ missionId, howItWorks, progress, onChange, onFinish, onBack, onPaper, onRedo, review = false, onWrong, onSuccess, onWorksheetCorrect }: {
+  missionId: string;
+  /** "How it works" for a lesson with ideas (its Learn pictures and worked example), from the app. */
+  howItWorks?: ReactNode;
+  progress: Progress; onChange: (progress: Progress) => void; onFinish: (nextProgress?: Progress) => void; onBack: () => void; onPaper?: () => void;
   /** Offered once the lesson is finished: practice a part again with new numbers. */
   onRedo?: (part: RedoPart) => void; review?: boolean; onWrong?: () => void; onSuccess?: () => void;
   onWorksheetCorrect?: (missionId: string, problemId: string) => void;
@@ -757,6 +760,7 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
 
       {helper.panel}
       <LessonTeachingSupport missionId={missionId} />
+      {howItWorks}
 
       {/* The steps double as shortcuts: tap one to go to its part of the page (the worksheet once the builds are done). */}
       <ol className="fq-ll-steps" aria-label="Lab progress" data-testid="list-lab-steps" ref={stepsList}>
