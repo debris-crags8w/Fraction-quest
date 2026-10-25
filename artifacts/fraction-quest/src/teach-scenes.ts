@@ -1893,12 +1893,12 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
 
   'percent-to-fraction': {
     steps: [
-      // The percent on top.
-      play([{ kind: 'area', cut: 'grid-10x10', edges: true, label: '40%' }, { kind: 'text', text: '40% is 40 out of 100: 40 on top.', hidden: true }],
+      // A percent is a number out of 100 (writing it on top comes in the next step).
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, label: '40%' }, { kind: 'text', text: '40% is 40 out of 100 squares.', hidden: true }],
         [800, { 0: { shaded: gridFill(40) } }],
         [500, { 1: { hidden: false } }]),
       // 100 on the bottom.
-      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(40), label: '40/100' }, { kind: 'text', text: '100 squares in all: 40% = 40/100.', hidden: true }],
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(40), label: '40/100' }, { kind: 'text', text: '40 on top, 100 in all on the bottom: 40% = 40/100.', hidden: true }],
         [600, { 1: { hidden: false } }]),
     ],
     why: play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(40), hidden: true }, { kind: 'text', text: 'Out of 100 means the denominator is 100.', hidden: true }],
@@ -1990,8 +1990,8 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
 
   'divide-fractions': {
     steps: [
-      // Rename with the same denominator.
-      play([{ kind: 'bar', parts: ones(8), group: 2, cut: true, shaded: range(6), label: '3/4 ÷ 1/8' }, { kind: 'text', text: '3/4 = 6/8.', hidden: true }],
+      // Rename with the same denominator (÷ is written in idea 2, so the question is in words).
+      play([{ kind: 'bar', parts: ones(8), group: 2, cut: true, shaded: range(6), label: 'How many 1/8s fit in 3/4?' }, { kind: 'text', text: '3/4 = 6/8.', hidden: true }],
         [800, { 0: { group: 1, label: '6/8' } }],
         [500, { 1: { hidden: false } }]),
       // Count the small parts that fit.

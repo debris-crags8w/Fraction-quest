@@ -2,6 +2,7 @@
    "Words to know" (a first page) defines each new word or symbol with a picture; extra worked examples (after "Why it
    works") show each way the practice asks. Pure data, so every card is checked by tests (pictures match their words,
    nothing is used before it is taught). Fractions are written with a slash here and shown stacked. */
+import { gridOverlap } from './area-shapes';
 import { play, type SceneRow, type StepScene } from './teach-scenes';
 
 /** A word or symbol, what it means, and (often) a picture of it. */
@@ -188,6 +189,112 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       },
     ],
   },
+  // Lessons 72–81: pictures for the ideas their Teach first scenes don't show.
+  'fraction-probability': {
+    examples: [
+      {
+        title: 'Each marble is an outcome',
+        picture: play([{ kind: 'set', count: 6, groups: 6 }, { ...say('Pick 1 marble without looking. Each marble is one outcome. 6 marbles: 6 outcomes.'), hidden: true }],
+          [700, { 0: { counted: range(6), countOn: true } }], [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'A bigger part is not equally likely',
+        picture: reveal([
+          { kind: 'pair', items: [
+            { kind: 'area', cut: 'circle-fourths', edges: true, label: 'Equally likely', tone: 'fair' },
+            { kind: 'area', cut: 'circle-unequal', edges: true, glow: [0], label: 'Not equally likely', tone: 'unfair' },
+          ] },
+          say('Same-size parts are equally likely. A bigger part comes up more often.'),
+        ]),
+      },
+      {
+        title: 'A bag of marbles',
+        picture: reveal([{ kind: 'set', count: 4, groups: 4, shaded: [0, 1, 2] }, say('4 marbles: 4 outcomes. 3 are green: the outcomes we want. The chance of green is 3/4.')]),
+      },
+    ],
+  },
+  'fractional-side-area': {
+    words: [{
+      term: 'square unit', meaning: 'A square unit is a square 1 unit long and 1 unit wide. Area is counted in square units.',
+      picture: still([{ kind: 'area', cut: 'grid-3x3', edges: true, shaded: [0] }]),
+    }],
+    examples: [
+      {
+        title: 'Rows times columns',
+        picture: play([{ kind: 'area', cut: 'grid-4x4', edges: true }, { ...say('Each small square is 1 square unit. A rectangle 3 units long and 2 units wide covers 2 rows of 3: 2 × 3 = 6 square units.'), hidden: true }],
+          [700, { 0: { shaded: gridOverlap(4, 2, 3) } }], [700, { 0: { counted: gridOverlap(4, 2, 3) } }], [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'A side of 1 unit',
+        picture: play([{ kind: 'area', cut: 'grid-2x3', edges: true, label: '1 square unit: 2 columns, 3 rows' }, { ...say('1 unit across covers both columns. 2/3 unit down covers 2 of the 3 rows. They overlap on 4 of the 6 boxes: 4/6 square unit.'), hidden: true }],
+          [700, { 0: { shaded2: range(6) } }], [700, { 0: { shaded: range(4) } }], [600, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'multiply-mixed-numbers': {
+    examples: [{
+      title: 'Add the four areas',
+      // 1 1/2 m across (3 halves) by 1 1/3 m down (4 thirds): each box is 1/6 square meter.
+      picture: reveal([
+        { kind: 'area', cut: 'grid-3x4', edges: true, shaded: [0, 1, 3, 4, 6, 7], shaded2: [2, 5, 8], glow: [9, 10], counted: [11], label: '1 1/2 m by 1 1/3 m' },
+        say('1 + 1/2 + 1/3 + 1/6. In sixths: 6/6 + 3/6 + 2/6 + 1/6 = 12/6 = 2 square meters.'),
+      ]),
+    }],
+  },
+  'fractions-to-percent': {
+    examples: [{
+      title: 'Rename 7/10 in hundredths',
+      picture: play([{ kind: 'area', cut: 'grid-10x10', edges: true, label: '7/10 of 100 squares' }, { ...say('100 ÷ 10 = 10, and 7 × 10 = 70: 7/10 = 70/100.'), hidden: true }],
+        [800, { 0: { shaded: range(70).map((k) => (k % 10) * 10 + Math.floor(k / 10)) } }], [500, { 1: { hidden: false } }]),
+    }],
+  },
+  'find-the-whole': {
+    examples: [{
+      title: 'One part is known: make all the parts',
+      picture: play([{ kind: 'set', count: 12, groups: 4, shaded: [0], label: '3 stickers are 1/4 of the pack' }, { ...say('1/4 is 1 of 4 equal parts, so each part is 3. 4 parts of 3: 4 × 3 = 12 stickers.'), hidden: true }],
+        [700, { 0: { counted: range(4), countOn: true } }], [600, { 1: { hidden: false } }]),
+    }],
+  },
+  'spot-the-mistake': {
+    examples: [
+      {
+        title: 'Rules to check',
+        picture: reveal([
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0], shaded2: [1, 2], label: '1/4 + 2/4 = 3/4', tone: 'fair' },
+          say('Add or take away same-size parts: keep the denominator. A whole number times a fraction: multiply only the numerator. Equal fractions: multiply the top and bottom by the same number.'),
+        ]),
+      },
+      {
+        title: 'Sometimes the work is right',
+        picture: reveal([
+          { kind: 'bar', parts: ones(6), cut: true, shaded: [0, 1, 2], shaded2: [3, 4], label: 'Lee: 3/6 + 2/6 = 5/6', tone: 'fair' },
+          say('Lee added the numerators and kept sixths. That follows the rule, so Lee is right.'),
+        ]),
+      },
+      {
+        title: 'The first wrong step',
+        picture: reveal([
+          { kind: 'bar', parts: ones(6), cut: true, shaded: range(3), label: 'Step 1: 1/6 + 2/6 = 3/6', tone: 'fair' },
+          { kind: 'bar', parts: ones(12), cut: true, shaded: range(5), label: 'Step 2: 3/6 + 2/6 = 5/12', tone: 'unfair' },
+          say('Step 1 keeps sixths: right. Step 2 changes sixths to twelfths: wrong. Step 2 is the first wrong step.'),
+        ]),
+      },
+    ],
+  },
+  'fraction-of-remainder': {
+    examples: [{
+      title: 'A part of what is left',
+      picture: play([{ kind: 'bar', parts: ones(6), cut: true, shaded: range(6), label: 'One pizza' }, { ...say('Max eats 2/6: 4/6 is left. Then he eats 1/4 of what is left: 1/4 of 4 sixths is 1 sixth. 3/6 is left now.'), hidden: true }],
+        [700, { 0: { shaded: [2, 3, 4, 5] } }], [700, { 0: { glow: [2] } }], [700, { 0: { glow: [], shaded: [3, 4, 5] } }], [600, { 1: { hidden: false } }]),
+    }],
+  },
+  'divide-fractions': {
+    examples: [{
+      title: 'Count groups',
+      picture: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: 'How many 2/8s fit in 3/4?' }, { ...say('3/4 = 6/8. Count groups of 2 eighths: 3 groups fit. 3/4 ÷ 2/8 = 3.'), hidden: true }],
+        [600, { 0: { glow: [0, 1] } }], [600, { 0: { glow: range(4) } }], [600, { 0: { glow: range(6) } }], [600, { 1: { hidden: false } }]),
+    }],
+  },
 };
 
 /** The pages a lesson's Teach first adds: Words to know first (if any), then the extra examples after Why. */
@@ -205,4 +312,8 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string }[] = [
   { term: '< or >', pattern: /\s[<>]\s/, lesson: 'compare-same-numerator' },
   { term: 'benchmark', pattern: /\bbenchmarks?\b/i, lesson: 'benchmarks-zero-one' },
   { term: 'tick mark', pattern: /\btick( mark)?s?\b/i, lesson: 'number-line-basics' },
+  // Lessons 72–81.
+  { term: 'chance, outcome, equally likely', pattern: /\b(chance|outcomes?|equally likely)\b/i, lesson: 'fraction-probability' },
+  { term: 'square unit', pattern: /\bsquare units?\b/i, lesson: 'fractional-side-area' },
+  { term: 'percent, %', pattern: /%|\bpercent\b/i, lesson: 'fractions-to-percent' },
 ];
