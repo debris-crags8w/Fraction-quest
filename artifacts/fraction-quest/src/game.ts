@@ -546,6 +546,11 @@ const curriculum: MissionSeed[] = [
       practice('What is 1/2 of 10 shells?', ['5 shells', '2 shells', '8 shells'], 0, setModel(0, 10, 2), 'Make 2 equal groups.', '10 in 2 groups is 5 each.', setModel(4, 8, 2)),
       practice('A class has 20 pencils. What is 1/5 of the pencils?', ['4', '5', '15'], 0, setModel(0, 20, 5), 'Make 5 equal groups. Count 1 group.', '20 in 5 groups is 4 each.', setModel(2, 10, 5)),
     ],
+    ideaQuestions: [
+      practice('To find 1/4 of 12 toy cars, how many equal groups do you make?', ['4 groups', '12 groups', '3 groups', '2 groups'], 0, { kind: 'set', selected: 0, total: 12 }, 'The denominator of 1/4 says how many equal groups to make.', 'The denominator of 1/4 is 4, so make 4 equal groups.', { kind: 'set', selected: 0, total: 8 }, { authoredChoices: true }),
+      practice('10 shells are shared into 2 equal groups. How many shells are in each group?', ['5', '2', '8', '10'], 0, setModel(0, 10, 2), 'Give one shell to each group, again and again, until none are left.', '10 shells shared into 2 equal groups: each group has 5 shells.', setModel(0, 6, 2), { authoredChoices: true }),
+      practice('18 buttons are shared into 6 equal groups. How many buttons are in each group?', ['3', '6', '12', '18'], 0, setModel(0, 18, 6), 'Give one button to each group, again and again, until none are left.', '18 buttons shared into 6 equal groups: each group has 3 buttons.', setModel(0, 12, 6), { authoredChoices: true }),
+    ],
   },
   {
     id: 'sets-nonunit', title: 'More than one group', shortTitle: 'Count groups in a set', skill: 'The denominator tells how many equal groups to make. The numerator tells how many groups to count.',
@@ -560,6 +565,11 @@ const curriculum: MissionSeed[] = [
       practice('What is 3/4 of 8 stickers?', ['2 stickers', '6 stickers', '7 stickers'], 1, setModel(0, 8, 4), 'Make 4 equal groups. Count 3.', '8 in 4 groups is 2 each. 3 groups is 6.', setModel(2, 8, 4)),
       practice('What is 2/5 of 20 cubes?', ['8 cubes', '5 cubes', '10 cubes'], 0, setModel(0, 20, 5), 'Make 5 equal groups. Count 2.', '20 in 5 groups is 4 each. 2 groups is 8.', setModel(4, 20, 5)),
       practice('What is 3/6 of 18 buttons?', ['9 buttons', '6 buttons', '15 buttons'], 0, setModel(0, 18, 6), 'Make 6 equal groups. Count 3.', '18 in 6 groups is 3 each. 3 groups is 9.', setModel(3, 18, 6)),
+    ],
+    ideaQuestions: [
+      practice('To find 2/3 of 9, you make 3 equal groups. How many are in one group?', ['3', '2', '6', '9'], 0, setModel(0, 9, 3), 'Share the 9 into 3 equal groups. Then count one group.', '9 shared into 3 equal groups is 3 in each group.', setModel(0, 6, 3), { authoredChoices: true }),
+      practice('To find 3/4 of 20, you make 4 equal groups. How many are in one group?', ['5', '4', '15', '20'], 0, setModel(0, 20, 4), 'Share the 20 into 4 equal groups. Then count one group.', '20 shared into 4 equal groups is 5 in each group.', setModel(0, 8, 4), { authoredChoices: true }),
+      practice('To find 3/5 of 10, you make 5 equal groups. How many are in one group?', ['2', '3', '6', '10'], 0, setModel(0, 10, 5), 'Share the 10 into 5 equal groups. Then count one group.', '10 shared into 5 equal groups is 2 in each group.', setModel(0, 15, 5), { authoredChoices: true }),
     ],
   },
   {
@@ -917,6 +927,8 @@ type ExtensionTopic = {
   /** Questions written for the lesson (its approved first question and its mix of kinds). Without them, practice is
       made from worksheet rows 2, 5, 8 and 11. */
   questions?: PracticeSeed[];
+  /** Questions written for one idea of the lesson (lesson-ideas.ts lists each idea's three practices). */
+  ideaQuestions?: PracticeSeed[];
 };
 
 /** A hundredths grid with `h` squares shaded, column by column, so whole columns are tenths. */
@@ -980,10 +992,37 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'add-unlike-fractions', title: 'Add unlike fractions', shortTitle: 'Add unlike parts', description: 'Make different-sized parts the same size before adding.', skill: 'Rename both fractions with the same denominator so the parts match. Then add the number of parts.', mode: 'add-unlike', n: 7, d: 12, context: 'ribbons', gradeBand: 5, standards: ['5.NF.1'] },
   { id: 'add-mixed-numbers', title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Add wholes and parts.', skill: 'Add the whole numbers and the fraction parts. If the parts fill a whole, regroup them as one more whole.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route' },
   { id: 'subtract-mixed-numbers', title: 'Subtract mixed numbers', shortTitle: 'Subtract mixed numbers', description: 'Trade a whole when you need more parts.', skill: 'If there are not enough fraction parts to subtract, trade one whole for equal-size parts.', mode: 'mixed-subtract', n: 1, d: 3, context: 'fabric roll' },
-  { id: 'fraction-of-quantity', title: 'A fraction of a number', shortTitle: 'Fractions of amounts', description: 'Find 3/5 of 20.', skill: 'Split the amount into equal groups using the denominator. Count the number of groups shown by the numerator.', mode: 'quantity', n: 3, d: 5, context: 'classroom supplies' },
-  { id: 'mixed-unlike-operations', title: 'Mixed numbers with unlike parts', shortTitle: 'Mixed number operations', description: 'Add or subtract mixed numbers with different denominators.', skill: 'Rename the fraction parts so they are the same size. Then add or subtract, regrouping a whole if needed.', mode: 'mixed-unlike', n: 25, d: 12, context: 'walking route', gradeBand: 5, standards: ['5.NF.1'] },
-  { id: 'estimate-fraction-operations', title: 'Estimate to check', shortTitle: 'Estimate fraction sums', description: 'Use 0, 1/2 and 1 to check whether an answer makes sense.', skill: 'Compare each fraction with 0, 1/2, or 1. Use those benchmarks to check whether the answer is a sensible size.', example: { prompt: 'Is 2/5 + 1/2 more or less than 1?', answer: 'Less than 1', explanation: '2/5 is a little less than the benchmark 1/2. Two halves make one whole. So 2/5 + 1/2 is a little less than one whole.', model: bars({ numerator: 2, denominator: 5, named: true }, { numerator: 1, denominator: 2, named: true }) }, mode: 'estimate', n: 9, d: 10, context: 'trail lengths', gradeBand: 5, standards: ['5.NF.2'] },
-  { id: 'multiply-fractions', title: 'A part of a part', shortTitle: 'Fraction × fraction', description: 'Find 1/2 of 3/4.', skill: 'To find a part of a part, split the parts again. Multiply the numerators and the denominators.', mode: 'multiply', n: 2, d: 3, context: 'garden plot' },
+  { id: 'fraction-of-quantity', title: 'A fraction of a number', shortTitle: 'Fractions of amounts', description: 'Find 3/5 of 20.', skill: 'Split the amount into equal groups using the denominator. Count the number of groups shown by the numerator.', mode: 'quantity', n: 3, d: 5, context: 'classroom supplies',
+    ideaQuestions: [
+      practice('What is 1/4 of 12?', ['3', '4', '8', '48'], 0, emptyWholes(1, 4), 'Split 12 into 4 equal parts. One part is 12 ÷ 4.', '12 ÷ 4 = 3, so 1/4 of 12 is 3.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
+      practice('What is 1/6 of 30?', ['5', '6', '24', '180'], 0, emptyWholes(1, 6), 'Split 30 into 6 equal parts. One part is 30 ÷ 6.', '30 ÷ 6 = 5, so 1/6 of 30 is 5.', bars({ numerator: 1, denominator: 6 }), { authoredChoices: true }),
+      practice('What is 1/8 of 16?', ['2', '8', '24', '128'], 0, emptyWholes(1, 8), 'Split 16 into 8 equal parts. One part is 16 ÷ 8.', '16 ÷ 8 = 2, so 1/8 of 16 is 2.', bars({ numerator: 1, denominator: 8 }), { authoredChoices: true }),
+      practice('What is 2/5 of 15?', ['6', '3', '13', '30'], 0, emptyWholes(1, 5), 'One part is 15 ÷ 5. Then take 2 parts.', '15 ÷ 5 = 3 in one part, and 2 × 3 = 6. So 2/5 of 15 is 6.', bars({ numerator: 2, denominator: 5 }), { authoredChoices: true }),
+      practice('3/4 × 16 = ?', ['12', '4', '48', '19'], 0, emptyWholes(1, 4), '3/4 × 16 means 3/4 of 16. One part is 16 ÷ 4. Then take 3 parts.', '16 ÷ 4 = 4 in one part, and 3 × 4 = 12. So 3/4 × 16 = 12.', bars({ numerator: 3, denominator: 4 }), { authoredChoices: true }),
+    ] },
+  { id: 'mixed-unlike-operations', title: 'Mixed numbers with unlike parts', shortTitle: 'Mixed number operations', description: 'Add or subtract mixed numbers with different denominators.', skill: 'Rename the fraction parts so they are the same size. Then add or subtract, regrouping a whole if needed.', mode: 'mixed-unlike', n: 25, d: 12, context: 'walking route', gradeBand: 5, standards: ['5.NF.1'],
+    ideaQuestions: [
+      practice('Use fourths. Which mixed number is the same as 2 1/2?', ['2 2/4', '2 1/4', '4 2/4', '2 4/4'], 0, bars({ numerator: 5, denominator: 2 }), 'Rename only the fraction part. How many fourths make 1/2?', '1/2 = 2/4, and the 2 wholes stay the same. So 2 1/2 = 2 2/4.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Use sixths. Which mixed number is the same as 1 2/3?', ['1 4/6', '1 2/6', '2 4/6', '1 3/6'], 0, bars({ numerator: 5, denominator: 3 }), 'Rename only the fraction part. How many sixths make 2/3?', '2/3 = 4/6, and the 1 whole stays the same. So 1 2/3 = 1 4/6.', bars({ numerator: 2, denominator: 3 }), { authoredChoices: true }),
+      practice('Use twelfths. Which mixed number is the same as 3 3/4?', ['3 9/12', '3 3/12', '9 9/12', '3 6/12'], 0, bars({ numerator: 15, denominator: 4 }), 'Rename only the fraction part. How many twelfths make 3/4?', '3/4 = 9/12, and the 3 wholes stay the same. So 3 3/4 = 3 9/12.', bars({ numerator: 3, denominator: 4 }), { authoredChoices: true }),
+      practice('Rename: 1/2 = 2/4. Then 1 3/4 + 1 1/2 = ?', ['3 1/4', '2 1/4', '3 5/4', '2 4/6'], 0, bars({ numerator: 7, denominator: 4 }, { numerator: 3, denominator: 2 }), 'Add the parts first: 3/4 + 2/4 = 5/4. That is 1 whole and 1/4. Then add the wholes.', '3/4 + 2/4 = 5/4, which is 1 whole and 1/4. Then 1 + 1 + 1 = 3 wholes. So 1 3/4 + 1 1/2 = 3 1/4.', bars({ numerator: 7, denominator: 4 }, { numerator: 3, denominator: 2 }), { authoredChoices: true }),
+      practice('Rename: 1/3 = 2/6. Then 3 1/6 − 1 1/3 = ?', ['1 5/6', '2 1/6', '2 5/6', '1 1/6'], 0, bars({ numerator: 19, denominator: 6 }, { numerator: 4, denominator: 3 }), '1/6 is too few to take 2/6 away. Trade 1 whole for 6/6 first.', 'Trade 1 whole: 3 1/6 = 2 7/6. Then 7/6 − 2/6 = 5/6, and 2 − 1 = 1. So 3 1/6 − 1 1/3 = 1 5/6.', bars({ numerator: 19, denominator: 6 }, { numerator: 4, denominator: 3 }), { authoredChoices: true }),
+    ] },
+  { id: 'estimate-fraction-operations', title: 'Estimate to check', shortTitle: 'Estimate fraction sums', description: 'Use 0, 1/2 and 1 to check whether an answer makes sense.', skill: 'Compare each fraction with 0, 1/2, or 1. Use those benchmarks to check whether the answer is a sensible size.', example: { prompt: 'Is 2/5 + 1/2 more or less than 1?', answer: 'Less than 1', explanation: '2/5 is a little less than the benchmark 1/2. Two halves make one whole. So 2/5 + 1/2 is a little less than one whole.', model: bars({ numerator: 2, denominator: 5, named: true }, { numerator: 1, denominator: 2, named: true }) }, mode: 'estimate', n: 9, d: 10, context: 'trail lengths', gradeBand: 5, standards: ['5.NF.2'],
+    ideaQuestions: [
+      practice('Which fraction is closest to 1?', ['9/10', '3/10', '5/10', '1/10'], 0, bars({ numerator: 3, denominator: 10 }, { numerator: 9, denominator: 10 }, { numerator: 5, denominator: 10 }, { numerator: 1, denominator: 10 }), 'Which one is missing just 1 small part?', '9/10 is missing only 1/10, so it is closest to 1.', bars({ numerator: 9, denominator: 10 })),
+      practice('Which is closest to 1/2?', ['4/9', '1/9', '8/9', '9/9'], 0, bars({ numerator: 1, denominator: 9 }, { numerator: 4, denominator: 9 }, { numerator: 8, denominator: 9 }, { numerator: 9, denominator: 9 }), 'Half of 9 is 4 and a half. Which numerator is closest to that?', '4/9 is just half a part away from half, so it is closest to 1/2.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which fraction is closest to 0?', ['1/12', '5/12', '7/12', '11/12'], 0, bars({ numerator: 5, denominator: 12 }, { numerator: 1, denominator: 12 }, { numerator: 11, denominator: 12 }, { numerator: 7, denominator: 12 }), 'Which one has the fewest parts shaded?', '1/12 is only 1 small part, so it is closest to 0.', bars({ numerator: 1, denominator: 12 })),
+      practice('Sam says 3/8 + 1/2 = 4/10. Does that make sense?', ['No, the sum is more than 1/2', 'No, the sum is more than 1', 'Yes, 4/10 is close to 1/2', 'Yes, 3 + 1 = 4 and 8 + 2 = 10'], 0, bars({ numerator: 3, denominator: 8 }, { numerator: 1, denominator: 2 }), 'Adding 3/8 to 1/2 makes more than 1/2. Is 4/10 more than 1/2?', 'The sum must be more than 1/2, but 4/10 is less than 1/2. So it does not make sense.', bars({ numerator: 3, denominator: 8 }, { numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Ana says 1/2 + 1/3 = 5/6. Does that make sense?', ['No, the sum must be more than 1', 'No, 5/6 is less than 1/2', 'Yes, it is between 1/2 and 1', 'Yes, add the tops and the bottoms'], 2, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 3 }), 'Is 1/2 + 1/3 more than 1/2? Is it more than 1?', '1/3 is less than 1/2, so 1/2 + 1/3 is between 1/2 and 1. 5/6 is between 1/2 and 1 too, so it makes sense.', bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 3 }), { authoredChoices: true }),
+      practice('Leo says 7/8 + 1/2 = 8/10. Does that make sense?', ['No, the sum is more than 1', 'No, the sum is less than 1/2', 'Yes, 8/10 is close to 1', 'Yes, 7 + 1 = 8 and 8 + 2 = 10'], 0, bars({ numerator: 7, denominator: 8 }, { numerator: 1, denominator: 2 }), '7/8 is close to 1. Add 1/2 more. Is the sum more or less than 1?', '7/8 is close to 1, so 7/8 + 1/2 is more than 1. But 8/10 is less than 1, so it does not make sense.', bars({ numerator: 7, denominator: 8 }, { numerator: 1, denominator: 2 }), { authoredChoices: true }),
+    ] },
+  { id: 'multiply-fractions', title: 'A part of a part', shortTitle: 'Fraction × fraction', description: 'Find 1/2 of 3/4.', skill: 'To find a part of a part, split the parts again. Multiply the numerators and the denominators.', mode: 'multiply', n: 2, d: 3, context: 'garden plot',
+    ideaQuestions: [
+      practice('Each fourth of a bar is cut in half. What fraction of the whole bar is one small part?', ['1/8', '1/6', '1/4', '1/2'], 0, bars({ numerator: 1, denominator: 4 }), 'Each of the 4 parts becomes 2 small parts. How many small parts make the whole bar?', '4 × 2 = 8 small parts make the whole bar, so one small part is 1/8.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
+      practice('Each third of a bar is cut into 3 equal parts. What fraction of the whole bar is one small part?', ['1/9', '1/6', '1/3', '1/12'], 0, bars({ numerator: 1, denominator: 3 }), 'Each of the 3 parts becomes 3 small parts. How many small parts make the whole bar?', '3 × 3 = 9 small parts make the whole bar, so one small part is 1/9.', bars({ numerator: 1, denominator: 3 }), { authoredChoices: true }),
+      practice('Each sixth of a bar is cut in half. What fraction of the whole bar is one small part?', ['1/12', '1/8', '1/6', '1/3'], 0, bars({ numerator: 1, denominator: 6 }), 'Each of the 6 parts becomes 2 small parts. How many small parts make the whole bar?', '6 × 2 = 12 small parts make the whole bar, so one small part is 1/12.', bars({ numerator: 1, denominator: 6 }), { authoredChoices: true }),
+    ] },
   { id: 'fraction-times-fraction', title: 'Fraction times fraction', shortTitle: 'Multiply on a grid', description: 'Find a/b × c/d where rows and columns overlap.',
     skill: 'Cut one square into rows for one fraction and columns for the other. The overlap is the answer: multiply the tops, multiply the bottoms.',
     example: { prompt: '2/3 × 4/5 = ?', answer: '8/15', explanation: '2 of 3 rows and 4 of 5 columns overlap on 8 of 15 small squares. So 2/3 × 4/5 = 8/15 (2 × 4 = 8, and 3 × 5 = 15).',
@@ -1002,10 +1041,49 @@ const extensionTopics: ExtensionTopic[] = [
       practice('3/5 × 2/3 = ?', ['5/8', '6/15', '6/5', '5/15'], 1, timesGrid(5, 3),
         'Cut the square into 5 rows and 3 columns. Multiply the tops, then multiply the bottoms.',
         '3 of 5 rows and 2 of 3 columns overlap on 6 of 15 squares. 3 × 2 = 6 and 5 × 3 = 15, so 6/15.', timesGrid(5, 3, 3, 2)),
+    ],
+    ideaQuestions: [
+      practice('To show 1/3 × 3/4 on a square, how many rows and columns do you cut?', ['3 rows and 4 columns', '1 row and 3 columns', '3 rows and 3 columns', '4 rows and 4 columns'], 0,
+        bars({ numerator: 1, denominator: 3 }, { numerator: 3, denominator: 4 }),
+        'The bottom number of the first fraction tells the rows. The bottom number of the second tells the columns.',
+        '1/3 needs 3 rows, and 3/4 needs 4 columns. So cut 3 rows and 4 columns.', bars({ numerator: 1, denominator: 3 }, { numerator: 3, denominator: 4 }), { authoredChoices: true }),
+      practice('To show 2/5 × 1/2 on a square, how many rows and columns do you cut?', ['5 rows and 2 columns', '2 rows and 1 column', '5 rows and 5 columns', '2 rows and 2 columns'], 0,
+        bars({ numerator: 2, denominator: 5 }, { numerator: 1, denominator: 2 }),
+        'The bottom number of the first fraction tells the rows. The bottom number of the second tells the columns.',
+        '2/5 needs 5 rows, and 1/2 needs 2 columns. So cut 5 rows and 2 columns.', bars({ numerator: 2, denominator: 5 }, { numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('To show 3/4 × 2/3 on a square, how many rows and columns do you cut?', ['4 rows and 3 columns', '3 rows and 2 columns', '4 rows and 4 columns', '3 rows and 3 columns'], 0,
+        bars({ numerator: 3, denominator: 4 }, { numerator: 2, denominator: 3 }),
+        'The bottom number of the first fraction tells the rows. The bottom number of the second tells the columns.',
+        '3/4 needs 4 rows, and 2/3 needs 3 columns. So cut 4 rows and 3 columns.', bars({ numerator: 3, denominator: 4 }, { numerator: 2, denominator: 3 }), { authoredChoices: true }),
+      practice('A square has 4 rows and 5 columns. Shade 3 rows and 2 columns. How many boxes are in the overlap?', ['6', '5', '20', '14'], 0, timesGrid(4, 5),
+        'The overlap is where the 3 shaded rows cross the 2 shaded columns. Count those boxes.',
+        '3 rows and 2 columns overlap on 3 × 2 = 6 boxes.', timesGrid(4, 5, 3, 2), { authoredChoices: true }),
+      practice('A square has 2 rows and 6 columns. Shade 1 row and 5 columns. How many boxes are in the overlap?', ['5', '6', '12', '7'], 0, timesGrid(2, 6),
+        'The overlap is where the 1 shaded row crosses the 5 shaded columns. Count those boxes.',
+        '1 row and 5 columns overlap on 1 × 5 = 5 boxes.', timesGrid(2, 6, 1, 5), { authoredChoices: true }),
+      practice('A square has 6 rows and 3 columns. Shade 4 rows and 2 columns. How many boxes are in the overlap?', ['8', '6', '18', '10'], 0, timesGrid(6, 3),
+        'The overlap is where the 4 shaded rows cross the 2 shaded columns. Count those boxes.',
+        '4 rows and 2 columns overlap on 4 × 2 = 8 boxes.', timesGrid(6, 3, 4, 2), { authoredChoices: true }),
     ] },
-  { id: 'fraction-of-collection', title: 'A fraction of a group', shortTitle: 'Groups of objects', description: 'Find 3/4 of 16 cards.', skill: 'Split the collection into equal groups using the denominator. Count the groups shown by the numerator.', mode: 'sets', n: 3, d: 4, context: 'sports cards' },
+  { id: 'fraction-of-collection', title: 'A fraction of a group', shortTitle: 'Groups of objects', description: 'Find 3/4 of 16 cards.', skill: 'Split the collection into equal groups using the denominator. Count the groups shown by the numerator.', mode: 'sets', n: 3, d: 4, context: 'sports cards',
+    ideaQuestions: [
+      practice('To find 2/3 of 12 cards, you make 3 equal groups. How many cards are in one group?', ['4', '3', '8', '12'], 0, setModel(0, 12, 3), 'Share the 12 cards into 3 equal groups. Then count one group.', '12 cards shared into 3 equal groups is 4 cards in each group.', setModel(0, 6, 3), { authoredChoices: true }),
+      practice('To find 3/5 of 20 cards, you make 5 equal groups. How many cards are in one group?', ['4', '5', '12', '20'], 0, setModel(0, 20, 5), 'Share the 20 cards into 5 equal groups. Then count one group.', '20 cards shared into 5 equal groups is 4 cards in each group.', setModel(0, 10, 5), { authoredChoices: true }),
+      practice('To find 5/6 of 18 cards, you make 6 equal groups. How many cards are in one group?', ['3', '6', '15', '18'], 0, setModel(0, 18, 6), 'Share the 18 cards into 6 equal groups. Then count one group.', '18 cards shared into 6 equal groups is 3 cards in each group.', setModel(0, 12, 6), { authoredChoices: true }),
+      practice('What is 2/3 of 18 cards?', ['12', '6', '16', '36'], 0, setModel(0, 18, 3), 'Make 3 equal groups. Count the cards in 2 of them.', '18 cards in 3 equal groups is 6 in each group. 2 groups is 12 cards.', setModel(12, 18, 3), { authoredChoices: true }),
+      practice('What is 3/4 of 20 cards?', ['15', '5', '17', '60'], 0, setModel(0, 20, 4), 'Make 4 equal groups. Count the cards in 3 of them.', '20 cards in 4 equal groups is 5 in each group. 3 groups is 15 cards.', setModel(15, 20, 4), { authoredChoices: true }),
+      practice('What is 2/5 of 25 cards?', ['10', '5', '23', '50'], 0, setModel(0, 25, 5), 'Make 5 equal groups. Count the cards in 2 of them.', '25 cards in 5 equal groups is 5 in each group. 2 groups is 10 cards.', setModel(10, 25, 5), { authoredChoices: true }),
+    ] },
   { id: 'divide-whole-by-unit-fraction', title: 'How many parts fit?', shortTitle: 'Divide by a fraction', description: 'How many 1/4 cups fill 2 cups?', skill: 'The denominator tells how many equal parts fit in one whole. Count those parts in the amount.', example: { prompt: 'How many 1/4-cup scoops fill 2 cups?', answer: '8 scoops', explanation: 'One whole cup holds 4 fourths. 2 cups hold 2 groups of 4 fourths. That is 8 scoops of 1/4 cup.', model: bars({ numerator: 8, denominator: 4 }) }, mode: 'divide', n: 1, d: 4, context: 'measuring cup' },
-  { id: 'multiplication-scaling', title: 'Scaling with fractions', shortTitle: 'Scale an amount', description: 'See how a factor below or above one changes an amount.', skill: 'Multiplying by less than 1 takes part of an amount, so it gets smaller. Multiplying by more than 1 makes more than one copy, so it gets bigger.', example: { prompt: 'What is 3/4 of 12? Is the answer less or more than 12?', answer: '9, less than 12', explanation: 'Make 4 equal groups of 3. Three of the groups is 9. Multiplying 12 by 3/4, which is less than one whole, makes a smaller amount.', model: setModel(9, 12, 4) }, mode: 'scaling', n: 3, d: 4, context: 'collections', gradeBand: 5, standards: ['5.NF.5'] },
+  { id: 'multiplication-scaling', title: 'Scaling with fractions', shortTitle: 'Scale an amount', description: 'See how a factor below or above one changes an amount.', skill: 'Multiplying by less than 1 takes part of an amount, so it gets smaller. Multiplying by more than 1 makes more than one copy, so it gets bigger.', example: { prompt: 'What is 3/4 of 12? Is the answer less or more than 12?', answer: '9, less than 12', explanation: 'Make 4 equal groups of 3. Three of the groups is 9. Multiplying 12 by 3/4, which is less than one whole, makes a smaller amount.', model: setModel(9, 12, 4) }, mode: 'scaling', n: 3, d: 4, context: 'collections', gradeBand: 5, standards: ['5.NF.5'],
+    ideaQuestions: [
+      practice('Which fraction is more than 1?', ['5/4', '3/4', '4/4', '1/2'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 5, denominator: 4 }, { numerator: 4, denominator: 4 }, { numerator: 1, denominator: 2 }), 'Compare the top number with the bottom number. Which top number is larger?', '5/4 has more parts than 4/4, which is 1. So 5/4 is more than 1.', bars({ numerator: 4, denominator: 4 }, { numerator: 5, denominator: 4 })),
+      practice('Which fraction is the same as 1?', ['6/6', '5/6', '7/6', '1/6'], 0, bars({ numerator: 5, denominator: 6 }, { numerator: 6, denominator: 6 }, { numerator: 7, denominator: 6 }, { numerator: 1, denominator: 6 }), 'Which one has the same top number and bottom number?', '6/6 is all 6 parts of the whole, so 6/6 is the same as 1.', bars({ numerator: 6, denominator: 6 })),
+      practice('Which of these fractions is less than 1 whole?', ['2/3', '3/2', '3/3', '4/3'], 0, bars({ numerator: 3, denominator: 2 }, { numerator: 2, denominator: 3 }, { numerator: 3, denominator: 3 }, { numerator: 4, denominator: 3 }), 'Which one has a top number smaller than its bottom number?', '2/3 is 2 of the 3 parts, not the whole. So 2/3 is less than 1.', bars({ numerator: 2, denominator: 3 }, { numerator: 3, denominator: 3 }), { authoredChoices: true }),
+      practice('Is 3/4 × 12 more or less than 12?', ['Less than 12', 'More than 12', 'Equal to 12', "You can't tell"], 0, bars({ numerator: 3, denominator: 4 }), 'Is the factor 3/4 less than 1?', '3/4 is less than 1, so 3/4 × 12 takes only part of 12. It is less than 12.', bars({ numerator: 3, denominator: 4 }, { numerator: 4, denominator: 4 }), { authoredChoices: true }),
+      practice('Is 1/2 × 10 more or less than 10?', ['Less than 10', 'More than 10', 'Equal to 10', "You can't tell"], 0, bars({ numerator: 1, denominator: 2 }), 'Is the factor 1/2 less than 1?', '1/2 is less than 1, so 1/2 × 10 takes only part of 10. It is less than 10.', bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 2 }), { authoredChoices: true }),
+      practice('Without multiplying, compare 2/5 × 15 with 15: __ 15.', ['<', '=', '>'], 0, bars({ numerator: 2, denominator: 5 }), 'Is the factor 2/5 less than 1? Then you get only part of 15.', '2/5 is less than 1, so 2/5 × 15 is only part of 15: 2/5 × 15 < 15.', bars({ numerator: 2, denominator: 5 }, { numerator: 5, denominator: 5 })),
+    ] },
   { id: 'bigger-or-smaller', title: 'Bigger or smaller?', shortTitle: 'Bigger or smaller', description: 'Tell how a fraction factor changes an amount.',
     skill: 'Multiply by a fraction less than 1: you get less. More than 1: you get more. Equal to 1: it stays the same.',
     example: { prompt: 'Is 3/4 × 2 1/2 more or less than 2 1/2?', answer: 'Less than 2 1/2', explanation: 'Less. Three fourths of an amount is only part of it. The top bar is the whole amount; the bottom bar is three fourths of it.',
@@ -1028,6 +1106,23 @@ const extensionTopics: ExtensionTopic[] = [
         bars({ numerator: 4, denominator: 1 }, { numerator: 1, denominator: 2 }),
         'Try a factor less than 1, like 1/2. What is 1/2 × 4?',
         'Not always. 1/2 × 4 = 2, which is less than 4. A factor less than 1 makes it smaller, and 1 keeps it the same.', bars({ numerator: 4, denominator: 1 }, { numerator: 2, denominator: 1 })),
+    ],
+    ideaQuestions: [
+      practice('In 4/3 × 6, is the factor 4/3 more or less than 1?', ['More than 1', 'Less than 1', 'Equal to 1', "You can't tell"], 0,
+        bars({ numerator: 4, denominator: 3 }), 'Compare 4/3 with 3/3, which is 1.', '4/3 has one more third than 3/3, which is 1. So the factor 4/3 is more than 1.',
+        bars({ numerator: 3, denominator: 3 }, { numerator: 4, denominator: 3 }), { authoredChoices: true }),
+      practice('In 3/5 × 10, is the factor 3/5 more or less than 1?', ['Less than 1', 'More than 1', 'Equal to 1', "You can't tell"], 0,
+        bars({ numerator: 3, denominator: 5 }), 'Compare 3/5 with 5/5, which is 1.', '3/5 is only 3 of the 5 parts, not the whole. So the factor 3/5 is less than 1.',
+        bars({ numerator: 3, denominator: 5 }, { numerator: 5, denominator: 5 }), { authoredChoices: true }),
+      practice('In 6/6 × 7, is the factor 6/6 more or less than 1?', ['Equal to 1', 'More than 1', 'Less than 1', "You can't tell"], 0,
+        bars({ numerator: 6, denominator: 6 }), 'How many sixths make 1 whole?', '6/6 is all 6 parts of the whole, so the factor 6/6 is equal to 1.',
+        bars({ numerator: 6, denominator: 6 }), { authoredChoices: true }),
+      practice('Is 5/4 × 2 1/2 more than 2 1/2?', ['No, it is less', 'No, it is the same', 'Yes, 5/4 is more than 1', 'Yes, 2 1/2 is more than 1'], 2,
+        bars({ numerator: 5, denominator: 4 }, { numerator: 5, denominator: 2 }), 'Look at the factor 5/4. Is it more than 1?',
+        '5/4 is more than 1, so 5/4 × 2 1/2 is more than one copy of 2 1/2. Yes, it is more.', bars({ numerator: 4, denominator: 4 }, { numerator: 5, denominator: 4 }), { authoredChoices: true }),
+      practice('Is 1/2 × 7/8 more than 7/8?', ['No, 1/2 is less than 1', 'No, it is the same', 'Yes, it is more', 'Yes, multiplying makes more'], 0,
+        bars({ numerator: 1, denominator: 2 }, { numerator: 7, denominator: 8 }), 'Look at the factor 1/2. Is it more than 1?',
+        '1/2 is less than 1, so 1/2 × 7/8 is only part of 7/8. No, it is less.', bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 2 }), { authoredChoices: true }),
     ] },
   { id: 'multiply-mixed-numbers', title: 'Multiply mixed numbers', shortTitle: 'Mixed number multiplication', description: 'Use a rectangle to find the area of a mixed-number garden.', skill: 'Use the side lengths as rows and columns in a rectangle. The number of square units is the product of the side lengths.', example: { prompt: 'A garden is 1 1/2 meters by 1 1/3 meters. What is its area?', answer: '2 square meters', explanation: 'Split the garden at the whole meters into 4 parts. 1 × 1 = 1. 1/2 × 1 = 1/2. 1 × 1/3 = 1/3. 1/2 × 1/3 = 1/6. Add the parts: 6/6 + 3/6 + 2/6 + 1/6 = 12/6, or 2 square meters.', model: gardenModel({ whole: 1, numerator: 1, denominator: 2 }, { whole: 1, numerator: 1, denominator: 3 }, true) }, mode: 'mixed-multiply', n: 2, d: 1, context: 'garden plot', gradeBand: 5, standards: ['5.NF.4b', '5.NF.6'] },
   { id: 'unit-fraction-divided-whole', title: 'Share a unit fraction', shortTitle: 'Divide a unit fraction', description: 'Split one unit fraction into equal shares.', skill: 'Share the unit fraction equally. Each share is a smaller part of the original whole.', mode: 'unit-divided-whole', n: 1, d: 12, context: 'pan of brownies', gradeBand: 5, standards: ['5.NF.7a'] },
@@ -1303,6 +1398,7 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
     },
     // Practice uses different worksheet rows than the first ones, so the sheet still has fresh numbers.
     questions: topic.questions ?? [1, 4, 7, 10].map((row, i) => problemQuestion(sheet[row], i + row)),
+    ...(topic.ideaQuestions ? { ideaQuestions: topic.ideaQuestions } : {}),
   };
 }
 
