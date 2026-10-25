@@ -54,6 +54,7 @@ export const WHY = {
   oneSide: 'That is one side only. Area uses both sides.',
   wholeGrid: 'That is the whole grid. Count only the overlap.',
   notColored: 'That is the part not colored. Count the overlap.',
+  decRest: 'That is the part not colored. Count the colored tenths.',
   total: 'That is the total. Now share it out equally.',
   oneCup: 'That is one cup as it is now. Share the total equally.',
   allCups: 'Share among all of the cups.',

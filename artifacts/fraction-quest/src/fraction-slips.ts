@@ -236,10 +236,12 @@ function equivalence(p: string, right: Amount | null): Found | null {
     const [a, b] = tops; const [y, z] = tops.slice(-2);
     return { right: (a + b) / 8, slips: [['sameBottom', [a + b, 16]], ['oneAmount', [a, 8]], ['twoLongest', [y + z, 8]], ['otherOpAdd', [b - a, 8]]] };
   }
-  // Decimals: the point a place too far either way, the digits written out ("9.10"), tenths read as hundredths.
+  // Decimals: the point a place too far either way, the digits written out ("9.10"), tenths read as hundredths, and for
+  // tenths the part not colored (0.7 for 3/10: a slip from tenths alone, before hundredths are taught).
   if ((m = /^(?:Write (\d+)\/(10|100) as a decimal\.|Which decimal equals (\d+)\/(10|100)\?)$/.exec(p))) {
     const [n, d] = m.slice(1).filter(Boolean).map(N);
-    return { right: n / d, slips: [['places', String(n / (d * 10))], ['places', String(n / (d / 10))], ['decWhole', `${n}.0`], ['decSideBySide', `${n}.${d}`], ['places', String(n / 10)], ['places', String(n / 100)]] };
+    return { right: n / d, slips: [['places', String(n / (d * 10))], ['places', String(n / (d / 10))], ['decWhole', `${n}.0`], ['decSideBySide', `${n}.${d}`], ['places', String(n / 10)], ['places', String(n / 100)],
+      ...(d === 10 && n < 10 ? [['decRest', String((10 - n) / 10)] as Slip] : [])] };
   }
   if ((m = /^Write (\d+)\/10 \+ (\d+)\/100 as a decimal\.$/.exec(p))) {
     const [a, b] = m.slice(1).map(N);
@@ -248,7 +250,8 @@ function equivalence(p: string, right: Amount | null): Found | null {
   // "What fraction is 0.3?": hundredths for tenths, the digit alone, one over the digit, the other place, upside down.
   if (right && (m = /^What fraction is 0\.(\d+)\?$|^A strip is 0\.(\d+) colored\. What fraction is that\?$/.exec(p))) {
     const n = N(m[1] ?? m[2]);
-    return { right: answer, slips: [['places', [n, y * 10]], ['decWhole', [n, 1]], ['digitTop', [1, n]], ['places', [n, y / 10]], ['upsideDown', [y, n]]] };
+    return { right: answer, slips: [['places', [n, y * 10]], ['decWhole', [n, 1]], ['digitTop', [1, n]], ['places', [n, y / 10]], ['upsideDown', [y, n]],
+      ...(y === 10 && n < 10 ? [['decRest', [10 - n, 10]] as Slip] : [])] };
   }
   // Percents: the numerator or denominator as the percent, a wrong scale factor (9/20 as 18%: times 2, not 5), the rest, out of 10.
   if ((m = /^Write (\d+)\/(\d+) as a percent\.$/.exec(p))) {
