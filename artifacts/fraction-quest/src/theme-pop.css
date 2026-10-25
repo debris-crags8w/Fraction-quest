@@ -2503,3 +2503,5 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-how-part[open] > summary { margin-bottom: 8px; }
 .fq-how-part .fq-teach-card, .fq-how-example { min-width: 0; box-sizing: border-box; }
 .fq-how-example { margin: 0; padding: 0; border: 0; }
+/* Small phones: thin sides, so pictures and number lines get the room they had on their own screen. */
+@media (max-width: 420px) { .fq-how-part { padding-inline: 4px; } .fq-how-part > summary { padding-inline: 8px; } }
