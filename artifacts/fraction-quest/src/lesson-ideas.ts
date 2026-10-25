@@ -6,6 +6,7 @@
 import type { Mission, PracticeQuestion } from './game';
 import type { PartFinderRound } from './part-finder';
 import { sceneSentences } from './teach-scenes';
+import { wordsScript } from './teach-extras';
 import type { IdeaPractice, LearnPage, LessonIdea } from './ideas/helpers';
 import { IDEAS as LESSONS_01 } from './ideas/lessons-01';
 import { IDEAS as LESSONS_02_10 } from './ideas/lessons-02-10';
@@ -59,4 +60,4 @@ export const ideaPracticeQuestions = (mission: Mission): PracticeQuestion[] =>
       : { ...ideaQuestion(mission, item.question)!, isMastery: false }));
 
 /** What Listen reads on a Learn page: its line, then the sentences under the picture. */
-export const learnScript = (page: LearnPage) => [page.text, ...sceneSentences(page.scene)].join(' ');
+export const learnScript = (page: LearnPage) => ('words' in page ? wordsScript(page.words) : [page.text, ...sceneSentences(page.scene)].join(' '));
