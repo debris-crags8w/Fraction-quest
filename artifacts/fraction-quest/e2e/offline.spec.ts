@@ -42,14 +42,14 @@ test.describe('the published app', () => {
     await page.reload();
     await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
     await page.getByTestId('button-start-mission-equal-parts').click();
-    await expect(page.getByTestId('teach-first')).toBeVisible();
-    // Steps, Why it works, then the extra worked examples: Next until the last page.
-    while (await page.getByTestId('button-teach-step-next').isVisible()) await page.getByTestId('button-teach-step-next').click();
-    await page.getByTestId('button-teach-next').click();
     // Watch and Try work offline too (a child's first lesson); skip them to reach the lesson.
     await expect(page.getByTestId('intro-steps')).toBeVisible();
     await page.getByTestId('button-intro-skip').click();
-    await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
+    // Idea 1's Learn pages, then its first practice.
+    await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
+    while (await page.getByTestId('button-teach-step-next').isVisible()) await page.getByTestId('button-teach-step-next').click();
+    await page.getByTestId('button-idea-practise').click();
+    await expect(page.getByTestId('button-check-answer')).toBeVisible();
   });
 });
 

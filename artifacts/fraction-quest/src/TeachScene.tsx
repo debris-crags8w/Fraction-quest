@@ -2,13 +2,14 @@
    rests on its last frame. Back, Replay and Next move between steps; Listen reads the step. With reduced motion
    each step opens on its last frame. */
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, RotateCcw } from 'lucide-react';
+import { ArrowRight, Check, RotateCcw, X } from 'lucide-react';
 import { AREA_CUTS, areaOutline, type Point } from './area-shapes';
 import type { LessonIntro } from './lesson-intros';
 import { LearningListenButton, LearningText } from './LearningText';
 import { MathText } from './MathText';
 import { sceneSentences, teachPageScript, type AreaRow, type BarRow, type LessonScene, type LineRow, type SceneRow, type SetRow, type StepScene } from './teach-scenes';
 import { teachExtras, wordsScript, type WordCard } from './teach-extras';
+import { learnScript, type LearnPage } from './lesson-ideas';
 import './teach-scene.css';
 
 /** Is motion turned down (the grown-ups' setting, or the device's)? */
@@ -41,15 +42,36 @@ const Tick = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6" /></svg>
 );
 
+/** A picture's label. Fair or right pictures get a green ✓; unfair or wrong ones a red ✗ (and are crossed out). */
+function ToneLabel({ row }: { row: { label?: string; tone?: 'fair' | 'unfair' } }) {
+  if (!row.label) return null;
+  return (
+    <span className={`fq-ts-label is-${row.tone ?? 'plain'}`}>
+      {row.tone && <span className="fq-ts-tone-mark" aria-hidden="true" data-mark={row.tone === 'fair' ? 'tick' : 'cross'}>
+        {row.tone === 'fair' ? <Check size={18} strokeWidth={3.5} /> : <X size={18} strokeWidth={3.5} />}
+      </span>}
+      <MathText text={row.label} />
+    </span>
+  );
+}
+
+/** A red cross over an unfair or wrong picture, so the right one stands out. */
+const Cross = () => (
+  <svg className="fq-ts-cross" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" data-testid="teach-scene-cross">
+    <line x1="4" y1="6" x2="96" y2="94" /><line x1="96" y1="6" x2="4" y2="94" />
+  </svg>
+);
+
 function Bar({ row }: { row: BarRow }) {
   const total = row.parts.reduce((sum, part) => sum + part, 0);
   const starts = row.parts.map((_, i) => row.parts.slice(0, i).reduce((sum, part) => sum + part, 0));
   const checkerWidth = row.checkerSize ?? row.parts[0] ?? 1;
   const has = (list: number[] | undefined, i: number) => !!list?.includes(i);
   return (
-    <div className={`fq-ts-row ${row.hidden ? 'is-hidden' : ''}`}>
-      {row.label && <span className={`fq-ts-label is-${row.tone ?? 'plain'}`}><MathText text={row.label} /></span>}
+    <div className={`fq-ts-row ${row.tone ? `is-${row.tone}` : ''} ${row.hidden ? 'is-hidden' : ''}`}>
+      <ToneLabel row={row} />
       <div className="fq-ts-bar" data-testid="teach-scene-bar">
+        {row.tone === 'unfair' && <Cross />}
         {row.parts.map((part, i) => (
           <span key={i} style={{ flexGrow: part }}
             className={`fq-ts-part ${i > 0 && row.cut && i % (row.group ?? 1) === 0 ? 'is-cut' : ''} ${has(row.shaded, i) ? 'is-shaded' : ''} ${has(row.shaded2, i) ? 'is-shaded2' : ''} ${has(row.counted, i) ? 'is-counted' : ''} ${has(row.glow, i) ? 'is-glow' : ''}`}>
@@ -76,21 +98,24 @@ function Area({ row, small = false }: { row: AreaRow; small?: boolean }) {
   const pieces = AREA_CUTS[row.cut];
   const has = (list: number[] | undefined, i: number) => !!list?.includes(i);
   return (
-    <div className={`fq-ts-row fq-ts-area-row ${row.hidden ? 'is-hidden' : ''}`}>
-      <svg className={`fq-ts-area ${small ? 'is-small' : ''} ${pieces.length > 30 ? 'is-fine' : ''}`} viewBox="-3 -3 106 106" role="img" aria-label={row.label ?? 'A shape cut into parts'}>
-        {pieces.map((piece, i) => (
-          <polygon key={i} points={pointsOf(piece.points, size)}
-            className={`fq-ts-piece ${row.edges ? 'is-cut' : ''} ${has(row.shaded, i) ? 'is-shaded' : ''} ${has(row.shaded2, i) ? 'is-shaded2' : ''} ${has(row.counted, i) ? 'is-counted' : ''} ${has(row.glow, i) ? 'is-glow' : ''}`} />
-        ))}
-        <polygon points={pointsOf(areaOutline(row.cut), size)} className="fq-ts-outline" />
-        {pieces.map((piece, i) => {
-          const [x, y] = centerOf(piece.points);
-          return has(row.counted, i)
-            ? <text key={`n${i}`} x={x * size} y={y * size} className={`fq-ts-piece-count ${has(row.shaded, i) ? 'is-on-dark' : ''}`} aria-hidden="true">{row.counted!.indexOf(i) + 1}</text>
-            : null;
-        })}
-      </svg>
-      {row.label && <span className={`fq-ts-label is-${row.tone ?? 'plain'}`}><MathText text={row.label} /></span>}
+    <div className={`fq-ts-row fq-ts-area-row ${row.tone ? `is-${row.tone}` : ''} ${row.hidden ? 'is-hidden' : ''}`}>
+      <div className="fq-ts-area-wrap">
+        {row.tone === 'unfair' && <Cross />}
+        <svg className={`fq-ts-area ${small ? 'is-small' : ''} ${pieces.length > 30 ? 'is-fine' : ''}`} viewBox="-3 -3 106 106" role="img" aria-label={row.label ?? 'A shape cut into parts'}>
+          {pieces.map((piece, i) => (
+            <polygon key={i} points={pointsOf(piece.points, size)}
+              className={`fq-ts-piece ${row.edges ? 'is-cut' : ''} ${has(row.shaded, i) ? 'is-shaded' : ''} ${has(row.shaded2, i) ? 'is-shaded2' : ''} ${has(row.counted, i) ? 'is-counted' : ''} ${has(row.glow, i) ? 'is-glow' : ''}`} />
+          ))}
+          <polygon points={pointsOf(areaOutline(row.cut), size)} className="fq-ts-outline" />
+          {pieces.map((piece, i) => {
+            const [x, y] = centerOf(piece.points);
+            return has(row.counted, i)
+              ? <text key={`n${i}`} x={x * size} y={y * size} className={`fq-ts-piece-count ${has(row.shaded, i) ? 'is-on-dark' : ''}`} aria-hidden="true">{row.counted!.indexOf(i) + 1}</text>
+              : null;
+          })}
+        </svg>
+      </div>
+      <ToneLabel row={row} />
     </div>
   );
 }
@@ -102,7 +127,7 @@ function NumberLine({ row }: { row: LineRow }) {
   const xs = new Map(row.xs ?? []);
   return (
     <div className={`fq-ts-row ${row.hidden ? 'is-hidden' : ''}`}>
-      {row.label && <span className={`fq-ts-label is-${row.tone ?? 'plain'}`}><MathText text={row.label} /></span>}
+      <ToneLabel row={row} />
       <div className={`fq-ts-line ${row.ruler ? 'is-ruler' : ''} ${row.xs ? 'has-xs' : ''}`} data-testid="teach-scene-line" role="img"
         aria-label={`A number line from 0 to ${row.max}${row.cut ? `, cut into ${row.spaces} equal spaces in each whole` : ''}`}>
         <span className="fq-ts-stretch" style={{ left: at(row.stretchFrom ?? 0), width: `${(92 * Math.max(0, (row.stretch ?? 0) - (row.stretchFrom ?? 0))) / total}%`, opacity: row.stretch ? 1 : 0 }} />
@@ -143,7 +168,7 @@ function CounterSet({ row }: { row: SetRow }) {
   const countStart = (group: number) => (row.countOn ? (row.counted ?? []).filter((g) => g < group).length * perGroup : 0);
   return (
     <div className={`fq-ts-row fq-ts-set-row ${row.hidden ? 'is-hidden' : ''}`}>
-      {row.label && <span className={`fq-ts-label is-${row.tone ?? 'plain'}`}><MathText text={row.label} /></span>}
+      <ToneLabel row={row} />
       <div className="fq-ts-set" data-testid="teach-scene-set" role="img"
         aria-label={groups ? `${row.count} things shared into ${groups} equal groups` : `${row.count} things`}>
         {row.count - dealt > 0 && (
@@ -266,6 +291,45 @@ export function AnimatedLessonIntro({ intro, scene, missionId, onFinish }: { int
         {last && onFinish && (
           <button type="button" className="fq-button primary fq-ts-next" onClick={onFinish} data-testid="button-teach-next">
             Next: see it <ArrowRight size={18} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** One idea's Learn pages (learn one idea, practise it three times): a line and its picture on each page, Back, Replay
+    and Next between them, and "Practise it" on the last. `goal` (the lesson's, on its first idea) opens the first page. */
+export function IdeaLearnCard({ pages, goal, onPractise }: { pages: LearnPage[]; goal?: string; onPractise: () => void }) {
+  const [page, setPage] = useState(0);
+  const [take, setTake] = useState(0);
+  const current = pages[page]!;
+  const last = page === pages.length - 1;
+  const go = (next: number) => { setPage(next); setTake((count) => count + 1); };
+  const listen = page === 0 && goal ? `${goal} ${learnScript(current)}` : learnScript(current);
+  return (
+    <section className="fq-example-intro fq-teach-card fq-ts-card" aria-label="Learn" data-testid="idea-learn">
+      <div className="fq-ts-progress">
+        {pages.length > 1 && <span className="fq-ts-dots" aria-hidden="true">
+          {pages.map((_, i) => <span key={i} className={i === page ? 'is-on' : i < page ? 'is-done' : ''} />)}
+        </span>}
+        <LearningListenButton key={page} text={listen} label="Listen" prefetch />
+      </div>
+      {page === 0 && goal && <p className="fq-ts-goal"><LearningText text={goal} emphasize /></p>}
+      <p className="fq-ts-step" data-testid="teach-step-text" aria-live="polite"><LearningText text={current.text} emphasize /></p>
+      <TeachScenePicture key={`${page}-${take}`} scene={current.scene} take={take} />
+      <div className="fq-ts-nav">
+        <button type="button" className="fq-button ghost fq-ts-back" onClick={() => go(page - 1)} disabled={page === 0} data-testid="button-teach-step-back">Back</button>
+        <button type="button" className="fq-button ghost fq-ts-replay" onClick={() => go(page)} aria-label="Play the picture again" data-testid="button-teach-replay">
+          <RotateCcw size={20} aria-hidden="true" />
+        </button>
+        {last ? (
+          <button type="button" className="fq-button primary fq-ts-next" onClick={onPractise} data-testid="button-idea-practise">
+            Practise it <ArrowRight size={18} aria-hidden="true" />
+          </button>
+        ) : (
+          <button type="button" className="fq-button primary fq-ts-next" onClick={() => go(page + 1)} data-testid="button-teach-step-next">
+            Next <ArrowRight size={18} aria-hidden="true" />
           </button>
         )}
       </div>

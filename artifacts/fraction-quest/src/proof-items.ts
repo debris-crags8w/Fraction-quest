@@ -27,6 +27,7 @@ export function allProofItems({ sheets = 8, seeds = 10, checkInSeeds = [1, 2, 99
   for (const m of MISSIONS) {
     for (let v = 0; v < sheets; v++) for (const p of getWorksheet(m.id, v)) items.push(sheetItem(`worksheet ${v}`, m.id, p));
     for (const q of m.questions) items.push(choiceItem('lesson question', m.id, q));
+    for (const q of m.ideaQuestions ?? []) items.push(choiceItem('idea practice', m.id, q));
     const ids = m.questions.map((q) => q.id);
     for (const q of getExtraPractice(m.id, ids)) items.push(choiceItem('Practice more', m.id, q));
     for (let s = 1; s <= seeds; s++) for (const q of generateQuestions(m.id, ids, s, 12)) items.push(choiceItem(`practice set ${s}`, m.id, q));
@@ -105,7 +106,7 @@ export function allWrittenTexts({ sheets = 8, seeds = 10 } = {}): { where: strin
   for (const m of MISSIONS) {
     add(`${m.id} worked example`, m.example.explanation);
     const ids = m.questions.map((q) => q.id);
-    const questions = [...m.questions, ...getExtraPractice(m.id, ids), ...Array.from({ length: seeds }, (_, s) => generateQuestions(m.id, ids, s + 1, 12)).flat()];
+    const questions = [...m.questions, ...(m.ideaQuestions ?? []), ...getExtraPractice(m.id, ids), ...Array.from({ length: seeds }, (_, s) => generateQuestions(m.id, ids, s + 1, 12)).flat()];
     for (const q of questions) { add(`${m.id} hint`, q.hint); add(`${m.id} feedback`, q.retryFeedback); }
     for (let v = 0; v < sheets; v++) for (const p of getWorksheet(m.id, v)) { add(`${m.id} worksheet hint`, p.hint); add(`${m.id} worksheet why`, p.why); }
     for (const c of [...getBuildChecks(m.id), ...getBuildPracticeChecks(m.id, 0), ...[0, 1, 2].map((r) => getReviewCheck(m.id, r))]) add(`${m.id} build`, c.explanation);

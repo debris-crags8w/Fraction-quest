@@ -3,55 +3,26 @@ import { expect, test } from '@playwright/test';
 /* A lesson's Teach first screen: it opens the first time the lesson starts, fits a phone, leads to the lesson, then
    stays a tap away under "How it works" and does not open by itself again. (The other specs tap through it.) */
 
-test('a lesson teaches first the first time, then keeps it under How it works', async ({ page }) => {
+const quietFun = (extra: Record<string, unknown> = {}) => JSON.stringify({ xp: 0, day: '2026-10-20', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: false,
+  story: { prologueSeen: true, choices: {} }, displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: false, storyMode: false }, ...extra });
+
+test('a child’s first lesson: Watch, Words and Try, then idea 1 is taught before its first practice', async ({ page }) => {
   test.setTimeout(90_000);
-  await page.addInitScript(() => {
-    if (!localStorage.getItem('fraction-quest-fun-v1')) localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 0, day: '2026-10-20', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: false,
-      story: { prologueSeen: true, choices: {} }, displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: false, storyMode: false } }));
-  });
+  await page.addInitScript((fun) => {
+    if (!localStorage.getItem('fraction-quest-fun-v1')) localStorage.setItem('fraction-quest-fun-v1', fun);
+  }, quietFun());
   await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.getByTestId('button-play-guest').click();
   await page.getByTestId('button-start-mission-equal-parts').click();
 
-  const teach = page.getByTestId('teach-first');
-  await expect(teach).toBeVisible();
-  await expect(teach.getByRole('heading', { name: 'How fair parts work' })).toBeVisible();
-  // One animated step at a time: each picture plays to its last frame, the screen fits a phone, and Next moves on.
-  const steps = ['Step 1 of 3', 'Step 2 of 3', 'Step 3 of 3', 'Why it works'];
-  for (const [index, label] of steps.entries()) {
-    await expect(teach.getByTestId('teach-step-label')).toHaveText(label);
-    const scene = teach.getByTestId('teach-scene');
-    await expect.poll(async () => Number(await scene.getAttribute('data-frame')) + 1, { timeout: 9_000 })
-      .toBe(Number(await scene.getAttribute('data-frames')));
-    expect(await page.evaluate(() => document.documentElement.scrollHeight), label).toBeLessThanOrEqual(844);
-    await page.waitForTimeout(900); // the last frame's slide settles
-    await page.screenshot({ path: test.info().outputPath(`teach-first-${index + 1}.png`) });
-    if (index === 0) await expect(teach.getByTestId('button-teach-step-back')).toBeDisabled();
-    if (index < steps.length - 1) await teach.getByTestId('button-teach-step-next').click();
-  }
-  // Back and Replay: the step before plays again from its first frame.
-  await teach.getByTestId('button-teach-step-back').click();
-  await expect(teach.getByTestId('teach-step-label')).toHaveText('Step 3 of 3');
-  await teach.getByTestId('button-teach-step-next').click();
-  // After Why it works: the extra worked examples, each its own page, before any question.
-  await teach.getByTestId('button-teach-step-next').click();
-  await expect(teach.getByTestId('teach-step-label')).toHaveText('Example 1 of 3');
-  await expect(teach.getByTestId('teach-step-text')).toHaveText('Share fairly');
-  await teach.getByTestId('button-teach-step-next').click();
-  await expect(teach.getByTestId('teach-step-label')).toHaveText('Example 2 of 3');
-  await teach.getByTestId('button-teach-step-next').click();
-  await expect(teach.getByTestId('teach-step-label')).toHaveText('Example 3 of 3');
-  await expect(teach).toContainText('We name the parts, not the cuts');
-
-  await page.getByTestId('button-teach-next').click();
-
-  // A child's first lesson: how the models work and their names come before any question. Watch (the bar, then the
-  // number line), Words (the fraction names), then Try, each its own screen.
+  // A child's first lesson: how the models work and their names come before any idea. Watch (the bar, then the
+  // number line), Words (the fraction names), then Try, each its own screen. Lesson 1 teaches one idea at a time, so it
+  // has no Teach first screen of its own.
   const intro = page.getByTestId('intro-steps');
   await expect(intro).toBeVisible();
-  await expect(page.getByTestId('part-finder-lesson-example')).toHaveCount(0);
+  await expect(page.getByTestId('teach-first')).toHaveCount(0);
   await expect(intro.locator('[data-step="watch"] .fq-mi-kicker')).toHaveText('Step 1 of 3 · Watch');
   await expect(intro.getByTestId('intro-builder')).toBeVisible();
   // Each screen fits a phone, Next included.
@@ -104,34 +75,109 @@ test('a lesson teaches first the first time, then keeps it under How it works', 
   await expect(intro.getByTestId('button-intro-next')).toHaveText(/Start the lesson/);
   await intro.getByTestId('button-intro-next').click();
 
-  await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
-  const how = page.getByTestId('button-how-it-works').first();
-  await how.click();
-  await expect(page.getByTestId('lesson-introduction').first()).toBeVisible();
-  // Under How it works the steps play again, and the last one just rests (the lesson is already open).
-  await expect(page.getByTestId('teach-step-label').first()).toHaveText('Step 1 of 3');
-  await expect(how).toHaveAttribute('aria-expanded', 'true');
+  // Idea 1's Learn pages: each picture plays to its last frame and the page fits a phone.
+  const learn = page.getByTestId('idea-learn-screen');
+  await expect(learn.getByTestId('idea-kicker')).toHaveText('Lesson 01 · Idea 1 of 4 · Learn');
+  await expect(learn.getByRole('heading', { name: 'Equal parts are the same size' })).toBeVisible();
+  const pages = ['Look at one whole.', 'Check that every part is the same size.', 'If one part is bigger, the parts are not fair shares.'];
+  for (const [index, text] of pages.entries()) {
+    // Words like "whole" carry a glossary note, so match the start of the line.
+    await expect(learn.getByTestId('teach-step-text')).toHaveText(new RegExp(`^${text.split(' ').slice(0, 3).join(' ')}`));
+    const scene = learn.getByTestId('teach-scene');
+    await expect.poll(async () => Number(await scene.getAttribute('data-frame')) + 1, { timeout: 9_000 })
+      .toBe(Number(await scene.getAttribute('data-frames')));
+    await fits(text);
+    await page.waitForTimeout(900); // the last frame's slide settles
+    await page.screenshot({ path: test.info().outputPath(`idea-1-learn-${index + 1}.png`) });
+    if (index === 0) await expect(learn.getByTestId('button-teach-step-back')).toBeDisabled();
+    if (index < pages.length - 1) await learn.getByTestId('button-teach-step-next').click();
+  }
+  // The fair bar has a green tick and the unfair one is crossed out (page 2), so the right one stands out.
+  await learn.getByTestId('button-teach-step-back').click();
+  await expect(learn.getByTestId('teach-scene-cross')).toHaveCount(1);
+  await learn.getByTestId('button-teach-step-next').click();
+  await learn.getByTestId('button-idea-practise').click();
+  await expect(page.locator('.fq-play-kicker')).toContainText('Idea 1 of 4');
+  await expect(page.locator('.fq-play-kicker')).toContainText('Practise 1 of 3');
+  await expect(page.getByTestId('button-check-answer')).toBeVisible();
 
-  // Starting the lesson again goes straight to it.
+  // Starting the lesson again opens idea 1 again, without Watch and Try.
   await page.reload();
   const guest = page.getByTestId('button-play-guest');
   if (await guest.isVisible()) await guest.click();
   await page.getByTestId('button-start-mission-equal-parts').click();
-  await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
-  await expect(teach).toHaveCount(0);
+  await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
   await expect(page.getByTestId('intro-steps')).toHaveCount(0);
 
   // The Helper keeps the fraction names.
+  for (let i = 0; i < 3 && await page.getByTestId('button-teach-step-next').isVisible(); i++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
   await page.getByTestId('button-lesson-helper').first().click();
   await page.getByTestId('button-helper-words').click();
   await page.getByTestId('lesson-helper').getByTestId('button-what-next').click();
   await expect(page.getByTestId('lesson-helper').getByTestId('fraction-word-2')).toContainText('one half');
 });
 
+test('a lesson without ideas teaches first the first time, then keeps it under How it works', async ({ page }) => {
+  test.setTimeout(90_000);
+  const { MISSIONS } = await import('../src/game');
+  const { LESSON_SCENES } = await import('../src/teach-scenes');
+  const { lessonIdeas } = await import('../src/lesson-ideas');
+  const { PART_FINDER_LESSONS } = await import('../src/part-finder');
+  const { LESSON_INTROS } = await import('../src/lesson-intros');
+  const lesson = MISSIONS.find((mission) => LESSON_SCENES[mission.id] && !lessonIdeas(mission.id) && !PART_FINDER_LESSONS.has(mission.id))!;
+  const ids = MISSIONS.map((mission) => mission.id);
+  // Every lesson finished before (so this one is open), but none has shown its Teach first yet.
+  await page.addInitScript(({ fun, ids }) => {
+    if (localStorage.getItem('fraction-quest-fun-v1')) return;
+    localStorage.setItem('fraction-quest-fun-v1', fun);
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: ids, starsByMission: {}, reviewQueue: [],
+      learning: Object.fromEntries(ids.map((id) => [id, { completedAt: 1 }])), assessments: [] }));
+  }, { fun: quietFun(), ids });
+  await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  const play = page.getByTestId('button-play-guest');
+  if (await play.isVisible()) await play.click();
+  const openNode = async () => {
+    const node = page.getByTestId(`button-node-${lesson.id}`);
+    await node.click({ force: true });
+    if (await node.getAttribute('aria-expanded') !== 'true') await node.click({ force: true });
+    await page.getByTestId(`button-start-mission-${lesson.id}`).click();
+  };
+  await openNode();
+
+  const teach = page.getByTestId('teach-first');
+  await expect(teach).toBeVisible();
+  await expect(teach.getByRole('heading', { name: LESSON_INTROS[lesson.id]!.heading })).toBeVisible();
+  // One animated page at a time: each fits a phone, and Next moves on until the last page's Next.
+  for (let i = 0; i < 16 && await teach.getByTestId('button-teach-step-next').isVisible(); i++) {
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(844);
+    await teach.getByTestId('button-teach-step-next').click();
+  }
+  await page.getByTestId('button-teach-next').click();
+  // Watch and Try (once per child) may come next; skip them.
+  const skipIntro = page.locator('[data-testid="intro-steps"] [data-testid="button-intro-skip"]');
+  await expect(page.getByTestId('lesson-example').or(skipIntro)).toBeVisible();
+  if (await skipIntro.isVisible()) await skipIntro.click();
+  await expect(page.getByTestId('lesson-example')).toBeVisible();
+  const how = page.getByTestId('button-how-it-works').first();
+  await how.click();
+  await expect(page.getByTestId('lesson-introduction').first()).toBeVisible();
+  await expect(how).toHaveAttribute('aria-expanded', 'true');
+
+  // Starting the lesson again goes straight to it.
+  await page.reload();
+  await openNode();
+  await expect(page.getByTestId('lesson-example')).toBeVisible();
+  await expect(teach).toHaveCount(0);
+});
+
 test('the wordiest Teach first screens still fit a phone', async ({ page }) => {
   const { LESSON_INTROS } = await import('../src/lesson-intros');
   const size = (id: string) => { const intro = LESSON_INTROS[id]; return [intro.heading, intro.goal, ...intro.steps, intro.why].join(' ').length; };
-  const wordiest = Object.keys(LESSON_INTROS).sort((a, b) => size(b) - size(a)).slice(0, 3);
+  const { lessonIdeas } = await import('../src/lesson-ideas');
+  const wordiest = Object.keys(LESSON_INTROS).filter((id) => !lessonIdeas(id)).sort((a, b) => size(b) - size(a)).slice(0, 3);
   await page.addInitScript(() => localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 0, day: '2026-10-20', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: false,
     story: { prologueSeen: true, choices: {} }, displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: false, storyMode: false } })));
   await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
@@ -180,7 +226,10 @@ test('every step of every animated Teach first fits a phone', async ({ page }) =
   const guest = page.getByTestId('button-play-guest');
   await expect(guest.or(page.getByTestId('lesson-tester'))).toBeVisible();
   if (await guest.isVisible()) await guest.click();
+  const { lessonIdeas } = await import('../src/lesson-ideas');
   for (const [id, scene] of Object.entries(LESSON_SCENES)) {
+    // A lesson with ideas has no Teach first: its pictures are its ideas' Learn pages (checked in the first test).
+    if (lessonIdeas(id)) continue;
     await page.getByTestId(`button-tester-start-${id}`).click();
     const banner = await page.getByTestId('developer-test-banner').evaluate((element) => element.getBoundingClientRect().height);
     const extras = TEACH_EXTRAS[id] ?? {};

@@ -14,6 +14,10 @@ export const PROOF_KEY: Record<string, string> = {
   "A sandwich is cut into 4 equal parts. What is 1 part?": "1/4",
   "This ribbon is cut into 2 parts. Are the parts equal halves?": "Yes, same-size parts",
   "A strip has 3 equal parts. What is 1 part?": "one third",
+  // Lesson 1 idea practice: 1 of 6 equal parts; the fourths-mixed square's 2 squares and 2 triangles each cover 1/4; 6 ÷ 2.
+  "This bar has 6 equal parts. One is shaded. What fraction is shaded?": "1/6",
+  "These 4 parts are 2 squares and 2 triangles. Are they fourths?": "Yes, each part covers the same space",
+  "2 friends share 6 equal pieces fairly. How many pieces does each friend get?": "3",
   "A tray has 6 spaces. 4 have a snack. What fraction have a snack?": "4/6",
   "In 5/8, how many parts are counted?": "5",
   "A shape has 8 equal parts. 1 is colored. What fraction is colored?": "1/8",

@@ -14,7 +14,7 @@ const lessonIndex = (id: string) => MISSIONS.findIndex((mission) => mission.id =
     practice, builds and the worksheet. The worked example and Teach first are teaching, not practice. */
 function practiceText(missionId: string): string[] {
   const mission = MISSIONS[lessonIndex(missionId)]!;
-  const questions = [...mission.questions, ...getExtraPractice(missionId, mission.questions.map((question) => question.id))];
+  const questions = [...mission.questions, ...(mission.ideaQuestions ?? []), ...getExtraPractice(missionId, mission.questions.map((question) => question.id))];
   return [
     ...questions.flatMap((question) => [question.prompt, ...(question.choices ?? []), question.hint ?? '', question.retryFeedback ?? '']),
     ...getBuildChecks(missionId).flatMap((check) => [check.prompt, ...check.reasons, check.explanation]),

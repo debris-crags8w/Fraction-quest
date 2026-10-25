@@ -125,7 +125,7 @@ function TileFill({ cut, selection, solved }: { cut: AreaCut; selection: number[
 
 /** Hands-on cake rounds inside a lesson, between the worked example and the questions. Each round must fit
     before the child moves on; the feedback says why a try doesn't fit. */
-export default function PartFinder({ rounds, lessonLabel, activityTitle, showFirstIntroduction = false, intro, onExit, onDone, onSkip, friends = FRIENDS, storyLine }: {
+export default function PartFinder({ rounds, lessonLabel, activityTitle, showFirstIntroduction = false, intro, onExit, onDone, onSkip, friends = FRIENDS, storyLine, progress }: {
   rounds: PartFinderRound[];
   /** "Lesson 01 · Same whole, fair pieces": shown in the bar so the child knows this is part of the lesson. */
   lessonLabel: string;
@@ -143,6 +143,8 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
   friends?: readonly string[];
   /** Story mode: the chapter friend's line above the task (asks, then reacts to each check). */
   storyLine?: (result: 'correct' | 'retry' | null) => ReactNode;
+  /** One round as an idea's practice: the bar counts the idea's practices ("Practise 2 of 3") instead of the rounds. */
+  progress?: { step: number; total: number; label: string; kicker: string };
 }) {
   // During a season the shared treat follows it (a pumpkin cake at Halloween); pieces and answers stay the same.
   const words = useSeasonalWords();
@@ -228,7 +230,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
   return (
     <main className="fq-app fq-pf" data-testid="part-finder-screen">
       <div className="fq-pf-shell">
-        <TaskBar onBack={onExit} backLabel="Map" testId="button-part-finder-exit" title={activityTitle} backAriaLabel={`Back to the map (leaves ${lessonLabel})`} step={roundIndex + 1} total={rounds.length} sequenceLabel="Round"
+        <TaskBar onBack={onExit} backLabel="Map" testId="button-part-finder-exit" title={activityTitle} backAriaLabel={`Back to the map (leaves ${lessonLabel})`} step={progress?.step ?? roundIndex + 1} total={progress?.total ?? rounds.length} sequenceLabel={progress?.label ?? 'Round'}
           actions={<>{helper.button}{onSkip && <button type="button" className="fq-hint-button" onClick={onSkip} data-testid="button-hands-on-skip">Skip</button>}</>} />
         {helper.panel}
 
@@ -240,6 +242,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
           </details>
         ))}
 
+        {progress && <p className="fq-play-kicker" data-testid="idea-kicker">{progress.kicker}</p>}
         {storyLine?.(checked === 'idle' ? null : correct ? 'correct' : 'retry')}
 
         <section className="fq-pf-card" aria-labelledby="pf-title">
