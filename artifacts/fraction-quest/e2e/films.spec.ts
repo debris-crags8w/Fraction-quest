@@ -17,7 +17,7 @@ async function openChapterTwo(page: Page, done: string[], reducedMotion = false,
   await page.getByRole('button', { name: /Chapter 2, Pond/ }).click();
 }
 
-const unitOne = ['equal-parts', 'fraction-names', 'unit-fractions', 'fraction-of-area'];
+const unitOne = ['fraction-names', 'equal-parts', 'unit-fractions', 'fraction-of-area'];
 
 test('chapter 2 film shows more equal parts making smaller parts, not equal groups', async ({ page }) => {
   await openChapterTwo(page, unitOne);

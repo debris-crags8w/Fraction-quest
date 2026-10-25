@@ -111,7 +111,7 @@ export const CHAPTERS: Chapter[] = [
   { unit: 1, title: 'The bakery mix-up', character: 'chomp',
     intro: [say('chomp', 'I cut the festival {cake} for all 4 of us. The big piece is mine!'), say('numi', 'Wait! Those pieces are not the same size. And look, a stone piece is in the crumbs!'), say('hoot', 'Fair shares are equal parts. Fix the {cake}, {name}, and we can dig out the piece.')],
     choice: [pick('Fix the {cake}', 'Help everyone share fairly', 'numi', 'Good plan. A fair {cake} makes everyone happy.'), pick('Look at the crumbs', 'Add a clue to your notebook', 'hoot', 'Crumbs… and big muddy footprints. Interesting.')],
-    scenes: ['The baker wrote fractions on the slices, but I can’t read them. Help?', 'Okay, okay. I’ll take just one slice. How big is one slice?', 'This tray {cake} is cut in odd shapes. Are the pieces still fair?'],
+    scenes: ['My friends want to share too. Can pieces of different shapes still be fair?', 'Okay, okay. I’ll take just one slice. How big is one slice?', 'This tray {cake} is cut in odd shapes. Are the pieces still fair?'],
     cliffs: ['Under the crumbs the stone piece glows… right next to big muddy footprints.', 'Numi spots more muddy footprints by the back door.', 'The footprints lead out the bakery door… toward the pond.'],
     cliff: 'Splash! Something shiny just fell into Pip’s pond.',
     clue: 'Big muddy footprints in the crumbs',

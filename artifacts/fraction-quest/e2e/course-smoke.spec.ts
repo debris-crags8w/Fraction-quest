@@ -218,7 +218,8 @@ test('the lesson page fits phones down to 280 px wide, with nothing scrolling si
 
 test('a lesson with ideas keeps its Learn pictures and worked example under "How it works" on the lesson page', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  const mission = MISSIONS[0];
+  // Lesson 2 (fair parts in any shape) has the worked example about fourths.
+  const mission = MISSIONS.find(({ id }) => id === 'equal-parts')!;
   expect(lessonIdeas(mission.id)).toBeTruthy();
   await openLessonPageWorkedExample(page, mission);
   const pageWidth = () => page.evaluate(() => document.documentElement.scrollWidth);
@@ -1081,6 +1082,13 @@ async function enterTileNumber(page: import('@playwright/test').Page, prefix: st
   for (const digit of String(value)) await page.getByTestId(`tile-${prefix}-digit-${digit}`).click();
 }
 
+/** Lesson 1 finished: lesson 2 ("Fair parts in any shape", lesson 1 before reading a fraction moved in front of it) is
+    the current lesson, the way it was for a new learner. */
+async function finishLessonOne(page: import('@playwright/test').Page) {
+  await page.addInitScript((id) => localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: [id], starsByMission: {}, reviewQueue: [],
+    learning: { [id]: { completedAt: 1 } }, assessments: [] })), MISSIONS[0]!.id);
+}
+
 function progressBefore(mission: Mission) {
   const missionIndex = MISSIONS.findIndex((item) => item.id === mission.id);
   return {
@@ -1247,7 +1255,7 @@ for (const viewport of [
     test.setTimeout(60_000);
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     const mission = MISSIONS.find(({ id }) => id === 'equal-parts');
-    if (!mission) throw new Error('The first lesson is missing');
+    if (!mission) throw new Error('The equal-parts lesson is missing');
 
     await openAsGuest(page);
     await page.evaluate((progress) => {
@@ -1261,7 +1269,7 @@ for (const viewport of [
     await expect(page.getByTestId('learning-lab')).toBeVisible();
 
     const check = getBuildChecks(mission.id)[0];
-    if (!check) throw new Error('The first lesson has no Build check');
+    if (!check) throw new Error('The equal-parts lesson has no Build check');
     await enterModel(page, check.id, 'a', check.target);
     await enterModel(page, check.id, 'b', {
       ...check.target,
@@ -1330,7 +1338,7 @@ for (const viewport of [
 test('a passed Build check in later review clearly offers Finish review', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const mission = MISSIONS.find(({ id }) => id === 'equal-parts');
-  if (!mission) throw new Error('The first lesson is missing');
+  if (!mission) throw new Error('The equal-parts lesson is missing');
   const progress = {
     completedMissionIds: [mission.id],
     starsByMission: { [mission.id]: 1 },
@@ -1604,22 +1612,22 @@ test('an idea’s Learn picture opens complete when reduced motion is enabled', 
 
 test('replaying the first lesson and leaving it preserves saved progress', async ({ page }) => {
   const savedProgress = {
-    completedMissionIds: ['equal-parts'],
-    starsByMission: { 'equal-parts': 2 },
+    completedMissionIds: ['fraction-names'],
+    starsByMission: { 'fraction-names': 2 },
     reviewQueue: [],
-    learning: { 'equal-parts': { completedAt: 1 } },
+    learning: { 'fraction-names': { completedAt: 1 } },
     assessments: [],
   };
   await page.addInitScript((progress) => {
     localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
   }, savedProgress);
   await openAsGuest(page);
-  await page.getByTestId('button-node-equal-parts').click();
-  await page.getByTestId('button-start-mission-equal-parts').click();
+  await page.getByTestId('button-node-fraction-names').click();
+  await page.getByTestId('button-start-mission-fraction-names').click();
   await passStory(page);
 
   await expect(page.getByTestId('idea-kicker')).toHaveText('Lesson 01 · Idea 1 of 4 · Learn');
-  for (let p = 1; p < lessonIdeas('equal-parts')![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  for (let p = 1; p < lessonIdeas('fraction-names')![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
   await page.getByTestId('button-idea-practise').click();
   await expectLessonQuestionProgress(page, 1, 0);
   await page.getByTestId('button-back-map').click();
@@ -1637,7 +1645,7 @@ test('a lesson ends with its story problem, told with the season’s props (pump
   const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
   await openDeveloperLesson(page, mission);
   await expect(page.locator('html')).toHaveAttribute('data-fq-season', 'halloween');
-  // The lesson itself follows the season too: its cake rounds (idea 3 and 4 practices) are pumpkin cakes.
+  // The lesson itself follows the season too: its cake rounds (practices of both its ideas) are pumpkin cakes.
   await completeIdeas(page, mission, { beforeRound: () => expect(page.locator('.fq-pf-card')).toContainText('pumpkin') });
   await expect(page.locator('.fq-play-kicker')).toContainText('Put it together');
   const last = mission.questions.at(-1)!;
@@ -1651,12 +1659,12 @@ test('a lesson ends with its story problem, told with the season’s props (pump
 
 test('an idea is taught right before its practice, and the practice says which idea it is', async ({ page }) => {
   await openAsGuest(page);
-  const firstLesson = MISSIONS.find((mission) => mission.id === 'equal-parts')!;
+  const firstLesson = MISSIONS[0]!;
   await openDeveloperLesson(page, firstLesson);
   await completeIdeas(page, firstLesson, { until: 3 });
   // Idea 2's Learn page comes right after idea 1's third practice.
   await expect(page.getByTestId('idea-kicker')).toHaveText('Lesson 01 · Idea 2 of 4 · Learn');
-  await expect(page.getByRole('heading', { name: 'Count the equal parts to name one part' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The bottom number counts all the equal parts' })).toBeVisible();
   await page.getByTestId('button-teach-step-next').click();
   await page.getByTestId('button-idea-practise').click();
   await expect(page.locator('.fq-play-kicker')).toContainText('Idea 2 of 4');
@@ -1708,12 +1716,27 @@ test.describe('all-lesson required-question smoke', () => {
 });
 
 test('learners can correct a wrong answer across every lesson model type', async ({ page }) => {
-  test.setTimeout(60_000);
-  const modelKinds = ['area', 'bars', 'decimal', 'line', 'partition', 'set'] as const;
-  const representativeMissions = modelKinds.map((kind) =>
-    MISSIONS.find((mission) => mission.questions[0]?.model.kind === kind && !lessonIdeas(mission.id)) ?? MISSIONS.find((mission) => mission.questions[0]?.model.kind === kind),
-  );
-  expect(representativeMissions.every(Boolean)).toBe(true);
+  test.setTimeout(120_000);
+  // The rarest types choose first, so each still finds a lesson of its own.
+  const modelKinds = ['partition', 'decimal', 'set', 'line', 'area', 'bars'] as const;
+  // For each model type, the first lesson that asks it: a lesson without ideas by its first question; a lesson with
+  // ideas by the first practice of an idea (so its Learn pages come first) whose next practice is a question too.
+  // Each type gets its own lesson: leaving a lesson keeps its place, so a second visit would not start where expected.
+  const used = new Set<string>();
+  const representatives = modelKinds.map((kind) => {
+    for (const mission of MISSIONS.filter(({ id }) => !used.has(id))) {
+      if (!lessonIdeas(mission.id)) {
+        if (mission.questions[0]?.model.kind === kind) { used.add(mission.id); return { mission, step: -1, question: mission.questions[0] }; }
+        continue;
+      }
+      const steps = ideaSteps(mission.id);
+      const step = steps.findIndex(({ practice, item }, index) => practice === 0 && 'question' in item
+        && ideaQuestion(mission, item.question)?.model.kind === kind && !!steps[index + 1] && 'question' in steps[index + 1]!.item);
+      if (step >= 0) { used.add(mission.id); return { mission, step, question: ideaQuestion(mission, (steps[step]!.item as { question: string }).question)! }; }
+    }
+    return undefined;
+  });
+  expect(representatives.every(Boolean)).toBe(true);
 
   await page.addInitScript((ids) => {
     const completedAt = Date.now();
@@ -1727,25 +1750,27 @@ test('learners can correct a wrong answer across every lesson model type', async
   }, MISSIONS.map((item) => item.id));
   await openAsGuest(page);
 
-  for (const mission of representativeMissions) {
-    if (!mission) throw new Error('Missing lesson for a question model type');
+  for (const representative of representatives) {
+    if (!representative) throw new Error('Missing lesson for a question model type');
+    const { mission, step, question } = representative;
     await page.getByTestId(`button-node-${mission.id}`).click();
     await page.getByTestId(`button-start-mission-${mission.id}`).click();
     await passStory(page);
-    // A lesson with ideas opens on idea 1's Learn page; its first practice is the first question of that idea.
+    // A lesson with ideas: walk its earlier practices, then the chosen idea's Learn pages, to its first practice.
     const ideas = lessonIdeas(mission.id);
     if (ideas) {
-      for (let p = 1; p < ideas[0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+      await completeIdeas(page, mission, { until: step });
+      const { idea } = ideaSteps(mission.id)[step]!;
+      for (let p = 1; p < ideas[idea]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
       await page.getByTestId('button-idea-practise').click();
     } else if (PART_FINDER_LESSONS.has(mission.id)) await page.getByTestId('button-hands-on-skip').click();
     else await expect(page.getByTestId('lesson-example')).toBeVisible();
 
-    const first = ideaSteps(mission.id)[0]?.item;
-    const question = first && 'question' in first ? ideaQuestion(mission, first.question)! : mission.questions[0];
     await expect(page.getByTestId('question-model-area')).toBeVisible();
     await retryLessonQuestion(page, question);
     await page.getByTestId('button-next-question').click();
-    await expectLessonQuestionProgress(page, 2, 1);
+    // The progress bar counts the lesson's practices so far (a lesson without ideas: its first question).
+    await expectLessonQuestionProgress(page, Math.max(step, 0) + 2, Math.max(step, 0) + 1);
     await page.getByTestId('button-back-map').click();
   }
 });
@@ -1939,24 +1964,29 @@ test('daily practice resumes its checked scaffold and parent report after reload
   await expect(adaptations.getByRole('listitem')).toHaveCount(started.adaptationLog.length);
 });
 
-test('lesson 1 shares cakes in its last idea: equal pieces, then mixed shapes', async ({ page }) => {
+test('lesson 2 shares cakes in its last idea: equal pieces, then mixed shapes', async ({ page }) => {
   // Outside a seasonal theme, so the cake is a plain cake (in October it is a pumpkin cake).
   await page.clock.setFixedTime(new Date(2026, 2, 10, 10, 0, 0));
   await page.addInitScript(() => {
     const sent: string[] = [];
     (window as unknown as { __shell: string[] }).__shell = sent;
     (window as unknown as { ReactNativeWebView: unknown }).ReactNativeWebView = { postMessage: (message: string) => sent.push(message) };
+    // Lesson 1 is finished, so lesson 2 ("Fair parts in any shape", with the cake rounds) is open.
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: ['fraction-names'], starsByMission: {}, reviewQueue: [],
+      learning: { 'fraction-names': { completedAt: 1 } }, assessments: [] }));
   });
   await openAsGuest(page);
-  await page.getByTestId(`button-start-mission-${MISSIONS[0].id}`).click();
+  const lessonTwo = MISSIONS.find((item) => item.id === 'equal-parts')!;
+  await expectMissionStart(page, lessonTwo.id, true);
+  await page.getByTestId(`button-start-mission-${lessonTwo.id}`).click();
   await passStory(page);
-  // Idea 4, "Share fairly": its Learn page, then the two cake rounds are its first two practices.
-  const sortAt = ideaSteps('equal-parts').findIndex(({ item }) => 'handsOn' in item && item.handsOn === 'sort');
-  await completeIdeas(page, MISSIONS[0], { until: sortAt });
-  await expect(page.getByTestId('idea-kicker')).toHaveText('Lesson 01 · Idea 4 of 4 · Learn');
+  // Idea 2, "Share fairly": its Learn page, then the two cake rounds are its first two practices.
+  const sortAt = ideaSteps(lessonTwo.id).findIndex(({ item }) => 'handsOn' in item && item.handsOn === 'sort');
+  await completeIdeas(page, lessonTwo, { until: sortAt });
+  await expect(page.getByTestId('idea-kicker')).toHaveText('Lesson 02 · Idea 2 of 2 · Learn');
   await page.getByTestId('button-idea-practise').click();
   // A cake round in an idea: the bar says where the child is, with no "1/3 done" count, no Helper and no friend's line.
-  await expect(page.locator('.fq-taskbar-title')).toHaveText('Idea 4 of 4 · Practise 1 of 3');
+  await expect(page.locator('.fq-taskbar-title')).toHaveText('Idea 2 of 2 · Practise 1 of 3');
   await expect(page.getByTestId('taskbar-progress')).toHaveCount(0);
   await expect(page.getByTestId('button-lesson-helper')).toHaveCount(0);
   await expect(page.getByTestId('story-line')).toHaveCount(0);
@@ -2244,7 +2274,7 @@ test('the model intros are their own lesson steps: Watch, then Try, each saved; 
 
 test('every later lesson opens Build it with a short Watch, each visit, but never repeats Try', async ({ page }) => {
   test.setTimeout(90_000);
-  const mission = MISSIONS.find((item) => item.id === 'fraction-names')!;
+  const mission = MISSIONS[1]!;
   const [check] = getBuildChecks(mission.id);
   await page.addInitScript((progress) => {
     localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
@@ -2368,9 +2398,9 @@ test('racing the robot reads each new question aloud as it appears', async ({ pa
     Object.defineProperty(window, 'SpeechSynthesisUtterance', { value: FakeUtterance, configurable: true });
   });
   await openAsGuest(page);
-  const node = page.getByTestId('button-node-equal-parts');
+  const node = page.getByTestId(`button-node-${MISSIONS[0].id}`);
   if ((await node.getAttribute('aria-expanded')) !== 'true') await node.click({ force: true });
-  await page.getByTestId('button-race-equal-parts').click();
+  await page.getByTestId(`button-race-${MISSIONS[0].id}`).click();
   await page.getByTestId('button-race-robot-1').click();
   const firstPrompt = page.locator('.fq-race-q').first();
   await expect(firstPrompt).toBeVisible({ timeout: 5000 });
@@ -2396,20 +2426,17 @@ test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried 
     } });
     Object.defineProperty(window, 'SpeechSynthesisUtterance', { value: FakeUtterance, configurable: true });
   });
-  // Lesson 2 (no cake rounds): its first question is a tap question.
-  await page.addInitScript(() => localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: ['equal-parts'], starsByMission: {}, reviewQueue: [], learning: { 'equal-parts': { completedAt: Date.now() } }, assessments: [] })));
   await openAsGuest(page);
   // Sound starts on; turn it on only if this device saved it as off.
   const soundToggle = page.getByTestId('button-toggle-sound');
   if (await soundToggle.getAttribute('aria-label') === 'Turn sound on') await soundToggle.click();
   await expect(soundToggle).toHaveAttribute('aria-label', 'Turn sound off');
-  const mission = MISSIONS[1];
-  // Lesson 2 teaches its first idea on Learn pages; its first question is that idea's first practice.
+  const mission = MISSIONS[0];
+  // Lesson 1 teaches its first idea on Learn pages; its first question is that idea's first practice, a tap question
+  // whose picture (a strip) has parts to count.
   const firstStep = ideaSteps(mission.id)[0]?.item;
   const question = firstStep && 'question' in firstStep ? ideaQuestion(mission, firstStep.question)! : mission.questions[0];
-  await page.getByTestId('button-continue-course').or(page.getByTestId('button-jump-current')).first().click();
-  await passStory(page);
-  if (await page.getByTestId(`button-start-mission-${mission.id}`).count()) await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await page.getByTestId(`button-start-mission-${mission.id}`).click();
   await passStory(page);
   if (lessonIdeas(mission.id)) {
     await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
@@ -2472,7 +2499,7 @@ test('inside the Expo iPhone app, answer and result haptics work with sound off,
   });
   const messages = () => page.evaluate(() => (window as unknown as { __shell: string[] }).__shell.map((m) => JSON.parse(m) as { type: string; cue?: string; html?: string }));
   // A right answer in lesson 2's first question: a haptic tap.
-  await page.addInitScript(() => localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: ['equal-parts'], starsByMission: {}, reviewQueue: [], learning: { 'equal-parts': { completedAt: Date.now() } }, assessments: [] })));
+  await page.addInitScript(() => localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: ['fraction-names'], starsByMission: {}, reviewQueue: [], learning: { 'fraction-names': { completedAt: Date.now() } }, assessments: [] })));
   await openAsGuest(page);
   const mission = MISSIONS[1];
   // Lesson 2 teaches its first idea on Learn pages; its first question is that idea's first practice.
@@ -2700,6 +2727,7 @@ test('a wrong unit-challenge answer gives a hint, allows a retry, and earns no p
 
 test('a wrong Fraction Race answer explains the miss, stalls without scoring, then moves to the next question', async ({ page }) => {
   await page.addInitScript(() => { Math.random = () => 0.123; });
+  await finishLessonOne(page);
   await openAsGuest(page);
   const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
   const firstQuestion = generateQuestions(mission.id, mission.questions.map((question) => question.id), 123000001, 40)[0];
@@ -2781,6 +2809,7 @@ test('a wrong equivalence match explains what to compare and does not count as a
 });
 
 test('a wrong Code Quest run gives a next step and does not pass the level until corrected', async ({ page }) => {
+  await finishLessonOne(page);
   await openAsGuest(page);
   const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
   const target = getCodeLevels(mission.id)[0].target;
@@ -2840,6 +2869,7 @@ test('a wrong Code Quest run gives a next step and does not pass the level until
 
 test('a wrong Code Sprint run explains the fix, adds its penalty, and can be retried', async ({ page }) => {
   await page.addInitScript(() => { Math.random = () => 0.123; });
+  await finishLessonOne(page);
   await openAsGuest(page);
   const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
   const rounds = makeSprint(mission.id, () => 0.123);
@@ -3122,15 +3152,8 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.getByTestId('button-story-choice-1').click();
   await page.getByTestId('button-story-go').click();
   await expect(page.getByTestId('story-comic')).toHaveCount(0);
-  // The lesson teaches first (idea 1's Learn page). Later, in idea 4, Chomp asks and the cast shares the cake.
+  // The lesson teaches first (idea 1's Learn page).
   await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
-  const sortAt = ideaSteps('equal-parts').findIndex(({ item }) => 'handsOn' in item && item.handsOn === 'sort');
-  await completeIdeas(page, MISSIONS[0], { until: sortAt });
-  await page.getByTestId('button-idea-practise').click();
-  // The cast shares the cake (their names are on the sharing buttons); the friend's line stays out of the practice.
-  await expect(page.getByTestId('story-line')).toHaveCount(0);
-  await expect(page.getByTestId('button-part-finder-share-1')).toContainText('Chomp');
-  await expect(page.getByTestId('button-part-finder-share-4')).toContainText('Pip');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}').story);
   expect(saved).toEqual({ prologueSeen: true, choices: { '1': 1 } });
 
@@ -3142,11 +3165,20 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.goto('/');
   await expect(page.getByTestId('stone-teaser')).toContainText('Under the crumbs the stone piece glows');
   await page.getByTestId(`button-start-mission-${second.id}`).click();
-  await expect(page.getByTestId('story-panel-0')).toContainText('The baker wrote fractions on the slices');
+  await expect(page.getByTestId('story-panel-0')).toContainText('Can pieces of different shapes still be fair?');
   await expect(page.getByTestId('story-panel-1')).toContainText(`Today’s lesson is ${second.title.charAt(0).toLowerCase()}`);
   await expect(page.getByTestId('story-panel-2')).toContainText(second.skill.split(' ').slice(-4).join(' '));
   await expect(page.getByTestId('story-choice')).toHaveCount(0);
-  await page.getByTestId('button-story-back').click();
+  // Lesson 2 ("Fair parts in any shape"): in its last idea, Chomp asks and the cast shares the cake.
+  await passStory(page);
+  const sortAt = ideaSteps(second.id).findIndex(({ item }) => 'handsOn' in item && item.handsOn === 'sort');
+  await completeIdeas(page, second, { until: sortAt });
+  await page.getByTestId('button-idea-practise').click();
+  // The cast shares the cake (their names are on the sharing buttons); the friend's line stays out of the practice.
+  await expect(page.getByTestId('story-line')).toHaveCount(0);
+  await expect(page.getByTestId('button-part-finder-share-1')).toContainText('Chomp');
+  await expect(page.getByTestId('button-part-finder-share-4')).toContainText('Pip');
+  await page.goto('/');
   // Once seen, the map's prologue card watches it again and comes back to the map.
   await expect(page.getByTestId('button-map-prologue')).toContainText('Watch again');
   await page.getByTestId('button-map-prologue').click();
@@ -3424,28 +3456,31 @@ test('the mystery is playable: picture clues, a suspect board after chapter 4, s
 
 test('a reload or the back button keeps the child’s place in a lesson’s practice', async ({ page }) => {
   test.setTimeout(120_000);
-  const [first, second] = MISSIONS;
-  const learning = { [first.id]: { practiceDone: true, helpUses: 0, misconceptions: {}, completedAt: Date.now(),
-    checks: Object.fromEntries(getBuildChecks(first.id).map((check) => [check.id, { passed: true, supported: false, attempts: 1 }])),
-    worksheet: Object.fromEntries(getWorksheet(first.id).map((problem) => [problem.id, { draft: problem.answer, checkedValue: problem.answer, attempts: 1, supported: false }])) } };
+  // Lesson 1, not started: its first idea's practices are three questions in a row, so question 2 is a question too
+  // (lesson 2's second practice is a cake round).
+  const lesson = MISSIONS[0]!;
   // Seed once: a reload must keep what the app saved, not this starting point.
   await page.addInitScript((progress) => {
     if (sessionStorage.getItem('seeded')) return;
     sessionStorage.setItem('seeded', '1');
     localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
-  }, { completedMissionIds: [first.id], starsByMission: { [first.id]: 3 }, reviewQueue: [], assessments: [], learning });
+  }, { completedMissionIds: [], starsByMission: {}, reviewQueue: [], assessments: [], learning: {} });
   await openAsGuest(page);
-  const startSecond = async () => {
-    const start = page.getByTestId(`button-start-mission-${second.id}`);
-    if (!(await start.isVisible())) await page.getByTestId(`button-node-${second.id}`).click();
+  const startLesson = async () => {
+    const start = page.getByTestId(`button-start-mission-${lesson.id}`);
+    if (!(await start.isVisible())) await page.getByTestId(`button-node-${lesson.id}`).click();
     await start.click();
   };
   const skipBreak = async () => {
     const skip = page.getByTestId('button-break-skip-top');
     if (await skip.isVisible().catch(() => false)) await skip.click();
   };
-  await startSecond();
+  await startLesson();
   await passStory(page);
+  // Idea 1's Learn pages come first, then its first practice.
+  await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
+  for (let p = 1; p < lessonIdeas(lesson.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
   await expectLessonQuestionProgress(page, 1, 0);
   for (let choice = 0; choice < 4; choice++) {
     await skipBreak();
@@ -3467,7 +3502,7 @@ test('a reload or the back button keeps the child’s place in a lesson’s prac
   await page.reload();
   const guest = page.getByTestId('button-play-guest');
   if (await guest.isVisible().catch(() => false)) await guest.click();
-  await startSecond();
+  await startLesson();
   await expectLessonQuestionProgress(page, 2, 1);
 });
 

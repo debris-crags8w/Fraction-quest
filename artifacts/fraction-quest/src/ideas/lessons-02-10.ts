@@ -3,36 +3,22 @@
 import { example, scenes, wordsToKnow, type LessonIdea } from './helpers';
 
 export const IDEAS: Record<string, LessonIdea[]> = {
-  // Lesson 2: the bottom number, then the top number, then saying and writing a fraction.
-  'fraction-names': [
+  // Lesson 2: equal parts can be different shapes (with its cake round), then sharing fairly (its two cake rounds).
+  // It was lesson 1 until reading a fraction moved in front of it, so fraction names are taught by now.
+  'equal-parts': [
     {
-      title: 'The bottom number counts all the equal parts',
+      title: 'Equal parts can be different shapes',
       learn: [
-        { text: 'The denominator is the bottom number. Count the equal parts in one whole.', scene: scenes('fraction-names').steps[0]! },
-        example('fraction-names', 'Read the bottom number'),
+        { text: 'Equal parts have a name: 4 equal parts are fourths.', scene: scenes('equal-parts').steps[2]! },
+        example('equal-parts', 'Same space, different shape'),
       ],
-      practice: [{ question: 'fraction-names-p1' }, { question: 'fraction-names-p2' }, { question: 'fraction-names-p3' }],
+      practice: [{ question: 'equal-parts-p1' }, { handsOn: 'match' }, { question: 'equal-parts-p2' }],
     },
     {
-      title: 'The top number counts the parts we take',
-      terms: [
-        { term: 'numerator, the top number', pattern: /\b(numerators?|top numbers?)\b/i },
-        { term: 'more than 1 part on top', pattern: /\b([2-9]|\d{2,})\/\d+/ },
-      ],
-      learn: [
-        { text: 'The numerator is the top number. It counts the parts we take.', scene: scenes('fraction-names').steps[1]! },
-        example('fraction-names', 'Read the top number'),
-      ],
-      practice: [{ question: 'fraction-names-p4' }, { question: 'fraction-names-q3' }, { question: 'fraction-names-q1' }],
-    },
-    {
-      title: 'Say it and write it: 3 out of 4 equal parts',
-      terms: [{ term: 'out of', pattern: /\bout of\b/i }],
-      learn: [
-        { text: 'Say it like this: 3 out of 4 equal parts.', scene: scenes('fraction-names').steps[2]! },
-        example('fraction-names', 'Write the fraction'),
-      ],
-      practice: [{ question: 'fraction-names-q2' }, { question: 'fraction-names-p5' }, { question: 'fraction-names-q4' }],
+      title: 'Share fairly',
+      terms: [{ term: 'sharing among friends', pattern: /\bfriends?\b/i }],
+      learn: [example('equal-parts', 'Share fairly')],
+      practice: [{ handsOn: 'sort' }, { handsOn: 'sort-cake' }, { question: 'equal-parts-p3' }],
     },
   ],
 

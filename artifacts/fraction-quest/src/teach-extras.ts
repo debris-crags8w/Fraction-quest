@@ -57,6 +57,19 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
           ...range(6).map((i): [number, Record<number, Partial<SceneRow>>] => [380, { 0: { counted: range(i + 1) } }]), [600, { 1: { hidden: false } }]),
       },
       {
+        // Lesson 1, idea 2: counts only (no fraction is written until idea 3).
+        title: 'Count the parts, not the cuts',
+        picture: play([{ kind: 'bar', parts: ones(4) }, { ...say('3 cuts make 4 parts. Count the parts, not the cuts: 4 equal parts make one whole, so the bottom number is 4.'), hidden: true }],
+          [600, { 0: { cut: true } }], ...range(4).map((i): [number, Record<number, Partial<SceneRow>>] => [420, { 0: { counted: range(i + 1) } }]),
+          [600, { 1: { hidden: false } }]),
+      },
+      {
+        // Lesson 1, idea 3: both numbers, the first time a fraction is written.
+        title: 'Write one part',
+        picture: play([{ kind: 'bar', parts: ones(4), cut: true }, { ...say('1 of 4 equal parts is colored. The bottom number, 4, counts all the equal parts. The top number, 1, counts the part we take. We write 1/4.'), hidden: true }],
+          [500, { 0: { shaded: [0] } }], [600, { 0: { label: '1/4' } }], [600, { 1: { hidden: false } }]),
+      },
+      {
         title: 'Read the top number',
         picture: play([{ kind: 'bar', parts: ones(3), cut: true, label: '2/3' }, { ...say('In 2/3, the top number counts the colored parts. 2 parts are colored, so the numerator is 2.'), hidden: true }],
           [500, { 0: { shaded: [0], counted: [0] } }], [500, { 0: { shaded: [0, 1], counted: [0, 1] } }], [600, { 1: { hidden: false } }]),

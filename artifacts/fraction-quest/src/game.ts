@@ -468,8 +468,8 @@ function mission({ ideaQuestions: ideaSeeds, ...seed }: MissionSeed & { unit: nu
 
 const curriculum: MissionSeed[] = [
   {
-    id: 'equal-parts', title: 'Same whole, fair parts', shortTitle: 'Equal parts', skill: 'A fraction names equal parts of one whole. The parts must be the same size.',
-    description: 'Spot fair, equal parts.', example: {
+    id: 'equal-parts', title: 'Fair parts in any shape', shortTitle: 'Equal parts', skill: 'Equal parts are the same size. They can be different shapes, and a fair share gives everyone the same amount.',
+    description: 'Spot equal parts of any shape, and share fairly.', example: {
       prompt: 'A square cake is cut into 4 parts. When are they fourths?',
       answer: 'When all 4 parts are the same size.',
       explanation: 'Fourths must be equal. The parts can be different shapes, but 4 unequal parts are not fourths.',
@@ -482,16 +482,14 @@ const curriculum: MissionSeed[] = [
       practice('A strip has 3 equal parts. What is 1 part?', ['one third', 'one half', 'three wholes', 'one fourth'], 0, bars({ numerator: 1, denominator: 3 }), 'How many equal parts make the strip?', '1 of 3 equal parts is one third, or 1/3.', bars({ numerator: 1, denominator: 2 })),
     ],
     ideaQuestions: [
-      practice('Is this pizza cut into 4 equal slices?', ['No, the slices are different sizes', 'Yes, 4 equal slices', 'Yes, there are 4 slices', 'No, it needs 8 slices'], 0, { kind: 'area', cut: 'circle-unequal', shaded: [] }, 'Equal slices are all the same size. Compare the slices.', 'One slice is bigger than the others, so these are not 4 equal slices.', { kind: 'area', cut: 'circle-fourths', shaded: [] }),
-      practice('This bar has 6 equal parts. One is shaded. What fraction is shaded?', ['1/6', '1/5', '1/7', '1/2'], 0, bars({ numerator: 1, denominator: 6 }), 'Count all the equal parts. That is the bottom number.', '6 equal parts in all, and 1 is shaded: 1/6.', bars({ numerator: 1, denominator: 3 }), { authoredChoices: true }),
       practice('These 4 parts are 2 squares and 2 triangles. Are they fourths?', ['Yes, each part covers the same space', 'No, the parts are different shapes', 'No, fourths must be squares', 'Yes, because there are 4 parts'], 0, { kind: 'area', cut: 'fourths-mixed', shaded: [] }, 'Fourths must be the same size. They can be different shapes.', 'Each part covers the same space, 1/4 of the square. So they are fourths.', { kind: 'area', cut: 'fourths-squares', shaded: [] }),
       practice('How many small triangles cover the same space as the small square?', ['2', '1', '4'], 0, { kind: 'area', cut: 'quarter-and-triangles', shaded: [0] }, 'Look at another corner of the big square. It is the same size as the small square. Count its triangles.', '2 small triangles cover the same space as 1 small square.', { kind: 'area', cut: 'quarter-and-triangles', shaded: [0, 1, 2] }),
       practice('2 friends share 6 equal pieces fairly. How many pieces does each friend get?', ['3', '2', '6'], 0, { kind: 'set', selected: 0, total: 6 }, 'Give one piece to each friend, then go around again.', '6 pieces shared by 2 friends: each friend gets 3 pieces.', { kind: 'set', selected: 3, total: 6, groupCount: 2 }),
     ],
   },
   {
-    id: 'fraction-names', title: 'Read a fraction', shortTitle: 'Fraction names', skill: 'The denominator, or bottom number, tells how many equal parts make one whole. The numerator, or top number, tells how many parts we count.',
-    description: 'Learn what the numerator and denominator mean.', example: {
+    id: 'fraction-names', title: 'Fair parts and fraction names', shortTitle: 'Fraction names', skill: 'A fraction names equal parts of one whole. The denominator, or bottom number, tells how many equal parts make one whole. The numerator, or top number, tells how many parts we count.',
+    description: 'Spot equal parts, then read the top and bottom numbers.', example: {
       prompt: 'In 3/4, what does each number tell you?',
       answer: 'There are 4 equal parts in all. 3 parts are counted.',
       explanation: 'The denominator is 4, so the whole has 4 equal parts. The numerator is 3, so 3 parts are counted.',
@@ -504,11 +502,20 @@ const curriculum: MissionSeed[] = [
       practice('A shape has 8 equal parts. 1 is colored. What fraction is colored?', ['1/8', '8/1', '1/7'], 0, bars({ numerator: 1, denominator: 8 }), 'Count all the equal parts first.', 'The denominator is all 8 equal parts. The numerator is the 1 colored part.', bars({ numerator: 1, denominator: 4 })),
     ],
     ideaQuestions: [
-      practice('In 1/8, what does the 8 mean?', ['8 equal parts in all', '8 parts are shaded', '8 wholes', '8 parts not shaded'], 0, bars({ numerator: 1, denominator: 8 }), 'The denominator is the bottom number. Count all the equal parts.', 'The bottom number, 8, is the denominator: 8 equal parts make one whole.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
-      practice('What is the denominator of 1/5?', ['5', '1', '4', '6'], 0, bars({ numerator: 1, denominator: 5 }), 'The denominator is the bottom number. It counts all the equal parts.', '1/5 has 5 on the bottom: 5 equal parts make one whole. The denominator is 5.', bars({ numerator: 1, denominator: 3 }), { authoredChoices: true }),
-      practice('This pizza is cut into equal slices. One is shaded. What is the denominator?', ['8', '1', '7', '9'], 0, { kind: 'area', cut: 'circle-eighths', shaded: [0] }, 'Count all the equal slices. That number is the denominator.', '8 equal slices make the whole pizza, so the denominator is 8.', { kind: 'area', cut: 'circle-fourths', shaded: [0] }, { authoredChoices: true }),
+      // Idea 2, the bottom number: the answers are counts (no fraction is written until idea 3 teaches the top number).
+      // Wrong choices: the cuts counted instead of the parts, the edges and cuts counted, the whole strip as 1.
+      practice('This strip is cut into equal parts. How many equal parts make the whole?', ['3', '2', '4', '1'], 0, { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }, 'Count every part, one at a time. That number is the bottom number.', 'The strip has 3 equal parts, so the bottom number, the denominator, is 3.', { kind: 'partition', parts: [50, 50] }, { authoredChoices: true }),
+      practice('This bar has 3 cuts. How many equal parts make the whole?', ['4', '3', '5', '2'], 0, { kind: 'partition', parts: [25, 25, 25, 25] }, 'Count the parts, not the cuts.', '3 cuts make 4 equal parts. Count the parts, not the cuts: the bottom number is 4.', { kind: 'partition', parts: [50, 50] }, { authoredChoices: true }),
+      // A slice missed or counted twice, or the 4 cut lines counted instead of the 8 slices.
+      practice('This pizza is cut into equal slices. What is the denominator?', ['8', '7', '4', '9'], 0, { kind: 'area', cut: 'circle-eighths', shaded: [] }, 'Count all the equal slices. That number is the denominator.', '8 equal slices make the whole pizza, so the denominator is 8.', { kind: 'area', cut: 'circle-fourths', shaded: [] }, { authoredChoices: true }),
       practice('In 4/5, what does the 4 mean?', ['4 parts are counted', '4 equal parts in all', '4 wholes', '4 parts not counted'], 0, bars({ numerator: 4, denominator: 5 }), 'The numerator is the top number. It counts the parts we take.', 'The top number, 4, is the numerator: 4 of the equal parts are counted.', bars({ numerator: 2, denominator: 3 }), { authoredChoices: true }),
       practice('3 out of 8 equal parts are shaded. What fraction is shaded?', ['3/8', '8/3', '5/8', '3/5'], 0, bars({ numerator: 3, denominator: 8 }), 'Count all the parts for the bottom number. Count the shaded parts for the top number.', '8 equal parts in all, so 8 goes on the bottom. 3 are shaded, so 3 goes on top: 3/8.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
+      // Idea 1, equal parts are the same size (yes or no, no fractions): from "Fair parts in any shape" when it was lesson 1.
+      practice('This ribbon is cut into 2 parts. Are the parts the same size?', ['Yes, same-size parts', 'No, one part is bigger', 'No, there must be 3 parts', 'No, they are different colors'], 0, { kind: 'partition', parts: [50, 50] }, 'Compare the 2 parts. Is one bigger?', 'Both parts are the same size, so they are equal parts.', { kind: 'partition', parts: [50, 50] }),
+      practice('Is this strip cut into 3 equal parts?', ['Yes, 3 equal parts', 'No, the parts are unequal', 'No, there are 2 parts', 'Yes, there are 3 parts'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Equal parts are all the same size. Compare the parts.', 'One part is twice as big as the others, so the parts are not equal.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
+      practice('Is this pizza cut into 4 equal slices?', ['No, the slices are different sizes', 'Yes, 4 equal slices', 'Yes, there are 4 slices', 'No, it needs 8 slices'], 0, { kind: 'area', cut: 'circle-unequal', shaded: [] }, 'Equal slices are all the same size. Compare the slices.', 'One slice is bigger than the others, so these are not 4 equal slices.', { kind: 'area', cut: 'circle-fourths', shaded: [] }),
+      // Idea 3: the first fraction a child picks, right after its Learn page explains both numbers (one part only).
+      practice('A sandwich is cut into 4 equal parts. What is 1 part?', ['1/3', '1/4', '1/2', '1/5'], 1, bars({ numerator: 1, denominator: 4 }), 'Count all the equal parts. That is the bottom number.', 'The bottom number is all 4 parts. You have 1.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
     ],
   },
   {
@@ -2254,7 +2261,7 @@ export const EXTENSION_LESSON_IDS: ReadonlySet<string> = new Set(extensionTopics
  * grade 5 starts in unit 10 with adding and subtracting unlike fractions. Enrichment and problem solving close the course.
  */
 export const LESSON_PLAN: Readonly<Record<number, readonly string[]>> = {
-  1: ['equal-parts', 'fraction-names', 'unit-fractions', 'fraction-of-area'],
+  1: ['fraction-names', 'equal-parts', 'unit-fractions', 'fraction-of-area'],
   2: ['unit-size', 'compare-same-numerator'],
   3: ['benchmark-half', 'benchmarks-zero-one', 'fraction-magnitude'],
   4: ['number-line-basics', 'number-line-points', 'number-line-beyond-one', 'ruler-measurement', 'build-line-plots'],
@@ -2550,7 +2557,9 @@ export const MOVED_EARLIER_LESSONS: ReadonlySet<string> = new Set([
     though the lessons now in front of it may be new to them. */
 export const MOVED_LATER_LESSONS: ReadonlySet<string> = new Set(['add-related-fractions', 'fraction-of-quantity', 'multiply-mixed-numbers',
   // Moved from unit 11 to the end of unit 12, after "Division is a fraction".
-  'unit-fraction-divided-whole', 'divide-whole-by-unit-fraction', 'share-or-fit']);
+  'unit-fraction-divided-whole', 'divide-whole-by-unit-fraction', 'share-or-fit',
+  // Lesson 1 until reading a fraction moved in front of it ("Fair parts and fraction names" is lesson 1 now).
+  'equal-parts']);
 /**
  * Lessons added after learners could already be past them. For a learner who has started units 9–14 they never block
  * later units (they stay open to do any time, and "Continue" still suggests them). New learners take them in order.
@@ -2707,7 +2716,8 @@ export function loadProgress(): Progress {
             : undefined,
           practiceAt: raw.practiceDone !== true && raw.practiceAt && typeof raw.practiceAt === 'object'
             && Number.isInteger((raw.practiceAt as { index?: unknown }).index) && Number.isInteger((raw.practiceAt as { firstTry?: unknown }).firstTry)
-            ? { index: Math.max(0, Math.min(50, (raw.practiceAt as { index: number }).index)), firstTry: Math.max(0, Math.min(50, (raw.practiceAt as { firstTry: number }).firstTry)) }
+            ? { index: Math.max(0, Math.min(50, (raw.practiceAt as { index: number }).index)), firstTry: Math.max(0, Math.min(50, (raw.practiceAt as { firstTry: number }).firstTry)),
+              ...(typeof (raw.practiceAt as { plan?: unknown }).plan === 'string' ? { plan: (raw.practiceAt as { plan: string }).plan.slice(0, 40) } : {}) }
             : undefined,
           completedAt: typeof raw.completedAt === 'number' && Number.isFinite(raw.completedAt) ? raw.completedAt : undefined,
           confirmedAt: typeof raw.confirmedAt === 'number' && Number.isFinite(raw.confirmedAt) ? raw.confirmedAt : undefined,

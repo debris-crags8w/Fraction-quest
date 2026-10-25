@@ -52,7 +52,7 @@ test('when the daily time is used up, Hoot says see you tomorrow, the Storybook 
 test('time running out mid-lesson lets the child finish, then shows on leaving', async ({ page }) => {
   await page.clock.install();
   await openWithTime(page, 14, 15);
-  await page.getByTestId('button-start-mission-equal-parts').click();
+  await page.getByTestId('button-start-mission-fraction-names').click();
   const close = page.getByRole('button', { name: /^Back to the map/ });
   await expect(close).toBeVisible();
   await page.mouse.click(5, 5);

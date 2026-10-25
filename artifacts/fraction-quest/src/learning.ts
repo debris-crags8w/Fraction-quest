@@ -14,8 +14,9 @@ export type LearningRecord = {
   /** A passed Build check waiting for the learner to choose Next. */
   pendingBuildCheckId?: string;
   /** Where the child is in the lesson's practice questions, so a reload or the back button resumes there
-      instead of restarting the story and question 1. Cleared when practice is done. */
-  practiceAt?: { index: number; firstTry: number };
+      instead of restarting the story and question 1. Cleared when practice is done. `plan` names the practice list it
+      was saved in (practicePlan in lesson-ideas.ts): a place from an older version of the lesson starts it over. */
+  practiceAt?: { index: number; firstTry: number; plan?: string };
   /** Stars earned in practice (on screen or on paper), used when the lesson is finished. */
   practiceStars?: number;
   /** A practice-only second try at a finished part. See RedoAttempt. */

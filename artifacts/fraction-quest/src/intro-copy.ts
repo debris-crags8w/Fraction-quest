@@ -85,7 +85,7 @@ export const FRACTION_WORDS = {
   examples: [{ n: 2, d: 3, word: 'two thirds' }, { n: 3, d: 4, word: 'three fourths' }],
 } as const;
 
-/** Words, page 1: what a fraction is, with 1/4 on a bar of 4 equal parts. No "numerator"/"denominator" yet (lesson 2). */
+/** Words, page 1: what a fraction is, with 1/4 on a bar of 4 equal parts. No "numerator"/"denominator" yet (lesson 1 teaches them after its first idea). */
 export const WHAT_IS_A_FRACTION = {
   title: 'What is a fraction?',
   rule: 'A fraction names part of a whole. The whole must be cut into equal parts.',
