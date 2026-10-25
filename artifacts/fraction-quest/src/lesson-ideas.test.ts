@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { MISSIONS } from './game';
+import { FRACTION_ORDER_ROUNDS, MISSIONS } from './game';
 import { ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS, type LessonIdea } from './lesson-ideas';
 import { PART_FINDER_ROUNDS } from './part-finder';
 import { HANDS_ON_ASKS } from './story';
@@ -19,6 +19,7 @@ test('each idea teaches on its Learn pages, then has 3 practices that are real q
       assert.equal(idea.practice.length, 3, `${id}: ${idea.title} has 3 practices`);
       for (const item of idea.practice) {
         if ('handsOn' in item) assert.ok(PART_FINDER_ROUNDS.some((round) => round.id === item.handsOn), `${id}: ${item.handsOn}`);
+        else if ('sortRound' in item) assert.ok(FRACTION_ORDER_ROUNDS.some((round) => round.id === item.sortRound), `${id}: ${item.sortRound}`);
         else assert.ok(ideaQuestion(mission, item.question), `${id}: ${item.question}`);
       }
     }
@@ -75,6 +76,10 @@ function ideaText(mission: Mission, idea: LessonIdea): { learn: string[]; practi
     if ('handsOn' in item) {
       const round = PART_FINDER_ROUNDS.find((r) => r.id === item.handsOn)!;
       return [round.title, round.prompt, round.targetLabel, HANDS_ON_ASKS[round.id] ?? ''];
+    }
+    if ('sortRound' in item) {
+      const round = FRACTION_ORDER_ROUNDS.find((r) => r.id === item.sortRound)!;
+      return [round.title, round.strategyHint, round.explanation, ...round.cards.map((card) => `${card.numerator}/${card.denominator}`)];
     }
     const q = ideaQuestion(mission, item.question)!;
     return [q.prompt, ...q.choices, q.hint, q.retryFeedback, ...modelText(q.model), ...modelText(q.simplerModel)];

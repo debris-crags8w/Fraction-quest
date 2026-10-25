@@ -2,7 +2,26 @@
    challenges and their walk-through steps, story-mode questions). Each answer was worked out by hand from the question and its picture
    (October 2026). When one of these questions changes, its entry stops matching and the proof test fails until
    someone works the new question out again and updates the entry. Keys are prompts as proof.ts normalizes them. */
+import { KEYS as LESSONS_02_10 } from './proof-keys/lessons-02-10';
+import { KEYS as LESSONS_11_20 } from './proof-keys/lessons-11-20';
+import { KEYS as LESSONS_21_30 } from './proof-keys/lessons-21-30';
+import { KEYS as LESSONS_31_40 } from './proof-keys/lessons-31-40';
+import { KEYS as LESSONS_41_50 } from './proof-keys/lessons-41-50';
+import { KEYS as LESSONS_51_60 } from './proof-keys/lessons-51-60';
+import { KEYS as LESSONS_61_71 } from './proof-keys/lessons-61-71';
+import { KEYS as LESSONS_72_81 } from './proof-keys/lessons-72-81';
+
 export const PROOF_KEY: Record<string, string> = {
+  // Idea questions, one file per group of lessons (written side by side).
+  ...LESSONS_02_10,
+  ...LESSONS_11_20,
+  ...LESSONS_21_30,
+  ...LESSONS_31_40,
+  ...LESSONS_41_50,
+  ...LESSONS_51_60,
+  ...LESSONS_61_71,
+  ...LESSONS_72_81,
+
   "Nia says 3/5 = 4/6 because she added 1 to the numerator and denominator. Which fraction in tenths is really equal to 3/5?": "6/10",
   "Make 5/8 as 2/8 + 3/8.": "5/8",
   "Use sixths. Make a fraction that is 1 part less than half.": "2/6",

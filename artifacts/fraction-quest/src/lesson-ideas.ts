@@ -1,62 +1,35 @@
 /* Learn one idea, practise it three times, then the next idea. Each lesson with ideas teaches one idea on its Learn
    pages (pictures from its Teach first), then asks 3 practices that use only that idea and the ones before it. After the
    last idea the lesson's review and story problem come ("Put it together"), then the lesson page. Pure data, checked by
-   lesson-ideas.test.ts (every practice is a real question or hands-on round, each idea has 3). Lessons without ideas
-   keep Teach first and then mixed practice. */
+   lesson-ideas.test.ts (every practice is a real question, cake round or card-ordering round; each idea has 3; each screen
+   uses only its idea and earlier ones). Lessons without ideas keep Teach first and then mixed practice. */
 import type { Mission, PracticeQuestion } from './game';
 import type { PartFinderRound } from './part-finder';
-import { LESSON_SCENES, sceneSentences, type StepScene } from './teach-scenes';
-import { TEACH_EXTRAS } from './teach-extras';
+import { sceneSentences } from './teach-scenes';
+import type { IdeaPractice, LearnPage, LessonIdea } from './ideas/helpers';
+import { IDEAS as LESSONS_01 } from './ideas/lessons-01';
+import { IDEAS as LESSONS_02_10 } from './ideas/lessons-02-10';
+import { IDEAS as LESSONS_11_20 } from './ideas/lessons-11-20';
+import { IDEAS as LESSONS_21_30 } from './ideas/lessons-21-30';
+import { IDEAS as LESSONS_31_40 } from './ideas/lessons-31-40';
+import { IDEAS as LESSONS_41_50 } from './ideas/lessons-41-50';
+import { IDEAS as LESSONS_51_60 } from './ideas/lessons-51-60';
+import { IDEAS as LESSONS_61_71 } from './ideas/lessons-61-71';
+import { IDEAS as LESSONS_72_81 } from './ideas/lessons-72-81';
 
-/** One Learn page: a short line and its animated picture. */
-export type LearnPage = { text: string; scene: StepScene };
-/** A practice: a lesson question (by id, `-q` for the lesson's own, `-p` for one written for its idea) or a hands-on round. */
-export type IdeaPractice = { question: string } | { handsOn: PartFinderRound['id'] };
-/** A word, symbol or step an idea teaches: no Learn page or practice of an earlier idea may use it
-    (lesson-ideas.test.ts), and the idea's own Learn pages must. */
-export type IdeaTerm = { term: string; pattern: RegExp };
-export type LessonIdea = { title: string; learn: LearnPage[]; practice: IdeaPractice[]; terms?: IdeaTerm[] };
+export type { IdeaPractice, IdeaTerm, LearnPage, LessonIdea } from './ideas/helpers';
 
-const scenes = (id: string) => LESSON_SCENES[id]!;
-const example = (id: string, title: string): LearnPage => {
-  const found = TEACH_EXTRAS[id]?.examples?.find((item) => item.title === title);
-  if (!found) throw new Error(`No example "${title}" in ${id}`);
-  return { text: found.title, scene: found.picture };
-};
-
+/** Every lesson's ideas, from one file per group of lessons (so the groups can be written side by side). */
 export const LESSON_IDEAS: Record<string, LessonIdea[]> = {
-  'equal-parts': [
-    {
-      title: 'Equal parts are the same size',
-      learn: [
-        { text: 'Look at one whole.', scene: scenes('equal-parts').steps[0]! },
-        { text: 'Check that every part is the same size.', scene: scenes('equal-parts').steps[1]! },
-        { text: 'If one part is bigger, the parts are not fair shares.', scene: scenes('equal-parts').why },
-      ],
-      practice: [{ question: 'equal-parts-q3' }, { question: 'equal-parts-q1' }, { question: 'equal-parts-p1' }],
-    },
-    {
-      title: 'Count the equal parts to name one part',
-      terms: [{ term: 'fraction names', pattern: /\d+\/\d+|\b(halves|half|thirds?|fourths?|quarters?|fifths?|sixths?|sevenths?|eighths?)\b/i }],
-      learn: [
-        { text: 'Count the equal parts to name them.', scene: scenes('equal-parts').steps[2]! },
-        example('equal-parts', 'Name the parts, not the cuts'),
-      ],
-      practice: [{ question: 'equal-parts-q2' }, { question: 'equal-parts-q4' }, { question: 'equal-parts-p2' }],
-    },
-    {
-      title: 'Equal parts can be different shapes',
-      terms: [{ term: 'parts of different shapes', pattern: /\b(triangles?|shapes?)\b/i }],
-      learn: [example('equal-parts', 'Same space, different shape')],
-      practice: [{ question: 'equal-parts-p3' }, { handsOn: 'match' }, { question: 'equal-parts-p4' }],
-    },
-    {
-      title: 'Share fairly',
-      terms: [{ term: 'sharing among friends', pattern: /\bfriends?\b/i }],
-      learn: [example('equal-parts', 'Share fairly')],
-      practice: [{ handsOn: 'sort' }, { handsOn: 'sort-cake' }, { question: 'equal-parts-p5' }],
-    },
-  ],
+  ...LESSONS_01,
+  ...LESSONS_02_10,
+  ...LESSONS_11_20,
+  ...LESSONS_21_30,
+  ...LESSONS_31_40,
+  ...LESSONS_41_50,
+  ...LESSONS_51_60,
+  ...LESSONS_61_71,
+  ...LESSONS_72_81,
 };
 
 export const lessonIdeas = (missionId: string): LessonIdea[] | undefined => LESSON_IDEAS[missionId];
@@ -71,17 +44,19 @@ export const ideaSteps = (missionId: string): IdeaStep[] =>
 export const ideaQuestion = (mission: Mission, id: string): PracticeQuestion | undefined =>
   [...mission.questions, ...(mission.ideaQuestions ?? [])].find((question) => question.id === id);
 
-/** A hands-on round's place in the practice list (the app shows the cake round there, not this). */
-export const handsOnStandIn = (mission: Mission, round: PartFinderRound['id']): PracticeQuestion => ({
-  id: `${mission.id}-hands-on-${round}`, prompt: '', choices: [], correctChoice: 0, hint: '', retryFeedback: '',
+/** A hands-on or card-ordering round's place in the practice list (the app shows the round there, not this). */
+export const handsOnStandIn = (mission: Mission, round: PartFinderRound['id'] | string, kind: 'hands-on' | 'sort' = 'hands-on'): PracticeQuestion => ({
+  id: `${mission.id}-${kind}-${round}`, prompt: '', choices: [], correctChoice: 0, hint: '', retryFeedback: '',
   model: { kind: 'partition', parts: [100] }, simplerModel: { kind: 'partition', parts: [100] },
 });
+/** Is this practice a round (cake or card ordering) rather than a question? */
+export const isRound = (item: IdeaPractice): item is Exclude<IdeaPractice, { question: string }> => !('question' in item);
 
 /** The practice list for a lesson with ideas: each idea's 3 practices in order (none is a checkpoint). */
 export const ideaPracticeQuestions = (mission: Mission): PracticeQuestion[] =>
-  ideaSteps(mission.id).map(({ item }) => ('handsOn' in item
-    ? handsOnStandIn(mission, item.handsOn)
-    : { ...ideaQuestion(mission, item.question)!, isMastery: false }));
+  ideaSteps(mission.id).map(({ item }) => ('handsOn' in item ? handsOnStandIn(mission, item.handsOn)
+    : 'sortRound' in item ? handsOnStandIn(mission, item.sortRound, 'sort')
+      : { ...ideaQuestion(mission, item.question)!, isMastery: false }));
 
 /** What Listen reads on a Learn page: its line, then the sentences under the picture. */
 export const learnScript = (page: LearnPage) => [page.text, ...sceneSentences(page.scene)].join(' ');

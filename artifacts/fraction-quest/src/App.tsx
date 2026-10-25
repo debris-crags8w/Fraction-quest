@@ -71,7 +71,7 @@ import { ModelTag, SetSvg, WholeBracket } from './models';
 import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
 import { IdeaLearn, LessonIntroCard, TeachFirst } from './lesson-intro';
-import { ideaPracticeQuestions, ideaSteps, lessonIdeas } from './lesson-ideas';
+import { ideaPracticeQuestions, ideaSteps, isRound, lessonIdeas } from './lesson-ideas';
 import { LESSON_INTROS } from './lesson-intros';
 import { StoryCharacter } from './characters';
 import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, hintLead, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
@@ -1977,7 +1977,7 @@ function Game() {
         const ideaStep = view.type === 'play' ? steps[view.questionIndex] : undefined;
         const lessonLabel = String(MISSIONS.findIndex((mission) => mission.id === activeMission.id) + 1).padStart(2, '0');
         const starIds = ideas
-          ? activeMission.questions.filter((question, i) => !(steps[i] && 'handsOn' in steps[i]!.item) && !question.isOptionalReview && !question.isReview).map((question) => question.id)
+          ? activeMission.questions.filter((question, i) => !(steps[i] && isRound(steps[i]!.item)) && !question.isOptionalReview && !question.isReview).map((question) => question.id)
           : baseMission?.questions.map((question) => question.id) ?? [];
         const finishPlay = (stars: number) => {
           const record = getLearningRecord(progress, activeMission.id);
@@ -1998,6 +1998,12 @@ function Game() {
         if (view.type === 'play' && ideas && ideaStep && ideaStep.practice === 0 && !view.learned) {
           return <IdeaLearn key={`${activeMission.id}-learn-${ideaStep.idea}`} mission={activeMission} lessonNumber={Number(lessonLabel)} idea={ideas[ideaStep.idea]!}
             ideaIndex={ideaStep.idea} ideaCount={ideas.length} onExit={returnToMap} onPractise={() => setView({ ...view, learned: true })} />;
+        }
+        if (view.type === 'play' && ideas && ideaStep && 'sortRound' in ideaStep.item) {
+          const sortId = ideaStep.item.sortRound;
+          return <FractionSortActivity key={`${activeMission.id}-${view.questionIndex}`} rounds={[FRACTION_ORDER_ROUNDS.find((round) => round.id === sortId)!]}
+            lessonLabel={`Lesson ${lessonLabel} · Idea ${ideaStep.idea + 1} of ${ideas.length} · Practise ${ideaStep.practice + 1} of ${ideas[ideaStep.idea]!.practice.length}`}
+            intro={null} onExit={returnToMap} onDone={() => nextPlay(view.firstTryAnswers)} />;
         }
         if (view.type === 'play' && ideas && ideaStep && 'handsOn' in ideaStep.item) {
           const round = partFinderRoundsFor(activeMission.id).find((item) => item.id === (ideaStep.item as { handsOn: string }).handsOn)
