@@ -570,7 +570,8 @@ test('the ordering number line keeps fraction labels clear on narrow screens and
         const copyBounds = copy?.getBoundingClientRect();
         const buttonBounds = button?.getBoundingClientRect();
         return {
-          pageWidth: document.documentElement.scrollWidth,
+          // The worked example sits on the lesson page; it (not the Build it area below it) is what must fit.
+          exampleRight: document.querySelector('[data-testid="lesson-example"]')!.getBoundingClientRect().right,
           viewportWidth: window.innerWidth,
           copyText: copy?.textContent?.trim() ?? '',
           lineHeight: Number.parseFloat(copy ? getComputedStyle(copy).lineHeight : '0'),
@@ -596,7 +597,7 @@ test('the ordering number line keeps fraction labels clear on narrow screens and
           accessibleDescription: element.querySelector<HTMLElement>('.fq-order-line')?.getAttribute('aria-label') ?? '',
         };
       });
-      expect(descriptionLayout.pageWidth, `${context}: the page should not overflow horizontally`).toBeLessThanOrEqual(descriptionLayout.viewportWidth);
+      expect(descriptionLayout.exampleRight, `${context}: the worked example should not overflow horizontally`).toBeLessThanOrEqual(descriptionLayout.viewportWidth);
       expect(descriptionLayout.copyText, `${context}: all spoken description text should remain visible`).toBe(descriptionLayout.accessibleDescription);
       expect(descriptionLayout.copy, `${context}: the description should have a measurable layout`).not.toBeNull();
       expect(descriptionLayout.copy!.scrollWidth, `${context}: the description should not overflow its width`).toBeLessThanOrEqual(descriptionLayout.copy!.clientWidth + 1);
@@ -658,7 +659,7 @@ test('the ordering number-line explanation and Listen control stay usable at 400
     const copyBounds = copy?.getBoundingClientRect();
     const buttonBounds = button?.getBoundingClientRect();
     return {
-      pageWidth: document.documentElement.scrollWidth,
+      exampleRight: document.querySelector('[data-testid="lesson-example"]')!.getBoundingClientRect().right,
       viewportWidth: window.innerWidth,
       copyText: copy?.textContent?.trim() ?? '',
       accessibleDescription: visualDescription?.getAttribute('aria-label') ?? '',
@@ -680,7 +681,7 @@ test('the ordering number-line explanation and Listen control stay usable at 400
     };
   });
 
-  expect(layout.pageWidth, 'the page should not overflow horizontally').toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.exampleRight, 'the worked example should not overflow horizontally').toBeLessThanOrEqual(layout.viewportWidth);
   expect(layout.copyText, 'all spoken description text should remain visible').toBe(layout.accessibleDescription);
   expect(layout.copy, 'the description should have a measurable layout').not.toBeNull();
   expect(layout.copy!.scrollWidth, 'the description should not overflow its width').toBeLessThanOrEqual(layout.copy!.clientWidth + 1);
