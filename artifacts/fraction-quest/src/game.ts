@@ -1845,7 +1845,8 @@ export function loadProgress(): Progress {
             : undefined,
           practiceAt: raw.practiceDone !== true && raw.practiceAt && typeof raw.practiceAt === 'object'
             && Number.isInteger((raw.practiceAt as { index?: unknown }).index) && Number.isInteger((raw.practiceAt as { firstTry?: unknown }).firstTry)
-            ? { index: Math.max(0, Math.min(50, (raw.practiceAt as { index: number }).index)), firstTry: Math.max(0, Math.min(50, (raw.practiceAt as { firstTry: number }).firstTry)) }
+            ? { index: Math.max(0, Math.min(50, (raw.practiceAt as { index: number }).index)), firstTry: Math.max(0, Math.min(50, (raw.practiceAt as { firstTry: number }).firstTry)),
+              ...(typeof (raw.practiceAt as { plan?: unknown }).plan === 'string' ? { plan: (raw.practiceAt as { plan: string }).plan.slice(0, 40) } : {}) }
             : undefined,
           completedAt: typeof raw.completedAt === 'number' && Number.isFinite(raw.completedAt) ? raw.completedAt : undefined,
           confirmedAt: typeof raw.confirmedAt === 'number' && Number.isFinite(raw.confirmedAt) ? raw.confirmedAt : undefined,

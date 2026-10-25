@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { FRACTION_ORDER_ROUNDS, MISSIONS } from './game';
-import { fractionsTaughtBy, ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS, type LessonIdea } from './lesson-ideas';
+import { fractionsTaughtBy, ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS, practicePlan, type LessonIdea } from './lesson-ideas';
 import { PART_FINDER_ROUNDS } from './part-finder';
 import { getExtraPractice } from './practice-bank';
 import { HANDS_ON_ASKS, storyProblemFor } from './story';
@@ -157,4 +157,15 @@ test('a lesson with ideas keeps its Words to know: each word is on a Learn page 
     const shown = ideas.flatMap((idea) => idea.learn.flatMap((page) => ('words' in page ? page.words.map((word) => word.term) : [])));
     for (const word of TEACH_EXTRAS[id]?.words ?? []) assert.ok(shown.includes(word.term), `${id}: Words to know "${word.term}" is on a Learn page`);
   }
+});
+
+test('each lesson names its practice list, and the name changes when its practices change', () => {
+  const plans = MISSIONS.map(practicePlan);
+  assert.equal(new Set(plans).size, plans.length, 'two lessons share a practice-list name');
+  const lesson = MISSIONS[0]!;
+  assert.equal(practicePlan(lesson), practicePlan(lesson), 'the same list always has the same name');
+  const ideas = LESSON_IDEAS[lesson.id]!;
+  const swapped = [{ ...ideas[0]!, practice: [...ideas[0]!.practice].reverse() }, ...ideas.slice(1)];
+  LESSON_IDEAS[lesson.id] = swapped;
+  try { assert.notEqual(practicePlan(lesson), plans[0], 'reordering practices gives a new name') } finally { LESSON_IDEAS[lesson.id] = ideas; }
 });

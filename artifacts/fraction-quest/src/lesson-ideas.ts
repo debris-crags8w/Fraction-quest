@@ -67,5 +67,16 @@ export const fractionsTaughtBy = (missionId: string, ideaIndex: number): boolean
   return at < 0 || ideaIndex >= at;
 };
 
+/** A short name for the lesson's practice list: a saved place (practiceAt) only resumes in the list it was saved in.
+    When a lesson's ideas or questions change, the old question number points somewhere else, so the lesson starts over. */
+export const practicePlan = (mission: Mission): string => {
+  const items = lessonIdeas(mission.id)
+    ? ideaSteps(mission.id).map(({ item }) => ('question' in item ? item.question : 'handsOn' in item ? `hands-on:${item.handsOn}` : `sort:${item.sortRound}`))
+    : mission.questions.map((question) => question.id);
+  let hash = 5381;
+  for (const char of items.join('|')) hash = ((hash * 33) ^ char.charCodeAt(0)) >>> 0;
+  return `${items.length}-${hash.toString(36)}`;
+};
+
 /** What Listen reads on a Learn page: its line, then the sentences under the picture. */
 export const learnScript = (page: LearnPage) => ('words' in page ? wordsScript(page.words) : [page.text, ...sceneSentences(page.scene)].join(' '));

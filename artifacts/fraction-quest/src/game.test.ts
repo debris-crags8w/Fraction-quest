@@ -1342,6 +1342,9 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.deepEqual(getLearningRecord(loadProgress(), lesson.id).practiceAt, { index: 3, firstTry: 2 });
     saveProgress(updateLearning(EMPTY_PROGRESS, lesson.id, { ...emptyLearningRecord(), practiceDone: true, practiceAt: { index: 3, firstTry: 2 } }));
     assert.equal(getLearningRecord(loadProgress(), lesson.id).practiceAt, undefined, 'finished practice has no place to resume');
+    // The name of the practice list the place was saved in comes back too, so an older version's place can start over.
+    saveProgress(updateLearning(EMPTY_PROGRESS, lesson.id, { ...emptyLearningRecord(), practiceAt: { index: 3, firstTry: 2, plan: '15-abc' } }));
+    assert.deepEqual(getLearningRecord(loadProgress(), lesson.id).practiceAt, { index: 3, firstTry: 2, plan: '15-abc' });
   });
 
   it('builds lesson models and math text without String.matchAll in older webviews', () => {

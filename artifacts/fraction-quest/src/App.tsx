@@ -59,7 +59,7 @@ import { CHAPTER_SCENES, filmedLines, filmedVoices } from './story-cinema';
 import './learning-text.css';
 import { PieFraction, TickLabel } from './fraction-ui';
 import { getWorksheet } from './learning-content';
-import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requiredBuildChecks, resetUnitLearningProgress, worksheetCount, startRedo, updateLearning, type RedoPart } from './learning';
+import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requiredBuildChecks, resetUnitLearningProgress, worksheetCount, startRedo, updateLearning, type LearningRecord, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { legalUrl } from './lib/legal';
@@ -71,7 +71,7 @@ import { ModelTag, SetSvg, WholeBracket } from './models';
 import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
 import { IdeaLearn, LessonIntroCard, TeachFirst } from './lesson-intro';
-import { ideaPracticeQuestions, ideaSteps, isRound, lessonIdeas } from './lesson-ideas';
+import { ideaPracticeQuestions, ideaSteps, isRound, lessonIdeas, practicePlan } from './lesson-ideas';
 import { LESSON_INTROS } from './lesson-intros';
 import { StoryCharacter } from './characters';
 import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, hintLead, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
@@ -745,6 +745,7 @@ function MissionMap({ progress, onPicked, onStart, onDeveloperTest, onLessonTest
                       const unlocked = isMissionUnlocked(progress, mission.id);
                       const completed = hasLearningGate(progress, mission.id);
                       const learning = getLearningRecord(progress, mission.id);
+                      const resumable = !!savedPlace(learning, mission);
                       const summary = learningSummary(learning);
                       const buildsNeeded = requiredBuildChecks(progress, mission.id).length;
                       const buildsPassed = requiredBuildChecks(progress, mission.id).filter((check) => learning.checks[check.id]?.passed).length;
@@ -775,7 +776,7 @@ function MissionMap({ progress, onPicked, onStart, onDeveloperTest, onLessonTest
                                   ? <>Finish the lessons before this one to open it.</>
                                   : learning.practiceDone
                                     ? <>Builds: {buildsPassed} of {buildsNeeded}. Worksheet: {worksheetCount(learning, mission.id)} of {worksheetLength(mission.id)}.</>
-                                    : learning.practiceAt
+                                    : resumable
                                       ? <>Pick up where you left off.</>
                                       : <>Practice, build it, then do the worksheet.</>}
                               {progress.completedMissionIds.includes(mission.id) && !completed && <><br />Your work is saved. A few new steps are waiting.</>}
@@ -786,7 +787,7 @@ function MissionMap({ progress, onPicked, onStart, onDeveloperTest, onLessonTest
                               disabled={!unlocked}
                               data-testid={`button-start-mission-${mission.id}`}
                             >
-                              {completed ? 'Practice again' : unlocked ? learning.practiceDone ? 'Resume worksheet & models' : learning.practiceAt ? 'Resume lesson' : 'Start lesson' : 'Finish earlier lessons first'}
+                              {completed ? 'Practice again' : unlocked ? learning.practiceDone ? 'Resume worksheet & models' : resumable ? 'Resume lesson' : 'Start lesson' : 'Finish earlier lessons first'}
                               {unlocked && <ArrowRight size={16} />}
                             </button>
                             {completed && (
@@ -1280,6 +1281,10 @@ function PastQuestionReview({
   );
 }
 
+/** Where to resume the lesson's practice: the saved place, unless it was saved in an older version of the lesson. */
+const savedPlace = (record: LearningRecord, mission: Mission) =>
+  record.practiceAt && record.practiceAt.plan === practicePlan(mission) ? record.practiceAt : undefined;
+
 /** A lesson's practice: its questions (the last told as its story problem), up to 4 extra ones and the review. A lesson
     with ideas has each idea's 3 practices instead, then the review and (in story mode) its story problem. */
 function lessonPlayQuestions(mission: Mission, reviewQuestions: PracticeQuestion[], storyOn: boolean, theme: PropTheme): PracticeQuestion[] {
@@ -1556,7 +1561,7 @@ function Game() {
     // A lesson started for the first time opens with its story comic (when story mode is on).
     const mission = MISSIONS.find((item) => item.id === missionId);
     // Practice already under way: go back to the same question, past the story and the hands-on start.
-    const at = record.practiceAt;
+    const at = mission && savedPlace(record, mission);
     if (!testProgress && !record.practiceDone && at && at.index > 0 && mission) {
       const reviewQuestions = getDelayedReviewQuestions(activeProgress, missionId);
       if (at.index < lessonPlayQuestions(mission, reviewQuestions, storyMode, propTheme(activeSeason(fun)?.id)).length) {
@@ -1996,7 +2001,7 @@ function Game() {
           // Remember the place, so a reload or the back button comes back to this question.
           if (!moduleTestActive) {
             const record = getLearningRecord(progress, activeMission.id);
-            if (!record.practiceDone) persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceAt: { index: view.questionIndex + 1, firstTry: firstTryAnswers } }));
+            if (!record.practiceDone) persistProgress(updateLearning(progress, activeMission.id, { ...record, practiceAt: { index: view.questionIndex + 1, firstTry: firstTryAnswers, plan: practicePlan(activeMission) } }));
           }
           setView({ type: 'play', missionId: activeMission.id, questionIndex: view.questionIndex + 1, firstTryAnswers, reviewQuestions: view.reviewQuestions });
         };
