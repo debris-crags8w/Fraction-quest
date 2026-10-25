@@ -1,6 +1,6 @@
 /* The ideas of lessons 51–60 (see lesson-ideas.ts): each lesson's ideas in order, each with its Learn pages and 3
    practices. Lesson 1 (ideas/lessons-01.ts) is the model. */
-import { example, scenes, type LessonIdea } from './helpers';
+import { example, scenes, wordsToKnow, type LessonIdea } from './helpers';
 
 export const IDEAS: Record<string, LessonIdea[]> = {
   'mixed-unlike-operations': [
@@ -117,7 +117,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     {
       title: 'A fraction times a number is a fraction of it',
       terms: [{ term: 'a fraction × a number', pattern: /\d+\/\d+ × \d+/ }],
-      learn: [example('fraction-of-quantity', 'Times means of'), example('fraction-of-quantity', 'Or multiply first')],
+      learn: [wordsToKnow('fraction-of-quantity'), example('fraction-of-quantity', 'Times means of'), example('fraction-of-quantity', 'Or multiply first')],
       practice: [{ question: 'fraction-of-quantity-p5' }, { question: 'fraction-of-quantity-q2' }, { question: 'fraction-of-quantity-q4' }],
     },
   ],
