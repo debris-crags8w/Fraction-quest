@@ -1813,7 +1813,11 @@ test('lesson 1 shares cakes in its last idea: equal pieces, then mixed shapes', 
   await completeIdeas(page, MISSIONS[0], { until: sortAt });
   await expect(page.getByTestId('idea-kicker')).toHaveText('Lesson 01 · Idea 4 of 4 · Learn');
   await page.getByTestId('button-idea-practise').click();
-  await expect(page.getByTestId('idea-kicker')).toHaveText('Lesson 01 · Idea 4 of 4 · Practise 1 of 3');
+  // A cake round in an idea: the bar says where the child is, with no "1/3 done" count, no Helper and no friend's line.
+  await expect(page.locator('.fq-taskbar-title')).toHaveText('Idea 4 of 4 · Practise 1 of 3');
+  await expect(page.getByTestId('taskbar-progress')).toHaveCount(0);
+  await expect(page.getByTestId('button-lesson-helper')).toHaveCount(0);
+  await expect(page.getByTestId('story-line')).toHaveCount(0);
   await expect(page.getByTestId('button-hands-on-skip')).toHaveCount(0);
 
   await expect(page.getByRole('heading', { name: 'Share a cake cut into equal pieces' })).toBeVisible();
@@ -2969,7 +2973,8 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   const sortAt = ideaSteps('equal-parts').findIndex(({ item }) => 'handsOn' in item && item.handsOn === 'sort');
   await completeIdeas(page, MISSIONS[0], { until: sortAt });
   await page.getByTestId('button-idea-practise').click();
-  await expect(page.getByTestId('story-line')).toContainText('Help me share it fairly');
+  // The cast shares the cake (their names are on the sharing buttons); the friend's line stays out of the practice.
+  await expect(page.getByTestId('story-line')).toHaveCount(0);
   await expect(page.getByTestId('button-part-finder-share-1')).toContainText('Chomp');
   await expect(page.getByTestId('button-part-finder-share-4')).toContainText('Pip');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}').story);
