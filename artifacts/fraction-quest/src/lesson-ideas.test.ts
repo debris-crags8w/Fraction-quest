@@ -4,6 +4,7 @@ import { FRACTION_ORDER_ROUNDS, MISSIONS } from './game';
 import { ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS, type LessonIdea } from './lesson-ideas';
 import { PART_FINDER_ROUNDS } from './part-finder';
 import { HANDS_ON_ASKS } from './story';
+import { TEACH_EXTRAS } from './teach-extras';
 import { sceneSentences, type SceneRow, type StepScene } from './teach-scenes';
 import type { Mission } from './game';
 
@@ -15,7 +16,7 @@ test('each idea teaches on its Learn pages, then has 3 practices that are real q
     for (const idea of ideas) {
       assert.match(idea.title, /^[A-Z]/, `${id}: ${idea.title}`);
       assert.ok(idea.learn.length >= 1, `${id}: ${idea.title} has a Learn page`);
-      for (const page of idea.learn) assert.ok(page.scene.length >= 1 && page.text.length > 0, `${id}: ${idea.title}`);
+      for (const page of idea.learn) assert.ok(('words' in page ? page.words.length : page.scene.length) >= 1 && page.text.length > 0, `${id}: ${idea.title}`);
       assert.equal(idea.practice.length, 3, `${id}: ${idea.title} has 3 practices`);
       for (const item of idea.practice) {
         if ('handsOn' in item) assert.ok(PART_FINDER_ROUNDS.some((round) => round.id === item.handsOn), `${id}: ${item.handsOn}`);
@@ -71,7 +72,7 @@ function ideaText(mission: Mission, idea: LessonIdea): { learn: string[]; practi
     : [('label' in row && row.label) || '', ('bracket' in row && row.bracket) || ''];
   const sceneText = (scene: StepScene) => scene.flatMap((frame) => frame.rows.flatMap(rowText));
   const modelText = (model: unknown) => JSON.stringify(model).match(/"(caption|label|text)":"[^"]*"/g) ?? [];
-  const learn = idea.learn.flatMap((page) => [page.text, ...sceneText(page.scene)]);
+  const learn = idea.learn.flatMap((page) => [page.text, ...('words' in page ? page.words.flatMap((word) => [word.term, word.meaning, ...(word.picture ? sceneText(word.picture) : [])]) : sceneText(page.scene))]);
   const practice = idea.practice.flatMap((item) => {
     if ('handsOn' in item) {
       const round = PART_FINDER_ROUNDS.find((r) => r.id === item.handsOn)!;
@@ -107,5 +108,12 @@ test('lesson 1 asks only about one part until lesson 2 teaches counting more tha
   const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
   for (const idea of LESSON_IDEAS['equal-parts']!) {
     for (const text of ideaText(mission, idea).practice) assert.doesNotMatch(text, /\b([2-9]|\d{2,})\/\d+\b/, text);
+  }
+});
+
+test('a lesson with ideas keeps its Words to know: each word is on a Learn page before the practice that uses it', () => {
+  for (const [id, ideas] of Object.entries(LESSON_IDEAS)) {
+    const shown = ideas.flatMap((idea) => idea.learn.flatMap((page) => ('words' in page ? page.words.map((word) => word.term) : [])));
+    for (const word of TEACH_EXTRAS[id]?.words ?? []) assert.ok(shown.includes(word.term), `${id}: Words to know "${word.term}" is on a Learn page`);
   }
 });
