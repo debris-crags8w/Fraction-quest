@@ -784,6 +784,16 @@ describe('due skill reviews', () => {
     assert.match(mapEntry, /1 due skill ready/);
   });
 
+  it('a missed idea question (lesson 1 "-p" questions) queues its skill review instead of crashing, and survives a reload', () => {
+    const empty = { completedMissionIds: [], starsByMission: {}, reviewQueue: [] };
+    const missed = recordMissedSkill(empty, 'equal-parts', 'equal-parts-p1', now);
+    assert.deepEqual(missed.reviewQueue.map((item) => [item.missionId, item.missedQuestionId]), [['equal-parts', 'equal-parts-p1']]);
+    saveProgress(missed);
+    assert.deepEqual(loadProgress().reviewQueue.map((item) => item.missedQuestionId), ['equal-parts-p1']);
+    assert.ok(getDueSkillReviewQuestions(missed, now + SKILL_REVIEW_DELAY_MS).length > 0, 'the review asks another question of the lesson');
+    assert.throws(() => recordMissedSkill(empty, 'equal-parts', 'equal-parts-p99', now), /Unknown question/);
+  });
+
   it('defers a skipped skill and keeps other due skills reachable after reload', () => {
     const progress = queuedProgress();
     const [skippedQuestion, answeredQuestion] = getDueSkillReviewQuestions(progress, now);

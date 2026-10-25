@@ -295,7 +295,7 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
         [600, { 1: { shaded: [0] } }],
         [600, { 2: { hidden: false } }]),
       // The smaller denominator is the bigger part.
-      play([{ kind: 'bar', parts: ones(3), cut: true, shaded: [0], label: '1/3' }, { kind: 'bar', parts: ones(6), cut: true, shaded: [0], label: '1/6' }, { kind: 'text', text: '3 is less than 6, so 1/3 > 1/6.', hidden: true }],
+      play([{ kind: 'bar', parts: ones(3), cut: true, shaded: [0], label: '1/3' }, { kind: 'bar', parts: ones(6), cut: true, shaded: [0], label: '1/6' }, { kind: 'text', text: '3 is less than 6, so 1/3 is bigger than 1/6.', hidden: true }],
         [500, { 0: { glow: [0] } }],
         [700, { 0: { glow: [] }, 2: { hidden: false } }]),
     ],
@@ -397,7 +397,8 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
       play([{ kind: 'line', max: 1, spaces: 6, cut: true, point: 5, pointLabel: '5/6', marks: halfMarks(6), jumps: 5 }, { kind: 'text', text: '1 space short of 1: a little less than 1.', hidden: true }],
         [600, { 1: { hidden: false } }]),
     ],
-    why: play([{ kind: 'line', max: 1, spaces: 8, cut: true, marks: halfMarks(8), point: 3, pointLabel: '3/8' }, { kind: 'text', text: '3/8 is a little less than 1/2.', hidden: true }],
+    // Why: 2/6 is near the benchmark 1/2, just under it (not 3/8, which a practice question asks about).
+    why: play([{ kind: 'line', max: 1, spaces: 6, cut: true, marks: halfMarks(6), point: 2, pointLabel: '2/6' }, { kind: 'text', text: '2/6 is a little less than 1/2.', hidden: true }],
       [500, { 1: { hidden: false } }]),
   },
 
@@ -425,8 +426,8 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
 
   'number-line-points': {
     steps: [
-      // Count the spaces: the denominator.
-      play([{ kind: 'line', max: 1, spaces: 4, cut: true, point: 3 }, { kind: 'text', text: '4 spaces from 0 to 1: the denominator is 4.', hidden: true }],
+      // Count the spaces: the denominator (the point comes with the next step, which counts the jumps to it).
+      play([{ kind: 'line', max: 1, spaces: 4, cut: true }, { kind: 'text', text: '4 spaces from 0 to 1: the denominator is 4.', hidden: true }],
         ...jumpUp(0, 4, 400),
         [500, { 1: { hidden: false } }]),
       // Count the jumps to the point: the numerator.

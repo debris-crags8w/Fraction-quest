@@ -45,6 +45,27 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       },
     ],
   },
+  'fraction-names': {
+    examples: [
+      {
+        title: 'Read the bottom number',
+        picture: play([{ kind: 'bar', parts: ones(6), cut: true, shaded: [0], label: '1/6' }, { ...say('1/6: count the equal parts. 6 equal parts make one whole, so the bottom number is 6. The denominator is 6.'), hidden: true }],
+          ...range(6).map((i): [number, Record<number, Partial<SceneRow>>] => [380, { 0: { counted: range(i + 1) } }]), [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Read the top number',
+        picture: play([{ kind: 'bar', parts: ones(3), cut: true, label: '2/3' }, { ...say('In 2/3, the top number counts the colored parts. 2 parts are colored, so the numerator is 2.'), hidden: true }],
+          [500, { 0: { shaded: [0], counted: [0] } }], [500, { 0: { shaded: [0, 1], counted: [0, 1] } }], [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Write the fraction',
+        picture: reveal([
+          { kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1], label: '2/5' },
+          say('2 out of 5 equal parts are colored. All the parts, 5, go on the bottom. The colored parts, 2, go on top: 2/5.'),
+        ]),
+      },
+    ],
+  },
   'unit-fractions': {
     examples: [
       {
@@ -108,10 +129,10 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       { term: '>', meaning: '> means “is more than”. The open side faces the bigger amount.' },
       { term: '<', meaning: '< means “is less than”. The point faces the smaller amount.' },
       {
-        term: '=', meaning: '= means “the same amount as”. These bars are shaded to the same place, so 2/4 = 1/2.',
+        term: '=', meaning: '= means “the same amount as”. These bars are shaded to the same place, so 3/4 = 3/4.',
         picture: still([{ kind: 'pair', items: [
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1], label: '2/4' },
-          { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
         ] }]),
       },
     ],
@@ -136,7 +157,7 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       },
       {
         title: 'Half of 3 parts',
-        picture: reveal([{ kind: 'bar', parts: ones(3), cut: true, shaded: [0], label: '1/3' }, say('3 parts. Half is between 1 part and 2 parts. 1 part is less than half, so 1/3 is less than half.')]),
+        picture: reveal([{ kind: 'bar', parts: ones(3), cut: true, shaded: [0, 1], label: '2/3' }, say('3 parts. Half is between 1 part and 2 parts. 2 parts is more than half, so 2/3 is more than half.')]),
       },
       {
         title: 'Closest to half',
@@ -213,6 +234,12 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
         picture: still([{ kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' }]),
       },
     ],
+    examples: [{
+      title: 'Measure a crayon',
+      picture: play([{ kind: 'line', max: 1, spaces: 4, cut: true, ruler: true }, { ...say('Start the crayon at 0. 4 spaces make 1 inch, so each space is 1/4 inch. Count 3 spaces: the crayon is 3/4 inch long.'), hidden: true }],
+        [500, { 0: { stretch: 3 } }], ...range(3).map((i): [number, Record<number, Partial<SceneRow>>] => [420, { 0: { jumps: i + 1 } }]),
+        [600, { 1: { hidden: false } }]),
+    }],
   },
   'build-line-plots': {
     examples: [{
@@ -223,25 +250,58 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       ]),
     }],
   },
+  'compare-same-denominator': {
+    examples: [
+      {
+        title: 'Which is bigger?',
+        picture: reveal([
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8' },
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(5), label: '5/8' },
+          say('Which is bigger, 3/8 or 5/8? Both are eighths. 5 parts is more than 3 parts, so 5/8 is bigger.'),
+        ]),
+      },
+      {
+        title: 'Read the sign',
+        picture: reveal([
+          { kind: 'bar', parts: ones(6), cut: true, shaded: [0, 1], label: '2/6' },
+          { kind: 'bar', parts: ones(6), cut: true, shaded: range(5), label: '5/6' },
+          say('2/6 < 5/6. Say it: 2/6 is less than 5/6. The point of the sign faces the smaller amount.'),
+        ]),
+      },
+    ],
+  },
   'order-fractions': {
     examples: [
       {
-        title: 'Read a chain of signs',
+        title: 'Same numerators: bigger parts win',
         picture: reveal([
           { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
+          { kind: 'bar', parts: ones(8), cut: true, shaded: [0], label: '1/8' },
+          say('1/4 and 1/8 both count 1 part. Fourths are bigger parts than eighths, so 1/4 is bigger.'),
+        ]),
+      },
+      {
+        title: 'Compare with half',
+        picture: reveal([
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8' },
           { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
+          say('Half of 8 is 4, so half is 4/8. 3 parts is less than 4 parts, so 3/8 is less than 1/2.'),
+        ]),
+      },
+      {
+        title: 'Read a chain of signs',
+        // On a number line (one row, so it fits a phone): the smaller amount is always further left.
+        picture: reveal([
+          { kind: 'line', max: 1, spaces: 4, cut: true, marks: [{ at: 1, label: '1/4' }, { at: 2, label: '1/2' }, { at: 3, label: '3/4' }] },
           say('1/4 < 1/2 < 3/4. Read it: 1/4 is less than 1/2, and 1/2 is less than 3/4.'),
-        ], 450),
+        ]),
       },
       {
         title: 'Biggest first',
         picture: reveal([
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
-          { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
-          say('Biggest first? Flip the order: 3/4 > 1/2 > 1/4.'),
-        ], 450),
+          { kind: 'line', max: 1, spaces: 4, cut: true, marks: [{ at: 1, label: '1/4' }, { at: 2, label: '1/2' }, { at: 3, label: '3/4' }] },
+          say('Biggest first? Start from the right and flip the signs: 3/4 > 1/2 > 1/4.'),
+        ]),
       },
     ],
   },
@@ -265,6 +325,16 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
         title: 'Join parts together',
         picture: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: [0, 1] }, { ...say('Join every 2 eighths into 1 fourth: 2/8 = 1/4.'), hidden: true }],
           [900, { 0: { group: 2, label: '1/4' } }], [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Triangles make a fourth',
+        picture: reveal([
+          { kind: 'pair', items: [
+            { kind: 'area', cut: 'fourths-squares', edges: true, shaded: [0], label: '1/4' },
+            { kind: 'area', cut: 'eighths-triangles', edges: true, shaded: [0, 1], label: '2/8' },
+          ] },
+          say('Cut every fourth of the cake into 2 triangles. Join 2 triangles: they cover 1/4 of the cake. 2/8 = 1/4.'),
+        ]),
       },
       {
         title: 'Fold it again',
@@ -298,7 +368,13 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
     ],
   },
   'missing-equivalent': {
-    words: [{ term: 'factor', meaning: 'A factor is the number you multiply or divide by. In 3/4 = 6/8, the factor is 2.' }],
+    words: [{
+      term: 'factor', meaning: 'A factor is the number you multiply or divide by. In 3/4 = 6/8, the factor is 2.',
+      picture: still([{ kind: 'pair', items: [
+        { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
+        { kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: '6/8' },
+      ] }]),
+    }],
     examples: [
       {
         title: 'A missing bottom number',
@@ -470,6 +546,8 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string }[] = [
   { term: 'quarter', pattern: /\bquarters?\b/i, lesson: 'ruler-measurement' },
   { term: 'the ? box', pattern: /\?\/\d|\d\/\?/, lesson: 'equivalent-models' },
   { term: 'factor', pattern: /\bfactors?\b/i, lesson: 'missing-equivalent' },
+  // Lessons 2–10 (learn one idea, practise it three times).
+  { term: 'unit fraction', pattern: /\bunit fractions?\b/i, lesson: 'unit-fractions' },
   // Lessons 21–30 (compose-to-one … tenths-decimals). (+ is used in lesson 12 before lesson 21 defines it, so it is not listed.)
   { term: 'sum', pattern: /\bsums?\b/i, lesson: 'compose-to-one' },
   { term: 'whole number', pattern: /\bwhole numbers?\b/i, lesson: 'whole-numbers-as-fractions' },

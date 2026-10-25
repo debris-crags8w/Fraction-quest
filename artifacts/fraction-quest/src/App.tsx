@@ -851,6 +851,16 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false, withTa
           {howOpen && <LessonIntroCard intro={LESSON_INTROS[mission.id]} missionId={mission.id} />}
         </div>
       )}
+      <WorkedExample mission={mission} />
+      {withTap && <TapModel model={mission.example.model} />}
+    </div>
+  );
+}
+
+/** The lesson's worked example: its picture (and number line), then the question, worked answer and explanation. */
+function WorkedExample({ mission }: { mission: Mission }) {
+  return (
+    <>
       <div className="fq-model-area"><ModelView model={mission.example.model} /></div>
       {mission.example.numberLine && (
         <OrderNumberLine
@@ -893,8 +903,31 @@ function GuidedExample({ mission, title, lessonLabel, hideMascot = false, withTa
           listen={false}
         />
       </div>
-      {withTap && <TapModel model={mission.example.model} />}
-    </div>
+    </>
+  );
+}
+
+/** The lesson page's "How it works" for a lesson with ideas: its Learn pictures and its worked example, there to look back
+    at during Build it and the worksheet. (A lesson without ideas shows the same before question 1.) */
+function LessonHowItWorks({ mission }: { mission: Mission }) {
+  const [open, setOpen] = useState(false);
+  const intro = LESSON_INTROS[mission.id];
+  return (
+    <section className="fq-how-it-works fq-ll-how" aria-label="How it works" data-testid="lesson-how-it-works">
+      <button type="button" className="fq-button ghost" aria-expanded={open} onClick={() => setOpen((was) => !was)} data-testid="button-how-it-works">
+        <Lightbulb size={17} aria-hidden="true" /> {open ? 'Hide how it works' : 'How it works'}
+      </button>
+      {open && <>
+        {intro && <details className="fq-how-part" data-testid="how-learn-pictures">
+          <summary>Learn pictures, idea by idea</summary>
+          <LessonIntroCard intro={intro} missionId={mission.id} />
+        </details>}
+        <details className="fq-how-part">
+          <summary data-testid="button-worked-example">Worked example</summary>
+          <div className="fq-example fq-how-example" data-testid="lesson-example"><WorkedExample mission={mission} /></div>
+        </details>
+      </>}
+    </section>
   );
 }
 
@@ -918,6 +951,7 @@ function PlayView({
   starEligibleQuestionIds,
   onFinishReview,
   kicker,
+  quiet,
 }: {
   mission: Mission;
   questionIndex: number;
@@ -939,6 +973,9 @@ function PlayView({
   onFinishReview?: () => void;
   /** A lesson with ideas: "Lesson 01 · Idea 2 of 4 · Practise 1 of 3" instead of the question count. */
   kicker?: ReactNode;
+  /** An idea's practice: only the question. The bar counts the idea's practices (from `start`, `count` of them), there
+      is no friend's line and no Helper button (the hint links to the fraction words instead). */
+  quiet?: { start: number; count: number };
 }) {
   const [selection, setSelection] = useState<Answer | null>(null);
   const [feedback, setFeedback] = useState<'correct' | 'retry' | null>(null);
@@ -1108,7 +1145,7 @@ function PlayView({
         <div className="fq-lesson-top">
           <button className="fq-icon-button fq-lesson-close" onClick={onBack} aria-label="Back to learning map" data-testid="button-back-map"><X size={22} strokeWidth={3} /></button>
           <div className="fq-segments" role="group" aria-label={`Lesson question progress: ${doneSteps} of ${steps} completed`} data-testid="status-lesson-progress">
-            {Array.from({ length: steps }, (_, index) => index < doneSteps && !mission.questions[index]?.choices.length
+            {(quiet ? Array.from({ length: quiet.count }, (_, k) => quiet.start + k) : Array.from({ length: steps }, (_, index) => index)).map((index) => index < doneSteps && !mission.questions[index]?.choices.length
               ? <span key={index} className="fq-segment on" aria-hidden="true" />
               : index < doneSteps
               ? <button key={index} type="button" className="fq-segment on" onClick={() => setReviewingPastIndex(index)} aria-label={`Review completed question ${index + 1}`} title={`Review question ${index + 1}`} data-testid={`button-review-question-${index + 1}`} />
@@ -1116,7 +1153,7 @@ function PlayView({
             <span className="fq-sr" aria-live="polite">Question {Math.min(questionIndex + 1, steps)} of {steps}; {doneSteps} completed.</span>
           </div>
           {combo >= 2 && <span className="fq-combo" data-testid="status-combo"><Flame size={16} fill="currentColor" /> {combo}</span>}
-          {helper.button}
+          {!quiet && helper.button}
           {question && reviewingPastIndex === null && (
             <button className={`fq-bulb ${hintOpen ? 'open' : ''}`} onClick={toggleHint} aria-expanded={hintOpen} aria-label={hintOpen ? 'Hide hint' : 'Show a hint'} data-testid="button-show-hint">
               <Lightbulb size={20} strokeWidth={2.75} />
@@ -1151,7 +1188,7 @@ function PlayView({
             {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
           </p>}
           {/* One friendly line per question: the story friend's (in the season's props) when the story is on, else the seasonal one. */}
-          {question && !showExample && (storyOn && chapterFor(mission.unit)
+          {question && !showExample && !quiet && (storyOn && chapterFor(mission.unit)
             ? <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} result={feedback} setup={question.storySetup} />
             : seasonOn && <SeasonSay kind={question.model.kind} id={question.id} />)}
           {showExample
@@ -1167,7 +1204,8 @@ function PlayView({
               <div ref={modelAreaRef} className="fq-model-area" data-testid="question-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} questionId={question.id} />
               </div>
-              {hintOpen && attempts < 2 && <div ref={hintRef} key={`hint-${hintFlash}`} className="fq-hint fq-hint-flash" data-testid="text-question-hint">{hintFriend ? <StoryCharacter id={hintFriend} size={36} /> : <Lightbulb size={18} />} <span className="fq-hint-copy"><strong>{hintLead(hintFriend)}</strong> <LearningListenButton text={question.hint} label="Listen to the hint" /><span><LearningText text={question.hint} /></span></span></div>}
+              {hintOpen && attempts < 2 && <div ref={hintRef} key={`hint-${hintFlash}`} className="fq-hint fq-hint-flash" data-testid="text-question-hint">{hintFriend ? <StoryCharacter id={hintFriend} size={36} /> : <Lightbulb size={18} />} <span className="fq-hint-copy"><strong>{hintLead(hintFriend)}</strong> <LearningListenButton text={question.hint} label="Listen to the hint" /><span><LearningText text={question.hint} /></span>
+                {quiet && <button type="button" className="fq-hint-words" onClick={helper.openWords} data-testid="button-hint-words">See the fraction words again</button>}</span></div>}
               {attempts >= 2 && (
                 <div ref={remediationRef} key={`remediation-${hintFlash}`} className={`fq-remediation ${hintFlash ? 'fq-hint-flash' : ''}`} role="note" data-testid="status-remediation">
                   <div className="fq-remediation-heading"><strong>Let's make it simpler.</strong><LearningListenButton text={question.hint} label="Listen to the simpler explanation" /></div>
@@ -2014,10 +2052,7 @@ function Game() {
             progress={{ step: ideaStep.practice + 1, total: idea.practice.length, label: 'Practise', kicker: `Lesson ${lessonLabel} · Idea ${ideaStep.idea + 1} of ${ideas.length} · Practise ${ideaStep.practice + 1} of ${idea.practice.length}` }}
             onExit={returnToMap} onDone={() => nextPlay(view.firstTryAnswers)}
             onSkip={progress.completedMissionIds.includes(activeMission.id) || hasLearningGate(progress, activeMission.id) ? () => nextPlay(view.firstTryAnswers) : undefined}
-            {...(storyMode && chapter ? {
-              friends: storyCast(chapter),
-              storyLine: (result: 'correct' | 'retry' | null) => <StorySay chapter={chapter} questionId={`${activeMission.id}-hands-on-${round.id}`} result={result} setup={HANDS_ON_ASKS[round.id]} />,
-            } : {})} />;
+            {...(storyMode && chapter ? { friends: storyCast(chapter) } : {})} />;
         }
         return (
         <PlayView
@@ -2030,6 +2065,7 @@ function Game() {
           isQuickReview={view.type === 'review'}
           combo={combo}
           onBack={returnToMap}
+          quiet={ideaStep && ideas ? { start: view.questionIndex - ideaStep.practice, count: ideas[ideaStep.idea]!.practice.length } : undefined}
           kicker={ideaStep && ideas ? <><span className="fq-kicker-topic">Lesson {lessonLabel} · </span>Idea {ideaStep.idea + 1} of {ideas.length} · Practise {ideaStep.practice + 1} of {ideas[ideaStep.idea]!.practice.length}</>
             : ideas && view.type === 'play' ? <>Lesson {lessonLabel} · Put it together · Question {view.questionIndex - ideaCount + 1} of {activeMission.questions.length - ideaCount}</> : undefined}
           onCorrect={onPracticeCorrect}
@@ -2056,7 +2092,7 @@ function Game() {
         />
       );
       })()}
-      {view.type === 'lab' && <LearningLab missionId={view.missionId} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId, fromLab: true })} onRedo={(part) => startRedoPart(view.missionId, part)} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
+      {view.type === 'lab' && <LearningLab missionId={view.missionId} howItWorks={lessonIdeas(view.missionId) ? <LessonHowItWorks mission={getMission(view.missionId)} /> : undefined} progress={progress} onChange={persistProgress} onFinish={() => finishMission(view.missionId, view.stars)} onBack={returnToMap} onPaper={() => setView({ type: 'paper', missionId: view.missionId, fromLab: true })} onRedo={(part) => startRedoPart(view.missionId, part)} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
       {view.type === 'redo' && <RedoLab missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={() => setView({ type: 'lab', missionId: view.missionId, stars: progress.starsByMission[view.missionId] ?? 1 })} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onWorksheetCorrect={onWorksheetAnswerCorrect} />}
       {view.type === 'retention' && <LearningLab key={`retention-${view.startedAt}`} review missionId={view.missionId} progress={progress} onChange={persistProgress} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onPracticeSuccess} onFinish={(updated) => {
         const latest = updated ?? progress;
