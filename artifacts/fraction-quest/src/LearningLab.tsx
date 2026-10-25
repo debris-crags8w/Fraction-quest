@@ -1,7 +1,8 @@
 import { type CSSProperties, Fragment, type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { playHaptic, recordIntro, type IntroKind, type IntroStage } from './lib/fun';
 import { useOptionalFun } from './fun-ui';
-import { IntroTry, IntroWatch, useLessonHelper } from './model-intro';
+import { IntroTry, IntroWatch, NewWords, useLessonHelper } from './model-intro';
+import { newWordsFor } from './new-words';
 import { LearningListenButton, LearningText, spokenLearningText, useReadAloud } from './LearningText';
 import { BUILD_ERROR_HEADINGS, BUILD_SLIPS as M, LAB_SECTION_SPEECH, buildErrors, buildHints, worksheetSpeech } from './lab-copy';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw, Star } from 'lucide-react';
@@ -755,6 +756,9 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           <button type="button" onClick={() => jumpTo(document.querySelector('[data-testid="section-targeted-reteach"]'))} data-testid="button-go-reteach">{introOffset + checks.length + 2}<span>Extra practice {reteachProgress.done}/{reteachProgress.total}</span></button>
         </li>}
       </ol>
+
+      {/* A lesson that first uses a part name the Words screen didn't teach (fifths, tenths…) names it up top. */}
+      {newWordsFor(missionId).length > 0 && <NewWords denominators={newWordsFor(missionId)} />}
 
       {gate && onRedo && (
         <section className="fq-ll-redo" aria-labelledby="redo-title" data-testid="section-redo">

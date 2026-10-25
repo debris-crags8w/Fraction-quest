@@ -63,7 +63,7 @@ import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requi
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { legalUrl } from './lib/legal';
-import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordIntro, recordLessonIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, setTimeLimit, addMinutesToday, timeToday, today, type FunState } from './lib/fun';
+import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordFractionWords, recordIntro, recordLessonIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, setTimeLimit, addMinutesToday, timeToday, today, type FunState } from './lib/fun';
 import { TimeUp } from './time-up';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
@@ -1855,16 +1855,17 @@ function Game() {
           onExit={returnToMap}
           onNext={() => {
             setFun((current) => recordLessonIntro(current, view.missionId));
-            // A child's first lesson: how the models work (Watch, then Try) comes before any question.
-            if (introsDue(fun.introsSeen).toTry.length) setView({ ...view, type: 'intro-steps' });
+            // A child's first lesson: how the models work and their names (Watch, Words, Try) come before any question.
+            if (introsDue(fun.introsSeen).toTry.length || !fun.fractionWordsSeen) setView({ ...view, type: 'intro-steps' });
             else openLessonStart(view.missionId, view.then, view.reviewQuestions);
           }} />
       )}
       {view.type === 'intro-steps' && (
         <IntroSteps title={getMission(view.missionId).title} lessonNumber={MISSIONS.findIndex((mission) => mission.id === view.missionId) + 1}
-          seen={fun.introsSeen} onExit={returnToMap}
+          seen={fun.introsSeen} wordsSeen={!!fun.fractionWordsSeen} onExit={returnToMap}
           onSeen={(kind, stage) => setFun((current) => recordIntro(current, kind, stage))}
-          onSkip={() => { setFun((current) => recordIntro(recordIntro(current, 'builder'), 'line')); openLessonStart(view.missionId, view.then, view.reviewQuestions); }}
+          onWordsSeen={() => setFun((current) => recordFractionWords(current))}
+          onSkip={() => { setFun((current) => recordFractionWords(recordIntro(recordIntro(current, 'builder'), 'line'))); openLessonStart(view.missionId, view.then, view.reviewQuestions); }}
           onDone={() => openLessonStart(view.missionId, view.then, view.reviewQuestions)} />
       )}
       {view.type === 'hands-on' && (() => {

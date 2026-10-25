@@ -90,3 +90,23 @@
 .fq-mi-helper .fq-mi { margin: 0; }
 /* The demo screen is dark: its mark labels are white so they read as clearly as the line. */
 .fq-mi-demo-line .fq-nl-label, .fq-mi-demo-line .fq-nl-frac > b:first-child, .fq-mi-demo-line .fq-nl-frac > b:last-child { color: #fff; }
+
+/* Words: the fraction names, one row each (stacked fraction, name, a small bar, Listen). */
+.fq-mi-rule { margin: 0; padding: 10px 12px; border-radius: 14px; background: #FFF6D6; color: #3A2E00; font-weight: 800; line-height: 1.45; }
+.fq-mi-rule .fq-mi-frac { font-size: 1rem; vertical-align: middle; margin: 0 2px; }
+.fq-mi-word-rows { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.fq-mi-word-rows li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 6px 10px; border: 2px solid hsl(var(--border)); border-radius: 14px; background: hsl(var(--card)); }
+.fq-mi-word-rows .fq-mi-frac { color: var(--fq-grape, #6D4BD8); font-size: 1.15rem; }
+.fq-mi-word { font-weight: 900; }
+.fq-mi-word small { display: block; color: hsl(var(--muted-foreground)); font-size: .78rem; font-weight: 700; }
+.fq-mi-mini { display: grid; width: 84px; height: 16px; gap: 2px; padding: 2px; border-radius: 5px; background: hsl(var(--foreground)); }
+.fq-mi-mini i { background: hsl(var(--card)); border-radius: 1px; }
+.fq-mi-mini i.is-on { background: var(--fq-grape, #6D4BD8); }
+.fq-mi-words > .fq-button { justify-content: center; }
+/* Words fits a phone with Next in reach: tighter rows and gaps than the other intro steps. */
+.fq-mi.fq-mi-words { gap: 8px; padding: 12px 14px; margin: 8px 0; }
+.fq-mi-words .fq-mi-head h3 { font-size: 1.2rem; }
+.fq-mi-words .fq-mi-rule { padding: 7px 10px; line-height: 1.35; font-size: .95rem; }
+.fq-mi-words .fq-mi-word-rows { gap: 4px; }
+.fq-mi-words .fq-mi-word-rows li { padding: 2px 8px; min-height: 0; }
+.fq-mi-words .fq-mi-skip { min-height: 32px; }

@@ -8,7 +8,7 @@ import type { IntroKind, IntroStage } from './lib/fun';
 import { TaskBar } from './TaskBar';
 import { LearningListenButton } from './LearningText';
 import { TickLabel } from './fraction-ui';
-import { HELPER_PICKS, HELPER_PICK_SPEECH, INTRO_DEMOS, INTRO_TEXT, INTRO_TRIES, introHint } from './intro-copy';
+import { FRACTION_WORDS, HELPER_PICKS, HELPER_PICK_SPEECH, INTRO_DEMOS, INTRO_TEXT, INTRO_TRIES, PART_NAMES, fractionWordsSpeech, introHint, newWordSpeech } from './intro-copy';
 import './model-intro.css';
 
 const SHOT_MS = 2300;
@@ -191,6 +191,66 @@ export function IntroTry({ kind, kicker, nextLabel, onDone, onSkip, helper = fal
   );
 }
 
+/** A small bar with one part shaded, beside each fraction name. */
+const MiniBar = ({ d, n = 1 }: { d: number; n?: number }) => (
+  <span className="fq-mi-mini" aria-hidden="true" style={{ gridTemplateColumns: `repeat(${d}, 1fr)` }}>
+    {Array.from({ length: d }, (_, i) => <i key={i} className={i < n ? 'is-on' : ''} />)}
+  </span>
+);
+
+/** Words: the fraction names (1/3 is one third), before Try asks the child to build them. Each row reads itself. */
+export function FractionWords({ kicker, nextLabel, onDone, onSkip }: { kicker: string; nextLabel: string; onDone: () => void; onSkip?: () => void }) {
+  return (
+    <section className="fq-mi fq-mi-words" aria-labelledby="fraction-words-title" data-testid="fraction-words" data-step="words">
+      <header className="fq-mi-head">
+        <div>
+          <span className="fq-mi-kicker">{kicker}</span>
+          <h3 id="fraction-words-title">{FRACTION_WORDS.title}</h3>
+        </div>
+        <LearningListenButton text={fractionWordsSpeech().join(' ')} label="Listen to the fraction names" />
+      </header>
+      <p className="fq-mi-rule">The <u>bottom number</u> names the part. 2 parts are <u>halves</u>, 3 are <u>thirds</u>, 4 are <u>fourths</u>.</p>
+      <ul className="fq-mi-word-rows">
+        {FRACTION_WORDS.rows.map((row) => (
+          <li key={row.d} data-testid={`fraction-word-${row.d}`}>
+            <Frac n={1} d={row.d} />
+            <span className="fq-mi-word">{row.word}{row.also && <small>{row.also}</small>}</span>
+            <MiniBar d={row.d} />
+            <LearningListenButton text={`${row.word}${row.also ? ', also called one quarter' : ''}.`} label={`Listen to ${row.word}`} compact />
+          </li>
+        ))}
+      </ul>
+      <p className="fq-mi-rule">More than one part: the <u>top number</u> counts them.{' '}
+        {FRACTION_WORDS.examples.map((example, i) => <span key={example.word}>{i ? ' ' : ''}<Frac n={example.n} d={example.d} /> is {example.word}.</span>)}
+      </p>
+      <button type="button" className="fq-button" onClick={onDone} data-testid="button-words-next">{nextLabel} <ArrowRight size={16} aria-hidden="true" /></button>
+      <Skip onSkip={onSkip} />
+    </section>
+  );
+}
+
+/** The first lesson to use a new part name (fifths, tenths…) opens with this card: the name, its stacked fraction and a bar. */
+export function NewWords({ denominators }: { denominators: readonly number[] }) {
+  return (
+    <section className="fq-mi fq-mi-new-words" aria-labelledby="new-words-title" data-testid="new-words">
+      <header className="fq-mi-head">
+        <h3 id="new-words-title">{denominators.length > 1 ? 'New words' : 'New word'}</h3>
+        <LearningListenButton text={denominators.map(newWordSpeech).join(' ')} label="Listen to the new words" />
+      </header>
+      <ul className="fq-mi-word-rows">
+        {denominators.map((d) => (
+          <li key={d} data-testid={`new-word-${d}`}>
+            <Frac n={1} d={d} />
+            <span className="fq-mi-word">one {PART_NAMES[d].one}<small>{d} equal parts are {PART_NAMES[d].many}</small></span>
+            {d <= 12 ? <MiniBar d={d} /> : <span />}
+            <LearningListenButton text={newWordSpeech(d)} label={`Listen to one ${PART_NAMES[d].one}`} compact />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export const INTRO_KINDS: readonly IntroKind[] = ['builder', 'line'];
 
 /** The intros a child still has to do: Watch for the unwatched ones, Try for every one not done. */
@@ -198,11 +258,11 @@ export function introsDue(seen: Partial<Record<IntroKind, IntroStage>> | undefin
   return { toWatch: INTRO_KINDS.filter((kind) => seen?.[kind] === undefined), toTry: INTRO_KINDS.filter((kind) => seen?.[kind] !== true) };
 }
 
-/** A child's first lesson, between Teach first and the first question: Watch, then Try, each its own screen, so the
-    models are known before anything is asked. Each finished step is saved (`onSeen`); the last Try goes on (`onDone`). */
-export function IntroSteps({ title, lessonNumber, seen, onSeen, onSkip, onDone, onExit }: {
-  title: string; lessonNumber: number; seen: Partial<Record<IntroKind, IntroStage>> | undefined;
-  onSeen: (kind: IntroKind, stage: IntroStage) => void; onSkip: () => void; onDone: () => void; onExit: () => void;
+/** A child's first lesson, between Teach first and the first question: Watch, then Words (the fraction names), then
+    Try, each its own screen, so the models and their names are known before anything is asked. Each finished step is saved (`onSeen`); the last Try goes on (`onDone`). */
+export function IntroSteps({ title, lessonNumber, seen, wordsSeen, onSeen, onWordsSeen, onSkip, onDone, onExit }: {
+  title: string; lessonNumber: number; seen: Partial<Record<IntroKind, IntroStage>> | undefined; wordsSeen: boolean;
+  onSeen: (kind: IntroKind, stage: IntroStage) => void; onWordsSeen: () => void; onSkip: () => void; onDone: () => void; onExit: () => void;
 }) {
   const { toWatch, toTry } = introsDue(seen);
   return (
@@ -211,10 +271,13 @@ export function IntroSteps({ title, lessonNumber, seen, onSeen, onSkip, onDone, 
         <TaskBar onBack={onExit} backLabel="Map" title={title} />
         <p className="fq-play-kicker">Lesson {String(lessonNumber).padStart(2, '0')} · Before you start</p>
         {toWatch.length > 0 ? (
-          <IntroWatch key={`watch-${toWatch[0]}`} kind={toWatch[0]} kicker="Step 1 of 2 · Watch" onSkip={onSkip}
-            nextLabel={toWatch.length > 1 ? 'Next: number line' : 'Next: Try'} onDone={() => onSeen(toWatch[0], 'watched')} />
+          <IntroWatch key={`watch-${toWatch[0]}`} kind={toWatch[0]} kicker="Step 1 of 3 · Watch" onSkip={onSkip}
+            nextLabel={toWatch.length > 1 ? 'Next: number line' : wordsSeen ? 'Next: Try' : 'Next: Words'} onDone={() => onSeen(toWatch[0], 'watched')} />
+        ) : !wordsSeen ? (
+          <FractionWords kicker="Step 2 of 3 · Words" onSkip={onSkip} nextLabel={toTry.length ? 'Next: Try' : 'Start the lesson'}
+            onDone={() => { onWordsSeen(); if (!toTry.length) onDone(); }} />
         ) : toTry.length > 0 && (
-          <IntroTry key={`try-${toTry[0]}`} kind={toTry[0]} kicker="Step 2 of 2 · Try" onSkip={onSkip}
+          <IntroTry key={`try-${toTry[0]}`} kind={toTry[0]} kicker="Step 3 of 3 · Try" onSkip={onSkip}
             nextLabel={toTry.length > 1 ? 'Next: number line' : 'Start the lesson'}
             onDone={() => { onSeen(toTry[0], true); if (toTry.length === 1) onDone(); }} />
         )}
@@ -226,7 +289,7 @@ export function IntroSteps({ title, lessonNumber, seen, onSeen, onSkip, onDone, 
 /** Each lesson's Helper: a top-bar button that opens both intros to watch and try again. It never changes progress. */
 export function useLessonHelper({ compact = false }: { /** An icon-only button, for a tight header. */ compact?: boolean } = {}): { button: ReactNode; panel: ReactNode } {
   const [open, setOpen] = useState(false);
-  const [shown, setShown] = useState<{ kind: IntroKind; step: 'watch' | 'try' } | null>(null);
+  const [shown, setShown] = useState<{ kind: IntroKind; step: 'watch' | 'try' } | 'words' | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
   const close = () => { setOpen(false); setShown(null); };
   const button = (
@@ -244,7 +307,8 @@ export function useLessonHelper({ compact = false }: { /** An icon-only button, 
         <h2 id="lesson-helper-title">Helper</h2>
         <button type="button" className="fq-button ghost" onClick={close} data-testid="button-lesson-helper-close">Close</button>
       </div>
-      {shown ? (shown.step === 'watch'
+      {shown === 'words' ? <FractionWords kicker="Words" nextLabel="Done" onDone={() => setShown(null)} />
+        : shown ? (shown.step === 'watch'
         ? <IntroWatch key={`${shown.kind}-watch`} kind={shown.kind} kicker="Watch" nextLabel="Done" helper onDone={() => setShown(null)} />
         : <IntroTry key={`${shown.kind}-try`} kind={shown.kind} kicker="Try" nextLabel="Done" helper onDone={() => setShown(null)} />) : (
         <div className="fq-mi-helper-picks">
@@ -258,6 +322,12 @@ export function useLessonHelper({ compact = false }: { /** An icon-only button, 
               </div>
             </div>
           ))}
+          <div className="fq-mi-helper-pick">
+            <strong>{FRACTION_WORDS.title}</strong><span>{HELPER_PICKS.words}</span>
+            <div className="fq-mi-helper-pick-buttons">
+              <button type="button" className="fq-button secondary" onClick={() => setShown('words')} data-testid="button-helper-words">Open</button>
+            </div>
+          </div>
         </div>
       )}
     </section>

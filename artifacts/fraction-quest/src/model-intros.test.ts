@@ -30,3 +30,32 @@ describe('model intro steps (Watch, then Try)', () => {
     }
   });
 });
+
+describe('fraction words', () => {
+  it('saves the Words screen once, keeps it from the account copy, and drops anything else', async () => {
+    const { recordFractionWords } = await import('./lib/fun');
+    const state = recordFractionWords(replaceFun({}));
+    assert.equal(state.fractionWordsSeen, true);
+    assert.equal(replaceFun({ fractionWordsSeen: true }).fractionWordsSeen, true);
+    assert.equal(replaceFun({ fractionWordsSeen: 'yes' as never }).fractionWordsSeen, undefined);
+  });
+
+  it('names one part of each first denominator, in words, and reads them aloud', async () => {
+    const { FRACTION_WORDS, fractionWordsSpeech } = await import('./intro-copy');
+    assert.deepEqual(FRACTION_WORDS.rows.map((row) => row.word), ['one half', 'one third', 'one fourth', 'one sixth', 'one eighth']);
+    const speech = fractionWordsSpeech();
+    assert.ok(speech.includes('One third.'));
+    assert.ok(speech.includes('Three fourths.'));
+    assert.ok(speech.every((line) => !/\d\/\d/.test(line)), 'no slash fractions in what is read');
+  });
+
+  it('opens a "New word" card in the first lesson to use fifths, tenths, twelfths or hundredths, and only there', async () => {
+    const { MISSIONS } = await import('./game');
+    const { newWordsFor } = await import('./new-words');
+    const shown = MISSIONS.flatMap((mission) => newWordsFor(mission.id).map((d) => ({ id: mission.id, d })));
+    assert.deepEqual(shown.map((item) => item.d).sort((a, b) => a - b), [5, 10, 12, 100], 'each new name once');
+    assert.deepEqual(newWordsFor('equal-parts'), [], 'lesson 1 has the Words screen instead');
+    const first = (d: number) => MISSIONS.findIndex((mission) => mission.id === shown.find((item) => item.d === d)!.id);
+    assert.ok(first(10) <= first(100), 'tenths come before hundredths');
+  });
+});
