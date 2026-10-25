@@ -3,6 +3,7 @@ import { MISSIONS } from '../src/game';
 import { answerShape, slotsFromAnswer, SLOTS } from '../src/answer-shape';
 import { getBuildChecks, getWorksheet } from '../src/learning-content';
 import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
+import { completeIdeas, finishPutTogether, hasStoryAfterIdeas } from './lesson-walk';
 
 /** A new lesson opens with story screens (the setup and prologue once, then the chapter comic, which may ask for a choice). */
 async function passStory(page: import('@playwright/test').Page) {
@@ -38,7 +39,8 @@ async function openAsGuest(page: import('@playwright/test').Page) {
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
 }
 
-async function openLesson(page: import('@playwright/test').Page, resumeWorksheet = false, target = lesson!) {
+/** Open a lesson as a child who finished every lesson before it: past its story, on its first screen. */
+async function startLesson(page: import('@playwright/test').Page, resumeWorksheet: boolean, target: (typeof MISSIONS)[number]) {
   const missionIndex = MISSIONS.indexOf(target);
   const earlierLessons = MISSIONS.slice(0, missionIndex);
   const masteredRecord = (missionId: string) => ({
@@ -83,26 +85,26 @@ async function openLesson(page: import('@playwright/test').Page, resumeWorksheet
   await expect(node).toHaveAttribute('aria-expanded', 'true');
   await page.getByTestId(`button-start-mission-${target.id}`).click();
   await passStory(page);
+}
+
+async function openLesson(page: import('@playwright/test').Page, resumeWorksheet = false, target = lesson!) {
+  await startLesson(page, resumeWorksheet, target);
   if (resumeWorksheet) {
     await expect(page.getByTestId('learning-lab')).toBeVisible();
     await expect(page.getByTestId('section-worksheet')).toBeVisible();
-  } else if (lessonIdeas(target.id)) {
-    // A lesson with ideas opens on its first idea's Learn pages, then its first practice question.
+  } else {
+    // A lesson opens on its first idea's Learn pages, then its first practice question.
     await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
     await expectNoHorizontalOverflow(page);
     for (let p = 1; p < lessonIdeas(target.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').tap();
     await page.getByTestId('button-idea-practise').tap();
     await expect(page.getByTestId('question-model-area')).toBeVisible();
-  } else {
-    await expect(page.getByTestId('lesson-example')).toBeVisible();
-    await expect(page.getByTestId('question-model-area')).toBeVisible();
   }
 }
 
-/** The lesson's first question: its first idea's first practice when it has ideas. */
+/** The lesson's first question: its first idea's first practice. */
 function firstQuestionOf(target: (typeof MISSIONS)[number]) {
-  const first = ideaSteps(target.id)[0]?.item;
-  return first && 'question' in first ? ideaQuestion(target, first.question)! : target.questions[0];
+  return ideaQuestion(target, (ideaSteps(target.id)[0]!.item as { question: string }).question)!;
 }
 
 async function expectNoHorizontalOverflow(page: import('@playwright/test').Page) {
@@ -240,3 +242,33 @@ test('phone Safari can enter a lesson worksheet number with the keyboard-operabl
   await row.getByTestId(`button-check-worksheet-${worksheetProblem.id}`).tap();
   await expect(row.getByTestId(`status-worksheet-${worksheetProblem.id}`)).toContainText('Correct!');
 });
+
+// The representative lesson, plus the lessons whose practices include cake rounds and card-ordering rounds. (Every screen
+// of all 81 lessons is measured at iPhone Safari's size in course-smoke.spec.ts; that walk is too long for this job.)
+for (const id of [lesson.id, 'equal-parts', 'order-unlike-fractions']) {
+  test(`phone Safari walks ${id} as a child does: every Learn page fits, and no screen sticks out sideways`, async ({ page }) => {
+    test.setTimeout(120_000);
+    const target = MISSIONS.find((mission) => mission.id === id)!;
+    const fits = async () => { await expectNoHorizontalOverflow(page); };
+    const hooks = {
+      // A Learn page: its line, picture and buttons are on the first screen. (A phone's page is taller by design: on a
+      // touch screen it keeps a clear band at the bottom for Safari's toolbar, so the page height is not the measure.)
+      onLearnPage: async (where: string) => {
+        await expect(page.getByTestId('teach-scene').or(page.getByTestId('teach-words')).first()).toBeVisible();
+        await page.evaluate(() => window.scrollTo(0, 0));
+        const card = await page.getByTestId('idea-learn').evaluate((section) => ({ bottom: section.getBoundingClientRect().bottom, screen: window.innerHeight }));
+        expect(card.bottom, `${where}: the Learn card fits the screen`).toBeLessThanOrEqual(card.screen + 1);
+        await fits();
+      },
+      beforeRound: fits,
+      beforeSortRound: fits,
+      onQuestion: fits,
+      // After Check, Next (or Finish) is on the screen.
+      afterCheck: async (moveOn: import('@playwright/test').Locator) => { await expect(moveOn).toBeInViewport(); },
+    };
+    await startLesson(page, false, target);
+    await completeIdeas(page, target, hooks);
+    // "Put it together": the story problem (story mode is on). Its Finish opens the lesson page.
+    expect(await finishPutTogether(page, target, hooks)).toBe(hasStoryAfterIdeas(target) ? 1 : 0);
+  });
+}
