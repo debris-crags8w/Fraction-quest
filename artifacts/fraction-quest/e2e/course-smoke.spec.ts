@@ -149,6 +149,46 @@ test('the dimes and pennies lesson teaches on a hundredths grid, then asks about
   await expect(coins.locator('.fq-coin.is-dime')).toHaveCount(6);
 });
 
+/** A lesson with ideas keeps its worked example under "How it works" on the lesson page: open the page (earlier lessons
+    done, practice done) and unfold it. */
+async function openLessonPageWorkedExample(page: import('@playwright/test').Page, mission: Mission) {
+  await page.addInitScript(({ id, earlier }) => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: earlier, starsByMission: {}, reviewQueue: [], assessments: [],
+      learning: { [id]: { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {} } } }));
+  }, { id: mission.id, earlier: MISSIONS.slice(0, MISSIONS.indexOf(mission)).map(({ id }) => id) });
+  await openAsGuest(page);
+  await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await passStory(page);
+  await expect(page.getByTestId('learning-lab')).toBeVisible();
+  await page.getByTestId('button-how-it-works').click();
+  await page.getByTestId('button-worked-example').click();
+  await expect(page.getByTestId('lesson-example').locator('.fq-model-area')).toBeVisible();
+}
+
+test('a lesson with ideas keeps its Learn pictures and worked example under "How it works" on the lesson page', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mission = MISSIONS[0];
+  expect(lessonIdeas(mission.id)).toBeTruthy();
+  await openLessonPageWorkedExample(page, mission);
+  const pageWidth = () => page.evaluate(() => document.documentElement.scrollWidth);
+  const how = page.getByTestId('lesson-how-it-works');
+  await expect(how.getByTestId('button-how-it-works')).toHaveAttribute('aria-expanded', 'true');
+  const example = how.getByTestId('lesson-example');
+  await expect(example).toContainText('When are they fourths?');
+  await expect(example.locator('.fq-example-answer').getByRole('button', { name: 'Listen to the whole example' })).toBeVisible();
+  // The Learn pictures are folded beside it, and play the lesson's steps.
+  const learn = how.getByTestId('how-learn-pictures');
+  await learn.locator('summary').click();
+  await expect(learn.getByTestId('lesson-introduction')).toBeVisible();
+  // Opened, it makes the page no wider on a phone. Folding it again leaves the lesson page as it was.
+  const openWidth = await pageWidth();
+  await how.getByTestId('button-how-it-works').click();
+  await expect(how.getByTestId('lesson-example')).toHaveCount(0);
+  expect(openWidth).toBeLessThanOrEqual(await pageWidth());
+});
+
 test('the ordering lesson teaches each strategy right before its practice: same denominators, then 1/2, then renaming', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
@@ -190,11 +230,38 @@ test('the ordering lesson teaches each strategy right before its practice: same 
   await expect(page.getByTestId('teach-scene')).toContainText('Rename');
 });
 
+test('the ordering lesson\'s worked example on the lesson page shows its number line, renamed fractions and all', async ({ page }) => {
+  const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
+  if (!mission) throw new Error('Ordering lesson is missing');
+  await openLessonPageWorkedExample(page, mission);
+  const workedExample = page.getByTestId('lesson-example');
+  const thinkItThrough = workedExample.locator('.fq-example-answer');
+  await expect(thinkItThrough.getByRole('button', { name: /Listen/ })).toHaveCount(1);
+  await expect(thinkItThrough.getByRole('button', { name: 'Listen to the whole example' })).toBeVisible();
+  // Fraction bars render numerator and denominator separately, so the combined text omits slashes.
+  await expect(workedExample).toContainText('Order 14, 38 and 58 from smallest to biggest');
+  await expect(workedExample).toContainText('14 < 38 < 58');
+  const numberLine = page.getByTestId('fraction-order-numberline');
+  await expect(numberLine).toBeVisible();
+  await expect(numberLine).toContainText('one whole');
+  await expect(numberLine).toContainText('one-half benchmark is halfway');
+  await expect(numberLine).toContainText('14 = 28');
+  await expect(numberLine).toContainText('one fourth and two eighths are equivalent fractions');
+  await expect(numberLine).toContainText('12 = 24');
+  await expect(numberLine.getByRole('button', { name: 'Listen to the fraction number line' })).toBeVisible();
+  const benchmark = page.getByTestId('fraction-order-benchmark');
+  await expect(benchmark).toHaveAttribute('style', /left: 50%/);
+  await expect(benchmark).toHaveAttribute('data-equivalent-names', '2/4');
+  await expect(page.getByTestId('fraction-order-point-1-4')).toHaveAttribute('data-position', '25');
+  await expect(page.getByTestId('fraction-order-point-1-4')).toHaveAttribute('data-equivalent-names', '2/8');
+  await expect(page.getByTestId('fraction-order-point-3-8')).toHaveAttribute('data-position', '37.5');
+  await expect(page.getByTestId('fraction-order-point-5-8')).toHaveAttribute('data-position', '62.5');
+});
+
 test('number-line labels, axis, markers, and halfway guide stay distinct in both themes', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
-  await openAsGuest(page);
-  await openDeveloperLesson(page, mission);
+  await openLessonPageWorkedExample(page, mission);
 
   const figure = page.getByTestId('fraction-order-numberline');
   await expect(figure).toBeVisible();
@@ -260,8 +327,7 @@ test('number-line labels, axis, markers, and halfway guide stay distinct in both
 test('the ordering number line stays legible in grayscale print media', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
-  await openAsGuest(page);
-  await openDeveloperLesson(page, mission);
+  await openLessonPageWorkedExample(page, mission);
   await page.getByTestId('fraction-order-numberline').evaluate((element) => {
     // The app prints only .fq-print content; mount a copy there to exercise the
     // number-line print rules without bypassing the normal print-only page filter.
@@ -356,8 +422,7 @@ test('the ordering number line stays legible in grayscale print media', async ({
 test('number-line labels, axis, markers, and halfway guide stay clear in forced-colors mode', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
-  await openAsGuest(page);
-  await openDeveloperLesson(page, mission);
+  await openLessonPageWorkedExample(page, mission);
   await page.emulateMedia({ forcedColors: 'active' });
 
   const figure = page.getByTestId('fraction-order-numberline');
@@ -441,8 +506,7 @@ test('the ordering number line keeps fraction labels clear on narrow screens and
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
   await page.setViewportSize({ width: 320, height: 900 });
-  await openAsGuest(page);
-  await openDeveloperLesson(page, mission);
+  await openLessonPageWorkedExample(page, mission);
 
   const figure = page.getByTestId('fraction-order-numberline');
   await expect(figure).toBeVisible();
@@ -572,8 +636,7 @@ test('the ordering number-line explanation and Listen control stay usable at 400
   const mission = MISSIONS.find(({ id }) => id === 'order-unlike-fractions');
   if (!mission) throw new Error('Ordering lesson is missing');
   await page.setViewportSize({ width: 280, height: 900 });
-  await openAsGuest(page);
-  await openDeveloperLesson(page, mission);
+  await openLessonPageWorkedExample(page, mission);
 
   await page.addStyleTag({
     content: 'html { font-size: 400% !important; }',
