@@ -245,6 +245,11 @@
   .fq-ll-actions-complete .fq-ll-finish { justify-self: stretch; }
   .fq-ll-controls { gap: 10px; }
 }
+/* The narrowest screens (or very large text): −, the number and + stay together; −10 and +10 wrap to a row below. */
+@media (max-width: 340px) {
+  .fq-ll-stepper > div { flex-wrap: wrap; }
+  .fq-ll-stepper .fq-ll-step.wide { order: 1; }
+}
 
 .fq-ll-line-guide { margin: 0 0 14px; color: hsl(var(--muted-foreground)); font-size: .88rem; font-weight: 700; text-align: center; }
 
