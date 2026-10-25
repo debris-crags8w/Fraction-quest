@@ -137,9 +137,9 @@ test('prepares visible lesson audio before the learner taps Listen', async ({ pa
   const storyGo = page.getByTestId('button-story-go');
   if (await storyGo.isVisible()) await storyGo.click();
 
-  const section = page.locator('section.fq-example-section').first();
+  // A lesson with ideas opens on its first Learn page, which gets its audio ready.
+  const section = page.getByTestId('idea-learn-screen');
   await expect(section).toBeVisible();
-  await section.scrollIntoViewIfNeeded();
   await expect.poll(() => speechRequests.length, { timeout: 10_000 }).toBeGreaterThan(0);
   expect(speechRequests[0].voice).toBe('af_heart');
   expect(speechRequests[0].text?.trim()).toBeTruthy();

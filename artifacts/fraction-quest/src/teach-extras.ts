@@ -18,6 +18,7 @@ const still = (rows: SceneRow[]): StepScene => [{ rows, ms: 0 }];
 const reveal = (rows: SceneRow[], ms = 600): StepScene =>
   play(rows.map((row) => ({ ...row, hidden: true }) as SceneRow), ...rows.map((_, i): [number, Record<number, Partial<SceneRow>>] => [ms, { [i]: { hidden: false } }]));
 const say = (text: string): SceneRow => ({ kind: 'text', text });
+const eighthMarks = [1, 2, 3, 4, 5, 6, 7].map((at) => ({ at, label: `${at}/8` }));
 /** The first `n` small squares of a hundredths grid, column by column (whole columns are tenths). */
 const gridFill = (n: number, from = 0) => range(n).map((k) => ((from + k) % 10) * 10 + Math.floor((from + k) / 10));
 
@@ -660,6 +661,127 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       },
     ],
   },
+  // Lessons 41–50: worked examples for the Learn pages of their ideas (ideas/lessons-41-50.ts).
+  'compare-unlike-fractions': {
+    examples: [
+      {
+        title: 'Rename one fraction to match',
+        picture: play([
+          { kind: 'bar', parts: ones(8), group: 2, cut: true, shaded: range(6), label: '3/4' },
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(5), label: '5/8' },
+          { ...say('Fourths fit into eighths, so rename 3/4: 3/4 = 6/8. Now both are eighths. 6 > 5, so 3/4 > 5/8.'), hidden: true },
+        ], [800, { 0: { group: 1, label: '3/4 = 6/8' } }], [600, { 2: { hidden: false } }]),
+      },
+      {
+        title: 'Compare the part sizes',
+        picture: reveal([
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8' },
+          { kind: 'bar', parts: ones(4), cut: true, shaded: range(3), label: '3/4' },
+          say('Same numerators: both count 3 parts. Eighths are smaller than fourths, so 3/8 < 3/4. No renaming needed.'),
+        ]),
+      },
+    ],
+  },
+  'order-unlike-fractions': {
+    examples: [
+      {
+        title: 'Same parts: order the numerators',
+        picture: play([
+          { kind: 'line', max: 1, spaces: 6, cut: true, marks: [{ at: 1, label: '1/6' }, { at: 4, label: '4/6' }, { at: 5, label: '5/6' }] },
+          { ...say('All sixths: same-size parts. Count them: fewer sixths is smaller. Smallest first: 1/6, 4/6, 5/6.'), hidden: true },
+        ], [500, { 0: { stretch: 1 } }], [500, { 0: { stretch: 4 } }], [500, { 0: { stretch: 5 } }], [500, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Biggest first goes the other way',
+        picture: play([
+          { kind: 'line', max: 1, spaces: 6, cut: true, marks: [{ at: 1, label: '1/6' }, { at: 4, label: '4/6' }, { at: 5, label: '5/6' }] },
+          { ...say('More sixths is bigger. Biggest first: 5/6, 4/6, 1/6.'), hidden: true },
+        ], [500, { 0: { stretch: 5 } }], [500, { 0: { stretch: 4 } }], [500, { 0: { stretch: 1 } }], [500, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Rename, then order',
+        picture: play([
+          { kind: 'bar', parts: ones(8), group: 2, cut: true, shaded: range(2), label: '1/4' },
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8' },
+          { ...say('1/4 and 3/8 are both less than half. 1/4 = 2/8, and 2/8 < 3/8. 5/8 is more than half. Smallest first: 1/4, 3/8, 5/8.'), hidden: true },
+        ], [800, { 0: { group: 1, label: '1/4 = 2/8' } }], [600, { 2: { hidden: false } }]),
+      },
+    ],
+  },
+  'plot-in-eighths': {
+    examples: [
+      {
+        title: 'One X for each length',
+        picture: play([
+          { kind: 'line', max: 1, spaces: 8, cut: true, xs: [], marks: eighthMarks },
+          { ...say('Pins: 2/8, 4/8 and 7/8 inch. Count eighths from 0 to find each length, and put one X above it. 3 pins, 3 Xs.'), hidden: true },
+        ], [500, { 0: { xs: [[2, 1]] } }], [500, { 0: { xs: [[2, 1], [4, 1]] } }], [500, { 0: { xs: [[2, 1], [4, 1], [7, 1]] } }], [500, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Longer than, shorter than',
+        picture: play([
+          { kind: 'line', max: 1, spaces: 8, cut: true, xs: [[2, 1], [3, 1], [5, 1], [7, 1]], marks: eighthMarks },
+          { ...say('Shells: 2/8, 3/8, 5/8 and 7/8 inch. Longer than 4/8 inch: the Xs to the right of 4/8, 2 shells. Shorter than 4/8 inch: the Xs to its left, 2 shells.'), hidden: true },
+        ], [600, { 0: { point: 4 } }], [500, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'The two shortest together',
+        picture: play([
+          { kind: 'line', max: 1, spaces: 8, cut: true, xs: [[1, 1], [3, 2], [6, 1]], marks: eighthMarks },
+          { ...say('The two shortest are the two Xs farthest left: 1/8 and 3/8. Together: 1/8 + 3/8 = 4/8 inch.'), hidden: true },
+        ], [600, { 0: { stretch: 1 } }], [500, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'read-line-plots': {
+    examples: [
+      {
+        title: 'Add one stack',
+        picture: play([
+          { kind: 'line', max: 1, spaces: 8, cut: true, xs: [[2, 3], [5, 1]], marks: eighthMarks },
+          { ...say('3 Xs stack at 2/8: 3 twigs, each 2/8 inch long. All of them together: 2/8 + 2/8 + 2/8 = 6/8 inch.'), hidden: true },
+        ], [600, { 0: { point: 2 } }], [500, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'measurement-word-problems': {
+    examples: [
+      {
+        title: 'Other units split the same way',
+        picture: play([
+          { kind: 'bar', parts: ones(2), bracket: '1 dollar = 100 cents' },
+          { ...say('1 dollar is 100 cents. Split 100 into 2 equal parts: 1/2 dollar is 50 cents. 1 kilogram is 1000 grams, and 1 liter is 1000 milliliters.'), hidden: true },
+        ], [600, { 0: { cut: true, shaded: [0] } }], [500, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'party-portions': {
+    examples: [
+      {
+        title: 'Between which whole numbers?',
+        picture: play([
+          { kind: 'line', max: 3, spaces: 4, cut: true, pointLabel: '9/4' },
+          { ...say('9 fourths: 8 fourths make 2 wholes, and 12 fourths make 3. So 9/4 is between 2 and 3.'), hidden: true },
+        ], [600, { 0: { point: 9 } }], [500, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'add-unlike-fractions': {
+    words: [{
+      term: 'multiples', meaning: 'Multiples of a number are the numbers you say when you count by it. Multiples of 4 are 4, 8, 12, 16.',
+      picture: still([{ kind: 'line', max: 1, spaces: 4, cut: true, jumps: 4 }]),
+    }],
+    examples: [
+      {
+        title: 'List multiples to find a common denominator',
+        picture: play([
+          { kind: 'bar', parts: ones(15), group: 3, cut: true, shaded: range(3), label: '1/5' },
+          { kind: 'bar', parts: ones(15), group: 5, cut: true, shaded2: range(5), label: '1/3' },
+          { ...say('Multiples of 5: 5, 10, 15. Multiples of 3: 3, 6, 9, 12, 15. 15 is in both lists, so use fifteenths: 1/5 + 1/3 = 3/15 + 5/15 = 8/15.'), hidden: true },
+        ], [800, { 0: { group: 1, label: '1/5 = 3/15' } }], [800, { 1: { group: 1, label: '1/3 = 5/15' } }], [600, { 2: { hidden: false } }]),
+      },
+    ],
+  },
 };
 
 /** The pages a lesson's Teach first adds: Words to know first (if any), then the extra examples after Why. */
@@ -694,4 +816,8 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string }[] = [
   { term: 'hundredths', pattern: /\bhundredths?\b/i, lesson: 'hundredths-decimals' },
   { term: 'dime / penny', pattern: /\b(dimes?|penn(y|ies))\b/i, lesson: 'dimes-and-pennies' },
   { term: 'simplest form', pattern: /\bsimplest form\b/i, lesson: 'simplify-fractions' },
+  // Lessons 41–50 (compare-unlike-fractions … subtract-unlike-fractions).
+  { term: 'common denominator', pattern: /\bcommon denominators?\b/i, lesson: 'compare-unlike-fractions' },
+  { term: 'batch', pattern: /\bbatch(es)?\b/i, lesson: 'fraction-recipes' },
+  { term: 'multiples of a number', pattern: /\bmultiples of\b/i, lesson: 'add-unlike-fractions' },
 ];
