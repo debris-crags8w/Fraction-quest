@@ -523,6 +523,9 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       {
         title: 'Read a decimal as tenths',
         picture: reveal([{ kind: 'bar', parts: ones(10), cut: true, shaded: [0, 1], label: '0.2' }, say('0.2: the digit 2 is right after the decimal point, so it counts tenths. 0.2 = 2/10.')]),
+      },
+    ],
+  },
   // Lessons 31–40: worked examples for the Learn pages of their ideas.
   'hundredths-decimals': {
     examples: [
