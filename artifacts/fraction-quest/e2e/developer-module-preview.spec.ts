@@ -1,6 +1,8 @@
 import { expect, openSettings, test } from './fixtures';
 import { MISSIONS } from '../src/game';
 import { PART_FINDER_LESSONS } from '../src/part-finder';
+import { ideaPracticeQuestions } from '../src/lesson-ideas';
+import { completeIdeas } from './lesson-walk';
 
 /** Developer testing lives with the grown-ups' settings, behind the grown-up check. */
 async function openDeveloperTesting(page: import('@playwright/test').Page) {
@@ -65,19 +67,22 @@ test('set-model arrays are visibly grouped by the denominator', async ({ page })
   await openDeveloperTesting(page);
   await page.getByTestId('select-developer-lesson').selectOption('sets-unit-fractions');
   await page.getByTestId('button-open-developer-lesson').click();
+  // Idea 1's Learn pages and first practice, then its second practice: 10 shells shared into 2 equal groups.
+  await completeIdeas(page, MISSIONS.find((item) => item.id === 'sets-unit-fractions')!, { until: 1 });
 
-  const groupedModel = page.getByRole('img', { name: /12 objects in 3 equal groups of 4, 1 group selected/i });
+  const groupedModel = page.getByRole('img', { name: /10 objects in 2 equal groups of 5, 0 groups selected/i });
   await expect(groupedModel).toBeVisible();
   const groups = groupedModel.locator('[data-testid="set-model-group"]');
-  await expect(groups).toHaveCount(3);
-  await expect(groups.nth(0).locator('circle.dot')).toHaveCount(4);
-  await expect(groups.nth(0).locator('rect.group')).toHaveClass('group on');
+  await expect(groups).toHaveCount(2);
+  await expect(groups.nth(0).locator('circle.dot')).toHaveCount(5);
+  await expect(groups.nth(0).locator('rect.group')).toHaveClass('group');
   await expect(groups.nth(1).locator('rect.group')).toHaveClass('group');
 });
 
 test('completed lesson questions can be reviewed without losing the current question', async ({ page }) => {
   const mission = MISSIONS.find((item) => item.id === 'sets-unit-fractions')!;
-  const firstQuestion = mission.questions[0];
+  // A lesson with ideas asks its first idea's practice first.
+  const firstQuestion = ideaPracticeQuestions(mission)[0]!;
 
   await page.route('**/api/**', (route) => route.fulfill({
     status: 401,
@@ -91,10 +96,7 @@ test('completed lesson questions can be reviewed without losing the current ques
   await page.getByTestId('select-developer-lesson').selectOption(mission.id);
   await page.getByTestId('button-open-developer-lesson').click();
 
-  await page.getByTestId(`button-answer-${firstQuestion.id}-${firstQuestion.correctChoice}`).click();
-  await page.getByTestId('button-check-answer').click();
-  await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
-  await page.getByTestId('button-next-question').click();
+  await completeIdeas(page, mission, { until: 1 });
 
   const currentQuestion = await page.locator('#lesson-title').textContent();
   await expect(page.getByTestId('button-review-question-2')).toHaveCount(0);

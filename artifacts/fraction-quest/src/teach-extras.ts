@@ -782,6 +782,119 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       },
     ],
   },
+  // Lessons 51–60: worked examples for the ideas the Teach first scenes don't picture.
+  'mixed-unlike-operations': {
+    examples: [{
+      title: 'Trade a whole to take away',
+      picture: play([
+        { kind: 'bar', parts: ones(4), shaded: range(4), label: '1 whole' },
+        { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
+        { ...say('2 1/4 − 1/2, and 1/2 = 2/4. 1/4 is too few, so trade 1 whole for 4/4. Take 2/4 away: 1 3/4 is left.'), hidden: true },
+      ], [800, { 0: { cut: true, label: 'Traded for 4/4' } }], [700, { 0: { shaded: [0, 1], glow: [2, 3], label: 'Take 2/4 away' } }], [600, { 2: { hidden: false } }]),
+    }],
+  },
+  'estimate-fraction-operations': {
+    examples: [
+      {
+        title: 'Is the sum less than 1?',
+        picture: reveal([
+          { kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1], label: '2/5' },
+          { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
+          say('2/5 is a little less than 1/2, and 1/2 + 1/2 = 1. So 2/5 + 1/2 is a little less than 1: 2/5 + 1/2 < 1.'),
+        ]),
+      },
+      {
+        title: 'Estimate a difference',
+        picture: reveal([
+          { kind: 'bar', parts: ones(6), cut: true, shaded: range(5), label: '5/6' },
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
+          say('5/6 − 1/4: 5/6 is less than 1, and taking some away leaves even less. So 5/6 − 1/4 < 1.'),
+        ]),
+      },
+      {
+        title: 'Does it make sense?',
+        picture: reveal([
+          { kind: 'line', max: 1, spaces: 6, cut: true, marks: [{ at: 3, label: '1/2' }], point: 2, pointLabel: '2/6', label: 'Mo’s answer is less than 1/2', tone: 'unfair' },
+          say('Mo says 1/4 + 1/2 makes 2/6. But 1/4 + 1/2 is more than 1/2, and 2/6 is less than 1/2. So Mo’s answer does not make sense.'),
+        ]),
+      },
+    ],
+  },
+  'fraction-of-quantity': {
+    words: [{ term: '×', meaning: 'When a fraction comes first, × means “of”. 3/4 × 8 means 3/4 of 8.' }],
+    examples: [
+      {
+        title: 'Times means of',
+        picture: play([{ kind: 'bar', parts: ones(4), bracket: '8' }, { ...say('3/4 × 8 means 3/4 of 8. 8 ÷ 4 = 2 in each part, and 3 × 2 = 6. So 3/4 × 8 = 6.'), hidden: true }],
+          [600, { 0: { cut: true } }], [600, { 0: { shaded: [0, 1, 2] } }], [500, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Or multiply first',
+        picture: reveal([
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], bracket: '8', label: '3/4' },
+          say('You can also multiply first: 3 × 8 = 24, then 24 ÷ 4 = 6. Both ways give 6.'),
+        ]),
+      },
+    ],
+  },
+  'fraction-times-fraction': {
+    examples: [{
+      title: 'Rows and columns',
+      picture: reveal([
+        { kind: 'pair', items: [
+          { kind: 'area', cut: 'grid-4x3', edges: true, shaded: [0, 1, 2, 3], label: 'A row goes across' },
+          { kind: 'area', cut: 'grid-4x3', edges: true, shaded: [0, 4, 8], label: 'A column goes down' },
+        ] },
+        say('Rows go across. Columns go up and down. This square has 3 rows and 4 columns.'),
+      ]),
+    }],
+  },
+  'fraction-of-collection': {
+    examples: [{
+      title: 'Write it with ×',
+      picture: reveal([
+        { kind: 'set', count: 16, groups: 4, shaded: [0, 1, 2], label: '3 of 4 groups' },
+        say('3/4 of 16 cards is 3/4 × 16. 16 ÷ 4 = 4 in each group, and 3 groups is 12. So 3/4 × 16 = 12.'),
+      ]),
+    }],
+  },
+  'multiplication-scaling': {
+    examples: [
+      {
+        title: 'Equal to 1',
+        picture: reveal([
+          { kind: 'line', max: 2, spaces: 4, cut: true, point: 4, pointLabel: '4/4' },
+          say('4/4 is all 4 parts, so 4/4 = 1. A smaller top number is less than 1. A larger top number is more than 1.'),
+        ]),
+      },
+      {
+        title: 'Factors',
+        picture: reveal([
+          { kind: 'line', max: 2, spaces: 4, cut: true, point: 3, pointLabel: '3/4' },
+          say('In 3/4 × 8, the numbers you multiply are factors: 3/4 and 8. Compare the factor 3/4 with 1: it is less than 1.'),
+        ]),
+      },
+    ],
+  },
+  'bigger-or-smaller': {
+    examples: [
+      {
+        title: 'The product',
+        picture: reveal([
+          { kind: 'line', max: 2, spaces: 3, cut: true, stretch: 2, label: 'The product: 6' },
+          say('The answer to a multiplication is the product. In 2/3 × 9 = 6, the product 6 is less than 9.'),
+        ]),
+      },
+      {
+        title: 'A fraction or mixed amount',
+        picture: reveal([
+          { kind: 'line', max: 3, spaces: 8, stretch: 20, label: '2 1/2: one copy' },
+          { kind: 'line', max: 3, spaces: 8, stretch: 15, label: '3/4 × 2 1/2: part of a copy' },
+          say('The factor 3/4 is less than 1, so 3/4 × 2 1/2 is less than 2 1/2.'),
+        ]),
+      },
+    ],
+  },
 };
 
 /** The pages a lesson's Teach first adds: Words to know first (if any), then the extra examples after Why. */
@@ -820,4 +933,9 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string }[] = [
   { term: 'common denominator', pattern: /\bcommon denominators?\b/i, lesson: 'compare-unlike-fractions' },
   { term: 'batch', pattern: /\bbatch(es)?\b/i, lesson: 'fraction-recipes' },
   { term: 'multiples of a number', pattern: /\bmultiples of\b/i, lesson: 'add-unlike-fractions' },
+  // Lessons 51–60.
+  { term: 'a fraction × a number', pattern: /\b\d+\/\d+ × \d+\b(?!\/)/, lesson: 'fraction-of-quantity' },
+  { term: 'rows', pattern: /\brows?\b/i, lesson: 'fraction-times-fraction' },
+  { term: 'overlap', pattern: /\boverlap/i, lesson: 'fraction-times-fraction' },
+  { term: 'product', pattern: /\bproducts?\b/i, lesson: 'bigger-or-smaller' },
 ];
