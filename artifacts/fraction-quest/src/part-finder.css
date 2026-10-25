@@ -61,6 +61,8 @@
 .fq-pf-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .fq-pf-kicker { margin: 0 0 5px; color: var(--fq-grape); font-size: .82rem; font-weight: 950; letter-spacing: 0.01em; }
 .fq-pf h1 { margin: 0; font-family: var(--app-font-display); font-size: clamp(1.8rem, 4vw, 2.65rem); line-height: 1.04; }
+/* The bar's title stays bar-sized (the round's own title is the screen's heading). */
+.fq-pf .fq-taskbar-title { font: 800 1rem/1.15 var(--app-font-sans); }
 .fq-pf-prompt { max-width: 590px; margin: 10px 0 0; color: hsl(var(--muted-foreground)); font-size: 1.08rem; font-weight: 650; line-height: 1.45; }
 .fq-pf-round-meter { display: grid; gap: 8px; flex: 0 0 auto; color: hsl(var(--muted-foreground)); font-size: .82rem; font-weight: 850; text-align: right; }
 .fq-pf-progress { display: flex; gap: 5px; }
