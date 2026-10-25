@@ -322,12 +322,10 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
   // Lessons 72–81: pictures for the ideas their Teach first scenes don't show.
   'fraction-probability': {
     words: [
+      // The marble example on the next Learn page pictures it.
+      { term: 'outcome', meaning: 'An outcome is one way something can turn out.' },
       {
-        term: 'outcome', meaning: 'An outcome is one way something can turn out. Pick 1 of 6 marbles: there are 6 outcomes.',
-        picture: still([{ kind: 'set', count: 6, groups: 6, counted: range(6), countOn: true }]),
-      },
-      {
-        term: 'equally likely', meaning: 'Equally likely outcomes come up just as often as each other. Same-size parts are equally likely. A bigger part comes up more often.',
+        term: 'equally likely', meaning: 'Equally likely outcomes come up just as often. A bigger part comes up more often.',
         picture: still([{ kind: 'pair', items: [
           { kind: 'area', cut: 'circle-fourths', edges: true, label: 'Equally likely', tone: 'fair' },
           { kind: 'area', cut: 'circle-unequal', edges: true, glow: [0], label: 'Not equally likely', tone: 'unfair' },
