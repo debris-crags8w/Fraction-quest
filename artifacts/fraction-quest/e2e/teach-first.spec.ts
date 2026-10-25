@@ -199,6 +199,7 @@ test('the wordiest Teach first screens still fit a phone', async ({ page }) => {
 test('with reduced motion, each Teach first step opens on its last frame', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addInitScript(() => localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 0, day: '2026-10-20', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: false,
+    introsSeen: { builder: true, line: true }, fractionWordsSeen: true,
     story: { prologueSeen: true, choices: {} }, displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: true, seasonalThemes: false, storyMode: false } })));
   await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
   await page.setViewportSize({ width: 390, height: 844 });
@@ -206,9 +207,11 @@ test('with reduced motion, each Teach first step opens on its last frame', async
   const guest = page.getByTestId('button-play-guest');
   await expect(guest.or(page.getByTestId('lesson-tester'))).toBeVisible();
   if (await guest.isVisible()) await guest.click();
-  await page.getByTestId('button-tester-start-fraction-of-area').click();
-  const scene = page.getByTestId('teach-first').getByTestId('teach-scene');
+  // Lesson 5's first picture is animated: its Teach first step, or (a lesson with ideas) its first Learn page.
+  await page.getByTestId('button-tester-start-unit-size').click();
+  const scene = page.getByTestId('teach-first').or(page.getByTestId('idea-learn-screen')).getByTestId('teach-scene');
   await expect(scene).toBeVisible();
+  expect(Number(await scene.getAttribute('data-frames'))).toBeGreaterThan(1);
   expect(await scene.getAttribute('data-frame')).toBe(String(Number(await scene.getAttribute('data-frames')) - 1));
 });
 
@@ -243,8 +246,9 @@ test('every step of every animated Teach first fits a phone', async ({ page }) =
   }
 });
 
-test('a lesson with new words opens its Teach first on Words to know, before any step uses them', async ({ page }) => {
+test('a lesson with new signs teaches them on Learn pages before any practice uses them', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 0, day: '2026-10-20', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: false,
+    introsSeen: { builder: true, line: true }, fractionWordsSeen: true,
     story: { prologueSeen: true, choices: {} }, displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: true, seasonalThemes: false, storyMode: false } })));
   await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
   await page.setViewportSize({ width: 390, height: 844 });
@@ -252,15 +256,25 @@ test('a lesson with new words opens its Teach first on Words to know, before any
   const guest = page.getByTestId('button-play-guest');
   await expect(guest.or(page.getByTestId('lesson-tester'))).toBeVisible();
   if (await guest.isVisible()) await guest.click();
-  await page.getByTestId('button-tester-start-compare-same-numerator').click();
-  const teach = page.getByTestId('lesson-introduction');
-  // Lesson 6: >, < and = are explained, with a picture for =, before step 1 compares anything.
-  await expect(teach.getByTestId('teach-step-label')).toHaveText('Words to know');
-  const words = teach.getByTestId('teach-words');
-  await expect(words.getByTestId('teach-word-=')).toContainText('the same amount as');
-  await expect(words.getByTestId('teach-word->')).toContainText('is more than');
-  await expect(words.getByTestId('teach-word-<')).toContainText('is less than');
-  await expect(words.getByTestId('teach-word-=').getByTestId('teach-scene')).toBeVisible();
-  await teach.getByTestId('button-teach-step-next').click();
-  await expect(teach.getByTestId('teach-step-label')).toHaveText('Step 1 of 3');
+  const { MISSIONS } = await import('../src/game');
+  const { ideaSteps, lessonIdeas } = await import('../src/lesson-ideas');
+  const { completeIdeas } = await import('./lesson-walk');
+  const mission = MISSIONS.find((item) => item.id === 'compare-same-numerator')!;
+  const ideas = lessonIdeas(mission.id)!;
+  // Lesson 6: idea 1 compares in words. The idea that brings in >, < and = explains each one (with a picture for =)
+  // on its Learn pages, and only then do the practices use them.
+  const signs = ideas.findIndex((idea) => idea.terms?.some((term) => term.pattern.test(' > ')));
+  expect(signs).toBeGreaterThan(0);
+  await page.getByTestId(`button-tester-start-${mission.id}`).click();
+  await completeIdeas(page, mission, { until: ideaSteps(mission.id).findIndex(({ idea }) => idea === signs) });
+  const learn = page.getByTestId('idea-learn-screen');
+  await expect(page.getByTestId('idea-kicker')).toHaveText(`Lesson 06 · Idea ${signs + 1} of ${ideas.length} · Learn`);
+  await expect(learn).toContainText('is more than');
+  await learn.getByTestId('button-teach-step-next').click();
+  await expect(learn).toContainText('is less than');
+  await learn.getByTestId('button-teach-step-next').click();
+  await expect(learn).toContainText('the same amount as');
+  await expect(learn.getByTestId('teach-scene')).toBeVisible();
+  await learn.getByTestId('button-idea-practise').click();
+  await expect(page.locator('.fq-play-kicker')).toContainText(`Idea ${signs + 1} of ${ideas.length}`);
 });

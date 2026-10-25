@@ -45,6 +45,27 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       },
     ],
   },
+  'fraction-names': {
+    examples: [
+      {
+        title: 'Read the bottom number',
+        picture: play([{ kind: 'bar', parts: ones(6), cut: true, shaded: [0], label: '1/6' }, { ...say('1/6: count the equal parts. 6 equal parts make one whole, so the bottom number is 6. The denominator is 6.'), hidden: true }],
+          ...range(6).map((i): [number, Record<number, Partial<SceneRow>>] => [380, { 0: { counted: range(i + 1) } }]), [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Read the top number',
+        picture: play([{ kind: 'bar', parts: ones(3), cut: true, label: '2/3' }, { ...say('In 2/3, the top number counts the colored parts. 2 parts are colored, so the numerator is 2.'), hidden: true }],
+          [500, { 0: { shaded: [0], counted: [0] } }], [500, { 0: { shaded: [0, 1], counted: [0, 1] } }], [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Write the fraction',
+        picture: reveal([
+          { kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1], label: '2/5' },
+          say('2 out of 5 equal parts are colored. All the parts, 5, go on the bottom. The colored parts, 2, go on top: 2/5.'),
+        ]),
+      },
+    ],
+  },
   'unit-fractions': {
     examples: [
       {
@@ -108,10 +129,10 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       { term: '>', meaning: '> means “is more than”. The open side faces the bigger amount.' },
       { term: '<', meaning: '< means “is less than”. The point faces the smaller amount.' },
       {
-        term: '=', meaning: '= means “the same amount as”. These bars are shaded to the same place, so 2/4 = 1/2.',
+        term: '=', meaning: '= means “the same amount as”. These bars are shaded to the same place, so 3/4 = 3/4.',
         picture: still([{ kind: 'pair', items: [
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1], label: '2/4' },
-          { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
         ] }]),
       },
     ],
@@ -136,7 +157,7 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       },
       {
         title: 'Half of 3 parts',
-        picture: reveal([{ kind: 'bar', parts: ones(3), cut: true, shaded: [0], label: '1/3' }, say('3 parts. Half is between 1 part and 2 parts. 1 part is less than half, so 1/3 is less than half.')]),
+        picture: reveal([{ kind: 'bar', parts: ones(3), cut: true, shaded: [0, 1], label: '2/3' }, say('3 parts. Half is between 1 part and 2 parts. 2 parts is more than half, so 2/3 is more than half.')]),
       },
       {
         title: 'Closest to half',
@@ -205,4 +226,6 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string }[] = [
   { term: '< or >', pattern: /\s[<>]\s/, lesson: 'compare-same-numerator' },
   { term: 'benchmark', pattern: /\bbenchmarks?\b/i, lesson: 'benchmarks-zero-one' },
   { term: 'tick mark', pattern: /\btick( mark)?s?\b/i, lesson: 'number-line-basics' },
+  // Lessons 2–10 (learn one idea, practise it three times).
+  { term: 'unit fraction', pattern: /\bunit fractions?\b/i, lesson: 'unit-fractions' },
 ];
