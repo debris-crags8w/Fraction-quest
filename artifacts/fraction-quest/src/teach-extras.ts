@@ -19,6 +19,8 @@ const reveal = (rows: SceneRow[], ms = 600): StepScene =>
   play(rows.map((row) => ({ ...row, hidden: true }) as SceneRow), ...rows.map((_, i): [number, Record<number, Partial<SceneRow>>] => [ms, { [i]: { hidden: false } }]));
 const say = (text: string): SceneRow => ({ kind: 'text', text });
 const eighthMarks = [1, 2, 3, 4, 5, 6, 7].map((at) => ({ at, label: `${at}/8` }));
+/** The first `n` small squares of a hundredths grid, column by column (whole columns are tenths). */
+const gridFill = (n: number, from = 0) => range(n).map((k) => ((from + k) % 10) * 10 + Math.floor((from + k) / 10));
 
 export const TEACH_EXTRAS: Record<string, TeachExtras> = {
   'equal-parts': {
@@ -525,6 +527,140 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       },
     ],
   },
+  // Lessons 31–40: worked examples for the Learn pages of their ideas.
+  'hundredths-decimals': {
+    examples: [
+      {
+        title: 'One square is one hundredth',
+        picture: play([{ kind: 'area', cut: 'grid-10x10', edges: true, label: '1/100' }, { ...say('100 equal squares make one whole. Each small square is one hundredth: 1/100.'), hidden: true }],
+          [600, { 0: { glow: [0] } }], [600, { 0: { glow: [], shaded: [0] } }], [500, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'A 0 holds the tenths place',
+        picture: reveal([
+          { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(5), label: '0.05' },
+          say('5 single squares and no full column: 0 tenths and 5 hundredths. Write 0.05. The 0 holds the tenths place.'),
+        ]),
+      },
+    ],
+  },
+  'decimal-fraction-equivalence': {
+    examples: [
+      {
+        title: 'What times the bottom makes 10?',
+        picture: play([{ kind: 'bar', parts: ones(10), group: 2, cut: true, shaded: range(4), label: '2/5' }, { ...say('5 × 2 = 10, so multiply top and bottom by 2: 2/5 = 4/10 = 0.4.'), hidden: true }],
+          [800, { 0: { group: 1, label: '4/10' } }], [500, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Fourths: make 100 on the bottom',
+        picture: play([{ kind: 'area', cut: 'grid-10x10', edges: true, label: '1/4' }, { ...say('No whole number times 4 makes 10, so use 100. 4 × 25 = 100, so 1/4 = 25/100 = 0.25.'), hidden: true }],
+          [800, { 0: { shaded: gridFill(25), label: '25/100' } }], [500, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'compare-decimals': {
+    examples: [{
+      title: 'When the tenths match',
+      picture: reveal([
+        { kind: 'pair', items: [
+          { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(32), label: '0.32' },
+          { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(38), label: '0.38' },
+        ] },
+        say('Both have 3 tenths, so the tenths match. Compare the hundredths: 2 < 8, so 0.32 < 0.38.'),
+      ]),
+    }],
+  },
+  'compare-decimals-grid': {
+    examples: [
+      {
+        title: 'Put three in order',
+        picture: reveal([
+          { kind: 'bar', parts: [70, 30], shaded: [0], label: '0.7 = 70 hundredths' },
+          { kind: 'bar', parts: [7, 93], shaded: [0], label: '0.07 = 7 hundredths' },
+          { kind: 'bar', parts: [25, 75], shaded: [0], label: '0.25 = 25 hundredths' },
+          say('7 < 25 < 70, so smallest first: 0.07, 0.25, 0.7.'),
+        ], 500),
+      },
+      {
+        title: 'The same whole',
+        picture: reveal([
+          { kind: 'pair', items: [
+            { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(45), label: '0.45', tone: 'fair' },
+            { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(5), label: '0.05', tone: 'fair' },
+          ] },
+          say('Two grids of the same size: 45 hundredths is more than 5 hundredths, so 0.45 > 0.05.'),
+        ]),
+      },
+      {
+        title: 'Different wholes',
+        picture: reveal([
+          { kind: 'pair', items: [
+            { kind: 'area', cut: 'circle-halves', edges: true, shaded: [0], label: 'Small pizza: 0.5', tone: 'unfair' },
+            { kind: 'area', cut: 'circle-tenths', edges: true, shaded: range(4), label: 'Big pizza: 0.4', tone: 'unfair' },
+          ] },
+          say('A small pizza and a big pizza are different wholes. 0.5 of one and 0.4 of the other: you can’t tell which is more.'),
+        ]),
+      },
+    ],
+  },
+  'dimes-and-pennies': {
+    examples: [
+      {
+        title: 'A dollar is 100 pennies',
+        picture: play([{ kind: 'area', cut: 'grid-10x10', edges: true, label: '1 dollar = 100 pennies' }, { ...say('A dollar is 100 pennies. Each penny is 1 of the 100 equal squares: 1/100 of a dollar.'), hidden: true }],
+          [600, { 0: { glow: [0] } }], [600, { 0: { glow: [], shaded: [0] } }], [500, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Count the pennies',
+        picture: play([{ kind: 'area', cut: 'grid-10x10', edges: true, label: '4 pennies' }, { ...say('4 pennies are 4 hundredths: 4/100 of a dollar.'), hidden: true }],
+          ...range(4).map((i): [number, Record<number, Partial<SceneRow>>] => [450, { 0: { shaded: gridFill(i + 1) } }]), [500, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'unit-fraction-multiples': {
+    examples: [
+      {
+        title: '× means copies of',
+        picture: play([{ kind: 'bar', parts: ones(4), cut: true, label: '3 × 1/4' }, { ...say('3 × 1/4 means 3 copies of 1/4: 1/4 + 1/4 + 1/4.'), hidden: true }],
+          ...range(3).map((i): [number, Record<number, Partial<SceneRow>>] => [500, { 0: { shaded: range(i + 1), counted: range(i + 1) } }]), [500, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Past one whole',
+        picture: reveal([
+          { kind: 'bar', parts: ones(4), cut: true, shaded: range(4), label: '4/4' },
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
+          say('5 × 1/4: 4 copies fill one whole, and 1 more goes past one whole. 5 × 1/4 = 5/4.'),
+        ]),
+      },
+    ],
+  },
+  'multiply-whole-by-fraction': {
+    examples: [{
+      title: 'Multiply, keep the denominator',
+      picture: reveal([
+        ...range(2).map((): SceneRow => ({ kind: 'bar', parts: ones(3), cut: true, shaded: [0, 1] })),
+        say('Multiply the groups by the numerator: 2 × 2 = 4. Keep the denominator: 2 × 2/3 = 4/3.'),
+      ], 450),
+    }],
+  },
+  'simplify-fractions': {
+    examples: [
+      {
+        title: 'Count by 2s',
+        picture: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: '6/8' }, { ...say('Count by 2s: 2, 4, 6, 8. You land on 6 and on 8, so 2 divides both 6 and 8.'), hidden: true }],
+          ...range(4).map((i): [number, Record<number, Partial<SceneRow>>] => [450, { 0: { ticks: range(i + 1).map((k) => 2 * k + 1) } }]),
+          [500, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Divide again',
+        picture: reveal([
+          { kind: 'bar', parts: ones(12), cut: true, shaded: range(4), label: '4/12' },
+          { kind: 'bar', parts: ones(3), cut: true, shaded: [0], label: '1/3' },
+          say('Divide both by 2: 4/12 = 2/6. Divide again: 2/6 = 1/3. Only 1 divides 1 and 3: simplest form.'),
+        ], 500),
+      },
+    ],
+  },
   // Lessons 41–50: worked examples for the Learn pages of their ideas (ideas/lessons-41-50.ts).
   'compare-unlike-fractions': {
     examples: [
@@ -676,6 +812,10 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string }[] = [
   { term: 'mixed number', pattern: /\bmixed numbers?\b/i, lesson: 'mixed-improper' },
   { term: 'decimal', pattern: /\bdecimals?\b/i, lesson: 'tenths-decimals' },
   { term: 'digit', pattern: /\bdigits?\b/i, lesson: 'tenths-decimals' },
+  // Lessons 31–40.
+  { term: 'hundredths', pattern: /\bhundredths?\b/i, lesson: 'hundredths-decimals' },
+  { term: 'dime / penny', pattern: /\b(dimes?|penn(y|ies))\b/i, lesson: 'dimes-and-pennies' },
+  { term: 'simplest form', pattern: /\bsimplest form\b/i, lesson: 'simplify-fractions' },
   // Lessons 41–50 (compare-unlike-fractions … subtract-unlike-fractions).
   { term: 'common denominator', pattern: /\bcommon denominators?\b/i, lesson: 'compare-unlike-fractions' },
   { term: 'batch', pattern: /\bbatch(es)?\b/i, lesson: 'fraction-recipes' },
