@@ -2497,7 +2497,7 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-coin.is-penny { width: 36px; height: 36px; background: #E9A86B; border-color: #A8622A; color: #3B1F08; font-size: .7rem; }
 .fq-hint > svg.fq-character, .fq-hint > .fq-character { flex: none; margin-top: 0; }
 /* On the lesson page: Learn pictures and the worked example, each folded until opened. */
-.fq-ll-how { min-width: 0; }
+.fq-ll-how { min-width: 0; grid-template-columns: minmax(0, 1fr); }
 .fq-how-part { justify-self: stretch; min-width: 0; box-sizing: border-box; border: 1px solid hsl(var(--border)); border-radius: 16px; padding: 10px 12px; background: hsl(var(--card)); }
 .fq-how-part > summary { cursor: pointer; font-weight: 800; min-height: 44px; display: flex; align-items: center; }
 .fq-how-part[open] > summary { margin-bottom: 8px; }
