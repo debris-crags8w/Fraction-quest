@@ -336,6 +336,8 @@ const setModel = (selected: number, total: number, groupCount: number, caption?:
 const line = (numerator: number, denominator: number, wholes = numberLineWholeCount(numerator, denominator)): ModelSpec => ({ kind: 'line', numerator, denominator, wholes });
 const equation = (text: string): ModelSpec => ({ kind: 'equation', text });
 const decimal = (tenths: number): ModelSpec => ({ kind: 'decimal', tenths });
+/** One hundredths grid with `h` squares shaded column by column (lessons written before the grid helpers below). */
+const grid100 = (h: number): ModelSpec => ({ kind: 'area', cut: 'grid-10x10', shaded: Array.from({ length: h }, (_, k) => (k % 10) * 10 + Math.floor(k / 10)) });
 
 const fractionValues = (text: string) => [...text.matchAll(/(\d+)\s*\/\s*(\d+)/g)].map((m) => Number(m[1]) / Number(m[2]));
 const sameValue = (a: number, b: number) => Math.abs(a - b) < 1e-9;
@@ -875,10 +877,21 @@ const curriculum: MissionSeed[] = [
       model: { kind: 'bars', bars: [{ numerator: 25, denominator: 100 }], caption: '25 hundredths of one whole' },
     },
     questions: [
-      practice('Write 8/100 as a decimal.', ['0.08', '0.8', '8.00'], 0, { kind: 'bars', bars: [{ numerator: 8, denominator: 100 }] }, 'Hundredths need 2 places after the decimal point.', '8 hundredths is 0.08. The 0 holds the tenths place.', { kind: 'bars', bars: [{ numerator: 8, denominator: 100 }] }),
-      practice('What fraction is 0.35?', ['35/100', '3/5', '35/10'], 0, { kind: 'bars', bars: [{ numerator: 35, denominator: 100 }] }, '2 places after the decimal point means hundredths.', '0.35 means 35 hundredths, or 35/100.', { kind: 'bars', bars: [{ numerator: 35, denominator: 100 }] }),
-      practice('Which is bigger, 0.4 or 0.35?', ['0.4', '0.35', 'They are equal'], 0, bars({ numerator: 4, denominator: 10 }, { numerator: 35, denominator: 100 }), 'Write both numbers as hundredths.', '0.40 is 40 hundredths. 40 is more than 35.', decimal(4)),
+      // Idea 3 (a 0 holds the tenths place): no thousandths among the wrong choices, since they are never taught.
+      practice('Write 8/100 as a decimal.', ['0.08', '0.8', '8.00', '8.1'], 0, { kind: 'bars', bars: [{ numerator: 8, denominator: 100 }] }, 'Hundredths need 2 places after the decimal point.', '8 hundredths is 0.08. The 0 holds the tenths place.', { kind: 'bars', bars: [{ numerator: 8, denominator: 100 }] }, { authoredChoices: true }),
+      practice('What fraction is 0.35?', ['35/100', '35/10', '1/35', '100/35'], 0, { kind: 'bars', bars: [{ numerator: 35, denominator: 100 }] }, '2 places after the decimal point means hundredths.', '0.35 means 35 hundredths, or 35/100.', { kind: 'bars', bars: [{ numerator: 35, denominator: 100 }] }, { authoredChoices: true }),
+      // Comparing 0.4 with 0.35 is taught in lesson 33; here, a 0 holding the tenths place.
+      practice('What fraction is 0.06?', ['6/100', '6/10', '1/6', '100/6'], 0, { kind: 'bars', bars: [{ numerator: 6, denominator: 100 }] }, '2 places after the decimal point means hundredths. The 0 holds the tenths place.', '0.06 means 0 tenths and 6 hundredths, or 6/100.', { kind: 'bars', bars: [{ numerator: 6, denominator: 100 }] }, { authoredChoices: true }),
       practice('Which decimal equals 9/10?', ['0.9', '0.09', '9.10'], 0, decimal(9), 'Tenths have 1 place after the decimal point.', '9 tenths is 0.9. 0.09 is 9 hundredths.', decimal(9)),
+    ],
+    ideaQuestions: [
+      // Idea 1: count the small squares to name hundredths.
+      practice('What fraction of the grid is shaded?', ['45/100', '55/100', '45/55', '100/45'], 0, grid100(45), 'The grid has 100 equal squares. Count the shaded ones.', '45 of the 100 squares are shaded: 45/100.', grid100(45), { authoredChoices: true }),
+      practice('A grid has 100 equal squares. 7 are shaded. What fraction is shaded?', ['7/100', '7/10', '93/100', '1/7'], 0, grid100(7), 'Each square is 1/100 of the grid. Count the shaded squares.', '7 of 100 equal squares are shaded: 7/100.', grid100(7), { authoredChoices: true }),
+      practice('Ana shades 60 of the 100 squares. What fraction did she shade?', ['60/100', '6/100', '60/10', '40/100'], 0, grid100(60), 'There are 100 equal squares in all. How many are shaded?', '60 of 100 squares: 60/100.', grid100(60), { authoredChoices: true }),
+      // Idea 2: write hundredths with 0, the point and two places.
+      practice('Write 47/100 as a decimal.', ['0.47', '4.7', '47', '47.100'], 0, grid100(47), 'Less than one whole: write 0 and the point. Hundredths use 2 places after the point.', '47 hundredths is 0.47: 2 places after the point.', grid100(47), { authoredChoices: true }),
+      practice('The grid shows hundredths. Write the shaded part as a decimal.', ['0.56', '5.6', '56', '0.44'], 0, grid100(56), 'Count the shaded squares. Then write 0, the point and 2 places.', '56 of 100 squares are shaded: 56/100 = 0.56.', grid100(56), { authoredChoices: true }),
     ],
   },
   {
@@ -894,6 +907,15 @@ const curriculum: MissionSeed[] = [
       practice('What is 5/10 + 3/100?', ['53/100', '8/110', '8/100'], 0, bars({ numerator: 5, denominator: 10 }, { numerator: 3, denominator: 100 }), 'Change 5/10 into hundredths first.', '5/10 = 50/100. 50 + 3 = 53. So 53/100.', bars({ numerator: 1, denominator: 10 })),
       practice('What is 2/10 + 15/100?', ['17/100', '35/100', '17/110'], 1, bars({ numerator: 2, denominator: 10 }, { numerator: 15, denominator: 100 }), 'Change 2/10 into hundredths first.', '2/10 = 20/100. 20 + 15 = 35. So 35/100.', bars({ numerator: 1, denominator: 10 })),
       practice('A ribbon is 4/10 m. Another is 25/100 m. How long are they together?', ['29/100 m', '65/100 m', '29/110 m'], 1, bars({ numerator: 4, denominator: 10 }, { numerator: 25, denominator: 100 }), 'Change 4/10 into hundredths.', '4/10 = 40/100. 40 + 25 = 65. So 65/100 m, or 0.65 m.', bars({ numerator: 1, denominator: 10 })),
+    ],
+    ideaQuestions: [
+      // Idea 1: one tenth is ten hundredths.
+      practice('Change 4/10 into hundredths.', ['40/100', '4/100', '94/100', '40/10'], 0, bars({ numerator: 4, denominator: 10 }), 'Each tenth is 10 hundredths.', '4 tenths is 4 × 10 = 40 hundredths: 40/100.', bars({ numerator: 1, denominator: 10 }), { authoredChoices: true }),
+      practice('A strip is 8/10 blue. How many hundredths of the strip is that?', ['80/100', '8/100', '98/100', '80/10'], 0, bars({ numerator: 8, denominator: 10 }), 'Each tenth is 10 hundredths. How many hundredths are 8 tenths?', '8 tenths is 8 × 10 = 80 hundredths: 80/100.', bars({ numerator: 1, denominator: 10 }), { authoredChoices: true }),
+      // Idea 2: add hundredths to hundredths.
+      practice('What is 40/100 + 7/100?', ['47/100', '47/200', '33/100', '100/47'], 0, bars({ numerator: 40, denominator: 100 }, { numerator: 7, denominator: 100 }), 'The parts match. Add the hundredths and keep 100 on the bottom.', '40 + 7 = 47, so 40/100 + 7/100 = 47/100.', bars({ numerator: 40, denominator: 100 }, { numerator: 7, denominator: 100 }), { authoredChoices: true }),
+      practice('What is 20/100 + 35/100?', ['55/100', '55/200', '35/100', '700/100'], 0, bars({ numerator: 20, denominator: 100 }, { numerator: 35, denominator: 100 }), 'The parts match. Add the hundredths and keep 100 on the bottom.', '20 + 35 = 55, so 20/100 + 35/100 = 55/100.', bars({ numerator: 20, denominator: 100 }, { numerator: 35, denominator: 100 }), { authoredChoices: true }),
+      practice('What is 60/100 + 12/100?', ['72/100', '72/200', '48/100', '100/72'], 0, bars({ numerator: 60, denominator: 100 }, { numerator: 12, denominator: 100 }), 'The parts match. Add the hundredths and keep 100 on the bottom.', '60 + 12 = 72, so 60/100 + 12/100 = 72/100.', bars({ numerator: 60, denominator: 100 }, { numerator: 12, denominator: 100 }), { authoredChoices: true }),
     ],
   },
 ];
@@ -917,6 +939,8 @@ type ExtensionTopic = {
   /** Questions written for the lesson (its approved first question and its mix of kinds). Without them, practice is
       made from worksheet rows 2, 5, 8 and 11. */
   questions?: PracticeSeed[];
+  /** Questions written for one idea of the lesson (lesson-ideas.ts lists each idea's three practices). */
+  ideaQuestions?: PracticeSeed[];
 };
 
 /** A hundredths grid with `h` squares shaded, column by column, so whole columns are tenths. */
@@ -942,10 +966,81 @@ const SHARE_OR_FIT = ['Sharing', 'Fitting', 'Adding', 'Taking away'];
 
 const extensionTopics: ExtensionTopic[] = [
   // Grade 4 (4.NF.4a, 4.NF.4b): ends unit 8, so grade-4 learners (and the level quiz) reach it before grade 5.
-  { id: 'unit-fraction-multiples', title: 'Make groups of a unit fraction', shortTitle: 'Unit fraction multiples', description: 'Build several copies of one unit fraction.', skill: 'A multiple is several equal copies added together. Count how many unit-fraction parts you have.', mode: 'unit-multiples', n: 5, d: 4, context: 'paper strips', gradeBand: 4, standards: ['4.NF.4a'] },
-  { id: 'multiply-whole-by-fraction', title: 'Groups of a fraction', shortTitle: 'Whole × fraction', description: '3 groups of 1/2.', skill: 'To find several groups of a fraction, count that fraction once for each group. The part size stays the same.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles' },
-  { id: 'simplify-fractions', title: 'Simplest form', shortTitle: 'Simplest form', description: 'Use bigger parts. Same amount.', skill: 'Divide the numerator and denominator by the same factor. The parts get bigger, but the total amount stays the same.', mode: 'simplify', n: 3, d: 4, context: 'paper strip' },
-  { id: 'equivalent-missing-both', title: 'Rename with a new denominator', shortTitle: 'Equivalent fractions', description: 'Fill a blank in the numerator or denominator.', skill: 'Equivalent fractions name the same amount. Multiply or divide the numerator and denominator by the same factor.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
+  { id: 'unit-fraction-multiples', title: 'Make groups of a unit fraction', shortTitle: 'Unit fraction multiples', description: 'Build several copies of one unit fraction.', skill: 'A multiple is several equal copies added together. Count how many unit-fraction parts you have.', mode: 'unit-multiples', n: 5, d: 4, context: 'paper strips', gradeBand: 4, standards: ['4.NF.4a'],
+    ideaQuestions: [
+      // Idea 1: × counts copies of one part.
+      practice('This bar shows copies of 1/8. How do you write it with ×?', ['5 × 1/8', '8 × 1/5', '3 × 1/8', '5 × 1/5'], 0,
+        { kind: 'bars', bars: [{ numerator: 5, denominator: 8 }], hideLabels: true }, 'Count the shaded parts. Each one is a copy of 1/8.',
+        '5 shaded parts, each 1/8: 5 × 1/8.', { kind: 'bars', bars: [{ numerator: 5, denominator: 8 }] }, { authoredChoices: true }),
+      practice('Which means 1/6 + 1/6 + 1/6 + 1/6?', ['4 × 1/6', '6 × 1/4', '4 × 1/24', '4 × 6'], 0,
+        { kind: 'bars', bars: [{ numerator: 4, denominator: 6 }], hideLabels: true }, 'Count the copies of 1/6.',
+        '4 copies of 1/6: 4 × 1/6.', { kind: 'bars', bars: [{ numerator: 4, denominator: 6 }] }, { authoredChoices: true }),
+      practice('Mo takes 3 pieces. Each is 1/4 of a cake. Which shows this?', ['3 × 1/4', '4 × 1/3', '3 × 4', '1/4 + 3'], 0,
+        { kind: 'area', cut: 'fourths-squares', shaded: [0, 1, 2] }, 'Each piece is a copy of 1/4. How many copies?',
+        '3 copies of 1/4: 3 × 1/4.', { kind: 'area', cut: 'fourths-squares', shaded: [0, 1, 2] }, { authoredChoices: true }),
+      // Idea 2: the count goes on top; the denominator stays.
+      practice('Write 2 × 1/8 as one fraction.', ['2/8', '2/16', '3/8', '1/16'], 0,
+        { kind: 'bars', bars: [{ numerator: 0, denominator: 8 }], hideLabels: true }, 'Count 2 copies of 1/8. The denominator stays 8.',
+        '2 copies of 1/8 is 2/8: 2 on top, 8 stays on the bottom.', { kind: 'bars', bars: [{ numerator: 0, denominator: 8 }] }, { authoredChoices: true }),
+      // Idea 3: copies can go past one whole.
+      practice('Write 3 × 1/2 as one fraction.', ['3/2', '3/6', '4/2', '1/6'], 0,
+        { kind: 'bars', bars: [{ numerator: 0, denominator: 2 }, { numerator: 0, denominator: 2 }], hideLabels: true }, 'Count 3 copies of 1/2. Two halves fill one whole.',
+        '3 copies of 1/2 is 3/2. That is past one whole: 1 whole and 1/2 more.', { kind: 'bars', bars: [{ numerator: 0, denominator: 2 }, { numerator: 0, denominator: 2 }] }, { authoredChoices: true }),
+    ] },
+  { id: 'multiply-whole-by-fraction', title: 'Groups of a fraction', shortTitle: 'Whole × fraction', description: '3 groups of 1/2.', skill: 'To find several groups of a fraction, count that fraction once for each group. The part size stays the same.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles',
+    ideaQuestions: [
+      // Idea 1: count the parts in every group (no rule yet).
+      practice('What is 3 groups of 2/3?', ['6/3', '6/9', '5/3', '2/9'], 0,
+        bars(...Array.from({ length: 3 }, () => ({ numerator: 2, denominator: 3 }))), 'Count the thirds in all 3 groups. They stay thirds.',
+        '2 + 2 + 2 = 6 thirds: 6/3.', bars(...Array.from({ length: 3 }, () => ({ numerator: 2, denominator: 3 }))), { authoredChoices: true }),
+      practice('What is 2 groups of 3/8?', ['6/8', '6/16', '5/8', '3/16'], 0,
+        bars(...Array.from({ length: 2 }, () => ({ numerator: 3, denominator: 8 }))), 'Count the eighths in both groups. They stay eighths.',
+        '3 + 3 = 6 eighths: 6/8.', bars(...Array.from({ length: 2 }, () => ({ numerator: 3, denominator: 8 }))), { authoredChoices: true }),
+      practice('What is 4 groups of 2/5?', ['8/5', '8/20', '6/5', '2/20'], 0,
+        bars(...Array.from({ length: 4 }, () => ({ numerator: 2, denominator: 5 }))), 'Count the fifths in all 4 groups. They stay fifths.',
+        '2 + 2 + 2 + 2 = 8 fifths: 8/5.', bars(...Array.from({ length: 4 }, () => ({ numerator: 2, denominator: 5 }))), { authoredChoices: true }),
+      // Idea 3: the same as copies of the unit fraction, or jumps on a line.
+      practice('Which is the same as 3 × 2/5?', ['6 × 1/5', '5 × 1/6', '3 × 1/5', '6 × 1/15'], 0,
+        bars(...Array.from({ length: 3 }, () => ({ numerator: 2, denominator: 5 }))), '3 groups of 2 fifths is how many fifths?',
+        '3 × 2/5 = 6/5, and 6/5 = 6 × 1/5: six fifths.', bars(...Array.from({ length: 3 }, () => ({ numerator: 2, denominator: 5 }))), { authoredChoices: true }),
+      practice('A frog jumps 3/8 each time. Where is it after 2 jumps?', ['6/8', '6/16', '5/8', '3/16'], 0,
+        { kind: 'line', numerator: 0, denominator: 8, wholes: 1 }, 'Each jump is 3 eighths. Count the eighths for 2 jumps.',
+        '2 jumps of 3/8 land on 6/8: 2 × 3/8 = 6/8.', { kind: 'line', numerator: 3, denominator: 8, wholes: 1 }, { authoredChoices: true }),
+    ] },
+  { id: 'simplify-fractions', title: 'Simplest form', shortTitle: 'Simplest form', description: 'Use bigger parts. Same amount.', skill: 'Divide the numerator and denominator by the same factor. The parts get bigger, but the total amount stays the same.', mode: 'simplify', n: 3, d: 4, context: 'paper strip',
+    ideaQuestions: [
+      // Idea 1: find a number that divides both (count by it and land on both numbers).
+      practice('Which number divides both 6 and 9?', ['3', '2', '6', '9'], 0, bars({ numerator: 6, denominator: 9 }),
+        'Count by each number. Which count lands on 6 and on 9?', 'Count by 3s: 3, 6, 9. You land on 6 and on 9, so 3 divides both.', bars({ numerator: 6, denominator: 9 }), { authoredChoices: true }),
+      practice('Which number divides both 4 and 10?', ['2', '4', '5', '10'], 0, bars({ numerator: 4, denominator: 10 }),
+        'Count by each number. Which count lands on 4 and on 10?', 'Count by 2s: 2, 4, 6, 8, 10. You land on 4 and on 10, so 2 divides both.', bars({ numerator: 4, denominator: 10 }), { authoredChoices: true }),
+      practice('Does 2 divide both 3 and 8?', ['No, 2 does not divide 3', 'No, 2 does not divide 8', 'Yes, 2 divides both', 'Yes, 2 divides 8'], 0, bars({ numerator: 3, denominator: 8 }),
+        'Count by 2s: 2, 4, 6, 8. Do you land on 3? Do you land on 8?', 'Counting by 2s lands on 8 but skips 3. So 2 does not divide both.', bars({ numerator: 3, denominator: 8 }), { authoredChoices: true }),
+      // Idea 2: divide both by it: fewer, bigger parts, the same amount.
+      practice('Divide the numerator and denominator of 4/10 by 2. What do you get?', ['2/5', '2/10', '4/5', '2/8'], 0, bars({ numerator: 4, denominator: 10 }),
+        'Divide the top by 2. Divide the bottom by 2.', '4 ÷ 2 = 2 and 10 ÷ 2 = 5: 4/10 = 2/5.', bars({ numerator: 4, denominator: 10 }), { authoredChoices: true }),
+      practice('Divide the numerator and denominator of 9/12 by 3. What do you get?', ['3/4', '3/12', '9/4', '6/9'], 0, bars({ numerator: 9, denominator: 12 }),
+        'Divide the top by 3. Divide the bottom by 3.', '9 ÷ 3 = 3 and 12 ÷ 3 = 4: 9/12 = 3/4.', bars({ numerator: 9, denominator: 12 }), { authoredChoices: true }),
+      practice('Divide the numerator and denominator of 10/12 by 2. What do you get?', ['5/6', '5/12', '10/6', '8/10'], 0, bars({ numerator: 10, denominator: 12 }),
+        'Divide the top by 2. Divide the bottom by 2.', '10 ÷ 2 = 5 and 12 ÷ 2 = 6: 10/12 = 5/6.', bars({ numerator: 10, denominator: 12 }), { authoredChoices: true }),
+    ] },
+  { id: 'equivalent-missing-both', title: 'Rename with a new denominator', shortTitle: 'Equivalent fractions', description: 'Fill a blank in the numerator or denominator.', skill: 'Equivalent fractions name the same amount. Multiply or divide the numerator and denominator by the same factor.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card',
+    ideaQuestions: [
+      // Idea 1: find what the denominator was multiplied by.
+      practice('3/4 = ?/12. What was 4 multiplied by to make 12?', ['3', '8', '4', '12'], 0, bars({ numerator: 3, denominator: 4 }),
+        'Count by 4s up to 12. How many 4s?', '4, 8, 12: three 4s. 4 × 3 = 12, so 4 was multiplied by 3.', bars({ numerator: 3, denominator: 4 }), { authoredChoices: true }),
+      practice('1/3 = ?/6. What was 3 multiplied by to make 6?', ['2', '3', '6', '18'], 0, bars({ numerator: 1, denominator: 3 }),
+        'Count by 3s up to 6. How many 3s?', '3, 6: two 3s. 3 × 2 = 6, so 3 was multiplied by 2.', bars({ numerator: 1, denominator: 3 }), { authoredChoices: true }),
+      practice('5/6 = ?/12. What was 6 multiplied by to make 12?', ['2', '6', '12', '72'], 0, bars({ numerator: 5, denominator: 6 }),
+        'Count by 6s up to 12. How many 6s?', '6, 12: two 6s. 6 × 2 = 12, so 6 was multiplied by 2.', bars({ numerator: 5, denominator: 6 }), { authoredChoices: true }),
+      // Idea 3: dividing works the same way.
+      practice('Fill the missing numerator: 6/10 = ?/5.', ['3', '6', '1', '12'], 0, bars({ numerator: 6, denominator: 10 }),
+        'What was 10 divided by to make 5? Divide the numerator by the same number.', '10 ÷ 2 = 5 and 6 ÷ 2 = 3: 6/10 = 3/5.', bars({ numerator: 6, denominator: 10 }), { authoredChoices: true }),
+      practice('Fill the missing numerator: 9/12 = ?/4.', ['3', '9', '1', '27'], 0, bars({ numerator: 9, denominator: 12 }),
+        'What was 12 divided by to make 4? Divide the numerator by the same number.', '12 ÷ 3 = 4 and 9 ÷ 3 = 3: 9/12 = 3/4.', bars({ numerator: 9, denominator: 12 }), { authoredChoices: true }),
+      practice('Write 8/12 with a denominator of 3.', ['2/3', '8/3', '2/12', '3/2'], 0, bars({ numerator: 8, denominator: 12 }),
+        'What was 12 divided by to make 3? Divide the numerator by the same number.', '12 ÷ 4 = 3 and 8 ÷ 4 = 2: 8/12 = 2/3.', bars({ numerator: 8, denominator: 12 }), { authoredChoices: true }),
+    ] },
   { id: 'whole-numbers-as-fractions', title: 'Wholes as fractions', shortTitle: 'Whole numbers as fractions', description: 'Build one or more wholes from unit fractions.', skill: 'The denominator tells how many parts fill one whole. Count that many parts for each whole.', mode: 'whole-fraction', n: 6, d: 3, context: 'fraction bars', gradeBand: 3, standards: ['3.NF.3c'] },
   { id: 'compare-unlike-fractions', title: 'Compare different parts', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the denominators differ?', skill: 'Make the parts the same size by using a common denominator. Then compare how many parts each fraction has.', mode: 'compare', n: 2, d: 3, context: 'race track',
     example: { prompt: 'Which is bigger, 3/4 or 5/6?', answer: '5/6', explanation: 'Use twelfths for both: 3/4 = 9/12 and 5/6 = 10/12. 10 twelfths is more than 9 twelfths, so 5/6 is bigger.', model: bars({ numerator: 3, denominator: 4, named: true }, { numerator: 5, denominator: 6, named: true }) } },
@@ -1091,8 +1186,39 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'fraction-recipes', title: 'Recipe fractions', shortTitle: 'Recipe fractions', description: 'Double a recipe.', skill: 'To double a recipe, use twice as much of every ingredient. Add each amount to itself.', mode: 'recipe', n: 3, d: 4, context: 'pancake recipe' },
   { id: 'fractions-to-percent', title: 'Bonus: Fractions to percent', shortTitle: 'Bonus percent', description: 'Write 3/4 as 75%.', skill: 'Percent means out of 100. Rename the fraction in hundredths to find the percent.', mode: 'percent', n: 3, d: 4, context: 'school survey', enrichment: true },
   { id: 'percent-to-fraction', title: 'Bonus: Percent to fractions', shortTitle: 'Bonus percent as fraction', description: 'Write 60% as 60/100.', skill: 'Percent means out of 100. Write the percent as that many parts out of 100.', mode: 'percent-inverse', n: 3, d: 5, context: 'game score', enrichment: true },
-  { id: 'decimal-fraction-equivalence', title: 'Fractions to decimals', shortTitle: 'Three forms', description: 'Write 1/4 as 0.25.', skill: 'Rename a fraction in tenths or hundredths. Write tenths with one decimal place and hundredths with two.', mode: 'decimal-equivalent', n: 7, d: 10, context: 'battery meter' },
-  { id: 'compare-decimals', title: 'Compare decimals', shortTitle: 'Compare decimal sizes', description: 'Compare decimals using tenths and hundredths.', skill: 'Write both decimals with the same number of places. Then compare the digits by place value.', example: { prompt: 'Which is bigger, 0.4 or 0.35?', answer: '0.4', explanation: 'Write 0.4 as 0.40, so both have 2 places after the decimal point. 40 hundredths is more than 35 hundredths. So 0.4 is bigger, even though 35 looks bigger than 4.', model: bars({ numerator: 40, denominator: 100 }, { numerator: 35, denominator: 100 }) }, mode: 'decimal-compare', n: 3, d: 10, context: 'hundredths grid', gradeBand: 4, standards: ['4.NF.7'] },
+  { id: 'decimal-fraction-equivalence', title: 'Fractions to decimals', shortTitle: 'Three forms', description: 'Write 1/4 as 0.25.', skill: 'Rename a fraction in tenths or hundredths. Write tenths with one decimal place and hundredths with two.', mode: 'decimal-equivalent', n: 7, d: 10, context: 'battery meter',
+    ideaQuestions: [
+      // Idea 1: tenths and hundredths are ready to write as decimals.
+      practice('Write 72/100 as a decimal.', ['0.72', '7.2', '72', '72.100'], 0, bars({ numerator: 72, denominator: 100 }),
+        'Hundredths use 2 places after the decimal point.', '72 hundredths is 0.72.', bars({ numerator: 72, denominator: 100 }), { authoredChoices: true }),
+      practice('Write the shaded part of the grid as a decimal.', ['0.36', '3.6', '36', '0.64'], 0, grids(hundredthsGrid(36)),
+        'Count the shaded squares out of 100. Hundredths use 2 places after the point.', '36 of 100 squares: 36/100 = 0.36.', grids(hundredthsGrid(36)), { authoredChoices: true }),
+      // Idea 2: rename fifths and halves in tenths first.
+      practice('Write 1/2 as a decimal.', ['0.5', '1.2', '0.12', '0.2'], 0, bars({ numerator: 1, denominator: 2 }),
+        'What times 2 makes 10? Multiply top and bottom by that number.', '2 × 5 = 10, so 1/2 = 5/10 = 0.5.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      // Idea 3: rename fourths in hundredths first.
+      practice('Write 3/4 with a denominator of 100.', ['75/100', '3/100', '99/100', '100/75'], 0, bars({ numerator: 3, denominator: 4 }),
+        'What times 4 makes 100? Multiply the top by the same number.', '4 × 25 = 100 and 3 × 25 = 75: 3/4 = 75/100.', bars({ numerator: 3, denominator: 4 }), { authoredChoices: true }),
+      practice('Write 3/4 as a decimal.', ['0.75', '3.4', '0.34', '0.4'], 0, bars({ numerator: 3, denominator: 4 }),
+        'Rename 3/4 in hundredths first: 4 × 25 = 100.', '3/4 = 75/100, and 75 hundredths is 0.75.', bars({ numerator: 3, denominator: 4 }), { authoredChoices: true }),
+    ] },
+  { id: 'compare-decimals', title: 'Compare decimals', shortTitle: 'Compare decimal sizes', description: 'Compare decimals using tenths and hundredths.', skill: 'Write both decimals with the same number of places. Then compare the digits by place value.', example: { prompt: 'Which is bigger, 0.4 or 0.35?', answer: '0.4', explanation: 'Write 0.4 as 0.40, so both have 2 places after the decimal point. 40 hundredths is more than 35 hundredths. So 0.4 is bigger, even though 35 looks bigger than 4.', model: bars({ numerator: 40, denominator: 100 }, { numerator: 35, denominator: 100 }) }, mode: 'decimal-compare', n: 3, d: 10, context: 'hundredths grid', gradeBand: 4, standards: ['4.NF.7'],
+    ideaQuestions: [
+      // Idea 1: give both decimals the same number of places (0.4 = 0.40).
+      practice('Which decimal is the same amount as 0.4?', ['0.40', '0.04', '4.0', '40'], 0, decimal(4),
+        'Put a 0 at the end: 4 tenths is 40 hundredths.', '0.4 is 4 tenths, the same amount as 40 hundredths: 0.40.', grids(hundredthsGrid(40)), { authoredChoices: true }),
+      practice('How many hundredths is 0.7?', ['70', '7', '700', '30'], 0, decimal(7),
+        'Each tenth is 10 hundredths.', '0.7 is 7 tenths. 7 tenths is 70 hundredths, so 0.7 = 0.70.', grids(hundredthsGrid(70)), { authoredChoices: true }),
+      practice('Write 0.3 with two places after the point.', ['0.30', '0.03', '3.00', '30'], 0, decimal(3),
+        'Put a 0 in the hundredths place. The amount stays the same.', '0.3 is 3 tenths, the same amount as 30 hundredths: 0.30.', grids(hundredthsGrid(30)), { authoredChoices: true }),
+      // Idea 3: if the tenths match, compare the hundredths.
+      practice('Compare: 0.56 __ 0.52.', ['<', '>', '='], 1, bars({ numerator: 56, denominator: 100 }, { numerator: 52, denominator: 100 }),
+        'Both have 5 tenths. Compare the hundredths.', 'The tenths match. 6 hundredths is more than 2 hundredths, so 0.56 > 0.52.',
+        bars({ numerator: 56, denominator: 100 }, { numerator: 52, denominator: 100 }), { authoredChoices: true }),
+      practice('Compare: 0.7 __ 0.75.', ['<', '>', '='], 0, bars({ numerator: 7, denominator: 10 }, { numerator: 75, denominator: 100 }),
+        'Write 0.7 as 0.70. Both have 7 tenths, so compare the hundredths.', 'The tenths match. 0 hundredths is less than 5 hundredths, so 0.7 < 0.75.',
+        bars({ numerator: 70, denominator: 100 }, { numerator: 75, denominator: 100 }), { authoredChoices: true }),
+    ] },
   { id: 'compare-decimals-grid', title: 'Compare decimals on a grid', shortTitle: 'Decimals on a grid', description: 'Use hundredths grids to compare and order decimals.',
     skill: 'Write both decimals in hundredths. Then compare how many hundredths. Only compare amounts of the same whole.',
     example: { prompt: 'Which is more: 0.7 or 0.07?', answer: '0.7', explanation: '0.7 = 70 hundredths. 0.07 = 7 hundredths. 0.7 is more. 70 hundredths is more than 7 hundredths.',
@@ -1116,6 +1242,24 @@ const extensionTopics: ExtensionTopic[] = [
         grids(hundredthsGrid(80), hundredthsGrid(75), hundredthsGrid(9)),
         'Write each one in hundredths. Which grid has the most squares shaded?',
         '0.8 = 80 hundredths, 0.75 = 75 hundredths and 0.09 = 9 hundredths. 80 > 75 > 9, so 0.8 > 0.75 > 0.09.', grids(hundredthsGrid(80), hundredthsGrid(75), hundredthsGrid(9))),
+    ],
+    ideaQuestions: [
+      // Idea 1: write each decimal in hundredths and shade it.
+      practice('How many hundredths is 0.9?', ['90', '9', '900', '10'], 0, grids(hundredthsGrid(0)),
+        'Each column is one tenth: 10 hundredths.', '0.9 is 9 tenths. 9 columns of 10 squares is 90 hundredths.', grids(hundredthsGrid(90)), { authoredChoices: true }),
+      practice('How many hundredths is 0.08?', ['8', '80', '92', '0'], 0, grids(hundredthsGrid(0)),
+        'The 0 right after the point means 0 tenths. The 8 counts hundredths.', '0.08 is 0 tenths and 8 hundredths: 8 single squares.', grids(hundredthsGrid(8)), { authoredChoices: true }),
+      practice('Which decimal does this grid show?', ['0.45', '4.5', '0.55', '45'], 0, grids(hundredthsGrid(45)),
+        'Count the full columns for tenths. Then count the single squares for hundredths.', '4 full columns and 5 single squares: 45 hundredths, or 0.45.', grids(hundredthsGrid(45)), { authoredChoices: true }),
+      // Idea 3: only compare parts of the same whole.
+      practice('Sam eats 0.45 of a pizza. Ana eats 0.05 of the same size pizza. Who eats more?', ['Sam', 'Ana', 'They eat the same', "You can't tell"], 0,
+        grids(hundredthsGrid(45), hundredthsGrid(5)), 'The pizzas are the same size. Compare 45 hundredths and 5 hundredths.',
+        'Same-size pizzas, so compare the hundredths: 45 is more than 5. Sam eats more.', grids(hundredthsGrid(45), hundredthsGrid(5)), { authoredChoices: true }),
+      practice('Tom eats 0.6 of a small pie. Zoe eats 0.3 of a big pie. Who eats more?', ['Tom', 'Zoe', 'They eat the same', "You can't tell"], 3,
+        { kind: 'area', cut: 'circle-tenths', shaded: [], scale: 0.6, more: [{ cut: 'circle-tenths', shaded: [] }] },
+        'Look at the two wholes. Are the pies the same size?',
+        'The pies are different sizes, so 0.6 and 0.3 are parts of different wholes. You can only compare parts of the same whole.',
+        { kind: 'area', cut: 'circle-tenths', shaded: [0, 1, 2, 3, 4, 5], scale: 0.6, more: [{ cut: 'circle-tenths', shaded: [0, 1, 2] }] }, { authoredChoices: true }),
     ] },
   { id: 'multi-step-fraction-stories', title: 'Two-step stories', shortTitle: 'Fraction stories', description: 'Solve a story in 2 steps.', skill: 'Find what the story asks first. Solve that step, then use the answer in the next step.', mode: 'story', n: 2, d: 5, context: 'community garden' },
   // Unit 15 · Problem solving: the reasoning that Singapore, Beast Academy and Eureka lean on and quizzes skip.
@@ -1144,6 +1288,21 @@ const extensionTopics: ExtensionTopic[] = [
       practice('3/10 + 8/100 of a dollar. How much is that in hundredths?', ['38/100', '11/100', '11/110', '8/100'], 0, coins(3, 8),
         'Change 3/10 to hundredths first. Then add 8/100.',
         '3/10 = 30/100. 30/100 + 8/100 = 38/100.', grids(hundredthsGrid(38))),
+    ],
+    ideaQuestions: [
+      // Idea 1: a dollar is 100 pennies, so a penny is 1 hundredth (no dimes yet).
+      practice('Pip has 7 pennies. What part of a dollar is that?', ['7/100', '7/10', '1/7', '93/100'], 0, coins(0, 7),
+        'A dollar is 100 pennies. Each penny is 1/100 of a dollar.', '7 pennies are 7 hundredths of a dollar: 7/100.', grids(hundredthsGrid(7)), { authoredChoices: true }),
+      practice('How many pennies make one dollar?', ['100', '10', '1', '50'], 0, coins(0, 1),
+        'Each penny is 1/100 of a dollar.', '100 pennies make one dollar, so each penny is 1/100 of a dollar.', grids(hundredthsGrid(1)), { authoredChoices: true }),
+      practice('Chomp has 9 pennies. What part of a dollar is that?', ['9/100', '9/10', '1/9', '91/100'], 0, coins(0, 9),
+        'Each penny is 1/100 of a dollar. Count the pennies.', '9 pennies are 9 hundredths of a dollar: 9/100.', grids(hundredthsGrid(9)), { authoredChoices: true }),
+      // Idea 2: a dime is 10 pennies, so 10 hundredths.
+      practice('Pip has 3 dimes. What part of a dollar is that, in hundredths?', ['30/100', '3/100', '13/100', '300/100'], 0, coins(3, 0),
+        'Each dime is 10 hundredths of a dollar.', '3 dimes are 3 × 10 = 30 hundredths: 30/100.', grids(hundredthsGrid(30)), { authoredChoices: true }),
+      // Idea 3: add the dimes and the pennies.
+      practice('4 dimes and 6 pennies. What part of a dollar is that?', ['46/100', '10/100', '406/100', '64/100'], 0, coins(4, 6),
+        'Change the dimes to hundredths first. Then add the pennies.', '4 dimes are 40/100. 6 pennies are 6/100. Together: 46/100.', grids(hundredthsGrid(46)), { authoredChoices: true }),
     ] },
   { id: 'plot-in-eighths', title: 'Plot in eighths', shortTitle: 'Plot in eighths', description: 'Make a line plot in eighths, then use it.',
     skill: 'Put one X above each measurement. Lengths that match stack on the same spot. Then read the plot to answer.',
@@ -1306,6 +1465,7 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
     },
     // Practice uses different worksheet rows than the first ones, so the sheet still has fresh numbers.
     questions: topic.questions ?? [1, 4, 7, 10].map((row, i) => problemQuestion(sheet[row], i + row)),
+    ...(topic.ideaQuestions ? { ideaQuestions: topic.ideaQuestions } : {}),
   };
 }
 

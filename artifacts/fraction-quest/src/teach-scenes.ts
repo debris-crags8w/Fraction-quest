@@ -851,7 +851,7 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
       play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(23) }, { kind: 'text', text: 'Less than one whole: 0 and the point, 0.', hidden: true }],
         [600, { 1: { hidden: false } }]),
       // Two places after the point.
-      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(23), label: '0.23' }, { kind: 'text', text: '2 tenths and 3 hundredths: 23/100 = 0.23.', hidden: true }],
+      play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(23), label: '0.23' }, { kind: 'text', text: '23 hundredths: two places after the point. 23/100 = 0.23.', hidden: true }],
         [600, { 1: { hidden: false } }]),
     ],
     why: play([{ kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(20), shaded2: gridFill(3, 20) }, { kind: 'text', text: 'Columns are tenths; single squares are hundredths.', hidden: true }],

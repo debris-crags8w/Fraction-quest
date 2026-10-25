@@ -141,10 +141,31 @@ test('the dimes and pennies lesson teaches on a hundredths grid, then asks about
   await openDeveloperLesson(page, mission);
   await skipIntros(page);
 
-  await expect(page.getByTestId('lesson-example').locator('.fq-area-figure')).toHaveCount(1);
-  const coins = page.getByTestId('question-model-area').getByTestId('coins-picture');
-  await expect(coins).toHaveAttribute('aria-label', '6 dimes');
-  await expect(coins.locator('.fq-coin.is-dime')).toHaveCount(6);
+  // Idea 1 teaches pennies on a hundredths grid (100 pennies make a dollar), then asks about pennies as coins.
+  const lesson = String(MISSIONS.indexOf(mission) + 1).padStart(2, '0');
+  await expect(page.getByTestId('idea-kicker')).toHaveText(`Lesson ${lesson} · Idea 1 of 3 · Learn`);
+  await expect(page.getByTestId('teach-scene').locator('.fq-ts-area')).toHaveCount(1);
+  await expect(page.getByTestId('idea-learn')).toContainText('100 pennies');
+  for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
+  const pennies = page.getByTestId('question-model-area').getByTestId('coins-picture');
+  await expect(pennies).toHaveAttribute('aria-label', '7 pennies');
+  await expect(pennies.locator('.fq-coin.is-penny')).toHaveCount(7);
+  await expect(pennies.locator('.fq-coin.is-dime')).toHaveCount(0);
+  // Dimes come in idea 2, after their own Learn page: its first practice shows 6 dimes.
+  for (const { item } of ideaSteps(mission.id).slice(0, 3)) {
+    const question = ideaQuestion(mission, (item as { question: string }).question)!;
+    await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
+    await page.getByTestId('button-check-answer').click();
+    await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+    await page.getByTestId('button-next-question').click();
+  }
+  await expect(page.getByTestId('idea-kicker')).toHaveText(`Lesson ${lesson} · Idea 2 of 3 · Learn`);
+  await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
+  const dimes = page.getByTestId('question-model-area').getByTestId('coins-picture');
+  await expect(dimes).toHaveAttribute('aria-label', '6 dimes');
+  await expect(dimes.locator('.fq-coin.is-dime')).toHaveCount(6);
 });
 
 test('the ordering lesson explains its strategy before showing a distinct worked model', async ({ page }) => {

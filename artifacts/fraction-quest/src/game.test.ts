@@ -540,7 +540,7 @@ describe('lesson catalog', () => {
       ['missing-equivalent-q2', '8'],
       ['add-related-fractions-q1', '4/6'],
       ['hundredths-decimals-q1', '0.08'],
-      ['hundredths-decimals-q3', '0.4'],
+      ['hundredths-decimals-q3', '6/100'],
       // Lessons whose questions are written one by one (not made from worksheet rows).
       ['compare-decimals-grid-q1', '0.45 < 0.5 < 0.6'],
       ['compare-decimals-grid-q2', "You can't tell"],
