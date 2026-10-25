@@ -1,6 +1,6 @@
 /* The ideas of lessons 41–50 (see lesson-ideas.ts): each lesson's ideas in order, each with its Learn pages and 3
    practices. Lesson 1 (ideas/lessons-01.ts) is the model. */
-import { example, scenes, type LessonIdea } from './helpers';
+import { example, scenes, wordsToKnow, type LessonIdea } from './helpers';
 
 export const IDEAS: Record<string, LessonIdea[]> = {
   'compare-unlike-fractions': [
@@ -203,6 +203,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       terms: [{ term: 'multiples and common denominators', pattern: /\bmultiples?\b|\bcommon denominators?\b/i }],
       learn: [
         { text: 'Find a common denominator both fractions can share.', scene: scenes('add-unlike-fractions').steps[0]! },
+        wordsToKnow('add-unlike-fractions', ['multiples']),
         example('add-unlike-fractions', 'List multiples to find a common denominator'),
       ],
       practice: [{ question: 'add-unlike-fractions-p2' }, { question: 'add-unlike-fractions-q4' }, { question: 'add-unlike-fractions-q3' }],

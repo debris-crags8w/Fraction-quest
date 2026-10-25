@@ -1170,7 +1170,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('How many minutes are in 1/3 hour?', ['20 minutes', '60 minutes', '180 minutes', '15 minutes'], 0,
         { kind: 'bars', bars: [{ numerator: 0, denominator: 3 }], hideLabels: true }, 'An hour is 60 minutes. Split 60 into 3 equal groups.', '60 ÷ 3 = 20, so 1/3 hour is 20 minutes.',
         { kind: 'bars', bars: [{ numerator: 0, denominator: 3 }] }, { authoredChoices: true }),
-      practice('How many milliliters are in 1/2 liter?', ['500 milliliters', '1000 milliliters', '2000 milliliters', '50 milliliters'], 0,
+      practice('How many milliliters are in 1/2 liter?', ['500 milliliters', '1000 milliliters', '2000 milliliters', '1500 milliliters'], 0,
         { kind: 'bars', bars: [{ numerator: 0, denominator: 2 }], hideLabels: true }, 'A liter is 1000 milliliters. Split 1000 into 2 equal groups.', '1000 ÷ 2 = 500, so 1/2 liter is 500 milliliters.',
         { kind: 'bars', bars: [{ numerator: 0, denominator: 2 }] }, { authoredChoices: true }),
       practice('A race takes 1/2 hour. The cool-down takes 5 more minutes. How many minutes in all?', ['35 minutes', '6 minutes', '30 minutes', '25 minutes'], 0,

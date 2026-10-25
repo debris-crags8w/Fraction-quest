@@ -115,11 +115,11 @@ test('a question that says to plot lets the child tap the Xs on, then shows the 
   if (!mission) throw new Error('Plot in eighths lesson is missing');
   const question = mission.questions[0];
   expect(question.prompt).toContain('Plot them');
-  await page.setViewportSize({ width: 390, height: 664 });
   await openAsGuest(page);
   await openDeveloperLesson(page, mission);
   // The lesson teaches stacking (idea 2) before this question, its third practice.
   await completeIdeas(page, mission, { until: ideaSteps(mission.id).findIndex(({ item }) => 'question' in item && item.question === question.id) });
+  await page.setViewportSize({ width: 390, height: 664 });
   await skipIntros(page);
 
   const plot = page.getByTestId('question-model-area').getByTestId('line-plot-model');
@@ -645,14 +645,15 @@ test('learners sort fractions in both directions, correct a try, and do not save
   await expect.poll(() => localStorageSnapshot(page)).toBe(savedStorage);
 
   // Idea 1's first practice: biggest first, all eighths. A wrong order gets the strategy, then the child fixes it.
+  for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
   await page.getByTestId('button-idea-practise').click();
   const biggestFirst = FRACTION_ORDER_ROUNDS.find((round) => round.id === 'biggest-first')!;
   await expect(page.getByTestId('fraction-order-activity')).toBeVisible();
-  await expect(page.getByTestId('fraction-order-example')).toHaveCount(0);
+  // No worked example above the cards: the idea's Learn pages taught it just before.
+  await expect(page.getByTestId('lesson-example')).toHaveCount(0);
   await page.getByTestId('button-sort-check').click();
   await expect(page.getByTestId('fraction-sort-feedback')).toContainText(biggestFirst.strategyHint);
   await page.getByTestId('button-sort-5-8-up').click();
-  await page.getByTestId('button-sort-3-8-up').click();
   await page.getByTestId('button-sort-3-8-up').click();
   const sortedCards = await page.locator('[data-testid^="sort-card-"]').evaluateAll((items) =>
     items.map((item) => {
