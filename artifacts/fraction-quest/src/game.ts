@@ -501,6 +501,13 @@ const curriculum: MissionSeed[] = [
       practice('In 5/8, how many parts are counted?', ['8', '5', '13'], 1, bars({ numerator: 5, denominator: 8 }), 'Look at the numerator.', 'The numerator is 5. So 5 parts are counted.', bars({ numerator: 2, denominator: 4 })),
       practice('A shape has 8 equal parts. 1 is colored. What fraction is colored?', ['1/8', '8/1', '1/7'], 0, bars({ numerator: 1, denominator: 8 }), 'Count all the equal parts first.', 'The denominator is all 8 equal parts. The numerator is the 1 colored part.', bars({ numerator: 1, denominator: 4 })),
     ],
+    ideaQuestions: [
+      practice('In 1/8, what does the 8 mean?', ['8 equal parts in all', '8 parts are shaded', '8 wholes', '8 parts not shaded'], 0, bars({ numerator: 1, denominator: 8 }), 'The denominator is the bottom number. Count all the equal parts.', 'The bottom number, 8, is the denominator: 8 equal parts make one whole.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
+      practice('What is the denominator of 1/5?', ['5', '1', '4', '6'], 0, bars({ numerator: 1, denominator: 5 }), 'The denominator is the bottom number. It counts all the equal parts.', '1/5 has 5 on the bottom: 5 equal parts make one whole. The denominator is 5.', bars({ numerator: 1, denominator: 3 }), { authoredChoices: true }),
+      practice('This pizza is cut into equal slices. One is shaded. What is the denominator?', ['8', '1', '7', '9'], 0, { kind: 'area', cut: 'circle-eighths', shaded: [0] }, 'Count all the equal slices. That number is the denominator.', '8 equal slices make the whole pizza, so the denominator is 8.', { kind: 'area', cut: 'circle-fourths', shaded: [0] }, { authoredChoices: true }),
+      practice('In 4/5, what does the 4 mean?', ['4 parts are counted', '4 equal parts in all', '4 wholes', '4 parts not counted'], 0, bars({ numerator: 4, denominator: 5 }), 'The numerator is the top number. It counts the parts we take.', 'The top number, 4, is the numerator: 4 of the equal parts are counted.', bars({ numerator: 2, denominator: 3 }), { authoredChoices: true }),
+      practice('3 out of 8 equal parts are shaded. What fraction is shaded?', ['3/8', '8/3', '5/8', '3/5'], 0, bars({ numerator: 3, denominator: 8 }), 'Count all the parts for the bottom number. Count the shaded parts for the top number.', '8 equal parts in all, so 8 goes on the bottom. 3 are shaded, so 3 goes on top: 3/8.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
+    ],
   },
   {
     id: 'unit-fractions', title: 'One part at a time', shortTitle: 'Unit fractions', skill: 'A unit fraction counts one equal part. Its numerator is 1.',
@@ -516,6 +523,13 @@ const curriculum: MissionSeed[] = [
       practice('Does this bar show 1/3?', ['Yes, 1 of 3 equal parts', 'No, 3 parts are shaded', 'No, the parts are unequal', 'No, 2 parts not shaded'], 0, bars({ numerator: 1, denominator: 3 }), '1/3 is 1 of 3 equal parts.', 'The bar has 3 equal parts and 1 is shaded. That is 1/3.', bars({ numerator: 1, denominator: 2 })),
       practice('What fraction is 1 of 6 equal tiles?', ['6/1', '1/6', '1/5'], 1, bars({ numerator: 1, denominator: 6 }), '1 tile out of 6.', '1 out of 6 equal parts is 1/6.', bars({ numerator: 1, denominator: 3 })),
     ],
+    ideaQuestions: [
+      practice('How many 1/4 parts fill the whole bar?', ['4', '1', '3', '5'], 0, bars({ numerator: 1, denominator: 4 }), 'Count the 1/4 parts until the whole bar is full.', '1/4, 2/4, 3/4, 4/4: 4 fourths make one whole.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('How many sixths make one whole?', ['6', '1', '5', '3'], 0, bars({ numerator: 1, denominator: 6 }), 'Count the sixths until the whole bar is full.', '6 sixths fill the bar: 6 sixths make one whole.', bars({ numerator: 1, denominator: 3 }), { authoredChoices: true }),
+      practice('3 friends share a pizza fairly. What fraction does each friend get?', ['1/3', '3/3', '1/2', '1/4'], 0, { kind: 'area', cut: 'circle-thirds', shaded: [] }, 'Cut the pizza into one equal part for each friend.', '3 friends, so 3 equal slices. Each friend gets 1 slice: 1/3.', { kind: 'area', cut: 'circle-halves', shaded: [0] }, { authoredChoices: true }),
+      practice('2 friends share a bar fairly. What fraction does each friend get?', ['1/2', '2/2', '1/3', '1/4'], 0, bars({ numerator: 0, denominator: 2 }), 'Cut the bar into one equal part for each friend.', '2 friends, so 2 equal parts. Each friend gets 1 part: 1/2.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('6 friends share a cake fairly. What fraction of the cake does each friend get?', ['1/6', '6/6', '1/5', '1/7'], 0, { kind: 'area', cut: 'circle-sixths', shaded: [] }, 'Cut the cake into one equal part for each friend.', '6 friends, so 6 equal pieces. Each friend gets 1 piece: 1/6.', { kind: 'area', cut: 'circle-thirds', shaded: [0] }, { authoredChoices: true }),
+    ],
   },
   {
     id: 'unit-size', title: 'More parts, smaller parts', shortTitle: 'Unit fraction size', skill: 'The denominator tells how many equal parts make a whole. More parts means each part is smaller.',
@@ -530,6 +544,14 @@ const curriculum: MissionSeed[] = [
       practice('Which is bigger, 1/8 or 1/4?', ['1/8', '1/4', 'They match'], 1, bars({ numerator: 1, denominator: 8 }, { numerator: 1, denominator: 4 }), 'Both are 1 part. Which whole has fewer parts?', 'Fourths are bigger. 4 parts is fewer than 8.', bars({ numerator: 1, denominator: 3 })),
       practice('Which is closer to one whole: 1/2 or 1/6?', ['1/6', '1/2', 'They are equally close'], 1, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 6 }), 'The bigger part is closer to one whole.', '1/2 is much bigger than 1/6.', bars({ numerator: 1, denominator: 4 })),
       practice('Which is smaller: 1/3 or 1/6?', ['1/3', '1/6', 'They are the same'], 1, bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 6 }), 'Which whole has more parts?', 'Sixths are smaller than thirds. So 1/6 is smaller.', bars({ numerator: 1, denominator: 2 })),
+    ],
+    ideaQuestions: [
+      practice('Which is bigger, 1/5 or 1/3?', ['1/3', '1/5', 'They are equal', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 5 }, { numerator: 1, denominator: 3 }), 'Look at the denominators. The smaller denominator is the bigger part.', '3 is less than 5, so thirds are bigger parts. 1/3 is bigger.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Which is smaller, 1/8 or 1/2?', ['1/8', '1/2', 'They are equal', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 8 }, { numerator: 1, denominator: 2 }), 'Look at the denominators. The bigger denominator is the smaller part.', '8 is more than 2, so eighths are smaller parts. 1/8 is smaller.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
+      practice('Which is bigger, 1/6 or 1/8?', ['1/6', '1/8', 'They are equal', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 8 }), 'Look at the denominators. Which one is smaller?', '6 is less than 8, so sixths are bigger parts. 1/6 is bigger.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Which is closer to the whole bar: 1/3 or 1/8?', ['1/3', '1/8', 'They are equally close', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 8 }), 'The bigger part fills more of the bar, so it is closer to the whole bar.', '1/3 is a bigger part than 1/8. It fills more of the bar, so it is closer to the whole bar.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Which is farther from one whole: 1/2 or 1/5?', ['1/5', '1/2', 'They are equally far', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 5 }), 'The smaller part leaves more of the whole bar empty.', '1/5 is smaller than 1/2, so it leaves more of the bar empty. 1/5 is farther from one whole.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
+      practice('Which is smaller, 1/4 or 1/2?', ['1/4', '1/2', 'They are equal', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 4 }, { numerator: 1, denominator: 2 }), 'Cut one whole into 4. Cut the same whole into 2. Which parts are smaller?', 'More parts make smaller parts. Fourths are smaller than halves, so 1/4 is smaller.', bars({ numerator: 1, denominator: 3 }), { authoredChoices: true }),
     ],
   },
   {
@@ -576,6 +598,16 @@ const curriculum: MissionSeed[] = [
       practice('Which is closest to 1/2?', ['5/8', '1/6', '7/8'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 5, denominator: 8 }, { numerator: 1, denominator: 6 }, { numerator: 7, denominator: 8 }), 'Half of 8 is 4. Which is nearest to half?', '5/8 is just over half. The others are farther from half.', bars({ numerator: 1, denominator: 2 })),
       practice('A jug is 4/6 full. Is that more or less than half?', ['More than half', 'Less than half', 'Exactly half'], 0, bars({ numerator: 4, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Half of 6 is 3.', '4 is more than 3. So 4/6 is more than half.', bars({ numerator: 1, denominator: 2 })),
     ],
+    ideaQuestions: [
+      practice('A bar has 6 equal parts. How many parts make one half?', ['3', '2', '6', '1'], 0, bars({ numerator: 0, denominator: 6 }), 'Half of the parts make one half. What is half of 6?', 'Half of 6 is 3, so 3 parts make one half: 3/6.', bars({ numerator: 0, denominator: 4 }), { authoredChoices: true }),
+      practice('Which fraction is exactly one half?', ['2/4', '1/4', '3/4', '4/4'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 1, denominator: 4, named: true }, { numerator: 2, denominator: 4, named: true }, { numerator: 3, denominator: 4, named: true }, { numerator: 4, denominator: 4, named: true }), 'Find half of the denominator. Half of 4 is 2.', 'Half of 4 is 2, so 2/4 is exactly one half.', bars({ numerator: 1, denominator: 2, named: true }), { authoredChoices: true }),
+      practice('Half of a cake is 2 equal pieces. How many equal pieces make the whole cake?', ['4', '2', '3', '1'], 0, { kind: 'area', cut: 'circle-halves', shaded: [0] }, 'The other half has the same number of pieces.', '2 pieces in each half: 2 and 2 make 4 equal pieces in the whole cake.', { kind: 'area', cut: 'circle-fourths', shaded: [0, 1] }, { authoredChoices: true }),
+      practice('Is 5/6 more or less than 1/2?', ['More than 1/2', 'Less than 1/2', 'Equal to 1/2', 'More than 1'], 0, bars({ numerator: 5, denominator: 6 }, { numerator: 1, denominator: 2 }), 'Half of 6 is 3. Is 5 more or less than 3?', '5 is more than 3, so 5/6 is more than half.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Is 3/5 more or less than 1/2?', ['More than 1/2', 'Less than 1/2', 'Equal to 1/2', 'More than 1'], 0, bars({ numerator: 3, denominator: 5 }, { numerator: 1, denominator: 2 }), 'Half of 5 is 2 and a half. Is 3 more or less than that?', '3 is more than 2 and a half, so 3/5 is more than half.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Is 2/5 more or less than 1/2?', ['Less than 1/2', 'More than 1/2', 'Equal to 1/2', 'More than 1'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 1, denominator: 2 }), 'Half of 5 is 2 and a half. Is 2 more or less than that?', '2 is less than 2 and a half, so 2/5 is less than half.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Which is closer to 1/2: 5/6 or 4/6?', ['4/6', '5/6', 'They are equally close', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 5, denominator: 6, named: true }, { numerator: 4, denominator: 6, named: true }), 'Half of 6 is 3. Count how many parts each one is from 3.', '4/6 is 1 part away from half. 5/6 is 2 parts away. So 4/6 is closer to half.', bars({ numerator: 1, denominator: 2, named: true }), { authoredChoices: true }),
+      practice('Use eighths. Which fraction is 1 part less than half?', ['3/8', '5/8', '4/8', '1/8'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 0, denominator: 8 }), 'Half of 8 is 4, so half is 4/8. Take away 1 part.', 'Half is 4/8. 1 part less than half is 3/8.', bars({ numerator: 1, denominator: 2, named: true }), { authoredChoices: true }),
+    ],
   },
   {
     id: 'benchmarks-zero-one', title: 'Near zero, half, or one?', shortTitle: 'Near 0, 1/2 or 1', skill: 'Compare a fraction with 0, 1/2, and 1. These benchmarks show how much of the whole it is.',
@@ -590,6 +622,14 @@ const curriculum: MissionSeed[] = [
       practice('Which fraction is closest to one whole?', ['2/6', '5/6', '3/6'], 1, bars({ numerator: 2, denominator: 6 }, { numerator: 5, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Which one is missing just 1 part?', '5/6 is just 1 part away from one whole.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is between 1/2 and 1?', ['3/8', '3/4', '1/4', '1/8'], 1, bars({ numerator: 3, denominator: 4 }), 'Find one past half but not full.', '3/4 is more than half but less than 1.', bars({ numerator: 1, denominator: 2 })),
       practice('A plant grew 7/8 of a meter. Is that near 0, 1/2 or 1 meter?', ['0 meters', '1 meter', '1/2 meter', '7 meters'], 1, bars({ numerator: 7, denominator: 8 }), 'Just 1 eighth is missing.', '7/8 is almost one whole meter.', bars({ numerator: 1, denominator: 2 })),
+    ],
+    ideaQuestions: [
+      practice('A worm is 1/6 of a meter long. Is that near 0, 1/2 or 1 meter?', ['0 meters', '1/2 meter', '1 meter', '6 meters'], 0, bars({ numerator: 1, denominator: 6 }), 'Half of 6 is 3. Is 1 far below 3, or close to it?', '1 is far below 3, so 1/6 of a meter is near 0 meters.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('A ribbon is 2/6 of a meter long. Is that near 0, 1/2 or 1 meter?', ['1/2 meter', '0 meters', '1 meter', '2 meters'], 0, bars({ numerator: 2, denominator: 6 }), 'Half of 6 is 3. Is 2 far below 3, or close to it?', '2 is just 1 part below 3, so 2/6 of a meter is near 1/2 meter.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('How much is missing from 3/4 to make one whole?', ['1/4', '3/4', '4/4', '1/3'], 0, bars({ numerator: 3, denominator: 4 }), 'One whole is 4/4. How many fourths are not shaded?', '3/4 is missing 1 part to make one whole. 1/4 is missing.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Is 5/8 nearer 1/2 or 1?', ['Nearer 1/2', 'Nearer 1', 'Nearer 0', 'Exactly 1/2'], 0, bars({ numerator: 5, denominator: 8 }, { numerator: 1, denominator: 2 }), 'Half of 8 is 4. How many parts is 5 from 4? How many from 8?', '5/8 is 1 part from half and 3 parts from one whole. So 5/8 is nearer 1/2.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Is 5/6 nearer 1/2 or 1?', ['Nearer 1', 'Nearer 1/2', 'Nearer 0', 'Exactly 1/2'], 0, bars({ numerator: 5, denominator: 6 }, { numerator: 1, denominator: 2 }), 'Half of 6 is 3. How many parts is 5 from 3? How many from 6?', '5/6 is 2 parts from half and 1 part from one whole. So 5/6 is nearer 1.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('A snake is 4/5 of a meter long. Is that near 0, 1/2 or 1 meter?', ['1 meter', '1/2 meter', '0 meters', '4 meters'], 0, bars({ numerator: 4, denominator: 5 }), 'One whole is 5/5. How many fifths are missing?', '4/5 is missing just 1 part, so 4/5 of a meter is near 1 meter.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
     ],
   },
   {
@@ -606,6 +646,10 @@ const curriculum: MissionSeed[] = [
       practice('Which fraction is closest to 1?', ['7/8', '2/8', '3/8'], 0, bars({ numerator: 7, denominator: 8 }, { numerator: 2, denominator: 8 }, { numerator: 3, denominator: 8 }), 'Which numerator is closest to 8?', '7/8 is just 1 part away from one whole.', bars({ numerator: 1, denominator: 2 })),
       practice('Four 1/8 parts make what?', ['Exactly 1/2', 'Exactly 1/4', 'One whole', '4 wholes'], 0, bars({ numerator: 4, denominator: 8 }), 'How many eighths make half of 8 eighths?', '4/8 is the same as 1/2.', bars({ numerator: 2, denominator: 4 })),
     ],
+    ideaQuestions: [
+      practice('A path is 5/8 of a mile. Is that closest to 0, 1/2 or 1 mile?', ['1/2 mile', '0 miles', '1 mile', '5 miles'], 0, bars({ numerator: 5, denominator: 8 }), 'Half of 8 is 4. Is 5 closest to 0, to 4 or to 8?', '5 is 1 part from 4, so 5/8 of a mile is closest to 1/2 mile.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Is 4/6 a little more or a little less than 1/2?', ['A little more than 1/2', 'A little less than 1/2', 'Exactly 1/2', 'Much less than 1/2'], 0, bars({ numerator: 4, denominator: 6 }, { numerator: 1, denominator: 2 }), 'Half of 6 is 3. Is 4 just over 3, or just under?', '4 is just 1 more than 3, so 4/6 is a little more than 1/2.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+    ],
   },
   {
     id: 'number-line-basics', title: 'Build a fraction number line', shortTitle: 'Split the line', skill: 'Split the distance from 0 to 1 into equal spaces. The denominator tells the spaces in one whole.',
@@ -618,8 +662,15 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('0 to 1 has 8 equal spaces. What is 1 jump?', ['1/8', '1/7', '8/1'], 0, line(1, 8), 'Count the spaces from 0 to 1.', '8 jumps make one whole. So 1 jump is 1/8.', line(1, 2)),
       practice('How many spaces do you need for fourths?', ['4 spaces', '3 spaces', '5 spaces'], 0, { kind: 'line', numerator: 0, denominator: 1, wholes: 1, hideLabels: true }, 'The denominator tells how many equal spaces go from 0 to 1.', 'Fourths need 4 spaces from 0 to 1.', line(1, 2)),
-      practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps past 1', '5 jumps from 0'], 0, line(0, 8), 'The numerator tells how many jumps from 0.', 'The numerator 3 means 3 jumps.', line(1, 4)),
+      practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps back from 1', '5 jumps from 0'], 0, line(0, 8), 'The numerator tells how many jumps from 0.', 'The numerator 3 means 3 jumps.', line(1, 4)),
       practice('0 to 1 has 6 equal spaces. Where do 5 jumps land?', ['5/6', '6/5', '1/5'], 0, line(5, 6), 'Count 5 jumps from 0.', '5 jumps of 1/6 is 5/6.', line(2, 4)),
+    ],
+    ideaQuestions: [
+      practice('How many equal spaces from 0 to 1 make eighths?', ['8 spaces', '7 spaces', '9 spaces', '4 spaces'], 0, { kind: 'line', numerator: 0, denominator: 1, wholes: 1, hideLabels: true }, 'The denominator tells how many equal spaces go from 0 to 1.', 'Eighths need 8 equal spaces from 0 to 1.', line(1, 2), { authoredChoices: true }),
+      practice('Count the spaces between the tick marks. How many equal spaces go from 0 to 1?', ['6', '7', '5', '1'], 0, { kind: 'line', numerator: 0, denominator: 6, wholes: 1, hideLabels: true }, 'Count the spaces, not the tick marks.', '7 tick marks make 6 equal spaces from 0 to 1.', { kind: 'line', numerator: 0, denominator: 2, wholes: 1, hideLabels: true }, { authoredChoices: true }),
+      practice('A line from 0 to 1 has 5 equal spaces. What fraction is 1 jump?', ['1/5', '1/6', '5/1', '1/4'], 0, { kind: 'line', numerator: 1, denominator: 5, wholes: 1, hideLabels: true }, 'Count the spaces from 0 to 1. That is the denominator.', '5 jumps make one whole. So 1 jump is 1/5.', line(1, 2), { authoredChoices: true }),
+      practice('Each space from 0 to 1 is 1/3. How many equal spaces are there?', ['3', '1', '4', '2'], 0, { kind: 'line', numerator: 0, denominator: 3, wholes: 1, hideLabels: true }, 'The denominator of 1/3 tells how many equal spaces.', '1/3 is one of 3 equal spaces, so there are 3 spaces from 0 to 1.', line(1, 2), { authoredChoices: true }),
+      practice('A frog makes 3 jumps. Each jump is 1/4 meter. How far did it go?', ['3/4 meter', '1/4 meter', '3 meters', '1/3 meter'], 0, { kind: 'line', numerator: 0, denominator: 4, wholes: 1, hideLabels: true }, 'Each jump is 1/4. Count 3 jumps from 0.', '3 jumps of 1/4 is 3/4. The frog went 3/4 of a meter.', line(1, 2), { authoredChoices: true }),
     ],
   },
   {
@@ -636,6 +687,16 @@ const curriculum: MissionSeed[] = [
       practice('A line has 4 spaces. What is 3 jumps from 0?', ['3/4', '4/3', '1/4'], 0, line(3, 4), 'Each jump is 1/4. Count 3.', '3 jumps of 1/4 is 3/4.', line(1, 2)),
       practice('A line has 8 spaces. The point is 5 jumps from 0. What is it?', ['5/8', '8/5', '5/3'], 0, line(5, 8), 'Each jump is 1/8. Count 5.', '5 jumps of 1/8 is 5/8.', line(1, 2)),
     ],
+    ideaQuestions: [
+      // Idea 1: count the spaces from 0 to 1 (the denominator). No point to name yet.
+      practice('How many equal spaces are there from 0 to 1?', ['6 spaces', '7 spaces', '5 spaces', '1 space'], 0, { kind: 'line', numerator: 0, denominator: 6, wholes: 1, hideLabels: true }, 'Count the spaces between the tick marks, not the marks.', 'The 7 tick marks make 6 equal spaces from 0 to 1.', { kind: 'line', numerator: 0, denominator: 6, wholes: 1 }, { authoredChoices: true }),
+      practice('This line has equal spaces from 0 to 1. What is the denominator?', ['8', '9', '7', '1'], 0, { kind: 'line', numerator: 0, denominator: 8, wholes: 1, hideLabels: true }, 'The denominator is the number of equal spaces from 0 to 1.', '8 equal spaces from 0 to 1: the denominator is 8.', { kind: 'line', numerator: 0, denominator: 8, wholes: 1 }, { authoredChoices: true }),
+      practice('A line has 4 equal spaces from 0 to 1. What fraction is 1 space?', ['1/4', '1/5', '1/3', '4/4'], 0, { kind: 'line', numerator: 0, denominator: 4, wholes: 1, hideLabels: true }, 'Each space is 1 of the equal spaces from 0 to 1.', '4 equal spaces make one whole, so 1 space is 1/4.', { kind: 'line', numerator: 0, denominator: 4, wholes: 1 }, { authoredChoices: true }),
+      // Idea 2: count the jumps from 0 to the point (the numerator).
+      practice('How many jumps is it from 0 to the point?', ['3 jumps', '4 jumps', '2 jumps', '5 jumps'], 0, { kind: 'line', numerator: 3, denominator: 5, wholes: 1, hideLabels: true }, 'Start at 0. Count each jump until you reach the point.', 'Count from 0: 1, 2, 3 jumps to the point.', line(3, 5), { authoredChoices: true }),
+      practice('Count the jumps from 0 to the point. What is the numerator?', ['4', '6', '5', '2'], 0, { kind: 'line', numerator: 4, denominator: 6, wholes: 1, hideLabels: true }, 'The numerator counts the jumps from 0 to the point.', '4 jumps from 0 to the point: the numerator is 4.', line(4, 6), { authoredChoices: true }),
+      practice('Which tells you the numerator?', ['The jumps from 0 to the point', 'The spaces from 0 to 1', 'The tick marks', 'The numbers 0 and 1'], 0, { kind: 'line', numerator: 2, denominator: 3, wholes: 1, hideLabels: true }, 'The numerator counts. What do you count to reach the point?', 'The numerator counts the jumps from 0 to the point. The spaces from 0 to 1 give the denominator.', line(2, 3), { authoredChoices: true }),
+    ],
   },
   {
     id: 'number-line-beyond-one', title: 'Keep going past one', shortTitle: 'Past one whole', skill: 'When the jumps pass one whole, keep counting the same-size spaces to show the extra part.',
@@ -646,10 +707,16 @@ const curriculum: MissionSeed[] = [
       model: line(7, 4, 2),
     },
     questions: [
-      practice('Each jump is 1/4. What is 5 jumps from 0?', ['5/4', '4/5', '1/4'], 0, line(5, 4, 2), '4 jumps reach 1. Then 1 more.', '5 jumps is 5/4. That is 1 and 1/4.', line(3, 4)),
-      practice('Each jump is 1/3. Which point is just past 1?', ['4/3', '5/3', '3/3', '2/3'], 0, line(4, 3, 2), '3 jumps of 1/3 reach 1. Take 1 more jump.', '4/3 is 1 and 1/3, just past 1.', line(2, 3)),
-      practice('What fraction is the same as 1 and 2/6?', ['8/6', '6/8', '2/6'], 0, line(8, 6, 2), 'One whole is 6/6. Add 2 more.', '6/6 + 2/6 = 8/6.', line(6, 6)),
+      practice('Each jump is 1/4. What is 5 jumps from 0?', ['5/4', '4/5', '1/4'], 0, line(5, 4, 2), '4 jumps reach 1. Then 1 more.', '4 jumps reach 1. 1 more jump makes 5 jumps: 5/4.', line(3, 4)),
+      practice('Each jump is 1/3. Which point is just past 1?', ['4/3', '5/3', '3/3', '2/3'], 0, line(4, 3, 2), '3 jumps of 1/3 reach 1. Take 1 more jump.', '3 jumps reach 1. 1 more jump is 4/3, just past 1.', line(2, 3)),
+      practice('What fraction is the same as 1 and 2/6?', ['8/6', '6/8', '2/6'], 0, line(8, 6, 2), 'One whole is 6/6. Add 2 more.', 'One whole is 6/6. 2 more sixths make 8/6.', line(6, 6)),
       practice('A runner takes 10 steps. Each step is 1/6 mile. How far is that?', ['1 and 3/6 miles', '1 and 4/6 miles', '4/6 mile'], 1, line(10, 6, 2), '6 steps make one whole. How many are left?', '10/6 is 6/6 and 4/6. That is 1 and 4/6.', line(6, 6)),
+    ],
+    ideaQuestions: [
+      // Idea 1: keep counting the same jumps past 1.
+      practice('Each jump is 1/3. What is 5 jumps from 0?', ['5/3', '3/5', '5/4', '1/3'], 0, line(5, 3, 2), '3 jumps reach 1. Keep counting the same jumps.', 'Count every jump from 0: 5 jumps of 1/3 is 5/3.', line(3, 3), { authoredChoices: true }),
+      // Idea 2: a whole and the jumps left over.
+      practice('Each jump is 1/3. 5 jumps land at 5/3. Which is the same as 5/3?', ['1 and 2/3', '1 and 5/3', '2/3', '5 and 1/3'], 0, line(5, 3, 2), '3 jumps make 1 whole. How many jumps are left?', '3 of the 5 jumps make 1 whole. 2 jumps are left: 1 and 2/3.', line(3, 3), { authoredChoices: true }),
     ],
   },
   {
@@ -665,6 +732,15 @@ const curriculum: MissionSeed[] = [
       practice('Which is smaller, 1/3 or 2/3?', ['1/3', '2/3', 'They match'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 3 }), 'Both are thirds. Which has fewer?', '1 third is less than 2 thirds.', bars({ numerator: 1, denominator: 2 })),
       practice('Pick the sign: 6/8 __ 7/8', ['>', '<', '='], 1, bars({ numerator: 6, denominator: 8 }, { numerator: 7, denominator: 8 }), 'Same denominator. Compare 6 and 7.', '6 is less than 7. So 6/8 < 7/8.', bars({ numerator: 1, denominator: 4 })),
       practice('Which is bigger, 1/4 or 3/4?', ['1/4', '3/4', 'They are equal'], 1, bars({ numerator: 1, denominator: 4 }, { numerator: 3, denominator: 4 }), 'Same size parts. Count them.', '3 parts is more than 1.', bars({ numerator: 1, denominator: 2 })),
+    ],
+    ideaQuestions: [
+      // Idea 1: the same denominator means same-size parts (nothing compared yet).
+      practice('Are the parts of 2/5 the same size as the parts of 4/5?', ['No, 4/5 has bigger parts', 'No, 2/5 has bigger parts', 'Yes, both are fifths', 'Yes, both have 4 parts'], 2, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 5 }), 'Look at the denominators. The same denominator means the same size parts.', 'Both denominators are 5. Both are fifths, so the parts are the same size.', bars({ numerator: 1, denominator: 5 }), { authoredChoices: true }),
+      practice('What size are the parts in 3/8 and in 5/8?', ['Both are eighths', 'Thirds and fifths', 'Both are fifths', 'They are different sizes'], 0, bars({ numerator: 3, denominator: 8 }, { numerator: 5, denominator: 8 }), 'The denominator tells the size of the parts.', 'Both denominators are 8, so both are eighths: the same size parts.', bars({ numerator: 1, denominator: 8 }), { authoredChoices: true }),
+      practice('Which has bigger parts, 1/6 or 5/6?', ['5/6', '1/6', 'The parts are the same size', "You can't tell"], 2, bars({ numerator: 1, denominator: 6 }, { numerator: 5, denominator: 6 }), 'Look at the denominators. Are they the same?', 'Both are sixths, so the parts are the same size. 5/6 just has more of them.', bars({ numerator: 1, denominator: 6 }), { authoredChoices: true }),
+      // Idea 3: write it with a sign.
+      practice('Pick the sign: 5/6 __ 3/6', ['>', '<', '='], 0, bars({ numerator: 5, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Same denominator. Compare 5 and 3.', '5 is more than 3. So 5/6 > 3/6.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Pick the sign: 2/5 __ 4/5', ['>', '<', '='], 1, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 5 }), 'Same denominator. Compare 2 and 4.', '2 is less than 4. So 2/5 < 4/5.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
     ],
   },
   {
@@ -682,6 +758,10 @@ const curriculum: MissionSeed[] = [
       practice('Pick the sign: 1/6 __ 1/4', ['>', '<', '='], 1, bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 4 }), 'Which is larger: one of 6 equal parts or one of 4 equal parts?', 'One sixth is smaller than one fourth, so 1/6 < 1/4.', bars({ numerator: 1, denominator: 2 })),
       practice('Which covers more: 3/8 or 3/6?', ['3/8', '3/6', 'They cover the same'], 1, bars({ numerator: 3, denominator: 8 }, { numerator: 3, denominator: 6 }), 'On the same-size whole, both count 3 parts. Sixths are larger because 6 parts are fewer than 8.', 'Each sixth is larger than each eighth. With 3 parts counted from the same-size whole, 3/6 covers more than 3/8.', bars({ numerator: 1, denominator: 2 })),
     ],
+    ideaQuestions: [
+      practice('Pick the sign: 5/6 __ 5/8', ['>', '<', '='], 0, bars({ numerator: 5, denominator: 6 }, { numerator: 5, denominator: 8 }), 'Both count 5 parts. Which are bigger parts: sixths or eighths?', 'Sixths are bigger parts than eighths, so 5/6 is more. 5/6 > 5/8.', bars({ numerator: 1, denominator: 2 })),
+      practice('Pick the sign: 2/8 __ 2/4', ['>', '<', '='], 1, bars({ numerator: 2, denominator: 8 }, { numerator: 2, denominator: 4 }), 'Both count 2 parts. Which are smaller parts: eighths or fourths?', 'Eighths are smaller parts than fourths, so 2/8 is less. 2/8 < 2/4.', bars({ numerator: 1, denominator: 2 })),
+    ],
   },
   {
     id: 'order-fractions', title: 'Put fractions in order', shortTitle: 'Order fractions', skill: 'Compare the amounts, then put them from smallest to largest or largest to smallest.',
@@ -697,6 +777,15 @@ const curriculum: MissionSeed[] = [
       practice('Which fits between 2/8 and 6/8?', ['1/8', '4/8', '7/8'], 1, bars({ numerator: 2, denominator: 8 }, { numerator: 6, denominator: 8 }), 'All eighths. Which numerator is between 2 and 6?', '4 is between 2 and 6.', bars({ numerator: 1, denominator: 2 })),
       practice('Put 1/2, 3/8 and 7/8 in order, smallest first.', ['3/8, 1/2, 7/8', '7/8, 1/2, 3/8', '1/2, 3/8, 7/8'], 0, bars({ numerator: 3, denominator: 8 }, { numerator: 1, denominator: 2 }, { numerator: 7, denominator: 8 }), '1/2 is the same as 4/8. Compare to that.', '3/8 is less than half. 7/8 is more.', bars({ numerator: 1, denominator: 2 })),
     ],
+    ideaQuestions: [
+      // Idea 1: compare two at a time (same denominators, same numerators, or with half).
+      practice('Which is smaller, 2/6 or 5/6?', ['2/6', '5/6', 'They are equal', "You can't tell"], 0, bars({ numerator: 2, denominator: 6 }, { numerator: 5, denominator: 6 }), 'Same denominators: count the parts.', '2 parts is less than 5 parts, so 2/6 is smaller.', bars({ numerator: 1, denominator: 6 }), { authoredChoices: true }),
+      practice('Which is bigger, 1/3 or 1/6?', ['1/3', '1/6', 'They are equal', "You can't tell"], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 6 }), 'Same numerators: bigger parts win. Which are bigger parts, thirds or sixths?', 'Both count 1 part. A third is bigger than a sixth, so 1/3 is bigger.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Which is bigger, 5/8 or 1/2?', ['5/8', '1/2', 'They are equal', "You can't tell"], 0, bars({ numerator: 5, denominator: 8 }, { numerator: 1, denominator: 2 }), 'Half of 8 is 4, so half is 4/8. Compare 5/8 with 4/8.', '5/8 is 1 part more than half, so 5/8 is bigger than 1/2.', bars({ numerator: 4, denominator: 8 }), { authoredChoices: true }),
+      // Idea 3: biggest first.
+      practice('Which order goes biggest to smallest?', ['5/6, 4/6, 2/6', '2/6, 4/6, 5/6', '4/6, 5/6, 2/6', '5/6, 2/6, 4/6'], 0, bars({ numerator: 2, denominator: 6 }, { numerator: 5, denominator: 6 }, { numerator: 4, denominator: 6 }), 'All sixths. The one with the most parts goes first.', '5/6 has the most parts, then 4/6, then 2/6.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Put 1/3, 1/2, 1/6 in order, biggest first.', ['1/2, 1/3, 1/6', '1/6, 1/3, 1/2', '1/3, 1/2, 1/6', '1/2, 1/6, 1/3'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 2 }, { numerator: 1, denominator: 6 }), 'Each counts 1 part of the same-size whole. Fewer parts in the whole means bigger parts.', '1/2 is biggest, then 1/3, then 1/6.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+    ],
   },
   {
     id: 'equivalent-models', title: 'Same amount, new name', shortTitle: 'See equivalence', skill: 'Equivalent fractions can look different but name the same amount. Splitting every part keeps the whole amount unchanged.',
@@ -710,8 +799,20 @@ const curriculum: MissionSeed[] = [
       practice('Which fraction covers the same amount as 1/2?', ['2/4', '1/4', '3/4'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Cut the half into 2 equal parts. How many fourths is that?', '2/4 covers the same as 1/2.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 2/3?', ['4/6', '3/6', '2/6'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }), 'Cut each third into 2 parts.', 'Each third became 2 sixths, so 2 thirds is 4 sixths: 2/3 = 4/6.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 3/4?', ['6/8', '3/8', '4/8'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'Cut each fourth into 2 parts.', '3/4 and 6/8 are the same amount.', bars({ numerator: 1, denominator: 2 })),
-      practice('Fold a strip in half. Shade one half. Now fold it in half again. What fraction is shaded now?', ['2/4', '1/4', '1/3'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4, untilAnswered: true }), 'Folding again cuts each half into 2 equal parts. How many fourths are shaded?', 'The second fold cuts the shaded half into 2 fourths: 1/2 = 2/4.', bars({ numerator: 1, denominator: 2 })),
+      practice('Fold a strip in half. Shade one half. Now fold it in half again. What fraction is shaded now?', ['2/4', '1/4', '1/3'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4, untilAnswered: true }), 'Folding again cuts each half into 2 equal parts. How many fourths are shaded?', 'The second fold cuts the shaded half into 2 fourths. 2 of the 4 parts are shaded: 2/4.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 1/3?', ['2/6', '1/6', '3/1'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 6 }), 'Cut each third into 2 equal parts. Count the shaded parts now.', 'Each third became 2 sixths, so 1 third is 2 sixths: 1/3 = 2/6.', bars({ numerator: 1, denominator: 2 })),
+    ],
+    ideaQuestions: [
+      // Idea 1: split every part the same way.
+      practice('Cut each third into 2 equal parts. How many parts are there now?', ['6', '5', '3', '2'], 0, bars({ numerator: 0, denominator: 3 }), 'Each of the 3 parts becomes 2 parts.', '3 parts, each cut into 2: 6 parts.', bars({ numerator: 0, denominator: 6 }), { authoredChoices: true }),
+      practice('Cut each fourth into 2 equal parts. What are the new parts called?', ['eighths', 'sixths', 'fourths', 'halves'], 0, bars({ numerator: 0, denominator: 4 }), 'Count all the new parts in the whole.', '4 parts, each cut into 2, make 8 equal parts: eighths.', bars({ numerator: 0, denominator: 8 }), { authoredChoices: true }),
+      // Idea 3: join small parts into bigger parts.
+      practice('Join every 2 eighths into 1 fourth. What is 2/8 in fourths?', ['1/4', '2/4', '1/8', '4/8'], 0, bars({ numerator: 2, denominator: 8 }), 'Every 2 eighths join into 1 fourth. How many fourths are shaded?', '2 eighths join into 1 fourth, so 2/8 = 1/4.', bars({ numerator: 2, denominator: 8 }), { authoredChoices: true }),
+      practice('Join every 2 sixths into 1 third. What is 4/6 in thirds?', ['2/3', '4/3', '1/3', '2/6'], 0, bars({ numerator: 4, denominator: 6 }), 'Every 2 sixths join into 1 third. How many thirds are shaded?', '4 sixths join into 2 thirds, so 4/6 = 2/3.', bars({ numerator: 4, denominator: 6 }), { authoredChoices: true }),
+      // Idea 4: the ? box.
+      practice('1/3 = ?/6. What number goes in the ? box?', ['2', '1', '4', '6'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 0, denominator: 6 }), 'Cut each third into 2 equal parts. Count the sixths in 1/3.', 'Each third is 2 sixths, so 1/3 = 2/6. The ? is 2.', bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 6 }), { authoredChoices: true }),
+      practice('2/4 = ?/8. What number goes in the ? box?', ['4', '2', '6', '8'], 0, bars({ numerator: 2, denominator: 4 }, { numerator: 0, denominator: 8 }), 'Cut each fourth into 2 equal parts. Count the eighths in 2/4.', 'Each fourth is 2 eighths, so 2 fourths are 4 eighths: 2/4 = 4/8. The ? is 4.', bars({ numerator: 2, denominator: 4 }, { numerator: 4, denominator: 8 }), { authoredChoices: true }),
+      practice('3/2 = ?/4. What number goes in the ? box?', ['6', '3', '5', '4'], 0, bars({ numerator: 3, denominator: 2 }), 'Cut each half into 2 fourths. Count the fourths in 3 halves.', 'Each half is 2 fourths, so 3 halves are 6 fourths: 3/2 = 6/4. The ? is 6.', bars({ numerator: 6, denominator: 4 }), { authoredChoices: true }),
     ],
   },
   {
@@ -728,6 +829,16 @@ const curriculum: MissionSeed[] = [
       practice('Divide the numerator and denominator of 4/8 by 4. What do you get?', ['1/2', '1/8', '4/4'], 0, bars({ numerator: 4, denominator: 8 }, { numerator: 1, denominator: 2 }), 'Divide both by 4.', '4 ÷ 4 = 1 and 8 ÷ 4 = 2. So 1/2.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 5/10?', ['1/2', '1/5', '5/5'], 0, bars({ numerator: 5, denominator: 10 }, { numerator: 1, denominator: 2 }), 'Can you divide both by the same number?', 'Divide both by 5. You get 1/2.', bars({ numerator: 1, denominator: 2 })),
     ],
+    ideaQuestions: [
+      // Idea 1: multiply both.
+      practice('Multiply the numerator and denominator of 2/4 by 2. What do you get?', ['4/8', '4/4', '2/8', '4/6'], 0, bars({ numerator: 2, denominator: 4 }), 'Do the same thing to the numerator and denominator.', '2 × 2 = 4 and 4 × 2 = 8. So 4/8.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      // Idea 2: divide both.
+      practice('Divide the numerator and denominator of 6/8 by 2. What do you get?', ['3/4', '3/8', '6/4', '4/6'], 0, bars({ numerator: 6, denominator: 8 }), 'Divide both by 2.', '6 ÷ 2 = 3 and 8 ÷ 2 = 4. So 3/4.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      // Idea 3: find the number to multiply by.
+      practice('Write 1/2 with a denominator of 6.', ['3/6', '1/6', '5/6', '3/2'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 0, denominator: 6 }), 'Ask: 2 times what is 6? Multiply the top by that number too.', '2 × 3 = 6, so multiply the top by 3 too: 1 × 3 = 3. So 3/6.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Write 3/4 with a denominator of 8.', ['6/8', '3/8', '7/8', '6/4'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 0, denominator: 8 }), 'Ask: 4 times what is 8? Multiply the top by that number too.', '4 × 2 = 8, so multiply the top by 2 too: 3 × 2 = 6. So 6/8.', bars({ numerator: 3, denominator: 4 }), { authoredChoices: true }),
+      practice('Write 2/3 with a denominator of 6.', ['4/6', '2/6', '5/6', '4/3'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 0, denominator: 6 }), 'Ask: 3 times what is 6? Multiply the top by that number too.', '3 × 2 = 6, so multiply the top by 2 too: 2 × 2 = 4. So 4/6.', bars({ numerator: 2, denominator: 3 }), { authoredChoices: true }),
+    ],
   },
   {
     id: 'missing-equivalent', title: 'Find the missing number', shortTitle: 'Missing parts', skill: 'Equivalent fractions keep the same amount. Whatever factor changes the denominator must also change the numerator.',
@@ -743,6 +854,16 @@ const curriculum: MissionSeed[] = [
       practice('Fill the blank: ?/10 = 2/5', ['4', '2', '5'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'The denominator doubled, 5 to 10.', 'Double the numerator too: 2 to 4.', bars({ numerator: 1, denominator: 2 })),
       practice('Fill the blank: 4/6 = 2/?', ['3', '6', '4'], 0, bars({ numerator: 4, denominator: 6 }, { numerator: 2, denominator: 3 }), 'The numerator was cut in half.', 'Halve the denominator too: 6 ÷ 2 = 3.', bars({ numerator: 1, denominator: 2 })),
     ],
+    ideaQuestions: [
+      // Idea 1: find the factor on the bottom, use it on the top.
+      practice('Fill the blank: 2/3 = ?/6', ['4', '2', '5', '6'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 0, denominator: 6 }), 'What times 3 makes 6?', '3 × 2 = 6, so the factor is 2. Do the same to the top: 2 × 2 = 4.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Fill the blank: 1/4 = ?/12', ['3', '1', '9', '12'], 0, bars({ numerator: 1, denominator: 4 }, { numerator: 0, denominator: 12 }), 'What times 4 makes 12?', '4 × 3 = 12, so the factor is 3. Do the same to the top: 1 × 3 = 3.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      // Idea 2: a missing bottom number.
+      practice('Fill the blank: 1/3 = 2/?', ['6', '3', '4', '2'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 6 }), 'The top number was doubled, 1 to 2.', 'Double the bottom too: 3 × 2 = 6.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Fill the blank: 2/5 = 4/?', ['10', '5', '7', '4'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'The top number was doubled, 2 to 4.', 'Double the bottom too: 5 × 2 = 10.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      // Idea 3: the blank on the left; dividing.
+      practice('Fill the blank: ?/4 = 3/12', ['1', '3', '4', '2'], 0, bars({ numerator: 3, denominator: 12 }, { numerator: 0, denominator: 4 }), 'Start with 3/12, the pair with both numbers. 12 divided by what is 4?', '12 ÷ 3 = 4, so divide the top by 3 too: 3 ÷ 3 = 1.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+    ],
   },
   {
     id: 'compose-to-one', title: 'Put parts together', shortTitle: 'Make one whole', skill: 'Parts with the same denominator are the same size. Put enough together to fill one whole.',
@@ -757,6 +878,13 @@ const curriculum: MissionSeed[] = [
       practice('Which sum makes one whole?', ['1/3 + 2/3', '1/4 + 1/4', '2/5 + 1/5'], 0, bars({ numerator: 0, denominator: 3 }), 'Look for numerators that add up to the denominator.', '1/3 + 2/3 = 3/3. That is one whole.', bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 3 })),
       practice('What is 2/8 + 6/8?', ['8/8', '8/16', '4/8', '6/8'], 0, bars({ numerator: 2, denominator: 8 }, { numerator: 6, denominator: 8 }), 'Add the numerators. Keep eighths.', '2 + 6 = 8. 8/8 is one whole.', bars({ numerator: 1, denominator: 2 })),
       practice('A recipe uses 3/6 cup, then 3/6 cup more. How much in all?', ['6/6 cup', '6/12 cup', '3/6 cup', '6/3 cup'], 0, bars({ numerator: 3, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Add the numerators. How many sixths fill 1 cup?', '3 + 3 = 6. 6/6 is 1 cup.', bars({ numerator: 1, denominator: 2 })),
+    ],
+    ideaQuestions: [
+      practice('How many 1/8 parts make one whole?', ['8 parts', '7 parts', '1 part', '16 parts'], 0, bars({ numerator: 8, denominator: 8 }), 'The denominator is how many parts make one whole.', '8 eighths make one whole: 8/8 = 1.', bars({ numerator: 1, denominator: 8 }), { authoredChoices: true }),
+      practice('A bar is cut into 6 equal parts. Which fraction names the whole bar?', ['6/6', '1/6', '5/6', '3/6'], 0, bars({ numerator: 0, denominator: 6 }), 'The whole bar is all of its equal parts. Count them.', 'All 6 sixths make the whole bar: 6/6 = 1.', bars({ numerator: 6, denominator: 6 }), { authoredChoices: true }),
+      practice('What is 2/5 + 2/5?', ['4/5', '4/10', '2/5', '5/4'], 0, equation('2/5 + 2/5 = ?'), 'Add the numerators. Keep fifths.', '2 + 2 = 4. The parts are still fifths: 4/5.', bars({ numerator: 2, denominator: 5 }), { authoredChoices: true }),
+      practice('1/4 + ? = 1. What is the missing part?', ['3/4', '1/4', '4/4', '2/4'], 0, bars({ numerator: 1, denominator: 4 }), 'One whole is 4/4. How many more fourths fill it?', 'You have 1 fourth. 3 more fourths fill the whole: 1/4 + 3/4 = 4/4.', bars({ numerator: 4, denominator: 4 }), { authoredChoices: true }),
+      practice('5/8 of a wall is painted. What part is not painted yet?', ['3/8', '5/8', '8/8', '3/5'], 0, bars({ numerator: 5, denominator: 8 }), 'The whole wall is 8/8. How many eighths are missing?', '5/8 + 3/8 = 8/8, the whole wall. So 3/8 is not painted yet.', bars({ numerator: 8, denominator: 8 }), { authoredChoices: true }),
     ],
   },
   {
@@ -774,6 +902,13 @@ const curriculum: MissionSeed[] = [
       practice('Which sum of unit fractions equals 3/6?', ['1/6 + 1/6 + 1/6', '1/6 + 1/6', '1/3 + 1/3 + 1/3', '3/6 + 3/6'], 0, bars({ numerator: 3, denominator: 6 }), 'A unit fraction is one part. How many 1/6 parts make 3/6?', 'Three 1/6 parts make 3/6: 1/6 + 1/6 + 1/6.', bars({ numerator: 3, denominator: 6 })),
       practice('7/10 = 5/10 + what?', ['2/10', '3/10', '5/10'], 0, bars({ numerator: 5, denominator: 10 }, { numerator: 2, denominator: 10 }), '7 take away 5 is what?', '7 − 5 = 2. So 2/10.', bars({ numerator: 1, denominator: 2 })),
     ],
+    ideaQuestions: [
+      practice('Which sum makes 4/6?', ['1/6 + 3/6', '1/6 + 4/6', '2/6 + 4/6', '1/3 + 3/3'], 0, bars({ numerator: 4, denominator: 6 }), 'Keep sixths. Which numerators add up to 4?', '1 + 3 = 4, and both parts are sixths. So 1/6 + 3/6 = 4/6.', bars({ numerator: 4, denominator: 6 }), { authoredChoices: true }),
+      practice('Is 3/10 + 4/10 a way to break apart 7/10?', ['No, you must split the 10 too', 'No, the two parts must be equal', 'Yes, 3 + 4 = 7 and both are tenths', 'No, 7/10 is too small to split'], 2, bars({ numerator: 7, denominator: 10 }), 'Keep tenths. Do the numerators add back to 7?', '3 + 4 = 7, and both parts are tenths. So 3/10 + 4/10 = 7/10.', bars({ numerator: 7, denominator: 10 }), { authoredChoices: true }),
+      practice('Which sum equals 3/5?', ['1/5 + 2/5', '1/5 + 3/5', '2/5 + 2/5', '1/2 + 2/3'], 0, bars({ numerator: 3, denominator: 5 }), 'Keep fifths. Which numerators add up to 3?', '1 + 2 = 3, and both parts are fifths. So 1/5 + 2/5 = 3/5.', bars({ numerator: 3, denominator: 5 }), { authoredChoices: true }),
+      practice('1/6 + 4/6 makes 5/6. Which is another way to make 5/6?', ['2/6 + 3/6', '1/6 + 3/6', '2/6 + 4/6', '2/3 + 3/3'], 0, bars({ numerator: 5, denominator: 6 }), 'Add the numerators in each choice. Which ones make 5?', '2 + 3 = 5. So 2/6 + 3/6 = 5/6 too.', bars({ numerator: 5, denominator: 6 }), { authoredChoices: true }),
+      practice('Fill the blank: 4/5 = 1/5 + ?/5', ['3', '4', '5', '1'], 0, bars({ numerator: 4, denominator: 5 }, { numerator: 1, denominator: 5 }), '4 take away 1 is what?', '4 − 1 = 3. So 1/5 + 3/5 = 4/5.', bars({ numerator: 4, denominator: 5 }), { authoredChoices: true }),
+    ],
   },
   {
     id: 'improper-fractions', title: 'More than one whole', shortTitle: 'Past a whole', skill: 'When the numerator is greater than the denominator, the fraction is at least one whole. It may have extra parts too.',
@@ -790,6 +925,13 @@ const curriculum: MissionSeed[] = [
       practice('How many fourths make 2 wholes?', ['8', '4', '2'], 0, line(0, 4, 2), 'One whole is 4 fourths. Count the spaces to 2.', '4 + 4 = 8 fourths. So 8/4 = 2.', line(4, 4, 2)),
       practice('Which is more than one whole?', ['9/8', '7/8', '1/8'], 0, line(0, 8, 2), '8/8 is exactly one whole.', '9/8 is 1 part more than a whole.', line(8, 8, 2)),
     ],
+    ideaQuestions: [
+      practice('Is 5/4 more than one whole?', ['No, it is less than one whole', 'No, it is exactly one whole', 'Yes, 5 parts, but only 4 fit in one whole', 'No, a fraction is always less than one whole'], 2, line(0, 4, 2), '4/4 is one whole. Is 5 more than 4?', '5/4 is 4/4 and 1 more fourth, so it is more than one whole.', line(4, 4, 2), { authoredChoices: true }),
+      practice('Which is less than one whole?', ['5/6', '7/6', '6/6', '9/6'], 0, line(0, 6, 2), '6/6 is exactly one whole.', '5/6 is 1 part less than a whole.', line(6, 6, 2), { authoredChoices: true }),
+      practice('How many sixths make 2 wholes?', ['12', '6', '2', '8'], 0, line(0, 6, 2), 'One whole is 6 sixths. Count the spaces to 2.', '6 + 6 = 12 sixths. So 12/6 = 2.', line(6, 6, 2), { authoredChoices: true }),
+      practice('How many sixths past one whole is 8/6?', ['2', '8', '6', '1'], 0, line(8, 6, 2), '6/6 is one whole. Count the jumps after it.', '8/6 is 6/6 and 2 more sixths.', line(6, 6, 2), { authoredChoices: true }),
+      practice('What fraction is shaded? Each bar is one whole.', ['5/4', '1/4', '5/8', '4/5'], 0, bars({ numerator: 5, denominator: 4 }), 'Count the shaded fourths in both bars.', '4/4 fill the first bar, and 1/4 is left over: 5 fourths, or 5/4.', bars({ numerator: 4, denominator: 4 }, { numerator: 1, denominator: 4 }), { authoredChoices: true }),
+    ],
   },
   {
     id: 'mixed-improper', title: 'Two ways to write it', shortTitle: 'Two ways to name it', skill: 'A mixed number, like 1 and 3/4, has a whole number and a fraction. You can also write it as one fraction: 1 and 3/4 is 7/4.',
@@ -804,6 +946,13 @@ const curriculum: MissionSeed[] = [
       practice('What is 9/4 as wholes and a fraction?', ['2 and 1/4', '3 and 1/4', '2 and 2/4'], 0, line(9, 4, 3), 'Every 4/4 is one whole. What is left?', '8/4 is 2 wholes. 1/4 is left.', line(8, 4, 2)),
       practice('What is 2 and 3/4 as fourths?', ['11/4', '8/4', '4/11'], 0, line(11, 4, 3), '2 wholes is 8/4. Add 3 more.', '8/4 + 3/4 = 11/4.', line(8, 4, 2)),
       practice('What is 10/6 as wholes and a fraction?', ['1 and 4/6', '1 and 2/6', '2 and 4/6'], 0, line(10, 6, 2), '6/6 is one whole. What is left?', '10/6 is 6/6 and 4/6. That is 1 and 4/6.', line(6, 6, 2)),
+    ],
+    ideaQuestions: [
+      practice('Each bar is one whole. Which mixed number is shaded?', ['1 and 2/3', '2/3', '2 and 1/3', '1 and 1/3'], 0, bars({ numerator: 3, denominator: 3 }, { numerator: 2, denominator: 3 }), 'Count the full bars. Then count the thirds in the last bar.', '1 full bar and 2/3 of another: 1 and 2/3.', bars({ numerator: 3, denominator: 3 }, { numerator: 2, denominator: 3 }), { authoredChoices: true }),
+      practice('How many wholes are in 2 and 3/4?', ['2', '3', '4', '5'], 0, bars({ numerator: 4, denominator: 4 }, { numerator: 4, denominator: 4 }, { numerator: 3, denominator: 4 }), 'The whole number comes first.', '2 and 3/4 is 2 wholes and 3/4 more.', bars({ numerator: 4, denominator: 4 }, { numerator: 4, denominator: 4 }, { numerator: 3, denominator: 4 }), { authoredChoices: true }),
+      practice('Which is a mixed number?', ['2 and 1/4', '5/4', '1/4', '2'], 0, bars({ numerator: 4, denominator: 4 }, { numerator: 4, denominator: 4 }, { numerator: 1, denominator: 4 }), 'A mixed number has a whole number and a fraction.', '2 and 1/4 has a whole number, 2, and a fraction, 1/4.', bars({ numerator: 4, denominator: 4 }, { numerator: 4, denominator: 4 }, { numerator: 1, denominator: 4 }), { authoredChoices: true }),
+      practice('What is 1 and 1/4 as fourths?', ['5/4', '2/4', '1/4', '4/4'], 0, line(5, 4, 2), 'One whole is 4/4. Add 1 more.', '4/4 + 1/4 = 5/4.', line(4, 4, 2), { authoredChoices: true }),
+      practice('What is 7/5 as wholes and a fraction?', ['1 and 2/5', '2 and 1/5', '1 and 2/7', '1'], 0, line(7, 5, 2), 'Every 5/5 is one whole. What is left?', '5/5 is 1 whole, and 2/5 is left. That is 1 and 2/5.', line(5, 5, 2), { authoredChoices: true }),
     ],
   },
   {
@@ -820,6 +969,13 @@ const curriculum: MissionSeed[] = [
       practice('Maya walked 2/10 mile, then 5/10 mile. How far in all?', ['7/10 mile', '7/20 mile', '3/10 mile'], 0, bars({ numerator: 2, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Add the numerators. Keep tenths.', '2 + 5 = 7. So 7/10 mile.', bars({ numerator: 2, denominator: 10 })),
       practice('What is 3/5 + 1/5?', ['4/5', '4/10', '2/5'], 0, equation('3/5 + 1/5 = ?'), 'Add the numerators. Keep fifths.', '3 + 1 = 4. So 4/5.', bars({ numerator: 1, denominator: 5 })),
     ],
+    ideaQuestions: [
+      practice('Do 2/6 and 3/6 have the same size parts?', ['No, 2 and 3 are different', 'No, 3/6 is bigger', 'Yes, both are sixths', 'No, sixths can be different sizes'], 2, bars({ numerator: 2, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Look at the denominators.', 'Both denominators are 6. Both are sixths, so the parts are the same size.', bars({ numerator: 2, denominator: 6 }, { numerator: 3, denominator: 6 }), { authoredChoices: true }),
+      practice('Which fraction has the same size parts as 3/8?', ['5/8', '3/4', '3/5', '1/3'], 0, bars({ numerator: 3, denominator: 8 }), 'Same size parts means the same denominator.', '5/8 is in eighths too, so its parts are the same size as in 3/8.', bars({ numerator: 3, denominator: 8 }), { authoredChoices: true }),
+      practice('Can you add 1/3 + 1/4 by counting the parts?', ['No, thirds and fourths are different sizes', 'No, both numerators are 1', 'Yes, both have 1 part', 'Yes, any parts can be counted together'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 4 }), 'Look at the denominators. Are the parts the same size?', 'A third is bigger than a fourth. The parts are different sizes, so you cannot just count them.', bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 4 }), { authoredChoices: true }),
+      practice('A cat eats 1/4 cup of food, then 2/4 cup more. How much in all?', ['3/4 cup', '3/8 cup', '2/4 cup', '1/4 cup'], 0, bars({ numerator: 1, denominator: 4 }, { numerator: 2, denominator: 4 }), 'Add the numerators. Keep fourths.', '1 + 2 = 3. So 3/4 cup.', bars({ numerator: 1, denominator: 4 }, { numerator: 2, denominator: 4 }), { authoredChoices: true }),
+      practice('A ribbon is 2/6 meter long. Add 3/6 meter more. How long is it now?', ['5/6 meter', '5/12 meter', '3/6 meter', '1/6 meter'], 0, bars({ numerator: 2, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Add the numerators. Keep sixths.', '2 + 3 = 5. So 5/6 meter.', bars({ numerator: 2, denominator: 6 }, { numerator: 3, denominator: 6 }), { authoredChoices: true }),
+    ],
   },
   {
     id: 'subtract-like-denominators', title: 'Take parts away', shortTitle: 'Subtract fractions', skill: 'When the parts are the same size, take away the parts, then count how many parts remain. Keep the denominator because the part size stays the same.',
@@ -834,6 +990,13 @@ const curriculum: MissionSeed[] = [
       practice('A jug is 9/10 full. You pour out 4/10. How much is left?', ['5/10', '5/20', '13/10'], 0, bars({ numerator: 9, denominator: 10 }, { numerator: 4, denominator: 10 }), 'Take away the numerators. Keep tenths.', '9 − 4 = 5. So 5/10.', bars({ numerator: 4, denominator: 10 })),
       practice('What is 7/8 − 3/8?', ['4/8', '4/16', '10/8'], 0, equation('7/8 − 3/8 = ?'), 'Take away the numerators. Keep eighths.', '7 − 3 = 4. So 4/8.', bars({ numerator: 6, denominator: 8 })),
       practice('What is 4/5 − 1/5?', ['3/5', '3/10', '5/5'], 0, equation('4/5 − 1/5 = ?'), 'Take away 1 part. Keep fifths.', '4 − 1 = 3. So 3/5.', bars({ numerator: 4, denominator: 5 })),
+    ],
+    ideaQuestions: [
+      practice('Start with 5/8. Take away 2/8. How many eighths are left?', ['3', '7', '2', '5'], 0, bars({ numerator: 5, denominator: 8 }), 'Start with 5 eighths. Take away 2 of them.', '5 − 2 = 3. 3 eighths are left.', bars({ numerator: 5, denominator: 8 }), { authoredChoices: true }),
+      practice('Start with 6/10. Take away 4/10. How many tenths are left?', ['2', '10', '4', '6'], 0, bars({ numerator: 6, denominator: 10 }), 'Start with 6 tenths. Take away 4 of them.', '6 − 4 = 2. 2 tenths are left.', bars({ numerator: 6, denominator: 10 }), { authoredChoices: true }),
+      practice('Start with 4/6. Take away 1/6. How many sixths are left?', ['3', '5', '1', '4'], 0, bars({ numerator: 4, denominator: 6 }), 'Start with 4 sixths. Take away 1 of them.', '4 − 1 = 3. 3 sixths are left.', bars({ numerator: 4, denominator: 6 }), { authoredChoices: true }),
+      practice('A rope is 7/8 meter long. Cut off 2/8 meter. How much is left?', ['5/8 meter', '9/8 meter', '2/8 meter', '7/8 meter'], 0, bars({ numerator: 7, denominator: 8 }, { numerator: 2, denominator: 8 }), 'Take away the numerators. Keep eighths.', '7 − 2 = 5. So 5/8 meter is left.', bars({ numerator: 7, denominator: 8 }), { authoredChoices: true }),
+      practice('Mia has 5/6 of a pizza. She eats 3/6. How much is left?', ['2/6', '8/6', '3/6', '5/6'], 0, bars({ numerator: 5, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Take away the numerators. Keep sixths.', '5 − 3 = 2. So 2/6 of the pizza is left.', bars({ numerator: 5, denominator: 6 }), { authoredChoices: true }),
     ],
   },
   {
@@ -872,10 +1035,17 @@ const curriculum: MissionSeed[] = [
       model: decimal(7),
     },
     questions: [
-      practice('Write 3/10 as a decimal.', ['0.3', '3.0', '0.03'], 0, decimal(3), 'Tenths go right after the decimal point.', '3 tenths is 0.3.', decimal(3)),
-      practice('What fraction is 0.6?', ['6/10', '6/100', '1/6'], 0, decimal(6), 'The 6 is right after the decimal point. That means tenths.', '0.6 means 6 tenths, or 6/10.', decimal(6)),
-      practice('A strip is 0.4 colored. What fraction is that?', ['4/10', '4/100', '10/4'], 0, decimal(4), 'The number right after the decimal point is tenths.', '0.4 means 4 tenths, or 4/10.', decimal(4)),
+      practice('Write 3/10 as a decimal.', ['0.3', '3.0', '0.7', '3.10'], 0, decimal(3), 'Tenths go right after the decimal point.', '3 tenths is 0.3.', decimal(3), { authoredChoices: true }),
+      practice('What fraction is 0.6?', ['6/10', '4/10', '1/6', '10/6'], 0, decimal(6), 'The 6 is right after the decimal point. That means tenths.', '0.6 means 6 tenths, or 6/10.', decimal(6), { authoredChoices: true }),
+      practice('A strip is 0.4 colored. What fraction is that?', ['4/10', '6/10', '1/4', '10/4'], 0, decimal(4), 'The number right after the decimal point is tenths.', '0.4 means 4 tenths, or 4/10.', decimal(4), { authoredChoices: true }),
       practice('Which is bigger, 0.8 or 5/10?', ['0.8', '5/10', 'They are equal'], 0, bars({ numerator: 8, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Write both numbers as tenths.', '8 tenths is more than 5 tenths.', decimal(8)),
+    ],
+    ideaQuestions: [
+      practice('A strip has 10 equal parts. 3 are colored. What fraction is colored?', ['3/10', '7/10', '3/7', '10/3'], 0, bars({ numerator: 3, denominator: 10 }), 'Count all the equal parts for the bottom number. Count the colored parts for the top.', '3 of the 10 equal parts are colored: 3/10, or 3 tenths.', bars({ numerator: 3, denominator: 10 }), { authoredChoices: true }),
+      practice('How many tenths make one whole?', ['10', '1', '9', '5'], 0, bars({ numerator: 0, denominator: 10 }), 'The denominator is how many parts make one whole.', '10 tenths make one whole: 10/10 = 1.', bars({ numerator: 10, denominator: 10 }), { authoredChoices: true }),
+      practice('A strip has 10 equal parts. 9 are colored. What fraction is not colored?', ['1/10', '9/10', '1/9', '2/10'], 0, bars({ numerator: 9, denominator: 10 }), 'Count the parts that are not colored. All the parts make the bottom number.', '1 of the 10 parts is not colored: 1/10.', bars({ numerator: 9, denominator: 10 }), { authoredChoices: true }),
+      practice('Write 9/10 as a decimal.', ['0.9', '9.0', '0.1', '9.10'], 0, decimal(9), 'Write 0 and the decimal point. Then the tenths go right after the point.', '9 tenths is 0.9.', decimal(9), { authoredChoices: true }),
+      practice('A strip has 10 equal parts. 6 are colored. Write the colored part as a decimal.', ['0.6', '6.0', '0.4', '6'], 0, decimal(6), 'How many tenths are colored? Write them right after the decimal point.', '6 tenths are colored: 0.6.', decimal(6), { authoredChoices: true }),
     ],
   },
   {
@@ -960,7 +1130,15 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'multiply-whole-by-fraction', title: 'Groups of a fraction', shortTitle: 'Whole × fraction', description: '3 groups of 1/2.', skill: 'To find several groups of a fraction, count that fraction once for each group. The part size stays the same.', mode: 'multiply-whole', n: 2, d: 3, context: 'juice bottles' },
   { id: 'simplify-fractions', title: 'Simplest form', shortTitle: 'Simplest form', description: 'Use bigger parts. Same amount.', skill: 'Divide the numerator and denominator by the same factor. The parts get bigger, but the total amount stays the same.', mode: 'simplify', n: 3, d: 4, context: 'paper strip' },
   { id: 'equivalent-missing-both', title: 'Rename with a new denominator', shortTitle: 'Equivalent fractions', description: 'Fill a blank in the numerator or denominator.', skill: 'Equivalent fractions name the same amount. Multiply or divide the numerator and denominator by the same factor.', mode: 'equivalent', n: 2, d: 5, context: 'recipe card' },
-  { id: 'whole-numbers-as-fractions', title: 'Wholes as fractions', shortTitle: 'Whole numbers as fractions', description: 'Build one or more wholes from unit fractions.', skill: 'The denominator tells how many parts fill one whole. Count that many parts for each whole.', mode: 'whole-fraction', n: 6, d: 3, context: 'fraction bars', gradeBand: 3, standards: ['3.NF.3c'] },
+  { id: 'whole-numbers-as-fractions', title: 'Wholes as fractions', shortTitle: 'Whole numbers as fractions', description: 'Build one or more wholes from unit fractions.', skill: 'The denominator tells how many parts fill one whole. Count that many parts for each whole.', mode: 'whole-fraction', n: 6, d: 3, context: 'fraction bars', gradeBand: 3, standards: ['3.NF.3c'],
+    ideaQuestions: [
+      practice('How many sixths make one whole?', ['6', '1', '12', '5'], 0, emptyWholes(1, 6), 'Count the equal parts in one whole bar.', '6 sixths fill one whole: 6/6 = 1.', bars({ numerator: 6, denominator: 6 }), { authoredChoices: true }),
+      practice('8/8 of a bar is shaded. How much of the bar is that?', ['The whole bar', 'Half of the bar', '1/8 of the bar', '8 bars'], 0, bars({ numerator: 8, denominator: 8 }), '8/8 means 8 of 8 equal parts.', 'All 8 of the 8 parts are shaded, so 8/8 is the whole bar.', bars({ numerator: 8, denominator: 8 }), { authoredChoices: true }),
+      practice('Which fraction is one whole?', ['3/3', '1/3', '2/3', '3/6'], 0, emptyWholes(1, 3), 'One whole is all of its equal parts.', 'All 3 thirds fill the whole: 3/3 = 1.', bars({ numerator: 3, denominator: 3 }), { authoredChoices: true }),
+      practice('Write 3 whole bars as a fraction with a denominator of 1.', ['3/1', '1/3', '3/3', '1/1'], 0, emptyWholes(3), 'Each uncut bar is 1/1. Count the bars for the top number.', '3 whole bars, each 1 part: 3/1.', bars({ numerator: 1, denominator: 1 }, { numerator: 1, denominator: 1 }, { numerator: 1, denominator: 1 }), { authoredChoices: true }),
+      practice('Which fraction equals the whole number 5?', ['5/1', '1/5', '5/5', '4/1'], 0, emptyWholes(5), 'Each uncut bar is 1/1. How many bars make 5?', '5 whole bars, each 1 part: 5/1 = 5.', bars({ numerator: 1, denominator: 1 }, { numerator: 1, denominator: 1 }, { numerator: 1, denominator: 1 }, { numerator: 1, denominator: 1 }, { numerator: 1, denominator: 1 }), { authoredChoices: true }),
+      practice('Write 6/6 as a whole number.', ['1', '6', '12', '5'], 0, bars({ numerator: 6, denominator: 6 }), '6/6 is all 6 parts of one whole.', '6 sixths fill one whole, so 6/6 = 1.', bars({ numerator: 6, denominator: 6 }), { authoredChoices: true }),
+    ] },
   { id: 'compare-unlike-fractions', title: 'Compare different parts', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the denominators differ?', skill: 'Make the parts the same size by using a common denominator. Then compare how many parts each fraction has.', mode: 'compare', n: 2, d: 3, context: 'race track',
     example: { prompt: 'Which is bigger, 3/4 or 5/6?', answer: '5/6', explanation: 'Use twelfths for both: 3/4 = 9/12 and 5/6 = 10/12. 10 twelfths is more than 9 twelfths, so 5/6 is bigger.', model: bars({ numerator: 3, denominator: 4, named: true }, { numerator: 5, denominator: 6, named: true }) },
     // Idea questions (ideas/lessons-41-50.ts): rename one fraction (p1–p2), a common denominator (p3–p5), same numerators (p6).
@@ -1061,8 +1239,25 @@ const extensionTopics: ExtensionTopic[] = [
         '3/4 = 9/12 and 1/6 = 2/12. 9/12 + 2/12 = 11/12.', bars({ numerator: 9, denominator: 12 }, { numerator: 2, denominator: 12 }), { authoredChoices: true }),
     ],
   },
-  { id: 'add-mixed-numbers', title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Add wholes and parts.', skill: 'Add the whole numbers and the fraction parts. If the parts fill a whole, regroup them as one more whole.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route' },
-  { id: 'subtract-mixed-numbers', title: 'Subtract mixed numbers', shortTitle: 'Subtract mixed numbers', description: 'Trade a whole when you need more parts.', skill: 'If there are not enough fraction parts to subtract, trade one whole for equal-size parts.', mode: 'mixed-subtract', n: 1, d: 3, context: 'fabric roll' },
+  { id: 'add-mixed-numbers', title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Add wholes and parts.', skill: 'Add the whole numbers and the fraction parts. If the parts fill a whole, regroup them as one more whole.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route',
+    ideaQuestions: [
+      practice('2 1/4 + 1 2/4. Add the wholes. How many wholes is that?', ['3', '2', '1', '6'], 0, bars({ numerator: 9, denominator: 4 }, { numerator: 6, denominator: 4 }), 'Add the whole numbers: 2 and 1.', '2 + 1 = 3 wholes.', bars({ numerator: 9, denominator: 4 }, { numerator: 6, denominator: 4 }), { authoredChoices: true }),
+      practice('1 1/6 + 2 4/6. Add the wholes. How many wholes is that?', ['3', '1', '2', '8'], 0, bars({ numerator: 7, denominator: 6 }, { numerator: 16, denominator: 6 }), 'Add the whole numbers: 1 and 2.', '1 + 2 = 3 wholes.', bars({ numerator: 7, denominator: 6 }, { numerator: 16, denominator: 6 }), { authoredChoices: true }),
+      practice('3 1/5 + 1 1/5. Add the wholes. How many wholes is that?', ['4', '3', '1', '6'], 0, bars({ numerator: 16, denominator: 5 }, { numerator: 6, denominator: 5 }), 'Add the whole numbers: 3 and 1.', '3 + 1 = 4 wholes.', bars({ numerator: 16, denominator: 5 }, { numerator: 6, denominator: 5 }), { authoredChoices: true }),
+      practice('1 1/8 + 1 3/8 = ?', ['2 4/8', '2 4/16', '1 4/8', '2 3/8'], 0, bars({ numerator: 9, denominator: 8 }, { numerator: 11, denominator: 8 }), 'Add the wholes: 1 + 1. Then add the fraction parts: 1/8 + 3/8.', '1 + 1 = 2, and 1/8 + 3/8 = 4/8. So 2 4/8.', bars({ numerator: 9, denominator: 8 }, { numerator: 11, denominator: 8 }), { authoredChoices: true }),
+      practice('2 1/5 + 1 2/5 = ?', ['3 3/5', '3 3/10', '2 3/5', '3 1/5'], 0, bars({ numerator: 11, denominator: 5 }, { numerator: 7, denominator: 5 }), 'Add the wholes: 2 + 1. Then add the fraction parts: 1/5 + 2/5.', '2 + 1 = 3, and 1/5 + 2/5 = 3/5. So 3 3/5.', bars({ numerator: 11, denominator: 5 }, { numerator: 7, denominator: 5 }), { authoredChoices: true }),
+      practice('1 1/4 + 2/4 = ?', ['1 3/4', '1 3/8', '3/4', '1 1/4'], 0, bars({ numerator: 5, denominator: 4 }, { numerator: 2, denominator: 4 }), 'There is 1 whole. Add the fraction parts: 1/4 + 2/4.', '1/4 + 2/4 = 3/4, and the whole stays 1. So 1 3/4.', bars({ numerator: 5, denominator: 4 }, { numerator: 2, denominator: 4 }), { authoredChoices: true }),
+      practice('1 3/4 + 2/4 = ?', ['2 1/4', '1 5/8', '1 1/4', '1 3/4'], 0, bars({ numerator: 7, denominator: 4 }, { numerator: 2, denominator: 4 }), 'Add the parts: 3/4 + 2/4 = 5/4. Do the parts make a new whole?', '5/4 is 4/4 and 1/4. 4/4 makes 1 more whole: 1 + 1 = 2, so 2 1/4.', bars({ numerator: 7, denominator: 4 }, { numerator: 2, denominator: 4 }), { authoredChoices: true }),
+    ] },
+  { id: 'subtract-mixed-numbers', title: 'Subtract mixed numbers', shortTitle: 'Subtract mixed numbers', description: 'Trade a whole when you need more parts.', skill: 'If there are not enough fraction parts to subtract, trade one whole for equal-size parts.', mode: 'mixed-subtract', n: 1, d: 3, context: 'fabric roll',
+    ideaQuestions: [
+      practice('2 3/4 − 1 1/4 = ?', ['1 2/4', '4', '2/4', '2 2/4'], 0, bars({ numerator: 11, denominator: 4 }, { numerator: 5, denominator: 4 }), 'Take away the parts: 3/4 − 1/4. Then the wholes: 2 − 1.', '3/4 − 1/4 = 2/4, and 2 − 1 = 1. So 1 2/4.', bars({ numerator: 11, denominator: 4 }, { numerator: 5, denominator: 4 }), { authoredChoices: true }),
+      practice('3 5/6 − 1 2/6 = ?', ['2 3/6', '5 1/6', '3/6', '3 3/6'], 0, bars({ numerator: 23, denominator: 6 }, { numerator: 8, denominator: 6 }), 'Take away the parts: 5/6 − 2/6. Then the wholes: 3 − 1.', '5/6 − 2/6 = 3/6, and 3 − 1 = 2. So 2 3/6.', bars({ numerator: 23, denominator: 6 }, { numerator: 8, denominator: 6 }), { authoredChoices: true }),
+      practice('2 7/8 − 2/8 = ?', ['2 5/8', '3 1/8', '2 7/8', '3/8'], 0, bars({ numerator: 23, denominator: 8 }, { numerator: 2, denominator: 8 }), 'Take away the parts: 7/8 − 2/8. No wholes are taken away.', '7/8 − 2/8 = 5/8, and the 2 wholes stay. So 2 5/8.', bars({ numerator: 23, denominator: 8 }, { numerator: 2, denominator: 8 }), { authoredChoices: true }),
+      practice('2 1/6 − 1 4/6. Are there enough sixths to take away 4/6?', ['No, there is only 1 sixth', 'No, you can never take away sixths', 'Yes, there are 2 wholes', 'Yes, 1/6 is more than 4/6'], 0, bars({ numerator: 13, denominator: 6 }, { numerator: 10, denominator: 6 }), 'Compare the parts: 1/6 and 4/6.', 'There is only 1/6, and 4/6 is more than that. There are not enough sixths.', bars({ numerator: 13, denominator: 6 }, { numerator: 10, denominator: 6 }), { authoredChoices: true }),
+      practice('3 5/8 − 1 2/8. Are there enough eighths to take away 2/8?', ['No, 2/8 is more than 5/8', 'No, there are only 3 wholes', 'Yes, 5 eighths is more than 2 eighths', 'No, you can only take away wholes'], 2, bars({ numerator: 29, denominator: 8 }, { numerator: 10, denominator: 8 }), 'Compare the parts: 5/8 and 2/8.', '5/8 is more than 2/8, so there are enough eighths to take away.', bars({ numerator: 29, denominator: 8 }, { numerator: 10, denominator: 8 }), { authoredChoices: true }),
+      practice('3 2/3 − 1 1/3. Are there enough thirds to take away 1/3?', ['No, 1/3 is more than 2/3', 'No, there are 3 wholes', 'Yes, 2 thirds is more than 1 third', 'No, take away the wholes first'], 2, bars({ numerator: 11, denominator: 3 }, { numerator: 4, denominator: 3 }), 'Compare the parts: 2/3 and 1/3.', '2/3 is more than 1/3, so there are enough thirds to take away.', bars({ numerator: 11, denominator: 3 }, { numerator: 4, denominator: 3 }), { authoredChoices: true }),
+    ] },
   { id: 'fraction-of-quantity', title: 'A fraction of a number', shortTitle: 'Fractions of amounts', description: 'Find 3/5 of 20.', skill: 'Split the amount into equal groups using the denominator. Count the number of groups shown by the numerator.', mode: 'quantity', n: 3, d: 5, context: 'classroom supplies' },
   { id: 'mixed-unlike-operations', title: 'Mixed numbers with unlike parts', shortTitle: 'Mixed number operations', description: 'Add or subtract mixed numbers with different denominators.', skill: 'Rename the fraction parts so they are the same size. Then add or subtract, regrouping a whole if needed.', mode: 'mixed-unlike', n: 25, d: 12, context: 'walking route', gradeBand: 5, standards: ['5.NF.1'] },
   { id: 'estimate-fraction-operations', title: 'Estimate to check', shortTitle: 'Estimate fraction sums', description: 'Use 0, 1/2 and 1 to check whether an answer makes sense.', skill: 'Compare each fraction with 0, 1/2, or 1. Use those benchmarks to check whether the answer is a sensible size.', example: { prompt: 'Is 2/5 + 1/2 more or less than 1?', answer: 'Less than 1', explanation: '2/5 is a little less than the benchmark 1/2. Two halves make one whole. So 2/5 + 1/2 is a little less than one whole.', model: bars({ numerator: 2, denominator: 5, named: true }, { numerator: 1, denominator: 2, named: true }) }, mode: 'estimate', n: 9, d: 10, context: 'trail lengths', gradeBand: 5, standards: ['5.NF.2'] },
@@ -1138,8 +1333,24 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'ruler-measurement', title: 'Measure with fractional inches', shortTitle: 'Read a ruler', description: 'Use equal ruler marks to name a length.', skill: 'The spaces between ruler marks are equal fractions of an inch. Count the spaces to measure.',
     // The answer the practice asks for (1 1/4), with the spaces counted (5/4) beside it.
     example: { prompt: 'Mark a length of 1 1/4 inches on a ruler.', answer: '1 1/4 inches', explanation: 'Each small space is 1/4 inch. 4 spaces make 1 inch, and 1 more space is 1/4 inch more. That is 5 quarter-inch spaces (5/4), written 1 1/4 inches.', model: { kind: 'ruler', denominator: 4, wholes: 2, end: 5 } },
-    mode: 'ruler', n: 5, d: 4, context: 'ruler', gradeBand: 3, standards: ['3.MD.4'] },
-  { id: 'build-line-plots', title: 'Build a fraction line plot', shortTitle: 'Build line plots', description: 'Place one X for each measurement.', skill: 'Place one X for each measurement above its matching value. Stack Xs when measurements match.', example: { prompt: 'Ribbons are 1/4, 3/4, 3/4 and 1 inch long. How many Xs go above 3/4?', answer: '2 Xs', explanation: 'Put one X above the matching tick for each ribbon. Two ribbons are 3/4 inch long, so 2 Xs stack above 3/4.', model: line(3, 4) }, mode: 'line-plot', n: 3, d: 4, context: 'ribbon lengths', gradeBand: 3, standards: ['3.MD.4'] },
+    mode: 'ruler', n: 5, d: 4, context: 'ruler', gradeBand: 3, standards: ['3.MD.4'],
+    ideaQuestions: [
+      // Idea 1: lengths under 1 inch (count the quarter-inch spaces).
+      practice('The blue craft stick starts at zero and ends at a tick with no number. Use the ruler. How long is it in inches?', ['2/4', '3/4', '1/4', '2'], 0, { kind: 'ruler', denominator: 4, wholes: 2, end: 2 }, 'Count how many short spaces make 1 inch. Then count the spaces to the end of the craft stick.', 'Count how many short spaces make 1 inch. Then count the spaces to the end of the craft stick. So the answer is 2/4.', { kind: 'ruler', denominator: 4, wholes: 2, end: 2 }, { authoredChoices: true }),
+      // Idea 2: past 1 inch, the whole inches and the extra part.
+      practice('The blue paintbrush starts at zero and ends at a tick with no number. Use the ruler. How long is it in inches?', ['1 3/4', '2', '1 2/4', '3/4'], 0, { kind: 'ruler', denominator: 4, wholes: 2, end: 7 }, 'Count how many short spaces make 1 inch. Then count the spaces to the end of the paintbrush.', 'Count how many short spaces make 1 inch. Then count the spaces to the end of the paintbrush. So the answer is 1 3/4.', { kind: 'ruler', denominator: 4, wholes: 2, end: 7 }, { authoredChoices: true }),
+    ] },
+  { id: 'build-line-plots', title: 'Build a fraction line plot', shortTitle: 'Build line plots', description: 'Place one X for each measurement.', skill: 'Place one X for each measurement above its matching value. Stack Xs when measurements match.', example: { prompt: 'Ribbons are 1/4, 3/4, 3/4 and 1 inch long. How many Xs go above 3/4?', answer: '2 Xs', explanation: 'Put one X above the matching tick for each ribbon. Two ribbons are 3/4 inch long, so 2 Xs stack above 3/4.', model: line(3, 4) }, mode: 'line-plot', n: 3, d: 4, context: 'ribbon lengths', gradeBand: 3, standards: ['3.MD.4'],
+    ideaQuestions: [
+      // Idea 1: find each length on the line (4/4 inch is the tick at 1).
+      practice('Which length is the same as 1 inch?', ['4/4 inch', '1/4 inch', '4 inches', '3/4 inch'], 0, { kind: 'lineplot', denominator: 4, wholes: 1, values: [] }, 'Count the spaces from 0 to 1 inch. Each space is 1/4 inch.', '4 spaces of 1/4 inch reach the tick at 1. So 4/4 inch is 1 inch.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [] }, { authoredChoices: true }),
+      practice('A ribbon is 4/4 inch long. Which tick shows its length?', ['The tick at 1', 'The tick at 3/4', 'The tick at 1/4', 'No tick shows 4/4'], 0, { kind: 'lineplot', denominator: 4, wholes: 1, values: [] }, '4/4 inch is the same as 1 inch.', '4 spaces of 1/4 inch from 0 reach the tick at 1. So 4/4 inch is the tick at 1.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [] }, { authoredChoices: true }),
+      practice('A leaf is 3/4 inch long. Which tick shows its length?', ['The tick at 3/4', 'The tick at 2/4', 'The tick at 1/4', 'The tick at 1'], 0, { kind: 'lineplot', denominator: 4, wholes: 1, values: [] }, 'Start at 0. Count 3 spaces of 1/4 inch.', 'Count 3 spaces from 0: 1/4, 2/4, 3/4. The leaf goes at the tick at 3/4.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [] }, { authoredChoices: true }),
+      // Idea 2: one X above each measurement.
+      practice('Ribbons are 1/4, 2/4, 3/4 and 4/4 inch long. How many Xs go on the line plot?', ['4', '3', '1', '5'], 0, { kind: 'lineplot', denominator: 4, wholes: 1, values: [] }, 'Put one X for each ribbon.', '4 ribbons, so 4 Xs: one above 1/4, 2/4, 3/4 and 1.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [] }, { authoredChoices: true }),
+      practice('A ribbon is 2/4 inch long. Where does its X go?', ['Above 2/4', 'Above 1/4', 'Above 1', 'Above 0'], 0, { kind: 'lineplot', denominator: 4, wholes: 1, values: [] }, 'Find 2/4 inch on the line. The X goes right above it.', 'The ribbon is 2/4 inch long, so its X goes above 2/4.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [] }, { authoredChoices: true }),
+      practice('Leaves are 1/4, 3/4 and 4/4 inch long. Which of these ticks gets no X?', ['2/4', '1/4', '3/4', '1'], 0, { kind: 'lineplot', denominator: 4, wholes: 1, values: [] }, 'Put one X above each leaf length. 4/4 inch is the tick at 1.', 'Xs go above 1/4, 3/4 and 1. The tick at 2/4 gets no X.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [] }, { authoredChoices: true }),
+    ] },
   { id: 'read-line-plots', title: 'Read a fraction line plot', shortTitle: 'Read line plots', description: 'Use line-plot marks to compare measurements.', skill: 'Read the labels to find each measurement. Then compare them or find how far apart they are.', example: { prompt: 'The line plot shows pencil lengths in eighths of an inch. What is the difference between the longest and shortest?', answer: '4/8 inch', explanation: 'The X farthest right is at 7/8 and the X farthest left is at 3/8. 7/8 − 3/8 = 4/8. So the longest is 4/8 inch longer.', model: { kind: 'lineplot', denominator: 8, wholes: 1, values: [3, 5, 5, 7] } }, mode: 'line-plot-read', n: 5, d: 8, context: 'pencil lengths', gradeBand: 4, standards: ['4.MD.4'],
     // Idea questions (ideas/lessons-41-50.ts): count the Xs (p1), add one stack (p2–p3), longest minus shortest (p4–p5).
     ideaQuestions: [
@@ -1208,10 +1419,25 @@ const extensionTopics: ExtensionTopic[] = [
   { id: 'fraction-of-area', title: 'Fractions in shapes', shortTitle: 'Equal-area partitions', description: 'Explore equal-area parts in squares, rectangles, circles and hexagons.', skill: 'Fraction parts must have equal areas. Their shapes may look different, but each part must cover the same amount of space.', mode: 'area', n: 3, d: 8, context: 'shape tiles', gradeBand: 3, standards: ['3.G.2'],
     example: { prompt: 'Two small squares and two triangles fill this square. What fraction is each part?', answer: '1/4.',
       explanation: 'The shapes are different, but each part covers the same space: half of one half. 4 equal parts, so each part is 1/4.',
-      model: { kind: 'area', cut: 'fourths-mixed', shaded: [0, 2], caption: 'A square and a triangle: both are 1/4' } } },
+      model: { kind: 'area', cut: 'fourths-mixed', shaded: [0, 2], caption: 'A square and a triangle: both are 1/4' } },
+    ideaQuestions: [
+      practice('This square is cut into 1 small square and 6 triangles. Are all the parts equal in area?', ['No, the small square covers more', 'Yes, they all fill the square', 'Yes, they are all small parts', 'No, the triangles cover more'], 0, { kind: 'area', cut: 'quarter-and-triangles', shaded: [] }, 'Picture moving a triangle on top of the small square. Does it cover the same space?', 'The small square covers the same space as 2 triangles, so the parts are not equal in area.', { kind: 'area', cut: 'fourths-squares', shaded: [] }, { authoredChoices: true }),
+      practice('This square is cut into 4 parts. Are the parts equal in area?', ['No, some parts cover more space', 'Yes, there are 4 parts', 'Yes, they all have 4 sides', 'No, parts must be triangles'], 0, { kind: 'area', cut: 'fourths-unequal', shaded: [] }, 'Compare the parts. Does each one cover the same space?', 'Some parts cover more space than others, so the parts are not equal in area.', { kind: 'area', cut: 'fourths-squares', shaded: [] }, { authoredChoices: true }),
+      practice('4 triangles fill this square. Are they equal in area?', ['No, triangles are not fair', 'Yes, each covers the same space', 'No, there should be squares', 'Yes, they are all triangles'], 1, { kind: 'area', cut: 'fourths-triangles', shaded: [] }, 'Picture moving one triangle on top of another. Do they cover the same space?', 'Each triangle covers the same space, so the 4 parts are equal in area.', { kind: 'area', cut: 'fourths-squares', shaded: [] }, { authoredChoices: true }),
+      practice('This hexagon is on a game board. What fraction of the hexagon is colored?', ['4/6', '2/6', '1/6', '6/4'], 0, { kind: 'area', cut: 'hexagon-sixths', shaded: [0, 1, 2, 3] }, 'Count all the equal parts first. Then count the colored parts.', 'The hexagon has 6 equal parts, and 4 are colored: 4/6.', { kind: 'area', cut: 'hexagon-sixths', shaded: [0, 1, 2, 3] }, { authoredChoices: true }),
+      practice('This hexagon is on a tile floor. What fraction of the hexagon is colored?', ['5/6', '1/6', '5/1', '6/5'], 0, { kind: 'area', cut: 'hexagon-sixths', shaded: [0, 1, 2, 3, 4] }, 'Count all the equal parts first. Then count the colored parts.', 'The hexagon has 6 equal parts, and 5 are colored: 5/6.', { kind: 'area', cut: 'hexagon-sixths', shaded: [0, 1, 2, 3, 4] }, { authoredChoices: true }),
+    ] },
   { id: 'fractional-side-area', title: 'Area with fractional sides', shortTitle: 'Fractional side area', description: 'Use a grid to find the area when both side lengths are fractions.', skill: 'A rectangle’s area is its side lengths multiplied. Count the small squares to see the fractional area.', mode: 'fractional-area', n: 1, d: 2, context: 'rectangle grid', gradeBand: 5, standards: ['5.NF.4b'],
     example: { prompt: 'A rectangle is 2/3 unit by 3/4 unit. What is its area?', answer: '6/12 square unit', explanation: 'Cut one square unit into 3 columns and 4 rows: 12 equal small rectangles. 2 columns and 3 rows overlap on 6 of them, so the area is 6/12 square unit.', model: { kind: 'area', cut: 'grid-3x4', shaded: [0, 1, 3, 4, 6, 7] } } },
-  { id: 'equivalent-number-line', title: 'Same spot, new name', shortTitle: 'Line equivalence', description: '2/3 and 4/6 land on the same spot.', skill: 'Split every space into the same number of smaller spaces. The jumps change too, so the point stays in the same place.', mode: 'line', n: 2, d: 3, context: 'number line' },
+  { id: 'equivalent-number-line', title: 'Same spot, new name', shortTitle: 'Line equivalence', description: '2/3 and 4/6 land on the same spot.', skill: 'Split every space into the same number of smaller spaces. The jumps change too, so the point stays in the same place.', mode: 'line', n: 2, d: 3, context: 'number line',
+    ideaQuestions: [
+      // Idea 1: split every space the same way.
+      practice('Cut every third into 2 equal spaces. How many spaces are from 0 to 1 now?', ['6 spaces', '5 spaces', '3 spaces', '4 spaces'], 0, { kind: 'line', numerator: 0, denominator: 3, wholes: 1, hideLabels: true }, 'Each of the 3 spaces becomes 2 spaces.', '3 spaces, each cut into 2: 6 spaces from 0 to 1.', { kind: 'line', numerator: 0, denominator: 6, wholes: 1 }, { authoredChoices: true }),
+      practice('Cut every fourth into 2 equal spaces. What is 1 new space?', ['1/8', '1/6', '1/4', '1/2'], 0, { kind: 'line', numerator: 0, denominator: 4, wholes: 1, hideLabels: true }, 'Count all the new spaces from 0 to 1.', '4 spaces, each cut into 2, make 8 spaces. 1 new space is 1/8.', { kind: 'line', numerator: 0, denominator: 8, wholes: 1 }, { authoredChoices: true }),
+      practice('Cut every half into 2 equal spaces. What is 1 new space?', ['1/4', '1/3', '1/2', '1/8'], 0, { kind: 'line', numerator: 0, denominator: 2, wholes: 1, hideLabels: true }, 'Count all the new spaces from 0 to 1.', '2 spaces, each cut into 2, make 4 spaces. 1 new space is 1/4.', { kind: 'line', numerator: 0, denominator: 4, wholes: 1 }, { authoredChoices: true }),
+      // Idea 2: the same spot gets a new name (cutting every space into 3).
+      practice('1/2 is marked on a line. Which fraction with a denominator of 6 is at the same spot?', ['3/6', '1/6', '5/6', '3/2'], 0, { kind: 'line', numerator: 1, denominator: 2, wholes: 1, hideLabels: true }, 'Cut every space into 3. Now there are 3 times as many spaces and 3 times as many jumps.', 'Cut every space into 3. 1 jump becomes 3 jumps of 1/6. So the answer is 3/6.', line(1, 2), { authoredChoices: true }),
+    ] },
   { id: 'fraction-recipes', title: 'Recipe fractions', shortTitle: 'Recipe fractions', description: 'Double a recipe.', skill: 'To double a recipe, use twice as much of every ingredient. Add each amount to itself.', mode: 'recipe', n: 3, d: 4, context: 'pancake recipe',
     // Idea questions (ideas/lessons-41-50.ts): add the amount once for each batch, before multiplying is taught.
     ideaQuestions: [

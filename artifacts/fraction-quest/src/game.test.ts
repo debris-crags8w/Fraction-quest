@@ -4525,10 +4525,11 @@ describe('equivalence, decimal, percent and picture questions offer real mistake
     }
     // Decimals: the point in the wrong place, the digits written out.
     if ((m = /^(?:Write (\d+)\/(10|100) as a decimal\.|Which decimal equals (\d+)\/(10|100)\?)$/.exec(p))) {
-      const [n, d] = m.slice(1).filter(Boolean).map(N); return [n / (d * 10), n / (d / 10), n, N(`${n}.${d}`), n / 10, n / 100];
+      const [n, d] = m.slice(1).filter(Boolean).map(N); return [n / (d * 10), n / (d / 10), n, N(`${n}.${d}`), n / 10, n / 100, ...(d === 10 ? [(10 - n) / 10] : [])];
     }
     if ((m = /^Write (\d+)\/10 \+ (\d+)\/100 as a decimal\.$/.exec(p))) { const [a, b] = m.slice(1).map(N); return [(a + b) / 100, (a + b) / 10, (10 * a + b) / 1000]; }
-    if (frac && (m = /^What fraction is 0\.(\d+)\?$/.exec(p))) { const n = N(m[1]); return [n / (y * 10), n, 1 / n, n / (y / 10), y / n]; }
+    // (and for tenths, the part not colored: 0.4 for 0.6)
+    if (frac && (m = /^What fraction is 0\.(\d+)\?$/.exec(p))) { const n = N(m[1]); return [n / (y * 10), n, 1 / n, n / (y / 10), y / n, ...(y === 10 ? [(10 - n) / 10] : [])]; }
     // Percents: the numerator or denominator as the percent, both written side by side, the rest; and back again.
     if ((m = /^Write (\d+)\/(\d+) as a percent\.$/.exec(p))) { const [a, b] = m.slice(1).map(N); const pct = (a / b) * 100; return [a, b, a * 2, 100 - pct, a * 10].map((v) => v / 100); }
     if (frac && (m = /^Write (\d+)% as a fraction(?: with a denominator of 100)?\.$/.exec(p))) { const v = N(m[1]); return [v / 10, 100 / v, (100 - v) / 100, v]; }
@@ -4588,7 +4589,7 @@ describe('the rarer question types offer real mistakes too', () => {
     if (frac && (m = /^Change (\d+)\/(\d+) into hundredths\.$|^Which fraction covers the same amount as (\d+)\/(\d+)\?$/.exec(p))) {
       const [a, b] = m.slice(1).filter(Boolean).map(N); return [a / y, (a + y - b) / y, x / b, y / x, 1 / y];
     }
-    if (frac && (m = /^A strip is 0\.(\d+) colored\. What fraction is that\?$/.exec(p))) { const n = N(m[1]); return [n / (y * 10), n, 1 / n, n / (y / 10), y / n]; }
+    if (frac && (m = /^A strip is 0\.(\d+) colored\. What fraction is that\?$/.exec(p))) { const n = N(m[1]); return [n / (y * 10), n, 1 / n, n / (y / 10), y / n, ...(y === 10 ? [(10 - n) / 10] : [])]; }
     // Parts named in other words.
     if (frac && /^A line has \d+ spaces\. The point is \d+ jumps from 0\. What is it\?$/.test(p)) return [x / (y + 1), y / x, 1 / y, (x + 1) / y, (y - x) / y];
     if (frac && /^A tray has \d+ spaces\. \d+ have a \w+\. What fraction have a \w+\?$|this \w+ is split into \d+ equal-area [\w ]+\. Color \d+\. What fraction of the whole is colored\?$/.test(p)) return [y / x, x / (y - x), (y - x) / y, 1 / y, x / (y + x)];
