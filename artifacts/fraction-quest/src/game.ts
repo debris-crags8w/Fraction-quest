@@ -1565,6 +1565,12 @@ export function getMission(id: string): Mission {
   return found;
 }
 
+/** One of a lesson's questions: its own, or one written for one of its ideas. */
+const isLessonQuestion = (missionId: string, questionId: string) => {
+  const mission = getMission(missionId);
+  return [...mission.questions, ...(mission.ideaQuestions ?? [])].some((question) => question.id === questionId);
+};
+
 export function recordMissedSkill(
   progress: Progress,
   missionId: string,
@@ -1572,10 +1578,7 @@ export function recordMissedSkill(
   now = Date.now(),
 ): Progress {
   if (progress.reviewQueue.some((item) => item.missionId === missionId)) return progress;
-  const sourceMission = getMission(missionId);
-  if (!sourceMission.questions.some((question) => question.id === questionId)) {
-    throw new Error(`Unknown question for skill review: ${questionId}`);
-  }
+  if (!isLessonQuestion(missionId, questionId)) throw new Error(`Unknown question for skill review: ${questionId}`);
   return {
     ...progress,
     reviewQueue: [
@@ -1873,7 +1876,7 @@ export function loadProgress(): Progress {
           || !validIds.has(item.missionId)
           || queuedMissionIds.has(item.missionId)
           || typeof item.missedQuestionId !== 'string'
-          || !getMission(item.missionId).questions.some((question) => question.id === item.missedQuestionId)
+          || !isLessonQuestion(item.missionId, item.missedQuestionId)
           || typeof item.dueAt !== 'number'
           || !Number.isFinite(item.dueAt)
         ) continue;
