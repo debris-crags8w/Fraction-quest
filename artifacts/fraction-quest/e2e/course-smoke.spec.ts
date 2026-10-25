@@ -1632,7 +1632,9 @@ test('a lesson ends with its story problem, told with the season’s props (pump
   const last = mission.questions.at(-1)!;
   await expect(page.getByTestId('story-problem-tag')).toHaveText('Story problem');
   await expect(page.getByTestId('story-line')).toContainText('The baker gave me a pumpkin pie to share.');
-  await expect(page.locator('#lesson-title')).toContainText('Chomp cut a pumpkin pie into 12 equal pieces. 4 friends share them fairly.');
+  // A long story problem is shown as its story lines, then the question.
+  await expect(page.locator('main')).toContainText('Chomp cut a pumpkin pie into 12 equal pieces.');
+  await expect(page.locator('#lesson-title')).toContainText('How many pieces does each friend get?');
   await page.getByTestId(`button-answer-${last.id}-story-${last.correctChoice}`).click();
   await page.getByTestId('button-check-answer').click();
   await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
