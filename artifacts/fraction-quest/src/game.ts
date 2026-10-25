@@ -463,7 +463,7 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('Is this strip cut into thirds?', ['Yes, 3 equal parts', 'No, the parts are unequal', 'No, there are 2 parts', 'Yes, there are 3 parts'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Thirds are 3 parts, all the same size. Compare the parts.', 'One part is twice as big as the others, so these are not thirds.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
-      practice('A sandwich is cut into 4 equal parts. What is 1 part?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), 'Count all the equal parts for the denominator.', 'The denominator is all 4 parts. You have 1.', bars({ numerator: 1, denominator: 2 })),
+      practice('A sandwich is cut into 4 equal parts. What is 1 part?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), 'Count all the equal parts. That is the bottom number.', 'The bottom number is all 4 parts. You have 1.', bars({ numerator: 1, denominator: 2 })),
       practice('This ribbon is cut into 2 parts. Are the parts equal halves?', ['Yes, same-size parts', 'No, one part is bigger', 'No, halves need 3 parts', 'No, they are different colors'], 0, { kind: 'partition', parts: [50, 50] }, 'Halves are 2 parts of the same size.', '2 parts are halves only if they are the same size. These are.', { kind: 'partition', parts: [50, 50] }),
       practice('A strip has 3 equal parts. What is 1 part?', ['one third', 'one half', 'three wholes', 'one fourth'], 0, bars({ numerator: 1, denominator: 3 }), 'How many equal parts make the strip?', '1 of 3 equal parts is one third, or 1/3.', bars({ numerator: 1, denominator: 2 })),
     ],
@@ -569,7 +569,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Which amount is closest to 0?', ['1/8', '3/4', '7/8'], 0, bars({ numerator: 1, denominator: 8 }, { numerator: 3, denominator: 4 }, { numerator: 7, denominator: 8 }), 'The smallest shaded part is closest to 0.', '1/8 is the smallest amount. It is closest to 0.', bars({ numerator: 1, denominator: 4 })),
       practice('Which fraction is closest to one whole?', ['2/6', '5/6', '3/6'], 1, bars({ numerator: 2, denominator: 6 }, { numerator: 5, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Which one is missing just 1 part?', '5/6 is just 1 part away from one whole.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which is between 1/2 and 1?', ['3/8', '3/4', '1/4'], 1, bars({ numerator: 3, denominator: 4 }), 'Find one past half but not full.', '3/4 is more than half but less than 1.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is between 1/2 and 1?', ['3/8', '3/4', '1/4', '1/8'], 1, bars({ numerator: 3, denominator: 4 }), 'Find one past half but not full.', '3/4 is more than half but less than 1.', bars({ numerator: 1, denominator: 2 })),
       practice('A plant grew 7/8 of a meter. Is that near 0, 1/2 or 1 meter?', ['0 meters', '1 meter', '1/2 meter', '7 meters'], 1, bars({ numerator: 7, denominator: 8 }), 'Just 1 eighth is missing.', '7/8 is almost one whole meter.', bars({ numerator: 1, denominator: 2 })),
     ],
   },

@@ -12,7 +12,7 @@ export const test = base.extend({
     const step = page.locator('[data-teach-first] [data-testid="button-teach-step-next"]');
     const teach = page.getByTestId('button-teach-next').or(step);
     await page.addLocatorHandler(teach, async () => {
-      for (let i = 0; i < 8 && await step.isVisible(); i++) await step.click();
+      for (let i = 0; i < 16 && await step.isVisible(); i++) await step.click();
       await page.getByTestId('button-teach-next').click();
     });
     // A child's first lesson: Watch and Try come between Teach first and the first question.

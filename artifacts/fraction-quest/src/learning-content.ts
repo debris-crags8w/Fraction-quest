@@ -970,8 +970,8 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
   if (id === 'add-like-denominators') return { prompt: 'Make 1/5 + 2/5.', target: model(3, 5), reason: '1 + 2 = 3, so 3/5.' };
   if (id === 'unit-size') return { prompt: 'Which is bigger, 1/3 or 1/6? Make it.', target: model(1, 3), reason: 'Six equal parts make smaller parts than three on the same-size whole, so 1/6 is smaller than 1/3.' };
   if (id === 'compare-same-numerator') return { prompt: 'Which is bigger, 2/3 or 2/6? Make it.', target: model(2, 3), reason: 'Both same-size wholes count 2 parts. Six equal parts make smaller parts than three, so 2/6 is smaller than 2/3.' };
-  if (id === 'benchmark-half') return { prompt: 'Use sixths. Make 1/6 less than half.', target: model(2, 6), reason: 'Half is 3/6. One less is 2/6.' };
-  if (id === 'fraction-magnitude') return { prompt: 'Use eighths. Make 1/8 less than half.', target: model(3, 8), reason: 'Half is 4/8. One less is 3/8.' };
+  if (id === 'benchmark-half') return { prompt: 'Use sixths. Make a fraction that is 1 part less than half.', target: model(2, 6), reason: 'Half is 3/6. One part less is 2/6.' };
+  if (id === 'fraction-magnitude') return { prompt: 'Use eighths. Make a fraction 1 part less than half (half is 4/8).', target: model(3, 8), reason: 'Half is 4/8. One part less is 3/8.' };
   if (id === 'benchmarks-zero-one') return { prompt: 'A jug is 1/6 away from full. Show how full it is.', target: model(5, 6), reason: '6/6 is full. One less is 5/6.' };
   if (id === 'compare-same-denominator' || id === 'order-fractions') return { prompt: 'Which is longer, 2/6 or 4/6 of a meter? Make it.', target: model(4, 6), reason: 'Both use sixths, so the parts are the same size. Four sixths is longer because 4 parts is more than 2.' };
   // New parts for the last step: sixths or fourths in grade 3, fifths or fourths later.
@@ -1080,7 +1080,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         } else if (kind === 2) {
           prompt = later ? 'The shaded part is 1 of the equal parts. What fraction of the bar is shaded?' : 'One part is shaded. What fraction of the whole bar is it?';
           answer = f(1, dd); visual = model(1, dd); task = { kind: 'copy', n: 1 };
-          hint = 'The denominator is how many equal parts. The shaded part is 1 of them.';
+          hint = 'The bottom number is how many equal parts make the whole. The top number is the 1 shaded part.';
         } else {
           prompt = later ? 'Color 1 equal part of this bar. What fraction did you color?' : 'Shade 1 part of this bar. What fraction of the bar did you shade?';
           answer = f(1, d); visual = model(0, d); task = { kind: 'shade', n: 1 };

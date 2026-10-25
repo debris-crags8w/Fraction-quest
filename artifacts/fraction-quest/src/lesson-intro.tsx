@@ -11,7 +11,7 @@ import { LESSON_SCENES } from './teach-scenes';
     with a scene (teach-scenes.ts) shows it one animated step at a time; `onFinish` is its last step's Next. */
 export function LessonIntroCard({ intro, missionId, onFinish }: { intro: LessonIntro; missionId?: string; onFinish?: () => void }) {
   const scene = missionId ? LESSON_SCENES[missionId] : undefined;
-  if (scene) return <AnimatedLessonIntro intro={intro} scene={scene} onFinish={onFinish} />;
+  if (scene) return <AnimatedLessonIntro intro={intro} scene={scene} missionId={missionId} onFinish={onFinish} />;
   return (
     <section className="fq-example-intro fq-teach-card" aria-labelledby="lesson-intro-heading" data-testid="lesson-introduction">
       <div className="fq-example-card-head">

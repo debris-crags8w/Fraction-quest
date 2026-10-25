@@ -121,3 +121,12 @@
 .fq-ts-counter .fq-ts-count { font-size: 0.8rem; font-weight: 900; color: var(--ts-ink); text-shadow: none; }
 .fq-ts-group.is-shaded .fq-ts-counter .fq-ts-count { color: #fff; }
 .fq-ts-piece-count.is-on-dark { fill: #fff; }
+
+/* Words to know: each new word or symbol beside what it means, with (often) a small still picture under it. Compact,
+   so three cards and their pictures fit a phone with Next in reach. */
+.fq-ts-words { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.fq-ts-words li { display: grid; grid-template-columns: minmax(36px, auto) minmax(0, 1fr); align-items: center; column-gap: 10px; row-gap: 2px; padding: 7px 10px; border: 2px solid hsl(var(--border)); border-radius: 14px; background: hsl(var(--card)); }
+.fq-ts-words b { color: var(--fq-grape, #6D4BD8); font-family: var(--app-font-display); font-size: 1.05rem; line-height: 1.1; }
+.fq-ts-words b.is-symbol { font-size: 1.7rem; text-align: center; }
+.fq-ts-words span { font-weight: 700; line-height: 1.35; font-size: .95rem; }
+.fq-ts-words .fq-ts-stage { grid-column: 1 / -1; min-height: 0; padding: 2px 0 0; gap: 4px; }

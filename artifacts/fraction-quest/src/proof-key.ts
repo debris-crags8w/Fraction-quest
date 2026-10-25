@@ -5,6 +5,8 @@
 export const PROOF_KEY: Record<string, string> = {
   "Nia says 3/5 = 4/6 because she added 1 to the numerator and denominator. Which fraction in tenths is really equal to 3/5?": "6/10",
   "Make 5/8 as 2/8 + 3/8.": "5/8",
+  "Use sixths. Make a fraction that is 1 part less than half.": "2/6",
+  "Use eighths. Make a fraction 1 part less than half (half is 4/8).": "3/8",
   "Pip pours 7 one-third cups of water. Build how much that is.": "7/3",
   "A bug crawls 3/8 inch. Show it on a line marked in eighths.": "3/8",
   "Snails crawl 1/4, 2/4 and 2/4 inch. Show the total on a line.": "5/4",
