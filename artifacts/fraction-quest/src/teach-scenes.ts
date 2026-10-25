@@ -187,10 +187,10 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
         [450, { 0: { counted: [0, 1, 2, 3] } }],
         [600, { 1: { hidden: false } }]),
     ],
-    // Why: a fair pizza is fourths; an unfair one is not.
+    // Why: a fair pizza has same-size slices; an unfair one does not (names come in idea 2, so no fraction labels).
     why: play([{ kind: 'pair', hidden: true, items: [
-      { kind: 'area', cut: 'circle-fourths', edges: true, shaded: [0], label: 'Fair: 1/4', tone: 'fair' },
-      { kind: 'area', cut: 'circle-unequal', edges: true, glow: [0], label: 'Not fourths', tone: 'unfair' },
+      { kind: 'area', cut: 'circle-fourths', edges: true, shaded: [0], label: 'Fair', tone: 'fair' },
+      { kind: 'area', cut: 'circle-unequal', edges: true, glow: [0], label: 'Not fair', tone: 'unfair' },
     ] }],
     [400, { 0: { hidden: false } }]),
   },

@@ -410,6 +410,8 @@ function practice(
   hint: string,
   retryFeedback: string,
   simplerModel: ModelSpec,
+  /** Keep the authored wrong choices (a lesson's early ideas: swapped-in slips like 3/4 use a step not taught yet). */
+  { authoredChoices = false }: { authoredChoices?: boolean } = {},
 ): PracticeSeed {
   // Every question shows a model: a typed-out equation ("1/6 + 4/6 = ?") also gets bars for its amounts.
   if (model.kind === 'equation') model = autoPicture(model.text, model.text) ?? model;
@@ -423,7 +425,7 @@ function practice(
   const signs = withSignComparisons(prompt, choices, correctChoice);
   const withFourth = withChoiceBars(withFourthChoice({ prompt, choices: signs?.choices ?? choices, correctChoice: signs?.correctChoice ?? correctChoice, model: named, hint, retryFeedback, simplerModel: simpler }), choices);
   // Whole-number answers: wrong choices come from real slips (one group, the rest, the whole), not answer ± 1.
-  const slipped = preferMisconceptions(withFourth);
+  const slipped = authoredChoices ? withFourth : preferMisconceptions(withFourth);
   return { ...slipped, choices: orderedWithSigns(prompt, slipped.choices) };
 }
 
@@ -472,14 +474,14 @@ const curriculum: MissionSeed[] = [
       model: { kind: 'area', cut: 'fourths-squares', shaded: [], caption: 'A square cake cut into 4 equal parts' },
     },
     questions: [
-      practice('Is this strip cut into thirds?', ['Yes, 3 equal parts', 'No, the parts are unequal', 'No, there are 2 parts', 'Yes, there are 3 parts'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Thirds are 3 parts, all the same size. Compare the parts.', 'One part is twice as big as the others, so these are not thirds.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
-      practice('A sandwich is cut into 4 equal parts. What is 1 part?', ['1/3', '1/4', '4/1'], 1, bars({ numerator: 1, denominator: 4 }), 'Count all the equal parts. That is the bottom number.', 'The bottom number is all 4 parts. You have 1.', bars({ numerator: 1, denominator: 2 })),
-      practice('This ribbon is cut into 2 parts. Are the parts equal halves?', ['Yes, same-size parts', 'No, one part is bigger', 'No, halves need 3 parts', 'No, they are different colors'], 0, { kind: 'partition', parts: [50, 50] }, 'Halves are 2 parts of the same size.', '2 parts are halves only if they are the same size. These are.', { kind: 'partition', parts: [50, 50] }),
+      practice('Is this strip cut into 3 equal parts?', ['Yes, 3 equal parts', 'No, the parts are unequal', 'No, there are 2 parts', 'Yes, there are 3 parts'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Equal parts are all the same size. Compare the parts.', 'One part is twice as big as the others, so the parts are not equal.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
+      practice('A sandwich is cut into 4 equal parts. What is 1 part?', ['1/3', '1/4', '1/2', '1/5'], 1, bars({ numerator: 1, denominator: 4 }), 'Count all the equal parts. That is the bottom number.', 'The bottom number is all 4 parts. You have 1.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('This ribbon is cut into 2 parts. Are the parts the same size?', ['Yes, same-size parts', 'No, one part is bigger', 'No, there must be 3 parts', 'No, they are different colors'], 0, { kind: 'partition', parts: [50, 50] }, 'Compare the 2 parts. Is one bigger?', 'Both parts are the same size, so they are equal parts.', { kind: 'partition', parts: [50, 50] }),
       practice('A strip has 3 equal parts. What is 1 part?', ['one third', 'one half', 'three wholes', 'one fourth'], 0, bars({ numerator: 1, denominator: 3 }), 'How many equal parts make the strip?', '1 of 3 equal parts is one third, or 1/3.', bars({ numerator: 1, denominator: 2 })),
     ],
     ideaQuestions: [
       practice('Is this pizza cut into 4 equal slices?', ['No, the slices are different sizes', 'Yes, 4 equal slices', 'Yes, there are 4 slices', 'No, it needs 8 slices'], 0, { kind: 'area', cut: 'circle-unequal', shaded: [] }, 'Equal slices are all the same size. Compare the slices.', 'One slice is bigger than the others, so these are not 4 equal slices.', { kind: 'area', cut: 'circle-fourths', shaded: [] }),
-      practice('This bar has 6 equal parts. One is shaded. What fraction is shaded?', ['1/6', '6/1', '1/5'], 0, bars({ numerator: 1, denominator: 6 }), 'Count all the equal parts. That is the bottom number.', '6 equal parts in all, and 1 is shaded: 1/6.', bars({ numerator: 1, denominator: 3 })),
+      practice('This bar has 6 equal parts. One is shaded. What fraction is shaded?', ['1/6', '1/5', '1/7', '1/2'], 0, bars({ numerator: 1, denominator: 6 }), 'Count all the equal parts. That is the bottom number.', '6 equal parts in all, and 1 is shaded: 1/6.', bars({ numerator: 1, denominator: 3 }), { authoredChoices: true }),
       practice('These 4 parts are 2 squares and 2 triangles. Are they fourths?', ['Yes, each part covers the same space', 'No, the parts are different shapes', 'No, fourths must be squares', 'Yes, because there are 4 parts'], 0, { kind: 'area', cut: 'fourths-mixed', shaded: [] }, 'Fourths must be the same size. They can be different shapes.', 'Each part covers the same space, 1/4 of the square. So they are fourths.', { kind: 'area', cut: 'fourths-squares', shaded: [] }),
       practice('How many small triangles cover the same space as the small square?', ['2', '1', '4'], 0, { kind: 'area', cut: 'quarter-and-triangles', shaded: [0] }, 'Look at another corner of the big square. It is the same size as the small square. Count its triangles.', '2 small triangles cover the same space as 1 small square.', { kind: 'area', cut: 'quarter-and-triangles', shaded: [0, 1, 2] }),
       practice('2 friends share 6 equal pieces fairly. How many pieces does each friend get?', ['3', '2', '6'], 0, { kind: 'set', selected: 0, total: 6 }, 'Give one piece to each friend, then go around again.', '6 pieces shared by 2 friends: each friend gets 3 pieces.', { kind: 'set', selected: 3, total: 6, groupCount: 2 }),

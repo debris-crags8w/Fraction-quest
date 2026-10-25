@@ -12,7 +12,10 @@ import { TEACH_EXTRAS } from './teach-extras';
 export type LearnPage = { text: string; scene: StepScene };
 /** A practice: a lesson question (by id, `-q` for the lesson's own, `-p` for one written for its idea) or a hands-on round. */
 export type IdeaPractice = { question: string } | { handsOn: PartFinderRound['id'] };
-export type LessonIdea = { title: string; learn: LearnPage[]; practice: IdeaPractice[] };
+/** A word, symbol or step an idea teaches: no Learn page or practice of an earlier idea may use it
+    (lesson-ideas.test.ts), and the idea's own Learn pages must. */
+export type IdeaTerm = { term: string; pattern: RegExp };
+export type LessonIdea = { title: string; learn: LearnPage[]; practice: IdeaPractice[]; terms?: IdeaTerm[] };
 
 const scenes = (id: string) => LESSON_SCENES[id]!;
 const example = (id: string, title: string): LearnPage => {
@@ -34,6 +37,7 @@ export const LESSON_IDEAS: Record<string, LessonIdea[]> = {
     },
     {
       title: 'Count the equal parts to name one part',
+      terms: [{ term: 'fraction names', pattern: /\d+\/\d+|\b(halves|half|thirds?|fourths?|quarters?|fifths?|sixths?|sevenths?|eighths?)\b/i }],
       learn: [
         { text: 'Count the equal parts to name them.', scene: scenes('equal-parts').steps[2]! },
         example('equal-parts', 'Name the parts, not the cuts'),
@@ -42,11 +46,13 @@ export const LESSON_IDEAS: Record<string, LessonIdea[]> = {
     },
     {
       title: 'Equal parts can be different shapes',
+      terms: [{ term: 'parts of different shapes', pattern: /\b(triangles?|shapes?)\b/i }],
       learn: [example('equal-parts', 'Same space, different shape')],
       practice: [{ question: 'equal-parts-p3' }, { handsOn: 'match' }, { question: 'equal-parts-p4' }],
     },
     {
       title: 'Share fairly',
+      terms: [{ term: 'sharing among friends', pattern: /\bfriends?\b/i }],
       learn: [example('equal-parts', 'Share fairly')],
       practice: [{ handsOn: 'sort' }, { handsOn: 'sort-cake' }, { question: 'equal-parts-p5' }],
     },

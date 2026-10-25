@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MISSIONS } from './game';
-import { ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS } from './lesson-ideas';
+import { ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS, type LessonIdea } from './lesson-ideas';
 import { PART_FINDER_ROUNDS } from './part-finder';
-import { sceneSentences } from './teach-scenes';
+import { HANDS_ON_ASKS } from './story';
+import { sceneSentences, type SceneRow, type StepScene } from './teach-scenes';
+import type { Mission } from './game';
 
 test('each idea teaches on its Learn pages, then has 3 practices that are real questions or cake rounds', () => {
   for (const [id, ideas] of Object.entries(LESSON_IDEAS)) {
@@ -59,4 +61,46 @@ test('lesson 1: the ideas come in the order of the approved plan, and shapes com
   assert.ok(at('match') < at('sort-cake'), 'different shapes are taught and practised before sharing a cake cut into different shapes');
   // The Learn page for sharing says the numbers it deals.
   assert.match(sceneSentences(ideas[3]!.learn[0]!.scene).join(' '), /Each friend gets 2 pieces/);
+});
+
+/** Every word on an idea's screens: its Learn pages (line, picture labels and sentences) and its practices (question,
+    choices, hint, feedback and picture labels, or the cake round's title, task and the friend's ask). */
+function ideaText(mission: Mission, idea: LessonIdea): { learn: string[]; practice: string[] } {
+  const rowText = (row: SceneRow): string[] => row.kind === 'text' ? [row.text] : row.kind === 'pair' ? row.items.flatMap(rowText)
+    : [('label' in row && row.label) || '', ('bracket' in row && row.bracket) || ''];
+  const sceneText = (scene: StepScene) => scene.flatMap((frame) => frame.rows.flatMap(rowText));
+  const modelText = (model: unknown) => JSON.stringify(model).match(/"(caption|label|text)":"[^"]*"/g) ?? [];
+  const learn = idea.learn.flatMap((page) => [page.text, ...sceneText(page.scene)]);
+  const practice = idea.practice.flatMap((item) => {
+    if ('handsOn' in item) {
+      const round = PART_FINDER_ROUNDS.find((r) => r.id === item.handsOn)!;
+      return [round.title, round.prompt, round.targetLabel, HANDS_ON_ASKS[round.id] ?? ''];
+    }
+    const q = ideaQuestion(mission, item.question)!;
+    return [q.prompt, ...q.choices, q.hint, q.retryFeedback, ...modelText(q.model), ...modelText(q.simplerModel)];
+  });
+  return { learn: learn.filter(Boolean), practice: practice.filter(Boolean) };
+}
+
+test('each screen sticks to its idea: nothing an idea teaches shows up in an earlier idea, and its own Learn page teaches it', () => {
+  for (const [id, ideas] of Object.entries(LESSON_IDEAS)) {
+    const mission = MISSIONS.find((item) => item.id === id)!;
+    ideas.forEach((idea, i) => {
+      const { learn } = ideaText(mission, idea);
+      for (const term of idea.terms ?? []) assert.ok(learn.some((text) => term.pattern.test(text)), `${id} idea ${i + 1} teaches ${term.term} on its Learn page`);
+      for (const later of ideas.slice(i + 1)) {
+        for (const term of later.terms ?? []) {
+          const { learn: l, practice: p } = ideaText(mission, idea);
+          for (const text of [...l, ...p]) assert.doesNotMatch(text, term.pattern, `${id} idea ${i + 1} uses ${term.term} (taught in "${later.title}"): ${text}`);
+        }
+      }
+    });
+  }
+});
+
+test('lesson 1 asks only about one part until lesson 2 teaches counting more than one (no 3/4 among the choices)', () => {
+  const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
+  for (const idea of LESSON_IDEAS['equal-parts']!) {
+    for (const text of ideaText(mission, idea).practice) assert.doesNotMatch(text, /\b([2-9]|\d{2,})\/\d+\b/, text);
+  }
 });
