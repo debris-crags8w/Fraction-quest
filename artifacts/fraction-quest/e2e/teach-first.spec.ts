@@ -269,12 +269,16 @@ test('a lesson with new signs teaches them on Learn pages before any practice us
   await completeIdeas(page, mission, { until: ideaSteps(mission.id).findIndex(({ idea }) => idea === signs) });
   const learn = page.getByTestId('idea-learn-screen');
   await expect(page.getByTestId('idea-kicker')).toHaveText(`Lesson 06 · Idea ${signs + 1} of ${ideas.length} · Learn`);
-  await expect(learn).toContainText('is more than');
+  // Words to know first: what each sign means (with a picture for =). Then > and < read aloud on bars.
+  const words = learn.getByTestId('teach-words');
+  await expect(words.getByTestId('teach-word->')).toContainText('is more than');
+  await expect(words.getByTestId('teach-word-<')).toContainText('is less than');
+  await expect(words.getByTestId('teach-word-=')).toContainText('the same amount as');
+  await expect(words.getByTestId('teach-word-=').getByTestId('teach-scene')).toBeVisible();
   await learn.getByTestId('button-teach-step-next').click();
-  await expect(learn).toContainText('is less than');
+  await expect(learn).toContainText('The open side faces the bigger amount.');
   await learn.getByTestId('button-teach-step-next').click();
-  await expect(learn).toContainText('the same amount as');
-  await expect(learn.getByTestId('teach-scene')).toBeVisible();
+  await expect(learn).toContainText('The point faces the smaller amount.');
   await learn.getByTestId('button-idea-practise').click();
   await expect(page.locator('.fq-play-kicker')).toContainText(`Idea ${signs + 1} of ${ideas.length}`);
 });
