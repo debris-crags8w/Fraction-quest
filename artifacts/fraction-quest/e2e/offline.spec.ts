@@ -43,7 +43,8 @@ test.describe('the published app', () => {
     await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
     await page.getByTestId('button-start-mission-equal-parts').click();
     await expect(page.getByTestId('teach-first')).toBeVisible();
-    for (let i = 0; i < 3; i++) await page.getByTestId('button-teach-step-next').click();
+    // Steps, Why it works, then the extra worked examples: Next until the last page.
+    while (await page.getByTestId('button-teach-step-next').isVisible()) await page.getByTestId('button-teach-step-next').click();
     await page.getByTestId('button-teach-next').click();
     // Watch and Try work offline too (a child's first lesson); skip them to reach the lesson.
     await expect(page.getByTestId('intro-steps')).toBeVisible();

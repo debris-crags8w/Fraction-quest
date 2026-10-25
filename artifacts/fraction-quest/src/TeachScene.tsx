@@ -7,7 +7,8 @@ import { AREA_CUTS, areaOutline, type Point } from './area-shapes';
 import type { LessonIntro } from './lesson-intros';
 import { LearningListenButton, LearningText } from './LearningText';
 import { MathText } from './MathText';
-import { teachPageScript, type AreaRow, type BarRow, type LessonScene, type LineRow, type SceneRow, type SetRow, type StepScene } from './teach-scenes';
+import { sceneSentences, teachPageScript, type AreaRow, type BarRow, type LessonScene, type LineRow, type SceneRow, type SetRow, type StepScene } from './teach-scenes';
+import { teachExtras, wordsScript, type WordCard } from './teach-extras';
 import './teach-scene.css';
 
 /** Is motion turned down (the grown-ups' setting, or the device's)? */
@@ -198,18 +199,43 @@ export function TeachScenePicture({ scene, take }: { scene: StepScene; take: num
 
 /** The Teach first card, one animated step at a time. `onFinish` is the last step's "Next: see it" (Teach first);
     without it (under "How it works") the last step just rests. */
-export function AnimatedLessonIntro({ intro, scene, onFinish }: { intro: LessonIntro; scene: LessonScene; onFinish?: () => void }) {
-  const pages = useMemo(() => [
-    ...intro.steps.map((text, i) => ({ label: `Step ${i + 1} of ${intro.steps.length}`, text, scene: scene.steps[i]! })),
-    { label: 'Why it works', text: intro.why, scene: scene.why },
-  ], [intro, scene]);
+type Page = { label: string; text: string; scene?: StepScene; words?: WordCard[]; listen: string };
+
+/** Words to know: each new word or symbol, what it means, and its picture (still). */
+function WordsToKnow({ words }: { words: WordCard[] }) {
+  return (
+    <ul className="fq-ts-words" data-testid="teach-words">
+      {words.map((word) => (
+        <li key={word.term} data-testid={`teach-word-${word.term}`}>
+          <b className={word.term.length <= 2 ? 'is-symbol' : ''}>{word.term}</b>
+          <span><LearningText text={word.meaning} emphasize /></span>
+          {word.picture && <TeachScenePicture scene={word.picture} take={0} />}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function AnimatedLessonIntro({ intro, scene, missionId, onFinish }: { intro: LessonIntro; scene: LessonScene; missionId?: string; onFinish?: () => void }) {
+  // Words to know comes first (nothing in the steps is new), then the steps and why, then each extra worked example.
+  const pages = useMemo((): Page[] => {
+    const extras = teachExtras(missionId);
+    const steps = intro.steps.map((text, i): Page => ({ label: `Step ${i + 1} of ${intro.steps.length}`, text, scene: scene.steps[i]!, listen: teachPageScript(intro, scene, i) }));
+    const why: Page = { label: 'Why it works', text: intro.why, scene: scene.why, listen: teachPageScript(intro, scene, intro.steps.length) };
+    const examples = (extras.examples ?? []).map((example, i, all): Page => ({
+      label: `Example ${i + 1} of ${all.length}`, text: example.title, scene: example.picture,
+      listen: [`${example.title}.`, ...sceneSentences(example.picture)].join(' '),
+    }));
+    const words: Page[] = extras.words?.length ? [{ label: 'Words to know', text: '', words: extras.words, listen: `${intro.goal} ${wordsScript(extras.words)}` }] : [];
+    return [...words, ...steps, why, ...examples];
+  }, [intro, scene, missionId]);
   const [page, setPage] = useState(0);
   const [take, setTake] = useState(0);
   const current = pages[page]!;
   const last = page === pages.length - 1;
   const go = (next: number) => { setPage(next); setTake((count) => count + 1); };
   // The step (the first also says what the lesson is for), then the worked numbers under its picture.
-  const listen = teachPageScript(intro, scene, page);
+  const listen = current.listen;
   return (
     <section className="fq-example-intro fq-teach-card fq-ts-card" aria-labelledby="lesson-intro-heading" data-testid="lesson-introduction" data-teach-first={onFinish ? '' : undefined}>
       <div className="fq-example-card-head">
@@ -223,8 +249,10 @@ export function AnimatedLessonIntro({ intro, scene, onFinish }: { intro: LessonI
         </span>
       </div>
       {page === 0 && <p className="fq-ts-goal"><LearningText text={intro.goal} emphasize /></p>}
-      <p className="fq-ts-step" data-testid="teach-step-text" aria-live="polite"><LearningText text={current.text} emphasize /></p>
-      <TeachScenePicture key={`${page}-${take}`} scene={current.scene} take={take} />
+      {current.words ? <WordsToKnow words={current.words} /> : <>
+        <p className="fq-ts-step" data-testid="teach-step-text" aria-live="polite"><LearningText text={current.text} emphasize /></p>
+        <TeachScenePicture key={`${page}-${take}`} scene={current.scene!} take={take} />
+      </>}
       <div className="fq-ts-nav">
         <button type="button" className="fq-button ghost fq-ts-back" onClick={() => go(page - 1)} disabled={page === 0} data-testid="button-teach-step-back">Back</button>
         <button type="button" className="fq-button ghost fq-ts-replay" onClick={() => go(page)} aria-label="Play the picture again" data-testid="button-teach-replay">

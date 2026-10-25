@@ -764,7 +764,7 @@ async function openDeveloperLesson(page: import('@playwright/test').Page, missio
       throw new Error('The isolated developer test did not start');
     }
     // A lesson's one-time Teach first screen comes before its worked example.
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 16; i++) {
       const stepNext = document.querySelector<HTMLButtonElement>('[data-testid="button-teach-step-next"]');
       if (!stepNext) break;
       stepNext.click(); await settleReactUpdate();
@@ -1299,7 +1299,7 @@ test('a passed Build check in later review clearly offers Finish review', async 
   await expect(reviewCheck.getByTestId(`status-pass-${check.id}`)).toContainText('Correct!');
   const explanation = reviewCheck.locator('.fq-ll-full-explanation');
   await explanation.locator('summary').click();
-  await expect(explanation).toContainText('The shaded part is 1 of them.');
+  await expect(explanation).toContainText('The top number is the 1 shaded part.');
   await expect(reviewCheck.locator('.fq-ll-check-passed')).toHaveText('Passed');
   await expect(page.getByTestId(`button-check-${check.id}`)).toHaveCount(0);
 

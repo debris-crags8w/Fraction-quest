@@ -4,7 +4,8 @@
 
 import { MISSIONS } from '../src/game';
 import { LESSON_INTROS, lessonIntroScript } from '../src/lesson-intros';
-import { LESSON_SCENES, teachPageScript } from '../src/teach-scenes';
+import { LESSON_SCENES, sceneSentences, teachPageScript } from '../src/teach-scenes';
+import { TEACH_EXTRAS, wordsScript } from '../src/teach-extras';
 import { getBuildChecks, getBuildPracticeChecks, getReviewCheck, getWorksheet } from '../src/learning-content';
 import { getExtraPractice } from '../src/practice-bank';
 import { partFinderRoundsFor, PART_FINDER_ROUNDS } from '../src/part-finder';
@@ -141,6 +142,10 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
     // The animated Teach first reads each page with the sentences under its picture.
     const scene = LESSON_SCENES[mission.id];
     if (intro && scene) for (let page = 0; page <= intro.steps.length; page++) addLine('lesson', teachPageScript(intro, scene, page));
+    // Teach before practice: Words to know (said after the goal) and each extra worked example.
+    const extras = TEACH_EXTRAS[mission.id];
+    if (intro && extras?.words?.length) addLine('lesson', `${intro.goal} ${wordsScript(extras.words)}`);
+    for (const example of extras?.examples ?? []) addLine('lesson', [`${example.title}.`, ...sceneSentences(example.picture)].join(' '));
     const line = mission.example.numberLine;
     if (line) addLine('lesson', numberLineDescription(line.points, line.benchmark, line.equivalentNames));
     // Lab: model feedback, hints and what is still wrong, for each required and optional Build target.
