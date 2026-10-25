@@ -12,7 +12,7 @@
 .fq-ll-steps li:has(> button) { padding: 0; }
 .fq-ll-steps li > button { display: flex; align-items: center; gap: inherit; min-height: 36px; padding: 7px 12px; border: 0; border-radius: inherit; color: inherit; background: none; font: inherit; cursor: pointer; }
 .fq-ll-steps li > button:focus-visible { outline: 3px solid hsl(var(--primary)); outline-offset: 2px; }
-.fq-ll-check, .fq-ll-sheet, .fq-ll-summary { padding: clamp(16px, 4vw, 32px); border: 2px solid hsl(var(--foreground) / .15); border-radius: 26px; background: hsl(var(--card)); box-shadow: var(--shadow-card); display: grid; gap: 16px; }
+.fq-ll-check, .fq-ll-sheet { padding: clamp(16px, 4vw, 32px); border: 2px solid hsl(var(--foreground) / .15); border-radius: 26px; background: hsl(var(--card)); box-shadow: var(--shadow-card); display: grid; gap: 16px; }
 .fq-ll-check { scroll-margin-top: 92px; }
 .fq-ll-check h3 { scroll-margin-top: 92px; font-size: clamp(1.3rem, 3vw, 1.8rem); }
 .fq-ll-check h3:focus { outline: 3px solid hsl(var(--ring)); outline-offset: 5px; border-radius: 5px; }
@@ -232,22 +232,12 @@
 .fq-ll-pline { margin-bottom: 25px; }
 .fq-ll-pline i span { position: absolute; top: 16px; left: -4px; font-style: normal; }
 .fq-ll input:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 2px; }
-.fq-ll-reqs { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
 
 @media (max-width: 520px) {
   .fq-ll-copy-model { padding: 10px; }
   .fq-ll-copy-part { min-height: 44px; border-radius: 6px; }
   .fq-ll-preview-svg { width: 100%; }
 }
-.fq-ll-reqs li { display: inline-flex; gap: 6px; align-items: center; padding: 5px 11px; border-radius: 99px; background: hsl(var(--muted)); font-size: .82rem; font-weight: 800; }
-.fq-ll-reqs li.done { background: hsl(var(--secondary) / .18); color: hsl(173 45% 22%); }
-.fq-ll-reqs .dot { width: 9px; height: 9px; border-radius: 50%; border: 2px solid hsl(var(--muted-foreground)); }
-.fq-ll-summary p { margin: 0; }
-.fq-ll-summary dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin: 0; }
-.fq-ll-summary dl div { padding: 10px 12px; border-radius: 12px; background: hsl(var(--muted) / .5); }
-.fq-ll-summary dt { font-size: .72rem; color: hsl(var(--muted-foreground)); font-weight: 800; letter-spacing: 0.01em; }
-.fq-ll-summary dd { margin: 3px 0 0; font-weight: 900; }
-.fq-ll-summary .fq-button { justify-self: start; }
 @media (max-width: 560px) {
   .fq-ll-builder { padding: 10px; }
   .fq-ll-actions .fq-button { width: 100%; }
@@ -296,7 +286,9 @@
 .fq-ll-step.wide { width: auto; min-width: 48px; padding: 0 8px; font: 900 .9rem var(--app-font-display); }
 .fq-ll-step-value { display: grid; place-items: center; min-width: 56px; min-height: 44px; padding: 0 6px; border: 2px solid var(--fq-edge); border-radius: 12px; background: hsl(var(--card)); color: var(--fq-den); font: 900 1.15rem var(--app-font-display); }
 /* Shown right after the required worksheet question once the lesson can be finished. */
-.fq-ll-finish-callout { list-style: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border: 2px solid #58CC02; border-radius: 18px; background: #F1FCE8; }
+.fq-ll-continue { display: flex; }
+.fq-ll-continue .fq-button { flex: 1; justify-content: center; }
+.fq-ll-finish-callout { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border: 2px solid #58CC02; border-radius: 18px; color: #1F3B0B; background: #F1FCE8; }
 .fq-ll-finish-callout p { margin: 0; flex: 1 1 220px; font-weight: 700; }
 
 /* The build question as a "Your task" card. It stays at the top of the screen while the child builds below it,

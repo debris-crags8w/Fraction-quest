@@ -8,7 +8,7 @@ import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Mi
 import { getMission, numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildCheckStage, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
 import {
-  checkRedoRow, checkLessonWorksheet, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, learningSummary, redoChecks, redoDone, redoWorksheet, requiredBuildChecks,
+  checkRedoRow, checkLessonWorksheet, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, redoChecks, redoDone, redoWorksheet, requiredBuildChecks,
   redoWorksheetCount, startRedo, targetedPracticeCount, targetedPracticePlans, updateLearning, worksheetProblemProgress, type LearningRecord, type RedoAttempt, type RedoPart,
 } from './learning';
 import { denomColor } from './fun-ui';
@@ -697,18 +697,17 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
   const count = problemProgress.filter(problem => problem.status === 'complete').length;
   const requiredDone = sheet.length > 0 && count === sheet.length;
   const progressText = `${count} of ${sheet.length} worksheet questions complete`;
-  const sum = learningSummary(rec);
   const reteachPlans = targetedPracticePlans(missionId, rec);
   const reteachProgress = targetedPracticeCount(missionId, rec);
   const gate = hasLearningGate(progress, missionId);
   const finished = progress.completedMissionIds.includes(missionId);
-  const reqs = [
-    { label: 'Practice', done: !!rec.practiceDone },
-    ...checks.map((check, index) => ({ label: buildStepName(check, index), done: !!rec.checks[check.id]?.passed })),
-    { label: 'Worksheet', done: requiredDone },
-    ...(reteachProgress.total ? [{ label: `Extra practice ${reteachProgress.done} of ${reteachProgress.total}`, done: reteachProgress.done === reteachProgress.total }] : []),
-  ];
-  const next = reqs.find(r => !r.done);
+  // Continue (once the builds are done) goes to the first open part below: a worksheet question, then extra practice.
+  const openRow = problemProgress.find(problem => problem.status !== 'complete');
+  const continueTo = openRow
+    ? { label: `Worksheet question ${sheet.findIndex(p => p.id === openRow.problemId) + 1}`, target: () => document.querySelector(`[data-testid="row-worksheet-${openRow.problemId}"]`) }
+    : reteachProgress.done < reteachProgress.total
+      ? { label: 'Extra practice', target: () => document.querySelector('[data-testid="section-targeted-reteach"]') }
+      : null;
 
   return (
     <div className="fq-ll" role="main" data-testid="learning-lab">
@@ -912,13 +911,6 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
                   <Star size={18} aria-hidden="true" /> Round {(index + 1) / WORKSHEET_ROUND} done! {index + 1 + WORKSHEET_ROUND >= sheet.length ? 'One round left!' : 'Great work, keep going!'}
                 </li>
               )}
-              {/* After the last worksheet question, once every step is done: finishing is the next step. */}
-              {index === sheet.length - 1 && gate && !finished && (
-                <li className="fq-ll-finish-callout" data-testid="callout-lab-finish">
-                  <p><strong>You did it!</strong> The whole worksheet is done. You can finish the lesson now.</p>
-                  <button type="button" className="fq-button" onClick={() => onFinish()} data-testid="button-lab-finish-now">Finish lesson <ArrowRight size={17} /></button>
-                </li>
-              )}
               </Fragment>
             ))}
           </ol>
@@ -954,20 +946,19 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         </section>
       )}
 
-      <section className="fq-ll-summary" aria-labelledby="sum-title" data-testid="section-learning-summary">
-        <h3 id="sum-title">How you're doing</h3>
-        <ul className="fq-ll-reqs" data-testid="list-requirements">
-          {reqs.map(r => <li key={r.label} className={r.done ? 'done' : ''}>{r.done ? <Check size={14} /> : <span className="dot" />}{r.label}</li>)}
-        </ul>
-        <p data-testid="text-next-level">{gate ? 'All done! You can finish this lesson.' : `Next up: ${next ? next.label : 'finish the last steps'}.`}</p>
-        <dl>
-          <div><dt>Done on my own</dt><dd data-testid="text-independent-checks">{sum.independentChecks}</dd></div>
-          <div><dt>On your own</dt><dd data-testid="text-transfer">{sum.transfer}</dd></div>
-          <div><dt>Hints used</dt><dd data-testid="text-help-uses">{sum.helpUses}</dd></div>
-          <div><dt>Remembered later</dt><dd data-testid="text-retention">{sum.retention}</dd></div>
-        </dl>
-        <button className={`fq-button ${gate ? '' : 'secondary'}`} disabled={!gate} onClick={() => gate && onFinish()} data-testid="button-lab-finish">Finish lesson</button>
-      </section>
+      {/* After the last question on the page, one button says what comes next: finishing, or the first open step. */}
+      {gate ? (
+        <div className="fq-ll-finish-callout" data-testid="callout-lab-finish">
+          <p><strong>You did it!</strong> {finished ? 'This lesson is done.' : 'You can finish the lesson now.'}</p>
+          <button type="button" className="fq-button" onClick={() => onFinish()} data-testid="button-lab-finish">Finish lesson <ArrowRight size={17} /></button>
+        </div>
+      ) : idx === -1 && continueTo && (
+        <div className="fq-ll-continue">
+          <button type="button" className="fq-button" onClick={() => jumpTo(continueTo.target())} data-testid="button-lab-continue">
+            Continue: {continueTo.label} <ArrowRight size={17} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
