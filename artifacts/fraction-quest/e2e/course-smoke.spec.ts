@@ -74,13 +74,20 @@ async function localStorageSnapshot(page: import('@playwright/test').Page) {
 test('a "what fraction is colored" question shows the colored parts, so the child counts them before answering', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'fraction-of-area');
   if (!mission) throw new Error('Equal-area lesson is missing');
-  const question = mission.questions[0];
+  // The lesson's first "what fraction is colored" question opens its second idea, after that idea's Learn pages.
+  const steps = ideaSteps(mission.id);
+  const at = steps.findIndex(({ item }) => 'question' in item && /What fraction of the \w+ is colored\?/.test(ideaQuestion(mission, item.question)!.prompt));
+  const { idea, item } = steps[at]!;
+  const question = ideaQuestion(mission, (item as { question: string }).question)!;
+  expect(steps[at]!.practice).toBe(0);
   // The words never say how many parts to color: that would give the answer away.
   expect(question.prompt).not.toMatch(/\bColor \d/);
   expect(question.model.kind).toBe('area');
   await openAsGuest(page);
   await openDeveloperLesson(page, mission);
-  await skipIntros(page);
+  await completeIdeas(page, mission, { until: at });
+  for (let p = 1; p < lessonIdeas(mission.id)![idea]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
 
   const picture = page.getByTestId('question-model-area');
   await expect(picture).toBeVisible();
@@ -2303,12 +2310,18 @@ test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried 
   if (await soundToggle.getAttribute('aria-label') === 'Turn sound on') await soundToggle.click();
   await expect(soundToggle).toHaveAttribute('aria-label', 'Turn sound off');
   const mission = MISSIONS[1];
-  const question = mission.questions[0];
+  // Lesson 2 teaches its first idea on Learn pages; its first question is that idea's first practice.
+  const firstStep = ideaSteps(mission.id)[0]?.item;
+  const question = firstStep && 'question' in firstStep ? ideaQuestion(mission, firstStep.question)! : mission.questions[0];
   await page.getByTestId('button-continue-course').or(page.getByTestId('button-jump-current')).first().click();
   await passStory(page);
   if (await page.getByTestId(`button-start-mission-${mission.id}`).count()) await page.getByTestId(`button-start-mission-${mission.id}`).click();
   await passStory(page);
-  await expect(page.getByTestId('lesson-example')).toBeVisible();
+  if (lessonIdeas(mission.id)) {
+    await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
+    for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+    await page.getByTestId('button-idea-practise').click();
+  } else await expect(page.getByTestId('lesson-example')).toBeVisible();
   const wrong = (question.correctChoice + 1) % question.choices.length;
   await page.getByTestId(`button-answer-${question.id}-${wrong}`).click();
   await page.getByTestId('button-check-answer').click();
@@ -2368,12 +2381,18 @@ test('inside the Expo iPhone app, answer and result haptics work with sound off,
   await page.addInitScript(() => localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: ['equal-parts'], starsByMission: {}, reviewQueue: [], learning: { 'equal-parts': { completedAt: Date.now() } }, assessments: [] })));
   await openAsGuest(page);
   const mission = MISSIONS[1];
-  const question = mission.questions[0];
+  // Lesson 2 teaches its first idea on Learn pages; its first question is that idea's first practice.
+  const firstStep = ideaSteps(mission.id)[0]?.item;
+  const question = firstStep && 'question' in firstStep ? ideaQuestion(mission, firstStep.question)! : mission.questions[0];
   await page.getByTestId('button-continue-course').or(page.getByTestId('button-jump-current')).first().click();
   await passStory(page);
   if (await page.getByTestId(`button-start-mission-${mission.id}`).count()) await page.getByTestId(`button-start-mission-${mission.id}`).click();
   await passStory(page);
-  if (await page.getByTestId('button-start-practice').count()) await page.getByTestId('button-start-practice').click();
+  if (lessonIdeas(mission.id)) {
+    await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
+    for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+    await page.getByTestId('button-idea-practise').click();
+  } else if (await page.getByTestId('button-start-practice').count()) await page.getByTestId('button-start-practice').click();
   await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
   await expect.poll(async () => (await messages()).some((m) => m.type === 'haptic' && m.cue === 'selection')).toBe(true);
   const selectionCues = (await messages()).filter((message) => message.type === 'haptic' && message.cue === 'selection').length;
@@ -3171,13 +3190,17 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
 
 test('the hint bulb always shows its help: it scrolls the hint into view, and after two misses it points to the simpler help', async ({ page }) => {
   const mission = MISSIONS.find((item) => item.id === 'benchmark-half')!;
-  const question = mission.questions[0];
+  // The lesson opens on its first idea's Learn pages; its first practice question comes after them.
+  const first = ideaSteps(mission.id)[0]!.item;
+  const question = 'question' in first ? ideaQuestion(mission, first.question)! : mission.questions[0];
   expect(question.choices.length).toBeGreaterThanOrEqual(3);
   await page.setViewportSize({ width: 390, height: 844 });
   await openAsGuest(page);
   await openDeveloperLesson(page, mission);
+  for (let p = 1; p < (lessonIdeas(mission.id)?.[0]?.learn.length ?? 0); p++) await page.getByTestId('button-teach-step-next').click();
+  if (lessonIdeas(mission.id)) await page.getByTestId('button-idea-practise').click();
 
-  // The first question sits under the worked example, far below the bulb.
+  // The bulb sits at the top of the screen; the hint opens under the question, below it.
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.getByTestId('button-show-hint').click();
   await expect(page.getByTestId('text-question-hint')).toBeInViewport();

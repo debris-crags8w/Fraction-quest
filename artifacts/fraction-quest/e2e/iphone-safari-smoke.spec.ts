@@ -2,6 +2,7 @@ import { expect, test } from './fixtures';
 import { MISSIONS } from '../src/game';
 import { answerShape, slotsFromAnswer, SLOTS } from '../src/answer-shape';
 import { getBuildChecks, getWorksheet } from '../src/learning-content';
+import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
 
 /** A new lesson opens with story screens (the setup and prologue once, then the chapter comic, which may ask for a choice). */
 async function passStory(page: import('@playwright/test').Page) {
@@ -85,10 +86,23 @@ async function openLesson(page: import('@playwright/test').Page, resumeWorksheet
   if (resumeWorksheet) {
     await expect(page.getByTestId('learning-lab')).toBeVisible();
     await expect(page.getByTestId('section-worksheet')).toBeVisible();
+  } else if (lessonIdeas(target.id)) {
+    // A lesson with ideas opens on its first idea's Learn pages, then its first practice question.
+    await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    for (let p = 1; p < lessonIdeas(target.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').tap();
+    await page.getByTestId('button-idea-practise').tap();
+    await expect(page.getByTestId('question-model-area')).toBeVisible();
   } else {
     await expect(page.getByTestId('lesson-example')).toBeVisible();
     await expect(page.getByTestId('question-model-area')).toBeVisible();
   }
+}
+
+/** The lesson's first question: its first idea's first practice when it has ideas. */
+function firstQuestionOf(target: (typeof MISSIONS)[number]) {
+  const first = ideaSteps(target.id)[0]?.item;
+  return first && 'question' in first ? ideaQuestion(target, first.question)! : target.questions[0];
 }
 
 async function expectNoHorizontalOverflow(page: import('@playwright/test').Page) {
@@ -154,7 +168,7 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 test('phone Safari opens a lesson, accepts its first tap answer, and advances', async ({ page }) => {
   await openLesson(page);
 
-  const firstQuestion = lesson.questions[0];
+  const firstQuestion = firstQuestionOf(lesson);
   const answer = page.getByTestId(`button-answer-${firstQuestion.id}-${firstQuestion.correctChoice}`);
   await expect(answer).toBeVisible();
   await expectNoHorizontalOverflow(page);
