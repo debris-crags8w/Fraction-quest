@@ -16,7 +16,7 @@ import { seasonalWords } from '../src/seasonal-words';
 import { sentences, spokenText } from '../src/lib/voice';
 import { cleanSentence, voiceKey } from '../src/lib/voice-pack';
 import { HEART_VOICE, speakerVoice } from '../src/lib/cast-voices';
-import { BUILD_ERROR_HEADINGS, LAB_SECTION_SPEECH, buildErrors, buildHints, foldSpeech, numberLineDescription, sectionsScript, supportSpeech, worksheetSpeech } from '../src/lab-copy';
+import { BUILD_ERROR_HEADINGS, LAB_SECTION_SPEECH, PART_CHECK_OPENERS, buildErrors, buildHints, foldSpeech, numberLineDescription, sectionsScript, supportSpeech, worksheetSpeech } from '../src/lab-copy';
 import { getModelFeedback, type LearningModel } from '../src/learning-content';
 import { CHALLENGES } from '../src/challenges';
 import { OPENERS, SLIPS } from '../src/wrong-answer';
@@ -154,6 +154,7 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
     for (const level of safe(() => getCodeLevels(mission.id)) ?? []) addLine('games', `${level.goal} ${level.tip}`);
   }
   BUILD_ERROR_HEADINGS.forEach((line) => addLine('lesson', line));
+  Object.values(PART_CHECK_OPENERS).forEach((line) => addLine('lesson', line));
   // Daily practice builds n/d (d up to 12) with a bar or a number line; the paper strip opens into 2s and 3s.
   for (let d = 2; d <= 12; d++) for (let n = 1; n <= d; n++) for (const bar of [true, false]) addLine('practice', dailyBuildSpeech(n, d, bar));
   for (const pieces of [2, 3, 4, 6, 8, 9, 12, 16]) for (let folds = 1; folds <= 4; folds++) addLine('practice', foldSpeech(folds, pieces));
