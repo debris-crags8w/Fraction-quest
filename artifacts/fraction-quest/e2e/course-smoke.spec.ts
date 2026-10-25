@@ -2138,6 +2138,43 @@ test('the model intros are their own lesson steps: Watch, then Try, each saved; 
   await expect(helper).toHaveCount(0);
 });
 
+test('every later lesson opens Build it with a short Watch, each visit, but never repeats Try', async ({ page }) => {
+  test.setTimeout(90_000);
+  const mission = MISSIONS.find((item) => item.id === 'fraction-names')!;
+  const [check] = getBuildChecks(mission.id);
+  await page.addInitScript((progress) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+    const fun = JSON.parse(localStorage.getItem('fraction-quest-fun-v1') ?? '{}');
+    localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ ...fun, introsSeen: { builder: true, line: true }, fractionWordsSeen: true }));
+  }, progressBefore(mission));
+  await openAsGuest(page);
+  await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await passStory(page);
+  await expect(page.getByTestId('learning-lab')).toBeVisible();
+
+  // Watch is step 1, before Build it; the build waits until it is watched or skipped.
+  const steps = page.getByTestId('list-lab-steps');
+  await expect(steps.getByTestId('step-quick-watch')).toHaveClass(/now/);
+  await expect(steps.getByTestId(`step-${check.id}`)).toContainText('2');
+  const watch = page.getByTestId('quick-watch');
+  await expect(watch.locator('[data-step="watch"] .fq-mi-kicker')).toHaveText('Step 1 · Watch');
+  await expect(page.getByTestId(`model-${check.id}-a`)).toHaveCount(0);
+  await expect(watch.getByTestId('button-intro-watched')).toContainText('Next: Build it');
+  await watch.getByTestId('button-intro-watched').click();
+  await expect(steps.getByTestId('step-quick-watch')).toHaveClass(/done/);
+  await expect(page.getByTestId(`model-${check.id}-a`)).toBeVisible();
+  // Try is never repeated.
+  await expect(page.locator('[data-step="try"]')).toHaveCount(0);
+
+  // The next visit shows the short Watch again (until Build it is done); skip goes straight to the build.
+  await page.getByTestId('button-lab-back').click();
+  await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await passStory(page);
+  await expect(page.getByTestId('quick-watch')).toBeVisible();
+  await page.getByTestId('quick-watch').getByTestId('button-intro-skip').click();
+  await expect(page.getByTestId(`model-${check.id}-a`)).toBeVisible();
+});
+
 test('"I know how: skip" on Watch skips both intro steps and goes to Build it', async ({ page }) => {
   const first = MISSIONS[0];
   const [check] = getBuildChecks(first.id);

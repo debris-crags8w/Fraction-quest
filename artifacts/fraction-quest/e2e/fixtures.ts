@@ -6,7 +6,7 @@ import { test as base } from '@playwright/test';
 export * from '@playwright/test';
 
 export const test = base.extend({
-  page: async ({ page }, use) => {
+  page: async ({ page }, use, testInfo) => {
     // An animated Teach first has a Next on every step: tap through them, then its last Next. A card reopened from
     // "How it works" has no last Next and is left for the test to read.
     const step = page.locator('[data-teach-first] [data-testid="button-teach-step-next"]');
@@ -19,6 +19,12 @@ export const test = base.extend({
     await page.addLocatorHandler(page.locator('[data-testid="intro-steps"] [data-testid="button-intro-skip"]'), async () => {
       await page.locator('[data-testid="intro-steps"] [data-testid="button-intro-skip"]').click();
     });
+    // Every later lesson: the short Watch before Build it (tests about that Watch keep it).
+    if (!testInfo.title.includes('short Watch')) {
+      await page.addLocatorHandler(page.locator('[data-testid="quick-watch"] [data-testid="button-intro-skip"]'), async () => {
+        await page.locator('[data-testid="quick-watch"] [data-testid="button-intro-skip"]').click();
+      });
+    }
     await use(page);
   },
 });

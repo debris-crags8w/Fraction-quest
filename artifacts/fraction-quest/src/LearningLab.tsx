@@ -640,7 +640,13 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
     if (!funContext) return;
     funContext.setFun(introKinds.reduce((state, kind) => recordIntro(state, kind), funContext.fun));
   };
-  const introOffset = introKinds.length ? 2 : 0;
+  // Every later lesson: a short Watch (the demo for Build it's model) before Build it, each visit until Build it is
+  // done, with "I know how: skip". Try is not repeated: it stays done once done.
+  const [quickWatchKind] = useState<IntroKind | null>(() => review || firstOpen !== 0 || introKinds.length || checks[0]?.target.kind === 'set'
+    ? null : checks[0].target.kind === 'line' ? 'line' : 'builder');
+  const [quickWatched, setQuickWatched] = useState(false);
+  const quickWatchStep = !!quickWatchKind && !quickWatched;
+  const introOffset = introKinds.length ? 2 : quickWatchKind ? 1 : 0;
   const helper = useLessonHelper();
   /** A step shortcut: scroll its part of the page into view and move focus there (for keyboards and screen readers). */
   const jumpTo = (target: Element | null) => {
@@ -761,10 +767,13 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
           return <li key={step} className={done ? 'done' : introStep === step ? 'now' : ''} data-testid={`step-intro-${step}`}>
             {introStep === step ? <button type="button" onClick={() => jumpTo(document.querySelector('[data-step]'))} aria-label={`Go to ${name}`}>{label}</button> : label}</li>;
         })}
+        {quickWatchKind && <li className={quickWatched ? 'done' : 'now'} data-testid="step-quick-watch">
+          {quickWatchStep ? <button type="button" onClick={() => jumpTo(document.querySelector('[data-testid="quick-watch"]'))} aria-label="Go to Watch">1<span>Watch</span></button>
+            : <><Check size={15} /><span>Watch</span></>}</li>}
         {checks.map((c, i) => {
           const e = rec.checks[c.id];
           const label = <>{e?.passed ? <Check size={15} /> : introOffset + i + 1}<span>{buildStepName(c, i)}{e?.passed ? (e.supported ? ' · with help' : ' · solo') : ''}</span></>;
-          return <li key={c.id} className={e?.passed ? 'done' : i === idx && !introStep ? 'now' : ''} data-testid={`step-${c.id}`}>
+          return <li key={c.id} className={e?.passed ? 'done' : i === idx && !introStep && !quickWatchStep ? 'now' : ''} data-testid={`step-${c.id}`}>
             {i === idx ? <button type="button" onClick={() => jumpTo(activeCheckHeading.current)} aria-label={`Go to ${buildStepName(c, i)}`}>{label}</button>
               : e?.passed ? <button type="button" onClick={() => openStep(c.id)} aria-label={`Go back to ${buildStepName(c, i)}`} data-testid={`button-see-step-${c.id}`}>{label}</button>
               : label}</li>;
@@ -837,7 +846,13 @@ export default function LearningLab({ missionId, progress, onChange, onFinish, o
         <IntroTry key={`try-${toTry[0]}`} kind={toTry[0]} kicker="Step 2 · Try" onSkip={skipIntros}
           nextLabel={toTry.length > 1 ? 'Next: number line' : `Next: ${buildStepName(checks[idx], idx)}`} onDone={() => seeIntro(toTry[0], true)} />
       )}
-      {idx !== -1 && !introStep && (
+      {idx !== -1 && !introStep && quickWatchStep && (
+        <div data-testid="quick-watch">
+          <IntroWatch kind={quickWatchKind!} kicker="Step 1 · Watch" nextLabel={`Next: ${buildStepName(checks[0], 0)}`}
+            onDone={() => setQuickWatched(true)} onSkip={() => setQuickWatched(true)} />
+        </div>
+      )}
+      {idx !== -1 && !introStep && !quickWatchStep && (
         <CheckRunner key={checks[idx].id} review={false} check={checks[idx]}
           headingRef={activeCheckHeading}
           onWrong={onWrong}
