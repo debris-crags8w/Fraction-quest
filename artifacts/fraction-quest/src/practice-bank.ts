@@ -411,13 +411,13 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'fraction-of-length': (r) => {
     const d = r.pick([2, 3, 4, 5, 8, 10]); const n = r.int(1, d - 1); const m = r.int(2, 6); const len = d * m;
-    return later(`A ribbon is ${len} m long. How long is ${f(n, d)} of it?`, `${n * m} m`, [`${m} m`, `${len - n * m} m`, `${n * m + m} m`],
-      `Cut ${len} m into ${d} equal parts. Count ${n}.`, `Each part is ${m} m. ${n} parts is ${n * m} m.`, line(n, d));
+    return later(`A ribbon is ${len} meters long. How long is ${f(n, d)} of it?`, `${n * m} meters`, [`${m} meters`, `${len - n * m} meters`, `${n * m + m} meters`],
+      `Cut ${len} meters into ${d} equal parts. Count ${n}.`, `Each part is ${m} meters. ${n} ${n === 1 ? 'part is' : 'parts is'} ${n * m} meters.`, line(n, d));
   },
   'fractional-measure-addition': (r) => {
     const b = r.pick([2, 3, 4, 5, 6]); const k = r.pick([2, 3, 4].filter((x) => gradeFits('fractional-measure-addition', b * x))); const e = b * k;
     const a = r.int(1, b - 1); const c = r.int(1, e - 1);
-    return later(`A board is ${f(a, b)} m. Another is ${f(c, e)} m. How long are they together?`, f(a * k + c, e), [f(a + c, b + e), f(a + c, e), f(a * k + c + 1, e)],
+    return later(`A board is ${f(a, b)} meter. Another is ${f(c, e)} meter. How long are they together?`, f(a * k + c, e), [f(a + c, b + e), f(a + c, e), f(a * k + c + 1, e)],
       `Change ${f(a, b)} into ${name(e)} first.`, `${f(a, b)} = ${f(a * k, e)}. ${a * k} + ${c} = ${a * k + c}.`, bars2([a, b], [c, e]));
   },
   'fractional-sharing': (r) => {

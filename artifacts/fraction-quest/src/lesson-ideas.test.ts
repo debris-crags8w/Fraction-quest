@@ -169,3 +169,29 @@ test('each lesson names its practice list, and the name changes when its practic
   LESSON_IDEAS[lesson.id] = swapped;
   try { assert.notEqual(practicePlan(lesson), plans[0], 'reordering practices gives a new name') } finally { LESSON_IDEAS[lesson.id] = ideas; }
 });
+
+test('a story problem never asks something new: lessons 2, 39 and 40 practise what their story problem retells', () => {
+  // Lessons 39 and 40 retell question 4, so an idea practises question 4 itself.
+  for (const id of ['simplify-fractions', 'equivalent-missing-both']) {
+    const mission = MISSIONS.find((item) => item.id === id)!;
+    const last = mission.questions[mission.questions.length - 1]!;
+    assert.ok(storyProblemFor(id)!.prompt.endsWith(last.prompt), `${id}: the story problem retells ${last.id}`);
+    assert.ok(ideaSteps(id).some(({ item }) => 'question' in item && item.question === last.id), `${id}: ${last.id} is practised in an idea`);
+  }
+  // Lesson 2's story problem shares pieces fairly, its idea 2 ("Share fairly"), with a question like its practice.
+  const shareIdea = LESSON_IDEAS['equal-parts']![1]!;
+  assert.equal(shareIdea.title, 'Share fairly');
+  assert.match(storyProblemFor('equal-parts')!.prompt, /share them fairly\. How many pieces does each friend get\?$/);
+  const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
+  assert.ok(shareIdea.practice.some((item) => 'question' in item && /friends share \d+ equal pieces fairly/.test(ideaQuestion(mission, item.question)!.prompt)));
+});
+
+test('lesson 2 asks its own questions (shapes and fair shares), not lesson 1\'s strips, ribbons and sandwich', () => {
+  const [first, second] = MISSIONS;
+  assert.equal(second!.id, 'equal-parts');
+  const lessonOne = new Set([...first!.questions, ...(first!.ideaQuestions ?? [])].map((question) => question.prompt));
+  for (const question of second!.questions.filter((item) => !item.isReview)) {
+    assert.ok(!lessonOne.has(question.prompt), `${question.id} repeats lesson 1: ${question.prompt}`);
+    assert.match(question.prompt, /\bsquare\b|\bfriends share\b/, `${question.id} is about shapes or sharing: ${question.prompt}`);
+  }
+});

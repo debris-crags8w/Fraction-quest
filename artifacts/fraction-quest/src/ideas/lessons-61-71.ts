@@ -1,6 +1,6 @@
 /* The ideas of lessons 61–71 (see lesson-ideas.ts): each lesson's ideas in order, each with its Learn pages and 3
    practices. Lesson 1 (ideas/lessons-01.ts) is the model. */
-import { example, scenes, type LessonIdea } from './helpers';
+import { example, scenes, wordsToKnow, type LessonIdea } from './helpers';
 
 /** A fraction with a top number of 2 or more: counting more than one part. */
 const moreThanOnePart = /\b([2-9]|1\d)\/\d+\b/;
@@ -98,6 +98,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       title: 'Know how many small units make one big unit',
       learn: [
         { text: 'First find how many small units are in one big unit.', scene: scenes('fractional-unit-conversions').steps[0]! },
+        wordsToKnow('fractional-unit-conversions'),
         example('fractional-unit-conversions', 'Unit facts'),
       ],
       practice: [{ question: 'fractional-unit-conversions-p1' }, { question: 'fractional-unit-conversions-p2' }, { question: 'fractional-unit-conversions-p3' }],

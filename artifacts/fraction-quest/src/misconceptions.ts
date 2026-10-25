@@ -17,6 +17,13 @@ const BIG: Record<string, [string, number]> = { liter: ['milliliters', 1000], ki
 function slips(prompt: string): [number, [Why, number][]] | null {
   const p = prompt.replace(/^Quick review · [^:]+: /, '');
   let m: RegExpExecArray | null;
+  // Fair shares (lesson 2): "4 friends share 12 equal pieces fairly. How many pieces does each friend get?": the
+  // friends counted, the whole pile, or what the other friends get.
+  if ((m = /(\d+) friends share (\d+) equal pieces fairly\. How many pieces does each friend get\?|into (\d+) equal pieces\. (\d+) friends share them fairly\. How many pieces does each friend get\?/.exec(p))) {
+    const [friends, pieces] = m[1] ? [N(m[1]), N(m[2])] : [N(m[4]), N(m[3])];
+    const right = pieces / friends;
+    return [right, [['justNumber', friends], ['whole', pieces], ['leftPart', pieces - right]]];
+  }
   // Equal groups: "12 beads are shared into 4 equal groups. How many beads are in 3 groups?"
   if ((m = /(\d+) \w+ are shared into (\d+) equal groups\. How many \w+ are in (one|\d+) groups?\?/.exec(p))) {
     const [n, b, k] = [N(m[1]), N(m[2]), m[3] === 'one' ? 1 : N(m[3])];

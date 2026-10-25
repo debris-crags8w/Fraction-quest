@@ -109,7 +109,11 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     },
     {
       title: 'Only compare parts of the same whole',
-      terms: [{ term: 'same-size wholes', pattern: /\bpizzas?\b|\bsame size\b|\bdifferent wholes\b/i }],
+      terms: [
+        { term: 'same-size wholes', pattern: /\bpizzas?\b|\bsame size\b|\bdifferent wholes\b/i },
+        // "You can't tell" is the answer for different wholes, so no earlier idea offers it, even as a wrong choice.
+        { term: 'you can’t tell', pattern: /\bcan['’]t tell\b/i },
+      ],
       learn: [example('compare-decimals-grid', 'The same whole'), example('compare-decimals-grid', 'Different wholes')],
       practice: [{ question: 'compare-decimals-grid-p4' }, { question: 'compare-decimals-grid-q2' }, { question: 'compare-decimals-grid-p5' }],
     },
@@ -202,7 +206,11 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     },
     {
       title: 'Multiply the groups by the numerator',
-      terms: [{ term: 'multiplying the numerator', pattern: /\bmultiply\b/i }],
+      terms: [
+        { term: 'multiplying the numerator', pattern: /\bmultiply\b/i },
+        // Idea 1 counts the parts (2 + 2 + 2); a whole number times a whole number first comes here.
+        { term: 'a number times a number', pattern: /\b\d+ × \d+\b(?!\/)/ },
+      ],
       learn: [example('multiply-whole-by-fraction', 'Multiply, keep the denominator')],
       practice: [{ question: 'multiply-whole-by-fraction-q1' }, { question: 'multiply-whole-by-fraction-q2' }, { question: 'multiply-whole-by-fraction-q3' }],
     },
@@ -242,7 +250,8 @@ export const IDEAS: Record<string, LessonIdea[]> = {
         { text: 'When only 1 divides both, the fraction is in simplest form.', scene: scenes('simplify-fractions').steps[2]! },
         example('simplify-fractions', 'Divide again'),
       ],
-      practice: [{ question: 'simplify-fractions-q1' }, { question: 'simplify-fractions-q2' }, { question: 'simplify-fractions-q3' }],
+      // The story problem retells question 4 (2/12), so it is practised here first.
+      practice: [{ question: 'simplify-fractions-q4' }, { question: 'simplify-fractions-q2' }, { question: 'simplify-fractions-q1' }],
     },
   ],
   // Lesson 40: what the denominator was multiplied by, then the same to the numerator, then dividing.
@@ -259,7 +268,8 @@ export const IDEAS: Record<string, LessonIdea[]> = {
         { text: 'Multiply the numerator by the same number.', scene: scenes('equivalent-missing-both').steps[1]! },
         { text: 'Check that the amount is the same.', scene: scenes('equivalent-missing-both').steps[2]! },
       ],
-      practice: [{ question: 'equivalent-missing-both-q1' }, { question: 'equivalent-missing-both-q2' }, { question: 'equivalent-missing-both-q3' }],
+      // The story problem retells question 4 (1/2 = ?/6), so it is practised here first.
+      practice: [{ question: 'equivalent-missing-both-q2' }, { question: 'equivalent-missing-both-q4' }, { question: 'equivalent-missing-both-q1' }],
     },
     {
       title: 'Dividing works the same way',

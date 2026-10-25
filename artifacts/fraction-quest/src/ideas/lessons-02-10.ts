@@ -191,6 +191,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     {
       title: 'Find the nearest benchmark',
       learn: [
+        wordsToKnow('fraction-magnitude'),
         { text: 'Picture the fraction on a line from 0 to 1.', scene: scenes('fraction-magnitude').steps[0]! },
         { text: 'Find the nearest benchmark: 0, 1/2 or 1.', scene: scenes('fraction-magnitude').steps[1]! },
       ],

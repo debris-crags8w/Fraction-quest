@@ -40,7 +40,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
       step('He folds it in half again. Each half splits in 2. How many parts now?', ['3', '8', '4', '6'], 2),
       step('The strip opens into 4 equal parts. What is 1 part?', ['1/3', '1/2', '1/8', '1/4'], 3),
     ]),
-    q('u1-c4', 4, '1/5 of a ribbon is 2 cm long. How long is the whole ribbon?', ['5 cm', '8 cm', '10 cm', '12 cm'], 2, '5 parts of 2 cm make 10 cm.'),
+    q('u1-c4', 4, '1/5 of a toy train is 2 cars long. How long is the whole train?', ['5 cars', '8 cars', '10 cars', '12 cars'], 2, '5 parts of 2 cars make 10 cars.'),
     q('u1-c5', 5, 'A bar is cut into equal parts. 3 parts are shaded. That is 1/4 of the bar. How many parts are there in all?', ['4', '7', '9', '12'], 3, '3 parts is 1/4. So 4 groups of 3 makes 12.', undefined, [
       step('3 shaded parts are 1/4 of the bar. How many quarters make the whole bar?', ['12', '2', '4', '3'], 2),
       step('Each quarter has 3 parts. How many parts do 4 quarters have?', ['12', '3', '7', '9'], 0),
@@ -78,10 +78,10 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u4-c2', 3, 'A frog jumps 1/3 each time. How many jumps to get from 0 to 2?', ['2', '3', '5', '6'], 3, '3 jumps reach 1. 3 more reach 2. That is 6.'),
     q('u4-c3', 4, 'The line plot shows leaf lengths: 1 1/4, 1 2/4, 1 2/4, 1 3/4, 1 3/4, 2 inches. How many leaves are longer than 1 2/4 inches?', ['1', '3', '5', '6'], 1, '1 3/4, 1 3/4 and 2 are longer than 1 2/4. That is 3 leaves.', { kind: 'lineplot', denominator: 4, wholes: 2, values: [5, 6, 6, 7, 7, 8] }),
     q('u4-c4', 4, 'Point A is at 2/5. Point B is at 4/5. How far apart are they?', ['1/5', '2/5', '3/5', '4/5'], 1, 'From 2/5 to 4/5 is 2 jumps of 1/5.'),
-    q('u4-c5', 5, 'A snail climbs 3/8 m each day. After how many days has it climbed more than 1 m?', ['2', '3', '4', '5'], 1, 'Day 2: 6/8. Day 3: 9/8. 9/8 is more than 1.', undefined, [
-      step('The snail climbs 3/8 m a day. How far after 2 days?', ['3/8 m', '6/8 m', '5/8 m', '9/8 m'], 1),
-      step('How far after 3 days?', ['9/8 m', '8/8 m', '9/24 m', '7/8 m'], 0),
-      step('1 m is 8/8. Is 9/8 more than 1 m?', ['No', 'Yes', 'They are equal', 'You can\'t tell'], 1),
+    q('u4-c5', 5, 'A snail climbs 3/8 meter each day. After how many days has it climbed more than 1 meter?', ['2', '3', '4', '5'], 1, 'Day 2: 6/8. Day 3: 9/8. 9/8 is more than 1.', undefined, [
+      step('The snail climbs 3/8 meter a day. How far after 2 days?', ['3/8 meter', '6/8 meter', '5/8 meter', '9/8 meters'], 1),
+      step('How far after 3 days?', ['9/8 meters', '8/8 meter', '9/24 meter', '7/8 meter'], 0),
+      step('1 meter is 8/8. Is 9/8 more than 1 meter?', ['No', 'Yes', 'They are equal', 'You can\'t tell'], 1),
     ]),
   ],
   5: [
@@ -89,9 +89,9 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u5-c1', 3, 'Which fraction is the biggest?', ['3/10', '5/10', '7/10', '6/10'], 2, 'Same size parts. 7 is the most.'),
     q('u5-c2', 3, 'Which fraction is the smallest?', ['2/9', '2/7', '2/4', '2/5'], 0, 'All have 2 parts. Ninths are the smallest parts.'),
     q('u5-c3', 4, 'Which fraction is bigger than 3/4?', ['3/5', '2/3', '5/8', '7/8'], 3, '3/4 = 6/8. 7/8 is more than 6/8.'),
-    q('u5-c4', 4, 'Ana ran 3/4 km. Ben ran 2/3 km. Cara ran 5/6 km. Dev ran 1/2 km. Who ran the farthest?', ['Ana', 'Ben', 'Cara', 'Dev'], 2, 'Each is 1 part short of 1 km. Sixths are smallest, so Cara is closest to 1.', undefined, [
-      step('Ana ran 3/4 km. How much is she short of 1 km?', ['1/4', '3/4', '1/2', '1/3'], 0),
-      step('Cara ran 5/6 km. How much is she short of 1 km?', ['5/6', '1/6', '1/2', '1/5'], 1),
+    q('u5-c4', 4, 'Ana ran 3/4 mile. Ben ran 2/3 mile. Cara ran 5/6 mile. Dev ran 1/2 mile. Who ran the farthest?', ['Ana', 'Ben', 'Cara', 'Dev'], 2, 'Each is 1 part short of 1 mile. Sixths are smallest, so Cara is closest to 1.', undefined, [
+      step('Ana ran 3/4 mile. How much is she short of 1 mile?', ['1/4', '3/4', '1/2', '1/3'], 0),
+      step('Cara ran 5/6 mile. How much is she short of 1 mile?', ['5/6', '1/6', '1/2', '1/5'], 1),
       step('Ben is 1/3 short and Dev is 1/2 short. Which is the smallest gap?', ['1/4', '1/2', '1/3', '1/6'], 3),
     ]),
     q('u5-c5', 5, 'How many fractions with a denominator of 6 are more than 1/2 but less than 1?', ['0', '1', '2', '3'], 2, '3/6 is exactly half. 4/6 and 5/6 fit. That is 2.'),
@@ -124,9 +124,9 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u8-c1', 3, '3/10 + 25/100 = ?', ['28/110', '55/100', '28/100', '25/100'], 1, '3/10 is 30/100. 30/100 + 25/100 = 55/100.'),
     q('u8-c2', 3, 'Which decimal is the same as 3/10?', ['3.0', '0.03', '0.13', '0.3'], 3, '3 tenths is 0.3.'),
     q('u8-c3', 4, 'Which number is the biggest?', ['0.5', '0.45', '0.4', '0.38'], 0, '0.5 is 0.50. 50 hundredths is the most.'),
-    q('u8-c4', 4, 'A ribbon is 9/10 m long. You cut off 4/10 m. Then you cut off 3/10 m. How much is left?', ['1/10 m', '2/10 m', '3/10 m', '5/10 m'], 1, '9 − 4 − 3 = 2. So 2/10 m.', undefined, [
-      step('Start with 9/10 m. Cut off 4/10 m. What is left?', ['5/10 m', '5/20 m', '13/10 m', '4/10 m'], 0),
-      step('Now cut 3/10 m from 5/10 m. What is left?', ['8/10 m', '2/20 m', '2/10 m', '3/10 m'], 2),
+    q('u8-c4', 4, 'A ribbon is 9/10 meter long. You cut off 4/10 meter. Then you cut off 3/10 meter. How much is left?', ['1/10 meter', '2/10 meter', '3/10 meter', '5/10 meter'], 1, '9 − 4 − 3 = 2. So 2/10 meter.', undefined, [
+      step('Start with 9/10 meter. Cut off 4/10 meter. What is left?', ['5/10 meter', '5/20 meter', '13/10 meters', '4/10 meter'], 0),
+      step('Now cut 3/10 meter from 5/10 meter. What is left?', ['8/10 meter', '2/20 meter', '2/10 meter', '3/10 meter'], 2),
     ]),
     q('u8-c5', 5, '2 3/4 + 1 2/4 = ?', ['3 5/8', '4 1/4', '3 1/4', '4 3/4'], 1, '2 + 1 = 3 wholes. 3/4 + 2/4 = 5/4, which is 1 1/4. So 3 + 1 1/4 = 4 1/4.', undefined, [
       step('Add the wholes. 2 + 1 = ?', ['3', '2', '4', '1'], 0),
@@ -186,10 +186,10 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     ]),
   ],
   12: [
-    q('u12-p1', 3, 'The line is 1 meter long. A snail crawls from 0 to the dot. How far is that?', ['34 cm', '25 cm', '75 cm', '70 cm'], 2, 'The dot is at 3/4. 1 meter is 100 cm, and 3/4 of 100 is 75 cm.', { kind: 'line', n: 3, d: 4 }),
+    q('u12-p1', 3, 'The line is 1 meter long. A snail crawls from 0 to the dot. How far is that?', ['34 centimeters', '25 centimeters', '75 centimeters', '70 centimeters'], 2, 'The dot is at 3/4. 1 meter is 100 centimeters, and 3/4 of 100 is 75 centimeters.', { kind: 'line', n: 3, d: 4 }),
     q('u12-c1', 3, '1/2 of a pizza is shared fairly by 4 friends. What part of the whole pizza does each friend get?', ['1/6', '1/8', '1/2', '4/2'], 1, 'Split the half into 4 equal shares. Each share is 1/8 of the whole pizza.'),
     q('u12-c2', 3, 'How many 1/3 cups of rice fill 4 cups?', ['3', '7', '4', '12'], 3, '3 thirds fill 1 cup. 4 cups need 4 × 3 = 12.'),
-    q('u12-c3', 4, 'Three boards are 1/2 m, 3/8 m and 1/4 m long. How long are they together?', ['1 1/8 m', '1 m', '7/8 m', '1 1/4 m'], 0, 'Use eighths: 4/8 + 3/8 + 2/8 = 9/8 = 1 1/8 m.', undefined, [
+    q('u12-c3', 4, 'Three boards are 1/2 meter, 3/8 meter and 1/4 meter long. How long are they together?', ['1 1/8 meters', '1 meter', '7/8 meter', '1 1/4 meters'], 0, 'Use eighths: 4/8 + 3/8 + 2/8 = 9/8 = 1 1/8 meters.', undefined, [
       step('Change 1/2 to eighths.', ['4/8', '2/8', '1/8', '5/8'], 0),
       step('Change 1/4 to eighths.', ['3/8', '4/8', '2/8', '1/8'], 2),
       step('4/8 + 3/8 + 2/8 = ?', ['7/8', '9/24', '8/8', '9/8'], 3),

@@ -40,7 +40,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       title: 'Multiply the numerators and the denominators',
       terms: [{ term: 'a fraction times a fraction', pattern: /\d+\/\d+ × \d+\/\d+|\b(numerators?|denominators?)\b/i }],
       learn: [
-        { text: 'Both sides are parts of a meter. Multiply the side lengths.', scene: scenes('fractional-side-area').steps[0]! },
+        { text: 'Both sides are parts of a unit. Multiply the side lengths.', scene: scenes('fractional-side-area').steps[0]! },
         { text: 'Multiply the numerators: the boxes in the rectangle.', scene: scenes('fractional-side-area').steps[1]! },
         { text: 'Multiply the denominators: the boxes in the whole square.', scene: scenes('fractional-side-area').steps[2]! },
       ],
@@ -51,6 +51,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     {
       title: 'Split the sides and find the area of each part',
       learn: [
+        wordsToKnow('multiply-mixed-numbers'),
         { text: 'Split each side into wholes and parts.', scene: scenes('multiply-mixed-numbers').steps[0]! },
         { text: 'Multiply every part of one side by every part of the other.', scene: scenes('multiply-mixed-numbers').steps[1]! },
       ],
