@@ -188,6 +188,72 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       },
     ],
   },
+  // Lessons 61–71: worked examples for the ideas the Teach first steps don't picture.
+  'line-plot-totals': {
+    examples: [
+      {
+        title: 'How much more?',
+        picture: play([
+          { kind: 'line', max: 1, spaces: 4, cut: true, xs: [[1, 3], [3, 2]], marks: [{ at: 1, label: '1/4' }, { at: 2, label: '2/4' }, { at: 3, label: '3/4' }] },
+          { ...say('Add each stack first. Three 1/4 cups hold 3/4. Two 3/4 cups hold 6/4. Take away: 6/4 − 3/4 = 3/4 liter more.'), hidden: true },
+        ], [600, { 0: { point: 1 } }], [600, { 0: { point: 3 } }], [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Rename the halves first',
+        picture: play([
+          { kind: 'line', max: 1, spaces: 4, cut: true, xs: [[1, 2], [2, 1], [3, 1]], marks: [{ at: 1, label: '1/4' }, { at: 2, label: '1/2' }, { at: 3, label: '3/4' }] },
+          { ...say('Rain: 1/4, 1/4, 1/2 and 3/4 inch. 1/2 = 2/4, so count it as 2 fourths. 1 + 1 + 2 + 3 = 7 fourths: 7/4 inches.'), hidden: true },
+        ], [900, { 0: { marks: [{ at: 1, label: '1/4' }, { at: 2, label: '2/4' }, { at: 3, label: '3/4' }] } }], [600, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'fractional-unit-conversions': {
+    examples: [{
+      title: 'Unit facts',
+      picture: reveal([
+        { kind: 'bar', parts: ones(12), cut: true, bracket: '1 foot = 12 inches' },
+        say('1 foot = 12 inches. 1 hour = 60 minutes. 1 day = 24 hours. 1 pound = 16 ounces.'),
+        say('1 meter = 100 centimeters. 1 liter = 1000 milliliters. 1 kilogram = 1000 grams.'),
+      ]),
+    }],
+  },
+  'two-step-conversions': {
+    examples: [
+      {
+        title: 'Feet and part of a foot',
+        picture: play([
+          { kind: 'line', max: 2, spaces: 4, cut: true, unit: 'foot', marks: [{ at: 4, label: '12 in' }, { at: 7, label: '21 in' }] },
+          { ...say('1 3/4 feet: 1 foot is 12 inches, and 3/4 foot is 9 inches. 12 + 9 = 21 inches.'), hidden: true },
+        ], [700, { 0: { stretch: 4 } }], [700, { 0: { stretch: 7 } }], [500, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Cut some off',
+        picture: play([
+          { kind: 'line', max: 2, spaces: 12, group: 3, cut: true, unit: 'foot', stretch: 18, marks: [{ at: 18, label: '18 in' }] },
+          { ...say('1 1/2 feet = 18 inches. Cut off 4 inches: 18 − 4 = 14 inches are left.'), hidden: true },
+        ], [900, { 0: { stretch: 14, marks: [{ at: 14, label: '14 in' }] } }], [500, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'fraction-as-division': {
+    examples: [{
+      title: 'Between two whole numbers',
+      picture: play([
+        { kind: 'line', max: 3, spaces: 4, cut: true, pointLabel: '11/4' },
+        { ...say('11/4 = 11 ÷ 4: 2 wholes (8 fourths) and 3/4 more. So 11/4 is between 2 and 3.'), hidden: true },
+      ], ...range(11).map((i): [number, Record<number, Partial<SceneRow>>] => [260, { 0: { jumps: i + 1 } }]), [500, { 0: { point: 11 } }], [500, { 1: { hidden: false } }]),
+    }],
+  },
+  'share-or-fit': {
+    examples: [{
+      title: 'Sharing or fitting?',
+      picture: reveal([
+        { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: 'Sharing: 1 cake for 4 friends. How much each?' },
+        { kind: 'bar', parts: ones(2), cut: true, counted: [0, 1], label: 'Fitting: how many 1/2 cups fill 1 cup?' },
+        say('Sharing splits an amount among people. Fitting counts how many pieces fit.'),
+      ]),
+    }],
+  },
 };
 
 /** The pages a lesson's Teach first adds: Words to know first (if any), then the extra examples after Why. */
@@ -205,4 +271,10 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string }[] = [
   { term: '< or >', pattern: /\s[<>]\s/, lesson: 'compare-same-numerator' },
   { term: 'benchmark', pattern: /\bbenchmarks?\b/i, lesson: 'benchmarks-zero-one' },
   { term: 'tick mark', pattern: /\btick( mark)?s?\b/i, lesson: 'number-line-basics' },
+  // Lessons 61–71.
+  { term: 'leveling', pattern: /\blevel(s|ed|ing)?\b/i, lesson: 'line-plot-leveling' },
+  { term: 'fraction bar', pattern: /\bfraction bar\b/i, lesson: 'fraction-as-division' },
+  { term: 'a unit fraction shared (1/3 ÷ 4)', pattern: /\d+\/\d+ ÷ \d/, lesson: 'unit-fraction-divided-whole' },
+  { term: '÷ by a fraction (how many fit)', pattern: /÷\s*\d+\/\d+/, lesson: 'divide-whole-by-unit-fraction' },
+  { term: 'sharing or fitting', pattern: /\bfitting\b/i, lesson: 'share-or-fit' },
 ];

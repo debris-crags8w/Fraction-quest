@@ -917,6 +917,8 @@ type ExtensionTopic = {
   /** Questions written for the lesson (its approved first question and its mix of kinds). Without them, practice is
       made from worksheet rows 2, 5, 8 and 11. */
   questions?: PracticeSeed[];
+  /** Questions written for one idea of the lesson (lesson-ideas.ts lists each idea's three practices). */
+  ideaQuestions?: PracticeSeed[];
 };
 
 /** A hundredths grid with `h` squares shaded, column by column, so whole columns are tenths. */
@@ -1004,7 +1006,17 @@ const extensionTopics: ExtensionTopic[] = [
         '3 of 5 rows and 2 of 3 columns overlap on 6 of 15 squares. 3 × 2 = 6 and 5 × 3 = 15, so 6/15.', timesGrid(5, 3, 3, 2)),
     ] },
   { id: 'fraction-of-collection', title: 'A fraction of a group', shortTitle: 'Groups of objects', description: 'Find 3/4 of 16 cards.', skill: 'Split the collection into equal groups using the denominator. Count the groups shown by the numerator.', mode: 'sets', n: 3, d: 4, context: 'sports cards' },
-  { id: 'divide-whole-by-unit-fraction', title: 'How many parts fit?', shortTitle: 'Divide by a fraction', description: 'How many 1/4 cups fill 2 cups?', skill: 'The denominator tells how many equal parts fit in one whole. Count those parts in the amount.', example: { prompt: 'How many 1/4-cup scoops fill 2 cups?', answer: '8 scoops', explanation: 'One whole cup holds 4 fourths. 2 cups hold 2 groups of 4 fourths. That is 8 scoops of 1/4 cup.', model: bars({ numerator: 8, denominator: 4 }) }, mode: 'divide', n: 1, d: 4, context: 'measuring cup' },
+  { id: 'divide-whole-by-unit-fraction', title: 'How many parts fit?', shortTitle: 'Divide by a fraction', description: 'How many 1/4 cups fill 2 cups?', skill: 'The denominator tells how many equal parts fit in one whole. Count those parts in the amount.', example: { prompt: 'How many 1/4-cup scoops fill 2 cups?', answer: '8 scoops', explanation: 'One whole cup holds 4 fourths. 2 cups hold 2 groups of 4 fourths. That is 8 scoops of 1/4 cup.', model: bars({ numerator: 8, denominator: 4 }) }, mode: 'divide', n: 1, d: 4, context: 'measuring cup',
+    ideaQuestions: [
+      // Idea 1: how many unit parts fit in one whole.
+      practice('How many 1/3-cup scoops fill 1 cup? 1 ÷ 1/3 = ?', ['3', '4', '1/3', '1'], 0, bars({ numerator: 1, denominator: 3 }),
+        'How many 1/3 parts make one whole cup?', 'Three 1/3s fill one whole cup, so 1 ÷ 1/3 = 3.', emptyWholes(1, 3), { authoredChoices: true }),
+      practice('How many 1/5-cup scoops fill 1 cup? 1 ÷ 1/5 = ?', ['5', '6', '1/5', '1'], 0, bars({ numerator: 1, denominator: 5 }),
+        'How many 1/5 parts make one whole cup?', 'Five 1/5s fill one whole cup, so 1 ÷ 1/5 = 5.', emptyWholes(1, 5), { authoredChoices: true }),
+      // Idea 2: multiply by the number of wholes.
+      practice('How many 1/2-cup scoops fill 3 cups? 3 ÷ 1/2 = ?', ['6', '5', '3/2', '3'], 0, bars({ numerator: 1, denominator: 2 }),
+        'How many 1/2 parts make one whole cup? Then think about 3 cups.', 'Two 1/2s fill each cup. 3 cups: 3 × 2 = 6, so 3 ÷ 1/2 = 6.', emptyWholes(3, 2), { authoredChoices: true }),
+    ] },
   { id: 'multiplication-scaling', title: 'Scaling with fractions', shortTitle: 'Scale an amount', description: 'See how a factor below or above one changes an amount.', skill: 'Multiplying by less than 1 takes part of an amount, so it gets smaller. Multiplying by more than 1 makes more than one copy, so it gets bigger.', example: { prompt: 'What is 3/4 of 12? Is the answer less or more than 12?', answer: '9, less than 12', explanation: 'Make 4 equal groups of 3. Three of the groups is 9. Multiplying 12 by 3/4, which is less than one whole, makes a smaller amount.', model: setModel(9, 12, 4) }, mode: 'scaling', n: 3, d: 4, context: 'collections', gradeBand: 5, standards: ['5.NF.5'] },
   { id: 'bigger-or-smaller', title: 'Bigger or smaller?', shortTitle: 'Bigger or smaller', description: 'Tell how a fraction factor changes an amount.',
     skill: 'Multiply by a fraction less than 1: you get less. More than 1: you get more. Equal to 1: it stays the same.',
@@ -1030,7 +1042,16 @@ const extensionTopics: ExtensionTopic[] = [
         'Not always. 1/2 × 4 = 2, which is less than 4. A factor less than 1 makes it smaller, and 1 keeps it the same.', bars({ numerator: 4, denominator: 1 }, { numerator: 2, denominator: 1 })),
     ] },
   { id: 'multiply-mixed-numbers', title: 'Multiply mixed numbers', shortTitle: 'Mixed number multiplication', description: 'Use a rectangle to find the area of a mixed-number garden.', skill: 'Use the side lengths as rows and columns in a rectangle. The number of square units is the product of the side lengths.', example: { prompt: 'A garden is 1 1/2 meters by 1 1/3 meters. What is its area?', answer: '2 square meters', explanation: 'Split the garden at the whole meters into 4 parts. 1 × 1 = 1. 1/2 × 1 = 1/2. 1 × 1/3 = 1/3. 1/2 × 1/3 = 1/6. Add the parts: 6/6 + 3/6 + 2/6 + 1/6 = 12/6, or 2 square meters.', model: gardenModel({ whole: 1, numerator: 1, denominator: 2 }, { whole: 1, numerator: 1, denominator: 3 }, true) }, mode: 'mixed-multiply', n: 2, d: 1, context: 'garden plot', gradeBand: 5, standards: ['5.NF.4b', '5.NF.6'] },
-  { id: 'unit-fraction-divided-whole', title: 'Share a unit fraction', shortTitle: 'Divide a unit fraction', description: 'Split one unit fraction into equal shares.', skill: 'Share the unit fraction equally. Each share is a smaller part of the original whole.', mode: 'unit-divided-whole', n: 1, d: 12, context: 'pan of brownies', gradeBand: 5, standards: ['5.NF.7a'] },
+  { id: 'unit-fraction-divided-whole', title: 'Share a unit fraction', shortTitle: 'Divide a unit fraction', description: 'Split one unit fraction into equal shares.', skill: 'Share the unit fraction equally. Each share is a smaller part of the original whole.', mode: 'unit-divided-whole', n: 1, d: 12, context: 'pan of brownies', gradeBand: 5, standards: ['5.NF.7a'],
+    ideaQuestions: [
+      // Idea 1: cut the part into equal shares and see how many fill the whole.
+      practice('2 friends share 1/4 of a cake equally. What fraction of the whole cake does each friend get?', ['1/8', '2/4', '1/6', '1/4'], 0, bars({ numerator: 1, denominator: 4 }),
+        'Cut the 1/4 into 2 equal pieces. How many pieces that size fill the whole cake?', 'Cut every fourth into 2 and the whole cake has 8 pieces. Each friend gets 1/8.', emptyWholes(1, 8), { authoredChoices: true }),
+      practice('3 friends share 1/2 of a pan equally. What fraction of the whole pan does each friend get?', ['1/6', '3/2', '1/5', '1/2'], 0, bars({ numerator: 1, denominator: 2 }),
+        'Cut the 1/2 into 3 equal pieces. How many pieces that size fill the whole pan?', 'Cut every half into 3 and the whole pan has 6 pieces. Each friend gets 1/6.', emptyWholes(1, 6), { authoredChoices: true }),
+      practice('4 friends share 1/2 of a pizza equally. What fraction of the whole pizza does each friend get?', ['1/8', '4/2', '1/6', '1/2'], 0, bars({ numerator: 1, denominator: 2 }),
+        'Cut the 1/2 into 4 equal pieces. How many pieces that size fill the whole pizza?', 'Cut every half into 4 and the whole pizza has 8 pieces. Each friend gets 1/8.', emptyWholes(1, 8), { authoredChoices: true }),
+    ] },
   { id: 'share-or-fit', title: 'Share or fit?', shortTitle: 'Share or fit', description: 'Tell sharing from fitting, then divide.',
     skill: 'Sharing splits an amount into equal shares. Fitting asks how many pieces fit. Both are division. Check with ×.',
     example: { prompt: 'How many 1/3-cup servings are in 2 cups?', answer: '6 servings', explanation: '2 ÷ 1/3 = 6. Each cup holds 3 servings. Check: 6 × 1/3 = 2 cups.',
@@ -1049,16 +1070,111 @@ const extensionTopics: ExtensionTopic[] = [
       practice('How many 1/4-pound bags can be filled from 3 pounds of clay?', ['12 bags', '3/4 bag', '7 bags', '4 bags'], 0, emptyWholes(3),
         'How many 1/4 pounds make 1 pound? Then think about 3 pounds.',
         '3 ÷ 1/4 = 12 bags. Each pound fills 4 bags. Check: 12 × 1/4 = 3.', emptyWholes(3, 4)),
+    ],
+    ideaQuestions: [
+      // Idea 1: tell sharing from fitting.
+      practice('Pip has 2 cups of rice. Each scoop holds 1/3 cup. Pip counts the scoops. Is this sharing or fitting?', SHARE_OR_FIT, 1, emptyWholes(2),
+        'Is an amount split among friends, or do you count how many scoops fit?', 'You count how many 1/3-cup scoops fit in 2 cups, so this is fitting.', emptyWholes(2, 3), { authoredChoices: true }),
+      // Idea 2: sharing splits the amount into equal shares.
+      practice('1/3 pound of clay is shared by 2 friends. How much does each get?', ['1/6 pound', '2/3 pound', '6 pounds', '1/5 pound'], 0, bars({ numerator: 1, denominator: 3 }),
+        'Cut the third of a pound into 2 equal shares. How big is one share of the whole pound?', '1/3 ÷ 2 = 1/6 pound. Each share is smaller than 1/3.', bars({ numerator: 1, denominator: 6 }), { authoredChoices: true }),
+      practice('1/4 pound of clay is shared by 2 friends. How much does each get?', ['1/8 pound', '2/4 pound', '8 pounds', '1/6 pound'], 0, bars({ numerator: 1, denominator: 4 }),
+        'Cut the fourth of a pound into 2 equal shares. How big is one share of the whole pound?', '1/4 ÷ 2 = 1/8 pound. Each share is smaller than 1/4.', bars({ numerator: 1, denominator: 8 }), { authoredChoices: true }),
+      // Idea 3: fitting counts the pieces; check with ×.
+      practice('How many 1/3-pound bags can be filled from 2 pounds of clay?', ['6 bags', '5 bags', '2/3 bag', '3 bags'], 0, emptyWholes(2),
+        'How many 1/3 pounds make 1 pound? Then think about 2 pounds.', '2 ÷ 1/3 = 6 bags. Each pound fills 3 bags. Check: 6 × 1/3 = 2.', emptyWholes(2, 3), { authoredChoices: true }),
+      practice('How many 1/4-pound bags can be filled from 2 pounds of clay?', ['8 bags', '6 bags', '2/4 bag', '4 bags'], 0, emptyWholes(2),
+        'How many 1/4 pounds make 1 pound? Then think about 2 pounds.', '2 ÷ 1/4 = 8 bags. Each pound fills 4 bags. Check: 8 × 1/4 = 2.', emptyWholes(2, 4), { authoredChoices: true }),
+      practice('Pip says 3 ÷ 1/2 = 6. Which multiplication checks the answer?', ['6 × 1/2 = 3', '6 × 3 = 18', '3 × 1/2 = 3/2', '6 × 2 = 12'], 0, emptyWholes(3, 2),
+        'Multiply the answer by the piece size. Do you get back the amount you started with?', '6 pieces of 1/2 make 3 wholes: 6 × 1/2 = 3. So 3 ÷ 1/2 = 6 is right.', emptyWholes(3, 2), { authoredChoices: true }),
     ] },
-  { id: 'fraction-of-length', title: 'A fraction of a length', shortTitle: 'Fractional lengths', description: 'Find 3/8 of a ribbon.', skill: 'Split the whole length into equal parts using the denominator. Measure the number of parts shown by the numerator.', mode: 'measure', n: 3, d: 8, context: 'ribbon' },
-  { id: 'fractional-measure-addition', title: 'Add lengths', shortTitle: 'Measure together', description: 'Add 1/2 meter and 1/4 meter.', skill: 'Rename the lengths as the same-size parts. Then add them and keep the unit.', mode: 'measure-add', n: 1, d: 2, context: 'wooden boards' },
+  { id: 'fraction-of-length', title: 'A fraction of a length', shortTitle: 'Fractional lengths', description: 'Find 3/8 of a ribbon.', skill: 'Split the whole length into equal parts using the denominator. Measure the number of parts shown by the numerator.', mode: 'measure', n: 3, d: 8, context: 'ribbon',
+    ideaQuestions: [
+      // Idea 1: one part of a length.
+      practice('A rope is 10 meters long. How long is 1/5 of it?', ['2 meters', '5 meters', '50 meters', '8 meters'], 0, emptyWholes(1, 5),
+        'Cut 10 meters into 5 equal parts. One part is 1/5.', '10 ÷ 5 = 2. One part is 2 meters, so 1/5 of the rope is 2 meters.', bars({ numerator: 1, denominator: 5 }), { authoredChoices: true }),
+      practice('A fence is 20 meters long. How long is 1/4 of it?', ['5 meters', '4 meters', '80 meters', '15 meters'], 0, emptyWholes(1, 4),
+        'Cut 20 meters into 4 equal parts. One part is 1/4.', '20 ÷ 4 = 5. One part is 5 meters, so 1/4 of the fence is 5 meters.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
+      // Idea 2: count the parts the numerator says.
+      practice('A path is 15 meters long. How long is 2/3 of it?', ['10 meters', '5 meters', '30 meters', '15 meters'], 0, emptyWholes(1, 3),
+        'Cut 15 meters into 3 equal parts. Count 2 parts.', '15 ÷ 3 = 5 meters in one part. 2 parts: 2 × 5 = 10 meters.', bars({ numerator: 2, denominator: 3 }), { authoredChoices: true }),
+    ] },
+  { id: 'fractional-measure-addition', title: 'Add lengths', shortTitle: 'Measure together', description: 'Add 1/2 meter and 1/4 meter.', skill: 'Rename the lengths as the same-size parts. Then add them and keep the unit.', mode: 'measure-add', n: 1, d: 2, context: 'wooden boards',
+    ideaQuestions: [
+      // Idea 1: rename a length in same-size parts.
+      practice('A board is 1/3 meter long. How many sixths of a meter is that?', ['2/6 meter', '1/6 meter', '2/3 meter', '4/6 meter'], 0,
+        bars({ numerator: 1, denominator: 3 }, { numerator: 0, denominator: 6 }),
+        'Each third is cut into 2 sixths. Count the sixths in 1/3.', 'Each third is 2 sixths, so 1/3 meter = 2/6 meter.',
+        bars({ numerator: 1, denominator: 3 }, { numerator: 0, denominator: 6 }), { authoredChoices: true }),
+      practice('A board is 1/2 meter long. How many eighths of a meter is that?', ['4/8 meter', '1/8 meter', '2/8 meter', '7/8 meter'], 0,
+        bars({ numerator: 1, denominator: 2 }, { numerator: 0, denominator: 8 }),
+        'Each half is cut into 4 eighths. Count the eighths in 1/2.', 'Each half is 4 eighths, so 1/2 meter = 4/8 meter.',
+        bars({ numerator: 1, denominator: 2 }, { numerator: 0, denominator: 8 }), { authoredChoices: true }),
+      practice('A board is 3/4 meter long. How many eighths of a meter is that?', ['6/8 meter', '3/8 meter', '7/8 meter', '6/4 meters'], 0,
+        bars({ numerator: 3, denominator: 4 }, { numerator: 0, denominator: 8 }),
+        'Each fourth is cut into 2 eighths. Count the eighths in 3 fourths.', 'Each fourth is 2 eighths. 3 fourths is 3 × 2 = 6 eighths, so 3/4 meter = 6/8 meter.',
+        bars({ numerator: 3, denominator: 4 }, { numerator: 0, denominator: 8 }), { authoredChoices: true }),
+    ] },
   { id: 'ruler-measurement', title: 'Measure with fractional inches', shortTitle: 'Read a ruler', description: 'Use equal ruler marks to name a length.', skill: 'The spaces between ruler marks are equal fractions of an inch. Count the spaces to measure.', mode: 'ruler', n: 5, d: 4, context: 'ruler', gradeBand: 3, standards: ['3.MD.4'] },
   { id: 'build-line-plots', title: 'Build a fraction line plot', shortTitle: 'Build line plots', description: 'Place one X for each measurement.', skill: 'Place one X for each measurement above its matching value. Stack Xs when measurements match.', example: { prompt: 'Ribbons are 1/4, 3/4, 3/4 and 1 inch long. How many Xs go above 3/4?', answer: '2 Xs', explanation: 'Put one X above the matching tick for each ribbon. Two ribbons are 3/4 inch long, so 2 Xs stack above 3/4.', model: line(3, 4) }, mode: 'line-plot', n: 3, d: 4, context: 'ribbon lengths', gradeBand: 3, standards: ['3.MD.4'] },
   { id: 'read-line-plots', title: 'Read a fraction line plot', shortTitle: 'Read line plots', description: 'Use line-plot marks to compare measurements.', skill: 'Read the labels to find each measurement. Then compare them or find how far apart they are.', example: { prompt: 'The line plot shows pencil lengths in eighths of an inch. What is the difference between the longest and shortest?', answer: '4/8 inch', explanation: 'The X farthest right is at 7/8 and the X farthest left is at 3/8. 7/8 − 3/8 = 4/8. So the longest is 4/8 inch longer.', model: { kind: 'lineplot', denominator: 8, wholes: 1, values: [3, 5, 5, 7] } }, mode: 'line-plot-read', n: 5, d: 8, context: 'pencil lengths', gradeBand: 4, standards: ['4.MD.4'] },
-  { id: 'line-plot-leveling', title: 'Use line plots to share amounts', shortTitle: 'Reason with line plots', description: 'Use data to find a total and make equal shares.', skill: 'Add the measurements to find the total. Divide that total into equal shares.', example: { prompt: 'Three cups hold 1/2, 1/4 and 0 liter. Share it so each cup holds the same.', answer: '1/4 liter each', explanation: 'First add the amounts: 1/2 + 1/4 + 0 = 3/4 liter. Then split 3/4 into 3 equal shares. Each cup gets 1/4 liter.', model: bars({ numerator: 1, denominator: 4, named: true }, { numerator: 1, denominator: 4, named: true }, { numerator: 1, denominator: 4, named: true }) }, mode: 'line-plot-level', n: 3, d: 4, context: 'beaker amounts', gradeBand: 5, standards: ['5.MD.2'] },
+  { id: 'line-plot-leveling', title: 'Use line plots to share amounts', shortTitle: 'Reason with line plots', description: 'Use data to find a total and make equal shares.', skill: 'Add the measurements to find the total. Divide that total into equal shares.', example: { prompt: 'Three cups hold 1/2, 1/4 and 0 liter. Share it so each cup holds the same.', answer: '1/4 liter each', explanation: 'First add the amounts: 1/2 + 1/4 + 0 = 3/4 liter. Then split 3/4 into 3 equal shares. Each cup gets 1/4 liter.', model: bars({ numerator: 1, denominator: 4, named: true }, { numerator: 1, denominator: 4, named: true }, { numerator: 1, denominator: 4, named: true }) }, mode: 'line-plot-level', n: 3, d: 4, context: 'beaker amounts', gradeBand: 5, standards: ['5.MD.2'],
+    ideaQuestions: [
+      // Idea 1: add every amount on the line plot.
+      practice('Three jars hold 1/4, 2/4, 3/4 liter. How much water is in all three?', ['6/4 liters', '6/12 liter', '3/4 liter', '6 liters'], 0,
+        { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 2, 3] },
+        'Add the fourths for every X: 1 + 2 + 3.', '1 + 2 + 3 = 6 fourths. All three jars hold 6/4 liters.',
+        { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 2, 3] }, { authoredChoices: true }),
+      practice('Three cups hold 2/8, 3/8, 5/8 liter. How much juice is in all three?', ['10/8 liters', '10/24 liter', '5/8 liter', '10 liters'], 0,
+        { kind: 'lineplot', denominator: 8, wholes: 1, values: [2, 3, 5] },
+        'Add the eighths for every X: 2 + 3 + 5.', '2 + 3 + 5 = 10 eighths. All three cups hold 10/8 liters.',
+        { kind: 'lineplot', denominator: 8, wholes: 1, values: [2, 3, 5] }, { authoredChoices: true }),
+      practice('Four bottles hold 1/4, 2/4, 2/4, 4/4 liter. How much water is in all four?', ['9/4 liters', '9/16 liter', '4/4 liter', '9 liters'], 0,
+        { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 2, 2, 4] },
+        'Add the fourths for every X. Two Xs at one spot count twice.', '1 + 2 + 2 + 4 = 9 fourths. All four bottles hold 9/4 liters.',
+        { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 2, 2, 4] }, { authoredChoices: true }),
+      // Idea 2: share a total equally.
+      practice('6/4 liters of water is shared equally by 3 cups. How much goes in each cup?', ['2/4 liter', '6/4 liters', '3/4 liter', '2 liters'], 0,
+        bars({ numerator: 6, denominator: 4 }),
+        'Give each cup the same number of fourths. 6 fourths shared by 3 cups.', '6 fourths ÷ 3 cups = 2 fourths each. Each cup gets 2/4 liter.',
+        bars({ numerator: 6, denominator: 4 }), { authoredChoices: true }),
+      practice('9/8 liters of juice is shared equally by 3 cups. How much goes in each cup?', ['3/8 liter', '9/8 liters', '3 liters', '3/11 liter'], 0,
+        bars({ numerator: 9, denominator: 8 }),
+        'Give each cup the same number of eighths. 9 eighths shared by 3 cups.', '9 eighths ÷ 3 cups = 3 eighths each. Each cup gets 3/8 liter.',
+        bars({ numerator: 9, denominator: 8 }), { authoredChoices: true }),
+      practice('12/8 liters of water is shared equally by 4 jars. How much goes in each jar?', ['3/8 liter', '12/8 liters', '3 liters', '6/8 liter'], 0,
+        bars({ numerator: 12, denominator: 8 }),
+        'Give each jar the same number of eighths. 12 eighths shared by 4 jars.', '12 eighths ÷ 4 jars = 3 eighths each. Each jar gets 3/8 liter.',
+        bars({ numerator: 12, denominator: 8 }), { authoredChoices: true }),
+    ] },
   { id: 'measurement-word-problems', title: 'Fractions in measurement stories', shortTitle: 'Measurement stories', description: 'Use fractions with length, time, money, mass and volume.', skill: 'Keep the measurement unit in your answer. Convert units before comparing or calculating.', mode: 'measure-context', n: 3, d: 4, context: 'measurement stories', gradeBand: 4, standards: ['4.MD.2'] },
-  { id: 'fractional-unit-conversions', title: 'Convert fraction units', shortTitle: 'Fraction unit conversions', description: 'Find a fractional amount in a smaller unit.', skill: 'Convert the whole measurement to smaller units first. Then find the fraction of that amount.', example: { prompt: 'How many minutes are in 3/4 of an hour?', answer: '45 minutes', explanation: 'One hour is 60 minutes. Split it into 4 equal parts of 15 minutes each. 3 of those parts is 45 minutes.', model: bars({ numerator: 3, denominator: 4 }) }, mode: 'unit-conversion', n: 3, d: 4, context: 'measuring tools', gradeBand: 5, standards: ['5.MD.1', '4.MD.2'] },
-  { id: 'fractional-sharing', title: 'Fair shares', shortTitle: 'Fair sharing', description: 'Share 3 loaves with 4 friends.', skill: 'Share the total equally. The amount each friend gets is the total divided by the number of friends.', mode: 'share', n: 3, d: 4, context: 'loaf of bread' },
+  { id: 'fractional-unit-conversions', title: 'Convert fraction units', shortTitle: 'Fraction unit conversions', description: 'Find a fractional amount in a smaller unit.', skill: 'Convert the whole measurement to smaller units first. Then find the fraction of that amount.', example: { prompt: 'How many minutes are in 3/4 of an hour?', answer: '45 minutes', explanation: 'One hour is 60 minutes. Split it into 4 equal parts of 15 minutes each. 3 of those parts is 45 minutes.', model: bars({ numerator: 3, denominator: 4 }) }, mode: 'unit-conversion', n: 3, d: 4, context: 'measuring tools', gradeBand: 5, standards: ['5.MD.1', '4.MD.2'],
+    ideaQuestions: [
+      // Idea 1: how many small units make one big unit.
+      practice('How many inches are in 1 foot?', ['12 inches', '10 inches', '100 inches', '16 inches'], 0, { ...emptyWholes(1), caption: '1 foot' },
+        'Look at the unit facts. A ruler is 1 foot long.', '1 foot = 12 inches.', { ...emptyWholes(1), caption: '1 foot' }, { authoredChoices: true }),
+      practice('How many minutes are in 1 hour?', ['60 minutes', '100 minutes', '12 minutes', '24 minutes'], 0, { ...emptyWholes(1), caption: '1 hour' },
+        'Look at the unit facts. A clock goes all the way round in 1 hour.', '1 hour = 60 minutes.', { ...emptyWholes(1), caption: '1 hour' }, { authoredChoices: true }),
+      practice('How many ounces are in 1 pound?', ['16 ounces', '12 ounces', '10 ounces', '100 ounces'], 0, { ...emptyWholes(1), caption: '1 pound' },
+        'Look at the unit facts for pounds.', '1 pound = 16 ounces.', { ...emptyWholes(1), caption: '1 pound' }, { authoredChoices: true }),
+      // Idea 3: multiply by the numerator.
+      practice('How many minutes are in 2/3 of an hour?', ['40 minutes', '20 minutes', '60 minutes', '90 minutes'], 0, emptyWholes(1, 3),
+        '1 hour is 60 minutes. Find one third, then take 2 of them.', '60 ÷ 3 = 20 minutes in one part. 2 × 20 = 40 minutes.', emptyWholes(1, 3), { authoredChoices: true }),
+      practice('How many inches are in 3/4 foot?', ['9 inches', '3 inches', '12 inches', '16 inches'], 0, emptyWholes(1, 4),
+        '1 foot is 12 inches. Find one fourth, then take 3 of them.', '12 ÷ 4 = 3 inches in one part. 3 × 3 = 9 inches.', emptyWholes(1, 4), { authoredChoices: true }),
+      practice('How many hours are in 3/4 of a day?', ['18 hours', '6 hours', '24 hours', '32 hours'], 0, emptyWholes(1, 4),
+        '1 day is 24 hours. Find one fourth, then take 3 of them.', '24 ÷ 4 = 6 hours in one part. 3 × 6 = 18 hours.', emptyWholes(1, 4), { authoredChoices: true }),
+    ] },
+  { id: 'fractional-sharing', title: 'Fair shares', shortTitle: 'Fair sharing', description: 'Share 3 loaves with 4 friends.', skill: 'Share the total equally. The amount each friend gets is the total divided by the number of friends.', mode: 'share', n: 3, d: 4, context: 'loaf of bread',
+    ideaQuestions: [
+      // Idea 1: cut each loaf into one part for each friend.
+      practice('3 loaves are shared fairly by 4 friends. Each loaf is cut into one part for each friend. What fraction of a loaf is one part?', ['1/4 loaf', '1/3 loaf', '1/7 loaf', '1/12 loaf'], 0, emptyWholes(3),
+        'How many friends are there? Cut each loaf into that many equal parts.', '4 friends, so each loaf is cut into 4 equal parts. One part is 1/4 of a loaf.', emptyWholes(3, 4), { authoredChoices: true }),
+      practice('2 loaves are shared fairly by 5 friends. Into how many equal parts should each loaf be cut?', ['5 parts', '2 parts', '7 parts', '10 parts'], 0, emptyWholes(2),
+        'Each friend gets one part of every loaf. How many friends are there?', '5 friends, so cut each loaf into 5 equal parts. Each friend gets one part of each loaf.', emptyWholes(2, 5), { authoredChoices: true }),
+      practice('4 pizzas are shared fairly by 3 friends. Into how many equal parts should each pizza be cut?', ['3 parts', '4 parts', '7 parts', '12 parts'], 0, emptyWholes(4),
+        'Each friend gets one part of every pizza. How many friends are there?', '3 friends, so cut each pizza into 3 equal parts. Each friend gets one part of each pizza.', emptyWholes(4, 3), { authoredChoices: true }),
+    ] },
   { id: 'fraction-as-division', title: 'Division is a fraction', shortTitle: 'Fraction quotient', description: '5 ÷ 4 = 5/4.', skill: 'A fraction bar means division. The numerator is divided by the denominator.', mode: 'quotient', n: 5, d: 4, context: 'pizzas',
     example: { prompt: '5 ÷ 4 = ?', answer: '5/4', explanation: 'Share 5 wholes among 4: cut each whole into 4 parts, and each share gets 5 of them. So 5 ÷ 4 = 5/4, or 1 1/4. The fraction bar means divide.',
       model: bars({ numerator: 5, denominator: 4 }) },
@@ -1076,6 +1192,16 @@ const extensionTopics: ExtensionTopic[] = [
       practice('Between which two whole numbers is 13/4?', ['2 and 3', '3 and 4', '4 and 5', '13 and 14'], 1, line(0, 4, 4),
         'How many fourths make one whole? Count whole groups of 4 in 13.',
         '13/4 = 13 ÷ 4 = 3 1/4. That is more than 3 and less than 4.', { kind: 'line', numerator: 13, denominator: 4, wholes: 4 }),
+    ],
+    ideaQuestions: [
+      // Idea 1: a division written as a fraction.
+      practice('Write 2 ÷ 3 as a fraction.', ['2/3', '3/2', '1/3', '2/5'], 0, emptyWholes(2, 3),
+        'The number shared goes on top. The number of shares goes on the bottom.', '2 ÷ 3 = 2/3. Each share is 2/3 of a whole.', emptyWholes(2, 3), { authoredChoices: true }),
+      // Idea 2: the whole numbers a fraction is between.
+      practice('Between which two whole numbers is 9/4?', ['2 and 3', '1 and 2', '3 and 4', '9 and 10'], 0, line(0, 4, 3),
+        'How many fourths make one whole? How many wholes fit in 9 fourths?', '9/4 = 9 ÷ 4 = 2 1/4. That is more than 2 and less than 3.', { kind: 'line', numerator: 9, denominator: 4, wholes: 3 }, { authoredChoices: true }),
+      practice('Between which two whole numbers is 7/2?', ['3 and 4', '2 and 3', '4 and 5', '7 and 8'], 0, line(0, 2, 4),
+        'How many halves make one whole? How many wholes fit in 7 halves?', '7/2 = 7 ÷ 2 = 3 1/2. That is more than 3 and less than 4.', { kind: 'line', numerator: 7, denominator: 2, wholes: 4 }, { authoredChoices: true }),
     ] },
   { id: 'fraction-probability', title: 'Bonus: Chance as a fraction', shortTitle: 'Bonus probability', description: 'What is the chance of blue?', skill: 'The numerator counts the outcomes you want. The denominator counts all equally likely outcomes.', mode: 'probability', n: 2, d: 8, context: 'color spinner', enrichment: true },
   { id: 'fraction-of-area', title: 'Fractions in shapes', shortTitle: 'Equal-area partitions', description: 'Explore equal-area parts in squares, rectangles, circles and hexagons.', skill: 'Fraction parts must have equal areas. Their shapes may look different, but each part must cover the same amount of space.', mode: 'area', n: 3, d: 8, context: 'shape tiles', gradeBand: 3, standards: ['3.G.2'],
@@ -1201,6 +1327,18 @@ const extensionTopics: ExtensionTopic[] = [
       practice('A bag holds 2 1/4 pounds of sand. Pip adds 6 ounces. How many ounces are in the bag now?', ['42 ounces', '30 ounces', '36 ounces', '33 ounces'], 0,
         bars({ numerator: 4, denominator: 4 }, { numerator: 4, denominator: 4 }, { numerator: 1, denominator: 4 }), 'Change 2 1/4 pounds to ounces first: a pound is 16 ounces.',
         '2 1/4 pounds is 16 + 16 + 4 = 36 ounces. 36 + 6 = 42 ounces.', bars({ numerator: 4, denominator: 4 }, { numerator: 4, denominator: 4 }, { numerator: 1, denominator: 4 })),
+    ],
+    ideaQuestions: [
+      // Idea 1: change a mixed number of big units into small units.
+      practice('How many inches are in 1 1/2 feet?', ['18 inches', '12 inches', '6 inches', '24 inches'], 0,
+        bars({ numerator: 2, denominator: 2 }, { numerator: 1, denominator: 2 }), 'Each foot is 12 inches. Half a foot is 6 inches.',
+        '1 foot is 12 inches and 1/2 foot is 6 inches. 12 + 6 = 18 inches.', bars({ numerator: 2, denominator: 2 }, { numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('How many minutes are in 1 1/4 hours?', ['75 minutes', '60 minutes', '15 minutes', '85 minutes'], 0,
+        bars({ numerator: 4, denominator: 4 }, { numerator: 1, denominator: 4 }), 'An hour is 60 minutes. 1/4 hour is 60 ÷ 4 minutes.',
+        '1 hour is 60 minutes and 1/4 hour is 15 minutes. 60 + 15 = 75 minutes.', bars({ numerator: 4, denominator: 4 }, { numerator: 1, denominator: 4 }), { authoredChoices: true }),
+      practice('How many ounces are in 1 1/2 pounds?', ['24 ounces', '16 ounces', '8 ounces', '32 ounces'], 0,
+        bars({ numerator: 2, denominator: 2 }, { numerator: 1, denominator: 2 }), 'A pound is 16 ounces. Half a pound is 8 ounces.',
+        '1 pound is 16 ounces and 1/2 pound is 8 ounces. 16 + 8 = 24 ounces.', bars({ numerator: 2, denominator: 2 }, { numerator: 1, denominator: 2 }), { authoredChoices: true }),
     ] },
   { id: 'line-plot-totals', title: 'Line plot totals', shortTitle: 'Line plot totals', description: 'Add every X on a line plot to find a total or a difference.',
     skill: 'Add the amount for every X. The parts are the same size, so add the numerators.',
@@ -1221,6 +1359,29 @@ const extensionTopics: ExtensionTopic[] = [
       practice('The line plot shows rain on 4 days: 1/2, 1/2, 3/4, 1/4 inch. How much rain in all?', ['2 inches', '6/12 inch', '1 2/4 inches', '1 inch'], 0,
         { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 2, 3, 1] }, 'Change the halves to fourths. Then add every X.',
         '1/2 = 2/4. 2 + 2 + 3 + 1 = 8 fourths. 8/4 is 2 inches.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 2, 3, 1] }),
+    ],
+    ideaQuestions: [
+      // Idea 1: add the amount for every X.
+      practice('The line plot shows juice in 4 cups: 1/4, 3/4, 3/4, 3/4 liter. How much juice in all?', ['2 2/4 liters', '1 liter', '10/16 liter', '3/4 liter'], 0,
+        { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 3, 3, 3] }, 'Add the amount for every X. Three Xs at 3/4 count three times.',
+        '1 + 3 + 3 + 3 = 10 fourths: 10/4, or 2 2/4 liters.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 3, 3, 3] }, { authoredChoices: true }),
+      // Idea 2: how much more one stack holds.
+      practice('The line plot shows juice in 5 cups: 1/4, 1/4, 3/4, 3/4, 3/4 liter. How much more do all the 3/4 cups hold together than all the 1/4 cups together?', ['1 3/4 liters', '2/4 liter', '2 1/4 liters', '2 3/4 liters'], 0,
+        { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 1, 3, 3, 3] }, 'Add up each stack first. Then take away.',
+        'The three 3/4 cups hold 9/4. The two 1/4 cups hold 2/4. 9/4 − 2/4 = 7/4, or 1 3/4 liters.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 1, 3, 3, 3] }, { authoredChoices: true }),
+      practice('The line plot shows water in 5 beakers: 2/8, 2/8, 2/8, 6/8, 6/8 liter. How much more do all the 6/8 beakers hold together than all the 2/8 beakers together?', ['6/8 liter', '4/8 liter', '1 4/8 liters', '2 2/8 liters'], 0,
+        { kind: 'lineplot', denominator: 8, wholes: 1, values: [2, 2, 2, 6, 6] }, 'Add up each stack first. Then take away.',
+        'The two 6/8 beakers hold 12/8. The three 2/8 beakers hold 6/8. 12/8 − 6/8 = 6/8 liter.', { kind: 'lineplot', denominator: 8, wholes: 1, values: [2, 2, 2, 6, 6] }, { authoredChoices: true }),
+      // Idea 3: rename halves as fourths, then add.
+      practice('The line plot shows rain on 3 days: 1/2, 1/4, 3/4 inch. How much rain in all?', ['1 2/4 inches', '5/10 inch', '1 1/4 inches', '3/4 inch'], 0,
+        { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 1, 3] }, 'Change the half to fourths. Then add every X.',
+        '1/2 = 2/4. 2 + 1 + 3 = 6 fourths: 6/4, or 1 2/4 inches.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 1, 3] }, { authoredChoices: true }),
+      practice('The line plot shows how far 3 snails crawled: 1/2, 1/2, 1/4 inch. How far did they crawl in all?', ['1 1/4 inches', '3/8 inch', '3/4 inch', '1/2 inch'], 0,
+        { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 2, 1] }, 'Change the halves to fourths. Then add every X.',
+        '1/2 = 2/4. 2 + 2 + 1 = 5 fourths: 5/4, or 1 1/4 inches.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 2, 1] }, { authoredChoices: true }),
+      practice('The line plot shows water in 4 cups: 1/2, 1/2, 1/2, 3/4 liter. How much water in all?', ['2 1/4 liters', '6/10 liter', '1 2/4 liters', '3/4 liter'], 0,
+        { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 2, 2, 3] }, 'Change the halves to fourths. Then add every X.',
+        '1/2 = 2/4. 2 + 2 + 2 + 3 = 9 fourths: 9/4, or 2 1/4 liters.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 2, 2, 3] }, { authoredChoices: true }),
     ] },
 ];
 
@@ -1303,6 +1464,7 @@ function extensionMission(topic: ExtensionTopic): MissionSeed {
     },
     // Practice uses different worksheet rows than the first ones, so the sheet still has fresh numbers.
     questions: topic.questions ?? [1, 4, 7, 10].map((row, i) => problemQuestion(sheet[row], i + row)),
+    ...(topic.ideaQuestions ? { ideaQuestions: topic.ideaQuestions } : {}),
   };
 }
 

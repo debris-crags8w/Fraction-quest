@@ -1577,7 +1577,7 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
   'fraction-of-length': {
     steps: [
       // Split the length into equal parts.
-      play([{ kind: 'bar', parts: four, bracket: '12 meters' }, { kind: 'text', text: '3/4 of 12 meters: 4 equal parts.', hidden: true }],
+      play([{ kind: 'bar', parts: four, bracket: '12 meters' }, { kind: 'text', text: 'Cut 12 meters into 4 equal parts.', hidden: true }],
         [700, { 0: { cut: true } }],
         [500, { 1: { hidden: false } }]),
       // Find one part.
@@ -1659,7 +1659,7 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
   'fractional-unit-conversions': {
     steps: [
       // Small units in one big unit.
-      play([{ kind: 'line', max: 1, spaces: 4, unit: 'hour', marks: [] }, { kind: 'text', text: '3/4 of an hour: 1 hour is 60 minutes.', hidden: true }],
+      play([{ kind: 'line', max: 1, spaces: 4, unit: 'hour', marks: [] }, { kind: 'text', text: 'Start with one whole hour: 1 hour is 60 minutes.', hidden: true }],
         [600, { 0: { stretch: 4 } }],
         [500, { 1: { hidden: false } }]),
       // Divide by the denominator.
