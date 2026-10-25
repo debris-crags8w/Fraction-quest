@@ -197,6 +197,25 @@ async function openLessonPageWorkedExample(page: import('@playwright/test').Page
   await expect(page.getByTestId('lesson-example').locator('.fq-model-area')).toBeVisible();
 }
 
+test('the lesson page fits phones down to 280 px wide, with nothing scrolling sideways', async ({ page }) => {
+  const mission = MISSIONS[0];
+  await page.addInitScript((progress) => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+    localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ introsSeen: { builder: true, line: true }, fractionWordsSeen: true }));
+  }, progressBefore(mission));
+  await openAsGuest(page);
+  await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await passStory(page);
+  await expect(page.getByTestId('learning-lab')).toBeVisible();
+  // 280 px is a small phone with large text. The Build it stepper wraps there: −, the number and + stay together.
+  for (const width of [390, 320, 280]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth), { message: `${width} px` }).toBeLessThanOrEqual(width);
+  }
+});
+
 test('a lesson with ideas keeps its Learn pictures and worked example under "How it works" on the lesson page', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const mission = MISSIONS[0];
