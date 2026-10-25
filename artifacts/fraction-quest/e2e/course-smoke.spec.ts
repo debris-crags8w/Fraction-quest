@@ -175,7 +175,8 @@ async function openLessonPageWorkedExample(page: import('@playwright/test').Page
 
 test('a lesson with ideas keeps its Learn pictures and worked example under "How it works" on the lesson page', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  const mission = MISSIONS[0];
+  // Lesson 2 (fair parts in any shape) has the worked example about fourths.
+  const mission = MISSIONS.find(({ id }) => id === 'equal-parts')!;
   expect(lessonIdeas(mission.id)).toBeTruthy();
   await openLessonPageWorkedExample(page, mission);
   const pageWidth = () => page.evaluate(() => document.documentElement.scrollWidth);
@@ -1621,20 +1622,27 @@ test.describe('all-lesson required-question smoke', () => {
 });
 
 test('learners can correct a wrong answer across every lesson model type', async ({ page }) => {
-  test.setTimeout(60_000);
-  const modelKinds = ['area', 'bars', 'decimal', 'line', 'partition', 'set'] as const;
-  // The first question a child meets: a lesson with ideas starts with its first idea's first practice.
-  const firstQuestion = (mission: Mission) => {
-    const first = ideaSteps(mission.id)[0]?.item;
-    return first && 'question' in first ? ideaQuestion(mission, first.question) : mission.questions[0];
-  };
-  // A lesson with ideas is picked only when its second practice is a question too (not a cake round).
-  const secondIsQuestion = (mission: Mission) => { const second = ideaSteps(mission.id)[1]?.item; return !second || 'question' in second; };
-  const representativeMissions = modelKinds.map((kind) =>
-    MISSIONS.find((mission) => mission.questions[0]?.model.kind === kind && !lessonIdeas(mission.id))
-      ?? MISSIONS.find((mission) => firstQuestion(mission)?.model.kind === kind && secondIsQuestion(mission)),
-  );
-  expect(representativeMissions.every(Boolean)).toBe(true);
+  test.setTimeout(120_000);
+  // The rarest types choose first, so each still finds a lesson of its own.
+  const modelKinds = ['partition', 'decimal', 'set', 'line', 'area', 'bars'] as const;
+  // For each model type, the first lesson that asks it: a lesson without ideas by its first question; a lesson with
+  // ideas by the first practice of an idea (so its Learn pages come first) whose next practice is a question too.
+  // Each type gets its own lesson: leaving a lesson keeps its place, so a second visit would not start where expected.
+  const used = new Set<string>();
+  const representatives = modelKinds.map((kind) => {
+    for (const mission of MISSIONS.filter(({ id }) => !used.has(id))) {
+      if (!lessonIdeas(mission.id)) {
+        if (mission.questions[0]?.model.kind === kind) { used.add(mission.id); return { mission, step: -1, question: mission.questions[0] }; }
+        continue;
+      }
+      const steps = ideaSteps(mission.id);
+      const step = steps.findIndex(({ practice, item }, index) => practice === 0 && 'question' in item
+        && ideaQuestion(mission, item.question)?.model.kind === kind && !!steps[index + 1] && 'question' in steps[index + 1]!.item);
+      if (step >= 0) { used.add(mission.id); return { mission, step, question: ideaQuestion(mission, (steps[step]!.item as { question: string }).question)! }; }
+    }
+    return undefined;
+  });
+  expect(representatives.every(Boolean)).toBe(true);
 
   await page.addInitScript((ids) => {
     const completedAt = Date.now();
@@ -1648,25 +1656,27 @@ test('learners can correct a wrong answer across every lesson model type', async
   }, MISSIONS.map((item) => item.id));
   await openAsGuest(page);
 
-  for (const mission of representativeMissions) {
-    if (!mission) throw new Error('Missing lesson for a question model type');
+  for (const representative of representatives) {
+    if (!representative) throw new Error('Missing lesson for a question model type');
+    const { mission, step, question } = representative;
     await page.getByTestId(`button-node-${mission.id}`).click();
     await page.getByTestId(`button-start-mission-${mission.id}`).click();
     await passStory(page);
-    // A lesson with ideas opens on idea 1's Learn page; its first practice is the first question of that idea.
+    // A lesson with ideas: walk its earlier practices, then the chosen idea's Learn pages, to its first practice.
     const ideas = lessonIdeas(mission.id);
     if (ideas) {
-      for (let p = 1; p < ideas[0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+      await completeIdeas(page, mission, { until: step });
+      const { idea } = ideaSteps(mission.id)[step]!;
+      for (let p = 1; p < ideas[idea]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
       await page.getByTestId('button-idea-practise').click();
     } else if (PART_FINDER_LESSONS.has(mission.id)) await page.getByTestId('button-hands-on-skip').click();
     else await expect(page.getByTestId('lesson-example')).toBeVisible();
 
-    const first = ideaSteps(mission.id)[0]?.item;
-    const question = first && 'question' in first ? ideaQuestion(mission, first.question)! : mission.questions[0];
     await expect(page.getByTestId('question-model-area')).toBeVisible();
     await retryLessonQuestion(page, question);
     await page.getByTestId('button-next-question').click();
-    await expectLessonQuestionProgress(page, 2, 1);
+    // The progress bar counts the lesson's practices so far (a lesson without ideas: its first question).
+    await expectLessonQuestionProgress(page, Math.max(step, 0) + 2, Math.max(step, 0) + 1);
     await page.getByTestId('button-back-map').click();
   }
 });
