@@ -1,14 +1,6 @@
 /* The ideas of lessons 2–10 (see lesson-ideas.ts): each lesson's ideas in order, each with its Learn pages and 3
    practices. Lesson 1 (ideas/lessons-01.ts) is the model. */
-import { TEACH_EXTRAS } from '../teach-extras';
-import { example, scenes, type LearnPage, type LessonIdea } from './helpers';
-
-/** One of a lesson's Words to know (teach-extras.ts) as a Learn page: its meaning over its picture. */
-const word = (id: string, term: string): LearnPage => {
-  const found = TEACH_EXTRAS[id]?.words?.find((item) => item.term === term);
-  if (!found?.picture) throw new Error(`No word "${term}" with a picture in ${id}`);
-  return { text: found.meaning, scene: found.picture };
-};
+import { example, scenes, wordsToKnow, type LessonIdea } from './helpers';
 
 export const IDEAS: Record<string, LessonIdea[]> = {
   // Lesson 2: the bottom number, then the top number, then saying and writing a fraction.
@@ -74,7 +66,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     {
       title: 'Equal parts cover the same area',
       learn: [
-        word('fraction-of-area', 'area'),
+        wordsToKnow('fraction-of-area'),
         { text: 'These parts are different shapes, but each covers the same area.', scene: scenes('fraction-of-area').steps[0]! },
         example('fraction-of-area', 'Move it on top'),
       ],
@@ -139,9 +131,9 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       title: 'Write it with a sign: >, < or =',
       terms: [{ term: 'the signs >, < and =', pattern: /\s[<>=]\s/ }],
       learn: [
-        { text: '> means “is more than”.', scene: scenes('compare-same-numerator').steps[2]! },
+        wordsToKnow('compare-same-numerator'),
+        { text: '> means “is more than”. Read it: 3/4 is more than 3/8.', scene: scenes('compare-same-numerator').steps[2]! },
         { ...example('compare-same-numerator', 'Read a < answer'), text: '< means “is less than”. The point faces the smaller amount.' },
-        word('compare-same-numerator', '='),
       ],
       practice: [{ question: 'compare-same-numerator-q3' }, { question: 'compare-same-numerator-p1' }, { question: 'compare-same-numerator-p2' }],
     },
@@ -185,7 +177,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     {
       title: 'Benchmarks: 0, 1/2 and 1',
       learn: [
-        word('benchmarks-zero-one', 'benchmark'),
+        wordsToKnow('benchmarks-zero-one'),
         { text: 'Find half of the denominator. Half of 8 is 4.', scene: scenes('benchmarks-zero-one').steps[0]! },
         { text: 'Far below half is near 0. Close to half is near 1/2.', scene: scenes('benchmarks-zero-one').steps[1]! },
       ],
@@ -235,7 +227,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       title: 'Split 0 to 1 into equal spaces',
       learn: [
         { text: 'One whole goes from 0 to 1.', scene: scenes('number-line-basics').steps[0]! },
-        word('number-line-basics', 'tick marks'),
+        wordsToKnow('number-line-basics'),
         { text: 'The denominator tells how many equal spaces.', scene: scenes('number-line-basics').steps[1]! },
       ],
       practice: [{ question: 'number-line-basics-q2' }, { question: 'number-line-basics-p1' }, { question: 'number-line-basics-p2' }],
