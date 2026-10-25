@@ -59,6 +59,8 @@ export type FunState = {
   /** The model intros (how to build, how a number line works): 'watched' after the Watch step, true once Try is done
       (or both were skipped). They open by themselves only until done. */
   introsSeen?: Partial<Record<IntroKind, IntroStage>>;
+  /** The Words screen (fraction names) in a child's first lesson was read (or skipped), so it opens by itself once. */
+  fractionWordsSeen?: true;
   /** Lessons whose Teach first screen was read (Next tapped), so it opens by itself only the first time. */
   lessonIntrosSeen?: string[];
   /** Spare oil (story mode) or streak savers: each covers one missed day so the streak keeps going. Up to SPARE_OIL_MAX. */
@@ -292,6 +294,7 @@ export function loadFun(): FunState {
       seasonLessons: cleanSeasonLessons(parsed.seasonLessons),
       story: cleanStory(parsed.story),
       introsSeen: cleanIntros(parsed.introsSeen),
+      fractionWordsSeen: parsed.fractionWordsSeen === true ? true as const : undefined,
       lessonIntrosSeen: cleanLessonIntros(parsed.lessonIntrosSeen),
       ...cleanOil(parsed),
       activity: cleanActivity(parsed.activity),
@@ -423,6 +426,11 @@ export function setDisplayPreferences(state: FunState, preferences: DisplayPrefe
   return saveFun({ ...state, displayPreferences: cleanDisplayPreferences(preferences) });
 }
 
+/** Remember the Words screen was read (or skipped): it won't open by itself again. The Helper still has it. */
+export function recordFractionWords(state: FunState): FunState {
+  return state.fractionWordsSeen ? state : saveFun({ ...state, fractionWordsSeen: true });
+}
+
 /** Remember a model intro's step: 'watched' after Watch, true after Try (or a skip). Done, it won't open by itself
     again (a later Watch never undoes a finished Try). The Helper still has both. */
 export function recordIntro(state: FunState, kind: IntroKind, stage: IntroStage = true): FunState {
@@ -541,6 +549,7 @@ export function replaceFun(saved: Partial<FunState>): FunState {
     seasonLessons: cleanSeasonLessons(saved.seasonLessons),
     story: cleanStory(saved.story),
     introsSeen: cleanIntros(saved.introsSeen),
+    fractionWordsSeen: saved.fractionWordsSeen === true ? true as const : undefined,
     lessonIntrosSeen: cleanLessonIntros(saved.lessonIntrosSeen),
     ...cleanOil(saved),
     sound: loadFun().sound,

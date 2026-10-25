@@ -52,7 +52,7 @@ import { PickedForYou } from './PickedForYou';
 import type { AssessmentDefinition } from './assessments';
 import NotFound from '@/pages/not-found';
 import LearningLab, { LinePlotInteraction, RedoLab } from './LearningLab';
-import { useLessonHelper } from './model-intro';
+import { IntroSteps, introsDue, useLessonHelper } from './model-intro';
 import { LearningListenButton, LearningText, LearningTextSection, prefetchReading, primeReadAloud, sectionsScript, useReadAloud } from './LearningText';
 import { numberLineDescription } from './lab-copy';
 import { CHAPTER_SCENES, filmedLines, filmedVoices } from './story-cinema';
@@ -63,7 +63,7 @@ import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requi
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { legalUrl } from './lib/legal';
-import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordLessonIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, setTimeLimit, addMinutesToday, timeToday, today, type FunState } from './lib/fun';
+import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordFractionWords, recordIntro, recordLessonIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, setTimeLimit, addMinutesToday, timeToday, today, type FunState } from './lib/fun';
 import { TimeUp } from './time-up';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
@@ -124,6 +124,7 @@ type View =
   | { type: 'play'; missionId: string; questionIndex: number; firstTryAnswers: number; reviewQuestions: PracticeQuestion[]; showExample?: boolean }
   /** A lesson's Teach first screen (goal, steps, why), the first time it starts; Next opens the lesson's first step. */
   | { type: 'teach'; missionId: string; then: 'play' | 'hands-on' | 'fraction-sort'; reviewQuestions: PracticeQuestion[] }
+  | { type: 'intro-steps'; missionId: string; then: 'play' | 'hands-on' | 'fraction-sort'; reviewQuestions: PracticeQuestion[] }
   | { type: 'review'; questionIndex: number; reviewQuestions: PracticeQuestion[] }
   | { type: 'review-complete'; reviewedCount: number }
   | { type: 'daily' }
@@ -1781,7 +1782,7 @@ function Game() {
   const answeredToday = fun.activity?.[today()]?.answered ?? 0;
   const timeStillOpen = view.type === 'storybook' || view.type === 'parent'
     || (view.type === 'story' && view.replay === 'storybook') || (view.type === 'suspects' && view.from === 'storybook');
-  const inLesson = activeStudyView || view.type === 'teach' || view.type === 'hands-on' || view.type === 'fraction-sort';
+  const inLesson = activeStudyView || view.type === 'teach' || view.type === 'intro-steps' || view.type === 'hands-on' || view.type === 'fraction-sort';
   const showTimeUp = timeUsedUp && !timeStillOpen && (!inLesson || answeredToday > (answeredAtTimeUp.current ?? answeredToday));
   // The practice reminder (in the app): no reminder today once the child has a right answer today, and a tapped
   // reminder opens today's practice from the map.
@@ -1852,7 +1853,20 @@ function Game() {
       {view.type === 'teach' && (
         <TeachFirst key={view.missionId} mission={getMission(view.missionId)} lessonNumber={MISSIONS.findIndex((mission) => mission.id === view.missionId) + 1}
           onExit={returnToMap}
-          onNext={() => { setFun((current) => recordLessonIntro(current, view.missionId)); openLessonStart(view.missionId, view.then, view.reviewQuestions); }} />
+          onNext={() => {
+            setFun((current) => recordLessonIntro(current, view.missionId));
+            // A child's first lesson: how the models work and their names (Watch, Words, Try) come before any question.
+            if (introsDue(fun.introsSeen).toTry.length || !fun.fractionWordsSeen) setView({ ...view, type: 'intro-steps' });
+            else openLessonStart(view.missionId, view.then, view.reviewQuestions);
+          }} />
+      )}
+      {view.type === 'intro-steps' && (
+        <IntroSteps title={getMission(view.missionId).title} lessonNumber={MISSIONS.findIndex((mission) => mission.id === view.missionId) + 1}
+          seen={fun.introsSeen} wordsSeen={!!fun.fractionWordsSeen} onExit={returnToMap}
+          onSeen={(kind, stage) => setFun((current) => recordIntro(current, kind, stage))}
+          onWordsSeen={() => setFun((current) => recordFractionWords(current))}
+          onSkip={() => { setFun((current) => recordFractionWords(recordIntro(recordIntro(current, 'builder'), 'line'))); openLessonStart(view.missionId, view.then, view.reviewQuestions); }}
+          onDone={() => openLessonStart(view.missionId, view.then, view.reviewQuestions)} />
       )}
       {view.type === 'hands-on' && (() => {
         const mission = getMission(view.missionId);

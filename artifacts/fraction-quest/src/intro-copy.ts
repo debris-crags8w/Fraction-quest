@@ -57,12 +57,43 @@ export function introSpeech(kind: IntroKind): string[] {
 }
 
 /** The Helper's pick screen: what each intro is about, and the line read before them. */
-export const HELPER_PICKS: Record<IntroKind, string> = {
+export const HELPER_PICKS: Record<IntroKind | 'words', string> = {
   builder: 'Split a whole into equal parts and shade them',
   line: 'Equal spaces, jumps from 0, where you land',
+  words: 'One half, one third, one fourth, and more',
 };
 export const HELPER_PICK_SPEECH = [
   'Need a brush-up? Watch how it works, then try it.',
   `${INTRO_TEXT.builder.title}. ${HELPER_PICKS.builder}.`,
   `${INTRO_TEXT.line.title}. ${HELPER_PICKS.line}.`,
+  'Fraction names. One half, one third, one fourth, and more.',
 ];
+
+/** The name of one part for each denominator a lesson uses ("third" for 3). */
+export const PART_NAMES: Readonly<Record<number, { one: string; many: string }>> = {
+  2: { one: 'half', many: 'halves' }, 3: { one: 'third', many: 'thirds' }, 4: { one: 'fourth', many: 'fourths' },
+  5: { one: 'fifth', many: 'fifths' }, 6: { one: 'sixth', many: 'sixths' }, 8: { one: 'eighth', many: 'eighths' },
+  10: { one: 'tenth', many: 'tenths' }, 12: { one: 'twelfth', many: 'twelfths' }, 100: { one: 'hundredth', many: 'hundredths' },
+};
+
+/** The Words screen in a child's first lesson: the part names they meet first, and two names with more than one part. */
+export const FRACTION_WORDS = {
+  title: 'Fraction names',
+  rule: 'The bottom number names the part. 2 parts are halves, 3 are thirds, 4 are fourths.',
+  rows: [2, 3, 4, 6, 8].map((d) => ({ d, word: `one ${PART_NAMES[d].one}`, also: d === 4 ? 'also: one quarter' : undefined })),
+  more: 'More than one part: the top number counts them.',
+  examples: [{ n: 2, d: 3, word: 'two thirds' }, { n: 3, d: 4, word: 'three fourths' }],
+} as const;
+
+/** What Listen reads on the Words screen, sentence by sentence. */
+export function fractionWordsSpeech(): string[] {
+  const capital = (text: string) => text[0].toUpperCase() + text.slice(1);
+  return [
+    `${FRACTION_WORDS.title}.`, FRACTION_WORDS.rule,
+    ...FRACTION_WORDS.rows.map((row) => `${capital(row.word)}${row.also ? ', also called one quarter' : ''}.`),
+    FRACTION_WORDS.more, ...FRACTION_WORDS.examples.map((example) => `${capital(example.word)}.`),
+  ];
+}
+
+/** A lesson's "New word" card, for a part name the child hasn't met before (fifths, tenths, twelfths, hundredths). */
+export const newWordSpeech = (d: number) => `New word. 1 of ${d} equal parts is one ${PART_NAMES[d].one}. ${d} equal parts are ${PART_NAMES[d].many}.`;

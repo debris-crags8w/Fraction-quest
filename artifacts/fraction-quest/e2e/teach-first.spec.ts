@@ -4,6 +4,7 @@ import { expect, test } from '@playwright/test';
    stays a tap away under "How it works" and does not open by itself again. (The other specs tap through it.) */
 
 test('a lesson teaches first the first time, then keeps it under How it works', async ({ page }) => {
+  test.setTimeout(90_000);
   await page.addInitScript(() => {
     if (!localStorage.getItem('fraction-quest-fun-v1')) localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 0, day: '2026-10-20', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: false,
       story: { prologueSeen: true, choices: {} }, displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: false, storyMode: false } }));
@@ -36,6 +37,54 @@ test('a lesson teaches first the first time, then keeps it under How it works', 
   await teach.getByTestId('button-teach-step-next').click();
 
   await page.getByTestId('button-teach-next').click();
+
+  // A child's first lesson: how the models work and their names come before any question. Watch (the bar, then the
+  // number line), Words (the fraction names), then Try, each its own screen.
+  const intro = page.getByTestId('intro-steps');
+  await expect(intro).toBeVisible();
+  await expect(page.getByTestId('part-finder-lesson-example')).toHaveCount(0);
+  await expect(intro.locator('[data-step="watch"] .fq-mi-kicker')).toHaveText('Step 1 of 3 · Watch');
+  await expect(intro.getByTestId('intro-builder')).toBeVisible();
+  // Each screen fits a phone, Next included.
+  const fits = async (label: string) => {
+    expect(await page.evaluate(() => document.documentElement.scrollHeight), label).toBeLessThanOrEqual(844);
+  };
+  await fits('Watch');
+  await intro.getByTestId('button-intro-watched').click();
+  await expect(intro.getByTestId('intro-line')).toHaveAttribute('data-step', 'watch');
+  await expect(intro.getByTestId('button-intro-watched')).toHaveText(/Next: Words/);
+  await intro.getByTestId('button-intro-watched').click();
+  // Words: 1/3 is one third, stacked, with a small bar; the bottom number names the part.
+  const words = intro.getByTestId('fraction-words');
+  await expect(words.locator('.fq-mi-kicker')).toHaveText('Step 2 of 3 · Words');
+  await expect(words.getByTestId('fraction-word-3')).toContainText('one third');
+  await expect(words.getByTestId('fraction-word-3').getByLabel('1 over 3')).toBeVisible();
+  await expect(words.getByTestId('fraction-word-4')).toContainText('one quarter');
+  await expect(words).toContainText('The bottom number names the part.');
+  await expect(words).not.toContainText('1/3');
+  await fits('Words');
+  await words.getByTestId('button-words-next').click();
+  await expect(intro.locator('[data-step="try"] .fq-mi-kicker')).toHaveText('Step 3 of 3 · Try');
+  await fits('Try');
+  // Try 1 and 2 with the bar, then the number line's two; the last one starts the lesson.
+  const tryOne = async (plus: number, tap: string) => {
+    for (let i = 0; i < plus; i++) await intro.getByTestId('button-intro-plus').click();
+    await intro.getByTestId(tap).click();
+    await intro.getByTestId('button-intro-next').click();
+  };
+  await tryOne(1, 'intro-piece-0');
+  await tryOne(2, 'intro-piece-1');
+  await expect(intro.getByTestId('intro-line')).toHaveAttribute('data-step', 'try');
+  await fits('Try the number line');
+  await tryOne(2, 'intro-tick-2');
+  await expect(intro.getByTestId('button-intro-next')).toBeDisabled();
+  await intro.getByTestId('button-intro-plus').click();
+  await intro.getByTestId('button-intro-plus').click();
+  await intro.getByTestId('button-intro-plus').click();
+  await intro.getByTestId('intro-tick-3').click();
+  await expect(intro.getByTestId('button-intro-next')).toHaveText(/Start the lesson/);
+  await intro.getByTestId('button-intro-next').click();
+
   await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
   const how = page.getByTestId('button-how-it-works').first();
   await how.click();
@@ -51,6 +100,12 @@ test('a lesson teaches first the first time, then keeps it under How it works', 
   await page.getByTestId('button-start-mission-equal-parts').click();
   await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
   await expect(teach).toHaveCount(0);
+  await expect(page.getByTestId('intro-steps')).toHaveCount(0);
+
+  // The Helper keeps the fraction names.
+  await page.getByTestId('button-lesson-helper').first().click();
+  await page.getByTestId('button-helper-words').click();
+  await expect(page.getByTestId('lesson-helper').getByTestId('fraction-word-2')).toContainText('one half');
 });
 
 test('the wordiest Teach first screens still fit a phone', async ({ page }) => {

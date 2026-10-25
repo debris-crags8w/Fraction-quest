@@ -45,6 +45,9 @@ test.describe('the published app', () => {
     await expect(page.getByTestId('teach-first')).toBeVisible();
     for (let i = 0; i < 3; i++) await page.getByTestId('button-teach-step-next').click();
     await page.getByTestId('button-teach-next').click();
+    // Watch and Try work offline too (a child's first lesson); skip them to reach the lesson.
+    await expect(page.getByTestId('intro-steps')).toBeVisible();
+    await page.getByTestId('button-intro-skip').click();
     await expect(page.getByTestId('part-finder-lesson-example')).toBeVisible();
   });
 });
