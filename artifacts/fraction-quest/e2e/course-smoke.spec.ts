@@ -157,6 +157,7 @@ async function openLessonPageWorkedExample(page: import('@playwright/test').Page
       learning: { [id]: { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {} } } }));
   }, { id: mission.id, earlier: MISSIONS.slice(0, MISSIONS.indexOf(mission)).map(({ id }) => id) });
   await openAsGuest(page);
+  await expectMissionStart(page, mission.id, true);
   await page.getByTestId(`button-start-mission-${mission.id}`).click();
   await passStory(page);
   await expect(page.getByTestId('learning-lab')).toBeVisible();
