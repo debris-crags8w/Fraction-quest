@@ -3335,8 +3335,6 @@ test('every screen of every lesson fits an iPhone Safari screen: Learn pages, pr
   // height queries (Safari answers those for its taller, bars-hidden view), so a 390 × 664 window is a faithful iPhone.
   const visible = 664;
   await page.setViewportSize({ width: 390, height: visible });
-  // Each Learn picture opens on its last, fullest frame.
-  await page.emulateMedia({ reducedMotion: 'reduce' });
   // One review is due (from lesson 1), so every other lesson's "Put it together" asks it before the story problem.
   const reviewed = MISSIONS[0]!;
   const progress = { completedMissionIds: [], starsByMission: {}, assessments: [], learning: {},
