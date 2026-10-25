@@ -6,11 +6,11 @@ import { getCodeLevels } from '../src/code-quest';
 import { getBuildChecks, getReviewCheck, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
 import { BUILD_ERROR_HEADINGS } from '../src/lab-copy';
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
-import { AREA_CUTS, areaTaskDone, pieceArea } from '../src/area-shapes';
+import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
 import { generateQuestions, getExtraPractice, hasGenerator } from '../src/practice-bank';
-import { isPartFinderAnswer, PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderRoundsFor, type PartFinderRound } from '../src/part-finder';
+import { PART_FINDER_LESSONS, partFinderRoundsFor } from '../src/part-finder';
 import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
-import { STORY_PROBLEMS, chapterFor } from '../src/story';
+import { completeIdeas, hasStoryAfterIdeas, solvePartFinderRound } from './lesson-walk';
 import { makeSprint } from '../src/CodeSprint';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
@@ -847,102 +847,10 @@ async function finishDeveloperLesson(page: import('@playwright/test').Page, save
   }, savedStorage);
 }
 
-function partFinderSolution(round: PartFinderRound): { assignment?: number[]; selected: number[]; tileCount?: number } {
-  const pieces = AREA_CUTS[round.cut];
-  if (round.mode === 'sort') {
-    const shareCount = round.shares ?? 0;
-    const target = 1 / shareCount;
-    const assignment = Array<number>(pieces.length).fill(-1);
-    const areas = Array.from(pieces, pieceArea);
-    const totals = Array<number>(shareCount).fill(0);
-    const assign = (index: number): boolean => {
-      if (index === pieces.length) return totals.every((area) => Math.abs(area - target) < 1e-9);
-      for (let share = 0; share < shareCount; share++) {
-        if (totals[share] + areas[index] > target + 1e-9) continue;
-        assignment[index] = share;
-        totals[share] += areas[index];
-        if (assign(index + 1)) return true;
-        totals[share] -= areas[index];
-        assignment[index] = -1;
-      }
-      return false;
-    };
-    if (shareCount > 0 && assign(0)) return { assignment, selected: [] };
-    throw new Error(`No fair share assignment found for Part Finder round ${round.id}`);
-  }
-
-  for (let mask = 1; mask < 2 ** pieces.length; mask++) {
-    const selected = pieces.map((_, index) => index).filter((index) => mask & (1 << index));
-    if (round.mode === 'tile') {
-      if (selected.length !== 1) continue;
-      const tileCount = Math.round(1 / pieceArea(pieces[selected[0]]));
-      if (isPartFinderAnswer(round, selected, tileCount)) return { selected, tileCount };
-    } else if (isPartFinderAnswer(round, selected)) {
-      return { selected };
-    }
-  }
-  throw new Error(`No valid piece selection found for Part Finder round ${round.id}`);
-}
-
 async function completePartFinderLesson(page: import('@playwright/test').Page, missionId: string) {
   await expect(page.getByTestId('first-fraction-introduction')).toHaveCount(0);
   for (const round of partFinderRoundsFor(missionId)) await solvePartFinderRound(page, round);
 }
-
-async function solvePartFinderRound(page: import('@playwright/test').Page, round: PartFinderRound) {
-  const solution = partFinderSolution(round);
-  if (solution.assignment) {
-    for (const [index, share] of solution.assignment.entries()) {
-      if (share > 0) await page.getByTestId(`button-part-finder-share-${share + 1}`).click();
-      const piece = page.getByTestId(`button-part-finder-piece-${index + 1}`);
-      await piece.focus();
-      await piece.press('Enter');
-    }
-  } else {
-    for (const index of solution.selected) {
-      const piece = page.getByTestId(`button-part-finder-piece-${index + 1}`);
-      await piece.focus();
-      await piece.press('Enter');
-    }
-    if (solution.tileCount !== undefined) {
-      await page.getByTestId('slot-part-finder-tile-count-n').click();
-      for (const digit of String(solution.tileCount)) {
-        await page.getByTestId(`tile-part-finder-tile-count-digit-${digit}`).click();
-      }
-    }
-  }
-  await page.getByTestId('button-part-finder-check').click();
-  await expect(page.getByTestId('part-finder-feedback')).toContainText('That fits!');
-  await page.getByTestId('button-part-finder-next').click();
-}
-
-/** A lesson with ideas: each idea's Learn pages, then its 3 practices (questions answered right, cake rounds solved). */
-async function completeIdeas(page: import('@playwright/test').Page, mission: Mission, { beforeRound, until }: { beforeRound?: () => Promise<void>; until?: number } = {}) {
-  const steps = ideaSteps(mission.id);
-  const ideas = lessonIdeas(mission.id)!;
-  for (const [index, { idea, practice, item }] of steps.entries()) {
-    if (index === until) return;
-    if (practice === 0) {
-      await expect(page.getByTestId('idea-kicker')).toHaveText(`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')} · Idea ${idea + 1} of ${ideas.length} · Learn`);
-      for (let p = 1; p < ideas[idea]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
-      await page.getByTestId('button-idea-practise').click();
-    }
-    await expect(page.getByTestId('idea-kicker').or(page.locator('.fq-play-kicker')).first()).toContainText(`Idea ${idea + 1} of ${ideas.length}`);
-    if ('handsOn' in item) {
-      await beforeRound?.();
-      await solvePartFinderRound(page, PART_FINDER_ROUNDS.find((round) => round.id === item.handsOn)!);
-      continue;
-    }
-    const question = ideaQuestion(mission, item.question)!;
-    await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
-    await page.getByTestId('button-check-answer').click();
-    await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
-    await page.getByTestId(index === steps.length - 1 && !hasStoryAfterIdeas(mission) ? 'button-finish-mission' : 'button-next-question').click();
-  }
-}
-
-/** Story mode tells a lesson's last question as its story problem; a lesson with ideas asks it after them. */
-const hasStoryAfterIdeas = (mission: Mission) => !!STORY_PROBLEMS[mission.id] && !!chapterFor(mission.unit);
 
 async function completeFractionOrderLesson(page: import('@playwright/test').Page) {
   const firstRound = FRACTION_ORDER_ROUNDS[0];
@@ -1617,9 +1525,12 @@ test.describe('all-lesson required-question smoke', () => {
   test.describe.configure({ timeout: 900_000 });
 
   test('every lesson completes its required questions in an isolated developer test', async ({ page }) => {
+    // On a phone, so every Learn page of every idea is checked to fit. SMOKE_LESSONS=id,id runs only those lessons.
+    await page.setViewportSize({ width: 390, height: 844 });
     await openAsGuest(page);
     const savedStorage = await localStorageSnapshot(page);
-    for (const mission of MISSIONS) {
+    const only = process.env.SMOKE_LESSONS?.split(',').map((id) => id.trim()).filter(Boolean);
+    for (const mission of MISSIONS.filter((item) => !only?.length || only.includes(item.id))) {
       await test.step(`${mission.id}: ${mission.title}`, async () => {
         await openDeveloperLesson(page, mission);
 
