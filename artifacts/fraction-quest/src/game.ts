@@ -663,7 +663,7 @@ const curriculum: MissionSeed[] = [
     ],
     ideaQuestions: [
       // Idea 1: keep counting the same jumps past 1.
-      practice('Each jump is 1/3. What is 5 jumps from 0?', ['5/3', '2/3', '5/6', '3/5'], 0, line(5, 3, 2), '3 jumps reach 1. Keep counting the same jumps.', 'Count every jump from 0: 5 jumps of 1/3 is 5/3.', line(3, 3), { authoredChoices: true }),
+      practice('Each jump is 1/3. What is 5 jumps from 0?', ['5/3', '3/5', '5/4', '1/3'], 0, line(5, 3, 2), '3 jumps reach 1. Keep counting the same jumps.', 'Count every jump from 0: 5 jumps of 1/3 is 5/3.', line(3, 3), { authoredChoices: true }),
       // Idea 2: a whole and the jumps left over.
       practice('Each jump is 1/3. 5 jumps land at 5/3. Which is the same as 5/3?', ['1 and 2/3', '1 and 5/3', '2/3', '5 and 1/3'], 0, line(5, 3, 2), '3 jumps make 1 whole. How many jumps are left?', '3 of the 5 jumps make 1 whole. 2 jumps are left: 1 and 2/3.', line(3, 3), { authoredChoices: true }),
     ],
@@ -780,7 +780,7 @@ const curriculum: MissionSeed[] = [
       // Idea 2: divide both.
       practice('Divide the numerator and denominator of 6/8 by 2. What do you get?', ['3/4', '3/8', '6/4', '4/6'], 0, bars({ numerator: 6, denominator: 8 }), 'Divide both by 2.', '6 ÷ 2 = 3 and 8 ÷ 2 = 4. So 3/4.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
       // Idea 3: find the number to multiply by.
-      practice('Write 1/2 with a denominator of 6.', ['3/6', '1/6', '2/6', '5/6'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 0, denominator: 6 }), 'Ask: 2 times what is 6? Multiply the top by that number too.', '2 × 3 = 6, so multiply the top by 3 too: 1 × 3 = 3. So 3/6.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Write 1/2 with a denominator of 6.', ['3/6', '1/6', '5/6', '3/2'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 0, denominator: 6 }), 'Ask: 2 times what is 6? Multiply the top by that number too.', '2 × 3 = 6, so multiply the top by 3 too: 1 × 3 = 3. So 3/6.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
       practice('Write 3/4 with a denominator of 8.', ['6/8', '3/8', '7/8', '6/4'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 0, denominator: 8 }), 'Ask: 4 times what is 8? Multiply the top by that number too.', '4 × 2 = 8, so multiply the top by 2 too: 3 × 2 = 6. So 6/8.', bars({ numerator: 3, denominator: 4 }), { authoredChoices: true }),
       practice('Write 2/3 with a denominator of 6.', ['4/6', '2/6', '5/6', '4/3'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 0, denominator: 6 }), 'Ask: 3 times what is 6? Multiply the top by that number too.', '3 × 2 = 6, so multiply the top by 2 too: 2 × 2 = 4. So 4/6.', bars({ numerator: 2, denominator: 3 }), { authoredChoices: true }),
     ],
@@ -1178,7 +1178,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('Cut every fourth into 2 equal spaces. What is 1 new space?', ['1/8', '1/6', '1/4', '1/2'], 0, { kind: 'line', numerator: 0, denominator: 4, wholes: 1, hideLabels: true }, 'Count all the new spaces from 0 to 1.', '4 spaces, each cut into 2, make 8 spaces. 1 new space is 1/8.', { kind: 'line', numerator: 0, denominator: 8, wholes: 1 }, { authoredChoices: true }),
       practice('Cut every half into 2 equal spaces. What is 1 new space?', ['1/4', '1/3', '1/2', '1/8'], 0, { kind: 'line', numerator: 0, denominator: 2, wholes: 1, hideLabels: true }, 'Count all the new spaces from 0 to 1.', '2 spaces, each cut into 2, make 4 spaces. 1 new space is 1/4.', { kind: 'line', numerator: 0, denominator: 4, wholes: 1 }, { authoredChoices: true }),
       // Idea 2: the same spot gets a new name (cutting every space into 3).
-      practice('1/2 is marked on a line. Which fraction with a denominator of 6 is at the same spot?', ['3/6', '1/6', '2/6', '4/6'], 0, { kind: 'line', numerator: 1, denominator: 2, wholes: 1, hideLabels: true }, 'Cut every space into 3. Now there are 3 times as many spaces and 3 times as many jumps.', 'Cut every space into 3. 1 jump becomes 3 jumps of 1/6. So the answer is 3/6.', line(1, 2), { authoredChoices: true }),
+      practice('1/2 is marked on a line. Which fraction with a denominator of 6 is at the same spot?', ['3/6', '1/6', '5/6', '3/2'], 0, { kind: 'line', numerator: 1, denominator: 2, wholes: 1, hideLabels: true }, 'Cut every space into 3. Now there are 3 times as many spaces and 3 times as many jumps.', 'Cut every space into 3. 1 jump becomes 3 jumps of 1/6. So the answer is 3/6.', line(1, 2), { authoredChoices: true }),
     ] },
   { id: 'fraction-recipes', title: 'Recipe fractions', shortTitle: 'Recipe fractions', description: 'Double a recipe.', skill: 'To double a recipe, use twice as much of every ingredient. Add each amount to itself.', mode: 'recipe', n: 3, d: 4, context: 'pancake recipe' },
   { id: 'fractions-to-percent', title: 'Bonus: Fractions to percent', shortTitle: 'Bonus percent', description: 'Write 3/4 as 75%.', skill: 'Percent means out of 100. Rename the fraction in hundredths to find the percent.', mode: 'percent', n: 3, d: 4, context: 'school survey', enrichment: true },

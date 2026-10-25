@@ -252,7 +252,7 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
   'order-fractions': {
     examples: [
       {
-        title: 'Same numerators',
+        title: 'Same numerators: bigger parts win',
         picture: reveal([
           { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
           { kind: 'bar', parts: ones(8), cut: true, shaded: [0], label: '1/8' },
@@ -269,21 +269,18 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       },
       {
         title: 'Read a chain of signs',
+        // On a number line (one row, so it fits a phone): the smaller amount is always further left.
         picture: reveal([
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
-          { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
-          say('1/4 < 1/2 < 3/4: each is less than the next.'),
-        ], 450),
+          { kind: 'line', max: 1, spaces: 4, cut: true, marks: [{ at: 1, label: '1/4' }, { at: 2, label: '1/2' }, { at: 3, label: '3/4' }] },
+          say('1/4 < 1/2 < 3/4. Read it: 1/4 is less than 1/2, and 1/2 is less than 3/4.'),
+        ]),
       },
       {
         title: 'Biggest first',
         picture: reveal([
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
-          { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
-          say('Biggest first? Flip the order: 3/4 > 1/2 > 1/4.'),
-        ], 450),
+          { kind: 'line', max: 1, spaces: 4, cut: true, marks: [{ at: 1, label: '1/4' }, { at: 2, label: '1/2' }, { at: 3, label: '3/4' }] },
+          say('Biggest first? Start from the right and flip the signs: 3/4 > 1/2 > 1/4.'),
+        ]),
       },
     ],
   },

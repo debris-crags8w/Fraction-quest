@@ -1,14 +1,6 @@
 /* The ideas of lessons 11–20 (see lesson-ideas.ts): each lesson's ideas in order, each with its Learn pages and 3
    practices. Lesson 1 (ideas/lessons-01.ts) is the model. */
-import { TEACH_EXTRAS } from '../teach-extras';
-import { example, scenes, type LearnPage, type LessonIdea } from './helpers';
-
-/** One of a lesson's Words to know (teach-extras.ts) as a Learn page: its meaning over its picture. */
-const word = (id: string, term: string): LearnPage => {
-  const found = TEACH_EXTRAS[id]?.words?.find((item) => item.term === term);
-  if (!found?.picture) throw new Error(`No word "${term}" with a picture in ${id}`);
-  return { text: found.meaning, scene: found.picture };
-};
+import { example, scenes, wordsToKnow, type LessonIdea } from './helpers';
 
 export const IDEAS: Record<string, LessonIdea[]> = {
   'number-line-points': [
@@ -47,7 +39,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     {
       title: 'Say it as 1 whole and the part left over',
       terms: [{ term: 'a mixed number with "and"', pattern: /\b\d+ and \d+\/\d+/ }],
-      learn: [word('number-line-beyond-one', '1 and 3/4'), example('number-line-beyond-one', '4 fourths make one whole')],
+      learn: [wordsToKnow('number-line-beyond-one'), example('number-line-beyond-one', '4 fourths make one whole')],
       practice: [{ question: 'number-line-beyond-one-q3' }, { question: 'number-line-beyond-one-p2' }, { question: 'number-line-beyond-one-q4' }],
     },
   ],
@@ -56,9 +48,9 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     {
       title: 'A ruler is a number line: start at 0 and count the spaces',
       learn: [
+        wordsToKnow('ruler-measurement', ['quarter']),
         { text: 'Each small space on a ruler is an equal part of an inch.', scene: scenes('ruler-measurement').why },
         example('ruler-measurement', 'Measure a crayon'),
-        word('ruler-measurement', 'quarter'),
       ],
       practice: [{ question: 'ruler-measurement-q3' }, { question: 'ruler-measurement-p1' }, { question: 'ruler-measurement-q2' }],
     },
@@ -66,9 +58,9 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       title: 'Past 1 inch, say the whole inches and the extra part',
       terms: [{ term: 'a mixed number like 1 1/4', pattern: /\b\d+ \d+\/\d+/ }],
       learn: [
+        wordsToKnow('ruler-measurement', ['1 1/4']),
         { text: 'Count the spaces past 1 inch too.', scene: scenes('ruler-measurement').steps[1]! },
         { text: 'Say the whole inches and the extra part.', scene: scenes('ruler-measurement').steps[2]! },
-        word('ruler-measurement', '1 1/4'),
       ],
       practice: [{ question: 'ruler-measurement-q1' }, { question: 'ruler-measurement-q4' }, { question: 'ruler-measurement-p2' }],
     },
@@ -134,8 +126,8 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       title: 'Compare two fractions at a time',
       learn: [
         { text: 'Compare two at a time. Same denominators: count the parts.', scene: scenes('order-fractions').steps[0]! },
-        { text: 'Same numerators: bigger parts win.', scene: example('order-fractions', 'Same numerators').scene },
-        { text: 'You can also compare with half.', scene: example('order-fractions', 'Compare with half').scene },
+        example('order-fractions', 'Same numerators: bigger parts win'),
+        example('order-fractions', 'Compare with half'),
       ],
       practice: [{ question: 'order-fractions-p1' }, { question: 'order-fractions-p2' }, { question: 'order-fractions-p3' }],
     },
@@ -191,7 +183,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     {
       title: 'A ? box stands for a missing number',
       terms: [{ term: 'the ? box', pattern: /\?\/\d|\d\/\?/ }],
-      learn: [word('equivalent-models', '?'), example('equivalent-models', 'More than one whole bar')],
+      learn: [wordsToKnow('equivalent-models'), example('equivalent-models', 'More than one whole bar')],
       practice: [{ question: 'equivalent-models-p5' }, { question: 'equivalent-models-p6' }, { question: 'equivalent-models-p7' }],
     },
   ],
@@ -250,9 +242,9 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     {
       title: 'Find the factor, then do the same to the top',
       learn: [
+        wordsToKnow('missing-equivalent'),
         { text: 'Find what the bottom number was multiplied by.', scene: scenes('missing-equivalent').steps[0]! },
         { text: 'Do the same to the top number.', scene: scenes('missing-equivalent').steps[1]! },
-        word('missing-equivalent', 'factor'),
       ],
       practice: [{ question: 'missing-equivalent-q1' }, { question: 'missing-equivalent-p1' }, { question: 'missing-equivalent-p2' }],
     },
