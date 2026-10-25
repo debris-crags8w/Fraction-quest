@@ -150,12 +150,11 @@ test('the dimes and pennies lesson teaches on a hundredths grid, then asks about
 /** A lesson with ideas keeps its worked example under "How it works" on the lesson page: open the page (earlier lessons
     done, practice done) and unfold it. */
 async function openLessonPageWorkedExample(page: import('@playwright/test').Page, mission: Mission) {
-  await page.addInitScript(({ id, earlier }) => {
+  await page.addInitScript((progress) => {
     if (sessionStorage.getItem('seeded')) return;
     sessionStorage.setItem('seeded', '1');
-    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: earlier, starsByMission: {}, reviewQueue: [], assessments: [],
-      learning: { [id]: { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {} } } }));
-  }, { id: mission.id, earlier: MISSIONS.slice(0, MISSIONS.indexOf(mission)).map(({ id }) => id) });
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+  }, progressBefore(mission));
   await openAsGuest(page);
   await expectMissionStart(page, mission.id, true);
   await page.getByTestId(`button-start-mission-${mission.id}`).click();
