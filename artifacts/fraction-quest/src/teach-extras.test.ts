@@ -30,7 +30,7 @@ test('every extra belongs to a real lesson, and every worked example ends on a p
       assert.ok(last.some((row) => row.kind !== 'text'), `${id}: "${example.title}" needs a picture`);
       assert.ok(last.some((row) => row.kind === 'text' && !row.hidden), `${id}: "${example.title}" ends on its sentence`);
     }
-    for (const word of extras.words ?? []) assert.match(word.meaning, /[.”]$/, `${id}: "${word.term}" is a sentence`);
+    for (const word of extras.words ?? []) assert.match(word.meaning, /[.?”]$/, `${id}: "${word.term}" is a sentence`);
   }
 });
 
@@ -41,8 +41,10 @@ test('a fraction an extra picture names matches its shaded parts', () => {
       for (const row of scene[scene.length - 1]!.rows.flatMap(pictures)) {
         const named = row.kind === 'bar' && row.label ? /^(\d+)\/(\d+)$/.exec(row.label) : null;
         if (!named || row.kind !== 'bar') continue;
-        assert.equal(row.parts.length, Number(named[2]), `${id}: ${row.label} parts`);
-        assert.equal(row.shaded?.length ?? 0, Number(named[1]), `${id}: ${row.label} shaded`);
+        // A bar showing every `group`-th cut reads as parts.length / group parts.
+        const group = row.group ?? 1;
+        assert.equal(row.parts.length, Number(named[2]) * group, `${id}: ${row.label} parts`);
+        assert.equal(row.shaded?.length ?? 0, Number(named[1]) * group, `${id}: ${row.label} shaded`);
       }
     }
   }

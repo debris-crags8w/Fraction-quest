@@ -1,15 +1,15 @@
 /* The ideas of lessons 72–81 (see lesson-ideas.ts): each lesson's ideas in order, each with its Learn pages and 3
    practices. Lesson 1 (ideas/lessons-01.ts) is the model. */
-import { example, scenes, type LessonIdea } from './helpers';
+import { example, scenes, wordsToKnow, type LessonIdea } from './helpers';
 
 export const IDEAS: Record<string, LessonIdea[]> = {
   'fraction-probability': [
     {
       title: 'Count all the equally likely outcomes',
       learn: [
+        wordsToKnow('fraction-probability'),
         example('fraction-probability', 'Each marble is an outcome'),
         { text: 'Count all the equally likely outcomes. That is the bottom number.', scene: scenes('fraction-probability').steps[0]! },
-        example('fraction-probability', 'A bigger part is not equally likely'),
       ],
       practice: [{ question: 'fraction-probability-p1' }, { question: 'fraction-probability-p2' }, { question: 'fraction-probability-p3' }],
     },
@@ -27,7 +27,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
   'fractional-side-area': [
     {
       title: 'Area is rows times columns of square units',
-      learn: [example('fractional-side-area', 'Rows times columns')],
+      learn: [wordsToKnow('fractional-side-area'), example('fractional-side-area', 'Rows times columns')],
       practice: [{ question: 'fractional-side-area-p1' }, { question: 'fractional-side-area-p2' }, { question: 'fractional-side-area-p3' }],
     },
     {
@@ -80,9 +80,9 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       title: 'Percent means out of 100',
       terms: [{ term: 'percent and the % sign', pattern: /%|\bpercent\b/i }],
       learn: [
+        wordsToKnow('fractions-to-percent'),
         { text: 'The numerator is the percent.', scene: scenes('fractions-to-percent').steps[1]! },
         { text: 'Add the % sign.', scene: scenes('fractions-to-percent').steps[2]! },
-        { text: 'Percent means out of 100.', scene: scenes('fractions-to-percent').why },
       ],
       practice: [{ question: 'fractions-to-percent-q1' }, { question: 'fractions-to-percent-q2' }, { question: 'fractions-to-percent-q3' }],
     },
