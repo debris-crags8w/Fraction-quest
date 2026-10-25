@@ -1494,6 +1494,7 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 .fq-story-question-heading .fq-question-text { margin: 0; }
 .fq-hint-copy { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 8px; }
 .fq-hint-copy > span { grid-column: 1 / -1; }
+.fq-hint-words { grid-column: 1 / -1; justify-self: start; padding: 2px 0; border: 0; background: none; color: var(--fq-grape); font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
 .fq-hint-copy .fq-learning-listen,
 .fq-remediation-heading .fq-learning-listen,
 .fq-feedback-heading .fq-learning-listen { margin: 0; }
