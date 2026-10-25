@@ -234,6 +234,12 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
         picture: still([{ kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' }]),
       },
     ],
+    examples: [{
+      title: 'Measure a crayon',
+      picture: play([{ kind: 'line', max: 1, spaces: 4, cut: true, ruler: true }, { ...say('Start the crayon at 0. 4 spaces make 1 inch, so each space is 1/4 inch. Count 3 spaces: the crayon is 3/4 inch long.'), hidden: true }],
+        [500, { 0: { stretch: 3 } }], ...range(3).map((i): [number, Record<number, Partial<SceneRow>>] => [420, { 0: { jumps: i + 1 } }]),
+        [600, { 1: { hidden: false } }]),
+    }],
   },
   'build-line-plots': {
     examples: [{
@@ -244,25 +250,58 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       ]),
     }],
   },
+  'compare-same-denominator': {
+    examples: [
+      {
+        title: 'Which is bigger?',
+        picture: reveal([
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8' },
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(5), label: '5/8' },
+          say('Which is bigger, 3/8 or 5/8? Both are eighths. 5 parts is more than 3 parts, so 5/8 is bigger.'),
+        ]),
+      },
+      {
+        title: 'Read the sign',
+        picture: reveal([
+          { kind: 'bar', parts: ones(6), cut: true, shaded: [0, 1], label: '2/6' },
+          { kind: 'bar', parts: ones(6), cut: true, shaded: range(5), label: '5/6' },
+          say('2/6 < 5/6. Say it: 2/6 is less than 5/6. The point of the sign faces the smaller amount.'),
+        ]),
+      },
+    ],
+  },
   'order-fractions': {
     examples: [
       {
-        title: 'Read a chain of signs',
+        title: 'Same numerators: bigger parts win',
         picture: reveal([
           { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
+          { kind: 'bar', parts: ones(8), cut: true, shaded: [0], label: '1/8' },
+          say('1/4 and 1/8 both count 1 part. Fourths are bigger parts than eighths, so 1/4 is bigger.'),
+        ]),
+      },
+      {
+        title: 'Compare with half',
+        picture: reveal([
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8' },
           { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
+          say('Half of 8 is 4, so half is 4/8. 3 parts is less than 4 parts, so 3/8 is less than 1/2.'),
+        ]),
+      },
+      {
+        title: 'Read a chain of signs',
+        // On a number line (one row, so it fits a phone): the smaller amount is always further left.
+        picture: reveal([
+          { kind: 'line', max: 1, spaces: 4, cut: true, marks: [{ at: 1, label: '1/4' }, { at: 2, label: '1/2' }, { at: 3, label: '3/4' }] },
           say('1/4 < 1/2 < 3/4. Read it: 1/4 is less than 1/2, and 1/2 is less than 3/4.'),
-        ], 450),
+        ]),
       },
       {
         title: 'Biggest first',
         picture: reveal([
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
-          { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
-          say('Biggest first? Flip the order: 3/4 > 1/2 > 1/4.'),
-        ], 450),
+          { kind: 'line', max: 1, spaces: 4, cut: true, marks: [{ at: 1, label: '1/4' }, { at: 2, label: '1/2' }, { at: 3, label: '3/4' }] },
+          say('Biggest first? Start from the right and flip the signs: 3/4 > 1/2 > 1/4.'),
+        ]),
       },
     ],
   },
@@ -286,6 +325,16 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
         title: 'Join parts together',
         picture: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: [0, 1] }, { ...say('Join every 2 eighths into 1 fourth: 2/8 = 1/4.'), hidden: true }],
           [900, { 0: { group: 2, label: '1/4' } }], [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Triangles make a fourth',
+        picture: reveal([
+          { kind: 'pair', items: [
+            { kind: 'area', cut: 'fourths-squares', edges: true, shaded: [0], label: '1/4' },
+            { kind: 'area', cut: 'eighths-triangles', edges: true, shaded: [0, 1], label: '2/8' },
+          ] },
+          say('Cut every fourth of the cake into 2 triangles. Join 2 triangles: they cover 1/4 of the cake. 2/8 = 1/4.'),
+        ]),
       },
       {
         title: 'Fold it again',
@@ -319,7 +368,13 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
     ],
   },
   'missing-equivalent': {
-    words: [{ term: 'factor', meaning: 'A factor is the number you multiply or divide by. In 3/4 = 6/8, the factor is 2.' }],
+    words: [{
+      term: 'factor', meaning: 'A factor is the number you multiply or divide by. In 3/4 = 6/8, the factor is 2.',
+      picture: still([{ kind: 'pair', items: [
+        { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
+        { kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: '6/8' },
+      ] }]),
+    }],
     examples: [
       {
         title: 'A missing bottom number',
