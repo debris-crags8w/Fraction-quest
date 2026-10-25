@@ -426,8 +426,8 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
 
   'number-line-points': {
     steps: [
-      // Count the spaces: the denominator.
-      play([{ kind: 'line', max: 1, spaces: 4, cut: true, point: 3 }, { kind: 'text', text: '4 spaces from 0 to 1: the denominator is 4.', hidden: true }],
+      // Count the spaces: the denominator (the point comes with the next step, which counts the jumps to it).
+      play([{ kind: 'line', max: 1, spaces: 4, cut: true }, { kind: 'text', text: '4 spaces from 0 to 1: the denominator is 4.', hidden: true }],
         ...jumpUp(0, 4, 400),
         [500, { 1: { hidden: false } }]),
       // Count the jumps to the point: the numerator.
@@ -710,7 +710,7 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
       play([{ kind: 'bar', parts: four, cut: true, shaded: range(4) }, { kind: 'bar', parts: four, cut: true, shaded: range(3) }],
         [600, { 0: { bracket: '4/4 = 1 whole' } }]),
       // The leftover parts.
-      play([{ kind: 'bar', parts: four, cut: true, shaded: range(4), bracket: '1 whole' }, { kind: 'bar', parts: four, cut: true, shaded: range(3) }, { kind: 'text', text: '3/4 left over: 7/4 = 1 3/4.', hidden: true }],
+      play([{ kind: 'bar', parts: four, cut: true, shaded: range(4), bracket: '1 whole' }, { kind: 'bar', parts: four, cut: true, shaded: range(3) }, { kind: 'text', text: '3/4 left over: 7/4 is 1 whole and 3/4 more.', hidden: true }],
         [500, { 1: { glow: range(3) } }],
         [600, { 1: { glow: [] }, 2: { hidden: false } }]),
     ],

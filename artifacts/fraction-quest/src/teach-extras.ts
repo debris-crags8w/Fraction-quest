@@ -247,6 +247,12 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
         picture: still([{ kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' }]),
       },
     ],
+    examples: [{
+      title: 'Measure a crayon',
+      picture: play([{ kind: 'line', max: 1, spaces: 4, cut: true, ruler: true }, { ...say('Start the crayon at 0. 4 spaces make 1 inch, so each space is 1/4 inch. Count 3 spaces: the crayon is 3/4 inch long.'), hidden: true }],
+        [500, { 0: { stretch: 3 } }], ...range(3).map((i): [number, Record<number, Partial<SceneRow>>] => [420, { 0: { jumps: i + 1 } }]),
+        [600, { 1: { hidden: false } }]),
+    }],
   },
   'build-line-plots': {
     examples: [{
@@ -257,25 +263,58 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       ]),
     }],
   },
+  'compare-same-denominator': {
+    examples: [
+      {
+        title: 'Which is bigger?',
+        picture: reveal([
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8' },
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(5), label: '5/8' },
+          say('Which is bigger, 3/8 or 5/8? Both are eighths. 5 parts is more than 3 parts, so 5/8 is bigger.'),
+        ]),
+      },
+      {
+        title: 'Read the sign',
+        picture: reveal([
+          { kind: 'bar', parts: ones(6), cut: true, shaded: [0, 1], label: '2/6' },
+          { kind: 'bar', parts: ones(6), cut: true, shaded: range(5), label: '5/6' },
+          say('2/6 < 5/6. Say it: 2/6 is less than 5/6. The point of the sign faces the smaller amount.'),
+        ]),
+      },
+    ],
+  },
   'order-fractions': {
     examples: [
       {
-        title: 'Read a chain of signs',
+        title: 'Same numerators: bigger parts win',
         picture: reveal([
           { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
+          { kind: 'bar', parts: ones(8), cut: true, shaded: [0], label: '1/8' },
+          say('1/4 and 1/8 both count 1 part. Fourths are bigger parts than eighths, so 1/4 is bigger.'),
+        ]),
+      },
+      {
+        title: 'Compare with half',
+        picture: reveal([
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8' },
           { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
+          say('Half of 8 is 4, so half is 4/8. 3 parts is less than 4 parts, so 3/8 is less than 1/2.'),
+        ]),
+      },
+      {
+        title: 'Read a chain of signs',
+        // On a number line (one row, so it fits a phone): the smaller amount is always further left.
+        picture: reveal([
+          { kind: 'line', max: 1, spaces: 4, cut: true, marks: [{ at: 1, label: '1/4' }, { at: 2, label: '1/2' }, { at: 3, label: '3/4' }] },
           say('1/4 < 1/2 < 3/4. Read it: 1/4 is less than 1/2, and 1/2 is less than 3/4.'),
-        ], 450),
+        ]),
       },
       {
         title: 'Biggest first',
         picture: reveal([
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
-          { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
-          { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
-          say('Biggest first? Flip the order: 3/4 > 1/2 > 1/4.'),
-        ], 450),
+          { kind: 'line', max: 1, spaces: 4, cut: true, marks: [{ at: 1, label: '1/4' }, { at: 2, label: '1/2' }, { at: 3, label: '3/4' }] },
+          say('Biggest first? Start from the right and flip the signs: 3/4 > 1/2 > 1/4.'),
+        ]),
       },
     ],
   },
@@ -299,6 +338,16 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
         title: 'Join parts together',
         picture: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: [0, 1] }, { ...say('Join every 2 eighths into 1 fourth: 2/8 = 1/4.'), hidden: true }],
           [900, { 0: { group: 2, label: '1/4' } }], [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Triangles make a fourth',
+        picture: reveal([
+          { kind: 'pair', items: [
+            { kind: 'area', cut: 'fourths-squares', edges: true, shaded: [0], label: '1/4' },
+            { kind: 'area', cut: 'eighths-triangles', edges: true, shaded: [0, 1], label: '2/8' },
+          ] },
+          say('Cut every fourth of the cake into 2 triangles. Join 2 triangles: they cover 1/4 of the cake. 2/8 = 1/4.'),
+        ]),
       },
       {
         title: 'Fold it again',
@@ -332,7 +381,13 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
     ],
   },
   'missing-equivalent': {
-    words: [{ term: 'factor', meaning: 'A factor is the number you multiply or divide by. In 3/4 = 6/8, the factor is 2.' }],
+    words: [{
+      term: 'factor', meaning: 'A factor is the number you multiply or divide by. In 3/4 = 6/8, the factor is 2.',
+      picture: still([{ kind: 'pair', items: [
+        { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
+        { kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: '6/8' },
+      ] }]),
+    }],
     examples: [
       {
         title: 'A missing bottom number',
@@ -349,6 +404,136 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
           { kind: 'bar', parts: ones(12), cut: true, shaded: [0, 1], label: '2/12' },
           say('?/6 = 2/12. Start with the pair that has both numbers: 12 to 6 is divide by 2. Top: 2 divided by 2 is 1. So ? = 1.'),
         ]),
+      },
+    ],
+  },
+  // Lessons 21–30: each idea's Learn pages (ideas/lessons-21-30.ts) use these where Teach first has no picture for it.
+  'compose-to-one': {
+    words: [
+      { term: '+', meaning: '+ means put together. 2/5 + 3/5 puts 2 fifths and 3 fifths together.' },
+      { term: 'sum', meaning: 'The sum is the amount you get when you put the parts together. The sum of 2/5 + 3/5 is 5/5.' },
+    ],
+    examples: [
+      {
+        title: 'Count the parts to one whole',
+        picture: play([{ kind: 'bar', parts: ones(6), cut: true, bracket: '1 whole' }, { ...say('Count the sixths: 1/6, 2/6, 3/6, 4/6, 5/6, 6/6. 6 sixths make one whole: 6/6 = 1.'), hidden: true }],
+          ...range(6).map((i): [number, Record<number, Partial<SceneRow>>] => [420, { 0: { counted: range(i + 1), shaded: range(i + 1) } }]),
+          [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: '+ means put together',
+        picture: play([{ kind: 'bar', parts: ones(8), cut: true }, { ...say('3/8 + 4/8: 3 eighths and 4 more eighths. Add the numerators: 3 + 4 = 7. They are still eighths, so the sum is 7/8.'), hidden: true }],
+          [500, { 0: { shaded: [0, 1, 2] } }], [600, { 0: { shaded2: [3, 4, 5, 6] } }], [500, { 0: { counted: range(7) } }], [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Find the missing part',
+        picture: play([{ kind: 'bar', parts: ones(3), cut: true, shaded: [0], bracket: '1 whole' }, { ...say('1/3 + ? = 1. The ? is the missing part. One whole is 3/3, so 2 more thirds fill it: 1/3 + 2/3 = 3/3.'), hidden: true }],
+          [700, { 0: { shaded2: [1, 2] } }], [600, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'decompose-fractions': {
+    examples: [
+      {
+        title: 'Break it into unit fractions',
+        picture: play([{ kind: 'bar', parts: ones(5), cut: true, shaded: range(3), label: '3/5' }, { ...say('A unit fraction is one part, like 1/5. 3/5 is 3 unit fractions: 1/5 + 1/5 + 1/5.'), hidden: true }],
+          ...range(3).map((i): [number, Record<number, Partial<SceneRow>>] => [450, { 0: { counted: range(i + 1) } }]),
+          [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Find the missing number',
+        picture: play([{ kind: 'bar', parts: ones(6), cut: true, shaded: [0] }, { ...say('5/6 = 1/6 + ?/6. The ? is the missing number. 5 take away 1 is 4, so 5/6 = 1/6 + 4/6.'), hidden: true }],
+          [700, { 0: { shaded2: [1, 2, 3, 4] } }], [600, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'whole-numbers-as-fractions': {
+    words: [{ term: 'whole number', meaning: 'A whole number is a counting number, like 1, 2 or 3.' }],
+    examples: [{
+      title: 'Wholes with a denominator of 1',
+      picture: reveal([
+        { kind: 'bar', parts: [1], shaded: [0], label: '1/1' },
+        { kind: 'bar', parts: [1], shaded: [0], label: '1/1' },
+        say('A bar that is not cut is 1 part: 1/1. So 2 whole bars are 2/1, and the whole number 2 = 2/1.'),
+      ], 450),
+    }],
+  },
+  'improper-fractions': {
+    examples: [{
+      title: 'Less than, equal to or more than one whole',
+      picture: reveal([
+        { kind: 'line', max: 2, spaces: 4, cut: true, marks: [{ at: 3, label: '3/4' }, { at: 4, label: '4/4' }, { at: 5, label: '5/4' }] },
+        say('3/4: 3 parts is less than 4, so it is less than one whole. 4/4 is exactly one whole. 5/4: 5 parts is more than 4, so it is more than one whole.'),
+      ]),
+    }, {
+      title: 'Count to 2 wholes',
+      picture: play([{ kind: 'line', max: 2, spaces: 3, cut: true }, { ...say('3/3 is 1 whole. Count 3 more thirds: 6/3 is 2 wholes. Every 3 thirds fill one more whole.'), hidden: true }],
+        ...range(6).map((i): [number, Record<number, Partial<SceneRow>>] => [380, { 0: { jumps: i + 1, point: i + 1 } }]),
+        [600, { 1: { hidden: false } }]),
+    }],
+  },
+  'mixed-improper': {
+    words: [{
+      term: 'mixed number', meaning: 'A mixed number, like 1 3/4, has a whole number and a fraction. 1 3/4 means 1 and 3/4.',
+      picture: still([{ kind: 'bar', parts: ones(4), cut: true, shaded: range(4), bracket: '1 whole' }, { kind: 'bar', parts: ones(4), cut: true, shaded: range(3), label: '3/4' }]),
+    }],
+    examples: [
+      {
+        title: 'Turn parts back into wholes',
+        picture: play([
+          { kind: 'bar', parts: ones(3), cut: true, shaded: range(3) },
+          { kind: 'bar', parts: ones(3), cut: true, shaded: range(3) },
+          { kind: 'bar', parts: ones(3), cut: true, shaded: [0] },
+          { ...say('7/3: every 3/3 makes one whole. 6/3 is 2 wholes, and 1/3 is left. So 7/3 = 2 1/3, 2 and 1/3.'), hidden: true },
+        ], [600, { 0: { bracket: '1 whole' } }], [500, { 1: { bracket: '1 whole' } }], [500, { 2: { glow: [0] } }], [600, { 3: { hidden: false } }]),
+      },
+    ],
+  },
+  'add-like-denominators': {
+    examples: [{
+      title: 'Add in a story',
+      picture: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: [0, 1, 2] }, { ...say('A ribbon is 3/8 meter long. Add 2/8 meter more. 3 + 2 = 5, and they are still eighths. It is 5/8 meter long now.'), hidden: true }],
+        [700, { 0: { shaded2: [3, 4] } }], [600, { 1: { hidden: false } }]),
+    }],
+  },
+  'subtract-like-denominators': {
+    examples: [{
+      title: 'Take away in a story',
+      picture: play([{ kind: 'bar', parts: ones(10), cut: true, shaded: range(8) }, { ...say('A jar is 8/10 full. Pour out 3/10. 8 − 3 = 5, and they are still tenths. 5/10 is left.'), hidden: true }],
+        [700, { 0: { glow: [5, 6, 7] } }], [700, { 0: { glow: [], shaded: range(5) } }], [600, { 1: { hidden: false } }]),
+    }],
+  },
+  'add-mixed-numbers': {
+    examples: [{
+      title: 'Wholes, then parts',
+      picture: play([{ kind: 'bar', parts: ones(4), cut: true, shaded: [0] }, { ...say('1 1/4 + 1 2/4. Add the wholes: 1 + 1 = 2. Add the fraction parts: 1/4 + 2/4 = 3/4. So the answer is 2 3/4.'), hidden: true }],
+        [700, { 0: { shaded2: [1, 2] } }], [600, { 1: { hidden: false } }]),
+    }, {
+      title: 'Parts that make a new whole',
+      picture: play([{ kind: 'bar', parts: ones(3), cut: true, shaded: [0, 1] }, { kind: 'bar', parts: ones(3), cut: true }, { ...say('2 2/3 + 2/3. Add the parts: 2/3 + 2/3 = 4/3. 3/3 is a new whole, and 1/3 is left. So 2 + 1 = 3 wholes and 1/3: 3 1/3.'), hidden: true }],
+        [700, { 0: { shaded2: [2] }, 1: { shaded2: [0] } }], [600, { 0: { bracket: '1 new whole' } }], [600, { 2: { hidden: false } }]),
+    }],
+  },
+  'subtract-mixed-numbers': {
+    examples: [{
+      title: 'Parts, then wholes',
+      picture: play([{ kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2] }, { ...say('3 3/4 − 1 1/4. Take away the parts: 3/4 − 1/4 = 2/4. Then the wholes: 3 − 1 = 2. The answer is 2 2/4.'), hidden: true }],
+        [700, { 0: { glow: [2] } }], [700, { 0: { glow: [], shaded: [0, 1] } }], [600, { 1: { hidden: false } }]),
+    }],
+  },
+  'tenths-decimals': {
+    words: [
+      {
+        term: 'decimal', meaning: 'A decimal is another way to write tenths: 7/10 is the decimal 0.7.',
+        picture: still([{ kind: 'bar', parts: ones(10), cut: true, shaded: range(7), label: '7/10' }]),
+      },
+      { term: 'decimal point', meaning: 'The dot in 0.7 is the decimal point. The tenths go right after it.' },
+      { term: 'digit', meaning: 'A digit is one of the numbers 0 to 9 that we write numbers with. 0.7 has the digits 0 and 7.' },
+    ],
+    examples: [
+      {
+        title: 'Read a decimal as tenths',
+        picture: reveal([{ kind: 'bar', parts: ones(10), cut: true, shaded: [0, 1], label: '0.2' }, say('0.2: the digit 2 is right after the decimal point, so it counts tenths. 0.2 = 2/10.')]),
       },
     ],
   },
@@ -376,4 +561,10 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string }[] = [
   { term: 'factor', pattern: /\bfactors?\b/i, lesson: 'missing-equivalent' },
   // Lessons 2–10 (learn one idea, practise it three times).
   { term: 'unit fraction', pattern: /\bunit fractions?\b/i, lesson: 'unit-fractions' },
+  // Lessons 21–30 (compose-to-one … tenths-decimals). (+ is used in lesson 12 before lesson 21 defines it, so it is not listed.)
+  { term: 'sum', pattern: /\bsums?\b/i, lesson: 'compose-to-one' },
+  { term: 'whole number', pattern: /\bwhole numbers?\b/i, lesson: 'whole-numbers-as-fractions' },
+  { term: 'mixed number', pattern: /\bmixed numbers?\b/i, lesson: 'mixed-improper' },
+  { term: 'decimal', pattern: /\bdecimals?\b/i, lesson: 'tenths-decimals' },
+  { term: 'digit', pattern: /\bdigits?\b/i, lesson: 'tenths-decimals' },
 ];
