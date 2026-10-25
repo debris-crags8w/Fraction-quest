@@ -4,7 +4,7 @@ import { useOptionalFun } from './fun-ui';
 import { IntroTry, IntroWatch, NewWords, useLessonHelper } from './model-intro';
 import { newWordsFor } from './new-words';
 import { LearningListenButton, LearningText, spokenLearningText, useReadAloud } from './LearningText';
-import { BUILD_ERROR_HEADINGS, BUILD_SLIPS as M, LAB_SECTION_SPEECH, buildErrors, buildHints, worksheetSpeech } from './lab-copy';
+import { BUILD_ERROR_HEADINGS, BUILD_SLIPS as M, LAB_SECTION_SPEECH, PART_CHECK_OPENERS, buildErrors, buildHints, worksheetSpeech } from './lab-copy';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw, Star } from 'lucide-react';
 import { getMission, numberLineWholeCount, type Progress } from './game';
 import { answerMatches, getBuildCheckStage, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
@@ -219,7 +219,9 @@ function Stepper({ label, value, min, max, onSet, id, hint }: { label: string; v
   );
 }
 
-function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: { kind: Kind; total?: number; st: St; set: (s: St) => void; id: string; title: string; lineWholes?: number; need?: number }) {
+function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0, inPart = false }: { kind: Kind; total?: number; st: St; set: (s: St) => void; id: string; title: string; lineWholes?: number; need?: number;
+  /** Inside a build Part card, which names the step: no tag or title of its own, and no box around it. */
+  inPart?: boolean }) {
   // Lines usually stop at 12 spaces, but a hundredths target (like 25/100) must still be possible.
   const maxD = kind === 'line' ? Math.max(12, need) : kind === 'set' ? Math.min(total ?? 24, 24) : 100;
   const wholes = kind === 'line' ? lineWholes : st.wholes;
@@ -234,12 +236,12 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
   const per = kind === 'set' && st.d && total ? total / st.d : 0;
   const wrap = st.d > 12;
   return (
-    <section className={`fq-ll-builder kind-${kind}`} aria-label={spokenLearningText(title)} data-testid={'model-' + id}>
-      <header className="fq-ll-model-head">
+    <section className={`fq-ll-builder kind-${kind}${inPart ? ' is-in-part' : ''}`} aria-label={spokenLearningText(title)} data-testid={'model-' + id}>
+      {inPart ? <p className="fq-ll-model-how">{MODEL_CONCEPTS[kind]}</p> : <header className="fq-ll-model-head">
         <ModelTag kind={kind} />
         <h4><LearningText text={title} interactiveTerms={false} /></h4>
         <p>{MODEL_CONCEPTS[kind]}</p>
-      </header>
+      </header>}
       <div className="fq-ll-controls">
         <Stepper id={id + '-d'} label={kind === 'set' ? 'Equal groups' : kind === 'line' ? 'Total equal spaces in one whole' : 'Total equal parts in one whole'} value={st.d} min={0} max={maxD}
           onSet={v => set({ ...st, d: v, count: Math.min(st.count, kind === 'set' ? v : v * wholes) })} hint={kind === 'set' ? total + ' dots in all' : undefined} />
@@ -291,6 +293,32 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0 }: 
 }
 
 type Outcome = { supported: boolean; attempts: number };
+/** One part of a build (build it, show it the other way, say why): its own card with a number, a title and, once
+    right, a green check line inside. A part not reached yet shows greyed, so the child sees what comes next. */
+function BuildPart({ n, title, state, testId, children }: { n: 1 | 2 | 3; title: ReactNode; state: 'open' | 'done' | 'locked'; testId: string; children: ReactNode }) {
+  return (
+    <section className={`fq-ll-part is-${state}`} aria-labelledby={`${testId}-title`} data-testid={testId} data-state={state}>
+      <header className="fq-ll-part-head">
+        <span className="fq-ll-part-num" aria-hidden="true">{state === 'done' ? <Check size={17} /> : n}</span>
+        <div><small>Part {n} of 3</small><h4 id={`${testId}-title`}>{title}</h4></div>
+      </header>
+      {children}
+    </section>
+  );
+}
+
+/** "Your bar is right." and the model feedback, inside its Part card, with Listen. */
+function PartCheck({ kind, feedback, testId }: { kind: Kind; feedback: string; testId: string }) {
+  const text = `${PART_CHECK_OPENERS[kind]} ${feedback}`;
+  return (
+    <div className="fq-ll-model-status success" role="status" data-testid={testId}>
+      <Check size={18} />
+      <span className="fq-ll-model-status-copy"><LearningText text={text} /></span>
+      <LearningListenButton text={text} label="Listen to the check" />
+    </div>
+  );
+}
+
 function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuccess, onNext, nextLabel, initiallyPassed = false }: {
   check: BuildCheck; review: boolean;
   /** The number line intro, while it is still to watch: it takes the place of the first number line builder. */
@@ -322,7 +350,7 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
   const locked = failedSig === sig;
   // Part 2 names the amount the child just built (shown stacked), so "show it" is never a guess.
   const amount = `${t.n}/${t.d}`;
-  const transLabel = tk === 'line' ? `Now show ${amount} on a number line` : `Now show ${amount} with a bar`;
+  const transLabel = tk === 'line' ? `Show ${amount} on a number line` : `Show ${amount} with a bar`;
   const hintTexts = buildHints(t, k);
 
   // Once a build passes, it stays as built: editing it used to hide Next, and a later wrong check undid the pass.
@@ -373,44 +401,38 @@ function CheckRunner({ check, onHelp, onPass, review, headingRef, onWrong, onSuc
          <h3 ref={headingRef} tabIndex={-1}><LearningText text={check.prompt} /></h3>
        </SectionListenHeader>
         {!restoredPassed && <>
-          <p className="fq-ll-response-step" data-testid={`response-step-${check.id}-1`}>Part 1 of 3 · Build the model</p>
-          <Builder kind={k} total={t.total} st={a} set={updatePrimary} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
-          {!primaryReady && a.d > 0 && primaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-primary-${check.id}`}>{primaryValidation.msgs[0]}</p>}
-           {primaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-primary-${check.id}`}>
-             <Check size={18} />
-             <div className="fq-ll-model-status-copy">
-               <SectionListenHeader text={primaryFeedback} label="Listen to the first model feedback"><strong>First model check</strong></SectionListenHeader>
-               <span><LearningText text={primaryFeedback} /></span>
-             </div>
-           </div>}
-          {stage !== 'primary' && <>
-            <div className="fq-ll-translate">
-              <strong><span className="fq-ll-response-step">Part 2 of 3 · </span><LearningText text={transLabel} interactiveTerms={false} /></strong>
-              <span><LearningText text={`Your first model shows ${amount}. Show the same amount ${tk === 'line' ? 'on the number line' : 'with the bar'}.`} interactiveTerms={false} /></span>
-            </div>
-            <Builder kind={tk} st={b} set={updateSecondary} id={`${check.id}-b`} title={`Show ${amount} ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
-            {!secondaryReady && b.d > 0 && secondaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-secondary-${check.id}`}>{secondaryValidation.msgs[0]}</p>}
-             {secondaryReady && <div className="fq-ll-model-status success" role="status" data-testid={`status-secondary-${check.id}`}>
-               <Check size={18} />
-               <div className="fq-ll-model-status-copy">
-                 <SectionListenHeader text={secondaryFeedback} label="Listen to the second model feedback"><strong>Second model check</strong></SectionListenHeader>
-                 <span><LearningText text={secondaryFeedback} /></span>
-               </div>
-             </div>}
-          </>}
-          {stage === 'reason' && <fieldset className="fq-ll-reasons" data-testid={`reasons-${check.id}`}>
-            <legend><span className="fq-ll-response-step">Part 3 of 3 · </span>Both models match. Which idea explains why?</legend>
-            {check.reasons.map((r, i) => (
-              <label key={i} className={reason === i ? 'on' : ''}>
-                <input type="radio" name={`reason-${check.id}`} checked={reason === i} disabled={done} onChange={() => {
-                  if (done) return;
-                  if (reason !== i) playHaptic('selection');
-                  setReason(i); setErrs([]); setFailedSig(null);
-                }} data-testid={`radio-reason-${check.id}-${i}`} />
-                <span><LearningText text={r} interactiveTerms={false} /></span>
-              </label>
-            ))}
-          </fieldset>}
+          <BuildPart n={1} state={primaryReady ? 'done' : 'open'} testId={`part-${check.id}-1`}
+            title={k === 'set' ? 'Build it as equal groups' : k === 'line' ? 'Build it on a number line' : 'Build it with a bar'}>
+            <Builder inPart kind={k} total={t.total} st={a} set={updatePrimary} id={`${check.id}-a`} title={`Build it ${k === 'set' ? 'as a set of equal groups' : k === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
+            {!primaryReady && a.d > 0 && primaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-primary-${check.id}`}>{primaryValidation.msgs[0]}</p>}
+            {primaryReady && <PartCheck kind={k} feedback={primaryFeedback} testId={`status-primary-${check.id}`} />}
+          </BuildPart>
+          <BuildPart n={2} state={stage === 'primary' ? 'locked' : secondaryReady ? 'done' : 'open'} testId={`part-${check.id}-2`}
+            title={<LearningText text={transLabel} interactiveTerms={false} />}>
+            {stage === 'primary' ? <p className="fq-ll-part-locked">Opens when your {k === 'line' ? 'number line' : k === 'bar' ? 'bar' : 'model'} is right.</p> : <>
+              <p className="fq-ll-part-lead"><LearningText text={`Your first model shows ${amount}. Show the same amount ${tk === 'line' ? 'on the number line' : 'with the bar'}.`} interactiveTerms={false} /></p>
+              <Builder inPart kind={tk} st={b} set={updateSecondary} id={`${check.id}-b`} title={`Show ${amount} ${tk === 'line' ? 'on a number line' : 'with a bar model'}`} lineWholes={lineWholes} need={t.d} />
+              {!secondaryReady && b.d > 0 && secondaryValidation.msgs[0] && <p className="fq-ll-model-status retry" role="status" data-testid={`status-secondary-${check.id}`}>{secondaryValidation.msgs[0]}</p>}
+              {secondaryReady && <PartCheck kind={tk} feedback={secondaryFeedback} testId={`status-secondary-${check.id}`} />}
+            </>}
+          </BuildPart>
+          <BuildPart n={3} state={stage !== 'reason' ? 'locked' : done ? 'done' : 'open'} testId={`part-${check.id}-3`} title="Why do they match?">
+            {stage !== 'reason' ? <p className="fq-ll-part-locked">Opens when both models are right.</p> : (
+              <fieldset className="fq-ll-reasons" data-testid={`reasons-${check.id}`}>
+                <legend className="fq-ll-sr-only">Both models match. Which idea explains why?</legend>
+                {check.reasons.map((r, i) => (
+                  <label key={i} className={reason === i ? 'on' : ''}>
+                    <input type="radio" name={`reason-${check.id}`} checked={reason === i} disabled={done} onChange={() => {
+                      if (done) return;
+                      if (reason !== i) playHaptic('selection');
+                      setReason(i); setErrs([]); setFailedSig(null);
+                    }} data-testid={`radio-reason-${check.id}-${i}`} />
+                    <span><LearningText text={r} interactiveTerms={false} /></span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+          </BuildPart>
            {hints > 0 && <div className="fq-ll-hint" data-testid={`text-hint-${check.id}`}>
              <SectionListenHeader text={currentHint} label="Listen to the hint"><strong>Hint</strong></SectionListenHeader>
              <LearningText text={currentHint} />

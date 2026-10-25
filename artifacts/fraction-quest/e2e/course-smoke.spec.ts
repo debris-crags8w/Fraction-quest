@@ -3391,13 +3391,20 @@ test('a Build check shows its question as a task card that scrolls with the page
   await expect(task).toContainText(check.prompt.replace(/\s*\d+\/\d+.*$/, '').slice(0, 20));
   await enterModel(page, check.id, 'a', check.target);
 
-  // Part 2 names the amount (stacked), not "it" or "the same amount".
+  // Each part is its own card: Part 1 is done (its number turns into a check, with "Your bar is right." inside it,
+  // not a separate "First model check" box), Part 2 is open, Part 3 waits greyed.
+  await expect(card.getByTestId(`part-${check.id}-1`)).toHaveAttribute('data-state', 'done');
+  await expect(card.getByTestId(`part-${check.id}-1`).getByTestId(`status-primary-${check.id}`)).toContainText(/Your (bar|number line|model) is right\./);
+  await expect(card).not.toContainText('model check');
+  await expect(card.getByTestId(`part-${check.id}-3`)).toHaveAttribute('data-state', 'locked');
+  await expect(card.getByTestId(`part-${check.id}-3`)).toContainText('Opens when both models are right.');
+  // Part 2's title names the amount (stacked), not "it" or "the same amount"; its model sits inside its card.
   const amount = `${check.target.n} over ${check.target.d}`;
-  const part2 = card.locator('.fq-ll-translate');
-  await expect(part2.locator('strong').getByRole('math', { name: amount })).toBeVisible();
-  await expect(part2.locator('strong')).not.toContainText('show it');
-  await skipIntros(page);
-  await expect(card.getByTestId(`model-${check.id}-b`).locator('h4').getByRole('math', { name: amount })).toBeVisible();
+  const part2 = card.getByTestId(`part-${check.id}-2`);
+  await expect(part2).toHaveAttribute('data-state', 'open');
+  await expect(part2.locator('h4').getByRole('math', { name: amount })).toBeVisible();
+  await expect(part2.locator('h4')).not.toContainText('show it');
+  await expect(part2.getByTestId(`model-${check.id}-b`)).toBeVisible();
 
   // The task card scrolls with the page like everything else (it used to stick to the top of the screen).
   expect(await task.evaluate((node) => getComputedStyle(node).position)).not.toBe('sticky');
