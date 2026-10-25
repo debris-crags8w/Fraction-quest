@@ -2,7 +2,7 @@
 - [Set-model grouping](set-model-grouping.md) — show counters in denominator-sized equal groups so the number of groups and pieces per group are visible.
 - [Full-course lesson smoke tests](full-course-lesson-smoke.md) — include generated questions and hands-on gates while isolating learner progress.
 - [Lesson-copy assertions](lesson-copy-test-resilience.md) — test mathematical meaning across equivalent student-friendly wording, not one preferred synonym.
-- [GitHub sync and push](github-push.md) — merge newer GitHub changes before edits; use the connected GitHub App if CLI pushes fail.
+- [GitHub sync and push](github-push.md) — sync before edits, preserve local history, and verify branch tips before cleanup.
 - [Development database bootstrap](development-database-bootstrap.md) — the development database can be provisioned without app tables; apply the existing schema before DB-backed account tests.
 - [Student progress privacy](student-progress-privacy.md) — educator-linked progress uses class codes, no student names, and is saved online.
 - [Voice runtime compatibility](mobile-voice-compatibility.md) — guard partial iOS APIs and verify server Kokoro voice assets with real synthesis, not model status alone.

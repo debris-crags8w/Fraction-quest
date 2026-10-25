@@ -60,3 +60,9 @@ When removing a merged GitHub review branch, retain its local-only history under
 **Why:** the user confirmed that keeping the local backup is harmless and preferred over losing its unpublished commits.
 
 **How to apply:** after verifying the review work is in `main`, remove the remote review ref and stale remote-tracking ref, but rename rather than force-delete a divergent local branch; keep the active workspace on `main`.
+
+Before deleting a GitHub branch associated with a merged PR, verify that its current tip matches a merged PR head or is already an ancestor of `main`. A branch-name match alone is not enough.
+
+**Why:** a branch associated with a merged PR still had newer commits that were not included in `main`; the GitHub connector also enforced a 10-requests-per-second limit during bulk ref deletion.
+
+**How to apply:** recheck branch and PR state immediately before deletion, preserve any tip that is neither merged nor in `main`, create local backups for otherwise-unreachable commits, and keep bulk API writes below the connector's rate limit. Verify the remote branch list after cleanup.
