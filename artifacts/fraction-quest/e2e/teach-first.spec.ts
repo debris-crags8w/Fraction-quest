@@ -54,9 +54,19 @@ test('a lesson teaches first the first time, then keeps it under How it works', 
   await expect(intro.getByTestId('intro-line')).toHaveAttribute('data-step', 'watch');
   await expect(intro.getByTestId('button-intro-watched')).toHaveText(/Next: Words/);
   await intro.getByTestId('button-intro-watched').click();
-  // Words: 1/3 is one third, stacked, with a small bar; the bottom number names the part.
+  // Words, page 1: what a fraction is, before any fraction name: 1/4 is 1 of 4 equal parts, and what each number means.
+  const what = intro.getByTestId('what-is-a-fraction');
+  await expect(what.locator('.fq-mi-kicker')).toHaveText('Step 2 of 3 · Words · page 1 of 2');
+  await expect(what).toContainText('A fraction names part of a whole.');
+  await expect(what).toContainText('how many equal parts make the whole');
+  await expect(what.getByRole('img', { name: 'A bar cut into 4 equal parts, 1 shaded' })).toBeVisible();
+  await expect(what).not.toContainText('1/4');
+  await expect(what).not.toContainText('numerator');
+  await fits('What is a fraction?');
+  await what.getByTestId('button-what-next').click();
+  // Words, page 2: 1/3 is one third, stacked, with a small bar; the bottom number names the part.
   const words = intro.getByTestId('fraction-words');
-  await expect(words.locator('.fq-mi-kicker')).toHaveText('Step 2 of 3 · Words');
+  await expect(words.locator('.fq-mi-kicker')).toHaveText('Step 2 of 3 · Words · page 2 of 2');
   await expect(words.getByTestId('fraction-word-3')).toContainText('one third');
   await expect(words.getByTestId('fraction-word-3').getByLabel('1 over 3')).toBeVisible();
   await expect(words.getByTestId('fraction-word-4')).toContainText('one quarter');
@@ -105,6 +115,7 @@ test('a lesson teaches first the first time, then keeps it under How it works', 
   // The Helper keeps the fraction names.
   await page.getByTestId('button-lesson-helper').first().click();
   await page.getByTestId('button-helper-words').click();
+  await page.getByTestId('lesson-helper').getByTestId('button-what-next').click();
   await expect(page.getByTestId('lesson-helper').getByTestId('fraction-word-2')).toContainText('one half');
 });
 
