@@ -4381,6 +4381,7 @@ describe('adding and subtracting questions offer real mistakes, not near-miss nu
     const bad: string[] = []; let checked = 0;
     const questions = MISSIONS.flatMap((lesson) => [
       ...lesson.questions,
+      ...(lesson.ideaQuestions ?? []),
       ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
     ]);
     for (const question of questions) {
@@ -4459,6 +4460,7 @@ describe('multiplying and dividing questions offer real mistakes, not near-miss 
     const bad: string[] = []; let checked = 0;
     const questions = MISSIONS.flatMap((lesson) => [
       ...lesson.questions,
+      ...(lesson.ideaQuestions ?? []),
       ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
     ]);
     for (const question of questions) {
@@ -4527,6 +4529,7 @@ describe('equivalence, decimal, percent and picture questions offer real mistake
     const bad: string[] = []; let checked = 0;
     const questions = MISSIONS.flatMap((lesson) => [
       ...lesson.questions,
+      ...(lesson.ideaQuestions ?? []),
       ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
     ]);
     for (const question of questions) {
@@ -4600,6 +4603,7 @@ describe('the rarer question types offer real mistakes too', () => {
     const bad: string[] = []; let checked = 0;
     const questions = MISSIONS.flatMap((lesson) => [
       ...lesson.questions,
+      ...(lesson.ideaQuestions ?? []),
       ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
     ]);
     for (const question of questions) {
