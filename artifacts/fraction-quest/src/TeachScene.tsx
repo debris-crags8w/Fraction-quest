@@ -207,7 +207,7 @@ function WordsToKnow({ words }: { words: WordCard[] }) {
     <ul className="fq-ts-words" data-testid="teach-words">
       {words.map((word) => (
         <li key={word.term} data-testid={`teach-word-${word.term}`}>
-          <b className={word.term.length <= 2 ? 'is-symbol' : ''}>{word.term}</b>
+          <b className={word.term.length <= 2 ? 'is-symbol' : ''}><MathText text={word.term} /></b>
           <span><LearningText text={word.meaning} emphasize /></span>
           {word.picture && <TeachScenePicture scene={word.picture} take={0} />}
         </li>
