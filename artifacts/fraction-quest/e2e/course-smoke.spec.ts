@@ -149,13 +149,14 @@ test('the dimes and pennies lesson teaches on a hundredths grid, then asks about
   await expect(coins.locator('.fq-coin.is-dime')).toHaveCount(6);
 });
 
-/** A lesson with ideas keeps its worked example under "How it works" on the lesson page: open the page (earlier lessons
-    done, practice done) and unfold it. */
+/** A lesson with ideas keeps its worked example under "How it works" on the lesson page: open the page as a returning
+    child (earlier lessons done, the model intros seen, practice done) and unfold it. */
 async function openLessonPageWorkedExample(page: import('@playwright/test').Page, mission: Mission) {
   await page.addInitScript((progress) => {
     if (sessionStorage.getItem('seeded')) return;
     sessionStorage.setItem('seeded', '1');
     localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+    localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ introsSeen: { builder: true, line: true }, fractionWordsSeen: true }));
   }, progressBefore(mission));
   await openAsGuest(page);
   await expectMissionStart(page, mission.id, true);
