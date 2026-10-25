@@ -4,8 +4,8 @@
 
 /** Lesson id -> unit, in course order. Mirrors LESSON_PLAN in artifacts/fraction-quest/src/game.ts (dashboard.test.ts checks they match). */
 export const LESSON_UNITS: Record<string, number> = {
-  "equal-parts": 1,
   "fraction-names": 1,
+  "equal-parts": 1,
   "unit-fractions": 1,
   "fraction-of-area": 1,
   "unit-size": 2,

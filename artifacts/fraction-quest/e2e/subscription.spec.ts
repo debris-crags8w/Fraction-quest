@@ -33,23 +33,23 @@ const asked = (page: Page) => page.evaluate(() => ((window as Window & { __asked
 
 test('in the app the first lesson is free', async ({ page }) => {
   await openInApp(page, { state: 'none', price: '$4.99' });
-  await page.getByTestId('button-start-mission-equal-parts').click();
+  await page.getByTestId('button-start-mission-fraction-names').click();
   await expect(page.getByTestId('subscribe-ask')).toHaveCount(0);
   await expect(page.getByTestId('paywall')).toHaveCount(0);
   expect(await asked(page)).toEqual([]);
 });
 
 test('in the app without a subscription, lesson 2 asks for a grown-up and opens once the trial starts', async ({ page }) => {
-  await openInApp(page, { state: 'none', price: '$4.99' }, ['equal-parts']);
-  await page.getByTestId('button-start-mission-fraction-names').click();
+  await openInApp(page, { state: 'none', price: '$4.99' }, ['fraction-names']);
+  await page.getByTestId('button-start-mission-equal-parts').click();
 
   const ask = page.getByTestId('subscribe-ask');
   await expect(ask).toBeVisible();
   await expect(ask).toContainText('ask a grown-up to unlock Fraction Quest');
   // Back goes to the map, which stays open.
   await page.getByTestId('button-subscribe-back').click();
-  await expect(page.getByTestId('button-start-mission-fraction-names')).toBeVisible();
-  await page.getByTestId('button-start-mission-fraction-names').click();
+  await expect(page.getByTestId('button-start-mission-equal-parts')).toBeVisible();
+  await page.getByTestId('button-start-mission-equal-parts').click();
 
   await page.getByTestId('button-get-grown-up').click();
   const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
@@ -83,8 +83,8 @@ test('in the app without a subscription, lesson 2 asks for a grown-up and opens 
 test('the paywall offers the yearly plan first, and buys the plan the grown-up picks', async ({ page }) => {
   const plans = [{ plan: 'yearly', price: '$39.99', amount: 39.99, currency: 'USD' }, { plan: 'monthly', price: '$4.99', amount: 4.99, currency: 'USD' }];
   await page.setViewportSize({ width: 390, height: 844 });
-  await openInApp(page, { state: 'none', price: '$4.99', plans }, ['equal-parts']);
-  await page.getByTestId('button-start-mission-fraction-names').click();
+  await openInApp(page, { state: 'none', price: '$4.99', plans }, ['fraction-names']);
+  await page.getByTestId('button-start-mission-equal-parts').click();
   await page.getByTestId('button-get-grown-up').click();
   const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
@@ -110,8 +110,8 @@ test('the paywall offers the yearly plan first, and buys the plan the grown-up p
 
 test('after a subscription ends, the child is told their progress is saved and can open the Storybook', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('fraction-quest-subscribed-once', '1'));
-  await openInApp(page, { state: 'none' }, ['equal-parts']);
-  await page.getByTestId('button-start-mission-fraction-names').click();
+  await openInApp(page, { state: 'none' }, ['fraction-names']);
+  await page.getByTestId('button-start-mission-equal-parts').click();
   const ask = page.getByTestId('subscribe-ask');
   await expect(ask).toHaveAttribute('data-lapsed', 'true');
   await expect(ask.getByRole('heading')).toHaveText('Hoot’s lantern is waiting');
@@ -137,7 +137,7 @@ test('the grown-ups page shows the subscription and opens the store to manage it
 
 test('in a browser there is no subscription: with the website limit off, lessons open and the grown-ups page has no subscription section', async ({ page }) => {
   await openInApp(page, null);
-  await page.getByTestId('button-start-mission-equal-parts').click();
+  await page.getByTestId('button-start-mission-fraction-names').click();
   await expect(page.getByTestId('subscribe-ask')).toHaveCount(0);
   await expect(page.getByTestId('paywall')).toHaveCount(0);
   await page.goto('/');

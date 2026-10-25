@@ -142,7 +142,7 @@ describe('fraction ordering activity', () => {
 /** Units 1–8 (grades 3–4), in order. The fraction-of-a-group lessons moved to unit 11 (5.NF.4a). */
 /** The approved course order, unit by unit (written out here on purpose, so a change to LESSON_PLAN has to be meant). */
 const EXPECTED_COURSE: Record<number, string[]> = {
-  1: ['equal-parts', 'fraction-names', 'unit-fractions', 'fraction-of-area'],
+  1: ['fraction-names', 'equal-parts', 'unit-fractions', 'fraction-of-area'],
   2: ['unit-size', 'compare-same-numerator'],
   3: ['benchmark-half', 'benchmarks-zero-one', 'fraction-magnitude'],
   4: ['number-line-basics', 'number-line-points', 'number-line-beyond-one', 'ruler-measurement', 'build-line-plots'],
@@ -1342,6 +1342,9 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.deepEqual(getLearningRecord(loadProgress(), lesson.id).practiceAt, { index: 3, firstTry: 2 });
     saveProgress(updateLearning(EMPTY_PROGRESS, lesson.id, { ...emptyLearningRecord(), practiceDone: true, practiceAt: { index: 3, firstTry: 2 } }));
     assert.equal(getLearningRecord(loadProgress(), lesson.id).practiceAt, undefined, 'finished practice has no place to resume');
+    // The name of the practice list the place was saved in comes back too, so an older version's place can start over.
+    saveProgress(updateLearning(EMPTY_PROGRESS, lesson.id, { ...emptyLearningRecord(), practiceAt: { index: 3, firstTry: 2, plan: '15-abc' } }));
+    assert.deepEqual(getLearningRecord(loadProgress(), lesson.id).practiceAt, { index: 3, firstTry: 2, plan: '15-abc' });
   });
 
   it('builds lesson models and math text without String.matchAll in older webviews', () => {
@@ -4643,7 +4646,7 @@ describe('the November 2026 move (a fraction is division before dividing; recipe
     learning: Object.fromEntries(list.map((id) => [id, { ...emptyLearningRecord(), completedAt: 1 }])),
   });
   const division = ['unit-fraction-divided-whole', 'divide-whole-by-unit-fraction', 'share-or-fit'];
-  const firstTo = (id: string) => ids('equal-parts', id).filter((lesson) => lesson !== 'fraction-recipes');
+  const firstTo = (id: string) => ids(MISSIONS[0]!.id, id).filter((lesson) => lesson !== 'fraction-recipes');
 
   it('keeps every lesson open for a learner part way through unit 12 on the old order', () => {
     // Old order: units 1–11 with the division lessons, then the first lesson of unit 12; recipes were still in unit 13.
@@ -4662,10 +4665,10 @@ describe('the November 2026 move (a fraction is division before dividing; recipe
     assert.equal(isMissionUnlocked(progress, 'divide-whole-by-unit-fraction'), true);
   });
   it('takes a new learner through recipe stories at the end of grade 4, before unit 10', () => {
-    const progress = passed(ids('equal-parts', 'measurement-word-problems'));
+    const progress = passed(ids(MISSIONS[0]!.id, 'measurement-word-problems'));
     assert.equal(isMissionUnlocked(progress, 'fraction-recipes'), true);
     assert.equal(isMissionUnlocked(progress, 'add-related-fractions'), false);
-    assert.equal(isMissionUnlocked(passed(ids('equal-parts', 'fraction-recipes')), 'add-related-fractions'), true);
+    assert.equal(isMissionUnlocked(passed(ids(MISSIONS[0]!.id, 'fraction-recipes')), 'add-related-fractions'), true);
   });
 });
 

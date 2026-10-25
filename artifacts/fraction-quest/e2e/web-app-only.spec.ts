@@ -25,20 +25,20 @@ async function openWebsite(page: Page, finished: string[]) {
 
 test('on the website the first lesson is free', async ({ page }) => {
   await openWebsite(page, []);
-  await page.getByTestId('button-start-mission-equal-parts').click();
+  await page.getByTestId('button-start-mission-fraction-names').click();
   await expect(page.getByTestId('web-app-only')).toHaveCount(0);
 });
 
 test('on the website, lesson 2 sends the family to the app, with the store links behind the grown-up check', async ({ page }) => {
-  await openWebsite(page, ['equal-parts']);
-  await page.getByTestId('button-start-mission-fraction-names').click();
+  await openWebsite(page, ['fraction-names']);
+  await page.getByTestId('button-start-mission-equal-parts').click();
   const ask = page.getByTestId('web-app-only');
   await expect(ask).toBeVisible();
   await expect(ask.getByRole('heading')).toHaveText('You found the first clue!');
   await expect(ask).toContainText('The rest of the adventure is in the Fraction Quest app.');
 
   await page.getByTestId('button-subscribe-back').click();
-  await page.getByTestId('button-start-mission-fraction-names').click();
+  await page.getByTestId('button-start-mission-equal-parts').click();
   await page.getByTestId('button-get-grown-up').click();
   const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
@@ -51,12 +51,12 @@ test('on the website, lesson 2 sends the family to the app, with the store links
   // No store listing set in the test build yet.
   await expect(page.getByTestId('get-app-soon')).toBeVisible();
   await page.getByTestId('button-get-app-back').click();
-  await expect(page.getByTestId('button-start-mission-fraction-names')).toBeVisible();
+  await expect(page.getByTestId('button-start-mission-equal-parts')).toBeVisible();
 });
 
 test('on the website the Storybook stays open after a later lesson points to the app', async ({ page }) => {
-  await openWebsite(page, ['equal-parts']);
-  await page.getByTestId('button-start-mission-fraction-names').click();
+  await openWebsite(page, ['fraction-names']);
+  await page.getByTestId('button-start-mission-equal-parts').click();
   await expect(page.getByTestId('web-app-only')).toBeVisible();
   await page.getByTestId('button-subscribe-back').click();
   await page.getByTestId('button-app-menu').click();

@@ -15,7 +15,7 @@ test('a child’s first lesson: Watch, Words and Try, then idea 1 is taught befo
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.getByTestId('button-play-guest').click();
-  await page.getByTestId('button-start-mission-equal-parts').click();
+  await page.getByTestId('button-start-mission-fraction-names').click();
 
   // A child's first lesson: how the models work and their names come before any idea. Watch (the bar, then the
   // number line), Words (the fraction names), then Try, each its own screen. Lesson 1 teaches one idea at a time, so it
@@ -105,7 +105,7 @@ test('a child’s first lesson: Watch, Words and Try, then idea 1 is taught befo
   await page.reload();
   const guest = page.getByTestId('button-play-guest');
   if (await guest.isVisible()) await guest.click();
-  await page.getByTestId('button-start-mission-equal-parts').click();
+  await page.getByTestId('button-start-mission-fraction-names').click();
   await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
   await expect(page.getByTestId('intro-steps')).toHaveCount(0);
 

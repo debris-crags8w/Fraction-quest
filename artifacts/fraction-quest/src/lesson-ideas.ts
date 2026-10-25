@@ -59,5 +59,24 @@ export const ideaPracticeQuestions = (mission: Mission): PracticeQuestion[] =>
     : 'sortRound' in item ? handsOnStandIn(mission, item.sortRound, 'sort')
       : { ...ideaQuestion(mission, item.question)!, isMastery: false }));
 
+/** Has the child been taught to write a fraction by this idea? Not before the idea whose `terms` own fraction notation
+    (lesson 1's idea 3, "The top number counts the parts we take"): until then no screen shows one, the bar's "1/4 done"
+    included. */
+export const fractionsTaughtBy = (missionId: string, ideaIndex: number): boolean => {
+  const at = (LESSON_IDEAS[missionId] ?? []).findIndex((idea) => idea.terms?.some((term) => term.pattern.test('1/4')));
+  return at < 0 || ideaIndex >= at;
+};
+
+/** A short name for the lesson's practice list: a saved place (practiceAt) only resumes in the list it was saved in.
+    When a lesson's ideas or questions change, the old question number points somewhere else, so the lesson starts over. */
+export const practicePlan = (mission: Mission): string => {
+  const items = lessonIdeas(mission.id)
+    ? ideaSteps(mission.id).map(({ item }) => ('question' in item ? item.question : 'handsOn' in item ? `hands-on:${item.handsOn}` : `sort:${item.sortRound}`))
+    : mission.questions.map((question) => question.id);
+  let hash = 5381;
+  for (const char of items.join('|')) hash = ((hash * 33) ^ char.charCodeAt(0)) >>> 0;
+  return `${items.length}-${hash.toString(36)}`;
+};
+
 /** What Listen reads on a Learn page: its line, then the sentences under the picture. */
 export const learnScript = (page: LearnPage) => ('words' in page ? wordsScript(page.words) : [page.text, ...sceneSentences(page.scene)].join(' '));

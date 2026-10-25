@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { FRACTION_ORDER_ROUNDS, MISSIONS } from './game';
-import { ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS, type LessonIdea } from './lesson-ideas';
+import { fractionsTaughtBy, ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS, practicePlan, type LessonIdea } from './lesson-ideas';
 import { PART_FINDER_ROUNDS } from './part-finder';
-import { HANDS_ON_ASKS } from './story';
+import { getExtraPractice } from './practice-bank';
+import { HANDS_ON_ASKS, storyProblemFor } from './story';
 import { TEACH_EXTRAS } from './teach-extras';
 import { sceneSentences, type SceneRow, type StepScene } from './teach-scenes';
 import type { Mission } from './game';
@@ -55,14 +56,31 @@ test('idea questions are four-choice questions with a picture, written like the 
   }
 });
 
-test('lesson 1: the ideas come in the order of the approved plan, and shapes come before the pumpkin cake', () => {
+test('lesson 1: equal parts first, then the bottom number, the top number and saying it (the approved plan)', () => {
+  assert.equal(MISSIONS[0]!.id, 'fraction-names');
+  assert.equal(MISSIONS[0]!.title, 'Fair parts and fraction names');
+  assert.deepEqual(LESSON_IDEAS['fraction-names']!.map((idea) => idea.title), ['Equal parts are the same size', 'The bottom number counts all the equal parts',
+    'The top number counts the parts we take', 'Say it and write it: 3 out of 4 equal parts']);
+  // Idea 2's practices are answered with a count, not a fraction.
+  const mission = MISSIONS[0]!;
+  for (const { item } of ideaSteps(mission.id).filter(({ idea }) => idea === 1)) {
+    const question = ideaQuestion(mission, (item as { question: string }).question)!;
+    assert.match(question.choices[question.correctChoice]!, /^\d+$/, question.prompt);
+  }
+});
+
+test('lesson 2: shapes come before the pumpkin cake, then sharing (the approved plan)', () => {
+  assert.equal(MISSIONS[1]!.id, 'equal-parts');
+  assert.equal(MISSIONS[1]!.title, 'Fair parts in any shape');
   const ideas = LESSON_IDEAS['equal-parts']!;
-  assert.deepEqual(ideas.map((idea) => idea.title), ['Equal parts are the same size', 'Count the equal parts to name one part', 'Equal parts can be different shapes', 'Share fairly']);
+  assert.deepEqual(ideas.map((idea) => idea.title), ['Equal parts can be different shapes', 'Share fairly']);
   const steps = ideaSteps('equal-parts');
   const at = (round: string) => steps.findIndex(({ item }) => 'handsOn' in item && item.handsOn === round);
   assert.ok(at('match') < at('sort-cake'), 'different shapes are taught and practised before sharing a cake cut into different shapes');
   // The Learn page for sharing says the numbers it deals.
-  assert.match(sceneSentences(ideas[3]!.learn[0]!.scene).join(' '), /Each friend gets 2 pieces/);
+  const share = ideas[1]!.learn[0]!;
+  assert.ok('scene' in share);
+  assert.match(sceneSentences(share.scene).join(' '), /Each friend gets 2 pieces/);
 });
 
 /** Every word on an idea's screens: its Learn pages (line, picture labels and sentences) and its practices (question,
@@ -104,10 +122,33 @@ test('each screen sticks to its idea: nothing an idea teaches shows up in an ear
   }
 });
 
-test('lesson 1 asks only about one part until lesson 2 teaches counting more than one (no 3/4 among the choices)', () => {
-  const mission = MISSIONS.find((item) => item.id === 'equal-parts')!;
-  for (const idea of LESSON_IDEAS['equal-parts']!) {
-    for (const text of ideaText(mission, idea).practice) assert.doesNotMatch(text, /\b([2-9]|\d{2,})\/\d+\b/, text);
+test('no fraction is offered as an answer before the lesson that teaches reading one ("Fair parts and fraction names")', () => {
+  const readAt = MISSIONS.findIndex((item) => item.id === 'fraction-names');
+  assert.ok(readAt >= 0);
+  const offered = MISSIONS.slice(0, readAt).flatMap((mission) => {
+    const story = storyProblemFor(mission.id);
+    const questions = [...mission.questions, ...(mission.ideaQuestions ?? []), ...getExtraPractice(mission.id, mission.questions.map((question) => question.id))];
+    return [
+      // Lesson, review, idea and Extra practice questions.
+      ...questions.flatMap((question) => question.choices.map((choice) => ({ where: question.id, choice }))),
+      // The story problem keeps the last question's choices unless it writes its own.
+      ...(story?.choices ?? []).map((choice) => ({ where: `${mission.id} story`, choice })),
+    ];
+  });
+  assert.deepEqual(offered.filter(({ choice }) => /\d+\/\d+/.test(choice)).map(({ where, choice }) => `${where}: ${choice}`), []);
+});
+
+test('lesson 1 shows no fraction until its idea that teaches the top number (ideas 1–2 use counts only)', () => {
+  const ideas = LESSON_IDEAS['fraction-names']!;
+  const at = ideas.findIndex((idea) => idea.terms?.some((term) => term.pattern.test('1/4')));
+  assert.equal(at, 2, 'idea 3 owns fraction notation, so the "each screen sticks to its idea" test keeps it off ideas 1 and 2');
+  // The Learn page's bar leaves out its "1/4 done" fraction until then.
+  assert.deepEqual(ideas.map((_, i) => fractionsTaughtBy('fraction-names', i)), [false, false, true, true]);
+  assert.equal(fractionsTaughtBy('equal-parts', 0), true);
+  const mission = MISSIONS.find((item) => item.id === 'fraction-names')!;
+  for (const idea of ideas.slice(0, at)) {
+    const { learn, practice } = ideaText(mission, idea);
+    for (const text of [...learn, ...practice]) assert.doesNotMatch(text, /\d+\/\d+/, `${idea.title}: ${text}`);
   }
 });
 
@@ -116,4 +157,15 @@ test('a lesson with ideas keeps its Words to know: each word is on a Learn page 
     const shown = ideas.flatMap((idea) => idea.learn.flatMap((page) => ('words' in page ? page.words.map((word) => word.term) : [])));
     for (const word of TEACH_EXTRAS[id]?.words ?? []) assert.ok(shown.includes(word.term), `${id}: Words to know "${word.term}" is on a Learn page`);
   }
+});
+
+test('each lesson names its practice list, and the name changes when its practices change', () => {
+  const plans = MISSIONS.map(practicePlan);
+  assert.equal(new Set(plans).size, plans.length, 'two lessons share a practice-list name');
+  const lesson = MISSIONS[0]!;
+  assert.equal(practicePlan(lesson), practicePlan(lesson), 'the same list always has the same name');
+  const ideas = LESSON_IDEAS[lesson.id]!;
+  const swapped = [{ ...ideas[0]!, practice: [...ideas[0]!.practice].reverse() }, ...ideas.slice(1)];
+  LESSON_IDEAS[lesson.id] = swapped;
+  try { assert.notEqual(practicePlan(lesson), plans[0], 'reordering practices gives a new name') } finally { LESSON_IDEAS[lesson.id] = ideas; }
 });
