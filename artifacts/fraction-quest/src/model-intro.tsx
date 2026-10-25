@@ -8,7 +8,7 @@ import type { IntroKind, IntroStage } from './lib/fun';
 import { TaskBar } from './TaskBar';
 import { LearningListenButton } from './LearningText';
 import { TickLabel } from './fraction-ui';
-import { FRACTION_WORDS, HELPER_PICKS, HELPER_PICK_SPEECH, INTRO_DEMOS, INTRO_TEXT, INTRO_TRIES, PART_NAMES, fractionWordsSpeech, introHint, newWordSpeech } from './intro-copy';
+import { FRACTION_WORDS, HELPER_PICKS, HELPER_PICK_SPEECH, INTRO_DEMOS, INTRO_TEXT, INTRO_TRIES, PART_NAMES, WHAT_IS_A_FRACTION, fractionWordsSpeech, introHint, newWordSpeech, whatIsAFractionSpeech } from './intro-copy';
 import './model-intro.css';
 
 const SHOT_MS = 2300;
@@ -198,13 +198,41 @@ const MiniBar = ({ d, n = 1 }: { d: number; n?: number }) => (
   </span>
 );
 
-/** Words: the fraction names (1/3 is one third), before Try asks the child to build them. Each row reads itself. */
+/** Words, two pages: what a fraction is (1/4 means 1 of 4 equal parts), then the fraction names (1/3 is one third),
+    before Try asks the child to build them. Nothing about fractions is assumed: page 1 explains the two numbers first. */
 export function FractionWords({ kicker, nextLabel, onDone, onSkip }: { kicker: string; nextLabel: string; onDone: () => void; onSkip?: () => void }) {
+  const [page, setPage] = useState<'what' | 'names'>('what');
+  if (page === 'what') return (
+    <section className="fq-mi fq-mi-words" aria-labelledby="what-is-a-fraction-title" data-testid="what-is-a-fraction" data-step="words">
+      <header className="fq-mi-head">
+        <div>
+          <span className="fq-mi-kicker">{kicker} · page 1 of 2</span>
+          <h3 id="what-is-a-fraction-title">{WHAT_IS_A_FRACTION.title}</h3>
+        </div>
+        <LearningListenButton text={whatIsAFractionSpeech().join(' ')} label="Listen to what a fraction is" />
+      </header>
+      <p className="fq-mi-rule">A <u>fraction</u> names part of a <u>whole</u>. The whole must be cut into <u>equal parts</u>.</p>
+      <div className="fq-mi-what-bar">
+        <span className="fq-mi-big-bar" role="img" aria-label="A bar cut into 4 equal parts, 1 shaded">{[0, 1, 2, 3].map((i) => <i key={i} className={i === 0 ? 'is-on' : ''} />)}</span>
+        <small>{WHAT_IS_A_FRACTION.whole}</small>
+      </div>
+      <div className="fq-mi-what-numbers">
+        <Frac n={1} d={4} />
+        <dl>
+          <div><dt>Top:</dt><dd>{WHAT_IS_A_FRACTION.top}</dd></div>
+          <div><dt>Bottom:</dt><dd>{WHAT_IS_A_FRACTION.bottom}</dd></div>
+        </dl>
+      </div>
+      <p className="fq-mi-rule">So <Frac n={1} d={4} /> means 1 of 4 equal parts. We say “one fourth”.</p>
+      <button type="button" className="fq-button" onClick={() => setPage('names')} data-testid="button-what-next">Next: fraction names <ArrowRight size={16} aria-hidden="true" /></button>
+      <Skip onSkip={onSkip} />
+    </section>
+  );
   return (
     <section className="fq-mi fq-mi-words" aria-labelledby="fraction-words-title" data-testid="fraction-words" data-step="words">
       <header className="fq-mi-head">
         <div>
-          <span className="fq-mi-kicker">{kicker}</span>
+          <span className="fq-mi-kicker">{kicker} · page 2 of 2</span>
           <h3 id="fraction-words-title">{FRACTION_WORDS.title}</h3>
         </div>
         <LearningListenButton text={fractionWordsSpeech().join(' ')} label="Listen to the fraction names" />

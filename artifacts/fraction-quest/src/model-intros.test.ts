@@ -58,4 +58,12 @@ describe('fraction words', () => {
     const first = (d: number) => MISSIONS.findIndex((mission) => mission.id === shown.find((item) => item.d === d)!.id);
     assert.ok(first(10) <= first(100), 'tenths come before hundredths');
   });
+
+  it('explains what a fraction is first, saying the fraction in words', async () => {
+    const { WHAT_IS_A_FRACTION, whatIsAFractionSpeech } = await import('./intro-copy');
+    assert.match(WHAT_IS_A_FRACTION.rule, /names part of a whole/);
+    const speech = whatIsAFractionSpeech();
+    assert.ok(speech.includes('So one fourth means 1 of 4 equal parts.'));
+    assert.ok(speech.every((line) => !/\d\/\d|numerator|denominator/.test(line)), 'no slash fractions or lesson 2 words');
+  });
 });

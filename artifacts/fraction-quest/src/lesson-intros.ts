@@ -13,7 +13,7 @@ export const LESSON_INTROS: Record<string, LessonIntro> = {
   // Unit 1 · Equal parts
   'equal-parts': { heading: 'How fair parts work', goal: 'Tell when the parts of a whole are fair shares.',
     steps: ['Look at one whole.', 'Check that every part is the same size.', 'Count the equal parts to name them.'],
-    why: 'A fraction only names equal parts. If one part is bigger, the parts are not fair shares.' },
+    why: 'A fraction names equal parts of a whole. If one part is bigger, the parts are not fair shares.' },
   'fraction-names': { heading: 'How to read a fraction', goal: 'Say what the top and bottom numbers of a fraction mean.',
     steps: ['Read the denominator: the equal parts in one whole.', 'Read the numerator: the parts you count.', 'Say it like “3 out of 4 equal parts”.'],
     why: 'The bottom number sets the size of each part. The top number counts how many of those parts.' },
