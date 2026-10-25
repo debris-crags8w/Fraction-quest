@@ -425,8 +425,8 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
 
   'number-line-points': {
     steps: [
-      // Count the spaces: the denominator.
-      play([{ kind: 'line', max: 1, spaces: 4, cut: true, point: 3 }, { kind: 'text', text: '4 spaces from 0 to 1: the denominator is 4.', hidden: true }],
+      // Count the spaces: the denominator (the point comes with the next step, which counts the jumps to it).
+      play([{ kind: 'line', max: 1, spaces: 4, cut: true }, { kind: 'text', text: '4 spaces from 0 to 1: the denominator is 4.', hidden: true }],
         ...jumpUp(0, 4, 400),
         [500, { 1: { hidden: false } }]),
       // Count the jumps to the point: the numerator.
