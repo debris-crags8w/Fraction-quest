@@ -85,7 +85,7 @@ export async function completeIdeas(page: Page, mission: Mission, { beforeRound,
       }
       await page.getByTestId('button-idea-practise').click();
     }
-    if (!('sortRound' in item)) await expect(page.getByTestId('idea-kicker').or(page.locator('.fq-play-kicker')).first()).toContainText(`Idea ${idea + 1} of ${ideas.length}`);
+    if (!('sortRound' in item)) await expect(page.locator('.fq-play-kicker, .fq-taskbar-title').first()).toContainText(`Idea ${idea + 1} of ${ideas.length}`);
     if ('handsOn' in item) {
       await beforeRound?.();
       await solvePartFinderRound(page, PART_FINDER_ROUNDS.find((round) => round.id === item.handsOn)!);
@@ -112,7 +112,7 @@ export const hasStoryAfterIdeas = (mission: Mission) => !!STORY_PROBLEMS[mission
 export async function expectLearnPageFits(page: Page, label: string) {
   const size = page.viewportSize();
   if (!size || size.width > 430) return;
-  await expect(page.getByTestId('teach-scene')).toBeVisible();
+  await expect(page.getByTestId('teach-scene').or(page.getByTestId('teach-words')).first()).toBeVisible();
   const { scroll, banner } = await page.evaluate(() => ({
     scroll: document.documentElement.scrollHeight,
     banner: document.querySelector('[data-testid="developer-test-banner"]')?.getBoundingClientRect().height ?? 0,

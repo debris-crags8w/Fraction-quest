@@ -162,7 +162,9 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
   // Sort rounds check the share of every piece; the other rounds check the chosen pieces.
   const answerPieces = sorting ? assignment : selected;
   const placed = assignment.filter((share) => share >= 0).length;
-  const instruction = sorting ? 'Tap a friend, then tap their pieces. Tap a piece again to take it back.' : 'Tap or click pieces to select them. Use Tab, then Enter or Space.';
+  const instruction = sorting ? 'Tap a friend, then tap their pieces. Tap a piece again to take it back.' : 'Tap pieces to pick them.';
+  // Keyboard steps: read to screen readers (and keyboard users), not shown to every child.
+  const keyboardSteps = sorting ? '' : 'With a keyboard, use Tab, then Enter or Space.';
   // On a short phone the cake can push the check button below the screen: show it once there is something to check
   // (every piece shared out, or a piece picked).
   const checkButtonRef = useRef<HTMLButtonElement>(null);
@@ -230,8 +232,8 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
   return (
     <main className="fq-app fq-pf" data-testid="part-finder-screen">
       <div className="fq-pf-shell">
-        <TaskBar onBack={onExit} backLabel="Map" testId="button-part-finder-exit" title={activityTitle} backAriaLabel={`Back to the map (leaves ${lessonLabel})`} step={progress?.step ?? roundIndex + 1} total={progress?.total ?? rounds.length} sequenceLabel={progress?.label ?? 'Round'}
-          actions={<>{helper.button}{onSkip && <button type="button" className="fq-hint-button" onClick={onSkip} data-testid="button-hands-on-skip">Skip</button>}</>} />
+        <TaskBar onBack={onExit} backLabel="Map" testId="button-part-finder-exit" title={progress ? progress.kicker.replace(/^Lesson \d+ · /, '') : activityTitle} segmentsOnly={!!progress} backAriaLabel={`Back to the map (leaves ${lessonLabel})`} step={progress?.step ?? roundIndex + 1} total={progress?.total ?? rounds.length} sequenceLabel={progress?.label ?? 'Round'}
+          actions={<>{!progress && helper.button}{onSkip && <button type="button" className="fq-hint-button" onClick={onSkip} data-testid="button-hands-on-skip">Skip</button>}</>} />
         {helper.panel}
 
         {/* Teach first: the introduction and worked example open the first round; later rounds keep them a tap away. */}
@@ -242,7 +244,6 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
           </details>
         ))}
 
-        {progress && <p className="fq-play-kicker" data-testid="idea-kicker">{progress.kicker}</p>}
         {storyLine?.(checked === 'idle' ? null : correct ? 'correct' : 'retry')}
 
         <section className="fq-pf-card" aria-labelledby="pf-title">
@@ -276,7 +277,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
                 disabled={correct}
                 onToggle={togglePiece}
               />
-              <p className="fq-pf-instruction">{instruction}</p>
+              <p className="fq-pf-instruction">{instruction}{keyboardSteps && <span className="fq-sr"> {keyboardSteps}</span>}</p>
             </figure>
           </div>
 
