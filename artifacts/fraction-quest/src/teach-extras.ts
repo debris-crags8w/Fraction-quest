@@ -198,7 +198,7 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
     }, {
       // The first lesson to measure in meters (a worm 1/6 of a meter long): the unit is taught before it is used.
       term: 'meter', meaning: 'A meter is a way to measure length. One big step is about 1 meter long.',
-      picture: still([{ kind: 'line', max: 1, spaces: 1, unit: 'meter', stretch: 1 }]),
+      picture: still([{ kind: 'bar', parts: ones(1), shaded: [0], bracket: '1 meter' }]),
     }],
     examples: [
       {
@@ -777,8 +777,8 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
     // The units the lesson's stories measure in, each taught before its first question (idea 2).
     words: [
       { term: 'cent', meaning: 'A cent is the value of 1 penny. 100 cents make 1 dollar.' },
-      { term: 'kilogram and gram', meaning: 'Grams and kilograms measure how heavy things are. A paper clip weighs about 1 gram. 1000 grams make 1 kilogram, about a big bag of rice.' },
-      { term: 'liter and milliliter', meaning: 'Liters and milliliters measure how much a jug holds. A big water bottle holds about 1 liter. 1000 milliliters make 1 liter.' },
+      { term: 'gram', meaning: 'A gram is a tiny weight: a paper clip weighs about 1 gram. 1000 grams make 1 kilogram, about a bag of rice.' },
+      { term: 'liter', meaning: 'A big water bottle holds about 1 liter. A milliliter is tiny: 1000 milliliters make 1 liter.' },
     ],
     examples: [
       {
