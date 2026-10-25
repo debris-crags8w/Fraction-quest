@@ -264,7 +264,10 @@ describe('lesson catalog', () => {
     // Pictures that draw every choice, or the fractions being put in order, stay as they are; a picture of every
     // choice also draws the added fourth choice (6/8 here), so the child can check that one too.
     assert.deepEqual(shown('Which is closest to 1/2?'), ['1/2', '5/8', '1/6', '7/8', '6/8']);
-    assert.deepEqual(shown('Put 1/2, 3/8 and 7/8 in order, smallest first.'), ['3/8', '1/2', '7/8']);
+    assert.deepEqual(shown('Put 1/2, 3/8, 7/8 in order, smallest first.'), ['3/8', '1/2', '7/8']);
+    // The fractions being put in order are all labelled, not only 1/2.
+    const ordered = question('Put 1/2, 3/8, 7/8 in order, smallest first.').model;
+    assert.ok(ordered.kind === 'bars' && ordered.bars.every((bar) => bar.named), 'every bar to put in order has its label');
     // After answering, the hidden bar comes back to confirm the answer.
     const model = question('Which is the same as 2/3?').model;
     assert.ok(model.kind === 'bars' && model.bars.some((bar) => bar.untilAnswered && bar.numerator === 4 && bar.denominator === 6));
@@ -2552,7 +2555,7 @@ describe('question generator', () => {
     else if ((m = /^Without finding the exact (?:sum|difference), compare (\d+)\/(\d+) ([+−]) (\d+)\/(\d+) with 1: __ 1\.$/.exec(p))) {
       const total = N(m[1]) / N(m[2]) + (m[3] === '+' ? 1 : -1) * N(m[4]) / N(m[5]);
       assert.equal(answer, `${m[1]}/${m[2]} ${m[3]} ${m[4]}/${m[5]} ${total < 1 ? '<' : '>'} 1`, p); return true;
-    } else if ((m = /^Move the scale slider to (\d+)\/(\d+)\. Without multiplying, compare \d+\/\d+ × (\d+) with \d+: __ \d+\.$/.exec(p))) {
+    } else if ((m = /^Move the (?:scale )?slider to (\d+)\/(\d+)\. Without multiplying, compare \d+\/\d+ × (\d+) with \d+: __ \d+\.$/.exec(p))) {
       const sign = N(m[1]) < N(m[2]) ? '<' : N(m[1]) === N(m[2]) ? '=' : '>';
       assert.equal(answer, `${m[1]}/${m[2]} × ${m[3]} ${sign} ${m[3]}`, p); return true;
     } else if ((m = /^Compare: ([\d.]+) __ ([\d.]+)\.$/.exec(p))) {

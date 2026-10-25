@@ -134,7 +134,7 @@ export function asChoicePrompt(prompt: string): string {
     .replace(/^(?:Type <, = or >|Put <, = or > in the gap): /, 'Pick the sign: ')
     .replace(/\s*(Type it|Type a number|Use commas)\.$/, '')
     // Tap questions show the finished plot and the factor as pictures: there is no slider to move or plot to make.
-    .replace(/^Move the scale slider to \d+\/\d+\. /, '')
+    .replace(/^Move the (?:scale )?slider to \d+\/\d+\. /, '')
     .replace(/^Plot these ([a-z ]+?) lengths/, 'The line plot shows these $1 lengths')
     .replace(/\. Plot them, then share the total equally\./, '. Share the total equally.');
 }
@@ -537,7 +537,7 @@ const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reaso
   'fraction-of-area': { n: 5, d: 6, prompt: 'A garden has 6 equal beds. Plant 5.', reason: '5 planted beds out of 6 is 5/6.' },
   'fractional-side-area': { n: 1, d: 6, prompt: 'A rectangle is 1/2 unit by 1/3 unit. Find its area.', reason: '1/2 × 1/3 = 1/6 square unit.' },
   'equivalent-number-line': { n: 6, d: 8, kind: 'line', prompt: 'Mark 6/8 on the line. Does it land on 3/4?', reason: 'Each fourth is 2 eighths. So 6/8 and 3/4 share a spot.' },
-  'fractions-to-percent': { n: 40, d: 100, prompt: 'A phone is 40% charged. Make it.', reason: 'Percent means out of 100. 40% is 40/100.' },
+  'fractions-to-percent': { n: 40, d: 100, prompt: 'Write 2/5 in hundredths to find its percent. Make it.', reason: '100 ÷ 5 = 20, and 2 × 20 = 40: 2/5 = 40/100 = 40%.' },
   'decimal-fraction-equivalence': { n: 3, d: 10, prompt: 'A jar is 0.3 full. Make it in tenths.', reason: '0.3 means 3 tenths: 3/10.' },
   'compare-decimals': { n: 5, d: 10, prompt: 'Build 0.5 with tenths. Then compare it to 0.45.', reason: '0.5 = 0.50. 50 hundredths is more than 45 hundredths.' },
   'compare-decimals-grid': { n: 9, d: 100, prompt: 'Build 0.09 with hundredths. Then compare it to 0.9.', reason: '0.09 is 9 hundredths. 0.9 is 90 hundredths, so 0.09 is much less.' },
@@ -782,7 +782,7 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
     return [`Build ${n}/${d} of ${total} counters. Make ${d} equal groups.`, n, d, `${n}/${d} of ${total} is less than ${total}: part of a group is less.`, 'set', total]; },
   'multiply-fractions': (s) => { const [a, b, c, d] = at([[1, 2, 3, 4], [2, 3, 1, 2], [1, 3, 3, 4], [2, 3, 3, 4], [1, 2, 1, 3], [3, 4, 1, 3], [1, 2, 1, 4], [2, 3, 2, 3], [1, 4, 3, 4], [1, 2, 2, 3], [3, 4, 3, 4], [1, 3, 1, 2]] as const, s);
     // A part of a part, before the area grid (next lesson): split each part again.
-    return [`Make ${a}/${b} of ${c}/${d}.`, a * c, b * d, `Split each of the ${d} parts into ${b}: ${b * d} small parts in all. ${a}/${b} of ${c} parts is ${a * c} small parts: ${a * c}/${b * d}.`]; },
+    return [`Make ${a}/${b} of ${c}/${d}.`, a * c, b * d, `Split each of the ${d} parts into ${b}: ${b * d} small parts in all. ${a}/${b} of ${c} ${c === 1 ? 'part' : 'parts'} is ${a * c} small ${a * c === 1 ? 'part' : 'parts'}: ${a * c}/${b * d}.`]; },
   'fraction-times-fraction': (s) => { const [a, b, c, d] = at([[2, 3, 4, 5], [3, 4, 1, 2], [1, 2, 2, 3], [3, 5, 2, 3], [2, 5, 3, 4], [1, 3, 3, 5], [5, 6, 1, 2], [3, 4, 3, 5], [1, 4, 2, 3], [2, 3, 5, 6], [4, 5, 1, 2], [1, 6, 3, 4], [1, 2, 3, 5], [1, 3, 1, 4], [2, 5, 1, 2], [3, 8, 2, 3]] as const, s);
     return [`Make ${a}/${b} × ${c}/${d}.`, a * c, b * d, `${a} of ${b} rows and ${c} of ${d} columns overlap on ${a * c} of ${b * d} parts: ${a * c}/${b * d}.`]; },
   'bigger-or-smaller': (s) => { const [a, b, c, d] = at([[3, 4, 2, 1], [5, 4, 2, 1], [2, 3, 3, 1], [4, 3, 1, 2], [1, 2, 3, 4], [3, 2, 2, 3], [3, 3, 3, 4], [5, 6, 2, 1], [7, 6, 1, 2], [2, 2, 5, 6], [4, 5, 2, 1], [6, 5, 1, 2]] as const, s);
@@ -840,7 +840,9 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
       ['1/2', 'foot', 6, 'inches', 12], ['3/4', 'foot', 9, 'inches', 12], ['1/4', 'dollar', 25, 'cents', 100], ['3/4', 'dollar', 75, 'cents', 100], ['1/2', 'day', 12, 'hours', 24], ['1/4', 'day', 6, 'hours', 24], ['1/2', 'liter', 500, 'milliliters', 1000], ['1/4', 'kilogram', 250, 'grams', 1000]] as const, s);
     const [n, d] = frac.split('/').map(Number); return [`Show why ${frac} ${unit} is ${val} ${small}.`, n, d, `${/^(a|e|i|o|u|hour)/i.test(unit) ? 'An' : 'A'} ${unit} is ${per} ${small}. ${frac} of ${per} is ${val}.`]; },
   'fraction-probability': (s) => { const total = at([4, 5, 6, 8, 10], s); const g = 1 + (s % (total - 1)); return [`A bag has ${total} marbles. ${g} ${g === 1 ? 'is' : 'are'} green. Make the chance of green.`, g, total, `${g} green out of ${total} marbles is ${g}/${total}.`]; },
-  'fractions-to-percent': (s) => { const p = at([25, 50, 75, 20, 40, 60, 10, 30], s); return [`Make ${p}% as a fraction.`, p, 100, `${p}% means ${p} out of 100: ${p}/100.`]; },
+  // Lesson 75 goes from a fraction to a percent (lesson 76 goes back), so its extra builds do too.
+  'fractions-to-percent': (s) => { const [n, d] = at([[1, 4], [1, 2], [3, 4], [1, 5], [2, 5], [3, 5], [1, 10], [3, 10], [7, 10], [4, 5]] as const, s); const k = 100 / d;
+    return [`Write ${n}/${d} in hundredths to find its percent. Make it.`, n * k, 100, `100 ÷ ${d} = ${k}, and ${n} × ${k} = ${n * k}: ${n}/${d} = ${n * k}/100 = ${n * k}%.`]; },
   'percent-to-fraction': (s) => LESSON_BUILDS['fractions-to-percent'](s + 3),
   'estimate-fraction-operations': (s) => { const [a, b, c, d] = at([[1, 2, 1, 3], [3, 4, 1, 2], [1, 4, 1, 3], [2, 3, 1, 2], [1, 5, 1, 4], [1, 6, 1, 3], [3, 8, 1, 2], [2, 3, 3, 4], [1, 2, 1, 4], [4, 5, 1, 2], [1, 3, 1, 6], [5, 8, 3, 4]] as const, s); const [n, den] = sumIn(a, b, c, d);
     // Both parts on the same side of 1/2 (or one is 1/2), so the benchmarks decide.
@@ -958,6 +960,8 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
   if (authored) return {
     prompt: authored.prompt, target: model(authored.n, authored.d, authored.kind ?? 'bar', authored.total), reason: authored.reason,
   };
+  // Lesson 53 takes one group (a unit fraction); taking more than one group is lesson 54.
+  if (id === 'sets-unit-fractions') return { prompt: 'Put 20 beads in 5 equal groups. Pick 1 of the groups.', target: model(1, 5, 'set', 20), reason: '20 in 5 groups is 4 each. 1 group is 1/5.' };
   if (id.startsWith('sets-')) return { prompt: 'Put 20 beads in 5 equal groups. Pick 3 groups.', target: model(3, 5, 'set', 20), reason: '20 in 5 groups is 4 each. 3 groups is 3/5.' };
   if (id.includes('equivalent')) return lessonGrade(id) === 3
     ? { prompt: 'A ribbon is 3/4 colored. Show it in eighths.', target: model(6, 8), reason: '1 fourth is 2 eighths. So 3/4 = 6/8.' }
@@ -1860,7 +1864,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           [1, 2, 12], [1, 2, 20], [2, 4, 16], [4, 4, 12], [2, 2, 10], [1, 4, 16], [1, 4, 20], [3, 4, 8], [1, 2, 16], [2, 2, 16], [5, 4, 20], [2, 4, 8]];
         const [top, bottom, whole] = pick(examples);
         scaleTask = { whole, numerator: top, denominator: bottom };
-        prompt = `Move the scale slider to ${top}/${bottom}. Without multiplying, compare ${top}/${bottom} × ${whole} with ${whole}: __ ${whole}.`;
+        prompt = `Move the slider to ${top}/${bottom}. Without multiplying, compare ${top}/${bottom} × ${whole} with ${whole}: __ ${whole}.`;
         answer = top < bottom ? '<' : top === bottom ? '=' : '>'; form = 'symbol';
         hint = 'A factor below 1 shrinks the amount. A factor of 1 keeps it the same. A factor above 1 grows it.'; break;
       }

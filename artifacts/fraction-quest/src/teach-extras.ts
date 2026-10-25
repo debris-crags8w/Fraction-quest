@@ -974,7 +974,7 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       picture: reveal([
         { kind: 'bar', parts: ones(12), cut: true, bracket: '1 foot = 12 inches' },
         say('1 foot = 12 inches. 1 hour = 60 minutes. 1 day = 24 hours. 1 pound = 16 ounces.'),
-        say('1 meter = 100 centimeters. 1 liter = 1000 milliliters. 1 kilogram = 1000 grams.'),
+        say('1 minute = 60 seconds. 1 meter = 100 centimeters. 1 liter = 1000 milliliters. 1 kilogram = 1000 grams.'),
       ]),
     }],
   },
@@ -1180,6 +1180,7 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
   { term: 'fraction bar', pattern: /\bfraction bar\b/i, lesson: 'fraction-as-division' },
   { term: 'a unit fraction shared (1/3 ÷ 4)', pattern: /\d+\/\d+ ÷ \d/, lesson: 'unit-fraction-divided-whole' },
   { term: '÷ by a fraction (how many fit)', pattern: /÷\s*\d+\/\d+/, lesson: 'divide-whole-by-unit-fraction' },
+  { term: 'checking an answer with ×', pattern: /\bcheck\b[^.]*×/i, lesson: 'unit-fraction-divided-whole' },
   { term: 'sharing or fitting', pattern: /\bfitting\b/i, lesson: 'share-or-fit' },
   // Lessons 72–81.
   { term: 'chance, outcome, equally likely', pattern: /\b(chance|outcomes?|equally likely)\b/i, lesson: 'fraction-probability' },
@@ -1200,5 +1201,6 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
   { term: 'foot: 1 foot is 12 inches', pattern: /\b(foot|feet)\b/i, lesson: 'fractional-unit-conversions', unit: true },
   { term: 'ounce: 16 ounces make 1 pound', pattern: /\bounces?\b/i, lesson: 'fractional-unit-conversions', unit: true },
   { term: 'centimeter: 100 centimeters make 1 meter', pattern: /\bcentimeters?\b/i, lesson: 'fractional-unit-conversions', unit: true },
+  { term: '1 minute is 60 seconds', pattern: /\bseconds\b/i, lesson: 'fractional-unit-conversions', unit: true },
   { term: 'square meter', pattern: /\bsquare meters?\b/i, lesson: 'multiply-mixed-numbers', unit: true },
 ];

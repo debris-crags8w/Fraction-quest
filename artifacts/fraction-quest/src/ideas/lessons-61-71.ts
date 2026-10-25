@@ -191,10 +191,14 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     },
     {
       title: 'Multiply the bottom number by the number of shares',
-      terms: [{ term: 'multiplying the denominator', pattern: /\b\d+ × \d+ = \d+\b/ }],
+      terms: [
+        { term: 'multiplying the denominator', pattern: /\b\d+ × \d+ = \d+\b/ },
+        // The answers' "Check: 3 × 1/9 = 1/3" lines start here, so this Learn page shows how a check works.
+        { term: 'checking a share with ×', pattern: /\bcheck\b/i },
+      ],
       learn: [
         { text: 'A quick way: 3 thirds, each cut into 4, make 3 × 4 = 12 pieces.', scene: scenes('unit-fraction-divided-whole').steps[2]! },
-        { text: 'Each share is smaller than the part you started with. Check: 4 shares of 1/12 make 4/12, the same as 1/3.', scene: scenes('unit-fraction-divided-whole').why },
+        { text: 'Each share is smaller than the part you started with. Check with ×: 4 shares of 1/12 is 4 × 1/12 = 4/12, the same as 1/3.', scene: scenes('unit-fraction-divided-whole').why },
       ],
       practice: [{ question: 'unit-fraction-divided-whole-q1' }, { question: 'unit-fraction-divided-whole-q2' }, { question: 'unit-fraction-divided-whole-q3' }],
     },

@@ -150,7 +150,7 @@ const RULES: Rule[] = [
   { name: 'estimate against 1', re: /^Without finding the exact (sum|difference), compare (\d+\/\d+) ([+−]) (\d+\/\d+) with 1: __ 1\.$/,
     solve: (m) => { const t = frac(m[2]) + (m[3] === '+' ? 1 : -1) * frac(m[4]); if (near(t, 1)) return 'exactly 1';
       return { symbol: t < 1 ? '<' : '>', statement: `${m[2]} ${m[3]} ${m[4]} ${t < 1 ? '<' : '>'} 1` }; } },
-  { name: 'scaling', re: /^(?:Move the scale slider to \d+\/\d+\. |Bolt sets his machine\. )?Without multiplying, compare (\d+)\/(\d+) × (\d+) with \3: __ \3\.$/,
+  { name: 'scaling', re: /^(?:Move the (?:scale )?slider to \d+\/\d+\. |Bolt sets his machine\. )?Without multiplying, compare (\d+)\/(\d+) × (\d+) with \3: __ \3\.$/,
     solve: (m) => { const s = sym(N(m[1]) / N(m[2]), 1); return { symbol: s, statement: `${m[1]}/${m[2]} × ${m[3]} ${s} ${m[3]}` }; } },
   { name: 'spot the mistake: compare claim', re: /^\w+ says (\d+\/\d+) is bigger than (\d+\/\d+)(?: because .+)?\. Is that right\?(?: Answer yes or no\.)?$/,
     solve: (m) => ({ yes: frac(m[1]) > frac(m[2]) }) },
