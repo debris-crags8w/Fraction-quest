@@ -59,5 +59,13 @@ export const ideaPracticeQuestions = (mission: Mission): PracticeQuestion[] =>
     : 'sortRound' in item ? handsOnStandIn(mission, item.sortRound, 'sort')
       : { ...ideaQuestion(mission, item.question)!, isMastery: false }));
 
+/** Has the child been taught to write a fraction by this idea? Not before the idea whose `terms` own fraction notation
+    (lesson 1's idea 3, "The top number counts the parts we take"): until then no screen shows one, the bar's "1/4 done"
+    included. */
+export const fractionsTaughtBy = (missionId: string, ideaIndex: number): boolean => {
+  const at = (LESSON_IDEAS[missionId] ?? []).findIndex((idea) => idea.terms?.some((term) => term.pattern.test('1/4')));
+  return at < 0 || ideaIndex >= at;
+};
+
 /** What Listen reads on a Learn page: its line, then the sentences under the picture. */
 export const learnScript = (page: LearnPage) => ('words' in page ? wordsScript(page.words) : [page.text, ...sceneSentences(page.scene)].join(' '));

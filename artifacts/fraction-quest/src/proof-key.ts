@@ -35,8 +35,7 @@ export const PROOF_KEY: Record<string, string> = {
   // The strip is cut 50, 25, 25: one part is twice the others.
   "Is this strip cut into 3 equal parts?": "No, the parts are unequal",
   "A strip has 3 equal parts. What is 1 part?": "one third",
-  // Lesson 1 idea practice: 1 of 6 equal parts; the fourths-mixed square's 2 squares and 2 triangles each cover 1/4; 6 ÷ 2.
-  "This bar has 6 equal parts. One is shaded. What fraction is shaded?": "1/6",
+  // Lesson 2 idea practice: the fourths-mixed square's 2 squares and 2 triangles each cover 1/4; 6 ÷ 2.
   "These 4 parts are 2 squares and 2 triangles. Are they fourths?": "Yes, each part covers the same space",
   "2 friends share 6 equal pieces fairly. How many pieces does each friend get?": "3",
   "A tray has 6 spaces. 4 have a snack. What fraction have a snack?": "4/6",

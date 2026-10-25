@@ -54,7 +54,7 @@ describe('fraction words', () => {
     const { newWordsFor } = await import('./new-words');
     const shown = MISSIONS.flatMap((mission) => newWordsFor(mission.id).map((d) => ({ id: mission.id, d })));
     assert.deepEqual(shown.map((item) => item.d).sort((a, b) => a - b), [5, 10, 12, 100], 'each new name once');
-    assert.deepEqual(newWordsFor('equal-parts'), [], 'lesson 1 has the Words screen instead');
+    assert.deepEqual(newWordsFor(MISSIONS[0]!.id), [], 'lesson 1 has the Words screen instead');
     const first = (d: number) => MISSIONS.findIndex((mission) => mission.id === shown.find((item) => item.d === d)!.id);
     assert.ok(first(10) <= first(100), 'tenths come before hundredths');
   });

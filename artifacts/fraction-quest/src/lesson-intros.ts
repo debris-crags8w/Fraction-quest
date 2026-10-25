@@ -10,13 +10,13 @@ export const lessonIntroScript = (intro: LessonIntro) =>
   sectionsScript([intro.goal, ...intro.steps, intro.why].map((text) => ({ heading: '', text })));
 
 export const LESSON_INTROS: Record<string, LessonIntro> = {
-  // Unit 1 · Equal parts
-  'equal-parts': { heading: 'How fair parts work', goal: 'Tell when the parts of a whole are fair shares.',
+  // Unit 1 · Equal parts. Lesson 1 checks that the parts are equal, then reads the fraction; lesson 2 finds fair parts in any shape.
+  'fraction-names': { heading: 'How to read a fraction', goal: 'Tell when the parts of a whole are equal, then say what the top and bottom numbers of a fraction mean.',
+    steps: ['Read the denominator: the equal parts in one whole.', 'Read the numerator: the parts you count.', 'Say it like “3 out of 4 equal parts”.'],
+    why: 'A fraction names equal parts of a whole. The bottom number sets the size of each part. The top number counts how many of those parts.' },
+  'equal-parts': { heading: 'How fair parts work', goal: 'Tell when the parts of a whole are fair shares, whatever their shape.',
     steps: ['Look at one whole.', 'Check that every part is the same size.', 'Count the equal parts to name them.'],
     why: 'A fraction names equal parts of a whole. If one part is bigger, the parts are not fair shares.' },
-  'fraction-names': { heading: 'How to read a fraction', goal: 'Say what the top and bottom numbers of a fraction mean.',
-    steps: ['Read the denominator: the equal parts in one whole.', 'Read the numerator: the parts you count.', 'Say it like “3 out of 4 equal parts”.'],
-    why: 'The bottom number sets the size of each part. The top number counts how many of those parts.' },
   'unit-fractions': { heading: 'How a unit fraction works', goal: 'Name one equal part of a whole.',
     steps: ['Count the equal parts in the whole.', 'Write that number as the denominator.', 'Write 1 on top for one part.'],
     why: 'A unit fraction counts just one part, so its numerator is always 1.' },

@@ -1902,8 +1902,8 @@ function Game() {
             : 'Find the same amount';
         const chapter = chapterFor(mission.unit);
         return <PartFinder key={view.missionId} rounds={partFinderRoundsFor(view.missionId)} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
-          activityTitle={activityTitle} showFirstIntroduction={view.missionId === 'equal-parts'}
-          intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} hideMascot={view.missionId === 'equal-parts'} />}
+          activityTitle={activityTitle} showFirstIntroduction={view.missionId === MISSIONS[0].id}
+          intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} hideMascot={view.missionId === MISSIONS[0].id} />}
           onExit={returnToMap} onDone={toQuestions} onSkip={progress.completedMissionIds.includes(view.missionId) || hasLearningGate(progress, view.missionId) ? toQuestions : undefined}
           {...(storyMode && chapter ? {
             friends: storyCast(chapter),

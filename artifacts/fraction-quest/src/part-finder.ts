@@ -65,7 +65,7 @@ export const PART_FINDER_ROUNDS: PartFinderRound[] = [
 export const PART_FINDER_SCORE_MAX = PART_FINDER_ROUNDS.length;
 
 /** Each round is a hands-on step inside the lesson it teaches (after the worked example, before the questions):
-    fair shares in lesson 1, copies of one piece filling the whole for unit fractions, the same amount for equivalence. */
+    fair shares in lesson 2, copies of one piece filling the whole for unit fractions, the same amount for equivalence. */
 export const PART_FINDER_BY_LESSON: Readonly<Record<string, PartFinderRound['id'][]>> = {
   'equal-parts': ['sort', 'sort-cake'],
   'unit-fractions': ['tile'],

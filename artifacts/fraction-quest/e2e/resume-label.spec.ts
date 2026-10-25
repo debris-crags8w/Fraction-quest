@@ -15,16 +15,16 @@ async function openMap(page: import('@playwright/test').Page, learning: Record<s
 }
 
 test('a lesson the child has started says Resume on the map, not Start', async ({ page }) => {
-  await openMap(page, { 'equal-parts': { checks: {}, worksheet: {}, helpUses: 0, misconceptions: {}, practiceAt: { index: 2, firstTry: 2 } } });
-  const button = page.getByTestId('button-start-mission-equal-parts');
-  if (!(await button.isVisible())) await page.getByTestId('button-node-equal-parts').click();
+  await openMap(page, { 'fraction-names': { checks: {}, worksheet: {}, helpUses: 0, misconceptions: {}, practiceAt: { index: 2, firstTry: 2 } } });
+  const button = page.getByTestId('button-start-mission-fraction-names');
+  if (!(await button.isVisible())) await page.getByTestId('button-node-fraction-names').click();
   await expect(button).toContainText('Resume lesson');
   await expect(button).not.toContainText('Start');
 });
 
 test('a lesson not started yet still says Start lesson', async ({ page }) => {
   await openMap(page, {});
-  const button = page.getByTestId('button-start-mission-equal-parts');
-  if (!(await button.isVisible())) await page.getByTestId('button-node-equal-parts').click();
+  const button = page.getByTestId('button-start-mission-fraction-names');
+  if (!(await button.isVisible())) await page.getByTestId('button-node-fraction-names').click();
   await expect(button).toContainText('Start lesson');
 });

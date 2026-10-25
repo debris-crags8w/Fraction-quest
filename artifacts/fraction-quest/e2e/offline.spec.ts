@@ -41,7 +41,7 @@ test.describe('the published app', () => {
     await context.setOffline(true);
     await page.reload();
     await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
-    await page.getByTestId('button-start-mission-equal-parts').click();
+    await page.getByTestId('button-start-mission-fraction-names').click();
     // Watch and Try work offline too (a child's first lesson); skip them to reach the lesson.
     await expect(page.getByTestId('intro-steps')).toBeVisible();
     await page.getByTestId('button-intro-skip').click();
