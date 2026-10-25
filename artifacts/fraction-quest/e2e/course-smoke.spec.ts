@@ -771,6 +771,9 @@ async function openDeveloperLesson(page: import('@playwright/test').Page, missio
     }
     const teachNext = document.querySelector<HTMLButtonElement>('[data-testid="button-teach-next"]');
     if (teachNext) { teachNext.click(); await settleReactUpdate(); }
+    // In a child's first lesson, Watch and Try come next.
+    const introSkip = document.querySelector<HTMLButtonElement>('[data-testid="intro-steps"] [data-testid="button-intro-skip"]');
+    if (introSkip) { introSkip.click(); await settleReactUpdate(); }
 
     const titleSelector = isPartFinder
       ? '.fq-pf-lesson-example .fq-example-heading'

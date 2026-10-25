@@ -1,5 +1,6 @@
-/* Every e2e test uses this `test`: it taps through a lesson's one-time Teach first screen whenever it appears, so
-   tests about a lesson's later steps start where they did before. teach-first.spec.ts tests the screen itself. */
+/* Every e2e test uses this `test`: it taps through a lesson's one-time Teach first screen, and skips the Watch and
+   Try screens that follow it in a child's first lesson, whenever they appear, so tests about a lesson's later steps
+   start where they did before. teach-first.spec.ts tests those screens themselves. */
 import { test as base } from '@playwright/test';
 
 export * from '@playwright/test';
@@ -13,6 +14,10 @@ export const test = base.extend({
     await page.addLocatorHandler(teach, async () => {
       for (let i = 0; i < 8 && await step.isVisible(); i++) await step.click();
       await page.getByTestId('button-teach-next').click();
+    });
+    // A child's first lesson: Watch and Try come between Teach first and the first question.
+    await page.addLocatorHandler(page.locator('[data-testid="intro-steps"] [data-testid="button-intro-skip"]'), async () => {
+      await page.locator('[data-testid="intro-steps"] [data-testid="button-intro-skip"]').click();
     });
     await use(page);
   },

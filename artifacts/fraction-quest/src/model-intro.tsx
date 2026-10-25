@@ -4,7 +4,8 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowRight, LifeBuoy, Minus, Plus, RotateCcw } from 'lucide-react';
 import { playHaptic } from './lib/fun';
-import type { IntroKind } from './lib/fun';
+import type { IntroKind, IntroStage } from './lib/fun';
+import { TaskBar } from './TaskBar';
 import { LearningListenButton } from './LearningText';
 import { TickLabel } from './fraction-ui';
 import { HELPER_PICKS, HELPER_PICK_SPEECH, INTRO_DEMOS, INTRO_TEXT, INTRO_TRIES, introHint } from './intro-copy';
@@ -187,6 +188,38 @@ export function IntroTry({ kind, kicker, nextLabel, onDone, onSkip, helper = fal
       </div>
       <Skip onSkip={onSkip} />
     </section>
+  );
+}
+
+export const INTRO_KINDS: readonly IntroKind[] = ['builder', 'line'];
+
+/** The intros a child still has to do: Watch for the unwatched ones, Try for every one not done. */
+export function introsDue(seen: Partial<Record<IntroKind, IntroStage>> | undefined) {
+  return { toWatch: INTRO_KINDS.filter((kind) => seen?.[kind] === undefined), toTry: INTRO_KINDS.filter((kind) => seen?.[kind] !== true) };
+}
+
+/** A child's first lesson, between Teach first and the first question: Watch, then Try, each its own screen, so the
+    models are known before anything is asked. Each finished step is saved (`onSeen`); the last Try goes on (`onDone`). */
+export function IntroSteps({ title, lessonNumber, seen, onSeen, onSkip, onDone, onExit }: {
+  title: string; lessonNumber: number; seen: Partial<Record<IntroKind, IntroStage>> | undefined;
+  onSeen: (kind: IntroKind, stage: IntroStage) => void; onSkip: () => void; onDone: () => void; onExit: () => void;
+}) {
+  const { toWatch, toTry } = introsDue(seen);
+  return (
+    <div className="fq-app">
+      <main className="fq-shell fq-teach-shell" data-testid="intro-steps">
+        <TaskBar onBack={onExit} backLabel="Map" title={title} />
+        <p className="fq-play-kicker">Lesson {String(lessonNumber).padStart(2, '0')} · Before you start</p>
+        {toWatch.length > 0 ? (
+          <IntroWatch key={`watch-${toWatch[0]}`} kind={toWatch[0]} kicker="Step 1 of 2 · Watch" onSkip={onSkip}
+            nextLabel={toWatch.length > 1 ? 'Next: number line' : 'Next: Try'} onDone={() => onSeen(toWatch[0], 'watched')} />
+        ) : toTry.length > 0 && (
+          <IntroTry key={`try-${toTry[0]}`} kind={toTry[0]} kicker="Step 2 of 2 · Try" onSkip={onSkip}
+            nextLabel={toTry.length > 1 ? 'Next: number line' : 'Start the lesson'}
+            onDone={() => { onSeen(toTry[0], true); if (toTry.length === 1) onDone(); }} />
+        )}
+      </main>
+    </div>
   );
 }
 
