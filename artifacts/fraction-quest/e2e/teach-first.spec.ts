@@ -109,11 +109,14 @@ test('a child’s first lesson: Watch, Words and Try, then idea 1 is taught befo
   await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
   await expect(page.getByTestId('intro-steps')).toHaveCount(0);
 
-  // The Helper keeps the fraction names.
+  // An idea's practice shows only the question: no friend's line and no Helper button. The hint links to the fraction
+  // names instead.
   for (let i = 0; i < 3 && await page.getByTestId('button-teach-step-next').isVisible(); i++) await page.getByTestId('button-teach-step-next').click();
   await page.getByTestId('button-idea-practise').click();
-  await page.getByTestId('button-lesson-helper').first().click();
-  await page.getByTestId('button-helper-words').click();
+  await expect(page.getByTestId('button-lesson-helper')).toHaveCount(0);
+  await expect(page.locator('.fq-segments .fq-segment')).toHaveCount(3);
+  await page.getByTestId('button-show-hint').click();
+  await page.getByTestId('button-hint-words').click();
   await page.getByTestId('lesson-helper').getByTestId('button-what-next').click();
   await expect(page.getByTestId('lesson-helper').getByTestId('fraction-word-2')).toContainText('one half');
 });

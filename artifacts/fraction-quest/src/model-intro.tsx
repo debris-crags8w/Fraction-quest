@@ -315,7 +315,7 @@ export function IntroSteps({ title, lessonNumber, seen, wordsSeen, onSeen, onWor
 }
 
 /** Each lesson's Helper: a top-bar button that opens both intros to watch and try again. It never changes progress. */
-export function useLessonHelper({ compact = false }: { /** An icon-only button, for a tight header. */ compact?: boolean } = {}): { button: ReactNode; panel: ReactNode } {
+export function useLessonHelper({ compact = false }: { /** An icon-only button, for a tight header. */ compact?: boolean } = {}): { button: ReactNode; panel: ReactNode; openWords: () => void } {
   const [open, setOpen] = useState(false);
   const [shown, setShown] = useState<{ kind: IntroKind; step: 'watch' | 'try' } | 'words' | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -360,5 +360,11 @@ export function useLessonHelper({ compact = false }: { /** An icon-only button, 
       )}
     </section>
   ) : null;
-  return { button, panel };
+  /** Open the Helper straight on the fraction words (from a hint, where the Helper button isn't shown). */
+  const openWords = () => {
+    setOpen(true);
+    setShown('words');
+    requestAnimationFrame(() => panelRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  };
+  return { button, panel, openWords };
 }
