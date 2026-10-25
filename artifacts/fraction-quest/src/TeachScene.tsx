@@ -232,7 +232,7 @@ function WordsToKnow({ words }: { words: WordCard[] }) {
     <ul className="fq-ts-words" data-testid="teach-words">
       {words.map((word) => (
         <li key={word.term} data-testid={`teach-word-${word.term}`}>
-          <b className={word.term.length <= 2 ? 'is-symbol' : ''}>{word.term}</b>
+          <b className={word.term.length <= 2 ? 'is-symbol' : ''}><MathText text={word.term} /></b>
           <span><LearningText text={word.meaning} emphasize /></span>
           {word.picture && <TeachScenePicture scene={word.picture} take={0} />}
         </li>
@@ -316,8 +316,10 @@ export function IdeaLearnCard({ pages, goal, onPractise }: { pages: LearnPage[];
         <LearningListenButton key={page} text={listen} label="Listen" prefetch />
       </div>
       {page === 0 && goal && <p className="fq-ts-goal"><LearningText text={goal} emphasize /></p>}
-      <p className="fq-ts-step" data-testid="teach-step-text" aria-live="polite"><LearningText text={current.text} emphasize /></p>
-      <TeachScenePicture key={`${page}-${take}`} scene={current.scene} take={take} />
+      {'words' in current ? <WordsToKnow words={current.words} /> : <>
+        <p className="fq-ts-step" data-testid="teach-step-text" aria-live="polite"><LearningText text={current.text} emphasize /></p>
+        <TeachScenePicture key={`${page}-${take}`} scene={current.scene} take={take} />
+      </>}
       <div className="fq-ts-nav">
         <button type="button" className="fq-button ghost fq-ts-back" onClick={() => go(page - 1)} disabled={page === 0} data-testid="button-teach-step-back">Back</button>
         <button type="button" className="fq-button ghost fq-ts-replay" onClick={() => go(page)} aria-label="Play the picture again" data-testid="button-teach-replay">

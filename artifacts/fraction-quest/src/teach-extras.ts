@@ -189,6 +189,136 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       },
     ],
   },
+  'number-line-beyond-one': {
+    words: [{
+      term: '1 and 3/4', meaning: '1 and 3/4 means 1 whole and 3/4 more.',
+      picture: still([{ kind: 'line', max: 2, spaces: 4, cut: true, stretch: 4, point: 7, pointLabel: '1 and 3/4' }]),
+    }],
+    examples: [{
+      title: '4 fourths make one whole',
+      picture: play([{ kind: 'line', max: 2, spaces: 4, cut: true }, { ...say('4 jumps of 1/4 is 4/4. 4/4 is one whole. 7 jumps = 4 jumps + 3 jumps = 1 and 3/4.'), hidden: true }],
+        ...range(4).map((i): [number, Record<number, Partial<SceneRow>>] => [380, { 0: { jumps: i + 1 } }]),
+        [600, { 0: { stretch: 4 } }],
+        ...range(3).map((i): [number, Record<number, Partial<SceneRow>>] => [380, { 0: { jumps: 5 + i } }]),
+        [400, { 0: { point: 7 } }], [600, { 1: { hidden: false } }]),
+    }],
+  },
+  'ruler-measurement': {
+    words: [
+      {
+        term: '1 1/4', meaning: '1 1/4 is a short way to write 1 whole and 1/4 more.',
+        picture: still([{ kind: 'line', max: 2, spaces: 4, cut: true, ruler: true, stretch: 5 }]),
+      },
+      {
+        term: 'quarter', meaning: 'A quarter is another name for a fourth. A quarter-inch is 1/4 inch.',
+        picture: still([{ kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' }]),
+      },
+    ],
+  },
+  'build-line-plots': {
+    examples: [{
+      title: '4/4 inch is 1 inch',
+      picture: reveal([
+        { kind: 'line', max: 1, spaces: 4, cut: true, unit: 'inch', marks: [{ at: 4, label: '4/4' }] },
+        say('The tick at 1 inch is also 4/4. 4/4 inch is the same as 1 inch.'),
+      ]),
+    }],
+  },
+  'order-fractions': {
+    examples: [
+      {
+        title: 'Read a chain of signs',
+        picture: reveal([
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
+          { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
+          say('1/4 < 1/2 < 3/4. Read it: 1/4 is less than 1/2, and 1/2 is less than 3/4.'),
+        ], 450),
+      },
+      {
+        title: 'Biggest first',
+        picture: reveal([
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
+          { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0], label: '1/4' },
+          say('Biggest first? Flip the order: 3/4 > 1/2 > 1/4.'),
+        ], 450),
+      },
+    ],
+  },
+  'equivalent-models': {
+    words: [{
+      term: '?', meaning: 'A ? box stands for the missing number. 1/2 = ?/4 asks: what goes on top so both are the same amount?',
+      picture: still([{ kind: 'pair', items: [
+        { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
+        { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1], label: '2/4' },
+      ] }]),
+    }],
+    examples: [
+      {
+        title: 'More than one whole bar',
+        picture: reveal([{ kind: 'pair', items: [
+          { kind: 'bar', parts: ones(2), cut: true, shaded: [0, 1], label: '1 whole' },
+          { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
+        ] }, say('3/2 is 1 whole bar and 1 half of the next bar.')]),
+      },
+      {
+        title: 'Join parts together',
+        picture: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: [0, 1] }, { ...say('Join every 2 eighths into 1 fourth: 2/8 = 1/4.'), hidden: true }],
+          [900, { 0: { group: 2, label: '1/4' } }], [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Fold it again',
+        picture: play([{ kind: 'bar', parts: ones(2), cut: true }, { ...say('Fold a strip in half, then in half again. Every part is cut into 2: halves become fourths.'), hidden: true }],
+          [900, { 0: { parts: ones(4) } }], [600, { 1: { hidden: false } }]),
+      },
+    ],
+  },
+  'equivalent-number-line': {
+    examples: [{
+      title: 'Halves to sixths',
+      picture: play([{ kind: 'line', max: 1, spaces: 6, cut: true, group: 3, point: 3, pointLabel: '1/2' }, { ...say('Halves to sixths: cut every space into 3. 1/2 lands on 3/6.'), hidden: true }],
+        [900, { 0: { group: 1, pointLabel: '3/6' } }], [600, { 1: { hidden: false } }]),
+    }],
+  },
+  'build-equivalents': {
+    examples: [
+      {
+        title: 'Divide both numbers',
+        picture: play([{ kind: 'bar', parts: ones(8), cut: true, shaded: range(4) }, { ...say('4/8: join every 4 eighths into 1 half. Divide the top and the bottom by 4: 1/2.'), hidden: true }],
+          [900, { 0: { group: 4, label: '1/2' } }], [600, { 1: { hidden: false } }]),
+      },
+      {
+        title: 'Find the number to multiply by',
+        picture: reveal([
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: '6/8' },
+          say('To get a new bottom number, ask: 4 times what is 8? That is 2, so multiply the top by 2 too: 3/4 = 6/8.'),
+        ]),
+      },
+    ],
+  },
+  'missing-equivalent': {
+    words: [{ term: 'factor', meaning: 'A factor is the number you multiply or divide by. In 3/4 = 6/8, the factor is 2.' }],
+    examples: [
+      {
+        title: 'A missing bottom number',
+        picture: reveal([
+          { kind: 'bar', parts: ones(4), cut: true, shaded: [0, 1, 2], label: '3/4' },
+          { kind: 'bar', parts: ones(8), cut: true, shaded: range(6), label: '6/8' },
+          say('3/4 = 6/?. Top: 3 to 6 is times 2. Bottom: 4 times 2 is 8. So ? = 8.'),
+        ]),
+      },
+      {
+        title: 'The blank on the left',
+        picture: reveal([
+          { kind: 'bar', parts: ones(6), cut: true, shaded: [0], label: '1/6' },
+          { kind: 'bar', parts: ones(12), cut: true, shaded: [0, 1], label: '2/12' },
+          say('?/6 = 2/12. Start with the pair that has both numbers: 12 to 6 is divide by 2. Top: 2 divided by 2 is 1. So ? = 1.'),
+        ]),
+      },
+    ],
+  },
   // Lessons 41–50: worked examples for the Learn pages of their ideas (ideas/lessons-41-50.ts).
   'compare-unlike-fractions': {
     examples: [
@@ -327,6 +457,11 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string }[] = [
   { term: '< or >', pattern: /\s[<>]\s/, lesson: 'compare-same-numerator' },
   { term: 'benchmark', pattern: /\bbenchmarks?\b/i, lesson: 'benchmarks-zero-one' },
   { term: 'tick mark', pattern: /\btick( mark)?s?\b/i, lesson: 'number-line-basics' },
+  { term: 'mixed number with "and"', pattern: /\b\d+ and \d+\/\d+/, lesson: 'number-line-beyond-one' },
+  { term: 'mixed number like 1 1/4', pattern: /\b\d+ \d+\/\d+/, lesson: 'ruler-measurement' },
+  { term: 'quarter', pattern: /\bquarters?\b/i, lesson: 'ruler-measurement' },
+  { term: 'the ? box', pattern: /\?\/\d|\d\/\?/, lesson: 'equivalent-models' },
+  { term: 'factor', pattern: /\bfactors?\b/i, lesson: 'missing-equivalent' },
   // Lessons 41–50 (compare-unlike-fractions … subtract-unlike-fractions).
   { term: 'common denominator', pattern: /\bcommon denominators?\b/i, lesson: 'compare-unlike-fractions' },
   { term: 'batch', pattern: /\bbatch(es)?\b/i, lesson: 'fraction-recipes' },
