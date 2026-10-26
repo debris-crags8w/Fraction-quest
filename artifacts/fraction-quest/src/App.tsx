@@ -30,6 +30,7 @@ import {
   type GrownUpPick,
   FRACTION_ORDER_ROUNDS,
   MISSIONS,
+  lineHasPoint,
   numberLineWholeCount,
   recordMissedSkill,
   resetProgress as resetSavedProgress,
@@ -388,9 +389,10 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
         const wholes = model.wholes ?? numberLineWholeCount(model.numerator, model.denominator);
         const divisions = model.denominator * wholes;
         const value = model.numerator / divisions;
+        const pointShown = lineHasPoint(model);
         return (
           <div className="fq-numberline-wrap">
-            <div className="fq-visual-numberline" role="img" aria-label={!labelled ? `Number line from 0 to ${wholes} with ${divisions} equal spaces and a dot` : 'Number line from 0 to ' + wholes + ', marked at ' + model.numerator + '/' + model.denominator}>
+            <div className="fq-visual-numberline" role="img" aria-label={!pointShown ? `Number line from 0 to ${wholes} with ${divisions} equal spaces` : !labelled ? `Number line from 0 to ${wholes} with ${divisions} equal spaces and a dot` : 'Number line from 0 to ' + wholes + ', marked at ' + model.numerator + '/' + model.denominator}>
               <div className="fq-numberline-track" />
               {/* Hop arcs: one per jump from 0, drawn one after another, then the dot lands. */}
               <svg className="fq-numberline-hops" viewBox={`0 0 ${divisions} 1`} preserveAspectRatio="none" aria-hidden="true">
@@ -398,7 +400,7 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
                   <path key={j} d={`M${j + 0.06} 1 Q${j + 0.5} -0.6 ${j + 0.94} 1`} style={{ '--i': j } as CSSProperties} pathLength={1} vectorEffect="non-scaling-stroke" />
                 ))}
               </svg>
-              <span className="fq-numberline-marker" style={{ left: (value * 100) + '%', '--jumps': model.numerator } as CSSProperties} />
+              {pointShown && <span className="fq-numberline-marker" style={{ left: (value * 100) + '%', '--jumps': model.numerator } as CSSProperties} />}
               {walk !== null && divisions <= 24 && (
                 <span key={walk} className="fq-walking fq-line-walk" style={{ '--start': 0, '--count': divisions } as CSSProperties} aria-hidden="true">
                   {Array.from({ length: divisions }, (_, space) => (
@@ -417,7 +419,7 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
             </div>
             <p className="fq-numberline-range" data-testid="text-model-numberline-range">{wholes === 1 ? 'The line goes from 0 to 1.' : `The line goes from 0 to ${wholes}. Each whole has the same spaces.`}</p>
             {/* Practice pictures hide the readout so the picture doesn't give the answer away. */}
-            {labelled && <div className="fq-line-readout"><Fraction numerator={model.numerator} denominator={model.denominator} /></div>}
+            {labelled && pointShown && <div className="fq-line-readout"><Fraction numerator={model.numerator} denominator={model.denominator} /></div>}
           </div>
         );
       })()}

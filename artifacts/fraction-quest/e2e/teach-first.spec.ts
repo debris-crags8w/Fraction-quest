@@ -54,13 +54,17 @@ test('a child’s first lesson: Watch, Words and Try, then idea 1 is taught befo
   await expect(what).not.toContainText('numerator');
   await fits('What is a fraction?');
   await what.getByTestId('button-what-next').click();
-  // Words, page 2: 1/3 is one third, stacked, with a small bar; the bottom number names the part.
+  // Words, page 2: each part name with a small bar of equal parts and one part shaded. No written fraction and no top or
+  // bottom number yet.
   const words = intro.getByTestId('fraction-words');
   await expect(words.locator('.fq-mi-kicker')).toHaveText('Step 2 of 3 · Words · page 2 of 2');
   await expect(words.getByTestId('fraction-word-3')).toContainText('one third');
-  await expect(words.getByTestId('fraction-word-3').getByLabel('1 over 3')).toBeVisible();
+  await expect(words.getByTestId('fraction-word-3').locator('.fq-mi-mini i')).toHaveCount(3);
+  await expect(words.getByTestId('fraction-word-3').locator('.fq-mi-mini i.is-on')).toHaveCount(1);
+  await expect(words.locator('.fq-mi-frac')).toHaveCount(0);
   await expect(words.getByTestId('fraction-word-4')).toContainText('one quarter');
-  await expect(words).toContainText('The bottom number names the part.');
+  await expect(words).toContainText('Equal parts have names. 2 are halves, 3 are thirds, 4 are fourths.');
+  await expect(words).not.toContainText(/numerator|denominator|top number|bottom number/i);
   await expect(words).not.toContainText('1/3');
   await fits('Words');
   await words.getByTestId('button-words-next').click();

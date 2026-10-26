@@ -5,6 +5,8 @@ import { LESSON_INTROS } from './lesson-intros';
 import { REASON_SLIPS } from './reason-slips';
 import { misconceptionWrongs } from './misconceptions';
 import { fractionMistakes } from './fraction-slips';
+import { ideaQuestion, ideaSteps, isRound, lessonIdeas } from './lesson-ideas';
+import { storyProblemFor } from './story';
 import { fourthChoice, noBeforeYes, withSignComparisons } from './fourth-choice';
 import { answerValue } from './learning-content';
 import { readFileSync } from 'node:fs';
@@ -3352,7 +3354,8 @@ describe('pictures never give the answer away', () => {
       if (q.model.kind !== 'partition') continue;
       const d = Number(/equal (\w+)/.exec(q.prompt) && { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8 }[/equal (\w+)\?/.exec(q.prompt)![1] as 'halves']);
       const parts = q.model.parts; const equal = parts.every((p) => Math.abs(p - parts[0]) < 1e-6);
-      const truth = parts.length !== d ? `No, there are ${d + 1} parts` : equal ? `Yes, ${d} equal parts` : 'No, the parts are unequal';
+      // A wrong count is whatever the strip really shows (a taught number of parts, never fifths or sevenths).
+      const truth = parts.length !== d ? `No, there are ${parts.length} parts` : equal ? `Yes, ${d} equal parts` : 'No, the parts are unequal';
       assert.equal(q.choices[q.correctChoice], truth, `${q.prompt} with ${parts.length} parts, equal=${equal}`);
     }
     assert.ok(shapes > 20, 'some practice questions use squares and circles');
@@ -4516,7 +4519,7 @@ describe('equivalence, decimal, percent and picture questions offer real mistake
     }
     // Decimals: the point in the wrong place, the digits written out.
     if ((m = /^(?:Write (\d+)\/(10|100) as a decimal\.|Which decimal equals (\d+)\/(10|100)\?)$/.exec(p))) {
-      const [n, d] = m.slice(1).filter(Boolean).map(N); return [n / (d * 10), n / (d / 10), n, N(`${n}.${d}`), n / 10, n / 100, ...(d === 10 ? [(10 - n) / 10] : [])];
+      const [n, d] = m.slice(1).filter(Boolean).map(N); return [n / (d * 10), n / (d / 10), n, N(`${n}.${d}`), n / 10, n / 100, ...(d === 10 ? [(10 - n) / 10, N(`10.${n}`), 0.1] : [])];
     }
     if ((m = /^Write (\d+)\/10 \+ (\d+)\/100 as a decimal\.$/.exec(p))) { const [a, b] = m.slice(1).map(N); return [(a + b) / 100, (a + b) / 10, (10 * a + b) / 1000]; }
     // (and for tenths, the part not colored: 0.4 for 0.6)
@@ -4546,6 +4549,112 @@ describe('equivalence, decimal, percent and picture questions offer real mistake
     }
     assert.ok(checked > 300, `only ${checked} choices checked`);
     assert.deepEqual([...new Set(bad)].slice(0, 15), [], `${bad.length} near-miss choices`);
+  });
+});
+
+describe('lesson 30 (tenths as decimals) shows only tenths slips, never the hundredths lesson 31 teaches', () => {
+  // Hundredths forms: n/100, a decimal with two places after the point (0.03), or a trailing zero (3.10).
+  const HUNDREDTHS = /\d+\/100|0\.\d\d|\d\.\d0/;
+
+  it('slips for a tenth are written as tenths: the digit in the wrong place, the rest of the strip, the numbers swapped', () => {
+    const decimal = (n: number) => fractionMistakes(`Write ${n}/10 as a decimal.`, `0.${n}`);
+    assert.ok(decimal(3).includes('0.7'), 'the rest of the strip (7 tenths for 3 tenths)');
+    assert.ok(decimal(7).includes('0.3'), 'the rest of the strip (3 tenths for 7 tenths)');
+    assert.ok(decimal(3).includes('3.0'), 'the digit in the wrong place');
+    assert.ok(decimal(3).includes('10.3'), 'the denominator and numerator swapped');
+    for (let n = 1; n < 10; n++) {
+      assert.ok(decimal(n).length >= 3, `0.${n}: three slips are needed for four choices`);
+      for (const slip of decimal(n)) assert.doesNotMatch(slip, HUNDREDTHS, `0.${n}: ${slip}`);
+      const fractions = fractionMistakes(`What fraction is 0.${n}?`, `${n}/10`);
+      assert.ok(fractions.length >= 3, `${n}/10: three slips are needed for four choices`);
+      for (const slip of fractions) assert.doesNotMatch(slip, HUNDREDTHS, `${n}/10: ${slip}`);
+    }
+    assert.ok(fractionMistakes('What fraction is 0.3?', '3/10').includes('7/10'), 'the rest of the strip');
+    // Hundredths questions keep the place-value slips.
+    assert.ok(fractionMistakes('Write 8/100 as a decimal.', '0.08').includes('0.8'));
+  });
+
+  it('no wrong choice in the lesson, its ideas, its story problem or Practice more uses a hundredths form', () => {
+    const lesson = MISSIONS.find((mission) => mission.id === 'tenths-decimals')!;
+    const reachable: PracticeQuestion[] = [
+      ...lesson.questions, ...(lesson.ideaQuestions ?? []),
+      ...ideaSteps(lesson.id).filter(({ item }) => !isRound(item)).map(({ item }) => ideaQuestion(lesson, (item as { question: string }).question)!),
+      ...[0, 1, 2, 3, 4, 5].flatMap((seed) => generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12)),
+      ...getExtraPractice(lesson.id, lesson.questions.map(({ id }) => id)),
+    ];
+    const story = storyProblemFor(lesson.id);
+    if (story?.choices) reachable.push({ ...lesson.questions[lesson.questions.length - 1], prompt: story.prompt, choices: story.choices });
+    const bad: string[] = []; let checked = 0;
+    for (const question of reachable) {
+      if (question.id.endsWith('-review')) continue; // "Quick review" of lesson 29
+      question.choices.forEach((choice, at) => {
+        if (at === question.correctChoice) return;
+        checked++;
+        if (HUNDREDTHS.test(choice)) bad.push(`${question.id}: ${question.prompt} → ${choice}`);
+      });
+    }
+    assert.ok(checked > 150, `only ${checked} wrong choices checked`);
+    assert.deepEqual([...new Set(bad)], []);
+  });
+});
+
+describe('every question in a lesson’s ideas offers real mistakes', () => {
+  /* Each idea's practices (and the lesson's story problem, with its own choices when it has them) are checked against
+     the app's slip lists (fraction-slips.ts and misconceptions.ts): a wrong choice must be a mistake a child makes.
+     A question neither list knows is left out (worded choices, pictures to read); ANY question one of them knows must
+     pass, apart from the questions below. They were found when this check first covered the ideas: each wrong choice is
+     a near miss, or a slip the lists do not have yet, not yet shown to be a real mistake. The list can only shrink:
+     the test fails for a wrong choice that is not listed, and for a listed one that is no longer wrong, so fix the
+     choice (or add its slip to the lists) and delete its line. */
+  const NOT_YET_REAL_SLIPS: Record<string, string[]> = {
+    // Not slips the lists know: one part called "a half", and the other options the question itself names.
+    'fraction-names-p9': ['1/2'], // "What is 1 part?" of 4: the "any one part is a half" slip (equivalence tests accept it)
+    'benchmarks-zero-one-p1': ['1/2 meter', '1 meter'], // "near 0, 1/2 or 1 meter?": the options the question lists
+    // Whole numbers: a number from the question or a near miss of the answer; some may be real slips to add to the lists.
+    'equal-parts-p3': ['1'],
+    'missing-equivalent-q2': ['12'], 'missing-equivalent-p5': ['2'],
+    'whole-numbers-as-fractions-q1': ['1'], 'whole-numbers-as-fractions-p6': ['5'],
+    'equivalent-missing-both-p2': ['3', '18'], 'equivalent-missing-both-p4': ['12'], 'equivalent-missing-both-p5': ['27'],
+    'plot-in-eighths-q2': ['4'],
+    // Mixed numbers: the wholes kept, not taken away (2 2/4 for 2 3/4 − 1 1/4): a real slip the lists lack.
+    'subtract-mixed-numbers-p1': ['2 2/4'], 'subtract-mixed-numbers-p2': ['3 3/6'],
+    // Coins: 16/100 for 6 dimes (a 1 put before the 6): no slip in the lists.
+    'dimes-and-pennies-q1': ['16/100'], 'dimes-and-pennies-p4': ['13/100'],
+    // Fraction of an amount (13, 16, 23, 19: the whole plus or minus the top number) and finding the whole (18: times the top).
+    'fraction-of-quantity-p4': ['13'], 'fraction-of-quantity-p5': ['19'],
+    'fraction-of-collection-p4': ['16'], 'fraction-of-collection-p6': ['23'],
+    'find-the-whole-p1': ['18'], 'find-the-whole-p2': ['16'], 'find-the-whole-p3': ['12 meters'],
+    // Line plots, units and division.
+    'line-plot-totals-p1': ['3/4 liter'], 'line-plot-totals-p6': ['3/4 liter'],
+    'fractional-unit-conversions-p5': ['16 inches'],
+    'divide-whole-by-unit-fraction-q2': ['4'], 'divide-whole-by-unit-fraction-p1': ['1/3', '1'],
+    'divide-whole-by-unit-fraction-p2': ['1/5', '1'], 'divide-whole-by-unit-fraction-p3': ['3/2'],
+    'divide-fractions-p2': ['12'], 'divide-fractions-p5': ['4'],
+  };
+  const same = (a: string, b: string) => a === b || (Number.isFinite(answerValue(a)) && Number.isFinite(answerValue(b)) && !/ and /.test(a + b) && Math.abs(answerValue(a) - answerValue(b)) < 1e-9);
+  const reachable = () => MISSIONS.flatMap((lesson) => {
+    if (!lessonIdeas(lesson.id)) return [];
+    const own = ideaSteps(lesson.id).filter(({ item }) => !isRound(item)).map(({ item }) => ideaQuestion(lesson, (item as { question: string }).question)!);
+    const last = lesson.questions[lesson.questions.length - 1];
+    const story = storyProblemFor(lesson.id);
+    return story ? [...own, { ...last, id: `${last.id}-story`, prompt: story.prompt, choices: story.choices ?? last.choices }] : own;
+  });
+
+  it('every wrong choice is a slip from the lists, apart from the named questions', () => {
+    const bad: Record<string, string[]> = {}; let checked = 0; let questions = 0;
+    for (const question of reachable()) {
+      const answer = question.choices[question.correctChoice];
+      const slips = [...fractionMistakes(question.prompt, answer), ...misconceptionWrongs(question.prompt, answer)];
+      if (!slips.length) continue;
+      questions++;
+      question.choices.forEach((choice, at) => {
+        if (at === question.correctChoice) return;
+        checked++;
+        if (!slips.some((slip) => same(slip, choice))) (bad[question.id] ??= []).push(choice);
+      });
+    }
+    assert.ok(questions > 250 && checked > 700, `only ${checked} wrong choices in ${questions} questions checked`);
+    assert.deepEqual(bad, NOT_YET_REAL_SLIPS);
   });
 });
 

@@ -1,36 +1,27 @@
-/* Which lesson first uses a part name the Words screen doesn't teach (fifths, tenths, twelfths, hundredths): that
-   lesson opens with a one-line "New word" card. Read from each lesson's builds and worksheet answers, in course order. */
-import { MISSIONS } from './game';
-import { getBuildChecks, getWorksheet } from './learning-content';
+/* Which lesson first says a part name the Words screen doesn't teach (fifths, tenths, twelfths, hundredths, ninths,
+   fifteenths): that lesson's page opens with a one-line "New word" card. A name said earlier, in an idea's practice, is
+   taught first on a word card on that idea's Learn page (ideas/helpers.ts `newWord`), and the lesson page then skips
+   its card. teach-extras.test.ts checks that no screen says a name before its card, so a new name needs a row here. */
+import { LESSON_IDEAS } from './lesson-ideas';
+import { PART_NAMES } from './intro-copy';
 
-export const NEW_WORD_DENOMINATORS = [5, 10, 12, 100] as const;
+/** The lesson whose page shows each name's card (denominator, then lesson id), in course order. */
+export const NEW_WORD_LESSON: Readonly<Record<number, string>> = {
+  5: 'benchmarks-zero-one', // its idea 2 asks "How many fifths are missing?"
+  10: 'build-equivalents', // builds: "Show it in tenths"
+  12: 'build-equivalents', // its builds use twelfths
+  100: 'tenths-decimals', // its story line looks ahead to hundredths
+  9: 'add-related-fractions', // "Change 1/3 into ninths first."
+  15: 'add-unlike-fractions', // "use fifteenths"
+};
 
-let firstLesson: Map<number, string> | null = null;
+/** Does one of the lesson's ideas teach this name on a Learn page (a word card for "one fifth")? */
+const taughtOnLearnPage = (missionId: string, d: number) => (LESSON_IDEAS[missionId] ?? []).some((idea) =>
+  idea.learn.some((page) => 'words' in page && page.words.some((word) => word.term === `one ${PART_NAMES[d]!.one}`)));
 
-function denominatorsIn(missionId: string): Set<number> {
-  const found = new Set<number>(getBuildChecks(missionId).map((check) => check.target.d));
-  const mission = MISSIONS.find((item) => item.id === missionId);
-  const text = [
-    ...getWorksheet(missionId).map((problem) => `${problem.answer} ${problem.prompt}`),
-    // A question's prompt, its right answer and its picture (wrong choices don't count: they aren't taught).
-    ...(mission?.questions ?? []).map((question) => {
-      const q = question as { prompt?: string; choices?: string[]; correctChoice?: number; model?: unknown };
-      return `${q.prompt ?? ''} ${q.choices?.[q.correctChoice ?? -1] ?? ''} ${JSON.stringify(q.model ?? {})}`;
-    }),
-    JSON.stringify(mission?.example ?? {}),
-  ].join(' ');
-  for (const match of text.matchAll(/\b\d+\/(\d+)\b|"denominator":(\d+)/g)) found.add(Number(match[1] ?? match[2]));
-  return found;
-}
-
-/** The new part names a lesson introduces ([5] for fifths), in order. */
+/** The new part names a lesson page introduces ([5] for fifths), in course order. */
 export function newWordsFor(missionId: string): number[] {
-  if (!firstLesson) {
-    firstLesson = new Map();
-    for (const mission of MISSIONS) {
-      const used = denominatorsIn(mission.id);
-      for (const d of NEW_WORD_DENOMINATORS) if (used.has(d) && !firstLesson.has(d)) firstLesson.set(d, mission.id);
-    }
-  }
-  return NEW_WORD_DENOMINATORS.filter((d) => firstLesson!.get(d) === missionId);
+  return Object.entries(NEW_WORD_LESSON)
+    .filter(([d, lesson]) => lesson === missionId && !taughtOnLearnPage(missionId, Number(d)))
+    .map(([d]) => Number(d));
 }

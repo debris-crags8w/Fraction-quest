@@ -3,6 +3,7 @@
 import type { FractionOrderRound } from '../game';
 import type { PartFinderRound } from '../part-finder';
 import { LESSON_SCENES, type StepScene } from '../teach-scenes';
+import { PART_NAMES } from '../intro-copy';
 import { TEACH_EXTRAS, type WordCard } from '../teach-extras';
 
 /** One Learn page: a short line and its animated picture, or a line and Words to know (each new word or symbol, what
@@ -35,4 +36,16 @@ export const wordsToKnow = (id: string, terms?: string[]): LearnPage => {
   const words = terms ? all.filter((word) => terms.includes(word.term)) : all;
   if (!words.length || (terms && words.length !== terms.length)) throw new Error(`No Words to know ${terms?.join(', ') ?? ''} in ${id}`);
   return { text: 'Words to know', words };
+};
+
+/** A part name's word card as a Learn page (the same words as the lesson page's New word card): one fifth, with its bar.
+    Put it on the first idea whose Learn pages or practices say the name (new-words.ts). */
+export const newWord = (d: number): LearnPage => {
+  const name = PART_NAMES[d];
+  if (!name) throw new Error(`No part name for ${d}`);
+  return { text: 'New word', words: [{
+    term: `one ${name.one}`,
+    meaning: `1 of ${d} equal parts is one ${name.one}. ${d} equal parts are ${name.many}.`,
+    picture: [{ rows: [{ kind: 'bar', parts: Array.from({ length: d }, () => 1), cut: true, shaded: [0], label: `1/${d}` }], ms: 0 }],
+  }] };
 };

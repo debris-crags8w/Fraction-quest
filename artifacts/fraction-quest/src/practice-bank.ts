@@ -55,6 +55,8 @@ const shadedFirst = (n: number) => Array.from({ length: n }, (_, k) => k);
 const DENS = [3, 4, 5, 6, 8, 10, 12] as const;
 /** Grade 3 denominators: thirds, fourths, sixths and eighths (halves where a question allows them). */
 const G3_DENS = [3, 4, 6, 8] as const;
+/** The part names taught before lesson 1's practice: halves, thirds, fourths, sixths and eighths (the Words screen). */
+const TAUGHT_PARTS = [2, 3, 4, 6, 8] as const;
 /** Same-size wholes with two grade 3 denominators, smaller one first. */
 const G3_PAIRS = [[2, 4], [2, 3], [3, 6], [4, 8], [3, 4], [2, 6], [4, 6], [2, 8], [3, 8], [6, 8]] as const;
 const withLabels = (model: ModelSpec): ModelSpec => ('hideLabels' in model ? { ...model, hideLabels: false } : model);
@@ -106,23 +108,40 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
         model: area(cut) };
     }
     // The picture is the puzzle: the strip may be fair, have unequal pieces, or have the wrong number of pieces.
-    const d = r.pick([2, 3, 4, 6, 8]); const kind = r.int(0, 2);
-    const count = kind === 2 ? d + 1 : d;
+    // Only taught part counts (2, 3, 4, 6, 8): a strip of 5 or 7 equal parts is a fifths or sevenths picture.
+    const d = r.pick(TAUGHT_PARTS); const kind = r.int(0, 2);
+    const nearby = TAUGHT_PARTS.filter((x) => x !== d && Math.abs(x - d) <= 2); const wrongCount = r.pick(nearby);
+    const count = kind === 2 ? wrongCount : d;
     const sizes = Array.from({ length: count }, () => 1);
     if (kind === 1) sizes[r.int(0, count - 1)] = 2.5; // one piece clearly bigger
     const total = sizes.reduce((a, b) => a + b, 0);
-    const yes = `Yes, ${d} equal parts`; const unequal = 'No, the parts are unequal'; const tooMany = `No, there are ${d + 1} parts`;
+    const yes = `Yes, ${d} equal parts`; const unequal = 'No, the parts are unequal'; const tooMany = `No, there are ${wrongCount} parts`;
     return { prompt: `Is this strip cut into equal ${name(d)}?`, right: [yes, unequal, tooMany][kind], wrong: [yes, unequal, tooMany].filter((_, i) => i !== kind) as [string, string],
-      extra: d === 2 ? 'No, there is 1 part' : `No, there are ${d - 1} parts`,
+      extra: `No, there are ${r.pick(TAUGHT_PARTS.filter((x) => x !== d && x !== wrongCount))} parts`,
       hint: `Equal ${name(d)}: exactly ${d} parts, all the same size. Count them, then compare them.`,
-      retry: kind === 0 ? `There are ${d} parts and they are all the same size, so they are equal ${name(d)}.` : kind === 1 ? 'One part is bigger than the others, so the parts are not equal.' : `Count again: there are ${d + 1} parts, not ${d}.`,
+      retry: kind === 0 ? `There are ${d} parts and they are all the same size, so they are equal ${name(d)}.` : kind === 1 ? 'One part is bigger than the others, so the parts are not equal.' : `Count again: there are ${wrongCount} parts, not ${d}.`,
       model: { kind: 'partition', parts: sizes.map((size) => (size / total) * 100) }, simpler: { kind: 'partition', parts: Array.from({ length: d }, () => 100 / d) } };
   },
   'fraction-names': (r) => {
     const d = r.pick(G3_DENS); const n = r.int(1, d - 1);
-    return r.chance()
+    // Wrong choices for "What fraction is shaded?" are the real slips (fraction-slips.ts), written only with parts the
+    // child has been taught: upside down, shaded out of the parts not shaded, the parts not shaded, one part, one
+    // too many counted, or calling one part "a half". The generic ones also write fifths, sevenths and ninths; when
+    // fewer than 3 taught slips fit (1/8, 7/8), this question is not asked for that fraction.
+    const taught = (x: number) => (TAUGHT_PARTS as readonly number[]).includes(x);
+    const slips = [
+      ...(2 * n !== d ? [f(d - n, d)] : []), // counted the parts that are not shaded
+      ...(n > 1 && taught(n) ? [f(d, n)] : []), // upside down
+      ...(taught(d - n) ? [f(n, d - n)] : []), // shaded out of the parts not shaded
+      ...(n > 1 ? [f(1, d)] : []), // just one part
+      ...(taught(d + n) ? [f(n, d + n)] : []), // counted the shaded parts again with all the parts
+      ...(n === 1 ? [f(1, 2)] : []), // calls any one part "a half"
+    ].filter((text, i, all) => text !== f(n, d) && all.indexOf(text) === i);
+    for (let k = slips.length - 1; k > 0; k--) { const j = r.int(0, k); [slips[k], slips[j]] = [slips[j], slips[k]]; }
+    return r.chance() || slips.length < 3
       ? { prompt: `In ${f(n, d)}, what does the ${d} mean?`, right: `${d} equal parts in all`, wrong: [`${d} parts are shaded`, `${d} wholes`], extra: `${d} parts not shaded`, hint: 'Look at the denominator.', retry: 'The denominator is the number of equal parts in all.', model: bar(n, d) }
-      : { prompt: 'What fraction is shaded?', right: f(n, d), wrong: [f(d, n), f(d - n, d)], hint: 'The numerator is the number of parts shaded. The denominator is all the equal parts.', retry: `The denominator is all ${d} parts. The numerator is the ${n} shaded ${n === 1 ? 'part' : 'parts'}.`, model: bar(n, d) };
+      : { prompt: 'What fraction is shaded?', right: f(n, d), wrong: [slips[0], slips[1]], extra: slips[2], slips,
+        hint: 'The numerator is the number of parts shaded. The denominator is all the equal parts.', retry: `The denominator is all ${d} parts. The numerator is the ${n} shaded ${n === 1 ? 'part' : 'parts'}.`, model: bar(n, d) };
   },
   'unit-fractions': (r) => {
     if (r.int(0, 2) === 0) {
@@ -262,10 +281,11 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     return { prompt: `${f(1, a)} + ${f(1, big)} = ?`, right: f(k + 1, big), wrong: [f(2, a + big), f(2, big)], hint: `Change ${f(1, a)} into ${name(big)} first.`, retry: `${f(1, a)} = ${f(k, big)}. ${k} + 1 = ${k + 1}, so ${f(k + 1, big)}.`, model: bars2([1, a], [1, big]) };
   },
   'tenths-decimals': (r) => {
+    // Wrong choices are tenths slips only (the part not colored, the digit before the point, upside down): hundredths come in lesson 31.
     const n = r.int(1, 9);
     return r.chance()
-      ? { prompt: `What fraction is 0.${n}?`, right: f(n, 10), wrong: [f(n, 100), f(1, n === 1 ? 2 : n)], hint: 'The number right after the decimal point is tenths.', retry: `0.${n} means ${n} ${n === 1 ? 'tenth' : 'tenths'}.`, model: { kind: 'decimal', tenths: n, hideLabels: true } }
-      : { prompt: `Write ${f(n, 10)} as a decimal.`, right: `0.${n}`, wrong: [`${n}.0`, `0.0${n}`], hint: 'Tenths go right after the decimal point.', retry: `${n} ${n === 1 ? 'tenth is' : 'tenths is'} 0.${n}.`, model: { kind: 'decimal', tenths: n, hideLabels: true } };
+      ? { prompt: `What fraction is 0.${n}?`, right: f(n, 10), wrong: [n === 5 ? f(10, 5) : f(10 - n, 10), f(1, n === 1 ? 2 : n)], hint: 'The number right after the decimal point is tenths.', retry: `0.${n} means ${n} ${n === 1 ? 'tenth' : 'tenths'}.`, model: { kind: 'decimal', tenths: n, hideLabels: true } }
+      : { prompt: `Write ${f(n, 10)} as a decimal.`, right: `0.${n}`, wrong: [`${n}.0`, n === 5 ? '10.5' : `0.${10 - n}`], hint: 'Tenths go right after the decimal point.', retry: `${n} ${n === 1 ? 'tenth is' : 'tenths is'} 0.${n}.`, model: { kind: 'decimal', tenths: n, hideLabels: true } };
   },
   'add-tenths-hundredths': (r) => {
     const a = r.int(1, 8); const b = r.int(1, Math.min(49, 99 - 10 * a)); const sum = 10 * a + b;
@@ -669,6 +689,17 @@ const COUNT_NOUNS = 'piece|jump|group|part|space|share|slice|cup|step';
 /** Whole-number answers: wrong choices from real slips instead of answer ± 1 (see misconceptions.ts). */
 const slipChoices = (prompt: string, placed: Pick<PracticeQuestion, 'choices' | 'correctChoice'>): Pick<PracticeQuestion, 'choices' | 'correctChoice'> =>
   ({ choices: preferMisconceptions({ prompt, ...placed }).choices, correctChoice: placed.correctChoice });
+/** Lessons that may use only some part names (the generic slips for "What fraction is shaded?" also write fifths,
+    sevenths and ninths): a swap that would bring in another denominator is left out, and the recipe's own slips stay. */
+const ONLY_PARTS: Record<string, readonly number[]> = { 'fraction-names': TAUGHT_PARTS, 'equal-parts': TAUGHT_PARTS };
+const inTaughtParts = (missionId: string, choices: string[]) => {
+  const allowed = ONLY_PARTS[missionId];
+  return !allowed || choices.every((choice) => [...choice.matchAll(/\/(\d+)\b/g)].every((match) => allowed.includes(Number(match[1]))));
+};
+const slipChoicesFor = (missionId: string, prompt: string, placed: Pick<PracticeQuestion, 'choices' | 'correctChoice'>) => {
+  const slipped = slipChoices(prompt, placed);
+  return inTaughtParts(missionId, slipped.choices) ? slipped : placed;
+};
 const signedOrder = (prompt: string, placed: Pick<PracticeQuestion, 'choices' | 'correctChoice'>) =>
   ({ ...placed, choices: orderedWithSigns(prompt, placed.choices) });
 export function oneIsSingular(text: string): string {
@@ -692,7 +723,7 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
     const key = `${item.prompt}|${item.right}`;
     const placed = {
       prompt: oneIsSingular(item.prompt),
-      ...noBeforeYes(signedOrder(item.prompt, slipChoices(item.prompt, withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3))))),
+      ...noBeforeYes(signedOrder(item.prompt, slipChoicesFor(missionId, item.prompt, withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3))))),
     };
     const question = {
       ...placed,
