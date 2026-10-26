@@ -209,3 +209,15 @@
   .fq-pf-interactive figcaption { margin-bottom: 0; }
   .fq-pf-control-row { padding-top: 6px; }
 }
+/* Phones: a "how many copies" round keeps its picture, number tiles and Check on one screen. The question already says
+   what to do (so the "Tap pieces" line goes), the hint box is one short line, and the selected piece shows in the picture rather than in words. */
+@media (max-width: 620px) {
+  .fq-pf-card.is-tile .fq-pf-tile-empty { margin: 2px auto 6px; padding: 6px 10px; font-size: .85rem; line-height: 1.3; }
+  .fq-pf-card.is-tile .fq-tile-help { display: none; }
+  .fq-pf-card.is-tile .fq-pf-count-entry { gap: 4px; margin-bottom: 8px; }
+  .fq-pf-card.is-tile .fq-tiles { gap: 6px; }
+  .fq-pf-card.is-tile .fq-tile-answer { min-height: 0; }
+  .fq-pf-card.is-tile .fq-pf-instruction { display: none; }
+  .fq-pf-card.is-tile .fq-pf-square { width: min(100%, 220px, 19dvh); }
+  .fq-pf-card.is-tile .fq-pf-selection { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}

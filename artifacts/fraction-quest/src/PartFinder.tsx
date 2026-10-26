@@ -246,7 +246,7 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
 
         {storyLine?.(checked === 'idle' ? null : correct ? 'correct' : 'retry')}
 
-        <section className="fq-pf-card" aria-labelledby="pf-title">
+        <section className={`fq-pf-card${round.mode === 'tile' ? ' is-tile' : ''}`} aria-labelledby="pf-title">
           <div className="fq-pf-heading">
             <div className="fq-listen-row">
               <h1 id="pf-title" tabIndex={-1}>{words(round.title)}</h1>

@@ -663,6 +663,7 @@
 .fq-teach-shell { display: flex; flex-direction: column; gap: 12px; min-height: 100dvh; box-sizing: border-box; padding-bottom: 20px; }
 .fq-teach-shell .fq-play-kicker { margin: 0; }
 .fq-teach-title { margin: -6px 0 0; font-size: 1.6rem; line-height: 1.15; }
+@media (max-width: 430px) { .fq-teach-title { font-size: 1.35rem; } }
 .fq-teach-card { gap: 12px; }
 .fq-teach-card h2 { margin: 0; color: var(--fq-grape); font-size: 1.1rem; }
 .fq-teach-card .fq-example-section > p { font-size: 1.05rem; }
@@ -2219,8 +2220,8 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   .fq-lesson-app .fq-review-label, .fq-lesson-app .fq-mastery-label { margin-top: 6px; padding: 3px 10px; }
   .fq-lesson-app .fq-mastery-more { display: none; }
   /* The picture keeps its shape but never takes more than about a quarter of the visible screen. */
-  .fq-lesson-app .fq-model-area { margin: 8px 0; }
-  .fq-lesson-app .fq-model-area .fq-visual-model { min-height: 0; gap: 6px; padding: 8px 10px; }
+  .fq-lesson-app .fq-model-area { margin: 6px 0; }
+  .fq-lesson-app .fq-model-area .fq-visual-model { min-height: 0; gap: 6px; padding: 6px 10px; }
   .fq-lesson-app .fq-model-area svg { max-height: 24svh; }
   /* Story lines are tighter. */
   .fq-lesson-app .fq-story { gap: 4px; margin: 2px 0 6px; }
@@ -2248,6 +2249,9 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   .fq-lesson-app .fq-answer-choice { min-height: 44px; padding: 5px 12px; gap: 10px; font-size: 1.02rem; line-height: 1.25; border-bottom-width: 4px; }
   .fq-lesson-app .fq-choice-marker { flex-basis: 26px; width: 26px; height: 26px; font-size: .78rem; }
   .fq-lesson-app .fq-inline-check { margin-top: 6px; }
+  /* Set by the picture fit when even the smallest picture leaves Check below the screen. */
+  .fq-lesson-app .fq-play-card.is-tight .fq-story-say { display: none; }
+  .fq-lesson-app .fq-play-card.is-tight .fq-model-area { margin: 2px 0; }
 }
 
 /* Number-line tick labels: 0, 1, 2… at the wholes and a small stacked fraction (1/5, 2/5…) at the other ticks. */
