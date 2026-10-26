@@ -1106,6 +1106,8 @@ function PlayView({
     if (!area || typeof window === 'undefined') return;
     const fit = () => {
       area.style.removeProperty('zoom');
+      const card = area.closest('.fq-play-card');
+      card?.classList.remove('is-tight');
       const check = checkButtonRef.current;
       if (window.innerWidth > 560 || !check) return;
       // From the top of the lesson screen, or from the question itself when the worked example sits above it.
@@ -1113,12 +1115,20 @@ function PlayView({
         ? document.getElementById('lesson-question-title')
         : area.closest('.fq-lesson-app');
       if (!from) return;
-      const overflow = check.getBoundingClientRect().bottom - from.getBoundingClientRect().top + 8 - window.innerHeight;
+      const over = () => check.getBoundingClientRect().bottom - from.getBoundingClientRect().top + 8 - window.innerHeight;
+      let overflow = over();
       if (overflow <= 0) return;
       const height = area.getBoundingClientRect().height;
       // A number line's small labels need a little more size than bars, grids or shapes.
       const floor = (useSimplerModel ? question?.simplerModel : question?.model)?.kind === 'line' ? 0.65 : 0.6;
-      area.style.setProperty('zoom', String(Math.min(1, Math.max(floor, 82 / height, (height - overflow) / height))));
+      const least = Math.max(floor, 82 / height);
+      // When even the smallest picture leaves Check below the screen, the friend's line steps aside first.
+      if (card && height * (1 - least) < overflow) {
+        card.classList.add('is-tight');
+        overflow = over();
+        if (overflow <= 0) return;
+      }
+      area.style.setProperty('zoom', String(Math.min(1, Math.max(least, (height - overflow) / height))));
     };
     fit();
     window.addEventListener('resize', fit);
@@ -2072,7 +2082,7 @@ function Game() {
           onBack={returnToMap}
           quiet={ideaStep && ideas ? { start: view.questionIndex - ideaStep.practice, count: ideas[ideaStep.idea]!.practice.length } : undefined}
           kicker={ideaStep && ideas ? <><span className="fq-kicker-topic">Lesson {lessonLabel} · </span>Idea {ideaStep.idea + 1} of {ideas.length} · Practise {ideaStep.practice + 1} of {ideas[ideaStep.idea]!.practice.length}</>
-            : ideas && view.type === 'play' ? <>Lesson {lessonLabel} · Put it together · Question {view.questionIndex - ideaCount + 1} of {activeMission.questions.length - ideaCount}</> : undefined}
+            : ideas && view.type === 'play' ? <><span className="fq-kicker-topic">Lesson {lessonLabel} · Put it together · </span>Question {view.questionIndex - ideaCount + 1} of {activeMission.questions.length - ideaCount}</> : undefined}
           onCorrect={onPracticeCorrect}
           onWrong={onPracticeWrong}
           onNext={(firstTryAnswers) => {

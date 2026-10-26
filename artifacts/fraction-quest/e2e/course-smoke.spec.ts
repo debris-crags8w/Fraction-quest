@@ -1,6 +1,6 @@
 import { expect, openSettings, test } from './fixtures';
 import { CHALLENGES } from '../src/challenges';
-import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, getDueSkillReviewQuestions, MISSIONS } from '../src/game';
+import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, getDelayedReviewQuestions, getDueSkillReviewQuestions, MISSIONS } from '../src/game';
 import { compareFractions, WAR_ROUNDS, warHint } from '../src/concept-games';
 import { getCodeLevels } from '../src/code-quest';
 import { getBuildChecks, getReviewCheck, getWorksheet, answerMatches, isYesNoProblem } from '../src/learning-content';
@@ -8,9 +8,8 @@ import { BUILD_ERROR_HEADINGS } from '../src/lab-copy';
 import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-shape';
 import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
 import { generateQuestions, getExtraPractice, hasGenerator } from '../src/practice-bank';
-import { PART_FINDER_LESSONS, partFinderRoundsFor } from '../src/part-finder';
 import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
-import { completeIdeas, hasStoryAfterIdeas, solvePartFinderRound, solveSortRound } from './lesson-walk';
+import { completeIdeas, finishPutTogether, hasStoryAfterIdeas, solveSortRound } from './lesson-walk';
 import { makeSprint } from '../src/CodeSprint';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
@@ -820,65 +819,6 @@ async function expectLessonQuestionProgress(
   );
 }
 
-async function completeQuestionSequence(
-  page: import('@playwright/test').Page,
-  questions: Mission['questions'],
-) {
-  await page.evaluate(async (items) => {
-    const settleReactUpdate = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
-    const button = (testId: string) => {
-      const element = document.querySelector(`[data-testid="${CSS.escape(testId)}"]`);
-      if (!(element instanceof HTMLButtonElement) || element.disabled) {
-        throw new Error(`Expected enabled button ${testId}`);
-      }
-      return element;
-    };
-    for (const [index, question] of items.entries()) {
-      const progress = document.querySelector<HTMLElement>('[data-testid="status-lesson-progress"]');
-      const activeQuestionText = progress?.querySelector<HTMLElement>('.fq-sr')?.textContent?.trim();
-      if (!progress || activeQuestionText !== `Question ${index + 1} of ${items.length}; ${index} completed.`) {
-        throw new Error(`Lesson question ${index + 1} is not the active question`);
-      }
-      if (progress.getAttribute('aria-label') !== `Lesson question progress: ${index} of ${items.length} completed`) {
-        throw new Error(`Lesson question progress did not report ${index} completed`);
-      }
-      if (index === 0 && !document.querySelector('[data-testid="question-model-area"]')) {
-        throw new Error('The lesson question model is missing');
-      }
-
-      button(`button-answer-${question.id}-${question.correctChoice}`).click();
-      await settleReactUpdate();
-      button('button-check-answer').click();
-      await settleReactUpdate();
-
-      const feedback = document.querySelector<HTMLElement>('[data-testid="status-feedback"]');
-      if (feedback?.getAttribute('data-result') !== 'correct') {
-        throw new Error(`Question ${question.id} did not accept its correct answer`);
-      }
-      if (progress.getAttribute('aria-label') !== `Lesson question progress: ${index + 1} of ${items.length} completed`) {
-        throw new Error(`Question ${question.id} did not advance lesson progress`);
-      }
-
-      button(index === items.length - 1 ? 'button-finish-mission' : 'button-next-question').click();
-      await settleReactUpdate();
-      if (index === items.length - 1) {
-        if (!document.querySelector('[data-testid="learning-lab"]')) {
-          throw new Error('The learning lab did not open after the final question');
-        }
-      } else {
-        const nextProgress = document.querySelector<HTMLElement>('[data-testid="status-lesson-progress"]');
-        const nextQuestionText = nextProgress?.querySelector<HTMLElement>('.fq-sr')?.textContent?.trim();
-        if (nextQuestionText !== `Question ${index + 2} of ${items.length}; ${index + 1} completed.`) {
-          throw new Error(`Question ${index + 2} did not open`);
-        }
-        if (nextProgress?.getAttribute('aria-label') !== `Lesson question progress: ${index + 1} of ${items.length} completed`) {
-          throw new Error(`Question ${index + 2} progress was not announced`);
-        }
-      }
-    }
-  }, questions.map(({ id, correctChoice }) => ({ id, correctChoice })));
-}
-
 /** Developer testing lives with the grown-ups' settings: open them through the grown-up check. */
 async function openDeveloperTesting(page: import('@playwright/test').Page) {
   await openMenuItem(page, 'button-open-parent');
@@ -892,7 +832,7 @@ async function openDeveloperTesting(page: import('@playwright/test').Page) {
 
 async function openDeveloperLesson(page: import('@playwright/test').Page, mission: Mission) {
   await openDeveloperTesting(page);
-  await page.evaluate(async ({ id, title, isPartFinder, isFractionOrder, isIdeas }) => {
+  await page.evaluate(async ({ id, title }) => {
     const settleReactUpdate = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
     const selector = document.querySelector<HTMLSelectElement>('[data-testid="select-developer-lesson"]');
     if (!selector) throw new Error('The developer lesson selector is missing');
@@ -908,45 +848,14 @@ async function openDeveloperLesson(page: import('@playwright/test').Page, missio
     if (!document.querySelector('[data-testid="developer-test-banner"]')) {
       throw new Error('The isolated developer test did not start');
     }
-    // A lesson's one-time Teach first screen comes before its worked example.
-    for (let i = 0; i < 16; i++) {
-      const stepNext = document.querySelector<HTMLButtonElement>('[data-testid="button-teach-step-next"]');
-      if (!stepNext) break;
-      stepNext.click(); await settleReactUpdate();
-    }
-    const teachNext = document.querySelector<HTMLButtonElement>('[data-testid="button-teach-next"]');
-    if (teachNext) { teachNext.click(); await settleReactUpdate(); }
-    // In a child's first lesson, Watch and Try come next.
+    // In a child's first lesson, Watch and Try come first.
     const introSkip = document.querySelector<HTMLButtonElement>('[data-testid="intro-steps"] [data-testid="button-intro-skip"]');
     if (introSkip) { introSkip.click(); await settleReactUpdate(); }
 
-    // A lesson with ideas opens on its first idea's Learn page (the lesson's name is in the bar).
-    if (isIdeas) {
-      if (!document.querySelector('[data-testid="idea-learn-screen"]')) throw new Error(`${title} did not open on its first idea`);
-      if (document.querySelector<HTMLElement>('.fq-taskbar-title')?.textContent?.trim() !== title) throw new Error(`Expected to open ${title}`);
-      return;
-    }
-    const titleSelector = isPartFinder
-      ? '.fq-pf-lesson-example .fq-example-heading'
-      : isFractionOrder
-        ? '.fq-order-sort-example .fq-example-heading'
-        : '#lesson-title';
-    const lessonTitle = document.querySelector<HTMLElement>(titleSelector);
-    if (lessonTitle?.textContent?.trim() !== title) {
-      throw new Error(`Expected to open ${title}, but the lesson title did not match`);
-    }
-    const exampleSelector = isPartFinder ? '[data-testid="part-finder-lesson-example"]' : '[data-testid="lesson-example"]';
-    if (!document.querySelector(exampleSelector)) throw new Error(`The example for ${title} is missing`);
-    if (!isPartFinder && !document.querySelector('.fq-example .fq-model-area')) {
-      throw new Error(`The worked model for ${title} is missing`);
-    }
-  }, {
-    id: mission.id,
-    title: mission.title,
-    isPartFinder: PART_FINDER_LESSONS.has(mission.id),
-    isFractionOrder: mission.id === 'order-unlike-fractions',
-    isIdeas: !!lessonIdeas(mission.id),
-  });
+    // Every lesson opens on its first idea's Learn page (the lesson's name is in the bar).
+    if (!document.querySelector('[data-testid="idea-learn-screen"]')) throw new Error(`${title} did not open on its first idea`);
+    if (document.querySelector<HTMLElement>('.fq-taskbar-title')?.textContent?.trim() !== title) throw new Error(`Expected to open ${title}`);
+  }, { id: mission.id, title: mission.title });
 }
 
 async function finishDeveloperLesson(page: import('@playwright/test').Page, savedStorage: string) {
@@ -988,37 +897,6 @@ async function finishDeveloperLesson(page: import('@playwright/test').Page, save
     if (!mapVisible) throw new Error('Exiting the developer test did not return to the learning map');
     if (snapshot() !== expectedStorage) throw new Error('Exiting the developer test changed browser storage');
   }, savedStorage);
-}
-
-async function completePartFinderLesson(page: import('@playwright/test').Page, missionId: string) {
-  await expect(page.getByTestId('first-fraction-introduction')).toHaveCount(0);
-  for (const round of partFinderRoundsFor(missionId)) await solvePartFinderRound(page, round);
-}
-
-async function completeFractionOrderLesson(page: import('@playwright/test').Page) {
-  const firstRound = FRACTION_ORDER_ROUNDS[0];
-  await page.getByTestId('button-sort-check').click();
-  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(/Good try!|Almost!|Let’s look together\.|Keep going!|Nice effort!/);
-  await expect(page.getByTestId('fraction-sort-feedback')).toContainText('1/2');
-  await page.getByTestId('button-sort-5-6-down').click();
-  await page.getByTestId('button-sort-5-6-down').click();
-  await page.getByTestId('button-sort-check').click();
-  await expect(page.getByTestId('fraction-sort-feedback')).toContainText(firstRound.explanation);
-  await page.getByTestId('button-sort-next').click();
-
-  const secondRound = FRACTION_ORDER_ROUNDS[1];
-  await page.getByTestId('button-sort-5-8-up').click();
-  await page.getByTestId('button-sort-3-8-up').click();
-  const sortedCards = await page.locator('[data-testid^="sort-card-"]').evaluateAll((items) =>
-    items.map((item) => {
-      const [numerator, denominator] = (item.getAttribute('data-fraction') ?? '').split('/').map(Number);
-      return { numerator, denominator };
-    }),
-  );
-  expect(fractionOrderMatches(sortedCards, secondRound.direction)).toBe(true);
-  await page.getByTestId('button-sort-check').click();
-  await expect(page.getByTestId('fraction-sort-feedback')).toContainText('That order is right!');
-  await page.getByTestId('button-sort-next').click();
 }
 
 async function retryLessonQuestion(
@@ -1686,31 +1564,9 @@ test.describe('all-lesson required-question smoke', () => {
       await test.step(`${mission.id}: ${mission.title}`, async () => {
         await openDeveloperLesson(page, mission);
 
-        if (lessonIdeas(mission.id)) {
-          await completeIdeas(page, mission);
-          if (hasStoryAfterIdeas(mission)) {
-            const last = mission.questions.at(-1)!;
-            await page.getByTestId(`button-answer-${last.id}-story-${last.correctChoice}`).click();
-            await page.getByTestId('button-check-answer').click();
-            await page.getByTestId('button-finish-mission').click();
-          }
-          await finishDeveloperLesson(page, savedStorage);
-          return;
-        }
-        if (PART_FINDER_LESSONS.has(mission.id)) {
-          await completePartFinderLesson(page, mission.id);
-        } else if (mission.id === 'order-unlike-fractions') {
-          await completeFractionOrderLesson(page);
-        }
-
-        const lessonQuestions = [
-          ...mission.questions.slice(0, -1),
-          ...(hasGenerator(mission.id)
-            ? getExtraPractice(mission.id, mission.questions.map((question) => question.id)).slice(0, 4)
-            : []),
-          mission.questions.at(-1)!,
-        ];
-        await completeQuestionSequence(page, lessonQuestions);
+        await completeIdeas(page, mission);
+        // Then "Put it together": the story problem, when the lesson has one (no review is due in a fresh test).
+        expect(await finishPutTogether(page, mission), `${mission.id} story problems asked`).toBe(hasStoryAfterIdeas(mission) ? 1 : 0);
         await finishDeveloperLesson(page, savedStorage);
       });
     }
@@ -1721,16 +1577,12 @@ test('learners can correct a wrong answer across every lesson model type', async
   test.setTimeout(120_000);
   // The rarest types choose first, so each still finds a lesson of its own.
   const modelKinds = ['partition', 'decimal', 'set', 'line', 'area', 'bars'] as const;
-  // For each model type, the first lesson that asks it: a lesson without ideas by its first question; a lesson with
-  // ideas by the first practice of an idea (so its Learn pages come first) whose next practice is a question too.
+  // For each model type, the first lesson that asks it in the first practice of an idea (so its Learn pages come first)
+  // whose next practice is a question too.
   // Each type gets its own lesson: leaving a lesson keeps its place, so a second visit would not start where expected.
   const used = new Set<string>();
   const representatives = modelKinds.map((kind) => {
     for (const mission of MISSIONS.filter(({ id }) => !used.has(id))) {
-      if (!lessonIdeas(mission.id)) {
-        if (mission.questions[0]?.model.kind === kind) { used.add(mission.id); return { mission, step: -1, question: mission.questions[0] }; }
-        continue;
-      }
       const steps = ideaSteps(mission.id);
       const step = steps.findIndex(({ practice, item }, index) => practice === 0 && 'question' in item
         && ideaQuestion(mission, item.question)?.model.kind === kind && !!steps[index + 1] && 'question' in steps[index + 1]!.item);
@@ -1758,21 +1610,18 @@ test('learners can correct a wrong answer across every lesson model type', async
     await page.getByTestId(`button-node-${mission.id}`).click();
     await page.getByTestId(`button-start-mission-${mission.id}`).click();
     await passStory(page);
-    // A lesson with ideas: walk its earlier practices, then the chosen idea's Learn pages, to its first practice.
-    const ideas = lessonIdeas(mission.id);
-    if (ideas) {
-      await completeIdeas(page, mission, { until: step });
-      const { idea } = ideaSteps(mission.id)[step]!;
-      for (let p = 1; p < ideas[idea]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
-      await page.getByTestId('button-idea-practise').click();
-    } else if (PART_FINDER_LESSONS.has(mission.id)) await page.getByTestId('button-hands-on-skip').click();
-    else await expect(page.getByTestId('lesson-example')).toBeVisible();
+    // Walk its earlier practices, then the chosen idea's Learn pages, to its first practice.
+    const ideas = lessonIdeas(mission.id)!;
+    await completeIdeas(page, mission, { until: step });
+    const { idea } = ideaSteps(mission.id)[step]!;
+    for (let p = 1; p < ideas[idea]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+    await page.getByTestId('button-idea-practise').click();
 
     await expect(page.getByTestId('question-model-area')).toBeVisible();
     await retryLessonQuestion(page, question);
     await page.getByTestId('button-next-question').click();
-    // The progress bar counts the lesson's practices so far (a lesson without ideas: its first question).
-    await expectLessonQuestionProgress(page, Math.max(step, 0) + 2, Math.max(step, 0) + 1);
+    // The progress bar counts the lesson's practices so far.
+    await expectLessonQuestionProgress(page, step + 2, step + 1);
     await page.getByTestId('button-back-map').click();
   }
 });
@@ -2436,15 +2285,12 @@ test('a wrong answer brings Hoot, reads the help aloud, and greys out the tried 
   const mission = MISSIONS[0];
   // Lesson 1 teaches its first idea on Learn pages; its first question is that idea's first practice, a tap question
   // whose picture (a strip) has parts to count.
-  const firstStep = ideaSteps(mission.id)[0]?.item;
-  const question = firstStep && 'question' in firstStep ? ideaQuestion(mission, firstStep.question)! : mission.questions[0];
+  const question = ideaQuestion(mission, (ideaSteps(mission.id)[0]!.item as { question: string }).question)!;
   await page.getByTestId(`button-start-mission-${mission.id}`).click();
   await passStory(page);
-  if (lessonIdeas(mission.id)) {
-    await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
-    for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
-    await page.getByTestId('button-idea-practise').click();
-  } else await expect(page.getByTestId('lesson-example')).toBeVisible();
+  await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
+  for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
   const wrong = (question.correctChoice + 1) % question.choices.length;
   await page.getByTestId(`button-answer-${question.id}-${wrong}`).click();
   await page.getByTestId('button-check-answer').click();
@@ -2505,17 +2351,14 @@ test('inside the Expo iPhone app, answer and result haptics work with sound off,
   await openAsGuest(page);
   const mission = MISSIONS[1];
   // Lesson 2 teaches its first idea on Learn pages; its first question is that idea's first practice.
-  const firstStep = ideaSteps(mission.id)[0]?.item;
-  const question = firstStep && 'question' in firstStep ? ideaQuestion(mission, firstStep.question)! : mission.questions[0];
+  const question = ideaQuestion(mission, (ideaSteps(mission.id)[0]!.item as { question: string }).question)!;
   await page.getByTestId('button-continue-course').or(page.getByTestId('button-jump-current')).first().click();
   await passStory(page);
   if (await page.getByTestId(`button-start-mission-${mission.id}`).count()) await page.getByTestId(`button-start-mission-${mission.id}`).click();
   await passStory(page);
-  if (lessonIdeas(mission.id)) {
-    await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
-    for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
-    await page.getByTestId('button-idea-practise').click();
-  } else if (await page.getByTestId('button-start-practice').count()) await page.getByTestId('button-start-practice').click();
+  await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
+  for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
   await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
   await expect.poll(async () => (await messages()).some((m) => m.type === 'haptic' && m.cue === 'selection')).toBe(true);
   const selectionCues = (await messages()).filter((message) => message.type === 'haptic' && message.cue === 'selection').length;
@@ -3319,14 +3162,13 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
 test('the hint bulb always shows its help: it scrolls the hint into view, and after two misses it points to the simpler help', async ({ page }) => {
   const mission = MISSIONS.find((item) => item.id === 'benchmark-half')!;
   // The lesson opens on its first idea's Learn pages; its first practice question comes after them.
-  const first = ideaSteps(mission.id)[0]!.item;
-  const question = 'question' in first ? ideaQuestion(mission, first.question)! : mission.questions[0];
+  const question = ideaQuestion(mission, (ideaSteps(mission.id)[0]!.item as { question: string }).question)!;
   expect(question.choices.length).toBeGreaterThanOrEqual(3);
   await page.setViewportSize({ width: 390, height: 844 });
   await openAsGuest(page);
   await openDeveloperLesson(page, mission);
-  for (let p = 1; p < (lessonIdeas(mission.id)?.[0]?.learn.length ?? 0); p++) await page.getByTestId('button-teach-step-next').click();
-  if (lessonIdeas(mission.id)) await page.getByTestId('button-idea-practise').click();
+  for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
 
   // The bulb sits at the top of the screen; the hint opens under the question, below it.
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -3508,36 +3350,49 @@ test('a reload or the back button keeps the child’s place in a lesson’s prac
   await expectLessonQuestionProgress(page, 2, 1);
 });
 
-test('every question in every lesson fits an iPhone Safari screen: one column of answers and Check, with no scrolling', async ({ page }) => {
-  test.setTimeout(900_000);
+test('every screen of every lesson fits an iPhone Safari screen: Learn pages, practices, review and story problem', async ({ page }) => {
+  test.setTimeout(1_200_000);
   // An iPhone in Safari shows about 664 points of page between its address bar and toolbar. The phone layout uses no
   // height queries (Safari answers those for its taller, bars-hidden view), so a 390 × 664 window is a faithful iPhone.
   const visible = 664;
   await page.setViewportSize({ width: 390, height: visible });
+  // One review is due (from lesson 1), so every other lesson's "Put it together" asks it before the story problem.
+  const reviewed = MISSIONS[0]!;
+  const progress = { completedMissionIds: [], starsByMission: {}, assessments: [], learning: {},
+    reviewQueue: [{ missionId: reviewed.id, missedQuestionId: reviewed.questions[0]!.id, dueAt: 1, reviewCount: 0 }] };
+  await page.addInitScript((saved) => {
+    if (!localStorage.getItem('fraction-quest-progress-v1:guest')) localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(saved));
+  }, progress);
   await openAsGuest(page);
   const savedStorage = await localStorageSnapshot(page);
   const misfits: string[] = [];
-  for (const mission of MISSIONS) {
-    await openDeveloperLesson(page, mission);
-    if (PART_FINDER_LESSONS.has(mission.id)) await completePartFinderLesson(page, mission.id);
-    else if (mission.id === 'order-unlike-fractions') await completeFractionOrderLesson(page);
-    const questions = [
-      ...mission.questions.slice(0, -1),
-      ...(hasGenerator(mission.id) ? getExtraPractice(mission.id, mission.questions.map((question) => question.id)).slice(0, 4) : []),
-      mission.questions.at(-1)!,
-    ];
-    for (const [index, question] of questions.entries()) {
-      const right = page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`);
-      await expect(right).toBeVisible();
+  // Measured without the developer test bar above the lesson: it is not on a child's screen.
+  const banner = () => page.evaluate(() => document.querySelector('[data-testid="developer-test-banner"]')?.getBoundingClientRect().height ?? 0);
+  const noSideways = async (where: string) => {
+    const width = await page.evaluate(() => document.documentElement.scrollWidth);
+    if (width > 391) misfits.push(`${where}: the page is ${width} points wide, phone 390`);
+  };
+  const hooks = {
+    // A Learn page: its line, picture and buttons (Back, Next or Practise it) fit with no scrolling.
+    onLearnPage: async (where: string) => {
+      await expect(page.getByTestId('teach-scene').or(page.getByTestId('teach-words')).first()).toBeVisible();
       await page.evaluate(() => window.scrollTo(0, 0));
-      await right.click();
+      const buttons = await page.getByTestId('idea-learn').locator('.fq-ts-nav').evaluate((nav) => nav.getBoundingClientRect().bottom) - await banner();
+      const height = await page.evaluate(() => document.documentElement.scrollHeight) - await banner();
+      if (buttons > visible + 1) misfits.push(`${where}: its buttons end at ${Math.round(buttons)}, screen ${visible} (page ${Math.round(height)})`);
+      await noSideways(where);
+    },
+    // A cake or card-ordering round: its Check button is on the first screen, and nothing sticks out sideways.
+    beforeRound: async (where: string) => roundFits(where, 'button-part-finder-check'),
+    beforeSortRound: async (where: string) => roundFits(where, 'button-sort-check'),
+    // A question, with its answer chosen: one column of answers, and the answers and Check fit with no scrolling.
+    onQuestion: async (question: Mission['questions'][number], where: string) => {
       await page.evaluate(() => window.scrollTo(0, 0));
       const fit = await page.evaluate((id) => {
         const box = (element: Element | null) => element?.getBoundingClientRect();
         const choices = [...document.querySelectorAll(`[data-testid^="button-answer-${id}-"]`)].map((element) => element.getBoundingClientRect());
-        // Measured from the top of the lesson screen (the developer test bar above it is not on a child's screen), or
-        // from the question itself when the worked example sits above it on the lesson's first screen.
-        const top = (box(document.getElementById('lesson-question-title')) ?? box(document.querySelector('.fq-lesson-app')))?.top ?? 0;
+        // Measured from the top of the lesson screen (the developer test bar above it is not on a child's screen).
+        const top = box(document.querySelector('.fq-lesson-app'))?.top ?? 0;
         return {
           picture: box(document.querySelector('[data-testid="question-model-area"]'))?.height ?? 0,
           shrunk: Number((document.querySelector('[data-testid="question-model-area"]') as HTMLElement | null)?.style.zoom || 1) < 1,
@@ -3546,24 +3401,37 @@ test('every question in every lesson fits an iPhone Safari screen: one column of
           check: (box(document.querySelector('[data-testid="button-check-answer"]'))?.bottom ?? Infinity) - top,
         };
       }, question.id);
-      const where = `${mission.id} question ${index + 1} (${question.id})`;
+      const at = `${where} (${question.id})`;
       // One column of answers, and fitting must not come from shrinking the picture away
-      if (fit.columns !== 1) misfits.push(`${where}: answers are in ${fit.columns} columns`);
+      if (fit.columns !== 1) misfits.push(`${at}: answers are in ${fit.columns} columns`);
       // (A naturally small picture, like a row of dots, may stay small; a picture shrunk to fit stays at least 80 tall.)
-      if (fit.shrunk && fit.picture < 80) misfits.push(`${where}: the picture was shrunk to only ${Math.round(fit.picture)} points tall`);
+      if (fit.shrunk && fit.picture < 80) misfits.push(`${at}: the picture was shrunk to only ${Math.round(fit.picture)} points tall`);
       if (fit.choices > visible + 1 || fit.check > visible + 1) {
-        misfits.push(`${where}: choices end at ${Math.round(fit.choices)}, Check at ${Math.round(fit.check)}, screen ${visible}`);
+        misfits.push(`${at}: choices end at ${Math.round(fit.choices)}, Check at ${Math.round(fit.check)}, screen ${visible}`);
       }
-      await page.getByTestId('button-check-answer').click();
-      await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
-      const moveOn = page.getByTestId(index === questions.length - 1 ? 'button-finish-mission' : 'button-next-question');
-      // After Check, the feedback and its Continue button are in view too (the page may scroll to them).
-      await expect(moveOn).toBeInViewport();
-      await moveOn.click();
-    }
-    await finishDeveloperLesson(page, savedStorage);
+      await noSideways(at);
+    },
+    // After Check, the feedback and its Continue button are in view too (the page may scroll to them).
+    afterCheck: async (moveOn: import('@playwright/test').Locator) => { await expect(moveOn).toBeInViewport(); },
+  };
+  const roundFits = async (where: string, check: string) => {
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const bottom = await page.getByTestId(check).evaluate((button) => button.getBoundingClientRect().bottom) - await banner();
+    if (bottom > visible + 1) misfits.push(`${where}: its Check ends at ${Math.round(bottom)}, screen ${visible}`);
+    await noSideways(where);
+  };
+  const only = process.env.SMOKE_LESSONS?.split(',').map((id) => id.trim()).filter(Boolean);
+  for (const mission of MISSIONS.filter((item) => !only?.length || only.includes(item.id))) {
+    await test.step(`${mission.id}: ${mission.title}`, async () => {
+      await openDeveloperLesson(page, mission);
+      await completeIdeas(page, mission, hooks);
+      const review = getDelayedReviewQuestions(progress as unknown as Parameters<typeof getDelayedReviewQuestions>[0], mission.id);
+      const asked = await finishPutTogether(page, mission, { ...hooks, review });
+      expect(asked, `${mission.id}: review and story problem asked`).toBe(review.length + (hasStoryAfterIdeas(mission) ? 1 : 0));
+      await finishDeveloperLesson(page, savedStorage);
+    });
   }
-  expect(misfits, 'questions that do not fit the iPhone screen').toEqual([]);
+  expect(misfits, 'screens that do not fit the iPhone screen').toEqual([]);
 });
 
 test('a Build check shows its question as a task card that scrolls with the page, and says what to show in each part', async ({ page }) => {

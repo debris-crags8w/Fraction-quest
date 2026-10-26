@@ -26,7 +26,7 @@
 .fq-ts-row.is-fair .fq-ts-area { filter: drop-shadow(0 0 3px #2F9E44) drop-shadow(0 0 1px #2F9E44); }
 .fq-ts-area-wrap { position: relative; display: inline-flex; }
 
-.fq-ts-bar { position: relative; display: flex; height: 56px; border: 3px solid var(--ts-ink); border-radius: 10px; background: var(--ts-whole); }
+.fq-ts-bar { position: relative; display: flex; height: calc(56px * var(--ts-fit, 1)); border: 3px solid var(--ts-ink); border-radius: 10px; background: var(--ts-whole); }
 .fq-ts-part { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0;
   border-left: 3px solid transparent; transition: background .35s, border-color .35s, flex-grow .4s; }
 .fq-ts-part:first-child { border-radius: 7px 0 0 7px; }
@@ -53,8 +53,8 @@
 .fq-ts-bracket:not(.is-on) { height: 0; overflow: hidden; }
 
 .fq-ts-area-row { align-items: center; }
-.fq-ts-area { width: 150px; height: 150px; overflow: visible; }
-.fq-ts-area.is-small { width: 112px; height: 112px; }
+.fq-ts-area { width: calc(150px * var(--ts-fit, 1)); height: calc(150px * var(--ts-fit, 1)); overflow: visible; }
+.fq-ts-area.is-small { width: calc(112px * var(--ts-fit, 1)); height: calc(112px * var(--ts-fit, 1)); }
 .fq-ts-piece { fill: var(--ts-whole); stroke: transparent; stroke-width: 2.5; stroke-linejoin: round; transition: fill .35s, stroke .35s; }
 .fq-ts-piece.is-cut { stroke: var(--ts-ink); }
 .fq-ts-area.is-fine .fq-ts-piece { stroke-width: 0.6; }
@@ -138,3 +138,10 @@
 .fq-ts-words b.is-symbol { font-size: 1.7rem; text-align: center; }
 .fq-ts-words span { font-weight: 700; line-height: 1.35; font-size: .95rem; }
 .fq-ts-words .fq-ts-stage { grid-column: 1 / -1; min-height: 0; padding: 2px 0 0; gap: 4px; }
+
+/* Phones: a little less room around the Learn picture, so the picture and its buttons fit a short screen. */
+@media (max-width: 430px) {
+  .fq-ts-card .fq-ts-stage { min-height: 0; padding: 16px 12px 12px; gap: 12px; }
+  .fq-ts-card .fq-ts-step { min-height: 0; font-size: 1.1rem; }
+  .fq-ts-card .fq-ts-nav .fq-button { min-height: 48px; }
+}
