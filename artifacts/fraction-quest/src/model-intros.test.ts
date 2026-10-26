@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { readFileSync } from 'node:fs';
 import { recordIntro, replaceFun } from './lib/fun';
 import { INTRO_TEXT, introSpeech } from './intro-copy';
 
@@ -52,7 +53,8 @@ describe('fraction words', () => {
     assert.deepEqual(FRACTION_WORDS.rows.map((row) => row.word), ['one half', 'one third', 'one fourth', 'one sixth', 'one eighth']);
     const speech = fractionWordsSpeech();
     assert.ok(speech.includes('One third.'));
-    assert.ok(speech.includes('Three fourths.'));
+    assert.ok(speech.includes('One fourth, also called one quarter.'));
+    assert.ok(!speech.some((line) => /two thirds|three fourths/i.test(line)), 'names the one part of each, with no counted examples');
     assert.ok(speech.every((line) => !/\d\/\d/.test(line)), 'no slash fractions in what is read');
   });
 
@@ -101,5 +103,27 @@ describe('lesson 1 and the fraction words screen', () => {
     assert.deepEqual([...used].filter((d) => !taught.has(d)).sort((a, b) => a - b), [], 'lesson 1 uses a part the Words screen does not name');
     const untaughtNames = Object.entries(PART_NAMES).filter(([d]) => !taught.has(Number(d))).flatMap(([, name]) => [name.one, name.many]);
     for (const name of untaughtNames) assert.doesNotMatch(screens, new RegExp(`\\b${name}\\b`, 'i'), `lesson 1 says "${name}"`);
+  });
+});
+
+describe('the "Fraction names" Words screen (page 2), before ideas 2 and 3 teach the numbers', () => {
+  // Page 1 explains what a fraction is. Page 2 only names the parts, with a bar for each, so it uses words and pictures
+  // (and it has to fit a phone: with a stacked fraction on every row it did not).
+  const written = /\d\s*\/\s*\d/;
+  const formal = /numerators?|denominators?|top numbers?|bottom numbers?/i;
+
+  it('has no written fraction and none of the words numerator, denominator, top number, bottom number', async () => {
+    const { FRACTION_WORDS, fractionWordsSpeech } = await import('./intro-copy');
+    const lines = [FRACTION_WORDS.title, FRACTION_WORDS.rule, ...FRACTION_WORDS.rows.flatMap((row) => [row.word, row.also ?? '']), ...fractionWordsSpeech()];
+    assert.deepEqual(lines.filter((line) => written.test(line) || formal.test(line)), []);
+  });
+
+  it('draws no stacked fraction on the names page (a bar for each part, not a written fraction)', () => {
+    const source = readFileSync(new URL('./model-intro.tsx', import.meta.url), 'utf8');
+    const start = source.indexOf('data-testid="fraction-words"');
+    const page = source.slice(start, source.indexOf('export function NewWords'));
+    assert.ok(start > 0 && page.length > 300, 'found the names page in the source');
+    assert.doesNotMatch(page, /<Frac\b/);
+    assert.doesNotMatch(page, formal);
   });
 });

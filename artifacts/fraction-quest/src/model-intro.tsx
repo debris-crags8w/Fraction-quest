@@ -198,8 +198,9 @@ const MiniBar = ({ d, n = 1 }: { d: number; n?: number }) => (
   </span>
 );
 
-/** Words, two pages: what a fraction is (1/4 means 1 of 4 equal parts), then the fraction names (1/3 is one third),
-    before Try asks the child to build them. Nothing about fractions is assumed: page 1 explains the two numbers first. */
+/** Words, two pages: what a fraction is (1/4 means 1 of 4 equal parts), then the fraction names (each part name with a bar of
+    equal parts and one part shaded, words and pictures only), before Try asks the child to build them. Nothing about fractions
+    is assumed: page 1 explains the two numbers first. */
 export function FractionWords({ kicker, nextLabel, onDone, onSkip }: { kicker: string; nextLabel: string; onDone: () => void; onSkip?: () => void }) {
   const [page, setPage] = useState<'what' | 'names'>('what');
   if (page === 'what') return (
@@ -237,20 +238,16 @@ export function FractionWords({ kicker, nextLabel, onDone, onSkip }: { kicker: s
         </div>
         <LearningListenButton text={fractionWordsSpeech().join(' ')} label="Listen to the fraction names" />
       </header>
-      <p className="fq-mi-rule">The <u>bottom number</u> names the part. 2 parts are <u>halves</u>, 3 are <u>thirds</u>, 4 are <u>fourths</u>.</p>
+      <p className="fq-mi-rule">Equal parts have names. 2 are <u>halves</u>, 3 are <u>thirds</u>, 4 are <u>fourths</u>.</p>
       <ul className="fq-mi-word-rows">
         {FRACTION_WORDS.rows.map((row) => (
           <li key={row.d} data-testid={`fraction-word-${row.d}`}>
-            <Frac n={1} d={row.d} />
             <span className="fq-mi-word">{row.word}{row.also && <small>{row.also}</small>}</span>
             <MiniBar d={row.d} />
             <LearningListenButton text={`${row.word}${row.also ? ', also called one quarter' : ''}.`} label={`Listen to ${row.word}`} compact />
           </li>
         ))}
       </ul>
-      <p className="fq-mi-rule">More than one part: the <u>top number</u> counts them.{' '}
-        {FRACTION_WORDS.examples.map((example, i) => <span key={example.word}>{i ? ' ' : ''}<Frac n={example.n} d={example.d} /> is {example.word}.</span>)}
-      </p>
       <button type="button" className="fq-button" onClick={onDone} data-testid="button-words-next">{nextLabel} <ArrowRight size={16} aria-hidden="true" /></button>
       <Skip onSkip={onSkip} />
     </section>

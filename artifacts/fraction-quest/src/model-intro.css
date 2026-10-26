@@ -108,7 +108,8 @@
 .fq-mi-words .fq-mi-head h3 { font-size: 1.2rem; }
 .fq-mi-words .fq-mi-rule { padding: 7px 10px; line-height: 1.35; font-size: .95rem; }
 .fq-mi-words .fq-mi-word-rows { gap: 4px; }
-.fq-mi-words .fq-mi-word-rows li { padding: 2px 8px; min-height: 0; }
+.fq-mi-words .fq-mi-word-rows li { grid-template-columns: minmax(0, 1fr) auto auto; padding: 2px 8px; min-height: 0; }
+.fq-mi-words .fq-mi-mini { width: 120px; height: 20px; }
 .fq-mi-words .fq-mi-skip { min-height: 32px; }
 
 /* Words, page 1: "What is a fraction?" A big bar with 1 of 4 shaded, and what the top and bottom numbers mean. */
