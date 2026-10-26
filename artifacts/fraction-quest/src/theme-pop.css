@@ -602,7 +602,7 @@
 
 .fq-answer-choice.selected {
   border-color: var(--fq-sky);
-  color: #0E7FB6;
+  color: #0A6593;
   background: color-mix(in srgb, var(--fq-sky) 12%, hsl(var(--card)));
   box-shadow: none;
 }
