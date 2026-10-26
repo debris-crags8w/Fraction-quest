@@ -1,7 +1,7 @@
 /* The animated Teach first (teach-scenes.ts): one step at a time, each with a short picture that plays once and
    rests on its last frame. Back, Replay and Next move between steps; Listen reads the step. With reduced motion
    each step opens on its last frame. */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Check, RotateCcw, X } from 'lucide-react';
 import { AREA_CUTS, areaOutline, type Point } from './area-shapes';
 import type { LessonIntro } from './lesson-intros';
@@ -300,15 +300,53 @@ export function AnimatedLessonIntro({ intro, scene, missionId, onFinish }: { int
 
 /** One idea's Learn pages (learn one idea, practise it three times): a line and its picture on each page, Back, Replay
     and Next between them, and "Practise it" on the last. `goal` (the lesson's, on its first idea) opens the first page. */
+/** On a short screen (an iPhone in Safari shows about 664 points), make the Learn picture fit so its buttons stay on
+    screen: first shorten its bars and areas (down to 55%), so words and numbers keep their size; only if that is not
+    enough, shrink the whole picture a little (never below 85%). Uses the window's real height, which Safari reports
+    with its bars showing (CSS heights do not). */
+function useFitPicture(card: React.RefObject<HTMLElement | null>, deps: unknown[]) {
+  useLayoutEffect(() => {
+    const fit = () => {
+      const element = card.current;
+      const picture = element?.querySelector<HTMLElement>(':scope > .fq-ts-stage, :scope > .fq-ts-words');
+      const nav = element?.querySelector<HTMLElement>(':scope > .fq-ts-nav');
+      if (!element || !picture || !nav) return;
+      picture.style.zoom = '';
+      picture.style.removeProperty('--ts-fit');
+      // From the top of the lesson screen, as for questions (a developer test bar above it is not on a child's screen).
+      const top = () => element.closest('.fq-app')?.getBoundingClientRect().top ?? -window.scrollY;
+      // The page's real bottom (the padding under the card included), and at least 8 points under the buttons.
+      const bottom = () => Math.max(nav.getBoundingClientRect().bottom + 8, document.documentElement.scrollHeight - window.scrollY);
+      const over = () => bottom() - top() - window.innerHeight;
+      if (over() <= 0) return;
+      const shapes = [...picture.querySelectorAll<HTMLElement>('.fq-ts-bar, .fq-ts-area')].reduce((sum, shape) => sum + shape.getBoundingClientRect().height, 0);
+      if (shapes > 0) picture.style.setProperty('--ts-fit', String(Math.max(0.55, 1 - over() / shapes)));
+      const left = over();
+      const height = picture.getBoundingClientRect().height;
+      if (left > 0 && height > 0) picture.style.zoom = String(Math.max(0.8, (height - left) / height));
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    // An animated picture can grow after it first shows (a line stretching, a label appearing): fit again when it does.
+    const picture = card.current?.querySelector(':scope > .fq-ts-stage, :scope > .fq-ts-words');
+    const grows = typeof ResizeObserver === 'undefined' || !picture ? null : new ResizeObserver(fit);
+    if (picture) [...picture.children].forEach((child) => grows?.observe(child));
+    return () => { window.removeEventListener('resize', fit); grows?.disconnect(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+}
+
 export function IdeaLearnCard({ pages, goal, onPractise }: { pages: LearnPage[]; goal?: string; onPractise: () => void }) {
   const [page, setPage] = useState(0);
   const [take, setTake] = useState(0);
+  const card = useRef<HTMLElement>(null);
+  useFitPicture(card, [page, pages]);
   const current = pages[page]!;
   const last = page === pages.length - 1;
   const go = (next: number) => { setPage(next); setTake((count) => count + 1); };
   const listen = page === 0 && goal ? `${goal} ${learnScript(current)}` : learnScript(current);
   return (
-    <section className="fq-example-intro fq-teach-card fq-ts-card" aria-label="Learn" data-testid="idea-learn">
+    <section ref={card} className="fq-example-intro fq-teach-card fq-ts-card" aria-label="Learn" data-testid="idea-learn">
       <div className="fq-ts-progress">
         {pages.length > 1 && <span className="fq-ts-dots" aria-hidden="true">
           {pages.map((_, i) => <span key={i} className={i === page ? 'is-on' : i < page ? 'is-done' : ''} />)}

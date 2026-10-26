@@ -1,8 +1,8 @@
 /* Walking a lesson in the browser tests: solving a cake round or a card-ordering round, and walking a lesson's ideas
    (each idea's Learn pages, then its 3 practices, answered right). Shared by the specs. */
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { AREA_CUTS, pieceArea } from '../src/area-shapes';
-import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, MISSIONS, type Mission } from '../src/game';
+import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, MISSIONS, type Mission, type PracticeQuestion } from '../src/game';
 import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
 import { isPartFinderAnswer, PART_FINDER_ROUNDS, type PartFinderRound } from '../src/part-finder';
 import { STORY_PROBLEMS, chapterFor } from '../src/story';
@@ -71,8 +71,34 @@ export async function solvePartFinderRound(page: Page, round: PartFinderRound) {
   await page.getByTestId('button-part-finder-next').click();
 }
 
-/** A lesson with ideas: each idea's Learn pages, then its 3 practices (questions answered right, cake rounds solved). */
-export async function completeIdeas(page: Page, mission: Mission, { beforeRound, until }: { beforeRound?: () => Promise<void>; until?: number } = {}) {
+/** Hooks for a walk through a lesson: what to check at each screen a child sees. */
+export type WalkHooks = {
+  /** Before a cake round is solved. */
+  beforeRound?: (where: string) => Promise<void>;
+  /** Before a card-ordering round is solved. */
+  beforeSortRound?: (where: string) => Promise<void>;
+  /** Each Learn page, in place of checking that it fits a phone (expectLearnPageFits). */
+  onLearnPage?: (where: string) => Promise<void>;
+  /** A question with its right answer chosen, before Check. */
+  onQuestion?: (question: PracticeQuestion, where: string) => Promise<void>;
+  /** After Check: the button that goes on (Next, or Finish on the lesson's last question). */
+  afterCheck?: (moveOn: Locator, where: string) => Promise<void>;
+};
+
+/** Answer one practice question right: choose, Check, then go on (Next, or Finish when it was the last). */
+async function answerRight(page: Page, question: PracticeQuestion, where: string, { onQuestion, afterCheck }: WalkHooks) {
+  await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
+  await onQuestion?.(question, where);
+  await page.getByTestId('button-check-answer').click();
+  await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
+  const moveOn = page.getByTestId('button-next-question').or(page.getByTestId('button-finish-mission'));
+  await afterCheck?.(moveOn, where);
+  await moveOn.click();
+}
+
+/** A lesson with ideas: each idea's Learn pages (each checked to fit a phone), then its 3 practices (questions answered
+    right, cake and card-ordering rounds solved). `until` stops before that practice. */
+export async function completeIdeas(page: Page, mission: Mission, { until, ...hooks }: WalkHooks & { until?: number } = {}) {
   const steps = ideaSteps(mission.id);
   const ideas = lessonIdeas(mission.id)!;
   for (const [index, { idea, practice, item }] of steps.entries()) {
@@ -80,27 +106,46 @@ export async function completeIdeas(page: Page, mission: Mission, { beforeRound,
     if (practice === 0) {
       await expect(page.getByTestId('idea-kicker')).toHaveText(`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')} · Idea ${idea + 1} of ${ideas.length} · Learn`);
       for (let p = 0; p < ideas[idea]!.learn.length; p++) {
-        await expectLearnPageFits(page, `${mission.id} idea ${idea + 1} Learn page ${p + 1}`);
+        const where = `${mission.id} idea ${idea + 1} Learn page ${p + 1}`;
+        await (hooks.onLearnPage ? hooks.onLearnPage(where) : expectLearnPageFits(page, where));
         if (p < ideas[idea]!.learn.length - 1) await page.getByTestId('button-teach-step-next').click();
       }
       await page.getByTestId('button-idea-practise').click();
     }
+    const where = `${mission.id} idea ${idea + 1} practice ${practice + 1}`;
     if (!('sortRound' in item)) await expect(page.locator('.fq-play-kicker, .fq-taskbar-title').first()).toContainText(`Idea ${idea + 1} of ${ideas.length}`);
     if ('handsOn' in item) {
-      await beforeRound?.();
+      await hooks.beforeRound?.(where);
       await solvePartFinderRound(page, PART_FINDER_ROUNDS.find((round) => round.id === item.handsOn)!);
       continue;
     }
     if ('sortRound' in item) {
+      await hooks.beforeSortRound?.(where);
       await solveSortRound(page, FRACTION_ORDER_ROUNDS.find((round) => round.id === item.sortRound)!);
       continue;
     }
-    const question = ideaQuestion(mission, item.question)!;
-    await page.getByTestId(`button-answer-${question.id}-${question.correctChoice}`).click();
-    await page.getByTestId('button-check-answer').click();
-    await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'correct');
-    await page.getByTestId(index === steps.length - 1 && !hasStoryAfterIdeas(mission) ? 'button-finish-mission' : 'button-next-question').click();
+    await answerRight(page, ideaQuestion(mission, item.question)!, where, hooks);
   }
+}
+
+/** After the last idea, "Put it together": any review questions that are due (pass them, as the app makes them), then the
+    lesson's story problem when story mode tells one. Each is answered right; the last one's Finish opens the lesson page. */
+export async function finishPutTogether(page: Page, mission: Mission, { review = [], ...hooks }: WalkHooks & { review?: PracticeQuestion[] } = {}) {
+  const last = mission.questions.at(-1)!;
+  const known = [...review, { ...last, id: `${last.id}-story` }];
+  // Waited for in the page, not with an assertion: the lesson page may open under a break offer, and an assertion would
+  // set off the tests' Watch-skipping handler behind it.
+  const next = () => page.waitForFunction(() => document.querySelector('[data-testid="learning-lab"]') ? 'lab'
+    : [...document.querySelectorAll('.fq-play-kicker')].some((kicker) => kicker.textContent?.includes('Put it together')) ? 'question' : null);
+  for (let asked = 0; asked <= known.length; asked++) {
+    if (await (await next()).jsonValue() === 'lab') return asked;
+    const testId = await page.locator('[data-testid^="button-answer-"]').first().getAttribute('data-testid');
+    const id = testId!.replace(/^button-answer-/, '').replace(/-\d+$/, '');
+    const question = known.find((item) => item.id === id);
+    if (!question) throw new Error(`${mission.id}: a "Put it together" question nobody expected (${id})`);
+    await answerRight(page, question, `${mission.id} put it together ${asked + 1}`, hooks);
+  }
+  throw new Error(`${mission.id}: the lesson page did not open after "Put it together"`);
 }
 
 /** Story mode tells a lesson's last question as its story problem; a lesson with ideas asks it after them. */

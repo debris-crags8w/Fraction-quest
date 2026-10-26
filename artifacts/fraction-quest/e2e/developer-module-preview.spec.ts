@@ -1,7 +1,6 @@
 import { expect, openSettings, test } from './fixtures';
 import { MISSIONS } from '../src/game';
-import { PART_FINDER_LESSONS } from '../src/part-finder';
-import { ideaPracticeQuestions } from '../src/lesson-ideas';
+import { ideaPracticeQuestions, ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
 import { completeIdeas } from './lesson-walk';
 
 /** Developer testing lives with the grown-ups' settings, behind the grown-up check. */
@@ -17,8 +16,9 @@ async function openDeveloperTesting(page: import('@playwright/test').Page) {
 }
 
 test('developer can open a locked lesson and discard all test progress on exit', async ({ page }) => {
-  const mission = [...MISSIONS].reverse().find((item) => !PART_FINDER_LESSONS.has(item.id))!;
-  const question = mission.questions[0];
+  // The last lesson whose first practice is a question (it opens on its first idea's Learn pages).
+  const mission = [...MISSIONS].reverse().find((item) => 'question' in (ideaSteps(item.id)[0]?.item ?? {}))!;
+  const question = ideaQuestion(mission, (ideaSteps(mission.id)[0]!.item as { question: string }).question)!;
   const wrongChoice = (question.correctChoice + 1) % question.choices.length;
 
   await page.route('**/api/**', (route) => route.fulfill({
@@ -40,7 +40,10 @@ test('developer can open a locked lesson and discard all test progress on exit',
   await page.getByTestId('button-open-developer-lesson').click();
 
   await expect(page.getByTestId('developer-test-banner')).toBeVisible();
-  await expect(page.getByRole('heading', { name: mission.title })).toBeVisible();
+  await expect(page.locator('.fq-taskbar-title')).toHaveText(mission.title);
+  await expect(page.getByTestId('idea-learn-screen')).toBeVisible();
+  for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  await page.getByTestId('button-idea-practise').click();
   await page.getByTestId(`button-answer-${question.id}-${wrongChoice}`).click();
   await page.getByTestId('button-check-answer').click();
   await expect(page.getByTestId('status-feedback')).toHaveAttribute('data-result', 'retry');
