@@ -3352,7 +3352,8 @@ describe('pictures never give the answer away', () => {
       if (q.model.kind !== 'partition') continue;
       const d = Number(/equal (\w+)/.exec(q.prompt) && { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8 }[/equal (\w+)\?/.exec(q.prompt)![1] as 'halves']);
       const parts = q.model.parts; const equal = parts.every((p) => Math.abs(p - parts[0]) < 1e-6);
-      const truth = parts.length !== d ? `No, there are ${d + 1} parts` : equal ? `Yes, ${d} equal parts` : 'No, the parts are unequal';
+      // A wrong count is whatever the strip really shows (a taught number of parts, never fifths or sevenths).
+      const truth = parts.length !== d ? `No, there are ${parts.length} parts` : equal ? `Yes, ${d} equal parts` : 'No, the parts are unequal';
       assert.equal(q.choices[q.correctChoice], truth, `${q.prompt} with ${parts.length} parts, equal=${equal}`);
     }
     assert.ok(shapes > 20, 'some practice questions use squares and circles');
