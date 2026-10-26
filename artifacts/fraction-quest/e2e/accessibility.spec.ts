@@ -8,17 +8,11 @@ type Page = import('@playwright/test').Page;
 /** WCAG 2.0 and 2.1, levels A and AA: what axe can check on a rendered screen (it is not a full audit). */
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
-/** Known failures, each a screen and an axe rule, that wait for a design decision (changing a colour changes how the
-    screen looks, so it needs a mockup and approval first). The test fails on any violation that is not listed here, and
-    also when a listed one stops happening, so this list can only get shorter. */
-const KNOWN = [
-  // "Listen" on the chapter card: dark green text on the purple card (1.05:1).
-  'the map: color-contrast',
-  // A chosen answer: blue text on its light-blue tint (3.99:1).
-  'a question: color-contrast',
-  // The locked parts of the lesson page: grey text on white (2.7:1 to 3.9:1).
-  'the lesson page: color-contrast',
-];
+/** Known failures, each a screen and an axe rule, that wait for a decision (a colour change, say, needs a mockup and
+    approval first). The test fails on any violation that is not listed here, and also when a listed one stops
+    happening, so this list can only get shorter. It is empty now: add an entry here, with a note saying why, rather
+    than loosening the check. */
+const KNOWN: string[] = [];
 
 async function axeViolations(page: Page, screen: string) {
   const { violations } = await new AxeBuilder({ page }).withTags(WCAG).analyze();

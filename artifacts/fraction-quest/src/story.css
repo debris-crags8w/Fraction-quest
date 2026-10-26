@@ -194,6 +194,9 @@
 .fq-chapter-banner { display: grid; gap: 12px; margin-bottom: 16px; padding: 16px; border-radius: 22px; color: #fff; background: var(--unit); box-shadow: 0 5px 0 var(--unit-dark, rgb(0 0 0 / .25)); }
 .fq-chapter-banner-head { display: flex; align-items: center; gap: 14px; }
 .fq-chapter-banner-art { flex: none; display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; background: rgb(255 255 255 / .9); }
+/* "Listen" on a chapter card sits on the unit's colour: white like the card's other buttons, not the green it has on pale cards. */
+.fq-chapter-banner .fq-learning-listen { color: #fff; border-color: rgb(255 255 255 / .75); background: rgb(255 255 255 / .14); }
+.fq-chapter-banner .fq-learning-listen:hover:not(:disabled) { background: rgb(255 255 255 / .24); }
 .fq-chapter-banner-kicker { color: #FFF1C2; font-size: .78rem; font-weight: 900; letter-spacing: .03em; text-transform: uppercase; }
 .fq-chapter-banner h3 { margin: 2px 0; color: #fff; font-family: var(--app-font-display); font-size: 1.5rem; line-height: 1.05; }
 .fq-chapter-banner p { margin: 0; color: #fff; font-weight: 700; }
