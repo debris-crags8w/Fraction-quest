@@ -1068,7 +1068,7 @@ const curriculum: MissionSeed[] = [
       model: decimal(7),
     },
     questions: [
-      practice('Write 3/10 as a decimal.', ['0.3', '3.0', '0.7', '3.10'], 0, decimal(3), 'Tenths go right after the decimal point.', '3 tenths is 0.3.', decimal(3), { authoredChoices: true }),
+      practice('Write 3/10 as a decimal.', ['0.3', '3.0', '0.7', '10.3'], 0, decimal(3), 'Tenths go right after the decimal point.', '3 tenths is 0.3.', decimal(3), { authoredChoices: true }),
       practice('What fraction is 0.6?', ['6/10', '4/10', '1/6', '10/6'], 0, decimal(6), 'The 6 is right after the decimal point. That means tenths.', '0.6 means 6 tenths, or 6/10.', decimal(6), { authoredChoices: true }),
       practice('A strip is 0.4 colored. What fraction is that?', ['4/10', '6/10', '1/4', '10/4'], 0, decimal(4), 'The number right after the decimal point is tenths.', '0.4 means 4 tenths, or 4/10.', decimal(4), { authoredChoices: true }),
       practice('Which is bigger, 0.8 or 5/10?', ['0.8', '5/10', 'They are equal'], 0, bars({ numerator: 8, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Write both numbers as tenths.', '8 tenths is more than 5 tenths.', decimal(8)),
@@ -1077,7 +1077,7 @@ const curriculum: MissionSeed[] = [
       practice('A strip has 10 equal parts. 3 are colored. What fraction is colored?', ['3/10', '7/10', '3/7', '10/3'], 0, bars({ numerator: 3, denominator: 10 }), 'Count all the equal parts for the bottom number. Count the colored parts for the top.', '3 of the 10 equal parts are colored: 3/10, or 3 tenths.', bars({ numerator: 3, denominator: 10 }), { authoredChoices: true }),
       practice('How many tenths make one whole?', ['10', '1', '9', '5'], 0, bars({ numerator: 0, denominator: 10 }), 'The denominator is how many parts make one whole.', '10 tenths make one whole: 10/10 = 1.', bars({ numerator: 10, denominator: 10 }), { authoredChoices: true }),
       practice('A strip has 10 equal parts. 9 are colored. What fraction is not colored?', ['1/10', '9/10', '1/9', '2/10'], 0, bars({ numerator: 9, denominator: 10 }), 'Count the parts that are not colored. All the parts make the bottom number.', '1 of the 10 parts is not colored: 1/10.', bars({ numerator: 9, denominator: 10 }), { authoredChoices: true }),
-      practice('Write 9/10 as a decimal.', ['0.9', '9.0', '0.1', '9.10'], 0, decimal(9), 'Write 0 and the decimal point. Then the tenths go right after the point.', '9 tenths is 0.9.', decimal(9), { authoredChoices: true }),
+      practice('Write 9/10 as a decimal.', ['0.9', '9.0', '0.1', '10.9'], 0, decimal(9), 'Write 0 and the decimal point. Then the tenths go right after the point.', '9 tenths is 0.9.', decimal(9), { authoredChoices: true }),
       practice('A strip has 10 equal parts. 6 are colored. Write the colored part as a decimal.', ['0.6', '6.0', '0.4', '6'], 0, decimal(6), 'How many tenths are colored? Write them right after the decimal point.', '6 tenths are colored: 0.6.', decimal(6), { authoredChoices: true }),
     ],
   },
