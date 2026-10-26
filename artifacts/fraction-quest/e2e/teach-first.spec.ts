@@ -46,17 +46,14 @@ test('a child’s first lesson: Watch, Words and Try, then idea 1 is taught befo
   await expect(intro.getByTestId('intro-line')).toHaveAttribute('data-step', 'watch');
   await expect(intro.getByTestId('button-intro-watched')).toHaveText(/Next: Words/);
   await intro.getByTestId('button-intro-watched').click();
-  // Words, page 1: what a fraction is, before any fraction name: a bar of 4 equal parts with 1 shaded. Words and a picture
-  // only: lesson 1 has not taught a written fraction or the top and bottom numbers yet (ideas 2 and 3 do).
+  // Words, page 1: what a fraction is, before any fraction name: 1/4 is 1 of 4 equal parts, and what each number means.
   const what = intro.getByTestId('what-is-a-fraction');
   await expect(what.locator('.fq-mi-kicker')).toHaveText('Step 2 of 3 · Words · page 1 of 2');
   await expect(what).toContainText('A fraction names part of a whole.');
-  await expect(what).toContainText('4 equal parts make the whole');
-  await expect(what).toContainText('1 out of 4 equal parts is shaded. We call it one fourth.');
+  await expect(what).toContainText('how many equal parts make the whole');
   await expect(what.getByRole('img', { name: 'A bar cut into 4 equal parts, 1 shaded' })).toBeVisible();
   await expect(what).not.toContainText('1/4');
-  await expect(what.locator('.fq-mi-frac')).toHaveCount(0);
-  await expect(what).not.toContainText(/numerator|denominator|top number|bottom number/i);
+  await expect(what).not.toContainText('numerator');
   await fits('What is a fraction?');
   await what.getByTestId('button-what-next').click();
   // Words, page 2: each part name with a small bar of equal parts and one part shaded. No written fraction and no top or

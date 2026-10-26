@@ -77,27 +77,31 @@ export const PART_NAMES: Readonly<Record<number, { one: string; many: string }>>
   10: { one: 'tenth', many: 'tenths' }, 12: { one: 'twelfth', many: 'twelfths' }, 100: { one: 'hundredth', many: 'hundredths' },
 };
 
-/** The Words screen in a child's first lesson: the part names they meet first, each with a bar of equal parts and one part
-    shaded. It comes before idea 2 and 3 teach the bottom and top numbers and the first written fraction, so it uses words and
-    pictures only (the lesson's own test checks this). */
+/** The Words screen in a child's first lesson (page 2): the part names they meet first, each with a bar of equal parts and one part
+    shaded. Words and pictures only: no written fraction here (lesson 1's ideas 2 and 3 teach writing one), which also keeps the screen
+    on a phone. */
 export const FRACTION_WORDS = {
   title: 'Fraction names',
   rule: 'Equal parts have names. 2 are halves, 3 are thirds, 4 are fourths.',
   rows: [2, 3, 4, 6, 8].map((d) => ({ d, word: `one ${PART_NAMES[d].one}`, also: d === 4 ? 'also: one quarter' : undefined })),
 } as const;
 
-/** Words, page 1: what a fraction is, on a bar of 4 equal parts with 1 shaded. Words and a picture only: no written fraction and no
-    "numerator", "denominator", "top number" or "bottom number" (lesson 1 teaches those in its ideas 2 and 3). */
+/** Words, page 1: what a fraction is, with 1/4 on a bar of 4 equal parts. No "numerator"/"denominator" yet (lesson 1 teaches them after its first idea). */
 export const WHAT_IS_A_FRACTION = {
   title: 'What is a fraction?',
   rule: 'A fraction names part of a whole. The whole must be cut into equal parts.',
   whole: '4 equal parts make the whole',
-  shaded: '1 out of 4 equal parts is shaded. We call it one fourth.',
+  top: 'how many parts we count. Here, 1.',
+  bottom: 'how many equal parts make the whole. Here, 4.',
 } as const;
 
-/** What Listen reads on "What is a fraction?", sentence by sentence. */
+/** What Listen reads on "What is a fraction?", sentence by sentence (the fraction said in words). */
 export function whatIsAFractionSpeech(): string[] {
-  return [WHAT_IS_A_FRACTION.title, WHAT_IS_A_FRACTION.rule, `${WHAT_IS_A_FRACTION.whole}.`, WHAT_IS_A_FRACTION.shaded];
+  return [
+    WHAT_IS_A_FRACTION.title, WHAT_IS_A_FRACTION.rule, `${WHAT_IS_A_FRACTION.whole}.`,
+    `The top number is ${WHAT_IS_A_FRACTION.top}`, `The bottom number is ${WHAT_IS_A_FRACTION.bottom}`,
+    'So one fourth means 1 of 4 equal parts.',
+  ];
 }
 
 /** What Listen reads on the Words screen, sentence by sentence. */

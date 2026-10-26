@@ -112,9 +112,15 @@
 .fq-mi-words .fq-mi-mini { width: 120px; height: 20px; }
 .fq-mi-words .fq-mi-skip { min-height: 32px; }
 
-/* Words, page 1: "What is a fraction?" A big bar with 1 of 4 shaded. */
+/* Words, page 1: "What is a fraction?" A big bar with 1 of 4 shaded, and what the top and bottom numbers mean. */
 .fq-mi-what-bar { display: grid; gap: 4px; }
 .fq-mi-big-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; height: 40px; padding: 3px; border-radius: 9px; background: hsl(var(--foreground)); }
 .fq-mi-big-bar i { border-radius: 4px; background: hsl(var(--card)); }
 .fq-mi-big-bar i.is-on { background: var(--fq-grape, #6D4BD8); }
 .fq-mi-what-bar small { padding-top: 4px; border-top: 2px solid hsl(var(--muted-foreground)); color: hsl(var(--muted-foreground)); font-weight: 800; text-align: center; }
+.fq-mi-what-numbers { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 14px; padding: 10px 12px; border: 2px solid hsl(var(--border)); border-radius: 14px; background: hsl(var(--card)); }
+.fq-mi-what-numbers > .fq-mi-frac { color: var(--fq-grape, #6D4BD8); font-size: 2.1rem; }
+.fq-mi-what-numbers dl { display: grid; gap: 8px; margin: 0; }
+.fq-mi-what-numbers dl div { display: flex; gap: 6px; font-weight: 800; line-height: 1.3; }
+.fq-mi-what-numbers dt { color: var(--fq-grape, #6D4BD8); font-weight: 900; }
+.fq-mi-what-numbers dd { margin: 0; }

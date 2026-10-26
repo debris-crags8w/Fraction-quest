@@ -198,9 +198,9 @@ const MiniBar = ({ d, n = 1 }: { d: number; n?: number }) => (
   </span>
 );
 
-/** Words, two pages: what a fraction is (a bar of 4 equal parts, 1 shaded, is one fourth), then the fraction names (a bar for
-    each, with one part shaded), before Try asks the child to build them. Nothing about fractions is assumed, and no written
-    fraction or top/bottom number appears: lesson 1 teaches those in its ideas 2 and 3. */
+/** Words, two pages: what a fraction is (1/4 means 1 of 4 equal parts), then the fraction names (each part name with a bar of
+    equal parts and one part shaded, words and pictures only), before Try asks the child to build them. Nothing about fractions
+    is assumed: page 1 explains the two numbers first. */
 export function FractionWords({ kicker, nextLabel, onDone, onSkip }: { kicker: string; nextLabel: string; onDone: () => void; onSkip?: () => void }) {
   const [page, setPage] = useState<'what' | 'names'>('what');
   if (page === 'what') return (
@@ -217,7 +217,14 @@ export function FractionWords({ kicker, nextLabel, onDone, onSkip }: { kicker: s
         <span className="fq-mi-big-bar" role="img" aria-label="A bar cut into 4 equal parts, 1 shaded">{[0, 1, 2, 3].map((i) => <i key={i} className={i === 0 ? 'is-on' : ''} />)}</span>
         <small>{WHAT_IS_A_FRACTION.whole}</small>
       </div>
-      <p className="fq-mi-rule">{WHAT_IS_A_FRACTION.shaded}</p>
+      <div className="fq-mi-what-numbers">
+        <Frac n={1} d={4} />
+        <dl>
+          <div><dt>Top:</dt><dd>{WHAT_IS_A_FRACTION.top}</dd></div>
+          <div><dt>Bottom:</dt><dd>{WHAT_IS_A_FRACTION.bottom}</dd></div>
+        </dl>
+      </div>
+      <p className="fq-mi-rule">So <Frac n={1} d={4} /> means 1 of 4 equal parts. We say “one fourth”.</p>
       <button type="button" className="fq-button" onClick={() => setPage('names')} data-testid="button-what-next">Next: fraction names <ArrowRight size={16} aria-hidden="true" /></button>
       <Skip onSkip={onSkip} />
     </section>

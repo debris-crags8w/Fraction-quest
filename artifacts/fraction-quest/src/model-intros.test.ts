@@ -68,11 +68,11 @@ describe('fraction words', () => {
     assert.ok(first(10) <= first(100), 'tenths come before hundredths');
   });
 
-  it('explains what a fraction is first, in words and a bar', async () => {
+  it('explains what a fraction is first, saying the fraction in words', async () => {
     const { WHAT_IS_A_FRACTION, whatIsAFractionSpeech } = await import('./intro-copy');
     assert.match(WHAT_IS_A_FRACTION.rule, /names part of a whole/);
     const speech = whatIsAFractionSpeech();
-    assert.ok(speech.includes('1 out of 4 equal parts is shaded. We call it one fourth.'));
+    assert.ok(speech.includes('So one fourth means 1 of 4 equal parts.'));
     assert.ok(speech.every((line) => !/\d\/\d|numerator|denominator/.test(line)), 'no slash fractions or lesson 2 words');
   });
 });
@@ -106,27 +106,24 @@ describe('lesson 1 and the fraction words screen', () => {
   });
 });
 
-describe('the first lesson\'s Words screens, before idea 2 and 3 teach the numbers', () => {
-  // Lesson 1 teaches the bottom number (idea 2), then the top number and the first written fraction (idea 3). The Words
-  // screens come first, so they name the parts with pictures and words only.
+describe('the "Fraction names" Words screen (page 2), before ideas 2 and 3 teach the numbers', () => {
+  // Page 1 explains what a fraction is. Page 2 only names the parts, with a bar for each, so it uses words and pictures
+  // (and it has to fit a phone: with a stacked fraction on every row it did not).
   const written = /\d\s*\/\s*\d/;
-  const untaught = /numerators?|denominators?|top numbers?|bottom numbers?/i;
+  const formal = /numerators?|denominators?|top numbers?|bottom numbers?/i;
 
   it('has no written fraction and none of the words numerator, denominator, top number, bottom number', async () => {
-    const { FRACTION_WORDS, WHAT_IS_A_FRACTION, fractionWordsSpeech, whatIsAFractionSpeech } = await import('./intro-copy');
-    const lines = [
-      ...Object.values(WHAT_IS_A_FRACTION), ...whatIsAFractionSpeech(),
-      FRACTION_WORDS.title, FRACTION_WORDS.rule, ...FRACTION_WORDS.rows.flatMap((row) => [row.word, row.also ?? '']), ...fractionWordsSpeech(),
-    ];
-    assert.deepEqual(lines.filter((line) => written.test(line) || untaught.test(line)), []);
+    const { FRACTION_WORDS, fractionWordsSpeech } = await import('./intro-copy');
+    const lines = [FRACTION_WORDS.title, FRACTION_WORDS.rule, ...FRACTION_WORDS.rows.flatMap((row) => [row.word, row.also ?? '']), ...fractionWordsSpeech()];
+    assert.deepEqual(lines.filter((line) => written.test(line) || formal.test(line)), []);
   });
 
-  it('draws no stacked fraction on either screen (FractionWords shows a bar for each part, not a written fraction)', () => {
+  it('draws no stacked fraction on the names page (a bar for each part, not a written fraction)', () => {
     const source = readFileSync(new URL('./model-intro.tsx', import.meta.url), 'utf8');
-    const screen = source.slice(source.indexOf('export function FractionWords'), source.indexOf('export function NewWords'));
-    assert.ok(screen.includes('FractionWords') && screen.length > 500, 'found the Words screens in the source');
-    assert.doesNotMatch(screen, /<Frac\b/);
-    assert.doesNotMatch(screen, untaught);
-    assert.doesNotMatch(screen, /\b(top|bottom)\b/i);
+    const start = source.indexOf('data-testid="fraction-words"');
+    const page = source.slice(start, source.indexOf('export function NewWords'));
+    assert.ok(start > 0 && page.length > 300, 'found the names page in the source');
+    assert.doesNotMatch(page, /<Frac\b/);
+    assert.doesNotMatch(page, formal);
   });
 });
