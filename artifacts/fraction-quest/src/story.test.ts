@@ -239,8 +239,8 @@ test('every stone piece is won with its chapter\'s math, not found by luck', () 
   assert.match(lines(6), /2\/4 jar/);
   assert.match(lines(7), /parts make 1/);
   assert.match(lines(10), /1\/2 \+ 1\/4/);
-  assert.match(lines(12), /3\/4 of 12 feet/);
-  assert.match(lines(13), /1\/2 square meter/);
+  assert.match(lines(12), /3\/4 of 12 meters/);
+  assert.match(lines(13), /1\/2 square unit/);
 });
 
 test('in story mode the chapter friend gives the hint; with the story off it stays plain', () => {

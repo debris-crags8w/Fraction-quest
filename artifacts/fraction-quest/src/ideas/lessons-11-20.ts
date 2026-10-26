@@ -48,7 +48,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     {
       title: 'A ruler is a number line: start at 0 and count the spaces',
       learn: [
-        wordsToKnow('ruler-measurement', ['quarter']),
+        wordsToKnow('ruler-measurement', ['inch', 'quarter']),
         { text: 'Each small space on a ruler is an equal part of an inch.', scene: scenes('ruler-measurement').why },
         example('ruler-measurement', 'Measure a crayon'),
       ],

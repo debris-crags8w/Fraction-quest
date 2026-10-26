@@ -77,8 +77,8 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       {
         title: 'Write the fraction',
         picture: reveal([
-          { kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1], label: '2/5' },
-          say('2 out of 5 equal parts are colored. All the parts, 5, go on the bottom. The colored parts, 2, go on top: 2/5.'),
+          { kind: 'bar', parts: ones(6), cut: true, shaded: [0, 1], label: '2/6' },
+          say('2 out of 6 equal parts are colored. All the parts, 6, go on the bottom. The colored parts, 2, go on top: 2/6.'),
         ]),
       },
     ],
@@ -195,6 +195,10 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
     words: [{
       term: 'benchmark', meaning: 'A benchmark is an easy number we compare to, like 0, 1/2 or 1.',
       picture: still([{ kind: 'line', max: 1, spaces: 2, cut: true, marks: [{ at: 1, label: '1/2' }] }]),
+    }, {
+      // The first lesson to measure in meters (a worm 1/6 of a meter long): the unit is taught before it is used.
+      term: 'meter', meaning: 'A meter is a way to measure length. One big step is about 1 meter long.',
+      picture: still([{ kind: 'bar', parts: ones(1), shaded: [0], bracket: '1 meter' }]),
     }],
     examples: [
       {
@@ -207,6 +211,10 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
         picture: reveal([{ kind: 'bar', parts: ones(3), cut: true, shaded: [0, 1], label: '2/3' }, say('2/3: half is 1 and a half parts. 2 parts is half a part from half, and 1 part from the whole. So 2/3 is nearer 1/2.')]),
       },
     ],
+  },
+  'fraction-magnitude': {
+    // The first lesson to measure in miles (a path 5/8 of a mile long).
+    words: [{ term: 'mile', meaning: 'A mile is a way to measure a long way, like a walk across town. A mile is much longer than a meter.' }],
   },
   'number-line-basics': {
     words: [{
@@ -242,6 +250,11 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
   },
   'ruler-measurement': {
     words: [
+      {
+        // The first lesson to measure in inches. The ruler pictures write "in" under each whole inch.
+        term: 'inch', meaning: 'An inch is a short length. A paper clip is about 1 inch long. On a ruler, “in” is short for inch.',
+        picture: still([{ kind: 'line', max: 1, spaces: 1, ruler: true, stretch: 1 }]),
+      },
       {
         term: '1 1/4', meaning: '1 1/4 is a short way to write 1 whole and 1/4 more.',
         picture: still([{ kind: 'line', max: 2, spaces: 4, cut: true, ruler: true, stretch: 5 }]),
@@ -416,6 +429,8 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
     words: [
       { term: '+', meaning: '+ means put together. 2/5 + 3/5 puts 2 fifths and 3 fifths together.' },
       { term: 'sum', meaning: 'The sum is the amount you get when you put the parts together. The sum of 2/5 + 3/5 is 5/5.' },
+      // The first lesson to measure in cups (a recipe uses 3/6 cup, then 3/6 cup more).
+      { term: 'cup', meaning: 'A cup is an amount for cooking, like a measuring cup full of milk. Recipes use parts of a cup, like 1/2 cup.' },
     ],
     examples: [
       {
@@ -759,7 +774,21 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
     ],
   },
   'measurement-word-problems': {
+    // The units the lesson's stories measure in, each taught before its first question (idea 2).
+    words: [
+      { term: 'cent', meaning: 'A cent is the value of 1 penny. 100 cents make 1 dollar.' },
+      { term: 'gram', meaning: 'A gram is a tiny weight: a paper clip weighs about 1 gram. 1000 grams make 1 kilogram, about a bag of rice.' },
+      { term: 'liter', meaning: 'A big water bottle holds about 1 liter. A milliliter is tiny: 1000 milliliters make 1 liter.' },
+    ],
     examples: [
+      {
+        // Idea 1: hours in a day, the other time fact the lesson's stories use.
+        title: '1 day is 24 hours',
+        picture: play([
+          { kind: 'bar', parts: ones(4), bracket: '1 day = 24 hours' },
+          { ...say('1 day is 24 hours. For 1/4 day, split the 24 hours into 4 equal parts: 24 ÷ 4 = 6 hours.'), hidden: true },
+        ], [600, { 0: { cut: true, shaded: [0] } }], [500, { 1: { hidden: false } }]),
+      },
       {
         title: 'Other units split the same way',
         picture: play([
@@ -770,6 +799,8 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
     ],
   },
   'party-portions': {
+    // The first lesson to weigh in pounds (3/8 pound for each guest).
+    words: [{ term: 'pound', meaning: 'A pound is a way to measure how heavy something is. A loaf of bread weighs about 1 pound.' }],
     examples: [
       {
         title: 'Between which whole numbers?',
@@ -929,12 +960,21 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
     ],
   },
   'fractional-unit-conversions': {
+    // The new units in the unit facts, each with what it measures (inches, pounds, meters and the rest are taught earlier).
+    words: [
+      {
+        term: 'foot', meaning: 'A foot is a length of 12 inches. A school ruler is about 1 foot long. Two or more are feet.',
+        picture: still([{ kind: 'bar', parts: ones(12), cut: true, bracket: '1 foot = 12 inches' }]),
+      },
+      { term: 'ounce', meaning: 'An ounce is a small weight. A slice of bread weighs about 1 ounce. 16 ounces make 1 pound.' },
+      { term: 'centimeter', meaning: 'A centimeter is a tiny length, about as wide as your fingernail. 100 centimeters make 1 meter.' },
+    ],
     examples: [{
       title: 'Unit facts',
       picture: reveal([
         { kind: 'bar', parts: ones(12), cut: true, bracket: '1 foot = 12 inches' },
         say('1 foot = 12 inches. 1 hour = 60 minutes. 1 day = 24 hours. 1 pound = 16 ounces.'),
-        say('1 meter = 100 centimeters. 1 liter = 1000 milliliters. 1 kilogram = 1000 grams.'),
+        say('1 minute = 60 seconds. 1 meter = 100 centimeters. 1 liter = 1000 milliliters. 1 kilogram = 1000 grams.'),
       ]),
     }],
   },
@@ -1019,11 +1059,15 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
     ],
   },
   'multiply-mixed-numbers': {
+    words: [{
+      term: 'square meter', meaning: 'A square meter is a square unit 1 meter long and 1 meter wide. Garden areas are counted in square meters.',
+      picture: still([{ kind: 'area', cut: 'grid-3x3', edges: true, shaded: [0] }]),
+    }],
     examples: [{
       title: 'Add the four areas',
-      // 1 1/2 m across (3 halves) by 1 1/3 m down (4 thirds): each box is 1/6 square meter.
+      // 1 1/2 meters across (3 halves) by 1 1/3 meters down (4 thirds): each box is 1/6 square meter.
       picture: reveal([
-        { kind: 'area', cut: 'grid-3x4', edges: true, shaded: [0, 1, 3, 4, 6, 7], shaded2: [2, 5, 8], glow: [9, 10], counted: [11], label: '1 1/2 m by 1 1/3 m' },
+        { kind: 'area', cut: 'grid-3x4', edges: true, shaded: [0, 1, 3, 4, 6, 7], shaded2: [2, 5, 8], glow: [9, 10], counted: [11], label: '1 1/2 meters by 1 1/3 meters' },
         say('1 + 1/2 + 1/3 + 1/6. In sixths: 6/6 + 3/6 + 2/6 + 1/6 = 12/6 = 2 square meters.'),
       ]),
     }],
@@ -1096,7 +1140,9 @@ export const wordsScript = (words: WordCard[]) => ['Words to know.', ...words.ma
 
 /** Terms and symbols a lesson teaches (in its Words to know), and the lesson that teaches each one. Practice in an
     earlier lesson may not use them (checked by teach-extras.test.ts). Each unit's PR adds its own. */
-export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string }[] = [
+export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
+  /** A unit of measure or a unit fact: checked on every screen of the earlier lessons and ideas, not only practice. */
+  unit?: true }[] = [
   { term: 'numerator / denominator', pattern: /\b(numerator|denominator)s?\b/i, lesson: 'fraction-names' },
   { term: 'area', pattern: /\barea\b/i, lesson: 'fraction-of-area' },
   { term: '=', pattern: /\s=\s/, lesson: 'compare-same-numerator' },
@@ -1134,9 +1180,27 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string }[] = [
   { term: 'fraction bar', pattern: /\bfraction bar\b/i, lesson: 'fraction-as-division' },
   { term: 'a unit fraction shared (1/3 ÷ 4)', pattern: /\d+\/\d+ ÷ \d/, lesson: 'unit-fraction-divided-whole' },
   { term: '÷ by a fraction (how many fit)', pattern: /÷\s*\d+\/\d+/, lesson: 'divide-whole-by-unit-fraction' },
+  { term: 'checking an answer with ×', pattern: /\bcheck\b[^.]*×/i, lesson: 'unit-fraction-divided-whole' },
   { term: 'sharing or fitting', pattern: /\bfitting\b/i, lesson: 'share-or-fit' },
   // Lessons 72–81.
   { term: 'chance, outcome, equally likely', pattern: /\b(chance|outcomes?|equally likely)\b/i, lesson: 'fraction-probability' },
   { term: 'square unit', pattern: /\bsquare units?\b/i, lesson: 'fractional-side-area' },
   { term: 'percent, %', pattern: /%|\bpercent\b/i, lesson: 'fractions-to-percent' },
+  // Units of measure and unit facts, each taught where a child first meets it (Words to know, or a worked example).
+  { term: 'meter', pattern: /\bmeters?\b/i, lesson: 'benchmarks-zero-one', unit: true },
+  { term: 'mile', pattern: /\bmiles?\b/i, lesson: 'fraction-magnitude', unit: true },
+  { term: 'inch (in)', pattern: /\binch(es)?\b/i, lesson: 'ruler-measurement', unit: true },
+  { term: 'cup', pattern: /\bcups?\b/i, lesson: 'compose-to-one', unit: true },
+  { term: 'dollar', pattern: /\bdollars?\b/i, lesson: 'dimes-and-pennies', unit: true },
+  { term: 'hour and minute: 1 hour is 60 minutes', pattern: /\b(hours?|minutes?)\b/i, lesson: 'measurement-word-problems', unit: true },
+  { term: '1 day is 24 hours', pattern: /\b24 hours\b|\bhours? (are )?in (a |\d+\/\d+ (of a )?)?days?\b|\bdays? (is|=) 24\b/i, lesson: 'measurement-word-problems', unit: true },
+  { term: 'cent: 100 cents make 1 dollar', pattern: /\bcents?\b/i, lesson: 'measurement-word-problems', unit: true },
+  { term: 'kilogram and gram', pattern: /\b(kilo)?grams?\b/i, lesson: 'measurement-word-problems', unit: true },
+  { term: 'liter and milliliter', pattern: /\b(milli)?liters?\b/i, lesson: 'measurement-word-problems', unit: true },
+  { term: 'pound', pattern: /\bpounds?\b/i, lesson: 'party-portions', unit: true },
+  { term: 'foot: 1 foot is 12 inches', pattern: /\b(foot|feet)\b/i, lesson: 'fractional-unit-conversions', unit: true },
+  { term: 'ounce: 16 ounces make 1 pound', pattern: /\bounces?\b/i, lesson: 'fractional-unit-conversions', unit: true },
+  { term: 'centimeter: 100 centimeters make 1 meter', pattern: /\bcentimeters?\b/i, lesson: 'fractional-unit-conversions', unit: true },
+  { term: '1 minute is 60 seconds', pattern: /\bseconds\b/i, lesson: 'fractional-unit-conversions', unit: true },
+  { term: 'square meter', pattern: /\bsquare meters?\b/i, lesson: 'multiply-mixed-numbers', unit: true },
 ];
