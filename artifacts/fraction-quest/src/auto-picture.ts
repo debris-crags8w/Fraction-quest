@@ -20,8 +20,8 @@ export function amountsIn(text: string): Amount[] {
     if (!free(start, end)) return;
     taken.push([start, end]); found.push({ at: start, amount });
   };
-  // Mixed numbers first ("1 2/3", "2 and 1/4"), then plain fractions, decimals and percents.
-  for (const m of execAll(text, /\b(\d+)\s+(?:and\s+)?(\d+)\/(\d+)\b/g)) {
+  // Mixed numbers first ("1 2/3", "2 and 1/4"; the whole is not the end of a fraction: "2/5 and 4/5" is two), then plain fractions, decimals and percents.
+  for (const m of execAll(text, /(?<![\d/])\b(\d+)\s+(?:and\s+)?(\d+)\/(\d+)\b/g)) {
     const [whole, n, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
     // Not marked as written: its label would print the single fraction the question asks for.
     if (d > 0 && n < d) take(m as RegExpExecArray, { numerator: whole * d + n, denominator: d });

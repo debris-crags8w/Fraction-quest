@@ -306,6 +306,10 @@ export type Answer = number;
 type PracticeSeed = Omit<PracticeQuestion, 'id' | 'isMastery' | 'isReview'>;
 type MissionSeed = Omit<Mission, 'questions' | 'unit' | 'ideaQuestions'> & { questions: PracticeSeed[]; ideaQuestions?: PracticeSeed[] };
 
+/** A number-line picture marks a point only when its numerator is more than 0. A "count the spaces" picture (numerator 0)
+    has no point to name: a dot at 0 would suggest the answer "0", or a point nobody asked about. */
+export const lineHasPoint = (model: { numerator: number }): boolean => model.numerator > 0;
+
 export function numberLineWholeCount(numerator: number, denominator: number): number {
   if (!Number.isSafeInteger(numerator) || numerator < 0 || !Number.isSafeInteger(denominator) || denominator <= 0) {
     throw new RangeError('A number-line fraction needs a non-negative integer numerator and positive integer denominator.');
@@ -2214,7 +2218,7 @@ export function problemPicture(problem: WorksheetProblem): ModelSpec {
   if (m) return picture(m.n, m.d);
   // Every amount the question names ("Pick the sign: 4/5 __ 3/4" shows both), not just the first.
   if (problem.picture) return problem.picture;
-  const mixed = /(\d+) (?:and )?(\d+)\/(\d+)/.exec(problem.prompt);
+  const mixed = /(?<![\d/])(\d+) (?:and )?(\d+)\/(\d+)/.exec(problem.prompt);
   if (mixed && Number(mixed[2]) < Number(mixed[3])) return picture(Number(mixed[1]) * Number(mixed[3]) + Number(mixed[2]), Number(mixed[3]));
   const fraction = /(\d+)\/(\d+)/.exec(problem.prompt);
   if (fraction && Number(fraction[1]) <= Number(fraction[2]) * 3) return picture(Number(fraction[1]), Number(fraction[2]));
