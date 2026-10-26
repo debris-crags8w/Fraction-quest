@@ -306,6 +306,10 @@ export type Answer = number;
 type PracticeSeed = Omit<PracticeQuestion, 'id' | 'isMastery' | 'isReview'>;
 type MissionSeed = Omit<Mission, 'questions' | 'unit' | 'ideaQuestions'> & { questions: PracticeSeed[]; ideaQuestions?: PracticeSeed[] };
 
+/** A number-line picture marks a point only when its numerator is more than 0. A "count the spaces" picture (numerator 0)
+    has no point to name: a dot at 0 would suggest the answer "0", or a point nobody asked about. */
+export const lineHasPoint = (model: { numerator: number }): boolean => model.numerator > 0;
+
 export function numberLineWholeCount(numerator: number, denominator: number): number {
   if (!Number.isSafeInteger(numerator) || numerator < 0 || !Number.isSafeInteger(denominator) || denominator <= 0) {
     throw new RangeError('A number-line fraction needs a non-negative integer numerator and positive integer denominator.');
