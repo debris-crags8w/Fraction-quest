@@ -40,7 +40,8 @@ export const postgresStore: RateLimitStore = {
       },
     });
     // A little housekeeping on the way: about one failure in fifty clears every row whose window has ended.
-    if (Math.random() < 0.02) await sweepExpiredRateLimits(now);
+    // (Housekeeping never affects counting: if it fails, the next one will do it.)
+    if (Math.random() < 0.02) await sweepExpiredRateLimits(now).catch(() => {});
   },
   async reset(bucket, key) {
     await db.delete(rateLimitsTable).where(and(eq(rateLimitsTable.bucket, bucket), eq(rateLimitsTable.keyHash, hashKey(key))));
