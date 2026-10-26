@@ -2018,8 +2018,8 @@ test('the model intros are their own lesson steps: Watch, then Try, each saved; 
   // The step row starts with Watch and Try, before Build it. There is no second row of steps inside the intro.
   const steps = page.getByTestId('list-lab-steps');
   await expect(steps.getByTestId('step-intro-watch')).toHaveClass(/now/);
-  await expect(steps.getByTestId('step-intro-watch')).toContainText('1Watch');
-  await expect(steps.getByTestId('step-intro-try')).toContainText('2Try');
+  await expect(steps.getByTestId('step-intro-watch')).toContainText('1 Watch');
+  await expect(steps.getByTestId('step-intro-try')).toContainText('2 Try');
   await expect(steps.getByTestId(`step-${check.id}`)).toContainText('3');
   await expect(page.locator('.fq-mi-phases')).toHaveCount(0);
 
