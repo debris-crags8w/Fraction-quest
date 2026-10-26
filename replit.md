@@ -19,6 +19,22 @@ _Replace the heading above with the project's name, and this line with one sente
 - Drizzle schema-push commands are blocked in production. Use Replit Publish to review and apply managed production schema changes.
 - Do not copy live learner records into development. Account and progress behavior tests use synthetic in-memory data, including `artifacts/fraction-quest/src/account-flow.test.ts`.
 
+## Running the API tests locally
+
+The API tests load the database package, which throws "DATABASE_URL must be set" without it. On a clean machine, start a throwaway Postgres 16 and export `DATABASE_URL` in your shell (not in Replit Secrets), as CI does (`.github/workflows/pull-request-checks.yml`):
+
+```sh
+docker run --rm -d --name fq-test-db -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=fraction_quest_test postgres:16
+# or, with a local install: createdb fraction_quest_test
+export DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/fraction_quest_test
+pnpm --filter @workspace/api-server test
+```
+
+- The test database starts empty and CI does not push the schema. `rate-limit.test.ts` creates its own `rate_limits` table; the other tests do not query the database, and the rate limiter counts in memory when its table is missing.
+- Schema pushes (`pnpm --filter @workspace/db run push`) are development-only and blocked in production (`lib/db/src/environment-guard.ts`). New tables reach the published database through Replit Publish.
+- Never point `DATABASE_URL` at the real development or published database. Use a disposable one and stop it afterwards (`docker stop fq-test-db`).
+- Leave `NODE_ENV` unset or `development`, and `REPLIT_DEPLOYMENT` unset: the guard rejects a mismatch.
+
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
