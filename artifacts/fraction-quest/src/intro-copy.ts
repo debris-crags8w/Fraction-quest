@@ -12,7 +12,7 @@ export const INTRO_DEMOS: Record<IntroKind, IntroShot[]> = {
     { parts: 4, count: 0, caption: '4 equal parts. Every part is the same size.', at: 'plus' },
     { parts: 4, count: 1, caption: 'Now tap a part to shade it.', at: 'first' },
     { parts: 4, count: 3, caption: 'Tap again to shade 3 parts.', at: 'last' },
-    { parts: 4, count: 3, caption: '3 of 4 equal parts are shaded. That is three fourths.', at: 'readout', named: true },
+    { parts: 4, count: 3, caption: '3 of 4 equal parts are shaded. Say it like this: 3 out of 4 equal parts.', at: 'readout', named: true },
   ],
   line: [
     { parts: 1, count: 0, caption: 'This line goes from 0 to 1. That is one whole.', at: 'none' },
@@ -20,14 +20,15 @@ export const INTRO_DEMOS: Record<IntroKind, IntroShot[]> = {
     { parts: 4, count: 0, caption: 'Every space is the same size. One space is one jump.', at: 'none' },
     { parts: 4, count: 1, caption: 'Start at 0. Hop one jump.', at: 'first' },
     { parts: 4, count: 3, caption: 'Two jumps, three jumps.', at: 'last' },
-    { parts: 4, count: 3, caption: '3 jumps of 4 equal spaces. You land on three fourths.', at: 'readout', named: true },
+    { parts: 4, count: 3, caption: '3 jumps of 4 equal spaces. You land on 3 out of 4.', at: 'readout', named: true },
   ],
 };
 
 export type IntroTry = { n: number; d: number; word: string };
 export const INTRO_TRIES: Record<IntroKind, [IntroTry, IntroTry]> = {
-  builder: [{ n: 1, d: 2, word: 'one half' }, { n: 2, d: 3, word: 'two thirds' }],
-  line: [{ n: 2, d: 3, word: 'two thirds' }, { n: 3, d: 4, word: 'three fourths' }],
+  // Both play on lesson 1's lesson page, so they say fractions as "out of", as lesson 1 does (part names come in lesson 2).
+  builder: [{ n: 1, d: 2, word: '1 out of 2 equal parts' }, { n: 2, d: 3, word: '2 out of 3 equal parts' }],
+  line: [{ n: 2, d: 3, word: '2 out of 3' }, { n: 3, d: 4, word: '3 out of 4' }],
 };
 
 export const INTRO_TEXT: Record<IntroKind, { kicker: string; title: string; build: string }> = {
@@ -40,7 +41,7 @@ const unit = (kind: IntroKind, count: number) => kind === 'builder' ? (count ===
 /** The guided try's nudge for the model as it is now (never the answer itself: it says what to do next). */
 export function introHint(kind: IntroKind, target: IntroTry, parts: number, count: number): { text: string; done: boolean } {
   if (parts === target.d && count === target.n) {
-    return { done: true, text: kind === 'builder' ? `Yes! ${target.n} of ${target.d} equal parts is ${target.word}.` : `Yes! ${target.n} ${unit(kind, target.n)} of ${target.d} equal spaces is ${target.word}.` };
+    return { done: true, text: kind === 'builder' ? `Yes! You shaded ${target.word}.` : `Yes! ${target.n} ${unit(kind, target.n)} of ${target.d} equal spaces: you land on ${target.word}.` };
   }
   if (parts !== target.d) return { done: false, text: kind === 'builder' ? `First cut the whole into ${target.d} equal parts.` : `First cut 0 to 1 into ${target.d} equal spaces.` };
   return { done: false, text: kind === 'builder' ? `Now shade ${target.n} ${unit(kind, target.n)}.` : `Now count ${target.n} ${unit(kind, target.n)} from 0 and tap where you land.` };

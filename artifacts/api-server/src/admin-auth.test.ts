@@ -4,10 +4,14 @@ import { after, before, describe, it } from "node:test";
 import type { Server } from "node:http";
 import express from "express";
 import adminRouter from "./routes/admin";
+import { clearRateLimits } from "./test-rate-limits";
 
 const TEST_TOKEN = "admin-test-token-0123456789-abcdefgh";
 const TEST_SECRET = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
 const ENV_KEYS = ["ADMIN_TOKEN", "ADMIN_TOTP_SECRET", "ADMIN_ALLOWED_IPS"] as const;
+// Failed sign-ins are counted in the database now: start from none.
+before(() => clearRateLimits("admin-"));
+
 const previousEnv = new Map(ENV_KEYS.map((key) => [key, process.env[key]]));
 
 function base32Decode(input: string): Buffer {

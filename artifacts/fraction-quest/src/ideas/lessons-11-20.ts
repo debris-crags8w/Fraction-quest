@@ -222,6 +222,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       title: 'Or divide both by the same number',
       terms: [{ term: 'dividing both', pattern: /÷|\bdivid(e|es|ed|ing)\b/i }],
       learn: [
+        wordsToKnow('build-equivalents'),
         { text: 'Or divide both by the same number. That joins parts into bigger parts.', scene: scenes('build-equivalents').steps[1]! },
         example('build-equivalents', 'Divide both numbers'),
       ],

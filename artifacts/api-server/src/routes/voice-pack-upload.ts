@@ -9,18 +9,18 @@ import { isCastVoice } from "../lib/cast-voices";
 
 /* The Voice pack workflow sends the current sentence manifest here. Replit checks and writes audio directly to App
    Storage; GitHub Actions never renders or uploads clips. The authenticated routes are off (404) until the token is set. */
-const failures = createRateLimiter({ max: 10, windowMs: 15 * 60_000 });
+const failures = createRateLimiter({ name: "voice-pack-upload-failures", max: 10, windowMs: 15 * 60_000 });
 
-function requireUploadToken(req: Request, res: Response, next: NextFunction) {
+async function requireUploadToken(req: Request, res: Response, next: NextFunction) {
   const expected = process.env.VOICE_PACK_UPLOAD_TOKEN ?? "";
   if (expected.length < 32) { res.status(404).json({ error: "Not found." }); return; }
   const ip = req.ip ?? "unknown";
-  if (failures.isLimited(ip)) { res.status(429).json({ error: "Too many attempts. Try again later." }); return; }
+  if (await failures.isLimited(ip)) { res.status(429).json({ error: "Too many attempts. Try again later." }); return; }
   const header = req.get("authorization") ?? "";
   const given = Buffer.from(header.startsWith("Bearer ") ? header.slice(7) : "");
   const wanted = Buffer.from(expected);
   if (given.length !== wanted.length || !timingSafeEqual(given, wanted)) {
-    failures.hit(ip);
+    await failures.hit(ip);
     res.status(401).json({ error: "Not allowed." });
     return;
   }

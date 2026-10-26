@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
-import { createRateLimiter } from "../lib/rate-limit";
+import { createRateLimiter, memoryRateLimitStore } from "../lib/rate-limit";
 import { cleanVoiceText, DEFAULT_VOICE, isVoiceCached, isVoiceId, loadVoiceEngine, speechWav, voiceState } from "../lib/voice";
 
 const router: IRouter = Router();
 // New sentences cost CPU; cached ones are free. A lesson page reads a handful of sentences at a time.
-const synthesisLimit = createRateLimiter({ max: 60, windowMs: 60_000 });
+// This guards cost, not security, so it counts in this process: no database write for each new sentence.
+const synthesisLimit = createRateLimiter({ name: "voice-synthesis", max: 60, windowMs: 60_000, store: memoryRateLimitStore() });
 
 /** Is the natural voice available? Also starts loading the model, so the first Listen is quick. */
 router.get("/voice/status", (_req, res) => {
@@ -23,11 +24,11 @@ router.get("/voice/speech", async (req, res) => {
   }
   const key = req.ip ?? "unknown";
   if (!(await isVoiceCached(voice, text))) {
-    if (synthesisLimit.isLimited(key)) {
+    if (await synthesisLimit.isLimited(key)) {
       res.status(429).json({ error: "Too many new sentences at once. Try again in a minute." });
       return;
     }
-    synthesisLimit.hit(key);
+    await synthesisLimit.hit(key);
   }
   try {
     const wav = await speechWav(voice, text);

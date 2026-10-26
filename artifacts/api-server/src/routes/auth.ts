@@ -10,10 +10,10 @@ import { createRateLimiter } from "../lib/rate-limit";
 
 const router: IRouter = Router();
 
-const loginFailures = createRateLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
-const signupsPerIp = createRateLimiter({ max: 20, windowMs: 60 * 60 * 1000 });
-const recoveryFailures = createRateLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
-const recoveryPerIp = createRateLimiter({ max: 30, windowMs: 60 * 60 * 1000 });
+const loginFailures = createRateLimiter({ name: "login-failures", max: 10, windowMs: 15 * 60 * 1000 });
+const signupsPerIp = createRateLimiter({ name: "signups-per-ip", max: 20, windowMs: 60 * 60 * 1000 });
+const recoveryFailures = createRateLimiter({ name: "recovery-failures", max: 10, windowMs: 15 * 60 * 1000 });
+const recoveryPerIp = createRateLimiter({ name: "recovery-per-ip", max: 30, windowMs: 60 * 60 * 1000 });
 
 /** A fresh recovery code: returns the code to show once, and the hash to store. */
 async function freshRecoveryCode(): Promise<{ code: string; hash: string }> {
@@ -23,7 +23,7 @@ async function freshRecoveryCode(): Promise<{ code: string; hash: string }> {
 
 router.post("/auth/signup", async (req, res) => {
   const ip = req.ip ?? "unknown";
-  if (signupsPerIp.isLimited(ip)) {
+  if (await signupsPerIp.isLimited(ip)) {
     res.status(429).json({ error: "Too many new accounts from here. Try again later." });
     return;
   }
@@ -61,7 +61,7 @@ router.post("/auth/signup", async (req, res) => {
     res.status(409).json({ error: "That username is taken. Try adding a number." });
     return;
   }
-  signupsPerIp.hit(ip);
+  await signupsPerIp.hit(ip);
   await startSession(res, inserted[0].id);
   res.status(201).json({ ...publicUser(inserted[0]), recoveryCode: recovery.code });
 });
@@ -76,19 +76,19 @@ router.post("/auth/recover", async (req, res) => {
   const ip = req.ip ?? "unknown";
   const username = normalizeUsername(parsed.data.username);
   const key = `${ip}|${username}`;
-  if (recoveryFailures.isLimited(key) || recoveryPerIp.isLimited(ip)) {
+  if ((await recoveryFailures.isLimited(key)) || (await recoveryPerIp.isLimited(ip))) {
     res.status(429).json({ error: "Too many tries. Wait 15 minutes, or ask a grown-up for help." });
     return;
   }
-  recoveryPerIp.hit(ip);
+  await recoveryPerIp.hit(ip);
   const [user] = await db.select().from(usersTable).where(eq(usersTable.username, username)).limit(1);
   const ok = await verifyPassword(normalizeRecoveryCode(parsed.data.recoveryCode), user?.recoveryCodeHash ?? (await getDummyHash()));
   if (!user || !user.recoveryCodeHash || !ok) {
-    recoveryFailures.hit(key);
+    await recoveryFailures.hit(key);
     res.status(401).json({ error: "That username and recovery code don't match." });
     return;
   }
-  recoveryFailures.reset(key);
+  await recoveryFailures.reset(key);
   // The used code stops working: a new one replaces it, and every other device is signed out.
   const recovery = await freshRecoveryCode();
   const [updated] = await db.update(usersTable)
@@ -136,18 +136,18 @@ router.post("/auth/login", async (req, res) => {
   }
   const username = normalizeUsername(parsed.data.username);
   const key = `${req.ip ?? "unknown"}|${username}`;
-  if (loginFailures.isLimited(key)) {
+  if (await loginFailures.isLimited(key)) {
     res.status(429).json({ error: "Too many tries. Wait 15 minutes, or ask a grown-up for help." });
     return;
   }
   const [user] = await db.select().from(usersTable).where(eq(usersTable.username, username)).limit(1);
   const ok = await verifyPassword(parsed.data.password, user?.passwordHash ?? (await getDummyHash()));
   if (!user || !ok) {
-    loginFailures.hit(key);
+    await loginFailures.hit(key);
     res.status(401).json({ error: "That username and password don't match." });
     return;
   }
-  loginFailures.reset(key);
+  await loginFailures.reset(key);
   await startSession(res, user.id);
   res.json(publicUser(user));
 });
