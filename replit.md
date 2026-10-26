@@ -30,7 +30,7 @@ export DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/fraction_quest
 pnpm --filter @workspace/api-server test
 ```
 
-- The test database starts empty and CI does not push the schema. `rate-limit.test.ts` creates its own `rate_limits` table; the other tests do not query the database, and the rate limiter counts in memory when its table is missing.
+- The test database starts empty and CI does not push the schema. `rate-limit.test.ts` creates its own `rate_limits` table. The admin and voice-upload route tests clear their own limiter counters first (`test-rate-limits.ts`), a delete that is skipped if the table is missing; the rest of the API tests never query the database. When the table is missing, the rate limiter counts in memory.
 - Schema pushes (`pnpm --filter @workspace/db run push`) are development-only and blocked in production (`lib/db/src/environment-guard.ts`). New tables reach the published database through Replit Publish.
 - Never point `DATABASE_URL` at the real development or published database. Use a disposable one and stop it afterwards (`docker stop fq-test-db`).
 - Leave `NODE_ENV` unset or `development`, and `REPLIT_DEPLOYMENT` unset: the guard rejects a mismatch.
