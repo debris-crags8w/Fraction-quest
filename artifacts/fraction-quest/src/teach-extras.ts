@@ -241,7 +241,7 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
     }],
     examples: [{
       title: '4 fourths make one whole',
-      picture: play([{ kind: 'line', max: 2, spaces: 4, cut: true }, { ...say('4 jumps of 1/4 is 4/4. 4/4 is one whole. 7 jumps = 4 jumps + 3 jumps = 1 and 3/4.'), hidden: true }],
+      picture: play([{ kind: 'line', max: 2, spaces: 4, cut: true }, { ...say('4 jumps of 1/4 is 4/4. 4/4 is one whole. 7 jumps is 4 jumps and 3 more jumps. That makes 1 and 3/4.'), hidden: true }],
         ...range(4).map((i): [number, Record<number, Partial<SceneRow>>] => [380, { 0: { jumps: i + 1 } }]),
         [600, { 0: { stretch: 4 } }],
         ...range(3).map((i): [number, Record<number, Partial<SceneRow>>] => [380, { 0: { jumps: 5 + i } }]),
@@ -1146,7 +1146,7 @@ export const wordsScript = (words: WordCard[]) => ['Words to know.', ...words.ma
 /** Terms and symbols a lesson teaches (in its Words to know), and the lesson that teaches each one. Practice in an
     earlier lesson may not use them (checked by teach-extras.test.ts). Each unit's PR adds its own. */
 export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
-  /** A unit of measure, a unit fact or the ÷ sign: checked on every screen of the earlier lessons and ideas, not only practice. */
+  /** A unit of measure, a unit fact or the ÷ or + sign: checked on every screen of the earlier lessons and ideas, not only practice. */
   unit?: true }[] = [
   { term: 'numerator / denominator', pattern: /\b(numerator|denominator)s?\b/i, lesson: 'fraction-names' },
   { term: 'area', pattern: /\barea\b/i, lesson: 'fraction-of-area' },
@@ -1161,7 +1161,8 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
   { term: 'factor', pattern: /\bfactors?\b/i, lesson: 'missing-equivalent' },
   // Lessons 2–10 (learn one idea, practise it three times).
   { term: 'unit fraction', pattern: /\bunit fractions?\b/i, lesson: 'unit-fractions' },
-  // Lessons 21–30 (compose-to-one … tenths-decimals). (+ is used in lesson 12 before lesson 21 defines it, so it is not listed.)
+  // Lessons 21–30 (compose-to-one … tenths-decimals).
+  { term: '+', pattern: /\s\+\s/, lesson: 'compose-to-one', unit: true },
   { term: 'sum', pattern: /\bsums?\b/i, lesson: 'compose-to-one' },
   { term: 'whole number', pattern: /\bwhole numbers?\b/i, lesson: 'whole-numbers-as-fractions' },
   { term: 'mixed number', pattern: /\bmixed numbers?\b/i, lesson: 'mixed-improper' },

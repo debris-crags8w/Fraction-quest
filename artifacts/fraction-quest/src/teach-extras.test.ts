@@ -119,7 +119,7 @@ test('teach before practice: no lesson practises a word or symbol before the les
 /** Units of measure and their facts: each is taught (Words to know or a Learn page) where a child first meets it. */
 const UNITS_TAUGHT = TAUGHT_IN.filter((row) => row.unit);
 
-test('a unit of measure (or ÷) is taught before any screen uses it: not in an earlier lesson, nor an earlier idea of its lesson', () => {
+test('a unit of measure (or ÷ or +) is taught before any screen uses it: not in an earlier lesson, nor an earlier idea of its lesson', () => {
   assert.ok(UNITS_TAUGHT.length >= 15, 'the units and unit facts are listed');
   const early = UNITS_TAUGHT.flatMap(({ term, pattern, lesson }) => MISSIONS.slice(0, lessonIndex(lesson)).flatMap((mission) =>
     lessonText(mission.id).filter((text) => pattern.test(text)).map((text) => `${mission.id} uses ${term} before ${lesson}: "${text}"`)));
