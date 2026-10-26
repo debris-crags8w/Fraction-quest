@@ -61,7 +61,7 @@ export type FunState = {
   introsSeen?: Partial<Record<IntroKind, IntroStage>>;
   /** The Words screen (fraction names) in a child's first lesson was read (or skipped), so it opens by itself once. */
   fractionWordsSeen?: true;
-  /** Lessons whose Teach first screen was read (Next tapped), so it opens by itself only the first time. */
+  /** Lessons that have been started (kept in saved data; nothing reads it any more). */
   lessonIntrosSeen?: string[];
   /** Spare oil (story mode) or streak savers: each covers one missed day so the streak keeps going. Up to SPARE_OIL_MAX. */
   spareOil?: number;
@@ -439,7 +439,7 @@ export function recordIntro(state: FunState, kind: IntroKind, stage: IntroStage 
   return saveFun({ ...state, introsSeen: { ...seen, [kind]: stage } });
 }
 
-/** Remember a lesson's Teach first screen was read: it stays a tap away ("How it works") but won't open by itself. */
+/** Remember that a lesson has been started. */
 export function recordLessonIntro(state: FunState, missionId: string): FunState {
   return saveFun({ ...state, lessonIntrosSeen: cleanLessonIntros([...(state.lessonIntrosSeen ?? []), missionId]) });
 }

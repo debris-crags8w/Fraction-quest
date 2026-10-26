@@ -222,8 +222,6 @@ export function TeachScenePicture({ scene, take }: { scene: StepScene; take: num
   );
 }
 
-/** The Teach first card, one animated step at a time. `onFinish` is the last step's "Next: see it" (Teach first);
-    without it (under "How it works") the last step just rests. */
 type Page = { label: string; text: string; scene?: StepScene; words?: WordCard[]; listen: string };
 
 /** Words to know: each new word or symbol, what it means, and its picture (still). */
@@ -241,7 +239,8 @@ function WordsToKnow({ words }: { words: WordCard[] }) {
   );
 }
 
-export function AnimatedLessonIntro({ intro, scene, missionId, onFinish }: { intro: LessonIntro; scene: LessonScene; missionId?: string; onFinish?: () => void }) {
+/** A lesson's Learn pictures under "How it works", one animated step at a time (the last step just rests). */
+export function AnimatedLessonIntro({ intro, scene, missionId }: { intro: LessonIntro; scene: LessonScene; missionId?: string }) {
   // Words to know comes first (nothing in the steps is new), then the steps and why, then each extra worked example.
   const pages = useMemo((): Page[] => {
     const extras = teachExtras(missionId);
@@ -262,7 +261,7 @@ export function AnimatedLessonIntro({ intro, scene, missionId, onFinish }: { int
   // The step (the first also says what the lesson is for), then the worked numbers under its picture.
   const listen = current.listen;
   return (
-    <section className="fq-example-intro fq-teach-card fq-ts-card" aria-labelledby="lesson-intro-heading" data-testid="lesson-introduction" data-teach-first={onFinish ? '' : undefined}>
+    <section className="fq-example-intro fq-teach-card fq-ts-card" aria-labelledby="lesson-intro-heading" data-testid="lesson-introduction">
       <div className="fq-example-card-head">
         <h2 id="lesson-intro-heading">{intro.heading}</h2>
         <LearningListenButton key={page} text={listen} label={`Listen to ${current.label.toLowerCase()}`} prefetch />
@@ -286,11 +285,6 @@ export function AnimatedLessonIntro({ intro, scene, missionId, onFinish }: { int
         {!last && (
           <button type="button" className="fq-button primary fq-ts-next" onClick={() => go(page + 1)} data-testid="button-teach-step-next">
             Next <ArrowRight size={18} aria-hidden="true" />
-          </button>
-        )}
-        {last && onFinish && (
-          <button type="button" className="fq-button primary fq-ts-next" onClick={onFinish} data-testid="button-teach-next">
-            Next: see it <ArrowRight size={18} aria-hidden="true" />
           </button>
         )}
       </div>

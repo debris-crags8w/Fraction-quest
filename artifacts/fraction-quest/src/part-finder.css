@@ -10,19 +10,6 @@
 .fq-pf *::after { box-sizing: border-box; }
 
 .fq-pf-shell { width: min(100%, 1000px); margin: 0 auto; }
-.fq-pf-lesson-example { margin: 0 0 18px; }
-.fq-pf-lesson-example .fq-example { margin-top: 0; }
-.fq-pf-first-intro { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(220px, .75fr); align-items: center; gap: 22px; margin: 0 0 18px; padding: clamp(18px, 3vw, 28px); border: 2px solid color-mix(in srgb, var(--fq-grape) 26%, var(--fq-edge)); border-radius: 24px; background: color-mix(in srgb, var(--fq-grape) 5%, hsl(var(--card))); }
-.fq-pf-first-intro-copy { display: flex; align-items: flex-start; gap: 14px; }
-.fq-pf-first-intro-copy > .fq-mascot { flex: none; }
-.fq-pf-first-intro-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.fq-pf-first-intro-heading h2 { margin: 0; color: var(--fq-grape); font-family: var(--app-font-display); font-size: clamp(1.1rem, 2.8vw, 1.45rem); line-height: 1.2; }
-.fq-pf-first-intro-copy p { margin: 8px 0 0; color: hsl(var(--foreground)); font-size: 1rem; font-weight: 700; line-height: 1.5; }
-.fq-pf-first-intro-model { display: grid; gap: 8px; width: 100%; margin: 0; }
-.fq-pf-intro-whole { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); min-height: 58px; overflow: hidden; border: 3px solid hsl(var(--foreground)); border-radius: 12px; background: hsl(var(--card)); }
-.fq-pf-intro-part { min-width: 0; background: color-mix(in srgb, var(--fq-sky) 24%, hsl(var(--card))); }
-.fq-pf-intro-part + .fq-pf-intro-part { border-left: 2px solid color-mix(in srgb, var(--fq-grape) 74%, hsl(var(--foreground))); }
-.fq-pf-first-intro-model figcaption { color: hsl(var(--muted-foreground)); font-size: .86rem; font-weight: 850; text-align: center; }
 .fq-pf-top { display: flex; align-items: center; gap: 14px; margin: 0 0 20px; }
 .fq-pf-back {
   min-height: 44px;
@@ -131,15 +118,6 @@
 .fq-pf-separation { margin: 18px 0 0; color: hsl(var(--muted-foreground)); font-size: .78rem; font-weight: 650; text-align: center; }
 .fq-pf button:focus-visible { outline: 4px solid var(--fq-sky-ink, #0A6FA6); outline-offset: 3px; }
 
-@keyframes fq-pf-piece-reveal {
-  from { opacity: .4; transform: scaleX(.92); }
-  to { opacity: 1; transform: scaleX(1); }
-}
-.fq-pf-intro-part { animation: fq-pf-piece-reveal 420ms ease-out backwards; }
-.fq-pf-intro-part:nth-child(2) { animation-delay: 140ms; }
-.fq-pf-intro-part:nth-child(3) { animation-delay: 280ms; }
-.fq-pf-intro-part:nth-child(4) { animation-delay: 420ms; }
-
 .fq-pf-result { display: grid; justify-items: center; padding-block: clamp(34px, 7vw, 66px); text-align: center; }
 .fq-pf-result-mark { display: grid; place-items: center; width: 84px; height: 84px; margin-bottom: 18px; border: 8px solid color-mix(in srgb, var(--fq-lime) 28%, hsl(var(--card))); border-radius: 28px; background: var(--fq-lime); box-shadow: 0 6px 0 var(--fq-lime-dark); transform: rotate(-5deg); }
 .fq-pf-result-mark span { width: 22px; height: 38px; border-right: 7px solid white; border-bottom: 7px solid white; transform: rotate(45deg) translate(-3px, -4px); }
@@ -153,10 +131,6 @@
 
 @media (max-width: 620px) {
   .fq-pf { padding: 12px; }
-  .fq-pf-first-intro { grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 16px; }
-  .fq-pf-first-intro-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
-  .fq-pf-first-intro-copy p { font-size: .92rem; }
-  .fq-pf-first-intro-model { width: min(100%, 420px); justify-self: center; }
   .fq-pf-top { flex-wrap: wrap; gap: 9px; margin-bottom: 13px; }
   .fq-pf-top .fq-pf-best { width: 100%; margin-left: 0; }
   .fq-pf-card, .fq-pf-result { padding: 14px 12px; border-radius: 20px; }
@@ -177,8 +151,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fq-pf *, .fq-pf *::before, .fq-pf *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
-  .fq-pf .fq-pf-intro-part { animation: none !important; opacity: 1 !important; transform: none !important; }
-}
+  }
 
 .fq-pf-friends { display: grid; gap: 6px; justify-items: center; margin: 4px 0 14px; }
 .fq-pf-friends-label { margin: 0; font-weight: 900; }

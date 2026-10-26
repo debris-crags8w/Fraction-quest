@@ -415,7 +415,6 @@
 .fq-order-sort-header > div { min-width: 0; }
 .fq-order-sort-header > div > span { color: hsl(var(--muted-foreground)); font-size: 0.84rem; font-weight: 800; }
 .fq-order-sort-header h1 { margin: 0; font-size: clamp(1.45rem, 4vw, 2rem); }
-.fq-order-sort-example { margin-bottom: 18px; }
 .fq-order-sort-card { padding: clamp(18px, 4vw, 32px); border: 2px solid var(--fq-edge); border-radius: 24px; background: hsl(var(--card)); box-shadow: 0 8px 0 color-mix(in srgb, var(--fq-edge) 45%, transparent); }
 .fq-order-sort-progress { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .fq-order-sort-progress > span:not(.fq-order-sort-round-label) { flex: 1; height: 10px; border-radius: 99px; background: var(--fq-track); }
@@ -624,18 +623,7 @@
 .fq-shake { animation: fq-shake 420ms ease; }
 
 /* example step */
-.fq-mascot-say { display: flex; align-items: flex-end; gap: 12px; margin-top: 14px; }
-.fq-mascot-say .fq-skill-bubble {
-  position: relative;
-  flex: 1;
-  margin: 0;
-  padding: 12px 16px;
-  border: 2px solid var(--fq-edge);
-  border-radius: 18px 18px 18px 4px;
-  background: hsl(var(--card));
-  font-weight: 800;
-}
-.fq-skill-header,
+
 .fq-example-section-header,
 .fq-story-question-heading {
   display: flex;
@@ -643,10 +631,8 @@
   justify-content: space-between;
   gap: 10px;
 }
-.fq-skill-header { align-items: center; margin-bottom: 4px; }
-.fq-skill-label,
+
 .fq-example-section-header h3 { margin: 0; color: hsl(var(--muted-foreground)); font-size: 0.84rem; font-weight: 900; }
-.fq-skill-copy { margin: 0; line-height: 1.45; }
 .fq-example-section { margin-top: 10px; }
 .fq-example-intro {
   display: grid;
@@ -671,11 +657,9 @@
 .fq-teach-steps { margin: 6px 0 0; padding-left: 1.6em; display: grid; gap: 6px; list-style: decimal; font-size: 1.05rem; line-height: 1.4; }
 .fq-teach-steps li { display: list-item; }
 .fq-teach-steps li::marker { color: var(--fq-grape); font-weight: 900; }
-.fq-teach-next { margin-top: auto; min-height: 56px; width: 100%; justify-content: center; font-size: 1.1rem; }
 .fq-how-it-works { display: grid; gap: 10px; justify-items: start; }
 .fq-how-it-works .fq-teach-card { justify-self: stretch; }
 .fq-example-section-header .fq-learning-listen,
-.fq-skill-header .fq-learning-listen,
 .fq-story-question-heading .fq-learning-listen { flex: none; margin: 0; }
 .fq-story-question-heading { align-items: flex-start; margin-top: 8px; }
 .fq-story-question-heading .fq-question-text { flex: 1; min-width: 0; margin: 0; }
@@ -953,63 +937,6 @@
 
 .fq-fraction { font-family: var(--app-font-display); }
 
-/* ---------- hands-on "your turn" model ---------- */
-
-.fq-tap {
-  display: grid;
-  gap: 14px;
-  margin-top: 18px;
-  padding: 18px;
-  border: 3px dashed color-mix(in srgb, var(--unit) 40%, transparent);
-  border-radius: 22px;
-  background: color-mix(in srgb, var(--unit) 6%, hsl(var(--card)));
-  transition: border-color 200ms ease, background-color 200ms ease;
-}
-.fq-tap.matched { border-style: solid; border-color: var(--fq-lime); background: var(--fq-good-bg); }
-.fq-tap-head { display: grid; gap: 2px; }
-.fq-tap-kicker { display: inline-flex; align-items: center; gap: 5px; color: var(--unit); font-size: 0.78rem; font-weight: 900; letter-spacing: 0.01em; }
-.fq-tap-head strong { font-size: 1.08rem; }
-
-.fq-tap-bars { display: grid; gap: 8px; }
-.fq-tap-whole { display: grid; gap: 4px; }
-.fq-tap-whole-label { color: hsl(var(--muted-foreground)); font-size: 0.72rem; font-weight: 900; letter-spacing: 0.01em; }
-.fq-tap-part-marker { display: grid; margin-top: -3px; color: var(--fq-grape); font-size: 0.62rem; font-weight: 950; line-height: 1; }
-.fq-tap-part-marker b { position: relative; grid-column: 1; justify-self: center; }
-.fq-tap-part-marker b::before { position: absolute; bottom: calc(100% + 2px); left: 50%; height: 5px; border-left: 2px dotted var(--fq-grape); content: ""; }
-.fq-tap-part-label { display: inline-flex; align-items: center; gap: 7px; color: hsl(var(--muted-foreground)); font-size: 0.76rem; font-weight: 800; }
-.fq-tap-part-label i { width: 13px; height: 13px; flex: none; border: 1px solid hsl(var(--foreground) / 0.4); border-radius: 4px; background: var(--piece); }
-.fq-tap-bar { display: flex; gap: 5px; height: 60px; }
-.fq-tap-bar button {
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  border: 3px solid color-mix(in srgb, var(--piece) 45%, var(--fq-edge));
-  border-radius: 12px;
-  background: hsl(var(--card));
-  cursor: pointer;
-  transition: transform 90ms ease, background-color 120ms ease;
-}
-.fq-tap-bar button:active { transform: scale(0.93); }
-.fq-tap-bar button.on { border-color: color-mix(in srgb, var(--piece) 75%, black); background: var(--piece); box-shadow: inset 0 -6px 0 rgb(0 0 0 / 0.12); }
-
-.fq-tap-line { position: relative; height: 76px; margin: 0 20px; }
-.fq-tap-track { position: absolute; left: 0; right: 0; top: 24px; height: 10px; border-radius: 99px; background: var(--fq-track); }
-.fq-tap-track b { display: block; height: 100%; border-radius: 99px; background: var(--piece); transition: width 200ms ease; }
-.fq-tap-line button { position: absolute; top: 4px; width: 32px; height: 64px; padding: 0; transform: translateX(-50%); border: 0; background: none; cursor: pointer; }
-.fq-tap-line button::before { content: ""; position: absolute; left: 50%; top: 14px; width: 4px; height: 30px; border-radius: 2px; background: var(--fq-edge); transform: translateX(-50%); }
-.fq-tap-line button.whole::before { background: hsl(var(--foreground)); }
-.fq-tap-line button.on::after { content: ""; position: absolute; left: 50%; top: 13px; width: 26px; height: 26px; border: 4px solid #fff; border-radius: 50%; background: var(--fq-tangerine); box-shadow: 0 3px 0 rgb(0 0 0 / 0.2); transform: translateX(-50%); }
-.fq-tap-line button span { position: absolute; left: 50%; top: 48px; transform: translateX(-50%); font-weight: 900; font-size: 0.85rem; }
-
-.fq-tap-set { display: flex; flex-wrap: wrap; gap: 10px; }
-.fq-tap-set button { width: 40px; height: 40px; padding: 0; border: 3px solid var(--fq-edge); border-radius: 50%; background: hsl(var(--card)); cursor: pointer; transition: transform 90ms ease; }
-.fq-tap-set button:active { transform: scale(0.9); }
-.fq-tap-set button.on { border-color: #D93374; background: var(--fq-bubblegum); }
-
-.fq-tap-readout { display: flex; align-items: center; gap: 6px; margin: 0; color: hsl(var(--muted-foreground)); font-weight: 800; }
-.fq-tap-readout b { color: hsl(var(--foreground)); font-size: 1.1rem; }
-.fq-tap.matched .fq-tap-readout { color: var(--fq-good-fg); font-weight: 900; }
-
 /* ---------- reward ---------- */
 
 .fq-reward {
@@ -1152,8 +1079,7 @@
   .fq-footer-actions { flex-wrap: wrap; }
   .fq-footer-actions > span:empty { display: none; }
   .fq-footer-actions .fq-hint-button { order: 2; margin: 0 auto; }
-  .fq-tap-bar { height: 52px; }
-}
+  }
 
 @media (max-width: 420px) {
   .fq-brand > span:last-child { display: none; }
@@ -1184,8 +1110,6 @@
 .fq-model-tag.kind-line { background: #E07000; }
 .fq-model-tag.kind-set { background: #D93374; }
 .fq-visual-model > .fq-model-tag { justify-self: start; }
-.fq-tap-kicker .fq-model-tag { font-size: 0.72rem; padding: 2px 9px 2px 7px; letter-spacing: 0; text-transform: none; }
-
 .fq-svg-bar, .fq-svg-line, .fq-svg-set { display: block; width: 100%; height: auto; overflow: visible; }
 .fq-svg-bar rect.shaded { fill: var(--fq-grape); }
 .fq-svg-bar rect.empty { fill: hsl(var(--card)); }
@@ -1469,17 +1393,6 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 
 /* ---------- paper folding ---------- */
 
-.fq-fold { --fq-fold-edge: color-mix(in srgb, var(--fq-sky) 55%, #0b4f73); display: grid; gap: 12px; margin-top: 18px; padding: 18px; border: 3px dashed color-mix(in srgb, var(--fq-sky) 45%, transparent); border-radius: 22px; background: color-mix(in srgb, var(--fq-sky) 6%, hsl(var(--card))); }
-.fq-fold-intro { margin: 0; font-weight: 900; }
-
-.fq-fold-message { margin: 0; font-weight: 800; }
-.fq-fold-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.fq-fold-trail > span { padding: 2px 10px; border-radius: 99px; background: var(--fq-track); font-weight: 900; font-size: 0.9rem; }
-.fq-fold-trail > span + span::before { content: '→ '; color: hsl(var(--muted-foreground)); }
-.fq-fold-trail > span.now { color: #fff; background: var(--fq-sky-ink); }
-.fq-fold-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-.fq-fold-buttons .fq-button { min-height: 44px; padding: 0 14px; font-size: 0.8rem; }
-
 .fq-svg-fold { display: block; width: 100%; height: auto; margin: 0 auto; }
 .fq-svg-fold .fold-layer { fill: #E8F7FF; stroke: #0b4f73; stroke-width: 1.5; }
 .fq-svg-fold .fold-arrow { fill: none; stroke: hsl(var(--foreground)); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -1558,7 +1471,7 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 
 @media (prefers-reduced-motion: reduce) {
   .fq-bar span, .fq-svg-bar rect.shaded, .fq-counter, .fq-partition-whole span, .fq-numberline-hops path, .fq-numberline-marker,
-  .fq-svg-line .jump, .fq-svg-line .point, .fq-svg-fold .fold-step, .fq-fold-piece, .fq-fold-flap { animation: none !important; stroke-dashoffset: 0 !important; opacity: 1 !important; }
+  .fq-svg-line .jump, .fq-svg-line .point, .fq-svg-fold .fold-step { animation: none !important; stroke-dashoffset: 0 !important; opacity: 1 !important; }
 }
 @media print {
   .fq-print *, .fq-print *::before { animation: none !important; transition: none !important; stroke-dashoffset: 0 !important; opacity: 1 !important; }
@@ -2262,7 +2175,6 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-nl-frac > b:last-child { color: var(--fq-den, #5a32d6); }
 .fq-nl-frac > i { display: block; width: 100%; min-width: 10px; height: 1.5px; border-radius: 1px; background: currentColor; }
 .fq-ll-line { height: 104px; }
-.fq-tap-line { height: 92px; }
 .fq-visual-numberline { height: 60px; }
 .fq-numberline-tick .fq-nl-label { margin-top: 6px; }
 
@@ -2345,81 +2257,24 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 }
 
 
-/* ---------- paper folding: real-looking paper ---------- */
-.fq-fold { --fold-paper: #FBFDFF; --fold-back: #CFE9FB; --fold-edge: #0b4f73; --fold-crease-1: #6D4BD8; --fold-crease-2: #3b8fc4; --fold-crease-3: #7aa9c6; }
-.fq-fold-stage { position: relative; display: flex; justify-content: center; align-items: center; min-height: 112px; padding: 10px 6px 24px; perspective: 1100px; }
-.fq-fold-ghost { position: absolute; left: 6px; right: 6px; top: 10px; height: 84px; border: 2px dashed color-mix(in srgb, var(--fold-edge) 30%, transparent); border-radius: 6px; transition: opacity 300ms ease; }
-.fq-fold-ghost.hidden { opacity: 0; }
-.fq-fold-paper { position: relative; height: 84px; transition: width 420ms cubic-bezier(.4, .1, .2, 1); transform-style: preserve-3d; }
-/* Paper: a soft texture of fine lines, a crisp edge, a little lift off the page. */
-.fq-fold-sheet, .fq-fold-rest, .fq-fold-flap > i, .fq-fold-stack > i {
-  border: 2px solid var(--fold-edge); border-radius: 5px;
-  background: repeating-linear-gradient(0deg, transparent 0 7px, rgba(11, 79, 115, .035) 7px 8px), var(--fold-paper);
-}
-.fq-fold-sheet { position: absolute; inset: 0; display: flex; overflow: hidden; box-shadow: 0 6px 14px rgba(11, 79, 115, .14); }
-.fq-fold-piece {
-  position: relative; flex: 1; display: grid; place-items: center; padding: 0; border: 0; border-left: 3px solid transparent; background: transparent;
-  color: var(--fold-edge); cursor: pointer; transform-origin: left center; touch-action: manipulation;
-  animation: fq-fold-open 420ms cubic-bezier(.3, .8, .35, 1) both; animation-delay: calc(var(--i) * 60ms);
-}
-.fq-fold-piece:disabled { cursor: default; }
-.fq-fold-piece:focus-visible { outline: 3px solid var(--fq-sky-ink, #0A6FA6); outline-offset: -4px; }
-/* Each fold keeps its own crease style: 1st fold bold purple, 2nd blue dashes, 3rd light dots. */
-.fq-fold-piece.crease-1 { border-left: 3px solid var(--fold-crease-1); }
-.fq-fold-piece.crease-2 { border-left: 3px dashed var(--fold-crease-2); }
-.fq-fold-piece.crease-3, .fq-fold-piece.crease-4 { border-left: 2px dotted var(--fold-crease-3); }
-.fq-fold-piece.shaded { background: color-mix(in srgb, var(--fq-grape) 45%, #fff); color: #2a1166; }
-.fq-fold-piece small { font: 900 .9rem var(--app-font-display); opacity: 0; animation: fq-fade-in 300ms ease forwards; animation-delay: calc(var(--n) * 160ms + 450ms); }
-.phase-flat .fq-fold-piece small { animation: none; opacity: 1; }
-.fq-fold-count { position: absolute; top: 50%; left: 50%; display: grid; place-items: center; min-width: 26px; height: 26px; border-radius: 99px; background: var(--fq-sun); color: #2B2D42; font: 900 .85rem var(--app-font-display);
-  transform: translate(-50%, -50%) scale(0); animation: fq-fold-count 900ms ease forwards; animation-delay: calc(var(--i) * 160ms + 380ms); }
-/* The flap: a front and a back face. The back is a deeper blue, so you see the paper turn over. */
-.fq-fold-rest { position: absolute; top: 0; bottom: 0; box-shadow: calc(var(--layers) * 2px) calc(var(--layers) * 2px) 0 -1px var(--fold-back), 0 6px 14px rgba(11, 79, 115, .14); }
-.fq-fold-flap { position: absolute; top: 0; bottom: 0; z-index: 3; transform-style: preserve-3d; }
-.fq-fold-flap > i { position: absolute; inset: 0; backface-visibility: hidden; }
-.fq-fold-flap > i.back { transform: rotateY(180deg); background: repeating-linear-gradient(0deg, transparent 0 7px, rgba(11, 79, 115, .05) 7px 8px), var(--fold-back); }
-.fq-fold-flap.right { transform-origin: left center; animation: fq-flap-over-right 680ms cubic-bezier(.5, .05, .25, 1) forwards; }
-.fq-fold-flap.left { z-index: 4; transform-origin: right center; animation: fq-flap-over-left 680ms cubic-bezier(.5, .05, .25, 1) 420ms forwards; }
-.fq-fold-crease-draw { position: absolute; top: 0; bottom: 0; z-index: 5; width: 3px; margin-left: -1.5px; background: var(--fold-crease-1); transform: scaleY(0); transform-origin: top; animation: fq-crease-draw 260ms ease-out 560ms forwards; }
-.fq-fold-crease-draw.second { animation-delay: 980ms; }
-/* The folded stack: every layer's edge peeks out, like a stack of cards. */
-.fq-fold-stack { position: absolute; inset: 0; }
-.fq-fold-stack > i { position: absolute; inset: 0; transform: translate(calc(var(--k) * 3px), calc(var(--k) * 3px)); z-index: calc(20 - var(--k)); background: var(--fold-paper); }
-.fq-fold-stack > i:not(:first-child) { background: var(--fold-back); }
-.fq-fold-stack > i:first-child { box-shadow: 0 6px 14px rgba(11, 79, 115, .16); }
-.phase-collapsing .fq-fold-sheet { animation: fq-fold-collapse 420ms ease-in forwards; }
-.fq-fold-layers { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); padding: 2px 10px; border-radius: 99px; background: var(--fold-edge); color: #fff; font: 900 .78rem var(--app-font-display); animation: fq-fade-in 250ms ease both; }
-.fq-fold-equal { margin: -4px 0 0; color: var(--fold-crease-1); font: 900 1.05rem var(--app-font-display); }
-@keyframes fq-flap-over-right { 0% { transform: rotateY(0); } 100% { transform: rotateY(-180deg); } }
-@keyframes fq-flap-over-left { 0% { transform: rotateY(0); } 100% { transform: rotateY(180deg); } }
-@keyframes fq-crease-draw { to { transform: scaleY(1); } }
-@keyframes fq-fold-open { from { transform: rotateY(-88deg); opacity: .15; } to { transform: none; opacity: 1; } }
-@keyframes fq-fold-collapse { to { transform: scaleX(.35); opacity: .6; } }
-@keyframes fq-fold-count { 0% { transform: translate(-50%, -50%) scale(0); } 25% { transform: translate(-50%, -50%) scale(1.15); } 70% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(.9); opacity: 0; } }
-@keyframes fq-fade-in { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) {
-  .fq-fold-paper, .fq-fold-piece, .fq-fold-piece small, .fq-fold-layers { transition: none; animation: none; opacity: 1; }
-}
-@media (max-width: 560px) { .fq-fold-paper, .fq-fold-ghost { height: 72px; } .fq-fold-stage { min-height: 100px; } }
-
 /* ---------- equal parts look equal ----------
    A bar is one whole: a single rectangle with a dark outline, split by straight lines into identical rectangular
    parts. No part is rounded, no gaps between parts, and the end parts look exactly like the middle ones. The outline
    keeps a tiny 3px rounding on its outside only (a 3px border leaves the inside corners square, so no part is clipped).
    The lines come from the bar's background showing through a 2px gap. */
 :root { --fq-whole-edge: hsl(var(--foreground) / .85); --fq-part-line: color-mix(in srgb, var(--fq-den) 55%, var(--fq-edge)); }
-.fq-bar, .fq-ll-bar, .fq-tap-bar, .fq-daily-model, .fq-partition-whole {
+.fq-bar, .fq-ll-bar, .fq-daily-model, .fq-partition-whole {
   gap: 2px; padding: 0; overflow: hidden; border: 3px solid var(--fq-whole-edge); border-radius: 3px; background: var(--fq-part-line);
 }
-.fq-bar span, .fq-bar span:last-child, .fq-ll-piece, .fq-tap-bar button, .fq-daily-part, .fq-partition-whole span, .fq-partition-whole span:last-child {
+.fq-bar span, .fq-bar span:last-child, .fq-ll-piece, .fq-daily-part, .fq-partition-whole span, .fq-partition-whole span:last-child {
   border: 0; border-radius: 0; box-shadow: none;
 }
-.fq-bar span.empty, .fq-ll-piece:not(.on), .fq-tap-bar button:not(.on), .fq-daily-part:not(.shaded) { background: hsl(var(--card)); box-shadow: none; }
-.fq-ll-piece.on, .fq-tap-bar button.on { box-shadow: none; }
+.fq-bar span.empty, .fq-ll-piece:not(.on), .fq-daily-part:not(.shaded) { background: hsl(var(--card)); box-shadow: none; }
+.fq-ll-piece.on { box-shadow: none; }
 .fq-daily-part.shaded { border: 0; }
 /* Pressing a part must not change its size (that would make it look unequal for a moment). */
-.fq-ll-piece:hover, .fq-ll-piece:active, .fq-tap-bar button:active, .fq-daily-part:hover:not(:disabled) { transform: none; }
-.fq-ll-piece:focus-visible, .fq-tap-bar button:focus-visible, .fq-daily-part:focus-visible { outline: 3px solid var(--fq-sky-ink, #0A6FA6); outline-offset: -5px; }
+.fq-ll-piece:hover, .fq-ll-piece:active, .fq-daily-part:hover:not(:disabled) { transform: none; }
+.fq-ll-piece:focus-visible, .fq-daily-part:focus-visible { outline: 3px solid var(--fq-sky-ink, #0A6FA6); outline-offset: -5px; }
 /* Strips with unequal pieces (the "are these fair?" questions) keep straight dividers too: only the sizes differ. */
 .fq-partition-whole { gap: 0; background: hsl(var(--muted)); }
 .fq-partition-whole span + span { border-left: 2px solid var(--fq-whole-edge); }
@@ -2428,8 +2283,6 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 @keyframes fq-count-glow { 50% { filter: brightness(1.25) drop-shadow(0 0 6px var(--fq-sun)); } }
 .fq-bar { grid-template-columns: repeat(var(--pieces), minmax(0, 1fr)); }
 
-/* Lesson 1 shows Numi once (in the fraction introduction), so its lesson idea box needs no second mascot. */
-.fq-mascot-say.no-mascot { grid-template-columns: 1fr; display: block; }
 /* On phones the progress fraction and bar already show the round; the "Round 1 of 2" text clipped off the edge. */
 @media (max-width: 560px) { .fq-taskbar-fraction .fq-taskbar-sequence { display: none; } }
 

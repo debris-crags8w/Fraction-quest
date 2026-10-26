@@ -1390,14 +1390,6 @@
   background: hsl(var(--card));
 }
 
-.fq-example-heading {
-  margin: 0;
-  font-size: clamp(1.25rem, 2.2vw, 1.7rem);
-  line-height: 1.2;
-}
-
-.fq-example .fq-mascot-say { margin-top: 0; }
-
 .fq-example-answer p {
   margin: 8px 0 0;
 }

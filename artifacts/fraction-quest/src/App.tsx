@@ -68,13 +68,13 @@ import { TimeUp } from './time-up';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
-import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, TapModel, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
+import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
-import { IdeaLearn, LessonIntroCard, TeachFirst } from './lesson-intro';
+import { IdeaLearn, LessonIntroCard } from './lesson-intro';
 import { ideaPracticeQuestions, ideaSteps, isRound, lessonIdeas, practicePlan } from './lesson-ideas';
 import { LESSON_INTROS } from './lesson-intros';
 import { StoryCharacter } from './characters';
-import { CHAPTERS, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, chapterEnd, chapterFor, choiceNotes, hintLead, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
+import { CHAPTERS, EPILOGUE, PROLOGUE, chapterEnd, chapterFor, choiceNotes, hintLead, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
 import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
 import { LanternIcon, OilNoticeCard, TonightsLantern } from './riddle-ui';
 import { SubscribeFlow, WebAppOnlyFlow } from './Subscribe';
@@ -85,8 +85,7 @@ import { useRevealWhen } from './lib/reveal';
 import { freshSeed, generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { PrintMenu } from './Printables';
-import { PaperFold } from './PaperFold';
-import { AreaShade, AreaSvg, SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
+import { AreaShade, AreaSvg } from './AreaModel';
 import { GardenPlan } from './GardenPlan';
 import { applyPlacement } from './placement';
 import { AccountGate, useAccount, useAccountSync } from './account';
@@ -95,7 +94,7 @@ import { getRouterBasePath } from './app-routing';
 import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyPracticeDay, recordDailyPracticeStart } from './daily-practice';
 import PartFinder from './PartFinder';
 import FractionSortActivity from './FractionSortActivity';
-import { PART_FINDER_LESSONS, PART_FINDER_ROUNDS, partFinderRoundsFor } from './part-finder';
+import { PART_FINDER_ROUNDS, partFinderRoundsFor } from './part-finder';
 import type { LessonGame } from './ConceptGames';
 import { BrainBreakOffer } from './BrainBreakOffer';
 import { downloadWholeVoicePack, naturalVoiceId, warmUpNaturalVoice } from './lib/natural-voice';
@@ -122,11 +121,9 @@ const queryClient = new QueryClient();
 
 type View =
   | { type: 'map' }
-  | { type: 'play'; missionId: string; questionIndex: number; firstTryAnswers: number; reviewQuestions: PracticeQuestion[]; showExample?: boolean;
+  | { type: 'play'; missionId: string; questionIndex: number; firstTryAnswers: number; reviewQuestions: PracticeQuestion[];
       /** A lesson with ideas: this idea's Learn page was read (its first practice shows next). */ learned?: boolean }
-  /** A lesson's Teach first screen (goal, steps, why), the first time it starts; Next opens the lesson's first step. */
-  | { type: 'teach'; missionId: string; then: 'play' | 'hands-on' | 'fraction-sort'; reviewQuestions: PracticeQuestion[] }
-  | { type: 'intro-steps'; missionId: string; then: 'play' | 'hands-on' | 'fraction-sort'; reviewQuestions: PracticeQuestion[] }
+  | { type: 'intro-steps'; missionId: string; reviewQuestions: PracticeQuestion[] }
   | { type: 'review'; questionIndex: number; reviewQuestions: PracticeQuestion[] }
   | { type: 'review-complete'; reviewedCount: number }
   | { type: 'daily' }
@@ -141,11 +138,7 @@ type View =
   /** Every story part to read again, the clue notebook and the friends' cards. */
   | { type: 'storybook'; tab: StorybookTab; unit?: number }
   /** "Who cracked the stone?" after chapters 4 and 7 (opened from the lesson's payoff or the Storybook). */
-  | { type: 'suspects'; board: SuspectBoard; from: 'reward' | 'storybook' }
-  /** The lesson's hands-on cake rounds (Part Finder), between the worked example and the questions. */
-  | { type: 'hands-on'; missionId: string; reviewQuestions: PracticeQuestion[] }
-  /** Local card arrangement before scored questions; it does not save lesson evidence. */
-  | { type: 'fraction-sort'; missionId: string; reviewQuestions: PracticeQuestion[] };
+  | { type: 'suspects'; board: SuspectBoard; from: 'reward' | 'storybook' };
 type LabView = { type: 'lab'; missionId: string; stars: number };
 type PaperView = { type: 'paper'; missionId: string; /** Opened from the lesson lab: Back returns there. */ fromLab?: boolean };
 type RedoView = { type: 'redo'; missionId: string };
@@ -195,20 +188,8 @@ const UNIT_INFO: UnitInfo[] = [
   { title: 'Problem solving', subtitle: 'Grades 4–5 · Find the whole, spot the mistake, fraction of the rest; dividing fractions is bonus' },
 ];
 
-// Folding paper lives in the equivalence lesson only, where folding again shows 1/2 = 2/4 = 4/8.
-const FOLD_LESSONS: Record<string, { intro: string; allowThirds?: boolean; shadeHalf?: boolean }> = {
-  'equivalent-models': { intro: 'Half the paper is shaded. Fold it again and unfold: 1/2 = 2/4 = 4/8.', allowThirds: false, shadeHalf: true },
-};
-
 const UNIT_TITLES = UNIT_INFO.map((unit) => unit.title);
 /** Units whose every lesson is done: each one returns a piece of the Whole Stone. */
-/** Story mode: on a lesson's first question the chapter friend asks for this lesson's help (the comic's scene). */
-const lessonAsk = (mission: Mission) => {
-  const chapter = chapterFor(mission.unit);
-  if (!chapter) return undefined;
-  const index = MISSIONS.filter((item) => item.unit === mission.unit).findIndex((item) => item.id === mission.id);
-  return index > 0 ? chapter.scenes[index - 1] ?? chapter.scenes[chapter.scenes.length - 1] : chapter.asks[0];
-};
 /** Story mode: the four friends sharing in a hands-on lesson are the chapter friend, Numi, Hoot and one more friend. */
 const storyCast = (chapter: { character: string }) => {
   const friend = CHARACTER_NAMES[chapter.character] ?? 'Chomp';
@@ -826,38 +807,6 @@ function MissionMap({ progress, onPicked, onStart, onDeveloperTest, onLessonTest
   );
 }
 
-function GuidedExample({ mission, title, lessonLabel, hideMascot = false, withTap = true }: { mission: Mission; title?: string; lessonLabel?: string; /** Numi already introduced this screen. */ hideMascot?: boolean; /** The "Your turn" tap model. Off when a graded question sits on the same screen, so there is one thing to do. */ withTap?: boolean }) {
-  const [howOpen, setHowOpen] = useState(false);
-  return (
-    <div className="fq-example" data-testid="lesson-example">
-      {lessonLabel && <p className="fq-play-kicker">{lessonLabel} · See it first</p>}
-      {title && <h2 className="fq-example-heading">{title}</h2>}
-      <div className={`fq-mascot-say ${hideMascot ? 'no-mascot' : ''}`}>
-        {!hideMascot && <Mascot mood="happy" size={64} />}
-        <div className="fq-skill-bubble">
-          <div className="fq-skill-header">
-            <span className="fq-skill-label">Lesson idea</span>
-            <LearningListenButton text={mission.skill} label="Listen to the lesson idea" prefetch />
-          </div>
-          <p className="fq-skill-copy"><LearningText text={mission.skill} /></p>
-        </div>
-      </div>
-      {FOLD_LESSONS[mission.id] && <PaperFold {...FOLD_LESSONS[mission.id]} />}
-      {SHAPE_LESSONS.includes(mission.id) && <SameSizeIdea />}
-      {LESSON_INTROS[mission.id] && (
-        <div className="fq-how-it-works">
-          <button type="button" className="fq-button ghost" aria-expanded={howOpen} onClick={() => setHowOpen((open) => !open)} data-testid="button-how-it-works">
-            <Lightbulb size={17} aria-hidden="true" /> {howOpen ? 'Hide how it works' : 'How it works'}
-          </button>
-          {howOpen && <LessonIntroCard intro={LESSON_INTROS[mission.id]} missionId={mission.id} />}
-        </div>
-      )}
-      <WorkedExample mission={mission} />
-      {withTap && <TapModel model={mission.example.model} />}
-    </div>
-  );
-}
-
 /** The lesson's worked example: its picture (and number line), then the question, worked answer and explanation. */
 function WorkedExample({ mission }: { mission: Mission }) {
   return (
@@ -909,7 +858,7 @@ function WorkedExample({ mission }: { mission: Mission }) {
 }
 
 /** The lesson page's "How it works" for a lesson with ideas: its Learn pictures and its worked example, there to look back
-    at during Build it and the worksheet. (A lesson without ideas shows the same before question 1.) */
+    at during Build it and the worksheet. */
 function LessonHowItWorks({ mission }: { mission: Mission }) {
   const [open, setOpen] = useState(false);
   const intro = LESSON_INTROS[mission.id];
@@ -935,7 +884,6 @@ function LessonHowItWorks({ mission }: { mission: Mission }) {
 function PlayView({
   mission,
   questionIndex,
-  showExample = false,
   firstTryAnswers,
   combo,
   onBack,
@@ -956,7 +904,6 @@ function PlayView({
 }: {
   mission: Mission;
   questionIndex: number;
-  showExample?: boolean;
   firstTryAnswers: number;
   combo: number;
   onBack: () => void;
@@ -992,9 +939,6 @@ function PlayView({
   const [reviewingPastIndex, setReviewingPastIndex] = useState<number | null>(null);
   const { fun } = useFun();
   const storyOn = fun.displayPreferences?.storyMode !== false;
-  // A lesson's first question teaches first: the idea and a worked example, then (in story mode) the friend asks and
-  // the child tries.
-  const actionFirst = showExample && storyOn && !!chapterFor(mission.unit);
   // In story mode the chapter's friend gives the hints.
   const hintFriend = storyOn ? chapterFor(mission.unit)?.character : undefined;
   const seasonOn = !!useSeason().season;
@@ -1110,10 +1054,8 @@ function PlayView({
       card?.classList.remove('is-tight');
       const check = checkButtonRef.current;
       if (window.innerWidth > 560 || !check) return;
-      // From the top of the lesson screen, or from the question itself when the worked example sits above it.
-      const from = showExample
-        ? document.getElementById('lesson-question-title')
-        : area.closest('.fq-lesson-app');
+      // From the top of the lesson screen.
+      const from = area.closest('.fq-lesson-app');
       if (!from) return;
       const over = () => check.getBoundingClientRect().bottom - from.getBoundingClientRect().top + 8 - window.innerHeight;
       let overflow = over();
@@ -1133,7 +1075,7 @@ function PlayView({
     fit();
     window.addEventListener('resize', fit);
     return () => window.removeEventListener('resize', fit);
-  }, [question?.id, showExample, useSimplerModel, reviewingPastIndex]);
+  }, [question?.id, useSimplerModel, reviewingPastIndex]);
   const helper = useLessonHelper({ compact: true });
   // Screen readers: after Check, focus moves to the next step (Continue or Try again) instead of falling to the page,
   // and each new question's heading takes focus so the question is read.
@@ -1191,25 +1133,18 @@ function PlayView({
               ? `Quick skill review · ${question?.reviewTopicTitle ?? mission.shortTitle} · Question ${questionIndex + 1} of ${mission.questions.length}`
               : isExtraPractice
                 ? `Practice more · Lesson ${lessonNumber} · Question ${questionIndex + 1} of ${mission.questions.length}`
-              : showExample
-                ? <>Lesson {lessonNumber}<span className="fq-kicker-topic"> · {mission.shortTitle} · See it, then try it</span> · Question {questionIndex + 1} of {mission.questions.length}</>
-                : <>Lesson {lessonNumber}<span className="fq-kicker-topic"> · {mission.shortTitle}</span> · Question {questionIndex + 1} of {mission.questions.length}</>)}
+              : <>Lesson {lessonNumber}<span className="fq-kicker-topic"> · {mission.shortTitle}</span> · Question {questionIndex + 1} of {mission.questions.length}</>)}
           </p>
           {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
             {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
           </p>}
           {/* One friendly line per question: the story friend's (in the season's props) when the story is on, else the seasonal one. */}
-          {question && !showExample && !quiet && (storyOn && chapterFor(mission.unit)
+          {question && !quiet && (storyOn && chapterFor(mission.unit)
             ? <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} result={feedback} setup={question.storySetup} />
             : seasonOn && <SeasonSay kind={question.model.kind} id={question.id} />)}
-          {showExample
-            ? <h1 id="lesson-title">{mission.title}</h1>
-            : <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />}
-          {showExample && <GuidedExample mission={mission} withTap={false} />}
+          <StoryPrompt prompt={question?.prompt ?? ''} id="lesson-title" />
           {question && (
             <>
-              {actionFirst && <StorySay chapter={chapterFor(mission.unit)!} questionId={question.id} result={feedback} setup={question.storySetup ?? lessonAsk(mission)} />}
-              {showExample && <StoryPrompt prompt={question.prompt} id="lesson-question-title" />}
               {question.isReview && <div className={`fq-review-label ${question.isOptionalReview ? '' : 'is-revisit'}`}><RotateCcw size={15} />{question.isOptionalReview ? `${isQuickReview ? 'Due skill' : 'Optional review'} · ${question.reviewTopicTitle}` : ' A quick revisit to help it stick'}</div>}
               {question.isMastery && <div className="fq-mastery-label"><Star size={15} /> Practice checkpoint<span className="fq-mastery-more"> · Models and worksheet come next</span></div>}
               <div ref={modelAreaRef} className="fq-model-area" data-testid="question-model-area">
@@ -1630,26 +1565,15 @@ function Game() {
       return;
     }
     const reviewQuestions = getDelayedReviewQuestions(activeProgress, missionId);
-    // A lesson with ideas teaches each idea right before its practice (its hands-on rounds are practices of an idea).
-    const first = lessonIdeas(missionId) ? 'play' : missionId === 'order-unlike-fractions' ? 'fraction-sort' : PART_FINDER_LESSONS.has(missionId) ? 'hands-on' : 'play';
-    if (lessonIdeas(missionId)) {
-      if (!fun.lessonIntrosSeen?.includes(missionId)) setFun((current) => recordLessonIntro(current, missionId));
-      // A child's first lesson: how the models work and their names (Watch, Words, Try) come before idea 1.
-      if (introsDue(fun.introsSeen).toTry.length || !fun.fractionWordsSeen) setView({ type: 'intro-steps', missionId, then: first, reviewQuestions });
-      else openLessonStart(missionId, first, reviewQuestions);
-      return;
-    }
-    // The first time a lesson starts, it teaches first: the goal, the steps and why. Later it stays under "How it works".
-    if (!fun.lessonIntrosSeen?.includes(missionId)) {
-      setView({ type: 'teach', missionId, then: first, reviewQuestions });
-      return;
-    }
-    openLessonStart(missionId, first, reviewQuestions);
+    // Every lesson has ideas: each is taught right before its practice (hands-on rounds are practices of an idea).
+    if (!fun.lessonIntrosSeen?.includes(missionId)) setFun((current) => recordLessonIntro(current, missionId));
+    // A child's first lesson: how the models work and their names (Watch, Words, Try) come before idea 1.
+    if (introsDue(fun.introsSeen).toTry.length || !fun.fractionWordsSeen) setView({ type: 'intro-steps', missionId, reviewQuestions });
+    else openLessonStart(missionId, reviewQuestions);
   };
-  /** A lesson's first step: the ordering cards, the hands-on rounds, or the worked example with question 1. */
-  const openLessonStart = (missionId: string, first: 'play' | 'hands-on' | 'fraction-sort', reviewQuestions: PracticeQuestion[]) => {
-    if (first === 'play') setView({ type: 'play', missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions, showExample: !lessonIdeas(missionId) });
-    else setView({ type: first, missionId, reviewQuestions });
+  /** A lesson's first step: idea 1's Learn page. */
+  const openLessonStart = (missionId: string, reviewQuestions: PracticeQuestion[]) => {
+    setView({ type: 'play', missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions });
   };
   /** Swap in temporary progress for a test; returnToMap puts the real progress (and fun) back, saving nothing. */
   const beginIsolatedTest = (testProgress: Progress) => {
@@ -1856,7 +1780,7 @@ function Game() {
   const answeredToday = fun.activity?.[today()]?.answered ?? 0;
   const timeStillOpen = view.type === 'storybook' || view.type === 'parent'
     || (view.type === 'story' && view.replay === 'storybook') || (view.type === 'suspects' && view.from === 'storybook');
-  const inLesson = activeStudyView || view.type === 'teach' || view.type === 'intro-steps' || view.type === 'hands-on' || view.type === 'fraction-sort';
+  const inLesson = activeStudyView || view.type === 'intro-steps';
   const showTimeUp = timeUsedUp && !timeStillOpen && (!inLesson || answeredToday > (answeredAtTimeUp.current ?? answeredToday));
   // The practice reminder (in the app): no reminder today once the child has a right answer today, and a tapped
   // reminder opens today's practice from the map.
@@ -1924,48 +1848,14 @@ function Game() {
         <CodeQuest key={view.missionId} mission={getMission(view.missionId)} solved={fun.codeLevels?.[view.missionId] ?? 0}
           onExit={exitGame} onSolved={(level) => setFun((current) => recordCodeLevel(current, view.missionId, level))} />
       )}
-      {view.type === 'teach' && (
-        <TeachFirst key={view.missionId} mission={getMission(view.missionId)} lessonNumber={MISSIONS.findIndex((mission) => mission.id === view.missionId) + 1}
-          onExit={returnToMap}
-          onNext={() => {
-            setFun((current) => recordLessonIntro(current, view.missionId));
-            // A child's first lesson: how the models work and their names (Watch, Words, Try) come before any question.
-            if (introsDue(fun.introsSeen).toTry.length || !fun.fractionWordsSeen) setView({ ...view, type: 'intro-steps' });
-            else openLessonStart(view.missionId, view.then, view.reviewQuestions);
-          }} />
-      )}
       {view.type === 'intro-steps' && (
         <IntroSteps title={getMission(view.missionId).title} lessonNumber={MISSIONS.findIndex((mission) => mission.id === view.missionId) + 1}
           seen={fun.introsSeen} wordsSeen={!!fun.fractionWordsSeen} onExit={returnToMap}
           onSeen={(kind, stage) => setFun((current) => recordIntro(current, kind, stage))}
           onWordsSeen={() => setFun((current) => recordFractionWords(current))}
-          onSkip={() => { setFun((current) => recordFractionWords(recordIntro(recordIntro(current, 'builder'), 'line'))); openLessonStart(view.missionId, view.then, view.reviewQuestions); }}
-          onDone={() => openLessonStart(view.missionId, view.then, view.reviewQuestions)} />
+          onSkip={() => { setFun((current) => recordFractionWords(recordIntro(recordIntro(current, 'builder'), 'line'))); openLessonStart(view.missionId, view.reviewQuestions); }}
+          onDone={() => openLessonStart(view.missionId, view.reviewQuestions)} />
       )}
-      {view.type === 'hands-on' && (() => {
-        const mission = getMission(view.missionId);
-        const toQuestions = () => setView({ type: 'play', missionId: view.missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions: view.reviewQuestions });
-        const activityTitle = view.missionId === 'equal-parts' ? 'Make fair shares'
-          : view.missionId === 'unit-fractions' ? 'Build a fraction'
-            : 'Find the same amount';
-        const chapter = chapterFor(mission.unit);
-        return <PartFinder key={view.missionId} rounds={partFinderRoundsFor(view.missionId)} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
-          activityTitle={activityTitle} showFirstIntroduction={view.missionId === MISSIONS[0].id}
-          intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} hideMascot={view.missionId === MISSIONS[0].id} />}
-          onExit={returnToMap} onDone={toQuestions} onSkip={progress.completedMissionIds.includes(view.missionId) || hasLearningGate(progress, view.missionId) ? toQuestions : undefined}
-          {...(storyMode && chapter ? {
-            friends: storyCast(chapter),
-            storyLine: (result: 'correct' | 'retry' | null) => <StorySay chapter={chapter} questionId={`${view.missionId}-hands-on`} result={result} setup={HANDS_ON_ASKS[partFinderRoundsFor(view.missionId)[0]?.id ?? 'sort']} />,
-          } : {})} />;
-      })()}
-      {view.type === 'fraction-sort' && (() => {
-        const mission = getMission(view.missionId);
-        const toQuestions = () => setView({ type: 'play', missionId: view.missionId, questionIndex: 0, firstTryAnswers: 0, reviewQuestions: view.reviewQuestions });
-        return <FractionSortActivity key={view.missionId} rounds={FRACTION_ORDER_ROUNDS}
-          lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`}
-          intro={<GuidedExample mission={mission} title={mission.title} lessonLabel={`Lesson ${String(MISSIONS.indexOf(mission) + 1).padStart(2, '0')}`} />}
-          onExit={returnToMap} onDone={toQuestions} />;
-      })()}
       {import.meta.env.DEV && LessonTester && view.type === 'lesson-tester' && (
         <LessonTester unitTitles={UNIT_TITLES} focusUnit={view.unit} onBack={leaveLessonTester}
           onStart={(missionId) => startDeveloperLessonTest(missionId, 'start', true)}
@@ -2056,7 +1946,7 @@ function Game() {
           const sortId = ideaStep.item.sortRound;
           return <FractionSortActivity key={`${activeMission.id}-${view.questionIndex}`} rounds={[FRACTION_ORDER_ROUNDS.find((round) => round.id === sortId)!]}
             lessonLabel={`Lesson ${lessonLabel} · Idea ${ideaStep.idea + 1} of ${ideas.length} · Practise ${ideaStep.practice + 1} of ${ideas[ideaStep.idea]!.practice.length}`}
-            intro={null} onExit={returnToMap} onDone={() => nextPlay(view.firstTryAnswers)} />;
+            onExit={returnToMap} onDone={() => nextPlay(view.firstTryAnswers)} />;
         }
         if (view.type === 'play' && ideas && ideaStep && 'handsOn' in ideaStep.item) {
           const round = partFinderRoundsFor(activeMission.id).find((item) => item.id === (ideaStep.item as { handsOn: string }).handsOn)
@@ -2075,7 +1965,6 @@ function Game() {
           mission={activeMission}
           starEligibleQuestionIds={view.type === 'play' && baseMission ? starIds : undefined}
           questionIndex={view.questionIndex}
-          showExample={view.type === 'play' && view.showExample}
           firstTryAnswers={view.type === 'play' ? view.firstTryAnswers : 0}
           isQuickReview={view.type === 'review'}
           combo={combo}

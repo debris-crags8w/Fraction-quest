@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { FRACTION_ORDER_ROUNDS, MISSIONS } from './game';
-import { fractionsTaughtBy, ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS, practicePlan, type LessonIdea } from './lesson-ideas';
+import { fractionsTaughtBy, ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS, lessonIdeas, practicePlan, type LessonIdea } from './lesson-ideas';
 import { PART_FINDER_ROUNDS } from './part-finder';
 import { getExtraPractice } from './practice-bank';
 import { HANDS_ON_ASKS, storyProblemFor } from './story';
@@ -26,6 +26,12 @@ test('each idea teaches on its Learn pages, then has 3 practices that are real q
       }
     }
   }
+});
+
+test('every lesson has ideas, so every lesson starts at idea 1 (the app has no other lesson start)', () => {
+  assert.deepEqual(MISSIONS.filter((mission) => !lessonIdeas(mission.id)).map((mission) => mission.id), []);
+  assert.deepEqual(Object.keys(LESSON_IDEAS).filter((id) => !MISSIONS.some((mission) => mission.id === id)), []);
+  for (const mission of MISSIONS) assert.ok(ideaSteps(mission.id).length >= 6, `${mission.id}: at least 2 ideas of 3 practices`);
 });
 
 test('a lesson with ideas uses each of its questions once, and every idea question it wrote', () => {

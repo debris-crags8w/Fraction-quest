@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRevealWhen, useScrollTopOn } from './lib/reveal';
 import { MathText } from './MathText';
 import { AREA_CUTS, pieceArea, type AreaCut, type Piece } from './area-shapes';
@@ -6,7 +6,7 @@ import { FRIENDS, isPartFinderAnswer, partFinderFeedback, type PartFinderRound }
 import './part-finder.css';
 import { TaskBar } from './TaskBar';
 import { AnswerTiles } from './AnswerTiles';
-import { Mascot, useSeasonalWords } from './fun-ui';
+import { useSeasonalWords } from './fun-ui';
 import { LearningListenButton } from './LearningText';
 import { playHaptic } from './lib/fun';
 import { useLessonHelper } from './model-intro';
@@ -16,31 +16,6 @@ type CheckState = 'idle' | 'right' | 'try-again';
 const svgPoints = (piece: Piece) =>
   piece.points.map(([x, y]) => `${x * 168},${y * 168}`).join(' ');
 
-
-const FIRST_FRACTION_TEXT = 'A fraction shows equal parts of one whole. First look at the whole. Then split it into equal pieces and share them fairly.';
-
-function FirstFractionIntroduction() {
-  return (
-    <section className="fq-pf-first-intro" data-testid="first-fraction-introduction" aria-labelledby="pf-first-intro-title">
-      <div className="fq-pf-first-intro-copy">
-        <Mascot mood="happy" size={62} />
-        <div>
-          <div className="fq-pf-first-intro-heading">
-            <h2 id="pf-first-intro-title">Meet fractions with Numi</h2>
-            <LearningListenButton text={FIRST_FRACTION_TEXT} label="Listen to the fraction introduction" prefetch />
-          </div>
-          <p>{FIRST_FRACTION_TEXT}</p>
-        </div>
-      </div>
-      <figure className="fq-pf-first-intro-model" data-testid="first-fraction-intro-model">
-        <div className="fq-pf-intro-whole" role="img" aria-label="One whole divided into four equal-size parts">
-          {[1, 2, 3, 4].map((part) => <span className="fq-pf-intro-part" key={part} />)}
-        </div>
-        <figcaption>one whole · 4 equal-size parts</figcaption>
-      </figure>
-    </section>
-  );
-}
 
 function CutPicture({ cut, label, selected = [], groups, interactive = false, disabled = false, onToggle, names = FRIENDS }: {
   cut: AreaCut;
@@ -125,24 +100,18 @@ function TileFill({ cut, selection, solved }: { cut: AreaCut; selection: number[
 
 /** Hands-on cake rounds inside a lesson, between the worked example and the questions. Each round must fit
     before the child moves on; the feedback says why a try doesn't fit. */
-export default function PartFinder({ rounds, lessonLabel, activityTitle, showFirstIntroduction = false, intro, onExit, onDone, onSkip, friends = FRIENDS, storyLine, progress }: {
+export default function PartFinder({ rounds, lessonLabel, activityTitle, onExit, onDone, onSkip, friends = FRIENDS, progress }: {
   rounds: PartFinderRound[];
   /** "Lesson 01 · Same whole, fair pieces": shown in the bar so the child knows this is part of the lesson. */
   lessonLabel: string;
   /** Short label for the specific hands-on activity. */
   activityTitle: string;
-  /** Show the Numi-led introduction for the learner's first fraction lesson. */
-  showFirstIntroduction?: boolean;
-  /** A worked example shown as part of the lesson before its hands-on rounds. */
-  intro?: ReactNode;
   onExit: () => void;
   onDone: () => void;
   /** Replaying a finished lesson: the cake rounds can be skipped. */
   onSkip?: () => void;
   /** Story mode: the friends sharing the cake are the story's cast. */
   friends?: readonly string[];
-  /** Story mode: the chapter friend's line above the task (asks, then reacts to each check). */
-  storyLine?: (result: 'correct' | 'retry' | null) => ReactNode;
   /** One round as an idea's practice: the bar counts the idea's practices ("Practise 2 of 3") instead of the rounds. */
   progress?: { step: number; total: number; label: string; kicker: string };
 }) {
@@ -205,11 +174,6 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
     setTileCount('');
   };
 
-  const help = <>
-    {showFirstIntroduction && <FirstFractionIntroduction />}
-    {intro && <section className="fq-pf-lesson-example" data-testid="part-finder-lesson-example">{intro}</section>}
-  </>;
-
   const advance = () => {
     if (lastRound) { onDone(); return; }
     setRoundIndex((index) => index + 1);
@@ -235,16 +199,6 @@ export default function PartFinder({ rounds, lessonLabel, activityTitle, showFir
         <TaskBar onBack={onExit} backLabel="Map" testId="button-part-finder-exit" title={progress ? progress.kicker.replace(/^Lesson \d+ · /, '') : activityTitle} segmentsOnly={!!progress} backAriaLabel={`Back to the map (leaves ${lessonLabel})`} step={progress?.step ?? roundIndex + 1} total={progress?.total ?? rounds.length} sequenceLabel={progress?.label ?? 'Round'}
           actions={<>{!progress && helper.button}{onSkip && <button type="button" className="fq-hint-button" onClick={onSkip} data-testid="button-hands-on-skip">Skip</button>}</>} />
         {helper.panel}
-
-        {/* Teach first: the introduction and worked example open the first round; later rounds keep them a tap away. */}
-        {(showFirstIntroduction || intro) && (roundIndex === 0 ? help : (
-          <details className="fq-pf-help-again" data-testid="part-finder-help-again">
-            <summary>See how it works again</summary>
-            {help}
-          </details>
-        ))}
-
-        {storyLine?.(checked === 'idle' ? null : correct ? 'correct' : 'retry')}
 
         <section className={`fq-pf-card${round.mode === 'tile' ? ' is-tile' : ''}`} aria-labelledby="pf-title">
           <div className="fq-pf-heading">
