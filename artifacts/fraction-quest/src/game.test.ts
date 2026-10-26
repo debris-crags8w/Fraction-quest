@@ -264,7 +264,10 @@ describe('lesson catalog', () => {
     // Pictures that draw every choice, or the fractions being put in order, stay as they are; a picture of every
     // choice also draws the added fourth choice (6/8 here), so the child can check that one too.
     assert.deepEqual(shown('Which is closest to 1/2?'), ['1/2', '5/8', '1/6', '7/8', '6/8']);
-    assert.deepEqual(shown('Put 1/2, 3/8 and 7/8 in order, smallest first.'), ['3/8', '1/2', '7/8']);
+    assert.deepEqual(shown('Put 1/2, 3/8, 7/8 in order, smallest first.'), ['3/8', '1/2', '7/8']);
+    // The fractions being put in order are all labelled, not only 1/2.
+    const ordered = question('Put 1/2, 3/8, 7/8 in order, smallest first.').model;
+    assert.ok(ordered.kind === 'bars' && ordered.bars.every((bar) => bar.named), 'every bar to put in order has its label');
     // After answering, the hidden bar comes back to confirm the answer.
     const model = question('Which is the same as 2/3?').model;
     assert.ok(model.kind === 'bars' && model.bars.some((bar) => bar.untilAnswered && bar.numerator === 4 && bar.denominator === 6));
@@ -534,7 +537,7 @@ describe('lesson catalog', () => {
 
   it('keeps a curated set of fraction and decimal answer keys mathematically correct', () => {
     const answerKeyChecks = [
-      ['equal-parts-q2', '1/4'],
+      ['equal-parts-q2', 'No, the parts are different sizes'],
       ['sets-nonunit-q1', '8'],
       ['number-line-beyond-one-q3', '8/6'],
       ['missing-equivalent-q2', '8'],
@@ -544,7 +547,7 @@ describe('lesson catalog', () => {
       // Lessons whose questions are written one by one (not made from worksheet rows).
       ['compare-decimals-grid-q1', '0.45 < 0.5 < 0.6'],
       ['compare-decimals-grid-q2', "You can't tell"],
-      ['compare-decimals-grid-q3', '0.3'],
+      ['compare-decimals-grid-q3', '0.3 > 0.25'],
       ['compare-decimals-grid-q4', '0.8 > 0.75 > 0.09'],
       ['fraction-times-fraction-q1', '3/8'],
       ['fraction-times-fraction-q2', '6/12'],
@@ -2343,7 +2346,7 @@ describe('unit challenges', () => {
   const value = (n: number, d: number) => n / d;
   const expected: Record<string, string> = {
     'u1-p1': '3/8', 'u2-p1': '1/3', 'u3-p1': 'D', 'u4-p1': '3/5', 'u5-p1': 'B', 'u6-p1': '4', 'u7-p1': '1 and 3/4', 'u8-p1': '0.35',
-    'u1-c1': '3', 'u1-c2': '5/8', 'u1-c3': '1/4', 'u1-c4': '10 cm', 'u1-c5': '12',
+    'u1-c1': '3', 'u1-c2': '5/8', 'u1-c3': '1/4', 'u1-c4': '10 cars', 'u1-c5': '12',
     'u2-c1': '1/2', 'u2-c2': '3/5', 'u2-c3': 'Mia', 'u2-c4': '2/9, 2/5, 2/3', 'u2-c5': 'Kim',
     'u3-c1': '5/8',
     'u3-c2': ['1/2', '2/3', '3/4', '4/5', '5/6'].sort((a, b) => {
@@ -2359,7 +2362,7 @@ describe('unit challenges', () => {
     'u5-c1': '7/10', 'u5-c2': '2/9', 'u5-c3': '7/8', 'u5-c4': 'Cara', 'u5-c5': '2',
     'u6-c1': '3/6', 'u6-c2': '8', 'u6-c3': '5/14', 'u6-c4': '2', 'u6-c5': '20',
     'u7-c1': '1', 'u7-c2': '2 and 1/4', 'u7-c3': '12', 'u7-c4': '3/8 + 4/8', 'u7-c5': '3',
-    'u8-c1': `${30 + 25}/100`, 'u8-c2': '0.3', 'u8-c3': '0.5', 'u8-c4': '2/10 m', 'u8-c5': `${2 + 1 + 1} ${3 + 2 - 4}/4`,
+    'u8-c1': `${30 + 25}/100`, 'u8-c2': '0.3', 'u8-c3': '0.5', 'u8-c4': '2/10 meter', 'u8-c5': `${2 + 1 + 1} ${3 + 2 - 4}/4`,
     // Units 9–14: worked out here, not copied from the challenge text.
     'u9-p1': '2/3', 'u9-c1': ['2/4', '3/6', '4/9', '5/10', '6/12'].find((f) => { const [t, b] = f.split('/').map(Number); return t * 2 !== b; })!,
     'u9-c2': String((3 * 20) / 4),
@@ -2369,7 +2372,7 @@ describe('unit challenges', () => {
     'u10-p1': '1/4', 'u10-c1': String(1.5 + 2.5), 'u10-c2': `${3 + 2}/6`, 'u10-c3': '1 1/2',
     'u10-c4': ['1/3 + 1/4', '2/5 + 1/2', '3/8 + 1/2', '5/6 + 1/2'].find((sum) => sum.split(' + ').reduce((total, f) => { const [t, b] = f.split('/').map(Number); return total + t / b; }, 0) > 1)!, 'u10-c5': '1/4 liter',
     'u11-p1': '6/12', 'u11-c1': String(20 / 4), 'u11-c2': '2/3 × 12', 'u11-c3': '6/12', 'u11-c4': String(30 - 30 / 5 - 30 / 3), 'u11-c5': String(((24 / 4) * 3) / 2),
-    'u12-p1': `${(3 / 4) * 100} cm`, 'u12-c1': `1/${2 * 4}`, 'u12-c2': String(4 * 3), 'u12-c3': '1 1/8 m',
+    'u12-p1': `${(3 / 4) * 100} centimeters`, 'u12-c1': `1/${2 * 4}`, 'u12-c2': String(4 * 3), 'u12-c3': '1 1/8 meters',
     'u12-c4': ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'][[2 / 5, 3 / 8, 1 / 3, 3 / 10, 1 / 4].indexOf(Math.max(2 / 5, 3 / 8, 1 / 3, 3 / 10, 1 / 4))],
     'u12-c5': `${(1 + 1 + 2 + 4 + 4 + 6) / 6}/8`,
     'u13-p1': '3/10', 'u13-c1': '3/6', 'u13-c2': `${(3 * 2) / 3} cups`,
@@ -2463,9 +2466,9 @@ describe('long problems', () => {
     const expectedSteps: Record<string, string[]> = {
       'u1-c3': ['2', '4', '1/4'], 'u1-c5': ['4', '12'],
       'u2-c3': ['1/4', 'Mia'], 'u2-c4': ['Ninths', 'Thirds'],
-      'u2-c5': ['3/6', '3/4', '3/4'], 'u4-c5': ['6/8 m', '9/8 m', 'Yes'],
+      'u2-c5': ['3/6', '3/4', '3/4'], 'u4-c5': ['6/8 meter', '9/8 meters', 'Yes'],
       'u5-c4': ['1/4', '1/6', '1/6'], 'u6-c4': ['1/4', '2'],
-      'u7-c5': ['6/3', '8/3', '3'], 'u8-c4': ['5/10 m', '2/10 m'], 'u8-c5': ['3', '5/4', '4 1/4'],
+      'u7-c5': ['6/3', '8/3', '3'], 'u8-c4': ['5/10 meter', '2/10 meter'], 'u8-c5': ['3', '5/4', '4 1/4'],
       'u9-c4': ['8/12', '9/12', '10/12'], 'u9-c5': ['7/8', '1/8', '6/8'],
       'u10-c3': ['2 5/4', '1 2/4', '1 1/2'], 'u10-c4': ['More than 1/2', 'More than 1'], 'u10-c5': ['10/12', '4/12 and 3/12', '3/12'],
       'u11-c4': ['6', '10', '14'], 'u11-c5': ['6', '18', '9'],
@@ -2521,7 +2524,7 @@ describe('question generator', () => {
     else if ((m = /^(\d+) × (\d+)\/(\d+) = \?$/.exec(p))) expected = (N(m[1]) * N(m[2])) / N(m[3]);
     else if ((m = /^What is (\d+)\/(\d+) of (\d+)\/(\d+)\?$/.exec(p))) expected = (N(m[1]) / N(m[2])) * (N(m[3]) / N(m[4]));
     else if ((m = /^How many 1\/(\d+) cup scoops fill (\d+) cups?\?$/.exec(p))) expected = N(m[1]) * N(m[2]);
-    else if ((m = /^A ribbon is (\d+) m long\. How long is (\d+)\/(\d+) of it\?$/.exec(p))) expected = (N(m[1]) / N(m[3])) * N(m[2]);
+    else if ((m = /^A ribbon is (\d+) (?:m|meters) long\. How long is (\d+)\/(\d+) of it\?$/.exec(p))) expected = (N(m[1]) / N(m[3])) * N(m[2]);
     else if ((m = /^A board is (\d+)\/(\d+) m\. Another is (\d+)\/(\d+) m\./.exec(p))) expected = N(m[1]) / N(m[2]) + N(m[3]) / N(m[4]);
     else if ((m = /^(\d+) (?:loaf is|loaves are|pizza is|pizzas are) shared fairly by (\d+) friends/.exec(p)) || (m = /^(\d+) ÷ (\d+) = \?$/.exec(p))) expected = N(m[1]) / N(m[2]);
     else if ((m = /^A bag has (\d+) marbles\. (\d+) (?:is|are) green/.exec(p))) expected = N(m[2]) / N(m[1]);
@@ -2552,7 +2555,7 @@ describe('question generator', () => {
     else if ((m = /^Without finding the exact (?:sum|difference), compare (\d+)\/(\d+) ([+−]) (\d+)\/(\d+) with 1: __ 1\.$/.exec(p))) {
       const total = N(m[1]) / N(m[2]) + (m[3] === '+' ? 1 : -1) * N(m[4]) / N(m[5]);
       assert.equal(answer, `${m[1]}/${m[2]} ${m[3]} ${m[4]}/${m[5]} ${total < 1 ? '<' : '>'} 1`, p); return true;
-    } else if ((m = /^Move the scale slider to (\d+)\/(\d+)\. Without multiplying, compare \d+\/\d+ × (\d+) with \d+: __ \d+\.$/.exec(p))) {
+    } else if ((m = /^Move the (?:scale )?slider to (\d+)\/(\d+)\. Without multiplying, compare \d+\/\d+ × (\d+) with \d+: __ \d+\.$/.exec(p))) {
       const sign = N(m[1]) < N(m[2]) ? '<' : N(m[1]) === N(m[2]) ? '=' : '>';
       assert.equal(answer, `${m[1]}/${m[2]} × ${m[3]} ${sign} ${m[3]}`, p); return true;
     } else if ((m = /^Compare: ([\d.]+) __ ([\d.]+)\.$/.exec(p))) {

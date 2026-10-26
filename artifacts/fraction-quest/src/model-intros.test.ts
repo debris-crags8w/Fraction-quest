@@ -67,3 +67,32 @@ describe('fraction words', () => {
     assert.ok(speech.every((line) => !/\d\/\d|numerator|denominator/.test(line)), 'no slash fractions or lesson 2 words');
   });
 });
+
+describe('lesson 1 and the fraction words screen', () => {
+  it('lesson 1 uses only the part names the Words screen teaches (its hints link there): no fifths, sevenths or ninths', async () => {
+    const { FRACTION_WORDS, PART_NAMES } = await import('./intro-copy');
+    const { MISSIONS } = await import('./game');
+    const { LESSON_IDEAS, learnScript } = await import('./lesson-ideas');
+    const { getBuildChecks, getReviewCheck, getWorksheet } = await import('./learning-content');
+    const { storyProblemFor } = await import('./story');
+    const taught = new Set<number>(FRACTION_WORDS.rows.map((row) => row.d));
+    const lesson = MISSIONS[0]!;
+    assert.equal(lesson.id, 'fraction-names');
+    const story = storyProblemFor(lesson.id);
+    // Every screen of lesson 1 but Practice more: its Learn pages (with their pictures), every question it asks (each
+    // choice too), its story problem, and its lesson page (builds, worksheet, review).
+    const screens = [
+      ...LESSON_IDEAS[lesson.id]!.flatMap((idea) => idea.learn.map((page) => `${learnScript(page)} ${JSON.stringify(page)}`)),
+      ...[...lesson.questions, ...(lesson.ideaQuestions ?? [])].map((question) => JSON.stringify(question)),
+      JSON.stringify(story ?? {}), JSON.stringify(lesson.example),
+      ...getBuildChecks(lesson.id).map((check) => JSON.stringify(check)),
+      ...[0, 1, 2].map((variant) => JSON.stringify(getWorksheet(lesson.id, variant))),
+      ...[0, 1, 2].map((round) => JSON.stringify(getReviewCheck(lesson.id, round))),
+    ].join(' ');
+    const used = new Set<number>();
+    for (const match of screens.matchAll(/\b\d+\/(\d+)\b|"(?:denominator|d)":(\d+)/g)) used.add(Number(match[1] ?? match[2]));
+    assert.deepEqual([...used].filter((d) => !taught.has(d)).sort((a, b) => a - b), [], 'lesson 1 uses a part the Words screen does not name');
+    const untaughtNames = Object.entries(PART_NAMES).filter(([d]) => !taught.has(Number(d))).flatMap(([, name]) => [name.one, name.many]);
+    for (const name of untaughtNames) assert.doesNotMatch(screens, new RegExp(`\\b${name}\\b`, 'i'), `lesson 1 says "${name}"`);
+  });
+});

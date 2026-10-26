@@ -3,12 +3,12 @@
 export const KEYS: Record<string, string> = {
   // fraction-names ("Fair parts and fraction names"): lesson 2 when these keys were written, lesson 1 now. The strip is drawn as 3 parts of 100/3 each: 3 equal
   // parts. 3 cuts across a bar make 3 + 1 = 4 parts (the bar is drawn as 4 parts of 25). The pizza is cut into 8 equal
-  // slices (circle-eighths), so the denominator is 8. In 4/5 the top number 4 counts the parts taken. 3 of 8 equal
+  // slices (circle-eighths), so the denominator is 8. In 3/4 the top number 3 counts the parts taken. 3 of 8 equal
   // parts: 3 on top, 8 below.
   'This strip is cut into equal parts. How many equal parts make the whole?': '3',
   'This bar has 3 cuts. How many equal parts make the whole?': '4',
   'This pizza is cut into equal slices. What is the denominator?': '8',
-  'In 4/5, what does the 4 mean?': '4 parts are counted',
+  'In 3/4, what does the 3 mean?': '3 parts are counted',
   '3 out of 8 equal parts are shaded. What fraction is shaded?': '3/8',
   // Lesson 3 (unit-fractions). 1/4 + 1/4 + 1/4 + 1/4 = 4/4, one whole: 4 parts. 6 sixths make 6/6, one whole.
   // n friends sharing one whole fairly cut it into n equal parts and each gets 1 of them: 1/3, 1/2, 1/6.

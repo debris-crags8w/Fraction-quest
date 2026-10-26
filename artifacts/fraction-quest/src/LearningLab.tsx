@@ -176,21 +176,24 @@ export function LinePlotInteraction({ task, onReady, disabled, checkIn = false }
 export function ScaleInteraction({ task, onReady, disabled, id }: {
   task: NonNullable<WorksheetProblem['scaleTask']>; onReady: (ready: boolean) => void; disabled: boolean; id: string;
 }) {
-  const targetPercent = (task.numerator / task.denominator) * 100;
-  const [percent, setPercent] = useState(100);
-  const complete = Math.abs(percent - targetPercent) < .01;
+  // The slider moves in steps of the fraction's own parts (fourths for 3/4), from 0 to 2 wholes, and says where it is
+  // as a fraction: lesson 59 comes long before percents (lesson 75), so nothing here is written as a percent.
+  const parts = task.denominator;
+  const [steps, setSteps] = useState(parts);
+  const complete = steps * task.denominator === task.numerator * parts;
   useEffect(() => { onReady(complete); }, [complete, onReady]);
+  const factor = `${steps}/${parts}`;
   return (
     <div className="fq-ll-custom-model fq-scale-model" data-testid="scale-model">
       <label htmlFor={`scale-factor-slider-${id}`}>Move the slider to <strong><MathText text={`${task.numerator}/${task.denominator}`} /></strong> of the whole.</label>
-      <input id={`scale-factor-slider-${id}`} type="range" min="0" max="200" step="1" value={percent} disabled={disabled}
-        aria-valuetext={`${percent}% of ${task.whole}`} onChange={event => setPercent(Number(event.target.value))} />
-      <div className="fq-scale-compare" aria-label={`Original whole ${task.whole}; scaled amount ${((task.whole * percent) / 100).toFixed(1)}`}>
+      <input id={`scale-factor-slider-${id}`} type="range" min="0" max={2 * parts} step="1" value={steps} disabled={disabled}
+        aria-valuetext={`${steps} over ${parts} of ${task.whole}`} onChange={event => setSteps(Number(event.target.value))} />
+      <div className="fq-scale-compare" aria-label={`The whole is ${task.whole}; the slider shows ${steps} over ${parts} of it`}>
         <div><b>Whole: {task.whole}</b><span className="fq-scale-whole" /></div>
-        <div><b>{percent}% of {task.whole}</b><span className="fq-scale-track"><i style={{ width: `${percent / 2}%` }} /></span></div>
-        <small>100% keeps the same amount. Less than 100% makes less; more than 100% makes more.</small>
+        <div><b><MathText text={factor} /> × {task.whole}</b><span className="fq-scale-track"><i style={{ width: `${(steps / (2 * parts)) * 100}%` }} /></span></div>
+        <small>Times 1 keeps the same amount. Less than 1 makes less; more than 1 makes more.</small>
       </div>
-      <p className="fq-ll-custom-status" role="status" aria-live="polite">{complete ? 'The slider shows the factor. Now compare the product with the whole.' : 'Move the slider to the fraction named above.'}</p>
+      <p className="fq-ll-custom-status" role="status" aria-live="polite">{complete ? 'The slider shows the factor. Now compare the new amount with the whole.' : 'Move the slider to the fraction named above.'}</p>
     </div>
   );
 }

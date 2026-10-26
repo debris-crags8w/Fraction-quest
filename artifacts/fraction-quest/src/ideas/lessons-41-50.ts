@@ -114,13 +114,14 @@ export const IDEAS: Record<string, LessonIdea[]> = {
         { text: 'Find the amount and its unit.', scene: scenes('measurement-word-problems').steps[0]! },
         { text: 'For 1/4 hour, split the 60 minutes into 4 equal parts.', scene: scenes('measurement-word-problems').steps[1]! },
         { text: 'Keep the unit in your answer.', scene: scenes('measurement-word-problems').steps[2]! },
+        example('measurement-word-problems', '1 day is 24 hours'),
       ],
       practice: [{ question: 'measurement-word-problems-q1' }, { question: 'measurement-word-problems-p1' }, { question: 'measurement-word-problems-p2' }],
     },
     {
       title: 'Other units split the same way',
       terms: [{ term: 'cents, grams and milliliters', pattern: /\b(cents?|grams?|kilograms?|liters?|milliliters?)\b/i }],
-      learn: [example('measurement-word-problems', 'Other units split the same way')],
+      learn: [wordsToKnow('measurement-word-problems'), example('measurement-word-problems', 'Other units split the same way')],
       practice: [{ question: 'measurement-word-problems-q2' }, { question: 'measurement-word-problems-q3' }, { question: 'measurement-word-problems-p3' }],
     },
     {
@@ -153,6 +154,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     {
       title: 'Count the parts in every portion',
       learn: [
+        wordsToKnow('party-portions'),
         { text: 'Every guest gets the same amount: 3/8 pound.', scene: scenes('party-portions').why },
         { text: '5 guests each eat 3/8 pound. Count all the eighths.', scene: scenes('party-portions').steps[0]! },
         { text: 'Keep the part size: they are still eighths.', scene: scenes('party-portions').steps[1]! },

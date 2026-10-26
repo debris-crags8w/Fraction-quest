@@ -1011,12 +1011,12 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
       [500, { 0: { shaded: [0, 1] } }],
       [500, { 1: { shaded: [0, 1] } }],
       [500, { 2: { shaded: [0, 1] } }]),
-      // Keep the denominator.
+      // Count the parts in all the groups (idea 1 counts them; idea 2 multiplies): they stay fifths.
       play([
         { kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1] },
         { kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1], countFrom: 3 },
         { kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1], countFrom: 5 },
-        { kind: 'text', text: '3 × 2 = 6 fifths: 6/5.', hidden: true },
+        { kind: 'text', text: '2 + 2 + 2 = 6 fifths: 6/5.', hidden: true },
       ],
       [450, { 0: { counted: [0, 1] } }],
       [450, { 1: { counted: [0, 1] } }],
@@ -1605,16 +1605,16 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
       [800, { 0: { group: 1, label: '2/4 meter' } }],
       [500, { 2: { hidden: false } }]),
       // Add the numerators.
-      play([{ kind: 'line', max: 1, spaces: 4, cut: true, unit: 'm', pointLabel: '3/4' }, { kind: 'text', text: '2/4 + 1/4: 2 + 1 = 3.', hidden: true }],
+      play([{ kind: 'line', max: 1, spaces: 4, cut: true, unit: 'meter', pointLabel: '3/4' }, { kind: 'text', text: '2/4 + 1/4: 2 + 1 = 3.', hidden: true }],
         ...jumpUp(0, 2, 450),
         [500, { 0: { jumps: 3, point: 3 } }],
         [500, { 1: { hidden: false } }]),
       // Keep the unit.
-      play([{ kind: 'line', max: 1, spaces: 4, cut: true, unit: 'm', jumps: 3, pointLabel: '3/4 meter' }, { kind: 'text', text: 'The answer is 3/4 meter, not just 3/4.', hidden: true }],
+      play([{ kind: 'line', max: 1, spaces: 4, cut: true, unit: 'meter', jumps: 3, pointLabel: '3/4 meter' }, { kind: 'text', text: 'The answer is 3/4 meter, not just 3/4.', hidden: true }],
         [600, { 0: { point: 3 } }],
         [500, { 1: { hidden: false } }]),
     ],
-    why: play([{ kind: 'line', max: 1, spaces: 4, cut: true, unit: 'm', jumps: 3 }, { kind: 'text', text: 'Same unit, same-size parts: just count them.', hidden: true }],
+    why: play([{ kind: 'line', max: 1, spaces: 4, cut: true, unit: 'meter', jumps: 3 }, { kind: 'text', text: 'Same unit, same-size parts: just count them.', hidden: true }],
       [400, { 1: { hidden: false } }]),
   },
 
@@ -1832,8 +1832,8 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
 
   'fractional-side-area': {
     steps: [
-      // Multiply the side lengths: 2/3 m by 3/4 m in a 1-meter square.
-      play([{ kind: 'area', cut: 'grid-4x3', label: 'A 1-meter square' }, { kind: 'text', text: 'Sides 2/3 m and 3/4 m: 2/3 × 3/4.', hidden: true }],
+      // Multiply the side lengths: 2/3 unit by 3/4 unit in a 1-unit square.
+      play([{ kind: 'area', cut: 'grid-4x3', label: 'A 1-unit square' }, { kind: 'text', text: 'Sides 2/3 unit and 3/4 unit: 2/3 × 3/4.', hidden: true }],
         [700, { 0: { edges: true } }],
         [600, { 0: { shaded2: range(8) } }],
         [600, { 0: { shaded: gridOverlap(4, 3, 3) } }],
@@ -1843,11 +1843,11 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
         [800, { 0: { counted: gridOverlap(4, 2, 3) } }],
         [500, { 1: { hidden: false } }]),
       // Multiply the denominators.
-      play([{ kind: 'area', cut: 'grid-4x3', edges: true, shaded2: range(8), shaded: gridOverlap(4, 3, 3) }, { kind: 'text', text: '3 × 4 = 12 boxes in the square: 6/12 square meter.', hidden: true }],
+      play([{ kind: 'area', cut: 'grid-4x3', edges: true, shaded2: range(8), shaded: gridOverlap(4, 3, 3) }, { kind: 'text', text: '3 × 4 = 12 boxes in the square: 6/12 square unit.', hidden: true }],
         [800, { 0: { counted: range(12) } }],
         [500, { 1: { hidden: false } }]),
     ],
-    why: play([{ kind: 'area', cut: 'grid-4x3', edges: true, shaded2: range(8), shaded: gridOverlap(4, 3, 3), hidden: true }, { kind: 'text', text: 'Area is rows times columns, even in parts of a meter.', hidden: true }],
+    why: play([{ kind: 'area', cut: 'grid-4x3', edges: true, shaded2: range(8), shaded: gridOverlap(4, 3, 3), hidden: true }, { kind: 'text', text: 'Area is rows times columns, even in parts of a unit.', hidden: true }],
       [400, { 0: { hidden: false } }],
       [400, { 1: { hidden: false } }]),
   },

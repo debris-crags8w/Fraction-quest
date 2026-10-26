@@ -23,7 +23,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       title: 'Add the numerators to put parts together',
       terms: [{ term: 'the + sign, adding and sums', pattern: /\+|\bsums?\b|\badd\b/i }],
       learn: [
-        wordsToKnow('compose-to-one', ['+', 'sum']),
+        wordsToKnow('compose-to-one', ['+', 'sum', 'cup']),
         example('compose-to-one', '+ means put together'),
         { text: 'Add the numerators: 2 fifths and 3 fifths make 5 fifths.', scene: scenes('compose-to-one').steps[1]! },
       ],

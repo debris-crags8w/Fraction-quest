@@ -476,10 +476,19 @@ const curriculum: MissionSeed[] = [
       model: { kind: 'area', cut: 'fourths-squares', shaded: [], caption: 'A square cake cut into 4 equal parts' },
     },
     questions: [
-      practice('Is this strip cut into 3 equal parts?', ['Yes, 3 equal parts', 'No, the parts are unequal', 'No, there are 2 parts', 'Yes, there are 3 parts'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Equal parts are all the same size. Compare the parts.', 'One part is twice as big as the others, so the parts are not equal.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
-      practice('A sandwich is cut into 4 equal parts. What is 1 part?', ['1/3', '1/4', '1/2', '1/5'], 1, bars({ numerator: 1, denominator: 4 }), 'Count all the equal parts. That is the bottom number.', 'The bottom number is all 4 parts. You have 1.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
-      practice('This ribbon is cut into 2 parts. Are the parts the same size?', ['Yes, same-size parts', 'No, one part is bigger', 'No, there must be 3 parts', 'No, they are different colors'], 0, { kind: 'partition', parts: [50, 50] }, 'Compare the 2 parts. Is one bigger?', 'Both parts are the same size, so they are equal parts.', { kind: 'partition', parts: [50, 50] }),
-      practice('A strip has 3 equal parts. What is 1 part?', ['one third', 'one half', 'three wholes', 'one fourth'], 0, bars({ numerator: 1, denominator: 3 }), 'How many equal parts make the strip?', '1 of 3 equal parts is one third, or 1/3.', bars({ numerator: 1, denominator: 2 })),
+      // Lesson 2's own questions (paper practice, Practice more, later reviews and the story problem): shapes and fair
+      // sharing, its two ideas. Lesson 1 asks the strip, ribbon and sandwich questions.
+      practice('Is this square cut into fourths?', ['Yes, same-size parts', 'No, fourths must be squares', 'No, the parts are triangles', 'No, there are only 3 parts'], 0,
+        { kind: 'area', cut: 'fourths-triangles', shaded: [] }, 'Fourths are 4 parts that cover the same space. They can be any shape. Compare the 4 triangles.',
+        'All 4 triangles cover the same space, so they are fourths. Fourths do not have to be squares.', { kind: 'area', cut: 'fourths-squares', shaded: [] }, { authoredChoices: true }),
+      practice('This square is cut into 4 parts. Are they fourths?', ['No, the parts are different sizes', 'Yes, there are 4 parts', 'Yes, all the parts are rectangles', 'No, fourths must be triangles'], 0,
+        { kind: 'area', cut: 'fourths-unequal', shaded: [] }, 'Fourths must all be the same size. Compare the biggest part and the smallest part.',
+        'The parts are different sizes, so they are not fourths. 4 parts are fourths only when they cover the same space.', { kind: 'area', cut: 'fourths-squares', shaded: [] }, { authoredChoices: true }),
+      // Wrong choices: the friends counted, the whole pile, the pieces the others get.
+      practice('3 friends share 6 equal pieces fairly. How many pieces does each friend get?', ['2', '3', '6', '4'], 0, { kind: 'set', selected: 0, total: 6 },
+        'Give one piece to each friend, then go around again.', '6 pieces shared by 3 friends: each friend gets 2 pieces.', { kind: 'set', selected: 2, total: 6, groupCount: 3 }, { authoredChoices: true }),
+      practice('4 friends share 12 equal pieces fairly. How many pieces does each friend get?', ['3', '4', '12', '9'], 0, { kind: 'set', selected: 0, total: 12 },
+        'Give one piece to each friend, then go around again.', '12 pieces shared by 4 friends: each friend gets 3 pieces.', { kind: 'set', selected: 3, total: 12, groupCount: 4 }, { authoredChoices: true }),
     ],
     ideaQuestions: [
       practice('These 4 parts are 2 squares and 2 triangles. Are they fourths?', ['Yes, each part covers the same space', 'No, the parts are different shapes', 'No, fourths must be squares', 'Yes, because there are 4 parts'], 0, { kind: 'area', cut: 'fourths-mixed', shaded: [] }, 'Fourths must be the same size. They can be different shapes.', 'Each part covers the same space, 1/4 of the square. So they are fourths.', { kind: 'area', cut: 'fourths-squares', shaded: [] }),
@@ -499,7 +508,9 @@ const curriculum: MissionSeed[] = [
       practice('In 2/6, what does the 6 mean?', ['6 equal parts in all', '6 parts are shaded', '6 wholes', '6 parts not shaded'], 0, bars({ numerator: 2, denominator: 6 }), 'Look at the denominator.', 'The denominator is the number of equal parts in all.', bars({ numerator: 1, denominator: 3 })),
       practice('A tray has 6 spaces. 4 have a snack. What fraction have a snack?', ['6/4', '4/6', '4/4'], 1, bars({ numerator: 4, denominator: 6 }), 'The numerator is the number of spaces with a snack. The denominator is the number of spaces in all.', 'The numerator is 4 spaces with a snack. The denominator is 6 spaces in all.', bars({ numerator: 1, denominator: 2 })),
       practice('In 5/8, how many parts are counted?', ['8', '5', '13'], 1, bars({ numerator: 5, denominator: 8 }), 'Look at the numerator.', 'The numerator is 5. So 5 parts are counted.', bars({ numerator: 2, denominator: 4 })),
-      practice('A shape has 8 equal parts. 1 is colored. What fraction is colored?', ['1/8', '8/1', '1/7'], 0, bars({ numerator: 1, denominator: 8 }), 'Count all the equal parts first.', 'The denominator is all 8 equal parts. The numerator is the 1 colored part.', bars({ numerator: 1, denominator: 4 })),
+      // Thirds, so every wrong choice is a real slip in a part the fraction words screen names: the parts compared (1/2),
+      // the other parts counted (2/3), one part too many counted (1/4).
+      practice('A shape has 3 equal parts. 1 is colored. What fraction is colored?', ['1/3', '1/2', '2/3', '1/4'], 0, bars({ numerator: 1, denominator: 3 }), 'Count all the equal parts first.', 'The denominator is all 3 equal parts. The numerator is the 1 colored part.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
     ],
     ideaQuestions: [
       // Idea 2, the bottom number: the answers are counts (no fraction is written until idea 3 teaches the top number).
@@ -508,14 +519,16 @@ const curriculum: MissionSeed[] = [
       practice('This bar has 3 cuts. How many equal parts make the whole?', ['4', '3', '5', '2'], 0, { kind: 'partition', parts: [25, 25, 25, 25] }, 'Count the parts, not the cuts.', '3 cuts make 4 equal parts. Count the parts, not the cuts: the bottom number is 4.', { kind: 'partition', parts: [50, 50] }, { authoredChoices: true }),
       // A slice missed or counted twice, or the 4 cut lines counted instead of the 8 slices.
       practice('This pizza is cut into equal slices. What is the denominator?', ['8', '7', '4', '9'], 0, { kind: 'area', cut: 'circle-eighths', shaded: [] }, 'Count all the equal slices. That number is the denominator.', '8 equal slices make the whole pizza, so the denominator is 8.', { kind: 'area', cut: 'circle-fourths', shaded: [] }, { authoredChoices: true }),
-      practice('In 4/5, what does the 4 mean?', ['4 parts are counted', '4 equal parts in all', '4 wholes', '4 parts not counted'], 0, bars({ numerator: 4, denominator: 5 }), 'The numerator is the top number. It counts the parts we take.', 'The top number, 4, is the numerator: 4 of the equal parts are counted.', bars({ numerator: 2, denominator: 3 }), { authoredChoices: true }),
-      practice('3 out of 8 equal parts are shaded. What fraction is shaded?', ['3/8', '8/3', '5/8', '3/5'], 0, bars({ numerator: 3, denominator: 8 }), 'Count all the parts for the bottom number. Count the shaded parts for the top number.', '8 equal parts in all, so 8 goes on the bottom. 3 are shaded, so 3 goes on top: 3/8.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
+      practice('In 3/4, what does the 3 mean?', ['3 parts are counted', '3 equal parts in all', '3 wholes', '3 parts not counted'], 0, bars({ numerator: 3, denominator: 4 }), 'The numerator is the top number. It counts the parts we take.', 'The top number, 3, is the numerator: 3 of the equal parts are counted.', bars({ numerator: 2, denominator: 3 }), { authoredChoices: true }),
+      practice('3 out of 8 equal parts are shaded. What fraction is shaded?', ['3/8', '8/3', '5/8', '8/8'], 0, bars({ numerator: 3, denominator: 8 }), 'Count all the parts for the bottom number. Count the shaded parts for the top number.', '8 equal parts in all, so 8 goes on the bottom. 3 are shaded, so 3 goes on top: 3/8.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
       // Idea 1, equal parts are the same size (yes or no, no fractions): from "Fair parts in any shape" when it was lesson 1.
       practice('This ribbon is cut into 2 parts. Are the parts the same size?', ['Yes, same-size parts', 'No, one part is bigger', 'No, there must be 3 parts', 'No, they are different colors'], 0, { kind: 'partition', parts: [50, 50] }, 'Compare the 2 parts. Is one bigger?', 'Both parts are the same size, so they are equal parts.', { kind: 'partition', parts: [50, 50] }),
       practice('Is this strip cut into 3 equal parts?', ['Yes, 3 equal parts', 'No, the parts are unequal', 'No, there are 2 parts', 'Yes, there are 3 parts'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Equal parts are all the same size. Compare the parts.', 'One part is twice as big as the others, so the parts are not equal.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
       practice('Is this pizza cut into 4 equal slices?', ['No, the slices are different sizes', 'Yes, 4 equal slices', 'Yes, there are 4 slices', 'No, it needs 8 slices'], 0, { kind: 'area', cut: 'circle-unequal', shaded: [] }, 'Equal slices are all the same size. Compare the slices.', 'One slice is bigger than the others, so these are not 4 equal slices.', { kind: 'area', cut: 'circle-fourths', shaded: [] }),
       // Idea 3: the first fraction a child picks, right after its Learn page explains both numbers (one part only).
-      practice('A sandwich is cut into 4 equal parts. What is 1 part?', ['1/3', '1/4', '1/2', '1/5'], 1, bars({ numerator: 1, denominator: 4 }), 'Count all the equal parts. That is the bottom number.', 'The bottom number is all 4 parts. You have 1.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      // Wrong choices: the cuts counted (1/3), any part called a half (1/2), the other parts counted (3/4). No fifths:
+      // the fraction words screen names halves, thirds, fourths, sixths and eighths.
+      practice('A sandwich is cut into 4 equal parts. What is 1 part?', ['1/3', '1/4', '1/2', '3/4'], 1, bars({ numerator: 1, denominator: 4 }), 'Count all the equal parts. That is the bottom number.', 'The bottom number is all 4 parts. You have 1.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
     ],
   },
   {
@@ -794,7 +807,8 @@ const curriculum: MissionSeed[] = [
       practice('Which order goes smallest to biggest?', ['1/3, 2/3, 3/3', '3/3, 2/3, 1/3', '2/3, 1/3, 3/3'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 3 }, { numerator: 3, denominator: 3 }), 'All thirds. Count the parts.', '1/3 is smallest. 3/3 is one whole.', bars({ numerator: 1, denominator: 2 })),
       practice('Which order goes biggest to smallest?', ['1/2, 1/4, 1/8', '1/8, 1/4, 1/2', '1/4, 1/2, 1/8'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 4 }, { numerator: 1, denominator: 8 }), 'Each counts 1 part of the same-size whole. More parts in the whole means each part is smaller.', '1/2 is biggest, then 1/4, then 1/8.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fits between 2/8 and 6/8?', ['1/8', '4/8', '7/8'], 1, bars({ numerator: 2, denominator: 8 }, { numerator: 6, denominator: 8 }), 'All eighths. Which numerator is between 2 and 6?', '4 is between 2 and 6.', bars({ numerator: 1, denominator: 2 })),
-      practice('Put 1/2, 3/8 and 7/8 in order, smallest first.', ['3/8, 1/2, 7/8', '7/8, 1/2, 3/8', '1/2, 3/8, 7/8'], 0, bars({ numerator: 3, denominator: 8 }, { numerator: 1, denominator: 2 }, { numerator: 7, denominator: 8 }), '1/2 is the same as 4/8. Compare to that.', '3/8 is less than half. 7/8 is more.', bars({ numerator: 1, denominator: 2 })),
+      // Commas, not "3/8 and 7/8" (read as the mixed number 8 and 7/8), so every bar in the picture gets its label.
+      practice('Put 1/2, 3/8, 7/8 in order, smallest first.', ['3/8, 1/2, 7/8', '7/8, 1/2, 3/8', '1/2, 3/8, 7/8'], 0, bars({ numerator: 3, denominator: 8 }, { numerator: 1, denominator: 2 }, { numerator: 7, denominator: 8 }), '1/2 is the same as 4/8. Compare to that.', '3/8 is less than half. 7/8 is more.', bars({ numerator: 1, denominator: 2 })),
     ],
     ideaQuestions: [
       // Idea 1: compare two at a time (same denominators, same numerators, or with half).
@@ -1105,7 +1119,7 @@ const curriculum: MissionSeed[] = [
       practice('Change 6/10 into hundredths.', ['6/100', '60/100', '16/100'], 1, bars({ numerator: 6, denominator: 10 }), 'Each tenth is 10 hundredths.', '6 × 10 = 60. So 6/10 = 60/100.', bars({ numerator: 1, denominator: 10 })),
       practice('What is 5/10 + 3/100?', ['53/100', '8/110', '8/100'], 0, bars({ numerator: 5, denominator: 10 }, { numerator: 3, denominator: 100 }), 'Change 5/10 into hundredths first.', '5/10 = 50/100. 50 + 3 = 53. So 53/100.', bars({ numerator: 1, denominator: 10 })),
       practice('What is 2/10 + 15/100?', ['17/100', '35/100', '17/110'], 1, bars({ numerator: 2, denominator: 10 }, { numerator: 15, denominator: 100 }), 'Change 2/10 into hundredths first.', '2/10 = 20/100. 20 + 15 = 35. So 35/100.', bars({ numerator: 1, denominator: 10 })),
-      practice('A ribbon is 4/10 m. Another is 25/100 m. How long are they together?', ['29/100 m', '65/100 m', '29/110 m'], 1, bars({ numerator: 4, denominator: 10 }, { numerator: 25, denominator: 100 }), 'Change 4/10 into hundredths.', '4/10 = 40/100. 40 + 25 = 65. So 65/100 m, or 0.65 m.', bars({ numerator: 1, denominator: 10 })),
+      practice('A ribbon is 4/10 meter. Another is 25/100 meter. How long are they together?', ['29/100 meter', '65/100 meter', '29/110 meter'], 1, bars({ numerator: 4, denominator: 10 }, { numerator: 25, denominator: 100 }), 'Change 4/10 into hundredths.', '4/10 = 40/100. 40 + 25 = 65. So 65/100 meter, or 0.65 meter.', bars({ numerator: 1, denominator: 10 })),
     ],
     ideaQuestions: [
       // Idea 1: one tenth is ten hundredths.
@@ -1884,10 +1898,12 @@ const extensionTopics: ExtensionTopic[] = [
         'Look at the two wholes. Are the pizzas the same size?',
         'The pizzas are different sizes, so 0.5 and 0.4 are parts of different wholes. You can only compare parts of the same whole.',
         { kind: 'area', cut: 'circle-halves', shaded: [0], scale: 0.6, more: [{ cut: 'circle-tenths', shaded: [0, 1, 2, 3] }] }),
-      practice('Which is more: 0.3 or 0.25?', ['0.3', '0.25', 'They are equal', "You can't tell"], 0,
+      // Idea 2 (more shaded squares is bigger): its wrong choices are comparison slips, not "You can't tell", which
+      // idea 3 teaches (parts of different wholes).
+      practice('Compare: 0.3 __ 0.25.', ['>', '<', '='], 0,
         grids(hundredthsGrid(30), hundredthsGrid(25)),
         'Write 0.3 in hundredths first. Then compare the counts.',
-        '0.3 = 30 hundredths and 0.25 = 25 hundredths. 30 is more than 25, so 0.3 is more.', grids(hundredthsGrid(30), hundredthsGrid(25))),
+        '0.3 = 30 hundredths and 0.25 = 25 hundredths. 30 is more than 25, so 0.3 > 0.25.', grids(hundredthsGrid(30), hundredthsGrid(25))),
       practice('Put 0.8, 0.75 and 0.09 in order, biggest first.', ['0.8, 0.75, 0.09', '0.75, 0.8, 0.09', '0.09, 0.75, 0.8', '0.8, 0.09, 0.75'], 0,
         grids(hundredthsGrid(80), hundredthsGrid(75), hundredthsGrid(9)),
         'Write each one in hundredths. Which grid has the most squares shaded?',

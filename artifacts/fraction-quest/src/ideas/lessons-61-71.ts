@@ -1,6 +1,6 @@
 /* The ideas of lessons 61–71 (see lesson-ideas.ts): each lesson's ideas in order, each with its Learn pages and 3
    practices. Lesson 1 (ideas/lessons-01.ts) is the model. */
-import { example, scenes, type LessonIdea } from './helpers';
+import { example, scenes, wordsToKnow, type LessonIdea } from './helpers';
 
 /** A fraction with a top number of 2 or more: counting more than one part. */
 const moreThanOnePart = /\b([2-9]|1\d)\/\d+\b/;
@@ -98,6 +98,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       title: 'Know how many small units make one big unit',
       learn: [
         { text: 'First find how many small units are in one big unit.', scene: scenes('fractional-unit-conversions').steps[0]! },
+        wordsToKnow('fractional-unit-conversions'),
         example('fractional-unit-conversions', 'Unit facts'),
       ],
       practice: [{ question: 'fractional-unit-conversions-p1' }, { question: 'fractional-unit-conversions-p2' }, { question: 'fractional-unit-conversions-p3' }],
@@ -190,10 +191,14 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     },
     {
       title: 'Multiply the bottom number by the number of shares',
-      terms: [{ term: 'multiplying the denominator', pattern: /\b\d+ × \d+ = \d+\b/ }],
+      terms: [
+        { term: 'multiplying the denominator', pattern: /\b\d+ × \d+ = \d+\b/ },
+        // The answers' "Check: 3 × 1/9 = 1/3" lines start here, so this Learn page shows how a check works.
+        { term: 'checking a share with ×', pattern: /\bcheck\b/i },
+      ],
       learn: [
         { text: 'A quick way: 3 thirds, each cut into 4, make 3 × 4 = 12 pieces.', scene: scenes('unit-fraction-divided-whole').steps[2]! },
-        { text: 'Each share is smaller than the part you started with. Check: 4 shares of 1/12 make 4/12, the same as 1/3.', scene: scenes('unit-fraction-divided-whole').why },
+        { text: 'Each share is smaller than the part you started with. Check with ×: 4 shares of 1/12 is 4 × 1/12 = 4/12, the same as 1/3.', scene: scenes('unit-fraction-divided-whole').why },
       ],
       practice: [{ question: 'unit-fraction-divided-whole-q1' }, { question: 'unit-fraction-divided-whole-q2' }, { question: 'unit-fraction-divided-whole-q3' }],
     },
