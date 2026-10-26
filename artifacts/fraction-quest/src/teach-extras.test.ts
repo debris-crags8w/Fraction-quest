@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { MISSIONS } from './game';
+import { FRACTION_WORDS, PART_NAMES } from './intro-copy';
 import { getBuildChecks, getBuildPracticeChecks, getReviewCheck, getWorksheet } from './learning-content';
 import { LESSON_IDEAS, type LearnPage } from './lesson-ideas';
 import { LESSON_INTROS } from './lesson-intros';
+import { newWordsFor } from './new-words';
 import { getExtraPractice } from './practice-bank';
 import { chapterFor, lessonCliff, lessonComic, storyProblemFor } from './story';
 import { TAUGHT_IN, TEACH_EXTRAS } from './teach-extras';
@@ -137,4 +139,46 @@ test('no screen writes a unit as a short symbol the course never teaches (m, km,
   const symbol = /\b\d+(?:\/\d+)? ?(?:km|cm|kg|mL|m|g|L)\b(?!['’])|^(?:km|cm|kg|mL|m|g|L)$/;
   const found = MISSIONS.flatMap((mission) => lessonText(mission.id).filter((text) => symbol.test(text)).map((text) => `${mission.id}: "${text}"`));
   assert.deepEqual([...new Set(found)], []);
+});
+
+/** Every part name a lesson says (not the numbers: "24ths" is a number with "ths"). Lessons write names three ways:
+    in their ideas (Learn pages and practices), on the lesson page and in the story around it. */
+const PART_NAME_WORD = /\b(?:halves|quarters?|[a-z]*(?:fif|six|seven|eigh|nin|ten|elev|twelf|hundred|thousand|teen|ieth|four)[a-z]*ths?|\d+ths)\b/gi;
+
+test('a part name the first-lesson Words screen does not teach (fifths, tenths …) is on a New word card, or a word card, before the screen that first says it', () => {
+  const wordsTaught = new Set(FRACTION_WORDS.rows.map((row) => row.d));
+  const names = Object.entries(PART_NAMES).filter(([d]) => !wordsTaught.has(Number(d))).map(([d, name]) => ({ d: Number(d), one: name.one, many: name.many }));
+  // Where each name is first said: [lesson, idea]. The lesson page, story and Practice more come after the ideas (idea = 99).
+  const AFTER_IDEAS = 99;
+  const said = new Map<string, [number, number, string]>();
+  const note = (name: string, at: [number, number], text: string) => { if (!said.has(name)) said.set(name, [at[0], at[1], text]); };
+  MISSIONS.forEach((mission, lesson) => {
+    ideaScreens(mission.id).forEach(({ learn, practice }, idea) => [...learn, ...practice].forEach((text) => {
+      for (const match of text.matchAll(PART_NAME_WORD)) note(match[0].toLowerCase(), [lesson, idea], text);
+    }));
+    // The lesson page and the rest, with more rounds than lessonText reads (a build, a worksheet or a review can name another part).
+    const more = [...[4, 5, 6, 7].flatMap((variant) => getWorksheet(mission.id, variant)).flatMap((problem) => [problem.prompt, problem.answer, problem.hint, problem.why ?? '']),
+      ...[3, 4, 5].flatMap((batch) => getBuildPracticeChecks(mission.id, batch)).flatMap((check) => [check.prompt, ...check.reasons, check.explanation]),
+      ...[6, 7, 8, 9].map((round) => getReviewCheck(mission.id, round)).flatMap((check) => [check.prompt, ...check.reasons, check.explanation])];
+    [...lessonText(mission.id), ...more].forEach((text) => {
+      for (const match of text.matchAll(PART_NAME_WORD)) note(match[0].toLowerCase(), [lesson, AFTER_IDEAS], text);
+    });
+  });
+  // Every spelled-out name is one the course teaches: the Words screen's, or a New word card's.
+  const known = new Set([...FRACTION_WORDS.rows.flatMap((row) => [PART_NAMES[row.d]!.one, PART_NAMES[row.d]!.many]), ...names.flatMap((name) => [name.one, name.many]), 'quarter', 'quarters']);
+  const unknown = [...said].filter(([name]) => !known.has(name) && !/^\d+ths$/.test(name)).map(([name, [lesson, , text]]) => `${name} (lesson ${lesson + 1}): "${text}"`);
+  assert.deepEqual(unknown, [], 'a part name with no entry in PART_NAMES');
+  for (const { d, one, many } of names) {
+    const first = [one, many].map((name) => said.get(name)).filter((use): use is [number, number, string] => !!use)
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1])[0];
+    if (!first) continue;
+    // Taught by: a Learn page of an idea (a word card for "one fifth"), or the New word card at the top of a lesson page.
+    const ideaCard = MISSIONS.flatMap((mission, lesson) => (LESSON_IDEAS[mission.id] ?? []).flatMap((idea, k) =>
+      idea.learn.some((page) => 'words' in page && page.words.some((word) => word.term === `one ${one}`)) ? [[lesson, k] as [number, number]] : []));
+    const labCard = MISSIONS.flatMap((mission, lesson) => (newWordsFor(mission.id).includes(d) ? [[lesson, AFTER_IDEAS - 1] as [number, number]] : []));
+    const taught = [...ideaCard, ...labCard].sort((a, b) => a[0] - b[0] || a[1] - b[1])[0];
+    assert.ok(taught, `${many}: said in lesson ${first[0] + 1} ("${first[2]}"), but no card teaches it`);
+    assert.ok(taught[0] < first[0] || (taught[0] === first[0] && taught[1] <= first[1]),
+      `${many}: first said in lesson ${first[0] + 1}${first[1] < AFTER_IDEAS ? ` idea ${first[1] + 1}` : ''} ("${first[2]}"), but taught only in lesson ${taught[0] + 1}${taught[1] < AFTER_IDEAS - 1 ? ` idea ${taught[1] + 1}` : ' (lesson page)'}`);
+  }
 });
