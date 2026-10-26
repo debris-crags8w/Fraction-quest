@@ -7,6 +7,7 @@ import { createStorageRouter } from "./routes/storage";
 import { createVoicePackUploadRouter } from "./routes/voice-pack-upload";
 import { VOICE_CACHE_CONTROL, type VoiceFile, type VoicePackStore } from "./lib/voice-pack-store";
 import { voicePackSentenceKey } from "./lib/voice-pack-sync";
+import { clearRateLimits } from "./test-rate-limits";
 
 const TOKEN = "voice-upload-test-token-0123456789abcdef";
 const KEY_A = "0123456789abcdef";
@@ -62,7 +63,7 @@ after(() => {
   server.close();
   if (previousToken === undefined) delete process.env.VOICE_PACK_UPLOAD_TOKEN; else process.env.VOICE_PACK_UPLOAD_TOKEN = previousToken;
 });
-beforeEach(() => { stored.clear(); syncCalls = []; process.env.VOICE_PACK_UPLOAD_TOKEN = TOKEN; });
+beforeEach(async () => { stored.clear(); syncCalls = []; process.env.VOICE_PACK_UPLOAD_TOKEN = TOKEN; await clearRateLimits("voice-pack-upload"); });
 
 const TYPES = { mp3: "audio/mpeg", caf: "audio/x-caf" } as const;
 const put = (voice: string, key: string, format: "mp3" | "caf" = "mp3", token = TOKEN, type: string = TYPES[format]) =>
