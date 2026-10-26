@@ -11,9 +11,9 @@ import { logSummary, recentLogs } from "../lib/log-buffer";
 // Admin tools for managing accounts. Disabled unless the server has ADMIN_TOKEN (32+ characters) and ADMIN_TOTP_SECRET set.
 // Nothing in the learner app links here; every data route needs the token in an Authorization header.
 const router: IRouter = Router();
-const failures = createRateLimiter({ max: 5, windowMs: 15 * 60 * 1000 });
+const failures = createRateLimiter({ name: "admin-failures", max: 5, windowMs: 15 * 60 * 1000 });
 // Also cap failures across all IPs, so rotating or spoofed addresses can't brute-force the token.
-const globalFailures = createRateLimiter({ max: 30, windowMs: 60 * 60 * 1000 });
+const globalFailures = createRateLimiter({ name: "admin-failures-all", max: 30, windowMs: 60 * 60 * 1000 });
 // Optional: ADMIN_ALLOWED_IPS="1.2.3.4,5.6.7.8" hides the admin from every other address (404).
 const allowedIps = () => (process.env.ADMIN_ALLOWED_IPS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const ipAllowed = (ip: string) => !allowedIps().length || allowedIps().includes(ip);
@@ -72,7 +72,7 @@ function checkTotp(secret: string, code: string): boolean {
   return false;
 }
 
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
+async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const expected = process.env.ADMIN_TOKEN;
   const totpSecret = process.env.ADMIN_TOTP_SECRET;
   if (!expected || expected.length < 32 || !totpSecret || !hasValidTotpSecret(totpSecret)) {
@@ -90,7 +90,7 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
     res.status(403).json({ error: "Forbidden." });
     return;
   }
-  if (failures.isLimited(ip) || globalFailures.isLimited("all")) {
+  if ((await failures.isLimited(ip)) || (await globalFailures.isLimited("all"))) {
     res.status(429).json({ error: "Too many attempts. Try again later." });
     return;
   }
@@ -103,8 +103,8 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const tokenOk = timingSafeEqual(digest(given), digest(expected));
   const codeOk = isLogin ? checkTotp(totpSecret, (req.get("x-admin-code") ?? "").trim()) : false;
   if (!sessionOk && !(isLogin && tokenOk && codeOk)) {
-    failures.hit(ip);
-    globalFailures.hit("all");
+    await failures.hit(ip);
+    await globalFailures.hit("all");
     logger.warn({ ip }, "admin auth failed");
     record("failed", ip);
     res.status(401).json({ error: "Unauthorized." });

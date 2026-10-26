@@ -20,7 +20,7 @@ import { ensureDefaultLearnerProfile } from "../lib/family";
 
 const router: IRouter = Router();
 const MAX_PROGRESS_BYTES = 200_000;
-const joinAttempts = createRateLimiter({ max: 20, windowMs: 15 * 60 * 1000 });
+const joinAttempts = createRateLimiter({ name: "class-join-attempts", max: 20, windowMs: 15 * 60 * 1000 });
 const UNIT_IDS = new Set(Array.from({ length: 14 }, (_, index) => String(index + 1)));
 const CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 router.use(requireUser, requireParentConsent);
@@ -227,13 +227,13 @@ router.post("/classrooms", async (req, res): Promise<void> => {
 router.post("/classrooms/join", async (req, res): Promise<void> => {
   const { user } = req as AuthedRequest;
   const ip = req.ip ?? "unknown";
-  if (joinAttempts.isLimited(ip)) {
+  if (await joinAttempts.isLimited(ip)) {
     res.status(429).json({ error: "Too many code attempts. Wait a little, then try again." });
     return;
   }
   const parsed = JoinClassroomBody.safeParse(req.body);
   if (!parsed.success) {
-    joinAttempts.hit(ip);
+    await joinAttempts.hit(ip);
     res.status(400).json({ error: "Enter the class code and choose a learner profile." });
     return;
   }
@@ -243,7 +243,7 @@ router.post("/classrooms/join", async (req, res): Promise<void> => {
     .where(and(eq(learnerProfilesTable.id, parsed.data.profileId), eq(learnerProfilesTable.ownerUserId, user.id)))
     .limit(1);
   if (!classroom) {
-    joinAttempts.hit(ip);
+    await joinAttempts.hit(ip);
     res.status(400).json({ error: "We couldn't find that class code. Check it with your teacher." });
     return;
   }
@@ -260,7 +260,7 @@ router.post("/classrooms/join", async (req, res): Promise<void> => {
     .set({ classroomId: classroom.id, memberCode, updatedAt: new Date() })
     .where(and(eq(learnerProfilesTable.id, profile.id), eq(learnerProfilesTable.ownerUserId, user.id)))
     .returning();
-  joinAttempts.reset(ip);
+  await joinAttempts.reset(ip);
   res.json({
     classroomLabel: classroom.label,
     memberCode: linked.memberCode!,
