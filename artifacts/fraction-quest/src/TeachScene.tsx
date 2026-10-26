@@ -315,7 +315,9 @@ function useFitPicture(card: React.RefObject<HTMLElement | null>, deps: unknown[
       picture.style.removeProperty('--ts-fit');
       // From the top of the lesson screen, as for questions (a developer test bar above it is not on a child's screen).
       const top = () => element.closest('.fq-app')?.getBoundingClientRect().top ?? -window.scrollY;
-      const over = () => nav.getBoundingClientRect().bottom - top() + 8 - window.innerHeight;
+      // The page's real bottom (the padding under the card included), and at least 8 points under the buttons.
+      const bottom = () => Math.max(nav.getBoundingClientRect().bottom + 8, document.documentElement.scrollHeight - window.scrollY);
+      const over = () => bottom() - top() - window.innerHeight;
       if (over() <= 0) return;
       const shapes = [...picture.querySelectorAll<HTMLElement>('.fq-ts-bar, .fq-ts-area')].reduce((sum, shape) => sum + shape.getBoundingClientRect().height, 0);
       if (shapes > 0) picture.style.setProperty('--ts-fit', String(Math.max(0.55, 1 - over() / shapes)));
