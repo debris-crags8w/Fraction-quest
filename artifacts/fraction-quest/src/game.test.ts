@@ -5,6 +5,8 @@ import { LESSON_INTROS } from './lesson-intros';
 import { REASON_SLIPS } from './reason-slips';
 import { misconceptionWrongs } from './misconceptions';
 import { fractionMistakes } from './fraction-slips';
+import { ideaQuestion, ideaSteps, isRound } from './lesson-ideas';
+import { storyProblemFor } from './story';
 import { fourthChoice, noBeforeYes, withSignComparisons } from './fourth-choice';
 import { answerValue } from './learning-content';
 import { readFileSync } from 'node:fs';
@@ -4531,7 +4533,7 @@ describe('equivalence, decimal, percent and picture questions offer real mistake
     }
     // Decimals: the point in the wrong place, the digits written out.
     if ((m = /^(?:Write (\d+)\/(10|100) as a decimal\.|Which decimal equals (\d+)\/(10|100)\?)$/.exec(p))) {
-      const [n, d] = m.slice(1).filter(Boolean).map(N); return [n / (d * 10), n / (d / 10), n, N(`${n}.${d}`), n / 10, n / 100, ...(d === 10 ? [(10 - n) / 10] : [])];
+      const [n, d] = m.slice(1).filter(Boolean).map(N); return [n / (d * 10), n / (d / 10), n, N(`${n}.${d}`), n / 10, n / 100, ...(d === 10 ? [(10 - n) / 10, N(`10.${n}`), 0.1] : [])];
     }
     if ((m = /^Write (\d+)\/10 \+ (\d+)\/100 as a decimal\.$/.exec(p))) { const [a, b] = m.slice(1).map(N); return [(a + b) / 100, (a + b) / 10, (10 * a + b) / 1000]; }
     // (and for tenths, the part not colored: 0.4 for 0.6)
@@ -4561,6 +4563,52 @@ describe('equivalence, decimal, percent and picture questions offer real mistake
     }
     assert.ok(checked > 300, `only ${checked} choices checked`);
     assert.deepEqual([...new Set(bad)].slice(0, 15), [], `${bad.length} near-miss choices`);
+  });
+});
+
+describe('lesson 30 (tenths as decimals) shows only tenths slips, never the hundredths lesson 31 teaches', () => {
+  // Hundredths forms: n/100, a decimal with two places after the point (0.03), or a trailing zero (3.10).
+  const HUNDREDTHS = /\d+\/100|0\.\d\d|\d\.\d0/;
+
+  it('slips for a tenth are written as tenths: the digit in the wrong place, the rest of the strip, the numbers swapped', () => {
+    const decimal = (n: number) => fractionMistakes(`Write ${n}/10 as a decimal.`, `0.${n}`);
+    assert.ok(decimal(3).includes('0.7'), 'the rest of the strip (7 tenths for 3 tenths)');
+    assert.ok(decimal(7).includes('0.3'), 'the rest of the strip (3 tenths for 7 tenths)');
+    assert.ok(decimal(3).includes('3.0'), 'the digit in the wrong place');
+    assert.ok(decimal(3).includes('10.3'), 'the denominator and numerator swapped');
+    for (let n = 1; n < 10; n++) {
+      assert.ok(decimal(n).length >= 3, `0.${n}: three slips are needed for four choices`);
+      for (const slip of decimal(n)) assert.doesNotMatch(slip, HUNDREDTHS, `0.${n}: ${slip}`);
+      const fractions = fractionMistakes(`What fraction is 0.${n}?`, `${n}/10`);
+      assert.ok(fractions.length >= 3, `${n}/10: three slips are needed for four choices`);
+      for (const slip of fractions) assert.doesNotMatch(slip, HUNDREDTHS, `${n}/10: ${slip}`);
+    }
+    assert.ok(fractionMistakes('What fraction is 0.3?', '3/10').includes('7/10'), 'the rest of the strip');
+    // Hundredths questions keep the place-value slips.
+    assert.ok(fractionMistakes('Write 8/100 as a decimal.', '0.08').includes('0.8'));
+  });
+
+  it('no wrong choice in the lesson, its ideas, its story problem or Practice more uses a hundredths form', () => {
+    const lesson = MISSIONS.find((mission) => mission.id === 'tenths-decimals')!;
+    const reachable: PracticeQuestion[] = [
+      ...lesson.questions, ...(lesson.ideaQuestions ?? []),
+      ...ideaSteps(lesson.id).filter(({ item }) => !isRound(item)).map(({ item }) => ideaQuestion(lesson, (item as { question: string }).question)!),
+      ...[0, 1, 2, 3, 4, 5].flatMap((seed) => generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12)),
+      ...getExtraPractice(lesson.id, lesson.questions.map(({ id }) => id)),
+    ];
+    const story = storyProblemFor(lesson.id);
+    if (story?.choices) reachable.push({ ...lesson.questions[lesson.questions.length - 1], prompt: story.prompt, choices: story.choices });
+    const bad: string[] = []; let checked = 0;
+    for (const question of reachable) {
+      if (question.id.endsWith('-review')) continue; // "Quick review" of lesson 29
+      question.choices.forEach((choice, at) => {
+        if (at === question.correctChoice) return;
+        checked++;
+        if (HUNDREDTHS.test(choice)) bad.push(`${question.id}: ${question.prompt} → ${choice}`);
+      });
+    }
+    assert.ok(checked > 150, `only ${checked} wrong choices checked`);
+    assert.deepEqual([...new Set(bad)], []);
   });
 });
 
