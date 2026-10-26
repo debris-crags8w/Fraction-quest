@@ -38,7 +38,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
     },
     {
       title: 'Say it as 1 whole and the part left over',
-      terms: [{ term: 'a mixed number with "and"', pattern: /\b\d+ and \d+\/\d+/ }],
+      terms: [{ term: 'a mixed number with "and"', pattern: /(?<![\d/])\b\d+ and \d+\/\d+/ }],
       learn: [wordsToKnow('number-line-beyond-one'), example('number-line-beyond-one', '4 fourths make one whole')],
       practice: [{ question: 'number-line-beyond-one-q3' }, { question: 'number-line-beyond-one-p2' }, { question: 'number-line-beyond-one-q4' }],
     },

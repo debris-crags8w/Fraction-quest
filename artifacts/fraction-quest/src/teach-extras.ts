@@ -1154,7 +1154,7 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
   { term: '< or >', pattern: /\s[<>]\s/, lesson: 'compare-same-numerator' },
   { term: 'benchmark', pattern: /\bbenchmarks?\b/i, lesson: 'benchmarks-zero-one' },
   { term: 'tick mark', pattern: /\btick( mark)?s?\b/i, lesson: 'number-line-basics' },
-  { term: 'mixed number with "and"', pattern: /\b\d+ and \d+\/\d+/, lesson: 'number-line-beyond-one' },
+  { term: 'mixed number with "and"', pattern: /(?<![\d/])\b\d+ and \d+\/\d+/, lesson: 'number-line-beyond-one' },
   { term: 'mixed number like 1 1/4', pattern: /\b\d+ \d+\/\d+/, lesson: 'ruler-measurement' },
   { term: 'quarter', pattern: /\bquarters?\b/i, lesson: 'ruler-measurement' },
   { term: 'the ? box', pattern: /\?\/\d|\d\/\?/, lesson: 'equivalent-models' },

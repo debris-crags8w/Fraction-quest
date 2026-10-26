@@ -2218,7 +2218,7 @@ export function problemPicture(problem: WorksheetProblem): ModelSpec {
   if (m) return picture(m.n, m.d);
   // Every amount the question names ("Pick the sign: 4/5 __ 3/4" shows both), not just the first.
   if (problem.picture) return problem.picture;
-  const mixed = /(\d+) (?:and )?(\d+)\/(\d+)/.exec(problem.prompt);
+  const mixed = /(?<![\d/])(\d+) (?:and )?(\d+)\/(\d+)/.exec(problem.prompt);
   if (mixed && Number(mixed[2]) < Number(mixed[3])) return picture(Number(mixed[1]) * Number(mixed[3]) + Number(mixed[2]), Number(mixed[3]));
   const fraction = /(\d+)\/(\d+)/.exec(problem.prompt);
   if (fraction && Number(fraction[1]) <= Number(fraction[2]) * 3) return picture(Number(fraction[1]), Number(fraction[2]));
