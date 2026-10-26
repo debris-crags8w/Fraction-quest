@@ -28,6 +28,11 @@ import { AnswerTiles } from './AnswerTiles';
 import { answerShape } from './answer-shape';
 import { useRevealWhen } from './lib/reveal';
 
+/* A step button's name is its own text (the number or tick, then the step), so voice control can say what it sees
+   ("click 1 Watch"); this hidden note says what it does. */
+const GO_TO_STEP = <span className="fq-sr">, go to this step</span>;
+const GO_BACK_TO_STEP = <span className="fq-sr">, go back to this step</span>;
+
 const WORKSHEET_ROUND = 4;
 
 type Kind = LearningModel['kind'];
@@ -770,19 +775,19 @@ export default function LearningLab({ missionId, howItWorks, progress, onChange,
         {introKinds.length > 0 && (['watch', 'try'] as const).map((step, i) => {
           const done = step === 'watch' ? !toWatch.length : !toTry.length;
           const name = step === 'watch' ? 'Watch' : 'Try';
-          const label = <>{done ? <Check size={15} /> : i + 1}<span>{name}</span></>;
+          const label = <>{done ? <Check size={15} /> : i + 1}{' '}<span>{name}</span></>;
           return <li key={step} className={done ? 'done' : introStep === step ? 'now' : ''} data-testid={`step-intro-${step}`}>
-            {introStep === step ? <button type="button" onClick={() => jumpTo(document.querySelector('[data-step]'))} aria-label={`Go to ${name}`}>{label}</button> : label}</li>;
+            {introStep === step ? <button type="button" onClick={() => jumpTo(document.querySelector('[data-step]'))}>{label}{GO_TO_STEP}</button> : label}</li>;
         })}
         {quickWatchKind && <li className={quickWatched ? 'done' : 'now'} data-testid="step-quick-watch">
-          {quickWatchStep ? <button type="button" onClick={() => jumpTo(document.querySelector('[data-testid="quick-watch"]'))} aria-label="Go to Watch">1<span>Watch</span></button>
+          {quickWatchStep ? <button type="button" onClick={() => jumpTo(document.querySelector('[data-testid="quick-watch"]'))}>1{' '}<span>Watch</span>{GO_TO_STEP}</button>
             : <><Check size={15} /><span>Watch</span></>}</li>}
         {checks.map((c, i) => {
           const e = rec.checks[c.id];
-          const label = <>{e?.passed ? <Check size={15} /> : introOffset + i + 1}<span>{buildStepName(c, i)}{e?.passed ? (e.supported ? ' · with help' : ' · solo') : ''}</span></>;
+          const label = <>{e?.passed ? <Check size={15} /> : introOffset + i + 1}{' '}<span>{buildStepName(c, i)}{e?.passed ? (e.supported ? ' · with help' : ' · solo') : ''}</span></>;
           return <li key={c.id} className={e?.passed ? 'done' : i === idx && !introStep && !quickWatchStep ? 'now' : ''} data-testid={`step-${c.id}`}>
-            {i === idx ? <button type="button" onClick={() => jumpTo(activeCheckHeading.current)} aria-label={`Go to ${buildStepName(c, i)}`}>{label}</button>
-              : e?.passed ? <button type="button" onClick={() => openStep(c.id)} aria-label={`Go back to ${buildStepName(c, i)}`} data-testid={`button-see-step-${c.id}`}>{label}</button>
+            {i === idx ? <button type="button" onClick={() => jumpTo(activeCheckHeading.current)}>{label}{GO_TO_STEP}</button>
+              : e?.passed ? <button type="button" onClick={() => openStep(c.id)} data-testid={`button-see-step-${c.id}`}>{label}{GO_BACK_TO_STEP}</button>
               : label}</li>;
         })}
         <li className={idx === -1 ? (requiredDone ? 'done' : 'now') : ''} data-testid="step-worksheet">

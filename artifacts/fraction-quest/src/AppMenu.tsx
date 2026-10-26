@@ -51,11 +51,12 @@ export function AppMenu({ sections, footer }: { sections: AppMenuSection[]; foot
       <button ref={button} type="button" className="fq-menu-button" aria-haspopup="menu" aria-expanded={open} aria-controls={menuId}
         onClick={() => setOpen((shown) => !shown)}
         onKeyDown={(event) => { if (event.key === 'ArrowDown' && !open) { event.preventDefault(); setOpen(true); } }}
-        aria-label={waiting ? `More: practice, games and check-ins (${waiting} waiting)` : 'More: practice, games and check-ins'}
         data-testid="button-app-menu">
         <LayoutGrid size={18} aria-hidden="true" />
+        {/* The name is the button's own text, so voice control can say what it sees ("click More"). */}
         <span className="fq-menu-button-label">More</span>
-        {waiting > 0 && <span className="fq-menu-badge" aria-hidden="true">{waiting}</span>}
+        <span className="fq-sr">: practice, games and check-ins</span>
+        {waiting > 0 && <span className="fq-menu-badge"><span className="fq-sr"> (</span>{waiting}<span className="fq-sr"> waiting)</span></span>}
         <ChevronDown size={16} aria-hidden="true" className="fq-menu-chevron" />
       </button>
       {open && (
