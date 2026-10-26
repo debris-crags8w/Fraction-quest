@@ -1,6 +1,6 @@
 /* The ideas of lessons 2–10 (see lesson-ideas.ts): each lesson's ideas in order, each with its Learn pages and 3
    practices. Lesson 1 (ideas/lessons-01.ts) is the model. */
-import { example, scenes, wordsToKnow, type LessonIdea } from './helpers';
+import { example, newWord, scenes, wordsToKnow, type LessonIdea } from './helpers';
 
 export const IDEAS: Record<string, LessonIdea[]> = {
   // Lesson 2: equal parts can be different shapes (with its cake round), then sharing fairly (its two cake rounds).
@@ -174,6 +174,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       terms: [{ term: 'near one whole', pattern: /\bmissing\b|\bnear 1(?!\/)\b|\b(close|closest) to (one|1(?!\/))\b|\bone whole\b/i }],
       learn: [
         { text: 'A numerator close to the denominator is near 1.', scene: scenes('benchmarks-zero-one').steps[2]! },
+        newWord(5),
         example('benchmarks-zero-one', 'What is missing?'),
       ],
       practice: [{ question: 'benchmarks-zero-one-q2' }, { question: 'benchmarks-zero-one-p6' }, { question: 'benchmarks-zero-one-p3' }],

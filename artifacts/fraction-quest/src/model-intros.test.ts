@@ -58,14 +58,19 @@ describe('fraction words', () => {
     assert.ok(speech.every((line) => !/\d\/\d/.test(line)), 'no slash fractions in what is read');
   });
 
-  it('opens a "New word" card in the first lesson to use fifths, tenths, twelfths or hundredths, and only there', async () => {
+  it('opens a "New word" card on the lesson page of the first lesson to say tenths, twelfths, hundredths or ninths, and only there; fifths and fifteenths, said in an idea, get their word card on its Learn page instead', async () => {
     const { MISSIONS } = await import('./game');
     const { newWordsFor } = await import('./new-words');
+    const { LESSON_IDEAS } = await import('./lesson-ideas');
     const shown = MISSIONS.flatMap((mission) => newWordsFor(mission.id).map((d) => ({ id: mission.id, d })));
-    assert.deepEqual(shown.map((item) => item.d).sort((a, b) => a - b), [5, 10, 12, 100], 'each new name once');
+    assert.deepEqual(shown.map((item) => item.d).sort((a, b) => a - b), [9, 10, 12, 100], 'each new name once');
     assert.deepEqual(newWordsFor(MISSIONS[0]!.id), [], 'lesson 1 has the Words screen instead');
     const first = (d: number) => MISSIONS.findIndex((mission) => mission.id === shown.find((item) => item.d === d)!.id);
     assert.ok(first(10) <= first(100), 'tenths come before hundredths');
+    const learnCards = MISSIONS.flatMap((mission) => (LESSON_IDEAS[mission.id] ?? []).flatMap((idea) =>
+      idea.learn.flatMap((page) => ('words' in page ? page.words.map((word) => `${mission.id}: ${word.term}`) : []))))
+      .filter((card) => /one (fifth|fifteenth)$/.test(card));
+    assert.deepEqual(learnCards, ['benchmarks-zero-one: one fifth', 'add-unlike-fractions: one fifteenth']);
   });
 
   it('explains what a fraction is first, saying the fraction in words', async () => {

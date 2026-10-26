@@ -74,7 +74,7 @@ export const HELPER_PICK_SPEECH = [
 export const PART_NAMES: Readonly<Record<number, { one: string; many: string }>> = {
   2: { one: 'half', many: 'halves' }, 3: { one: 'third', many: 'thirds' }, 4: { one: 'fourth', many: 'fourths' },
   5: { one: 'fifth', many: 'fifths' }, 6: { one: 'sixth', many: 'sixths' }, 8: { one: 'eighth', many: 'eighths' },
-  10: { one: 'tenth', many: 'tenths' }, 12: { one: 'twelfth', many: 'twelfths' }, 100: { one: 'hundredth', many: 'hundredths' },
+  9: { one: 'ninth', many: 'ninths' }, 10: { one: 'tenth', many: 'tenths' }, 12: { one: 'twelfth', many: 'twelfths' }, 15: { one: 'fifteenth', many: 'fifteenths' }, 100: { one: 'hundredth', many: 'hundredths' },
 };
 
 /** The Words screen in a child's first lesson (page 2): the part names they meet first, each with a bar of equal parts and one part
@@ -113,5 +113,5 @@ export function fractionWordsSpeech(): string[] {
   ];
 }
 
-/** A lesson's "New word" card, for a part name the child hasn't met before (fifths, tenths, twelfths, hundredths). */
+/** A lesson's "New word" card, for a part name the child hasn't met before (fifths, tenths, twelfths, hundredths, ninths, fifteenths). */
 export const newWordSpeech = (d: number) => `New word. 1 of ${d} equal parts is one ${PART_NAMES[d].one}. ${d} equal parts are ${PART_NAMES[d].many}.`;
