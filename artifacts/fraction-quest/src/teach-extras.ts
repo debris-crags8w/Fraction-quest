@@ -381,6 +381,11 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
     }],
   },
   'build-equivalents': {
+    // The first lesson to divide: ÷ is taught here, before any screen uses it (TAUGHT_IN).
+    words: [{
+      term: '÷', meaning: '÷ means divide: split into equal groups. 8 ÷ 2 = 4 means 8 split into 2 equal groups of 4.',
+      picture: still([{ kind: 'set', count: 8, groups: 2, label: '8 ÷ 2 = 4: 2 equal groups of 4' }]),
+    }],
     examples: [
       {
         title: 'Divide both numbers',
@@ -1141,7 +1146,7 @@ export const wordsScript = (words: WordCard[]) => ['Words to know.', ...words.ma
 /** Terms and symbols a lesson teaches (in its Words to know), and the lesson that teaches each one. Practice in an
     earlier lesson may not use them (checked by teach-extras.test.ts). Each unit's PR adds its own. */
 export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
-  /** A unit of measure or a unit fact: checked on every screen of the earlier lessons and ideas, not only practice. */
+  /** A unit of measure, a unit fact or the ÷ sign: checked on every screen of the earlier lessons and ideas, not only practice. */
   unit?: true }[] = [
   { term: 'numerator / denominator', pattern: /\b(numerator|denominator)s?\b/i, lesson: 'fraction-names' },
   { term: 'area', pattern: /\barea\b/i, lesson: 'fraction-of-area' },
@@ -1187,6 +1192,7 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
   { term: 'square unit', pattern: /\bsquare units?\b/i, lesson: 'fractional-side-area' },
   { term: 'percent, %', pattern: /%|\bpercent\b/i, lesson: 'fractions-to-percent' },
   // Units of measure and unit facts, each taught where a child first meets it (Words to know, or a worked example).
+  { term: '÷ and dividing', pattern: /÷|\bdivid(e|es|ed|ing)\b/i, lesson: 'build-equivalents', unit: true },
   { term: 'meter', pattern: /\bmeters?\b/i, lesson: 'benchmarks-zero-one', unit: true },
   { term: 'mile', pattern: /\bmiles?\b/i, lesson: 'fraction-magnitude', unit: true },
   { term: 'inch (in)', pattern: /\binch(es)?\b/i, lesson: 'ruler-measurement', unit: true },

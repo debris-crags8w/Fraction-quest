@@ -2195,15 +2195,15 @@ test('the model intros are their own lesson steps: Watch, then Try, each saved; 
   await expect(steps.getByTestId('step-intro-try')).toHaveClass(/now/);
   await expect(intro).toHaveAttribute('data-step', 'try');
   await expect(intro.locator('.fq-mi-kicker')).toHaveText('Step 2 · Try');
-  // Try 1: one half. The nudge says what to do next, never the answer's picture.
+  // Try 1: 1 out of 2 equal parts. The nudge says what to do next, never the answer's picture.
   await expect(page.getByTestId('status-intro-hint')).toContainText('First cut the whole into 2 equal parts.');
   await expect(page.getByTestId('button-intro-next')).toBeDisabled();
   await page.getByTestId('button-intro-plus').click();
   await expect(page.getByTestId('status-intro-hint')).toContainText('Now shade 1 part.');
   await page.getByTestId('intro-piece-0').click();
-  await expect(page.getByTestId('status-intro-hint')).toContainText('Yes! 1 of 2 equal parts is one half.');
+  await expect(page.getByTestId('status-intro-hint')).toContainText('Yes! You shaded 1 out of 2 equal parts.');
   await page.getByTestId('button-intro-next').click();
-  // Try 2: two thirds, then on to the number line tries.
+  // Try 2: 2 out of 3 equal parts, then on to the number line tries.
   await page.getByTestId('button-intro-plus').click();
   await page.getByTestId('button-intro-plus').click();
   await page.getByTestId('intro-piece-1').click();

@@ -29,6 +29,13 @@ describe('model intro steps (Watch, then Try)', () => {
       assert.ok(!lines.some((line) => /You know how|You can read/.test(line)), `${kind}: no ready card`);
     }
   });
+
+  it('says fractions the way lesson 1 teaches them ("3 out of 4"), with no part names: both play on its lesson page', () => {
+    const names = /\b(halfs?|halves|thirds?|fourths?|quarters?|fifths?|sixths?|eighths?|tenths?)\b/i;
+    for (const kind of ['builder', 'line'] as const) {
+      assert.deepEqual(introSpeech(kind).filter((line) => names.test(line)), [], `${kind}: no part names`);
+    }
+  });
 });
 
 describe('fraction words', () => {
