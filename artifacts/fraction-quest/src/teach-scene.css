@@ -145,3 +145,9 @@
   .fq-ts-card .fq-ts-step { min-height: 0; font-size: 1.1rem; }
   .fq-ts-card .fq-ts-nav .fq-button { min-height: 48px; }
 }
+
+/* Coins in a Learn picture (TeachScene.tsx): the coins are the practice coins (.fq-coin in theme-pop.css). */
+.fq-ts-coins { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
+.fq-ts-coin-sign { font-size: 1.6rem; font-weight: 900; color: color-mix(in srgb, currentColor 60%, transparent); }
+.fq-ts-coin-sign.is-cent { font-size: 3.4rem; line-height: 1; color: var(--fq-grape); }
+.fq-ts-coins.is-many { max-width: 224px; margin: 0 auto; } /* ten small coins: two lines of five */

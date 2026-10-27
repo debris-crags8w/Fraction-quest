@@ -142,7 +142,7 @@ test('a question that says to plot lets the child tap the Xs on, then shows the 
   await expect(page.getByTestId('question-model-area').getByTestId('line-plot-picture')).toHaveAttribute('aria-label', 'Line plot: 1 at 1/8, 2 at 3/8, 3 at 5/8');
 });
 
-test('the dimes and pennies lesson teaches on a hundredths grid, then asks about coins', async ({ page }) => {
+test('the dimes and pennies lesson shows the coin and ¢ first, then teaches on a hundredths grid, then asks about coins', async ({ page }) => {
   const mission = MISSIONS.find(({ id }) => id === 'dimes-and-pennies');
   if (!mission) throw new Error('Dimes and pennies lesson is missing');
   await page.setViewportSize({ width: 390, height: 664 });
@@ -150,12 +150,18 @@ test('the dimes and pennies lesson teaches on a hundredths grid, then asks about
   await openDeveloperLesson(page, mission);
   await skipIntros(page);
 
-  // Idea 1 teaches pennies on a hundredths grid (100 pennies make a dollar), then asks about pennies as coins.
+  // Idea 1 opens on a penny coin and the ¢ sign (what they mean), then teaches pennies on a hundredths grid (100 pennies
+  // make a dollar), then asks about pennies as coins.
   const lesson = String(MISSIONS.indexOf(mission) + 1).padStart(2, '0');
   await expect(page.getByTestId('idea-kicker')).toHaveText(`Lesson ${lesson} · Idea 1 of 3 · Learn`);
+  await expect(page.getByTestId('idea-learn')).toContainText('A penny is 1 cent. We write it 1¢.');
+  const pennyPage = page.getByTestId('teach-scene').getByTestId('teach-scene-coins');
+  await expect(pennyPage.locator('.fq-coin.is-penny.is-big')).toHaveText('1¢');
+  await expect(page.getByTestId('teach-scene')).toContainText('The sign ¢ means cents. 100 cents make 1 dollar.');
+  await page.getByTestId('button-teach-step-next').click();
   await expect(page.getByTestId('teach-scene').locator('.fq-ts-area')).toHaveCount(1);
   await expect(page.getByTestId('idea-learn')).toContainText('100 pennies');
-  for (let p = 1; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
+  for (let p = 2; p < lessonIdeas(mission.id)![0]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
   await page.getByTestId('button-idea-practise').click();
   const pennies = page.getByTestId('question-model-area').getByTestId('coins-picture');
   await expect(pennies).toHaveAttribute('aria-label', '7 pennies');
@@ -170,7 +176,12 @@ test('the dimes and pennies lesson teaches on a hundredths grid, then asks about
     await page.getByTestId('button-next-question').click();
   }
   await expect(page.getByTestId('idea-kicker')).toHaveText(`Lesson ${lesson} · Idea 2 of 3 · Learn`);
-  await page.getByTestId('button-teach-step-next').click();
+  // Its first Learn page: 10 small pennies make 1 silver dime, then the grid pages.
+  await expect(page.getByTestId('idea-learn')).toContainText('A dime is 10 cents: 10¢. 10 pennies make 1 dime.');
+  const dimePage = page.getByTestId('teach-scene').getByTestId('teach-scene-coins');
+  await expect(dimePage.locator('.fq-coin.is-penny')).toHaveCount(10);
+  await expect(dimePage.locator('.fq-coin.is-dime.is-big')).toHaveText('10¢');
+  for (let p = 1; p < lessonIdeas(mission.id)![1]!.learn.length; p++) await page.getByTestId('button-teach-step-next').click();
   await page.getByTestId('button-idea-practise').click();
   const dimes = page.getByTestId('question-model-area').getByTestId('coins-picture');
   await expect(dimes).toHaveAttribute('aria-label', '6 dimes');

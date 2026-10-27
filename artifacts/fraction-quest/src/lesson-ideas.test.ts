@@ -201,3 +201,21 @@ test('lesson 2 asks its own questions (shapes and fair shares), not lesson 1\'s 
     assert.match(question.prompt, /\bsquare\b|\bfriends share\b/, `${question.id} is about shapes or sharing: ${question.prompt}`);
   }
 });
+
+test('lesson 36: a coin page opens idea 1 (a penny, 1¢, what ¢ means) and idea 2 (10 pennies make a dime, 10¢), before the grid pages', () => {
+  const ideas = LESSON_IDEAS['dimes-and-pennies']!;
+  assert.deepEqual(ideas.map((idea) => idea.title), ['A penny is one hundredth of a dollar', 'A dime is ten hundredths of a dollar', 'Add the dimes and the pennies']);
+  const coinRows = (page: (typeof ideas)[number]['learn'][number]) => ('scene' in page ? page.scene[page.scene.length - 1]!.rows.flatMap((row) => (row.kind === 'coins' ? row.items : [])) : []);
+  const [penny, dime] = [ideas[0]!.learn[0]!, ideas[1]!.learn[0]!];
+  assert.ok('scene' in penny && 'scene' in dime);
+  assert.equal(penny.text, 'A penny is 1 cent. We write it 1¢.');
+  assert.deepEqual(coinRows(penny), [{ coin: 'penny', big: true }, { sign: '→' }, { sign: '¢' }]);
+  assert.equal(sceneSentences(penny.scene).join(' '), 'The sign ¢ means cents. 100 cents make 1 dollar.');
+  assert.equal(dime.text, 'A dime is 10 cents: 10¢. 10 pennies make 1 dime.');
+  assert.deepEqual(coinRows(dime), [...Array.from({ length: 10 }, () => ({ coin: 'penny' })), { sign: '=' }, { coin: 'dime', big: true }]);
+  assert.match(sceneSentences(dime.scene).join(' '), /grid/);
+  // The grid pages stay (after the coin page), and each idea still practises 3 times.
+  assert.equal(ideas[0]!.learn.length, 3);
+  assert.equal(ideas[1]!.learn.length, 3);
+  for (const idea of ideas) assert.equal(idea.practice.length, 3, idea.title);
+});

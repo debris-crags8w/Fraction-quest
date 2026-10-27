@@ -6,8 +6,9 @@ import { ArrowRight, Check, RotateCcw, X } from 'lucide-react';
 import { AREA_CUTS, areaOutline, type Point } from './area-shapes';
 import type { LessonIntro } from './lesson-intros';
 import { LearningListenButton, LearningText } from './LearningText';
+import { Coin } from './coins-picture';
 import { MathText } from './MathText';
-import { sceneSentences, teachPageScript, type AreaRow, type BarRow, type LessonScene, type LineRow, type SceneRow, type SetRow, type StepScene } from './teach-scenes';
+import { sceneSentences, teachPageScript, type AreaRow, type BarRow, type CoinsRow, type LessonScene, type LineRow, type SceneRow, type SetRow, type StepScene } from './teach-scenes';
 import { teachExtras, wordsScript, type WordCard } from './teach-extras';
 import { learnScript, type LearnPage } from './lesson-ideas';
 import './teach-scene.css';
@@ -199,7 +200,21 @@ function CounterSet({ row }: { row: SetRow }) {
   );
 }
 
+/** Coins in a row (a Learn page's penny or dime), drawn as in practice; the signs between them are decoration. */
+function Coins({ row }: { row: CoinsRow }) {
+  return (
+    <div className={`fq-ts-row fq-ts-coins-row ${row.hidden ? 'is-hidden' : ''}`}>
+      <div className={`fq-ts-coins ${row.items.length > 6 ? 'is-many' : ''}`} role="img" aria-label={row.alt} data-testid="teach-scene-coins">
+        {row.items.map((item, i) => 'sign' in item
+          ? <span key={i} className={`fq-ts-coin-sign ${item.sign === '¢' ? 'is-cent' : ''}`} aria-hidden="true">{item.sign}</span>
+          : <Coin key={i} coin={item.coin} big={item.big} />)}
+      </div>
+    </div>
+  );
+}
+
 function Row({ row }: { row: SceneRow }) {
+  if (row.kind === 'coins') return <Coins row={row} />;
   if (row.kind === 'line') return <NumberLine row={row} />;
   if (row.kind === 'set') return <CounterSet row={row} />;
   if (row.kind === 'bar') return <Bar row={row} />;
