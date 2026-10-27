@@ -150,6 +150,13 @@ export const WHY = {
   sumCheck: 'That sum makes a different amount. Add the numerators to check.',
   betweenWholes: 'Count how many whole groups of the denominator fit in the numerator.',
   countMarks: 'Count the marks above that length again, one at a time.',
+  // Last eight: mistakes that were on the real-mistakes check's exception list
+  halfPart: 'A half needs just two equal parts. Count all the equal parts in this whole.',
+  oneRound: 'That is one piece each, one time around. Keep going until none are left.',
+  justOneWhole: 'That is just one whole. Count every whole group that fits.',
+  wholeCupItself: 'That is the cup itself. Count how many scoops fit in it.',
+  nearHalf: 'That is much bigger than this amount. Compare the top number with half of the bottom number.',
+  nearOne: 'That is far from this amount. One whole would need the top and bottom numbers to match.',
 } as const;
 
 export type Why = keyof typeof WHY;
