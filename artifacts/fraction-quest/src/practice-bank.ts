@@ -254,7 +254,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'compose-to-one': (r) => {
     const d = r.pick(DENS); const n = r.int(1, d - 1);
-    return { prompt: `Fill the blank: ${f(n, d)} + ? = 1`, right: f(d - n, d), wrong: [f(n, d), f(d - n, d * 2)], hint: `One whole is ${f(d, d)}.`, retry: `${d} − ${n} = ${d - n}. So ${f(d - n, d)}.`, model: bar(n, d) };
+    return { prompt: `Fill the blank: ${f(n, d)} + ? = 1`, right: f(d - n, d), wrong: [f(n, d), f(d - n, d * 2)], hint: `One whole is ${f(d, d)}.`, retry: `${d} take away ${n} is ${d - n}. So ${f(d - n, d)}.`, model: bar(n, d) };
   },
   'decompose-fractions': (r) => {
     const d = r.pick([5, 6, 8, 10, 12]); const n = r.int(3, d - 1); const first = r.int(1, n - 2);
