@@ -61,8 +61,6 @@ export type FunState = {
   introsSeen?: Partial<Record<IntroKind, IntroStage>>;
   /** The Words screen (fraction names) in a child's first lesson was read (or skipped), so it opens by itself once. */
   fractionWordsSeen?: true;
-  /** Lessons that have been started (kept in saved data; nothing reads it any more). */
-  lessonIntrosSeen?: string[];
   /** Spare oil (story mode) or streak savers: each covers one missed day so the streak keeps going. Up to SPARE_OIL_MAX. */
   spareOil?: number;
   /** Missed days a drop covered (last 35 days). They keep the streak going but do not add to it, and are not activity. */
@@ -215,8 +213,11 @@ function cleanIntros(value: unknown): Partial<Record<IntroKind, IntroStage>> {
   return out;
 }
 
-const cleanLessonIntros = (value: unknown): string[] =>
-  Array.isArray(value) ? [...new Set(value.filter((id): id is string => typeof id === 'string' && /^[a-z0-9-]{1,60}$/.test(id)))] : [];
+/** Saved data from older versions may still carry a "lessons started" list that nothing reads any more: drop it. */
+const withoutRetired = <T extends object>(saved: T): T => {
+  const { lessonIntrosSeen: _retired, ...rest } = saved as T & { lessonIntrosSeen?: unknown };
+  return rest as T;
+};
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 /** Spare oil from saved data: a count in range, recent well-formed days, and a notice that makes sense. */
@@ -284,7 +285,7 @@ export function loadFun(): FunState {
     const parsed = raw ? (JSON.parse(raw) as Partial<FunState>) : {};
     const saved = {
       ...fresh(),
-      ...parsed,
+      ...withoutRetired(parsed),
       ...cleanBasics(parsed),
       worksheetRewards: cleanWorksheetRewards(parsed.worksheetRewards),
       preferredLearningVoiceId: cleanLearningVoicePreference(parsed.preferredLearningVoiceId),
@@ -295,7 +296,6 @@ export function loadFun(): FunState {
       story: cleanStory(parsed.story),
       introsSeen: cleanIntros(parsed.introsSeen),
       fractionWordsSeen: parsed.fractionWordsSeen === true ? true as const : undefined,
-      lessonIntrosSeen: cleanLessonIntros(parsed.lessonIntrosSeen),
       ...cleanOil(parsed),
       activity: cleanActivity(parsed.activity),
       ...cleanGames(parsed),
@@ -439,11 +439,6 @@ export function recordIntro(state: FunState, kind: IntroKind, stage: IntroStage 
   return saveFun({ ...state, introsSeen: { ...seen, [kind]: stage } });
 }
 
-/** Remember that a lesson has been started. */
-export function recordLessonIntro(state: FunState, missionId: string): FunState {
-  return saveFun({ ...state, lessonIntrosSeen: cleanLessonIntros([...(state.lessonIntrosSeen ?? []), missionId]) });
-}
-
 /** Remember story progress (the prologue, a chapter's choice). It never touches lesson progress. */
 export function recordStory(state: FunState, update: { prologueSeen?: true; unit?: number; choice?: 0 | 1; board?: 1 | 2; suspect?: string }): FunState {
   const story = cleanStory(state.story);
@@ -539,7 +534,7 @@ export function playHaptic(cue: 'selection' | Cue) {
 export function replaceFun(saved: Partial<FunState>): FunState {
   const merged = {
     ...fresh(),
-    ...saved,
+    ...withoutRetired(saved),
     ...cleanBasics(saved),
     worksheetRewards: cleanWorksheetRewards(saved.worksheetRewards),
     preferredLearningVoiceId: cleanLearningVoicePreference(saved.preferredLearningVoiceId),
@@ -550,7 +545,6 @@ export function replaceFun(saved: Partial<FunState>): FunState {
     story: cleanStory(saved.story),
     introsSeen: cleanIntros(saved.introsSeen),
     fractionWordsSeen: saved.fractionWordsSeen === true ? true as const : undefined,
-    lessonIntrosSeen: cleanLessonIntros(saved.lessonIntrosSeen),
     ...cleanOil(saved),
     sound: loadFun().sound,
     activity: cleanActivity(saved.activity),
