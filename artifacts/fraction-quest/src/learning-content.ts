@@ -212,7 +212,7 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'equivalent-models': [2, 4, 'bar', 'Show 1/2 using fourths. Split every part.', 'Split each half in 2. So 1/2 = 2/4.'],
   'build-equivalents': [4, 6, 'bar', 'Show 2/3 using sixths.', 'Split each third in 2. So 2/3 = 4/6.'],
   'missing-equivalent': [6, 8, 'bar', '3/4 = ?/8. Make it.', 'Each fourth is 2 eighths. So 3/4 = 6/8.'],
-  'compose-to-one': [5, 8, 'bar', '3/8 is used. Make what is left of one whole.', '8/8 is one whole. 8 − 3 = 5, so 5/8.'],
+  'compose-to-one': [5, 8, 'bar', '3/8 is used. Make what is left of one whole.', '8/8 is one whole. 8 take away 3 is 5, so 5/8.'],
   'decompose-fractions': [4, 6, 'bar', 'Make 4/6 with four 1/6 parts.', 'Four 1/6 parts make 4/6.'],
   'improper-fractions': [7, 4, 'bar', 'Make 7/4.', '4/4 fills 1 bar. 3/4 more is left over.'],
   'mixed-improper': [9, 6, 'bar', 'Make 1 and 3/6 using sixths.', 'One whole is 6/6. Add 3 more to get 9/6.'],
@@ -969,7 +969,7 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
   if (id === 'add-related-fractions') return { prompt: 'Make 1/4 + 1/2 using fourths.', target: model(3, 4), reason: '1/2 = 2/4. 1 + 2 = 3, so 3/4.' };
   if (id === 'add-tenths-hundredths') return { prompt: 'Make 5/10 + 20/100 using hundredths.', target: model(70, 100), reason: '5/10 = 50/100. 50 + 20 = 70, so 70/100.' };
   if (id === 'tenths-decimals' || id === 'hundredths-decimals') return { prompt: 'Show 0.7 using tenths.', target: model(7, 10), reason: '0.7 means 7 tenths.' };
-  if (id === 'compose-to-one') return { prompt: 'A recipe uses 2/5 of a bag. Make what is left.', target: model(3, 5), reason: '5/5 is a full bag. 5 − 2 = 3, so 3/5.' };
+  if (id === 'compose-to-one') return { prompt: 'A recipe uses 2/5 of a bag. Make what is left.', target: model(3, 5), reason: '5/5 is a full bag. 5 take away 2 is 3, so 3/5.' };
   if (id === 'subtract-like-denominators') return { prompt: 'A ribbon is 7/10 meter long. Cut off 3/10 meter. Make what is left.', target: model(4, 10), reason: '7 − 3 = 4, so 4/10.' };
   if (id === 'add-like-denominators') return { prompt: 'Make 1/5 + 2/5.', target: model(3, 5), reason: '1 + 2 = 3, so 3/5.' };
   if (id === 'unit-size') return { prompt: 'Which is bigger, 1/3 or 1/6? Make it.', target: model(1, 3), reason: 'Six equal parts make smaller parts than three on the same-size whole, so 1/6 is smaller than 1/3.' };

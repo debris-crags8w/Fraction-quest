@@ -935,16 +935,16 @@ const curriculum: MissionSeed[] = [
     questions: [
       // 4.NF.3b: one amount split more than one way, and into unit fractions.
       practice('2/8 + 3/8 makes 5/8. Which is another way to make 5/8?', ['1/8 + 1/8 + 3/8', '1/8 + 3/8', '2/8 + 5/8', '5/8 + 1/8'], 0, bars({ numerator: 5, denominator: 8 }), 'Add the numerators in each choice. Which ones make 5?', '1 + 1 + 3 = 5. So 1/8 + 1/8 + 3/8 = 5/8 too.', bars({ numerator: 5, denominator: 8 })),
-      practice('Fill the blank: 6/8 = 2/8 + ?/8', ['4', '3', '8'], 0, bars({ numerator: 6, denominator: 8 }, { numerator: 2, denominator: 8 }), '6 take away 2 is what?', '6 − 2 = 4. So 2/8 + 4/8 = 6/8.', bars({ numerator: 1, denominator: 2 })),
+      practice('Fill the blank: 6/8 = 2/8 + ?/8', ['4', '3', '8'], 0, bars({ numerator: 6, denominator: 8 }, { numerator: 2, denominator: 8 }), '6 take away 2 is what?', '6 take away 2 is 4. So 2/8 + 4/8 = 6/8.', bars({ numerator: 1, denominator: 2 })),
       practice('Which sum of unit fractions equals 3/6?', ['1/6 + 1/6 + 1/6', '1/6 + 1/6', '1/3 + 1/3 + 1/3', '3/6 + 3/6'], 0, bars({ numerator: 3, denominator: 6 }), 'A unit fraction is one part. How many 1/6 parts make 3/6?', 'Three 1/6 parts make 3/6: 1/6 + 1/6 + 1/6.', bars({ numerator: 3, denominator: 6 })),
-      practice('7/10 = 5/10 + what?', ['2/10', '3/10', '5/10'], 0, bars({ numerator: 5, denominator: 10 }, { numerator: 2, denominator: 10 }), '7 take away 5 is what?', '7 − 5 = 2. So 2/10.', bars({ numerator: 1, denominator: 2 })),
+      practice('7/10 = 5/10 + what?', ['2/10', '3/10', '5/10'], 0, bars({ numerator: 5, denominator: 10 }, { numerator: 2, denominator: 10 }), '7 take away 5 is what?', '7 take away 5 is 2. So 2/10.', bars({ numerator: 1, denominator: 2 })),
     ],
     ideaQuestions: [
       practice('Which sum makes 4/6?', ['1/6 + 3/6', '1/6 + 4/6', '2/6 + 4/6', '1/3 + 3/3'], 0, bars({ numerator: 4, denominator: 6 }), 'Keep sixths. Which numerators add up to 4?', '1 + 3 = 4, and both parts are sixths. So 1/6 + 3/6 = 4/6.', bars({ numerator: 4, denominator: 6 }), { authoredChoices: true }),
       practice('Is 3/10 + 4/10 a way to break apart 7/10?', ['No, you must split the 10 too', 'No, the two parts must be equal', 'Yes, 3 + 4 = 7 and both are tenths', 'No, 7/10 is too small to split'], 2, bars({ numerator: 7, denominator: 10 }), 'Keep tenths. Do the numerators add back to 7?', '3 + 4 = 7, and both parts are tenths. So 3/10 + 4/10 = 7/10.', bars({ numerator: 7, denominator: 10 }), { authoredChoices: true }),
       practice('Which sum equals 3/5?', ['1/5 + 2/5', '1/5 + 3/5', '2/5 + 2/5', '1/2 + 2/3'], 0, bars({ numerator: 3, denominator: 5 }), 'Keep fifths. Which numerators add up to 3?', '1 + 2 = 3, and both parts are fifths. So 1/5 + 2/5 = 3/5.', bars({ numerator: 3, denominator: 5 }), { authoredChoices: true }),
       practice('1/6 + 4/6 makes 5/6. Which is another way to make 5/6?', ['2/6 + 3/6', '1/6 + 3/6', '2/6 + 4/6', '2/3 + 3/3'], 0, bars({ numerator: 5, denominator: 6 }), 'Add the numerators in each choice. Which ones make 5?', '2 + 3 = 5. So 2/6 + 3/6 = 5/6 too.', bars({ numerator: 5, denominator: 6 }), { authoredChoices: true }),
-      practice('Fill the blank: 4/5 = 1/5 + ?/5', ['3', '4', '5', '1'], 0, bars({ numerator: 4, denominator: 5 }, { numerator: 1, denominator: 5 }), '4 take away 1 is what?', '4 − 1 = 3. So 1/5 + 3/5 = 4/5.', bars({ numerator: 4, denominator: 5 }), { authoredChoices: true }),
+      practice('Fill the blank: 4/5 = 1/5 + ?/5', ['3', '4', '5', '1'], 0, bars({ numerator: 4, denominator: 5 }, { numerator: 1, denominator: 5 }), '4 take away 1 is what?', '4 take away 1 is 3. So 1/5 + 3/5 = 4/5.', bars({ numerator: 4, denominator: 5 }), { authoredChoices: true }),
     ],
   },
   {

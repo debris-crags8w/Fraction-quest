@@ -1146,7 +1146,7 @@ export const wordsScript = (words: WordCard[]) => ['Words to know.', ...words.ma
 /** Terms and symbols a lesson teaches (in its Words to know), and the lesson that teaches each one. Practice in an
     earlier lesson may not use them (checked by teach-extras.test.ts). Each unit's PR adds its own. */
 export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
-  /** A unit of measure, a unit fact or the ÷ or + sign: checked on every screen of the earlier lessons and ideas, not only practice. */
+  /** A unit of measure, a unit fact or the ÷, + or − sign: checked on every screen of the earlier lessons and ideas, not only practice. */
   unit?: true }[] = [
   { term: 'numerator / denominator', pattern: /\b(numerator|denominator)s?\b/i, lesson: 'fraction-names' },
   { term: 'area', pattern: /\barea\b/i, lesson: 'fraction-of-area' },
@@ -1163,6 +1163,7 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
   { term: 'unit fraction', pattern: /\bunit fractions?\b/i, lesson: 'unit-fractions' },
   // Lessons 21–30 (compose-to-one … tenths-decimals).
   { term: '+', pattern: /\s\+\s/, lesson: 'compose-to-one', unit: true },
+  { term: '−', pattern: /\s[−–]\s/, lesson: 'subtract-like-denominators', unit: true },
   { term: 'sum', pattern: /\bsums?\b/i, lesson: 'compose-to-one' },
   { term: 'whole number', pattern: /\bwhole numbers?\b/i, lesson: 'whole-numbers-as-fractions' },
   { term: 'mixed number', pattern: /\bmixed numbers?\b/i, lesson: 'mixed-improper' },
