@@ -887,7 +887,7 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('Fill the blank: 1/2 = ?/8', ['4', '2', '1'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 0, denominator: 8 }), 'What times 2 makes 8?', 'The denominator was multiplied by 4. Do the same to the numerator.', bars({ numerator: 1, denominator: 2 })),
-      practice('Fill the blank: 3/4 = 6/?', ['8', '12', '10'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'The numerator was doubled.', 'Double the denominator too: 4 × 2 = 8.', bars({ numerator: 1, denominator: 2 })),
+      practice('Fill the blank: 3/4 = 6/?', ['8', '4', '10'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'The numerator was doubled.', 'Double the denominator too: 4 × 2 = 8.', bars({ numerator: 1, denominator: 2 })),
       practice('Fill the blank: ?/10 = 2/5', ['4', '2', '5'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'The denominator doubled, 5 to 10.', 'Double the numerator too: 2 to 4.', bars({ numerator: 1, denominator: 2 })),
       practice('Fill the blank: 4/6 = 2/?', ['3', '6', '4'], 0, bars({ numerator: 4, denominator: 6 }, { numerator: 2, denominator: 3 }), 'The numerator was cut in half.', 'Halve the denominator too: 6 ÷ 2 = 3.', bars({ numerator: 1, denominator: 2 })),
     ],
@@ -899,7 +899,7 @@ const curriculum: MissionSeed[] = [
       practice('Fill the blank: 1/3 = 2/?', ['6', '3', '4', '2'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 6 }), 'The top number was doubled, 1 to 2.', 'Double the bottom too: 3 × 2 = 6.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
       practice('Fill the blank: 2/5 = 4/?', ['10', '5', '7', '4'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 4, denominator: 10 }), 'The top number was doubled, 2 to 4.', 'Double the bottom too: 5 × 2 = 10.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
       // Idea 3: the blank on the left; dividing.
-      practice('Fill the blank: ?/4 = 3/12', ['1', '3', '4', '2'], 0, bars({ numerator: 3, denominator: 12 }, { numerator: 0, denominator: 4 }), 'Start with 3/12, the pair with both numbers. 12 divided by what is 4?', '12 ÷ 3 = 4, so divide the top by 3 too: 3 ÷ 3 = 1.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Fill the blank: ?/4 = 3/12', ['1', '3', '4', '12'], 0, bars({ numerator: 3, denominator: 12 }, { numerator: 0, denominator: 4 }), 'Start with 3/12, the pair with both numbers. 12 divided by what is 4?', '12 ÷ 3 = 4, so divide the top by 3 too: 3 ÷ 3 = 1.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
     ],
   },
   {
@@ -1246,14 +1246,14 @@ const extensionTopics: ExtensionTopic[] = [
       // Idea 1: find what the denominator was multiplied by.
       practice('3/4 = ?/12. What was 4 multiplied by to make 12?', ['3', '8', '4', '12'], 0, bars({ numerator: 3, denominator: 4 }),
         'Count by 4s up to 12. How many 4s?', '4, 8, 12: three 4s. 4 × 3 = 12, so 4 was multiplied by 3.', bars({ numerator: 3, denominator: 4 }), { authoredChoices: true }),
-      practice('1/3 = ?/6. What was 3 multiplied by to make 6?', ['2', '3', '6', '18'], 0, bars({ numerator: 1, denominator: 3 }),
+      practice('1/3 = ?/6. What was 3 multiplied by to make 6?', ['2', '4', '6', '1'], 0, bars({ numerator: 1, denominator: 3 }),
         'Count by 3s up to 6. How many 3s?', '3, 6: two 3s. 3 × 2 = 6, so 3 was multiplied by 2.', bars({ numerator: 1, denominator: 3 }), { authoredChoices: true }),
       practice('5/6 = ?/12. What was 6 multiplied by to make 12?', ['2', '6', '12', '72'], 0, bars({ numerator: 5, denominator: 6 }),
         'Count by 6s up to 12. How many 6s?', '6, 12: two 6s. 6 × 2 = 12, so 6 was multiplied by 2.', bars({ numerator: 5, denominator: 6 }), { authoredChoices: true }),
       // Idea 3: dividing works the same way.
-      practice('Fill the missing numerator: 6/10 = ?/5.', ['3', '6', '1', '12'], 0, bars({ numerator: 6, denominator: 10 }),
+      practice('Fill the missing numerator: 6/10 = ?/5.', ['3', '6', '1', '5'], 0, bars({ numerator: 6, denominator: 10 }),
         'What was 10 divided by to make 5? Divide the numerator by the same number.', '10 ÷ 2 = 5 and 6 ÷ 2 = 3: 6/10 = 3/5.', bars({ numerator: 6, denominator: 10 }), { authoredChoices: true }),
-      practice('Fill the missing numerator: 9/12 = ?/4.', ['3', '9', '1', '27'], 0, bars({ numerator: 9, denominator: 12 }),
+      practice('Fill the missing numerator: 9/12 = ?/4.', ['3', '9', '1', '4'], 0, bars({ numerator: 9, denominator: 12 }),
         'What was 12 divided by to make 4? Divide the numerator by the same number.', '12 ÷ 3 = 4 and 9 ÷ 3 = 3: 9/12 = 3/4.', bars({ numerator: 9, denominator: 12 }), { authoredChoices: true }),
       practice('Write 8/12 with a denominator of 3.', ['2/3', '8/3', '2/12', '3/2'], 0, bars({ numerator: 8, denominator: 12 }),
         'What was 12 divided by to make 3? Divide the numerator by the same number.', '12 ÷ 4 = 3 and 8 ÷ 4 = 2: 8/12 = 2/3.', bars({ numerator: 8, denominator: 12 }), { authoredChoices: true }),
@@ -1265,7 +1265,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('Which fraction is one whole?', ['3/3', '1/3', '2/3', '3/6'], 0, emptyWholes(1, 3), 'One whole is all of its equal parts.', 'All 3 thirds fill the whole: 3/3 = 1.', bars({ numerator: 3, denominator: 3 }), { authoredChoices: true }),
       practice('Write 3 whole bars as a fraction with a denominator of 1.', ['3/1', '1/3', '3/3', '1/1'], 0, emptyWholes(3), 'Each uncut bar is 1/1. Count the bars for the top number.', '3 whole bars, each 1 part: 3/1.', bars({ numerator: 1, denominator: 1 }, { numerator: 1, denominator: 1 }, { numerator: 1, denominator: 1 }), { authoredChoices: true }),
       practice('Which fraction equals the whole number 5?', ['5/1', '1/5', '5/5', '4/1'], 0, emptyWholes(5), 'Each uncut bar is 1/1. How many bars make 5?', '5 whole bars, each 1 part: 5/1 = 5.', bars({ numerator: 1, denominator: 1 }, { numerator: 1, denominator: 1 }, { numerator: 1, denominator: 1 }, { numerator: 1, denominator: 1 }, { numerator: 1, denominator: 1 }), { authoredChoices: true }),
-      practice('Write 6/6 as a whole number.', ['1', '6', '12', '5'], 0, bars({ numerator: 6, denominator: 6 }), '6/6 is all 6 parts of one whole.', '6 sixths fill one whole, so 6/6 = 1.', bars({ numerator: 6, denominator: 6 }), { authoredChoices: true }),
+      practice('Write 6/6 as a whole number.', ['1', '6', '12', '0'], 0, bars({ numerator: 6, denominator: 6 }), '6/6 is all 6 parts of one whole.', '6 sixths fill one whole, so 6/6 = 1.', bars({ numerator: 6, denominator: 6 }), { authoredChoices: true }),
     ] },
   { id: 'compare-unlike-fractions', title: 'Compare different parts', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the denominators differ?', skill: 'Make the parts the same size by using a common denominator. Then compare how many parts each fraction has.', mode: 'compare', n: 2, d: 3, context: 'race track',
     example: { prompt: 'Which is bigger, 3/4 or 5/6?', answer: '5/6', explanation: 'Use twelfths for both: 3/4 = 9/12 and 5/6 = 10/12. 10 twelfths is more than 9 twelfths, so 5/6 is bigger.', model: bars({ numerator: 3, denominator: 4, named: true }, { numerator: 5, denominator: 6, named: true }) },
@@ -1379,8 +1379,8 @@ const extensionTopics: ExtensionTopic[] = [
     ] },
   { id: 'subtract-mixed-numbers', title: 'Subtract mixed numbers', shortTitle: 'Subtract mixed numbers', description: 'Trade a whole when you need more parts.', skill: 'If there are not enough fraction parts to subtract, trade one whole for equal-size parts.', mode: 'mixed-subtract', n: 1, d: 3, context: 'fabric roll',
     ideaQuestions: [
-      practice('2 3/4 − 1 1/4 = ?', ['1 2/4', '4', '2/4', '2 2/4'], 0, bars({ numerator: 11, denominator: 4 }, { numerator: 5, denominator: 4 }), 'Take away the parts: 3/4 − 1/4. Then the wholes: 2 − 1.', '3/4 − 1/4 = 2/4, and 2 − 1 = 1. So 1 2/4.', bars({ numerator: 11, denominator: 4 }, { numerator: 5, denominator: 4 }), { authoredChoices: true }),
-      practice('3 5/6 − 1 2/6 = ?', ['2 3/6', '5 1/6', '3/6', '3 3/6'], 0, bars({ numerator: 23, denominator: 6 }, { numerator: 8, denominator: 6 }), 'Take away the parts: 5/6 − 2/6. Then the wholes: 3 − 1.', '5/6 − 2/6 = 3/6, and 3 − 1 = 2. So 2 3/6.', bars({ numerator: 23, denominator: 6 }, { numerator: 8, denominator: 6 }), { authoredChoices: true }),
+      practice('2 3/4 − 1 1/4 = ?', ['1 2/4', '4', '2/4', '1 3/4'], 0, bars({ numerator: 11, denominator: 4 }, { numerator: 5, denominator: 4 }), 'Take away the parts: 3/4 − 1/4. Then the wholes: 2 − 1.', '3/4 − 1/4 = 2/4, and 2 − 1 = 1. So 1 2/4.', bars({ numerator: 11, denominator: 4 }, { numerator: 5, denominator: 4 }), { authoredChoices: true }),
+      practice('3 5/6 − 1 2/6 = ?', ['2 3/6', '5 1/6', '3/6', '2 5/6'], 0, bars({ numerator: 23, denominator: 6 }, { numerator: 8, denominator: 6 }), 'Take away the parts: 5/6 − 2/6. Then the wholes: 3 − 1.', '5/6 − 2/6 = 3/6, and 3 − 1 = 2. So 2 3/6.', bars({ numerator: 23, denominator: 6 }, { numerator: 8, denominator: 6 }), { authoredChoices: true }),
       practice('2 7/8 − 2/8 = ?', ['2 5/8', '3 1/8', '2 7/8', '3/8'], 0, bars({ numerator: 23, denominator: 8 }, { numerator: 2, denominator: 8 }), 'Take away the parts: 7/8 − 2/8. No wholes are taken away.', '7/8 − 2/8 = 5/8, and the 2 wholes stay. So 2 5/8.', bars({ numerator: 23, denominator: 8 }, { numerator: 2, denominator: 8 }), { authoredChoices: true }),
       practice('2 1/6 − 1 4/6. Are there enough sixths to take away 4/6?', ['No, there is only 1 sixth', 'No, you can never take away sixths', 'Yes, there are 2 wholes', 'Yes, 1/6 is more than 4/6'], 0, bars({ numerator: 13, denominator: 6 }, { numerator: 10, denominator: 6 }), 'Compare the parts: 1/6 and 4/6.', 'There is only 1/6, and 4/6 is more than that. There are not enough sixths.', bars({ numerator: 13, denominator: 6 }, { numerator: 10, denominator: 6 }), { authoredChoices: true }),
       practice('3 5/8 − 1 2/8. Are there enough eighths to take away 2/8?', ['No, 2/8 is more than 5/8', 'No, there are only 3 wholes', 'Yes, 5 eighths is more than 2 eighths', 'No, you can only take away wholes'], 2, bars({ numerator: 29, denominator: 8 }, { numerator: 10, denominator: 8 }), 'Compare the parts: 5/8 and 2/8.', '5/8 is more than 2/8, so there are enough eighths to take away.', bars({ numerator: 29, denominator: 8 }, { numerator: 10, denominator: 8 }), { authoredChoices: true }),
@@ -1391,8 +1391,8 @@ const extensionTopics: ExtensionTopic[] = [
       practice('What is 1/4 of 12?', ['3', '4', '8', '48'], 0, emptyWholes(1, 4), 'Split 12 into 4 equal parts. One part is 12 ÷ 4.', '12 ÷ 4 = 3, so 1/4 of 12 is 3.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
       practice('What is 1/6 of 30?', ['5', '6', '24', '180'], 0, emptyWholes(1, 6), 'Split 30 into 6 equal parts. One part is 30 ÷ 6.', '30 ÷ 6 = 5, so 1/6 of 30 is 5.', bars({ numerator: 1, denominator: 6 }), { authoredChoices: true }),
       practice('What is 1/8 of 16?', ['2', '8', '24', '128'], 0, emptyWholes(1, 8), 'Split 16 into 8 equal parts. One part is 16 ÷ 8.', '16 ÷ 8 = 2, so 1/8 of 16 is 2.', bars({ numerator: 1, denominator: 8 }), { authoredChoices: true }),
-      practice('What is 2/5 of 15?', ['6', '3', '13', '30'], 0, emptyWholes(1, 5), 'One part is 15 ÷ 5. Then take 2 parts.', '15 ÷ 5 = 3 in one part, and 2 × 3 = 6. So 2/5 of 15 is 6.', bars({ numerator: 2, denominator: 5 }), { authoredChoices: true }),
-      practice('3/4 × 16 = ?', ['12', '4', '48', '19'], 0, emptyWholes(1, 4), '3/4 × 16 means 3/4 of 16. One part is 16 ÷ 4. Then take 3 parts.', '16 ÷ 4 = 4 in one part, and 3 × 4 = 12. So 3/4 × 16 = 12.', bars({ numerator: 3, denominator: 4 }), { authoredChoices: true }),
+      practice('What is 2/5 of 15?', ['6', '3', '15', '30'], 0, emptyWholes(1, 5), 'One part is 15 ÷ 5. Then take 2 parts.', '15 ÷ 5 = 3 in one part, and 2 × 3 = 6. So 2/5 of 15 is 6.', bars({ numerator: 2, denominator: 5 }), { authoredChoices: true }),
+      practice('3/4 × 16 = ?', ['12', '4', '48', '16'], 0, emptyWholes(1, 4), '3/4 × 16 means 3/4 of 16. One part is 16 ÷ 4. Then take 3 parts.', '16 ÷ 4 = 4 in one part, and 3 × 4 = 12. So 3/4 × 16 = 12.', bars({ numerator: 3, denominator: 4 }), { authoredChoices: true }),
     ] },
   { id: 'mixed-unlike-operations', title: 'Mixed numbers with unlike parts', shortTitle: 'Mixed number operations', description: 'Add or subtract mixed numbers with different denominators.', skill: 'Rename the fraction parts so they are the same size. Then add or subtract, regrouping a whole if needed.', mode: 'mixed-unlike', n: 25, d: 12, context: 'walking route', gradeBand: 5, standards: ['5.NF.1'],
     ideaQuestions: [
@@ -1464,19 +1464,19 @@ const extensionTopics: ExtensionTopic[] = [
       practice('To find 2/3 of 12 cards, you make 3 equal groups. How many cards are in one group?', ['4', '3', '8', '12'], 0, setModel(0, 12, 3), 'Share the 12 cards into 3 equal groups. Then count one group.', '12 cards shared into 3 equal groups is 4 cards in each group.', setModel(0, 6, 3), { authoredChoices: true }),
       practice('To find 3/5 of 20 cards, you make 5 equal groups. How many cards are in one group?', ['4', '5', '12', '20'], 0, setModel(0, 20, 5), 'Share the 20 cards into 5 equal groups. Then count one group.', '20 cards shared into 5 equal groups is 4 cards in each group.', setModel(0, 10, 5), { authoredChoices: true }),
       practice('To find 5/6 of 18 cards, you make 6 equal groups. How many cards are in one group?', ['3', '6', '15', '18'], 0, setModel(0, 18, 6), 'Share the 18 cards into 6 equal groups. Then count one group.', '18 cards shared into 6 equal groups is 3 cards in each group.', setModel(0, 12, 6), { authoredChoices: true }),
-      practice('What is 2/3 of 18 cards?', ['12', '6', '16', '36'], 0, setModel(0, 18, 3), 'Make 3 equal groups. Count the cards in 2 of them.', '18 cards in 3 equal groups is 6 in each group. 2 groups is 12 cards.', setModel(12, 18, 3), { authoredChoices: true }),
+      practice('What is 2/3 of 18 cards?', ['12', '6', '18', '36'], 0, setModel(0, 18, 3), 'Make 3 equal groups. Count the cards in 2 of them.', '18 cards in 3 equal groups is 6 in each group. 2 groups is 12 cards.', setModel(12, 18, 3), { authoredChoices: true }),
       practice('What is 3/4 of 20 cards?', ['15', '5', '16', '60'], 0, setModel(0, 20, 4), 'Make 4 equal groups. Count the cards in 3 of them.', '20 cards in 4 equal groups is 5 in each group. 3 groups is 15 cards.', setModel(15, 20, 4), { authoredChoices: true }),
-      practice('What is 2/5 of 25 cards?', ['10', '5', '23', '50'], 0, setModel(0, 25, 5), 'Make 5 equal groups. Count the cards in 2 of them.', '25 cards in 5 equal groups is 5 in each group. 2 groups is 10 cards.', setModel(10, 25, 5), { authoredChoices: true }),
+      practice('What is 2/5 of 25 cards?', ['10', '5', '25', '50'], 0, setModel(0, 25, 5), 'Make 5 equal groups. Count the cards in 2 of them.', '25 cards in 5 equal groups is 5 in each group. 2 groups is 10 cards.', setModel(10, 25, 5), { authoredChoices: true }),
     ] },
   { id: 'divide-whole-by-unit-fraction', title: 'How many parts fit?', shortTitle: 'Divide by a fraction', description: 'How many 1/4 cups fill 2 cups?', skill: 'The denominator tells how many equal parts fit in one whole. Count those parts in the amount.', example: { prompt: 'How many 1/4-cup scoops fill 2 cups?', answer: '8 scoops', explanation: 'One whole cup holds 4 fourths. 2 cups hold 2 groups of 4 fourths. That is 8 scoops of 1/4 cup.', model: bars({ numerator: 8, denominator: 4 }) }, mode: 'divide', n: 1, d: 4, context: 'measuring cup',
     ideaQuestions: [
       // Idea 1: how many unit parts fit in one whole.
-      practice('How many 1/3-cup scoops fill 1 cup? 1 ÷ 1/3 = ?', ['3', '4', '1/3', '1'], 0, bars({ numerator: 1, denominator: 3 }),
+      practice('How many 1/3-cup scoops fill 1 cup? 1 ÷ 1/3 = ?', ['3', '4', '6', '1'], 0, bars({ numerator: 1, denominator: 3 }),
         'How many 1/3 parts make one whole cup?', 'Three 1/3s fill one whole cup, so 1 ÷ 1/3 = 3.', emptyWholes(1, 3), { authoredChoices: true }),
-      practice('How many 1/5-cup scoops fill 1 cup? 1 ÷ 1/5 = ?', ['5', '6', '1/5', '1'], 0, bars({ numerator: 1, denominator: 5 }),
+      practice('How many 1/5-cup scoops fill 1 cup? 1 ÷ 1/5 = ?', ['5', '6', '10', '1'], 0, bars({ numerator: 1, denominator: 5 }),
         'How many 1/5 parts make one whole cup?', 'Five 1/5s fill one whole cup, so 1 ÷ 1/5 = 5.', emptyWholes(1, 5), { authoredChoices: true }),
       // Idea 2: multiply by the number of wholes.
-      practice('How many 1/2-cup scoops fill 3 cups? 3 ÷ 1/2 = ?', ['6', '5', '3/2', '3'], 0, bars({ numerator: 1, denominator: 2 }),
+      practice('How many 1/2-cup scoops fill 3 cups? 3 ÷ 1/2 = ?', ['6', '5', '2', '3'], 0, bars({ numerator: 1, denominator: 2 }),
         'How many 1/2 parts make one whole cup? Then think about 3 cups.', 'Two 1/2s fill each cup. 3 cups: 3 × 2 = 6, so 3 ÷ 1/2 = 6.', emptyWholes(3, 2), { authoredChoices: true }),
     ] },
   { id: 'multiplication-scaling', title: 'Scaling with fractions', shortTitle: 'Scale an amount', description: 'See how a factor below or above one changes an amount.', skill: 'Multiplying by less than 1 takes part of an amount, so it gets smaller. Multiplying by more than 1 makes more than one copy, so it gets bigger.', example: { prompt: 'What is 3/4 of 12? Is the answer less or more than 12?', answer: '9, less than 12', explanation: 'Make 4 equal groups of 3. Three of the groups is 9. Multiplying 12 by 3/4, which is less than one whole, makes a smaller amount.', model: setModel(9, 12, 4) }, mode: 'scaling', n: 3, d: 4, context: 'collections', gradeBand: 5, standards: ['5.NF.5'],
@@ -1720,7 +1720,7 @@ const extensionTopics: ExtensionTopic[] = [
       // Idea 3: multiply by the numerator.
       practice('How many minutes are in 2/3 of an hour?', ['40 minutes', '20 minutes', '60 minutes', '90 minutes'], 0, emptyWholes(1, 3),
         '1 hour is 60 minutes. Find one third, then take 2 of them.', '60 ÷ 3 = 20 minutes in one part. 2 × 20 = 40 minutes.', emptyWholes(1, 3), { authoredChoices: true }),
-      practice('How many inches are in 3/4 foot?', ['9 inches', '3 inches', '12 inches', '16 inches'], 0, emptyWholes(1, 4),
+      practice('How many inches are in 3/4 foot?', ['9 inches', '3 inches', '12 inches', '36 inches'], 0, emptyWholes(1, 4),
         '1 foot is 12 inches. Find one fourth, then take 3 of them.', '12 ÷ 4 = 3 inches in one part. 3 × 3 = 9 inches.', emptyWholes(1, 4), { authoredChoices: true }),
       practice('How many hours are in 3/4 of a day?', ['18 hours', '6 hours', '24 hours', '32 hours'], 0, emptyWholes(1, 4),
         '1 day is 24 hours. Find one fourth, then take 3 of them.', '24 ÷ 4 = 6 hours in one part. 3 × 6 = 18 hours.', emptyWholes(1, 4), { authoredChoices: true }),
@@ -1950,11 +1950,11 @@ const extensionTopics: ExtensionTopic[] = [
     example: { prompt: '3 stickers are 1/4 of a pack. How many stickers are in the pack?', answer: '12 stickers', explanation: '1/4 is 1 of 4 equal parts. Each part is 3. 4 parts of 3 is 12.', model: setModel(3, 12, 4) },
     // Idea 2: more than one part is known, so find one part first.
     ideaQuestions: [
-      practice("6 stickers are 3/4 of Ana's stickers. How many stickers does Ana have?", ['8', '2', '24', '18'], 0, { kind: 'bars', bars: [{ numerator: 3, denominator: 4 }], hideLabels: true },
+      practice("6 stickers are 3/4 of Ana's stickers. How many stickers does Ana have?", ['8', '2', '24', '6'], 0, { kind: 'bars', bars: [{ numerator: 3, denominator: 4 }], hideLabels: true },
         '3 parts are 6 stickers. Find 1 part first. The whole has 4 parts.', '6 ÷ 3 = 2 stickers in 1 part. 4 parts: 2 × 4 = 8 stickers.', { kind: 'bars', bars: [{ numerator: 3, denominator: 4 }], hideLabels: false }, { authoredChoices: true }),
-      practice('Tom read 8 pages. That is 2/3 of his book. How many pages are in the book?', ['12', '4', '24', '16'], 0, { kind: 'bars', bars: [{ numerator: 2, denominator: 3 }], hideLabels: true },
+      practice('Tom read 8 pages. That is 2/3 of his book. How many pages are in the book?', ['12', '4', '24', '8'], 0, { kind: 'bars', bars: [{ numerator: 2, denominator: 3 }], hideLabels: true },
         '2 parts are 8 pages. Find 1 part first. The whole has 3 parts.', '8 ÷ 2 = 4 pages in 1 part. 3 parts: 4 × 3 = 12 pages.', { kind: 'bars', bars: [{ numerator: 2, denominator: 3 }], hideLabels: false }, { authoredChoices: true }),
-      practice('A piece of ribbon is 6 meters long. It is 2/5 of the whole ribbon. How many meters long is the whole ribbon?', ['15', '3', '30', '12'], 0, { kind: 'bars', bars: [{ numerator: 2, denominator: 5 }], hideLabels: true },
+      practice('A piece of ribbon is 6 meters long. It is 2/5 of the whole ribbon. How many meters long is the whole ribbon?', ['15', '3', '30', '6'], 0, { kind: 'bars', bars: [{ numerator: 2, denominator: 5 }], hideLabels: true },
         '2 parts are 6 meters. Find 1 part first. The whole has 5 parts.', '6 ÷ 2 = 3 meters in 1 part. 5 parts: 3 × 5 = 15 meters.', { kind: 'bars', bars: [{ numerator: 2, denominator: 5 }], hideLabels: false }, { authoredChoices: true }),
     ],
   },
@@ -1997,13 +1997,13 @@ const extensionTopics: ExtensionTopic[] = [
     ideaQuestions: [
       practice('How many 1/8 cup scoops fill 1/2 cup?', ['4', '8', '2', '1'], 0, { kind: 'bars', bars: [{ numerator: 1, denominator: 2 }], hideLabels: true },
         'Write 1/2 in eighths. Count how many 1/8 parts fit.', '1/2 = 4/8. Four 1/8 cup scoops fill 1/2 cup.', { kind: 'bars', bars: [{ numerator: 1, denominator: 2 }], hideLabels: false }, { authoredChoices: true }),
-      practice('How many 1/6 cup scoops fill 1/2 cup?', ['3', '6', '2', '12'], 0, { kind: 'bars', bars: [{ numerator: 1, denominator: 2 }], hideLabels: true },
+      practice('How many 1/6 cup scoops fill 1/2 cup?', ['3', '6', '2', '1'], 0, { kind: 'bars', bars: [{ numerator: 1, denominator: 2 }], hideLabels: true },
         'Write 1/2 in sixths. Count how many 1/6 parts fit.', '1/2 = 3/6. Three 1/6 cup scoops fill 1/2 cup.', { kind: 'bars', bars: [{ numerator: 1, denominator: 2 }], hideLabels: false }, { authoredChoices: true }),
       practice('3/5 ÷ 1/10 = ?', ['6', '30', '10', '3'], 0, { kind: 'bars', bars: [{ numerator: 3, denominator: 5 }], hideLabels: true },
         'Write 3/5 in tenths. Count how many 1/10 parts fit.', '3/5 = 6/10. Six 1/10 parts fit, so 3/5 ÷ 1/10 = 6.', { kind: 'bars', bars: [{ numerator: 3, denominator: 5 }], hideLabels: false }, { authoredChoices: true }),
       practice('6/10 ÷ 2/10 = ?', ['3', '6', '60', '10'], 0, { kind: 'bars', bars: [{ numerator: 6, denominator: 10 }], hideLabels: true },
         'Count the tenths in 6/10. Then make groups of 2 tenths.', '6 tenths make 3 groups of 2 tenths, so 6/10 ÷ 2/10 = 3.', { kind: 'bars', bars: [{ numerator: 6, denominator: 10 }], hideLabels: false }, { authoredChoices: true }),
-      practice('How many 2/6 cup scoops fill 2/3 cup?', ['2', '4', '3', '6'], 0, { kind: 'bars', bars: [{ numerator: 2, denominator: 3 }], hideLabels: true },
+      practice('How many 2/6 cup scoops fill 2/3 cup?', ['2', '12', '3', '6'], 0, { kind: 'bars', bars: [{ numerator: 2, denominator: 3 }], hideLabels: true },
         'Write 2/3 in sixths. Then count groups of 2 sixths.', '2/3 = 4/6. 4 sixths make 2 groups of 2 sixths, so 2 scoops fill 2/3 cup.', { kind: 'bars', bars: [{ numerator: 2, denominator: 3 }], hideLabels: false }, { authoredChoices: true }),
     ],
   },
@@ -2015,7 +2015,7 @@ const extensionTopics: ExtensionTopic[] = [
       model: grids(hundredthsGrid(34, '3 dimes and 4 pennies')) },
     mode: 'coins', n: 34, d: 100, context: 'coins', gradeBand: 4, standards: ['4.NF.5'],
     questions: [
-      practice('Chomp has 6 dimes. What part of a dollar is that, in hundredths?', ['60/100', '6/100', '16/100', '600/100'], 0, coins(6, 0),
+      practice('Chomp has 6 dimes. What part of a dollar is that, in hundredths?', ['60/100', '6/100', '60/10', '600/100'], 0, coins(6, 0),
         'A dime is 10 pennies. How many pennies are 6 dimes?',
         'Each dime is 10 hundredths of a dollar. 6 dimes are 60 hundredths: 60/100.', grids(hundredthsGrid(60))),
       practice('2 dimes and 5 pennies. What part of a dollar is that?', ['25/100', '7/100', '205/100', '52/100'], 0, coins(2, 5),
@@ -2037,7 +2037,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('Chomp has 9 pennies. What part of a dollar is that?', ['9/100', '9/10', '1/9', '91/100'], 0, coins(0, 9),
         'Each penny is 1/100 of a dollar. Count the pennies.', '9 pennies are 9 hundredths of a dollar: 9/100.', grids(hundredthsGrid(9)), { authoredChoices: true }),
       // Idea 2: a dime is 10 pennies, so 10 hundredths.
-      practice('Pip has 3 dimes. What part of a dollar is that, in hundredths?', ['30/100', '3/100', '13/100', '300/100'], 0, coins(3, 0),
+      practice('Pip has 3 dimes. What part of a dollar is that, in hundredths?', ['30/100', '3/100', '30/10', '300/100'], 0, coins(3, 0),
         'Each dime is 10 hundredths of a dollar.', '3 dimes are 3 × 10 = 30 hundredths: 30/100.', grids(hundredthsGrid(30)), { authoredChoices: true }),
       // Idea 3: add the dimes and the pennies.
       practice('4 dimes and 6 pennies. What part of a dollar is that?', ['46/100', '10/100', '406/100', '64/100'], 0, coins(4, 6),
@@ -2166,7 +2166,7 @@ const extensionTopics: ExtensionTopic[] = [
     ],
     ideaQuestions: [
       // Idea 1: add the amount for every X.
-      practice('The line plot shows juice in 4 cups: 1/4, 3/4, 3/4, 3/4 liter. How much juice in all?', ['2 2/4 liters', '1 liter', '10/16 liter', '3/4 liter'], 0,
+      practice('The line plot shows juice in 4 cups: 1/4, 3/4, 3/4, 3/4 liter. How much juice in all?', ['2 2/4 liters', '1 liter', '10/16 liter', '4 liters'], 0,
         { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 3, 3, 3] }, 'Add the amount for every X. Three Xs at 3/4 count three times.',
         '1 + 3 + 3 + 3 = 10 fourths: 10/4, or 2 2/4 liters.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 3, 3, 3] }, { authoredChoices: true }),
       // Idea 2: how much more one stack holds.
@@ -2183,7 +2183,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('The line plot shows how far 3 snails crawled: 1/2, 1/2, 1/4 inch. How far did they crawl in all?', ['1 1/4 inches', '3/8 inch', '3/4 inch', '1/2 inch'], 0,
         { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 2, 1] }, 'Change the halves to fourths. Then add every X.',
         '1/2 = 2/4. 2 + 2 + 1 = 5 fourths: 5/4, or 1 1/4 inches.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 2, 1] }, { authoredChoices: true }),
-      practice('The line plot shows water in 4 cups: 1/2, 1/2, 1/2, 3/4 liter. How much water in all?', ['2 1/4 liters', '6/10 liter', '1 2/4 liters', '3/4 liter'], 0,
+      practice('The line plot shows water in 4 cups: 1/2, 1/2, 1/2, 3/4 liter. How much water in all?', ['2 1/4 liters', '6/10 liter', '1 2/4 liters', '1 1/4 liters'], 0,
         { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 2, 2, 3] }, 'Change the halves to fourths. Then add every X.',
         '1/2 = 2/4. 2 + 2 + 2 + 3 = 9 fourths: 9/4, or 2 1/4 liters.', { kind: 'lineplot', denominator: 4, wholes: 1, values: [2, 2, 2, 3] }, { authoredChoices: true }),
     ] },
