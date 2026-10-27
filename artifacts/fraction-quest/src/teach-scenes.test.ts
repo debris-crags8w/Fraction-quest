@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { AREA_CUTS } from './area-shapes';
 import { LESSON_INTROS } from './lesson-intros';
+import { TEACH_EXTRAS } from './teach-extras';
 import { LESSON_SCENES, play, sceneLength, type SceneRow, type StepScene } from './teach-scenes';
 
 const pictures = (row: SceneRow): SceneRow[] => (row.kind === 'pair' ? row.items : [row]);
@@ -93,4 +94,39 @@ test('every step and every why has a picture, not just words', () => {
 test('every lesson with a Teach first card plays it as pictures', () => {
   const missing = Object.keys(LESSON_INTROS).filter((id) => !LESSON_SCENES[id]);
   assert.deepEqual(missing, []);
+});
+
+/** Every picture row in every Learn-page scene: lesson scenes, worked examples and word-card pictures. */
+function allPictures(): { where: string; picture: SceneRow }[] {
+  const found: { where: string; picture: SceneRow }[] = [];
+  const add = (where: string, scene: StepScene) => scene.forEach((frame, f) => frame.rows.flatMap(pictures).forEach((picture) => found.push({ where: `${where} frame ${f + 1}`, picture })));
+  for (const [id, scene] of Object.entries(LESSON_SCENES)) [...scene.steps, scene.why].forEach((step, i) => add(`${id} scene ${i + 1}`, step));
+  for (const [id, extras] of Object.entries(TEACH_EXTRAS)) {
+    for (const example of extras.examples ?? []) add(`${id} example "${example.title}"`, example.picture);
+    for (const word of extras.words ?? []) if (word.picture) add(`${id} word "${word.term}"`, word.picture);
+  }
+  return found;
+}
+
+test('a picture can be drawn smaller with scale; only the small pizza of "Different wholes" is', () => {
+  const scaled = allPictures().filter(({ picture }) => picture.kind === 'area' && picture.scale !== undefined);
+  for (const { where, picture } of scaled) {
+    assert.ok(picture.kind === 'area' && picture.scale! > 0 && picture.scale! < 1, `${where}: a scale is a fraction of the normal size`);
+    assert.equal(picture.kind === 'area' && picture.label, 'Small pizza: 0.5', `${where}: only the small pizza is scaled`);
+  }
+  assert.ok(scaled.length > 0, 'the small pizza is drawn smaller');
+  const different = TEACH_EXTRAS['compare-decimals-grid']!.examples!.find((example) => example.title === 'Different wholes')!.picture;
+  for (const frame of different) {
+    const pair = frame.rows.find((row) => row.kind === 'pair');
+    assert.ok(pair && pair.kind === 'pair');
+    const [small, big] = pair.items;
+    assert.ok(small.kind === 'area' && big.kind === 'area');
+    assert.match(small.label ?? '', /^Small pizza/);
+    assert.match(big.label ?? '', /^Big pizza/);
+    // About two thirds of the big pizza's size (0.6, as in the practice question's picture), and both keep their cross.
+    assert.ok((small.scale ?? 1) < (big.scale ?? 1), 'the small pizza is drawn smaller than the big one');
+    assert.ok(Math.abs((small.scale ?? 1) / (big.scale ?? 1) - 2 / 3) < 0.1, 'about two thirds the size');
+    assert.equal(small.tone, 'unfair');
+    assert.equal(big.tone, 'unfair');
+  }
 });
