@@ -24,5 +24,5 @@ test('multi-digit decimals keep their whole part', () => {
 test('the cent sign is read as cents, never as a symbol', () => {
   assert.equal(spokenText('A penny is 1 cent. We write it 1¢.'), 'A penny is 1 cent. We write it 1 cent.');
   assert.equal(spokenText('A dime is 10 cents: 10¢.'), 'A dime is 10 cents: 10 cents.');
-  assert.equal(spokenText('The sign ¢ means cents.'), 'The sign cent sign means cents.');
+  assert.equal(spokenText('The ¢ sign means cents.'), 'The cent sign means cents.');
 });

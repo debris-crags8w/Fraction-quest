@@ -210,7 +210,7 @@ test('lesson 36: a coin page opens idea 1 (a penny, 1¢, what ¢ means) and idea
   assert.ok('scene' in penny && 'scene' in dime);
   assert.equal(penny.text, 'A penny is 1 cent. We write it 1¢.');
   assert.deepEqual(coinRows(penny), [{ coin: 'penny', big: true }, { sign: '→' }, { sign: '¢' }]);
-  assert.equal(sceneSentences(penny.scene).join(' '), 'The sign ¢ means cents. 100 cents make 1 dollar.');
+  assert.equal(sceneSentences(penny.scene).join(' '), 'The ¢ sign means cents. 100 cents make 1 dollar.');
   assert.equal(dime.text, 'A dime is 10 cents: 10¢. 10 pennies make 1 dime.');
   assert.deepEqual(coinRows(dime), [...Array.from({ length: 10 }, () => ({ coin: 'penny' })), { sign: '=' }, { coin: 'dime', big: true }]);
   assert.match(sceneSentences(dime.scene).join(' '), /grid/);

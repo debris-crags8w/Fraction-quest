@@ -151,7 +151,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
         // The coin first: what a penny is called and how it is written (1¢), before the grid shows it as a hundredth.
         { text: 'A penny is 1 cent. We write it 1¢.', scene: play([
           { kind: 'coins', alt: 'A penny, marked 1¢, and the cent sign ¢', items: [{ coin: 'penny', big: true }, { sign: '→' }, { sign: '¢' }] },
-          { kind: 'text', text: 'The sign ¢ means cents. 100 cents make 1 dollar.', hidden: true },
+          { kind: 'text', text: 'The ¢ sign means cents. 100 cents make 1 dollar.', hidden: true },
         ], [700, { 1: { hidden: false } }]) },
         example('dimes-and-pennies', 'A dollar is 100 pennies'), example('dimes-and-pennies', 'Count the pennies'),
       ],

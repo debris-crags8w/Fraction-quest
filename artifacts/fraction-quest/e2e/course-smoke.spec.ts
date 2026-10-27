@@ -157,7 +157,7 @@ test('the dimes and pennies lesson shows the coin and ¢ first, then teaches on 
   await expect(page.getByTestId('idea-learn')).toContainText('A penny is 1 cent. We write it 1¢.');
   const pennyPage = page.getByTestId('teach-scene').getByTestId('teach-scene-coins');
   await expect(pennyPage.locator('.fq-coin.is-penny.is-big')).toHaveText('1¢');
-  await expect(page.getByTestId('teach-scene')).toContainText('The sign ¢ means cents. 100 cents make 1 dollar.');
+  await expect(page.getByTestId('teach-scene')).toContainText('The ¢ sign means cents. 100 cents make 1 dollar.');
   await page.getByTestId('button-teach-step-next').click();
   await expect(page.getByTestId('teach-scene').locator('.fq-ts-area')).toHaveCount(1);
   await expect(page.getByTestId('idea-learn')).toContainText('100 pennies');
