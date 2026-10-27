@@ -53,8 +53,10 @@
 .fq-ts-bracket:not(.is-on) { height: 0; overflow: hidden; }
 
 .fq-ts-area-row { align-items: center; }
-.fq-ts-area { width: calc(150px * var(--ts-fit, 1)); height: calc(150px * var(--ts-fit, 1)); overflow: visible; }
-.fq-ts-area.is-small { width: calc(112px * var(--ts-fit, 1)); height: calc(112px * var(--ts-fit, 1)); }
+.fq-ts-area { width: calc(150px * var(--ts-fit, 1) * var(--ts-scale, 1)); height: calc(150px * var(--ts-fit, 1) * var(--ts-scale, 1)); overflow: visible; }
+.fq-ts-area.is-small { width: calc(112px * var(--ts-fit, 1) * var(--ts-scale, 1)); height: calc(112px * var(--ts-fit, 1) * var(--ts-scale, 1)); }
+/* A picture drawn smaller (row.scale) in a pair sits on the same line as its neighbour, labels level. */
+.fq-ts-pair > .fq-ts-area-row.is-scaled { margin-top: auto; }
 .fq-ts-piece { fill: var(--ts-whole); stroke: transparent; stroke-width: 2.5; stroke-linejoin: round; transition: fill .35s, stroke .35s; }
 .fq-ts-piece.is-cut { stroke: var(--ts-ink); }
 .fq-ts-area.is-fine .fq-ts-piece { stroke-width: 0.6; }
@@ -145,3 +147,9 @@
   .fq-ts-card .fq-ts-step { min-height: 0; font-size: 1.1rem; }
   .fq-ts-card .fq-ts-nav .fq-button { min-height: 48px; }
 }
+
+/* Coins in a Learn picture (TeachScene.tsx): the coins are the practice coins (.fq-coin in theme-pop.css). */
+.fq-ts-coins { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
+.fq-ts-coin-sign { font-size: 1.6rem; font-weight: 900; color: color-mix(in srgb, currentColor 60%, transparent); }
+.fq-ts-coin-sign.is-cent { font-size: 3.4rem; line-height: 1; color: var(--fq-grape); }
+.fq-ts-coins.is-many { max-width: 224px; margin: 0 auto; } /* ten small coins: two lines of five */

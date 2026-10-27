@@ -629,7 +629,7 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
         title: 'Different wholes',
         picture: reveal([
           { kind: 'pair', items: [
-            { kind: 'area', cut: 'circle-halves', edges: true, shaded: [0], label: 'Small pizza: 0.5', tone: 'unfair' },
+            { kind: 'area', cut: 'circle-halves', edges: true, shaded: [0], label: 'Small pizza: 0.5', tone: 'unfair', scale: 0.6 },
             { kind: 'area', cut: 'circle-tenths', edges: true, shaded: range(4), label: 'Big pizza: 0.4', tone: 'unfair' },
           ] },
           say('A small pizza and a big pizza are different wholes. 0.5 of one and 0.4 of the other: you can’t tell which is more.'),
@@ -1202,7 +1202,8 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
   { term: 'dollar', pattern: /\bdollars?\b/i, lesson: 'dimes-and-pennies', unit: true },
   { term: 'hour and minute: 1 hour is 60 minutes', pattern: /\b(hours?|minutes?)\b/i, lesson: 'measurement-word-problems', unit: true },
   { term: '1 day is 24 hours', pattern: /\b24 hours\b|\bhours? (are )?in (a |\d+\/\d+ (of a )?)?days?\b|\bdays? (is|=) 24\b/i, lesson: 'measurement-word-problems', unit: true },
-  { term: 'cent: 100 cents make 1 dollar', pattern: /\bcents?\b/i, lesson: 'measurement-word-problems', unit: true },
+  { term: 'cent: 100 cents make 1 dollar', pattern: /\bcents?\b/i, lesson: 'dimes-and-pennies', unit: true },
+  { term: 'the cent sign ¢', pattern: /¢/, lesson: 'dimes-and-pennies', unit: true },
   { term: 'kilogram and gram', pattern: /\b(kilo)?grams?\b/i, lesson: 'measurement-word-problems', unit: true },
   { term: 'liter and milliliter', pattern: /\b(milli)?liters?\b/i, lesson: 'measurement-word-problems', unit: true },
   { term: 'pound', pattern: /\bpounds?\b/i, lesson: 'party-portions', unit: true },

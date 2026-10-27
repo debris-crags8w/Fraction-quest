@@ -68,6 +68,7 @@ export function spokenText(text: string): string {
     // "Put <, = or > in the gap: 4/6 __ 1/2." names the signs as a list, and the gap as a blank.
     .replace(/<\s*,\s*=\s*,?\s*or\s*>/g, 'less than, equals or greater than')
     .replace(/_{2,}/g, 'blank')
+    .replace(/\b1¢/g, '1 cent').replace(/(\d+)¢/g, '$1 cents').replace(/¢/g, 'cent') // "1¢", "10¢", the sign itself ("The ¢ sign" is said "The cent sign")
     .replace(/\s*=\s*\?(?!\s*\/)/g, ' equals what?')                  // "1/6 + 2/6 = ?"
     .replace(/\?(?=\s*[=+−×÷])/g, 'blank')                    // "3/4 + ? = 1"
     .replace(/(\d+)\s+(\d+)\s*\/\s*(\d+)/g, (_, w, t, b) => `${w} and ${sayFraction(Number(t), Number(b))}`) // mixed numbers
