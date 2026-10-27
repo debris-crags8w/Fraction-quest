@@ -788,20 +788,21 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
             <h2 id="story-title">{kicker}</h2>
             <span className="fq-cine-head-tools">
             <button type="button" className="fq-cine-voice" aria-pressed={voiceOn} onClick={toggleVoice}
-              aria-label={voiceOn ? 'Turn the story voice off' : 'Turn the story voice on'} data-testid="button-story-voice">
+              aria-label={voiceOn ? 'Voice on: turn the story voice off' : 'Voice off: turn the story voice on'} data-testid="button-story-voice">
               {voiceOn ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />} {voiceOn ? 'Voice on' : 'Voice off'}
             </button>
             {musicAllowed && (
               <button type="button" className="fq-cine-voice fq-cine-music" aria-pressed={musicOn} onClick={toggleMusic}
-                aria-label={musicOn ? 'Turn the story music off' : 'Turn the story music on'} data-testid="button-story-music">
+                aria-label={musicOn ? 'Music on: turn the story music off' : 'Music off: turn the story music on'} data-testid="button-story-music">
                 <Music size={16} aria-hidden="true" /> {musicOn ? 'Music on' : 'Music off'}
               </button>
             )}
             </span>
           </div>
           <button type="button" key={take} className={`fq-cine-screen is-${scene} ${done ? '' : 'is-rolling'}`} data-testid="story-panels"
-            onClick={() => (typing ? setChars(lines[beat].text.length) : undefined)}
-            aria-label={done ? 'The last scene of the story' : 'The story scene'}>
+            onClick={() => (typing ? setChars(lines[beat].text.length) : undefined)}>
+            {/* No aria-label: the button is named by the words on the screen, after this lead (a label must hold the visible words). */}
+            <span className="fq-sr">{done ? 'The last scene of the story: ' : 'The story scene: '}</span>
             <span className={`fq-cine-cam ${cold ? 'is-cold' : 'is-warm'}`} style={{ transform: camera, transformOrigin: origin }}>
               <span className={`fq-cine-set ${!done && beat === filming.impact ? 'is-shaking' : ''}`} data-testid="story-stage">
                 <Art beat={done ? lines.length - 1 : Math.max(beat, 0)} unit={unit} speaker={lines[done ? lines.length - 1 : Math.max(beat, 0)]?.speaker} />

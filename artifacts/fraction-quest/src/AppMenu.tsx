@@ -60,7 +60,9 @@ export function AppMenu({ sections, footer }: { sections: AppMenuSection[]; foot
         <ChevronDown size={16} aria-hidden="true" className="fq-menu-chevron" />
       </button>
       {open && (
-        <div ref={panel} id={menuId} className="fq-menu-panel" role="menu" aria-label="More" onKeyDown={onPanelKey} data-testid="app-menu">
+        <div ref={panel} className="fq-menu-panel" onKeyDown={onPanelKey} data-testid="app-menu">
+          {/* Only the menu items are in the menu: the footer note sits beside it (a menu may hold nothing else). */}
+          <div id={menuId} role="menu" aria-label="More">
           {sections.map((section) => section.items.length > 0 && (
             <div key={section.title} className="fq-menu-section" role="group" aria-label={section.title}>
               <p className="fq-menu-section-title" aria-hidden="true">{section.title}</p>
@@ -74,6 +76,7 @@ export function AppMenu({ sections, footer }: { sections: AppMenuSection[]; foot
               ))}
             </div>
           ))}
+          </div>
           {footer && <div className="fq-menu-footer">{footer}</div>}
         </div>
       )}
