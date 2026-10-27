@@ -3,7 +3,7 @@ import { PACK_VOICES, VOICE_FORMATS, type VoiceFile } from "./voice-pack-store";
 export type VoiceSentenceAuditGroup = {
   source: string;
   theme: string;
-  sentences: readonly { key: string }[];
+  sentences: readonly { key: string; voice?: string }[];
 };
 
 export type VoicePackAuditRow = {
@@ -59,23 +59,30 @@ export function buildVoicePackAudit(
   previousKeys?: readonly string[],
 ): VoicePackAuditReport {
   const currentKeys = new Set(groups.flatMap((group) => group.sentences.map(({ key }) => key)));
+  const currentVoiceKeys = new Set(
+    [
+      ...[...currentKeys].flatMap((key) => PACK_VOICES.map((voice) => `${voice}/${key}`)),
+      ...groups.flatMap((group) => group.sentences.flatMap(({ key, voice }) => voice ? [`${voice}/${key}`] : [])),
+    ],
+  );
   const previous = previousKeys === undefined ? null : new Set(previousKeys);
   const storedIds = new Set(storedFiles.map(fileId));
   const formats = Object.keys(VOICE_FORMATS) as VoiceFile["format"][];
-  const expectedIds = new Set(
-    [...currentKeys].flatMap((key) => PACK_VOICES.flatMap((voice) => formats.map((format) => `${voice}/${key}.${format}`))),
-  );
+  const expectedIds = new Set([...currentVoiceKeys].flatMap((voiceKey) => formats.map((format) => `${voiceKey}.${format}`)));
   const matchingFiles = [...storedIds].filter((id) => expectedIds.has(id)).length;
-  const missingKeys = [...currentKeys].filter((key) =>
-    PACK_VOICES.some((voice) => formats.some((format) => !storedIds.has(`${voice}/${key}.${format}`))),
+  const missingVoiceKeys = [...currentVoiceKeys].filter((voiceKey) =>
+    formats.some((format) => !storedIds.has(`${voiceKey}.${format}`)),
   );
   const unreferenced = [...storedIds].filter((id) => !expectedIds.has(id));
   const formatRows = formats.map((format): VoicePackAuditFormat => {
-    const expectedFiles = currentKeys.size * PACK_VOICES.length;
+    const expectedFiles = currentVoiceKeys.size;
     const storedCount = [...expectedIds].filter((id) => id.endsWith(`.${format}`) && storedIds.has(id)).length;
     return { format, expectedFiles, storedFiles: storedCount, missingFiles: expectedFiles - storedCount };
   });
-  const voiceNames = [...new Set(storedFiles.map(({ voice }) => voice))].sort();
+  const voiceNames = [...new Set([
+    ...storedFiles.map(({ voice }) => voice),
+    ...[...currentVoiceKeys].map((voiceKey) => voiceKey.slice(0, voiceKey.indexOf("/"))),
+  ])].sort();
   const voiceRows = voiceNames.map((voice): VoicePackAuditVoice => {
     const ids = new Set(storedFiles.filter((file) => file.voice === voice).map(fileId));
     const matching = [...ids].filter((id) => expectedIds.has(id));
@@ -91,18 +98,19 @@ export function buildVoicePackAudit(
 
   const rows = groups.map((group): VoicePackAuditRow => {
     const keys = new Set(group.sentences.map(({ key }) => key));
+    const voiceKeys = new Set(group.sentences.flatMap(({ key, voice }) =>
+      voice ? [`${voice}/${key}`] : PACK_VOICES.map((packVoice) => `${packVoice}/${key}`),
+    ));
     let missingSentences = 0;
     let missingFiles = 0;
     const missingByFormat = Object.fromEntries(formats.map((format) => [format, 0])) as Record<VoiceFile["format"], number>;
-    for (const key of keys) {
+    for (const voiceKey of voiceKeys) {
       let sentenceIsMissing = false;
-      for (const voice of PACK_VOICES) {
-        for (const format of formats) {
-          if (!storedIds.has(`${voice}/${key}.${format}`)) {
-            missingFiles++;
-            missingByFormat[format]++;
-            sentenceIsMissing = true;
-          }
+      for (const format of formats) {
+        if (!storedIds.has(`${voiceKey}.${format}`)) {
+          missingFiles++;
+          missingByFormat[format]++;
+          sentenceIsMissing = true;
         }
       }
       if (sentenceIsMissing) missingSentences++;
@@ -124,7 +132,7 @@ export function buildVoicePackAudit(
     expectedFiles: expectedIds.size,
     storedFiles: storedIds.size,
     matchingFiles,
-    missingSentences: missingKeys.length,
+    missingSentences: missingVoiceKeys.length,
     missingFiles: expectedIds.size - matchingFiles,
     unreferencedFiles: unreferenced.length,
     unreferencedVoiceKeyPairs,

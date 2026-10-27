@@ -63,3 +63,32 @@ test("the voice-pack audit counts missing formats by source and theme without pr
   ]);
   assert.deepEqual(stored, before);
 });
+
+test("story-friend audio is part of the active manifest, not unreferenced audio", () => {
+  const groups = [{
+    source: "story",
+    theme: "everyday",
+    sentences: [{ key: "aaaaaaaaaaaaaaaa" }, { key: "aaaaaaaaaaaaaaaa", voice: "bm_george" }],
+  }];
+  const report = buildVoicePackAudit(groups, [
+    file("aaaaaaaaaaaaaaaa", "mp3"),
+    file("aaaaaaaaaaaaaaaa", "caf"),
+    file("aaaaaaaaaaaaaaaa", "mp3", "bm_george"),
+    file("bbbbbbbbbbbbbbbb", "mp3", "bm_george"),
+    file("bbbbbbbbbbbbbbbb", "caf", "bm_george"),
+  ]);
+
+  assert.equal(report.manifestSentences, 1);
+  assert.equal(report.expectedFiles, 4);
+  assert.equal(report.matchingFiles, 3);
+  assert.equal(report.missingSentences, 1);
+  assert.equal(report.missingFiles, 1);
+  assert.equal(report.unreferencedFiles, 2);
+  assert.equal(report.unreferencedVoiceKeyPairs, 1);
+  assert.deepEqual(report.formats, [
+    { format: "mp3", expectedFiles: 2, storedFiles: 2, missingFiles: 0 },
+    { format: "caf", expectedFiles: 2, storedFiles: 1, missingFiles: 1 },
+  ]);
+  assert.equal(report.voices.find(({ voice }) => voice === "bm_george")?.matchingFiles, 1);
+  assert.equal(report.voices.find(({ voice }) => voice === "bm_george")?.unreferencedFiles, 2);
+});

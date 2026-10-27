@@ -30,19 +30,19 @@ const stored = await appStorageVoicePack().list();
 const previousKeys = readPreviousKeys(previousPath);
 const report = buildVoicePackAudit(groups, stored, previousKeys);
 
-console.log("Heart voice-pack audit (read-only)");
+console.log("Voice-pack audit (read-only)");
 console.log(`Current manifest: ${report.manifestSentences.toLocaleString()} unique sentences.`);
-console.log(`Expected audio: ${report.expectedFiles.toLocaleString()} files (Heart voice × MP3 and CAF/Opus).`);
+console.log(`Expected audio: ${report.expectedFiles.toLocaleString()} files (Heart and story-friend lines × MP3 and CAF/Opus).`);
 console.log(`App Storage: ${report.storedFiles.toLocaleString()} stored files; ${report.matchingFiles.toLocaleString()} match the current manifest.`);
 console.log(`Missing: ${report.missingFiles.toLocaleString()} files across ${report.missingSentences.toLocaleString()} sentences.`);
 console.log(`Stored but not referenced by the current manifest: ${report.unreferencedFiles.toLocaleString()} files across ${report.unreferencedVoiceKeyPairs.toLocaleString()} voice/key pairs. Nothing was removed.`);
-console.log("Current Heart pack format inventory:");
+console.log("Current voice-pack format inventory:");
 for (const row of report.formats) {
   console.log(`  ${row.format}: ${row.storedFiles.toLocaleString()} of ${row.expectedFiles.toLocaleString()} stored; ${row.missingFiles.toLocaleString()} missing.`);
 }
 console.log("Stored audio by voice:");
 for (const row of report.voices) {
-  console.log(`  ${row.voice}: ${row.storedFiles.toLocaleString()} files; ${row.matchingFiles.toLocaleString()} match current Heart keys; ${row.unreferencedFiles.toLocaleString()} are not in the active pack.`);
+  console.log(`  ${row.voice}: ${row.storedFiles.toLocaleString()} files; ${row.matchingFiles.toLocaleString()} match the current manifest; ${row.unreferencedFiles.toLocaleString()} are not in the active pack.`);
 }
 
 if (previousKeys) {
@@ -71,6 +71,7 @@ for (const row of report.groups) {
   console.log(values.map((value, i) => value.padEnd(columns[i][1])).join(" "));
 }
 
-if (current.length !== report.manifestSentences) {
-  throw new Error(`Audit source groups contain ${report.manifestSentences} keys, but the active voice manifest contains ${current.length}.`);
+const currentTextKeys = new Set(current.map(({ key }) => key));
+if (currentTextKeys.size !== report.manifestSentences) {
+  throw new Error(`Audit source groups contain ${report.manifestSentences} keys, but the active voice manifest contains ${currentTextKeys.size} unique text keys.`);
 }
