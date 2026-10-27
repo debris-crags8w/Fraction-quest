@@ -36,6 +36,10 @@ test('every picture is short, keeps its rows, ends with everything shown, and po
       for (const row of step[step.length - 1]!.rows) assert.ok(!row.hidden, `${where}: the last frame shows everything`);
       for (const frame of step) for (const row of frame.rows) for (const picture of pictures(row)) {
         if (picture.kind === 'text') continue;
+        if (picture.kind === 'coins') {
+          assert.ok(picture.items.length >= 1 && picture.alt.length > 0, `${where}: coins have an alt text`);
+          continue;
+        }
         if (picture.kind === 'line') {
           const spaces = picture.max * picture.spaces;
           for (const value of [picture.point ?? 0, picture.jumps ?? 0, picture.stretch ?? 0, ...(picture.marks ?? []).map((mark) => mark.at), ...(picture.xs ?? []).map(([at]) => at)]) {

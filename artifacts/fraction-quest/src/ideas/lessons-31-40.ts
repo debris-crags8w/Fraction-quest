@@ -1,5 +1,6 @@
 /* The ideas of lessons 31–40 (see lesson-ideas.ts): each lesson's ideas in order, each with its Learn pages and 3
    practices. Lesson 1 (ideas/lessons-01.ts) is the model. */
+import { play } from '../teach-scenes';
 import { example, scenes, type LessonIdea } from './helpers';
 
 export const IDEAS: Record<string, LessonIdea[]> = {
@@ -145,13 +146,27 @@ export const IDEAS: Record<string, LessonIdea[]> = {
   'dimes-and-pennies': [
     {
       title: 'A penny is one hundredth of a dollar',
-      learn: [example('dimes-and-pennies', 'A dollar is 100 pennies'), example('dimes-and-pennies', 'Count the pennies')],
+      terms: [{ term: 'cents and the sign ¢', pattern: /¢|\bcents?\b/i }],
+      learn: [
+        // The coin first: what a penny is called and how it is written (1¢), before the grid shows it as a hundredth.
+        { text: 'A penny is 1 cent. We write it 1¢.', scene: play([
+          { kind: 'coins', alt: 'A penny, marked 1¢, and the cent sign ¢', items: [{ coin: 'penny', big: true }, { sign: '→' }, { sign: '¢' }] },
+          { kind: 'text', text: 'The ¢ sign means cents. 100 cents make 1 dollar.', hidden: true },
+        ], [700, { 1: { hidden: false } }]) },
+        example('dimes-and-pennies', 'A dollar is 100 pennies'), example('dimes-and-pennies', 'Count the pennies'),
+      ],
       practice: [{ question: 'dimes-and-pennies-p1' }, { question: 'dimes-and-pennies-p2' }, { question: 'dimes-and-pennies-p3' }],
     },
     {
       title: 'A dime is ten hundredths of a dollar',
       terms: [{ term: 'dimes', pattern: /\bdimes?\b/i }],
       learn: [
+        // The coin first: 10 pennies are 1 dime (10¢), before the grid shows a dime as a column.
+        { text: 'A dime is 10 cents: 10¢. 10 pennies make 1 dime.', scene: play([
+          { kind: 'coins', alt: '10 pennies, each marked 1¢', items: Array.from({ length: 10 }, () => ({ coin: 'penny' as const })) },
+          { kind: 'coins', alt: 'equals 1 dime, marked 10¢', items: [{ sign: '=' }, { coin: 'dime', big: true }], hidden: true },
+          { kind: 'text', text: 'Next, the grid: a dime is one column of 10 squares.', hidden: true },
+        ], [700, { 1: { hidden: false } }], [500, { 2: { hidden: false } }]) },
         { text: 'A dime is 10 pennies: one column of the grid.', scene: scenes('dimes-and-pennies').steps[0]! },
         { text: 'So a dime is 1/10 of a dollar.', scene: scenes('dimes-and-pennies').why },
       ],

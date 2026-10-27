@@ -101,11 +101,15 @@ export type SetRow = {
   tone?: 'fair' | 'unfair';
   hidden?: boolean;
 };
+/** Coins in a row, drawn like the practice coins (coins-picture.tsx): a copper penny (1¢), a silver dime (10¢), or a
+    sign between them (an arrow, "=", the cent sign). `big` is a bigger coin, for one coin on its own. */
+export type CoinItem = { coin: 'penny' | 'dime'; big?: boolean } | { sign: string };
+export type CoinsRow = { kind: 'coins'; items: CoinItem[]; /** What a screen reader says about the coins. */ alt: string; hidden?: boolean };
 /** A sentence under the picture; fractions in it are shown stacked. */
 export type TextRow = { kind: 'text'; text: string; hidden?: boolean };
 /** Two pictures side by side. */
 export type PairRow = { kind: 'pair'; items: [BarRow | AreaRow, BarRow | AreaRow]; hidden?: boolean };
-export type SceneRow = BarRow | AreaRow | LineRow | SetRow | TextRow | PairRow;
+export type SceneRow = BarRow | AreaRow | LineRow | SetRow | CoinsRow | TextRow | PairRow;
 
 /** One frame: the whole picture, held for `ms` before the next one (the last frame stays). */
 export type SceneFrame = { rows: SceneRow[]; ms: number };
