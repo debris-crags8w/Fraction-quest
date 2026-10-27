@@ -64,7 +64,7 @@ import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requi
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { legalUrl } from './lib/legal';
-import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordFractionWords, recordIntro, recordLessonIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, setTimeLimit, addMinutesToday, timeToday, today, type FunState } from './lib/fun';
+import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordFractionWords, recordIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, setTimeLimit, addMinutesToday, timeToday, today, type FunState } from './lib/fun';
 import { TimeUp } from './time-up';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
@@ -1568,7 +1568,6 @@ function Game() {
     }
     const reviewQuestions = getDelayedReviewQuestions(activeProgress, missionId);
     // Every lesson has ideas: each is taught right before its practice (hands-on rounds are practices of an idea).
-    if (!fun.lessonIntrosSeen?.includes(missionId)) setFun((current) => recordLessonIntro(current, missionId));
     // A child's first lesson: how the models work and their names (Watch, Words, Try) come before idea 1.
     if (introsDue(fun.introsSeen).toTry.length || !fun.fractionWordsSeen) setView({ type: 'intro-steps', missionId, reviewQuestions });
     else openLessonStart(missionId, reviewQuestions);
