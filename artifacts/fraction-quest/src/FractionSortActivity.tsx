@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowUp } from 'lucide-react';
 import { fractionOrderMatches, type FractionOrderRound, type FractionValue } from './game';
 import { useFun } from './fun-ui';
@@ -21,13 +21,11 @@ function FractionCard({ fraction }: { fraction: FractionValue }) {
 export default function FractionSortActivity({
   rounds,
   lessonLabel,
-  intro,
   onExit,
   onDone,
 }: {
   rounds: FractionOrderRound[];
   lessonLabel: string;
-  intro: ReactNode;
   onExit: () => void;
   onDone: () => void;
 }) {
@@ -75,8 +73,6 @@ export default function FractionSortActivity({
           </button>
           <div><span>{lessonLabel} · Try it</span><h1>Arrange the fractions</h1></div>
         </header>
-
-        <section className="fq-order-sort-example" data-testid="fraction-order-example">{intro}</section>
 
         <section className="fq-order-sort-card" aria-labelledby="fraction-sort-title">
           <div className="fq-order-sort-progress" aria-label={`Sorting round ${roundIndex + 1} of ${rounds.length}`}>

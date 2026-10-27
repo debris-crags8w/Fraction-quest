@@ -30,11 +30,9 @@ test('a child’s first lesson: Watch, Words and Try, then idea 1 is taught befo
   await page.getByTestId('button-start-mission-fraction-names').click();
 
   // A child's first lesson: how the models work and their names come before any idea. Watch (the bar, then the
-  // number line), Words (the fraction names), then Try, each its own screen. Lesson 1 teaches one idea at a time, so it
-  // has no Teach first screen of its own.
+  // number line), Words (the fraction names), then Try, each its own screen. Then idea 1's Learn pages.
   const intro = page.getByTestId('intro-steps');
   await expect(intro).toBeVisible();
-  await expect(page.getByTestId('teach-first')).toHaveCount(0);
   await expect(intro.locator('[data-step="watch"] .fq-mi-kicker')).toHaveText('Step 1 of 3 · Watch');
   await expect(intro.getByTestId('intro-builder')).toBeVisible();
   // Each screen fits a phone, Next included.
@@ -170,10 +168,9 @@ test('a lesson teaches each idea before its practice, then keeps its pictures un
   await openNode();
 
   // The first time, idea 1's Learn pages come before any question, with the lesson's goal and a Listen button. There
-  // is no Teach first screen and no worked example before question 1.
+  // is no worked example before question 1.
   const learn = page.getByTestId('idea-learn-screen');
   await expect(learn).toBeVisible();
-  await expect(page.getByTestId('teach-first')).toHaveCount(0);
   await expect(page.getByTestId('lesson-example')).toHaveCount(0);
   await expect(learn.getByRole('heading', { name: ideas[0]!.title })).toBeVisible();
   await expect(learn.locator('.fq-ts-goal')).toBeVisible();

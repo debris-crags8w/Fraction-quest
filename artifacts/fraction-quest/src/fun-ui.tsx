@@ -1,11 +1,9 @@
-import React, { createContext, useContext, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
-import { MathText } from './MathText';
+import React, { createContext, useContext, useMemo, type CSSProperties, type ReactNode } from 'react';
 import { LearningListenButton, LearningText } from './LearningText';
-import { Check, Gift, LockKeyhole, Sparkles, Star } from 'lucide-react';
+import { Check, Gift, LockKeyhole, Star } from 'lucide-react';
 import type { ModelSpec } from './game';
 import { DAILY_GOAL, type FunState } from './lib/fun';
-import { MODEL_NAMES, ModelTag, WholeBracket } from './models';
-import { LinkedFraction, PieFraction, TickLabel } from './fraction-ui';
+import { LinkedFraction, PieFraction } from './fraction-ui';
 import { activeSeason, nextCostume, seasonLessonCount, seasonLine, unlockedCostumes, type Season } from './seasons';
 import { seasonalWords } from './seasonal-words';
 
@@ -259,78 +257,6 @@ export function DailyRing({ answered }: { answered: number }) {
       <PieFraction n={got} d={DAILY_GOAL} size={34} fill="var(--fq-tangerine)" empty="color-mix(in srgb, var(--fq-tangerine) 10%, #fff)" stroke="color-mix(in srgb, var(--fq-tangerine) 70%, #000)" />
       {got >= DAILY_GOAL && <Check className="fq-daily-done" size={14} strokeWidth={4} />}
     </span>
-  );
-}
-
-/* ---------- hands-on model for the guided example ---------- */
-
-type TapTarget = { kind: 'bar'; d: number; wholes: number; n: number } | { kind: 'line'; d: number; wholes: number; n: number } | { kind: 'set'; total: number; n: number };
-
-function tapTargetFor(model: ModelSpec): TapTarget | null {
-  if (model.kind === 'bars' && model.bars.length) {
-    const first = model.bars[model.bars.length > 1 && model.bars[0].numerator === model.bars[0].denominator ? 1 : 0];
-    const d = first.denominator;
-    if (d < 2 || d > 12) return null;
-    return { kind: 'bar', d, wholes: Math.max(1, Math.ceil(first.numerator / d)), n: first.numerator };
-  }
-  if (model.kind === 'decimal') return { kind: 'bar', d: 10, wholes: 1, n: model.tenths };
-  if (model.kind === 'line' && model.denominator <= 12) return { kind: 'line', d: model.denominator, wholes: model.wholes ?? 1, n: model.numerator };
-  if (model.kind === 'set' && model.total <= 24) return { kind: 'set', total: model.total, n: model.selected };
-  return null;
-}
-
-/** "Your turn": tap pieces, jumps or counters to rebuild the example's fraction. Practice only, never graded. */
-export function TapModel({ model }: { model: ModelSpec }) {
-  const target = tapTargetFor(model);
-  const [count, setCount] = useState(0);
-  if (!target) return null;
-  const toggle = (i: number) => setCount((current) => (current === i + 1 ? i : i + 1));
-  const matched = count === target.n;
-  const label = target.kind === 'set' ? `${count} of ${target.total}` : `${count}/${target.d}`;
-  const goal = target.kind === 'set' ? `${target.n} of ${target.total}` : `${target.n}/${target.d}`;
-  return (
-    <section className={`fq-tap ${matched ? 'matched' : ''}`} aria-label="Your turn: build it" data-testid="section-tap-model">
-      <div className="fq-tap-head">
-        <span className="fq-tap-kicker"><Sparkles size={14} /> Your turn · <ModelTag kind={target.kind}>{MODEL_NAMES[target.kind]}</ModelTag></span>
-        <strong><MathText text={target.kind === 'line' ? `Tap the number line to land on ${goal}.` : target.kind === 'set' ? `Tap counters to light up ${goal}.` : `Tap pieces to shade ${goal}.`} /></strong>
-      </div>
-      {target.kind === 'bar' && (
-        <div className="fq-tap-bars" style={{ '--piece': denomColor(target.d) } as CSSProperties}>
-          {Array.from({ length: target.wholes }, (_, w) => (
-            <div className="fq-tap-whole" key={w}>
-              <div className="fq-tap-bar" role="group" aria-label={`Whole ${w + 1}, split into ${target.d} equal parts`}>
-                {Array.from({ length: target.d }, (_, p) => {
-                  const i = w * target.d + p;
-                  return <button type="button" key={p} className={i < count ? 'on' : ''} aria-pressed={i < count} aria-label={`Part ${p + 1} of ${target.d} equal parts`} onClick={() => toggle(i)} data-testid={`button-tap-piece-${i}`} />;
-                })}
-              </div>
-              <WholeBracket />
-            </div>
-          ))}
-        </div>
-      )}
-      {target.kind === 'line' && (
-        <div className="fq-tap-line" style={{ '--piece': denomColor(target.d) } as CSSProperties}>
-          <div className="fq-tap-track"><b style={{ width: `${(count / (target.d * target.wholes)) * 100}%` }} /></div>
-          {Array.from({ length: target.d * target.wholes + 1 }, (_, i) => (
-            <button type="button" key={i} className={`${i === count ? 'on' : ''} ${i % target.d === 0 ? 'whole' : ''}`} style={{ left: `${(i / (target.d * target.wholes)) * 100}%` }}
-              aria-label={`Land after ${i} jumps`} aria-pressed={i === count} onClick={() => setCount(i)} data-testid={`button-tap-tick-${i}`}>
-              <TickLabel i={i} d={target.d} />
-            </button>
-          ))}
-        </div>
-      )}
-      {target.kind === 'set' && (
-        <div className="fq-tap-set">
-          {Array.from({ length: target.total }, (_, i) => (
-            <button type="button" key={i} className={i < count ? 'on' : ''} aria-pressed={i < count} aria-label={`Counter ${i + 1}`} onClick={() => toggle(i)} data-testid={`button-tap-counter-${i}`} />
-          ))}
-        </div>
-      )}
-      <p className="fq-tap-readout" aria-live="polite">
-        {matched ? <><Check size={16} strokeWidth={3} /> You built <MathText text={goal} />!</> : <>You have <b><MathText text={label} /></b></>}
-      </p>
-    </section>
   );
 }
 

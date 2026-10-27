@@ -1,5 +1,4 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
 import type { Mission } from './game';
 import { LESSON_INTROS, lessonIntroScript, type LessonIntro } from './lesson-intros';
 import { LearningListenButton, LearningText } from './LearningText';
@@ -8,11 +7,11 @@ import { AnimatedLessonIntro, IdeaLearnCard } from './TeachScene';
 import { fractionsTaughtBy, type LessonIdea } from './lesson-ideas';
 import { LESSON_SCENES } from './teach-scenes';
 
-/** The goal, the steps and why the method works: on the Teach first screen, and under "How it works" later. A lesson
-    with a scene (teach-scenes.ts) shows it one animated step at a time; `onFinish` is its last step's Next. */
-export function LessonIntroCard({ intro, missionId, onFinish }: { intro: LessonIntro; missionId?: string; onFinish?: () => void }) {
+/** The goal, the steps and why the method works, under "How it works". A lesson with a scene (teach-scenes.ts) shows
+    it one animated step at a time. */
+export function LessonIntroCard({ intro, missionId }: { intro: LessonIntro; missionId?: string }) {
   const scene = missionId ? LESSON_SCENES[missionId] : undefined;
-  if (scene) return <AnimatedLessonIntro intro={intro} scene={scene} missionId={missionId} onFinish={onFinish} />;
+  if (scene) return <AnimatedLessonIntro intro={intro} scene={scene} missionId={missionId} />;
   return (
     <section className="fq-example-intro fq-teach-card" aria-labelledby="lesson-intro-heading" data-testid="lesson-introduction">
       <div className="fq-example-card-head">
@@ -34,27 +33,6 @@ export function LessonIntroCard({ intro, missionId, onFinish }: { intro: LessonI
         <p><LearningText text={intro.why} emphasize /></p>
       </section>
     </section>
-  );
-}
-
-/** The first screen of a lesson the child has not started before: teach first, then see the worked example. */
-export function TeachFirst({ mission, lessonNumber, onNext, onExit }: { mission: Mission; lessonNumber: number; onNext: () => void; onExit: () => void }) {
-  const intro = LESSON_INTROS[mission.id];
-  return (
-    <div className="fq-app">
-      <main className="fq-shell fq-teach-shell" data-testid="teach-first">
-        <TaskBar onBack={onExit} backLabel="Map" title={mission.title} />
-        <p className="fq-play-kicker">Lesson {String(lessonNumber).padStart(2, '0')} · Teach first</p>
-        <h1 className="fq-teach-title">{mission.title}</h1>
-        {intro && <LessonIntroCard intro={intro} missionId={mission.id} onFinish={onNext} />}
-        {/* An animated intro has its own Next on every step; the last one goes on. */}
-        {!(intro && LESSON_SCENES[mission.id]) && (
-          <button type="button" className="fq-button primary fq-teach-next" onClick={onNext} data-testid="button-teach-next">
-            Next: see it <ArrowRight size={18} aria-hidden="true" />
-          </button>
-        )}
-      </main>
-    </div>
   );
 }
 

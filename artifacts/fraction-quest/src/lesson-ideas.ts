@@ -2,7 +2,7 @@
    pages (pictures from its Teach first), then asks 3 practices that use only that idea and the ones before it. After the
    last idea the lesson's review and story problem come ("Put it together"), then the lesson page. Pure data, checked by
    lesson-ideas.test.ts (every practice is a real question, cake round or card-ordering round; each idea has 3; each screen
-   uses only its idea and earlier ones). Lessons without ideas keep Teach first and then mixed practice. */
+   uses only its idea and earlier ones). Every lesson has ideas (a test checks all of MISSIONS). */
 import type { Mission, PracticeQuestion } from './game';
 import type { PartFinderRound } from './part-finder';
 import { sceneSentences } from './teach-scenes';

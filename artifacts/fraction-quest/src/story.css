@@ -239,11 +239,6 @@
 
 .fq-dev-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 12px; border: 2px dashed hsl(var(--secondary)); border-radius: 14px; color: hsl(var(--secondary)); background: transparent; font: inherit; font-size: .85rem; font-weight: 900; cursor: pointer; }
 
-/* Story mode: try first, help below. */
-.fq-pf-help-again { margin: 0 0 12px; border: 2px solid hsl(var(--border)); border-radius: 16px; background: hsl(var(--card)); }
-.fq-pf-help-again > summary { min-height: 44px; padding: 10px 14px; color: hsl(var(--secondary)); font-weight: 900; cursor: pointer; }
-.fq-pf-help-again[open] { padding-bottom: 12px; }
-.fq-pf-help-again[open] > :not(summary) { margin-inline: 12px; }
 
 /* ---------- detective quest: clue cards, suspect board, stickers ---------- */
 .fq-clue-card { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; color: #2B2D42; background: #FFF6D6; border: 2px solid #E8C96A; text-align: left; }
