@@ -41,6 +41,8 @@ async function passStory(page: Page) {
 test('a child’s first screens pass an automated WCAG A/AA check: the map, a Learn page, a question and the lesson page', async ({ page }) => {
   test.setTimeout(240_000);
   await page.setViewportSize({ width: 390, height: 844 });
+  // Every month has a seasonal theme; A11Y_DATE (like 2026-03-15) runs the whole walk under that day's theme.
+  if (process.env.A11Y_DATE) await page.clock.setFixedTime(new Date(`${process.env.A11Y_DATE}T10:00:00`));
   await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Not signed in.' }) }));
   await page.goto('/');
   await page.getByTestId('button-play-guest').click();
@@ -74,4 +76,30 @@ test('a child’s first screens pass an automated WCAG A/AA check: the map, a Le
   const keys = new Set(found.map((item) => item.key));
   expect(found.filter((item) => !KNOWN.includes(item.key)).map((item) => item.detail), 'new accessibility violations').toEqual([]);
   expect(KNOWN.filter((key) => !keys.has(key)), 'violations that no longer happen: remove them from KNOWN').toEqual([]);
+});
+
+test('the learning map passes the same check under every month’s theme, with the banner showing and nothing sticking out', async ({ page }) => {
+  test.setTimeout(240_000);
+  await page.setViewportSize({ width: 390, height: 664 });
+  await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Not signed in.' }) }));
+  const found: string[] = [];
+  for (let month = 0; month < 12; month++) {
+    await page.clock.setFixedTime(new Date(2026, month, 15, 10, 0, 0));
+    await page.goto('/');
+    const guest = page.getByTestId('button-play-guest');
+    if (await guest.isVisible().catch(() => false)) await guest.click();
+    await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+    await expect(page.getByTestId('season-banner')).toBeVisible();
+    found.push(...(await axeViolations(page, `the map in ${new Date(2026, month, 15).toLocaleString('en', { month: 'long' })}`)).map((item) => item.detail));
+    // The banner's text must be readable on the colour behind it, and the page must not scroll sideways.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth), `month ${month + 1} fits 390`).toBeLessThanOrEqual(391);
+    // The banner fades to its second colour only in the last 44px (season.css), so its text must end above that.
+    const clearance = await page.evaluate(() => {
+      const banner = document.querySelector('[data-testid="season-banner"]')!;
+      const bottoms = [...banner.querySelectorAll('.fq-season-kicker, h2, p')].map((element) => element.getBoundingClientRect().bottom);
+      return banner.getBoundingClientRect().bottom - 44 - Math.max(...bottoms);
+    });
+    if (![9, 11].includes(month)) expect(clearance, `month ${month + 1}: banner text ends above the fade`).toBeGreaterThanOrEqual(0);
+  }
+  expect(found, 'accessibility violations on the themed map').toEqual([]);
 });

@@ -1311,8 +1311,8 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame, 
       <Topbar progress={progress} onReset={onReset} onHome={onMap} />
       <main className="fq-shell">
         <section className="fq-reward fq-appear" data-testid="status-mission-complete">
-          {/* With the story on, the chapter friend does the cheering, so the screen stays short (a season keeps Numi for the costume). */}
-          {!(storyOn && chapter && !season) && <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>}
+          {/* With the story on, the chapter friend does the cheering, so the screen stays short (a season with costumes keeps Numi for the costume). */}
+          {!(storyOn && chapter && !season?.costumes.length) && <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>}
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
           <h1>{season && <>{season.cheer}<br /></>}{mission.title}<br />is on your map.</h1>
            <p className={storyOn && chapter ? 'fq-reward-note' : undefined}>{storyOn && chapter ? '' : 'You built it two ways, explained it, and finished the worksheet. '}{nextLessonOpen ? 'The next lesson is open!' : 'Finish the other lessons in this unit to open the next unit.'}</p>
@@ -1494,9 +1494,14 @@ function Game() {
     root.classList.toggle('fq-reduced-motion', preferences.reducedMotion);
     const season = activeSeason(fun);
     if (season) root.dataset.fqSeason = season.id; else delete root.dataset.fqSeason;
+    // A month theme's map colours reach season.css as custom properties (the two holidays are painted there directly).
+    const map = season?.map;
+    if (map) { root.dataset.fqMonth = season.id; root.style.setProperty('--fq-month-from', map.from); root.style.setProperty('--fq-month-to', map.to); root.style.setProperty('--fq-month-node', map.node); root.style.setProperty('--fq-month-edge', map.edge); root.style.setProperty('--fq-month-text', map.text ?? '#fff'); }
     return () => {
       delete root.dataset.fqTextSize;
       delete root.dataset.fqSeason;
+      delete root.dataset.fqMonth;
+      for (const name of ['from', 'to', 'node', 'edge', 'text']) root.style.removeProperty(`--fq-month-${name}`);
       root.classList.remove('fq-high-contrast', 'fq-reduced-motion');
     };
   }, [fun.displayPreferences]);

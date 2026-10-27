@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useMemo, type CSSProperties, type ReactNode } from 'react';
 import { LearningListenButton, LearningText } from './LearningText';
-import { Check, Gift, LockKeyhole, Star } from 'lucide-react';
+import { Check, Gift, LockKeyhole, Star, Zap } from 'lucide-react';
 import type { ModelSpec } from './game';
 import { DAILY_GOAL, type FunState } from './lib/fun';
 import { LinkedFraction, PieFraction } from './fraction-ui';
@@ -61,9 +61,12 @@ function CandyCaneIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-/** What points look like during a season: candy at Halloween, a candy cane at Christmas. */
+/** What points look like during a season: candy at Halloween, a candy cane at Christmas, the plain bolt in a month
+    (only its name changes). */
 export function SeasonPointsIcon({ size = 18 }: { size?: number }) {
-  return useSeason().season?.id === 'christmas' ? <CandyCaneIcon size={size} /> : <CandyIcon size={size} />;
+  const season = useSeason().season;
+  if (season?.map) return <Zap size={size} strokeWidth={2.75} fill="currentColor" aria-hidden="true" />;
+  return season?.id === 'christmas' ? <CandyCaneIcon size={size} /> : <CandyIcon size={size} />;
 }
 
 /** A wrapped sweet: what points look like during Halloween. */
@@ -200,7 +203,7 @@ export function Mascot({ mood = 'happy', size = 76 }: { mood?: MascotMood; size?
 export function Hoot({ size = 64 }: { size?: number }) {
   const seasonId = useSeason().season?.id;
   return (
-    <svg className={`fq-hoot ${seasonId ? `is-${seasonId}` : ''}`} width={size} height={size} viewBox={seasonId ? '0 -12 80 92' : '0 0 80 80'} aria-hidden="true">
+    <svg className={`fq-hoot ${seasonId ? `is-${seasonId}` : ''}`} width={size} height={size} viewBox={seasonId === 'halloween' || seasonId === 'christmas' ? '0 -12 80 92' : '0 0 80 80'} aria-hidden="true">
       <path d="M22 16 L28 28 L18 28 Z" fill="#6D4BD8" />
       <path d="M58 16 L52 28 L62 28 Z" fill="#6D4BD8" />
       <ellipse cx="40" cy="46" rx="25" ry="27" fill="#7C5CF0" />
@@ -394,8 +397,11 @@ export function SeasonBanner() {
               <small>{count} of {next.lessons}</small>
             </div>
           </>
-          : <p>You earned every costume. <u>{season.greeting}</u></p>}
+          : <p>{season.costumes.length > 0 && 'You earned every costume. '}<u>{season.greeting}</u></p>}
       </div>
+      {season.map && (
+        <div className="fq-season-dots" aria-hidden="true"><i className="done" /><b /><i className="done" /><b /><i /></div>
+      )}
     </section>
   );
 }

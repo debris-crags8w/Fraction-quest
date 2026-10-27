@@ -202,18 +202,18 @@
     --fq-denom-11: #6B8E23; --fq-denom-12: #4F7F32; --fq-denom-100: #A87400;
     --fq-season-empty: #FFFFFF; --fq-season-shade: #D23B3B; --fq-season-rim: #8B5A2B;
   }
-  :root[data-fq-season]:not(.fq-high-contrast) :is(.fq-bar span.empty, .fq-svg-bar rect.empty, .fq-svg-area polygon.empty) { background: var(--fq-season-empty); fill: var(--fq-season-empty); }
-  :root[data-fq-season]:not(.fq-high-contrast) :is(.fq-svg-area polygon.shaded, .fq-svg-set .dot.on) { fill: var(--fq-season-shade); }
-  :root[data-fq-season]:not(.fq-high-contrast) .fq-counter.selected { background: var(--fq-season-shade); }
+  :root[data-fq-season]:not([data-fq-month]):not(.fq-high-contrast) :is(.fq-bar span.empty, .fq-svg-bar rect.empty, .fq-svg-area polygon.empty) { background: var(--fq-season-empty); fill: var(--fq-season-empty); }
+  :root[data-fq-season]:not([data-fq-month]):not(.fq-high-contrast) :is(.fq-svg-area polygon.shaded, .fq-svg-set .dot.on) { fill: var(--fq-season-shade); }
+  :root[data-fq-season]:not([data-fq-month]):not(.fq-high-contrast) .fq-counter.selected { background: var(--fq-season-shade); }
   /* Circles become a pumpkin pie with a crust, or a gingerbread cookie with a baked edge. */
-  :root[data-fq-season]:not(.fq-high-contrast) .fq-svg-area.is-circle polygon.frame { stroke: var(--fq-season-rim); stroke-width: 6; }
+  :root[data-fq-season]:not([data-fq-month]):not(.fq-high-contrast) .fq-svg-area.is-circle polygon.frame { stroke: var(--fq-season-rim); stroke-width: 6; }
   :root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-svg-area.is-circle polygon.shaded { fill: #A8682E; }
   :root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-svg-area.is-circle polygon.empty { fill: #FFF3E4; }
   /* The Make fair shares cake takes the season's flavor; the friends' colors stay the same. */
   :root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-pf-piece.unassigned { fill: #FCE8D0; }
   :root[data-fq-season="christmas"]:not(.fq-high-contrast) .fq-pf-piece.unassigned { fill: #F3E1CC; }
   /* Counters become wrapped candies, or ornaments with a gold cap. */
-  :root[data-fq-season]:not(.fq-high-contrast) .fq-counter { position: relative; }
+  :root[data-fq-season]:not([data-fq-month]):not(.fq-high-contrast) .fq-counter { position: relative; }
   :root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-counter-set { column-gap: 16px; }
   :root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-counter::before,
   :root[data-fq-season="halloween"]:not(.fq-high-contrast) .fq-counter::after {
@@ -233,3 +233,34 @@
    small "done" chip has a white background, so its text stays dark. */
 :root:is([data-fq-season="halloween"], [data-fq-season="christmas"]):not(.fq-high-contrast) .fq-map-app .fq-unit-heading :is(.fq-unit-kicker, p) { color: #fff; }
 :root:is([data-fq-season="halloween"], [data-fq-season="christmas"]):not(.fq-high-contrast) .fq-map-app .fq-node-steps small { color: #2B2D42; }
+
+/* ---------- a theme for every month ----------
+   The ten months in month-themes.ts have no night look and no model costumes: App.tsx sets data-fq-month and the
+   month's map colours (--fq-month-*) on the page, and these rules paint only the season banner and the lesson
+   nodes. The banner's text sits on the "from" colour (the fade into "to" is only the last 44px, behind the decorative dots), so the
+   text colour only has to be readable on "from". Off under high contrast, where the banner keeps its plain look. */
+.fq-season-dots { display: none; }
+:root[data-fq-month]:not(.fq-high-contrast) .fq-season-banner {
+  flex-wrap: wrap;
+  border-color: var(--fq-month-edge);
+  color: var(--fq-month-text);
+  background: linear-gradient(180deg, var(--fq-month-from) calc(100% - 44px), var(--fq-month-to) 100%);
+}
+:root[data-fq-month]:not(.fq-high-contrast) .fq-season-banner :is(.fq-season-kicker, h2, p) { color: var(--fq-month-text); }
+:root[data-fq-month]:not(.fq-high-contrast) .fq-season-dots { display: flex; flex: 1 0 100%; align-items: center; gap: 6px; }
+.fq-season-dots i { flex: none; width: 22px; height: 22px; border: 3px solid var(--fq-month-edge); border-radius: 50%; background: var(--fq-month-node); box-shadow: 0 3px 0 var(--fq-month-edge); }
+.fq-season-dots i.done { background: var(--fq-month-edge); }
+.fq-season-dots b { flex: 1; height: 4px; border-radius: 4px; background: var(--fq-month-edge); opacity: .5; }
+
+/* Lesson nodes take the month's fill and edge (the icon is a dark shade of the edge, so it reads on any fill);
+   a finished lesson flips to the dark edge with the fill as its icon. Locked lessons stay plain. */
+:root[data-fq-month]:not(.fq-high-contrast) .fq-node:not(.lock) {
+  color: color-mix(in srgb, var(--fq-month-edge) 55%, #000);
+  background: var(--fq-month-node);
+  box-shadow: 0 7px 0 var(--fq-month-edge);
+}
+:root[data-fq-month]:not(.fq-high-contrast) .fq-node.done {
+  color: var(--fq-month-node);
+  background: color-mix(in srgb, var(--fq-month-edge) 55%, #000);
+}
+:root[data-fq-month]:not(.fq-high-contrast) .fq-node:not(.lock):active { box-shadow: 0 1px 0 var(--fq-month-edge); }
