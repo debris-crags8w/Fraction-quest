@@ -221,7 +221,7 @@ function equivalence(p: string, right: Amount | null): Found | null {
     const amounts = m[1].split(', ').map((t) => t.split('/').map(N) as Amount); const L = amounts.reduce((l, [, d]) => lcm(l, d), 1);
     const sum = (list: Amount[]) => list.reduce((t, [a, d]) => t + a * (L / d), 0);
     const once = amounts.filter(([a, d], k) => amounts.findIndex(([x, y]) => x * d === a * y) === k);
-    return { right: sum(amounts) / L, slips: [['eachSpotOnce', [sum(once), L]], ['countedXs', [amounts.length, L]],
+    return { right: sum(amounts) / L, slips: [['eachSpotOnce', [sum(once), L]], ['countedXs', [amounts.length, L]], ['countedXs', [amounts.length, 1]],
       ['acrossAdd', [amounts.reduce((t, [a]) => t + a, 0), amounts.reduce((t, [, d]) => t + d, 0)]], ['keptOne', [amounts.reduce((t, [a]) => t + a, 0), L]]] };
   }
   // "How much more do the 5/8 beakers hold than the 2/8 beakers?": one of each, the Xs counted, both stacks added.

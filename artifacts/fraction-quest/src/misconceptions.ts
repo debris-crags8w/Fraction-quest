@@ -133,7 +133,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   }
   if ((m = /\?\/(\d+) = (\d+)\/(\d+)/.exec(p))) {
     const [b, c, d] = m.slice(1).map(N);
-    return [(c * b) / d, [['addedSame', c - (d - b)], ['justNumber', b], ['justNumber', c], ['factorOnly', d / b]]];
+    return [(c * b) / d, [['addedSame', c - (d - b)], ['justNumber', b], ['justNumber', c], ['justNumber', d], ['factorOnly', d / b]]];
   }
   return null;
 }

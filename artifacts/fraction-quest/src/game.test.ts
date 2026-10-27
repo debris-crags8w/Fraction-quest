@@ -4607,29 +4607,14 @@ describe('every question in a lesson’s ideas offers real mistakes', () => {
      the test fails for a wrong choice that is not listed, and for a listed one that is no longer wrong, so fix the
      choice (or add its slip to the lists) and delete its line. */
   const NOT_YET_REAL_SLIPS: Record<string, string[]> = {
-    // Not slips the lists know: one part called "a half", and the other options the question itself names.
-    'fraction-names-p9': ['1/2'], // "What is 1 part?" of 4: the "any one part is a half" slip (equivalence tests accept it)
+    // The lists have no unused real mistake to swap in (a new kind of mistake needs its own "why" sentence for the child).
+    'fraction-names-p9': ['1/2'], // lesson 1 may only use the taught part names; the lists' other slips (4/1, 1/5) are not those
+    'equal-parts-p3': ['1'], // 6 pieces for 2 friends: 1 is not a slip the lists know (6 minus 2, 4, would be one)
     'benchmarks-zero-one-p1': ['1/2 meter', '1 meter'], // "near 0, 1/2 or 1 meter?": the options the question lists
-    // Whole numbers: a number from the question or a near miss of the answer; some may be real slips to add to the lists.
-    'equal-parts-p3': ['1'],
-    'missing-equivalent-q2': ['12'], 'missing-equivalent-p5': ['2'],
-    'whole-numbers-as-fractions-q1': ['1'], 'whole-numbers-as-fractions-p6': ['5'],
-    'equivalent-missing-both-p2': ['3', '18'], 'equivalent-missing-both-p4': ['12'], 'equivalent-missing-both-p5': ['27'],
-    'plot-in-eighths-q2': ['4'],
-    // Mixed numbers: the wholes kept, not taken away (2 2/4 for 2 3/4 − 1 1/4): a real slip the lists lack.
-    'subtract-mixed-numbers-p1': ['2 2/4'], 'subtract-mixed-numbers-p2': ['3 3/6'],
-    // Coins: 16/100 for 6 dimes (a 1 put before the 6): no slip in the lists.
-    'dimes-and-pennies-q1': ['16/100'], 'dimes-and-pennies-p4': ['13/100'],
-    // Fraction of an amount (13, 16, 23, 19: the whole plus or minus the top number) and finding the whole (18: times the top).
-    'fraction-of-quantity-p4': ['13'], 'fraction-of-quantity-p5': ['19'],
-    'fraction-of-collection-p4': ['16'], 'fraction-of-collection-p6': ['23'],
-    'find-the-whole-p1': ['18'], 'find-the-whole-p2': ['16'], 'find-the-whole-p3': ['12 meters'],
-    // Line plots, units and division.
-    'line-plot-totals-p1': ['3/4 liter'], 'line-plot-totals-p6': ['3/4 liter'],
-    'fractional-unit-conversions-p5': ['16 inches'],
-    'divide-whole-by-unit-fraction-q2': ['4'], 'divide-whole-by-unit-fraction-p1': ['1/3', '1'],
-    'divide-whole-by-unit-fraction-p2': ['1/5', '1'], 'divide-whole-by-unit-fraction-p3': ['3/2'],
-    'divide-fractions-p2': ['12'], 'divide-fractions-p5': ['4'],
+    'whole-numbers-as-fractions-q1': ['1'], // 4/2 wholes: the lists offer only 4 and 6
+    'plot-in-eighths-q2': ['4'], // longer than 4/8: the 4 from 4/8 (the lists offer only the shorter ones and every X)
+    // 1 ÷ 1/b scoops: the lists offer only b + 1 and 2b; the child's real slips (1, or the fraction itself) are not whole-number slips.
+    'divide-whole-by-unit-fraction-q2': ['4'], 'divide-whole-by-unit-fraction-p1': ['1'], 'divide-whole-by-unit-fraction-p2': ['1'],
   };
   const same = (a: string, b: string) => a === b || (Number.isFinite(answerValue(a)) && Number.isFinite(answerValue(b)) && !/ and /.test(a + b) && Math.abs(answerValue(a) - answerValue(b)) < 1e-9);
   const reachable = () => MISSIONS.flatMap((lesson) => {
