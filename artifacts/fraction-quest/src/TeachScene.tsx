@@ -98,10 +98,11 @@ function Area({ row, small = false }: { row: AreaRow; small?: boolean }) {
   const pieces = AREA_CUTS[row.cut];
   const has = (list: number[] | undefined, i: number) => !!list?.includes(i);
   return (
-    <div className={`fq-ts-row fq-ts-area-row ${row.tone ? `is-${row.tone}` : ''} ${row.hidden ? 'is-hidden' : ''}`}>
+    <div className={`fq-ts-row fq-ts-area-row ${row.scale ? 'is-scaled' : ''} ${row.tone ? `is-${row.tone}` : ''} ${row.hidden ? 'is-hidden' : ''}`}>
       <div className="fq-ts-area-wrap">
         {row.tone === 'unfair' && <Cross />}
-        <svg className={`fq-ts-area ${small ? 'is-small' : ''} ${pieces.length > 30 ? 'is-fine' : ''}`} viewBox="-3 -3 106 106" role="img" aria-label={row.label ?? 'A shape cut into parts'}>
+        <svg className={`fq-ts-area ${small ? 'is-small' : ''} ${pieces.length > 30 ? 'is-fine' : ''}`} viewBox="-3 -3 106 106" role="img" aria-label={row.label ?? 'A shape cut into parts'}
+          style={row.scale ? { '--ts-scale': row.scale } as React.CSSProperties : undefined}>
           {pieces.map((piece, i) => (
             <polygon key={i} points={pointsOf(piece.points, size)}
               className={`fq-ts-piece ${row.edges ? 'is-cut' : ''} ${has(row.shaded, i) ? 'is-shaded' : ''} ${has(row.shaded2, i) ? 'is-shaded2' : ''} ${has(row.counted, i) ? 'is-counted' : ''} ${has(row.glow, i) ? 'is-glow' : ''}`} />

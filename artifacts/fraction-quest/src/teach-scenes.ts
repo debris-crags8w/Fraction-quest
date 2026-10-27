@@ -46,6 +46,8 @@ export type AreaRow = {
   shaded2?: number[];
   counted?: number[];
   glow?: number[];
+  /** Drawn at this fraction of its normal size (0 to 1), for a smaller whole such as a small pizza (default: normal size). */
+  scale?: number;
   label?: string;
   tone?: 'fair' | 'unfair';
   hidden?: boolean;

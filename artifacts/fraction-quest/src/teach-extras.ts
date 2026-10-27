@@ -629,7 +629,7 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
         title: 'Different wholes',
         picture: reveal([
           { kind: 'pair', items: [
-            { kind: 'area', cut: 'circle-halves', edges: true, shaded: [0], label: 'Small pizza: 0.5', tone: 'unfair' },
+            { kind: 'area', cut: 'circle-halves', edges: true, shaded: [0], label: 'Small pizza: 0.5', tone: 'unfair', scale: 0.6 },
             { kind: 'area', cut: 'circle-tenths', edges: true, shaded: range(4), label: 'Big pizza: 0.4', tone: 'unfair' },
           ] },
           say('A small pizza and a big pizza are different wholes. 0.5 of one and 0.4 of the other: you can’t tell which is more.'),
