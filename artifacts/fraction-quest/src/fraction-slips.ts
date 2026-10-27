@@ -157,7 +157,8 @@ function equivalence(p: string, right: Amount | null): Found | null {
   // the pieces counted again with the shaded ones. (Not "of the square": a square can be cut into pieces of
   // different sizes, and counting pieces, 2/7 for two triangles of a square cut into 7, is the mistake there.)
   if (right && /^(?:A|The) \w+ (?:is cut into|has) \d+ equal parts\.(?: \d+ is colored\.)? What (?:is 1 part|fraction is colored)\?$|^What fraction (?:is 1 of \d+ equal tiles|is shaded|of the (?!square)\w+ is shaded)\?$|shaded slice\?$|^A tray has \d+ spaces\. \d+ have a \w+\. What fraction have a \w+\?$|this \w+ is split into \d+ equal-area [\w ]+\. Color \d+\. What fraction of the whole is colored\?$/.test(p)) {
-    return { right: answer, slips: [['upsideDown', [y, x]], ['partToPart', [x, y - x]], ['otherParts', [y - x, y]], ['onePart', [1, y]], ['countOnce', [x, y + x]]] };
+    return { right: answer, slips: [['upsideDown', [y, x]], ['partToPart', [x, y - x]], ['otherParts', [y - x, y]], ['onePart', [1, y]], ['countOnce', [x, y + x]],
+      ...(x === 1 && y > 2 ? [['halfPart', [1, 2]] as Slip] : [])] };
   }
   // A chance: green to the rest, the rest, upside down, green out of more, one marble.
   if (right && (m = /^A bag has (\d+) marbles\. (\d+) (?:is|are) green\./.exec(p))) {
@@ -277,6 +278,10 @@ function found(prompt: string, right: Amount | null): Found | null {
   let m: RegExpExecArray | null;
   const named = equivalence(p, right);
   if (named) return named;
+  // "A worm is 1/6 of a meter long. Is that near 0, 1/2 or 1 meter?": one of the named options, or the 6.
+  if ((m = /^A \w+ is 1\/(\d+) of a meter long\. Is that near 0, 1\/2 or 1 meter\?$/.exec(p))) {
+    return { right: 0, slips: [['nearHalf', [1, 2]], ['nearOne', [1, 1]], ['justNumber', [N(m[1]), 1]]] };
+  }
   // "A board is 1/3 meter. Another is 1/6 meter. How long are they together?" is 1/3 + 1/6; so are "How many meters in
   // all?", "You add 1/2 liter. How many liters now?", "walked …, then … How far in all?" and "a recipe uses …, then … more".
   if ((m = LENGTH.exec(p) ?? SUM_WORDS.exec(p))) { const [x, y] = m.slice(1).filter(Boolean); p = `${x} + ${y} = ?`; }

@@ -4602,20 +4602,8 @@ describe('every question in a lesson’s ideas offers real mistakes', () => {
   /* Each idea's practices (and the lesson's story problem, with its own choices when it has them) are checked against
      the app's slip lists (fraction-slips.ts and misconceptions.ts): a wrong choice must be a mistake a child makes.
      A question neither list knows is left out (worded choices, pictures to read); ANY question one of them knows must
-     pass, apart from the questions below. They were found when this check first covered the ideas: each wrong choice is
-     a near miss, or a slip the lists do not have yet, not yet shown to be a real mistake. The list can only shrink:
-     the test fails for a wrong choice that is not listed, and for a listed one that is no longer wrong, so fix the
-     choice (or add its slip to the lists) and delete its line. */
-  const NOT_YET_REAL_SLIPS: Record<string, string[]> = {
-    // The lists have no unused real mistake to swap in (a new kind of mistake needs its own "why" sentence for the child).
-    'fraction-names-p9': ['1/2'], // lesson 1 may only use the taught part names; the lists' other slips (4/1, 1/5) are not those
-    'equal-parts-p3': ['1'], // 6 pieces for 2 friends: 1 is not a slip the lists know (6 minus 2, 4, would be one)
-    'benchmarks-zero-one-p1': ['1/2 meter', '1 meter'], // "near 0, 1/2 or 1 meter?": the options the question lists
-    'whole-numbers-as-fractions-q1': ['1'], // 4/2 wholes: the lists offer only 4 and 6
-    'plot-in-eighths-q2': ['4'], // longer than 4/8: the 4 from 4/8 (the lists offer only the shorter ones and every X)
-    // 1 ÷ 1/b scoops: the lists offer only b + 1 and 2b; the child's real slips (1, or the fraction itself) are not whole-number slips.
-    'divide-whole-by-unit-fraction-q2': ['4'], 'divide-whole-by-unit-fraction-p1': ['1'], 'divide-whole-by-unit-fraction-p2': ['1'],
-  };
+     pass. A wrong choice that fails is a near miss, or a mistake the lists do not have yet: swap it for a real one, or
+     add the slip (with its sentence in slip-reasons.ts). */
   const same = (a: string, b: string) => a === b || (Number.isFinite(answerValue(a)) && Number.isFinite(answerValue(b)) && !/ and /.test(a + b) && Math.abs(answerValue(a) - answerValue(b)) < 1e-9);
   const reachable = () => MISSIONS.flatMap((lesson) => {
     if (!lessonIdeas(lesson.id)) return [];
@@ -4639,7 +4627,7 @@ describe('every question in a lesson’s ideas offers real mistakes', () => {
       });
     }
     assert.ok(questions > 250 && checked > 700, `only ${checked} wrong choices in ${questions} questions checked`);
-    assert.deepEqual(bad, NOT_YET_REAL_SLIPS);
+    assert.deepEqual(bad, {});
   });
 });
 

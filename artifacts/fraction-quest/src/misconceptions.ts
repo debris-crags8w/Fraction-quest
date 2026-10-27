@@ -17,12 +17,14 @@ const BIG: Record<string, [string, number]> = { liter: ['milliliters', 1000], ki
 function slips(prompt: string): [number, [Why, number][]] | null {
   const p = prompt.replace(/^Quick review · [^:]+: /, '');
   let m: RegExpExecArray | null;
+  // "Is that near 0, 1/2 or 1 meter?" is about benchmarks (fraction-slips.ts), not a fraction of a length.
+  if (/Is that near 0, 1\/2 or 1 \w+\?$/.test(p)) return null;
   // Fair shares (lesson 2): "4 friends share 12 equal pieces fairly. How many pieces does each friend get?": the
   // friends counted, the whole pile, or what the other friends get.
   if ((m = /(\d+) friends share (\d+) equal pieces fairly\. How many pieces does each friend get\?|into (\d+) equal pieces\. (\d+) friends share them fairly\. How many pieces does each friend get\?/.exec(p))) {
     const [friends, pieces] = m[1] ? [N(m[1]), N(m[2])] : [N(m[4]), N(m[3])];
     const right = pieces / friends;
-    return [right, [['justNumber', friends], ['whole', pieces], ['leftPart', pieces - right]]];
+    return [right, [['justNumber', friends], ['whole', pieces], ['leftPart', pieces - right], ['oneRound', 1]]];
   }
   // Equal groups: "12 beads are shared into 4 equal groups. How many beads are in 3 groups?"
   if ((m = /(\d+) \w+ are shared into (\d+) equal groups\. How many \w+ are in (one|\d+) groups?\?/.exec(p))) {
@@ -68,7 +70,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   // Scoops: "How many 1/3 cup scoops fill 2 cups?", "How many 1/8 cup scoops fill 3/4 cup?"
   if ((m = /How many 1\/(\d+)(?:-cup scoops| cup scoops| cups) fill (\d+) cups?\?/.exec(p))) {
     const [b, c] = [N(m[1]), N(m[2])];
-    return [b * c, [['addedForFit', b + c], c > 1 ? ['oneWhole', b] : ['extraWhole', b + 1], c > 1 ? ['wholesOnly', c] : ['extraWhole', b * 2], ['extraWhole', b * c + b]]];
+    return [b * c, [['addedForFit', b + c], c > 1 ? ['oneWhole', b] : ['extraWhole', b + 1], c > 1 ? ['wholesOnly', c] : ['extraWhole', b * 2], ['extraWhole', b * c + b], ...(c === 1 ? [['wholeCupItself', 1] as [Why, number]] : [])]];
   }
   if ((m = /How many (\d+)\/(\d+) cup scoops (?:of \w+ )?fill (?:a )?(\d+)\/(\d+) cup\?/.exec(p))) {
     const [a1, b1, a2, b2] = m.slice(1).map(N);
@@ -106,7 +108,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
       return [x - y, [['oneStack', x], ['oneStack', y], ['addedLengths', x + y]]];
     }
     const at = N(m[4]);
-    return [count((v) => v > at), [['otherSide', count((v) => v < at)], ['allXs', values.length], ['onTheLength', count((v) => v >= at)]]];
+    return [count((v) => v > at), [['otherSide', count((v) => v < at)], ['allXs', values.length], ['onTheLength', count((v) => v >= at)], ['justNumber', at]]];
   }
   // Two-step conversions: "A ribbon is 2 1/2 feet long. Pip cuts off 8 inches. How many inches are left?" The start in small
   // units, the other operation, the wrong number of small units in a big one, the fraction part left out.
@@ -119,7 +121,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   // Wholes: "How many wholes are 9/3?", "Write 4/4 as a whole number."
   if ((m = /How many wholes are (\d+)\/(\d+)\?/.exec(p))) {
     const [n, d] = [N(m[1]), N(m[2])];
-    return [n / d, [['takeAwayBottom', n - d], ['justNumber', n], ['justNumber', d], ['betweenWholes', n + d]]];
+    return [n / d, [['takeAwayBottom', n - d], ['justNumber', n], ['justNumber', d], ['betweenWholes', n + d], ['justOneWhole', 1]]];
   }
   if ((m = /Write (\d+)\/\1 as a whole number\./.exec(p))) return [1, [['allMakeOne', N(m[1])], ['allMakeOne', 0], ['allMakeOne', 2 * N(m[1])]]];
   // Equivalent fractions: "Fill the blank: 1/2 = ?/8", "3/4 = 6/?", "?/5 = 12/20"
