@@ -147,7 +147,7 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
     // Teach before practice: Words to know (said after the goal) and each extra worked example.
     const extras = TEACH_EXTRAS[mission.id];
     if (intro && extras?.words?.length) addLine('lesson', `${intro.goal} ${wordsScript(extras.words)}`);
-    for (const example of extras?.examples ?? []) addLine('lesson', [`${example.title}.`, ...sceneSentences(example.picture)].join(' '));
+    for (const example of extras?.examples ?? []) addLine('lesson', sceneSentences(example.picture).join(' '));
     // Learn one idea, practise it three times: each Learn page (the first idea's first page also says the goal).
     (LESSON_IDEAS[mission.id] ?? []).forEach((idea, i) => idea.learn.forEach((page, p) => {
       addLine('lesson', i === 0 && p === 0 && intro ? `${intro.goal} ${learnScript(page)}` : learnScript(page));
