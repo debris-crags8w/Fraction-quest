@@ -34,7 +34,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   1: [
     q('u1-p1', 3, 'What fraction of the rectangle is shaded?', ['1/3', '3/8', '3/5', '5/8'], 1, '8 equal squares. 3 are shaded. So 3/8.', { kind: 'grid', rows: 2, cols: 4, shaded: [0, 3, 5] }),
     q('u1-c1', 3, 'A chocolate bar has 12 equal squares. Ana eats 1/4 of it. How many squares does she eat?', ['2', '3', '4', '6'], 1, '12 in 4 equal groups is 3 each.'),
-    q('u1-c2', 3, 'A pizza has 8 equal slices. Tom eats 1 slice. Mia eats 2 slices. What fraction is left?', ['3/8', '4/8', '5/8', '6/8'], 2, '8 − 1 − 2 = 5 slices left. So 5/8.'),
+    q('u1-c2', 3, 'A pizza has 8 equal slices. Tom eats 1 slice. Mia eats 2 slices. What fraction is left?', ['3/8', '4/8', '5/8', '6/8'], 2, '3 slices are eaten. 5 are left. So 5/8.'),
     q('u1-c3', 4, 'Sam folds a paper strip in half. Then he folds it in half again. He opens it. What fraction is each part?', ['1/2', '1/3', '1/4', '1/8'], 2, 'Half, then half again, makes 4 equal parts.', { kind: 'fold', folds: [2, 2] }, [
       step('Sam folds the strip in half once. How many parts will it open into?', ['2', '1', '3', '4'], 0),
       step('He folds it in half again. Each half splits in 2. How many parts now?', ['3', '8', '4', '6'], 2),
@@ -49,14 +49,14 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   2: [
     q('u2-p1', 3, 'What fraction of the dots are shaded?', ['1/4', '1/3', '1/2', '2/3'], 1, '4 of 12 dots are shaded. 12 in 3 groups of 4, so 1/3.', { kind: 'dots', rows: 3, cols: 4, shaded: [1, 4, 6, 11] }),
     q('u2-c1', 3, 'The cakes are all the same size. Which part is the biggest?', ['1/2', '1/3', '1/5', '1/8'], 0, 'Fewer parts means bigger parts. Halves are biggest.'),
-    q('u2-c2', 3, 'Which is bigger, 3/5 or 3/8?', ['3/5', '3/8', 'They are equal', "You can't tell"], 0, 'Both are 3 parts. Fifths are bigger parts than eighths, so 3/5 is bigger.'),
+    q('u2-c2', 3, 'Which is bigger, 3/5 or 3/8?', ['3/5', '3/8', 'They are equal', "You can't tell"], 0, 'Both are 3 parts. Bigger parts come from cutting in 5, so 3/5 is bigger.'),
     q('u2-c3', 4, 'Mia eats 1/4 of a pizza. Leo eats 1/6 of a pizza the same size. Who eats more?', ['Leo', 'Mia', 'They eat the same', "You can't tell"], 1, 'Fourths are bigger than sixths. One fourth is more than one sixth, so Mia eats more.', undefined, [
       step('Which piece is bigger, 1/4 or 1/6?', ['1/6', '1/4', 'They are equal', "You can't tell"], 1),
       step('Mia has the 1/4 piece. So who eats more?', ['Leo', 'They eat the same', 'Mia', "You can't tell"], 2),
     ]),
-    q('u2-c4', 4, 'Put 2/3, 2/9 and 2/5 in order, smallest first.', ['2/3, 2/5, 2/9', '2/9, 2/5, 2/3', '2/5, 2/9, 2/3', '2/9, 2/3, 2/5'], 1, 'All three are 2 parts. Ninths are the smallest parts and thirds the biggest: 2/9, 2/5, 2/3.', undefined, [
-      step('All three fractions have 2 parts. Which parts are the smallest?', ['Thirds', 'Fifths', 'Ninths', 'They are the same'], 2),
-      step('Which parts are the biggest?', ['Thirds', 'Ninths', 'Fifths', 'They are the same'], 0),
+    q('u2-c4', 4, 'Put 2/3, 2/9 and 2/5 in order, smallest first.', ['2/3, 2/5, 2/9', '2/9, 2/5, 2/3', '2/5, 2/9, 2/3', '2/9, 2/3, 2/5'], 1, 'All three are 2 parts. Cut in 9 is the smallest, cut in 3 the biggest: 2/9, 2/5, 2/3.', undefined, [
+      step('All three have 2 parts. Which has the smallest parts?', ['Cut in 3', 'Cut in 5', 'Cut in 9', 'They are the same'], 2),
+      step('Which has the biggest parts?', ['Cut in 3', 'Cut in 9', 'Cut in 5', 'They are the same'], 0),
     ]),
     q('u2-c5', 5, 'Two ribbons are the same length. One is cut into 6 equal pieces and one into 4. Sam takes 3 pieces of the first. Kim takes 3 pieces of the second. Who has more ribbon?', ['Sam', 'They have the same', 'Kim', "You can't tell"], 2, 'Sam has 3/6 and Kim has 3/4. Fourths are bigger than sixths, so Kim has more.', undefined, [
       step('What fraction of a ribbon does Sam have?', ['3/6', '6/3', '3/4', '1/6'], 0),
@@ -69,7 +69,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u3-c1', 3, 'Which fraction is more than 1/2?', ['2/5', '3/7', '4/9', '5/8'], 3, 'Half of 8 is 4. 5 is more than 4.'),
     q('u3-c2', 3, 'Which fraction is closest to 1?', ['2/3', '3/4', '4/5', '5/6'], 3, 'Each is 1 part short of 1. Sixths are the smallest parts, so 5/6 is closest.'),
     q('u3-c3', 4, 'Which fraction is closest to 0?', ['1/5', '2/9', '1/4', '3/10'], 0, '1/5 is the smallest. 2/9 and 1/4 are a little bigger.'),
-    q('u3-c4', 4, 'A glass is 3/8 full. How much more water makes it exactly half full?', ['1/8', '2/8', '3/8', '4/8'], 0, 'Half is 4/8. 4/8 − 3/8 = 1/8.'),
+    q('u3-c4', 4, 'A glass is 3/8 full. How much more water makes it exactly half full?', ['1/8', '2/8', '3/8', '4/8'], 0, 'Half is 4/8. 3/8 needs 1 more eighth: 1/8.'),
     q('u3-c5', 5, 'Which fraction is exactly 1/2?', ['4/9', '9/18', '5/9', '4/10'], 1, 'Half of 18 is 9. So 9/18 is exactly half.'),
   ],
   4: [
@@ -87,7 +87,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   5: [
     q('u5-p1', 3, 'The bars are the same size. Which bar has the most shaded?', ['A', 'B', 'C', 'D'], 1, 'B is 3/4. The others are 2/3, 4/6 and 5/8. All are less than 3/4.', { kind: 'bars', bars: [{ n: 2, d: 3, label: 'A' }, { n: 3, d: 4, label: 'B' }, { n: 4, d: 6, label: 'C' }, { n: 5, d: 8, label: 'D' }] }),
     q('u5-c1', 3, 'Which fraction is the biggest?', ['3/10', '5/10', '7/10', '6/10'], 2, 'Same size parts. 7 is the most.'),
-    q('u5-c2', 3, 'Which fraction is the smallest?', ['2/9', '2/7', '2/4', '2/5'], 0, 'All have 2 parts. Ninths are the smallest parts.'),
+    q('u5-c2', 3, 'Which fraction is the smallest?', ['2/9', '2/7', '2/4', '2/5'], 0, 'All have 2 parts. Cut in 9 makes the smallest parts.'),
     q('u5-c3', 4, 'Which fraction is bigger than 3/4?', ['3/5', '2/3', '5/8', '7/8'], 3, '3/4 = 6/8. 7/8 is more than 6/8.'),
     q('u5-c4', 4, 'Ana ran 3/4 mile. Ben ran 2/3 mile. Cara ran 5/6 mile. Dev ran 1/2 mile. Who ran the farthest?', ['Ana', 'Ben', 'Cara', 'Dev'], 2, 'Each is 1 part short of 1 mile. Sixths are smallest, so Cara is closest to 1.', undefined, [
       step('Ana ran 3/4 mile. How much is she short of 1 mile?', ['1/4', '3/4', '1/2', '1/3'], 0),
@@ -242,7 +242,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   15: [
     q('u15-p1', 3, 'The shaded part is 6 stickers. How many stickers are in the whole bar?', ['6', '12', '18', '24'], 2, 'The shaded part is 2 of 6 equal parts, so each part is 3. 6 parts is 18.', { kind: 'bars', bars: [{ n: 2, d: 6 }] }),
     q('u15-c1', 3, '6 marbles are 1/4 of a bag. How many marbles are in the bag?', ['10', '24', '18', '30'], 1, '1 fourth is 6. 4 fourths is 4 × 6 = 24.'),
-    q('u15-c2', 3, 'Sam says 2/7 + 3/7 = 5/14. What is the right answer?', ['5/14', '6/7', '5/7', '6/14'], 2, 'Sevenths plus sevenths make sevenths. 2 + 3 = 5, so 5/7.'),
+    q('u15-c2', 3, 'Sam says 2/7 + 3/7 = 5/14. What is the right answer?', ['5/14', '6/7', '5/7', '6/14'], 2, 'The parts stay the same size. 2 + 3 = 5, so 5/7.'),
     q('u15-c3', 4, '12 cards are 3/5 of a pile. How many cards are in the pile?', ['15', '20', '36', '60'], 1, '3 fifths is 12, so 1 fifth is 4. 5 fifths is 20.', undefined, [
       step('3 fifths is 12. What is 1 fifth?', ['60', '4', '3', '36'], 1),
       step('The whole is 5 fifths. 5 × 4 = ?', ['9', '54', '20', '15'], 2),

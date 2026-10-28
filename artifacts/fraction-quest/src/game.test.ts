@@ -2467,7 +2467,7 @@ describe('long problems', () => {
   it('gives each walk-through step four distinct choices and the authored answer', () => {
     const expectedSteps: Record<string, string[]> = {
       'u1-c3': ['2', '4', '1/4'], 'u1-c5': ['4', '12'],
-      'u2-c3': ['1/4', 'Mia'], 'u2-c4': ['Ninths', 'Thirds'],
+      'u2-c3': ['1/4', 'Mia'], 'u2-c4': ['Cut in 9', 'Cut in 3'],
       'u2-c5': ['3/6', '3/4', '3/4'], 'u4-c5': ['6/8 meter', '9/8 meters', 'Yes'],
       'u5-c4': ['1/4', '1/6', '1/6'], 'u6-c4': ['1/4', '2'],
       'u7-c5': ['6/3', '8/3', '3'], 'u8-c4': ['5/10 meter', '2/10 meter'], 'u8-c5': ['3', '5/4', '4 1/4'],
