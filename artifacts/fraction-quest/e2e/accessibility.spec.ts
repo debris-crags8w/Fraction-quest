@@ -17,7 +17,8 @@ const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
     than loosening the check. */
 const KNOWN: string[] = [];
 
-/** A day outside every seasonal theme (the plain look), and one inside each. */
+/** The default day, 10 March: every month has a theme now (March is "Windy kites"), so the tests run under it unless a
+    test turns seasonal themes off. Then Halloween and Christmas, the two holidays with their own full dressing. */
 const PLAIN_DAY = new Date(2026, 2, 10, 10, 0, 0);
 const HALLOWEEN_DAY = new Date(2026, 9, 20, 10, 0, 0);
 const CHRISTMAS_DAY = new Date(2026, 11, 15, 10, 0, 0);
@@ -604,3 +605,29 @@ for (const mode of MODES) {
     audit.finish();
   });
 }
+
+test('the learning map passes the same check under every month’s theme, with the banner showing and nothing sticking out', async ({ context }) => {
+  test.setTimeout(240_000);
+  const audits: Audit[] = [];
+  for (let month = 0; month < 12; month++) {
+    const day = new Date(2026, month, 15, 10, 0, 0);
+    const page = await context.newPage();
+    await openApp(page, { date: day });
+    const audit = new Audit(page, ` in ${day.toLocaleString('en', { month: 'long' })}`);
+    audits.push(audit);
+    await expect(page.getByTestId('season-banner')).toBeVisible();
+    await audit.scan('the map');
+    // The page must not scroll sideways at 390.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth), `month ${month + 1} fits 390`).toBeLessThanOrEqual(391);
+    // The banner fades to its second colour only in the last 44px (season.css), so its text must end above that
+    // (Halloween and Christmas are dressed differently).
+    const clearance = await page.evaluate(() => {
+      const banner = document.querySelector('[data-testid="season-banner"]')!;
+      const bottoms = [...banner.querySelectorAll('.fq-season-kicker, h2, p')].map((element) => element.getBoundingClientRect().bottom);
+      return banner.getBoundingClientRect().bottom - 44 - Math.max(...bottoms);
+    });
+    if (![9, 11].includes(month)) expect(clearance, `month ${month + 1}: banner text ends above the fade`).toBeGreaterThanOrEqual(0);
+    await page.close();
+  }
+  for (const audit of audits) audit.finish();
+});

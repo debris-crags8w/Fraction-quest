@@ -11,7 +11,7 @@ import { getBuildChecks, getBuildPracticeChecks, getReviewCheck, getWorksheet } 
 import { getExtraPractice } from '../src/practice-bank';
 import { partFinderRoundsFor, PART_FINDER_ROUNDS } from '../src/part-finder';
 import { getAssessmentDefinitions } from '../src/assessments';
-import { CHAPTER_SCENES, CHAPTERS, DETECTIVE_NOTES, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, SUSPECTS, WHOLE_STONE_OPENING, chapterEnd, choiceNotes, suspectReply, REACTIONS, STORY_PROBLEMS, lessonComic, storyScript, withName, type Panel, type PropTheme } from '../src/story';
+import { CHAPTER_SCENES, CHAPTERS, DETECTIVE_NOTES, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, SUSPECTS, WHOLE_STONE_OPENING, chapterEnd, choiceNotes, suspectReply, REACTIONS, STORY_PROBLEMS, lessonComic, storyScript, withName, PROP_THEMES, type Panel, type PropTheme } from '../src/story';
 import { LANTERN_CARD_SPOKEN } from '../src/riddles';
 import { PICKED_FOR_YOU_SPOKEN } from '../src/game';
 import { seasonalWords } from '../src/seasonal-words';
@@ -29,7 +29,7 @@ import { HELPER_PICK_SPEECH, fractionWordsSpeech, introSpeech, newWordSpeech, wh
 import { guideForUnit } from '../src/teaching-guide-data';
 import { TIME_UP_SPEECH } from '../src/time-up-copy';
 
-export const VOICE_SENTENCE_THEMES: readonly PropTheme[] = ['everyday', 'halloween', 'christmas'];
+export const VOICE_SENTENCE_THEMES: readonly PropTheme[] = PROP_THEMES;
 export const VOICE_SENTENCE_SOURCES = ['lesson', 'worksheet', 'practice', 'games', 'story', 'shared'] as const;
 export type VoiceSentenceSource = (typeof VOICE_SENTENCE_SOURCES)[number];
 export type VoiceSentenceTheme = (typeof VOICE_SENTENCE_THEMES)[number];

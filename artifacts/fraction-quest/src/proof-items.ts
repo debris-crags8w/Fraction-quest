@@ -5,7 +5,7 @@ import { generateQuestions, getExtraPractice } from './practice-bank';
 import { getAssessmentDefinitions, buildAssessmentItems } from './assessments';
 import { placementItems, PLACEMENT_UNITS } from './placement';
 import { CHALLENGES } from './challenges';
-import { STORY_PROBLEMS, withName } from './story';
+import { PROP_THEMES, STORY_PROBLEMS, withName } from './story';
 import { LESSON_INTROS } from './lesson-intros';
 import { WAR_ROUNDS, compareFractions, lineUpInOrder, lineUpRound, type FractionModel } from './concept-games';
 import { frogRound, positionName, FROG_ROUNDS } from './frog-hop';
@@ -35,7 +35,7 @@ export function allProofItems({ sheets = 8, seeds = 10, checkInSeeds = [1, 2, 99
     for (const c of builds) items.push({ source: 'build', lesson: m.id, prompt: c.prompt, target: c.target });
     // Story mode: the lesson's last question told in its chapter, with every season's props.
     const story = STORY_PROBLEMS[m.id]; const last = m.questions[m.questions.length - 1];
-    if (story) for (const theme of ['everyday', 'halloween', 'christmas'] as const) items.push(choiceItem(`story (${theme})`, m.id,
+    if (story) for (const theme of PROP_THEMES) items.push(choiceItem(`story (${theme})`, m.id,
       { ...last, prompt: withName(story.prompt, null, theme), choices: (story.choices ?? last.choices).map((c) => withName(c, null, theme)) }));
   }
   for (const d of getAssessmentDefinitions()) for (const s of checkInSeeds) for (const i of buildAssessmentItems(d, s)) items.push(sheetItem(`Check-in ${d.id}`, i.missionId, i.problem));
