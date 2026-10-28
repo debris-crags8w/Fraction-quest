@@ -1183,7 +1183,7 @@ const SHARE_OR_FIT = ['Sharing', 'Fitting', 'Adding', 'Taking away'];
 
 const extensionTopics: ExtensionTopic[] = [
   // Grade 4 (4.NF.4a, 4.NF.4b): ends unit 8, so grade-4 learners (and the level quiz) reach it before grade 5.
-  { id: 'unit-fraction-multiples', title: 'Make groups of a unit fraction', shortTitle: 'Unit fraction multiples', description: 'Build several copies of one unit fraction.', skill: 'A multiple is several equal copies added together. Count how many unit-fraction parts you have.', mode: 'unit-multiples', n: 5, d: 4, context: 'paper strips', gradeBand: 4, standards: ['4.NF.4a'],
+  { id: 'unit-fraction-multiples', title: 'Make groups of a unit fraction', shortTitle: 'Unit fraction copies', description: 'Build several copies of one unit fraction.', skill: 'A multiple is several equal copies added together. Count how many unit-fraction parts you have.', mode: 'unit-multiples', n: 5, d: 4, context: 'paper strips', gradeBand: 4, standards: ['4.NF.4a'],
     ideaQuestions: [
       // Idea 1: × counts copies of one part.
       practice('This bar shows copies of 1/8. How do you write it with ×?', ['5 × 1/8', '8 × 1/5', '3 × 1/8', '5 × 1/5'], 0,

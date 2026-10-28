@@ -1143,20 +1143,22 @@ export const teachExtras = (missionId: string | undefined): TeachExtras => (miss
 /** What Listen reads on the Words to know page. */
 export const wordsScript = (words: WordCard[]) => ['Words to know.', ...words.map((word) => word.meaning)].join(' ');
 
-/** Terms and symbols a lesson teaches (in its Words to know), and the lesson that teaches each one. Practice in an
-    earlier lesson may not use them (checked by teach-extras.test.ts). Each unit's PR adds its own. */
+/** Terms and symbols a lesson teaches (in its Words to know), and the lesson that teaches each one. No earlier lesson
+    may use them on any screen: ideas, Learn pages, Practice more, builds, worksheets, story lines, unit challenges and
+    the lesson header (checked by teach-extras.test.ts). Each unit's PR adds its own. */
 export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
-  /** A unit of measure, a unit fact or the ÷, + or − sign: checked on every screen of the earlier lessons and ideas, not only practice. */
+  /** A unit of measure, a unit fact or a sign (÷, +, −, =, <, >, check with ×): also checked inside its own lesson, where the
+      first idea to use it must teach it on a Learn page. (Every row is checked on every screen of the earlier lessons.) */
   unit?: true }[] = [
   { term: 'numerator / denominator', pattern: /\b(numerator|denominator)s?\b/i, lesson: 'fraction-names' },
   { term: 'area', pattern: /\barea\b/i, lesson: 'fraction-of-area' },
-  { term: '=', pattern: /\s=\s/, lesson: 'compare-same-numerator' },
-  { term: '< or >', pattern: /\s[<>]\s/, lesson: 'compare-same-numerator' },
+  { term: '=', pattern: /\s=\s/, lesson: 'compare-same-numerator', unit: true },
+  { term: '< or >', pattern: /\s[<>]\s/, lesson: 'compare-same-numerator', unit: true },
   { term: 'benchmark', pattern: /\bbenchmarks?\b/i, lesson: 'benchmarks-zero-one' },
   { term: 'tick mark', pattern: /\btick( mark)?s?\b/i, lesson: 'number-line-basics' },
   { term: 'mixed number with "and"', pattern: /(?<![\d/])\b\d+ and \d+\/\d+/, lesson: 'number-line-beyond-one' },
   { term: 'mixed number like 1 1/4', pattern: /\b\d+ \d+\/\d+/, lesson: 'ruler-measurement' },
-  { term: 'quarter', pattern: /\bquarters?\b/i, lesson: 'ruler-measurement' },
+  { term: 'quarter', pattern: /\bquarters?\b/i, lesson: 'fraction-names' }, // "also: one quarter" on lesson 1's Words screen (intro-copy.ts)
   { term: 'the ? box', pattern: /\?\/\d|\d\/\?/, lesson: 'equivalent-models' },
   { term: 'factor', pattern: /\bfactors?\b/i, lesson: 'missing-equivalent' },
   // Lessons 2–10 (learn one idea, practise it three times).
@@ -1170,7 +1172,7 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
   { term: 'decimal', pattern: /\bdecimals?\b/i, lesson: 'tenths-decimals' },
   { term: 'digit', pattern: /\bdigits?\b/i, lesson: 'tenths-decimals' },
   // Lessons 31–40.
-  { term: 'hundredths', pattern: /\bhundredths?\b/i, lesson: 'hundredths-decimals' },
+  { term: 'hundredths', pattern: /\bhundredths?\b/i, lesson: 'tenths-decimals' }, // its lesson page's New word card (new-words.ts), ahead of lesson 31
   { term: 'dime / penny', pattern: /\b(dimes?|penn(y|ies))\b/i, lesson: 'dimes-and-pennies' },
   { term: 'simplest form', pattern: /\bsimplest form\b/i, lesson: 'simplify-fractions' },
   // Lessons 41–50 (compare-unlike-fractions … subtract-unlike-fractions).
@@ -1187,7 +1189,7 @@ export const TAUGHT_IN: { term: string; pattern: RegExp; lesson: string;
   { term: 'fraction bar', pattern: /\bfraction bar\b/i, lesson: 'fraction-as-division' },
   { term: 'a unit fraction shared (1/3 ÷ 4)', pattern: /\d+\/\d+ ÷ \d/, lesson: 'unit-fraction-divided-whole' },
   { term: '÷ by a fraction (how many fit)', pattern: /÷\s*\d+\/\d+/, lesson: 'divide-whole-by-unit-fraction' },
-  { term: 'checking an answer with ×', pattern: /\bcheck\b[^.]*×/i, lesson: 'unit-fraction-divided-whole' },
+  { term: 'checking an answer with ×', pattern: /\bcheck\b[^.]*×/i, lesson: 'unit-fraction-divided-whole', unit: true },
   { term: 'sharing or fitting', pattern: /\bfitting\b/i, lesson: 'share-or-fit' },
   // Lessons 72–81.
   { term: 'chance, outcome, equally likely', pattern: /\b(chance|outcomes?|equally likely)\b/i, lesson: 'fraction-probability' },

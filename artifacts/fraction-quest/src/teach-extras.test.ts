@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { CHALLENGES } from './challenges';
 import { MISSIONS } from './game';
 import { FRACTION_WORDS, PART_NAMES } from './intro-copy';
 import { getBuildChecks, getBuildPracticeChecks, getReviewCheck, getWorksheet } from './learning-content';
@@ -13,6 +14,10 @@ import { LESSON_SCENES, type SceneRow } from './teach-scenes';
 
 const pictures = (row: SceneRow): SceneRow[] => (row.kind === 'pair' ? row.items : [row]);
 const lessonIndex = (id: string) => MISSIONS.findIndex((mission) => mission.id === id);
+
+/** A unit's Unit challenge (it unlocks when the unit's last lesson is done): puzzles, their steps and explanations. */
+const challengeText = (unit: number): string[] => (CHALLENGES[unit] ?? []).flatMap((item) => [item.prompt, ...item.choices, item.explanation,
+  ...(item.steps ?? []).flatMap((step) => [step.prompt, ...step.choices])]);
 
 /** Everything a child is asked or told while practising a lesson: questions (with hints and retry help), extra
     practice, builds and the worksheet. The worked example and Teach first are teaching, not practice. */
@@ -61,13 +66,22 @@ function lessonText(missionId: string): string[] {
   const at = unitLessons.findIndex((item) => item.id === missionId);
   const intro = LESSON_INTROS[missionId];
   const scenes = LESSON_SCENES[missionId];
+  // Teach first on the lesson page: its Words to know cards and extra worked examples (a card or example is teaching
+  // for its own lesson, but a screen of the lessons before it).
+  const extras = TEACH_EXTRAS[missionId];
+  const challenge = at === unitLessons.length - 1 ? challengeText(mission.unit) : [];
   const builds = [...getBuildChecks(missionId), ...[0, 1, 2].flatMap((batch) => getBuildPracticeChecks(missionId, batch)), ...[0, 1, 2, 3, 4, 5].map((round) => getReviewCheck(missionId, round))];
   return [
+    mission.shortTitle, // the lesson's header, and the "Quick review" tag on later reviews of it
     ...ideaScreens(missionId).flatMap(({ learn, practice }) => [...learn, ...practice]),
     ...questions.flatMap((question) => [question.prompt, ...(question.choices ?? []), question.hint ?? '', question.retryFeedback ?? '', ...pictureText(question.model), ...pictureText(question.simplerModel)]),
     ...(story ? [story.setup, story.prompt, ...(story.choices ?? []), story.result] : []),
     ...(chapter ? [...lessonComic(chapter, mission, at).map((panel) => panel.text), lessonCliff(chapter, at, unitLessons.length), ...chapter.asks,
-      ...(at === unitLessons.length - 1 ? [chapter.won, chapter.done] : [])] : []),
+      ...(at === 0 ? chapter.choice.flatMap((option) => [option.label, option.detail, option.reply.text]) : []), chapter.thanks,
+      ...(at === unitLessons.length - 1 ? [chapter.won, chapter.done, chapter.clue, chapter.card.title, chapter.card.blurb] : [])] : []),
+    ...challenge,
+    ...(extras?.words ?? []).flatMap((word) => [word.term, word.meaning, ...pictureText(word.picture)]),
+    ...(extras?.examples ?? []).flatMap((item) => [item.title, ...pictureText(item.picture)]),
     ...(intro ? [intro.goal, ...intro.steps, intro.why] : []), ...(scenes ? [...scenes.steps, scenes.why].flatMap(pictureText) : []),
     mission.example.prompt, mission.example.answer, mission.example.explanation, ...pictureText(mission.example.model),
     ...builds.flatMap((check) => [check.prompt, ...check.reasons, check.explanation]),
@@ -109,7 +123,10 @@ test('teach before practice: no lesson practises a word or symbol before the les
     assert.ok(taughtAt >= 0, `${term}: ${lesson} is a lesson`);
     // The lesson that teaches it really does: in its Words to know, its Teach first, or a Learn page of one of its ideas.
     const intro = LESSON_INTROS[lesson]!;
-    const teaching = [...(TEACH_EXTRAS[lesson]?.words ?? []).map((word) => word.meaning), intro.goal, ...intro.steps, intro.why,
+    // Also: lesson 1's Words screen ("also: one quarter") and the lesson page's New word card for a part name.
+    const wordsScreen = lesson === MISSIONS[0]!.id ? FRACTION_WORDS.rows.map((row) => `${row.word} ${row.also ?? ''}`) : [];
+    const newWordCards = newWordsFor(lesson).map((d) => `${PART_NAMES[d]!.one} ${PART_NAMES[d]!.many}`);
+    const teaching = [...(TEACH_EXTRAS[lesson]?.words ?? []).map((word) => word.meaning), ...wordsScreen, ...newWordCards, intro.goal, ...intro.steps, intro.why,
       ...(LESSON_IDEAS[lesson] ?? []).flatMap((idea) => idea.learn.flatMap(learnText))].join(' ');
     assert.match(teaching, pattern, `${lesson} teaches ${term}`);
   }
@@ -121,9 +138,9 @@ test('teach before practice: no lesson practises a word or symbol before the les
 /** Units of measure and their facts: each is taught (Words to know or a Learn page) where a child first meets it. */
 const UNITS_TAUGHT = TAUGHT_IN.filter((row) => row.unit);
 
-test('a unit of measure (or ÷ or +) is taught before any screen uses it: not in an earlier lesson, nor an earlier idea of its lesson', () => {
+test('nothing is taught after a screen uses it: no screen of an earlier lesson (not only practice) uses a taught term, and a unit is taught on a Learn page before its lesson practises it', () => {
   assert.ok(UNITS_TAUGHT.length >= 15, 'the units and unit facts are listed');
-  const early = UNITS_TAUGHT.flatMap(({ term, pattern, lesson }) => MISSIONS.slice(0, lessonIndex(lesson)).flatMap((mission) =>
+  const early = TAUGHT_IN.flatMap(({ term, pattern, lesson }) => MISSIONS.slice(0, lessonIndex(lesson)).flatMap((mission) =>
     lessonText(mission.id).filter((text) => pattern.test(text)).map((text) => `${mission.id} uses ${term} before ${lesson}: "${text}"`)));
   assert.deepEqual([...new Set(early)], []);
   // In the lesson that teaches it: the first idea to use it teaches it on a Learn page, before its practices.
@@ -168,6 +185,7 @@ test('a part name the first-lesson Words screen does not teach (fifths, tenths �
   const known = new Set([...FRACTION_WORDS.rows.flatMap((row) => [PART_NAMES[row.d]!.one, PART_NAMES[row.d]!.many]), ...names.flatMap((name) => [name.one, name.many]), 'quarter', 'quarters']);
   const unknown = [...said].filter(([name]) => !known.has(name) && !/^\d+ths$/.test(name)).map(([name, [lesson, , text]]) => `${name} (lesson ${lesson + 1}): "${text}"`);
   assert.deepEqual(unknown, [], 'a part name with no entry in PART_NAMES');
+  const late: string[] = [];
   for (const { d, one, many } of names) {
     const first = [one, many].map((name) => said.get(name)).filter((use): use is [number, number, string] => !!use)
       .sort((a, b) => a[0] - b[0] || a[1] - b[1])[0];
@@ -177,8 +195,35 @@ test('a part name the first-lesson Words screen does not teach (fifths, tenths �
       idea.learn.some((page) => 'words' in page && page.words.some((word) => word.term === `one ${one}`)) ? [[lesson, k] as [number, number]] : []));
     const labCard = MISSIONS.flatMap((mission, lesson) => (newWordsFor(mission.id).includes(d) ? [[lesson, AFTER_IDEAS - 1] as [number, number]] : []));
     const taught = [...ideaCard, ...labCard].sort((a, b) => a[0] - b[0] || a[1] - b[1])[0];
-    assert.ok(taught, `${many}: said in lesson ${first[0] + 1} ("${first[2]}"), but no card teaches it`);
-    assert.ok(taught[0] < first[0] || (taught[0] === first[0] && taught[1] <= first[1]),
-      `${many}: first said in lesson ${first[0] + 1}${first[1] < AFTER_IDEAS ? ` idea ${first[1] + 1}` : ''} ("${first[2]}"), but taught only in lesson ${taught[0] + 1}${taught[1] < AFTER_IDEAS - 1 ? ` idea ${taught[1] + 1}` : ' (lesson page)'}`);
+    if (!taught) { late.push(`${many}: said in lesson ${first[0] + 1} ("${first[2]}"), but no card teaches it`); continue; }
+    if (!(taught[0] < first[0] || (taught[0] === first[0] && taught[1] <= first[1]))) {
+      late.push(`${many}: first said in lesson ${first[0] + 1}${first[1] < AFTER_IDEAS ? ` idea ${first[1] + 1}` : ''} ("${first[2]}"), but taught only in lesson ${taught[0] + 1}${taught[1] < AFTER_IDEAS - 1 ? ` idea ${taught[1] + 1}` : ' (lesson page)'}`);
+    }
   }
+  assert.deepEqual(late, []);
+});
+
+/** Words to know: a term here that no TAUGHT_IN row covers must still not be used earlier, as a word, on any screen. */
+const WORD_EXEMPT: Readonly<Record<string, string>> = {
+  '×': 'whole-number times facts (3 × 2 = 6) are grade 3 and used to rename fractions; the card teaches a fraction × a number, which has its own TAUGHT_IN row',
+};
+
+test('a Words-to-know term no TAUGHT_IN row covers is not used on any screen of an earlier lesson', () => {
+  const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const early: string[] = [];
+  let checked = 0;
+  for (const [id, extras] of Object.entries(TEACH_EXTRAS)) {
+    for (const word of extras.words ?? []) {
+      // Covered: a row at this lesson or earlier names it (symbols are matched with their spaces: " = ").
+      const covered = TAUGHT_IN.some((row) => lessonIndex(row.lesson) <= lessonIndex(id) && (row.pattern.test(word.term) || row.pattern.test(` ${word.term} `)));
+      if (covered || word.term in WORD_EXEMPT) continue;
+      checked += 1;
+      const pattern = /^\w/.test(word.term) && /\w$/.test(word.term) ? new RegExp(`\\b${escape(word.term)}\\b`, 'i') : new RegExp(`(?<![\\w])${escape(word.term)}(?![\\w])`);
+      for (const mission of MISSIONS.slice(0, lessonIndex(id))) {
+        for (const text of lessonText(mission.id)) if (pattern.test(text)) early.push(`${mission.id} uses "${word.term}" before ${id}: "${text}"`);
+      }
+    }
+  }
+  assert.ok(checked >= 1, 'a word card with no TAUGHT_IN row of its own is checked here (multiples)');
+  assert.deepEqual([...new Set(early)], []);
 });
