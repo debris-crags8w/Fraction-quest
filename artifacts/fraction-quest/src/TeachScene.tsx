@@ -264,7 +264,7 @@ export function AnimatedLessonIntro({ intro, scene, missionId }: { intro: Lesson
     const why: Page = { label: 'Why it works', text: intro.why, scene: scene.why, listen: teachPageScript(intro, scene, intro.steps.length) };
     const examples = (extras.examples ?? []).map((example, i, all): Page => ({
       label: `Example ${i + 1} of ${all.length}`, text: example.title, scene: example.picture,
-      listen: [`${example.title}.`, ...sceneSentences(example.picture)].join(' '),
+      listen: sceneSentences(example.picture).join(' '), // the title is a label on the screen: not read
     }));
     const words: Page[] = extras.words?.length ? [{ label: 'Words to know', text: '', words: extras.words, listen: `${intro.goal} ${wordsScript(extras.words)}` }] : [];
     return [...words, ...steps, why, ...examples];
