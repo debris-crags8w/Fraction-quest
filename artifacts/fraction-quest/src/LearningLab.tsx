@@ -288,7 +288,9 @@ function Builder({ kind, total, st, set, id, title, lineWholes = 1, need = 0, in
               <div className="fq-ll-track"><b style={{ width: ((st.count / (st.d * wholes)) * 100) + '%' }} /></div>
               {Array.from({ length: st.d * wholes + 1 }, (_, i) => (
                 <button key={i} type="button" className={'fq-ll-tick ' + (i === st.count ? 'on ' : '') + (i % st.d === 0 ? 'whole' : '')} style={{ left: ((i / (st.d * wholes)) * 100) + '%' }}
-                  aria-label={'Tick ' + i + ' of ' + (st.d * wholes) + ' equal spaces'} aria-pressed={i === st.count} onClick={() => setCount(i)} data-testid={'tick-' + id + '-' + i}>
+                  aria-label={i % st.d === 0 ? (i / st.d) + ': tick ' + i + ' of ' + (st.d * wholes) + ' equal spaces' : undefined} aria-pressed={i === st.count} onClick={() => setCount(i)} data-testid={'tick-' + id + '-' + i}>
+                  {/* A tick that shows a fraction has no aria-label: its name is built from the fraction, so it holds the words and numbers a child sees. */}
+                  {i % st.d !== 0 && <span className="fq-sr">Tick {i} of {st.d * wholes} equal spaces, </span>}
                   <TickLabel i={i} d={st.d} />
                 </button>
               ))}
@@ -981,8 +983,9 @@ export default function LearningLab({ missionId, howItWorks, progress, onChange,
                   save({ ...r, helpUses: r.helpUses + 1, worksheet: { ...r.worksheet, [p.id]: { ...e, supported: true } } }); }} />
               {(index + 1) % WORKSHEET_ROUND === 0 && index < sheet.length - 1
                 && problemProgress.slice(index + 1 - WORKSHEET_ROUND, index + 1).every((item) => item.status === 'complete') && (
-                <li className="fq-ll-round-cheer" role="status" data-testid={`worksheet-round-done-${(index + 1) / WORKSHEET_ROUND}`}>
-                  <Star size={18} aria-hidden="true" /> Round {(index + 1) / WORKSHEET_ROUND} done! {index + 1 + WORKSHEET_ROUND >= sheet.length ? 'One round left!' : 'Great work, keep going!'}
+                <li className="fq-ll-round-cheer" data-testid={`worksheet-round-done-${(index + 1) / WORKSHEET_ROUND}`}>
+                  {/* The status role sits inside the item: a list holds only list items. */}
+                  <span role="status"><Star size={18} aria-hidden="true" /> Round {(index + 1) / WORKSHEET_ROUND} done! {index + 1 + WORKSHEET_ROUND >= sheet.length ? 'One round left!' : 'Great work, keep going!'}</span>
                 </li>
               )}
               </Fragment>

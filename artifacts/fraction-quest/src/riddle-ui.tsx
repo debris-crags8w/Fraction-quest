@@ -54,14 +54,17 @@ export function LanternWeek({ activity, streak, savedDays, oil }: { activity?: R
     <section className="fq-lantern-week" aria-labelledby="lantern-title" data-testid="lantern-week">
       <h2 id="lantern-title">Hoot’s lantern · {streak} {streak === 1 ? 'night' : 'nights'} in a row</h2>
       <p>Get one answer right each day to keep it glowing.</p>
-      <ol role="img" aria-label={`${nights.filter((night) => night.lit).length} of the last 7 nights lit${nights.some((night) => night.saved) ? `, ${nights.filter((night) => night.saved).length} kept lit with spare oil` : ''}`}>
-        {nights.map((night) => (
-          <li key={night.day} className={night.today ? 'today' : night.saved ? 'saved' : ''} data-lit={night.lit} data-saved={night.saved}>
-            <LanternIcon lit={night.lit} saved={night.saved} waiting={night.today && !night.lit} size={30} />
-            <span>{night.label}</span>
-          </li>
-        ))}
-      </ol>
+      {/* One picture with one name; the list inside is hidden from screen readers (an image role on the list itself would leave its items outside any list). */}
+      <div role="img" aria-label={`${nights.filter((night) => night.lit).length} of the last 7 nights lit${nights.some((night) => night.saved) ? `, ${nights.filter((night) => night.saved).length} kept lit with spare oil` : ''}`}>
+        <ol aria-hidden="true">
+          {nights.map((night) => (
+            <li key={night.day} className={night.today ? 'today' : night.saved ? 'saved' : ''} data-lit={night.lit} data-saved={night.saved}>
+              <LanternIcon lit={night.lit} saved={night.saved} waiting={night.today && !night.lit} size={30} />
+              <span>{night.label}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
       {oil !== undefined && <SpareOilJar oil={oil} />}
     </section>
   );
@@ -130,15 +133,17 @@ export function TonightsLantern({ activity, streak, oil, savedDays, dailyDone, s
         </div>
         <LearningListenButton text={card.spoken} label="Listen to tonight’s lantern" compact />
       </div>
-      <ol className="fq-tonight-week" role="img" aria-label={`${nights.filter((night) => night.lit).length} of the last 7 ${storyOn ? 'nights' : 'days'} lit`}>
-        {nights.map((night) => (
-          <li key={night.day} className={night.today ? 'today' : night.saved ? 'saved' : ''} data-lit={night.lit}>
-            {storyOn ? <LanternIcon lit={night.lit} saved={night.saved} waiting={night.today && !night.lit} size={21} />
-              : <span className={`fq-tonight-dot ${night.lit ? 'lit' : ''} ${night.today && !night.lit ? 'waiting' : ''}`} aria-hidden="true" />}
-            <span>{night.label}</span>
-          </li>
-        ))}
-      </ol>
+      <div role="img" aria-label={`${nights.filter((night) => night.lit).length} of the last 7 ${storyOn ? 'nights' : 'days'} lit`}>
+        <ol className="fq-tonight-week" aria-hidden="true">
+          {nights.map((night) => (
+            <li key={night.day} className={night.today ? 'today' : night.saved ? 'saved' : ''} data-lit={night.lit}>
+              {storyOn ? <LanternIcon lit={night.lit} saved={night.saved} waiting={night.today && !night.lit} size={21} />
+                : <span className={`fq-tonight-dot ${night.lit ? 'lit' : ''} ${night.today && !night.lit ? 'waiting' : ''}`} aria-hidden="true" />}
+              <span>{night.label}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
       {card.facts.length > 0 && <p className="fq-tonight-facts">{card.facts.map((fact) => <span key={fact}>{fact}</span>)}</p>}
       {card.notes.length > 0 && <p className="fq-tonight-notes" data-testid="tonights-lantern-notes">{card.notes.map((note) => <span key={note}>{note}</span>)}</p>}
       {card.button && (

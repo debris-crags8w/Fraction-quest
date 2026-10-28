@@ -168,7 +168,7 @@ export function IntroTry({ kind, kicker, nextLabel, onDone, onSkip, helper = fal
           <div className={`fq-mi-line ${parts === target.d && !hint.done ? 'is-hot' : ''}`} role="group" aria-label="Number line from 0 to 1: tap where you land">
             {Array.from({ length: parts + 1 }, (_, i) => (
               <button key={i} type="button" className={i === count ? 'is-on' : ''} style={{ left: `${(i / parts) * 100}%` }} aria-pressed={i === count}
-                aria-label={i === 0 ? 'Zero' : i === parts ? 'One' : `${i} ${i === 1 ? 'jump' : 'jumps'} from 0`}
+                aria-label={i === 0 ? '0, zero' : i === parts ? '1, one' : `${i} ${i === 1 ? 'jump' : 'jumps'} from 0`}
                 onClick={() => { playHaptic('selection'); setCount(i); }} data-testid={`intro-tick-${i}`}>
                 {/* Named for the spaces the child chose: 3 spaces read 1/3 and 2/3, so the labels follow their cuts. */}
                 <i /><small><TickLabel i={i} d={parts} /></small>

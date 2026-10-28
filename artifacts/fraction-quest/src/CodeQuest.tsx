@@ -239,7 +239,7 @@ export default function CodeQuest({ mission, solved, onExit, onSolved }: { missi
           <div className="fq-code-mission-progress" data-testid="status-code-mission-progress">
             <span>Code levels passed</span>
             <strong>{codeSummary.levelsPassed} of {CODE_LEVEL_COUNT}</strong>
-            <div aria-label={`${codeSummary.levelsPassed} of ${CODE_LEVEL_COUNT} coding levels passed`} className="fq-code-progress-dots">
+            <div role="img" aria-label={`${codeSummary.levelsPassed} of ${CODE_LEVEL_COUNT} coding levels passed`} className="fq-code-progress-dots">
               {Array.from({ length: CODE_LEVEL_COUNT }, (_, index) => index + 1).map((n) => <i className={solved >= n ? 'passed' : ''} key={n} />)}
             </div>
             <small>Separate from fraction lesson progress</small>

@@ -31,8 +31,9 @@ function Frog({ hopKey, splash, hat }: { hopKey: number; splash: boolean; hat?: 
 function JumpCard({ card, selected, onSelect, disabled, index }: { card: FrogCard; selected: boolean; onSelect: () => void; disabled: boolean; index: number }) {
   return (
     <button type="button" className={`fh-card ${selected ? 'is-selected' : ''}`} aria-pressed={selected} onClick={onSelect} disabled={disabled}
-      aria-label={`Jump ${card.n} over ${card.d}`} data-testid={`button-frog-card-${index}`} data-card={`${card.n}/${card.d}`}>
-      <Fraction {...card} />
+      data-testid={`button-frog-card-${index}`} data-card={`${card.n}/${card.d}`}>
+      {/* No aria-label: the name is built from the card, so it holds the fraction a child sees. */}
+      <span className="fq-sr">Jump </span><Fraction {...card} />
       <span className="cg-bar fh-card-bar" style={{ '--parts': card.d } as CSSProperties} aria-hidden="true">
         {Array.from({ length: card.d }, (_, i) => <span key={i} className={`cg-cell ${i < card.n ? 'is-shaded' : ''}`} />)}
       </span>
