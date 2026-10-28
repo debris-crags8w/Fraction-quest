@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { activeSeason, nextCostume, seasonLessonCount, seasonLine, seasonOn, unlockedCostumes } from './seasons';
 import { MONTH_THEMES } from './month-themes';
 import { recordSeasonLesson, type FunState } from './lib/fun';
+import { COSTUME_ART, costumeLayer, MonthRewardIcon, type CostumeLayer } from './costume-art';
+import { FunContext, Mascot, SeasonBanner, SeasonReward } from './fun-ui';
 
 const october = new Date(2026, 9, 17);
 
@@ -146,21 +150,224 @@ test('month theme colours stay readable: banner text on its colour, node icons o
   }
 });
 
-test('month themes have no costumes yet: nothing to unlock, no costume banner line, and lessons still count', () => {
+/** The ten months' costumes, in the order the user approved: [first at 3 lessons, second at 5]. */
+const MONTH_COSTUME_NAMES: Record<string, [string, string]> = {
+  january: ['mittens', 'a pom-pom beanie'],
+  february: ['heart glasses', 'a friendship bracelet'],
+  march: ['a kite tail', 'pilot goggles'],
+  april: ['rain boots', 'a rainbow umbrella'],
+  may: ['a flower crown', 'bumblebee wings'],
+  june: ['sunglasses', 'a sun hat'],
+  july: ['a camp hat', 'a star lantern'],
+  august: ['a snorkel', 'diving fins'],
+  september: ['a backpack', 'an apple hat'],
+  november: ['a leaf cape', 'an acorn cap'],
+};
+
+test('every month theme has exactly two costumes, at 3 and 5 lessons, with the approved names and unique ids', () => {
+  const ids: string[] = [];
   for (const theme of MONTH_THEMES) {
     const season = seasonOn(new Date(2026, theme.month, 9))!;
-    assert.deepEqual(season.costumes, []);
-    assert.deepEqual(unlockedCostumes(season, 9), []);
-    assert.equal(nextCostume(season, 0), null);
+    assert.equal(season.costumes.length, 2, `${theme.id} has two costumes`);
+    assert.deepEqual(season.costumes.map((item) => item.lessons), [3, 5]);
+    assert.deepEqual(season.costumes.map((item) => item.name), MONTH_COSTUME_NAMES[theme.id], theme.id);
+    for (const item of season.costumes) {
+      assert.match(item.id, /^[a-z]+(-[a-z]+)*$/);
+      assert.ok(item.label.trim().length > 0 && item.name === item.label, `${item.id} has a name Numi can be described with`);
+      assert.doesNotMatch(item.name, /\d/);
+      ids.push(item.id);
+    }
   }
-  // Each finished lesson is still counted per month and year, for the costumes that come later.
+  assert.deepEqual(Object.keys(MONTH_COSTUME_NAMES).sort(), MONTH_THEMES.map((theme) => theme.id).sort());
+  // Twenty different costumes, none shared with a holiday or with another month.
+  const holiday = [...seasonOn(october)!.costumes, ...seasonOn(new Date(2026, 11, 5))!.costumes].map((item) => item.id);
+  assert.equal(ids.length, 20);
+  assert.equal(new Set([...ids, ...holiday]).size, 24);
+});
+
+test('every costume has a drawing: pieces that sit on Numi, with no text and no accessible name of their own', () => {
+  assert.deepEqual(Object.keys(COSTUME_ART).sort(), MONTH_THEMES.flatMap((theme) => theme.costumes.map((item) => item.id)).sort());
+  for (const [id, layers] of Object.entries(COSTUME_ART)) {
+    const names = Object.keys(layers);
+    assert.ok(names.length > 0 && names.every((layer) => ['back', 'face', 'hands', 'front', 'feet', 'head'].includes(layer)), `${id}: known layers`);
+    for (const layer of names) {
+      const markup = renderToStaticMarkup(createElement('svg', null, costumeLayer([id], layer as CostumeLayer)));
+      assert.match(markup, new RegExp(`fq-costume-${id}`), `${id} draws into ${layer}`);
+      assert.ok((markup.match(/<(path|circle|ellipse|rect)\b/g) ?? []).length >= 3, `${id}/${layer} is a real drawing`);
+      assert.doesNotMatch(markup, /<text|<title|aria-label|role=/, `${id}/${layer} is decorative`);
+    }
+  }
+  assert.deepEqual(costumeLayer(['bat-wings', 'scarf'], 'head'), [null, null], 'the holidays draw their own costumes');
+  // Each month's reward icon is a decorative drawing too.
+  for (const theme of MONTH_THEMES) {
+    const markup = renderToStaticMarkup(createElement(MonthRewardIcon, { id: theme.id }));
+    assert.match(markup, /aria-hidden="true"/);
+    assert.match(markup, /<(path|circle|g)\b/);
+  }
+});
+
+/** Runs `render` as if today were `day` (the mascot, banner and reward read the device date). */
+function onDay<T>(day: Date, render: () => T): T {
+  const RealDate = Date;
+  const fixed = day.getTime();
+  class FixedDate extends RealDate {
+    constructor(...args: unknown[]) { if (args.length) super(...(args as [number])); else super(fixed); }
+    static override now() { return fixed; }
+  }
+  globalThis.Date = FixedDate as DateConstructor;
+  try { return render(); } finally { globalThis.Date = RealDate; }
+}
+const withFun = (fun: Partial<FunState>, node: ReturnType<typeof createElement>) =>
+  createElement(FunContext.Provider, { value: { fun: fun as FunState, setFun: () => {} } }, node);
+const textOf = (markup: string) => markup.replace(/<[^>]+>/g, ' ').replace(/&#x27;/g, "'").replace(/\s+/g, ' ').trim();
+const lessonsIn = (key: string, count: number) => ({ seasonLessons: { [key]: Array.from({ length: count }, (_, at) => `lesson-${at}`) } });
+
+test('in a month with no holiday, the first costume comes after 3 lessons and the second after 5', () => {
   const march = seasonOn(new Date(2026, 2, 9))!;
+  assert.deepEqual(unlockedCostumes(march, 0), []);
+  assert.deepEqual(unlockedCostumes(march, 2), []);
+  assert.deepEqual(unlockedCostumes(march, 3).map((item) => item.id), ['kite-tail']);
+  assert.deepEqual(unlockedCostumes(march, 4).map((item) => item.id), ['kite-tail']);
+  assert.deepEqual(unlockedCostumes(march, 5).map((item) => item.id), ['kite-tail', 'pilot-goggles']);
+  assert.deepEqual(unlockedCostumes(march, 9).map((item) => item.id), ['kite-tail', 'pilot-goggles']);
+  assert.equal(nextCostume(march, 0)?.id, 'kite-tail');
+  assert.equal(nextCostume(march, 3)?.id, 'pilot-goggles');
+  assert.equal(nextCostume(march, 5), null);
+  // Counted per month and year through the saved lessons, each lesson once.
   let fun = {} as FunState;
-  fun = recordSeasonLesson(fun, march.key, 'unit-fractions');
-  fun = recordSeasonLesson(fun, march.key, 'unit-fractions');
-  fun = recordSeasonLesson(fun, march.key, 'equal-shares');
-  assert.equal(seasonLessonCount(fun, march), 2);
+  for (const lesson of ['unit-fractions', 'unit-fractions', 'equal-shares', 'equal-parts']) fun = recordSeasonLesson(fun, march.key, lesson);
+  assert.equal(seasonLessonCount(fun, march), 3);
+  assert.deepEqual(unlockedCostumes(march, seasonLessonCount(fun, march)).map((item) => item.id), ['kite-tail']);
   assert.deepEqual(Object.keys(fun.seasonLessons ?? {}), ['march-2026']);
+});
+
+test('costumes are earned fresh each year, and a new year starts with none, across the December to January boundary', () => {
+  // Five lessons in December 2026 earn Christmas costumes only; January 2027 starts from nothing.
+  let fun = {} as FunState;
+  const christmas = seasonOn(new Date(2026, 11, 31))!;
+  for (let at = 0; at < 5; at++) fun = recordSeasonLesson(fun, christmas.key, `lesson-${at}`);
+  const january = seasonOn(new Date(2027, 0, 1))!;
+  assert.equal(january.id, 'january');
+  assert.equal(january.key, 'january-2027');
+  assert.equal(seasonLessonCount(fun, christmas), 5);
+  assert.equal(seasonLessonCount(fun, january), 0);
+  assert.deepEqual(unlockedCostumes(january, seasonLessonCount(fun, january)), []);
+  // Three January lessons earn the mittens; five earn the beanie too.
+  for (let at = 0; at < 3; at++) fun = recordSeasonLesson(fun, january.key, `lesson-${at}`);
+  assert.deepEqual(unlockedCostumes(january, seasonLessonCount(fun, january)).map((item) => item.id), ['mittens']);
+  for (let at = 3; at < 5; at++) fun = recordSeasonLesson(fun, january.key, `lesson-${at}`);
+  assert.deepEqual(unlockedCostumes(january, seasonLessonCount(fun, january)).map((item) => item.id), ['mittens', 'pom-pom-beanie']);
+  // The same month a year later starts fresh again, and last January's lessons stay saved under their own key.
+  const nextJanuary = seasonOn(new Date(2028, 0, 20))!;
+  assert.equal(seasonLessonCount(fun, nextJanuary), 0);
+  assert.deepEqual(unlockedCostumes(nextJanuary, 0), []);
+  assert.equal(fun.seasonLessons?.['january-2027']?.length, 5);
+  // The same holds for every month: this year's lessons never count toward next year's costumes.
+  for (const theme of MONTH_THEMES) {
+    const saved = lessonsIn(`${theme.id}-2026`, 5) as FunState;
+    assert.equal(seasonLessonCount(saved, seasonOn(new Date(2026, theme.month, 9))!), 5);
+    assert.equal(seasonLessonCount(saved, seasonOn(new Date(2027, theme.month, 9))!), 0);
+  }
+});
+
+test('the mascot wears what has been earned, says so to a screen reader, and stays plain when themes are off', () => {
+  const day = new Date(2026, 8, 12);
+  const mascot = (fun: Partial<FunState>, named = true) => onDay(day, () => renderToStaticMarkup(withFun(fun, createElement(Mascot, { mood: 'happy', size: 84, named }))));
+  const none = mascot(lessonsIn('september-2026', 2));
+  assert.doesNotMatch(none, /fq-costume|data-costume|aria-label|role="img"/);
+  assert.match(none, /aria-hidden="true"/);
+  const first = mascot(lessonsIn('september-2026', 3));
+  assert.match(first, /data-costume="backpack"/);
+  assert.match(first, /aria-label="Numi with a backpack"/);
+  assert.match(first, /role="img"/);
+  assert.doesNotMatch(first, /aria-hidden="true"/);
+  const both = mascot(lessonsIn('september-2026', 5));
+  assert.match(both, /data-costume="backpack apple-hat"/);
+  assert.match(both, /aria-label="Numi with a backpack and an apple hat"/);
+  // Everywhere else the mascot is decorative: no name, but still dressed.
+  const small = mascot(lessonsIn('september-2026', 5), false);
+  assert.match(small, /aria-hidden="true"/);
+  assert.doesNotMatch(small, /aria-label/);
+  assert.match(small, /fq-costume-apple-hat/);
+  // Last September's lessons do not dress this September's Numi.
+  assert.doesNotMatch(mascot(lessonsIn('september-2025', 5)), /fq-costume/);
+  // A grown-up's switch takes every costume off, and the plain mascot stays decorative.
+  const off = mascot({ ...lessonsIn('september-2026', 5), displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: false } });
+  assert.doesNotMatch(off, /fq-costume|data-costume|aria-label/);
+  assert.match(off, /aria-hidden="true"/);
+  // Every month's mascot names both costumes, and the names agree with the table.
+  for (const theme of MONTH_THEMES) {
+    const [one, two] = theme.costumes;
+    const dressed = onDay(new Date(2026, theme.month, 9), () => renderToStaticMarkup(withFun(lessonsIn(`${theme.id}-2026`, 5), createElement(Mascot, { named: true }))));
+    assert.ok(dressed.includes(`aria-label="Numi with ${one.label} and ${two.label}"`), `${theme.id}: ${dressed.match(/aria-label="[^"]*"/)?.[0]}`);
+    assert.ok(dressed.includes(`fq-costume-${one.id}`) && dressed.includes(`fq-costume-${two.id}`), `${theme.id} draws both`);
+  }
+  // The holidays keep their own look and are named the same way.
+  const witch = onDay(october, () => renderToStaticMarkup(withFun(lessonsIn('halloween-2026', 3), createElement(Mascot, { named: true }))));
+  assert.match(witch, /data-costume="witch-hat bat-wings"/);
+  assert.match(witch, /aria-label="Numi with a witch hat and bat wings"/);
+  const santa = onDay(new Date(2026, 11, 5), () => renderToStaticMarkup(withFun(lessonsIn('christmas-2026', 5), createElement(Mascot, { named: true }))));
+  assert.match(santa, /aria-label="Numi with a Santa hat, a striped scarf and a twinkling Santa hat"/);
+});
+
+test('the banner and reward card say the right thing for every month, and only count lessons', () => {
+  /** The lesson counts are the only digits a sentence may hold ("3 more lessons", "2 of 5"): never an answer. */
+  const withoutCounts = (text: string) => text.replace(/\b\d+ more lessons?\b/g, '').replace(/\b\d+ of \d+\b/g, '');
+  for (const theme of MONTH_THEMES) {
+    const [one, two] = theme.costumes;
+    const day = new Date(2026, theme.month, 9);
+    const key = `${theme.id}-2026`;
+    const banner = (count: number) => textOf(onDay(day, () => renderToStaticMarkup(withFun(lessonsIn(key, count), createElement(SeasonBanner)))));
+    const reward = (count: number) => textOf(onDay(day, () => renderToStaticMarkup(withFun(lessonsIn(key, count), createElement(SeasonReward, { missionId: `lesson-${count - 1}` })))));
+    const cap = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+    // The map banner: how far to the next costume, then every costume earned, then the greeting.
+    assert.ok(banner(0).includes(`Finish 3 more lessons to unlock ${one.name}.`), banner(0));
+    assert.ok(banner(1).includes(`Finish 2 more lessons to unlock ${one.name}.`), banner(1));
+    assert.ok(banner(2).includes(`Finish 1 more lesson to unlock ${one.name}.`), banner(2));
+    assert.ok(banner(3).includes(`Finish 2 more lessons to unlock ${two.name}.`), banner(3));
+    assert.ok(banner(4).includes(`Finish 1 more lesson to unlock ${two.name}.`), banner(4));
+    assert.ok(banner(5).includes(`You earned every costume. ${theme.greeting}`), banner(5));
+    assert.ok(banner(7).includes(`You earned every costume. ${theme.greeting}`), banner(7));
+    // The reward after a lesson: nothing earned yet, the first costume, the second, and no card once both are earned.
+    assert.ok(reward(1).includes(`${theme.name} costume 2 more lessons for ${one.name}`), reward(1));
+    assert.ok(reward(2).includes(`1 more lesson for ${one.name}`), reward(2));
+    assert.ok(reward(3).includes(`Costume unlocked ${cap(one.name)} 2 more lessons for ${two.name}.`), reward(3));
+    assert.ok(reward(4).includes(`1 more lesson for ${two.name}`), reward(4));
+    assert.ok(reward(5).includes(`Costume unlocked ${cap(two.name)}`) && !/more lesson/.test(reward(5)), reward(5));
+    assert.equal(reward(6), '', 'no card after both costumes are earned and a later lesson');
+    for (const text of [banner(0), banner(3), banner(5), reward(1), reward(3), reward(5)]) {
+      assert.doesNotMatch(withoutCounts(text), /\d|\//, `${theme.id}: only lesson counts: ${text}`);
+    }
+  }
+  // The card shows the month's own icon, and the banner's Numi is named.
+  const september = onDay(new Date(2026, 8, 9), () => renderToStaticMarkup(withFun(lessonsIn('september-2026', 3), createElement(SeasonReward, { missionId: 'lesson-2' }))));
+  assert.match(september, /fq-month-reward-icon/);
+  assert.match(onDay(new Date(2026, 8, 9), () => renderToStaticMarkup(withFun(lessonsIn('september-2026', 3), createElement(SeasonBanner)))), /aria-label="Numi with a backpack"/);
+  // The holidays keep their own reward icons and sentences.
+  const halloween = textOf(onDay(october, () => renderToStaticMarkup(withFun(lessonsIn('halloween-2026', 3), createElement(SeasonReward, { missionId: 'lesson-2' })))));
+  assert.equal(halloween, "Costume unlocked Numi's bat wings 2 more lessons for the glow-in-the-dark hat.");
+});
+
+test('turning seasonal themes off shows no banner, no reward card and no costume in any month', () => {
+  const off = { displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: false } };
+  for (let month = 0; month < 12; month++) {
+    const key = `${seasonOn(new Date(2026, month, 9))!.id}-2026`;
+    const fun = { ...lessonsIn(key, 5), ...off };
+    const day = new Date(2026, month, 9);
+    assert.equal(onDay(day, () => renderToStaticMarkup(withFun(fun, createElement(SeasonBanner)))), '');
+    assert.equal(onDay(day, () => renderToStaticMarkup(withFun(fun, createElement(SeasonReward, { missionId: 'lesson-4' })))), '');
+    assert.doesNotMatch(onDay(day, () => renderToStaticMarkup(withFun(fun, createElement(Mascot, { named: true })))), /fq-costume|data-costume|aria-label/);
+  }
+});
+
+test('month reward cards stay readable: white text on the month’s dark shade, its icon colour on the dark tile', () => {
+  for (const theme of MONTH_THEMES) {
+    const { edge, node } = theme.map;
+    const full = edge.length === 4 ? `#${[...edge.slice(1)].map((c) => c + c).join('')}` : edge;
+    const card = `#${[1, 3, 5].map((at) => Math.round(parseInt(full.slice(at, at + 2), 16) * 0.55).toString(16).padStart(2, '0')).join('')}`;
+    assert.ok(contrast('#fff', card) >= 4.5, `${theme.id}: white on ${card} is ${contrast('#fff', card).toFixed(2)}`);
+    assert.ok(contrast(node, card) >= 4.5, `${theme.id}: the small label (${node}) on ${card}`);
+  }
 });
 
 test('a month theme has one story line for every kind of question, the same for the same question, and never a hint', () => {

@@ -3,11 +3,18 @@
 
 import type { FunState } from './lib/fun';
 import type { ModelSpec } from './game';
-import { MONTH_THEMES, type MonthTheme, type MonthThemeId } from './month-themes';
+import { MONTH_THEMES, type MonthCostumeId, type MonthTheme, type MonthThemeId } from './month-themes';
 
 export type HolidaySeasonId = 'halloween' | 'christmas';
 export type SeasonId = HolidaySeasonId | MonthThemeId;
-export type Costume = { id: 'bat-wings' | 'glow-hat' | 'scarf' | 'twinkle-hat'; name: string; lessons: number };
+export type Costume = {
+  id: 'bat-wings' | 'glow-hat' | 'scarf' | 'twinkle-hat' | MonthCostumeId;
+  /** Finishes "unlock ..." and "for ..." in the banner and the reward card. */
+  name: string;
+  /** Finishes "Numi with ..." in the dressed mascot's screen-reader name. */
+  label: string;
+  lessons: number;
+};
 export type Season = {
   id: SeasonId;
   /** One key per season per year, so costumes are earned fresh each Halloween. */
@@ -28,19 +35,19 @@ export type Season = {
 };
 
 const HALLOWEEN_COSTUMES: Costume[] = [
-  { id: 'bat-wings', name: "Numi's bat wings", lessons: 3 },
-  { id: 'glow-hat', name: 'the glow-in-the-dark hat', lessons: 5 },
+  { id: 'bat-wings', name: "Numi's bat wings", label: 'bat wings', lessons: 3 },
+  { id: 'glow-hat', name: 'the glow-in-the-dark hat', label: 'a glow-in-the-dark hat', lessons: 5 },
 ];
 
 const CHRISTMAS_COSTUMES: Costume[] = [
-  { id: 'scarf', name: "Numi's striped scarf", lessons: 3 },
-  { id: 'twinkle-hat', name: 'the twinkling Santa hat', lessons: 5 },
+  { id: 'scarf', name: "Numi's striped scarf", label: 'a striped scarf', lessons: 3 },
+  { id: 'twinkle-hat', name: 'the twinkling Santa hat', label: 'a twinkling Santa hat', lessons: 5 },
 ];
 
-/** A month theme as a season: the same parts as a holiday, with no costumes yet. Its cheer is its greeting. */
+/** A month theme as a season: the same parts as a holiday, with its two costumes. Its cheer is its greeting. */
 const monthSeason = (theme: MonthTheme, year: number): Season => ({
   id: theme.id, key: `${theme.id}-${year}`, title: theme.title, name: theme.name, greeting: theme.greeting, cheer: theme.greeting,
-  points: theme.points, costumes: [], map: theme.map, line: theme.line,
+  points: theme.points, costumes: theme.costumes, map: theme.map, line: theme.line,
 });
 
 /** The season on this date, ignoring preferences. Halloween runs for all of October, Christmas for all of December,

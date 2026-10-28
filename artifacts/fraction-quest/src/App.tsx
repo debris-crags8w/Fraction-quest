@@ -1312,7 +1312,7 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame, 
       <main className="fq-shell">
         <section className="fq-reward fq-appear" data-testid="status-mission-complete">
           {/* With the story on, the chapter friend does the cheering, so the screen stays short (a season with costumes keeps Numi for the costume). */}
-          {!(storyOn && chapter && !season?.costumes.length) && <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={120} /><span className="fq-reward-trophy"><Trophy size={30} strokeWidth={2.5} /></span></div>}
+          {!(storyOn && chapter && !season?.costumes.length) && <div className="fq-reward-mascot"><Mascot mood="cheer" size={120} named /><span className="fq-reward-trophy" aria-hidden="true"><Trophy size={30} strokeWidth={2.5} /></span></div>}
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
           <h1>{season && <>{season.cheer}<br /></>}{mission.title}<br />is on your map.</h1>
            <p className={storyOn && chapter ? 'fq-reward-note' : undefined}>{storyOn && chapter ? '' : 'You built it two ways, explained it, and finished the worksheet. '}{nextLessonOpen ? 'The next lesson is open!' : 'Finish the other lessons in this unit to open the next unit.'}</p>

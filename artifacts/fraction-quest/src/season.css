@@ -264,3 +264,14 @@
   background: color-mix(in srgb, var(--fq-month-edge) 55%, #000);
 }
 :root[data-fq-month]:not(.fq-high-contrast) .fq-node:not(.lock):active { box-shadow: 0 1px 0 var(--fq-month-edge); }
+
+/* The reward card in a month: the month's own dark shade (the same one the finished lesson nodes use, so white text
+   reads on it) with its node colour for the icon, the small label and the earned ring. High contrast keeps the plain card. */
+:root[data-fq-month]:not(.fq-high-contrast) .fq-season-reward {
+  color: #fff;
+  background: color-mix(in srgb, var(--fq-month-edge) 55%, #000);
+}
+:root[data-fq-month]:not(.fq-high-contrast) .fq-season-reward-icon { color: var(--fq-month-node); background: rgb(0 0 0 / .28); }
+:root[data-fq-month]:not(.fq-high-contrast) .fq-season-reward small { color: var(--fq-month-node); }
+:root[data-fq-month]:not(.fq-high-contrast) .fq-season-reward em { color: #fff; }
+:root[data-fq-month]:not(.fq-high-contrast) .fq-season-reward.is-earned { box-shadow: 0 0 0 3px var(--fq-month-node); }

@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from './fixtures';
 import { MISSIONS } from '../src/game';
+import { seasonOn } from '../src/seasons';
 import { completeIdeas, finishPutTogether } from './lesson-walk';
 
 type Page = import('@playwright/test').Page;
@@ -43,6 +44,14 @@ test('a child’s first screens pass an automated WCAG A/AA check: the map, a Le
   await page.setViewportSize({ width: 390, height: 844 });
   // Every month has a seasonal theme; A11Y_DATE (like 2026-03-15) runs the whole walk under that day's theme.
   if (process.env.A11Y_DATE) await page.clock.setFixedTime(new Date(`${process.env.A11Y_DATE}T10:00:00`));
+  // A11Y_SEASON_LESSONS (like 5) also starts with that many lessons finished this month: Numi wears the costumes earned by then.
+  if (process.env.A11Y_DATE && process.env.A11Y_SEASON_LESSONS) {
+    const key = seasonOn(new Date(`${process.env.A11Y_DATE}T10:00:00`))!.key;
+    const finished = Array.from({ length: Number(process.env.A11Y_SEASON_LESSONS) }, (_, at) => `lesson-${at}`);
+    await page.addInitScript(([seasonKey, lessons]) => {
+      if (localStorage.getItem('fraction-quest-fun-v1') === null) localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ seasonLessons: { [seasonKey as string]: lessons } }));
+    }, [key, finished] as const);
+  }
   await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Not signed in.' }) }));
   await page.goto('/');
   await page.getByTestId('button-play-guest').click();
@@ -86,10 +95,19 @@ test('the learning map passes the same check under every month’s theme, with t
   for (let month = 0; month < 12; month++) {
     await page.clock.setFixedTime(new Date(2026, month, 15, 10, 0, 0));
     await page.goto('/');
+    // A11Y_SEASON_LESSONS (like 5): the same walk with that many lessons finished in each month, so Numi wears its costumes.
+    if (process.env.A11Y_SEASON_LESSONS) {
+      await page.evaluate(([key, count]) => {
+        localStorage.clear();
+        localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ sound: false, seasonLessons: { [key as string]: Array.from({ length: Number(count) }, (_, at) => `lesson-${at}`) } }));
+      }, [seasonOn(new Date(2026, month, 15))!.key, process.env.A11Y_SEASON_LESSONS] as const);
+      await page.reload();
+    }
     const guest = page.getByTestId('button-play-guest');
     if (await guest.isVisible().catch(() => false)) await guest.click();
     await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
     await expect(page.getByTestId('season-banner')).toBeVisible();
+    if (process.env.A11Y_SEASON_LESSONS === '5') await expect(page.getByTestId('season-banner')).toContainText('You earned every costume.');
     found.push(...(await axeViolations(page, `the map in ${new Date(2026, month, 15).toLocaleString('en', { month: 'long' })}`)).map((item) => item.detail));
     // The banner's text must be readable on the colour behind it, and the page must not scroll sideways.
     expect(await page.evaluate(() => document.documentElement.scrollWidth), `month ${month + 1} fits 390`).toBeLessThanOrEqual(391);
