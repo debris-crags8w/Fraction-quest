@@ -120,7 +120,7 @@ export default function CodeSprint({ mission, best, onExit, onFinish }: { missio
   };
 
   const lanes = useMemo(() => [
-    { name: 'You', progress: phase === 'done' && won ? 1 : at / rounds.length, color: '#1C7ED6', icon: <Code2 size={20} /> },
+    { name: 'You', progress: phase === 'done' && won ? 1 : at / rounds.length, color: '#1971C2', icon: <Code2 size={20} /> },
     { name: 'Robot coder', progress: Math.min(1, elapsed / ROBOT_CODER_SECONDS), color: '#6B7280', icon: <Bot size={20} /> },
   ], [at, rounds.length, elapsed, phase, won]);
   const track = (

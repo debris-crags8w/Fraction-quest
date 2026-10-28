@@ -12,7 +12,7 @@
 .fq-subscribe-actions { display: grid; gap: 10px; width: 100%; max-width: 440px; margin-top: auto; }
 .fq-subscribe-actions .fq-button { min-height: 52px; }
 .fq-subscribe-actions .fq-button.ghost { color: #FFF6E5; border-color: #4A3D84; background: transparent; }
-.fq-subscribe-actions .fq-button.fq-subscribe-go { color: #fff; background: #FF8A1F; box-shadow: 0 4px 0 #B95300; }
+.fq-subscribe-actions .fq-button.fq-subscribe-go { color: #2B2D42; background: #FF8A1F; box-shadow: 0 4px 0 #B95300; }
 .fq-app.fq-subscribe-night { background: #1E1838; }
 
 .fq-paywall { min-height: 100dvh; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; max-width: 520px; padding: 16px 16px; }

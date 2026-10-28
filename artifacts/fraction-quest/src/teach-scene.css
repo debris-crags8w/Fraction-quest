@@ -48,7 +48,7 @@
 .fq-ts-bracket-line { width: 100%; height: 12px; box-sizing: border-box; border: 3px solid var(--fq-grape); border-top: none; border-radius: 0 0 8px 8px;
   transform: scaleX(0); transform-origin: left; transition: transform .7s ease-out; }
 .fq-ts-bracket.is-on .fq-ts-bracket-line { transform: scaleX(1); }
-.fq-ts-bracket-label { min-height: 1.4em; font-weight: 900; font-size: 1.15rem; color: var(--fq-grape); opacity: 0; transition: opacity .4s .5s; }
+.fq-ts-bracket-label { min-height: 1.4em; font-weight: 900; font-size: 1.15rem; color: #6A3DEA; opacity: 0; transition: opacity .4s .5s; }
 .fq-ts-bracket.is-on .fq-ts-bracket-label { opacity: 1; }
 .fq-ts-bracket:not(.is-on) { height: 0; overflow: hidden; }
 

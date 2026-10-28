@@ -1189,7 +1189,9 @@ function PlayView({
               </p>
               {/* Check sits right under the answers (not in a bar over them) so every answer stays in view. */}
               {feedback ? (
-                <div ref={sheetRef} className={`fq-sheet fq-inline-feedback ${feedback}`} data-testid="status-feedback" data-result={feedback}>
+                // Its own element (a key), not the Check row's element reused: with Reduce motion on, every style change takes one
+                // frame (a 0.01 ms transition), so a reused element has its old, shorter size when the page scrolls to it.
+                <div key="feedback" ref={sheetRef} className={`fq-sheet fq-inline-feedback ${feedback}`} data-testid="status-feedback" data-result={feedback}>
                   {feedback === 'correct' ? <Mascot mood="cheer" size={56} /> : <Hoot size={60} />}
                   <div className="fq-sheet-copy">
                     {feedback === 'correct'
@@ -1207,7 +1209,7 @@ function PlayView({
                   )}
                 </div>
               ) : (
-                <div className="fq-inline-check">
+                <div key="check" className="fq-inline-check">
                   {question.isOptionalReview ? (
                     <button className="fq-hint-button" onClick={skipOptionalReview} data-testid="button-skip-review">Skip this review</button>
                   ) : <span />}
@@ -1322,7 +1324,7 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame, 
             problem={storyProblemFor(mission.id) ?? undefined}
             sticker={lessonSticker(chapter, unitMissions.indexOf(mission), mission.title)}
             onSuspects={([1, 2] as SuspectBoard[]).filter((board) => BOARD_AFTER[board] === chapter.unit).map((board) => () => onSuspects(board))[0]} />}
-          <div className="fq-reward-stars" data-testid="status-mission-stars" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
+          <div className="fq-reward-stars" data-testid="status-mission-stars" role="img" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}
             <button className="fq-button ghost" onClick={onMap} data-testid="button-return-map"><MapIcon size={17} /> Learning map</button>
