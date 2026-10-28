@@ -607,11 +607,13 @@ for (const mode of MODES) {
   });
 }
 
-test('the learning map passes the same check under every month’s theme, with the banner showing and nothing sticking out', async ({ context }) => {
+test('the learning map passes the same check under every month’s theme, with the banner showing and nothing sticking out', async ({ browser }) => {
   test.setTimeout(240_000);
   const audits: Audit[] = [];
   for (let month = 0; month < 12; month++) {
     const day = new Date(2026, month, 15, 10, 0, 0);
+    // A fresh browser profile per month: the saved game from the month before must not carry over.
+    const context = await browser.newContext();
     const page = await context.newPage();
     // A11Y_SEASON_LESSONS (like 5): that many lessons already finished this month, so Numi wears the costumes earned by then.
     const finished = Number(process.env.A11Y_SEASON_LESSONS ?? 0);
@@ -632,7 +634,7 @@ test('the learning map passes the same check under every month’s theme, with t
       return banner.getBoundingClientRect().bottom - 44 - Math.max(...bottoms);
     });
     if (![9, 11].includes(month)) expect(clearance, `month ${month + 1}: banner text ends above the fade`).toBeGreaterThanOrEqual(0);
-    await page.close();
+    await context.close();
   }
   for (const audit of audits) audit.finish();
 });
