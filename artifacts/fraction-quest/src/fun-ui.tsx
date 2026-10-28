@@ -6,6 +6,8 @@ import { DAILY_GOAL, type FunState } from './lib/fun';
 import { LinkedFraction, PieFraction } from './fraction-ui';
 import { activeSeason, nextCostume, seasonLessonCount, seasonLine, unlockedCostumes, type Season } from './seasons';
 import { seasonalWords } from './seasonal-words';
+import { costumeLayer, MonthRewardIcon } from './costume-art';
+import type { MonthThemeId } from './month-themes';
 
 /* ---------- shared fun state ---------- */
 
@@ -123,19 +125,28 @@ export type MascotMood = 'happy' | 'thinking' | 'cheer' | 'oops';
 
 /** Numi, a living fraction: a head on top, the fraction bar for arms, and a round body cut into 2 equal halves
     with 1 shaded ("I am one half!"). The arms tilt with the mood. */
-export function Mascot({ mood = 'happy', size = 76 }: { mood?: MascotMood; size?: number }) {
+export function Mascot({ mood = 'happy', size = 76, named = false }: { mood?: MascotMood; size?: number; named?: boolean }) {
   const ink = '#2B2D42';
   const { season, costumes } = useSeason();
   const halloween = season?.id === 'halloween';
   const christmas = season?.id === 'christmas';
   const hatted = halloween || christmas;
+  // A month's costumes (month-themes.ts) are drawn in layers by costume-art.tsx; a month's hats rise above the head,
+  // so its mascot may draw outside its box.
+  const monthCostumes = season?.map ? costumes : [];
+  // Where Numi is the point (the map banner, the reward screen) the mascot says what Numi is wearing; everywhere
+  // else it stays decorative.
+  const worn = [...(halloween ? ['a witch hat'] : christmas ? ['a Santa hat'] : []), ...(season?.costumes ?? []).filter((item) => costumes.includes(item.id)).map((item) => item.label)];
+  const outfit = named && worn.length > 0 ? `Numi with ${worn.length > 1 ? `${worn.slice(0, -1).join(', ')} and ${worn[worn.length - 1]}` : worn[0]}` : null;
   // The body is one half shaded in every season: a pumpkin at Halloween, a red ornament at Christmas.
   const body = halloween ? { shade: '#D95F00', rest: '#FFAE5C', line: '#8A3F00' } : christmas ? { shade: '#C62F2F', rest: '#FFD9D9', line: '#7E1A1A' } : { shade: '#00B8A9', rest: '#fff', line: '#00897B' };
   const arms = mood === 'cheer' ? 'rotate(-12 40 41)' : mood === 'oops' ? 'rotate(8 40 41)' : mood === 'thinking' ? 'rotate(-5 40 41)' : undefined;
   const look = mood === 'thinking' ? 1.3 : 0; // eyes glance up and to the side
   return (
-    <svg className={`fq-mascot fq-mascot-${mood} ${season ? `is-${season.id}` : ''}`} width={size} height={size} viewBox={hatted ? '0 -14 80 94' : '0 0 80 80'} aria-hidden="true"
-      data-costume={halloween ? ['witch-hat', ...costumes].join(' ') : christmas ? ['santa-hat', ...costumes].join(' ') : undefined}>
+    <svg className={`fq-mascot fq-mascot-${mood} ${season ? `is-${season.id}` : ''}`} width={size} height={size} viewBox={hatted ? '0 -14 80 94' : '0 0 80 80'}
+      overflow={monthCostumes.length > 0 ? 'visible' : undefined} {...(outfit ? { role: 'img', 'aria-label': outfit } : { 'aria-hidden': true })}
+      data-costume={halloween ? ['witch-hat', ...costumes].join(' ') : christmas ? ['santa-hat', ...costumes].join(' ') : monthCostumes.length > 0 ? monthCostumes.join(' ') : undefined}>
+      {costumeLayer(monthCostumes, 'back')}
       {halloween && costumes.includes('bat-wings') && (
         <g className="fq-bat-wings">
           <path d="M30 56 C 22 40, 8 42, 0 48 C 6 51, 7 55, 6 60 C 11 56, 16 58, 18 62 C 21 57, 26 57, 30 60 Z" fill="#2B1B4D" />
@@ -173,10 +184,12 @@ export function Mascot({ mood = 'happy', size = 76 }: { mood?: MascotMood; size?
       <circle cx="30.4" cy="25.6" r="2.6" fill="#FF4B91" opacity=".35" />
       <circle cx="49.6" cy="25.6" r="2.6" fill="#FF4B91" opacity=".35" />
       {christmas && costumes.includes('scarf') && <Scarf />}
+      {costumeLayer(monthCostumes, 'face')}
       <g transform={arms}>
         <rect x="8" y="38.5" width="64" height="5" rx="2.5" fill="#FF9600" />
         <circle cx="8" cy="41" r="4.5" fill="#FFB547" />
         <circle cx="72" cy="41" r="4.5" fill="#FFB547" />
+        {costumeLayer(monthCostumes, 'hands')}
       </g>
       {/* The body is always one whole cut into 2 equal halves with 1 shaded. */}
       <path d="M40 46 L40 74 A14 14 0 0 1 40 46 Z" fill={body.shade} />
@@ -184,8 +197,10 @@ export function Mascot({ mood = 'happy', size = 76 }: { mood?: MascotMood; size?
       {halloween && <path d="M33 47.5 Q29.5 60 33 72.5 M47 47.5 Q50.5 60 47 72.5" stroke="#A84F00" strokeWidth="1.4" fill="none" />}
       <circle cx="40" cy="60" r="14" fill="none" stroke={body.line} strokeWidth="2.4" />
       <path d="M40 46 L40 74" stroke={body.line} strokeWidth="2.4" />
+      {costumeLayer(monthCostumes, 'front')}
       <rect x="31" y="74" width="7" height="4" rx="2" fill={ink} />
       <rect x="42" y="74" width="7" height="4" rx="2" fill={ink} />
+      {costumeLayer(monthCostumes, 'feet')}
       {mood === 'thinking' && (
         <>
           <circle cx="66" cy="12" r="4" fill="#FFC800" />
@@ -195,6 +210,7 @@ export function Mascot({ mood = 'happy', size = 76 }: { mood?: MascotMood; size?
       {mood === 'cheer' && <path d="M66 6 l2 5 5 .5 -4 3 1.3 5 -4.3-2.8 -4.3 2.8 1.3-5 -4-3 5-.5z" fill="#FFC800" />}
       {halloween && <WitchHat glow={costumes.includes('glow-hat')} />}
       {christmas && <SantaHat twinkle={costumes.includes('twinkle-hat')} />}
+      {costumeLayer(monthCostumes, 'head')}
     </svg>
   );
 }
@@ -385,7 +401,7 @@ export function SeasonBanner() {
   const next = nextCostume(season, count);
   return (
     <section className="fq-season-banner" aria-labelledby="season-title" data-testid="season-banner">
-      <Mascot mood="happy" size={84} />
+      <Mascot mood="happy" size={84} named />
       <div className="fq-season-banner-copy">
         <span className="fq-season-kicker">{season.name}</span>
         <h2 id="season-title">{season.title}</h2>
@@ -430,7 +446,9 @@ export function SeasonReward({ missionId }: { missionId: string }) {
   return (
     <div className={`fq-season-reward ${earned ? 'is-earned' : ''}`} data-testid="season-reward">
       <span className="fq-season-reward-icon" aria-hidden="true">
-        {season.id === 'christmas'
+        {season.map
+          ? <MonthRewardIcon id={season.id as MonthThemeId} />
+          : season.id === 'christmas'
           ? <svg width="34" height="34" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z" fill="currentColor" /></svg>
           : <svg width="40" height="30" viewBox="0 0 56 40"><path d="M28 22 C 18 8, 8 12, 4 16 C 10 18, 10 22, 9 26 C 15 22, 19 24, 21 28 C 23 24, 26 24, 28 26 C 30 24, 33 24, 35 28 C 37 24, 41 22, 47 26 C 46 22, 46 18, 52 16 C 48 12, 38 8, 28 22 Z" fill="currentColor" /></svg>}
       </span>

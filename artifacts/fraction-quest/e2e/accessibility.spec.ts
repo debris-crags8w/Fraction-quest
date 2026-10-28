@@ -4,6 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { MISSIONS } from '../src/game';
 import { getBuildChecks, getWorksheet, isYesNoProblem } from '../src/learning-content';
+import { seasonOn } from '../src/seasons';
 import { completeIdeas, finishPutTogether } from './lesson-walk';
 
 type Page = import('@playwright/test').Page;
@@ -606,16 +607,22 @@ for (const mode of MODES) {
   });
 }
 
-test('the learning map passes the same check under every month’s theme, with the banner showing and nothing sticking out', async ({ context }) => {
+test('the learning map passes the same check under every month’s theme, with the banner showing and nothing sticking out', async ({ browser }) => {
   test.setTimeout(240_000);
   const audits: Audit[] = [];
   for (let month = 0; month < 12; month++) {
     const day = new Date(2026, month, 15, 10, 0, 0);
+    // A fresh browser profile per month: the saved game from the month before must not carry over.
+    const context = await browser.newContext();
     const page = await context.newPage();
-    await openApp(page, { date: day });
+    // A11Y_SEASON_LESSONS (like 5): that many lessons already finished this month, so Numi wears the costumes earned by then.
+    const finished = Number(process.env.A11Y_SEASON_LESSONS ?? 0);
+    const fun = finished ? { seasonLessons: { [seasonOn(day)!.key]: Array.from({ length: finished }, (_, at) => `lesson-${at}`) } } : undefined;
+    await openApp(page, { date: day, fun });
     const audit = new Audit(page, ` in ${day.toLocaleString('en', { month: 'long' })}`);
     audits.push(audit);
     await expect(page.getByTestId('season-banner')).toBeVisible();
+    if (finished === 5) await expect(page.getByTestId('season-banner')).toContainText('You earned every costume.');
     await audit.scan('the map');
     // The page must not scroll sideways at 390.
     expect(await page.evaluate(() => document.documentElement.scrollWidth), `month ${month + 1} fits 390`).toBeLessThanOrEqual(391);
@@ -627,7 +634,7 @@ test('the learning map passes the same check under every month’s theme, with t
       return banner.getBoundingClientRect().bottom - 44 - Math.max(...bottoms);
     });
     if (![9, 11].includes(month)) expect(clearance, `month ${month + 1}: banner text ends above the fade`).toBeGreaterThanOrEqual(0);
-    await page.close();
+    await context.close();
   }
   for (const audit of audits) audit.finish();
 });

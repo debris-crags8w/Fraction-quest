@@ -9,6 +9,7 @@ import { answerShape, canBuild, SLOTS, slotsFromAnswer } from '../src/answer-sha
 import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
 import { generateQuestions, getExtraPractice, hasGenerator } from '../src/practice-bank';
 import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
+import { seasonOn } from '../src/seasons';
 import { completeIdeas, finishPutTogether, hasStoryAfterIdeas, solveSortRound } from './lesson-walk';
 import { makeSprint } from '../src/CodeSprint';
 import type { Mission } from '../src/game';
@@ -2924,6 +2925,51 @@ test('Christmas: a snowy map, a Santa hat and scarf, candy canes, story props, a
   await expect(page.getByTestId('status-frog-flies')).toContainText('Snowflakes');
 });
 
+test('A month theme (September): finishing lessons earns Numi a backpack and then an apple hat, in the banner and on the reward screen', async ({ page }) => {
+  test.setTimeout(150_000);
+  // A phone: the banner and the reward screen must fit 390 points wide.
+  await page.setViewportSize({ width: 390, height: 664 });
+  await page.clock.setFixedTime(new Date(2026, 8, 15, 10, 0, 0));
+  const mission = MISSIONS.find((item) => item.id === 'sets-nonunit')!;
+  await page.addInitScript((progress) => {
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(progress));
+    localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 40, sound: false, breakPreferences: { intervalMinutes: 0, quietMode: false }, seasonLessons: { 'september-2026': ['equal-parts', 'unit-fractions'], 'september-2025': ['equal-parts', 'unit-fractions', 'unit-size', 'unit-size-2', 'equal-shares'] } }));
+  }, progressBefore(mission));
+  await openAsGuest(page);
+
+  // Two lessons this September: plain Numi (last September's lessons do not count), one lesson from the backpack.
+  const banner = page.getByTestId('season-banner');
+  await expect(page.locator('html')).toHaveAttribute('data-fq-month', 'september');
+  await expect(banner).toContainText('Finish 1 more lesson to unlock a backpack.');
+  await expect(banner.locator('svg.fq-mascot')).not.toHaveAttribute('data-costume', /.+/);
+  await expect(banner.locator('svg.fq-mascot')).toHaveAttribute('aria-hidden', 'true');
+
+  // Finishing the third lesson earns the backpack: the reward screen says so and shows Numi wearing it.
+  await page.getByTestId(`button-start-mission-${mission.id}`).click();
+  await passStory(page);
+  await expect(page.getByTestId('learning-lab')).toBeVisible();
+  await completeBuilds(page, mission.id);
+  for (const problem of getWorksheet(mission.id)) {
+    await buildWorksheetModel(page, problem);
+    await enterWorksheetAnswer(page, problem, problem.answer);
+    await expect(page.getByTestId(`status-worksheet-${problem.id}`)).toContainText('Correct!');
+  }
+  await page.getByTestId('button-lab-finish').click();
+  await expect(page.getByTestId('status-mission-complete')).toContainText('Happy apple days!');
+  const reward = page.getByTestId('season-reward');
+  await expect(reward).toContainText('Costume unlocked');
+  await expect(reward).toContainText('A backpack');
+  await expect(reward).toContainText('2 more lessons for an apple hat.');
+  await expect(reward.locator('svg.fq-month-reward-icon')).toBeVisible();
+  const numi = page.locator('.fq-reward-mascot svg.fq-mascot');
+  await expect(numi).toHaveAttribute('data-costume', 'backpack');
+  await expect(numi).toHaveAttribute('aria-label', 'Numi with a backpack');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth), 'the reward screen is not wider than the phone').toBeLessThanOrEqual(391);
+  await page.getByTestId('button-return-map').click();
+  await expect(page.getByTestId('season-banner')).toContainText('Finish 2 more lessons to unlock an apple hat.');
+  await expect(page.getByTestId('season-banner').locator('svg.fq-mascot')).toHaveAttribute('aria-label', 'Numi with a backpack');
+});
+
 test('A month theme (March): the banner and points name show, a lesson uses its foods, and the grown-up switch turns it off', async ({ page }) => {
   test.setTimeout(120_000);
   await page.clock.setFixedTime(new Date(2026, 2, 10, 10, 0, 0));
@@ -2936,8 +2982,9 @@ test('A month theme (March): the banner and points name show, a lesson uses its 
   const banner = page.getByTestId('season-banner');
   await expect(banner).toContainText('March');
   await expect(banner).toContainText('Windy kites');
-  await expect(banner).toContainText('Up, up and away!');
-  await expect(banner).not.toContainText('costume');
+  // Numi's first costume is three lessons away (nothing has been finished this March).
+  await expect(banner).toContainText('Finish 3 more lessons to unlock a kite tail.');
+  await expect(banner.locator('svg.fq-mascot')).not.toHaveAttribute('data-costume', /.+/);
   await expect(page.getByTestId('status-xp')).toContainText('kites');
   // The lesson's pizza is a picnic pie; the numbers and the answer choices are untouched.
   await page.getByTestId(`button-start-mission-${MISSIONS[0].id}`).click();
@@ -3418,6 +3465,14 @@ test('every screen of every lesson fits an iPhone Safari screen: Learn pages, pr
   await page.setViewportSize({ width: 390, height: visible });
   // Every month has a seasonal theme: SMOKE_DATE (like 2026-03-15) runs the same walk under that day's theme.
   if (process.env.SMOKE_DATE) await page.clock.setFixedTime(new Date(`${process.env.SMOKE_DATE}T10:00:00`));
+  // SMOKE_SEASON_LESSONS (like 5) also starts with that many lessons finished this month, so Numi wears the costumes earned by then.
+  if (process.env.SMOKE_DATE && process.env.SMOKE_SEASON_LESSONS) {
+    const key = seasonOn(new Date(`${process.env.SMOKE_DATE}T10:00:00`))!.key;
+    const finished = Array.from({ length: Number(process.env.SMOKE_SEASON_LESSONS) }, (_, at) => `lesson-${at}`);
+    await page.addInitScript(([seasonKey, lessons]) => {
+      if (localStorage.getItem('fraction-quest-fun-v1') === null) localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ seasonLessons: { [seasonKey as string]: lessons } }));
+    }, [key, finished] as const);
+  }
   // One review is due (from lesson 1), so every other lesson's "Put it together" asks it before the story problem.
   const reviewed = MISSIONS[0]!;
   const progress = { completedMissionIds: [], starsByMission: {}, assessments: [], learning: {},
