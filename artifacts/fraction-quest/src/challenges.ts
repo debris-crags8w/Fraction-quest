@@ -32,7 +32,7 @@ const step = (prompt: string, choices: ChallengeStep['choices'], correct: number
 
 export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   1: [
-    q('u1-p1', 3, 'What fraction of the rectangle is shaded?', ['1/3', '3/8', '3/5', '5/8'], 1, '8 equal squares. 3 are shaded. So 3/8.', { kind: 'grid', rows: 2, cols: 4, shaded: [0, 3, 5] }),
+    q('u1-p1', 3, 'What fraction of the rectangle is shaded?', ['1/3', '3/8', '3/4', '5/8'], 1, '8 equal squares. 3 are shaded. So 3/8.', { kind: 'grid', rows: 2, cols: 4, shaded: [0, 3, 5] }),
     q('u1-c1', 3, 'A chocolate bar has 12 equal squares. Ana eats 1/4 of it. How many squares does she eat?', ['2', '3', '4', '6'], 1, '12 in 4 equal groups is 3 each.'),
     q('u1-c2', 3, 'A pizza has 8 equal slices. Tom eats 1 slice. Mia eats 2 slices. What fraction is left?', ['3/8', '4/8', '5/8', '6/8'], 2, '3 slices are eaten. 5 are left. So 5/8.'),
     q('u1-c3', 4, 'Sam folds a paper strip in half. Then he folds it in half again. He opens it. What fraction is each part?', ['1/2', '1/3', '1/4', '1/8'], 2, 'Half, then half again, makes 4 equal parts.', { kind: 'fold', folds: [2, 2] }, [
@@ -48,7 +48,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   ],
   2: [
     q('u2-p1', 3, 'What fraction of the dots are shaded?', ['1/4', '1/3', '1/2', '2/3'], 1, '4 of 12 dots are shaded. 12 in 3 groups of 4, so 1/3.', { kind: 'dots', rows: 3, cols: 4, shaded: [1, 4, 6, 11] }),
-    q('u2-c1', 3, 'The cakes are all the same size. Which part is the biggest?', ['1/2', '1/3', '1/5', '1/8'], 0, 'Fewer parts means bigger parts. Halves are biggest.'),
+    q('u2-c1', 3, 'The cakes are all the same size. Which part is the biggest?', ['1/2', '1/3', '1/4', '1/8'], 0, 'Fewer parts means bigger parts. Halves are biggest.'),
     q('u2-c2', 3, 'Which is bigger, 3/5 or 3/8?', ['3/5', '3/8', 'They are equal', "You can't tell"], 0, 'Both are 3 parts. Bigger parts come from cutting in 5, so 3/5 is bigger.'),
     q('u2-c3', 4, 'Mia eats 1/4 of a pizza. Leo eats 1/6 of a pizza the same size. Who eats more?', ['Leo', 'Mia', 'They eat the same', "You can't tell"], 1, 'Fourths are bigger than sixths. One fourth is more than one sixth, so Mia eats more.', undefined, [
       step('Which piece is bigger, 1/4 or 1/6?', ['1/6', '1/4', 'They are equal', "You can't tell"], 1),
@@ -66,11 +66,11 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   ],
   3: [
     q('u3-p1', 3, 'Which bar has more than half shaded?', ['A', 'B', 'C', 'D'], 3, 'Bar D is 5 of 8. Half of 8 is 4, and 5 is more.', { kind: 'bars', bars: [{ n: 2, d: 5, label: 'A' }, { n: 3, d: 7, label: 'B' }, { n: 4, d: 9, label: 'C' }, { n: 5, d: 8, label: 'D' }] }),
-    q('u3-c1', 3, 'Which fraction is more than 1/2?', ['2/5', '3/7', '4/9', '5/8'], 3, 'Half of 8 is 4. 5 is more than 4.'),
+    q('u3-c1', 3, 'Which fraction is more than 1/2?', ['2/5', '3/7', '4/11', '5/8'], 3, 'Half of 8 is 4. 5 is more than 4.'),
     q('u3-c2', 3, 'Which fraction is closest to 1?', ['2/3', '3/4', '4/5', '5/6'], 3, 'Each is 1 part short of 1. Sixths are the smallest parts, so 5/6 is closest.'),
-    q('u3-c3', 4, 'Which fraction is closest to 0?', ['1/5', '2/9', '1/4', '3/10'], 0, '1/5 is the smallest. 2/9 and 1/4 are a little bigger.'),
+    q('u3-c3', 4, 'Which fraction is closest to 0?', ['1/5', '2/7', '1/4', '3/8'], 0, '1/5 is the smallest. 1/4 and 2/7 are a little bigger.'),
     q('u3-c4', 4, 'A glass is 3/8 full. How much more water makes it exactly half full?', ['1/8', '2/8', '3/8', '4/8'], 0, 'Half is 4/8. 3/8 needs 1 more eighth: 1/8.'),
-    q('u3-c5', 5, 'Which fraction is exactly 1/2?', ['4/9', '9/18', '5/9', '4/10'], 1, 'Half of 18 is 9. So 9/18 is exactly half.'),
+    q('u3-c5', 5, 'Which fraction is exactly 1/2?', ['3/7', '9/18', '4/7', '5/11'], 1, 'Half of 18 is 9. So 9/18 is exactly half.'),
   ],
   4: [
     q('u4-p1', 3, 'What fraction is at the dot?', ['2/5', '3/5', '3/4', '4/5'], 1, '0 to 1 has 5 equal spaces. The dot is 3 spaces from 0.', { kind: 'line', n: 3, d: 5 }),
@@ -100,7 +100,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u6-p1', 3, 'The top bar shows 1/2. How many parts of the bottom bar must you shade to show the same amount?', ['1', '2', '4', '8'], 2, 'The bottom bar has 8 parts. Half of 8 is 4.', { kind: 'bars', bars: [{ n: 1, d: 2 }, { n: 0, d: 8 }] }),
     q('u6-c1', 3, 'Which fraction is the same as 1/2?', ['2/3', '3/6', '2/5', '3/5'], 1, 'Half of 6 is 3. So 3/6 = 1/2.'),
     q('u6-c2', 3, '2/3 = ?/12. What is the missing number?', ['4', '6', '8', '9'], 2, '3 × 4 = 12. So 2 × 4 = 8.'),
-    q('u6-c3', 4, 'Which fraction is NOT the same as 1/3?', ['2/6', '3/9', '4/12', '5/14'], 3, '5 × 3 = 15, not 14. So 5/14 is not 1/3.'),
+    q('u6-c3', 4, 'Which fraction is NOT the same as 1/3?', ['2/6', '6/18', '4/12', '5/14'], 3, '5 × 3 = 15, not 14. So 5/14 is not 1/3.'),
     q('u6-c4', 4, 'Two pizzas are the same size. One is cut into 4 slices. One is cut into 8 slices. Mia eats 1 slice of the first pizza. How many slices of the second pizza is the same amount?', ['1', '2', '4', '8'], 1, '1/4 = 2/8. So 2 slices.', undefined, [
       step('The first pizza has 4 slices. Mia eats 1. What fraction did she eat?', ['1/3', '1/4', '1/8', '4/1'], 1),
       step('Cut each of those 4 slices in half. How many slices of the second pizza fit in 1/4?', ['1', '2', '8', '4'], 1),
@@ -114,7 +114,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u7-c3', 4, 'How many 1/6 parts make 2 wholes?', ['2', '6', '8', '12'], 3, '6 parts make one whole. 12 make 2.'),
     q('u7-c4', 4, 'Which sum does NOT make one whole?', ['1/4 + 3/4', '2/5 + 3/5', '3/8 + 4/8', '1/2 + 1/2'], 2, '3/8 + 4/8 = 7/8. That is not a whole.'),
     q('u7-c5', 5, 'Jo has 7/3 cups of flour. Each cake needs 2/3 cup. How many whole cakes can Jo make?', ['2', '3', '4', '7'], 1, '3 cakes use 6/3. 4 cakes need 8/3, which is too much.', undefined, [
-      step('1 cake needs 2/3 cup. How much do 3 cakes need?', ['5/3', '6/3', '8/3', '6/9'], 1),
+      step('1 cake needs 2/3 cup. How much do 3 cakes need?', ['5/3', '6/3', '8/3', '6/8'], 1),
       step('How much do 4 cakes need?', ['8/3', '7/3', '8/12', '6/3'], 0),
       step('Jo has 7/3. 6/3 fits but 8/3 does not. How many whole cakes?', ['7', '4', '2', '3'], 3),
     ]),
@@ -138,7 +138,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     q('u9-p1', 3, 'What fraction of the rectangle is shaded? Give it in simplest form.', ['3/5', '2/3', '3/4', '4/5'], 1, '8 of 12 squares are shaded. Divide the numerator and denominator by 4: 8/12 = 2/3.', { kind: 'grid', rows: 3, cols: 4, shaded: [0, 1, 2, 4, 5, 6, 8, 9] }),
     q('u9-c1', 3, 'Which fraction is NOT the same as 1/2?', ['2/4', '3/6', '4/9', '5/10'], 2, 'Doubling the numerator should give the denominator. Double 4 is 8, not 9.'),
     q('u9-c2', 3, '3/4 = ?/20. What is the missing number?', ['12', '15', '16', '5'], 1, '4 × 5 = 20. So multiply the numerator by 5 too: 3 × 5 = 15.'),
-    q('u9-c3', 4, 'Which fraction is between 1/2 and 1?', ['2/5', '3/7', '4/9', '5/8'], 3, 'Half of 8 is 4. 5 is more than 4, so 5/8 is more than 1/2. The others are less than half.'),
+    q('u9-c3', 4, 'Which fraction is between 1/2 and 1?', ['2/5', '3/7', '5/12', '5/8'], 3, 'Half of 8 is 4. 5 is more than 4, so 5/8 is more than 1/2. The others are less than half.'),
     q('u9-c4', 4, 'Ana ate 2/3 of a pizza. Ben ate 3/4 of a pizza. Cal ate 5/6 of a pizza. The pizzas are the same size. Who ate the most?', ['Ana', 'Ben', 'Cal', 'Ana and Ben'], 2, 'Use twelfths: 2/3 = 8/12, 3/4 = 9/12, 5/6 = 10/12. Cal ate the most.', undefined, [
       step('Change 2/3 to twelfths.', ['4/12', '8/12', '6/12', '2/12'], 1),
       step('Change 3/4 to twelfths.', ['3/12', '4/12', '9/12', '7/12'], 2),

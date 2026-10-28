@@ -8,6 +8,7 @@ import { gardenModel, type GardenSide } from './garden';
 import { answerMatches, asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 import { FRACTION_STANDARDS, standardsForMission, type StandardId } from './standard-catalog';
 import { scopedStorageKey } from './storage-scope';
+import { ideaOfQuestion, partTaught, withTaughtParts } from './taught-parts';
 
 /** `named`: the question states this fraction, so the bar shows its label (other bars are labelled once answered). */
 /** `untilAnswered`: this bar shows the answer, so it stays hidden until the child answers (then it confirms it). */
@@ -445,22 +446,29 @@ function spreadAnswer<T extends { choices: string[]; correctChoice: number }>(qu
   return { ...question, choices: others, correctChoice: spot };
 }
 
+/** A wrong choice never writes a part name (fifths, ninths …) before a card has taught it (taught-parts.ts). A question
+    whose own prompt or right answer needs one stays as written: the teaching check in teach-extras.test.ts names it. */
+const onlyTaughtParts = (question: PracticeQuestion, missionId: string): PracticeQuestion => {
+  const idea = ideaOfQuestion(missionId, question.id);
+  return withTaughtParts(question, (d) => partTaught(d, COURSE_IDS, missionId, idea)) ?? question;
+};
+
 function mission({ ideaQuestions: ideaSeeds, ...seed }: MissionSeed & { unit: number }): Mission {
   const standards = standardsForMission(seed.id);
-  const questions = seed.questions.map((question, index) => noBeforeYes(spreadAnswer({
+  const questions = seed.questions.map((question, index) => onlyTaughtParts(noBeforeYes(spreadAnswer({
     ...question,
     choices: withUnits(question.prompt, withoutOverOne(question.prompt, question.choices, question.correctChoice)),
     id: `${seed.id}-q${index + 1}`,
     isMastery: index === seed.questions.length - 1,
     standards: [...standards],
-  }, `${seed.id}-q${index + 1}`)));
-  const ideaQuestions = ideaSeeds?.map((question, index) => noBeforeYes(spreadAnswer({
+  }, `${seed.id}-q${index + 1}`)), seed.id));
+  const ideaQuestions = ideaSeeds?.map((question, index) => onlyTaughtParts(noBeforeYes(spreadAnswer({
     ...question,
     choices: withUnits(question.prompt, withoutOverOne(question.prompt, question.choices, question.correctChoice)),
     id: `${seed.id}-p${index + 1}`,
     isMastery: false,
     standards: [...standards],
-  }, `${seed.id}-p${index + 1}`)));
+  }, `${seed.id}-p${index + 1}`)), seed.id));
   return {
     ...seed,
     ...(ideaQuestions ? { ideaQuestions } : {}),
@@ -696,7 +704,7 @@ const curriculum: MissionSeed[] = [
       model: line(1, 3),
     },
     questions: [
-      practice('0 to 1 has 8 equal spaces. What is 1 jump?', ['1/8', '1/7', '8/1'], 0, line(1, 8), 'Count the spaces from 0 to 1.', '8 jumps make one whole. So 1 jump is 1/8.', line(1, 2)),
+      practice('0 to 1 has 6 equal spaces. What is 1 jump?', ['1/6', '1/7', '6/1'], 0, line(1, 6), 'Count the spaces from 0 to 1.', '6 jumps make one whole. So 1 jump is 1/6.', line(1, 2)),
       practice('How many spaces do you need for fourths?', ['4 spaces', '3 spaces', '5 spaces'], 0, { kind: 'line', numerator: 0, denominator: 1, wholes: 1, hideLabels: true }, 'The denominator tells how many equal spaces go from 0 to 1.', 'Fourths need 4 spaces from 0 to 1.', line(1, 2)),
       practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps back from 1', '5 jumps from 0'], 0, line(0, 8), 'The numerator tells how many jumps from 0.', 'The numerator 3 means 3 jumps.', line(1, 4)),
       practice('0 to 1 has 6 equal spaces. Where do 5 jumps land?', ['5/6', '6/5', '1/5'], 0, line(5, 6), 'Count 5 jumps from 0.', '5 jumps of 1/6 is 5/6.', line(2, 4)),
@@ -1217,7 +1225,7 @@ const extensionTopics: ExtensionTopic[] = [
         bars(...Array.from({ length: 4 }, () => ({ numerator: 2, denominator: 5 }))), 'Count the fifths in all 4 groups. They stay fifths.',
         '2 + 2 + 2 + 2 = 8 fifths: 8/5.', bars(...Array.from({ length: 4 }, () => ({ numerator: 2, denominator: 5 }))), { authoredChoices: true }),
       // Idea 3: the same as copies of the unit fraction, or jumps on a line.
-      practice('Which is the same as 3 × 2/5?', ['6 × 1/5', '5 × 1/6', '3 × 1/5', '6 × 1/15'], 0,
+      practice('Which is the same as 3 × 2/5?', ['6 × 1/5', '5 × 1/6', '3 × 1/5', '6 × 1/12'], 0,
         bars(...Array.from({ length: 3 }, () => ({ numerator: 2, denominator: 5 }))), '3 groups of 2 fifths is how many fifths?',
         '3 × 2/5 = 6/5, and 6/5 = 6 × 1/5: six fifths.', bars(...Array.from({ length: 3 }, () => ({ numerator: 2, denominator: 5 }))), { authoredChoices: true }),
       practice('A frog jumps 3/8 each time. Where is it after 2 jumps?', ['6/8', '6/16', '5/8', '3/16'], 0,
@@ -2315,6 +2323,7 @@ function placeOf(id: string): { unit: number; at: number } {
 const course = [...curriculum, ...extensionTopics.map(extensionMission)]
   .map((seed) => ({ ...seed, unit: placeOf(seed.id).unit }))
   .sort((a, b) => a.unit - b.unit || placeOf(a.id).at - placeOf(b.id).at);
+const COURSE_IDS = course.map((lesson) => lesson.id);
 if (course.length !== Object.values(LESSON_PLAN).flat().length) throw new Error('LESSON_PLAN must list every lesson exactly once');
 
 export const MISSIONS: Mission[] = course.map((seed, index) => {

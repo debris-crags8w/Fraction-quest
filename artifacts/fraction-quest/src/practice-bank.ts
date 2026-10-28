@@ -4,6 +4,7 @@ import { preferMisconceptions, withoutOverOne } from './misconceptions';
 import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
 import { G3_EQUIVALENTS_WIDE, answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, equivalentsFor, getWorksheet, gradeFits, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
+import { onlyTaught, partTaught, withTaughtParts } from './taught-parts';
 import { circleCut, gridCut, type AreaCut } from './area-shapes';
 
 /* Question generator: every lesson has a recipe that picks numbers within safe limits.
@@ -708,6 +709,9 @@ export function oneIsSingular(text: string): string {
     .replace(new RegExp(`(^|[^\\d/.])1 (${COUNT_NOUNS})s\\b`, 'g'), '$11 $2');
 }
 
+/** The parts a picture is cut into, written as fractions ("1/5") so the taught-parts check reads them like a sentence. */
+const pictureDenominators = (model: ModelSpec): string[] => [...JSON.stringify(model).matchAll(/"denominator":(\d+)/g)].map((match) => `1/${match[1]}`);
+
 export function generateQuestions(missionId: string, baseQuestionIds: string[], seed: number, count: number): PracticeQuestion[] {
   const recipe = RECIPES[missionId];
   if (!recipe) throw new Error(`No question generator for ${missionId}`);
@@ -717,6 +721,8 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
     .map((question) => `${question.prompt}|${question.choices[question.correctChoice]}`));
   const fresh: Omit<PracticeQuestion, 'id' | 'reviewQuestionId'>[] = []; const fromLesson: typeof fresh = []; const repeats: typeof fresh = [];
   const seen = new Set<string>();
+  const order = MISSIONS.map((mission) => mission.id);
+  const taught = (d: number) => partTaught(d, order, missionId);
   for (let i = 0; fresh.length < count && i < count * 30; i++) {
     const rng = makeRng(hash(`${missionId}:${seed}:${i}`));
     const item = recipe(rng);
@@ -725,14 +731,21 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
       prompt: oneIsSingular(item.prompt),
       ...noBeforeYes(signedOrder(item.prompt, slipChoicesFor(missionId, item.prompt, withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3))))),
     };
+    const model = nameBars(item.model, item.prompt);
+    const simplerModel = nameBars(item.simpler ?? withLabels(item.model), item.prompt);
+    // No part name before its card (taught-parts.ts): a wrong choice that writes one is swapped for a real slip;
+    // a question whose own prompt, right answer, help or picture needs one is left out for another.
+    const choices = withoutOverOne(placed.prompt, placed.choices, placed.correctChoice);
+    const kept = withTaughtParts({ ...placed, choices, model, simplerModel }, taught);
+    if (!kept || !onlyTaught([item.hint, item.retry, ...pictureDenominators(model)], taught)) continue;
     const question = {
       ...placed,
-      choices: withUnits(placed.prompt, withoutOverOne(placed.prompt, placed.choices, placed.correctChoice)),
+      choices: withUnits(placed.prompt, kept.choices),
       hint: oneIsSingular(item.hint),
       retryFeedback: oneIsSingular(item.retry),
-      model: nameBars(item.model, item.prompt),
+      model: kept.model,
       // Help shows the same picture, now with its labels, so it is about this question.
-      simplerModel: nameBars(item.simpler ?? withLabels(item.model), item.prompt),
+      simplerModel: kept.simplerModel,
       standards: [...standardsForMission(missionId)],
     };
     (seen.has(key) ? repeats : lessonQuestions.has(`${question.prompt}|${question.choices[question.correctChoice]}`) ? fromLesson : fresh).push(question);
