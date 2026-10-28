@@ -1,6 +1,8 @@
 /* Read-aloud helpers: choose a gentle, natural-sounding woman's voice when the device has one, kid-friendly wording
    ("three fourths", not "3 over 4"), a calm pace, and sentence splitting for pauses. LearningText does the speaking. */
 
+import { PART_NAMES } from '../intro-copy';
+
 type VoiceLike = Pick<SpeechSynthesisVoice, 'name' | 'lang'> & { default?: boolean };
 
 // Warm female voices found on common devices (Apple, Microsoft Edge "Natural", Google, Android network voices).
@@ -45,14 +47,8 @@ export function selectLearningVoice<V extends VoiceLike>(voices: readonly V[], l
 }
 
 const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
-const PARTS: Record<number, [string, string]> = {
-  2: ['half', 'halves'], 3: ['third', 'thirds'], 4: ['fourth', 'fourths'], 5: ['fifth', 'fifths'], 6: ['sixth', 'sixths'],
-  7: ['seventh', 'sevenths'], 8: ['eighth', 'eighths'], 9: ['ninth', 'ninths'], 10: ['tenth', 'tenths'], 12: ['twelfth', 'twelfths'],
-  11: ['eleventh', 'elevenths'], 15: ['fifteenth', 'fifteenths'], 16: ['sixteenth', 'sixteenths'], 20: ['twentieth', 'twentieths'],
-  14: ['fourteenth', 'fourteenths'], 18: ['eighteenth', 'eighteenths'], 24: ['twenty-fourth', 'twenty-fourths'],
-  28: ['twenty-eighth', 'twenty-eighths'], 32: ['thirty-second', 'thirty-seconds'],
-  25: ['twenty-fifth', 'twenty-fifths'], 50: ['fiftieth', 'fiftieths'], 100: ['hundredth', 'hundredths'],
-};
+/** Part names for Listen come from the course's own list (intro-copy.ts PART_NAMES), so a name Listen says is always one a card teaches. */
+const PARTS: Record<number, [string, string]> = Object.fromEntries(Object.entries(PART_NAMES).map(([d, name]) => [d, [name.one, name.many]]));
 const count = (n: number) => (n <= 12 ? ONES[n] : String(n));
 /** "3/4" → "three fourths", "1/2" → "one half", "2/1" → "2", "7/30" → "7 over 30". */
 export function sayFraction(top: number, bottom: number): string {

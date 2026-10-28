@@ -70,11 +70,18 @@ export const HELPER_PICK_SPEECH = [
   'Fraction names. One half, one third, one fourth, and more.',
 ];
 
-/** The name of one part for each denominator a lesson uses ("third" for 3). */
+/** The name of one part for each denominator the course writes and Listen can name ("sixteenth" for 16). This is the one
+    list: Listen (lib/voice.ts) reads "1/16" as "one sixteenth" from it, and every name here is taught by a card (the
+    Words screen, a word card on an idea's Learn page, or a lesson page's New word card: new-words.ts). */
 export const PART_NAMES: Readonly<Record<number, { one: string; many: string }>> = {
   2: { one: 'half', many: 'halves' }, 3: { one: 'third', many: 'thirds' }, 4: { one: 'fourth', many: 'fourths' },
-  5: { one: 'fifth', many: 'fifths' }, 6: { one: 'sixth', many: 'sixths' }, 8: { one: 'eighth', many: 'eighths' },
-  9: { one: 'ninth', many: 'ninths' }, 10: { one: 'tenth', many: 'tenths' }, 12: { one: 'twelfth', many: 'twelfths' }, 15: { one: 'fifteenth', many: 'fifteenths' }, 100: { one: 'hundredth', many: 'hundredths' },
+  5: { one: 'fifth', many: 'fifths' }, 6: { one: 'sixth', many: 'sixths' }, 7: { one: 'seventh', many: 'sevenths' },
+  8: { one: 'eighth', many: 'eighths' }, 9: { one: 'ninth', many: 'ninths' }, 10: { one: 'tenth', many: 'tenths' },
+  11: { one: 'eleventh', many: 'elevenths' }, 12: { one: 'twelfth', many: 'twelfths' }, 14: { one: 'fourteenth', many: 'fourteenths' },
+  15: { one: 'fifteenth', many: 'fifteenths' }, 16: { one: 'sixteenth', many: 'sixteenths' }, 18: { one: 'eighteenth', many: 'eighteenths' },
+  20: { one: 'twentieth', many: 'twentieths' }, 24: { one: 'twenty-fourth', many: 'twenty-fourths' }, 25: { one: 'twenty-fifth', many: 'twenty-fifths' },
+  28: { one: 'twenty-eighth', many: 'twenty-eighths' }, 32: { one: 'thirty-second', many: 'thirty-seconds' }, 50: { one: 'fiftieth', many: 'fiftieths' },
+  100: { one: 'hundredth', many: 'hundredths' },
 };
 
 /** The Words screen in a child's first lesson (page 2): the part names they meet first, each with a bar of equal parts and one part
@@ -113,5 +120,5 @@ export function fractionWordsSpeech(): string[] {
   ];
 }
 
-/** A lesson's "New word" card, for a part name the child hasn't met before (fifths, tenths, twelfths, hundredths, ninths, fifteenths). */
+/** A lesson's "New word" card, for a part name the child hasn't met before (fifths, tenths, sixteenths, hundredths …). */
 export const newWordSpeech = (d: number) => `New word. 1 of ${d} equal parts is one ${PART_NAMES[d].one}. ${d} equal parts are ${PART_NAMES[d].many}.`;

@@ -29,6 +29,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       learn: [
         { text: 'Count the equal parts. That number is the denominator.', scene: scenes('unit-fractions').steps[1]! },
         { text: 'A unit fraction is one equal part. Write 1 on top.', scene: scenes('unit-fractions').steps[2]! },
+        newWord(7),
         { text: 'Every unit fraction has 1 on top. It is one part, big or small.', scene: scenes('unit-fractions').why },
       ],
       practice: [{ question: 'unit-fractions-q2' }, { question: 'unit-fractions-q4' }, { question: 'unit-fractions-q1' }],
