@@ -25,6 +25,7 @@ import { OPENERS, SLIPS } from '../src/wrong-answer';
 import { WHY } from '../src/slip-reasons';
 import { getCodeLevels, goal, sprintTargets } from '../src/code-quest';
 import { dailyBuildSpeech } from '../src/daily-practice';
+import { NEW_WORD_LESSON } from '../src/new-words';
 import { HELPER_PICK_SPEECH, fractionWordsSpeech, introSpeech, newWordSpeech, whatIsAFractionSpeech } from '../src/intro-copy';
 import { guideForUnit } from '../src/teaching-guide-data';
 import { TIME_UP_SPEECH } from '../src/time-up-copy';
@@ -174,7 +175,7 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
   }
   // The lesson page's section Listen buttons, and the model intros (how to build, how a number line works).
   [...introSpeech('builder'), ...introSpeech('line')].forEach((line) => addLine('lesson', line));
-  [...whatIsAFractionSpeech(), ...fractionWordsSpeech(), ...[5, 10, 12, 100].map(newWordSpeech)].forEach((line) => addLine('lesson', line));
+  [...whatIsAFractionSpeech(), ...fractionWordsSpeech(), ...Object.keys(NEW_WORD_LESSON).map((d) => newWordSpeech(Number(d)))].forEach((line) => addLine('lesson', line));
   Object.values(LAB_SECTION_SPEECH).forEach((line) => addLine('lesson', line));
   for (const mission of MISSIONS) {
     addLine('worksheet', worksheetSpeech(safe(() => getWorksheet(mission.id))?.length ?? 0));

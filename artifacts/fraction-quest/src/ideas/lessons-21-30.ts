@@ -1,6 +1,6 @@
 /* The ideas of lessons 21–30 (see lesson-ideas.ts): each lesson's ideas in order, each with its Learn pages and 3
    practices. Lesson 1 (ideas/lessons-01.ts) is the model. */
-import { example, scenes, wordsToKnow, type LessonIdea } from './helpers';
+import { example, newWord, scenes, wordsToKnow, type LessonIdea } from './helpers';
 
 /** Part names in words, for "as thirds". */
 const PART_NAMES = 'halves|thirds|fourths|fifths|sixths|eighths|tenths|twelfths';
@@ -24,6 +24,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       terms: [{ term: 'the + sign, adding and sums', pattern: /\+|\bsums?\b|\badd\b/i }],
       learn: [
         wordsToKnow('compose-to-one', ['+', 'sum', 'cup']),
+        newWord(16),
         example('compose-to-one', '+ means put together'),
         { text: 'Add the numerators: 2 fifths and 3 fifths make 5 fifths.', scene: scenes('compose-to-one').steps[1]! },
       ],

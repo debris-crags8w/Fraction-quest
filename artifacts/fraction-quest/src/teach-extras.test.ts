@@ -6,8 +6,9 @@ import { FRACTION_WORDS, PART_NAMES } from './intro-copy';
 import { getBuildChecks, getBuildPracticeChecks, getReviewCheck, getWorksheet } from './learning-content';
 import { LESSON_IDEAS, type LearnPage } from './lesson-ideas';
 import { LESSON_INTROS } from './lesson-intros';
+import { sayFraction } from './lib/voice';
 import { newWordsFor } from './new-words';
-import { getExtraPractice } from './practice-bank';
+import { generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
 import { chapterFor, lessonCliff, lessonComic, storyProblemFor } from './story';
 import { TAUGHT_IN, TEACH_EXTRAS } from './teach-extras';
 import { LESSON_SCENES, type SceneRow } from './teach-scenes';
@@ -160,7 +161,7 @@ test('no screen writes a unit as a short symbol the course never teaches (m, km,
 
 /** Every part name a lesson says (not the numbers: "24ths" is a number with "ths"). Lessons write names three ways:
     in their ideas (Learn pages and practices), on the lesson page and in the story around it. */
-const PART_NAME_WORD = /\b(?:halves|quarters?|[a-z]*(?:fif|six|seven|eigh|nin|ten|elev|twelf|hundred|thousand|teen|ieth|four)[a-z]*ths?|\d+ths)\b/gi;
+const PART_NAME_WORD = /\b(?:halves|quarters?|twentieths?|thirty-seconds?|[a-z]*(?:fif|six|seven|eigh|nin|ten|elev|twelf|hundred|thousand|teen|ieth|four)[a-z]*ths?|\d+ths)\b/gi;
 
 test('a part name the first-lesson Words screen does not teach (fifths, tenths …) is on a New word card, or a word card, before the screen that first says it', () => {
   const wordsTaught = new Set(FRACTION_WORDS.rows.map((row) => row.d));
@@ -226,4 +227,118 @@ test('a Words-to-know term no TAUGHT_IN row covers is not used on any screen of 
   }
   assert.ok(checked >= 1, 'a word card with no TAUGHT_IN row of its own is checked here (multiples)');
   assert.deepEqual([...new Set(early)], []);
+});
+
+/** Every fraction a/d (d of 2 or more) written on a screen whose denominator Listen can name ("1/16" is read "one
+    sixteenth"): each denominator is taught by a card (the first-lesson Words screen, a word card on an idea's Learn page
+    or the lesson page's New word card) at or before the first screen that writes it. Screens are read in the order a
+    child meets them: the Words screen, then each idea (Learn pages one by one, then its practices), then the rest of the
+    lesson page (a New word card sits at its top). */
+const WRITTEN_FRACTION = /(\d+)\s*\/\s*(\d+)/g;
+type Place = [lesson: number, idea: number, page: number];
+const WORDS_SCREEN: Place = [0, -1, 0];
+const LAB_CARD_IDEA = 98;
+const REST_OF_LESSON = 99;
+const PRACTICE_PAGE = 1000;
+const before = (a: Place, b: Place) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+
+/** Denominators Listen names with a part name rather than "over". */
+const namedByListen = (d: number) => d >= 2 && !sayFraction(1, d).includes(' over ');
+
+function writtenFractionUses(): Map<number, { at: Place; text: string; source: string }> {
+  const first = new Map<number, { at: Place; text: string; source: string }>();
+  let source = '';
+  const note = (text: string, at: Place) => {
+    for (const match of text.matchAll(WRITTEN_FRACTION)) {
+      const d = Number(match[2]);
+      if (!namedByListen(d)) continue;
+      const seen = first.get(d);
+      if (!seen || before(at, seen.at) < 0) first.set(d, { at, text, source });
+    }
+  };
+  MISSIONS.forEach((mission, lesson) => {
+    const ideas = LESSON_IDEAS[mission.id] ?? [];
+    const questions = [...mission.questions, ...(mission.ideaQuestions ?? [])];
+    ideas.forEach((idea, k) => {
+      source = 'Learn page';
+      idea.learn.forEach((page, j) => learnText(page).forEach((text) => note(text, [lesson, k, j])));
+      source = 'idea practice';
+      idea.practice.forEach((item) => {
+        if (!('question' in item)) return;
+        const q = questions.find((question) => question.id === item.question)!;
+        [q.prompt, ...q.choices, q.hint, q.retryFeedback, ...pictureText(q.model), ...pictureText(q.simplerModel)].forEach((text) => note(text ?? '', [lesson, k, PRACTICE_PAGE]));
+      });
+    });
+    // The rest of the lesson page and everything generated for it: more of every kind than a child sees in one sitting.
+    const rest: Array<[string, string]> = [];
+    const add = (label: string, ...texts: string[]) => texts.forEach((text) => rest.push([label, text]));
+    add('lesson page, story or Practice more', ...lessonText(mission.id));
+    const seeds = hasGenerator(mission.id) ? Array.from({ length: 150 }, (_, seed) => seed) : [];
+    for (const seed of seeds) {
+      for (const q of generateQuestions(mission.id, mission.questions.map((question) => question.id), seed, 12)) {
+        add(`Practice more (seed ${seed})`, q.prompt, ...q.choices, q.hint ?? '', q.retryFeedback ?? '', ...pictureText(q.model), ...pictureText(q.simplerModel));
+      }
+    }
+    for (let variant = 0; variant <= 24; variant++) {
+      for (const problem of getWorksheet(mission.id, variant)) add(`worksheet sheet ${variant}`, problem.prompt, problem.answer, problem.hint, problem.why ?? '', ...pictureText(problem.picture));
+    }
+    for (let batch = 0; batch < 6; batch++) {
+      for (const check of getBuildPracticeChecks(mission.id, batch)) add(`Build it practice ${batch}`, check.prompt, ...check.reasons, check.explanation);
+    }
+    for (let round = 0; round < 12; round++) {
+      const check = getReviewCheck(mission.id, round);
+      add(`review round ${round}`, check.prompt, ...check.reasons, check.explanation);
+    }
+    rest.forEach(([label, text]) => { source = label; note(text, [lesson, REST_OF_LESSON, 0]); });
+  });
+  return first;
+}
+
+/** Where each denominator's card is: the earliest of the Words screen, an idea's Learn page, the lesson page's card. */
+function cardPlaces(d: number): Place[] {
+  const name = PART_NAMES[d];
+  if (!name) return [];
+  const places: Place[] = [];
+  if (FRACTION_WORDS.rows.some((row) => row.d === d)) places.push(WORDS_SCREEN);
+  MISSIONS.forEach((mission, lesson) => {
+    (LESSON_IDEAS[mission.id] ?? []).forEach((idea, k) => idea.learn.forEach((page, j) => {
+      if ('words' in page && page.words.some((word) => word.term === `one ${name.one}`)) places.push([lesson, k, j]);
+    }));
+    if (newWordsFor(mission.id).includes(d)) places.push([lesson, LAB_CARD_IDEA, 0]);
+  });
+  return places.sort(before);
+}
+
+/** Part names whose card was already there but sits later than the first screen that writes them: the lessons' generic
+    wrong choices (a part count one more, or doubled: 1/5, 1/12, 7/15) write them much earlier than the lesson where the
+    name is first used for real. The value is the first lesson that writes it today; a write in an earlier lesson fails.
+    Fixing those early writes, or moving the card, means deleting the row. (Not fixed here: a separate follow-up.) */
+const CARD_LATER_THAN_FIRST_WRITE: Readonly<Record<number, number>> = { 5: 3, 9: 3, 10: 4, 12: 4, 15: 4, 100: 26 };
+
+test('every written fraction whose denominator Listen names is taught by a card at or before the first screen that writes it', () => {
+  const late: string[] = [];
+  const uses = writtenFractionUses();
+  for (const [d, use] of [...uses].sort((a, b) => a[0] - b[0])) {
+    const card = cardPlaces(d)[0];
+    const where = `lesson ${use.at[0] + 1}${use.at[1] === REST_OF_LESSON ? ' (lesson page, practice or review)' : ` idea ${use.at[1] + 1}`}`;
+    const known = CARD_LATER_THAN_FIRST_WRITE[d];
+    if (!card) late.push(`${d}: written in ${where} ("${use.text}", ${use.source}), but no card teaches it`);
+    else if (known !== undefined) {
+      assert.ok(before(card, use.at) > 0, `${d}: its card is now at or before its first write: delete it from CARD_LATER_THAN_FIRST_WRITE`);
+      if (use.at[0] + 1 < known) late.push(`${d}: now written in ${where} ("${use.text}", ${use.source}), earlier than lesson ${known}, and its card is in lesson ${card[0] + 1}`);
+    } else if (before(card, use.at) > 0) late.push(`${d}: first written in ${where} ("${use.text}", ${use.source}), but its card is in lesson ${card[0] + 1}`);
+  }
+  assert.deepEqual(late, []);
+  // The scan really reads the screens that write part names: it finds the denominators the course uses.
+  for (const d of [3, 7, 16, 32, 50, 100]) assert.ok(uses.has(d), `${d} is written somewhere`);
+});
+
+test('Listen and the New word cards name the same parts: every denominator Listen can name has a part name that matches', () => {
+  const named = Array.from({ length: 300 }, (_, i) => i).filter(namedByListen);
+  assert.deepEqual(named.filter((d) => !PART_NAMES[d]), [], 'a part name Listen says that no card teaches');
+  assert.ok(named.length >= 20, 'Listen names the common denominators');
+  for (const d of Object.keys(PART_NAMES).map(Number)) {
+    assert.equal(sayFraction(1, d), `one ${PART_NAMES[d]!.one}`, `${d}: one part`);
+    assert.equal(sayFraction(3, d), `three ${PART_NAMES[d]!.many}`, `${d}: parts`);
+  }
 });
