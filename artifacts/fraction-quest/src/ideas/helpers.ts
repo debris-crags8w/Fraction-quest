@@ -8,7 +8,7 @@ import { TEACH_EXTRAS, type WordCard } from '../teach-extras';
 
 /** One Learn page: a short line and its animated picture, or a line and Words to know (each new word or symbol, what
     it means, and its picture). */
-export type LearnPage = { text: string; scene: StepScene } | { text: string; words: WordCard[] };
+export type LearnPage = { text: string; scene: StepScene; label?: true } | { text: string; words: WordCard[] };
 /** A practice: a lesson question (by id: `-q` for the lesson's own, `-p` for one written for its idea), a hands-on cake
     round, or a card-ordering round (by its id in FRACTION_ORDER_ROUNDS). */
 export type IdeaPractice = { question: string } | { handsOn: PartFinderRound['id'] } | { sortRound: FractionOrderRound['id'] };
@@ -23,11 +23,11 @@ export const scenes = (id: string) => {
   if (!found) throw new Error(`No Teach first scenes for ${id}`);
   return found;
 };
-/** One of a lesson's extra worked examples (teach-extras.ts) as a Learn page. */
+/** One of a lesson's extra worked examples (teach-extras.ts) as a Learn page. Its title is a label on the screen, so Listen skips it. */
 export const example = (id: string, title: string): LearnPage => {
   const found = TEACH_EXTRAS[id]?.examples?.find((item) => item.title === title);
   if (!found) throw new Error(`No example "${title}" in ${id}`);
-  return { text: found.title, scene: found.picture };
+  return { text: found.title, scene: found.picture, label: true };
 };
 /** A lesson's Words to know (teach-extras.ts) as a Learn page: the new words come before the idea that uses them. Pass
     `terms` to show only some of them (the others go on the page of the idea that needs them). */

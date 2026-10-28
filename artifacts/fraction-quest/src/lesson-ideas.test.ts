@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { FRACTION_ORDER_ROUNDS, MISSIONS } from './game';
-import { fractionsTaughtBy, ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS, lessonIdeas, practicePlan, type LessonIdea } from './lesson-ideas';
+import { fractionsTaughtBy, ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS, learnScript, lessonIdeas, practicePlan, type LessonIdea } from './lesson-ideas';
 import { PART_FINDER_ROUNDS } from './part-finder';
 import { getExtraPractice } from './practice-bank';
 import { HANDS_ON_ASKS, storyProblemFor } from './story';
@@ -218,4 +218,13 @@ test('lesson 36: a coin page opens idea 1 (a penny, 1¢, what ¢ means) and idea
   assert.equal(ideas[0]!.learn.length, 3);
   assert.equal(ideas[1]!.learn.length, 3);
   for (const idea of ideas) assert.equal(idea.practice.length, 3, idea.title);
+});
+
+test('Listen on a worked-example page reads the sentences under the picture, not the page label ("Write one part")', () => {
+  const labels = new Set(Object.values(TEACH_EXTRAS).flatMap((extras) => (extras.examples ?? []).map((item) => item.title)));
+  const reads = MISSIONS.flatMap((mission) => (LESSON_IDEAS[mission.id] ?? []).flatMap((idea) => idea.learn
+    .filter((page) => 'scene' in page && labels.has(page.text))
+    .map((page) => ({ lesson: mission.id, label: page.text, script: learnScript(page), sentences: sceneSentences((page as { scene: StepScene }).scene).join(' ') }))));
+  assert.ok(reads.length > 80, 'the worked-example pages are found');
+  assert.deepEqual(reads.filter(({ script, sentences }) => script !== sentences).map(({ lesson, label }) => `${lesson}: ${label}`), []);
 });

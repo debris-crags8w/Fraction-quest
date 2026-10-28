@@ -78,5 +78,6 @@ export const practicePlan = (mission: Mission): string => {
   return `${items.length}-${hash.toString(36)}`;
 };
 
-/** What Listen reads on a Learn page: its line, then the sentences under the picture. */
-export const learnScript = (page: LearnPage) => ('words' in page ? wordsScript(page.words) : [page.text, ...sceneSentences(page.scene)].join(' '));
+/** What Listen reads on a Learn page: its line, then the sentences under the picture. A worked example's title is only a label
+    ("Write one part"), and said aloud it sounds like an instruction, so only its sentences are read. */
+export const learnScript = (page: LearnPage) => ('words' in page ? wordsScript(page.words) : [...(page.label ? [] : [page.text]), ...sceneSentences(page.scene)].join(' '));
