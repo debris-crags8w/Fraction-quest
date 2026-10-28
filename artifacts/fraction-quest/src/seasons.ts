@@ -3,8 +3,10 @@
 
 import type { FunState } from './lib/fun';
 import type { ModelSpec } from './game';
+import { MONTH_THEMES, type MonthTheme, type MonthThemeId } from './month-themes';
 
-export type SeasonId = 'halloween' | 'christmas';
+export type HolidaySeasonId = 'halloween' | 'christmas';
+export type SeasonId = HolidaySeasonId | MonthThemeId;
 export type Costume = { id: 'bat-wings' | 'glow-hat' | 'scarf' | 'twinkle-hat'; name: string; lessons: number };
 export type Season = {
   id: SeasonId;
@@ -19,6 +21,10 @@ export type Season = {
   /** What points are called while the theme is on. */
   points: string;
   costumes: Costume[];
+  /** A month theme's map colours (the two holidays paint the map in season.css instead). */
+  map?: MonthTheme['map'];
+  /** A month theme's one story line, used for every kind of question. */
+  line?: string;
 };
 
 const HALLOWEEN_COSTUMES: Costume[] = [
@@ -31,7 +37,14 @@ const CHRISTMAS_COSTUMES: Costume[] = [
   { id: 'twinkle-hat', name: 'the twinkling Santa hat', lessons: 5 },
 ];
 
-/** The season on this date, ignoring preferences. Halloween runs for all of October, Christmas for all of December. */
+/** A month theme as a season: the same parts as a holiday, with no costumes yet. Its cheer is its greeting. */
+const monthSeason = (theme: MonthTheme, year: number): Season => ({
+  id: theme.id, key: `${theme.id}-${year}`, title: theme.title, name: theme.name, greeting: theme.greeting, cheer: theme.greeting,
+  points: theme.points, costumes: [], map: theme.map, line: theme.line,
+});
+
+/** The season on this date, ignoring preferences. Halloween runs for all of October, Christmas for all of December,
+    and every other month has its own theme (month-themes.ts), so there is always one. */
 export function seasonOn(now = new Date()): Season | null {
   const year = now.getFullYear();
   if (now.getMonth() === 9) {
@@ -40,7 +53,8 @@ export function seasonOn(now = new Date()): Season | null {
   if (now.getMonth() === 11) {
     return { id: 'christmas', key: `christmas-${year}`, title: 'Snowy fraction nights', name: 'Christmas', greeting: 'Merry Christmas!', cheer: 'Merry and bright!', points: 'candy canes', costumes: CHRISTMAS_COSTUMES };
   }
-  return null;
+  const theme = MONTH_THEMES.find((item) => item.month === now.getMonth());
+  return theme ? monthSeason(theme, year) : null;
 }
 
 /** The season to show: none when a grown-up turned seasonal themes off. */
@@ -57,7 +71,7 @@ export const unlockedCostumes = (season: Season, lessons: number) => season.cost
 export const nextCostume = (season: Season, lessons: number) => season.costumes.find((costume) => lessons < costume.lessons) ?? null;
 
 /** Numi's story line for a question: a little Halloween scene that fits the picture, never a hint. */
-const LINES: Record<SeasonId, Partial<Record<ModelSpec['kind'], string[]>> & { other: string[] }> = {
+const LINES: Record<HolidaySeasonId, Partial<Record<ModelSpec['kind'], string[]>> & { other: string[] }> = {
   halloween: {
     bars: ['The bats got into my pumpkin bars!', 'Help me share the spooky chocolate bar.', 'This candy bar came from a haunted house!'],
     partition: ['Let’s cut the pumpkin pie fairly.', 'The ghosts want fair shares of cake!'],
@@ -80,7 +94,8 @@ const LINES: Record<SeasonId, Partial<Record<ModelSpec['kind'], string[]>> & { o
   },
 };
 export function seasonLine(season: Season, kind: ModelSpec['kind'] | undefined, id: string): string {
-  const lines = (kind && LINES[season.id][kind]) || LINES[season.id].other;
+  if (season.line) return season.line;
+  const lines = (kind && LINES[season.id as HolidaySeasonId][kind]) || LINES[season.id as HolidaySeasonId].other;
   let hash = 0;
   for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
   return lines[hash % lines.length];

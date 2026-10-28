@@ -18,7 +18,7 @@ export const TIME_LIMIT_CHOICES: readonly TimeLimitMinutes[] = [0, 15, 20, 30, 4
 export type TimeLimit = { minutes: TimeLimitMinutes; extra?: { day: string; minutes: number } };
 export const ADD_MINUTES = 10;
 export type DisplayPreferences = { textSize: 'standard' | 'large'; highContrast: boolean; reducedMotion: boolean;
-  /** Holiday looks like Halloween (on unless a grown-up turns them off). */ seasonalThemes?: boolean;
+  /** Monthly looks like Halloween in October (on unless a grown-up turns them off). */ seasonalThemes?: boolean;
   /** Story comics with Numi's friends around lessons (on unless a grown-up turns them off). */ storyMode?: boolean;
   /** Quiet music under the story films (on unless a grown-up turns it off; never with sounds off). */ storyMusic?: boolean };
 const DEFAULT_BREAK_PREFERENCES: BreakPreferences = { intervalMinutes: 15, quietMode: false };

@@ -1827,9 +1827,10 @@ test('daily practice resumes its checked scaffold and parent report after reload
 });
 
 test('lesson 2 shares cakes in its last idea: equal pieces, then mixed shapes', async ({ page }) => {
-  // Outside a seasonal theme, so the cake is a plain cake (in October it is a pumpkin cake).
+  // With seasonal themes off (every month has a theme), so the cake is a plain cake (in March it is a carrot cake).
   await page.clock.setFixedTime(new Date(2026, 2, 10, 10, 0, 0));
   await page.addInitScript(() => {
+    if (localStorage.getItem('fraction-quest-fun-v1') === null) localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ displayPreferences: { seasonalThemes: false } }));
     const sent: string[] = [];
     (window as unknown as { __shell: string[] }).__shell = sent;
     (window as unknown as { ReactNativeWebView: unknown }).ReactNativeWebView = { postMessage: (message: string) => sent.push(message) };
@@ -2923,10 +2924,58 @@ test('Christmas: a snowy map, a Santa hat and scarf, candy canes, story props, a
   await expect(page.getByTestId('status-frog-flies')).toContainText('Snowflakes');
 });
 
+test('A month theme (March): the banner and points name show, a lesson uses its foods, and the grown-up switch turns it off', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.clock.setFixedTime(new Date(2026, 2, 10, 10, 0, 0));
+  await page.addInitScript(() => {
+    if (localStorage.getItem('fraction-quest-fun-v1') === null) localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 40, sound: false, breakPreferences: { intervalMinutes: 0, quietMode: false } }));
+  });
+  await openAsGuest(page);
+  await expect(page.locator('html')).toHaveAttribute('data-fq-season', 'march');
+  await expect(page.locator('html')).toHaveAttribute('data-fq-month', 'march');
+  const banner = page.getByTestId('season-banner');
+  await expect(banner).toContainText('March');
+  await expect(banner).toContainText('Windy kites');
+  await expect(banner).toContainText('Up, up and away!');
+  await expect(banner).not.toContainText('costume');
+  await expect(page.getByTestId('status-xp')).toContainText('kites');
+  // The lesson's pizza is a picnic pie; the numbers and the answer choices are untouched.
+  await page.getByTestId(`button-start-mission-${MISSIONS[0].id}`).click();
+  await passStory(page);
+  let swapped = 0;
+  await completeIdeas(page, MISSIONS[0], {
+    until: 3,
+    onQuestion: async (question) => {
+      if (!/pizza/i.test(question.prompt)) return;
+      swapped++;
+      await expect(page.locator('#lesson-title')).toContainText('picnic pie');
+      await expect(page.locator('#lesson-title')).not.toContainText(/pizza/i);
+    },
+  });
+  expect(swapped).toBeGreaterThan(0);
+  // A grown-up turns every theme off: the plain app, with XP.
+  await page.goto('/');
+  await openMenuItem(page, 'button-open-parent');
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+  await openSettings(page, 'Reading and display');
+  await page.getByTestId('checkbox-seasonal-themes').uncheck();
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+  await expect(page.getByTestId('season-banner')).toHaveCount(0);
+  await expect(page.locator('html')).not.toHaveAttribute('data-fq-month', /.+/);
+  await expect(page.getByTestId('status-xp')).toContainText('XP');
+});
+
 test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffhangers, stone pieces and clues, cards, and a grown-up off switch', async ({ page }) => {
   test.setTimeout(150_000);
-  // Outside a seasonal theme, so the story friend (not the holiday line) speaks on questions.
+  // With seasonal themes off (every month has a theme), so the story friend (not the seasonal line) speaks on questions.
   await page.clock.setFixedTime(new Date(2026, 2, 10, 10, 0, 0));
+  await page.addInitScript(() => {
+    if (localStorage.getItem('fraction-quest-fun-v1') === null) localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ displayPreferences: { seasonalThemes: false } }));
+  });
   await openAsGuest(page);
 
   // The map shows the quest: the stone (0 of 15) and a Storybook button, then chapter 1 leads the first unit with
@@ -3216,7 +3265,7 @@ test('Story mode: daily practice is Chomp’s riddles with a secret of the day, 
     localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: [], starsByMission: {}, reviewQueue: [],
       dailyPractice: { day: '2026-03-10', startedAt: start, questions: [q], index: 0, attempts: {} } }));
     localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 30, sound: false, day: '2026-03-10', answeredToday: 2, dayStreak: 2, lastActiveDay: '2026-03-10',
-      breakPreferences: { intervalMinutes: 0, quietMode: false },
+      breakPreferences: { intervalMinutes: 0, quietMode: false }, displayPreferences: { seasonalThemes: false },
       activity: { '2026-03-10': { minutes: 4, answered: 2 }, '2026-03-09': { minutes: 6, answered: 3 } } }));
   }, question);
   await openAsGuest(page);
@@ -3367,6 +3416,8 @@ test('every screen of every lesson fits an iPhone Safari screen: Learn pages, pr
   // height queries (Safari answers those for its taller, bars-hidden view), so a 390 × 664 window is a faithful iPhone.
   const visible = 664;
   await page.setViewportSize({ width: 390, height: visible });
+  // Every month has a seasonal theme: SMOKE_DATE (like 2026-03-15) runs the same walk under that day's theme.
+  if (process.env.SMOKE_DATE) await page.clock.setFixedTime(new Date(`${process.env.SMOKE_DATE}T10:00:00`));
   // One review is due (from lesson 1), so every other lesson's "Put it together" asks it before the story problem.
   const reviewed = MISSIONS[0]!;
   const progress = { completedMissionIds: [], starsByMission: {}, assessments: [], learning: {},

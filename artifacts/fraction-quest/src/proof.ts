@@ -208,7 +208,7 @@ const RULES: Rule[] = [
     solve: (m) => ({ value: frac(m[1]) / N(m[3]) }) },
   { name: 'fair share', re: /^(\d+) (?:loaf is|loaves are|pizza is|pizzas are) shared fairly by (\d+) friends\. (?:How much (?:pizza )?does each friend get\?|Build how much one friend gets\.)$/,
     solve: (m) => ({ value: N(m[1]) / N(m[2]) }) },
-  { name: 'friends share pieces', re: /^(?:(\d+) friends share (\d+) equal pieces fairly|Chomp cut a [\w ]+ into (\d+) equal pieces\. (\d+) friends share them fairly)\. How many pieces does each friend get\?$/,
+  { name: 'friends share pieces', re: /^(?:(\d+) friends share (\d+) equal pieces fairly|Chomp cut an? [\w’ -]+ into (\d+) equal pieces\. (\d+) friends share them fairly)\. How many pieces does each friend get\?$/,
     solve: (m) => (m[1] ? { value: N(m[2]) / N(m[1]) } : { value: N(m[3]) / N(m[4]) }) },
   { name: 'friends share a bar', re: /^(\d+) friends share this bar fairly\. Shade one friend's share\. What fraction is it\?$/, solve: (m) => ({ value: 1 / N(m[1]) }) },
   { name: 'chance', re: /^A bag has (\d+) marbles\. (\d+) (?:is|are) green\. What is the chance of picking green\?$/, solve: (m) => ({ value: N(m[2]) / N(m[1]), denominator: N(m[1]) }) },
@@ -294,7 +294,7 @@ const RULES: Rule[] = [
     solve: (m) => ({ value: valueOf(m[1]) }) },
   { name: 'feet in inches, then cut (build)', re: /^A rope is (\d+ \d+\/\d+) feet long\. Pip cuts off (\d+) inch(?:es)?\. Show what is left in inches, 12 to a foot\.$/,
     solve: (m) => ({ value: valueOf(m[1]) - N(m[2]) / 12, denominator: 12 }) },
-  { name: 'line plot level', re: /^(Three|Six) [\w ]+ hold (.+) liter\. (?:Plot them, then share|Share) the total equally\. How many liters go in each\?$/,
+  { name: 'line plot level', re: /^(Three|Six) [\w’ -]+ hold (.+) liter\. (?:Plot them, then share|Share) the total equally\. How many liters go in each\?$/,
     solve: (m) => { const v = m[2].split(', ').map(frac); const n = m[1] === 'Six' ? 6 : 3;
       return v.length === n ? { value: v.reduce((a, b) => a + b, 0) / n } : `${m[1].toLowerCase()} amounts named but ${v.length} listed`; } },
 
@@ -348,7 +348,7 @@ const RULES: Rule[] = [
   // --- dividing with the ÷ sign, sharing and fitting
   { name: 'scoops with a division', re: /^How many 1\/(\d+)-cup scoops fill (\d+) cups?\? (\d+) ÷ 1\/(\d+) = \?$/,
     solve: (m) => (m[3] !== m[2] || m[4] !== m[1] ? 'the division does not match the story' : { value: N(m[1]) * N(m[2]) }) },
-  { name: 'share a unit fraction (÷)', re: /^(\d+) (?:children|friends) share 1\/(\d+) of a pan(?: of [\w ]+)?\. 1\/(\d+) ÷ (\d+) = \?$/,
+  { name: 'share a unit fraction (÷)', re: /^(\d+) (?:children|friends) share 1\/(\d+) of a pan(?: of [\w’ -]+)?\. 1\/(\d+) ÷ (\d+) = \?$/,
     solve: (m) => (m[3] !== m[2] || m[4] !== m[1] ? 'the division does not match the story' : { value: 1 / N(m[2]) / N(m[1]) }) },
   { name: 'division', re: new RegExp(String.raw`^(${TERM}) ÷ (${TERM}) = \?$`), solve: (m) => ({ value: valueOf(m[1]) / valueOf(m[2]) }) },
   { name: 'division as a fraction', re: /^(?:Write|Make) (\d+) ÷ (\d+) as a fraction\.$/, solve: (m) => ({ value: N(m[1]) / N(m[2]), denominator: N(m[2]) }) },
@@ -489,7 +489,7 @@ const partCount = (p: ProofPicture): number | null => {
 
 /** Questions answered from the picture: shaded amounts, equal parts, counting parts, the dot on a line, rulers. */
 const PICTURE_RULES: Rule[] = [
-  { name: 'picture: what fraction is shaded', re: /^(?:What fraction (?:of (?:this bar model|the (?:circle|grid|tile|square|bar)|this circle) )?is shaded\?(?: Each bar is one whole\.)?|One (?:part|slice) of this (?:bar|pizza) is shaded\..*|One part is shaded\. What fraction of the whole bar is it\?|The shaded part is 1 of the equal parts\. What fraction of the bar is shaded\?|All the slices are the same size\. What fraction of the pizza is the shaded slice\?|One triangle is colored\. What fraction of the square is it\?|What fraction of the square (?:is the shaded (?:triangle|small square)|do the 2 shaded triangles cover)\?|This \w+ is on a [\w ]+\. What fraction of the \w+ is colored\?|The baker’s round [\w ]+ is cut into equal slices\. The colored slices get frosting\. What fraction of the [\w ]+ is colored\?)$/,
+  { name: 'picture: what fraction is shaded', re: /^(?:What fraction (?:of (?:this bar model|the (?:circle|grid|tile|square|bar)|this circle) )?is shaded\?(?: Each bar is one whole\.)?|One (?:part|slice) of this (?:bar|pizza) is shaded\..*|One part is shaded\. What fraction of the whole bar is it\?|The shaded part is 1 of the equal parts\. What fraction of the bar is shaded\?|All the slices are the same size\. What fraction of the pizza is the shaded slice\?|One triangle is colored\. What fraction of the square is it\?|What fraction of the square (?:is the shaded (?:triangle|small square)|do the 2 shaded triangles cover)\?|This \w+ is on a [\w ]+\. What fraction of the \w+ is colored\?|The baker’s round [\w’ -]+ is cut into equal slices\. The colored slices get frosting\. What fraction of the [\w’ -]+ is colored\?)$/,
     solve: (_m, item) => { const p = (item.pictures ?? []).map(barValue).find((v) => v !== null);
       if (p === undefined || p === null) return 'no shaded picture to read'; return { value: p }; } },
   { name: 'picture: equal parts?', re: /^(?:Is this (?:bar|strip|square|pizza|hexagon|circle) cut into (?:equal (?:parts|\w+)|(\d+) equal (?:slices|strips)|\w+)\?|Are all the parts of this bar the same size\?|On this tile pattern, are the 4 parts of the square equal in area\?|Two small squares and two triangles fill this square\. Are all 4 parts equal in area\?|This pizza is cut into 4 slices\. Are the slices equal in area\?|These strips are long and thin\. Are they still fourths\?|Are all 4 parts of this square the same size\?)(?: Answer yes or no\.)?$/,
@@ -530,7 +530,7 @@ const PICTURE_RULES: Rule[] = [
       if (!piece.every((x) => near(x, piece[0]))) return `the ${kind}s are not all the same size`;
       const space = /one half/.test(item.prompt) ? 0.5 : pieceArea(pieces.find((x) => x.shape === 'square')!);
       return { value: space / piece[0] }; } },
-  { name: 'picture: color parts of a shape', re: /^(?:This (\w+) is on a [\w ]+|The baker’s (?:tray|round) [\w ]+ is cut into equal (?:strips|slices))\. Color (\d+) parts?\. What fraction of the (?:\1|[\w ]+) is colored\?$/,
+  { name: 'picture: color parts of a shape', re: /^(?:This (\w+) is on a [\w ]+|The baker’s (?:tray|round) [\w’ -]+ is cut into equal (?:strips|slices))\. Color (\d+) parts?\. What fraction of the (?:\1|[\w’ -]+) is colored\?$/,
     solve: (m, item) => { const p = (item.pictures ?? []).find((x) => x.kind === 'area'); if (!p || p.kind !== 'area') return 'no shape';
       const areas = AREA_CUTS[p.cut].map(pieceArea);
       if (!areas.every((x) => near(x, areas[0]))) return 'the parts are not equal';

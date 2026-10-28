@@ -138,6 +138,11 @@ test('the voice sentence list covers lessons, story and seasons with unique keys
   assert.ok(texts.has('Hi there!'));
   assert.ok([...texts].some((text) => /pumpkin/i.test(text)), 'Halloween words');
   assert.ok([...texts].some((text) => /gingerbread/i.test(text)), 'Christmas words');
+  // Every month's food words are in the pack too (an apple pie, an ice cream cake, hot cocoa), so the voice reads what the screen shows.
+  for (const [month, pattern] of [['January', /snowball cake/], ['February', /heart pizza/], ['March', /picnic pie/], ['April', /rainbow cake/], ['May', /honey cake/], ['June', /an ice cream cake/],
+    ['July', /s’mores cake/], ['August', /sand dollar cookie/], ['September', /an apple pie/], ['November', /sweet potato pie/]] as const) {
+    assert.ok([...texts].some((text) => pattern.test(text)), `${month} words`);
+  }
   assert.ok([...texts].some((text) => text.startsWith('Hoot says: ')), 'comic scripts');
   assert.ok(list.length > 3000);
 });
@@ -203,7 +208,7 @@ test('a story is read aloud as "friend", never with the child\'s name, so it pla
 
 test('every lesson film, not only a chapter\'s first, reads lines that are in the voice pack', async () => {
   const { voiceSentences } = await import('../scripts/voice-sentences');
-  const { CHAPTERS, CHAPTER_SCENES, lessonComic, withName } = await import('./story');
+  const { CHAPTERS, CHAPTER_SCENES, PROP_THEMES, lessonComic, withName } = await import('./story');
   const { MISSIONS } = await import('./game');
   const { sentences, spokenText } = await import('./lib/voice');
   const packed = new Set(voiceSentences().map((entry) => entry.text));
@@ -213,7 +218,7 @@ test('every lesson film, not only a chapter\'s first, reads lines that are in th
     // A chapter with a scene films every lesson's comic (later lessons in the chapter's place), line by line.
     MISSIONS.filter((mission) => mission.unit === chapter.unit).forEach((mission, index) => {
       films++;
-      for (const theme of ['everyday', 'halloween', 'christmas'] as const) {
+      for (const theme of PROP_THEMES) {
         for (const panel of lessonComic(chapter, mission, index)) for (const sentence of sentences(spokenText(withName(panel.text, null, theme)))) {
           const clean = cleanSentence(sentence);
           if (/[a-z]{2}/i.test(clean) && !packed.has(clean)) missing.push(`${mission.id} (${theme}): ${clean}`);

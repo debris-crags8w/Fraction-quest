@@ -3,6 +3,9 @@
    Act 1 points at Chomp; chapter 8 reveals he was protecting Bolt; Act 3 puts the stone back together.
    The story frames lessons only: it never changes a question, an answer or what unlocks next. */
 
+import { MONTH_THEMES, type MonthThemeId } from './month-themes';
+import type { HolidaySeasonId } from './seasons';
+
 export type CharacterId = 'chomp' | 'pip' | 'tilly' | 'bolt' | 'bea';
 export type Speaker = CharacterId | 'numi' | 'hoot';
 export type Panel = { speaker: Speaker; text: string; /** The face to draw (else worried when the line sounds like trouble). */ mood?: 'happy' | 'worried' };
@@ -38,17 +41,26 @@ export const STONE_PIECES = 15;
 
 /** Seasonal props: story text names its treats with blanks ("the festival {cake}") and the theme showing now
    fills them, so a Halloween lesson has pumpkin pies and candy, and a Christmas one gingerbread and candy canes. Only nouns change: never a number or answer. */
-export type PropTheme = 'everyday' | 'halloween' | 'christmas';
-export const PROPS: Record<PropTheme, Record<string, string>> = {
+export type PropTheme = 'everyday' | HolidaySeasonId | MonthThemeId;
+const HOLIDAY_PROPS: Record<'everyday' | HolidaySeasonId, Record<string, string>> = {
   everyday: { cake: 'cake', cakes: 'cakes', pie: 'pie', cookies: 'cookies', bar: 'snack bar', bars: 'snack bars', snack: 'snack', snacks: 'snacks', drink: 'lemonade', plant: 'sunflower' },
   halloween: { cake: 'pumpkin pie', cakes: 'pumpkin pies', pie: 'pumpkin pie', cookies: 'bat cookies', bar: 'candy bar', bars: 'candy bars', snack: 'candy', snacks: 'candies', drink: 'pumpkin juice', plant: 'corn stalk' },
   christmas: { cake: 'Christmas cake', cakes: 'Christmas cakes', pie: 'cherry pie', cookies: 'gingerbread cookies', bar: 'peppermint bar', bars: 'peppermint bars', snack: 'candy cane', snacks: 'candy canes', drink: 'hot cocoa', plant: 'holly bush' },
 };
+/** A month's props are the everyday ones with its cake and drink swapped in (its foods, as lesson text has them). */
+export const PROPS: Record<PropTheme, Record<string, string>> = {
+  ...HOLIDAY_PROPS,
+  ...Object.fromEntries(MONTH_THEMES.map(({ id, foods }): [MonthThemeId, Record<string, string>] => [id, { ...HOLIDAY_PROPS.everyday, cake: foods.cake, cakes: `${foods.cake}s`, drink: foods.juice }])) as Record<MonthThemeId, Record<string, string>>,
+};
+/** Every props theme: the everyday one, the two holidays and the ten months. */
+export const PROP_THEMES = Object.keys(PROPS) as PropTheme[];
 export const propTheme = (seasonId: string | null | undefined): PropTheme => (seasonId && seasonId in PROPS ? seasonId as PropTheme : 'everyday');
 
 /** Fill a story line: the child's name ("{name}, we need you!") and the season's props ("{cake}"). */
 export function withName(text: string, name: string | null | undefined, theme: PropTheme = 'everyday'): string {
   const filled = text
+    // "a {cake}" is "an apple cake" when the season's word starts with a vowel.
+    .replace(/\b([Aa]) \{(\w+)\}/g, (found, article: string, key: string) => /^[aeiou]/i.test(PROPS[theme][key] ?? '') ? `${article}n {${key}}` : found)
     .replace(/\{(\w+)\}/g, (token, key: string) => key === 'name' ? token : PROPS[theme][key] ?? token)
     .split('{name}').join(name?.trim() || 'friend');
   // Without a name, a line that opens with it still starts with a capital: "Friend, we need you!"

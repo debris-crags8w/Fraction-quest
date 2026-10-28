@@ -1,12 +1,38 @@
 /* Seasonal lesson words: during a season, the treats in lesson text follow it (a pizza becomes a pumpkin pie at
-   Halloween, a giant sugar cookie at Christmas). Only treat nouns change: never a number, an answer or a model,
+   Halloween, a giant sugar cookie at Christmas, a heart pizza in February). Only treat nouns change: never a number, an answer or a model,
    and outside a season the text is exactly as written. Rules are phrase-specific so other words stay put, and applying them twice changes nothing. */
 
+import { MONTH_THEMES, type MonthTheme } from './month-themes';
 import type { SeasonId } from './seasons';
 
 type Rule = [RegExp, string];
 
+const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const startsWithVowel = (text: string) => /^[aeiou]/i.test(text);
+
+/** A month's rules, from its foods: pizza, cake and juice swap for the month's treats. A swap that still holds its own
+    word ("heart pizza", "snowball cake") is skipped when already there, so applying twice changes nothing, and
+    "a" becomes "an" before a vowel ("a pizza" is "an apple pie"). */
+function monthRules({ foods }: MonthTheme): Rule[] {
+  const rules: Rule[] = [];
+  const swap = (word: string, next: string, plural: boolean) => {
+    const own = next.endsWith(word) ? next.slice(0, next.length - word.length) : '';
+    const guard = own ? `(?<!${escape(own)})` : '';
+    if (plural) {
+      if (startsWithVowel(next)) rules.push([new RegExp(`\\b(a) (?=${word}s\\b)`, 'gi'), 'an ']);
+      rules.push([new RegExp(`${guard}\\b${word}s\\b`, 'gi'), `${next}s`]);
+    }
+    if (startsWithVowel(next)) rules.push([new RegExp(`\\b(a) (?=${word}\\b)`, 'gi'), 'an ']);
+    rules.push([new RegExp(`${guard}\\b${word}\\b`, 'gi'), next]);
+  };
+  swap('pizza', foods.pizza, true);
+  swap('cake', foods.cake, true);
+  swap('juice', foods.juice, false);
+  return rules;
+}
+
 const RULES: Record<SeasonId, Rule[]> = {
+  ...Object.fromEntries(MONTH_THEMES.map((theme) => [theme.id, monthRules(theme)])) as Record<MonthTheme['id'], Rule[]>,
   halloween: [
     [/\bloaf of bread\b/gi, 'loaf of pumpkin bread'],
     [/\bloaves of bread\b/gi, 'loaves of pumpkin bread'],

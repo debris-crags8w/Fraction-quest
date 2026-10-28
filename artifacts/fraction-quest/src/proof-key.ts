@@ -2,6 +2,8 @@
    challenges and their walk-through steps, story-mode questions). Each answer was worked out by hand from the question and its picture
    (October 2026). When one of these questions changes, its entry stops matching and the proof test fails until
    someone works the new question out again and updates the entry. Keys are prompts as proof.ts normalizes them. */
+import { MONTH_THEMES } from './month-themes';
+import { STORY_PROBLEMS, withName } from './story';
 import { KEYS as LESSONS_02_10 } from './proof-keys/lessons-02-10';
 import { KEYS as LESSONS_11_20 } from './proof-keys/lessons-11-20';
 import { KEYS as LESSONS_21_30 } from './proof-keys/lessons-21-30';
@@ -306,3 +308,13 @@ export const PROOF_KEY: Record<string, string> = {
   "A garden is 1 1/2 meters by 1 1/3 meters. What is its area?": "2 square meters",
   "How many eighths fit in 3/4?": "6 eighths",
 };
+
+/* A month theme's food words (a snowball cake, an apple cake) never change a story question's numbers, picture or
+   answer (story.test.ts and seasonal-words.test.ts check that), so each month's wording of a story question that is
+   keyed above in its everyday wording takes the same hand-checked answer. */
+for (const { id } of MONTH_THEMES) {
+  for (const problem of Object.values(STORY_PROBLEMS)) {
+    const answer = PROOF_KEY[withName(problem.prompt, null, 'everyday')];
+    if (answer !== undefined) PROOF_KEY[withName(problem.prompt, null, id)] ??= answer;
+  }
+}
