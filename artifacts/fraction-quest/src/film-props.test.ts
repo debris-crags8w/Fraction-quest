@@ -73,10 +73,10 @@ test('the prop is under fq-cine-move, so both Reduce motion rules hold it still,
   assert.ok(!/\.fq-fp-(cookie|lens|pebble|loaf|flag)\s*\{[^}]*opacity: *0/.test(css));
 });
 
-test('the beat adds a class, and the end pictures exist for the sample chapters only (the rest keep the generic ending)', () => {
+test('the beat adds a class, and the end pictures exist for the finished batches', () => {
   assert.match(render('jar', 0), /class="fq-fp fq-cine-move is-jar "/);
   assert.match(render('jar', 1), /class="fq-fp fq-cine-move is-jar is-on"/);
-  assert.deepEqual([1, 2, 3, 8, 12, 15].map(hasChapterEndPicture), [false, false, true, true, true, false]);
+  assert.deepEqual([1, 2, 3, 8, 12, 15].map(hasChapterEndPicture), [false, false, true, true, true, true]);
 });
 
 test('a chapter ending shows the chapter key prop with its stone piece, found from the second line on', () => {

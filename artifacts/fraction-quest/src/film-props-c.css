@@ -1,9 +1,6 @@
 /* Batch C props (chapters 9 to 11): every moving part is under .fq-fp (see film-props.css for the rules). The resting style of
    a moving part is its finished, visible position; each animation only travels from somewhere else to it, a few times at most. */
 
-/* Chapter 11: the machine of the backdrop stands in the middle of the band, so Bolt's props (and the ending) sit in front of it. */
-.fq-fp.is-c-hopper, .fq-fp.is-c-nutpile, .fq-fp.is-c-plankgate, .fq-fp.is-c-lasercutter, .fq-fp.is-c-toolbox, .fq-fp.is-c-raygun, .fq-fp.is-c-gauge, .fq-fp.is-end.is-machine { z-index: 3; }
-
 /* Signpost: the second board swings round on the post and settles. */
 .fq-fp-c-swing { transform-box: fill-box; transform-origin: 0 50%; }
 .fq-fp.is-on .fq-fp-c-swing { animation: fq-fp-c-swing 1.3s cubic-bezier(.3, 1.4, .5, 1) both; }

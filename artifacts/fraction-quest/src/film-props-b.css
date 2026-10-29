@@ -1,10 +1,6 @@
 /* Batch B props (chapters 7 and 8): every moving part is under .fq-fp (see film-props.css for the rules).
    The resting style of each moving part is its finished position; the animation only travels from elsewhere to it. */
 
-/* The workshop backdrop has a turning gear (z-index 2) at the right of the prop band: lift chapter 7's pictures above it,
-   so the gear stays a part of the wall behind the object and never covers the object or the stone piece. */
-.fq-fp.is-b-bracket, .fq-fp.is-b-spool, .fq-fp.is-b-rods, .fq-fp.is-b-labeler, .fq-fp.is-end.is-workshop { z-index: 3; }
-
 /* Bracket: the small block drops into its slot. */
 .fq-fp.is-on .fq-fp-b-drop { animation: fq-fp-b-drop 1s cubic-bezier(.3, 1.3, .5, 1) both; }
 @keyframes fq-fp-b-drop { from { transform: translateY(-34px); } }
