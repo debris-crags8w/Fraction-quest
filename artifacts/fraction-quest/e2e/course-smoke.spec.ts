@@ -1565,7 +1565,7 @@ test('an idea is taught right before its practice, and the practice says which i
 });
 
 test.describe('all-lesson required-question smoke', () => {
-  test.describe.configure({ timeout: 900_000 });
+  test.describe.configure({ timeout: 1_500_000 }); // every lesson now also has a 3-question checkpoint
 
   test('every lesson completes its required questions in an isolated developer test', async ({ page }) => {
     // On a phone, so every Learn page of every idea is checked to fit. SMOKE_LESSONS=id,id runs only those lessons.
