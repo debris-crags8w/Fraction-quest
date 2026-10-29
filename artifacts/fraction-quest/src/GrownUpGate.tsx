@@ -1,19 +1,19 @@
 import { useState, type FormEvent } from 'react';
 import { ArrowLeft, Lock } from 'lucide-react';
+import { askGate, gateAnswerIsRight } from './lib/grown-up-gate';
 
 /** A light check that a grown-up is here (not security; just keeps young kids on their own screens). */
 export function GrownUpGate({ onPass, onBack, backLabel = 'Back to the map', reason = 'This page shows your child\'s progress. Please answer to continue.' }: {
   onPass: () => void; onBack: () => void; backLabel?: string;
   /** Why a grown-up is needed here. */ reason?: string;
 }) {
-  const ask = () => ({ a: 6 + Math.floor(Math.random() * 4), b: 6 + Math.floor(Math.random() * 4) });
-  const [q, setQ] = useState(ask);
+  const [q, setQ] = useState(() => askGate());
   const [value, setValue] = useState('');
   const [wrong, setWrong] = useState(false);
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (Number(value) === q.a * q.b) { onPass(); return; }
-    setWrong(true); setValue(''); setQ(ask());
+    if (gateAnswerIsRight(q, value)) { onPass(); return; }
+    setWrong(true); setValue(''); setQ((previous) => askGate(Math.random, previous));
   };
   return (
     <main className="fq-shell fq-parent-gate fq-appear" data-testid="parent-gate">

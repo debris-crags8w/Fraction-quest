@@ -206,7 +206,7 @@ const RULES: Rule[] = [
   { name: 'ribbon fraction of length', re: /^A ribbon is (\d+) (?:meters|m) long\. How long is (\d+)\/(\d+) of it\?$/, solve: (m) => ({ value: N(m[1]) / N(m[3]) * N(m[2]) }) },
   { name: 'share part of a thing', re: /^(\d+\/\d+) of a (\w+) is shared fairly by (\d+) friends\. What part of the whole \2 does each friend get\?$/,
     solve: (m) => ({ value: frac(m[1]) / N(m[3]) }) },
-  { name: 'fair share', re: /^(\d+) (?:loaf is|loaves are|pizza is|pizzas are) shared fairly by (\d+) friends\. (?:How much (?:pizza )?does each friend get\?|Build how much one friend gets\.)$/,
+  { name: 'fair share', re: /^(\d+) (?:loaf is|loaves are|pizza is|pizzas are) shared fairly by (\d+) (?:friends|stage helpers)\. (?:How much (?:pizza )?does each (?:friend|helper) get\?|Build how much one friend gets\.)$/,
     solve: (m) => ({ value: N(m[1]) / N(m[2]) }) },
   { name: 'friends share pieces', re: /^(?:(\d+) friends share (\d+) equal pieces fairly|Chomp cut an? [\w’ -]+ into (\d+) equal pieces\. (\d+) friends share them fairly)\. How many pieces does each friend get\?$/,
     solve: (m) => (m[1] ? { value: N(m[2]) / N(m[1]) } : { value: N(m[3]) / N(m[4]) }) },

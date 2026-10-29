@@ -41,26 +41,22 @@ describe('parent report at a glance', () => {
     assert.equal(first.idea, mission('compare-same-numerator').skill);
   });
 
-  it('shows mastered skills out of every skill in each grade', () => {
-    assert.deepEqual(glance.grades.map(({ grade, total }) => [grade, total]), [[3, 9], [4, 14], [5, 12]]);
-    assert.ok(glance.grades.every((row) => row.mastered === 0 && !row.started), 'no Check-ins yet: nothing mastered');
-  });
-
-  it('picks the lesson with the most wrong tries, redos included, with its unit\'s activity for home', () => {
+  it('picks the lesson with the most wrong tries, redos included, for the "Working on" line of the summary', () => {
     assert.equal(glance.focus?.id, 'benchmark-half');
     assert.equal(glance.focus?.misses, 4);
-    assert.equal(glance.focus?.homeActivity, guideForUnit(mission('benchmark-half').unit)?.familyNote);
+    assert.ok(!('grades' in glance) && !('homeActivity' in (glance.focus ?? {})), 'nothing is built that no screen shows');
     assert.equal(buildParentReport(EMPTY_PROGRESS, fun, [], now).glance.focus, null, 'no wrong tries: no focus card');
   });
 
   it('writes a short summary to share, with no account details', () => {
-    const text = glanceShareText(glance, 82, 'Sam', now);
+    const text = glanceShareText(glance, 'Sam', now);
     assert.equal(text.split('\n')[1], 'Practiced 3 of 7 days (38 min). Finished 2 lessons.');
     assert.match(text, /^Fraction Quest · Sam · week of /);
     assert.match(text, /Learned: Same count, different sizes \(Grade 3, 3\.NF\.3d\); Add same-size parts \(Grade 4, 4\.NF\.3a, 4\.NF\.3d\)\./);
-    assert.match(text, /Right the first time: 82%\./);
+    assert.equal(glance.firstTryWeek, null, 'the two lessons have no worksheet answers checked');
+    assert.doesNotMatch(text, /first time/);
     assert.match(text, /Working on: Is it less or more than half\? \(Grade 3, 3\.NF\.3d, 4\.NF\.2\)\./);
-    assert.doesNotMatch(glanceShareText({ ...glance, learned: [], focus: null }, null, null, now), /Learned|Working on|Right the first/);
+    assert.doesNotMatch(glanceShareText({ ...glance, learned: [], focus: null, firstTryWeek: null }, null, now), /Learned|Working on|Right the first/);
   });
 });
 

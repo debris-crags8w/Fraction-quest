@@ -75,7 +75,7 @@ import { IdeaLearn, LessonIntroCard } from './lesson-intro';
 import { ideaPracticeQuestions, ideaSteps, isRound, lessonIdeas, practicePlan } from './lesson-ideas';
 import { LESSON_INTROS } from './lesson-intros';
 import { StoryCharacter } from './characters';
-import { CHAPTERS, EPILOGUE, PROLOGUE, chapterEnd, chapterFor, choiceNotes, hintLead, detectiveNote, type CharacterId, lessonComic, propTheme, storyProblemFor, storyScript, withName, type PropTheme } from './story';
+import { CHAPTERS, EPILOGUE, PROLOGUE, chapterEnd, chapterFor, choiceNotes, endingAfterChapter, hintLead, detectiveNote, type CharacterId, lessonComic, propTheme, storyLessonTitle, storyProblemFor, storyScript, withName, type PropTheme } from './story';
 import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView, StoryPayoff, StorySay, type StorybookChapter, type StorybookTab } from './story-ui';
 import { LanternIcon, OilNoticeCard, TonightsLantern } from './riddle-ui';
 import { SubscribeFlow, WebAppOnlyFlow } from './Subscribe';
@@ -131,11 +131,12 @@ type View =
   | { type: 'concept-games' }
   | { type: 'assessments' }
   | { type: 'assessment'; definition: AssessmentDefinition; seed: number }
-  | { type: 'reward'; missionId: string; stars: number }
+  | { type: 'reward'; missionId: string; stars: number; /** Back from the chapter's film: the stone question is already answered. */ stoneDone?: boolean }
   /** The story comic before a lesson starts. */
   | { type: 'story'; missionId: string; /** The one-time opening before the first lesson. */ prologue?: boolean; /** Reading a finished lesson's comic again: where it was opened from, to go back there. */ replay?: 'map' | 'storybook';
     /** From the Storybook: a finished chapter's ending, or the epilogue after the last chapter. */
-    part?: 'end' | 'epilogue' }
+    part?: 'end' | 'epilogue';
+    /** Played from the lesson's reward (not the Storybook): the stars, to come back to the same reward. */ fromReward?: number }
   /** Every story part to read again, the clue notebook and the friends' cards. */
   | { type: 'storybook'; tab: StorybookTab; unit?: number }
   /** "Who cracked the stone?" after chapters 4 and 7 (opened from the lesson's payoff or the Storybook). */
@@ -558,7 +559,7 @@ function storybookChapters(progress: Progress): StorybookChapter[] {
       ended: missions.length > 0 && missions.every((item) => hasLearningGate(progress, item.id)),
       lessons: missions.map((item) => ({
         id: item.id,
-        title: item.title,
+        title: storyLessonTitle(item.title, true),
         done: hasLearningGate(progress, item.id),
         state: hasLearningGate(progress, item.id) || getLearningRecord(progress, item.id).practiceDone ? 'read' as const
           : item.id === next?.id ? 'new' as const : 'locked' as const,
@@ -659,7 +660,7 @@ function MissionMap({ progress, onPicked, onStart, onDeveloperTest, onLessonTest
               onPlace={(unit) => onStorybook('story', unit)} />} />}
           {/* Today's one task first, once the first lesson is done: Chomp's riddles light tonight's lantern. */}
           {firstLessonDone && <TonightsLantern activity={fun.activity} streak={shownStreak(fun)} oil={fun.spareOil ?? 0} savedDays={fun.savedDays}
-            dailyDone={dailyDone} storyOn={storyOn} onStart={onStartDaily} />}
+            dailyDone={dailyDone} storyOn={storyOn} afterEnding={completedStoryUnits(progress).size >= CHAPTERS.length} onStart={onStartDaily} />}
           {(progress.grownUpPicks?.length ?? 0) > 0 && <PickedForYou picks={progress.grownUpPicks!} onOpen={onPicked} />}
           {assignedUnits.length > 0 && <p className="fq-assigned-units" role="note" data-testid="text-assigned-units">
             Your teacher suggested: {assignedUnits.map((unit) => `Unit ${unit}: ${UNIT_TITLES[unit - 1]}`).join(' · ')}.
@@ -673,7 +674,7 @@ function MissionMap({ progress, onPicked, onStart, onDeveloperTest, onLessonTest
               <span className="fq-continue-icon"><ArrowRight size={21} /></span>
               <span className="fq-continue-copy">
                 <strong>Start your first lesson</strong>
-                <span>Lesson {String(MISSIONS.indexOf(nextMission) + 1).padStart(2, '0')} · {nextMission.title}</span>
+                <span>Lesson {String(MISSIONS.indexOf(nextMission) + 1).padStart(2, '0')} · {storyLessonTitle(nextMission.title, storyOn)}</span>
               </span>
               <ArrowRight className="fq-continue-arrow" size={20} />
             </button>
@@ -682,7 +683,7 @@ function MissionMap({ progress, onPicked, onStart, onDeveloperTest, onLessonTest
               <span className="fq-continue-icon"><MapIcon size={20} /></span>
               <span className="fq-continue-copy">
                 <strong>Jump to current section</strong>
-                <span>Unit {nextMission.unit} · Lesson {String(MISSIONS.indexOf(nextMission) + 1).padStart(2, '0')} · {nextMission.title}{evidenceRecommendation ? ' · Practice what was tricky' : ''}</span>
+                <span>Unit {nextMission.unit} · Lesson {String(MISSIONS.indexOf(nextMission) + 1).padStart(2, '0')} · {storyLessonTitle(nextMission.title, storyOn)}{evidenceRecommendation ? ' · Practice what was tricky' : ''}</span>
               </span>
               <ArrowRight className="fq-continue-arrow" size={20} />
             </button>
@@ -737,7 +738,7 @@ function MissionMap({ progress, onPicked, onStart, onDeveloperTest, onLessonTest
                       return {
                         id: mission.id,
                         number: missionNumber,
-                        title: mission.title,
+                        title: storyLessonTitle(mission.title, storyOn),
                         stars: progress.starsByMission[mission.id] ?? 0,
                         steps: lessonSteps(progress, mission.id),
                         state: completed ? 'done' : !unlocked ? 'lock' : mission.id === nextMission?.id ? 'now' : 'open',
@@ -745,11 +746,11 @@ function MissionMap({ progress, onPicked, onStart, onDeveloperTest, onLessonTest
                         detail: (
                           <>
                             <span className="fq-node-kicker">Lesson {String(missionNumber).padStart(2, '0')}</span>
-                            <h4>{mission.title}</h4>
+                            <h4>{storyLessonTitle(mission.title, storyOn)}</h4>
                             <p><MathText text={mission.description} /></p>
                             {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
                               {/* Standards codes are for grown-ups: they live in the Grown-ups report, not on the child's map. */}
-                              {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
+                              {mission.enrichment ? (storyOn && chapterFor(mission.unit) ? 'Stretch lesson' : 'Bonus enrichment') : `Grade ${mission.gradeBand}`}
                             </p>}
                             <p className="fq-node-status" data-testid={`status-learning-${mission.id}`}>
                               {/* Short, kid-sized status: only what matters for this lesson right now. */}
@@ -1135,10 +1136,10 @@ function PlayView({
               ? `Quick skill review · ${question?.reviewTopicTitle ?? mission.shortTitle} · Question ${questionIndex + 1} of ${mission.questions.length}`
               : isExtraPractice
                 ? `Practice more · Lesson ${lessonNumber} · Question ${questionIndex + 1} of ${mission.questions.length}`
-              : <>Lesson {lessonNumber}<span className="fq-kicker-topic"> · {mission.shortTitle}</span> · Question {questionIndex + 1} of {mission.questions.length}</>)}
+              : <>Lesson {lessonNumber}<span className="fq-kicker-topic"> · {storyLessonTitle(mission.shortTitle, storyOn)}</span> · Question {questionIndex + 1} of {mission.questions.length}</>)}
           </p>
           {(mission.gradeBand || mission.enrichment) && <p className="fq-node-standard">
-            {mission.enrichment ? 'Bonus enrichment' : `Grade ${mission.gradeBand}`}
+            {mission.enrichment ? (storyOn && chapterFor(mission.unit) ? 'Stretch lesson' : 'Bonus enrichment') : `Grade ${mission.gradeBand}`}
           </p>}
           {/* One friendly line per question: the story friend's (in the season's props) when the story is on, else the seasonal one. */}
           {question && !quiet && (storyOn && chapterFor(mission.unit)
@@ -1290,7 +1291,7 @@ function storyQuestion(mission: Mission, question: PracticeQuestion, storyOn: bo
   return { ...question, prompt: withName(problem.prompt, null, theme), choices: (problem.choices ?? question.choices).map((choice) => withName(choice, null, theme)), storySetup: problem.setup };
 }
 
-function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame, onSuspects }: { mission: Mission; stars: number; progress: Progress; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code') => void; onSuspects: (board: SuspectBoard) => void }) {
+function RewardView({ mission, stars, progress, stoneDone = false, onMap, onNext, onReset, onGame, onSuspects, onEnding }: { mission: Mission; stars: number; progress: Progress; /** Back from the chapter's film. */ stoneDone?: boolean; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code') => void; onSuspects: (board: SuspectBoard) => void; onEnding: (part: 'end' | 'epilogue') => void }) {
   const nextMission = getNextMission(progress);
   // Units 9+ open only after every lesson in the unit before is done, so "next lesson is open" is not always true.
   const following = MISSIONS[MISSIONS.findIndex((item) => item.id === mission.id) + 1];
@@ -1302,6 +1303,7 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame, 
   const unitMissions = MISSIONS.filter((item) => item.unit === mission.unit);
   const { season } = useSeason();
   useEffect(() => {
+    if (stoneDone) return; // coming back from a film: the cheer already played
     playCue('complete', fun.sound);
     const timers = Array.from({ length: stars }, (_, index) => window.setTimeout(() => playCue('star', fun.sound), 700 + index * 380));
     return () => timers.forEach(window.clearTimeout);
@@ -1316,13 +1318,15 @@ function RewardView({ mission, stars, progress, onMap, onNext, onReset, onGame, 
           {/* With the story on, the chapter friend does the cheering, so the screen stays short (a season with costumes keeps Numi for the costume). */}
           {!(storyOn && chapter && !season?.costumes.length) && <div className="fq-reward-mascot"><Mascot mood="cheer" size={120} named /><span className="fq-reward-trophy" aria-hidden="true"><Trophy size={30} strokeWidth={2.5} /></span></div>}
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
-          <h1>{season && <>{season.cheer}<br /></>}{mission.title}<br />is on your map.</h1>
+          <h1>{season && <>{season.cheer}<br /></>}{storyLessonTitle(mission.title, storyOn)}<br />is on your map.</h1>
            <p className={storyOn && chapter ? 'fq-reward-note' : undefined}>{storyOn && chapter ? '' : 'You built it two ways, explained it, and finished the worksheet. '}{nextLessonOpen ? 'The next lesson is open!' : 'Finish the other lessons in this unit to open the next unit.'}</p>
           <SeasonReward missionId={mission.id} />
           {storyOn && chapter && <StoryPayoff chapter={chapter} lessonIndex={unitMissions.indexOf(mission)} lessonsTotal={unitMissions.length}
             chapterDone={unitMissions.every((item) => hasLearningGate(progress, item.id))} piecesFound={completedStoryUnits(progress).size} name={account.activeProfile?.displayName ?? null}
             problem={storyProblemFor(mission.id) ?? undefined}
-            sticker={lessonSticker(chapter, unitMissions.indexOf(mission), mission.title)}
+            sticker={lessonSticker(chapter, unitMissions.indexOf(mission), storyLessonTitle(mission.title, true))}
+            startSolved={stoneDone} ending={endingAfterChapter({ piecesFound: completedStoryUnits(progress).size, epilogueSeen: !!fun.story?.epilogueSeen })}
+            onEnding={(part) => onEnding(part)}
             onSuspects={([1, 2] as SuspectBoard[]).filter((board) => BOARD_AFTER[board] === chapter.unit).map((board) => () => onSuspects(board))[0]} />}
           <div className="fq-reward-stars" data-testid="status-mission-stars" role="img" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
@@ -1457,9 +1461,11 @@ function Game() {
     const mission = MISSIONS.find((item) => item.id === rewardMissionId);
     const chapter = mission && chapterFor(mission.unit);
     if (!chapter || !MISSIONS.filter((item) => item.unit === chapter.unit).every((item) => hasLearningGate(progress, item.id))) return;
-    const timer = setTimeout(() => prefetchReading(filmedLines(chapterEnd(chapter), storyTheme).join(' '), filmedVoices(chapterEnd(chapter), storyTheme)), 1500);
+    // The last chapter's reward goes straight on to the finale (the first time), so fetch its voice too.
+    const films = [chapterEnd(chapter), ...(chapter.unit === CHAPTERS.length && !fun.story?.epilogueSeen ? [EPILOGUE] : [])];
+    const timer = setTimeout(() => films.forEach((panels) => prefetchReading(filmedLines(panels, storyTheme).join(' '), filmedVoices(panels, storyTheme))), 1500);
     return () => clearTimeout(timer);
-  }, [rewardMissionId, progress, storyMode, fun.sound, storyTheme]);
+  }, [rewardMissionId, progress, storyMode, fun.sound, storyTheme, fun.story?.epilogueSeen]);
 
   // Inside the app (iPhone and Android), on Wi-Fi, keep the whole voice pack on the phone so every sentence plays at once. It
   // pauses when Wi-Fi drops or the app goes to the background, and picks up where it left off.
@@ -1825,7 +1831,7 @@ function Game() {
           primeReadAloud();
           if (next) setView(fun.story?.prologueSeen ? { type: 'story', missionId: next.id, prologue: true, replay: 'map' } : { type: 'story', missionId: next.id, prologue: true });
         }} />}
-      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} renderModel={(model, reveal) => <ModelView model={model} reveal={reveal} asked />} onChange={(session) => persistProgress(applyAdaptiveDailyPracticeUpdate(progress, session))} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onDailyCorrect} />}
+      {view.type === 'daily' && progress.dailyPractice && <DailyPractice session={progress.dailyPractice} afterEnding={completedStoryUnits(progress).size >= CHAPTERS.length} renderModel={(model, reveal) => <ModelView model={model} reveal={reveal} asked />} onChange={(session) => persistProgress(applyAdaptiveDailyPracticeUpdate(progress, session))} onBack={returnToMap} onWrong={onPracticeWrong} onSuccess={onDailyCorrect} />}
       {view.type === 'concept-games' && (() => {
         // The lesson games use the lesson the child is on (or the last open one).
         const open = MISSIONS.filter((mission) => isMissionUnlocked(progress, mission.id));
@@ -2015,7 +2021,8 @@ function Game() {
         setView(view.nextView);
       }} />}
       {view.type === 'reward' && activeMission && (
-        <RewardView mission={activeMission} stars={view.stars} progress={progress} onMap={returnToMap} onNext={startMission} onReset={openResetDialog} onGame={(type) => setView({ type, missionId: activeMission.id })} onSuspects={(board) => setView({ type: 'suspects', board, from: 'reward' })} />
+        <RewardView key={view.stoneDone ? 'reward-after-film' : 'reward'} mission={activeMission} stars={view.stars} stoneDone={view.stoneDone} progress={progress} onMap={returnToMap} onNext={startMission} onReset={openResetDialog} onGame={(type) => setView({ type, missionId: activeMission.id })} onSuspects={(board) => setView({ type: 'suspects', board, from: 'reward' })}
+          onEnding={(part) => { primeReadAloud(); if (part === 'epilogue') setFun((current) => recordStory(current, { epilogueSeen: true })); setView({ type: 'story', missionId: activeMission.id, part, fromReward: view.stars }); }} />
       )}
       {view.type === 'story' && (() => {
         const mission = MISSIONS.find((item) => item.id === view.missionId);
@@ -2025,10 +2032,15 @@ function Game() {
         const toStorybook = () => setView({ type: 'storybook', tab: 'story', unit: chapter.unit });
         if (view.part) {
           const epilogue = view.part === 'epilogue';
+          // From the lesson's reward the film goes back to the same reward (the stone question stays answered); from the Storybook, back there.
+          const fromReward = view.fromReward;
+          const leave = fromReward === undefined ? toStorybook : () => {
+            setView({ type: 'reward', missionId: mission.id, stars: fromReward, stoneDone: true });
+          };
           return <StoryComicView key={`${view.part}-${chapter.unit}`} title={epilogue ? 'The Whole Stone' : `Chapter ${chapter.unit} · ${chapter.title}`}
             kicker={epilogue ? 'Finale · Festival night' : 'Chapter end · The stone piece and a clue'} panels={epilogue ? EPILOGUE : chapterEnd(chapter)} name={name}
             scene={epilogue ? 'epilogue' : 'chapter-end'} unit={chapter.unit}
-            goLabel="Back to the Storybook" onGo={toStorybook} onBack={toStorybook} />;
+            goLabel={fromReward === undefined ? 'Back to the Storybook' : epilogue ? 'See my Keeper card' : 'Back to my stone piece'} onGo={leave} onBack={leave} />;
         }
         if (view.prologue) {
           if (view.replay === 'storybook') {
@@ -2046,7 +2058,7 @@ function Game() {
         const index = unitMissions.indexOf(mission);
         // A replay shows the same comic (with the choice already made) and returns to the map instead of starting the lesson.
         const saved = fun.story?.choices?.[String(chapter.unit)];
-        return <StoryComicView key={`${mission.id}-${view.replay ? 'replay' : 'new'}`} title={`Chapter ${chapter.unit} · ${chapter.title}`} kicker={`Lesson ${index + 1} of ${unitMissions.length} · ${mission.title}`}
+        return <StoryComicView key={`${mission.id}-${view.replay ? 'replay' : 'new'}`} title={`Chapter ${chapter.unit} · ${chapter.title}`} kicker={`Lesson ${index + 1} of ${unitMissions.length} · ${storyLessonTitle(mission.title, true)}`}
           panels={lessonComic(chapter, mission, index)} name={name} choice={index === 0 ? chapter.choice : undefined} picked={view.replay ? saved : undefined}
           scene={CHAPTER_SCENES[chapter.unit]} setOnly={index > 0} unit={chapter.unit}
           choiceNotes={index === 0 ? choiceNotes(chapter) : undefined}
