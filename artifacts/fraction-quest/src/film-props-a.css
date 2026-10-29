@@ -75,8 +75,6 @@
 .fq-fp.is-on .fq-fp-a-scrap { animation: fq-fp-a-scrap 1.5s cubic-bezier(.3, .8, .4, 1) both; }
 @keyframes fq-fp-a-scrap { from { transform: translate(24px, -52px) rotate(70deg); } 40% { transform: translate(-6px, -22px) rotate(-18deg); } 70% { transform: translate(5px, -6px) rotate(12deg); } }
 
-/* Chapter 4: the bridge backdrop's own planks sit above a prop (z-index 2), so the bridge props and ending sit above them. */
-.fq-fp.is-a-plank, .fq-fp.is-a-house, .fq-fp.is-a-reed, .fq-fp.is-a-pebbles, .fq-fp.is-end.is-bridge { z-index: 3; }
 
 /* Chapter 2, compare-same-numerator: this film's caption is long (it grows tall), so its prop sits a little higher and smaller. */
 .fq-fp.is-a-twocakes { top: 16%; left: 42%; width: 40%; }
