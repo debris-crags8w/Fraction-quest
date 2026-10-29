@@ -22,6 +22,10 @@ import { CHAPTERS, CHAPTER_SCENES, CHARACTERS, propTheme, withName, type Panel, 
 import { TaskBar } from './TaskBar';
 import './story-cinema.css';
 import './film-props.css';
+import './film-props-a.css';
+import './film-props-b.css';
+import './film-props-c.css';
+import './film-props-d.css';
 
 export { CHAPTER_SCENES, type StoryScene } from './story';
 

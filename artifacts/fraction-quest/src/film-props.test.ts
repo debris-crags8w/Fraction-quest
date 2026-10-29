@@ -4,15 +4,19 @@ import test from 'node:test';
 import * as React from 'react';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ChapterEndPicture, hasChapterEndPicture, LESSON_PROPS, LessonProp, lessonPropFor, type PropId } from './film-props';
+import { ChapterEndPicture, END_SCENES, hasChapterEndPicture, LESSON_PROPS, LessonProp, lessonPropFor, PROP_DEFS, type PropId } from './film-props';
+import { LESSONS_A, ENDS_A } from './film-props-a';
+import { LESSONS_B, ENDS_B } from './film-props-b';
+import { LESSONS_C, ENDS_C } from './film-props-c';
+import { LESSONS_D, ENDS_D } from './film-props-d';
 import { MISSIONS } from './game';
 import { CHAPTER_SCENES } from './story';
 
 // Characters and Numi are drawn by files that rely on the classic JSX runtime when rendered outside Vite.
 Object.assign(globalThis, { React });
-const css = readFileSync(new URL('./film-props.css', import.meta.url), 'utf8');
+const css = ['', '-a', '-b', '-c', '-d'].map((suffix) => readFileSync(new URL(`./film-props${suffix}.css`, import.meta.url), 'utf8')).join('\n');
 const cinemaCss = readFileSync(new URL('./story-cinema.css', import.meta.url), 'utf8');
-const props = [...new Set(Object.values(LESSON_PROPS))] as PropId[];
+const props = Object.keys(PROP_DEFS) as PropId[];
 const render = (prop: PropId, beat = 0, scene: Parameters<typeof LessonProp>[0]['scene'] = 'den') => renderToStaticMarkup(createElement(LessonProp, { prop, scene, beat }));
 
 test('every lesson with a film prop is a real lesson after its chapter opener (openers keep their own art)', () => {
@@ -87,3 +91,30 @@ test('a chapter ending shows the chapter key prop with its stone piece, found fr
     assert.ok(CHAPTER_SCENES[unit]);
   }
 });
+
+// Which lessons and chapter endings each batch of art covers (chapter openers keep their own film art).
+const lessonsOf = (units: number[]) => units.flatMap((unit) => MISSIONS.filter((m) => m.unit === unit).slice(1).map((m) => m.id));
+const BATCHES = [
+  { name: 'A', units: [1, 2, 3, 4, 5, 6], lessons: LESSONS_A, ends: ENDS_A, endUnits: [1, 2, 4, 5, 6] },
+  { name: 'B', units: [7, 8], lessons: LESSONS_B, ends: ENDS_B, endUnits: [7] },
+  { name: 'C', units: [9, 10, 11], lessons: LESSONS_C, ends: ENDS_C, endUnits: [9, 10, 11] },
+  { name: 'D', units: [12, 13, 14, 15], lessons: LESSONS_D, ends: ENDS_D, endUnits: [13, 14, 15] },
+];
+
+test('every lesson row points at a real object and every object is used by some lesson', () => {
+  for (const [lesson, prop] of Object.entries(LESSON_PROPS)) assert.ok(PROP_DEFS[prop], `${lesson} -> ${prop} is drawn`);
+  const used = new Set(Object.values(LESSON_PROPS));
+  for (const prop of Object.keys(PROP_DEFS)) assert.ok(used.has(prop), `${prop} is used by a lesson`);
+  for (const unit of Object.keys(END_SCENES)) assert.ok(CHAPTER_SCENES[Number(unit)], `chapter ${unit} exists`);
+});
+
+// A batch is finished when every one of its lessons and endings has a picture. (Switched on per batch by its agent.)
+for (const batch of BATCHES) {
+  const done = Object.keys(batch.lessons).length > 0 || Object.keys(batch.ends).length > 0;
+  test(`batch ${batch.name} covers its lessons and chapter endings`, { skip: !done && 'batch not started' }, () => {
+    const lessons = lessonsOf(batch.units);
+    assert.deepEqual(lessons.filter((id) => !LESSON_PROPS[id]), [], `batch ${batch.name}: lessons without a film picture`);
+    assert.deepEqual(batch.endUnits.filter((unit) => !END_SCENES[unit]), [], `batch ${batch.name}: chapters without an ending picture`);
+    for (const id of Object.keys(batch.lessons)) assert.ok(lessons.includes(id), `${id} belongs to batch ${batch.name}`);
+  });
+}

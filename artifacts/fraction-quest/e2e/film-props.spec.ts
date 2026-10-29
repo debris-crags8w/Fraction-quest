@@ -1,6 +1,7 @@
 import { expect, test, type Page } from './fixtures';
 import { MISSIONS } from '../src/game';
 import { getBuildChecks, getWorksheet } from '../src/learning-content';
+import { END_SCENES, LESSON_PROPS } from '../src/film-props';
 
 /* Lesson-film props and chapter-ending pictures (src/film-props.tsx), on a phone-sized screen (390 x 664):
    every sample film shows its prop, the prop and the speakers stay clear of the caption and of each other, and with
@@ -8,7 +9,8 @@ import { getBuildChecks, getWorksheet } from '../src/learning-content';
 
 test.use({ viewport: { width: 390, height: 664 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
 
-const SAMPLES: { name: string; unit: number; lesson?: string; prop: string }[] = [
+type Sample = { name: string; unit: number; lesson?: string; prop: string };
+const SAMPLE_SET: Sample[] = [
   { name: 'chapter 3 lesson 2', unit: 3, lesson: 'benchmarks-zero-one', prop: 'flag' },
   { name: 'chapter 8 lesson 2', unit: 8, lesson: 'subtract-like-denominators', prop: 'jar' },
   { name: 'chapter 8 lesson 6', unit: 8, lesson: 'hundredths-decimals', prop: 'note' },
@@ -19,8 +21,17 @@ const SAMPLES: { name: string; unit: number; lesson?: string; prop: string }[] =
   { name: 'chapter 8 ending', unit: 8, prop: 'end-8' },
   { name: 'chapter 12 ending', unit: 12, prop: 'end-12' },
 ];
+/** Every lesson film and chapter ending that has a picture, in course order. */
+const EVERY_FILM: Sample[] = [
+  ...MISSIONS.filter((m) => LESSON_PROPS[m.id]).map((m) => ({ name: `chapter ${m.unit} ${m.id}`, unit: m.unit, lesson: m.id, prop: LESSON_PROPS[m.id]! })),
+  ...Object.keys(END_SCENES).map(Number).sort((a, b) => a - b).map((unit) => ({ name: `chapter ${unit} ending`, unit, prop: `end-${unit}` })),
+];
+// By default the nine approved samples run (CI); FILM_PROPS_ONLY=<lesson id or end-N>,... runs those; FILM_PROPS_ALL=1 runs every film.
+const only = (process.env.FILM_PROPS_ONLY ?? '').split(',').filter(Boolean);
+const SAMPLES: Sample[] = process.env.FILM_PROPS_ALL ? EVERY_FILM
+  : only.length ? EVERY_FILM.filter((s) => only.includes(s.lesson ?? s.prop)) : SAMPLE_SET;
 
-async function openFilm(page: Page, sample: (typeof SAMPLES)[number], reducedMotion: boolean) {
+async function openFilm(page: Page, sample: Sample, reducedMotion: boolean) {
   const completedAt = Date.now();
   const learning = Object.fromEntries(MISSIONS.map((m) => [m.id, { practiceDone: true, helpUses: 0, misconceptions: {}, completedAt,
     checks: Object.fromEntries(getBuildChecks(m.id).map((c) => [c.id, { passed: true, supported: false, attempts: 1 }])),
