@@ -397,6 +397,10 @@ const RULES: Rule[] = [
       if (fits.length !== 1) return `${fits.length} choices divide both ${m[1]} and ${m[2]}`; return { text: fits[0] }; } },
   { name: 'colored strip: fraction colored', re: /^A strip has (\d+) equal parts\. (\d+) (?:is|are) colored\. What fraction is (not )?colored\?$/,
     solve: (m) => ({ value: (m[3] ? N(m[1]) - N(m[2]) : N(m[2])) / N(m[1]), denominator: N(m[1]) }) },
+  { name: 'decimal at the dot', re: /^What decimal is at the dot\?$/,
+    solve: (_m, item) => { const p = (item.pictures ?? []).find((x) => x.kind === 'line'); if (!p) return 'no number line';
+      const [n, d] = 'n' in p ? [p.n, p.d] : [(p as { numerator: number }).numerator, (p as { denominator: number }).denominator];
+      if (d !== 10) return `the line has ${d} spaces, not tenths`; return { value: n / d, form: 'decimal' }; } },
   { name: 'colored strip: decimal', re: /^A strip has 10 equal parts\. (\d+) (?:is|are) colored\. Write the colored part as a decimal\.$/,
     solve: (m) => ({ value: N(m[1]) / 10, form: 'decimal' }) },
   { name: 'how many parts make one whole', re: /^How many (halves|thirds|fourths|fifths|sixths|eighths|tenths|twelfths) make one whole\?$/,

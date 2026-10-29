@@ -131,7 +131,7 @@ function timesOrShare(p: string): Found | null {
 
 /** Naming parts, number lines, equivalent fractions, simplest form, decimals and percents. `right` is the app's answer
     as numerator and denominator (null for a decimal or percent). */
-function equivalence(p: string, right: Amount | null): Found | null {
+function equivalence(p: string, right: Amount | null, answerText?: string): Found | null {
   let m: RegExpExecArray | null;
   const [x, y] = right ?? [NaN, NaN];
   const answer = right ? x / y : NaN;
@@ -248,6 +248,12 @@ function equivalence(p: string, right: Amount | null): Found | null {
     }
     return { right: n / d, slips: [['places', String(n / (d * 10))], ['places', String(n / (d / 10))], ['decWhole', `${n}.0`], ['decSideBySide', `${n}.${d}`], ['places', String(n / 10)], ['places', String(n / 100)]] };
   }
+  // "What decimal is at the dot?" (a number line in tenths; the amount is only in the picture, so it is read from the answer):
+  // counted from the 1 end, the digit before the point, a mark counted instead of a space (hundredths wait for lesson 31).
+  if (/^What decimal is at the dot\?$/.test(p) && (m = /^0\.([1-9])$/.exec((answerText ?? "").trim()))) {
+    const n = N(m[1]);
+    return { right: n / 10, slips: [['dotFromOne', `0.${10 - n}`], ['decWhole', `${n}.0`], ...(n < 9 ? [['countedMarks', `0.${n + 1}`] as Slip] : [['countedMarks', `0.${n - 1}`] as Slip])] };
+  }
   if ((m = /^Write (\d+)\/10 \+ (\d+)\/100 as a decimal\.$/.exec(p))) {
     const [a, b] = m.slice(1).map(N);
     return { right: (10 * a + b) / 100, slips: [['tenthsAsHundredths', String((a + b) / 100)], ['tenthsAsHundredths', String((a + b) / 10)], ['places', String((10 * a + b) / 1000)]] };
@@ -273,10 +279,10 @@ function equivalence(p: string, right: Amount | null): Found | null {
   return null;
 }
 
-function found(prompt: string, right: Amount | null): Found | null {
+function found(prompt: string, right: Amount | null, answerText?: string): Found | null {
   let p = prompt.replace(/^Quick review · [^:]+: /, '').replace(/^Rename: .+?\. Then /, '');
   let m: RegExpExecArray | null;
-  const named = equivalence(p, right);
+  const named = equivalence(p, right, answerText);
   if (named) return named;
   // "A worm is 1/6 of a meter long. Is that near 0, 1/2 or 1 meter?": one of the named options, or the 6.
   if ((m = /^A \w+ is 1\/(\d+) of a meter long\. Is that near 0, 1\/2 or 1 meter\?$/.exec(p))) {
@@ -355,7 +361,7 @@ export function fractionMistakesWithWhy(prompt: string, writtenAnswer: string): 
   const answer = writtenAnswer.trim().slice(0, writtenAnswer.trim().length - unit.length);
   // "1 and 2/3" is worked with as 1 2/3; its slips are written out in full by the rule.
   const right = amount(answer.replace(' and ', ' ')); const target = right ? right[0] / right[1] : answerValue(answer);
-  const result = found(prompt, right);
+  const result = found(prompt, right, answer);
   if (!Number.isFinite(target) || !result || Math.abs(result.right - target) > 1e-9) return [];
   const out: [string, Why][] = []; const values = new Set([target]);
   for (const [why, slip] of result.slips) {

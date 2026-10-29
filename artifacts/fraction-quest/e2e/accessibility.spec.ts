@@ -460,6 +460,46 @@ test('the grown-ups area: the gate, the report and every settings row pass the c
   audit.finish();
 });
 
+test('the grown-ups report with wrong tries and a "What to practice" tip passes the check', async ({ page }) => {
+  test.setTimeout(240_000);
+  const audit = new Audit(page);
+  const done = MISSIONS.slice(0, 4).map((mission) => mission.id);
+  const day = dayKey(PLAIN_DAY);
+  const learning = Object.fromEntries(done.map((id, index) => [id, masteredRecord(id, {
+    completedAt: PLAIN_DAY.getTime() - (index < 2 ? 20 : 2 - (index - 2)) * 86_400_000,
+    // The third lesson has the most wrong tries: the report names it, with an idea for home.
+    ...(index === 3 ? { misconceptions: { [MISSIONS[3]!.title]: 3 } } : {}),
+  })]));
+  await openApp(page, {
+    progress: progressOf(learning, done),
+    fun: { dayStreak: 2, lastActiveDay: day, activity: { [day]: { minutes: 9, answered: 3 }, [dayKey(new Date(PLAIN_DAY.getTime() - 86_400_000))]: { minutes: 14, answered: 7 } } },
+  });
+  await openMenuItem(page, 'button-open-parent');
+  await passGate(page);
+  await expect(page.getByTestId('parent-glance')).toBeVisible();
+  await expect(page.getByTestId('parent-tip-0')).toContainText('3 wrong tries');
+  await audit.scan('the grown-ups report with wrong tries');
+  // The skills by standard, opened, and the full report below the summary.
+  await page.getByTestId('parent-skill-3.NF.1').getByRole('button').click();
+  await audit.scan('the grown-ups report with a skill opened');
+  await page.getByRole('heading', { name: 'Full report' }).scrollIntoViewIfNeeded();
+  await audit.scan('the grown-ups full report');
+  audit.finish();
+});
+
+test('the privacy notice and the terms pass the check', async ({ page }) => {
+  const audit = new Audit(page);
+  for (const [path, name] of [['/privacy.html', 'the privacy notice'], ['/terms.html', 'the terms']] as const) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(path);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await audit.scan(name);
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await audit.scan(`${name} on a wide screen`);
+  }
+  audit.finish();
+});
+
 test('the sign-in, new account and password recovery screens pass the check', async ({ page }) => {
   const audit = new Audit(page);
   await page.route('**/api/**', async (route) => {

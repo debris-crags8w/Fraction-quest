@@ -106,6 +106,8 @@ export const WHY = {
   decRename: 'Rename the fraction as tenths or hundredths first.',
   decSideBySide: 'You wrote the fraction’s numbers side by side. The denominator tells the place.',
   decWhole: 'That is whole ones. Tenths and hundredths go after the decimal point.',
+  dotFromOne: 'You counted from the other end. Start counting at 0.',
+  countedMarks: 'Count the spaces between the marks, not the marks. Start at 0.',
   tenthsAsHundredths: 'A tenth is ten hundredths. Rename the tenths before you add.',
   digitTop: 'The digits after the point are the numerator, not the denominator.',
   percentRename: 'Percent means out of a hundred. Rename the fraction as hundredths first.',
