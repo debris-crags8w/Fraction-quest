@@ -424,10 +424,10 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
         );
       })()}
       {model.kind === 'partition' && (
-        <div className="fq-partition-model" role="img" aria-label={`One whole split into ${model.parts.length} pieces; the first piece is one part`}>
+        <div className="fq-partition-model" role="img" aria-label="One whole bar cut into pieces">
           <div className="fq-partition-whole">
             {model.parts.map((size, index) => (
-              <span className={`${index === 0 ? 'part-sample' : ''} ${walk !== null ? 'fq-walk-part' : ''}`} style={{ flexBasis: `${size}%`, '--i': index } as CSSProperties} key={`${size}-${index}-${walk ?? ''}`}>
+              <span className={walk !== null ? 'fq-walk-part' : undefined} style={{ flexBasis: `${size}%`, '--i': index } as CSSProperties} key={`${size}-${index}-${walk ?? ''}`}>
                 {walk !== null && <b className="fq-count-badge" aria-hidden="true">{index + 1}</b>}
               </span>
             ))}

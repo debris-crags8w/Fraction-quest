@@ -907,7 +907,6 @@
 .fq-partition-whole-label { color: hsl(var(--muted-foreground)); font-size: 0.76rem; font-weight: 900; letter-spacing: 0.01em; text-align: center; }
 .fq-partition-part-label { display: inline-flex; align-items: center; gap: 7px; color: hsl(var(--muted-foreground)); font-size: 0.76rem; font-weight: 800; }
 .fq-partition-part-label i { width: 13px; height: 13px; flex: none; border: 2px solid var(--fq-grape); border-radius: 4px; background: hsl(var(--accent) / 0.45); }
-.fq-partition-whole span.part-sample { outline: 3px solid var(--fq-grape); outline-offset: 2px; z-index: 1; }
 
 .fq-bar {
   gap: 3px;
@@ -1812,7 +1811,6 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-grownups-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 420px) { .fq-grownups-buttons { width: 100%; } .fq-grownups-buttons .fq-button { flex: 1; } }
 /* In a race the "Part" label is hidden, so the sample-part outline would just look like a glitch. */
-.fq-race-model .fq-partition-whole span.part-sample { outline: none; }
 
 /* ---------- race improvements + Code Sprint ---------- */
 .fq-race-howto { display: grid; gap: 6px; margin: 0; padding: 12px 14px; border-radius: 18px; list-style: none; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); font-weight: 800; font-size: 0.95rem; }
@@ -2278,7 +2276,6 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 /* Strips with unequal pieces (the "are these fair?" questions) keep straight dividers too: only the sizes differ. */
 .fq-partition-whole { gap: 0; background: hsl(var(--muted)); }
 .fq-partition-whole span + span { border-left: 2px solid var(--fq-whole-edge); }
-.fq-partition-whole span.part-sample { outline-offset: -4px; }
 /* The count-along glow stays inside its part. */
 @keyframes fq-count-glow { 50% { filter: brightness(1.25) drop-shadow(0 0 6px var(--fq-sun)); } }
 .fq-bar { grid-template-columns: repeat(var(--pieces), minmax(0, 1fr)); }

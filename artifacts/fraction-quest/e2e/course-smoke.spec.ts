@@ -1630,6 +1630,12 @@ test('learners can correct a wrong answer across every lesson model type', async
     await page.getByTestId('button-idea-practise').click();
 
     await expect(page.getByTestId('question-model-area')).toBeVisible();
+    // A bar cut into pieces marks no piece: an outline on the first one points at a single part, whatever the question asks.
+    if (question.model.kind === 'partition') {
+      await expect(page.locator('.fq-partition-whole span').first()).toBeVisible();
+      await expect(page.locator('.fq-partition-whole .part-sample')).toHaveCount(0);
+      await expect(page.getByTestId('question-model-area').getByRole('img', { name: /first piece is one part/ })).toHaveCount(0);
+    }
     await retryLessonQuestion(page, question);
     await page.getByTestId('button-next-question').click();
     // The progress bar counts the lesson's practices so far.
