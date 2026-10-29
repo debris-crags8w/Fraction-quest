@@ -10,7 +10,7 @@ describe('offline service worker routes', () => {
     assert.equal(route('https://fq.example/lesson/3', 'navigate'), 'page');
     assert.equal(route('https://fq.example/assets/index-abc123.js'), 'asset');
     assert.equal(route('https://fq.example/voice/index.json'), 'asset');
-    assert.equal(route('https://fonts.gstatic.com/s/nunito/v1/a.woff2'), 'asset');
+    assert.equal(route('https://fq.example/assets/baloo-2-latin-700-normal-abc.woff2'), 'asset', 'fonts are built files, saved with the app');
     assert.equal(route('https://fq.example/api/storage/public-objects/voice/numi/ab12.mp3'), 'voice');
     for (const api of ['/api/auth/me', '/api/family/profiles/3/progress', '/api/voice/speech?voice=a&text=b', '/api/healthz']) {
       assert.equal(route(`https://fq.example${api}`), 'network', api);
