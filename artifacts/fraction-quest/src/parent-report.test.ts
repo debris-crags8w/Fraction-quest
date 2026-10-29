@@ -8,7 +8,7 @@ import { emptyLearningRecord, type LearningRecord } from './learning';
 import { getBuildChecks, getWorksheet } from './learning-content';
 import { buildParentReport, glanceShareText } from './parent-report';
 import { FRACTION_STANDARDS } from './standard-catalog';
-import { guideForUnit } from './teaching-guide-data';
+import { IDEA_KEYS, ideaForMission } from './parent-ideas';
 import type { FunState } from './lib/fun';
 
 const now = new Date('2026-10-20T18:00:00');
@@ -100,42 +100,78 @@ describe('skills by standard', () => {
       assessments: [checkin('unit-4-mid', '3.NF.2a', day(4)), checkin('unit-4-end', '3.NF.2a', day(1))],
     };
     const built = report(progress);
-    const text = glanceShareText(built.glance, built.firstTryRate, 'Sam', now, built.skills);
+    const text = glanceShareText(built.glance, 'Sam', now, built.skills);
     assert.match(text, /\nMastered: 3\.NF\.2a\.\n/);
     assert.match(text, /\nPracticed, ready to check: 3\.NF\.1(, [^\n]+)?\.\n/);
   });
 });
 
 describe('what to practice', () => {
+  // Lessons 1 to 4 are Fair parts and fraction names (3.NF.1) x3 and Fractions in shapes (3.G.2).
   const [a, b, c, d] = MISSIONS;
   const progress: Progress = {
     ...EMPTY_PROGRESS,
     learning: {
       [a.id]: { ...emptyLearningRecord(), misconceptions: { 'Count the parts': 1, 'Same size parts': 4 } },
-      [b.id]: { ...emptyLearningRecord(), misconceptions: { 'Count the parts': 3 }, redoMisconceptions: { 'Count the parts': 2 } },
+      [b.id]: { ...emptyLearningRecord(), misconceptions: { 'Count the parts': 4 }, redoMisconceptions: { 'Count the parts': 2 } },
       [c.id]: { ...emptyLearningRecord(), misconceptions: { 'Look at the top': 2 } },
       [d.id]: { ...emptyLearningRecord(), misconceptions: { 'Rarely': 1 } },
     },
   };
   const tips = report(progress).toPractice;
 
-  it('keeps the top three ideas, most wrong tries first', () => {
-    assert.deepEqual(tips.map((tip) => [tip.idea, tip.count]), [['Count the parts', 6], ['Same size parts', 4], ['Look at the top', 2]]);
+  it('groups wrong tries by the idea of the lesson, not by the hint of each question', () => {
+    // Lessons 1, 2 and 3 all teach 3.NF.1: 5 + 6 + 2 = 13 wrong tries in one group; lesson 4 (3.G.2) is its own.
+    assert.deepEqual(tips.map((tip) => [tip.key, tip.count]), [['3.NF.1', 13], ['3.G.2', 1]]);
+    assert.equal(tips[0].idea, ideaForMission(a).heading);
+    assert.doesNotMatch(tips.map((tip) => tip.idea).join('|'), /Count the parts|Same size parts|Look at the top|Rarely/, 'no question hint is used as a heading');
     assert.equal(tips[0].inRedos, 2);
   });
 
-  it('practices from the lesson where the idea came up most, with its standards', () => {
-    assert.equal(tips[0].missionId, b.id);
-    assert.equal(tips[0].lessonNumber, 2);
-    assert.deepEqual(tips[0].standards, b.standards ?? []);
-    assert.deepEqual(tips[0].lessons, [a.title, b.title]);
-    assert.deepEqual(tips[0].lessonNumbers, [1, 2]);
+  it('names every group in a friendly line and gives a try-this-at-home sentence', () => {
+    for (const tip of tips) {
+      assert.ok(tip.idea.length > 8 && tip.idea.length <= 60, tip.idea);
+      assert.match(tip.home, /^[A-Z].*[.?]$/);
+    }
+    assert.equal(tips[0].home, ideaForMission(a).home);
   });
 
-  it('shows each unit\'s idea for home once', () => {
-    const notes = tips.map((tip) => tip.homeActivity).filter(Boolean);
-    assert.equal(new Set(notes).size, notes.length);
-    assert.equal(tips[0].homeActivity, guideForUnit(b.unit)?.familyNote);
+  it('practices from the lesson where the idea came up most, with its standards', () => {
+    assert.equal(tips[0].missionId, b.id); // lesson 2 has 6 of them, lesson 1 has 5 and lesson 3 has 2
+    assert.equal(tips[0].lessonNumber, 2);
+    assert.deepEqual(tips[0].standards, b.standards ?? []);
+    assert.deepEqual(tips[0].lessonNumbers, [1, 2, 3]);
+    assert.deepEqual(tips[0].lessons, [a.title, b.title, c.title]);
+  });
+
+  it('shows a try-at-home idea from the next lesson when nothing has gone wrong yet', () => {
+    const fresh = report(EMPTY_PROGRESS);
+    assert.equal(fresh.toPractice.length, 0);
+    assert.equal(fresh.homeIdea?.why, 'next');
+    assert.equal(fresh.homeIdea?.lessonNumber, 1);
+    assert.equal(fresh.homeIdea?.home, ideaForMission(a).home);
+    // With every lesson done and no wrong tries, it reviews the lesson with the lowest first-try rate.
+    const all: Record<string, LearningRecord> = {};
+    MISSIONS.forEach((mission, index) => { all[mission.id] = finished(mission.id, day(40 + index), index === 6 ? 2 : 12); });
+    const doneAll = report(withLessons(all));
+    assert.equal(doneAll.homeIdea?.why, 'review');
+    assert.equal(doneAll.homeIdea?.lessonNumber, 7);
+    assert.equal(report({ ...withLessons(all), learning: { ...all, [MISSIONS[0].id]: { ...all[MISSIONS[0].id], misconceptions: { x: 1 } } } }).homeIdea, null, 'wrong tries: the tips carry the idea instead');
+  });
+});
+
+describe('every lesson has an idea', () => {
+  it('maps all lessons and standards to a named group with a sentence for home', () => {
+    for (const mission of MISSIONS) {
+      const idea = ideaForMission(mission);
+      assert.ok(idea.heading && idea.home, mission.id);
+    }
+    // No idea text sits unused, and a group named after a standard is a real standard.
+    const used = new Set(MISSIONS.map((mission) => ideaForMission(mission).key));
+    assert.deepEqual([...IDEA_KEYS].filter((key) => !used.has(key)), []);
+    for (const key of used) assert.ok(FRACTION_STANDARDS.some((standard) => standard.id === key) || !/^\d\./.test(key), key);
+    const headings = new Map<string, string>();
+    for (const mission of MISSIONS) { const { key, heading } = ideaForMission(mission); assert.equal(headings.get(key) ?? heading, heading); headings.set(key, heading); }
   });
 });
 
