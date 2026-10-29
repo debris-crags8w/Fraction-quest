@@ -9,6 +9,9 @@ import { answerMatches, asChoicePrompt, choiceDistractors, getBuildChecks, getWo
 import { FRACTION_STANDARDS, standardsForMission, type StandardId } from './standard-catalog';
 import { scopedStorageKey } from './storage-scope';
 import { ideaOfQuestion, partTaught, withTaughtParts } from './taught-parts';
+import { afterRevisit, byOverdue, REVISIT_DAYS, type LessonSeen, type RevisitCandidate } from './review-schedule';
+const REVISIT_STEPS = REVISIT_DAYS.length;
+const startOfDay = (now: number) => Math.floor(now / (24 * 60 * 60 * 1000)) * 24 * 60 * 60 * 1000;
 
 /** `named`: the question states this fraction, so the bar shows its label (other bars are labelled once answered). */
 /** `untilAnswered`: this bar shows the answer, so it stays hidden until the child answers (then it confirms it). */
@@ -129,6 +132,8 @@ export type PracticeQuestion = {
   standards?: string[];
   /** Set on a lesson's story problem (story mode): the chapter friend's line before it. */
   storySetup?: string;
+  /** One of the lesson's 3 checkpoint questions (new numbers, after the ideas): counted for stars like any question. */
+  isCheckpoint?: boolean;
 };
 
 export type WorkedExample = {
@@ -168,6 +173,8 @@ export type Progress = {
   challengeBest?: Record<string, number>;
   dailyPractice?: DailyPracticeSession;
   adaptiveStandards?: Record<string, AdaptiveStandardState>;
+  /** When each finished lesson was last revisited, and how well (see review-schedule.ts). */
+  lessonSeen?: Record<string, LessonSeen>;
   adaptationLog?: AdaptationEvent[];
   /** Placement quiz result: lessons in units before `unit` are open (not marked done). */
   placement?: { unit: number; at: number };
@@ -301,6 +308,9 @@ export type SkillReview = {
   reviewCount: number;
   /** Spaced review step: 0 is the review 1 day after the lesson, then 3 days, then 7 days (absent in older saves: 0). */
   stage?: number;
+  /** A question of this lesson was answered wrong (set when it is queued for a miss; a lesson queued only for being
+      finished has no mark). Older saves: told apart by `missedQuestionId` not being the lesson's first question. */
+  missed?: boolean;
 };
 
 export type Answer = number;
@@ -2385,15 +2395,42 @@ export function recordMissedSkill(
   questionId: string,
   now = Date.now(),
 ): Progress {
-  if (progress.reviewQueue.some((item) => item.missionId === missionId)) return progress;
+  const queued = progress.reviewQueue.find((item) => item.missionId === missionId);
+  // A lesson already in the queue (finished, or missed before) keeps its place and step; it is only marked as missed.
+  if (queued) {
+    if (isMissedEntry(queued)) return progress;
+    return { ...progress, reviewQueue: progress.reviewQueue.map((item) => (item === queued ? { ...item, missed: true } : item)) };
+  }
   if (!isLessonQuestion(missionId, questionId)) throw new Error(`Unknown question for skill review: ${questionId}`);
   return {
     ...progress,
     reviewQueue: [
       ...progress.reviewQueue,
-      { missionId, missedQuestionId: questionId, dueAt: now + SKILL_REVIEW_DELAY_MS, reviewCount: 0 },
+      { missionId, missedQuestionId: questionId, dueAt: now + SKILL_REVIEW_DELAY_MS, reviewCount: 0, missed: true },
     ],
   };
+}
+
+/** Is this queue entry a skill the child got wrong (not just a lesson that was finished and is due its 1, 3 and 7 day look)? */
+export function isMissedEntry(item: SkillReview): boolean {
+  return item.missed === true || item.missedQuestionId !== getMission(item.missionId).questions[0]?.id;
+}
+
+/** A finished lesson was revisited (a review item inside a new lesson, a Daily Practice question, a Quick skill review). */
+export function recordLessonSeen(progress: Progress, missionId: string, correctFirstTime: boolean, now = Date.now()): Progress {
+  if (!MISSIONS.some((item) => item.id === missionId)) return progress;
+  return { ...progress, lessonSeen: { ...progress.lessonSeen, [missionId]: afterRevisit(progress.lessonSeen?.[missionId], correctFirstTime, now) } };
+}
+
+/** Everything the revisit rule needs to know about each finished lesson. */
+export function revisitCandidates(progress: Progress): RevisitCandidate[] {
+  return MISSIONS.flatMap((mission, order): RevisitCandidate[] => {
+    if (!progress.completedMissionIds.includes(mission.id)) return [];
+    const record = progress.learning?.[mission.id];
+    const misses = Object.values(record?.misconceptions ?? {}).reduce((sum, count) => sum + count, 0);
+    return [{ id: mission.id, order, completedAt: record?.completedAt, seen: progress.lessonSeen?.[mission.id],
+      weak: (progress.starsByMission[mission.id] ?? 3) <= 1 || misses > 0 }];
+  });
 }
 
 export function completeSkillReview(progress: Progress, missionId: string, now = Date.now()): Progress {
@@ -2408,7 +2445,7 @@ export function completeSkillReview(progress: Progress, missionId: string, now =
       ? { ...review, stage: next, reviewCount: review.reviewCount + 1, dueAt: now + SPACED_REVIEW_DAYS[next] * SKILL_REVIEW_DELAY_MS }
       : review)
     : progress.reviewQueue.filter((review) => review !== item);
-  return { ...progress, reviewQueue };
+  return recordLessonSeen({ ...progress, reviewQueue }, missionId, true, now);
 }
 
 export function deferSkillReview(progress: Progress, missionId: string, now = Date.now()): Progress {
@@ -2416,6 +2453,12 @@ export function deferSkillReview(progress: Progress, missionId: string, now = Da
     ? { ...item, dueAt: now + SKILL_REVIEW_DELAY_MS, reviewCount: item.reviewCount + 1 }
     : item);
   return { ...progress, reviewQueue };
+}
+
+/** A review item inside a lesson was answered right first time: it is looked at again tomorrow, and the lesson moves up
+    one revisit interval. (Skipped or missed ones only go through deferSkillReview, so they come back sooner.) */
+export function finishLessonReview(progress: Progress, missionId: string, now = Date.now()): Progress {
+  return recordLessonSeen(deferSkillReview(progress, missionId, now), missionId, true, now);
 }
 
 function toReviewQuestion(item: SkillReview): PracticeQuestion[] {
@@ -2459,15 +2502,29 @@ export function getDueSkillReviewQuestions(progress: Progress, now = Date.now())
     .flatMap(toReviewQuestion);
 }
 
+/** What a new lesson brings back from earlier lessons, after its checkpoint: a skill the child got wrong that is due (at most
+    one), then ONE item from the finished lesson that is most overdue for its own interval (1, 3, 7, 14 days; see
+    review-schedule.ts). That second one is chosen from every finished lesson, so a child with no mistakes meets an
+    earlier skill in each new lesson too. */
 export function getDelayedReviewQuestions(
   progress: Progress,
   currentMissionId: string,
   now = Date.now(),
 ): PracticeQuestion[] {
-  return getDueSkillReviews(progress, now)
-    .filter((item) => item.missionId !== currentMissionId)
-    .slice(0, MAX_DELAYED_REVIEW_QUESTIONS)
-    .flatMap(toReviewQuestion);
+  const missed = getDueSkillReviews(progress, now)
+    .filter((item) => item.missionId !== currentMissionId && isMissedEntry(item))
+    .slice(0, 1);
+  const taken = new Set([currentMissionId, ...missed.map((item) => item.missionId)]);
+  // The lesson most overdue, due or not (so every new lesson has one), but never one already seen today.
+  const [warmUp] = byOverdue(revisitCandidates(progress).filter((candidate) => !taken.has(candidate.id)
+    && (candidate.seen?.at ?? candidate.completedAt ?? 0) < startOfDay(now)), now);
+  const seen = warmUp ? progress.lessonSeen?.[warmUp] : undefined;
+  return [
+    ...missed.flatMap(toReviewQuestion),
+    // Each revisit asks a different question of the lesson (and the same one until the child has answered).
+    ...(warmUp ? toReviewQuestion({ missionId: warmUp, missedQuestionId: getMission(warmUp).questions[0].id, dueAt: now,
+      reviewCount: seen?.v ?? 0 }) : []),
+  ];
 }
 
 export function getNextMission(progress: Progress): Mission | null {
@@ -2699,6 +2756,7 @@ export function loadProgress(): Progress {
             ? Math.max(0, Math.floor(item.reviewCount))
             : 0,
           ...(typeof item.stage === 'number' && Number.isInteger(item.stage) && item.stage > 0 && item.stage < SPACED_REVIEW_DAYS.length ? { stage: item.stage } : {}),
+          ...(item.missed === true ? { missed: true } : {}),
         });
       }
     }
@@ -2807,6 +2865,16 @@ export function loadProgress(): Progress {
       }
     }
     const dailyPractice = readDailyPractice(value.dailyPractice, validIds);
+    const lessonSeen: Record<string, LessonSeen> = {};
+    if (value.lessonSeen && typeof value.lessonSeen === 'object') {
+      for (const [id, raw] of Object.entries(value.lessonSeen)) {
+        const seen = raw as Partial<LessonSeen> | null;
+        if (!validIds.has(id) || !seen || typeof seen !== 'object' || typeof seen.at !== 'number' || !Number.isFinite(seen.at)
+          || typeof seen.n !== 'number' || !Number.isInteger(seen.n)) continue;
+        lessonSeen[id] = { at: seen.at, n: Math.max(0, Math.min(REVISIT_STEPS - 1, seen.n)), ...(seen.shaky === true ? { shaky: true } : {}),
+          ...(typeof seen.v === 'number' && Number.isInteger(seen.v) && seen.v > 0 ? { v: Math.min(seen.v, 1000) } : {}) };
+      }
+    }
     const knownStandards = new Set<string>(FRACTION_STANDARDS.map(item => item.id));
     const readResponses = (raw: unknown[]): AssessmentResponse[] => {
       const responses: AssessmentResponse[] = [];
@@ -2870,6 +2938,7 @@ export function loadProgress(): Progress {
       ...(Object.keys(challengeBest).length ? { challengeBest } : {}),
       ...(Object.keys(adaptiveStandards).length ? { adaptiveStandards } : {}),
       ...(adaptationLog.length ? { adaptationLog } : {}),
+      ...(Object.keys(lessonSeen).length ? { lessonSeen } : {}),
       ...(dailyPractice ? { dailyPractice } : {}),
       assessments,
       ...(value.placement && typeof value.placement === 'object' && Number.isInteger(value.placement.unit) && value.placement.unit >= 2 && value.placement.unit <= PLACEMENT_UNITS + 1
