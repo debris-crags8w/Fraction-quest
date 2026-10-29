@@ -1,1 +1,65 @@
-/* Batch D props (chapters 12 to 15): every moving part is under .fq-fp (see film-props.css for the rules). */
+/* Batch D props (chapters 12 to 15): every moving part is under .fq-fp (see film-props.css for the rules).
+   Each moving part rests in its FINISHED position; the animation only travels from elsewhere to it. */
+
+.fq-fp-d-slide, .fq-fp-d-drop, .fq-fp-d-in, .fq-fp-d-pop, .fq-fp-d-bee, .fq-fp-d-scrub, .fq-fp-d-lift { transform-box: fill-box; }
+.fq-fp-d-swing { transform-box: fill-box; transform-origin: 50% 0; }
+.fq-fp-d-tip { transform-box: fill-box; transform-origin: 50% 100%; }
+.fq-fp-d-lid { transform-box: fill-box; transform-origin: 0 100%; }
+.fq-fp-d-knob { transform-box: fill-box; transform-origin: 50% 50%; }
+.fq-fp-d-bloom { transform-box: fill-box; transform-origin: 50% 100%; }
+.fq-fp-d-sway { transform-box: fill-box; transform-origin: 0 50%; }
+.fq-fp-d-rise { transform-box: fill-box; transform-origin: 50% 100%; }
+
+/* Boards: the second board slides up to the first. */
+.fq-fp.is-on .fq-fp-d-slide { animation: fq-fp-d-slide 1.2s cubic-bezier(.3, 1.2, .5, 1) both; }
+@keyframes fq-fp-d-slide { from { transform: translate(34px, -20px) rotate(6deg); opacity: 0; } 20% { opacity: 1; } }
+
+/* Something small hops in from above and lands (a nail, a scoop). */
+.fq-fp.is-on .fq-fp-d-drop { animation: fq-fp-d-drop 1.2s cubic-bezier(.3, 1.3, .5, 1) both; }
+@keyframes fq-fp-d-drop { from { transform: translate(-26px, -56px) rotate(-70deg); opacity: 0; } 20% { opacity: 1; } }
+
+/* Something slides in from the right (a fork, a plate). */
+.fq-fp.is-on .fq-fp-d-in { animation: fq-fp-d-in 1.1s cubic-bezier(.3, .9, .4, 1) both; }
+@keyframes fq-fp-d-in { from { transform: translateX(46px); opacity: 0; } 30% { opacity: 1; } }
+
+/* A clay bag pops into place. */
+.fq-fp.is-on .fq-fp-d-pop { animation: fq-fp-d-pop .7s .2s cubic-bezier(.3, 1.5, .5, 1) both; }
+@keyframes fq-fp-d-pop { from { transform: translateY(16px) scale(.7); opacity: 0; } }
+
+/* Hanging things (sandbag, lanterns) swing a few times and settle. */
+.fq-fp.is-on .fq-fp-d-swing { animation: fq-fp-d-swing 2s ease-in-out both; animation-delay: calc(var(--i, 0) * .25s); }
+@keyframes fq-fp-d-swing { 0% { transform: rotate(10deg); } 30% { transform: rotate(-7deg); } 60% { transform: rotate(4deg); } 80% { transform: rotate(-2deg); } }
+
+/* The jug tips over the mugs and the middle mug fills a little. */
+.fq-fp.is-on .fq-fp-d-tip { animation: fq-fp-d-tip 1.1s cubic-bezier(.3, 1.2, .5, 1) both; }
+@keyframes fq-fp-d-tip { from { transform: rotate(12deg); } }
+.fq-fp.is-on .fq-fp-d-rise { animation: fq-fp-d-rise 1.6s .6s ease-out both; }
+@keyframes fq-fp-d-rise { from { transform: scaleY(.8); } }
+
+/* The rope end swings down onto the floor. */
+.fq-fp.is-on .fq-fp-d-sway { animation: fq-fp-d-sway 1.3s cubic-bezier(.3, 1.3, .5, 1) both; }
+@keyframes fq-fp-d-sway { from { transform: rotate(-16deg); } }
+
+/* The bee flies in and lands over the plot. */
+.fq-fp.is-on .fq-fp-d-bee { animation: fq-fp-d-bee 1.4s cubic-bezier(.3, 1, .5, 1) both; }
+@keyframes fq-fp-d-bee { from { transform: translate(46px, -26px) rotate(12deg); opacity: 0; } 25% { opacity: 1; } 60% { transform: translate(-4px, 4px); } }
+
+/* Flowers and sprouts grow up one after another. */
+.fq-fp.is-on .fq-fp-d-bloom { animation: fq-fp-d-bloom .8s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--i, 0) * .12s); }
+@keyframes fq-fp-d-bloom { from { transform: scaleY(.5); } }
+
+/* The dial's crossbar turns into place. */
+.fq-fp.is-on .fq-fp-d-knob { animation: fq-fp-d-knob 1.3s cubic-bezier(.3, 1.2, .5, 1) both; }
+@keyframes fq-fp-d-knob { from { transform: rotate(-120deg); } }
+
+/* The chest lid pops open. */
+.fq-fp.is-on .fq-fp-d-lid { animation: fq-fp-d-lid .9s cubic-bezier(.3, 1.5, .5, 1) both; }
+@keyframes fq-fp-d-lid { from { transform: rotate(24deg); } }
+
+/* The pencil's eraser scrubs, then rests. */
+.fq-fp.is-on .fq-fp-d-scrub { animation: fq-fp-d-scrub 1.2s ease-in-out both; }
+@keyframes fq-fp-d-scrub { 0% { transform: translate(12px, -4px); } 25% { transform: translate(-6px, 3px); } 50% { transform: translate(8px, -3px); } 75% { transform: translate(-3px, 1px); } }
+
+/* The padlock's shackle lifts open. */
+.fq-fp.is-on .fq-fp-d-lift { animation: fq-fp-d-lift 1s cubic-bezier(.3, 1.4, .5, 1) both; }
+@keyframes fq-fp-d-lift { from { transform: translateY(12px); } }
