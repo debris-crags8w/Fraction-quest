@@ -117,19 +117,21 @@ function WorksheetPage({ missionId }: { missionId: string }) {
 
 /* ---------- other printable pages ---------- */
 
-/** A lesson model drawn in black and white for paper. */
-export function PrintModel({ model, labels = true }: { model: ModelSpec; labels?: boolean }) {
+/** A lesson model drawn in black and white for paper. `asked`: the picture belongs to a question, so, as on the screen,
+    a bar that shows the answer (`untilAnswered`) is left off the page. */
+export function PrintModel({ model, labels = true, asked = false }: { model: ModelSpec; labels?: boolean; asked?: boolean }) {
   const setLayout = model.kind === 'set' ? setModelLayout(model) : null;
-  const barLabelled = (bar: { named?: boolean }) => !!bar.named || (labels && model.kind === 'bars' && model.bars.length > 1);
+  const bars = model.kind === 'bars' ? (asked ? model.bars.filter((bar) => !bar.untilAnswered) : model.bars) : [];
+  const barLabelled = (bar: { named?: boolean }) => !!bar.named || (labels && bars.length > 1);
   return (
     <div className="fq-print-model">
       {(model.kind === 'bars' || model.kind === 'decimal') && <ModelTag kind="bar" />}
       {model.kind === 'line' && <ModelTag kind="line" />}
       {model.kind === 'set' && <ModelTag kind="set" />}
-      {model.kind === 'bars' && model.bars.map((bar, index) => (
+      {model.kind === 'bars' && bars.map((bar, index) => (
         <div className="fq-print-bar-row" key={index}>
           <BarSvg n={bar.numerator} d={bar.denominator} wholes={Math.max(1, Math.ceil(bar.numerator / bar.denominator))} fraction={barLabelled(bar)}
-            labelSpace={model.bars.some(barLabelled)} />
+            labelSpace={bars.some(barLabelled)} />
         </div>
       ))}
       {model.kind === 'decimal' && <div className="fq-print-bar-row"><BarSvg n={model.tenths} d={10} />{labels && <b className="fq-print-decimal-value">{(model.tenths / 10).toFixed(1)}</b>}</div>}
@@ -219,7 +221,7 @@ function PracticeSheet({ mission }: { mission: Mission }) {
           <li key={question.id}>
             <p className="fq-print-prompt"><MathText text={question.prompt} /></p>
             {/* No number labels: on paper they would give the answer away. */}
-            <PrintModel model={question.model} labels={false} />
+            <PrintModel model={question.model} labels={false} asked />
             <ul className="fq-print-choices">
               {question.choices.map((choice, index) => <li key={index}><span className="fq-print-circle">{letter(index)}</span> <MathText text={choice} /></li>)}
             </ul>
@@ -318,7 +320,7 @@ function GeneratedSheet({ mission, seed }: { mission: Mission; seed: number }) {
           <li key={question.id}>
             <p className="fq-print-prompt"><MathText text={question.prompt} /></p>
             {/* An equation picture would only repeat the question on paper. */}
-            {question.model.kind !== 'equation' && <PrintModel model={question.model} labels={false} />}
+            {question.model.kind !== 'equation' && <PrintModel model={question.model} labels={false} asked />}
             <ul className="fq-print-choices">
               {question.choices.map((choice, index) => <li key={index}><span className="fq-print-circle">{letter(index)}</span> <MathText text={choice} /></li>)}
             </ul>
