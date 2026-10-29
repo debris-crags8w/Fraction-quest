@@ -314,17 +314,11 @@ function cardPlaces(d: number): Place[] {
   return places.sort(before);
 }
 
-/** Lessons whose own content writes a part name before its card, and that nothing has decided yet: a question, a Unit
-    challenge puzzle or a worked sum that is about the part ("Which is bigger, 1/5 or 1/3?"). Generic wrong choices (a
-    part count one more, or doubled: 1/5, 1/12, 7/15) never need one: they use only parts taught by then (taught-parts.ts),
-    so a "Practice more" question is never listed here. Fixing one of these means a card in an earlier lesson or
-    another example, then deleting the lesson from its list (each listed lesson must still write the name early). */
-const CONTENT_BEFORE_ITS_CARD: Readonly<Record<number, readonly number[]>> = {
-  5: [4, 5, 6, 7], // Unit 1 challenge "1/5 of a toy train"; lesson 5 "1/5 or 1/3" and "1/2 or 1/5"; the Unit 2 challenge "3/5 or 3/8" and "2/3, 2/9, 2/5"; lesson 7 "3/5 more or less than 1/2"
-  9: [6, 16, 47], // the Unit 2 challenge "2/3, 2/9, 2/5"; the Unit 5 challenge "smallest: 2/9, 2/7, 2/4, 2/5"; the Unit 9 challenge "NOT the same as 1/2: 4/9"
-  10: [16, 19], // the Unit 5 challenge "biggest: 3/10, 5/10, 7/10, 6/10"; lesson 19's first idea (its New word card sits after the ideas)
-  12: [19], // lesson 19's first idea
-};
+/** Lessons whose own content writes a part name before its card. None today: a question, a Unit challenge puzzle or a
+    worked sum that is about a part ("Which is bigger, 1/5 or 1/3?") waits for its card, and a generic wrong choice (a
+    part count one more, or doubled: 1/5, 1/12, 7/15) uses only parts taught by then (taught-parts.ts). A lesson listed
+    here must still write the name early, or it comes off the list. */
+const CONTENT_BEFORE_ITS_CARD: Readonly<Record<number, readonly number[]>> = {};
 
 test('every written fraction whose denominator Listen names is taught by a card at or before the screen that writes it', () => {
   const late: string[] = [];

@@ -40,7 +40,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
       step('He folds it in half again. Each half splits in 2. How many parts now?', ['3', '8', '4', '6'], 2),
       step('The strip opens into 4 equal parts. What is 1 part?', ['1/3', '1/2', '1/8', '1/4'], 3),
     ]),
-    q('u1-c4', 4, '1/5 of a toy train is 2 cars long. How long is the whole train?', ['5 cars', '8 cars', '10 cars', '12 cars'], 2, '5 parts of 2 cars make 10 cars.'),
+    q('u1-c4', 4, '1/4 of a toy train is 2 cars long. How long is the whole train?', ['6 cars', '8 cars', '10 cars', '12 cars'], 1, '4 parts of 2 cars make 8 cars.'),
     q('u1-c5', 5, 'A bar is cut into equal parts. 3 parts are shaded. That is 1/4 of the bar. How many parts are there in all?', ['4', '7', '9', '12'], 3, '3 parts is 1/4. So 4 groups of 3 makes 12.', undefined, [
       step('3 shaded parts are 1/4 of the bar. How many quarters make the whole bar?', ['12', '2', '4', '3'], 2),
       step('Each quarter has 3 parts. How many parts do 4 quarters have?', ['12', '3', '7', '9'], 0),
@@ -49,14 +49,14 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   2: [
     q('u2-p1', 3, 'What fraction of the dots are shaded?', ['1/4', '1/3', '1/2', '2/3'], 1, '4 of 12 dots are shaded. 12 in 3 groups of 4, so 1/3.', { kind: 'dots', rows: 3, cols: 4, shaded: [1, 4, 6, 11] }),
     q('u2-c1', 3, 'The cakes are all the same size. Which part is the biggest?', ['1/2', '1/3', '1/4', '1/8'], 0, 'Fewer parts means bigger parts. Halves are biggest.'),
-    q('u2-c2', 3, 'Which is bigger, 3/5 or 3/8?', ['3/5', '3/8', 'They are equal', "You can't tell"], 0, 'Both are 3 parts. Bigger parts come from cutting in 5, so 3/5 is bigger.'),
+    q('u2-c2', 3, 'Which is bigger, 3/6 or 3/8?', ['3/6', '3/8', 'They are equal', "You can't tell"], 0, 'Both are 3 parts. Bigger parts come from cutting in 6, so 3/6 is bigger.'),
     q('u2-c3', 4, 'Mia eats 1/4 of a pizza. Leo eats 1/6 of a pizza the same size. Who eats more?', ['Leo', 'Mia', 'They eat the same', "You can't tell"], 1, 'Fourths are bigger than sixths. One fourth is more than one sixth, so Mia eats more.', undefined, [
       step('Which piece is bigger, 1/4 or 1/6?', ['1/6', '1/4', 'They are equal', "You can't tell"], 1),
       step('Mia has the 1/4 piece. So who eats more?', ['Leo', 'They eat the same', 'Mia', "You can't tell"], 2),
     ]),
-    q('u2-c4', 4, 'Put 2/3, 2/9 and 2/5 in order, smallest first.', ['2/3, 2/5, 2/9', '2/9, 2/5, 2/3', '2/5, 2/9, 2/3', '2/9, 2/3, 2/5'], 1, 'All three are 2 parts. Cut in 9 is the smallest, cut in 3 the biggest: 2/9, 2/5, 2/3.', undefined, [
-      step('All three have 2 parts. Which has the smallest parts?', ['Cut in 3', 'Cut in 5', 'Cut in 9', 'They are the same'], 2),
-      step('Which has the biggest parts?', ['Cut in 3', 'Cut in 9', 'Cut in 5', 'They are the same'], 0),
+    q('u2-c4', 4, 'Put 2/3, 2/6 and 2/4 in order, smallest first.', ['2/3, 2/4, 2/6', '2/6, 2/4, 2/3', '2/4, 2/6, 2/3', '2/6, 2/3, 2/4'], 1, 'All three are 2 parts. Cut in 6 is the smallest, cut in 3 the biggest: 2/6, 2/4, 2/3.', undefined, [
+      step('All three have 2 parts. Which has the smallest parts?', ['Cut in 3', 'Cut in 4', 'Cut in 6', 'They are the same'], 2),
+      step('Which has the biggest parts?', ['Cut in 3', 'Cut in 6', 'Cut in 4', 'They are the same'], 0),
     ]),
     q('u2-c5', 5, 'Two ribbons are the same length. One is cut into 6 equal pieces and one into 4. Sam takes 3 pieces of the first. Kim takes 3 pieces of the second. Who has more ribbon?', ['Sam', 'They have the same', 'Kim', "You can't tell"], 2, 'Sam has 3/6 and Kim has 3/4. Fourths are bigger than sixths, so Kim has more.', undefined, [
       step('What fraction of a ribbon does Sam have?', ['3/6', '6/3', '3/4', '1/6'], 0),
@@ -86,8 +86,8 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   ],
   5: [
     q('u5-p1', 3, 'The bars are the same size. Which bar has the most shaded?', ['A', 'B', 'C', 'D'], 1, 'B is 3/4. The others are 2/3, 4/6 and 5/8. All are less than 3/4.', { kind: 'bars', bars: [{ n: 2, d: 3, label: 'A' }, { n: 3, d: 4, label: 'B' }, { n: 4, d: 6, label: 'C' }, { n: 5, d: 8, label: 'D' }] }),
-    q('u5-c1', 3, 'Which fraction is the biggest?', ['3/10', '5/10', '7/10', '6/10'], 2, 'Same size parts. 7 is the most.'),
-    q('u5-c2', 3, 'Which fraction is the smallest?', ['2/9', '2/7', '2/4', '2/5'], 0, 'All have 2 parts. Cut in 9 makes the smallest parts.'),
+    q('u5-c1', 3, 'Which fraction is the biggest?', ['3/8', '5/8', '7/8', '6/8'], 2, 'Same size parts. 7 is the most.'),
+    q('u5-c2', 3, 'Which fraction is the smallest?', ['2/11', '2/7', '2/4', '2/5'], 0, 'All have 2 parts. Cut in 11 makes the smallest parts.'),
     q('u5-c3', 4, 'Which fraction is bigger than 3/4?', ['3/5', '2/3', '5/8', '7/8'], 3, '3/4 = 6/8. 7/8 is more than 6/8.'),
     q('u5-c4', 4, 'Ana ran 3/4 mile. Ben ran 2/3 mile. Cara ran 5/6 mile. Dev ran 1/2 mile. Who ran the farthest?', ['Ana', 'Ben', 'Cara', 'Dev'], 2, 'Each is 1 part short of 1 mile. Sixths are smallest, so Cara is closest to 1.', undefined, [
       step('Ana ran 3/4 mile. How much is she short of 1 mile?', ['1/4', '3/4', '1/2', '1/3'], 0),
@@ -136,7 +136,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   ],
   9: [
     q('u9-p1', 3, 'What fraction of the rectangle is shaded? Give it in simplest form.', ['3/5', '2/3', '3/4', '4/5'], 1, '8 of 12 squares are shaded. Divide the numerator and denominator by 4: 8/12 = 2/3.', { kind: 'grid', rows: 3, cols: 4, shaded: [0, 1, 2, 4, 5, 6, 8, 9] }),
-    q('u9-c1', 3, 'Which fraction is NOT the same as 1/2?', ['2/4', '3/6', '4/9', '5/10'], 2, 'Doubling the numerator should give the denominator. Double 4 is 8, not 9.'),
+    q('u9-c1', 3, 'Which fraction is NOT the same as 1/2?', ['2/4', '3/6', '4/7', '5/10'], 2, 'Doubling the numerator should give the denominator. Double 4 is 8, not 7.'),
     q('u9-c2', 3, '3/4 = ?/20. What is the missing number?', ['12', '15', '16', '5'], 1, '4 × 5 = 20. So multiply the numerator by 5 too: 3 × 5 = 15.'),
     q('u9-c3', 4, 'Which fraction is between 1/2 and 1?', ['2/5', '3/7', '5/12', '5/8'], 3, 'Half of 8 is 4. 5 is more than 4, so 5/8 is more than 1/2. The others are less than half.'),
     q('u9-c4', 4, 'Ana ate 2/3 of a pizza. Ben ate 3/4 of a pizza. Cal ate 5/6 of a pizza. The pizzas are the same size. Who ate the most?', ['Ana', 'Ben', 'Cal', 'Ana and Ben'], 2, 'Use twelfths: 2/3 = 8/12, 3/4 = 9/12, 5/6 = 10/12. Cal ate the most.', undefined, [

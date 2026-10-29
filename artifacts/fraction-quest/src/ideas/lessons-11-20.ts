@@ -1,6 +1,6 @@
 /* The ideas of lessons 11–20 (see lesson-ideas.ts): each lesson's ideas in order, each with its Learn pages and 3
    practices. Lesson 1 (ideas/lessons-01.ts) is the model. */
-import { example, scenes, wordsToKnow, type LessonIdea } from './helpers';
+import { example, newWord, scenes, wordsToKnow, type LessonIdea } from './helpers';
 
 export const IDEAS: Record<string, LessonIdea[]> = {
   'number-line-points': [
@@ -215,6 +215,8 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       learn: [
         { text: 'Multiply the numerator and the denominator by the same number.', scene: scenes('build-equivalents').steps[0]! },
         { text: 'The amount stays the same.', scene: scenes('build-equivalents').why },
+        newWord(10),
+        newWord(12),
       ],
       practice: [{ question: 'build-equivalents-q1' }, { question: 'build-equivalents-q2' }, { question: 'build-equivalents-p1' }],
     },

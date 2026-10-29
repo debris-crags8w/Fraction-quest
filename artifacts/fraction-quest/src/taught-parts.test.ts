@@ -17,9 +17,12 @@ test('a part name is taught by the Words screen, a word card on a Learn page or 
   assert.equal(partTaught(7, order, 'equal-parts'), false);
   assert.ok(partTaught(7, order, 'unit-fractions', 0), 'the idea whose Learn page has the card');
   assert.ok(partTaught(7, order, 'unit-fractions', 2), 'and the ideas after it');
+  // Tenths: a Learn page card on lesson 19's first idea, so its practice may write tenths; the lesson before may not.
+  assert.equal(partTaught(10, order, 'equivalent-number-line'), false);
+  assert.ok(partTaught(10, order, 'build-equivalents', 0));
   // A New word card sits at the top of the lesson page: after that lesson's ideas, before its Practice more.
-  assert.equal(partTaught(10, order, 'build-equivalents', 0), false);
-  assert.ok(partTaught(10, order, 'build-equivalents'));
+  assert.equal(partTaught(9, order, 'add-related-fractions', 0), false);
+  assert.ok(partTaught(9, order, 'add-related-fractions'));
 });
 
 test('a wrong choice with a part not taught yet becomes a real mistake with taught parts; the right answer stays', () => {
