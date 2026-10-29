@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { AppState, Platform } from 'react-native';
+import { connectToStore } from './store-offers';
 import { PLANS, type Plan, type PlanOffer, type SubscriptionAction, type SubscriptionStatus } from './web-app';
 
 type ExpoIap = typeof import('expo-iap');
@@ -71,24 +72,13 @@ export function useStoreSubscription(): [SubscriptionStatus | null, (action: Sub
         failed = api.purchaseErrorListener((error) => {
           void refresh(api?.isUserCancelledError(error) ? {} : { error: STORE_ERROR });
         });
-        connected.current = await api.initConnection();
-        if (!live) {
-          connected.current = false;
-          void api.endConnection().catch(() => undefined);
-          return;
-        }
-        const products = await api.fetchProducts({ skus: SKUS, type: 'subs' });
-        const found: PlanOffer[] = [];
-        for (const plan of PLANS) {
-          const product = products?.find((item) => item.id === PRODUCT_IDS[plan]);
-          if (!product) continue; // not set up in this store yet: the page leaves this plan out
-          const amount = typeof product.price === 'number' && Number.isFinite(product.price) ? product.price : null;
-          found.push({ plan, price: product.displayPrice, amount, currency: product.currency ?? null });
-          const productOffers = (product as { subscriptionOffers?: { offerTokenAndroid?: string | null }[] }).subscriptionOffers ?? [];
-          const token = productOffers.find((offer) => offer.offerTokenAndroid)?.offerTokenAndroid;
-          if (token) offerTokens.current[plan] = token;
-        }
-        offers.current = found;
+        // No products found (not set up in this store yet, missing metadata, App Review) is the same as no store:
+        // the page then leaves lessons open and shows no Buy button that would fail.
+        const found = await connectToStore(api, PRODUCT_IDS, () => live);
+        if (!found) throw new Error('The store has no Fraction Quest subscription to sell');
+        connected.current = true;
+        offers.current = found.offers;
+        offerTokens.current = found.tokens;
       } catch {
         // No store here, or the subscription is not set up yet: the page treats it as unknown.
         storeApi.current = null;
