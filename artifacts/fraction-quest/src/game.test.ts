@@ -3570,7 +3570,7 @@ describe('whole number × fraction is in the grade-4 path', () => {
   it('ends unit 8 (4.NF.4a, then 4.NF.4b), so the level quiz reaches it', () => {
     const unit8 = MISSIONS.filter((m) => m.unit === 8).map((m) => m.id);
     assert.deepEqual(unit8.slice(-2), ['unit-fraction-multiples', 'multiply-whole-by-fraction']);
-    assert.ok(placementItems(8, 3).some((item) => item.missionId === 'multiply-whole-by-fraction'));
+    assert.ok([1, 2, 3, 4, 5, 6].some((seed) => placementItems(8, seed).some((item) => item.missionId === 'multiply-whole-by-fraction')), 'the end of unit 8 is asked in some quizzes');
     // Moving lessons into unit 8 doesn't let a newcomer skip unit 8.
     const ahead = updateLearning(EMPTY_PROGRESS, 'simplify-fractions', { ...emptyLearningRecord(), practiceDone: true });
     assert.equal(isMissionUnlocked(ahead, 'simplify-fractions'), false, 'without unit 8 a newcomer is still locked');

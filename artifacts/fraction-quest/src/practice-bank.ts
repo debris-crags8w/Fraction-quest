@@ -145,7 +145,8 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
         hint: 'The numerator is the number of parts shaded. The denominator is all the equal parts.', retry: `The denominator is all ${d} parts. The numerator is the ${n} shaded ${n === 1 ? 'part' : 'parts'}.`, model: bar(n, d) };
   },
   'unit-fractions': (r) => {
-    if (r.int(0, 2) === 0) {
+    const form = r.int(0, 5);
+    if (form === 0) {
       if (r.chance()) {
         const d = r.pick([2, 3, 4, 6, 8] as const);
         return { prompt: 'All the slices are the same size. What fraction of the pizza is the shaded slice?', right: f(1, d), wrong: [f(d, 1), f(1, d + 1)],
@@ -155,12 +156,29 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       return { prompt: 'What fraction of the square is shaded?', right: '1/4', wrong: ['2/7', '1/7'],
         hint: 'The parts are not all the same size. Each triangle is half of the small square.', retry: 'The 2 shaded triangles cover the same space as the small square: 1/4 of the square.', model: area('quarter-and-triangles', [1, 2]) };
     }
-    const d = r.pick(G3_DENS);
-    if (r.chance()) {
-      const n = r.int(2, d - 1);
+    if (form === 1) {
+      const d = r.pick(G3_DENS); const n = r.int(2, d - 1);
       return { prompt: 'Which is a unit fraction?', right: f(1, d), wrong: [f(n, d), f(d, 1)], hint: 'A unit fraction has a numerator of 1.', retry: `1/${d} counts just 1 equal part.`, model: bar(0, d) };
     }
-    return { prompt: `A whole is cut into ${d} equal parts. What is 1 part?`, right: f(1, d), wrong: [f(d, 1), f(1, d - 1)], hint: 'Count all the equal parts. That is the denominator.', retry: `1 of ${d} equal parts is 1/${d}.`, model: bar(1, d) };
+    if (form === 2) {
+      const d = r.pick(TAUGHT_PARTS);
+      return { prompt: `A whole is cut into ${d} equal parts. What is 1 part?`, right: f(1, d), wrong: [f(d, 1), f(1, d === 2 ? 3 : d - 1)], hint: 'Count all the equal parts. That is the denominator.', retry: `1 of ${d} equal parts is 1/${d}.`, model: bar(1, d) };
+    }
+    if (form === 3) {
+      const d = r.pick(G3_DENS);
+      return { prompt: `What fraction is 1 of ${d} equal tiles?`, right: f(1, d), wrong: [f(d - 1, d), f(1, d + 1)], extra: f(1, 2), hint: 'Count all the equal tiles for the denominator.', retry: `1 of ${d} equal tiles is 1/${d}.`, model: bar(1, d) };
+    }
+    if (form === 4) {
+      const d = r.pick(TAUGHT_PARTS);
+      return { prompt: `How many ${name(d)} make one whole?`, right: String(d), wrong: ['1', String(d > 2 ? d - 1 : 3)], extra: d % 2 === 0 ? String(d / 2) : String(d + 1),
+        hint: `Count the ${name(d)} until the whole bar is full.`, retry: `${d} ${name(d)} fill the bar: ${d} ${name(d)} make one whole.`, model: bar(1, d) };
+    }
+    // Friends share one thing fairly: each gets one equal part.
+    const friends = r.pick(TAUGHT_PARTS);
+    const [thing, piece, round] = r.pick([['pizza', 'slice', true], ['cake', 'piece', true], ['bar', 'part', false]] as const);
+    return { prompt: `${friends} friends share a ${thing} fairly. What fraction ${round ? 'of the ' + thing + ' ' : ''}does each friend get?`, right: f(1, friends), wrong: [f(friends, friends), f(1, friends + 1)], extra: f(1, friends > 2 ? friends - 1 : 4),
+      hint: `Cut the ${thing} into one equal part for each friend.`, retry: `${friends} friends, so ${friends} equal ${piece}s. Each friend gets 1 ${piece}: 1/${friends}.`,
+      model: round ? area(circleCut(friends)!, []) : bar(0, friends) };
   },
   'unit-size': (r) => {
     const [a, b] = r.pick(G3_PAIRS); const bigger = r.chance();
@@ -176,15 +194,65 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     return { prompt: `What is ${f(n, d)} of ${t}?`, right: String(n * per), wrong: [String(per), String(t)], hint: `Make ${d} equal groups. Count ${n} of them.`, retry: `${t} in ${d} groups is ${per} each. ${n} groups is ${n * per}.`, model: set(0, t, d) };
   },
   'benchmark-half': (r) => {
-    const d = r.pick([4, 6, 8]); let n = r.int(1, d - 1); if (n * 2 === d) n += n > 1 && r.chance() ? -1 : 1;
-    const more = n * 2 > d;
+    const form = r.int(0, 3);
+    // Taught parts only. An odd part count has no exact half: 3 of 7 is between 3 and 4 halves-of-7.
+    const d = r.pick([3, 4, 6, 7, 8] as const);
+    const lo = Math.floor(d / 2); const hi = Math.ceil(d / 2);
+    const halfOf = d % 2 === 0 ? `Half of ${d} is ${d / 2}.` : `Half of ${d} is between ${lo} and ${hi}.`;
+    const aboveHalf = (n: number) => n * 2 > d;
+    if (form === 1) {
+      // Which of two same-size parts is more (or less) than one half?
+      const highs = Array.from({ length: d - 1 }, (_, k) => k + 1).filter((n) => aboveHalf(n));
+      const lows = Array.from({ length: d - 1 }, (_, k) => k + 1).filter((n) => n * 2 < d);
+      const high = r.pick(highs); const low = r.pick(lows); const more = r.chance();
+      return { prompt: `Which is ${more ? 'more' : 'less'} than 1/2, ${either(r, f(high, d), f(low, d))}?`, right: f(more ? high : low, d), wrong: [f(more ? low : high, d), 'They are the same'],
+        hint: halfOf, retry: `${f(more ? high : low, d)} is ${more ? 'more' : 'less'} than 1/2: compare ${more ? high : low} with half of ${d}.`,
+        model: { kind: 'bars', bars: [{ numerator: high, denominator: d }, { numerator: low, denominator: d }, { numerator: 1, denominator: 2 }], hideLabels: true } };
+    }
+    let n = r.int(1, d - 1); if (n * 2 === d) n += n > 1 && r.chance() ? -1 : 1;
+    const more = aboveHalf(n);
+    if (form === 2) {
+      const thing = r.pick(['jug', 'glass', 'bottle', 'bucket'] as const);
+      return { prompt: `A ${thing} is ${f(n, d)} full. Is that more or less than half?`, right: more ? 'More than half' : 'Less than half', wrong: [more ? 'Less than half' : 'More than half', 'Exactly half'], extra: 'More than one whole',
+        hint: halfOf, retry: `${f(n, d)} is ${more ? 'more' : 'less'} than half: compare ${n} with half of ${d}.`, model: bar(n, d) };
+    }
     return { prompt: `Is ${f(n, d)} more or less than 1/2?`, right: more ? 'More than 1/2' : 'Less than 1/2', wrong: [more ? 'Less than 1/2' : 'More than 1/2', 'Exactly 1/2'],
-      hint: `Half of ${d} is ${d / 2}.`, retry: `Compare ${n} with ${d / 2}.`, model: bars2([n, d], [1, 2]) };
+      hint: halfOf, retry: d % 2 === 0 ? `Compare ${n} with ${d / 2}.` : `Compare ${n} with half of ${d}.`, model: bars2([n, d], [1, 2]) };
   },
   'benchmarks-zero-one': (r) => {
+    // The benchmark nearest to n/d, for the part names this lesson has taught. Halfway ties (1/4, 3/4) have no nearest one, so they are never asked.
+    const nearest = (n: number, d: number): '0' | '1/2' | '1' | null => {
+      const x = n / d; const dist = [[x, '0'], [Math.abs(x - 0.5), '1/2'], [1 - x, '1']] as const;
+      const [best, next] = [...dist].sort((a, b) => a[0] - b[0]);
+      return next[0] - best[0] < 1e-9 ? null : best[1];
+    };
+    const d = r.pick([3, 4, 5, 6, 7, 8] as const);
+    const near = Array.from({ length: d - 1 }, (_, k) => k + 1).filter((n) => nearest(n, d) !== null);
+    const form = r.int(0, 3);
+    if (form === 1) {
+      // Which of three amounts is closest to 0 or to one whole? The other two are clearly farther away.
+      const toOne = r.chance(); const e = r.pick([4, 5, 6, 7, 8] as const); // three different amounts need at least 4 parts
+      const rightN = toOne ? e - r.int(1, e >= 7 ? 2 : 1) : r.int(1, e >= 7 ? 2 : 1);
+      const mid = Math.round(e / 2); const far = toOne ? 1 : e - 1;
+      return { prompt: `Which fraction is closest to ${toOne ? 'one whole' : '0'}?`, right: f(rightN, e), wrong: [f(mid, e), f(far, e)],
+        hint: toOne ? 'Is it almost a full bar?' : 'Is it almost an empty bar?', retry: `${f(rightN, e)} is almost ${toOne ? 'a whole bar' : 'an empty bar'}, so it is closest to ${toOne ? '1' : '0'}.`,
+        model: { kind: 'bars', bars: [rightN, mid, far].map((numerator) => ({ numerator, denominator: e })), hideLabels: true } };
+    }
+    if (form === 2) {
+      // Between two benchmarks: which one is it nearer to?
+      const upper = r.chance();
+      const inside = near.filter((n) => (upper ? n * 2 > d : n * 2 < d));
+      if (inside.length) {
+        const n = r.pick(inside); const right = nearest(n, d) as string;
+        const [low, high] = upper ? ['1/2', '1'] : ['0', '1/2'];
+        const labels = { '0': 'Nearer 0', '1/2': 'Nearer 1/2', '1': 'Nearer 1' } as const;
+        return { prompt: `Is ${f(n, d)} nearer ${low} or ${high}?`, right: labels[right as keyof typeof labels],
+          wrong: [labels[(right === low ? high : low) as keyof typeof labels], upper ? 'Nearer 0' : 'Nearer 1'], extra: 'Exactly 1/2',
+          hint: 'Is it tiny, about half, or almost full?', retry: `${f(n, d)} is nearer ${right}.`, model: bar(n, d) };
+      }
+    }
     // Grade 3 parts with one clear nearest benchmark (1/4 sits halfway between 0 and 1/2).
-    const [n, d, right] = r.pick([[1, 6, '0'], [1, 8, '0'], [1, 3, '1/2'], [2, 3, '1/2'], [2, 4, '1/2'], [2, 6, '1/2'], [3, 6, '1/2'], [4, 6, '1/2'],
-      [3, 8, '1/2'], [4, 8, '1/2'], [5, 8, '1/2'], [5, 6, '1'], [7, 8, '1']] as const);
+    const n = r.pick(near); const right = nearest(n, d) as string;
     // Only the taught benchmarks (0, 1/2 and 1), not a made-up "2"; the fourth choice is the "can't tell" slip.
     return { prompt: `Is ${f(n, d)} closest to 0, 1/2 or 1?`, right, wrong: ['0', '1/2', '1'].filter((x) => x !== right) as [string, string], extra: "You can't tell",
       hint: 'Is it tiny, about half, or almost full?', retry: `${f(n, d)} is closest to ${right}.`, model: bar(n, d) };
@@ -279,14 +347,49 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'add-related-fractions': (r) => {
     const [a, big] = r.pick([[2, 4], [2, 6], [2, 8], [2, 10], [2, 12], [3, 6], [3, 9], [3, 12], [4, 8], [4, 12], [5, 10], [6, 12]] as const); const k = big / a;
-    return { prompt: `${f(1, a)} + ${f(1, big)} = ?`, right: f(k + 1, big), wrong: [f(2, a + big), f(2, big)], hint: `Change ${f(1, a)} into ${name(big)} first.`, retry: `${f(1, a)} = ${f(k, big)}. ${k} + 1 = ${k + 1}, so ${f(k + 1, big)}.`, model: bars2([1, a], [1, big]) };
+    const form = r.int(0, 2);
+    if (form === 2) {
+      // Rename one fraction so both are the same size parts. Real slips: keep the top, add the gap to the top, flip it.
+      const n = r.int(1, a - 1);
+      return { prompt: `${Name(a)} and ${name(big)} are different sizes. Rename ${f(n, a)} as ${name(big)}.`, right: f(n * k, big), wrong: [f(n, big), f(big, n * k)], extra: f(n + big - a, big),
+        hint: `Multiply the numerator and the denominator by ${k}.`, retry: `${a} × ${k} = ${big}, so multiply the numerator by ${k} too: ${f(n, a)} = ${f(n * k, big)}.`, model: bar(n, a) };
+    }
+    // The sum stays under 1. Either fraction may come first.
+    const n = form === 0 ? 1 : r.int(1, a - 1);
+    const m = form === 0 ? 1 : r.int(1, big - n * k - 1);
+    const [first, second] = r.chance() ? [[n, a], [m, big]] : [[m, big], [n, a]];
+    return { prompt: `${f(first[0], first[1])} + ${f(second[0], second[1])} = ?`, right: f(n * k + m, big), wrong: [f(n + m, a + big), f(n + m, big)],
+      hint: `Change ${f(n, a)} into ${name(big)} first.`, retry: `${f(n, a)} = ${f(n * k, big)}. ${n * k} + ${m} = ${n * k + m}, so ${f(n * k + m, big)}.`, model: bars2([n, a], [m, big]) };
   },
   'tenths-decimals': (r) => {
     // Wrong choices are tenths slips only (the part not colored, the digit before the point, upside down): hundredths come in lesson 31.
     const n = r.int(1, 9);
+    const form = r.int(0, 5);
+    const strip = { kind: 'decimal', tenths: n, hideLabels: true } as const;
+    if (form === 2) {
+      return { prompt: `A strip has 10 equal parts. ${n} ${n === 1 ? 'is' : 'are'} colored. What fraction is colored?`, right: f(n, 10), wrong: n === 5 ? [f(10, 5), f(5, 5)] : [f(10 - n, 10), f(10, n)], extra: n === 5 ? f(5, 6) : f(n, 10 - n),
+        hint: 'The denominator is all 10 equal parts. The numerator is the colored parts.', retry: `${n} of 10 equal parts are colored: ${f(n, 10)}.`, model: bar(n, 10) };
+    }
+    if (form === 3 && n !== 5) {
+      return { prompt: `A strip has 10 equal parts. ${n} ${n === 1 ? 'is' : 'are'} colored. What fraction is not colored?`, right: f(10 - n, 10), wrong: [f(n, 10), f(10 - n, n)], extra: f(1, 10 - n === 1 ? 2 : 10 - n),
+        hint: 'Count the parts that are not colored. The denominator is still 10.', retry: `${10 - n} of the 10 parts are not colored: ${f(10 - n, 10)}.`, model: bar(n, 10) };
+    }
+    if (form === 4) {
+      return { prompt: `A strip has 10 equal parts. ${n} ${n === 1 ? 'is' : 'are'} colored. Write the colored part as a decimal.`, right: `0.${n}`, wrong: [`${n}.0`, n === 5 ? '10.5' : `0.${10 - n}`], extra: String(n),
+        hint: 'Tenths go right after the decimal point.', retry: `${n} ${n === 1 ? 'tenth is' : 'tenths is'} 0.${n}.`, model: bar(n, 10) };
+    }
+    if (form === 5) {
+      // A decimal against a fraction of the same strip.
+      let m = r.int(1, 9); if (m === n) m = m === 9 ? 8 : m + 1;
+      const decimalFirst = r.chance();
+      const dec = `0.${n}`; const frac = f(m, 10);
+      const [x, y] = decimalFirst ? [dec, frac] : [frac, dec];
+      return { prompt: `Which is bigger, ${x} or ${y}?`, right: n > m ? dec : frac, wrong: [n > m ? frac : dec, 'They are equal'], extra: "You can't tell",
+        hint: '0.' + n + ' is ' + f(n, 10) + '. Compare the tenths.', retry: `${dec} is ${f(n, 10)}. ${Math.max(n, m)} tenths is more than ${Math.min(n, m)} tenths.`, model: bars2([n, 10], [m, 10]) };
+    }
     return r.chance()
-      ? { prompt: `What fraction is 0.${n}?`, right: f(n, 10), wrong: [n === 5 ? f(10, 5) : f(10 - n, 10), f(1, n === 1 ? 2 : n)], hint: 'The number right after the decimal point is tenths.', retry: `0.${n} means ${n} ${n === 1 ? 'tenth' : 'tenths'}.`, model: { kind: 'decimal', tenths: n, hideLabels: true } }
-      : { prompt: `Write ${f(n, 10)} as a decimal.`, right: `0.${n}`, wrong: [`${n}.0`, n === 5 ? '10.5' : `0.${10 - n}`], hint: 'Tenths go right after the decimal point.', retry: `${n} ${n === 1 ? 'tenth is' : 'tenths is'} 0.${n}.`, model: { kind: 'decimal', tenths: n, hideLabels: true } };
+      ? { prompt: `What fraction is 0.${n}?`, right: f(n, 10), wrong: [n === 5 ? f(10, 5) : f(10 - n, 10), f(1, n === 1 ? 2 : n)], hint: 'The number right after the decimal point is tenths.', retry: `0.${n} means ${n} ${n === 1 ? 'tenth' : 'tenths'}.`, model: strip }
+      : { prompt: `Write ${f(n, 10)} as a decimal.`, right: `0.${n}`, wrong: [`${n}.0`, n === 5 ? '10.5' : `0.${10 - n}`], hint: 'Tenths go right after the decimal point.', retry: `${n} ${n === 1 ? 'tenth is' : 'tenths is'} 0.${n}.`, model: strip };
   },
   'add-tenths-hundredths': (r) => {
     const a = r.int(1, 8); const b = r.int(1, Math.min(49, 99 - 10 * a)); const sum = 10 * a + b;
@@ -340,7 +443,26 @@ function fromSlips(prompt: string, right: string, slips: string[], hint: string,
 
 const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'simplify-fractions': (r) => {
-    const [n, d, k] = r.pick(equivalentsFor('simplify-fractions'));
+    // Fractions in simplest form (n/d) renamed with a common factor k, up to twelfths.
+    const forms: [number, number, number][] = [];
+    for (let d = 2; d <= 6; d++) for (let n = 1; n < d; n++) if (gcd(n, d) === 1) for (let k = 2; k * d <= 12; k++) forms.push([n, d, k]);
+    const form = r.int(0, 2);
+    if (form === 2) {
+      // A prime that divides both numbers, and no other number above 1 does.
+      const pairs: [number, number, number][] = [];
+      for (const g of [2, 3, 5]) for (let p = 2; p <= 5; p++) for (let q = p + 1; g * q <= 12; q++) if (gcd(p, q) === 1) pairs.push([g, g * p, g * q]);
+      const [g, x, y] = r.pick(pairs);
+      // Real slips: a number that divides only one of them, then either number itself.
+      const onlyOne = (a: number, b: number) => [2, 3, 4, 5, 6, 8, 9, 10, 12].find((c) => a % c === 0 && b % c !== 0 && c !== a);
+      const slips = [onlyOne(x, y), onlyOne(y, x), x, y].filter((c): c is number => c !== undefined).map(String);
+      return fromSlips(`Which number divides both ${x} and ${y}?`, String(g), slips,
+        `Try each choice. It must divide ${x} and ${y} with nothing left over.`, `${g} divides ${x} and ${y} with nothing left over.`, bar(x, y));
+    }
+    const [n, d, k] = r.pick(forms);
+    if (form === 1) {
+      return fromSlips(`Divide the numerator and denominator of ${f(n * k, d * k)} by ${k}. What do you get?`, f(n, d), [f(n, d * k), f(n * k, d), f(n * k - k, d * k - k)],
+        'Divide the numerator and the denominator by the same number.', `${n * k} ÷ ${k} = ${n} and ${d * k} ÷ ${k} = ${d}, so ${f(n, d)}.`, bar(n * k, d * k));
+    }
     return later(`Write ${f(n * k, d * k)} in simplest form.`, f(n, d), [f(n, d * k), f(n * k, d), f(n + 1, d)],
       'Divide the numerator and denominator by the same number.', `Divide both by ${k}: ${f(n, d)}.`, bar(n * k, d * k));
   },
@@ -623,8 +745,48 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       String(left), [String(rest), String(total - (total / b) * a - (total / e) * c), String((rest / e) * c)],
       'Find what is left after step 1. Then take a part of that.', `${rest} are left after step 1. ${f(c, e)} of ${rest} is ${(rest / e) * c}. ${rest} − ${(rest / e) * c} = ${left}.`, bar(a, b));
   },
+  'estimate-fraction-operations': (r) => {
+    const form = r.int(0, 3);
+    if (form === 3) {
+      // Which of three amounts is closest to 1, 1/2 or 0? The other two are clearly farther away.
+      const target = r.pick(['1', '1/2', '0'] as const);
+      const d = target === '1/2' ? r.pick([5, 7, 9, 11] as const) : r.pick([5, 6, 8, 9, 10, 12] as const);
+      const rightN = target === '1' ? d - 1 : target === '0' ? 1 : (d - 1) / 2 + r.int(0, 1);
+      const others = target === '1' ? [Math.floor(d / 2), 1] : target === '0' ? [Math.floor(d / 2), d - 1] : [1, d - 1];
+      return { prompt: `Which fraction is closest to ${target}?`, right: f(rightN, d), wrong: [f(others[0], d), f(others[1], d)],
+        hint: target === '1/2' ? 'Is it about half of the bar?' : target === '1' ? 'Is it almost a full bar?' : 'Is it almost an empty bar?',
+        retry: `${f(rightN, d)} is the closest to ${target}.`, model: { kind: 'bars', bars: [rightN, ...others].map((numerator) => ({ numerator, denominator: d })), hideLabels: true } };
+    }
+    // Compare a sum (or a difference) with 1 without finding it: the exact answer is never within a tenth of 1.
+    const sub = form === 2;
+    for (let tries = 0; ; tries++) {
+      const [b, e] = [r.pick([2, 3, 4, 5, 6, 8, 10] as const), r.pick([2, 3, 4, 5, 6, 8, 10] as const)];
+      const a = r.int(1, b - 1); const c = r.int(1, e - 1);
+      const value = sub ? a / b - c / e : a / b + c / e;
+      if (sub ? value <= 0.05 : tries < 40 && Math.abs(value - 1) < 0.1) continue;
+      const expr = `${f(a, b)} ${sub ? '−' : '+'} ${f(c, e)}`;
+      const sign = value > 1 ? '>' : '<';
+      return { prompt: `Without finding the exact ${sub ? 'difference' : 'sum'}, compare ${expr} with 1: __ 1.`, right: `${expr} ${sign} 1`, wrong: [`${expr} = 1`, `${expr} ${sign === '>' ? '<' : '>'} 1`],
+        hint: `Compare each part with 1/2. Two halves make 1.`, retry: sub ? `Both parts are less than 1, so taking one away leaves less than 1.` : value > 1 ? `${expr} is more than 1.` : `${expr} is less than 1.`,
+        model: bars2([a, b], [c, e]) };
+    }
+  },
   'divide-fractions': (r) => {
-    const [a, b] = r.pick([[1, 2], [3, 4], [2, 3], [1, 3], [3, 5], [5, 6], [1, 4], [2, 5]] as const); const k = r.int(2, 3); const e = b * k;
+    const form = r.int(0, 2);
+    if (form === 2) {
+      // Same-size parts: how many of the small part fit in the big one? Real slips: the top number, the bottom number, the two multiplied.
+      const d = r.pick([6, 8, 10, 12] as const); const p = r.int(2, 3); const m = r.int(2, 4);
+      if (p * m < d) {
+        return fromSlips(`${f(p * m, d)} ÷ ${f(p, d)} = ?`, String(m), [String(p * m), String(d), String(p * m * d)],
+          `Both are ${name(d)}. How many ${f(p, d)} parts fit in ${f(p * m, d)}?`, `${p * m} ÷ ${p} = ${m}, so ${m} parts of ${f(p, d)} fit.`, bar(p * m, d));
+      }
+    }
+    const [a, b] = r.pick([[1, 2], [3, 4], [2, 3], [1, 3], [3, 5], [5, 6], [1, 4], [2, 5], [1, 5], [4, 5], [1, 6], [2, 3]] as const);
+    const k = r.pick([2, 3, 4].filter((x) => b * x <= 12)); const e = b * k;
+    if (form === 1) {
+      return later(`${f(a, b)} ÷ ${f(1, e)} = ?`, String(a * k), [String(e), String(a), String(a * k + 1)],
+        `Write ${f(a, b)} in parts of ${f(1, e)}.`, `${f(a, b)} = ${f(a * k, e)}. So ${a * k} parts of ${f(1, e)} fit.`, bar(a, b));
+    }
     return later(`How many ${f(1, e)} cup scoops fill ${f(a, b)} cup?`, String(a * k), [String(e), String(a), String(a * k + 1)],
       `Write ${f(a, b)} in parts of ${f(1, e)}.`, `${f(a, b)} = ${f(a * k, e)}. So ${a * k} scoops fit.`, bar(a, b));
   },

@@ -1,4 +1,6 @@
-import { MISSIONS, PLACEMENT_UNITS, type Progress } from './game';
+import { MISSIONS, PLACEMENT_UNITS, type Mission, type Progress } from './game';
+import { standardsForMission } from './standard-catalog';
+import { PLACEMENT_EXTRAS } from './placement-extras';
 import { getWorksheet, type WorksheetProblem } from './learning-content';
 import { makeRng } from './practice-bank';
 
@@ -16,15 +18,35 @@ export type PlacementItem = { unit: number; missionId: string; problem: Workshee
 const answerable = (problem: WorksheetProblem) => !problem.areaTask && !problem.rulerTask && !problem.linePlotTask && !problem.scaleTask
   && !/use the ruler|line plot|slider|colou?r the/i.test(problem.prompt);
 
-/** Three questions for a unit: from its first, middle and last lessons that have rows the quiz can show. `seed` picks
-    which worksheet rows. */
+/** The rows the quiz can ask for a lesson: its answerable worksheet rows, or (for a ruler or line plot lesson with none) its own rows from placement-extras.ts. */
+const askableRows = (missionId: string) => {
+  const rows = getWorksheet(missionId).filter(answerable);
+  return rows.length ? rows : PLACEMENT_EXTRAS[missionId] ?? [];
+};
+
+/** The lessons a unit's three questions come from: one from each third of the unit (its start, middle and end), so the
+    quiz still spans the unit. Which lesson of a third rotates with `seed`, and a lesson that brings a standard the earlier
+    picks have not asked is preferred, so over many quizzes every lesson, and so every standard, is asked. */
+export function placementLessons(unit: number, seed: number): Mission[] {
+  const lessons = MISSIONS.filter((mission) => mission.unit === unit && askableRows(mission.id).length > 0);
+  const size = lessons.length;
+  const picks: Mission[] = []; const covered = new Set<string>();
+  for (let third = 0; third < PER_UNIT; third++) {
+    const group = lessons.slice(Math.floor((third * size) / PER_UNIT), Math.floor(((third + 1) * size) / PER_UNIT));
+    const options = (group.length ? group : lessons).map((_, k, list) => list[(seed + third + k) % list.length]);
+    const pick = options.find((mission) => standardsForMission(mission.id).some((standard) => !covered.has(standard))) ?? options[0];
+    standardsForMission(pick.id).forEach((standard) => covered.add(standard));
+    picks.push(pick);
+  }
+  return picks;
+}
+
+/** Three questions for a unit, one from each of `placementLessons`. `seed` picks which worksheet rows. */
 export function placementItems(unit: number, seed: number): PlacementItem[] {
-  const lessons = MISSIONS.filter((mission) => mission.unit === unit && getWorksheet(mission.id).some(answerable));
-  const picks = [lessons[0], lessons[Math.floor((lessons.length - 1) / 2)], lessons[lessons.length - 1]];
   const rng = makeRng(seed * 31 + unit);
   const asked = new Set<string>(); // lessons can share a question (or the same lesson is picked twice): never ask the same one twice
-  return picks.map((mission) => {
-    const sheet = getWorksheet(mission.id).filter(answerable);
+  return placementLessons(unit, seed).map((mission) => {
+    const sheet = askableRows(mission.id);
     // Prefer rows that need no picture; fall back to any row (its picture is shown, read-only).
     const plain = sheet.filter((problem) => !problem.model && !problem.area);
     const pool = plain.length >= 3 ? plain : sheet;
