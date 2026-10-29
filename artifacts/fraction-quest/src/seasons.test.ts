@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { activeSeason, nextCostume, seasonLessonCount, seasonLine, seasonOn, unlockedCostumes } from './seasons';
+import { activeSeason, nextCostume, seasonLessonCount, seasonLine, seasonNow, seasonOn, seasonPreview, setSeasonPreview, subscribeSeasonPreview, unlockedCostumes } from './seasons';
 import { MONTH_THEMES } from './month-themes';
 import { recordSeasonLesson, type FunState } from './lib/fun';
 import { COSTUME_ART, costumeLayer, MonthRewardIcon, type CostumeLayer } from './costume-art';
@@ -379,4 +379,29 @@ test('a month theme has one story line for every kind of question, the same for 
     assert.doesNotMatch(theme.line, /\d|pumpkin|witch|ghost|Halloween|Christmas|answer|the right/i);
   }
   assert.equal(seasonLine(seasonOn(new Date(2026, 6, 9))!, 'set', 'x'), 'Let’s count the stars over the tent.');
+});
+
+test('a developer can preview any month: it follows that month, costumes can all show, and nothing is kept', () => {
+  const today = new Date();
+  const heard: number[] = [];
+  const stop = subscribeSeasonPreview(() => heard.push(seasonPreview()?.month ?? -1));
+  try {
+    assert.equal(seasonNow().getMonth(), today.getMonth(), 'no preview follows today');
+    for (let month = 0; month < 12; month++) {
+      setSeasonPreview({ month, allCostumes: false });
+      assert.equal(seasonNow().getMonth(), month);
+      assert.equal(activeSeason(null)?.key, seasonOn(new Date(today.getFullYear(), month, 15))!.key, `month ${month}`);
+      assert.equal(seasonLessonCount(null, activeSeason(null)!), 0, 'a preview earns no lessons');
+    }
+    setSeasonPreview({ month: 2, allCostumes: true });
+    const season = activeSeason(null)!;
+    assert.deepEqual(unlockedCostumes(season, seasonLessonCount(null, season)).map((costume) => costume.id), season.costumes.map((costume) => costume.id), 'every costume shows');
+    assert.equal(activeSeason({ displayPreferences: { seasonalThemes: false } } as never), null, 'the grown-ups switch still turns themes off');
+    assert.equal(activeSeason(null, new Date(today.getFullYear(), 9, 15))?.id, 'halloween', 'a date given by a caller is used as it is');
+  } finally {
+    setSeasonPreview(null);
+    stop();
+  }
+  assert.equal(seasonPreview(), null);
+  assert.equal(heard.length, 14, 'each change tells listeners: 12 months, the costumes switch and the reset');
 });

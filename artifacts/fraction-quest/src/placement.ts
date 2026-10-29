@@ -1,4 +1,4 @@
-import { MISSIONS, type Progress } from './game';
+import { MISSIONS, PLACEMENT_UNITS, type Progress } from './game';
 import { getWorksheet, type WorksheetProblem } from './learning-content';
 import { makeRng } from './practice-bank';
 
@@ -6,7 +6,7 @@ import { makeRng } from './practice-bank';
    A unit is passed only when every question in it is right. Passing units opens the next unit's lessons;
    it never marks lessons done or gives stars, so the evidence gates stay honest. */
 
-export const PLACEMENT_UNITS = 12;      // grades 3–5: units 13–15 (applying fractions) open after unit 12 as usual
+export { PLACEMENT_UNITS };             // defined in game.ts (it also bounds the saved start unit); grades 3–5: units 13–15 (applying fractions) open after unit 12 as usual
 export const PER_UNIT = 3;
 
 export type PlacementItem = { unit: number; missionId: string; problem: WorksheetProblem };

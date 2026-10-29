@@ -4,6 +4,7 @@ import App from './App';
 import { inExpoShell } from './lib/native-shell';
 import { ErrorBoundary } from '@/components/error-boundary';
 
+import './fonts.css';
 import './index.css';
 import './theme-pop.css';
 import './season.css';

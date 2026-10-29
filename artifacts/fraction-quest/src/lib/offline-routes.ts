@@ -13,8 +13,7 @@ export type OfflineRoute =
 
 /** The route for a GET request. `base` is the app's path ("/" or "/fraction-quest/"). */
 export function offlineRoute(url: URL, appOrigin: string, base: string, mode: string): OfflineRoute {
-  const fontHost = url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com';
-  if (url.origin !== appOrigin) return fontHost ? 'asset' : 'network';
+  if (url.origin !== appOrigin) return 'network'; // other sites are left alone (the fonts are the app's own files)
   if (url.pathname.startsWith('/api/storage/public-objects/voice/')) return 'voice';
   if (url.pathname.startsWith('/api/')) return 'network';
   if (mode === 'navigate') return 'page';

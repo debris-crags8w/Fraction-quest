@@ -1601,6 +1601,35 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.doesNotMatch(generated, /Cut this part off/i);
   });
 
+  it('prints no bar that the screen hides until the question is answered (every lesson, practice sheet and new sheets)', () => {
+    /** One printed bar row per bar the screen shows before answering (a decimal picture is one bar). */
+    const barRows = (questions: { model: ModelSpec }[]) => questions.reduce((sum, { model }) => sum
+      + (model.kind === 'bars' ? model.bars.filter((bar) => !bar.untilAnswered).length : model.kind === 'decimal' ? 1 : 0), 0);
+    const printed = (markup: string) => (markup.match(/class="fq-print-bar-row"/g) ?? []).length;
+    let hidden = 0;
+    // AreaModel.tsx uses the classic JSX runtime, which needs React on the global object while rendering.
+    const globalWithReact = globalThis as typeof globalThis & { React?: typeof React };
+    const previousReact = globalWithReact.React;
+    globalWithReact.React = React;
+    try {
+    for (const mission of MISSIONS) {
+      hidden += mission.questions.filter(({ model }) => model.kind === 'bars' && model.bars.some((bar) => bar.untilAnswered)).length;
+      assert.equal(printed(renderToStaticMarkup(createElement(Printable, { missionId: mission.id, mode: 'practice' }))), barRows(mission.questions),
+        `${mission.id}: the practice sheet draws a bar that shows the answer`);
+      if (!hasGenerator(mission.id)) continue;
+      for (const seed of [1, 2, 3]) {
+        const questions = generateQuestions(mission.id, mission.questions.map((q) => q.id), seed, 12).filter(({ model }) => model.kind !== 'equation');
+        assert.equal(printed(renderToStaticMarkup(createElement(Printable, { missionId: mission.id, mode: 'generated', seed }))), barRows(questions),
+          `${mission.id}: new practice sheet ${seed} draws a bar that shows the answer`);
+      }
+    }
+    } finally {
+      if (previousReact) globalWithReact.React = previousReact;
+      else delete globalWithReact.React;
+    }
+    assert.ok(hidden >= 23, `${hidden} lesson questions hide a bar until answered`);
+  });
+
   it('prints a blank worksheet without exposing or changing saved lesson answers', () => {
     const problem = getWorksheet('number-line-basics')[0];
     const record = checkWorksheet(editWorksheet(emptyLearningRecord(), problem.id, problem.answer), problem);
@@ -3262,7 +3291,7 @@ describe('grid, scaling and share-or-fit lessons', () => {
 
 describe('placement quiz', () => {
   it('reaches the grade 5 units: a child who knows units 1–12 starts at unit 13, and every question can be answered with what the quiz shows', () => {
-    assert.equal(PLACEMENT_UNITS, 12, 'Find my level covers the grade 5 units 9–12');
+    assert.equal(PLACEMENT_UNITS, 12, 'Find my level covers the grade 5 units 10–12');
     assert.equal(startUnit(12), 13);
     for (let unit = 1; unit <= PLACEMENT_UNITS; unit++) for (let seed = 1; seed <= 12; seed++) {
       for (const item of placementItems(unit, seed)) {
@@ -3298,6 +3327,18 @@ describe('placement quiz', () => {
     assert.equal(applyPlacement(EMPTY_PROGRESS, 0), EMPTY_PROGRESS, 'starting at unit 1 changes nothing');
     assert.equal(applyPlacement(EMPTY_PROGRESS, 8).placement?.unit, 9);
     assert.equal(isMissionUnlocked(applyPlacement(EMPTY_PROGRESS, 8), 'simplify-fractions'), true);
+  });
+  it('survives a reload from every possible start unit, grade 5 included', () => {
+    for (let start = 2; start <= startUnit(PLACEMENT_UNITS); start++) {
+      const placed = applyPlacement(EMPTY_PROGRESS, start - 1, 7000 + start);
+      assert.equal(placed.placement?.unit, start);
+      saveProgress(placed);
+      assert.deepEqual(loadProgress().placement, { unit: start, at: 7000 + start }, `start unit ${start} was forgotten on reload`);
+    }
+    saveProgress({ ...EMPTY_PROGRESS, placement: { unit: startUnit(PLACEMENT_UNITS) + 1, at: 1 } });
+    assert.equal(loadProgress().placement, undefined, 'there is no start unit past the quiz');
+    saveProgress({ ...EMPTY_PROGRESS, placement: { unit: 1, at: 1 } });
+    assert.equal(loadProgress().placement, undefined, 'starting at unit 1 is not a placement');
   });
   it('survives a reload and shows as "skipped" in the grown-ups report', () => {
     const placed = applyPlacement(EMPTY_PROGRESS, 2, 5000);
@@ -4033,9 +4074,10 @@ describe('wrong-answer help', () => {
     assert.match(wrongChoiceReason(q, ['9/1', '1/9', '1/8', '1/10'], 1, 2)!, /Count all the equal parts again/);
     assert.match(wrongChoiceReason('What is 3/8 + 2/8?', ['5/8', '5/16', '6/8', '5/13'], 0, 1)!, /Add only the (?:top numbers|numerators)/);
     assert.match(wrongChoiceReason('Write 8/100 as a decimal.', ['0.08', '0.8', '8.00', '0.008'], 0, 1)!, /places/);
-    assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 1)!, /smaller/);
+    assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 1)!, /More equal parts make each part smaller/);
     assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 3)!, /You can tell/);
-    assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 2)!, /not the same amount/);
+    assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 2)!, /same number of parts, but the parts are different sizes/);
+    assert.match(wrongChoiceReason('Which is bigger, 5/8 or 1/2?', ['5/8', '1/2', 'They are equal', "You can't tell"], 0, 2)!, /not the same size/);
     assert.equal(wrongChoiceReason('Is this strip cut into thirds?', ['Yes, 3 equal pieces', 'No, the pieces are unequal'], 1, 0), null, 'worded choices fall back to the lesson help');
     assert.equal(wrongChoiceReason(q, ['9/1', '1/9'], 1, 1), null, 'no help for a right answer');
     for (const m of MISSIONS) for (const question of m.questions) question.choices.forEach((_, i) => {
@@ -4172,6 +4214,31 @@ describe('hints shown before answering', () => {
       }
     }
     assert.deepEqual(leaks, []);
+  });
+});
+
+describe('worksheet hints shown before answering', () => {
+  /** A hint may repeat the numbers in the question, but a number that the child has to work out must not be in it.
+      Equal in value counts: 4 and 4/1 and 8/2 are the same answer. Answers of 0, 1 and 2 are skipped (the existing guard skips short answers too). */
+  const numbersIn = (text: string) => [...text.matchAll(/\d+\s+(?:and\s+)?\d+\/\d+|\d+\/\d+|\d*\.\d+|\d+/g)].map((m) => m[0]);
+  const sameValue = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+  it('never state the answer, on any lesson, for sheets 0 to 40 and every row', () => {
+    const leaks = new Map<string, string>();
+    for (const mission of MISSIONS) {
+      for (let sheet = 0; sheet <= 40; sheet++) {
+        for (const problem of getWorksheet(mission.id, sheet)) {
+          const answer = answerValue(problem.answer);
+          if (!Number.isFinite(answer) || answer === 0 || answer === 1 || answer === 2) continue;
+          const given = [...numbersIn(problem.prompt).map(answerValue), ...(problem.prompt.match(/\d*\.\d+|\d+/g) ?? []).map(Number)];
+          if (given.some((value) => sameValue(value, answer))) continue; // the question already says it
+          if (numbersIn(problem.hint).some((text) => sameValue(answerValue(text), answer))) {
+            const template = `${mission.id} | ${problem.hint.replace(/\d+/g, '#')}`;
+            if (!leaks.has(template)) leaks.set(template, `${problem.prompt} => ${problem.answer} | ${problem.hint}`);
+          }
+        }
+      }
+    }
+    assert.deepEqual([...leaks.entries()].map(([template, example]) => `${template}\n      e.g. ${example}`), []);
   });
 });
 

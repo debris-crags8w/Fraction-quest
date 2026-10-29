@@ -69,7 +69,7 @@ import { TimeUp } from './time-up';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
-import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, unitColor, useFun, useSeason, type PathNode } from './fun-ui';
+import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, unitColor, useFun, useSeason, useSeasonPreview, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
 import { IdeaLearn, LessonIntroCard } from './lesson-intro';
 import { ideaPracticeQuestions, ideaSteps, isRound, lessonIdeas, practicePlan } from './lesson-ideas';
@@ -1488,6 +1488,7 @@ function Game() {
     return () => clearTimeout(timer);
   }, []);
 
+  const previewing = useSeasonPreview();
   useEffect(() => {
     const root = document.documentElement;
     const preferences = fun.displayPreferences ?? { textSize: 'standard', highContrast: false, reducedMotion: false };
@@ -1506,7 +1507,7 @@ function Game() {
       for (const name of ['from', 'to', 'node', 'edge', 'text']) root.style.removeProperty(`--fq-month-${name}`);
       root.classList.remove('fq-high-contrast', 'fq-reduced-motion');
     };
-  }, [fun.displayPreferences]);
+  }, [fun.displayPreferences, previewing]);
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -1668,7 +1669,7 @@ function Game() {
     const nextProgress = completeMission(progress, missionId, stars);
     if (!hasLearningGate(nextProgress, missionId)) return;
     persistProgress(nextProgress);
-    const season = activeSeason(fun);
+    const season = activeSeason(fun, new Date()); // a developer's month preview never counts as a month's lessons
     if (season) setFun((current) => recordSeasonLesson(current, season.key, missionId));
     setView({ type: 'reward', missionId, stars: nextProgress.starsByMission[missionId] ?? stars });
     if (breakIntervalMinutes > 0) setBreakReason('lesson-part');
