@@ -249,10 +249,15 @@ function equivalence(p: string, right: Amount | null, answerText?: string): Foun
     return { right: n / d, slips: [['places', String(n / (d * 10))], ['places', String(n / (d / 10))], ['decWhole', `${n}.0`], ['decSideBySide', `${n}.${d}`], ['places', String(n / 10)], ['places', String(n / 100)]] };
   }
   // "What decimal is at the dot?" (a number line in tenths; the amount is only in the picture, so it is read from the answer):
-  // counted from the 1 end, the digit before the point, a mark counted instead of a space (hundredths wait for lesson 31).
-  if (/^What decimal is at the dot\?$/.test(p) && (m = /^0\.([1-9])$/.exec((answerText ?? "").trim()))) {
+  // counted back from the 1, the digit before the point, the 0 tick counted too (hundredths wait for lesson 31).
+  if (/^What decimal is at the dot\?$/.test(p) && (m = /^0\.([1-9])$/.exec((answerText ?? '').trim()))) {
     const n = N(m[1]);
-    return { right: n / 10, slips: [['dotFromOne', `0.${10 - n}`], ['decWhole', `${n}.0`], ...(n < 9 ? [['countedMarks', `0.${n + 1}`] as Slip] : [['countedMarks', `0.${n - 1}`] as Slip])] };
+    return { right: n / 10, slips: [['fromOne', `0.${10 - n}`], ['decWhole', `${n}.0`], ...(n < 9 ? [['zeroTick', `0.${n + 1}`] as Slip] : [])] };
+  }
+  // A strip of 10 colored in tenths, answered as a decimal: the digit before the point, the part not colored, the numbers side by side, one tenth.
+  if ((m = /^A strip has 10 equal parts\. (\d+) (?:is|are) colored\. Write the colored part as a decimal\.$/.exec(p))) {
+    const n = N(m[1]);
+    return { right: n / 10, slips: [['decWhole', `${n}.0`], ['decRest', String((10 - n) / 10)], ['decSideBySide', `10.${n}`], ['onePart', '0.1']] };
   }
   if ((m = /^Write (\d+)\/10 \+ (\d+)\/100 as a decimal\.$/.exec(p))) {
     const [a, b] = m.slice(1).map(N);

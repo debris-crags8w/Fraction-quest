@@ -364,23 +364,27 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'tenths-decimals': (r) => {
     // Wrong choices are tenths slips only (the part not colored, the digit before the point, upside down): hundredths come in lesson 31.
     const n = r.int(1, 9);
-    const form = r.int(0, 6);
+    const form = r.int(0, 8); // 7 and 8 are the plain forms again, so the number line comes about once in a round
     const strip = { kind: 'decimal', tenths: n, hideLabels: true } as const;
     if (form === 6) {
       // 4.NF.6: read a decimal from a number line (10 spaces from 0 to 1). Slips: counted from the 1 end, forgot the point, one space off.
       return { prompt: 'What decimal is at the dot?', right: `0.${n}`, wrong: n === 5 ? ['5.0', '0.4'] : [`0.${10 - n}`, `${n}.0`], extra: String(n),
+        slips: [`0.${10 - n}`, `${n}.0`, ...(n < 9 ? [`0.${n + 1}`] : []), ...(n > 1 ? [`0.${n - 1}`] : []), String(n)].filter((c) => c !== `0.${n}`),
         hint: 'Each space is one tenth. Count the spaces from 0 to the dot.', retry: `The dot is ${n} ${n === 1 ? 'space' : 'spaces'} from 0. ${n} ${n === 1 ? 'tenth is' : 'tenths is'} 0.${n}.`, model: line(n, 10, 1) };
     }
     if (form === 2) {
       return { prompt: `A strip has 10 equal parts. ${n} ${n === 1 ? 'is' : 'are'} colored. What fraction is colored?`, right: f(n, 10), wrong: n === 5 ? [f(10, 5), f(5, 5)] : [f(10 - n, 10), f(10, n)], extra: n === 5 ? f(5, 6) : f(n, 10 - n),
+        slips: n === 5 ? [f(10, 5), f(5, 5), f(5, 6)] : [f(10 - n, 10), f(10, n), f(n, 10 - n)],
         hint: 'The denominator is all 10 equal parts. The numerator is the colored parts.', retry: `${n} of 10 equal parts are colored: ${f(n, 10)}.`, model: bar(n, 10) };
     }
     if (form === 3 && n !== 5) {
       return { prompt: `A strip has 10 equal parts. ${n} ${n === 1 ? 'is' : 'are'} colored. What fraction is not colored?`, right: f(10 - n, 10), wrong: [f(n, 10), f(10 - n, n)], extra: f(1, 10 - n === 1 ? 2 : 10 - n),
+        slips: [f(n, 10), f(10 - n, n), f(1, 10 - n === 1 ? 2 : 10 - n)],
         hint: 'Count the parts that are not colored. The denominator is still 10.', retry: `${10 - n} of the 10 parts are not colored: ${f(10 - n, 10)}.`, model: bar(n, 10) };
     }
     if (form === 4) {
       return { prompt: `A strip has 10 equal parts. ${n} ${n === 1 ? 'is' : 'are'} colored. Write the colored part as a decimal.`, right: `0.${n}`, wrong: [`${n}.0`, n === 5 ? '10.5' : `0.${10 - n}`], extra: String(n),
+        slips: [`${n}.0`, ...(n === 5 ? ['10.5'] : [`0.${10 - n}`]), String(n), `10.${n}`],
         hint: 'Tenths go right after the decimal point.', retry: `${n} ${n === 1 ? 'tenth is' : 'tenths is'} 0.${n}.`, model: bar(n, 10) };
     }
     if (form === 5) {
@@ -771,7 +775,8 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       if (sub ? value <= 0.05 : tries < 40 && Math.abs(value - 1) < 0.1) continue;
       const expr = `${f(a, b)} ${sub ? '−' : '+'} ${f(c, e)}`;
       const sign = value > 1 ? '>' : '<';
-      return { prompt: `Without finding the exact ${sub ? 'difference' : 'sum'}, compare ${expr} with 1: __ 1.`, right: `${expr} ${sign} 1`, wrong: [`${expr} = 1`, `${expr} ${sign === '>' ? '<' : '>'} 1`],
+      // Bare signs: the four full comparisons ("2/3 − 1/2 < 1") are written from them (fourth-choice.ts).
+      return { prompt: `Without finding the exact ${sub ? 'difference' : 'sum'}, compare ${expr} with 1: __ 1.`, right: sign, wrong: ['=', sign === '>' ? '<' : '>'],
         hint: `Compare each part with 1/2. Two halves make 1.`, retry: sub ? `Both parts are less than 1, so taking one away leaves less than 1.` : value > 1 ? `${expr} is more than 1.` : `${expr} is less than 1.`,
         model: bars2([a, b], [c, e]) };
     }

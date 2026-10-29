@@ -1,24 +1,22 @@
 # Fraction Quest: curriculum gap analysis and roadmap
 
-*Written 2026-10-11 against `main` at aea1ca7. Audience: whoever plans the next round of work (the app owner, a teacher reviewer, or an AI agent picking this up).*
+*Written 2026-10-11 against `main` at aea1ca7. Numbers and statements in the status block, section 1 and section 2 were refreshed from the code on 2026-10-29 (`main` at 2e44adc3, plus the thoroughness and release fixes of that day); sections 3 to 7 are the original plan, kept as history. Audience: whoever plans the next round of work (the app owner, a teacher reviewer, or an AI agent picking this up).*
 
 **Goal:** make Fraction Quest work as a **standalone fraction curriculum** for grades 3–5 (ages 8–10): a family or teacher should be able to use it start to finish, without a textbook, and know the child has learned every fraction standard for those grades.
 
-**Bottom line:** the app already has a strong, model-centred core (52 lessons, evidence-gated worksheets, builds, spaced review, printables, a parent report and several games). To stand alone it still needs:
-1. **Missing standards:** line plots, measuring with rulers, circle and area models, scaling, multiplying mixed numbers, and dividing a unit fraction by a whole number.
-2. **Assessment:** unit and grade-level tests with results reported by standard.
-3. **Teaching support:** a teacher/parent lesson guide.
-4. **Reasoning and writing tasks:** the kind every published program uses.
-5. **Brain breaks:** there are none yet.
-6. **More games:** concept games beyond the race and coding.
-7. **Basics a children's product must have:** privacy/consent, password reset, accessibility and Spanish support.
+**Bottom line (2026-10-29):** the app now stands alone as a grade 3-5 fraction course: 81 lessons in 15 units (77 core and 4 marked "Bonus": chance, percent, percent as fractions, and dividing by a fraction), all 35 catalogued standard tags (3.NF, 4.NF, 5.NF, 3.G.2, 3.MD.4, 4.MD.2, 4.MD.4, 5.MD.1, 5.MD.2) taught by two or more lessons, 48 unit and grade check-ins reported by standard, 15 unit challenges, spaced review, a grown-ups report with skills by standard, teaching guides, brain breaks, concept games, privacy and terms pages, account recovery, and offline use (a service worker saves the whole app). What is still open:
+1. **People, not code:** a teacher's check of the grade labels and of the standards that have only one challenge puzzle, listening to the voice on a real phone, and testing offline use with Wi-Fi switched off on a real phone.
+2. **Release of the iPhone and Android app:** adaptive icon, splash image, privacy manifest, store listing and product IDs (see `app-shell-speed-offline-review.md`).
+3. **Bigger projects:** Spanish, teacher dashboards beyond classroom codes, adaptive difficulty, open-response tasks.
+
+*The original (2026-10-11) list of what was missing, kept for the record:* missing standards, assessment, a teaching guide, reasoning tasks, brain breaks, more games, and the basics a children's product needs. All of these are built except Spanish.
 
 
 ## Status update (later on 2026-10-11)
 
 Much of the list below has since been built. Read this first; the sections after it are the original analysis.
 
-**Done since this was written:** 72 lessons (unit 15, Problem solving, added 2026-10-13; see below) covering all 36 grade 3–5 fraction standards (line plots, rulers, area and
+**Done since this was written:** 81 lessons in 15 units (unit 15, Problem solving, added 2026-10-13) covering all 35 catalogued grade 3–5 standard tags (line plots, rulers, area and
 circle models, scaling, mixed-number multiplication, unit fraction ÷ whole number, decimal comparison, unit
 conversions); unit and grade check-ins reported by standard; teaching guides and pacing; reasoning prompts; brain breaks;
 concept games (Fraction War, Equivalence Match, Number Line Target) gathered with Race, Coding and Part Finder in one
@@ -37,11 +35,11 @@ with no picture get one from the amounts they name); bars carry a "1 whole" brac
 ends Unit 8, inside the grade-4 path and the level quiz; check-in coloring, ruler and line-plot items no longer hint or
 gate on the right answer.
 
-**Still open:**
-- Privacy policy page and a COPPA data-handling review (needs company name, contact email, country/state).
+**Still open (as first written, with today's status):**
+- Privacy policy page and a COPPA data-handling review: the privacy notice and terms pages exist (`public/privacy.html`, `public/terms.html`); the legal review still needs the owner's company name, contact email and country or state.
 - Spanish (deferred by the owner).
-- Natural voice (Kokoro, in the browser) is built; it still needs a listen on a real device.
-- The iOS app (kept on the `ios-local-icloud` branch; the owner may redo the conversion).
+- Natural voice: Kokoro runs on the server, and a pre-made voice pack ships with the app (Listen starts at once; the iPhone and Android app can download the whole pack on Wi-Fi). It still needs a listen on a real device.
+- The iPhone and Android app: `artifacts/fraction-quest-ios` (an Expo shell around the web app). Its ID, build numbers and EAS build profiles are set; its icon set, splash image, privacy manifest and store IDs are not (see `app-shell-speed-offline-review.md`).
 
 ---
 
@@ -70,119 +68,115 @@ pacing rows.
 
 ## 1. Where the app is today
 
-### Content: 14 units, 52 lessons
-| Unit | Lessons |
-|---|---|
-| 1 | Equal parts · Read a fraction · Unit fractions |
-| 2 | More pieces, smaller pieces · Fractions in a group · More than one group |
-| 3 | Less or more than half · Near 0, ½ or 1 · Fractions close together |
-| 4 | Fraction number line · Find the marked fraction · Past one |
-| 5 | Compare same denominator · Compare same numerator · Order fractions |
-| 6 | Equivalent models · Make a matching fraction · Missing number |
-| 7 | Compose to 1 · Decompose · Improper fractions · Mixed ↔ improper |
-| 8 | Add like · Subtract like · Rename, then add · Tenths · Hundredths · Add tenths + hundredths |
-| 9 | Simplest form · Missing number (both) · Compare unlike · Order unlike |
-| 10 | Subtract unlike · Add mixed · Subtract mixed · Fraction of a number |
-| 11 | Whole × fraction · Fraction × fraction · Fraction of a group · Whole ÷ unit fraction |
-| 12 | Fraction of a length · Add lengths · Fair shares · Division is a fraction |
-| 13 | Chance as a fraction · Fraction of a shape · Same spot, new name · Recipe fractions |
-| 14 | Fractions → percent · Percent → fractions · Fractions → decimals · Two-step stories |
+### Content: 15 units, 81 lessons
+| Unit | Title | Lessons |
+|---|---|---|
+| 1 | Meet fractions | Fraction names · Equal parts · Unit fractions · Equal-area partitions |
+| 2 | Size of the parts | Unit fraction size · Same numerators |
+| 3 | Size and benchmarks | Near one half · Near 0, 1/2 or 1 · Estimate size |
+| 4 | Fraction number lines | Split the line · Read the line · Past one whole · Read a ruler · Build line plots |
+| 5 | Compare and order | Compare like parts · Order fractions |
+| 6 | Equivalent fractions | See equivalence · Line equivalence · Make a match · Missing parts |
+| 7 | Put fractions together | Make one whole · Break apart · Whole numbers as fractions · Past a whole · Two ways to name it |
+| 8 | Operations and decimals | Add fractions · Subtract fractions · Add mixed numbers · Subtract mixed numbers · Fractions and decimals · Hundredths · Three forms · Compare decimal sizes · Decimals on a grid · Tenths + hundredths · Dimes and pennies · Unit fraction copies · Whole × fraction |
+| 9 | Rename and compare | Simplest form · Equivalent fractions · Compare unlike parts · Order unlike parts · Plot in eighths · Read line plots · Measurement stories · Recipe fractions · Party portions |
+| 10 | Mixed numbers and amounts | Add different names · Add unlike parts · Subtract unlike parts · Mixed number operations · Estimate fraction sums |
+| 11 | Multiply and divide | Fractions of sets · Count groups in a set · Fractions of amounts · Fraction × fraction · Multiply on a grid · Groups of objects · Scale an amount · Bigger or smaller |
+| 12 | Fractions in measurement | Fractional lengths · Measure together · Reason with line plots · Line plot totals · Fraction unit conversions · Two-step conversions · Fair sharing · Fraction quotient · Divide a unit fraction · Divide by a fraction · Share or fit |
+| 13 | Fraction models in context | Bonus probability · Fractional side area · Mixed number multiplication |
+| 14 | Fractions and decimals | Bonus percent · Bonus percent as fraction · Fraction stories |
+| 15 | Problem solving | Find the whole · Spot the mistake · Fraction of the rest · Bonus fraction ÷ fraction |
+
+(Unit titles are the ones on the learning map; lesson names are the short titles shown on the map. "Bonus" lessons are enrichment beyond grades 3-5 and never gate anything.)
 
 ### What each lesson has
-- **Intro:** story, worked example and "Let's think it through." Paper folding in 4 lessons; the "Same size, different shapes" card in lessons 1–2.
-- **Practice:** about 12 tap questions, with right answers spread evenly across A/B/C.
-- **Learning lab:** two staged builds (bar/set + number line, with a reason to pick) and a 12-question typed worksheet. The worksheet is the evidence gate: interactive bar copy/count/shade and the square model.
-- **Later review:** a "Show it again" build on a later day, plus quick reviews of due skills.
+- **Learn and practise:** each lesson is a few ideas; an idea has Learn pages (with words to know and a worked example), then three practices. The first lesson has the Watch, Words and Try screens.
+- **Learning lab:** staged builds (bar, set, number line, with a reason to pick) and a 12-row typed worksheet. The worksheet is the evidence gate.
+- **Later review:** a "Show it again" build on a later day (spaced review at 1, 3 and 7 days), plus quick reviews of due skills.
 - **Redo:** worksheet or builds with new numbers. Practice only; never changes completion.
-- **Extra practice:** "Practice more" (fixed) and "New questions" (generated); daily practice (5 questions per day from the child's own learning).
-- **Printables:** lesson sheet, practice, new practice, worksheet (with "Color it two ways" for lessons 1–2), my answers, unit challenge, and an answer key in the grown-ups area. "Check my paper" lets paper answers count.
+- **Extra practice:** "Practice more" (12 fixed questions) and "New questions" (a fresh set from the lesson's generator each time); daily practice (5 questions per day from the child's own learning).
+- **Printables:** lesson sheet, practice, new practice, worksheet, my answers, unit challenge, and an answer key in the grown-ups area. "Check my paper" lets paper answers count.
 
 ### Games and motivation
-- **Fraction Race:** against a robot (3 speeds) or 2 players, every lesson. Guessing can't win.
-- **Code challenge:** 6 block-coding levels per lesson with Python view and robot hints. **Code Sprint** is a 5-round coding race.
-- **Part Finder:** 3 rounds, on 3 lessons.
-- **Unit challenges:** 14, with points, step-by-step walk-throughs and a best score.
-- **Motivation:** XP, a daily goal ring, streak, stars, confetti, sound, and the mascot.
+- **Fraction Race**, **Code challenge** and **Code Sprint**, **Part Finder**, and the concept games (Fraction War, Equivalence Match, Number Line Target), all in one Games menu.
+- **Unit challenges:** 15 (one per unit), 6 puzzles each, with points, step-by-step walk-throughs and a best score.
+- **Check-ins:** unit pre, mid and end forms and grade beginning, middle and end forms for grades 3, 4 and 5 (48 forms), reported by standard.
+- **Motivation:** XP, a daily goal ring, streak, stars, confetti, sound, the mascot, a story with films, and brain breaks.
 
 ### Grown-ups and accounts
-- **Parent report:** behind a grown-up gate. Minutes per day, first-try rate, builds on their own, "worth practicing," strengths, lesson table, voice chooser, and printable.
-- **Level quiz:** places a child up to unit 9.
-- **Accounts:** guest mode or account with sync.
-- **Read-aloud:** gentle voice, kid wording ("three fourths"), vocabulary tooltips.
+- **Parent report:** behind a grown-up gate. The week at a glance, skills by standard for the child's grade, what to practice with an idea for home, the last 4 weeks, minutes per day, first-try rate, redo mistakes, a summary to share, family settings (breaks, reminders, voice, subscription).
+- **Find my level:** 3 questions for each of units 1-12 (36 in all, stopping at the first unit not passed). From the start of a unit's lessons it asks one from each third of the unit, rotating with the seed, so over many quizzes every standard of units 1-12 is asked (63 of the 71 lessons in 40 quizzes; the rest share standards with a lesson that is). The ruler and line plot lessons, which the quiz cannot show, have their own rows in `placement-extras.ts`. Units 13-15 open after unit 12 as usual.
+- **Accounts:** guest mode, or an account with sync, a recovery code, classrooms and whole-account deletion. The app also opens a signed-in family's saved account when the server cannot be reached.
+- **Offline:** a service worker saves the page and every built file, so the whole app opens and plays with no connection after one visit. The voice pack downloads in the iPhone and Android app on Wi-Fi; in a browser only the clips already heard are kept.
+- **Read-aloud:** a gentle voice (kid wording such as "three fourths") and vocabulary cards.
 
 ### Quality status
-- **Tests:** 114 automated tests pass, and the typecheck and build are clean.
-- **Earlier audit findings (all fixed):** the number-line cap, review prompts, guessable reasons, degenerate items, out-of-range denominators, duplicate worksheets, and pictures that gave the answer away.
-- **Later fixes:** lesson re-lock after content changes, stale answers, print cut-off, the A/B/C bias, the equal-parts shading confusion, and daily practice offering locked lessons.
-
-### Still open from earlier audits
-- Parent password reset; privacy and consent page; COPPA review.
-- Circle models.
-- A small stray dotted part-marker beside the printed example bar.
-- The 3-star threshold counts extra bank questions.
-- Challenge walk-throughs aren't printed.
-- The square model isn't used in practice questions or the race.
-- Part Finder teaching notes:
-  - "Tile the whole" only counts pieces already drawn.
-  - Round 1 repeats a lesson 2 worksheet question.
-  - Wrong answers get a generic hint.
-- Mistakes made during a redo don't feed "worth practicing."
-
----
+- **Tests:** about 500 unit tests (`src/*.test.ts` and the iOS package), a proof engine that solves every question the app can ask again and agrees with every answer, and Playwright checks: every lesson, the iPhone Safari screen, films, accessibility (axe), offline use and more. CI runs the unit tests, typecheck and build, the all-lessons and iPhone smoke tests, and a separate "Extra browser checks" job.
+- **Earlier audit findings:** the lists from the 2026-10-11 audits (number-line cap, review prompts, guessable reasons, degenerate items, pictures that gave the answer away, and others) were fixed; later audits are tracked in their pull requests.
 
 ## 2. Standards coverage (Common Core, grades 3–5)
 
-✅ covered · 🟡 partly · ❌ missing
+All 35 catalogued standard tags (`standard-catalog.ts`) are covered: each is taught by two or more lessons, each appears in the unit challenges and in the grade check-ins, and the parent report shows them as skills. (3.NF.2 and 3.NF.3 are split into their lettered parts; 5.NF.7 into a, b and c; 4.NF.3 and 4.NF.4 likewise. The 2026-10-11 list marked about a third of these as missing or partial; none is missing now.) The lesson list for each tag below is read from the code.
 
 ### Grade 3
-| Standard | What it asks | Status | Where / gap |
-|---|---|---|---|
-| 3.NF.1 | Unit fractions; a/b is a parts of size 1/b | ✅ | Units 1–2 |
-| 3.NF.2 | Fractions on a number line (0–1 and beyond) | ✅ | Unit 4 |
-| 3.NF.3a–b | Equivalent fractions (same size, same point) | ✅ | Unit 6, "Same spot, new name" |
-| 3.NF.3c | Whole numbers as fractions (3 = 3/1, 4/4 = 1) | 🟡 | Comes up in examples and the challenge, but **no lesson teaches n/1 or n/n = 1 directly** |
-| 3.NF.3d | Compare same numerator / same denominator, with symbols, same whole | ✅ | Unit 5 |
-| 3.G.2 | Split shapes into equal areas; each part is 1/b of the area | 🟡 | New square model (lessons 1–2) and "Fraction of a shape." **No rectangles, circles or hexagons**, and no "partition this shape yourself" task |
-| 3.MD.4 | Measure lengths to ½ and ¼ inch; show data on a line plot | ❌ | **No ruler and no line plot anywhere** |
+| Standard | What it asks | Lessons (unit: lesson) |
+|---|---|---|
+| 3.NF.1 | Splits a whole into equal parts and names them | 1: Fraction names; 1: Equal parts; 1: Unit fractions |
+| 3.NF.2a | Puts a fraction like 1/4 on a number line | 4: Split the line; 4: Read the line |
+| 3.NF.2b | Finds fractions like 3/4 and 5/4 on a number line by counting equal jumps | 4: Past one whole; 7: Past a whole |
+| 3.NF.3a | Finds fractions that name the same amount | 6: See equivalence; 6: Line equivalence |
+| 3.NF.3b | Shows with a picture why two fractions are the same amount | 6: See equivalence; 6: Line equivalence |
+| 3.NF.3c | Writes a whole number as a fraction, like 3/1 or 4/4 | 7: Whole numbers as fractions; 7: Past a whole |
+| 3.NF.3d | Compares two fractions with the same top or bottom number | 2: Unit fraction size; 2: Same numerators; 3: Near one half; 3: Near 0, 1/2 or 1; 3: Estimate size; 5: Compare like parts; 5: Order fractions |
+| 3.G.2 | Splits a shape into equal areas and names each part | 1: Equal parts; 1: Equal-area partitions |
+| 3.MD.4 | Measures lengths to the nearest half or fourth inch and shows them on a line plot | 4: Read a ruler; 4: Build line plots |
 
 ### Grade 4
-| Standard | What it asks | Status | Where / gap |
-|---|---|---|---|
-| 4.NF.1 | Equivalence by multiplying top and bottom, with models | ✅ | Unit 6, simplify in unit 9 |
-| 4.NF.2 | Compare unlike fractions (common denominator or benchmark) | ✅ | Units 3 and 9 (unit 9 is labelled grade 5 in the app; it's grade 4 in Common Core) |
-| 4.NF.3a–b | Add/subtract like denominators; decompose (3/8 = 1/8 + 2/8) | ✅ | Units 7–8 |
-| 4.NF.3c | Add/subtract mixed numbers, like denominators | ✅ | Unit 10 (labelled grade 5; it's grade 4) |
-| 4.NF.3d | Word problems, like denominators | 🟡 | Story items exist; **no multi-step like-denominator problem sets with visual models** |
-| 4.NF.4a–c | Multiply a fraction by a whole number (incl. word problems) | 🟡 | "Groups of a fraction" (one lesson). **Missing: 4.NF.4a (5/4 = 5 × 1/4) as its own idea, and multiplication word problems with line plots or recipes** |
-| 4.NF.5 | Tenths as hundredths (3/10 = 30/100); add 3/10 + 4/100 | ✅ | Unit 8 |
-| 4.NF.6 | Decimal notation for tenths/hundredths | ✅ | Unit 8 |
-| 4.NF.7 | **Compare** decimals to hundredths with symbols | ❌ | No compare-decimals lesson (0.3 vs 0.25 misconception not addressed) |
-| 4.MD.2 | Measurement word problems with fractions/decimals (money, time, mass, volume) | 🟡 | Lengths and recipes only; **no money, time, mass or liquid volume** |
-| 4.MD.4 | Line plots with ½, ¼, ⅛; add/subtract from the plot | ❌ | Missing |
+| Standard | What it asks | Lessons (unit: lesson) |
+|---|---|---|
+| 4.NF.1 | Makes equal fractions by multiplying or dividing the top and bottom by the same number | 6: Make a match; 6: Missing parts; 9: Simplest form; 9: Equivalent fractions |
+| 4.NF.2 | Compares fractions with different bottom numbers, using 1/2 or equal fractions | 3: Near one half; 3: Near 0, 1/2 or 1; 9: Compare unlike parts; 9: Order unlike parts; 15: Spot the mistake |
+| 4.NF.3a | Adds and subtracts fractions with the same bottom number | 8: Add fractions; 8: Subtract fractions; 15: Spot the mistake |
+| 4.NF.3b | Breaks a fraction into smaller fractions that add up to it | 7: Make one whole; 7: Break apart; 7: Two ways to name it |
+| 4.NF.3c | Adds and subtracts mixed numbers | 7: Two ways to name it; 8: Add mixed numbers; 8: Subtract mixed numbers |
+| 4.NF.3d | Solves word problems that add or take away same-size parts | 8: Add fractions; 8: Subtract fractions; 14: Fraction stories |
+| 4.NF.4a | Sees 3/4 as three groups of 1/4 | 8: Unit fraction copies; 8: Whole × fraction |
+| 4.NF.4b | Multiplies a fraction by a whole number | 8: Whole × fraction; 9: Recipe fractions |
+| 4.NF.4c | Solves word problems that multiply a fraction by a whole number | 9: Recipe fractions; 9: Party portions |
+| 4.NF.5 | Writes tenths as hundredths to add them | 8: Tenths + hundredths; 8: Dimes and pennies |
+| 4.NF.6 | Writes tenths and hundredths as decimals | 8: Fractions and decimals; 8: Hundredths; 8: Three forms |
+| 4.NF.7 | Compares decimals to hundredths | 8: Compare decimal sizes; 8: Decimals on a grid |
+| 4.MD.2 | Solves measurement word problems with fractions | 9: Measurement stories; 12: Fraction unit conversions |
+| 4.MD.4 | Reads a line plot of fraction measurements and answers questions about it | 9: Plot in eighths; 9: Read line plots |
 
 ### Grade 5
-| Standard | What it asks | Status | Where / gap |
-|---|---|---|---|
-| 5.NF.1 | Add/subtract **unlike** denominators incl. mixed numbers | 🟡 | "Rename, then add" (related denominators only) and "Subtract unlike." **No general add-unlike lesson (1/3 + 1/4), no unlike-denominator mixed numbers** |
-| 5.NF.2 | Word problems with unlike fractions; estimate with benchmarks to check answers | 🟡 | Two-step stories; **no "is this answer reasonable?" estimation tasks** |
-| 5.NF.3 | Fraction as division (a/b = a ÷ b) | ✅ | Unit 12 |
-| 5.NF.4a | Fraction × fraction (incl. a/b × q) | ✅ | Unit 11 |
-| 5.NF.4b | Area of rectangles with fractional sides (tile with unit squares) | ❌ | "Fraction of a shape" is shading, not side-length area |
-| 5.NF.5 | **Multiplication as scaling** (bigger/smaller than the factor without computing) | ❌ | Missing |
-| 5.NF.6 | Real-world multiplication incl. **mixed numbers** | ❌ | No mixed-number multiplication |
-| 5.NF.7a | **Unit fraction ÷ whole number** (1/3 ÷ 4) | ❌ | Only whole ÷ unit fraction is taught |
-| 5.NF.7b–c | Whole ÷ unit fraction; word problems | ✅ / 🟡 | "How many pieces fit?" Few word problems |
-| 5.MD.1 | Convert measurement units (incl. fractional results) | ❌ | Missing |
-| 5.MD.2 | Line plots with fractions; redistribute ("level the beakers") | ❌ | Missing |
+| Standard | What it asks | Lessons (unit: lesson) |
+|---|---|---|
+| 5.NF.1 | Adds and subtracts fractions with different bottom numbers | 10: Add different names; 10: Add unlike parts; 10: Subtract unlike parts; 10: Mixed number operations; 12: Measure together |
+| 5.NF.2 | Solves fraction word problems and checks if the answer makes sense | 10: Estimate fraction sums; 12: Measure together; 15: Fraction of the rest |
+| 5.NF.3 | Sees a fraction as a division, like sharing 3 pizzas among 4 people | 12: Fair sharing; 12: Fraction quotient |
+| 5.NF.4a | Multiplies a fraction by a fraction | 11: Fractions of sets; 11: Count groups in a set; 11: Fractions of amounts; 11: Fraction × fraction; 11: Multiply on a grid; 11: Groups of objects; 12: Fractional lengths |
+| 5.NF.4b | Finds the area of a rectangle with fraction side lengths | 13: Fractional side area; 13: Mixed number multiplication |
+| 5.NF.5 | Knows when multiplying by a fraction makes a number bigger or smaller | 11: Scale an amount; 11: Bigger or smaller |
+| 5.NF.6 | Solves word problems that multiply fractions | 13: Mixed number multiplication; 15: Fraction of the rest |
+| 5.NF.7a | Shares a unit fraction equally, like 1/2 split among 3 | 12: Divide a unit fraction; 12: Share or fit |
+| 5.NF.7b | Finds how many unit fractions fit in a whole number | 12: Divide by a fraction; 12: Share or fit; 15: Find the whole |
+| 5.NF.7c | Solves word problems that divide with unit fractions | 12: Divide by a fraction; 12: Share or fit |
+| 5.MD.1 | Converts measurement units, including fraction amounts | 12: Fraction unit conversions; 12: Two-step conversions |
+| 5.MD.2 | Solves problems with data from a fraction line plot | 12: Reason with line plots; 12: Line plot totals |
+
+Where the tags are thin (for a teacher to check): 17 standards have exactly one unit-challenge puzzle, and some lessons carry a second tag mainly so that a standard has two lessons. Find my level covers the standards of units 1-12; 5.NF.4b and 5.NF.6 are taught only in units 13 and 15, which open after unit 12 whatever the quiz says.
 
 ### Beyond grades 3–5 (already in the app)
-- Percent (units 13–14) is grade 6 (6.RP.3c), and probability (unit 13) is grade 7 (7.SP).
-- That's fine as **enrichment**, but they should be labelled that way so families don't treat them as required.
-- The grade labels on units 9–14 should also be fixed: several are grade 4 (see 4.NF.2 and 4.NF.3c above).
+- Percent (unit 14) is grade 6 (6.RP.3c), and probability (unit 13) is grade 7 (7.SP); dividing by a fraction (unit 15) goes past 5.NF.7.
+- They are labelled "Bonus" in the app (lesson titles and unit subtitles), so families don't treat them as required.
+- The unit subtitles now name the grades a unit covers (for example unit 9 "Grades 3–5", unit 10 "Grades 4–5").
 
 ---
 
 ## 3. Comparison with published programs
+
+*Sections 3 to 7 are the original 2026-10-11 plan, kept as history. Most of section 4 (content, models, teaching, assessment, grown-ups, accessibility) and the games and brain breaks of sections 5 and 6 are built; section 1 and the status block at the top say what exists today. Spanish and the Phase 5 items are the main parts not built.*
 
 Chapter numbers below come from publisher correlation sheets and district guides; they can differ by edition (see Sources).
 

@@ -38,4 +38,11 @@ describe('locating a decimal on a number line (4.NF.6)', () => {
     }
     assert.ok(asked.size >= 6, `only ${asked.size} different dots in 40 rounds`);
   });
+
+  it('writes no hundredths form (0.05, 3/100) as a wrong choice in any tenths round: hundredths are taught in the next lesson', () => {
+    const ids = MISSIONS.find((m) => m.id === 'tenths-decimals')!.questions.map((q) => q.id);
+    for (let seed = 1; seed <= 60; seed++) for (const q of generateQuestions('tenths-decimals', ids, seed, 12)) {
+      for (const choice of q.choices) assert.doesNotMatch(choice, /\.\d\d|\/100\b/, `${q.prompt} → ${q.choices.join(' ')}`);
+    }
+  });
 });
