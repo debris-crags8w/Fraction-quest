@@ -3,6 +3,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { AREA_CUTS, pieceArea } from '../src/area-shapes';
 import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, MISSIONS, type Mission, type PracticeQuestion } from '../src/game';
+import { lessonCheckpoint } from '../src/checkpoint';
 import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
 import { isPartFinderAnswer, PART_FINDER_ROUNDS, type PartFinderRound } from '../src/part-finder';
 import { STORY_PROBLEMS, chapterFor } from '../src/story';
@@ -128,9 +129,19 @@ export async function completeIdeas(page: Page, mission: Mission, { until, ...ho
   }
 }
 
-/** After the last idea, "Put it together": any review questions that are due (pass them, as the app makes them), then the
-    lesson's story problem when story mode tells one. Each is answered right; the last one's Finish opens the lesson page. */
+/** After the last idea, the checkpoint: 3 questions with new numbers (each answered right). */
+export async function completeCheckpoint(page: Page, mission: Mission, hooks: WalkHooks = {}) {
+  for (const [index, question] of lessonCheckpoint(mission).entries()) {
+    await expect(page.locator('.fq-play-kicker')).toContainText(`Checkpoint · Question ${index + 1} of 3`);
+    await answerRight(page, question, `${mission.id} checkpoint ${index + 1}`, hooks);
+  }
+}
+
+/** After the last idea: the checkpoint, then "Put it together": any review questions that are due (pass them, as the app
+    makes them), then the lesson's story problem when story mode tells one. Each is answered right; the last one's Finish
+    opens the lesson page. Returns how many "Put it together" questions were asked (the checkpoint's 3 are not counted). */
 export async function finishPutTogether(page: Page, mission: Mission, { review = [], ...hooks }: WalkHooks & { review?: PracticeQuestion[] } = {}) {
+  await completeCheckpoint(page, mission, hooks);
   const last = mission.questions.at(-1)!;
   const known = [...review, { ...last, id: `${last.id}-story` }];
   // Waited for in the page, not with an assertion: the lesson page may open under a break offer, and an assertion would
