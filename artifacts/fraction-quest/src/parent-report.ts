@@ -7,7 +7,7 @@ import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { getAssessmentDefinitions, summarizeStandardMastery, type StandardMastery } from './assessments';
 import { FRACTION_STANDARDS, type StandardId } from './standard-catalog';
-import { guideForUnit } from './teaching-guide-data';
+import { ideaForMission } from './parent-ideas';
 
 /* The grown-ups' report: everything here is read from progress the app already saves.
    Nothing in it changes progress or lesson gating. */
@@ -21,10 +21,14 @@ export type LessonRow = {
 export type UnitRow = { number: number; title: string; done: number; total: number; challengeBest: number | null; challengeMax: number; lessons: LessonRow[] };
 export type DayRow = { day: string; label: string; minutes: number; answered: number; /** No practice, but spare oil kept the streak going. */ saved: boolean };
 export type PracticeTip = {
-  idea: string; lessons: string[]; /** The same lessons, by number. */ lessonNumbers: number[]; count: number; /** How many of the misses happened in redos. */ inRedos?: number;
+  /** What the group is: the idea of the lessons its wrong tries happened in ("Making equal fractions"), never one question's hint. */
+  key: string; idea: string; /** One thing to try at home for this idea. */ home: string;
+  lessons: string[]; /** The same lessons, by number. */ lessonNumbers: number[]; count: number; /** How many of the misses happened in redos. */ inRedos?: number;
   /** The lesson with the most of these misses: "Practice now" gives new questions from it. */ missionId: string; lessonNumber: number;
-  standards: string[]; /** The unit's 5-minute idea for home, left out when a tip above already shows it. */ homeActivity: string | null;
+  standards: string[];
 };
+/** Something to try at home when no wrong tries have shown up yet: the next lesson's idea, or the weakest finished lesson's. */
+export type HomeIdea = { heading: string; home: string; lessonNumber: number; lessonTitle: string; why: 'next' | 'review' };
 /** One standard's steps: 0 not started, 1 learning, 2 practiced in lessons, 3 mastered in Check-ins. */
 export type SkillStep = 0 | 1 | 2 | 3;
 export type SkillRow = {
@@ -60,6 +64,7 @@ export type ParentReport = {
   month: MonthView;
   adaptationReasons: { day: string; lesson: string; missionId: string; unit: number; reason: string }[];
   glance: Glance;
+  /** Only when `toPractice` is empty. */ homeIdea: HomeIdea | null;
 };
 
 /** The top of the report: the week in a few lines, grade level, and one thing to help with at home. */
@@ -69,10 +74,10 @@ export type Glance = {
   daysPracticed: number; savedDays: number; minutes: number;
   /** Lessons finished in the last 7 days, oldest first. */
   learned: GlanceLesson[];
-  /** Skills (standards) mastered in Check-ins, per grade. */
-  grades: { grade: 3 | 4 | 5; mastered: number; total: number; started: boolean }[];
-  /** The lesson with the most wrong tries so far, with its idea and the unit's activity for home. */
-  focus: (GlanceLesson & { misses: number; homeActivity: string | null }) | null;
+  /** Share of worksheet answers right the first time in the lessons finished in the last 7 days (null when none were checked). */
+  firstTryWeek: number | null;
+  /** The lesson with the most wrong tries so far: the "Working on" line of the summary to share. */
+  focus: (GlanceLesson & { misses: number }) | null;
 };
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -80,32 +85,29 @@ const glanceLesson = (mission: (typeof MISSIONS)[number]): GlanceLesson => ({
   id: mission.id, title: mission.title, grade: mission.gradeBand ?? null, standards: [...(mission.standards ?? [])], idea: mission.skill,
 });
 
-export function buildGlance(progress: Progress, week: DayRow[], mastery: StandardMastery[], now = new Date()): Glance {
-  const learned = MISSIONS
+export function buildGlance(progress: Progress, week: DayRow[], now = new Date()): Glance {
+  const finishedThisWeek = MISSIONS
     .map((mission) => ({ mission, at: getLearningRecord(progress, mission.id).completedAt }))
     .filter((item): item is { mission: (typeof MISSIONS)[number]; at: number } => typeof item.at === 'number' && item.at > now.getTime() - WEEK_MS && item.at <= now.getTime())
-    .sort((a, b) => a.at - b.at)
-    .map(({ mission }) => glanceLesson(mission));
-  const grades = ([3, 4, 5] as const).map((grade) => {
-    const ids = FRACTION_STANDARDS.filter((standard) => standard.grade === grade).map((standard) => standard.id as string);
-    const rows = mastery.filter((row) => ids.includes(row.standard));
-    return { grade, mastered: rows.filter((row) => row.status === 'mastered').length, total: ids.length, started: rows.some((row) => row.attempted > 0) };
-  });
+    .sort((a, b) => a.at - b.at);
+  const learned = finishedThisWeek.map(({ mission }) => glanceLesson(mission));
+  let weekTried = 0; let weekFirstTry = 0;
+  for (const { mission } of finishedThisWeek) { const counts = firstTryCounts(progress, mission.id); weekTried += counts.tried; weekFirstTry += counts.firstTry; }
   let focus: Glance['focus'] = null;
   for (const mission of MISSIONS) {
     const record = getLearningRecord(progress, mission.id);
     const misses = [record.misconceptions, record.redoMisconceptions ?? {}].reduce((sum, misses) => sum + Object.values(misses).reduce((a, b) => a + b, 0), 0);
-    if (misses > (focus?.misses ?? 0)) focus = { ...glanceLesson(mission), misses, homeActivity: guideForUnit(mission.unit)?.familyNote ?? null };
+    if (misses > (focus?.misses ?? 0)) focus = { ...glanceLesson(mission), misses };
   }
   return {
     daysPracticed: week.filter((day) => day.answered > 0).length, savedDays: week.filter((day) => day.saved).length,
-    minutes: week.reduce((sum, day) => sum + day.minutes, 0), learned, grades, focus,
+    minutes: week.reduce((sum, day) => sum + day.minutes, 0), learned, firstTryWeek: pct(weekFirstTry, weekTried), focus,
   };
 }
 
 const gradeTag = (lesson: GlanceLesson) => [lesson.grade ? `Grade ${lesson.grade}` : null, ...lesson.standards].filter(Boolean).join(', ');
 /** The short summary a grown-up can send to a teacher. It names no account details, only this week's learning. */
-export function glanceShareText(glance: Glance, firstTryRate: number | null, childName: string | null, now = new Date(), skills: SkillRow[] = []): string {
+export function glanceShareText(glance: Glance, childName: string | null, now = new Date(), skills: SkillRow[] = []): string {
   const start = new Date(now); start.setDate(now.getDate() - 6);
   const lines = [
     `Fraction Quest · ${childName ?? 'My child'} · week of ${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`,
@@ -115,7 +117,7 @@ export function glanceShareText(glance: Glance, firstTryRate: number | null, chi
   const standards = (step: SkillStep) => skills.filter((skill) => skill.step === step).map((skill) => skill.standard).join(', ');
   if (standards(3)) lines.push(`Mastered: ${standards(3)}.`);
   if (standards(2)) lines.push(`Practiced, ready to check: ${standards(2)}.`);
-  if (firstTryRate !== null) lines.push(`Right the first time: ${firstTryRate}%.`);
+  if (glance.firstTryWeek !== null) lines.push(`Right the first time in lessons finished this week: ${glance.firstTryWeek}%.`);
   if (glance.focus) lines.push(`Working on: ${glance.focus.title} (${gradeTag(glance.focus)}).`);
   return lines.join('\n');
 }
@@ -183,34 +185,24 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
     for (const check of Object.values(record.checks)) if (check.passed) { builds++; if (!check.supported) onOwn++; }
   }
 
-  // What tripped them up most: the same idea across lessons is one line, with the lessons it came up in.
+  // What tripped them up most: wrong tries are grouped by the idea of the lesson they happened in (see parent-ideas.ts),
+  // so the four "equal fractions" lessons are one line, with the lessons it came up in. Redos count too, so a skill
+  // that still trips them up after the lesson shows here.
   const tips = new Map<string, PracticeTip & { top: number }>();
   MISSIONS.forEach((mission, index) => {
     const record = getLearningRecord(progress, mission.id);
-    // Mistakes in redos count too, so a skill that still trips them up after the lesson shows here.
-    const here = new Map<string, number>();
-    for (const [misses, redo] of [[record.misconceptions, false], [record.redoMisconceptions ?? {}, true]] as const) {
-      for (const [idea, count] of Object.entries(misses)) {
-        const tip = tips.get(idea) ?? { idea, lessons: [], lessonNumbers: [], count: 0, missionId: mission.id, lessonNumber: index + 1, standards: [], homeActivity: null, top: 0 };
-        tip.count += count; if (redo) tip.inRedos = (tip.inRedos ?? 0) + count;
-        if (!tip.lessons.includes(mission.title)) { tip.lessons.push(mission.title); tip.lessonNumbers.push(index + 1); }
-        here.set(idea, (here.get(idea) ?? 0) + count);
-        tips.set(idea, tip);
-      }
-    }
-    for (const [idea, count] of here) {
-      const tip = tips.get(idea)!;
-      if (count > tip.top) Object.assign(tip, { top: count, missionId: mission.id, lessonNumber: index + 1 });
-    }
+    const sum = (misses: Record<string, number> | undefined) => Object.values(misses ?? {}).reduce((total, count) => total + count, 0);
+    const redo = sum(record.redoMisconceptions); const count = sum(record.misconceptions) + redo;
+    if (count === 0) return;
+    const idea = ideaForMission(mission);
+    const tip = tips.get(idea.key) ?? { key: idea.key, idea: idea.heading, home: idea.home, lessons: [], lessonNumbers: [], count: 0, missionId: mission.id, lessonNumber: index + 1, standards: [], top: 0 };
+    tip.count += count; if (redo) tip.inRedos = (tip.inRedos ?? 0) + redo;
+    tip.lessons.push(mission.title); tip.lessonNumbers.push(index + 1);
+    if (count > tip.top) Object.assign(tip, { top: count, missionId: mission.id, lessonNumber: index + 1 });
+    tips.set(idea.key, tip);
   });
-  const shownNotes = new Set<string>();
-  const toPractice: PracticeTip[] = [...tips.values()].sort((a, b) => b.count - a.count).slice(0, 3).map(({ top: _top, ...tip }) => {
-    const mission = MISSIONS[tip.lessonNumber - 1];
-    const note = guideForUnit(mission.unit)?.familyNote ?? null;
-    const homeActivity = note && !shownNotes.has(note) ? note : null;
-    if (note) shownNotes.add(note);
-    return { ...tip, standards: [...(mission.standards ?? [])], homeActivity };
-  });
+  const toPractice: PracticeTip[] = [...tips.values()].sort((a, b) => b.count - a.count).slice(0, 3).map(({ top: _top, ...tip }) => (
+    { ...tip, standards: [...(MISSIONS[tip.lessonNumber - 1].standards ?? [])] }));
 
   const dueReviews = progress.reviewQueue.filter((item) => item.dueAt <= now.getTime())
     .map((item) => MISSIONS.find((mission) => mission.id === item.missionId)?.title).filter((title): title is string => !!title);
@@ -249,8 +241,18 @@ export function buildParentReport(progress: Progress, fun: FunState, unitTitles:
     grade: (current && MISSIONS[current.number - 1].gradeBand) || 3,
     month: buildMonth(progress, now),
     adaptationReasons,
-    glance: buildGlance(progress, week, standardMastery, now),
+    glance: buildGlance(progress, week, now),
+    homeIdea: toPractice.length ? null : buildHomeIdea(rows, next),
   };
+}
+
+/** With no wrong tries to go on: the next lesson's idea (so a grown-up can prepare), or once every lesson is done, the one with the lowest first-try rate. */
+function buildHomeIdea(rows: LessonRow[], next: LessonRow | undefined): HomeIdea | null {
+  const weakest = rows.filter((row) => row.status === 'done' && row.firstTry !== null).sort((a, b) => a.firstTry! - b.firstTry! || a.number - b.number)[0];
+  const pick = next ?? weakest;
+  if (!pick) return null;
+  const idea = ideaForMission(MISSIONS[pick.number - 1]);
+  return { heading: idea.heading, home: idea.home, lessonNumber: pick.number, lessonTitle: pick.title, why: next ? 'next' : 'review' };
 }
 
 /** Lessons count toward a standard's steps; the Check-ins alone decide "mastered" (the existing rule). */

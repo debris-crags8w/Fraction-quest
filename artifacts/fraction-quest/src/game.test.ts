@@ -22,6 +22,7 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { FunContext, promptListenText, splitStory, StoryPrompt } from './fun-ui';
 import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
+import { ideaForMission } from './parent-ideas';
 import { createNaturalSpeaker, isIOSVoiceDevice, naturalVoicePreference, naturalVoiceStatus, setNaturalEngineForTests, setNaturalVoicePreference } from './lib/natural-voice';
 import { applyPlacement, placementItems, PLACEMENT_UNITS, startUnit } from './placement';
 import { buildAssessmentItems, getAssessmentDefinitions } from './assessments';
@@ -2101,7 +2102,7 @@ describe('redo a finished part', () => {
     assert.deepEqual(record.misconceptions, getLearningRecord(done, id).misconceptions, 'lesson mistakes stay as they were');
     const progress = updateLearning(done, id, record);
     const tip = buildParentReport(progress, { xp: 0, day: '2026-10-11', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: true }, Array.from({ length: 14 }, (_, i) => `Unit ${i + 1}`), new Date(2026, 9, 11))
-      .toPractice.find((t) => t.idea === row.hint)!;
+      .toPractice.find((t) => t.key === ideaForMission(MISSIONS[0]).key)!;
     assert.equal(tip.inRedos, 1);
     saveProgress(progress);
     assert.deepEqual(getLearningRecord(loadProgress(), id).redoMisconceptions, { [row.hint]: 1 }, 'kept after reload');
@@ -2376,8 +2377,8 @@ describe('Part Finder saved game result', () => {
 describe('unit challenges', () => {
   const value = (n: number, d: number) => n / d;
   const expected: Record<string, string> = {
-    'u1-p1': '3/8', 'u2-p1': '1/3', 'u3-p1': 'D', 'u4-p1': '3/5', 'u5-p1': 'B', 'u6-p1': '4', 'u7-p1': '1 and 3/4', 'u8-p1': '0.35',
-    'u1-c1': '3', 'u1-c2': '5/8', 'u1-c3': '1/4', 'u1-c4': '8 cars', 'u1-c5': '12',
+    'u1-p1': '3/8', 'u2-p1': `${[0, 2, 3, 5, 7].length}/8`, 'u3-p1': 'D', 'u4-p1': '3/5', 'u5-p1': 'B', 'u6-p1': '4', 'u7-p1': '1 and 3/4', 'u8-p1': '0.35',
+    'u1-c1': `${4}/6`, 'u1-c2': '5/8', 'u1-c3': '1/4', 'u1-c4': `${3}/4`, 'u1-c5': String(6 - 2 - 3),
     'u2-c1': '1/2', 'u2-c2': '3/6', 'u2-c3': 'Mia', 'u2-c4': '2/6, 2/4, 2/3', 'u2-c5': 'Kim',
     'u3-c1': '5/8',
     'u3-c2': ['1/2', '2/3', '3/4', '4/5', '5/6'].sort((a, b) => {
@@ -2392,10 +2393,10 @@ describe('unit challenges', () => {
     'u4-c1': '3/4', 'u4-c2': '6', 'u4-c3': String([5, 6, 6, 7, 7, 8].filter((q) => q / 4 > 1.5).length), 'u4-c4': '2/5', 'u4-c5': '3',
     'u5-c1': '7/8', 'u5-c2': '2/11', 'u5-c3': '7/8', 'u5-c4': 'Cara', 'u5-c5': '2',
     'u6-c1': '3/6', 'u6-c2': '8', 'u6-c3': '5/14', 'u6-c4': '2', 'u6-c5': '20',
-    'u7-c1': '1', 'u7-c2': '2 and 1/4', 'u7-c3': '12', 'u7-c4': '3/8 + 4/8', 'u7-c5': '3',
+    'u7-c1': '1', 'u7-c2': '2 and 1/4', 'u7-c3': '12', 'u7-c4': '3/8 + 4/8', 'u7-c5': String(Math.floor(7 / 3)),
     'u8-c1': `${30 + 25}/100`, 'u8-c2': '0.3', 'u8-c3': '0.5', 'u8-c4': '2/10 meter', 'u8-c5': `${2 + 1 + 1} ${3 + 2 - 4}/4`,
     // Units 9–14: worked out here, not copied from the challenge text.
-    'u9-p1': '2/3', 'u9-c1': ['2/4', '3/6', '4/7', '5/10', '6/12'].find((f) => { const [t, b] = f.split('/').map(Number); return t * 2 !== b; })!,
+    'u9-p1': '2/3', 'u9-c1': `${5 * 1}/6 meter`,
     'u9-c2': String((3 * 20) / 4),
     'u9-c3': ['2/5', '3/7', '4/9', '5/8', '1/3'].find((f) => { const [t, b] = f.split('/').map(Number); return t / b > 0.5 && t / b < 1; })!,
     'u9-c4': ['Ana', 'Ben', 'Cal'][[2 / 3, 3 / 4, 5 / 6].indexOf(Math.max(2 / 3, 3 / 4, 5 / 6))],
@@ -2495,11 +2496,11 @@ describe('long problems', () => {
 
   it('gives each walk-through step four distinct choices and the authored answer', () => {
     const expectedSteps: Record<string, string[]> = {
-      'u1-c3': ['2', '4', '1/4'], 'u1-c5': ['4', '12'],
+      'u1-c3': ['2', '4', '1/4'], 'u1-c5': ['6', '5', '1'],
       'u2-c3': ['1/4', 'Mia'], 'u2-c4': ['Cut in 6', 'Cut in 3'],
       'u2-c5': ['3/6', '3/4', '3/4'], 'u4-c5': ['6/8 meter', '9/8 meters', 'Yes'],
       'u5-c4': ['1/4', '1/6', '1/6'], 'u6-c4': ['1/4', '2'],
-      'u7-c5': ['6/3', '8/3', '3'], 'u8-c4': ['5/10 meter', '2/10 meter'], 'u8-c5': ['3', '5/4', '4 1/4'],
+      'u7-c5': ['3', '2', '2 and 1/3'], 'u8-c4': ['5/10 meter', '2/10 meter'], 'u8-c5': ['3', '5/4', '4 1/4'],
       'u9-c4': ['8/12', '9/12', '10/12'], 'u9-c5': ['7/8', '1/8', '6/8'],
       'u10-c3': ['2 5/4', '1 2/4', '1 1/2'], 'u10-c4': ['More than 1/2', 'More than 1'], 'u10-c5': ['10/12', '4/12 and 3/12', '3/12'],
       'u11-c4': ['6', '10', '14'], 'u11-c5': ['6', '18', '9'],
@@ -2960,7 +2961,10 @@ describe('grown-ups report', () => {
     assert.equal(report.onOwnRate, 33);
     assert.equal(report.units[0].lessons[0].builds, 'With help');
     assert.equal(report.minutesWeek, 17, 'only the last 7 days count'); assert.equal(report.answeredWeek, 11);
-    assert.equal(report.toPractice[0].idea, 'Counting pieces, groups or jumps'); assert.equal(report.toPractice[0].count, 3);
+    // Wrong tries are grouped by the lesson's idea (not by each question's hint): all of this lesson's wrong tries are one line.
+    assert.equal(report.toPractice[0].idea, ideaForMission(MISSIONS[0]).heading);
+    assert.equal(report.toPractice[0].count, Object.values(record.misconceptions).reduce((sum, count) => sum + count, 0));
+    assert.ok(report.toPractice[0].count >= 3);
     assert.deepEqual(report.toPractice[0].lessons, [MISSIONS[0].title]);
     assert.equal(report.nextLesson, `Lesson 2: ${MISSIONS[1].title}`);
   });
