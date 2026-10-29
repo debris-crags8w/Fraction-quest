@@ -51,6 +51,24 @@ test.describe('the published app', () => {
     await page.getByTestId('button-idea-practise').click();
     await expect(page.getByTestId('button-check-answer')).toBeVisible();
   });
+
+  test('opens the saved page when the connection hangs instead of waiting on it', async ({ context, page }) => {
+    await context.addInitScript((fun) => { if (!localStorage.getItem('fraction-quest-fun-v1')) localStorage.setItem('fraction-quest-fun-v1', fun); }, freshFun);
+    await context.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
+    await page.goto(ORIGIN);
+    await page.getByTestId('button-play-guest').click();
+    await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+
+    // The connection is up but the page request never answers (weak "lie-fi"): after 3 seconds the saved page opens.
+    await context.route(`${ORIGIN}/`, () => { /* never answered */ });
+    const started = Date.now();
+    await page.reload();
+    await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible({ timeout: 15_000 });
+    expect(Date.now() - started).toBeGreaterThan(2_500);
+  });
 });
 
 test('a signed-in family opens their own account when the server cannot be reached', async ({ page }) => {
