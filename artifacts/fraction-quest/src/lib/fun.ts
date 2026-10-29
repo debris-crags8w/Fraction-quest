@@ -76,7 +76,7 @@ export const SPARE_OIL_EVERY = 7;
 export const SPARE_OIL_MAX = 2;
 export type IntroKind = 'builder' | 'line';
 export type IntroStage = 'watched' | true;
-export type StoryState = { prologueSeen?: boolean; choices?: Record<string, 0 | 1>; /** Suspect board guesses: board number → suspect id. */ guesses?: Record<string, string> };
+export type StoryState = { prologueSeen?: boolean; /** The finale has played once, by itself, after the last stone piece. */ epilogueSeen?: boolean; choices?: Record<string, 0 | 1>; /** Suspect board guesses: board number → suspect id. */ guesses?: Record<string, string> };
 const SUSPECT_IDS = ['chomp', 'pip', 'tilly', 'bolt', 'bea'];
 export type DayActivity = { minutes: number; answered: number };
 const KEEP_DAYS = 35;
@@ -246,7 +246,7 @@ function cleanStory(value: unknown): StoryState {
   for (const [board, suspect] of Object.entries(raw.guesses ?? {})) {
     if (/^[12]$/.test(board) && typeof suspect === 'string' && SUSPECT_IDS.includes(suspect)) guesses[board] = suspect;
   }
-  return { prologueSeen: raw.prologueSeen === true, choices, ...(Object.keys(guesses).length ? { guesses } : {}) };
+  return { prologueSeen: raw.prologueSeen === true, ...(raw.epilogueSeen === true ? { epilogueSeen: true } : {}), choices, ...(Object.keys(guesses).length ? { guesses } : {}) };
 }
 const cleanLearningVoicePreference = (value: unknown): string | undefined =>
   typeof value === 'string' && value.length > 0 && value.length <= 512 ? value : undefined;
@@ -440,11 +440,11 @@ export function recordIntro(state: FunState, kind: IntroKind, stage: IntroStage 
 }
 
 /** Remember story progress (the prologue, a chapter's choice). It never touches lesson progress. */
-export function recordStory(state: FunState, update: { prologueSeen?: true; unit?: number; choice?: 0 | 1; board?: 1 | 2; suspect?: string }): FunState {
+export function recordStory(state: FunState, update: { prologueSeen?: true; epilogueSeen?: true; unit?: number; choice?: 0 | 1; board?: 1 | 2; suspect?: string }): FunState {
   const story = cleanStory(state.story);
   const choices = update.unit !== undefined && update.choice !== undefined ? { ...story.choices, [String(update.unit)]: update.choice } : story.choices;
   const guesses = update.board !== undefined && update.suspect !== undefined ? { ...story.guesses, [String(update.board)]: update.suspect } : story.guesses;
-  return saveFun({ ...state, story: cleanStory({ prologueSeen: story.prologueSeen || update.prologueSeen === true, choices, guesses }) });
+  return saveFun({ ...state, story: cleanStory({ prologueSeen: story.prologueSeen || update.prologueSeen === true, epilogueSeen: story.epilogueSeen || update.epilogueSeen === true, choices, guesses }) });
 }
 
 /** Count a finished lesson toward this season's costumes (each lesson once). Lesson progress is untouched. */

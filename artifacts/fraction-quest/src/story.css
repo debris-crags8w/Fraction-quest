@@ -165,6 +165,10 @@
 .fq-stone-found strong { color: #FFC800; }
 .fq-stone-found b { color: #FFC800; }
 
+.fq-story-won { display: flex; align-items: center; gap: 8px; margin: 0; color: #fff; font-size: .95rem; font-weight: 700; line-height: 1.35; text-align: left; }
+.fq-story-won b { color: #FFC800; }
+.fq-story-won > svg, .fq-story-won > span:first-child { flex: none; }
+.fq-story-ending-go { justify-self: stretch; margin-top: 2px; }
 .fq-story-cliff { margin: 0; padding: 10px 12px; border: 3px solid #2B2D42; border-radius: 14px; color: #fff; background: #1F2147; font-weight: 700; line-height: 1.4; text-align: left; }
 .fq-story-cliff::before { content: "Next… "; color: #FFC800; }
 

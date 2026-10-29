@@ -16,7 +16,7 @@ import type { BreakPreferences } from './lib/fun';
 import type { DisplayPreferences } from './lib/fun';
 import { timeToday, today, type TimeLimitMinutes } from './lib/fun';
 import FamilyControls from './FamilyControls';
-import { printPage } from './lib/print';
+import { openFoldedSections, printPage } from './lib/print';
 import { DeveloperSettings } from './DeveloperTesting';
 import { SubscriptionSettings } from './Subscribe';
 import { timeLabel, useReminder } from './lib/reminder';
@@ -103,7 +103,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
   }, [printKeyLessonId]);
   // Folded units and grades print open.
   useEffect(() => {
-    const openAll = () => document.querySelectorAll<HTMLDetailsElement>('.fq-parent-report details').forEach((item) => { item.open = true; });
+    const openAll = () => openFoldedSections(document);
     window.addEventListener('beforeprint', openAll);
     return () => window.removeEventListener('beforeprint', openAll);
   }, []);
@@ -190,19 +190,19 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
             <h1>{childName ? `${childName}'s progress` : 'Progress on this device'}</h1>
           </header>
 
-          <ParentGlance glance={report.glance} firstTryRate={report.firstTryRate} childName={childName} />
+          <ParentGlance glance={report.glance} childName={childName} />
           <div className="fq-glance">
             <SkillsCard skills={report.skills} grade={report.grade} childName={childName} picks={picks} onPick={onPick} />
-            <PracticeCard tips={report.toPractice} strengths={report.strengths} childName={childName} picks={picks} onPick={onPick} onShowLesson={showLesson} />
+            <PracticeCard tips={report.toPractice} homeIdea={report.homeIdea} strengths={report.strengths} childName={childName} picks={picks} onPick={onPick} onShowLesson={showLesson} />
             <MonthCard month={report.month} />
-            <ShareCard glance={report.glance} firstTryRate={report.firstTryRate} childName={childName} skills={report.skills} />
+            <ShareCard glance={report.glance} childName={childName} skills={report.skills} />
           </div>
 
           <h2 className="fq-glance-full">Full report</h2>
           <section className="fq-parent-stats" aria-label="Summary">
             <div data-testid="stat-lessons"><strong>{report.lessonsDone}<small>/{report.lessonsTotal}</small></strong><span>Lessons done</span></div>
             <div data-testid="stat-minutes"><strong>{report.minutesWeek}<small> min</small></strong><span>This week</span></div>
-            <div data-testid="stat-first-try"><strong>{percent(report.firstTryRate)}</strong><span>Worksheet answers right the first time</span></div>
+            <div data-testid="stat-first-try"><strong>{percent(report.firstTryRate)}</strong><span>Worksheet answers right the first time, all lessons</span></div>
             <div data-testid="stat-on-own"><strong>{percent(report.onOwnRate)}</strong><span>Builds done without help</span></div>
             <div data-testid="stat-streak"><strong>{report.streak}</strong><span>Day streak{report.savedDays > 0 ? ` (${report.savedDays} ${report.savedDays === 1 ? 'day' : 'days'} saved by spare oil)` : ''}</span></div>
           </section>

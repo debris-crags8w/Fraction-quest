@@ -48,6 +48,9 @@ test('on the website, lesson 2 sends the family to the app, with the store links
   const getApp = page.getByTestId('get-the-app');
   await expect(getApp.getByRole('heading')).toHaveText('Fraction Quest continues in the app');
   await expect(getApp).toContainText('7 days free, then $39.99 a year or $4.99 a month');
+  await expect(getApp).toContainText('for iPhone and Android');
+  await expect(getApp).not.toContainText('iPad');
+  await expect(getApp).toContainText('A progress report any time');
   // No store listing set in the test build yet.
   await expect(page.getByTestId('get-app-soon')).toBeVisible();
   await page.getByTestId('button-get-app-back').click();

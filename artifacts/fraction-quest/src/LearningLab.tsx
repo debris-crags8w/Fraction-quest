@@ -1,6 +1,7 @@
 import { type CSSProperties, Fragment, type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { playHaptic, recordIntro, type IntroKind, type IntroStage } from './lib/fun';
 import { useOptionalFun } from './fun-ui';
+import { storyLessonTitle } from './story';
 import { IntroTry, IntroWatch, NewWords, useLessonHelper } from './model-intro';
 import { newWordsFor } from './new-words';
 import { LearningListenButton, LearningText, spokenLearningText, useReadAloud } from './LearningText';
@@ -613,6 +614,7 @@ export default function LearningLab({ missionId, howItWorks, progress, onChange,
   onWorksheetCorrect?: (missionId: string, problemId: string) => void;
 }) {
   const ref = useRef(progress); ref.current = progress;
+  const storyOn = useOptionalFun()?.fun.displayPreferences?.storyMode !== false;
   const checks = requiredBuildChecks(progress, missionId);
   const sheet = getWorksheet(missionId);
   const [notice, setNotice] = useState('');
@@ -761,7 +763,7 @@ export default function LearningLab({ missionId, howItWorks, progress, onChange,
 
   return (
     <div className="fq-ll" role="main" data-testid="learning-lab">
-      <TaskBar onBack={onBack} backAriaLabel="Back to the map" testId="button-lab-back" title={getMission(missionId).shortTitle}
+      <TaskBar onBack={onBack} backAriaLabel="Back to the map" testId="button-lab-back" title={storyLessonTitle(getMission(missionId).shortTitle, storyOn)}
         actions={<div className="fq-ll-print" role="group" aria-label="Print and help">
           {helper.button}
           <PrintMenu missionId={missionId} />
