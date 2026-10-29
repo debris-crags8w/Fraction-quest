@@ -1371,15 +1371,11 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
       case 'hundredths-decimals': {
         const base = id.startsWith('tenths') ? 10 : 100; const top = id.startsWith('tenths') ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 3, 6, 8][t] : [8, 12, 25, 40, 63, 75, 9, 30, 50, 81, 90, 99][t];
         const dec = (top / base).toFixed(base === 10 ? 1 : 2);
-        // 4.NF.6: one row of every tenths sheet reads a decimal from a number line (a hundredths line would be too crowded).
-        const onLine = base === 10 && i === 5;
-        prompt = onLine ? 'What decimal is at the dot?' : i % 3 === 0 ? `Write ${f(top, base)} as a decimal.` : i % 3 === 1 ? `Write ${dec} as a fraction.` :
+        prompt = i % 3 === 0 ? `Write ${f(top, base)} as a decimal.` : i % 3 === 1 ? `Write ${dec} as a fraction.` :
           `A meter strip has ${base} equal parts. ${top} ${top === 1 ? 'is' : 'are'} colored. Write the colored part as a decimal.`;
         answer = i % 3 === 1 ? f(top, base) : dec; form = i % 3 === 1 ? undefined : 'decimal';
-        hint = onLine ? 'Each space is one tenth. Count the spaces from 0 to the dot.'
-          : base === 10 ? 'One decimal place means tenths.' : 'Two decimal places means hundredths. The tenths digit comes first after the point, then the hundredths digit.';
-        if (onLine) visual = model(top, base, 'line');
-        else if (i % 3 === 2) visual = model(top, base); break;
+        hint = base === 10 ? 'One decimal place means tenths.' : 'Two decimal places means hundredths. The tenths digit comes first after the point, then the hundredths digit.';
+        if (i % 3 === 2) visual = model(top, base); break;
       }
       default: throw new Error(`No authored worksheet for ${id}`);
     }
