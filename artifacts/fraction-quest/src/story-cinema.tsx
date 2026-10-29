@@ -17,9 +17,15 @@ import { playCue } from './lib/fun';
 import { FADE_END_SECONDS, FADE_QUICK_SECONDS, filmMood, MUSIC_SAVED, musicPlays, nextMusicVolume, parseMusicVolume, StoryMusic, type MusicVolume } from './lib/story-music';
 import { sentences, spokenText } from './lib/voice';
 import { speakerVoice } from './lib/cast-voices';
-import { CHAPTERS, CHARACTERS, propTheme, withName, type Panel, type StoryChoice, type StoryScene } from './story';
+import { ChapterEndPicture, hasChapterEndPicture, LessonProp, lessonPropFor, PROP_FRIEND } from './film-props';
+import { CHAPTERS, CHAPTER_SCENES, CHARACTERS, propTheme, withName, type Panel, type StoryChoice, type StoryScene } from './story';
 import { TaskBar } from './TaskBar';
 import './story-cinema.css';
+import './film-props.css';
+import './film-props-a.css';
+import './film-props-b.css';
+import './film-props-c.css';
+import './film-props-d.css';
 
 export { CHAPTER_SCENES, type StoryScene } from './story';
 
@@ -488,15 +494,19 @@ function FestivalArt({ beat }: { beat: number }) {
 /** Finished chapters close on the friend, their recovered piece, and an image of that chapter's story. */
 function ChapterEndArt({ beat, unit = 1, speaker }: { beat: number; unit?: number; speaker?: Panel['speaker'] }) {
   const chapter = CHAPTERS[unit - 1] ?? CHAPTERS[0];
+  // Chapters with their own ending picture (film-props.tsx) draw their backdrop, key prop and stone piece there.
+  const scene = CHAPTER_SCENES[unit];
+  const own = hasChapterEndPicture(unit) && isChapterScene(scene);
   return (
     <>
+      {own ? <ChapterEndPicture unit={unit} beat={beat} speaker={speaker} backdrop={BACKDROPS[scene]()} /> : <>
       <span className="fq-cine-end-horizon" />
       <span className={`fq-cine-end-stone ${beat >= 1 ? 'is-found' : ''}`} role="img" aria-label={`Chapter ${unit} stone piece recovered`} />
       <span className="fq-cine-actor" style={pos(26, 27)}><StoryCharacter id={speaker ?? chapter.character} size={96} happy={beat >= 1} /></span>
       {/* The chapter's friend stays beside their piece, so every ending looks like its own chapter. */}
       {speaker && speaker !== chapter.character && (
         <span className="fq-cine-actor" style={pos(72, 40)} data-testid="story-end-friend"><StoryCharacter id={chapter.character} size={66} happy={beat >= 1} /></span>
-      )}
+      )}</>}
       <span className={`fq-cine-end-ribbon ${beat >= 2 ? 'is-visible' : ''}`}>{beat >= 2 ? `${unit} of 15 pieces` : ''}</span>
       {beat >= 2 && <Confetti />}
     </>
@@ -548,17 +558,19 @@ const isChapterScene = (scene: StoryScene): scene is ChapterScene => scene in BA
 const SET_SPEAKER_TOP = 18;
 const SET_FRIEND_TOP = 28;
 
-function SetArt({ scene, unit = 1, speaker }: { scene: ChapterScene; beat: number; unit?: number; speaker?: Panel['speaker'] }) {
+function SetArt({ scene, beat, unit = 1, speaker, lessonId }: { scene: ChapterScene; beat: number; unit?: number; speaker?: Panel['speaker']; lessonId?: string }) {
   const friend = (CHAPTERS[unit - 1] ?? CHAPTERS[0]).character;
   const Backdrop = BACKDROPS[scene];
+  const prop = lessonPropFor(lessonId); // the lesson's own object (film-props.tsx), if it has one yet
   return (
     <>
       <Backdrop />
+      {prop && <LessonProp prop={prop} scene={scene} beat={beat} />}
       <span key={speaker ?? friend} className="fq-cine-actor fq-cine-set-speaker" style={pos(10, SET_SPEAKER_TOP)} data-testid="story-set-speaker">
         <StoryCharacter id={speaker ?? friend} size={96} happy />
       </span>
       {speaker && speaker !== friend && (
-        <span className="fq-cine-actor" style={pos(66, SET_FRIEND_TOP)} data-testid="story-set-friend"><StoryCharacter id={friend} size={66} /></span>
+        <span className="fq-cine-actor" style={prop ? PROP_FRIEND.style : pos(66, SET_FRIEND_TOP)} data-testid="story-set-friend"><StoryCharacter id={friend} size={prop ? PROP_FRIEND.size : 66} /></span>
       )}
     </>
   );
@@ -583,10 +595,12 @@ export const filmedLines = (panels: Panel[], theme: ReturnType<typeof propTheme>
 export const filmedVoices = (panels: Panel[], theme: ReturnType<typeof propTheme>) =>
   filmedLines(panels, theme).flatMap((line, index) => sentences(spokenText(line)).map(() => speakerVoice(panels[index]!.speaker)));
 
-export function CinematicComic({ scene, title, kicker, panels, name, choice, picked: saved, choiceNotes, note, goLabel, onGo, onBack, unit, setOnly = false }: {
+export function CinematicComic({ scene, title, kicker, panels, name, choice, picked: saved, choiceNotes, note, goLabel, onGo, onBack, unit, setOnly = false, lessonId }: {
   scene: StoryScene; title: string; kicker: string; panels: Panel[]; name: string | null; unit?: number;
   /** A later lesson: the chapter's place and the speakers, without the opening film's story props. */
   setOnly?: boolean;
+  /** The lesson (for a later-lesson film): its own picture comes from film-props.tsx. */
+  lessonId?: string;
   choice?: [StoryChoice, StoryChoice]; picked?: 0 | 1; choiceNotes?: [string, string]; note?: string; goLabel: string;
   onGo: (choice?: 0 | 1) => void; onBack: () => void;
 }) {
@@ -596,8 +610,8 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const lessonSet = setOnly && isChapterScene(scene) ? scene : null;
   const filming = lessonSet ? setFilming(panels.length) : FILMING[scene];
   const Art = useMemo(() => (lessonSet
-    ? (props: { beat: number; unit?: number; speaker?: Panel['speaker'] }) => <SetArt scene={lessonSet} {...props} />
-    : ART[scene]), [lessonSet, scene]);
+    ? (props: { beat: number; unit?: number; speaker?: Panel['speaker'] }) => <SetArt scene={lessonSet} lessonId={lessonId} {...props} />
+    : ART[scene]), [lessonSet, scene, lessonId]);
   const [voiceOn, setVoiceOn] = useState(() => savedFilmVoice() ?? fun.sound !== false);
   // Story music: a grown-up allows it (on unless turned off, and only with sounds on); the film's button makes it softer or turns it off.
   const musicAllowed = fun.sound !== false && fun.displayPreferences?.storyMusic !== false;

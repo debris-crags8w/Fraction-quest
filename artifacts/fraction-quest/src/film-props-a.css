@@ -1,0 +1,80 @@
+/* Batch A props (chapters 1 to 6): every moving part is under .fq-fp (see film-props.css for the rules). The resting style of
+   each moving part is its finished, visible position; the animation only travels from elsewhere to it, and runs a finite number of times. */
+
+.fq-fp [class*='fq-fp-a-'] { transform-box: fill-box; }
+
+/* Cookies, crate treats: they pop up one after another on the beat. */
+.fq-fp-a-pop { transform-origin: 50% 100%; }
+.fq-fp.is-on .fq-fp-a-pop { animation: fq-fp-a-pop .6s cubic-bezier(.3, 1.5, .5, 1) both; animation-delay: calc(var(--i) * .15s); }
+@keyframes fq-fp-a-pop { from { transform: translateY(14px) scale(.7); } }
+
+/* Cherries plop onto their cake. */
+.fq-fp.is-on .fq-fp-a-cherry { animation: fq-fp-a-plop .8s cubic-bezier(.3, 1.4, .5, 1) both; }
+@keyframes fq-fp-a-plop { from { transform: translateY(-26px); } 60% { transform: translateY(2px); } }
+
+/* Piping bag: it swoops in over the sponge and rests there. */
+.fq-fp.is-on .fq-fp-a-bag { animation: fq-fp-a-bag 1.2s cubic-bezier(.3, .9, .4, 1) both; }
+@keyframes fq-fp-a-bag { from { transform: translate(34px, -12px); } }
+
+/* Two cakes: each hops once, one after the other. */
+.fq-fp-a-hop { transform-origin: 50% 100%; }
+.fq-fp.is-on .fq-fp-a-hop { animation: fq-fp-a-hop .5s ease-out 2 both; animation-delay: calc(var(--i) * .4s); }
+@keyframes fq-fp-a-hop { 50% { transform: translateY(-9px); } }
+
+/* Snack bar lifts out of the bowl as the piece is found. */
+.fq-fp-a-lift { transform-origin: 50% 100%; }
+.fq-fp.is-found .fq-fp-a-lift { animation: fq-fp-a-lift .9s .2s ease-out both; }
+@keyframes fq-fp-a-lift { from { transform: rotate(-14deg) translateY(10px); } }
+
+/* Walking stick swings in to lean on its spot. */
+.fq-fp-a-stick { transform-origin: 50% 100%; }
+.fq-fp.is-on .fq-fp-a-stick { animation: fq-fp-a-lean 1s cubic-bezier(.3, 1.3, .5, 1) both; }
+@keyframes fq-fp-a-lean { from { transform: rotate(-22deg); } }
+
+/* Apple bounces on the plank and settles. */
+.fq-fp-a-apple { transform-origin: 50% 100%; }
+.fq-fp.is-on .fq-fp-a-apple { animation: fq-fp-a-bounce 1.3s ease-in both; }
+@keyframes fq-fp-a-bounce { 0% { transform: translateY(-46px); } 35% { transform: none; } 55% { transform: translateY(-14px); } 75% { transform: none; } 88% { transform: translateY(-4px); } 100% { transform: none; } }
+
+/* House: smoke puffs rise and the windows glow a few times. */
+.fq-fp-a-puff { animation: fq-fp-a-puff 2.2s ease-out 3 both; animation-delay: calc(var(--i) * .35s); }
+@keyframes fq-fp-a-puff { from { transform: translateY(10px) scale(.6); } }
+.fq-fp-a-glow { animation: fq-fp-a-glow 1.1s ease-in-out 3 alternate; }
+@keyframes fq-fp-a-glow { from { fill: #FFC800; } }
+
+/* Reed slides in from the right to rest over the broken plank. */
+.fq-fp.is-on .fq-fp-a-reed { animation: fq-fp-a-reed 1.3s cubic-bezier(.3, .9, .4, 1) both; }
+@keyframes fq-fp-a-reed { from { transform: translate(52px, -22px) rotate(8deg); } }
+
+/* Pebbles: the last one rolls out of the pouch; the twinkles pulse a few times. */
+.fq-fp.is-on .fq-fp-a-roll { animation: fq-fp-a-roll 1.2s cubic-bezier(.3, 1.2, .5, 1) both; }
+@keyframes fq-fp-a-roll { from { transform: translate(-64px, -6px) rotate(-200deg); } }
+.fq-fp-a-spark { transform-origin: 50% 50%; animation: fq-fp-a-spark 1.2s ease-in-out 3; animation-delay: calc(var(--i) * .3s); }
+@keyframes fq-fp-a-spark { 50% { transform: scale(1.35) rotate(20deg); } }
+
+/* Bridge ending: the loose plank swings on its rope, then hangs still. */
+.fq-fp-a-swing { transform-origin: 50% 0; animation: fq-fp-a-swing 1.1s ease-in-out 4 alternate; }
+@keyframes fq-fp-a-swing { from { transform: rotate(14deg); } to { transform: rotate(-14deg); } }
+
+/* Tower ending: the tower wobbles once on the beat and settles. */
+.fq-fp-a-settle { transform-origin: 50% 100%; }
+.fq-fp.is-on .fq-fp-a-settle { animation: fq-fp-a-settle 1.2s ease-out both; }
+@keyframes fq-fp-a-settle { 0% { transform: rotate(-3deg); } 40% { transform: rotate(2deg); } 70% { transform: rotate(-1deg); } }
+
+/* Honey drips stretch down. */
+.fq-fp-a-drip { transform-origin: 50% 0; }
+.fq-fp.is-on .fq-fp-a-drip { animation: fq-fp-a-drip 1.4s ease-in both; }
+@keyframes fq-fp-a-drip { from { transform: scaleY(.3); } }
+
+/* Beehive tag swings on its string and hangs still. */
+.fq-fp-a-tag { transform-origin: 50% 0; }
+.fq-fp.is-on .fq-fp-a-tag { animation: fq-fp-a-tag 1.4s ease-out both; }
+@keyframes fq-fp-a-tag { 0% { transform: rotate(26deg); } 30% { transform: rotate(-16deg); } 60% { transform: rotate(8deg); } 80% { transform: rotate(-3deg); } }
+
+/* Torn scrap flutters down beside the label. */
+.fq-fp.is-on .fq-fp-a-scrap { animation: fq-fp-a-scrap 1.5s cubic-bezier(.3, .8, .4, 1) both; }
+@keyframes fq-fp-a-scrap { from { transform: translate(24px, -52px) rotate(70deg); } 40% { transform: translate(-6px, -22px) rotate(-18deg); } 70% { transform: translate(5px, -6px) rotate(12deg); } }
+
+
+/* Chapter 2, compare-same-numerator: this film's caption is long (it grows tall), so its prop sits a little higher and smaller. */
+.fq-fp.is-a-twocakes { top: 16%; left: 42%; width: 40%; }

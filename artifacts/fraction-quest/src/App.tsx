@@ -2067,7 +2067,7 @@ function Game() {
         const saved = fun.story?.choices?.[String(chapter.unit)];
         return <StoryComicView key={`${mission.id}-${view.replay ? 'replay' : 'new'}`} title={`Chapter ${chapter.unit} · ${chapter.title}`} kicker={`Lesson ${index + 1} of ${unitMissions.length} · ${storyLessonTitle(mission.title, true)}`}
           panels={lessonComic(chapter, mission, index)} name={name} choice={index === 0 ? chapter.choice : undefined} picked={view.replay ? saved : undefined}
-          scene={CHAPTER_SCENES[chapter.unit]} setOnly={index > 0} unit={chapter.unit}
+          scene={CHAPTER_SCENES[chapter.unit]} setOnly={index > 0} lessonId={mission.id} unit={chapter.unit}
           choiceNotes={index === 0 ? choiceNotes(chapter) : undefined}
           note={index === 0 ? detectiveNote(chapter.unit, fun.story?.guesses ?? {}) : undefined}
           goLabel={view.replay === 'storybook' ? 'Back to the Storybook' : view.replay ? 'Back to map' : index === 0 ? 'Let’s go!' : 'Let’s help!'}

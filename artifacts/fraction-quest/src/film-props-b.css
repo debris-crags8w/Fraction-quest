@@ -1,0 +1,74 @@
+/* Batch B props (chapters 7 and 8): every moving part is under .fq-fp (see film-props.css for the rules).
+   The resting style of each moving part is its finished position; the animation only travels from elsewhere to it. */
+
+/* Bracket: the small block drops into its slot. */
+.fq-fp.is-on .fq-fp-b-drop { animation: fq-fp-b-drop 1s cubic-bezier(.3, 1.3, .5, 1) both; }
+@keyframes fq-fp-b-drop { from { transform: translateY(-34px); } }
+
+/* Spool: the loose end of the wire unspools along the bench. */
+.fq-fp-b-wire { stroke-dasharray: 100; stroke-dashoffset: 0; }
+.fq-fp.is-on .fq-fp-b-wire { animation: fq-fp-b-unspool 1.3s ease-out both; }
+@keyframes fq-fp-b-unspool { from { stroke-dashoffset: 100; } }
+
+/* Rods: one more rod slides down into the bucket. */
+.fq-fp.is-on .fq-fp-b-rod { animation: fq-fp-b-rod 1s cubic-bezier(.3, 1.2, .5, 1) both; }
+@keyframes fq-fp-b-rod { from { transform: translateY(-30px); } }
+
+/* Label maker: the blank label slides out from behind the machine. */
+.fq-fp.is-on .fq-fp-b-label { animation: fq-fp-b-label 1.1s cubic-bezier(.3, .9, .4, 1) both; }
+@keyframes fq-fp-b-label { from { transform: translateX(-60px); } }
+
+/* Box ending: the lid swings up and the gears turn into place when the stone piece is found. */
+.fq-fp-b-lid { transform-box: fill-box; transform-origin: 50% 100%; }
+.fq-fp.is-found .fq-fp-b-lid { animation: fq-fp-b-lid 1s cubic-bezier(.3, 1.3, .5, 1) both; }
+@keyframes fq-fp-b-lid { from { transform: scaleY(.15); } }
+.fq-fp-b-gear { transform-box: fill-box; transform-origin: 50% 50%; }
+.fq-fp.is-found .fq-fp-b-gear { animation: fq-fp-b-turn 1.4s ease-out both; }
+@keyframes fq-fp-b-turn { from { transform: rotate(-50deg); } }
+
+/* Wagon: it rolls in from the right. */
+.fq-fp.is-on .fq-fp-b-wagon { animation: fq-fp-b-roll-in 1.3s cubic-bezier(.3, .9, .4, 1) both; }
+@keyframes fq-fp-b-roll-in { from { transform: translateX(64px); } }
+
+/* Donut: the crumbs tumble down onto the plate. */
+.fq-fp.is-on .fq-fp-b-crumb { animation: fq-fp-b-crumb 1s cubic-bezier(.4, 1.4, .5, 1) both; }
+@keyframes fq-fp-b-crumb { from { transform: translate(-14px, -34px); } }
+
+/* Boot: the charger's bolt pulses a few times and the sparks twinkle. */
+.fq-fp-b-zap { transform-box: fill-box; transform-origin: 50% 50%; }
+.fq-fp.is-on .fq-fp-b-zap { animation: fq-fp-b-zap .5s ease-in-out 3 alternate; }
+@keyframes fq-fp-b-zap { from { transform: scale(.78); } }
+.fq-fp.is-on .fq-fp-b-spark { animation: fq-fp-b-spark .45s ease-in-out 4 alternate; }
+@keyframes fq-fp-b-spark { from { opacity: .25; } }
+
+/* Dial: the needle swings up to its place. */
+.fq-fp-b-needle { transform-box: fill-box; transform-origin: 50% 100%; transform: rotate(28deg); }
+.fq-fp.is-on .fq-fp-b-needle { animation: fq-fp-b-swing 1.4s cubic-bezier(.3, 1.4, .5, 1) both; }
+@keyframes fq-fp-b-swing { from { transform: rotate(-62deg); } }
+
+/* Screen: the eyes blink twice. */
+.fq-fp-b-eye { transform-box: fill-box; transform-origin: 50% 50%; }
+.fq-fp.is-on .fq-fp-b-eye { animation: fq-fp-b-blink .6s ease-in-out 2; }
+@keyframes fq-fp-b-blink { 0%, 100% { transform: scaleY(1); } 45% { transform: scaleY(.1); } }
+
+/* Batteries: the last battery rolls onto the pile. */
+.fq-fp.is-on .fq-fp-b-roll { animation: fq-fp-b-batt 1.1s cubic-bezier(.3, 1.2, .5, 1) both; }
+@keyframes fq-fp-b-batt { from { transform: translate(40px, -36px) rotate(40deg); } }
+
+/* Strap: the second piece slides up to the buckle. */
+.fq-fp.is-on .fq-fp-b-strap { animation: fq-fp-b-join 1.1s cubic-bezier(.3, .9, .4, 1) both; }
+@keyframes fq-fp-b-join { from { transform: translateX(38px); } }
+
+/* Coins: one more coin drops onto the pile. */
+.fq-fp.is-on .fq-fp-b-coin { animation: fq-fp-b-drop-coin 1s cubic-bezier(.4, 1.4, .5, 1) both; }
+@keyframes fq-fp-b-drop-coin { from { transform: translate(-6px, -44px); } }
+
+/* Pie: the served slice slides across to its plate, and steam curls a few times. */
+.fq-fp.is-on .fq-fp-b-slice { animation: fq-fp-b-serve 1.1s cubic-bezier(.3, 1.1, .5, 1) both; }
+@keyframes fq-fp-b-serve { from { transform: translate(-60px, -10px); } }
+.fq-fp-b-steam { animation: fq-fp-b-steam 2.2s ease-in-out 3; }
+@keyframes fq-fp-b-steam { 0%, 100% { opacity: .15; transform: translateY(3px); } 50% { opacity: .7; transform: translateY(-4px); } }
+
+/* Tray: one more sandwich is set on top. */
+.fq-fp.is-on .fq-fp-b-top { animation: fq-fp-b-set .9s cubic-bezier(.3, 1.4, .5, 1) both; }
+@keyframes fq-fp-b-set { from { transform: translateY(-30px); } }
