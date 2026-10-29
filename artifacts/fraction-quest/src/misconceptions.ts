@@ -37,7 +37,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   if ((m = /(\d+) \w+ (?:are|is) (\d+)\/(\d+) of|is (\d+) meters long\. It is (\d+)\/(\d+) of|read (\d+) pages\. That is (\d+)\/(\d+) of/.exec(p))) {
     const v = m.slice(1).filter(Boolean).map(N); const [part, a, b] = v;
     const right = (part / a) * b;
-    return [right, [['knownPart', part], a > 1 ? ['onePartFirst', part * b] : ['addedNotTimes', part + b], a > 1 ? ['oneGroup', part / a] : ['onePartFirst', part * (b - 1)], ['wholePlusPart', part + right]]];
+    return [right, [['knownPart', part], a > 1 ? ['onePartFirst', part * b] : ['addedNotTimes', part + b], a > 1 ? ['onePartOnly', part / a] : ['onePartFirst', part * (b - 1)], ['wholePlusPart', part + right]]];
   }
   // Part of the rest: "Ana has 24 stickers. She gives 1/4 of them … Then … 1/3 of the rest …"
   if ((m = /has (\d+) \w+\. (?:She|He) gives (?:away )?(\d+)\/(\d+) of them[^.]*\. Then (?:she|he) gives (?:away )?(\d+)\/(\d+) of the rest/.exec(p))) {
@@ -50,7 +50,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
     const [a, b, n] = [N(m[1]), N(m[2]), N(m[3])];
     if (n % b === 0) {
       const right = (n / b) * a;
-      return [right, [['oneGroup', a > 1 ? n / b : NaN], ['leftPart', n - right], ['whole', n], ['timesWhole', n * a], ['justNumber', b]]];
+      return [right, [['oneGroup', a > 1 ? n / b : NaN], ['leftPart', n - right], ['whole', n], ['timesWhole', n * a], ['splitDenominator', b]]];
     }
   }
   // A fraction of a group or a length: "What is 2/3 of 9 pencils?", "40 snacks … What is 2/10 of the snacks?",
@@ -64,7 +64,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
       // One group, the rest, the whole, multiplied, the denominator taken away or added, one group taken away, or the
       // denominator itself.
       return [right, [['oneGroup', a > 1 ? n / b : NaN], ['leftPart', n - right], ['whole', n], ['timesWhole', a > 1 ? n * a : n * b],
-        ['splitDenominator', n - b], ['splitDenominator', n + b], ['oneGroupTaken', n - n / b], ['justNumber', b]]];
+        ['splitDenominator', n - b], ['splitDenominator', n + b], ['oneGroupTaken', n - n / b], ['splitDenominator', b]]];
     }
   }
   // Scoops: "How many 1/3 cup scoops fill 2 cups?", "How many 1/8 cup scoops fill 3/4 cup?"
