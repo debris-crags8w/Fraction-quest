@@ -559,6 +559,43 @@ const PICTURE_RULES: Rule[] = [
       return ruler && ruler.kind === 'ruler' ? { value: ruler.end / ruler.denominator } : 'no ruler'; } },
 ];
 
+// ---------------------------------------------------------------------------------------------- picture agreement
+
+/* The text rules above read a question from its words. For the adding, subtracting and comparing rules the picture is
+   read too: a picture of bars may draw only amounts the question names (or its answer or a choice), it must draw the
+   amounts that are compared (a benchmark may be a marked line instead), and it must draw at least one amount that is
+   added or taken away. A picture left over
+   from another question, or drawn for the wrong numbers, fails. */
+const PICTURE_AMOUNTS: Record<string, { amounts: (m: RegExpExecArray) => number[]; all: boolean }> = {
+  'add/subtract': { amounts: (m) => [frac(m[1]), frac(m[3])], all: false },
+  'mixed add/subtract': { amounts: (m) => [N(m[1]) + frac(m[2]), N(m[4] ?? 0) + frac(m[5])], all: false },
+  'which is bigger/smaller': { amounts: (m) => [frac(m[2]), frac(m[3])], all: true },
+  'which is biggest/longest of three': { amounts: (m) => [m[2], m[3], m[4]].map(frac), all: true },
+  'gap sign': { amounts: (m) => [valueOf(m[1]), valueOf(m[2])], all: true },
+  'order': { amounts: (m) => m[1].split(/,? and |, /).map(valueOf), all: true },
+};
+/** The length of every bar a question's pictures draw. */
+export const drawnBars = (pictures: ProofPicture[] = []): number[] => pictures.flatMap((p) =>
+  p.kind === 'bars' ? p.bars.map((b) => ('n' in b ? b.n / b.d : b.numerator / b.denominator)) : p.kind === 'bar' && 'n' in p ? [p.n / p.d] : []);
+
+/** Why the picture does not match the question's own numbers, or null when it does (or draws no bars). */
+function pictureProblem(rule: string, m: RegExpExecArray, item: ProofItem): string | null {
+  const spec = PICTURE_AMOUNTS[rule];
+  const drawn = drawnBars(item.pictures);
+  if (!spec || !drawn.length) return null;
+  const amounts = spec.amounts(m);
+  if (amounts.some((a) => !Number.isFinite(a))) return null;
+  const known = [...amounts, ...[item.answer, ...(item.choices ?? [])].map((text) => (text === undefined ? NaN : valueOf(text)))];
+  const foreign = drawn.find((v) => !known.some((a) => near(a, v)));
+  if (foreign !== undefined) return `the picture draws a bar of ${foreign}, which the question never names`;
+  // A benchmark (0, 1/2 or 1) may be the line the bars are read against instead of a bar of its own.
+  // (A worksheet row, which has no choices, may draw only the first compared amount: compare-decimals rows do.)
+  const every = spec.all && item.choices !== undefined;
+  const needed = every ? amounts.filter((a) => ![0, 0.5, 1].some((mark) => near(a, mark))) : [];
+  const missing = every ? needed.find((a) => !drawn.some((v) => near(v, a))) : amounts.some((a) => drawn.some((v) => near(v, a))) ? undefined : amounts[0];
+  return missing === undefined ? null : `the picture does not draw ${missing}, an amount the question ${every ? 'compares' : 'works with'}`;
+}
+
 // ---------------------------------------------------------------------------------------------- checking
 
 const STRIP = [/^Quick review · [^:]+: /, / Build the answer two ways\.$/, / Answer yes or no\.$/];
@@ -635,7 +672,9 @@ export function prove(item: ProofItem): ProofResult {
     if (expect === SKIP) continue;
     if (typeof expect === 'string') return { ok: false, rule: rule.name, why: expect };
     if ('value' in expect && !Number.isFinite(expect.value)) return { ok: false, rule: rule.name, why: 'the question has no finite answer' };
-    return check(expect, item, rule.name);
+    const checked = check(expect, item, rule.name);
+    const picture = checked?.ok ? pictureProblem(rule.name, m, item) : null;
+    return picture ? { ok: false, rule: rule.name, why: picture } : checked;
   }
   const key = PROOF_KEY[prompt];
   if (key !== undefined) {
@@ -649,7 +688,9 @@ export function prove(item: ProofItem): ProofResult {
 
 /* Explanations, hints and feedback state sums as they go ("3/4 = 9/12", "8 − 1 − 2 = 5", "3 × 2/3 = 6/3 = 2").
    Every one is worked out again: each side of each "=" must be the same amount. Words ("3 fourths") are left alone. */
-const CLAIM = new RegExp(String.raw`(?<![\d/]|\d\.)(?:${TERM})(?: [+−×÷] (?:${TERM}))*(?: = (?:${TERM})(?: [+−×÷] (?:${TERM}))*)+(?![\d/]|\.\d)`, 'g');
+const CLAIM = new RegExp(String.raw`(?<![\d/]|\d\.)(?:${TERM})(?: [+−×÷] (?:${TERM}))*(?: = (?:${TERM})(?: [+−×÷] (?:${TERM}))*)+(?![\d/]|\.\d| [+−×÷] \?)`, 'g');
+/** A sum a story character gets wrong on purpose ("Sam wrote 1/4 + 2/4 = 3/8."): the lesson is that it is not true. */
+const SAID_BY = /\b(?:wrote|writes|says|said|thinks|thought)\s+$/;
 
 /** Every written sum in a text ("3/4 = 9/12"), as written. */
 export const writtenClaims = (text: string): string[] => [...text.matchAll(CLAIM)].map((m) => m[0]);
@@ -664,6 +705,7 @@ export function falseClaims(text: string): string[] {
   const wrong: string[] = [];
   for (const m of text.matchAll(CLAIM)) {
     const claim = m[0];
+    if (SAID_BY.test(text.slice(0, m.index ?? 0))) continue;
     const sides = claim.split(' = ').map(evaluate);
     // "0.7 = 70 hundredths" names parts on the last side only; "1 + 2 = 3 fourths" counts the same parts all through.
     if (/[./%]/.test(claim.split(' = ')[0])) sides[sides.length - 1] /= partsAfter(text, (m.index ?? 0) + claim.length);

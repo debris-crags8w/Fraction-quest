@@ -4023,8 +4023,8 @@ describe('fourth answer choice', () => {
   it('adds a believable wrong answer that is never a second right one', () => {
     assert.equal(fourthChoice('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 1), null, 'sign questions are made by withSignComparisons');
     const signs = withSignComparisons('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 1);
-    assert.deepEqual(signs, { choices: ['6/9 > 7/9', '6/9 < 7/9', '6/9 = 7/9', '7/9 < 6/9'], correctChoice: 1 });
-    assert.deepEqual(withSignComparisons('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 0, 1), { choices: ['6/9 > 7/9', '7/9 > 6/9', '6/9 < 7/9', '6/9 = 7/9'], correctChoice: 0 });
+    assert.deepEqual(signs, { choices: ['6/9 > 7/9', '6/9 < 7/9', '6/9 = 7/9', "You can't tell"], correctChoice: 1 });
+    assert.deepEqual(withSignComparisons('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 0, 1), { choices: ['6/9 > 7/9', "You can't tell", '6/9 < 7/9', '6/9 = 7/9'], correctChoice: 0 });
     // Yes-or-no answers list "No, …" first, then "Yes, …"; the right answer moves with its choice.
     const yn = noBeforeYes({ choices: ['Yes, same-size parts', 'No, some parts are bigger', 'Yes, it is cut into pieces', 'No, the shapes are different'], correctChoice: 0 });
     assert.deepEqual(yn.choices, ['No, some parts are bigger', 'No, the shapes are different', 'Yes, same-size parts', 'Yes, it is cut into pieces']);
@@ -4286,14 +4286,15 @@ describe('daily practice support levels', () => {
   });
 });
 
-/** Sign questions list four full comparisons ("6/9 < 7/9"): no other choice may mean the same as the right one. */
+/** Sign questions list three full comparisons ("6/9 < 7/9") and a fourth choice ("You can't tell", or a hand-written
+    wrong comparison): no two choices may mean the same, so a child can never drop a pair, and the right one is the only true one. */
 function assertSignChoicesAgree(q: { choices: string[]; correctChoice: number }, where: string) {
   const parts = q.choices.map((choice) => /^(.+) ([<=>]) (.+)$/.exec(choice));
-  if (!parts.some(Boolean)) return;
-  assert.ok(parts.every(Boolean), `${where}: sign choices must all be comparisons | ${q.choices.join(' / ')}`);
+  if (parts.filter(Boolean).length < 3) return;
+  q.choices.forEach((choice, i) => assert.ok(parts[i] || choice === "You can't tell", `${where}: a sign question's only other choice is "You can't tell" | ${q.choices.join(' / ')}`));
   const meaning = (m: RegExpExecArray) => m[2] === '<' ? `${m[1]}<${m[3]}` : m[2] === '>' ? `${m[3]}<${m[1]}` : [m[1], m[3]].sort().join('=');
-  const keys = parts.map((m) => meaning(m!));
-  keys.forEach((key, i) => { if (i !== q.correctChoice) assert.notEqual(key, keys[q.correctChoice], `${where}: "${q.choices[i]}" means the same as the right answer`); });
+  const keys = q.choices.map((choice, i) => (parts[i] ? meaning(parts[i]!) : choice));
+  assert.equal(new Set(keys).size, keys.length, `${where}: two choices mean the same | ${q.choices.join(' / ')}`);
 }
 
 describe('generated practice has exactly one right choice', () => {
@@ -4366,6 +4367,15 @@ describe('garden questions show the garden', () => {
 });
 const valueOf = (s: { whole: number; numerator: number; denominator: number }) => s.whole + s.numerator / s.denominator;
 
+/** The seeds the real-mistake guards read: 0 to 25 (they used to read 0 to 2, so a wrong choice that only some seeds make went unseen). */
+const GUARD_SEEDS = Array.from({ length: 26 }, (_, seed) => seed);
+/** A lesson's practice questions for every guard seed, made once and shared by the guards below. */
+const guardCache = new Map<string, ReturnType<typeof generateQuestions>>();
+const guardPractice = (lesson: (typeof MISSIONS)[number]) => {
+  if (!guardCache.has(lesson.id)) guardCache.set(lesson.id, hasGenerator(lesson.id) ? GUARD_SEEDS.flatMap((seed) => generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12)) : []);
+  return guardCache.get(lesson.id)!;
+};
+
 describe('Extra practice in the new lessons offers real mistakes, not near-miss numbers', () => {
   const N = Number;
   /** The mistakes a child really makes on each kind of question, worked out here from the question's numbers. */
@@ -4389,7 +4399,7 @@ describe('Extra practice in the new lessons offers real mistakes, not near-miss 
     it(`${id}: every wrong number is a real mistake`, () => {
       const lesson = MISSIONS.find((mission) => mission.id === id)!;
       let checked = 0;
-      for (let seed = 0; seed < 6; seed++) {
+      for (const seed of GUARD_SEEDS) {
         for (const question of generateQuestions(id, lesson.questions.map(({ id }) => id), seed, 12)) {
           const mistakes = realMistakes(question.prompt);
           if (!mistakes) continue;
@@ -4457,7 +4467,7 @@ describe('adding and subtracting questions offer real mistakes, not near-miss nu
     const questions = MISSIONS.flatMap((lesson) => [
       ...lesson.questions,
       ...(lesson.ideaQuestions ?? []),
-      ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
+      ...guardPractice(lesson),
     ]);
     for (const question of questions) {
       const found = mistakes(question.prompt);
@@ -4536,7 +4546,7 @@ describe('multiplying and dividing questions offer real mistakes, not near-miss 
     const questions = MISSIONS.flatMap((lesson) => [
       ...lesson.questions,
       ...(lesson.ideaQuestions ?? []),
-      ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
+      ...guardPractice(lesson),
     ]);
     for (const question of questions) {
       const found = mistakes(question.prompt);
@@ -4606,7 +4616,7 @@ describe('equivalence, decimal, percent and picture questions offer real mistake
     const questions = MISSIONS.flatMap((lesson) => [
       ...lesson.questions,
       ...(lesson.ideaQuestions ?? []),
-      ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
+      ...guardPractice(lesson),
     ]);
     for (const question of questions) {
       const answer = question.choices[question.correctChoice];
@@ -4759,7 +4769,7 @@ describe('the rarer question types offer real mistakes too', () => {
     const questions = MISSIONS.flatMap((lesson) => [
       ...lesson.questions,
       ...(lesson.ideaQuestions ?? []),
-      ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
+      ...guardPractice(lesson),
     ]);
     for (const question of questions) {
       const answer = question.choices[question.correctChoice];

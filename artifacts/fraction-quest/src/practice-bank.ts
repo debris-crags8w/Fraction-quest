@@ -118,7 +118,8 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     const total = sizes.reduce((a, b) => a + b, 0);
     const yes = `Yes, ${d} equal parts`; const unequal = 'No, the parts are unequal'; const tooMany = `No, there are ${wrongCount} parts`;
     return { prompt: `Is this strip cut into equal ${name(d)}?`, right: [yes, unequal, tooMany][kind], wrong: [yes, unequal, tooMany].filter((_, i) => i !== kind) as [string, string],
-      extra: `No, there are ${r.pick(TAUGHT_PARTS.filter((x) => x !== d && x !== wrongCount))} parts`,
+      // The fourth choice is a Yes that is wrong (or a No that is wrong for the other kinds), so the right choice is never the lone Yes.
+      extra: [`Yes, ${r.pick(TAUGHT_PARTS.filter((x) => x !== d && x !== wrongCount))} equal parts`, `Yes, there are ${d} parts`, 'Yes, all the same size'][kind],
       hint: `Equal ${name(d)}: exactly ${d} parts, all the same size. Count them, then compare them.`,
       retry: kind === 0 ? `There are ${d} parts and they are all the same size, so they are equal ${name(d)}.` : kind === 1 ? 'One part is bigger than the others, so the parts are not equal.' : `Count again: there are ${wrongCount} parts, not ${d}.`,
       model: { kind: 'partition', parts: sizes.map((size) => (size / total) * 100) }, simpler: { kind: 'partition', parts: Array.from({ length: d }, () => 100 / d) } };
@@ -254,7 +255,8 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
     return { prompt: `Fill the blank: ${f(n, d)} = ?/${d * k}`, right: String(n * k), wrong: [String(n + k), String(n * k + 1)], hint: `What times ${d} makes ${d * k}?`, retry: `The denominator was multiplied by ${k}. So the numerator is ${n} × ${k} = ${n * k}.`, model: bar(n, d) };
   },
   'compose-to-one': (r) => {
-    const d = r.pick(DENS); const n = r.int(1, d - 1);
+    // Never half and half: then the missing part is the fraction already written, the one fraction in the prompt.
+    const d = r.pick(DENS); const n = r.pick(Array.from({ length: d - 1 }, (_, i) => i + 1).filter((x) => 2 * x !== d));
     return { prompt: `Fill the blank: ${f(n, d)} + ? = 1`, right: f(d - n, d), wrong: [f(n, d), f(d - n, d * 2)], hint: `One whole is ${f(d, d)}.`, retry: `${d} take away ${n} is ${d - n}. So ${f(d - n, d)}.`, model: bar(n, d) };
   },
   'decompose-fractions': (r) => {
@@ -399,7 +401,11 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       `Add the parts: ${a} + ${b}. ${d} parts make a new whole.`, `${a} + ${b} = ${a + b} parts. So ${mixedName(w * d + a + b, d)}.`, bar(w * d + a, d));
   },
   'subtract-mixed-numbers': (r) => {
-    const d = r.pick([3, 4, 5, 6, 8]); const w = r.int(2, 4); const b = r.int(2, d - 1); const a = r.int(1, b - 1);
+    // Not a difference whose fraction is the very one being taken away (3 1/5 − 1 3/5 = 1 3/5, or 2 4/6 − 1 5/6 = 5/6):
+    // it would already be written in the prompt. That happens when d + a = 2b, which is the only choice for thirds, so
+    // the practice uses fourths, fifths, sixths and eighths.
+    const d = r.pick([4, 5, 6, 8]); const w = r.int(2, 4); const b = r.int(2, d - 1);
+    const a = r.pick(Array.from({ length: b - 1 }, (_, i) => i + 1).filter((part) => d + part !== 2 * b));
     const top = w * d + a - (d + b);
     return later(`${w} ${f(a, d)} − 1 ${f(b, d)} = ?`, mixedName(top, d), [`${w - 1} ${b - a}/${d}`, mixedName(top + d, d), mixedName(top + 1, d)],
       `${a} parts are not enough to take away ${b}. Trade one whole for ${f(d, d)}.`, `${w} ${f(a, d)} = ${w - 1} ${f(d + a, d)}. Take away 1 ${f(b, d)}: ${mixedName(top, d)}.`, bar(w * d + a, d));
@@ -510,8 +516,12 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       const others = factors.filter(([t, b]) => (more ? t <= b : t >= b) && !(t === target[0] && b === target[1]));
       const picked: (readonly [number, number])[] = []; while (picked.length < 3) { const x = r.pick(others); if (!picked.includes(x)) picked.push(x); }
       const say = ([t, b]: readonly [number, number]) => `${t}/${b} × ${n}`;
+      // The picture draws the factor of every choice (labelled, in an order that does not follow the answer), so it
+      // shows each one against one whole instead of marking the right one alone.
+      const shown = [target, ...picked]; const turn = r.int(0, 3);
+      const drawn = [...shown.slice(turn), ...shown.slice(0, turn)].map(([t, b]) => ({ numerator: t, denominator: b, named: true }));
       return { prompt: `Which one is ${more ? 'more' : 'less'} than ${n}?`, right: say(target), wrong: [say(picked[0]), say(picked[1])], extra: say(picked[2]),
-        hint: 'Compare each fraction with 1.', retry: `${target[0]}/${target[1]} is ${more ? 'more' : 'less'} than 1, so ${say(target)} is ${more ? 'more' : 'less'} than ${n}.`, model: bar(target[0], target[1]) };
+        hint: 'Compare each fraction with 1.', retry: `${target[0]}/${target[1]} is ${more ? 'more' : 'less'} than 1, so ${say(target)} is ${more ? 'more' : 'less'} than ${n}.`, model: { kind: 'bars', bars: drawn, hideLabels: true } };
     }
     // Sign choices write the whole comparison out, so their amounts stay short (no mixed numbers there).
     const [t, b] = r.pick(factors); const amount = r.pick(kind === 0 ? ['5/6', '3/4', '7/8', '4', '2/3', '9/10', '5', '6'] : ['5/6', '2 1/2', '3/4', '1 1/3', '7/8', '4', '2/3', '3 1/2', '9/10', '5', '1 1/4', '6']);
@@ -585,13 +595,16 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
   'decimal-fraction-equivalence': (r) => {
     const [t, b] = r.pick(EXACT_DECIMAL); const dec = String(t / b);
     return later(`Write ${f(t, b)} as a decimal.`, dec, [...choiceDistractors(dec), `0.${t}${b}`],
-      'Change it to tenths or hundredths first.', `${f(t, b)} = ${f((t * 100) / b, 100)} = ${dec}.`, bar(t, b));
+      'Change it to tenths or hundredths first.', b === 100 ? `${f(t, b)} = ${dec}.` : `${f(t, b)} = ${f((t * 100) / b, 100)} = ${dec}.`, bar(t, b));
   },
   'multi-step-fraction-stories': (r) => {
-    const d = r.pick([4, 5, 6, 8, 10, 12]); const a = r.int(1, d - 2); const b = r.int(1, d - 1 - a);
+    const d = r.pick([4, 5, 6, 8, 10, 12]);
     // A third of the stories take away first, then add (not every story is "add, then take from a whole").
-    if (r.int(0, 2) === 0) {
-      const start = d - 1;
+    const jug = r.int(0, 2) === 0; const start = d - 1;
+    // The answer is never one of the amounts the story already names, so it is not the only fraction in the prompt.
+    let a = r.int(1, d - 2); let b = r.int(1, d - 1 - a);
+    for (let tries = 0; tries < 40 && (jug ? [start, a, b].includes(start - a + b) : [a, b].includes(d - a - b)); tries++) { a = r.int(1, d - 2); b = r.int(1, d - 1 - a); }
+    if (jug) {
       return later(`A jug has ${f(start, d)} liter. Sam drinks ${f(a, d)} liter, then adds ${f(b, d)} liter. How much is in the jug now?`, f(start - a + b, d),
         [f(start - a, d), f(start + b, d), f(start - a - b, d)], `First take away what Sam drinks. Then add what he pours in.`,
         `${f(start, d)} − ${f(a, d)} = ${f(start - a, d)}. ${f(start - a, d)} + ${f(b, d)} = ${f(start - a + b, d)}.`, bar(start, d));
@@ -608,9 +621,12 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       n === 1 ? `1 part is ${part}. The pack has ${d} parts.` : `${n} parts are ${part}. Find 1 part first.`, `1 part is ${per}. ${d} parts make ${d * per}.`, bar(n, d));
   },
   'spot-the-mistake': (r) => {
-    // The wrong answer's denominator (2d) stays a grade 4 one.
-    const d = r.pick([3, 4, 5, 6]); const a = r.int(1, d - 2); const b = r.int(1, d - 1 - a);
-    return r.chance()
+    // The wrong answer's denominator (2d) stays a grade 4 one. A difference never equals the amount taken away (that
+    // fraction would be written in the prompt, and it is one of the slips).
+    const adding = r.chance();
+    const d = r.pick(adding ? [3, 4, 5, 6] : [4, 5, 6]); const a = r.int(1, d - 2); let b = r.int(1, d - 1 - a);
+    if (!adding && b === a) b = a > 1 ? a - 1 : a + 1;
+    return adding
       ? later(`Sam says ${f(a, d)} + ${f(b, d)} = ${f(a + b, d * 2)}. What is the right answer?`, f(a + b, d), [f(a + b, d * 2), f(a * b, d), f(a + b + 1, d)],
         'Same-size parts keep their name. Add only the numerators.', `${a} + ${b} = ${a + b}. So ${f(a + b, d)}.`, bar(a, d))
       : later(`Kim says ${f(a + b, d)} − ${f(b, d)} = ${f(a, d * 2)}. What is the right answer?`, f(a, d), [f(a, d * 2), f(a + 1, d), f(b, d)],
@@ -637,11 +653,14 @@ for (const topic of MISSIONS.filter((item) => !(item.id in RECIPES))) {
   let pool: ReturnType<typeof getWorksheet> | null = null;
   RECIPES[topic.id] = (r) => {
     // Yes/no rows stay on the worksheet: a tap question needs number answers to make wrong choices from.
-    pool ??= [1, 2, 3, 4].flatMap((variant) => getWorksheet(topic.id, variant)).filter((problem) => problem.form !== 'word');
+    // A row whose answer is a fraction already written in its prompt (a line plot's own marks) is left out: the child could just copy it.
+    const copied = (problem: ReturnType<typeof getWorksheet>[number]) => /^\d+\/\d+$/.test(problem.answer.trim()) && !/same as|equal|bigger|smaller|order/.test(problem.prompt)
+      && new RegExp(`(?<![\\d/])${problem.answer.trim()}(?![\\d/])`).test(problem.prompt);
+    pool ??= [1, 2, 3, 4].flatMap((variant) => getWorksheet(topic.id, variant)).filter((problem) => problem.form !== 'word' && !copied(problem));
     const problem = r.pick(pool);
     return {
       prompt: asChoicePrompt(problem.prompt), right: problem.answer, wrong: choiceDistractors(problem.answer),
-      hint: problem.hint, retry: problem.why ? `${problem.hint} ${problem.why}` : problem.hint, model: problemPicture(problem),
+      hint: problem.hint, retry: problem.explain ?? (problem.why ? `${problem.hint} ${problem.why}` : problem.hint), model: problemPicture(problem),
     };
   };
 }

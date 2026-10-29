@@ -16,6 +16,8 @@ export type WorksheetProblem = {
   id: string; prompt: string; answer: string; hint: string; model?: LearningModel; modelRequired?: boolean; task?: BarTask;
   /** Shown after a right answer, so a child who guessed still hears the reason. */
   why?: string;
+  /** The whole explanation read after a tap question, for a row whose hint is a question (so the hint is not repeated). */
+  explain?: string;
   standards?: string[];
   form?: 'decimal' | 'mixed' | 'ordered' | 'symbol' | 'word'; denominator?: number;
   /** A square cut into pieces that may have different shapes; with `areaTask` the child colors it before answering. */
@@ -1423,7 +1425,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
     let area: AreaFigure | undefined; let areaTask: AreaTask | undefined;
     let rulerTask: WorksheetProblem['rulerTask']; let linePlotTask: WorksheetProblem['linePlotTask'];
     let scaleTask: WorksheetProblem['scaleTask']; let modelRequired = false; let task: BarTask | undefined;
-    let why: string | undefined; let picture: ModelSpec | undefined;
+    let why: string | undefined; let explain: string | undefined; let picture: ModelSpec | undefined;
     switch (spec.mode) {
       case 'simplify': {
         // One kind of question, so it needs more than 21 different fractions: amounts past one whole too (6/4 = 3/2).
@@ -1893,6 +1895,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const [unitDenominator, people] = PAN_SHARES[(i + 13 * variant) % PAN_SHARES.length]; const resultDenominator = unitDenominator * people;
         prompt = `${people} children share 1/${unitDenominator} of a pan. 1/${unitDenominator} ÷ ${people} = ?`;
         why = `Check: ${people} × 1/${resultDenominator} = 1/${unitDenominator}.`;
+        explain = `Split the 1/${unitDenominator} part into ${people} equal parts. ${resultDenominator} of those small parts fill the whole pan, so the answer is ${f(1, resultDenominator)}. ${why}`;
         answer = f(1, resultDenominator); denominator = resultDenominator; visual = model(1, unitDenominator); modelRequired = true;
         hint = `Split the 1/${unitDenominator} part into ${people} equal parts. How many of those small parts fill the whole pan?`; break;
       }
@@ -2212,7 +2215,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       id: `w${i + 1}`, prompt, answer, hint, model: visual, form, denominator, modelRequired, task,
       ...(area ? { area } : {}), ...(areaTask ? { areaTask } : {}),
       ...(rulerTask ? { rulerTask } : {}), ...(linePlotTask ? { linePlotTask } : {}),
-      ...(scaleTask ? { scaleTask } : {}), ...(why ? { why } : {}), ...(picture ? { picture } : {}),
+      ...(scaleTask ? { scaleTask } : {}), ...(why ? { why } : {}), ...(explain ? { explain } : {}), ...(picture ? { picture } : {}),
     };
   });
 }
