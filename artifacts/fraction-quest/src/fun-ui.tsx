@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useMemo, type CSSProperties, type ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { LearningListenButton, LearningText } from './LearningText';
 import { Check, Gift, LockKeyhole, Star, Zap } from 'lucide-react';
 import type { ModelSpec } from './game';
 import { DAILY_GOAL, type FunState } from './lib/fun';
 import { LinkedFraction, PieFraction } from './fraction-ui';
-import { activeSeason, nextCostume, seasonLessonCount, seasonLine, unlockedCostumes, type Season } from './seasons';
+import { activeSeason, nextCostume, seasonLessonCount, seasonLine, seasonPreview, subscribeSeasonPreview, unlockedCostumes, type Season } from './seasons';
 import { seasonalWords } from './seasonal-words';
 import { costumeLayer, MonthRewardIcon } from './costume-art';
 import type { MonthThemeId } from './month-themes';
@@ -40,9 +40,13 @@ export const unitColor = (unit: number) => UNIT_COLORS[(unit - 1) % UNIT_COLORS.
 
 /* ---------- seasonal theme ---------- */
 
+/** Re-renders when a developer previews another month (DeveloperTesting.tsx). */
+export const useSeasonPreview = () => useSyncExternalStore(subscribeSeasonPreview, seasonPreview, () => null);
+
 /** The seasonal theme showing now (null when off), and the costumes Numi has earned this season. */
 export function useSeason(): { season: Season | null; costumes: string[] } {
   const fun = useOptionalFun()?.fun;
+  useSeasonPreview();
   const season = activeSeason(fun);
   return { season, costumes: season ? unlockedCostumes(season, seasonLessonCount(fun, season)).map((costume) => costume.id) : [] };
 }

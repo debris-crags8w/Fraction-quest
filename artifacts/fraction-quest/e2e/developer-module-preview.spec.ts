@@ -1,5 +1,6 @@
 import { expect, openSettings, test } from './fixtures';
 import { MISSIONS } from '../src/game';
+import { seasonOn } from '../src/seasons';
 import { ideaPracticeQuestions, ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
 import { completeIdeas } from './lesson-walk';
 
@@ -172,4 +173,37 @@ test('developer testing is off the child map: a grown-up turns on developer mode
   await page.getByTestId('button-exit-developer-test').click();
   // Developer mode stays on for this device until a grown-up turns it off.
   await expect(page.getByTestId('button-dev-chip')).toBeVisible();
+});
+
+test('a developer can preview any month\'s theme without saving anything, and a reload returns to today', async ({ page }) => {
+  await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Not signed in.' }) }));
+  await page.goto('/');
+  await page.getByTestId('button-play-guest').click();
+  await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+  const saved = () => page.evaluate(() => ({ fun: localStorage.getItem('fraction-quest-fun-v1:guest'), progress: localStorage.getItem('fraction-quest-progress-v1:guest') }));
+  const today = seasonOn(new Date())!;
+  await expect(page.locator('html')).toHaveAttribute('data-fq-season', today.id);
+  const before = await saved();
+
+  await openDeveloperTesting(page);
+  for (const month of [2, 5, 10]) {
+    const season = seasonOn(new Date(new Date().getFullYear(), month, 15))!;
+    await page.getByTestId('select-developer-month').selectOption(String(month));
+    await expect(page.locator('html')).toHaveAttribute('data-fq-season', season.id);
+    await page.getByTestId('button-parent-back').click();
+    await expect(page.getByTestId('season-banner')).toContainText(season.name);
+    await page.getByTestId('button-app-menu').click();
+    await page.getByTestId('button-open-parent').click();
+    await page.getByTestId('input-parent-gate').waitFor({ state: 'attached' }).catch(() => undefined);
+    const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
+    const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+    await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+    await page.getByTestId('button-parent-gate').click();
+    await openSettings(page, 'Developer');
+  }
+  expect(await saved(), 'a preview saves nothing').toEqual(before);
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('data-fq-season', today.id);
 });
