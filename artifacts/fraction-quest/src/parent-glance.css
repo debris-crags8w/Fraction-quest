@@ -61,13 +61,13 @@
 .fq-skill-steps.s2 i:nth-child(-n+2), .fq-skills-key i.s2 { background: var(--fq-grape); }
 .fq-skill-steps.s3 i, .fq-skills-key i.s3 { background: #2E8A50; }
 .fq-skill-state { grid-column: 1 / -1; font-size: .8rem; font-weight: 800; color: hsl(var(--muted-foreground)); }
-.fq-skill-state.s1 { color: #2F6FD6; } .fq-skill-state.s2 { color: var(--fq-grape); } .fq-skill-state.s3 { color: #2E8A50; }
+.fq-skill-state.s1 { color: #2F6FD6; } .fq-skill-state.s2 { color: var(--fq-grape); } .fq-skill-state.s3 { color: #27794A; }
 .fq-skill.is-open { border-radius: 14px; background: color-mix(in srgb, var(--fq-grape) 8%, transparent); }
 .fq-skill.is-open .fq-skill-row { padding-inline: 10px; }
 .fq-skill-detail { display: grid; gap: 8px; padding: 0 10px 12px; }
 .fq-skill-lessons { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: .88rem; }
 .fq-skill-lessons li { display: flex; justify-content: space-between; gap: 10px; }
-.fq-skill-ok { color: #2E8A50; font-weight: 800; white-space: nowrap; }
+.fq-skill-ok { color: #27794A; font-weight: 800; white-space: nowrap; }
 .fq-skill-mid { color: #2F6FD6; font-weight: 800; white-space: nowrap; }
 .fq-skill-no { color: hsl(var(--muted-foreground)); font-weight: 700; white-space: nowrap; }
 .fq-skills-other { border-radius: 14px; background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); }
