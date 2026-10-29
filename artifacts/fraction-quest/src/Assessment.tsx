@@ -9,6 +9,7 @@ import { YesNoCards } from './YesNoCards';
 import { isYesNoProblem } from './learning-content';
 import { AreaShade, AreaSvg } from './AreaModel';
 import { BarSvg, LineSvg, SetSvg } from './models';
+import { PrintModel } from './Printables';
 import './assessment.css';
 import { RulerInteraction, LinePlotInteraction, ScaleInteraction } from './LearningLab';
 import { WorksheetBarCopy } from './WorksheetBarCopy';
@@ -168,7 +169,11 @@ function AssessmentModelBuilder({ item, onReady }: { item: AssessmentItem; onRea
   if (!problem.model) return item.visualFractions ? <FractionStripsBuilder key={item.id} fractions={item.visualFractions} onReady={handleReady} /> : null;
   // The worksheet's own task ("Shade 1 part", "Tap each part to count it"), exactly as in the lesson.
   if (problem.model.kind === 'bar' && problem.task) {
-    return <WorksheetBarCopy key={item.id} target={problem.model} task={problem.task} disabled={false} statusId={statusId} onMatchChange={handleReady} />;
+    const copy = <WorksheetBarCopy key={item.id} target={problem.model} task={problem.task} disabled={false} statusId={statusId} onMatchChange={handleReady} />;
+    // A picture of what the question compares ("Compare: 0.4 __ 0.35." draws both decimals), above the bar the child builds.
+    return problem.picture
+      ? <><section className="fq-assessment-model fq-assessment-picture" data-testid="assessment-picture"><PrintModel model={problem.picture} labels={false} /></section>{copy}</>
+      : copy;
   }
   return <ReadOnlyPicture key={item.id} model={problem.model} onReady={handleReady} />;
 }

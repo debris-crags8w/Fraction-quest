@@ -33,7 +33,8 @@ function ProblemModel({ problem }: { problem: WorksheetProblem }) {
   // Line plots and rulers on paper: an empty plot to mark the Xs on, and the ruler with the strip's end.
   if (problem.linePlotTask) return <div className="fq-print-model"><LinePlotPicture denominator={problem.linePlotTask.denominator} wholes={problem.linePlotTask.wholes} values={[]} /></div>;
   if (problem.rulerTask) return <div className="fq-print-model"><RulerPicture {...problem.rulerTask} /></div>;
-  if (!m) return problem.picture ? <PrintModel model={problem.picture} labels={false} /> : null;
+  // A picture drawn for a row the child also builds ("Compare: 0.4 __ 0.35." draws both decimals): the picture, not one bar of it.
+  if (!m || (problem.picture && problem.task?.kind === 'copy')) return problem.picture ? <PrintModel model={problem.picture} labels={false} /> : null;
   return (
     <div className="fq-print-model">
       <ModelTag kind={m.kind} />
