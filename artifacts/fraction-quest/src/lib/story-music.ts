@@ -16,6 +16,31 @@ export const MUSIC_PLANS: Record<MusicMood, Plan> = {
 export const MUSIC_LEVEL = 0.06;
 export const MUSIC_DUCKED = 0.02;
 
+/** The film's Music button: normal, soft (a third as loud) or off. A grown-up's setting and the app's Sound button still
+    decide whether the button is there at all. */
+export type MusicVolume = 'normal' | 'soft' | 'off';
+const SOFT_SHARE = 0.4;
+/** Tapping the button goes normal, soft, off, and round again. */
+export const nextMusicVolume = (volume: MusicVolume): MusicVolume => (volume === 'normal' ? 'soft' : volume === 'soft' ? 'off' : 'normal');
+/** What the device remembers. "on" is what earlier versions saved for normal. */
+export const MUSIC_SAVED: Record<MusicVolume, string> = { normal: 'on', soft: 'soft', off: 'off' };
+/** Reads what was saved (null: nothing saved, or something that is not a choice). */
+export function parseMusicVolume(saved: string | null | undefined): MusicVolume | null {
+  return saved === 'on' || saved === 'normal' ? 'normal' : saved === 'soft' ? 'soft' : saved === 'off' ? 'off' : null;
+}
+/** The gain for a volume choice, and whether someone is speaking: nothing when off, softer under a voice. */
+export function musicGain(volume: MusicVolume, ducked: boolean): number {
+  if (volume === 'off') return 0;
+  return (ducked ? MUSIC_DUCKED : MUSIC_LEVEL) * (volume === 'soft' ? SOFT_SHARE : 1);
+}
+/** Whether the music plays: sounds on, a grown-up allows it, the child has not turned it off, and the film is still
+    going (it fades out when the film ends). */
+export const musicPlays = ({ soundOn, allowed, volume, finished }: { soundOn: boolean; allowed: boolean; volume: MusicVolume; finished: boolean }) =>
+  soundOn && allowed && volume !== 'off' && !finished;
+/** How long the fade lasts when a film ends, and the quick one when the music is turned off or the child leaves (seconds). */
+export const FADE_END_SECONDS = 2;
+export const FADE_QUICK_SECONDS = 0.4;
+
 export const noteFrequency = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
 
 /** The arpeggio for one bar: up and back down the chord, an octave above the pad. */
@@ -35,9 +60,11 @@ export class StoryMusic {
   private nextBeat = 0;   // when the next beat sounds (context time)
   private beat = 0;       // beats played so far
   private ducked = false;
+  private volume: MusicVolume = 'normal';
 
-  start(mood: MusicMood) {
+  start(mood: MusicMood, volume: MusicVolume = 'normal') {
     this.mood = mood;
+    this.volume = volume;
     if (this.timer) return;
     try {
       this.context = audioContext();
@@ -63,19 +90,27 @@ export class StoryMusic {
     if (this.master && this.context) this.master.gain.setTargetAtTime(this.level(), this.context.currentTime, 0.25);
   }
 
-  stop() {
+  /** Louder or softer, smoothly. */
+  setVolume(volume: MusicVolume) {
+    this.volume = volume;
+    if (this.master && this.context) this.master.gain.setTargetAtTime(this.level(), this.context.currentTime, 0.25);
+  }
+
+  /** Fades out over `fade` seconds and ends: no more notes are scheduled, and the notes already sounding die away. */
+  stop(fade = FADE_QUICK_SECONDS) {
     clearInterval(this.timer); this.timer = undefined;
     const { master, context } = this;
     this.master = null;
     if (!master || !context) return;
     try {
       master.gain.cancelScheduledValues(context.currentTime);
-      master.gain.setTargetAtTime(0.0001, context.currentTime, 0.2);
-      setTimeout(() => master.disconnect(), 1200);
+      // The gain is about 95% down after three time constants.
+      master.gain.setTargetAtTime(0.0001, context.currentTime, fade / 3);
+      setTimeout(() => master.disconnect(), fade * 1000 + 800);
     } catch { /* already gone */ }
   }
 
-  private level() { return this.ducked ? MUSIC_DUCKED : MUSIC_LEVEL; }
+  private level() { return Math.max(musicGain(this.volume, this.ducked), 0.0001); }
 
   /** Schedules the beats due in the next 0.3 seconds. */
   private schedule() {
