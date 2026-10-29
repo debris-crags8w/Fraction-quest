@@ -269,6 +269,6 @@ for (const id of [lesson.id, 'equal-parts', 'order-unlike-fractions']) {
     await startLesson(page, false, target);
     await completeIdeas(page, target, hooks);
     // "Put it together": the story problem (story mode is on). Its Finish opens the lesson page.
-    expect(await finishPutTogether(page, target, hooks)).toBe(hasStoryAfterIdeas(target) ? 1 : 0);
+    expect(await finishPutTogether(page, target, hooks)).toBeGreaterThanOrEqual(hasStoryAfterIdeas(target) ? 1 : 0); // plus an earlier-lesson warm-up when one is due
   });
 }

@@ -2468,11 +2468,15 @@ function toReviewQuestion(item: SkillReview): PracticeQuestion[] {
   );
   if (alternatives.length === 0) return [];
 
-  const variant = alternatives[item.reviewCount % alternatives.length];
+  return [asReviewQuestion(item, alternatives[item.reviewCount % alternatives.length])];
+}
+
+function asReviewQuestion(item: SkillReview, variant: PracticeQuestion): PracticeQuestion {
+  const topic = getMission(item.missionId);
   const choiceOffset = variant.choices.length > 1 ? (item.reviewCount + 1) % variant.choices.length : 0;
   const choices = variant.choices.map((_, index) => variant.choices[(index + choiceOffset) % variant.choices.length]);
   const correctChoice = (variant.correctChoice - choiceOffset + variant.choices.length) % variant.choices.length;
-  return [{
+  return {
     ...variant,
     id: `delayed-${item.missionId}-${item.reviewCount}-${variant.id}`,
     choices,
@@ -2483,7 +2487,17 @@ function toReviewQuestion(item: SkillReview): PracticeQuestion[] {
     reviewMissionId: item.missionId,
     reviewQuestionId: item.missedQuestionId,
     reviewTopicTitle: topic.shortTitle,
-  }];
+  };
+}
+
+/** The review question a "delayed-<lesson>-<count>-<question>" id names, rebuilt from the lesson data (the browser tests
+    use it to answer whichever earlier-lesson item a lesson's "Put it together" asks). */
+export function reviewQuestionFromId(id: string): PracticeQuestion | undefined {
+  const mission = [...MISSIONS].sort((a, b) => b.id.length - a.id.length).find((item) => id.startsWith(`delayed-${item.id}-`));
+  if (!mission) return undefined;
+  const [, count, variantId] = id.slice(`delayed-${mission.id}-`.length).match(/^(\d+)-(.+)$/) ?? [];
+  const variant = mission.questions.find((question) => question.id === variantId);
+  return variant ? asReviewQuestion({ missionId: mission.id, missedQuestionId: mission.questions[0]!.id, dueAt: 0, reviewCount: Number(count) }, variant) : undefined;
 }
 
 function getDueSkillReviews(progress: Progress, now: number): SkillReview[] {

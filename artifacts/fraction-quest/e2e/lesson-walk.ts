@@ -2,7 +2,7 @@
    (each idea's Learn pages, then its 3 practices, answered right). Shared by the specs. */
 import { expect, type Locator, type Page } from '@playwright/test';
 import { AREA_CUTS, pieceArea } from '../src/area-shapes';
-import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, MISSIONS, type Mission, type PracticeQuestion } from '../src/game';
+import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, MISSIONS, reviewQuestionFromId, type Mission, type PracticeQuestion } from '../src/game';
 import { lessonCheckpoint } from '../src/checkpoint';
 import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
 import { isPartFinderAnswer, PART_FINDER_ROUNDS, type PartFinderRound } from '../src/part-finder';
@@ -148,11 +148,12 @@ export async function finishPutTogether(page: Page, mission: Mission, { review =
   // set off the tests' Watch-skipping handler behind it.
   const next = () => page.waitForFunction(() => document.querySelector('[data-testid="learning-lab"]') ? 'lab'
     : [...document.querySelectorAll('.fq-play-kicker')].some((kicker) => kicker.textContent?.includes('Put it together')) ? 'question' : null);
-  for (let asked = 0; asked <= known.length; asked++) {
+  // Up to two earlier-lesson items (a missed skill, then a warm-up) may come before the story problem.
+  for (let asked = 0; asked <= known.length + 2; asked++) {
     if (await (await next()).jsonValue() === 'lab') return asked;
     const testId = await page.locator('[data-testid^="button-answer-"]').first().getAttribute('data-testid');
     const id = testId!.replace(/^button-answer-/, '').replace(/-\d+$/, '');
-    const question = known.find((item) => item.id === id);
+    const question = known.find((item) => item.id === id) ?? reviewQuestionFromId(id);
     if (!question) throw new Error(`${mission.id}: a "Put it together" question nobody expected (${id})`);
     await answerRight(page, question, `${mission.id} put it together ${asked + 1}`, hooks);
   }
