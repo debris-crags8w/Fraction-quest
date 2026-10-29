@@ -41,5 +41,5 @@ export const KEYS: Record<string, string> = {
   '3 friends share 1/2 of a pan equally. What fraction of the whole pan does each friend get?': '1/6',
   '4 friends share 1/2 of a pizza equally. What fraction of the whole pizza does each friend get?': '1/8',
   // Lesson 71: multiply the answer by the piece size to get back the amount: 6 × 1/2 = 6/2 = 3.
-  'Pip says 3 ÷ 1/2 = 6. Which multiplication checks the answer?': '6 × 1/2 = 3',
+  'Pip says 3 ÷ 1/2 = 6. To check, which multiplication gets back to 3?': '6 × 1/2 = 3',
 };

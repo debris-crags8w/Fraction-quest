@@ -417,8 +417,9 @@ function practice(
   hint: string,
   retryFeedback: string,
   simplerModel: ModelSpec,
-  /** Keep the authored wrong choices (a lesson's early ideas: swapped-in slips like 3/4 use a step not taught yet). */
-  { authoredChoices = false }: { authoredChoices?: boolean } = {},
+  /** Keep the authored wrong choices (a lesson's early ideas: swapped-in slips like 3/4 use a step not taught yet).
+      `signExtra`: the fourth choice of a sign question, when "You can't tell" is not taught yet. */
+  { authoredChoices = false, signExtra }: { authoredChoices?: boolean; signExtra?: string } = {},
 ): PracticeSeed {
   // Every question shows a model: a typed-out equation ("1/6 + 4/6 = ?") also gets bars for its amounts.
   if (model.kind === 'equation') model = autoPicture(model.text, model.text) ?? model;
@@ -429,7 +430,7 @@ function practice(
   const aboutQuestion = (m: ModelSpec) => m.kind === 'bars' && m.bars.some((bar) => bar.named);
   if (aboutQuestion(named) && !aboutQuestion(simpler)) simpler = named;
   // Four choices (A–D): lessons list three, a fourth believable wrong answer is added (sign questions are written out as four comparisons).
-  const signs = withSignComparisons(prompt, choices, correctChoice);
+  const signs = withSignComparisons(prompt, choices, correctChoice, undefined, signExtra);
   const withFourth = withChoiceBars(withFourthChoice({ prompt, choices: signs?.choices ?? choices, correctChoice: signs?.correctChoice ?? correctChoice, model: named, hint, retryFeedback, simplerModel: simpler }), choices);
   // Whole-number answers: wrong choices come from real slips (one group, the rest, the whole), not answer ± 1.
   const slipped = authoredChoices ? withFourth : preferMisconceptions(withFourth);
@@ -490,7 +491,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       // Lesson 2's own questions (paper practice, Practice more, later reviews and the story problem): shapes and fair
       // sharing, its two ideas. Lesson 1 asks the strip, ribbon and sandwich questions.
-      practice('Is this square cut into fourths?', ['Yes, same-size parts', 'No, fourths must be squares', 'No, the parts are triangles', 'No, there are only 3 parts'], 0,
+      practice('Is this square cut into fourths?', ['Yes, same-size parts', 'No, fourths must be squares', 'Yes, because there are 4 parts', 'No, there are only 3 parts'], 0,
         { kind: 'area', cut: 'fourths-triangles', shaded: [] }, 'Fourths are 4 parts that cover the same space. They can be any shape. Compare the 4 triangles.',
         'All 4 triangles cover the same space, so they are fourths. Fourths do not have to be squares.', { kind: 'area', cut: 'fourths-squares', shaded: [] }, { authoredChoices: true }),
       practice('This square is cut into 4 parts. Are they fourths?', ['No, the parts are different sizes', 'Yes, there are 4 parts', 'Yes, all the parts are rectangles', 'No, fourths must be triangles'], 0,
@@ -534,7 +535,7 @@ const curriculum: MissionSeed[] = [
       practice('In 3/4, what does the 3 mean?', ['3 parts are counted', '3 equal parts in all', '3 wholes', '3 parts not counted'], 0, bars({ numerator: 3, denominator: 4 }), 'The numerator is the top number. It counts the parts we take.', 'The top number, 3, is the numerator: 3 of the equal parts are counted.', bars({ numerator: 2, denominator: 3 }), { authoredChoices: true }),
       practice('3 out of 8 equal parts are shaded. What fraction is shaded?', ['3/8', '8/3', '5/8', '8/8'], 0, bars({ numerator: 3, denominator: 8 }), 'Count all the parts for the bottom number. Count the shaded parts for the top number.', '8 equal parts in all, so 8 goes on the bottom. 3 are shaded, so 3 goes on top: 3/8.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
       // Idea 1, equal parts are the same size (yes or no, no fractions): from "Fair parts in any shape" when it was lesson 1.
-      practice('This ribbon is cut into 2 parts. Are the parts the same size?', ['Yes, same-size parts', 'No, one part is bigger', 'No, there must be 3 parts', 'No, they are different colors'], 0, { kind: 'partition', parts: [50, 50] }, 'Compare the 2 parts. Is one bigger?', 'Both parts are the same size, so they are equal parts.', { kind: 'partition', parts: [50, 50] }),
+      practice('This ribbon is cut into 2 parts. Are the parts the same size?', ['Yes, same-size parts', 'No, one part is bigger', 'No, there must be 3 parts', 'Yes, there are 3 parts'], 0, { kind: 'partition', parts: [50, 50] }, 'Compare the 2 parts. Is one bigger?', 'Both parts are the same size, so they are equal parts.', { kind: 'partition', parts: [50, 50] }),
       practice('Is this strip cut into 3 equal parts?', ['Yes, 3 equal parts', 'No, the parts are unequal', 'No, there are 2 parts', 'Yes, there are 3 parts'], 1, { kind: 'partition', parts: [50, 25, 25] }, 'Equal parts are all the same size. Compare the parts.', 'One part is twice as big as the others, so the parts are not equal.', { kind: 'partition', parts: [100 / 3, 100 / 3, 100 / 3] }),
       practice('Is this pizza cut into 4 equal slices?', ['No, the slices are different sizes', 'Yes, 4 equal slices', 'Yes, there are 4 slices', 'No, it needs 8 slices'], 0, { kind: 'area', cut: 'circle-unequal', shaded: [] }, 'Equal slices are all the same size. Compare the slices.', 'One slice is bigger than the others, so these are not 4 equal slices.', { kind: 'area', cut: 'circle-fourths', shaded: [] }),
       // Idea 3: the first fraction a child picks, right after its Learn page explains both numbers (one part only).
@@ -554,7 +555,7 @@ const curriculum: MissionSeed[] = [
     questions: [
       practice('Which is a unit fraction?', ['3/8', '1/8', '8/1'], 1, bars({ numerator: 0, denominator: 8 }), 'A unit fraction has a numerator of 1.', 'Look for the one with a numerator of 1.', bars({ numerator: 1, denominator: 4 })),
       practice('A whole is cut into 4 equal parts. What is 1 part?', ['1/4', '4/1', '1/3'], 0, bars({ numerator: 1, denominator: 4 }), '4 parts in all. You have 1.', '1 of 4 equal parts is 1/4.', bars({ numerator: 1, denominator: 2 })),
-      practice('Does this bar show 1/3?', ['Yes, 1 of 3 equal parts', 'No, 3 parts are shaded', 'No, the parts are unequal', 'No, 2 parts not shaded'], 0, bars({ numerator: 1, denominator: 3 }), '1/3 is 1 of 3 equal parts.', 'The bar has 3 equal parts and 1 is shaded. That is 1/3.', bars({ numerator: 1, denominator: 2 })),
+      practice('Does this bar show 1/3?', ['Yes, 1 of 3 equal parts', 'No, 3 parts are shaded', 'Yes, it has 3 parts', 'No, 2 parts not shaded'], 0, bars({ numerator: 1, denominator: 3 }), '1/3 is 1 of 3 equal parts.', 'The bar has 3 equal parts and 1 is shaded. That is 1/3.', bars({ numerator: 1, denominator: 2 })),
       practice('What fraction is 1 of 6 equal tiles?', ['6/1', '1/6', '1/5'], 1, bars({ numerator: 1, denominator: 6 }), '1 tile out of 6.', '1 out of 6 equal parts is 1/6.', bars({ numerator: 1, denominator: 3 })),
     ],
     ideaQuestions: [
@@ -949,7 +950,7 @@ const curriculum: MissionSeed[] = [
     ],
     ideaQuestions: [
       practice('Which sum makes 4/6?', ['1/6 + 3/6', '1/6 + 4/6', '2/6 + 4/6', '1/3 + 3/3'], 0, bars({ numerator: 4, denominator: 6 }), 'Keep sixths. Which numerators add up to 4?', '1 + 3 = 4, and both parts are sixths. So 1/6 + 3/6 = 4/6.', bars({ numerator: 4, denominator: 6 }), { authoredChoices: true }),
-      practice('Is 3/10 + 4/10 a way to break apart 7/10?', ['No, you must split the 10 too', 'No, the two parts must be equal', 'Yes, 3 + 4 = 7 and both are tenths', 'No, 7/10 is too small to split'], 2, bars({ numerator: 7, denominator: 10 }), 'Keep tenths. Do the numerators add back to 7?', '3 + 4 = 7, and both parts are tenths. So 3/10 + 4/10 = 7/10.', bars({ numerator: 7, denominator: 10 }), { authoredChoices: true }),
+      practice('Is 3/10 + 4/10 a way to break apart 7/10?', ['No, you must split the 10 too', 'No, the two parts must be equal', 'Yes, 3 + 4 = 7 and both are tenths', 'Yes, 3 + 4 = 12 and both are tenths'], 2, bars({ numerator: 7, denominator: 10 }), 'Keep tenths. Do the numerators add back to 7?', '3 + 4 = 7, and both parts are tenths. So 3/10 + 4/10 = 7/10.', bars({ numerator: 7, denominator: 10 }), { authoredChoices: true }),
       practice('Which sum equals 3/5?', ['1/5 + 2/5', '1/5 + 3/5', '2/5 + 2/5', '1/2 + 2/3'], 0, bars({ numerator: 3, denominator: 5 }), 'Keep fifths. Which numerators add up to 3?', '1 + 2 = 3, and both parts are fifths. So 1/5 + 2/5 = 3/5.', bars({ numerator: 3, denominator: 5 }), { authoredChoices: true }),
       practice('1/6 + 4/6 makes 5/6. Which is another way to make 5/6?', ['2/6 + 3/6', '1/6 + 3/6', '2/6 + 4/6', '2/3 + 3/3'], 0, bars({ numerator: 5, denominator: 6 }), 'Add the numerators in each choice. Which ones make 5?', '2 + 3 = 5. So 2/6 + 3/6 = 5/6 too.', bars({ numerator: 5, denominator: 6 }), { authoredChoices: true }),
       practice('Fill the blank: 4/5 = 1/5 + ?/5', ['3', '4', '5', '1'], 0, bars({ numerator: 4, denominator: 5 }, { numerator: 1, denominator: 5 }), '4 take away 1 is what?', '4 take away 1 is 3. So 1/5 + 3/5 = 4/5.', bars({ numerator: 4, denominator: 5 }), { authoredChoices: true }),
@@ -971,7 +972,7 @@ const curriculum: MissionSeed[] = [
       practice('Which is more than one whole?', ['9/8', '7/8', '1/8'], 0, line(0, 8, 2), '8/8 is exactly one whole.', '9/8 is 1 part more than a whole.', line(8, 8, 2)),
     ],
     ideaQuestions: [
-      practice('Is 5/4 more than one whole?', ['No, it is less than one whole', 'No, it is exactly one whole', 'Yes, 5 parts, but only 4 fit in one whole', 'No, a fraction is always less than one whole'], 2, line(0, 4, 2), '4/4 is one whole. Is 5 more than 4?', '5/4 is 4/4 and 1 more fourth, so it is more than one whole.', line(4, 4, 2), { authoredChoices: true }),
+      practice('Is 5/4 more than one whole?', ['No, it is less than one whole', 'Yes, 4 parts is more than one whole', 'Yes, 5 parts, but only 4 fit in one whole', 'No, a fraction is always less than one whole'], 2, line(0, 4, 2), '4/4 is one whole. Is 5 more than 4?', '5/4 is 4/4 and 1 more fourth, so it is more than one whole.', line(4, 4, 2), { authoredChoices: true }),
       practice('Which is less than one whole?', ['5/6', '7/6', '6/6', '9/6'], 0, line(0, 6, 2), '6/6 is exactly one whole.', '5/6 is 1 part less than a whole.', line(6, 6, 2), { authoredChoices: true }),
       practice('How many sixths make 2 wholes?', ['12', '6', '2', '8'], 0, line(0, 6, 2), 'One whole is 6 sixths. Count the spaces to 2.', '6 + 6 = 12 sixths. So 12/6 = 2.', line(6, 6, 2), { authoredChoices: true }),
       practice('How many sixths past one whole is 8/6?', ['2', '8', '6', '1'], 0, line(8, 6, 2), '6/6 is one whole. Count the jumps after it.', '8/6 is 6/6 and 2 more sixths.', line(6, 6, 2), { authoredChoices: true }),
@@ -1015,7 +1016,7 @@ const curriculum: MissionSeed[] = [
       practice('What is 3/5 + 1/5?', ['4/5', '4/10', '2/5'], 0, equation('3/5 + 1/5 = ?'), 'Add the numerators. Keep fifths.', '3 + 1 = 4. So 4/5.', bars({ numerator: 1, denominator: 5 })),
     ],
     ideaQuestions: [
-      practice('Do 2/6 and 3/6 have the same size parts?', ['No, 2 and 3 are different', 'No, 3/6 is bigger', 'Yes, both are sixths', 'No, sixths can be different sizes'], 2, bars({ numerator: 2, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Look at the denominators.', 'Both denominators are 6. Both are sixths, so the parts are the same size.', bars({ numerator: 2, denominator: 6 }, { numerator: 3, denominator: 6 }), { authoredChoices: true }),
+      practice('Do 2/6 and 3/6 have the same size parts?', ['No, 2 and 3 are different', 'No, 3/6 is bigger', 'Yes, both are sixths', 'Yes, because 2 + 3 = 5'], 2, bars({ numerator: 2, denominator: 6 }, { numerator: 3, denominator: 6 }), 'Look at the denominators.', 'Both denominators are 6. Both are sixths, so the parts are the same size.', bars({ numerator: 2, denominator: 6 }, { numerator: 3, denominator: 6 }), { authoredChoices: true }),
       practice('Which fraction has the same size parts as 3/8?', ['5/8', '3/4', '3/5', '1/3'], 0, bars({ numerator: 3, denominator: 8 }), 'Same size parts means the same denominator.', '5/8 is in eighths too, so its parts are the same size as in 3/8.', bars({ numerator: 3, denominator: 8 }), { authoredChoices: true }),
       practice('Can you add 1/3 + 1/4 by counting the parts?', ['No, thirds and fourths are different sizes', 'No, both numerators are 1', 'Yes, both have 1 part', 'Yes, any parts can be counted together'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 4 }), 'Look at the denominators. Are the parts the same size?', 'A third is bigger than a fourth. The parts are different sizes, so you cannot just count them.', bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 4 }), { authoredChoices: true }),
       practice('A cat eats 1/4 cup of food, then 2/4 cup more. How much in all?', ['3/4 cup', '3/8 cup', '2/4 cup', '1/4 cup'], 0, bars({ numerator: 1, denominator: 4 }, { numerator: 2, denominator: 4 }), 'Add the numerators. Keep fourths.', '1 + 2 = 3. So 3/4 cup.', bars({ numerator: 1, denominator: 4 }, { numerator: 2, denominator: 4 }), { authoredChoices: true }),
@@ -1391,8 +1392,8 @@ const extensionTopics: ExtensionTopic[] = [
       practice('3 5/6 − 1 2/6 = ?', ['2 3/6', '5 1/6', '3/6', '2 5/6'], 0, bars({ numerator: 23, denominator: 6 }, { numerator: 8, denominator: 6 }), 'Take away the parts: 5/6 − 2/6. Then the wholes: 3 − 1.', '5/6 − 2/6 = 3/6, and 3 − 1 = 2. So 2 3/6.', bars({ numerator: 23, denominator: 6 }, { numerator: 8, denominator: 6 }), { authoredChoices: true }),
       practice('2 7/8 − 2/8 = ?', ['2 5/8', '3 1/8', '2 7/8', '3/8'], 0, bars({ numerator: 23, denominator: 8 }, { numerator: 2, denominator: 8 }), 'Take away the parts: 7/8 − 2/8. No wholes are taken away.', '7/8 − 2/8 = 5/8, and the 2 wholes stay. So 2 5/8.', bars({ numerator: 23, denominator: 8 }, { numerator: 2, denominator: 8 }), { authoredChoices: true }),
       practice('2 1/6 − 1 4/6. Are there enough sixths to take away 4/6?', ['No, there is only 1 sixth', 'No, you can never take away sixths', 'Yes, there are 2 wholes', 'Yes, 1/6 is more than 4/6'], 0, bars({ numerator: 13, denominator: 6 }, { numerator: 10, denominator: 6 }), 'Compare the parts: 1/6 and 4/6.', 'There is only 1/6, and 4/6 is more than that. There are not enough sixths.', bars({ numerator: 13, denominator: 6 }, { numerator: 10, denominator: 6 }), { authoredChoices: true }),
-      practice('3 5/8 − 1 2/8. Are there enough eighths to take away 2/8?', ['No, 2/8 is more than 5/8', 'No, there are only 3 wholes', 'Yes, 5 eighths is more than 2 eighths', 'No, you can only take away wholes'], 2, bars({ numerator: 29, denominator: 8 }, { numerator: 10, denominator: 8 }), 'Compare the parts: 5/8 and 2/8.', '5/8 is more than 2/8, so there are enough eighths to take away.', bars({ numerator: 29, denominator: 8 }, { numerator: 10, denominator: 8 }), { authoredChoices: true }),
-      practice('3 2/3 − 1 1/3. Are there enough thirds to take away 1/3?', ['No, 1/3 is more than 2/3', 'No, there are 3 wholes', 'Yes, 2 thirds is more than 1 third', 'No, take away the wholes first'], 2, bars({ numerator: 11, denominator: 3 }, { numerator: 4, denominator: 3 }), 'Compare the parts: 2/3 and 1/3.', '2/3 is more than 1/3, so there are enough thirds to take away.', bars({ numerator: 11, denominator: 3 }, { numerator: 4, denominator: 3 }), { authoredChoices: true }),
+      practice('3 5/8 − 1 2/8. Are there enough eighths to take away 2/8?', ['No, 2/8 is more than 5/8', 'No, there are only 3 wholes', 'Yes, 5 eighths is more than 2 eighths', 'Yes, 3 wholes is more than 1 whole'], 2, bars({ numerator: 29, denominator: 8 }, { numerator: 10, denominator: 8 }), 'Compare the parts: 5/8 and 2/8.', '5/8 is more than 2/8, so there are enough eighths to take away.', bars({ numerator: 29, denominator: 8 }, { numerator: 10, denominator: 8 }), { authoredChoices: true }),
+      practice('3 2/3 − 1 1/3. Are there enough thirds to take away 1/3?', ['No, 1/3 is more than 2/3', 'No, there are 3 wholes', 'Yes, 2 thirds is more than 1 third', 'Yes, 3 wholes is more than 1 whole'], 2, bars({ numerator: 11, denominator: 3 }, { numerator: 4, denominator: 3 }), 'Compare the parts: 2/3 and 1/3.', '2/3 is more than 1/3, so there are enough thirds to take away.', bars({ numerator: 11, denominator: 3 }, { numerator: 4, denominator: 3 }), { authoredChoices: true }),
     ] },
   { id: 'fraction-of-quantity', title: 'A fraction of a number', shortTitle: 'Fractions of amounts', description: 'Find 3/5 of 20.', skill: 'Split the amount into equal groups using the denominator. Count the number of groups shown by the numerator.', mode: 'quantity', n: 3, d: 5, context: 'classroom supplies',
     ideaQuestions: [
@@ -1593,7 +1594,7 @@ const extensionTopics: ExtensionTopic[] = [
         'How many 1/3 pounds make 1 pound? Then think about 2 pounds.', '2 ÷ 1/3 = 6 bags. Each pound fills 3 bags. Check: 6 × 1/3 = 2.', emptyWholes(2, 3), { authoredChoices: true }),
       practice('How many 1/4-pound bags can be filled from 2 pounds of clay?', ['8 bags', '6 bags', '2/4 bag', '4 bags'], 0, emptyWholes(2),
         'How many 1/4 pounds make 1 pound? Then think about 2 pounds.', '2 ÷ 1/4 = 8 bags. Each pound fills 4 bags. Check: 8 × 1/4 = 2.', emptyWholes(2, 4), { authoredChoices: true }),
-      practice('Pip says 3 ÷ 1/2 = 6. Which multiplication checks the answer?', ['6 × 1/2 = 3', '6 × 3 = 18', '3 × 1/2 = 3/2', '6 × 2 = 12'], 0, emptyWholes(3, 2),
+      practice('Pip says 3 ÷ 1/2 = 6. To check, which multiplication gets back to 3?', ['6 × 1/2 = 3', '6 × 3 = 18', '3 × 1/2 = 3/2', '6 × 2 = 12'], 0, emptyWholes(3, 2),
         'Multiply the answer by the piece size. Do you get back the amount you started with?', '6 pieces of 1/2 make 3 wholes: 6 × 1/2 = 3. So 3 ÷ 1/2 = 6 is right.', emptyWholes(3, 2), { authoredChoices: true }),
     ] },
   { id: 'fraction-of-length', title: 'A fraction of a length', shortTitle: 'Fractional lengths', description: 'Find 3/8 of a ribbon.', skill: 'Split the whole length into equal parts using the denominator. Measure the number of parts shown by the numerator.', mode: 'measure', n: 3, d: 8, context: 'ribbon',
@@ -1911,11 +1912,12 @@ const extensionTopics: ExtensionTopic[] = [
         'The pizzas are different sizes, so 0.5 and 0.4 are parts of different wholes. You can only compare parts of the same whole.',
         { kind: 'area', cut: 'circle-halves', shaded: [0], scale: 0.6, more: [{ cut: 'circle-tenths', shaded: [0, 1, 2, 3] }] }),
       // Idea 2 (more shaded squares is bigger): its wrong choices are comparison slips, not "You can't tell", which
-      // idea 3 teaches (parts of different wholes).
+      // idea 3 teaches (parts of different wholes). The fourth is a misread number (0.25 read as 0.52), never a
+      // mirror of another choice.
       practice('Compare: 0.3 __ 0.25.', ['>', '<', '='], 0,
         grids(hundredthsGrid(30), hundredthsGrid(25)),
         'Write 0.3 in hundredths first. Then compare the counts.',
-        '0.3 = 30 hundredths and 0.25 = 25 hundredths. 30 is more than 25, so 0.3 > 0.25.', grids(hundredthsGrid(30), hundredthsGrid(25))),
+        '0.3 = 30 hundredths and 0.25 = 25 hundredths. 30 is more than 25, so 0.3 > 0.25.', grids(hundredthsGrid(30), hundredthsGrid(25)), { signExtra: '0.3 > 0.52' }),
       practice('Put 0.8, 0.75 and 0.09 in order, biggest first.', ['0.8, 0.75, 0.09', '0.75, 0.8, 0.09', '0.09, 0.75, 0.8', '0.8, 0.09, 0.75'], 0,
         grids(hundredthsGrid(80), hundredthsGrid(75), hundredthsGrid(9)),
         'Write each one in hundredths. Which grid has the most squares shaded?',
@@ -2258,7 +2260,7 @@ export function problemQuestion(problem: WorksheetProblem, position: number): Pr
   const simpler = 'hideLabels' in model ? { ...model, hideLabels: false } : model;
   // The explanation shows after a right answer, so it adds the answer to the hint instead of repeating it.
   // A check ("Check: 20 × 1/5 = 4.") comes after the answer.
-  return practice(asChoicePrompt(problem.prompt), choices, position % 3, model, problem.hint, `${problem.hint} So the answer is ${problem.answer}.${problem.why ? ` ${problem.why}` : ''}`, simpler);
+  return practice(asChoicePrompt(problem.prompt), choices, position % 3, model, problem.hint, problem.explain ?? `${problem.hint} So the answer is ${problem.answer}.${problem.why ? ` ${problem.why}` : ''}`, simpler);
 }
 
 function extensionMission(topic: ExtensionTopic): MissionSeed {
