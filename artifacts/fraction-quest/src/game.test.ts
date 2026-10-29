@@ -944,6 +944,7 @@ describe('daily fraction practice', () => {
         missedQuestionId: dueMission.questions[0].id,
         dueAt: now - 1,
         reviewCount: 0,
+        missed: true,
       }],
       learning: {
         [trickyMission.id]: {
@@ -978,22 +979,26 @@ describe('daily fraction practice', () => {
     assert.ok(session.questions.every((question) => !/1 parts? are shaded/.test(question.explanation)));
   });
 
-  it('tags build evidence only to the fraction idea the selected model can show', () => {
+  it('tags build evidence only to the fraction idea the selected model can show, and builds only in lessons about building', () => {
     const first = MISSIONS.find((mission) => mission.id === 'compare-same-denominator')!;
-    const target = MISSIONS.find((mission) => mission.id === 'compare-unlike-fractions')!;
+    const target = MISSIONS.find((mission) => mission.id === 'number-line-basics')!;
+    const other = MISSIONS.find((mission) => mission.id === 'compare-unlike-fractions')!;
     const progress: Progress = {
       ...EMPTY_PROGRESS,
       placement: { unit: 12, at: now },
       reviewQueue: [
-        { missionId: first.id, missedQuestionId: first.questions[0].id, dueAt: now - 2, reviewCount: 0 },
-        { missionId: target.id, missedQuestionId: target.questions[0].id, dueAt: now - 1, reviewCount: 0 },
+        { missionId: first.id, missedQuestionId: first.questions[0].id, dueAt: now - 2, reviewCount: 0, missed: true },
+        { missionId: target.id, missedQuestionId: target.questions[0].id, dueAt: now - 1, reviewCount: 0, missed: true },
+        { missionId: other.id, missedQuestionId: other.questions[0].id, dueAt: now, reviewCount: 0, missed: true },
       ],
     };
     const session = createDailyPractice(progress, now);
     const build = session.questions.find((question) => question.missionId === target.id && question.kind === 'build');
-    assert.ok(build, 'the second due question should be a build for unlike-denominator comparison');
+    assert.ok(build, 'a lesson about building a fraction on a number line keeps its build question');
     assert.deepEqual(build.standards, [build.modelKind === 'bar' ? '3.NF.1' : '3.NF.2a']);
-    assert.ok(!build.standards?.includes('4.NF.2'), 'a generic fraction build does not demonstrate unlike-denominator comparison');
+    // A lesson about something else is asked its own question, tagged with its own standards, never a generic grade 3 build.
+    assert.ok(session.questions.filter((question) => question.missionId === other.id).every((question) => question.kind === 'choice' && question.standards?.includes('4.NF.2')));
+    assert.ok(session.questions.filter((question) => question.missionId === first.id).every((question) => question.kind === 'choice'));
   });
 
   it('keeps each build explanation synchronized with its final, de-duplicated fraction', () => {
@@ -1014,15 +1019,15 @@ describe('daily fraction practice', () => {
       streakMisses: 0,
       lastUpdatedAt: now - 1,
     }]));
+    // Three finished lessons for five questions: some lesson has to be asked twice in a session.
     const progress: Progress = {
       ...EMPTY_PROGRESS,
-      completedMissionIds: MISSIONS.map((mission) => mission.id),
+      completedMissionIds: MISSIONS.slice(0, 3).map((mission) => mission.id),
       adaptiveStandards,
     };
-    // Find a day where several sources land on one transfer lesson (routing is pseudo-random by day).
     const session = Array.from({ length: 60 }, (_, offset) => createDailyPractice(progress, new Date(2026, 9, 1 + offset, 12).getTime()))
       .find((candidate) => new Set(candidate.questions.map((question) => question.missionId)).size < candidate.questions.length);
-    assert.ok(session, 'some day routes multiple source lessons to the same transfer lesson');
+    assert.ok(session, 'some day asks one lesson more than once');
     assert.equal(new Set(session.questions.map((question) => question.id)).size, session.questions.length);
   });
 
@@ -1090,8 +1095,8 @@ describe('daily fraction practice', () => {
       ...EMPTY_PROGRESS,
       placement: { unit: 11, at: now },
       reviewQueue: [
-        { missionId: struggling.id, missedQuestionId: struggling.questions[0].id, dueAt: now - 3, reviewCount: 0 },
-        { missionId: strong.id, missedQuestionId: strong.questions[0].id, dueAt: now - 2, reviewCount: 0 },
+        { missionId: struggling.id, missedQuestionId: struggling.questions[0].id, dueAt: now - 3, reviewCount: 0, missed: true },
+        { missionId: strong.id, missedQuestionId: strong.questions[0].id, dueAt: now - 2, reviewCount: 0, missed: true },
       ],
       learning: {
         [struggling.id]: { ...emptyLearningRecord(), misconceptions: { 'Compare unlike parts': 4 } },
@@ -1113,8 +1118,8 @@ describe('daily fraction practice', () => {
       ...EMPTY_PROGRESS,
       placement: { unit: 12, at: now },
       reviewQueue: [
-        { missionId: struggling.id, missedQuestionId: struggling.questions[0].id, dueAt: now - 3, reviewCount: 0 },
-        { missionId: strong.id, missedQuestionId: strong.questions[0].id, dueAt: now - 2, reviewCount: 0 },
+        { missionId: struggling.id, missedQuestionId: struggling.questions[0].id, dueAt: now - 3, reviewCount: 0, missed: true },
+        { missionId: strong.id, missedQuestionId: strong.questions[0].id, dueAt: now - 2, reviewCount: 0, missed: true },
       ],
       learning: {
         [struggling.id]: { ...emptyLearningRecord(), misconceptions: { 'Compare unlike parts': 4 } },
@@ -2574,7 +2579,20 @@ describe('question generator', () => {
     else if ((m = /^(?:Sam|Kim) says (\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \d+\/\d+\. What is the right answer\?$/.exec(p))) expected = N(m[1]) / N(m[2]) + (m[3] === '+' ? 1 : -1) * N(m[4]) / N(m[5]);
     else if ((m = /^Ana has (\d+) stickers\. She gives away (\d+)\/(\d+) of them\. Then she gives away (\d+)\/(\d+) of the rest\. How many are left\?$/.exec(p))) expected = N(m[1]) * (1 - N(m[2]) / N(m[3])) * (1 - N(m[4]) / N(m[5]));
     else if ((m = /^How many 1\/(\d+) cup scoops fill (\d+)\/(\d+) cup\?$/.exec(p))) expected = (N(m[2]) / N(m[3])) * N(m[1]);
-    else if ((m = /^How many wholes are (\d+)\/(\d+)\?$/.exec(p)) || (m = /^Write (\d+)\/(\d+) as a whole number\.$/.exec(p))) expected = N(m[1]) / N(m[2]);
+    else if ((m = /^(\w+) and (\w+) are different sizes\. Rename (\d+)\/(\d+) as (\w+)\.$/.exec(p))) {
+      const unit: Record<string, number> = { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8, ninths: 9, tenths: 10, twelfths: 12 };
+      assert.equal(unit[m[1].toLowerCase()], N(m[4]), p); assert.equal(N(answer.split('/')[1]), unit[m[2]], p); expected = N(m[3]) / N(m[4]);
+    } else if ((m = /^(\d+)\/(\d+) ÷ (\d+)\/(\d+) = \?$/.exec(p))) expected = (N(m[1]) / N(m[2])) / (N(m[3]) / N(m[4]));
+    else if ((m = /^Divide the numerator and denominator of (\d+)\/(\d+) by (\d+)\. What do you get\?$/.exec(p))) {
+      assert.equal(answer, `${N(m[1]) / N(m[3])}/${N(m[2]) / N(m[3])}`, p); return true;
+    } else if ((m = /^Which number divides both (\d+) and (\d+)\?$/.exec(p))) {
+      const fits = question.choices.filter((c) => N(c) > 1 && N(m![1]) % N(c) === 0 && N(m![2]) % N(c) === 0);
+      assert.deepEqual(fits, [answer], p); return true;
+    } else if ((m = /^Which fraction is closest to (0|1\/2|1)\?$/.exec(p))) {
+      const target = m[1] === '1/2' ? 0.5 : N(m[1]); const dist = (c: string) => Math.abs(num(c) - target);
+      const best = Math.min(...question.choices.map(dist));
+      assert.deepEqual(question.choices.filter((c) => near(dist(c), best)), [answer], p); return true;
+    } else if ((m = /^How many wholes are (\d+)\/(\d+)\?$/.exec(p)) || (m = /^Write (\d+)\/(\d+) as a whole number\.$/.exec(p))) expected = N(m[1]) / N(m[2]);
     else if ((m = /^Write (\d+) whole bars as a fraction with a denominator of 1\.$/.exec(p))) expected = N(m[1]);
     // Later lessons' redo numbers: adding and taking away unlike fractions and mixed numbers, quick compares, measures.
     else if ((m = /^(?:Rename: .+\. Then )?(\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \?$/.exec(p))) expected = N(m[1]) / N(m[2]) + (m[3] === '+' ? 1 : -1) * N(m[4]) / N(m[5]);
@@ -3407,7 +3425,7 @@ describe('pictures never give the answer away', () => {
   });
 
   it('unit fraction practice can show a pizza slice, or 2 triangles that make 1/4 (not 2/7)', () => {
-    const qs = Array.from({ length: 60 }, (_, seed) => generateQuestions('unit-fractions', ['x'], seed + 1, 6)).flat().filter((q) => q.model.kind === 'area');
+    const qs = Array.from({ length: 60 }, (_, seed) => generateQuestions('unit-fractions', ['x'], seed + 1, 6)).flat().filter((q) => q.model.kind === 'area' && q.model.shaded.length > 0); // a shaded slice (friends sharing show the cut pizza, unshaded)
     assert.ok(qs.length > 20);
     for (const q of qs) if (q.model.kind === 'area') {
       const [n, d] = q.choices[q.correctChoice].split('/').map(Number);
@@ -3574,7 +3592,7 @@ describe('whole number × fraction is in the grade-4 path', () => {
   it('ends unit 8 (4.NF.4a, then 4.NF.4b), so the level quiz reaches it', () => {
     const unit8 = MISSIONS.filter((m) => m.unit === 8).map((m) => m.id);
     assert.deepEqual(unit8.slice(-2), ['unit-fraction-multiples', 'multiply-whole-by-fraction']);
-    assert.ok(placementItems(8, 3).some((item) => item.missionId === 'multiply-whole-by-fraction'));
+    assert.ok([1, 2, 3, 4, 5, 6].some((seed) => placementItems(8, seed).some((item) => item.missionId === 'multiply-whole-by-fraction')), 'the end of unit 8 is asked in some quizzes');
     // Moving lessons into unit 8 doesn't let a newcomer skip unit 8.
     const ahead = updateLearning(EMPTY_PROGRESS, 'simplify-fractions', { ...emptyLearningRecord(), practiceDone: true });
     assert.equal(isMissionUnlocked(ahead, 'simplify-fractions'), false, 'without unit 8 a newcomer is still locked');
@@ -4023,8 +4041,8 @@ describe('fourth answer choice', () => {
   it('adds a believable wrong answer that is never a second right one', () => {
     assert.equal(fourthChoice('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 1), null, 'sign questions are made by withSignComparisons');
     const signs = withSignComparisons('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 1);
-    assert.deepEqual(signs, { choices: ['6/9 > 7/9', '6/9 < 7/9', '6/9 = 7/9', '7/9 < 6/9'], correctChoice: 1 });
-    assert.deepEqual(withSignComparisons('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 0, 1), { choices: ['6/9 > 7/9', '7/9 > 6/9', '6/9 < 7/9', '6/9 = 7/9'], correctChoice: 0 });
+    assert.deepEqual(signs, { choices: ['6/9 > 7/9', '6/9 < 7/9', '6/9 = 7/9', "You can't tell"], correctChoice: 1 });
+    assert.deepEqual(withSignComparisons('Pick the sign: 6/9 __ 7/9', ['>', '<', '='], 0, 1), { choices: ['6/9 > 7/9', "You can't tell", '6/9 < 7/9', '6/9 = 7/9'], correctChoice: 0 });
     // Yes-or-no answers list "No, …" first, then "Yes, …"; the right answer moves with its choice.
     const yn = noBeforeYes({ choices: ['Yes, same-size parts', 'No, some parts are bigger', 'Yes, it is cut into pieces', 'No, the shapes are different'], correctChoice: 0 });
     assert.deepEqual(yn.choices, ['No, some parts are bigger', 'No, the shapes are different', 'Yes, same-size parts', 'Yes, it is cut into pieces']);
@@ -4286,14 +4304,15 @@ describe('daily practice support levels', () => {
   });
 });
 
-/** Sign questions list four full comparisons ("6/9 < 7/9"): no other choice may mean the same as the right one. */
+/** Sign questions list three full comparisons ("6/9 < 7/9") and a fourth choice ("You can't tell", or a hand-written
+    wrong comparison): no two choices may mean the same, so a child can never drop a pair, and the right one is the only true one. */
 function assertSignChoicesAgree(q: { choices: string[]; correctChoice: number }, where: string) {
   const parts = q.choices.map((choice) => /^(.+) ([<=>]) (.+)$/.exec(choice));
-  if (!parts.some(Boolean)) return;
-  assert.ok(parts.every(Boolean), `${where}: sign choices must all be comparisons | ${q.choices.join(' / ')}`);
+  if (parts.filter(Boolean).length < 3) return;
+  q.choices.forEach((choice, i) => assert.ok(parts[i] || choice === "You can't tell", `${where}: a sign question's only other choice is "You can't tell" | ${q.choices.join(' / ')}`));
   const meaning = (m: RegExpExecArray) => m[2] === '<' ? `${m[1]}<${m[3]}` : m[2] === '>' ? `${m[3]}<${m[1]}` : [m[1], m[3]].sort().join('=');
-  const keys = parts.map((m) => meaning(m!));
-  keys.forEach((key, i) => { if (i !== q.correctChoice) assert.notEqual(key, keys[q.correctChoice], `${where}: "${q.choices[i]}" means the same as the right answer`); });
+  const keys = q.choices.map((choice, i) => (parts[i] ? meaning(parts[i]!) : choice));
+  assert.equal(new Set(keys).size, keys.length, `${where}: two choices mean the same | ${q.choices.join(' / ')}`);
 }
 
 describe('generated practice has exactly one right choice', () => {
@@ -4366,6 +4385,15 @@ describe('garden questions show the garden', () => {
 });
 const valueOf = (s: { whole: number; numerator: number; denominator: number }) => s.whole + s.numerator / s.denominator;
 
+/** The seeds the real-mistake guards read: 0 to 25 (they used to read 0 to 2, so a wrong choice that only some seeds make went unseen). */
+const GUARD_SEEDS = Array.from({ length: 26 }, (_, seed) => seed);
+/** A lesson's practice questions for every guard seed, made once and shared by the guards below. */
+const guardCache = new Map<string, ReturnType<typeof generateQuestions>>();
+const guardPractice = (lesson: (typeof MISSIONS)[number]) => {
+  if (!guardCache.has(lesson.id)) guardCache.set(lesson.id, hasGenerator(lesson.id) ? GUARD_SEEDS.flatMap((seed) => generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12)) : []);
+  return guardCache.get(lesson.id)!;
+};
+
 describe('Extra practice in the new lessons offers real mistakes, not near-miss numbers', () => {
   const N = Number;
   /** The mistakes a child really makes on each kind of question, worked out here from the question's numbers. */
@@ -4389,7 +4417,7 @@ describe('Extra practice in the new lessons offers real mistakes, not near-miss 
     it(`${id}: every wrong number is a real mistake`, () => {
       const lesson = MISSIONS.find((mission) => mission.id === id)!;
       let checked = 0;
-      for (let seed = 0; seed < 6; seed++) {
+      for (const seed of GUARD_SEEDS) {
         for (const question of generateQuestions(id, lesson.questions.map(({ id }) => id), seed, 12)) {
           const mistakes = realMistakes(question.prompt);
           if (!mistakes) continue;
@@ -4457,7 +4485,7 @@ describe('adding and subtracting questions offer real mistakes, not near-miss nu
     const questions = MISSIONS.flatMap((lesson) => [
       ...lesson.questions,
       ...(lesson.ideaQuestions ?? []),
-      ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
+      ...guardPractice(lesson),
     ]);
     for (const question of questions) {
       const found = mistakes(question.prompt);
@@ -4536,7 +4564,7 @@ describe('multiplying and dividing questions offer real mistakes, not near-miss 
     const questions = MISSIONS.flatMap((lesson) => [
       ...lesson.questions,
       ...(lesson.ideaQuestions ?? []),
-      ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
+      ...guardPractice(lesson),
     ]);
     for (const question of questions) {
       const found = mistakes(question.prompt);
@@ -4606,7 +4634,7 @@ describe('equivalence, decimal, percent and picture questions offer real mistake
     const questions = MISSIONS.flatMap((lesson) => [
       ...lesson.questions,
       ...(lesson.ideaQuestions ?? []),
-      ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
+      ...guardPractice(lesson),
     ]);
     for (const question of questions) {
       const answer = question.choices[question.correctChoice];
@@ -4759,7 +4787,7 @@ describe('the rarer question types offer real mistakes too', () => {
     const questions = MISSIONS.flatMap((lesson) => [
       ...lesson.questions,
       ...(lesson.ideaQuestions ?? []),
-      ...[0, 1, 2].flatMap((seed) => (hasGenerator(lesson.id) ? generateQuestions(lesson.id, lesson.questions.map(({ id }) => id), seed, 12) : [])),
+      ...guardPractice(lesson),
     ]);
     for (const question of questions) {
       const answer = question.choices[question.correctChoice];

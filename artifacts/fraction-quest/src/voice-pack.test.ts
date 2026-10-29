@@ -275,6 +275,41 @@ test('inside the iPhone app the whole pack is saved once, picks up where it stop
   }
 });
 
+test('a "downloaded" flag is not trusted when Cache Storage has been cleared: the pack is downloaded again', async () => {
+  const { downloadWholeVoicePack, setNaturalEngineForTests } = await import('./lib/natural-voice');
+  const keys = ['aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb', 'cccccccccccccccc', 'dddddddddddddddd'];
+  const saved = new Map<string, string>();
+  const fetched: string[] = [];
+  const storage = new Map<string, string>();
+  const g = globalThis as Record<string, unknown>;
+  const original = { caches: g.caches, fetch: g.fetch, localStorage: g.localStorage };
+  g.caches = { open: async () => ({ match: async (url: string) => (saved.has(url) ? new Response(saved.get(url)) : undefined), put: async (url: string, response: Response) => { saved.set(url, await response.text()); } }) };
+  g.localStorage = { getItem: (k: string) => storage.get(k) ?? null, setItem: (k: string, v: string) => { storage.set(k, v); } };
+  g.fetch = async (url: string) => {
+    if (url.endsWith('index.json')) return new Response(JSON.stringify({ version: 1, voices: ['af_heart'], keys }));
+    fetched.push(url);
+    return new Response('opus');
+  };
+  try {
+    resetVoicePackForTests(); setNaturalEngineForTests(null);
+    assert.equal(await downloadWholeVoicePack('af_heart', () => true), 4);
+    assert.equal(storage.size, 1, 'marked complete');
+    // The browser clears Cache Storage but keeps localStorage: the flag is now a lie.
+    saved.clear();
+    const before = fetched.length;
+    assert.equal(await downloadWholeVoicePack('af_heart', () => true), 4);
+    assert.equal(fetched.length - before, 4, 'every clip is fetched again');
+    assert.equal(saved.size, 4);
+    // With the clips really there, the flag is trusted and nothing is fetched.
+    const after = fetched.length;
+    assert.equal(await downloadWholeVoicePack('af_heart', () => true), 4);
+    assert.equal(fetched.length, after);
+  } finally {
+    Object.assign(g, original);
+    resetVoicePackForTests(); setNaturalEngineForTests(null);
+  }
+});
+
 test('the page knows when it runs inside the iPhone app and whether it is on Wi-Fi', async () => {
   const { appShell } = await import('./lib/app-shell');
   const g = globalThis as Record<string, unknown>;

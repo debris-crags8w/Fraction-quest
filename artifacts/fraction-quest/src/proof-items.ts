@@ -2,11 +2,16 @@
 import { MISSIONS, type ModelSpec } from './game';
 import { getWorksheet, getBuildChecks, getBuildPracticeChecks, getReviewCheck, type WorksheetProblem } from './learning-content';
 import { generateQuestions, getExtraPractice } from './practice-bank';
+import { lessonCheckpoint } from './checkpoint';
 import { getAssessmentDefinitions, buildAssessmentItems } from './assessments';
 import { placementItems, PLACEMENT_UNITS } from './placement';
 import { CHALLENGES } from './challenges';
 import { PROP_THEMES, STORY_PROBLEMS, withName } from './story';
 import { LESSON_INTROS } from './lesson-intros';
+import { lessonIdeas } from './lesson-ideas';
+import { LESSON_SCENES, type StepScene } from './teach-scenes';
+import { TEACH_EXTRAS } from './teach-extras';
+import { wrongChoiceReason } from './wrong-answer';
 import { WAR_ROUNDS, compareFractions, lineUpInOrder, lineUpRound, type FractionModel } from './concept-games';
 import { frogRound, positionName, FROG_ROUNDS } from './frog-hop';
 import { correctGap, towerRound, TOWER_ROUNDS, type TowerBlock } from './stack-tower';
@@ -29,6 +34,7 @@ export function allProofItems({ sheets = 8, seeds = 10, checkInSeeds = [1, 2, 99
     for (const q of m.questions) items.push(choiceItem('lesson question', m.id, q));
     for (const q of m.ideaQuestions ?? []) items.push(choiceItem('idea practice', m.id, q));
     const ids = m.questions.map((q) => q.id);
+    for (const q of lessonCheckpoint(m)) items.push(choiceItem('lesson checkpoint', m.id, q));
     for (const q of getExtraPractice(m.id, ids)) items.push(choiceItem('Practice more', m.id, q));
     for (let s = 1; s <= seeds; s++) for (const q of generateQuestions(m.id, ids, s, 12)) items.push(choiceItem(`practice set ${s}`, m.id, q));
     const builds = [...getBuildChecks(m.id), ...getBuildPracticeChecks(m.id, 0), ...[0, 1, 2].map((r) => getReviewCheck(m.id, r))];
@@ -99,22 +105,44 @@ export function gameProofItems(seeds = [1, 2, 3, 4, 5]): ProofItem[] {
   return items;
 }
 
-/** Every explanation, hint and feedback line the app writes, for the written-sum check (falseClaims). */
+/** Every line of text a scene says (every frame, not only the last): the sentences under its picture and any sums in it. */
+const sceneTexts = (scene: StepScene): string[] => scene.flatMap((frame) => frame.rows.flatMap((row) => (row.kind === 'text' ? [row.text] : [])));
+
+/** Every explanation, hint and feedback line the app writes, for the written-sum check (falseClaims): worked examples,
+    hints, feedback, wrong-tap reasons, worksheet hints (also Check-in and Find my level rows), builds, intros, stories,
+    challenges, Learn pages with their scenes and word cards, and the Teach first scenes. */
 export function allWrittenTexts({ sheets = 8, seeds = 10 } = {}): { where: string; text: string }[] {
   const texts: { where: string; text: string }[] = [];
   const add = (where: string, text: string | undefined) => { if (text) texts.push({ where, text }); };
   for (const m of MISSIONS) {
     add(`${m.id} worked example`, m.example.explanation);
     const ids = m.questions.map((q) => q.id);
-    const questions = [...m.questions, ...(m.ideaQuestions ?? []), ...getExtraPractice(m.id, ids), ...Array.from({ length: seeds }, (_, s) => generateQuestions(m.id, ids, s + 1, 12)).flat()];
+    const questions = [...m.questions, ...(m.ideaQuestions ?? []), ...lessonCheckpoint(m), ...getExtraPractice(m.id, ids), ...Array.from({ length: seeds }, (_, s) => generateQuestions(m.id, ids, s + 1, 12)).flat()];
     for (const q of questions) { add(`${m.id} hint`, q.hint); add(`${m.id} feedback`, q.retryFeedback); }
-    for (let v = 0; v < sheets; v++) for (const p of getWorksheet(m.id, v)) { add(`${m.id} worksheet hint`, p.hint); add(`${m.id} worksheet why`, p.why); }
+    for (let v = 0; v < sheets; v++) for (const p of getWorksheet(m.id, v)) { add(`${m.id} worksheet hint`, p.hint); add(`${m.id} worksheet why`, p.why); add(`${m.id} worksheet explanation`, p.explain); }
     for (const c of [...getBuildChecks(m.id), ...getBuildPracticeChecks(m.id, 0), ...[0, 1, 2].map((r) => getReviewCheck(m.id, r))]) add(`${m.id} build`, c.explanation);
     const intro = LESSON_INTROS[m.id];
     if (intro) for (const line of [intro.goal, ...intro.steps, intro.why]) add(`${m.id} intro`, line);
     const story = STORY_PROBLEMS[m.id];
     if (story) { add(`${m.id} story`, story.setup); add(`${m.id} story`, story.result); }
+    // What a wrong tap says for each wrong choice (the reason, not only the hint).
+    for (const q of questions) q.choices.forEach((_, i) => { if (i !== q.correctChoice) add(`${m.id} wrong-tap reason`, wrongChoiceReason(q.prompt, q.choices, q.correctChoice, i) ?? undefined); });
+    // Learn pages: the line, the sentences and sums in its picture, and each word card.
+    for (const idea of lessonIdeas(m.id) ?? []) for (const page of idea.learn) {
+      add(`${m.id} Learn page`, page.text);
+      if ('words' in page) for (const word of page.words) { add(`${m.id} word card`, word.meaning); for (const line of word.picture ? sceneTexts(word.picture) : []) add(`${m.id} word card`, line); }
+      else for (const line of sceneTexts(page.scene)) add(`${m.id} Learn scene`, line);
+    }
+    // Teach first: each step's and "Why it works" picture, and the extra words and worked examples.
+    const scene = LESSON_SCENES[m.id];
+    if (scene) for (const picture of [...scene.steps, scene.why]) for (const line of sceneTexts(picture)) add(`${m.id} Teach scene`, line);
+    const extras = TEACH_EXTRAS[m.id];
+    for (const word of extras?.words ?? []) { add(`${m.id} word card`, word.meaning); for (const line of word.picture ? sceneTexts(word.picture) : []) add(`${m.id} word card`, line); }
+    for (const example of extras?.examples ?? []) { add(`${m.id} worked example`, example.title); for (const line of sceneTexts(example.picture)) add(`${m.id} worked example`, line); }
   }
   for (const [u, qs] of Object.entries(CHALLENGES)) for (const q of qs) add(`challenge unit ${u}`, q.explanation);
+  // Check-in and Find my level rows carry their own hints and reasons, like a worksheet.
+  for (const d of getAssessmentDefinitions()) for (const seed of [1, 2]) for (const i of buildAssessmentItems(d, seed)) { add(`Check-in ${d.id} hint`, i.problem.hint); add(`Check-in ${d.id} why`, i.problem.why); add(`Check-in ${d.id} why`, i.problem.explain); }
+  for (let u = 1; u <= PLACEMENT_UNITS; u++) for (const seed of [1, 2, 3]) for (const i of placementItems(u, seed)) { add('Find my level hint', i.problem.hint); add('Find my level why', i.problem.why); }
   return texts;
 }

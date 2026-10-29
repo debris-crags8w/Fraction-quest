@@ -318,7 +318,7 @@ test('while the voice is on its way, the caption says so, then the line types wi
   await expect(page.getByTestId('story-panel-0').locator('.fq-cine-line')).not.toBeEmpty();
 });
 
-test('story music plays under the film when sounds are on, and the Music button turns it off and is remembered', async ({ page }) => {
+test('story music plays under the film when sounds are on; the Music button goes soft, then off, then back, and is remembered', async ({ page }) => {
   // Count the notes the music schedules.
   await page.addInitScript(() => {
     const scope = window as unknown as { notes: number; AudioContext: typeof AudioContext };
@@ -332,13 +332,65 @@ test('story music plays under the film when sounds are on, and the Music button 
   await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
   const music = page.getByTestId('button-story-music');
   await expect(music).toHaveAttribute('aria-pressed', 'true');
+  await expect(music).toHaveText(/Music on/);
   await expect.poll(() => page.evaluate(() => (window as unknown as { notes: number }).notes)).toBeGreaterThan(3);
+  // One tap: softer. The music keeps playing, and the choice is saved.
+  await music.click();
+  await expect(music).toHaveText(/Music soft/);
+  await expect(music).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => localStorage.getItem('fraction-quest-film-music'))).toBe('soft');
+  const softNotes = await page.evaluate(() => (window as unknown as { notes: number }).notes);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { notes: number }).notes)).toBeGreaterThan(softNotes);
+  // Another tap: off. No more notes.
   await music.click();
   await expect(music).toHaveText(/Music off/);
+  await expect(music).toHaveAttribute('aria-pressed', 'false');
   const notes = await page.evaluate(() => (window as unknown as { notes: number }).notes);
   await page.waitForTimeout(1500);
   expect(await page.evaluate(() => (window as unknown as { notes: number }).notes)).toBe(notes);
   expect(await page.evaluate(() => localStorage.getItem('fraction-quest-film-music'))).toBe('off');
+  // Another: back to normal, and the music starts again.
+  await music.click();
+  await expect(music).toHaveText(/Music on/);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { notes: number }).notes)).toBeGreaterThan(notes);
+  expect(await page.evaluate(() => localStorage.getItem('fraction-quest-film-music'))).toBe('on');
+});
+
+test('the next film starts at the music volume chosen last time, and an older saved "on" still means normal', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('fraction-quest-film-music', 'soft'));
+  await openChapterTwo(page, [...unitOne, 'unit-size'], false, { sound: true });
+  await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
+  await expect(page.getByTestId('button-story-music')).toHaveText(/Music soft/);
+  await page.getByTestId('button-story-back').click();
+  await page.evaluate(() => localStorage.setItem('fraction-quest-film-music', 'on'));
+  await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
+  await expect(page.getByTestId('button-story-music')).toHaveText(/Music on/);
+});
+
+test('the music fades away and stops when the film ends, and starts again on Replay', async ({ page }) => {
+  await page.addInitScript(() => {
+    const scope = window as unknown as { notes: number; AudioContext: typeof AudioContext };
+    scope.notes = 0;
+    const Real = scope.AudioContext;
+    scope.AudioContext = class extends Real {
+      createOscillator() { scope.notes += 1; return super.createOscillator(); }
+    } as typeof AudioContext;
+  });
+  await openChapterTwo(page, [...unitOne, 'unit-size'], false, { sound: true });
+  await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
+  const notes = () => page.evaluate(() => (window as unknown as { notes: number }).notes);
+  await expect.poll(notes).toBeGreaterThan(3);
+  await page.getByTestId('button-story-skip').click();
+  await expect(page.getByTestId('button-story-go')).toBeVisible();
+  // On the end screen no new notes are scheduled (the fade lets the last ones die away).
+  await page.waitForTimeout(600);
+  const atEnd = await notes();
+  await page.waitForTimeout(2500);
+  expect(await notes()).toBe(atEnd);
+  // The Music button is still there, still showing the choice, and Replay brings the music back.
+  await expect(page.getByTestId('button-story-music')).toHaveText(/Music on/);
+  await page.getByTestId('button-story-replay').click();
+  await expect.poll(notes).toBeGreaterThan(atEnd);
 });
 
 test('with sounds off, or story music turned off by a grown-up, the film has no music and no Music button', async ({ page }) => {

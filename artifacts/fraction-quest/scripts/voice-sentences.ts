@@ -9,6 +9,7 @@ import { TEACH_EXTRAS, wordsScript } from '../src/teach-extras';
 import { LESSON_IDEAS, learnScript } from '../src/lesson-ideas';
 import { getBuildChecks, getBuildPracticeChecks, getReviewCheck, getWorksheet } from '../src/learning-content';
 import { getExtraPractice } from '../src/practice-bank';
+import { lessonCheckpoint } from '../src/checkpoint';
 import { partFinderRoundsFor, PART_FINDER_ROUNDS } from '../src/part-finder';
 import { getAssessmentDefinitions } from '../src/assessments';
 import { CHAPTER_SCENES, CHAPTERS, DETECTIVE_NOTES, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, SUSPECTS, WHOLE_STONE_OPENING, chapterEnd, choiceNotes, suspectReply, REACTIONS, STORY_PROBLEMS, lessonComic, storyScript, withName, PROP_THEMES, type Panel, type PropTheme } from '../src/story';
@@ -126,6 +127,7 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
     for (let variant = 0; variant < 3; variant++) add('worksheet', safe(() => getWorksheet(mission.id, variant)));
     for (let round = 0; round < 3; round++) add('practice', safe(() => getReviewCheck(mission.id, round)));
     add('practice', safe(() => getExtraPractice(mission.id, mission.questions.map((q) => q.id))));
+    add('practice', safe(() => lessonCheckpoint(mission)));
     add('games', safe(() => partFinderRoundsFor(mission.id)));
   }
   add('games', PART_FINDER_ROUNDS);

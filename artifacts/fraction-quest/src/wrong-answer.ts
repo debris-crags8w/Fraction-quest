@@ -52,6 +52,8 @@ export function wrongChoiceReason(prompt: string, choices: string[], correct: nu
   // "Which is bigger, 1/4 or 1/6?": the reason for this pick, whichever of the four the child tapped.
   const sized = whichSizeReason(prompt, pick, right);
   if (sized) return sized;
+  // "You can't tell" on a sign question: you can, and the way to is the one the question's numbers need.
+  if (CANT_TELL.test(pick) && /__/.test(p)) return / × /.test(p) ? WHY.scaleCompare : / \+ /.test(p) ? WHY.benchmarkSum : /\d*\.\d+/.test(p) ? WHY.sameWay : WHY.canTellSize;
   if (CANT_TELL.test(pick)) return SLIPS.canTell;
   if (EQUAL_PICK.test(pick)) return SLIPS.notSame;
 

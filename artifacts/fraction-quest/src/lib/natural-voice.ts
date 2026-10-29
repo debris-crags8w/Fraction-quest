@@ -120,7 +120,7 @@ const WHOLE_PACK_PARALLEL = 3;
 
 /** Inside the app (iPhone and Android), on Wi-Fi: fetch every pack clip once into the device's voice cache, so every sentence
     plays at once (lessons still load from the website). Clips already saved are skipped, so a stopped download
-    picks up where it left off; once a whole index is saved, later launches skip the check entirely. Returns how
+    picks up where it left off; once a whole index is saved, later launches only check that one clip is still there. Returns how
     many clips are saved, or null when there is nothing to download into (no pack, no Cache Storage). */
 export async function downloadWholeVoicePack(
   voice: NaturalVoiceId,
@@ -134,7 +134,15 @@ export async function downloadWholeVoicePack(
   const keys = [...[...pack.keys].sort().map((key) => `${voice}/${key}`),
     ...[...pack.cast].sort(([a], [b]) => (a < b ? -1 : 1)).flatMap(([castVoice, castKeys]) => [...castKeys].sort().map((key) => `${castVoice}/${key}`))];
   const marker = `${voice}:${format}:${keys.length}:${keys[0] ?? ''}:${keys[keys.length - 1] ?? ''}`;
-  try { if (globalThis.localStorage?.getItem(WHOLE_PACK_MARKER) === marker) return keys.length; } catch { /* check the cache instead */ }
+  // The flag is only trusted while one clip (the one saved last) is really in Cache Storage: a browser can clear the cache and keep the flag.
+  let flagged = false;
+  try { flagged = globalThis.localStorage?.getItem(WHOLE_PACK_MARKER) === marker; } catch { /* check the cache instead */ }
+  if (flagged) {
+    const probe = voicePackPath(`${keys[keys.length - 1]}.${format}`);
+    const stillSaved = keys.length === 0 || Boolean(await store.match(probe).catch(() => undefined));
+    if (stillSaved) return keys.length;
+    try { globalThis.localStorage?.removeItem(WHOLE_PACK_MARKER); } catch { /* downloaded again below */ }
+  }
   let next = 0;
   let saved = 0;
   let failed = false;

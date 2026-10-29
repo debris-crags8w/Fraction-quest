@@ -2,7 +2,8 @@
    (each idea's Learn pages, then its 3 practices, answered right). Shared by the specs. */
 import { expect, type Locator, type Page } from '@playwright/test';
 import { AREA_CUTS, pieceArea } from '../src/area-shapes';
-import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, MISSIONS, type Mission, type PracticeQuestion } from '../src/game';
+import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, MISSIONS, reviewQuestionFromId, type Mission, type PracticeQuestion } from '../src/game';
+import { lessonCheckpoint } from '../src/checkpoint';
 import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
 import { isPartFinderAnswer, PART_FINDER_ROUNDS, type PartFinderRound } from '../src/part-finder';
 import { STORY_PROBLEMS, chapterFor } from '../src/story';
@@ -128,20 +129,31 @@ export async function completeIdeas(page: Page, mission: Mission, { until, ...ho
   }
 }
 
-/** After the last idea, "Put it together": any review questions that are due (pass them, as the app makes them), then the
-    lesson's story problem when story mode tells one. Each is answered right; the last one's Finish opens the lesson page. */
+/** After the last idea, the checkpoint: 3 questions with new numbers (each answered right). */
+export async function completeCheckpoint(page: Page, mission: Mission, hooks: WalkHooks = {}) {
+  for (const [index, question] of lessonCheckpoint(mission).entries()) {
+    await expect(page.locator('.fq-play-kicker')).toContainText(`Checkpoint · Question ${index + 1} of 3`);
+    await answerRight(page, question, `${mission.id} checkpoint ${index + 1}`, hooks);
+  }
+}
+
+/** After the last idea: the checkpoint, then "Put it together": any review questions that are due (pass them, as the app
+    makes them), then the lesson's story problem when story mode tells one. Each is answered right; the last one's Finish
+    opens the lesson page. Returns how many "Put it together" questions were asked (the checkpoint's 3 are not counted). */
 export async function finishPutTogether(page: Page, mission: Mission, { review = [], ...hooks }: WalkHooks & { review?: PracticeQuestion[] } = {}) {
+  await completeCheckpoint(page, mission, hooks);
   const last = mission.questions.at(-1)!;
   const known = [...review, { ...last, id: `${last.id}-story` }];
   // Waited for in the page, not with an assertion: the lesson page may open under a break offer, and an assertion would
   // set off the tests' Watch-skipping handler behind it.
   const next = () => page.waitForFunction(() => document.querySelector('[data-testid="learning-lab"]') ? 'lab'
     : [...document.querySelectorAll('.fq-play-kicker')].some((kicker) => kicker.textContent?.includes('Put it together')) ? 'question' : null);
-  for (let asked = 0; asked <= known.length; asked++) {
+  // Up to two earlier-lesson items (a missed skill, then a warm-up) may come before the story problem.
+  for (let asked = 0; asked <= known.length + 2; asked++) {
     if (await (await next()).jsonValue() === 'lab') return asked;
     const testId = await page.locator('[data-testid^="button-answer-"]').first().getAttribute('data-testid');
     const id = testId!.replace(/^button-answer-/, '').replace(/-\d+$/, '');
-    const question = known.find((item) => item.id === id);
+    const question = known.find((item) => item.id === id) ?? reviewQuestionFromId(id);
     if (!question) throw new Error(`${mission.id}: a "Put it together" question nobody expected (${id})`);
     await answerRight(page, question, `${mission.id} put it together ${asked + 1}`, hooks);
   }

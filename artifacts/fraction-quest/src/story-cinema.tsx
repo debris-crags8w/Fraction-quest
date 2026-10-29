@@ -8,13 +8,13 @@
    Scenes: the prologue, every chapter opening, completed chapter endings and the finale. */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowRight, Music, RotateCcw, Search, Volume2, VolumeX } from 'lucide-react';
+import { ArrowRight, Music, RotateCcw, Search, Volume1, Volume2, VolumeX } from 'lucide-react';
 import { StoryCharacter } from './characters';
 import { LearningListenButton, LearningText, prefetchReading, useFollowedReading } from './LearningText';
 import { logVoice } from './lib/natural-voice';
 import { useFun, useSeason } from './fun-ui';
 import { playCue } from './lib/fun';
-import { filmMood, StoryMusic } from './lib/story-music';
+import { FADE_END_SECONDS, FADE_QUICK_SECONDS, filmMood, MUSIC_SAVED, musicPlays, nextMusicVolume, parseMusicVolume, StoryMusic, type MusicVolume } from './lib/story-music';
 import { sentences, spokenText } from './lib/voice';
 import { speakerVoice } from './lib/cast-voices';
 import { ChapterEndPicture, hasChapterEndPicture, LessonProp, lessonPropFor, PROP_FRIEND } from './film-props';
@@ -52,12 +52,12 @@ function saveFilmVoice(on: boolean) {
   try { globalThis.localStorage?.setItem(FILM_VOICE_KEY, on ? 'on' : 'off'); } catch { /* the choice still holds for this film */ }
 }
 const FILM_MUSIC_KEY = 'fraction-quest-film-music';
-/** The film's Music button carries over to the next film (null: not chosen, so the music plays when allowed). */
-function savedFilmMusic(): boolean | null {
-  try { const saved = globalThis.localStorage?.getItem(FILM_MUSIC_KEY); return saved === 'on' ? true : saved === 'off' ? false : null; } catch { return null; }
+/** The film's Music button (normal, soft or off) carries over to the next film (null: not chosen, so normal when allowed). */
+function savedFilmMusic(): MusicVolume | null {
+  try { return parseMusicVolume(globalThis.localStorage?.getItem(FILM_MUSIC_KEY)); } catch { return null; }
 }
-function saveFilmMusic(on: boolean) {
-  try { globalThis.localStorage?.setItem(FILM_MUSIC_KEY, on ? 'on' : 'off'); } catch { /* the choice still holds for this film */ }
+function saveFilmMusic(volume: MusicVolume) {
+  try { globalThis.localStorage?.setItem(FILM_MUSIC_KEY, MUSIC_SAVED[volume]); } catch { /* the choice still holds for this film */ }
 }
 const VOICE_GIVE_UP_MS = 15_000; // the first shot waits at least this long for the voice to start
 const VOICE_CPS = 10;      // a generous reading pace (characters a second): slower than any voice reads, "says:" included
@@ -77,18 +77,18 @@ const FILMING: Record<StoryScene, { shots: Shot[]; impact?: number; coldFrom?: n
       shot('scale(1.28)', '50% 42%'), shot('scale(1)', '50% 60%')],
     impact: 2, coldFrom: 2, end: 'To be continued…',
   },
-  bakery: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.3)', '24% 40%'), shot('scale(1.55)', '60% 48%'), shot('scale(1.05)', '50% 40%')], impact: 2 },
-  pond: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '66% 30%'), shot('scale(1.1)', '50% 50%'), shot('scale(1)', '50% 40%')], impact: 0 },
+  bakery: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.3)', '24% 40%'), shot('scale(1.25)', '33% 50%'), shot('scale(1.05)', '50% 40%')], impact: 2 },
+  pond: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.2)', '40% 35%'), shot('scale(1.1)', '50% 50%'), shot('scale(1)', '50% 40%')], impact: 0 },
   hill: { shots: [shot('scale(1.1)', '20% 50%'), shot('scale(1.4)', '86% 14%'), shot('scale(1)', '50% 40%'), shot('scale(1.25)', '35% 40%')] },
   bridge: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '55% 38%'), shot('scale(1)', '50% 40%'), shot('scale(1.1)', '50% 36%')], impact: 0 },
   tower: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.25)', '30% 36%'), shot('scale(1.2)', '72% 30%'), shot('scale(1.05)', '60% 36%')], impact: 0 },
-  honey: { shots: [shot('scale(1.1)', '50% 30%'), shot('scale(1.25)', '50% 16%'), shot('scale(1.4)', '30% 40%'), shot('scale(1.1)', '50% 40%')] },
+  honey: { shots: [shot('scale(1.1)', '50% 30%'), shot('scale(1.25)', '50% 16%'), shot('scale(1.18)', '50% 30%'), shot('scale(1.1)', '50% 40%')] },
   workshop: { shots: [shot('scale(1.1)', '50% 38%'), shot('scale(1.15)', '10% 44%'), shot('scale(1.15)', '10% 40%'), shot('scale(1.05)', '50% 45%')], impact: 2 },
   den: { shots: [shot('scale(1.12)', '50% 40%'), shot('scale(1.3)', '30% 48%'), shot('scale(1.2)', '32% 46%'), shot('scale(1.05)', '50% 42%')], coldFrom: 1 },
   race: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.15)', '12% 30%'), shot('scale(1.2)', '30% 46%'), shot('scale(1.05)', '50% 42%')] },
-  picnic: { shots: [shot('scale(1.05)', '50% 42%'), shot('scale(1.1)', '27% 38%'), shot('scale(1.1)', '72% 38%'), shot('scale(1.05)', '50% 42%')] },
-  machine: { shots: [shot('scale(1.05)', '50% 42%'), shot('scale(1.3)', '30% 62%'), shot('scale(1.1)', '30% 45%'), shot('scale(1.05)', '55% 55%')], impact: 2, coldFrom: 0, warmFrom: 1 },
-  stage: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.25)', '32% 48%'), shot('scale(1.15)', '34% 55%'), shot('scale(1.05)', '50% 42%')] },
+  picnic: { shots: [shot('scale(1.05)', '50% 42%'), shot('scale(1.1)', '27% 38%'), shot('scale(1.06)', '30% 38%'), shot('scale(1.05)', '50% 42%')] },
+  machine: { shots: [shot('scale(1.05)', '50% 42%'), shot('scale(1.3)', '6% 62%'), shot('scale(1.1)', '30% 45%'), shot('scale(1.05)', '55% 55%')], impact: 2, coldFrom: 0, warmFrom: 1 },
+  stage: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.2)', '8% 48%'), shot('scale(1.15)', '15% 55%'), shot('scale(1.05)', '50% 42%')] },
   garden: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.15)', '32% 48%'), shot('scale(1.08)', '40% 45%'), shot('scale(1.05)', '50% 42%')] },
   lock: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.28)', '32% 48%'), shot('scale(1.18)', '34% 48%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
   festival: { shots: [shot('scale(1.05)', '9% 29%'), shot('scale(1.2)', '9% 29%'), shot('scale(1.3)', '9% 29%'), shot('scale(1.05)', '9% 29%')] },
@@ -286,7 +286,7 @@ function TowerArt({ beat }: { beat: number }) {
 function HoneyArt({ beat }: { beat: number }) {
   return (
     <>
-      <span className="fq-cine-hive" style={pos(80, 6)} />
+      <span className="fq-cine-hive" style={pos(80, 14)} />
       <span className="fq-cine-shelf is-long" />
       {[[1, 2], [2, 4], [4, 8]].map(([n, d], i) => (
         <span key={i} className={`fq-cine-jar ${beat === 2 ? 'is-glowing' : ''}`} style={pos(10 + i * 30, 26, { animationDelay: `${i * 0.2}s` })}>
@@ -294,7 +294,7 @@ function HoneyArt({ beat }: { beat: number }) {
         </span>
       ))}
       {beat === 2 && <span className="fq-cine-level" />}
-      <span className={`fq-cine-actor ${beat === 0 ? 'is-buzzing' : ''}`} style={pos(40, 1)}>
+      <span className={`fq-cine-actor ${beat === 0 ? 'is-buzzing' : ''}`} style={pos(40, 14)}>
         <StoryCharacter id="bea" size={64} happy={beat === 2} />
       </span>
       <span className={`fq-cine-map ${beat === 0 ? 'is-falling' : ''}`} aria-hidden="true" />
@@ -354,7 +354,7 @@ function RaceArt({ beat }: { beat: number }) {
   return (
     <>
       <span className="fq-cine-race-sky" /><span className="fq-cine-race-hill" /><span className="fq-cine-race-road" />
-      <span className="fq-cine-race-sign" style={pos(62, 6)}><b><Frac n={1} d={3} /></b><b><Frac n={1} d={2} /></b><b><Frac n={2} d={3} /></b></span>
+      <span className="fq-cine-race-sign" style={pos(62, 13)}><b><Frac n={1} d={3} /></b><b><Frac n={1} d={2} /></b><b><Frac n={2} d={3} /></b></span>
       <span className={`fq-cine-flipcard fq-cine-move ${renamed ? 'is-flipped' : ''}`} style={pos(55, 36)} role="img"
         aria-label={renamed ? 'The sign now says one half: the same spot as two fourths' : 'A sign on the route says two fourths'}>
         <b><Frac n={2} d={4} /></b><b><Frac n={1} d={2} /></b>
@@ -536,7 +536,7 @@ const BACKDROPS: Record<ChapterScene, () => ReactNode> = {
   bridge: () => <><Stars /><span className="fq-cine-cliff is-left" /><span className="fq-cine-cliff is-right" /><span className="fq-cine-river" /><span className="fq-cine-rope" />
     {Array.from({ length: 6 }, (_, i) => <span key={i} className={`fq-cine-plank ${i === 2 || i === 4 ? 'is-gone' : ''}`} style={pos(18 + i * 10.6, 40)} />)}</>,
   tower: () => <><span className="fq-cine-wall" /><span className="fq-cine-floor" /></>,
-  honey: () => <><span className="fq-cine-hive" style={pos(80, 6)} /><span className="fq-cine-shelf is-long" /></>,
+  honey: () => <><span className="fq-cine-hive" style={pos(80, 14)} /><span className="fq-cine-shelf is-long" /></>,
   workshop: () => <><span className="fq-cine-workshop-window" /><span className="fq-cine-workbench" /><span className="fq-cine-gear is-turning" style={pos(66, 30)} /></>,
   den: () => <><span className="fq-cine-den-cave" /><span className="fq-cine-den-floor" /></>,
   race: () => <><span className="fq-cine-race-sky" /><span className="fq-cine-race-hill" /><span className="fq-cine-race-road" /><span className="fq-cine-tree" style={pos(80, 46)} /></>,
@@ -549,6 +549,11 @@ const BACKDROPS: Record<ChapterScene, () => ReactNode> = {
 };
 const isChapterScene = (scene: StoryScene): scene is ChapterScene => scene in BACKDROPS;
 
+/** The caption covers the lower part of the picture (up to a third of it on a phone), so whoever is in a lesson film stands
+    in the upper part: the speaker, and the chapter's friend beside them. films-all.spec.ts measures this on every chapter. */
+const SET_SPEAKER_TOP = 18;
+const SET_FRIEND_TOP = 28;
+
 function SetArt({ scene, beat, unit = 1, speaker, lessonId }: { scene: ChapterScene; beat: number; unit?: number; speaker?: Panel['speaker']; lessonId?: string }) {
   const friend = (CHAPTERS[unit - 1] ?? CHAPTERS[0]).character;
   const Backdrop = BACKDROPS[scene];
@@ -557,11 +562,11 @@ function SetArt({ scene, beat, unit = 1, speaker, lessonId }: { scene: ChapterSc
     <>
       <Backdrop />
       {prop && <LessonProp prop={prop} scene={scene} beat={beat} />}
-      <span key={speaker ?? friend} className="fq-cine-actor fq-cine-set-speaker" style={pos(10, 30)} data-testid="story-set-speaker">
+      <span key={speaker ?? friend} className="fq-cine-actor fq-cine-set-speaker" style={pos(10, SET_SPEAKER_TOP)} data-testid="story-set-speaker">
         <StoryCharacter id={speaker ?? friend} size={96} happy />
       </span>
       {speaker && speaker !== friend && (
-        <span className="fq-cine-actor" style={prop ? PROP_FRIEND.style : pos(70, 42)}><StoryCharacter id={friend} size={prop ? PROP_FRIEND.size : 66} /></span>
+        <span className="fq-cine-actor" style={prop ? PROP_FRIEND.style : pos(66, SET_FRIEND_TOP)} data-testid="story-set-friend"><StoryCharacter id={friend} size={prop ? PROP_FRIEND.size : 66} /></span>
       )}
     </>
   );
@@ -604,9 +609,9 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     ? (props: { beat: number; unit?: number; speaker?: Panel['speaker'] }) => <SetArt scene={lessonSet} lessonId={lessonId} {...props} />
     : ART[scene]), [lessonSet, scene, lessonId]);
   const [voiceOn, setVoiceOn] = useState(() => savedFilmVoice() ?? fun.sound !== false);
-  // Story music: a grown-up allows it (on unless turned off, and only with sounds on); the film's button turns it off.
+  // Story music: a grown-up allows it (on unless turned off, and only with sounds on); the film's button makes it softer or turns it off.
   const musicAllowed = fun.sound !== false && fun.displayPreferences?.storyMusic !== false;
-  const [musicOn, setMusicOn] = useState(() => savedFilmMusic() ?? true);
+  const [musicVolume, setMusicVolume] = useState<MusicVolume>(() => savedFilmMusic() ?? 'normal');
   const music = useRef<StoryMusic | null>(null);
   // While the voice is on its way (a clip still downloading), the caption says so; while it speaks, the music is softer.
   const [voiceWaiting, setVoiceWaiting] = useState(false);
@@ -774,20 +779,25 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const waitingCaption = voiceWaiting && !done && beat >= 0;
   const reply = choice && picked !== null ? choice[picked].reply : null;
 
-  // The music starts with the film, follows its mood, gets softer under the voice, and fades out when it closes.
-  const playMusic = musicAllowed && musicOn && started;
+  // The music starts with the film, follows its mood, gets softer under the voice, and fades out when the film ends
+  // (a replay starts it again) or the child turns it off or leaves.
+  const playMusic = musicPlays({ soundOn: fun.sound !== false, allowed: fun.displayPreferences?.storyMusic !== false, volume: musicVolume, finished: done }) && started;
   const mood = filmMood({ cold, finished: done || ending });
+  const filmDone = useRef(done);
+  filmDone.current = done;
   useEffect(() => {
     if (!playMusic) return;
     const player = new StoryMusic();
     music.current = player;
-    player.start(mood);
-    return () => { player.stop(); music.current = null; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- started once; the mood follows below
+    player.start(mood, musicVolume);
+    return () => { player.stop(filmDone.current ? FADE_END_SECONDS : FADE_QUICK_SECONDS); music.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- started once; the mood and volume follow below
   }, [playMusic]);
   useEffect(() => { music.current?.setMood(mood); }, [mood]);
+  useEffect(() => { music.current?.setVolume(musicVolume); }, [musicVolume]);
   useEffect(() => { music.current?.duck(speaking); }, [speaking]);
-  const toggleMusic = () => { const next = !musicOn; setMusicOn(next); saveFilmMusic(next); };
+  const toggleMusic = () => { const next = nextMusicVolume(musicVolume); setMusicVolume(next); saveFilmMusic(next); };
+  const musicLabel = musicVolume === 'normal' ? 'Music on' : musicVolume === 'soft' ? 'Music soft' : 'Music off';
 
   return (
     <div className="fq-app fq-story-app">
@@ -802,9 +812,10 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
               {voiceOn ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />} {voiceOn ? 'Voice on' : 'Voice off'}
             </button>
             {musicAllowed && (
-              <button type="button" className="fq-cine-voice fq-cine-music" aria-pressed={musicOn} onClick={toggleMusic}
-                aria-label={musicOn ? 'Music on: turn the story music off' : 'Music off: turn the story music on'} data-testid="button-story-music">
-                <Music size={16} aria-hidden="true" /> {musicOn ? 'Music on' : 'Music off'}
+              <button type="button" className={`fq-cine-voice fq-cine-music ${musicVolume === 'soft' ? 'is-soft' : ''}`} aria-pressed={musicVolume !== 'off'} onClick={toggleMusic}
+                aria-label={musicVolume === 'normal' ? 'Music on: make the story music softer' : musicVolume === 'soft' ? 'Music soft: turn the story music off' : 'Music off: turn the story music on'}
+                data-volume={musicVolume} data-testid="button-story-music">
+                {musicVolume === 'soft' ? <Volume1 size={16} aria-hidden="true" /> : <Music size={16} aria-hidden="true" />} {musicLabel}
               </button>
             )}
             </span>

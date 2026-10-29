@@ -135,7 +135,7 @@ const RULES: Rule[] = [
       if (dist.filter((x) => near(x, best)).length > 1) return `${m[1]} is halfway between two benchmarks`;
       return { value: marks[dist.indexOf(best)] }; } },
   { name: 'make it, then place it', re: /^Make (\d+\/\d+)\. Is it near 0, 1\/2 or 1\?$/, solve: (m) => ({ value: frac(m[1]) }) },
-  { name: 'more or less than half (pick)', re: /^Which is (more|less) than 1\/2: (\d+\/\d+) or (\d+\/\d+)\?(?: Make it\.)?$/,
+  { name: 'more or less than half (pick)', re: /^Which is (more|less) than 1\/2[:,] (\d+\/\d+) or (\d+\/\d+)\?(?: Make it\.)?$/,
     solve: (m) => { const fit = [m[2], m[3]].filter((x) => (m[1] === 'more' ? frac(x) > 0.5 : frac(x) < 0.5));
       if (fit.length !== 1) return `${fit.length} of the two are ${m[1]} than 1/2`; return { value: frac(fit[0]) }; } },
   { name: 'closer to 0 or 1', re: /^Which is closer to (0|1): (\d+\/\d+) or (\d+\/\d+)\?$/,
@@ -144,7 +144,7 @@ const RULES: Rule[] = [
   { name: 'closer to half', re: /^Which is closer to 1\/2: (\d+\/\d+) or (\d+\/\d+)\?(?: Make it\.)?$/,
     solve: (m) => { const [a, b] = [frac(m[1]), frac(m[2])]; const [da, db] = [Math.abs(a - 0.5), Math.abs(b - 0.5)];
       if (near(da, db)) return 'both are equally close'; return { value: da < db ? a : b }; } },
-  { name: 'closest to half (choices)', re: /^Which is closest to 1\/2\?$/,
+  { name: 'closest to half (choices)', re: /^Which (?:fraction )?is closest to 1\/2\?$/,
     solve: (_m, item) => { const v = (item.choices ?? []).map(valueOf); const d = v.map((x) => Math.abs(x - 0.5)); const best = Math.min(...d);
       if (d.filter((x) => near(x, best)).length > 1) return 'two choices are equally close'; return { value: v[d.indexOf(best)] }; } },
   { name: 'estimate against 1', re: /^Without finding the exact (sum|difference), compare (\d+\/\d+) ([+−]) (\d+\/\d+) with 1: __ 1\.$/,
@@ -384,6 +384,41 @@ const RULES: Rule[] = [
     solve: (m, item) => { const n = valueOf(m[2]); const fits = (item.choices ?? []).filter((c) => { const v = evaluate(c); return !near(v, n) && (m[1] === 'more' ? v > n : v < n); });
       if (fits.length !== 1) return `${fits.length} choices are ${m[1]} than ${m[2]}`; return { text: fits[0] }; } },
 
+  // --- more forms of the same lessons (Practice more and New questions draw on these)
+  { name: 'more or less than half (a full container)', re: /^A (?:jug|glass|bottle|bucket) is (\d+\/\d+) full\. Is that more or less than half\?$/,
+    solve: (m) => { const v = frac(m[1]); if (near(v, 0.5)) return 'exactly half'; return { text: v > 0.5 ? 'More than half' : 'Less than half' }; } },
+  { name: 'nearer one of two benchmarks', re: /^Is (\d+\/\d+) nearer (0|1\/2) or (1\/2|1)\?$/,
+    solve: (m) => { const v = frac(m[1]); const [a, b] = [valueOf(m[2]), valueOf(m[3])]; const [da, db] = [Math.abs(v - a), Math.abs(v - b)];
+      if (near(da, db)) return `${m[1]} is halfway between ${m[2]} and ${m[3]}`; return { text: `Nearer ${da < db ? m[2] : m[3]}` }; } },
+  { name: 'rename to a named part', re: /^(Halves|Thirds|Fourths|Fifths|Sixths|Eighths|Ninths|Tenths|Twelfths) and (\w+) are different sizes\. Rename (\d+)\/(\d+) as \2\.$/,
+    solve: (m) => (UNIT_WORD[m[1].toLowerCase()] !== N(m[4]) ? `"${m[1]}" does not match the denominator ${m[4]}` : { value: frac(`${m[3]}/${m[4]}`), denominator: UNIT_WORD[m[2]] }) },
+  { name: 'a number that divides both', re: /^Which number divides both (\d+) and (\d+)\?$/,
+    solve: (m, item) => { const fits = (item.choices ?? []).filter((c) => N(c) > 1 && N(m[1]) % N(c) === 0 && N(m[2]) % N(c) === 0);
+      if (fits.length !== 1) return `${fits.length} choices divide both ${m[1]} and ${m[2]}`; return { text: fits[0] }; } },
+  { name: 'colored strip: fraction colored', re: /^A strip has (\d+) equal parts\. (\d+) (?:is|are) colored\. What fraction is (not )?colored\?$/,
+    solve: (m) => ({ value: (m[3] ? N(m[1]) - N(m[2]) : N(m[2])) / N(m[1]), denominator: N(m[1]) }) },
+  { name: 'decimal at the dot', re: /^What decimal is at the dot\?$/,
+    solve: (_m, item) => { const p = (item.pictures ?? []).find((x) => x.kind === 'line'); if (!p) return 'no number line';
+      const [n, d] = 'n' in p ? [p.n, p.d] : [(p as { numerator: number }).numerator, (p as { denominator: number }).denominator];
+      if (d !== 10) return `the line has ${d} spaces, not tenths`; return { value: n / d, form: 'decimal' }; } },
+  { name: 'colored strip: decimal', re: /^A strip has 10 equal parts\. (\d+) (?:is|are) colored\. Write the colored part as a decimal\.$/,
+    solve: (m) => ({ value: N(m[1]) / 10, form: 'decimal' }) },
+  { name: 'how many parts make one whole', re: /^How many (halves|thirds|fourths|fifths|sixths|eighths|tenths|twelfths) make one whole\?$/,
+    solve: (m) => ({ value: UNIT_WORD[m[1]], form: 'whole' }) },
+  { name: 'friends share one thing', re: /^(\d+) friends share a (?:pizza|cake|bar) fairly\. What fraction (?:of the (?:pizza|cake) )?does each friend get\?$/,
+    solve: (m) => ({ value: 1 / N(m[1]), denominator: N(m[1]) }) },
+  { name: 'one of the equal tiles', re: /^What fraction is 1 of (\d+) equal tiles\?$/, solve: (m) => ({ value: 1 / N(m[1]), denominator: N(m[1]) }) },
+
+  // Find my level asks measurement skills with what the quiz can show (placement-extras.ts): a number line for a ruler, measurements in the words.
+  { name: 'ruler as a number line', re: /^A ruler is marked in (halves|fourths) of an inch\. The \w+(?: \w+)? ends at the dot\. How long is the \w+(?: \w+)? in inches\?$/,
+    solve: (m, item) => { const p = (item.pictures ?? []).find((x) => x.kind === 'line'); if (!p) return 'no number line';
+      const [n, d] = 'n' in p ? [p.n, p.d] : [(p as { numerator: number }).numerator, (p as { denominator: number }).denominator];
+      if (d !== UNIT_WORD[m[1]]) return `the prompt says ${m[1]} but the line has ${d} spaces in each inch`; return { value: n / d }; } },
+  { name: 'measurements in the words: difference', re: /^These \w+ lengths are (.+) inch\. What is the difference between the longest and shortest\?$/,
+    solve: (m) => { const v = m[1].split(/,? and |, /).map(frac); return { value: Math.max(...v) - Math.min(...v) }; } },
+  { name: 'measurements in the words: how many', re: /^These \w+ lengths are (.+) inch\. How many \w+ are (\d+\/\d+) inch long\?$/,
+    solve: (m) => ({ value: m[1].split(/,? and |, /).map(frac).filter((x) => near(x, frac(m[2]))).length }) },
+
   // --- pick the one choice that fits (exactly one must)
   { name: 'pick: the choice that fits', re: /^Which (?:fraction |amount |number |decimal |part |sum |order )?(?:is |covers |goes |fits |equals |makes )?(.+)\?$/,
     solve: (m, item) => {
@@ -559,6 +594,43 @@ const PICTURE_RULES: Rule[] = [
       return ruler && ruler.kind === 'ruler' ? { value: ruler.end / ruler.denominator } : 'no ruler'; } },
 ];
 
+// ---------------------------------------------------------------------------------------------- picture agreement
+
+/* The text rules above read a question from its words. For the adding, subtracting and comparing rules the picture is
+   read too: a picture of bars may draw only amounts the question names (or its answer or a choice), it must draw the
+   amounts that are compared (a benchmark may be a marked line instead), and it must draw at least one amount that is
+   added or taken away. A picture left over
+   from another question, or drawn for the wrong numbers, fails. */
+const PICTURE_AMOUNTS: Record<string, { amounts: (m: RegExpExecArray) => number[]; all: boolean }> = {
+  'add/subtract': { amounts: (m) => [frac(m[1]), frac(m[3])], all: false },
+  'mixed add/subtract': { amounts: (m) => [N(m[1]) + frac(m[2]), N(m[4] ?? 0) + frac(m[5])], all: false },
+  'which is bigger/smaller': { amounts: (m) => [frac(m[2]), frac(m[3])], all: true },
+  'which is biggest/longest of three': { amounts: (m) => [m[2], m[3], m[4]].map(frac), all: true },
+  'gap sign': { amounts: (m) => [valueOf(m[1]), valueOf(m[2])], all: true },
+  'order': { amounts: (m) => m[1].split(/,? and |, /).map(valueOf), all: true },
+};
+/** The length of every bar a question's pictures draw. */
+export const drawnBars = (pictures: ProofPicture[] = []): number[] => pictures.flatMap((p) =>
+  p.kind === 'bars' ? p.bars.map((b) => ('n' in b ? b.n / b.d : b.numerator / b.denominator)) : p.kind === 'bar' && 'n' in p ? [p.n / p.d] : []);
+
+/** Why the picture does not match the question's own numbers, or null when it does (or draws no bars). */
+function pictureProblem(rule: string, m: RegExpExecArray, item: ProofItem): string | null {
+  const spec = PICTURE_AMOUNTS[rule];
+  const drawn = drawnBars(item.pictures);
+  if (!spec || !drawn.length) return null;
+  const amounts = spec.amounts(m);
+  if (amounts.some((a) => !Number.isFinite(a))) return null;
+  const known = [...amounts, ...[item.answer, ...(item.choices ?? [])].map((text) => (text === undefined ? NaN : valueOf(text)))];
+  const foreign = drawn.find((v) => !known.some((a) => near(a, v)));
+  if (foreign !== undefined) return `the picture draws a bar of ${foreign}, which the question never names`;
+  // A benchmark (0, 1/2 or 1) may be the line the bars are read against instead of a bar of its own.
+  // (A worksheet row, which has no choices, may draw only the first compared amount: compare-decimals rows do.)
+  const every = spec.all && item.choices !== undefined;
+  const needed = every ? amounts.filter((a) => ![0, 0.5, 1].some((mark) => near(a, mark))) : [];
+  const missing = every ? needed.find((a) => !drawn.some((v) => near(v, a))) : amounts.some((a) => drawn.some((v) => near(v, a))) ? undefined : amounts[0];
+  return missing === undefined ? null : `the picture does not draw ${missing}, an amount the question ${every ? 'compares' : 'works with'}`;
+}
+
 // ---------------------------------------------------------------------------------------------- checking
 
 const STRIP = [/^Quick review · [^:]+: /, / Build the answer two ways\.$/, / Answer yes or no\.$/];
@@ -635,7 +707,9 @@ export function prove(item: ProofItem): ProofResult {
     if (expect === SKIP) continue;
     if (typeof expect === 'string') return { ok: false, rule: rule.name, why: expect };
     if ('value' in expect && !Number.isFinite(expect.value)) return { ok: false, rule: rule.name, why: 'the question has no finite answer' };
-    return check(expect, item, rule.name);
+    const checked = check(expect, item, rule.name);
+    const picture = checked?.ok ? pictureProblem(rule.name, m, item) : null;
+    return picture ? { ok: false, rule: rule.name, why: picture } : checked;
   }
   const key = PROOF_KEY[prompt];
   if (key !== undefined) {
@@ -649,7 +723,9 @@ export function prove(item: ProofItem): ProofResult {
 
 /* Explanations, hints and feedback state sums as they go ("3/4 = 9/12", "8 − 1 − 2 = 5", "3 × 2/3 = 6/3 = 2").
    Every one is worked out again: each side of each "=" must be the same amount. Words ("3 fourths") are left alone. */
-const CLAIM = new RegExp(String.raw`(?<![\d/]|\d\.)(?:${TERM})(?: [+−×÷] (?:${TERM}))*(?: = (?:${TERM})(?: [+−×÷] (?:${TERM}))*)+(?![\d/]|\.\d)`, 'g');
+const CLAIM = new RegExp(String.raw`(?<![\d/]|\d\.)(?:${TERM})(?: [+−×÷] (?:${TERM}))*(?: = (?:${TERM})(?: [+−×÷] (?:${TERM}))*)+(?![\d/]|\.\d| [+−×÷] \?)`, 'g');
+/** A sum a story character gets wrong on purpose ("Sam wrote 1/4 + 2/4 = 3/8."): the lesson is that it is not true. */
+const SAID_BY = /\b(?:wrote|writes|says|said|thinks|thought)\s+$/;
 
 /** Every written sum in a text ("3/4 = 9/12"), as written. */
 export const writtenClaims = (text: string): string[] => [...text.matchAll(CLAIM)].map((m) => m[0]);
@@ -664,6 +740,7 @@ export function falseClaims(text: string): string[] {
   const wrong: string[] = [];
   for (const m of text.matchAll(CLAIM)) {
     const claim = m[0];
+    if (SAID_BY.test(text.slice(0, m.index ?? 0))) continue;
     const sides = claim.split(' = ').map(evaluate);
     // "0.7 = 70 hundredths" names parts on the last side only; "1 + 2 = 3 fourths" counts the same parts all through.
     if (/[./%]/.test(claim.split(' = ')[0])) sides[sides.length - 1] /= partsAfter(text, (m.index ?? 0) + claim.length);

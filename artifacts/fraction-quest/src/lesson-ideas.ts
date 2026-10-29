@@ -1,6 +1,7 @@
 /* Learn one idea, practise it three times, then the next idea. Each lesson with ideas teaches one idea on its Learn
    pages (pictures from its Teach first), then asks 3 practices that use only that idea and the ones before it. After the
-   last idea the lesson's review and story problem come ("Put it together"), then the lesson page. Pure data, checked by
+   last idea a 3-question checkpoint with new numbers comes (checkpoint.ts), then the lesson's review and story problem
+   ("Put it together"), then the lesson page. Pure data, checked by
    lesson-ideas.test.ts (every practice is a real question, cake round or card-ordering round; each idea has 3; each screen
    uses only its idea and earlier ones). Every lesson has ideas (a test checks all of MISSIONS). */
 import type { Mission, PracticeQuestion } from './game';
@@ -69,14 +70,25 @@ export const fractionsTaughtBy = (missionId: string, ideaIndex: number): boolean
 
 /** A short name for the lesson's practice list: a saved place (practiceAt) only resumes in the list it was saved in.
     When a lesson's ideas or questions change, the old question number points somewhere else, so the lesson starts over. */
-export const practicePlan = (mission: Mission): string => {
-  const items = lessonIdeas(mission.id)
-    ? ideaSteps(mission.id).map(({ item }) => ('question' in item ? item.question : 'handsOn' in item ? `hands-on:${item.handsOn}` : `sort:${item.sortRound}`))
-    : mission.questions.map((question) => question.id);
+const planName = (items: string[]): string => {
   let hash = 5381;
   for (const char of items.join('|')) hash = ((hash * 33) ^ char.charCodeAt(0)) >>> 0;
   return `${items.length}-${hash.toString(36)}`;
 };
+const planItems = (mission: Mission): string[] => lessonIdeas(mission.id)
+  ? ideaSteps(mission.id).map(({ item }) => ('question' in item ? item.question : 'handsOn' in item ? `hands-on:${item.handsOn}` : `sort:${item.sortRound}`))
+  : mission.questions.map((question) => question.id);
+/** The practice list now: the ideas' practices, then (a lesson with ideas) its checkpoint. */
+export const practicePlan = (mission: Mission): string => planName(lessonIdeas(mission.id) ? [...planItems(mission), 'checkpoint'] : planItems(mission));
+/** The name before the lesson had a checkpoint: a place saved then, inside the ideas, is still the same place. */
+export const legacyPracticePlan = (mission: Mission): string => planName(planItems(mission));
+
+/** Can a place saved in a lesson's practice list still be used? Yes when it was saved in the current list. A place saved before the
+    lesson had its checkpoint is still right inside the ideas (the checkpoint comes after them all), but one saved later, in the review
+    or the story problem, would now land in the checkpoint, so that lesson starts over. */
+export const savedPlaceStillFits = (mission: Mission, at: { index: number; plan?: string }): boolean =>
+  at.plan === practicePlan(mission)
+  || (lessonIdeas(mission.id) !== undefined && at.plan === legacyPracticePlan(mission) && at.index < ideaSteps(mission.id).length);
 
 /** What Listen reads on a Learn page: its line, then the sentences under the picture. A worked example's title is only a label
     ("Write one part"), and said aloud it sounds like an instruction, so only its sentences are read. */

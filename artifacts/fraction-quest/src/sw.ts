@@ -1,6 +1,6 @@
 /* The service worker: Fraction Quest opens and plays without a connection. Built by the offline plugin in
    vite.config.ts, which fills in the files to save (__PRECACHE__) and this build's name (__VERSION__). */
-import { offlineRoute, precacheUrls } from './lib/offline-routes';
+import { offlineRoute, pageFromNetworkOrSaved, precacheUrls } from './lib/offline-routes';
 
 // The worker's own events, typed here: the app's TypeScript setup has the page's types, not the worker's.
 type WaitEvent = Event & { waitUntil(work: Promise<unknown>): void };
@@ -44,11 +44,16 @@ async function fromCacheFirst(request: Request, cacheName: string): Promise<Resp
 
 async function page(request: Request): Promise<Response> {
   try {
-    const response = await fetch(request);
-    if (response.ok) (await caches.open(SHELL)).put(PAGE, response.clone());
-    return response;
+    return await pageFromNetworkOrSaved(
+      async () => {
+        const response = await fetch(request);
+        if (response.ok) (await caches.open(SHELL)).put(PAGE, response.clone()); // also when it arrives after the saved page was shown
+        return response;
+      },
+      async () => (await caches.match(PAGE)) ?? (await caches.match(request)),
+    );
   } catch {
-    return (await caches.match(PAGE)) ?? (await caches.match(request)) ?? Response.error();
+    return Response.error();
   }
 }
 

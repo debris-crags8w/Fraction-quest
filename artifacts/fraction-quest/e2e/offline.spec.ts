@@ -12,6 +12,8 @@ const freshFun = JSON.stringify({ xp: 0, day: '2026-10-20', answeredToday: 0, da
   story: { prologueSeen: true, choices: {} }, displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: false, storyMode: false } });
 
 test.describe('the published app', () => {
+  // One build and one preview server for these tests: in parallel workers each would rebuild the folder the other serves.
+  test.describe.configure({ mode: 'serial' });
   let server: ChildProcess | undefined;
   test.beforeAll(async () => {
     test.setTimeout(240_000);
@@ -50,6 +52,24 @@ test.describe('the published app', () => {
     while (await page.getByTestId('button-teach-step-next').isVisible()) await page.getByTestId('button-teach-step-next').click();
     await page.getByTestId('button-idea-practise').click();
     await expect(page.getByTestId('button-check-answer')).toBeVisible();
+  });
+
+  test('opens the saved page when the connection hangs instead of waiting on it', async ({ context, page }) => {
+    await context.addInitScript((fun) => { if (!localStorage.getItem('fraction-quest-fun-v1')) localStorage.setItem('fraction-quest-fun-v1', fun); }, freshFun);
+    await context.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
+    await page.goto(ORIGIN);
+    await page.getByTestId('button-play-guest').click();
+    await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+
+    // The connection is up but the page request never answers (weak "lie-fi"): after 3 seconds the saved page opens.
+    await context.route(`${ORIGIN}/`, () => { /* never answered */ });
+    const started = Date.now();
+    await page.reload();
+    await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible({ timeout: 15_000 });
+    expect(Date.now() - started).toBeGreaterThan(2_500);
   });
 });
 

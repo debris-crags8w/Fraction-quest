@@ -23,19 +23,20 @@ function comparedAmounts(prompt: string): [string, string] | null {
   return left && right && left !== right ? [left, right] : null;
 }
 
-/** Sign questions as four full comparisons with one true: "6/9 > 7/9", "6/9 < 7/9", "6/9 = 7/9" and a flipped slip
-    ("7/9 < 6/9") that is never the same as the right one. The slip goes at `at` (default: the end).
-    Null when the prompt doesn't show the two amounts. */
-export function withSignComparisons(prompt: string, choices: string[], correct: number, at = choices.length): { choices: string[]; correctChoice: number } | null {
+/** The wrong idea that comparing is not possible: the fourth choice of every sign question. */
+export const CANT_TELL_CHOICE = "You can't tell";
+
+/** Sign questions as four choices with one true: the three comparisons ("6/9 > 7/9", "6/9 < 7/9", "6/9 = 7/9") and
+    "You can't tell", the classic wrong idea. A mirrored comparison ("7/9 < 6/9") would say the same as one of the
+    three, so a child could drop the pair, and the right choice would be the only one without a twin. The extra
+    choice goes at `at` (default: the end). `extra` replaces it where a lesson teaches "You can't tell" later (the grid
+    lesson's second idea): then it is a hand-written wrong comparison. Null when the prompt doesn't show the two amounts. */
+export function withSignComparisons(prompt: string, choices: string[], correct: number, at = choices.length, extra = CANT_TELL_CHOICE): { choices: string[]; correctChoice: number } | null {
   const amounts = isSignQuestion(choices) ? comparedAmounts(prompt) : null;
   if (!amounts || choices.length !== 3) return null;
   const [left, right] = amounts;
-  const written = choices.map((sign) => `${left} ${sign.trim()} ${right}`);
-  const flipped = (sign: string) => `${right} ${sign === '<' ? '>' : '<'} ${left}`;
-  // Flipping the wrong "<" or ">" gives something that is also wrong; flipping the right one would repeat it.
-  const slip = flipped(choices[correct].trim() === '<' ? '>' : '<');
-  const out = [...written];
-  out.splice(at, 0, slip);
+  const out = choices.map((sign) => `${left} ${sign.trim()} ${right}`);
+  out.splice(at, 0, extra);
   return { choices: out, correctChoice: correct + (at <= correct ? 1 : 0) };
 }
 

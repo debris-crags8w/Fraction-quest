@@ -38,7 +38,22 @@ describe('accuracy proof engine', () => {
     assert.deepEqual([...new Set(wrong)], [], 'written sums that are not true');
   });
 
+  it('also reads Learn pages, scene text, word cards, wrong-tap reasons and Check-in hints', () => {
+    const texts = allWrittenTexts();
+    const kinds = (where: string) => where.replace(/^Check-in \S+ /, 'Check-in ').replace(/^[a-z0-9-]+ /, '');
+    const claimsBy = new Map<string, number>(); const countBy = new Map<string, number>();
+    for (const { where, text } of texts) { const k = kinds(where); countBy.set(k, (countBy.get(k) ?? 0) + 1); claimsBy.set(k, (claimsBy.get(k) ?? 0) + writtenClaims(text).length); }
+    for (const [kind, least] of [['Learn page', 400], ['Learn scene', 1000], ['Teach scene', 800], ['word card', 50], ['wrong-tap reason', 20_000], ['Check-in hint', 500], ['Find my level hint', 50]] as const)
+      assert.ok((countBy.get(kind) ?? 0) >= least, `only ${countBy.get(kind) ?? 0} ${kind} texts are checked`);
+    assert.ok((claimsBy.get('Learn scene') ?? 0) > 400 && (claimsBy.get('Teach scene') ?? 0) > 250, 'the sums in scene text are read');
+    assert.ok(texts.length > 60_000, `only ${texts.length} texts`);
+  });
+
   it('reads written sums the way a child does (the claim checker itself is checked)', () => {
+    // A sum a story character gets wrong on purpose is not a false claim; a blank to fill is not a sum yet.
+    assert.deepEqual(falseClaims('Sam wrote 1/4 + 2/4 = 3/8.'), []);
+    assert.deepEqual(falseClaims('1/4 + 2/4 = 3/8.'), ['1/4 + 2/4 = 3/8']);
+    assert.deepEqual(falseClaims('5/6 = 1/6 + ?/6. The ? is the missing number. So 5/6 = 1/6 + 4/6.'), []);
     assert.deepEqual(falseClaims('1/4 + 2/4 = 3/8.'), ['1/4 + 2/4 = 3/8']);
     assert.deepEqual(falseClaims('So 2 × 3 = 7 cakes.'), ['2 × 3 = 7']);
     assert.deepEqual(falseClaims('0.5 = 5 hundredths.'), ['0.5 = 5']);
@@ -98,5 +113,18 @@ describe('accuracy proof engine', () => {
     fails({ ...base, prompt: 'Which is closest to 1/2?', choices: ['3/8', '5/8', '1/8', '7/8'], correct: 0 }, 'tie between choices');
     fails({ ...base, prompt: 'How many minutes are in 3/4 hour?', answer: '40' }, 'wrong conversion');
     fails({ ...base, prompt: 'A jug is 4/6 full. Is that more or less than half?', choices: ['Less than half', 'More than half'], correct: 0 }, 'hand-checked key');
+    // The picture is read for adding, subtracting and comparing too.
+    const bars = (...fractions: [number, number][]) => ({ kind: 'bars' as const, bars: fractions.map(([numerator, denominator]) => ({ numerator, denominator })) });
+    const sign = { prompt: 'Pick the sign: 3/4 __ 2/3', choices: ['3/4 < 2/3', '3/4 = 2/3', '3/4 > 2/3', "You can't tell"], correct: 2 };
+    passes({ ...base, ...sign, pictures: [bars([3, 4], [2, 3])] }, 'comparison picture draws both amounts');
+    fails({ ...base, ...sign, pictures: [bars([3, 4], [1, 5])] }, 'comparison picture draws another fraction');
+    fails({ ...base, ...sign, pictures: [bars([3, 4])] }, 'comparison picture leaves out one amount');
+    passes({ ...base, prompt: 'Compare: 0.3 __ 0.25.', answer: '>', pictures: [bars([30, 100])] }, 'a worksheet row may draw the first amount only');
+    fails({ ...base, prompt: 'Compare: 0.3 __ 0.25.', answer: '>', pictures: [bars([7, 8])] }, 'a worksheet picture for other numbers');
+    const sum = { prompt: '2/5 + 1/5 = ?', choices: ['3/5', '3/10', '2/5', '1/5'], correct: 0 };
+    passes({ ...base, ...sum, pictures: [bars([2, 5])] }, 'a sum picture draws an amount that is added');
+    fails({ ...base, ...sum, pictures: [bars([4, 7])] }, 'a sum picture for other numbers');
+    fails({ ...base, prompt: '2/5 + 1/5 = ?', answer: '3/5', pictures: [bars([3, 5], [3, 5])] }, 'a sum picture that shows only the answer');
+    fails({ ...base, prompt: 'Which is bigger, 1/3 or 1/4?', choices: ['1/3', '1/4', 'They are equal', "You can't tell"], correct: 0, pictures: [bars([1, 3], [1, 8])] }, 'a bigger-or-smaller picture of other numbers');
   });
 });
