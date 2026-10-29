@@ -1601,6 +1601,35 @@ describe('entered-answer worksheets and evidence gates', () => {
     assert.doesNotMatch(generated, /Cut this part off/i);
   });
 
+  it('prints no bar that the screen hides until the question is answered (every lesson, practice sheet and new sheets)', () => {
+    /** One printed bar row per bar the screen shows before answering (a decimal picture is one bar). */
+    const barRows = (questions: { model: ModelSpec }[]) => questions.reduce((sum, { model }) => sum
+      + (model.kind === 'bars' ? model.bars.filter((bar) => !bar.untilAnswered).length : model.kind === 'decimal' ? 1 : 0), 0);
+    const printed = (markup: string) => (markup.match(/class="fq-print-bar-row"/g) ?? []).length;
+    let hidden = 0;
+    // AreaModel.tsx uses the classic JSX runtime, which needs React on the global object while rendering.
+    const globalWithReact = globalThis as typeof globalThis & { React?: typeof React };
+    const previousReact = globalWithReact.React;
+    globalWithReact.React = React;
+    try {
+    for (const mission of MISSIONS) {
+      hidden += mission.questions.filter(({ model }) => model.kind === 'bars' && model.bars.some((bar) => bar.untilAnswered)).length;
+      assert.equal(printed(renderToStaticMarkup(createElement(Printable, { missionId: mission.id, mode: 'practice' }))), barRows(mission.questions),
+        `${mission.id}: the practice sheet draws a bar that shows the answer`);
+      if (!hasGenerator(mission.id)) continue;
+      for (const seed of [1, 2, 3]) {
+        const questions = generateQuestions(mission.id, mission.questions.map((q) => q.id), seed, 12).filter(({ model }) => model.kind !== 'equation');
+        assert.equal(printed(renderToStaticMarkup(createElement(Printable, { missionId: mission.id, mode: 'generated', seed }))), barRows(questions),
+          `${mission.id}: new practice sheet ${seed} draws a bar that shows the answer`);
+      }
+    }
+    } finally {
+      if (previousReact) globalWithReact.React = previousReact;
+      else delete globalWithReact.React;
+    }
+    assert.ok(hidden >= 23, `${hidden} lesson questions hide a bar until answered`);
+  });
+
   it('prints a blank worksheet without exposing or changing saved lesson answers', () => {
     const problem = getWorksheet('number-line-basics')[0];
     const record = checkWorksheet(editWorksheet(emptyLearningRecord(), problem.id, problem.answer), problem);
@@ -4172,6 +4201,31 @@ describe('hints shown before answering', () => {
       }
     }
     assert.deepEqual(leaks, []);
+  });
+});
+
+describe('worksheet hints shown before answering', () => {
+  /** A hint may repeat the numbers in the question, but a number that the child has to work out must not be in it.
+      Equal in value counts: 4 and 4/1 and 8/2 are the same answer. Answers of 0, 1 and 2 are skipped (the existing guard skips short answers too). */
+  const numbersIn = (text: string) => [...text.matchAll(/\d+\s+(?:and\s+)?\d+\/\d+|\d+\/\d+|\d*\.\d+|\d+/g)].map((m) => m[0]);
+  const sameValue = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+  it('never state the answer, on any lesson, for sheets 0 to 40 and every row', () => {
+    const leaks = new Map<string, string>();
+    for (const mission of MISSIONS) {
+      for (let sheet = 0; sheet <= 40; sheet++) {
+        for (const problem of getWorksheet(mission.id, sheet)) {
+          const answer = answerValue(problem.answer);
+          if (!Number.isFinite(answer) || answer === 0 || answer === 1 || answer === 2) continue;
+          const given = [...numbersIn(problem.prompt).map(answerValue), ...(problem.prompt.match(/\d*\.\d+|\d+/g) ?? []).map(Number)];
+          if (given.some((value) => sameValue(value, answer))) continue; // the question already says it
+          if (numbersIn(problem.hint).some((text) => sameValue(answerValue(text), answer))) {
+            const template = `${mission.id} | ${problem.hint.replace(/\d+/g, '#')}`;
+            if (!leaks.has(template)) leaks.set(template, `${problem.prompt} => ${problem.answer} | ${problem.hint}`);
+          }
+        }
+      }
+    }
+    assert.deepEqual([...leaks.entries()].map(([template, example]) => `${template}\n      e.g. ${example}`), []);
   });
 });
 

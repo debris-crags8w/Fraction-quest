@@ -1278,14 +1278,16 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           prompt = i % 2 ? `This bar shows ${small}. Cut every part into ${factor}. What is the new fraction?` :
             `This bar shows ${small}. Fill the missing numerator: ${small} = ?/${bottom * factor}.`;
           answer = i % 2 ? big : String(top * factor); denominator = i % 2 ? bottom * factor : undefined;
-          visual = model(top, bottom); hint = `Cut each part into ${factor} equal parts. Now count the shaded parts and all the parts.`;
+          visual = model(top, bottom);
+          // "Cut every part into 4" names the answer when the numerator is 1, so the blank-numerator rows give the new part count instead.
+          hint = i % 2 ? `Cut each part into ${factor} equal parts. Now count the shaded parts and all the parts.` : `Cut each part into smaller equal parts until the bar has ${bottom * factor} parts. Now count the shaded parts and all the parts.`;
           // The same amount, cut a different way, in a square.
           if (i === 10) {
             prompt = 'Each triangle is 1/8 of the square. Two are shaded. Fill the missing numerator: 2/8 = ?/4.'; answer = '1'; denominator = undefined;
             visual = undefined; area = { cut: 'quarter-and-triangles', shaded: [1, 2] }; hint = 'The 2 shaded triangles fill the same space as 1 small square. The small square is 1/4.';
           } else if (i === 11) {
             prompt = 'Color 1/2 of the square. How many eighths did you color?'; answer = '4'; denominator = undefined;
-            visual = undefined; area = { cut: 'eighths-triangles' }; areaTask = { n: 1, d: 2 }; hint = '8 equal triangles make the square. Half of 8 is 4.';
+            visual = undefined; area = { cut: 'eighths-triangles' }; areaTask = { n: 1, d: 2 }; hint = '8 equal triangles make the square. Share them into 2 equal groups. How many are in 1 group?';
           }
         } else if (id === 'build-equivalents') {
           prompt = i % 3 === 0 ? `Multiply the numerator and denominator of ${small} by ${factor}. What do you get?` :
@@ -1297,7 +1299,9 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
             i % 3 === 1 ? `Fill the missing denominator: ${small} = ${top * factor}/?.` : `Fill the missing numerator: ?/${bottom} = ${big}.`;
           answer = String(i % 3 === 0 ? top * factor : i % 3 === 1 ? bottom * factor : top);
           // The hint asks for the factor instead of naming it: finding it is the task.
-          hint = i % 3 === 2 ? `What number divides ${bottom * factor} to make ${bottom}? Divide the numerator by it too.` : `What times ${bottom} makes ${bottom * factor}? Do the same to the numerator.`;
+          // A blank denominator is found from the numerators (naming the two denominators would name the answer).
+          hint = i % 3 === 2 ? `What number divides ${bottom * factor} to make ${bottom}? Divide the numerator by it too.`
+            : i % 3 === 1 ? `What times ${top} makes ${top * factor}? Do the same to the denominator.` : `What times ${bottom} makes ${bottom * factor}? Do the same to the numerator.`;
         }
         break;
       }
@@ -1370,7 +1374,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         prompt = i % 3 === 0 ? `Write ${f(top, base)} as a decimal.` : i % 3 === 1 ? `Write ${dec} as a fraction.` :
           `A meter strip has ${base} equal parts. ${top} ${top === 1 ? 'is' : 'are'} colored. Write the colored part as a decimal.`;
         answer = i % 3 === 1 ? f(top, base) : dec; form = i % 3 === 1 ? undefined : 'decimal';
-        hint = base === 10 ? 'One decimal place means tenths.' : 'Two decimal places means hundredths, like 0.08.';
+        hint = base === 10 ? 'One decimal place means tenths.' : 'Two decimal places means hundredths. The tenths digit comes first after the point, then the hundredths digit.';
         if (i % 3 === 2) visual = model(top, base); break;
       }
       default: throw new Error(`No authored worksheet for ${id}`);
@@ -1506,7 +1510,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         // The groups, none picked: picking them is the answer.
         answer = String(each * groups); visual = model(0, bottom, 'set', total);
         hint = i % 2 === 0 || sets
-          ? `Two ways: ${total} ÷ ${bottom} = ${each}, then ${each} × ${groups}. Or ${groups} × ${total} = ${groups * total}, then ÷ ${bottom}.`
+          ? `Two ways: split ${total} into ${bottom} equal groups, then take ${groups} ${groups === 1 ? 'group' : 'groups'}. Or ${groups} × ${total} first, then ÷ ${bottom}.`
           : `Make ${bottom} equal groups. Count ${groups} of them.`; break;
       }
       case 'share': {
@@ -1986,7 +1990,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         visual = model(a, b);
         if (i % 2 === 0) {
           prompt = `Ana has ${total} stickers. She gives ${f(a, b)} of them to Ben. Then she gives ${f(c, e)} of the rest to Cal. How many stickers does Ana have now?`;
-          answer = String(left); hint = `${f(a, b)} of ${total} is ${(total / b) * a}. ${rest} are left. Find ${f(c, e)} of ${rest}, then take it away from ${rest}.`;
+          answer = String(left); hint = `Find ${f(a, b)} of ${total} and take it away. Then find ${f(c, e)} of what is left, and take that away too.`;
         } else {
           const top = (b - a) * (e - c); const bottom = b * e; const g = gcd(top, bottom);
           prompt = `Max eats ${f(a, b)} of a pizza. Then he eats ${f(c, e)} of what is left. What fraction of the pizza is left now?`;
