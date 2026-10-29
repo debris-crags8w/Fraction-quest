@@ -8,7 +8,7 @@ import { glanceShareText, type Glance, type GlanceLesson, type SkillRow } from '
 
 const gradeTag = (lesson: GlanceLesson) => (lesson.grade ? `Grade ${lesson.grade}` : 'Bonus');
 
-export function ParentGlance({ glance, firstTryRate, childName }: { glance: Glance; firstTryRate: number | null; childName: string | null }) {
+export function ParentGlance({ glance, childName }: { glance: Glance; childName: string | null }) {
   const name = childName ?? 'Your child';
   const lessons = glance.learned.length;
   return (
@@ -16,12 +16,12 @@ export function ParentGlance({ glance, firstTryRate, childName }: { glance: Glan
       <p className="fq-glance-summary" data-testid="glance-summary">
         {name} practiced on <strong>{glance.daysPracticed} of the last 7 days</strong> ({glance.minutes} minutes)
         {lessons ? <> and finished <strong>{lessons} {lessons === 1 ? 'lesson' : 'lessons'}</strong>.</> : '.'}
-        {firstTryRate !== null && firstTryRate >= 70 ? ' Most answers were right the first time.' : ''}
+        {glance.firstTryWeek !== null && glance.firstTryWeek >= 70 ? ' Most worksheet answers in this week’s lessons were right the first time.' : ''}
       </p>
       <div className="fq-glance-tiles">
         <div><strong>{glance.daysPracticed} of 7</strong><span>days practiced</span>{glance.savedDays > 0 && <small>+{glance.savedDays} saved by spare oil</small>}</div>
         <div><strong>{lessons}</strong><span>{lessons === 1 ? 'lesson' : 'lessons'} finished</span></div>
-        <div><strong>{firstTryRate === null ? '—' : `${firstTryRate}%`}</strong><span>right the first time</span></div>
+        <div><strong>{glance.firstTryWeek === null ? '—' : `${glance.firstTryWeek}%`}</strong><span>right the first time</span><span>in this week’s lessons</span></div>
       </div>
 
       {lessons > 0 && (
@@ -40,9 +40,9 @@ export function ParentGlance({ glance, firstTryRate, childName }: { glance: Glan
   );
 }
 
-export function ShareCard({ glance, firstTryRate, childName, skills }: { glance: Glance; firstTryRate: number | null; childName: string | null; skills: SkillRow[] }) {
+export function ShareCard({ glance, childName, skills }: { glance: Glance; childName: string | null; skills: SkillRow[] }) {
   const [shared, setShared] = useState<'shared' | 'copied' | 'failed' | null>(null);
-  const shareText = glanceShareText(glance, firstTryRate, childName, new Date(), skills);
+  const shareText = glanceShareText(glance, childName, new Date(), skills);
   const share = async () => {
     try {
       if (typeof navigator.share === 'function') { await navigator.share({ text: shareText }); setShared('shared'); return; }

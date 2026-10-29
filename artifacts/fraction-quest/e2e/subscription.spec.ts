@@ -93,6 +93,10 @@ test('the paywall offers the yearly plan first, and buys the plan the grown-up p
 
   const paywall = page.getByTestId('paywall');
   await expect(paywall).toContainText('81 lessons');
+  await expect(paywall).toContainText('Every lesson and its answers are checked');
+  await expect(paywall).toContainText('A progress report any time');
+  await expect(paywall).not.toContainText('weekly report');
+  await expect(paywall).not.toContainText('before it ships');
   await expect(page.getByTestId('plan-yearly')).toContainText('$39.99 a year, about $3.33 a month');
   await expect(page.getByTestId('plan-yearly')).toContainText('Save 33%');
   await expect(page.getByTestId('plan-yearly').getByRole('radio')).toBeChecked();

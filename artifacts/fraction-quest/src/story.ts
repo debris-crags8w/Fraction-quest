@@ -30,8 +30,8 @@ export type Chapter = {
   won: string;
   /** Short lines the friend says on questions (scene setting only, never a hint). */
   asks: string[];
-  /** After a lesson that does not finish the chapter. */
-  thanks: string;
+  /** After a lesson that does not finish the chapter: one line, or one per lesson (see `thanksFor`). */
+  thanks: string | string[];
   /** After the chapter's last lesson, with the card it unlocks. */
   done: string;
   card: { title: string; blurb: string };
@@ -105,18 +105,35 @@ export const PROLOGUE: Panel[] = [
   say('numi', '{name}, we need you! Each friend in town has a piece. Can you find them all and find out who cracked it?'),
 ];
 
-/** The ending, after the last chapter: read it again from the Storybook's finale. */
+/** The ending: it plays by itself once, after the last chapter's stone piece, and can be read again from the Storybook's finale. */
 export const EPILOGUE: Panel[] = [
   happySay('hoot', 'Festival night! All 15 pieces are back. Fifteen fifteenths make one whole, and the stone glows again!'),
   happySay('bolt', 'Beep… I am sorry I cracked it. Thank you for helping me fix it.'),
   happySay('chomp', 'Okay, okay. Bolt told the truth. That makes him brave.'),
   happySay('numi', '{name}, you followed every clue. You are the Keeper of the Whole Stone!'),
+  happySay('chomp', 'Okay, okay. I’ll keep making riddles. A new mystery every week!'),
   happySay('hoot', 'Every day, a new riddle waits by the stone. Keep your lantern lit, Keeper!'),
 ];
 
 /** A finished chapter's ending, to read again: the friend's thanks, the clue it added, and what happens next. */
 export function chapterEnd(chapter: Chapter): Panel[] {
   return [say(chapter.character, chapter.done), say('hoot', `New clue for your notebook: ${chapter.clue}.`), say('hoot', `How the math won it: ${chapter.won}`), say('numi', chapter.cliff)];
+}
+
+/** The friend's thanks after lesson `index` (0-based) of a chapter: its own line when the chapter has one per lesson. */
+export const thanksFor = (chapter: Chapter, index: number): string =>
+  typeof chapter.thanks === 'string' ? chapter.thanks : chapter.thanks[Math.min(index, chapter.thanks.length - 1)]!;
+
+/** Lessons the story needs but the course marks as extra ("Bonus: Chance as a fraction") are plain lessons in story
+    mode: the finale and the stone piece wait for them, so they must not sound optional. */
+export const storyLessonTitle = (text: string, storyOn: boolean): string =>
+  storyOn && /^Bonus:?\s+/i.test(text) ? text.replace(/^Bonus:?\s+/i, '').replace(/^./, (letter) => letter.toUpperCase()) : text;
+
+/** What plays after the stone piece of the chapter just finished: its ending film, or (the first time, after the last
+    piece) the finale. A child who has seen the finale is not made to sit through it again; it stays in the Storybook. */
+export function endingAfterChapter({ piecesFound, epilogueSeen }: { piecesFound: number; epilogueSeen: boolean }): 'chapter-end' | 'epilogue' | null {
+  if (piecesFound <= 0) return null;
+  return piecesFound >= STONE_PIECES && !epilogueSeen ? 'epilogue' : 'chapter-end';
 }
 
 export const CHAPTERS: Chapter[] = [
@@ -135,7 +152,7 @@ export const CHAPTERS: Chapter[] = [
     intro: [say('pip', 'Ribbit! A stone piece fell into my {snack} bowl. It’s stuck under one of the {bars}!'), say('numi', 'Two same-size {bars}: one cut in thirds, one in eighths. It’s under the bigger piece.'), say('hoot', 'More equal parts means smaller parts.')],
     choice: [pick('Cut the {bars}', 'Make equal pieces', 'numi', 'Equal pieces coming up!'), pick('Ask the guests', 'Who saw the splash?', 'pip', 'My guests saw a big green tail by the water. Hmm.')],
     scenes: ['Two same-size {cakes}, cut two ways. Three pieces from each. Which plate has more?'],
-    cliffs: ['Thirds are bigger! The stone piece glows under a third. Then something in the pond blinks… and swims away.'],
+    cliffs: ['Thirds are bigger! The stone piece glows under a third. Then a big green tail flicks in the pond… and swims away.'],
     cliff: 'Tilly calls from the hill: “Something is shining up here!”',
     clue: 'A big green tail by the pond',
     won: 'Thirds are bigger than eighths, so we lifted the bigger piece.',
@@ -145,9 +162,9 @@ export const CHAPTERS: Chapter[] = [
   { unit: 3, title: 'Tilly’s halfway hill', character: 'tilly',
     intro: [say('tilly', 'I saw something shining at the top of the hill. But am I even halfway up?'), say('numi', 'Let’s check 0, one half and 1.'), say('hoot', 'Those help us tell how big a fraction is.')],
     choice: [pick('Climb with Tilly', 'Use 0, one half and 1', 'tilly', 'Slow and steady. Thank you for coming with me.'), pick('Look around', 'Search for clues', 'hoot', 'Teeth marks on the trail sign. Big pointy ones.')],
-    scenes: ['Let’s check where we are again. I like to be sure.', 'Some parts of the path are bigger than others. Help me save my energy?'],
-    cliffs: ['Halfway up, Tilly finds a trail of {cake} crumbs.', 'At the top, the stone piece glows in a bush… and the bridge below is broken!'],
-    cliff: 'Down below, Pip can’t get home. The bridge is missing planks!',
+    scenes: ['Let’s check where we are again. I like to be sure.', 'The path is steep, so I climb in little steps. Help me count them?'],
+    cliffs: ['Part of the way up, Tilly finds {cake} crumbs and a trail sign with big pointy teeth marks.', 'Past the next bend, the path gets steep. Tilly checks her marks before she climbs.'],
+    cliff: 'At the top, the stone piece glows in a bush! But down below, Pip can’t get home. The bridge is missing planks!',
     clue: 'Teeth marks on the trail sign',
     won: 'The benchmarks showed we were past halfway, so we kept climbing.',
     asks: ['Slow and steady. Help me check.', 'Let’s look at the halfway marks.', 'I like to think before I move.'],
@@ -156,8 +173,8 @@ export const CHAPTERS: Chapter[] = [
   { unit: 4, title: 'The broken bridge', character: 'pip',
     intro: [say('pip', '{name}! Planks are missing on the bridge and I can’t get home!'), say('numi', 'Let’s split the bridge into equal jumps.'), say('hoot', 'On a number line, and on a ruler, every jump is the same size.')],
     choice: [pick('Fix the bridge', 'Help Pip count the planks', 'pip', 'Ribbit! Thank you!'), pick('Study the teeth marks', 'Add a clue to your notebook', 'hoot', 'These marks match the trail sign. Same big teeth.')],
-    scenes: ['The planks have numbers now. Where should I land?', 'My house is past the end of the bridge. How far is that?', 'This reed could patch the bridge. How long is it?', 'I found shiny pebbles by the water. Let’s plot their sizes.'],
-    cliffs: ['Pip is halfway home… when a shadow runs past with something shiny.', 'The shadow drops something shiny on the far bank, past the last plank, and runs toward a tall tower.', 'Pip hops past 1 whole and lands right on the stone piece! Now he measures things to patch the bridge.', 'Pip’s ruler marks are tiny. Hoot says a line plot can show them all.'],
+    scenes: ['The bridge has numbers now. Where should I land?', 'My house is past the end of the bridge. How far is that?', 'This reed could patch the bridge. How long is it?', 'I found shiny pebbles by the water. Let’s plot their sizes.'],
+    cliffs: ['Pip is halfway home. Big teeth marks on the rail match the trail sign! A shadow runs past with something shiny.', 'The shadow drops something shiny on the far bank, past the last plank, and runs toward a tall tower.', 'Pip hops past 1 whole and lands right on the stone piece! Now he measures things to patch the bridge.', 'Pip’s ruler marks are tiny. Hoot says a line plot can show them all.'],
     cliff: 'Chomp is building a tall tower. Is he hiding something on top?',
     clue: 'Matching teeth marks on the bridge',
     won: 'Hopping past 1 whole landed Pip right on the piece.',
@@ -180,7 +197,7 @@ export const CHAPTERS: Chapter[] = [
     choice: [pick('Sort the jars', 'Match the labels', 'bea', 'Buzz! Thank you!'), pick('Read the map', 'Add a clue to your notebook', 'hoot', 'The map shows Bolt’s workshop. It’s in Chomp’s writing!')],
     scenes: ['My honey shelf has marks like a number line. Two marks share one spot!', 'A new jar came from the hive. Can you make a label that matches?', 'This label has a missing number. Can you fill it in?'],
     cliffs: ['The map says “the 2/4 jar.” No jar says 2/4… but the 1/2 jar glows. A stone piece is inside!', 'Bea lines up her jars on the shelf. One still has no label.', 'Bea whispers: “Chomp bought lots of honey… for a friend who was sad.”'],
-    cliff: 'The map leads to Bolt’s workshop. Why would Chomp draw that?',
+    cliff: 'The map leads to Bolt’s workshop, and the writing is Chomp’s. Why would he draw that?',
     clue: 'A map to Bolt’s workshop in Chomp’s writing',
     won: '1/2 and 2/4 name the same amount, so the 1/2 jar held the piece.',
     asks: ['Buzz! Help me with this jar.', 'Same honey, new label?', 'Help me sort my jars.'],
@@ -189,7 +206,7 @@ export const CHAPTERS: Chapter[] = [
   { unit: 7, title: 'Bolt’s workshop', character: 'bolt',
     intro: [say('bolt', 'Beep! I need parts that make exactly one whole. Please do not look in my box.'), say('numi', 'The lid says: “Opens when the parts make 1.” Let’s put the parts together.'), say('hoot', 'Fractions can join to make one whole, and even more.')],
     choice: [pick('Build with Bolt', 'Join the parts', 'bolt', 'Beep boop. Thank you.'), pick('Peek in the box', 'Search for clues', 'numi', 'A stone piece is in Bolt’s parts box! His lights flicker.')],
-    scenes: ['Beep. Can you split this whole into smaller parts?', 'Beep! Is this wire a whole number of meters?', 'Now I have more than one whole. Computing… help!', 'Beep. Can we write it as wholes and a part?'],
+    scenes: ['Beep. One of my parts is too big for its slot. Can you break it apart?', 'Beep! Is this wire a whole number of meters?', 'Now I have more than one whole. Computing… help!', 'Beep. Can we write it as wholes and a part?'],
     cliffs: ['The parts make 1 whole. The box clicks open: a stone piece! Bolt says it “just rolled in.”', 'Bolt keeps looking at an empty shelf labeled “rocket boots.”', 'Bolt hums a nervous tune and slides his box under the bench.', 'Bolt beeps quietly: “Chomp has my… never mind.”'],
     cliff: 'Chomp’s den door is open. Now’s the time to look inside.',
     clue: 'Bolt’s rocket boots are missing',
@@ -200,24 +217,24 @@ export const CHAPTERS: Chapter[] = [
   { unit: 8, title: 'The secret in the den', character: 'chomp',
     intro: [say('chomp', 'Okay, okay. You found Bolt’s rocket boots. I didn’t crack the stone.'), say('chomp', 'The boots bumped it. Bolt was so scared. I hid them so nobody would blame him.'), say('numi', 'You took the blame to protect your friend, Chomp?')],
     choice: [pick('Thank Chomp', 'That was kind', 'chomp', 'Friends look out for friends.'), pick('Ask Chomp to join', 'Find the rest together', 'chomp', 'Yes! Let’s find the rest together.')],
-    scenes: ['Now take some away. How much is left in my {snack} jar?', 'I have whole jars and part of a jar. Let’s add them up!', 'I ate some of my jars. Okay, okay. How much is left?', 'Bolt’s note counts in tenths. Help me read it!', 'Hundredths? That’s tiny! Let’s read the next line.', 'Bolt’s boot meter shows a fraction. Can we write it as a decimal?', 'Bolt’s screen shows two decimals. Which is bigger?', 'Bolt’s battery screen is a grid of hundredths. Let’s count the squares.', 'Let’s add tenths and hundredths to fix Bolt’s boots.', 'Okay, okay. My snack money is dimes and pennies. How much of a dollar is it?', 'The last line is one small beep, again and again. How much is that in all?', 'Each friend gets part of a sandwich. How much in all?'],
+    scenes: ['Now take some away. How much is left in my {snack} jar?', 'I have whole jars and part of a jar. Let’s add them up!', 'I ate some of my jars. Okay, okay. How much is left?', 'Bolt’s note counts in tenths. Help me read it!', 'Hundredths? That’s tiny! Let’s read the next line.', 'Bolt’s boot meter shows a fraction. Can we write it as a decimal?', 'Bolt’s screen shows two decimals. Which is bigger?', 'Bolt’s battery screen is a grid of hundredths. Let’s count the squares.', 'Let’s add tenths and hundredths to fix Bolt’s boots.', 'Okay, okay. My snack money is dimes and pennies. How much of a dollar is it?', 'The last line is a riddle about {pie}: the same small piece each day. How much after a few days?', 'Each friend gets part of a sandwich. How much in all?'],
     cliffs: ['Chomp opens a jar. Inside is a stone piece he was keeping safe, and a note full of beeps!', 'Chomp: “That note is from Bolt. Robots write in fractions!”', 'Chomp lines up his jars. “Bolt built me this shelf. He’s my friend.”', 'The note’s next line is in tenths.', 'Line one: “My boots are broken.” The rest is in hundredths.', 'Line two: “I am too scared to say it.” Chomp goes quiet.', 'The boot meter flickers. If the boots work, maybe Bolt will come back.', 'One boot charges up. The other is still slow.', 'The battery is almost full, but one boot needs a new part.', 'The part costs money. Chomp empties his snack money.', 'Just enough! The boots whir back to life… and the last line of the note lights up.', 'Last line: “Meet me where the races start.” Chomp packs sandwiches.'],
     cliff: 'Tilly has a race map with three routes. One leads to a stone piece!',
     clue: 'Chomp hid the boots to protect Bolt',
-    won: 'Dimes and pennies made 1 whole dollar, enough to fix the boots.',
-    asks: ['Let’s count it up together.', 'My {snack} jar needs your help.', 'Team Chomp is on it!'],
-    thanks: 'We make a good team!', done: 'I’m on your team now. Mystery half solved!',
+    won: 'Dimes and pennies made 38/100 of a dollar, enough to fix the boots.',
+    asks: ['Let’s count it up together.', 'My {snack} jar needs your help.', 'Team Chomp is on it!', 'Okay, okay. Show me the math.', 'Bolt’s note needs your help.'],
+    thanks: ['Okay, okay. Adding same-size parts is easy!', 'Okay, okay. Take the parts away. Nothing to it!', 'Whole jars and part jars. All added up!', 'Okay, okay. I really did eat too much.', 'Tenths are easy to read now. Thank you!', 'Tiny hundredths. I can read them now!', 'A fraction and a decimal can match. Cool!', 'Now I can tell which number is bigger.', 'Counting squares works great. Team Chomp!', 'The strap is fixed. We make a good team!', 'Dimes and pennies, all counted. Thanks!', 'Same small piece, again and again. Got it!'], done: 'I’m on your team now. Mystery half solved!',
     card: { title: 'Chomp the loyal friend', blurb: 'Took the blame to protect a friend. Now he helps everyone.' } },
   { unit: 9, title: 'Tilly’s race map', character: 'tilly',
     intro: [say('tilly', 'My race map uses different names for the same spots. One route has a stone piece!'), say('numi', 'Let’s rename the spots so we can compare.'), say('hoot', 'Renaming a fraction does not change its size.')],
     choice: [pick('Read the map', 'Rename the spots', 'tilly', 'Thank you. I like to be sure.'), pick('Ask Chomp', 'He knows shortcuts', 'chomp', 'Take the middle route. Trust me, I’m on your team now!')],
-    scenes: ['Two numbers are missing on this sign. Can you find both?', 'Two routes have different names. Let’s compare them.', 'Help me put all the routes in order.', 'Let’s plot my pebbles so I can see them all.', 'My map pins come in different lengths. What does the line plot say?', 'Racers need water. How much is in my jug?', 'Racers need snacks. Let’s bake with my recipe!', 'Every racer gets a drink. Is my jug big enough?'],
-    cliffs: ['The middle route sparkles in the sun.', 'Someone is following the team, very quietly.', 'Halfway along, Tilly finds a robot bolt on the path.', 'Tilly stops for a sip. A twig snaps behind a tree.', 'Tilly lines up her pebbles by size. One is a shiny robot bolt!', 'Squeak! Rocket boots behind the tree. Bolt is hiding.', 'Tilly bakes snacks for the racers. Something sniffs from behind a bush.', 'Snacks are ready. Now the racers need drinks.'],
+    scenes: ['Two numbers are missing on this sign. Can you find both?', 'Two routes have different names. Let’s compare them.', 'Help me put all the routes in order.', 'I collected leaves on the trail. Let’s plot how long they are.', 'My map pins come in different lengths. What does the line plot say?', 'The race starts at noon, and racers need water. How much is in my jug?', 'Racers need snacks too. Let’s bake with my recipe!', 'The racers line up. Every one needs a drink. Is my jug big enough?'],
+    cliffs: ['The middle route sparkles in the sun.', 'Someone is following the team, very quietly.', 'Halfway along, Tilly finds a robot bolt on the path.', 'Tilly stops for a sip. A twig snaps behind a tree.', 'Tilly lines up her leaves by size. One is not a leaf. It’s a shiny robot bolt!', 'Squeak! Rocket boots behind the tree. Bolt is hiding.', 'The jug is full. Tilly starts baking, but something sniffs at the oven. It smells like oil!', 'One snack is missing! Tiny oil drops lead from the oven to a bush.'],
     cliff: 'At the picnic spot, Bolt runs off before anyone can say hi.',
     clue: 'Bolt is following the team',
     won: 'Comparing the routes showed the middle one was the way.',
-    asks: ['Which spot comes first?', 'Slow and steady. Let’s compare.', 'Can we rename this one?'],
-    thanks: 'Now my map makes sense!', done: 'I read the whole map, and the middle route led to the stone piece! I trusted my checking.',
+    asks: ['Which spot comes first?', 'Slow and steady. Let’s compare.', 'Can we rename this one?', 'Which route is it? Let’s check.', 'Help me read my map.'],
+    thanks: ['Now my map names are simple. Thank you!', 'Both numbers fit the sign. Slow and steady!', 'Now I know which route is shorter.', 'All my routes are in order. Nice!', 'My leaves are plotted. I can see them all!', 'The line plot tells me a lot. Thank you!', 'Now I know how much water is in my jug.', 'Two batches of snacks, all counted!'], done: 'I read the whole map, and the middle route led to the stone piece! I trusted my checking.',
     card: { title: 'Tilly the map reader', blurb: 'Renames fractions to compare spots on her race map.' } },
   { unit: 10, title: 'The team picnic', character: 'chomp',
     intro: [say('chomp', 'I packed sandwiches for the whole team. Is it enough?'), say('numi', 'Two baskets: one is 1/2 + 1/4 full, the other 2/3 full. The stone piece is in the 3/4 basket!'), say('hoot', 'To add different-size parts, make them the same size first.')],
@@ -233,7 +250,7 @@ export const CHAPTERS: Chapter[] = [
   { unit: 11, title: 'Bolt owns up', character: 'bolt',
     intro: [say('bolt', 'Beep… my rocket boots cracked the Whole Stone. I am very sorry.'), say('numi', 'Thank you for telling us, Bolt. That was brave.'), say('hoot', 'Let’s fix it together. Bolt’s machine makes things bigger or smaller.')],
     choice: [pick('Forgive Bolt', 'Everyone makes mistakes', 'bolt', 'Beep! Thank you, friend.'), pick('Fix the bridge', 'Use the machine', 'bolt', 'Setting machine to rebuild mode.')],
-    scenes: ['Some bolts already went into the machine. How many is that?', 'The machine wants part of my nut pile, fast. How many is that?', 'My machine picks part of the parts. Can that shrink the plank?', 'My machine cuts a square into rows and columns. Where do they overlap?', 'My machine needs part of my bolt box. How many is that?', 'The dial is stuck! Will this setting make it bigger or smaller?', 'Before it runs, let’s check: bigger, smaller or the same?'],
+    scenes: ['Some bolts already went into the machine. How many is that?', 'The machine wants part of my nut pile, fast. How many is that?', 'My machine picks part of the parts. Can that shrink the plank?', 'My machine cuts a panel into rows and columns. Where do they overlap?', 'My machine needs part of my bolt box. How many is that?', 'The dial is stuck! Will this setting make it bigger or smaller?', 'Before it runs, let’s check: bigger, smaller or the same?'],
     cliffs: ['Bolt’s bolts sit in equal groups. The machine hums awake, then rattles!', 'It blinks red: “Feed me the right fraction, or I jam!”', 'It prints a bridge plank ten times too big! Pip laughs. Bolt does not.', 'The plank shrinks, and a stone piece pops out of the tray!', 'The machine draws a grid and hums a happy tune. Bolt smiles for the first time.', 'The bridge is fixed for good. But the dial is stuck on BIG!', 'Bea calls: the stage is the wrong size! Bolt sizes the parts just right.'],
     cliff: 'Pip needs help measuring the festival stage.',
     clue: 'Bolt told the truth',
@@ -244,13 +261,13 @@ export const CHAPTERS: Chapter[] = [
   { unit: 12, title: 'Pip measures the stage', character: 'pip',
     intro: [say('pip', 'The festival stage needs measuring! And something glows 3/4 of the way along the 12-meter board.'), say('numi', 'Let’s find fractions of each length.'), say('hoot', 'Lengths, fair shares and dividing all use fractions.')],
     choice: [pick('Measure the stage', 'Grab the measuring tape', 'pip', 'Ribbit! Ready.'), pick('Measure hops', 'Pip wants to practice', 'pip', 'Every hop counts!')],
-    scenes: ['Two boards go end to end. How long together?', 'Let’s even out the cups so they match.', 'Bolt’s lights need water. Is there enough in all the beakers?', 'Feet, liters, pounds… so many units! Help me change them?', 'Ribbit! Measure twice, cut once. How much ribbon is left?', 'The stage crew shares loaves at lunch. How much does each one get?', 'Let’s split the stage rope into equal parts.', 'The crew shares one small part of the {cake}. How much for each?', 'How many small scoops fill the paint cans for the stage?', 'Some stage jobs share. Some jobs fit pieces. Which is which?'],
-    cliffs: ['3/4 of 12 meters is 9 meters. Pip lifts the floor at 9 meters, and something glows.', 'It’s a stone piece, stuck in a crack!', 'Pip wiggles the stone piece free!', 'Bolt fills the beakers. The stage lights hum.', 'Chomp and Bolt carry boards together.', 'Pip trims the last ribbon. The stage looks festive!', 'The stage lights flicker on.', 'The crew stops for {cake}. Everyone wants a fair share.', 'Bolt brings paint for the stage. How many scoops will it take?', 'The stage is painted. One last job before the show.'],
+    scenes: ['Two boards go end to end. How long together?', 'Let’s even out the cups so they match.', 'Bolt’s lights need water, and the show is tomorrow. Did the rain barrel fill up enough?', 'The floor creaks! Pip needs nails. Feet, liters, pounds… so many units! Help me change them?', 'Ribbit! The curtain keeps swinging. Pip fills a sandbag to hold it. Measure twice!', 'The stage crew shares loaves at lunch. How much does each one get?', 'The stage rope snapped. Let’s split the new rope into equal parts.', 'The crew shares one small part of the {cake}. How much for each?', 'How many small scoops fill the paint cans for the stage?', 'The last job: bag the clay for the props. Is it a sharing job or a fitting job?'],
+    cliffs: ['3/4 of 12 meters is 9 meters. Pip lifts the floor at 9 meters, and something glows.', 'It’s a stone piece, stuck in a crack!', 'Pip wiggles the stone piece free! But the stage lights are dark, and the show is tomorrow.', 'The barrel is full and the lights hum. But the stage floor creaks: the nails are loose!', 'The nails are in and the floor is quiet. But the curtain swings in the wind!', 'The curtain holds still! Then lunch arrives: only one loaf, and four hungry helpers.', 'Everyone has a fair share. Then the stage rope snaps in two!', 'The rope is back up! The crew stops for {cake}, but only a small part is left.', 'Bolt brings paint, and the show is tomorrow. How many scoops will paint the stage?', 'The stage is painted. One last job: the clay props must be bagged before the show!'],
     cliff: 'Bea’s festival garden needs fair plots before tomorrow.',
-    clue: 'The festival stage is ready',
+    clue: 'A stone piece was stuck in the stage floor',
     won: '3/4 of 12 meters is 9 meters, right where the piece was stuck.',
-    asks: ['Ribbit! Let’s measure.', 'Help me check my measuring.', 'Measure carefully with me.'],
-    thanks: 'Ribbit! Measured just right.', done: 'Every board measured. Best stage ever!',
+    asks: ['Ribbit! Let’s measure.', 'Help me check my measuring.', 'Measure carefully with me.', 'Ribbit! The show is almost here.', 'Pip needs your help on the stage.'],
+    thanks: ['Ribbit! That is the right part of the ribbon.', 'Ribbit! Two boards, one long stage.', 'Ribbit! The cups match. Fair is fun!', 'Ribbit! The barrel has plenty. Thank you!', 'Ribbit! Pounds and ounces, all changed.', 'Ribbit! The sandbag is just right.', 'Ribbit! One loaf, four fair shares.', 'Ribbit! The rope ends in the right place.', 'Ribbit! Small parts, shared fairly.', 'Ribbit! Every scoop is counted.'], done: 'Every board measured. Best stage ever!',
     card: { title: 'Pip the measurer', blurb: 'Measures lengths, changes units, shares fairly and divides.' } },
   { unit: 13, title: 'Bea’s festival garden', character: 'bea',
     intro: [say('bea', 'Buzz! Guests pick seeds from my bag for the festival garden. A stone piece is under one of the plots!'), say('numi', 'Let’s find the chance of each seed, then plan fair plots.'), say('hoot', 'A chance can be a fraction: the ones you want out of all of them.')],
@@ -258,7 +275,7 @@ export const CHAPTERS: Chapter[] = [
     scenes: ['These plots have fraction sides. How big are they?', 'This flower bed has mixed-number sides. How big is it?'],
     cliffs: ['A bee lands on one plot. Which plot covers half of a square?', '2/3 unit by 3/4 unit is 1/2 square unit! Chomp digs up the stone piece. Bolt eyes the glass case. It snapped shut.'],
     cliff: 'To put the pieces back, the team must open the glass case. Its lock has a number code.',
-    clue: 'The stone’s case is locked',
+    clue: 'The glass case is locked with a number code',
     won: '2/3 unit by 3/4 unit is 1/2 square unit: the plot hiding the piece.',
     asks: ['Buzz! Help me plan this one.', 'My flowers need equal space.', 'Let’s plan the garden.'],
     thanks: 'Buzz! My garden is fair.', done: 'A fair garden for everyone. Buzz buzz!',
@@ -269,7 +286,7 @@ export const CHAPTERS: Chapter[] = [
     scenes: ['The next dial uses a percent. What fraction is that?', 'The last part is a story puzzle. Step by step.'],
     cliffs: ['Click! The first dial turns, and a stone piece drops out of the lock!', 'Click! The case starts to glow.'],
     cliff: 'The case opens… but one piece is missing! Chomp grins: “Solve my riddles first!”',
-    clue: 'The case is open',
+    clue: 'The code opened the case, but one piece is missing',
     won: 'Matching percents to fractions turned the dials on the lock.',
     asks: ['Beep! What does my screen say?', 'Let’s read these numbers.', 'Computing… help me match.'],
     thanks: 'Beep! The dial turned.', done: 'Code cracked! Now for the last piece.',
@@ -296,8 +313,14 @@ export const hintLead = (friend: CharacterId | undefined) => (friend ? `${CHARAC
 export function lessonComic(chapter: Chapter, lesson: { title: string; skill: string }, index: number): Panel[] {
   if (index === 0) return chapter.intro;
   const scene = chapter.scenes[index - 1] ?? chapter.scenes[chapter.scenes.length - 1];
-  return [say(chapter.character, scene), say('numi', `Let’s help! Today’s lesson is ${lesson.title.charAt(0).toLowerCase()}${lesson.title.slice(1)}.`), say('hoot', lesson.skill)];
+  return [say(chapter.character, scene), say('numi', lessonLead(storyLessonTitle(lesson.title, true), index)), say('hoot', lesson.skill)];
 }
+
+/** Numi's line before the lesson's idea: three ways to say it (the chapter's second lesson keeps the first), so it is not the same sentence 66 times. */
+const lessonLead = (title: string, index: number): string => {
+  const topic = `${title.charAt(0).toLowerCase()}${title.slice(1)}${/[?!.]$/.test(title) ? '' : '.'}`;
+  return [`Let’s help! Today’s lesson is ${topic}`, `Here’s the plan. Today we learn: ${topic}`, `Ready? Today’s lesson is ${topic}`][(index - 1) % 3]!;
+};
 
 /** The cliffhanger after lesson `index` of a chapter with `total` lessons. */
 export const lessonCliff = (chapter: Chapter, index: number, total: number) =>
@@ -428,9 +451,9 @@ export const STORY_PROBLEMS: Record<string, StoryProblem> = {
   'tenths-decimals': { setup: 'Robots count in tenths. Which boot has more charge?',
     prompt: 'Bolt’s boots show their charge in tenths. Which is bigger, 0.8 or 5/10?',
     result: '0.8 is 8/10, so that boot has more charge. Beep!' },
-  'hundredths-decimals': { setup: 'My boot meter only reads decimals. Help!',
-    prompt: 'Bolt’s boot meter needs a decimal. Which decimal equals 9/10?',
-    result: '9/10 is 0.9. The meter blinks green!' },
+  'hundredths-decimals': { setup: 'My boot meter reads tiny hundredths. Help!',
+    prompt: 'Bolt’s boot meter needs a decimal. Write 9/100 as a decimal.',
+    result: '9/100 is 0.09. The meter blinks a tiny green!' },
   'decimal-fraction-equivalence': { setup: 'Bolt’s boot meter shows a fraction. Can we write it as a decimal?',
     prompt: 'Bolt’s left boot screen only shows decimals. Write 9/10 as a decimal.',
     result: '9/10 is 0.9. The left boot screen lights up!' },
@@ -445,7 +468,7 @@ export const STORY_PROBLEMS: Record<string, StoryProblem> = {
     result: '4/10 is 40/100, so the strap is 65/100 meter. The boots are fixed!' },
   'dimes-and-pennies': { setup: 'Okay, okay. How much of a dollar is in my jar?',
     prompt: 'Chomp counts his snack money. 3/10 + 8/100 of a dollar. How much is that in hundredths?',
-    result: '3/10 is 30/100, so Chomp has 38/100 of a dollar. Enough for one honey drop!' },
+    result: '3/10 is 30/100, so Chomp has 38/100 of a dollar. Just enough for the boot part!' },
   'unit-fraction-multiples': { setup: 'I eat the same small piece every day. How much after a few days?',
     prompt: 'Chomp eats the same small piece of {pie} each day. Write 3 × 1/5 as one fraction.',
     result: '3 × 1/5 = 3/5. That is a lot of {pie}, Chomp!' },
@@ -508,8 +531,8 @@ export const STORY_PROBLEMS: Record<string, StoryProblem> = {
     prompt: 'Bolt’s machine takes 2/10 × 40 nuts. How many nuts is that?',
     result: '40 ÷ 10 = 4, and 2 × 4 = 8. The machine gobbles 8 nuts. Beep!' },
   'multiply-fractions': { setup: 'My machine picks part of the parts. How much is that?',
-    prompt: 'Bolt’s machine takes half of a part. What is 1/2 of 5/12?',
-    result: '1/2 of 5/12 is 5/24. The machine prints a tiny part!' },
+    prompt: 'Bolt’s machine shrinks a plank by taking half of a part. What is 1/2 of 5/12?',
+    result: '1/2 of 5/12 is 5/24. The plank shrinks to a tiny part!' },
   'fraction-times-fraction': { setup: 'My machine cuts rows one way and columns the other. Where do they overlap?',
     prompt: 'Bolt’s machine cuts a panel into a grid. 3/5 × 2/3 = ?',
     result: '3/5 × 2/3 = 6/15 of the panel. The machine prints it!' },
@@ -538,12 +561,12 @@ export const STORY_PROBLEMS: Record<string, StoryProblem> = {
   'fractional-unit-conversions': { setup: 'Pounds and ounces are mixed up. Help?',
     prompt: 'Pip’s stage nails come by the pound. How many ounces are in 1/2 pound?',
     result: '1/2 pound is 8 ounces of nails. Enough for the stage!' },
-  'two-step-conversions': { setup: 'Ribbit! Measure twice, cut once.',
+  'two-step-conversions': { setup: 'Ribbit! Measure twice, fill once.',
     prompt: 'Pip fills a sandbag for the stage curtain. A bag holds 2 1/4 pounds of sand. Pip adds 6 ounces. How many ounces are in the bag now?',
     result: '2 1/4 pounds is 36 ounces. 36 + 6 = 42 ounces. Heavy enough to hold the curtain!' },
-  'fractional-sharing': { setup: 'Let’s share the ribbon fairly for the stage.',
-    prompt: '1 ribbon is shared fairly by 4 stage helpers. How much does each helper get?',
-    result: 'Each helper gets 1/4 of the ribbon. Fair shares!' },
+  'fractional-sharing': { setup: 'Let’s share the loaf fairly for the stage crew.',
+    prompt: '1 loaf is shared fairly by 4 stage helpers. How much does each helper get?',
+    result: 'Each helper gets 1/4 of the loaf. Fair shares!' },
   'fraction-as-division': { setup: 'The stage rope is cut into fourths. Where does it end?',
     prompt: 'Pip’s stage rope is measured in fourths of a meter. Between which two whole numbers is 13/4?',
     result: '13/4 = 13 ÷ 4 = 3 1/4. The rope ends between 3 and 4 meters!' },
@@ -595,8 +618,10 @@ export const storyProblemFor = (missionId: string): StoryProblem | null => STORY
 /** The stone question after a chapter: how much of the Whole Stone is back? Four choices with the usual mix-ups. */
 export function stoneQuestion(found: number): { choices: string[]; correct: number } {
   const right = `${found}/${STONE_PIECES}`;
+  // Fractions bigger than one whole (15/1, 15/2 …) are taught in chapter 7: before it the mix-ups stay under one whole.
+  const improper = (choice: string) => { const [n, d] = choice.split('/').map(Number); return n! > d!; };
   const wrong = [`${STONE_PIECES}/${found}`, `${found}/${STONE_PIECES - found || 1}`, `${STONE_PIECES - found}/${STONE_PIECES}`, `1/${STONE_PIECES}`, `${found}/${STONE_PIECES + 1}`]
-    .filter((choice, index, all) => choice !== right && all.indexOf(choice) === index).slice(0, 3);
+    .filter((choice, index, all) => choice !== right && all.indexOf(choice) === index && (found >= 7 || !improper(choice))).slice(0, 3);
   // A steady spot for the right answer that still moves from chapter to chapter.
   const correct = found % 4;
   const choices = [...wrong];
@@ -657,3 +682,4 @@ export function detectiveNote(unit: number, guesses: Record<string, string>): st
   if (unit === 11) return guess === 'bolt' ? DETECTIVE_NOTES[11].bolt : DETECTIVE_NOTES[11].other;
   return undefined;
 }
+

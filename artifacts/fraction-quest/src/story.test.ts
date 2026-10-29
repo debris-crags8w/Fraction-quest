@@ -21,7 +21,7 @@ test('every lesson has a scene and a cliffhanger, and every chapter a full scrip
     assert.equal(chapter.cliffs.length, lessons - 1, `${chapter.title}: a cliffhanger for each lesson before the last`);
     assert.equal(chapter.intro[0].speaker, chapter.character, `${chapter.title}: the friend opens the comic`);
     assert.equal(chapter.choice.length, 2);
-    const lines = [chapter.title, chapter.cliff, chapter.clue, chapter.thanks, chapter.done, chapter.card.title, chapter.card.blurb,
+    const lines = [chapter.title, chapter.cliff, chapter.clue, ...[chapter.thanks].flat(), chapter.done, chapter.card.title, chapter.card.blurb,
       ...chapter.scenes, ...chapter.cliffs, ...chapter.intro.map((panel) => panel.text),
       ...chapter.choice.flatMap((option) => [option.label, option.detail, option.reply.text])];
     for (const text of lines) {
@@ -107,7 +107,7 @@ const numbersIn = (text: string) => (text.match(/\d+/g) ?? []).sort();
 const everyStoryLine = () => [
   WHOLE_STONE_OPENING,
   ...PROLOGUE.map((panel) => panel.text),
-  ...CHAPTERS.flatMap((chapter) => [chapter.title, chapter.cliff, chapter.clue, chapter.thanks, chapter.done, chapter.card.title, chapter.card.blurb,
+  ...CHAPTERS.flatMap((chapter) => [chapter.title, chapter.cliff, chapter.clue, ...[chapter.thanks].flat(), chapter.done, chapter.card.title, chapter.card.blurb,
     ...chapter.scenes, ...chapter.cliffs, ...chapter.asks, ...chapter.intro.map((panel) => panel.text),
     ...chapter.choice.flatMap((option) => [option.label, option.detail, option.reply.text])]),
   ...Object.values(STORY_PROBLEMS).flatMap((problem) => [problem.setup, problem.prompt, problem.result, ...(problem.choices ?? [])]),
