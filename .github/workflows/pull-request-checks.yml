@@ -156,6 +156,50 @@ jobs:
       - name: Play every story film on a phone, with and without motion
         run: pnpm --filter @workspace/fraction-quest test:e2e:films
 
+  extra-browser-checks:
+    # A separate job, so the required checks above keep their names and their time. It runs the browser checks that had
+    # no job of their own: the accessibility scans (axe), the grown-ups report, the subscription screens, offline use,
+    # the reminder and the time limit. Expect about 10 extra runner minutes on every pull request (the tests took 6 minutes with 2 workers on a shared machine; the Chromium install is the rest).
+    name: Extra browser checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        # @axe-core/playwright is a dev dependency of the web app, so the frozen install brings it in.
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        # Same capped, retried install as the all-lessons job (see the note there).
+        timeout-minutes: 13
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
+          for try in 1 2; do
+            timeout 330 pnpm --filter @workspace/fraction-quest exec playwright install --with-deps chromium && exit 0
+            echo "Install attempt $try did not finish; trying again."
+            sudo pkill -x apt-get || true
+            for wait in $(seq 1 30); do sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock >/dev/null 2>&1 || break; sleep 2; done
+            sudo dpkg --configure -a || true
+            sudo sed -i 's#http://azure.archive.ubuntu.com#http://archive.ubuntu.com#g' /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          done
+          exit 1
+
+      - name: Accessibility, grown-ups report, subscription, offline, reminder and time-limit checks
+        run: pnpm --filter @workspace/fraction-quest test:e2e:extra
+
   iphone-safari-e2e:
     name: iPhone Safari lesson smoke (WebKit)
     runs-on: ubuntu-latest

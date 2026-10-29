@@ -8,9 +8,14 @@
     "scheme": "fraction-quest-ios",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.fractionquest.app",
+      "buildNumber": "1"
     },
-    "android": {},
+    "android": {
+      "package": "com.fractionquest.app",
+      "versionCode": 1
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },

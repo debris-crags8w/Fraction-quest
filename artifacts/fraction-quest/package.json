@@ -14,6 +14,7 @@
     "test:e2e": "playwright test --config=playwright.config.ts",
     "test:e2e:all-lessons": "playwright test --config=playwright.config.ts --grep \"every lesson completes its required questions in an isolated developer test\" --workers=1",
     "test:e2e:lesson-interactions": "playwright test --config=playwright.config.ts --grep \"learners sort fractions in both directions|a passed Build check clearly offers the next step|a passed Build check in later review clearly offers Finish review|replaying the first lesson and skipping its hands-on rounds preserves saved progress\" --workers=1",
+    "test:e2e:extra": "playwright test --config=playwright.config.ts e2e/accessibility.spec.ts e2e/parent-glance.spec.ts e2e/subscription.spec.ts e2e/offline.spec.ts e2e/reminder.spec.ts e2e/time-limit.spec.ts --workers=2",
     "test:e2e:films": "playwright test --config=playwright.config.ts e2e/films-all.spec.ts --workers=2",
     "test:e2e:iphone-safari": "PLAYWRIGHT_BROWSER=webkit PLAYWRIGHT_PHONE=1 playwright test --config=playwright.config.ts e2e/iphone-safari-smoke.spec.ts --workers=1"
   },

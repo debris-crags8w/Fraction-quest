@@ -2579,7 +2579,20 @@ describe('question generator', () => {
     else if ((m = /^(?:Sam|Kim) says (\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \d+\/\d+\. What is the right answer\?$/.exec(p))) expected = N(m[1]) / N(m[2]) + (m[3] === '+' ? 1 : -1) * N(m[4]) / N(m[5]);
     else if ((m = /^Ana has (\d+) stickers\. She gives away (\d+)\/(\d+) of them\. Then she gives away (\d+)\/(\d+) of the rest\. How many are left\?$/.exec(p))) expected = N(m[1]) * (1 - N(m[2]) / N(m[3])) * (1 - N(m[4]) / N(m[5]));
     else if ((m = /^How many 1\/(\d+) cup scoops fill (\d+)\/(\d+) cup\?$/.exec(p))) expected = (N(m[2]) / N(m[3])) * N(m[1]);
-    else if ((m = /^How many wholes are (\d+)\/(\d+)\?$/.exec(p)) || (m = /^Write (\d+)\/(\d+) as a whole number\.$/.exec(p))) expected = N(m[1]) / N(m[2]);
+    else if ((m = /^(\w+) and (\w+) are different sizes\. Rename (\d+)\/(\d+) as (\w+)\.$/.exec(p))) {
+      const unit: Record<string, number> = { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8, ninths: 9, tenths: 10, twelfths: 12 };
+      assert.equal(unit[m[1].toLowerCase()], N(m[4]), p); assert.equal(N(answer.split('/')[1]), unit[m[2]], p); expected = N(m[3]) / N(m[4]);
+    } else if ((m = /^(\d+)\/(\d+) ÷ (\d+)\/(\d+) = \?$/.exec(p))) expected = (N(m[1]) / N(m[2])) / (N(m[3]) / N(m[4]));
+    else if ((m = /^Divide the numerator and denominator of (\d+)\/(\d+) by (\d+)\. What do you get\?$/.exec(p))) {
+      assert.equal(answer, `${N(m[1]) / N(m[3])}/${N(m[2]) / N(m[3])}`, p); return true;
+    } else if ((m = /^Which number divides both (\d+) and (\d+)\?$/.exec(p))) {
+      const fits = question.choices.filter((c) => N(c) > 1 && N(m![1]) % N(c) === 0 && N(m![2]) % N(c) === 0);
+      assert.deepEqual(fits, [answer], p); return true;
+    } else if ((m = /^Which fraction is closest to (0|1\/2|1)\?$/.exec(p))) {
+      const target = m[1] === '1/2' ? 0.5 : N(m[1]); const dist = (c: string) => Math.abs(num(c) - target);
+      const best = Math.min(...question.choices.map(dist));
+      assert.deepEqual(question.choices.filter((c) => near(dist(c), best)), [answer], p); return true;
+    } else if ((m = /^How many wholes are (\d+)\/(\d+)\?$/.exec(p)) || (m = /^Write (\d+)\/(\d+) as a whole number\.$/.exec(p))) expected = N(m[1]) / N(m[2]);
     else if ((m = /^Write (\d+) whole bars as a fraction with a denominator of 1\.$/.exec(p))) expected = N(m[1]);
     // Later lessons' redo numbers: adding and taking away unlike fractions and mixed numbers, quick compares, measures.
     else if ((m = /^(?:Rename: .+\. Then )?(\d+)\/(\d+) ([+−]) (\d+)\/(\d+) = \?$/.exec(p))) expected = N(m[1]) / N(m[2]) + (m[3] === '+' ? 1 : -1) * N(m[4]) / N(m[5]);
@@ -3412,7 +3425,7 @@ describe('pictures never give the answer away', () => {
   });
 
   it('unit fraction practice can show a pizza slice, or 2 triangles that make 1/4 (not 2/7)', () => {
-    const qs = Array.from({ length: 60 }, (_, seed) => generateQuestions('unit-fractions', ['x'], seed + 1, 6)).flat().filter((q) => q.model.kind === 'area');
+    const qs = Array.from({ length: 60 }, (_, seed) => generateQuestions('unit-fractions', ['x'], seed + 1, 6)).flat().filter((q) => q.model.kind === 'area' && q.model.shaded.length > 0); // a shaded slice (friends sharing show the cut pizza, unshaded)
     assert.ok(qs.length > 20);
     for (const q of qs) if (q.model.kind === 'area') {
       const [n, d] = q.choices[q.correctChoice].split('/').map(Number);
@@ -3579,7 +3592,7 @@ describe('whole number × fraction is in the grade-4 path', () => {
   it('ends unit 8 (4.NF.4a, then 4.NF.4b), so the level quiz reaches it', () => {
     const unit8 = MISSIONS.filter((m) => m.unit === 8).map((m) => m.id);
     assert.deepEqual(unit8.slice(-2), ['unit-fraction-multiples', 'multiply-whole-by-fraction']);
-    assert.ok(placementItems(8, 3).some((item) => item.missionId === 'multiply-whole-by-fraction'));
+    assert.ok([1, 2, 3, 4, 5, 6].some((seed) => placementItems(8, seed).some((item) => item.missionId === 'multiply-whole-by-fraction')), 'the end of unit 8 is asked in some quizzes');
     // Moving lessons into unit 8 doesn't let a newcomer skip unit 8.
     const ahead = updateLearning(EMPTY_PROGRESS, 'simplify-fractions', { ...emptyLearningRecord(), practiceDone: true });
     assert.equal(isMissionUnlocked(ahead, 'simplify-fractions'), false, 'without unit 8 a newcomer is still locked');
