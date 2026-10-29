@@ -82,6 +82,7 @@ import { ChapterBanner, PrologueCard, StoneBanner, StorybookView, StoryComicView
 import { LanternIcon, OilNoticeCard, TonightsLantern } from './riddle-ui';
 import { SubscribeFlow, WebAppOnlyFlow } from './Subscribe';
 import { readOpenPractice, takeReminderTap, tellPractised } from './lib/reminder';
+import { LESSON_END_NOTE, lessonEnd } from './lesson-end';
 import { lessonsLocked, subscribedBefore, useSubscription, webLessonsLocked } from './lib/subscription';
 import { retryOpener, wrongChoiceReason } from './wrong-answer';
 import { useRevealWhen } from './lib/reveal';
@@ -1294,11 +1295,10 @@ function storyQuestion(mission: Mission, question: PracticeQuestion, storyOn: bo
   return { ...question, prompt: withName(problem.prompt, null, theme), choices: (problem.choices ?? question.choices).map((choice) => withName(choice, null, theme)), storySetup: problem.setup };
 }
 
-function RewardView({ mission, stars, progress, stoneDone = false, onMap, onNext, onReset, onGame, onSuspects, onEnding }: { mission: Mission; stars: number; progress: Progress; /** Back from the chapter's film. */ stoneDone?: boolean; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code') => void; onSuspects: (board: SuspectBoard) => void; onEnding: (part: 'end' | 'epilogue') => void }) {
+function RewardView({ mission, stars, progress, lessonsAreLocked = false, stoneDone = false, onMap, onNext, onReset, onGame, onSuspects, onEnding }: { mission: Mission; stars: number; progress: Progress; /** The lessons after the first need the app. */ lessonsAreLocked?: boolean; /** Back from the chapter's film. */ stoneDone?: boolean; onMap: () => void; onNext: (missionId: string) => void; onReset: () => void; onGame: (type: 'race' | 'code') => void; onSuspects: (board: SuspectBoard) => void; onEnding: (part: 'end' | 'epilogue') => void }) {
   const nextMission = getNextMission(progress);
-  // Units 9+ open only after every lesson in the unit before is done, so "next lesson is open" is not always true.
-  const following = MISSIONS[MISSIONS.findIndex((item) => item.id === mission.id) + 1];
-  const nextLessonOpen = !following || isMissionUnlocked(progress, following.id);
+  // What comes next is not always "the next lesson is open": a unit can be closed, the course can be finished, the app can be needed.
+  const endNote = LESSON_END_NOTE[lessonEnd(progress, mission.id, lessonsAreLocked)];
   const { fun } = useFun();
   const storyOn = fun.displayPreferences?.storyMode !== false;
   const account = useAccount();
@@ -1322,7 +1322,7 @@ function RewardView({ mission, stars, progress, stoneDone = false, onMap, onNext
           {!(storyOn && chapter && !season?.costumes.length) && <div className="fq-reward-mascot"><Mascot mood="cheer" size={120} named /><span className="fq-reward-trophy" aria-hidden="true"><Trophy size={30} strokeWidth={2.5} /></span></div>}
            <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Sparkles size={14} fill="currentColor" /> Lesson completed</div>
           <h1>{season && <>{season.cheer}<br /></>}{storyLessonTitle(mission.title, storyOn)}<br />is on your map.</h1>
-           <p className={storyOn && chapter ? 'fq-reward-note' : undefined}>{storyOn && chapter ? '' : 'You built it two ways, explained it, and finished the worksheet. '}{nextLessonOpen ? 'The next lesson is open!' : 'Finish the other lessons in this unit to open the next unit.'}</p>
+           <p className={storyOn && chapter ? 'fq-reward-note' : undefined}>{storyOn && chapter ? '' : 'You built it two ways, explained it, and finished the worksheet. '}{endNote}</p>
           <SeasonReward missionId={mission.id} />
           {storyOn && chapter && <StoryPayoff chapter={chapter} lessonIndex={unitMissions.indexOf(mission)} lessonsTotal={unitMissions.length}
             chapterDone={unitMissions.every((item) => hasLearningGate(progress, item.id))} piecesFound={completedStoryUnits(progress).size} name={account.activeProfile?.displayName ?? null}
@@ -2028,7 +2028,7 @@ function Game() {
         setView(view.nextView);
       }} />}
       {view.type === 'reward' && activeMission && (
-        <RewardView key={view.stoneDone ? 'reward-after-film' : 'reward'} mission={activeMission} stars={view.stars} stoneDone={view.stoneDone} progress={progress} onMap={returnToMap} onNext={startMission} onReset={openResetDialog} onGame={(type) => setView({ type, missionId: activeMission.id })} onSuspects={(board) => setView({ type: 'suspects', board, from: 'reward' })}
+        <RewardView key={view.stoneDone ? 'reward-after-film' : 'reward'} mission={activeMission} stars={view.stars} stoneDone={view.stoneDone} progress={progress} lessonsAreLocked={locked} onMap={returnToMap} onNext={startMission} onReset={openResetDialog} onGame={(type) => setView({ type, missionId: activeMission.id })} onSuspects={(board) => setView({ type: 'suspects', board, from: 'reward' })}
           onEnding={(part) => { primeReadAloud(); if (part === 'epilogue') setFun((current) => recordStory(current, { epilogueSeen: true })); setView({ type: 'story', missionId: activeMission.id, part, fromReward: view.stars }); }} />
       )}
       {view.type === 'story' && (() => {

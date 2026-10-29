@@ -1,4 +1,6 @@
 import { expect, test, type Page } from './fixtures';
+import { MISSIONS } from '../src/game';
+import { getBuildChecks, getWorksheet } from '../src/learning-content';
 
 const dayKey = () => {
   const date = new Date();
@@ -55,6 +57,34 @@ test('on the website, lesson 2 sends the family to the app, with the store links
   await expect(page.getByTestId('get-app-soon')).toBeVisible();
   await page.getByTestId('button-get-app-back').click();
   await expect(page.getByTestId('button-start-mission-equal-parts')).toBeVisible();
+});
+
+test('on the website, finishing lesson 1 does not claim the next lesson is open, and its button leads to the app page', async ({ page }) => {
+  const first = MISSIONS[0]!;
+  const record = {
+    practiceDone: true, helpUses: 0, misconceptions: {},
+    checks: Object.fromEntries(getBuildChecks(first.id).map((check) => [check.id, { passed: true, supported: false, attempts: 1 }])),
+    worksheet: Object.fromEntries(getWorksheet(first.id).map((problem) => [problem.id, { draft: problem.answer, checkedValue: problem.answer, attempts: 1, supported: false }])),
+  };
+  await page.addInitScript(({ learned, day }) => {
+    (window as Window & { __fqWebLimit?: boolean }).__fqWebLimit = true;
+    localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: [], starsByMission: {}, reviewQueue: [], assessments: [], learning: learned }));
+    localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 0, day, answeredToday: 0, sound: false, story: { prologueSeen: true } }));
+  }, { learned: { [first.id]: record }, day: dayKey() });
+  await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
+  await page.setViewportSize({ width: 390, height: 664 });
+  await page.goto('/');
+  await page.getByTestId('button-play-guest').click();
+  await page.getByTestId(`button-node-${first.id}`).click({ force: true });
+  await page.getByTestId(`button-redo-${first.id}`).click();
+  await page.getByTestId('button-lab-finish').click();
+  const breakOverlay = page.getByTestId('brain-break-overlay');
+  if (await breakOverlay.isVisible()) await page.getByTestId('button-break-skip').click();
+  const reward = page.getByTestId('status-mission-complete');
+  await expect(reward).toContainText('Ask a grown-up to unlock it.');
+  await expect(reward).not.toContainText('next lesson is open');
+  await page.locator('[data-testid^="button-next-mission-"]').click();
+  await expect(page.getByTestId('web-app-only')).toBeVisible();
 });
 
 test('on the website the Storybook stays open after a later lesson points to the app', async ({ page }) => {

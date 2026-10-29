@@ -99,6 +99,28 @@ test('a child who has seen the finale is not made to watch it again', async ({ p
   await expect(payoff.getByTestId('button-watch-finale')).toBeVisible();
 });
 
+test('the last lesson of the course says the course is finished, and offers no next lesson', async ({ page }) => {
+  await seedLastLesson(page, { seen: true });
+  await finishLessonAndStone(page, last.id, 15 % 4);
+  const reward = page.getByTestId('status-mission-complete');
+  await expect(reward).toContainText('You finished the whole course!');
+  await expect(reward).not.toContainText('next lesson is open');
+  await expect(page.locator('[data-testid^="button-next-mission-"]')).toHaveCount(0);
+  await expect(page.getByTestId('button-return-map')).toBeVisible();
+  await expect(page.getByTestId('button-watch-finale')).toBeVisible();
+  await fits(page);
+});
+
+test('the last lesson of a chapter in the middle of the course still opens the next lesson', async ({ page }) => {
+  const chapterTwo = MISSIONS.filter((mission) => mission.unit === 2);
+  const lastOfTwo = chapterTwo[chapterTwo.length - 1]!;
+  await seedLastLesson(page, { upTo: MISSIONS.indexOf(lastOfTwo) });
+  await finishLessonAndStone(page, lastOfTwo.id, 2 % 4);
+  const reward = page.getByTestId('status-mission-complete');
+  await expect(reward).toContainText('The next lesson is open!');
+  await expect(page.locator('[data-testid^="button-next-mission-"]')).toHaveCount(1);
+});
+
 test('with Reduce motion on, the finale still plays, the camera stays still, and it fits a phone', async ({ page }) => {
   await seedLastLesson(page, { reducedMotion: true });
   await expect(page.locator('html')).toHaveClass(/fq-reduced-motion/);
