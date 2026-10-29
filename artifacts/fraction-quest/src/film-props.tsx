@@ -8,7 +8,7 @@
    - Light: a few dozen shapes, no filters, no images. All movement is CSS and sits under `fq-cine-move`, so the
      existing Reduce motion rules (system setting and the app setting) hold it still; the resting style of every
      moving part is its finished position, so the still picture is complete.
-   - It lives in the band right of the speaker (x 38 to 86 percent, y 17 to 46 percent of the screen): clear of the
+   - It lives in the band right of the speaker (x 38 to 86 percent, y 19 to 48 percent of the screen): clear of the
      speaker's face and of the caption, which sits along the bottom.
    The styles are film-props.css, imported by story-cinema.tsx. */
 
@@ -207,8 +207,8 @@ export function LessonProp({ prop, scene, beat }: { prop: PropId; scene: StorySc
   );
 }
 
-/** The chapter's friend, small, standing in front of the prop's ledge (clear of the letterbox bar above and the caption below). */
-export const PROP_FRIEND = { style: { left: '75%', top: '47%' } as CSSProperties, size: 36 };
+/** The chapter's friend, small, peeking in above the speaker: that corner is clear of the letterbox bar, of the prop and of the caption, even a four-line one that reaches up to the middle of the screen. */
+export const PROP_FRIEND = { style: { left: '14%', top: '17%' } as CSSProperties, size: 36 };
 
 /* ---- Chapter endings: the chapter's key prop beside its stone piece, on that chapter's own backdrop. ---- */
 
