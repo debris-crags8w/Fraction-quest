@@ -77,10 +77,10 @@ function GetTheApp({ onClose }: { onClose: () => void }) {
           <button className="fq-icon-button" onClick={onClose} aria-label="Close" data-testid="button-get-app-close"><X size={18} /></button>
         </div>
         <h1>Fraction Quest continues in the app</h1>
-        <p>Your child finished the free first lesson. The full course is in the app for iPhone, iPad and Android: 7 days free, then {LISTED_YEARLY_PRICE} a year or {LISTED_PRICE} a month.</p>
+        <p>Your child finished the free first lesson. The full course is in the app for iPhone and Android: 7 days free, then {LISTED_YEARLY_PRICE} a year or {LISTED_PRICE} a month.</p>
         <ul className="fq-paywall-list">
           <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>{MISSIONS.length} lessons</strong> that teach first, then practise, with a picture for every question</span></li>
-          <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>A weekly report</strong> showing what your child learned and how to help at home</span></li>
+          <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>A progress report any time</strong>, showing what your child learned and how to help at home</span></li>
           <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>No ads</strong>, and nothing sold to anyone</span></li>
         </ul>
         <div className="fq-get-app-stores">
@@ -142,8 +142,8 @@ function Paywall({ subscription, onClose }: { subscription: Subscription; onClos
         <p>A full fraction course for grades 3 to 5, built to the Common Core standards.</p>
         <ul className="fq-paywall-list">
           <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>{MISSIONS.length} lessons</strong> that teach first, then practise</span></li>
-          <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>Every answer checked</strong> before it ships</span></li>
-          <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>A weekly report</strong> for grown-ups</span></li>
+          <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>Every lesson and its answers are checked</strong></span></li>
+          <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>A progress report any time</strong></span></li>
           <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>No ads</strong>, and nothing sold to anyone</span></li>
         </ul>
         {plans.length > 1 && (

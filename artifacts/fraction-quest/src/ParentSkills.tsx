@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Check } from 'lucide-react';
 import { MathText } from './MathText';
 import type { GrownUpPick } from './game';
-import type { MonthView, PracticeTip, SkillRow, SkillStep } from './parent-report';
+import type { HomeIdea, MonthView, PracticeTip, SkillRow, SkillStep } from './parent-report';
 
 /* The grown-ups' report: skills by standard, what to practice, and the last 4 weeks.
    Everything is read from saved progress. Only "Practice now" and "Add a Check-in" change anything: they put a card on the child's map. */
@@ -78,6 +79,15 @@ const gradeLine = (skills: SkillRow[]) => {
 export function SkillsCard({ skills, grade, childName, picks, onPick }: { skills: SkillRow[]; grade: 3 | 4 | 5; childName: string | null; picks: GrownUpPick[]; onPick: Pick }) {
   const name = childName ?? 'your child';
   const [all, setAll] = useState(false);
+  // A printout lists every skill, not just the first few: open the list for printing and put it back afterwards.
+  const allNow = useRef(all); allNow.current = all;
+  const restore = useRef<boolean | null>(null);
+  useEffect(() => {
+    const open = () => { restore.current = allNow.current; flushSync(() => setAll(true)); };
+    const close = () => { if (restore.current !== null) { setAll(restore.current); restore.current = null; } };
+    window.addEventListener('beforeprint', open); window.addEventListener('afterprint', close);
+    return () => { window.removeEventListener('beforeprint', open); window.removeEventListener('afterprint', close); };
+  }, []);
   const mine = byStep(skills.filter((skill) => skill.grade === grade));
   return (
     <>
@@ -102,15 +112,20 @@ export function SkillsCard({ skills, grade, childName, picks, onPick }: { skills
   );
 }
 
-export function PracticeCard({ tips, strengths, childName, picks, onPick, onShowLesson }: {
-  tips: PracticeTip[]; strengths: string[]; childName: string | null; picks: GrownUpPick[]; onPick: Pick; onShowLesson: (missionId: string) => void;
+export function PracticeCard({ tips, homeIdea, strengths, childName, picks, onPick, onShowLesson }: {
+  tips: PracticeTip[]; homeIdea: HomeIdea | null; strengths: string[]; childName: string | null; picks: GrownUpPick[]; onPick: Pick; onShowLesson: (missionId: string) => void;
 }) {
   const name = childName ?? 'your child';
   return (
     <>
       <section className="fq-glance-card" aria-labelledby="practice-title" data-testid="parent-practice">
         <h2 id="practice-title">What to practice</h2>
-        {tips.length === 0 && <p>Nothing stands out yet. Wrong tries in lessons show up here, grouped by idea.</p>}
+        {tips.length === 0 && <p>No wrong tries yet. When there are some, they show up here, grouped by idea.</p>}
+        {tips.length === 0 && homeIdea && (
+          <div className="fq-glance-home" data-testid="parent-home-idea"><strong>Try this at home</strong>
+            <p className="fq-glance-note">{homeIdea.why === 'next' ? 'Next up' : 'Worth another look'}: lesson {homeIdea.lessonNumber}, {homeIdea.lessonTitle} · {homeIdea.heading}</p>
+            <p><MathText text={homeIdea.home} /></p></div>
+        )}
         <ol className="fq-tips">
           {tips.map((tip, index) => {
             const onMap = picked(picks, 'practice', tip.missionId);
@@ -120,7 +135,7 @@ export function PracticeCard({ tips, strengths, childName, picks, onPick, onShow
                   <p><strong><MathText text={tip.idea} /></strong>
                     <small>{tip.count} wrong {tip.count === 1 ? 'try' : 'tries'}{tip.inRedos ? ` (${tip.inRedos} in redos)` : ''} in {lessonList(tip.lessonNumbers)}{tip.standards.length ? ` · ${tip.standards.join(', ')}` : ''}</small></p>
                 </div>
-                {tip.homeActivity && <div className="fq-glance-home"><strong>5 minutes at home</strong><p><MathText text={tip.homeActivity} /></p></div>}
+                <div className="fq-glance-home"><strong>Try this at home</strong><p><MathText text={tip.home} /></p></div>
                 <div className="fq-tip-actions">
                   <button type="button" className="fq-button" disabled={onMap} onClick={() => onPick('practice', tip.missionId)} data-testid={`button-pick-practice-${index}`}>
                     {onMap ? <><Check size={18} aria-hidden="true" /> On {name}’s map</> : 'Practice now'}

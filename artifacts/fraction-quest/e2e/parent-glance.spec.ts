@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, test, type Page } from './fixtures';
 
 const dayKey = (daysAgo: number) => {
   const date = new Date();
@@ -37,7 +37,17 @@ test('the grown-ups report shows the week, skills by standard, what to practice,
   await page.getByTestId('button-open-parent').click();
   const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
   const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
-  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  // The check is a two-digit number (13 to 19) times 6 to 9, not a times-table fact a child knows.
+  expect(Number(factors[1])).toBeGreaterThanOrEqual(13);
+  expect(Number(factors[1])).toBeLessThanOrEqual(19);
+  expect(Number(factors[2])).toBeGreaterThanOrEqual(6);
+  expect(Number(factors[2])).toBeLessThanOrEqual(9);
+  // A wrong answer shows a new question, and the right answer opens the report.
+  await page.getByTestId('input-parent-gate').fill('1');
+  await page.getByTestId('button-parent-gate').click();
+  await expect(page.getByTestId('text-parent-gate-wrong')).toBeVisible();
+  const again = (await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent())!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(again[1]) * Number(again[2])));
   await page.getByTestId('button-parent-gate').click();
 
   const glance = page.getByTestId('parent-glance');
@@ -54,9 +64,14 @@ test('the grown-ups report shows the week, skills by standard, what to practice,
   await expect(page.getByTestId('parent-skill-3.NF.1')).toContainText('1. ');
   await expect(page.getByTestId('parent-skills-grade-4')).toContainText('Not started · 14 skills');
   // What to practice, with an idea for home.
-  await expect(page.getByTestId('parent-tip-0')).toContainText('More parts, smaller parts');
+  // The heading is the idea (not the hint of one question), with one thing to try at home.
+  await expect(page.getByTestId('parent-tip-0')).toContainText('Comparing fractions with the same top or bottom');
   await expect(page.getByTestId('parent-tip-0')).toContainText('3 wrong tries');
-  await expect(page.getByTestId('parent-tip-0')).toContainText('5 minutes at home');
+  await expect(page.getByTestId('parent-tip-0')).toContainText('Try this at home');
+  await expect(page.getByTestId('parent-tip-0')).not.toContainText('More parts, smaller parts');
+  // Nobody finished a worksheet this week, so no first-try rate is claimed for the week.
+  await expect(glance).toContainText('—right the first time');
+  await expect(glance).toContainText('in this week’s lessons');
   // The last 4 weeks.
   await expect(page.getByTestId('parent-month')).toContainText('4lessons finished');
   await expect(page.getByTestId('parent-month-first-try')).toContainText('shown after two weeks');
@@ -113,4 +128,60 @@ test('Practice now and Add a Check-in put a card on the child\'s map, and it ope
   await expect(card.getByRole('button')).toHaveCount(3); // Listen, the Check-in, and the new practice
   await card.getByTestId('button-picked-practice-fraction-names').click();
   await expect(page.locator('.fq-play-kicker')).toContainText('Question 1 of 5');
+});
+
+async function openReport(page: Page, learning: Record<string, unknown>, inApp = false) {
+  await page.addInitScript(({ saved, app }) => {
+    if (!localStorage.getItem('fraction-quest-fun-v1:guest')) {
+      localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: Object.keys(saved), starsByMission: {}, reviewQueue: [], assessments: [], learning: saved }));
+      localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 0, day: '2026-01-01', answeredToday: 0, dayStreak: 0, lastActiveDay: '2026-01-01', sound: false, story: { prologueSeen: true } }));
+    }
+    const scope = window as Window & { __posted?: string[]; ReactNativeWebView?: unknown };
+    scope.__posted = [];
+    if (app) scope.ReactNativeWebView = { postMessage: (message: string) => scope.__posted!.push(message) };
+  }, { saved: learning, app: inApp });
+  await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Not signed in.' }) }));
+  await page.goto('/');
+  await page.getByTestId('button-play-guest').click();
+  await page.getByTestId('button-app-menu').click();
+  await page.getByTestId('button-open-parent').click();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+  await expect(page.getByTestId('parent-report')).toBeVisible();
+}
+
+test('with no wrong tries the report still gives something to try at home, from the next lesson', async ({ page }) => {
+  await openReport(page, { 'equal-parts': record({ completedAt: Date.now() - 2 * 86_400_000 }) });
+  const card = page.getByTestId('parent-practice');
+  await expect(card).not.toContainText('Nothing stands out yet');
+  await expect(page.getByTestId('parent-home-idea')).toContainText('Try this at home');
+  await expect(page.getByTestId('parent-home-idea')).toContainText('Next up: lesson 2, Fair parts in any shape');
+  await expect(page.getByTestId('parent-home-idea')).toContainText('Fold a paper strip into 4 equal parts');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test('printing from the app sends the report with every unit, other grade and skill open', async ({ page }) => {
+  await openReport(page, Object.fromEntries(['equal-parts', 'fraction-names', 'unit-fractions'].map((id, i) => [id, record({ completedAt: Date.now() - (i + 1) * 86_400_000 })])), true);
+  await expect(page.getByTestId('parent-skills-grade-4')).not.toHaveAttribute('open', '');
+  await page.getByTestId('button-parent-print').click();
+  const sent = await page.evaluate(() => ((window as Window & { __posted?: string[] }).__posted ?? []).map((message) => JSON.parse(message)));
+  const print = sent.find((message) => message.type === 'print');
+  expect(print).toBeTruthy();
+  const opened = await page.evaluate((html) => {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return {
+      otherGrades: [4, 5].map((grade) => (doc.querySelector(`[data-testid="parent-skills-grade-${grade}"]`) as HTMLDetailsElement | null)?.hasAttribute('open')),
+      unitsClosed: [...doc.querySelectorAll('.fq-parent-report details.fq-parent-unit')].filter((item) => !item.hasAttribute('open')).length,
+      unitCount: doc.querySelectorAll('.fq-parent-report details.fq-parent-unit').length,
+      gradeSkills: doc.querySelectorAll('[data-testid="parent-skills"] .fq-skill').length,
+    };
+  }, print.html as string);
+  expect(opened.otherGrades).toEqual([true, true]);
+  expect(opened.unitCount).toBeGreaterThan(0);
+  expect(opened.unitsClosed).toBe(0);
+  expect(opened.gradeSkills).toBe(9); // every Grade 3 skill, not just the first 5
+  // The screen goes back to how it was.
+  await expect(page.getByTestId('parent-skills').locator('.fq-skill')).toHaveCount(5);
 });
