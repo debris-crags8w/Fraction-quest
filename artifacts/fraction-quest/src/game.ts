@@ -2313,6 +2313,9 @@ export const LESSON_PLAN: Readonly<Record<number, readonly string[]>> = {
 };
 /** How many units the course has (each one has a story chapter, a Unit challenge and Check-ins). */
 export const UNIT_COUNT = Object.keys(LESSON_PLAN).length;
+/** Units the "Find my level" quiz covers (placement.ts re-exports it). A child who passes them all starts at the next unit,
+    so the last start unit that can be saved is PLACEMENT_UNITS + 1. */
+export const PLACEMENT_UNITS = 12;
 const planPlace = new Map(Object.entries(LESSON_PLAN).flatMap(([unit, ids]) => ids.map((id, at) => [id, { unit: Number(unit), at }] as const)));
 function placeOf(id: string): { unit: number; at: number } {
   const place = planPlace.get(id);
@@ -2869,7 +2872,7 @@ export function loadProgress(): Progress {
       ...(adaptationLog.length ? { adaptationLog } : {}),
       ...(dailyPractice ? { dailyPractice } : {}),
       assessments,
-      ...(value.placement && typeof value.placement === 'object' && Number.isInteger(value.placement.unit) && value.placement.unit >= 2 && value.placement.unit <= 9
+      ...(value.placement && typeof value.placement === 'object' && Number.isInteger(value.placement.unit) && value.placement.unit >= 2 && value.placement.unit <= PLACEMENT_UNITS + 1
         && typeof value.placement.at === 'number' && Number.isFinite(value.placement.at) ? { placement: { unit: value.placement.unit, at: value.placement.at } } : {}),
       ...(grownUpPicks.length ? { grownUpPicks } : {}),
       ...(assessmentDraft ? { assessmentDraft } : {}),
