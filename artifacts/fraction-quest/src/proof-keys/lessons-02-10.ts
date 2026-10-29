@@ -24,9 +24,9 @@ export const KEYS: Record<string, string> = {
   'This square is cut into 4 parts. Are the parts equal in area?': 'No, some parts cover more space',
   '4 triangles fill this square. Are they equal in area?': 'Yes, each covers the same space',
   // Lesson 5 (unit-size). Same-size bars: 1/3 > 1/8, so 1/3 leaves less of the bar empty and is closer to the whole bar.
-  // 1/5 < 1/2, so 1/5 leaves more empty: 4/5 of the bar against 1/2. It is farther from one whole.
+  // 1/6 < 1/2, so 1/6 leaves more empty: 5/6 of the bar against 1/2. It is farther from one whole.
   'Which is closer to the whole bar: 1/3 or 1/8?': '1/3',
-  'Which is farther from one whole: 1/2 or 1/5?': '1/5',
+  'Which is farther from one whole: 1/2 or 1/6?': '1/6',
   // Lesson 7 (benchmark-half). Half of 6 parts is 3. Half of 4 is 2, so 2/4 is one half (1/4, 3/4 and 4/4 are not).
   // Each half of the cake holds 2 equal pieces, so the whole cake has 2 + 2 = 4. Half of 8 is 4, so 1 part less is 3/8.
   'A bar has 6 equal parts. How many parts make one half?': '3',

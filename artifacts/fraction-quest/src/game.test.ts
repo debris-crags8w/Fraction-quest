@@ -2348,8 +2348,8 @@ describe('unit challenges', () => {
   const value = (n: number, d: number) => n / d;
   const expected: Record<string, string> = {
     'u1-p1': '3/8', 'u2-p1': '1/3', 'u3-p1': 'D', 'u4-p1': '3/5', 'u5-p1': 'B', 'u6-p1': '4', 'u7-p1': '1 and 3/4', 'u8-p1': '0.35',
-    'u1-c1': '3', 'u1-c2': '5/8', 'u1-c3': '1/4', 'u1-c4': '10 cars', 'u1-c5': '12',
-    'u2-c1': '1/2', 'u2-c2': '3/5', 'u2-c3': 'Mia', 'u2-c4': '2/9, 2/5, 2/3', 'u2-c5': 'Kim',
+    'u1-c1': '3', 'u1-c2': '5/8', 'u1-c3': '1/4', 'u1-c4': '8 cars', 'u1-c5': '12',
+    'u2-c1': '1/2', 'u2-c2': '3/6', 'u2-c3': 'Mia', 'u2-c4': '2/6, 2/4, 2/3', 'u2-c5': 'Kim',
     'u3-c1': '5/8',
     'u3-c2': ['1/2', '2/3', '3/4', '4/5', '5/6'].sort((a, b) => {
       const [an, ad] = a.split('/').map(Number); const [bn, bd] = b.split('/').map(Number);
@@ -2361,12 +2361,12 @@ describe('unit challenges', () => {
     })[0],
     'u3-c4': '1/8', 'u3-c5': '9/18',
     'u4-c1': '3/4', 'u4-c2': '6', 'u4-c3': String([5, 6, 6, 7, 7, 8].filter((q) => q / 4 > 1.5).length), 'u4-c4': '2/5', 'u4-c5': '3',
-    'u5-c1': '7/10', 'u5-c2': '2/9', 'u5-c3': '7/8', 'u5-c4': 'Cara', 'u5-c5': '2',
+    'u5-c1': '7/8', 'u5-c2': '2/11', 'u5-c3': '7/8', 'u5-c4': 'Cara', 'u5-c5': '2',
     'u6-c1': '3/6', 'u6-c2': '8', 'u6-c3': '5/14', 'u6-c4': '2', 'u6-c5': '20',
     'u7-c1': '1', 'u7-c2': '2 and 1/4', 'u7-c3': '12', 'u7-c4': '3/8 + 4/8', 'u7-c5': '3',
     'u8-c1': `${30 + 25}/100`, 'u8-c2': '0.3', 'u8-c3': '0.5', 'u8-c4': '2/10 meter', 'u8-c5': `${2 + 1 + 1} ${3 + 2 - 4}/4`,
     // Units 9–14: worked out here, not copied from the challenge text.
-    'u9-p1': '2/3', 'u9-c1': ['2/4', '3/6', '4/9', '5/10', '6/12'].find((f) => { const [t, b] = f.split('/').map(Number); return t * 2 !== b; })!,
+    'u9-p1': '2/3', 'u9-c1': ['2/4', '3/6', '4/7', '5/10', '6/12'].find((f) => { const [t, b] = f.split('/').map(Number); return t * 2 !== b; })!,
     'u9-c2': String((3 * 20) / 4),
     'u9-c3': ['2/5', '3/7', '4/9', '5/8', '1/3'].find((f) => { const [t, b] = f.split('/').map(Number); return t / b > 0.5 && t / b < 1; })!,
     'u9-c4': ['Ana', 'Ben', 'Cal'][[2 / 3, 3 / 4, 5 / 6].indexOf(Math.max(2 / 3, 3 / 4, 5 / 6))],
@@ -2467,7 +2467,7 @@ describe('long problems', () => {
   it('gives each walk-through step four distinct choices and the authored answer', () => {
     const expectedSteps: Record<string, string[]> = {
       'u1-c3': ['2', '4', '1/4'], 'u1-c5': ['4', '12'],
-      'u2-c3': ['1/4', 'Mia'], 'u2-c4': ['Cut in 9', 'Cut in 3'],
+      'u2-c3': ['1/4', 'Mia'], 'u2-c4': ['Cut in 6', 'Cut in 3'],
       'u2-c5': ['3/6', '3/4', '3/4'], 'u4-c5': ['6/8 meter', '9/8 meters', 'Yes'],
       'u5-c4': ['1/4', '1/6', '1/6'], 'u6-c4': ['1/4', '2'],
       'u7-c5': ['6/3', '8/3', '3'], 'u8-c4': ['5/10 meter', '2/10 meter'], 'u8-c5': ['3', '5/4', '4 1/4'],

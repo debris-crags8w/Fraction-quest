@@ -58,20 +58,20 @@ describe('fraction words', () => {
     assert.ok(speech.every((line) => !/\d\/\d/.test(line)), 'no slash fractions in what is read');
   });
 
-  it('opens a "New word" card on the lesson page of the first lesson to say or write a part name (ninths, tenths, elevenths …), and only there; a name an idea\'s practice uses first (fifths, sevenths, sixteenths, fifteenths) gets its word card on that idea\'s Learn page instead; no lesson page has more than two cards', async () => {
+  it('opens a "New word" card on the lesson page of the first lesson to say or write a part name (ninths, elevenths …), and only there; a name an idea\'s practice uses first (fifths, sevenths, tenths, twelfths, sixteenths, fifteenths) gets its word card on that idea\'s Learn page instead; no lesson page has more than two cards', async () => {
     const { MISSIONS } = await import('./game');
     const { newWordsFor } = await import('./new-words');
     const { LESSON_IDEAS } = await import('./lesson-ideas');
     const shown = MISSIONS.flatMap((mission) => newWordsFor(mission.id).map((d) => ({ id: mission.id, d })));
-    assert.deepEqual(shown.map((item) => item.d).sort((a, b) => a - b), [9, 10, 11, 12, 14, 18, 20, 24, 25, 28, 32, 50, 100], 'each new name once');
+    assert.deepEqual(shown.map((item) => item.d).sort((a, b) => a - b), [9, 11, 14, 18, 20, 24, 25, 28, 32, 50, 100], 'each new name once');
     for (const mission of MISSIONS) assert.ok(newWordsFor(mission.id).length <= 2, `${mission.id} has no more than two New word cards`);
     assert.deepEqual(newWordsFor(MISSIONS[0]!.id), [], 'lesson 1 has the Words screen instead');
     const first = (d: number) => MISSIONS.findIndex((mission) => mission.id === shown.find((item) => item.d === d)!.id);
-    assert.ok(first(10) <= first(100), 'tenths come before hundredths');
+    assert.ok(MISSIONS.findIndex((mission) => mission.id === 'build-equivalents') < first(100), 'tenths (a Learn page card) come before the hundredths card');
     const learnCards = MISSIONS.flatMap((mission) => (LESSON_IDEAS[mission.id] ?? []).flatMap((idea) =>
       idea.learn.flatMap((page) => ('words' in page ? page.words.map((word) => `${mission.id}: ${word.term}`) : []))))
-      .filter((card) => /one (fifth|seventh|sixteenth|fifteenth)$/.test(card));
-    assert.deepEqual(learnCards, ['unit-fractions: one seventh', 'benchmarks-zero-one: one fifth', 'compose-to-one: one sixteenth', 'add-unlike-fractions: one fifteenth']);
+      .filter((card) => /one (fifth|seventh|tenth|twelfth|sixteenth|fifteenth)$/.test(card));
+    assert.deepEqual(learnCards, ['unit-fractions: one seventh', 'benchmarks-zero-one: one fifth', 'build-equivalents: one tenth', 'build-equivalents: one twelfth', 'compose-to-one: one sixteenth', 'add-unlike-fractions: one fifteenth']);
   });
 
   it('explains what a fraction is first, saying the fraction in words', async () => {

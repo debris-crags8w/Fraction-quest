@@ -8,6 +8,7 @@ import { gardenModel, type GardenSide } from './garden';
 import { answerMatches, asChoicePrompt, choiceDistractors, getBuildChecks, getWorksheet, type WorksheetProblem } from './learning-content';
 import { FRACTION_STANDARDS, standardsForMission, type StandardId } from './standard-catalog';
 import { scopedStorageKey } from './storage-scope';
+import { ideaOfQuestion, partTaught, withTaughtParts } from './taught-parts';
 
 /** `named`: the question states this fraction, so the bar shows its label (other bars are labelled once answered). */
 /** `untilAnswered`: this bar shows the answer, so it stays hidden until the child answers (then it confirms it). */
@@ -445,22 +446,29 @@ function spreadAnswer<T extends { choices: string[]; correctChoice: number }>(qu
   return { ...question, choices: others, correctChoice: spot };
 }
 
+/** A wrong choice never writes a part name (fifths, ninths …) before a card has taught it (taught-parts.ts). A question
+    whose own prompt or right answer needs one stays as written: the teaching check in teach-extras.test.ts names it. */
+const onlyTaughtParts = (question: PracticeQuestion, missionId: string): PracticeQuestion => {
+  const idea = ideaOfQuestion(missionId, question.id);
+  return withTaughtParts(question, (d) => partTaught(d, COURSE_IDS, missionId, idea)) ?? question;
+};
+
 function mission({ ideaQuestions: ideaSeeds, ...seed }: MissionSeed & { unit: number }): Mission {
   const standards = standardsForMission(seed.id);
-  const questions = seed.questions.map((question, index) => noBeforeYes(spreadAnswer({
+  const questions = seed.questions.map((question, index) => onlyTaughtParts(noBeforeYes(spreadAnswer({
     ...question,
     choices: withUnits(question.prompt, withoutOverOne(question.prompt, question.choices, question.correctChoice)),
     id: `${seed.id}-q${index + 1}`,
     isMastery: index === seed.questions.length - 1,
     standards: [...standards],
-  }, `${seed.id}-q${index + 1}`)));
-  const ideaQuestions = ideaSeeds?.map((question, index) => noBeforeYes(spreadAnswer({
+  }, `${seed.id}-q${index + 1}`)), seed.id));
+  const ideaQuestions = ideaSeeds?.map((question, index) => onlyTaughtParts(noBeforeYes(spreadAnswer({
     ...question,
     choices: withUnits(question.prompt, withoutOverOne(question.prompt, question.choices, question.correctChoice)),
     id: `${seed.id}-p${index + 1}`,
     isMastery: false,
     standards: [...standards],
-  }, `${seed.id}-p${index + 1}`)));
+  }, `${seed.id}-p${index + 1}`)), seed.id));
   return {
     ...seed,
     ...(ideaQuestions ? { ideaQuestions } : {}),
@@ -572,11 +580,11 @@ const curriculum: MissionSeed[] = [
       practice('Which is smaller: 1/3 or 1/6?', ['1/3', '1/6', 'They are the same'], 1, bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 6 }), 'Which whole has more parts?', 'Sixths are smaller than thirds. So 1/6 is smaller.', bars({ numerator: 1, denominator: 2 })),
     ],
     ideaQuestions: [
-      practice('Which is bigger, 1/5 or 1/3?', ['1/3', '1/5', 'They are equal', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 5 }, { numerator: 1, denominator: 3 }), 'Look at the denominators. The smaller denominator is the bigger part.', '3 is less than 5, so thirds are bigger parts. 1/3 is bigger.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Which is bigger, 1/6 or 1/3?', ['1/3', '1/6', 'They are equal', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 3 }), 'Look at the denominators. The smaller denominator is the bigger part.', '3 is less than 6, so thirds are bigger parts. 1/3 is bigger.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
       practice('Which is smaller, 1/8 or 1/2?', ['1/8', '1/2', 'They are equal', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 8 }, { numerator: 1, denominator: 2 }), 'Look at the denominators. The bigger denominator is the smaller part.', '8 is more than 2, so eighths are smaller parts. 1/8 is smaller.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
       practice('Which is bigger, 1/6 or 1/8?', ['1/6', '1/8', 'They are equal', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 8 }), 'Look at the denominators. Which one is smaller?', '6 is less than 8, so sixths are bigger parts. 1/6 is bigger.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
       practice('Which is closer to the whole bar: 1/3 or 1/8?', ['1/3', '1/8', 'They are equally close', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 8 }), 'The bigger part fills more of the bar, so it is closer to the whole bar.', '1/3 is a bigger part than 1/8. It fills more of the bar, so it is closer to the whole bar.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
-      practice('Which is farther from one whole: 1/2 or 1/5?', ['1/5', '1/2', 'They are equally far', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 5 }), 'The smaller part leaves more of the whole bar empty.', '1/5 is smaller than 1/2, so it leaves more of the bar empty. 1/5 is farther from one whole.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
+      practice('Which is farther from one whole: 1/2 or 1/6?', ['1/6', '1/2', 'They are equally far', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 6 }), 'The smaller part leaves more of the whole bar empty.', '1/6 is smaller than 1/2, so it leaves more of the bar empty. 1/6 is farther from one whole.', bars({ numerator: 1, denominator: 4 }), { authoredChoices: true }),
       practice('Which is smaller, 1/4 or 1/2?', ['1/4', '1/2', 'They are equal', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 4 }, { numerator: 1, denominator: 2 }), 'Cut one whole into 4. Cut the same whole into 2. Which parts are smaller?', 'More parts make smaller parts. Fourths are smaller than halves, so 1/4 is smaller.', bars({ numerator: 1, denominator: 3 }), { authoredChoices: true }),
     ],
   },
@@ -639,8 +647,8 @@ const curriculum: MissionSeed[] = [
       practice('Which fraction is exactly one half?', ['2/4', '1/4', '3/4', '4/4'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 1, denominator: 4, named: true }, { numerator: 2, denominator: 4, named: true }, { numerator: 3, denominator: 4, named: true }, { numerator: 4, denominator: 4, named: true }), 'Find half of the denominator. Half of 4 is 2.', 'Half of 4 is 2, so 2/4 is exactly one half.', bars({ numerator: 1, denominator: 2, named: true }), { authoredChoices: true }),
       practice('Half of a cake is 2 equal pieces. How many equal pieces make the whole cake?', ['4', '2', '3', '1'], 0, { kind: 'area', cut: 'circle-halves', shaded: [0] }, 'The other half has the same number of pieces.', '2 pieces in each half: 2 and 2 make 4 equal pieces in the whole cake.', { kind: 'area', cut: 'circle-fourths', shaded: [0, 1] }, { authoredChoices: true }),
       practice('Is 5/6 more or less than 1/2?', ['More than 1/2', 'Less than 1/2', 'Equal to 1/2', 'More than 1'], 0, bars({ numerator: 5, denominator: 6 }, { numerator: 1, denominator: 2 }), 'Half of 6 is 3. Is 5 more or less than 3?', '5 is more than 3, so 5/6 is more than half.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
-      practice('Is 3/5 more or less than 1/2?', ['More than 1/2', 'Less than 1/2', 'Equal to 1/2', 'More than 1'], 0, bars({ numerator: 3, denominator: 5 }, { numerator: 1, denominator: 2 }), 'Half of 5 is 2 and a half. Is 3 more or less than that?', '3 is more than 2 and a half, so 3/5 is more than half.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
-      practice('Is 2/5 more or less than 1/2?', ['Less than 1/2', 'More than 1/2', 'Equal to 1/2', 'More than 1'], 0, bars({ numerator: 2, denominator: 5 }, { numerator: 1, denominator: 2 }), 'Half of 5 is 2 and a half. Is 2 more or less than that?', '2 is less than 2 and a half, so 2/5 is less than half.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Is 4/7 more or less than 1/2?', ['More than 1/2', 'Less than 1/2', 'Equal to 1/2', 'More than 1'], 0, bars({ numerator: 4, denominator: 7 }, { numerator: 1, denominator: 2 }), 'Half of 7 is 3 and a half. Is 4 more or less than that?', '4 is more than 3 and a half, so 4/7 is more than half.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
+      practice('Is 3/7 more or less than 1/2?', ['Less than 1/2', 'More than 1/2', 'Equal to 1/2', 'More than 1'], 0, bars({ numerator: 3, denominator: 7 }, { numerator: 1, denominator: 2 }), 'Half of 7 is 3 and a half. Is 3 more or less than that?', '3 is less than 3 and a half, so 3/7 is less than half.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
       practice('Which is closer to 1/2: 5/6 or 4/6?', ['4/6', '5/6', 'They are equally close', 'You can\'t tell'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 5, denominator: 6, named: true }, { numerator: 4, denominator: 6, named: true }), 'Half of 6 is 3. Count how many parts each one is from 3.', '4/6 is 1 part away from half. 5/6 is 2 parts away. So 4/6 is closer to half.', bars({ numerator: 1, denominator: 2, named: true }), { authoredChoices: true }),
       practice('Use eighths. Which fraction is 1 part less than half?', ['3/8', '5/8', '4/8', '1/8'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 0, denominator: 8 }), 'Half of 8 is 4, so half is 4/8. Take away 1 part.', 'Half is 4/8. 1 part less than half is 3/8.', bars({ numerator: 1, denominator: 2, named: true }), { authoredChoices: true }),
     ],
@@ -696,7 +704,7 @@ const curriculum: MissionSeed[] = [
       model: line(1, 3),
     },
     questions: [
-      practice('0 to 1 has 8 equal spaces. What is 1 jump?', ['1/8', '1/7', '8/1'], 0, line(1, 8), 'Count the spaces from 0 to 1.', '8 jumps make one whole. So 1 jump is 1/8.', line(1, 2)),
+      practice('0 to 1 has 6 equal spaces. What is 1 jump?', ['1/6', '1/7', '6/1'], 0, line(1, 6), 'Count the spaces from 0 to 1.', '6 jumps make one whole. So 1 jump is 1/6.', line(1, 2)),
       practice('How many spaces do you need for fourths?', ['4 spaces', '3 spaces', '5 spaces'], 0, { kind: 'line', numerator: 0, denominator: 1, wholes: 1, hideLabels: true }, 'The denominator tells how many equal spaces go from 0 to 1.', 'Fourths need 4 spaces from 0 to 1.', line(1, 2)),
       practice('A line has 8 equal spaces. Where is 3/8?', ['3 jumps from 0', '8 jumps from 0', '3 jumps back from 1', '5 jumps from 0'], 0, line(0, 8), 'The numerator tells how many jumps from 0.', 'The numerator 3 means 3 jumps.', line(1, 4)),
       practice('0 to 1 has 6 equal spaces. Where do 5 jumps land?', ['5/6', '6/5', '1/5'], 0, line(5, 6), 'Count 5 jumps from 0.', '5 jumps of 1/6 is 5/6.', line(2, 4)),
@@ -1217,7 +1225,7 @@ const extensionTopics: ExtensionTopic[] = [
         bars(...Array.from({ length: 4 }, () => ({ numerator: 2, denominator: 5 }))), 'Count the fifths in all 4 groups. They stay fifths.',
         '2 + 2 + 2 + 2 = 8 fifths: 8/5.', bars(...Array.from({ length: 4 }, () => ({ numerator: 2, denominator: 5 }))), { authoredChoices: true }),
       // Idea 3: the same as copies of the unit fraction, or jumps on a line.
-      practice('Which is the same as 3 × 2/5?', ['6 × 1/5', '5 × 1/6', '3 × 1/5', '6 × 1/15'], 0,
+      practice('Which is the same as 3 × 2/5?', ['6 × 1/5', '5 × 1/6', '3 × 1/5', '6 × 1/12'], 0,
         bars(...Array.from({ length: 3 }, () => ({ numerator: 2, denominator: 5 }))), '3 groups of 2 fifths is how many fifths?',
         '3 × 2/5 = 6/5, and 6/5 = 6 × 1/5: six fifths.', bars(...Array.from({ length: 3 }, () => ({ numerator: 2, denominator: 5 }))), { authoredChoices: true }),
       practice('A frog jumps 3/8 each time. Where is it after 2 jumps?', ['6/8', '6/16', '5/8', '3/16'], 0,
@@ -2315,6 +2323,7 @@ function placeOf(id: string): { unit: number; at: number } {
 const course = [...curriculum, ...extensionTopics.map(extensionMission)]
   .map((seed) => ({ ...seed, unit: placeOf(seed.id).unit }))
   .sort((a, b) => a.unit - b.unit || placeOf(a.id).at - placeOf(b.id).at);
+const COURSE_IDS = course.map((lesson) => lesson.id);
 if (course.length !== Object.values(LESSON_PLAN).flat().length) throw new Error('LESSON_PLAN must list every lesson exactly once');
 
 export const MISSIONS: Mission[] = course.map((seed, index) => {

@@ -10,8 +10,8 @@ import { PART_NAMES } from './intro-copy';
 /** The lesson whose page shows each name's card (denominator, then lesson id), in course order. */
 export const NEW_WORD_LESSON: Readonly<Record<number, string>> = {
   5: 'benchmarks-zero-one', // its idea 2 asks "How many fifths are missing?"
-  10: 'build-equivalents', // builds: "Show it in tenths"
-  12: 'build-equivalents', // its builds use twelfths
+  10: 'build-equivalents', // its idea 1 practice and builds use tenths: a Learn page card on idea 1 (ideas/lessons-11-20.ts)
+  12: 'build-equivalents', // its idea 1 practice and builds use twelfths: a Learn page card on idea 1
   100: 'tenths-decimals', // its story line looks ahead to hundredths
   9: 'add-related-fractions', // "Change 1/3 into ninths first."
   15: 'add-unlike-fractions', // "use fifteenths"

@@ -245,15 +245,20 @@ const before = (a: Place, b: Place) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]
 /** Denominators Listen names with a part name rather than "over". */
 const namedByListen = (d: number) => d >= 2 && !sayFraction(1, d).includes(' over ');
 
-function writtenFractionUses(): Map<number, { at: Place; text: string; source: string }> {
-  const first = new Map<number, { at: Place; text: string; source: string }>();
+/** Every write of a denominator Listen names, in the order a child meets the screens (the same fraction twice on one
+    screen is one write). */
+function writtenFractionUses(): Array<{ d: number; at: Place; text: string; source: string }> {
+  const uses: Array<{ d: number; at: Place; text: string; source: string }> = [];
+  const seen = new Set<string>();
   let source = '';
   const note = (text: string, at: Place) => {
     for (const match of text.matchAll(WRITTEN_FRACTION)) {
       const d = Number(match[2]);
       if (!namedByListen(d)) continue;
-      const seen = first.get(d);
-      if (!seen || before(at, seen.at) < 0) first.set(d, { at, text, source });
+      const key = `${d}|${at.join('.')}|${source}|${text}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      uses.push({ d, at, text, source });
     }
   };
   MISSIONS.forEach((mission, lesson) => {
@@ -291,7 +296,7 @@ function writtenFractionUses(): Map<number, { at: Place; text: string; source: s
     }
     rest.forEach(([label, text]) => { source = label; note(text, [lesson, REST_OF_LESSON, 0]); });
   });
-  return first;
+  return uses;
 }
 
 /** Where each denominator's card is: the earliest of the Words screen, an idea's Learn page, the lesson page's card. */
@@ -309,28 +314,38 @@ function cardPlaces(d: number): Place[] {
   return places.sort(before);
 }
 
-/** Part names whose card was already there but sits later than the first screen that writes them: the lessons' generic
-    wrong choices (a part count one more, or doubled: 1/5, 1/12, 7/15) write them much earlier than the lesson where the
-    name is first used for real. The value is the first lesson that writes it today; a write in an earlier lesson fails.
-    Fixing those early writes, or moving the card, means deleting the row. (Not fixed here: a separate follow-up.) */
-const CARD_LATER_THAN_FIRST_WRITE: Readonly<Record<number, number>> = { 5: 3, 9: 3, 10: 4, 12: 4, 15: 4, 100: 26 };
+/** Lessons whose own content writes a part name before its card. None today: a question, a Unit challenge puzzle or a
+    worked sum that is about a part ("Which is bigger, 1/5 or 1/3?") waits for its card, and a generic wrong choice (a
+    part count one more, or doubled: 1/5, 1/12, 7/15) uses only parts taught by then (taught-parts.ts). A lesson listed
+    here must still write the name early, or it comes off the list. */
+const CONTENT_BEFORE_ITS_CARD: Readonly<Record<number, readonly number[]>> = {};
 
-test('every written fraction whose denominator Listen names is taught by a card at or before the first screen that writes it', () => {
+test('every written fraction whose denominator Listen names is taught by a card at or before the screen that writes it', () => {
   const late: string[] = [];
   const uses = writtenFractionUses();
-  for (const [d, use] of [...uses].sort((a, b) => a[0] - b[0])) {
-    const card = cardPlaces(d)[0];
-    const where = `lesson ${use.at[0] + 1}${use.at[1] === REST_OF_LESSON ? ' (lesson page, practice or review)' : ` idea ${use.at[1] + 1}`}`;
-    const known = CARD_LATER_THAN_FIRST_WRITE[d];
-    if (!card) late.push(`${d}: written in ${where} ("${use.text}", ${use.source}), but no card teaches it`);
-    else if (known !== undefined) {
-      assert.ok(before(card, use.at) > 0, `${d}: its card is now at or before its first write: delete it from CARD_LATER_THAN_FIRST_WRITE`);
-      if (use.at[0] + 1 < known) late.push(`${d}: now written in ${where} ("${use.text}", ${use.source}), earlier than lesson ${known}, and its card is in lesson ${card[0] + 1}`);
-    } else if (before(card, use.at) > 0) late.push(`${d}: first written in ${where} ("${use.text}", ${use.source}), but its card is in lesson ${card[0] + 1}`);
+  const early = new Map<string, { d: number; lesson: number; text: string; source: string; card?: number }>();
+  for (const use of uses) {
+    const card = cardPlaces(use.d)[0];
+    if (card && before(card, use.at) <= 0) continue;
+    const lesson = use.at[0] + 1;
+    const key = `${use.d}|${lesson}|${use.source.replace(/\(seed \d+\)/, '')}`;
+    if (!early.has(key)) early.set(key, { d: use.d, lesson, text: use.text, source: use.source, card: card?.[0] });
+  }
+  for (const { d, lesson, text, source, card } of early.values()) {
+    const where = `lesson ${lesson}${source.startsWith('Learn') || source === 'idea practice' ? '' : ` (${source})`}`;
+    if (card === undefined) late.push(`${d}: written in ${where} ("${text}", ${source}), but no card teaches it`);
+    else if (source.startsWith('Practice more') || !CONTENT_BEFORE_ITS_CARD[d]?.includes(lesson)) late.push(`${d}: written in ${where} ("${text}", ${source}), but its card is in lesson ${card + 1}`);
   }
   assert.deepEqual(late, []);
+  // A listed lesson still writes its name before the card; otherwise it comes off the list.
+  for (const [d, lessons] of Object.entries(CONTENT_BEFORE_ITS_CARD)) {
+    for (const lesson of lessons) {
+      assert.ok([...early.values()].some((use) => use.d === Number(d) && use.lesson === lesson), `${d}: lesson ${lesson} no longer writes it before its card: delete it from CONTENT_BEFORE_ITS_CARD`);
+    }
+  }
   // The scan really reads the screens that write part names: it finds the denominators the course uses.
-  for (const d of [3, 7, 16, 32, 50, 100]) assert.ok(uses.has(d), `${d} is written somewhere`);
+  const found = new Set(uses.map((use) => use.d));
+  for (const d of [3, 7, 16, 32, 50, 100]) assert.ok(found.has(d), `${d} is written somewhere`);
 });
 
 test('Listen and the New word cards name the same parts: every denominator Listen can name has a part name that matches', () => {
