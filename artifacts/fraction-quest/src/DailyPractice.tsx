@@ -45,6 +45,7 @@ export default function DailyPractice({
   onWrong,
   onSuccess,
   renderModel,
+  afterEnding = false,
 }: {
   session: DailyPracticeSession;
   onChange: (next: DailyPracticeSession) => void;
@@ -53,6 +54,8 @@ export default function DailyPractice({
   onSuccess?: () => void;
   /** Draws a practice picture (the app's ModelView), for topic questions. */
   renderModel?: (model: ModelSpec, reveal?: boolean) => ReactNode;
+  /** All 15 stone pieces are back: today's secret comes with Chomp's mystery of the week. */
+  afterEnding?: boolean;
 }) {
   const [showHelp, setShowHelp] = useState(false);
   const questionHeading = useRef<HTMLHeadingElement>(null);
@@ -85,7 +88,7 @@ export default function DailyPractice({
             <div className="fq-daily-spark"><Check size={30} aria-hidden="true" /></div>
             <p className="fq-eyebrow">Today’s fraction practice</p>
             <h1 id="daily-done-title">You made it through today’s practice!</h1>
-            {storyOn ? <RiddleSecret /> : <p>You finished today’s practice. Great work!</p>}
+            {storyOn ? <RiddleSecret afterEnding={afterEnding} /> : <p>You finished today’s practice. Great work!</p>}
             {storyOn && fun && <LanternWeek activity={fun.activity} streak={shownStreak(fun)} savedDays={fun.savedDays} oil={fun.spareOil ?? 0} />}
             <button className="fq-button" onClick={onBack} data-testid="button-daily-done-map">Back to the learning map</button>
           </section>
