@@ -1,0 +1,127 @@
+import type { Page, Route } from '@playwright/test';
+
+/* Shared by the film specs: opens a film on a phone, with music on and a fake voice clip, and measures where things sit
+   on screen shot by shot. The film is a 390 x 664 phone screen: the picture is a letterboxed screen with a 30px black bar
+   top and bottom, and the caption sits over its lower part. */
+
+export type Box = { l: number; t: number; r: number; b: number };
+export type FilmSnap = {
+  caption: string;           // data-testid of the caption (story-panel-N, or story-caption-final)
+  screen: Box;
+  frame: Box;                // the visible picture: the screen without its two letterbox bars
+  set: Box;                  // the whole set after the camera and the drift
+  captionBox: Box | null;
+  speaker: Box | null;       // the set-only film's speaker
+  friend: Box | null;        // the set-only film's chapter friend (when someone else speaks)
+  actors: { who: string; box: Box }[];   // every character in the picture
+  fractions: { text: string; box: Box }[]; // every written fraction in the picture
+  bunting: Box | null;
+};
+
+export const BAR_PX = 30;
+
+/** A short silent WAV clip: what the natural voice "plays". */
+export function silentWav(seconds = 0.3) {
+  const rate = 8000; const samples = Math.round(rate * seconds); const data = Buffer.alloc(samples * 2);
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0); header.writeUInt32LE(36 + data.length, 4); header.write('WAVE', 8); header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16); header.writeUInt16LE(1, 20); header.writeUInt16LE(1, 22); header.writeUInt32LE(rate, 24);
+  header.writeUInt32LE(rate * 2, 28); header.writeUInt16LE(2, 32); header.writeUInt16LE(16, 34); header.write('data', 36); header.writeUInt32LE(data.length, 40);
+  return Buffer.concat([header, data]);
+}
+
+/** Every clip the film asks for is a short silent clip, so the voice leads the shots (as it does for a child). The device
+    voice is recorded, never spoken. Call before the first page load. */
+export async function fakeVoice(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem('fraction-quest-film-voice', 'on');
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
+      getVoices: () => [{ name: 'Device', lang: 'en-US', voiceURI: 'Device', default: true }],
+      speak(utterance: { text: string; onend?: () => void }) { setTimeout(() => utterance.onend?.(), 50); },
+      cancel() {}, addEventListener() {}, removeEventListener() {}, pause() {}, resume() {},
+    } });
+    (window as unknown as { SpeechSynthesisUtterance: unknown }).SpeechSynthesisUtterance = function (this: { text: string }, text: string) { this.text = text; };
+  });
+  const clip = (route: Route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: silentWav() });
+  await page.route('**/api/storage/public-objects/voice/**', clip);
+  await page.route('**/api/voice/speech**', clip);
+  await page.route('**/api/voice/status', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{"state":"ready"}' }));
+}
+
+/** Counts every note the story music schedules (so a test can tell the music is playing, and has stopped). */
+export async function countMusicNotes(page: Page) {
+  await page.addInitScript(() => {
+    const scope = window as unknown as { notes: number; AudioContext: typeof AudioContext };
+    scope.notes = 0;
+    const Real = scope.AudioContext;
+    scope.AudioContext = class extends Real {
+      createOscillator() { scope.notes += 1; return super.createOscillator(); }
+    } as typeof AudioContext;
+  });
+}
+
+/** Starts recording a snapshot each time a caption appears (a new shot), once the camera has been frozen where it is
+    going: transitions are cut and the set's own animations stop, but the set's slow drift is pushed to its far end so
+    the check sees the worst case. Call after the page has loaded, before the film opens. */
+export async function watchFilm(page: Page) {
+  await page.addStyleTag({ content: `
+    *, *::before, *::after { transition: none !important; }
+    .fq-cine-caption, .fq-cine-set-speaker { animation: none !important; }
+    .fq-cine-set *, .fq-cine-set *::before, .fq-cine-set *::after { animation: none !important; }
+  ` });
+  await page.evaluate(() => {
+    const scope = window as unknown as { filmSnaps: unknown[] };
+    scope.filmSnaps = [];
+    const box = (el: Element | null | undefined) => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { l: r.left, t: r.top, r: r.right, b: r.bottom };
+    };
+    const snap = () => {
+      const comic = document.querySelector('[data-testid=story-panels]');
+      const caption = document.querySelector('.fq-cine-caption');
+      const set = document.querySelector('.fq-cine-set');
+      if (!comic || !caption || !set) return;
+      const screen = box(comic)!;
+      // The set drifts up to 8 x 4 px over its 9 seconds: look at it at the far end.
+      const drift = set.getAnimations().find((animation) => (animation as CSSAnimation).animationName === 'fq-cine-drift');
+      if (drift) { drift.pause(); drift.currentTime = 8999; }
+      const actorsOf = [...document.querySelectorAll('.fq-cine-set .fq-cine-actor, .fq-cine-set .fq-cine-peeker')];
+      const friend = document.querySelector('.fq-cine-set .fq-cine-actor:not([data-testid=story-set-speaker]):not(.fq-cine-set-speaker)');
+      scope.filmSnaps.push({
+        caption: caption.getAttribute('data-testid'),
+        screen, frame: { l: screen.l, t: screen.t + 30, r: screen.r, b: screen.b - 30 },
+        set: box(set), captionBox: box(caption),
+        speaker: box(document.querySelector('[data-testid=story-set-speaker]')?.firstElementChild),
+        friend: document.querySelector('[data-testid=story-set-speaker]') ? box(friend?.firstElementChild) : null,
+        actors: actorsOf.map((actor) => ({ who: actor.firstElementChild?.getAttribute('data-character') ?? actor.firstElementChild?.getAttribute('class') ?? 'actor', box: box(actor.firstElementChild)! })),
+        fractions: [...document.querySelectorAll('.fq-cine-set .fq-cine-frac')].map((frac) => ({ text: frac.getAttribute('aria-label') ?? '', box: box(frac)! })),
+        bunting: box(document.querySelector('.fq-cine-set .fq-cine-bunting')),
+      });
+    };
+    // A caption is new each shot (it is keyed by the shot). Look once the browser has laid it out.
+    new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) {
+        if (node instanceof Element && node.classList.contains('fq-cine-caption')) requestAnimationFrame(() => requestAnimationFrame(snap));
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+}
+
+export const snaps = (page: Page) => page.evaluate(() => (window as unknown as { filmSnaps: FilmSnap[] }).filmSnaps);
+
+const area = (box: Box) => Math.max(0, box.r - box.l) * Math.max(0, box.b - box.t);
+export const overlap = (a: Box, b: Box): Box | null => {
+  const box = { l: Math.max(a.l, b.l), t: Math.max(a.t, b.t), r: Math.min(a.r, b.r), b: Math.min(a.b, b.b) };
+  return box.r > box.l && box.b > box.t ? box : null;
+};
+/** How much of `box` lies inside `frame` (0 to 1). */
+export const visibleShare = (box: Box, frame: Box) => {
+  const common = overlap(box, frame);
+  return area(box) === 0 ? 1 : common ? area(common) / area(box) : 0;
+};
+/** How much of `box` is covered by `cover` (0 to 1). */
+export const coveredShare = (box: Box, cover: Box | null) => {
+  const common = cover ? overlap(box, cover) : null;
+  return area(box) === 0 || !common ? 0 : area(common) / area(box);
+};
