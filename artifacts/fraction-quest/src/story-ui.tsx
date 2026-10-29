@@ -3,7 +3,7 @@ import { ArrowRight, BookOpen, LockKeyhole, RotateCcw, Search } from 'lucide-rea
 import { StoryCharacter } from './characters';
 import { LearningListenButton, LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
-import { CHAPTERS, CHARACTERS, STONE_PIECES, type CharacterId, lessonCliff, propTheme, stoneQuestion, storyAsk, storyReaction, storyScript, withName, type Chapter, type Panel, type StoryChoice } from './story';
+import { CHAPTERS, CHARACTERS, STONE_PIECES, type CharacterId, lessonCliff, propTheme, stoneQuestion, storyAsk, storyReaction, storyScript, thanksFor, withName, type Chapter, type Panel, type StoryChoice } from './story';
 import { useSeason } from './fun-ui';
 import { MathText } from './MathText';
 import { CinematicComic, type StoryScene } from './story-cinema';
@@ -320,7 +320,7 @@ export function StorybookView({ tab, chapters, completedUnits, prologueSeen, foc
 
 /** After a lesson, in one compact box: the friend's line, what the story problem changed, the stone question and
    piece when the chapter is done, then the cliffhanger. */
-export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, piecesFound, name, problem, sticker, onSuspects }: {
+export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, piecesFound, name, problem, sticker, onSuspects, startSolved = false, ending, onEnding }: {
   chapter: Chapter; lessonIndex: number; lessonsTotal: number; chapterDone: boolean; piecesFound: number; name: string | null;
   /** The sticker this lesson earned. */
   sticker?: Sticker;
@@ -328,24 +328,29 @@ export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, p
   onSuspects?: () => void;
   /** What the lesson's story problem changed in the story. */
   problem?: { result: string };
+  /** The stone question is already answered (coming back from the chapter's film). */
+  startSolved?: boolean;
+  /** What plays after the stone piece, and how to start it: the finale starts by itself, once, as soon as the last stone question is answered. */
+  ending?: 'chapter-end' | 'epilogue' | null; onEnding?: (part: 'end' | 'epilogue') => void;
 }) {
   const theme = useStoryTheme();
   const finale = chapterDone && piecesFound >= STONE_PIECES;
   // The stone piece is shown after the child works out how much of the stone is back.
-  const [stoneSolved, setStoneSolved] = useState(false);
+  const [stoneSolved, setStoneSolved] = useState(startSolved);
   const tell = (text: string) => withName(text, name, theme);
   const say = (text: string) => withName(text, null, theme);
   const cliffShown = !chapterDone || (stoneSolved && !finale);
   const payoffSpeech = [
-    say(chapterDone ? chapter.done : chapter.thanks),
+    say(chapterDone ? chapter.done : thanksFor(chapter, lessonIndex)),
     problem ? `Because you solved the story problem: ${say(problem.result)}` : '',
+    chapterDone && stoneSolved ? `How the math won it: ${say(chapter.won)}` : '',
     cliffShown ? say(lessonCliff(chapter, lessonIndex, lessonsTotal)) : '',
   ].filter(Boolean).join(' ');
   return (
     <div className="fq-story-payoff" data-testid="story-payoff">
       <div className="fq-story-say">
         <StoryCharacter id={chapter.character} size={48} happy />
-        <p><span className="fq-sr">{CHARACTERS[chapter.character].name} says: </span>{tell(chapterDone ? chapter.done : chapter.thanks)}</p>
+        <p><span className="fq-sr">{CHARACTERS[chapter.character].name} says: </span>{tell(chapterDone ? chapter.done : thanksFor(chapter, lessonIndex))}</p>
         <LearningListenButton text={payoffSpeech} label="Listen to the story" compact />
       </div>
       {problem && (
@@ -353,7 +358,7 @@ export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, p
           <strong>Because you solved the story problem:</strong> <MathText text={tell(problem.result)} />
         </p>
       )}
-      {chapterDone && !stoneSolved && <StoneQuestion found={piecesFound} onSolved={() => setStoneSolved(true)} />}
+      {chapterDone && !stoneSolved && <StoneQuestion found={piecesFound} onSolved={() => { setStoneSolved(true); if (ending === 'epilogue') onEnding?.('epilogue'); }} />}
       {chapterDone && stoneSolved && (
         <div className="fq-stone-found" data-testid="stone-found">
           <span className="fq-stone-found-head">
@@ -363,7 +368,13 @@ export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, p
           <StoneBar found={piecesFound} fresh />
           <div data-testid="stone-new-clue"><ClueCard chapter={chapter} name={name} theme={theme} fresh /></div>
           {finale ? <KeeperCard name={name} fresh compact /> : <StoryCard chapter={chapter} unlocked fresh compact />}
+          <p className="fq-story-won" data-testid="story-won"><StoryCharacter id="hoot" size={36} /><span><b>Hoot:</b> How the math won it: <MathText text={tell(chapter.won)} /></span></p>
           {!finale && <p className="fq-story-cliff" data-testid="story-cliff">{tell(lessonCliff(chapter, lessonIndex, lessonsTotal))}</p>}
+          {onEnding && (
+            <button type="button" className="fq-button secondary fq-story-ending-go" onClick={() => onEnding(finale ? 'epilogue' : 'end')} data-testid={finale ? 'button-watch-finale' : 'button-watch-chapter-end'}>
+              <BookOpen size={17} aria-hidden="true" /> {finale ? 'Watch the finale again' : 'Watch the chapter ending'}
+            </button>
+          )}
         </div>
       )}
       {chapterDone && stoneSolved && onSuspects && (

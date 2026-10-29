@@ -1,6 +1,6 @@
 import { StoryCharacter } from './characters';
 import { Flame } from 'lucide-react';
-import { dailySecret, lanternCard, lanternWeek, oilNoticeWords, oilWordsText, riddleReaction, riddleSetup } from './riddles';
+import { dailySecret, lanternCard, mysteryOfTheWeek, lanternWeek, oilNoticeWords, oilWordsText, riddleReaction, riddleSetup } from './riddles';
 import { LearningListenButton } from './LearningText';
 import './spare-oil.css';
 import { withName } from './story';
@@ -81,13 +81,21 @@ export function RiddleSetup({ index, total, result = null }: { index: number; to
 }
 
 /** The prize for finishing today's riddles: Chomp's secret of the day. */
-export function RiddleSecret() {
+export function RiddleSecret({ afterEnding = false }: { /** All 15 stone pieces are back: Chomp adds his mystery of the week. */ afterEnding?: boolean }) {
   const theme = useStoryTheme();
   return (
-    <div className="fq-riddle-secret" data-testid="riddle-secret">
-      <StoryCharacter id="chomp" size={64} happy />
-      <p><b>Chomp:</b> You solved all my riddles! Okay, okay. Here’s today’s secret: <span>{withName(dailySecret(), null, theme)}</span></p>
-    </div>
+    <>
+      <div className="fq-riddle-secret" data-testid="riddle-secret">
+        <StoryCharacter id="chomp" size={64} happy />
+        <p><b>Chomp:</b> You solved all my riddles! Okay, okay. Here’s today’s secret: <span>{withName(dailySecret(undefined, afterEnding), null, theme)}</span></p>
+      </div>
+      {afterEnding && (
+        <div className="fq-riddle-secret fq-riddle-mystery" data-testid="riddle-mystery">
+          <StoryCharacter id="chomp" size={44} happy />
+          <p><b>Chomp:</b> {mysteryOfTheWeek()} Every secret is a clue. Come back tomorrow!</p>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -117,12 +125,12 @@ export function OilNoticeCard({ notice, storyOn, streak, onNext }: { notice: Oil
 
 /** Tonight's lantern, on the map: the week of lanterns and today's one task (Chomp's riddles). Once today's riddles
     are done the button goes, and the card says what comes tomorrow. Plain words, and dots, with the story off. */
-export function TonightsLantern({ activity, streak, oil, savedDays, dailyDone, storyOn, onStart }: {
-  activity?: Record<string, DayActivity>; streak: number; oil: number; savedDays?: string[]; dailyDone: boolean; storyOn: boolean; onStart: () => void;
+export function TonightsLantern({ activity, streak, oil, savedDays, dailyDone, storyOn, afterEnding = false, onStart }: {
+  activity?: Record<string, DayActivity>; streak: number; oil: number; savedDays?: string[]; dailyDone: boolean; storyOn: boolean; afterEnding?: boolean; onStart: () => void;
 }) {
   const nights = lanternWeek(activity, new Date(), savedDays);
   const litToday = (activity?.[today()]?.answered ?? 0) > 0;
-  const card = lanternCard({ streak, oil, litToday, dailyDone, storyOn });
+  const card = lanternCard({ streak, oil, litToday, dailyDone, storyOn, afterEnding });
   return (
     <section className={`fq-tonight ${storyOn ? 'is-story' : 'is-plain'} is-${card.state}`} aria-labelledby="tonight-title" data-testid="tonights-lantern" data-state={card.state}>
       <div className="fq-tonight-head">

@@ -9,7 +9,7 @@ import { LESSON_INTROS } from './lesson-intros';
 import { sayFraction } from './lib/voice';
 import { newWordsFor } from './new-words';
 import { generateQuestions, getExtraPractice, hasGenerator } from './practice-bank';
-import { chapterFor, lessonCliff, lessonComic, storyProblemFor } from './story';
+import { chapterFor, lessonCliff, lessonComic, storyProblemFor, thanksFor } from './story';
 import { TAUGHT_IN, TEACH_EXTRAS } from './teach-extras';
 import { LESSON_SCENES, type SceneRow } from './teach-scenes';
 
@@ -78,7 +78,7 @@ function lessonText(missionId: string): string[] {
     ...questions.flatMap((question) => [question.prompt, ...(question.choices ?? []), question.hint ?? '', question.retryFeedback ?? '', ...pictureText(question.model), ...pictureText(question.simplerModel)]),
     ...(story ? [story.setup, story.prompt, ...(story.choices ?? []), story.result] : []),
     ...(chapter ? [...lessonComic(chapter, mission, at).map((panel) => panel.text), lessonCliff(chapter, at, unitLessons.length), ...chapter.asks,
-      ...(at === 0 ? chapter.choice.flatMap((option) => [option.label, option.detail, option.reply.text]) : []), chapter.thanks,
+      ...(at === 0 ? chapter.choice.flatMap((option) => [option.label, option.detail, option.reply.text]) : []), thanksFor(chapter, Math.min(at, unitLessons.length - 2)),
       ...(at === unitLessons.length - 1 ? [chapter.won, chapter.done, chapter.clue, chapter.card.title, chapter.card.blurb] : [])] : []),
     ...challenge,
     ...(extras?.words ?? []).flatMap((word) => [word.term, word.meaning, ...pictureText(word.picture)]),

@@ -22,6 +22,7 @@ import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { FunContext, promptListenText, splitStory, StoryPrompt } from './fun-ui';
 import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
+import { ideaForMission } from './parent-ideas';
 import { createNaturalSpeaker, isIOSVoiceDevice, naturalVoicePreference, naturalVoiceStatus, setNaturalEngineForTests, setNaturalVoicePreference } from './lib/natural-voice';
 import { applyPlacement, placementItems, PLACEMENT_UNITS, startUnit } from './placement';
 import { buildAssessmentItems, getAssessmentDefinitions } from './assessments';
@@ -2106,7 +2107,7 @@ describe('redo a finished part', () => {
     assert.deepEqual(record.misconceptions, getLearningRecord(done, id).misconceptions, 'lesson mistakes stay as they were');
     const progress = updateLearning(done, id, record);
     const tip = buildParentReport(progress, { xp: 0, day: '2026-10-11', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: true }, Array.from({ length: 14 }, (_, i) => `Unit ${i + 1}`), new Date(2026, 9, 11))
-      .toPractice.find((t) => t.idea === row.hint)!;
+      .toPractice.find((t) => t.key === ideaForMission(MISSIONS[0]).key)!;
     assert.equal(tip.inRedos, 1);
     saveProgress(progress);
     assert.deepEqual(getLearningRecord(loadProgress(), id).redoMisconceptions, { [row.hint]: 1 }, 'kept after reload');
@@ -2965,7 +2966,10 @@ describe('grown-ups report', () => {
     assert.equal(report.onOwnRate, 33);
     assert.equal(report.units[0].lessons[0].builds, 'With help');
     assert.equal(report.minutesWeek, 17, 'only the last 7 days count'); assert.equal(report.answeredWeek, 11);
-    assert.equal(report.toPractice[0].idea, 'Counting pieces, groups or jumps'); assert.equal(report.toPractice[0].count, 3);
+    // Wrong tries are grouped by the lesson's idea (not by each question's hint): all of this lesson's wrong tries are one line.
+    assert.equal(report.toPractice[0].idea, ideaForMission(MISSIONS[0]).heading);
+    assert.equal(report.toPractice[0].count, Object.values(record.misconceptions).reduce((sum, count) => sum + count, 0));
+    assert.ok(report.toPractice[0].count >= 3);
     assert.deepEqual(report.toPractice[0].lessons, [MISSIONS[0].title]);
     assert.equal(report.nextLesson, `Lesson 2: ${MISSIONS[1].title}`);
   });

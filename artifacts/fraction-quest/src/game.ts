@@ -1117,7 +1117,7 @@ const curriculum: MissionSeed[] = [
       practice('What fraction is 0.35?', ['35/100', '35/10', '1/35', '100/35'], 0, { kind: 'bars', bars: [{ numerator: 35, denominator: 100 }] }, '2 places after the decimal point means hundredths.', '0.35 means 35 hundredths, or 35/100.', { kind: 'bars', bars: [{ numerator: 35, denominator: 100 }] }, { authoredChoices: true }),
       // Comparing 0.4 with 0.35 is taught in lesson 33; here, a 0 holding the tenths place.
       practice('What fraction is 0.06?', ['6/100', '6/10', '1/6', '100/6'], 0, { kind: 'bars', bars: [{ numerator: 6, denominator: 100 }] }, '2 places after the decimal point means hundredths. The 0 holds the tenths place.', '0.06 means 0 tenths and 6 hundredths, or 6/100.', { kind: 'bars', bars: [{ numerator: 6, denominator: 100 }] }, { authoredChoices: true }),
-      practice('Which decimal equals 9/10?', ['0.9', '0.09', '9.10'], 0, decimal(9), 'Tenths have 1 place after the decimal point.', '9 tenths is 0.9. 0.09 is 9 hundredths.', decimal(9)),
+      practice('Write 9/100 as a decimal.', ['0.09', '0.9', '9.00', '9.1'], 0, { kind: 'bars', bars: [{ numerator: 9, denominator: 100 }] }, 'Hundredths need 2 places after the decimal point. A 0 holds the tenths place.', '9 hundredths is 0.09. 0.9 is 9 tenths.', { kind: 'bars', bars: [{ numerator: 9, denominator: 100 }] }, { authoredChoices: true }),
     ],
     ideaQuestions: [
       // Idea 1: count the small squares to name hundredths.
