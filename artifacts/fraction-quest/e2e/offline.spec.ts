@@ -12,6 +12,8 @@ const freshFun = JSON.stringify({ xp: 0, day: '2026-10-20', answeredToday: 0, da
   story: { prologueSeen: true, choices: {} }, displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: false, seasonalThemes: false, storyMode: false } });
 
 test.describe('the published app', () => {
+  // One build and one preview server for these tests: in parallel workers each would rebuild the folder the other serves.
+  test.describe.configure({ mode: 'serial' });
   let server: ChildProcess | undefined;
   test.beforeAll(async () => {
     test.setTimeout(240_000);

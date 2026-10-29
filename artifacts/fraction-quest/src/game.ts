@@ -71,7 +71,7 @@ export function fractionOrderMatches(cards: readonly FractionValue[], direction:
 export type ModelSpec =
   | { kind: 'bars'; bars: FractionValue[]; caption?: string; hideLabels?: boolean }
   | { kind: 'set'; selected: number; total: number; groupCount?: number; caption?: string }
-  | { kind: 'line'; numerator: number; denominator: number; wholes?: number; caption?: string; hideLabels?: boolean }
+  | { kind: 'line'; numerator: number; denominator: number; wholes?: number; caption?: string; hideLabels?: boolean; /** Show the dot with no hop arcs, so counting the arcs does not give the answer. */ hideHops?: boolean }
   | { kind: 'partition'; parts: number[]; caption?: string }
   | { kind: 'equation'; text: string; caption?: string }
   | { kind: 'decimal'; tenths: number; caption?: string; hideLabels?: boolean }

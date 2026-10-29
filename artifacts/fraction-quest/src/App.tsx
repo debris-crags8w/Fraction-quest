@@ -396,11 +396,11 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
               <div className="fq-numberline-track" />
               {/* Hop arcs: one per jump from 0, drawn one after another, then the dot lands. */}
               <svg className="fq-numberline-hops" viewBox={`0 0 ${divisions} 1`} preserveAspectRatio="none" aria-hidden="true">
-                {Array.from({ length: model.numerator }, (_, j) => (
+                {Array.from({ length: model.hideHops ? 0 : model.numerator }, (_, j) => (
                   <path key={j} d={`M${j + 0.06} 1 Q${j + 0.5} -0.6 ${j + 0.94} 1`} style={{ '--i': j } as CSSProperties} pathLength={1} vectorEffect="non-scaling-stroke" />
                 ))}
               </svg>
-              {pointShown && <span className="fq-numberline-marker" style={{ left: (value * 100) + '%', '--jumps': model.numerator } as CSSProperties} />}
+              {pointShown && <span className="fq-numberline-marker" style={{ left: (value * 100) + '%', '--jumps': model.hideHops ? 0 : model.numerator } as CSSProperties} />}
               {walk !== null && divisions <= 24 && (
                 <span key={walk} className="fq-walking fq-line-walk" style={{ '--start': 0, '--count': divisions } as CSSProperties} aria-hidden="true">
                   {Array.from({ length: divisions }, (_, space) => (

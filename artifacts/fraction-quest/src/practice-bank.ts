@@ -370,7 +370,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       // 4.NF.6: read a decimal from a number line (10 spaces from 0 to 1). Slips: counted from the 1 end, forgot the point, one space off.
       return { prompt: 'What decimal is at the dot?', right: `0.${n}`, wrong: n === 5 ? ['5.0', '0.4'] : [`0.${10 - n}`, `${n}.0`], extra: String(n),
         slips: [`0.${10 - n}`, `${n}.0`, ...(n < 9 ? [`0.${n + 1}`] : []), ...(n > 1 ? [`0.${n - 1}`] : []), String(n)].filter((c) => c !== `0.${n}`),
-        hint: 'Each space is one tenth. Count the spaces from 0 to the dot.', retry: `The dot is ${n} ${n === 1 ? 'space' : 'spaces'} from 0. ${n} ${n === 1 ? 'tenth is' : 'tenths is'} 0.${n}.`, model: line(n, 10, 1) };
+        hint: 'Each space is one tenth. Count the spaces from 0 to the dot.', retry: `The dot is ${n} ${n === 1 ? 'space' : 'spaces'} from 0. ${n} ${n === 1 ? 'tenth is' : 'tenths is'} 0.${n}.`, model: { ...line(n, 10, 1), hideHops: true } };
     }
     if (form === 2) {
       return { prompt: `A strip has 10 equal parts. ${n} ${n === 1 ? 'is' : 'are'} colored. What fraction is colored?`, right: f(n, 10), wrong: n === 5 ? [f(10, 5), f(5, 5)] : [f(10 - n, 10), f(10, n)], extra: n === 5 ? f(5, 6) : f(n, 10 - n),
