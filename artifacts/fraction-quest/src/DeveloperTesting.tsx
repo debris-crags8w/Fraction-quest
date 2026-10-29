@@ -3,9 +3,10 @@
    published app, the iPhone and Android app) show it only when built with VITE_DEVELOPER_CODE, and only after that
    code is entered on the device. Developer mode then adds a small Dev button to the map for quick testing. */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Code2, ListChecks, X } from 'lucide-react';
 import { MISSIONS } from './game';
+import { seasonOn, seasonPreview, setSeasonPreview, subscribeSeasonPreview } from './seasons';
 
 const STORAGE_KEY = 'fraction-quest-developer-mode';
 const UNLOCK_KEY = 'fraction-quest-developer-unlocked';
@@ -62,6 +63,30 @@ export function useDeveloperMode(): [boolean, (on: boolean) => void] {
     window.dispatchEvent(new Event(CHANGED));
   };
   return [on, set];
+}
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/** Preview any month's theme without changing the date: the map, banner, greeting, food words and Numi's costumes.
+    Nothing is saved, lessons finished meanwhile count for today's month, and a reload goes back to today. */
+export function SeasonPreviewPicker() {
+  const preview = useSyncExternalStore(subscribeSeasonPreview, seasonPreview);
+  const year = new Date().getFullYear();
+  return (
+    <div className="fq-developer-test-body" data-testid="developer-season-preview">
+      <p>Preview a month's theme. Nothing is saved, and a reload goes back to today.</p>
+      <label htmlFor="developer-month-select">Month to preview</label>
+      <select id="developer-month-select" value={preview ? String(preview.month) : ''} data-testid="select-developer-month"
+        onChange={(event) => setSeasonPreview(event.target.value === '' ? null : { month: Number(event.target.value), allCostumes: preview?.allCostumes ?? true })}>
+        <option value="">Today (no preview)</option>
+        {MONTH_NAMES.map((name, month) => <option key={name} value={month}>{name}: {seasonOn(new Date(year, month, 15))?.title}</option>)}
+      </select>
+      <label className="fq-display-setting">
+        <span><strong>Show every costume</strong><small>Numi wears all of the month's costumes while previewing.</small></span>
+        <input type="checkbox" checked={preview?.allCostumes ?? true} disabled={!preview} onChange={(event) => preview && setSeasonPreview({ ...preview, allCostumes: event.target.checked })} data-testid="checkbox-preview-costumes" />
+      </label>
+    </div>
+  );
 }
 
 /** Pick a lesson and open it as an isolated test. */
@@ -134,6 +159,7 @@ export function DeveloperSettings({ unitTitles, onOpen, onOpenTester }: { unitTi
         <input type="checkbox" checked={on} onChange={(event) => setOn(event.target.checked)} data-testid="checkbox-developer-mode" />
       </label>
       <DeveloperLessonPicker unitTitles={unitTitles} onOpen={onOpen} />
+      <SeasonPreviewPicker />
       {import.meta.env.DEV && onOpenTester && <LessonTesterButton onOpen={onOpenTester} testId="button-open-lesson-tester" />}
       {!import.meta.env.DEV && (
         <button type="button" className="fq-button ghost" onClick={() => setUnlocked(false)} data-testid="button-developer-lock">Lock developer testing on this device</button>
@@ -158,6 +184,7 @@ export function DeveloperChip({ unitTitles, onOpen, onOpenTester }: { unitTitles
             <button className="fq-icon-button fq-modal-close" onClick={() => setOpen(false)} aria-label="Close developer testing" data-testid="button-close-dev"><X size={18} /></button>
             <h2 id="dev-dialog-title">Developer testing</h2>
             <DeveloperLessonPicker unitTitles={unitTitles} onOpen={(missionId) => { setOpen(false); onOpen(missionId); }} />
+            <SeasonPreviewPicker />
             {import.meta.env.DEV && onOpenTester && <LessonTesterButton onOpen={() => { setOpen(false); onOpenTester(); }} testId="button-dev-open-lesson-tester" />}
           </div>
         </div>

@@ -64,15 +64,32 @@ export function seasonOn(now = new Date()): Season | null {
   return theme ? monthSeason(theme, year) : null;
 }
 
+/* Developer preview of a month's theme (DeveloperTesting.tsx): kept in memory only, so nothing is saved and a reload
+   goes back to today. */
+export type SeasonPreview = { month: number; allCostumes: boolean } | null;
+let preview: SeasonPreview = null;
+const previewListeners = new Set<() => void>();
+export const seasonPreview = (): SeasonPreview => preview;
+export function setSeasonPreview(next: SeasonPreview) {
+  preview = next;
+  previewListeners.forEach((listener) => listener());
+}
+export function subscribeSeasonPreview(listener: () => void) {
+  previewListeners.add(listener);
+  return () => { previewListeners.delete(listener); };
+}
+/** The day the theme follows: today, or the 15th of the month being previewed. */
+export const seasonNow = () => (preview ? new Date(new Date().getFullYear(), preview.month, 15, 10) : new Date());
+
 /** The season to show: none when a grown-up turned seasonal themes off. */
-export function activeSeason(fun: Pick<FunState, 'displayPreferences'> | null | undefined, now = new Date()): Season | null {
+export function activeSeason(fun: Pick<FunState, 'displayPreferences'> | null | undefined, now = seasonNow()): Season | null {
   if (fun?.displayPreferences?.seasonalThemes === false) return null;
   return seasonOn(now);
 }
 
 /** Lessons finished during this season (each lesson counts once). */
 export const seasonLessonCount = (fun: Pick<FunState, 'seasonLessons'> | null | undefined, season: Season) =>
-  fun?.seasonLessons?.[season.key]?.length ?? 0;
+  preview?.allCostumes ? Math.max(0, ...season.costumes.map((costume) => costume.lessons)) : fun?.seasonLessons?.[season.key]?.length ?? 0;
 
 export const unlockedCostumes = (season: Season, lessons: number) => season.costumes.filter((costume) => lessons >= costume.lessons);
 export const nextCostume = (season: Season, lessons: number) => season.costumes.find((costume) => lessons < costume.lessons) ?? null;
