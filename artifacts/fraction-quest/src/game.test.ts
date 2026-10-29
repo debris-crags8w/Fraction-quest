@@ -944,6 +944,7 @@ describe('daily fraction practice', () => {
         missedQuestionId: dueMission.questions[0].id,
         dueAt: now - 1,
         reviewCount: 0,
+        missed: true,
       }],
       learning: {
         [trickyMission.id]: {
@@ -978,22 +979,26 @@ describe('daily fraction practice', () => {
     assert.ok(session.questions.every((question) => !/1 parts? are shaded/.test(question.explanation)));
   });
 
-  it('tags build evidence only to the fraction idea the selected model can show', () => {
+  it('tags build evidence only to the fraction idea the selected model can show, and builds only in lessons about building', () => {
     const first = MISSIONS.find((mission) => mission.id === 'compare-same-denominator')!;
-    const target = MISSIONS.find((mission) => mission.id === 'compare-unlike-fractions')!;
+    const target = MISSIONS.find((mission) => mission.id === 'number-line-basics')!;
+    const other = MISSIONS.find((mission) => mission.id === 'compare-unlike-fractions')!;
     const progress: Progress = {
       ...EMPTY_PROGRESS,
       placement: { unit: 12, at: now },
       reviewQueue: [
-        { missionId: first.id, missedQuestionId: first.questions[0].id, dueAt: now - 2, reviewCount: 0 },
-        { missionId: target.id, missedQuestionId: target.questions[0].id, dueAt: now - 1, reviewCount: 0 },
+        { missionId: first.id, missedQuestionId: first.questions[0].id, dueAt: now - 2, reviewCount: 0, missed: true },
+        { missionId: target.id, missedQuestionId: target.questions[0].id, dueAt: now - 1, reviewCount: 0, missed: true },
+        { missionId: other.id, missedQuestionId: other.questions[0].id, dueAt: now, reviewCount: 0, missed: true },
       ],
     };
     const session = createDailyPractice(progress, now);
     const build = session.questions.find((question) => question.missionId === target.id && question.kind === 'build');
-    assert.ok(build, 'the second due question should be a build for unlike-denominator comparison');
+    assert.ok(build, 'a lesson about building a fraction on a number line keeps its build question');
     assert.deepEqual(build.standards, [build.modelKind === 'bar' ? '3.NF.1' : '3.NF.2a']);
-    assert.ok(!build.standards?.includes('4.NF.2'), 'a generic fraction build does not demonstrate unlike-denominator comparison');
+    // A lesson about something else is asked its own question, tagged with its own standards, never a generic grade 3 build.
+    assert.ok(session.questions.filter((question) => question.missionId === other.id).every((question) => question.kind === 'choice' && question.standards?.includes('4.NF.2')));
+    assert.ok(session.questions.filter((question) => question.missionId === first.id).every((question) => question.kind === 'choice'));
   });
 
   it('keeps each build explanation synchronized with its final, de-duplicated fraction', () => {
@@ -1014,15 +1019,15 @@ describe('daily fraction practice', () => {
       streakMisses: 0,
       lastUpdatedAt: now - 1,
     }]));
+    // Three finished lessons for five questions: some lesson has to be asked twice in a session.
     const progress: Progress = {
       ...EMPTY_PROGRESS,
-      completedMissionIds: MISSIONS.map((mission) => mission.id),
+      completedMissionIds: MISSIONS.slice(0, 3).map((mission) => mission.id),
       adaptiveStandards,
     };
-    // Find a day where several sources land on one transfer lesson (routing is pseudo-random by day).
     const session = Array.from({ length: 60 }, (_, offset) => createDailyPractice(progress, new Date(2026, 9, 1 + offset, 12).getTime()))
       .find((candidate) => new Set(candidate.questions.map((question) => question.missionId)).size < candidate.questions.length);
-    assert.ok(session, 'some day routes multiple source lessons to the same transfer lesson');
+    assert.ok(session, 'some day asks one lesson more than once');
     assert.equal(new Set(session.questions.map((question) => question.id)).size, session.questions.length);
   });
 
@@ -1090,8 +1095,8 @@ describe('daily fraction practice', () => {
       ...EMPTY_PROGRESS,
       placement: { unit: 11, at: now },
       reviewQueue: [
-        { missionId: struggling.id, missedQuestionId: struggling.questions[0].id, dueAt: now - 3, reviewCount: 0 },
-        { missionId: strong.id, missedQuestionId: strong.questions[0].id, dueAt: now - 2, reviewCount: 0 },
+        { missionId: struggling.id, missedQuestionId: struggling.questions[0].id, dueAt: now - 3, reviewCount: 0, missed: true },
+        { missionId: strong.id, missedQuestionId: strong.questions[0].id, dueAt: now - 2, reviewCount: 0, missed: true },
       ],
       learning: {
         [struggling.id]: { ...emptyLearningRecord(), misconceptions: { 'Compare unlike parts': 4 } },
@@ -1113,8 +1118,8 @@ describe('daily fraction practice', () => {
       ...EMPTY_PROGRESS,
       placement: { unit: 12, at: now },
       reviewQueue: [
-        { missionId: struggling.id, missedQuestionId: struggling.questions[0].id, dueAt: now - 3, reviewCount: 0 },
-        { missionId: strong.id, missedQuestionId: strong.questions[0].id, dueAt: now - 2, reviewCount: 0 },
+        { missionId: struggling.id, missedQuestionId: struggling.questions[0].id, dueAt: now - 3, reviewCount: 0, missed: true },
+        { missionId: strong.id, missedQuestionId: strong.questions[0].id, dueAt: now - 2, reviewCount: 0, missed: true },
       ],
       learning: {
         [struggling.id]: { ...emptyLearningRecord(), misconceptions: { 'Compare unlike parts': 4 } },

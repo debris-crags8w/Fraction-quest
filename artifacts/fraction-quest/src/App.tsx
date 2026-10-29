@@ -13,6 +13,7 @@ import {
   completeSkillReview,
   countsTowardLessonStars,
   deferSkillReview,
+  finishLessonReview,
   getDelayedReviewQuestions,
   getDueSkillReviewQuestions,
   getMission,
@@ -72,7 +73,8 @@ import { ModelTag, SetSvg, WholeBracket } from './models';
 import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, unitColor, useFun, useSeason, useSeasonPreview, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
 import { IdeaLearn, LessonIntroCard } from './lesson-intro';
-import { ideaPracticeQuestions, ideaSteps, isRound, lessonIdeas, practicePlan } from './lesson-ideas';
+import { ideaPracticeQuestions, ideaSteps, isRound, lessonIdeas, practicePlan, savedPlaceStillFits } from './lesson-ideas';
+import { CHECKPOINT_COUNT, lessonCheckpoint } from './checkpoint';
 import { LESSON_INTROS } from './lesson-intros';
 import { StoryCharacter } from './characters';
 import { CHAPTERS, EPILOGUE, PROLOGUE, chapterEnd, chapterFor, choiceNotes, endingAfterChapter, hintLead, detectiveNote, type CharacterId, lessonComic, propTheme, storyLessonTitle, storyProblemFor, storyScript, withName, type PropTheme } from './story';
@@ -1265,16 +1267,17 @@ function PastQuestionReview({
 }
 
 /** Where to resume the lesson's practice: the saved place, unless it was saved in an older version of the lesson. */
-const savedPlace = (record: LearningRecord, mission: Mission) =>
-  record.practiceAt && record.practiceAt.plan === practicePlan(mission) ? record.practiceAt : undefined;
+const savedPlace = (record: LearningRecord, mission: Mission) => (record.practiceAt && savedPlaceStillFits(mission, record.practiceAt) ? record.practiceAt : undefined);
 
 /** A lesson's practice: its questions (the last told as its story problem), up to 4 extra ones and the review. A lesson
-    with ideas has each idea's 3 practices instead, then the review and (in story mode) its story problem. */
+    with ideas has each idea's 3 practices instead, then the checkpoint (3 questions with new numbers), the review and (in
+    story mode) its story problem. */
 function lessonPlayQuestions(mission: Mission, reviewQuestions: PracticeQuestion[], storyOn: boolean, theme: PropTheme): PracticeQuestion[] {
   const last = mission.questions[mission.questions.length - 1]!;
   const story = storyQuestion(mission, last, storyOn, theme);
-  // Its last question was already asked in an idea, so the story problem gets its own id (stars count each question once).
-  if (lessonIdeas(mission.id)) return [...ideaPracticeQuestions(mission), ...reviewQuestions, ...(story === last ? [] : [{ ...story, id: `${last.id}-story`, reviewQuestionId: last.id }])];
+  // Its last question was already asked in an idea, so the story problem gets its own id (stars count each question once). The
+  // lesson's checkpoint is the 3 questions before it, so the story problem is not tagged "Checkpoint" again.
+  if (lessonIdeas(mission.id)) return [...ideaPracticeQuestions(mission), ...lessonCheckpoint(mission), ...reviewQuestions, ...(story === last ? [] : [{ ...story, id: `${last.id}-story`, reviewQuestionId: last.id, isMastery: false }])];
   return [
     ...mission.questions.slice(0, -1),
     ...(hasGenerator(mission.id) ? getExtraPractice(mission.id, mission.questions.map((q) => q.id)).slice(0, EXTRA_IN_LESSON) : []),
@@ -1933,6 +1936,8 @@ function Game() {
         const steps = view.type === 'play' ? ideaSteps(view.missionId) : [];
         const ideaCount = steps.length;
         const ideaStep = view.type === 'play' ? steps[view.questionIndex] : undefined;
+        // The checkpoint: 3 questions with new numbers, right after the last idea practice.
+        const onCheckpoint = !!ideas && view.type === 'play' && !!activeMission.questions[view.questionIndex]?.isCheckpoint;
         const lessonLabel = String(MISSIONS.findIndex((mission) => mission.id === activeMission.id) + 1).padStart(2, '0');
         const starIds = ideas
           ? activeMission.questions.filter((question, i) => !(steps[i] && isRound(steps[i]!.item)) && !question.isOptionalReview && !question.isReview).map((question) => question.id)
@@ -1984,9 +1989,11 @@ function Game() {
           isQuickReview={view.type === 'review'}
           combo={combo}
           onBack={returnToMap}
-          quiet={ideaStep && ideas ? { start: view.questionIndex - ideaStep.practice, count: ideas[ideaStep.idea]!.practice.length } : undefined}
+          quiet={ideaStep && ideas ? { start: view.questionIndex - ideaStep.practice, count: ideas[ideaStep.idea]!.practice.length }
+            : onCheckpoint ? { start: ideaCount, count: CHECKPOINT_COUNT } : undefined}
           kicker={ideaStep && ideas ? <><span className="fq-kicker-topic">Lesson {lessonLabel} · </span>Idea {ideaStep.idea + 1} of {ideas.length} · Practise {ideaStep.practice + 1} of {ideas[ideaStep.idea]!.practice.length}</>
-            : ideas && view.type === 'play' ? <><span className="fq-kicker-topic">Lesson {lessonLabel} · Put it together · </span>Question {view.questionIndex - ideaCount + 1} of {activeMission.questions.length - ideaCount}</> : undefined}
+            : onCheckpoint ? <><span className="fq-kicker-topic">Lesson {lessonLabel} · </span>Checkpoint · Question {view.questionIndex - ideaCount + 1} of {CHECKPOINT_COUNT}</>
+            : ideas && view.type === 'play' ? <><span className="fq-kicker-topic">Lesson {lessonLabel} · Put it together · </span>Question {view.questionIndex - ideaCount - CHECKPOINT_COUNT + 1} of {activeMission.questions.length - ideaCount - CHECKPOINT_COUNT}</> : undefined}
           onCorrect={onPracticeCorrect}
           onWrong={onPracticeWrong}
           onNext={(firstTryAnswers) => {
@@ -1999,7 +2006,7 @@ function Game() {
           onReviewCompleted={(missionId) => {
             if (progress.learning?.[missionId]) {
               if (view.type === 'review') setPendingRetention(missionId);
-              else persistProgress(deferSkillReview(progress, missionId));
+              else persistProgress(finishLessonReview(progress, missionId));
             } else persistProgress(completeSkillReview(progress, missionId));
           }}
           onReviewDeferred={(missionId) => persistProgress(deferSkillReview(progress, missionId))}

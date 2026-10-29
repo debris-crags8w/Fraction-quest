@@ -1,6 +1,9 @@
 import {
+  isMissedEntry,
   isMissionUnlocked,
   MISSIONS,
+  recordLessonSeen,
+  revisitCandidates,
   type AdaptationEvent,
   type AdaptiveStandardState,
   type DailyPracticeQuestion,
@@ -10,6 +13,7 @@ import {
   type Progress,
 } from './game';
 import { generateQuestions, hasGenerator } from './practice-bank';
+import { byOverdue, isDue } from './review-schedule';
 import { standardsForMission, type StandardId } from './standard-catalog';
 
 export const DAILY_PRACTICE_LENGTH = 5;
@@ -122,26 +126,36 @@ function bandForMission(progress: Progress, missionId: string): { band: Difficul
   return { band: 'grade-level', reason: '' };
 }
 
-function transferMissionFor(progress: Progress, missionId: string, token: string): string | null {
+/** A stretch question comes from a lesson the child has finished (never one not taught yet) that tests a different
+    standard than the one being practised. Of those, the most overdue for a revisit comes first (review-schedule.ts), so
+    transfer questions bring back the lessons that have waited longest instead of random ones; `exclude` are the
+    lessons already in today's session. */
+function transferMissionFor(progress: Progress, missionId: string, now: number, exclude: ReadonlySet<string> = new Set()): string | null {
   const source = missionById(missionId);
   const sourceStandards = new Set(source?.standards ?? []);
-  const candidates = MISSIONS.filter((mission) =>
-    mission.id !== missionId
-    // Stretch questions come from lessons the child has finished, never from ones not taught yet.
-    && progress.completedMissionIds.includes(mission.id)
-    && hasGenerator(mission.id)
-    && mission.standards?.some((standard) => !sourceStandards.has(standard)),
-  );
-  if (!candidates.length) return null;
-  return candidates[hash(token) % candidates.length].id;
+  const candidates = revisitCandidates(progress).filter((candidate) => {
+    const mission = missionById(candidate.id);
+    return candidate.id !== missionId && !exclude.has(candidate.id) && !!mission && hasGenerator(mission.id)
+      && !!mission.standards?.some((standard) => !sourceStandards.has(standard));
+  });
+  return byOverdue(candidates, now)[0] ?? null;
 }
 
+const lessonIsDue = (progress: Progress, missionId: string, now: number) => revisitCandidates(progress).some((candidate) => candidate.id === missionId && isDue(candidate, now));
+
+/** Lessons whose own skill is building a fraction on a bar or number line (3.NF.1, 3.NF.2a): only they keep the Build items. */
+const buildsAreTheSkill = (missionId: string) => !!missionById(missionId)?.standards?.some((standard) => standard === '3.NF.1' || standard === '3.NF.2a');
+
 function questionKind(missionId: string, index: number, day: string, band: DifficultyBand, reteachLoop = false): DailyPracticeQuestion['kind'] {
+  // A lesson about something other than building 3.NF.1 / 3.NF.2a fractions is practised with its own questions: a generic
+  // "Build n/d" would be a grade 3 standard in a grade 4 or 5 lesson.
+  if (!hasGenerator(missionId)) return 'build';
+  if (!buildsAreTheSkill(missionId)) return 'choice';
   // The extra reteach step is always a build. Otherwise "more help" mixes in the lesson's own tap questions: only
   // those count toward the lesson's standards, so the lesson can show it has recovered and leave this set.
-  if (band === 'scaffolded') return reteachLoop || index % 2 === 0 || !hasGenerator(missionId) ? 'build' : 'choice';
-  if (band === 'transfer') return hasGenerator(missionId) ? 'choice' : 'build';
-  return index % 2 === 0 && hasGenerator(missionId) ? 'choice' : 'build';
+  if (band === 'scaffolded') return reteachLoop || index % 2 === 0 ? 'build' : 'choice';
+  if (band === 'transfer') return 'choice';
+  return index % 2 === 0 ? 'choice' : 'build';
 }
 
 function adaptiveTarget(question: Pick<DailyPracticeQuestion, 'numerator' | 'denominator'>, band: DifficultyBand) {
@@ -214,8 +228,10 @@ function makeDailyQuestion({
 /** Deterministic for the day so returning learners resume the same five topics and values. */
 export function createDailyPractice(progress: Progress, now = Date.now()): DailyPracticeSession {
   const day = dailyPracticeDay(now);
+  // Skills the child got wrong that are due (a finished lesson with no mistakes is not "due" here: it comes back through
+  // the overdue order below, so every finished lesson is revisited, not only the missed ones).
   const due = progress.reviewQueue
-    .filter((item) => item.dueAt <= now)
+    .filter((item) => item.dueAt <= now && isMissedEntry(item))
     .sort((first, second) => first.dueAt - second.dueAt)
     .map((item) => item.missionId);
 
@@ -249,36 +265,44 @@ export function createDailyPractice(progress: Progress, now = Date.now()): Daily
     })
     .map(([missionId]) => missionId);
 
-  const completed = MISSIONS
-    .filter((mission) => progress.completedMissionIds.includes(mission.id))
-    .sort((first, second) =>
-      (progress.learning?.[first.id]?.completedAt ?? 0) - (progress.learning?.[second.id]?.completedAt ?? 0),
-    );
-  if (completed.length > 1) {
-    const rotation = hash(day) % completed.length;
-    completed.push(...completed.splice(0, rotation));
-  }
+  // Finished lessons, the one that has waited longest for its own interval first (1, 3, 7, 14 days; review-schedule.ts),
+  // so none waits more than about two weeks.
+  const completed = byOverdue(revisitCandidates(progress), now);
 
   // Lessons the child has worked on come first; the rest is filled only from lessons they can open,
   // never from lessons that are still locked. A new learner repeats their open lesson with new numbers.
-  const orderedIds = [...new Set([
+  // Mistakes and due missed skills take at most 3 of the 5 places, so at least 2 go to the lessons waiting longest.
+  const priority = [
     ...due.slice(0, 2),
-    ...misconceptionTopics.filter((missionId) => !due.slice(0, 2).includes(missionId)).slice(0, 2),
+    ...misconceptionTopics.filter((missionId) => !due.slice(0, 2).includes(missionId)),
+  ].slice(0, 3);
+  const orderedIds = [...new Set([
+    ...priority,
     ...learnerEvidence,
-    ...completed.map((mission) => mission.id),
+    ...completed,
     ...MISSIONS.filter((mission) => isMissionUnlocked(progress, mission.id)).map((mission) => mission.id),
   ])].filter((missionId) => MISSIONS.some((mission) => mission.id === missionId));
   const pool = orderedIds.length ? orderedIds : [MISSIONS[0].id];
   const picks = Array.from({ length: DAILY_PRACTICE_LENGTH }, (_, index) => pool[index % pool.length]);
   const seen: string[] = [];
   const questions: DailyPracticeQuestion[] = [];
+  const askedToday = new Set<string>();
   for (const [index, pickId] of picks.entries()) {
     const { band, reason } = bandForMission(progress, pickId);
-    const missionId = band === 'transfer'
-      ? transferMissionFor(progress, pickId, `${day}:${index}:${pickId}`) ?? pickId
+    // A transfer question takes the place of a lesson that is not due (a due one is asked as itself: it has waited long enough).
+    const missionId = band === 'transfer' && !lessonIsDue(progress, pickId, now)
+      ? transferMissionFor(progress, pickId, now, new Set([...questions.map((item) => item.missionId), ...picks.slice(index + 1)])) ?? pickId
       : pickId;
     const round = questions.filter((question) => question.missionId === missionId).length;
-    const question = makeDailyQuestion({ progress, missionId, day, index, round, band, reason });
+    let question = makeDailyQuestion({ progress, missionId, day, index, round, band, reason });
+    // A lesson's own question is never asked twice in one session (a new learner repeats one lesson five times).
+    for (let tries = 1; question.kind === 'choice' && tries < 12; tries++) {
+      const asked = dailyChoiceQuestion(question);
+      if (!asked || !askedToday.has(`${asked.prompt}|${asked.choices[asked.correctChoice]}`)) break;
+      question = { ...question, seed: hash(`${day}:${missionId}:${index}:again${tries}`) };
+    }
+    const asked = dailyChoiceQuestion(question);
+    if (asked) askedToday.add(`${asked.prompt}|${asked.choices[asked.correctChoice]}`);
     let target = { numerator: question.numerator, denominator: question.denominator };
     // Repeated lessons get a fraction not already used today.
     for (let tries = 1; seen.includes(`${target.numerator}/${target.denominator}`) && tries < 12; tries++) target = targetFor(missionId, day, round + tries * 7);
@@ -393,13 +417,14 @@ function injectReteachQuestion(progress: Progress, session: DailyPracticeSession
   return { ...session, questions, index };
 }
 
-function upgradeNextQuestion(progress: Progress, session: DailyPracticeSession, index: number, reason: string): DailyPracticeSession {
+function upgradeNextQuestion(progress: Progress, session: DailyPracticeSession, index: number, reason: string, now: number): DailyPracticeSession {
   const nextIndex = index + 1;
   if (nextIndex >= session.questions.length) return session;
   const current = session.questions[index];
   const existing = session.questions[nextIndex];
   if (existing.difficultyBand === 'transfer') return session;
-  const missionId = transferMissionFor(progress, current.missionId, `${session.day}:${current.id}:transfer`) ?? existing.missionId;
+  if (lessonIsDue(progress, existing.missionId, now)) return session;
+  const missionId = transferMissionFor(progress, current.missionId, now, new Set(session.questions.map((item) => item.missionId))) ?? existing.missionId;
   const round = session.questions.slice(0, nextIndex).filter((question) => question.missionId === missionId).length;
   const replacement = makeDailyQuestion({
     progress,
@@ -430,6 +455,8 @@ export function applyAdaptiveDailyPracticeUpdate(progress: Progress, nextSession
   if (!answered) return nextProgress;
   const outcome = !!nextSession.attempts[answered.id]?.answerCorrect;
   nextProgress = recordAdaptiveStandards(nextProgress, answered, outcome, now);
+  // The lesson was revisited: it moves up a revisit interval when the answer was right (review-schedule.ts).
+  nextProgress = recordLessonSeen(nextProgress, answered.missionId, outcome, now);
 
   const answeredIndex = nextSession.questions.findIndex((question) => question.id === answered.id);
   if (answeredIndex < 0) return nextProgress;
@@ -443,7 +470,7 @@ export function applyAdaptiveDailyPracticeUpdate(progress: Progress, nextSession
     }
   }
   if (outcome && band === 'transfer') {
-    const transferSession = upgradeNextQuestion(nextProgress, adaptedSession, answeredIndex, reason);
+    const transferSession = upgradeNextQuestion(nextProgress, adaptedSession, answeredIndex, reason, now);
     if (transferSession !== adaptedSession) {
       adaptedSession = transferSession;
       nextProgress = logQuestionAdaptation(nextProgress, answered, 'transfer', reason, now);

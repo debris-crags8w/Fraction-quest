@@ -10,7 +10,7 @@ import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
 import { generateQuestions, getExtraPractice, hasGenerator } from '../src/practice-bank';
 import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
 import { seasonOn } from '../src/seasons';
-import { completeIdeas, finishPutTogether, hasStoryAfterIdeas, solveSortRound } from './lesson-walk';
+import { completeCheckpoint, completeIdeas, finishPutTogether, hasStoryAfterIdeas, solveSortRound } from './lesson-walk';
 import { makeSprint } from '../src/CodeSprint';
 import type { Mission } from '../src/game';
 import type { WorksheetProblem } from '../src/learning-content';
@@ -1537,6 +1537,7 @@ test('a lesson ends with its story problem, told with the season’s props (pump
   await expect(page.locator('html')).toHaveAttribute('data-fq-season', 'halloween');
   // The lesson itself follows the season too: its cake rounds (practices of both its ideas) are pumpkin cakes.
   await completeIdeas(page, mission, { beforeRound: () => expect(page.locator('.fq-pf-card')).toContainText('pumpkin') });
+  await completeCheckpoint(page, mission);
   await expect(page.locator('.fq-play-kicker')).toContainText('Put it together');
   const last = mission.questions.at(-1)!;
   await expect(page.getByTestId('story-problem-tag')).toHaveText('Story problem');
@@ -1564,7 +1565,7 @@ test('an idea is taught right before its practice, and the practice says which i
 });
 
 test.describe('all-lesson required-question smoke', () => {
-  test.describe.configure({ timeout: 900_000 });
+  test.describe.configure({ timeout: 1_500_000 }); // every lesson now also has a 3-question checkpoint
 
   test('every lesson completes its required questions in an isolated developer test', async ({ page }) => {
     // On a phone, so every Learn page of every idea is checked to fit. SMOKE_LESSONS=id,id runs only those lessons.
@@ -3479,9 +3480,10 @@ test('every screen of every lesson fits an iPhone Safari screen: Learn pages, pr
       if (localStorage.getItem('fraction-quest-fun-v1') === null) localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ seasonLessons: { [seasonKey as string]: lessons } }));
     }, [key, finished] as const);
   }
-  // One review is due (from lesson 1), so every other lesson's "Put it together" asks it before the story problem.
+  // Lesson 1 was finished long ago, so every other lesson's "Put it together" brings back one of its questions (the review) before the story problem.
   const reviewed = MISSIONS[0]!;
-  const progress = { completedMissionIds: [], starsByMission: {}, assessments: [], learning: {},
+  const progress = { completedMissionIds: [reviewed.id], starsByMission: { [reviewed.id]: 3 }, assessments: [],
+    learning: { [reviewed.id]: { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {}, completedAt: 1 } },
     reviewQueue: [{ missionId: reviewed.id, missedQuestionId: reviewed.questions[0]!.id, dueAt: 1, reviewCount: 0 }] };
   await page.addInitScript((saved) => {
     if (!localStorage.getItem('fraction-quest-progress-v1:guest')) localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(saved));
