@@ -1,5 +1,6 @@
 import { expect, openSettings, test } from './fixtures';
 import { CHALLENGES } from '../src/challenges';
+import { wrongChoiceReason } from '../src/wrong-answer';
 import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, getDelayedReviewQuestions, getDueSkillReviewQuestions, MISSIONS } from '../src/game';
 import { compareFractions, WAR_ROUNDS, warHint } from '../src/concept-games';
 import { getCodeLevels } from '../src/code-quest';
@@ -2580,7 +2581,9 @@ test('a wrong unit-challenge answer gives a hint, allows a retry, and earns no p
   const scoreBeforeStepMiss = await page.getByTestId('status-challenge-points').textContent();
   await page.getByTestId(`button-step-1-${wrongStepChoice}`).click();
   await expect(page.locator('.fq-walk-retry')).toHaveAttribute('role', 'status');
-  await expect(page.locator('.fq-walk-retry')).toContainText('Read the step again and count carefully.');
+  await expect(page.locator('.fq-walk-retry')).toContainText(
+    (wrongChoiceReason(step.prompt, step.choices, step.correct, wrongStepChoice) ?? 'Read the step again and count carefully.').replaceAll('/', ''),
+  );
   await expect(page.getByTestId('status-challenge-points')).toHaveText(scoreBeforeStepMiss!);
   expect(await localStorageSnapshot(page)).toBe(savedProgress);
   await page.getByTestId(`button-step-1-${step.correct}`).click();
