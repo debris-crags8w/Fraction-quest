@@ -177,7 +177,9 @@ test('a lesson teaches each idea before its practice, then keeps its pictures un
   await expect(learn.getByTestId('idea-learn').getByTestId('button-listen-learning-text')).toBeVisible();
   // Each idea: its Learn pages (each fits the phone), then its 3 practices. Then the lesson page.
   await completeIdeas(page, lesson);
-  expect(await finishPutTogether(page, lesson), 'no review is due and story mode is off').toBe(0);
+  // Every new lesson brings one finished lesson back as a warm-up (getDelayedReviewQuestions); no skill was missed and
+  // story mode is off, so that warm-up is the only "Put it together" question.
+  expect(await finishPutTogether(page, lesson), 'one warm-up from an earlier lesson, no missed skill, story mode off').toBe(1);
 
   // On the lesson page, How it works starts folded and opens the Learn pictures and the worked example.
   const how = page.getByTestId('lesson-how-it-works');

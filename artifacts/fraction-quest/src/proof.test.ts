@@ -55,6 +55,11 @@ describe('accuracy proof engine', () => {
       assert.ok(count(prefix) >= least, `only ${count(prefix)} ${prefix} texts are checked`);
   });
 
+  it('also reads the wrong-choice reasons each challenge puzzle carries', () => {
+    const reasons = allWrittenTexts({ sheets: 0, seeds: 1 }).filter(({ where }) => /^challenge unit \d+ wrong-choice reason$/.test(where));
+    assert.ok(reasons.length >= 44, `only ${reasons.length} challenge wrong-choice reasons are checked`);
+  });
+
   it('reads written sums the way a child does (the claim checker itself is checked)', () => {
     // A sum a story character gets wrong on purpose is not a false claim; a blank to fill is not a sum yet.
     assert.deepEqual(falseClaims('Sam wrote 1/4 + 2/4 = 3/8.'), []);
