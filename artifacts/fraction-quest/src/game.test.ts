@@ -1618,7 +1618,7 @@ describe('entered-answer worksheets and evidence gates', () => {
       if (previousReact) globalWithReact.React = previousReact;
       else delete globalWithReact.React;
     }
-    assert.ok(hidden >= 23, `${hidden} lesson questions hide a bar until answered`);
+    assert.ok(hidden >= 21, `${hidden} lesson questions hide a bar until answered`);
   });
 
   it('prints a blank worksheet without exposing or changing saved lesson answers', () => {

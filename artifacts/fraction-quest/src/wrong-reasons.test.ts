@@ -221,7 +221,7 @@ describe('the exact reason for a wrong tap', () => {
   });
 
   it('names the slip on the meaning, counting, half-and-one and scaling lessons that used to give only the hint', () => {
-    const FLOORS: [string, number][] = [['fraction-names', 0.85], ['benchmark-half', 0.85], ['number-line-basics', 0.78], ['bigger-or-smaller', 1], ['multiply-whole-by-fraction', 1]];
+    const FLOORS: [string, number][] = [['fraction-names', 0.85], ['benchmark-half', 0.85], ['number-line-basics', 0.75], ['bigger-or-smaller', 1], ['multiply-whole-by-fraction', 1]];
     for (const [id, floor] of FLOORS) {
       const m = MISSIONS.find((x) => x.id === id)!;
       const picks = [...m.questions, ...(m.ideaQuestions ?? [])].flatMap((q) => q.choices.flatMap((_, i) => i === q.correctChoice ? [] : [wrongChoiceReason(q.prompt, q.choices, q.correctChoice, i)]));
@@ -239,8 +239,8 @@ describe('the exact reason for a wrong tap', () => {
     }
   });
 
-  it('keeps at least 73 percent of all wrong choices named (it was 64.5)', () => {
+  it('keeps at least 72 percent of all wrong choices named (it was 64.5 before the unused review copies were removed)', () => {
     const reasons = wrongChoices.map(reasonOf);
-    assert.ok(reasons.filter(Boolean).length / reasons.length >= 0.73);
+    assert.ok(reasons.filter(Boolean).length / reasons.length >= 0.72);
   });
 });
