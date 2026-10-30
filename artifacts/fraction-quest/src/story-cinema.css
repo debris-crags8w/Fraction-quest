@@ -37,6 +37,8 @@
 .fq-cine-end strong { color: #FFF4D6; font-family: var(--app-font-display); font-size: 1.5rem; animation: fq-cine-card-in 1.2s ease both; }
 
 .fq-cine-caption { position: absolute; left: 10px; right: 10px; bottom: 38px; z-index: 6; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 16px; color: #fff; background: rgb(12 9 34 / .9); animation: fq-cine-up .5s cubic-bezier(.2, .9, .3, 1.2) both; }
+/* A finished caption with no voice waits for the reader: this tab on its top edge says a tap moves on. */
+.fq-cine-next { position: absolute; right: 12px; top: -11px; display: inline-flex; align-items: center; gap: 2px; padding: 2px 8px; border-radius: 999px; background: #FFC800; color: #2B2D42; font-size: .72rem; font-weight: 900; line-height: 1.3; box-shadow: 0 1px 3px rgb(0 0 0 / .35); }
 .fq-cine-face { flex: none; display: grid; place-items: center; }
 .fq-cine-face.is-talking { animation: fq-cine-bob .6s ease-in-out infinite; }
 .fq-cine-words { display: grid; gap: 2px; min-width: 0; }
@@ -127,16 +129,17 @@
 .fq-cine-plate { width: 22%; height: 7%; border-radius: 50%; background: #fff; box-shadow: 0 3px 0 #C9D6DF; animation: fq-cine-fade .5s ease both; }
 .fq-cine-plate.is-picked { box-shadow: 0 3px 0 #C9D6DF, 0 0 0 4px #FFC800, 0 0 20px 6px rgb(255 200 0 / .6); }
 .fq-cine-snack { z-index: 2; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #8D5B3A; box-shadow: inset -2px -2px 0 rgb(0 0 0 / .2); transition: left 1s cubic-bezier(.3, .9, .3, 1.1), top 1s cubic-bezier(.3, .9, .3, 1.1); }
-/* Chapter 2: two same-size snack bars, one cut into halves and one into fourths; then one piece of each, side by side. */
-.fq-cine-bars { width: 58%; display: grid; gap: 24px; }
-.fq-cine-cutbar { position: relative; display: flex; gap: 4px; height: 30px; animation: fq-cine-fade .5s ease both; }
-.fq-cine-cutbar.is-fourths { animation-delay: .5s; }
+/* Chapter 2: two same-size snack bars, one cut into thirds and one into eighths; then one piece of each stays lit. Each
+   bar's label sits on its first piece (the one that stays lit), so nothing hangs below the bars. */
+.fq-cine-bars { width: 58%; display: grid; gap: 14px; }
+.fq-cine-cutbar { position: relative; display: flex; gap: 4px; height: 34px; animation: fq-cine-fade .5s ease both; }
+.fq-cine-cutbar.is-eighths { animation-delay: .5s; }
 .fq-cine-cutbar i { flex: 1; border-radius: 6px; background: #B5651D; box-shadow: inset 0 -5px 0 #8A4A12; transition: opacity .7s ease, box-shadow .4s ease; }
 .fq-cine-cutbar i.is-set-aside { opacity: .22; }
 .fq-cine-cutbar i.is-picked { box-shadow: inset 0 -5px 0 #8A4A12, 0 0 0 3px #FFC800, 0 0 16px 4px rgb(255 200 0 / .55); }
-.fq-cine-cutbar-label { position: absolute; top: calc(100% + 3px); left: 0; display: flex; justify-content: center; color: #fff; font-size: .95rem; text-shadow: 0 1px 2px rgb(0 0 0 / .45); }
-.fq-cine-cutbar.is-halves .fq-cine-cutbar-label { width: 50%; }
-.fq-cine-cutbar.is-fourths .fq-cine-cutbar-label { width: 25%; }
+.fq-cine-cutbar-label { position: absolute; top: 0; bottom: 5px; left: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: .78rem; text-shadow: 0 1px 2px rgb(0 0 0 / .55); pointer-events: none; }
+.fq-cine-cutbar.is-thirds .fq-cine-cutbar-label { width: calc((100% - 8px) / 3); }
+.fq-cine-cutbar.is-eighths .fq-cine-cutbar-label { width: calc((100% - 28px) / 8); }
 /* Lessons 2 onward: the speaker steps in each time a new friend talks. */
 .fq-cine-set-speaker { animation: fq-cine-fade .45s ease both; }
 
@@ -166,7 +169,7 @@
 .fq-cine-screen.is-tower .fq-cine-set { background: linear-gradient(#E3C4FF, #F3E3FF 60%, #FFD9EC); }
 .fq-cine-wall { inset: 0 0 42% 0; background: repeating-linear-gradient(90deg, #F3E3FF 0 30px, #EAD5FA 30px 60px); }
 .fq-cine-floor { left: 0; right: 0; bottom: 0; height: 42%; background: #C99A6E; border-top: 6px solid #A87B54; }
-.fq-cine-tower { left: 48%; right: 4%; top: 10%; bottom: 42%; transform-origin: 50% 100%; }
+.fq-cine-tower { left: 48%; right: 4%; top: 18%; bottom: 42%; transform-origin: 50% 100%; }
 .fq-cine-tower.is-wobbling { animation: fq-cine-wobble .8s ease-in-out 3; }
 .fq-cine-treat { position: absolute; left: 50%; height: 24%; border-radius: 8px; transform: translateX(-50%); box-shadow: inset 0 -5px 0 rgb(0 0 0 / .14); transition: bottom 1s cubic-bezier(.3, .9, .3, 1.1); }
 .fq-cine-treat.is-0 { background-color: #FF9FB2; } .fq-cine-treat.is-1 { background-color: #F6A55B; } .fq-cine-treat.is-2 { background-color: #7BD389; } .fq-cine-treat.is-3 { background-color: #4CC9F0; }
@@ -257,6 +260,8 @@
 .fq-cine-screen.is-lock .fq-cine-set { background: radial-gradient(ellipse at 48% 44%, #63568A, #211D3A 70%); }
 .fq-cine-lock-room { inset: 0; background: repeating-linear-gradient(90deg, transparent 0 70px, rgb(255 255 255 / .05) 70px 73px); }
 .fq-cine-lock-case { left: 46%; top: 6%; z-index: 2; display: grid; place-items: center; width: 39%; height: 50%; border: 8px solid #BDE6FF; border-radius: 18px; background: rgb(189 230 255 / .13); box-shadow: 0 0 24px 5px rgb(189 230 255 / .35); transition: transform .8s, box-shadow .8s; }
+/* In the chapter opening the case stands a little lower, clear of the top bar when the camera pushes in. */
+.fq-cine-lock-case.is-opening { top: 18%; height: 40%; }
 /* The empty seat where the stone goes back. */
 .fq-cine-lock-seat { width: 46px; height: 46px; border: 4px dashed #FFF4D6; border-radius: 8px; opacity: .7; }
 .fq-cine-lock-dials { display: flex; gap: 4px; }
@@ -296,13 +301,14 @@
 .fq-cine-flipcard > b:last-child { transform: rotateY(180deg); }
 .fq-cine-flipcard.is-flipped { transform: rotateY(180deg); }
 
-.fq-cine-sandwiches { z-index: 3; width: 100px; height: 64px; }
+/* Chapter 10: the sandwiches sit on the far edge of the blanket with their labels above them, clear of the caption. */
+.fq-cine-sandwiches { z-index: 3; width: 100px; height: 30px; }
 .fq-cine-sandwiches i { position: absolute; top: 0; width: 22px; height: 26px; box-sizing: border-box; border: 3px solid #A8702F; background: linear-gradient(#F6D28B 0 40%, #7BD389 40% 55%, #F6D28B 55%); transition: left 1.1s .6s cubic-bezier(.3, .8, .3, 1); }
 .fq-cine-sandwiches i:nth-child(1) { left: 0; border-right-width: 0; } .fq-cine-sandwiches i:nth-child(2) { left: 22px; border-left-width: 0; } .fq-cine-sandwiches i:nth-child(3) { left: 70px; }
 .fq-cine-sandwiches.is-cut i:nth-child(1) { left: 26px; border-right-width: 3px; } .fq-cine-sandwiches.is-cut i:nth-child(2) { left: 48px; border-left-width: 3px; }
 .fq-cine-sandwich-cut { left: 21px; top: -4px; height: 34px; border-left: 3px dashed #2B2D42; opacity: 0; transform-origin: 50% 0; }
 .fq-cine-sandwiches.is-cut .fq-cine-sandwich-cut { animation: fq-cine-knife-down .6s ease-out both; }
-.fq-cine-sandwich-label { position: absolute; top: 31px; padding: 1px 4px; border-radius: 4px; background: #FFF4D6; color: #2B2D42; font-size: .78rem; transition: opacity .4s; }
+.fq-cine-sandwich-label { position: absolute; bottom: calc(100% + 6px); padding: 1px 4px; border-radius: 4px; background: #FFF4D6; color: #2B2D42; font-size: .78rem; transition: opacity .4s; }
 .fq-cine-sandwich-label.is-half { left: 12px; } .fq-cine-sandwich-label.is-fourth { left: 72px; }
 .fq-cine-sandwich-label.is-sum { left: 50px; opacity: 0; }
 .fq-cine-sandwiches.is-cut .is-half, .fq-cine-sandwiches.is-cut .is-fourth { opacity: 0; }
@@ -356,7 +362,9 @@
 .fq-cine-end-horizon.is-festival { background: radial-gradient(circle at 50% 45%, rgb(255 200 0 / .25), transparent 45%), linear-gradient(#211D45, #6D4BD8 68%, #372D56); }
 .fq-cine-end-stone { left: 57%; top: 35%; z-index: 3; width: 17%; height: 22%; border: 5px solid #FFF4D6; border-radius: 12px; background: #5A4A2E; opacity: .55; transform: scale(.9); transition: transform .8s, opacity .8s, box-shadow .8s; }
 .fq-cine-end-stone.is-found { opacity: 1; transform: scale(1.04); background: #FFC800; box-shadow: 0 0 30px 12px rgb(255 200 0 / .75); }
-.fq-cine-end-ribbon { left: 0; right: 0; top: 16%; z-index: 7; color: #6D4BD8; font-size: 1.25rem; font-weight: 1000; text-align: center; text-shadow: 0 2px #fff; opacity: 0; transition: opacity .6s; }
+/* A chapter ending's "N of 15 pieces": a dark tab just under the top bar, at the right (outside the camera), above the
+   chapter's prop and away from the friend perched at the top left. */
+.fq-cine-end-ribbon { position: absolute; top: 31px; right: 12px; z-index: 7; padding: 1px 12px; border-radius: 999px; color: #FFE066; background: rgb(12 9 34 / .88); font-size: .95rem; font-weight: 1000; line-height: 1.35; white-space: nowrap; opacity: 0; transition: opacity .6s; pointer-events: none; }
 .fq-cine-end-ribbon.is-visible { opacity: 1; }
 .fq-cine-whole-stone { left: 50%; top: 36%; z-index: 2; display: grid; grid-template-columns: repeat(5, 1fr); width: min(48%, 250px); aspect-ratio: 2.2; padding: 8px; border: 5px solid #FFF4D6; border-radius: 14px; background: #5A4A2E; box-shadow: 0 0 40px 18px rgb(255 200 0 / .7); transform: translateX(-50%); }
 .fq-cine-whole-stone i { background: #FFC800; border: 1px solid #9A6A00; animation: fq-cine-pulse 1.8s ease-in-out infinite; }

@@ -3128,8 +3128,9 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId('stone-teaser')).toContainText('Under the crumbs the stone piece glows');
   await page.getByTestId(`button-start-mission-${second.id}`).click();
   await expect(page.getByTestId('story-panel-0')).toContainText('Can pieces of different shapes still be fair?');
-  await expect(page.getByTestId('story-panel-1')).toContainText(`Today’s lesson is ${second.title.charAt(0).toLowerCase()}`);
-  await expect(page.getByTestId('story-panel-2')).toContainText(second.skill.split(' ').slice(-4).join(' '));
+  // With the voice off the film moves on by itself at a young reader's pace (about 12 characters a second plus 2 s).
+  await expect(page.getByTestId('story-panel-1')).toContainText(`Today’s lesson is ${second.title.charAt(0).toLowerCase()}`, { timeout: 15_000 });
+  await expect(page.getByTestId('story-panel-2')).toContainText(second.skill.split(' ').slice(-4).join(' '), { timeout: 20_000 });
   await expect(page.getByTestId('story-choice')).toHaveCount(0);
   // Lesson 2 ("Fair parts in any shape"): in its last idea, Chomp asks and the cast shares the cake.
   await passStory(page);
@@ -3230,6 +3231,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   // A finished chapter's ending (thanks, clue, what happens next) can be read again; an unfinished one is locked.
   await page.getByTestId('storybook-chapter-2').locator('summary').click();
   await page.getByTestId('button-storybook-end-2').click();
+  await showWholeComic(page);
   await expect(page.getByTestId('story-panel-0')).toContainText('Best party ever!');
   await expect(page.getByTestId('story-panel-1')).toContainText('A big green tail by the pond');
   await expect(page.getByTestId('story-panel-2')).toContainText('How the math won it: Thirds are bigger than eighths');

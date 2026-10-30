@@ -19,21 +19,35 @@ async function openChapterTwo(page: Page, done: string[], reducedMotion = false,
 
 const unitOne = ['fraction-names', 'equal-parts', 'unit-fractions', 'fraction-of-area'];
 
-test('chapter 2 film shows more equal parts making smaller parts, not equal groups', async ({ page }) => {
+test('chapter 2 film shows thirds and eighths, as Numi says, with more equal parts making smaller parts', async ({ page }) => {
   await openChapterTwo(page, unitOne);
   await page.getByRole('button', { name: /Chapter start · More parts, smaller parts/ }).click();
-  await page.getByTestId('button-story-skip').click();
   const stage = page.getByTestId('story-stage');
-  await expect(stage.getByRole('img', { name: /One half and one fourth side by side: the half is bigger/ })).toBeAttached();
-  await expect(stage.locator('.fq-cine-cutbar.is-halves i')).toHaveCount(2);
-  await expect(stage.locator('.fq-cine-cutbar.is-fourths i')).toHaveCount(4);
+  // Numi's line: the bars and their labels sit clear of the caption once the camera has moved (a tap finishes Pip's line and moves on).
+  await expect(page.getByTestId('story-panel-0')).toBeVisible();
+  await page.getByTestId('story-panels').click();
+  await expect(page.getByTestId('story-next-hint')).toBeVisible();
+  await page.getByTestId('story-panels').click();
+  await expect(page.getByTestId('story-panel-1')).toContainText('thirds');
+  await page.waitForTimeout(3000);
+  const caption = await page.getByTestId('story-panel-1').boundingBox();
+  for (const label of await stage.locator('.fq-cine-cutbar-label').all()) {
+    const box = (await label.boundingBox())!;
+    expect(box.y + box.height, 'a bar label is above the caption').toBeLessThanOrEqual(caption!.y);
+  }
+  await page.getByTestId('button-story-skip').click();
+  await expect(stage.getByRole('img', { name: /One third and one eighth side by side: the third is bigger/ })).toBeAttached();
+  await expect(stage.locator('.fq-cine-cutbar.is-thirds i')).toHaveCount(3);
+  await expect(stage.locator('.fq-cine-cutbar.is-eighths i')).toHaveCount(8);
+  await expect(stage.locator('.fq-cine-cutbar.is-thirds .fq-cine-frac')).toHaveAttribute('aria-label', '1 over 3');
+  await expect(stage.locator('.fq-cine-cutbar.is-eighths .fq-cine-frac')).toHaveAttribute('aria-label', '1 over 8');
   await expect(stage.locator('.fq-cine-plate, .fq-cine-snack')).toHaveCount(0);
-  // Equal parts look equal: both bars are the same length, and the half is twice the fourth.
-  const [halves, fourths] = await Promise.all([stage.locator('.fq-cine-cutbar.is-halves').boundingBox(), stage.locator('.fq-cine-cutbar.is-fourths').boundingBox()]);
-  expect(Math.abs(halves!.width - fourths!.width)).toBeLessThan(1);
-  const half = await stage.locator('.fq-cine-cutbar.is-halves i').first().boundingBox();
-  const fourth = await stage.locator('.fq-cine-cutbar.is-fourths i').first().boundingBox();
-  expect(half!.width / fourth!.width).toBeGreaterThan(1.9);
+  // Equal parts look equal: both bars are the same length, and a third is about 8/3 of an eighth.
+  const [thirds, eighths] = await Promise.all([stage.locator('.fq-cine-cutbar.is-thirds').boundingBox(), stage.locator('.fq-cine-cutbar.is-eighths').boundingBox()]);
+  expect(Math.abs(thirds!.width - eighths!.width)).toBeLessThan(1);
+  const third = await stage.locator('.fq-cine-cutbar.is-thirds i').first().boundingBox();
+  const eighth = await stage.locator('.fq-cine-cutbar.is-eighths i').first().boundingBox();
+  expect(third!.width / eighth!.width).toBeGreaterThan(2.4);
 });
 
 test('the grown-ups\' Reduce motion setting keeps the film camera still and hides flashes and drifting motes', async ({ page }) => {
@@ -99,6 +113,23 @@ test('the Voice button decides whether the film is heard, right away, and is rem
   expect(await spoken()).toBe(heard);
   // The choice is kept for the next film.
   expect(await page.evaluate(() => localStorage.getItem('fraction-quest-film-voice'))).toBe('off');
+});
+
+test('with the voice off, a finished caption waits long enough to read, and a tap on the picture moves on', async ({ page }) => {
+  await openChapterTwo(page, [...unitOne, 'unit-size']);
+  await page.getByRole('button', { name: /Lesson 2 · Same count, different sizes/ }).click();
+  await expect(page.getByTestId('button-story-voice')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId('story-panel-0')).toBeVisible();
+  // A tap while the words type finishes the line; the line then holds (about 12 characters a second plus 2 seconds).
+  await page.getByTestId('story-panels').click();
+  await expect(page.getByTestId('story-next-hint')).toBeVisible();
+  await page.waitForTimeout(2500);
+  await expect(page.getByTestId('story-panel-1')).toHaveCount(0);
+  await expect(page.getByTestId('story-panel-0')).toBeVisible();
+  // A tap on the finished caption goes straight to the next line.
+  await page.getByTestId('story-panel-0').click();
+  await expect(page.getByTestId('story-panel-1')).toBeVisible();
+  await expect(page.getByTestId('story-next-hint')).toHaveCount(0);
 });
 
 test('a film starts with the voice the learner chose last time, even when sounds are off', async ({ page }) => {

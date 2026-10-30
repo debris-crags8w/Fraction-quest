@@ -14,8 +14,8 @@ const SAMPLE_SET: Sample[] = [
   { name: 'chapter 3 lesson 2', unit: 3, lesson: 'benchmarks-zero-one', prop: 'flag' },
   { name: 'chapter 8 lesson 2', unit: 8, lesson: 'subtract-like-denominators', prop: 'jar' },
   { name: 'chapter 8 lesson 6', unit: 8, lesson: 'hundredths-decimals', prop: 'note' },
-  { name: 'chapter 9 lesson 5', unit: 9, lesson: 'plot-in-eighths', prop: 'pebbles' },
-  { name: 'chapter 12 lesson 4', unit: 12, lesson: 'line-plot-totals', prop: 'beakers' },
+  { name: 'chapter 9 lesson 5', unit: 9, lesson: 'plot-in-eighths', prop: 'leaves' },
+  { name: 'chapter 12 lesson 4', unit: 12, lesson: 'line-plot-totals', prop: 'barrel' },
   { name: 'chapter 12 lesson 7', unit: 12, lesson: 'fractional-sharing', prop: 'loaves' },
   { name: 'chapter 3 ending', unit: 3, prop: 'end-3' },
   { name: 'chapter 8 ending', unit: 8, prop: 'end-8' },
@@ -119,7 +119,7 @@ for (const sample of SAMPLES) {
     expect(state.running, 'nothing moves').toBe(0);
     expect(state.opacity).toBe('1');
     expect(state.box).toBeGreaterThan(120);
-    // Only the beakers' drip is absent in the still (it has no resting place).
-    expect(state.hidden).toBeLessThanOrEqual(sample.prop === 'beakers' ? 1 : 0);
+    // Only the rain barrel's drop is absent in the still (it has no resting place).
+    expect(state.hidden).toBeLessThanOrEqual(sample.prop === 'barrel' ? 1 : 0);
   });
 }
