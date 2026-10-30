@@ -1092,7 +1092,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         } else {
           prompt = later ? 'Color 1 equal part of this bar. What fraction did you color?' : 'Shade 1 part of this bar. What fraction of the bar did you shade?';
           answer = f(1, d); visual = model(0, d); task = { kind: 'shade', n: 1 };
-          hint = `The bar has ${d} equal parts. You shaded 1 of them.`;
+          hint = 'Count all the equal parts in the bar. Then think about the part you shaded.';
         }
         // A pizza whose slices are not fair: 4 slices, but not fourths.
         if (i === 7) {
@@ -1288,7 +1288,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           // The same amount, cut a different way, in a square.
           if (i === 10) {
             prompt = 'Each triangle is 1/8 of the square. Two are shaded. Fill the missing numerator: 2/8 = ?/4.'; answer = '1'; denominator = undefined;
-            visual = undefined; area = { cut: 'quarter-and-triangles', shaded: [1, 2] }; hint = 'The 2 shaded triangles fill the same space as 1 small square. The small square is 1/4.';
+            visual = undefined; area = { cut: 'quarter-and-triangles', shaded: [1, 2] }; hint = 'Slide the 2 shaded triangles together. How many small squares do they cover?';
           } else if (i === 11) {
             prompt = 'Color 1/2 of the square. How many eighths did you color?'; answer = '4'; denominator = undefined;
             visual = undefined; area = { cut: 'eighths-triangles' }; areaTask = { n: 1, d: 2 }; hint = '8 equal triangles make the square. Share them into 2 equal groups. How many are in 1 group?';

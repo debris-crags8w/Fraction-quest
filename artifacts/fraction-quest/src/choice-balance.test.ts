@@ -4,6 +4,7 @@ import { MISSIONS } from './game';
 import { generateQuestions } from './practice-bank';
 import { CHALLENGES } from './challenges';
 import { valueOf } from './proof';
+import { allCheckpoints } from './checkpoint';
 
 /* Measurement tests for how a question's choices are balanced: no pair of choices that mean the same thing, no
    picture that draws only the right choice, no yes/no set where the right choice is the lone "Yes", no right answer
@@ -94,6 +95,34 @@ describe('a picture never draws only the right choice', () => {
     }
     assert.ok(sets > 100, `only ${sets} sets read`);
     assert.equal(alone.length, 0, `${alone.length} of ${sets} sets draw only the right factor`);
+  });
+});
+
+describe('a picture draws all the fraction choices or none', () => {
+  it('"Which fraction is closest to ...?" has a bar for all four choices, never three, in lessons, practice and Check-ins', () => {
+    const rows = [...everyQuestion(), ...allCheckpoints().flatMap(({ mission, questions }) => questions.map((q) => ({ src: 'checkpoint', lesson: mission.id, q })))];
+    let sets = 0;
+    for (const row of rows) {
+      if (!/^Which (?:fraction|amount|is) (?:is )?closest to /.test(row.q.prompt) || !row.q.choices.every((c) => /^\d+\/\d+$/.test(c.trim()))) continue;
+      const bars = row.q.model?.kind === 'bars' ? row.q.model.bars ?? [] : [];
+      const count = row.q.choices.filter((c) => { const [n, d] = c.trim().split('/').map(Number); return bars.some((bar) => bar.numerator === n && bar.denominator === d); }).length;
+      sets++;
+      assert.ok(count === 0 || count === row.q.choices.length, `${show(row)}: the picture draws ${count} of ${row.q.choices.length} choices`);
+    }
+    assert.ok(sets > 100, `only ${sets} sets read`);
+  });
+});
+
+describe('a wrong choice is never a true statement', () => {
+  it('an unequal area picture does not offer "No, the shapes are different" beside the right "No"', () => {
+    let sets = 0;
+    for (const row of everyQuestion()) {
+      const m = row.q.model as { kind: string; cut?: string } | undefined;
+      if (m?.kind !== 'area' || !/^(?:circle-unequal|fourths-unequal|quarter-and-triangles)$/.test(m.cut ?? '') || !/^Is this \w+ cut into equal parts\?$/.test(row.q.prompt)) continue;
+      sets++;
+      assert.ok(!row.q.choices.some((c) => /shapes are different/.test(c)), `${show(row)}: the shapes of the parts really are different`);
+    }
+    assert.ok(sets > 20, `only ${sets} sets read`);
   });
 });
 

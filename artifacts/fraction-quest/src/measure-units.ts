@@ -27,7 +27,9 @@ export function answerUnit(prompt: string): string | null {
   // story measured in, the last one it named.
   if (!/\bhow (much|long|far|heavy)\b|\bdifference\b/i.test(prompt)) return null;
   const named = [...prompt.matchAll(/\b([a-z]+)\b/gi)].map((match) => SINGULAR.get(match[1].toLowerCase())).filter(Boolean);
-  return named.length ? named[named.length - 1]! : null;
+  // A cup can be a container ("all the 4/8 cups" on a liters plot), so it is the unit only when nothing else is named.
+  const measured = named.some((unit) => unit !== 'cup') ? named.filter((unit) => unit !== 'cup') : named;
+  return measured.length ? measured[measured.length - 1]! : null;
 }
 
 /** Adds the unit to every choice when all of them are bare amounts: 1 or less reads singular ("3/4 meter"). */

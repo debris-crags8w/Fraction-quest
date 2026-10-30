@@ -1,7 +1,7 @@
 import { fourthChoice, noBeforeYes, orderedWithSigns, withSignComparisons } from './fourth-choice';
 import { withUnits } from './measure-units';
 import { preferMisconceptions, withoutOverOne } from './misconceptions';
-import { MISSIONS, nameBars, problemPicture, type ModelSpec, type PracticeQuestion } from './game';
+import { MISSIONS, nameBars, problemPicture, withChoiceBars, type ModelSpec, type PracticeQuestion } from './game';
 import { G3_EQUIVALENTS_WIDE, answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, equivalentsFor, getWorksheet, gradeFits, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
 import { onlyTaught, partTaught, withTaughtParts } from './taught-parts';
@@ -100,7 +100,9 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
         ['fourths-mixed', true, 'square'], ['quarter-and-triangles', false, 'square'], ['fourths-triangles', true, 'square'],
         ['circle-sixths', true, 'pizza'], ['circle-unequal', false, 'pizza'], ['fourths-unequal', false, 'square'], ['hexagon-sixths', true, 'hexagon'],
       ] as const);
-      const yes = 'Yes, same-size parts'; const bigger = 'No, some parts are bigger'; const shapes = 'No, the shapes are different';
+      const yes = 'Yes, same-size parts'; const bigger = 'No, some parts are bigger';
+      // "The shapes are different" is a false reason only on a fair cut; on an unequal picture the shapes do differ.
+      const shapes = fair ? 'No, the shapes are different' : 'No, it is not cut';
       return { prompt: `Is this ${whole} cut into equal parts?`, right: fair ? yes : bigger, wrong: fair ? [bigger, shapes] : [yes, shapes], extra: 'Yes, it is cut into parts',
         hint: 'Equal parts are the same size. They do not have to be the same shape.',
         retry: !fair ? 'Compare the sizes: one part is bigger than another, so the parts are not equal.'
@@ -927,7 +929,10 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
     // No part name before its card (taught-parts.ts): a wrong choice that writes one is swapped for a real slip;
     // a question whose own prompt, right answer, help or picture needs one is left out for another.
     const choices = withoutOverOne(placed.prompt, placed.choices, placed.correctChoice);
-    const kept = withTaughtParts({ ...placed, choices, model, simplerModel }, taught);
+    // A picture that draws every fraction the recipe wrote ("closest to 0: 2/7, 4/7, 6/7") also draws the added fourth
+    // choice, so no choice is the one without a bar.
+    const drawn = withChoiceBars({ choices, model }, [item.right, ...item.wrong]);
+    const kept = withTaughtParts({ ...placed, choices, model: drawn.model, simplerModel }, taught);
     if (!kept || !onlyTaught([item.hint, item.retry, ...pictureDenominators(model)], taught)) continue;
     const question = {
       ...placed,

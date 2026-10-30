@@ -403,7 +403,7 @@ function unlabelAnswer(model: ModelSpec, prompt: string, answer: string): ModelS
 
 /** A picture that draws every written choice ("Which is closest to 0? 1/8, 4/5, 7/8") also draws the added fourth
     choice, so the child can check it too. */
-function withChoiceBars<T extends { choices: string[]; model: ModelSpec }>(question: T, authored: string[]): T {
+export function withChoiceBars<T extends { choices: string[]; model: ModelSpec }>(question: T, authored: string[]): T {
   const { model } = question;
   if (model.kind !== 'bars') return question;
   const plain = (choice: string) => /^\d+\/\d+$/.test(choice.trim());
@@ -738,7 +738,7 @@ const curriculum: MissionSeed[] = [
     },
     questions: [
       practice('A line has 3 spaces. The point is 2 jumps from 0. What is it?', ['2/3', '3/2', '1/3'], 0, line(2, 3), '3 spaces in all. 2 jumps.', '2 jumps of 1/3 is 2/3.', line(1, 2)),
-      practice('The point is halfway from 0 to 1. What is it?', ['1/2', '1/4', '2/1'], 0, line(1, 2), 'Halfway is 1 of 2 jumps.', 'Halfway is 1/2.', line(1, 2)),
+      practice('The point is halfway from 0 to 1. What is it?', ['1/2', '1/4', '2/1'], 0, line(1, 2), 'Halfway is the middle of the line. Count the equal jumps from 0 to 1.', 'Halfway is 1/2.', line(1, 2)),
       practice('A line has 4 spaces. What is 3 jumps from 0?', ['3/4', '4/3', '1/4'], 0, line(3, 4), 'Each jump is 1/4. Count 3.', '3 jumps of 1/4 is 3/4.', line(1, 2)),
       practice('A line has 8 spaces. The point is 5 jumps from 0. What is it?', ['5/8', '8/5', '5/3'], 0, line(5, 8), 'Each jump is 1/8. Count 5.', '5 jumps of 1/8 is 5/8.', line(1, 2)),
     ],
