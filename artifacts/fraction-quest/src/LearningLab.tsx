@@ -79,7 +79,7 @@ function Preview({ m, named = false }: { m: LearningModel; named?: boolean }) {
       <div className="fq-ll-preview-svg">
         <BarSvg n={m.n} d={m.d} wholes={m.wholes} sizes={m.sizes} fraction={named && m.n > 0} label={m.sizes ? `A bar cut into ${m.sizes.length} pieces` : m.n ? `${m.d} equal parts per whole, ${m.n} ${m.n === 1 ? 'part' : 'parts'} shaded` : `A bar cut into ${m.d} parts`} />
       </div>
-    ) : <div className="fq-ll-preview" style={{ '--piece': denomColor(m.d) } as CSSProperties} role="img" aria-label={m.kind === 'set' ? `${m.n} of ${m.d} groups selected from ${m.total} objects` : `${m.d} equal parts per whole, marked after ${m.n} parts`}>
+    ) : <div className={'fq-ll-preview' + (m.kind === 'line' ? ' fq-ll-preview-line' : '')} style={{ '--piece': denomColor(m.d) } as CSSProperties} role="img" aria-label={m.kind === 'set' ? `${m.n} of ${m.d} groups selected from ${m.total} objects` : `${m.d} equal parts per whole, marked after ${m.n} parts`}>
       {m.kind === 'line' ? (
         <div className="fq-ll-pline">{Array.from({ length: m.d * m.wholes + 1 }, (_, i) => <i key={i} className={i === m.n ? 'on' : ''} style={{ left: `${(i / (m.d * m.wholes)) * 100}%` }}>{i % m.d === 0 && <span>{i / m.d}</span>}</i>)}</div>
       ) : (
