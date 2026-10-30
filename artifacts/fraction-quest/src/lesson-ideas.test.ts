@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { FRACTION_ORDER_ROUNDS, MISSIONS } from './game';
-import { fractionsTaughtBy, ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS, learnScript, lessonIdeas, practicePlan, type LessonIdea } from './lesson-ideas';
+import { fractionsTaughtBy, hintNudge, ideaPracticeQuestions, ideaQuestion, ideaSteps, LESSON_IDEAS, learnScript, lessonIdeas, practicePlan, type LessonIdea } from './lesson-ideas';
 import { PART_FINDER_ROUNDS } from './part-finder';
 import { getExtraPractice } from './practice-bank';
 import { HANDS_ON_ASKS, storyProblemFor } from './story';
@@ -227,4 +227,20 @@ test('Listen on a worked-example page reads the sentences under the picture, not
     .map((page) => ({ lesson: mission.id, label: page.text, script: learnScript(page), sentences: sceneSentences((page as { scene: StepScene }).scene).join(' ') }))));
   assert.ok(reads.length > 80, 'the worked-example pages are found');
   assert.deepEqual(reads.filter(({ script, sentences }) => script !== sentences).map(({ lesson, label }) => `${lesson}: ${label}`), []);
+});
+
+test('hint fading: after a right answer without the hint in an idea, its later hints are a shorter nudge (the hint\'s first sentence)', () => {
+  assert.equal(hintNudge('Add the numerators. Keep sixths.'), 'Add the numerators.');
+  assert.equal(hintNudge('Write both in hundredths: 0.5 is 50 hundredths. How many hundredths is 0.45?'), 'Write both in hundredths: 0.5 is 50 hundredths.');
+  assert.equal(hintNudge('Look at the denominator.'), 'Look at the denominator.', 'a one-sentence hint is already short');
+  let fading = 0;
+  for (const mission of MISSIONS) for (const { item } of ideaSteps(mission.id)) {
+    if (!('question' in item)) continue;
+    const hint = ideaQuestion(mission, item.question)!.hint;
+    const nudge = hintNudge(hint);
+    // Its own sentence of the hint, so it is already in the voice pack (clips are per sentence) and never says more than the hint.
+    assert.ok(nudge && hint.startsWith(nudge), `${item.question}: ${nudge}`);
+    if (nudge !== hint) fading++;
+  }
+  assert.ok(fading > 300, `${fading} idea hints have a shorter nudge`);
 });

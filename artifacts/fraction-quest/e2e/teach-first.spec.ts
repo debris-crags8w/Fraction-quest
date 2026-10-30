@@ -262,3 +262,52 @@ test('a lesson with new signs teaches them on Learn pages before any practice us
   await learn.getByTestId('button-idea-practise').click();
   await expect(page.locator('.fq-play-kicker')).toContainText(`Idea ${signs + 1} of ${ideas.length}`);
 });
+
+test('hint fading: after one practice of an idea is answered right without the hint, its next hint is a short nudge', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 0, day: '2026-10-20', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound: false,
+    introsSeen: { builder: true, line: true }, fractionWordsSeen: true, breakPreferences: { intervalMinutes: 0, quietMode: false },
+    story: { prologueSeen: true, choices: {} }, displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion: true, seasonalThemes: false, storyMode: false } })));
+  await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
+  await page.setViewportSize({ width: 390, height: 664 });
+  await page.goto('/?lessons');
+  const guest = page.getByTestId('button-play-guest');
+  await expect(guest.or(page.getByTestId('lesson-tester'))).toBeVisible();
+  if (await guest.isVisible()) await guest.click();
+  const { MISSIONS } = await import('../src/game');
+  const { hintNudge, ideaQuestion, ideaSteps } = await import('../src/lesson-ideas');
+  const mission = MISSIONS.find((item) => item.id === 'unit-size')!;
+  const [first, second, third] = ideaSteps(mission.id).slice(0, 3).map(({ item }) => ideaQuestion(mission, (item as { question: string }).question)!);
+  await page.getByTestId(`button-tester-start-${mission.id}`).click();
+  const practise = page.getByTestId('button-idea-practise');
+  while (!(await practise.isVisible())) await page.getByTestId('button-teach-step-next').click();
+  await practise.click();
+  const hint = page.getByTestId('text-question-hint');
+  // The hint's words as read, without the word cards' pop-up definitions.
+  const words = (box: import('@playwright/test').Locator) => () => box.evaluate((el) => {
+    const copy = el.cloneNode(true) as HTMLElement;
+    copy.querySelectorAll('.fq-vocab-tooltip').forEach((tip) => tip.remove());
+    return (copy.textContent ?? '').replace(/See the fraction words again$/, '').replace(/\s+/g, ' ').trim();
+  });
+  const hintWords = words(hint.locator('.fq-hint-copy > span').last());
+  const answer = async (question: typeof first, right = true) => {
+    const wrong = [0, 1, 2, 3].find((i) => i !== question.correctChoice)!;
+    await page.getByTestId(`button-answer-${question.id}-${right ? question.correctChoice : wrong}`).click();
+    await page.getByTestId('button-check-answer').click();
+  };
+  // Practice 1 with the hint: the full hint (a right answer after using it does not fade the next one).
+  await page.getByTestId('button-show-hint').click();
+  await expect.poll(hintWords).toBe(first.hint);
+  await answer(first);
+  await page.getByTestId('button-next-question').click();
+  // Practice 2 answered right without the hint.
+  await answer(second);
+  await page.getByTestId('button-next-question').click();
+  // Practice 3: the hint opens as its first sentence only. A wrong answer brings the whole hint back (with the hint already
+  // open, as "Let's make it simpler").
+  expect(hintNudge(third.hint)).not.toBe(third.hint);
+  await page.getByTestId('button-show-hint').click();
+  await expect.poll(hintWords).toBe(hintNudge(third.hint));
+  await page.screenshot({ path: test.info().outputPath('hint-nudge.png') });
+  await answer(third, false);
+  await expect.poll(words(page.getByTestId('status-remediation').locator(':scope > span'))).toBe(third.hint);
+});

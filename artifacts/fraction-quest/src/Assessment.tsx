@@ -189,7 +189,7 @@ function AssessmentModelBuilder({ item, onReady }: { item: AssessmentItem; onRea
 /** A picture the question carries (two decimals on hundredths grids): read, so nothing to build. */
 function ReadOnlyDrawing({ model, onReady }: { model: ModelSpec; onReady: ReadyFn }) {
   useEffect(() => { onReady(true, true); }, [onReady]);
-  return <section className="fq-assessment-model fq-assessment-picture" data-testid="assessment-picture"><PrintModel model={model} labels={false} /></section>;
+  return <section className={`fq-assessment-model fq-assessment-picture${model.kind === 'area' ? ' is-area' : ''}`} data-testid="assessment-picture"><PrintModel model={model} labels={false} /></section>;
 }
 
 function ReadOnlyArea({ figure, onReady }: { figure: NonNullable<AssessmentItem['problem']['area']>; onReady: ReadyFn }) {
