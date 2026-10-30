@@ -96,6 +96,60 @@ const TABLE: [string, string, string, string][] = [
   // A generic "number from the question" gets the real slip where one exists.
   ['What is 1/4 of 12 toy cars?', '3 cars', '4 cars', 'WHY.splitDenominator'],
   ['A fence is 20 meters long. How long is 1/4 of it?', '5 meters', '4 meters', 'WHY.splitDenominator'],
+  // 4. Meaning and number-only picks name the slip behind them, not only the hint.
+  ['In 2/6, what does the 6 mean?', '6 equal parts in all', '6 parts are shaded', 'WHY.bottomNotShaded'],
+  ['In 2/6, what does the 6 mean?', '6 equal parts in all', '6 wholes', 'WHY.notWholes'],
+  ['In 3/4, what does the 3 mean?', '3 parts are counted', '3 equal parts in all', 'WHY.topNotAll'],
+  ['In 3/4, what does the 3 mean?', '3 parts are counted', '3 parts not counted', 'WHY.topNotLeft'],
+  ['In 5/8, how many parts are counted?', '5', '8', 'WHY.askedTop'],
+  ['In 5/8, how many parts are counted?', '5', '13', 'WHY.addedBoth'],
+  ['This bar has 3 cuts. How many equal parts make the whole?', '4', '3', 'WHY.cutsNotParts'],
+  ['This bar has 3 cuts. How many equal parts make the whole?', '4', '5', 'SLIPS.recountParts'],
+  ['Count the spaces between the tick marks. How many equal spaces go from 0 to 1?', '6', '7', 'WHY.ticksNotSpaces'],
+  ['This line has equal spaces from 0 to 1. What is the denominator?', '8', '9', 'SLIPS.recountParts'],
+  ['A line has 8 equal spaces. Where is 3/8?', '3 jumps from 0', '8 jumps from 0', 'WHY.askedTop'],
+  ['A line has 8 equal spaces. Where is 3/8?', '3 jumps from 0', '5 jumps from 0', 'WHY.jumpsToOne'],
+  ['A line has 8 equal spaces. Where is 3/8?', '3 jumps from 0', '3 jumps back from 1', 'WHY.jumpsForward'],
+  ['Half of a cake is 2 equal pieces. How many equal pieces make the whole cake?', '4', '2', 'WHY.halfOnly'],
+  ['Is 1/3 more or less than 1/2?', 'Less than 1/2', 'Equal to 1/2', 'WHY.notExactHalf'],
+  ['Is 1/3 more or less than 1/2?', 'Less than 1/2', 'More than 1/2', 'WHY.halfOfBottom'],
+  ['Is 1/3 more or less than 1/2?', 'Less than 1/2', 'More than 1', 'WHY.otherBenchmark'],
+  ['A jug is 4/6 full. Is that more or less than half?', 'More than half', 'Less than half', 'WHY.halfOfBottom'],
+  ['A jug is 4/6 full. Is that more or less than half?', 'More than half', 'Exactly half', 'WHY.notExactHalf'],
+  ['A jug is 4/6 full. Is that more or less than half?', 'More than half', 'More than one whole', 'WHY.otherBenchmark'],
+  ['Is 4/6 a little more or a little less than 1/2?', 'A little more than 1/2', 'A little less than 1/2', 'WHY.halfOfBottom'],
+  ['Is 4/6 a little more or a little less than 1/2?', 'A little more than 1/2', 'Much less than 1/2', 'WHY.nearHalfSize'],
+  ['Which fraction is exactly one half?', '2/4', '3/4', 'WHY.halfOfBottom'],
+  ['Which is less than 1/2?', '1/4', '3/4', 'WHY.halfOfBottom'],
+  ['Which is more than 1/2?', '3/4', '1/4', 'WHY.halfOfBottom'],
+  ['Quick review · Estimate size: Which is just a little less than 1/2?', '3/8', '7/8', 'WHY.halfOfBottom'],
+  ['Is 5/8 nearer 1/2 or 1?', 'Nearer 1/2', 'Nearer 1', 'WHY.farther'],
+  ['Is 5/8 nearer 1/2 or 1?', 'Nearer 1/2', 'Exactly 1/2', 'WHY.notExactNear'],
+  ['A plant grew 7/8 of a meter. Is that near 0, 1/2 or 1 meter?', '1 meter', '0 meters', 'WHY.farther'],
+  ['Which is bigger, 3/8 or 1/2?', '1/2', '3/8', 'WHY.bigNumbers'],
+  ['Which covers more: 3/8 or 3/6?', '3/6', '3/8', 'WHY.bigBottom'],
+  ['In 4/3 × 6, is the factor 4/3 more or less than 1?', 'More than 1', 'Less than 1', 'WHY.topVsBottom'],
+  ['In 6/6 × 7, is the factor 6/6 more or less than 1?', 'Equal to 1', 'More than 1', 'WHY.topVsBottom'],
+  ['Is 3/4 × 12 more or less than 12?', 'Less than 12', 'More than 12', 'WHY.scaleCompare'],
+  ['Which one is more than 8?', '5/4 × 8', '3/4 × 8', 'WHY.scaleCompare'],
+  ['Is 5/4 × 2 1/2 more than 2 1/2?', 'Yes, 5/4 is more than 1', 'No, it is less', 'WHY.scaleCompare'],
+  ['Ana says multiplying always makes a number bigger. Is she right?', 'No, 1/2 × 4 is 2', 'Yes, it always gets bigger', 'WHY.tryUnderOne'],
+  ['Ana says multiplying always makes a number bigger. Is she right?', 'No, 1/2 × 4 is 2', 'No, it always gets smaller', 'WHY.tryOverOne'],
+  ['3 out of 8 equal parts are shaded. What fraction is shaded?', '3/8', '5/8', 'WHY.notShadedCount'],
+  ['3 out of 8 equal parts are shaded. What fraction is shaded?', '3/8', '8/8', 'WHY.topNotAll'],
+  ['Is this strip cut into 3 equal parts?', 'No, the parts are unequal', 'Yes, there are 3 parts', 'WHY.countNotSize'],
+  ['This ribbon is cut into 2 parts. Are the parts the same size?', 'Yes, same-size parts', 'No, there must be 3 parts', 'WHY.countNotSize'],
+  ['Which number divides both 6 and 9?', '3', '6', 'WHY.justNumber'],
+  // 5. The same slip gets the same reason in every idea of a lesson (multiply a whole number by a fraction).
+  ['3 × 1/3 = ?', '3/3', '1/3', 'WHY.oneGroup'],
+  ['What is 3 groups of 2/3?', '6/3', '2/3', 'WHY.oneGroup'],
+  ['What is 2 groups of 3/8?', '6/8', '6/16', 'WHY.onlyTop'],
+  ['What is 2 groups of 3/8?', '6/8', '5/8', 'WHY.addedNotTimes'],
+  ['What is 2 groups of 3/8?', '6/8', '3/16', 'WHY.timesBottomOnly'],
+  ['A frog jumps 3/8 each time. Where is it after 2 jumps?', '6/8', '6/16', 'WHY.onlyTop'],
+  ['A frog jumps 3/8 each time. Where is it after 2 jumps?', '6/8', '3/16', 'WHY.timesBottomOnly'],
+  ['Which is the same as 3 × 2/5?', '6 × 1/5', '3 × 1/5', 'WHY.unitCount'],
+  ['Which is the same as 3 × 2/5?', '6 × 1/5', '6 × 1/12', 'WHY.sameBottom'],
 ];
 
 describe('the exact reason for a wrong tap', () => {
@@ -164,5 +218,29 @@ describe('the exact reason for a wrong tap', () => {
       const reason = reasonOf(w);
       if (reason === SLIPS.allParts) assert.match(w.q.prompt, /shaded|colou?red|equal (?:parts|tiles|pieces)|friends share|loaves/i, `${w.q.id}: ${w.q.prompt} / ${w.choice}`);
     }
+  });
+
+  it('names the slip on the meaning, counting, half-and-one and scaling lessons that used to give only the hint', () => {
+    const FLOORS: [string, number][] = [['fraction-names', 0.85], ['benchmark-half', 0.85], ['number-line-basics', 0.78], ['bigger-or-smaller', 1], ['multiply-whole-by-fraction', 1]];
+    for (const [id, floor] of FLOORS) {
+      const m = MISSIONS.find((x) => x.id === id)!;
+      const picks = [...m.questions, ...(m.ideaQuestions ?? [])].flatMap((q) => q.choices.flatMap((_, i) => i === q.correctChoice ? [] : [wrongChoiceReason(q.prompt, q.choices, q.correctChoice, i)]));
+      const share = picks.filter(Boolean).length / picks.length;
+      assert.ok(share >= floor, `${id}: ${(share * 100).toFixed(0)}% of wrong picks have a reason (floor ${floor * 100}%)`);
+    }
+  });
+
+  it('the new reasons carry no digit, so none can give the answer away', () => {
+    for (const key of ['bottomNotShaded', 'notWholes', 'topNotAll', 'topNotLeft', 'askedTop', 'askedBottom', 'addedBoth', 'cutsNotParts', 'ticksNotSpaces', 'jumpsToOne',
+      'jumpsForward', 'halfOnly', 'halfOfBottom', 'notExactHalf', 'notExactNear', 'otherBenchmark', 'nearHalfSize', 'topVsBottom', 'bigNumbers', 'tryUnderOne', 'tryOverOne',
+      'unitCount', 'notShadedCount', 'countNotSize'] as const) {
+      assert.doesNotMatch(WHY[key], /\d/, `${key} has a digit`);
+      assert.doesNotMatch(WHY[key], /\bthe (?:right|correct) answer\b/i, `${key} names the answer`);
+    }
+  });
+
+  it('keeps at least 73 percent of all wrong choices named (it was 64.5)', () => {
+    const reasons = wrongChoices.map(reasonOf);
+    assert.ok(reasons.filter(Boolean).length / reasons.length >= 0.73);
   });
 });

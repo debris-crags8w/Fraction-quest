@@ -111,6 +111,8 @@ export function wrongChoiceReason(prompt: string, choices: string[], correct: nu
   // A real mistake the question's wrong choices were made from (misconceptions.ts, fraction-slips.ts).
   const why = slipReason(prompt, right, pick);
   if (why) return WHY[why];
+  const named = meaningReason(p, pick, right);
+  if (named) return named;
   // A line plot count with no known slip behind it: count again.
   return /line plot.*how many/.test(p) && /^\d+$/.test(pick) ? WHY.countMarks : null;
 }
@@ -122,7 +124,8 @@ const OPERANDS = /(\d+\/\d+|\d*\.\d+) or (\d+\/\d+|\d*\.\d+)\?$/;
     neither, or a decimal beside a fraction. Never says which amount is bigger. Null when the question is not that
     kind, or the pick is not one of the amounts or an answer about them. */
 function whichSizeReason(prompt: string, pick: string, right: string): string | null {
-  const p = prompt.replace(REVIEW_LABEL, '').toLowerCase();
+  // "Which covers more: 3/8 or 3/6?" asks the same thing as "Which is bigger".
+  const p = prompt.replace(REVIEW_LABEL, '').toLowerCase().replace(/\bcovers more\b/, 'bigger').replace(/\bcovers less\b/, 'smaller');
   if (!/\bwhich\b/.test(p) || /(?:more|less) than/.test(p) || !/\b(?:bigger|biggest|greater|larger|smaller|smallest)\b/.test(p)) return null;
   const operands = OPERANDS.exec(prompt);
   if (!operands) return null;
@@ -142,7 +145,11 @@ function whichSizeReason(prompt: string, pick: string, right: string): string | 
   if (!wrongWay) return null;
   if (how === 'top') return WHY.bigBottom;
   if (how === 'bottom') return WHY.sameSizeCount;
-  if (how === 'both') return WHY.sizeAndCount;
+  if (how === 'both') {
+    // The pick has the bigger numbers on top and bottom (5/8 against 1/2 the wrong way round): bigger numbers are not a bigger fraction.
+    const [mine, other] = pick === operands[1] ? [a!, b!] : [b!, a!];
+    return Number(mine[1]) > Number(other[1]) && Number(mine[2]) > Number(other[2]) ? WHY.bigNumbers : WHY.sizeAndCount;
+  }
   const digits = (text: string) => (/^\d*\.(\d+)$/.exec(text)?.[1].length ?? 0);
   return !a && !b && digits(pick) > digits(pick === operands[1] ? operands[2] : operands[1]) ? WHY.moreDigits : WHY.sameWay;
 }
@@ -200,6 +207,75 @@ function specificReason(fullPrompt: string, right: string, pick: string): string
   return null;
 }
 
+/** The whole number a pick starts with: "7 spaces" and "3 jumps from 0" are 7 and 3. NaN for a fraction or words. */
+const leadNumber = (text: string) => { const m = /^(\d+)(?![\d/])/.exec(text); return m ? Number(m[1]) : NaN; };
+const COUNTED = /\bhow many (?:equal )?(?:parts|spaces|slices|pieces|jumps)\b|\bwhat is the (?:denominator|numerator)\b/;
+
+/** Wrong picks whose slip is not in the numbers themselves: what a number in a fraction means, counting parts, cuts,
+    spaces and jumps, the one-half and one benchmarks, and the size of a factor. `p` is the lower-case question. The
+    sentences are about the slip and never say the right answer. Null when the pick is none of these. */
+function meaningReason(p: string, pick: string, right: string): string | null {
+  const fraction = /(\d+)\/(\d+)/.exec(p);
+  const [top, bottom] = fraction ? [Number(fraction[1]), Number(fraction[2])] : [NaN, NaN];
+  // "In 2/6, what does the 6 mean?"
+  const mean = /^in (\d+)\/(\d+), what does the (\d+) mean\?$/.exec(p);
+  if (mean) {
+    const lower = mean[3] === mean[2];
+    if (/\bwholes?\b/.test(pick)) return WHY.notWholes;
+    if (lower) return /shaded|counted|taken/.test(pick) ? WHY.bottomNotShaded : null;
+    return /\bnot\b/.test(pick) ? WHY.topNotLeft : /\bin all\b/.test(pick) ? WHY.topNotAll : null;
+  }
+  // "3 out of 8 equal parts are shaded. What fraction is shaded?": the parts not shaded, or every part, counted on top.
+  const shaded = /^(\d+) out of (\d+) equal parts are shaded\. what fraction is shaded\?$/.exec(p);
+  const picked = FRACTION.exec(pick);
+  if (shaded && picked) return Number(picked[1]) === Number(shaded[2]) - Number(shaded[1]) ? WHY.notShadedCount : Number(picked[1]) === Number(shaded[2]) ? WHY.topNotAll : null;
+  // "Are the parts the same size?", "Is this strip cut into 3 equal parts?": counting the parts does not answer it.
+  if (/\b(?:equal (?:parts|slices)|the same size)\?$/.test(p) && /^(?:yes|no), (?:there (?:are|must be)|it needs|\d+ equal)/i.test(pick)) return WHY.countNotSize;
+  // "A line has 8 equal spaces. Where is 3/8?": the bottom number used, the jumps left to one, jumps back from one.
+  const where = /^a line has \d+ equal spaces\. where is (\d+)\/(\d+)\?$/.exec(p);
+  if (where && /^\d+ jumps/.test(pick)) {
+    const n = leadNumber(pick);
+    return /\bback from 1\b/.test(pick) ? WHY.jumpsForward : n === Number(where[2]) ? WHY.askedTop : n === Number(where[2]) - Number(where[1]) ? WHY.jumpsToOne : null;
+  }
+  // One half: "Is 1/3 more or less than 1/2?", "Is that more or less than half?", "a little more or a little less".
+  if (/\b(?:more or less than|a little more or a little less than) (?:1\/2|half)\?$/.test(p)) {
+    if (/^(?:exactly|equal to)\b/i.test(pick)) return WHY.notExactHalf;
+    if (/^much\b/i.test(pick)) return WHY.nearHalfSize;
+    if (/\bthan (?:1|one whole)$/i.test(pick)) return WHY.otherBenchmark;
+    return /^(?:a little )?(?:more|less)\b/i.test(pick) ? WHY.halfOfBottom : null;
+  }
+  if (/^which fraction is exactly one half\?$/.test(p) && FRACTION.test(pick)) return WHY.halfOfBottom;
+  // "Is 5/8 nearer 1/2 or 1?", "Is that near 0, 1/2 or 1 meter?"
+  if (/\bnearer \S+ or \S+\?$/.test(p)) return /^exactly\b/i.test(pick) ? WHY.notExactNear : /^nearer\b/i.test(pick) ? WHY.farther : null;
+  if (/\b(?:near|closest to) 0, 1\/2 or 1\b/.test(p) && /^\d/.test(pick)) return WHY.farther;
+  // Multiplying: is the factor more or less than one, and what that does.
+  if (/^in .+ × .+, is the factor \d+\/\d+ more or less than 1\?$/.test(p)) return WHY.topVsBottom;
+  if (/ × .*\b(?:more or less than|more than|the same as) /.test(p) && /^(?:more|less|equal|yes|no)\b/i.test(pick)) return WHY.scaleCompare;
+  if (/^which one is (?:more|less) than \d+\?$/.test(p) && / × /.test(pick)) return WHY.scaleCompare;
+  if (/\bsays multiplying always\b/.test(p)) return /^yes\b/i.test(pick) ? WHY.tryUnderOne : /^no\b/i.test(pick) ? WHY.tryOverOne : null;
+  // "3 × 1/3 = ?", "What is 3 groups of 2/3?" answered with the one fraction that is in the question: one group only.
+  const groups = /^(?:(\d+) × (\d+\/\d+) = \?|what is (\d+) groups? of (\d+\/\d+)\?)$/.exec(p);
+  if (groups && pick === (groups[2] ?? groups[4])) return WHY.oneGroup;
+  // "Which is the same as 3 × 2/5?": the small parts counted wrong, or a different size of part.
+  const same = /^which is the same as (\d+) × (\d+)\/(\d+)\?$/.exec(p);
+  const units = /^(\d+) × 1\/(\d+)$/.exec(pick);
+  if (same && units) return Number(units[2]) !== Number(same[3]) ? WHY.sameBottom : Number(units[1]) !== Number(same[1]) * Number(same[2]) ? WHY.unitCount : null;
+  const [pn, rn] = [leadNumber(pick), leadNumber(right)];
+  if (Number.isFinite(pn) && Number.isFinite(rn)) {
+    const cuts = /\bhas (\d+) cuts\b/.exec(p);
+    if (cuts && pn === Number(cuts[1])) return WHY.cutsNotParts;
+    if (/\btick marks\b/.test(p) && pn === rn + 1) return WHY.ticksNotSpaces;
+    if (fraction && /\bhow many parts are counted\b|\bnumerator\b/.test(p)) return pn === bottom ? WHY.askedTop : pn === top + bottom ? WHY.addedBoth : null;
+    if (fraction && /\bdenominator\b/.test(p)) return pn === top ? WHY.askedBottom : null;
+    const half = /^half of an? \w+ is (\d+)\b/.exec(p);
+    if (half && pn === Number(half[1])) return WHY.halfOnly;
+    if (COUNTED.test(p) && Math.abs(pn - rn) === 1) return SLIPS.recountParts;
+    // A bare number the question already gave: it is not the answer to what the question asks.
+    return /^\d+$/.test(pick) && new RegExp(`\\b${pick}\\b`).test(p) ? WHY.justNumber : null;
+  }
+  return null;
+}
+
 const SIGN = /^(.+?) ([<>=]) (.+?)(?: ([<>=]) (.+))?$/;
 /** "a < b" and "b > a" say the same thing: as [smaller-or-equal side, sign, other side] with the sign < or =. */
 function claim(text: string): [string, string, string] | null {
@@ -212,7 +288,7 @@ const unitTop = (text: string) => /^(\d+)\/(\d+)$/.exec(text);
 
 /** Comparing, ordering and benchmark questions: the slip behind the picked sign, order or amount. */
 function comparisonReason(prompt: string, pick: string, right: string): string | null {
-  const p = prompt.toLowerCase();
+  const p = prompt.replace(REVIEW_LABEL, '').toLowerCase();
   // Orders: "1/3 < 2/3 < 3/3".
   const [po, ro] = [SIGN.exec(pick), SIGN.exec(right)];
   if (po?.[4] && ro?.[4]) {
@@ -253,6 +329,8 @@ function comparisonReason(prompt: string, pick: string, right: string): string |
   if (side) {
     const target = amount(side[2]);
     if (!Number.isFinite(target)) return null;
+    // Against one half, the way to check is half of the bottom number.
+    if (target === 0.5 && (side[1] === 'more' ? v <= target : v >= target)) return WHY.halfOfBottom;
     if (side[1] === 'more' && v <= target) return WHY.notMore;
     if (side[1] === 'less' && v >= target) return WHY.notLess;
     return /a little/.test(p) ? WHY.farther : null;
