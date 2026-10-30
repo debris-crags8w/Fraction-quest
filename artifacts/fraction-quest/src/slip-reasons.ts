@@ -267,7 +267,7 @@ export const WHY = {
   countBars: 'That is just one bar. Count every whole bar.',
   topWholes: 'Check the top number: it counts the wholes.',
   keepWholes: 'Keep the wholes the same. Only the fraction part is renamed.',
-  partsNotWholes: 'The wholes do not answer it. Compare only the fraction parts.',
+  wholesNotParts: 'The wholes do not answer it. Compare only the fraction parts.',
   // Renaming and common factors
   sameFactor: 'Multiply the top by the same number as the bottom.',
   divideSame: 'Divide the top and the bottom by the same number.',

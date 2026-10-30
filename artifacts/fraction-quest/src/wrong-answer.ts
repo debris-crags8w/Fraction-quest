@@ -396,7 +396,7 @@ function practiceReason(fullPrompt: string, pick: string, right: string): string
   if (/^does this bar show \d+\/\d+\?$/.test(p)) return /not shaded/.test(k) ? WHY.notShadedCount : /parts are shaded/.test(k) ? SLIPS.recountShaded : /has \d+ parts/.test(k) ? WHY.alsoShaded : null;
   if (/same size as the parts of|what size are the parts in|have the same size parts\?|has the same size parts as/.test(p)) return /bigger parts|have \d+ parts/.test(k) ? WHY.topCounts : WHY.bottomSize;
   if (/^can you add .* by counting the parts\?$/.test(p)) return /numerators/.test(k) ? WHY.bottomSize : WHY.countSameSize;
-  if (/are there enough \w+ to take away/.test(p)) return /\bwholes?\b/.test(k) ? WHY.partsNotWholes : WHY.sameSizeCount;
+  if (/are there enough \w+ to take away/.test(p)) return /\bwholes?\b/.test(k) ? WHY.wholesNotParts : WHY.sameSizeCount;
   if ((m = /^does (\d+) divide both (\d+) and (\d+)\?$/.exec(p))) return /^no, \d+ does not divide/.test(k) ? WHY.checkOther : /^yes/.test(k) ? WHY.checkBoth : null;
   if (/^which number divides both \d+ and \d+\?$/.test(p) && /^\d+$/.test(k)) return WHY.checkBoth;
   if ((m = /^write (\d+)\/(\d+) in simplest form\.$/.exec(p)) && pf && !near(pv, rv)) return WHY.divideSame;
