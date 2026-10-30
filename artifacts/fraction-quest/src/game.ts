@@ -779,14 +779,14 @@ const curriculum: MissionSeed[] = [
     description: 'Compare fractions with same-size parts.', example: {
       prompt: 'Which is bigger, 3/8 or 5/8?',
       answer: '5/8.',
-      explanation: 'Both use eighths. 5 parts is more than 3.',
+      explanation: 'Both use eighths. 5 parts are more than 3.',
       model: bars({ numerator: 3, denominator: 8 }, { numerator: 5, denominator: 8 }),
     },
     questions: [
-      practice('Which is bigger, 4/6 or 2/6?', ['2/6', '4/6', 'They are equal'], 1, bars({ numerator: 4, denominator: 6 }, { numerator: 2, denominator: 6 }), 'Same size parts. Which has more?', '4 parts is more than 2 parts.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is bigger, 4/6 or 2/6?', ['2/6', '4/6', 'They are equal'], 1, bars({ numerator: 4, denominator: 6 }, { numerator: 2, denominator: 6 }), 'Same size parts. Which has more?', '4 parts are more than 2 parts.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is smaller, 1/3 or 2/3?', ['1/3', '2/3', 'They match'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 3 }), 'Both are thirds. Which has fewer?', '1 third is less than 2 thirds.', bars({ numerator: 1, denominator: 2 })),
       practice('Pick the sign: 6/8 __ 7/8', ['>', '<', '='], 1, bars({ numerator: 6, denominator: 8 }, { numerator: 7, denominator: 8 }), 'Same denominator. Compare 6 and 7.', '6 is less than 7. So 6/8 < 7/8.', bars({ numerator: 1, denominator: 4 })),
-      practice('Which is bigger, 1/4 or 3/4?', ['1/4', '3/4', 'They are equal'], 1, bars({ numerator: 1, denominator: 4 }, { numerator: 3, denominator: 4 }), 'Same size parts. Count them.', '3 parts is more than 1.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is bigger, 1/4 or 3/4?', ['1/4', '3/4', 'They are equal'], 1, bars({ numerator: 1, denominator: 4 }, { numerator: 3, denominator: 4 }), 'Same size parts. Count them.', '3 parts are more than 1.', bars({ numerator: 1, denominator: 2 })),
     ],
     ideaQuestions: [
       // Idea 1: the same denominator means same-size parts (nothing compared yet).
@@ -835,7 +835,7 @@ const curriculum: MissionSeed[] = [
     ],
     ideaQuestions: [
       // Idea 1: compare two at a time (same denominators, same numerators, or with half).
-      practice('Which is smaller, 2/6 or 5/6?', ['2/6', '5/6', 'They are equal', "You can't tell"], 0, bars({ numerator: 2, denominator: 6 }, { numerator: 5, denominator: 6 }), 'Same denominators: count the parts.', '2 parts is less than 5 parts, so 2/6 is smaller.', bars({ numerator: 1, denominator: 6 }), { authoredChoices: true }),
+      practice('Which is smaller, 2/6 or 5/6?', ['2/6', '5/6', 'They are equal', "You can't tell"], 0, bars({ numerator: 2, denominator: 6 }, { numerator: 5, denominator: 6 }), 'Same denominators: count the parts.', '2 parts are less than 5 parts, so 2/6 is smaller.', bars({ numerator: 1, denominator: 6 }), { authoredChoices: true }),
       practice('Which is bigger, 1/3 or 1/6?', ['1/3', '1/6', 'They are equal', "You can't tell"], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 1, denominator: 6 }), 'Same numerators: bigger parts win. Which are bigger parts, thirds or sixths?', 'Both count 1 part. A third is bigger than a sixth, so 1/3 is bigger.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
       practice('Which is bigger, 5/8 or 1/2?', ['5/8', '1/2', 'They are equal', "You can't tell"], 0, bars({ numerator: 5, denominator: 8 }, { numerator: 1, denominator: 2 }), 'Half of 8 is 4, so half is 4/8. Compare 5/8 with 4/8.', '5/8 is 1 part more than half, so 5/8 is bigger than 1/2.', bars({ numerator: 4, denominator: 8 }), { authoredChoices: true }),
       // Idea 3: biggest first.
@@ -982,7 +982,7 @@ const curriculum: MissionSeed[] = [
       practice('Which is more than one whole?', ['9/8', '7/8', '1/8'], 0, line(0, 8, 2), '8/8 is exactly one whole.', '9/8 is 1 part more than a whole.', line(8, 8, 2)),
     ],
     ideaQuestions: [
-      practice('Is 5/4 more than one whole?', ['No, it is less than one whole', 'Yes, 4 parts is more than one whole', 'Yes, 5 parts, but only 4 fit in one whole', 'No, a fraction is always less than one whole'], 2, line(0, 4, 2), '4/4 is one whole. Is 5 more than 4?', '5/4 is 4/4 and 1 more fourth, so it is more than one whole.', line(4, 4, 2), { authoredChoices: true }),
+      practice('Is 5/4 more than one whole?', ['No, it is less than one whole', 'Yes, 4 parts are more than one whole', 'Yes, 5 parts, but only 4 fit in one whole', 'No, a fraction is always less than one whole'], 2, line(0, 4, 2), '4/4 is one whole. Is 5 more than 4?', '5/4 is 4/4 and 1 more fourth, so it is more than one whole.', line(4, 4, 2), { authoredChoices: true }),
       practice('Which is less than one whole?', ['5/6', '7/6', '6/6', '9/6'], 0, line(0, 6, 2), '6/6 is exactly one whole.', '5/6 is 1 part less than a whole.', line(6, 6, 2), { authoredChoices: true }),
       practice('How many sixths make 2 wholes?', ['12', '6', '2', '8'], 0, line(0, 6, 2), 'One whole is 6 sixths. Count the spaces to 2.', '6 + 6 = 12 sixths. So 12/6 = 2.', line(6, 6, 2), { authoredChoices: true }),
       practice('How many sixths past one whole is 8/6?', ['2', '8', '6', '1'], 0, line(8, 6, 2), '6/6 is one whole. Count the jumps after it.', '8/6 is 6/6 and 2 more sixths.', line(6, 6, 2), { authoredChoices: true }),
@@ -1094,7 +1094,7 @@ const curriculum: MissionSeed[] = [
       practice('Write 3/10 as a decimal.', ['0.3', '3.0', '0.7', '10.3'], 0, decimal(3), 'Tenths go right after the decimal point.', '3 tenths is 0.3.', decimal(3), { authoredChoices: true }),
       practice('What fraction is 0.6?', ['6/10', '4/10', '1/6', '10/6'], 0, decimal(6), 'The 6 is right after the decimal point. That means tenths.', '0.6 means 6 tenths, or 6/10.', decimal(6), { authoredChoices: true }),
       practice('A strip is 0.4 colored. What fraction is that?', ['4/10', '6/10', '1/4', '10/4'], 0, decimal(4), 'The number right after the decimal point is tenths.', '0.4 means 4 tenths, or 4/10.', decimal(4), { authoredChoices: true }),
-      practice('Which is bigger, 0.8 or 5/10?', ['0.8', '5/10', 'They are equal'], 0, bars({ numerator: 8, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Write both numbers as tenths.', '8 tenths is more than 5 tenths.', decimal(8)),
+      practice('Which is bigger, 0.8 or 5/10?', ['0.8', '5/10', 'They are equal'], 0, bars({ numerator: 8, denominator: 10 }, { numerator: 5, denominator: 10 }), 'Write both numbers as tenths.', '8 tenths are more than 5 tenths.', decimal(8)),
     ],
     ideaQuestions: [
       practice('A strip has 10 equal parts. 3 are colored. What fraction is colored?', ['3/10', '7/10', '3/7', '10/3'], 0, bars({ numerator: 3, denominator: 10 }), 'Count all the equal parts for the bottom number. Count the colored parts for the top.', '3 of the 10 equal parts are colored: 3/10, or 3 tenths.', bars({ numerator: 3, denominator: 10 }), { authoredChoices: true }),
@@ -1287,14 +1287,14 @@ const extensionTopics: ExtensionTopic[] = [
       practice('Write 6/6 as a whole number.', ['1', '6', '12', '0'], 0, bars({ numerator: 6, denominator: 6 }), '6/6 is all 6 parts of one whole.', '6 sixths fill one whole, so 6/6 = 1.', bars({ numerator: 6, denominator: 6 }), { authoredChoices: true }),
     ] },
   { id: 'compare-unlike-fractions', title: 'Compare different parts', shortTitle: 'Compare unlike parts', description: 'Which is bigger when the denominators differ?', skill: 'Make the parts the same size by using a common denominator. Then compare how many parts each fraction has.', mode: 'compare', n: 2, d: 3, context: 'race track',
-    example: { prompt: 'Which is bigger, 3/4 or 5/6?', answer: '5/6', explanation: 'Use twelfths for both: 3/4 = 9/12 and 5/6 = 10/12. 10 twelfths is more than 9 twelfths, so 5/6 is bigger.', model: bars({ numerator: 3, denominator: 4, named: true }, { numerator: 5, denominator: 6, named: true }) },
+    example: { prompt: 'Which is bigger, 3/4 or 5/6?', answer: '5/6', explanation: 'Use twelfths for both: 3/4 = 9/12 and 5/6 = 10/12. 10 twelfths are more than 9 twelfths, so 5/6 is bigger.', model: bars({ numerator: 3, denominator: 4, named: true }, { numerator: 5, denominator: 6, named: true }) },
     // Idea questions (ideas/lessons-41-50.ts): rename one fraction (p1–p2), a common denominator (p3–p5), same numerators (p6).
     ideaQuestions: [
       practice('Pick the sign: 2/3 __ 5/6.', ['<', '=', '>'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 5, denominator: 6 }),
-        'Thirds fit into sixths. Rename 2/3 as sixths, then compare the numerators.', '2/3 = 4/6, and 4 sixths is less than 5 sixths. So 2/3 < 5/6.',
+        'Thirds fit into sixths. Rename 2/3 as sixths, then compare the numerators.', '2/3 = 4/6, and 4 sixths are less than 5 sixths. So 2/3 < 5/6.',
         bars({ numerator: 4, denominator: 6 }, { numerator: 5, denominator: 6 })),
       practice('Pick the sign: 7/10 __ 3/5.', ['>', '=', '<'], 0, bars({ numerator: 7, denominator: 10 }, { numerator: 3, denominator: 5 }),
-        'Fifths fit into tenths. Rename 3/5 as tenths, then compare the numerators.', '3/5 = 6/10, and 7 tenths is more than 6 tenths. So 7/10 > 3/5.',
+        'Fifths fit into tenths. Rename 3/5 as tenths, then compare the numerators.', '3/5 = 6/10, and 7 tenths are more than 6 tenths. So 7/10 > 3/5.',
         bars({ numerator: 7, denominator: 10 }, { numerator: 6, denominator: 10 })),
       practice('Pick the sign: 2/3 __ 1/2.', ['>', '=', '<'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 1, denominator: 2 }),
         'Neither denominator fits into the other. Find a common denominator: 3 × 2 = 6. Rename both as sixths.', '2/3 = 4/6 and 1/2 = 3/6. 4 > 3, so 2/3 > 1/2.',
@@ -1402,8 +1402,8 @@ const extensionTopics: ExtensionTopic[] = [
       practice('3 5/6 − 1 2/6 = ?', ['2 3/6', '5 1/6', '3/6', '2 5/6'], 0, bars({ numerator: 23, denominator: 6 }, { numerator: 8, denominator: 6 }), 'Take away the parts: 5/6 − 2/6. Then the wholes: 3 − 1.', '5/6 − 2/6 = 3/6, and 3 − 1 = 2. So 2 3/6.', bars({ numerator: 23, denominator: 6 }, { numerator: 8, denominator: 6 }), { authoredChoices: true }),
       practice('2 7/8 − 2/8 = ?', ['2 5/8', '3 1/8', '2 7/8', '3/8'], 0, bars({ numerator: 23, denominator: 8 }, { numerator: 2, denominator: 8 }), 'Take away the parts: 7/8 − 2/8. No wholes are taken away.', '7/8 − 2/8 = 5/8, and the 2 wholes stay. So 2 5/8.', bars({ numerator: 23, denominator: 8 }, { numerator: 2, denominator: 8 }), { authoredChoices: true }),
       practice('2 1/6 − 1 4/6. Are there enough sixths to take away 4/6?', ['No, there is only 1 sixth', 'No, you can never take away sixths', 'Yes, there are 2 wholes', 'Yes, 1/6 is more than 4/6'], 0, bars({ numerator: 13, denominator: 6 }, { numerator: 10, denominator: 6 }), 'Compare the parts: 1/6 and 4/6.', 'There is only 1/6, and 4/6 is more than that. There are not enough sixths.', bars({ numerator: 13, denominator: 6 }, { numerator: 10, denominator: 6 }), { authoredChoices: true }),
-      practice('3 5/8 − 1 2/8. Are there enough eighths to take away 2/8?', ['No, 2/8 is more than 5/8', 'No, there are only 3 wholes', 'Yes, 5 eighths is more than 2 eighths', 'Yes, 3 wholes is more than 1 whole'], 2, bars({ numerator: 29, denominator: 8 }, { numerator: 10, denominator: 8 }), 'Compare the parts: 5/8 and 2/8.', '5/8 is more than 2/8, so there are enough eighths to take away.', bars({ numerator: 29, denominator: 8 }, { numerator: 10, denominator: 8 }), { authoredChoices: true }),
-      practice('3 2/3 − 1 1/3. Are there enough thirds to take away 1/3?', ['No, 1/3 is more than 2/3', 'No, there are 3 wholes', 'Yes, 2 thirds is more than 1 third', 'Yes, 3 wholes is more than 1 whole'], 2, bars({ numerator: 11, denominator: 3 }, { numerator: 4, denominator: 3 }), 'Compare the parts: 2/3 and 1/3.', '2/3 is more than 1/3, so there are enough thirds to take away.', bars({ numerator: 11, denominator: 3 }, { numerator: 4, denominator: 3 }), { authoredChoices: true }),
+      practice('3 5/8 − 1 2/8. Are there enough eighths to take away 2/8?', ['No, 2/8 is more than 5/8', 'No, there are only 3 wholes', 'Yes, 5 eighths are more than 2 eighths', 'Yes, 3 wholes is more than 1 whole'], 2, bars({ numerator: 29, denominator: 8 }, { numerator: 10, denominator: 8 }), 'Compare the parts: 5/8 and 2/8.', '5/8 is more than 2/8, so there are enough eighths to take away.', bars({ numerator: 29, denominator: 8 }, { numerator: 10, denominator: 8 }), { authoredChoices: true }),
+      practice('3 2/3 − 1 1/3. Are there enough thirds to take away 1/3?', ['No, 1/3 is more than 2/3', 'No, there are 3 wholes', 'Yes, 2 thirds are more than 1 third', 'Yes, 3 wholes is more than 1 whole'], 2, bars({ numerator: 11, denominator: 3 }, { numerator: 4, denominator: 3 }), 'Compare the parts: 2/3 and 1/3.', '2/3 is more than 1/3, so there are enough thirds to take away.', bars({ numerator: 11, denominator: 3 }, { numerator: 4, denominator: 3 }), { authoredChoices: true }),
     ] },
   { id: 'fraction-of-quantity', title: 'A fraction of a number', shortTitle: 'Fractions of amounts', description: 'Find 3/5 of 20.', skill: 'Split the amount into equal groups using the denominator. Count the number of groups shown by the numerator.', mode: 'quantity', n: 3, d: 5, context: 'classroom supplies',
     ideaQuestions: [
@@ -1889,7 +1889,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('Write 3/4 as a decimal.', ['0.75', '3.4', '0.34', '0.4'], 0, bars({ numerator: 3, denominator: 4 }),
         'Rename 3/4 in hundredths first: 4 × 25 = 100.', '3/4 = 75/100, and 75 hundredths is 0.75.', bars({ numerator: 3, denominator: 4 }), { authoredChoices: true }),
     ] },
-  { id: 'compare-decimals', title: 'Compare decimals', shortTitle: 'Compare decimal sizes', description: 'Compare decimals using tenths and hundredths.', skill: 'Write both decimals with the same number of places. Then compare the digits by place value.', example: { prompt: 'Which is bigger, 0.4 or 0.35?', answer: '0.4', explanation: 'Write 0.4 as 0.40, so both have 2 places after the decimal point. 40 hundredths is more than 35 hundredths. So 0.4 is bigger, even though 35 looks bigger than 4.', model: bars({ numerator: 40, denominator: 100 }, { numerator: 35, denominator: 100 }) }, mode: 'decimal-compare', n: 3, d: 10, context: 'hundredths grid', gradeBand: 4, standards: ['4.NF.7'],
+  { id: 'compare-decimals', title: 'Compare decimals', shortTitle: 'Compare decimal sizes', description: 'Compare decimals using tenths and hundredths.', skill: 'Write both decimals with the same number of places. Then compare the digits by place value.', example: { prompt: 'Which is bigger, 0.4 or 0.35?', answer: '0.4', explanation: 'Write 0.4 as 0.40, so both have 2 places after the decimal point. 40 hundredths are more than 35 hundredths. So 0.4 is bigger, even though 35 looks bigger than 4.', model: bars({ numerator: 40, denominator: 100 }, { numerator: 35, denominator: 100 }) }, mode: 'decimal-compare', n: 3, d: 10, context: 'hundredths grid', gradeBand: 4, standards: ['4.NF.7'],
     ideaQuestions: [
       // Idea 1: give both decimals the same number of places (0.4 = 0.40).
       practice('Which decimal is the same amount as 0.4?', ['0.40', '0.04', '4.0', '40'], 0, decimal(4),
@@ -1900,15 +1900,15 @@ const extensionTopics: ExtensionTopic[] = [
         'Put a 0 in the hundredths place. The amount stays the same.', '0.3 is 3 tenths, the same amount as 30 hundredths: 0.30.', grids(hundredthsGrid(30)), { authoredChoices: true }),
       // Idea 3: if the tenths match, compare the hundredths.
       practice('Compare: 0.56 __ 0.52.', ['<', '>', '='], 1, bars({ numerator: 56, denominator: 100 }, { numerator: 52, denominator: 100 }),
-        'Both have 5 tenths. Compare the hundredths.', 'The tenths match. 6 hundredths is more than 2 hundredths, so 0.56 > 0.52.',
+        'Both have 5 tenths. Compare the hundredths.', 'The tenths match. 6 hundredths are more than 2 hundredths, so 0.56 > 0.52.',
         bars({ numerator: 56, denominator: 100 }, { numerator: 52, denominator: 100 }), { authoredChoices: true }),
       practice('Compare: 0.7 __ 0.75.', ['<', '>', '='], 0, bars({ numerator: 7, denominator: 10 }, { numerator: 75, denominator: 100 }),
-        'Write 0.7 as 0.70. Both have 7 tenths, so compare the hundredths.', 'The tenths match. 0 hundredths is less than 5 hundredths, so 0.7 < 0.75.',
+        'Write 0.7 as 0.70. Both have 7 tenths, so compare the hundredths.', 'The tenths match. 0 hundredths are less than 5 hundredths, so 0.7 < 0.75.',
         bars({ numerator: 70, denominator: 100 }, { numerator: 75, denominator: 100 }), { authoredChoices: true }),
     ] },
   { id: 'compare-decimals-grid', title: 'Compare decimals on a grid', shortTitle: 'Decimals on a grid', description: 'Use hundredths grids to compare and order decimals.',
     skill: 'Write both decimals in hundredths. Then compare how many hundredths. Only compare amounts of the same whole.',
-    example: { prompt: 'Which is more: 0.7 or 0.07?', answer: '0.7', explanation: '0.7 = 70 hundredths. 0.07 = 7 hundredths. 0.7 is more. 70 hundredths is more than 7 hundredths.',
+    example: { prompt: 'Which is more: 0.7 or 0.07?', answer: '0.7', explanation: '0.7 = 70 hundredths. 0.07 = 7 hundredths. 0.7 is more. 70 hundredths are more than 7 hundredths.',
       model: grids(hundredthsGrid(70, '0.7 = 70 hundredths'), hundredthsGrid(7, '0.07 = 7 hundredths')) },
     mode: 'decimal-grid', n: 45, d: 100, context: 'hundredths grids', gradeBand: 4, standards: ['4.NF.7'],
     questions: [
@@ -2341,31 +2341,7 @@ const course = [...curriculum, ...extensionTopics.map(extensionMission)]
 const COURSE_IDS = course.map((lesson) => lesson.id);
 if (course.length !== Object.values(LESSON_PLAN).flat().length) throw new Error('LESSON_PLAN must list every lesson exactly once');
 
-export const MISSIONS: Mission[] = course.map((seed, index) => {
-  const current = mission(seed);
-  if (index === 0) return current;
-
-  // Revisit a question from the previous lesson between new practice and mastery.
-  const priorLesson = course[index - 1];
-  const priorQuestion = mission(priorLesson).questions[0];
-  const reviewChoices = [...priorQuestion.choices.slice(1), priorQuestion.choices[0]];
-  const shiftedCorrect = (priorQuestion.correctChoice - 1 + priorQuestion.choices.length) % priorQuestion.choices.length;
-  // Yes-or-no reviews keep "No" first (the shuffle that moves the right answer doesn't apply to them).
-  const review: PracticeQuestion = noBeforeYes({
-    ...priorQuestion,
-    id: `${current.id}-review`,
-    prompt: `Quick review · ${priorLesson.shortTitle}: ${priorQuestion.prompt}`,
-    choices: reviewChoices,
-    correctChoice: shiftedCorrect,
-    isMastery: false,
-    isReview: true,
-    reviewMissionId: priorLesson.id,
-    reviewQuestionId: priorQuestion.id,
-    reviewTopicTitle: priorLesson.shortTitle,
-  });
-  const mastery = current.questions[current.questions.length - 1];
-  return { ...current, questions: [...current.questions.slice(0, -1), review, mastery] };
-});
+export const MISSIONS: Mission[] = course.map((seed) => mission(seed));
 
 export const EMPTY_PROGRESS: Progress = { completedMissionIds: [], starsByMission: {}, reviewQueue: [], assessments: [] };
 const STORAGE_KEY = 'fraction-quest-progress-v1';

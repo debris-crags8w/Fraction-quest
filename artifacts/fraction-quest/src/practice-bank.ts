@@ -295,7 +295,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   'compare-same-denominator': (r) => {
     const d = r.pick(G3_DENS); const a = r.int(1, d - 2); const b = r.int(a + 1, d - 1); const bigger = r.chance();
     return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}, ${either(r, f(a, d), f(b, d))}?`, right: bigger ? f(b, d) : f(a, d), wrong: [bigger ? f(a, d) : f(b, d), 'They are equal'],
-      hint: 'Same size parts. Compare the numerators.', retry: bigger ? `${b} parts is more than ${a}.` : `${a} parts is less than ${b}.`, ...compareBars([a, d], [b, d]) };
+      hint: 'Same size parts. Compare the numerators.', retry: bigger ? `${b} parts are more than ${a}.` : `${a} ${a === 1 ? 'part is' : 'parts are'} less than ${b}.`, ...compareBars([a, d], [b, d]) };
   },
   'compare-same-numerator': (r) => {
     const [a, b] = r.pick(G3_PAIRS.filter(([small]) => small > 2)); const n = r.int(1, Math.min(4, a - 1)); const bigger = r.chance();
@@ -335,7 +335,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
   },
   'improper-fractions': (r) => {
     const d = r.pick([2, ...G3_DENS]); const left = r.int(1, d - 1);
-    return { prompt: `How many ${name(d)} past one whole is ${f(d + left, d)}?`, right: String(left), wrong: [String(d + left), String(d)], hint: `${f(d, d)} is one whole. Count the jumps after it.`, retry: `${f(d + left, d)} is ${f(d, d)} and ${left} more ${left === 1 ? name(d).replace(/s$/, '') : name(d)}.`, model: line(d + left, d) };
+    return { prompt: `How many ${name(d)} past one whole is ${f(d + left, d)}?`, right: String(left), wrong: [String(d + left), String(d)], hint: `${f(d, d)} is one whole. Count the jumps after it.`, retry: `${f(d + left, d)} is ${f(d, d)} and ${left} more ${left === 1 ? (d === 2 ? 'half' : name(d).replace(/s$/, '')) : name(d)}.`, model: line(d + left, d) };
   },
   'mixed-improper': (r) => {
     const d = r.pick([2, ...G3_DENS]); const left = r.int(1, d - 1);
@@ -398,7 +398,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       const dec = `0.${n}`; const frac = f(m, 10);
       const [x, y] = decimalFirst ? [dec, frac] : [frac, dec];
       return { prompt: `Which is bigger, ${x} or ${y}?`, right: n > m ? dec : frac, wrong: [n > m ? frac : dec, 'They are equal'], extra: "You can't tell",
-        hint: '0.' + n + ' is ' + f(n, 10) + '. Compare the tenths.', retry: `${dec} is ${f(n, 10)}. ${Math.max(n, m)} tenths is more than ${Math.min(n, m)} tenths.`, model: bars2([n, 10], [m, 10]) };
+        hint: '0.' + n + ' is ' + f(n, 10) + '. Compare the tenths.', retry: `${dec} is ${f(n, 10)}. ${Math.max(n, m)} tenths are more than ${Math.min(n, m)} ${Math.min(n, m) === 1 ? 'tenth' : 'tenths'}.`, model: bars2([n, 10], [m, 10]) };
     }
     return r.chance()
       ? { prompt: `What fraction is 0.${n}?`, right: f(n, 10), wrong: [n === 5 ? f(10, 5) : f(10 - n, 10), f(1, n === 1 ? 2 : n)], hint: 'The number right after the decimal point is tenths.', retry: `0.${n} means ${n} ${n === 1 ? 'tenth' : 'tenths'}.`, model: strip }

@@ -174,7 +174,7 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       },
       {
         title: 'Half of 3 parts',
-        picture: reveal([{ kind: 'bar', parts: ones(3), cut: true, shaded: [0, 1], label: '2/3' }, say('3 parts. Half is between 1 part and 2 parts. 2 parts is more than half, so 2/3 is more than half.')]),
+        picture: reveal([{ kind: 'bar', parts: ones(3), cut: true, shaded: [0, 1], label: '2/3' }, say('3 parts. Half is between 1 part and 2 parts. 2 parts are more than half, so 2/3 is more than half.')]),
       },
       {
         title: 'Closest to half',
@@ -287,7 +287,7 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
         picture: reveal([
           { kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8' },
           { kind: 'bar', parts: ones(8), cut: true, shaded: range(5), label: '5/8' },
-          say('Which is bigger, 3/8 or 5/8? Both are eighths. 5 parts is more than 3 parts, so 5/8 is bigger.'),
+          say('Which is bigger, 3/8 or 5/8? Both are eighths. 5 parts are more than 3 parts, so 5/8 is bigger.'),
         ]),
       },
       {
@@ -315,7 +315,7 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
         picture: reveal([
           { kind: 'bar', parts: ones(8), cut: true, shaded: range(3), label: '3/8' },
           { kind: 'bar', parts: ones(2), cut: true, shaded: [0], label: '1/2' },
-          say('Half of 8 is 4, so half is 4/8. 3 parts is less than 4 parts, so 3/8 is less than 1/2.'),
+          say('Half of 8 is 4, so half is 4/8. 3 parts are less than 4 parts, so 3/8 is less than 1/2.'),
         ]),
       },
       {
@@ -487,7 +487,7 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
       title: 'Less than, equal to or more than one whole',
       picture: reveal([
         { kind: 'line', max: 2, spaces: 4, cut: true, marks: [{ at: 3, label: '3/4' }, { at: 4, label: '4/4' }, { at: 5, label: '5/4' }] },
-        say('3/4: 3 parts is less than 4, so it is less than one whole. 4/4 is exactly one whole. 5/4: 5 parts is more than 4, so it is more than one whole.'),
+        say('3/4: 3 parts are less than 4, so it is less than one whole. 4/4 is exactly one whole. 5/4: 5 parts are more than 4, so it is more than one whole.'),
       ]),
     }, {
       title: 'Count to 2 wholes',
@@ -622,7 +622,7 @@ export const TEACH_EXTRAS: Record<string, TeachExtras> = {
             { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(45), label: '0.45', tone: 'fair' },
             { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(5), label: '0.05', tone: 'fair' },
           ] },
-          say('Two grids of the same size: 45 hundredths is more than 5 hundredths, so 0.45 > 0.05.'),
+          say('Two grids of the same size: 45 hundredths are more than 5 hundredths, so 0.45 > 0.05.'),
         ]),
       },
       {

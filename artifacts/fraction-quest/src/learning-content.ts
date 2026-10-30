@@ -230,8 +230,8 @@ const CHECKS: Record<string, [number, number, LearningModel['kind'], string, str
   'tenths-decimals': [4, 10, 'bar', 'Make 0.4 as a fraction.', '0.4 means 4 tenths.'],
   'hundredths-decimals': [25, 100, 'bar', 'Make 0.25 as a fraction.', '0.25 means 25 hundredths.'],
   'add-tenths-hundredths': [34, 100, 'bar', 'Make 3/10 + 4/100 using hundredths.', '3/10 = 30/100. 30 + 4 = 34, so 34/100.'],
-  'compare-decimals': [3, 10, 'bar', 'Build 0.3 with tenths. Then compare it to 0.25.', '0.30 is 30 hundredths. 30 hundredths is more than 25 hundredths.'],
-  'compare-decimals-grid': [70, 100, 'bar', 'Build 0.7 with hundredths. Then compare it to 0.07.', '0.7 is 70 hundredths and 0.07 is 7 hundredths. 70 hundredths is more.'],
+  'compare-decimals': [3, 10, 'bar', 'Build 0.3 with tenths. Then compare it to 0.25.', '0.30 is 30 hundredths. 30 hundredths are more than 25 hundredths.'],
+  'compare-decimals-grid': [70, 100, 'bar', 'Build 0.7 with hundredths. Then compare it to 0.07.', '0.7 is 70 hundredths and 0.07 is 7 hundredths. 70 hundredths are more.'],
   'simplify-fractions': [3, 4, 'bar', 'Make 6/8 in simplest form.', 'Divide the numerator and denominator by 2. 6/8 = 3/4.'],
   'equivalent-missing-both': [4, 10, 'bar', 'Show 2/5 using tenths.', 'Multiply the numerator and denominator by 2. 2/5 = 4/10.'],
   'compare-unlike-fractions': [5, 6, 'bar', 'Which is bigger, 3/4 or 5/6? Make it.', 'Use twelfths: 3/4 = 9/12 and 5/6 = 10/12.'],
@@ -516,7 +516,7 @@ const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reaso
   'simplify-fractions': { n: 1, d: 2, prompt: 'Make 4/8 in simplest form.', reason: 'Divide both by 4. So 4/8 = 1/2.' },
   'equivalent-missing-both': { n: 6, d: 8, prompt: 'Show 3/4 using eighths.', reason: 'Multiply both by 2. So 3/4 = 6/8.' },
   'whole-numbers-as-fractions': { n: 12, d: 6, prompt: 'Build 2 wholes using sixths.', reason: 'Each whole is 6/6. 2 wholes is 12/6.' },
-  'compare-unlike-fractions': { n: 3, d: 4, prompt: 'Which is bigger, 3/4 or 5/8? Make it.', reason: '3/4 = 6/8. 6 eighths is more than 5 eighths.' },
+  'compare-unlike-fractions': { n: 3, d: 4, prompt: 'Which is bigger, 3/4 or 5/8? Make it.', reason: '3/4 = 6/8. 6 eighths are more than 5 eighths.' },
   'order-unlike-fractions': { n: 4, d: 5, prompt: 'Which is biggest: 1/2, 2/5 or 4/5? Make it.', reason: 'Use 1/2. 4/5 is more than 1/2, and 2/5 is less.' },
   'add-unlike-fractions': { n: 3, d: 4, prompt: 'Build 1/2 + 1/4 using fourths.', reason: '1/2 = 2/4. 2/4 + 1/4 = 3/4.' },
   'add-mixed-numbers': { n: 8, d: 3, prompt: 'Make 1 1/3 + 1 1/3.', reason: '1 + 1 = 2. 1/3 + 1/3 = 2/3. So 2 2/3, or 8/3.' },
@@ -543,7 +543,7 @@ const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reaso
   'equivalent-number-line': { n: 6, d: 8, kind: 'line', prompt: 'Mark 6/8 on the line. Does it land on 3/4?', reason: 'Each fourth is 2 eighths. So 6/8 and 3/4 share a spot.' },
   'fractions-to-percent': { n: 40, d: 100, prompt: 'Write 2/5 in hundredths to find its percent. Make it.', reason: '100 ÷ 5 = 20, and 2 × 20 = 40: 2/5 = 40/100 = 40%.' },
   'decimal-fraction-equivalence': { n: 3, d: 10, prompt: 'A jar is 0.3 full. Make it in tenths.', reason: '0.3 means 3 tenths: 3/10.' },
-  'compare-decimals': { n: 5, d: 10, prompt: 'Build 0.5 with tenths. Then compare it to 0.45.', reason: '0.5 = 0.50. 50 hundredths is more than 45 hundredths.' },
+  'compare-decimals': { n: 5, d: 10, prompt: 'Build 0.5 with tenths. Then compare it to 0.45.', reason: '0.5 = 0.50. 50 hundredths are more than 45 hundredths.' },
   'compare-decimals-grid': { n: 9, d: 100, prompt: 'Build 0.09 with hundredths. Then compare it to 0.9.', reason: '0.09 is 9 hundredths. 0.9 is 90 hundredths, so 0.09 is much less.' },
   'fraction-times-fraction': { n: 2, d: 6, prompt: 'Make 1/2 × 2/3.', reason: '1 × 2 = 2 and 2 × 3 = 6, so 2/6.' },
   'bigger-or-smaller': { n: 12, d: 20, prompt: 'Make 4/4 × 3/5. Is it more or less than 3/5?', reason: '4/4 is 1, so the amount stays the same: 12/20 is 3/5.' },
@@ -709,7 +709,7 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
       ? `${cap(unitWord(a))} cut the same whole into fewer parts, so 1/${a} is bigger than 1/${b}.`
       : `${cap(unitWord(b))} cut the same whole into more parts, so 1/${b} is smaller than 1/${a}.`]; },
   'order-fractions': (s) => { const d = at([4, 6, 8], s); const a = 1 + (Math.floor(s / 3) % (d - 2)); const b = a + 1 + (s % 2 && a + 2 < d ? 1 : 0); const big = s % 2 === 0;
-    return [`Which is ${big ? 'bigger' : 'smaller'}, ${a}/${d} or ${b}/${d}?`, big ? b : a, d, big ? `Same-size parts: ${b} parts is more than ${a}.` : `Same-size parts: ${a} parts is less than ${b}.`]; },
+    return [`Which is ${big ? 'bigger' : 'smaller'}, ${a}/${d} or ${b}/${d}?`, big ? b : a, d, big ? `Same-size parts: ${b} parts are more than ${a}.` : `Same-size parts: ${a} ${a === 1 ? 'part is' : 'parts are'} less than ${b}.`]; },
   'compare-unlike-fractions': (s) => { const [a, b, c, d] = at(UNLIKE_PAIRS, s); const big = a * d > c * b ? [a, b] : [c, d];
     return [`Which is bigger, ${a}/${b} or ${c}/${d}?`, big[0], big[1], `Rename both with the same denominator, then compare the numerators.`]; },
   'order-unlike-fractions': (s) => LESSON_BUILDS['compare-unlike-fractions'](s + 3),
@@ -981,7 +981,7 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
   if (id === 'benchmark-half') return { prompt: 'Use sixths. Make a fraction that is 1 part less than half.', target: model(2, 6), reason: 'Half is 3/6. One part less is 2/6.' };
   if (id === 'fraction-magnitude') return { prompt: 'Use eighths. Make a fraction 1 part less than half (half is 4/8).', target: model(3, 8), reason: 'Half is 4/8. One part less is 3/8.' };
   if (id === 'benchmarks-zero-one') return { prompt: 'A jug is 1/6 away from full. Show how full it is.', target: model(5, 6), reason: '6/6 is full. One less is 5/6.' };
-  if (id === 'compare-same-denominator' || id === 'order-fractions') return { prompt: 'Which is longer, 2/6 or 4/6 of a meter? Make it.', target: model(4, 6), reason: 'Both use sixths, so the parts are the same size. Four sixths is longer because 4 parts is more than 2.' };
+  if (id === 'compare-same-denominator' || id === 'order-fractions') return { prompt: 'Which is longer, 2/6 or 4/6 of a meter? Make it.', target: model(4, 6), reason: 'Both use sixths, so the parts are the same size. Four sixths is longer because 4 parts are more than 2.' };
   // New parts for the last step: sixths or fourths in grade 3, fifths or fourths later.
   const nextD = lessonGrade(id) === 3 ? (d === 6 ? 4 : 6) : d === 5 ? 4 : 5; const nextN = n > d ? nextD + 2 : id === 'unit-fractions' || id === 'equal-parts' ? 1 : 3;
   return { prompt: kind === 'line' ? `Mark ${f(nextN, nextD)} on the number line.` : `A ribbon is ${f(nextN, nextD)} colored. Make ${f(nextN, nextD)}.`, target: model(nextN, nextD, kind),
@@ -1995,7 +1995,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           ['Dan says 4/5 − 1/5 = 3.', '3/5', 'Fifths minus fifths leave fifths. Keep the denominator.'],
           ['Amy says 3 × 1/4 = 3/12.', '3/4', 'Multiply only the numerator. The parts stay fourths.'],
           ['Leo says 7/10 − 4/10 = 3/20.', '3/10', 'Tenths minus tenths leave tenths. Keep the denominator.'],
-          ['Ivy says 3/4 + 2/4 = 5/8.', '5/4', 'Fourths plus fourths make fourths. 5 fourths is more than one whole.', 4],
+          ['Ivy says 3/4 + 2/4 = 5/8.', '5/4', 'Fourths plus fourths make fourths. 5 fourths are more than one whole.', 4],
           ['Gus says 9/4 = 2 1/2.', '2 1/4', '8 fourths make 2 wholes. Count the fourths left over.', undefined, 'mixed'],
           ['Nia says 3/5 = 4/6 because she added 1 to the numerator and denominator. Which fraction in tenths is really equal to 3/5?', '6/10', 'Multiply the numerator and denominator by the same number.', 10],
           ['Sid says 4 × 1/3 = 4/12.', '4/3', 'Multiply only the numerator. The parts stay thirds.'],

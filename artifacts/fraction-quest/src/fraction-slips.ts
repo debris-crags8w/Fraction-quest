@@ -75,6 +75,11 @@ function timesOrShare(p: string): Found | null {
     const [n, a, b] = m[1] ? [N(m[1]), N(m[2]), N(m[3])] : [N(m[6] ?? m[7]), N(m[4]), N(m[5])];
     return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['addedNotTimes', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['oneGroup', [a, b]], ['upsideDown', [b, n * a]], ['onlyTop', [n * a, b + n]]] };
   }
+  // "What is 2 groups of 3/8?", "A frog jumps 3/8 each time. Where is it after 2 jumps?": the same slips as 2 × 3/8.
+  if ((m = /^What is (\d+) groups? of (\d+)\/(\d+)\?$|^A frog jumps (\d+)\/(\d+) each time\. Where is it after (\d+) jumps\?$/.exec(p))) {
+    const [n, a, b] = m[1] ? [N(m[1]), N(m[2]), N(m[3])] : [N(m[6]), N(m[4]), N(m[5])];
+    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['addedNotTimes', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['oneGroup', [a, b]], ['upsideDown', [b, n * a]]] };
+  }
   // "3/4 × 1/2", "What is 1/3 of 1/3?": added across, kept one denominator, added the tops, added the bottoms, crossed, upside down.
   if ((m = /^(?:What is )?(\d+)\/(\d+) (?:×|of) (\d+)\/(\d+)(?: = \?|\?)$/.exec(p))) {
     const [a, b, c, d] = m.slice(1).map(N);

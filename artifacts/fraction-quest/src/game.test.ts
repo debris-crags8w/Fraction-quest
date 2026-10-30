@@ -504,23 +504,8 @@ describe('lesson catalog', () => {
       assert.equal(mastery.length, 1, `${mission.id} must have exactly one mastery question`);
       assert.equal(mission.questions.at(-1)?.isMastery, true, `${mission.id} mastery question must be last`);
 
-      const reviews = mission.questions.filter((question) => question.isReview);
-      if (missionIndex === 0) {
-        assert.equal(reviews.length, 0, 'the first lesson has no earlier lesson to review');
-      } else {
-        assert.equal(reviews.length, 1, `${mission.id} should interleave one review`);
-        const review = mission.questions.at(-2)!;
-        const priorQuestion = MISSIONS[missionIndex - 1].questions[0];
-        assert.equal(review.isReview, true, `${mission.id} review should appear immediately before mastery`);
-        assert.equal(review.reviewMissionId, MISSIONS[missionIndex - 1].id);
-        assert.equal(review.reviewQuestionId, priorQuestion.id);
-        assert.ok(missionIds.has(review.reviewMissionId!));
-        assert.equal(review.isMastery, false);
-        // The review moves the right answer by one place (yes-or-no reviews then put "No" first again).
-        const shifted = noBeforeYes({ choices: [...priorQuestion.choices.slice(1), priorQuestion.choices[0]], correctChoice: (priorQuestion.correctChoice - 1 + priorQuestion.choices.length) % priorQuestion.choices.length });
-        assert.deepEqual(review.choices, shifted.choices);
-        assert.equal(review.correctChoice, shifted.correctChoice);
-      }
+      // Revisits come from the review schedule (getDelayedReviewQuestions), never from a built-in copy of the last lesson's first question.
+      assert.equal(mission.questions.filter((question) => question.isReview).length, 0, `${mission.id} has no built-in review question`);
 
       mission.questions.forEach((question) => {
         assert.ok(!questionIds.has(question.id), `duplicate question ID: ${question.id}`);
@@ -1633,7 +1618,7 @@ describe('entered-answer worksheets and evidence gates', () => {
       if (previousReact) globalWithReact.React = previousReact;
       else delete globalWithReact.React;
     }
-    assert.ok(hidden >= 23, `${hidden} lesson questions hide a bar until answered`);
+    assert.ok(hidden >= 21, `${hidden} lesson questions hide a bar until answered`);
   });
 
   it('prints a blank worksheet without exposing or changing saved lesson answers', () => {
@@ -4152,7 +4137,7 @@ describe('wrong-answer help', () => {
     assert.equal(why('Which order goes biggest to smallest?', '1/2 > 1/4 > 1/8', '1/2 > 1/8 > 1/4'), WHY.orderPair);
     assert.equal(why('Which is closest to 1/2?', '5/8', '7/8'), WHY.farther);
     assert.equal(why('Which is more than one whole?', '9/8', '7/8'), WHY.notMore);
-    assert.equal(why('Which is just a little less than 1/2?', '3/8', '5/8'), WHY.notLess);
+    assert.equal(why('Which is just a little less than 1/2?', '3/8', '5/8'), WHY.halfOfBottom);
     assert.equal(why('Which is just a little less than 1/2?', '3/8', '1/8'), WHY.farther);
     assert.equal(why('Which fits between 2/8 and 6/8?', '4/8', '1/8'), WHY.outside);
   });
