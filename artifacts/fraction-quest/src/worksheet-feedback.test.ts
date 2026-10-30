@@ -40,4 +40,16 @@ describe('worksheet feedback', () => {
     for (const m of MISSIONS) for (const row of getWorksheet(m.id)) { rows++; if (worksheetWhy(row)) withWhy++; }
     assert.ok(withWhy / rows >= 0.85, `${withWhy} of ${rows} rows have a why`);
   });
+
+  it('gives every worksheet row, on the lesson sheet and its redo sheets, its own why that is not the hint again', () => {
+    // 1145 rows used to show the hint as the "why" and 266 had none (rescore 3).
+    const missing: string[] = []; const echo: string[] = [];
+    for (const m of MISSIONS) for (let variant = 0; variant < 5; variant++) for (const row of getWorksheet(m.id, variant)) {
+      const why = row.why?.trim();
+      if (!why) { missing.push(`${m.id} v${variant}: ${row.prompt}`); continue; }
+      if (why === row.hint.trim() || row.hint.includes(why)) echo.push(`${m.id} v${variant}: ${row.prompt} / ${why}`);
+    }
+    assert.deepEqual(missing.slice(0, 8), [], `${missing.length} rows have no why`);
+    assert.deepEqual(echo.slice(0, 8), [], `${echo.length} rows repeat the hint as the why`);
+  });
 });
