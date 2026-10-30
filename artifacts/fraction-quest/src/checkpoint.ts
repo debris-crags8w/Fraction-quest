@@ -90,8 +90,14 @@ export function lessonCheckpoint(mission: Mission): PracticeQuestion[] {
   return out;
 }
 
+/** Too easy for a checkpoint: every number in the question is its right answer ("Write 1/1 as a whole number."). */
+const givesItselfAway = (question: PracticeQuestion) => {
+  const numbers = question.prompt.match(/\d+(?:\.\d+)?/g) ?? [];
+  return numbers.length > 0 && numbers.every((n) => n === rightAnswer(question));
+};
+
 /** Every question the checkpoint may ask: the generator's questions over the checkpoint seeds with four real choices, a picture
-    that is not just a sum written out, and not met in the lesson (same words, or the same numbers asked another way). */
+    that is not just a sum written out, not one that gives itself away, and not met in the lesson (same words, or the same numbers asked another way). */
 export function checkpointPool(mission: Mission): PracticeQuestion[] {
   const met = metBefore(mission);
   const baseIds = mission.questions.map((question) => question.id);
@@ -100,7 +106,7 @@ export function checkpointPool(mission: Mission): PracticeQuestion[] {
   const ids = new Set<string>();
   for (let turn = 0; turn < CHECKPOINT_SEEDS; turn++) {
     for (const question of generateQuestions(mission.id, baseIds, 1 + ((first + turn) % CHECKPOINT_SEEDS), 12)) {
-      if (question.choices.length !== 4 || question.model.kind === 'equation' || met.identities.has(identity(question))
+      if (question.choices.length !== 4 || question.model.kind === 'equation' || givesItselfAway(question) || met.identities.has(identity(question))
         || (numbersOf(question.prompt) !== '' && met.numbers.has(numbersOf(question.prompt))) || ids.has(identity(question))) continue;
       ids.add(identity(question));
       pool.push(question);

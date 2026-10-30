@@ -20,7 +20,7 @@ import { AreaShade, AreaSvg } from './AreaModel';
 import { PrintMenu, PrintModel } from './Printables';
 import { amountsIn } from './auto-picture';
 import { YesNoCards } from './YesNoCards';
-import { worksheetWhy, worksheetWrongReason } from './wrong-answer';
+import { worksheetFeedbackSpeech, worksheetWhy, worksheetWrongReason } from './wrong-answer';
 import { LessonTeachingSupport } from './LessonTeachingSupport';
 import './learning-lab.css';
 import { TaskBar } from './TaskBar';
@@ -500,7 +500,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
   const [misses, setMisses] = useState(0);
   // After a wrong answer, the reason is read aloud (with sound on), as in the game's questions.
   const sound = useOptionalFun()?.fun.sound ?? false;
-  useReadAloud(sound && !ok && wrong !== null && wrong === draft ? `Not yet. ${p.hint}` : null, wrong !== null && wrong === draft ? `${p.id}:${misses}` : null);
+  useReadAloud(sound && !ok && wrong !== null && wrong === draft ? worksheetFeedbackSpeech(p, draft) : null, wrong !== null && wrong === draft ? `${p.id}:${misses}` : null);
   const yesNo = isYesNoProblem(p);
   const promptText = yesNo ? yesNoPrompt(p) : p.prompt;
   const problemNumber = numberLabel ?? p.id.slice(1);
@@ -591,7 +591,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
           </div>}
           {!ok && wrong === draft && <div className="fq-ll-ws bad" role="alert" data-testid={'status-worksheet-' + p.id}>
             <div className="fq-ll-ws-section-copy">
-              <SectionListenHeader text={`Not yet. ${[pickReason, p.hint].filter(Boolean).join(' ')}`} label="Listen to the feedback"><strong>Not yet.</strong></SectionListenHeader>
+              <SectionListenHeader text={worksheetFeedbackSpeech(p, draft)} label="Listen to the feedback"><strong>Not yet.</strong></SectionListenHeader>
               {pickReason && <LearningText text={pickReason} />}
               <LearningText text={p.hint} />
             </div>

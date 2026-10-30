@@ -46,6 +46,11 @@ export function worksheetWrongReason(prompt: string, answer: string, picked: str
   return wrongChoiceReason(prompt, [answer, picked.trim()], 0, 1);
 }
 
+/** What a wrong worksheet answer says, on screen, from its Listen button and read aloud: the named slip, then the hint. */
+export function worksheetFeedbackSpeech(row: { prompt: string; answer: string; hint: string }, picked: string): string {
+  return `Not yet. ${[worksheetWrongReason(row.prompt, row.answer, picked), row.hint].filter(Boolean).join(' ')}`;
+}
+
 /** What a worksheet row says after a right answer, so a child who guessed still hears the reason: its own "why", else its
     hint when that is a statement (a hint that asks a question is not a reason). */
 export function worksheetWhy(row: { why?: string; hint: string }): string | undefined {
@@ -281,8 +286,17 @@ function meaningReason(p: string, pick: string, right: string): string | null {
     const half = /^half of an? \w+ is (\d+)\b/.exec(p);
     if (half && pn === Number(half[1])) return WHY.halfOnly;
     if (COUNTED.test(p) && Math.abs(pn - rn) === 1) return SLIPS.recountParts;
-    // A bare number the question already gave: it is not the answer to what the question asks.
-    return /^\d+$/.test(pick) && new RegExp(`\\b${pick}\\b`).test(p) ? WHY.justNumber : null;
+    // A bare number the question already gave: it is not the answer to what the question asks. Where the slip is
+    // known, it is named: the number of groups or all of them for one group's share, a denominator for a blank numerator.
+    if (!/^\d+$/.test(pick) || !new RegExp(`\\b${pick}\\b`).test(p)) return null;
+    if (/\bin (?:one|each) group\?/.test(p)) {
+      if (new RegExp(`\\b${pick} equal groups\\b`).test(p)) return WHY.groupsNotEach;
+      const wholes = (p.replace(/\d+\/\d+/g, ' ').match(/\d+/g) ?? []).map(Number);
+      if (pn === Math.max(...wholes)) return WHY.allNotEach;
+    }
+    if (/\?\/\d+/.test(p) && new RegExp(`\\d+\\/${pick}\\b`).test(p)) return WHY.blankIsTop;
+    if (/\d+\/\?/.test(p) && new RegExp(`\\b${pick}\\/\\d+`).test(p)) return WHY.blankIsBottom;
+    return WHY.justNumber;
   }
   return null;
 }
@@ -322,7 +336,12 @@ function comparisonReason(prompt: string, pick: string, right: string): string |
     if (isDecimal(small) && isDecimal(big) && small.split('.')[1].length < big.split('.')[1].length) return WHY.moreDigits;
     return WHY.signWay;
   }
-  if (/^which (?:sum|adds up)/.test(p) && / \+ /.test(pick)) return WHY.sumCheck;
+  if (/^which (?:sum|adds up)/.test(p) && / \+ /.test(pick)) {
+    // Unlike parts are not checked by adding numerators: say the parts are a different size (when the right sum uses one size).
+    const bottoms = (text: string) => new Set([...text.matchAll(/\d+\/(\d+)/g)].map((m) => m[1]));
+    const [mine, theirs] = [bottoms(pick), bottoms(right)];
+    return theirs.size === 1 && [...mine].some((d) => !theirs.has(d)) ? WHY.sumOtherSize : WHY.sumCheck;
+  }
   if (/between which two whole numbers/.test(p)) return WHY.betweenWholes;
   if (/which length has the most xs\?$/.test(p)) return WHY.mostXs;
   // Benchmarks: "Which is closest to 1/2?", "Which is more than 1/2?", "Which fits between 2/8 and 6/8?"

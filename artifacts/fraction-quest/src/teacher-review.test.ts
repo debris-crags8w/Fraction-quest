@@ -4,7 +4,9 @@ import { buildErrors } from './lab-copy';
 import { getBuildChecks, getBuildPracticeChecks, getWorksheet } from './learning-content';
 import { LESSON_INTROS } from './lesson-intros';
 import { REASON_SLIPS } from './reason-slips';
-import { getExtraPractice } from './practice-bank';
+import { generateQuestions, getExtraPractice } from './practice-bank';
+import { ideaPracticeQuestions } from './lesson-ideas';
+import { lessonCheckpoint } from './checkpoint';
 import { MISSIONS } from './game';
 
 test('builds where an area or a remainder can be named more than one way accept any equal fraction', () => {
@@ -43,17 +45,26 @@ test('"You can\'t tell" is only the answer when the bigger share is of the small
   }
 });
 
-test('adding unlike fractions fades the renaming step: written out early, found by the child later', () => {
+test('adding unlike fractions: the child does the renaming; no question anywhere hands it over', () => {
+  // "Rename: 1/2 = 3/6 and 1/3 = 2/6. Then …" does the key step for the child. Every place a question can come from:
+  // the lesson's own questions, its ideas, its checkpoint, its worksheets (and redo sheets) and Practice more.
+  const handover = /Rename:|\d+\/\d+ = \d+\/\d+[^?]*\. Then /;
+  const found: string[] = [];
+  for (const lesson of MISSIONS) {
+    const deep = lesson.id === 'add-unlike-fractions' || lesson.id === 'mixed-unlike-operations';
+    const prompts = [
+      ...lesson.questions.map((q) => ['lesson', q.prompt]),
+      ...ideaPracticeQuestions(lesson).filter((q) => q.prompt).map((q) => ['idea ' + q.id, q.prompt]),
+      ...lessonCheckpoint(lesson).map((q) => ['checkpoint', q.prompt]),
+      ...Array.from({ length: deep ? 13 : 2 }, (_, v) => getWorksheet(lesson.id, v).map((row) => ['worksheet ' + v, row.prompt])).flat(),
+      ...Array.from({ length: deep ? 10 : 2 }, (_, s) => generateQuestions(lesson.id, lesson.questions.map((q) => q.id), s + 1, 12).map((q) => ['practice more', q.prompt])).flat(),
+    ];
+    for (const [where, prompt] of prompts) if (handover.test(prompt)) found.push(`${lesson.id} ${where}: ${prompt}`);
+  }
+  assert.deepEqual(found.slice(0, 10), [], `${found.length} prompts hand over the renaming`);
   for (const id of ['add-unlike-fractions', 'mixed-unlike-operations']) {
-    const sheet = getWorksheet(id);
-    assert.ok(sheet.slice(0, 6).some((row) => row.prompt.startsWith('Rename:')), `${id}: early rows show the renaming`);
-    for (const row of sheet.slice(6)) {
-      assert.doesNotMatch(row.prompt, /Rename:/, `${id}: ${row.prompt}`);
-      assert.match(row.hint, /List multiples/, `${id}: ${row.hint}`);
-    }
-    // The lesson's last question (its checkpoint) asks without the renaming written out.
-    const lesson = MISSIONS.find((mission) => mission.id === id)!;
-    assert.doesNotMatch(lesson.questions[lesson.questions.length - 1].prompt, /Rename:/, id);
+    // Later rows still ask the child to find the shared denominator alone.
+    for (const row of getWorksheet(id).slice(6)) assert.match(row.hint, /List multiples/, `${id}: ${row.hint}`);
   }
 });
 

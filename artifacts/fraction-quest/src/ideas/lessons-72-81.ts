@@ -101,7 +101,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
         { text: 'Write the percent on top and 100 on the bottom.', scene: scenes('percent-to-fraction').steps[1]! },
         { text: 'Percent means out of 100, so the denominator is 100.', scene: scenes('percent-to-fraction').why },
       ],
-      practice: [{ question: 'percent-to-fraction-q1' }, { question: 'percent-to-fraction-q2' }, { question: 'percent-to-fraction-q3' }],
+      practice: [{ question: 'percent-to-fraction-q1' }, { question: 'percent-to-fraction-p4' }, { question: 'percent-to-fraction-p5' }],
     },
   ],
   'multi-step-fraction-stories': [
@@ -199,7 +199,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
         { text: 'Rename both fractions with the same denominator.', scene: scenes('divide-fractions').steps[0]! },
         { text: 'Count how many of the small parts fit.', scene: scenes('divide-fractions').steps[1]! },
       ],
-      practice: [{ question: 'divide-fractions-q2' }, { question: 'divide-fractions-p1' }, { question: 'divide-fractions-p2' }],
+      practice: [{ question: 'divide-fractions-p1' }, { question: 'divide-fractions-p2' }, { question: 'divide-fractions-q2' }],
     },
     {
       title: 'Write it with ÷: the count is the answer',

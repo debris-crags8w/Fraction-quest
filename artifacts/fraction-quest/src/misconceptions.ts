@@ -63,7 +63,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
       const right = (n / b) * a;
       // One group, the rest, the whole, multiplied, the denominator taken away or added, one group taken away, or the
       // denominator itself.
-      return [right, [['oneGroup', a > 1 ? n / b : NaN], ['leftPart', n - right], ['whole', n], ['timesWhole', a > 1 ? n * a : n * b],
+      return [right, [['oneGroup', a > 1 ? n / b : NaN], ['leftPart', n - right], ['whole', n], a > 1 ? ['timesWhole', n * a] : ['timesBottom', n * b],
         ['splitDenominator', n - b], ['splitDenominator', n + b], ['oneGroupTaken', n - n / b], ['splitDenominator', b]]];
     }
   }
@@ -74,7 +74,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   }
   if ((m = /How many (\d+)\/(\d+) cup scoops (?:of \w+ )?fill (?:a )?(\d+)\/(\d+) cup\?/.exec(p))) {
     const [a1, b1, a2, b2] = m.slice(1).map(N);
-    return [(a2 / b2) / (a1 / b1), [['justNumber', a2], ['justNumber', b2], ['oneWhole', b1], ['fitWhole', a2 * b1]]];
+    return [(a2 / b2) / (a1 / b1), [['fitNotNumber', a2], ['fitNotNumber', b2], ['oneWhole', b1], ['fitWhole', a2 * b1]]];
   }
   // Units: "How many minutes are in 3/4 hour?", "A bag weighs 1/4 kilogram. How many grams is that?",
   // "A 2-liter jug is 1/4 full. How many milliliters are inside?"
@@ -82,14 +82,14 @@ function slips(prompt: string): [number, [Why, number][]] | null {
     const per = PER[`${m[1]}/${m[4]}`]; const [a, b] = [N(m[2]), N(m[3])];
     const right = (per / b) * a;
     // One part, the rest, a whole unit, multiplied, one and a half (90 minutes for 1/2 hour), split one part too many.
-    return [right, [a > 1 ? ['oneGroup', per / b] : ['whole', per * a], ['leftPart', per - right], ['whole', per], ['timesWhole', a > 1 ? per * a : per * b],
+    return [right, [a > 1 ? ['oneGroup', per / b] : ['whole', per * a], ['leftPart', per - right], ['whole', per], a > 1 ? ['timesWhole', per * a] : ['timesBottom', per * b],
       ['wholePlusPart', per + right], ['splitDenominator', per / (b + 1)]]];
   }
   if ((m = /(?:A (?:bottle has|bag weighs) (\d+)\/(\d+) (liter|kilogram)|A (\d+)-(liter|kilogram)[\w ]* is (\d+)\/(\d+) full)\./.exec(p))) {
     const [a, b, unit, wholes] = m[1] ? [N(m[1]), N(m[2]), m[3], 1] : [N(m[6]), N(m[7]), m[5], N(m[4])];
     const per = BIG[unit][1] * wholes; const right = (per / b) * a;
     return [right, [wholes > 1 ? ['oneOfMany', (BIG[unit][1] / b) * a] : a > 1 ? ['oneGroup', per / b] : ['whole', per * a], ['leftPart', per - right], ['whole', per],
-      ['timesWhole', a > 1 ? per * a : per * b]]];
+      a > 1 ? ['timesWhole', per * a] : ['timesBottom', per * b]]];
   }
   // A line plot in quarter inches: "How many leaves are longer than 1 1/2 inches?" (the shorter ones, those at that length
   // too, or every X).
@@ -121,21 +121,21 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   // Wholes: "How many wholes are 9/3?", "Write 4/4 as a whole number."
   if ((m = /How many wholes are (\d+)\/(\d+)\?/.exec(p))) {
     const [n, d] = [N(m[1]), N(m[2])];
-    return [n / d, [['takeAwayBottom', n - d], ['justNumber', n], ['justNumber', d], ['betweenWholes', n + d], ['justOneWhole', 1]]];
+    return [n / d, [['takeAwayBottom', n - d], ['partsNotWholes', n], ['justNumber', d], ['betweenWholes', n + d], ['justOneWhole', 1]]];
   }
   if ((m = /Write (\d+)\/\1 as a whole number\./.exec(p))) return [1, [['allMakeOne', N(m[1])], ['allMakeOne', 0], ['allMakeOne', 2 * N(m[1])]]];
   // Equivalent fractions: "Fill the blank: 1/2 = ?/8", "3/4 = 6/?", "?/5 = 12/20"
   if ((m = /(\d+)\/(\d+) = \?\/(\d+)/.exec(p))) {
     const [a, b, d] = m.slice(1).map(N);
-    return [(a * d) / b, [['addedSame', a + (d - b)], ['factorOnly', d / b], ['justNumber', d], ['keptTop', a]]];
+    return [(a * d) / b, [['addedSame', a + (d - b)], ['factorOnly', d / b], ['blankIsTop', d], ['keptTop', a]]];
   }
   if ((m = /(\d+)\/(\d+) = (\d+)\/\?/.exec(p))) {
     const [a, b, c] = m.slice(1).map(N);
-    return [(b * c) / a, [['addedSame', b + (c - a)], ['justNumber', c], ['keptBottom', b], ['findFactor', b * c]]];
+    return [(b * c) / a, [['addedSame', b + (c - a)], ['blankIsBottom', c], ['keptBottom', b], ['findFactor', b * c]]];
   }
   if ((m = /\?\/(\d+) = (\d+)\/(\d+)/.exec(p))) {
     const [b, c, d] = m.slice(1).map(N);
-    return [(c * b) / d, [['addedSame', c - (d - b)], ['justNumber', b], ['justNumber', c], ['justNumber', d], ['factorOnly', d / b]]];
+    return [(c * b) / d, [['addedSame', c - (d - b)], ['blankIsTop', b], ['keptTop', c], ['blankIsTop', d], ['factorOnly', d / b]]];
   }
   return null;
 }

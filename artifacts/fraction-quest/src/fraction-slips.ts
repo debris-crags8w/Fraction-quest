@@ -73,12 +73,12 @@ function timesOrShare(p: string): Found | null {
   // both parts multiplied, added, the bottom multiplied, one batch, upside down, the tops multiplied and the bottoms added.
   if ((m = /^(?:Write )?(\d+) × (\d+)\/(\d+)(?: = \?| as one fraction\.)$|^A recipe uses (\d+)\/(\d+) cup of \w+\. (?:You make (\d+) batches\. How much \w+ do you need|How much \w+ do (\d+) batches need)\?$/.exec(p))) {
     const [n, a, b] = m[1] ? [N(m[1]), N(m[2]), N(m[3])] : [N(m[6] ?? m[7]), N(m[4]), N(m[5])];
-    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['addedNotTimes', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['oneGroup', [a, b]], ['upsideDown', [b, n * a]], ['onlyTop', [n * a, b + n]]] };
+    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['groupsToTop', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['oneGroup', [a, b]], ['upsideDown', [b, n * a]], ['onlyTop', [n * a, b + n]]] };
   }
   // "What is 2 groups of 3/8?", "A frog jumps 3/8 each time. Where is it after 2 jumps?": the same slips as 2 × 3/8.
   if ((m = /^What is (\d+) groups? of (\d+)\/(\d+)\?$|^A frog jumps (\d+)\/(\d+) each time\. Where is it after (\d+) jumps\?$/.exec(p))) {
     const [n, a, b] = m[1] ? [N(m[1]), N(m[2]), N(m[3])] : [N(m[6]), N(m[4]), N(m[5])];
-    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['addedNotTimes', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['oneGroup', [a, b]], ['upsideDown', [b, n * a]]] };
+    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['groupsToTop', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['oneGroup', [a, b]], ['upsideDown', [b, n * a]]] };
   }
   // "3/4 × 1/2", "What is 1/3 of 1/3?": added across, kept one denominator, added the tops, added the bottoms, crossed, upside down.
   if ((m = /^(?:What is )?(\d+)\/(\d+) (?:×|of) (\d+)\/(\d+)(?: = \?|\?)$/.exec(p))) {
@@ -124,12 +124,12 @@ function timesOrShare(p: string): Found | null {
   // Equal portions: "Each runner drinks 5/6 liter. 3 runners. How much in all?" has the slips of 3 × 5/6.
   if ((m = /^Each \w+ (?:drinks|eats|gets|uses) (\d+)\/(\d+)(?: (?!of )\w+)?(?: of [\w ]+)?\. (\d+) \w+\. How (?:much|many \w+) in all\?$/.exec(p))) {
     const [a, b, n] = m.slice(1).map(N);
-    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['addedNotTimes', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['oneGroup', [a, b]], ['upsideDown', [b, n * a]]] };
+    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['groupsToTop', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['oneGroup', [a, b]], ['upsideDown', [b, n * a]]] };
   }
   // "2/3 ÷ 1/6 = ?": the tops multiplied, how many fit in one whole, the top or the bottom, multiplied instead.
   if ((m = /^(\d+)\/(\d+) ÷ (\d+)\/(\d+) = \?$/.exec(p))) {
     const [a, b, c, d] = m.slice(1).map(N);
-    return { right: (a / b) / (c / d), slips: [['fitWhole', a * d], ['oneWhole', d], ['justNumber', b], ['justNumber', a], ['timesNotDivide', [a * c, b * d]]] };
+    return { right: (a / b) / (c / d), slips: [['fitWhole', a * d], ['oneWhole', d], ['fitNotNumber', b], ['fitNotNumber', a], ['timesNotDivide', [a * c, b * d]]] };
   }
   return null;
 }

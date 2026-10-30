@@ -21,6 +21,8 @@ export const KEYS: Record<string, string> = {
   'A big square has 100 small squares. 45% of them are blue. How many small squares are blue?': '45',
   'What does 70% mean?': '70 out of 100',
   'A test score is 85%. How many points out of 100 is that?': '85',
+  // 30% is 30 out of 100: 30/100 of the 100 plants.
+  'A garden has 100 plants. 30% of them are beans. What fraction of the plants are beans?': '30/100',
   // Only the first step of each story: 5/6 − 1/6 = 4/6; 2/8 + 3/8 = 5/8; 4/6 − 1/6 = 3/6.
   'A ribbon is 5/6 meter long. Cut off 1/6 meter, then 2/6 meter. How much is left? First, how long is it after the first cut?': '4/6 meter',
   'Mia reads 2/8 of a book on Monday and 3/8 on Tuesday. How much is left to read? First, how much does she read in all?': '5/8',

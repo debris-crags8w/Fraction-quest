@@ -1812,7 +1812,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       case 'percent-inverse': {
         const percent = pick(PERCENTS);
         prompt = `Write ${percent}% as a fraction with a denominator of 100.`; answer = f(percent, 100); denominator = 100;
-        hint = `${percent}% means ${percent} out of 100.`;
+        hint = 'Percent means out of 100. What goes on top?';
         why = `${percent} goes on top and 100 goes on the bottom.`; break;
       }
       case 'decimal-equivalent': {
@@ -1990,17 +1990,15 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         ];
         const [a, b, c, e, op] = pick(examples); const common = lcm(b, e);
         const top = a * (common / b) + (op === '+' ? 1 : -1) * c * (common / e);
-        const renames = [[a, b], [c, e]].filter(([, bottom]) => bottom !== common).map(([top, bottom]) => `${f(top, bottom)} = ${f(top * (common / bottom), common)}`);
-        // The renaming step is written out on the first 6 rows only, then the child finds the common denominator alone.
+        // The child always does the renaming. On the first 6 rows the hint names the shared part size; later rows find it alone.
         const scaffold = i < 6;
-        prompt = `${scaffold && renames.length ? `Rename: ${renames.join(' and ')}. Then ` : ''}${f(a, b)} ${op} ${f(c, e)} = ?`;
+        prompt = `${f(a, b)} ${op} ${f(c, e)} = ?`;
         answer = mixedName(top, common); form = answer.includes(' ') ? 'mixed' : undefined;
         visual = model(a * (common / b), common); modelRequired = true;
         hint = scaffold
           ? `Make both fractions ${unitName(common)} first. Then ${op === '+' ? 'add' : 'subtract'} the numerators.`
           : `List multiples of ${b} and ${e}. Which number is in both lists? Rename both fractions with it, then ${op === '+' ? 'add' : 'subtract'}.`;
-        // The renames are in a scaffolded prompt already, so the why only adds.
-        why = `${scaffold ? '' : renamesTo(common, [a, b], [c, e])}${f(a * (common / b), common)} ${op} ${f(c * (common / e), common)} = ${f(top, common)}${top >= common && top % common ? `, or ${answer}` : top === common ? ', or 1 whole' : ''}.`; break;
+        why = `${renamesTo(common, [a, b], [c, e])}${f(a * (common / b), common)} ${op} ${f(c * (common / e), common)} = ${f(top, common)}${top >= common && top % common ? `, or ${answer}` : top === common ? ', or 1 whole' : ''}.`; break;
       }
       case 'mixed-unlike': {
         const examples: [number, number, number, number, number, number, '+' | '−'][] = [
@@ -2016,15 +2014,15 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const [wholeA, topA, bottomA, wholeB, topB, bottomB, op] = pick(examples);
         const a = wholeA * bottomA + topA; const b = bottomA; const c = wholeB * bottomB + topB; const e = bottomB;
         const common = lcm(b, e); const result = a * (common / b) + (op === '+' ? 1 : -1) * c * (common / e);
-        const renames = [[topA, bottomA], [topB, bottomB]].filter(([, bottom]) => bottom !== common).map(([top, bottom]) => `${f(top, bottom)} = ${f(top * (common / bottom), common)}`);
+        // The child always does the renaming. On the first 6 rows the hint names the shared part size; later rows find it alone.
         const scaffold = i < 6;
-        prompt = `${scaffold && renames.length ? `Rename: ${renames.join(' and ')}. Then ` : ''}${wholeA} ${f(topA, bottomA)} ${op} ${wholeB ? `${wholeB} ` : ''}${f(topB, bottomB)} = ?`;
+        prompt = `${wholeA} ${f(topA, bottomA)} ${op} ${wholeB ? `${wholeB} ` : ''}${f(topB, bottomB)} = ?`;
         answer = mixedName(result, common); form = answer.includes(' ') ? 'mixed' : undefined;
         visual = model(a * (common / b), common); modelRequired = true;
-        hint = `${scaffold ? '' : `List multiples of ${bottomA} and ${bottomB} to find a denominator they share. `}${op === '+' ? 'Rename both fractional parts' : 'Rename both numbers'} with the same denominator, then ${op === '+' ? 'add' : 'subtract'}.${op === '−' && topA * (common / bottomA) < topB * (common / bottomB) ? ` The first part is too small to take away from: trade 1 whole for ${f(common, common)} first.` : ''}`;
+        hint = `${scaffold ? '' : `List multiples of ${bottomA} and ${bottomB} to find a denominator they share. `}${scaffold ? `Rename both fractional parts as ${unitName(common)}` : `${op === '+' ? 'Rename both fractional parts' : 'Rename both numbers'} with the same denominator`}, then ${op === '+' ? 'add' : 'subtract'}.${op === '−' && topA * (common / bottomA) < topB * (common / bottomB) ? ` The first part is too small to take away from: trade 1 whole for ${f(common, common)} first.` : ''}`;
         {
           const x = topA * (common / bottomA); const y = topB * (common / bottomB);
-          const renamed = scaffold ? '' : renamesTo(common, [topA, bottomA], [topB, bottomB]);
+          const renamed = renamesTo(common, [topA, bottomA], [topB, bottomB]);
           if (op === '+') {
             const sum = x + y;
             why = sum < common

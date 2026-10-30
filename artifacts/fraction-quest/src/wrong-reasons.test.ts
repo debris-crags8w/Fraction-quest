@@ -144,12 +144,34 @@ const TABLE: [string, string, string, string][] = [
   ['3 × 1/3 = ?', '3/3', '1/3', 'WHY.oneGroup'],
   ['What is 3 groups of 2/3?', '6/3', '2/3', 'WHY.oneGroup'],
   ['What is 2 groups of 3/8?', '6/8', '6/16', 'WHY.onlyTop'],
-  ['What is 2 groups of 3/8?', '6/8', '5/8', 'WHY.addedNotTimes'],
+  // Adding the number of groups to the numerator is the slip in repeated addition, not "you added" (adding copies is right).
+  ['What is 2 groups of 3/8?', '6/8', '5/8', 'WHY.groupsToTop'],
+  ['Write 4 × 1/3 as one fraction.', '4/3', '5/3', 'WHY.groupsToTop'],
+  ['A recipe uses 1/6 cup of flour. You make 2 batches. How much flour do you need?', '2/6', '3/6', 'WHY.groupsToTop'],
+  ['Each runner drinks 5/6 liter. 3 runners. How much in all?', '15/6', '8/6', 'WHY.groupsToTop'],
   ['What is 2 groups of 3/8?', '6/8', '3/16', 'WHY.timesBottomOnly'],
   ['A frog jumps 3/8 each time. Where is it after 2 jumps?', '6/8', '6/16', 'WHY.onlyTop'],
   ['A frog jumps 3/8 each time. Where is it after 2 jumps?', '6/8', '3/16', 'WHY.timesBottomOnly'],
   ['Which is the same as 3 × 2/5?', '6 × 1/5', '3 × 1/5', 'WHY.unitCount'],
   ['Which is the same as 3 × 2/5?', '6 × 1/5', '6 × 1/12', 'WHY.sameBottom'],
+  // 6. A sum of unlike parts is not checked by adding numerators; "Solve 1/6 × 24" answered 144 multiplied by the
+  // denominator; and a number copied from the question gets the slip it is, where that is known.
+  ['Which sum equals 3/5?', '1/5 + 2/5', '1/2 + 2/3', 'WHY.sumOtherSize'],
+  ['Which sum of unit fractions equals 3/6?', '1/6 + 1/6 + 1/6', '1/3 + 1/3 + 1/3', 'WHY.sumOtherSize'],
+  ['Which sum makes 4/6?', '1/6 + 3/6', '1/6 + 4/6', 'WHY.sumCheck'],
+  ['1/6 of 24 buttons are blue. Solve 1/6 × 24 to find how many are blue.', '4', '144', 'WHY.timesBottom'],
+  ['What is 2/3 of 18 cards?', '12', '36', 'WHY.timesWhole'],
+  ['Fill the blank: 3/4 = 6/?', '8', '6', 'WHY.blankIsBottom'],
+  ['Fill the blank: 1/2 = ?/8', '4', '8', 'WHY.blankIsTop'],
+  ['Fill the blank: ?/10 = 2/5', '4', '5', 'WHY.blankIsTop'],
+  ['Fill the blank: 6/8 = 2/8 + ?/8', '4', '8', 'WHY.blankIsTop'],
+  ['How many wholes are 4/2?', '2', '4', 'WHY.partsNotWholes'],
+  ['How many wholes are 9/3?', '3', '9', 'WHY.partsNotWholes'],
+  ['How many 1/12 cup scoops fill 5/6 cup?', '10', '5', 'WHY.fitNotNumber'],
+  ['2/3 ÷ 1/6 = ?', '4', '3', 'WHY.fitNotNumber'],
+  ['To find 2/3 of 12 cards, you make 3 equal groups. How many cards are in one group?', '4', '3', 'WHY.groupsNotEach'],
+  ['To find 2/3 of 12 cards, you make 3 equal groups. How many cards are in one group?', '4', '12', 'WHY.allNotEach'],
+  ['18 buttons are shared into 6 equal groups. How many buttons are in each group?', '3', '6', 'WHY.groupsNotEach'],
 ];
 
 describe('the exact reason for a wrong tap', () => {
@@ -233,7 +255,8 @@ describe('the exact reason for a wrong tap', () => {
   it('the new reasons carry no digit, so none can give the answer away', () => {
     for (const key of ['bottomNotShaded', 'notWholes', 'topNotAll', 'topNotLeft', 'askedTop', 'askedBottom', 'addedBoth', 'cutsNotParts', 'ticksNotSpaces', 'jumpsToOne',
       'jumpsForward', 'halfOnly', 'halfOfBottom', 'notExactHalf', 'notExactNear', 'otherBenchmark', 'nearHalfSize', 'topVsBottom', 'bigNumbers', 'tryUnderOne', 'tryOverOne',
-      'unitCount', 'notShadedCount', 'countNotSize'] as const) {
+      'unitCount', 'notShadedCount', 'countNotSize', 'groupsToTop', 'sumOtherSize', 'timesBottom', 'blankIsTop', 'blankIsBottom', 'partsNotWholes', 'fitNotNumber',
+      'groupsNotEach', 'allNotEach'] as const) {
       assert.doesNotMatch(WHY[key], /\d/, `${key} has a digit`);
       assert.doesNotMatch(WHY[key], /\bthe (?:right|correct) answer\b/i, `${key} names the answer`);
     }
