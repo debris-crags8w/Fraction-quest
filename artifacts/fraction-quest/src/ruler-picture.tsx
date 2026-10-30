@@ -1,3 +1,4 @@
+import React from 'react';
 /** A ruler with a blue strip lined up at zero (ruler questions in lessons and practice). Inch numbers only: the
     strip's end sits at a tick with no number, so the picture never gives the length away. */
 export function RulerPicture({ denominator, wholes, end }: { denominator: number; wholes: number; end: number }) {

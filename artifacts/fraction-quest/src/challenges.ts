@@ -280,7 +280,7 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
     puzzle('u12-c7', 4, '2 kids share 1/3 of a pizza fairly. 3 kids share 1/2 of a same-size pizza fairly. Who gets more each?', ['The 2 kids', 'The 3 kids', 'They get the same', "You can't tell"], 2,
       '1/3 shared by 2 is 1/6 each. 1/2 shared by 3 is 1/6 each. They get the same.',
       { kind: 'bars', bars: [{ n: 1, d: 3 }, { n: 1, d: 2 }] },
-      { 0: 'Fewer kids, but less pizza too. Find one share in each group.', 1: 'More pizza, but more kids too. Find one share in each group.',
+      { 0: 'Fewer kids, but a smaller part to share too. Find one share in each group.', 1: 'A bigger part, but more kids too. Find one share in each group.',
         3: 'You can tell! Find one share in each group, then compare.' }),
     // 5.MD.1: feet and a half foot in inches.
     puzzle('u12-c8', 4, 'Each bar is 1 foot. A ribbon is as long as the shaded part. How many inches long is it?', ['24 inches', '25 inches', '30 inches', '6 inches'], 2,
