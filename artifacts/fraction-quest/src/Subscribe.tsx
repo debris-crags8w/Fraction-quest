@@ -34,24 +34,24 @@ export function SubscribeFlow({ subscription, lapsed, lessonsDone, piecesFound, 
 
 /** In a plain browser: the first lesson is free, and the rest of the adventure is in the app. A grown-up passes the
     check to see the store links (links out of Fraction Quest are for grown-ups). */
-export function WebAppOnlyFlow({ onBack }: { onBack: () => void }) {
+export function WebAppOnlyFlow({ onBack, playedFirst = true }: { onBack: () => void; playedFirst?: boolean }) {
   const [step, setStep] = useState<'ask' | 'gate' | 'app'>('ask');
   if (step === 'gate') {
     return <div className="fq-app"><GrownUpGate onPass={() => setStep('app')} onBack={() => setStep('ask')} backLabel="Back"
       reason="This part is for grown-ups. Please answer to continue." /></div>;
   }
-  if (step === 'app') return <GetTheApp onClose={onBack} />;
-  const say = 'The rest of the adventure is in the Fraction Quest app. Ask a grown-up to get it on a phone or tablet.';
+  if (step === 'app') return <GetTheApp onClose={onBack} playedFirst={playedFirst} />;
+  const say = 'The rest of the adventure is in the Fraction Quest app. Ask a grown-up to get it on a phone.';
   return (
     <div className="fq-app fq-subscribe-night">
       <main className="fq-shell fq-subscribe-ask" data-testid="web-app-only">
         <div className="fq-subscribe-hero" aria-hidden="true"><StoryCharacter id="hoot" size={120} /></div>
-        <h1>You found the first clue!</h1>
+        <h1>{playedFirst ? 'You found the first clue!' : 'The adventure is in the app'}</h1>
         <section className="fq-subscribe-say">
-          <p><b>Hoot: </b>The rest of the adventure is in the Fraction Quest <u>app</u>. Ask a <u>grown-up</u> to get it on a phone or tablet.</p>
+          <p><b>Hoot: </b>The rest of the adventure is in the Fraction Quest <u>app</u>. Ask a <u>grown-up</u> to get it on a phone.</p>
           <LearningListenButton text={say} label="Listen to Hoot" />
         </section>
-        <p className="fq-subscribe-note">You can still play lesson 1 again and read the Storybook here.</p>
+        <p className="fq-subscribe-note">{playedFirst ? 'You can still play lesson 1 again and read the Storybook here.' : 'You can still play lesson 1 and read the Storybook here.'}</p>
         <div className="fq-subscribe-actions">
           <button className="fq-button fq-subscribe-go" onClick={() => setStep('gate')} data-testid="button-get-grown-up">Get a grown-up</button>
           <button className="fq-button ghost" onClick={onBack} data-testid="button-subscribe-back">Back to the map</button>
@@ -61,7 +61,7 @@ export function WebAppOnlyFlow({ onBack }: { onBack: () => void }) {
   );
 }
 
-function GetTheApp({ onClose }: { onClose: () => void }) {
+function GetTheApp({ onClose, playedFirst }: { onClose: () => void; playedFirst: boolean }) {
   // On a phone, list its own store first.
   const android = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
   const stores = [
@@ -77,7 +77,7 @@ function GetTheApp({ onClose }: { onClose: () => void }) {
           <button className="fq-icon-button" onClick={onClose} aria-label="Close" data-testid="button-get-app-close"><X size={18} /></button>
         </div>
         <h1>Fraction Quest continues in the app</h1>
-        <p>Your child finished the free first lesson. The full course is in the app for iPhone and Android: 7 days free, then {LISTED_YEARLY_PRICE} a year or {LISTED_PRICE} a month.</p>
+        <p>{playedFirst ? 'Your child finished the free first lesson.' : 'The first lesson is free to play here.'} The full course is in the app for iPhone and Android: 7 days free, then {LISTED_YEARLY_PRICE} a year or {LISTED_PRICE} a month.</p>
         <ul className="fq-paywall-list">
           <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>{MISSIONS.length} lessons</strong> that teach first, then practise, with a picture for every question</span></li>
           <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>A progress report any time</strong>, showing what your child learned and how to help at home</span></li>
@@ -101,7 +101,7 @@ function AskGrownUp({ lapsed, lessonsDone, piecesFound, onGrownUp, onBack, onSto
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
   const say = lapsed
     ? `Fraction Quest needs a grown-up to keep going. Everything you learned is saved: ${plural(piecesFound, 'stone piece', 'stone pieces')} and ${plural(lessonsDone, 'lesson', 'lessons')}.`
-    : 'You found the first clue! To find all 15 pieces of the Whole Stone, ask a grown-up to unlock Fraction Quest.';
+    : `${lessonsDone > 0 ? 'You found the first clue! ' : ''}To find all 15 pieces of the Whole Stone, ask a grown-up to unlock Fraction Quest.`;
   return (
     <div className="fq-app fq-subscribe-night">
       <main className="fq-shell fq-subscribe-ask" data-testid="subscribe-ask" data-lapsed={lapsed}>
@@ -110,7 +110,7 @@ function AskGrownUp({ lapsed, lessonsDone, piecesFound, onGrownUp, onBack, onSto
         <section className="fq-subscribe-say">
           <p><b>Hoot: </b>{lapsed
             ? <>Fraction Quest needs a <u>grown-up</u> to keep going. Everything you learned is saved: {plural(piecesFound, 'stone piece', 'stone pieces')} and {plural(lessonsDone, 'lesson', 'lessons')}.</>
-            : <>You found the first clue! To find all 15 pieces of the Whole Stone, ask a <u>grown-up</u> to unlock Fraction Quest.</>}</p>
+            : <>{lessonsDone > 0 ? 'You found the first clue! ' : ''}To find all 15 pieces of the Whole Stone, ask a <u>grown-up</u> to unlock Fraction Quest.</>}</p>
           <LearningListenButton text={say} label="Listen to Hoot" />
         </section>
         <p className="fq-subscribe-note">{lapsed ? 'You can still read the Storybook and see your stone pieces.' : 'Your level quiz and everything you did so far are saved.'}</p>

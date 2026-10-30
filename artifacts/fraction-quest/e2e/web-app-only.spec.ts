@@ -8,15 +8,15 @@ const dayKey = () => {
 };
 
 /** A plain browser with the published website's limit on (the test server otherwise keeps every lesson open). */
-async function openWebsite(page: Page, finished: string[]) {
+async function openWebsite(page: Page, finished: string[], placement?: { unit: number; at: number }) {
   const record = { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {}, completedAt: Date.now() };
-  await page.addInitScript(({ done, learned, day }) => {
+  await page.addInitScript(({ done, learned, day, place }) => {
     (window as Window & { __fqWebLimit?: boolean }).__fqWebLimit = true;
     if (!localStorage.getItem('fraction-quest-fun-v1:guest')) {
-      localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: done, starsByMission: {}, reviewQueue: [], assessments: [], learning: learned }));
+      localStorage.setItem('fraction-quest-progress-v1', JSON.stringify({ completedMissionIds: done, starsByMission: {}, reviewQueue: [], assessments: [], learning: learned, ...(place ? { placement: place } : {}) }));
       localStorage.setItem('fraction-quest-fun-v1', JSON.stringify({ xp: 0, day, answeredToday: 0, sound: false, story: { prologueSeen: true } }));
     }
-  }, { done: finished, learned: Object.fromEntries(finished.map((id) => [id, record])), day: dayKey() });
+  }, { place: placement ?? null, done: finished, learned: Object.fromEntries(finished.map((id) => [id, record])), day: dayKey() });
   await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Not signed in.' }) }));
   await page.goto('/');
   const guest = page.getByTestId('button-play-guest');
@@ -113,4 +113,35 @@ test('the privacy and terms pages open from the map without signing in, and fit 
   await expect(page.getByRole('link', { name: 'standard licence' })).toHaveAttribute('href', /apple\.com\/legal/);
   await page.getByRole('link', { name: '← Back to Fraction Quest' }).click();
   await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+});
+
+test('a child placed ahead who never played lesson 1 is not told they found the first clue or finished the free lesson', async ({ page }) => {
+  await page.clock.install();
+  await openWebsite(page, [], { unit: 10, at: Date.now() });
+  const lesson = MISSIONS[36];
+  await page.getByTestId(`button-node-${lesson.id}`).click();
+  await page.getByTestId(`button-start-mission-${lesson.id}`).click();
+  const ask = page.getByTestId('web-app-only');
+  await expect(ask).toBeVisible();
+  await expect(ask.getByRole('heading')).toHaveText('The adventure is in the app');
+  await expect(ask).not.toContainText('first clue');
+  await expect(ask).not.toContainText('tablet');
+  await page.getByTestId('button-get-grown-up').click();
+  // A child who guesses three times in a row has to wait; the button stays off during the wait.
+  for (let i = 0; i < 3; i += 1) {
+    await page.getByTestId('input-parent-gate').fill('1');
+    await page.getByTestId('button-parent-gate').click();
+  }
+  await expect(page.getByTestId('text-parent-gate-wait')).toContainText('Please wait');
+  await page.getByTestId('input-parent-gate').fill('1');
+  await expect(page.getByTestId('button-parent-gate')).toBeDisabled();
+  await page.clock.runFor(31_000);
+  await expect(page.getByTestId('text-parent-gate-wait')).toHaveCount(0);
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+  const getApp = page.getByTestId('get-the-app');
+  await expect(getApp).toContainText('The first lesson is free to play here.');
+  await expect(getApp).not.toContainText('finished the free first lesson');
 });

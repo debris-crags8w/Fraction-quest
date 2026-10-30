@@ -80,15 +80,16 @@ export type Glance = {
   focus: (GlanceLesson & { misses: number }) | null;
 };
 
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const glanceLesson = (mission: (typeof MISSIONS)[number]): GlanceLesson => ({
   id: mission.id, title: mission.title, grade: mission.gradeBand ?? null, standards: [...(mission.standards ?? [])], idea: mission.skill,
 });
 
 export function buildGlance(progress: Progress, week: DayRow[], now = new Date()): Glance {
+  // The same 7 calendar days as the day tiles (from midnight six days ago), not the last 168 hours.
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - 6); weekStart.setHours(0, 0, 0, 0);
   const finishedThisWeek = MISSIONS
     .map((mission) => ({ mission, at: getLearningRecord(progress, mission.id).completedAt }))
-    .filter((item): item is { mission: (typeof MISSIONS)[number]; at: number } => typeof item.at === 'number' && item.at > now.getTime() - WEEK_MS && item.at <= now.getTime())
+    .filter((item): item is { mission: (typeof MISSIONS)[number]; at: number } => typeof item.at === 'number' && item.at >= weekStart.getTime() && item.at <= now.getTime())
     .sort((a, b) => a.at - b.at);
   const learned = finishedThisWeek.map(({ mission }) => glanceLesson(mission));
   let weekTried = 0; let weekFirstTry = 0;
@@ -117,14 +118,14 @@ export function glanceShareText(glance: Glance, childName: string | null, now = 
   const standards = (step: SkillStep) => skills.filter((skill) => skill.step === step).map((skill) => skill.standard).join(', ');
   if (standards(3)) lines.push(`Mastered: ${standards(3)}.`);
   if (standards(2)) lines.push(`Practiced, ready to check: ${standards(2)}.`);
-  if (glance.firstTryWeek !== null) lines.push(`Right the first time in lessons finished this week: ${glance.firstTryWeek}%.`);
+  if (glance.firstTryWeek !== null) lines.push(`Right the first time, without the Hint, in lessons finished this week: ${glance.firstTryWeek}%.`);
   if (glance.focus) lines.push(`Working on: ${glance.focus.title} (${gradeTag(glance.focus)}).`);
   return lines.join('\n');
 }
 
 const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) * 100) : null);
 
-/** Worksheet answers checked, and how many were right the first time. */
+/** Worksheet answers checked, and how many were right the first time without opening the Hint (opening it marks the row `supported`). */
 function firstTryCounts(progress: Progress, missionId: string): { tried: number; firstTry: number } {
   const record = getLearningRecord(progress, missionId);
   let tried = 0; let firstTry = 0;
@@ -132,7 +133,7 @@ function firstTryCounts(progress: Progress, missionId: string): { tried: number;
     const entry = record.worksheet[problem.id];
     if (!entry || entry.attempts === 0) continue;
     tried++;
-    if (entry.attempts === 1 && entry.checkedValue === entry.draft && answerMatches(problem, entry.draft)) firstTry++;
+    if (entry.attempts === 1 && !entry.supported && entry.checkedValue === entry.draft && answerMatches(problem, entry.draft)) firstTry++;
   }
   return { tried, firstTry };
 }

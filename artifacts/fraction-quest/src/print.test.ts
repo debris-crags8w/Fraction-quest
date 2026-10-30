@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
+import { readFileSync } from 'node:fs';
 import { openFoldedSections, printPage } from './lib/print';
 
 /* In the iPhone app the page's HTML is sent to the phone's print sheet. The browser's "beforeprint" is not fired
@@ -32,5 +33,16 @@ describe('printing from the app', () => {
     openFoldedSections({ querySelectorAll: (selector: string) => { seen.push(selector); return items; } } as unknown as ParentNode);
     assert.deepEqual(items.map((item) => item.open), [true, true, true]);
     assert.match(seen[0], /fq-parent-report details/);
+  });
+});
+
+describe('printing the report in a browser', () => {
+  it('keeps the colour of the week bars and the skill step boxes, which are backgrounds', () => {
+    const css = readFileSync(new URL('./parent-glance.css', import.meta.url), 'utf8');
+    const printRules = [...css.matchAll(/@media print \{([\s\S]*?)\n\}/g)].map((match) => match[1]).join('\n');
+    for (const selector of ['.fq-parent-bar i', '.fq-skill-steps i']) {
+      const rule = printRules.split('}').find((part) => part.includes(selector) && part.includes('print-color-adjust'));
+      assert.ok(rule && /print-color-adjust:\s*exact/.test(rule), `${selector} needs print-color-adjust: exact`);
+    }
   });
 });

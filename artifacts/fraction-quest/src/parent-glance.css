@@ -102,6 +102,12 @@
 /* Lessons fold by unit */
 .fq-parent-unit > summary { cursor: pointer; }
 .fq-parent-unit > summary h3 { display: inline; }
+/* Browsers drop background colours when printing unless asked: the week bars and skill step boxes are backgrounds, so keep them,
+   and give each step box an outline so an empty step is still visible. */
+@media print {
+  .fq-parent-bar, .fq-parent-bar i, .fq-skill-steps i, .fq-skills-key i { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .fq-skill-steps i { outline: 1px solid #555; outline-offset: -1px; }
+}
 @media print {
   .fq-parent-tabs, .fq-tip-actions, .fq-skill-detail .fq-button, .fq-skills-key, [data-testid="button-skills-all"] { display: none !important; }
 }

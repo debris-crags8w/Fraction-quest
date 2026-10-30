@@ -16,12 +16,12 @@ export function ParentGlance({ glance, childName }: { glance: Glance; childName:
       <p className="fq-glance-summary" data-testid="glance-summary">
         {name} practiced on <strong>{glance.daysPracticed} of the last 7 days</strong> ({glance.minutes} minutes)
         {lessons ? <> and finished <strong>{lessons} {lessons === 1 ? 'lesson' : 'lessons'}</strong>.</> : '.'}
-        {glance.firstTryWeek !== null && glance.firstTryWeek >= 70 ? ' Most worksheet answers in this week’s lessons were right the first time.' : ''}
+        {glance.firstTryWeek !== null && glance.firstTryWeek >= 70 ? ' Most worksheet answers in this week’s lessons were right the first time, without the Hint.' : ''}
       </p>
       <div className="fq-glance-tiles">
         <div><strong>{glance.daysPracticed} of 7</strong><span>days practiced</span>{glance.savedDays > 0 && <small>+{glance.savedDays} saved by spare oil</small>}</div>
         <div><strong>{lessons}</strong><span>{lessons === 1 ? 'lesson' : 'lessons'} finished</span></div>
-        <div><strong>{glance.firstTryWeek === null ? '—' : `${glance.firstTryWeek}%`}</strong><span>right the first time</span><span>in this week’s lessons</span></div>
+        <div><strong>{glance.firstTryWeek === null ? '—' : `${glance.firstTryWeek}%`}</strong><span>right the first time</span><span>without the Hint, this week’s lessons</span></div>
       </div>
 
       {lessons > 0 && (

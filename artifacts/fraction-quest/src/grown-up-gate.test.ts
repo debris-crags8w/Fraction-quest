@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { askGate, gateAnswer, gateAnswerIsRight } from './lib/grown-up-gate';
+import { askGate, gateAnswer, gateAnswerIsRight, gateWaitSeconds, GATE_WAIT_SECONDS } from './lib/grown-up-gate';
 
 /* The grown-up check guards the time limit, reminders, the paywall and the store links, so a grade 4 or 5 child
    who knows 6 to 9 times tables must not be able to pass it by recall. An adult can still do it in their head. */
@@ -37,5 +37,18 @@ describe('the grown-up check', () => {
       const next = askGate(Math.random, first);
       assert.notDeepEqual(next, first);
     }
+  });
+});
+
+describe('the grown-up check pauses a child who is guessing', () => {
+  it('lets the first two wrong answers go straight to a new question', () => {
+    assert.equal(gateWaitSeconds(0), 0);
+    assert.equal(gateWaitSeconds(1), 0);
+    assert.equal(gateWaitSeconds(2), 0);
+  });
+  it('waits after every third wrong answer in a row, and the wait is short enough for an adult', () => {
+    for (const wrong of [3, 6, 9]) assert.equal(gateWaitSeconds(wrong), GATE_WAIT_SECONDS);
+    for (const wrong of [4, 5, 7, 8]) assert.equal(gateWaitSeconds(wrong), 0);
+    assert.ok(GATE_WAIT_SECONDS >= 20 && GATE_WAIT_SECONDS <= 60);
   });
 });
