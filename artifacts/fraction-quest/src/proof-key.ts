@@ -226,7 +226,7 @@ export const PROOF_KEY: Record<string, string> = {
   // u12-c9: (1 + 1 + 2 + 3 + 3 + 3)/4 = 13/4 = 3 1/4.
   "The line plot shows six beetles: 1/4, 1/4, 2/4, 3/4, 3/4, 3/4 inch. They line up end to end. How long is the line?": "3 1/4 inches",
   // u13-c6: 3 rows × 2 columns of a 4 × 5 grid: 6/20.
-  "The big square is 1 meter on each side. The shaded rectangle is 2/5 meter wide and 3/4 meter tall. What is its area?": "6/20 square meter",
+  "The big square is 1 meter on each side. The shaded part is 2/5 meter by 3/4 meter. What is its area?": "6/20 square meter",
   // Story mode: lessons' last questions told in their chapter, in every season (checked with the lesson answers).
   "The baker cut a cake into 3 equal slices. 1 slice is frosted. What fraction is frosted?": "1/3",
   "The baker cut a pumpkin pie into 3 equal slices. 1 slice is frosted. What fraction is frosted?": "1/3",

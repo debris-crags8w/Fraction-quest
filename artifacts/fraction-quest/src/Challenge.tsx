@@ -149,7 +149,7 @@ export default function Challenge({ unit, unitTitle, best, attempt = 0, onDone, 
           </div>
           <span className="fq-challenge-score" data-testid="status-challenge-points">{score} pts</span>
         </div>
-        <section className="fq-play-card" aria-labelledby="challenge-title">
+        <section className="fq-play-card fq-challenge-card" aria-labelledby="challenge-title">
           <p className="fq-play-kicker">Unit {unit} challenge · {unitTitle} · <span className={`fq-points p${question.points}`}>{question.points} points</span></p>
           <p className="fq-response-sequence">Question {index + 1} of {questions.length}</p>
           <StoryPrompt prompt={question.prompt} id="challenge-title" />
@@ -160,7 +160,7 @@ export default function Challenge({ unit, unitTitle, best, attempt = 0, onDone, 
             </button>
           )}
           {walking && <WalkThrough question={question} onClose={() => setWalking(false)} />}
-          <div className="fq-answer-choices fq-challenge-choices" role="group" aria-label="Choose an answer">
+          <div className={`fq-answer-choices fq-challenge-choices ${question.choices.every((choice) => choice.length <= 14) ? 'two-up' : ''}`} role="group" aria-label="Choose an answer">
             {question.choices.map((choice, i) => (
               <button key={`${question.id}-${i}`}
                 className={`fq-answer-choice ${selection === i ? `selected ${state === 'right' ? 'correct' : state === 'wrong' || state === 'reveal' ? 'retry' : ''}` : ''} ${state === 'reveal' && i === question.correct ? 'selected correct' : ''} ${ruledOut.includes(i) ? 'ruled-out' : ''}`}

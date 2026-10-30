@@ -358,8 +358,8 @@ export const CHALLENGE_ALTERNATES: Record<string, ChallengeQuestion> = {
     { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 1, 2, 3, 3, 3] },
     { 1: 'The parts stay fourths. Add only the numerators.', 2: '6 counts the beetles. Each beetle is less than 1 inch.', 3: '3/4 inch is one beetle. Add all six lengths.' }),
   // 5.NF.4b: the area of a rectangle with fraction sides, by tiling.
-  'u13-c3': puzzle('u13-c6', 4, 'The big square is 1 meter on each side. The shaded rectangle is 2/5 meter wide and 3/4 meter tall. What is its area?', ['5/9 square meter', '6/20 square meter', '5/20 square meter', '6/9 square meter'], 1,
-    'The square has 4 rows of 5 equal tiles: 20 tiles. The rectangle covers 3 rows of 2 tiles: 6 tiles. 2/5 × 3/4 = 6/20 square meter.',
+  'u13-c3': puzzle('u13-c6', 4, 'The big square is 1 meter on each side. The shaded part is 2/5 meter by 3/4 meter. What is its area?', ['5/9 square meter', '6/20 square meter', '5/20 square meter', '6/9 square meter'], 1,
+    'The square has 4 rows of 5 equal tiles: 20 tiles. The shaded part covers 3 rows of 2 tiles: 6 tiles. 2/5 × 3/4 = 6/20 square meter.',
     { kind: 'areas', areas: [{ cut: 'grid-5x4', shaded: [0, 1, 5, 6, 10, 11] }] },
     { 0: 'That adds the numerators and the denominators. Count the tiles instead.', 2: 'That adds 2 and 3. Count the shaded tiles.',
       3: 'The denominator counts all the tiles in the big square.' }),
