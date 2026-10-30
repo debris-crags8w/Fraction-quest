@@ -14,7 +14,7 @@ import './assessment.css';
 import { RulerInteraction, LinePlotInteraction, ScaleInteraction } from './LearningLab';
 import { WorksheetBarCopy } from './WorksheetBarCopy';
 import {
-  assessmentResponse, buildAssessmentItems, getAssessmentDefinitions, ASSESSMENT_ITEM_COUNT,
+  assessmentResponse, buildAssessmentItems, copyReference, getAssessmentDefinitions, ASSESSMENT_ITEM_COUNT,
   type AssessmentDefinition, type AssessmentItem,
 } from './assessments';
 import type { AssessmentAttempt, AssessmentDraft } from './game';
@@ -170,10 +170,15 @@ function AssessmentModelBuilder({ item, onReady }: { item: AssessmentItem; onRea
   // The worksheet's own task ("Shade 1 part", "Tap each part to count it"), exactly as in the lesson.
   if (problem.model.kind === 'bar' && problem.task) {
     const copy = <WorksheetBarCopy key={item.id} target={problem.model} task={problem.task} disabled={false} statusId={statusId} onMatchChange={handleReady} />;
-    // A picture of what the question compares ("Compare: 0.4 __ 0.35." draws both decimals), above the bar the child builds.
-    return problem.picture
-      ? <><section className="fq-assessment-model fq-assessment-picture" data-testid="assessment-picture"><PrintModel model={problem.picture} labels={false} /></section>{copy}</>
-      : copy;
+    // What the child copies, above the bar they build: a picture of what the question compares ("Compare: 0.4 __ 0.35." draws both
+    // decimals), or the bar itself. Counting and shading need none (the bar they tap is the picture).
+    const reference = copyReference(problem);
+    if (!reference) return copy;
+    return <><section className="fq-assessment-model fq-assessment-picture" data-testid="assessment-picture">
+      {reference.kind === 'picture'
+        ? <PrintModel model={reference.model} labels={false} />
+        : <BarSvg n={reference.model.n} d={reference.model.d} wholes={reference.model.wholes} sizes={reference.model.sizes} label={reference.model.sizes ? `A bar cut into ${reference.model.sizes.length} pieces` : 'A bar model'} />}
+    </section>{copy}</>;
   }
   return <ReadOnlyPicture key={item.id} model={problem.model} onReady={handleReady} />;
 }
