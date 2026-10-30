@@ -2,6 +2,9 @@ import React, { type CSSProperties, type ReactNode } from 'react';
 import type { ChallengeFigure } from './challenges';
 import { FoldIllustration } from './PaperFold';
 import { LinePlotPicture } from './line-plot-picture';
+import { RulerPicture } from './ruler-picture';
+import { AreaSvg } from './AreaModel';
+import { areaLabel } from './area-shapes';
 import { sayFraction } from './lib/voice';
 
 /* Shared drawings for the two core fraction models (plus sets), used on screen and on paper.
@@ -209,7 +212,18 @@ export function ChallengeFigureView({ figure }: { figure: ChallengeFigure }) {
       </svg>
     );
   }
-  if (figure.kind === 'line') return <LineSvg n={figure.n} d={figure.d} jumps={false} label="Number line from 0 to 1 with a dot" />;
+  if (figure.kind === 'line') return <LineSvg n={figure.n} d={figure.d} wholes={figure.wholes} jumps={false} label={`Number line from 0 to ${figure.wholes ?? 1} with a dot`} />;
+  if (figure.kind === 'ruler') return <RulerPicture denominator={figure.denominator} wholes={figure.wholes} end={figure.end} />;
+  if (figure.kind === 'areas') return (
+    <div className="fq-figure-areas">
+      {figure.areas.map((area, i) => (
+        <div className="fq-figure-area" key={i}>
+          {area.label && <b>{area.label}</b>}
+          <AreaSvg figure={area} label={`${area.label ? `Square ${area.label}: ` : ''}${areaLabel(area.cut, area.shaded).replace(/^A rectangle/, 'A square')}`} />
+        </div>
+      ))}
+    </div>
+  );
   if (figure.kind === 'fold') return <FoldIllustration folds={figure.folds} />;
   if (figure.kind === 'lineplot') return <LinePlotPicture denominator={figure.denominator} wholes={figure.wholes} values={figure.values} />;
   return (

@@ -1380,6 +1380,14 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 .fq-figure-bar { display: flex; align-items: center; gap: 8px; }
 .fq-figure-bar b { width: 22px; font-family: var(--app-font-display); font-size: 1.1rem; }
 .fq-figure-bar svg { flex: 1; min-width: 0; }
+/* Three or four bars stay short enough that the choices still fit on a phone. */
+.fq-challenge-figure .fq-figure-bars:has(> :nth-child(3)) { gap: 0; }
+.fq-challenge-figure .fq-figure-bars:has(> :nth-child(3)) svg { max-height: 48px; }
+.fq-figure-areas { display: flex; justify-content: center; gap: 20px; width: 100%; }
+.fq-figure-area { display: flex; align-items: center; gap: 8px; }
+.fq-figure-area b { font-family: var(--app-font-display); font-size: 1.1rem; }
+.fq-figure-area .fq-svg-area { width: min(36vw, 140px); height: auto; }
+.fq-figure-areas:has(> :only-child) .fq-svg-area { width: min(52vw, 180px); }
 
 @media print {
   .fq-print .fq-svg-figure { width: min(60mm, 100%); margin: 0; }

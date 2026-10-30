@@ -18,7 +18,7 @@ import { beforeEach, describe, it } from 'node:test';
 import * as React from 'react';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CHALLENGES, challengeMaxPoints } from './challenges';
+import { CHALLENGES, challengeMaxPoints, challengeWrongReason } from './challenges';
 import { FunContext, promptListenText, splitStory, StoryPrompt } from './fun-ui';
 import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
@@ -2401,14 +2401,25 @@ describe('unit challenges', () => {
     'u13-c3': `${3 * 2}/${4 * 3} square meter`,
     'u13-c4': `${12 - 3 - 4}/12`, 'u13-c5': '1 1/8 cups',
     'u14-p1': '40%', 'u14-c1': `${(3 / 4) * 100}%`, 'u14-c2': '1/2, 55%, 0.6', 'u14-c3': `${(17 / 20) * 100}%`, 'u14-c4': `${100 - 40 - 30}%`, 'u14-c5': `${10 - 3 - 4}0%`,
+    // Second puzzles for single-puzzle standards, worked out here.
+    'u1-c6': 'They cover the same space', 'u4-c6': `${Math.floor(9 / 4)} ${9 % 4}/4 inches`, 'u7-c6': `${3 * 4}/4`, 'u8-c6': `${7 - 3}/8`,
+    'u8-c7': `${5 + 2} × 1/5`, 'u8-c8': ['7/10 + 3/100', '7/100 + 3/10', '7/10 + 30/100', '70/10 + 30/100'].find((sum) => { const [a, b] = sum.split(' + ').map((f) => { const [t, d] = f.split('/').map(Number); return t / d; }); return Math.abs(a + b - 1) < 1e-9; })!,
+    'u9-c6': `${4 * 2}/3`, 'u9-c7': `${Math.floor((6 * 3) / 4)} ${(6 * 3) % 4}/4 miles`, 'u9-c8': `${[2, 3, 3, 3, 5, 6, 6, 7].filter((x) => x === 3).length * 3}/8 inches`,
+    'u11-c6': 20 * (5 / 4) > 20 ? 'More than 20' : 'Less than 20',
+    'u12-c6': `${3}/${5} pancake`, 'u12-c7': (1 / 3) / 2 === (1 / 2) / 3 ? 'They get the same' : 'not equal', 'u12-c8': `${2.5 * 12} inches`,
+    'u12-c9': `${Math.floor((1 + 1 + 2 + 3 + 3 + 3) / 4)} ${(1 + 1 + 2 + 3 + 3 + 3) % 4}/4 inches`, 'u13-c6': `${2 * 3}/${5 * 4} square meter`,
     'u15-p1': String((6 / 2) * 6), 'u15-c1': String(6 * 4), 'u15-c2': `${2 + 3}/7`, 'u15-c3': String((12 / 3) * 5), 'u15-c4': String(36 - 36 / 4 - (36 - 36 / 4) / 3), 'u15-c5': String((3 / 4) / (1 / 8)),
   };
 
-  it('has a picture puzzle plus five questions worth 3, 3, 3, 4, 4 and 5 points in every unit', () => {
+  it('has a picture puzzle plus questions worth 3, 3, 3, 4, 4 and 5 points in every unit, easiest first; some units have extra 3- and 4-point puzzles', () => {
+    // Units with a second puzzle for a standard that had one get it in the 3- or 4-point run (u1-c6, u8-c6 …).
+    const extra: Record<number, number[]> = { 1: [4], 4: [4], 7: [3], 8: [3, 4, 4], 9: [3, 4, 4], 11: [4], 12: [3, 4, 4, 4], 13: [4] };
     for (let unit = 1; unit <= 15; unit++) {
-      assert.deepEqual(CHALLENGES[unit].map((item) => item.points), [3, 3, 3, 4, 4, 5]);
+      const points = CHALLENGES[unit].map((item) => item.points);
+      assert.deepEqual(points, [...points].sort((a, b) => a - b), `unit ${unit} goes from 3 to 5 points`);
+      assert.deepEqual(points, [3, 3, 3, 4, 4, 5, ...(extra[unit] ?? [])].sort((a, b) => a - b), `unit ${unit}`);
       assert.ok(CHALLENGES[unit][0].figure, `unit ${unit} starts with a picture puzzle`);
-      assert.equal(challengeMaxPoints(unit), 22);
+      assert.equal(challengeMaxPoints(unit), 22 + (extra[unit] ?? []).reduce((sum, p) => sum + p, 0));
     }
   });
 
@@ -2432,6 +2443,25 @@ describe('unit challenges', () => {
     assert.equal(why('u12-c5', '18/8'), WHY.total);
     assert.equal(why('u12-c5', '6/8'), WHY.oneCup);
     assert.equal(why('u12-c5', '1/8'), WHY.oneCup);
+  });
+
+  it('gives each second puzzle for a thin standard a picture and a reason for every wrong choice', () => {
+    const SECOND = ['u1-c6', 'u4-c6', 'u7-c6', 'u8-c6', 'u8-c7', 'u8-c8', 'u9-c6', 'u9-c7', 'u9-c8', 'u11-c6', 'u12-c6', 'u12-c7', 'u12-c8', 'u12-c9', 'u13-c6'];
+    const all = Object.values(CHALLENGES).flat();
+    for (const id of SECOND) {
+      const item = all.find((puzzle) => puzzle.id === id);
+      assert.ok(item, `${id} is a puzzle`);
+      assert.ok(item.figure, `${id} has a picture`);
+      item.choices.forEach((choice, i) => {
+        if (i === item.correct) return;
+        const reason = challengeWrongReason(item, i);
+        assert.ok(reason, `${id}: no reason for "${choice}"`);
+        assert.ok(!reason.includes(item.choices[item.correct]), `${id}: the reason for "${choice}" names the answer`);
+      });
+    }
+    // An authored reason is said in place of the general one.
+    const ruler = all.find((puzzle) => puzzle.id === 'u4-c6')!;
+    assert.equal(challengeWrongReason(ruler, ruler.choices.indexOf('9 inches')), ruler.reasons![ruler.choices.indexOf('9 inches')]);
   });
 
   it('marks independently computed answers as correct', () => {

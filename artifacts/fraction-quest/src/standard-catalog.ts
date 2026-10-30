@@ -150,19 +150,19 @@ export const gradeForStandard = (standard: string): 3 | 4 | 5 | null => {
 /** What each Unit challenge puzzle asks about, puzzle by puzzle, from what the course has taught by the end of its unit.
     The chance puzzles (u13) go past the grade 3–5 fraction standards, so they carry none. A puzzle alone does not establish mastery. */
 export const CHALLENGE_STANDARDS: Record<string, StandardId[]> = {
-  'u1-p1': ['3.NF.1', '3.G.2'], 'u1-c1': ['3.NF.1'], 'u1-c2': ['3.NF.1'], 'u1-c3': ['3.NF.1'], 'u1-c4': ['3.NF.1'], 'u1-c5': ['3.NF.1'],
+  'u1-p1': ['3.NF.1', '3.G.2'], 'u1-c1': ['3.NF.1'], 'u1-c2': ['3.NF.1'], 'u1-c3': ['3.NF.1'], 'u1-c4': ['3.NF.1'], 'u1-c5': ['3.NF.1'], 'u1-c6': ['3.G.2'],
   'u2-p1': ['3.NF.1'], 'u2-c1': ['3.NF.3d'], 'u2-c2': ['3.NF.3d'], 'u2-c3': ['3.NF.3d'], 'u2-c4': ['3.NF.3d'], 'u2-c5': ['3.NF.3d'],
   'u3-p1': ['3.NF.3d', '4.NF.2'], 'u3-c1': ['4.NF.2'], 'u3-c2': ['4.NF.2'], 'u3-c3': ['4.NF.2'], 'u3-c4': ['4.NF.2'], 'u3-c5': ['4.NF.2'],
-  'u4-p1': ['3.NF.2a'], 'u4-c1': ['3.NF.2a'], 'u4-c2': ['3.NF.2b'], 'u4-c3': ['3.MD.4'], 'u4-c4': ['3.NF.2a'], 'u4-c5': ['3.NF.2b'],
+  'u4-p1': ['3.NF.2a'], 'u4-c1': ['3.NF.2a'], 'u4-c2': ['3.NF.2b'], 'u4-c3': ['3.MD.4'], 'u4-c4': ['3.NF.2a'], 'u4-c5': ['3.NF.2b'], 'u4-c6': ['3.MD.4'],
   'u5-p1': ['3.NF.3d'], 'u5-c1': ['3.NF.3d'], 'u5-c2': ['3.NF.3d'], 'u5-c3': ['4.NF.2'], 'u5-c4': ['4.NF.2'], 'u5-c5': ['3.NF.3d', '4.NF.2'],
   'u6-p1': ['3.NF.3b'], 'u6-c1': ['3.NF.3a'], 'u6-c2': ['4.NF.1'], 'u6-c3': ['3.NF.3a', '4.NF.1'], 'u6-c4': ['3.NF.3b'], 'u6-c5': ['4.NF.1'],
-  'u7-p1': ['4.NF.3b'], 'u7-c1': ['4.NF.3b'], 'u7-c2': ['4.NF.3b'], 'u7-c3': ['3.NF.3c'], 'u7-c4': ['4.NF.3b'], 'u7-c5': ['4.NF.3b'],
-  'u8-p1': ['4.NF.6'], 'u8-c1': ['4.NF.5'], 'u8-c2': ['4.NF.6'], 'u8-c3': ['4.NF.7'], 'u8-c4': ['4.NF.3d'], 'u8-c5': ['4.NF.3c'],
-  'u9-p1': ['4.NF.1'], 'u9-c1': ['4.NF.4a'], 'u9-c2': ['4.NF.1'], 'u9-c3': ['4.NF.2'], 'u9-c4': ['4.NF.2'], 'u9-c5': ['4.MD.4'],
+  'u7-p1': ['4.NF.3b'], 'u7-c1': ['4.NF.3b'], 'u7-c2': ['4.NF.3b'], 'u7-c3': ['3.NF.3c'], 'u7-c4': ['4.NF.3b'], 'u7-c5': ['4.NF.3b'], 'u7-c6': ['3.NF.3c'],
+  'u8-p1': ['4.NF.6'], 'u8-c1': ['4.NF.5'], 'u8-c2': ['4.NF.6'], 'u8-c3': ['4.NF.7'], 'u8-c4': ['4.NF.3d'], 'u8-c5': ['4.NF.3c'], 'u8-c6': ['4.NF.3a'], 'u8-c7': ['4.NF.4a'], 'u8-c8': ['4.NF.5'],
+  'u9-p1': ['4.NF.1'], 'u9-c1': ['4.NF.4a'], 'u9-c2': ['4.NF.1'], 'u9-c3': ['4.NF.2'], 'u9-c4': ['4.NF.2'], 'u9-c5': ['4.MD.4'], 'u9-c6': ['4.NF.4b'], 'u9-c7': ['4.NF.4c'], 'u9-c8': ['4.MD.4'],
   'u10-p1': ['5.NF.1'], 'u10-c1': ['4.NF.3c'], 'u10-c2': ['5.NF.1'], 'u10-c3': ['4.NF.3c'], 'u10-c4': ['5.NF.2'], 'u10-c5': ['5.NF.2', '4.MD.2'],
-  'u11-p1': ['5.NF.4a'], 'u11-c1': ['5.NF.4a'], 'u11-c2': ['5.NF.5'], 'u11-c3': ['5.NF.4a'], 'u11-c4': ['5.NF.4a'], 'u11-c5': ['5.NF.4a'],
-  'u12-p1': ['5.MD.1'], 'u12-c1': ['5.NF.7a'], 'u12-c2': ['5.NF.7b', '5.NF.7c'], 'u12-c3': ['5.NF.1', '4.MD.2'], 'u12-c4': ['5.NF.3'], 'u12-c5': ['5.MD.2'],
-  'u13-p1': [], 'u13-c1': [], 'u13-c2': ['4.NF.4b', '4.NF.4c'], 'u13-c3': ['5.NF.4b'], 'u13-c4': [], 'u13-c5': ['5.NF.6'],
+  'u11-p1': ['5.NF.4a'], 'u11-c1': ['5.NF.4a'], 'u11-c2': ['5.NF.5'], 'u11-c3': ['5.NF.4a'], 'u11-c4': ['5.NF.4a'], 'u11-c5': ['5.NF.4a'], 'u11-c6': ['5.NF.5'],
+  'u12-p1': ['5.MD.1'], 'u12-c1': ['5.NF.7a'], 'u12-c2': ['5.NF.7b', '5.NF.7c'], 'u12-c3': ['5.NF.1', '4.MD.2'], 'u12-c4': ['5.NF.3'], 'u12-c5': ['5.MD.2'], 'u12-c6': ['5.NF.3'], 'u12-c7': ['5.NF.7a'], 'u12-c8': ['5.MD.1'], 'u12-c9': ['5.MD.2'],
+  'u13-p1': [], 'u13-c1': [], 'u13-c2': ['4.NF.4b', '4.NF.4c'], 'u13-c3': ['5.NF.4b'], 'u13-c4': [], 'u13-c5': ['5.NF.6'], 'u13-c6': ['5.NF.4b'],
   'u14-p1': ['4.NF.6'], 'u14-c1': ['4.NF.1'], 'u14-c2': ['4.NF.7'], 'u14-c3': ['4.NF.1'], 'u14-c4': ['4.NF.3d', '4.NF.6'], 'u14-c5': ['4.NF.3d'],
   // Find the whole from a part (u15-p1, c1, c3) is 5.NF.7b, as the catalog gives lesson 78. u15-c5 renames 3/4 as eighths (4.NF.1) and then
   // counts how many 1/8-liter cups fit (a story that divides by a unit fraction, 5.NF.7c); it is not 4.NF.4a, which is groups of a unit fraction.

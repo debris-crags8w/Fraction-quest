@@ -19,7 +19,8 @@ export type ProofPicture =
   | { kind: 'grid' | 'dots'; rows: number; cols: number; shaded: number[] }
   | { kind: 'fold'; folds: number[] }
   | { kind: 'ruler'; denominator: number; wholes: number; end: number }
-  | { kind: 'lineplot'; denominator: number; wholes: number; values: number[] };
+  | { kind: 'lineplot'; denominator: number; wholes: number; values: number[] }
+  | { kind: 'areas'; areas: { cut: AreaCut; shaded: number[]; label?: string }[] };
 
 export type ProofItem = {
   source: string; lesson: string; prompt: string;

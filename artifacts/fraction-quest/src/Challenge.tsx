@@ -3,7 +3,7 @@ import { useScrollTopOn } from './lib/reveal';
 import { MathText } from './MathText';
 import { LearningListenButton } from './LearningText';
 import { ArrowRight, Check, Footprints, Map as MapIcon, RotateCcw, Trophy, X } from 'lucide-react';
-import { CHALLENGES, challengeMaxPoints, challengeTrophy, type ChallengeQuestion } from './challenges';
+import { CHALLENGES, challengeMaxPoints, challengeTrophy, challengeWrongReason, type ChallengeQuestion } from './challenges';
 import { Confetti, Mascot, StoryPrompt, unitColor, useFun, type MascotMood } from './fun-ui';
 import { playCue, playHaptic } from './lib/fun';
 import { ChallengeFigureView } from './models';
@@ -78,7 +78,7 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
   const [round, setRound] = useState(0);
   useScrollTopOn(`${round}-${index}-${state === 'finished'}`);
   const question = questions[index];
-  const retryText = selection === null ? '' : wrongChoiceReason(question.prompt, question.choices, question.correct, selection)
+  const retryText = selection === null ? '' : challengeWrongReason(question, selection)
     ?? (question.steps ? 'Look at the model and take this one step at a time.' : 'Compare the amounts in the choices, then try again.');
   const retryHeading = retryOpener(`challenge-${round}-${question.id}-${tries}`);
   // Best score from before this run, so finishing doesn't compare against itself.

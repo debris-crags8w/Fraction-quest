@@ -2553,7 +2553,7 @@ test('a wrong unit-challenge answer gives a hint, allows a retry, and earns no p
   await expect(feedback).toHaveAttribute('role', 'status');
   await expect(feedback).toContainText('Compare the amounts in the choices, then try again.');
   await expect(page.getByTestId('status-challenge-points')).toHaveText('0 pts');
-  await expect(page.getByRole('progressbar', { name: 'Challenge question 1 of 6' })).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByRole('progressbar', { name: `Challenge question 1 of ${CHALLENGES[1].length}` })).toHaveAttribute('aria-valuenow', '0');
   await expect(page.getByTestId(`button-challenge-${question.id}-${String.fromCharCode(65 + wrong)}`)).toBeDisabled();
   expect(await localStorageSnapshot(page)).toBe(savedProgress);
 

@@ -196,6 +196,37 @@ export const PROOF_KEY: Record<string, string> = {
   "A jug holds 3/4 liter. A cup holds 1/8 liter. How many cups can you fill from the jug?": "6",
   "Write 3/4 in eighths.": "6/8",
   "How many 1/8s are in 6/8?": "6",
+  // Second puzzles for the standards that had one (October 2026), each worked out from its picture.
+  // u1-c6: A is 1 of 2 equal triangles, B is 1 of 2 equal rectangles of the same square: both 1/2.
+  "Both squares are the same size. Which shaded part covers more space?": "They cover the same space",
+  // u4-c6: the strip ends 9 fourth-inch spaces from 0: 2 inches and 1 space.
+  "The blue ribbon starts at zero and ends at a tick with no number. Use the ruler. How long is it in inches?": "2 1/4 inches",
+  // u7-c6: 3 full bars of 4 fourths = 12 fourths (3/4, 4/3, 3/12 are not 3).
+  "Each bar is one whole. Which fraction is the same as the 3 shaded wholes?": "12/4",
+  // u9-c6: 4 groups of 2 thirds = 8 thirds.
+  "Each bar is one whole. What is 4 × 2/3?": "8/3",
+  // u8-c6: 7 − 3 = 4 eighths.
+  "Mia wants 7/8 of the bar shaded. She has shaded 3/8. How much more must she shade?": "4/8",
+  // u8-c7: 5 + 2 = 7 shaded fifths (2 × 1/5 = 2/5, 5 × 1/7 = 5/7, 7 × 1/10 = 7/10).
+  "Each bar is one whole. Which is the same as the shaded part?": "7 × 1/5",
+  // u8-c8: 7/10 + 30/100 = 70/100 + 30/100 = 1; the others are 73/100, 37/100 and 7 3/10.
+  "The big square is one whole. 7/10 of it is shaded. Which sum makes exactly 1 whole?": "7/10 + 30/100",
+  // u9-c7: 6 × 3/4 = 18/4 = 4 2/4.
+  "One lap of the track is 3/4 mile, like the shaded bar. Ben runs 6 laps. How far does he run?": "4 2/4 miles",
+  // u9-c8: three Xs at 3/8: 9/8.
+  "The line plot shows how much 8 seedlings grew: 2/8, 3/8, 3/8, 3/8, 5/8, 6/8, 6/8, 7/8 inch. How much did the 3/8-inch seedlings grow in all?": "9/8 inches",
+  // u11-c6: the dot is at 5 of 4 spaces per whole, past 1, so 20 × 5/4 = 25 > 20.
+  "The dot is at a fraction. You multiply 20 by that fraction. Is the answer more or less than 20?": "More than 20",
+  // u12-c6: 3 ÷ 5 = 3/5.
+  "5 friends share 3 pancakes fairly. How much does each friend get?": "3/5 pancake",
+  // u12-c7: 1/3 ÷ 2 = 1/6 and 1/2 ÷ 3 = 1/6.
+  "2 kids share 1/3 of a pizza fairly. 3 kids share 1/2 of a same-size pizza fairly. Who gets more each?": "They get the same",
+  // u12-c8: 2 1/2 feet × 12 = 30 inches.
+  "Each bar is 1 foot. A ribbon is as long as the shaded part. How many inches long is it?": "30 inches",
+  // u12-c9: (1 + 1 + 2 + 3 + 3 + 3)/4 = 13/4 = 3 1/4.
+  "The line plot shows six beetles: 1/4, 1/4, 2/4, 3/4, 3/4, 3/4 inch. They line up end to end. How long is the line?": "3 1/4 inches",
+  // u13-c6: 3 rows × 2 columns of a 4 × 5 grid: 6/20.
+  "The big square is 1 meter on each side. The shaded rectangle is 2/5 meter wide and 3/4 meter tall. What is its area?": "6/20 square meter",
   // Story mode: lessons' last questions told in their chapter, in every season (checked with the lesson answers).
   "The baker cut a cake into 3 equal slices. 1 slice is frosted. What fraction is frosted?": "1/3",
   "The baker cut a pumpkin pie into 3 equal slices. 1 slice is frosted. What fraction is frosted?": "1/3",
