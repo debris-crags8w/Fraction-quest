@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import { MISSIONS, PLACEMENT_UNITS } from './game';
 import { answerMatches, getWorksheet } from './learning-content';
 import { PER_UNIT, placementItems } from './placement';
-import { PLACEMENT_EXTRAS } from './placement-extras';
+import { PLACEMENT_BLENDS, PLACEMENT_EXTRAS } from './placement-extras';
 import { prove } from './proof';
 import { standardsForMission } from './standard-catalog';
 
@@ -62,6 +62,37 @@ describe('Find my level asks about every part of units 1–12', () => {
     // Those lessons have no worksheet row the quiz can show, which is why they need their own.
     for (const id of Object.keys(PLACEMENT_EXTRAS)) {
       assert.equal(getWorksheet(id).filter((p) => !p.rulerTask && !p.linePlotTask && !/line plot|use the ruler/i.test(p.prompt)).length, 0, id);
+    }
+  });
+
+  it('units 8 and 12 (13 and 11 lessons, 8 and 10 standards) ask more of their standards in each 3-question quiz', () => {
+    const perQuiz = (unit: number) => {
+      let total = 0;
+      for (let seed = 1; seed <= SEEDS; seed++) {
+        const items = placementItems(unit, seed);
+        assert.equal(items.length, PER_UNIT, 'the quiz keeps its length');
+        total += new Set(items.flatMap((item) => item.problem.standards ?? standardsForMission(item.missionId))).size;
+      }
+      return total / SEEDS;
+    };
+    // Before: about 3.6 for unit 8 and 4.4 for unit 12.
+    assert.ok(perQuiz(8) >= 4.5, `unit 8: ${perQuiz(8).toFixed(2)} standards per quiz`);
+    assert.ok(perQuiz(12) >= 5, `unit 12: ${perQuiz(12).toFixed(2)} standards per quiz`);
+  });
+
+  it('a row that asks two standards at once really tests both, has a right answer, and its lesson or an earlier one of its unit teaches each', () => {
+    const order = MISSIONS.map((mission) => mission.id);
+    for (const [id, rows] of Object.entries(PLACEMENT_BLENDS)) {
+      const unit = unitOf(id);
+      const taughtBy = new Set(MISSIONS.filter((mission) => mission.unit === unit && order.indexOf(mission.id) <= order.indexOf(id)).flatMap((mission) => standardsForMission(mission.id)));
+      for (const problem of rows) {
+        assert.ok(problem.standards!.length >= 2, `${id}: ${problem.prompt}`);
+        assert.ok(problem.standards!.includes(standardsForMission(id)[0]), `${id}: ${problem.prompt} asks its own lesson's standard`);
+        for (const standard of problem.standards!) assert.ok(taughtBy.has(standard), `${id}: ${standard} is not taught by then`);
+        assert.ok(answerMatches(problem, problem.answer), `${id}: ${problem.prompt}`);
+        const result = prove({ source: 'Find my level', lesson: id, prompt: problem.prompt, answer: problem.answer, pictures: [] });
+        assert.ok(result?.ok, `${id}: ${problem.prompt}: ${result && !result.ok ? result.why : 'no proof rule'}`);
+      }
     }
   });
 });

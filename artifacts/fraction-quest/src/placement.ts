@@ -1,6 +1,6 @@
 import { MISSIONS, PLACEMENT_UNITS, type Mission, type Progress } from './game';
 import { standardsForMission } from './standard-catalog';
-import { PLACEMENT_EXTRAS } from './placement-extras';
+import { PLACEMENT_BLENDS, PLACEMENT_EXTRAS } from './placement-extras';
 import { getWorksheet, type WorksheetProblem } from './learning-content';
 import { makeRng } from './practice-bank';
 
@@ -18,11 +18,15 @@ export type PlacementItem = { unit: number; missionId: string; problem: Workshee
 const answerable = (problem: WorksheetProblem) => !problem.areaTask && !problem.rulerTask && !problem.linePlotTask && !problem.scaleTask
   && !/use the ruler|line plot|slider|colou?r the/i.test(problem.prompt);
 
-/** The rows the quiz can ask for a lesson: its answerable worksheet rows, or (for a ruler or line plot lesson with none) its own rows from placement-extras.ts. */
+/** The rows the quiz can ask for a lesson: its answerable worksheet rows, or (for a ruler or line plot lesson with none) its
+    own rows from placement-extras.ts, and its rows that ask two of the unit's standards at once (PLACEMENT_BLENDS). */
 const askableRows = (missionId: string) => {
   const rows = getWorksheet(missionId).filter(answerable);
-  return rows.length ? rows : PLACEMENT_EXTRAS[missionId] ?? [];
+  return [...(rows.length ? rows : PLACEMENT_EXTRAS[missionId] ?? []), ...(PLACEMENT_BLENDS[missionId] ?? [])];
 };
+const rowStandards = (missionId: string, problem: WorksheetProblem) => problem.standards ?? standardsForMission(missionId);
+/** Every standard some row of the lesson can ask. */
+const lessonStandards = (missionId: string) => [...new Set([...standardsForMission(missionId), ...askableRows(missionId).flatMap((problem) => rowStandards(missionId, problem))])];
 
 /** The lessons a unit's three questions come from: one from each third of the unit (its start, middle and end), so the
     quiz still spans the unit. Which lesson of a third rotates with `seed`, and a lesson that brings a standard the earlier
@@ -34,8 +38,8 @@ export function placementLessons(unit: number, seed: number): Mission[] {
   for (let third = 0; third < PER_UNIT; third++) {
     const group = lessons.slice(Math.floor((third * size) / PER_UNIT), Math.floor(((third + 1) * size) / PER_UNIT));
     const options = (group.length ? group : lessons).map((_, k, list) => list[(seed + third + k) % list.length]);
-    const pick = options.find((mission) => standardsForMission(mission.id).some((standard) => !covered.has(standard))) ?? options[0];
-    standardsForMission(pick.id).forEach((standard) => covered.add(standard));
+    const pick = options.find((mission) => lessonStandards(mission.id).some((standard) => !covered.has(standard))) ?? options[0];
+    lessonStandards(pick.id).forEach((standard) => covered.add(standard));
     picks.push(pick);
   }
   return picks;
@@ -45,14 +49,19 @@ export function placementLessons(unit: number, seed: number): Mission[] {
 export function placementItems(unit: number, seed: number): PlacementItem[] {
   const rng = makeRng(seed * 31 + unit);
   const asked = new Set<string>(); // lessons can share a question (or the same lesson is picked twice): never ask the same one twice
+  const covered = new Set<string>(); // standards the questions so far ask
   return placementLessons(unit, seed).map((mission) => {
     const sheet = askableRows(mission.id);
     // Prefer rows that need no picture; fall back to any row (its picture is shown, read-only).
     const plain = sheet.filter((problem) => !problem.model && !problem.area);
     const pool = plain.length >= 3 ? plain : sheet;
     const fresh = pool.filter((problem) => !asked.has(`${problem.prompt}|${problem.answer}`));
-    const problem = rng.pick(fresh.length ? fresh : pool);
+    // Of those, the rows that ask the most standards the quiz has not asked yet.
+    const unasked = (problem: WorksheetProblem) => rowStandards(mission.id, problem).filter((standard) => !covered.has(standard)).length;
+    const candidates = fresh.length ? fresh : pool; const most = Math.max(...candidates.map(unasked));
+    const problem = rng.pick(candidates.filter((row) => unasked(row) === most));
     asked.add(`${problem.prompt}|${problem.answer}`);
+    rowStandards(mission.id, problem).forEach((standard) => covered.add(standard));
     return { unit, missionId: mission.id, problem };
   });
 }
