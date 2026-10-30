@@ -137,7 +137,9 @@ export function buildAssessmentItems(definition: AssessmentDefinition, seed: num
         const visualFractions = fractions.length ? fractions : undefined;
         // A shape or a decimal grid with no task is read, not built: it still counts. Other pictures stay out (a bar of 6/10 beside
         // "Write 0.6 as a fraction" would draw the answer).
-        if (!standards.length || (!hasInteractiveModel(problem) && !visualFractions && !problem.area && problem.picture?.kind !== 'area')) continue;
+        // A piece of a number line to read (0.62 between 0.6 and 0.7) counts too.
+        const readLine = problem.picture?.kind === 'line' && !!problem.picture.ends;
+        if (!standards.length || (!hasInteractiveModel(problem) && !visualFractions && !problem.area && problem.picture?.kind !== 'area' && !readLine)) continue;
         const id = `${mission.id}:${problem.id}:${variant}`;
         pool.set(id, {
           id, missionId: mission.id, prompt: problem.prompt, answer: problem.answer, standards, problem,

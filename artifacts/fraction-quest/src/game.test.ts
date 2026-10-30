@@ -2613,6 +2613,20 @@ describe('question generator', () => {
     else if ((m = /^Pip has \d+ \w+ of \w+\. Each \w+ holds 1\/\d+ \w+\. Is this sharing or fitting\?$/.exec(p))) { assert.equal(answer, 'Fitting', p); return true; }
     else if ((m = /^1\/(\d+) \w+ of \w+ is shared by (\d+) friends\. How much does each get\?$/.exec(p))) { assert.ok(near(amountOf(answer), 1 / N(m[1]) / N(m[2])), p); return true; }
     else if ((m = /^How many 1\/(\d+)-\w+ \w+ can be filled from (\d+) \w+ of \w+\?$/.exec(p))) { assert.ok(near(amountOf(answer), N(m[1]) * N(m[2])), p); return true; }
+    // Worksheet frames with numbers the sheets don't reach (practice-bank WIDER_ROWS) and later redo sheets.
+    else if ((m = /^How many (\w+) are in (\d+)\/(\d+) (\w+)\?$/.exec(p))) {
+      const per: Record<string, number> = { 'minutes hour': 60, 'hours day': 24, 'cents dollar': 100, 'milliliters liter': 1000, 'grams kilogram': 1000, 'inches foot': 12, 'ounces pound': 16, 'centimeters meter': 100, 'seconds minute': 60 };
+      const each = per[`${m[1]} ${m[4]}`]; if (each) expected = (each * N(m[2])) / N(m[3]);
+    } else if ((m = /^Each \w+ gets (\d+)\/(\d+) \w+ of [\w ]+\. (\d+) \w+s\. (How many \w+s in all|The total is between two whole numbers\. What is the bigger one)\?$/.exec(p))) {
+      const total = (N(m[1]) * N(m[3])) / N(m[2]); expected = m[4].startsWith('How') ? total : Math.ceil(total);
+    } else if ((m = /^A \w+ (?:is|holds) (\d+) (\d+)\/(\d+) (feet|hours|meters|pounds)\b[^.]*\. (?:Pip (cuts off|takes out|adds) |The first part takes )(\d+) /.exec(p))) {
+      const per = { feet: 12, hours: 60, meters: 100, pounds: 16 }[m[4] as 'feet'];
+      expected = (N(m[1]) + N(m[2]) / N(m[3])) * per + (m[5] === 'adds' ? 1 : -1) * N(m[6]);
+    } else if ((m = /^A rectangular garden is (\d+) (\d+)\/(\d+) meters by (\d+) (\d+)\/(\d+) meters\. What is its area\?$/.exec(p))) {
+      expected = (N(m[1]) + N(m[2]) / N(m[3])) * (N(m[4]) + N(m[5]) / N(m[6]));
+    } else if ((m = /^(\d+) children share 1\/(\d+) of a pan\. 1\/\2 ÷ \1 = \?$/.exec(p))) expected = 1 / (N(m[1]) * N(m[2]));
+    else if ((m = /^(\d+) children share 1\/(\d+) of a pan\. How many shares that size would fill the whole pan\?$/.exec(p))) expected = N(m[1]) * N(m[2]);
+    else if ((m = /^(?:Rename: .+?\. Then )?((?:\d+ )?\d+\/\d+) ([+−]) ((?:\d+ )?\d+\/\d+) = \?$/.exec(p))) expected = num(m[1]) + (m[2] === '+' ? 1 : -1) * num(m[3]);
     if (expected === null) return false;
     if (typeof expected === 'string') assert.equal(answer.replace(/[\s,<>]/g, ''), expected.replace(/[\s,<>]/g, ''), p);
     else assert.ok(near(num(answer), expected), `${p} → ${answer}, expected ${expected}`);
@@ -2721,6 +2735,34 @@ describe('question generator', () => {
     if (match) {
       const sum = answer.split(' + ').reduce((total, part) => total + fractionValue(part), 0);
       assert.ok(Math.abs(sum - fractionValue(`${match[1]}/${match[2]}`)) < 1e-9, question.prompt);
+      return true;
+    }
+    // The wider "New questions" (lessons' own question kinds with more numbers), each solved again here.
+    const P = question.prompt; const N = Number; const PART: Record<string, number> = { halves: 2, thirds: 3, fourths: 4, fifths: 5, sixths: 6, eighths: 8, tenths: 10, twelfths: 12 };
+    const wider: [RegExp, (m: RegExpExecArray) => string | number][] = [
+      [/^In (\d+)\/(\d+), how many parts are counted\?$/, (m) => m[1]],
+      [/^A line has (\d+) spaces\. The point is (\d+) jumps? from 0\. What is it\?$/, (m) => `${m[2]}/${m[1]}`],
+      [/^A line has (\d+) equal spaces\. Where is (\d+)\/\1\?$/, (m) => `${m[2]} ${m[2] === '1' ? 'jump' : 'jumps'} from 0`],
+      [/^Each jump is 1\/(\d+)\. Which point is just past 1\?$/, (m) => `${N(m[1]) + 1}/${m[1]}`],
+      [/^A runner takes (\d+) steps\. Each step is 1\/(\d+) mile\. How far is that\?$/, (m) => `1 and ${N(m[1]) - N(m[2])}/${m[2]} miles`],
+      [/^Where is (\d+)\/(\d+) on the number line\?$/, (m) => `Between ${Math.floor(N(m[1]) / N(m[2]))} and ${Math.floor(N(m[1]) / N(m[2])) + 1}`],
+      [/^How many (\w+) make (\d+) wholes\?$/, (m) => PART[m[1]] * N(m[2])],
+      [/^What is 2 and (\d+)\/(\d+) as \w+\?$/, (m) => `${2 * N(m[2]) + N(m[1])}/${m[2]}`],
+      [/^How many wholes are (\d+)\/(\d+)\?$/, (m) => N(m[1]) / N(m[2])],
+      [/^Write (\d+) × 1\/(\d+) as one fraction\.$/, (m) => `${m[1]}/${m[2]}`],
+      [/^Compare: (0\.\d+) __ (0\.\d+)\.$/, (m) => `${m[1]} ${N(m[1]) < N(m[2]) ? '<' : N(m[1]) > N(m[2]) ? '>' : '='} ${m[2]}`],
+      [/^(?:Join the small parts\. Which fraction|(\d+\/\d+) is marked on a line\. Which fraction) with a denominator of (\d+) (?:is the same as (\d+\/\d+)|is at the same spot)\?$/,
+        (m) => `${Math.round(fractionValue(m[1] ?? m[3]) * N(m[2]))}/${m[2]}`],
+      [/^Divide the numerator and denominator of (\d+)\/(\d+) by (\d+)\. What do you get\?$/, (m) => `${N(m[1]) / N(m[3])}/${N(m[2]) / N(m[3])}`],
+      [/^Fill the blank: (\d+)\/(\d+) = (\d+)\/\?$/, (m) => (N(m[2]) * N(m[3])) / N(m[1])],
+      [/^(\d+)\/(\d+) is near (0|1\/2|1)\. Is it a little more or a little less\?$/, (m) => `A little ${N(m[1]) / N(m[2]) > fractionValue(m[3] === '0' ? '0/1' : m[3] === '1' ? '1/1' : m[3]) ? 'more' : 'less'} than ${m[3]}`],
+    ];
+    for (const [re, solve] of wider) {
+      const found = re.exec(P);
+      if (!found) continue;
+      const want = solve(found);
+      if (typeof want === 'number') assert.equal(N(withoutUnit(answer)), want, `${P} → ${answer}`);
+      else assert.equal(answer, want, P);
       return true;
     }
     const sourceId = /^(.*?)-(?:x\d+|g\d+-\d+)$/.exec(question.id)?.[1];

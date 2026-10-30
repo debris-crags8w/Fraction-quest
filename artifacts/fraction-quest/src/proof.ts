@@ -115,6 +115,19 @@ const PICK: Pick[] = [
 
 /** Rules, tried in order. A rule may return a string: that is a failure found while solving (a bad picture). */
 const RULES: Rule[] = [
+  // --- the wider "New questions" (practice-bank.ts): the lessons' own question kinds with more numbers
+  { name: 'line: jumps from 0 to the point', re: /^A line has (\d+) spaces\. The point is (\d+) jumps? from 0\. What is it\?$/, solve: (m) => ({ value: N(m[2]) / N(m[1]), denominator: N(m[1]) }) },
+  { name: 'line: where a fraction sits', re: /^A line has (\d+) equal spaces\. Where is (\d+)\/\1\?$/, solve: (m) => ({ text: `${m[2]} ${m[2] === '1' ? 'jump' : 'jumps'} from 0` }) },
+  { name: 'line: just past 1', re: /^Each jump is 1\/(\d+)\. Which point is just past 1\?$/, solve: (m) => ({ value: (N(m[1]) + 1) / N(m[1]), denominator: N(m[1]) }) },
+  { name: 'steps of a mile', re: /^A runner takes (\d+) steps\. Each step is 1\/(\d+) mile\. How far is that\?$/, solve: (m) => ({ value: N(m[1]) / N(m[2]) }) },
+  { name: 'between which wholes on the line', re: /^Where is (\d+)\/(\d+) on the number line\?$/,
+    solve: (m) => { const w = Math.floor(N(m[1]) / N(m[2])); return N(m[1]) % N(m[2]) ? { text: `Between ${w} and ${w + 1}` } : SKIP; } },
+  { name: 'parts in some wholes', re: /^How many (halves|thirds|fourths|fifths|sixths|eighths|tenths|twelfths) make (\d+) wholes\?$/, solve: (m) => ({ value: UNIT_WORD[m[1]] * N(m[2]) }) },
+  { name: 'a whole number over 1', re: /^Write (\d+) as a fraction with a denominator of 1\.$/, solve: (m) => ({ value: N(m[1]), denominator: 1 }) },
+  { name: 'join small parts', re: /^Join the small parts\. Which fraction with a denominator of (\d+) is the same as (\d+\/\d+)\?$/, solve: (m) => ({ value: frac(m[2]), denominator: N(m[1]) }) },
+  { name: 'a little more or less than a benchmark', re: /^(\d+\/\d+) is near (0|1\/2|1)\. Is it a little more or a little less\?$/,
+    solve: (m) => { const [x, b] = [frac(m[1]), m[2] === '1/2' ? 0.5 : N(m[2])]; return near(x, b) ? SKIP : { text: `A little ${x > b ? 'more' : 'less'} than ${m[2]}` }; } },
+  { name: 'shares that fill the pan', re: /^(\d+) children share 1\/(\d+) of a pan\. How many shares that size would fill the whole pan\?$/, solve: (m) => ({ value: N(m[1]) * N(m[2]) }) },
   // --- comparing and ordering
   { name: 'which is bigger/smaller', re: /^Which is (bigger|smaller|longer|shorter), (\d+\/\d+) or (\d+\/\d+)\?(?: Make it\.)?$/,
     solve: (m) => { const [a, b] = [frac(m[2]), frac(m[3])]; if (near(a, b)) return { text: 'They are equal' };
@@ -341,8 +354,8 @@ const RULES: Rule[] = [
   { name: 'one part of a whole', re: /^A whole is cut into (\d+) equal parts\. What is 1 part\?$/, solve: (m) => ({ value: 1 / N(m[1]) }) },
   { name: 'one jump', re: /^0 to 1 has (\d+) equal spaces\. What is 1 jump\?$/, solve: (m) => ({ value: 1 / N(m[1]) }) },
   { name: 'spaces for a unit', re: /^How many equal spaces (?:do you need for|from 0 to 1 make) (\w+)\?$/, solve: (m) => ({ value: UNIT_WORD[m[1]] }) },
-  { name: 'parts in a written fraction', re: /^In (\d+)\/(\d+), how many (?:parts are shaded|equal parts make (?:one|1) whole)\?$/,
-    solve: (m, item) => ({ value: /shaded/.test(item.prompt) ? N(m[1]) : N(m[2]) }) },
+  { name: 'parts in a written fraction', re: /^In (\d+)\/(\d+), how many (?:parts are (?:shaded|counted)|equal parts make (?:one|1) whole)\?$/,
+    solve: (m, item) => ({ value: /shaded|counted/.test(item.prompt) ? N(m[1]) : N(m[2]) }) },
   { name: 'count unit parts', re: /^Tap each 1\/(\d+) part to count it\. How many 1\/\1 parts make (?:one|1) whole\?$/, solve: (m) => ({ value: N(m[1]) }) },
 
   // --- dividing with the ÷ sign, sharing and fitting
@@ -400,7 +413,11 @@ const RULES: Rule[] = [
   { name: 'decimal at the dot', re: /^What decimal is at the dot\?$/,
     solve: (_m, item) => { const p = (item.pictures ?? []).find((x) => x.kind === 'line'); if (!p) return 'no number line';
       const [n, d] = 'n' in p ? [p.n, p.d] : [(p as { numerator: number }).numerator, (p as { denominator: number }).denominator];
-      if (d !== 10) return `the line has ${d} spaces, not tenths`; return { value: n / d, form: 'decimal' }; } },
+      if (d !== 10) return `the line has ${d} spaces, not tenths`;
+      // A piece of a line (0.6 to 0.7): its 10 spaces are hundredths from the first end.
+      const ends = (p as { ends?: [string, string] }).ends;
+      if (ends) return { value: N(ends[0]) + (n / d) * (N(ends[1]) - N(ends[0])), form: 'decimal' };
+      return { value: n / d, form: 'decimal' }; } },
   { name: 'colored strip: decimal', re: /^A strip has 10 equal parts\. (\d+) (?:is|are) colored\. Write the colored part as a decimal\.$/,
     solve: (m) => ({ value: N(m[1]) / 10, form: 'decimal' }) },
   { name: 'how many parts make one whole', re: /^How many (halves|thirds|fourths|fifths|sixths|eighths|tenths|twelfths) make one whole\?$/,
@@ -524,7 +541,7 @@ const partCount = (p: ProofPicture): number | null => {
 
 /** Questions answered from the picture: shaded amounts, equal parts, counting parts, the dot on a line, rulers. */
 const PICTURE_RULES: Rule[] = [
-  { name: 'picture: what fraction is shaded', re: /^(?:What fraction (?:of (?:this bar model|the (?:circle|grid|tile|square|bar)|this circle) )?is shaded\?(?: Each bar is one whole\.)?|One (?:part|slice) of this (?:bar|pizza) is shaded\..*|One part is shaded\. What fraction of the whole bar is it\?|The shaded part is 1 of the equal parts\. What fraction of the bar is shaded\?|All the slices are the same size\. What fraction of the pizza is the shaded slice\?|One triangle is colored\. What fraction of the square is it\?|What fraction of the square (?:is the shaded (?:triangle|small square)|do the 2 shaded triangles cover)\?|This \w+ is on a [\w ]+\. What fraction of the \w+ is colored\?|The baker’s round [\w’ -]+ is cut into equal slices\. The colored slices get frosting\. What fraction of the [\w’ -]+ is colored\?)$/,
+  { name: 'picture: what fraction is shaded', re: /^(?:What fraction (?:of (?:this bar model|the (?:circle|grid|tile|square|bar|hexagon)|this circle) )?is shaded\?(?: Each bar is one whole\.)?|One (?:part|slice) of this (?:bar|pizza) is shaded\..*|One part is shaded\. What fraction of the whole bar is it\?|The shaded part is 1 of the equal parts\. What fraction of the bar is shaded\?|All the slices are the same size\. What fraction of the pizza is the shaded slice\?|One triangle is colored\. What fraction of the square is it\?|What fraction of the square (?:is the shaded (?:triangle|small square)|do the 2 shaded triangles cover)\?|This \w+ is on a [\w ]+\. What fraction of the \w+ is colored\?|The baker’s round [\w’ -]+ is cut into equal slices\. The colored slices get frosting\. What fraction of the [\w’ -]+ is colored\?)$/,
     solve: (_m, item) => { const p = (item.pictures ?? []).map(barValue).find((v) => v !== null);
       if (p === undefined || p === null) return 'no shaded picture to read'; return { value: p }; } },
   { name: 'picture: equal parts?', re: /^(?:Is this (?:bar|strip|square|pizza|hexagon|circle) cut into (?:equal (?:parts|\w+)|(\d+) equal (?:slices|strips)|\w+)\?|Are all the parts of this bar the same size\?|On this tile pattern, are the 4 parts of the square equal in area\?|Two small squares and two triangles fill this square\. Are all 4 parts equal in area\?|This pizza is cut into 4 slices\. Are the slices equal in area\?|These strips are long and thin\. Are they still fourths\?|Are all 4 parts of this square the same size\?)(?: Answer yes or no\.)?$/,

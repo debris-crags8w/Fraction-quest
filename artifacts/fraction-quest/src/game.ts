@@ -74,7 +74,9 @@ export function fractionOrderMatches(cards: readonly FractionValue[], direction:
 export type ModelSpec =
   | { kind: 'bars'; bars: FractionValue[]; caption?: string; hideLabels?: boolean }
   | { kind: 'set'; selected: number; total: number; groupCount?: number; caption?: string }
-  | { kind: 'line'; numerator: number; denominator: number; wholes?: number; caption?: string; hideLabels?: boolean; /** Show the dot with no hop arcs, so counting the arcs does not give the answer. */ hideHops?: boolean }
+  | { kind: 'line'; numerator: number; denominator: number; wholes?: number; caption?: string; hideLabels?: boolean; /** Show the dot with no hop arcs, so counting the arcs does not give the answer. */ hideHops?: boolean;
+      /** A piece of a line between two named points (0.6 and 0.7, ten hundredths apart): the names of its two ends, shown in
+          place of 0 and 1. */ ends?: [string, string] }
   | { kind: 'partition'; parts: number[]; caption?: string }
   | { kind: 'equation'; text: string; caption?: string }
   | { kind: 'decimal'; tenths: number; caption?: string; hideLabels?: boolean }

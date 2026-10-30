@@ -123,12 +123,15 @@ export function BarSvg({ n = 0, d, wholes = 1, sizes, label, fraction = false, l
 }
 
 /** Number line: 0 → wholes, each whole split into d equal spaces, with jump arcs from 0 to the point n/d. Omit d for a bare 0-to-1 line. */
-export function LineSvg({ n = 0, d, wholes = 1, showPoint = true, jumps = true, label }: { n?: number; d?: number; wholes?: number; showPoint?: boolean; jumps?: boolean; label?: string }) {
+export function LineSvg({ n = 0, d, wholes = 1, showPoint = true, jumps = true, label, ends }: { n?: number; d?: number; wholes?: number; showPoint?: boolean; jumps?: boolean; label?: string;
+  /** A piece of a line (0.6 to 0.7): the names of its two ends, in place of 0 and 1. The dot is not named. */ ends?: [string, string] }) {
   const spaces = d ? d * wholes : wholes;
   const step = W / spaces;
   const y = 40;
+  const said = ends ? `Number line from ${ends[0]} to ${ends[1]}, split into ${spaces} equal spaces${showPoint ? ', with a dot' : ''}`
+    : d ? `Number line from 0 to ${wholes}, each whole split into ${d} equal spaces${showPoint ? `, point at ${sayFraction(n, d)}` : ''}` : 'Empty number line from 0 to 1 to split into equal spaces';
   return (
-    <svg className="fq-svg-line" viewBox={`0 0 ${W + PAD * 2} 74`} role="img" aria-label={label ?? (d ? `Number line from 0 to ${wholes}, each whole split into ${d} equal spaces${showPoint ? `, point at ${sayFraction(n, d)}` : ''}` : 'Empty number line from 0 to 1 to split into equal spaces')}>
+    <svg className="fq-svg-line" viewBox={`0 0 ${W + PAD * 2} 74`} role="img" aria-label={label ?? said}>
       <line className="axis" x1={PAD - 12} y1={y} x2={W + PAD + 12} y2={y} />
       <path className="axis-arrow" d={`M${W + PAD + 14} ${y} l-7 -5 v10 z`} />
       {Array.from({ length: spaces + 1 }, (_, i) => {
@@ -137,7 +140,7 @@ export function LineSvg({ n = 0, d, wholes = 1, showPoint = true, jumps = true, 
         return (
           <g key={i}>
             <line className={whole ? 'tick whole' : 'tick'} x1={x} y1={y - (whole ? 10 : 6)} x2={x} y2={y + (whole ? 10 : 6)} />
-            {whole && <text x={x} y={y + 27} textAnchor="middle">{d ? i / d : i}</text>}
+            {whole && <text x={x} y={y + 27} textAnchor="middle">{ends ? (i === 0 ? ends[0] : i === spaces ? ends[1] : '') : d ? i / d : i}</text>}
           </g>
         );
       })}
