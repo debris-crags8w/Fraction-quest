@@ -39,6 +39,7 @@ const IDEAS: Record<string, Entry> = {
   '5.NF.7c': { heading: 'Word problems that divide with unit fractions', home: 'Ask: 4 cups of rice and each serving is 1/3 cup. How many servings is that (12)?' },
   '5.MD.1': { heading: 'Changing between measurement units', home: 'Ask how many inches are in 3/4 of a foot (9), and how your child worked it out.' },
   '5.MD.2': { heading: 'Line plots with fractions', home: 'Make a line plot of five amounts like 1/4, 1/2, 1/2, 3/4 and 1/2 cup. Ask your child to find the total and share it equally.' },
+  'make-line-plot': { heading: 'Making a line plot', home: 'Measure four crayons to the nearest 1/4 inch. Draw a line marked in fourths, and have your child put one X above each length.' },
   'benchmarks': { heading: 'Comparing to zero, one half and one', home: 'Ask whether 3/8 is more or less than 1/2, and whether 7/8 is nearer to 0 or to 1. Have your child say how they know.' },
   'mixed-improper': { heading: 'Mixed numbers and fractions bigger than one', home: 'Ask how many fourths are in 1 and 3/4 pizzas (7/4), and how your child counted them.' },
   'find-the-whole': { heading: 'Finding the whole from a part', home: 'Ask: 3 stickers are 1/4 of a pack. How many stickers are in the whole pack (12), and how do you know?' },
@@ -50,7 +51,8 @@ const IDEAS: Record<string, Entry> = {
 
 /** Lessons named on their own instead of by their first standard. */
 const OWN_IDEA: Record<string, string> = {
-  'benchmark-half': 'benchmarks', 'benchmarks-zero-one': 'benchmarks', 'mixed-improper': 'mixed-improper',
+  'benchmark-half': 'benchmarks', 'benchmarks-zero-one': 'benchmarks', 'fraction-magnitude': 'benchmarks', 'mixed-improper': 'mixed-improper',
+  'build-line-plots': 'make-line-plot', 'compose-to-one': '4.NF.3a',
   'fractional-measure-addition': '5.NF.1', 'multiply-mixed-numbers': '5.NF.6', 'find-the-whole': 'find-the-whole',
   'spot-the-mistake': 'check-the-work', 'fraction-probability': 'bonus-chance',
   'fractions-to-percent': 'bonus-percent', 'percent-to-fraction': 'bonus-percent', 'divide-fractions': 'bonus-divide',

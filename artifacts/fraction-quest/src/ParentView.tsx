@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { getMission, MISSIONS, type GrownUpPick, type Progress } from './game';
 import type { FunState } from './lib/fun';
-import { buildParentReport, type LessonRow } from './parent-report';
+import { buildParentReport, HOW_TO_READ_FIRST_TRY, type LessonRow } from './parent-report';
 import { ParentGlance, ShareCard } from './ParentGlance';
 import { MonthCard, PracticeCard, SkillsCard } from './ParentSkills';
 import { GrownUpGate } from './GrownUpGate';
@@ -263,7 +263,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
           </section>
 
           <footer className="fq-parent-foot">
-            <p><b>How to read this.</b> "First try" counts worksheet answers that were right the first time they were checked. "Builds" are the bar and number-line tasks: "On their own" means no hints and no wrong tries. "Remembered" means your child rebuilt it correctly on a later day without help.</p>
+            <p><b>How to read this.</b> {HOW_TO_READ_FIRST_TRY} "Builds" are the bar and number-line tasks: "On their own" means no hints and no wrong tries. "Remembered" means your child rebuilt it correctly on a later day without help.</p>
             <p><b>Helping at home.</b> Ask your child to show you a fraction with paper strips or on a drawn line, and to explain why. Answer keys are in Settings.</p>
           </footer>
         </article>
