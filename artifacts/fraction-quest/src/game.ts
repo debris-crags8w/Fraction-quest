@@ -1378,14 +1378,21 @@ const extensionTopics: ExtensionTopic[] = [
     ],
   },
   { id: 'add-unlike-fractions', title: 'Add unlike fractions', shortTitle: 'Add unlike parts', description: 'Make different-sized parts the same size before adding.', skill: 'Rename both fractions with the same denominator so the parts match. Then add the number of parts.', mode: 'add-unlike', n: 7, d: 12, context: 'ribbons', gradeBand: 5, standards: ['5.NF.1'],
-    // Idea questions (ideas/lessons-41-50.ts): add with the renames given (p1), find the common denominator (p2).
+    // Idea questions (ideas/lessons-41-50.ts). Idea 1: the child renames (p1, p3), then adds once told the parts to use (p4);
+    // nothing hands the renamed fractions over. Idea 2: find the common denominator (p2).
     ideaQuestions: [
-      practice('Rename: 1/2 = 5/10 and 1/5 = 2/10. Then 1/2 + 1/5 = ?', ['7/10', '2/7', '2/10', '6/10'], 0,
-        bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 5 }), 'Make both fractions tenths first. Then add the numerators.', '5/10 + 2/10 = 7/10.',
-        bars({ numerator: 5, denominator: 10 }, { numerator: 2, denominator: 10 }), { authoredChoices: true }),
+      practice('For 1/2 + 1/3, what is 1/2 in sixths?', ['3/6', '1/6', '2/6', '5/6'], 0,
+        bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 3 }), 'Cut each half into 3 equal parts. Those parts are sixths.', 'Each half is 3 sixths, so 1/2 = 3/6. The amount stays the same.',
+        bars({ numerator: 1, denominator: 2 }, { numerator: 3, denominator: 6 }), { authoredChoices: true }),
       practice('3/4 + 1/6 = ?', ['11/12', '4/10', '4/6', '10/12'], 0,
         bars({ numerator: 3, denominator: 4 }, { numerator: 1, denominator: 6 }), 'List multiples of 6: 6, 12. 4 fits into 12 too. Rename both as twelfths, then add.',
         '3/4 = 9/12 and 1/6 = 2/12. 9/12 + 2/12 = 11/12.', bars({ numerator: 9, denominator: 12 }, { numerator: 2, denominator: 12 }), { authoredChoices: true }),
+      practice('For 1/6 + 1/4, what is 1/4 in twelfths?', ['3/12', '1/12', '2/12', '5/12'], 0,
+        bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 4 }), 'Cut each fourth into 3 equal parts. Those parts are twelfths.', 'Each fourth is 3 twelfths, so 1/4 = 3/12. The amount stays the same.',
+        bars({ numerator: 1, denominator: 4 }, { numerator: 3, denominator: 12 }), { authoredChoices: true }),
+      practice('Make both fractions tenths. Then 1/2 + 1/5 = ?', ['7/10', '2/7', '2/10', '6/10'], 0,
+        bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 5 }), 'How many tenths make 1/2? How many make 1/5? Then add the numerators.', '1/2 = 5/10 and 1/5 = 2/10. 5/10 + 2/10 = 7/10.',
+        bars({ numerator: 5, denominator: 10 }, { numerator: 2, denominator: 10 }), { authoredChoices: true }),
     ],
   },
   { id: 'add-mixed-numbers', title: 'Add mixed numbers', shortTitle: 'Add mixed numbers', description: 'Add wholes and parts.', skill: 'Add the whole numbers and the fraction parts. If the parts fill a whole, regroup them as one more whole.', mode: 'mixed-add', n: 1, d: 4, context: 'walking route',
@@ -1642,9 +1649,9 @@ const extensionTopics: ExtensionTopic[] = [
     mode: 'ruler', n: 5, d: 4, context: 'ruler', gradeBand: 3, standards: ['3.MD.4'],
     ideaQuestions: [
       // Idea 1: lengths under 1 inch (count the quarter-inch spaces).
-      practice('The blue craft stick starts at zero and ends at a tick with no number. Use the ruler. How long is it in inches?', ['2/4', '3/4', '1/4', '2'], 0, { kind: 'ruler', denominator: 4, wholes: 2, end: 2 }, 'Count how many short spaces make 1 inch. Then count the spaces to the end of the craft stick.', 'Count how many short spaces make 1 inch. Then count the spaces to the end of the craft stick. So the answer is 2/4.', { kind: 'ruler', denominator: 4, wholes: 2, end: 2 }, { authoredChoices: true }),
+      practice('The blue craft stick starts at zero and ends at a tick with no number. Use the ruler. How long is it in inches?', ['2/4', '3/4', '1/4', '2'], 0, { kind: 'ruler', denominator: 4, wholes: 2, end: 2 }, 'Count how many short spaces make 1 inch. Then count the spaces to the end of the craft stick.', 'Count how many short spaces make 1 inch. Then count the spaces to the end of the craft stick. So the answer is 2/4. It covers 2 small spaces, and each is 1/4 inch.', { kind: 'ruler', denominator: 4, wholes: 2, end: 2 }, { authoredChoices: true }),
       // Idea 2: past 1 inch, the whole inches and the extra part.
-      practice('The blue paintbrush starts at zero and ends at a tick with no number. Use the ruler. How long is it in inches?', ['1 3/4', '2', '1 2/4', '3/4'], 0, { kind: 'ruler', denominator: 4, wholes: 2, end: 7 }, 'Count how many short spaces make 1 inch. Then count the spaces to the end of the paintbrush.', 'Count how many short spaces make 1 inch. Then count the spaces to the end of the paintbrush. So the answer is 1 3/4.', { kind: 'ruler', denominator: 4, wholes: 2, end: 7 }, { authoredChoices: true }),
+      practice('The blue paintbrush starts at zero and ends at a tick with no number. Use the ruler. How long is it in inches?', ['1 3/4', '2', '1 2/4', '3/4'], 0, { kind: 'ruler', denominator: 4, wholes: 2, end: 7 }, 'Count how many short spaces make 1 inch. Then count the spaces to the end of the paintbrush.', 'Count how many short spaces make 1 inch. Then count the spaces to the end of the paintbrush. So the answer is 1 3/4. 4 small spaces make 1 inch, and 3 more make 3/4 inch.', { kind: 'ruler', denominator: 4, wholes: 2, end: 7 }, { authoredChoices: true }),
     ] },
   { id: 'build-line-plots', title: 'Build a fraction line plot', shortTitle: 'Build line plots', description: 'Place one X for each measurement.', skill: 'Place one X for each measurement above its matching value. Stack Xs when measurements match.', example: { prompt: 'Ribbons are 1/4, 3/4, 3/4 and 1 inch long. How many Xs go above 3/4?', answer: '2 Xs', explanation: 'Put one X above the matching tick for each ribbon. Two ribbons are 3/4 inch long, so 2 Xs stack above 3/4.', model: line(3, 4) }, mode: 'line-plot', n: 3, d: 4, context: 'ribbon lengths', gradeBand: 3, standards: ['3.MD.4'],
     ideaQuestions: [

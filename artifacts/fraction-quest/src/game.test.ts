@@ -37,7 +37,7 @@ import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyBuildCorrec
 import { FRACTION_STANDARDS } from './standard-catalog';
 import { DailyPracticeQuestionHeading } from './DailyPracticeQuestionHeading';
 import type { PracticeQuestion } from './game';
-import { REASON_IDEAS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
+import { MORE_REASON_IDEAS, REASON_IDEAS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
 import { AnswerTiles } from './AnswerTiles';
 import {
   createLearningSpeechController,
@@ -2854,7 +2854,19 @@ describe('quality audit fixes', () => {
   it('puts the right reason in different spots, not always the same one', () => {
     const spots = new Set(MISSIONS.flatMap((mission) => getBuildChecks(mission.id).map((check) => check.correctReason)));
     assert.equal(spots.size, 3);
-    for (const mission of MISSIONS) for (const check of getBuildChecks(mission.id)) assert.equal(check.reasons[check.correctReason], REASON_IDEAS[mission.id], mission.id);
+    for (const mission of MISSIONS) for (const check of getBuildChecks(mission.id)) {
+      assert.ok([REASON_IDEAS[mission.id], ...MORE_REASON_IDEAS[mission.id]!].includes(check.reasons[check.correctReason]!), mission.id);
+    }
+  });
+  it('words the right reason differently at Build it, On your own and Apply it, so the repeated line is not the tell', () => {
+    for (const mission of MISSIONS) {
+      const rights = getBuildChecks(mission.id).map((check) => check.reasons[check.correctReason]);
+      assert.equal(new Set(rights).size, 3, `${mission.id}: the same right reason twice: ${rights.join(' | ')}`);
+      // Review rounds rotate through the same three wordings.
+      const reviews = [0, 1, 2].map((round) => getReviewCheck(mission.id, round)).map((check) => check.reasons[check.correctReason]);
+      assert.equal(new Set(reviews).size, 3, `${mission.id}: review rounds repeat the right reason: ${reviews.join(' | ')}`);
+      for (const r of reviews) assert.ok(rights.includes(r), `${mission.id}: review reason "${r}" is not one of the lesson's`);
+    }
   });
   it('offers each lesson’s own wrong reasons, a different pair at each step', () => {
     for (const mission of MISSIONS) {
