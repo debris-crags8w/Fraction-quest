@@ -525,7 +525,7 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
         ...countUp(0, 2, 420, true),
         ...countUp(1, 4, 420, true)),
       // More parts is bigger.
-      play([{ kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1], label: '2/5' }, { kind: 'bar', parts: ones(5), cut: true, shaded: range(4), label: '4/5' }, { kind: 'text', text: '4 parts is more than 2 parts: 4/5 > 2/5.', hidden: true }],
+      play([{ kind: 'bar', parts: ones(5), cut: true, shaded: [0, 1], label: '2/5' }, { kind: 'bar', parts: ones(5), cut: true, shaded: range(4), label: '4/5' }, { kind: 'text', text: '4 parts are more than 2 parts: 4/5 > 2/5.', hidden: true }],
         [600, { 2: { hidden: false } }]),
     ],
     why: play([{ kind: 'bar', parts: ones(6), cut: true, shaded: [0], label: '1/6', hidden: true }, { kind: 'bar', parts: ones(6), cut: true, shaded: range(5), label: '5/6', hidden: true }],
@@ -900,7 +900,7 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
       play([{ kind: 'pair', items: [
         { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(40), label: '4 tenths' },
         { kind: 'area', cut: 'grid-10x10', edges: true, shaded: gridFill(35), label: '3 tenths' },
-      ] }, { kind: 'text', text: '4 tenths is more than 3 tenths.', hidden: true }],
+      ] }, { kind: 'text', text: '4 tenths are more than 3 tenths.', hidden: true }],
       [600, { 1: { hidden: false } }]),
       // Hundredths only if the tenths match.
       play([{ kind: 'pair', items: [

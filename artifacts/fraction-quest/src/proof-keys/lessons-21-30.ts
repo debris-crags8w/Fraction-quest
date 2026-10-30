@@ -38,8 +38,8 @@ export const KEYS: Record<string, string> = {
   "3 1/5 + 1 1/5. Add the wholes. How many wholes is that?": "4",
   // 29 · Subtract mixed numbers, enough parts?: 1/6 < 4/6 (not enough); 5/8 > 2/8 (enough); 2/3 > 1/3 (enough).
   "2 1/6 − 1 4/6. Are there enough sixths to take away 4/6?": "No, there is only 1 sixth",
-  "3 5/8 − 1 2/8. Are there enough eighths to take away 2/8?": "Yes, 5 eighths is more than 2 eighths",
-  "3 2/3 − 1 1/3. Are there enough thirds to take away 1/3?": "Yes, 2 thirds is more than 1 third",
+  "3 5/8 − 1 2/8. Are there enough eighths to take away 2/8?": "Yes, 5 eighths are more than 2 eighths",
+  "3 2/3 − 1 1/3. Are there enough thirds to take away 1/3?": "Yes, 2 thirds are more than 1 third",
   // 30 · Tenths as decimals: 3 of 10 parts is 3/10; 10 tenths make one whole; 10 − 9 = 1 part not colored, 1/10; 6 tenths is 0.6.
   "A strip has 10 equal parts. 3 are colored. What fraction is colored?": "3/10",
   "How many tenths make one whole?": "10",
