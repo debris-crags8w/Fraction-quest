@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { lessonsLocked, perMonth, planChoices, readSubscription, webLessonsLocked, yearlySaving } from './lib/subscription';
+import { lessonsLocked, offerWords, perMonth, planChoices, readSubscription, webLessonsLocked, yearlySaving } from './lib/subscription';
 
 const withShell = (shell: unknown, run: () => void) => {
   const scope = globalThis as { fractionQuestShell?: unknown };
@@ -22,12 +22,12 @@ test('lessons lock only when the store says there is no subscription', () => {
 
 test('the page keeps only well-formed parts of what the app reports', () => {
   withShell({ platform: 'ios', wifi: true, subscription: { state: 'active', renewsAt: 1_800_000_000_000, price: '$4.99', busy: false } }, () => {
-    assert.deepEqual(readSubscription(), { state: 'active', renewsAt: 1_800_000_000_000, price: '$4.99', plans: [], busy: false, error: null });
+    assert.deepEqual(readSubscription(), { state: 'active', renewsAt: 1_800_000_000_000, price: '$4.99', plans: [], busy: false, error: null, trial: null });
   });
   withShell({ platform: 'ios', wifi: true, subscription: { state: 'paid', price: '$4.99' } }, () => assert.equal(readSubscription(), null));
   withShell({ platform: 'ios', wifi: true }, () => assert.equal(readSubscription(), null));
   withShell({ platform: 'android', wifi: false, subscription: { state: 'none', renewsAt: 'soon', price: 'x'.repeat(40), busy: 'yes' } }, () => {
-    assert.deepEqual(readSubscription(), { state: 'none', renewsAt: null, price: null, plans: [], busy: false, error: null });
+    assert.deepEqual(readSubscription(), { state: 'none', renewsAt: null, price: null, plans: [], busy: false, error: null, trial: null });
   });
 });
 
@@ -75,4 +75,39 @@ test('the yearly plan shows its saving and monthly cost only when the numbers al
   assert.equal(yearlySaving([yearly]), null);
   assert.match(perMonth(yearly) ?? '', /3\.33/);
   assert.equal(perMonth({ ...yearly, currency: null }), null);
+});
+
+test('the page reads whether the store will give this account the free trial', () => {
+  withShell({ platform: 'ios', wifi: true, subscription: { state: 'none', trial: false } }, () => assert.equal(readSubscription()?.trial, false));
+  withShell({ platform: 'ios', wifi: true, subscription: { state: 'none', trial: true } }, () => assert.equal(readSubscription()?.trial, true));
+  withShell({ platform: 'ios', wifi: true, subscription: { state: 'none', trial: 'yes' } }, () => assert.equal(readSubscription()?.trial, null));
+});
+
+test('a family whose subscription ended is not promised a free trial', () => {
+  const plans = [{ plan: 'yearly' as const, price: '$39.99' }, { plan: 'monthly' as const, price: '$4.99' }];
+  const lapsed = offerWords({ state: 'none', plans }, { lapsed: true, platform: 'ios' });
+  const notEligible = offerWords({ state: 'none', plans, trial: false }, { lapsed: false, platform: 'ios' });
+  for (const words of [lapsed, notEligible]) {
+    const all = [words.heading, words.price(plans[0]), words.terms, words.button, words.planButton('yearly'), words.planButton('monthly'), words.status].join(' ');
+    assert.doesNotMatch(all, /free|trial|7 days|7-day/i);
+    assert.equal(words.price(plans[0]), '$39.99 a year');
+    assert.equal(words.status, 'Lessons are locked. Subscribe for $39.99 a year or $4.99 a month.');
+  }
+  // A family new to Fraction Quest (and a store that does not say) still sees the trial.
+  for (const trial of [true, null]) {
+    const words = offerWords({ state: 'none', plans, trial }, { lapsed: false, platform: 'ios' });
+    assert.equal(words.heading, 'Try Fraction Quest free for 7 days');
+    assert.equal(words.price(plans[1]), '7 days free, then $4.99 a month');
+    assert.equal(words.button, 'Start free trial');
+    assert.equal(words.status, 'Lessons are locked. Start the 7-day free trial, then $39.99 a year or $4.99 a month.');
+  }
+});
+
+test('the paywall says where to cancel on each kind of phone', () => {
+  const where = (platform: string) => offerWords({ state: 'none' }, { lapsed: false, platform }).terms;
+  assert.match(where('ios'), /Cancel anytime in Settings on this iPhone or iPad,/);
+  assert.match(where('android'), /Cancel anytime in Google Play,/);
+  assert.match(where(''), /Cancel anytime in the App Store or Google Play,/);
+  for (const platform of ['ios', 'android', '']) assert.doesNotMatch(where(platform), /your phone/);
+  assert.equal(offerWords({ state: 'none' }, { lapsed: true, platform: 'android' }).terms, 'Renews until cancelled. Cancel anytime in Google Play.');
 });
