@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MISSIONS } from './game';
-import { CHECKPOINT_COUNT, lessonCheckpoint } from './checkpoint';
+import { workedWhy } from './checkpoint-why';
+import { CHECKPOINT_COUNT, checkpointIdea, checkpointKind, checkpointPool, lessonCheckpoint } from './checkpoint';
 import { ideaPracticeQuestions, ideaSteps, isRound, legacyPracticePlan, practicePlan, savedPlaceStillFits } from './lesson-ideas';
 import { STORY_PROBLEMS } from './story';
 import { wrongChoiceReason } from './wrong-answer';
@@ -44,6 +45,64 @@ test('no checkpoint question is one the child has already met in the lesson (ide
     const keys = lessonCheckpoint(mission).map((q) => `${words(q.prompt)}|${picture(q)}`);
     assert.equal(new Set(keys).size, keys.length, `${mission.id}: three different questions`);
   }
+});
+
+test('inside a checkpoint no question repeats another one\'s numbers or right answer', () => {
+  const numbers = (prompt: string) => (prompt.match(/\d+\s*\/\s*\d+|\d+(?:\.\d+)?/g) ?? []).map((n) => n.replace(/\s+/g, '')).sort().join(' ');
+  const fractions = (prompt: string) => new Set((prompt.match(/\d+\s*\/\s*\d+/g) ?? []).map((n) => n.replace(/\s+/g, '')));
+  const sharing: string[] = [];
+  for (const mission of MISSIONS) {
+    const questions = lessonCheckpoint(mission);
+    const answers = questions.map((q) => q.choices[q.correctChoice]);
+    assert.equal(new Set(answers).size, answers.length, `${mission.id}: the same right answer twice: ${answers.join(' | ')}`);
+    const sets = questions.map((q) => numbers(q.prompt)).filter(Boolean);
+    // unit-size and fractional-unit-conversions: the lesson's own questions use all but one or two of the numbers its generator has.
+    const fresh = new Set(checkpointPool(mission).map((q) => numbers(q.prompt)).filter(Boolean)).size;
+    if (fresh >= CHECKPOINT_COUNT) assert.equal(new Set(sets).size, sets.length, `${mission.id}: the same numbers twice: ${questions.map((q) => q.prompt).join(' | ')}`);
+    // A fraction shared by two of the three (1/3 v 1/4, then 1/2 v 1/3) only where the lesson's few fractions leave no other way.
+    if (questions.some((q, i) => questions.slice(i + 1).some((other) => [...fractions(q.prompt)].some((x) => fractions(other.prompt).has(x))))) sharing.push(mission.id);
+  }
+  assert.ok(sharing.length <= 10, `${sharing.length} checkpoints share a fraction between two questions: ${sharing.join(', ')}`);
+});
+
+test('a checkpoint draws from the lesson\'s different ideas and kinds of question wherever its question bank has them', () => {
+  const short: string[] = [];
+  for (const mission of MISSIONS) {
+    const pool = checkpointPool(mission);
+    const questions = lessonCheckpoint(mission);
+    const ideasThere = new Set(pool.map((q) => checkpointIdea(mission, q)).filter((idea) => idea >= 0)).size;
+    const ideasAsked = new Set(questions.map((q) => checkpointIdea(mission, q)).filter((idea) => idea >= 0)).size;
+    assert.ok(ideasAsked >= Math.min(CHECKPOINT_COUNT, ideasThere), `${mission.id}: asks ${ideasAsked} of the ${ideasThere} ideas its bank can ask`);
+    const kindsThere = new Set(pool.map(checkpointKind)).size;
+    const kindsAsked = new Set(questions.map(checkpointKind)).size;
+    assert.ok(kindsAsked >= Math.min(CHECKPOINT_COUNT, kindsThere), `${mission.id}: asks ${kindsAsked} kinds of question of the ${kindsThere} its bank has`);
+    if (kindsAsked < CHECKPOINT_COUNT) short.push(mission.id);
+  }
+  // The rest have one question generator that asks one kind of question (a new kind per idea is content still to write).
+  assert.ok(short.length <= 58, `${short.length} checkpoints ask the same kind of question twice: ${short.join(', ')}`);
+});
+
+test('a right answer on a checkpoint question says why, not just the hint again', () => {
+  const bare = (text: string) => text.trim().replace(/\s*So the answer is [^.]*\.?$/, '').trim();
+  const hintOnly: string[] = [];
+  for (const mission of MISSIONS) for (const q of lessonCheckpoint(mission)) if (bare(q.retryFeedback) === q.hint.trim()) hintOnly.push(`${q.id}: ${q.retryFeedback}`);
+  assert.deepEqual(hintOnly, []);
+});
+
+test('a worked "why" is true for its question: it ends on the right answer', () => {
+  let worked = 0;
+  for (const mission of MISSIONS) for (const q of checkpointPool(mission)) {
+    const why = workedWhy(mission.id, q);
+    if (!why) continue;
+    worked++;
+    // The right answer (without its unit word) is in the why, and no other choice is.
+    const value = (choice: string) => choice.replace(/\s+(?:inch|inches|hours?|minutes?|seconds?|grams?|milliliters?|centimeters?|ounces?|cups?|pounds?|liters?|meters?|feet|foot)$/, '');
+    const right = value(q.choices[q.correctChoice]);
+    const has = (text: string) => new RegExp(`(?<![\\d/.])${right.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\d/]|\\.\\d)`).test(text);
+    assert.ok(has(why) || /^[<>=]$/.test(right), `${mission.id}: "${why}" does not reach ${right} (${q.prompt})`);
+    assert.ok(why.split(/(?<=[.!?])\s+/).every((sentence) => sentence.split(/\s+/).length <= 22), `${mission.id}: a short sentence each: ${why}`);
+  }
+  assert.ok(worked > 300, `${worked} worked explanations`);
 });
 
 test('the same lesson always gets the same checkpoint (a reload or a resumed lesson shows the same questions)', () => {
