@@ -41,6 +41,17 @@ export const SLIPS = {
   tooBig: 'That one is bigger. Look for the one that covers less.',
 };
 
+/** The slip behind a wrong worksheet answer, from the row's question and the answer the child entered; null when it is not one we can name. */
+export function worksheetWrongReason(prompt: string, answer: string, picked: string): string | null {
+  return wrongChoiceReason(prompt, [answer, picked.trim()], 0, 1);
+}
+
+/** What a worksheet row says after a right answer, so a child who guessed still hears the reason: its own "why", else its
+    hint when that is a statement (a hint that asks a question is not a reason). */
+export function worksheetWhy(row: { why?: string; hint: string }): string | undefined {
+  return row.why ?? (row.hint && !/\?/.test(row.hint) ? row.hint : undefined);
+}
+
 /** The slip behind a wrong choice, in one short sentence, or null when it is not one we can name. */
 export function wrongChoiceReason(prompt: string, choices: string[], correct: number, chosen: number): string | null {
   if (chosen === correct || !choices[chosen]) return null;

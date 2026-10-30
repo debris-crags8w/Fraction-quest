@@ -2341,31 +2341,7 @@ const course = [...curriculum, ...extensionTopics.map(extensionMission)]
 const COURSE_IDS = course.map((lesson) => lesson.id);
 if (course.length !== Object.values(LESSON_PLAN).flat().length) throw new Error('LESSON_PLAN must list every lesson exactly once');
 
-export const MISSIONS: Mission[] = course.map((seed, index) => {
-  const current = mission(seed);
-  if (index === 0) return current;
-
-  // Revisit a question from the previous lesson between new practice and mastery.
-  const priorLesson = course[index - 1];
-  const priorQuestion = mission(priorLesson).questions[0];
-  const reviewChoices = [...priorQuestion.choices.slice(1), priorQuestion.choices[0]];
-  const shiftedCorrect = (priorQuestion.correctChoice - 1 + priorQuestion.choices.length) % priorQuestion.choices.length;
-  // Yes-or-no reviews keep "No" first (the shuffle that moves the right answer doesn't apply to them).
-  const review: PracticeQuestion = noBeforeYes({
-    ...priorQuestion,
-    id: `${current.id}-review`,
-    prompt: `Quick review · ${priorLesson.shortTitle}: ${priorQuestion.prompt}`,
-    choices: reviewChoices,
-    correctChoice: shiftedCorrect,
-    isMastery: false,
-    isReview: true,
-    reviewMissionId: priorLesson.id,
-    reviewQuestionId: priorQuestion.id,
-    reviewTopicTitle: priorLesson.shortTitle,
-  });
-  const mastery = current.questions[current.questions.length - 1];
-  return { ...current, questions: [...current.questions.slice(0, -1), review, mastery] };
-});
+export const MISSIONS: Mission[] = course.map((seed) => mission(seed));
 
 export const EMPTY_PROGRESS: Progress = { completedMissionIds: [], starsByMission: {}, reviewQueue: [], assessments: [] };
 const STORAGE_KEY = 'fraction-quest-progress-v1';

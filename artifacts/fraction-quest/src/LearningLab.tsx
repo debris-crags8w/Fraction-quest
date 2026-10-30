@@ -20,6 +20,7 @@ import { AreaShade, AreaSvg } from './AreaModel';
 import { PrintMenu, PrintModel } from './Printables';
 import { amountsIn } from './auto-picture';
 import { YesNoCards } from './YesNoCards';
+import { worksheetWhy, worksheetWrongReason } from './wrong-answer';
 import { LessonTeachingSupport } from './LessonTeachingSupport';
 import './learning-lab.css';
 import { TaskBar } from './TaskBar';
@@ -541,6 +542,9 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
     else onWrong?.();
     onCheck();
   };
+  const why = worksheetWhy(p);
+  // A wrong answer is answered for the pick: the slip behind it, then the row's hint.
+  const pickReason = !ok && wrong === draft ? worksheetWrongReason(p.prompt, p.answer, draft) : null;
   return (
     <li className={'fq-ll-row ' + (ok ? 'ok' : '')} data-testid={'row-worksheet-' + p.id}>
       <form onSubmit={submit}>
@@ -579,15 +583,16 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
         <div id={'ws-fb-' + p.id} aria-live="polite">
           {ok && <p ref={okRef} tabIndex={-1} className="fq-ll-ws ok" data-testid={'status-worksheet-' + p.id}><Check size={15} /> Correct!
             {onNewQuestion && <button type="button" className="fq-ll-hintbtn fq-ll-newq" onClick={onNewQuestion} data-testid={'button-new-question-' + p.id}><RotateCcw size={15} /> New question</button>}</p>}
-          {ok && p.why && <div className="fq-ll-ws why" data-testid={'text-why-worksheet-' + p.id}>
+          {ok && why && <div className="fq-ll-ws why" data-testid={'text-why-worksheet-' + p.id}>
             <div className="fq-ll-ws-section-copy">
-              <SectionListenHeader text={`Why it works. ${p.why}`} label="Listen to why it works"><strong>Why it works</strong></SectionListenHeader>
-              <LearningText text={p.why} emphasize interactiveTerms={false} />
+              <SectionListenHeader text={`Why it works. ${why}`} label="Listen to why it works"><strong>Why it works</strong></SectionListenHeader>
+              <LearningText text={why} emphasize interactiveTerms={false} />
             </div>
           </div>}
           {!ok && wrong === draft && <div className="fq-ll-ws bad" role="alert" data-testid={'status-worksheet-' + p.id}>
             <div className="fq-ll-ws-section-copy">
-              <SectionListenHeader text={`Not yet. ${p.hint}`} label="Listen to the feedback"><strong>Not yet.</strong></SectionListenHeader>
+              <SectionListenHeader text={`Not yet. ${[pickReason, p.hint].filter(Boolean).join(' ')}`} label="Listen to the feedback"><strong>Not yet.</strong></SectionListenHeader>
+              {pickReason && <LearningText text={pickReason} />}
               <LearningText text={p.hint} />
             </div>
           </div>}
