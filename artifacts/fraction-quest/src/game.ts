@@ -870,7 +870,7 @@ const curriculum: MissionSeed[] = [
       practice('Join every 2 eighths into 1 fourth. What is 2/8 in fourths?', ['1/4', '2/4', '1/8', '4/8'], 0, bars({ numerator: 2, denominator: 8 }), 'Every 2 eighths join into 1 fourth. How many fourths are shaded?', '2 eighths join into 1 fourth, so 2/8 = 1/4.', bars({ numerator: 2, denominator: 8 }), { authoredChoices: true }),
       practice('Join every 2 sixths into 1 third. What is 4/6 in thirds?', ['2/3', '4/3', '1/3', '2/6'], 0, bars({ numerator: 4, denominator: 6 }), 'Every 2 sixths join into 1 third. How many thirds are shaded?', '4 sixths join into 2 thirds, so 4/6 = 2/3.', bars({ numerator: 4, denominator: 6 }), { authoredChoices: true }),
       // Idea 4: the ? box.
-      practice('1/3 = ?/6. What number goes in the ? box?', ['2', '1', '4', '6'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 0, denominator: 6 }), 'Cut each third into 2 equal parts. Count the sixths in 1/3.', 'Each third is 2 sixths, so 1/3 = 2/6. The ? is 2.', bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 6 }), { authoredChoices: true }),
+      practice('1/3 = ?/6. What number goes in the ? box?', ['2', '1', '4', '6'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 0, denominator: 6 }), 'Line up the two bars. Count the sixths that fit under 1/3.', 'Each third is 2 sixths, so 1/3 = 2/6. The ? is 2.', bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 6 }), { authoredChoices: true }),
       practice('2/4 = ?/8. What number goes in the ? box?', ['4', '2', '6', '8'], 0, bars({ numerator: 2, denominator: 4 }, { numerator: 0, denominator: 8 }), 'Cut each fourth into 2 equal parts. Count the eighths in 2/4.', 'Each fourth is 2 eighths, so 2 fourths are 4 eighths: 2/4 = 4/8. The ? is 4.', bars({ numerator: 2, denominator: 4 }, { numerator: 4, denominator: 8 }), { authoredChoices: true }),
       practice('3/2 = ?/4. What number goes in the ? box?', ['6', '3', '5', '4'], 0, bars({ numerator: 3, denominator: 2 }), 'Cut each half into 2 fourths. Count the fourths in 3 halves.', 'Each half is 2 fourths, so 3 halves are 6 fourths: 3/2 = 6/4. The ? is 6.', bars({ numerator: 6, denominator: 4 }), { authoredChoices: true }),
     ],
@@ -1634,7 +1634,7 @@ const extensionTopics: ExtensionTopic[] = [
       // Idea 1: rename a length in same-size parts.
       practice('A board is 1/3 meter long. How many sixths of a meter is that?', ['2/6 meter', '1/6 meter', '2/3 meter', '4/6 meter'], 0,
         bars({ numerator: 1, denominator: 3 }, { numerator: 0, denominator: 6 }),
-        'Each third is cut into 2 sixths. Count the sixths in 1/3.', 'Each third is 2 sixths, so 1/3 meter = 2/6 meter.',
+        'Line up the two bars. Count the sixths that fit under 1/3.', 'Each third is 2 sixths, so 1/3 meter = 2/6 meter.',
         bars({ numerator: 1, denominator: 3 }, { numerator: 0, denominator: 6 }), { authoredChoices: true }),
       practice('A board is 1/2 meter long. How many eighths of a meter is that?', ['4/8 meter', '1/8 meter', '2/8 meter', '7/8 meter'], 0,
         bars({ numerator: 1, denominator: 2 }, { numerator: 0, denominator: 8 }),
@@ -2229,6 +2229,21 @@ const picture = (top: number, bottom: number): ModelSpec => ({ kind: 'bars', bar
 /** A picture for a worksheet problem: its own model, else the first amount in the question. Never the answer. */
 export function problemPicture(problem: WorksheetProblem): ModelSpec {
   const m = problem.model;
+  // Whole numbers as fractions (lessons 23-24). "How many wholes are 12/6?": the wholes cut into sixths, empty, with
+  // one spare, so neither the bars nor full bars can be counted for the answer. "Write 3 whole bars as a fraction…":
+  // the 3 bars it names. "Write 8/8 as a whole number.": the 8/8 it names, and a spare empty bar.
+  const howMany = /^How many wholes are (\d+)\/(\d+)\?$/.exec(problem.prompt);
+  if (howMany) {
+    const [n, d] = [Number(howMany[1]), Number(howMany[2])];
+    return { kind: 'bars', bars: Array.from({ length: Math.ceil(n / d) + 1 }, () => ({ numerator: 0, denominator: d })), hideLabels: true };
+  }
+  const wholeBars = /^Write (\d+) whole bars as a fraction/.exec(problem.prompt);
+  if (wholeBars) return { kind: 'bars', bars: [{ numerator: Number(wholeBars[1]), denominator: 1 }], hideLabels: true };
+  const asWhole = /^Write (\d+)\/\1 as a whole number\.$/.exec(problem.prompt);
+  if (asWhole) {
+    const d = Number(asWhole[1]);
+    return { kind: 'bars', bars: [{ numerator: d, denominator: d }, { numerator: 0, denominator: d }], hideLabels: true };
+  }
   // An empty picture: the wholes cut into equal pieces, nothing shaded yet (sharing questions).
   if (m && m.n === 0) return { kind: 'bars', bars: Array.from({ length: m.wholes }, () => ({ numerator: 0, denominator: m.d })), hideLabels: true };
   // The measuring tools the question talks about come first: the line plot, the ruler, the grid.
@@ -2712,7 +2727,15 @@ export function loadProgress(): Progress {
   try {
     const stored = window.localStorage.getItem(scopedStorageKey(STORAGE_KEY));
     if (!stored) return EMPTY_PROGRESS;
-    const parsed: unknown = JSON.parse(stored);
+    return cleanProgress(JSON.parse(stored));
+  } catch {
+    return EMPTY_PROGRESS;
+  }
+}
+
+/** Saved progress (from this device or the server) with anything malformed or out of date dropped. */
+export function cleanProgress(parsed: unknown): Progress {
+  try {
     if (!parsed || typeof parsed !== 'object') return EMPTY_PROGRESS;
     const value = parsed as Partial<Progress>;
     const validIds = new Set(MISSIONS.map((item) => item.id));

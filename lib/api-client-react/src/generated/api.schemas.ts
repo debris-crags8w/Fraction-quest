@@ -232,6 +232,64 @@ export interface ProgressPayload {
   fun: ProgressPayloadFun;
 }
 
+export type LearnerProgressPayloadProgress = { [key: string]: unknown };
+
+export type LearnerProgressPayloadFun = { [key: string]: unknown };
+
+export interface LearnerProgressPayload {
+  progress: LearnerProgressPayloadProgress;
+  fun: LearnerProgressPayloadFun;
+  /**
+     * The saved copy's version this device last loaded or saved.
+     * @minimum 0
+     */
+  version?: number;
+}
+
+/**
+ * @nullable
+ */
+export type SavedLearnerProgressProgress = { [key: string]: unknown } | null;
+
+/**
+ * @nullable
+ */
+export type SavedLearnerProgressFun = { [key: string]: unknown } | null;
+
+export interface SavedLearnerProgress {
+  /** @nullable */
+  progress: SavedLearnerProgressProgress;
+  /** @nullable */
+  fun: SavedLearnerProgressFun;
+  /** @nullable */
+  updatedAt: string | null;
+  /** Goes up by one with every save or clear of this learner's progress. */
+  version: number;
+}
+
+/**
+ * @nullable
+ */
+export type LearnerProgressConflictProgress = { [key: string]: unknown } | null;
+
+/**
+ * @nullable
+ */
+export type LearnerProgressConflictFun = { [key: string]: unknown } | null;
+
+export interface LearnerProgressConflict {
+  error: string;
+  /** @nullable */
+  progress: LearnerProgressConflictProgress;
+  /** @nullable */
+  fun: LearnerProgressConflictFun;
+  /** @nullable */
+  updatedAt: string | null;
+  version: number;
+  /** The progress was cleared after the version the device sent, so the device should not merge its older copy back in. */
+  clearedSince: boolean;
+}
+
 /**
  * @nullable
  */

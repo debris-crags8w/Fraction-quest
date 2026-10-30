@@ -5,9 +5,10 @@ import { connectToStore, offersFromProducts, type StoreModule } from './store-of
 const IDS = { yearly: 'fq_year', monthly: 'fq_month' };
 const product = (id: string, displayPrice: string, price: number, extra: object = {}) => ({ id, displayPrice, price, currency: 'USD', ...extra });
 
-const fakeStore = (options: { connected?: boolean; products?: unknown[] | null; throws?: boolean } = {}) => {
+const fakeStore = (options: { connected?: boolean; products?: unknown[] | null; throws?: boolean; eligible?: (group: string) => Promise<boolean> } = {}) => {
   const calls: string[] = [];
   const api = {
+    ...(options.eligible ? { isEligibleForIntroOfferIOS: options.eligible } : {}),
     initConnection: async () => { calls.push('init'); return options.connected ?? true; },
     fetchProducts: async (request: { skus: string[]; type: string }) => {
       calls.push(`fetch ${request.skus.join(',')} ${request.type}`);
@@ -51,4 +52,39 @@ test('found plans are reported yearly first, with the amounts and Android offer 
   const one = await connectToStore(fakeStore({ products: [product('fq_year', '$39.99', 39.99)] }).api, IDS);
   assert.deepEqual(one?.offers.map((offer) => offer.plan), ['yearly']);
   assert.deepEqual(offersFromProducts([{ id: 'fq_month', displayPrice: '$4.99', price: 'free' }], IDS).offers[0], { plan: 'monthly', price: '$4.99', amount: null, currency: null });
+});
+
+const phases = (...micros: string[]) => ({ pricingPhasesAndroid: { pricingPhaseList: micros.map((priceAmountMicros) => ({ priceAmountMicros })) } });
+
+test('on Android the plan is bought with its free-trial offer when Google Play offers one, and the page is told', async () => {
+  const found = await connectToStore(fakeStore({ products: [
+    product('fq_month', '$4.99', 4.99, { platform: 'android', subscriptionOffers: [{ offerTokenAndroid: 'base', ...phases('4990000') }, { offerTokenAndroid: 'trial', ...phases('0', '4990000') }] }),
+  ] }).api, IDS);
+  assert.deepEqual(found?.tokens, { monthly: 'trial' });
+  assert.equal(found?.trial, true);
+});
+
+test('on Android an account Google Play offers no trial (it had one before) is told so', async () => {
+  const found = await connectToStore(fakeStore({ products: [
+    product('fq_month', '$4.99', 4.99, { platform: 'android', subscriptionOffers: [{ offerTokenAndroid: 'base', ...phases('4990000') }] }),
+    product('fq_year', '$39.99', 39.99, { platform: 'android', subscriptionOffers: [{ offerTokenAndroid: 'year-trial', ...phases('0', '39990000') }] }),
+  ] }).api, IDS);
+  assert.deepEqual(found?.tokens, { monthly: 'base', yearly: 'year-trial' });
+  assert.equal(found?.trial, false, 'one plan without the trial: the page promises none');
+});
+
+test('on iPhone the store is asked whether this account can still get the trial', async () => {
+  const ios = [product('fq_month', '$4.99', 4.99, { platform: 'ios', subscriptionGroupIdIOS: 'group-1' })];
+  const asked: string[] = [];
+  const no = await connectToStore(fakeStore({ products: ios, eligible: async (group) => { asked.push(group); return false; } }).api, IDS);
+  assert.equal(no?.trial, false);
+  assert.deepEqual(asked, ['group-1']);
+  assert.equal((await connectToStore(fakeStore({ products: ios, eligible: async () => true }).api, IDS))?.trial, true);
+  assert.equal((await connectToStore(fakeStore({ products: ios, eligible: async () => { throw new Error('no'); } }).api, IDS))?.trial, null, 'the store did not say');
+  assert.equal((await connectToStore(fakeStore({ products: ios }).api, IDS))?.trial, null);
+});
+
+test('a store that says nothing about offers leaves the trial unknown', async () => {
+  const found = await connectToStore(fakeStore({ products: [product('fq_month', '$4.99', 4.99, { subscriptionOffers: [{ offerTokenAndroid: 'tok-m' }] })] }).api, IDS);
+  assert.equal(found?.trial, null);
 });

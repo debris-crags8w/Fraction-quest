@@ -38,7 +38,7 @@ import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyBuildCorrec
 import { FRACTION_STANDARDS } from './standard-catalog';
 import { DailyPracticeQuestionHeading } from './DailyPracticeQuestionHeading';
 import type { PracticeQuestion } from './game';
-import { MORE_REASON_IDEAS, REASON_IDEAS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
+import { MORE_REASON_IDEAS, REASON_IDEAS, FITTED_REASONS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
 import { AnswerTiles } from './AnswerTiles';
 import {
   createLearningSpeechController,
@@ -2914,7 +2914,8 @@ describe('quality audit fixes', () => {
       // Review rounds rotate through the same three wordings.
       const reviews = [0, 1, 2].map((round) => getReviewCheck(mission.id, round)).map((check) => check.reasons[check.correctReason]);
       assert.equal(new Set(reviews).size, 3, `${mission.id}: review rounds repeat the right reason: ${reviews.join(' | ')}`);
-      for (const r of reviews) assert.ok(rights.includes(r), `${mission.id}: review reason "${r}" is not one of the lesson's`);
+      // An item a lesson's own wordings don't fit (6/4 in a scaling lesson, 3 batches) gets one true for it (FITTED_REASONS).
+      for (const r of reviews) assert.ok([...rights, ...FITTED_REASONS.right].includes(r), `${mission.id}: review reason "${r}" is not one of the lesson's`);
     }
   });
   it('offers each lesson’s own wrong reasons, a different pair at each step', () => {
@@ -2927,7 +2928,7 @@ describe('quality audit fixes', () => {
       const checks = [...getBuildChecks(mission.id), ...[0, 1, 2].map((round) => getReviewCheck(mission.id, round))];
       for (const check of checks) {
         const wrong = check.reasons.filter((_, i) => i !== check.correctReason);
-        for (const r of wrong) assert.ok(slips.includes(r), `${mission.id}: "${r}" is not one of the lesson's own mistakes`);
+        for (const r of wrong) assert.ok([...slips, ...FITTED_REASONS.wrong].includes(r), `${mission.id}: "${r}" is not one of the lesson's own mistakes`);
       }
       // Build it, On your own and Apply it each show a different pair.
       const pairs = getBuildChecks(mission.id).map((check) => check.reasons.filter((_, i) => i !== check.correctReason).sort().join(' | '));

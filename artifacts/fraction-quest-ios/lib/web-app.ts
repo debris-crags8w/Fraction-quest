@@ -47,6 +47,8 @@ export type SubscriptionStatus = {
   busy?: boolean;
   /** A short message for the grown-up when something went wrong (never for a cancelled purchase). */
   error?: string | null;
+  /** Whether this store account gets the free trial (Apple and Google give it once); null when the store did not say. */
+  trial?: boolean | null;
 };
 
 /** What the page is told about the practice reminder on this phone, and whether the phone lets it notify. */

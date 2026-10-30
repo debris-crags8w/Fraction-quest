@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { accountEntryAfterSessionFailure, accountEntryFailure, authenticateAccount, createProgressSaveQueue, hydrateAccountProgress, signOutSafely, type AccountBundle } from './account-flow';
+import { accountEntryAfterSessionFailure, accountEntryFailure, authenticateAccount, createProgressSaveQueue, hydrateAccountProgress, signOutSafely, versionedProgressSave, type AccountBundle } from './account-flow';
+import { EMPTY_PROGRESS, MISSIONS, type Progress } from './game';
+import { emptyLearningRecord } from './learning';
 
 const guest: AccountBundle = {
   progress: { completedMissionIds: ['equal-parts'], starsByMission: { 'equal-parts': 2 }, reviewQueue: [] },
@@ -235,4 +237,83 @@ test('student sign-up, saved-progress return visit, sign-out, and sign-in comple
   const afterReturn = await hydrateAccountProgress(progressApi, store);
   assert.deepEqual(afterReturn, guest);
   assert.deepEqual(device, guest);
+});
+
+/* Two devices, one learner: the server keeps a version and refuses a save made from an older one (409, with its copy). */
+function twoDeviceServer(start: { progress: Progress; version: number; resetVersion?: number }) {
+  let saved = { progress: start.progress as unknown, fun: {} as unknown, version: start.version };
+  let resetVersion = start.resetVersion ?? 0;
+  const puts: (number | undefined)[] = [];
+  return {
+    get copy() { return saved; },
+    clear() { saved = { progress: {}, fun: {}, version: saved.version + 1 }; resetVersion = saved.version; },
+    api: {
+      load: async () => saved,
+      save: async (copy: { progress: unknown; fun: unknown; version?: number }) => {
+        puts.push(copy.version);
+        if (copy.version !== undefined && copy.version !== saved.version) {
+          throw Object.assign(new Error('conflict'), { status: 409, data: { ...saved, clearedSince: resetVersion > copy.version, updatedAt: null, error: 'x' } });
+        }
+        saved = { progress: copy.progress, fun: copy.fun, version: saved.version + 1 };
+        return { version: saved.version };
+      },
+    },
+    puts,
+  };
+}
+const [lessonA, lessonB] = MISSIONS.map((mission) => mission.id);
+const finishedOnly = (...ids: string[]): Progress => ({
+  ...EMPTY_PROGRESS, completedMissionIds: ids, starsByMission: Object.fromEntries(ids.map((id) => [id, 3])),
+  learning: Object.fromEntries(ids.map((id) => [id, { ...emptyLearningRecord(), practiceDone: true, completedAt: 1 }])),
+});
+const plainClean = (copy: { progress: unknown; fun: unknown }) => ({ progress: { ...EMPTY_PROGRESS, ...(copy.progress as Progress) }, fun: copy.fun as AccountBundle['fun'] });
+const memory = (start: number | null) => { let value = start; return { read: () => value, write: (next: number | null) => { value = next; } }; };
+
+test('a device saving an old copy does not erase a lesson finished on another device', async () => {
+  // The tablet finished lesson B (server version 6); the phone last loaded version 5 and finished lesson A.
+  const server = twoDeviceServer({ progress: finishedOnly(lessonB), version: 6 });
+  const version = memory(5);
+  const told: { progress: Progress; cleared: boolean }[] = [];
+  const save = versionedProgressSave(server.api, version, plainClean, (copy) => told.push(copy));
+  await save({ progress: finishedOnly(lessonA), fun: {} as AccountBundle['fun'] });
+  assert.deepEqual(server.puts, [5, 6], 'refused once, then saved on the current version');
+  assert.deepEqual([...(server.copy.progress as Progress).completedMissionIds].sort(), [lessonA, lessonB].sort());
+  assert.equal(version.read(), 7);
+  assert.equal(told.length, 1, 'the app is given the saved copy to merge into what is on screen');
+  assert.deepEqual(told[0].progress.completedMissionIds, [lessonB]);
+  assert.equal(told[0].cleared, false);
+});
+
+test('a save from the latest version goes straight through and remembers the new version', async () => {
+  const server = twoDeviceServer({ progress: finishedOnly(lessonB), version: 3 });
+  const version = memory(3);
+  await versionedProgressSave(server.api, version, plainClean, () => assert.fail('no merge needed'))({ progress: finishedOnly(lessonB, lessonA), fun: {} as AccountBundle['fun'] });
+  assert.deepEqual(server.puts, [3]);
+  assert.equal(version.read(), 4);
+});
+
+test('a device that never learned a version loads the saved copy and merges before it saves', async () => {
+  const server = twoDeviceServer({ progress: finishedOnly(lessonB), version: 2 });
+  const version = memory(null);
+  await versionedProgressSave(server.api, version, plainClean, () => {})({ progress: finishedOnly(lessonA), fun: {} as AccountBundle['fun'] });
+  assert.deepEqual(server.puts, [2]);
+  assert.deepEqual([...(server.copy.progress as Progress).completedMissionIds].sort(), [lessonA, lessonB].sort());
+});
+
+test('progress a grown-up cleared on another device is not merged back from an old copy', async () => {
+  const server = twoDeviceServer({ progress: finishedOnly(lessonB), version: 4 });
+  const version = memory(4);
+  server.clear();
+  const told: { cleared: boolean }[] = [];
+  await versionedProgressSave(server.api, version, plainClean, (copy) => told.push(copy))({ progress: finishedOnly(lessonA, lessonB), fun: {} as AccountBundle['fun'] });
+  assert.deepEqual((server.copy.progress as Progress).completedMissionIds, []);
+  assert.deepEqual(told.map((copy) => copy.cleared), [true]);
+});
+
+test('a save that keeps meeting newer copies gives up for now, and the queue retries it later', async () => {
+  const save = versionedProgressSave({
+    load: async () => ({ progress: {}, fun: {}, version: 1 }),
+    save: async () => { throw Object.assign(new Error('conflict'), { status: 409, data: { progress: {}, fun: {}, version: 99, clearedSince: false } }); },
+  }, memory(1), plainClean, () => {});
+  await assert.rejects(save({ progress: finishedOnly(lessonA), fun: {} as AccountBundle['fun'] }));
 });

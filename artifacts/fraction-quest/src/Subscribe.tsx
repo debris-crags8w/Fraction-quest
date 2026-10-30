@@ -6,11 +6,13 @@ import { GrownUpGate } from './GrownUpGate';
 import { LearningListenButton } from './LearningText';
 import { LanternIcon } from './riddle-ui';
 import { MISSIONS } from './game';
-import { askShell, LISTED_PRICE, LISTED_YEARLY_PRICE, perMonth, planChoices, useSubscription, yearlySaving, type Plan, type Subscription } from './lib/subscription';
+import { askShell, LISTED_PRICE, LISTED_YEARLY_PRICE, offerWords, perMonth, planChoices, subscribedBefore, useSubscription, yearlySaving, type Plan, type Subscription } from './lib/subscription';
+import { appShell } from './lib/app-shell';
 import './subscribe.css';
 
 /* What a child sees when a lesson needs the subscription: ask a grown-up, the grown-up check (Apple requires one before
-   any purchase in a children's app), then the free-trial screen for the grown-up. The purchase itself happens in
+   any purchase in a children's app), then the offer screen for the grown-up (with the free trial only for a family that
+   can still get it). The purchase itself happens in
    Apple's or Google's own sheet; when it goes through, the lesson that was asked for opens by itself. */
 
 /** Where the app is listed; set for the published website once the store listings are live. */
@@ -28,7 +30,7 @@ export function SubscribeFlow({ subscription, lapsed, lessonsDone, piecesFound, 
     return <div className="fq-app"><GrownUpGate onPass={() => setStep('paywall')} onBack={() => setStep('ask')} backLabel="Back"
       reason="Subscriptions are for grown-ups. Please answer to continue." /></div>;
   }
-  if (step === 'paywall') return <Paywall subscription={subscription} onClose={onBack} />;
+  if (step === 'paywall') return <Paywall subscription={subscription} lapsed={lapsed} onClose={onBack} />;
   return <AskGrownUp lapsed={lapsed} lessonsDone={lessonsDone} piecesFound={piecesFound} onGrownUp={() => setStep('gate')} onBack={onBack} onStorybook={onStorybook} />;
 }
 
@@ -125,8 +127,9 @@ function AskGrownUp({ lapsed, lessonsDone, piecesFound, onGrownUp, onBack, onSto
   );
 }
 
-function Paywall({ subscription, onClose }: { subscription: Subscription; onClose: () => void }) {
+function Paywall({ subscription, lapsed, onClose }: { subscription: Subscription; lapsed: boolean; onClose: () => void }) {
   const plans = planChoices(subscription);
+  const words = offerWords(subscription, { lapsed, platform: appShell()?.platform ?? '' });
   const [chosen, setChosen] = useState<Plan>(plans[0].plan);
   const offer = plans.find((item) => item.plan === chosen) ?? plans[0];
   const saving = yearlySaving(plans);
@@ -138,7 +141,7 @@ function Paywall({ subscription, onClose }: { subscription: Subscription; onClos
           <span>For grown-ups</span>
           <button className="fq-icon-button" onClick={onClose} aria-label="Close" data-testid="button-paywall-close"><X size={18} /></button>
         </div>
-        <h1>Try Fraction Quest free for 7 days</h1>
+        <h1>{words.heading}</h1>
         <p>A full fraction course for grades 3 to 5, built to the Common Core standards.</p>
         <ul className="fq-paywall-list">
           <li><Check size={16} strokeWidth={3} aria-hidden="true" /><span><strong>{MISSIONS.length} lessons</strong> that teach first, then practise</span></li>
@@ -165,12 +168,12 @@ function Paywall({ subscription, onClose }: { subscription: Subscription; onClos
           </fieldset>
         )}
         <div className="fq-paywall-terms">
-          <strong data-testid="paywall-price">7 days free, then {offer.price} {per(offer.plan)}</strong>
-          <span>Renews until cancelled. Cancel anytime in your phone’s Settings, at least a day before the trial ends, and you won’t be charged.</span>
+          <strong data-testid="paywall-price">{words.price(offer)}</strong>
+          <span>{words.terms}</span>
         </div>
         {subscription.error && <p className="fq-paywall-error" role="alert">{subscription.error}</p>}
         <button className="fq-button fq-paywall-start" onClick={() => askShell('buy', plans.length > 1 ? offer.plan : undefined)} disabled={subscription.busy} data-testid="button-start-trial">
-          {subscription.busy ? 'One moment…' : 'Start free trial'}
+          {subscription.busy ? 'One moment…' : words.button}
         </button>
         <div className="fq-paywall-links">
           <button className="fq-paywall-restore" onClick={() => askShell('restore')} disabled={subscription.busy} data-testid="button-restore">Restore purchase</button>
@@ -186,6 +189,7 @@ function Paywall({ subscription, onClose }: { subscription: Subscription; onClos
 export function SubscriptionSettings() {
   const subscription = useSubscription();
   if (!subscription) return null;
+  const words = offerWords(subscription, { lapsed: subscribedBefore(), platform: appShell()?.platform ?? '' });
   const renews = subscription.renewsAt ? new Date(subscription.renewsAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : null;
   return (
     <section className="fq-parent-section fq-subscription-settings" aria-labelledby="subscription-title" data-testid="section-subscription" data-state={subscription.state}>
@@ -193,28 +197,29 @@ export function SubscriptionSettings() {
       <p data-testid="subscription-status">{subscription.state === 'active'
         ? <>Fraction Quest is on{renews ? <>. It renews on <strong>{renews}</strong></> : null}.</>
         : subscription.state === 'none'
-          ? <>Lessons are locked. Start the 7-day free trial, then {planChoices(subscription).map((item) => `${item.price} a ${item.plan === 'yearly' ? 'year' : 'month'}`).join(' or ')}.</>
+          ? <>{words.status}</>
           : <>The store can’t be reached right now, so all lessons stay open.</>}</p>
       {subscription.error && <p className="fq-paywall-error" role="alert">{subscription.error}</p>}
       <div className="fq-subscription-actions">
         {subscription.state === 'active'
           ? <button className="fq-button" onClick={() => askShell('manage')} data-testid="button-manage-subscription">Manage or cancel</button>
-          : subscription.state === 'none' && <ParentStartTrial subscription={subscription} />}
+          : subscription.state === 'none' && <ParentStartTrial subscription={subscription} words={words} />}
         <button className="fq-button ghost" onClick={() => askShell('restore')} disabled={subscription.busy} data-testid="button-parent-restore">Restore purchase</button>
       </div>
     </section>
   );
 }
 
-/** The grown-ups' page starts the trial on the paywall's plans: one button for each plan the store sells. */
-function ParentStartTrial({ subscription }: { subscription: Subscription }) {
+/** The grown-ups' page starts the subscription (with the trial, when the family can get it) on the paywall's plans: one
+    button for each plan the store sells. */
+function ParentStartTrial({ subscription, words }: { subscription: Subscription; words: ReturnType<typeof offerWords> }) {
   const plans = planChoices(subscription);
   if (plans.length === 1) {
-    return <button className="fq-button" onClick={() => askShell('buy')} disabled={subscription.busy} data-testid="button-parent-start-trial">Start free trial</button>;
+    return <button className="fq-button" onClick={() => askShell('buy')} disabled={subscription.busy} data-testid="button-parent-start-trial">{words.button}</button>;
   }
   return <>{plans.map((item) => (
     <button key={item.plan} className="fq-button" onClick={() => askShell('buy', item.plan)} disabled={subscription.busy} data-testid={`button-parent-start-trial-${item.plan}`}>
-      {item.plan === 'yearly' ? 'Start yearly trial' : 'Start monthly trial'}
+      {words.planButton(item.plan)}
     </button>
   ))}</>;
 }

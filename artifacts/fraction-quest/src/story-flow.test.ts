@@ -129,7 +129,7 @@ test('chapters 8, 9 and 12 thank the child differently after each lesson, and ea
   }
   // A chapter with a single line still thanks the same way every time.
   assert.equal(thanksFor(chapterFor(2)!, 0), chapterFor(2)!.thanks);
-  assert.equal(thanksFor(chapterFor(1)!, 1), chapterFor(1)!.thanks);
+  assert.equal(thanksFor(chapterFor(3)!, 1), chapterFor(3)!.thanks);
 });
 
 test('chapter 12 lessons 4 to 11 and chapter 9 lessons 7 to 9 each carry a thread: a deadline, a missing piece or something at stake', () => {
@@ -328,4 +328,141 @@ test('a mystery of the week is answered the next Monday, in words, and the answe
 
 test('an everyday secret does not name Bolt\'s rocket boots before chapter 5 brings them in', () => {
   for (let i = 0; i < 90; i++) assert.doesNotMatch(dailySecret(new Date(Date.UTC(2026, 9, 29) + i * 86_400_000).toISOString().slice(0, 10), false), /rocket boots|\bboots\b/i);
+});
+
+/* ---------- Storyline rescore 3 (wave 4) ---------- */
+
+/** A number a story line can name: a mixed number, a fraction, a decimal or a whole number, as an exact-enough value. */
+const NUMBER = String.raw`\d+ \d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?`;
+const valueOf = (text: string): number => {
+  const mixed = /^(\d+) (\d+)\/(\d+)$/.exec(text);
+  if (mixed) return Number(mixed[1]) + Number(mixed[2]) / Number(mixed[3]);
+  const fraction = /^(\d+)\/(\d+)$/.exec(text);
+  return fraction ? Number(fraction[1]) / Number(fraction[2]) : Number(text);
+};
+/** "5/6 + 1/2", "2 3/5 − 1 1/2" or "3/4 × 20", left to right (story lines use one operation at a time). */
+const evaluate = (expression: string): number => {
+  const parts = expression.split(/\s*([+−×÷])\s*/);
+  let total = valueOf(parts[0]!);
+  for (let i = 1; i < parts.length; i += 2) {
+    const next = valueOf(parts[i + 1]!);
+    total = parts[i] === '+' ? total + next : parts[i] === '−' ? total - next : parts[i] === '×' ? total * next : total / next;
+  }
+  return total;
+};
+const EXPRESSION = String.raw`(?:${NUMBER})(?:\s*[+−×÷]\s*(?:${NUMBER}))*`;
+const RELATION = String.raw`\s*(=|>|<|is more than|is less than)\s*`;
+/** Every claim a line makes between two numbers ("5/6 is more than 1/2", "0.8 > 0.75 > 0.09", "1/2 + 1/2 = 1"). */
+function claims(text: string): { left: string; relation: string; right: string; at: number }[] {
+  const found: { left: string; relation: string; right: string; at: number }[] = [];
+  const chain = new RegExp(`(?<![\\d/.])${EXPRESSION}(?:${RELATION}${EXPRESSION})+`, 'g');
+  for (const match of text.matchAll(chain)) {
+    const pieces = match[0].split(new RegExp(RELATION));
+    for (let i = 0; i + 2 < pieces.length; i += 2) found.push({ left: pieces[i]!, relation: pieces[i + 1]!, right: pieces[i + 2]!, at: match.index! });
+  }
+  return found;
+}
+const holds = ({ left, relation, right }: { left: string; relation: string; right: string }) => {
+  const a = evaluate(left); const b = evaluate(right);
+  return relation === '=' ? Math.abs(a - b) < 1e-9 : relation === '>' || relation === 'is more than' ? a > b : a < b;
+};
+
+test('every comparison a result states is true, and a "so" names the fact it rests on (5/6 > 1/2 alone does not make 5/6 + 1/2 > 1)', () => {
+  let checked = 0;
+  for (const [id, problem] of Object.entries(STORY_PROBLEMS)) {
+    const result = plain(problem.result);
+    for (const claim of claims(result)) { checked++; assert.ok(holds(claim), `${id}: "${claim.left} ${claim.relation} ${claim.right}" is not true in "${result}"`); }
+    // "A, so B + C is more than N": the reason before "so" must reach N, with a fact that equals it.
+    for (const sentence of result.split(/(?<=[.!?])\s+/)) {
+      const [reason, conclusion] = sentence.split(/,? so /);
+      if (!conclusion) continue;
+      for (const claim of claims(conclusion)) {
+        if (!/[+−]/.test(claim.left) || claim.relation === '=') continue;
+        const bound = evaluate(claim.right);
+        assert.ok(claims(reason!).some((fact) => fact.relation === '=' && Math.abs(evaluate(fact.right) - bound) < 1e-9),
+          `${id}: "${sentence}" says ${claim.left} ${claim.relation} ${claim.right} without a reason that reaches ${claim.right}`);
+      }
+    }
+  }
+  assert.ok(checked >= 15, `only ${checked} comparisons checked`);
+  assert.ok(holds(claims('0.8 > 0.75 > 0.09')[1]!));
+  assert.equal(holds({ left: '5/6 + 1/2', relation: 'is less than', right: '1' }), false);
+});
+
+test('a friend never names themself in the third person (the friend\'s own face is on the panel)', () => {
+  const ownName = (speaker: string, text: string) => new RegExp(`\\b${speaker.charAt(0).toUpperCase()}${speaker.slice(1)}\\b`).test(text.replace(/Team Chomp/g, '').replace(/^I’m \w+/, ''));
+  for (const chapter of CHAPTERS) {
+    const said: [string, string][] = [
+      ...chapter.intro.map((panel): [string, string] => [panel.speaker, panel.text]),
+      ...chapter.choice.map((option): [string, string] => [option.reply.speaker, option.reply.text]),
+      ...[...chapter.scenes, ...chapter.asks, ...[chapter.thanks].flat(), chapter.done].map((text): [string, string] => [chapter.character, text]),
+      ...lessonsIn(chapter.unit).map((mission): [string, string] => [chapter.character, STORY_PROBLEMS[mission.id]!.setup]),
+    ];
+    for (const [speaker, text] of said) assert.ok(!ownName(speaker, text), `chapter ${chapter.unit}: ${speaker} says "${text}"`);
+  }
+});
+
+test('the story matches its lessons: one missing number, one last line, a strap then a different part, pie on the picnic, one loaf', () => {
+  const sceneBefore = (missionId: string) => {
+    const mission = MISSIONS.find((item) => item.id === missionId)!;
+    const index = lessonsIn(mission.unit).indexOf(mission);
+    return plain(lessonComic(chapterFor(mission.unit)!, mission, index).map((panel) => panel.text).join(' '));
+  };
+  const cliffAfter = (missionId: string) => {
+    const mission = MISSIONS.find((item) => item.id === missionId)!;
+    return plain(chapterFor(mission.unit)!.cliffs[lessonsIn(mission.unit).indexOf(mission)]!);
+  };
+  const thanksAfter = (missionId: string) => {
+    const mission = MISSIONS.find((item) => item.id === missionId)!;
+    return plain(thanksFor(chapterFor(mission.unit)!, lessonsIn(mission.unit).indexOf(mission)));
+  };
+  // D3: every question in this lesson has one missing number.
+  for (const question of MISSIONS.find((mission) => mission.id === 'equivalent-missing-both')!.questions) assert.doesNotMatch(question.prompt, /\?.*\?/);
+  assert.doesNotMatch(`${sceneBefore('equivalent-missing-both')} ${thanksAfter('equivalent-missing-both')}`, /two numbers|both numbers|find both/i);
+  // D4: Bolt's note has one last line, read after the riddle lesson.
+  const note = chapterFor(8)!;
+  const lastLines = [...note.scenes, ...note.cliffs].filter((line) => /\blast line\b/i.test(line));
+  assert.deepEqual(lastLines, [note.cliffs[note.cliffs.length - 1]]);
+  // D5: the strap is fixed in its own lesson; the part that costs money is something else, named.
+  assert.match(cliffAfter('compare-decimals-grid'), /strap/i);
+  assert.match(cliffAfter('add-tenths-hundredths'), /spring/i);
+  assert.doesNotMatch(cliffAfter('add-tenths-hundredths'), /\bthe part\b/i);
+  // D9: the picnic packs pie; the stage crew has one loaf; the lights have a reason to need rain; the stone glows whole only at the end.
+  assert.match(plain(chapterFor(10)!.intro[0].text), /\bpie\b/);
+  assert.match(sceneBefore('fractional-sharing'), /one loaf/, 'the scene agrees with the cliff before it: one loaf first');
+  assert.doesNotMatch(`${sceneBefore('line-plot-totals')} ${plain(STORY_PROBLEMS['line-plot-totals']!.setup)}`, /lights need water/i);
+  assert.doesNotMatch(plain(STORY_PROBLEMS['divide-fractions']!.result), /whole again/i);
+});
+
+test('chapter 1 says where its stone piece went: dug out of the crumbs', () => {
+  assert.match(plain(chapterFor(1)!.done), /piece/i);
+  assert.match(plain(chapterFor(1)!.done), /crumbs|dug/i);
+});
+
+test('no friend says the same thanks more than twice in a chapter', () => {
+  for (const chapter of CHAPTERS) {
+    const counts = new Map<string, number>();
+    for (const line of lessonsIn(chapter.unit).slice(0, -1).map((_, index) => plain(thanksFor(chapter, index)))) counts.set(line, (counts.get(line) ?? 0) + 1);
+    for (const [line, times] of counts) assert.ok(times <= 2, `${chapter.title}: "${line}" is said ${times} times`);
+  }
+});
+
+test('each chapter asks its own stone question, with plausible mix-ups and no empty stone', () => {
+  const questions = new Set<string>();
+  for (let found = 1; found <= STONE_PIECES; found++) {
+    const { question, choices, correct } = stoneQuestion(found);
+    assert.equal(choices[correct], `${found}/${STONE_PIECES}`);
+    assert.equal(new Set(choices).size, 4);
+    for (const choice of choices) assert.doesNotMatch(choice, /^0\//, `${found}: ${choices.join(' ')}`);
+    assert.match(question, /Whole Stone|stone/);
+    assert.match(question, /\?$/);
+    assert.doesNotMatch(question, /\d|\blast\b|\bfirst\b|\ball\b|\bevery\b/i, 'the words do not count the pieces for the child');
+    assert.ok(question.split(' ').length <= 15, question);
+    questions.add(question);
+  }
+  assert.equal(questions.size, STONE_PIECES, 'a different sentence for every chapter');
+});
+
+test('an after-ending secret does not move the stone out of its glass case', () => {
+  for (const secret of SECRETS) assert.doesNotMatch(secret, /glass case[^.]*\bholds\b(?![^.]*stone)/i, secret);
 });
