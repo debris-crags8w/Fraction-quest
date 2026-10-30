@@ -23,7 +23,7 @@ const EVERYDAY_SECRETS = [
   'Hoot reads with a tiny lamp after everyone is asleep.',
   'Numi’s favorite snack is half of a sandwich. Exactly half.',
   'I once ate a whole {cake} by myself. My tummy said no more {cake}.',
-  'Bolt’s rocket boots can fly as high as the bakery roof.',
+  'Bolt can build a toaster in one minute. It makes very loud toast.',
   'Pip’s lily pad has a secret drawer full of shiny pebbles.',
   'Tilly’s shell has a map of the whole town drawn on it.',
   'Bea’s honey is the sweetest because she shares it fairly.',
@@ -122,26 +122,28 @@ export function dailySecret(day = today(), afterEnding = false): string {
   return pool[(dayNumber(day) * 7) % pool.length]!;
 }
 
-/** After the ending Chomp, the riddle maker, has a mystery of the week tied to Hoot's lantern; it changes every Monday. */
-const MYSTERIES = [
-  'Mystery of the week: who left a tiny footprint by Hoot’s lantern? Chomp has clues.',
-  'Mystery of the week: the lantern flickered at midnight. Who blew on it?',
-  'Mystery of the week: a trail of crumbs leads to the lantern. Chomp swears it wasn’t him.',
-  'Mystery of the week: someone left a riddle under the lantern. Whose writing is it?',
-  'Mystery of the week: the lantern glows a new color every night. Why?',
-  'Mystery of the week: Pip heard a hum from the lantern. Is it the stone singing?',
-  'Mystery of the week: something shiny sits at the foot of the lantern. Where did it come from?',
-  'Mystery of the week: Bea found a flower that glows in the lantern light.',
-  'Mystery of the week: the lantern’s oil jar is lighter. Who borrowed a drop?',
-  'Mystery of the week: Tilly saw a shadow dance around the lantern. Whose is it?',
-  'Mystery of the week: a secret door appeared behind the lantern. Where does it go?',
-  'Mystery of the week: Bolt’s screen beeped in code near the lantern. What does it say?',
+/** After the ending Chomp, the riddle maker, has a mystery of the week tied to Hoot's lantern; it changes every Monday,
+    and the next Monday he tells how it ended ("Last week ..."), so every mystery is solved. */
+const MYSTERIES: { ask: string; answer: string }[] = [
+  { ask: 'Mystery of the week: who left a tiny footprint by Hoot’s lantern? Chomp has clues.', answer: 'Last week’s tiny footprint by the lantern was Pip’s. He hopped by to say hello.' },
+  { ask: 'Mystery of the week: the lantern flickered at midnight. Who blew on it?', answer: 'Last week the lantern flickered because Hoot’s owl friend flapped past at midnight.' },
+  { ask: 'Mystery of the week: a trail of crumbs leads to the lantern. Chomp swears it wasn’t him.', answer: 'Last week Chomp told the truth. The crumbs fell from Bea’s honey cake.' },
+  { ask: 'Mystery of the week: someone left a riddle under the lantern. Whose writing is it?', answer: 'Last week’s riddle under the lantern was Chomp’s. He wrote it just for the Keeper.' },
+  { ask: 'Mystery of the week: the lantern glows a new color every night. Why?', answer: 'Last week the lantern glowed new colors because Hoot swaps its glass cover every night.' },
+  { ask: 'Mystery of the week: Pip heard a hum from the lantern. Is it the stone singing?', answer: 'Last week’s hum by the lantern was Bolt. He hums while he polishes the glass.' },
+  { ask: 'Mystery of the week: something shiny sits at the foot of the lantern. Where did it come from?', answer: 'Last week’s shiny thing by the lantern was a bolt that rolled off Bolt’s bench.' },
+  { ask: 'Mystery of the week: Bea found a flower that glows in the lantern light.', answer: 'Last week’s glowing flower grew from a seed Bea dropped in the festival garden.' },
+  { ask: 'Mystery of the week: the lantern’s oil jar is lighter. Who borrowed a drop?', answer: 'Last week Hoot borrowed the drop. He polished the lantern, then filled the jar again.' },
+  { ask: 'Mystery of the week: Tilly saw a shadow dance around the lantern. Whose is it?', answer: 'Last week’s dancing shadow was Numi’s. Numi was practicing a festival dance.' },
+  { ask: 'Mystery of the week: a secret door appeared behind the lantern. Where does it go?', answer: 'Last week’s secret door leads to Hoot’s library of old riddles.' },
+  { ask: 'Mystery of the week: Bolt’s screen beeped in code near the lantern. What does it say?', answer: 'Last week Bolt’s beeps said, “Thank you, Keeper.” He was too shy to say it out loud.' },
 ];
-export function mysteryOfTheWeek(day = today()): string {
-  // Weeks start on Monday (1 January 1970 was a Thursday, so the first Monday is day 4).
-  const week = Math.floor((dayNumber(day) - 4) / 7);
-  return MYSTERIES[((week % MYSTERIES.length) + MYSTERIES.length) % MYSTERIES.length]!;
-}
+// Weeks start on Monday (1 January 1970 was a Thursday, so the first Monday is day 4).
+const mysteryWeek = (day: string) => Math.floor((dayNumber(day) - 4) / 7);
+const mysteryAt = (week: number) => MYSTERIES[((week % MYSTERIES.length) + MYSTERIES.length) % MYSTERIES.length]!;
+export const mysteryOfTheWeek = (day = today()): string => mysteryAt(mysteryWeek(day)).ask;
+/** How last week's mystery ended: shown from Monday, next to the new one. */
+export const mysteryAnswer = (day = today()): string => mysteryAt(mysteryWeek(day) - 1).answer;
 
 export type LanternNight = { day: string; label: string; lit: boolean; today: boolean; /** No right answer, but a drop of spare oil kept the streak going. */ saved: boolean };
 /** The last 7 days, ending today: a night is lit when at least one answer was right that day, saved when spare oil covered it. */

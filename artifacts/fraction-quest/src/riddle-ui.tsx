@@ -1,6 +1,6 @@
 import { StoryCharacter } from './characters';
 import { Flame } from 'lucide-react';
-import { dailySecret, lanternCard, mysteryOfTheWeek, lanternWeek, oilNoticeWords, oilWordsText, riddleReaction, riddleSetup } from './riddles';
+import { dailySecret, lanternCard, mysteryAnswer, mysteryOfTheWeek, lanternWeek, oilNoticeWords, oilWordsText, riddleReaction, riddleSetup } from './riddles';
 import { LearningListenButton } from './LearningText';
 import './spare-oil.css';
 import { withName } from './story';
@@ -92,7 +92,7 @@ export function RiddleSecret({ afterEnding = false }: { /** All 15 stone pieces 
       {afterEnding && (
         <div className="fq-riddle-secret fq-riddle-mystery" data-testid="riddle-mystery">
           <StoryCharacter id="chomp" size={44} happy />
-          <p><b>Chomp:</b> {mysteryOfTheWeek()} Every secret is a clue. Come back tomorrow!</p>
+          <p><b>Chomp:</b> {mysteryAnswer()}<br />{mysteryOfTheWeek()} Come back next Monday to hear how it ends!</p>
         </div>
       )}
     </>

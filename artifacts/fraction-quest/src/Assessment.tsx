@@ -14,10 +14,10 @@ import './assessment.css';
 import { RulerInteraction, LinePlotInteraction, ScaleInteraction } from './LearningLab';
 import { WorksheetBarCopy } from './WorksheetBarCopy';
 import {
-  assessmentResponse, buildAssessmentItems, copyReference, getAssessmentDefinitions, ASSESSMENT_ITEM_COUNT,
+  assessmentResponse, buildAssessmentItems, copyReference, getAssessmentDefinitions, assessmentItemCount,
   type AssessmentDefinition, type AssessmentItem,
 } from './assessments';
-import type { AssessmentAttempt, AssessmentDraft } from './game';
+import type { AssessmentAttempt, AssessmentDraft, ModelSpec } from './game';
 import { LearningListenButton, LearningText } from './LearningText';
 import { TaskBar } from './TaskBar';
 
@@ -47,12 +47,12 @@ export function AssessmentHub({ attempts, draft, onStart, onBack }: {
           <h3>{definition.title}</h3>
           <p>{definition.description}</p>
           {latest && <p className="fq-assessment-last">Most recent: {correct} of {checked} correct · {new Date(latest.completedAt).toLocaleDateString()}</p>}
-          <small>{definition.standards.length} standards · {ASSESSMENT_ITEM_COUNT} model-and-answer questions</small>
+          <small>{definition.standards.length} standards · {assessmentItemCount(definition)} model-and-answer questions</small>
         </div>
         {draft?.assessmentId === definition.id ? (
           <div className="fq-assessment-resume">
             <button className="fq-button" onClick={() => onStart(definition)} data-testid={`button-resume-${definition.id}`}>
-              Resume · question {draft.responses.length + 1} of {ASSESSMENT_ITEM_COUNT} <ArrowRight size={16} />
+              Resume · question {draft.responses.length + 1} of {assessmentItemCount(definition)} <ArrowRight size={16} />
             </button>
             <button type="button" className="fq-link-button" onClick={() => onStart(definition, true)} data-testid={`button-restart-${definition.id}`}>Start over</button>
           </div>
@@ -166,7 +166,10 @@ function AssessmentModelBuilder({ item, onReady }: { item: AssessmentItem; onRea
   if (problem.linePlotTask) return <LinePlotInteraction key={item.id} task={problem.linePlotTask} disabled={false} onReady={handleReady} checkIn />;
   if (problem.scaleTask) return <ScaleInteraction key={item.id} id={statusId} task={problem.scaleTask} disabled={false} onReady={handleReady} />;
   if (problem.area) return <ReadOnlyArea key={item.id} figure={problem.area} onReady={handleReady} />;
-  if (!problem.model) return item.visualFractions ? <FractionStripsBuilder key={item.id} fractions={item.visualFractions} onReady={handleReady} /> : null;
+  if (!problem.model) {
+    if (item.visualFractions) return <FractionStripsBuilder key={item.id} fractions={item.visualFractions} onReady={handleReady} />;
+    return problem.picture ? <ReadOnlyDrawing key={item.id} model={problem.picture} onReady={handleReady} /> : null;
+  }
   // The worksheet's own task ("Shade 1 part", "Tap each part to count it"), exactly as in the lesson.
   if (problem.model.kind === 'bar' && problem.task) {
     const copy = <WorksheetBarCopy key={item.id} target={problem.model} task={problem.task} disabled={false} statusId={statusId} onMatchChange={handleReady} />;
@@ -181,6 +184,12 @@ function AssessmentModelBuilder({ item, onReady }: { item: AssessmentItem; onRea
     </section>{copy}</>;
   }
   return <ReadOnlyPicture key={item.id} model={problem.model} onReady={handleReady} />;
+}
+
+/** A picture the question carries (two decimals on hundredths grids): read, so nothing to build. */
+function ReadOnlyDrawing({ model, onReady }: { model: ModelSpec; onReady: ReadyFn }) {
+  useEffect(() => { onReady(true, true); }, [onReady]);
+  return <section className="fq-assessment-model fq-assessment-picture" data-testid="assessment-picture"><PrintModel model={model} labels={false} /></section>;
 }
 
 function ReadOnlyArea({ figure, onReady }: { figure: NonNullable<AssessmentItem['problem']['area']>; onReady: ReadyFn }) {
