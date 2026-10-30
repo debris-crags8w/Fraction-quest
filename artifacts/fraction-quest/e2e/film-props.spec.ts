@@ -86,10 +86,8 @@ for (const sample of SAMPLES) {
       for (const whole of faces) {
         // A character's box has about 8 px of empty margin (shadow, line gap) round the drawing.
         const face = { ...whole, x: whole.x + 8, y: whole.y + 8, width: whole.width - 16, height: whole.height - 16 };
-        // The friend stands at the speaker's feet, clear of every caption up to five lines. One course line is longer (seven lines, 205
-        // characters: compare-same-numerator), and its caption reaches up over the friend; every other lesson must keep the friend clear.
-        const longLine = sample.lesson === 'compare-same-numerator' && face.who === 'story-set-friend';
-        if (!longLine) expect(overlap(face, caption), `beat ${beat}: caption covers ${face.who} ${JSON.stringify([face, caption])}`).toBe(false);
+        // The friend stands at the speaker's feet, clear of every caption up to five lines.
+        expect(overlap(face, caption), `beat ${beat}: caption covers ${face.who} ${JSON.stringify([face, caption])}`).toBe(false);
         expect(overlap(face, picture), `beat ${beat}: ${face.who} covers the prop`).toBe(false);
         // Nobody is cut by the screen's edge or by the letterbox bars (a character's box has the same empty margin round it).
         expect(face.x, `beat ${beat}: ${face.who} is cut by the left edge`).toBeGreaterThanOrEqual(screen.x);
