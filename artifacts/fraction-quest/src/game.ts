@@ -799,7 +799,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'compare-same-numerator', title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'When the wholes are the same size, the same numerator means we count the same number of parts. A larger denominator splits that whole into more equal parts, so each part is smaller, and so is the fraction.',
+    id: 'compare-same-numerator', title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'Wholes are the same size. Same numerator? We count the same number of parts. Larger denominator? More equal parts, so each part is smaller.',
     explainPrompt: 'Use the bars for 3/4 and 3/8. What does the denominator change in the same-size whole? Why is 3/8 smaller even though both fractions count 3 parts? Then draw same-length bars for 2/3 and 2/4 and explain why 2/3 is larger without repeating the example.',
     description: 'Compare fractions with the same numerator.', example: {
       prompt: 'Which is bigger, 3/4 or 3/8?',

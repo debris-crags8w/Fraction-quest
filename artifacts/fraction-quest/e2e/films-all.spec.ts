@@ -139,10 +139,9 @@ test('a lesson film from every chapter plays on a phone with sound, music and a 
         const where = `${name} ${shot.caption}`;
         if (!shot.speaker) continue;
         expect.soft(coveredShare(shot.speaker, shot.captionBox), `${where}: the speaker's face is under the caption`).toBeLessThanOrEqual(COVER_TOLERANCE);
-        // The friend stands at the speaker's feet, clear of every caption up to five lines. One course line is longer than that (seven lines, 205
-        // characters: compare-same-numerator, third shot), and its caption reaches up over the friend; any other caption that long is flagged.
+        // The friend stands at the speaker's feet, clear of every caption up to five lines; a taller caption is flagged.
         if (shot.friend && shot.captionBox && shot.captionBox.t >= FRIEND_SAFE_CAPTION_TOP) expect.soft(coveredShare(shot.friend, shot.captionBox), `${where}: the chapter friend is under the caption`).toBeLessThanOrEqual(COVER_TOLERANCE);
-        else if (shot.friend) expect.soft(shot.caption, `${where}: a caption this tall (${shot.captionBox?.t}) is only expected for the one long compare-same-numerator line`).toBe(name === 'chapter 2, compare-same-numerator' ? 'story-panel-2' : 'never');
+        else if (shot.friend) expect.soft(shot.caption, `${where}: a caption this tall (${shot.captionBox?.t}) reaches over the chapter friend`).toBe('never');
         expect.soft(visibleShare(shot.speaker, shot.frame), `${where}: the speaker is inside the picture`).toBeGreaterThanOrEqual(0.9);
         if (shot.friend) expect.soft(coveredShare(shot.speaker, shot.friend), `${where}: the chapter friend sits on the speaker's face`).toBeLessThanOrEqual(COVER_TOLERANCE);
         if (shot.friend) expect.soft(visibleShare(shot.friend, shot.frame), `${where}: the friend is inside the picture`).toBeGreaterThanOrEqual(0.9);
