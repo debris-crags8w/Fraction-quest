@@ -7,6 +7,8 @@ import { CREAM, delay, GOLD, INK, Ledge, outline, StonePiece, type EndDef, type 
 const thin = { ...outline, strokeWidth: 2.5 } as const;
 const GLASS = '#E4F6FF';
 const STEEL = '#C3CCD6';
+const LEMONADE = '#FFE066';
+const LEMONADE_TOP = '#FFF3A8';
 
 /* ---------- Chapter 12 · the stage ---------- */
 
@@ -27,22 +29,23 @@ function BoardsArt() {
   </>;
 }
 
-/** Three clear mugs filled to different heights, and a juice jug tipped over them. */
+/** Three clear mugs of lemonade filled to different heights, and a lemonade jug tipped over them. */
 const MUGS: { x: number; level: number }[] = [{ x: 26, level: 82 }, { x: 66, level: 74 }, { x: 106, level: 90 }];
 function CupsArt() {
   return <>
     {MUGS.map(({ x, level }, i) => (
       <g key={x}>
         <path d={`M${x + 13} 78 q11 0 11 10 q0 10 -11 10`} fill="none" stroke={INK} strokeWidth="4.5" strokeLinecap="round" />
-        <path className={i === 1 ? 'fq-fp-d-rise' : undefined} d={`M${x - 11} ${level} h22 v${98 - level} q0 8 -8 8 h-6 q-8 0 -8 -8 Z`} fill="#FF9F1C" />
-        <path d={`M${x - 11} ${level} h22`} stroke="#FFD08A" strokeWidth="3" strokeLinecap="round" />
+        <path className={i === 1 ? 'fq-fp-d-rise' : undefined} d={`M${x - 11} ${level} h22 v${98 - level} q0 8 -8 8 h-6 q-8 0 -8 -8 Z`} fill={LEMONADE} />
+        <path d={`M${x - 11} ${level} h22`} stroke={LEMONADE_TOP} strokeWidth="3" strokeLinecap="round" />
         <path d={`M${x - 13} 64 V98 q0 8 8 8 h10 q8 0 8 -8 V64`} fill={GLASS} fillOpacity=".3" {...outline} />
         <path d={`M${x - 7} ${level + 8} v${88 - level}`} stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity=".6" />
       </g>
     ))}
     <g transform="translate(8 0) rotate(-12 160 106)"><g className="fq-fp-d-tip">
       <path d="M176 48 q13 0 13 14 q0 14 -11 16" fill="none" stroke={INK} strokeWidth="4.5" strokeLinecap="round" />
-      <path d="M147.5 66 h25 l2.5 32 q0 8 -8 8 h-14 q-8 0 -8 -8 Z" fill="#FF9F1C" />
+      <path d="M147.5 66 h25 l2.5 32 q0 8 -8 8 h-14 q-8 0 -8 -8 Z" fill={LEMONADE} />
+      <circle cx="160" cy="84" r="7" fill="#FFF3A8" stroke="#E0B400" strokeWidth="2" /><path d="M160 77 v14 M153 84 h14" stroke="#E0B400" strokeWidth="1.5" />
       <path d="M146 40 l-9 -3 l3 11 M146 40 h28 l4 58 q0 8 -8 8 h-20 q-8 0 -8 -8 Z" fill={GLASS} fillOpacity=".3" {...outline} />
       <path d="M152 70 v24" stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity=".6" />
     </g></g>
@@ -278,18 +281,18 @@ function SnacksArt() {
   </>;
 }
 
-/** A glass measuring jug of blue drink, and a small scoop that dips in. */
+/** A glass measuring jug of lemonade, and a small scoop that dips in. */
 function JugArt() {
   return <>
     <path d="M114 40 q22 2 20 26 q-2 20 -14 24" fill="none" stroke={INK} strokeWidth="4.5" strokeLinecap="round" />
-    <path d="M56.5 58 H111.5 L108.2 96 q-1 10 -11 10 H71 q-10 0 -11 -10 Z" fill="#4CC9F0" />
+    <path d="M56.5 58 H111.5 L108.2 96 q-1 10 -11 10 H71 q-10 0 -11 -10 Z" fill={LEMONADE} />
     <path d="M56.5 58 H111.5" stroke={CREAM} strokeWidth="3" strokeLinecap="round" />
     <path d="M44 26 l10 4 l-4 10 M54 30 H114 L108 96 q-1 10 -11 10 H71 q-10 0 -11 -10 Z" fill={GLASS} fillOpacity=".5" {...outline} />
     <path d="M64 64 v28" stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity=".6" />
     <g className="fq-fp-d-drop">
       <rect x="172" y="84" width="26" height="6" rx="3" transform="rotate(-45 172 87)" fill={GOLD} {...thin} />
       <path d="M146 86 h30 q0 20 -15 20 q-15 0 -15 -20 Z" fill={GOLD} {...outline} />
-      <ellipse cx="161" cy="86" rx="15" ry="4" fill="#4CC9F0" />
+      <ellipse cx="161" cy="86" rx="15" ry="4" fill={LEMONADE} />
     </g>
   </>;
 }
@@ -363,7 +366,7 @@ function FestivalEndArt() {
 
 export const PROPS_D: Record<string, PropDef> = {
   'd-boards': { label: 'Two wooden stage boards on sawhorses, end to end, with a hammer', art: BoardsArt, ledge: true },
-  'd-cups': { label: 'Three clear mugs of orange juice and a juice jug tipped over them', art: CupsArt, ledge: true },
+  'd-cups': { label: 'Three clear mugs of lemonade and a lemonade jug tipped over them', art: CupsArt, ledge: true },
   'd-nails': { label: 'A wooden crate of shiny nails with a few spilled on the floor', art: NailsArt, ledge: true },
   'd-sandbag': { label: 'A sandbag hanging from a rope, with a little pile of sand beside it', art: SandbagArt, ledge: true },
   'd-rope': { label: 'A coil of rope with its snapped, frayed end lying out', art: RopeArt, ledge: true },
@@ -376,7 +379,7 @@ export const PROPS_D: Record<string, PropDef> = {
   'd-chest': { label: 'A little treasure chest with its lid popped open and light shining out', art: ChestArt, ledge: true },
   'd-scroll': { label: 'A riddle scroll with one wavy line circled in red, and a pencil with an eraser', art: ScrollArt },
   'd-snacks': { label: 'A big party bowl heaped with snacks, and a small plate beside it', art: SnacksArt, ledge: true },
-  'd-jug': { label: 'A glass measuring jug of blue drink, and a small scoop beside it', art: JugArt, ledge: true },
+  'd-jug': { label: 'A glass measuring jug of lemonade, and a small scoop beside it', art: JugArt, ledge: true },
 };
 export const LESSONS_D: Record<string, string> = {
   'fractional-measure-addition': 'd-boards',      // ch 12: "Two boards go end to end. How long together?"

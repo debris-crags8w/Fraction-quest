@@ -26,11 +26,11 @@
 .fq-fp.is-found .fq-fp-b-gear { animation: fq-fp-b-turn 1.4s ease-out both; }
 @keyframes fq-fp-b-turn { from { transform: rotate(-50deg); } }
 
-/* Wagon: it rolls in from the right. */
-.fq-fp.is-on .fq-fp-b-wagon { animation: fq-fp-b-roll-in 1.3s cubic-bezier(.3, .9, .4, 1) both; }
+/* Jars: the part-full jar slides in from the right. */
+.fq-fp.is-on .fq-fp-b-jarin { animation: fq-fp-b-roll-in 1.3s cubic-bezier(.3, .9, .4, 1) both; }
 @keyframes fq-fp-b-roll-in { from { transform: translateX(64px); } }
 
-/* Donut: the crumbs tumble down onto the plate. */
+/* Donut and tipped jar: the crumbs tumble down. */
 .fq-fp.is-on .fq-fp-b-crumb { animation: fq-fp-b-crumb 1s cubic-bezier(.4, 1.4, .5, 1) both; }
 @keyframes fq-fp-b-crumb { from { transform: translate(-14px, -34px); } }
 
@@ -41,10 +41,6 @@
 .fq-fp.is-on .fq-fp-b-spark { animation: fq-fp-b-spark .45s ease-in-out 4 alternate; }
 @keyframes fq-fp-b-spark { from { opacity: .25; } }
 
-/* Dial: the needle swings up to its place. */
-.fq-fp-b-needle { transform-box: fill-box; transform-origin: 50% 100%; transform: rotate(28deg); }
-.fq-fp.is-on .fq-fp-b-needle { animation: fq-fp-b-swing 1.4s cubic-bezier(.3, 1.4, .5, 1) both; }
-@keyframes fq-fp-b-swing { from { transform: rotate(-62deg); } }
 
 /* Screen: the eyes blink twice. */
 .fq-fp-b-eye { transform-box: fill-box; transform-origin: 50% 50%; }

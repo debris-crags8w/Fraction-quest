@@ -106,22 +106,43 @@ function BoxEndArt() {
 
 /* ---------------------------------------------------------------- Chapter 8: the secret in the den */
 
-/** Lesson 3: "I have one full jar and a bit more. Bolt brought extra!" A little wagon with a snack sack and loose snacks, rolling in. */
-function WagonArt() {
-  return <g className="fq-fp-b-wagon">
-    <path d="M38 82 L12 98" stroke={INK} strokeWidth="9" strokeLinecap="round" /><path d="M38 82 L12 98" stroke="#C9915B" strokeWidth="4" strokeLinecap="round" />
-    <path d="M52 66 q-10 -30 12 -38 h22 q22 8 12 38 Z" fill="#E8C98C" {...outline} />
-    <rect x="66" y="22" width="18" height="9" rx="4" fill={RED} {...thin} />
-    <path d="M58 56 q2 -12 8 -16" {...shine} />
-    {[[114, 57], [132, 57], [123, 41]].map(([x, y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="9" fill={GOLD} {...thin} />)}
-    <rect x="36" y="64" width="108" height="26" rx="6" fill={RED} {...outline} />
-    <path d="M44 74 h92" stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity=".55" />
-    <circle cx="62" cy="96" r="11" fill="#7E8FA8" {...outline} /><circle cx="62" cy="96" r="3.5" fill={CREAM} />
-    <circle cx="120" cy="96" r="11" fill="#7E8FA8" {...outline} /><circle cx="120" cy="96" r="3.5" fill={CREAM} />
-  </g>;
+/** A glass snack jar (46 wide, standing on the ledge) with cookies up to `level` (106 is empty), and its red lid. */
+const SnackJar = ({ x, level }: { x: number; level: number }) => <>
+  <path d={`M${x} 52 q0 -8 8 -8 h30 q8 0 8 8 v46 q0 8 -8 8 h-30 q-8 0 -8 -8 Z`} fill="#E4F6FF" fillOpacity=".92" {...outline} />
+  {level < 100 && <>
+    <path d={`M${x + 4} ${level} h38 v${96 - level} q0 6 -6 6 h-26 q-6 0 -6 -6 Z`} fill="#E0A458" stroke="#9A5B1C" strokeWidth="2" />
+    <circle cx={x + 14} cy={level + 6} r="2.4" fill="#6B3A12" /><circle cx={x + 30} cy={Math.min(level + 14, 98)} r="2.4" fill="#6B3A12" />
+  </>}
+  <path d={`M${x + 8} 56 v34`} {...shine} />
+  <rect x={x - 3} y="34" width="52" height="12" rx="5" fill={RED} {...thin} />
+</>;
+
+/** Lesson 3: "I have whole jars and part of a jar. Let's add them up!" Two full snack jars, and a third with only a few
+    cookies in it that slides in beside them. */
+function JarsArt() {
+  return <>
+    <SnackJar x={18} level={56} />
+    <SnackJar x={74} level={56} />
+    <g className="fq-fp-b-jarin"><SnackJar x={136} level={88} /></g>
+  </>;
 }
 
-/** Lesson 4: "I only had a few bites. Okay, okay, maybe more than a few." A plate with a well-bitten donut and crumbs. */
+/** Lesson 4: "I ate some of my jars. Okay, okay. How much is left?" One full jar still standing, and an empty jar on
+    its side with its lid off and a few crumbs tumbling out of its open end. */
+function EmptyJarsArt() {
+  return <>
+    <SnackJar x={22} level={56} />
+    <path d="M98 60 h54 q8 0 8 8 v30 q0 8 -8 8 h-54 Z" fill="#E4F6FF" fillOpacity=".92" {...outline} />
+    <path d="M98 58 v50" stroke={INK} strokeWidth="5" strokeLinecap="round" />
+    <path d="M110 68 h36" {...shine} />
+    <rect x="164" y="94" width="28" height="11" rx="4" fill={RED} {...thin} transform="rotate(-10 178 100)" />
+    <g className="fq-fp-b-crumb">
+      {[[88, 101, 4], [78, 103, 3], [68, 102, 3.5], [104, 100, 3]].map(([x, y, r]) => <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#E0A458" stroke="#9A5B1C" strokeWidth="1.8" />)}
+    </g>
+  </>;
+}
+
+/** Chapter 10, lesson 3: "I ate some. Oops. How much is left?" A plate with a well-bitten donut and crumbs. */
 function DonutArt() {
   return <>
     <ellipse cx="100" cy="104" rx="76" ry="17" fill="rgb(0 0 0 / .22)" />
@@ -150,22 +171,6 @@ function BootArt() {
     <g className="fq-fp-b-zap"><path d="M152 62 l-14 20 h10 l-6 18 l18 -24 h-11 l7 -14 Z" fill={ORANGE} {...thin} /></g>
     <circle cx="128" cy="62" r="2.5" fill={INK} /><circle cx="168" cy="100" r="2.5" fill={INK} />
     <path className="fq-fp-b-spark" d="M118 56 l-6 -6 M114 66 l-8 0 M120 48 l0 -8" fill="none" stroke={GOLD} strokeWidth="3" strokeLinecap="round" />
-  </>;
-}
-
-/** Lesson 8: "Bolt's boot meter shows a fraction. Can we write it as a decimal?" A round dial gauge on a stand: bands and a needle, no marks. */
-function DialArt() {
-  return <>
-    <path d="M72 106 l8 -22 h40 l8 22 Z" fill="#7E8FA8" {...outline} />
-    <circle cx="100" cy="95" r="4.5" fill="#7BD389" {...thin} />
-    <circle cx="100" cy="56" r="40" fill={ORANGE} {...outline} />
-    <circle cx="100" cy="56" r="31" fill={CREAM} {...thin} />
-    <path d="M77.4 47.8 A24 24 0 0 1 108.2 33.4" fill="none" stroke="#7BD389" strokeWidth="7" />
-    <path d="M108.2 33.4 A24 24 0 0 1 122.6 47.8" fill="none" stroke={GOLD} strokeWidth="7" />
-    <path d="M122.6 47.8 A24 24 0 0 1 122.6 64.2" fill="none" stroke={RED} strokeWidth="7" />
-    <path className="fq-fp-b-needle" d="M96.5 56 L100 28 L103.5 56 Z" fill={INK} stroke={INK} strokeWidth="2" strokeLinejoin="round" />
-    <circle cx="100" cy="56" r="6" fill={GOLD} {...thin} />
-    <path d="M74 36 q6 -10 16 -13" {...shine} />
   </>;
 }
 
@@ -289,10 +294,10 @@ export const PROPS_B: Record<string, PropDef> = {
   'b-spool': { label: 'A spool of copper wire with its loose end curling along the bench', art: SpoolArt, ledge: true },
   'b-rods': { label: 'A bucket of long metal rods sticking out at different heights', art: RodsArt, ledge: true },
   'b-labeler': { label: 'A little label maker pushing out a blank sticker label', art: LabelerArt, ledge: true },
-  'b-wagon': { label: 'A small wagon with a sack of snacks and a few loose snacks', art: WagonArt, ledge: true },
+  'b-jars': { label: 'Two full snack jars, and a third jar with only a few cookies in it', art: JarsArt, ledge: true },
+  'b-emptyjars': { label: 'A full snack jar, and an empty jar tipped over with cookie crumbs spilling out', art: EmptyJarsArt, ledge: true },
   'b-donut': { label: 'A plate with a donut that has big bites taken out of it, and a few crumbs', art: DonutArt },
   'b-boot': { label: 'A rocket boot plugged in to a yellow charger', art: BootArt, ledge: true },
-  'b-dial': { label: 'A round dial gauge on a stand with a needle and colored bands', art: DialArt, ledge: true },
   'b-screen': { label: 'A little screen on a stalk showing two glowing eyes and a smile', art: ScreenArt },
   'b-batteries': { label: 'A jumbled pile of colorful batteries', art: BatteriesArt, ledge: true },
   'b-strap': { label: 'Two leather straps of different lengths joined at a metal buckle', art: StrapArt },
@@ -306,10 +311,10 @@ export const LESSONS_B: Record<string, string> = {
   'whole-numbers-as-fractions': 'b-spool',       // ch 7: "Is this wire a whole number of meters?"
   'improper-fractions': 'b-rods',                // ch 7: "one of these rods is longer than a whole"
   'mixed-improper': 'b-labeler',                 // ch 7: "I like to write long numbers the short way"
-  'add-mixed-numbers': 'b-wagon',                // ch 8: "Bolt brought extra!"
-  'subtract-mixed-numbers': 'b-donut',           // ch 8: "I only had a few bites... maybe more than a few"
-  'tenths-decimals': 'b-boot',                   // ch 8: "Which boot has more charge?"
-  'decimal-fraction-equivalence': 'b-dial',      // ch 8: "Bolt's boot meter shows a fraction"
+  'add-mixed-numbers': 'b-jars',                 // ch 8: "I have whole jars and part of a jar."
+  'subtract-mixed-numbers': 'b-emptyjars',       // ch 8: "I ate some of my jars."
+  'tenths-decimals': 'note',                     // ch 8: "Bolt's note counts in tenths."
+  'decimal-fraction-equivalence': 'b-boot',      // ch 8: "Maybe his boots can say it for him."
   'compare-decimals': 'b-screen',                // ch 8: "Bolt's screen shows two numbers"
   'compare-decimals-grid': 'b-batteries',        // ch 8: "Which battery has the most charge?"
   'add-tenths-hundredths': 'b-strap',            // ch 8: "join two pieces to fix Bolt's boot strap"

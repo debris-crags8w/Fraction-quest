@@ -52,21 +52,21 @@ function NoteArt() {
   </>;
 }
 
-/** A beaker's glass and its water (each its own height); the third one takes a drip. */
-const BEAKERS: { x: number; top: number }[] = [{ x: 24, top: 58 }, { x: 80, top: 44 }, { x: 136, top: 70 }];
-function BeakersArt() {
+/** A wooden rain barrel under a drainpipe: a drop falls in and the water settles a little higher. The drop is drawn
+    first, so it falls behind the barrel's front. */
+function BarrelArt() {
   return <>
-    {BEAKERS.map(({ x, top }, i) => (
-      <g key={x}>
-        <path className={i === 2 ? 'fq-fp-water' : undefined} d={`M${x + 3} ${top} h34 v${92 - top} q0 11 -11 11 h-12 q-11 0 -11 -11 Z`} fill="#4CC9F0" />
-        <path d={`M${x + 3} ${top} h34`} stroke="#B8EEFF" strokeWidth="3" strokeLinecap="round" />
-        <path d={`M${x} 22 v70 q0 14 14 14 h12 q14 0 14 -14 v-70`} fill="#E4F6FF" fillOpacity=".3" {...outline} />
-        <path d={`M${x - 4} 22 h8`} stroke={INK} strokeWidth="3" strokeLinecap="round" />
-        <path d={`M${x + 8} ${top + 8} v${80 - top}`} stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity=".6" />
-      </g>
-    ))}
-    <rect x="146" y="2" width="28" height="12" rx="4" fill="#A8B4C8" {...outline} strokeWidth={2.5} />
-    <path className="fq-fp-drip" d="M160 18 q-6 9 0 14 q6 -5 0 -14 Z" fill="#4CC9F0" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+    <path className="fq-fp-drip" d="M112 22 q-6 9 0 14 q6 -5 0 -14 Z" fill="#4CC9F0" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+    <path d="M168 0 v10 q0 8 -8 8 h-42" fill="none" stroke={INK} strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M168 0 v10 q0 8 -8 8 h-42" fill="none" stroke="#A8B4C8" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M62 50 q-9 28 0 56 h76 q9 -28 0 -56 Z" fill="#C9915B" {...outline} />
+    <path d="M81 52 q-4 26 0 52 M100 52 v52 M119 52 q4 26 0 52" stroke="#9A6A3A" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+    <path d="M59 64 q41 7 82 0 M59 93 q41 7 82 0" stroke="#7E8FA8" strokeWidth="5" fill="none" strokeLinecap="round" />
+    <ellipse cx="100" cy="50" rx="38" ry="9" fill="#7A5230" {...outline} />
+    <ellipse className="fq-fp-water" cx="100" cy="51" rx="31" ry="5.5" fill="#4CC9F0" />
+    <path d="M84 50 q8 -3 18 -2" stroke="#B8EEFF" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+    <path d="M70 70 v24" stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity=".45" />
+    <rect x="137" y="80" width="16" height="9" rx="3" fill={GOLD} {...outline} strokeWidth={2.5} />
   </>;
 }
 
@@ -88,16 +88,19 @@ function LoavesArt() {
   </>;
 }
 
-/** Pebbles resting on a plain line; one rolls into place on the beat. */
-const PEBBLES: { x: number; rx: number; ry: number; fill: string }[] = [
-  { x: 36, rx: 15, ry: 11, fill: '#A9B7C6' }, { x: 72, rx: 11, ry: 9, fill: '#8FA3B8' }, { x: 108, rx: 17, ry: 13, fill: '#C9D3DD' }, { x: 142, rx: 12, ry: 9, fill: '#98AABD' },
+/** Leaves of different lengths lying along a plain line (the trail's edge); one more drifts down into place. */
+const LEAVES: { x: number; len: number; fill: string }[] = [
+  { x: 16, len: 34, fill: '#7BD389' }, { x: 60, len: 22, fill: '#F6A55B' }, { x: 92, len: 40, fill: '#5FB872' }, { x: 142, len: 26, fill: '#E8C14A' },
 ];
-function PebblesArt() {
+const Leaf = ({ x, y, len, fill }: { x: number; y: number; len: number; fill: string }) => <>
+  <path d={`M${x} ${y} q${len * .5} -${len * .45} ${len} 0 q-${len * .5} ${len * .3} -${len} 0 Z`} fill={fill} {...outline} strokeWidth={2.5} />
+  <path d={`M${x - 6} ${y + 2} L${x + len * .82} ${y - 1}`} stroke={INK} strokeWidth="2" strokeLinecap="round" />
+</>;
+function LeavesArt() {
   return <>
-    <rect x="10" y="94" width="180" height="7" rx="3.5" fill={CREAM} {...outline} strokeWidth={2.5} />
-    {PEBBLES.map((p, i) => <ellipse key={i} cx={p.x} cy={94 - p.ry + 2} rx={p.rx} ry={p.ry} fill={p.fill} {...outline} strokeWidth={2.5} />)}
-    <path d="M30 78 q4 -5 11 -5 M100 72 q6 -6 14 -5" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" opacity=".6" />
-    <g className="fq-fp-pebble"><ellipse cx="176" cy="85" rx="11" ry="9" fill="#7E93AA" {...outline} strokeWidth={2.5} /><path d="M170 80 q3 -3 8 -2" stroke="#fff" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity=".6" /></g>
+    <rect x="6" y="94" width="188" height="7" rx="3.5" fill={CREAM} {...outline} strokeWidth={2.5} />
+    {LEAVES.map((leaf) => <Leaf key={leaf.x} y={88} {...leaf} />)}
+    <g className="fq-fp-leaf"><Leaf x={176 - 16} y={80} len={16} fill="#E86A3A" /></g>
   </>;
 }
 
@@ -149,17 +152,17 @@ export const SAMPLE_PROPS: Record<string, PropDef> = {
   flag: { label: 'A flag on a little hill', art: FlagArt },
   jar: { label: 'A snack jar with cookies, and one cookie beside it', art: JarArt, ledge: true },
   note: { label: 'A beep note from Bolt, with a magnifying glass', art: NoteArt },
-  beakers: { label: 'Three glass beakers with water in them', art: BeakersArt, ledge: true },
+  barrel: { label: 'A wooden rain barrel under a drainpipe, with water in it', art: BarrelArt, ledge: true },
   loaves: { label: 'A basket of fresh loaves', art: LoavesArt },
-  pebbles: { label: 'Pebbles resting on a line', art: PebblesArt },
+  leaves: { label: 'Leaves of different lengths lying along a line', art: LeavesArt },
 };
 export const SAMPLE_LESSONS: Record<string, string> = {
   'benchmarks-zero-one': 'flag',        // chapter 3 lesson 2: a marker on Tilly's hill path
   'subtract-like-denominators': 'jar',  // chapter 8 lesson 2: "how much is left in my snack jar?"
   'hundredths-decimals': 'note',        // chapter 8 lesson 6: Bolt's beep note, read with a magnifier
-  'line-plot-totals': 'beakers',        // chapter 12 lesson 4: "is there enough in all the beakers?"
+  'line-plot-totals': 'barrel',         // chapter 12 lesson 4: "Did the rain barrel fill up enough?"
   'fractional-sharing': 'loaves',       // chapter 12 lesson 7: "the stage crew shares loaves at lunch"
-  'plot-in-eighths': 'pebbles',         // chapter 9 lesson 5: "let's plot my pebbles"
+  'plot-in-eighths': 'leaves',          // chapter 9 lesson 5: "I collected leaves on the trail. Let's plot how long they are."
 };
 export const SAMPLE_ENDS: Record<number, EndDef> = {
   3: { art: HillEndArt, label: 'A flag at the top of the hill, and the stone piece shining beside it', sky: 'linear-gradient(#FFB873, #FFD8A8 30%, #BDE6FF 62%)' },

@@ -39,11 +39,6 @@
 .fq-fp.is-on .fq-fp-c-drip { animation: fq-fp-c-drip 1.2s ease-in 2 both; }
 @keyframes fq-fp-c-drip { 0% { transform: translateY(0); opacity: 1; } 70% { transform: translateY(16px); opacity: 1; } 71% { transform: translateY(0); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
 
-/* Fruit bowl: the spoon stirs, then comes to rest. */
-.fq-fp-c-stir { transform-box: fill-box; transform-origin: 0 100%; }
-.fq-fp.is-on .fq-fp-c-stir { animation: fq-fp-c-stir 1.6s ease-in-out both; }
-@keyframes fq-fp-c-stir { 0% { transform: rotate(-20deg); } 35% { transform: rotate(16deg); } 65% { transform: rotate(-8deg); } }
-
 /* Lunch box: the lid pops up and open. */
 .fq-fp-c-lid { transform-box: fill-box; transform-origin: 50% 100%; }
 .fq-fp.is-on .fq-fp-c-lid { animation: fq-fp-c-lid 1s cubic-bezier(.3, 1.5, .5, 1) both; }
