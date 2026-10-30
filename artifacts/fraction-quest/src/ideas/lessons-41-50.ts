@@ -198,7 +198,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
         { text: 'Rename both fractions as twelfths.', scene: scenes('add-unlike-fractions').steps[1]! },
         { text: 'Add the numerators and keep the denominator.', scene: scenes('add-unlike-fractions').steps[2]! },
       ],
-      practice: [{ question: 'add-unlike-fractions-q1' }, { question: 'add-unlike-fractions-q2' }, { question: 'add-unlike-fractions-p1' }],
+      practice: [{ question: 'add-unlike-fractions-p1' }, { question: 'add-unlike-fractions-p3' }, { question: 'add-unlike-fractions-p4' }],
     },
     {
       title: 'Find a common denominator with multiples',

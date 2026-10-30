@@ -228,3 +228,27 @@ test('Listen on a worked-example page reads the sentences under the picture, not
   assert.ok(reads.length > 80, 'the worked-example pages are found');
   assert.deepEqual(reads.filter(({ script, sentences }) => script !== sentences).map(({ lesson, label }) => `${lesson}: ${label}`), []);
 });
+
+test('every idea question says why after a right answer: more than its hint and "So the answer is …"', () => {
+  const plain = (text: string) => text.replace(/\s+/g, ' ').trim();
+  const missing: string[] = [];
+  for (const mission of MISSIONS) {
+    for (const question of ideaPracticeQuestions(mission).filter((item) => item.prompt)) {
+      const hint = plain(question.hint);
+      let rest = plain(question.retryFeedback);
+      if (rest.startsWith(hint)) rest = rest.slice(hint.length).trim();
+      rest = rest.replace(/^So the answer is [^.]*\.?/, '').trim();
+      if (!rest) missing.push(`${question.id}: ${question.prompt}`);
+    }
+  }
+  assert.deepEqual(missing, []);
+});
+
+test('add-unlike idea 1: the child renames the fractions; no prompt hands the renaming over', () => {
+  const mission = MISSIONS.find((item) => item.id === 'add-unlike-fractions')!;
+  const first = ideaSteps(mission.id).filter(({ idea }) => idea === 0).map(({ item }) => ideaQuestion(mission, (item as { question: string }).question)!);
+  for (const question of first) assert.doesNotMatch(question.prompt, /Rename: .*=/, `${question.id} hands over the renaming: ${question.prompt}`);
+  // It opens like subtract-unlike idea 1: pick the renamed fraction first.
+  assert.match(first[0]!.prompt, /What is \d+\/\d+ in \w+ths\?/);
+  assert.ok(first.some((question) => / \+ /.test(question.prompt) && /= \?$/.test(question.prompt)), 'idea 1 still ends with an addition');
+});
