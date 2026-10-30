@@ -2,6 +2,9 @@ import React, { type CSSProperties, type ReactNode } from 'react';
 import type { ChallengeFigure } from './challenges';
 import { FoldIllustration } from './PaperFold';
 import { LinePlotPicture } from './line-plot-picture';
+import { RulerPicture } from './ruler-picture';
+import { AreaSvg } from './AreaModel';
+import { areaLabel } from './area-shapes';
 import { sayFraction } from './lib/voice';
 
 /* Shared drawings for the two core fraction models (plus sets), used on screen and on paper.
@@ -74,7 +77,9 @@ const LABEL_X = PAD - LABEL_W / 2 - 6;
 /** Bar model: each whole is one bar split into d equal pieces; the first n pieces are shaded. Omit d for an empty bar to partition by hand. */
 /** `sizes` draws one whole cut into pieces of these relative sizes (they may be unequal), for "Is this cut into equal parts?". */
 /** `fraction`: show the bar's fraction above its left end (when the question names it, or once it's answered). */
-export function BarSvg({ n = 0, d, wholes = 1, sizes, label, fraction = false, labelSpace = fraction }: { n?: number; d?: number; wholes?: number; sizes?: number[]; label?: string; fraction?: boolean;
+export function BarSvg({ n = 0, d, wholes = 1, sizes, label, fraction = false, labelSpace = fraction, bracket = true }: { n?: number; d?: number; wholes?: number; sizes?: number[]; label?: string; fraction?: boolean;
+  /** Draw the "one whole" bracket under the bar. Without it the picture is cropped to the bar (a stack of same-size bars brackets only the last). */
+  bracket?: boolean;
   /** Keep room for a fraction label even when this bar has none, so bars drawn together stay the same length. */
   labelSpace?: boolean }) {
   const unit = W / wholes;
@@ -95,7 +100,7 @@ export function BarSvg({ n = 0, d, wholes = 1, sizes, label, fraction = false, l
   const labelled = fraction && !!d;
   const room = labelled || labelSpace;
   return (
-    <svg className="fq-svg-bar" viewBox={`${room ? -LABEL_W : 0} 0 ${W + PAD * 2 + (room ? LABEL_W : 0)} 74`} role="img" aria-label={label ?? (d ? `Bar model: each whole is split into ${d} equal parts, and ${n} ${n === 1 ? 'part is' : 'parts are'} shaded` : 'Whole bar ready to split into equal parts')}>
+    <svg className="fq-svg-bar" viewBox={`${room ? -LABEL_W : 0} ${bracket ? 0 : 13} ${W + PAD * 2 + (room ? LABEL_W : 0)} ${bracket ? 74 : 40}`} role="img" aria-label={label ?? (d ? `Bar model: each whole is split into ${d} equal parts, and ${n} ${n === 1 ? 'part is' : 'parts are'} shaded` : 'Whole bar ready to split into equal parts')}>
       {/* The fraction sits left of the bar, one number over the other. */}
       {labelled && <g className="fq-svg-fraction-label" aria-hidden="true">
         <text className="num" x={LABEL_X} y={30} textAnchor="middle">{n}</text>
@@ -114,7 +119,7 @@ export function BarSvg({ n = 0, d, wholes = 1, sizes, label, fraction = false, l
             })}
             {!d && <rect className="empty" x={x0} y={17} width={width} height={32} />}
             <rect className="frame" x={x0} y={17} width={width} height={32} fill="none" />
-            <SvgWholeBracket x={x0} width={width} />
+            {bracket && <SvgWholeBracket x={x0} width={width} />}
           </g>
         );
       })}
@@ -212,7 +217,18 @@ export function ChallengeFigureView({ figure }: { figure: ChallengeFigure }) {
       </svg>
     );
   }
-  if (figure.kind === 'line') return <LineSvg n={figure.n} d={figure.d} jumps={false} label="Number line from 0 to 1 with a dot" />;
+  if (figure.kind === 'line') return <LineSvg n={figure.n} d={figure.d} wholes={figure.wholes} jumps={false} label={`Number line from 0 to ${figure.wholes ?? 1} with a dot`} />;
+  if (figure.kind === 'ruler') return <RulerPicture denominator={figure.denominator} wholes={figure.wholes} end={figure.end} />;
+  if (figure.kind === 'areas') return (
+    <div className="fq-figure-areas">
+      {figure.areas.map((area, i) => (
+        <div className="fq-figure-area" key={i}>
+          {area.label && <b>{area.label}</b>}
+          <AreaSvg figure={area} label={`${area.label ? `Square ${area.label}: ` : ''}${areaLabel(area.cut, area.shaded).replace(/^A rectangle/, 'A square')}`} />
+        </div>
+      ))}
+    </div>
+  );
   if (figure.kind === 'fold') return <FoldIllustration folds={figure.folds} />;
   if (figure.kind === 'lineplot') return <LinePlotPicture denominator={figure.denominator} wholes={figure.wholes} values={figure.values} />;
   return (
@@ -220,7 +236,7 @@ export function ChallengeFigureView({ figure }: { figure: ChallengeFigure }) {
       {figure.bars.map((bar, i) => (
         <div className="fq-figure-bar" key={i}>
           {bar.label && <b>{bar.label}</b>}
-          <BarSvg n={bar.n} d={bar.d} label={`${bar.label ? `Bar ${bar.label}: ` : ''}a bar split into ${bar.d} equal pieces, ${bar.n} shaded`} />
+          <BarSvg n={bar.n} d={bar.d} bracket={i === figure.bars.length - 1} label={`${bar.label ? `Bar ${bar.label}: ` : ''}a bar split into ${bar.d} equal pieces, ${bar.n} shaded`} />
         </div>
       ))}
     </div>

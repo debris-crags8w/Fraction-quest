@@ -11,7 +11,7 @@
    always needs a lesson or a rewording. */
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { CHALLENGES, type ChallengeFigure, type ChallengeQuestion } from './challenges';
+import { ALL_CHALLENGE_PUZZLES, type ChallengeFigure, type ChallengeQuestion } from './challenges';
 import { MISSIONS } from './game';
 import { FRACTION_STANDARDS, MISSION_STANDARDS } from './standard-catalog';
 
@@ -118,7 +118,7 @@ function skillsNeeded(puzzle: ChallengeQuestion): { skill: Pick<Skill, 'name' | 
   return found;
 }
 
-const PUZZLES = Object.values(CHALLENGES).flat();
+const PUZZLES = ALL_CHALLENGE_PUZZLES; // every version of every puzzle
 
 describe('unit challenge skills', () => {
   it('names real lessons for every skill, and a skill rule that finds what it should (the guard is checked too)', () => {
@@ -185,12 +185,19 @@ describe('unit challenge skills', () => {
     }
   });
 
-  it('tags find-the-whole puzzles with the standard the catalog gives find-the-whole, and division puzzles are not tagged as a multiple of a unit fraction', () => {
+  it('tags find-the-whole puzzles with the standard the catalog gives find-the-whole (5.NF.6 when the part is not a unit fraction), and division puzzles are not tagged as a multiple of a unit fraction', () => {
     const wholeStandards = MISSION_STANDARDS['find-the-whole']!;
+    // A whole found from a non-unit part (2/6 of it, 3/5 of it) divides by no unit fraction, so it is not 5.NF.7b: it is a
+    // fraction-times-amount story worked backwards, 5.NF.6 (owner decision, October 2026).
+    const NON_UNIT_PART: Record<string, string> = { 'u15-p1': '2/6 of the bar is 6 stickers', 'u15-c3': '3/5 of a pile is 12 cards' };
     const wrong: string[] = [];
     for (const puzzle of PUZZLES) {
       const needed = skillsNeeded(puzzle).map(({ skill }) => skill.name);
       const tags = puzzle.standards ?? [];
+      if (NON_UNIT_PART[puzzle.id]) {
+        if (!needed.includes('find the whole from a part') || tags.join() !== '5.NF.6') wrong.push(`${puzzle.id}: ${NON_UNIT_PART[puzzle.id]} is tagged ${tags.join(', ')}, not 5.NF.6`);
+        continue;
+      }
       if (needed.includes('find the whole from a part') && !wholeStandards.some((standard) => tags.includes(standard))) wrong.push(`${puzzle.id}: finds the whole but is tagged ${tags.join(', ')} (catalog: ${wholeStandards.join(', ')})`);
       if (needed.includes('how many fit (dividing by a fraction)') && tags.includes('4.NF.4a')) wrong.push(`${puzzle.id}: divides, so it is not 4.NF.4a (multiples of a unit fraction)`);
     }

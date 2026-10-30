@@ -3,7 +3,7 @@ import { useScrollTopOn } from './lib/reveal';
 import { MathText } from './MathText';
 import { LearningListenButton } from './LearningText';
 import { ArrowRight, Check, Footprints, Map as MapIcon, RotateCcw, Trophy, X } from 'lucide-react';
-import { CHALLENGES, challengeMaxPoints, challengeTrophy, type ChallengeQuestion } from './challenges';
+import { challengeAttempt, challengeMaxPoints, challengeTrophy, challengeWrongReason, type ChallengeQuestion } from './challenges';
 import { Confetti, Mascot, StoryPrompt, unitColor, useFun, type MascotMood } from './fun-ui';
 import { playCue, playHaptic } from './lib/fun';
 import { ChallengeFigureView } from './models';
@@ -61,11 +61,12 @@ function WalkThrough({ question, onClose }: { question: ChallengeQuestion; onClo
 }
 
 /** A Unit challenge: five puzzle questions, A–D, worth 3–5 points each. Points count on the first try only. */
-export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
+export default function Challenge({ unit, unitTitle, best, attempt = 0, onDone, onExit }: {
   unit: number; unitTitle: string; best: number;
+  /** Finished attempts before this one: it picks each puzzle's version (see challengeAttempt). */
+  attempt?: number;
   onDone: (score: number) => void; onExit: () => void;
 }) {
-  const questions = CHALLENGES[unit];
   const max = challengeMaxPoints(unit);
   const { fun } = useFun();
   const [index, setIndex] = useState(0);
@@ -76,9 +77,12 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
   const [state, setState] = useState<'asking' | 'right' | 'wrong' | 'reveal' | 'finished'>('asking');
   const [burst, setBurst] = useState(0);
   const [round, setRound] = useState(0);
+  // Fixed when the challenge opens: finishing saves a new attempt count, and only "Try again" moves to the next versions.
+  const [firstAttempt] = useState(attempt);
+  const questions = challengeAttempt(unit, firstAttempt + round);
   useScrollTopOn(`${round}-${index}-${state === 'finished'}`);
   const question = questions[index];
-  const retryText = selection === null ? '' : wrongChoiceReason(question.prompt, question.choices, question.correct, selection)
+  const retryText = selection === null ? '' : challengeWrongReason(question, selection)
     ?? (question.steps ? 'Look at the model and take this one step at a time.' : 'Compare the amounts in the choices, then try again.');
   const retryHeading = retryOpener(`challenge-${round}-${question.id}-${tries}`);
   // Best score from before this run, so finishing doesn't compare against itself.
@@ -145,7 +149,7 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
           </div>
           <span className="fq-challenge-score" data-testid="status-challenge-points">{score} pts</span>
         </div>
-        <section className="fq-play-card" aria-labelledby="challenge-title">
+        <section className="fq-play-card fq-challenge-card" aria-labelledby="challenge-title">
           <p className="fq-play-kicker">Unit {unit} challenge · {unitTitle} · <span className={`fq-points p${question.points}`}>{question.points} points</span></p>
           <p className="fq-response-sequence">Question {index + 1} of {questions.length}</p>
           <StoryPrompt prompt={question.prompt} id="challenge-title" />
@@ -156,7 +160,7 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
             </button>
           )}
           {walking && <WalkThrough question={question} onClose={() => setWalking(false)} />}
-          <div className="fq-answer-choices fq-challenge-choices" role="group" aria-label="Choose an answer">
+          <div className={`fq-answer-choices fq-challenge-choices ${question.choices.every((choice) => choice.length <= 14) ? 'two-up' : ''}`} role="group" aria-label="Choose an answer">
             {question.choices.map((choice, i) => (
               <button key={`${question.id}-${i}`}
                 className={`fq-answer-choice ${selection === i ? `selected ${state === 'right' ? 'correct' : state === 'wrong' || state === 'reveal' ? 'retry' : ''}` : ''} ${state === 'reveal' && i === question.correct ? 'selected correct' : ''} ${ruledOut.includes(i) ? 'ruled-out' : ''}`}

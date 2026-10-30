@@ -1929,10 +1929,16 @@ function Game() {
       )}
       {view.type === 'challenge' && (
         <Challenge key={view.unit} unit={view.unit} unitTitle={UNIT_INFO[view.unit - 1].title} best={progress.challengeBest?.[String(view.unit)] ?? 0}
+          attempt={progress.challengeAttempts?.[String(view.unit)] ?? 0}
           onExit={returnToMap}
           onDone={(score) => {
+            // A finished attempt counts, so the next one shows each puzzle's other version (where it has one).
             const key = String(view.unit);
-            if (score > (progress.challengeBest?.[key] ?? -1)) persistProgress({ ...progress, challengeBest: { ...progress.challengeBest, [key]: score } });
+            persistProgress({
+              ...progress,
+              challengeAttempts: { ...progress.challengeAttempts, [key]: (progress.challengeAttempts?.[key] ?? 0) + 1 },
+              ...(score > (progress.challengeBest?.[key] ?? -1) ? { challengeBest: { ...progress.challengeBest, [key]: score } } : {}),
+            });
           }} />
       )}
       {view.type === 'paper' && (

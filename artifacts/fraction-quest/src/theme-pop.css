@@ -1380,6 +1380,11 @@ button.fq-chest:active { transform: translateY(4px); box-shadow: 0 1px 0 #D93374
 .fq-figure-bar { display: flex; align-items: center; gap: 8px; }
 .fq-figure-bar b { width: 22px; font-family: var(--app-font-display); font-size: 1.1rem; }
 .fq-figure-bar svg { flex: 1; min-width: 0; }
+.fq-figure-areas { display: flex; justify-content: center; gap: 20px; width: 100%; }
+.fq-figure-area { display: flex; align-items: center; gap: 8px; }
+.fq-figure-area b { font-family: var(--app-font-display); font-size: 1.1rem; }
+.fq-figure-area .fq-svg-area { width: min(36vw, 140px); height: auto; }
+.fq-figure-areas:has(> :only-child) .fq-svg-area { width: min(40vw, 144px); }
 
 @media print {
   .fq-print .fq-svg-figure { width: min(60mm, 100%); margin: 0; }
@@ -2361,3 +2366,20 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-how-example { margin: 0; padding: 0; border: 0; }
 /* Small phones: thin sides, so pictures and number lines get the room they had on their own screen. */
 @media (max-width: 420px) { .fq-how-part { padding-inline: 4px; } .fq-how-part > summary { padding-inline: 8px; } }
+
+/* Unit challenges on a phone: the question, its picture, all four choices and the Check bar fit one iPhone screen
+   (390 × 664) with no scrolling. Short choices sit two by two; pictures keep their full width. */
+@media (max-width: 560px) {
+  .fq-challenge-card .fq-play-kicker { margin: 0; font-size: .78rem; line-height: 1.3; }
+  .fq-challenge-card .fq-response-sequence { margin: 0 0 2px; font-size: .76rem; }
+  .fq-challenge-card h1 { font-size: 1.2rem; line-height: 1.28; }
+  .fq-challenge-card .fq-story { gap: 3px; margin: 2px 0 4px; }
+  .fq-challenge-card .fq-story li { gap: 8px; padding: 3px 10px; font-size: .88rem; line-height: 1.28; }
+  .fq-challenge-card .fq-model-area { margin: 6px 0 0; }
+  .fq-challenge-card .fq-model-area .fq-visual-model { min-height: 0; gap: 4px; padding: 6px 8px; }
+  .fq-challenge-card .fq-figure-bars { gap: 2px; }
+  .fq-challenge-card .fq-walk-open { margin-top: 4px; min-height: 0; padding-block: 4px; }
+  .fq-challenge-card .fq-answer-choices { margin-top: 8px; gap: 6px; }
+  .fq-challenge-card .fq-answer-choice { min-height: 44px; padding: 4px 12px; font-size: 1rem; border-bottom-width: 4px; }
+  .fq-challenge-card .fq-answer-choices.two-up { grid-template-columns: 1fr 1fr; }
+}

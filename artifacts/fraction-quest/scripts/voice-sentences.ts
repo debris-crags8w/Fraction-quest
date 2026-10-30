@@ -21,7 +21,7 @@ import { cleanSentence, voiceKey } from '../src/lib/voice-pack';
 import { HEART_VOICE, speakerVoice } from '../src/lib/cast-voices';
 import { BUILD_ERROR_HEADINGS, LAB_SECTION_SPEECH, PART_CHECK_OPENERS, buildErrors, buildHints, foldSpeech, numberLineDescription, sectionsScript, supportSpeech, worksheetSpeech } from '../src/lab-copy';
 import { getModelFeedback, type LearningModel } from '../src/learning-content';
-import { CHALLENGES } from '../src/challenges';
+import { ALL_CHALLENGE_PUZZLES } from '../src/challenges';
 import { OPENERS, SLIPS } from '../src/wrong-answer';
 import { WHY } from '../src/slip-reasons';
 import { getCodeLevels, goal, sprintTargets } from '../src/code-quest';
@@ -131,7 +131,7 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
     add('games', safe(() => partFinderRoundsFor(mission.id)));
   }
   add('games', PART_FINDER_ROUNDS);
-  add('games', CHALLENGES);
+  add('games', ALL_CHALLENGE_PUZZLES); // every version of every puzzle
 
   for (const mission of MISSIONS) {
     // Lesson page: the whole example and the ordering steps, read as one ("Question. …"), and the order number line.

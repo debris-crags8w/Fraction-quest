@@ -1,15 +1,22 @@
 /* Kangaroo-style Unit challenges: short puzzles with four choices (A–D), worth 3, 4 or 5 points.
-   Points count only on the first try. Each unit's challenge unlocks when all its lessons are done. All 15 units have one. */
+   Points count only on the first try. Each unit's challenge unlocks when all its lessons are done. All 15 units have one: six puzzles worth 22 points. Some slots have a second version that
+   takes turns with the first, attempt by attempt (CHALLENGE_ALTERNATES). */
 import { standardsForChallenge } from './standard-catalog';
+import type { AreaCut } from './area-shapes';
+import { wrongChoiceReason } from './wrong-answer';
 
 /** Pictures for puzzles. None of them print the answer: the picture is the puzzle. */
 export type ChallengeFigure =
   | { kind: 'grid'; rows: number; cols: number; shaded: number[] }
   | { kind: 'dots'; rows: number; cols: number; shaded: number[] }
   | { kind: 'bars'; bars: { n: number; d: number; label?: string }[] }
-  | { kind: 'line'; n: number; d: number }
+  | { kind: 'line'; n: number; d: number; wholes?: number }
   | { kind: 'fold'; folds: number[] }
-  | { kind: 'lineplot'; denominator: number; wholes: number; values: number[] };
+  | { kind: 'lineplot'; denominator: number; wholes: number; values: number[] }
+  /** Squares (or one square) cut into pieces, side by side: equal areas that may have different shapes. */
+  | { kind: 'areas'; areas: { cut: AreaCut; shaded: number[]; label?: string }[] }
+  /** A ruler with a blue strip from 0 to `end` ticks. */
+  | { kind: 'ruler'; denominator: number; wholes: number; end: number };
 
 /** One small step of a guided walk-through for a long word problem. */
 export type ChallengeStep = { prompt: string; choices: [string, string, string, string]; correct: number; standards?: string[] };
@@ -24,10 +31,15 @@ export type ChallengeQuestion = {
   figure?: ChallengeFigure;
   steps?: ChallengeStep[];
   standards?: string[];
+  /** Why each wrong choice is wrong, by choice number, when the general slip reasons cannot tell. */
+  reasons?: Partial<Record<number, string>>;
 };
 
 const q = (id: string, points: 3 | 4 | 5, prompt: string, choices: ChallengeQuestion['choices'], correct: number, explanation: string, figure?: ChallengeFigure, steps?: ChallengeStep[]): ChallengeQuestion =>
   ({ id, points, prompt, choices, correct, explanation, figure, steps });
+/** A puzzle with a picture and its own reason for each wrong choice. */
+const puzzle = (id: string, points: 3 | 4 | 5, prompt: string, choices: ChallengeQuestion['choices'], correct: number, explanation: string, figure: ChallengeFigure, reasons: Partial<Record<number, string>>): ChallengeQuestion =>
+  ({ id, points, prompt, choices, correct, explanation, figure, reasons });
 const step = (prompt: string, choices: ChallengeStep['choices'], correct: number): ChallengeStep => ({ prompt, choices, correct });
 
 export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
@@ -260,12 +272,128 @@ export const CHALLENGES: Record<number, ChallengeQuestion[]> = {
   ],
 };
 
-for (const questions of Object.values(CHALLENGES)) {
+/** Second versions of some puzzles, keyed by the puzzle they take turns with (same unit, same points; most ask the same
+    standard). A unit keeps its puzzle count and top score: one attempt shows a slot's first version, the next its second
+    (see challengeAttempt). Each one is the second puzzle for a standard that had only one. */
+export const CHALLENGE_ALTERNATES: Record<string, ChallengeQuestion> = {
+  // 3.G.2: two halves of the same square with different shapes. Equal area, not equal shape.
+  'u1-p1': puzzle('u1-c6', 3, 'Both squares are the same size. Which shaded part covers more space?', ['A', 'B', 'They cover the same space', "You can't tell"], 2,
+    'Each square is cut into 2 equal parts, so each shaded part is 1/2. A triangle and a rectangle can cover the same space.',
+    { kind: 'areas', areas: [{ cut: 'halves-triangles', shaded: [0], label: 'A' }, { cut: 'rect-halves', shaded: [0], label: 'B' }] },
+    { 0: 'A long triangle can look like more. Check how many equal parts each square has.', 1: 'A wide piece can look like more. Check how many equal parts each square has.',
+      3: 'You can tell! Count the equal parts in each square.' }),
+  // 3.MD.4: measure a length to the nearest fourth inch.
+  'u4-c3': puzzle('u4-c6', 4, 'The blue ribbon starts at zero and ends at a tick with no number. Use the ruler. How long is it in inches?', ['2 inches', '2 1/4 inches', '2 2/4 inches', '9 inches'], 1,
+    'Each inch has 4 equal spaces. The ribbon passes 2 inches, then 1 more space. So 2 1/4 inches.',
+    { kind: 'ruler', denominator: 4, wholes: 3, end: 9 },
+    { 0: 'Count every space up to the very end of the ribbon.', 3: '9 counts the small spaces. Each small space is 1/4 inch, not 1 inch.' }),
+  // 3.NF.3c: a whole number as a fraction.
+  'u7-c3': puzzle('u7-c6', 4, 'Each bar is one whole. Which fraction is the same as the 3 shaded wholes?', ['3/4', '4/3', '12/4', '3/12'], 2,
+    'Each whole is 4 fourths. 3 wholes are 4 + 4 + 4 = 12 fourths. So 3 = 12/4.',
+    { kind: 'bars', bars: [{ n: 4, d: 4 }, { n: 4, d: 4 }, { n: 4, d: 4 }] },
+    { 0: '3/4 is less than 1 whole. Count the shaded fourths in all 3 bars.', 1: 'That is upside down. The parts in one whole go in the denominator.',
+      3: '3/12 is less than 1 whole. The denominator is the parts in one whole, not in all 3 bars.' }),
+  // 4.NF.3a: the missing part, by taking away like fractions.
+  'u8-c2': puzzle('u8-c6', 3, 'Mia wants 7/8 of the bar shaded. She has shaded 3/8. How much more must she shade?', ['3/8', '4/8', '5/8', '10/8'], 1,
+    '7/8 − 3/8 = 4/8. She must shade 4 more eighths.',
+    { kind: 'bars', bars: [{ n: 3, d: 8 }] },
+    { 0: '3/8 is what she has shaded already. Find the part still missing.', 2: '5/8 would fill the whole bar. She wants 7/8, not 8/8.',
+      3: 'That adds 3/8 and 7/8. Find the gap between them instead.' }),
+  // 4.NF.4a: a fraction as a number of unit fractions.
+  'u8-c4': puzzle('u8-c7', 4, 'Each bar is one whole. Which is the same as the shaded part?', ['2 × 1/5', '5 × 1/7', '7 × 1/5', '7 × 1/10'], 2,
+    'Each part is 1/5. 7 parts are shaded. So the shaded part is 7 × 1/5, which is 7/5.',
+    { kind: 'bars', bars: [{ n: 5, d: 5 }, { n: 2, d: 5 }] },
+    { 0: '2 counts the bars. Count the shaded parts instead.', 1: 'The numbers are swapped. Which number tells the size of one part?',
+      3: 'Each bar is a whole by itself. Its parts are fifths, not tenths.' }),
+  // 4.NF.5: tenths as hundredths, to add them.
+  'u8-c1': puzzle('u8-c8', 3, 'The big square is one whole. 7/10 of it is shaded. Which sum makes exactly 1 whole?', ['7/10 + 3/100', '7/100 + 3/10', '7/10 + 30/100', '70/10 + 30/100'], 2,
+    '30/100 is the same as 3/10. 7/10 + 3/10 = 10/10, which is 1 whole.',
+    { kind: 'grid', rows: 10, cols: 10, shaded: Array.from({ length: 100 }, (_, i) => i).filter((i) => i % 10 < 7) },
+    { 0: '3/100 is only 3 small squares. The empty part is 3 whole columns.', 1: '7/100 is only 7 small squares. Start with the 7 shaded columns.',
+      3: '70/10 is 7 wholes. That is far more than 1 whole.' }),
+  // 4.NF.4b: a whole number times a fraction.
+  'u9-c2': puzzle('u9-c6', 3, 'Each bar is one whole. What is 4 × 2/3?', ['8/12', '6/3', '8/3', '2/3'], 2,
+    '4 × 2/3 = 2/3 + 2/3 + 2/3 + 2/3 = 8/3.',
+    { kind: 'bars', bars: [{ n: 2, d: 3 }, { n: 2, d: 3 }, { n: 2, d: 3 }, { n: 2, d: 3 }] },
+    { 0: 'The parts stay thirds. Multiply only the numerator.', 1: 'That adds 4 and 2. 4 × 2/3 means 4 groups of 2/3.',
+      3: '2/3 is one group. Count the shaded parts in all 4 bars.' }),
+  // 4.NF.4c: a story that multiplies a fraction by a whole number.
+  'u9-c3': puzzle('u9-c7', 4, 'One lap of the track is 3/4 mile, like the shaded bar. Ben runs 6 laps. How far does he run?', ['3/4 mile', '18/24 mile', '4 2/4 miles', '6 3/4 miles'], 2,
+    '6 × 3/4 = 18/4. 16/4 is 4 miles, and 2/4 is left. So 4 2/4 miles.',
+    { kind: 'bars', bars: [{ n: 3, d: 4 }] },
+    { 0: '3/4 mile is one lap. Ben runs 6 laps.', 1: 'The parts stay fourths. Multiply only the numerator.',
+      3: 'That puts the 6 laps next to 3/4. Each lap is less than 1 mile.' }),
+  // 4.MD.4: add fractions read from a line plot.
+  'u9-c5': puzzle('u9-c8', 5, 'The line plot shows how much 8 seedlings grew: 2/8, 3/8, 3/8, 3/8, 5/8, 6/8, 6/8, 7/8 inch. How much did the 3/8-inch seedlings grow in all?', ['3/8 inch', '9/24 inch', '9/8 inches', '3 inches'], 2,
+    '3 seedlings grew 3/8 inch each. 3/8 + 3/8 + 3/8 = 9/8 inches.',
+    { kind: 'lineplot', denominator: 8, wholes: 1, values: [2, 3, 3, 3, 5, 6, 6, 7] },
+    { 0: '3/8 inch is one seedling. Count the Xs at 3/8.', 1: 'The parts stay eighths. Add only the numerators.',
+      3: '3 counts the Xs. Each of those Xs stands for 3/8 inch.' }),
+  // 5.NF.5: the size of a product from the size of the factor, without multiplying.
+  'u11-c2': puzzle('u11-c6', 3, 'The dot is at a fraction. You multiply 20 by that fraction. Is the answer more or less than 20?', ['Less than 20', 'Equal to 20', 'More than 20', "You can't tell"], 2,
+    'The dot is at 5/4, which is more than 1. Multiplying by more than 1 makes 20 bigger: 20 × 5/4 = 25.',
+    { kind: 'line', n: 5, d: 4, wholes: 2 },
+    { 0: 'Not every fraction makes it smaller. Is the dot before or after 1?', 1: 'Only 20 × 1 is equal to 20. The dot is not at 1.',
+      3: 'You can tell! Compare the dot with 1.' }),
+  // 5.NF.3: a fraction as a sharing (division) story.
+  'u12-c4': puzzle('u12-c6', 4, '5 friends share 3 pancakes fairly. How much does each friend get?', ['5/3 pancakes', '1/5 pancake', '3/5 pancake', '3/15 pancake'], 2,
+    'Cut each pancake into 5 equal parts. Each friend gets 1 part of each pancake: 3/5 pancake. So 3 ÷ 5 = 3/5.',
+    { kind: 'bars', bars: [{ n: 0, d: 5 }, { n: 0, d: 5 }, { n: 0, d: 5 }] },
+    { 0: 'That is upside down. Each friend gets less than 1 pancake.', 1: '1/5 is one part of one pancake. Each friend gets a part of every pancake.',
+      3: 'The denominator is the parts in one pancake, not in all 3.' }),
+  // 5.NF.7a: a unit fraction shared by a whole number, two ways that come out the same.
+  'u12-c1': puzzle('u12-c7', 3, '2 kids share 1/3 of a pizza fairly. 3 kids share 1/2 of a same-size pizza fairly. Who gets more each?', ['The 2 kids', 'The 3 kids', 'They get the same', "You can't tell"], 2,
+    '1/3 shared by 2 is 1/6 each. 1/2 shared by 3 is 1/6 each. They get the same.',
+    { kind: 'bars', bars: [{ n: 1, d: 3 }, { n: 1, d: 2 }] },
+    { 0: 'Fewer kids, but a smaller part to share too. Find one share in each group.', 1: 'A bigger part, but more kids too. Find one share in each group.',
+      3: 'You can tell! Find one share in each group, then compare.' }),
+  // 5.MD.1: feet and a half foot in inches.
+  'u12-p1': puzzle('u12-c8', 3, 'Each bar is 1 foot. A ribbon is as long as the shaded part. How many inches long is it?', ['24 inches', '25 inches', '30 inches', '6 inches'], 2,
+    '1 foot is 12 inches. 2 feet is 24 inches. 1/2 foot is 6 inches. 24 + 6 = 30 inches.',
+    { kind: 'bars', bars: [{ n: 2, d: 2 }, { n: 2, d: 2 }, { n: 1, d: 2 }] },
+    { 0: 'That is the 2 full feet. Add the half foot too.', 1: 'A foot is 12 inches, not 10.', 3: 'That is only the half foot. Add the 2 full feet.' }),
+  // 5.MD.2: add every length on a line plot.
+  'u12-c5': puzzle('u12-c9', 5, 'The line plot shows six beetles: 1/4, 1/4, 2/4, 3/4, 3/4, 3/4 inch. They line up end to end. How long is the line?', ['3 1/4 inches', '13/24 inch', '6 inches', '3/4 inch'], 0,
+    'Add all six: 1/4 + 1/4 + 2/4 + 3/4 + 3/4 + 3/4 = 13/4. That is 3 1/4 inches.',
+    { kind: 'lineplot', denominator: 4, wholes: 1, values: [1, 1, 2, 3, 3, 3] },
+    { 1: 'The parts stay fourths. Add only the numerators.', 2: '6 counts the beetles. Each beetle is less than 1 inch.', 3: '3/4 inch is one beetle. Add all six lengths.' }),
+  // 5.NF.4b: the area of a rectangle with fraction sides, by tiling.
+  'u13-c3': puzzle('u13-c6', 4, 'The big square is 1 meter on each side. The shaded part is 2/5 meter by 3/4 meter. What is its area?', ['5/9 square meter', '6/20 square meter', '5/20 square meter', '6/9 square meter'], 1,
+    'The square has 4 rows of 5 equal tiles: 20 tiles. The shaded part covers 3 rows of 2 tiles: 6 tiles. 2/5 × 3/4 = 6/20 square meter.',
+    { kind: 'areas', areas: [{ cut: 'grid-5x4', shaded: [0, 1, 5, 6, 10, 11] }] },
+    { 0: 'That adds the numerators and the denominators. Count the tiles instead.', 2: 'That adds 2 and 3. Count the shaded tiles.',
+      3: 'The denominator counts all the tiles in the big square.' }),
+};
+
+const unitOfPuzzle = (id: string) => Number(/^u(\d+)-/.exec(id)![1]);
+
+/** The puzzles one attempt shows: even attempts (0, 2, …) the first version of each slot, odd attempts the second
+    version where a slot has one. Same count, same points, same top score either way. */
+export const challengeAttempt = (unit: number, attempt: number): ChallengeQuestion[] =>
+  (CHALLENGES[unit] ?? []).map((item) => (attempt % 2 === 1 && CHALLENGE_ALTERNATES[item.id]) || item);
+
+/** Every version of every puzzle in a unit (first versions, then second versions). */
+export const challengePuzzlesOfUnit = (unit: number): ChallengeQuestion[] =>
+  [...(CHALLENGES[unit] ?? []), ...(CHALLENGES[unit] ?? []).flatMap((item) => CHALLENGE_ALTERNATES[item.id] ?? [])];
+
+/** Every puzzle version in every unit. */
+export const ALL_CHALLENGE_PUZZLES: ChallengeQuestion[] = Object.keys(CHALLENGES).flatMap((unit) => challengePuzzlesOfUnit(Number(unit)));
+
+for (const [primary, alternate] of Object.entries(CHALLENGE_ALTERNATES)) {
+  const first = (CHALLENGES[unitOfPuzzle(primary)] ?? []).find((item) => item.id === primary);
+  if (!first || first.points !== alternate.points || unitOfPuzzle(alternate.id) !== unitOfPuzzle(primary)) throw new Error(`${alternate.id} does not fit the ${primary} slot`);
+}
+
+for (const questions of [ALL_CHALLENGE_PUZZLES]) {
   for (const question of questions) {
     question.standards = standardsForChallenge(question.id);
     question.steps = question.steps?.map(step => ({ ...step, standards: [...question.standards!] }));
   }
 }
+
+/** Why a wrong choice is wrong: the puzzle's own reason, else the slip the choice shows; null when neither is known. */
+export const challengeWrongReason = (question: ChallengeQuestion, chosen: number): string | null =>
+  chosen === question.correct ? null : question.reasons?.[chosen] ?? wrongChoiceReason(question.prompt, question.choices, question.correct, chosen);
 
 export const challengeMaxPoints = (unit: number) => (CHALLENGES[unit] ?? []).reduce((sum, item) => sum + item.points, 0);
 

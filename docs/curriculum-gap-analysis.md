@@ -99,7 +99,7 @@ pacing rows.
 
 ### Games and motivation
 - **Fraction Race**, **Code challenge** and **Code Sprint**, **Part Finder**, and the concept games (Fraction War, Equivalence Match, Number Line Target), all in one Games menu.
-- **Unit challenges:** 15 (one per unit), 6 puzzles each, with points, step-by-step walk-throughs and a best score.
+- **Unit challenges:** 15 (one per unit), 6 puzzles each, with points; 15 puzzles have a second version that takes turns with the first from one attempt to the next (every standard in at least two puzzle versions), step-by-step walk-throughs and a best score.
 - **Check-ins:** unit pre, mid and end forms and grade beginning, middle and end forms for grades 3, 4 and 5 (48 forms), reported by standard.
 - **Motivation:** XP, a daily goal ring, streak, stars, confetti, sound, the mascot, a story with films, and brain breaks.
 

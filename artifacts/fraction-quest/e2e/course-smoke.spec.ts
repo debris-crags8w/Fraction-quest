@@ -1,5 +1,6 @@
 import { expect, openSettings, test } from './fixtures';
-import { CHALLENGES } from '../src/challenges';
+import { CHALLENGES, challengeAttempt } from '../src/challenges';
+import { wrongChoiceReason } from '../src/wrong-answer';
 import { FRACTION_ORDER_ROUNDS, fractionOrderMatches, getDelayedReviewQuestions, getDueSkillReviewQuestions, MISSIONS } from '../src/game';
 import { compareFractions, WAR_ROUNDS, warHint } from '../src/concept-games';
 import { getCodeLevels } from '../src/code-quest';
@@ -2580,7 +2581,9 @@ test('a wrong unit-challenge answer gives a hint, allows a retry, and earns no p
   const scoreBeforeStepMiss = await page.getByTestId('status-challenge-points').textContent();
   await page.getByTestId(`button-step-1-${wrongStepChoice}`).click();
   await expect(page.locator('.fq-walk-retry')).toHaveAttribute('role', 'status');
-  await expect(page.locator('.fq-walk-retry')).toContainText('Read the step again and count carefully.');
+  await expect(page.locator('.fq-walk-retry')).toContainText(
+    (wrongChoiceReason(step.prompt, step.choices, step.correct, wrongStepChoice) ?? 'Read the step again and count carefully.').replaceAll('/', ''),
+  );
   await expect(page.getByTestId('status-challenge-points')).toHaveText(scoreBeforeStepMiss!);
   expect(await localStorageSnapshot(page)).toBe(savedProgress);
   await page.getByTestId(`button-step-1-${step.correct}`).click();
@@ -3462,6 +3465,61 @@ test('a reload or the back button keeps the child’s place in a lesson’s prac
   if (await guest.isVisible().catch(() => false)) await guest.click();
   await startLesson();
   await expectLessonQuestionProgress(page, 2, 1);
+});
+
+test('every Unit challenge puzzle, both versions, fits an iPhone Safari screen: question, picture, choices and Check', async ({ page }) => {
+  test.setTimeout(600_000);
+  const visible = 664;
+  await page.setViewportSize({ width: 390, height: visible });
+  // Every lesson is finished, so every unit's challenge is open. Each unit is played twice: the first attempt shows each
+  // slot's first version, "Try again" the second version where a slot has one.
+  const completedAt = Date.now();
+  const progress = { completedMissionIds: MISSIONS.map((mission) => mission.id), starsByMission: {}, reviewQueue: [], assessments: [],
+    learning: Object.fromEntries(MISSIONS.map((mission) => [mission.id, { ...masteredRecord(mission.id), completedAt }])) };
+  await page.addInitScript((value) => {
+    if (!localStorage.getItem('fraction-quest-progress-v1:guest')) localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(value));
+  }, progress);
+  await openAsGuest(page);
+  const letters = ['A', 'B', 'C', 'D'];
+  const misfits: string[] = [];
+  const only = process.env.SMOKE_UNITS?.split(',').map(Number);
+  for (const unit of Object.keys(CHALLENGES).map(Number).filter((item) => !only?.length || only.includes(item))) {
+    await test.step(`unit ${unit} challenge`, async () => {
+      await page.getByTestId(`button-challenge-unit-${unit}`).click();
+      for (const attempt of [0, 1]) {
+        if (attempt === 1) await page.getByTestId('button-challenge-again').click();
+        for (const item of challengeAttempt(unit, attempt)) {
+          await expect(page.getByTestId(`button-challenge-${item.id}-A`)).toBeVisible();
+          await page.evaluate(() => window.scrollTo(0, 0));
+          await page.waitForTimeout(150);
+          const fit = await page.evaluate((id) => {
+            const box = (element: Element | null) => element?.getBoundingClientRect();
+            const choices = [...document.querySelectorAll(`[data-testid^="button-challenge-${id}-"]`)].map((element) => element.getBoundingClientRect());
+            const footer = box(document.querySelector('.fq-lesson-footer'));
+            const figure = box(document.querySelector('.fq-challenge-figure'));
+            return {
+              choices: Math.max(...choices.map((rect) => rect.bottom)),
+              footer: footer?.top ?? visible,
+              check: box(document.querySelector('[data-testid="button-challenge-check"]'))?.bottom ?? Infinity,
+              picture: figure?.height ?? null,
+              width: document.documentElement.scrollWidth,
+            };
+          }, item.id);
+          const at = `unit ${unit} ${item.id}`;
+          // The Check button sits in the footer: every choice must end above it, and the footer on the screen.
+          if (fit.choices > Math.min(fit.footer, visible) + 1 || fit.check > visible + 1) misfits.push(`${at}: choices end at ${Math.round(fit.choices)}, Check bar starts at ${Math.round(fit.footer)} and ends at ${Math.round(fit.check)}, screen ${visible}`);
+          if (fit.picture !== null && fit.picture < 70) misfits.push(`${at}: the picture is only ${Math.round(fit.picture)} points tall`);
+          if (fit.width > 391) misfits.push(`${at}: the page is ${fit.width} points wide`);
+          await page.getByTestId(`button-challenge-${item.id}-${letters[item.correct]}`).click();
+          await page.getByTestId('button-challenge-check').click();
+          await page.getByTestId('button-challenge-next').click();
+        }
+        await expect(page.getByTestId('status-challenge-complete')).toBeVisible();
+      }
+      await page.getByTestId('button-challenge-map').click();
+    });
+  }
+  expect(misfits, misfits.join('\n')).toEqual([]);
 });
 
 test('every screen of every lesson fits an iPhone Safari screen: Learn pages, practices, review and story problem', async ({ page }) => {

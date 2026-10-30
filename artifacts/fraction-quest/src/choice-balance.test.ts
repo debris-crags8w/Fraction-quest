@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { MISSIONS } from './game';
 import { generateQuestions } from './practice-bank';
-import { CHALLENGES } from './challenges';
+import { CHALLENGES, challengePuzzlesOfUnit } from './challenges';
 import { valueOf } from './proof';
 import { allCheckpoints } from './checkpoint';
 
@@ -25,7 +25,7 @@ function everyQuestion(): Row[] {
     for (const q of m.ideaQuestions ?? []) rows.push({ src: 'idea', lesson: m.id, q });
     for (const seed of SEEDS) for (const q of generateQuestions(m.id, ids, seed * 7919 + 3, 12)) rows.push({ src: 'practice', lesson: m.id, q });
   }
-  for (const [unit, qs] of Object.entries(CHALLENGES)) for (const q of qs) {
+  for (const unit of Object.keys(CHALLENGES)) for (const q of challengePuzzlesOfUnit(Number(unit))) {
     rows.push({ src: 'challenge', lesson: `unit ${unit}`, q: { prompt: q.prompt, choices: q.choices, correctChoice: q.correct } });
     for (const s of q.steps ?? []) rows.push({ src: 'challenge step', lesson: `unit ${unit}`, q: { prompt: s.prompt, choices: s.choices, correctChoice: s.correct } });
   }
