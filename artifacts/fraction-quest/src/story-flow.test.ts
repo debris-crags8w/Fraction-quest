@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MISSIONS, type Mission } from './game';
 import { LESSON_IDEAS } from './lesson-ideas';
-import { SECRETS, dailySecret, lanternCard, mysteryOfTheWeek } from './riddles';
+import { SECRETS, dailySecret, lanternCard, mysteryAnswer, mysteryOfTheWeek } from './riddles';
 import { CHAPTERS, EPILOGUE, STORY_PROBLEMS, STONE_PIECES, chapterEnd, chapterFor, endingAfterChapter, lessonComic, stoneQuestion, storyLessonTitle, thanksFor, withName, type Chapter } from './story';
 
 const lessonsIn = (unit: number) => MISSIONS.filter((mission) => mission.unit === unit);
@@ -248,4 +248,84 @@ test('the lantern card points to Chomp\'s mystery of the week only after the end
   assert.deepEqual(lanternCard({ ...base, storyOn: true, afterEnding: true }).notes, ['Chomp’s mystery of the week is waiting.']);
   assert.match(lanternCard({ ...base, storyOn: true, afterEnding: true }).spoken, /mystery of the week/);
   assert.deepEqual(lanternCard({ ...base, storyOn: false, afterEnding: true }).notes, []);
+});
+
+/* ---------- Package D: story fit (rescore 2) ---------- */
+const lessonStory = () => CHAPTERS.flatMap((chapter) => lessonsIn(chapter.unit).map((mission, index, all) => {
+  const problem = STORY_PROBLEMS[mission.id]!;
+  const last = index === all.length - 1;
+  return { chapter, mission, index, last, problem, scene: index === 0 ? null : plain(lessonComic(chapter, mission, index)[0]!.text), cliff: last ? null : plain(chapter.cliffs[index]!), thanks: last ? plain(chapter.done) : plain(thanksFor(chapter, index)) };
+}));
+const STOP = new Set('this that with from have your what when then they them their there here just some more much very into over only also about which would could will were been does like help okay let’s lets it’s i’m can’t don’t'.split(' '));
+const stems = (text: string) => new Set((text.toLowerCase().match(/[a-z]{4,}/g) ?? []).filter((word) => !STOP.has(word)).map((word) => word.replace(/^slices?$/, 'piece').replace(/(ies|es|s)$/, '')));
+
+test('the friend\'s scene is about the lesson it comes before: it shares a noun with the story problem, and is not the problem\'s own setup line', () => {
+  for (const { mission, scene, problem } of lessonStory()) {
+    if (scene === null) continue;
+    const told = stems(`${plain(problem.setup)} ${plain(problem.prompt)} ${plain(problem.result)}`);
+    assert.ok([...stems(scene)].some((word) => told.has(word)), `${mission.id}: the scene "${scene}" names nothing the question is about`);
+    assert.notEqual(scene, plain(problem.setup), `${mission.id}: the scene repeats the setup word for word`);
+  }
+  // The area lesson's cake is round (its scene said "tray"); the benchmark lesson's question is about a sunflower on the hill.
+  const area = lessonStory().find(({ mission }) => mission.id === 'fraction-of-area')!;
+  assert.doesNotMatch(`${area.scene} ${area.problem.setup}`, /tray/i);
+});
+
+test('a friend\'s thanks line is not the same sentence more than 3 times in a chapter', () => {
+  for (const chapter of CHAPTERS) {
+    const lines = lessonsIn(chapter.unit).slice(0, -1).map((_, index) => plain(thanksFor(chapter, index)));
+    const counts = new Map<string, number>();
+    for (const line of lines) counts.set(line, (counts.get(line) ?? 0) + 1);
+    for (const [line, times] of counts) assert.ok(times <= 3, `${chapter.title}: "${line}" is said ${times} times`);
+  }
+});
+
+test('no cliff contradicts the result it follows, and the story never settles a thread early', () => {
+  for (const { mission, index, last, chapter, problem, cliff } of lessonStory()) {
+    const result = plain(problem.result);
+    // A jug that is 1/4 full is not "full"; a pair of boots fixed in the result do not still need a part in the cliff.
+    if (cliff && /\d\/\d full/.test(plain(problem.prompt))) assert.doesNotMatch(cliff, /\bfull\b/, `${mission.id}: ${cliff}`);
+    if (cliff && /fixed/i.test(result)) assert.doesNotMatch(cliff, /needs? a new part|costs? money/i, `${mission.id}: ${cliff}`);
+    if (cliff && /\bone plank to go\b|\b5\/6\b/.test(result)) assert.doesNotMatch(cliff, /halfway/i, `${mission.id}: ${cliff}`);
+    // Arriving home happens once, at the chapter's end (lessons 12 and 14 both said it).
+    if (!last) for (const text of [result, cliff ?? '']) assert.doesNotMatch(text, /\b(is|got|made it|gets) home\b/i, `${mission.id}: ${text}`);
+    // The stone piece is found at the chapter's last lesson, not in a cliff before it.
+    if (cliff) assert.doesNotMatch(cliff, /stone piece[^.!]*\b(free|pops? out|drops? out|dug up|digs? up|lands? right on)\b|\b(digs? up|wiggles?|lands? right on)\b[^.!]*stone piece/i, `${mission.id}: the piece is found early: ${cliff}`);
+    void index; void chapter;
+  }
+  // A result that says the jug "needs to hold more" is answered by the chapter's end.
+  const portions = lessonStory().find(({ mission }) => mission.id === 'party-portions')!;
+  assert.match(portions.problem.result, /more than 2 liters/);
+  assert.match(plain(portions.chapter.done), /bigger jug/i);
+  // "How much is left" with a sum needs two things left over.
+  const estimate = lessonStory().find(({ mission }) => mission.id === 'estimate-fraction-operations')!;
+  assert.match(`${estimate.problem.setup} ${estimate.problem.prompt}`, /leftover|in all/i);
+});
+
+test('the last stone piece, the chapter 9, 10, 14 and 15 pieces are placed where the story says they were found', () => {
+  for (const unit of [4, 7, 8, 9, 10, 11, 12, 13, 14, 15]) assert.match(plain(chapterFor(unit)!.done), /piece/i, `chapter ${unit}'s last line holds the stone piece`);
+  assert.match(plain(chapterFor(15)!.done), /under the stage/i, 'chapter 15 says where the last piece was');
+});
+
+test('a mystery of the week is answered the next Monday, in words, and the answer is not the question', () => {
+  const monday = (week: number) => new Date(Date.UTC(2026, 9, 26) + week * 7 * 86_400_000).toISOString().slice(0, 10);
+  const answers = new Set<string>();
+  for (let week = 0; week < 24; week++) {
+    const day = monday(week);
+    const answer = mysteryAnswer(day);
+    assert.equal(mysteryAnswer(new Date(Date.parse(day) + 6 * 86_400_000).toISOString().slice(0, 10)), answer, 'the same answer all week');
+    assert.notEqual(answer, mysteryOfTheWeek(day));
+    assert.ok(answer.length <= 130 && !/\d/.test(answer), answer);
+    assert.match(answer, /^Last week/);
+    answers.add(answer);
+  }
+  assert.equal(answers.size, 12, 'one answer for each of the twelve mysteries');
+  // Next Monday answers this week\'s mystery: the question asked in week w is the one answered in week w + 1.
+  const reveals = Array.from({ length: 12 }, (_, week) => mysteryAnswer(monday(week + 1)));
+  assert.equal(new Set(reveals).size, 12);
+  for (let week = 0; week < 12; week++) assert.equal(mysteryAnswer(monday(week + 1)), mysteryAnswer(monday(week + 1)));
+});
+
+test('an everyday secret does not name Bolt\'s rocket boots before chapter 5 brings them in', () => {
+  for (let i = 0; i < 90; i++) assert.doesNotMatch(dailySecret(new Date(Date.UTC(2026, 9, 29) + i * 86_400_000).toISOString().slice(0, 10), false), /rocket boots|\bboots\b/i);
 });
