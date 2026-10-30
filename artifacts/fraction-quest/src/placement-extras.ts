@@ -35,6 +35,7 @@ const blend = (id: string, prompt: string, answer: string, hint: string, standar
   ({ id: `placement-${id}`, prompt, answer, hint, standards, ...(form ? { form } : {}) });
 const MIXED_LENGTH = ['4.NF.3c', '4.NF.3d']; // a mixed number in a story about one length
 const DECIMAL_SIGN = ['4.NF.7', '4.NF.6']; // hundredths written as a decimal, then compared
+const SUM_SIGN = ['4.NF.5', '4.NF.7']; // tenths and hundredths added, then compared with a decimal
 export const PLACEMENT_BLENDS: Record<string, WorksheetProblem[]> = {
   'add-mixed-numbers': [
     blend('mixed-add-1', 'A rope is 1 3/8 meters long. Add 2/8 meter more. How long is it now?', '1 5/8', 'Add the eighths. The whole meter stays.', MIXED_LENGTH, 'mixed'),
@@ -64,9 +65,38 @@ export const PLACEMENT_BLENDS: Record<string, WorksheetProblem[]> = {
     blend('decimal-sign-3', 'Put <, = or > in the gap: 0.7 __ 68/100.', '>', 'Write 0.7 in hundredths first: 70 hundredths.', DECIMAL_SIGN, 'symbol'),
     blend('decimal-sign-4', 'Put <, = or > in the gap: 9/100 __ 0.1.', '<', 'Write 0.1 in hundredths first: 10 hundredths.', DECIMAL_SIGN, 'symbol'),
   ],
+  // Tenths plus hundredths (4.NF.5), compared with a decimal (4.NF.7, earlier in unit 8).
+  'dimes-and-pennies': [
+    blend('sum-sign-3', 'Put <, = or > in the gap: 6/10 + 5/100 __ 0.7.', '<', 'Change 6/10 into hundredths first: 60 + 5 is 65 hundredths.', SUM_SIGN, 'symbol'),
+    blend('sum-sign-4', 'Put <, = or > in the gap: 4/10 + 3/100 __ 0.34.', '>', 'Change 4/10 into hundredths first: 40 + 3 is 43 hundredths.', SUM_SIGN, 'symbol'),
+  ],
+  // Groups of one tenth (4.NF.4a), tenths plus hundredths (4.NF.5), compared (4.NF.7).
+  'unit-fraction-multiples': [
+    blend('groups-sign-1', 'Put <, = or > in the gap: 4 × 1/10 __ 3/10 + 15/100.', '<', '4 × 1/10 is 4 tenths: 40 hundredths. 3/10 + 15/100 is 45 hundredths.', ['4.NF.4a', '4.NF.5', '4.NF.7'], 'symbol'),
+    blend('groups-sign-2', 'Put <, = or > in the gap: 7 × 1/10 __ 6/10 + 5/100.', '>', '7 × 1/10 is 7 tenths: 70 hundredths. 6/10 + 5/100 is 65 hundredths.', ['4.NF.4a', '4.NF.5', '4.NF.7'], 'symbol'),
+  ],
+  // 2 × 3/10 is 6 × 1/10 (4.NF.4b and 4.NF.4a), then compared (4.NF.7) with tenths plus hundredths (4.NF.5).
+  'multiply-whole-by-fraction': [
+    blend('times-sign-1', 'Put <, = or > in the gap: 2 × 3/10 __ 5/10 + 8/100.', '>', '2 × 3/10 is 6 × 1/10: 60 hundredths. 5/10 + 8/100 is 58 hundredths.', ['4.NF.4b', '4.NF.4a', '4.NF.5', '4.NF.7'], 'symbol'),
+    blend('times-sign-2', 'Put <, = or > in the gap: 3 × 2/10 __ 6/10 + 3/100.', '<', '3 × 2/10 is 6 × 1/10: 60 hundredths. 6/10 + 3/100 is 63 hundredths.', ['4.NF.4b', '4.NF.4a', '4.NF.5', '4.NF.7'], 'symbol'),
+  ],
   'add-tenths-hundredths': [
+    blend('sum-sign-1', 'Put <, = or > in the gap: 3/10 + 4/100 __ 0.4.', '<', 'Change 3/10 into hundredths first: 30 + 4 is 34 hundredths.', SUM_SIGN, 'symbol'),
+    blend('sum-sign-2', 'Put <, = or > in the gap: 5/10 + 6/100 __ 0.52.', '>', 'Change 5/10 into hundredths first: 50 + 6 is 56 hundredths.', SUM_SIGN, 'symbol'),
     blend('tenths-sum-1', 'Write 4/10 + 25/100 as a decimal.', '0.65', 'Change 4/10 into hundredths first. Then write 2 places after the point.', ['4.NF.5', '4.NF.6'], 'decimal'),
     blend('tenths-sum-2', 'Write 7/10 + 8/100 as a decimal.', '0.78', 'Change 7/10 into hundredths first. Then write 2 places after the point.', ['4.NF.5', '4.NF.6'], 'decimal'),
+  ],
+  // Measurements listed as on a line plot (4.MD.4, read-line-plots), in a measuring story or a times story later in unit 9.
+  'measurement-word-problems': [
+    blend('rain-1', 'Rain fell on 4 days: 1/8, 3/8, 3/8, 6/8 inch. How much more rain fell on the wettest day than the driest?', '5/8', 'Take the driest day away from the wettest.', ['4.MD.2', '4.MD.4']),
+    blend('rain-2', 'Rain fell on 5 days: 2/8, 2/8, 4/8, 5/8, 7/8 inch. How much more rain fell on the wettest day than the driest?', '5/8', 'Take the driest day away from the wettest.', ['4.MD.2', '4.MD.4']),
+  ],
+  'fraction-recipes': [
+    blend('same-cups-1', 'Jars hold: 3/4, 1/4, 3/4, 3/4 liter. How much do the 3/4-liter jars hold in all?', '9/4', 'Count the 3/4-liter jars. Then find that many times 3/4.', ['4.NF.4c', '4.MD.4']),
+  ],
+  'party-portions': [
+    blend('same-cups-2', 'Cups hold: 3/8, 5/8, 3/8, 1/8, 3/8 liter. How much do the 3/8-liter cups hold in all?', '9/8', 'Count the 3/8-liter cups. Then find that many times 3/8.', ['4.NF.4c', '4.MD.4']),
+    blend('same-cups-3', 'Cups hold: 2/8, 5/8, 5/8, 7/8 liter. How much do the 5/8-liter cups hold in all?', '10/8', 'Count the 5/8-liter cups. Then find that many times 5/8.', ['4.NF.4c', '4.MD.4']),
   ],
   'line-plot-totals': [
     // Adding halves, fourths and eighths: unlike denominators in a story (5.NF.1, 5.NF.2) from measurements (5.MD.2).
@@ -76,9 +106,16 @@ export const PLACEMENT_BLENDS: Record<string, WorksheetProblem[]> = {
   'fractional-unit-conversions': [
     // A fraction of 2 or 3 big units (5.NF.4a), changed to small units (5.MD.1), in a measurement story (4.MD.2).
     blend('convert-part-1', 'A 2-liter jug is 3/4 full. How many milliliters are inside?', '1500', '2 liters is 2000 milliliters. Find 3/4 of 2000.', ['5.MD.1', '4.MD.2', '5.NF.4a']),
+    blend('total-g-1', 'Bags hold: 1/4, 2/4, 3/4 kilogram. How many grams in all?', '1500', 'Add the kilograms first. 1 kilogram is 1000 grams.', ['5.MD.1', '4.MD.2', '5.MD.2']),
     blend('convert-part-2', 'A 3-kilogram bag is 1/4 full. How many grams are in it?', '750', '3 kilograms is 3000 grams. Find 1/4 of 3000.', ['5.MD.1', '4.MD.2', '5.NF.4a']),
   ],
+  // Amounts listed as on a line plot (5.MD.2, line-plot-totals), shared equally: a whole number divided into a fraction (5.NF.3).
+  'fractional-sharing': [
+    blend('level-1', 'Three jars hold 2/4, 3/4, 3/4 liter. Share the total equally. How many liters go in each?', '2/3', 'Add them first: 8/4 is 2 liters. Then 2 shared by 3 is 2/3.', ['5.NF.3', '5.MD.2']),
+    blend('level-2', 'Three cups hold 1/8, 3/8, 4/8 liter. Share the total equally. How many liters go in each?', '1/3', 'Add them first: 8/8 is 1 liter. Then 1 shared by 3 is 1/3.', ['5.NF.3', '5.MD.2']),
+  ],
   'two-step-conversions': [
+    blend('total-ml-1', 'Cups hold: 1/2, 1/4, 1/4 liter. How many milliliters in all?', '1000', 'Add the liters first. 1 liter is 1000 milliliters.', ['5.MD.1', '4.MD.2', '5.MD.2']),
     blend('two-step-1', 'A ribbon is 2 1/4 feet long. Pip cuts off 8 inches. How many inches are left?', '19', 'Change 2 1/4 feet to inches first: 1 foot is 12 inches.', ['5.MD.1', '4.MD.2']),
     blend('two-step-2', 'A race is 1 1/4 hours long. The first part takes 30 minutes. How many minutes are left?', '45', 'Change 1 1/4 hours to minutes first: 1 hour is 60 minutes.', ['5.MD.1', '4.MD.2']),
   ],

@@ -138,6 +138,8 @@ const RULES: Rule[] = [
       if (v.filter((x) => near(x, pick)).length > 1) return 'two choices tie'; return { value: pick }; } },
   { name: 'gap sign', re: /^(?:Put <, = or > in the gap|Pick the sign|Compare):? (\S+) __ (\S+?)\.?$/,
     solve: (m) => ({ symbol: sym(valueOf(m[1]), valueOf(m[2])), statement: `${m[1]} ${sym(valueOf(m[1]), valueOf(m[2]))} ${m[2]}` }) },
+  { name: 'gap sign with a sum or product', re: new RegExp(String.raw`^Put <, = or > in the gap: (${EXPR}|${TERM}) __ (${EXPR}|${TERM})\.$`),
+    solve: (m) => { const [a, b] = [evaluate(m[1]), evaluate(m[2])]; return { symbol: sym(a, b), statement: `${m[1]} ${sym(a, b)} ${m[2]}` }; } },
   { name: 'order', re: /^Put (.+) in order, (smallest|biggest) first\.$/,
     solve: (m) => { const v = m[1].split(/,? and |, /).map(valueOf); if (new Set(v.map((x) => x.toFixed(9))).size < v.length) return 'two fractions are equal, so the order is not unique';
       return { order: [...v].sort((a, b) => (m[2] === 'smallest' ? a - b : b - a)) }; } },
@@ -295,6 +297,10 @@ const RULES: Rule[] = [
   // Line plot totals: every X's amount added, or one stack's total minus another's.
   { name: 'line plot total', re: /^(?:The line plot shows [\w ]+ (?:in|on) \d+ \w+|Plot these \w+ in eighths of a liter|(?:Beakers|Cups) hold): (.+) (?:liter|inch)\. (?:How much [\w ]+ in all\?|Show the total on a line\.)$/,
     solve: (m) => ({ value: m[1].split(/, | and /).map(frac).reduce((a, b) => a + b, 0) }) },
+  { name: 'listed amounts of one size', re: /^(?:Cups|Jars) hold: (.+) liter\. How much do the (\d+\/\d+)-liter \w+ hold in all\?$/,
+    solve: (m) => { const v = m[1].split(', ').map(frac); return { value: v.filter((y) => near(y, frac(m[2]))).length * frac(m[2]) }; } },
+  { name: 'listed amounts in small units', re: /^(?:Cups|Bags) hold: (.+) (liter|kilogram)\. How many (milliliters|grams) in all\?$/,
+    solve: (m) => ({ value: m[1].split(', ').map(frac).reduce((a, b) => a + b, 0) * 1000 }) },
   { name: 'line plot total (build)', re: /^(?:Beakers|Cups) hold (.+) liter\. Show the total on a line\.$/,
     solve: (m) => ({ value: m[1].split(/, | and /).map(frac).reduce((a, b) => a + b, 0) }) },
   { name: 'line plot stack difference', re: /^(?:The line plot shows [\w ]+ in \d+ \w+|Plot these \w+ in eighths of a liter): (.+) liter\. How much more do all the (\d+\/\d+) \w+ hold together than all the (\d+\/\d+) \w+ together\?$/,
