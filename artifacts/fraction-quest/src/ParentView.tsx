@@ -202,7 +202,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
           <section className="fq-parent-stats" aria-label="Summary">
             <div data-testid="stat-lessons"><strong>{report.lessonsDone}<small>/{report.lessonsTotal}</small></strong><span>Lessons done</span></div>
             <div data-testid="stat-minutes"><strong>{report.minutesWeek}<small> min</small></strong><span>This week</span></div>
-            <div data-testid="stat-first-try"><strong>{percent(report.firstTryRate)}</strong><span>Worksheet answers right the first time, all lessons</span></div>
+            <div data-testid="stat-first-try"><strong>{percent(report.firstTryRate)}</strong><span>Worksheet answers right the first time without the Hint, all lessons</span></div>
             <div data-testid="stat-on-own"><strong>{percent(report.onOwnRate)}</strong><span>Builds done without help</span></div>
             <div data-testid="stat-streak"><strong>{report.streak}</strong><span>Day streak{report.savedDays > 0 ? ` (${report.savedDays} ${report.savedDays === 1 ? 'day' : 'days'} saved by spare oil)` : ''}</span></div>
           </section>

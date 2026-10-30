@@ -39,6 +39,9 @@ const IDEAS: Record<string, Entry> = {
   '5.NF.7c': { heading: 'Word problems that divide with unit fractions', home: 'Ask: 4 cups of rice and each serving is 1/3 cup. How many servings is that (12)?' },
   '5.MD.1': { heading: 'Changing between measurement units', home: 'Ask how many inches are in 3/4 of a foot (9), and how your child worked it out.' },
   '5.MD.2': { heading: 'Line plots with fractions', home: 'Make a line plot of five amounts like 1/4, 1/2, 1/2, 3/4 and 1/2 cup. Ask your child to find the total and share it equally.' },
+  'benchmarks': { heading: 'Comparing to zero, one half and one', home: 'Ask whether 3/8 is more or less than 1/2, and whether 7/8 is nearer to 0 or to 1. Have your child say how they know.' },
+  'mixed-improper': { heading: 'Mixed numbers and fractions bigger than one', home: 'Ask how many fourths are in 1 and 3/4 pizzas (7/4), and how your child counted them.' },
+  'find-the-whole': { heading: 'Finding the whole from a part', home: 'Ask: 3 stickers are 1/4 of a pack. How many stickers are in the whole pack (12), and how do you know?' },
   'check-the-work': { heading: 'Checking someone else’s work', home: 'Write a fraction sum with a mistake in it. Ask your child to be the teacher: find the first wrong step and fix it.' },
   'bonus-chance': { heading: 'Chance as a fraction', home: 'Put 3 red and 1 blue counter in a bag. Ask what fraction of the draws should be red, and why (3/4).' },
   'bonus-percent': { heading: 'Fractions and percent', home: 'Ask your child to say 1/4, 1/2 and 3/4 as percents (25%, 50% and 75%).' },
@@ -47,6 +50,8 @@ const IDEAS: Record<string, Entry> = {
 
 /** Lessons named on their own instead of by their first standard. */
 const OWN_IDEA: Record<string, string> = {
+  'benchmark-half': 'benchmarks', 'benchmarks-zero-one': 'benchmarks', 'mixed-improper': 'mixed-improper',
+  'fractional-measure-addition': '5.NF.1', 'multiply-mixed-numbers': '5.NF.6', 'find-the-whole': 'find-the-whole',
   'spot-the-mistake': 'check-the-work', 'fraction-probability': 'bonus-chance',
   'fractions-to-percent': 'bonus-percent', 'percent-to-fraction': 'bonus-percent', 'divide-fractions': 'bonus-divide',
 };

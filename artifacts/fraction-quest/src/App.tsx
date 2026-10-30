@@ -1850,7 +1850,7 @@ function Game() {
       {view.type === 'assessment' && <AssessmentRunner key={`${view.definition.id}:${view.seed}`} definition={view.definition} seed={view.seed}
         resume={progress.assessmentDraft} onProgress={(draft) => persistProgress(saveAssessmentDraft(progress, draft))}
         onComplete={attempt => persistProgress(clearAssessmentDraft(clearGrownUpPick(saveAssessmentAttempt(progress, attempt), 'checkin', attempt.assessmentId), attempt.assessmentId))} onExit={() => setView({ type: 'assessments' })} />}
-      {view.type === 'subscribe' && !subscription && <WebAppOnlyFlow onBack={() => setView({ type: 'map' })} />}
+      {view.type === 'subscribe' && !subscription && <WebAppOnlyFlow playedFirst={progress.completedMissionIds.includes(MISSIONS[0].id)} onBack={() => setView({ type: 'map' })} />}
       {view.type === 'subscribe' && subscription && (
         <SubscribeFlow subscription={subscription} lapsed={subscribedBefore()} lessonsDone={progress.completedMissionIds.length}
           piecesFound={completedStoryUnits(progress).size} onBack={() => setView({ type: 'map' })} onStorybook={() => setView({ type: 'storybook', tab: 'story' })} />

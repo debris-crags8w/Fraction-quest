@@ -175,6 +175,46 @@ describe('every lesson has an idea', () => {
   });
 });
 
+describe('right the first time means without the Hint', () => {
+  it('does not count an answer that was right only after the child opened the Hint', () => {
+    const id = MISSIONS[0].id;
+    const record = finished(id, day(1));
+    const rows = getWorksheet(id);
+    const helped = { ...record, worksheet: { ...record.worksheet, [rows[0].id]: { ...record.worksheet[rows[0].id], supported: true } } };
+    const alone = report(withLessons({ [id]: record })).firstTryRate!;
+    const withHint = report(withLessons({ [id]: helped })).firstTryRate!;
+    assert.equal(alone, 100);
+    assert.equal(withHint, Math.round(((rows.length - 1) / rows.length) * 100));
+  });
+});
+
+describe('"learned this week" uses the same 7 calendar days as the day tiles', () => {
+  it('leaves out a lesson finished the evening before the first tile, even though it is under 168 hours ago', () => {
+    const [early, inside, today] = MISSIONS.map((mission) => mission.id);
+    const evening = new Date(now); evening.setDate(now.getDate() - 7); evening.setHours(20, 0, 0, 0); // under 168 h ago, before the first tile
+    const firstTile = new Date(now); firstTile.setDate(now.getDate() - 6); firstTile.setHours(0, 30, 0, 0);
+    assert.ok(now.getTime() - evening.getTime() < 7 * DAY);
+    const learned = report(withLessons({ [early]: finished(early, evening.getTime()), [inside]: finished(inside, firstTile.getTime()), [today]: finished(today, now.getTime() - 1000) })).glance.learned.map((lesson) => lesson.id);
+    assert.deepEqual(learned, [inside, today]);
+  });
+});
+
+describe('what to practice names the skill the lesson teaches', () => {
+  const expected: Record<string, string> = {
+    'benchmark-half': 'Comparing to zero, one half and one',
+    'benchmarks-zero-one': 'Comparing to zero, one half and one',
+    'mixed-improper': 'Mixed numbers and fractions bigger than one',
+    'fractional-measure-addition': 'Adding and subtracting different-size parts',
+    'multiply-mixed-numbers': 'Word problems that multiply fractions',
+    'find-the-whole': 'Finding the whole from a part',
+  };
+  for (const [id, heading] of Object.entries(expected)) {
+    it(`${id} is filed under "${heading}"`, () => {
+      assert.equal(ideaForMission(MISSIONS.find((mission) => mission.id === id)!).heading, heading);
+    });
+  }
+});
+
 describe('the last 4 weeks', () => {
   const ids = MISSIONS.slice(0, 6).map((mission) => mission.id);
   const progress = withLessons({

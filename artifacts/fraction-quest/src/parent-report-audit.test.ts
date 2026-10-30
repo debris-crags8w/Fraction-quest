@@ -46,7 +46,8 @@ describe('report numbers on 120 fabricated states', () => {
           misconceptions: wrongTries ? { [`hint ${index}`]: wrongTries } : {}, redoMisconceptions: redoTries ? { [`hint ${index}`]: redoTries } : undefined };
         done++; tried += 12; first += right;
         getBuildChecks(mission.id).forEach((_, k) => { builds++; if (!supported[k % 3]) own++; });
-        if (ago < 7 * DAY) { recent++; weekTried += 12; weekFirst += right; }
+        // The week is the 7 calendar days of the day tiles: from midnight six days ago.
+        if (now.getTime() - ago >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6).getTime()) { recent++; weekTried += 12; weekFirst += right; }
         if (wrongTries + redoTries) {
           const key = ideaForMission(mission).key;
           const entry = misses.get(key) ?? { count: 0, numbers: [] };
@@ -153,7 +154,7 @@ describe('the share summary says what its first-try number covers', () => {
     assert.equal(report.glance.firstTryWeek, 25);
     assert.equal(report.firstTryRate, 63);
     const text = glanceShareText(report.glance, 'Sam', now);
-    assert.match(text, /Right the first time in lessons finished this week: 25%\./);
+    assert.match(text, /Right the first time, without the Hint, in lessons finished this week: 25%\./);
     assert.doesNotMatch(text, /63%/);
   });
 
