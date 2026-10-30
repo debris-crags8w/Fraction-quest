@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { MISSIONS, PLACEMENT_UNITS } from './game';
 import { answerMatches, getWorksheet } from './learning-content';
-import { PER_UNIT, placementItems } from './placement';
+import { PER_UNIT, placementItems, placementPicture } from './placement';
 import { PLACEMENT_BLENDS, PLACEMENT_EXTRAS } from './placement-extras';
 import { prove } from './proof';
 import { standardsForMission } from './standard-catalog';
@@ -94,5 +94,17 @@ describe('Find my level asks about every part of units 1–12', () => {
         assert.ok(result?.ok, `${id}: ${problem.prompt}: ${result && !result.ok ? result.why : 'no proof rule'}`);
       }
     }
+  });
+
+  it('draws the picture every question needs: a row that carries its line, grid or coins in `picture` shows it', () => {
+    // "What decimal is at the dot?" keeps its number line in `picture` and has no model: the quiz used to show the bare words.
+    const needs = /at the dot|shaded|colou?red|picture|shown|grid|pizza|dimes|pennies|beads/i;
+    const missing = new Set<string>();
+    for (let unit = 1; unit <= PLACEMENT_UNITS; unit++) for (let seed = 1; seed <= 300; seed++) for (const item of placementItems(unit, seed)) {
+      const drawn = placementPicture(item.problem);
+      if (item.problem.picture && drawn?.kind !== 'picture' && !item.problem.model && !item.problem.area) missing.add(`unit ${unit} ${item.missionId}: ${item.problem.prompt}`);
+      if (needs.test(item.problem.prompt) && !drawn) missing.add(`unit ${unit} ${item.missionId}: ${item.problem.prompt} (no picture at all)`);
+    }
+    assert.deepEqual([...missing].slice(0, 8), [], `${missing.size} questions show no picture`);
   });
 });

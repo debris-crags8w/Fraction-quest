@@ -52,7 +52,8 @@ export function placementItems(unit: number, seed: number): PlacementItem[] {
   const covered = new Set<string>(); // standards the questions so far ask
   return placementLessons(unit, seed).map((mission) => {
     const sheet = askableRows(mission.id);
-    // Prefer rows that need no picture; fall back to any row (its picture is shown, read-only).
+    // Prefer rows with no model to read; fall back to any row (its picture is shown, read-only). Rows that carry a `picture`
+    // count as plain too: the quiz draws it (placementPicture).
     const plain = sheet.filter((problem) => !problem.model && !problem.area);
     const pool = plain.length >= 3 ? plain : sheet;
     const fresh = pool.filter((problem) => !asked.has(`${problem.prompt}|${problem.answer}`));
@@ -64,6 +65,17 @@ export function placementItems(unit: number, seed: number): PlacementItem[] {
     rowStandards(mission.id, problem).forEach((standard) => covered.add(standard));
     return { unit, missionId: mission.id, problem };
   });
+}
+
+/** What the quiz draws above a question: the row's own model (bar, line or set), its area figure, or the picture it carries. */
+export type PlacementPicture = { kind: 'model'; model: NonNullable<WorksheetProblem['model']> } | { kind: 'area'; area: NonNullable<WorksheetProblem['area']> }
+  | { kind: 'picture'; picture: NonNullable<WorksheetProblem['picture']> };
+export function placementPicture(problem: WorksheetProblem): PlacementPicture | null {
+  if (problem.model) return { kind: 'model', model: problem.model };
+  if (problem.area) return { kind: 'area', area: problem.area };
+  // A number line with a dot, hundredths grids, coins, pizzas: the row keeps its picture here, and the question needs it.
+  if (problem.picture) return { kind: 'picture', picture: problem.picture };
+  return null;
 }
 
 /** Where to start, given how many units in a row were passed from unit 1. */
