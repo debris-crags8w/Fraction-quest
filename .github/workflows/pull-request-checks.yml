@@ -159,7 +159,8 @@ jobs:
   extra-browser-checks:
     # A separate job, so the required checks above keep their names and their time. It runs the browser checks that had
     # no job of their own: the accessibility scans (axe), the grown-ups report, the subscription screens, offline use,
-    # the reminder and the time limit. Expect about 10 extra runner minutes on every pull request (the tests took 6 minutes with 2 workers on a shared machine; the Chromium install is the rest).
+    # the reminder and the time limit, then the Check-in pictures (shapes, decimal grids, their phone fit), the developer
+    # preview and Lesson tester, the story voice prefetch and the worksheet number lines. Expect about 15 extra runner minutes on every pull request (the tests took 11 minutes with 2 workers on a shared machine; the Chromium install is the rest).
     name: Extra browser checks
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -197,7 +198,7 @@ jobs:
           done
           exit 1
 
-      - name: Accessibility, grown-ups report, subscription, offline, reminder and time-limit checks
+      - name: Accessibility, grown-ups report, subscription, offline, reminder, time-limit, Check-in picture and developer-tool checks
         run: pnpm --filter @workspace/fraction-quest test:e2e:extra
 
   iphone-safari-e2e:

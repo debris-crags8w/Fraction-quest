@@ -169,6 +169,11 @@
   background: hsl(var(--secondary) / .045);
 }
 
+/* Hundredths grids or pies to compare (up to three): small and side by side, so the question, the tiles and Next fit a phone. */
+.fq-assessment-model.is-area { padding: .4rem; }
+.fq-assessment-picture.is-area .fq-area-model { flex-wrap: nowrap; gap: 8px; }
+.fq-assessment-picture.is-area .fq-area-model .fq-svg-area { width: calc(min(24vw, 96px) * var(--area-scale, 1)); }
+
 .fq-assessment-model > p:first-child {
   margin: 0 0 1rem;
   color: hsl(var(--muted-foreground));
