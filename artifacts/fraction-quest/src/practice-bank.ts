@@ -1090,8 +1090,8 @@ for (const topic of MISSIONS.filter((item) => !(item.id in RECIPES))) {
   RECIPES[topic.id] = (r) => {
     // Yes/no rows stay on the worksheet: a tap question needs number answers to make wrong choices from.
     // A row whose answer is a fraction already written in its prompt (a line plot's own marks) is left out: the child could just copy it.
-    // A row the child copies onto bars whose amounts are too long to draw (4 1/3 − 2 1/2) would show only empty bars here:
-    // the extra sheets leave those out.
+    // A row the child copies onto bars whose amounts are too long to draw would show only empty bars here: the extra
+    // sheets leave those out (none are left; row-pictures.test.ts keeps it so for sums and differences).
     const blankCopy = (problem: ReturnType<typeof getWorksheet>[number]) => {
       const picture = problem.task?.kind === 'copy' ? problemPicture(problem) : null;
       return picture?.kind === 'bars' && picture.bars.every((bar) => bar.numerator === 0);
