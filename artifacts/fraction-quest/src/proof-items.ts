@@ -142,7 +142,11 @@ export function allWrittenTexts({ sheets = 8, seeds = 10 } = {}): { where: strin
     for (const word of extras?.words ?? []) { add(`${m.id} word card`, word.meaning); for (const line of word.picture ? sceneTexts(word.picture) : []) add(`${m.id} word card`, line); }
     for (const example of extras?.examples ?? []) { add(`${m.id} worked example`, example.title); for (const line of sceneTexts(example.picture)) add(`${m.id} worked example`, line); }
   }
-  for (const u of Object.keys(CHALLENGES)) for (const q of challengePuzzlesOfUnit(Number(u))) add(`challenge unit ${u}`, q.explanation);
+  for (const u of Object.keys(CHALLENGES)) for (const q of challengePuzzlesOfUnit(Number(u))) {
+    add(`challenge unit ${u}`, q.explanation);
+    // Each puzzle's own reason for a wrong choice, where the general slip reasons cannot tell.
+    for (const reason of Object.values(q.reasons ?? {})) add(`challenge unit ${u} wrong-choice reason`, reason);
+  }
   // Check-in and Find my level rows carry their own hints and reasons, like a worksheet.
   for (const d of getAssessmentDefinitions()) for (const seed of [1, 2]) for (const i of buildAssessmentItems(d, seed)) { add(`Check-in ${d.id} hint`, i.problem.hint); add(`Check-in ${d.id} why`, i.problem.why); add(`Check-in ${d.id} why`, i.problem.explain); }
   for (let u = 1; u <= PLACEMENT_UNITS; u++) for (const seed of [1, 2, 3]) for (const i of placementItems(u, seed)) { add('Find my level hint', i.problem.hint); add('Find my level why', i.problem.why); }
