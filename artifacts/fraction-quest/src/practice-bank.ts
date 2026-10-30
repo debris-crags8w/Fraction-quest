@@ -992,34 +992,45 @@ const renamed = (common: number, ...amounts: [number, number][]) => {
   return list.length ? `${list.join(' and ')}. ` : '';
 };
 
+function unlikeSum(r: Rng): WorksheetProblem {
+  const [b, e] = r.pick(UNLIKE_PAIRS); const a = r.pick(range(1, b - 1).filter((x) => gcd(x, b) === 1)); const c = r.pick(range(1, e - 1).filter((x) => gcd(x, e) === 1));
+  const common = (b * e) / gcd(b, e); const [x, y] = [a * (common / b), c * (common / e)];
+  return { id: 'wider', prompt: `${f(a, b)} + ${f(c, e)} = ?`, answer: mixedName(x + y, common), model: barRow(x, common), modelRequired: true,
+    hint: `List multiples of ${b} and ${e}. Which number is in both lists? Rename both fractions with it, then add.`,
+    why: `${renamed(common, [a, b], [c, e])}${f(x, common)} + ${f(y, common)} = ${f(x + y, common)}${x + y > common ? `, or ${mixedName(x + y, common)}` : x + y === common ? ', or 1 whole' : ''}.` };
+}
+function mixedUnlike(r: Rng): WorksheetProblem {
+  const [b, e] = r.pick(UNLIKE_PAIRS); const a = r.pick(range(1, b - 1).filter((x) => gcd(x, b) === 1)); const c = r.pick(range(1, e - 1).filter((x) => gcd(x, e) === 1));
+  const common = (b * e) / gcd(b, e); const [x, y] = [a * (common / b), c * (common / e)];
+  const add = r.chance(); const wholeA = r.int(add ? 1 : 2, 3); const wholeB = r.int(add ? 0 : 1, add ? 2 : wholeA - 1);
+  const result = (wholeA * common + x) + (add ? 1 : -1) * (wholeB * common + y);
+  const trade = !add && x < y;
+  const left = (n: number) => `${n} ${n === 1 ? 'whole' : 'wholes'}`;
+  const why = add
+    ? `${renamed(common, [a, b], [c, e])}${f(x, common)} + ${f(y, common)} = ${f(x + y, common)}${x + y >= common ? `, which is 1 whole${x + y > common ? ` and ${f(x + y - common, common)}` : ''}. ${wholeA}${wholeB ? ` + ${wholeB}` : ''} + 1 = ${left(wholeA + wholeB + 1)}.` : `.${wholeB ? ` ${wholeA} + ${wholeB} = ${left(wholeA + wholeB)}.` : ''}`}`
+    : trade
+      ? `${renamed(common, [a, b], [c, e])}Trade 1 whole: ${f(x, common)} becomes ${f(x + common, common)}. ${f(x + common, common)} − ${f(y, common)} = ${f(x + common - y, common)}, and ${wholeA - 1} − ${wholeB} = ${left(wholeA - 1 - wholeB)}.`
+      : `${renamed(common, [a, b], [c, e])}${f(x, common)} − ${f(y, common)} = ${f(x - y, common)}, and ${wholeA} − ${wholeB} = ${left(wholeA - wholeB)}.`;
+  return { id: 'wider', prompt: `${wholeA} ${f(a, b)} ${add ? '+' : '−'} ${wholeB ? `${wholeB} ` : ''}${f(c, e)} = ?`, answer: mixedName(result, common),
+    model: barRow(wholeA * common + x, common), modelRequired: true,
+    hint: `List multiples of ${b} and ${e} to find a denominator they share. ${add ? 'Rename both fractional parts' : 'Rename both numbers'} with the same denominator, then ${add ? 'add' : 'subtract'}.${trade ? ` The first part is too small to take away from: trade 1 whole for ${f(common, common)} first.` : ''}`,
+    why };
+}
+/** A row whose answer is not already a fraction written in its question (that would be copying, not solving). */
+function fresh(r: Rng, make: (r: Rng) => WorksheetProblem): WorksheetProblem {
+  for (let tries = 0; ; tries++) {
+    const row = make(r);
+    const written = row.prompt.match(/\d+\/\d+/g) ?? [];
+    if (tries >= 20 || !written.some((part) => row.answer === part || row.answer.endsWith(` ${part}`))) return row;
+  }
+}
+
 /** Lessons whose "New questions" come from worksheet rows: more rows in the same frames, with new numbers in the
     lesson's grade (the worksheet tables hold 24 rows each, which gave only about 20 different questions). */
 const WIDER_ROWS: Record<string, (r: Rng) => WorksheetProblem> = {
   // Unlike fractions: the child finds the shared denominator and renames (no renaming written into the question).
-  'add-unlike-fractions': (r) => {
-    const [b, e] = r.pick(UNLIKE_PAIRS); const a = r.pick(range(1, b - 1).filter((x) => gcd(x, b) === 1)); const c = r.pick(range(1, e - 1).filter((x) => gcd(x, e) === 1));
-    const common = (b * e) / gcd(b, e); const [x, y] = [a * (common / b), c * (common / e)];
-    return { id: 'wider', prompt: `${f(a, b)} + ${f(c, e)} = ?`, answer: mixedName(x + y, common), model: barRow(x, common), modelRequired: true,
-      hint: `List multiples of ${b} and ${e}. Which number is in both lists? Rename both fractions with it, then add.`,
-      why: `${renamed(common, [a, b], [c, e])}${f(x, common)} + ${f(y, common)} = ${f(x + y, common)}${x + y > common ? `, or ${mixedName(x + y, common)}` : x + y === common ? ', or 1 whole' : ''}.` };
-  },
-  'mixed-unlike-operations': (r) => {
-    const [b, e] = r.pick(UNLIKE_PAIRS); const a = r.pick(range(1, b - 1).filter((x) => gcd(x, b) === 1)); const c = r.pick(range(1, e - 1).filter((x) => gcd(x, e) === 1));
-    const common = (b * e) / gcd(b, e); const [x, y] = [a * (common / b), c * (common / e)];
-    const add = r.chance(); const wholeA = r.int(add ? 1 : 2, 3); const wholeB = r.int(add ? 0 : 1, add ? 2 : wholeA - 1);
-    const result = (wholeA * common + x) + (add ? 1 : -1) * (wholeB * common + y);
-    const trade = !add && x < y;
-    const left = (n: number) => `${n} ${n === 1 ? 'whole' : 'wholes'}`;
-    const why = add
-      ? `${renamed(common, [a, b], [c, e])}${f(x, common)} + ${f(y, common)} = ${f(x + y, common)}${x + y >= common ? `, which is 1 whole${x + y > common ? ` and ${f(x + y - common, common)}` : ''}. ${wholeA}${wholeB ? ` + ${wholeB}` : ''} + 1 = ${left(wholeA + wholeB + 1)}.` : `.${wholeB ? ` ${wholeA} + ${wholeB} = ${left(wholeA + wholeB)}.` : ''}`}`
-      : trade
-        ? `${renamed(common, [a, b], [c, e])}Trade 1 whole: ${f(x, common)} becomes ${f(x + common, common)}. ${f(x + common, common)} − ${f(y, common)} = ${f(x + common - y, common)}, and ${wholeA - 1} − ${wholeB} = ${left(wholeA - 1 - wholeB)}.`
-        : `${renamed(common, [a, b], [c, e])}${f(x, common)} − ${f(y, common)} = ${f(x - y, common)}, and ${wholeA} − ${wholeB} = ${left(wholeA - wholeB)}.`;
-    return { id: 'wider', prompt: `${wholeA} ${f(a, b)} ${add ? '+' : '−'} ${wholeB ? `${wholeB} ` : ''}${f(c, e)} = ?`, answer: mixedName(result, common),
-      model: barRow(wholeA * common + x, common), modelRequired: true,
-      hint: `List multiples of ${b} and ${e} to find a denominator they share. ${add ? 'Rename both fractional parts' : 'Rename both numbers'} with the same denominator, then ${add ? 'add' : 'subtract'}.${trade ? ` The first part is too small to take away from: trade 1 whole for ${f(common, common)} first.` : ''}`,
-      why };
-  },
+  'add-unlike-fractions': (r) => fresh(r, unlikeSum),
+  'mixed-unlike-operations': (r) => fresh(r, mixedUnlike),
   'measurement-word-problems': (r) => unitRow(r, [HOUR, DAY, DOLLAR, LITER, KILOGRAM]),
   'fractional-unit-conversions': (r) => unitRow(r, [HOUR, DAY, LITER, KILOGRAM, FOOT, POUND, METER]),
   'whole-numbers-as-fractions': (r) => {
