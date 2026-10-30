@@ -4083,7 +4083,7 @@ describe('wrong-answer help', () => {
     assert.match(wrongChoiceReason('Write 8/100 as a decimal.', ['0.08', '0.8', '8.00', '0.008'], 0, 1)!, /places/);
     assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 1)!, /More equal parts make each part smaller/);
     assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 3)!, /You can tell/);
-    assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 2)!, /same number of parts, but the parts are different sizes/);
+    assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 2)!, /top numbers match, but the parts are different sizes/);
     assert.match(wrongChoiceReason('Which is bigger, 5/8 or 1/2?', ['5/8', '1/2', 'They are equal', "You can't tell"], 0, 2)!, /not the same size/);
     assert.equal(wrongChoiceReason('Is this strip cut into thirds?', ['Yes, 3 equal pieces', 'No, the pieces are unequal'], 1, 0), null, 'worded choices fall back to the lesson help');
     assert.equal(wrongChoiceReason(q, ['9/1', '1/9'], 1, 1), null, 'no help for a right answer');
@@ -4246,6 +4246,50 @@ describe('worksheet hints shown before answering', () => {
       }
     }
     assert.deepEqual([...leaks.entries()].map(([template, example]) => `${template}\n      e.g. ${example}`), []);
+  });
+});
+
+describe('hints that say the answer in words', () => {
+  /** "You shaded 1 of them" and "Halfway is 1 of 2 jumps" name the answer 1/2 without writing it, and answers of 0, 1
+      and 2 were skipped by the guards above. Sheets 0 to 40, lesson and idea questions, and generated practice. */
+  const saysAOfB = (answer: string, hint: string, prompt: string) => {
+    const m = /^(\d+)\/(\d+)$/.exec(answer.trim());
+    if (!m) return false;
+    const said = new RegExp(`\\b${m[1]} of (?:them|${m[2]}\\b)`);
+    return said.test(hint) && !said.test(prompt);
+  };
+  it('worksheets and questions never say the answer as "a of b"', () => {
+    const leaks = new Map<string, string>();
+    for (const mission of MISSIONS) {
+      for (let sheet = 0; sheet <= 40; sheet++) for (const problem of getWorksheet(mission.id, sheet)) {
+        if (saysAOfB(problem.answer, problem.hint, problem.prompt)) leaks.set(`${mission.id} | ${problem.hint.replace(/\d+/g, '#')}`, `${problem.prompt} => ${problem.answer} | ${problem.hint}`);
+      }
+      for (const q of [...mission.questions, ...(mission.ideaQuestions ?? []), ...[1, 2, 3].flatMap((seed) => (hasGenerator(mission.id) ? generateQuestions(mission.id, [], seed, 12) : []))]) {
+        if (saysAOfB(q.choices[q.correctChoice], q.hint, q.prompt)) leaks.set(`${q.id} | ${q.hint}`, `${q.prompt} => ${q.choices[q.correctChoice]} | ${q.hint}`);
+      }
+    }
+    assert.deepEqual([...leaks.entries()], []);
+  });
+  it('worksheet hints do not hand over an answer of 0, 1 or 2 that the question does not already contain', () => {
+    // The question may hold the number inside a fraction ("1/2") but a number the child must work out is not in the hint.
+    // These hints repeat a number from the question's own working (an operand, a unit, the whole written as 6/6), so a
+    // small answer that equals it is a coincidence, not a leak.
+    const COINCIDENCE = [
+      /^Count how many short spaces make \d+ inch\./, /^\d+\/\d+ is one whole\. Count the \w+ after it\.$/, /^Add the parts: \d+ \+ \d+\./,
+      /^Count \d+ copies of /, /^What (?:times|was) \d+ (?:multiplied by )?(?:makes|to make) \d+\?/, /^Split \d+ into \d+ equal groups first\.$/,
+      /^Two ways: split \d+ into \d+ equal groups, then take \d+ group\./, /^Cut \d+ meters into \d+ equal parts\. Count \d+ part\.$/,
+      /^First take away what \w+ drinks: \d+ − \d+\. Then add \d+\.$/,
+    ];
+    const given = (prompt: string) => [...prompt.matchAll(/(?<![\d/]|\d\.)\d+(?![\d/]|\.\d)|\d*\.\d+/g)].map((m) => Number(m[0]));
+    const leaks = new Map<string, string>();
+    for (const mission of MISSIONS) for (let sheet = 0; sheet <= 40; sheet++) for (const problem of getWorksheet(mission.id, sheet)) {
+      const answer = answerValue(problem.answer);
+      if (![0, 1, 2].includes(answer) || given(problem.prompt).includes(answer) || COINCIDENCE.some((ok) => ok.test(problem.hint))) continue;
+      if ([...problem.hint.matchAll(/(?<![\d/]|\d\.)\d+(?![\d/]|\.\d)/g)].some((m) => Number(m[0]) === answer)) {
+        leaks.set(`${mission.id} | ${problem.hint.replace(/\d+/g, '#')}`, `${problem.prompt} => ${problem.answer} | ${problem.hint}`);
+      }
+    }
+    assert.deepEqual([...leaks.entries()], []);
   });
 });
 

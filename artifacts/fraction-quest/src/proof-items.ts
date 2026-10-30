@@ -6,7 +6,9 @@ import { lessonCheckpoint } from './checkpoint';
 import { getAssessmentDefinitions, buildAssessmentItems } from './assessments';
 import { placementItems, PLACEMENT_UNITS } from './placement';
 import { CHALLENGES } from './challenges';
-import { PROP_THEMES, STORY_PROBLEMS, withName } from './story';
+import { CHAPTERS, EPILOGUE, PROLOGUE, PROP_THEMES, STORY_PROBLEMS, WHOLE_STONE_OPENING, withName } from './story';
+import { SECRETS } from './riddles';
+import { END_SCENES, PROP_DEFS } from './film-props';
 import { LESSON_INTROS } from './lesson-intros';
 import { lessonIdeas } from './lesson-ideas';
 import { LESSON_SCENES, type StepScene } from './teach-scenes';
@@ -144,5 +146,17 @@ export function allWrittenTexts({ sheets = 8, seeds = 10 } = {}): { where: strin
   // Check-in and Find my level rows carry their own hints and reasons, like a worksheet.
   for (const d of getAssessmentDefinitions()) for (const seed of [1, 2]) for (const i of buildAssessmentItems(d, seed)) { add(`Check-in ${d.id} hint`, i.problem.hint); add(`Check-in ${d.id} why`, i.problem.why); add(`Check-in ${d.id} why`, i.problem.explain); }
   for (let u = 1; u <= PLACEMENT_UNITS; u++) for (const seed of [1, 2, 3]) for (const i of placementItems(u, seed)) { add('Find my level hint', i.problem.hint); add('Find my level why', i.problem.why); }
+  // The story: each chapter's comic, choice, scene lines, cliffhangers, clue, "how the math won it", asks, thanks and card;
+  // the prologue, finale and daily secrets; and the labels of the film pictures.
+  add('story opening', WHOLE_STONE_OPENING);
+  for (const panel of [...PROLOGUE, ...EPILOGUE]) add('story finale', panel.text);
+  for (const secret of SECRETS) add('story secret', secret);
+  for (const c of CHAPTERS) {
+    for (const panel of [...c.intro, ...c.choice.map((choice) => choice.reply)]) add(`story chapter ${c.unit}`, panel.text);
+    for (const choice of c.choice) { add(`story chapter ${c.unit}`, choice.label); add(`story chapter ${c.unit}`, choice.detail); }
+    for (const line of [...c.scenes, ...c.cliffs, c.cliff, c.clue, c.won, ...c.asks, ...(typeof c.thanks === 'string' ? [c.thanks] : c.thanks), c.done, c.card.title, c.card.blurb]) add(`story chapter ${c.unit}`, line);
+  }
+  for (const def of Object.values(PROP_DEFS)) add('film label', def.label);
+  for (const end of Object.values(END_SCENES)) if (end && 'label' in end) add('film label', String((end as { label?: string }).label));
   return texts;
 }

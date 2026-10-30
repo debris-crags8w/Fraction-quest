@@ -57,7 +57,7 @@ export const WHY = {
   notColored: 'That is the part not colored. Count the overlap.',
   decRest: 'That is the part not colored. Count the colored tenths.',
   total: 'That is the total. Now share it out equally.',
-  oneCup: 'That is one cup as it is now. Share the total equally.',
+  oneCup: 'That is only one of the amounts, as it is now. Share the total equally.',
   allCups: 'Share among all of the cups.',
   sharePieces: 'Share the pieces. The pieces stay the same size.',
   // Naming parts and number lines
@@ -143,7 +143,7 @@ export const WHY = {
   signWay: 'That sign points the wrong way. The open side faces the bigger amount.',
   bigBottom: 'More equal parts make each part smaller, so a bigger bottom number is not a bigger fraction.',
   sameSizeCount: 'The pieces are the same size. Compare how many pieces each one has.',
-  sameCountSizes: 'Each one has the same number of parts, but the parts are different sizes.',
+  sameCountSizes: 'The top numbers match, but the parts are different sizes.',
   sameSizeCounts: 'The parts are the same size, but each one has a different number of them.',
   bothDiffer: 'The parts are not the same size, and there are not the same number of them.',
   sizeAndCount: 'Look at both: how big each part is, and how many parts there are.',

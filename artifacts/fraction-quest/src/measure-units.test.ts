@@ -13,3 +13,9 @@ test('counts and choices that already say something are left alone', () => {
   assert.equal(answerUnit('What is the bigger one?'), null);
   assert.deepEqual(withUnits('How many inches are left?', ['17 inches', '22 inches']), ['17 inches', '22 inches']);
 });
+
+test('a container word is not the answer unit when the story measures in another unit', () => {
+  const prompt = 'Plot these cups in eighths of a liter: 1/8, 2/8, 7/8 liter. How much more do all the 7/8 cups hold together than all the 1/8 cups together?';
+  assert.equal(answerUnit(prompt), 'liter');
+  assert.deepEqual(withUnits(prompt, ['10/8', '4/8']), ['10/8 liters', '4/8 liter']);
+});

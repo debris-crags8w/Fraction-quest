@@ -45,8 +45,10 @@ export function LessonProp({ prop, scene, beat }: { prop: PropId; scene: StorySc
   );
 }
 
-/** The chapter's friend, small, peeking in above the speaker: that corner is clear of the letterbox bar, of the prop and of the caption, even a four-line one that reaches up to the middle of the screen. */
-export const PROP_FRIEND = { style: { left: '14%', top: '17%' } as CSSProperties, size: 36 };
+/** The chapter's friend in a lesson film, small, standing at the speaker's feet: the speaker's face (Numi's, Hoot's, the friend's own) stays bare, and the spot is clear of the letterbox bar, of the prop and of the caption, even a four-line one. e2e/film-props.spec.ts checks every face against every other face. */
+export const PROP_FRIEND = { style: { left: '12%', top: '42%' } as CSSProperties, size: 36 };
+/** In a chapter ending the speaker stands lower, so the friend perches above the speaker's head instead. */
+export const END_FRIEND = { style: { left: '14%', top: '17%' } as CSSProperties, size: 36 };
 
 export const hasChapterEndPicture = (unit: number | undefined): boolean => !!END_SCENES[unit ?? 1];
 
@@ -65,11 +67,11 @@ export function ChapterEndPicture({ unit, beat, speaker, backdrop }: { unit: num
         style={{ '--fp-ledge': ledge, '--fp-glow': glow } as CSSProperties}>
         <svg viewBox="0 0 200 130" role="img" aria-label={picture.label}>{picture.art()}</svg>
       </span>
-      <span key={speaking} className="fq-cine-actor fq-cine-set-speaker" style={{ left: '8%', top: '30%' }} data-testid="story-end-speaker">
-        <StoryCharacter id={speaking} size={96} happy={beat >= 1} />
+      <span key={speaking} className="fq-cine-actor fq-cine-set-speaker" style={{ left: '15%', top: '30%' }} data-testid="story-end-speaker">
+        <StoryCharacter id={speaking} size={88} happy={beat >= 1} />
       </span>
       {speaking !== chapter.character && (
-        <span className="fq-cine-actor" style={PROP_FRIEND.style} data-testid="story-end-friend"><StoryCharacter id={chapter.character} size={PROP_FRIEND.size} happy={beat >= 1} /></span>
+        <span className="fq-cine-actor" style={END_FRIEND.style} data-testid="story-end-friend"><StoryCharacter id={chapter.character} size={END_FRIEND.size} happy={beat >= 1} /></span>
       )}
     </>
   );

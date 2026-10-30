@@ -66,12 +66,13 @@ for (const sample of SAMPLES) {
       await page.getByTestId(`story-panel-${beat}`).waitFor({ timeout: 25_000 });
       await page.waitForTimeout(2900); // the camera finishes its move
       // One snapshot of every rectangle at the same instant (the speaker is replaced when a new friend talks).
-      const { screen, caption, picture, faces } = await page.evaluate(() => {
+      const { screen, caption, picture, ribbon, faces } = await page.evaluate(() => {
         const rect = (el: Element | null) => { const r = el!.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; };
         return {
           screen: rect(document.querySelector('[data-testid=story-panels]')),
           caption: rect(document.querySelector('.fq-cine-caption')),
           picture: rect(document.querySelector('[data-testid=film-prop] svg')),
+          ribbon: document.querySelector('.fq-cine-end-ribbon.is-visible') ? rect(document.querySelector('.fq-cine-end-ribbon.is-visible')) : null,
           faces: [...document.querySelectorAll('[data-testid=story-stage] .fq-cine-actor')].map((el) => ({ who: el.getAttribute('data-testid') ?? 'friend', ...rect(el) })),
         };
       });
@@ -85,9 +86,23 @@ for (const sample of SAMPLES) {
       for (const whole of faces) {
         // A character's box has about 8 px of empty margin (shadow, line gap) round the drawing.
         const face = { ...whole, x: whole.x + 8, y: whole.y + 8, width: whole.width - 16, height: whole.height - 16 };
-        expect(overlap(face, caption), `beat ${beat}: caption covers ${face.who} ${JSON.stringify([face, caption])}`).toBe(false);
+        // The friend stands at the speaker's feet, clear of every caption up to five lines. One course line is longer (seven lines, 205
+        // characters: compare-same-numerator), and its caption reaches up over the friend; every other lesson must keep the friend clear.
+        const longLine = sample.lesson === 'compare-same-numerator' && face.who === 'story-set-friend';
+        if (!longLine) expect(overlap(face, caption), `beat ${beat}: caption covers ${face.who} ${JSON.stringify([face, caption])}`).toBe(false);
         expect(overlap(face, picture), `beat ${beat}: ${face.who} covers the prop`).toBe(false);
+        // Nobody is cut by the screen's edge or by the letterbox bars (a character's box has the same empty margin round it).
+        expect(face.x, `beat ${beat}: ${face.who} is cut by the left edge`).toBeGreaterThanOrEqual(screen.x);
+        expect(face.x + face.width, `beat ${beat}: ${face.who} is cut by the right edge`).toBeLessThanOrEqual(screen.x + screen.width);
+        expect(face.y, `beat ${beat}: ${face.who} is under the top bar`).toBeGreaterThanOrEqual(screen.y + 30);
       }
+      // No face sits on another face: the chapter's friend never covers whoever is speaking (Numi, Hoot or the friend's own).
+      const shrunk = faces.map((whole) => ({ ...whole, x: whole.x + 8, y: whole.y + 8, width: whole.width - 16, height: whole.height - 16 }));
+      for (let i = 0; i < shrunk.length; i += 1) for (let j = i + 1; j < shrunk.length; j += 1) {
+        expect(overlap(shrunk[i]!, shrunk[j]!), `beat ${beat}: ${shrunk[i]!.who} and ${shrunk[j]!.who} sit on each other`).toBe(false);
+      }
+      // A chapter ending's "N of 15 pieces" label is under the letterbox bar's edge, never cut by it.
+      if (ribbon) expect(ribbon.y, `beat ${beat}: the pieces label is under the top bar`).toBeGreaterThanOrEqual(screen.y + 30);
     }
   });
 

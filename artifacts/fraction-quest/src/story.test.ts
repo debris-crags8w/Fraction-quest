@@ -190,12 +190,14 @@ test('chapters 8 and 11 keep a thread going after their reveal, and the ending p
   // Chapter 8: Chomp's confession opens it, then Bolt's beep note is read line by line and ends where chapter 9 starts.
   const den = chapterFor(8)!.cliffs;
   assert.ok(den.filter((line) => /note|[Ll]ine (?:one|two)|[Ll]ast line/.test(line)).length >= 6, 'the beep note runs through chapter 8');
-  assert.match(den[0], /stone piece/);
+  assert.match(den[0], /keeping safe/); // the piece itself is shown only when the chapter ends (its last line)
+  assert.match(chapterFor(8)!.done, /stone piece/);
   assert.match(den[den.length - 1], /races start/);
   // Chapter 11: Bolt owns up first, then his scaling machine goes wrong and is put right.
   const machine = chapterFor(11)!.cliffs;
   assert.ok(machine.filter((line) => /rattles|jam|too big|stuck/.test(line)).length >= 3, 'the machine goes wrong in chapter 11');
-  assert.ok(machine.some((line) => /stone piece/.test(line)));
+  assert.ok(machine.some((line) => /shiny glints in the tray/.test(line)));
+  assert.match(chapterFor(11)!.done, /stone piece/);
   assert.match(EPILOGUE[EPILOGUE.length - 1].text, /riddle/);
   assert.equal(EPILOGUE[EPILOGUE.length - 1].speaker, 'hoot');
 });

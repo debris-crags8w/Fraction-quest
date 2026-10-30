@@ -191,8 +191,8 @@ function PondArt({ beat }: { beat: number }) {
       <span className="fq-cine-pond" />
       <span className="fq-cine-pad" style={pos(2, 44)} />
       <span className="fq-cine-actor" style={pos(8, 22)}><StoryCharacter id="pip" size={88} happy={compared} worried={beat === 0} /></span>
-      <span className="fq-cine-bowl" style={pos(60, 22)} />
-      {beat === 0 && <><span className="fq-cine-falling" style={pos(74, 0)} /><span className="fq-cine-splash" style={pos(65, 18)} /></>}
+      <span className="fq-cine-bowl" style={pos(50, 22)} />
+      {beat === 0 && <><span className="fq-cine-falling" style={pos(74, 0)} /><span className="fq-cine-splash" style={pos(58, 18)} /></>}
       {cut && (
         <span className={`fq-cine-bars ${compared ? 'is-compared' : ''}`} style={pos(30, 38)}>
           {/* Both bars are the same size: one is cut into 2 equal pieces, the other into 4. */}
@@ -206,7 +206,7 @@ function PondArt({ beat }: { beat: number }) {
           </span>
         </span>
       )}
-      <span className={`fq-cine-glint ${compared ? 'is-found' : 'is-hidden'}`} style={pos(71, 26)} aria-hidden="true" />
+      <span className={`fq-cine-glint ${compared ? 'is-found' : 'is-hidden'}`} style={pos(63, 26)} aria-hidden="true" />
       <span className="fq-cine-sr" role="img" aria-label={compared
         ? 'One half and one fourth side by side: the half is bigger. More equal parts means smaller parts.'
         : cut ? 'Two same-size snack bars: one cut into 2 equal pieces, one cut into 4 equal pieces'
@@ -293,7 +293,7 @@ function HoneyArt({ beat }: { beat: number }) {
       <span className="fq-cine-hive" style={pos(80, 14)} />
       <span className="fq-cine-shelf is-long" />
       {[[1, 2], [2, 4], [4, 8]].map(([n, d], i) => (
-        <span key={i} className={`fq-cine-jar ${beat === 2 ? 'is-glowing' : ''}`} style={pos(10 + i * 30, 26, { animationDelay: `${i * 0.2}s` })}>
+        <span key={i} className={`fq-cine-jar ${beat === 2 ? 'is-glowing' : ''}`} style={pos(14 + i * 26, 26, { animationDelay: `${i * 0.2}s` })}>
           <i className="fq-cine-honey" /><span className="fq-cine-label"><Frac n={n} d={d} /></span>
         </span>
       ))}
@@ -343,7 +343,7 @@ function DenArt({ beat }: { beat: number }) {
       <span className={`fq-cine-boot-shadow fq-cine-move ${beat >= 1 ? 'is-tall' : ''}`} aria-hidden="true"><i /><i /></span>
       <span className={`fq-cine-boots ${beat >= 1 ? 'is-lit' : ''}`}><i /><i /></span>
       <span className={`fq-cine-den-stone ${beat >= 2 ? 'is-found' : ''}`} />
-      <span className={`fq-cine-actor ${beat < 2 ? 'is-guarding' : ''}`} style={beat < 2 ? pos(48, 30) : pos(8, 30)}>
+      <span className={`fq-cine-actor ${beat < 2 ? 'is-guarding' : ''}`} style={beat < 2 ? pos(48, 23) : pos(8, 30)}>
         <StoryCharacter id="chomp" size={108} worried={beat < 2} />
       </span>
     </>
@@ -380,7 +380,7 @@ function PicnicArt({ beat }: { beat: number }) {
       <span className="fq-cine-picnic-sky" /><span className="fq-cine-picnic-grass" />
       <span className="fq-cine-picnic-blanket" />
       <span className="fq-cine-picnic-plate" style={pos(62, 66)} />
-      <span className="fq-cine-picnic-basket" style={pos(74, 52)} />
+      <span className="fq-cine-picnic-basket" style={pos(74, 34)} />
       <span className={`fq-cine-sandwiches fq-cine-move ${cut ? 'is-cut' : ''}`} style={pos(22, 50)} role="img"
         aria-label={cut ? 'The half is cut into two fourths, and with the other fourth that makes three fourths' : 'One half of a sandwich and one fourth of a sandwich'}>
         <i /><i /><i />
@@ -390,7 +390,7 @@ function PicnicArt({ beat }: { beat: number }) {
         <span className="fq-cine-sandwich-label is-sum"><Frac n={3} d={4} /></span>
       </span>
       <span className="fq-cine-actor" style={pos(4, 22)}><StoryCharacter id="chomp" size={80} happy={beat >= 2} /></span>
-      <span className={`fq-cine-peeker ${beat >= 1 ? 'is-arriving' : ''}`} style={pos(80, 30)}><StoryCharacter id="bolt" size={58} worried={beat < 2} happy={beat >= 2} /></span>
+      <span className={`fq-cine-peeker ${beat >= 1 ? 'is-arriving' : ''}`} style={pos(80, 18)}><StoryCharacter id="bolt" size={58} worried={beat < 2} happy={beat >= 2} /></span>
       <span className="fq-cine-note" style={pos(64, 60)}>B</span>
     </>
   );
@@ -528,9 +528,11 @@ function EpilogueArt({ beat, speaker = 'hoot' }: { beat: number; speaker?: Panel
 }
 
 /** Lessons 2 onward play in the chapter's place with no story props, so nothing in the picture can disagree with the
-    lesson: just the backdrop, whoever is speaking, and the chapter's friend beside them. */
+    lesson: just the backdrop, whoever is speaking, and the chapter's friend beside them. A backdrop drawn for a lesson
+    that has its own object (`withProp`) leaves out its big pieces (the machine panel, the garden bed, the lock frame, the
+    tent), which would sit behind the object; a chapter ending keeps them. */
 type ChapterScene = Exclude<StoryScene, 'prologue' | 'chapter-end' | 'epilogue'>;
-const BACKDROPS: Record<ChapterScene, () => ReactNode> = {
+const BACKDROPS: Record<ChapterScene, (withProp?: boolean) => ReactNode> = {
   bakery: () => <><span className="fq-cine-awning" /><span className="fq-cine-shelf" style={pos(6, 18)} /><span className="fq-cine-shelf" style={pos(58, 16)} /><span className="fq-cine-counter" /></>,
   pond: () => <><span className="fq-cine-sun" /><span className="fq-cine-bunting" /><span className="fq-cine-pond" /><span className="fq-cine-pad" style={pos(2, 44)} /></>,
   hill: () => <><span className="fq-cine-sun is-low" /><span className="fq-cine-cloud" style={pos(30, 8)} /><span className="fq-cine-cloud" style={pos(56, 22)} />
@@ -544,12 +546,12 @@ const BACKDROPS: Record<ChapterScene, () => ReactNode> = {
   workshop: () => <><span className="fq-cine-workshop-window" /><span className="fq-cine-workbench" /><span className="fq-cine-gear is-turning" style={pos(66, 30)} /></>,
   den: () => <><span className="fq-cine-den-cave" /><span className="fq-cine-den-floor" /></>,
   race: () => <><span className="fq-cine-race-sky" /><span className="fq-cine-race-hill" /><span className="fq-cine-race-road" /><span className="fq-cine-tree" style={pos(80, 46)} /></>,
-  picnic: () => <><span className="fq-cine-picnic-sky" /><span className="fq-cine-picnic-grass" /><span className="fq-cine-picnic-blanket" /><span className="fq-cine-picnic-basket" style={pos(68, 57)} /></>,
-  machine: () => <><span className="fq-cine-machine-wall" /><span className="fq-cine-machine-floor" /><span className="fq-cine-machine is-on"><i /><i /><i /></span></>,
+  picnic: () => <><span className="fq-cine-picnic-sky" /><span className="fq-cine-picnic-grass" /><span className="fq-cine-picnic-blanket" /></>,
+  machine: (withProp) => <><span className="fq-cine-machine-wall" /><span className="fq-cine-machine-floor" />{!withProp && <span className="fq-cine-machine is-on"><i /><i /><i /></span>}</>,
   stage: () => <><span className="fq-cine-stage-curtain" /><span className="fq-cine-stage-floor" /><span className="fq-cine-stage-board" /></>,
-  garden: () => <><span className="fq-cine-garden-sky" /><span className="fq-cine-garden-bed" /><span className="fq-cine-garden-case" /></>,
-  lock: () => <><span className="fq-cine-lock-room" /><span className="fq-cine-lock-case"><span className="fq-cine-lock-seat" /></span></>,
-  festival: () => <><span className="fq-cine-festival-sky" /><span className="fq-cine-festival-tent" /></>,
+  garden: (withProp) => <><span className="fq-cine-garden-sky" />{!withProp && <><span className="fq-cine-garden-bed" /><span className="fq-cine-garden-case" /></>}</>,
+  lock: (withProp) => <><span className="fq-cine-lock-room" />{!withProp && <span className="fq-cine-lock-case"><span className="fq-cine-lock-seat" /></span>}</>,
+  festival: (withProp) => <><span className="fq-cine-festival-sky" />{!withProp && <span className="fq-cine-festival-tent" />}</>,
 };
 const isChapterScene = (scene: StoryScene): scene is ChapterScene => scene in BACKDROPS;
 
@@ -564,7 +566,7 @@ function SetArt({ scene, beat, unit = 1, speaker, lessonId }: { scene: ChapterSc
   const prop = lessonPropFor(lessonId); // the lesson's own object (film-props.tsx), if it has one yet
   return (
     <>
-      <Backdrop />
+      {Backdrop(!!prop)}
       {prop && <LessonProp prop={prop} scene={scene} beat={beat} />}
       <span key={speaker ?? friend} className="fq-cine-actor fq-cine-set-speaker" style={pos(10, SET_SPEAKER_TOP)} data-testid="story-set-speaker">
         <StoryCharacter id={speaker ?? friend} size={96} happy />

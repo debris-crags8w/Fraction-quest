@@ -49,6 +49,12 @@ describe('accuracy proof engine', () => {
     assert.ok(texts.length > 60_000, `only ${texts.length} texts`);
   });
 
+  it('also reads the story: chapter text, secrets, the finale and the film labels', () => {
+    const count = (prefix: string) => allWrittenTexts({ sheets: 0, seeds: 1 }).filter(({ where }) => where.startsWith(prefix)).length;
+    for (const [prefix, least] of [['story chapter', 400], ['story secret', 80], ['story finale', 8], ['story opening', 1], ['film label', 60]] as const)
+      assert.ok(count(prefix) >= least, `only ${count(prefix)} ${prefix} texts are checked`);
+  });
+
   it('reads written sums the way a child does (the claim checker itself is checked)', () => {
     // A sum a story character gets wrong on purpose is not a false claim; a blank to fill is not a sum yet.
     assert.deepEqual(falseClaims('Sam wrote 1/4 + 2/4 = 3/8.'), []);

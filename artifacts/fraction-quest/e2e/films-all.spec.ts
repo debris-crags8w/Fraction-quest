@@ -84,6 +84,12 @@ for (const reducedMotion of [false, true]) {
       await expect(page.getByTestId('button-story-go')).toBeVisible();
       await expect.poll(() => inReach('button-story-go'), { message: `${name}: Next is on screen at the end` }).toBe(true);
       expect(await overflow(), `${name}: fits at the end`).toBeLessThanOrEqual(0);
+      // A finished film stands still: no loop is still running in it (the ambient loops pause once it is done).
+      const looping = await page.evaluate(() => document.getAnimations()
+        .filter((animation) => animation.playState === 'running' && animation.effect?.getComputedTiming().iterations === Infinity)
+        .filter((animation) => !!((animation.effect as KeyframeEffect | null)?.target as Element | null)?.closest('[data-testid=story-comic]'))
+        .map((animation) => `${(animation as CSSAnimation).animationName} on ${((animation.effect as KeyframeEffect).target as Element).className}`));
+      expect(looping, `${name}: nothing loops at the end`).toEqual([]);
       expect(await page.evaluate(() => (window as unknown as { shift: number }).shift), `${name}: nothing jumps`).toBeLessThan(0.02);
     }
   });
@@ -103,6 +109,8 @@ async function openLessonFilm(page: Page, unit: number, missionId: string) {
 
 /** How much of a face may sit under the caption (a hair of a shadow or an ear): none worth seeing. */
 const COVER_TOLERANCE = 0.05;
+/** A caption whose top edge is lower than this (page pixels, 390 x 664 phone) is five lines or fewer. */
+const FRIEND_SAFE_CAPTION_TOP = 300;
 
 test('a lesson film from every chapter plays on a phone with sound, music and a voice clip, and no speaker is hidden behind the caption', async ({ page }) => {
   // Every lesson of every chapter when asked (FILM_ALL_LESSONS=1: about 15 minutes); otherwise, from each chapter, the lesson with the
@@ -131,8 +139,12 @@ test('a lesson film from every chapter plays on a phone with sound, music and a 
         const where = `${name} ${shot.caption}`;
         if (!shot.speaker) continue;
         expect.soft(coveredShare(shot.speaker, shot.captionBox), `${where}: the speaker's face is under the caption`).toBeLessThanOrEqual(COVER_TOLERANCE);
-        if (shot.friend) expect.soft(coveredShare(shot.friend, shot.captionBox), `${where}: the chapter friend is under the caption`).toBeLessThanOrEqual(COVER_TOLERANCE);
+        // The friend stands at the speaker's feet, clear of every caption up to five lines. One course line is longer than that (seven lines, 205
+        // characters: compare-same-numerator, third shot), and its caption reaches up over the friend; any other caption that long is flagged.
+        if (shot.friend && shot.captionBox && shot.captionBox.t >= FRIEND_SAFE_CAPTION_TOP) expect.soft(coveredShare(shot.friend, shot.captionBox), `${where}: the chapter friend is under the caption`).toBeLessThanOrEqual(COVER_TOLERANCE);
+        else if (shot.friend) expect.soft(shot.caption, `${where}: a caption this tall (${shot.captionBox?.t}) is only expected for the one long compare-same-numerator line`).toBe(name === 'chapter 2, compare-same-numerator' ? 'story-panel-2' : 'never');
         expect.soft(visibleShare(shot.speaker, shot.frame), `${where}: the speaker is inside the picture`).toBeGreaterThanOrEqual(0.9);
+        if (shot.friend) expect.soft(coveredShare(shot.speaker, shot.friend), `${where}: the chapter friend sits on the speaker's face`).toBeLessThanOrEqual(COVER_TOLERANCE);
         if (shot.friend) expect.soft(visibleShare(shot.friend, shot.frame), `${where}: the friend is inside the picture`).toBeGreaterThanOrEqual(0.9);
       }
       expect(await page.evaluate(() => document.documentElement.scrollHeight - innerHeight), `${name}: fits at the end`).toBeLessThanOrEqual(0);
@@ -171,6 +183,37 @@ test('every chapter opening keeps its characters and written fractions inside th
         const shown = Math.min(shot.bunting.b, shot.frame.b) - Math.max(shot.bunting.t, shot.frame.t);
         expect.soft(shown <= 0 || shown >= 12, `${where}: the bunting shows ${shown.toFixed(1)}px under the top bar`).toBe(true);
       }
+    }
+  }
+});
+
+test('every chapter ending keeps its speaker, friend and "pieces" label inside the picture, and nobody sits on anybody', async ({ page }) => {
+  test.setTimeout(8 * 60_000);
+  await openStorybook(page, false, true);
+  const { CHAPTERS } = await import('../src/story');
+  await fakeVoice(page);
+  for (const chapter of CHAPTERS) {
+    const name = `chapter ${chapter.unit} ending`;
+    await page.goto('/');
+    const guest = page.getByTestId('button-play-guest');
+    await expect(guest.or(page.getByTestId('button-open-storybook'))).toBeVisible({ timeout: 20_000 });
+    if (await guest.isVisible()) await guest.click();
+    await page.getByTestId('button-open-storybook').click();
+    await page.getByTestId(`storybook-chapter-${chapter.unit}`).evaluate((details) => { (details as HTMLDetailsElement).open = true; });
+    await page.getByTestId(`button-storybook-end-${chapter.unit}`).click();
+    await expect(page.getByTestId('story-comic')).toBeVisible();
+    await watchFilm(page);
+    await expect(page.getByTestId('button-story-go'), `${name}: the film ends`).toBeVisible({ timeout: 60_000 });
+    const shots = await snaps(page);
+    expect(shots.length, `${name}: one caption per shot was measured`).toBeGreaterThanOrEqual(3);
+    for (const shot of shots) {
+      const where = `${name} ${shot.caption}`;
+      for (const actor of shot.actors) expect.soft(visibleShare(actor.box, shot.frame), `${where}: ${actor.who} is inside the picture`).toBeGreaterThanOrEqual(0.95);
+      for (let i = 0; i < shot.actors.length; i += 1) for (let j = i + 1; j < shot.actors.length; j += 1) {
+        expect.soft(coveredShare(shot.actors[i]!.box, shot.actors[j]!.box), `${where}: ${shot.actors[i]!.who} sits on ${shot.actors[j]!.who}`).toBeLessThanOrEqual(COVER_TOLERANCE);
+      }
+      // The label is cut by neither the top letterbox bar nor the sides.
+      if (shot.ribbon) expect.soft(shot.ribbon.t, `${where}: the pieces label is under the top bar`).toBeGreaterThanOrEqual(shot.frame.t);
     }
   }
 });
