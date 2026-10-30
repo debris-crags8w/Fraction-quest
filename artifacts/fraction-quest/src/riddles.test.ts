@@ -75,3 +75,18 @@ test('Listen on Tonight’s lantern reads only fixed lines, so every one can com
     }
   assert.ok(LANTERN_CARD_SPOKEN.length < 80);
 });
+
+test('a Keeper hears how last week\'s mystery ended only after seeing it, and only on the first visit of the new week', async () => {
+  const { mysteryRecap, noteMystery, mysteryAnswer } = await import('./riddles');
+  const monday = '2026-11-02'; const tuesday = '2026-11-03'; const lastThursday = '2026-10-29';
+  assert.equal(mysteryRecap({}, monday), null, 'a brand-new Keeper never saw last week\'s mystery');
+  const sawIt = noteMystery({}, lastThursday, false);
+  assert.equal(mysteryRecap(sawIt, monday), mysteryAnswer(monday), 'seen last week: the answer comes on Monday');
+  const heardMonday = noteMystery(sawIt, monday, true);
+  assert.equal(mysteryRecap(heardMonday, monday), mysteryAnswer(monday), 'the same day, it is still there');
+  assert.equal(mysteryRecap(heardMonday, tuesday), null, 'once heard, it is not repeated all week');
+  assert.equal(mysteryRecap(sawIt, '2026-11-05'), mysteryAnswer('2026-11-05'), 'a Keeper who first comes back on Thursday still hears it');
+  assert.equal(mysteryRecap(sawIt, '2026-11-09'), null, 'two weeks later it is not "last week" any more');
+  const kept = [0, 1, 2, 3, 4, 5, 6].reduce((log, week) => noteMystery(log, new Date(Date.UTC(2026, 10, 2) + week * 7 * 86_400_000).toISOString().slice(0, 10), false), {});
+  assert.ok((kept as { seen?: number[] }).seen!.length <= 4, 'the log stays small');
+});

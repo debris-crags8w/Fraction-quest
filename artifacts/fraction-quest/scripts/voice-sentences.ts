@@ -12,7 +12,7 @@ import { getExtraPractice } from '../src/practice-bank';
 import { lessonCheckpoint } from '../src/checkpoint';
 import { partFinderRoundsFor, PART_FINDER_ROUNDS } from '../src/part-finder';
 import { getAssessmentDefinitions } from '../src/assessments';
-import { CHAPTER_SCENES, CHAPTERS, DETECTIVE_NOTES, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, SUSPECTS, WHOLE_STONE_OPENING, chapterEnd, choiceNotes, suspectReply, REACTIONS, STORY_PROBLEMS, lessonComic, storyScript, withName, PROP_THEMES, type Panel, type PropTheme } from '../src/story';
+import { CHAPTER_SCENES, CHAPTERS, DETECTIVE_NOTES, EPILOGUE, HANDS_ON_ASKS, PROLOGUE, SUSPECTS, WHOLE_STONE_OPENING, chapterEnd, choiceNotes, suspectReply, REACTIONS, STORY_PROBLEMS, lessonComic, storyScript, withName, PROP_THEMES, STONE_QUESTIONS, SUSPECT_BOARDS, BOARD_CASES, type Panel, type PropTheme } from '../src/story';
 import { LANTERN_CARD_SPOKEN } from '../src/riddles';
 import { PICKED_FOR_YOU_SPOKEN } from '../src/game';
 import { seasonalWords } from '../src/seasonal-words';
@@ -70,7 +70,7 @@ const EXTRA_BY_SOURCE: Record<VoiceSentenceSource, string[]> = {
     'Who gets the next pieces you tap?', 'That fits!', 'Almost there.',
   ],
   story: [
-    'How much of the Whole Stone is back?',
+    ...STONE_QUESTIONS,
     'Good try! Count the gold pieces. Then count all the pieces in the whole stone.',
     'Because you solved the story problem:',
   ],
@@ -193,7 +193,9 @@ export function voiceSentenceGroups(): VoiceSentenceGroup[] {
   story.add(PICKED_FOR_YOU_SPOKEN);
   // The choice Listen button reads "label. detail." for each option.
   for (const chapter of CHAPTERS) for (const option of chapter.choice) story.add(`${option.label}. ${option.detail}.`);
-  for (const board of [1, 2] as const) for (const suspect of SUSPECTS[board]) story.add(suspectReply(board, suspect).text);
+  for (const board of SUSPECT_BOARDS) for (const suspect of SUSPECTS[board]) story.add(suspectReply(board, suspect).text);
+  // The later boards' own questions and clues.
+  for (const story_case of Object.values(BOARD_CASES)) { story.add(story_case.question); for (const clue of story_case.clues) story.add(clue.text); }
   // Plain comics read "Hoot says: ..."; filmed comics read only the lines.
   const scripts: Panel[][] = [];
   const filmed: Panel[][] = [PROLOGUE, EPILOGUE, ...CHAPTERS.map(chapterEnd)];
