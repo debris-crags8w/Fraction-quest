@@ -1,5 +1,5 @@
-import { MISSIONS, type AssessmentAttempt, type AssessmentResponse, type Progress } from './game';
-import { answerMatches, getWorksheet, type WorksheetProblem } from './learning-content';
+import { MISSIONS, type AssessmentAttempt, type AssessmentResponse, type ModelSpec, type Progress } from './game';
+import { answerMatches, getWorksheet, type LearningModel, type WorksheetProblem } from './learning-content';
 import { FRACTION_STANDARDS, MISSION_STANDARDS, type StandardId, standardsForMission } from './standard-catalog';
 import { execAll } from './lib/regexp';
 
@@ -88,6 +88,15 @@ const mix = (value: string): number => {
   for (const char of value) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
   return hash >>> 0;
 };
+
+/** What a Check-in question shows above the bar the child copies ("Copy the bar above"): the picture of what the question compares
+    when it has one (two decimals), otherwise the bar itself, as the worksheet shows it. Counting and shading need none: the bar
+    they tap is the picture. */
+export function copyReference(problem: WorksheetProblem):
+  { kind: 'picture'; model: ModelSpec } | { kind: 'bar'; model: LearningModel } | undefined {
+  if (problem.model?.kind !== 'bar' || problem.task?.kind !== 'copy') return undefined;
+  return problem.picture ? { kind: 'picture', model: problem.picture } : { kind: 'bar', model: problem.model };
+}
 
 function hasInteractiveModel(problem: WorksheetProblem): boolean {
   return !!problem.model || !!(problem.area && problem.areaTask) || !!problem.rulerTask
