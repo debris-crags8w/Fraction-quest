@@ -1355,7 +1355,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         // 3.NF.3c: row 10 writes a whole number as a fraction (3 = 3/1), row 12 a fraction that is a whole number (8/4 = 2),
         // and row 7 sets n/n beside 1 (4/4 = 1). Lesson 23 taught all three.
         if (i === 9) {
-          const w = 2 + (i + variant) % 5;
+          const w = 2 + (i + variant) % 3; // 2 to 4 whole bars: more would crowd a phone row
           prompt = `Write ${w} as a fraction with a denominator of 1.`; answer = f(w, 1); visual = model(w, 1); modelRequired = true;
           hint = 'The denominator 1 means each part is one whole.';
         } else if (i === 11) {
