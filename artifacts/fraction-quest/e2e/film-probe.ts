@@ -16,6 +16,7 @@ export type FilmSnap = {
   actors: { who: string; box: Box }[];   // every character in the picture
   fractions: { text: string; box: Box }[]; // every written fraction in the picture
   bunting: Box | null;
+  ribbon: Box | null;        // a chapter ending's "N of 15 pieces" label (once it shows)
 };
 
 export const BAR_PX = 30;
@@ -97,6 +98,7 @@ export async function watchFilm(page: Page) {
         actors: actorsOf.map((actor) => ({ who: actor.firstElementChild?.getAttribute('data-character') ?? actor.firstElementChild?.getAttribute('class') ?? 'actor', box: box(actor.firstElementChild)! })),
         fractions: [...document.querySelectorAll('.fq-cine-set .fq-cine-frac')].map((frac) => ({ text: frac.getAttribute('aria-label') ?? '', box: box(frac)! })),
         bunting: box(document.querySelector('.fq-cine-set .fq-cine-bunting')),
+        ribbon: box(document.querySelector('.fq-cine-set .fq-cine-end-ribbon.is-visible')),
       });
     };
     // A caption is new each shot (it is keyed by the shot). Look once the browser has laid it out.

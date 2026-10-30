@@ -41,7 +41,8 @@ for (const kind of ['chapter opening', 'lesson film'] as const) {
     await page.setViewportSize({ width: 390, height: 664 });
 
     // Chapter 9 (the race) is a busy opening (a long ruler, a flip card, a walking turtle); chapter 9's second lesson is the lesson film.
-    const chapter = 9;
+    // FILM_PERF_CHAPTER=<1 to 15> measures another chapter's films (its second lesson is the lesson film).
+    const chapter = Number(process.env.FILM_PERF_CHAPTER ?? 9);
     const missions = MISSIONS.filter((mission) => mission.unit === chapter);
     await openFilm(page, chapter, missions[kind === 'chapter opening' ? 0 : 1].id);
     await expect(page.getByTestId('story-comic')).toBeVisible();

@@ -202,7 +202,7 @@
 .fq-cine-screen.is-den .fq-cine-set { background: linear-gradient(#43305E, #A26754 72%, #523B34); }
 .fq-cine-den-cave { inset: 0 0 18%; border-radius: 0 0 45% 45%; background: radial-gradient(ellipse at 53% 45%, #181326 0 34%, #5D446A 35% 60%, transparent 61%); }
 .fq-cine-den-floor { left: 0; right: 0; bottom: 0; height: 26%; background: #805E43; }
-.fq-cine-boots { left: 59%; top: 48%; z-index: 2; display: flex; gap: 8px; transform: rotate(-12deg); }
+.fq-cine-boots { left: 59%; top: 41%; z-index: 2; display: flex; gap: 8px; transform: rotate(-12deg); }
 .fq-cine-boots i { width: 26px; height: 44px; border: 4px solid #2B2D42; border-radius: 9px 9px 4px 4px; background: #4CC9F0; box-shadow: inset 0 -8px 0 #2F8FBF; }
 .fq-cine-boots.is-lit { filter: drop-shadow(0 0 12px #FFC800); animation: fq-cine-buzz 1.8s ease-in-out infinite; }
 .fq-cine-den-stone { left: 68%; top: 67%; width: 15px; height: 20px; border-radius: 4px; background: #5A4A2E; opacity: .2; }
@@ -287,7 +287,7 @@
 
 .fq-cine-lantern { left: 30%; top: 0; z-index: 3; width: 2px; height: 20%; background: #2B2D42; transform-origin: 50% 0; animation: fq-cine-swing 3s ease-in-out infinite alternate; }
 .fq-cine-lantern i { position: absolute; left: -9px; bottom: -20px; width: 20px; height: 22px; border-radius: 6px; background: #FFC800; box-shadow: 0 0 22px 10px rgb(255 200 0 / .45); }
-.fq-cine-boot-shadow { left: 60%; bottom: 52%; display: flex; align-items: flex-end; gap: 8px; padding: 18px 22px 6px; border-radius: 50%; background: radial-gradient(ellipse, rgb(255 190 120 / .5), transparent 70%); transform: scale(.75); transform-origin: 50% 100%; transition: transform 1.6s ease-out; }
+.fq-cine-boot-shadow { left: 60%; bottom: 59%; display: flex; align-items: flex-end; gap: 8px; padding: 18px 22px 6px; border-radius: 50%; background: radial-gradient(ellipse, rgb(255 190 120 / .5), transparent 70%); transform: scale(.75); transform-origin: 50% 100%; transition: transform 1.6s ease-out; }
 .fq-cine-boot-shadow i { width: 26px; height: 44px; border-radius: 9px 9px 4px 4px; background: rgb(25 12 30 / .85); filter: blur(1.5px); }
 .fq-cine-boot-shadow.is-tall { transform: scale(1.35); }
 
@@ -318,7 +318,7 @@
 .fq-cine-cracked-boot { z-index: 3; width: 30px; height: 22px; border: 3px solid #2B2D42; border-radius: 8px 8px 3px 3px; background: #4CC9F0; }
 .fq-cine-cracked-boot::after { content: ''; position: absolute; left: 12px; top: -2px; width: 3px; height: 20px; background: #FFF4D6; transform: rotate(18deg); }
 
-.fq-cine-measure { left: 30%; bottom: 40%; z-index: 2; width: 56%; height: 46px; transform: rotate(-3deg); }
+.fq-cine-measure { left: 30%; bottom: 40%; z-index: 2; width: 52%; height: 46px; transform: rotate(-3deg); }
 .fq-cine-measure-board { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 0; height: 16px; transition: gap .8s .3s; }
 .fq-cine-measure-board i { flex: 1; background: #C99A6E; box-shadow: inset -2px 0 #805E43; }
 .fq-cine-measure.is-split .fq-cine-measure-board { gap: 7px; }
@@ -356,7 +356,7 @@
 .fq-cine-end-horizon.is-festival { background: radial-gradient(circle at 50% 45%, rgb(255 200 0 / .25), transparent 45%), linear-gradient(#211D45, #6D4BD8 68%, #372D56); }
 .fq-cine-end-stone { left: 57%; top: 35%; z-index: 3; width: 17%; height: 22%; border: 5px solid #FFF4D6; border-radius: 12px; background: #5A4A2E; opacity: .55; transform: scale(.9); transition: transform .8s, opacity .8s, box-shadow .8s; }
 .fq-cine-end-stone.is-found { opacity: 1; transform: scale(1.04); background: #FFC800; box-shadow: 0 0 30px 12px rgb(255 200 0 / .75); }
-.fq-cine-end-ribbon { left: 0; right: 0; top: 10%; z-index: 7; color: #6D4BD8; font-size: 1.25rem; font-weight: 1000; text-align: center; text-shadow: 0 2px #fff; opacity: 0; transition: opacity .6s; }
+.fq-cine-end-ribbon { left: 0; right: 0; top: 16%; z-index: 7; color: #6D4BD8; font-size: 1.25rem; font-weight: 1000; text-align: center; text-shadow: 0 2px #fff; opacity: 0; transition: opacity .6s; }
 .fq-cine-end-ribbon.is-visible { opacity: 1; }
 .fq-cine-whole-stone { left: 50%; top: 36%; z-index: 2; display: grid; grid-template-columns: repeat(5, 1fr); width: min(48%, 250px); aspect-ratio: 2.2; padding: 8px; border: 5px solid #FFF4D6; border-radius: 14px; background: #5A4A2E; box-shadow: 0 0 40px 18px rgb(255 200 0 / .7); transform: translateX(-50%); }
 .fq-cine-whole-stone i { background: #FFC800; border: 1px solid #9A6A00; animation: fq-cine-pulse 1.8s ease-in-out infinite; }
@@ -513,3 +513,30 @@
 .fq-story-choice legend { display: flex; align-items: center; gap: 8px; }
 /* The choice buttons' own style must not reach the Listen buttons beside them: they look like every other Listen. */
 .fq-story-choice .fq-learning-listen.is-compact, .fq-story-reply .fq-learning-listen.is-compact { display: inline-flex; flex: none; gap: 5px; min-height: 34px; margin: 0; padding: 3px 10px; border: 2px solid hsl(var(--secondary) / 0.35); border-radius: 999px; color: #2b6505; background: hsl(var(--secondary) / 0.1); box-shadow: none; }
+
+/* A finished film stands still: the ambient loops (drift, glints, shimmer, buzz, twinkle, pulses, swing) pause where they are when the
+   film ends, so the end screen does not keep a phone repainting, and nothing jumps. Every other loop in this file is listed here
+   (the waiting dots, the typing caret and the talking bob stop by themselves); story-cinema-css.test.ts checks the list. */
+.fq-cine-comic.is-done .fq-cine-set,
+.fq-cine-comic.is-done .fq-cine-actor.is-grabbing > *,
+.fq-cine-comic.is-done .fq-cine-actor.is-guarding > *,
+.fq-cine-comic.is-done .fq-cine-actor.is-buzzing,
+.fq-cine-comic.is-done .fq-cine-star,
+.fq-cine-comic.is-done .fq-cine-cloud,
+.fq-cine-comic.is-done .fq-cine-glint.is-found,
+.fq-cine-comic.is-done .fq-cine-glint.is-shining,
+.fq-cine-comic.is-done .fq-cine-case.is-glowing,
+.fq-cine-comic.is-done .fq-cine-piece.is-landed,
+.fq-cine-comic.is-done .fq-cine-sparkle,
+.fq-cine-comic.is-done .fq-cine-gear.is-turning,
+.fq-cine-comic.is-done .fq-cine-boots.is-lit,
+.fq-cine-comic.is-done .fq-cine-machine.is-on i,
+.fq-cine-comic.is-done .fq-cine-workshop-box.is-rattling,
+.fq-cine-comic.is-done .fq-cine-lantern,
+.fq-cine-comic.is-done .fq-cine-lock-dials.is-spinning b,
+.fq-cine-comic.is-done .fq-cine-festival-stone.fq-cine-move.is-filling i.is-empty,
+.fq-cine-comic.is-done .fq-cine-whole-stone i,
+.fq-cine-comic.is-done .fq-cine-screen::before,
+.fq-cine-comic.is-done .fq-cine-ambient,
+.fq-cine-comic.is-done .fq-cine-pond::after,
+.fq-cine-comic.is-done .fq-cine-river::after { animation-play-state: paused !important; }
