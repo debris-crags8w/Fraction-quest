@@ -4,7 +4,7 @@ import { getAssessmentDefinitions } from './assessments';
 import { EMPTY_PROGRESS, isMissionUnlocked, MISSIONS, type Progress } from './game';
 import { getWorksheet } from './learning-content';
 import { emptyLearningRecord } from './learning';
-import { CHALLENGES } from './challenges';
+import { ALL_CHALLENGE_PUZZLES } from './challenges';
 import { answerValue } from './learning-content';
 import { CHALLENGE_STANDARDS, FRACTION_STANDARDS } from './standard-catalog';
 
@@ -43,7 +43,7 @@ describe('standards map', () => {
   });
 
   it('asks about every standard in the Unit challenges, and tags each puzzle with what it asks', () => {
-    const puzzles = Object.values(CHALLENGES).flat();
+    const puzzles = ALL_CHALLENGE_PUZZLES;
     assert.deepEqual(Object.keys(CHALLENGE_STANDARDS).sort(), puzzles.map((puzzle) => puzzle.id).sort(), 'one tag list per puzzle');
     const known = new Set(FRACTION_STANDARDS.map((standard) => standard.id));
     for (const puzzle of puzzles) for (const standard of puzzle.standards ?? []) assert.ok(known.has(standard as never), `${puzzle.id}: ${standard}`);
@@ -69,8 +69,8 @@ describe('standards map', () => {
   });
 
   it('draws each challenge line plot from the numbers in its puzzle', () => {
-    const plots = Object.values(CHALLENGES).flat().filter((puzzle) => puzzle.figure?.kind === 'lineplot');
-    assert.deepEqual(plots.map((puzzle) => puzzle.id), ['u4-c3', 'u9-c8', 'u9-c5', 'u12-c9', 'u12-c5']);
+    const plots = ALL_CHALLENGE_PUZZLES.filter((puzzle) => puzzle.figure?.kind === 'lineplot');
+    assert.deepEqual(plots.map((puzzle) => puzzle.id), ['u4-c3', 'u9-c5', 'u9-c8', 'u12-c5', 'u12-c9']);
     for (const puzzle of plots) {
       if (puzzle.figure?.kind !== 'lineplot') continue;
       const listed = /(?:: | hold )([\d/ ,]+) (?:inch|inches|liter)\./.exec(puzzle.prompt)![1].split(', ').map(answerValue);

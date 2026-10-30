@@ -3,7 +3,7 @@ import { useScrollTopOn } from './lib/reveal';
 import { MathText } from './MathText';
 import { LearningListenButton } from './LearningText';
 import { ArrowRight, Check, Footprints, Map as MapIcon, RotateCcw, Trophy, X } from 'lucide-react';
-import { CHALLENGES, challengeMaxPoints, challengeTrophy, challengeWrongReason, type ChallengeQuestion } from './challenges';
+import { challengeAttempt, challengeMaxPoints, challengeTrophy, challengeWrongReason, type ChallengeQuestion } from './challenges';
 import { Confetti, Mascot, StoryPrompt, unitColor, useFun, type MascotMood } from './fun-ui';
 import { playCue, playHaptic } from './lib/fun';
 import { ChallengeFigureView } from './models';
@@ -61,11 +61,12 @@ function WalkThrough({ question, onClose }: { question: ChallengeQuestion; onClo
 }
 
 /** A Unit challenge: five puzzle questions, A–D, worth 3–5 points each. Points count on the first try only. */
-export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
+export default function Challenge({ unit, unitTitle, best, attempt = 0, onDone, onExit }: {
   unit: number; unitTitle: string; best: number;
+  /** Finished attempts before this one: it picks each puzzle's version (see challengeAttempt). */
+  attempt?: number;
   onDone: (score: number) => void; onExit: () => void;
 }) {
-  const questions = CHALLENGES[unit];
   const max = challengeMaxPoints(unit);
   const { fun } = useFun();
   const [index, setIndex] = useState(0);
@@ -76,6 +77,9 @@ export default function Challenge({ unit, unitTitle, best, onDone, onExit }: {
   const [state, setState] = useState<'asking' | 'right' | 'wrong' | 'reveal' | 'finished'>('asking');
   const [burst, setBurst] = useState(0);
   const [round, setRound] = useState(0);
+  // Fixed when the challenge opens: finishing saves a new attempt count, and only "Try again" moves to the next versions.
+  const [firstAttempt] = useState(attempt);
+  const questions = challengeAttempt(unit, firstAttempt + round);
   useScrollTopOn(`${round}-${index}-${state === 'finished'}`);
   const question = questions[index];
   const retryText = selection === null ? '' : challengeWrongReason(question, selection)

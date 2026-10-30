@@ -171,6 +171,8 @@ export type Progress = {
   reviewQueue: SkillReview[];
   learning?: Record<string, LearningRecord>;
   challengeBest?: Record<string, number>;
+  /** How many times each unit's challenge has been finished; it picks which version of each puzzle the next attempt shows. */
+  challengeAttempts?: Record<string, number>;
   dailyPractice?: DailyPracticeSession;
   adaptiveStandards?: Record<string, AdaptiveStandardState>;
   /** When each finished lesson was last revisited, and how well (see review-schedule.ts). */
@@ -2724,6 +2726,14 @@ export function loadProgress(): Progress {
         challengeBest[String(unit)] = Math.max(0, Math.min(22, Math.floor(rawScore)));
       }
     }
+    const challengeAttempts: Record<string, number> = {};
+    if (value.challengeAttempts && typeof value.challengeAttempts === 'object') {
+      for (const [rawUnit, rawCount] of Object.entries(value.challengeAttempts)) {
+        const unit = Number(rawUnit);
+        if (!Number.isInteger(unit) || unit < 1 || unit > UNIT_COUNT || typeof rawCount !== 'number' || !Number.isFinite(rawCount)) continue;
+        challengeAttempts[String(unit)] = Math.max(0, Math.min(1_000_000, Math.floor(rawCount)));
+      }
+    }
     const reviewQueue: SkillReview[] = [];
     const queuedMissionIds = new Set<string>();
     if (Array.isArray(value.reviewQueue)) {
@@ -2928,6 +2938,7 @@ export function loadProgress(): Progress {
       reviewQueue,
       ...(Object.keys(learning).length ? { learning } : {}),
       ...(Object.keys(challengeBest).length ? { challengeBest } : {}),
+      ...(Object.keys(challengeAttempts).length ? { challengeAttempts } : {}),
       ...(Object.keys(adaptiveStandards).length ? { adaptiveStandards } : {}),
       ...(adaptationLog.length ? { adaptationLog } : {}),
       ...(Object.keys(lessonSeen).length ? { lessonSeen } : {}),

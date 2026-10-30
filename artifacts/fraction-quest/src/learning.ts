@@ -76,6 +76,7 @@ export function resetUnitLearningProgress(progress: Progress, missionIds: Readon
     reviewQueue: progress.reviewQueue.filter((item) => !missionIds.has(item.missionId)),
     ...(progress.lessonSeen ? { lessonSeen: Object.fromEntries(Object.entries(progress.lessonSeen).filter(([id]) => !missionIds.has(id))) } : {}),
     challengeBest: Object.fromEntries(Object.entries(progress.challengeBest ?? {}).filter(([savedUnit]) => savedUnit !== String(unit))),
+    ...(progress.challengeAttempts ? { challengeAttempts: Object.fromEntries(Object.entries(progress.challengeAttempts).filter(([savedUnit]) => savedUnit !== String(unit))) } : {}),
     // The grown-up "why practice changed" notes for this unit's lessons go too; standards are shared with other units.
     ...(progress.adaptationLog ? { adaptationLog: progress.adaptationLog.filter((event) => !missionIds.has(event.missionId)) } : {}),
     ...(nextDailyPractice ? { dailyPractice: nextDailyPractice } : { dailyPractice: undefined }),

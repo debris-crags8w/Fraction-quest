@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { CHALLENGES } from './challenges';
+import { ALL_CHALLENGE_PUZZLES } from './challenges';
 import { assessmentItemCount, assessmentResponse, buildAssessmentItems, getAssessmentDefinitions, saveAssessmentAttempt, summarizeStandardMastery } from './assessments';
 import { EMPTY_PROGRESS, isMissionUnlocked, loadProgress, MISSIONS, saveProgress, type AssessmentAttempt } from './game';
 import { generateQuestions, hasGenerator } from './practice-bank';
@@ -28,7 +28,7 @@ describe('standard-tagged assessments', () => {
     assert.ok(generatedMission);
     const generated = generateQuestions(generatedMission.id, generatedMission.questions.map(question => question.id), 81, 3);
     for (const question of generated) assert.deepEqual(question.standards, generatedMission.standards);
-    for (const questions of Object.values(CHALLENGES)) {
+    for (const questions of [ALL_CHALLENGE_PUZZLES]) {
       for (const question of questions) {
         assert.ok(question.standards, question.id);
         for (const step of question.steps ?? []) assert.deepEqual(step.standards, question.standards);

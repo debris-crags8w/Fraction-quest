@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { CHALLENGES } from './challenges';
+import { challengePuzzlesOfUnit } from './challenges';
 import { MISSIONS } from './game';
 import { FRACTION_WORDS, PART_NAMES } from './intro-copy';
 import { getBuildChecks, getBuildPracticeChecks, getReviewCheck, getWorksheet } from './learning-content';
@@ -17,7 +17,7 @@ const pictures = (row: SceneRow): SceneRow[] => (row.kind === 'pair' ? row.items
 const lessonIndex = (id: string) => MISSIONS.findIndex((mission) => mission.id === id);
 
 /** A unit's Unit challenge (it unlocks when the unit's last lesson is done): puzzles, their steps and explanations. */
-const challengeText = (unit: number): string[] => (CHALLENGES[unit] ?? []).flatMap((item) => [item.prompt, ...item.choices, item.explanation,
+const challengeText = (unit: number): string[] => challengePuzzlesOfUnit(unit).flatMap((item) => [item.prompt, ...item.choices, item.explanation, ...Object.values(item.reasons ?? {}) as string[],
   ...(item.steps ?? []).flatMap((step) => [step.prompt, ...step.choices])]);
 
 /** Everything a child is asked or told while practising a lesson: questions (with hints and retry help), extra

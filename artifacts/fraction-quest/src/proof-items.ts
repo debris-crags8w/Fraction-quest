@@ -5,7 +5,7 @@ import { generateQuestions, getExtraPractice } from './practice-bank';
 import { lessonCheckpoint } from './checkpoint';
 import { getAssessmentDefinitions, buildAssessmentItems } from './assessments';
 import { placementItems, PLACEMENT_UNITS } from './placement';
-import { CHALLENGES } from './challenges';
+import { CHALLENGES, challengePuzzlesOfUnit } from './challenges';
 import { CHAPTERS, EPILOGUE, PROLOGUE, PROP_THEMES, STORY_PROBLEMS, WHOLE_STONE_OPENING, withName } from './story';
 import { SECRETS } from './riddles';
 import { END_SCENES, PROP_DEFS } from './film-props';
@@ -48,7 +48,7 @@ export function allProofItems({ sheets = 8, seeds = 10, checkInSeeds = [1, 2, 99
   }
   for (const d of getAssessmentDefinitions()) for (const s of checkInSeeds) for (const i of buildAssessmentItems(d, s)) items.push(sheetItem(`Check-in ${d.id}`, i.missionId, i.problem));
   for (let u = 1; u <= PLACEMENT_UNITS; u++) for (const s of [1, 2, 3, 4, 5]) for (const i of placementItems(u, s)) items.push(sheetItem('Find my level', i.missionId, i.problem));
-  for (const [u, qs] of Object.entries(CHALLENGES)) for (const q of qs) {
+  for (const u of Object.keys(CHALLENGES)) for (const q of challengePuzzlesOfUnit(Number(u))) {
     items.push({ source: 'challenge', lesson: `unit ${u}`, prompt: q.prompt, choices: q.choices, correct: q.correct, pictures: q.figure ? [q.figure as ProofPicture] : [] });
     for (const s of q.steps ?? []) items.push({ source: 'challenge step', lesson: `unit ${u}`, prompt: s.prompt, choices: s.choices, correct: s.correct });
   }
@@ -142,7 +142,7 @@ export function allWrittenTexts({ sheets = 8, seeds = 10 } = {}): { where: strin
     for (const word of extras?.words ?? []) { add(`${m.id} word card`, word.meaning); for (const line of word.picture ? sceneTexts(word.picture) : []) add(`${m.id} word card`, line); }
     for (const example of extras?.examples ?? []) { add(`${m.id} worked example`, example.title); for (const line of sceneTexts(example.picture)) add(`${m.id} worked example`, line); }
   }
-  for (const [u, qs] of Object.entries(CHALLENGES)) for (const q of qs) add(`challenge unit ${u}`, q.explanation);
+  for (const u of Object.keys(CHALLENGES)) for (const q of challengePuzzlesOfUnit(Number(u))) add(`challenge unit ${u}`, q.explanation);
   // Check-in and Find my level rows carry their own hints and reasons, like a worksheet.
   for (const d of getAssessmentDefinitions()) for (const seed of [1, 2]) for (const i of buildAssessmentItems(d, seed)) { add(`Check-in ${d.id} hint`, i.problem.hint); add(`Check-in ${d.id} why`, i.problem.why); add(`Check-in ${d.id} why`, i.problem.explain); }
   for (let u = 1; u <= PLACEMENT_UNITS; u++) for (const seed of [1, 2, 3]) for (const i of placementItems(u, seed)) { add('Find my level hint', i.problem.hint); add('Find my level why', i.problem.why); }

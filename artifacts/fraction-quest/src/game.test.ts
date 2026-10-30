@@ -18,7 +18,7 @@ import { beforeEach, describe, it } from 'node:test';
 import * as React from 'react';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CHALLENGES, challengeMaxPoints, challengeWrongReason } from './challenges';
+import { ALL_CHALLENGE_PUZZLES, CHALLENGES, CHALLENGE_ALTERNATES, challengeAttempt, challengeMaxPoints, challengeWrongReason } from './challenges';
 import { FunContext, promptListenText, splitStory, StoryPrompt } from './fun-ui';
 import CodeQuest from './CodeQuest';
 import { buildParentReport } from './parent-report';
@@ -2411,16 +2411,34 @@ describe('unit challenges', () => {
     'u15-p1': String((6 / 2) * 6), 'u15-c1': String(6 * 4), 'u15-c2': `${2 + 3}/7`, 'u15-c3': String((12 / 3) * 5), 'u15-c4': String(36 - 36 / 4 - (36 - 36 / 4) / 3), 'u15-c5': String((3 / 4) / (1 / 8)),
   };
 
-  it('has a picture puzzle plus questions worth 3, 3, 3, 4, 4 and 5 points in every unit, easiest first; some units have extra 3- and 4-point puzzles', () => {
-    // Units with a second puzzle for a standard that had one get it in the 3- or 4-point run (u1-c6, u8-c6 …).
-    const extra: Record<number, number[]> = { 1: [4], 4: [4], 7: [3], 8: [3, 4, 4], 9: [3, 4, 4], 11: [4], 12: [3, 4, 4, 4], 13: [4] };
+  it('has a picture puzzle plus five questions worth 3, 3, 3, 4, 4 and 5 points in every unit', () => {
     for (let unit = 1; unit <= 15; unit++) {
-      const points = CHALLENGES[unit].map((item) => item.points);
-      assert.deepEqual(points, [...points].sort((a, b) => a - b), `unit ${unit} goes from 3 to 5 points`);
-      assert.deepEqual(points, [3, 3, 3, 4, 4, 5, ...(extra[unit] ?? [])].sort((a, b) => a - b), `unit ${unit}`);
+      assert.deepEqual(CHALLENGES[unit].map((item) => item.points), [3, 3, 3, 4, 4, 5]);
       assert.ok(CHALLENGES[unit][0].figure, `unit ${unit} starts with a picture puzzle`);
-      assert.equal(challengeMaxPoints(unit), 22 + (extra[unit] ?? []).reduce((sum, p) => sum + p, 0));
+      assert.equal(challengeMaxPoints(unit), 22);
     }
+  });
+
+  it('keeps every attempt at the same puzzle count, points and top score, and a retry shows the other version of a slot', () => {
+    for (let unit = 1; unit <= 15; unit++) {
+      for (const attempt of [0, 1, 2, 3]) {
+        const shown = challengeAttempt(unit, attempt);
+        assert.deepEqual(shown.map((item) => item.points), [3, 3, 3, 4, 4, 5], `unit ${unit}, attempt ${attempt}`);
+        assert.equal(shown.reduce((sum, item) => sum + item.points, 0), 22);
+        assert.ok(shown[0].figure, `unit ${unit}, attempt ${attempt} starts with a picture puzzle`);
+        assert.deepEqual(shown.map((item) => item.id), challengeAttempt(unit, attempt + 2).map((item) => item.id), 'versions alternate');
+      }
+      const [first, second] = [challengeAttempt(unit, 0), challengeAttempt(unit, 1)];
+      CHALLENGES[unit].forEach((item, slot) => {
+        const alternate = CHALLENGE_ALTERNATES[item.id];
+        assert.equal(first[slot].id, item.id, 'attempt 0 shows the first version');
+        assert.equal(second[slot].id, alternate ? alternate.id : item.id, `unit ${unit} slot ${slot + 1}: the next attempt shows ${alternate ? 'the other version' : 'the same puzzle'}`);
+      });
+    }
+    // The Challenge screen and the saved progress agree: a finished attempt is counted and survives a reload.
+    saveProgress({ ...EMPTY_PROGRESS, challengeAttempts: { 12: 3 } });
+    assert.deepEqual(loadProgress().challengeAttempts, { 12: 3 });
+    assert.equal(Object.keys(CHALLENGE_ALTERNATES).length, 15);
   });
 
   it('says why each wrong choice is wrong in the line plot, tenths and hundredths, and sharing puzzles', () => {
@@ -2447,7 +2465,7 @@ describe('unit challenges', () => {
 
   it('gives each second puzzle for a thin standard a picture and a reason for every wrong choice', () => {
     const SECOND = ['u1-c6', 'u4-c6', 'u7-c6', 'u8-c6', 'u8-c7', 'u8-c8', 'u9-c6', 'u9-c7', 'u9-c8', 'u11-c6', 'u12-c6', 'u12-c7', 'u12-c8', 'u12-c9', 'u13-c6'];
-    const all = Object.values(CHALLENGES).flat();
+    const all = ALL_CHALLENGE_PUZZLES;
     for (const id of SECOND) {
       const item = all.find((puzzle) => puzzle.id === id);
       assert.ok(item, `${id} is a puzzle`);
@@ -2465,7 +2483,7 @@ describe('unit challenges', () => {
   });
 
   it('marks independently computed answers as correct', () => {
-    for (const items of Object.values(CHALLENGES)) {
+    for (const items of [ALL_CHALLENGE_PUZZLES]) {
       for (const item of items) {
         assert.equal(item.choices.length, 4, item.id);
         assert.equal(new Set(item.choices).size, 4, `${item.id} has duplicate choices`);
