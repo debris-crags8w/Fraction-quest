@@ -11,10 +11,13 @@ import {
   type LearnerProfile,
   type User,
 } from '@workspace/api-client-react';
-import { EMPTY_PROGRESS, loadProgress, resetProgress, saveProgress, type Progress } from './game';
-import { loadFun, replaceFun, resetFun, type FunState } from './lib/fun';
-import { clearScopedLearnerStorage, setLearnerStorageScope } from './storage-scope';
-import { accountEntryFailure, createProgressSaveQueue, signOutSafely, type AccountBundle, type SaveStatus } from './account-flow';
+import { cleanProgress, EMPTY_PROGRESS, loadProgress, resetProgress, saveProgress, type Progress } from './game';
+import { cleanFun, loadFun, replaceFun, resetFun, type FunState } from './lib/fun';
+import { clearScopedLearnerStorage, progressVersionKey, setLearnerStorageScope } from './storage-scope';
+import {
+  accountEntryFailure, createProgressSaveQueue, signOutSafely, versionedProgressSave,
+  type AccountBundle, type ProgressVersionStore, type SavedCopyNotice, type SaveStatus,
+} from './account-flow';
 
 const GUEST_KEY = 'fraction-quest-guest';
 const activeProfileKey = (userId: number) => `fraction-quest-active-profile:${userId}`;
@@ -72,7 +75,29 @@ const setGuest = (on: boolean) => { try { if (on) window.localStorage.setItem(GU
 const currentBundle = (): AccountBundle => ({ progress: loadProgress(), fun: loadFun() });
 
 let statusListener: ((status: SyncStatus) => void) | null = null;
+/** The app on screen, told when a save brought back a copy saved on another device (see useAccountSync). */
+let savedCopyListener: ((notice: SavedCopyNotice) => void) | null = null;
 type SavePayload = { progress: Progress; fun: FunState };
+
+/** The version of this learner's saved copy this device last loaded or saved; it travels with every save. */
+function progressVersion(scope: string): ProgressVersionStore {
+  const key = progressVersionKey(scope);
+  return {
+    read: () => {
+      try {
+        const value = Number(window.localStorage.getItem(key) ?? NaN);
+        return Number.isSafeInteger(value) && value >= 0 ? value : null;
+      } catch { return null; }
+    },
+    write: (version) => {
+      try { if (version === null) window.localStorage.removeItem(key); else window.localStorage.setItem(key, String(version)); } catch { /* the next save loads the version first */ }
+    },
+  };
+}
+const cleanServerCopy = (copy: { progress: unknown; fun: unknown }): AccountBundle => ({
+  progress: cleanProgress(copy.progress),
+  fun: cleanFun(copy.fun && typeof copy.fun === 'object' ? copy.fun as Partial<FunState> : {}),
+});
 const queues = new Map<string, ReturnType<typeof createProgressSaveQueue<SavePayload>>>();
 let activeQueue: ReturnType<typeof createProgressSaveQueue<SavePayload>> | null = null;
 let activeScope: string | null = null;
@@ -82,11 +107,15 @@ function queueFor(userId: number, profileId: number) {
   const existing = queues.get(scope);
   if (existing) return existing;
   const storageKey = `fraction-quest-save-queue:${scope}`;
+  // A save made from an older copy is refused by the server and merged here, so two devices never erase each other's work.
+  const save = versionedProgressSave(
+    { load: () => getLearnerProgress(profileId), save: (copy) => saveLearnerProgress(profileId, copy) },
+    progressVersion(scope),
+    cleanServerCopy,
+    (notice) => { if (activeScope === scope) savedCopyListener?.(notice); },
+  );
   const queue = createProgressSaveQueue<SavePayload>(
-    (next) => saveLearnerProgress(profileId, {
-      progress: next.progress as unknown as Record<string, unknown>,
-      fun: next.fun as unknown as Record<string, unknown>,
-    }),
+    save,
     (status: SaveStatus) => statusListener?.(status),
     {
       load: () => {
@@ -133,6 +162,7 @@ async function loadProfileBundle(user: User, profiles: LearnerProfile[], request
   if (!flushed) return { profile, bundle: currentBundle() };
   try {
     const saved = await getLearnerProgress(profile.id);
+    progressVersion(scope).write(typeof saved.version === 'number' ? saved.version : null);
     if (saved.progress !== null) saveProgress(saved.progress as Progress);
     const progress = loadProgress();
     const fun = saved.fun !== null ? replaceFun(saved.fun as Partial<FunState>) : loadFun();
@@ -334,6 +364,7 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
     if (state.kind !== 'ready') return;
     await deleteLearnerProgress(state.profileId);
     const scope = accountScope(state.user.id, state.profileId);
+    // Clearing moved the saved copy to a new version; the empty save below loads it first.
     clearScopedLearnerStorage(scope);
     setLearnerStorageScope(scope);
     saveProgress(EMPTY_PROGRESS);
@@ -403,8 +434,14 @@ function SyncStatusBridge({ onStatus }: { onStatus: (status: SyncStatus) => void
   return null;
 }
 
-/** Debounced online save plus a per-profile local retry queue for offline edits. */
-export function useAccountSync(progress: Progress, fun: FunState, enabled = true) {
+/** Debounced online save plus a per-profile local retry queue for offline edits. `onSavedCopy` is told when a save
+    brought back a copy saved on another device, so the app can merge it into what is on screen. */
+export function useAccountSync(progress: Progress, fun: FunState, enabled = true, onSavedCopy?: (notice: SavedCopyNotice) => void) {
+  useEffect(() => {
+    if (!onSavedCopy) return undefined;
+    savedCopyListener = onSavedCopy;
+    return () => { if (savedCopyListener === onSavedCopy) savedCopyListener = null; };
+  }, [onSavedCopy]);
   const { user, activeProfileId } = useAccount();
   const firstScope = useRef<string | null>(null);
   const scope = user && activeProfileId ? accountScope(user.id, activeProfileId) : null;
@@ -420,21 +457,31 @@ export function useAccountSync(progress: Progress, fun: FunState, enabled = true
   useEffect(() => {
     if (!user || !activeProfileId) return;
     const queue = queueFor(user.id, activeProfileId);
+    const version = progressVersion(accountScope(user.id, activeProfileId));
     const retry = () => { void queue.flush(); };
     const onHide = () => {
       const next = queue.peekPending();
       if (!next) return;
+      const known = version.read();
+      // Without a known version the save waits in the queue, which loads the saved copy and merges first.
+      if (known === null) return;
       void fetch(`/api/family/profiles/${activeProfileId}/progress`, {
         method: 'PUT',
         body: JSON.stringify({
           progress: next.progress,
           fun: next.fun,
+          version: known,
         }),
         keepalive: true,
         credentials: 'same-origin',
         headers: { 'content-type': 'application/json' },
-      }).then((response) => { if (response.ok) queue.acknowledge(next); })
-        .catch(() => statusListener?.('offline'));
+      }).then(async (response) => {
+        // A refused save (409: saved on another device since) stays queued and is merged on the next save.
+        if (!response.ok) return;
+        const saved = await response.json().catch(() => null) as { version?: unknown } | null;
+        version.write(typeof saved?.version === 'number' ? saved.version : null);
+        queue.acknowledge(next);
+      }).catch(() => statusListener?.('offline'));
     };
     window.addEventListener('online', retry);
     window.addEventListener('pagehide', onHide);

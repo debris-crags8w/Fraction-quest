@@ -2707,7 +2707,15 @@ export function loadProgress(): Progress {
   try {
     const stored = window.localStorage.getItem(scopedStorageKey(STORAGE_KEY));
     if (!stored) return EMPTY_PROGRESS;
-    const parsed: unknown = JSON.parse(stored);
+    return cleanProgress(JSON.parse(stored));
+  } catch {
+    return EMPTY_PROGRESS;
+  }
+}
+
+/** Saved progress (from this device or the server) with anything malformed or out of date dropped. */
+export function cleanProgress(parsed: unknown): Progress {
+  try {
     if (!parsed || typeof parsed !== 'object') return EMPTY_PROGRESS;
     const value = parsed as Partial<Progress>;
     const validIds = new Set(MISSIONS.map((item) => item.id));

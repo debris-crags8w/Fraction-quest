@@ -32,11 +32,14 @@ import type {
   LearnerProfile,
   LearnerProfileInput,
   LearnerProfileUpdate,
+  LearnerProgressConflict,
+  LearnerProgressPayload,
   LoginRequest,
   PrivacyExport,
   ProgressPayload,
   RecoverAccountInput,
   RecoveryCode,
+  SavedLearnerProgress,
   SavedProgress,
   SetPasswordInput,
   SignupRequest,
@@ -1406,9 +1409,9 @@ export const getGetLearnerProgressUrl = (profileId: number,) => {
 /**
  * @summary Load saved learning data for one profile
  */
-export const getLearnerProgress = async (profileId: number, options?: Parameters<typeof customFetch>[1]): Promise<SavedProgress> => {
+export const getLearnerProgress = async (profileId: number, options?: Parameters<typeof customFetch>[1]): Promise<SavedLearnerProgress> => {
 
-  return customFetch<SavedProgress>(getGetLearnerProgressUrl(profileId),
+  return customFetch<SavedLearnerProgress>(getGetLearnerProgressUrl(profileId),
   {
     ...options,
     method: 'GET'
@@ -1481,10 +1484,11 @@ export const getSaveLearnerProgressUrl = (profileId: number,) => {
 }
 
 /**
+ * Send the `version` this device last loaded or saved. A save from an older copy is refused with 409. A save without a version (an older app) is accepted and replaces the saved copy, as before.
  * @summary Save learning data for one profile
  */
 export const saveLearnerProgress = async (profileId: number,
-    progressPayload: ProgressPayload, options?: Parameters<typeof customFetch>[1]): Promise<SavedProgress> => {
+    learnerProgressPayload: LearnerProgressPayload, options?: Parameters<typeof customFetch>[1]): Promise<SavedLearnerProgress> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -1500,12 +1504,12 @@ export const saveLearnerProgress = async (profileId: number,
     }
     return headers;
   };
-return customFetch<SavedProgress>(getSaveLearnerProgressUrl(profileId),
+return customFetch<SavedLearnerProgress>(getSaveLearnerProgressUrl(profileId),
   {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(progressPayload)
+    body: JSON.stringify(learnerProgressPayload)
   }
 );}
 
@@ -1515,7 +1519,7 @@ return customFetch<SavedProgress>(getSaveLearnerProgressUrl(profileId),
 
 export const getSaveLearnerProgressMutationKey = () => ['saveLearnerProgress'] as const;
 
-export const getSaveLearnerProgressMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getSaveLearnerProgressMutationOptions = <TError = ErrorType<ErrorResponse | LearnerProgressConflict>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveLearnerProgress>>, TError,SaveLearnerProgressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof saveLearnerProgress>>, TError,SaveLearnerProgressMutationVariables, TContext> => {
 
@@ -1543,14 +1547,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type SaveLearnerProgressMutationResult = NonNullable<Awaited<ReturnType<typeof saveLearnerProgress>>>
-    export type SaveLearnerProgressMutationBody = BodyType<ProgressPayload>
-    export type SaveLearnerProgressMutationError = ErrorType<ErrorResponse>
-    export type SaveLearnerProgressMutationVariables = {profileId: number;data: BodyType<ProgressPayload>}
+    export type SaveLearnerProgressMutationBody = BodyType<LearnerProgressPayload>
+    export type SaveLearnerProgressMutationError = ErrorType<ErrorResponse | LearnerProgressConflict>
+    export type SaveLearnerProgressMutationVariables = {profileId: number;data: BodyType<LearnerProgressPayload>}
 
     /**
  * @summary Save learning data for one profile
  */
-export const useSaveLearnerProgress = <TError = ErrorType<ErrorResponse>,
+export const useSaveLearnerProgress = <TError = ErrorType<ErrorResponse | LearnerProgressConflict>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveLearnerProgress>>, TError,SaveLearnerProgressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof saveLearnerProgress>>,

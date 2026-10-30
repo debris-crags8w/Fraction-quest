@@ -532,7 +532,13 @@ export function playHaptic(cue: 'selection' | Cue) {
 
 /** Replace this device's fun state with one loaded from the student's account. */
 export function replaceFun(saved: Partial<FunState>): FunState {
-  const merged = {
+  const opened = applySpareOil(cleanFun(saved));
+  return saveFun(opened.day === today() ? opened : { ...opened, day: today(), answeredToday: 0 });
+}
+
+/** Saved fun state (from this device or the server) with anything malformed dropped; this device keeps its own sound setting. */
+export function cleanFun(saved: Partial<FunState>): FunState {
+  return {
     ...fresh(),
     ...withoutRetired(saved),
     ...cleanBasics(saved),
@@ -550,6 +556,4 @@ export function replaceFun(saved: Partial<FunState>): FunState {
     activity: cleanActivity(saved.activity),
     ...cleanGames(saved),
   };
-  const opened = applySpareOil(merged);
-  return saveFun(opened.day === today() ? opened : { ...opened, day: today(), answeredToday: 0 });
 }
