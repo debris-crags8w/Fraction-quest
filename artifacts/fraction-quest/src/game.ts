@@ -1379,13 +1379,13 @@ const extensionTopics: ExtensionTopic[] = [
     // Idea questions (ideas/lessons-41-50.ts). Idea 1: the child renames (p1, p3), then adds once told the parts to use (p4);
     // nothing hands the renamed fractions over. Idea 2: find the common denominator (p2).
     ideaQuestions: [
-      practice('To add 1/2 + 1/3, the parts must match. What is 1/2 in sixths?', ['3/6', '1/6', '2/6', '5/6'], 0,
+      practice('For 1/2 + 1/3, what is 1/2 in sixths?', ['3/6', '1/6', '2/6', '5/6'], 0,
         bars({ numerator: 1, denominator: 2 }, { numerator: 1, denominator: 3 }), 'Cut each half into 3 equal parts. Those parts are sixths.', 'Each half is 3 sixths, so 1/2 = 3/6. The amount stays the same.',
         bars({ numerator: 1, denominator: 2 }, { numerator: 3, denominator: 6 }), { authoredChoices: true }),
       practice('3/4 + 1/6 = ?', ['11/12', '4/10', '4/6', '10/12'], 0,
         bars({ numerator: 3, denominator: 4 }, { numerator: 1, denominator: 6 }), 'List multiples of 6: 6, 12. 4 fits into 12 too. Rename both as twelfths, then add.',
         '3/4 = 9/12 and 1/6 = 2/12. 9/12 + 2/12 = 11/12.', bars({ numerator: 9, denominator: 12 }, { numerator: 2, denominator: 12 }), { authoredChoices: true }),
-      practice('To add 1/6 + 1/4, rename both as twelfths. What is 1/4 in twelfths?', ['3/12', '1/12', '2/12', '5/12'], 0,
+      practice('For 1/6 + 1/4, what is 1/4 in twelfths?', ['3/12', '1/12', '2/12', '5/12'], 0,
         bars({ numerator: 1, denominator: 6 }, { numerator: 1, denominator: 4 }), 'Cut each fourth into 3 equal parts. Those parts are twelfths.', 'Each fourth is 3 twelfths, so 1/4 = 3/12. The amount stays the same.',
         bars({ numerator: 1, denominator: 4 }, { numerator: 3, denominator: 12 }), { authoredChoices: true }),
       practice('Make both fractions tenths. Then 1/2 + 1/5 = ?', ['7/10', '2/7', '2/10', '6/10'], 0,

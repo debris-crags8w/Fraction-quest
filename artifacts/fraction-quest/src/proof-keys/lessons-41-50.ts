@@ -29,7 +29,7 @@ export const KEYS: Record<string, string> = {
   'For 5/6 − 1/3, which fraction do you rename?': '1/3, as sixths',
   'To find 3/4 − 3/8, the parts must match. What is 3/4 in eighths?': '6/8',
   // Add unlike fractions, idea 1: each half is 3 sixths; each fourth is 3 twelfths; 1/2 = 5/10 and 1/5 = 2/10, so 7/10.
-  'To add 1/2 + 1/3, the parts must match. What is 1/2 in sixths?': '3/6',
-  'To add 1/6 + 1/4, rename both as twelfths. What is 1/4 in twelfths?': '3/12',
+  'For 1/2 + 1/3, what is 1/2 in sixths?': '3/6',
+  'For 1/6 + 1/4, what is 1/4 in twelfths?': '3/12',
   'Make both fractions tenths. Then 1/2 + 1/5 = ?': '7/10',
 };

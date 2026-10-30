@@ -249,6 +249,6 @@ test('add-unlike idea 1: the child renames the fractions; no prompt hands the re
   const first = ideaSteps(mission.id).filter(({ idea }) => idea === 0).map(({ item }) => ideaQuestion(mission, (item as { question: string }).question)!);
   for (const question of first) assert.doesNotMatch(question.prompt, /Rename: .*=/, `${question.id} hands over the renaming: ${question.prompt}`);
   // It opens like subtract-unlike idea 1: pick the renamed fraction first.
-  assert.match(first[0]!.prompt, /What is \d+\/\d+ in \w+ths\?/);
+  assert.match(first[0]!.prompt, /[Ww]hat is \d+\/\d+ in \w+ths\?/);
   assert.ok(first.some((question) => / \+ /.test(question.prompt) && /= \?$/.test(question.prompt)), 'idea 1 still ends with an addition');
 });
