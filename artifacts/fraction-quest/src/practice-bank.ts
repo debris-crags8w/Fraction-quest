@@ -211,10 +211,9 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       model: round ? area(circleCut(friends)!, []) : bar(0, friends) };
   },
   'unit-size': (r) => {
-    const [a, b] = r.pick(G3_PAIRS); const bigger = r.chance();
-    // Also asked about the bars: which part covers more (or less) of its whole.
-    const ask = r.int(0, 2) === 0 ? `covers ${bigger ? 'more' : 'less'}` : `is ${bigger ? 'bigger' : 'smaller'}`;
-    return { prompt: `Which ${ask}, ${either(r, f(1, a), f(1, b))}?`, right: bigger ? f(1, a) : f(1, b), wrong: [bigger ? f(1, b) : f(1, a), 'They are the same'],
+    // Sometimes said with the key idea in it: the two parts come from the same whole.
+    const [a, b] = r.pick(G3_PAIRS); const bigger = r.chance(); const sameWhole = r.int(0, 2) === 0 ? ' in the same whole' : '';
+    return { prompt: `Which is ${bigger ? 'bigger' : 'smaller'}${sameWhole}, ${either(r, f(1, a), f(1, b))}?`, right: bigger ? f(1, a) : f(1, b), wrong: [bigger ? f(1, b) : f(1, a), 'They are the same'],
       hint: 'The denominator tells how many equal parts make one whole. More parts means each part is smaller.', retry: `${Name(a)} are bigger than ${name(b)}.`, ...compareBars([1, a], [1, b]) };
   },
   'sets-unit-fractions': (r) => {

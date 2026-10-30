@@ -130,7 +130,7 @@ const RULES: Rule[] = [
     solve: (m) => { const [x, b] = [frac(m[1]), m[2] === '1/2' ? 0.5 : N(m[2])]; return near(x, b) ? SKIP : { text: `A little ${x > b ? 'more' : 'less'} than ${m[2]}` }; } },
   { name: 'shares that fill the pan', re: /^(\d+) children share 1\/(\d+) of a pan\. How many shares that size would fill the whole pan\?$/, solve: (m) => ({ value: N(m[1]) * N(m[2]) }) },
   // --- comparing and ordering
-  { name: 'which is bigger/smaller', re: /^Which is (bigger|smaller|longer|shorter), (\d+\/\d+) or (\d+\/\d+)\?(?: Make it\.)?$/,
+  { name: 'which is bigger/smaller', re: /^Which is (bigger|smaller|longer|shorter)(?: in the same whole)?, (\d+\/\d+) or (\d+\/\d+)\?(?: Make it\.)?$/,
     solve: (m) => { const [a, b] = [frac(m[2]), frac(m[3])]; if (near(a, b)) return { text: 'They are equal' };
       const big = /bigger|longer/.test(m[1]); return { value: (a > b) === big ? a : b }; } },
   { name: 'which is biggest/longest of three', re: /^Which is (biggest|smallest|longest|shortest):? (\d+\/\d+), (\d+\/\d+),? or (\d+\/\d+)\?(?: Make it\.)?$/,
@@ -333,6 +333,8 @@ const RULES: Rule[] = [
     solve: (m) => { const [l, r] = [m[1], m[2]]; const known = l.includes('?') ? r : l; const unknown = l.includes('?') ? l : r;
       const [kt, kb] = known.split('/').map(Number); const [ut, ub] = unknown.split('/');
       const value = ut === '?' ? kt / kb * N(ub) : N(ut) * kb / kt; if (!Number.isInteger(value)) return 'the missing number is not whole'; return { value }; } },
+  { name: 'complete three parts to one', re: /^Fill the blank: (\d+\/\d+) \+ (\d+\/\d+) \+ \? = 1$/, solve: (m) => ({ value: 1 - frac(m[1]) - frac(m[2]) }) },
+  { name: 'jumps to a point', re: /^Each jump is 1\/(\d+)\. How many jumps from 0 to (\d+)\/\1\?$/, solve: (m) => ({ value: N(m[2]) }) },
   { name: 'complete to an amount', re: /^(?:Complete|Fill the blank:) (\d+\/\d+) \+ \? = (1|\d+\/\d+)\.?$/, solve: (m) => ({ value: (m[2] === '1' ? 1 : frac(m[2])) - frac(m[1]) }) },
   { name: 'missing to one whole', re: /^How much is missing from (\d+\/\d+) to make (?:one|1) whole\?$/, solve: (m) => ({ value: 1 - frac(m[1]) }) },
   { name: 'distance from half', re: /^(?:What is (\d+)\/(\d+) (more|less) than 1\/2\?|How much more does (\d+\/\d+) need to reach half\?)$/,
@@ -429,7 +431,7 @@ const RULES: Rule[] = [
     solve: (m) => ({ value: N(m[1]) / 10, form: 'decimal' }) },
   { name: 'how many parts make one whole', re: /^How many (halves|thirds|fourths|fifths|sixths|eighths|tenths|twelfths) make one whole\?$/,
     solve: (m) => ({ value: UNIT_WORD[m[1]], form: 'whole' }) },
-  { name: 'friends share one thing', re: /^(\d+) friends share a (?:pizza|cake|bar) fairly\. What fraction (?:of the (?:pizza|cake) )?does each friend get\?$/,
+  { name: 'friends share one thing', re: /^(\d+) friends share a (?:pizza|cake|pie|bar|sandwich) fairly\. What fraction (?:of the (?:pizza|cake|pie) )?does each friend get\?$/,
     solve: (m) => ({ value: 1 / N(m[1]), denominator: N(m[1]) }) },
   { name: 'one of the equal tiles', re: /^What fraction is 1 of (\d+) equal tiles\?$/, solve: (m) => ({ value: 1 / N(m[1]), denominator: N(m[1]) }) },
 
@@ -551,7 +553,10 @@ const PICTURE_RULES: Rule[] = [
   { name: 'picture: what fraction is shaded', re: /^(?:What fraction (?:of (?:this bar model|the (?:circle|grid|tile|square|bar|hexagon)|this circle) )?is shaded\?(?: Each bar is one whole\.)?|One (?:part|slice) of this (?:bar|pizza) is shaded\..*|One part is shaded\. What fraction of the whole bar is it\?|The shaded part is 1 of the equal parts\. What fraction of the bar is shaded\?|All the slices are the same size\. What fraction of the pizza is the shaded slice\?|One triangle is colored\. What fraction of the square is it\?|What fraction of the square (?:is the shaded (?:triangle|small square)|do the 2 shaded triangles cover)\?|This \w+ is on a [\w ]+\. What fraction of the \w+ is colored\?|The baker’s round [\w’ -]+ is cut into equal slices\. The colored slices get frosting\. What fraction of the [\w’ -]+ is colored\?)$/,
     solve: (_m, item) => { const p = (item.pictures ?? []).map(barValue).find((v) => v !== null);
       if (p === undefined || p === null) return 'no shaded picture to read'; return { value: p }; } },
-  { name: 'picture: equal parts?', re: /^(?:Is this (?:bar|strip|square|pizza|hexagon|circle) cut into (?:equal (?:parts|\w+)|(\d+) equal (?:slices|strips)|\w+)\?|Are all the parts of this bar the same size\?|On this tile pattern, are the 4 parts of the square equal in area\?|Two small squares and two triangles fill this square\. Are all 4 parts equal in area\?|This pizza is cut into 4 slices\. Are the slices equal in area\?|These strips are long and thin\. Are they still fourths\?|Are all 4 parts of this square the same size\?)(?: Answer yes or no\.)?$/,
+  { name: 'picture: what fraction is not shaded', re: /^What fraction of the (?:circle|tile|square|bar|hexagon) is not shaded\?$/,
+    solve: (_m, item) => { const p = (item.pictures ?? []).map(barValue).find((v) => v !== null);
+      if (p === undefined || p === null) return 'no shaded picture to read'; return { value: 1 - p }; } },
+  { name: 'picture: equal parts?', re: /^(?:Is this (?:bar|strip|paper strip|ribbon|square|pizza|hexagon|circle) cut into (?:equal (?:parts|\w+)|(\d+) equal (?:slices|strips)|\w+)\?|Are all the parts of this bar the same size\?|On this tile pattern, are the 4 parts of the square equal in area\?|Two small squares and two triangles fill this square\. Are all 4 parts equal in area\?|This pizza is cut into 4 slices\. Are the slices equal in area\?|These strips are long and thin\. Are they still fourths\?|Are all 4 parts of this square the same size\?)(?: Answer yes or no\.)?$/,
     solve: (m, item) => { const p = (item.pictures ?? []).find((x) => equalParts(x) !== null); if (!p) return 'no partition picture to read';
       const word = /cut into (?:equal )?(\w+)\?/.exec(item.prompt)?.[1]; const wanted = m[1] ? N(m[1]) : word && UNIT_WORD[word] ? UNIT_WORD[word] : /fourths/.test(item.prompt) ? 4 : null;
       const equal = equalParts(p)!; const count = partCount(p)!;
