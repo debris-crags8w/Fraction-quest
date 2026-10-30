@@ -8,6 +8,7 @@ import type { Mission, PracticeQuestion } from './game';
 import type { PartFinderRound } from './part-finder';
 import { sceneSentences } from './teach-scenes';
 import { wordsScript } from './teach-extras';
+import { sentences } from './lib/voice';
 import type { IdeaPractice, LearnPage, LessonIdea } from './ideas/helpers';
 import { IDEAS as LESSONS_01 } from './ideas/lessons-01';
 import { IDEAS as LESSONS_02_10 } from './ideas/lessons-02-10';
@@ -59,6 +60,10 @@ export const ideaPracticeQuestions = (mission: Mission): PracticeQuestion[] =>
   ideaSteps(mission.id).map(({ item }) => ('handsOn' in item ? handsOnStandIn(mission, item.handsOn)
     : 'sortRound' in item ? handsOnStandIn(mission, item.sortRound, 'sort')
       : { ...ideaQuestion(mission, item.question)!, isMastery: false }));
+
+/** Hint fading: once the child has answered one of an idea's practices right without the hint, its later hints open as a
+    shorter nudge, the hint's first sentence (already its own voice clip). A wrong answer still brings the full hint back. */
+export const hintNudge = (hint: string): string => sentences(hint)[0] ?? hint;
 
 /** Has the child been taught to write a fraction by this idea? Not before the idea whose `terms` own fraction notation
     (lesson 1's idea 3, "The top number counts the parts we take"): until then no screen shows one, the bar's "1/4 done"
