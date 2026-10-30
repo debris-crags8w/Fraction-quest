@@ -646,6 +646,9 @@ const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reaso
   'fraction-of-remainder': { n: 3, d: 8, prompt: 'Pour out 1/2 of a jug. Then pour out 1/4 of the rest. Make what is left.', reason: '1/2 is left. 1/4 of that is 1/8. 1/2 − 1/8 = 3/8.' },
   'divide-fractions': { n: 4, d: 10, prompt: 'How many 1/10s fit in 2/5? Make 2/5 in tenths.', reason: '2/5 = 4/10. So 4 tenths fit.' },
 };
+/** A row whose answer is a number of wholes ("How many wholes are 24/8?", "Write 8/8 as a whole number."): its bars
+    carry no "one whole" marks until it is answered, or counting the marks would give the answer. */
+export const answerIsWholes = (problem: { prompt: string }) => /^How many wholes are \d+\/\d+\?$|^Write \d+\/\d+ as a whole number\.$/.test(problem.prompt);
 /** Lessons whose builds accept any equal fraction: an area or what's left can be named in more than one way. */
 const ANY_NAME_LESSONS = new Set(['fractional-side-area', 'multiply-mixed-numbers', 'fraction-of-remainder']);
 const acceptAnyName = (id: string, check: BuildCheck, avoid: string[] = []): BuildCheck =>
@@ -1528,7 +1531,8 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           hint = 'The denominator 1 means each part is one whole.';
         } else if (i === 11) {
           const w = 2 + (i + variant) % 2;
-          prompt = `How many wholes are ${f(w * d, d)}?`; answer = String(w); visual = model(w * d, d); modelRequired = true;
+          // One spare whole to copy onto, so counting the bars (each marked one whole) does not give the answer.
+          prompt = `How many wholes are ${f(w * d, d)}?`; answer = String(w); visual = { ...model(w * d, d), wholes: w + 1 }; modelRequired = true;
           hint = `${d}/${d} makes one whole. Count groups of ${d}/${d}.`;
         } else if (i % 3 === 0) {
           const top = [d + 1, d - 1, d, d + 2][i / 3];
@@ -1919,7 +1923,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           prompt = `Write ${item.numerator} whole bars as a fraction with a denominator of 1.`; answer = `${item.numerator}/1`; visual = model(item.numerator, 1);
           hint = 'The denominator 1 means each part is one whole.';
         } else if (item.kind === 'count') {
-          prompt = `How many wholes are ${item.numerator}/${item.denominator}?`; answer = String(item.numerator / item.denominator); visual = model(item.numerator, item.denominator);
+          // One spare whole to copy onto, so counting the bars does not give the answer.
+          prompt = `How many wholes are ${item.numerator}/${item.denominator}?`; answer = String(item.numerator / item.denominator);
+          visual = { ...model(item.numerator, item.denominator), wholes: item.numerator / item.denominator + 1 };
           hint = `${item.denominator}/${item.denominator} makes one whole. Count groups of ${item.denominator}/${item.denominator}.`;
           why = `${item.numerator}/${item.denominator} is ${some(item.numerator / item.denominator, 'group', 'groups')} of ${item.denominator}/${item.denominator}, and each group is 1 whole.`;
         } else {

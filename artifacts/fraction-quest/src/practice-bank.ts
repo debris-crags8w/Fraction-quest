@@ -994,8 +994,8 @@ const WIDER_ROWS: Record<string, (r: Rng) => WorksheetProblem> = {
       return { id: 'wider', prompt: `Write ${wholes} whole bars as a fraction with a denominator of 1.`, answer: f(wholes, 1), model: barRow(wholes, 1), modelRequired: true,
         hint: 'The denominator 1 means each part is one whole.' };
     }
-    // A denominator of 1 too: 7/1 is 7 wholes.
-    const d = r.pick([1, 2, 3, 4, 6, 8]); const wholes = r.int(2, d === 1 ? 9 : d >= 6 ? 4 : 5);
+    // A denominator of 1 too: 5/1 is 5 wholes. At most 5 wholes: the picture draws one empty bar per whole and a spare.
+    const d = r.pick([1, 2, 3, 4, 6, 8]); const wholes = r.int(2, d >= 6 ? 4 : 5);
     return { id: 'wider', prompt: `How many wholes are ${f(wholes * d, d)}?`, answer: String(wholes), model: barRow(wholes * d, d), modelRequired: true,
       hint: d === 1 ? 'The denominator 1 means each part is one whole.' : `${f(d, d)} makes one whole. Count groups of ${f(d, d)}.` };
   },
