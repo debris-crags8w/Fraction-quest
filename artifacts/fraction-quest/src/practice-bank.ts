@@ -1172,22 +1172,6 @@ const WIDER_ROWS: Record<string, (r: Rng) => WorksheetProblem> = {
       answer: f(10 * dimes + pennies, 100), denominator: 100, picture: { kind: 'coins', dimes, pennies },
       hint: `${dimes} ${dimes === 1 ? 'dime is' : 'dimes are'} ${10 * dimes} hundredths. Then add the ${pennies === 1 ? 'penny' : 'pennies'}.` };
   },
-  'mixed-unlike-operations': (r) => {
-    // A mixed number plus or minus a mixed number (or a fraction) whose parts have different denominators.
-    const [b, e] = r.pick([[2, 3], [2, 4], [3, 4], [2, 6], [3, 6], [4, 8], [2, 5], [5, 10], [4, 6], [3, 8], [2, 8], [4, 12]] as const);
-    const [x, y] = r.chance() ? [b, e] : [e, b];
-    const topA = r.int(1, x - 1); const topB = r.int(1, y - 1); const wholeA = r.int(1, 3); const add = r.chance();
-    const wholeB = r.int(0, add ? 2 : wholeA - 1);
-    const common = (x * y) / gcd(x, y);
-    const a = (wholeA * x + topA) * (common / x); const c = (wholeB * y + topB) * (common / y);
-    const result = add ? a + c : a - c;
-    if (result <= 0) return WIDER_ROWS['mixed-unlike-operations'](r);
-    const second = `${wholeB ? `${wholeB} ` : ''}${f(topB, y)}`;
-    const answer = mixedName(result, common);
-    return { id: 'wider', prompt: `${wholeA} ${f(topA, x)} ${add ? '+' : '−'} ${second} = ?`, answer, ...(answer.includes(' ') ? { form: 'mixed' as const } : {}),
-      hint: `List multiples of ${x} and ${y} to find a denominator they share. Rename both, then ${add ? 'add' : 'take away'}.`,
-      explain: `${wholeA} ${f(topA, x)} is ${f(a, common)} and ${second} is ${f(c, common)}. ${add ? 'Together they are' : 'The difference is'} ${f(result, common)}, or ${answer}.` };
-  },
   'party-portions': (r) => {
     const b = r.pick([3, 4, 5, 6, 8, 10] as const); const a = r.int(2, b - 1); const n = r.int(3, 8);
     const [who, food] = r.pick([['guest', 'pound of pasta'], ['racer', 'cup of juice'], ['friend', 'pound of grapes'], ['runner', 'liter of water']] as const);
