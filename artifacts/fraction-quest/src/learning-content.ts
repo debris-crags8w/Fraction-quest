@@ -990,13 +990,31 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
 
 /** Skill-specific authored templates and varied numbers, not recycled answer choices.
     Lessons that share a skill family still get their own sheet (different question types). */
+/** The standards one worksheet row really tests: the lesson's list, less the ones a row of this kind does not reach, so a Check-in
+    credits a standard only for a question that asks it. A row left with none (a stretch question) is not asked in a Check-in. */
+function rowStandards(id: string, row: WorksheetProblem): string[] {
+  const all = [...standardsForMission(id)];
+  const keep = (standard: string, test: boolean) => all.filter(item => item !== standard || test);
+  switch (id) {
+    // 3.G.2 is about shapes: only the rows that show one.
+    case 'equal-parts': return keep('3.G.2', !!row.area);
+    // 3.NF.3c is a whole number written as a fraction: the rows that set n/n beside 1.
+    case 'improper-fractions': { const same = /^Put <, = or > in the gap: (\d+)\/(\d+) __ 1\.$/.exec(row.prompt); return keep('3.NF.3c', !!same && same[1] === same[2]); }
+    // 4.NF.4a is n groups of one unit fraction: the n × 1/b rows.
+    case 'multiply-whole-by-fraction': return keep('4.NF.4a', /^\d+ × 1\/\d+ = \?$/.test(row.prompt));
+    // 5.NF.7b counts unit fractions in a whole: the part must be 1/b of it (2/3 or 3/5 of it are stretch questions).
+    case 'find-the-whole': return keep('5.NF.7b', /(?:^|\D)1\/\d+/.test(row.prompt));
+    default: return all;
+  }
+}
+
 /** The lesson's 12 worksheet problems. `variant` 0 is the lesson's own sheet; 1, 2, … give the same kinds of
     questions with new numbers (used when a child redoes a finished worksheet). */
 export function getWorksheet(id: string, variant = 0): WorksheetProblem[] {
   const tag = (rows: WorksheetProblem[]) => rows.map(row => {
     const bare = !row.model && !row.area && !row.rulerTask && !row.linePlotTask && !row.scaleTask && !row.picture;
     const picture = bare ? autoPicture(row.prompt) : null;
-    return { ...row, standards: [...standardsForMission(id)], ...(picture ? { picture } : {}) };
+    return { ...row, standards: rowStandards(id, row), ...(picture ? { picture } : {}) };
   });
   if (!variant) return tag(buildWorksheet(id, 0));
   // Each redo sheet is built from the one before it, so map any variant onto a cycle of REDO_CYCLE sheets. Check-ins
@@ -1976,7 +1994,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           ['Liv says 1/6 + 4/6 = 5/12.', '5/6', 'Sixths plus sixths make sixths. Add only the numerators.'],
           ['Dan says 4/5 − 1/5 = 3.', '3/5', 'Fifths minus fifths leave fifths. Keep the denominator.'],
           ['Amy says 3 × 1/4 = 3/12.', '3/4', 'Multiply only the numerator. The parts stay fourths.'],
-          ['Leo says 7/10 − 4/10 = 3/0.', '3/10', 'Tenths minus tenths leave tenths. Keep the denominator.'],
+          ['Leo says 7/10 − 4/10 = 3/20.', '3/10', 'Tenths minus tenths leave tenths. Keep the denominator.'],
           ['Ivy says 3/4 + 2/4 = 5/8.', '5/4', 'Fourths plus fourths make fourths. 5 fourths is more than one whole.', 4],
           ['Gus says 9/4 = 2 1/2.', '2 1/4', '8 fourths make 2 wholes. Count the fourths left over.', undefined, 'mixed'],
           ['Nia says 3/5 = 4/6 because she added 1 to the numerator and denominator. Which fraction in tenths is really equal to 3/5?', '6/10', 'Multiply the numerator and denominator by the same number.', 10],
