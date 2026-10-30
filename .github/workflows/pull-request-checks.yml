@@ -204,8 +204,9 @@ jobs:
   phone-fit-e2e:
     # Every screen must fit a phone (390 × 664, an iPhone in Safari) with no scrolling. These walks had no job: every
     # screen of every lesson (split over four shards, which run side by side), and every Unit challenge puzzle, every
-    # Find my level question and every kind of Check-in question (one more shard). Each shard takes about as long as
-    # the other browser jobs, so a pull request does not wait longer; it costs about 50 more runner minutes (see the PR notes).
+    # Find my level question and every kind of Check-in question (one more shard). Locally each part's tests take 4.5 to
+    # 6 minutes (on CI expect 8 to 12, plus about 5 for setup), shorter than the all-lessons job, so a pull request does not
+    # wait longer; the five parts cost about 70 more runner minutes per run.
     name: Phone fit (${{ matrix.part }})
     runs-on: ubuntu-latest
     timeout-minutes: 35

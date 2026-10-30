@@ -113,8 +113,8 @@ export const PLACEMENT_BLENDS: Record<string, WorksheetProblem[]> = {
   ],
   // Amounts listed as on a line plot (5.MD.2, line-plot-totals), shared equally: a whole number divided into a fraction (5.NF.3).
   'fractional-sharing': [
-    blend('level-1', 'Three jars hold 2/4, 3/4, 3/4 liter. Share the total equally. How many liters go in each?', '2/3', 'Add them first: 8/4 is 2 liters. Then 2 shared by 3 is 2/3.', ['5.NF.3', '5.MD.2'], undefined, plot(4, [2, 3, 3])),
-    blend('level-2', 'Three cups hold 1/8, 3/8, 4/8 liter. Share the total equally. How many liters go in each?', '1/3', 'Add them first: 8/8 is 1 liter. Then 1 shared by 3 is 1/3.', ['5.NF.3', '5.MD.2'], undefined, plot(8, [1, 3, 4])),
+    blend('level-1', 'Three jars hold 2/4, 3/4, 3/4 liter. Share the total equally. How many liters go in each?', '2/3', 'Add them first: 8/4 is 2 liters. Then share 2 liters by 3.', ['5.NF.3', '5.MD.2'], undefined, plot(4, [2, 3, 3])),
+    blend('level-2', 'Three cups hold 1/8, 3/8, 4/8 liter. Share the total equally. How many liters go in each?', '1/3', 'Add them first: 8/8 is 1 liter. Then share 1 liter by 3.', ['5.NF.3', '5.MD.2'], undefined, plot(8, [1, 3, 4])),
   ],
   'two-step-conversions': [
     blend('total-ml-1', 'Cups hold: 2/4, 1/4, 1/4 liter. How many milliliters in all?', '1000', 'Add the liters first. 1 liter is 1000 milliliters.', ['5.MD.1', '4.MD.2', '5.MD.2'], undefined, plot(4, [2, 1, 1])),
