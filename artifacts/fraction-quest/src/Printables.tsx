@@ -136,7 +136,8 @@ export function PrintModel({ model, labels = true, asked = false }: { model: Mod
         </div>
       ))}
       {model.kind === 'decimal' && <div className="fq-print-bar-row"><BarSvg n={model.tenths} d={10} />{labels && <b className="fq-print-decimal-value">{(model.tenths / 10).toFixed(1)}</b>}</div>}
-      {model.kind === 'line' && <LineSvg n={model.numerator} d={model.denominator} wholes={model.wholes ?? Math.max(1, Math.ceil(model.numerator / model.denominator))} />}
+      {model.kind === 'line' && <LineSvg n={model.numerator} d={model.denominator} wholes={model.wholes ?? Math.max(1, Math.ceil(model.numerator / model.denominator))}
+        {...(model.ends ? { ends: model.ends, jumps: !model.hideHops } : {})} />}
       {model.kind === 'set' && (setLayout
         ? <SetSvg n={setLayout.selectedGroups} d={setLayout.groupCount} total={model.total} />
         : <svg className="fq-svg-set" viewBox={`0 0 ${Math.min(model.total, 10) * 26 + 4} ${Math.ceil(model.total / 10) * 26 + 4}`} role="img" aria-label={`${model.selected} of ${model.total} counters shaded`}>

@@ -15,8 +15,8 @@ const distinctQuestions = (missionId: string) => {
 };
 
 describe('New questions have a wide pool', () => {
-  it('draws on at least 16 different questions in every lesson (40 rounds)', () => {
-    const small = MISSIONS.map((mission) => [mission.id, distinctQuestions(mission.id)] as const).filter(([, count]) => count < 16);
+  it('draws on at least 30 different questions in every lesson (40 rounds)', () => {
+    const small = MISSIONS.map((mission) => [mission.id, distinctQuestions(mission.id)] as const).filter(([, count]) => count < 30);
     assert.deepEqual(small, [], 'lessons whose "New questions" keep repeating the same few');
   });
 

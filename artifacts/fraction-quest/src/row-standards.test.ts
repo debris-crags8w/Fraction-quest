@@ -20,17 +20,21 @@ describe('a worksheet row carries the standards it really tests, not the whole l
     for (const row of rows) assert.ok(has(row, '3.NF.1'), row.prompt);
   });
 
-  it('improper-fractions claims 3.NF.3c only on the rows that put a whole number (n/n) beside 1', () => {
-    const rows = rowsOf('improper-fractions');
-    let whole = 0;
-    for (const row of rows) {
-      const same = /^Put <, = or > in the gap: (\d+)\/(\d+) __ 1\.$/.exec(row.prompt);
-      const isWhole = !!same && same[1] === same[2];
-      if (isWhole) whole++;
-      assert.equal(has(row, '3.NF.3c'), isWhole, row.prompt);
-      assert.ok(has(row, '3.NF.2b'), row.prompt);
+  it('improper-fractions claims 3.NF.3c only on its whole-number rows (4/4 beside 1, 3 = 3/1, 8/4 = 2), and has all three on every sheet', () => {
+    const kinds = {
+      same: (prompt: string) => { const same = /^Put <, = or > in the gap: (\d+)\/(\d+) __ 1\.$/.exec(prompt); return !!same && same[1] === same[2]; },
+      overOne: (prompt: string) => /^Write \d+ as a fraction with a denominator of 1\.$/.test(prompt),
+      wholes: (prompt: string) => /^How many wholes are \d+\/\d+\?$/.test(prompt),
+    };
+    for (let variant = 0; variant < 25; variant++) {
+      const rows = getWorksheet('improper-fractions', variant);
+      for (const [kind, test] of Object.entries(kinds)) assert.ok(rows.some((row) => test(row.prompt)), `sheet ${variant} has no ${kind} row`);
+      for (const row of rows) {
+        const isWhole = Object.values(kinds).some((test) => test(row.prompt));
+        assert.equal(has(row, '3.NF.3c'), isWhole, row.prompt);
+        assert.ok(has(row, '3.NF.2b') || isWhole, row.prompt);
+      }
     }
-    assert.ok(whole > 0, 'some row still tests 3.NF.3c');
   });
 
   it('find-the-whole counts 5.NF.7b only when the part is one unit fraction (1/b of it)', () => {

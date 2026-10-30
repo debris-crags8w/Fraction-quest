@@ -389,14 +389,15 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
         </div>
       )}
       {model.kind === 'line' && (() => {
-        const labelled = (!model.hideLabels && !asked) || reveal;
+        // A piece of a line (0.6 to 0.7) names only its two ends: no tick fractions, no readout.
+        const labelled = !model.ends && ((!model.hideLabels && !asked) || reveal);
         const wholes = model.wholes ?? numberLineWholeCount(model.numerator, model.denominator);
         const divisions = model.denominator * wholes;
         const value = model.numerator / divisions;
         const pointShown = lineHasPoint(model);
         return (
           <div className="fq-numberline-wrap">
-            <div className="fq-visual-numberline" role="img" aria-label={!pointShown ? `Number line from 0 to ${wholes} with ${divisions} equal spaces` : !labelled ? `Number line from 0 to ${wholes} with ${divisions} equal spaces and a dot` : 'Number line from 0 to ' + wholes + ', marked at ' + model.numerator + '/' + model.denominator}>
+            <div className="fq-visual-numberline" role="img" aria-label={model.ends ? `Number line from ${model.ends[0]} to ${model.ends[1]} with ${divisions} equal spaces${pointShown ? ' and a dot' : ''}` : !pointShown ? `Number line from 0 to ${wholes} with ${divisions} equal spaces` : !labelled ? `Number line from 0 to ${wholes} with ${divisions} equal spaces and a dot` : 'Number line from 0 to ' + wholes + ', marked at ' + model.numerator + '/' + model.denominator}>
               <div className="fq-numberline-track" />
               {/* Hop arcs: one per jump from 0, drawn one after another, then the dot lands. */}
               <svg className="fq-numberline-hops" viewBox={`0 0 ${divisions} 1`} preserveAspectRatio="none" aria-hidden="true">
@@ -416,12 +417,14 @@ function ModelView({ model, compact = false, reveal = false, asked = false, walk
                 <span className={`fq-numberline-tick ${tick % model.denominator === 0 ? 'whole' : ''}`} style={{ left: ((tick / divisions) * 100) + '%' }} key={tick}>
                   {/* Every tick reads 1/5, 2/5… Practice pictures (hideLabels) show only the wholes until the child answers,
                       so the labels can't give the answer away. Very crowded lines keep just the wholes. */}
-                  {tick % model.denominator === 0 || (labelled && divisions <= 16)
+                  {/* A piece of a line (0.6 to 0.7) names only its two ends. */}
+                  {model.ends ? (tick === 0 || tick === divisions ? <span className="fq-nl-label whole">{model.ends[tick ? 1 : 0]}</span> : null)
+                    : tick % model.denominator === 0 || (labelled && divisions <= 16)
                     ? <TickLabel i={tick} d={model.denominator} /> : null}
                 </span>
               ))}
             </div>
-            <p className="fq-numberline-range" data-testid="text-model-numberline-range">{wholes === 1 ? 'The line goes from 0 to 1.' : `The line goes from 0 to ${wholes}. Each whole has the same spaces.`}</p>
+            <p className="fq-numberline-range" data-testid="text-model-numberline-range">{model.ends ? `The line goes from ${model.ends[0]} to ${model.ends[1]}.` : wholes === 1 ? 'The line goes from 0 to 1.' : `The line goes from 0 to ${wholes}. Each whole has the same spaces.`}</p>
             {/* Practice pictures hide the readout so the picture doesn't give the answer away. */}
             {labelled && pointShown && <div className="fq-line-readout"><Fraction numerator={model.numerator} denominator={model.denominator} /></div>}
           </div>
@@ -1364,7 +1367,7 @@ function ExtraDoneView({ mission, firstTry, total, fresh, progress, onMap, onAga
           <div className="fq-reward-mascot" aria-hidden="true"><Mascot mood="cheer" size={110} /></div>
           <div className="fq-eyebrow" style={{ justifyContent: 'center' }}><Dumbbell size={14} /> {fresh ? 'New questions' : 'Practice more'} · {mission.shortTitle}</div>
           <h1>Practice round done!</h1>
-          <p data-testid="text-extra-score"><strong>{firstTry}</strong> of {total} right on the first try. {fresh ? 'Want more? Every round of new questions is different.' : 'Practice again any time; it gets easier every round.'}</p>
+          <p data-testid="text-extra-score"><strong>{firstTry}</strong> of {total} right on the first try. {fresh ? 'Want more? Each round brings a new mix of questions.' : 'Practice again any time; it gets easier every round.'}</p>
           <div className="fq-reward-actions">
             <button className="fq-button" onClick={onNew} data-testid="button-extra-new"><Sparkles size={17} /> New questions</button>
             <button className="fq-button secondary" onClick={onAgain} data-testid="button-extra-again"><RotateCcw size={17} /> {fresh ? 'Same questions again' : 'Practice again'}</button>

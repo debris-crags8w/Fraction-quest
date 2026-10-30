@@ -1088,7 +1088,11 @@ function rowStandards(id: string, row: WorksheetProblem): string[] {
     // 3.G.2 is about shapes: only the rows that show one.
     case 'equal-parts': return keep('3.G.2', !!row.area);
     // 3.NF.3c is a whole number written as a fraction: the rows that set n/n beside 1.
-    case 'improper-fractions': { const same = /^Put <, = or > in the gap: (\d+)\/(\d+) __ 1\.$/.exec(row.prompt); return keep('3.NF.3c', !!same && same[1] === same[2]); }
+    case 'improper-fractions': {
+      const same = /^Put <, = or > in the gap: (\d+)\/(\d+) __ 1\.$/.exec(row.prompt);
+      const whole = (!!same && same[1] === same[2]) || /^Write \d+ as a fraction with a denominator of 1\.$|^How many wholes are \d+\/\d+\?$/.test(row.prompt);
+      return keep('3.NF.3c', whole);
+    }
     // 4.NF.4a is n groups of one unit fraction: the n × 1/b rows.
     case 'multiply-whole-by-fraction': return keep('4.NF.4a', /^\d+ × 1\/\d+ = \?$/.test(row.prompt));
     // 5.NF.7b counts unit fractions in a whole: the part must be 1/b of it (2/3 or 3/5 of it are stretch questions).
@@ -1174,6 +1178,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
     let prompt = ''; let answer = value; let hint = 'The numerator is the number of parts you count. The denominator is the number of equal parts in one whole.';
     let visual: LearningModel | undefined; let form: WorksheetProblem['form']; let denominator: number | undefined;
     let modelRequired = false; let task: BarTask | undefined; let area: AreaFigure | undefined; let areaTask: AreaTask | undefined; let why: string | undefined;
+    let picture: ModelSpec | undefined;
     const context = ['ribbon', 'paper strip', 'rope', 'piece of tape'][i % 4];
     switch (id) {
       case 'equal-parts': {
@@ -1436,7 +1441,17 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         hint = i % 3 === 1 ? `${top} parts in all. ${first} ${first === 1 ? 'is' : 'are'} used. How many more?` : 'Count how many small parts make it.'; break;
       }
       case 'improper-fractions':
-        if (i % 3 === 0) {
+        // 3.NF.3c: row 10 writes a whole number as a fraction (3 = 3/1), row 12 a fraction that is a whole number (8/4 = 2),
+        // and row 7 sets n/n beside 1 (4/4 = 1). Lesson 23 taught all three.
+        if (i === 9) {
+          const w = 2 + (i + variant) % 3; // 2 to 4 whole bars: more would crowd a phone row
+          prompt = `Write ${w} as a fraction with a denominator of 1.`; answer = f(w, 1); visual = model(w, 1); modelRequired = true;
+          hint = 'The denominator 1 means each part is one whole.';
+        } else if (i === 11) {
+          const w = 2 + (i + variant) % 2;
+          prompt = `How many wholes are ${f(w * d, d)}?`; answer = String(w); visual = model(w * d, d); modelRequired = true;
+          hint = `${d}/${d} makes one whole. Count groups of ${d}/${d}.`;
+        } else if (i % 3 === 0) {
           const top = [d + 1, d - 1, d, d + 2][i / 3];
           prompt = `Put <, = or > in the gap: ${f(top, d)} __ 1.`; answer = top > d ? '>' : top < d ? '<' : '='; form = 'symbol';
           hint = `${d}/${d} is exactly one whole.`;
@@ -1482,6 +1497,16 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
       case 'hundredths-decimals': {
         const base = id.startsWith('tenths') ? 10 : 100; const top = id.startsWith('tenths') ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 3, 6, 8][t] : [8, 12, 25, 40, 63, 75, 9, 30, 50, 81, 90, 99][t];
         const dec = (top / base).toFixed(base === 10 ? 1 : 2);
+        if (base === 100 && i === 11) {
+          // 4.NF.6: a hundredths decimal on a number line, between one tenth and the next (0.62 is between 0.6 and 0.7).
+          const at = [62, 37, 85, 14, 56, 93, 28, 71, 49, 66, 15, 84][t]; const from = Math.floor(at / 10);
+          const start = String(from / 10); answer = (at / 100).toFixed(2); form = 'decimal';
+          prompt = 'What decimal is at the dot?';
+          hint = `Each small space is one hundredth. Count the spaces from ${start} to the dot.`;
+          why = `${start} is ${from * 10} hundredths. ${at % 10} more ${at % 10 === 1 ? 'is' : 'makes'} ${at} hundredths: ${answer}.`;
+          picture = { kind: 'line', numerator: at % 10, denominator: 10, wholes: 1, hideLabels: true, hideHops: true, ends: [start, String((from + 1) / 10)] };
+          break;
+        }
         prompt = i % 3 === 0 ? `Write ${f(top, base)} as a decimal.` : i % 3 === 1 ? `Write ${dec} as a fraction.` :
           `A meter strip has ${base} equal parts. ${top} ${top === 1 ? 'is' : 'are'} colored. Write the colored part as a decimal.`;
         answer = i % 3 === 1 ? f(top, base) : dec; form = i % 3 === 1 ? undefined : 'decimal';
@@ -1492,7 +1517,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
     }
     // Older bar worksheets: "copy the shaded bar".
     if (modelRequired && !task && visual?.kind === 'bar') task = { kind: 'copy', n: visual.n };
-    return { id: `w${i + 1}`, prompt, answer, hint, model: visual, modelRequired, task, form, denominator, ...(area ? { area } : {}), ...(areaTask ? { areaTask } : {}), ...(why ? { why } : {}) };
+    return { id: `w${i + 1}`, prompt, answer, hint, model: visual, modelRequired, task, form, denominator, ...(area ? { area } : {}), ...(areaTask ? { areaTask } : {}), ...(why ? { why } : {}), ...(picture ? { picture } : {}) };
   });
 }
 
