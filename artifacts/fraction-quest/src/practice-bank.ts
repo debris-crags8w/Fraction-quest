@@ -983,9 +983,54 @@ const FOOT: Unit = { big: 'foot', small: 'inches', per: 12, parts: [2, 3, 4, 6, 
 const POUND: Unit = { big: 'pound', small: 'ounces', per: 16, parts: [2, 4, 8], say: 'A pound is 16 ounces.' };
 const METER: Unit = { big: 'meter', small: 'centimeters', per: 100, parts: [2, 4, 5, 10], say: 'A meter is 100 centimeters.' };
 
+/** Unlike denominators a grade 5 sum uses, with a shared denominator of 12 or less. */
+const UNLIKE_PAIRS: readonly [number, number][] = [[2, 3], [3, 2], [2, 4], [4, 2], [2, 6], [6, 2], [2, 8], [8, 2], [3, 4], [4, 3], [3, 6], [6, 3],
+  [4, 6], [6, 4], [4, 8], [8, 4], [2, 5], [5, 2], [5, 10], [10, 5], [2, 10], [3, 12], [4, 12], [6, 12], [12, 4]];
+/** "1/3 = 4/12 and 1/4 = 3/12. ": the renaming, for a why after the child has done it. */
+const renamed = (common: number, ...amounts: [number, number][]) => {
+  const list = amounts.filter(([, bottom]) => bottom !== common).map(([top, bottom]) => `${f(top, bottom)} = ${f(top * (common / bottom), common)}`);
+  return list.length ? `${list.join(' and ')}. ` : '';
+};
+
+function unlikeSum(r: Rng): WorksheetProblem {
+  const [b, e] = r.pick(UNLIKE_PAIRS); const a = r.pick(range(1, b - 1).filter((x) => gcd(x, b) === 1)); const c = r.pick(range(1, e - 1).filter((x) => gcd(x, e) === 1));
+  const common = (b * e) / gcd(b, e); const [x, y] = [a * (common / b), c * (common / e)];
+  return { id: 'wider', prompt: `${f(a, b)} + ${f(c, e)} = ?`, answer: mixedName(x + y, common), model: barRow(x, common), modelRequired: true,
+    hint: `List multiples of ${b} and ${e}. Which number is in both lists? Rename both fractions with it, then add.`,
+    why: `${renamed(common, [a, b], [c, e])}${f(x, common)} + ${f(y, common)} = ${f(x + y, common)}${x + y > common ? `, or ${mixedName(x + y, common)}` : x + y === common ? ', or 1 whole' : ''}.` };
+}
+function mixedUnlike(r: Rng): WorksheetProblem {
+  const [b, e] = r.pick(UNLIKE_PAIRS); const a = r.pick(range(1, b - 1).filter((x) => gcd(x, b) === 1)); const c = r.pick(range(1, e - 1).filter((x) => gcd(x, e) === 1));
+  const common = (b * e) / gcd(b, e); const [x, y] = [a * (common / b), c * (common / e)];
+  const add = r.chance(); const wholeA = r.int(add ? 1 : 2, 3); const wholeB = r.int(add ? 0 : 1, add ? 2 : wholeA - 1);
+  const result = (wholeA * common + x) + (add ? 1 : -1) * (wholeB * common + y);
+  const trade = !add && x < y;
+  const left = (n: number) => `${n} ${n === 1 ? 'whole' : 'wholes'}`;
+  const why = add
+    ? `${renamed(common, [a, b], [c, e])}${f(x, common)} + ${f(y, common)} = ${f(x + y, common)}${x + y >= common ? `, which is 1 whole${x + y > common ? ` and ${f(x + y - common, common)}` : ''}. ${wholeA}${wholeB ? ` + ${wholeB}` : ''} + 1 = ${left(wholeA + wholeB + 1)}.` : `.${wholeB ? ` ${wholeA} + ${wholeB} = ${left(wholeA + wholeB)}.` : ''}`}`
+    : trade
+      ? `${renamed(common, [a, b], [c, e])}Trade 1 whole: ${f(x, common)} becomes ${f(x + common, common)}. ${f(x + common, common)} − ${f(y, common)} = ${f(x + common - y, common)}, and ${wholeA - 1} − ${wholeB} = ${left(wholeA - 1 - wholeB)}.`
+      : `${renamed(common, [a, b], [c, e])}${f(x, common)} − ${f(y, common)} = ${f(x - y, common)}, and ${wholeA} − ${wholeB} = ${left(wholeA - wholeB)}.`;
+  return { id: 'wider', prompt: `${wholeA} ${f(a, b)} ${add ? '+' : '−'} ${wholeB ? `${wholeB} ` : ''}${f(c, e)} = ?`, answer: mixedName(result, common),
+    model: barRow(wholeA * common + x, common), modelRequired: true,
+    hint: `List multiples of ${b} and ${e} to find a denominator they share. ${add ? 'Rename both fractional parts' : 'Rename both numbers'} with the same denominator, then ${add ? 'add' : 'subtract'}.${trade ? ` The first part is too small to take away from: trade 1 whole for ${f(common, common)} first.` : ''}`,
+    why };
+}
+/** A row whose answer is not already a fraction written in its question (that would be copying, not solving). */
+function fresh(r: Rng, make: (r: Rng) => WorksheetProblem): WorksheetProblem {
+  for (let tries = 0; ; tries++) {
+    const row = make(r);
+    const written = row.prompt.match(/\d+\/\d+/g) ?? [];
+    if (tries >= 20 || !written.some((part) => row.answer === part || row.answer.endsWith(` ${part}`))) return row;
+  }
+}
+
 /** Lessons whose "New questions" come from worksheet rows: more rows in the same frames, with new numbers in the
     lesson's grade (the worksheet tables hold 24 rows each, which gave only about 20 different questions). */
 const WIDER_ROWS: Record<string, (r: Rng) => WorksheetProblem> = {
+  // Unlike fractions: the child finds the shared denominator and renames (no renaming written into the question).
+  'add-unlike-fractions': (r) => fresh(r, unlikeSum),
+  'mixed-unlike-operations': (r) => fresh(r, mixedUnlike),
   'measurement-word-problems': (r) => unitRow(r, [HOUR, DAY, DOLLAR, LITER, KILOGRAM]),
   'fractional-unit-conversions': (r) => unitRow(r, [HOUR, DAY, LITER, KILOGRAM, FOOT, POUND, METER]),
   'whole-numbers-as-fractions': (r) => {
@@ -1090,8 +1135,8 @@ for (const topic of MISSIONS.filter((item) => !(item.id in RECIPES))) {
   RECIPES[topic.id] = (r) => {
     // Yes/no rows stay on the worksheet: a tap question needs number answers to make wrong choices from.
     // A row whose answer is a fraction already written in its prompt (a line plot's own marks) is left out: the child could just copy it.
-    // A row the child copies onto bars whose amounts are too long to draw would show only empty bars here: the extra
-    // sheets leave those out (none are left; row-pictures.test.ts keeps it so for sums and differences).
+    // A row the child copies onto bars whose amounts are too long to draw (4 1/3 − 2 1/2) would show only empty bars here:
+    // the extra sheets leave those out, and so does every sheet of the twelve-sheet lessons (their rows move between sheets).
     const blankCopy = (problem: ReturnType<typeof getWorksheet>[number]) => {
       const picture = problem.task?.kind === 'copy' ? problemPicture(problem) : null;
       return picture?.kind === 'bars' && picture.bars.every((bar) => bar.numerator === 0);
@@ -1099,7 +1144,7 @@ for (const topic of MISSIONS.filter((item) => !(item.id in RECIPES))) {
     const copied = (problem: ReturnType<typeof getWorksheet>[number]) => /^\d+\/\d+$/.test(problem.answer.trim()) && !/same as|equal|bigger|smaller|order/.test(problem.prompt)
       && new RegExp(`(?<![\\d/])${problem.answer.trim()}(?![\\d/])`).test(problem.prompt);
     pool ??= Array.from({ length: SOURCE_SHEETS[topic.id] ?? 4 }, (_, k) => k + 1).flatMap((variant) => getWorksheet(topic.id, variant)
-      .filter((problem) => problem.form !== 'word' && !copied(problem) && (variant <= 4 || !blankCopy(problem))));
+      .filter((problem) => problem.form !== 'word' && !copied(problem) && ((variant <= 4 && !(topic.id in SOURCE_SHEETS)) || !blankCopy(problem))));
     const wider = WIDER_ROWS[topic.id] as ((r: Rng) => WorksheetProblem) | undefined;
     const problem = wider && r.chance() ? wider(r) : r.pick(pool);
     return {

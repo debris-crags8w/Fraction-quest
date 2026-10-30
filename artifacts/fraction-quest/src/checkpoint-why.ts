@@ -92,7 +92,7 @@ function wholes(q: PracticeQuestion): string | undefined {
   if (m) {
     const n = Number(m[1]); const d = Number(m[2]); const k = n / d;
     if (!Number.isInteger(k)) return undefined;
-    return k === 1 ? `${n}/${d} has all ${d} parts of the whole, so it is 1.` : `${n}/${d} is ${k} groups of ${d}/${d}, so it is ${k}.`;
+    return k === 1 ? (d === 1 ? `A denominator of 1 means the part is one whole. So ${n}/${d} is 1.` : `${n}/${d} has all ${d} parts of the whole, so it is 1.`) : `${n}/${d} is ${k} groups of ${d}/${d}, so it is ${k}.`;
   }
   return undefined;
 }
