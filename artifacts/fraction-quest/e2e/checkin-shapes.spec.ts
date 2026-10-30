@@ -63,6 +63,43 @@ test('a Check-in decimal-grid question draws the grids, read-only, and opens the
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/checkin-decimal-grid.png` });
 });
 
+test('every Check-in decimal-grid question fits an iPhone Safari screen: the grids or pies, the answer tiles and Next', async ({ page }) => {
+  test.setTimeout(300_000);
+  // Each worksheet row the Check-ins ask (one, two or three grids; two pies), with its longest wording.
+  const rows = new Map<string, ReturnType<typeof find>>();
+  for (const definition of getAssessmentDefinitions()) {
+    for (let seed = 1; seed < 60; seed++) {
+      const items = buildAssessmentItems(definition, seed);
+      items.forEach((item, at) => {
+        if (item.missionId !== 'compare-decimals-grid') return;
+        const known = rows.get(item.problem.id);
+        if (!known || known.items[known.at]!.prompt.length < item.prompt.length) rows.set(item.problem.id, { definition, seed, at, items });
+      });
+    }
+  }
+  expect(rows.size).toBeGreaterThanOrEqual(5);
+  const misfits: string[] = [];
+  for (const [row, found] of rows) {
+    // The next row starts afresh: a new guest with just this Check-in left partway.
+    if (page.url().startsWith('http')) await page.evaluate(() => localStorage.clear());
+    await resumeAt(page, found);
+    await expect(page.getByTestId('assessment-picture')).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const fit = await page.evaluate(() => {
+      const bottom = (selector: string) => document.querySelector(selector)?.getBoundingClientRect().bottom ?? Infinity;
+      return { picture: document.querySelector('[data-testid="assessment-picture"]')!.getBoundingClientRect().height,
+        answers: bottom('.fq-assessment-question .fq-tiles, .fq-assessment-question .fq-yes-no-cards'), next: bottom('[data-testid="button-submit-assessment-answer"]'),
+        width: document.documentElement.scrollWidth };
+    });
+    const at = `${row} "${found.items[found.at]!.prompt}"`;
+    if (fit.answers > 665 || fit.next > 665) misfits.push(`${at}: answers end at ${Math.round(fit.answers)}, Next at ${Math.round(fit.next)}, screen 664`);
+    if (fit.picture < 80) misfits.push(`${at}: the picture is only ${Math.round(fit.picture)} tall`);
+    if (fit.width > 391) misfits.push(`${at}: the page is ${fit.width} wide`);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/checkin-decimal-grid-${row}.png` });
+  }
+  expect(misfits).toEqual([]);
+});
+
 test('the check-in list says how many questions a form asks (14 for Grade 4 End)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 664 });
   await page.addInitScript((fun) => { localStorage.setItem('fraction-quest-fun-v1', JSON.stringify(fun)); }, FUN);

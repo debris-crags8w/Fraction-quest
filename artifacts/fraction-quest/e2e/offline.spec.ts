@@ -1,9 +1,10 @@
 import { spawn, execFileSync, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
+import { getBuildChecks, getWorksheet } from '../src/learning-content';
 
-/* Offline: the published app saves itself (src/sw.ts) and opens and plays with no connection; a signed-in family
-   opens their own account when the server can't be reached. */
+/* Offline: the published app saves itself (src/sw.ts) and opens and plays with no connection (a lesson, a lesson film
+   and a worksheet); a signed-in family opens their own account when the server can't be reached. */
 
 const appDir = path.resolve(import.meta.dirname, '..');
 const PORT = 4196;
@@ -52,6 +53,59 @@ test.describe('the published app', () => {
     while (await page.getByTestId('button-teach-step-next').isVisible()) await page.getByTestId('button-teach-step-next').click();
     await page.getByTestId('button-idea-practise').click();
     await expect(page.getByTestId('button-check-answer')).toBeVisible();
+  });
+
+  test('plays a lesson film and checks a worksheet answer with no connection after one visit', async ({ context, page }) => {
+    test.setTimeout(90_000);
+    // The published website plays lesson 1. Its practice and Build it are done, so it opens on the worksheet.
+    const lesson = 'fraction-names';
+    const progress = { completedMissionIds: [], starsByMission: {}, reviewQueue: [], assessments: [],
+      learning: { [lesson]: { practiceDone: true, helpUses: 0, misconceptions: {}, worksheet: {},
+        checks: Object.fromEntries(getBuildChecks(lesson).map((check) => [check.id, { passed: true, supported: false, attempts: 1 }])) } } };
+    const fun = JSON.parse(freshFun);
+    const storyFun = JSON.stringify({ ...fun, displayPreferences: { ...fun.displayPreferences, storyMode: true } });
+    await context.addInitScript(({ savedFun, saved }) => {
+      if (!localStorage.getItem('fraction-quest-fun-v1')) localStorage.setItem('fraction-quest-fun-v1', savedFun);
+      if (!localStorage.getItem('fraction-quest-progress-v1')) localStorage.setItem('fraction-quest-progress-v1', saved);
+    }, { savedFun: storyFun, saved: JSON.stringify(progress) });
+    await context.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
+    for (const intro of ['intro-steps', 'quick-watch']) {
+      const skip = page.locator(`[data-testid="${intro}"] [data-testid="button-intro-skip"]`);
+      await page.addLocatorHandler(skip, async () => { await skip.click(); });
+    }
+    await page.goto(ORIGIN);
+    await page.getByTestId('button-play-guest').click();
+    await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByRole('heading', { name: /your learning map/i })).toBeVisible();
+    // The lesson's film, from the Storybook: it opens and plays to its end.
+    await page.getByTestId('button-app-menu').click();
+    await page.getByTestId('button-open-story-cards').click();
+    await page.getByTestId(`button-storybook-part-${lesson}`).click();
+    await expect(page.getByTestId('story-stage')).toBeVisible();
+    await page.getByTestId('button-story-skip').click();
+    // A chapter's opening can ask the child to pick what to do; then Next goes back.
+    const choice = page.getByTestId('button-story-choice-0');
+    if (await choice.isVisible()) await choice.click();
+    await expect(page.getByTestId('button-story-go')).toContainText('Back to the Storybook');
+    await page.getByTestId('button-story-go').click();
+    await page.getByTestId('button-storybook-back').click();
+
+    // The worksheet opens, and its first question works: copy the bar, answer with a tile, Check.
+    await page.getByTestId(`button-start-mission-${lesson}`).click();
+    await expect(page.getByTestId('section-worksheet')).toBeVisible();
+    const first = getWorksheet(lesson)[0]!;
+    expect(first.task?.kind === 'copy' && first.model?.kind === 'bar' && /^\d$/.test(first.answer)).toBe(true);
+    const row = page.getByTestId(`row-worksheet-${first.id}`);
+    for (let part = 1; part <= (first.model?.kind === 'bar' ? first.model.n : 0); part++) await row.getByTestId(`button-copy-part-${part}`).click();
+    await row.getByTestId(`tile-ws-${first.id}-digit-${first.answer}`).click();
+    await row.getByTestId(`button-check-worksheet-${first.id}`).click();
+    await expect(page.getByTestId(`status-worksheet-${first.id}`)).toContainText('Correct!');
   });
 
   test('opens the saved page when the connection hangs instead of waiting on it', async ({ context, page }) => {
