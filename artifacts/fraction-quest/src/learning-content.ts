@@ -461,7 +461,7 @@ export const REASON_IDEAS: Record<string, string> = {
   'line-plot-leveling': 'Share the total equally',
   'measurement-word-problems': 'Make the parts match first',
   'fractional-unit-conversions': 'Change the whole unit first',
-  'fractional-sharing': 'Loaves ÷ friends is each share',
+  'fractional-sharing': 'Take 1 part of every whole',
   'fraction-as-division': 'The fraction bar means divide',
   'fraction-probability': 'Wanted ones out of all',
   'fraction-of-area': 'Shaded parts out of equal parts',
@@ -648,10 +648,89 @@ const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reaso
 };
 /** Lessons whose builds accept any equal fraction: an area or what's left can be named in more than one way. */
 const ANY_NAME_LESSONS = new Set(['fractional-side-area', 'multiply-mixed-numbers', 'fraction-of-remainder']);
-const acceptAnyName = (id: string, check: BuildCheck): BuildCheck => (ANY_NAME_LESSONS.has(id) ? { ...check, target: { ...check.target, anyName: true } } : check);
+const acceptAnyName = (id: string, check: BuildCheck, avoid: string[] = []): BuildCheck =>
+  fitReasons(id, ANY_NAME_LESSONS.has(id) ? { ...check, target: { ...check.target, anyName: true } } : check, avoid);
+
+/* Some lessons mix kinds of item, and a key idea true for one kind is false for another: "Part of a group is less" is
+   false for 6/4 of a bar, "Sharing makes smaller shares" is false for "How many 1/4-cup scoops fill 3 cups?", a doubling
+   reason is false for 3 batches, "Rename so the parts match" for 3/6 + 1/6. Each such lesson says how to tell its item's
+   kind and which reasons are true for which kinds; the right reason is then always true for its item and no wrong reason
+   is. A reason with no entry is true for every item (as a right reason) or false for every item (as a wrong one). */
+type ReasonFit = { kind: (check: BuildCheck) => string | null; trueFor: Record<string, string[]>; right: Record<string, string>; wrong: Record<string, string[]> };
+const factorKind = (n: number, d: number) => (n < d ? 'less' : n > d ? 'more' : 'same');
+const SCALING_FIT: Omit<ReasonFit, 'kind'> = {
+  trueFor: {
+    'Part of a group is less': ['less'], 'Less than 1 makes it less': ['less'], 'Times 1 keeps it the same': ['same'], 'More than 1 makes it more': ['more'],
+    'Multiplying always makes it bigger': ['more'], 'A fraction of it is more': ['more'], 'Bigger numbers always win': ['more'],
+    'The size stays the same': ['same'], 'Multiplying always makes it smaller': ['less'],
+  },
+  right: { less: 'Less than 1 makes it less', same: 'Times 1 keeps it the same', more: 'More than 1 makes it more' },
+  wrong: {
+    less: ['Multiplying always makes it bigger', 'The size stays the same'],
+    same: ['Multiplying always makes it bigger', 'Multiplying always makes it smaller'],
+    more: ['Multiplying always makes it smaller', 'The size stays the same'],
+  },
+};
+const REASON_FITS: Record<string, ReasonFit> = {
+  // The build is the factor itself ("Build 3/4 of 12", "Build 6/4 of 1 bar").
+  'multiplication-scaling': { ...SCALING_FIT, kind: (check) => factorKind(check.target.n, check.target.d) },
+  // The factor is said first ("Make 5/4 × 2. Is it more or less than 2?").
+  'bigger-or-smaller': { ...SCALING_FIT, kind: (check) => {
+    const factor = check.prompt.match(/^Make (\d+)\/(\d+) ×/);
+    return factor ? factorKind(Number(factor[1]), Number(factor[2])) : null;
+  } },
+  'share-or-fit': {
+    kind: (check) => (/^Share\b/.test(check.prompt) ? 'share' : /^How many .+ fill\b/.test(check.prompt) ? 'fit' : null),
+    trueFor: { 'Sharing makes smaller shares': ['share'], 'Fitting counts how many pieces': ['fit'], 'Dividing always makes it smaller': ['share'] },
+    right: { share: 'Sharing makes smaller shares', fit: 'Fitting counts how many pieces' },
+    wrong: { share: ['Sharing makes each share bigger', 'Sharing and fitting are the same', 'Fit splits, share counts'] },
+  },
+  'fraction-recipes': {
+    kind: (check) => (/\bDouble it\b|\b2 batches\b/.test(check.prompt) ? 'double' : /\b\d+ batches\b/.test(check.prompt) ? 'batches' : null),
+    trueFor: { 'Doubling adds the amount again': ['double'], 'Add the amount to itself': ['double'], 'Two batches: twice as much': ['double'] },
+    right: { double: 'Add the amount to itself', batches: 'Add one amount per batch' },
+    wrong: {},
+  },
+  // Two amounts with the same denominator need no renaming.
+  'measurement-word-problems': {
+    kind: (check) => {
+      const dens = [...check.prompt.matchAll(/\d+\/(\d+)/g)].map((m) => m[1]);
+      return dens.length < 2 ? null : new Set(dens).size === 1 ? 'like' : 'unlike';
+    },
+    trueFor: { 'Make the parts match first': ['unlike'], 'Rename so the parts match': ['unlike'] },
+    right: { like: 'Add same-size parts only', unlike: 'Make the parts match first' },
+    wrong: {},
+  },
+};
+/** Every reason an item may be given in place of the lesson's own lists (the tests allow these too). */
+export const FITTED_REASONS = {
+  right: [...new Set(Object.values(REASON_FITS).flatMap((fit) => Object.values(fit.right)))],
+  wrong: [...new Set(Object.values(REASON_FITS).flatMap((fit) => Object.values(fit.wrong).flat()))],
+};
+/** The check with a right reason true for its item, and not one in `avoid` (the earlier steps' right reasons) when the
+    lesson has another, and wrong reasons false for it. */
+function fitReasons(id: string, check: BuildCheck, avoid: string[] = []): BuildCheck {
+  const fit = REASON_FITS[id];
+  const kind = fit?.kind(check);
+  if (!fit || !kind) return check;
+  const trueHere = (reason: string) => !fit.trueFor[reason] || fit.trueFor[reason].includes(kind);
+  const ways = [fit.right[kind], ...(REASON_IDEAS[id] ? [REASON_IDEAS[id], ...(MORE_REASON_IDEAS[id] ?? [])] : [])].filter((r): r is string => !!r && trueHere(r));
+  const spare = (fit.wrong[kind] ?? []).filter((reason) => !check.reasons.includes(reason));
+  const reasons = check.reasons.map((reason, i) => {
+    if (i === check.correctReason) return trueHere(reason) && !avoid.includes(reason) ? reason : ways.find((r) => !avoid.includes(r)) ?? ways[0] ?? reason;
+    return fit.trueFor[reason]?.includes(kind) ? spare.shift() ?? reason : reason;
+  });
+  return { ...check, reasons };
+}
 
 export function getBuildChecks(id: string): BuildCheck[] {
-  return buildChecksFor(id).map((check) => acceptAnyName(id, check));
+  // Build it, On your own and Apply it keep three different right reasons.
+  const used: string[] = [];
+  return buildChecksFor(id).map((check) => {
+    const done = acceptAnyName(id, check, used);
+    used.push(done.reasons[done.correctReason]!);
+    return done;
+  });
 }
 function buildChecksFor(id: string): BuildCheck[] {
   const seed = CHECKS[id]; if (!seed) throw new Error(`Missing learning checks: ${id}`);
