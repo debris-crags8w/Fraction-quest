@@ -47,7 +47,7 @@ import {
   type Progress,
 } from './game';
 import { createDeveloperLessonProgress } from './developer-test';
-import { BOARD_AFTER, SuspectBoardView, TownMap, lessonSticker, thanksSticker, type SuspectBoard } from './quest';
+import { BOARD_AFTER, SUSPECT_BOARDS, SuspectBoardView, TownMap, lessonSticker, thanksSticker, type SuspectBoard } from './quest';
 import { DeveloperChip } from './DeveloperTesting';
 import { getAssessmentDefinitions, saveAssessmentAttempt } from './assessments';
 import { PickedForYou } from './PickedForYou';
@@ -1338,7 +1338,7 @@ function RewardView({ mission, stars, progress, lessonsAreLocked = false, stoneD
             sticker={lessonSticker(chapter, unitMissions.indexOf(mission), storyLessonTitle(mission.title, true))}
             startSolved={stoneDone} ending={endingAfterChapter({ piecesFound: completedStoryUnits(progress).size, epilogueSeen: !!fun.story?.epilogueSeen })}
             onEnding={(part) => onEnding(part)}
-            onSuspects={([1, 2] as SuspectBoard[]).filter((board) => BOARD_AFTER[board] === chapter.unit).map((board) => () => onSuspects(board))[0]} />}
+            onSuspects={SUSPECT_BOARDS.filter((board) => BOARD_AFTER[board] === chapter.unit).map((board) => () => onSuspects(board))[0]} />}
           <div className="fq-reward-stars" data-testid="status-mission-stars" role="img" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}

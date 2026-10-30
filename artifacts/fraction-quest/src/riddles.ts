@@ -102,7 +102,7 @@ const AFTER_ENDING_SECRETS = [
   'Tilly says slow and steady is how you solve the hardest riddles.',
   'Bea’s bees buzz louder when you get a riddle right.',
   'Bolt can say every clue from the case, in order. Beep, beep, beep!',
-  'The old glass case in the town square now holds a thank-you card.',
+  'Bolt taped a thank-you card to the stone’s glass case. It says, “Beep!”',
   'Numi’s favorite part of the festival was the very last song.',
   'I think being the riddle maker is better than the biggest piece. Almost!',
   'A new riddle waits by the stone each morning. Hoot checks it first.',
@@ -142,8 +142,26 @@ const MYSTERIES: { ask: string; answer: string }[] = [
 const mysteryWeek = (day: string) => Math.floor((dayNumber(day) - 4) / 7);
 const mysteryAt = (week: number) => MYSTERIES[((week % MYSTERIES.length) + MYSTERIES.length) % MYSTERIES.length]!;
 export const mysteryOfTheWeek = (day = today()): string => mysteryAt(mysteryWeek(day)).ask;
-/** How last week's mystery ended: shown from Monday, next to the new one. */
+/** How last week's mystery ended (whatever the Keeper saw): see `mysteryRecap` for when it is told. */
 export const mysteryAnswer = (day = today()): string => mysteryAt(mysteryWeek(day) - 1).answer;
+
+/** What this device remembers about the mysteries: the weeks whose mystery the Keeper saw, and when last week's ending was told. */
+export type MysteryLog = { seen?: number[]; told?: { week: number; day: string } };
+/** Last week's ending, on the Keeper's first visit of the new week (and again that same day), but only if they saw
+    last week's mystery: a brand-new Keeper is never told the end of a mystery they never heard. */
+export function mysteryRecap(log: MysteryLog, day = today()): string | null {
+  const last = mysteryWeek(day) - 1;
+  if (!log.seen?.includes(last)) return null;
+  if (log.told && log.told.week === last && log.told.day !== day) return null;
+  return mysteryAnswer(day);
+}
+/** After the mystery card was shown: this week's mystery is seen, and (when `toldRecap`) last week's ending is told. */
+export function noteMystery(log: MysteryLog, day = today(), toldRecap: boolean): MysteryLog {
+  const week = mysteryWeek(day);
+  const seen = [...new Set([...(log.seen ?? []), week])].filter((item) => item >= week - 3);
+  const told = toldRecap && !(log.told && log.told.week === week - 1) ? { week: week - 1, day } : log.told;
+  return { seen, ...(told ? { told } : {}) };
+}
 
 export type LanternNight = { day: string; label: string; lit: boolean; today: boolean; /** No right answer, but a drop of spare oil kept the streak going. */ saved: boolean };
 /** The last 7 days, ending today: a night is lit when at least one answer was right that day, saved when spare oil covered it. */

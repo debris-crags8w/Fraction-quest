@@ -7,7 +7,7 @@ import { CHAPTERS, CHARACTERS, STONE_PIECES, type CharacterId, lessonCliff, prop
 import { useSeason } from './fun-ui';
 import { MathText } from './MathText';
 import { CinematicComic, type StoryScene } from './story-cinema';
-import { BOARD_AFTER, ClueCard, StickerView, bonusClue, earnsThanks, thanksSticker, lessonSticker, type Sticker, type SuspectBoard } from './quest';
+import { BOARD_AFTER, SUSPECT_BOARDS, ClueCard, StickerView, bonusClue, earnsThanks, thanksSticker, lessonSticker, type Sticker, type SuspectBoard } from './quest';
 
 /** The props theme for story text: the season showing now (pumpkin pies at Halloween), else everyday props. */
 export const useStoryTheme = () => propTheme(useSeason().season?.id);
@@ -278,7 +278,7 @@ export function StorybookView({ tab, chapters, completedUnits, prologueSeen, foc
                 {choices[String(chapter.unit)] === 1 && bonusClue(chapter) && <ClueCard chapter={chapter} bonus name={name} theme={theme} />}
               </div>
             ))}
-            {([1, 2] as SuspectBoard[]).filter((board) => completedUnits.has(BOARD_AFTER[board])).map((board) => (
+            {SUSPECT_BOARDS.filter((board) => completedUnits.has(BOARD_AFTER[board])).map((board) => (
               <button key={board} type="button" className="fq-button secondary fq-storybook-suspects" onClick={() => onSuspects(board)} data-testid={`button-storybook-suspects-${board}`}>
                 <Search size={17} aria-hidden="true" /> Suspect board {board}{guesses[String(board)] ? ` · you guessed ${CHARACTERS[guesses[String(board)] as CharacterId]?.name ?? ''}` : ''}
               </button>
@@ -325,7 +325,7 @@ export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, p
   chapter: Chapter; lessonIndex: number; lessonsTotal: number; chapterDone: boolean; piecesFound: number; name: string | null;
   /** The sticker this lesson earned. */
   sticker?: Sticker;
-  /** After chapters 4 and 7: open the suspect board. */
+  /** After a chapter with a suspect board (4, 7, 10, 12, 14): open it. */
   onSuspects?: () => void;
   /** What the lesson's story problem changed in the story. */
   problem?: { result: string };
@@ -401,13 +401,13 @@ export function StoryPayoff({ chapter, lessonIndex, lessonsTotal, chapterDone, p
 
 /** "How much of the Whole Stone is back?" after a chapter: the stone bar is the model, the piece comes after. */
 function StoneQuestion({ found, onSolved }: { found: number; onSolved: () => void }) {
-  const { choices, correct } = stoneQuestion(found);
+  const { question, choices, correct } = stoneQuestion(found);
   const [picked, setPicked] = useState<number | null>(null);
   const [missed, setMissed] = useState(false);
   return (
     <section className="fq-stone-question" aria-labelledby="stone-question-title" data-testid="stone-question">
       <span className="fq-stone-question-tag">Stone question</span>
-      <div className="fq-listen-row"><h2 id="stone-question-title">How much of the <u>Whole Stone</u> is back?</h2><LearningListenButton text="How much of the Whole Stone is back?" label="Listen to the stone question" compact /></div>
+      <div className="fq-listen-row"><h2 id="stone-question-title">{question.split(/(Whole Stone)/).map((part, i) => (part === 'Whole Stone' ? <u key={i}>{part}</u> : part))}</h2><LearningListenButton text={question} label="Listen to the stone question" compact /></div>
       <StoneBar found={found} />
       <div className="fq-stone-question-choices" role="group" aria-label="Choices">
         {choices.map((choice, index) => (

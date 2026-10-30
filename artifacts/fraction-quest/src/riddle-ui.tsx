@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react';
 import { StoryCharacter } from './characters';
 import { Flame } from 'lucide-react';
-import { dailySecret, lanternCard, mysteryAnswer, mysteryOfTheWeek, lanternWeek, oilNoticeWords, oilWordsText, riddleReaction, riddleSetup } from './riddles';
+import { dailySecret, lanternCard, mysteryOfTheWeek, mysteryRecap, noteMystery, type MysteryLog, lanternWeek, oilNoticeWords, oilWordsText, riddleReaction, riddleSetup } from './riddles';
 import { LearningListenButton } from './LearningText';
 import './spare-oil.css';
 import { withName } from './story';
@@ -80,9 +81,18 @@ export function RiddleSetup({ index, total, result = null }: { index: number; to
   );
 }
 
+const MYSTERY_LOG_KEY = 'fraction-quest-mystery-log';
+const readMysteryLog = (): MysteryLog => {
+  try { const raw = JSON.parse(window.localStorage.getItem(MYSTERY_LOG_KEY) ?? '{}') as MysteryLog; return raw && typeof raw === 'object' ? raw : {}; } catch { return {}; }
+};
+const saveMysteryLog = (log: MysteryLog) => { try { window.localStorage.setItem(MYSTERY_LOG_KEY, JSON.stringify(log)); } catch { /* storage blocked */ } };
+
 /** The prize for finishing today's riddles: Chomp's secret of the day. */
 export function RiddleSecret({ afterEnding = false }: { /** All 15 stone pieces are back: Chomp adds his mystery of the week. */ afterEnding?: boolean }) {
   const theme = useStoryTheme();
+  // Last week's ending only for a Keeper who saw that mystery, on their first visit of the week (see mysteryRecap).
+  const [recap] = useState(() => (afterEnding ? mysteryRecap(readMysteryLog()) : null));
+  useEffect(() => { if (afterEnding) saveMysteryLog(noteMystery(readMysteryLog(), undefined, recap !== null)); }, [afterEnding, recap]);
   return (
     <>
       <div className="fq-riddle-secret" data-testid="riddle-secret">
@@ -92,7 +102,7 @@ export function RiddleSecret({ afterEnding = false }: { /** All 15 stone pieces 
       {afterEnding && (
         <div className="fq-riddle-secret fq-riddle-mystery" data-testid="riddle-mystery">
           <StoryCharacter id="chomp" size={44} happy />
-          <p><b>Chomp:</b> {mysteryAnswer()}<br />{mysteryOfTheWeek()} Come back next Monday to hear how it ends!</p>
+          <p><b>Chomp:</b> {recap && <>{recap}<br /></>}{mysteryOfTheWeek()} Come back next Monday to hear how it ends!</p>
         </div>
       )}
     </>
