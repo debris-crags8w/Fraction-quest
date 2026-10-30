@@ -122,4 +122,16 @@ describe('standard-tagged assessments', () => {
     assert.equal(diagnosticOnly.status, 'not-yet');
     assert.equal(diagnosticOnly.attempted, 0);
   });
+
+  it('never asks the same calculation twice in one Check-in (a plain sum, its "Rename: ..." version, an estimate of it, "Sam says ...")', () => {
+    // "1 3/8 + 1 1/4" and "Rename: 1/4 = 2/8. Then 1 3/8 + 1 1/4 = ?" are one question; so are "compare 2/3 + 1/2 with 1" and "Sam says 2/3 + 1/2 = 3/5".
+    const calculation = (prompt: string) => /(?:\d+ )?\d+\/\d+ [+−] (?:\d+ )?\d+\/\d+/.exec(prompt)?.[0] ?? prompt;
+    const repeats: string[] = [];
+    for (const definition of getAssessmentDefinitions()) for (let seed = 1; seed <= 30; seed++) {
+      const asked = buildAssessmentItems(definition, seed).map(item => calculation(item.prompt));
+      const twice = asked.filter((key, index) => asked.indexOf(key) !== index);
+      if (twice.length) repeats.push(`${definition.id} seed ${seed}: ${twice[0]}`);
+    }
+    assert.deepEqual(repeats.slice(0, 6), [], `${repeats.length} forms ask a calculation twice`);
+  });
 });

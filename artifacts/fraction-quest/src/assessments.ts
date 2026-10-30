@@ -117,6 +117,10 @@ function promptFractions(prompt: string): { n: number; d: number; wholes: number
     .slice(0, 4);
 }
 
+/** The sum or difference a question asks, so "1 3/8 + 1 1/4 = ?", "Rename: 1/4 = 2/8. Then 1 3/8 + 1 1/4 = ?", "compare 2/3 + 1/2
+    with 1" and "Sam says 2/3 + 1/2 = 3/5" count as one question. A question with no sum in it is itself. */
+const calculation = (prompt: string) => /(?:\d+ )?\d+\/\d+ [+−] (?:\d+ )?\d+\/\d+/.exec(prompt)?.[0] ?? prompt;
+
 /** Build a deterministic, varied 12-item form. A different seed changes both worksheet variants and selection. */
 export function buildAssessmentItems(definition: AssessmentDefinition, seed: number): AssessmentItem[] {
   const count = assessmentItemCount(definition);
@@ -159,13 +163,13 @@ export function buildAssessmentItems(definition: AssessmentDefinition, seed: num
   const selected: AssessmentItem[] = [];
   const selectedIds = new Set<string>();
   const askedPrompts = new Set<string>(); // the same question twice in one check-in is wasted
-  const fresh = (candidate: AssessmentItem) => !selectedIds.has(candidate.id) && !askedPrompts.has(candidate.prompt);
+  const fresh = (candidate: AssessmentItem) => !selectedIds.has(candidate.id) && !askedPrompts.has(calculation(candidate.prompt));
   // Round-robin by standard so a check samples the whole scope instead of one lesson.
   for (let round = 0; selected.length < count && round < candidates.length; round++) {
     for (const standard of definition.standards) {
       const candidate = byStandard.get(standard)?.[round];
       if (!candidate || !fresh(candidate)) continue;
-      selectedIds.add(candidate.id); askedPrompts.add(candidate.prompt);
+      selectedIds.add(candidate.id); askedPrompts.add(calculation(candidate.prompt));
       selected.push({ ...candidate, id: `${definition.id}:${seed}:${selected.length + 1}` });
       if (selected.length >= count) break;
     }
@@ -173,7 +177,7 @@ export function buildAssessmentItems(definition: AssessmentDefinition, seed: num
   if (selected.length < count) {
     for (const candidate of [...candidates].sort((a, b) => mix(`${seed}:fill:${a.id}`) - mix(`${seed}:fill:${b.id}`))) {
       if (!fresh(candidate)) continue;
-      selectedIds.add(candidate.id); askedPrompts.add(candidate.prompt);
+      selectedIds.add(candidate.id); askedPrompts.add(calculation(candidate.prompt));
       selected.push({ ...candidate, id: `${definition.id}:${seed}:${selected.length + 1}` });
       if (selected.length >= count) break;
     }
