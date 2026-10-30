@@ -11,7 +11,8 @@ export type LearningModel = { kind: 'bar' | 'set' | 'line'; n: number; d: number
   /** Any fraction equal to n/d is right (6/12 for 1/2), where the lesson isn't about naming it one way. */ anyName?: boolean };
 /** What the child does on the bar before typing: copy the shaded bar, tap each part to count it, or shade `n` parts. */
 /** `say`: the instruction to show instead of "Shade n parts", when n itself would be the answer. */
-export type BarTask = { kind: 'copy' | 'count' | 'shade'; n: number; say?: string };
+export type BarTask = { kind: 'copy' | 'count' | 'shade'; n: number; say?: string;
+  /** Which picture a copy task copies, when it is not "the bar above" (a picture of two bars: "top bar"). */ of?: string };
 export type WorksheetProblem = {
   id: string; prompt: string; answer: string; hint: string; model?: LearningModel; modelRequired?: boolean; task?: BarTask;
   /** Shown after a right answer, so a child who guessed still hears the reason. */
@@ -27,7 +28,8 @@ export type WorksheetProblem = {
   /** Interactive line plot: place one X for each observation before answering. Values are tick indices. */
   linePlotTask?: { denominator: number; wholes: number; values: number[] };
   scaleTask?: { whole: number; numerator: number; denominator: number };
-  /** A picture of the amounts in the prompt, for rows with no model of their own (every row shows a model). */
+  /** A picture of the amounts in the prompt, for rows with no model of their own (every row shows a model). With a copy task it
+      replaces the lone bar: it draws every amount compared (both decimals), and the child builds the first. */
   picture?: ModelSpec;
 };
 export type BuildCheck = {
@@ -1678,7 +1680,13 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         // Written the short way (0.4, not 0.40), with no fraction beside it: "0.4 or 0.35?" is the mistake to catch.
         const left = String(a / 100); const right = String(b / 100);
         prompt = `Compare: ${left} __ ${right}.`; answer = a > b ? '>' : a < b ? '<' : '='; form = 'symbol';
-        visual = model(a, 100); modelRequired = true;
+        // Both decimals are drawn, as bars of the same whole in the order of the question, each cut the way its decimal is
+        // written (0.3 in tenths, 0.25 in hundredths, as Practice more draws them): nothing named, no winner marked.
+        // The child builds the top one, the first decimal, before comparing.
+        const bar = (h: number) => (h % 10 === 0 ? { numerator: h / 10, denominator: 10 } : { numerator: h, denominator: 100 });
+        const top = bar(a);
+        visual = model(top.numerator, top.denominator); modelRequired = true; task = { kind: 'copy', n: top.numerator, of: 'top bar' };
+        picture = { kind: 'bars', bars: [top, bar(b)] };
         hint = `Write both in hundredths: ${left} is ${a} hundredths. How many hundredths is ${right}? Compare the counts, not how long the numbers look.`; break;
       }
       case 'unit-multiples': {

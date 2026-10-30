@@ -555,8 +555,8 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
           </div>
         </div>
         {/* For counting and shading, the tappable bar is the picture, so it is not drawn twice. */}
-        {p.model && (!p.task || p.task.kind === 'copy') && <Preview m={p.model} named={namesItsBar(p) || ok} />}
-        {!p.model && p.picture && <div className="fq-ll-preview-wrap fq-ll-auto-picture"><PrintModel model={p.picture} labels={false} /></div>}
+        {p.model && (!p.task || p.task.kind === 'copy') && !p.picture && <Preview m={p.model} named={namesItsBar(p) || ok} />}
+        {p.picture && (!p.model || p.task?.kind === 'copy') && <div className="fq-ll-preview-wrap fq-ll-auto-picture"><PrintModel model={p.picture} labels={false} /></div>}
         {p.area && (p.areaTask
           ? <AreaShade figure={p.area} task={p.areaTask} disabled={ok} statusId={modelStatusId} onMatchChange={openModel} />
           : <div className="fq-ll-preview fq-area-preview"><AreaSvg figure={p.area} /></div>)}

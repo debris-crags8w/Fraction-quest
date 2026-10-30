@@ -14,8 +14,8 @@ export function barTaskDone(task: BarTask, target: LearningModel, shaded: boolea
   return shaded.length === target.d * target.wholes && shaded.filter(Boolean).length === task.n;
 }
 
-const INSTRUCTION: Record<BarTask['kind'], (n: number) => string> = {
-  copy: () => 'Copy the bar above. Tap a part to color it. Tap again to clear it.',
+const INSTRUCTION: Record<BarTask['kind'], (n: number, of?: string) => string> = {
+  copy: (_, of = 'bar above') => `Copy the ${of}. Tap a part to color it. Tap again to clear it.`,
   count: () => 'Tap each part as you count it: 1, 2, 3…',
   shade: (n) => `Shade ${n} ${n === 1 ? 'part' : 'parts'} of the bar. Tap again to clear.`,
 };
@@ -32,8 +32,9 @@ export function barTaskStatus(task: BarTask, target: LearningModel, shaded: bool
   if (!touched) return STATUS[task.kind][0];
   if (task.kind === 'copy') {
     if (target.kind !== 'bar') return STATUS.copy[0];
-    return k === target.n ? 'Same number of parts. Now color them from the left, like the bar above.'
-      : `Your bar has ${parts(k)}. The bar above has ${target.n}.`;
+    const of = task.of ?? 'bar above';
+    return k === target.n ? `Same number of parts. Now color them from the left, like the ${of}.`
+      : `Your bar has ${parts(k)}. The ${of} has ${target.n}.`;
   }
   if (task.kind === 'shade') return `You shaded ${k}. Shade ${task.n}.`;
   return STATUS.count[0];
@@ -60,7 +61,7 @@ export function WorksheetBarCopy({ target, task = { kind: 'copy', n: target.n },
 
   return (
     <section className="fq-ll-copy-model" aria-label="Interactive bar model">
-      <p className="fq-ll-copy-instruction">{task.say ?? INSTRUCTION[task.kind](task.n)}</p>
+      <p className="fq-ll-copy-instruction">{task.say ?? INSTRUCTION[task.kind](task.n, task.of)}</p>
       <div className="fq-ll-copy-wholes">
         {Array.from({ length: target.wholes }, (_, whole) => (
           <div className="fq-ll-copy-whole" key={whole}>
