@@ -40,6 +40,10 @@ export type StandardMastery = {
 const missionStandards = new Set(Object.values(MISSION_STANDARDS).flat());
 const taughtStandards = FRACTION_STANDARDS.filter(item => missionStandards.has(item.id));
 
+/** A form asks 12 questions, or one per standard when it covers more than 12 (Grade 4 End has 14), so every standard is asked. */
+export const assessmentItemCount = (definition: Pick<AssessmentDefinition, 'standards'>): number =>
+  Math.max(ASSESSMENT_ITEM_COUNT, definition.standards.length);
+
 export function getAssessmentDefinitions(): AssessmentDefinition[] {
   const definitions: AssessmentDefinition[] = [];
   const units = [...new Set(MISSIONS.map(mission => mission.unit))].sort((a, b) => a - b);
@@ -115,6 +119,7 @@ function promptFractions(prompt: string): { n: number; d: number; wholes: number
 
 /** Build a deterministic, varied 12-item form. A different seed changes both worksheet variants and selection. */
 export function buildAssessmentItems(definition: AssessmentDefinition, seed: number): AssessmentItem[] {
+  const count = assessmentItemCount(definition);
   const eligibleMissions = MISSIONS.filter(mission => {
     if (mission.enrichment) return false;
     if (definition.unit !== undefined) return mission.unit === definition.unit;
@@ -128,8 +133,11 @@ export function buildAssessmentItems(definition: AssessmentDefinition, seed: num
       for (const problem of getWorksheet(mission.id, variant)) {
         const standards = (problem.standards ?? mission.standards ?? [])
           .filter((standard): standard is StandardId => definition.standards.includes(standard as StandardId));
-        const visualFractions = !hasInteractiveModel(problem) ? promptFractions(problem.prompt) : undefined;
-        if (!standards.length || (!hasInteractiveModel(problem) && !visualFractions?.length)) continue;
+        const fractions = !hasInteractiveModel(problem) ? promptFractions(problem.prompt) : [];
+        const visualFractions = fractions.length ? fractions : undefined;
+        // A shape or a decimal grid with no task is read, not built: it still counts. Other pictures stay out (a bar of 6/10 beside
+        // "Write 0.6 as a fraction" would draw the answer).
+        if (!standards.length || (!hasInteractiveModel(problem) && !visualFractions && !problem.area && problem.picture?.kind !== 'area')) continue;
         const id = `${mission.id}:${problem.id}:${variant}`;
         pool.set(id, {
           id, missionId: mission.id, prompt: problem.prompt, answer: problem.answer, standards, problem,
@@ -151,21 +159,21 @@ export function buildAssessmentItems(definition: AssessmentDefinition, seed: num
   const askedPrompts = new Set<string>(); // the same question twice in one check-in is wasted
   const fresh = (candidate: AssessmentItem) => !selectedIds.has(candidate.id) && !askedPrompts.has(candidate.prompt);
   // Round-robin by standard so a check samples the whole scope instead of one lesson.
-  for (let round = 0; selected.length < ASSESSMENT_ITEM_COUNT && round < candidates.length; round++) {
+  for (let round = 0; selected.length < count && round < candidates.length; round++) {
     for (const standard of definition.standards) {
       const candidate = byStandard.get(standard)?.[round];
       if (!candidate || !fresh(candidate)) continue;
       selectedIds.add(candidate.id); askedPrompts.add(candidate.prompt);
       selected.push({ ...candidate, id: `${definition.id}:${seed}:${selected.length + 1}` });
-      if (selected.length >= ASSESSMENT_ITEM_COUNT) break;
+      if (selected.length >= count) break;
     }
   }
-  if (selected.length < ASSESSMENT_ITEM_COUNT) {
+  if (selected.length < count) {
     for (const candidate of [...candidates].sort((a, b) => mix(`${seed}:fill:${a.id}`) - mix(`${seed}:fill:${b.id}`))) {
       if (!fresh(candidate)) continue;
       selectedIds.add(candidate.id); askedPrompts.add(candidate.prompt);
       selected.push({ ...candidate, id: `${definition.id}:${seed}:${selected.length + 1}` });
-      if (selected.length >= ASSESSMENT_ITEM_COUNT) break;
+      if (selected.length >= count) break;
     }
   }
   if (selected.length < MIN_ASSESSMENT_ITEMS) {

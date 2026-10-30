@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { CHALLENGES } from './challenges';
-import { assessmentResponse, buildAssessmentItems, getAssessmentDefinitions, saveAssessmentAttempt, summarizeStandardMastery } from './assessments';
+import { assessmentItemCount, assessmentResponse, buildAssessmentItems, getAssessmentDefinitions, saveAssessmentAttempt, summarizeStandardMastery } from './assessments';
 import { EMPTY_PROGRESS, isMissionUnlocked, loadProgress, MISSIONS, saveProgress, type AssessmentAttempt } from './game';
 import { generateQuestions, hasGenerator } from './practice-bank';
 import { getWorksheet } from './learning-content';
@@ -18,7 +18,11 @@ describe('standard-tagged assessments', () => {
           : mission.standards;
         assert.deepEqual(question.standards, expectedStandards, question.id);
       }
-      for (const problem of getWorksheet(mission.id)) assert.deepEqual(problem.standards, mission.standards);
+      // A row carries the lesson's standards, or fewer where it does not test them all (row-standards.test.ts).
+      for (const problem of getWorksheet(mission.id)) {
+        assert.ok(problem.standards, `${mission.id} ${problem.id}`);
+        assert.ok(problem.standards.every(standard => mission.standards?.includes(standard)), `${mission.id} ${problem.id}`);
+      }
     }
     const generatedMission = MISSIONS.find(mission => hasGenerator(mission.id));
     assert.ok(generatedMission);
@@ -40,9 +44,10 @@ describe('standard-tagged assessments', () => {
     assert.equal(definitions.filter(item => item.grade !== undefined).length, 9);
     for (const definition of definitions) {
       const items = buildAssessmentItems(definition, 173);
-      assert.equal(items.length, 12, definition.id);
+      assert.equal(items.length, assessmentItemCount(definition), definition.id);
+      assert.ok(items.length >= 12, definition.id);
       assert.ok(items.every(item => item.standards.length > 0 && item.standards.every(id => definition.standards.includes(id))), definition.id);
-      assert.ok(items.every(item => item.problem.model || item.problem.areaTask || item.problem.rulerTask || item.problem.linePlotTask || item.problem.scaleTask || item.visualFractions), definition.id);
+      assert.ok(items.every(item => item.problem.model || item.problem.area || item.problem.areaTask || item.problem.rulerTask || item.problem.linePlotTask || item.problem.scaleTask || item.problem.picture || item.visualFractions), definition.id);
     }
     const unitOne = definitions.find(item => item.id === 'unit-1-end')!;
     assert.notDeepEqual(
