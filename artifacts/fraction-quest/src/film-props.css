@@ -30,7 +30,7 @@
 .fq-fp.is-on .fq-fp-lens { animation: fq-fp-slide 1.3s cubic-bezier(.3, .9, .4, 1) both; }
 @keyframes fq-fp-slide { from { transform: translate(58px, 18px) rotate(14deg); opacity: 0; } 30% { opacity: 1; } }
 
-/* Beakers: a drip falls and the third beaker's water settles a little higher. */
+/* Rain barrel: a drop falls from the drainpipe and the water settles a little higher. */
 .fq-fp-water { transform-box: fill-box; transform-origin: 50% 100%; }
 .fq-fp.is-on .fq-fp-water { animation: fq-fp-fill 1.6s .6s ease-out both; }
 .fq-fp-drip { opacity: 0; }
@@ -45,9 +45,10 @@
 .fq-fp.is-on .fq-fp-loaf { animation: fq-fp-pop .6s cubic-bezier(.3, 1.5, .5, 1) both; animation-delay: calc(var(--i) * .14s); }
 @keyframes fq-fp-pop { from { transform: translateY(16px) scale(.7); opacity: 0; } }
 
-/* Pebbles: the last pebble rolls into its place on the line. */
-.fq-fp.is-on .fq-fp-pebble { animation: fq-fp-roll 1.2s cubic-bezier(.3, 1.3, .5, 1) both; }
-@keyframes fq-fp-roll { from { transform: translate(-30px, -56px); opacity: 0; } 20% { opacity: 1; } }
+/* Leaves: the last leaf drifts down, side to side, into its place on the line. */
+.fq-fp-leaf { transform-box: fill-box; transform-origin: 50% 50%; }
+.fq-fp.is-on .fq-fp-leaf { animation: fq-fp-drift 1.6s ease-out both; }
+@keyframes fq-fp-drift { from { transform: translate(-20px, -60px) rotate(-30deg); opacity: 0; } 20% { opacity: 1; } 45% { transform: translate(10px, -34px) rotate(18deg); } 70% { transform: translate(-6px, -12px) rotate(-10deg); } }
 
 /* Chapter endings: the stone piece is dim until it is found, then it lights up and settles. */
 .fq-fp-stone { transition: opacity .8s; opacity: .55; }

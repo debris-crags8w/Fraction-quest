@@ -7,9 +7,9 @@ import { ArrowRight, Search } from 'lucide-react';
 import { StoryCharacter } from './characters';
 import { TaskBar } from './TaskBar';
 import { LearningListenButton } from './LearningText';
-import { BOARD_AFTER, CHAPTERS, CHARACTERS, SUSPECTS, bonusClue, suspectReply, withName, type Chapter, type CharacterId, type PropTheme, type SuspectBoard } from './story';
+import { BOARD_AFTER, BOARD_CASES, CHAPTERS, CHARACTERS, SUSPECTS, SUSPECT_BOARDS, bonusClue, suspectReply, withName, type Chapter, type CharacterId, type PropTheme, type SuspectBoard } from './story';
 
-export { BOARD_AFTER, bonusClue, suspectReply, type SuspectBoard };
+export { BOARD_AFTER, SUSPECT_BOARDS, bonusClue, suspectReply, type SuspectBoard };
 
 const INK = '#2B2D42';
 
@@ -115,18 +115,21 @@ export function SuspectBoardView({ board, choices, saved, name, theme, onGuess, 
 }) {
   const [picked, setPicked] = useState<CharacterId | null>(saved ?? null);
   const [answered, setAnswered] = useState<CharacterId | null>(saved ?? null);
-  const chapters = CHAPTERS.filter((chapter) => chapter.unit <= BOARD_AFTER[board]);
+  const story = BOARD_CASES[board];
+  // The "who cracked it" boards show the notebook's clue cards; a later board shows its own chapter's clues.
+  const chapters = story ? [] : CHAPTERS.filter((chapter) => chapter.unit <= BOARD_AFTER[board]);
   const reply = answered ? suspectReply(board, answered) : null;
   return (
     <div className="fq-app fq-story-app">
       <main className="fq-shell fq-story-shell">
         <TaskBar onBack={onBack} backLabel="Back" testId="button-suspects-back" title="Detective time" />
         <section className="fq-suspect-board" aria-labelledby="suspect-title" data-testid="suspect-board">
-          <h2 id="suspect-title"><Search size={20} aria-hidden="true" /> Who cracked the Whole Stone?</h2>
+          <h2 id="suspect-title"><Search size={20} aria-hidden="true" /> {story?.question ?? 'Who cracked the Whole Stone?'}</h2>
           <p>Look at your clues. Then pick who you think did it.</p>
           <div className="fq-suspect-clues" data-testid="suspect-clues">
             {chapters.map((chapter) => <ClueCard key={chapter.unit} chapter={chapter} name={name} theme={theme} compact />)}
             {chapters.filter((chapter) => choices[String(chapter.unit)] === 1 && bonusClue(chapter)).map((chapter) => <ClueCard key={`b${chapter.unit}`} chapter={chapter} bonus name={name} theme={theme} compact />)}
+            {story?.clues.map((clue) => <p key={clue.text} className="fq-suspect-clue" data-testid="suspect-clue"><Search size={16} aria-hidden="true" /> {withName(clue.text, name, theme)}</p>)}
           </div>
           <div className="fq-suspects" role="radiogroup" aria-label="Suspects">
             {SUSPECTS[board].map((id) => (

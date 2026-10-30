@@ -870,7 +870,7 @@ const curriculum: MissionSeed[] = [
       practice('Join every 2 eighths into 1 fourth. What is 2/8 in fourths?', ['1/4', '2/4', '1/8', '4/8'], 0, bars({ numerator: 2, denominator: 8 }), 'Every 2 eighths join into 1 fourth. How many fourths are shaded?', '2 eighths join into 1 fourth, so 2/8 = 1/4.', bars({ numerator: 2, denominator: 8 }), { authoredChoices: true }),
       practice('Join every 2 sixths into 1 third. What is 4/6 in thirds?', ['2/3', '4/3', '1/3', '2/6'], 0, bars({ numerator: 4, denominator: 6 }), 'Every 2 sixths join into 1 third. How many thirds are shaded?', '4 sixths join into 2 thirds, so 4/6 = 2/3.', bars({ numerator: 4, denominator: 6 }), { authoredChoices: true }),
       // Idea 4: the ? box.
-      practice('1/3 = ?/6. What number goes in the ? box?', ['2', '1', '4', '6'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 0, denominator: 6 }), 'Cut each third into 2 equal parts. Count the sixths in 1/3.', 'Each third is 2 sixths, so 1/3 = 2/6. The ? is 2.', bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 6 }), { authoredChoices: true }),
+      practice('1/3 = ?/6. What number goes in the ? box?', ['2', '1', '4', '6'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 0, denominator: 6 }), 'Line up the two bars. Count the sixths that fit under 1/3.', 'Each third is 2 sixths, so 1/3 = 2/6. The ? is 2.', bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 6 }), { authoredChoices: true }),
       practice('2/4 = ?/8. What number goes in the ? box?', ['4', '2', '6', '8'], 0, bars({ numerator: 2, denominator: 4 }, { numerator: 0, denominator: 8 }), 'Cut each fourth into 2 equal parts. Count the eighths in 2/4.', 'Each fourth is 2 eighths, so 2 fourths are 4 eighths: 2/4 = 4/8. The ? is 4.', bars({ numerator: 2, denominator: 4 }, { numerator: 4, denominator: 8 }), { authoredChoices: true }),
       practice('3/2 = ?/4. What number goes in the ? box?', ['6', '3', '5', '4'], 0, bars({ numerator: 3, denominator: 2 }), 'Cut each half into 2 fourths. Count the fourths in 3 halves.', 'Each half is 2 fourths, so 3 halves are 6 fourths: 3/2 = 6/4. The ? is 6.', bars({ numerator: 6, denominator: 4 }), { authoredChoices: true }),
     ],
@@ -1429,8 +1429,8 @@ const extensionTopics: ExtensionTopic[] = [
       practice('Use fourths. Which mixed number is the same as 2 1/2?', ['2 2/4', '2 1/4', '4 2/4', '2 4/4'], 0, bars({ numerator: 5, denominator: 2 }), 'Rename only the fraction part. How many fourths make 1/2?', '1/2 = 2/4, and the 2 wholes stay the same. So 2 1/2 = 2 2/4.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
       practice('Use sixths. Which mixed number is the same as 1 2/3?', ['1 4/6', '1 2/6', '2 4/6', '1 3/6'], 0, bars({ numerator: 5, denominator: 3 }), 'Rename only the fraction part. How many sixths make 2/3?', '2/3 = 4/6, and the 1 whole stays the same. So 1 2/3 = 1 4/6.', bars({ numerator: 2, denominator: 3 }), { authoredChoices: true }),
       practice('Use twelfths. Which mixed number is the same as 3 3/4?', ['3 9/12', '3 3/12', '9 9/12', '3 6/12'], 0, bars({ numerator: 15, denominator: 4 }), 'Rename only the fraction part. How many twelfths make 3/4?', '3/4 = 9/12, and the 3 wholes stay the same. So 3 3/4 = 3 9/12.', bars({ numerator: 3, denominator: 4 }), { authoredChoices: true }),
-      practice('Rename: 1/2 = 2/4. Then 1 3/4 + 1 1/2 = ?', ['3 1/4', '2 1/4', '2 1/2', '2 4/6'], 0, bars({ numerator: 7, denominator: 4 }, { numerator: 3, denominator: 2 }), 'Add the parts first: 3/4 + 2/4 = 5/4. That is 1 whole and 1/4. Then add the wholes.', '3/4 + 2/4 = 5/4, which is 1 whole and 1/4. Then 1 + 1 + 1 = 3 wholes. So 1 3/4 + 1 1/2 = 3 1/4.', bars({ numerator: 7, denominator: 4 }, { numerator: 3, denominator: 2 }), { authoredChoices: true }),
-      practice('Rename: 1/3 = 2/6. Then 3 1/6 − 1 1/3 = ?', ['1 5/6', '2 1/6', '2 5/6', '2 1/3'], 0, bars({ numerator: 19, denominator: 6 }, { numerator: 4, denominator: 3 }), '1/6 is too few to take 2/6 away. Trade 1 whole for 6/6 first.', 'Trade 1 whole: 3 1/6 = 2 7/6. Then 7/6 − 2/6 = 5/6, and 2 − 1 = 1. So 3 1/6 − 1 1/3 = 1 5/6.', bars({ numerator: 19, denominator: 6 }, { numerator: 4, denominator: 3 }), { authoredChoices: true }),
+      practice('1 3/4 + 1 1/2 = ?', ['3 1/4', '2 1/4', '2 1/2', '2 4/6'], 0, bars({ numerator: 7, denominator: 4 }, { numerator: 3, denominator: 2 }), 'Rename 1/2 in fourths. Add the parts, then the wholes.', '1/2 = 2/4. 3/4 + 2/4 = 5/4, which is 1 whole and 1/4. Then 1 + 1 + 1 = 3 wholes. So 1 3/4 + 1 1/2 = 3 1/4.', bars({ numerator: 7, denominator: 4 }, { numerator: 3, denominator: 2 }), { authoredChoices: true }),
+      practice('3 1/6 − 1 1/3 = ?', ['1 5/6', '2 1/6', '2 5/6', '2 1/3'], 0, bars({ numerator: 19, denominator: 6 }, { numerator: 4, denominator: 3 }), 'Rename 1/3 in sixths. Is 1/6 enough to take it away?', '1/3 = 2/6. 1/6 is too few, so trade 1 whole: 3 1/6 = 2 7/6. Then 7/6 − 2/6 = 5/6, and 2 − 1 = 1. So 3 1/6 − 1 1/3 = 1 5/6.', bars({ numerator: 19, denominator: 6 }, { numerator: 4, denominator: 3 }), { authoredChoices: true }),
     ] },
   { id: 'estimate-fraction-operations', title: 'Estimate to check', shortTitle: 'Estimate fraction sums', description: 'Use 0, 1/2 and 1 to check whether an answer makes sense.', skill: 'Compare each fraction with 0, 1/2, or 1. Use those benchmarks to check whether the answer is a sensible size.', example: { prompt: 'Is 2/5 + 1/2 more or less than 1?', answer: 'Less than 1', explanation: '2/5 is a little less than the benchmark 1/2. Two halves make one whole. So 2/5 + 1/2 is a little less than one whole.', model: bars({ numerator: 2, denominator: 5, named: true }, { numerator: 1, denominator: 2, named: true }) }, mode: 'estimate', n: 9, d: 10, context: 'trail lengths', gradeBand: 5, standards: ['5.NF.2'],
     ideaQuestions: [
@@ -1634,7 +1634,7 @@ const extensionTopics: ExtensionTopic[] = [
       // Idea 1: rename a length in same-size parts.
       practice('A board is 1/3 meter long. How many sixths of a meter is that?', ['2/6 meter', '1/6 meter', '2/3 meter', '4/6 meter'], 0,
         bars({ numerator: 1, denominator: 3 }, { numerator: 0, denominator: 6 }),
-        'Each third is cut into 2 sixths. Count the sixths in 1/3.', 'Each third is 2 sixths, so 1/3 meter = 2/6 meter.',
+        'Line up the two bars. Count the sixths that fit under 1/3.', 'Each third is 2 sixths, so 1/3 meter = 2/6 meter.',
         bars({ numerator: 1, denominator: 3 }, { numerator: 0, denominator: 6 }), { authoredChoices: true }),
       practice('A board is 1/2 meter long. How many eighths of a meter is that?', ['4/8 meter', '1/8 meter', '2/8 meter', '7/8 meter'], 0,
         bars({ numerator: 1, denominator: 2 }, { numerator: 0, denominator: 8 }),
@@ -1877,11 +1877,16 @@ const extensionTopics: ExtensionTopic[] = [
     // Idea 1: a percent is a number out of 100 (writing it as a fraction comes in idea 2).
     ideaQuestions: [
       practice('A big square has 100 small squares. 45% of them are blue. How many small squares are blue?', ['45', '55', '4', '5'], 0, { kind: 'area', cut: 'grid-10x10', shaded: [] },
-        '45% means 45 out of 100.', '45% is 45 out of 100, so 45 of the 100 small squares are blue.', grids(hundredthsGrid(45)), { authoredChoices: true }),
+        'Percent means out of 100. The big square has 100 small squares.', '45% is 45 out of 100, so 45 of the 100 small squares are blue.', grids(hundredthsGrid(45)), { authoredChoices: true }),
       practice('What does 70% mean?', ['70 out of 100', '70 out of 10', '7 out of 100', '100 out of 70'], 0, { kind: 'area', cut: 'grid-10x10', shaded: [] },
         'Percent means out of 100.', '70% means 70 out of 100: 70 of 100 equal squares.', grids(hundredthsGrid(70)), { authoredChoices: true }),
       practice('A test score is 85%. How many points out of 100 is that?', ['85', '15', '8', '100'], 0, { kind: 'area', cut: 'grid-10x10', shaded: [] },
-        '85% means 85 out of 100.', '85% is 85 out of 100: 85 points.', grids(hundredthsGrid(85)), { authoredChoices: true }),
+        'Percent means out of 100. The test has 100 points.', '85% is 85 out of 100: 85 points.', grids(hundredthsGrid(85)), { authoredChoices: true }),
+      // Idea 2 asks the same thing in more than one way (a story, then "which fraction is the same as").
+      practice('A garden has 100 plants. 30% of them are beans. What fraction of the plants are beans?', ['30/100', '70/100', '3/100', '100/30'], 0, { kind: 'area', cut: 'grid-10x10', shaded: [] },
+        'Percent means out of 100. What goes on top?', '30% is 30 out of 100. 30 goes on top and 100 on the bottom: 30/100.', grids(hundredthsGrid(30)), { authoredChoices: true }),
+      practice('Which fraction is the same as 8%?', ['8/100', '80/100', '8/10', '100/8'], 0, { kind: 'area', cut: 'grid-10x10', shaded: [] },
+        'Percent means out of 100. What is the denominator?', '8% is 8 out of 100. The denominator is 100, so it is 8/100.', grids(hundredthsGrid(8)), { authoredChoices: true }),
     ],
   },
   { id: 'decimal-fraction-equivalence', title: 'Fractions to decimals', shortTitle: 'Three forms', description: 'Write 1/4 as 0.25.', skill: 'Rename a fraction in tenths or hundredths. Write tenths with one decimal place and hundredths with two.', mode: 'decimal-equivalent', n: 7, d: 10, context: 'battery meter',
@@ -2224,6 +2229,21 @@ const picture = (top: number, bottom: number): ModelSpec => ({ kind: 'bars', bar
 /** A picture for a worksheet problem: its own model, else the first amount in the question. Never the answer. */
 export function problemPicture(problem: WorksheetProblem): ModelSpec {
   const m = problem.model;
+  // Whole numbers as fractions (lessons 23-24). "How many wholes are 12/6?": the wholes cut into sixths, empty, with
+  // one spare, so neither the bars nor full bars can be counted for the answer. "Write 3 whole bars as a fraction…":
+  // the 3 bars it names. "Write 8/8 as a whole number.": the 8/8 it names, and a spare empty bar.
+  const howMany = /^How many wholes are (\d+)\/(\d+)\?$/.exec(problem.prompt);
+  if (howMany) {
+    const [n, d] = [Number(howMany[1]), Number(howMany[2])];
+    return { kind: 'bars', bars: Array.from({ length: Math.ceil(n / d) + 1 }, () => ({ numerator: 0, denominator: d })), hideLabels: true };
+  }
+  const wholeBars = /^Write (\d+) whole bars as a fraction/.exec(problem.prompt);
+  if (wholeBars) return { kind: 'bars', bars: [{ numerator: Number(wholeBars[1]), denominator: 1 }], hideLabels: true };
+  const asWhole = /^Write (\d+)\/\1 as a whole number\.$/.exec(problem.prompt);
+  if (asWhole) {
+    const d = Number(asWhole[1]);
+    return { kind: 'bars', bars: [{ numerator: d, denominator: d }, { numerator: 0, denominator: d }], hideLabels: true };
+  }
   // An empty picture: the wholes cut into equal pieces, nothing shaded yet (sharing questions).
   if (m && m.n === 0) return { kind: 'bars', bars: Array.from({ length: m.wholes }, () => ({ numerator: 0, denominator: m.d })), hideLabels: true };
   // The measuring tools the question talks about come first: the line plot, the ruler, the grid.
@@ -2707,7 +2727,15 @@ export function loadProgress(): Progress {
   try {
     const stored = window.localStorage.getItem(scopedStorageKey(STORAGE_KEY));
     if (!stored) return EMPTY_PROGRESS;
-    const parsed: unknown = JSON.parse(stored);
+    return cleanProgress(JSON.parse(stored));
+  } catch {
+    return EMPTY_PROGRESS;
+  }
+}
+
+/** Saved progress (from this device or the server) with anything malformed or out of date dropped. */
+export function cleanProgress(parsed: unknown): Progress {
+  try {
     if (!parsed || typeof parsed !== 'object') return EMPTY_PROGRESS;
     const value = parsed as Partial<Progress>;
     const validIds = new Set(MISSIONS.map((item) => item.id));

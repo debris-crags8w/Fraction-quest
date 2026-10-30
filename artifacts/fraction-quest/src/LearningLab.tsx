@@ -8,7 +8,7 @@ import { LearningListenButton, LearningText, spokenLearningText, useReadAloud } 
 import { BUILD_ERROR_HEADINGS, BUILD_SLIPS as M, LAB_SECTION_SPEECH, PART_CHECK_OPENERS, buildErrors, buildHints, worksheetSpeech } from './lab-copy';
 import { ArrowLeft, ArrowRight, Check, ClipboardCheck, CircleHelp, Lightbulb, Minus, Plus, RotateCcw, Star } from 'lucide-react';
 import { getMission, numberLineWholeCount, type Progress } from './game';
-import { answerMatches, getBuildCheckStage, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
+import { answerIsWholes, answerMatches, getBuildCheckStage, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, type BuildCheck, type LearningModel, type WorksheetProblem, yesNoPrompt } from './learning-content';
 import {
   checkRedoRow, checkLessonWorksheet, checkWorksheet, editWorksheet, emptyLearningRecord, finishRedo, getLearningRecord, hasLearningGate, redoChecks, redoDone, redoWorksheet, requiredBuildChecks,
   redoWorksheetCount, startRedo, targetedPracticeCount, targetedPracticePlans, updateLearning, worksheetProblemProgress, type LearningRecord, type RedoAttempt, type RedoPart,
@@ -20,7 +20,7 @@ import { AreaShade, AreaSvg } from './AreaModel';
 import { PrintMenu, PrintModel } from './Printables';
 import { amountsIn } from './auto-picture';
 import { YesNoCards } from './YesNoCards';
-import { worksheetWhy, worksheetWrongReason } from './wrong-answer';
+import { worksheetFeedbackSpeech, worksheetWhy, worksheetWrongReason } from './wrong-answer';
 import { LessonTeachingSupport } from './LessonTeachingSupport';
 import './learning-lab.css';
 import { TaskBar } from './TaskBar';
@@ -73,12 +73,12 @@ const validate = (kind: Kind, t: LearningModel, s: St) => buildErrors(kind, t, s
 
 
 /* Read-only preview for worksheet visuals */
-function Preview({ m, named = false }: { m: LearningModel; named?: boolean }) {
+function Preview({ m, named = false, wholeMarks = true }: { m: LearningModel; named?: boolean; wholeMarks?: boolean }) {
   return (
     <div className="fq-ll-preview-wrap"><ModelTag kind={m.kind} />
     {m.kind === 'bar' ? (
       <div className="fq-ll-preview-svg">
-        <BarSvg n={m.n} d={m.d} wholes={m.wholes} sizes={m.sizes} fraction={named && m.n > 0} label={m.sizes ? `A bar cut into ${m.sizes.length} pieces` : m.n ? `${m.d} equal parts per whole, ${m.n} ${m.n === 1 ? 'part' : 'parts'} shaded` : `A bar cut into ${m.d} parts`} />
+        <BarSvg n={m.n} d={m.d} wholes={m.wholes} sizes={m.sizes} fraction={named && m.n > 0} bracket={wholeMarks} label={m.sizes ? `A bar cut into ${m.sizes.length} pieces` : m.n ? `${m.d} equal parts per whole, ${m.n} ${m.n === 1 ? 'part' : 'parts'} shaded` : `A bar cut into ${m.d} parts`} />
       </div>
     ) : <div className={'fq-ll-preview' + (m.kind === 'line' ? ' fq-ll-preview-line' : '')} style={{ '--piece': denomColor(m.d) } as CSSProperties} role="img" aria-label={m.kind === 'set' ? `${m.n} of ${m.d} groups selected from ${m.total} objects` : `${m.d} equal parts per whole, marked after ${m.n} parts`}>
       {m.kind === 'line' ? (
@@ -93,7 +93,7 @@ function Preview({ m, named = false }: { m: LearningModel; named?: boolean }) {
               <div className="fq-ll-pcells" style={{ gridTemplateColumns: `repeat(${gridColumns(m.d)}, minmax(0,1fr))` }}>
                 {Array.from({ length: m.d }, (_, i) => <i key={i} className={w * m.d + i < m.n ? 'on' : ''} />)}
               </div>
-              <WholeBracket />
+              {wholeMarks && <WholeBracket />}
             </div>
           ))}
         </div>
@@ -500,7 +500,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
   const [misses, setMisses] = useState(0);
   // After a wrong answer, the reason is read aloud (with sound on), as in the game's questions.
   const sound = useOptionalFun()?.fun.sound ?? false;
-  useReadAloud(sound && !ok && wrong !== null && wrong === draft ? `Not yet. ${p.hint}` : null, wrong !== null && wrong === draft ? `${p.id}:${misses}` : null);
+  useReadAloud(sound && !ok && wrong !== null && wrong === draft ? worksheetFeedbackSpeech(p, draft) : null, wrong !== null && wrong === draft ? `${p.id}:${misses}` : null);
   const yesNo = isYesNoProblem(p);
   const promptText = yesNo ? yesNoPrompt(p) : p.prompt;
   const problemNumber = numberLabel ?? p.id.slice(1);
@@ -559,7 +559,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
           </div>
         </div>
         {/* For counting and shading, the tappable bar is the picture, so it is not drawn twice. */}
-        {p.model && (!p.task || p.task.kind === 'copy') && !p.picture && <Preview m={p.model} named={namesItsBar(p) || ok} />}
+        {p.model && (!p.task || p.task.kind === 'copy') && !p.picture && <Preview m={p.model} named={namesItsBar(p) || ok} wholeMarks={!answerIsWholes(p) || ok} />}
         {p.picture && (!p.model || p.task?.kind === 'copy') && <div className="fq-ll-preview-wrap fq-ll-auto-picture"><PrintModel model={p.picture} labels={false} /></div>}
         {p.area && (p.areaTask
           ? <AreaShade figure={p.area} task={p.areaTask} disabled={ok} statusId={modelStatusId} onMatchChange={openModel} />
@@ -567,7 +567,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
         {p.rulerTask && <RulerInteraction key={modelKey} task={p.rulerTask} disabled={ok} onReady={openModel} />}
         {p.linePlotTask && <LinePlotInteraction key={modelKey} task={p.linePlotTask} disabled={ok} onReady={openModel} />}
         {p.scaleTask && <ScaleInteraction key={modelKey} id={p.id} task={p.scaleTask} disabled={ok} onReady={openModel} />}
-        {targetBar && <WorksheetBarCopy target={targetBar} task={p.task} disabled={ok} statusId={modelStatusId} onMatchChange={openModel} />}
+        {targetBar && <WorksheetBarCopy target={targetBar} task={p.task} disabled={ok} statusId={modelStatusId} onMatchChange={openModel} wholeMarks={!answerIsWholes(p) || ok} />}
         {yesNo && <YesNoCards
           value={draft}
           onChange={value => { setWrong(null); onEdit(value); }}
@@ -591,7 +591,7 @@ export function Row({ p, rec, onEdit, onCheck, onHint, onNewQuestion, numberLabe
           </div>}
           {!ok && wrong === draft && <div className="fq-ll-ws bad" role="alert" data-testid={'status-worksheet-' + p.id}>
             <div className="fq-ll-ws-section-copy">
-              <SectionListenHeader text={`Not yet. ${[pickReason, p.hint].filter(Boolean).join(' ')}`} label="Listen to the feedback"><strong>Not yet.</strong></SectionListenHeader>
+              <SectionListenHeader text={worksheetFeedbackSpeech(p, draft)} label="Listen to the feedback"><strong>Not yet.</strong></SectionListenHeader>
               {pickReason && <LearningText text={pickReason} />}
               <LearningText text={p.hint} />
             </div>

@@ -24,8 +24,12 @@ export function setLearnerStorageScope(scope: string) {
   }
 }
 
+/** Where the version of a learner's saved copy this device last loaded or saved is kept (account.tsx). */
+export const progressVersionKey = (scope: string) => `fraction-quest-progress-version:${scope}`;
+
 export function clearScopedLearnerStorage(scope: string) {
   try {
+    window.localStorage.removeItem(progressVersionKey(scope));
     window.localStorage.removeItem(`${LEGACY_PROGRESS_KEY}:${scope}`);
     window.localStorage.removeItem(`${LEGACY_FUN_KEY}:${scope}`);
     window.localStorage.removeItem(`fraction-quest-save-queue:${scope}`);

@@ -3,8 +3,9 @@
    caption with the speaker's face while the voice reads along. Big moments (the stone cracking, a splash, a falling
    plank) shake the screen with a thud and, in the app on iPhone and Android, a heavy tap. Without a voice the shots
    move on by themselves, and a voice that falls behind (a clip still loading) never holds the film up: it carries
-   on without it. A tap on the picture finishes a caption and the Skip button jumps to the end, where the film
-   stays on its last picture. "Reduce motion" keeps the camera still.
+   on without it; without a voice each line holds long enough to read (lib/film-pace.ts). A tap on the picture
+   finishes a caption, or moves a finished one on, and the Skip button jumps to the end, where the film stays on its
+   last picture. "Reduce motion" keeps the camera still.
    Scenes: the prologue, every chapter opening, completed chapter endings and the finale. */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -17,6 +18,7 @@ import { playCue } from './lib/fun';
 import { FADE_END_SECONDS, FADE_QUICK_SECONDS, filmMood, MUSIC_SAVED, musicPlays, nextMusicVolume, parseMusicVolume, StoryMusic, type MusicVolume } from './lib/story-music';
 import { sentences, spokenText } from './lib/voice';
 import { speakerVoice } from './lib/cast-voices';
+import { holdAfterTypingMs, TYPE_STEP_CHARS, TYPE_STEP_MS, VOICED_PAUSE_MS } from './lib/film-pace';
 import { ChapterEndPicture, hasChapterEndPicture, LessonProp, lessonPropFor, PROP_FRIEND } from './film-props';
 import { CHAPTERS, CHAPTER_SCENES, CHARACTERS, propTheme, withName, type Panel, type StoryChoice, type StoryScene } from './story';
 import { TaskBar } from './TaskBar';
@@ -29,8 +31,9 @@ import './film-props-d.css';
 
 export { CHAPTER_SCENES, type StoryScene } from './story';
 
-const TYPE_MS = 32;        // one character every 32 ms: a little ahead of the voice
-const PAUSE_MS = 1100;     // without a voice, the pause before the next shot
+// The caption types two characters every 64 ms (a little ahead of the voice). With no voice reading it, a line holds
+// for a young reader's pace (lib/film-pace.ts: about 12 characters a second plus a 2-second rest); after the voice has
+// read it, only a short pause. A tap on a finished caption moves on at once.
 const TITLE_MS = 1700;     // the title card before the first shot
 const FONT_WAIT_MS = 500;  // the longest the title card waits for its font before it starts anyway
 
@@ -81,9 +84,9 @@ const FILMING: Record<StoryScene, { shots: Shot[]; impact?: number; coldFrom?: n
       shot('scale(1.28)', '50% 42%'), shot('scale(1)', '50% 60%')],
     impact: 2, coldFrom: 2, end: 'To be continued…',
   },
-  bakery: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.3)', '24% 40%'), shot('scale(1.25)', '33% 50%'), shot('scale(1.05)', '50% 40%')], impact: 2 },
+  bakery: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.22)', '24% 44%'), shot('scale(1.25)', '33% 50%'), shot('scale(1.05)', '50% 40%')], impact: 2 },
   pond: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.2)', '40% 35%'), shot('scale(1.1)', '50% 50%'), shot('scale(1)', '50% 40%')], impact: 0 },
-  hill: { shots: [shot('scale(1.1)', '20% 50%'), shot('scale(1.4)', '86% 14%'), shot('scale(1)', '50% 40%'), shot('scale(1.25)', '35% 40%')] },
+  hill: { shots: [shot('scale(1.1)', '20% 50%'), shot('scale(1.1)', '50% 30%'), shot('scale(1)', '50% 40%'), shot('scale(1.25)', '35% 40%')] },
   bridge: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '55% 38%'), shot('scale(1)', '50% 40%'), shot('scale(1.1)', '50% 36%')], impact: 0 },
   tower: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.25)', '30% 36%'), shot('scale(1.2)', '72% 30%'), shot('scale(1.05)', '60% 36%')], impact: 0 },
   honey: { shots: [shot('scale(1.1)', '50% 30%'), shot('scale(1.25)', '50% 16%'), shot('scale(1.18)', '50% 30%'), shot('scale(1.1)', '50% 40%')] },
@@ -94,7 +97,7 @@ const FILMING: Record<StoryScene, { shots: Shot[]; impact?: number; coldFrom?: n
   machine: { shots: [shot('scale(1.05)', '50% 42%'), shot('scale(1.3)', '6% 62%'), shot('scale(1.1)', '30% 45%'), shot('scale(1.05)', '55% 55%')], impact: 2, coldFrom: 0, warmFrom: 1 },
   stage: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.2)', '8% 48%'), shot('scale(1.15)', '15% 55%'), shot('scale(1.05)', '50% 42%')] },
   garden: { shots: [shot('scale(1.08)', '50% 42%'), shot('scale(1.15)', '32% 48%'), shot('scale(1.08)', '40% 45%'), shot('scale(1.05)', '50% 42%')] },
-  lock: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.28)', '32% 48%'), shot('scale(1.18)', '34% 48%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
+  lock: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.15)', '32% 40%'), shot('scale(1.18)', '34% 48%'), shot('scale(1.05)', '50% 42%')], impact: 2 },
   festival: { shots: [shot('scale(1.05)', '9% 29%'), shot('scale(1.2)', '9% 29%'), shot('scale(1.3)', '9% 29%'), shot('scale(1.05)', '9% 29%')] },
   'chapter-end': { shots: [shot('scale(1.1)', '50% 42%'), shot('scale(1.3)', '50% 45%'), shot('scale(1.05)', '50% 42%')], impact: 1 },
   epilogue: { shots: [shot('scale(1.05)', '11% 30%'), shot('scale(1.15)', '11% 30%'), shot('scale(1.15)', '11% 30%'), shot('scale(1.1)', '11% 30%'), shot('scale(1.2)', '11% 30%'), shot('scale(1.12)', '11% 30%'), shot('scale(1.05)', '11% 30%')], impact: 2 },
@@ -158,7 +161,7 @@ function BakeryArt({ beat }: { beat: number }) {
       <span className={`fq-cine-actor fq-cine-bakery-enter ${beat === 0 ? 'is-grabbing' : ''} ${fair ? 'is-hopping' : ''}`} style={pos(17, 22)}>
         <StoryCharacter id="chomp" size={112} happy={fair} worried={beat === 1} />
       </span>
-      <svg className="fq-cine-pie" style={pos(53, 24)} viewBox="0 0 120 120" role="img"
+      <svg className="fq-cine-pie" style={pos(50, 24)} viewBox="0 0 120 120" role="img"
         aria-label={fair ? 'A pie cut into 4 equal pieces' : 'A pie cut into 4 pieces of different sizes'}>
         <ellipse cx="60" cy="116" rx="52" ry="7" fill="rgb(0 0 0 / .28)" style={{ filter: 'blur(3px)' }} aria-hidden="true" />
         {fair
@@ -179,8 +182,9 @@ function BakeryArt({ beat }: { beat: number }) {
   );
 }
 
-/** Chapter 2: a stone piece splashes into Pip's snack bowl; two same-size snack bars are cut into halves and fourths,
-    and one piece of each is laid side by side: more equal parts means smaller parts. */
+/** Chapter 2: a stone piece splashes into Pip's snack bowl; two same-size snack bars are cut into thirds and eighths,
+    as Numi says, and one piece of each stays lit: more equal parts means smaller parts. Each label sits on its own
+    piece, so nothing hangs down under the caption. */
 function PondArt({ beat }: { beat: number }) {
   const cut = beat >= 1;
   const compared = beat >= 2;
@@ -194,22 +198,20 @@ function PondArt({ beat }: { beat: number }) {
       <span className="fq-cine-bowl" style={pos(50, 22)} />
       {beat === 0 && <><span className="fq-cine-falling" style={pos(74, 0)} /><span className="fq-cine-splash" style={pos(58, 18)} /></>}
       {cut && (
-        <span className={`fq-cine-bars ${compared ? 'is-compared' : ''}`} style={pos(30, 38)}>
-          {/* Both bars are the same size: one is cut into 2 equal pieces, the other into 4. */}
-          <span className="fq-cine-cutbar is-halves">
-            {[0, 1].map((i) => <i key={i} className={compared && i === 0 ? 'is-picked' : compared ? 'is-set-aside' : ''} />)}
-            <span className="fq-cine-cutbar-label"><Frac n={1} d={2} /></span>
-          </span>
-          <span className="fq-cine-cutbar is-fourths">
-            {[0, 1, 2, 3].map((i) => <i key={i} className={compared && i === 0 ? 'is-picked' : compared ? 'is-set-aside' : ''} />)}
-            <span className="fq-cine-cutbar-label"><Frac n={1} d={4} /></span>
-          </span>
+        <span className={`fq-cine-bars ${compared ? 'is-compared' : ''}`} style={pos(30, 36)}>
+          {/* Both bars are the same size: one is cut into 3 equal pieces, the other into 8. */}
+          {([[3, 'is-thirds'], [8, 'is-eighths']] as const).map(([parts, name]) => (
+            <span key={parts} className={`fq-cine-cutbar ${name}`}>
+              {Array.from({ length: parts }, (_, i) => <i key={i} className={compared && i === 0 ? 'is-picked' : compared ? 'is-set-aside' : ''} />)}
+              <span className="fq-cine-cutbar-label"><Frac n={1} d={parts} /></span>
+            </span>
+          ))}
         </span>
       )}
       <span className={`fq-cine-glint ${compared ? 'is-found' : 'is-hidden'}`} style={pos(63, 26)} aria-hidden="true" />
       <span className="fq-cine-sr" role="img" aria-label={compared
-        ? 'One half and one fourth side by side: the half is bigger. More equal parts means smaller parts.'
-        : cut ? 'Two same-size snack bars: one cut into 2 equal pieces, one cut into 4 equal pieces'
+        ? 'One third and one eighth side by side: the third is bigger. More equal parts means smaller parts.'
+        : cut ? 'Two same-size snack bars: one cut into 3 equal pieces, one cut into 8 equal pieces'
           : 'A stone piece falls into a snack bowl'} />
     </>
   );
@@ -231,7 +233,8 @@ function HillArt({ beat }: { beat: number }) {
         <span key={i} className="fq-cine-flag" style={pos(x, y, { animationDelay: `${i * 0.35}s` })}>{label}</span>
       ))}
       <span className="fq-cine-glint is-shining" style={pos(80, 12)} aria-hidden="true" />
-      <span className="fq-cine-actor" style={beat >= 2 ? pos(30, 42) : pos(26, 50)}>
+      {/* On the first line the camera looks up the hill at the shine, so Tilly starts a little higher up the slope, above the caption. */}
+      <span className="fq-cine-actor" style={beat >= 2 ? pos(30, 42) : beat === 0 ? pos(22, 45) : pos(26, 50)}>
         <StoryCharacter id="tilly" size={beat >= 2 ? 60 : 68} worried={beat === 0} happy={beat === 2} />
       </span>
       <span className="fq-cine-sr" role="img" aria-label={flags ? 'Flags for 0, one half and 1 along the hill path' : 'Something shines at the top of a hill'} />
@@ -280,8 +283,8 @@ function TowerArt({ beat }: { beat: number }) {
           <span key={i} className={`fq-cine-treat is-${i} ${beat >= 2 ? 'is-cut' : ''}`} style={{ width: `${width}%`, bottom: `${order.indexOf(width) * 24}%` }} />
         ))}
       </div>
-      {beat === 0 && <span className="fq-cine-crumb" style={pos(70, 8)} />}
-      {beat === 2 && <span className="fq-cine-sparkle" style={pos(68, 2)} />}
+      {beat === 0 && <span className="fq-cine-crumb" style={pos(70, 16)} />}
+      {beat === 2 && <span className="fq-cine-sparkle" style={pos(70, 14)} />}
     </>
   );
 }
@@ -333,8 +336,8 @@ function WorkshopArt({ beat }: { beat: number }) {
   );
 }
 
-/** Chapter 8: a swinging lantern throws the boots' shadow up the den wall. Chomp stands in front of the boots, then
-    steps aside as he owns up, and the stone piece glows. */
+/** Chapter 8: a swinging lantern throws the boots' shadow up the den wall. Chomp stands guard beside the boots while
+    he owns up (the boots stay in sight: the first line is about them), then steps aside, and the stone piece glows. */
 function DenArt({ beat }: { beat: number }) {
   return (
     <>
@@ -343,7 +346,7 @@ function DenArt({ beat }: { beat: number }) {
       <span className={`fq-cine-boot-shadow fq-cine-move ${beat >= 1 ? 'is-tall' : ''}`} aria-hidden="true"><i /><i /></span>
       <span className={`fq-cine-boots ${beat >= 1 ? 'is-lit' : ''}`}><i /><i /></span>
       <span className={`fq-cine-den-stone ${beat >= 2 ? 'is-found' : ''}`} />
-      <span className={`fq-cine-actor ${beat < 2 ? 'is-guarding' : ''}`} style={beat < 2 ? pos(48, 23) : pos(8, 30)}>
+      <span className={`fq-cine-actor ${beat < 2 ? 'is-guarding' : ''}`} style={beat < 2 ? pos(24, 27) : pos(8, 30)}>
         <StoryCharacter id="chomp" size={108} worried={beat < 2} />
       </span>
     </>
@@ -381,7 +384,7 @@ function PicnicArt({ beat }: { beat: number }) {
       <span className="fq-cine-picnic-blanket" />
       <span className="fq-cine-picnic-plate" style={pos(62, 66)} />
       <span className="fq-cine-picnic-basket" style={pos(74, 34)} />
-      <span className={`fq-cine-sandwiches fq-cine-move ${cut ? 'is-cut' : ''}`} style={pos(22, 50)} role="img"
+      <span className={`fq-cine-sandwiches fq-cine-move ${cut ? 'is-cut' : ''}`} style={pos(26, 47)} role="img"
         aria-label={cut ? 'The half is cut into two fourths, and with the other fourth that makes three fourths' : 'One half of a sandwich and one fourth of a sandwich'}>
         <i /><i /><i />
         <span className="fq-cine-sandwich-cut" />
@@ -390,7 +393,7 @@ function PicnicArt({ beat }: { beat: number }) {
         <span className="fq-cine-sandwich-label is-sum"><Frac n={3} d={4} /></span>
       </span>
       <span className="fq-cine-actor" style={pos(4, 22)}><StoryCharacter id="chomp" size={80} happy={beat >= 2} /></span>
-      <span className={`fq-cine-peeker ${beat >= 1 ? 'is-arriving' : ''}`} style={pos(80, 18)}><StoryCharacter id="bolt" size={58} worried={beat < 2} happy={beat >= 2} /></span>
+      <span className={`fq-cine-peeker ${beat >= 1 ? 'is-arriving' : ''}`} style={pos(77, 18)}><StoryCharacter id="bolt" size={58} worried={beat < 2} happy={beat >= 2} /></span>
       <span className="fq-cine-note" style={pos(64, 60)}>B</span>
     </>
   );
@@ -459,7 +462,7 @@ function LockArt({ beat }: { beat: number }) {
   const matched = beat >= 2;
   return (
     <>
-      <span className="fq-cine-lock-room" /><span className="fq-cine-lock-case">
+      <span className="fq-cine-lock-room" /><span className="fq-cine-lock-case is-opening">
         <span className="fq-cine-lock-seat" />
         <span className={`fq-cine-lock-dials fq-cine-move ${beat === 1 ? 'is-spinning' : ''} ${matched ? 'is-matched' : ''}`} role="img"
           aria-label={matched ? 'The dials show one half, 50 hundredths and 50 percent' : 'Three lock dials, not set yet'}>
@@ -507,7 +510,6 @@ function ChapterEndArt({ beat, unit = 1, speaker }: { beat: number; unit?: numbe
       {speaker && speaker !== chapter.character && (
         <span className="fq-cine-actor" style={pos(72, 40)} data-testid="story-end-friend"><StoryCharacter id={chapter.character} size={66} happy={beat >= 1} /></span>
       )}</>}
-      <span className={`fq-cine-end-ribbon ${beat >= 2 ? 'is-visible' : ''}`}>{beat >= 2 ? `${unit} of 15 pieces` : ''}</span>
       {beat >= 2 && <Confetti />}
     </>
   );
@@ -656,7 +658,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     if (!voiceDriving.current) return;
     voiceDriving.current = false; reader.stop(); setVoiceWaiting(false); setSpeaking(false);
     resumeLater(`the voice was late on shot ${beatRef.current + 1}`);
-    if (typedRef.current) later(() => showBeat(beatRef.current + 1), PAUSE_MS); // a caption still typing moves on by itself
+    if (typedRef.current) later(() => showBeat(beatRef.current + 1), holdAfterTypingMs(lineLength(beatRef.current))); // a caption still typing moves on by itself
   };
   /** While the voice leads, each shot waits only as long as its line could take to read. */
   const watchVoice = (shot: number) => {
@@ -666,6 +668,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     stall.current = setTimeout(dropVoice, shot === 0 ? Math.max(VOICE_GIVE_UP_MS, due) : due);
   };
   const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)); };
+  const lineLength = (shot: number) => lines[shot]?.text.length ?? 0;
 
   const finish = () => {
     if (!filming.end) { setDone(true); return; }
@@ -686,8 +689,8 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     const length = lines[next].text.length;
     const tick = (count: number) => {
       setChars(count);
-      if (count < length) later(() => tick(Math.min(length, count + 2)), TYPE_MS * 2);
-      else { typedRef.current = true; if (!voiceDriving.current) later(() => showBeat(next + 1), PAUSE_MS); }
+      if (count < length) later(() => tick(Math.min(length, count + TYPE_STEP_CHARS)), TYPE_STEP_MS);
+      else { typedRef.current = true; if (!voiceDriving.current) later(() => showBeat(next + 1), holdAfterTypingMs(length)); }
     };
     tick(0);
   };
@@ -716,7 +719,9 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
         // Stopped before the last sentence (a clip Safari wouldn't play): the voice picks up again at the next shot.
         if (reached < sentenceToPanel.length - 1) resumeLater(`the voice stopped after sentence ${reached + 1}`);
         // No voice, or it stopped early: the timer carries on from here (a caption still typing moves on by itself).
-        if (typedRef.current) later(() => showBeat(beatRef.current + 1), beatRef.current >= lines.length - 1 ? 600 : PAUSE_MS);
+        // A line the voice read needs only a short pause; one it never reached keeps the reading pace.
+        const read = reached >= 0 && (sentenceToPanel[reached] ?? -1) >= beatRef.current;
+        if (typedRef.current) later(() => showBeat(beatRef.current + 1), beatRef.current >= lines.length - 1 ? 600 : read ? VOICED_PAUSE_MS : holdAfterTypingMs(lineLength(beatRef.current)));
       },
     });
   };
@@ -765,7 +770,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     saveFilmVoice(next);
     if (!next) {
       clearTimeout(stall.current); reader.stop(); voiceDriving.current = false; setVoiceWaiting(false); setSpeaking(false); resumeAt.current = null;
-      if (!done && beatRef.current >= 0 && typedRef.current) later(() => showBeat(beatRef.current + 1), PAUSE_MS);
+      if (!done && beatRef.current >= 0 && typedRef.current) later(() => showBeat(beatRef.current + 1), holdAfterTypingMs(lineLength(beatRef.current)));
     } else if (!done && beatRef.current >= 0) {
       const shot = beatRef.current;
       prefetchReading(spoken.slice(shot).join(' '));
@@ -783,6 +788,13 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   // The colours go cold from coldFrom (after something goes wrong), and warm again from warmFrom when it is put right.
   const cold = filming.coldFrom !== undefined && shownBeat >= filming.coldFrom && !(filming.warmFrom !== undefined && shownBeat >= filming.warmFrom);
   const waitingCaption = voiceWaiting && !done && beat >= 0;
+  // Without a voice leading, a finished caption waits for the reader: a tap on the picture (the caption included) goes on.
+  const canTapOn = !done && !ending && beat >= 0 && !typing && !speaking && !voiceWaiting;
+  /** A tap on the picture: finishes a caption that is still typing, or moves a finished one on to the next shot. */
+  const tapScreen = () => {
+    if (typing) { setChars(lines[beat].text.length); return; }
+    if (canTapOn && !voiceDriving.current) showBeat(beat + 1);
+  };
   const reply = choice && picked !== null ? choice[picked].reply : null;
 
   // The music starts with the film, follows its mood, gets softer under the voice, and fades out when the film ends
@@ -827,7 +839,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
             </span>
           </div>
           <button type="button" key={take} className={`fq-cine-screen is-${scene} ${done ? '' : 'is-rolling'}`} data-testid="story-panels"
-            onClick={() => (typing ? setChars(lines[beat].text.length) : undefined)}>
+            onClick={tapScreen}>
             {/* No aria-label: the button is named by the words on the screen, after this lead (a label must hold the visible words). */}
             <span className="fq-sr">{done ? 'The last scene of the story: ' : 'The story scene: '}</span>
             <span className={`fq-cine-cam ${cold ? 'is-cold' : 'is-warm'}`} style={{ transform: camera, transformOrigin: origin }}>
@@ -840,6 +852,11 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
             <span className="fq-cine-vignette" />
             <span className="fq-cine-grain" aria-hidden="true" />
             <span className="fq-cine-bar is-top" /><span className="fq-cine-bar is-bottom" />
+            {/* A chapter ending's "N of 15 pieces" label: outside the camera, as a dark tab just under the top bar at the
+                right, so it never crosses the chapter's prop and reads on every backdrop. */}
+            {scene === 'chapter-end' && (
+              <span className={`fq-cine-end-ribbon ${shownBeat >= 2 ? 'is-visible' : ''}`} data-testid="story-end-ribbon">{shownBeat >= 2 ? `${unit ?? 1} of 15 pieces` : ''}</span>
+            )}
             {titleCard && (started ? (
               <span className="fq-cine-card">
                 <small>{kicker}</small>
@@ -859,6 +876,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
                       : <span><LearningText text={done ? current.text : current.text.slice(0, chars)} emphasize interactiveTerms={false} />{typing && <i className="fq-cine-caret" aria-hidden="true" />}</span>}
                   </span>
                 </span>
+                {canTapOn && <span className="fq-cine-next" aria-hidden="true" data-testid="story-next-hint">Next <ArrowRight size={12} /></span>}
               </span>
             )}
             {ending && <span className="fq-cine-end"><strong>{filming.end}</strong></span>}

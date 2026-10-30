@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowLeft, Lock } from 'lucide-react';
-import { askGate, gateAnswerIsRight, gateWaitSeconds } from './lib/grown-up-gate';
+import { askGate, gateAnswerIsRight, gateMemory } from './lib/grown-up-gate';
 
 /** A light check that a grown-up is here (not security; just keeps young kids on their own screens). */
 export function GrownUpGate({ onPass, onBack, backLabel = 'Back to the map', reason = 'This page shows your child\'s progress. Please answer to continue.' }: {
@@ -10,20 +10,19 @@ export function GrownUpGate({ onPass, onBack, backLabel = 'Back to the map', rea
   const [q, setQ] = useState(() => askGate());
   const [value, setValue] = useState('');
   const [wrong, setWrong] = useState(false);
-  const [wrongInARow, setWrongInARow] = useState(0);
-  const [waitLeft, setWaitLeft] = useState(0);
+  // The misses and the wait live outside this screen (gateMemory), so Back and opening the check again keeps them.
+  const [waitLeft, setWaitLeft] = useState(() => gateMemory.waitLeft());
   const waiting = waitLeft > 0;
   useEffect(() => {
     if (!waiting) return undefined;
-    const timer = window.setInterval(() => setWaitLeft((left) => Math.max(0, left - 1)), 1000);
+    const timer = window.setInterval(() => setWaitLeft(gateMemory.waitLeft()), 1000);
     return () => window.clearInterval(timer);
   }, [waiting]);
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (waitLeft > 0) return;
-    if (gateAnswerIsRight(q, value)) { onPass(); return; }
-    const misses = wrongInARow + 1;
-    setWrongInARow(misses); setWaitLeft(gateWaitSeconds(misses));
+    if (gateMemory.waitLeft() > 0) return;
+    if (gateAnswerIsRight(q, value)) { gateMemory.pass(); onPass(); return; }
+    setWaitLeft(gateMemory.miss());
     setWrong(true); setValue(''); setQ((previous) => askGate(Math.random, previous));
   };
   return (

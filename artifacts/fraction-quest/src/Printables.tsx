@@ -6,7 +6,7 @@ import { GardenPlan } from './GardenPlan';
 import { Printer } from 'lucide-react';
 import { MathText } from './MathText';
 import { areaFigures, getMission, MISSIONS, setModelLayout, type Mission, type ModelSpec } from './game';
-import { getBuildChecks, getWorksheet, paperPrompt, type WorksheetProblem } from './learning-content';
+import { answerIsWholes, getBuildChecks, getWorksheet, paperPrompt, type WorksheetProblem } from './learning-content';
 import { BarSvg, ChallengeFigureView, LineSvg, MODEL_CONCEPTS, ModelPair, ModelTag, SetSvg, SvgWholeBracket } from './models';
 import { CHALLENGES, challengeMaxPoints } from './challenges';
 import { AreaSvg, ColorTwoWays, SameSizeIdea, SHAPE_LESSONS } from './AreaModel';
@@ -38,7 +38,8 @@ function ProblemModel({ problem }: { problem: WorksheetProblem }) {
   return (
     <div className="fq-print-model">
       <ModelTag kind={m.kind} />
-      {m.kind === 'bar' && <BarSvg n={m.n} d={m.d} wholes={m.wholes} sizes={m.sizes} />}
+      {/* "How many wholes are 24/8?" on paper: no "one whole" marks to count. */}
+      {m.kind === 'bar' && <BarSvg n={m.n} d={m.d} wholes={m.wholes} sizes={m.sizes} bracket={!answerIsWholes(problem)} />}
       {m.kind === 'line' && <LineSvg n={m.n} d={m.d} wholes={m.wholes} />}
       {m.kind === 'set' && <SetSvg n={m.n} d={m.d} total={m.total ?? m.d} />}
     </div>

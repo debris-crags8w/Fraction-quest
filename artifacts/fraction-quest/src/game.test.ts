@@ -5,7 +5,8 @@ import { LESSON_INTROS } from './lesson-intros';
 import { REASON_SLIPS } from './reason-slips';
 import { misconceptionWrongs } from './misconceptions';
 import { fractionMistakes } from './fraction-slips';
-import { ideaQuestion, ideaSteps, isRound, lessonIdeas } from './lesson-ideas';
+import { ideaPracticeQuestions, ideaQuestion, ideaSteps, isRound, lessonIdeas } from './lesson-ideas';
+import { lessonCheckpoint } from './checkpoint';
 import { storyProblemFor } from './story';
 import { fourthChoice, noBeforeYes, withSignComparisons } from './fourth-choice';
 import { answerValue } from './learning-content';
@@ -37,7 +38,7 @@ import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyBuildCorrec
 import { FRACTION_STANDARDS } from './standard-catalog';
 import { DailyPracticeQuestionHeading } from './DailyPracticeQuestionHeading';
 import type { PracticeQuestion } from './game';
-import { MORE_REASON_IDEAS, REASON_IDEAS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
+import { MORE_REASON_IDEAS, REASON_IDEAS, FITTED_REASONS, answerMatches, asChoicePrompt, getBuildCheckStage, getBuildChecks, getBuildPracticeChecks, getModelFeedback, getReasonFeedback, getReviewCheck, getWorksheet, isYesNoProblem, paperPrompt, parseAnswer, yesNoPrompt } from './learning-content';
 import { AnswerTiles } from './AnswerTiles';
 import {
   createLearningSpeechController,
@@ -2915,7 +2916,8 @@ describe('quality audit fixes', () => {
       // Review rounds rotate through the same three wordings.
       const reviews = [0, 1, 2].map((round) => getReviewCheck(mission.id, round)).map((check) => check.reasons[check.correctReason]);
       assert.equal(new Set(reviews).size, 3, `${mission.id}: review rounds repeat the right reason: ${reviews.join(' | ')}`);
-      for (const r of reviews) assert.ok(rights.includes(r), `${mission.id}: review reason "${r}" is not one of the lesson's`);
+      // An item a lesson's own wordings don't fit (6/4 in a scaling lesson, 3 batches) gets one true for it (FITTED_REASONS).
+      for (const r of reviews) assert.ok([...rights, ...FITTED_REASONS.right].includes(r), `${mission.id}: review reason "${r}" is not one of the lesson's`);
     }
   });
   it('offers each lesson’s own wrong reasons, a different pair at each step', () => {
@@ -2928,7 +2930,7 @@ describe('quality audit fixes', () => {
       const checks = [...getBuildChecks(mission.id), ...[0, 1, 2].map((round) => getReviewCheck(mission.id, round))];
       for (const check of checks) {
         const wrong = check.reasons.filter((_, i) => i !== check.correctReason);
-        for (const r of wrong) assert.ok(slips.includes(r), `${mission.id}: "${r}" is not one of the lesson's own mistakes`);
+        for (const r of wrong) assert.ok([...slips, ...FITTED_REASONS.wrong].includes(r), `${mission.id}: "${r}" is not one of the lesson's own mistakes`);
       }
       // Build it, On your own and Apply it each show a different pair.
       const pairs = getBuildChecks(mission.id).map((check) => check.reasons.filter((_, i) => i !== check.correctReason).sort().join(' | '));
@@ -4362,6 +4364,26 @@ describe('hints that say the answer in words', () => {
     const said = new RegExp(`\\b${m[1]} of (?:them|${m[2]}\\b)`);
     return said.test(hint) && !said.test(prompt);
   };
+  /** Percent wording: for "Write 25% as a fraction with a denominator of 100" the hint "25% means 25 out of 100" is the
+      answer 25/100 read aloud, and for "45% … how many are blue?" it says 45. */
+  const saysOutOf = (answer: string, hint: string, prompt: string) => {
+    const m = /^(\d+)(?:\/(\d+))?$/.exec(answer.trim());
+    if (!m) return false;
+    const said = new RegExp(`\\b${m[1]} out of ${m[2] ?? '\\d+'}\\b`);
+    return said.test(hint) && !said.test(prompt);
+  };
+  it('worksheets and questions never say the answer as "a out of b" (percent wording)', () => {
+    const leaks = new Map<string, string>();
+    for (const mission of MISSIONS) {
+      for (let sheet = 0; sheet <= 40; sheet++) for (const problem of getWorksheet(mission.id, sheet)) {
+        if (saysOutOf(problem.answer, problem.hint, problem.prompt)) leaks.set(`${mission.id} | ${problem.hint.replace(/\d+/g, '#')}`, `${problem.prompt} => ${problem.answer} | ${problem.hint}`);
+      }
+      for (const q of [...mission.questions, ...ideaPracticeQuestions(mission), ...lessonCheckpoint(mission), ...[1, 2, 3].flatMap((seed) => (hasGenerator(mission.id) ? generateQuestions(mission.id, [], seed, 12) : []))]) {
+        if (q.prompt && saysOutOf(q.choices[q.correctChoice], q.hint, q.prompt)) leaks.set(`${q.id} | ${q.hint}`, `${q.prompt} => ${q.choices[q.correctChoice]} | ${q.hint}`);
+      }
+    }
+    assert.deepEqual([...leaks.entries()], []);
+  });
   it('worksheets and questions never say the answer as "a of b"', () => {
     const leaks = new Map<string, string>();
     for (const mission of MISSIONS) {
@@ -4471,16 +4493,16 @@ describe('generated practice has exactly one right choice', () => {
 });
 
 describe('question pictures match the question', () => {
-  it('a "Rename: … Then …" question pictures the amounts it adds or subtracts, not the renamed parts', () => {
+  it('an unlike-fractions sum pictures the amounts it adds or subtracts, not the renamed parts', () => {
     const seen: string[] = [];
-    for (const lesson of MISSIONS) for (const question of lesson.questions) {
-      const sum = /Rename: .+?\. Then (.+)$/.exec(question.prompt);
+    for (const lesson of MISSIONS.filter((item) => ['add-unlike-fractions', 'mixed-unlike-operations'].includes(item.id))) for (const question of lesson.questions) {
+      const sum = /^((?:\d+ )?\d+\/\d+ [+−] (?:\d+ )?\d+\/\d+) = \?$/.exec(question.prompt);
       if (!sum || question.model.kind !== 'bars') continue;
       seen.push(question.prompt);
       const asked = amountsIn(sum[1]).map(({ numerator, denominator }) => `${numerator}/${denominator}`);
       assert.deepEqual(question.model.bars.map(({ numerator, denominator }) => `${numerator}/${denominator}`), asked, question.prompt);
     }
-    assert.ok(seen.some((prompt) => /Then \d+ \d+\/\d+ [+−]/.test(prompt)), 'a mixed-number renaming question is checked');
+    assert.ok(seen.some((prompt) => /^\d+ \d+\/\d+ [+−]/.test(prompt)), 'a mixed-number renaming question is checked');
   });
 
   it('a question that says to color pieces gives the child pieces to tap', () => {

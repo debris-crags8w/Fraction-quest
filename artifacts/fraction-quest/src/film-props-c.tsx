@@ -220,25 +220,6 @@ function SandwichesArt() {
   </>;
 }
 
-/** A big bowl of mixed fruit with a wooden spoon in it. */
-function FruitBowlArt() {
-  return <>
-    <circle cx="62" cy="46" r="14" fill={RED} {...outline} /><path d="M54 36 l8 -6 l8 6" fill="none" stroke="#3E9954" strokeWidth="3" strokeLinecap="round" />
-    <circle cx="100" cy="36" r="16" fill="#FF9F1C" {...outline} />
-    <circle cx="140" cy="46" r="14" fill={GREEN} {...outline} />
-    <circle cx="82" cy="54" r="9" fill="#9B6BD9" {...thin} /><circle cx="122" cy="54" r="8" fill="#9B6BD9" {...thin} />
-    <circle cx="106" cy="56" r="5.5" fill="#4C6FE0" {...thin} strokeWidth={2} /><circle cx="116" cy="61" r="4.5" fill="#4C6FE0" {...thin} strokeWidth={2} />
-    {shine('M92 28 q4 -5 10 -5', 3, .7)}
-    <path d="M30 66 H170 Q170 106 130 106 H70 Q30 106 30 66 Z" fill="#3FB6A8" {...outline} />
-    <rect x="26" y="61" width="148" height="9" rx="4.5" fill="#2C8F85" {...thin} />
-    <circle cx="62" cy="86" r="3.5" fill="#fff" /><circle cx="94" cy="94" r="3" fill="#fff" /><circle cx="128" cy="84" r="3.5" fill="#fff" /><circle cx="150" cy="78" r="2.6" fill="#fff" />
-    <g className="fq-fp-c-stir">
-      <path d="M118 66 L132 8" fill="none" stroke={INK} strokeWidth="10" strokeLinecap="round" />
-      <path d="M118 66 L132 8" fill="none" stroke="#D9A066" strokeWidth="5" strokeLinecap="round" />
-    </g>
-  </>;
-}
-
 /** A tin lunch box with its lid up, an apple, a sandwich and a carrot peeking out. */
 function LunchboxArt() {
   return <>
@@ -430,7 +411,6 @@ export const PROPS_C: Record<string, PropDef> = {
   'c-dispenser': { label: 'A big drink jug on a stand with a tap, a cup under it and a stack of cups', art: DispenserArt, ledge: true },
   'c-pie': { label: 'A steaming lattice pie in its tin with a cherry on top', art: PieArt, ledge: true },
   'c-sandwiches': { label: 'A plate piled with sandwiches and a few crumbs', art: SandwichesArt, ledge: true },
-  'c-fruitbowl': { label: 'A big bowl of mixed fruit with a wooden spoon', art: FruitBowlArt, ledge: true },
   'c-lunchbox': { label: 'A tin lunch box with its lid open and food peeking out', art: LunchboxArt, ledge: true },
   'c-hopper': { label: 'A metal hopper full of bolts that drop into a bin', art: HopperArt, ledge: true },
   'c-nutpile': { label: 'A heap of shiny nuts with a shovel in it', art: NutPileArt, ledge: true },
@@ -449,16 +429,16 @@ export const LESSONS_C: Record<string, string> = {
   'fraction-recipes': 'c-flour',                    // "Let's bake for the racers with my recipe."
   'party-portions': 'c-dispenser',                  // "Every racer gets a drink. Is my jug big enough?"
   'add-unlike-fractions': 'c-pie',                  // chapter 10: "Pip's pie is cut a different way."
-  'subtract-unlike-fractions': 'c-sandwiches',      // "I packed lots of sandwiches. Some are already gone!"
-  'mixed-unlike-operations': 'c-fruitbowl',         // "Mixing everything is tricky."
+  'subtract-unlike-fractions': 'b-donut',           // "I ate some. Oops. How much is left?"
+  'mixed-unlike-operations': 'c-sandwiches',       // "The picnic has whole sandwiches and parts of sandwiches."
   'estimate-fraction-operations': 'c-lunchbox',     // "About how much food is left?"
   'sets-nonunit': 'c-hopper',                       // chapter 11: "Some bolts already went into the machine!"
   'fraction-of-quantity': 'c-nutpile',              // "The machine wants part of my nut pile!"
   'multiply-fractions': 'c-plankgate',              // "My machine shrinks a plank."
   'fraction-times-fraction': 'c-lasercutter',       // "My machine cuts a panel."
   'fraction-of-collection': 'c-toolbox',            // "My machine needs part of my bolt box."
-  'multiplication-scaling': 'c-raygun',             // "Will this setting make it bigger or smaller?"
-  'bigger-or-smaller': 'c-gauge',                   // "Bolt fixes his dial."
+  'multiplication-scaling': 'c-gauge',              // "The dial is stuck! Will this setting make it bigger or smaller?"
+  'bigger-or-smaller': 'c-raygun',                  // "Before it runs, let's check: bigger, smaller or the same?"
 };
 export const ENDS_C: Record<number, EndDef> = {
   9: { art: RaceEndArt, label: "Tilly's race map on an easel, with a dashed route and a pin, and the stone piece glowing beside it" },

@@ -34,7 +34,7 @@ test('every lesson with a film prop is a real lesson after its chapter opener (o
 test('the sample lessons each get their own object', () => {
   assert.deepEqual(
     ['benchmarks-zero-one', 'subtract-like-denominators', 'hundredths-decimals', 'line-plot-totals', 'fractional-sharing', 'plot-in-eighths'].map(lessonPropFor),
-    ['flag', 'jar', 'note', 'beakers', 'loaves', 'pebbles'],
+    ['flag', 'jar', 'note', 'barrel', 'loaves', 'leaves'],
   );
 });
 
@@ -70,7 +70,7 @@ test('the prop is under fq-cine-move, so both Reduce motion rules hold it still,
   assert.ok(!/filter:|backdrop-filter|mix-blend-mode|box-shadow|url\(/.test(css), 'no filters, blends, shadows or images');
   assert.ok(!/infinite/.test(css), 'nothing loops forever: a loop keeps a phone repainting');
   // A still picture is complete: the resting style of the hidden parts is not hidden (only the drip, which has no still).
-  assert.ok(!/\.fq-fp-(cookie|lens|pebble|loaf|flag)\s*\{[^}]*opacity: *0/.test(css));
+  assert.ok(!/\.fq-fp-(cookie|lens|leaf|loaf|flag)\s*\{[^}]*opacity: *0/.test(css));
 });
 
 test('the beat adds a class, and the end pictures exist for every chapter', () => {

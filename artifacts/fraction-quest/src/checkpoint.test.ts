@@ -136,3 +136,19 @@ test('a lesson saved partway before the checkpoint existed: a place inside the i
     assert.ok(!savedPlaceStillFits(mission, { index: 2, plan: 'old-plan' }) && !savedPlaceStillFits(mission, { index: 2 }), `${mission.id}: another version's place starts over`);
   }
 });
+
+test('no checkpoint question gives itself away: some number in it differs from its right answer ("Write 1/1 as a whole number" is out)', () => {
+  const easy: string[] = [];
+  for (const mission of MISSIONS) for (const question of lessonCheckpoint(mission)) {
+    const numbers = question.prompt.match(/\d+(?:\.\d+)?/g) ?? [];
+    if (numbers.length && numbers.every((n) => n === question.choices[question.correctChoice])) easy.push(`${question.id}: ${question.prompt}`);
+  }
+  assert.deepEqual(easy, []);
+});
+
+test('a worked "why" for a whole as a fraction reads right for every denominator, 1 included', () => {
+  const why = (prompt: string) => workedWhy('whole-numbers-as-fractions', { prompt, choices: ['1'], correctChoice: 0 } as never) ?? '';
+  assert.doesNotMatch(why('Write 1/1 as a whole number.'), /all 1 parts/);
+  assert.match(why('Write 1/1 as a whole number.'), /1\.$/);
+  assert.equal(why('Write 4/4 as a whole number.'), '4/4 has all 4 parts of the whole, so it is 1.');
+});

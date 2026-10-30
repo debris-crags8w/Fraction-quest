@@ -17,6 +17,7 @@ export type FilmSnap = {
   fractions: { text: string; box: Box }[]; // every written fraction in the picture
   bunting: Box | null;
   ribbon: Box | null;        // a chapter ending's "N of 15 pieces" label (once it shows)
+  prop: Box | null;          // the drawn part of the lesson or chapter-ending prop
 };
 
 export const BAR_PX = 30;
@@ -78,6 +79,14 @@ export async function watchFilm(page: Page) {
       const r = el.getBoundingClientRect();
       return { l: r.left, t: r.top, r: r.right, b: r.bottom };
     };
+    /** The part of a prop's picture that is drawn (its shapes, without the soft glow round a stone piece), not its whole box. */
+    const drawn = (svg: Element | null) => {
+      if (!svg) return null;
+      const parts = [...svg.querySelectorAll('path, rect, circle, ellipse, line, polygon')]
+        .filter((part) => !part.classList.contains('fq-fp-aura') && getComputedStyle(part).opacity !== '0')
+        .map((part) => part.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0);
+      return parts.length ? { l: Math.min(...parts.map((r) => r.left)), t: Math.min(...parts.map((r) => r.top)), r: Math.max(...parts.map((r) => r.right)), b: Math.max(...parts.map((r) => r.bottom)) } : null;
+    };
     const snap = () => {
       const comic = document.querySelector('[data-testid=story-panels]');
       const caption = document.querySelector('.fq-cine-caption');
@@ -98,7 +107,8 @@ export async function watchFilm(page: Page) {
         actors: actorsOf.map((actor) => ({ who: actor.firstElementChild?.getAttribute('data-character') ?? actor.firstElementChild?.getAttribute('class') ?? 'actor', box: box(actor.firstElementChild)! })),
         fractions: [...document.querySelectorAll('.fq-cine-set .fq-cine-frac')].map((frac) => ({ text: frac.getAttribute('aria-label') ?? '', box: box(frac)! })),
         bunting: box(document.querySelector('.fq-cine-set .fq-cine-bunting')),
-        ribbon: box(document.querySelector('.fq-cine-set .fq-cine-end-ribbon.is-visible')),
+        ribbon: box(document.querySelector('.fq-cine-end-ribbon.is-visible')),
+        prop: drawn(document.querySelector('.fq-cine-set [data-testid=film-prop] svg')),
       });
     };
     // A caption is new each shot (it is keyed by the shot). Look once the browser has laid it out.

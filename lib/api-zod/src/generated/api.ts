@@ -303,26 +303,34 @@ export const GetLearnerProgressParams = zod.object({
 export const GetLearnerProgressResponse = zod.object({
   "progress": zod.record(zod.string(), zod.unknown()).nullable(),
   "fun": zod.record(zod.string(), zod.unknown()).nullable(),
-  "updatedAt": zod.coerce.date().nullable()
+  "updatedAt": zod.coerce.date().nullable(),
+  "version": zod.number().int().describe('Goes up by one with every save or clear of this learner\'s progress.')
 })
 
 
 /**
+ * Send the `version` this device last loaded or saved. A save from an older copy is refused with 409. A save without a version (an older app) is accepted and replaces the saved copy, as before.
  * @summary Save learning data for one profile
  */
 export const SaveLearnerProgressParams = zod.object({
   "profileId": zod.coerce.number().int()
 })
 
+export const saveLearnerProgressBodyVersionMin = 0;
+
+
+
 export const SaveLearnerProgressBody = zod.object({
   "progress": zod.record(zod.string(), zod.unknown()),
-  "fun": zod.record(zod.string(), zod.unknown())
+  "fun": zod.record(zod.string(), zod.unknown()),
+  "version": zod.number().int().min(saveLearnerProgressBodyVersionMin).optional().describe('The saved copy\'s version this device last loaded or saved.')
 })
 
 export const SaveLearnerProgressResponse = zod.object({
   "progress": zod.record(zod.string(), zod.unknown()).nullable(),
   "fun": zod.record(zod.string(), zod.unknown()).nullable(),
-  "updatedAt": zod.coerce.date().nullable()
+  "updatedAt": zod.coerce.date().nullable(),
+  "version": zod.number().int().describe('Goes up by one with every save or clear of this learner\'s progress.')
 })
 
 

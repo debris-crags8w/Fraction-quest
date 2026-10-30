@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import {
   classroomsTable,
@@ -17,6 +17,7 @@ import {
 import { requireParentConsent, requireUser, type AuthedRequest } from "../middlewares/require-user";
 import { createRateLimiter } from "../lib/rate-limit";
 import { ensureDefaultLearnerProfile } from "../lib/family";
+import { decideProgressSave } from "../lib/progress-save";
 
 const router: IRouter = Router();
 const MAX_PROGRESS_BYTES = 200_000;
@@ -137,7 +138,7 @@ router.get("/family/profiles/:profileId/progress", async (req, res): Promise<voi
     res.status(404).json({ error: "That learner profile was not found." });
     return;
   }
-  res.json({ progress: profile.progress, fun: profile.fun, updatedAt: profile.updatedAt });
+  res.json({ progress: profile.progress, fun: profile.fun, updatedAt: profile.updatedAt, version: profile.progressVersion });
 });
 
 router.put("/family/profiles/:profileId/progress", async (req, res): Promise<void> => {
@@ -152,16 +153,36 @@ router.put("/family/profiles/:profileId/progress", async (req, res): Promise<voi
     res.status(400).json({ error: "Progress data is too large." });
     return;
   }
-  const updatedAt = new Date();
-  const [profile] = await db.update(learnerProfilesTable)
-    .set({ progress: parsed.data.progress, fun: parsed.data.fun, updatedAt })
-    .where(and(eq(learnerProfilesTable.id, profileId), eq(learnerProfilesTable.ownerUserId, user.id)))
-    .returning();
-  if (!profile) {
+  const { progress, fun, version } = parsed.data;
+  // The row is locked while it is checked and written, so two devices saving at once cannot both pass the check.
+  const outcome = await db.transaction(async (tx) => {
+    const [current] = await tx.select().from(learnerProfilesTable)
+      .where(and(eq(learnerProfilesTable.id, profileId), eq(learnerProfilesTable.ownerUserId, user.id)))
+      .for("update")
+      .limit(1);
+    if (!current) return null;
+    const decision = decideProgressSave({ version: current.progressVersion, resetVersion: current.progressResetVersion }, version);
+    if (decision.kind === "conflict") return { kind: "conflict", row: current, clearedSince: decision.clearedSince } as const;
+    const [saved] = await tx.update(learnerProfilesTable)
+      .set({ progress, fun, updatedAt: new Date(), progressVersion: decision.nextVersion })
+      .where(eq(learnerProfilesTable.id, current.id))
+      .returning();
+    return { kind: "saved", row: saved! } as const;
+  });
+  if (!outcome) {
     res.status(404).json({ error: "That learner profile was not found." });
     return;
   }
-  res.json({ progress: profile.progress, fun: profile.fun, updatedAt });
+  const { row } = outcome;
+  if (outcome.kind === "conflict") {
+    // Another device saved (or the progress was cleared) since this copy was loaded: nothing is replaced.
+    res.status(409).json({
+      error: "This learner's progress changed on another device.",
+      progress: row.progress, fun: row.fun, updatedAt: row.updatedAt, version: row.progressVersion, clearedSince: outcome.clearedSince,
+    });
+    return;
+  }
+  res.json({ progress: row.progress, fun: row.fun, updatedAt: row.updatedAt, version: row.progressVersion });
 });
 
 router.delete("/family/profiles/:profileId/progress", async (req, res): Promise<void> => {
@@ -171,8 +192,13 @@ router.delete("/family/profiles/:profileId/progress", async (req, res): Promise<
     res.status(404).json({ error: "That learner profile was not found." });
     return;
   }
+  // Clearing is a new version too; a device holding the old copy is told it was cleared and does not merge it back.
   const [profile] = await db.update(learnerProfilesTable)
-    .set({ progress: {}, fun: {}, updatedAt: new Date() })
+    .set({
+      progress: {}, fun: {}, updatedAt: new Date(),
+      progressVersion: sql`${learnerProfilesTable.progressVersion} + 1`,
+      progressResetVersion: sql`${learnerProfilesTable.progressVersion} + 1`,
+    })
     .where(and(eq(learnerProfilesTable.id, profileId), eq(learnerProfilesTable.ownerUserId, user.id)))
     .returning({ id: learnerProfilesTable.id });
   if (!profile) {

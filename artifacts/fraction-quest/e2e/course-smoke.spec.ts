@@ -11,6 +11,7 @@ import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
 import { generateQuestions, getExtraPractice, hasGenerator } from '../src/practice-bank';
 import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
 import { seasonOn } from '../src/seasons';
+import { STONE_QUESTIONS } from '../src/story';
 import { completeCheckpoint, completeIdeas, finishPutTogether, hasStoryAfterIdeas, solveSortRound } from './lesson-walk';
 import { makeSprint } from '../src/CodeSprint';
 import type { Mission } from '../src/game';
@@ -3128,8 +3129,9 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(page.getByTestId('stone-teaser')).toContainText('Under the crumbs the stone piece glows');
   await page.getByTestId(`button-start-mission-${second.id}`).click();
   await expect(page.getByTestId('story-panel-0')).toContainText('Can pieces of different shapes still be fair?');
-  await expect(page.getByTestId('story-panel-1')).toContainText(`Today’s lesson is ${second.title.charAt(0).toLowerCase()}`);
-  await expect(page.getByTestId('story-panel-2')).toContainText(second.skill.split(' ').slice(-4).join(' '));
+  // With the voice off the film moves on by itself at a young reader's pace (about 12 characters a second plus 2 s).
+  await expect(page.getByTestId('story-panel-1')).toContainText(`Today’s lesson is ${second.title.charAt(0).toLowerCase()}`, { timeout: 15_000 });
+  await expect(page.getByTestId('story-panel-2')).toContainText(second.skill.split(' ').slice(-4).join(' '), { timeout: 20_000 });
   await expect(page.getByTestId('story-choice')).toHaveCount(0);
   // Lesson 2 ("Fair parts in any shape"): in its last idea, Chomp asks and the cast shares the cake.
   await passStory(page);
@@ -3182,7 +3184,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await expect(payoff.getByTestId('story-problem-result')).toContainText('covers more, so the hungriest frog gets it. Ribbit!');
   // The stone question comes first: a miss gets a kind nudge, the right fraction shows the piece.
   await expect(payoff.getByTestId('stone-found')).toHaveCount(0);
-  await expect(payoff.getByTestId('stone-question')).toContainText('How much of the Whole Stone is back?');
+  await expect(payoff.getByTestId('stone-question')).toContainText(new RegExp(STONE_QUESTIONS.map((line) => line.replace(/[.?!]/g, '\\$&')).join('|')));
   await payoff.getByTestId('button-stone-choice-0').click();
   await payoff.getByTestId('button-stone-check').click();
   await expect(payoff.getByTestId('stone-question-feedback')).toContainText('Good try!');
@@ -3230,6 +3232,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   // A finished chapter's ending (thanks, clue, what happens next) can be read again; an unfinished one is locked.
   await page.getByTestId('storybook-chapter-2').locator('summary').click();
   await page.getByTestId('button-storybook-end-2').click();
+  await showWholeComic(page);
   await expect(page.getByTestId('story-panel-0')).toContainText('Best party ever!');
   await expect(page.getByTestId('story-panel-1')).toContainText('A big green tail by the pond');
   await expect(page.getByTestId('story-panel-2')).toContainText('How the math won it: Thirds are bigger than eighths');
@@ -3413,6 +3416,42 @@ test('the mystery is playable: picture clues, a suspect board after chapter 4, s
   await page.getByTestId(`button-start-mission-${chapterEight.id}`).click();
   await showWholeComic(page);
   await expect(page.getByTestId('story-detective-note')).toContainText('you suspected Chomp');
+});
+
+test('the detective play goes on: the boards after chapters 10, 12 and 14 open, fit a phone and take a fair guess', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 664 });
+  await openAsGuest(page);
+  const lastChapter = MISSIONS.find((item) => item.unit === 15)!;
+  await page.evaluate(({ progress }) => {
+    localStorage.setItem('fraction-quest-progress-v1:guest', JSON.stringify(progress));
+    const fun = JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}');
+    fun.story = { prologueSeen: true, choices: {} };
+    localStorage.setItem('fraction-quest-fun-v1:guest', JSON.stringify(fun));
+  }, { progress: progressBefore(lastChapter) });
+  await page.goto('/');
+  for (const [board, wrong, right, question] of [[3, 'bea', 'bolt', 'sorry note'], [4, 'tilly', 'pip', 'wet paint'], [5, 'tilly', 'chomp', 'missing stone piece']] as const) {
+    if (await page.getByTestId('town-place-1').isVisible()) await page.getByTestId('town-place-1').click();
+    await page.getByTestId('tab-storybook-clues').click();
+    await page.getByTestId(`button-storybook-suspects-${board}`).click();
+    await expect(page.getByTestId('suspect-board')).toContainText(question);
+    await expect(page.getByTestId('suspect-clue')).toHaveCount(3);
+    await page.getByTestId(`button-suspect-${wrong}`).click();
+    // The whole board, to the guess button, fits the phone without scrolling.
+    const go = await page.getByTestId('button-suspect-guess').boundingBox();
+    expect(go!.y + go!.height).toBeLessThanOrEqual(664);
+    if (process.env.FQ_SHOTS) await page.screenshot({ path: `${process.env.FQ_SHOTS}/board-${board}.png` });
+    await page.getByTestId('button-suspect-guess').click();
+    await expect(page.getByTestId('suspect-reply')).toContainText('doesn’t fit every clue');
+    await page.getByTestId(`button-suspect-${right}`).click();
+    await page.getByTestId('button-suspect-guess').click();
+    await expect(page.getByTestId('suspect-reply')).not.toContainText('doesn’t fit');
+    const done = await page.getByTestId('button-suspects-done').boundingBox();
+    expect(done!.y + done!.height).toBeLessThanOrEqual(664);
+    if (process.env.FQ_SHOTS) await page.screenshot({ path: `${process.env.FQ_SHOTS}/board-${board}-solved.png` });
+    await page.getByTestId('button-suspects-done').click();
+  }
+  const guesses = await page.evaluate(() => JSON.parse(localStorage.getItem('fraction-quest-fun-v1:guest') ?? '{}').story?.guesses);
+  expect(guesses).toEqual({ '3': 'bolt', '4': 'pip', '5': 'chomp' });
 });
 
 test('a reload or the back button keeps the child’s place in a lesson’s practice', async ({ page }) => {

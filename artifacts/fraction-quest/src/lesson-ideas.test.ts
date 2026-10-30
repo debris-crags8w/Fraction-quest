@@ -257,14 +257,41 @@ test('hint fading: after a right answer without the hint in an idea, its later h
   assert.equal(hintNudge('Add the numerators. Keep sixths.'), 'Add the numerators.');
   assert.equal(hintNudge('Write both in hundredths: 0.5 is 50 hundredths. How many hundredths is 0.45?'), 'Write both in hundredths: 0.5 is 50 hundredths.');
   assert.equal(hintNudge('Look at the denominator.'), 'Look at the denominator.', 'a one-sentence hint is already short');
-  let fading = 0;
-  for (const mission of MISSIONS) for (const { item } of ideaSteps(mission.id)) {
-    if (!('question' in item)) continue;
-    const hint = ideaQuestion(mission, item.question)!.hint;
-    const nudge = hintNudge(hint);
-    // Its own sentence of the hint, so it is already in the voice pack (clips are per sentence) and never says more than the hint.
-    assert.ok(nudge && hint.startsWith(nudge), `${item.question}: ${nudge}`);
-    if (nudge !== hint) fading++;
+  let fading = 0; const still: string[] = [];
+  const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
+  const numbers = (text: string) => text.match(/\d+/g) ?? [];
+  for (const mission of MISSIONS) {
+    const seen = new Map<number, number>();
+    for (const { idea, item } of ideaSteps(mission.id)) {
+      if (!('question' in item)) continue;
+      const later = (seen.get(idea) ?? 0) > 0; seen.set(idea, (seen.get(idea) ?? 0) + 1);
+      const hint = ideaQuestion(mission, item.question)!.hint;
+      const nudge = hintNudge(hint);
+      if (nudge === hint) { if (later && words(hint) > 4) still.push(`${item.question}: ${hint}`); continue; }
+      fading++;
+      // A longer hint fades to its own first sentence (already in the voice pack: clips are per sentence). A one-sentence
+      // hint fades to a few words naming the step: shorter, and with no number the hint does not have.
+      if (hint.startsWith(nudge)) continue;
+      assert.ok(words(nudge) < words(hint) && words(nudge) <= 6, `${item.question}: "${nudge}" is not a short nudge for "${hint}"`);
+      for (const n of numbers(nudge)) assert.ok(numbers(hint).includes(n), `${item.question}: "${nudge}" adds ${n}`);
+    }
   }
-  assert.ok(fading > 300, `${fading} idea hints have a shorter nudge`);
+  // Every later practice whose hint is more than a few words has something shorter to fade to.
+  assert.deepEqual(still, []);
+  assert.ok(fading > 400, `${fading} idea hints have a shorter nudge`);
+});
+
+test('a one-sentence hint fades to a few words naming the step', () => {
+  assert.equal(hintNudge('Count the copies of 1/6.'), 'Count the copies.');
+  assert.equal(hintNudge('Change 2/10 into hundredths first.'), 'Change to hundredths first.');
+  assert.equal(hintNudge('Look at the numerator.'), 'Look at the numerator.', 'four words is already a nudge');
+});
+
+test('divide-fractions idea 1 runs easiest first: 1/2 in eighths or sixths before renaming 5/6 in twelfths', () => {
+  const mission = MISSIONS.find((item) => item.id === 'divide-fractions')!;
+  const first = ideaSteps(mission.id).filter(({ idea }) => idea === 0).map(({ item }) => ideaQuestion(mission, (item as { question: string }).question)!);
+  const amount = (prompt: string) => /fill (\d+)\/(\d+) cup/.exec(prompt)!.slice(1).map(Number);
+  assert.deepEqual(amount(first[0]!.prompt)[0], 1, `${first[0]!.prompt} opens the idea`);
+  assert.deepEqual(amount(first[1]!.prompt)[0], 1, `${first[1]!.prompt} is second`);
+  assert.ok(amount(first[2]!.prompt)[0] > 1, 'the non-unit amount comes last');
 });

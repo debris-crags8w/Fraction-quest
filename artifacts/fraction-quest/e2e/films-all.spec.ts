@@ -155,7 +155,10 @@ test('a lesson film from every chapter plays on a phone with sound, music and a 
   expect(await page.evaluate(() => (window as unknown as { notes: number }).notes), 'the music played').toBeGreaterThan(10);
 });
 
-test('every chapter opening keeps its characters and written fractions inside the picture, and the set never shows a gap at the edge', async ({ page }) => {
+/** In a chapter opening, how much of a character may sit under the caption: a foot or a tail, never the face. */
+const OPENING_CAPTION_TOLERANCE = 0.2;
+
+test('every chapter opening keeps its characters and written fractions inside the picture and clear of the caption, and the set never shows a gap at the edge', async ({ page }) => {
   test.setTimeout(8 * 60_000);
   const MISSIONS = await openStorybook(page, false, true);
   const { CHAPTERS } = await import('../src/story');
@@ -175,8 +178,18 @@ test('every chapter opening keeps its characters and written fractions inside th
       expect.soft(shot.set.t, `${where}: set's top edge`).toBeLessThanOrEqual(shot.screen.t + 0.5);
       expect.soft(shot.set.r, `${where}: set's right edge`).toBeGreaterThanOrEqual(shot.screen.r - 0.5);
       expect.soft(shot.set.b, `${where}: set's bottom edge`).toBeGreaterThanOrEqual(shot.screen.b - 0.5);
-      for (const actor of shot.actors) expect.soft(visibleShare(actor.box, shot.frame), `${where}: ${actor.who} is inside the picture`).toBeGreaterThanOrEqual(0.85);
-      for (const fraction of shot.fractions) expect.soft(visibleShare(fraction.box, shot.frame), `${where}: ${fraction.text} is inside the picture`).toBeGreaterThanOrEqual(0.85);
+      // Every character, on every line, is inside the picture and not behind the caption (the camera pushes in on
+      // some lines, so each line is checked where its camera ends up).
+      for (const actor of shot.actors) {
+        // A character's box has about 8 px of empty margin round the drawing: the drawing itself is what must show.
+        const body = { l: actor.box.l + 8, t: actor.box.t + 8, r: actor.box.r - 8, b: actor.box.b - 8 };
+        expect.soft(visibleShare(body, shot.frame), `${where}: ${actor.who} is inside the picture`).toBeGreaterThanOrEqual(0.92);
+        expect.soft(coveredShare(body, shot.captionBox), `${where}: ${actor.who} is behind the caption`).toBeLessThanOrEqual(OPENING_CAPTION_TOLERANCE);
+      }
+      for (const fraction of shot.fractions) {
+        expect.soft(visibleShare(fraction.box, shot.frame), `${where}: ${fraction.text} is inside the picture`).toBeGreaterThanOrEqual(0.85);
+        expect.soft(coveredShare(fraction.box, shot.captionBox), `${where}: ${fraction.text} is behind the caption`).toBeLessThanOrEqual(COVER_TOLERANCE);
+      }
       // The bunting is cut by the top bar or fully there, never a thin line under it.
       if (shot.bunting) {
         const shown = Math.min(shot.bunting.b, shot.frame.b) - Math.max(shot.bunting.t, shot.frame.t);
@@ -186,7 +199,7 @@ test('every chapter opening keeps its characters and written fractions inside th
   }
 });
 
-test('every chapter ending keeps its speaker, friend and "pieces" label inside the picture, and nobody sits on anybody', async ({ page }) => {
+test('every chapter ending keeps its speaker, friend and "pieces" label inside the picture, the label off the prop, and nobody sits on anybody', async ({ page }) => {
   test.setTimeout(8 * 60_000);
   await openStorybook(page, false, true);
   const { CHAPTERS } = await import('../src/story');
@@ -211,8 +224,12 @@ test('every chapter ending keeps its speaker, friend and "pieces" label inside t
       for (let i = 0; i < shot.actors.length; i += 1) for (let j = i + 1; j < shot.actors.length; j += 1) {
         expect.soft(coveredShare(shot.actors[i]!.box, shot.actors[j]!.box), `${where}: ${shot.actors[i]!.who} sits on ${shot.actors[j]!.who}`).toBeLessThanOrEqual(COVER_TOLERANCE);
       }
-      // The label is cut by neither the top letterbox bar nor the sides.
-      if (shot.ribbon) expect.soft(shot.ribbon.t, `${where}: the pieces label is under the top bar`).toBeGreaterThanOrEqual(shot.frame.t);
+      // The label is cut by neither the top letterbox bar nor the sides, and it never crosses the chapter's prop.
+      if (shot.ribbon) {
+        expect.soft(shot.ribbon.t, `${where}: the pieces label is under the top bar`).toBeGreaterThanOrEqual(shot.frame.t);
+        expect.soft(visibleShare(shot.ribbon, shot.frame), `${where}: the pieces label is inside the picture`).toBe(1);
+        expect.soft(coveredShare(shot.ribbon, shot.prop), `${where}: the pieces label crosses the prop`).toBe(0);
+      }
     }
   }
 });
