@@ -124,6 +124,64 @@ test('after a subscription ends, the child is told their progress is saved and c
   await expect(page.getByTestId('subscribe-ask')).toHaveCount(0);
 });
 
+test('after a subscription ends, the paywall and the grown-ups page promise no free trial', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('fraction-quest-subscribed-once', '1'));
+  const plans = [{ plan: 'yearly', price: '$39.99', amount: 39.99, currency: 'USD' }, { plan: 'monthly', price: '$4.99', amount: 4.99, currency: 'USD' }];
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openInApp(page, { state: 'none', price: '$4.99', plans }, ['fraction-names']);
+  await page.getByTestId('button-start-mission-equal-parts').click();
+  await page.getByTestId('button-get-grown-up').click();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+  const paywall = page.getByTestId('paywall');
+  await expect(paywall).toBeVisible();
+  await expect(paywall.getByRole('heading', { level: 1 })).toHaveText('Keep learning with Fraction Quest');
+  await expect(page.getByTestId('paywall-price')).toHaveText('$39.99 a year');
+  await expect(page.getByTestId('button-start-trial')).toHaveText('Subscribe');
+  await expect(paywall).not.toContainText(/free|trial|7 days/i);
+  await expect(paywall).not.toContainText('your phone');
+  await page.screenshot({ path: test.info().outputPath('paywall-lapsed.png') });
+  expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(0);
+  await page.getByTestId('button-start-trial').click();
+  expect(await asked(page)).toEqual([{ type: 'subscription', action: 'buy', plan: 'yearly' }]);
+
+  await page.getByTestId('button-paywall-close').click();
+  await page.getByTestId('button-app-menu').click();
+  await page.getByTestId('button-open-parent').click();
+  const again = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
+  const pair = again!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(pair[1]) * Number(pair[2])));
+  await page.getByTestId('button-parent-gate').click();
+  await openSettings(page, 'Subscription');
+  const section = page.getByTestId('section-subscription');
+  await expect(page.getByTestId('subscription-status')).toHaveText('Lessons are locked. Subscribe for $39.99 a year or $4.99 a month.');
+  await expect(page.getByTestId('button-parent-start-trial-yearly')).toHaveText('Subscribe yearly');
+  await expect(page.getByTestId('button-parent-start-trial-monthly')).toHaveText('Subscribe monthly');
+  await expect(section).not.toContainText(/free|trial/i);
+  await page.screenshot({ path: test.info().outputPath('settings-lapsed.png') });
+});
+
+test('a store account the store gives no trial (on Android) sees no trial, and is told to cancel in Google Play', async ({ page }) => {
+  await openInApp(page, { state: 'none', price: '$4.99', trial: false }, ['fraction-names']);
+  await page.evaluate(() => {
+    const scope = window as Window & { fractionQuestShell?: { platform?: string } };
+    scope.fractionQuestShell!.platform = 'android';
+    window.dispatchEvent(new Event('fraction-quest-shell'));
+  });
+  await page.getByTestId('button-start-mission-equal-parts').click();
+  await page.getByTestId('button-get-grown-up').click();
+  const challenge = await page.getByTestId('parent-gate').getByText(/\d+\s×\s\d+\s=/).textContent();
+  const factors = challenge!.match(/(\d+)\s×\s(\d+)/)!;
+  await page.getByTestId('input-parent-gate').fill(String(Number(factors[1]) * Number(factors[2])));
+  await page.getByTestId('button-parent-gate').click();
+  const paywall = page.getByTestId('paywall');
+  await expect(page.getByTestId('paywall-price')).toHaveText('$4.99 a month');
+  await expect(paywall).toContainText('Renews until cancelled. Cancel anytime in Google Play.');
+  await expect(paywall).not.toContainText(/free|trial/i);
+});
+
 test('the grown-ups page shows the subscription and opens the store to manage it', async ({ page }) => {
   await openInApp(page, { state: 'active', renewsAt: new Date(2026, 10, 3).getTime() });
   await page.getByTestId('button-app-menu').click();

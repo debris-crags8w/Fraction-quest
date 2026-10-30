@@ -22,6 +22,10 @@ export const learnerProfilesTable = pgTable("learner_profiles", {
   assignedUnitIds: jsonb("assigned_unit_ids").$type<string[]>().notNull().default([]),
   progress: jsonb("progress").$type<Record<string, unknown>>().notNull().default({}),
   fun: jsonb("fun").$type<Record<string, unknown>>().notNull().default({}),
+  /** Goes up by one with every save or clear of progress, so a device saving an older copy is refused, not obeyed. */
+  progressVersion: integer("progress_version").notNull().default(0),
+  /** The progressVersion at the last clear (0: never), so a device does not merge cleared lessons back in. */
+  progressResetVersion: integer("progress_reset_version").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
@@ -29,7 +33,7 @@ export const learnerProfilesTable = pgTable("learner_profiles", {
 ]);
 
 export const insertClassroomSchema = createInsertSchema(classroomsTable).omit({ id: true, createdAt: true });
-export const insertLearnerProfileSchema = createInsertSchema(learnerProfilesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertLearnerProfileSchema = createInsertSchema(learnerProfilesTable).omit({ id: true, createdAt: true, updatedAt: true, progressVersion: true, progressResetVersion: true });
 export type InsertClassroom = z.infer<typeof insertClassroomSchema>;
 export type InsertLearnerProfile = z.infer<typeof insertLearnerProfileSchema>;
 export type Classroom = typeof classroomsTable.$inferSelect;

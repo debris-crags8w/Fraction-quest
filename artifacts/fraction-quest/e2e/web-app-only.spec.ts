@@ -145,3 +145,25 @@ test('a child placed ahead who never played lesson 1 is not told they found the 
   await expect(getApp).toContainText('The first lesson is free to play here.');
   await expect(getApp).not.toContainText('finished the free first lesson');
 });
+
+test('the grown-up check keeps its wait when the child taps Back and opens it again', async ({ page }) => {
+  await page.clock.install();
+  await openWebsite(page, ['fraction-names']);
+  await page.getByTestId('button-start-mission-equal-parts').click();
+  await page.getByTestId('button-get-grown-up').click();
+  for (let i = 0; i < 3; i += 1) {
+    await page.getByTestId('input-parent-gate').fill('1');
+    await page.getByTestId('button-parent-gate').click();
+  }
+  await expect(page.getByTestId('text-parent-gate-wait')).toContainText('Please wait');
+  // Leaving and coming back does not give three fresh guesses.
+  await page.getByTestId('button-parent-back').click();
+  await expect(page.getByTestId('web-app-only')).toBeVisible();
+  await page.getByTestId('button-get-grown-up').click();
+  await expect(page.getByTestId('text-parent-gate-wait')).toContainText('Please wait');
+  await page.getByTestId('input-parent-gate').fill('1');
+  await expect(page.getByTestId('button-parent-gate')).toBeDisabled();
+  await page.clock.runFor(31_000);
+  await expect(page.getByTestId('text-parent-gate-wait')).toHaveCount(0);
+  await expect(page.getByTestId('button-parent-gate')).toBeEnabled();
+});

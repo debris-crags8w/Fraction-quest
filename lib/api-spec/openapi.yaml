@@ -445,7 +445,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SavedProgress"
+                $ref: "#/components/schemas/SavedLearnerProgress"
         "404":
           description: Profile not found for this account
           content:
@@ -456,6 +456,9 @@ paths:
       operationId: saveLearnerProgress
       tags: [family, progress]
       summary: Save learning data for one profile
+      description: >-
+        Send the `version` this device last loaded or saved. A save from an older copy is refused with 409. A save
+        without a version (an older app) is accepted and replaces the saved copy, as before.
       parameters:
         - name: profileId
           in: path
@@ -467,20 +470,28 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ProgressPayload"
+              $ref: "#/components/schemas/LearnerProgressPayload"
       responses:
         "200":
           description: Saved profile progress
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SavedProgress"
+                $ref: "#/components/schemas/SavedLearnerProgress"
         "400":
           description: Invalid progress data
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: >-
+            The saved copy changed since this device loaded the version it sent (another device saved, or the
+            progress was cleared). Nothing was saved; the current copy is returned so the device can merge and save again.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearnerProgressConflict"
         "404":
           description: Profile not found for this account
           content:
@@ -979,6 +990,68 @@ components:
       required:
         - progress
         - fun
+    LearnerProgressPayload:
+      type: object
+      properties:
+        progress:
+          type: object
+          additionalProperties: true
+        fun:
+          type: object
+          additionalProperties: true
+        version:
+          type: integer
+          minimum: 0
+          description: The saved copy's version this device last loaded or saved.
+      required:
+        - progress
+        - fun
+    SavedLearnerProgress:
+      type: object
+      properties:
+        progress:
+          type: ["object", "null"]
+          additionalProperties: true
+        fun:
+          type: ["object", "null"]
+          additionalProperties: true
+        updatedAt:
+          type: ["string", "null"]
+          format: date-time
+        version:
+          type: integer
+          description: Goes up by one with every save or clear of this learner's progress.
+      required:
+        - progress
+        - fun
+        - updatedAt
+        - version
+    LearnerProgressConflict:
+      type: object
+      properties:
+        error:
+          type: string
+        progress:
+          type: ["object", "null"]
+          additionalProperties: true
+        fun:
+          type: ["object", "null"]
+          additionalProperties: true
+        updatedAt:
+          type: ["string", "null"]
+          format: date-time
+        version:
+          type: integer
+        clearedSince:
+          type: boolean
+          description: The progress was cleared after the version the device sent, so the device should not merge its older copy back in.
+      required:
+        - error
+        - progress
+        - fun
+        - updatedAt
+        - version
+        - clearedSince
     SavedProgress:
       type: object
       properties:

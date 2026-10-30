@@ -7,9 +7,10 @@ import { PLANS, type Plan, type PlanOffer, type SubscriptionAction, type Subscri
 type ExpoIap = typeof import('expo-iap');
 const IS_EXPO_GO = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-/* The subscription through Apple or Google: yearly or monthly, each with a 7-day free trial. The store owns the
-   prices, the trial and cancelling; the shell only asks it, and tells the page. The product IDs must match the ones
-   set up in App Store Connect (both in one subscription group) and Google Play. */
+/* The subscription through Apple or Google: yearly or monthly, each with a 7-day free trial for a store account that
+   has not had one (the store says which; see store-offers.ts). The store owns the prices, the trial and cancelling;
+   the shell only asks it, and tells the page. The product IDs must match the ones set up in App Store Connect (both
+   in one subscription group) and Google Play. */
 export const PRODUCT_IDS: Record<Plan, string> = {
   yearly: process.env.EXPO_PUBLIC_YEARLY_SUBSCRIPTION_ID?.trim() || 'fraction_quest_yearly',
   monthly: process.env.EXPO_PUBLIC_SUBSCRIPTION_ID?.trim() || 'fraction_quest_monthly',
@@ -25,6 +26,7 @@ export function useStoreSubscription(): [SubscriptionStatus | null, (action: Sub
   );
   const offerTokens = useRef<Partial<Record<Plan, string>>>({});
   const offers = useRef<PlanOffer[]>([]);
+  const trial = useRef<boolean | null>(null);
   const activeSku = useRef<string | null>(null);
   const connected = useRef(false);
   const storeApi = useRef<ExpoIap | null>(null);
@@ -36,6 +38,7 @@ export function useStoreSubscription(): [SubscriptionStatus | null, (action: Sub
     const prices = {
       price: offers.current.find((offer) => offer.plan === 'monthly')?.price ?? null,
       plans: offers.current,
+      trial: trial.current,
     };
     try {
       const subscriptions = await api.getActiveSubscriptions(SKUS);
@@ -79,6 +82,7 @@ export function useStoreSubscription(): [SubscriptionStatus | null, (action: Sub
         connected.current = true;
         offers.current = found.offers;
         offerTokens.current = found.tokens;
+        trial.current = found.trial;
       } catch {
         // No store here, or the subscription is not set up yet: the page treats it as unknown.
         storeApi.current = null;

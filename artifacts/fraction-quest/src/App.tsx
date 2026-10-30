@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type CSSProperties, type ReactNode, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LinePlotPicture } from './line-plot-picture';
 import { CoinsPicture } from './coins-picture';
 import { RulerPicture } from './ruler-picture';
@@ -21,6 +21,7 @@ import {
   getNextMission,
   isCorrectAnswer,
   isMissionUnlocked,
+  cleanProgress,
   loadProgress,
   addGrownUpPick,
   clearGrownUpPick,
@@ -65,7 +66,7 @@ import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requi
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { legalUrl } from './lib/legal';
-import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordFractionWords, recordIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, setTimeLimit, addMinutesToday, timeToday, today, type FunState } from './lib/fun';
+import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordFractionWords, recordIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, replaceFun, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, setTimeLimit, addMinutesToday, timeToday, today, type FunState } from './lib/fun';
 import { TimeUp } from './time-up';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
@@ -93,6 +94,8 @@ import { AreaShade, AreaSvg } from './AreaModel';
 import { GardenPlan } from './GardenPlan';
 import { applyPlacement } from './placement';
 import { AccountGate, useAccount, useAccountSync } from './account';
+import type { SavedCopyNotice } from './account-flow';
+import { mergeFun, mergeProgress } from './progress-merge';
 import LoginPage from './LoginPage';
 import { getRouterBasePath } from './app-routing';
 import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyPracticeDay, recordDailyPracticeStart } from './daily-practice';
@@ -1434,7 +1437,29 @@ function Game() {
   const breakIntervalMinutes = fun.breakPreferences?.intervalMinutes ?? 15;
   const quietBreaks = fun.breakPreferences?.quietMode ?? false;
   const activeStudyView = ['play', 'review', 'daily', 'lab', 'redo', 'extra', 'retention'].includes(view.type);
-  useAccountSync(progress, fun, !moduleTestActive);
+  // A save that met a copy saved on another device (a phone and a tablet) brings it back: merge it into what is on
+  // screen, so the next save keeps both devices' lessons. A copy a grown-up cleared replaces this one.
+  const latest = useRef({ progress, fun });
+  latest.current = { progress, fun };
+  const onSavedCopy = useCallback((notice: SavedCopyNotice) => {
+    const merge = (mine: { progress: Progress; fun: FunState }) => (notice.cleared
+      ? { progress: notice.progress, fun: notice.fun }
+      : { progress: mergeProgress(notice.progress, mine.progress), fun: mergeFun(notice.fun, mine.fun) });
+    const kept = originalModuleTestProgress.current;
+    if (kept) {
+      // A developer test is on screen: merge into the progress it gives back when it ends.
+      const merged = merge({ progress: kept, fun: originalModuleTestFun.current ?? latest.current.fun });
+      originalModuleTestProgress.current = merged.progress;
+      originalModuleTestFun.current = merged.fun;
+      return;
+    }
+    const merged = merge(latest.current);
+    const progressNow = cleanProgress(merged.progress);
+    setSaveError(!saveProgress(progressNow));
+    setProgress(progressNow);
+    setFun(replaceFun(merged.fun));
+  }, []);
+  useAccountSync(progress, fun, !moduleTestActive, onSavedCopy);
   const timeUpNow = !!timeToday(fun)?.up;
   useEffect(() => {
     answeredAtTimeUp.current = timeUpNow ? (fun.activity?.[today()]?.answered ?? 0) : null;

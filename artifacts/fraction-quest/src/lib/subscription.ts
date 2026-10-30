@@ -17,6 +17,9 @@ export type Subscription = {
   plans?: PlanOffer[];
   busy?: boolean;
   error?: string | null;
+  /** Whether the store will give this store account the 7-day free trial (Apple and Google give it once); null when
+      the store does not say (an older app). */
+  trial?: boolean | null;
 };
 export type SubscriptionAction = 'status' | 'buy' | 'restore' | 'manage';
 /** Shown when the store has no price yet (the store's own price text replaces it). */
@@ -35,6 +38,7 @@ export function readSubscription(): Subscription | null {
     plans: readPlans(raw.plans),
     busy: raw.busy === true,
     error: typeof raw.error === 'string' ? raw.error.slice(0, 200) : null,
+    trial: typeof raw.trial === 'boolean' ? raw.trial : null,
   };
 }
 
@@ -74,6 +78,27 @@ export function perMonth(offer: PlanOffer): string | null {
   try {
     return new Intl.NumberFormat(undefined, { style: 'currency', currency: offer.currency }).format(Math.floor((offer.amount / 12) * 100) / 100);
   } catch { return null; }
+}
+
+/** The words the paywall and the grown-ups' Subscription section use. The free trial is promised only to a family that
+    can get it: not after a subscription on this device ended (the store gives the trial once), and not when the store
+    says this account has had it. Where to cancel depends on the phone. */
+export function offerWords(subscription: Subscription, { lapsed, platform }: { lapsed: boolean; platform: string }) {
+  const trial = !lapsed && subscription.trial !== false;
+  const per = (plan: Plan) => (plan === 'yearly' ? 'a year' : 'a month');
+  const where = platform === 'android' ? 'in Google Play' : platform === 'ios' ? 'in Settings on this iPhone or iPad' : 'in the App Store or Google Play';
+  const prices = planChoices(subscription).map((offer) => `${offer.price} ${per(offer.plan)}`).join(' or ');
+  return {
+    trial,
+    heading: trial ? 'Try Fraction Quest free for 7 days' : 'Keep learning with Fraction Quest',
+    price: (offer: PlanOffer) => (trial ? `7 days free, then ${offer.price} ${per(offer.plan)}` : `${offer.price} ${per(offer.plan)}`),
+    terms: trial
+      ? `Renews until cancelled. Cancel anytime ${where}, at least a day before the trial ends, and you won’t be charged.`
+      : `Renews until cancelled. Cancel anytime ${where}.`,
+    button: trial ? 'Start free trial' : 'Subscribe',
+    planButton: (plan: Plan) => (trial ? (plan === 'yearly' ? 'Start yearly trial' : 'Start monthly trial') : (plan === 'yearly' ? 'Subscribe yearly' : 'Subscribe monthly')),
+    status: trial ? `Lessons are locked. Start the 7-day free trial, then ${prices}.` : `Lessons are locked. Subscribe for ${prices}.`,
+  };
 }
 
 /** Lessons are locked only when the store says there is no subscription. Unknown (no store, offline, not set up
