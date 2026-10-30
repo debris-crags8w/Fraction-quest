@@ -1,5 +1,6 @@
 import type { FunState } from './lib/fun';
 import type { Progress } from './game';
+import { mergeFun, mergeProgress } from './progress-merge';
 
 export type AccountBundle = { progress: Progress; fun: FunState };
 
@@ -170,5 +171,69 @@ export function createProgressSaveQueue<T>(
         reportStatus('saved');
       }
     },
+  };
+}
+
+/** The server's copy of one learner's progress, and its version (it goes up with every save or clear). */
+export type ServerProgressCopy = { progress: unknown; fun: unknown; version: number };
+export type VersionedProgressApi = {
+  load: () => Promise<ServerProgressCopy>;
+  save: (copy: { progress: Record<string, unknown>; fun: Record<string, unknown>; version?: number }) => Promise<{ version: number }>;
+};
+/** The version this device last loaded or saved (null: not known, for example a copy saved before versions). */
+export type ProgressVersionStore = { read: () => number | null; write: (version: number | null) => void };
+/** The saved copy a refused save brought back, for the app to merge into what is on screen. `cleared`: a grown-up cleared
+    this learner's progress since this device's version, so the saved copy replaces this device's copy instead. */
+export type SavedCopyNotice = AccountBundle & { cleared: boolean };
+
+const MAX_SAVE_TRIES = 3;
+
+function conflictCopy(error: unknown): (ServerProgressCopy & { clearedSince: boolean }) | null {
+  const failure = error as { status?: number; data?: { version?: unknown; clearedSince?: unknown; progress?: unknown; fun?: unknown } } | null;
+  if (failure?.status !== 409 || typeof failure.data?.version !== 'number') return null;
+  return { progress: failure.data.progress ?? null, fun: failure.data.fun ?? null, version: failure.data.version, clearedSince: failure.data.clearedSince === true };
+}
+
+/** Saves one learner's progress without overwriting work saved from another device. Each save sends the version this
+    device has; a refused save (409) brings back the saved copy, which is merged with this device's copy (every finished
+    lesson, best scores, latest dates: see progress-merge.ts) and saved again on the new version. `clean` makes the
+    server's copy well formed; `onSavedCopy` lets the app merge it into the progress on screen too. */
+export function versionedProgressSave(
+  api: VersionedProgressApi,
+  versions: ProgressVersionStore,
+  clean: (copy: { progress: unknown; fun: unknown }) => AccountBundle,
+  onSavedCopy: (notice: SavedCopyNotice) => void,
+) {
+  const adopt = (saved: ServerProgressCopy, mine: AccountBundle, cleared: boolean): AccountBundle => {
+    const copy = clean(saved);
+    versions.write(saved.version);
+    onSavedCopy({ ...copy, cleared });
+    return cleared ? copy : { progress: mergeProgress(copy.progress, mine.progress), fun: mergeFun(copy.fun, mine.fun) };
+  };
+  return async (next: AccountBundle): Promise<void> => {
+    let bundle = next;
+    for (let attempt = 0; attempt < MAX_SAVE_TRIES; attempt += 1) {
+      let version = versions.read();
+      if (version === null) {
+        // This device does not know which copy it has: load the saved one and merge it in first.
+        const saved = await api.load();
+        bundle = adopt(saved, bundle, false);
+        version = saved.version;
+      }
+      try {
+        const result = await api.save({
+          progress: bundle.progress as unknown as Record<string, unknown>,
+          fun: bundle.fun as unknown as Record<string, unknown>,
+          version,
+        });
+        versions.write(result.version);
+        return;
+      } catch (error) {
+        const saved = conflictCopy(error);
+        if (!saved) throw error;
+        bundle = adopt(saved, bundle, saved.clearedSince);
+      }
+    }
+    throw new Error('Progress kept changing on another device; this save will be tried again.');
   };
 }

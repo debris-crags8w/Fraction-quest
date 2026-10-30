@@ -50,8 +50,10 @@ function gridColumns(d: number): number {
   return d;
 }
 
-export function WorksheetBarCopy({ target, task = { kind: 'copy', n: target.n }, disabled, statusId, onMatchChange }: {
+export function WorksheetBarCopy({ target, task = { kind: 'copy', n: target.n }, disabled, statusId, onMatchChange, wholeMarks = true }: {
   target: LearningModel; task?: BarTask; disabled: boolean; statusId: string; onMatchChange: (matches: boolean) => void;
+  /** Mark each whole "one whole" (off while the answer is a count of wholes). */
+  wholeMarks?: boolean;
 }) {
   const [shaded, setShaded] = useState(() => Array.from({ length: target.d * target.wholes }, () => false));
   const [order, setOrder] = useState<number[]>([]); // counting order, for the numbers shown on counted parts
@@ -93,7 +95,7 @@ export function WorksheetBarCopy({ target, task = { kind: 'copy', n: target.n },
                 );
               })}
             </div>
-            <WholeBracket />
+            {wholeMarks && <WholeBracket />}
           </div>
         ))}
       </div>

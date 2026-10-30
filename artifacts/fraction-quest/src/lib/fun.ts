@@ -244,7 +244,7 @@ function cleanStory(value: unknown): StoryState {
   }
   const guesses: Record<string, string> = {};
   for (const [board, suspect] of Object.entries(raw.guesses ?? {})) {
-    if (/^[12]$/.test(board) && typeof suspect === 'string' && SUSPECT_IDS.includes(suspect)) guesses[board] = suspect;
+    if (/^[1-5]$/.test(board) && typeof suspect === 'string' && SUSPECT_IDS.includes(suspect)) guesses[board] = suspect;
   }
   return { prologueSeen: raw.prologueSeen === true, ...(raw.epilogueSeen === true ? { epilogueSeen: true } : {}), choices, ...(Object.keys(guesses).length ? { guesses } : {}) };
 }
@@ -440,7 +440,7 @@ export function recordIntro(state: FunState, kind: IntroKind, stage: IntroStage 
 }
 
 /** Remember story progress (the prologue, a chapter's choice). It never touches lesson progress. */
-export function recordStory(state: FunState, update: { prologueSeen?: true; epilogueSeen?: true; unit?: number; choice?: 0 | 1; board?: 1 | 2; suspect?: string }): FunState {
+export function recordStory(state: FunState, update: { prologueSeen?: true; epilogueSeen?: true; unit?: number; choice?: 0 | 1; board?: 1 | 2 | 3 | 4 | 5; suspect?: string }): FunState {
   const story = cleanStory(state.story);
   const choices = update.unit !== undefined && update.choice !== undefined ? { ...story.choices, [String(update.unit)]: update.choice } : story.choices;
   const guesses = update.board !== undefined && update.suspect !== undefined ? { ...story.guesses, [String(update.board)]: update.suspect } : story.guesses;
@@ -532,7 +532,13 @@ export function playHaptic(cue: 'selection' | Cue) {
 
 /** Replace this device's fun state with one loaded from the student's account. */
 export function replaceFun(saved: Partial<FunState>): FunState {
-  const merged = {
+  const opened = applySpareOil(cleanFun(saved));
+  return saveFun(opened.day === today() ? opened : { ...opened, day: today(), answeredToday: 0 });
+}
+
+/** Saved fun state (from this device or the server) with anything malformed dropped; this device keeps its own sound setting. */
+export function cleanFun(saved: Partial<FunState>): FunState {
+  return {
     ...fresh(),
     ...withoutRetired(saved),
     ...cleanBasics(saved),
@@ -550,6 +556,4 @@ export function replaceFun(saved: Partial<FunState>): FunState {
     activity: cleanActivity(saved.activity),
     ...cleanGames(saved),
   };
-  const opened = applySpareOil(merged);
-  return saveFun(opened.day === today() ? opened : { ...opened, day: today(), answeredToday: 0 });
 }

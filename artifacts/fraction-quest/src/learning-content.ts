@@ -461,7 +461,7 @@ export const REASON_IDEAS: Record<string, string> = {
   'line-plot-leveling': 'Share the total equally',
   'measurement-word-problems': 'Make the parts match first',
   'fractional-unit-conversions': 'Change the whole unit first',
-  'fractional-sharing': 'Loaves ÷ friends is each share',
+  'fractional-sharing': 'Take 1 part of every whole',
   'fraction-as-division': 'The fraction bar means divide',
   'fraction-probability': 'Wanted ones out of all',
   'fraction-of-area': 'Shaded parts out of equal parts',
@@ -646,12 +646,94 @@ const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reaso
   'fraction-of-remainder': { n: 3, d: 8, prompt: 'Pour out 1/2 of a jug. Then pour out 1/4 of the rest. Make what is left.', reason: '1/2 is left. 1/4 of that is 1/8. 1/2 − 1/8 = 3/8.' },
   'divide-fractions': { n: 4, d: 10, prompt: 'How many 1/10s fit in 2/5? Make 2/5 in tenths.', reason: '2/5 = 4/10. So 4 tenths fit.' },
 };
+/** A row whose answer is a number of wholes ("How many wholes are 24/8?", "Write 8/8 as a whole number."): its bars
+    carry no "one whole" marks until it is answered, or counting the marks would give the answer. */
+export const answerIsWholes = (problem: { prompt: string }) => /^How many wholes are \d+\/\d+\?$|^Write \d+\/\d+ as a whole number\.$/.test(problem.prompt);
 /** Lessons whose builds accept any equal fraction: an area or what's left can be named in more than one way. */
 const ANY_NAME_LESSONS = new Set(['fractional-side-area', 'multiply-mixed-numbers', 'fraction-of-remainder']);
-const acceptAnyName = (id: string, check: BuildCheck): BuildCheck => (ANY_NAME_LESSONS.has(id) ? { ...check, target: { ...check.target, anyName: true } } : check);
+const acceptAnyName = (id: string, check: BuildCheck, avoid: string[] = []): BuildCheck =>
+  fitReasons(id, ANY_NAME_LESSONS.has(id) ? { ...check, target: { ...check.target, anyName: true } } : check, avoid);
+
+/* Some lessons mix kinds of item, and a key idea true for one kind is false for another: "Part of a group is less" is
+   false for 6/4 of a bar, "Sharing makes smaller shares" is false for "How many 1/4-cup scoops fill 3 cups?", a doubling
+   reason is false for 3 batches, "Rename so the parts match" for 3/6 + 1/6. Each such lesson says how to tell its item's
+   kind and which reasons are true for which kinds; the right reason is then always true for its item and no wrong reason
+   is. A reason with no entry is true for every item (as a right reason) or false for every item (as a wrong one). */
+type ReasonFit = { kind: (check: BuildCheck) => string | null; trueFor: Record<string, string[]>; right: Record<string, string>; wrong: Record<string, string[]> };
+const factorKind = (n: number, d: number) => (n < d ? 'less' : n > d ? 'more' : 'same');
+const SCALING_FIT: Omit<ReasonFit, 'kind'> = {
+  trueFor: {
+    'Part of a group is less': ['less'], 'Less than 1 makes it less': ['less'], 'Times 1 keeps it the same': ['same'], 'More than 1 makes it more': ['more'],
+    'Multiplying always makes it bigger': ['more'], 'A fraction of it is more': ['more'], 'Bigger numbers always win': ['more'],
+    'The size stays the same': ['same'], 'Multiplying always makes it smaller': ['less'],
+  },
+  right: { less: 'Less than 1 makes it less', same: 'Times 1 keeps it the same', more: 'More than 1 makes it more' },
+  wrong: {
+    less: ['Multiplying always makes it bigger', 'The size stays the same'],
+    same: ['Multiplying always makes it bigger', 'Multiplying always makes it smaller'],
+    more: ['Multiplying always makes it smaller', 'The size stays the same'],
+  },
+};
+const REASON_FITS: Record<string, ReasonFit> = {
+  // The build is the factor itself ("Build 3/4 of 12", "Build 6/4 of 1 bar").
+  'multiplication-scaling': { ...SCALING_FIT, kind: (check) => factorKind(check.target.n, check.target.d) },
+  // The factor is said first ("Make 5/4 × 2. Is it more or less than 2?").
+  'bigger-or-smaller': { ...SCALING_FIT, kind: (check) => {
+    const factor = check.prompt.match(/^Make (\d+)\/(\d+) ×/);
+    return factor ? factorKind(Number(factor[1]), Number(factor[2])) : null;
+  } },
+  'share-or-fit': {
+    kind: (check) => (/^Share\b/.test(check.prompt) ? 'share' : /^How many .+ fill\b/.test(check.prompt) ? 'fit' : null),
+    trueFor: { 'Sharing makes smaller shares': ['share'], 'Fitting counts how many pieces': ['fit'], 'Dividing always makes it smaller': ['share'] },
+    right: { share: 'Sharing makes smaller shares', fit: 'Fitting counts how many pieces' },
+    wrong: { share: ['Sharing makes each share bigger', 'Sharing and fitting are the same', 'Fit splits, share counts'] },
+  },
+  'fraction-recipes': {
+    kind: (check) => (/\bDouble it\b|\b2 batches\b/.test(check.prompt) ? 'double' : /\b\d+ batches\b/.test(check.prompt) ? 'batches' : null),
+    trueFor: { 'Doubling adds the amount again': ['double'], 'Add the amount to itself': ['double'], 'Two batches: twice as much': ['double'] },
+    right: { double: 'Add the amount to itself', batches: 'Add one amount per batch' },
+    wrong: {},
+  },
+  // Two amounts with the same denominator need no renaming.
+  'measurement-word-problems': {
+    kind: (check) => {
+      const dens = [...check.prompt.matchAll(/\d+\/(\d+)/g)].map((m) => m[1]);
+      return dens.length < 2 ? null : new Set(dens).size === 1 ? 'like' : 'unlike';
+    },
+    trueFor: { 'Make the parts match first': ['unlike'], 'Rename so the parts match': ['unlike'] },
+    right: { like: 'Add same-size parts only', unlike: 'Make the parts match first' },
+    wrong: {},
+  },
+};
+/** Every reason an item may be given in place of the lesson's own lists (the tests allow these too). */
+export const FITTED_REASONS = {
+  right: [...new Set(Object.values(REASON_FITS).flatMap((fit) => Object.values(fit.right)))],
+  wrong: [...new Set(Object.values(REASON_FITS).flatMap((fit) => Object.values(fit.wrong).flat()))],
+};
+/** The check with a right reason true for its item, and not one in `avoid` (the earlier steps' right reasons) when the
+    lesson has another, and wrong reasons false for it. */
+function fitReasons(id: string, check: BuildCheck, avoid: string[] = []): BuildCheck {
+  const fit = REASON_FITS[id];
+  const kind = fit?.kind(check);
+  if (!fit || !kind) return check;
+  const trueHere = (reason: string) => !fit.trueFor[reason] || fit.trueFor[reason].includes(kind);
+  const ways = [fit.right[kind], ...(REASON_IDEAS[id] ? [REASON_IDEAS[id], ...(MORE_REASON_IDEAS[id] ?? [])] : [])].filter((r): r is string => !!r && trueHere(r));
+  const spare = (fit.wrong[kind] ?? []).filter((reason) => !check.reasons.includes(reason));
+  const reasons = check.reasons.map((reason, i) => {
+    if (i === check.correctReason) return trueHere(reason) && !avoid.includes(reason) ? reason : ways.find((r) => !avoid.includes(r)) ?? ways[0] ?? reason;
+    return fit.trueFor[reason]?.includes(kind) ? spare.shift() ?? reason : reason;
+  });
+  return { ...check, reasons };
+}
 
 export function getBuildChecks(id: string): BuildCheck[] {
-  return buildChecksFor(id).map((check) => acceptAnyName(id, check));
+  // Build it, On your own and Apply it keep three different right reasons.
+  const used: string[] = [];
+  return buildChecksFor(id).map((check) => {
+    const done = acceptAnyName(id, check, used);
+    used.push(done.reasons[done.correctReason]!);
+    return done;
+  });
 }
 function buildChecksFor(id: string): BuildCheck[] {
   const seed = CHECKS[id]; if (!seed) throw new Error(`Missing learning checks: ${id}`);
@@ -720,19 +802,19 @@ const MIXED_FOURTHS_WHY = 'The shapes are different, but the sizes match. The sq
     sets 1 and 2 in turn, so a redo never repeats the sheet before it. Every answer stays within fourths. */
 const SQUARE_ROWS: { prompt: string; answer: string; cut: AreaFigure['cut']; shaded?: number[]; hint: string; why?: string }[][] = [[
   { prompt: 'Are all 4 parts of this square the same size? Answer yes or no.', answer: 'yes', cut: 'fourths-mixed', hint: 'Look at the left half and the right half. How is each half cut?', why: MIXED_FOURTHS_WHY },
-  { prompt: 'This square is cut into 4 parts. Are they fourths? Answer yes or no.', answer: 'no', cut: 'fourths-unequal', hint: 'Fourths must all be the same size. Compare the biggest part and the smallest part.' },
-  { prompt: 'These parts are triangles, not squares. Are they still fourths? Answer yes or no.', answer: 'yes', cut: 'fourths-triangles', hint: 'Compare the 4 triangles. Do they all fill the same space?' },
-  { prompt: 'How many small triangles cover the same space as the small square?', answer: '2', cut: 'quarter-and-triangles', hint: 'Picture the small square cut corner to corner. What shapes do you get?' },
+  { prompt: 'This square is cut into 4 parts. Are they fourths? Answer yes or no.', answer: 'no', cut: 'fourths-unequal', hint: 'Fourths must all be the same size. Compare the biggest part and the smallest part.', why: 'One part is bigger than another. 4 parts that are not the same size are not fourths.' },
+  { prompt: 'These parts are triangles, not squares. Are they still fourths? Answer yes or no.', answer: 'yes', cut: 'fourths-triangles', hint: 'Compare the 4 triangles. Do they all fill the same space?', why: 'All 4 triangles cover the same space. 4 equal parts are fourths, whatever their shape.' },
+  { prompt: 'How many small triangles cover the same space as the small square?', answer: '2', cut: 'quarter-and-triangles', hint: 'Picture the small square cut corner to corner. What shapes do you get?', why: 'Two of these triangles fit together to fill the small square.' },
 ], [
-  { prompt: 'Is this square cut into fourths? Answer yes or no.', answer: 'yes', cut: 'fourths-squares', hint: 'Fourths are 4 equal parts. Compare all 4 parts.' },
-  { prompt: 'Is this square cut into 4 equal strips? Answer yes or no.', answer: 'no', cut: 'strips-unequal', hint: 'Look at the first strip. Compare it with the strips next to it.' },
-  { prompt: 'These strips are long and thin. Are they still fourths? Answer yes or no.', answer: 'yes', cut: 'fourths-strips', hint: 'Shape does not matter. Compare how much space each strip covers.' },
-  { prompt: 'One triangle is colored. What fraction of the square is it?', answer: '1/4', cut: 'fourths-triangles', shaded: [0], hint: 'How many triangles of this size fill the whole square?' },
+  { prompt: 'Is this square cut into fourths? Answer yes or no.', answer: 'yes', cut: 'fourths-squares', hint: 'Fourths are 4 equal parts. Compare all 4 parts.', why: 'All 4 small squares are the same size, so each one is a fourth.' },
+  { prompt: 'Is this square cut into 4 equal strips? Answer yes or no.', answer: 'no', cut: 'strips-unequal', hint: 'Look at the first strip. Compare it with the strips next to it.', why: 'The strips are not all the same width, so they are not equal strips.' },
+  { prompt: 'These strips are long and thin. Are they still fourths? Answer yes or no.', answer: 'yes', cut: 'fourths-strips', hint: 'Shape does not matter. Compare how much space each strip covers.', why: 'All 4 strips cover the same space, so they are fourths, even long and thin.' },
+  { prompt: 'One triangle is colored. What fraction of the square is it?', answer: '1/4', cut: 'fourths-triangles', shaded: [0], hint: 'How many triangles of this size fill the whole square?', why: '4 same-size triangles fill the square. 1 of them is 1/4.' },
 ], [
   { prompt: 'One triangle is colored. What fraction of the whole square is it?', answer: '1/4', cut: 'fourths-mixed', shaded: [2], hint: 'Look at the left half and the right half. How is each half cut?', why: MIXED_FOURTHS_WHY },
-  { prompt: 'Is each part of this square one fourth of it? Answer yes or no.', answer: 'no', cut: 'fourths-unequal', hint: 'One fourth means 4 of them fill the square exactly. Compare the parts.' },
-  { prompt: 'One strip is colored. What fraction of the square is it?', answer: '1/4', cut: 'fourths-strips', shaded: [1], hint: 'Count all the strips. Are they the same size?' },
-  { prompt: 'How many small squares make one half of the whole square?', answer: '2', cut: 'fourths-squares', hint: 'How many small squares fill the whole square? Half of that is how many?' },
+  { prompt: 'Is each part of this square one fourth of it? Answer yes or no.', answer: 'no', cut: 'fourths-unequal', hint: 'One fourth means 4 of them fill the square exactly. Compare the parts.', why: 'The parts are different sizes, so not every part is one fourth.' },
+  { prompt: 'One strip is colored. What fraction of the square is it?', answer: '1/4', cut: 'fourths-strips', shaded: [1], hint: 'Count all the strips. Are they the same size?', why: '4 same-size strips fill the square. 1 strip is 1/4.' },
+  { prompt: 'How many small squares make one half of the whole square?', answer: '2', cut: 'fourths-squares', hint: 'How many small squares fill the whole square? Half of that is how many?', why: '4 small squares fill the whole square. Half of 4 is 2.' },
 ]];
 
 /* Extra builds that practise the lesson's own skill, with new numbers each time (never "Build 2/15" in a lesson about
@@ -1190,6 +1272,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           prompt = later ? 'Tap each part to count it. How many equal parts make the whole bar?' : 'Tap each part to count it. How many equal parts is this bar cut into?';
           answer = String(dd); visual = model(0, dd); task = { kind: 'count', n: dd };
           hint = 'Count every part, one at a time.';
+          why = `The bar has ${dd} parts, and they are all the same size.`;
         } else if (kind === 1) {
           // Sometimes fair, sometimes one piece is clearly bigger.
           const fair = i % 8 === 5;
@@ -1197,14 +1280,17 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           answer = fair ? 'yes' : 'no'; form = 'word';
           visual = { ...model(0, d), sizes: fair ? undefined : Array.from({ length: d }, (_, k) => (k === (i % d) ? 2 : 1)) };
           hint = 'Equal parts are all the same size. Compare the parts.';
+          why = fair ? `All ${d} parts match in size, so they are equal parts.` : 'One part is bigger than the others, so the parts are not equal.';
         } else if (kind === 2) {
           prompt = later ? 'The shaded part is 1 of the equal parts. What fraction of the bar is shaded?' : 'One part is shaded. What fraction of the whole bar is it?';
           answer = f(1, dd); visual = model(1, dd); task = { kind: 'copy', n: 1 };
           hint = 'The bottom number is how many equal parts make the whole. The top number is the 1 shaded part.';
+          why = `${dd} equal parts make the whole bar, and 1 of them is shaded: 1/${dd}.`;
         } else {
           prompt = later ? 'Color 1 equal part of this bar. What fraction did you color?' : 'Shade 1 part of this bar. What fraction of the bar did you shade?';
           answer = f(1, d); visual = model(0, d); task = { kind: 'shade', n: 1 };
           hint = 'Count all the equal parts in the bar. Then think about the part you shaded.';
+          why = `The bar has ${d} equal parts. You shaded 1 of them, so it is 1/${d}.`;
         }
         // A pizza whose slices are not fair: 4 slices, but not fourths.
         if (i === 7) {
@@ -1212,6 +1298,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           const fair = variant % 2 === 1 ? circleCut(d) : undefined;
           prompt = `Is this pizza cut into ${fair ? d : 4} equal slices? Answer yes or no.`; answer = fair ? 'yes' : 'no'; form = 'word'; visual = undefined; task = undefined;
           area = { cut: fair ?? 'circle-unequal' }; hint = 'Equal slices are all the same size. Is one slice bigger than the others?';
+          why = fair ? `All ${d} slices are the same size, so they are equal slices.` : 'One slice is bigger than the others, so the slices are not equal.';
         }
         // Last four: squares whose equal parts may have different shapes (same size, not always same shape). The first
         // sheet keeps its four; redo sheets swap to a second set, so a redo never repeats the sheet before it.
@@ -1230,11 +1317,15 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         visual = model(i % 3 === 2 ? 1 : 0, d); task = i % 3 === 0 ? { kind: 'count', n: d } : i % 3 === 1 ? { kind: 'shade', n: 1 } : { kind: 'copy', n: 1 };
         modelRequired = true;
         hint = 'A unit fraction is 1 equal part. The denominator is how many parts make one whole.';
+        why = i % 3 === 0 ? `${d} parts of 1/${d} fill the bar, so ${d} of them make one whole.`
+          : i % 3 === 1 ? (i < 6 ? `${d} friends need ${d} equal parts. One friend's share is 1 of them: 1/${d}.` : `1 of the ${d} equal parts is shaded, so it is 1/${d}.`)
+            : `The bar has ${d} equal parts and 1 is shaded, so it is 1/${d}.`;
         // A circle too: one slice of a fairly cut pizza is a unit fraction.
         if (i === 8 && circleCut(d)) {
           prompt = 'One slice of this pizza is shaded. All the slices are the same size. What unit fraction is it?'; answer = f(1, d);
           area = { cut: circleCut(d)!, shaded: [0] }; visual = undefined; task = undefined; modelRequired = false;
           hint = `Count all the slices. ${d} same-size slices make the whole pizza.`;
+          why = `1 slice out of ${d} same-size slices is 1/${d} of the pizza.`;
         }
         // Last three: one fourth of a square can look different (1 small square, or 2 triangles). Odd redo sheets ask
         // about the same shapes in new ways, so a redo never repeats the sheet before it.
@@ -1244,10 +1335,12 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
             prompt = 'What fraction of the square is shaded?'; answer = '2/4';
             area = { cut: 'fourths-triangles', shaded: [0, 1] };
             hint = 'The 4 triangles are the same size. Count all of them, then the shaded ones.';
+            why = '2 of the 4 same-size triangles are shaded, so it is 2/4.';
           } else if (i === 10) {
             prompt = 'What fraction of the square do the 2 shaded triangles cover?'; answer = '1/4';
             area = { cut: 'quarter-and-triangles', shaded: [1, 2] };
             hint = 'Each triangle is half of a small square. How many small squares would fill the whole square?';
+            why = 'The 2 triangles fill one small square, and 4 small squares fill the whole square. So they cover 1/4.';
           } else {
             prompt = 'What fraction of the square is the shaded small square?'; answer = '1/4';
             area = { cut: 'fourths-mixed', shaded: [0] };
@@ -1258,10 +1351,12 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           prompt = 'What fraction of the square is the shaded small square?'; answer = '1/4';
           area = { cut: 'quarter-and-triangles', shaded: [0] }; visual = undefined; task = undefined; modelRequired = false;
           hint = 'How many small squares this size would fill the whole square? Two triangles fill one of them.';
+          why = '4 small squares this size fill the whole square, so 1 small square is 1/4.';
         } else if (i === 10) {
           prompt = 'Color 1/4 of the square using only triangles. How many triangles did you color?'; answer = '2';
           area = { cut: 'quarter-and-triangles' }; areaTask = { n: 1, d: 4, avoid: [0] }; visual = undefined; task = undefined; modelRequired = false;
           hint = 'Each triangle is half of a small square. How many halves make the same space?';
+          why = 'One small square is 1/4 of the square, and 2 triangles cover the same space.';
         } else if (i === 11) {
           prompt = 'What fraction of the square is the shaded triangle?'; answer = '1/4';
           area = { cut: 'fourths-mixed', shaded: [2] }; visual = undefined; task = undefined; modelRequired = false;
@@ -1273,6 +1368,8 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           i % 3 === 1 ? `In ${value}, how many equal parts make one whole?` :
           'What fraction of this bar model is shaded?';
         answer = i % 3 === 0 ? String(n) : i % 3 === 1 ? String(d) : value;
+        why = i % 3 === 0 ? `In ${value}, the numerator ${n} counts the shaded parts.` : i % 3 === 1 ? `In ${value}, the denominator ${d} counts all the equal parts in one whole.`
+          : `${n} of the ${d} equal parts ${n === 1 ? 'is' : 'are'} shaded, so it is ${value}.`;
         visual = model(n, d); modelRequired = true;
         // "How many equal parts make one whole?" counts every part (copying the shading would answer a different question).
         if (i % 3 === 1) task = { kind: 'count', n: d };
@@ -1281,6 +1378,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           prompt = 'What fraction of this circle is shaded?'; visual = undefined; modelRequired = false;
           area = { cut: circleCut(d)!, shaded: Array.from({ length: n }, (_, k) => k) };
           hint = 'The denominator is the total number of equal-size slices. The numerator is the number of shaded slices.';
+          why = `${n} of the ${d} equal slices ${n === 1 ? 'is' : 'are'} shaded, so it is ${value}.`;
         }
         break;
       case 'unit-size':
@@ -1302,7 +1400,11 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         }
         hint = id === 'unit-size'
           ? 'Picture both on the same-size bar. Which bar is cut into more parts? Its parts are smaller.'
-          : `Both count ${top} parts. Which parts are bigger: ${unitPiece(small)}s or ${unitPiece(big)}s?`; break;
+          : `Both count ${top} parts. Which parts are bigger: ${unitPiece(small)}s or ${unitPiece(big)}s?`;
+        const bigger = `${cap(unitName(small))} are bigger than ${unitName(big)}`;
+        why = id === 'unit-size'
+          ? (i % 2 ? `A whole cut into ${big} parts has smaller parts than one cut into ${small}.` : `A whole cut into ${small} parts has bigger parts than one cut into ${big}.`)
+          : form === 'symbol' ? `${bigger}, so ${f(top, first)} ${answer} ${f(top, second)}.` : `${bigger}, so ${answer} is the ${i % 2 ? 'smaller' : 'bigger'} one.`; break;
       }
       case 'sets-unit-fractions':
       case 'sets-nonunit': {
@@ -1310,6 +1412,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         prompt = i % 3 === 1 ? `${total} beads are shared into ${d} equal groups. How many beads are in ${count === 1 ? 'one group' : `${count} groups`}?` :
           `A box has ${total} buttons. How many buttons are in ${f(count, d)} of the box?`;
         answer = String(total / d * count); hint = `Split ${total} into ${d} equal groups first.`;
+        why = `${total} in ${d} equal groups is ${total / d} in each group.${count > 1 ? ` ${count} groups make ${answer}.` : ''}`;
         // The loose set to group: drawing the groups already made would show the answer.
         if (i % 3 === 2) visual = model(0, 1, 'set', total); break;
       }
@@ -1326,6 +1429,8 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         answer = i % 3 === 0 ? f(top, even) : i % 3 === 1 ? (above ? '>' : '<') : (above ? '<' : '>');
         form = i % 3 === 0 ? undefined : 'symbol';
         hint = `Half of ${even} parts is ${h} parts. Is ${i % 3 === 0 ? 'each numerator' : `${top}`} more or less than ${h}?`;
+        why = i % 3 === 0 ? `${f(top, even)} is ${top} of ${even} parts. ${top} is ${above ? 'more' : 'less'} than ${h}, which is half of ${even}.`
+          : `${f(h, even)} is one half. ${f(top, even)} has ${above ? 'more' : 'fewer'} parts, so it is ${above ? 'more' : 'less'} than 1/2.`;
         if (i % 3 !== 0) visual = model(top, even); break;
       }
       case 'fraction-magnitude': {
@@ -1344,6 +1449,9 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         answer = i % 3 === 0 ? f(edge, even) : i % 3 === 1 ? (top > h ? '>' : top < h ? '<' : '=') : f(near, even);
         form = i % 3 === 1 ? 'symbol' : undefined;
         hint = i % 3 === 0 ? `${end === 1 ? `One whole is ${even}/${even}` : 'Zero is 0 parts'}. Which fraction is fewer parts away from it?` : `Half of ${even} parts is ${h}/${even}. Compare to that.`;
+        why = i % 3 === 0 ? (end === 1 ? `${f(edge, even)} is 1 part from ${f(even, even)}. ${f(near, even)} is ${even - near} parts away.` : `${f(edge, even)} is 1 part from 0. ${f(near, even)} is ${near} parts away.`)
+          : i % 3 === 1 ? (top === h ? `${f(top, even)} is ${h} of ${even} parts: exactly one half.` : `${f(h, even)} is one half. ${f(top, even)} has ${top > h ? 'more' : 'fewer'} parts, so it is ${top > h ? 'more' : 'less'} than 1/2.`)
+            : `${f(near, even)} is ${some(step, 'part', 'parts')} from ${f(h, even)}. ${f(far, even)} is ${h - 1} parts away.`;
         if (i % 3 === 1) visual = model(top, even); break;
       }
       case 'benchmarks-zero-one': {
@@ -1354,7 +1462,11 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         prompt = i % 3 === 0 ? `How much is missing from ${f(d - step, d)} to make one whole?` :
           `Is ${f(top, e)} closest to 0, 1/2 or 1?`;
         answer = i % 3 === 0 ? f(step, d) : near;
-        hint = i % 3 === 0 ? `One whole is ${f(d, d)}. How many parts are missing?` : `Half of ${e} is ${halfOf(e)}. Is ${top} near 0, near ${halfOf(e)}, or near ${e}?`; break;
+        hint = i % 3 === 0 ? `One whole is ${f(d, d)}. How many parts are missing?` : `Half of ${e} is ${halfOf(e)}. Is ${top} near 0, near ${halfOf(e)}, or near ${e}?`;
+        why = i % 3 === 0 ? `${f(d - step, d)} is ${d - step} of ${d} parts. ${some(step, 'more part makes', 'more parts make')} one whole.`
+          : near === '0' ? `${f(top, e)} is only ${some(top, 'part', 'parts')} of ${e}. That is much nearer 0 than half.`
+            : near === '1' ? `${f(top, e)} is just ${some(e - top, 'part', 'parts')} short of ${f(e, e)}, so it is closest to 1.`
+              : `${top} is closest to ${halfOf(e)}, which is half of ${e}. So ${f(top, e)} is closest to 1/2.`; break;
       }
       case 'number-line-basics':
       case 'number-line-points':
@@ -1365,7 +1477,10 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           i % 3 === 1 ? `A frog makes ${top} ${top === 1 ? 'jump' : 'jumps'}. Each jump is 1/${d} meter. How far did it go?` : `Each whole has ${d} equal spaces. What fraction is at the dot?`;
         answer = basicsCount ? String(d) : f(top, d);
         if (!basicsCount && i % 3 !== 1) visual = model(top, d, 'line');
-        hint = 'The denominator is the number of equal spaces in one whole. The numerator is the number of jumps from zero.'; break;
+        hint = 'The denominator is the number of equal spaces in one whole. The numerator is the number of jumps from zero.';
+        why = basicsCount ? `${cap(unitName(d))} cut the line from 0 to 1 into ${d} equal spaces.`
+          : i % 3 === 1 ? `${top === 1 ? '1 jump' : `${top} jumps`} of 1/${d} ${top === 1 ? 'is' : 'make'} ${f(top, d)}.`
+            : `The dot is ${some(top, 'jump', 'jumps')} from 0, and each whole has ${d} spaces. So it is ${f(top, d)}.`; break;
       }
       case 'compare-same-denominator':
         {
@@ -1373,14 +1488,18 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           prompt = i % 2 ? `Put <, = or > in the gap: ${f(n, d)} __ ${f(n + 1, d)}.` : `Which is ${bigger ? 'bigger' : 'smaller'}, ${first} or ${second}?`;
           if (i % 4 === 3) prompt = `Put <, = or > in the gap: ${f(n + 1, d)} __ ${f(n, d)}.`;
           answer = i % 4 === 3 ? '>' : i % 2 ? '<' : bigger ? f(n + 1, d) : f(n, d);
-        } form = i % 2 ? 'symbol' : undefined; hint = 'Same denominator means same size parts. Compare the numerators.'; break;
+        } form = i % 2 ? 'symbol' : undefined; hint = 'Same denominator means same size parts. Compare the numerators.';
+        why = i % 4 === 3 ? `Both are ${unitName(d)}. ${n + 1} parts are more than ${some(n, 'part', 'parts')}.`
+          : i % 2 ? `Both are ${unitName(d)}. ${some(n, 'part is', 'parts are')} fewer than ${n + 1} parts.`
+            : `Both are ${unitName(d)}, and ${answer === f(n + 1, d) ? `${n + 1} is more than ${n}` : `${n} is less than ${n + 1}`}.`; break;
       case 'order-fractions': {
         const tops = d >= 5 ? [1, Math.floor(d / 2), d - 1] : [1, 2, 3];
         // Never shown already in the asked order; later rows shift so no question repeats.
         const shown = [[2, 0, 1], [1, 2, 0], [0, 2, 1], [1, 0, 2]][(i + (i >= 8 ? 2 : 0)) % 4].map(k => f(tops[k], d));
         // Each redo flips the order asked for, so back-to-back sheets differ.
         prompt = `Put ${shown.join(', ')} in order, ${(i + variant) % 2 ? 'biggest' : 'smallest'} first.`;
-        answer = ((i + variant) % 2 ? [...tops].reverse() : tops).map(top => f(top, d)).join(', '); form = 'ordered'; hint = 'Same size parts. Compare the numerators.'; break;
+        answer = ((i + variant) % 2 ? [...tops].reverse() : tops).map(top => f(top, d)).join(', '); form = 'ordered'; hint = 'Same size parts. Compare the numerators.';
+        why = `All are ${unitName(d)}, so they go in the order of the numerators: ${((i + variant) % 2 ? [...tops].reverse() : tops).join(', ')}.`; break;
       }
       case 'equivalent-models':
       case 'build-equivalents':
@@ -1397,19 +1516,25 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           visual = model(top, bottom);
           // "Cut every part into 4" names the answer when the numerator is 1, so the blank-numerator rows give the new part count instead.
           hint = i % 2 ? `Cut each part into ${factor} equal parts. Now count the shaded parts and all the parts.` : `Cut each part into smaller equal parts until the bar has ${bottom * factor} parts. Now count the shaded parts and all the parts.`;
+          why = i % 2 ? `Cutting every part into ${factor} makes ${bottom * factor} parts in each whole, and ${top * factor} ${top * factor === 1 ? 'is' : 'are'} shaded.`
+            : `Each part becomes ${factor} smaller parts. ${top === 1 ? '1 shaded part becomes' : `${top} shaded parts become`} ${top * factor}.`;
           // The same amount, cut a different way, in a square.
           if (i === 10) {
             prompt = 'Each triangle is 1/8 of the square. Two are shaded. Fill the missing numerator: 2/8 = ?/4.'; answer = '1'; denominator = undefined;
             visual = undefined; area = { cut: 'quarter-and-triangles', shaded: [1, 2] }; hint = 'Slide the 2 shaded triangles together. How many small squares do they cover?';
+            why = 'The 2 triangles fill 1 small square, and 4 small squares fill the square. So 2/8 = 1/4.';
           } else if (i === 11) {
             prompt = 'Color 1/2 of the square. How many eighths did you color?'; answer = '4'; denominator = undefined;
             visual = undefined; area = { cut: 'eighths-triangles' }; areaTask = { n: 1, d: 2 }; hint = '8 equal triangles make the square. Share them into 2 equal groups. How many are in 1 group?';
+            why = 'Half of 8 triangles is 4 triangles, so 4/8 = 1/2.';
           }
         } else if (id === 'build-equivalents') {
           prompt = i % 3 === 0 ? `Multiply the numerator and denominator of ${small} by ${factor}. What do you get?` :
             i % 3 === 1 ? `Write ${small} with a denominator of ${bottom * factor}.` : `Divide the numerator and denominator of ${big} by ${factor}. What do you get?`;
           answer = i % 3 === 2 ? small : big; denominator = i % 3 === 2 ? bottom : bottom * factor;
           hint = i % 3 === 2 ? `Divide the numerator and denominator by ${factor}.` : `Multiply the numerator and denominator by ${factor}.`;
+          why = i % 3 === 2 ? `${top * factor} ÷ ${factor} = ${top} and ${bottom * factor} ÷ ${factor} = ${bottom}. The amount stays the same.`
+            : `${top} × ${factor} = ${top * factor} and ${bottom} × ${factor} = ${bottom * factor}. The amount stays the same.`;
         } else {
           prompt = i % 3 === 0 ? `Fill the missing numerator: ${small} = ?/${bottom * factor}.` :
             i % 3 === 1 ? `Fill the missing denominator: ${small} = ${top * factor}/?.` : `Fill the missing numerator: ?/${bottom} = ${big}.`;
@@ -1418,13 +1543,17 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           // A blank denominator is found from the numerators (naming the two denominators would name the answer).
           hint = i % 3 === 2 ? `What number divides ${bottom * factor} to make ${bottom}? Divide the numerator by it too.`
             : i % 3 === 1 ? `What times ${top} makes ${top * factor}? Do the same to the denominator.` : `What times ${bottom} makes ${bottom * factor}? Do the same to the numerator.`;
+          why = i % 3 === 2 ? `${bottom * factor} ÷ ${factor} = ${bottom}, so the numerator is ${top * factor} ÷ ${factor} = ${top}.`
+            : i % 3 === 1 ? `${top} × ${factor} = ${top * factor}, so the denominator is ${bottom} × ${factor} = ${bottom * factor}.`
+              : `${bottom} × ${factor} = ${bottom * factor}, so the numerator is ${top} × ${factor} = ${top * factor}.`;
         }
         break;
       }
       case 'compose-to-one': {
         const thing = ['fence', 'wall', 'board', 'box'][i % 4];
         prompt = i % 2 ? `${value} of a ${thing} is painted. What fraction is not painted yet?` : `Complete ${value} + ? = 1.`;
-        answer = f(d - n, d); hint = `One whole is ${d}/${d}. Count the parts left.`; break;
+        answer = f(d - n, d); hint = `One whole is ${d}/${d}. Count the parts left.`;
+        why = i % 2 ? `The whole ${thing} is ${f(d, d)}. ${some(n, 'part is', 'parts are')} painted, and ${some(d - n, 'more part makes', 'more parts make')} the whole.` : `${value} + ${f(d - n, d)} = ${f(d, d)}, which is one whole.`; break;
       }
       case 'decompose-fractions': {
         const top = Math.max(2, n); const whole = f(top, d); const first = top > 2 && i % 2 ? 2 : 1;
@@ -1433,12 +1562,15 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           const same = i % 6 === 2; const last = top - 2 + (same ? 0 : 1);
           prompt = `Is ${f(1, d)} + ${f(1, d)} + ${f(last, d)} another way to make ${whole}? Answer yes or no.`;
           answer = same ? 'yes' : 'no'; form = 'word';
-          hint = `Add the numerators: 1 + 1 + ${last}. Is that ${top}?`; break;
+          hint = `Add the numerators: 1 + 1 + ${last}. Is that ${top}?`;
+          why = same ? `1 + 1 + ${last} = ${top}, so the three parts make ${whole}.` : `1 + 1 + ${last} = ${2 + last}, not ${top}. The parts make ${f(2 + last, d)}.`; break;
         }
         prompt = i % 3 === 0 ? `How many 1/${d} parts make ${whole}?` :
           i % 3 === 1 ? `Complete ${f(first, d)} + ? = ${whole}.` : `${top} jumps of 1/${d} make what fraction?`;
         answer = i % 3 === 0 ? String(top) : i % 3 === 1 ? f(top - first, d) : whole;
-        hint = i % 3 === 1 ? `${top} parts in all. ${first} ${first === 1 ? 'is' : 'are'} used. How many more?` : 'Count how many small parts make it.'; break;
+        hint = i % 3 === 1 ? `${top} parts in all. ${first} ${first === 1 ? 'is' : 'are'} used. How many more?` : 'Count how many small parts make it.';
+        why = i % 3 === 0 ? `${whole} is ${top} parts, and each part is 1/${d}.` : i % 3 === 1 ? `${first} + ${top - first} = ${top}, so ${f(first, d)} + ${f(top - first, d)} = ${whole}.`
+          : `Each jump is 1/${d}, so ${top} jumps make ${top} parts of 1/${d}: ${whole}.`; break;
       }
       case 'improper-fractions':
         // 3.NF.3c: row 10 writes a whole number as a fraction (3 = 3/1), row 12 a fraction that is a whole number (8/4 = 2),
@@ -1447,19 +1579,24 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           const w = 2 + (i + variant) % 3; // 2 to 4 whole bars: more would crowd a phone row
           prompt = `Write ${w} as a fraction with a denominator of 1.`; answer = f(w, 1); visual = model(w, 1); modelRequired = true;
           hint = 'The denominator 1 means each part is one whole.';
+          why = `With a denominator of 1, each whole bar is 1 part. ${w} bars are ${w} parts: ${w}/1.`;
         } else if (i === 11) {
           const w = 2 + (i + variant) % 2;
-          prompt = `How many wholes are ${f(w * d, d)}?`; answer = String(w); visual = model(w * d, d); modelRequired = true;
+          // One spare whole to copy onto, so counting the bars (each marked one whole) does not give the answer.
+          prompt = `How many wholes are ${f(w * d, d)}?`; answer = String(w); visual = { ...model(w * d, d), wholes: w + 1 }; modelRequired = true;
           hint = `${d}/${d} makes one whole. Count groups of ${d}/${d}.`;
+          why = `${f(w * d, d)} is ${w} groups of ${f(d, d)}, and each group is 1 whole.`;
         } else if (i % 3 === 0) {
           const top = [d + 1, d - 1, d, d + 2][i / 3];
           prompt = `Put <, = or > in the gap: ${f(top, d)} __ 1.`; answer = top > d ? '>' : top < d ? '<' : '='; form = 'symbol';
           hint = `${d}/${d} is exactly one whole.`;
+          why = `${f(top, d)} is ${top} parts, and one whole is ${d} parts. So ${f(top, d)} ${answer} 1.`;
         } else {
           // Grade 3 counts the parts past one whole; writing them as a mixed number is the next lesson (4.NF.3).
           prompt = i % 3 === 1 ? `How many ${unitName(d)} past one whole is ${f(d + n, d)}?` : 'What fraction is shaded? Each bar is one whole.';
           answer = i % 3 === 1 ? String(n) : f(d + n, d);
           hint = i % 3 === 1 ? `${f(d, d)} is one whole. Count the ${unitName(d)} after it.` : `${d} parts make one whole. Count what is left over.`;
+          why = i % 3 === 1 ? `${f(d + n, d)} is ${d} ${unitName(d)} for one whole, and ${n} more.` : `The first bar is ${f(d, d)}. ${some(n, 'more part is', 'more parts are')} shaded, so it is ${f(d + n, d)}.`;
           if (i % 3 === 2 || i < 6) visual = model(d + n, d);
         }
         break;
@@ -1469,7 +1606,9 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
         answer = i % 2 ? `${w} ${value}` : f(top, d); form = i % 2 ? 'mixed' : undefined;
         hint = i % 2
           ? `${d} parts make one whole. Count the wholes, then what is left over. Write it like 1 2/3.`
-          : `One whole is ${f(d, d)}.${w === 2 ? ` 2 wholes is ${f(2 * d, d)}.` : ''} Then add ${f(n, d)} more.`; if (i < 4) visual = model(top, d); break;
+          : `One whole is ${f(d, d)}.${w === 2 ? ` 2 wholes is ${f(2 * d, d)}.` : ''} Then add ${f(n, d)} more.`; if (i < 4) visual = model(top, d);
+        why = i % 2 ? `${f(top, d)} is ${f(w * d, d)} and ${value} more. ${f(w * d, d)} is ${some(w, 'whole', 'wholes')}, so it is ${w} ${value}.`
+          : `${some(w, 'whole is', 'wholes are')} ${f(w * d, d)}. ${f(w * d, d)} + ${value} = ${f(top, d)}.`; break;
       }
       case 'add-like-denominators':
       case 'subtract-like-denominators': {
@@ -1479,19 +1618,23 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           `A ${context} is ${f(a, d)} meter long. Cut off ${f(b, d)} meter. How much is left?`) :
           `${f(a, d)} ${add ? '+' : '−'} ${f(b, d)} = ?`;
         answer = f(result, d); hint = add ? 'Same size parts. Add the numerators. The denominator stays.' : 'Same size parts. Take away the numerators. The denominator stays.';
+        why = `${a} ${add ? '+' : '−'} ${b} = ${result}. Each part is still 1/${d}, so it is ${f(result, d)}.`;
         if (i % 3 === 1) visual = model(a, d); break;
       }
       case 'add-related-fractions': {
         const [small, large] = ([[2, 4], [3, 6], [4, 8], [2, 6], [2, 8], [3, 12], [2, 10], [4, 12], [5, 10], [2, 12], [6, 12], [3, 9]] as const)[t];
         prompt = i % 2 ? `Sam walks 1/${small} mile, then 1/${large} mile more. How far in all?` : `A recipe uses 1/${small} cup and another 1/${large} cup. How much in all?`;
-        answer = f(large / small + 1, large); hint = `Change 1/${small} into ${unitName(large)} first.`; break;
+        answer = f(large / small + 1, large); hint = `Change 1/${small} into ${unitName(large)} first.`;
+        why = `1/${small} = ${f(large / small, large)}. Then ${f(large / small, large)} + 1/${large} = ${answer}.`; break;
       }
       case 'add-tenths-hundredths': {
         const a = [3, 6, 2, 5, 4, 7, 1, 8, 4, 2, 3, 5][t]; const b = [4, 12, 15, 7, 8, 25, 6, 11, 35, 9, 30, 45][t];
         prompt = i % 3 === 0 ? `${f(a, 10)} + ${f(b, 100)} = ?` : i % 3 === 1 ? `Change ${f(a, 10)} into hundredths.` : `Write ${f(a, 10)} + ${f(b, 100)} as a decimal.`;
         answer = i % 3 === 0 ? f(10 * a + b, 100) : i % 3 === 1 ? f(10 * a, 100) : ((10 * a + b) / 100).toFixed(2);
         denominator = i % 3 === 1 ? 100 : undefined; form = i % 3 === 2 ? 'decimal' : undefined;
-        hint = i % 3 === 1 ? `Each tenth is 10 hundredths. How many hundredths are in ${tenthWord(a)}?` : `Each tenth is 10 hundredths, so ${f(a, 10)} = ${f(10 * a, 100)}.`; break;
+        hint = i % 3 === 1 ? `Each tenth is 10 hundredths. How many hundredths are in ${tenthWord(a)}?` : `Each tenth is 10 hundredths, so ${f(a, 10)} = ${f(10 * a, 100)}.`;
+        why = i % 3 === 0 ? `${f(a, 10)} = ${f(10 * a, 100)}. Then ${f(10 * a, 100)} + ${f(b, 100)} = ${answer}.` : i % 3 === 1 ? `${a} × 10 = ${10 * a}, so ${f(a, 10)} = ${answer}.`
+          : `${f(a, 10)} + ${f(b, 100)} = ${f(10 * a + b, 100)}, and ${10 * a + b} hundredths is ${answer}.`; break;
       }
       case 'tenths-decimals':
       case 'hundredths-decimals': {
@@ -1511,6 +1654,9 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           `A meter strip has ${base} equal parts. ${top} ${top === 1 ? 'is' : 'are'} colored. Write the colored part as a decimal.`;
         answer = i % 3 === 1 ? f(top, base) : dec; form = i % 3 === 1 ? undefined : 'decimal';
         hint = base === 10 ? 'One decimal place means tenths.' : 'Two decimal places means hundredths. The tenths digit comes first after the point, then the hundredths digit.';
+        why = i % 3 === 1 ? `${dec} has ${base === 10 ? '1 place' : '2 places'} after the point, so it is ${top} ${base === 10 ? (top === 1 ? 'tenth' : 'tenths') : (top === 1 ? 'hundredth' : 'hundredths')}: ${answer}.`
+          : base === 10 ? `${top} ${top === 1 ? 'tenth' : 'tenths'} is ${dec}: the ${top} goes in the first place after the point.`
+            : `${dec} has ${Math.floor(top / 10)} in the tenths place and ${top % 10} in the hundredths place. That is ${top} hundredths.`;
         if (i % 3 === 2) visual = model(top, base); break;
       }
       default: throw new Error(`No authored worksheet for ${id}`);
@@ -1544,6 +1690,8 @@ const PAN_SHARES: [number, number][] = [[2, 2], [3, 3], [4, 4], [5, 3], [6, 2], 
   [3, 2], [4, 2], [2, 3], [2, 4], [3, 5], [4, 3], [5, 4], [6, 4], [2, 6], [3, 6], [4, 6], [10, 2], [12, 2]];
 const SIMPLE: [number, number][] = [[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [2, 5], [1, 6], [5, 6], [3, 8], [3, 10], [5, 12], [7, 10]];
 
+/** "Sixths" from "sixths". */
+const cap = (text: string) => `${text[0].toUpperCase()}${text.slice(1)}`;
 /** "1 part" or "3 parts". */
 const some = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
 /** "1 sixth" or "4 sixths". */
@@ -1616,6 +1764,14 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           // (Twentieths, fifteenths and fortieths are not named yet in this lesson: those rows keep just the hint.)
           const m = lcm(b, e); const x = a * (m / b); const y = c * (m / e);
           why = `${renamesTo(m, [a, b], [c, e])}${pieces(x, m)} ${x === 1 ? 'is' : 'are'} ${x > y ? 'more than' : x < y ? 'less than' : 'the same as'} ${pieces(y, m)}.`;
+        } else {
+          // Twentieths, fifteenths and fortieths are not named yet in this lesson: these four compare by the gap to a benchmark.
+          why = ({
+            '4/5 3/4': '4/5 is 1/5 away from 1 whole, and 3/4 is 1/4 away. 1/5 is the smaller gap, so 4/5 is bigger.',
+            '2/5 1/3': '2/5 is 1/10 less than 1/2, and 1/3 is 1/6 less. 1/10 is the smaller gap, so 2/5 is bigger.',
+            '3/10 1/4': '3/10 = 30/100 and 1/4 = 25/100. 30 hundredths are more than 25 hundredths.',
+            '3/8 2/5': '3/8 is 1/8 less than 1/2, and 2/5 is 1/10 less. 1/10 is the smaller gap, so 2/5 is bigger.',
+          } as Record<string, string>)[`${f(a, b)} ${f(c, e)}`];
         }
         break;
       }
@@ -1730,7 +1886,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           const [top, bottom] = pick([[7, 3], [9, 4], [5, 2], [11, 3], [13, 4], [8, 3], [7, 2], [11, 4], [10, 3], [9, 2], [17, 4], [14, 3]] as const);
           prompt = `${top}/${bottom} is between two whole numbers. What is the bigger one?`; answer = String(Math.ceil(top / bottom));
           visual = { kind: 'line', n: 0, d: bottom, wholes: Math.ceil(top / bottom) };
-          hint = `${bottom}/${bottom} is one whole. How many whole groups of ${bottom} fit in ${top}?`; break;
+          hint = `${bottom}/${bottom} is one whole. How many whole groups of ${bottom} fit in ${top}?`;
+          why = `${top} is ${Math.floor(top / bottom)} groups of ${bottom}, with ${top % bottom} left over. So ${top}/${bottom} is between ${Math.floor(top / bottom)} and ${Math.ceil(top / bottom)}.`; break;
         }
         const [top, bottom] = pick([[1, 2], [2, 3], [3, 4], [5, 4], [4, 3], [7, 2], [2, 5], [3, 2], [5, 3], [3, 8], [1, 4], [5, 6],
           [1, 3], [3, 5], [4, 5], [5, 2], [7, 4], [1, 6], [7, 3], [2, 8], [5, 8], [1, 5], [9, 4], [4, 6]] as const);
@@ -1739,7 +1896,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         // The wholes to share, cut into equal parts and not shaded (more than 4 wholes: a number line to the next whole).
         if (top <= 4) visual = { kind: 'bar', n: 0, d: bottom, wholes: top };
         else picture = { kind: 'line', numerator: 0, denominator: bottom, wholes: Math.ceil(top / bottom), hideLabels: true };
-        hint = 'The fraction bar means divide. The number you divide goes on top.'; break;
+        hint = 'The fraction bar means divide. The number you divide goes on top.';
+        why = `Sharing ${some(top, 'whole', 'wholes')} into ${bottom} equal shares gives ${f(top, bottom)} in each share.`; break;
       }
       case 'probability': {
         const [green, total] = pick([[1, 4], [2, 6], [3, 8], [3, 10], [2, 5], [5, 12], [1, 6], [5, 8], [7, 10], [3, 4], [7, 12], [4, 5],
@@ -1769,11 +1927,13 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
             prompt = 'Two small squares and two triangles fill this square. Are all 4 parts equal in area? Answer yes or no.';
             answer = 'yes'; form = 'word'; area = { cut: 'fourths-mixed' };
             hint = 'Picture one triangle next to one small square. Does each one cover the same space?';
+            why = 'One half holds 2 squares and the other half holds 2 triangles. Each part is half of a half, so all 4 are equal.';
           } else {
             const pizza = i === 11;
             prompt = pizza ? 'This pizza is cut into 4 slices. Are the slices equal in area? Answer yes or no.' : 'On this tile pattern, are the 4 parts of the square equal in area? Answer yes or no.';
             answer = 'no'; form = 'word'; area = { cut: pizza ? 'circle-unequal' : 'fourths-unequal' };
             hint = 'Count the parts, then compare their areas. Four parts are not always fourths.';
+            why = `One ${pizza ? 'slice' : 'part'} covers more space than the others, so the ${pizza ? 'slices' : 'parts'} are not equal in area.`;
           }
         } else {
           // Practice uses rows 1, 4, 7 and 10: these steps give them four different shapes and amounts.
@@ -1822,7 +1982,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const target = 10 % b === 0 ? 10 : 100;
         hint = b === target
           ? `${f(t, b)} is already in ${unitName(b)}. Write ${unitName(b)} with ${b === 10 ? 'one decimal place' : 'two decimal places'}.`
-          : `Multiply top and bottom of ${f(t, b)} by ${target / b} to make ${target} on the bottom.`; break;
+          : `Multiply top and bottom of ${f(t, b)} by ${target / b} to make ${target} on the bottom.`;
+        why = b === target ? `${f(t, b)} is ${t} out of ${b}. ${b === 10 ? '1 place' : '2 places'} after the point show ${unitName(b)}: ${answer}.`
+          : `${f(t, b)} = ${f(t * (target / b), target)}, and that is ${answer}.`; break;
       }
       case 'whole-fraction': {
         const examples: { kind: 'write' | 'count' | 'one'; numerator: number; denominator: number }[] = [
@@ -1839,13 +2001,18 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         if (item.kind === 'write') {
           prompt = `Write ${item.numerator} whole bars as a fraction with a denominator of 1.`; answer = `${item.numerator}/1`; visual = model(item.numerator, 1);
           hint = 'The denominator 1 means each part is one whole.';
+          why = `With a denominator of 1, each whole bar is 1 part. ${item.numerator} bars are ${item.numerator} parts: ${answer}.`;
         } else if (item.kind === 'count') {
-          prompt = `How many wholes are ${item.numerator}/${item.denominator}?`; answer = String(item.numerator / item.denominator); visual = model(item.numerator, item.denominator);
+          // One spare whole to copy onto, so counting the bars does not give the answer.
+          prompt = `How many wholes are ${item.numerator}/${item.denominator}?`; answer = String(item.numerator / item.denominator);
+          visual = { ...model(item.numerator, item.denominator), wholes: item.numerator / item.denominator + 1 };
           hint = `${item.denominator}/${item.denominator} makes one whole. Count groups of ${item.denominator}/${item.denominator}.`;
           why = `${item.numerator}/${item.denominator} is ${some(item.numerator / item.denominator, 'group', 'groups')} of ${item.denominator}/${item.denominator}, and each group is 1 whole.`;
         } else {
           prompt = `Write ${item.numerator}/${item.denominator} as a whole number.`; answer = '1'; visual = model(item.numerator, item.denominator);
           hint = 'The numerator and denominator match, so every equal part is included.';
+          why = item.numerator === 1 ? 'A whole cut into just 1 part is still the whole, so 1/1 is 1.'
+            : `${item.numerator}/${item.numerator} is all ${item.numerator} of the ${item.numerator} equal parts. That is 1 whole.`;
         }
         modelRequired = true; break;
       }
@@ -2011,7 +2178,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           [1, 1, 3, 1, 1, 6, '+'], [2, 1, 4, 1, 1, 2, '+'], [1, 1, 2, 0, 1, 4, '+'],
           [3, 3, 4, 1, 1, 2, '−'], [2, 1, 3, 1, 1, 6, '−'], [2, 1, 2, 0, 3, 4, '−'],
           [1, 2, 3, 1, 1, 6, '+'], [3, 1, 2, 1, 2, 3, '−'], [1, 3, 8, 1, 1, 4, '+'],
-          [2, 4, 5, 1, 1, 10, '−'], [1, 1, 6, 0, 1, 2, '+'], [4, 1, 3, 2, 1, 2, '−'],
+          [2, 4, 5, 1, 1, 10, '−'], [1, 1, 6, 0, 1, 2, '+'], [3, 1, 3, 1, 1, 2, '−'],
         ];
         const [wholeA, topA, bottomA, wholeB, topB, bottomB, op] = pick(examples);
         const a = wholeA * bottomA + topA; const b = bottomA; const c = wholeB * bottomB + topB; const e = bottomB;
@@ -2062,7 +2229,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           prompt = `${i === 3 ? 'Sam' : i === 8 ? 'Ana' : 'Leo'} says ${f(a, b)} + ${f(c, e)} = ${said}. Does that make sense? Answer yes or no.`;
           // The child builds the claimed answer, then checks it against the bigger part.
           answer = slip ? 'no' : 'yes'; form = 'word'; visual = slip ? model(a + c, b + e) : model(total, common); modelRequired = true;
-          hint = `A sum is more than each part. Build ${said}. Is it more than ${big}?`; break;
+          hint = `A sum is more than each part. Build ${said}. Is it more than ${big}?`;
+          why = slip ? `${said} is less than ${big}, but a sum is more than each part. So ${said} cannot be right.`
+            : `${renamesTo(common, [a, b], [c, e])}Together they make ${f(total, common)}${total > common ? `, which is ${said}` : ''}.`; break;
         }
         const operation = op === '+' ? 'sum' : 'difference';
         prompt = `Without finding the exact ${operation}, compare ${f(a, b)} ${op} ${f(c, e)} with 1: __ 1.`;
@@ -2170,15 +2339,16 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       case 'mistake': {
         // Error analysis: every third row asks "Is it right?"; the rest ask for the right answer. Grade 4 (4.NF.3a, 4.NF.4):
         // like denominators and whole × fraction only, no renaming to add and no fraction × fraction.
-        const checks: [string, 'yes' | 'no', string][] = [
-          ['Sam says 2/5 + 1/5 = 3/10.', 'no', 'Fifths plus fifths make fifths. Add only the numerators.'],
-          ['Lee says 3/4 is bigger than 3/8.', 'yes', 'Both have 3 parts. Fourths are bigger than eighths.'],
-          ['Mia says 1/8 is bigger than 1/4 because 8 is bigger than 4.', 'no', 'More parts in the whole means smaller parts.'],
-          ['Ana says 2/3 = 4/6.', 'yes', 'Cut each third into 2. Then 2 thirds is 4 sixths.'],
-          ['Ray says 1/3 is bigger than 1/5.', 'yes', 'Thirds are bigger parts than fifths.'],
-          ['Jen says 3/5 + 1/5 = 4/10.', 'no', 'Fifths plus fifths make fifths. Add only the numerators.'],
-          ['Pat says 4/8 = 1/2.', 'yes', '4 of 8 equal parts is half of them.'],
-          ['Kai says 2/6 is bigger than 2/3 because 6 is bigger than 3.', 'no', 'Both have 2 parts. Sixths are smaller than thirds.'],
+        // [claim, right answer, hint, why after a right answer]
+        const checks: [string, 'yes' | 'no', string, string][] = [
+          ['Sam says 2/5 + 1/5 = 3/10.', 'no', 'Fifths plus fifths make fifths. Add only the numerators.', '2 fifths + 1 fifth = 3 fifths, or 3/5. The parts do not turn into tenths.'],
+          ['Lee says 3/4 is bigger than 3/8.', 'yes', 'Both have 3 parts. Fourths are bigger than eighths.', '3/4 is the same as 6/8, and 6/8 is more than 3/8.'],
+          ['Mia says 1/8 is bigger than 1/4 because 8 is bigger than 4.', 'no', 'More parts in the whole means smaller parts.', '1/4 is the same as 2/8, so 1/4 is bigger than 1/8.'],
+          ['Ana says 2/3 = 4/6.', 'yes', 'Cut each third into 2. Then 2 thirds is 4 sixths.', '2 × 2 = 4 and 3 × 2 = 6, so 2/3 and 4/6 are the same amount.'],
+          ['Ray says 1/3 is bigger than 1/5.', 'yes', 'Thirds are bigger parts than fifths.', 'A whole cut into 3 parts has bigger parts than one cut into 5.'],
+          ['Jen says 3/5 + 1/5 = 4/10.', 'no', 'Fifths plus fifths make fifths. Add only the numerators.', '3 fifths + 1 fifth = 4 fifths, or 4/5. The parts stay fifths.'],
+          ['Pat says 4/8 = 1/2.', 'yes', '4 of 8 equal parts is half of them.', '4 is half of 8, so 4/8 is one half.'],
+          ['Kai says 2/6 is bigger than 2/3 because 6 is bigger than 3.', 'no', 'Both have 2 parts. Sixths are smaller than thirds.', '2/3 is the same as 4/6, and 4/6 is more than 2/6. So 2/6 is smaller.'],
         ];
         const fixes: [string, string, string, number?, WorksheetProblem['form']?][] = [
           ['Sam says 1/4 + 2/4 = 3/8.', '3/4', 'Fourths plus fourths make fourths. Add only the numerators.'],
@@ -2218,8 +2388,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           '4 groups of 1 third make 4 thirds. The denominator stays 3.',
         ];
         if (i % 3 === 0) {
-          const [claim, said, rule] = checks[(i / 3 + variant) % checks.length];
-          prompt = `${claim} Is that right? Answer yes or no.`; answer = said; form = 'word'; hint = rule;
+          const [claim, said, rule, reason] = checks[(i / 3 + variant) % checks.length];
+          prompt = `${claim} Is that right? Answer yes or no.`; answer = said; form = 'word'; hint = rule; why = reason;
         } else {
           const at = (i - 1 - Math.floor(i / 3) + variant) % fixes.length;
           const [claim, right, rule, bottom, shape] = fixes[at];
@@ -2273,24 +2443,29 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
             : `${who} eats ${show(a)} of a small pizza. ${other} eats ${show(b)} of a big pizza. Can you tell who eats more? Answer yes or no.`;
           answer = same ? 'yes' : 'no'; form = 'word';
           picture = { kind: 'area', cut: 'circle-tenths', shaded: [], ...(same ? {} : { scale: 0.6 }), more: [{ cut: 'circle-tenths', shaded: [] }] };
-          hint = 'Look at the two wholes first. You can only compare parts of the same whole.'; break;
+          hint = 'Look at the two wholes first. You can only compare parts of the same whole.';
+          why = same ? `Both pizzas are the same size, so ${show(a)} and ${show(b)} of them can be compared.` : 'The pizzas are different sizes. A part of a big pizza and a part of a small one cannot be compared.'; break;
         }
         if (i % 4 === 1) {
           const trio = pick([[50, 45, 60], [30, 7, 25], [80, 75, 9], [4, 40, 35], [62, 6, 26], [10, 1, 9], [55, 5, 50], [70, 77, 7], [15, 51, 5], [20, 2, 22], [90, 9, 99], [33, 3, 30]] as const);
           const up = Math.floor(i / 4) % 2 === 0;
           prompt = `Put ${show(trio[0])}, ${show(trio[1])} and ${show(trio[2])} in order, ${up ? 'smallest' : 'biggest'} first.`;
           answer = [...trio].sort((x, y) => (up ? x - y : y - x)).map(show).join(', '); form = 'ordered';
-          picture = grids(...trio); hint = `Write each one in hundredths: ${show(trio[0])} is ${trio[0]} hundredths. Then order the counts.`; break;
+          picture = grids(...trio); hint = `Write each one in hundredths: ${show(trio[0])} is ${trio[0]} hundredths. Then order the counts.`;
+          { const counts = [...trio].sort((x, y) => (up ? x - y : y - x)); why = `In hundredths they are ${counts[0]}, ${counts[1]} and ${counts[2]}.`; } break;
         }
         if (i % 4 === 2) {
           const [a, b] = pick([[30, 25], [7, 70], [45, 5], [60, 59], [8, 80], [12, 2], [40, 4], [99, 9], [5, 50], [66, 6], [20, 19], [1, 10]] as const);
           prompt = `Which is more: ${show(a)} or ${show(b)}?`; answer = show(Math.max(a, b)); form = 'decimal';
-          picture = grids(a, b); hint = 'Write both in hundredths. Then compare the counts, not how long the numbers look.'; break;
+          picture = grids(a, b); hint = 'Write both in hundredths. Then compare the counts, not how long the numbers look.';
+          { const hundredths = (h: number) => `${h} ${h === 1 ? 'hundredth' : 'hundredths'}`;
+            why = `${show(a)} is ${hundredths(a)} and ${show(b)} is ${hundredths(b)}. ${Math.max(a, b)} is more than ${Math.min(a, b)}.`; } break;
         }
         const h = pick([40, 7, 35, 90, 3, 60, 25, 8, 50, 75, 2, 30]);
         prompt = `How many hundredths is ${show(h)}?`; answer = String(h);
         picture = { kind: 'area', cut: 'grid-10x10', shaded: [] };
-        hint = h % 10 === 0 ? `One tenth is 10 hundredths: one whole column of the grid.` : 'Two places after the decimal point name hundredths.'; break;
+        hint = h % 10 === 0 ? `One tenth is 10 hundredths: one whole column of the grid.` : 'Two places after the decimal point name hundredths.';
+        why = h % 10 === 0 ? `${show(h)} is ${h / 10} ${h === 10 ? 'tenth' : 'tenths'}, and ${h / 10} × 10 = ${h} hundredths.` : `${show(h)} has ${Math.floor(h / 10)} in the tenths place and ${h % 10} in the hundredths place. That is ${h} hundredths.`; break;
       }
       case 'bigger-smaller': {
         const [top, bottom] = pick([[3, 4], [5, 4], [2, 3], [4, 3], [1, 2], [3, 2], [3, 3], [5, 6], [7, 6], [2, 2], [4, 5], [6, 5],
@@ -2305,7 +2480,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         } else {
           prompt = `Is ${top}/${bottom} × ${amount} the same as ${amount}? Answer yes or no.`; answer = top === bottom ? 'yes' : 'no'; form = 'word';
         }
-        hint = 'Compare the fraction with 1. Less than 1 makes less, more than 1 makes more, and 1 keeps it the same.'; break;
+        hint = 'Compare the fraction with 1. Less than 1 makes less, more than 1 makes more, and 1 keeps it the same.';
+        why = `${top}/${bottom} is ${top < bottom ? 'less than' : top === bottom ? 'equal to' : 'more than'} 1, so ${top}/${bottom} × ${amount} is ${top < bottom ? 'less than' : top === bottom ? 'the same as' : 'more than'} ${amount}.`; break;
       }
       case 'times-grid': {
         const [a, b, c, e] = pick([[3, 4, 1, 2], [2, 3, 3, 4], [1, 2, 4, 5], [3, 5, 2, 3], [2, 3, 4, 5], [1, 3, 1, 2], [3, 4, 2, 3], [2, 5, 1, 2],
@@ -2314,7 +2490,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         prompt = i % 2 ? `What is ${f(a, b)} of ${f(c, e)}?` : `${f(a, b)} × ${f(c, e)} = ?`; answer = f(a * c, b * e);
         // The square to cut: rows for the first fraction, columns for the second, nothing shaded (the overlap is the answer).
         area = { cut: gridCut(e, b) };
-        hint = `Shade ${a} of ${b} rows, then ${c} of ${e} columns. Count where they overlap, then count all the squares.`; break;
+        hint = `Shade ${a} of ${b} rows, then ${c} of ${e} columns. Count where they overlap, then count all the squares.`;
+        why = `The overlap is ${a} × ${c} = ${some(a * c, 'small square', 'small squares')}. The whole square has ${b} × ${e} = ${b * e}.`; break;
       }
       case 'share-or-fit': {
         const stuff = pick([['pound', 'pounds', 'clay', 'bags'], ['cup', 'cups', 'rice', 'scoops'], ['liter', 'liters', 'juice', 'bottles']] as const);
@@ -2342,13 +2519,15 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         if (i % 3 === 1) {
           prompt = `Write ${f(dimes, 10)} of a dollar in hundredths.`; answer = f(10 * dimes, 100); denominator = 100;
           picture = { kind: 'bars', bars: [{ numerator: dimes, denominator: 10 }], hideLabels: true };
-          hint = `${f(dimes, 10)} is ${dimeWord(dimes)}. Each dime is 10 hundredths.`; break;
+          hint = `${f(dimes, 10)} is ${dimeWord(dimes)}. Each dime is 10 hundredths.`;
+          why = `${dimes} × 10 = ${10 * dimes}, so ${f(dimes, 10)} = ${answer}.`; break;
         }
         const coins = `${dimeWord(dimes)} and ${pennyWord(pennies)}`;
         prompt = i % 3 === 0 ? `${coins}. What part of a dollar is that?` : `${f(dimes, 10)} + ${f(pennies, 100)} of a dollar. How much is that in hundredths?`;
         answer = f(10 * dimes + pennies, 100); denominator = 100;
         picture = { kind: 'coins', dimes, pennies };
-        hint = `${dimeWord(dimes)} ${dimes === 1 ? 'is' : 'are'} ${10 * dimes} hundredths. Then add the ${pennyWord(pennies)}.`; break;
+        hint = `${dimeWord(dimes)} ${dimes === 1 ? 'is' : 'are'} ${10 * dimes} hundredths. Then add the ${pennyWord(pennies)}.`;
+        why = `${10 * dimes} hundredths from the ${dimes === 1 ? 'dime' : 'dimes'} and ${pennies} from the ${pennies === 1 ? 'penny' : 'pennies'} make ${10 * dimes + pennies} hundredths.`; break;
       }
       case 'plot-eighths': {
         // The child plots the lengths (in eighths), then uses the plot: how many more, how many longer, two shortest together.
@@ -2366,17 +2545,21 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         if (i % 3 === 0 && count(most) !== count(least)) {
           prompt = `Plot these ${object} lengths in eighths: ${list}. How many more Xs are at ${f(most, 8)} than at ${f(least, 8)}?`;
           answer = String(count(most) - count(least));
-          hint = `Count the Xs at ${f(most, 8)}. Count the Xs at ${f(least, 8)}. Take away.`; break;
+          hint = `Count the Xs at ${f(most, 8)}. Count the Xs at ${f(least, 8)}. Take away.`;
+          why = `${some(count(most), 'X is', 'Xs are')} at ${f(most, 8)} and ${count(least)} at ${f(least, 8)}. ${count(most)} − ${count(least)} = ${answer}.`; break;
         }
         if (i % 3 === 1) {
           prompt = `Plot these ${object} lengths in eighths: ${list}. How many are longer than 4/8 inch?`;
           answer = String(values.filter((value) => value > 4).length);
-          hint = 'Find 4/8 on the plot. Count the Xs to its right.'; break;
+          hint = 'Find 4/8 on the plot. Count the Xs to its right.';
+          { const longer = values.filter((value) => value > 4).map((value) => f(value, 8));
+            why = `${longer.length === 1 ? `Only ${longer[0]} is` : `${longer.slice(0, -1).join(', ')} and ${longer[longer.length - 1]} are`} past 4/8. That is ${longer.length}.`; } break;
         }
         const [a, b] = [...values].sort((x, y) => x - y);
         prompt = `Plot these ${object} lengths in eighths: ${list}. How long are the two shortest together?`;
         answer = f(a + b, 8); denominator = 8;
-        hint = 'Find the two Xs farthest left. Add their lengths.'; break;
+        hint = 'Find the two Xs farthest left. Add their lengths.';
+        why = `The two shortest are ${f(a, 8)} and ${f(b, 8)}. ${f(a, 8)} + ${f(b, 8)} = ${answer}.`; break;
       }
       case 'portions': {
         // Equal portions: a fraction times a whole number, and which whole numbers the total is between.
@@ -2388,11 +2571,13 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         if (i % 2 === 1 && (n * a) % b !== 0) {
           prompt = `${each} ${n} ${who}s. The total is between two whole numbers. What is the bigger one?`;
           answer = String(Math.ceil((n * a) / b));
-          hint = `Count all the ${unitWord(b)}: ${n} × ${a}. Then see how many wholes of ${b} ${unitWord(b)} fit.`; break;
+          hint = `Count all the ${unitWord(b)}: ${n} × ${a}. Then see how many wholes of ${b} ${unitWord(b)} fit.`;
+          why = `${n} × ${a} = ${n * a} ${unitWord(b)}. That is ${some(Math.floor((n * a) / b), 'whole', 'wholes')} and ${(n * a) % b} more, so the total is between ${Math.floor((n * a) / b)} and ${answer}.`; break;
         }
         prompt = `${each} ${n} ${who}s. How many ${unit}s in all?`;
         answer = f(n * a, b); denominator = b;
-        hint = `${n} groups of ${a} ${unitWord(b)}. Multiply the numerator by ${n}. The part size stays ${unitWord(b)}.`; break;
+        hint = `${n} groups of ${a} ${unitWord(b)}. Multiply the numerator by ${n}. The part size stays ${unitWord(b)}.`;
+        why = `${n} × ${a} = ${n * a}, so ${n} ${who}s get ${n * a} ${unitWord(b)}: ${answer}.`; break;
       }
       case 'two-step-convert': {
         // Change a mixed number of big units to small units, then take away or add.
@@ -2414,7 +2599,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         // "The first part takes 20 minutes" always takes away.
         answer = String(big === 'hours' || take ? total - n : total + n);
         picture = { kind: 'bars', bars: [...Array.from({ length: w }, () => ({ numerator: b, denominator: b })), { numerator: a, denominator: b }], hideLabels: true };
-        hint = `Change ${w} ${a}/${b} ${big} to ${small} first: 1 ${big.replace(/s$/, '').replace('feet', 'foot')} is ${per} ${small}.`; break;
+        hint = `Change ${w} ${a}/${b} ${big} to ${small} first: 1 ${big.replace(/s$/, '').replace('feet', 'foot')} is ${per} ${small}.`;
+        why = `${w} ${a}/${b} ${big} is ${total} ${small}. ${total} ${big === 'hours' || take ? '−' : '+'} ${n} = ${answer}.`; break;
       }
       case 'plot-totals': {
         // Plot the amounts in eighths of a liter, then add every X, or find how much more one stack holds than another.
@@ -2432,11 +2618,13 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         if (i % 2 === 1 && tall !== low && count(tall) * tall > count(low) * low) {
           prompt = `Plot these ${context} in eighths of a liter: ${list}. How much more do all the ${f(tall, 8)} ${context} hold together than all the ${f(low, 8)} ${context} together?`;
           answer = f(count(tall) * tall - count(low) * low, 8); denominator = 8;
-          hint = `Add up each stack first: ${count(tall)} × ${f(tall, 8)} and ${count(low)} × ${f(low, 8)}. Then take away.`; break;
+          hint = `Add up each stack first: ${count(tall)} × ${f(tall, 8)} and ${count(low)} × ${f(low, 8)}. Then take away.`;
+          why = `The ${f(tall, 8)} stack holds ${f(count(tall) * tall, 8)} and the ${f(low, 8)} stack holds ${f(count(low) * low, 8)}. ${f(count(tall) * tall, 8)} − ${f(count(low) * low, 8)} = ${answer}.`; break;
         }
         prompt = `Plot these ${context} in eighths of a liter: ${list}. How much water in all?`;
         answer = f(values.reduce((sum, v) => sum + v, 0), 8); denominator = 8;
-        hint = 'Add the eighths for every X. Two Xs at one spot count twice.'; break;
+        hint = 'Add the eighths for every X. Two Xs at one spot count twice.';
+        { const sum = values.reduce((total, v) => total + v, 0); why = `${values.join(' + ')} = ${sum} eighths, so they hold ${answer} ${sum > 8 ? 'liters' : 'liter'} in all.`; } break;
       }
       case 'story': {
         const [bottom, a, b] = ([[4, 1, 1], [5, 2, 1], [6, 3, 1], [8, 4, 2], [10, 5, 1], [5, 1, 2], [6, 1, 2], [8, 3, 2], [10, 2, 3], [4, 1, 2], [6, 2, 3], [12, 3, 2]] as const)[tr];

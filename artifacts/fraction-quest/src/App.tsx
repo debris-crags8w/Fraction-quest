@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type CSSProperties, type ReactNode, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LinePlotPicture } from './line-plot-picture';
 import { CoinsPicture } from './coins-picture';
 import { RulerPicture } from './ruler-picture';
@@ -21,6 +21,7 @@ import {
   getNextMission,
   isCorrectAnswer,
   isMissionUnlocked,
+  cleanProgress,
   loadProgress,
   addGrownUpPick,
   clearGrownUpPick,
@@ -47,7 +48,7 @@ import {
   type Progress,
 } from './game';
 import { createDeveloperLessonProgress } from './developer-test';
-import { BOARD_AFTER, SuspectBoardView, TownMap, lessonSticker, thanksSticker, type SuspectBoard } from './quest';
+import { BOARD_AFTER, SUSPECT_BOARDS, SuspectBoardView, TownMap, lessonSticker, thanksSticker, type SuspectBoard } from './quest';
 import { DeveloperChip } from './DeveloperTesting';
 import { getAssessmentDefinitions, saveAssessmentAttempt } from './assessments';
 import { PickedForYou } from './PickedForYou';
@@ -65,7 +66,7 @@ import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requi
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { trackEvent } from './lib/analytics';
 import { legalUrl } from './lib/legal';
-import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordFractionWords, recordIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, setTimeLimit, addMinutesToday, timeToday, today, type FunState } from './lib/fun';
+import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordFractionWords, recordIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, replaceFun, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, setTimeLimit, addMinutesToday, timeToday, today, type FunState } from './lib/fun';
 import { TimeUp } from './time-up';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
@@ -93,6 +94,8 @@ import { AreaShade, AreaSvg } from './AreaModel';
 import { GardenPlan } from './GardenPlan';
 import { applyPlacement } from './placement';
 import { AccountGate, useAccount, useAccountSync } from './account';
+import type { SavedCopyNotice } from './account-flow';
+import { mergeFun, mergeProgress } from './progress-merge';
 import LoginPage from './LoginPage';
 import { getRouterBasePath } from './app-routing';
 import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyPracticeDay, recordDailyPracticeStart } from './daily-practice';
@@ -1338,7 +1341,7 @@ function RewardView({ mission, stars, progress, lessonsAreLocked = false, stoneD
             sticker={lessonSticker(chapter, unitMissions.indexOf(mission), storyLessonTitle(mission.title, true))}
             startSolved={stoneDone} ending={endingAfterChapter({ piecesFound: completedStoryUnits(progress).size, epilogueSeen: !!fun.story?.epilogueSeen })}
             onEnding={(part) => onEnding(part)}
-            onSuspects={([1, 2] as SuspectBoard[]).filter((board) => BOARD_AFTER[board] === chapter.unit).map((board) => () => onSuspects(board))[0]} />}
+            onSuspects={SUSPECT_BOARDS.filter((board) => BOARD_AFTER[board] === chapter.unit).map((board) => () => onSuspects(board))[0]} />}
           <div className="fq-reward-stars" data-testid="status-mission-stars" role="img" aria-label={`${stars} of 3 stars`}>{[0, 1, 2].map((star) => <Star key={star} size={44} strokeWidth={2.5} className={star < stars ? 'filled' : ''} style={{ animationDelay: `${0.7 + star * 0.38}s` }} />)}</div>
           <div className="fq-reward-actions">
             {nextMission ? <button className="fq-button secondary" onClick={() => onNext(nextMission.id)} data-testid={`button-next-mission-${nextMission.id}`}>Next lesson <ArrowRight size={17} /></button> : <span className="fq-course-finished">Course complete!</span>}
@@ -1434,7 +1437,29 @@ function Game() {
   const breakIntervalMinutes = fun.breakPreferences?.intervalMinutes ?? 15;
   const quietBreaks = fun.breakPreferences?.quietMode ?? false;
   const activeStudyView = ['play', 'review', 'daily', 'lab', 'redo', 'extra', 'retention'].includes(view.type);
-  useAccountSync(progress, fun, !moduleTestActive);
+  // A save that met a copy saved on another device (a phone and a tablet) brings it back: merge it into what is on
+  // screen, so the next save keeps both devices' lessons. A copy a grown-up cleared replaces this one.
+  const latest = useRef({ progress, fun });
+  latest.current = { progress, fun };
+  const onSavedCopy = useCallback((notice: SavedCopyNotice) => {
+    const merge = (mine: { progress: Progress; fun: FunState }) => (notice.cleared
+      ? { progress: notice.progress, fun: notice.fun }
+      : { progress: mergeProgress(notice.progress, mine.progress), fun: mergeFun(notice.fun, mine.fun) });
+    const kept = originalModuleTestProgress.current;
+    if (kept) {
+      // A developer test is on screen: merge into the progress it gives back when it ends.
+      const merged = merge({ progress: kept, fun: originalModuleTestFun.current ?? latest.current.fun });
+      originalModuleTestProgress.current = merged.progress;
+      originalModuleTestFun.current = merged.fun;
+      return;
+    }
+    const merged = merge(latest.current);
+    const progressNow = cleanProgress(merged.progress);
+    setSaveError(!saveProgress(progressNow));
+    setProgress(progressNow);
+    setFun(replaceFun(merged.fun));
+  }, []);
+  useAccountSync(progress, fun, !moduleTestActive, onSavedCopy);
   const timeUpNow = !!timeToday(fun)?.up;
   useEffect(() => {
     answeredAtTimeUp.current = timeUpNow ? (fun.activity?.[today()]?.answered ?? 0) : null;

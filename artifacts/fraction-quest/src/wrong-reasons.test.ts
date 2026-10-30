@@ -150,6 +150,55 @@ const TABLE: [string, string, string, string][] = [
   ['A frog jumps 3/8 each time. Where is it after 2 jumps?', '6/8', '3/16', 'WHY.timesBottomOnly'],
   ['Which is the same as 3 × 2/5?', '6 × 1/5', '3 × 1/5', 'WHY.unitCount'],
   ['Which is the same as 3 × 2/5?', '6 × 1/5', '6 × 1/12', 'WHY.sameBottom'],
+  // 6. Practice picks that used to get only the hint (rescore 3): the slip behind each one.
+  ['Is this square cut into fourths?', 'Yes, same-size parts', 'No, fourths must be squares', 'WHY.shapeNotSize'],
+  ['Is this square cut into fourths?', 'Yes, same-size parts', 'Yes, because there are 4 parts', 'WHY.countNotSize'],
+  ['This square is cut into 1 small square and 6 triangles. Are all the parts equal in area?', 'No, the small square covers more', 'Yes, they all fill the square', 'WHY.fillNotEqual'],
+  ['Are the outcomes on this spinner equally likely?', 'No, one part is bigger', 'Yes, it can land on any part', 'WHY.landNotLikely'],
+  ['How many sixths make one whole?', '6', '5', 'WHY.partsInWhole'],
+  ['3 friends share a pizza fairly. What fraction does each friend get?', '1/3', '3/3', 'WHY.wholeNotShare'],
+  ['A line has 4 equal spaces from 0 to 1. What fraction is 1 space?', '1/4', '4/4', 'WHY.allSpaces'],
+  ['A frog makes 3 jumps. Each jump is 1/4 meter. How far did it go?', '3/4 meter', '1/4 meter', 'WHY.oneJump'],
+  ['A frog makes 3 jumps. Each jump is 1/4 meter. How far did it go?', '3/4 meter', '3 meters', 'WHY.jumpsNotWholes'],
+  ['Which is closer to 1/2: 5/6 or 4/6?', '4/6', '5/6', 'WHY.farther'],
+  ['Which is farther from one whole: 1/2 or 1/6?', '1/6', '1/2', 'WHY.nearer'],
+  ['How much is missing from 3/4 to make one whole?', '1/4', '3/4', 'WHY.sameAgain'],
+  ['Use eighths. Which fraction is 1 part less than half?', '3/8', '5/8', 'WHY.wrongSideHalf'],
+  ['Cut every fourth into 2 equal spaces. What is 1 new space?', '1/8', '1/4', 'WHY.beforeCut'],
+  ['Each fourth of a bar is cut in half. What fraction of the whole bar is one small part?', '1/8', '1/6', 'WHY.cutAdds'],
+  ['How many fourths make 2 wholes?', '8', '4', 'WHY.justOneWhole'],
+  ['Each bar is one whole. Which mixed number is shaded?', '1 and 2/3', '2/3', 'WHY.leftWholes'],
+  ['Start with 5/8. Take away 2/8. How many eighths are left?', '3', '7', 'WHY.otherOpTake'],
+  ['A cat eats 1/4 cup of food, then 2/4 cup more. How much in all?', '3/4 cup', '2/4 cup', 'WHY.oneAmount'],
+  ['Mia reads 2/8 of a book on Monday and 3/8 on Tuesday. How much is left to read? First, how much does she read in all?', '5/8', '3/8', 'WHY.oneAmount'],
+  ['A ribbon is 5/6 meter long. Cut off 1/6 meter, then 2/6 meter. How much is left? First, how long is it after the first cut?', '4/6 meter', '2/6 meter', 'WHY.bothSteps'],
+  ['For 1/2 + 1/3, what is 1/2 in sixths?', '3/6', '2/6', 'WHY.otherFraction'],
+  ['For 1/2 + 1/3, what is 1/2 in sixths?', '3/6', '5/6', 'WHY.wholeSum'],
+  ['A board is 3/4 meter long. How many eighths of a meter is that?', '6/8 meter', '3/8 meter', 'WHY.keptTop'],
+  ['Use fourths. Which mixed number is the same as 2 1/2?', '2 2/4', '4 2/4', 'WHY.keepWholes'],
+  ['Make both fractions tenths. Then 1/2 + 1/5 = ?', '7/10', '2/10', 'WHY.timesBottoms'],
+  ['Fourths and eighths are different sizes. To make them match, which fraction do you rename?', '1/4, as eighths', 'Neither one', 'WHY.mustRename'],
+  ['3/4 = ?/12. What was 4 multiplied by to make 12?', '3', '8', 'WHY.addNotTimes'],
+  ['Does 2 divide both 3 and 8?', 'No, 2 does not divide 3', 'No, 2 does not divide 8', 'WHY.checkOther'],
+  ['This bar shows copies of 1/8. How do you write it with ×?', '5 × 1/8', '8 × 1/5', 'WHY.copiesFirst'],
+  ['How many minutes are in 2/3 of an hour?', '40 minutes', '60 minutes', 'WHY.whole'],
+  ['How many inches are in 1 1/2 feet?', '18 inches', '12 inches', 'WHY.leftFraction'],
+  ['A race takes 1/2 hour. The cool-down takes 5 more minutes. How many minutes in all?', '35 minutes', '6 minutes', 'WHY.changeUnits'],
+  ['Ana has 30 stickers. She gives 1/3 of them to Ben. How many stickers does Ana have left?', '20', '10', 'WHY.given'],
+  ['A rectangle is 4 units long and 3 units wide. What is its area?', '12 square units', '14 square units', 'WHY.perimeter'],
+  ['A square has 4 rows and 5 columns. Shade 3 rows and 2 columns. How many boxes are in the overlap?', '6', '20', 'WHY.wholeGrid'],
+  ['2 friends share 1/4 of a cake equally. What fraction of the whole cake does each friend get?', '1/8', '1/4', 'WHY.notSplit'],
+  ['2 children share 1/6 of a pan. 1/6 ÷ 2 = ?', '1/12', '2/12', 'WHY.sameAsBefore'],
+  ['Pip has 3 pounds of clay. Each bag holds 1/4 pound. Is this sharing or fitting?', 'Fitting', 'Adding', 'WHY.notAddTake'],
+  ['How many hundredths is 0.08?', '8', '80', 'WHY.places'],
+  ['How many hundredths is 0.9?', '90', '900', 'WHY.tenthHundredths'],
+  ['A grid has 100 equal squares. 7 are shaded. What fraction is shaded?', '7/100', '7/10', 'WHY.hundredBottom'],
+  ['Mia eats 0.5 of a small pizza. Leo eats 0.4 of a big pizza. Who eats more?', "You can't tell", 'Mia', 'WHY.lookAtWholes'],
+  ['Tim says 2 × 3/8 = 6/16. Is that right?', 'No, the parts stay eighths', 'No, 2 × 3 is not 6', 'WHY.topsFine'],
+  ['Mo works out 2/8 + 3/8 + 1/8. Step 1: 2/8 + 3/8 = 6/8. Step 2: 6/8 + 1/8 = 7/8. Which is the first wrong step?', 'Step 1', 'Step 2', 'WHY.checkSteps'],
+  ['The line plot shows water in 6 beakers: 2/8, 2/8, 5/8, 5/8, 5/8, 8/8 liter. How much more do all the 5/8 beakers hold together than all the 2/8 beakers together?', '1 3/8 liters', '3/8 liter', 'WHY.oneEach'],
+  ['6/4 liters of water is shared equally by 3 cups. How much goes in each cup?', '2/4 liter', '6/4 liters', 'WHY.total'],
+  ['A strip has 10 equal parts. 9 are colored. What fraction is not colored?', '1/10', '9/10', 'WHY.otherParts'],
 ];
 
 describe('the exact reason for a wrong tap', () => {
@@ -239,8 +288,20 @@ describe('the exact reason for a wrong tap', () => {
     }
   });
 
-  it('keeps at least 72 percent of all wrong choices named (it was 64.5 before the unused review copies were removed)', () => {
+  it('names at least 99 percent of all wrong choices (72.4 percent in rescore 3; 99.2 after the practice picks got their slips)', () => {
     const reasons = wrongChoices.map(reasonOf);
-    assert.ok(reasons.filter(Boolean).length / reasons.length >= 0.72);
+    const named = reasons.filter(Boolean).length / reasons.length;
+    assert.ok(named >= 0.99, `${(named * 100).toFixed(1)}% of wrong choices have a reason`);
+  });
+
+  it('never puts the right answer in a reason, and the new reasons carry no digit', () => {
+    const leaks = wrongChoices.flatMap((w) => {
+      const reason = reasonOf(w); const right = w.q.choices[w.q.correctChoice].trim().toLowerCase();
+      return reason && new RegExp(`(?<![\\w/])${right.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w/])`).test(reason.toLowerCase()) ? [`${w.q.id}: ${w.choice} -> ${reason}`] : [];
+    });
+    assert.deepEqual(leaks.slice(0, 5), []);
+    const start = Object.keys(WHY).indexOf('shapeNotSize');
+    assert.ok(start > 0, 'the practice-pick reasons are in WHY');
+    for (const [key, sentence] of Object.entries(WHY).slice(start)) assert.doesNotMatch(sentence, /\d/, `${key} has a digit`);
   });
 });

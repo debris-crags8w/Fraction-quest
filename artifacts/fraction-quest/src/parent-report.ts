@@ -45,6 +45,8 @@ export type MonthView = {
 };
 /** Steps 2 and 3 need at least this share of worksheet answers right on the first try across the standard's lessons. */
 export const PRACTISED_FIRST_TRY = 70;
+/** The report footer's line on how "First try" is counted (the tiles, the glance and the share text count the same way). */
+export const HOW_TO_READ_FIRST_TRY = '"First try" counts worksheet answers that were right the first time they were checked, without the Hint.';
 export type ParentReport = {
   lessonsDone: number; lessonsTotal: number; stars: number; xp: number; streak: number;
   /** Days in the last 35 that spare oil covered: they kept the streak going without practice. */ savedDays: number; spareOil: number;

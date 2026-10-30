@@ -75,14 +75,14 @@ export const REASON_SLIPS: Record<string, [string, string, string]> = {
   'divide-whole-by-unit-fraction': ['Dividing always makes it smaller', 'Count the wholes, not the parts', 'Count one whole only'],
   'multiplication-scaling': ['Multiplying always makes it bigger', 'A fraction of it is more', 'The size stays the same'],
   'bigger-or-smaller': ['Multiplying always makes it bigger', 'Compare the factor with 0', 'Bigger numbers always win'],
-  'unit-fraction-divided-whole': ['Sharing makes each share bigger', 'Add the friends to the denominator', 'Each friend gets the whole part'],
+  'unit-fraction-divided-whole': ['Sharing makes each share bigger', 'Add the children to the denominator', 'Each child gets the whole part'],
   'share-or-fit': ['Sharing and fitting are the same', 'Dividing always makes it smaller', 'Fit splits, share counts'],
   // Unit 12 · Measure and share
   'fraction-of-length': ['Count every tick mark', 'Spaces can be any size', 'Start counting the spaces at 1'],
   'fractional-measure-addition': ['Add the denominators too', 'Add across, top and bottom', 'Add the numerators as they are'],
   'line-plot-leveling': ['Give everyone the biggest amount', 'Give each cup the smallest amount', 'Add the denominators'],
   'fractional-unit-conversions': ['Use the fraction as the answer', 'Multiply by the denominator', 'Every unit has 100 parts'],
-  'fractional-sharing': ['Friends ÷ loaves is each share', 'Each friend gets one loaf', 'Add the loaves and friends'],
+  'fractional-sharing': ['Divide the other way round', 'Each one gets one whole', 'Add the two numbers together'],
   'fraction-as-division': ['The fraction bar means minus', 'Divide the bottom by the top', 'A fraction can’t be division'],
   // Unit 13 · Chance and area
   'fraction-probability': ['Wanted ones out of the rest', 'All out of the wanted ones', 'One out of the total'],

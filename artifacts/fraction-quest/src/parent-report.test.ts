@@ -6,7 +6,7 @@ import {
 } from './game';
 import { emptyLearningRecord, type LearningRecord } from './learning';
 import { getBuildChecks, getWorksheet } from './learning-content';
-import { buildParentReport, glanceShareText } from './parent-report';
+import { buildParentReport, glanceShareText, HOW_TO_READ_FIRST_TRY } from './parent-report';
 import { FRACTION_STANDARDS } from './standard-catalog';
 import { IDEA_KEYS, ideaForMission } from './parent-ideas';
 import type { FunState } from './lib/fun';
@@ -188,6 +188,12 @@ describe('right the first time means without the Hint', () => {
   });
 });
 
+describe('the report footer explains first try the way the cards count it', () => {
+  it('says the answer was right the first time without the Hint, as the tiles and share text do', () => {
+    assert.match(HOW_TO_READ_FIRST_TRY, /right the first time they were checked, without the Hint\./);
+  });
+});
+
 describe('"learned this week" uses the same 7 calendar days as the day tiles', () => {
   it('leaves out a lesson finished the evening before the first tile, even though it is under 168 hours ago', () => {
     const [early, inside, today] = MISSIONS.map((mission) => mission.id);
@@ -207,6 +213,10 @@ describe('what to practice names the skill the lesson teaches', () => {
     'fractional-measure-addition': 'Adding and subtracting different-size parts',
     'multiply-mixed-numbers': 'Word problems that multiply fractions',
     'find-the-whole': 'Finding the whole from a part',
+    // Lesson 9 estimates with 0, 1/2 and 1; lesson 14 makes a line plot; lesson 21 joins same-size parts into one whole.
+    'fraction-magnitude': 'Comparing to zero, one half and one',
+    'build-line-plots': 'Making a line plot',
+    'compose-to-one': 'Adding and subtracting same-size parts',
   };
   for (const [id, heading] of Object.entries(expected)) {
     it(`${id} is filed under "${heading}"`, () => {
