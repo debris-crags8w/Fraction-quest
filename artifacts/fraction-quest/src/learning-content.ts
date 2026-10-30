@@ -1434,7 +1434,7 @@ function buildWorksheet(id: string, variant: number): WorksheetProblem[] {
           visual = model(top, bottom);
           // "Cut every part into 4" names the answer when the numerator is 1, so the blank-numerator rows give the new part count instead.
           hint = i % 2 ? `Cut each part into ${factor} equal parts. Now count the shaded parts and all the parts.` : `Cut each part into smaller equal parts until the bar has ${bottom * factor} parts. Now count the shaded parts and all the parts.`;
-          why = i % 2 ? `Cutting every part into ${factor} makes ${bottom * factor} parts in all, and ${top * factor} of them are shaded.`
+          why = i % 2 ? `Cutting every part into ${factor} makes ${bottom * factor} parts in each whole, and ${top * factor} ${top * factor === 1 ? 'is' : 'are'} shaded.`
             : `Each part becomes ${factor} smaller parts. ${top === 1 ? '1 shaded part becomes' : `${top} shaded parts become`} ${top * factor}.`;
           // The same amount, cut a different way, in a square.
           if (i === 10) {
