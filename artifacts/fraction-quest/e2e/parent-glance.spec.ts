@@ -71,7 +71,7 @@ test('the grown-ups report shows the week, skills by standard, what to practice,
   await expect(page.getByTestId('parent-tip-0')).not.toContainText('More parts, smaller parts');
   // Nobody finished a worksheet this week, so no first-try rate is claimed for the week.
   await expect(glance).toContainText('—right the first time');
-  await expect(glance).toContainText('in this week’s lessons');
+  await expect(glance).toContainText('without the Hint, this week’s lessons');
   // The last 4 weeks.
   await expect(page.getByTestId('parent-month')).toContainText('4lessons finished');
   await expect(page.getByTestId('parent-month-first-try')).toContainText('shown after two weeks');
